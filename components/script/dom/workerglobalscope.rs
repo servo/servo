@@ -53,6 +53,7 @@ use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::crypto::Crypto;
 use crate::dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::idbfactory::IDBFactory;
 use crate::dom::performance::Performance;
 use crate::dom::promise::Promise;
 use crate::dom::trustedscripturl::TrustedScriptURL;
@@ -127,6 +128,7 @@ pub(crate) struct WorkerGlobalScope {
     #[no_trace]
     navigation_start: CrossProcessInstant,
     performance: MutNullableDom<Performance>,
+    indexeddb: MutNullableDom<IDBFactory>,
     trusted_types: MutNullableDom<TrustedTypePolicyFactory>,
 
     /// A [`TimerScheduler`] used to schedule timers for this [`WorkerGlobalScope`].
@@ -188,6 +190,7 @@ impl WorkerGlobalScope {
             _devtools_sender: init.from_devtools_sender,
             navigation_start: CrossProcessInstant::now(),
             performance: Default::default(),
+            indexeddb: Default::default(),
             timer_scheduler: RefCell::default(),
             insecure_requests_policy,
             trusted_types: Default::default(),
@@ -272,6 +275,14 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
     // https://html.spec.whatwg.org/multipage/#dom-workerglobalscope-self
     fn Self_(&self) -> DomRoot<WorkerGlobalScope> {
         DomRoot::from_ref(self)
+    }
+
+    // https://w3c.github.io/IndexedDB/#factory-interface
+    fn IndexedDB(&self) -> DomRoot<IDBFactory> {
+        self.indexeddb.or_init(|| {
+            let global_scope = self.upcast::<GlobalScope>();
+            IDBFactory::new(global_scope)
+        })
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-workerglobalscope-location

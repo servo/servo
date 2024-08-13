@@ -99,6 +99,7 @@ static SECURITY_CALLBACKS: JSSecurityCallbacks = JSSecurityCallbacks {
 pub(crate) enum ScriptThreadEventCategory {
     AttachLayout,
     ConstellationMsg,
+    DatabaseAccessEvent,
     DevtoolsMsg,
     DocumentEvent,
     FileRead,

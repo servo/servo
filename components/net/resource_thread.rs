@@ -23,6 +23,7 @@ use ipc_channel::ipc::{self, IpcReceiver, IpcReceiverSet, IpcSender};
 use log::{debug, trace, warn};
 use net_traits::blob_url_store::parse_blob_url;
 use net_traits::filemanager_thread::FileTokenCheck;
+use net_traits::indexeddb_thread::IndexedDBThreadMsg;
 use net_traits::pub_domains::public_suffix_list_size_of;
 use net_traits::request::{Destination, RequestBuilder, RequestId};
 use net_traits::response::{Response, ResponseInit};
@@ -57,6 +58,7 @@ use crate::hsts::{self, HstsList};
 use crate::http_cache::HttpCache;
 use crate::http_loader::{HttpState, http_redirect_fetch};
 use crate::protocols::ProtocolRegistry;
+use crate::indexeddb::idb_thread::IndexedDBThreadFactory;
 use crate::request_interceptor::RequestInterceptor;
 use crate::storage_thread::StorageThreadFactory;
 use crate::websocket_loader;
@@ -104,11 +106,12 @@ pub fn new_resource_threads(
         ignore_certificate_errors,
         protocols,
     );
+    let idb: IpcSender<IndexedDBThreadMsg> = IndexedDBThreadFactory::new(config_dir.clone());
     let storage: IpcSender<StorageThreadMsg> =
         StorageThreadFactory::new(config_dir, mem_profiler_chan);
     (
-        ResourceThreads::new(public_core, storage.clone()),
-        ResourceThreads::new(private_core, storage),
+        ResourceThreads::new(public_core, storage.clone(), idb.clone()),
+        ResourceThreads::new(private_core, storage, idb),
     )
 }
 
