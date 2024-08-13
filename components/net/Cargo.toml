@@ -30,6 +30,7 @@ flate2 = "1"
 futures = { version = "0.3", package = "futures" }
 generic-array = "0.14"
 headers = { workspace = true }
+heed = "0.20"
 http = { workspace = true }
 hyper = { workspace = true, features = ["client", "http1", "http2", "tcp", "stream"] }
 hyper-rustls = { workspace = true }
@@ -48,6 +49,7 @@ percent-encoding = { workspace = true }
 pixels = { path = "../pixels" }
 profile_traits = { workspace = true }
 rayon = { workspace = true }
+rkv = "0.10"
 rustls = { workspace = true }
 rustls-pemfile = { workspace = true }
 serde = { workspace = true }
