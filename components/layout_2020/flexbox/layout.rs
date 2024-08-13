@@ -1554,6 +1554,7 @@ impl InitialFlexLineLayout<'_> {
                         .baseline_relative_to_margin_box
                         .unwrap_or_default(),
                     shared_alignment_baseline.unwrap_or_default(),
+                    flex_context.flex_wrap_reverse,
                 );
 
                 let start_corner = FlexRelativeVec2 {
@@ -1886,23 +1887,33 @@ impl FlexItem<'_> {
         line_cross_size: Au,
         propagated_baseline: Au,
         max_propagated_baseline: Au,
+        wrap_reverse: bool,
     ) -> Au {
+        let ending_alignment = line_cross_size - *used_cross_size - self.pbm_auto_is_zero.cross;
         let outer_cross_start =
             if self.margin.cross_start.is_auto() || self.margin.cross_end.is_auto() {
                 Au::zero()
             } else {
                 match self.align_self.0.value() {
-                    AlignFlags::STRETCH | AlignFlags::FLEX_START => Au::zero(),
-                    AlignFlags::FLEX_END => {
-                        let margin_box_cross = *used_cross_size + self.pbm_auto_is_zero.cross;
-                        line_cross_size - margin_box_cross
-                    },
-                    AlignFlags::CENTER => {
-                        let margin_box_cross = *used_cross_size + self.pbm_auto_is_zero.cross;
-                        (line_cross_size - margin_box_cross) / 2
-                    },
+                    AlignFlags::FLEX_START | AlignFlags::STRETCH => Au::zero(),
+                    AlignFlags::FLEX_END => ending_alignment,
+                    AlignFlags::CENTER => ending_alignment / 2,
                     AlignFlags::BASELINE | AlignFlags::LAST_BASELINE => {
                         max_propagated_baseline - propagated_baseline
+                    },
+                    AlignFlags::START => {
+                        if !wrap_reverse {
+                            Au::zero()
+                        } else {
+                            ending_alignment
+                        }
+                    },
+                    AlignFlags::END => {
+                        if !wrap_reverse {
+                            ending_alignment
+                        } else {
+                            Au::zero()
+                        }
                     },
                     _ => Au::zero(),
                 }
