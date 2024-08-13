@@ -606,7 +606,7 @@ interface mixin GPUPipelineBase {
 
 dictionary GPUProgrammableStage {
     required GPUShaderModule module;
-    required USVString entryPoint;
+    USVString entryPoint;
 };
 
 [Exposed=(Window, DedicatedWorker), Serializable, Pref="dom.webgpu.enabled"]

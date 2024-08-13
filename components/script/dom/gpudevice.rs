@@ -258,7 +258,12 @@ impl GPUDevice {
             vertex: wgpu_pipe::VertexState {
                 stage: wgpu_pipe::ProgrammableStageDescriptor {
                     module: descriptor.vertex.parent.module.id().0,
-                    entry_point: Some(Cow::Owned(descriptor.vertex.parent.entryPoint.to_string())),
+                    entry_point: descriptor
+                        .vertex
+                        .parent
+                        .entryPoint
+                        .as_ref()
+                        .map(|ep| Cow::Owned(ep.to_string())),
                     constants: Cow::Owned(HashMap::new()),
                     zero_initialize_workgroup_memory: true,
                 },
@@ -295,7 +300,11 @@ impl GPUDevice {
                     Ok(wgpu_pipe::FragmentState {
                         stage: wgpu_pipe::ProgrammableStageDescriptor {
                             module: stage.parent.module.id().0,
-                            entry_point: Some(Cow::Owned(stage.parent.entryPoint.to_string())),
+                            entry_point: stage
+                                .parent
+                                .entryPoint
+                                .as_ref()
+                                .map(|ep| Cow::Owned(ep.to_string())),
                             constants: Cow::Owned(HashMap::new()),
                             zero_initialize_workgroup_memory: true,
                         },
@@ -737,7 +746,11 @@ impl GPUDeviceMethods for GPUDevice {
             layout,
             stage: wgpu_pipe::ProgrammableStageDescriptor {
                 module: descriptor.compute.module.id().0,
-                entry_point: Some(Cow::Owned(descriptor.compute.entryPoint.to_string())),
+                entry_point: descriptor
+                    .compute
+                    .entryPoint
+                    .as_ref()
+                    .map(|ep| Cow::Owned(ep.to_string())),
                 constants: Cow::Owned(HashMap::new()),
                 zero_initialize_workgroup_memory: true,
             },
@@ -784,7 +797,11 @@ impl GPUDeviceMethods for GPUDevice {
             layout,
             stage: wgpu_pipe::ProgrammableStageDescriptor {
                 module: descriptor.compute.module.id().0,
-                entry_point: Some(Cow::Owned(descriptor.compute.entryPoint.to_string())),
+                entry_point: descriptor
+                    .compute
+                    .entryPoint
+                    .as_ref()
+                    .map(|ep| Cow::Owned(ep.to_string())),
                 constants: Cow::Owned(HashMap::new()),
                 zero_initialize_workgroup_memory: true,
             },
