@@ -661,12 +661,6 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
                     '%s' % (firstCap(sourceDescription), exceptionCode))),
             post="\n")
 
-    def onFailureInvalidEnumValue(failureCode, passedVarName):
-        return CGGeneric(
-            failureCode
-            or ('throw_type_error(*cx, &format!("\'{}\' is not a valid enum value for enumeration \'%s\'.", %s)); %s'
-                % (type.name, passedVarName, exceptionCode)))
-
     def onFailureNotCallable(failureCode):
         return CGGeneric(
             failureCode
