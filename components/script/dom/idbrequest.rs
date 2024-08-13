@@ -2,45 +2,40 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
+
+use dom_struct::dom_struct;
+use ipc_channel::router::ROUTER;
+use js::jsapi::Heap;
+use js::jsval::{JSVal, UndefinedValue};
+use js::rust::HandleValue;
+use net_traits::indexeddb_thread::{AsyncOperation, IndexedDBThreadMsg, IndexedDBTxnMode};
+use net_traits::IpcSend;
+use profile_traits::ipc;
+use script_traits::StructuredSerializedData;
+use servo_atoms::Atom;
+
+use crate::compartments::enter_realm;
 use crate::dom::bindings::codegen::Bindings::IDBRequestBinding;
-use crate::dom::bindings::codegen::Bindings::IDBRequestBinding::IDBRequestMethods;
-use crate::dom::bindings::codegen::Bindings::IDBRequestBinding::IDBRequestReadyState;
+use crate::dom::bindings::codegen::Bindings::IDBRequestBinding::{
+    IDBRequestMethods, IDBRequestReadyState,
+};
 use crate::dom::bindings::codegen::Bindings::IDBTransactionBinding::IDBTransactionMode;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
-use crate::dom::domexception::DOMErrorName;
-use crate::dom::event::{Event, EventBubbles, EventCancelable};
-use crate::dom::globalscope::GlobalScope;
-use crate::task_source::database_access::DatabaseAccessTaskSource;
-use crate::task_source::TaskSource;
-
-use dom_struct::dom_struct;
-
-use crate::compartments::enter_realm;
 use crate::dom::bindings::structuredclone;
-use crate::dom::domexception::DOMException;
+use crate::dom::domexception::{DOMErrorName, DOMException};
+use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
+use crate::dom::globalscope::GlobalScope;
 use crate::dom::idbobjectstore::IDBObjectStore;
 use crate::dom::idbtransaction::IDBTransaction;
-
 use crate::script_runtime::JSContext as SafeJSContext;
-use js::jsapi::Heap;
-use js::jsval::JSVal;
-use js::rust::HandleValue;
-use servo_atoms::Atom;
-
-use ipc_channel::router::ROUTER;
-use net_traits::indexeddb_thread::{AsyncOperation, IndexedDBThreadMsg, IndexedDBTxnMode};
-use net_traits::IpcSend;
-use profile_traits::ipc;
-
-use js::jsval::UndefinedValue;
-use script_traits::StructuredSerializedData;
-
-use std::cell::Cell;
+use crate::task_source::database_access::DatabaseAccessTaskSource;
+use crate::task_source::TaskSource;
 
 #[derive(Clone)]
 struct RequestListener {

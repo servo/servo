@@ -2,38 +2,37 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::DOMStringListBinding::DOMStringListBinding::DOMStringListMethods;
-use crate::dom::bindings::codegen::Bindings::IDBTransactionBinding;
-use crate::dom::bindings::codegen::Bindings::IDBTransactionBinding::IDBTransactionMethods;
-use crate::dom::bindings::codegen::Bindings::IDBTransactionBinding::IDBTransactionMode;
-use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
-use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
-use crate::dom::bindings::str::DOMString;
-use crate::dom::event::{Event, EventBubbles, EventCancelable};
-use crate::dom::globalscope::GlobalScope;
-use crate::task_source::TaskSource;
-
-use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::domexception::DOMException;
-use crate::dom::domstringlist::DOMStringList;
-use crate::dom::eventtarget::EventTarget;
-use crate::dom::idbdatabase::IDBDatabase;
-use crate::dom::idbobjectstore::IDBObjectStore;
-use crate::dom::idbrequest::IDBRequest;
+use std::cell::Cell;
+use std::collections::HashMap;
 
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
 use net_traits::indexeddb_thread::{IndexedDBThreadMsg, IndexedDBThreadReturnType, SyncOperation};
 use net_traits::IpcSend;
 use profile_traits::ipc;
-
 use servo_atoms::Atom;
 
-use std::cell::Cell;
-use std::collections::HashMap;
+use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::DOMStringListBinding::DOMStringListBinding::DOMStringListMethods;
+use crate::dom::bindings::codegen::Bindings::IDBTransactionBinding;
+use crate::dom::bindings::codegen::Bindings::IDBTransactionBinding::{
+    IDBTransactionMethods, IDBTransactionMode,
+};
+use crate::dom::bindings::error::{Error, Fallible};
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::refcounted::Trusted;
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
+use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
+use crate::dom::bindings::str::DOMString;
+use crate::dom::domexception::DOMException;
+use crate::dom::domstringlist::DOMStringList;
+use crate::dom::event::{Event, EventBubbles, EventCancelable};
+use crate::dom::eventtarget::EventTarget;
+use crate::dom::globalscope::GlobalScope;
+use crate::dom::idbdatabase::IDBDatabase;
+use crate::dom::idbobjectstore::IDBObjectStore;
+use crate::dom::idbrequest::IDBRequest;
+use crate::task_source::TaskSource;
 
 #[dom_struct]
 pub struct IDBTransaction {

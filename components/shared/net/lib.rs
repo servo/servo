@@ -350,7 +350,11 @@ pub struct ResourceThreads {
 }
 
 impl ResourceThreads {
-    pub fn new(c: CoreResourceThread, s: IpcSender<StorageThreadMsg>, i: IpcSender<IndexedDBThreadMsg>) -> ResourceThreads {
+    pub fn new(
+        c: CoreResourceThread,
+        s: IpcSender<StorageThreadMsg>,
+        i: IpcSender<IndexedDBThreadMsg>,
+    ) -> ResourceThreads {
         ResourceThreads {
             core_thread: c,
             storage_thread: s,

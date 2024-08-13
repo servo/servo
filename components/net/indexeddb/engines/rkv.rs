@@ -2,19 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use super::{KvsEngine, KvsTransaction, SanitizedName};
-
 use std::collections::HashMap;
+use std::future::Future;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock};
 
-use tokio::prelude::Future;
+use log::warn;
+use net_traits::indexeddb_thread::{AsyncOperation, IndexedDBKeyType, IndexedDBTxnMode};
+use rkv::{Manager, Rkv, SingleStore, StoreOptions, Value};
 use tokio::sync::oneshot;
 use tokio::sync::oneshot::error::RecvError;
 
-use net_traits::indexeddb_thread::{AsyncOperation, IndexedDBKeyType, IndexedDBTxnMode};
-
-use rkv::{Manager, Rkv, SingleStore, StoreOptions, Value};
+use super::{KvsEngine, KvsTransaction, SanitizedName};
 
 // A simple store that also has a key generator that can be used if no key
 // is provided for the stored objects

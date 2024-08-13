@@ -1,18 +1,17 @@
-
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-pub use self::rkv::RkvEngine;
-
 use std::collections::VecDeque;
+use std::future::Future;
 
 use ipc_channel::ipc::IpcSender;
 use net_traits::indexeddb_thread::{AsyncOperation, IndexedDBTxnMode};
-use tokio::prelude::Future;
 use tokio::sync::oneshot::error::RecvError;
 
-mod heed;
+pub use self::rkv::RkvEngine;
+
+// mod heed;
 mod rkv;
 
 #[derive(Eq, Hash, PartialEq)]

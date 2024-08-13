@@ -2,25 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::IDBDatabaseBinding::IDBObjectStoreParameters;
-use crate::dom::bindings::codegen::Bindings::IDBObjectStoreBinding;
-use crate::dom::bindings::codegen::Bindings::IDBObjectStoreBinding::IDBObjectStoreMethods;
-// We need to alias this name, otherwise test-tidy complains at &String reference.
-use crate::dom::bindings::codegen::UnionTypes::StringOrStringSequence as StrOrStringSequence;
-use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
-use crate::dom::bindings::root::{DomRoot, MutNullableDom};
-use crate::dom::bindings::str::DOMString;
-use crate::dom::bindings::structuredclone;
-use crate::dom::globalscope::GlobalScope;
+use std::ptr;
 
-use crate::dom::domstringlist::DOMStringList;
-use crate::dom::idbrequest::IDBRequest;
-use crate::dom::idbtransaction::IDBTransaction;
-
-use crate::dom::bindings::codegen::Bindings::IDBTransactionBinding::IDBTransactionMode;
-use crate::script_runtime::JSContext as SafeJSContext;
 use dom_struct::dom_struct;
 use js::conversions::ToJSValConvertible;
 use js::jsapi::{
@@ -28,17 +11,31 @@ use js::jsapi::{
     JS_GetOwnUCPropertyDescriptor, JS_GetStringLength, JS_IsArrayBufferViewObject, ObjectOpResult,
     ObjectOpResult_SpecialCodes, PropertyDescriptor,
 };
-use js::jsval::JSVal;
-use js::jsval::UndefinedValue;
+use js::jsval::{JSVal, UndefinedValue};
 use js::rust::{HandleValue, MutableHandleValue};
-
 use net_traits::indexeddb_thread::{
     AsyncOperation, IndexedDBKeyType, IndexedDBThreadMsg, SyncOperation,
 };
 use net_traits::IpcSend;
 use profile_traits::ipc;
 
-use std::ptr;
+use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::IDBDatabaseBinding::IDBObjectStoreParameters;
+use crate::dom::bindings::codegen::Bindings::IDBObjectStoreBinding;
+use crate::dom::bindings::codegen::Bindings::IDBObjectStoreBinding::IDBObjectStoreMethods;
+use crate::dom::bindings::codegen::Bindings::IDBTransactionBinding::IDBTransactionMode;
+// We need to alias this name, otherwise test-tidy complains at &String reference.
+use crate::dom::bindings::codegen::UnionTypes::StringOrStringSequence as StrOrStringSequence;
+use crate::dom::bindings::error::{Error, Fallible};
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::root::{DomRoot, MutNullableDom};
+use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::structuredclone;
+use crate::dom::domstringlist::DOMStringList;
+use crate::dom::globalscope::GlobalScope;
+use crate::dom::idbrequest::IDBRequest;
+use crate::dom::idbtransaction::IDBTransaction;
+use crate::script_runtime::JSContext as SafeJSContext;
 
 #[derive(JSTraceable, MallocSizeOf)]
 pub enum KeyPath {

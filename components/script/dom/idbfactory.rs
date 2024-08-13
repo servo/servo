@@ -2,6 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::rc::Rc;
+
+use dom_struct::dom_struct;
+use js::rust::HandleValue;
+use servo_url::origin::ImmutableOrigin;
+
 use crate::dom::bindings::codegen::Bindings::IDBFactoryBinding;
 use crate::dom::bindings::codegen::Bindings::IDBFactoryBinding::IDBFactoryMethods;
 use crate::dom::bindings::error::{Error, Fallible};
@@ -12,11 +18,6 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::idbopendbrequest::IDBOpenDBRequest;
 use crate::dom::promise::Promise;
 use crate::script_runtime::JSContext as SafeJSContext;
-
-use dom_struct::dom_struct;
-use js::rust::HandleValue;
-use servo_url::origin::ImmutableOrigin;
-use std::rc::Rc;
 
 #[dom_struct]
 pub struct IDBFactory {

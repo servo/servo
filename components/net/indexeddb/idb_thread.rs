@@ -2,25 +2,24 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::indexeddb::engines::{
-    KvsEngine, KvsOperation, KvsTransaction, RkvEngine, SanitizedName,
-};
-
 use std::borrow::ToOwned;
 use std::collections::hash_map::Entry;
-use std::collections::HashMap;
-use std::collections::VecDeque;
+use std::collections::{HashMap, VecDeque};
+use std::future::Future;
 use std::path::PathBuf;
 use std::thread;
 
-use tokio::prelude::Future;
-
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
+use log::warn;
 use net_traits::indexeddb_thread::{
     AsyncOperation, IndexedDBThreadMsg, IndexedDBThreadReturnType, IndexedDBTxnMode, SyncOperation,
 };
 use servo_config::pref;
 use servo_url::origin::ImmutableOrigin;
+
+use crate::indexeddb::engines::{
+    KvsEngine, KvsOperation, KvsTransaction, RkvEngine, SanitizedName,
+};
 
 pub trait IndexedDBThreadFactory {
     fn new(config_dir: Option<PathBuf>) -> Self;

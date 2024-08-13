@@ -2,11 +2,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::IDBDatabaseBinding::IDBDatabaseMethods;
-use crate::dom::bindings::codegen::Bindings::IDBDatabaseBinding::{self, IDBObjectStoreParameters};
-use crate::dom::bindings::codegen::Bindings::IDBTransactionBinding::IDBTransactionMode;
+use std::cell::Cell;
+
+use dom_struct::dom_struct;
+use ipc_channel::ipc::IpcSender;
+use net_traits::indexeddb_thread::{IndexedDBThreadMsg, SyncOperation};
+use net_traits::IpcSend;
+use profile_traits::ipc;
+use servo_atoms::Atom;
 
 use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::IDBDatabaseBinding::{
+    self, IDBDatabaseMethods, IDBObjectStoreParameters,
+};
+use crate::dom::bindings::codegen::Bindings::IDBTransactionBinding::IDBTransactionMode;
 use crate::dom::bindings::codegen::UnionTypes::StringOrStringSequence;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
@@ -14,26 +23,14 @@ use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
+use crate::dom::domstringlist::DOMStringList;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
-
-use dom_struct::dom_struct;
-
-use crate::dom::domstringlist::DOMStringList;
 use crate::dom::idbobjectstore::IDBObjectStore;
 use crate::dom::idbtransaction::IDBTransaction;
 use crate::dom::idbversionchangeevent::IDBVersionChangeEvent;
-
-use ipc_channel::ipc::IpcSender;
-use net_traits::indexeddb_thread::{IndexedDBThreadMsg, SyncOperation};
-use net_traits::IpcSend;
-use profile_traits::ipc;
-
-use std::cell::Cell;
-
 use crate::task_source::TaskSource;
-use servo_atoms::Atom;
 
 #[dom_struct]
 pub struct IDBDatabase {

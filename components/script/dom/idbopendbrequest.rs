@@ -2,6 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use dom_struct::dom_struct;
+use ipc_channel::router::ROUTER;
+use js::jsval::UndefinedValue;
+use js::rust::HandleValue;
+use net_traits::indexeddb_thread::{IndexedDBThreadMsg, SyncOperation};
+use net_traits::IpcSend;
+use profile_traits::ipc;
+use servo_atoms::Atom;
+
+use crate::compartments::enter_realm;
 use crate::dom::bindings::codegen::Bindings::IDBOpenDBRequestBinding;
 use crate::dom::bindings::codegen::Bindings::IDBOpenDBRequestBinding::IDBOpenDBRequestMethods;
 use crate::dom::bindings::codegen::Bindings::IDBTransactionBinding::IDBTransactionMode;
@@ -13,25 +23,13 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::idbrequest::IDBRequest;
-use crate::task_source::database_access::DatabaseAccessTaskSource;
-use crate::task_source::TaskSource;
-use dom_struct::dom_struct;
-use js::rust::HandleValue;
-use servo_atoms::Atom;
-
-use crate::compartments::enter_realm;
 use crate::dom::idbdatabase::IDBDatabase;
+use crate::dom::idbrequest::IDBRequest;
 use crate::dom::idbtransaction::IDBTransaction;
 use crate::dom::idbversionchangeevent::IDBVersionChangeEvent;
-
-use ipc_channel::router::ROUTER;
-use net_traits::indexeddb_thread::{IndexedDBThreadMsg, SyncOperation};
-use net_traits::IpcSend;
-use profile_traits::ipc;
-
 use crate::js::conversions::ToJSValConvertible;
-use js::jsval::UndefinedValue;
+use crate::task_source::database_access::DatabaseAccessTaskSource;
+use crate::task_source::TaskSource;
 
 #[derive(Clone)]
 struct OpenRequestListener {

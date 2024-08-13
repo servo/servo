@@ -24,6 +24,7 @@ use log::{debug, warn};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use net_traits::blob_url_store::parse_blob_url;
 use net_traits::filemanager_thread::FileTokenCheck;
+use net_traits::indexeddb_thread::IndexedDBThreadMsg;
 use net_traits::request::{Destination, RequestBuilder};
 use net_traits::response::{Response, ResponseInit};
 use net_traits::storage_thread::StorageThreadMsg;
@@ -104,7 +105,6 @@ pub fn new_resource_threads(
     (
         ResourceThreads::new(public_core, storage.clone(), idb.clone()),
         ResourceThreads::new(private_core, storage, idb),
-
     )
 }
 
