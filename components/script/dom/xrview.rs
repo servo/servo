@@ -106,4 +106,10 @@ impl XRViewMethods for XRView {
     fn Transform(&self) -> DomRoot<XRRigidTransform> {
         DomRoot::from_ref(&self.transform)
     }
+
+    /// <https://www.w3.org/TR/webxr-ar-module-1/#dom-xrview-isfirstpersonobserver>
+    fn IsFirstPersonObserver(&self) -> bool {
+        // Servo is not currently supported anywhere that supports this, so return false
+        false
+    }
 }
