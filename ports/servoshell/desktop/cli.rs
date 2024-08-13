@@ -8,6 +8,9 @@ use getopts::Options;
 use log::error;
 use servo::config::opts::{self, ArgumentParsingResult};
 use servo::servo_config::pref;
+use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::util::SubscriberInitExt;
+use tracing_subscriber::EnvFilter;
 
 use crate::desktop::app::App;
 use crate::panic_hook;
@@ -15,7 +18,19 @@ use crate::panic_hook;
 pub fn main() {
     crate::crash_handler::install();
 
-    tracing_subscriber::fmt::init();
+    // Set up a custom tracing subscriber that behaves like the default fmt
+    // subscriber, but also lets us insert our own layers for things like
+    // compositor-to-constellation and script-to-constellation logging.
+    // <https://tokio.rs/tokio/topics/tracing>
+    // <https://docs.rs/tracing-subscriber/0.3.18/tracing_subscriber/fmt/index.html#composing-layers>
+    // FIXME: our event tracing log targets are considered “invalid filter directive”
+    // <https://book.servo.org/hacking/debugging.html#event-tracing>
+    let env_filter_layer = EnvFilter::from_default_env();
+    let fmt_layer = tracing_subscriber::fmt::layer();
+    tracing_subscriber::registry()
+        .with(env_filter_layer)
+        .with(fmt_layer)
+        .init();
 
     crate::resources::init();
 
