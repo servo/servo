@@ -519,7 +519,7 @@ fn translate_including_floats(cur_b: &mut Au, delta: Au, floats: &mut Floats) {
 /// This is a traversal of an Absolute Flow tree.
 /// - Relatively positioned flows and the Root flow start new Absolute flow trees.
 /// - The kids of a flow in this tree will be the flows for which it is the
-/// absolute Containing Block.
+///   absolute Containing Block.
 /// - Thus, leaf nodes and inner non-root nodes are all Absolute Flows.
 ///
 /// A Flow tree can have several Absolute Flow trees (depending on the number
