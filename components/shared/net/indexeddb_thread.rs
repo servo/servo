@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use ipc_channel::ipc::IpcSender;
+use serde::{Deserialize, Serialize};
 use servo_url::origin::ImmutableOrigin;
 
 #[derive(Debug, Deserialize, Serialize)]

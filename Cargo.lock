@@ -466,7 +466,7 @@ dependencies = [
  "log",
  "servo_config",
  "servo_rand",
- "uuid",
+ "uuid 1.10.0",
 ]
 
 [[package]]
@@ -1128,6 +1128,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "crossbeam-queue"
+version = "0.3.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "df0346b5d5e76ac2fe4e327c5fd1118d6be7c51dfb18f9b7922923f287471e35"
+dependencies = [
+ "crossbeam-utils",
+]
+
+[[package]]
 name = "crossbeam-utils"
 version = "0.8.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1281,7 +1290,7 @@ name = "deny_public_fields"
 version = "0.0.1"
 dependencies = [
  "syn 2.0.74",
- "synstructure",
+ "synstructure 0.13.1",
 ]
 
 [[package]]
@@ -1310,7 +1319,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.74",
- "synstructure",
+ "synstructure 0.13.1",
 ]
 
 [[package]]
@@ -1342,7 +1351,7 @@ dependencies = [
  "servo_config",
  "servo_rand",
  "servo_url",
- "uuid",
+ "uuid 1.10.0",
 ]
 
 [[package]]
@@ -1358,7 +1367,7 @@ dependencies = [
  "serde",
  "servo_url",
  "time 0.1.45",
- "uuid",
+ "uuid 1.10.0",
 ]
 
 [[package]]
@@ -1499,6 +1508,15 @@ name = "downcast-rs"
 version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "75b325c5dbd37f80359721ad39aca5a29fb04c89279657cffdda8736d0c0b9d2"
+
+[[package]]
+name = "doxygen-rs"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "415b6ec780d34dcf624666747194393603d0373b7141eef01d12ee58881507d9"
+dependencies = [
+ "phf 0.11.2",
+]
 
 [[package]]
 name = "dtoa"
@@ -1773,6 +1791,27 @@ dependencies = [
  "rayon-core",
  "smallvec",
  "zune-inflate",
+]
+
+[[package]]
+name = "failure"
+version = "0.1.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d32e9bd16cc02eae7db7ef620b392808b89f6a5e16bb3497d159c6b92a0f4f86"
+dependencies = [
+ "failure_derive",
+]
+
+[[package]]
+name = "failure_derive"
+version = "0.1.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "aa4da3c766cd7a0db8242e326e9e4e081edd567072893ed320008189715366a4"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
+ "synstructure 0.12.6",
 ]
 
 [[package]]
@@ -2205,7 +2244,7 @@ dependencies = [
  "fnv",
  "gilrs-core",
  "log",
- "uuid",
+ "uuid 1.10.0",
  "vec_map",
 ]
 
@@ -2222,7 +2261,7 @@ dependencies = [
  "libudev-sys",
  "log",
  "nix",
- "uuid",
+ "uuid 1.10.0",
  "vec_map",
  "wasm-bindgen",
  "web-sys",
@@ -2816,6 +2855,44 @@ name = "heck"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2304e00983f87ffb38b55b444b5e3b60a884b5d30c0fca7d82fe33449bbe55ea"
+
+[[package]]
+name = "heed"
+version = "0.20.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f60d7cff16094be9627830b399c087a25017e93fb3768b87cd656a68ccb1ebe8"
+dependencies = [
+ "bitflags 2.6.0",
+ "byteorder",
+ "heed-traits",
+ "heed-types",
+ "libc",
+ "lmdb-master-sys",
+ "once_cell",
+ "page_size",
+ "serde",
+ "synchronoise",
+ "url",
+]
+
+[[package]]
+name = "heed-traits"
+version = "0.20.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "eb3130048d404c57ce5a1ac61a903696e8fcde7e8c2991e9fcfc1f27c3ef74ff"
+
+[[package]]
+name = "heed-types"
+version = "0.20.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9d3f528b053a6d700b2734eabcd0fd49cb8230647aa72958467527b0b7917114"
+dependencies = [
+ "bincode",
+ "byteorder",
+ "heed-traits",
+ "serde",
+ "serde_json",
+]
 
 [[package]]
 name = "hermit-abi"
@@ -3547,7 +3624,7 @@ dependencies = [
  "rand",
  "serde",
  "tempfile",
- "uuid",
+ "uuid 1.10.0",
  "windows 0.48.0",
 ]
 
@@ -3641,7 +3718,7 @@ version = "0.0.1"
 dependencies = [
  "proc-macro2",
  "syn 2.0.74",
- "synstructure",
+ "synstructure 0.13.1",
 ]
 
 [[package]]
@@ -4049,6 +4126,40 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b4ce301924b7887e9d637144fdade93f9dfff9b60981d4ac161db09720d39aa5"
 
 [[package]]
+name = "lmdb-master-sys"
+version = "0.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1de7e761853c15ca72821d9f928d7bb123ef4c05377c4e7ab69fa1c742f91d24"
+dependencies = [
+ "cc",
+ "doxygen-rs",
+ "libc",
+]
+
+[[package]]
+name = "lmdb-rkv"
+version = "0.14.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "447a296f7aca299cfbb50f4e4f3d49451549af655fb7215d7f8c0c3d64bad42b"
+dependencies = [
+ "bitflags 1.3.2",
+ "byteorder",
+ "libc",
+ "lmdb-rkv-sys",
+]
+
+[[package]]
+name = "lmdb-rkv-sys"
+version = "0.11.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "61b9ce6b3be08acefa3003c57b7565377432a89ec24476bbe72e11d101f852fe"
+dependencies = [
+ "cc",
+ "libc",
+ "pkg-config",
+]
+
+[[package]]
 name = "lock_api"
 version = "0.4.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4125,7 +4236,7 @@ dependencies = [
  "time 0.1.45",
  "tokio",
  "url",
- "uuid",
+ "uuid 1.10.0",
  "void",
  "webrender_api",
  "xml5ever",
@@ -4139,7 +4250,7 @@ checksum = "f44db74bde26fdf427af23f1d146c211aed857c59e3be750cf2617f6b0b05c94"
 dependencies = [
  "proc-macro2",
  "syn 2.0.74",
- "synstructure",
+ "synstructure 0.13.1",
 ]
 
 [[package]]
@@ -4503,6 +4614,7 @@ dependencies = [
  "futures 0.3.30",
  "generic-array",
  "headers",
+ "heed",
  "http",
  "hyper",
  "hyper-rustls",
@@ -4521,6 +4633,7 @@ dependencies = [
  "pixels",
  "profile_traits",
  "rayon",
+ "rkv",
  "rustls",
  "rustls-pemfile",
  "serde",
@@ -4538,7 +4651,7 @@ dependencies = [
  "tokio-test",
  "tungstenite",
  "url",
- "uuid",
+ "uuid 1.10.0",
  "webpki-roots",
  "webrender_api",
  "webrender_traits",
@@ -4572,7 +4685,7 @@ dependencies = [
  "servo_rand",
  "servo_url",
  "url",
- "uuid",
+ "uuid 1.10.0",
  "webrender_api",
  "webrender_traits",
 ]
@@ -4840,6 +4953,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "ordered-float"
+version = "1.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3305af35278dd29f46fcdd139e0b1fbfae2153f0e5928b39b035542dd31e37b7"
+dependencies = [
+ "num-traits",
+]
+
+[[package]]
 name = "ordermap"
 version = "0.3.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4852,6 +4974,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "490d3a563d3122bf7c911a59b0add9389e5ec0f5f0c3ac6b91ff235a0e6a7f90"
 dependencies = [
  "ttf-parser",
+]
+
+[[package]]
+name = "page_size"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "30d5b2194ed13191c1999ae0704b7839fb18384fa22e49b57eeaa97d79ce40da"
+dependencies = [
+ "libc",
+ "winapi",
 ]
 
 [[package]]
@@ -4919,7 +5051,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.74",
- "synstructure",
+ "synstructure 0.13.1",
  "unicode-xid",
 ]
 
@@ -5434,6 +5566,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "rkv"
+version = "0.10.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "30a3dbc1f4971372545ed4175f23ef206c81e5874cd574d153646e7ee78f6793"
+dependencies = [
+ "arrayref",
+ "bincode",
+ "bitflags 1.3.2",
+ "byteorder",
+ "failure",
+ "lazy_static",
+ "lmdb-rkv",
+ "ordered-float",
+ "serde",
+ "serde_derive",
+ "url",
+ "uuid 0.8.2",
+]
+
+[[package]]
 name = "rle-decode-fast"
 version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5663,7 +5815,7 @@ dependencies = [
  "unicode-segmentation",
  "url",
  "utf-8",
- "uuid",
+ "uuid 1.10.0",
  "webdriver",
  "webgpu",
  "webrender_api",
@@ -5749,7 +5901,7 @@ dependencies = [
  "smallvec",
  "style_traits",
  "time 0.1.45",
- "uuid",
+ "uuid 1.10.0",
  "webdriver",
  "webgpu",
  "webrender_api",
@@ -6071,7 +6223,7 @@ version = "0.1.0"
 source = "git+https://github.com/servo/media#adfb5467abadcc42a0c047fcfd043e5be10818e6"
 dependencies = [
  "lazy_static",
- "uuid",
+ "uuid 1.10.0",
 ]
 
 [[package]]
@@ -6087,7 +6239,7 @@ dependencies = [
  "lazy_static",
  "log",
  "servo-media-streams",
- "uuid",
+ "uuid 1.10.0",
 ]
 
 [[package]]
@@ -6168,7 +6320,7 @@ dependencies = [
  "rand",
  "rand_core",
  "rand_isaac",
- "uuid",
+ "uuid 1.10.0",
 ]
 
 [[package]]
@@ -6182,7 +6334,7 @@ dependencies = [
  "servo_rand",
  "to_shmem",
  "url",
- "uuid",
+ "uuid 1.10.0",
 ]
 
 [[package]]
@@ -6580,7 +6732,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.74",
- "synstructure",
+ "synstructure 0.13.1",
 ]
 
 [[package]]
@@ -6695,6 +6847,27 @@ dependencies = [
  "proc-macro2",
  "quote",
  "unicode-ident",
+]
+
+[[package]]
+name = "synchronoise"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3dbc01390fc626ce8d1cffe3376ded2b72a11bb70e1c75f404a210e4daa4def2"
+dependencies = [
+ "crossbeam-queue",
+]
+
+[[package]]
+name = "synstructure"
+version = "0.12.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f36bdaa60a83aca3921b5259d5400cbf5e90fc51931376a9bd4a0eb79aa7210f"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
+ "unicode-xid",
 ]
 
 [[package]]
@@ -6984,7 +7157,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.74",
- "synstructure",
+ "synstructure 0.13.1",
 ]
 
 [[package]]
@@ -7321,6 +7494,12 @@ name = "utf8_iter"
 version = "1.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b6c140620e7ffbb22c2dee59cafe6084a59b5ffc27a8859a5f0d494b5d52b6be"
+
+[[package]]
+name = "uuid"
+version = "0.8.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bc5cf98d8186244414c848017f0e2676b3fcb46807f6668a97dfe67359a3c4b7"
 
 [[package]]
 name = "uuid"
@@ -7685,7 +7864,7 @@ dependencies = [
  "servo_config",
  "servo_url",
  "style_traits",
- "uuid",
+ "uuid 1.10.0",
  "webdriver",
 ]
 
@@ -8518,7 +8697,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.74",
- "synstructure",
+ "synstructure 0.13.1",
 ]
 
 [[package]]
@@ -8560,7 +8739,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.74",
- "synstructure",
+ "synstructure 0.13.1",
 ]
 
 [[package]]
