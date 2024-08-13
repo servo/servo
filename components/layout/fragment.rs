@@ -89,7 +89,7 @@ static DEFAULT_REPLACED_HEIGHT: i32 = 150;
 /// specification:
 ///
 /// * Several fragments may correspond to the same CSS box or DOM node. For example, a CSS text box
-/// broken across two lines is represented by two fragments.
+///   broken across two lines is represented by two fragments.
 ///
 /// * Some CSS fragments are not created at all, such as some anonymous block fragments induced by
 ///   inline fragments with block-level sibling fragments. In that case, Servo uses an `InlineFlow`

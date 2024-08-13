@@ -16,18 +16,21 @@ enum XRVisibilityState {
   "hidden",
 };
 
+enum XRInteractionMode {
+  "screen-space",
+  "world-space",
+};
+
 callback XRFrameRequestCallback = undefined (DOMHighResTimeStamp time, XRFrame frame);
 
 [SecureContext, Exposed=Window, Pref="dom.webxr.enabled"]
 interface XRSession : EventTarget {
-  // // Attributes
-  readonly attribute XREnvironmentBlendMode environmentBlendMode;
-
+  // Attributes
   readonly attribute XRVisibilityState visibilityState;
   [SameObject] readonly attribute XRRenderState renderState;
   [SameObject] readonly attribute XRInputSourceArray inputSources;
 
-  // // Methods
+  // Methods
   [Throws] undefined updateRenderState(optional XRRenderStateInit state = {});
   Promise<XRReferenceSpace> requestReferenceSpace(XRReferenceSpaceType type);
 
@@ -36,10 +39,7 @@ interface XRSession : EventTarget {
 
   Promise<undefined> end();
 
-  // hit test module
-  Promise<XRHitTestSource> requestHitTestSource(XRHitTestOptionsInit options);
-
-  // // Events
+  // Events
   attribute EventHandler onend;
   attribute EventHandler onselect;
   attribute EventHandler onsqueeze;
@@ -49,4 +49,13 @@ interface XRSession : EventTarget {
   attribute EventHandler onsqueezestart;
   attribute EventHandler onsqueezeend;
   attribute EventHandler onvisibilitychange;
+
+  // AR Module
+  // Attributes
+  readonly attribute XREnvironmentBlendMode environmentBlendMode;
+  readonly attribute XRInteractionMode interactionMode;
+
+  // Hit Test Module
+  // Methods
+  Promise<XRHitTestSource> requestHitTestSource(XRHitTestOptionsInit options);
 };

@@ -15,4 +15,7 @@ interface XRView {
   readonly attribute XREye eye;
   readonly attribute Float32Array projectionMatrix;
   readonly attribute XRRigidTransform transform;
+
+  // AR Module
+  readonly attribute boolean isFirstPersonObserver;
 };
