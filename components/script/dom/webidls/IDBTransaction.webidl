@@ -8,16 +8,18 @@
  */
 
 // https://w3c.github.io/IndexedDB/#idbtransaction
-[Pref="dom.indexeddb.enabled", Exposed=(Window,Worker)]
+[Exposed=(Window,Worker)]
 interface IDBTransaction : EventTarget {
   readonly attribute DOMStringList objectStoreNames;
   readonly attribute IDBTransactionMode mode;
+  readonly attribute IDBTransactionDurability durability;
   [SameObject] readonly attribute IDBDatabase db;
-  readonly attribute DOMException error;
+  readonly attribute DOMException? error;
 
-  [Throws] IDBObjectStore objectStore(DOMString name);
-  [Throws] void commit();
-  [Throws] void abort();
+  IDBObjectStore objectStore(DOMString name
+);
+  undefined commit();
+  undefined abort();
 
   // Event handlers:
   attribute EventHandler onabort;
@@ -25,7 +27,6 @@ interface IDBTransaction : EventTarget {
   attribute EventHandler onerror;
 };
 
-// https://w3c.github.io/IndexedDB/#idbtransaction
 enum IDBTransactionMode {
   "readonly",
   "readwrite",
