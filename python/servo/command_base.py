@@ -297,6 +297,7 @@ class CommandBase(object):
 
         self.config.setdefault("build", {})
         self.config["build"].setdefault("android", False)
+        self.config["build"].setdefault("ohos", False)
         self.config["build"].setdefault("mode", "")
         self.config["build"].setdefault("debug-assertions", False)
         self.config["build"].setdefault("debug-mozjs", False)
@@ -327,12 +328,6 @@ class CommandBase(object):
 
     def get_top_dir(self):
         return self.context.topdir
-
-    def get_apk_path(self, build_type: BuildType):
-        base_path = util.get_target_dir()
-        base_path = path.join(base_path, "android", self.target.triple())
-        apk_name = "servoapp.apk"
-        return path.join(base_path, build_type.directory_name(), apk_name)
 
     def get_binary_path(self, build_type: BuildType, asan: bool = False):
         base_path = util.get_target_dir()
@@ -551,7 +546,12 @@ class CommandBase(object):
                 CommandArgument(
                     '--android', default=None, action='store_true',
                     help='Build for Android. If --target is not specified, this '
-                         'will choose a default target architecture.',
+                         f'will choose the default target architecture ({AndroidTarget.DEFAULT_TRIPLE}).',
+                ),
+                CommandArgument(
+                    '--ohos', default=None, action='store_true',
+                    help='Build for OpenHarmony. If --target is not specified, this '
+                         f'will choose a default target architecture ({OpenHarmonyTarget.DEFAULT_TRIPLE}).',
                 ),
                 CommandArgument('--win-arm64', action='store_true', help="Use arm64 Windows target"),
                 CommandArgumentGroup('Feature Selection'),
@@ -646,6 +646,7 @@ class CommandBase(object):
             self.configure_build_target(kwargs, suppress_log=True)
             kwargs.pop('target', False)
             kwargs.pop('android', False)
+            kwargs.pop('ohos', False)
             return original_function(self, *args, **kwargs)
 
         return target_configuration_decorator
@@ -686,7 +687,12 @@ class CommandBase(object):
             return
 
         android = kwargs.get('android') or self.config["build"]["android"]
+        ohos = kwargs.get('ohos') or self.config["build"]["ohos"]
         target_triple = kwargs.get('target')
+
+        if android and ohos:
+            print("Cannot build both android and ohos targets simultaneously.")
+            sys.exit(1)
 
         if android and target_triple:
             print("Please specify either --target or --android.")
@@ -694,7 +700,15 @@ class CommandBase(object):
 
         #  Set the default Android target
         if android and not target_triple:
-            target_triple = "aarch64-linux-android"
+            target_triple = AndroidTarget.DEFAULT_TRIPLE
+
+        if ohos and target_triple:
+            print("Please specify either --target or --ohos.")
+            sys.exit(1)
+
+        #  Set the default OpenHarmony target
+        if ohos and not target_triple:
+            target_triple = OpenHarmonyTarget.DEFAULT_TRIPLE
 
         self.target = BuildTarget.from_triple(target_triple)
 
@@ -704,6 +718,9 @@ class CommandBase(object):
 
     def is_android(self):
         return isinstance(self.target, AndroidTarget)
+
+    def is_openharmony(self):
+        return isinstance(self.target, OpenHarmonyTarget)
 
     def is_media_enabled(self, media_stack: Optional[str]):
         """Determine whether media is enabled based on the value of the build target

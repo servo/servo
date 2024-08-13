@@ -1,0 +1,85 @@
+import display from '@ohos.display';
+import deviceInfo from '@ohos.deviceInfo';
+
+interface ServoXComponentInterface {
+  loadURL(url: string): void;
+  registerURLcallback(callback: (url: string) => void): void;
+  initServo(options: InitOpts): void;
+}
+
+interface InitOpts {
+  url: string;
+  deviceType: string,
+  osFullName: string,
+  displayDensity: number,
+}
+
+function get_density(): number {
+    try {
+      let displayClass = display.getDefaultDisplaySync();
+      console.info('Test densityDPI:' + JSON.stringify(displayClass.densityDPI));
+      return displayClass.densityDPI / 160;
+  } catch (exception) {
+      console.error('Failed to obtain the default display object. Code: ' + JSON.stringify(exception));
+      return 3;
+  }
+}
+
+function get_device_type(): string {
+  let device_type: string = deviceInfo.deviceType;
+  if (device_type == "") {
+      console.error("deviceInfo.deviceType is empty string!")
+  } else {
+    console.info("Device type is " + device_type)
+  }
+  return device_type;
+}
+
+@Entry
+@Component
+struct Index {
+  xComponentContext: ServoXComponentInterface | undefined = undefined;
+  xComponentAttrs: XComponentAttrs = {
+    id: 'ServoDemo',
+    type: XComponentType.SURFACE,
+    libraryname: 'servoshell',
+  }
+  @State urlToLoad: string =  'https://servo.org'
+
+  build() {
+    Column() {
+      TextInput({placeholder:'URL',text: $$this.urlToLoad})
+      .type(InputType.Normal)
+        .onChange((value) => {
+          this.urlToLoad = value
+        })
+        .onSubmit((EnterKeyType)=>{
+          this.xComponentContext?.loadURL(this.urlToLoad)
+          console.info('Load URL: ', this.urlToLoad)
+        })
+      XComponent(this.xComponentAttrs)
+        .focusable(true)
+        .onLoad((xComponentContext) => {
+          this.xComponentContext = xComponentContext as ServoXComponentInterface;
+          let init_options: InitOpts = {
+            url: this.urlToLoad,
+            deviceType: get_device_type(),
+            osFullName: deviceInfo.osFullName,
+            displayDensity: get_density()
+          }
+          this.xComponentContext.initServo(init_options)
+          this.xComponentContext.registerURLcallback((new_url) => {
+            console.info('New URL from native: ', new_url)
+            this.urlToLoad = new_url
+          })
+        })
+    }
+    .width('100%')
+  }
+}
+
+interface XComponentAttrs {
+  id: string;
+  type: number;
+  libraryname: string;
+}

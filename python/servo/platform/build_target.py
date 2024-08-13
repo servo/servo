@@ -21,6 +21,7 @@ from packaging.version import parse as parse_version
 from typing import Any, Dict, Optional
 
 import servo.platform
+import servo.util as util
 
 
 class BuildTarget(object):
@@ -61,6 +62,8 @@ class CrossBuildTarget(BuildTarget):
 
 
 class AndroidTarget(CrossBuildTarget):
+    DEFAULT_TRIPLE = "aarch64-linux-android"
+
     def ndk_configuration(self) -> Dict[str, str]:
         target = self.triple()
         config = {}
@@ -237,8 +240,16 @@ class AndroidTarget(CrossBuildTarget):
     def needs_packaging(self) -> bool:
         return True
 
+    def get_package_path(self, build_type_directory: str) -> str:
+        base_path = util.get_target_dir()
+        base_path = path.join(base_path, "android", self.triple())
+        apk_name = "servoapp.apk"
+        return path.join(base_path, build_type_directory, apk_name)
+
 
 class OpenHarmonyTarget(CrossBuildTarget):
+    DEFAULT_TRIPLE = "aarch64-unknown-linux-ohos"
+
     def configure_build_environment(self, env: Dict[str, str], config: Dict[str, Any], topdir: pathlib.Path):
         # Paths to OpenHarmony SDK and build tools:
         # Note: `OHOS_SDK_NATIVE` is the CMake variable name the `hvigor` build-system
@@ -370,3 +381,17 @@ class OpenHarmonyTarget(CrossBuildTarget):
 
     def needs_packaging(self) -> bool:
         return True
+
+    def get_package_path(self, build_type_directory: str) -> str:
+        base_path = util.get_target_dir()
+        base_path = path.join(base_path, "openharmony", self.triple())
+        hap_name = "servoshell-default-signed.hap"
+        build_output_path = path.join("entry", "build", "default", "outputs", "default")
+        return path.join(base_path, build_type_directory, build_output_path, hap_name)
+
+    def abi_string(self) -> str:
+        abi_map = {
+            "aarch64-unknown-linux-ohos": "arm64-v8a",
+            "x86_64-unknown-linux-ohos": "x86_64"
+        }
+        return abi_map[self.triple()]
