@@ -2878,8 +2878,8 @@ fn flip_pixels_y(
 
 // Clamp a size to the current GL context's max viewport
 fn clamp_viewport(gl: &Gl, size: Size2D<u32>) -> Size2D<u32> {
-    let mut max_viewport = [i32::max_value(), i32::max_value()];
-    let mut max_renderbuffer = [i32::max_value()];
+    let mut max_viewport = [i32::MAX, i32::MAX];
+    let mut max_renderbuffer = [i32::MAX];
     #[allow(unsafe_code)]
     unsafe {
         gl.get_integer_v(gl::MAX_VIEWPORT_DIMS, &mut max_viewport);

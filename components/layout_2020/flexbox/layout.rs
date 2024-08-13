@@ -220,7 +220,7 @@ impl FlexContainer {
         let mut item_infos = vec![];
 
         let container_is_horizontal = self.style.writing_mode.is_horizontal();
-        let flex_direction = used_flex_direction(&*self.style);
+        let flex_direction = used_flex_direction(&self.style);
         let flex_axis = FlexAxis::from(flex_direction);
         let flex_wrap = self.style.get_position().flex_wrap;
         let flex_wrap_reverse = match flex_wrap {
@@ -1262,7 +1262,7 @@ impl InitialFlexLineLayout<'_> {
         let mut max_ascent = Au::zero();
         let mut max_descent = Au::zero();
         let mut max_outer_hypothetical_cross_size = Au::zero();
-        for (item_result, item) in item_layout_results.iter().zip(&*items) {
+        for (item_result, item) in item_layout_results.iter().zip(items) {
             // TODO: check inline-axis is parallel to main axis, check no auto cross margins
             if matches!(
                 item.align_self.0.value(),

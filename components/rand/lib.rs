@@ -5,7 +5,6 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::Mutex;
-use std::u64;
 
 use lazy_static::lazy_static;
 use log::trace;

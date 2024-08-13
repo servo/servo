@@ -77,7 +77,7 @@ impl Actor for TabDescriptorActor {
     /// - `getFavicon`: Should return the tab favicon, but it is not yet supported.
     ///
     /// - `getWatcher`: Returns a `WatcherActor` linked to the tab's `BrowsingContext`. It is used
-    /// to describe the debugging capabilities of this tab.
+    ///   to describe the debugging capabilities of this tab.
     fn handle_message(
         &self,
         registry: &ActorRegistry,
