@@ -59,10 +59,12 @@ pub struct KvsTransaction {
 pub trait KvsEngine {
     fn create_store(&self, store_name: SanitizedName, auto_increment: bool);
 
-    fn process_transaction(
+    fn process_transaction<'a>(
         &self,
         transaction: KvsTransaction,
-    ) -> Box<dyn Future<Item = Option<Vec<u8>>, Error = RecvError> + Send>;
+    ) -> std::pin::Pin<Box<dyn Future<Output = Result<Option<Vec<u8>>, RecvError>> + Send + 'a>>
+    where
+        Self: Sync + 'a;
 
     fn has_key_generator(&self, store_name: SanitizedName) -> bool;
 }

@@ -73,7 +73,7 @@ struct IndexedDBEnvironment<E: KvsEngine> {
     serial_number_counter: u64,
 }
 
-impl<E: KvsEngine> IndexedDBEnvironment<E> {
+impl<E: KvsEngine + std::marker::Sync> IndexedDBEnvironment<E> {
     fn new(engine: E, version: u64) -> IndexedDBEnvironment<E> {
         IndexedDBEnvironment {
             engine,
@@ -108,7 +108,7 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
 
     // Executes all requests for a transaction (without committing)
     fn start_transaction(&mut self, txn: u64, sender: Option<IpcSender<Result<(), ()>>>) {
-        // FIXME:(rasviitanen)
+        // FIXME:(arihant2math)
         // This executes in a thread pool, and `readwrite` transactions
         // will block their thread if the writer is occupied, so we can
         // probably do some smart things here in order to optimize.
@@ -116,7 +116,8 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
         // so we should probably reserve write operations for just one thread,
         // so that the rest of the threads can work in parallel with read txns.
         self.transactions.remove(&txn).map(|txn| {
-            self.engine.process_transaction(txn).wait().unwrap();
+            //FIXME:(arihant2math) process to completion
+            self.engine.process_transaction(txn);
         });
 
         // We have a sender if the transaction is started manually, and they

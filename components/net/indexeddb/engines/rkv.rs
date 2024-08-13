@@ -95,10 +95,12 @@ impl KvsEngine for RkvEngine {
 
     // Starts a transaction, processes all operations for that transaction,
     // and commits the changes.
-    fn process_transaction(
+    fn process_transaction<'a>(
         &self,
         transaction: KvsTransaction,
-    ) -> Box<dyn Future<Item = Option<Vec<u8>>, Error = RecvError> + Send> {
+    ) -> std::pin::Pin<Box<dyn Future<Output = Result<Option<Vec<u8>>, RecvError>> + Send + 'a>>
+    where
+        Self: Sync + 'a {
         let db_handle = self.rkv_handle.clone();
         let stores = self.open_stores.clone();
 
@@ -207,6 +209,6 @@ impl KvsEngine for RkvEngine {
             };
         });
 
-        Box::new(rx)
+        Box::pin(rx)
     }
 }
