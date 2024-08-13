@@ -920,7 +920,8 @@ where
         let filter = max(env_logger.filter(), con_logger.filter());
         let logger = BothLogger(env_logger, con_logger);
 
-        log::set_boxed_logger(Box::new(logger)).expect("Failed to set logger.");
+        // FIXME: now fails because tracing-subscriber has already set a logger
+        log::set_boxed_logger(Box::new(logger)).ok();
         log::set_max_level(filter);
     }
 
