@@ -16,7 +16,9 @@ use serde::Serialize;
 use serde_json::{self, Map, Value};
 
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
+use crate::actors::inspector::node::NodeActor;
 use crate::actors::inspector::style_rule::{AppliedRule, ComputedDeclaration, StyleRuleActor};
+use crate::actors::inspector::walker::{find_child, WalkerActor};
 use crate::protocol::JsonPacketStream;
 use crate::StreamId;
 
@@ -35,9 +37,11 @@ struct GetComputedReply {
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 struct AppliedEntry {
-    rule: Option<AppliedRule>,
+    rule: AppliedRule,
     pseudo_element: Option<()>,
     is_system: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    inherited: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -115,27 +119,51 @@ impl Actor for PageStyleActor {
         Ok(match msg_type {
             "getApplied" => {
                 let target = msg.get("node").ok_or(())?.as_str().ok_or(())?;
+                let node = registry.find::<NodeActor>(&target);
+                let walker = registry.find::<WalkerActor>(&node.walker);
 
-                // TODO: This should be the same actor across different invocations of
-                // styles, save the result somewhere and check for changes
-                let style_rule =
-                    StyleRuleActor::new(registry.new_name("style-rule"), target.into());
+                // TODO: Cache this
+                let entries: Vec<_> = find_child(
+                    &node.script_chan,
+                    node.pipeline,
+                    &target,
+                    registry,
+                    &walker.root_node.actor,
+                    vec![],
+                    |msg| msg.actor == target,
+                )
+                .unwrap_or_default()
+                .into_iter()
+                .filter_map(|node| {
+                    let inherited = (node.actor != target).then(|| node.actor.clone());
 
-                let entry = AppliedEntry {
-                    // TODO: Separate rules based on selector and ancerstor and so on
-                    //       Each style rule actor should correspond to each set of rules
-                    rule: style_rule.applied(registry),
-                    pseudo_element: None,
-                    is_system: false,
-                };
+                    // TODO: This should be the same actor across different invocations of
+                    // styles, save the result somewhere and check for changes
+                    let style_rule =
+                        StyleRuleActor::new(registry.new_name("style-rule"), node.actor);
+                    let rule = style_rule.applied(registry)?;
+
+                    if inherited.is_some() && rule.declarations.is_empty() {
+                        return None;
+                    }
+
+                    let entry = AppliedEntry {
+                        rule,
+                        pseudo_element: None,
+                        is_system: false,
+                        inherited,
+                    };
+                    registry.register_later(Box::new(style_rule));
+                    Some(entry)
+                })
+                .collect();
 
                 let msg = GetAppliedReply {
-                    entries: vec![entry],
+                    entries,
                     from: self.name(),
                 };
                 let _ = stream.write_json_packet(&msg);
 
-                registry.register_later(Box::new(style_rule));
                 ActorMessageStatus::Processed
             },
 

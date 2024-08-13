@@ -235,9 +235,9 @@ impl Actor for WalkerActor {
                     self.pipeline,
                     &self.name,
                     registry,
-                    selector,
                     node,
                     vec![],
+                    |msg| msg.display_name == selector,
                 )
                 .map_err(|_| ())?;
                 hierarchy.reverse();
@@ -288,14 +288,14 @@ impl WalkerActor {
 
 /// Recursively searches for a child with the specified selector
 /// If it is found, returns a list with the child and all of its ancestors.
-fn find_child(
+pub fn find_child(
     script_chan: &IpcSender<DevtoolScriptControlMsg>,
     pipeline: PipelineId,
     name: &str,
     registry: &ActorRegistry,
-    selector: &str,
     node: &str,
     mut hierarchy: Vec<NodeActorMsg>,
+    compare: impl Fn(&NodeActorMsg) -> bool + Clone,
 ) -> Result<Vec<NodeActorMsg>, Vec<NodeActorMsg>> {
     let (tx, rx) = ipc::channel().unwrap();
     script_chan
@@ -309,7 +309,7 @@ fn find_child(
 
     for child in children {
         let msg = child.encode(registry, true, script_chan.clone(), pipeline, name.into());
-        if msg.display_name == selector {
+        if compare(&msg) {
             hierarchy.push(msg);
             return Ok(hierarchy);
         };
@@ -323,9 +323,9 @@ fn find_child(
             pipeline,
             name,
             registry,
-            selector,
             &msg.actor,
             hierarchy,
+            compare.clone(),
         ) {
             Ok(mut hierarchy) => {
                 hierarchy.push(msg);

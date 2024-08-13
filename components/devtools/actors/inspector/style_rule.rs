@@ -28,7 +28,7 @@ pub struct AppliedRule {
     ancestor_data: Vec<()>,
     authored_text: String,
     css_text: String,
-    declarations: Vec<AppliedDeclaration>,
+    pub declarations: Vec<AppliedDeclaration>,
     href: String,
     #[serde(rename = "type")]
     type_: u32,
@@ -144,6 +144,7 @@ impl StyleRuleActor {
             .unwrap();
         let node = rx.recv().ok()??;
 
+        // TODO: Styles from stylesheets
         let (tx, rx) = ipc::channel().ok()?;
         walker
             .script_chan

@@ -33,13 +33,13 @@ struct GetUniqueSelectorReply {
     value: String,
 }
 
-#[derive(Clone, Serialize)]
+#[derive(Clone, Debug, Serialize)]
 struct AttrMsg {
     name: String,
     value: String,
 }
 
-#[derive(Clone, Serialize)]
+#[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct NodeActorMsg {
     pub actor: String,
@@ -175,13 +175,14 @@ impl NodeInfoToProtocol for NodeInfo {
     ) -> NodeActorMsg {
         let actor = if !actors.script_actor_registered(self.unique_id.clone()) {
             let name = actors.new_name("node");
+            actors.register_script_actor(self.unique_id, name.clone());
+
             let node_actor = NodeActor {
                 name: name.clone(),
                 script_chan: script_chan.clone(),
                 pipeline,
                 walker: walker.clone(),
             };
-            actors.register_script_actor(self.unique_id, name.clone());
             actors.register_later(Box::new(node_actor));
             name
         } else {

@@ -14,7 +14,6 @@ use devtools_traits::{
 use ipc_channel::ipc::IpcSender;
 use js::jsval::UndefinedValue;
 use js::rust::ToString;
-use style::properties::ShorthandId;
 use uuid::Uuid;
 
 use crate::dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;
