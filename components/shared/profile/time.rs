@@ -71,6 +71,7 @@ pub enum ProfilerCategory {
     ImageSaving = 0x51,
     ScriptAttachLayout = 0x60,
     ScriptConstellationMsg = 0x61,
+    ScriptDatabaseAccessEvent = 0x85,
     ScriptDevtoolsMsg = 0x62,
     ScriptDocumentEvent = 0x63,
 

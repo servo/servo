@@ -53,6 +53,7 @@ net_traits = { workspace = true }
 pixels = { path = "../pixels" }
 profile_traits = { workspace = true }
 rayon = { workspace = true }
+rkv = "0.10"
 rustls = { workspace = true }
 rustls-pemfile = { workspace = true }
 rustls-pki-types = { workspace = true }
