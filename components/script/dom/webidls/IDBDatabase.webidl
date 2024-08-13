@@ -8,20 +8,27 @@
  */
 
 // https://w3c.github.io/IndexedDB/#idbdatabase
-[Pref="dom.indexeddb.enabled", Exposed=(Window,Worker)]
+[Exposed=(Window,Worker)]
 interface IDBDatabase : EventTarget {
   readonly attribute DOMString name;
   readonly attribute unsigned long long version;
   readonly attribute DOMStringList objectStoreNames;
 
-  [NewObject] IDBTransaction transaction((DOMString or sequence<DOMString>) storeNames,
-                                         optional IDBTransactionMode mode = "readonly");
-  void close();
+  [NewObject] IDBTransaction transaction((DOMString or sequence<DOMString>) storeNames
+,
+                                         optional IDBTransactionMode mode
+ = "readonly",
+                                         optional IDBTransactionOptions options
+ = {});
+  undefined close();
 
-  [Throws, NewObject] IDBObjectStore createObjectStore(
-    DOMString name,
-    optional IDBObjectStoreParameters options = {});
-  void deleteObjectStore(DOMString name);
+  [NewObject] IDBObjectStore createObjectStore(
+    DOMString name
+,
+    optional IDBObjectStoreParameters options
+ = {});
+  undefined deleteObjectStore(DOMString name
+);
 
   // Event handlers:
   attribute EventHandler onabort;
@@ -30,7 +37,12 @@ interface IDBDatabase : EventTarget {
   attribute EventHandler onversionchange;
 };
 
-// https://w3c.github.io/IndexedDB/#idbdatabase
+enum IDBTransactionDurability { "default", "strict", "relaxed" };
+
+dictionary IDBTransactionOptions {
+  IDBTransactionDurability durability = "default";
+};
+
 dictionary IDBObjectStoreParameters {
   (DOMString or sequence<DOMString>)? keyPath = null;
   boolean autoIncrement = false;
