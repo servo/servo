@@ -748,8 +748,8 @@ class CommandBase(object):
         env['TARGET_STRIP'] = to_sdk_llvm_bin("llvm-strip")
 
         rust_target_triple = str(self.cross_compile_target).replace('-', '_')
-        ndk_clang = to_sdk_llvm_bin("clang")
-        ndk_clangxx = to_sdk_llvm_bin("clang++")
+        ndk_clang = to_sdk_llvm_bin(f"{self.cross_compile_target}-clang")
+        ndk_clangxx = to_sdk_llvm_bin(f"{self.cross_compile_target}-clang++")
         env[f'CC_{rust_target_triple}'] = ndk_clang
         env[f'CXX_{rust_target_triple}'] = ndk_clangxx
         # The clang target name is different from the LLVM target name
