@@ -413,7 +413,7 @@ impl Window {
     pub fn ignore_all_tasks(&self) {
         let mut ignore_flags = self.task_manager.task_cancellers.borrow_mut();
         for task_source_name in TaskSourceName::all() {
-            let flag = ignore_flags.entry(task_source_name).or_default();
+            let flag = ignore_flags.entry(*task_source_name).or_default();
             flag.store(true, Ordering::SeqCst);
         }
     }
@@ -1646,7 +1646,7 @@ impl Window {
     pub fn cancel_all_tasks(&self) {
         let mut ignore_flags = self.task_manager.task_cancellers.borrow_mut();
         for task_source_name in TaskSourceName::all() {
-            let flag = ignore_flags.entry(task_source_name).or_default();
+            let flag = ignore_flags.entry(*task_source_name).or_default();
             let cancelled = std::mem::take(&mut *flag);
             cancelled.store(true, Ordering::SeqCst);
         }
