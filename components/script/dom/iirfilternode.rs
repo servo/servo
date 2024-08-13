@@ -36,7 +36,7 @@ pub struct IIRFilterNode {
 impl IIRFilterNode {
     #[allow(crown::unrooted_must_root)]
     pub fn new_inherited(
-        window: &Window,
+        _window: &Window,
         context: &BaseAudioContext,
         options: &IIRFilterOptions,
     ) -> Fallible<IIRFilterNode> {
