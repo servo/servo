@@ -27,7 +27,7 @@ use webrender_api::ImageKey;
 use crate::context::LayoutContext;
 use crate::dom::NodeExt;
 use crate::fragment_tree::{BaseFragmentInfo, Fragment, IFrameFragment, ImageFragment};
-use crate::geom::{LogicalRect, LogicalVec2, PhysicalSize};
+use crate::geom::{LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSize};
 use crate::sizing::ContentSizes;
 use crate::style_ext::{Clamp, ComputedValuesExt, PaddingBorderMargin};
 use crate::{AuOrAuto, ContainingBlock};
@@ -268,8 +268,9 @@ impl ReplacedContent {
     pub fn make_fragments(
         &self,
         style: &ServoArc<ComputedValues>,
-        size: LogicalVec2<Au>,
+        size: PhysicalSize<Au>,
     ) -> Vec<Fragment> {
+        let rect = PhysicalRect::new(PhysicalPoint::origin(), size);
         match &self.kind {
             ReplacedContentKind::Image(image) => image
                 .as_ref()
@@ -278,10 +279,7 @@ impl ReplacedContent {
                     Fragment::Image(ImageFragment {
                         base: self.base_fragment_info.into(),
                         style: style.clone(),
-                        rect: LogicalRect {
-                            start_corner: LogicalVec2::zero(),
-                            size,
-                        },
+                        rect,
                         image_key,
                     })
                 })
@@ -290,10 +288,7 @@ impl ReplacedContent {
             ReplacedContentKind::Video(video) => vec![Fragment::Image(ImageFragment {
                 base: self.base_fragment_info.into(),
                 style: style.clone(),
-                rect: LogicalRect {
-                    start_corner: LogicalVec2::zero(),
-                    size,
-                },
+                rect,
                 image_key: video.image_key,
             })],
             ReplacedContentKind::IFrame(iframe) => {
@@ -302,10 +297,7 @@ impl ReplacedContent {
                     style: style.clone(),
                     pipeline_id: iframe.pipeline_id,
                     browsing_context_id: iframe.browsing_context_id,
-                    rect: LogicalRect {
-                        start_corner: LogicalVec2::zero(),
-                        size,
-                    },
+                    rect,
                 })]
             },
             ReplacedContentKind::Canvas(canvas_info) => {
@@ -336,10 +328,7 @@ impl ReplacedContent {
                 vec![Fragment::Image(ImageFragment {
                     base: self.base_fragment_info.into(),
                     style: style.clone(),
-                    rect: LogicalRect {
-                        start_corner: LogicalVec2::zero(),
-                        size,
-                    },
+                    rect,
                     image_key,
                 })]
             },

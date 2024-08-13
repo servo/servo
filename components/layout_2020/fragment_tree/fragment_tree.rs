@@ -110,15 +110,9 @@ impl FragmentTree {
             }
 
             let fragment_relative_rect = match fragment {
-                Fragment::Box(fragment) | Fragment::Float(fragment) => fragment
-                    .border_rect()
-                    .to_physical(fragment.style.writing_mode, containing_block),
-                Fragment::Positioning(fragment) => fragment
-                    .rect
-                    .to_physical(fragment.writing_mode, containing_block),
-                Fragment::Text(fragment) => fragment
-                    .rect
-                    .to_physical(fragment.parent_style.writing_mode, containing_block),
+                Fragment::Box(fragment) | Fragment::Float(fragment) => fragment.border_rect(),
+                Fragment::Positioning(fragment) => fragment.rect,
+                Fragment::Text(fragment) => fragment.rect,
                 Fragment::AbsoluteOrFixedPositioned(_) |
                 Fragment::Image(_) |
                 Fragment::IFrame(_) => return None,
@@ -134,7 +128,7 @@ impl FragmentTree {
 
     pub fn get_border_dimensions_for_node(&self, requested_node: OpaqueNode) -> Rect<i32> {
         let tag_to_find = Tag::new(requested_node);
-        self.find(|fragment, _, containing_block| {
+        self.find(|fragment, _, _containing_block| {
             if fragment.tag() != Some(tag_to_find) {
                 return None;
             }
@@ -151,18 +145,13 @@ impl FragmentTree {
                     }
 
                     let border = fragment.style.get_border();
-                    let padding_rect = fragment
-                        .padding_rect()
-                        .to_physical(fragment.style.writing_mode, containing_block);
+                    let padding_rect = fragment.padding_rect();
                     Rect::new(
                         Point2D::new(border.border_left_width, border.border_top_width),
                         Size2D::new(padding_rect.size.width, padding_rect.size.height),
                     )
                 },
-                Fragment::Positioning(fragment) => fragment
-                    .rect
-                    .to_physical(fragment.writing_mode, containing_block)
-                    .cast_unit(),
+                Fragment::Positioning(fragment) => fragment.rect.cast_unit(),
                 _ => return None,
             };
 

@@ -353,9 +353,7 @@ impl BoxTree {
         let scrollable_overflow = root_fragments
             .iter()
             .fold(PhysicalRect::zero(), |acc, child| {
-                let child_overflow = child
-                    .borrow()
-                    .scrollable_overflow(&physical_containing_block);
+                let child_overflow = child.borrow().scrollable_overflow();
 
                 // https://drafts.csswg.org/css-overflow/#scrolling-direction
                 // We want to clip scrollable overflow on box-start and inline-start

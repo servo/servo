@@ -1178,11 +1178,9 @@ impl BoxFragment {
 
         let padding_rect = self
             .padding_rect()
-            .to_physical(self.style.writing_mode, &containing_block.rect)
             .translate(containing_block.rect.origin.to_vector());
         let content_rect = self
             .content_rect
-            .to_physical(self.style.writing_mode, &containing_block.rect)
             .translate(containing_block.rect.origin.to_vector());
 
         let for_absolute_descendants = ContainingBlock::new(
@@ -1246,9 +1244,7 @@ impl BoxFragment {
             _ => return None,
         };
 
-        let border_rect = self
-            .border_rect()
-            .to_physical(self.style.writing_mode, containing_block_rect);
+        let border_rect = self.border_rect();
         let clip_rect = clip_rect
             .for_border_rect(border_rect)
             .translate(containing_block_rect.origin.to_vector())
@@ -1306,7 +1302,6 @@ impl BoxFragment {
 
         let padding_rect = self
             .padding_rect()
-            .to_physical(self.style.writing_mode, containing_block_rect)
             .translate(containing_block_rect.origin.to_vector())
             .to_webrender();
 
@@ -1314,8 +1309,7 @@ impl BoxFragment {
             parent_scroll_node_id,
             parent_clip_id,
             external_id,
-            self.scrollable_overflow(containing_block_rect)
-                .to_webrender(),
+            self.scrollable_overflow().to_webrender(),
             padding_rect,
             sensitivity,
         );
@@ -1380,7 +1374,6 @@ impl BoxFragment {
 
         let frame_rect = self
             .border_rect()
-            .to_physical(self.style.writing_mode, containing_block_rect)
             .translate(containing_block_rect.origin.to_vector())
             .to_webrender();
 
@@ -1426,9 +1419,7 @@ impl BoxFragment {
             return None;
         }
 
-        let relative_border_rect = self
-            .border_rect()
-            .to_physical(self.style.writing_mode, containing_block_rect);
+        let relative_border_rect = self.border_rect();
         let border_rect = relative_border_rect.translate(containing_block_rect.origin.to_vector());
         let untyped_border_rect = border_rect.to_untyped();
 
@@ -1560,7 +1551,6 @@ impl PositioningFragment {
     ) {
         let rect = self
             .rect
-            .to_physical(self.writing_mode, &containing_block.rect)
             .translate(containing_block.rect.origin.to_vector());
         let new_containing_block = containing_block.new_replacing_rect(&rect);
         let new_containing_block_info =

@@ -676,8 +676,10 @@ impl FlexContainer {
                     all_baselines.last = line_all_baselines.last;
                 }
 
+                let physical_line_position =
+                    flow_relative_line_position.to_physical_size(self.style.writing_mode);
                 for (fragment, _) in &mut final_line_layout.item_fragments {
-                    fragment.content_rect.start_corner += flow_relative_line_position
+                    fragment.content_rect.origin += physical_line_position;
                 }
                 final_line_layout.item_fragments
             })
@@ -705,6 +707,7 @@ impl FlexContainer {
                     let fragment = Fragment::Box(fragment);
                     child_positioning_context.adjust_static_position_of_hoisted_fragments(
                         &fragment,
+                        self.style.writing_mode,
                         PositioningContextLength::zero(),
                     );
                     positioning_context.append(child_positioning_context);
@@ -1545,15 +1548,20 @@ impl InitialFlexLineLayout<'_> {
                 let mut fragment_info = item.box_.base_fragment_info();
                 fragment_info.flags.insert(FragmentFlags::IS_FLEX_ITEM);
 
+                let container_writing_mode = flex_context.containing_block.style.writing_mode;
                 (
                     BoxFragment::new(
                         fragment_info,
                         item.box_.style().clone(),
                         item_layout_result.fragments,
-                        content_rect,
-                        flex_context.sides_to_flow_relative(item.padding),
-                        flex_context.sides_to_flow_relative(item.border),
-                        margin,
+                        content_rect.to_physical(container_writing_mode),
+                        flex_context
+                            .sides_to_flow_relative(item.padding)
+                            .to_physical(container_writing_mode),
+                        flex_context
+                            .sides_to_flow_relative(item.border)
+                            .to_physical(container_writing_mode),
+                        margin.to_physical(container_writing_mode),
                         None, /* clearance */
                         collapsed_margin,
                     ),
@@ -1620,7 +1628,12 @@ impl FlexItem<'_> {
                             &pbm,
                         );
                         let cross_size = flex_context.vec2_to_flex_relative(size).cross;
-                        let fragments = replaced.contents.make_fragments(&replaced.style, size);
+                        let container_writing_mode =
+                            flex_context.containing_block.style.writing_mode;
+                        let fragments = replaced.contents.make_fragments(
+                            &replaced.style,
+                            size.to_physical_size(container_writing_mode),
+                        );
 
                         FlexItemLayoutResult {
                             hypothetical_cross_size: cross_size,

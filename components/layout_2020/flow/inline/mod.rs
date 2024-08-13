@@ -123,7 +123,7 @@ use crate::fragment_tree::{
     BoxFragment, CollapsedBlockMargins, CollapsedMargin, Fragment, FragmentFlags,
     PositioningFragment,
 };
-use crate::geom::{LogicalRect, LogicalVec2};
+use crate::geom::{LogicalRect, LogicalVec2, PhysicalRect, ToLogical};
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
 use crate::sizing::ContentSizes;
 use crate::style_ext::{ComputedValuesExt, PaddingBorderMargin};
@@ -890,11 +890,10 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
                 start_positioning_context_length,
             );
 
+        let line_rect = line_rect.to_physical(self.containing_block.style.writing_mode);
         self.fragments
             .push(Fragment::Positioning(PositioningFragment::new_anonymous(
-                line_rect,
-                fragments,
-                self.containing_block.style.writing_mode,
+                line_rect, fragments,
             )));
     }
 
@@ -1014,6 +1013,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
             state.current_containing_block_offset();
         state.place_float_fragment(
             fragment,
+            self.containing_block.style.writing_mode,
             CollapsedMargin::zero(),
             block_offset_from_containining_block_top,
         );
@@ -1034,8 +1034,8 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
     ) {
         let margin_box = float_item
             .fragment
-            .border_rect()
-            .inflate(&float_item.fragment.margin);
+            .margin_rect()
+            .to_logical(self.containing_block.style.writing_mode);
         let inline_size = margin_box.size.inline.max(Au::zero());
 
         let available_inline_size = match self.current_line.placement_among_floats.get() {
@@ -1909,34 +1909,41 @@ impl IndependentFormattingContext {
         offset_in_text: usize,
     ) {
         let style = self.style();
+        let container_writing_mode = inline_formatting_context_state
+            .containing_block
+            .style
+            .writing_mode;
         let pbm = style.padding_border_margin(inline_formatting_context_state.containing_block);
         let margin = pbm.margin.auto_is(Au::zero);
         let pbm_sums = pbm.padding + pbm.border + margin;
+        let pbm_physical_origin = pbm_sums
+            .start_offset()
+            .to_physical_point(container_writing_mode);
         let mut child_positioning_context = None;
 
         // We need to know the inline size of the atomic before deciding whether to do the line break.
         let fragment = match self {
             IndependentFormattingContext::Replaced(replaced) => {
-                let size = replaced.contents.used_size_as_if_inline_element(
-                    inline_formatting_context_state.containing_block,
-                    &replaced.style,
-                    None,
-                    &pbm,
-                );
+                let size = replaced
+                    .contents
+                    .used_size_as_if_inline_element(
+                        inline_formatting_context_state.containing_block,
+                        &replaced.style,
+                        None,
+                        &pbm,
+                    )
+                    .to_physical_size(container_writing_mode);
                 let fragments = replaced.contents.make_fragments(&replaced.style, size);
-                let content_rect = LogicalRect {
-                    start_corner: pbm_sums.start_offset(),
-                    size,
-                };
+                let content_rect = PhysicalRect::new(pbm_physical_origin, size);
 
                 BoxFragment::new(
                     replaced.base_fragment_info,
                     replaced.style.clone(),
                     fragments,
                     content_rect,
-                    pbm.padding,
-                    pbm.border,
-                    margin,
+                    pbm.padding.to_physical(container_writing_mode),
+                    pbm.border.to_physical(container_writing_mode),
+                    margin.to_physical(container_writing_mode),
                     None, /* clearance */
                     CollapsedBlockMargins::zero(),
                 )
@@ -2015,22 +2022,23 @@ impl IndependentFormattingContext {
                         },
                     };
 
-                let content_rect = LogicalRect {
-                    start_corner: pbm_sums.start_offset(),
-                    size: LogicalVec2 {
+                let content_rect = PhysicalRect::new(
+                    pbm_physical_origin,
+                    LogicalVec2 {
                         block: block_size,
                         inline: inline_size,
-                    },
-                };
+                    }
+                    .to_physical_size(container_writing_mode),
+                );
 
                 BoxFragment::new(
                     non_replaced.base_fragment_info,
                     non_replaced.style.clone(),
                     independent_layout.fragments,
                     content_rect,
-                    pbm.padding,
-                    pbm.border,
-                    margin,
+                    pbm.padding.to_physical(container_writing_mode),
+                    pbm.border.to_physical(container_writing_mode),
+                    margin.to_physical(container_writing_mode),
                     None,
                     CollapsedBlockMargins::zero(),
                 )
@@ -2045,9 +2053,13 @@ impl IndependentFormattingContext {
             inline_formatting_context_state.process_soft_wrap_opportunity();
         }
 
-        let size = pbm_sums.sum() + fragment.content_rect.size;
+        let size = pbm_sums.sum() +
+            fragment
+                .content_rect
+                .to_logical(container_writing_mode)
+                .size;
         let baseline_offset = self
-            .pick_baseline(&fragment.baselines)
+            .pick_baseline(&fragment.baselines(container_writing_mode))
             .map(|baseline| pbm_sums.block_start + baseline)
             .unwrap_or(size.block);
 
