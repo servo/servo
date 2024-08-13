@@ -868,15 +868,10 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
             conversionFunction = "windowproxy_from_handlevalue"
 
         if failureCode is None:
-            substitutions = {
-                "sourceDescription": sourceDescription,
-                "interface": descriptor.interface.identifier.name,
-                "exceptionCode": exceptionCode,
-            }
-            unwrapFailureCode = string.Template(
-                'throw_type_error(*cx, "${sourceDescription} does not '
-                'implement interface ${interface}.");\n'
-                '${exceptionCode}').substitute(substitutions)
+            unwrapFailureCode = (
+                f'throw_type_error(*cx, "{sourceDescription} does not '
+                f'implement interface {descriptor.interface.identifier.name}.");\n'
+                f'{exceptionCode}')
         else:
             unwrapFailureCode = failureCode
 
@@ -904,13 +899,9 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
 
     if is_typed_array(type):
         if failureCode is None:
-            substitutions = {
-                "sourceDescription": sourceDescription,
-                "exceptionCode": exceptionCode,
-            }
-            unwrapFailureCode = string.Template(
-                'throw_type_error(*cx, "${sourceDescription} is not a typed array.");\n'
-                '${exceptionCode}').substitute(substitutions)
+            unwrapFailureCode = (
+                f'throw_type_error(*cx, "{sourceDescription} is not a typed array.");\n'
+                f'{exceptionCode}')
         else:
             unwrapFailureCode = failureCode
 
@@ -1341,14 +1332,8 @@ class CGArgumentConverter(CGThing):
         CGThing.__init__(self)
         assert not argument.defaultValue or argument.optional
 
-        replacer = {
-            "index": index,
-            "argc": argc,
-            "args": args
-        }
-
         replacementVariables = {
-            "val": string.Template("HandleValue::from_raw(${args}.get(${index}))").substitute(replacer),
+            "val": f"HandleValue::from_raw({args}.get({index}))",
         }
 
         info = getJSToNativeConversionInfo(
@@ -1365,7 +1350,7 @@ class CGArgumentConverter(CGThing):
 
         if not argument.variadic:
             if argument.optional:
-                condition = "{args}.get({index}).is_undefined()".format(**replacer)
+                condition = f"{args}.get({index}).is_undefined()"
                 if argument.defaultValue:
                     assert default
                     template = CGIfElseWrapper(condition,
@@ -1389,7 +1374,7 @@ class CGArgumentConverter(CGThing):
         else:
             assert argument.optional
             variadicConversion = {
-                "val": string.Template("HandleValue::from_raw(${args}.get(variadicArg))").substitute(replacer),
+                "val": f"HandleValue::from_raw({args}.get(variadicArg))",
             }
             innerConverter = [instantiateJSToNativeConversionTemplate(
                 template, variadicConversion, declType, "slot")]
@@ -4775,7 +4760,7 @@ pub enum %s {
         pairs = ",\n    ".join(['("%s", super::%s::%s)' % (val, ident, getEnumValueName(val))
                                 for val in list(enum.values())])
 
-        inner = string.Template("""\
+        inner = f"""\
 use crate::dom::bindings::conversions::ConversionResult;
 use crate::dom::bindings::conversions::FromJSValConvertible;
 use crate::dom::bindings::conversions::ToJSValConvertible;
@@ -4785,47 +4770,44 @@ use js::rust::HandleValue;
 use js::rust::MutableHandleValue;
 use js::jsval::JSVal;
 
-pub const pairs: &[(&str, super::${ident})] = &[
-    ${pairs},
+pub const pairs: &[(&str, super::{ident})] = &[
+    {pairs},
 ];
 
-impl super::${ident} {
-    pub fn as_str(&self) -> &'static str {
+impl super::{ident} {{
+    pub fn as_str(&self) -> &'static str {{
         pairs[*self as usize].0
-    }
-}
+    }}
+}}
 
-impl Default for super::${ident} {
-    fn default() -> super::${ident} {
+impl Default for super::{ident} {{
+    fn default() -> super::{ident} {{
         pairs[0].1
-    }
-}
+    }}
+}}
 
-impl ToJSValConvertible for super::${ident} {
-    unsafe fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
+impl ToJSValConvertible for super::{ident} {{
+    unsafe fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {{
         pairs[*self as usize].0.to_jsval(cx, rval);
-    }
-}
+    }}
+}}
 
-impl FromJSValConvertible for super::${ident} {
+impl FromJSValConvertible for super::{ident} {{
     type Config = ();
     unsafe fn from_jsval(cx: *mut JSContext, value: HandleValue, _option: ())
-                         -> Result<ConversionResult<super::${ident}>, ()> {
-        match find_enum_value(cx, value, pairs) {
+                         -> Result<ConversionResult<super::{ident}>, ()> {{
+        match find_enum_value(cx, value, pairs) {{
             Err(_) => Err(()),
-            Ok((None, search)) => {
+            Ok((None, search)) => {{
                 Ok(ConversionResult::Failure(
-                    format!("'{}' is not a valid enum value for enumeration '${ident}'.", search).into()
+                    format!("'{{}}' is not a valid enum value for enumeration '{ident}'.", search).into()
                 ))
-            }
+            }}
             Ok((Some(&value), _)) => Ok(ConversionResult::Success(value)),
-        }
-    }
-}
-    """).substitute({
-            'ident': ident,
-            'pairs': pairs
-        })
+        }}
+    }}
+}}
+    """
         self.cgRoot = CGList([
             CGGeneric(decl),
             CGNamespace.build([f"{ident}Values"],
@@ -5248,23 +5230,15 @@ class ClassMethod(ClassItem):
             body = f' {{\n{body}\n}}'
         else:
             body = ';'
-
-        return string.Template(
-            "${decorators}%s"
-            "${visibility}${unsafe}fn ${name}${templateClause}(${args})${returnType}${const}${override}${body}%s" %
-            (self.breakAfterReturnDecl, self.breakAfterSelf)
-        ).substitute({
-            'templateClause': templateClause,
-            'decorators': self.getDecorators(True),
-            'returnType': (" -> %s" % self.returnType) if self.returnType else "",
-            'name': self.name,
-            'const': ' const' if self.const else '',
-            'override': ' MOZ_OVERRIDE' if self.override else '',
-            'args': args,
-            'body': body,
-            'visibility': f'{self.visibility} ' if self.visibility != 'priv' else '',
-            'unsafe': "unsafe " if self.unsafe else "",
-        })
+        visibility = f'{self.visibility} ' if self.visibility != 'priv' else ''
+        unsafe = "unsafe " if self.unsafe else ""
+        returnType = (" -> %s" % self.returnType) if self.returnType else ""
+        const = ' const' if self.const else ''
+        override = ' MOZ_OVERRIDE' if self.override else ''
+        return (
+            f"{self.getDecorators(True)}{self.breakAfterReturnDecl}"
+            f"{visibility}{unsafe}fn {self.name}{templateClause}({args}){returnType}{const}{override}{body}{self.breakAfterSelf}"
+        )
 
     def define(self, cgClass):
         pass
@@ -5347,12 +5321,9 @@ class ClassConstructor(ClassItem):
             body += '\n'
         body = f' {{\n{body}}}'
 
-        return string.Template("""\
-pub unsafe fn ${decorators}new(${args}) -> Rc<${className}>${body}
-""").substitute({'decorators': self.getDecorators(True),
-                 'className': cgClass.getNameString(),
-                 'args': args,
-                 'body': body})
+        return f"""\
+pub unsafe fn {self.getDecorators(True)}new({args}) -> Rc<{cgClass.getNameString()}>{body}
+"""
 
     def define(self, cgClass):
         if self.bodyInHeader:
@@ -5365,15 +5336,12 @@ pub unsafe fn ${decorators}new(${args}) -> Rc<${className}>${body}
         if len(body) > 0:
             body += '\n'
 
-        return string.Template("""\
-${decorators}
-${className}::${className}(${args})${initializationList}
-{${body}}
-""").substitute({'decorators': self.getDecorators(False),
-                 'className': cgClass.getNameString(),
-                 'args': args,
-                 'initializationList': self.getInitializationList(cgClass),
-                 'body': body})
+        className = cgClass.getNameString()
+        return f"""\
+{self.getDecorators(False)}
+{className}::{className}({args}){self.getInitializationList(cgClass)}
+{{{body}}}
+"""
 
 
 class ClassMember(ClassItem):
@@ -6752,16 +6720,14 @@ class CGDictionary(CGThing):
             if not self.hasRequiredFields(self.dictionary):
                 derive += ["Default"]
 
-        return (string.Template(
-                "#[derive(${derive})]\n"
-                "${mustRoot}"
-                "pub struct ${selfName} {\n"
-                "${inheritance}"
-                f"{'\n'.join(memberDecls)}\n"
-                "}").substitute({"selfName": self.makeClassName(d),
-                                   "inheritance": inheritance,
-                                   "mustRoot": mustRoot,
-                                   "derive": ', '.join(derive)}))
+        return (
+            f"#[derive({', '.join(derive)})]\n"
+            f"{mustRoot}"
+            f"pub struct {self.makeClassName(d)} {{\n"
+            f"{inheritance}"
+            f"{'\n'.join(memberDecls)}\n"
+            "}"
+        )
 
     def impl(self):
         d = self.dictionary
@@ -6822,11 +6788,11 @@ class CGDictionary(CGThing):
         initParent = ("parent: %s,\n" % initParent) if initParent else ""
         memberInits = CGList([memberInit(m, True) for m in self.memberInfo])
 
-        return string.Template(
-            "impl ${selfName} {\n"
-            "${empty}\n"
+        return (
+            f"impl {selfName} {{\n"
+            f"{CGIndenter(CGGeneric(self.makeEmpty()), indentLevel=4).define()}\n"
             "    pub fn new(cx: SafeJSContext, val: HandleValue) \n"
-            "                      -> Result<ConversionResult<${actualType}>, ()> {\n"
+            f"                      -> Result<ConversionResult<{actualType}>, ()> {{\n"
             "        unsafe {\n"
             "            let object = if val.get().is_null_or_undefined() {\n"
             "                ptr::null_mut()\n"
@@ -6836,45 +6802,37 @@ class CGDictionary(CGThing):
             "                return Ok(ConversionResult::Failure(\"Value is not an object.\".into()));\n"
             "            };\n"
             "            rooted!(in(*cx) let object = object);\n"
-            "${preInitial}"
-            "${initParent}"
-            "${initMembers}"
-            "${postInitial}"
+            f"{CGIndenter(CGGeneric(preInitial), indentLevel=8).define()}"
+            f"{CGIndenter(CGGeneric(initParent), indentLevel=16).define()}"
+            f"{CGIndenter(memberInits, indentLevel=16).define()}"
+            f"{CGIndenter(CGGeneric(postInitial), indentLevel=8).define()}"
             "            Ok(ConversionResult::Success(dictionary))\n"
             "        }\n"
             "    }\n"
             "}\n"
             "\n"
-            "impl FromJSValConvertible for ${actualType} {\n"
+            f"impl FromJSValConvertible for {actualType} {{\n"
             "    type Config = ();\n"
             "    unsafe fn from_jsval(cx: *mut JSContext, value: HandleValue, _option: ())\n"
-            "                         -> Result<ConversionResult<${actualType}>, ()> {\n"
-            "        ${selfName}::new(SafeJSContext::from_ptr(cx), value)\n"
+            f"                         -> Result<ConversionResult<{actualType}>, ()> {{\n"
+            f"        {selfName}::new(SafeJSContext::from_ptr(cx), value)\n"
             "    }\n"
             "}\n"
             "\n"
-            "impl ${selfName} {\n"
+            f"impl {selfName} {{\n"
             "    pub(crate) unsafe fn to_jsobject(&self, cx: *mut JSContext, mut obj: MutableHandleObject) {\n"
-            "${insertMembers}"
+            f"{CGIndenter(CGList(memberInserts), indentLevel=8).define()}"
             "    }\n"
             "}\n"
             "\n"
-            "impl ToJSValConvertible for ${selfName} {\n"
+            f"impl ToJSValConvertible for {selfName} {{\n"
             "    unsafe fn to_jsval(&self, cx: *mut JSContext, mut rval: MutableHandleValue) {\n"
             "        rooted!(in(cx) let mut obj = JS_NewObject(cx, ptr::null()));\n"
             "        self.to_jsobject(cx, obj.handle_mut());\n"
             "        rval.set(ObjectOrNullValue(obj.get()))\n"
             "    }\n"
-            "}\n").substitute({
-                "selfName": selfName,
-                "actualType": actualType,
-                "empty": CGIndenter(CGGeneric(self.makeEmpty()), indentLevel=4).define(),
-                "initParent": CGIndenter(CGGeneric(initParent), indentLevel=16).define(),
-                "initMembers": CGIndenter(memberInits, indentLevel=16).define(),
-                "insertMembers": CGIndenter(CGList(memberInserts), indentLevel=8).define(),
-                "preInitial": CGIndenter(CGGeneric(preInitial), indentLevel=8).define(),
-                "postInitial": CGIndenter(CGGeneric(postInitial), indentLevel=8).define(),
-            })
+            "}\n"
+        )
 
     def membersNeedTracing(self):
         return type_needs_tracing(self.dictionary)
@@ -7336,24 +7294,16 @@ class CGCallback(CGClass):
 
         setupCall = "let s = CallSetup::new(self, aExceptionHandling);\n"
 
-        bodyWithThis = string.Template(
-            setupCall
-            + "rooted!(in(*s.get_context()) let mut thisObjJS = ptr::null_mut::<JSObject>());\n"
-              "wrap_call_this_object(s.get_context(), thisObj, thisObjJS.handle_mut());\n"
-              "if thisObjJS.is_null() {\n"
-              "    return Err(JSFailed);\n"
-              "}\n"
-              "unsafe { ${methodName}(${callArgs}) }").substitute({
-                  "callArgs": ", ".join(argnamesWithThis),
-                  "methodName": f'self.{method.name}',
-              })
-        bodyWithoutThis = string.Template(
-            setupCall
-            + "rooted!(in(*s.get_context()) let thisObjJS = ptr::null_mut::<JSObject>());\n"
-              "unsafe { ${methodName}(${callArgs}) }").substitute({
-                  "callArgs": ", ".join(argnamesWithoutThis),
-                  "methodName": f'self.{method.name}',
-              })
+        bodyWithThis = (
+            f"{setupCall}rooted!(in(*s.get_context()) let mut thisObjJS = ptr::null_mut::<JSObject>());\n"
+            "wrap_call_this_object(s.get_context(), thisObj, thisObjJS.handle_mut());\n"
+            "if thisObjJS.is_null() {\n"
+            "    return Err(JSFailed);\n"
+            "}\n"
+            f"unsafe {{ self.{method.name}({', '.join(argnamesWithThis)}) }}")
+        bodyWithoutThis = (
+            f"{setupCall}rooted!(in(*s.get_context()) let thisObjJS = ptr::null_mut::<JSObject>());\n"
+            f"unsafe {{ self.{method.name}({', '.join(argnamesWithoutThis)}) }}")
         return [ClassMethod(f'{method.name}_', method.returnType, args,
                             bodyInHeader=True,
                             templateArgs=["T: DomObject"],
@@ -7390,23 +7340,24 @@ class CGCallbackFunction(CGCallback):
 
 class CGCallbackFunctionImpl(CGGeneric):
     def __init__(self, callback):
-        impl = string.Template("""\
-impl CallbackContainer for ${type} {
-    unsafe fn new(cx: SafeJSContext, callback: *mut JSObject) -> Rc<${type}> {
-        ${type}::new(cx, callback)
-    }
+        type = callback.identifier.name
+        impl = (f"""\
+impl CallbackContainer for {type} {{
+    unsafe fn new(cx: SafeJSContext, callback: *mut JSObject) -> Rc<{type}> {{
+        {type}::new(cx, callback)
+    }}
 
-    fn callback_holder(&self) -> &CallbackObject {
+    fn callback_holder(&self) -> &CallbackObject {{
         self.parent.callback_holder()
-    }
-}
+    }}
+}}
 
-impl ToJSValConvertible for ${type} {
-    unsafe fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
+impl ToJSValConvertible for {type} {{
+    unsafe fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {{
         self.callback().to_jsval(cx, rval);
-    }
-}\
-""").substitute({"type": callback.identifier.name})
+    }}
+}}\
+""")
         CGGeneric.__init__(self, impl)
 
 
@@ -7478,32 +7429,22 @@ class CallbackMember(CGNativeMember):
         self.body = self.getImpl()
 
     def getImpl(self):
-        replacements = {
-            "declRval": self.getRvalDecl(),
-            "returnResult": self.getResultConversion(),
-            "convertArgs": self.getArgConversions(),
-            "doCall": self.getCall(),
-            "setupCall": self.getCallSetup(),
-        }
-        if self.argCount > 0:
-            replacements["argCount"] = self.argCountStr
-            replacements["argvDecl"] = string.Template(
-                "rooted_vec!(let mut argv);\n"
-                "argv.extend((0..${argCount}).map(|_| Heap::default()));\n"
-            ).substitute(replacements)
-        else:
-            # Avoid weird 0-sized arrays
-            replacements["argvDecl"] = ""
+        argvDecl = (
+            "rooted_vec!(let mut argv);\n"
+            f"argv.extend((0..{self.argCountStr}).map(|_| Heap::default()));\n"
+        ) if self.argCount > 0 else "" # Avoid weird 0-sized arrays
 
         # Newlines and semicolons are in the values
-        pre = string.Template(
-            "${setupCall}"
-            "${declRval}"
-            "${argvDecl}").substitute(replacements)
-        body = string.Template(
-            "${convertArgs}"
-            "${doCall}"
-            "${returnResult}").substitute(replacements)
+        pre = (
+            f"{self.getCallSetup()}"
+            f"{self.getRvalDecl()}"
+            f"{argvDecl}"
+        )
+        body = (
+            f"{self.getArgConversions()}"
+            f"{self.getCall()}"
+            f"{self.getResultConversion()}"
+        )
         return f"{pre}\n{body}"
 
     def getResultConversion(self):
@@ -7573,11 +7514,11 @@ class CallbackMember(CGNativeMember):
                          "}") % jsvalIndex.removeprefix("0 + "),
             pre="rooted!(in(*cx) let mut argv_root = UndefinedValue());")
         if arg.variadic:
-            conversion = string.Template(
-                "for idx in 0..${arg}.len() {\n"
+            conversion = (
+                f"for idx in 0..{arg.identifier.name}.len() {{\n"
                 f"{CGIndenter(CGGeneric(conversion)).define()}\n"
                 "}"
-            ).substitute({"arg": arg.identifier.name})
+            )
         elif arg.optional and not arg.defaultValue:
             conversion = (
                 CGIfWrapper("%s.is_some()" % arg.identifier.name,
@@ -7644,30 +7585,26 @@ class CallbackMethod(CallbackMember):
         return "rooted!(in(*cx) let mut rval = UndefinedValue());\n"
 
     def getCall(self):
-        replacements = {
-            "thisObj": self.getThisObj(),
-            "getCallable": self.getCallableDecl(),
-            "callGuard": self.getCallGuard(),
-        }
         if self.argCount > 0:
-            replacements["argv"] = "argv.as_ptr() as *const JSVal"
-            replacements["argc"] = "argc"
+            argv = "argv.as_ptr() as *const JSVal"
+            argc = "argc"
         else:
-            replacements["argv"] = "ptr::null_mut()"
-            replacements["argc"] = "0"
-        return string.Template(
-            "${getCallable}"
-            "rooted!(in(*cx) let rootedThis = ${thisObj});\n"
-            "let ok = ${callGuard}JS_CallFunctionValue(\n"
+            argv = "ptr::null_mut()"
+            argc = "0"
+        return (
+            f"{self.getCallableDecl()}"
+            f"rooted!(in(*cx) let rootedThis = {self.getThisObj()});\n"
+            f"let ok = {self.getCallGuard()}JS_CallFunctionValue(\n"
             "    *cx, rootedThis.handle(), callable.handle(),\n"
             "    &HandleValueArray {\n"
-            "        length_: ${argc} as ::libc::size_t,\n"
-            "        elements_: ${argv}\n"
+            f"        length_: {argc} as ::libc::size_t,\n"
+            f"        elements_: {argv}\n"
             "    }, rval.handle_mut());\n"
             "maybe_resume_unwind();\n"
             "if !ok {\n"
             "    return Err(JSFailed);\n"
-            "}\n").substitute(replacements)
+            "}\n"
+        )
 
 
 class CallCallback(CallbackMethod):
@@ -7706,12 +7643,7 @@ class CallbackOperationBase(CallbackMethod):
         return "if isCallable { aThisObj.get() } else { self.callback() }"
 
     def getCallableDecl(self):
-        replacements = {
-            "methodName": self.methodName
-        }
-        getCallableFromProp = string.Template(
-            'self.parent.get_callable_property(cx, "${methodName}")?'
-        ).substitute(replacements)
+        getCallableFromProp = f'self.parent.get_callable_property(cx, "{self.methodName}")?'
         if not self.singleOperation:
             return f'rooted!(in(*cx) let callable =\n{getCallableFromProp});\n'
         return (
