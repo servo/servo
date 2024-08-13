@@ -2643,7 +2643,7 @@ class Argument():
     def declare(self):
         mut = 'mut ' if self.mutable else ''
         argType = f': {self.argType}' if self.argType else ''
-        string =  f"{mut}self.name{argType}"
+        string =  f"{mut}{self.name}{argType}"
         # XXXjdm Support default arguments somehow :/
         # if self.default is not None:
         #     string += " = " + self.default
@@ -4881,7 +4881,7 @@ class CGUnionStruct(CGThing):
         templateVars = [(getUnionTypeTemplateVars(t, self.descriptorProvider),
                          getTypeWrapper(t)) for t in self.type.flatMemberTypes]
         enumValues = [
-            f"    {v['name']}({wrapper}<{v['typeName']}>)" if wrapper else f"    {v['name']}({v['typeName']})"
+            f"    {v['name']}({wrapper}<{v['typeName']}>)," if wrapper else f"    {v['name']}({v['typeName']}),"
             for (v, wrapper) in templateVars
         ]
         enumConversions = [
@@ -4891,13 +4891,13 @@ class CGUnionStruct(CGThing):
         return f"""\
 #[derive(JSTraceable)]
 pub enum {self.type} {{
-{"\n".join(enumValues)}
+{'\n'.join(enumValues)}
 }}
 
 impl ToJSValConvertible for {self.type} {{
     unsafe fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {{
         match *self {{
-{"\n".join(enumConversions)}
+{'\n'.join(enumConversions)}
         }}
     }}
 }}
@@ -6907,12 +6907,12 @@ class CGRegisterProxyHandlers(CGThing):
             CGGeneric(
                 "#[allow(non_upper_case_globals)]\n"
                 "pub mod proxy_handlers {\n"
-                "".join(
+                f'{"".join(
                     f"    pub static {desc.name}: std::sync::atomic::AtomicPtr<libc::c_void> =\n"
                     "        std::sync::atomic::AtomicPtr::new(std::ptr::null_mut());\n"
                     for desc in descriptors
-                )
-                + "}\n"
+                )}'
+                "}\n"
             ),
             CGRegisterProxyHandlersMethod(descriptors),
         ], "\n")
