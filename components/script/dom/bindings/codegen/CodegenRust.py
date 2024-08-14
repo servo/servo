@@ -5854,7 +5854,11 @@ class CGDOMJSProxyHandler_delete(CGAbstractExternMethod):
             if self.descriptor.hasLegacyUnforgeableMembers:
                 raise TypeError("Can't handle a deleter on an interface that has "
                                 "unforgeables. Figure out how that should work!")
-            set += CGProxyNamedDeleter(self.descriptor).define()
+            set += (
+                "if id.is_string() || id.is_int() {\n"
+                + CGProxyNamedDeleter(self.descriptor).define()
+                + "}\n"
+            )
         set += "return proxyhandler::delete(*cx, %s);" % ", ".join(a.name for a in self.args[1:])
         return set
 
