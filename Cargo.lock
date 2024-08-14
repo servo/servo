@@ -6187,7 +6187,6 @@ dependencies = [
  "ipc-channel",
  "jni",
  "keyboard-types",
- "lazy_static",
  "libc",
  "libloading",
  "libservo",
