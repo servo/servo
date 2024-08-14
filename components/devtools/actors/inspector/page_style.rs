@@ -9,7 +9,7 @@ use std::collections::HashMap;
 use std::net::TcpStream;
 
 use base::id::PipelineId;
-use devtools_traits::DevtoolScriptControlMsg::GetLayout;
+use devtools_traits::DevtoolScriptControlMsg::{GetLayout, GetSelectors};
 use devtools_traits::{ComputedNodeLayout, DevtoolScriptControlMsg};
 use ipc_channel::ipc::{self, IpcSender};
 use serde::Serialize;
@@ -136,6 +136,8 @@ impl Actor for PageStyleActor {
                 .into_iter()
                 .filter_map(|node| {
                     let inherited = (node.actor != target).then(|| node.actor.clone());
+
+                    // TODO: Query for all of the selectors and create a style rule for each
 
                     // TODO: This should be the same actor across different invocations of
                     // styles, save the result somewhere and check for changes

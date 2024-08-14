@@ -210,8 +210,17 @@ pub enum DevtoolScriptControlMsg {
     GetDocumentElement(PipelineId, IpcSender<Option<NodeInfo>>),
     /// Retrieve the details of the child nodes of the given node in the given pipeline.
     GetChildren(PipelineId, String, IpcSender<Option<Vec<NodeInfo>>>),
-    /// Retrieve the applied css style properties for the given node.
-    GetAppliedStyle(PipelineId, String, IpcSender<Option<Vec<NodeStyle>>>),
+    /// Retrieve the css style properties defined in the attribute tag for the given node.
+    GetAttributeStyle(PipelineId, String, IpcSender<Option<Vec<NodeStyle>>>),
+    /// Retrieve the css style properties defined in an stylesheet for the given selector.
+    GetStylesheetStyle(
+        PipelineId,
+        String,
+        String,
+        IpcSender<Option<Vec<NodeStyle>>>,
+    ),
+    /// Retrieves the css selectors for the given node in the current stylesheets.
+    GetSelectors(PipelineId, String, IpcSender<Option<Vec<String>>>),
     /// Retrieve the computed css style properties for the given node.
     GetComputedStyle(PipelineId, String, IpcSender<Option<Vec<NodeStyle>>>),
     /// Retrieve the computed layout properties of the given node in the given pipeline.

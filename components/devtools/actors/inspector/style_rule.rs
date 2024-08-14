@@ -9,7 +9,7 @@ use std::collections::HashMap;
 use std::net::TcpStream;
 
 use devtools_traits::DevtoolScriptControlMsg::{
-    GetAppliedStyle, GetComputedStyle, GetDocumentElement, ModifyRule,
+    GetAttributeStyle, GetComputedStyle, GetDocumentElement, GetStylesheetStyle, ModifyRule,
 };
 use ipc_channel::ipc;
 use serde::Serialize;
@@ -75,6 +75,7 @@ pub struct StyleRuleActorMsg {
 pub struct StyleRuleActor {
     name: String,
     node: String,
+    selector: Option<String>,
 }
 
 impl Actor for StyleRuleActor {
@@ -144,22 +145,28 @@ impl StyleRuleActor {
             .unwrap();
         let node = rx.recv().ok()??;
 
-        // TODO: Styles from stylesheets
-        let (tx, rx) = ipc::channel().ok()?;
-        walker
-            .script_chan
-            .send(GetAppliedStyle(
+        let req = match self.selector {
+            Some(selector) => GetStylesheetStyle(
+                walker.pipeline,
+                registry.actor_to_script(self.node.clone()),
+                selector.clone(),
+                tx,
+            ),
+            None => GetAttributeStyle(
                 walker.pipeline,
                 registry.actor_to_script(self.node.clone()),
                 tx,
-            ))
-            .unwrap();
+            ),
+        };
+
+        let (tx, rx) = ipc::channel().ok()?;
+        walker.script_chan.send(req).unwrap();
         let style = rx.recv().ok()??;
 
         // TODO: Fill with real values
         Some(AppliedRule {
             actor: self.name(),
-            ancestor_data: vec![],
+            ancestor_data: vec![], // TODO:
             authored_text: "TODO".into(),
             css_text: "TODO".into(),
             declarations: style
