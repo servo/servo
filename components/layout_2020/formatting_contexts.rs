@@ -5,6 +5,7 @@
 use app_units::Au;
 use serde::Serialize;
 use servo_arc::Arc;
+use servo_config::pref;
 use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
 use style::selector_parser::PseudoElement;
@@ -21,6 +22,7 @@ use crate::replaced::ReplacedContent;
 use crate::sizing::{self, ContentSizes};
 use crate::style_ext::DisplayInside;
 use crate::table::Table;
+use crate::taffy::TaffyContainer;
 use crate::ContainingBlock;
 
 /// <https://drafts.csswg.org/css-display/#independent-formatting-context>
@@ -54,6 +56,8 @@ pub(crate) struct ReplacedFormattingContext {
 pub(crate) enum NonReplacedFormattingContextContents {
     Flow(BlockFormattingContext),
     Flex(FlexContainer),
+    TaffyFlex(TaffyContainer),
+    Grid(TaffyContainer),
     Table(Table),
     // Other layout modes go here
 }
@@ -117,7 +121,26 @@ impl IndependentFormattingContext {
                         )
                     },
                     DisplayInside::Flex => {
-                        NonReplacedFormattingContextContents::Flex(FlexContainer::construct(
+                        if pref!(layout.flexbox.use_taffy) {
+                            NonReplacedFormattingContextContents::TaffyFlex(
+                                TaffyContainer::construct(
+                                    context,
+                                    node_and_style_info,
+                                    non_replaced_contents,
+                                    propagated_text_decoration_line,
+                                ),
+                            )
+                        } else {
+                            NonReplacedFormattingContextContents::Flex(FlexContainer::construct(
+                                context,
+                                node_and_style_info,
+                                non_replaced_contents,
+                                propagated_text_decoration_line,
+                            ))
+                        }
+                    },
+                    DisplayInside::Grid => {
+                        NonReplacedFormattingContextContents::Grid(TaffyContainer::construct(
                             context,
                             node_and_style_info,
                             non_replaced_contents,
@@ -180,7 +203,7 @@ impl IndependentFormattingContext {
         match self {
             Self::NonReplaced(inner) => inner
                 .contents
-                .inline_content_sizes(layout_context, inner.style.writing_mode),
+                .inline_content_sizes(layout_context, &inner.style),
             Self::Replaced(inner) => inner.contents.inline_content_sizes(&inner.style),
         }
     }
@@ -196,9 +219,8 @@ impl IndependentFormattingContext {
                 let content_sizes = &mut non_replaced.content_sizes;
                 let contents = &mut non_replaced.contents;
                 sizing::outer_inline(style, containing_block_writing_mode, || {
-                    *content_sizes.get_or_insert_with(|| {
-                        contents.inline_content_sizes(layout_context, style.writing_mode)
-                    })
+                    *content_sizes
+                        .get_or_insert_with(|| contents.inline_content_sizes(layout_context, style))
                 })
             },
             Self::Replaced(replaced) => {
@@ -230,6 +252,18 @@ impl NonReplacedFormattingContext {
                 containing_block_for_children,
                 containing_block,
             ),
+            NonReplacedFormattingContextContents::TaffyFlex(fc) => fc.layout(
+                layout_context,
+                positioning_context,
+                containing_block_for_children,
+                containing_block,
+            ),
+            NonReplacedFormattingContextContents::Grid(fc) => fc.layout(
+                layout_context,
+                positioning_context,
+                containing_block_for_children,
+                containing_block,
+            ),
             NonReplacedFormattingContextContents::Table(table) => table.layout(
                 layout_context,
                 positioning_context,
@@ -240,11 +274,11 @@ impl NonReplacedFormattingContext {
     }
 
     pub fn inline_content_sizes(&mut self, layout_context: &LayoutContext) -> ContentSizes {
-        let writing_mode = self.style.writing_mode;
+        let style = &self.style;
         let contents = &mut self.contents;
         *self
             .content_sizes
-            .get_or_insert_with(|| contents.inline_content_sizes(layout_context, writing_mode))
+            .get_or_insert_with(|| contents.inline_content_sizes(layout_context, style))
     }
 }
 
@@ -252,14 +286,16 @@ impl NonReplacedFormattingContextContents {
     pub fn inline_content_sizes(
         &mut self,
         layout_context: &LayoutContext,
-        writing_mode: WritingMode,
+        style: &ComputedValues,
     ) -> ContentSizes {
         match self {
             Self::Flow(inner) => inner
                 .contents
-                .inline_content_sizes(layout_context, writing_mode),
-            Self::Flex(inner) => inner.inline_content_sizes(layout_context, writing_mode),
-            Self::Table(table) => table.inline_content_sizes(layout_context, writing_mode),
+                .inline_content_sizes(layout_context, style.writing_mode),
+            Self::Flex(inner) => inner.inline_content_sizes(layout_context, style.writing_mode),
+            Self::TaffyFlex(inner) => inner.inline_content_sizes(layout_context, style),
+            Self::Grid(inner) => inner.inline_content_sizes(layout_context, style),
+            Self::Table(table) => table.inline_content_sizes(layout_context, style.writing_mode),
         }
     }
 }

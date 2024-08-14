@@ -18,7 +18,7 @@ from typing import List, NamedTuple, Optional, Union
 import mozlog
 import mozlog.formatters
 
-from . import SERVO_ROOT, WPT_PATH, WPT_TOOLS_PATH, update_args_for_legacy_layout
+from . import SERVO_ROOT, WPT_PATH, WPT_TOOLS_PATH, update_args_for_legacy_layout, update_args_for_taffy_layout
 from .grouping_formatter import (
     ServoFormatter, ServoHandler,
     UnexpectedResult, UnexpectedSubtestResult
@@ -41,9 +41,12 @@ def set_if_none(args: dict, key: str, value):
 
 def run_tests(default_binary_path: str, **kwargs):
     legacy_layout = kwargs.pop("legacy_layout")
+    taffy_layout = kwargs.pop("taffy_layout")
     message = f"Running WPT tests with {default_binary_path}"
     if legacy_layout:
         message += " (legacy layout)"
+    if taffy_layout:
+        message += " (taffy layout)"
     print(message)
 
     # By default, Rayon selects the number of worker threads based on the
@@ -89,6 +92,8 @@ def run_tests(default_binary_path: str, **kwargs):
         kwargs["binary_args"] += ["--pref=" + pref for pref in prefs]
     if legacy_layout:
         kwargs["binary_args"].append("--legacy-layout")
+    if taffy_layout:
+        kwargs["binary_args"].append("--taffy-layout")
 
     if not kwargs.get("no_default_test_types"):
         test_types = {
@@ -106,6 +111,8 @@ def run_tests(default_binary_path: str, **kwargs):
 
     if legacy_layout:
         update_args_for_legacy_layout(kwargs)
+    if taffy_layout:
+        update_args_for_taffy_layout(kwargs)
 
     mozlog.commandline.log_formatters["servo"] = (
         ServoFormatter,
