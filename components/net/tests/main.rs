@@ -23,7 +23,7 @@ use std::fs::File;
 use std::io::{self, BufReader};
 use std::net::TcpListener as StdTcpListener;
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex, Weak};
+use std::sync::{Arc, LazyLock, Mutex, Weak};
 
 use crossbeam_channel::{unbounded, Sender};
 use devtools_traits::DevtoolsControlMsg;
@@ -34,7 +34,6 @@ use hyper::server::conn::Http;
 use hyper::server::Server as HyperServer;
 use hyper::service::{make_service_fn, service_fn};
 use hyper::{Body, Request as HyperRequest, Response as HyperResponse};
-use lazy_static::lazy_static;
 use net::fetch::cors_cache::CorsCache;
 use net::fetch::methods::{self, CancellationListener, FetchContext};
 use net::filemanager_thread::FileManager;
@@ -54,15 +53,15 @@ use tokio_rustls::{self, TlsAcceptor};
 use tokio_stream::wrappers::TcpListenerStream;
 use tokio_test::block_on;
 
-lazy_static! {
-    pub static ref HANDLE: Mutex<Runtime> = Mutex::new(
+pub static HANDLE: LazyLock<Mutex<Runtime>> = LazyLock::new(|| {
+    Mutex::new(
         Builder::new_multi_thread()
             .enable_io()
             .worker_threads(10)
             .build()
-            .unwrap()
-    );
-}
+            .unwrap(),
+    )
+});
 
 const DEFAULT_USER_AGENT: &'static str = "Such Browser. Very Layout. Wow.";
 
