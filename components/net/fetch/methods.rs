@@ -7,7 +7,7 @@ use std::fs::File;
 use std::io::{self, BufReader, Seek, SeekFrom};
 use std::ops::Bound;
 use std::sync::atomic::Ordering;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, LazyLock, Mutex};
 use std::{mem, str};
 
 use base64::engine::general_purpose;
@@ -19,7 +19,6 @@ use headers::{AccessControlExposeHeaders, ContentType, HeaderMapExt, Range};
 use http::header::{self, HeaderMap, HeaderName};
 use http::{Method, StatusCode};
 use ipc_channel::ipc::{self, IpcReceiver};
-use lazy_static::lazy_static;
 use log::{debug, warn};
 use mime::{self, Mime};
 use net_traits::blob_url_store::{parse_blob_url, BlobURLStoreError};
@@ -53,10 +52,8 @@ use crate::http_loader::{
 use crate::local_directory_listing;
 use crate::subresource_integrity::is_response_integrity_valid;
 
-lazy_static! {
-    static ref X_CONTENT_TYPE_OPTIONS: HeaderName =
-        HeaderName::from_static("x-content-type-options");
-}
+static X_CONTENT_TYPE_OPTIONS: LazyLock<HeaderName> =
+    LazyLock::new(|| HeaderName::from_static("x-content-type-options"));
 
 pub type Target<'a> = &'a mut (dyn FetchTaskTarget + Send);
 
