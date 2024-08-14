@@ -291,7 +291,6 @@ dependencies = [
  "base",
  "crossbeam-channel",
  "ipc-channel",
- "lazy_static",
  "libc",
  "log",
  "mach2",
