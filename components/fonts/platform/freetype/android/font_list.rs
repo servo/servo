@@ -5,6 +5,7 @@
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
+use std::sync::LazyLock;
 
 use base::text::{is_cjk, UnicodeBlock, UnicodeBlockMethod};
 use log::warn;
@@ -21,9 +22,7 @@ use crate::{
     FallbackFontSelectionOptions, FontTemplate, FontTemplateDescriptor, LowercaseFontFamilyName,
 };
 
-lazy_static::lazy_static! {
-    static ref FONT_LIST: FontList = FontList::new();
-}
+static FONT_LIST: LazyLock<FontList> = LazyLock::new(|| FontList::new());
 
 /// An identifier for a local font on Android systems.
 #[derive(Clone, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
