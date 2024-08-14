@@ -4489,7 +4489,6 @@ dependencies = [
  "hyper_serde",
  "imsz",
  "ipc-channel",
- "lazy_static",
  "libflate",
  "log",
  "malloc_size_of",
