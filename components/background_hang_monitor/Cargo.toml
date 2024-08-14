@@ -22,9 +22,6 @@ libc = { workspace = true }
 log = { workspace = true }
 serde_json = { workspace = true }
 
-[dev-dependencies]
-lazy_static = { workspace = true }
-
 [target.'cfg(target_os = "macos")'.dependencies]
 mach2 = "0.4"
 

@@ -56,7 +56,6 @@ libc = { workspace = true }
 libservo = { path = "../../components/servo" }
 cfg-if = { workspace = true }
 log = { workspace = true }
-lazy_static = { workspace = true }
 getopts = { workspace = true }
 url = { workspace = true }
 servo-media = { workspace = true }

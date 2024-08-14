@@ -9,9 +9,7 @@ use std::{env, fs};
 use cfg_if::cfg_if;
 use servo::embedder_traits::resources::{self, Resource};
 
-lazy_static::lazy_static! {
-    static ref CMD_RESOURCE_DIR: Mutex<Option<PathBuf>> = Mutex::new(None);
-}
+static CMD_RESOURCE_DIR: Mutex<Option<PathBuf>> = Mutex::new(None);
 
 struct ResourceReader;
 
