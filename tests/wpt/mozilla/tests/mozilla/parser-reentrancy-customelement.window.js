@@ -1,10 +1,6 @@
-<html>
-<head>
-<title>Dynamic markup insertion during custom element callbacks does not panic</title>
-<script src="/resources/testharness.js"></script>
-<script src="/resources/testharnessreport.js"></script>
-<body>
-<script>
+// META: variant=?default
+// META: variant=?async
+
   let script = "\
   class PopupInfo extends HTMLElement { \
     connectedCallback() { \
@@ -23,5 +19,4 @@ customElements.define('popup-info', PopupInfo); \
     iframe.globalTest = t;
     iframe.srcdoc = "<script>" + script + "<" + "/script><popup-info></popup-info>";
     document.body.appendChild(iframe);
-  });
-</script>
+  }, "Dynamic markup insertion during custom element callbacks does not panic");

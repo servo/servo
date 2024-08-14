@@ -13776,11 +13776,37 @@
       {}
      ]
     ],
-    "parser-reentrancy-customelement.html": [
-     "8742bf95b9bf082b6102c792ab8fe069afd87022",
+    "parser-reentrancy-customelement.window.js": [
+     "0df997aa6c521ef31c32c4054568ed005e011663",
      [
-      null,
-      {}
+      "mozilla/parser-reentrancy-customelement.window.html?async",
+      {
+       "script_metadata": [
+        [
+         "variant",
+         "?default"
+        ],
+        [
+         "variant",
+         "?async"
+        ]
+       ]
+      }
+     ],
+     [
+      "mozilla/parser-reentrancy-customelement.window.html?default",
+      {
+       "script_metadata": [
+        [
+         "variant",
+         "?default"
+        ],
+        [
+         "variant",
+         "?async"
+        ]
+       ]
+      }
      ]
     ],
     "partial_shadow_dom.html": [
