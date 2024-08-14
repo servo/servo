@@ -1059,7 +1059,6 @@ where
                 .map(|threads| threads.pipeline()),
             webxr_registry: self.webxr_registry.clone(),
             player_context: self.player_context.clone(),
-            event_loop_waker: None,
             user_agent: self.user_agent.clone(),
         });
 

@@ -45,6 +45,7 @@ use libflate::non_blocking::gzip;
 use crate::connector::BUF_SIZE;
 
 #[derive(Debug)]
+#[allow(dead_code)]
 pub enum Error {
     Io(io::Error),
     Hyper(hyper::Error),

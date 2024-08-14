@@ -31,8 +31,6 @@ pub struct BackgroundPlacement {
     pub clip_rect: Rect<Au>,
     /// Rounded corners for the clip_rect.
     pub clip_radii: BorderRadius,
-    /// Whether or not the background is fixed to the viewport.
-    pub fixed: bool,
 }
 
 /// Access element at index modulo the array length.
@@ -170,17 +168,13 @@ pub fn placement(
         border_radii,
     );
 
-    let mut fixed = false;
     let mut bounds = match bg_attachment {
         BackgroundAttachment::Scroll => match bg_origin {
             BackgroundOrigin::BorderBox => absolute_bounds,
             BackgroundOrigin::PaddingBox => absolute_bounds.inner_rect(border),
             BackgroundOrigin::ContentBox => absolute_bounds.inner_rect(border_padding),
         },
-        BackgroundAttachment::Fixed => {
-            fixed = true;
-            Rect::new(Point2D::origin(), viewport_size)
-        },
+        BackgroundAttachment::Fixed => Rect::new(Point2D::origin(), viewport_size),
     };
 
     let mut tile_size = compute_background_image_size(bg_size, bounds.size, intrinsic_size);
@@ -223,7 +217,6 @@ pub fn placement(
         tile_spacing,
         clip_rect,
         clip_radii,
-        fixed,
     })
 }
 

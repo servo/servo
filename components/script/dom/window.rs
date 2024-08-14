@@ -2460,7 +2460,7 @@ impl Window {
     pub fn evaluate_media_queries_and_report_changes(&self) {
         rooted_vec!(let mut mql_list);
         self.media_query_lists.for_each(|mql| {
-            if let MediaQueryListMatchState::Changed(_) = mql.evaluate_changes() {
+            if let MediaQueryListMatchState::Changed = mql.evaluate_changes() {
                 // Recording list of changed Media Queries
                 mql_list.push(Dom::from_ref(&*mql));
             }

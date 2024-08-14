@@ -21,7 +21,6 @@ use canvas_traits::webgl::WebGLPipeline;
 use compositing_traits::{CompositionPipeline, CompositorMsg, CompositorProxy};
 use crossbeam_channel::{unbounded, Sender};
 use devtools_traits::{DevtoolsControlMsg, ScriptToDevtoolsControlMsg};
-use embedder_traits::EventLoopWaker;
 use fonts::FontCacheThread;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
@@ -201,9 +200,6 @@ pub struct InitialPipelineState {
 
     /// Application window's GL Context for Media player
     pub player_context: WindowGLContext,
-
-    /// Mechanism to force the compositor to process events.
-    pub event_loop_waker: Option<Box<dyn EventLoopWaker>>,
 
     /// User agent string to report in network requests.
     pub user_agent: Cow<'static, str>,

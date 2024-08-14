@@ -59,8 +59,8 @@ impl fmt::Display for TexImageValidationError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use self::TexImageValidationError::*;
         let description = match *self {
-            InvalidTextureTarget(_) => "Invalid texture target",
-            TextureTargetNotBound(_) => "Texture was not bound",
+            InvalidTextureTarget(texture_id) => &format!("Invalid texture target ({texture_id})"),
+            TextureTargetNotBound(texture_id) => &format!("Texture was not bound {texture_id}"),
             InvalidCubicTextureDimensions => {
                 "Invalid dimensions were given for a cubic texture target"
             },
