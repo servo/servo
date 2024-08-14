@@ -7,6 +7,7 @@ use std::fs::File;
 use std::io::Read;
 use std::os::unix::ffi::OsStrExt;
 use std::path::{Path, PathBuf};
+use std::sync::LazyLock;
 use std::{fs, io};
 
 use base::text::{UnicodeBlock, UnicodeBlockMethod};
@@ -25,9 +26,7 @@ use crate::{
     FontTemplateDescriptor, LowercaseFontFamilyName,
 };
 
-lazy_static::lazy_static! {
-    static ref FONT_LIST: FontList = FontList::new();
-}
+static FONT_LIST: LazyLock<FontList> = LazyLock::new(|| FontList::new());
 
 /// When testing the ohos font code on linux, we can pass the fonts directory of the SDK
 /// via an environment variable.

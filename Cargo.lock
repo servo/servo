@@ -1877,7 +1877,6 @@ dependencies = [
  "freetype-sys",
  "harfbuzz-sys",
  "ipc-channel",
- "lazy_static",
  "libc",
  "log",
  "malloc_size_of",
