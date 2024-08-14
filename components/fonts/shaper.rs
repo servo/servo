@@ -5,6 +5,7 @@
 #![allow(unsafe_code)]
 
 use std::os::raw::{c_char, c_int, c_uint, c_void};
+use std::sync::LazyLock;
 use std::{char, cmp, ptr};
 
 use app_units::Au;
@@ -24,7 +25,6 @@ use harfbuzz_sys::{
     HB_OT_LAYOUT_BASELINE_TAG_HANGING, HB_OT_LAYOUT_BASELINE_TAG_IDEO_EMBOX_BOTTOM_OR_LEFT,
     HB_OT_LAYOUT_BASELINE_TAG_ROMAN,
 };
-use lazy_static::lazy_static;
 use log::debug;
 
 use crate::platform::font::FontTable;
@@ -657,21 +657,20 @@ impl Shaper {
 struct FontFuncs(*mut hb_font_funcs_t);
 
 unsafe impl Sync for FontFuncs {}
+unsafe impl Send for FontFuncs {}
 
-lazy_static! {
-    static ref HB_FONT_FUNCS: FontFuncs = unsafe {
-        let hb_funcs = hb_font_funcs_create();
-        hb_font_funcs_set_nominal_glyph_func(hb_funcs, Some(glyph_func), ptr::null_mut(), None);
-        hb_font_funcs_set_glyph_h_advance_func(
-            hb_funcs,
-            Some(glyph_h_advance_func),
-            ptr::null_mut(),
-            None,
-        );
+static HB_FONT_FUNCS: LazyLock<FontFuncs> = LazyLock::new(|| unsafe {
+    let hb_funcs = hb_font_funcs_create();
+    hb_font_funcs_set_nominal_glyph_func(hb_funcs, Some(glyph_func), ptr::null_mut(), None);
+    hb_font_funcs_set_glyph_h_advance_func(
+        hb_funcs,
+        Some(glyph_h_advance_func),
+        ptr::null_mut(),
+        None,
+    );
 
-        FontFuncs(hb_funcs)
-    };
-}
+    FontFuncs(hb_funcs)
+});
 
 extern "C" fn glyph_func(
     _: *mut hb_font_t,
