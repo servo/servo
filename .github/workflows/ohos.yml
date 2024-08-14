@@ -29,7 +29,7 @@ jobs:
     runs-on: ubuntu-22.04
     strategy:
       matrix:
-        arch: ['aarch64-unknown-linux-ohos']
+        arch: ['aarch64-unknown-linux-ohos', 'x86_64-unknown-linux-ohos']
     steps:
       - uses: actions/checkout@v4
         if: github.event_name != 'pull_request_target'
