@@ -5,6 +5,8 @@
 use std::cell::Cell;
 
 use dom_struct::dom_struct;
+use js::gc::CustomAutoRooterGuard;
+use js::typedarray::Float32Array;
 use webxr_api::{Frame, LayerId, SubImages};
 
 use crate::dom::bindings::codegen::Bindings::XRFrameBinding::XRFrameMethods;
@@ -174,5 +176,108 @@ impl XRFrameMethods for XRFrame {
             .filter(|r| r.id == source.id())
             .map(|r| XRHitTestResult::new(&self.global(), *r, self))
             .collect()
+    }
+
+    #[allow(unsafe_code)]
+    /// <https://www.w3.org/TR/webxr-hand-input-1/#dom-xrframe-filljointradii>
+    fn FillJointRadii(
+        &self,
+        joint_spaces: Vec<DomRoot<XRJointSpace>>,
+        mut radii: CustomAutoRooterGuard<Float32Array>,
+    ) -> Result<bool, Error> {
+        if !self.active.get() {
+            return Err(Error::InvalidState);
+        }
+
+        for joint_space in &joint_spaces {
+            if self.session != joint_space.upcast::<XRSpace>().session() {
+                return Err(Error::InvalidState);
+            }
+        }
+
+        if joint_spaces.len() > radii.len() {
+            return Err(Error::Type(
+                "Length of radii does not match length of joint spaces".to_string(),
+            ));
+        }
+
+        let mut radii_vec = radii.to_vec();
+        let mut all_valid = true;
+        radii_vec.iter_mut().enumerate().for_each(|(i, radius)| {
+            if let Some(joint_frame) = joint_spaces
+                .get(i)
+                .and_then(|joint_space| joint_space.frame(&self.data))
+            {
+                *radius = joint_frame.radius;
+            } else {
+                all_valid = false;
+            }
+        });
+
+        if !all_valid {
+            radii_vec.fill(f32::NAN);
+        }
+
+        unsafe {
+            radii.update(&radii_vec);
+        }
+
+        Ok(all_valid)
+    }
+
+    #[allow(unsafe_code)]
+    /// <https://www.w3.org/TR/webxr-hand-input-1/#dom-xrframe-fillposes>
+    fn FillPoses(
+        &self,
+        spaces: Vec<DomRoot<XRSpace>>,
+        base_space: &XRSpace,
+        mut transforms: CustomAutoRooterGuard<Float32Array>,
+    ) -> Result<bool, Error> {
+        if !self.active.get() {
+            return Err(Error::InvalidState);
+        }
+
+        for space in &spaces {
+            if self.session != space.session() {
+                return Err(Error::InvalidState);
+            }
+        }
+
+        if self.session != base_space.session() {
+            return Err(Error::InvalidState);
+        }
+
+        if spaces.len() * 16 > transforms.len() {
+            return Err(Error::Type(
+                "Transforms array length does not match 16 * spaces length".to_string(),
+            ));
+        }
+
+        let mut transforms_vec = transforms.to_vec();
+        let mut all_valid = true;
+        spaces.iter().enumerate().for_each(|(i, space)| {
+            let Some(joint_pose) = self.get_pose(space) else {
+                all_valid = false;
+                return;
+            };
+            let Some(base_pose) = self.get_pose(base_space) else {
+                all_valid = false;
+                return;
+            };
+            let pose = joint_pose.then(&base_pose.inverse());
+            let elements = pose.to_transform();
+            let elements_arr = elements.to_array();
+            transforms_vec[i * 16..(i + 1) * 16].copy_from_slice(&elements_arr);
+        });
+
+        if !all_valid {
+            transforms_vec.fill(f32::NAN);
+        }
+
+        unsafe {
+            transforms.update(&transforms_vec);
+        }
+
+        Ok(all_valid)
     }
 }

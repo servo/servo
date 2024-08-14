@@ -6,6 +6,8 @@ use dom_struct::dom_struct;
 use euclid::RigidTransform3D;
 use webxr_api::{BaseSpace, Frame, InputId, Joint, JointFrame, Space};
 
+use crate::dom::bindings::codegen::Bindings::XRHandBinding::XRHandJoint;
+use crate::dom::bindings::codegen::Bindings::XRJointSpaceBinding::XRJointSpaceMethods;
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
@@ -21,14 +23,21 @@ pub struct XRJointSpace {
     #[ignore_malloc_size_of = "defined in rust-webxr"]
     #[no_trace]
     joint: Joint,
+    hand_joint: XRHandJoint,
 }
 
 impl XRJointSpace {
-    pub fn new_inherited(session: &XRSession, input: InputId, joint: Joint) -> XRJointSpace {
+    pub fn new_inherited(
+        session: &XRSession,
+        input: InputId,
+        joint: Joint,
+        hand_joint: XRHandJoint,
+    ) -> XRJointSpace {
         XRJointSpace {
             xrspace: XRSpace::new_inherited(session),
             input,
             joint,
+            hand_joint,
         }
     }
 
@@ -38,8 +47,12 @@ impl XRJointSpace {
         session: &XRSession,
         input: InputId,
         joint: Joint,
+        hand_joint: XRHandJoint,
     ) -> DomRoot<XRJointSpace> {
-        reflect_dom_object(Box::new(Self::new_inherited(session, input, joint)), global)
+        reflect_dom_object(
+            Box::new(Self::new_inherited(session, input, joint, hand_joint)),
+            global,
+        )
     }
 
     pub fn space(&self) -> Space {
@@ -59,5 +72,12 @@ impl XRJointSpace {
 
     pub fn get_pose(&self, frame: &Frame) -> Option<ApiPose> {
         self.frame(frame).map(|f| f.pose).map(|t| t.cast_unit())
+    }
+}
+
+impl XRJointSpaceMethods for XRJointSpace {
+    /// <https://www.w3.org/TR/webxr-hand-input-1/#xrjointspace-jointname>
+    fn JointName(&self) -> XRHandJoint {
+        self.hand_joint
     }
 }
