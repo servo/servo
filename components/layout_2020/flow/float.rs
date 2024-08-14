@@ -16,6 +16,7 @@ use euclid::num::Zero;
 use serde::Serialize;
 use servo_arc::Arc;
 use style::computed_values::float::T as FloatProperty;
+use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
 use style::values::computed::{Clear, Length};
 use style::values::specified::text::TextDecorationLine;
@@ -25,7 +26,7 @@ use crate::dom::NodeExt;
 use crate::dom_traversal::{Contents, NodeAndStyleInfo};
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragment_tree::{BoxFragment, CollapsedBlockMargins, CollapsedMargin};
-use crate::geom::{LogicalRect, LogicalVec2};
+use crate::geom::{LogicalRect, LogicalVec2, ToLogical};
 use crate::positioned::PositioningContext;
 use crate::style_ext::{ComputedValuesExt, DisplayInside, PaddingBorderMargin};
 use crate::ContainingBlock;
@@ -959,26 +960,24 @@ impl FloatBox {
                                 ),
                             };
                         content_size = LogicalVec2 {
-                            inline: inline_size,
-                            block: block_size,
+                            inline: inline_size.into(),
+                            block: block_size.into(),
                         };
                         children = independent_layout.fragments;
                     },
                     IndependentFormattingContext::Replaced(ref replaced) => {
                         // https://drafts.csswg.org/css2/#float-replaced-width
                         // https://drafts.csswg.org/css2/#inline-replaced-height
-                        content_size = replaced
-                            .contents
-                            .used_size_as_if_inline_element(
-                                containing_block,
-                                &replaced.style,
-                                None,
-                                &pbm,
-                            )
-                            .into();
-                        children = replaced
-                            .contents
-                            .make_fragments(&replaced.style, content_size.into());
+                        content_size = replaced.contents.used_size_as_if_inline_element(
+                            containing_block,
+                            &replaced.style,
+                            None,
+                            &pbm,
+                        );
+                        children = replaced.contents.make_fragments(
+                            &replaced.style,
+                            content_size.to_physical_size(containing_block.style.writing_mode),
+                        )
                     },
                 };
 
@@ -987,14 +986,15 @@ impl FloatBox {
                     size: content_size,
                 };
 
+                let containing_block_writing_mode = containing_block.style.writing_mode;
                 BoxFragment::new(
                     self.contents.base_fragment_info(),
                     style.clone(),
                     children,
-                    content_rect.into(),
-                    pbm.padding,
-                    pbm.border,
-                    margin,
+                    content_rect.to_physical(containing_block_writing_mode),
+                    pbm.padding.to_physical(containing_block_writing_mode),
+                    pbm.border.to_physical(containing_block_writing_mode),
+                    margin.to_physical(containing_block_writing_mode),
                     // Clearance is handled internally by the float placement logic, so there's no need
                     // to store it explicitly in the fragment.
                     None, // clearance
@@ -1194,6 +1194,7 @@ impl SequentialLayoutState {
     pub(crate) fn place_float_fragment(
         &mut self,
         box_fragment: &mut BoxFragment,
+        container_writing_mode: WritingMode,
         margins_collapsing_with_parent_containing_block: CollapsedMargin,
         block_offset_from_containing_block_top: Au,
     ) {
@@ -1208,8 +1209,9 @@ impl SequentialLayoutState {
             block_start_of_containing_block_in_bfc + block_offset_from_containing_block_top,
         );
 
-        let pbm_sums = box_fragment.padding + box_fragment.border + box_fragment.margin;
-        let content_rect = &box_fragment.content_rect;
+        let pbm_sums = (box_fragment.padding + box_fragment.border + box_fragment.margin)
+            .to_logical(container_writing_mode);
+        let content_rect = &box_fragment.content_rect.to_logical(container_writing_mode);
         let margin_box_start_corner = self.floats.add_float(&PlacementInfo {
             size: content_rect.size + pbm_sums.sum(),
             side: FloatSide::from_style(&box_fragment.style).expect("Float box wasn't floated!"),
@@ -1227,6 +1229,7 @@ impl SequentialLayoutState {
             block: new_position_in_bfc.block - block_start_of_containing_block_in_bfc,
         };
 
-        box_fragment.content_rect.start_corner = new_position_in_containing_block;
+        box_fragment.content_rect.origin =
+            new_position_in_containing_block.to_physical_point(container_writing_mode);
     }
 }

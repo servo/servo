@@ -260,7 +260,6 @@ impl Fragment {
                 if let Some(style) = positioning_fragment.style.as_ref() {
                     let rect = positioning_fragment
                         .rect
-                        .to_physical(style.writing_mode, containing_block)
                         .translate(containing_block.origin.to_vector());
                     self.maybe_push_hit_test_for_style_and_tag(
                         builder,
@@ -274,10 +273,7 @@ impl Fragment {
             Fragment::Image(i) => match i.style.get_inherited_box().visibility {
                 Visibility::Visible => {
                     builder.is_contentful = true;
-                    let rect = i
-                        .rect
-                        .to_physical(i.style.writing_mode, containing_block)
-                        .translate(containing_block.origin.to_vector());
+                    let rect = i.rect.translate(containing_block.origin.to_vector());
 
                     let common = builder.common_properties(rect.to_webrender(), &i.style);
                     builder.wr().push_image(
@@ -295,10 +291,7 @@ impl Fragment {
             Fragment::IFrame(iframe) => match iframe.style.get_inherited_box().visibility {
                 Visibility::Visible => {
                     builder.is_contentful = true;
-                    let rect = iframe
-                        .rect
-                        .to_physical(iframe.style.writing_mode, containing_block)
-                        .translate(containing_block.origin.to_vector());
+                    let rect = iframe.rect.translate(containing_block.origin.to_vector());
 
                     builder.iframe_sizes.insert(
                         iframe.browsing_context_id,
@@ -366,10 +359,7 @@ impl Fragment {
 
         builder.is_contentful = true;
 
-        let rect = fragment
-            .rect
-            .to_physical(fragment.parent_style.writing_mode, containing_block)
-            .translate(containing_block.origin.to_vector());
+        let rect = fragment.rect.translate(containing_block.origin.to_vector());
         let mut baseline_origin = rect.origin;
         baseline_origin.y += fragment.font_metrics.ascent;
         let glyphs = glyphs(
@@ -504,7 +494,6 @@ impl<'a> BuilderForBoxFragment<'a> {
     fn new(fragment: &'a BoxFragment, containing_block: &'a PhysicalRect<Au>) -> Self {
         let border_rect: units::LayoutRect = fragment
             .border_rect()
-            .to_physical(fragment.style.writing_mode, containing_block)
             .translate(containing_block.origin.to_vector())
             .to_webrender();
 
@@ -562,7 +551,6 @@ impl<'a> BuilderForBoxFragment<'a> {
         self.content_rect.get_or_init(|| {
             self.fragment
                 .content_rect
-                .to_physical(self.fragment.style.writing_mode, self.containing_block)
                 .translate(self.containing_block.origin.to_vector())
                 .to_webrender()
         })
@@ -572,7 +560,6 @@ impl<'a> BuilderForBoxFragment<'a> {
         self.padding_rect.get_or_init(|| {
             self.fragment
                 .padding_rect()
-                .to_physical(self.fragment.style.writing_mode, self.containing_block)
                 .translate(self.containing_block.origin.to_vector())
                 .to_webrender()
         })
@@ -606,13 +593,7 @@ impl<'a> BuilderForBoxFragment<'a> {
             return Some(clip);
         }
 
-        let radii = inner_radii(
-            self.border_radius,
-            self.fragment
-                .border
-                .to_physical(self.fragment.style.writing_mode)
-                .to_webrender(),
-        );
+        let radii = inner_radii(self.border_radius, self.fragment.border.to_webrender());
         let maybe_clip =
             create_clip_chain(radii, *self.padding_rect(), builder, force_clip_creation);
         *self.padding_edge_clip_chain_id.borrow_mut() = maybe_clip;
@@ -630,9 +611,7 @@ impl<'a> BuilderForBoxFragment<'a> {
 
         let radii = inner_radii(
             self.border_radius,
-            (self.fragment.border + self.fragment.padding)
-                .to_physical(self.fragment.style.writing_mode)
-                .to_webrender(),
+            (self.fragment.border + self.fragment.padding).to_webrender(),
         );
         let maybe_clip =
             create_clip_chain(radii, *self.content_rect(), builder, force_clip_creation);
@@ -731,7 +710,7 @@ impl<'a> BuilderForBoxFragment<'a> {
                     painting_area_override: None,
                     positioning_area_override: Some(
                         positioning_area
-                            .to_physical(self.fragment.style.writing_mode, self.containing_block)
+                            .to_physical(self.fragment.style.writing_mode)
                             .translate(self.containing_block.origin.to_vector())
                             .to_webrender(),
                     ),
@@ -887,11 +866,7 @@ impl<'a> BuilderForBoxFragment<'a> {
 
     fn build_border(&mut self, builder: &mut DisplayListBuilder) {
         let border = self.fragment.style.get_border();
-        let border_widths = self
-            .fragment
-            .border
-            .to_physical(self.fragment.style.writing_mode)
-            .to_webrender();
+        let border_widths = self.fragment.border.to_webrender();
 
         if border_widths == SideOffsets2D::zero() {
             return;

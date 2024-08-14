@@ -198,21 +198,13 @@ pub fn process_resolved_style_request<'dom>(
                             _ => {},
                         }
                     }
-                    let content_rect = box_fragment
-                        .content_rect
-                        .to_physical(box_fragment.style.writing_mode, containing_block);
-                    let margins = box_fragment
-                        .margin
-                        .to_physical(box_fragment.style.writing_mode);
-                    let padding = box_fragment
-                        .padding
-                        .to_physical(box_fragment.style.writing_mode);
+                    let content_rect = box_fragment.content_rect;
+                    let margins = box_fragment.margin;
+                    let padding = box_fragment.padding;
                     (content_rect, margins, padding)
                 },
                 Fragment::Positioning(positioning_fragment) => {
-                    let content_rect = positioning_fragment
-                        .rect
-                        .to_physical(positioning_fragment.writing_mode, containing_block);
+                    let content_rect = positioning_fragment.rect;
                     (content_rect, SideOffsets2D::zero(), SideOffsets2D::zero())
                 },
                 _ => return None,
@@ -370,15 +362,9 @@ fn process_offset_parent_query_inner(
             //
             // [1]: https://github.com/w3c/csswg-drafts/issues/4541
             let fragment_relative_rect = match fragment {
-                Fragment::Box(fragment) | Fragment::Float(fragment) => fragment
-                    .border_rect()
-                    .to_physical(fragment.style.writing_mode, containing_block),
-                Fragment::Text(fragment) => fragment
-                    .rect
-                    .to_physical(fragment.parent_style.writing_mode, containing_block),
-                Fragment::Positioning(fragment) => fragment
-                    .rect
-                    .to_physical(fragment.writing_mode, containing_block),
+                Fragment::Box(fragment) | Fragment::Float(fragment) => fragment.border_rect(),
+                Fragment::Text(fragment) => fragment.rect,
+                Fragment::Positioning(fragment) => fragment.rect,
                 Fragment::AbsoluteOrFixedPositioned(_) |
                 Fragment::Image(_) |
                 Fragment::IFrame(_) => unreachable!(),
@@ -461,12 +447,9 @@ fn process_offset_parent_query_inner(
                         Fragment::Box(fragment) | Fragment::Float(fragment) => {
                             if fragment.base.tag == Some(offset_parent_node_tag) {
                                 // Again, take the *first* associated CSS layout box.
-                                let padding_box_corner = fragment
-                                    .padding_rect()
-                                    .to_physical(fragment.style.writing_mode, containing_block)
-                                    .origin
-                                    .to_vector() +
-                                    containing_block.origin.to_vector();
+                                let padding_box_corner =
+                                    fragment.padding_rect().origin.to_vector() +
+                                        containing_block.origin.to_vector();
                                 let padding_box_corner = padding_box_corner.to_untyped();
                                 Some(padding_box_corner)
                             } else {
