@@ -7,7 +7,7 @@ use std::fs::File;
 use std::io::{self, BufReader, Seek, SeekFrom};
 use std::ops::Bound;
 use std::sync::atomic::Ordering;
-use std::sync::{Arc, LazyLock, Mutex};
+use std::sync::{Arc, Mutex};
 use std::{mem, str};
 
 use base64::engine::general_purpose;
@@ -51,9 +51,6 @@ use crate::http_loader::{
 };
 use crate::local_directory_listing;
 use crate::subresource_integrity::is_response_integrity_valid;
-
-static X_CONTENT_TYPE_OPTIONS: LazyLock<HeaderName> =
-    LazyLock::new(|| HeaderName::from_static("x-content-type-options"));
 
 pub type Target<'a> = &'a mut (dyn FetchTaskTarget + Send);
 
