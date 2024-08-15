@@ -418,7 +418,7 @@ impl WindowProxy {
 
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-opener
-    pub fn opener(&self, cx: *mut JSContext) -> JSVal {
+    pub fn opener(&self, cx: *mut JSContext, in_realm_proof: InRealm) -> JSVal {
         if self.disowned.get() {
             return NullValue();
         }
@@ -436,11 +436,8 @@ impl WindowProxy {
                     opener_id,
                 ) {
                     Some(opener_top_id) => {
-                        let in_realm_proof =
-                            AlreadyInRealm::assert_for_cx(unsafe { SafeJSContext::from_ptr(cx) });
-                        let global_to_clone_from = unsafe {
-                            GlobalScope::from_context(cx, InRealm::Already(&in_realm_proof))
-                        };
+                        let global_to_clone_from =
+                            unsafe { GlobalScope::from_context(cx, in_realm_proof) };
                         let creator =
                             CreatorBrowsingContextInfo::from(parent_browsing_context, None);
                         WindowProxy::new_dissimilar_origin(
