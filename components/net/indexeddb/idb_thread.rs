@@ -7,8 +7,8 @@ use std::collections::{HashMap, VecDeque};
 use std::path::PathBuf;
 use std::thread;
 
-use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
-use log::warn;
+use ipc_channel::ipc::{self, IpcError, IpcReceiver, IpcSender};
+use log::{error, warn};
 use net_traits::indexeddb_thread::{
     AsyncOperation, IndexedDBThreadMsg, IndexedDBThreadReturnType, IndexedDBTxnMode, SyncOperation,
 };
@@ -16,7 +16,7 @@ use servo_config::pref;
 use servo_url::origin::ImmutableOrigin;
 
 use crate::indexeddb::engines::{
-    KvsEngine, KvsOperation, KvsTransaction, RkvEngine, SanitizedName,
+    HeedEngine, KvsEngine, KvsOperation, KvsTransaction, SanitizedName,
 };
 
 pub trait IndexedDBThreadFactory {
@@ -106,13 +106,7 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
 
     // Executes all requests for a transaction (without committing)
     fn start_transaction(&mut self, txn: u64, sender: Option<IpcSender<Result<(), ()>>>) {
-        // FIXME:(rasviitanen)
-        // This executes in a thread pool, and `readwrite` transactions
-        // will block their thread if the writer is occupied, so we can
-        // probably do some smart things here in order to optimize.
-        // Queueuing 8 writers will for example block 7 threads,
-        // so we should probably reserve write operations for just one thread,
-        // so that the rest of the threads can work in parallel with read txns.
+        // FIXME:(arihant2math) find a way to optimizations in this function rather than on the engine level code (less repetition)
         self.transactions.remove(&txn).map(|txn| {
             self.engine.process_transaction(txn).blocking_recv();
         });
@@ -145,14 +139,14 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
 struct IndexedDBManager {
     port: IpcReceiver<IndexedDBThreadMsg>,
     idb_base_dir: PathBuf,
-    databases: HashMap<IndexedDBDescription, IndexedDBEnvironment<RkvEngine>>,
+    databases: HashMap<IndexedDBDescription, IndexedDBEnvironment<HeedEngine>>,
 }
 
 impl IndexedDBManager {
     fn new(port: IpcReceiver<IndexedDBThreadMsg>, idb_base_dir: PathBuf) -> IndexedDBManager {
         IndexedDBManager {
-            port: port,
-            idb_base_dir: idb_base_dir,
+            port,
+            idb_base_dir,
             databases: HashMap::new(),
         }
     }
@@ -162,7 +156,18 @@ impl IndexedDBManager {
     fn start(&mut self) {
         if pref!(dom.indexeddb.enabled) {
             loop {
-                let message = self.port.recv().expect("No message");
+                // FIXME:(arihant2math) No message *most likely* means that
+                // the ipc sender has been dropped, so we break the look
+                let message = match self.port.recv() {
+                    Ok(msg) => msg,
+                    Err(e) => match e {
+                        IpcError::Disconnected => {
+                            error!("indexeddb ipc channel has been dropped, breaking loop");
+                            break;
+                        },
+                        other => Err(other).unwrap(),
+                    },
+                };
                 match message {
                     IndexedDBThreadMsg::Sync(operation) => {
                         self.handle_sync_operation(operation);
@@ -180,7 +185,7 @@ impl IndexedDBManager {
                         self.get_database_mut(origin, db_name).map(|db| {
                             // Queues an operation for a transaction without starting it
                             db.queue_operation(sender, store_name, txn, mode, operation);
-                            // FIXME:(rasviitanen) Schedule transactions properly:
+                            // FIXME:(arihant2math) Schedule transactions properly:
                             // for now, we start them directly.
                             db.start_transaction(txn, None);
                         });
@@ -194,9 +199,9 @@ impl IndexedDBManager {
         &self,
         origin: ImmutableOrigin,
         db_name: String,
-    ) -> Option<&IndexedDBEnvironment<RkvEngine>> {
+    ) -> Option<&IndexedDBEnvironment<HeedEngine>> {
         let idb_description = IndexedDBDescription {
-            origin: origin,
+            origin,
             name: db_name,
         };
 
@@ -207,9 +212,9 @@ impl IndexedDBManager {
         &mut self,
         origin: ImmutableOrigin,
         db_name: String,
-    ) -> Option<&mut IndexedDBEnvironment<RkvEngine>> {
+    ) -> Option<&mut IndexedDBEnvironment<HeedEngine>> {
         let idb_description = IndexedDBDescription {
-            origin: origin,
+            origin,
             name: db_name,
         };
 
@@ -220,7 +225,7 @@ impl IndexedDBManager {
         match operation {
             SyncOperation::OpenDatabase(sender, origin, db_name, version) => {
                 let idb_description = IndexedDBDescription {
-                    origin: origin,
+                    origin,
                     name: db_name,
                 };
 
@@ -229,7 +234,7 @@ impl IndexedDBManager {
                 match self.databases.entry(idb_description.clone()) {
                     Entry::Vacant(e) => {
                         let db = IndexedDBEnvironment::new(
-                            RkvEngine::new(idb_base_dir, &idb_description.as_path()),
+                            HeedEngine::new(idb_base_dir, &idb_description.as_path()),
                             version.unwrap_or(0),
                         );
                         sender.send(db.version).unwrap();
@@ -242,12 +247,12 @@ impl IndexedDBManager {
             },
             SyncOperation::DeleteDatabase(sender, origin, db_name) => {
                 let idb_description = IndexedDBDescription {
-                    origin: origin,
+                    origin,
                     name: db_name,
                 };
                 self.databases.remove(&idb_description);
 
-                // FIXME:(rasviitanen) Possible sercurity issue?
+                // FIXME:(rasviitanen) Possible security issue?
                 let mut db_dir = self.idb_base_dir.clone();
                 db_dir.push(&idb_description.as_path());
                 if std::fs::remove_dir_all(&db_dir).is_err() {
@@ -265,7 +270,7 @@ impl IndexedDBManager {
                 sender.send(result).expect("Could not send generator info");
             },
             SyncOperation::Commit(sender, _origin, _db_name, _txn) => {
-                // FIXME:(rasviitanen) This does nothing at the moment
+                // FIXME:(arihant2math) This does nothing at the moment
                 sender
                     .send(IndexedDBThreadReturnType::Commit(Err(())))
                     .expect("Could not send commit status");
@@ -275,7 +280,7 @@ impl IndexedDBManager {
                     db.version = version;
                 });
 
-                // FIXME:(rasviitanen) Get the version from the database instead
+                // FIXME:(arihant2math) Get the version from the database instead
                 // We never fail as of now, so we can just return it like this
                 // for now...
                 sender

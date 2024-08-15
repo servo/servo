@@ -35,6 +35,7 @@ futures-core = { version = "0.3.30", default-features = false }
 futures-util = { version = "0.3.30", default-features = false }
 generic-array = "0.14"
 headers = { workspace = true }
+heed = "0.20"
 http = { workspace = true }
 http-body-util = { workspace = true }
 hyper = { workspace = true, features = ["client", "http1", "http2"] }
@@ -53,7 +54,6 @@ net_traits = { workspace = true }
 pixels = { path = "../pixels" }
 profile_traits = { workspace = true }
 rayon = { workspace = true }
-rkv = "0.10"
 rustls = { workspace = true }
 rustls-pemfile = { workspace = true }
 rustls-pki-types = { workspace = true }
