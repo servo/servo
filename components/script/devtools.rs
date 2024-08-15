@@ -29,7 +29,7 @@ use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::conversions::{jsstring_to_str, ConversionResult, FromJSValConvertible};
 use crate::dom::bindings::import::module::JSAutoRealm;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::root::{Dom, DomRoot, Root};
+use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::cssrule::CSSRule;
 use crate::dom::cssstyledeclaration::ENABLED_LONGHAND_PROPERTIES;
@@ -39,7 +39,6 @@ use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlscriptelement::SourceCode;
 use crate::dom::node::{stylesheets_owner_from_node, window_from_node, Node, ShadowIncluding};
-use crate::dom::stylesheetlist::StyleSheetListOwner;
 use crate::dom::types::HTMLElement;
 use crate::realms::enter_realm;
 use crate::script_module::ScriptFetchOptions;
@@ -210,101 +209,89 @@ pub fn handle_get_attribute_style(
     reply.send(Some(msg)).unwrap();
 }
 
+#[allow(crown::unrooted_must_root)]
 pub fn handle_get_stylesheet_style(
     documents: &Documents,
     pipeline: PipelineId,
     node_id: String,
     selector: String,
+    stylesheet: usize,
     reply: IpcSender<Option<Vec<NodeStyle>>>,
 ) {
-    let node = match find_node_by_unique_id(documents, pipeline, &node_id) {
-        None => return reply.send(None).unwrap(),
-        Some(found_node) => found_node,
-    };
+    let msg = (|| {
+        let node = find_node_by_unique_id(documents, pipeline, &node_id)?;
 
-    let (rules, _realm) = match get_rule_list(documents, pipeline, &node) {
-        None => return reply.send(None).unwrap(),
-        Some((rules, realm)) => (rules, realm),
-    };
+        let document = documents.find_document(pipeline)?;
+        let _realm = enter_realm(document.window());
+        let owner = stylesheets_owner_from_node(&*node);
 
-    let msg = rules
-        .into_iter()
-        .filter_map(|rule| {
-            let style = rule.downcast::<CSSStyleRule>()?;
-            if *selector != *style.SelectorText() {
-                return None;
-            };
-            Some(style.Style())
-        })
-        .map(|style| {
-            (0..style.Length()).map(move |i| {
-                let name = style.Item(i);
-                NodeStyle {
-                    name: name.to_string(),
-                    value: style.GetPropertyValue(name.clone()).to_string(),
-                    priority: style.GetPropertyPriority(name).to_string(),
-                }
+        let stylesheet = owner.stylesheet_at(stylesheet)?;
+        let list = stylesheet.GetCssRules().ok()?;
+        let elem = node.downcast::<Element>()?;
+
+        let styles = (0..list.Length())
+            .filter_map(move |i| {
+                let rule = list.Item(i)?;
+                let style = rule.downcast::<CSSStyleRule>()?;
+                if *selector != *style.SelectorText() {
+                    return None;
+                };
+                Some(style.Style())
             })
-        })
-        .flatten()
-        .collect();
+            .map(|style| {
+                (0..style.Length()).map(move |i| {
+                    let name = style.Item(i);
+                    NodeStyle {
+                        name: name.to_string(),
+                        value: style.GetPropertyValue(name.clone()).to_string(),
+                        priority: style.GetPropertyPriority(name).to_string(),
+                    }
+                })
+            })
+            .flatten()
+            .collect();
 
-    reply.send(Some(msg)).unwrap();
+        Some(styles)
+    })();
+
+    reply.send(msg).unwrap();
 }
 
+#[allow(crown::unrooted_must_root)]
 pub fn handle_get_selectors(
     documents: &Documents,
     pipeline: PipelineId,
     node_id: String,
-    reply: IpcSender<Option<Vec<String>>>,
+    reply: IpcSender<Option<Vec<(String, usize)>>>,
 ) {
-    let node = match find_node_by_unique_id(documents, pipeline, &node_id) {
-        None => return reply.send(None).unwrap(),
-        Some(found_node) => found_node,
-    };
+    let msg = (|| {
+        let node = find_node_by_unique_id(documents, pipeline, &node_id)?;
 
-    let (rules, _realm) = match get_rule_list(documents, pipeline, &node) {
-        None => return reply.send(None).unwrap(),
-        Some((rules, realm)) => (rules, realm),
-    };
+        let document = documents.find_document(pipeline)?;
+        let _realm = enter_realm(document.window());
+        let owner = stylesheets_owner_from_node(&*node);
 
-    let msg = rules
-        .into_iter()
-        .filter_map(|rule| {
-            let style = rule.downcast::<CSSStyleRule>()?;
-            let selector = style.SelectorText();
-            let _ = node
-                .downcast::<Element>()?
-                .Matches(selector.clone())
-                .ok()?
-                .then_some(())?;
-            Some(selector.into())
-        })
-        .collect();
+        let rules = (0..owner.stylesheet_count())
+            .filter_map(|i| {
+                let stylesheet = owner.stylesheet_at(i)?;
+                let list = stylesheet.GetCssRules().ok()?;
+                let elem = node.downcast::<Element>()?;
 
-    reply.send(Some(msg)).unwrap();
-}
+                Some((0..list.Length()).filter_map(move |j| {
+                    let rule = list.Item(j)?;
+                    let style = rule.downcast::<CSSStyleRule>()?;
+                    let selector = style.SelectorText();
+                    let _ = elem.Matches(selector.clone()).ok()?.then_some(())?;
+                    Some((selector.into(), i))
+                }))
+            })
+            .flatten()
+            .collect();
 
-fn get_rule_list(
-    documents: &Documents,
-    pipeline: PipelineId,
-    node: &Node,
-) -> Option<(Vec<Root<Dom<CSSRule>>>, JSAutoRealm)> {
-    let document = documents.find_document(pipeline)?;
-    let realm = enter_realm(document.window());
+        Some(rules)
+    })();
 
-    let owner = stylesheets_owner_from_node(&*node);
-    let is_shadow_root = matches!(owner, StyleSheetListOwner::ShadowRoot(_));
-
-    let rules = (0..owner.stylesheet_count())
-        .filter_map(|i| {
-            let stylesheet = owner.stylesheet_at(i)?;
-            let list = stylesheet.GetCssRules().ok()?;
-            Some((0..list.Length()).filter_map(move |i| list.Item(i)))
-        })
-        .flatten()
-        .collect();
-    Some((rules, realm))
+    reply.send(msg).unwrap();
 }
 
 pub fn handle_get_computed_style(

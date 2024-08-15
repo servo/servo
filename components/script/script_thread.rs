@@ -2534,9 +2534,15 @@ impl ScriptThread {
             DevtoolScriptControlMsg::GetAttributeStyle(id, node_id, reply) => {
                 devtools::handle_get_attribute_style(&documents, id, node_id, reply)
             },
-            DevtoolScriptControlMsg::GetStylesheetStyle(id, node_id, selector, reply) => {
-                devtools::handle_get_stylesheet_style(&documents, id, node_id, selector, reply)
-            },
+            DevtoolScriptControlMsg::GetStylesheetStyle(
+                id,
+                node_id,
+                selector,
+                stylesheet,
+                reply,
+            ) => devtools::handle_get_stylesheet_style(
+                &documents, id, node_id, selector, stylesheet, reply,
+            ),
             DevtoolScriptControlMsg::GetSelectors(id, node_id, reply) => {
                 devtools::handle_get_selectors(&documents, id, node_id, reply)
             },

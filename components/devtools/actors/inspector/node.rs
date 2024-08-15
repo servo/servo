@@ -80,7 +80,7 @@ pub struct NodeActor {
     pub script_chan: IpcSender<DevtoolScriptControlMsg>,
     pub pipeline: PipelineId,
     pub walker: String,
-    pub style_rules: RefCell<HashMap<String, String>>,
+    pub style_rules: RefCell<HashMap<(String, usize), String>>,
 }
 
 impl Actor for NodeActor {

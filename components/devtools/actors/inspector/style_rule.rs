@@ -79,7 +79,7 @@ pub struct StyleRuleActorMsg {
 pub struct StyleRuleActor {
     name: String,
     node: String,
-    selector: Option<String>,
+    selector: Option<(String, usize)>,
 }
 
 impl Actor for StyleRuleActor {
@@ -109,8 +109,6 @@ impl Actor for StyleRuleActor {
                     })
                     .collect();
 
-                log::info!("{:?}", modifications);
-
                 let node = registry.find::<NodeActor>(&self.node);
                 let walker = registry.find::<WalkerActor>(&node.walker);
                 // TODO: Is this necessary?
@@ -134,7 +132,7 @@ impl Actor for StyleRuleActor {
 }
 
 impl StyleRuleActor {
-    pub fn new(name: String, node: String, selector: Option<String>) -> Self {
+    pub fn new(name: String, node: String, selector: Option<(String, usize)>) -> Self {
         Self {
             name,
             node,
@@ -155,12 +153,16 @@ impl StyleRuleActor {
 
         let (tx, rx) = ipc::channel().ok()?;
         let req = match &self.selector {
-            Some(selector) => GetStylesheetStyle(
-                walker.pipeline,
-                registry.actor_to_script(self.node.clone()),
-                selector.clone(),
-                tx,
-            ),
+            Some(selector) => {
+                let (selector, stylesheet) = selector.clone();
+                GetStylesheetStyle(
+                    walker.pipeline,
+                    registry.actor_to_script(self.node.clone()),
+                    selector,
+                    stylesheet,
+                    tx,
+                )
+            },
             None => GetAttributeStyle(
                 walker.pipeline,
                 registry.actor_to_script(self.node.clone()),
@@ -170,12 +172,12 @@ impl StyleRuleActor {
         walker.script_chan.send(req).ok()?;
         let style = rx.recv().ok()??;
 
-        // TODO: Fill with real values
         Some(AppliedRule {
             actor: self.name(),
-            ancestor_data: vec![], // TODO:
-            authored_text: "TODO".into(),
-            css_text: "TODO".into(),
+            // TODO: Fill ancestor data
+            ancestor_data: vec![],
+            authored_text: "".into(),
+            css_text: "".into(),
             declarations: style
                 .into_iter()
                 .filter_map(|decl| {
@@ -185,6 +187,7 @@ impl StyleRuleActor {
                         is_used: IsUsed { used: true },
                         is_valid: true,
                         name: decl.name,
+                        // TODO: Get the source of the declaration
                         offsets: vec![],
                         priority: decl.priority,
                         terminator: "".into(),
@@ -193,8 +196,8 @@ impl StyleRuleActor {
                 })
                 .collect(),
             href: node.base_uri.clone(),
-            selectors: self.selector.iter().cloned().collect(),
-            selectors_specificity: self.selector.iter().map(|s| 1).collect(),
+            selectors: self.selector.iter().map(|(s, _)| s).cloned().collect(),
+            selectors_specificity: self.selector.iter().map(|_| 1).collect(),
             type_: 100, // Element style type, extract to constant
             traits: StyleRuleActorTraits {
                 can_set_rule_text: true,

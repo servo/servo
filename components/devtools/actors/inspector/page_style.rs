@@ -124,7 +124,6 @@ impl Actor for PageStyleActor {
                 let node = registry.find::<NodeActor>(&target);
                 let walker = registry.find::<WalkerActor>(&node.walker);
 
-                // TODO: Cache this
                 let entries: Vec<_> = find_child(
                     &node.script_chan,
                     node.pipeline,
@@ -139,8 +138,6 @@ impl Actor for PageStyleActor {
                 .filter_map(|node| {
                     let inherited = (node.actor != target).then(|| node.actor.clone());
                     let node_actor = registry.find::<NodeActor>(&node.actor);
-
-                    // TODO: Query for all of the selectors and create a style rule for each
 
                     // Is it a good idea to cache this? Can stylesheets change dynamically?
                     let selectors = (|| {
@@ -157,39 +154,42 @@ impl Actor for PageStyleActor {
                     })()
                     .unwrap_or_default();
 
-                    let entries = once("".into())
-                        .chain(selectors)
-                        .filter_map(move |selector| {
-                            let rule = match node_actor.style_rules.borrow_mut().entry(selector) {
-                                Entry::Vacant(e) => {
-                                    let name = registry.new_name("style-rule");
-                                    let actor = StyleRuleActor::new(
-                                        name.clone(),
-                                        node.actor.clone(),
-                                        (e.key() != "").then_some(e.key().into()),
-                                    );
-                                    let rule = actor.applied(registry)?;
+                    let entries =
+                        once(("".into(), 0))
+                            .chain(selectors)
+                            .filter_map(move |selector| {
+                                let rule = match node_actor.style_rules.borrow_mut().entry(selector)
+                                {
+                                    Entry::Vacant(e) => {
+                                        let name = registry.new_name("style-rule");
+                                        let actor = StyleRuleActor::new(
+                                            name.clone(),
+                                            node.actor.clone(),
+                                            (e.key().0 != "").then_some(e.key().clone()),
+                                        );
+                                        let rule = actor.applied(registry)?;
 
-                                    registry.register_later(Box::new(actor));
-                                    e.insert(name);
-                                    rule
-                                },
-                                Entry::Occupied(e) => {
-                                    let actor = registry.find::<StyleRuleActor>(e.get());
-                                    actor.applied(registry)?
-                                },
-                            };
-                            if inherited.is_some() && rule.declarations.is_empty() {
-                                return None;
-                            }
+                                        registry.register_later(Box::new(actor));
+                                        e.insert(name);
+                                        rule
+                                    },
+                                    Entry::Occupied(e) => {
+                                        log::info!("{}", e.get());
+                                        let actor = registry.find::<StyleRuleActor>(e.get());
+                                        actor.applied(registry)?
+                                    },
+                                };
+                                if inherited.is_some() && rule.declarations.is_empty() {
+                                    return None;
+                                }
 
-                            Some(AppliedEntry {
-                                rule,
-                                pseudo_element: None,
-                                is_system: false,
-                                inherited: inherited.clone(),
-                            })
-                        });
+                                Some(AppliedEntry {
+                                    rule,
+                                    pseudo_element: None,
+                                    is_system: false,
+                                    inherited: inherited.clone(),
+                                })
+                            });
                     Some(entries)
                 })
                 .flatten()

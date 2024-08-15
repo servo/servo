@@ -217,10 +217,11 @@ pub enum DevtoolScriptControlMsg {
         PipelineId,
         String,
         String,
+        usize,
         IpcSender<Option<Vec<NodeStyle>>>,
     ),
     /// Retrieves the css selectors for the given node in the current stylesheets.
-    GetSelectors(PipelineId, String, IpcSender<Option<Vec<String>>>),
+    GetSelectors(PipelineId, String, IpcSender<Option<Vec<(String, usize)>>>),
     /// Retrieve the computed css style properties for the given node.
     GetComputedStyle(PipelineId, String, IpcSender<Option<Vec<NodeStyle>>>),
     /// Retrieve the computed layout properties of the given node in the given pipeline.
