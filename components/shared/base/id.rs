@@ -9,10 +9,9 @@
 use std::cell::Cell;
 use std::fmt;
 use std::num::NonZeroU32;
-use std::sync::Arc;
+use std::sync::{Arc, LazyLock};
 
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
-use lazy_static::lazy_static;
 use malloc_size_of::malloc_size_of_is_0;
 use malloc_size_of_derive::MallocSizeOf;
 use parking_lot::Mutex;
@@ -108,17 +107,15 @@ impl PipelineNamespaceInstaller {
     }
 }
 
-lazy_static! {
-    /// A per-process unique pipeline-namespace-installer.
-    /// Accessible via PipelineNamespace.
-    ///
-    /// Use PipelineNamespace::set_installer_sender to initiate with a sender to the constellation,
-    /// when a new process has been created.
-    ///
-    /// Use PipelineNamespace::fetch_install to install a unique pipeline-namespace from the calling thread.
-    static ref PIPELINE_NAMESPACE_INSTALLER: Arc<Mutex<PipelineNamespaceInstaller>> =
-        Arc::new(Mutex::new(PipelineNamespaceInstaller::default()));
-}
+/// A per-process unique pipeline-namespace-installer.
+/// Accessible via PipelineNamespace.
+///
+/// Use PipelineNamespace::set_installer_sender to initiate with a sender to the constellation,
+/// when a new process has been created.
+///
+/// Use PipelineNamespace::fetch_install to install a unique pipeline-namespace from the calling thread.
+static PIPELINE_NAMESPACE_INSTALLER: LazyLock<Arc<Mutex<PipelineNamespaceInstaller>>> =
+    LazyLock::new(|| Arc::new(Mutex::new(PipelineNamespaceInstaller::default())));
 
 /// Each pipeline ID needs to be unique. However, it also needs to be possible to
 /// generate the pipeline ID from an iframe element (this simplifies a lot of other
