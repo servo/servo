@@ -165,7 +165,6 @@ enum WindowState {
 pub enum ReflowReason {
     CachedPageNeededReflow,
     DOMContentLoaded,
-    DocumentLoaded,
     ElementStateChanged,
     FirstLoad,
     IFrameLoadEvent,

@@ -2354,8 +2354,6 @@ impl Document {
                     // http://w3c.github.io/navigation-timing/#widl-PerformanceNavigationTiming-loadEventEnd
                     update_with_current_time_ms(&document.load_event_end);
 
-                    window.reflow(ReflowGoal::Full, ReflowReason::DocumentLoaded);
-
                     if let Some(fragment) = document.url().fragment() {
                         document.check_and_scroll_fragment(fragment);
                     }
