@@ -170,7 +170,6 @@ pub enum ReflowReason {
     FirstLoad,
     IFrameLoadEvent,
     ImageLoaded,
-    KeyEvent,
     MissingExplicitReflow,
     PendingReflow,
     Query,

@@ -1850,8 +1850,6 @@ impl Document {
                 }
             }
         }
-
-        self.window.reflow(ReflowGoal::Full, ReflowReason::KeyEvent);
     }
 
     pub fn ime_dismissed(&self) {
