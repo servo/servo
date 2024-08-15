@@ -6,12 +6,14 @@ use std::cell::Cell;
 use std::collections::HashMap;
 use std::f64::consts::{FRAC_PI_2, PI};
 use std::mem;
+use std::ptr;
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use euclid::{RigidTransform3D, Transform3D, Vector3D};
 use ipc_channel::ipc::IpcReceiver;
 use ipc_channel::router::ROUTER;
+use js::jsapi::JSObject;
 use js::jsval::JSVal;
 use js::typedarray::Float32Array;
 use metrics::ToMs;
@@ -23,6 +25,7 @@ use webxr_api::{
 };
 
 use super::bindings::trace::HashMapTracedValues;
+use crate::dom::bindings::buffer_source::create_buffer_source;
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::NavigatorBinding::Navigator_Binding::NavigatorMethods;
@@ -892,11 +895,18 @@ impl XRSessionMethods for XRSession {
     fn GetFrameRate(&self) -> Option<Finite<f32>> {
         todo!()
     }
-    
+
+    #[allow(unsafe_code)]
     fn GetSupportedFrameRates(&self, cx: JSContext) -> Option<Float32Array> {
-        todo!()
+        let session = self.session.borrow();
+        let framerates = session.supported_frame_rates();
+        unsafe {
+            rooted!(in (*cx) let mut array = ptr::null_mut::<JSObject>());
+            Some(create_buffer_source(cx, framerates, array.handle_mut())
+                .expect("Failed to construct supported frame rates array"))
+        }
     }
-    
+
     fn EnabledFeatures(&self, cx: JSContext) -> JSVal {
         let session = self.session.borrow();
         let features = session.granted_features();
