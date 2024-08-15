@@ -72,7 +72,6 @@ itertools = "0.13"
 tikv-jemalloc-sys = "0.6.0"
 tikv-jemallocator = "0.6.0"
 keyboard-types = "0.7"
-lazy_static = "1.5"
 libc = "0.2"
 log = "0.4"
 malloc_size_of = { git = "https://github.com/servo/stylo", branch = "2024-07-16", features = ["servo"] }

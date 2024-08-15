@@ -3712,7 +3712,6 @@ dependencies = [
  "icu_segmenter",
  "ipc-channel",
  "itertools 0.13.0",
- "lazy_static",
  "log",
  "net_traits",
  "parking_lot",
@@ -4150,7 +4149,6 @@ dependencies = [
  "euclid",
  "fnv",
  "ipc-channel",
- "lazy_static",
  "log",
  "serde",
  "servo-media",
@@ -6132,7 +6130,6 @@ dependencies = [
 name = "servo_rand"
 version = "0.0.1"
 dependencies = [
- "lazy_static",
  "log",
  "rand",
  "rand_core",
