@@ -28,6 +28,7 @@ use crate::display_list::items::{
 struct ClipScrollState<'a> {
     clip_scroll_nodes: &'a mut Vec<ClipScrollNode>,
     compositor_info: CompositorDisplayListInfo,
+    stacking_context_offset: Vec<LayoutVector2D>,
 }
 
 impl<'a> ClipScrollState<'a> {
@@ -38,6 +39,7 @@ impl<'a> ClipScrollState<'a> {
         let mut state = ClipScrollState {
             clip_scroll_nodes,
             compositor_info,
+            stacking_context_offset: Vec::new(),
         };
 
         // We need to register the WebRender root reference frame and root scroll node ids
@@ -118,6 +120,21 @@ impl<'a> ClipScrollState<'a> {
         };
         builder.define_clip_chain(parent, clips)
     }
+
+    fn stacking_context_offset(&self) -> LayoutVector2D {
+        self.stacking_context_offset
+            .last()
+            .cloned()
+            .unwrap_or_default()
+    }
+
+    fn push_stacking_context_offset(&mut self, offset: LayoutVector2D) {
+        self.stacking_context_offset.push(offset);
+    }
+
+    fn pop_stacking_context_offset(&mut self) {
+        self.stacking_context_offset.pop();
+    }
 }
 
 /// Contentful paint, for the purpose of
@@ -132,10 +149,15 @@ impl DisplayList {
         pipeline_id: PipelineId,
         viewport_size: LayoutSize,
         epoch: Epoch,
+        dump_display_list: bool,
     ) -> (DisplayListBuilder, CompositorDisplayListInfo, IsContentful) {
         let webrender_pipeline = pipeline_id.into();
         let mut builder = DisplayListBuilder::new(webrender_pipeline);
         builder.begin();
+
+        if dump_display_list {
+            builder.dump_serialized_display_list();
+        }
 
         let content_size = self.bounds().size();
         let mut state = ClipScrollState::new(
@@ -189,10 +211,11 @@ impl DisplayItem {
             .unwrap_or(clip_and_scroll_indices.scrolling);
         let current_clip_chain_id = state.webrender_clip_id_for_index(internal_clip_id.to_index());
         let hit_test_bounds = self.bounds().intersection(&self.base().clip_rect);
+        let stacking_context_offset = state.stacking_context_offset();
 
         let build_common_item_properties = |base: &BaseDisplayItem| {
             CommonItemProperties {
-                clip_rect: base.clip_rect,
+                clip_rect: base.clip_rect.translate(stacking_context_offset),
                 spatial_id: current_scroll_node_id.spatial_id,
                 clip_chain_id: current_clip_chain_id,
                 // TODO(gw): Make use of the WR backface visibility functionality.
@@ -204,7 +227,8 @@ impl DisplayItem {
             let bounds = match hit_test_bounds {
                 Some(bounds) => bounds,
                 None => return,
-            };
+            }
+            .translate(stacking_context_offset);
 
             let cursor = match base.metadata.cursor {
                 Some(cursor) => cursor,
@@ -228,67 +252,101 @@ impl DisplayItem {
 
         match *self {
             DisplayItem::Rectangle(ref mut item) => {
-                item.item.common = build_common_item_properties(&item.base);
+                let mut rect_item = item.item.clone();
+                rect_item.common = build_common_item_properties(&item.base);
+                rect_item.bounds = item.item.bounds.translate(stacking_context_offset);
+
                 push_hit_test(&item.base);
-                builder.push_item(&WrDisplayItem::Rectangle(item.item));
+                builder.push_item(&WrDisplayItem::Rectangle(rect_item));
                 IsContentful(false)
             },
             DisplayItem::Text(ref mut item) => {
-                item.item.common = build_common_item_properties(&item.base);
+                let mut text_item = item.item.clone();
+                text_item.bounds = text_item.bounds.translate(stacking_context_offset);
+                text_item.common = build_common_item_properties(&item.base);
+
                 push_hit_test(&item.base);
-                builder.push_item(&WrDisplayItem::Text(item.item));
-                builder.push_iter(item.data.iter());
+                builder.push_text(
+                    &text_item.common,
+                    text_item.bounds,
+                    &item.data,
+                    text_item.font_key,
+                    text_item.color,
+                    text_item.glyph_options,
+                );
                 IsContentful(true)
             },
             DisplayItem::Image(ref mut item) => {
-                item.item.common = build_common_item_properties(&item.base);
+                let mut image_item = item.item.clone();
+                image_item.common = build_common_item_properties(&item.base);
+                image_item.bounds = item.item.bounds.translate(stacking_context_offset);
+
                 push_hit_test(&item.base);
-                builder.push_item(&WrDisplayItem::Image(item.item));
+                builder.push_item(&WrDisplayItem::Image(image_item));
                 IsContentful(true)
             },
             DisplayItem::RepeatingImage(ref mut item) => {
-                item.item.common = build_common_item_properties(&item.base);
+                let mut image_item = item.item.clone();
+                image_item.common = build_common_item_properties(&item.base);
+                image_item.bounds = item.item.bounds.translate(stacking_context_offset);
+
                 push_hit_test(&item.base);
-                builder.push_item(&WrDisplayItem::RepeatingImage(item.item));
+                builder.push_item(&WrDisplayItem::RepeatingImage(image_item));
                 IsContentful(true)
             },
             DisplayItem::Border(ref mut item) => {
-                item.item.common = build_common_item_properties(&item.base);
+                let mut border_item = item.item.clone();
+                border_item.common = build_common_item_properties(&item.base);
+                border_item.bounds = item.item.bounds.translate(stacking_context_offset);
+
                 push_hit_test(&item.base);
                 if !item.data.is_empty() {
                     builder.push_stops(item.data.as_ref());
                 }
-                builder.push_item(&WrDisplayItem::Border(item.item));
+                builder.push_item(&WrDisplayItem::Border(border_item));
                 IsContentful(false)
             },
             DisplayItem::Gradient(ref mut item) => {
-                item.item.common = build_common_item_properties(&item.base);
+                let mut gradient_item = item.item.clone();
+                gradient_item.common = build_common_item_properties(&item.base);
+                gradient_item.bounds = item.item.bounds.translate(stacking_context_offset);
+
                 push_hit_test(&item.base);
                 builder.push_stops(item.data.as_ref());
-                builder.push_item(&WrDisplayItem::Gradient(item.item));
+                builder.push_item(&WrDisplayItem::Gradient(gradient_item));
                 IsContentful(false)
             },
             DisplayItem::RadialGradient(ref mut item) => {
-                item.item.common = build_common_item_properties(&item.base);
+                let mut gradient_item = item.item.clone();
+                gradient_item.common = build_common_item_properties(&item.base);
+                gradient_item.bounds = item.item.bounds.translate(stacking_context_offset);
+
                 push_hit_test(&item.base);
                 builder.push_stops(item.data.as_ref());
-                builder.push_item(&WrDisplayItem::RadialGradient(item.item));
+                builder.push_item(&WrDisplayItem::RadialGradient(gradient_item));
                 IsContentful(false)
             },
             DisplayItem::Line(ref mut item) => {
-                item.item.common = build_common_item_properties(&item.base);
+                let mut line_item = item.item.clone();
+                line_item.common = build_common_item_properties(&item.base);
+                line_item.area = item.item.area.translate(stacking_context_offset);
+
                 push_hit_test(&item.base);
-                builder.push_item(&WrDisplayItem::Line(item.item));
+                builder.push_item(&WrDisplayItem::Line(line_item));
                 IsContentful(false)
             },
             DisplayItem::BoxShadow(ref mut item) => {
-                item.item.common = build_common_item_properties(&item.base);
+                let mut shadow_item = item.item.clone();
+                shadow_item.common = build_common_item_properties(&item.base);
+                shadow_item.box_bounds = item.item.box_bounds.translate(stacking_context_offset);
+
                 push_hit_test(&item.base);
-                builder.push_item(&WrDisplayItem::BoxShadow(item.item));
+                builder.push_item(&WrDisplayItem::BoxShadow(shadow_item));
                 IsContentful(false)
             },
             DisplayItem::PushTextShadow(ref mut item) => {
                 let common = build_common_item_properties(&item.base);
+
                 push_hit_test(&item.base);
                 builder.push_shadow(
                     &SpaceAndClipInfo {
@@ -308,7 +366,7 @@ impl DisplayItem {
                 let common = build_common_item_properties(&item.base);
                 push_hit_test(&item.base);
                 builder.push_iframe(
-                    item.bounds,
+                    item.bounds.translate(stacking_context_offset),
                     common.clip_rect,
                     &SpaceAndClipInfo {
                         spatial_id: common.spatial_id,
@@ -354,7 +412,7 @@ impl DisplayItem {
 
                         let index = frame_index.to_index();
                         let new_spatial_id = builder.push_reference_frame(
-                            stacking_context.bounds.min,
+                            stacking_context.bounds.min + state.stacking_context_offset(),
                             current_scroll_node_id.spatial_id,
                             stacking_context.transform_style,
                             PropertyBinding::Value(transform),
@@ -382,8 +440,11 @@ impl DisplayItem {
                 //            This will require additional tracking during layout
                 //            before we start collecting stacking contexts so that
                 //            information will be available when we reach this point.
+                state.push_stacking_context_offset(
+                    (bounds.min + state.stacking_context_offset()).to_vector(),
+                );
                 builder.push_stacking_context(
-                    bounds.min,
+                    LayoutPoint::zero(),
                     spatial_id,
                     PrimitiveFlags::default(),
                     None,
@@ -399,6 +460,7 @@ impl DisplayItem {
                 IsContentful(false)
             },
             DisplayItem::PopStackingContext(ref item) => {
+                state.pop_stacking_context_offset();
                 builder.pop_stacking_context();
                 if item.established_reference_frame {
                     builder.pop_reference_frame();
@@ -408,7 +470,7 @@ impl DisplayItem {
             DisplayItem::DefineClipScrollNode(ref mut item) => {
                 let index = item.node_index.to_index();
                 let node = state.clip_scroll_nodes[index].clone();
-                let item_rect = node.clip.main;
+                let item_rect = node.clip.main.translate(stacking_context_offset);
 
                 let parent_index = node.parent_index.to_index();
                 let parent_spatial_id = state.webrender_spatial_id_for_index(parent_index);

@@ -931,8 +931,13 @@ impl LayoutThread {
                 self.epoch.set(epoch);
 
                 // TODO: Avoid the temporary conversion and build webrender sc/dl directly!
-                let (mut builder, compositor_info, is_contentful) =
-                    display_list.convert_to_webrender(self.id, viewport_size, epoch.into());
+                let (mut builder, compositor_info, is_contentful) = display_list
+                    .convert_to_webrender(
+                        self.id,
+                        viewport_size,
+                        epoch.into(),
+                        self.debug.dump_display_list,
+                    );
 
                 // Observe notifications about rendered frames if needed right before
                 // sending the display list to WebRender in order to set time related
