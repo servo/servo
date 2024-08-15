@@ -76,6 +76,7 @@ impl IDBVersionChangeEvent {
         ev
     }
 
+    #[allow(non_snake_case)]
     pub fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,

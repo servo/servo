@@ -27,12 +27,12 @@ pub enum IndexedDBTxnMode {
 }
 
 // https://www.w3.org/TR/IndexedDB-2/#key-type
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum IndexedDBKeyType {
     Number(Vec<u8>),
     String(Vec<u8>),
     Binary(Vec<u8>),
-    // FIXME:(arihant2math) implement Date(),
+    Date(Vec<u8>),
     // FIXME:(arihant2math) implment Array(),
 }
 
@@ -42,7 +42,7 @@ pub enum IndexedDBKeyType {
 pub enum AsyncOperation {
     /// Gets the value associated with the given key in the associated idb data
     GetItem(
-        Vec<u8>, // Key
+        IndexedDBKeyType, // Key
     ),
 
     /// Sets the value of the given key in the associated idb data
@@ -54,7 +54,7 @@ pub enum AsyncOperation {
 
     /// Removes the key/value pair for the given key in the associated idb data
     RemoveItem(
-        Vec<u8>, // Key
+        IndexedDBKeyType, // Key
     ),
 }
 

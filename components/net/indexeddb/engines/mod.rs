@@ -8,9 +8,9 @@ use ipc_channel::ipc::IpcSender;
 use net_traits::indexeddb_thread::{AsyncOperation, IndexedDBTxnMode};
 use tokio::sync::oneshot;
 
-pub use self::rkv::RkvEngine;
+pub use self::heed::HeedEngine;
 
-mod rkv;
+mod heed;
 
 #[derive(Eq, Hash, PartialEq)]
 pub struct SanitizedName {
@@ -21,7 +21,7 @@ impl SanitizedName {
     pub fn new(name: String) -> SanitizedName {
         let name = name.replace("https://", "");
         let name = name.replace("http://", "");
-        // FIXME:(rasviitanen) Disallowing special characters might be a big problem,
+        // FIXME:(arihant2math) Disallowing special characters might be a big problem,
         // but better safe than sorry. E.g. the db name '../other_origin/db',
         // would let us access databases from another origin.
         let name = name

@@ -181,20 +181,21 @@ impl IDBObjectStore {
                 }
 
                 if let ESClass::Date = built_in_class {
-                    // FIXME:(rasviitanen)
-                    unimplemented!("Dates as keys is currently unsupported");
+                    let key =
+                        structuredclone::write(cx, input, None).expect("Could not serialize key");
+                    return Ok(IndexedDBKeyType::Date(key.serialized.clone()));
                 }
 
                 if IsArrayBufferObject(*object) || JS_IsArrayBufferViewObject(*object) {
                     let key =
                         structuredclone::write(cx, input, None).expect("Could not serialize key");
-                    // FIXME:(rasviitanen) Return the correct type here
+                    // FIXME:(arihant2math) Return the correct type here
                     // it doesn't really matter at the moment...
                     return Ok(IndexedDBKeyType::Number(key.serialized.clone()));
                 }
 
                 if let ESClass::Array = built_in_class {
-                    // FIXME:(rasviitanen)
+                    // FIXME:(arihant2math)
                     unimplemented!("Arrays as keys is currently unsupported");
                 }
             }
@@ -482,14 +483,11 @@ impl IDBObjectStoreMethods for IDBObjectStore {
 
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-delete
     fn Delete(&self, cx: SafeJSContext, query: HandleValue) -> Fallible<DomRoot<IDBRequest>> {
-        let serialized_query =
-            structuredclone::write(cx, query, None).expect("Could not serialize value");
-
-        IDBRequest::execute_async(
-            &*self,
-            AsyncOperation::RemoveItem(serialized_query.serialized.clone()),
-            None,
-        )
+        let serialized_query = IDBObjectStore::convert_value_to_key(cx, query, None);
+        match serialized_query {
+            Ok(q) => IDBRequest::execute_async(&*self, AsyncOperation::RemoveItem(q), None),
+            Err(e) => Err(e),
+        }
     }
 
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-clear
@@ -499,14 +497,11 @@ impl IDBObjectStoreMethods for IDBObjectStore {
 
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-get
     fn Get(&self, cx: SafeJSContext, query: HandleValue) -> Fallible<DomRoot<IDBRequest>> {
-        let serialized_query =
-            structuredclone::write(cx, query, None).expect("Could not serialize value");
-
-        IDBRequest::execute_async(
-            &*self,
-            AsyncOperation::GetItem(serialized_query.serialized.clone()),
-            None,
-        )
+        let serialized_query = IDBObjectStore::convert_value_to_key(cx, query, None);
+        match serialized_query {
+            Ok(q) => IDBRequest::execute_async(&*self, AsyncOperation::GetItem(q), None),
+            Err(e) => Err(e),
+        }
     }
 
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-getkey
