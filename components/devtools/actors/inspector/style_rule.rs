@@ -3,7 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 //! Liberally derived from <https://searchfox.org/mozilla-central/source/devtools/server/actors/thread-configuration.js>
-//! This actor represents one css rule from a node, allowing the inspector to view it and change it.
+//! This actor represents one css rule group from a node, allowing the inspector to view it and change it.
+//! A group is either the html style attribute or one selector from one stylesheet.
 
 use std::collections::HashMap;
 use std::net::TcpStream;
@@ -20,6 +21,8 @@ use crate::actors::inspector::node::NodeActor;
 use crate::actors::inspector::walker::WalkerActor;
 use crate::protocol::JsonPacketStream;
 use crate::StreamId;
+
+const ELEMENT_STYLE_TYPE: u32 = 100;
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -89,7 +92,10 @@ impl Actor for StyleRuleActor {
 
     /// The style rule configuration actor can handle the following messages:
     ///
-    /// -
+    /// - `setRuleText`: Applies a set of modifications to the css rules that this actor manages.
+    /// There is also `modifyProperties`, which has a slightly different API to do the same, but
+    /// this is preferred. Which one the devtools client sends is decided by the `traits` defined
+    /// when returning the list of rules.
     fn handle_message(
         &self,
         registry: &ActorRegistry,
@@ -99,9 +105,9 @@ impl Actor for StyleRuleActor {
         _id: StreamId,
     ) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
-            "modifyProperties" | "setRuleText" => {
+            "setRuleText" => {
+                // Parse the modifications sent from the client
                 let mods = msg.get("modifications").ok_or(())?.as_array().ok_or(())?;
-                // TODO: Check this
                 let modifications: Vec<_> = mods
                     .iter()
                     .filter_map(|json_mod| {
@@ -109,11 +115,9 @@ impl Actor for StyleRuleActor {
                     })
                     .collect();
 
+                // Query the rule modification
                 let node = registry.find::<NodeActor>(&self.node);
                 let walker = registry.find::<WalkerActor>(&node.walker);
-                // TODO: Is this necessary?
-                // walker.new_mutations(stream, &self.node, &modifications);
-
                 walker
                     .script_chan
                     .send(ModifyRule(
@@ -151,6 +155,8 @@ impl StyleRuleActor {
             .ok()?;
         let node = rx.recv().ok()??;
 
+        // Gets the style definitions. If there is a selector, query the relevant stylesheet, if
+        // not, this represents the style attribute.
         let (tx, rx) = ipc::channel().ok()?;
         let req = match &self.selector {
             Some(selector) => {
@@ -174,10 +180,9 @@ impl StyleRuleActor {
 
         Some(AppliedRule {
             actor: self.name(),
-            // TODO: Fill ancestor data
-            ancestor_data: vec![],
+            ancestor_data: vec![], // TODO: Fill with hierarchy
             authored_text: "".into(),
-            css_text: "".into(),
+            css_text: "".into(), // TODO: Specify the css text
             declarations: style
                 .into_iter()
                 .filter_map(|decl| {
@@ -187,8 +192,7 @@ impl StyleRuleActor {
                         is_used: IsUsed { used: true },
                         is_valid: true,
                         name: decl.name,
-                        // TODO: Get the source of the declaration
-                        offsets: vec![],
+                        offsets: vec![], // TODO: Get the source of the declaration
                         priority: decl.priority,
                         terminator: "".into(),
                         value: decl.value,
@@ -198,7 +202,7 @@ impl StyleRuleActor {
             href: node.base_uri.clone(),
             selectors: self.selector.iter().map(|(s, _)| s).cloned().collect(),
             selectors_specificity: self.selector.iter().map(|_| 1).collect(),
-            type_: 100, // Element style type, extract to constant
+            type_: ELEMENT_STYLE_TYPE,
             traits: StyleRuleActorTraits {
                 can_set_rule_text: true,
             },

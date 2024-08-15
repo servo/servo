@@ -220,7 +220,8 @@ pub enum DevtoolScriptControlMsg {
         usize,
         IpcSender<Option<Vec<NodeStyle>>>,
     ),
-    /// Retrieves the css selectors for the given node in the current stylesheets.
+    /// Retrieves the css selectors for the given node. A selector is comprised of the text
+    /// of the selector and the id of the stylesheet that contains it.
     GetSelectors(PipelineId, String, IpcSender<Option<Vec<(String, usize)>>>),
     /// Retrieve the computed css style properties for the given node.
     GetComputedStyle(PipelineId, String, IpcSender<Option<Vec<NodeStyle>>>),

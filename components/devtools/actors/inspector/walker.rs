@@ -288,7 +288,7 @@ impl WalkerActor {
 
 /// Recursively searches for a child with the specified selector
 /// If it is found, returns a list with the child and all of its ancestors.
-/// TODO: Cache this to some extent, investigate all of the "checking node..."
+/// TODO: Investigate how to cache this to some extent
 pub fn find_child(
     script_chan: &IpcSender<DevtoolScriptControlMsg>,
     pipeline: PipelineId,

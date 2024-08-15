@@ -34,13 +34,13 @@ struct GetUniqueSelectorReply {
     value: String,
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Serialize)]
 struct AttrMsg {
     name: String,
     value: String,
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct NodeActorMsg {
     pub actor: String,

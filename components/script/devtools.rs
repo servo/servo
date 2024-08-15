@@ -27,11 +27,9 @@ use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMeth
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeConstants;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::conversions::{jsstring_to_str, ConversionResult, FromJSValConvertible};
-use crate::dom::bindings::import::module::JSAutoRealm;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
-use crate::dom::cssrule::CSSRule;
 use crate::dom::cssstyledeclaration::ENABLED_LONGHAND_PROPERTIES;
 use crate::dom::cssstylerule::CSSStyleRule;
 use crate::dom::document::AnimationFrameCallback;
@@ -227,7 +225,6 @@ pub fn handle_get_stylesheet_style(
 
         let stylesheet = owner.stylesheet_at(stylesheet)?;
         let list = stylesheet.GetCssRules().ok()?;
-        let elem = node.downcast::<Element>()?;
 
         let styles = (0..list.Length())
             .filter_map(move |i| {
@@ -430,18 +427,15 @@ pub fn handle_modify_rule(
     modifications: Vec<RuleModification>,
 ) {
     let Some(document) = documents.find_document(pipeline) else {
-        return warn!("document for pipeline id {} is not found", &pipeline);
+        return warn!("Document for pipeline id {} is not found", &pipeline);
     };
     let _realm = enter_realm(document.window());
 
-    let node = match find_node_by_unique_id(documents, pipeline, &node_id) {
-        None => {
-            return warn!(
-                "node id {} for pipeline id {} is not found",
-                &node_id, &pipeline
-            );
-        },
-        Some(found_node) => found_node,
+    let Some(node) = find_node_by_unique_id(documents, pipeline, &node_id) else {
+        return warn!(
+            "Node id {} for pipeline id {} is not found",
+            &node_id, &pipeline
+        );
     };
 
     let elem = node
@@ -504,7 +498,7 @@ pub fn handle_get_css_database(reply: IpcSender<HashMap<String, CssDatabasePrope
                 l.name().into(),
                 CssDatabaseProperty {
                     is_inherited: l.inherited(),
-                    values: vec![], // TODO: Get allowed values
+                    values: vec![], // TODO: Get allowed values for each property
                     supports: vec![],
                     subproperties: vec![l.name().into()],
                 },
