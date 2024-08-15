@@ -21,7 +21,6 @@ fonts = { path = "../fonts" }
 fonts_traits = { workspace = true }
 ipc-channel = { workspace = true }
 layout = { path = "../layout_2020", package = "layout_2020" }
-lazy_static = { workspace = true }
 log = { workspace = true }
 malloc_size_of = { workspace = true }
 metrics = { path = "../metrics" }
