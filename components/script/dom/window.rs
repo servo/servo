@@ -164,23 +164,14 @@ enum WindowState {
 #[derive(Debug, MallocSizeOf)]
 pub enum ReflowReason {
     CachedPageNeededReflow,
-    DOMContentLoaded,
-    DocumentLoaded,
     ElementStateChanged,
     FirstLoad,
-    FramedContentChanged,
-    IFrameLoadEvent,
-    ImageLoaded,
-    KeyEvent,
     MissingExplicitReflow,
-    MouseEvent,
     PendingReflow,
     Query,
     RefreshTick,
     RequestAnimationFrame,
     ScrollFromScript,
-    StylesheetLoaded,
-    Timer,
     Viewport,
     WindowResize,
     WorkletLoaded,
@@ -2320,7 +2311,6 @@ impl Window {
 
     pub fn handle_fire_timer(&self, timer_id: TimerEventId) {
         self.upcast::<GlobalScope>().fire_timer(timer_id);
-        self.reflow(ReflowGoal::Full, ReflowReason::Timer);
     }
 
     pub fn set_window_size(&self, size: WindowSizeData) {
