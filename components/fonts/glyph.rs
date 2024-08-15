@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cmp::{Ordering, PartialOrd};
+use std::iter::once;
 use std::sync::Arc;
 use std::vec::Vec;
 use std::{fmt, mem};
@@ -10,9 +11,10 @@ use std::{fmt, mem};
 use app_units::Au;
 use euclid::default::Point2D;
 pub use fonts_traits::ByteIndex;
+use itertools::Either;
 use log::debug;
 use malloc_size_of_derive::MallocSizeOf;
-use range::{self, EachIndex, Range, RangeIndex};
+use range::{self, Range, RangeIndex};
 use serde::{Deserialize, Serialize};
 
 /// GlyphEntry is a port of Gecko's CompressedGlyph scheme for storing glyph data compactly.
@@ -588,7 +590,10 @@ impl<'a> GlyphStore {
     }
 
     #[inline]
-    pub fn iter_glyphs_for_byte_range(&'a self, range: &Range<ByteIndex>) -> GlyphIterator<'a> {
+    pub fn iter_glyphs_for_byte_range(
+        &self,
+        range: &Range<ByteIndex>,
+    ) -> impl Iterator<Item = GlyphInfo> {
         if range.begin() >= self.len() {
             panic!("iter_glyphs_for_range: range.begin beyond length!");
         }
@@ -596,16 +601,31 @@ impl<'a> GlyphStore {
             panic!("iter_glyphs_for_range: range.end beyond length!");
         }
 
-        GlyphIterator {
-            store: self,
-            byte_index: if self.is_rtl {
-                range.end()
+        let range_it = if self.is_rtl {
+            Either::Left(range.each_index().rev())
+        } else {
+            Either::Right(range.each_index())
+        };
+        range_it.into_iter().flat_map(move |range_idx| {
+            let entry = self.entry_buffer[range_idx.to_usize()];
+            let result = if entry.is_simple() {
+                Either::Left(once(GlyphInfo::Simple(self, range_idx)))
             } else {
-                range.begin() - ByteIndex(1)
-            },
-            byte_range: *range,
-            glyph_range: None,
-        }
+                // Slow path for complex glyphs
+                let glyphs = self.detail_store.detailed_glyphs_for_entry(
+                    range_idx,
+                    self.entry_buffer[range_idx.to_usize()].glyph_count(),
+                );
+
+                let complex_glyph_range =
+                    range::each_index(ByteIndex(0), ByteIndex(glyphs.len() as isize));
+                Either::Right(complex_glyph_range.map(move |i| {
+                    GlyphInfo::Detail(self, range_idx, i.get() as u16 /* ??? */)
+                }))
+            };
+
+            result.into_iter()
+        })
     }
 
     // Scan the glyphs for a given range until we reach a given advance. Returns the index
@@ -704,87 +724,6 @@ impl fmt::Debug for GlyphStore {
             )?;
         }
         Ok(())
-    }
-}
-
-/// An iterator over the glyphs in a byte range in a `GlyphStore`.
-pub struct GlyphIterator<'a> {
-    store: &'a GlyphStore,
-    byte_index: ByteIndex,
-    byte_range: Range<ByteIndex>,
-    glyph_range: Option<EachIndex<ByteIndex>>,
-}
-
-impl<'a> GlyphIterator<'a> {
-    // Slow path when there is a glyph range.
-    #[inline(never)]
-    fn next_glyph_range(&mut self) -> Option<GlyphInfo<'a>> {
-        match self.glyph_range.as_mut().unwrap().next() {
-            Some(j) => {
-                Some(GlyphInfo::Detail(
-                    self.store,
-                    self.byte_index,
-                    j.get() as u16, /* ??? */
-                ))
-            },
-            None => {
-                // No more glyphs for current character.  Try to get another.
-                self.glyph_range = None;
-                self.next()
-            },
-        }
-    }
-
-    // Slow path when there is a complex glyph.
-    #[inline(never)]
-    fn next_complex_glyph(&mut self, entry: &GlyphEntry, i: ByteIndex) -> Option<GlyphInfo<'a>> {
-        let glyphs = self
-            .store
-            .detail_store
-            .detailed_glyphs_for_entry(i, entry.glyph_count());
-        self.glyph_range = Some(range::each_index(
-            ByteIndex(0),
-            ByteIndex(glyphs.len() as isize),
-        ));
-        self.next()
-    }
-}
-
-impl<'a> Iterator for GlyphIterator<'a> {
-    type Item = GlyphInfo<'a>;
-
-    // I tried to start with something simpler and apply FlatMap, but the
-    // inability to store free variables in the FlatMap struct was problematic.
-    //
-    // This function consists of the fast path and is designed to be inlined into its caller. The
-    // slow paths, which should not be inlined, are `next_glyph_range()` and
-    // `next_complex_glyph()`.
-    #[inline(always)]
-    fn next(&mut self) -> Option<GlyphInfo<'a>> {
-        // Would use 'match' here but it borrows contents in a way that interferes with mutation.
-        if self.glyph_range.is_some() {
-            return self.next_glyph_range();
-        }
-
-        // No glyph range. Look at next byte.
-        self.byte_index = self.byte_index +
-            if self.store.is_rtl {
-                ByteIndex(-1)
-            } else {
-                ByteIndex(1)
-            };
-        let i = self.byte_index;
-        if !self.byte_range.contains(i) {
-            return None;
-        }
-        debug_assert!(i < self.store.len());
-        let entry = self.store.entry_buffer[i.to_usize()];
-        if entry.is_simple() {
-            Some(GlyphInfo::Simple(self.store, i))
-        } else {
-            // Fall back to the slow path.
-            self.next_complex_glyph(&entry, i)
-        }
     }
 }
 

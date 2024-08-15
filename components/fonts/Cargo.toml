@@ -25,6 +25,7 @@ fontsan = { git = "https://github.com/servo/fontsan" }
 fonts_traits = { workspace = true }
 harfbuzz-sys = "0.6.1"
 ipc-channel = { workspace = true }
+itertools = { workspace = true }
 libc = { workspace = true }
 log = { workspace = true }
 malloc_size_of = { workspace = true }

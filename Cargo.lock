@@ -1874,6 +1874,7 @@ dependencies = [
  "freetype-sys",
  "harfbuzz-sys",
  "ipc-channel",
+ "itertools 0.13.0",
  "libc",
  "log",
  "malloc_size_of",
