@@ -23,7 +23,6 @@ fonts_traits = { workspace = true }
 histogram = "0.6.8"
 ipc-channel = { workspace = true }
 layout = { path = "../layout", package = "layout_2013" }
-lazy_static = { workspace = true }
 log = { workspace = true }
 malloc_size_of = { workspace = true }
 metrics = { path = "../metrics" }
