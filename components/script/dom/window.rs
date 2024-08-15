@@ -702,7 +702,7 @@ impl WindowMethods for Window {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-opener
-    fn GetOpener(&self, cx: JSContext) -> Fallible<JSVal> {
+    fn GetOpener(&self, cx: JSContext, in_realm_proof: InRealm) -> Fallible<JSVal> {
         // Step 1, Let current be this Window object's browsing context.
         let current = match self.window_proxy.get() {
             Some(proxy) => proxy,
@@ -717,7 +717,7 @@ impl WindowMethods for Window {
             return Ok(NullValue());
         }
         // Step 3 to 5.
-        Ok(current.opener(*cx))
+        Ok(current.opener(*cx, in_realm_proof))
     }
 
     #[allow(unsafe_code)]
