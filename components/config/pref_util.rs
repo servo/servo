@@ -195,16 +195,16 @@ impl fmt::Display for PrefError {
 impl std::error::Error for PrefError {}
 
 pub struct Accessor<P, V> {
-    pub getter: Box<dyn Fn(&P) -> V + Sync>,
+    pub getter: Box<dyn Fn(&P) -> V + Sync + Send>,
     #[allow(clippy::type_complexity)]
-    pub setter: Box<dyn Fn(&mut P, V) + Sync>,
+    pub setter: Box<dyn Fn(&mut P, V) + Sync + Send>,
 }
 
 impl<P, V> Accessor<P, V> {
     pub fn new<G, S>(getter: G, setter: S) -> Self
     where
-        G: Fn(&P) -> V + Sync + 'static,
-        S: Fn(&mut P, V) + Sync + 'static,
+        G: Fn(&P) -> V + Sync + Send + 'static,
+        S: Fn(&mut P, V) + Sync + Send + 'static,
     {
         Accessor {
             getter: Box::new(getter),

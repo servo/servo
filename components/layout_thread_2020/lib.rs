@@ -13,7 +13,7 @@ use std::collections::HashMap;
 use std::fmt::Debug;
 use std::ops::{Deref, DerefMut};
 use std::process;
-use std::sync::Arc;
+use std::sync::{Arc, LazyLock};
 
 use app_units::Au;
 use base::id::{BrowsingContextId, PipelineId};
@@ -35,7 +35,6 @@ use layout::query::{
 };
 use layout::traversal::RecalcStyle;
 use layout::{layout_debug, BoxTree, FragmentTree};
-use lazy_static::lazy_static;
 use log::{debug, error, warn};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use metrics::{PaintTimeMetrics, ProfilerMetadataFactory};
@@ -1151,17 +1150,14 @@ fn get_ua_stylesheets() -> Result<UserAgentStylesheets, &'static str> {
     })
 }
 
-lazy_static! {
-    static ref UA_STYLESHEETS: UserAgentStylesheets = {
-        match get_ua_stylesheets() {
-            Ok(stylesheets) => stylesheets,
-            Err(filename) => {
-                error!("Failed to load UA stylesheet {}!", filename);
-                process::exit(1);
-            },
-        }
-    };
-}
+static UA_STYLESHEETS: LazyLock<UserAgentStylesheets> =
+    LazyLock::new(|| match get_ua_stylesheets() {
+        Ok(stylesheets) => stylesheets,
+        Err(filename) => {
+            error!("Failed to load UA stylesheet {}!", filename);
+            process::exit(1);
+        },
+    });
 
 struct RegisteredPainterImpl {
     painter: Box<dyn Painter>,

@@ -10,12 +10,11 @@ use std::fs::{self, File};
 use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{RwLock, RwLockReadGuard};
+use std::sync::{LazyLock, RwLock, RwLockReadGuard};
 use std::{env, process};
 
 use euclid::Size2D;
 use getopts::{Matches, Options};
-use lazy_static::lazy_static;
 use log::error;
 use serde::{Deserialize, Serialize};
 use servo_geometry::DeviceIndependentPixel;
@@ -789,9 +788,7 @@ pub enum ArgumentParsingResult {
 // Make Opts available globally. This saves having to clone and pass
 // opts everywhere it is used, which gets particularly cumbersome
 // when passing through the DOM structures.
-lazy_static! {
-    static ref OPTIONS: RwLock<Opts> = RwLock::new(default_opts());
-}
+static OPTIONS: LazyLock<RwLock<Opts>> = LazyLock::new(|| RwLock::new(default_opts()));
 
 pub fn set_options(opts: Opts) {
     MULTIPROCESS.store(opts.multiprocess, Ordering::SeqCst);
