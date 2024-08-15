@@ -16,9 +16,9 @@
 
 use std::collections::HashSet;
 use std::iter::FromIterator;
+use std::sync::LazyLock;
 
 use embedder_traits::resources::{self, Resource};
-use lazy_static::lazy_static;
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
 
 #[derive(Clone, Debug, Default)]
@@ -28,9 +28,7 @@ pub struct PubDomainRules {
     exceptions: HashSet<String>,
 }
 
-lazy_static! {
-    static ref PUB_DOMAINS: PubDomainRules = load_pub_domains();
-}
+static PUB_DOMAINS: LazyLock<PubDomainRules> = LazyLock::new(|| load_pub_domains());
 
 impl<'a> FromIterator<&'a str> for PubDomainRules {
     fn from_iter<T>(iter: T) -> Self
