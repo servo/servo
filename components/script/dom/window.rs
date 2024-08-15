@@ -172,7 +172,6 @@ pub enum ReflowReason {
     ImageLoaded,
     KeyEvent,
     MissingExplicitReflow,
-    MouseEvent,
     PendingReflow,
     Query,
     RefreshTick,

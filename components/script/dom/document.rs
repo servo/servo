@@ -1352,9 +1352,6 @@ impl Document {
             self.commit_focus_transaction(FocusType::Element);
             self.maybe_fire_dblclick(client_point, node, pressed_mouse_buttons);
         }
-
-        self.window
-            .reflow(ReflowGoal::Full, ReflowReason::MouseEvent);
     }
 
     fn maybe_fire_dblclick(
@@ -1570,8 +1567,6 @@ impl Document {
         // If the target has changed then store the current mouse over target for next frame.
         if target_has_changed {
             prev_mouse_over_target.set(maybe_new_target.as_deref());
-            self.window
-                .reflow(ReflowGoal::Full, ReflowReason::MouseEvent);
         }
     }
 
@@ -1771,8 +1766,6 @@ impl Document {
         );
         let event = event.upcast::<Event>();
         let result = event.fire(&target);
-
-        window.reflow(ReflowGoal::Full, ReflowReason::MouseEvent);
 
         match result {
             EventStatus::Canceled => TouchEventResult::Processed(false),
