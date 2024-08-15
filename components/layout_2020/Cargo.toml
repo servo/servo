@@ -53,5 +53,4 @@ webrender_traits = { workspace = true }
 xi-unicode = { workspace = true }
 
 [dev-dependencies]
-lazy_static = { workspace = true }
 quickcheck = "1"

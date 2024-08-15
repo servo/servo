@@ -17,13 +17,10 @@ use layout_2020::flow::float::{
     PlacementInfo,
 };
 use layout_2020::geom::{LogicalRect, LogicalVec2};
-use lazy_static::lazy_static;
 use quickcheck::{Arbitrary, Gen};
 use style::values::computed::Clear;
 
-lazy_static! {
-    static ref PANIC_HOOK_MUTEX: Mutex<()> = Mutex::new(());
-}
+static PANIC_HOOK_MUTEX: Mutex<()> = Mutex::new(());
 
 // Suppresses panic messages. Some tests need to fail and we don't want them to spam the console.
 // Note that, because the panic hook is process-wide, tests that are expected to fail might
