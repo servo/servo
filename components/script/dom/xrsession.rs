@@ -12,6 +12,8 @@ use dom_struct::dom_struct;
 use euclid::{RigidTransform3D, Transform3D, Vector3D};
 use ipc_channel::ipc::IpcReceiver;
 use ipc_channel::router::ROUTER;
+use js::jsval::JSVal;
+use js::typedarray::Float32Array;
 use metrics::ToMs;
 use profile_traits::ipc;
 use webxr_api::{
@@ -39,9 +41,11 @@ use crate::dom::bindings::codegen::Bindings::XRSessionBinding::{
 use crate::dom::bindings::codegen::Bindings::XRSystemBinding::XRSessionMode;
 use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot, MutDom, MutNullableDom};
+use crate::dom::bindings::utils::to_frozen_array;
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
@@ -56,6 +60,7 @@ use crate::dom::xrrenderstate::XRRenderState;
 use crate::dom::xrsessionevent::XRSessionEvent;
 use crate::dom::xrspace::XRSpace;
 use crate::realms::InRealm;
+use crate::script_runtime::JSContext;
 use crate::task_source::TaskSource;
 
 #[dom_struct]
@@ -581,6 +586,8 @@ impl XRSessionMethods for XRSession {
         SetOninputsourceschange
     );
 
+    event_handler!(frameratechange, GetOnframeratechange, SetOnframeratechange);
+
     // https://immersive-web.github.io/webxr/#dom-xrsession-renderstate
     fn RenderState(&self) -> DomRoot<XRRenderState> {
         self.active_render_state.get()
@@ -880,6 +887,30 @@ impl XRSessionMethods for XRSession {
         // Until Servo supports WebXR sessions on mobile phones or similar non-XR devices,
         // this should always be world space
         XRInteractionMode::World_space
+    }
+    
+    fn GetFrameRate(&self) -> Option<Finite<f32>> {
+        todo!()
+    }
+    
+    fn GetSupportedFrameRates(&self, cx: JSContext) -> Option<Float32Array> {
+        todo!()
+    }
+    
+    fn EnabledFeatures(&self, cx: JSContext) -> JSVal {
+        let session = self.session.borrow();
+        let features = session.granted_features();
+        to_frozen_array(features, cx)
+    }
+    
+    fn IsSystemKeyboardSupported(&self) -> bool {
+        // Support for this only exists on Meta headsets (no desktop support)
+        // so this will always be false until that changes
+        false
+    }
+    
+    fn UpdateTargetFrameRate(&self, rate: Finite<f32>) -> Rc<Promise> {
+        todo!()
     }
 }
 
