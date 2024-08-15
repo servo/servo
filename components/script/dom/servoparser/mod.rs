@@ -128,12 +128,6 @@ pub struct ServoParser {
     prefetch_input: DomRefCell<BufferQueue>,
 }
 
-#[derive(PartialEq)]
-enum LastChunkState {
-    Received,
-    NotReceived,
-}
-
 pub struct ElementAttribute {
     name: QualName,
     value: DOMString,
@@ -161,7 +155,6 @@ impl ServoParser {
             ServoParser::new(
                 document,
                 Tokenizer::AsyncHtml(self::async_html::Tokenizer::new(document, url, None)),
-                LastChunkState::NotReceived,
                 ParserKind::Normal,
             )
         } else {
@@ -173,14 +166,13 @@ impl ServoParser {
                     None,
                     ParsingAlgorithm::Normal,
                 )),
-                LastChunkState::NotReceived,
                 ParserKind::Normal,
             )
         };
 
         // Set as the document's current parser and initialize with `input`, if given.
         if let Some(input) = input {
-            parser.parse_string_chunk(String::from(input));
+            parser.parse_complete_string_chunk(String::from(input));
         } else {
             parser.document.set_current_parser(Some(&parser));
         }
@@ -239,10 +231,9 @@ impl ServoParser {
                 Some(fragment_context),
                 ParsingAlgorithm::Fragment,
             )),
-            LastChunkState::Received,
             ParserKind::Normal,
         );
-        parser.parse_string_chunk(String::from(input));
+        parser.parse_complete_string_chunk(String::from(input));
 
         // Step 14.
         let root_element = document.GetDocumentElement().expect("no document element");
@@ -260,7 +251,6 @@ impl ServoParser {
                 None,
                 ParsingAlgorithm::Normal,
             )),
-            LastChunkState::NotReceived,
             ParserKind::ScriptCreated,
         );
         *parser.bom_sniff.borrow_mut() = None;
@@ -271,13 +261,12 @@ impl ServoParser {
         let parser = ServoParser::new(
             document,
             Tokenizer::Xml(self::xml::Tokenizer::new(document, url)),
-            LastChunkState::NotReceived,
             ParserKind::Normal,
         );
 
         // Set as the document's current parser and initialize with `input`, if given.
         if let Some(input) = input {
-            parser.parse_string_chunk(String::from(input));
+            parser.parse_complete_string_chunk(String::from(input));
         } else {
             parser.document.set_current_parser(Some(&parser));
         }
@@ -421,12 +410,7 @@ impl ServoParser {
     }
 
     #[allow(crown::unrooted_must_root)]
-    fn new_inherited(
-        document: &Document,
-        tokenizer: Tokenizer,
-        last_chunk_state: LastChunkState,
-        kind: ParserKind,
-    ) -> Self {
+    fn new_inherited(document: &Document, tokenizer: Tokenizer, kind: ParserKind) -> Self {
         ServoParser {
             reflector: Reflector::new(),
             document: Dom::from_ref(document),
@@ -435,7 +419,7 @@ impl ServoParser {
             network_input: DomRefCell::new(BufferQueue::default()),
             script_input: DomRefCell::new(BufferQueue::default()),
             tokenizer: DomRefCell::new(tokenizer),
-            last_chunk_received: Cell::new(last_chunk_state == LastChunkState::Received),
+            last_chunk_received: Cell::new(false),
             suspended: Default::default(),
             script_nesting_level: Default::default(),
             aborted: Default::default(),
@@ -446,19 +430,9 @@ impl ServoParser {
     }
 
     #[allow(crown::unrooted_must_root)]
-    fn new(
-        document: &Document,
-        tokenizer: Tokenizer,
-        last_chunk_state: LastChunkState,
-        kind: ParserKind,
-    ) -> DomRoot<Self> {
+    fn new(document: &Document, tokenizer: Tokenizer, kind: ParserKind) -> DomRoot<Self> {
         reflect_dom_object(
-            Box::new(ServoParser::new_inherited(
-                document,
-                tokenizer,
-                last_chunk_state,
-                kind,
-            )),
+            Box::new(ServoParser::new_inherited(document, tokenizer, kind)),
             document.window(),
         )
     }
@@ -579,9 +553,10 @@ impl ServoParser {
         }
     }
 
-    fn parse_string_chunk(&self, input: String) {
+    fn parse_complete_string_chunk(&self, input: String) {
         self.document.set_current_parser(Some(self));
         self.push_string_input_chunk(input);
+        self.last_chunk_received.set(true);
         if !self.suspended.get() {
             self.parse_sync();
         }
