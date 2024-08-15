@@ -164,17 +164,14 @@ enum WindowState {
 #[derive(Debug, MallocSizeOf)]
 pub enum ReflowReason {
     CachedPageNeededReflow,
-    DOMContentLoaded,
     ElementStateChanged,
     FirstLoad,
-    ImageLoaded,
     MissingExplicitReflow,
     PendingReflow,
     Query,
     RefreshTick,
     RequestAnimationFrame,
     ScrollFromScript,
-    StylesheetLoaded,
     Viewport,
     WindowResize,
     WorkletLoaded,
