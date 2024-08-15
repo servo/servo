@@ -20,7 +20,7 @@ pub(crate) enum LogRedirectError {
 pub(crate) fn redirect_stdout_and_stderr() -> Result<(), LogRedirectError> {
     fn log_raw_msg(raw_msg: &[u8]) {
         if let Ok(utf8_msg) = std::str::from_utf8(raw_msg) {
-            info!("{}", utf8_msg);
+            info!("{utf8_msg}");
         } else {
             // Note: This could happen if the message is long, and we hit the length
             // limitation in the middle of a utf-8 codepoint. We could try to handle this
