@@ -168,7 +168,6 @@ pub enum ReflowReason {
     DocumentLoaded,
     ElementStateChanged,
     FirstLoad,
-    FramedContentChanged,
     IFrameLoadEvent,
     ImageLoaded,
     KeyEvent,

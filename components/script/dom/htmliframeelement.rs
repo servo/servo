@@ -420,7 +420,7 @@ impl HTMLIFrameElement {
 
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
         let window = window_from_node(self);
-        window.reflow(ReflowGoal::Full, ReflowReason::FramedContentChanged);
+        window.add_pending_reflow();
     }
 
     fn new_inherited(
