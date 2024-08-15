@@ -500,9 +500,6 @@ impl HTMLIFrameElement {
         LoadBlocker::terminate(&mut blocker);
 
         // TODO Step 5 - unset child document `mut iframe load` flag
-
-        let window = window_from_node(self);
-        window.reflow(ReflowGoal::Full, ReflowReason::IFrameLoadEvent);
     }
 }
 

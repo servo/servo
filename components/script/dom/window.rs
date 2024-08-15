@@ -167,7 +167,6 @@ pub enum ReflowReason {
     DOMContentLoaded,
     ElementStateChanged,
     FirstLoad,
-    IFrameLoadEvent,
     ImageLoaded,
     MissingExplicitReflow,
     PendingReflow,
