@@ -179,7 +179,6 @@ pub enum ReflowReason {
     RequestAnimationFrame,
     ScrollFromScript,
     StylesheetLoaded,
-    Timer,
     Viewport,
     WindowResize,
     WorkletLoaded,
@@ -2319,7 +2318,6 @@ impl Window {
 
     pub fn handle_fire_timer(&self, timer_id: TimerEventId) {
         self.upcast::<GlobalScope>().fire_timer(timer_id);
-        self.reflow(ReflowGoal::Full, ReflowReason::Timer);
     }
 
     pub fn set_window_size(&self, size: WindowSizeData) {
