@@ -5,6 +5,7 @@
 //! This actor represents one DOM node. It is created by the Walker actor when it is traversing the
 //! document tree.
 
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::net::TcpStream;
 
@@ -79,6 +80,7 @@ pub struct NodeActor {
     pub script_chan: IpcSender<DevtoolScriptControlMsg>,
     pub pipeline: PipelineId,
     pub walker: String,
+    pub style_rules: RefCell<HashMap<String, String>>,
 }
 
 impl Actor for NodeActor {
@@ -182,6 +184,7 @@ impl NodeInfoToProtocol for NodeInfo {
                 script_chan: script_chan.clone(),
                 pipeline,
                 walker: walker.clone(),
+                style_rules: RefCell::new(HashMap::new()),
             };
             actors.register_later(Box::new(node_actor));
             name

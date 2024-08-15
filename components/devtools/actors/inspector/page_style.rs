@@ -5,7 +5,9 @@
 //! The page style actor is responsible of informing the DevTools client of the different style
 //! properties applied, including the attributes and layout of each element.
 
+use std::collections::hash_map::Entry;
 use std::collections::HashMap;
+use std::iter::once;
 use std::net::TcpStream;
 
 use base::id::PipelineId;
@@ -136,28 +138,61 @@ impl Actor for PageStyleActor {
                 .into_iter()
                 .filter_map(|node| {
                     let inherited = (node.actor != target).then(|| node.actor.clone());
+                    let node_actor = registry.find::<NodeActor>(&node.actor);
 
                     // TODO: Query for all of the selectors and create a style rule for each
 
-                    // TODO: This should be the same actor across different invocations of
-                    // styles, save the result somewhere and check for changes
-                    let style_rule =
-                        StyleRuleActor::new(registry.new_name("style-rule"), node.actor);
-                    let rule = style_rule.applied(registry)?;
+                    // Is it a good idea to cache this? Can stylesheets change dynamically?
+                    let selectors = (|| {
+                        let (tx, rx) = ipc::channel().ok()?;
+                        walker
+                            .script_chan
+                            .send(GetSelectors(
+                                walker.pipeline,
+                                registry.actor_to_script(node.actor.clone()),
+                                tx,
+                            ))
+                            .ok()?;
+                        rx.recv().ok()?
+                    })()
+                    .unwrap_or_default();
 
-                    if inherited.is_some() && rule.declarations.is_empty() {
-                        return None;
-                    }
+                    let entries = once("".into())
+                        .chain(selectors)
+                        .filter_map(move |selector| {
+                            let rule = match node_actor.style_rules.borrow_mut().entry(selector) {
+                                Entry::Vacant(e) => {
+                                    let name = registry.new_name("style-rule");
+                                    let actor = StyleRuleActor::new(
+                                        name.clone(),
+                                        node.actor.clone(),
+                                        (e.key() != "").then_some(e.key().into()),
+                                    );
+                                    let rule = actor.applied(registry)?;
 
-                    let entry = AppliedEntry {
-                        rule,
-                        pseudo_element: None,
-                        is_system: false,
-                        inherited,
-                    };
-                    registry.register_later(Box::new(style_rule));
-                    Some(entry)
+                                    registry.register_later(Box::new(actor));
+                                    e.insert(name);
+                                    rule
+                                },
+                                Entry::Occupied(e) => {
+                                    let actor = registry.find::<StyleRuleActor>(e.get());
+                                    actor.applied(registry)?
+                                },
+                            };
+                            if inherited.is_some() && rule.declarations.is_empty() {
+                                return None;
+                            }
+
+                            Some(AppliedEntry {
+                                rule,
+                                pseudo_element: None,
+                                is_system: false,
+                                inherited: inherited.clone(),
+                            })
+                        });
+                    Some(entries)
                 })
+                .flatten()
                 .collect();
 
                 let msg = GetAppliedReply {
@@ -173,7 +208,7 @@ impl Actor for PageStyleActor {
                 let target = msg.get("node").ok_or(())?.as_str().ok_or(())?;
 
                 let style_rule =
-                    StyleRuleActor::new(registry.new_name("style-rule"), target.into());
+                    StyleRuleActor::new(registry.new_name("style-rule"), target.into(), None);
 
                 let msg = GetComputedReply {
                     computed: style_rule.computed(registry).unwrap_or_default(),

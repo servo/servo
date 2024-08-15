@@ -273,7 +273,11 @@ pub fn handle_get_selectors(
         .filter_map(|rule| {
             let style = rule.downcast::<CSSStyleRule>()?;
             let selector = style.SelectorText();
-            let _ = node.downcast::<Element>()?.Matches(selector.clone()).ok()?;
+            let _ = node
+                .downcast::<Element>()?
+                .Matches(selector.clone())
+                .ok()?
+                .then_some(())?;
             Some(selector.into())
         })
         .collect();

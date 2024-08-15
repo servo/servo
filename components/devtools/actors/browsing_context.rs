@@ -229,9 +229,12 @@ impl BrowsingContextActor {
 
         let accessibility = AccessibilityActor::new(actors.new_name("accessibility"));
 
-        let (tx, rx) = ipc::channel().unwrap();
-        script_sender.send(GetCssDatabase(tx)).unwrap();
-        let properties = rx.recv().unwrap();
+        let properties = (|| {
+            let (tx, rx) = ipc::channel().ok()?;
+            script_sender.send(GetCssDatabase(tx)).ok()?;
+            rx.recv().ok()
+        })()
+        .unwrap_or_default();
         let css_properties = CssPropertiesActor::new(actors.new_name("css-properties"), properties);
 
         let inspector = InspectorActor {

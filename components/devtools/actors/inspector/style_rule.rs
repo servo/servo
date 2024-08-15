@@ -30,6 +30,10 @@ pub struct AppliedRule {
     css_text: String,
     pub declarations: Vec<AppliedDeclaration>,
     href: String,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    selectors: Vec<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    selectors_specificity: Vec<u32>,
     #[serde(rename = "type")]
     type_: u32,
     traits: StyleRuleActorTraits,
@@ -130,8 +134,12 @@ impl Actor for StyleRuleActor {
 }
 
 impl StyleRuleActor {
-    pub fn new(name: String, node: String) -> Self {
-        Self { name, node }
+    pub fn new(name: String, node: String, selector: Option<String>) -> Self {
+        Self {
+            name,
+            node,
+            selector,
+        }
     }
 
     pub fn applied(&self, registry: &ActorRegistry) -> Option<AppliedRule> {
@@ -142,10 +150,11 @@ impl StyleRuleActor {
         walker
             .script_chan
             .send(GetDocumentElement(walker.pipeline, tx))
-            .unwrap();
+            .ok()?;
         let node = rx.recv().ok()??;
 
-        let req = match self.selector {
+        let (tx, rx) = ipc::channel().ok()?;
+        let req = match &self.selector {
             Some(selector) => GetStylesheetStyle(
                 walker.pipeline,
                 registry.actor_to_script(self.node.clone()),
@@ -158,9 +167,7 @@ impl StyleRuleActor {
                 tx,
             ),
         };
-
-        let (tx, rx) = ipc::channel().ok()?;
-        walker.script_chan.send(req).unwrap();
+        walker.script_chan.send(req).ok()?;
         let style = rx.recv().ok()??;
 
         // TODO: Fill with real values
@@ -186,6 +193,8 @@ impl StyleRuleActor {
                 })
                 .collect(),
             href: node.base_uri.clone(),
+            selectors: self.selector.iter().cloned().collect(),
+            selectors_specificity: self.selector.iter().map(|s| 1).collect(),
             type_: 100, // Element style type, extract to constant
             traits: StyleRuleActorTraits {
                 can_set_rule_text: true,
@@ -208,7 +217,7 @@ impl StyleRuleActor {
                 registry.actor_to_script(self.node.clone()),
                 tx,
             ))
-            .unwrap();
+            .ok()?;
         let style = rx.recv().ok()??;
 
         Some(
