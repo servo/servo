@@ -103,8 +103,7 @@ impl XRInputSource {
             .iter()
             .enumerate()
             .for_each(|(i, value)| {
-                self.gamepad
-                    .map_and_normalize_buttons(i as usize, *value as f64);
+                self.gamepad.map_and_normalize_buttons(i, *value as f64);
             });
         frame.axis_values.iter().enumerate().for_each(|(i, value)| {
             self.gamepad.map_and_normalize_axes(i, *value as f64);

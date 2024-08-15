@@ -604,6 +604,11 @@ impl Node {
         }
     }
 
+    pub fn is_empty(&self) -> bool {
+        // A node is considered empty if its length is 0.
+        return self.len() == 0;
+    }
+
     /// <https://dom.spec.whatwg.org/#concept-tree-index>
     pub fn index(&self) -> u32 {
         self.preceding_siblings().count() as u32
