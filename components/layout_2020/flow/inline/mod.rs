@@ -890,7 +890,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
                 start_positioning_context_length,
             );
 
-        let line_rect = line_rect.to_physical(self.containing_block.style.writing_mode);
+        let line_rect = line_rect.to_physical(self.containing_block.effective_writing_mode());
         self.fragments
             .push(Fragment::Positioning(PositioningFragment::new_anonymous(
                 line_rect, fragments,
@@ -934,14 +934,14 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
             TextAlignKeyword::Center | TextAlignKeyword::MozCenter => TextAlign::Center,
             TextAlignKeyword::End => TextAlign::End,
             TextAlignKeyword::Left | TextAlignKeyword::MozLeft => {
-                if style.writing_mode.line_left_is_inline_start() {
+                if style.effective_writing_mode().line_left_is_inline_start() {
                     TextAlign::Start
                 } else {
                     TextAlign::End
                 }
             },
             TextAlignKeyword::Right | TextAlignKeyword::MozRight => {
-                if style.writing_mode.line_left_is_inline_start() {
+                if style.effective_writing_mode().line_left_is_inline_start() {
                     TextAlign::End
                 } else {
                     TextAlign::Start
@@ -1013,7 +1013,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
             state.current_containing_block_offset();
         state.place_float_fragment(
             fragment,
-            self.containing_block.style.writing_mode,
+            self.containing_block.effective_writing_mode(),
             CollapsedMargin::zero(),
             block_offset_from_containining_block_top,
         );
@@ -1035,7 +1035,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
         let margin_box = float_item
             .fragment
             .margin_rect()
-            .to_logical(self.containing_block.style.writing_mode);
+            .to_logical(self.containing_block.effective_writing_mode());
         let inline_size = margin_box.size.inline.max(Au::zero());
 
         let available_inline_size = match self.current_line.placement_among_floats.get() {
@@ -1912,7 +1912,7 @@ impl IndependentFormattingContext {
         let container_writing_mode = inline_formatting_context_state
             .containing_block
             .style
-            .writing_mode;
+            .effective_writing_mode();
         let pbm = style.padding_border_margin(inline_formatting_context_state.containing_block);
         let margin = pbm.margin.auto_is(Au::zero);
         let pbm_sums = pbm.padding + pbm.border + margin;
@@ -1986,8 +1986,8 @@ impl IndependentFormattingContext {
                     inline_formatting_context_state
                         .containing_block
                         .style
-                        .writing_mode,
-                    containing_block_for_children.style.writing_mode,
+                        .effective_writing_mode(),
+                    containing_block_for_children.effective_writing_mode(),
                     "Mixed writing modes are not supported yet"
                 );
 
