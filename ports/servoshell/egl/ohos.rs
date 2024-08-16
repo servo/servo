@@ -340,12 +340,11 @@ fn initialize_logging_once() {
             "compositing::compositor",
             "constellation::constellation",
         ];
-        let mut filter_builder = env_filter::Builder::new();
         for &module in &filters {
-            filter_builder.filter_module(module, log::LevelFilter::Debug);
+            builder.filter_module(module, log::LevelFilter::Debug);
         }
 
-        builder.filter_level(LevelFilter::Debug).init();
+        builder.filter_level(LevelFilter::Warn).init();
 
         info!("Servo Register callback called!");
 
