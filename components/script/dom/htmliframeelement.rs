@@ -290,9 +290,7 @@ impl HTMLIFrameElement {
 
         let element = self.upcast::<Element>();
         let src = element.get_string_attribute(&local_name!("src"));
-        if mode == ProcessingMode::FirstTime &&
-            (src.is_empty() || src == "about:blank")
-        {
+        if mode == ProcessingMode::FirstTime && (src.is_empty() || src == "about:blank") {
             return;
         }
 
