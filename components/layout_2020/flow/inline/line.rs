@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::rc::Rc;
-
 use app_units::Au;
 use bitflags::bitflags;
 use fonts::{FontMetrics, GlyphStore};
@@ -20,12 +18,9 @@ use style::Zero;
 use unicode_bidi::{BidiInfo, Level};
 use webrender_api::FontInstanceKey;
 
-use super::inline_box::{
-    InlineBoxContainerState, InlineBoxIdentifier, InlineBoxTreePathToken, InlineBoxes,
-};
-use super::{InlineFormattingContextState, LineBlockSizes};
+use super::inline_box::{InlineBoxContainerState, InlineBoxIdentifier, InlineBoxTreePathToken};
+use super::{InlineFormattingContextLayout, LineBlockSizes};
 use crate::cell::ArcRefCell;
-use crate::context::LayoutContext;
 use crate::fragment_tree::{
     BaseFragmentInfo, BoxFragment, CollapsedBlockMargins, Fragment, TextFragment,
 };
@@ -33,7 +28,6 @@ use crate::geom::{LogicalRect, LogicalVec2, ToLogical};
 use crate::positioned::{
     relative_adjustement, AbsolutelyPositionedBox, PositioningContext, PositioningContextLength,
 };
-use crate::ContainingBlock;
 
 pub(super) struct LineMetrics {
     /// The block offset of the line start in the containing
@@ -132,31 +126,16 @@ impl LineItemLayoutInlineContainerState {
 /// The second phase of [`super::InlineFormattingContext`] layout: once items are gathered
 /// for a line, we must lay them out and create fragments for them, properly positioning them
 /// according to their baselines and also handling absolutely positioned children.
-pub(super) struct LineItemLayout<'a> {
-    /// The set of [`super::InlineBox`]es for the [`super::InlineFormattingContext`]. This
-    /// does *not* include any state from during phase one of layout.
-    pub inline_boxes: &'a InlineBoxes,
-
-    /// The set of [`super::InlineBoxContainerState`] from phase one of IFC layout. There is
-    /// one of these for every inline box, *not* for the root inline container.
-    pub inline_box_states: &'a [Rc<InlineBoxContainerState>],
+pub(super) struct LineItemLayout<'layout_data, 'layout> {
+    /// The state of the overall [`super::InlineFormattingContext`] layout.
+    layout: &'layout mut InlineFormattingContextLayout<'layout_data>,
 
     /// The set of [`super::LineItemLayoutInlineContainerState`] created while laying out items
     /// on this line. This does not include the current level of recursion.
     pub state_stack: Vec<LineItemLayoutInlineContainerState>,
 
     /// The current [`super::LineItemLayoutInlineContainerState`].
-    pub state: LineItemLayoutInlineContainerState,
-
-    /// The [`LayoutContext`] to use for laying out absolutely positioned line items.
-    pub layout_context: &'a LayoutContext<'a>,
-
-    /// The root positioning context for this layout.
-    pub root_positioning_context: &'a mut PositioningContext,
-
-    /// The [`ContainingBlock`] of the parent [`super::InlineFormattingContext`] of the line being
-    /// laid out.
-    pub ifc_containing_block: &'a ContainingBlock<'a>,
+    pub current_state: LineItemLayoutInlineContainerState,
 
     /// The metrics of this line, which should remain constant throughout the
     /// layout process.
@@ -167,9 +146,9 @@ pub(super) struct LineItemLayout<'a> {
     pub justification_adjustment: Au,
 }
 
-impl<'a> LineItemLayout<'a> {
+impl<'layout_data, 'layout> LineItemLayout<'layout_data, 'layout> {
     pub(super) fn layout_line_items(
-        state: &mut InlineFormattingContextState,
+        layout: &mut InlineFormattingContextLayout,
         line_items: Vec<LineItem>,
         start_position: LogicalVec2<Au>,
         effective_block_advance: &LineBlockSizes,
@@ -177,13 +156,12 @@ impl<'a> LineItemLayout<'a> {
     ) -> Vec<Fragment> {
         let baseline_offset = effective_block_advance.find_baseline_offset();
         LineItemLayout {
-            inline_boxes: state.inline_boxes,
-            inline_box_states: &state.inline_box_states,
+            layout,
             state_stack: Vec::new(),
-            root_positioning_context: state.positioning_context,
-            layout_context: state.layout_context,
-            state: LineItemLayoutInlineContainerState::root(start_position.inline, baseline_offset),
-            ifc_containing_block: state.containing_block,
+            current_state: LineItemLayoutInlineContainerState::root(
+                start_position.inline,
+                baseline_offset,
+            ),
             line_metrics: LineMetrics {
                 block_offset: start_position.block,
                 block_size: effective_block_advance.resolve(),
@@ -191,7 +169,7 @@ impl<'a> LineItemLayout<'a> {
             },
             justification_adjustment,
         }
-        .layout(line_items, state.has_right_to_left_content)
+        .layout(line_items)
     }
 
     /// Start and end inline boxes in tree order, so that it reflects the given inline box.
@@ -207,8 +185,10 @@ impl<'a> LineItemLayout<'a> {
         // Otherwise, follow the path given to us by our collection of inline boxes, so we know which
         // inline boxes to start and end.
         let path = self
+            .layout
+            .ifc
             .inline_boxes
-            .get_path(self.state.identifier, new_inline_box);
+            .get_path(self.current_state.identifier, new_inline_box);
         for token in path {
             match token {
                 InlineBoxTreePathToken::Start(ref identifier) => self.start_inline_box(identifier),
@@ -217,12 +197,8 @@ impl<'a> LineItemLayout<'a> {
         }
     }
 
-    pub(super) fn layout(
-        &mut self,
-        mut line_items: Vec<LineItem>,
-        has_right_to_left_content: bool,
-    ) -> Vec<Fragment> {
-        let mut last_level: Level = Level::ltr();
+    pub(super) fn layout(&mut self, mut line_items: Vec<LineItem>) -> Vec<Fragment> {
+        let mut last_level = Level::ltr();
         let levels: Vec<_> = line_items
             .iter()
             .map(|item| {
@@ -246,7 +222,7 @@ impl<'a> LineItemLayout<'a> {
             })
             .collect();
 
-        if has_right_to_left_content {
+        if self.layout.ifc.has_right_to_left_content {
             sort_by_indices_in_place(&mut line_items, BidiInfo::reorder_visual(&levels));
         }
 
@@ -257,17 +233,17 @@ impl<'a> LineItemLayout<'a> {
             // any in the inline formatting context.
             self.prepare_layout_for_inline_box(item.inline_box_identifier());
 
-            self.state
+            self.current_state
                 .flags
                 .insert(LineLayoutInlineContainerFlags::HAD_ANY_LINE_ITEMS);
             match item {
                 LineItem::StartInlineBoxPaddingBorderMargin(_) => {
-                    self.state
+                    self.current_state
                         .flags
                         .insert(LineLayoutInlineContainerFlags::HAD_START_PBM);
                 },
                 LineItem::EndInlineBoxPaddingBorderMargin(_) => {
-                    self.state
+                    self.current_state
                         .flags
                         .insert(LineLayoutInlineContainerFlags::HAD_END_PBM);
                 },
@@ -280,12 +256,13 @@ impl<'a> LineItemLayout<'a> {
 
         // Move back to the root of the inline box tree, so that all boxes are ended.
         self.prepare_layout_for_inline_box(None);
-        std::mem::take(&mut self.state.fragments)
+        std::mem::take(&mut self.current_state.fragments)
     }
 
     fn current_positioning_context_mut(&mut self) -> &mut PositioningContext {
-        if let Either::First(ref mut positioning_context) =
-            self.state.positioning_context_or_start_offset_in_parent
+        if let Either::First(ref mut positioning_context) = self
+            .current_state
+            .positioning_context_or_start_offset_in_parent
         {
             return positioning_context;
         }
@@ -298,12 +275,13 @@ impl<'a> LineItemLayout<'a> {
                     Either::Second(_) => None,
                 },
             )
-            .unwrap_or(self.root_positioning_context)
+            .unwrap_or(self.layout.positioning_context)
     }
 
     fn start_inline_box(&mut self, identifier: &InlineBoxIdentifier) {
-        let inline_box_state = &*self.inline_box_states[identifier.index_in_inline_boxes as usize];
-        let inline_box = self.inline_boxes.get(identifier);
+        let inline_box_state =
+            &*self.layout.inline_box_states[identifier.index_in_inline_boxes as usize];
+        let inline_box = self.layout.ifc.inline_boxes.get(identifier);
         let inline_box = &*(inline_box.borrow());
 
         let style = &inline_box.style;
@@ -318,12 +296,12 @@ impl<'a> LineItemLayout<'a> {
             };
 
         let parent_offset = LogicalVec2 {
-            inline: self.state.inline_advance + self.state.parent_offset.inline,
+            inline: self.current_state.inline_advance + self.current_state.parent_offset.inline,
             block: block_start_offset,
         };
 
         let outer_state = std::mem::replace(
-            &mut self.state,
+            &mut self.current_state,
             LineItemLayoutInlineContainerState::new(
                 Some(*identifier),
                 parent_offset,
@@ -337,11 +315,12 @@ impl<'a> LineItemLayout<'a> {
 
     fn end_inline_box(&mut self) {
         let outer_state = self.state_stack.pop().expect("Ended unknown inline box");
-        let mut inner_state = std::mem::replace(&mut self.state, outer_state);
+        let mut inner_state = std::mem::replace(&mut self.current_state, outer_state);
 
         let identifier = inner_state.identifier.expect("Ended unknown inline box");
-        let inline_box_state = &*self.inline_box_states[identifier.index_in_inline_boxes as usize];
-        let inline_box = self.inline_boxes.get(&identifier);
+        let inline_box_state =
+            &*self.layout.inline_box_states[identifier.index_in_inline_boxes as usize];
+        let inline_box = self.layout.ifc.inline_boxes.get(&identifier);
         let inline_box = &*(inline_box.borrow());
 
         let mut padding = inline_box_state.pbm.padding;
@@ -379,8 +358,8 @@ impl<'a> LineItemLayout<'a> {
         // Make `content_rect` relative to the parent Fragment.
         let mut content_rect = LogicalRect {
             start_corner: LogicalVec2 {
-                inline: self.state.inline_advance + pbm_sums.inline_start,
-                block: inner_state.parent_offset.block - self.state.parent_offset.block,
+                inline: self.current_state.inline_advance + pbm_sums.inline_start,
+                block: inner_state.parent_offset.block - self.current_state.parent_offset.block,
             },
             size: LogicalVec2 {
                 inline: inner_state.inline_advance,
@@ -388,7 +367,7 @@ impl<'a> LineItemLayout<'a> {
             },
         };
 
-        let ifc_writing_mode = self.ifc_containing_block.effective_writing_mode();
+        let ifc_writing_mode = self.layout.containing_block.effective_writing_mode();
         if inner_state
             .flags
             .contains(LineLayoutInlineContainerFlags::HAD_ANY_FLOATS)
@@ -405,7 +384,7 @@ impl<'a> LineItemLayout<'a> {
         // do it right before creating the Fragment.
         let style = &inline_box.style;
         if style.clone_position().is_relative() {
-            content_rect.start_corner += relative_adjustement(style, self.ifc_containing_block);
+            content_rect.start_corner += relative_adjustement(style, self.layout.containing_block);
         }
 
         let mut fragment = BoxFragment::new(
@@ -422,7 +401,8 @@ impl<'a> LineItemLayout<'a> {
 
         match inner_state.positioning_context_or_start_offset_in_parent {
             Either::First(mut positioning_context) => {
-                positioning_context.layout_collected_children(self.layout_context, &mut fragment);
+                positioning_context
+                    .layout_collected_children(self.layout.layout_context, &mut fragment);
                 positioning_context.adjust_static_position_of_hoisted_fragments_with_offset(
                     &fragment.content_rect.origin.to_logical(ifc_writing_mode),
                     PositioningContextLength::zero(),
@@ -439,8 +419,8 @@ impl<'a> LineItemLayout<'a> {
             },
         }
 
-        self.state.inline_advance += inner_state.inline_advance + pbm_sums.inline_sum();
-        self.state.fragments.push(Fragment::Box(fragment));
+        self.current_state.inline_advance += inner_state.inline_advance + pbm_sums.inline_sum();
+        self.current_state.fragments.push(Fragment::Box(fragment));
     }
 
     fn calculate_inline_box_block_start(
@@ -496,10 +476,10 @@ impl<'a> LineItemLayout<'a> {
         // inline box's strut), but for children of the inline formatting context root or for
         // fallback fonts that use baseline relative alignment, it might be different.
         let start_corner = LogicalVec2 {
-            inline: self.state.inline_advance,
-            block: self.state.baseline_offset -
+            inline: self.current_state.inline_advance,
+            block: self.current_state.baseline_offset -
                 text_item.font_metrics.ascent -
-                self.state.parent_offset.block,
+                self.current_state.parent_offset.block,
         };
 
         let rect = LogicalRect {
@@ -510,17 +490,19 @@ impl<'a> LineItemLayout<'a> {
             },
         };
 
-        self.state.inline_advance += inline_advance;
-        self.state.fragments.push(Fragment::Text(TextFragment {
-            base: text_item.base_fragment_info.into(),
-            parent_style: text_item.parent_style,
-            rect: rect.to_physical(self.ifc_containing_block.effective_writing_mode()),
-            font_metrics: text_item.font_metrics,
-            font_key: text_item.font_key,
-            glyphs: text_item.text,
-            text_decoration_line: text_item.text_decoration_line,
-            justification_adjustment: self.justification_adjustment,
-        }));
+        self.current_state.inline_advance += inline_advance;
+        self.current_state
+            .fragments
+            .push(Fragment::Text(TextFragment {
+                base: text_item.base_fragment_info.into(),
+                parent_style: text_item.parent_style,
+                rect: rect.to_physical(self.layout.containing_block.effective_writing_mode()),
+                font_metrics: text_item.font_metrics,
+                font_key: text_item.font_key,
+                glyphs: text_item.text,
+                text_decoration_line: text_item.text_decoration_line,
+                justification_adjustment: self.justification_adjustment,
+            }));
     }
 
     fn layout_atomic(&mut self, mut atomic: AtomicLineItem) {
@@ -529,17 +511,17 @@ impl<'a> LineItemLayout<'a> {
         // This needs to be added to the calculated block and inline positions.
         // Make the final result relative to the parent box.
         let mut atomic_offset = LogicalVec2 {
-            inline: self.state.inline_advance,
+            inline: self.current_state.inline_advance,
             block: atomic.calculate_block_start(&self.line_metrics) -
-                self.state.parent_offset.block,
+                self.current_state.parent_offset.block,
         };
 
         if atomic.fragment.style.clone_position().is_relative() {
             atomic_offset +=
-                relative_adjustement(&atomic.fragment.style, self.ifc_containing_block);
+                relative_adjustement(&atomic.fragment.style, self.layout.containing_block);
         }
 
-        let ifc_writing_mode = self.ifc_containing_block.effective_writing_mode();
+        let ifc_writing_mode = self.layout.containing_block.effective_writing_mode();
         atomic.fragment.content_rect.origin += atomic_offset.to_physical_size(ifc_writing_mode);
 
         if let Some(mut positioning_context) = atomic.positioning_context {
@@ -555,8 +537,10 @@ impl<'a> LineItemLayout<'a> {
                 .append(positioning_context);
         }
 
-        self.state.inline_advance += atomic.size.inline;
-        self.state.fragments.push(Fragment::Box(atomic.fragment));
+        self.current_state.inline_advance += atomic.size.inline;
+        self.current_state
+            .fragments
+            .push(Fragment::Box(atomic.fragment));
     }
 
     fn layout_absolute(&mut self, absolute: AbsolutelyPositionedLineItem) {
@@ -579,31 +563,31 @@ impl<'a> LineItemLayout<'a> {
             if style.get_box().original_display.outside() == DisplayOutside::Inline {
                 // Top of the line at the current inline position.
                 LogicalVec2 {
-                    inline: self.state.inline_advance,
-                    block: -self.state.parent_offset.block,
+                    inline: self.current_state.inline_advance,
+                    block: -self.current_state.parent_offset.block,
                 }
             } else {
                 // After the bottom of the line at the start of the inline formatting context.
                 LogicalVec2 {
-                    inline: -self.state.parent_offset.inline,
-                    block: self.line_metrics.block_size - self.state.parent_offset.block,
+                    inline: -self.current_state.parent_offset.inline,
+                    block: self.line_metrics.block_size - self.current_state.parent_offset.block,
                 }
             };
 
         let hoisted_box = AbsolutelyPositionedBox::to_hoisted(
             absolute.absolutely_positioned_box.clone(),
             initial_start_corner.into(),
-            self.ifc_containing_block,
+            self.layout.containing_block,
         );
         let hoisted_fragment = hoisted_box.fragment.clone();
         self.current_positioning_context_mut().push(hoisted_box);
-        self.state
+        self.current_state
             .fragments
             .push(Fragment::AbsoluteOrFixedPositioned(hoisted_fragment));
     }
 
     fn layout_float(&mut self, mut float: FloatLineItem) {
-        self.state
+        self.current_state
             .flags
             .insert(LineLayoutInlineContainerFlags::HAD_ANY_FLOATS);
 
@@ -613,12 +597,14 @@ impl<'a> LineItemLayout<'a> {
         // formatting context, so that they are parented properly for StackingContext
         // properties such as opacity & filters.
         let distance_from_parent_to_ifc = LogicalVec2 {
-            inline: self.state.parent_offset.inline,
-            block: self.line_metrics.block_offset + self.state.parent_offset.block,
+            inline: self.current_state.parent_offset.inline,
+            block: self.line_metrics.block_offset + self.current_state.parent_offset.block,
         };
         float.fragment.content_rect.origin -= distance_from_parent_to_ifc
-            .to_physical_size(self.ifc_containing_block.effective_writing_mode());
-        self.state.fragments.push(Fragment::Float(float.fragment));
+            .to_physical_size(self.layout.containing_block.effective_writing_mode());
+        self.current_state
+            .fragments
+            .push(Fragment::Float(float.fragment));
     }
 }
 

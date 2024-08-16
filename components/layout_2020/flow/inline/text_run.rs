@@ -27,7 +27,7 @@ use unicode_script::Script;
 use xi_unicode::linebreak_property;
 
 use super::line_breaker::LineBreaker;
-use super::{FontKeyAndMetrics, InlineFormattingContextState};
+use super::{FontKeyAndMetrics, InlineFormattingContextLayout};
 use crate::fragment_tree::BaseFragmentInfo;
 
 // These constants are the xi-unicode line breaking classes that are defined in
@@ -136,7 +136,7 @@ impl TextRunSegment {
         &self,
         text_run: &TextRun,
         mut soft_wrap_policy: SegmentStartSoftWrapPolicy,
-        ifc: &mut InlineFormattingContextState,
+        ifc: &mut InlineFormattingContextLayout,
     ) {
         if self.break_at_start && soft_wrap_policy == SegmentStartSoftWrapPolicy::FollowLinebreaker
         {
@@ -492,7 +492,7 @@ impl TextRun {
         results
     }
 
-    pub(super) fn layout_into_line_items(&self, ifc: &mut InlineFormattingContextState) {
+    pub(super) fn layout_into_line_items(&self, ifc: &mut InlineFormattingContextLayout) {
         if self.text_range.is_empty() {
             return;
         }
