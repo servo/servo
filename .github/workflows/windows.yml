@@ -133,8 +133,8 @@ jobs:
           python mach build --use-crown --locked --${{ inputs.profile }}
           cp C:\a\servo\servo\target\cargo-timings C:\a\servo\servo\target\cargo-timings-windows -Recurse
       - name: Copy resources
-        # FIXME: what does this do?
         if: ${{ ! inputs.self-hosted-runner }}
+        # GitHub-hosted runners check out the repo on D: drive.
         run: cp D:\a\servo\servo\resources C:\a\servo\servo -Recurse
       - name: Smoketest
         run: python mach smoketest --${{ inputs.profile }}
