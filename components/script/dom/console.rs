@@ -73,6 +73,9 @@ where
 unsafe fn handle_value_to_string(cx: *mut jsapi::JSContext, value: HandleValue) -> DOMString {
     rooted!(in(cx) let mut js_string = std::ptr::null_mut::<jsapi::JSString>());
     js_string.set(JS_ValueToSource(cx, value));
+    if js_string.is_null() {
+        return "<error converting value to string>".into();
+    }
     jsstring_to_str(cx, *js_string)
 }
 
