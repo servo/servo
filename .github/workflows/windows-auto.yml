@@ -1,8 +1,9 @@
 name: Windows (auto runner)
 
-# Keep this in sync with the underlying platform workflow.
-# FIXME: no way to make this generic for workflows with other inputs,
-# unless we generate the YAML programmatically.
+# Keep this block and the two “with” blocks below in sync with the underlying
+# platform workflow, to ensure all of its inputs are forwarded correctly.
+# FIXME: no way to make this generic for workflows with other inputs, unless we
+# generate the YAML programmatically.
 on:
   workflow_call:
     inputs:
@@ -38,20 +39,33 @@ on:
         type: boolean
 
 jobs:
+  # Generate a unique id that distinguishes this auto-runner build from other
+  # auto-runner builds in the same workflow call tree.
+  unique-id:
+    name: Generate unique id
+    runs-on: ubuntu-latest
+    outputs:
+      id: ${{ steps.generate.outputs.id }}
+    steps:
+      - id: generate
+        run: |
+          random48=$(LC_ALL=C < /dev/urandom tr -dC 0-9A-Za-z_- 2> /dev/null | head -c 8)
+          echo "id=${{ github.repository }}/${{ github.run_id }}/$random48" >> "$GITHUB_OUTPUT"
+
   timeout:
-    name: Self-hosted job timeout
+    name: Wait for self-hosted runner
+    needs:
+      - unique-id
     runs-on: ubuntu-latest
     outputs:
       status: ${{ steps.check.outputs.status }}
     steps:
       - id: check
-        # FIXME: no way to distinguish multiple “foo-platform-auto” calls in the same workflow,
-        # unless we generate the YAML programmatically.
         run: |
           timeout_s=10
           check_self_hosted_job_status() {
             GH_TOKEN=${{ secrets.GITHUB_TOKEN }} gh api /repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/jobs \
-            | jq -er '.jobs[] | select(.name | contains("/ windows-self-hosted /")) | .status'
+            | jq -er --arg id ${{ needs.unique-id.outputs.id }} '.jobs[] | select(.name | contains("[" + $id + "]")) | .status'
           }
           i=0; while [ $i -lt $timeout_s ]; do
             i=$((i + 1))
@@ -64,16 +78,17 @@ jobs:
           done
           echo "status=$status" >> "$GITHUB_OUTPUT"
 
-  windows-github-hosted:
+  github-hosted:
+    name: Run job on GitHub-hosted runner
+
     # If the self-hosted job is still queued after the timeout job finishes,
     # cancel it and run this job instead.
     needs:
+      - unique-id
       - timeout
     if: ${{ needs.timeout.outputs.status == 'queued' }}
     concurrency:
-      # This group key must be unique in the repository and workflow call tree;
-      # for example, a “foo-platform-auto” workflow ends in “/foo-platform-auto”.
-      group: ${{ github.repository }}/${{ github.run_id }}/windows-auto
+      group: ${{ needs.unique-id.outputs.id }}
       cancel-in-progress: true
 
     uses: ./.github/workflows/windows.yml
@@ -84,14 +99,15 @@ jobs:
       upload: ${{ inputs.upload }}
       github-release-id: ${{ inputs.github-release-id }}
 
-  # Keep this id in sync with the contains() call above, and do not give this job a name.
-  # The job id must be unique in the workflow call tree; for example, a “foo-platform-auto” workflow
-  # should call this job “foo-platform-self-hosted” to avoid interfering with this workflow.
-  windows-self-hosted:
+  self-hosted:
+    # To reliably query the status of this job run in the timeout job, we need
+    # to put our unique id in the friendly name.
+    name: Run job on self-hosted runner [${{ needs.unique-id.outputs.id }}]
+    needs:
+      - unique-id
+
     concurrency:
-      # This group key must be unique in the repository and workflow call tree;
-      # for example, a “foo-platform-auto” workflow ends in “/foo-platform-auto”.
-      group: ${{ github.repository }}/${{ github.run_id }}/windows-auto
+      group: ${{ needs.unique-id.outputs.id }}
       cancel-in-progress: true
 
     uses: ./.github/workflows/windows.yml
