@@ -360,7 +360,7 @@ impl<'a> LineItemLayout<'a> {
             },
         };
 
-        let ifc_writing_mode = self.ifc_containing_block.style.writing_mode;
+        let ifc_writing_mode = self.ifc_containing_block.effective_writing_mode();
         if inner_state
             .flags
             .contains(LineLayoutInlineContainerFlags::HAD_ANY_FLOATS)
@@ -486,7 +486,7 @@ impl<'a> LineItemLayout<'a> {
         self.state.fragments.push(Fragment::Text(TextFragment {
             base: text_item.base_fragment_info.into(),
             parent_style: text_item.parent_style,
-            rect: rect.to_physical(self.ifc_containing_block.style.writing_mode),
+            rect: rect.to_physical(self.ifc_containing_block.effective_writing_mode()),
             font_metrics: text_item.font_metrics,
             font_key: text_item.font_key,
             glyphs: text_item.text,
@@ -511,7 +511,7 @@ impl<'a> LineItemLayout<'a> {
                 relative_adjustement(&atomic.fragment.style, self.ifc_containing_block);
         }
 
-        let ifc_writing_mode = self.ifc_containing_block.style.writing_mode;
+        let ifc_writing_mode = self.ifc_containing_block.effective_writing_mode();
         atomic.fragment.content_rect.origin += atomic_offset.to_physical_size(ifc_writing_mode);
 
         if let Some(mut positioning_context) = atomic.positioning_context {
@@ -589,7 +589,7 @@ impl<'a> LineItemLayout<'a> {
             block: self.line_metrics.block_offset + self.state.parent_offset.block,
         };
         float.fragment.content_rect.origin -= distance_from_parent_to_ifc
-            .to_physical_size(self.ifc_containing_block.style.writing_mode);
+            .to_physical_size(self.ifc_containing_block.effective_writing_mode());
         self.state.fragments.push(Fragment::Float(float.fragment));
     }
 }

@@ -227,7 +227,7 @@ impl OutsideMarker {
         sequential_layout_state: Option<&mut SequentialLayoutState>,
         collapsible_with_parent_start_margin: Option<CollapsibleWithParentStartMargin>,
     ) -> Fragment {
-        let containing_block_writing_mode = containing_block.style.writing_mode;
+        let containing_block_writing_mode = containing_block.effective_writing_mode();
         let content_sizes = self
             .block_container
             .inline_content_sizes(layout_context, containing_block_writing_mode);
@@ -377,7 +377,10 @@ fn calculate_inline_content_size_for_block_level_boxes(
                 let size = sizing::outer_inline(
                     style,
                     writing_mode,
-                    || contents.inline_content_sizes(layout_context, style.writing_mode),
+                    || {
+                        contents
+                            .inline_content_sizes(layout_context, style.effective_writing_mode())
+                    },
                     Au::zero,
                 )
                 .max(ContentSizes::zero());
@@ -579,7 +582,7 @@ fn layout_block_level_children_in_parallel(
             placement_state.place_fragment_and_update_baseline(&mut fragment, None);
             child_positioning_context.adjust_static_position_of_hoisted_fragments(
                 &fragment,
-                containing_block.style.writing_mode,
+                containing_block.effective_writing_mode(),
                 PositioningContextLength::zero(),
             );
             positioning_context.append(child_positioning_context);
@@ -617,7 +620,7 @@ fn layout_block_level_children_sequentially(
                 .place_fragment_and_update_baseline(&mut fragment, Some(sequential_layout_state));
             positioning_context.adjust_static_position_of_hoisted_fragments(
                 &fragment,
-                containing_block.style.writing_mode,
+                containing_block.effective_writing_mode(),
                 positioning_context_length_before_layout,
             );
 
@@ -920,7 +923,7 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
         },
     };
 
-    let containing_block_writing_mode = containing_block.style.writing_mode;
+    let containing_block_writing_mode = containing_block.effective_writing_mode();
     BoxFragment::new(
         base_fragment_info,
         style.clone(),
@@ -1006,7 +1009,7 @@ impl NonReplacedFormattingContext {
         };
 
         let block_margins_collapsed_with_children = CollapsedBlockMargins::from_margin(&margin);
-        let containing_block_writing_mode = containing_block.style.writing_mode;
+        let containing_block_writing_mode = containing_block.effective_writing_mode();
         BoxFragment::new(
             self.base_fragment_info,
             self.style.clone(),
@@ -1257,7 +1260,7 @@ impl NonReplacedFormattingContext {
         };
         let block_margins_collapsed_with_children = CollapsedBlockMargins::from_margin(&margin);
 
-        let containing_block_writing_mode = containing_block.style.writing_mode;
+        let containing_block_writing_mode = containing_block.effective_writing_mode();
         BoxFragment::new(
             self.base_fragment_info,
             self.style.clone(),
@@ -1291,7 +1294,7 @@ fn layout_in_flow_replaced_block_level(
     let effective_margin_inline_start;
     let (margin_block_start, margin_block_end) = solve_block_margins_for_in_flow_block_level(&pbm);
 
-    let containing_block_writing_mode = containing_block.style.writing_mode;
+    let containing_block_writing_mode = containing_block.effective_writing_mode();
     let physical_content_size = content_size.to_physical_size(containing_block_writing_mode);
     let fragments = replaced.make_fragments(style, physical_content_size);
 
@@ -1444,7 +1447,8 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
     };
     // https://drafts.csswg.org/css-writing-modes/#orthogonal-flows
     assert_eq!(
-        containing_block.style.writing_mode, containing_block_for_children.style.writing_mode,
+        containing_block.effective_writing_mode(),
+        containing_block_for_children.effective_writing_mode(),
         "Mixed writing modes are not supported yet"
     );
     ContainingBlockPaddingAndBorder {
@@ -1498,8 +1502,16 @@ fn justify_self_alignment(containing_block: &ContainingBlock, free_space: Au) ->
     debug_assert!(free_space >= Au::zero());
     match style.clone_text_align() {
         TextAlignKeyword::MozCenter => free_space / 2,
-        TextAlignKeyword::MozLeft if !style.writing_mode.line_left_is_inline_start() => free_space,
-        TextAlignKeyword::MozRight if style.writing_mode.line_left_is_inline_start() => free_space,
+        TextAlignKeyword::MozLeft
+            if !style.effective_writing_mode().line_left_is_inline_start() =>
+        {
+            free_space
+        },
+        TextAlignKeyword::MozRight
+            if style.effective_writing_mode().line_left_is_inline_start() =>
+        {
+            free_space
+        },
         _ => Au::zero(),
     }
 }
@@ -1659,7 +1671,7 @@ impl PlacementState {
             inflow_baselines: Baselines::default(),
             is_inline_block_context,
             marker_block_size: None,
-            writing_mode: containing_block_style.writing_mode,
+            writing_mode: containing_block_style.effective_writing_mode(),
         }
     }
 
