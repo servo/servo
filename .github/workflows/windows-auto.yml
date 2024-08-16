@@ -7,6 +7,9 @@ name: Windows (auto runner)
 on:
   workflow_call:
     inputs:
+      unique-id:
+        required: true
+        type: string
       profile:
         required: false
         default: "release"
@@ -24,6 +27,9 @@ on:
         type: string
   workflow_dispatch:
     inputs:
+      unique-id:
+        required: true
+        type: string
       profile:
         required: false
         default: "release"
@@ -39,23 +45,8 @@ on:
         type: boolean
 
 jobs:
-  # Generate a unique id that distinguishes this auto-runner build from other
-  # auto-runner builds in the same workflow call tree.
-  unique-id:
-    name: Generate unique id
-    runs-on: ubuntu-latest
-    outputs:
-      id: ${{ steps.generate.outputs.id }}
-    steps:
-      - id: generate
-        run: |
-          random48=$(LC_ALL=C < /dev/urandom tr -dC 0-9A-Za-z_- 2> /dev/null | head -c 8)
-          echo "id=${{ github.repository }}/${{ github.run_id }}/$random48" >> "$GITHUB_OUTPUT"
-
   timeout:
     name: Wait for self-hosted runner
-    needs:
-      - unique-id
     runs-on: ubuntu-latest
     outputs:
       status: ${{ steps.check.outputs.status }}
@@ -65,7 +56,7 @@ jobs:
           timeout_s=10
           check_self_hosted_job_status() {
             GH_TOKEN=${{ secrets.GITHUB_TOKEN }} gh api /repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/jobs \
-            | jq -er --arg id ${{ needs.unique-id.outputs.id }} '.jobs[] | select(.name | contains("[" + $id + "]")) | .status'
+            | jq -er --arg id ${{ inputs.unique-id }} '.jobs[] | select(.name | contains("[" + $id + "]")) | .status'
           }
           i=0; while [ $i -lt $timeout_s ]; do
             i=$((i + 1))
@@ -76,7 +67,7 @@ jobs:
               break
             fi
           done
-          echo "status=$status" >> "$GITHUB_OUTPUT"
+          echo "status=$status" | tee -a "$GITHUB_OUTPUT"
 
   github-hosted:
     name: Run job on GitHub-hosted runner
@@ -84,11 +75,10 @@ jobs:
     # If the self-hosted job is still queued after the timeout job finishes,
     # cancel it and run this job instead.
     needs:
-      - unique-id
       - timeout
     if: ${{ needs.timeout.outputs.status == 'queued' }}
     concurrency:
-      group: ${{ needs.unique-id.outputs.id }}
+      group: ${{ inputs.unique-id }}
       cancel-in-progress: true
 
     uses: ./.github/workflows/windows.yml
@@ -102,12 +92,10 @@ jobs:
   self-hosted:
     # To reliably query the status of this job run in the timeout job, we need
     # to put our unique id in the friendly name.
-    name: Run job on self-hosted runner [${{ needs.unique-id.outputs.id }}]
-    needs:
-      - unique-id
+    name: Run job on self-hosted runner [${{ inputs.unique-id }}]
 
     concurrency:
-      group: ${{ needs.unique-id.outputs.id }}
+      group: ${{ inputs.unique-id }}
       cancel-in-progress: true
 
     uses: ./.github/workflows/windows.yml
