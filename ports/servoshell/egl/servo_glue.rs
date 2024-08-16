@@ -82,6 +82,7 @@ pub struct ServoGlue {
     rendering_context: RenderingContext,
     servo: Servo<ServoWindowCallbacks>,
     batch_mode: bool,
+    need_present: bool,
     callbacks: Rc<ServoWindowCallbacks>,
     events: Vec<EmbedderEvent>,
     context_menu_sender: Option<IpcSender<ContextMenuResult>>,
@@ -110,6 +111,7 @@ impl ServoGlue {
             rendering_context,
             servo,
             batch_mode: false,
+            need_present: false,
             callbacks,
             events: vec![],
             context_menu_sender: None,
@@ -432,7 +434,6 @@ impl ServoGlue {
 
     fn handle_servo_events(&mut self) -> Result<(), &'static str> {
         let mut need_update = false;
-        let mut need_present = false;
         for (browser_id, event) in self.servo.get_events() {
             match event {
                 EmbedderMsg::ChangePageTitle(title) => {
@@ -611,7 +612,7 @@ impl ServoGlue {
                     self.callbacks.host_callbacks.on_panic(reason, backtrace);
                 },
                 EmbedderMsg::ReadyToPresent(_webview_ids) => {
-                    need_present = true;
+                    self.need_present = true;
                 },
                 EmbedderMsg::Status(..) |
                 EmbedderMsg::SelectFiles(..) |
@@ -632,10 +633,14 @@ impl ServoGlue {
         if need_update {
             let _ = self.perform_updates();
         }
-        if need_present {
+        Ok(())
+    }
+
+    pub fn present_if_needed(&mut self) {
+        if self.need_present {
+            self.need_present = false;
             self.servo.present();
         }
-        Ok(())
     }
 }
 

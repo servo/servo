@@ -196,7 +196,11 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_performUpdates<'local>(
     _class: JClass<'local>,
 ) {
     debug!("performUpdates");
-    call(&mut env, |s| s.perform_updates());
+    call(&mut env, |s| {
+        s.perform_updates()?;
+        s.present_if_needed();
+        Ok(())
+    });
 }
 
 #[no_mangle]

@@ -39,7 +39,13 @@ pub trait HostTrait {
     /// Page animation state has changed. If animating, it's recommended
     /// that the embedder doesn't wait for the wake function to be called
     /// to call perform_updates. Usually, it means doing:
-    /// while true { servo.perform_updates() }. This will end up calling flush
+    /// ```rust
+    /// while true {
+    ///     servo.perform_updates();
+    ///     servo.present_if_needed();
+    /// }
+    /// ```
+    /// . This will end up calling flush
     /// which will call swap_buffer which will be blocking long enough to limit
     /// drawing at 60 FPS.
     /// If not animating, call perform_updates only when needed (when the embedder
