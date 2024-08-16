@@ -2670,18 +2670,6 @@ impl Document {
         self.current_parser.get()
     }
 
-    pub fn can_invoke_script(&self) -> bool {
-        match self.get_current_parser() {
-            Some(parser) => {
-                // It is safe to run script if the parser is not actively parsing,
-                // or if it is impossible to interact with the token stream.
-                parser.parser_is_not_active() ||
-                    self.throw_on_dynamic_markup_insertion_counter.get() > 0
-            },
-            None => true,
-        }
-    }
-
     /// Iterate over all iframes in the document.
     pub fn iter_iframes(&self) -> impl Iterator<Item = DomRoot<HTMLIFrameElement>> {
         self.upcast::<Node>()
