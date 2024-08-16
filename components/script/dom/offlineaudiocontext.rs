@@ -51,7 +51,7 @@ impl OfflineAudioContext {
         length: u32,
         sample_rate: f32,
         pipeline_id: PipelineId,
-    ) -> OfflineAudioContext {
+    ) -> Fallible<OfflineAudioContext> {
         let options = ServoMediaOfflineAudioContextOptions {
             channels: channel_count as u8,
             length: length as usize,
@@ -60,14 +60,14 @@ impl OfflineAudioContext {
         let context = BaseAudioContext::new_inherited(
             BaseAudioContextOptions::OfflineAudioContext(options),
             pipeline_id,
-        );
-        OfflineAudioContext {
+        )?;
+        Ok(OfflineAudioContext {
             context,
             channel_count,
             length,
             rendering_started: Cell::new(false),
             pending_rendering_promise: Default::default(),
-        }
+        })
     }
 
     #[allow(crown::unrooted_must_root)]
@@ -87,7 +87,7 @@ impl OfflineAudioContext {
         }
         let pipeline_id = window.pipeline_id();
         let context =
-            OfflineAudioContext::new_inherited(channel_count, length, sample_rate, pipeline_id);
+            OfflineAudioContext::new_inherited(channel_count, length, sample_rate, pipeline_id)?;
         Ok(reflect_dom_object_with_proto(
             Box::new(context),
             window,
