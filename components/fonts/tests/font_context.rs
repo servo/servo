@@ -28,6 +28,7 @@ use style::values::computed::font::{
 };
 use style::values::computed::{FontLanguageOverride, XLang};
 use style::values::generics::font::LineHeight;
+use style::ArcSlice;
 use webrender_api::{FontInstanceFlags, FontInstanceKey, FontKey, IdNamespace};
 
 #[derive(Clone)]
@@ -152,19 +153,16 @@ fn style() -> FontStyleStruct {
 }
 
 fn font_family(names: Vec<&str>) -> FontFamily {
-    let names: Vec<SingleFontFamily> = names
-        .into_iter()
-        .map(|name| {
-            SingleFontFamily::FamilyName(FamilyName {
-                name: Atom::from(name),
-                syntax: FontFamilyNameSyntax::Quoted,
-            })
+    let names = names.into_iter().map(|name| {
+        SingleFontFamily::FamilyName(FamilyName {
+            name: Atom::from(name),
+            syntax: FontFamilyNameSyntax::Quoted,
         })
-        .collect();
+    });
 
     FontFamily {
         families: FontFamilyList {
-            list: names.into_boxed_slice(),
+            list: ArcSlice::from_iter(names),
         },
         is_system_font: false,
         is_initial: false,
