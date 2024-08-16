@@ -1135,7 +1135,6 @@ name = "crown"
 version = "0.0.1"
 dependencies = [
  "compiletest_rs",
- "once_cell",
 ]
 
 [[package]]
