@@ -170,6 +170,9 @@ class ServoHandler(mozlog.reader.LogHandler):
         test_path = data["test"]
         del self.running_tests[data['thread']]
 
+        if test_status == "SKIP":
+            print(data["message"])
+
         had_expected_test_result = self.data_was_for_expected_result(data)
         subtest_failures = self.subtest_failures.pop(test_path, [])
         if had_expected_test_result and not subtest_failures:
