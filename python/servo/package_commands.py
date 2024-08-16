@@ -52,10 +52,6 @@ PACKAGES = {
     'mac': [
         'production/servo-tech-demo.dmg',
     ],
-    'maven': [
-        'android/gradle/servoview/maven/org/servo/servoview/servoview-armv7/',
-        'android/gradle/servoview/maven/org/servo/servoview/servoview-x86/',
-    ],
     'windows-msvc': [
         r'production\msi\Servo.exe',
         r'production\msi\Servo.zip',
@@ -135,12 +131,8 @@ class PackageCommands(CommandBase):
     @CommandArgument('--flavor', '-f',
                      default=None,
                      help='Package using the given Gradle flavor')
-    @CommandArgument('--maven',
-                     default=None,
-                     action='store_true',
-                     help='Create a local Maven repository')
     @CommandBase.common_command_arguments(build_configuration=False, build_type=True)
-    def package(self, build_type: BuildType, android=None, target=None, flavor=None, maven=False, with_asan=False):
+    def package(self, build_type: BuildType, android=None, target=None, flavor=None, with_asan=False):
         if android is None:
             android = self.config["build"]["android"]
         if target and android:
@@ -525,32 +517,6 @@ class PackageCommands(CommandBase):
                 }
             )
 
-        def update_maven(directory):
-            (aws_access_key, aws_secret_access_key) = get_s3_secret()
-            s3 = boto3.client(
-                's3',
-                aws_access_key_id=aws_access_key,
-                aws_secret_access_key=aws_secret_access_key
-            )
-            BUCKET = 'servo-builds2'
-
-            nightly_dir = 'nightly/maven'
-            dest_key_base = directory.replace("target/android/gradle/servoview/maven", nightly_dir)
-            if dest_key_base[-1] == '/':
-                dest_key_base = dest_key_base[:-1]
-
-            # Given a directory with subdirectories like 0.0.1.20181005.caa4d190af...
-            for artifact_dir in os.listdir(directory):
-                base_dir = os.path.join(directory, artifact_dir)
-                if not os.path.isdir(base_dir):
-                    continue
-                package_upload_base = "{}/{}".format(dest_key_base, artifact_dir)
-                # Upload all of the files inside the subdirectory.
-                for f in os.listdir(base_dir):
-                    file_upload_key = "{}/{}".format(package_upload_base, f)
-                    print("Uploading %s to %s" % (os.path.join(base_dir, f), file_upload_key))
-                    s3.upload_file(os.path.join(base_dir, f), BUCKET, file_upload_key)
-
         timestamp = datetime.utcnow().replace(microsecond=0)
         for package in packages_for_platform(platform):
             if path.isdir(package):
@@ -575,9 +541,5 @@ class PackageCommands(CommandBase):
 
             upload_to_s3(platform, package, package_hash, timestamp)
             upload_to_github_release(platform, package, package_hash)
-
-        if platform == 'maven':
-            for package in packages_for_platform(platform):
-                update_maven(package)
 
         return 0
