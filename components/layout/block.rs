@@ -519,7 +519,7 @@ fn translate_including_floats(cur_b: &mut Au, delta: Au, floats: &mut Floats) {
 /// This is a traversal of an Absolute Flow tree.
 /// - Relatively positioned flows and the Root flow start new Absolute flow trees.
 /// - The kids of a flow in this tree will be the flows for which it is the
-/// absolute Containing Block.
+///   absolute Containing Block.
 /// - Thus, leaf nodes and inner non-root nodes are all Absolute Flows.
 ///
 /// A Flow tree can have several Absolute Flow trees (depending on the number
@@ -2675,7 +2675,6 @@ pub struct ISizeConstraintInput {
     pub inline_end_margin: MaybeAuto,
     pub inline_start: MaybeAuto,
     pub inline_end: MaybeAuto,
-    pub text_align: TextAlign,
     pub available_inline_size: Au,
 }
 
@@ -2686,7 +2685,6 @@ impl ISizeConstraintInput {
         inline_end_margin: MaybeAuto,
         inline_start: MaybeAuto,
         inline_end: MaybeAuto,
-        text_align: TextAlign,
         available_inline_size: Au,
     ) -> ISizeConstraintInput {
         ISizeConstraintInput {
@@ -2695,7 +2693,6 @@ impl ISizeConstraintInput {
             inline_end_margin,
             inline_start,
             inline_end,
-            text_align,
             available_inline_size,
         }
     }
@@ -2793,7 +2790,6 @@ pub trait ISizeAndMarginsComputer {
             MaybeAuto::from_style(margin.inline_end, containing_block_inline_size),
             MaybeAuto::from_style(position.inline_start, containing_block_inline_size),
             MaybeAuto::from_style(position.inline_end, containing_block_inline_size),
-            style.get_inherited_text().text_align,
             available_inline_size,
         )
     }

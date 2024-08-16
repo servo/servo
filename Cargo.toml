@@ -66,13 +66,12 @@ hyper_serde = { path = "components/hyper_serde" }
 icu_segmenter = "1.5.0"
 image = "0.24"
 imsz = "0.2"
-indexmap = { version = "2.3.0", features = ["std"] }
+indexmap = { version = "2.4.0", features = ["std"] }
 ipc-channel = "0.18"
 itertools = "0.13"
 tikv-jemalloc-sys = "0.6.0"
 tikv-jemallocator = "0.6.0"
 keyboard-types = "0.7"
-lazy_static = "1.5"
 libc = "0.2"
 log = "0.4"
 malloc_size_of = { git = "https://github.com/servo/stylo", branch = "2024-07-16", features = ["servo"] }
@@ -81,6 +80,7 @@ mime = "0.3.13"
 mime_guess = "2.0.5"
 mozangle = "0.5.1"
 net_traits = { path = "components/shared/net" }
+nix = "0.29"
 num-traits = "0.2"
 num_cpus = "1.1.0"
 parking_lot = "0.12"
@@ -98,7 +98,7 @@ rustls-pemfile = "1.0.4"
 script_layout_interface = { path = "components/shared/script_layout" }
 script_traits = { path = "components/shared/script" }
 selectors = { git = "https://github.com/servo/stylo", branch = "2024-07-16" }
-serde = "1.0.205"
+serde = "1.0.208"
 serde_bytes = "0.11"
 serde_json = "1.0"
 servo-media = { git = "https://github.com/servo/media" }
@@ -194,7 +194,3 @@ strip = true
 #
 # [patch."https://github.com/servo/<repository>"]
 # <crate> = { path = "/path/to/local/checkout" }
-
-# patch libz-sys for https://github.com/rust-lang/libz-sys/pull/199
-# until released as 1.1.19 (also remove this in mozjs repo)
-libz-sys = { git = "https://github.com/rust-lang/libz-sys.git", rev = "f76b7a24ed0a71ef1b8bdac1895e8535cb2cb9c0" }

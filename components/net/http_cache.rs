@@ -416,7 +416,7 @@ fn handle_range_request(
         // whose body is in the ResponseBody::Receiving state.
         (&(Bound::Included(beginning), Bound::Included(end)), Some(complete_resource)) => {
             if let ResponseBody::Done(ref body) = *complete_resource.body.lock().unwrap() {
-                if end == u64::max_value() {
+                if end == u64::MAX {
                     // Prevent overflow on the addition below.
                     return None;
                 }
@@ -552,11 +552,7 @@ fn handle_range_request(
                 } else {
                     continue;
                 };
-                if total < res_beginning ||
-                    total < res_end ||
-                    offset == 0 ||
-                    offset == u64::max_value()
-                {
+                if total < res_beginning || total < res_end || offset == 0 || offset == u64::MAX {
                     // Prevent overflow in the below operations from occuring.
                     continue;
                 }

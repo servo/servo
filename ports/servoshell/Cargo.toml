@@ -56,7 +56,6 @@ libc = { workspace = true }
 libservo = { path = "../../components/servo" }
 cfg-if = { workspace = true }
 log = { workspace = true }
-lazy_static = { workspace = true }
 getopts = { workspace = true }
 url = { workspace = true }
 servo-media = { workspace = true }
@@ -67,9 +66,6 @@ android_logger = "0.14"
 ipc-channel = { workspace = true }
 jni = "0.21.1"
 libloading = "0.8"
-serde_json = { workspace = true }
-surfman = { workspace = true, features = ["sm-angle-default"] }
-webxr = { git = "https://github.com/servo/webxr" }
 
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
@@ -83,10 +79,13 @@ ipc-channel = { workspace = true, features = ["force-inprocess"] }
 hilog = "0.1.0"
 napi-derive-ohos = "0.0.9"
 napi-ohos = "0.1"
-serde_json = { workspace = true }
-surfman = { workspace = true, features = ["sm-angle-default"] }
-webxr = { git = "https://github.com/servo/webxr" }
 ohos-sys = { version = "0.2.1", features = ["xcomponent"] }
+
+[target.'cfg(any(target_os = "android", target_env = "ohos"))'.dependencies]
+nix = { workspace = true, features = ["fs"] }
+surfman = { workspace = true, features = ["sm-angle-default"] }
+serde_json = { workspace = true }
+webxr = { git = "https://github.com/servo/webxr" }
 
 
 [target.'cfg(not(any(target_os = "android", target_env = "ohos")))'.dependencies]
@@ -118,3 +117,6 @@ sig = "1.0"
 webxr = { git = "https://github.com/servo/webxr", features = ["ipc", "glwindow", "headless", "openxr-api"] }
 windows-sys = { workspace = true, features = ["Win32_Graphics_Gdi"] }
 libservo = { path = "../../components/servo", features = ["no-wgl"] }
+
+[lints.rust]
+unexpected_cfgs = { level = "allow", check-cfg = ['cfg(production)'] }

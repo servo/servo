@@ -4,11 +4,11 @@
 
 use std::env;
 use std::path::PathBuf;
+use std::sync::LazyLock;
 
 use compiletest_rs as compiletest;
-use once_cell::sync::Lazy;
 
-static PROFILE_PATH: Lazy<PathBuf> = Lazy::new(|| {
+static PROFILE_PATH: LazyLock<PathBuf> = LazyLock::new(|| {
     let current_exe_path = env::current_exe().unwrap();
     let deps_path = current_exe_path.parent().unwrap();
     let profile_path = deps_path.parent().unwrap();

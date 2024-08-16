@@ -1352,9 +1352,6 @@ impl Document {
             self.commit_focus_transaction(FocusType::Element);
             self.maybe_fire_dblclick(client_point, node, pressed_mouse_buttons);
         }
-
-        self.window
-            .reflow(ReflowGoal::Full, ReflowReason::MouseEvent);
     }
 
     fn maybe_fire_dblclick(
@@ -1570,8 +1567,6 @@ impl Document {
         // If the target has changed then store the current mouse over target for next frame.
         if target_has_changed {
             prev_mouse_over_target.set(maybe_new_target.as_deref());
-            self.window
-                .reflow(ReflowGoal::Full, ReflowReason::MouseEvent);
         }
     }
 
@@ -1772,8 +1767,6 @@ impl Document {
         let event = event.upcast::<Event>();
         let result = event.fire(&target);
 
-        window.reflow(ReflowGoal::Full, ReflowReason::MouseEvent);
-
         match result {
             EventStatus::Canceled => TouchEventResult::Processed(false),
             EventStatus::NotCanceled => TouchEventResult::Processed(true),
@@ -1857,8 +1850,6 @@ impl Document {
                 }
             }
         }
-
-        self.window.reflow(ReflowGoal::Full, ReflowReason::KeyEvent);
     }
 
     pub fn ime_dismissed(&self) {
@@ -2362,8 +2353,6 @@ impl Document {
 
                     // http://w3c.github.io/navigation-timing/#widl-PerformanceNavigationTiming-loadEventEnd
                     update_with_current_time_ms(&document.load_event_end);
-
-                    window.reflow(ReflowGoal::Full, ReflowReason::DocumentLoaded);
 
                     if let Some(fragment) = document.url().fragment() {
                         document.check_and_scroll_fragment(fragment);

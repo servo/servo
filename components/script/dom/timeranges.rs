@@ -66,6 +66,10 @@ impl TimeRangesContainer {
         self.ranges.len() as u32
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.ranges.is_empty()
+    }
+
     pub fn start(&self, index: u32) -> Result<f64, TimeRangesError> {
         self.ranges
             .get(index as usize)

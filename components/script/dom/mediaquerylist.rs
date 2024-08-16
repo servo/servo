@@ -22,8 +22,8 @@ use crate::dom::document::Document;
 use crate::dom::eventtarget::EventTarget;
 
 pub enum MediaQueryListMatchState {
-    Same(bool),
-    Changed(bool),
+    Same,
+    Changed,
 }
 
 #[dom_struct]
@@ -59,12 +59,12 @@ impl MediaQueryList {
 
         let result = if let Some(old_matches) = self.last_match_state.get() {
             if old_matches == matches {
-                MediaQueryListMatchState::Same(matches)
+                MediaQueryListMatchState::Same
             } else {
-                MediaQueryListMatchState::Changed(matches)
+                MediaQueryListMatchState::Changed
             }
         } else {
-            MediaQueryListMatchState::Changed(matches)
+            MediaQueryListMatchState::Changed
         };
 
         self.last_match_state.set(Some(matches));

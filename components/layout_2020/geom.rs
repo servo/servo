@@ -71,6 +71,19 @@ impl<T: Clone> LogicalVec2<T> {
         }
     }
 
+    pub fn from_physical_point(physical_point: &PhysicalPoint<T>, mode: WritingMode) -> Self {
+        // https://drafts.csswg.org/css-writing-modes/#logical-to-physical
+        let (i, b) = if mode.is_horizontal() {
+            (&physical_point.x, &physical_point.y)
+        } else {
+            (&physical_point.y, &physical_point.x)
+        };
+        LogicalVec2 {
+            inline: i.clone(),
+            block: b.clone(),
+        }
+    }
+
     pub fn map<U>(&self, f: impl Fn(&T) -> U) -> LogicalVec2<U> {
         LogicalVec2 {
             inline: f(&self.inline),
@@ -195,7 +208,7 @@ impl fmt::Debug for LogicalRect<Au> {
 }
 
 impl<T: Clone> LogicalVec2<T> {
-    pub fn to_physical(&self, mode: WritingMode) -> PhysicalSize<T> {
+    pub fn to_physical_size(&self, mode: WritingMode) -> PhysicalSize<T> {
         // https://drafts.csswg.org/css-writing-modes/#logical-to-physical
         let (x, y) = if mode.is_horizontal() {
             (&self.inline, &self.block)
@@ -203,6 +216,16 @@ impl<T: Clone> LogicalVec2<T> {
             (&self.block, &self.inline)
         };
         PhysicalSize::new(x.clone(), y.clone())
+    }
+
+    pub fn to_physical_point(&self, mode: WritingMode) -> PhysicalPoint<T> {
+        // https://drafts.csswg.org/css-writing-modes/#logical-to-physical
+        let (x, y) = if mode.is_horizontal() {
+            (&self.inline, &self.block)
+        } else {
+            (&self.block, &self.inline)
+        };
+        PhysicalPoint::new(x.clone(), y.clone())
     }
 }
 
@@ -464,14 +487,7 @@ impl<T> LogicalRect<T> {
         }
     }
 
-    pub fn to_physical(
-        &self,
-        mode: WritingMode,
-        // Will be needed for other writing modes
-        // FIXME: what if the containing block has a different mode?
-        // https://drafts.csswg.org/css-writing-modes/#orthogonal-flows
-        _containing_block: &PhysicalRect<T>,
-    ) -> PhysicalRect<T>
+    pub fn to_physical(&self, mode: WritingMode) -> PhysicalRect<T>
     where
         T: Clone,
     {
@@ -482,7 +498,7 @@ impl<T> LogicalRect<T> {
         };
         PhysicalRect::new(
             PhysicalPoint::new(tl_x.clone(), tl_y.clone()),
-            self.size.to_physical(mode),
+            self.size.to_physical_size(mode),
         )
     }
 }
@@ -520,5 +536,39 @@ impl From<LogicalRect<CSSPixelLength>> for LogicalRect<Au> {
             start_corner: value.start_corner.into(),
             size: value.size.into(),
         }
+    }
+}
+
+pub(crate) trait ToLogical<Unit, LogicalType> {
+    fn to_logical(&self, writing_mode: WritingMode) -> LogicalType;
+}
+
+impl<Unit: Copy> ToLogical<Unit, LogicalRect<Unit>> for PhysicalRect<Unit> {
+    fn to_logical(&self, writing_mode: WritingMode) -> LogicalRect<Unit> {
+        LogicalRect {
+            start_corner: LogicalVec2::from_physical_size(
+                &PhysicalSize::new(self.origin.x, self.origin.y),
+                writing_mode,
+            ),
+            size: LogicalVec2::from_physical_size(&self.size, writing_mode),
+        }
+    }
+}
+
+impl<Unit: Copy> ToLogical<Unit, LogicalVec2<Unit>> for PhysicalSize<Unit> {
+    fn to_logical(&self, writing_mode: WritingMode) -> LogicalVec2<Unit> {
+        LogicalVec2::from_physical_size(self, writing_mode)
+    }
+}
+
+impl<Unit: Copy> ToLogical<Unit, LogicalVec2<Unit>> for PhysicalPoint<Unit> {
+    fn to_logical(&self, writing_mode: WritingMode) -> LogicalVec2<Unit> {
+        LogicalVec2::from_physical_point(self, writing_mode)
+    }
+}
+
+impl<Unit: Copy> ToLogical<Unit, LogicalSides<Unit>> for PhysicalSides<Unit> {
+    fn to_logical(&self, writing_mode: WritingMode) -> LogicalSides<Unit> {
+        LogicalSides::from_physical(self, writing_mode)
     }
 }

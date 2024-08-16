@@ -8,7 +8,7 @@ pub mod background_hang_monitor;
 mod sampler;
 #[cfg(all(
     target_os = "linux",
-    not(any(target_arch = "arm", target_arch = "aarch64"))
+    not(any(target_arch = "arm", target_arch = "aarch64", target_env = "ohos"))
 ))]
 mod sampler_linux;
 #[cfg(target_os = "macos")]

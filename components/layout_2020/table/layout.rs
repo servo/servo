@@ -27,7 +27,10 @@ use crate::fragment_tree::{
     BaseFragmentInfo, BoxFragment, CollapsedBlockMargins, ExtraBackground, Fragment, FragmentFlags,
     PositioningFragment,
 };
-use crate::geom::{AuOrAuto, LengthPercentageOrAuto, LogicalRect, LogicalSides, LogicalVec2};
+use crate::geom::{
+    AuOrAuto, LengthPercentageOrAuto, LogicalRect, LogicalSides, LogicalVec2, PhysicalSides,
+    ToLogical,
+};
 use crate::positioned::{relative_adjustement, PositioningContext, PositioningContextLength};
 use crate::sizing::ContentSizes;
 use crate::style_ext::{Clamp, ComputedValuesExt, PaddingBorderMargin};
@@ -1539,10 +1542,15 @@ impl<'a> TableLayout<'a> {
             None, /* sequential_layout_state */
         );
 
-        box_fragment.content_rect.start_corner.block += box_fragment
-            .block_margins_collapsed_with_children
-            .start
-            .solve();
+        let margin_offset = LogicalVec2 {
+            inline: Au::zero(),
+            block: box_fragment
+                .block_margins_collapsed_with_children
+                .start
+                .solve(),
+        }
+        .to_physical_size(containing_block.style.writing_mode);
+        box_fragment.content_rect.origin += margin_offset;
 
         if let Some(positioning_context) = positioning_context.take() {
             parent_positioning_context.append(positioning_context);
@@ -1593,6 +1601,7 @@ impl<'a> TableLayout<'a> {
             content_inline_size_for_table: None,
             baselines: Baselines::default(),
         };
+        let table_writing_mode = containing_block_for_children.style.writing_mode;
 
         table_layout
             .fragments
@@ -1610,14 +1619,22 @@ impl<'a> TableLayout<'a> {
                     positioning_context,
                 );
 
-                caption_fragment.content_rect.start_corner.inline +=
-                    offset_from_wrapper.inline_start;
-                caption_fragment.content_rect.start_corner.block += current_block_offset;
-                current_block_offset += caption_fragment.margin_rect().size.block;
+                let caption_offset = LogicalVec2 {
+                    inline: offset_from_wrapper.inline_start,
+                    block: current_block_offset,
+                }
+                .to_physical_size(table_writing_mode);
+                caption_fragment.content_rect.origin += caption_offset;
+                current_block_offset += caption_fragment
+                    .margin_rect()
+                    .size
+                    .to_logical(table_writing_mode)
+                    .block;
 
                 let caption_fragment = Fragment::Box(caption_fragment);
                 positioning_context.adjust_static_position_of_hoisted_fragments(
                     &caption_fragment,
+                    table_writing_mode,
                     original_positioning_context_length,
                 );
                 Some(caption_fragment)
@@ -1634,18 +1651,27 @@ impl<'a> TableLayout<'a> {
 
         // Take the baseline of the grid fragment, after adjusting it to be in the coordinate system
         // of the table wrapper.
+        let logical_grid_content_rect = grid_fragment.content_rect.to_logical(table_writing_mode);
         table_layout.baselines = grid_fragment
-            .baselines
-            .offset(current_block_offset + grid_fragment.content_rect.start_corner.block);
+            .baselines(table_writing_mode)
+            .offset(current_block_offset + logical_grid_content_rect.start_corner.block);
 
-        grid_fragment.content_rect.start_corner.inline += offset_from_wrapper.inline_start;
-        grid_fragment.content_rect.start_corner.block += current_block_offset;
-        current_block_offset += grid_fragment.border_rect().size.block;
-        table_layout.content_inline_size_for_table = Some(grid_fragment.content_rect.size.inline);
+        grid_fragment.content_rect.origin += LogicalVec2 {
+            inline: offset_from_wrapper.inline_start,
+            block: current_block_offset,
+        }
+        .to_physical_size(table_writing_mode);
+        current_block_offset += grid_fragment
+            .border_rect()
+            .size
+            .to_logical(table_writing_mode)
+            .block;
+        table_layout.content_inline_size_for_table = Some(logical_grid_content_rect.size.inline);
 
         let grid_fragment = Fragment::Box(grid_fragment);
         positioning_context.adjust_static_position_of_hoisted_fragments(
             &grid_fragment,
+            table_writing_mode,
             original_positioning_context_length,
         );
         table_layout.fragments.push(grid_fragment);
@@ -1666,14 +1692,22 @@ impl<'a> TableLayout<'a> {
                     positioning_context,
                 );
 
-                caption_fragment.content_rect.start_corner.inline +=
-                    offset_from_wrapper.inline_start;
-                caption_fragment.content_rect.start_corner.block += current_block_offset;
-                current_block_offset += caption_fragment.margin_rect().size.block;
+                let caption_offset = LogicalVec2 {
+                    inline: offset_from_wrapper.inline_start,
+                    block: current_block_offset,
+                }
+                .to_physical_size(containing_block_for_children.style.writing_mode);
+                caption_fragment.content_rect.origin += caption_offset;
+                current_block_offset += caption_fragment
+                    .margin_rect()
+                    .size
+                    .to_logical(table_writing_mode)
+                    .block;
 
                 let caption_fragment = Fragment::Box(caption_fragment);
                 positioning_context.adjust_static_position_of_hoisted_fragments(
                     &caption_fragment,
+                    table_writing_mode,
                     original_positioning_context_length,
                 );
                 Some(caption_fragment)
@@ -1710,6 +1744,7 @@ impl<'a> TableLayout<'a> {
         assert_eq!(self.table.size.height, self.row_sizes.len());
         assert_eq!(self.table.size.width, self.distributed_column_widths.len());
 
+        let table_writing_mode = containing_block_for_children.style.writing_mode;
         if self.table.size.width == 0 && self.table.size.height == 0 {
             let content_rect = LogicalRect {
                 start_corner: table_pbm.border_padding_start(),
@@ -1717,15 +1752,16 @@ impl<'a> TableLayout<'a> {
                     inline: self.table_width,
                     block: self.final_table_height,
                 },
-            };
+            }
+            .to_physical(table_writing_mode);
             return BoxFragment::new(
                 self.table.grid_base_fragment_info,
                 self.table.grid_style.clone(),
                 Vec::new(),
                 content_rect,
-                table_pbm.padding,
-                table_pbm.border,
-                LogicalSides::zero(),
+                table_pbm.padding.to_physical(table_writing_mode),
+                table_pbm.border.to_physical(table_writing_mode),
+                PhysicalSides::zero(),
                 None, /* clearance */
                 CollapsedBlockMargins::zero(),
             );
@@ -1845,15 +1881,16 @@ impl<'a> TableLayout<'a> {
                 inline: table_and_track_dimensions.table_rect.max_inline_position(),
                 block: table_and_track_dimensions.table_rect.max_block_position(),
             },
-        };
+        }
+        .to_physical(table_writing_mode);
         BoxFragment::new(
             self.table.grid_base_fragment_info,
             self.table.grid_style.clone(),
             table_fragments,
             content_rect,
-            table_pbm.padding,
-            table_pbm.border,
-            LogicalSides::zero(),
+            table_pbm.padding.to_physical(table_writing_mode),
+            table_pbm.border.to_physical(table_writing_mode),
+            PhysicalSides::zero(),
             None, /* clearance */
             CollapsedBlockMargins::zero(),
         )
@@ -1987,11 +2024,14 @@ impl<'a> TableLayout<'a> {
         dimensions: &TableAndTrackDimensions,
         fragments: &mut Vec<Fragment>,
     ) {
+        let table_writing_mode = self.table.style.writing_mode;
         for column_group in self.table.column_groups.iter() {
             if !column_group.is_empty() {
                 fragments.push(Fragment::Positioning(PositioningFragment::new_empty(
                     column_group.base_fragment_info,
-                    dimensions.get_column_group_rect(column_group),
+                    dimensions
+                        .get_column_group_rect(column_group)
+                        .to_physical(table_writing_mode),
                     column_group.style.clone(),
                 )));
             }
@@ -2000,7 +2040,9 @@ impl<'a> TableLayout<'a> {
         for (column_index, column) in self.table.columns.iter().enumerate() {
             fragments.push(Fragment::Positioning(PositioningFragment::new_empty(
                 column.base_fragment_info,
-                dimensions.get_column_rect(column_index),
+                dimensions
+                    .get_column_rect(column_index)
+                    .to_physical(table_writing_mode),
                 column.style.clone(),
             )));
         }
@@ -2105,11 +2147,11 @@ impl<'a> RowFragmentLayout<'a> {
             self.row.base_fragment_info,
             self.row.style.clone(),
             self.fragments,
-            self.rect,
-            LogicalSides::zero(), /* padding */
-            LogicalSides::zero(), /* border */
-            LogicalSides::zero(), /* margin */
-            None,                 /* clearance */
+            self.rect.to_physical(containing_block.style.writing_mode),
+            PhysicalSides::zero(), /* padding */
+            PhysicalSides::zero(), /* border */
+            PhysicalSides::zero(), /* margin */
+            None,                  /* clearance */
             CollapsedBlockMargins::zero(),
         );
         row_fragment.set_does_not_paint_background();
@@ -2168,11 +2210,11 @@ impl RowGroupFragmentLayout {
             self.base_fragment_info,
             self.style,
             self.fragments,
-            self.rect,
-            LogicalSides::zero(), /* padding */
-            LogicalSides::zero(), /* border */
-            LogicalSides::zero(), /* margin */
-            None,                 /* clearance */
+            self.rect.to_physical(containing_block.style.writing_mode),
+            PhysicalSides::zero(), /* padding */
+            PhysicalSides::zero(), /* border */
+            PhysicalSides::zero(), /* margin */
+            None,                  /* clearance */
             CollapsedBlockMargins::zero(),
         );
         row_group_fragment.set_does_not_paint_background();
@@ -2526,9 +2568,8 @@ impl TableSlotCell {
             block: vertical_align_offset,
         };
         let vertical_align_fragment = PositioningFragment::new_anonymous(
-            vertical_align_fragment_rect,
+            vertical_align_fragment_rect.to_physical(table_style.writing_mode),
             layout.layout.fragments,
-            self.style.writing_mode,
         );
 
         // Adjust the static position of all absolute children based on the
@@ -2550,11 +2591,11 @@ impl TableSlotCell {
             base_fragment_info,
             self.style.clone(),
             vec![Fragment::Positioning(vertical_align_fragment)],
-            cell_content_rect,
-            layout.padding,
-            layout.border,
-            LogicalSides::zero(), /* margin */
-            None,                 /* clearance */
+            cell_content_rect.to_physical(table_style.writing_mode),
+            layout.padding.to_physical(table_style.writing_mode),
+            layout.border.to_physical(table_style.writing_mode),
+            PhysicalSides::zero(), /* margin */
+            None,                  /* clearance */
             CollapsedBlockMargins::zero(),
         )
         .with_baselines(layout.layout.baselines)

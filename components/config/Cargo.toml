@@ -14,7 +14,6 @@ path = "lib.rs"
 embedder_traits = { workspace = true }
 euclid = { workspace = true }
 getopts = { workspace = true }
-lazy_static = { workspace = true }
 log = { workspace = true }
 num_cpus = { workspace = true }
 serde = { workspace = true, features = ["derive"] }

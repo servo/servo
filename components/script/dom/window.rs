@@ -164,23 +164,14 @@ enum WindowState {
 #[derive(Debug, MallocSizeOf)]
 pub enum ReflowReason {
     CachedPageNeededReflow,
-    DOMContentLoaded,
-    DocumentLoaded,
     ElementStateChanged,
     FirstLoad,
-    FramedContentChanged,
-    IFrameLoadEvent,
-    ImageLoaded,
-    KeyEvent,
     MissingExplicitReflow,
-    MouseEvent,
     PendingReflow,
     Query,
     RefreshTick,
     RequestAnimationFrame,
     ScrollFromScript,
-    StylesheetLoaded,
-    Timer,
     Viewport,
     WindowResize,
     WorkletLoaded,
@@ -413,7 +404,7 @@ impl Window {
     pub fn ignore_all_tasks(&self) {
         let mut ignore_flags = self.task_manager.task_cancellers.borrow_mut();
         for task_source_name in TaskSourceName::all() {
-            let flag = ignore_flags.entry(task_source_name).or_default();
+            let flag = ignore_flags.entry(*task_source_name).or_default();
             flag.store(true, Ordering::SeqCst);
         }
     }
@@ -702,7 +693,7 @@ impl WindowMethods for Window {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-opener
-    fn GetOpener(&self, cx: JSContext) -> Fallible<JSVal> {
+    fn GetOpener(&self, cx: JSContext, in_realm_proof: InRealm) -> Fallible<JSVal> {
         // Step 1, Let current be this Window object's browsing context.
         let current = match self.window_proxy.get() {
             Some(proxy) => proxy,
@@ -717,7 +708,7 @@ impl WindowMethods for Window {
             return Ok(NullValue());
         }
         // Step 3 to 5.
-        Ok(current.opener(*cx))
+        Ok(current.opener(*cx, in_realm_proof))
     }
 
     #[allow(unsafe_code)]
@@ -1646,7 +1637,7 @@ impl Window {
     pub fn cancel_all_tasks(&self) {
         let mut ignore_flags = self.task_manager.task_cancellers.borrow_mut();
         for task_source_name in TaskSourceName::all() {
-            let flag = ignore_flags.entry(task_source_name).or_default();
+            let flag = ignore_flags.entry(*task_source_name).or_default();
             let cancelled = std::mem::take(&mut *flag);
             cancelled.store(true, Ordering::SeqCst);
         }
@@ -2320,7 +2311,6 @@ impl Window {
 
     pub fn handle_fire_timer(&self, timer_id: TimerEventId) {
         self.upcast::<GlobalScope>().fire_timer(timer_id);
-        self.reflow(ReflowGoal::Full, ReflowReason::Timer);
     }
 
     pub fn set_window_size(&self, size: WindowSizeData) {
@@ -2460,7 +2450,7 @@ impl Window {
     pub fn evaluate_media_queries_and_report_changes(&self) {
         rooted_vec!(let mut mql_list);
         self.media_query_lists.for_each(|mql| {
-            if let MediaQueryListMatchState::Changed(_) = mql.evaluate_changes() {
+            if let MediaQueryListMatchState::Changed = mql.evaluate_changes() {
                 // Recording list of changed Media Queries
                 mql_list.push(Dom::from_ref(&*mql));
             }

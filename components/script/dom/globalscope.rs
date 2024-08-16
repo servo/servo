@@ -1933,8 +1933,8 @@ impl GlobalScope {
     /// Promote non-Slice blob:
     /// 1. Memory-based: The bytes in data slice will be transferred to file manager thread.
     /// 2. File-based: If set_valid, then activate the FileID so it can serve as URL
-    /// Depending on set_valid, the returned FileID can be part of
-    /// valid or invalid Blob URL.
+    ///     Depending on set_valid, the returned FileID can be part of
+    ///     valid or invalid Blob URL.
     pub fn promote(&self, blob_info: &mut BlobInfo, set_valid: bool) -> Uuid {
         let mut bytes = vec![];
         let global_url = self.get_url();

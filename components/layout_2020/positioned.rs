@@ -7,6 +7,7 @@ use rayon::iter::IntoParallelRefMutIterator;
 use rayon::prelude::{IndexedParallelIterator, ParallelIterator};
 use serde::Serialize;
 use style::computed_values::position::T as Position;
+use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
 use style::values::computed::Length;
 use style::values::specified::text::TextDecorationLine;
@@ -23,6 +24,7 @@ use crate::fragment_tree::{
 };
 use crate::geom::{
     AuOrAuto, LengthOrAuto, LengthPercentageOrAuto, LogicalRect, LogicalSides, LogicalVec2,
+    PhysicalPoint, PhysicalRect, ToLogical,
 };
 use crate::style_ext::{ComputedValuesExt, DisplayInside};
 use crate::{ContainingBlock, DefiniteContainingBlock};
@@ -176,15 +178,17 @@ impl PositioningContext {
     pub(crate) fn adjust_static_position_of_hoisted_fragments(
         &mut self,
         parent_fragment: &Fragment,
+        parent_fragment_writing_mode: WritingMode,
         index: PositioningContextLength,
     ) {
         let start_offset = match &parent_fragment {
-            Fragment::Box(b) | Fragment::Float(b) => &b.content_rect.start_corner,
+            Fragment::Box(fragment) | Fragment::Float(fragment) => &fragment.content_rect.origin,
             Fragment::AbsoluteOrFixedPositioned(_) => return,
-            Fragment::Positioning(a) => &a.rect.start_corner,
+            Fragment::Positioning(fragment) => &fragment.rect.origin,
             _ => unreachable!(),
-        };
-        self.adjust_static_position_of_hoisted_fragments_with_offset(start_offset, index);
+        }
+        .to_logical(parent_fragment_writing_mode);
+        self.adjust_static_position_of_hoisted_fragments_with_offset(&start_offset, index);
     }
 
     /// See documentation for [PositioningContext::adjust_static_position_of_hoisted_fragments].
@@ -240,7 +244,8 @@ impl PositioningContext {
         self.append(new_context);
 
         if style.clone_position() == Position::Relative {
-            new_fragment.content_rect.start_corner += relative_adjustement(style, containing_block);
+            new_fragment.content_rect.origin += relative_adjustement(style, containing_block)
+                .to_physical_size(containing_block.style.writing_mode)
         }
 
         new_fragment
@@ -253,14 +258,16 @@ impl PositioningContext {
         layout_context: &LayoutContext,
         new_fragment: &mut BoxFragment,
     ) {
-        let padding_rect = LogicalRect {
-            size: new_fragment.content_rect.size,
+        let padding_rect = PhysicalRect::new(
             // Ignore the content rect’s position in its own containing block:
-            start_corner: LogicalVec2::zero(),
-        }
-        .inflate(&new_fragment.padding);
+            PhysicalPoint::origin(),
+            new_fragment.content_rect.size,
+        )
+        .outer_rect(new_fragment.padding);
         let containing_block = DefiniteContainingBlock {
-            size: padding_rect.size,
+            size: padding_rect
+                .size
+                .to_logical(new_fragment.style.writing_mode),
             style: &new_fragment.style,
         };
 
@@ -479,6 +486,7 @@ impl HoistedAbsolutelyPositionedBox {
         let cbis = containing_block.size.inline;
         let cbbs = containing_block.size.block;
         let mut absolutely_positioned_box = self.absolutely_positioned_box.borrow_mut();
+        let containing_block_writing_mode = containing_block.style.writing_mode;
         let pbm = absolutely_positioned_box
             .context
             .style()
@@ -543,7 +551,10 @@ impl HoistedAbsolutelyPositionedBox {
                     // https://drafts.csswg.org/css2/visudet.html#abs-replaced-height
                     let style = &replaced.style;
                     content_size = computed_size.auto_is(|| unreachable!()).into();
-                    fragments = replaced.contents.make_fragments(style, content_size);
+                    fragments = replaced.contents.make_fragments(
+                        style,
+                        content_size.to_physical_size(containing_block_writing_mode),
+                    );
                 },
                 IndependentFormattingContext::NonReplaced(non_replaced) => {
                     // https://drafts.csswg.org/css2/#min-max-widths
@@ -711,16 +722,16 @@ impl HoistedAbsolutelyPositionedBox {
             };
 
             let physical_overconstrained =
-                overconstrained.to_physical(containing_block.style.writing_mode);
+                overconstrained.to_physical_size(containing_block.style.writing_mode);
 
             BoxFragment::new_with_overconstrained(
                 absolutely_positioned_box.context.base_fragment_info(),
                 absolutely_positioned_box.context.style().clone(),
                 fragments,
-                content_rect,
-                pbm.padding,
-                pbm.border,
-                margin,
+                content_rect.to_physical(containing_block_writing_mode),
+                pbm.padding.to_physical(containing_block_writing_mode),
+                pbm.border.to_physical(containing_block_writing_mode),
+                margin.to_physical(containing_block_writing_mode),
                 None, /* clearance */
                 // We do not set the baseline offset, because absolutely positioned
                 // elements are not inflow.
@@ -736,7 +747,10 @@ impl HoistedAbsolutelyPositionedBox {
         // other elements. If any of them have a static start position though, we need to
         // adjust it to account for the start corner of this absolute.
         positioning_context.adjust_static_position_of_hoisted_fragments_with_offset(
-            &new_fragment.content_rect.start_corner,
+            &new_fragment
+                .content_rect
+                .origin
+                .to_logical(containing_block_writing_mode),
             PositioningContextLength::zero(),
         );
 

@@ -20,7 +20,7 @@ use super::{
     Tag,
 };
 use crate::cell::ArcRefCell;
-use crate::geom::{LogicalRect, LogicalSides, PhysicalRect};
+use crate::geom::{LogicalSides, PhysicalRect};
 use crate::style_ext::ComputedValuesExt;
 
 #[derive(Serialize)]
@@ -64,7 +64,7 @@ pub(crate) struct TextFragment {
     pub base: BaseFragment,
     #[serde(skip_serializing)]
     pub parent_style: ServoArc<ComputedValues>,
-    pub rect: LogicalRect<Au>,
+    pub rect: PhysicalRect<Au>,
     pub font_metrics: FontMetrics,
     #[serde(skip_serializing)]
     pub font_key: FontInstanceKey,
@@ -82,7 +82,7 @@ pub(crate) struct ImageFragment {
     pub base: BaseFragment,
     #[serde(skip_serializing)]
     pub style: ServoArc<ComputedValues>,
-    pub rect: LogicalRect<Au>,
+    pub rect: PhysicalRect<Au>,
     #[serde(skip_serializing)]
     pub image_key: ImageKey,
 }
@@ -92,7 +92,7 @@ pub(crate) struct IFrameFragment {
     pub base: BaseFragment,
     pub pipeline_id: PipelineId,
     pub browsing_context_id: BrowsingContextId,
-    pub rect: LogicalRect<Au>,
+    pub rect: PhysicalRect<Au>,
     #[serde(skip_serializing)]
     pub style: ServoArc<ComputedValues>,
 }
@@ -135,28 +135,22 @@ impl Fragment {
     pub fn scrolling_area(&self, containing_block: &PhysicalRect<Au>) -> PhysicalRect<Au> {
         match self {
             Fragment::Box(fragment) | Fragment::Float(fragment) => fragment
-                .scrollable_overflow(containing_block)
+                .scrollable_overflow()
                 .translate(containing_block.origin.to_vector()),
-            _ => self.scrollable_overflow(containing_block),
+            _ => self.scrollable_overflow(),
         }
     }
 
-    pub fn scrollable_overflow(&self, containing_block: &PhysicalRect<Au>) -> PhysicalRect<Au> {
+    pub fn scrollable_overflow(&self) -> PhysicalRect<Au> {
         match self {
             Fragment::Box(fragment) | Fragment::Float(fragment) => {
-                fragment.scrollable_overflow_for_parent(containing_block)
+                fragment.scrollable_overflow_for_parent()
             },
             Fragment::AbsoluteOrFixedPositioned(_) => PhysicalRect::zero(),
             Fragment::Positioning(fragment) => fragment.scrollable_overflow,
-            Fragment::Text(fragment) => fragment
-                .rect
-                .to_physical(fragment.parent_style.writing_mode, containing_block),
-            Fragment::Image(fragment) => fragment
-                .rect
-                .to_physical(fragment.style.writing_mode, containing_block),
-            Fragment::IFrame(fragment) => fragment
-                .rect
-                .to_physical(fragment.style.writing_mode, containing_block),
+            Fragment::Text(fragment) => fragment.rect,
+            Fragment::Image(fragment) => fragment.rect,
+            Fragment::IFrame(fragment) => fragment.rect,
         }
     }
 
@@ -175,11 +169,9 @@ impl Fragment {
             Fragment::Box(fragment) | Fragment::Float(fragment) => {
                 let content_rect = fragment
                     .content_rect
-                    .to_physical(fragment.style.writing_mode, containing_block)
                     .translate(containing_block.origin.to_vector());
                 let padding_rect = fragment
                     .padding_rect()
-                    .to_physical(fragment.style.writing_mode, containing_block)
                     .translate(containing_block.origin.to_vector());
                 let new_manager = if fragment
                     .style
@@ -201,10 +193,7 @@ impl Fragment {
                     .find_map(|child| child.borrow().find(&new_manager, level + 1, process_func))
             },
             Fragment::Positioning(fragment) => {
-                let content_rect = fragment
-                    .rect
-                    .to_physical(fragment.writing_mode, containing_block)
-                    .translate(containing_block.origin.to_vector());
+                let content_rect = fragment.rect.translate(containing_block.origin.to_vector());
                 let new_manager = manager.new_for_non_absolute_descendants(&content_rect);
                 fragment
                     .children

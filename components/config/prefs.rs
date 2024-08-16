@@ -5,27 +5,25 @@
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::convert::{TryFrom, TryInto};
+use std::sync::LazyLock;
 
 use embedder_traits::resources::{self, Resource};
 use gen::Prefs;
-use lazy_static::lazy_static;
 use log::warn;
 use serde_json::{self, Value};
 
 use crate::pref_util::Preferences;
 pub use crate::pref_util::{PrefError, PrefValue};
 
-lazy_static! {
-    static ref PREFS: Preferences<'static, Prefs> = {
-        let def_prefs: Prefs = serde_json::from_str(&resources::read_string(Resource::Preferences))
-            .expect("Failed to initialize config preferences.");
-        let result = Preferences::new(def_prefs, &gen::PREF_ACCESSORS);
-        for (key, value) in result.iter() {
-            set_stylo_pref_ref(&key, &value);
-        }
-        result
-    };
-}
+static PREFS: LazyLock<Preferences<'static, Prefs>> = LazyLock::new(|| {
+    let def_prefs: Prefs = serde_json::from_str(&resources::read_string(Resource::Preferences))
+        .expect("Failed to initialize config preferences.");
+    let result = Preferences::new(def_prefs, &gen::PREF_ACCESSORS);
+    for (key, value) in result.iter() {
+        set_stylo_pref_ref(&key, &value);
+    }
+    result
+});
 
 /// A convenience macro for accessing a preference value using its static path.
 /// Passing an invalid path is a compile-time error.

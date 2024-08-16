@@ -17,9 +17,7 @@ use background_hang_monitor_api::{
 use base::id::TEST_PIPELINE_ID;
 use ipc_channel::ipc;
 
-lazy_static::lazy_static! {
-    static ref SERIAL: Mutex<()> = Mutex::new(());
-}
+static SERIAL: Mutex<()> = Mutex::new(());
 
 #[test]
 fn test_hang_monitoring() {

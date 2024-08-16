@@ -3,13 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::path::PathBuf;
-use std::sync::RwLock;
+use std::sync::{LazyLock, RwLock};
 
 use cfg_if::cfg_if;
-use lazy_static::lazy_static;
 
-lazy_static! {
-    static ref RES: RwLock<Option<Box<dyn ResourceReaderMethods + Sync + Send>>> = {
+static RES: LazyLock<RwLock<Option<Box<dyn ResourceReaderMethods + Sync + Send>>>> =
+    LazyLock::new(|| {
         cfg_if! {
             if #[cfg(servo_production)] {
                 RwLock::new(None)
@@ -21,8 +20,7 @@ lazy_static! {
                 RwLock::new(Some(resources_for_tests()))
             }
         }
-    };
-}
+    });
 
 pub fn set(reader: Box<dyn ResourceReaderMethods + Sync + Send>) {
     *RES.write().unwrap() = Some(reader);

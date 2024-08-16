@@ -72,7 +72,7 @@ impl Actor for AccessibilityActor {
     /// - `getTraits`: Informs the DevTools client about the configuration of the accessibility actor
     ///
     /// - `getWalker`: Returns a new AccessibleWalker actor (not to be confused with the general
-    /// inspector Walker actor)
+    ///   inspector Walker actor)
     fn handle_message(
         &self,
         registry: &ActorRegistry,

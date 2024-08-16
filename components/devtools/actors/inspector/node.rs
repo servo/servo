@@ -89,7 +89,7 @@ impl Actor for NodeActor {
     /// The node actor can handle the following messages:
     ///
     /// - `modifyAttributes`: Asks the script to change a value in the attribute of the
-    /// corresponding node
+    ///   corresponding node
     ///
     /// - `getUniqueSelector`: Returns the display name of this node
     fn handle_message(

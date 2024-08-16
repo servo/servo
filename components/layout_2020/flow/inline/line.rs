@@ -29,7 +29,7 @@ use crate::context::LayoutContext;
 use crate::fragment_tree::{
     BaseFragmentInfo, BoxFragment, CollapsedBlockMargins, Fragment, TextFragment,
 };
-use crate::geom::{LogicalRect, LogicalVec2};
+use crate::geom::{LogicalRect, LogicalVec2, ToLogical};
 use crate::positioned::{
     relative_adjustement, AbsolutelyPositionedBox, PositioningContext, PositioningContextLength,
 };
@@ -360,13 +360,15 @@ impl<'a> LineItemLayout<'a> {
             },
         };
 
+        let ifc_writing_mode = self.ifc_containing_block.style.writing_mode;
         if inner_state
             .flags
             .contains(LineLayoutInlineContainerFlags::HAD_ANY_FLOATS)
         {
             for fragment in inner_state.fragments.iter_mut() {
                 if let Fragment::Float(box_fragment) = fragment {
-                    box_fragment.content_rect.start_corner -= pbm_sums.start_offset();
+                    box_fragment.content_rect.origin -=
+                        pbm_sums.start_offset().to_physical_size(ifc_writing_mode);
                 }
             }
         }
@@ -382,10 +384,10 @@ impl<'a> LineItemLayout<'a> {
             inline_box.base_fragment_info,
             style.clone(),
             inner_state.fragments,
-            content_rect,
-            padding,
-            border,
-            margin,
+            content_rect.to_physical(ifc_writing_mode),
+            padding.to_physical(ifc_writing_mode),
+            border.to_physical(ifc_writing_mode),
+            margin.to_physical(ifc_writing_mode),
             None, /* clearance */
             CollapsedBlockMargins::zero(),
         );
@@ -394,7 +396,7 @@ impl<'a> LineItemLayout<'a> {
             Either::First(mut positioning_context) => {
                 positioning_context.layout_collected_children(self.layout_context, &mut fragment);
                 positioning_context.adjust_static_position_of_hoisted_fragments_with_offset(
-                    &fragment.content_rect.start_corner,
+                    &fragment.content_rect.origin.to_logical(ifc_writing_mode),
                     PositioningContextLength::zero(),
                 );
                 self.current_positioning_context_mut()
@@ -403,7 +405,7 @@ impl<'a> LineItemLayout<'a> {
             Either::Second(start_offset) => {
                 self.current_positioning_context_mut()
                     .adjust_static_position_of_hoisted_fragments_with_offset(
-                        &fragment.content_rect.start_corner,
+                        &fragment.content_rect.origin.to_logical(ifc_writing_mode),
                         start_offset,
                     );
             },
@@ -484,7 +486,7 @@ impl<'a> LineItemLayout<'a> {
         self.state.fragments.push(Fragment::Text(TextFragment {
             base: text_item.base_fragment_info.into(),
             parent_style: text_item.parent_style,
-            rect,
+            rect: rect.to_physical(self.ifc_containing_block.style.writing_mode),
             font_metrics: text_item.font_metrics,
             font_key: text_item.font_key,
             glyphs: text_item.text,
@@ -498,18 +500,27 @@ impl<'a> LineItemLayout<'a> {
         // offset, which is the sum of the start component of the padding, border, and margin.
         // This needs to be added to the calculated block and inline positions.
         // Make the final result relative to the parent box.
-        atomic.fragment.content_rect.start_corner.inline += self.state.inline_advance;
-        atomic.fragment.content_rect.start_corner.block +=
-            atomic.calculate_block_start(&self.line_metrics) - self.state.parent_offset.block;
+        let mut atomic_offset = LogicalVec2 {
+            inline: self.state.inline_advance,
+            block: atomic.calculate_block_start(&self.line_metrics) -
+                self.state.parent_offset.block,
+        };
 
         if atomic.fragment.style.clone_position().is_relative() {
-            atomic.fragment.content_rect.start_corner +=
+            atomic_offset +=
                 relative_adjustement(&atomic.fragment.style, self.ifc_containing_block);
         }
 
+        let ifc_writing_mode = self.ifc_containing_block.style.writing_mode;
+        atomic.fragment.content_rect.origin += atomic_offset.to_physical_size(ifc_writing_mode);
+
         if let Some(mut positioning_context) = atomic.positioning_context {
             positioning_context.adjust_static_position_of_hoisted_fragments_with_offset(
-                &atomic.fragment.content_rect.start_corner,
+                &atomic
+                    .fragment
+                    .content_rect
+                    .origin
+                    .to_logical(ifc_writing_mode),
                 PositioningContextLength::zero(),
             );
             self.current_positioning_context_mut()
@@ -577,7 +588,8 @@ impl<'a> LineItemLayout<'a> {
             inline: self.state.parent_offset.inline,
             block: self.line_metrics.block_offset + self.state.parent_offset.block,
         };
-        float.fragment.content_rect.start_corner -= distance_from_parent_to_ifc;
+        float.fragment.content_rect.origin -= distance_from_parent_to_ifc
+            .to_physical_size(self.ifc_containing_block.style.writing_mode);
         self.state.fragments.push(Fragment::Float(float.fragment));
     }
 }

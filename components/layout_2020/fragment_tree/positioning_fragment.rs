@@ -6,12 +6,11 @@ use app_units::Au;
 use base::print_tree::PrintTree;
 use serde::Serialize;
 use servo_arc::Arc as ServoArc;
-use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
 
 use super::{BaseFragment, BaseFragmentInfo, Fragment};
 use crate::cell::ArcRefCell;
-use crate::geom::{LogicalRect, PhysicalRect};
+use crate::geom::PhysicalRect;
 
 /// Can contain child fragments with relative coordinates, but does not contribute to painting
 /// itself. [`PositioningFragment`]s may be completely anonymous, or just non-painting Fragments
@@ -19,10 +18,8 @@ use crate::geom::{LogicalRect, PhysicalRect};
 #[derive(Serialize)]
 pub(crate) struct PositioningFragment {
     pub base: BaseFragment,
-    pub rect: LogicalRect<Au>,
+    pub rect: PhysicalRect<Au>,
     pub children: Vec<ArcRefCell<Fragment>>,
-    pub writing_mode: WritingMode,
-
     /// The scrollable overflow of this anonymous fragment's children.
     pub scrollable_overflow: PhysicalRect<Au>,
 
@@ -32,44 +29,29 @@ pub(crate) struct PositioningFragment {
 }
 
 impl PositioningFragment {
-    pub fn new_anonymous(
-        rect: LogicalRect<Au>,
-        children: Vec<Fragment>,
-        mode: WritingMode,
-    ) -> Self {
-        Self::new_with_base_fragment(BaseFragment::anonymous(), None, rect, children, mode)
+    pub fn new_anonymous(rect: PhysicalRect<Au>, children: Vec<Fragment>) -> Self {
+        Self::new_with_base_fragment(BaseFragment::anonymous(), None, rect, children)
     }
 
     pub fn new_empty(
         base_fragment_info: BaseFragmentInfo,
-        rect: LogicalRect<Au>,
+        rect: PhysicalRect<Au>,
         style: ServoArc<ComputedValues>,
     ) -> Self {
-        let writing_mode = style.writing_mode;
-        Self::new_with_base_fragment(
-            base_fragment_info.into(),
-            Some(style),
-            rect,
-            Vec::new(),
-            writing_mode,
-        )
+        Self::new_with_base_fragment(base_fragment_info.into(), Some(style), rect, Vec::new())
     }
 
     fn new_with_base_fragment(
         base: BaseFragment,
         style: Option<ServoArc<ComputedValues>>,
-        rect: LogicalRect<Au>,
+        rect: PhysicalRect<Au>,
         children: Vec<Fragment>,
-        mode: WritingMode,
     ) -> Self {
-        // FIXME(mrobinson, bug 25564): We should be using the containing block
-        // here to properly convert scrollable overflow to physical geometry.
-        let containing_block = PhysicalRect::zero();
-        let content_origin = rect.start_corner.to_physical(mode);
+        let content_origin = rect.origin;
         let scrollable_overflow = children.iter().fold(PhysicalRect::zero(), |acc, child| {
             acc.union(
                 &child
-                    .scrollable_overflow(&containing_block)
+                    .scrollable_overflow()
                     .translate(content_origin.to_vector()),
             )
         });
@@ -78,7 +60,6 @@ impl PositioningFragment {
             style,
             rect,
             children: children.into_iter().map(ArcRefCell::new).collect(),
-            writing_mode: mode,
             scrollable_overflow,
         }
     }

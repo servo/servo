@@ -12,7 +12,7 @@ use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell};
 use std::ops::{Deref, DerefMut};
 use std::process;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, LazyLock, Mutex};
 
 use app_units::Au;
 use base::id::{BrowsingContextId, PipelineId};
@@ -48,7 +48,6 @@ use layout::traversal::{
 };
 use layout::wrapper::ThreadSafeLayoutNodeHelpers;
 use layout::{layout_debug, layout_debug_scope, parallel, sequential};
-use lazy_static::lazy_static;
 use log::{debug, error, trace, warn};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use metrics::{PaintTimeMetrics, ProfilerMetadataFactory};
@@ -1557,17 +1556,14 @@ fn get_ua_stylesheets() -> Result<UserAgentStylesheets, &'static str> {
     })
 }
 
-lazy_static! {
-    static ref UA_STYLESHEETS: UserAgentStylesheets = {
-        match get_ua_stylesheets() {
-            Ok(stylesheets) => stylesheets,
-            Err(filename) => {
-                error!("Failed to load UA stylesheet {}!", filename);
-                process::exit(1);
-            },
-        }
-    };
-}
+static UA_STYLESHEETS: LazyLock<UserAgentStylesheets> =
+    LazyLock::new(|| match get_ua_stylesheets() {
+        Ok(stylesheets) => stylesheets,
+        Err(filename) => {
+            error!("Failed to load UA stylesheet {}!", filename);
+            process::exit(1);
+        },
+    });
 
 struct RegisteredPainterImpl {
     painter: Box<dyn Painter>,

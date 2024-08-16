@@ -14,7 +14,7 @@ test = false
 doctest = false
 
 [dependencies]
-async-recursion = "0.3.2"
+async-recursion = "1.1"
 async-tungstenite = { workspace = true }
 base = { workspace = true }
 base64 = { workspace = true }
@@ -36,7 +36,6 @@ hyper-rustls = { workspace = true }
 hyper_serde = { workspace = true }
 imsz = { workspace = true }
 ipc-channel = { workspace = true }
-lazy_static = { workspace = true }
 libflate = "0.1"
 log = { workspace = true }
 malloc_size_of = { workspace = true }

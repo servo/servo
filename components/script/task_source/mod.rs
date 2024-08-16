@@ -18,16 +18,16 @@ pub mod websocket;
 
 use std::result::Result;
 
-use enum_iterator::IntoEnumIterator;
-
 use crate::dom::globalscope::GlobalScope;
 use crate::task::{TaskCanceller, TaskOnce};
 
-// The names of all task sources, used to differentiate TaskCancellers.
-// Note: When adding a task source, update this enum.
-// Note: The HistoryTraversalTaskSource is not part of this,
-// because it doesn't implement TaskSource.
-#[derive(Clone, Eq, Hash, IntoEnumIterator, JSTraceable, PartialEq)]
+/// The names of all task sources, used to differentiate TaskCancellers. Note: When adding a task
+/// source, update this enum. Note: The HistoryTraversalTaskSource is not part of this, because it
+/// doesn't implement TaskSource.
+///
+/// Note: When adding or removing a [`TaskSourceName`], be sure to also update the return value of
+/// [`TaskSourceName::all`].
+#[derive(Clone, Copy, Eq, Hash, JSTraceable, PartialEq)]
 pub enum TaskSourceName {
     DOMManipulation,
     FileReading,
@@ -47,8 +47,22 @@ pub enum TaskSourceName {
 }
 
 impl TaskSourceName {
-    pub fn all() -> Vec<TaskSourceName> {
-        TaskSourceName::into_enum_iter().collect()
+    pub fn all() -> &'static [TaskSourceName] {
+        &[
+            TaskSourceName::DOMManipulation,
+            TaskSourceName::FileReading,
+            TaskSourceName::HistoryTraversal,
+            TaskSourceName::Networking,
+            TaskSourceName::PerformanceTimeline,
+            TaskSourceName::PortMessage,
+            TaskSourceName::UserInteraction,
+            TaskSourceName::RemoteEvent,
+            TaskSourceName::Rendering,
+            TaskSourceName::MediaElement,
+            TaskSourceName::Websocket,
+            TaskSourceName::Timer,
+            TaskSourceName::Gamepad,
+        ]
     }
 }
 

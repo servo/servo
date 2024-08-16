@@ -42,7 +42,7 @@ impl Actor for CssPropertiesActor {
     /// The css properties actor can handle the following messages:
     ///
     /// - `getCSSDatabase`: Returns a big list of every supported css property so that the
-    /// inspector can show the available options
+    ///   inspector can show the available options
     fn handle_message(
         &self,
         _registry: &ActorRegistry,

@@ -49,11 +49,11 @@ use crate::script_runtime::JSContext as SafeJSContext;
 #[derive(Clone, Copy)]
 pub struct NonCallbackInterfaceObjectClass {
     /// The SpiderMonkey class structure.
-    pub class: JSClass,
+    pub _class: JSClass,
     /// The prototype id of that interface, used in the hasInstance hook.
-    pub proto_id: PrototypeList::ID,
+    pub _proto_id: PrototypeList::ID,
     /// The prototype depth of that interface, used in the hasInstance hook.
-    pub proto_depth: u16,
+    pub _proto_depth: u16,
     /// The string representation of the object.
     pub representation: &'static [u8],
 }
@@ -69,7 +69,7 @@ impl NonCallbackInterfaceObjectClass {
         proto_depth: u16,
     ) -> NonCallbackInterfaceObjectClass {
         NonCallbackInterfaceObjectClass {
-            class: JSClass {
+            _class: JSClass {
                 name: c"Function".as_ptr(),
                 flags: 0,
                 cOps: &constructor_behavior.0,
@@ -77,8 +77,8 @@ impl NonCallbackInterfaceObjectClass {
                 ext: 0 as *const _,
                 oOps: &OBJECT_OPS,
             },
-            proto_id,
-            proto_depth,
+            _proto_id: proto_id,
+            _proto_depth: proto_depth,
             representation: string_rep,
         }
     }

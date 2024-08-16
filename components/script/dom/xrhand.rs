@@ -5,12 +5,100 @@
 use dom_struct::dom_struct;
 use webxr_api::{FingerJoint, Hand, Joint};
 
-use crate::dom::bindings::codegen::Bindings::XRHandBinding::{XRHandConstants, XRHandMethods};
+use crate::dom::bindings::codegen::Bindings::XRHandBinding::{XRHandJoint, XRHandMethods};
+use crate::dom::bindings::iterable::Iterable;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::xrinputsource::XRInputSource;
 use crate::dom::xrjointspace::XRJointSpace;
+
+const JOINT_SPACE_MAP: [(XRHandJoint, Joint); 25] = [
+    (XRHandJoint::Wrist, Joint::Wrist),
+    (XRHandJoint::Thumb_metacarpal, Joint::ThumbMetacarpal),
+    (
+        XRHandJoint::Thumb_phalanx_proximal,
+        Joint::ThumbPhalanxProximal,
+    ),
+    (XRHandJoint::Thumb_phalanx_distal, Joint::ThumbPhalanxDistal),
+    (XRHandJoint::Thumb_tip, Joint::ThumbPhalanxTip),
+    (
+        XRHandJoint::Index_finger_metacarpal,
+        Joint::Index(FingerJoint::Metacarpal),
+    ),
+    (
+        XRHandJoint::Index_finger_phalanx_proximal,
+        Joint::Index(FingerJoint::PhalanxProximal),
+    ),
+    (XRHandJoint::Index_finger_phalanx_intermediate, {
+        Joint::Index(FingerJoint::PhalanxIntermediate)
+    }),
+    (
+        XRHandJoint::Index_finger_phalanx_distal,
+        Joint::Index(FingerJoint::PhalanxDistal),
+    ),
+    (
+        XRHandJoint::Index_finger_tip,
+        Joint::Index(FingerJoint::PhalanxTip),
+    ),
+    (
+        XRHandJoint::Middle_finger_metacarpal,
+        Joint::Middle(FingerJoint::Metacarpal),
+    ),
+    (
+        XRHandJoint::Middle_finger_phalanx_proximal,
+        Joint::Middle(FingerJoint::PhalanxProximal),
+    ),
+    (XRHandJoint::Middle_finger_phalanx_intermediate, {
+        Joint::Middle(FingerJoint::PhalanxIntermediate)
+    }),
+    (
+        XRHandJoint::Middle_finger_phalanx_distal,
+        Joint::Middle(FingerJoint::PhalanxDistal),
+    ),
+    (
+        XRHandJoint::Middle_finger_tip,
+        Joint::Middle(FingerJoint::PhalanxTip),
+    ),
+    (
+        XRHandJoint::Ring_finger_metacarpal,
+        Joint::Ring(FingerJoint::Metacarpal),
+    ),
+    (
+        XRHandJoint::Ring_finger_phalanx_proximal,
+        Joint::Ring(FingerJoint::PhalanxProximal),
+    ),
+    (XRHandJoint::Ring_finger_phalanx_intermediate, {
+        Joint::Ring(FingerJoint::PhalanxIntermediate)
+    }),
+    (
+        XRHandJoint::Ring_finger_phalanx_distal,
+        Joint::Ring(FingerJoint::PhalanxDistal),
+    ),
+    (
+        XRHandJoint::Ring_finger_tip,
+        Joint::Ring(FingerJoint::PhalanxTip),
+    ),
+    (
+        XRHandJoint::Pinky_finger_metacarpal,
+        Joint::Little(FingerJoint::Metacarpal),
+    ),
+    (
+        XRHandJoint::Pinky_finger_phalanx_proximal,
+        Joint::Little(FingerJoint::PhalanxProximal),
+    ),
+    (XRHandJoint::Pinky_finger_phalanx_intermediate, {
+        Joint::Little(FingerJoint::PhalanxIntermediate)
+    }),
+    (
+        XRHandJoint::Pinky_finger_phalanx_distal,
+        Joint::Little(FingerJoint::PhalanxDistal),
+    ),
+    (
+        XRHandJoint::Pinky_finger_tip,
+        Joint::Little(FingerJoint::PhalanxTip),
+    ),
+];
 
 #[dom_struct]
 pub struct XRHand {
@@ -34,57 +122,55 @@ impl XRHand {
     pub fn new(global: &GlobalScope, source: &XRInputSource, support: Hand<()>) -> DomRoot<XRHand> {
         let id = source.id();
         let session = source.session();
-        let spaces = support
-            .map(|field, joint| field.map(|_| XRJointSpace::new(global, session, id, joint)));
+        let spaces = support.map(|field, joint| {
+            let hand_joint = JOINT_SPACE_MAP
+                .iter()
+                .find(|&&(_, value)| value == joint)
+                .map(|&(hand_joint, _)| hand_joint)
+                .expect("Invalid joint name");
+            field.map(|_| XRJointSpace::new(global, session, id, joint, hand_joint))
+        });
         reflect_dom_object(Box::new(XRHand::new_inherited(source, &spaces)), global)
     }
 }
 
 impl XRHandMethods for XRHand {
     /// <https://github.com/immersive-web/webxr-hands-input/blob/master/explainer.md>
-    fn Length(&self) -> i32 {
-        XRHandConstants::LITTLE_PHALANX_TIP as i32 + 1
+    fn Size(&self) -> u32 {
+        XRHandJoint::Pinky_finger_tip as u32 + 1
     }
 
     /// <https://github.com/immersive-web/webxr-hands-input/blob/master/explainer.md>
-    fn IndexedGetter(&self, joint_index: u32) -> Option<DomRoot<XRJointSpace>> {
-        let joint = match joint_index {
-            XRHandConstants::WRIST => Joint::Wrist,
-            XRHandConstants::THUMB_METACARPAL => Joint::ThumbMetacarpal,
-            XRHandConstants::THUMB_PHALANX_PROXIMAL => Joint::ThumbPhalanxProximal,
-            XRHandConstants::THUMB_PHALANX_DISTAL => Joint::ThumbPhalanxDistal,
-            XRHandConstants::THUMB_PHALANX_TIP => Joint::ThumbPhalanxTip,
-            XRHandConstants::INDEX_METACARPAL => Joint::Index(FingerJoint::Metacarpal),
-            XRHandConstants::INDEX_PHALANX_PROXIMAL => Joint::Index(FingerJoint::PhalanxProximal),
-            XRHandConstants::INDEX_PHALANX_INTERMEDIATE => {
-                Joint::Index(FingerJoint::PhalanxIntermediate)
-            },
-            XRHandConstants::INDEX_PHALANX_DISTAL => Joint::Index(FingerJoint::PhalanxDistal),
-            XRHandConstants::INDEX_PHALANX_TIP => Joint::Index(FingerJoint::PhalanxTip),
-            XRHandConstants::MIDDLE_METACARPAL => Joint::Middle(FingerJoint::Metacarpal),
-            XRHandConstants::MIDDLE_PHALANX_PROXIMAL => Joint::Middle(FingerJoint::PhalanxProximal),
-            XRHandConstants::MIDDLE_PHALANX_INTERMEDIATE => {
-                Joint::Middle(FingerJoint::PhalanxIntermediate)
-            },
-            XRHandConstants::MIDDLE_PHALANX_DISTAL => Joint::Middle(FingerJoint::PhalanxDistal),
-            XRHandConstants::MIDDLE_PHALANX_TIP => Joint::Middle(FingerJoint::PhalanxTip),
-            XRHandConstants::RING_METACARPAL => Joint::Ring(FingerJoint::Metacarpal),
-            XRHandConstants::RING_PHALANX_PROXIMAL => Joint::Ring(FingerJoint::PhalanxProximal),
-            XRHandConstants::RING_PHALANX_INTERMEDIATE => {
-                Joint::Ring(FingerJoint::PhalanxIntermediate)
-            },
-            XRHandConstants::RING_PHALANX_DISTAL => Joint::Ring(FingerJoint::PhalanxDistal),
-            XRHandConstants::RING_PHALANX_TIP => Joint::Ring(FingerJoint::PhalanxTip),
-            XRHandConstants::LITTLE_METACARPAL => Joint::Little(FingerJoint::Metacarpal),
-            XRHandConstants::LITTLE_PHALANX_PROXIMAL => Joint::Little(FingerJoint::PhalanxProximal),
-            XRHandConstants::LITTLE_PHALANX_INTERMEDIATE => {
-                Joint::Little(FingerJoint::PhalanxIntermediate)
-            },
-            XRHandConstants::LITTLE_PHALANX_DISTAL => Joint::Little(FingerJoint::PhalanxDistal),
-            XRHandConstants::LITTLE_PHALANX_TIP => Joint::Little(FingerJoint::PhalanxTip),
-            // XXXManishearth should this be a TypeError?
-            _ => return None,
-        };
-        self.spaces.get(joint).map(|j| DomRoot::from_ref(&**j))
+    fn Get(&self, joint_name: XRHandJoint) -> DomRoot<XRJointSpace> {
+        let joint = JOINT_SPACE_MAP
+            .iter()
+            .find(|&&(key, _)| key == joint_name)
+            .map(|&(_, joint)| joint)
+            .expect("Invalid joint name");
+        self.spaces
+            .get(joint)
+            .map(|j| DomRoot::from_ref(&**j))
+            .expect("Failed to get joint pose")
+    }
+}
+
+impl Iterable for XRHand {
+    type Key = XRHandJoint;
+    type Value = DomRoot<XRJointSpace>;
+
+    fn get_iterable_length(&self) -> u32 {
+        JOINT_SPACE_MAP.len() as u32
+    }
+
+    fn get_value_at_index(&self, n: u32) -> DomRoot<XRJointSpace> {
+        let joint = JOINT_SPACE_MAP[n as usize].1;
+        self.spaces
+            .get(joint)
+            .map(|j| DomRoot::from_ref(&**j))
+            .expect("Failed to get joint pose")
+    }
+
+    fn get_key_at_index(&self, n: u32) -> XRHandJoint {
+        JOINT_SPACE_MAP[n as usize].0
     }
 }

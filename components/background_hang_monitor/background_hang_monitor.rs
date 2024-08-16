@@ -98,12 +98,15 @@ impl BackgroundHangMonitorRegister for HangMonitorRegister {
         let sampler = crate::sampler_mac::MacOsSampler::new_boxed();
         #[cfg(all(
             target_os = "linux",
-            not(any(target_arch = "arm", target_arch = "aarch64"))
+            not(any(target_arch = "arm", target_arch = "aarch64", target_env = "ohos")),
         ))]
         let sampler = crate::sampler_linux::LinuxSampler::new_boxed();
         #[cfg(any(
             target_os = "android",
-            all(target_os = "linux", any(target_arch = "arm", target_arch = "aarch64"))
+            all(
+                target_os = "linux",
+                any(target_arch = "arm", target_arch = "aarch64", target_env = "ohos")
+            )
         ))]
         let sampler = crate::sampler::DummySampler::new_boxed();
 

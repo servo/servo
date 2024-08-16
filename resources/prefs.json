@@ -47,7 +47,7 @@
   "dom.webxr.glwindow.left-right": false,
   "dom.webxr.glwindow.red-cyan": false,
   "dom.webxr.glwindow.spherical": false,
-  "dom.webxr.hands.enabled": false,
+  "dom.webxr.hands.enabled": true,
   "dom.webxr.layers.enabled": false,
   "dom.webxr.openxr.enabled": false,
   "dom.webxr.sessionavailable": false,
