@@ -3785,6 +3785,7 @@ impl ScriptThread {
             Some(status_code),
             incomplete.canceller,
             can_gc,
+            final_url.as_str() == "about:blank",
         );
         document.set_ready_state(DocumentReadyState::Loading);
 
