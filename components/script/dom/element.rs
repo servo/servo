@@ -57,7 +57,7 @@ use style::stylesheets::layer_rule::LayerOrder;
 use style::stylesheets::{CssRuleType, UrlExtraData};
 use style::values::generics::NonNegative;
 use style::values::{computed, specified, AtomIdent, AtomString, CSSFloat};
-use style::{dom_apis, thread_state, CaseSensitivityExt};
+use style::{dom_apis, thread_state, ArcSlice, CaseSensitivityExt};
 use style_dom::ElementState;
 use xml5ever::serialize as xmlSerialize;
 use xml5ever::serialize::TraversalScope::{
@@ -762,7 +762,9 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
                 shared_lock,
                 PropertyDeclaration::FontFamily(font_family::SpecifiedValue::Values(
                     computed::font::FontFamilyList {
-                        list: HTMLFontElement::parse_face_attribute(font_face).into_boxed_slice(),
+                        list: ArcSlice::from_iter(
+                            HTMLFontElement::parse_face_attribute(font_face).into_iter(),
+                        ),
                     },
                 )),
             ));
