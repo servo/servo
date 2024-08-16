@@ -14,7 +14,6 @@ path = "lib.rs"
 euclid = { workspace = true }
 fnv = { workspace = true }
 ipc-channel = { workspace = true }
-lazy_static = { workspace = true }
 log = { workspace = true }
 serde = { workspace = true }
 servo-media = { workspace = true }

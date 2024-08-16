@@ -9,15 +9,9 @@ mod mpsc;
 
 use std::fmt;
 
-use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
-use servo_config::opts;
 
 use crate::GLPlayerMsg;
-
-lazy_static! {
-    static ref IS_MULTIPROCESS: bool = opts::multiprocess();
-}
 
 #[derive(Deserialize, Serialize)]
 pub enum GLPlayerSender<T: Serialize> {
