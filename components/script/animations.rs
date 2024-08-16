@@ -422,7 +422,7 @@ impl Animations {
 
         let active_duration = match animation.iteration_state {
             KeyframesIterationState::Finite(_, max) => max * animation.duration,
-            KeyframesIterationState::Infinite(_) => std::f64::MAX,
+            KeyframesIterationState::Infinite(_) => f64::MAX,
         };
 
         // Calculate the `elapsed-time` property of the event and take the absolute
