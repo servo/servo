@@ -212,15 +212,15 @@ impl PlatformFontMethods for PlatformFont {
 
     /// Can this font do basic horizontal LTR shaping without Harfbuzz?
     fn can_do_fast_shaping(&self) -> bool {
-        // TODO copy CachedKernTable from the MacOS X implementation to
-        // somehwere global and use it here.  We could also implement the
-        // IDirectWriteFontFace1 interface and use the glyph kerning pair
-        // methods there.
-        false
+        self.face.has_kerning_pairs()
     }
 
-    fn glyph_h_kerning(&self, _: GlyphId, _: GlyphId) -> FractionalPixel {
-        0.0
+    fn glyph_h_kerning(&self, first_glyph: GlyphId, second_glyph: GlyphId) -> FractionalPixel {
+        let adjustment = self
+            .face
+            .get_glyph_pair_kerning_adjustment(first_glyph as u16, second_glyph as u16);
+
+        (adjustment as f32 * self.scaled_du_to_px) as FractionalPixel
     }
 
     fn metrics(&self) -> FontMetrics {
