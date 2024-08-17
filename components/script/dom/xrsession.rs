@@ -18,6 +18,7 @@ use js::jsval::JSVal;
 use js::typedarray::Float32Array;
 use metrics::ToMs;
 use profile_traits::ipc;
+use servo_atoms::Atom;
 use webxr_api::{
     self, util, ApiSpace, ContextId as WebXRContextId, Display, EntityTypes, EnvironmentBlendMode,
     Event as XREvent, Frame, FrameUpdateEvent, HitTestId, HitTestSource, InputFrame, InputId, Ray,
@@ -105,6 +106,9 @@ pub struct XRSession {
     #[ignore_malloc_size_of = "defined in webxr"]
     #[no_trace]
     input_frames: DomRefCell<HashMap<InputId, InputFrame>>,
+    framerate: Cell<f32>,
+    #[ignore_malloc_size_of = "promises are hard"]
+    update_framerate_promise: DomRefCell<Option<Rc<Promise>>>,
 }
 
 impl XRSession {
@@ -136,6 +140,8 @@ impl XRSession {
             pending_hit_test_promises: DomRefCell::new(HashMapTracedValues::new()),
             outside_raf: Cell::new(true),
             input_frames: DomRefCell::new(HashMap::new()),
+            framerate: Cell::new(0.0),
+            update_framerate_promise: DomRefCell::new(None),
         }
     }
 
@@ -551,6 +557,24 @@ impl XRSession {
             _ => self.session.borrow_mut().apply_event(event),
         }
     }
+
+    /// <https://www.w3.org/TR/webxr/#apply-the-nominal-frame-rate>
+    fn apply_nominal_framerate(&self, rate: f32) {
+        if self.framerate.get() == rate || self.ended.get() {
+            return;
+        }
+
+        self.framerate.set(rate);
+
+        let event = XRSessionEvent::new(
+            &self.global(),
+            Atom::from("frameratechange"),
+            false,
+            false,
+            self,
+        );
+        event.upcast::<Event>().fire(self.upcast());
+    }
 }
 
 impl XRSessionMethods for XRSession {
@@ -891,36 +915,90 @@ impl XRSessionMethods for XRSession {
         // this should always be world space
         XRInteractionMode::World_space
     }
-    
+
+    /// <https://www.w3.org/TR/webxr/#dom-xrsession-framerate>
     fn GetFrameRate(&self) -> Option<Finite<f32>> {
-        todo!()
+        let session = self.session.borrow();
+        if self.mode == XRSessionMode::Inline || session.supported_frame_rates().is_empty() {
+            None
+        } else {
+            Finite::new(self.framerate.get())
+        }
     }
 
-    #[allow(unsafe_code)]
+    /// <https://www.w3.org/TR/webxr/#dom-xrsession-supportedframerates>
     fn GetSupportedFrameRates(&self, cx: JSContext) -> Option<Float32Array> {
         let session = self.session.borrow();
-        let framerates = session.supported_frame_rates();
-        unsafe {
+        if self.mode == XRSessionMode::Inline || session.supported_frame_rates().is_empty() {
+            None
+        } else {
+            let framerates = session.supported_frame_rates();
             rooted!(in (*cx) let mut array = ptr::null_mut::<JSObject>());
             Some(create_buffer_source(cx, framerates, array.handle_mut())
                 .expect("Failed to construct supported frame rates array"))
         }
     }
 
+    /// <https://www.w3.org/TR/webxr/#dom-xrsession-enabledfeatures>
     fn EnabledFeatures(&self, cx: JSContext) -> JSVal {
         let session = self.session.borrow();
         let features = session.granted_features();
         to_frozen_array(features, cx)
     }
-    
+
+    /// <https://www.w3.org/TR/webxr/#dom-xrsession-issystemkeyboardsupported>
     fn IsSystemKeyboardSupported(&self) -> bool {
         // Support for this only exists on Meta headsets (no desktop support)
         // so this will always be false until that changes
         false
     }
-    
-    fn UpdateTargetFrameRate(&self, rate: Finite<f32>) -> Rc<Promise> {
-        todo!()
+
+    /// <https://www.w3.org/TR/webxr/#dom-xrsession-updatetargetframerate>
+    fn UpdateTargetFrameRate(&self, rate: Finite<f32>, comp: InRealm) -> Rc<Promise> {
+        let mut session = self.session.borrow_mut();
+        let supported_frame_rates = session.supported_frame_rates();
+        let promise = Promise::new_in_current_realm(comp);
+
+        if self.mode == XRSessionMode::Inline || supported_frame_rates.is_empty() || self.ended.get() {
+            promise.reject_error(Error::InvalidState);
+            return promise;
+        }
+
+        if !supported_frame_rates.contains(&*rate) {
+            promise.reject_error(Error::Type("Provided framerate not supported".into()));
+            return promise;
+        }
+
+        *self.update_framerate_promise.borrow_mut() = Some(promise.clone());
+
+        let this = Trusted::new(self);
+        let global = self.global();
+        let window = global.as_window();
+        let (task_source, canceller) = window
+            .task_manager()
+            .dom_manipulation_task_source_with_canceller();
+        let (sender, receiver) = ipc::channel(global.time_profiler_chan().clone()).unwrap();
+
+        ROUTER.add_route(
+            receiver.to_opaque(),
+            Box::new(move |message| {
+                let this = this.clone();
+                let _ = task_source.queue_with_canceller(
+                    task!(update_session_framerate: move || {
+                        let session = this.root();
+                        session.apply_nominal_framerate(message.to().unwrap());
+                        if let Some(promise) = session.update_framerate_promise.borrow_mut().take() {
+                            promise.resolve_native(&());
+                        };
+                    }),
+                    &canceller,
+                );
+            }),
+        );
+
+        session.update_frame_rate(*rate, sender);
+
+        promise
     }
 }
 
