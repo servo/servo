@@ -22,6 +22,7 @@ use ohos_sys::xcomponent::{
     OH_NativeXComponent_RegisterCallback, OH_NativeXComponent_TouchEvent,
     OH_NativeXComponent_TouchEventType,
 };
+use servo::compositing::windowing::EmbedderEvent;
 use servo::embedder_traits::PromptResult;
 use servo::euclid::Point2D;
 use servo::style::Zero;
@@ -139,12 +140,10 @@ impl ServoAction {
                 panic!("Received Initialize event, even though servo is already initialized")
             },
 
-            Vsync => {
-                servo.perform_updates().expect("Infallible");
-                servo.present_if_needed();
-                // Todo: perform_updates() (before or after present) if animating?
-                Ok(())
-            },
+            Vsync => servo
+                .process_event(EmbedderEvent::Vsync)
+                .and_then(|()| servo.perform_updates())
+                .and_then(|()| Ok(servo.present_if_needed())),
         };
         if let Err(e) = res {
             error!("Failed to do {self:?} with error {e}");
@@ -308,6 +307,7 @@ fn initialize_logging_once() {
             // Show GL errors by default.
             "canvas::webgl_thread",
             "compositing::compositor",
+            "compositing::touch",
             "constellation::constellation",
         ];
         for &module in &filters {

@@ -863,6 +863,9 @@ where
                     warn!("Sending Gamepad event to constellation failed ({:?}).", e);
                 }
             },
+            EmbedderEvent::Vsync => {
+                self.compositor.on_vsync();
+            },
         }
         false
     }

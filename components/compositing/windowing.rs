@@ -128,6 +128,8 @@ pub enum EmbedderEvent {
     ReplaceNativeSurface(*mut c_void, DeviceIntSize),
     /// Sent when new Gamepad information is available.
     Gamepad(GamepadEvent),
+    /// Vertical Synchronization tick
+    Vsync,
 }
 
 impl Debug for EmbedderEvent {
@@ -187,6 +189,7 @@ impl Debug for EmbedderEvent {
             EmbedderEvent::InvalidateNativeSurface => write!(f, "InvalidateNativeSurface"),
             EmbedderEvent::ReplaceNativeSurface(..) => write!(f, "ReplaceNativeSurface"),
             EmbedderEvent::Gamepad(..) => write!(f, "Gamepad"),
+            EmbedderEvent::Vsync => write!(f, "Vsync"),
         }
     }
 }
