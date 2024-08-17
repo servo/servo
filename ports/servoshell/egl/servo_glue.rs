@@ -148,10 +148,10 @@ impl ServoGlue {
     /// This is the Servo heartbeat. This needs to be called
     /// everytime wakeup is called or when embedder wants Servo
     /// to act on its pending events.
-    pub fn perform_updates(&mut self) -> Result<(), &'static str> {
+    pub fn perform_updates(&mut self, is_vsync: bool) -> Result<(), &'static str> {
         debug!("perform_updates");
         let events = mem::replace(&mut self.events, Vec::new());
-        self.servo.handle_events(events);
+        self.servo.handle_events(events, is_vsync);
         let r = self.handle_servo_events();
         debug!("done perform_updates");
         r
@@ -426,7 +426,7 @@ impl ServoGlue {
     pub(super) fn process_event(&mut self, event: EmbedderEvent) -> Result<(), &'static str> {
         self.events.push(event);
         if !self.batch_mode {
-            self.perform_updates()
+            self.perform_updates(false)
         } else {
             Ok(())
         }
@@ -631,7 +631,7 @@ impl ServoGlue {
         }
 
         if need_update {
-            let _ = self.perform_updates();
+            let _ = self.perform_updates(false);
         }
         Ok(())
     }

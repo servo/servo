@@ -901,7 +901,11 @@ where
         self.messages_for_embedder.drain(..)
     }
 
-    pub fn handle_events(&mut self, events: impl IntoIterator<Item = EmbedderEvent>) -> bool {
+    pub fn handle_events(
+        &mut self,
+        events: impl IntoIterator<Item = EmbedderEvent>,
+        is_vsync: bool,
+    ) -> bool {
         if self.compositor.receive_messages() {
             self.receive_messages();
         }
@@ -911,7 +915,7 @@ where
             need_resize |= self.handle_window_event(event);
         }
         if self.compositor.shutdown_state != ShutdownState::FinishedShuttingDown {
-            self.compositor.perform_updates();
+            self.compositor.perform_updates(is_vsync);
         } else {
             self.messages_for_embedder
                 .push((None, EmbedderMsg::Shutdown));

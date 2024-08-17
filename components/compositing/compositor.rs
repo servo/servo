@@ -2402,7 +2402,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     }
 
     #[tracing::instrument(skip(self), fields(servo_profiling = true))]
-    pub fn perform_updates(&mut self) -> bool {
+    pub fn perform_updates(&mut self, is_vsync: bool) -> bool {
         if self.shutdown_state == ShutdownState::FinishedShuttingDown {
             return false;
         }
@@ -2426,6 +2426,15 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
         // The WebXR thread may make a different context current
         let _ = self.rendering_context.make_gl_context_current();
+        if is_vsync {
+            debug!("Compositor on_vsync");
+            if let Some(fling_action) = self.touch_handler.on_vsync() {
+                self.on_scroll_window_event(
+                    ScrollLocation::Delta(fling_action.delta),
+                    fling_action.cursor,
+                );
+            }
+        }
 
         if !self.pending_scroll_zoom_events.is_empty() {
             self.process_pending_scroll_events()

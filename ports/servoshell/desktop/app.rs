@@ -199,10 +199,13 @@ impl App {
                 );
                 let mut servo = servo_data.servo;
 
-                servo.handle_events(vec![EmbedderEvent::NewWebView(
-                    initial_url.to_owned(),
-                    servo_data.browser_id,
-                )]);
+                servo.handle_events(
+                    vec![EmbedderEvent::NewWebView(
+                        initial_url.to_owned(),
+                        servo_data.browser_id,
+                    )],
+                    true,
+                );
                 servo.setup_logging();
 
                 app.windows.insert(window.id(), window.clone());
@@ -464,7 +467,7 @@ impl App {
                 .servo
                 .as_mut()
                 .unwrap()
-                .handle_events(webviews.get_events());
+                .handle_events(webviews.get_events(), true);
             if webviews.shutdown_requested() {
                 return PumpResult::Shutdown;
             }
