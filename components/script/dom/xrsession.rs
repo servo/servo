@@ -612,6 +612,7 @@ impl XRSessionMethods for XRSession {
         SetOninputsourceschange
     );
 
+    // https://www.w3.org/TR/webxr/#dom-xrsession-onframeratechange
     event_handler!(frameratechange, GetOnframeratechange, SetOnframeratechange);
 
     // https://immersive-web.github.io/webxr/#dom-xrsession-renderstate
