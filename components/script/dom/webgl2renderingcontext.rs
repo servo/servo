@@ -5,6 +5,7 @@
 use std::cell::Cell;
 use std::cmp;
 use std::ptr::{self, NonNull};
+use std::rc::Rc;
 
 use canvas_traits::webgl::WebGLError::*;
 use canvas_traits::webgl::{
@@ -42,6 +43,7 @@ use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlcanvaselement::{HTMLCanvasElement, LayoutCanvasRenderingContextHelpers};
+use crate::dom::promise::Promise;
 use crate::dom::webgl_validations::tex_image_2d::{
     TexImage2DValidator, TexImage2DValidatorResult, TexStorageValidator, TexStorageValidatorResult,
 };
@@ -4470,6 +4472,14 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         depth: i32,
     ) {
         self.tex_storage(3, target, levels, internal_format, width, height, depth)
+    }
+
+    /// <https://immersive-web.github.io/webxr/#dom-webglrenderingcontextbase-makexrcompatible>
+    fn MakeXRCompatible(&self) -> Rc<Promise> {
+        // XXXManishearth Fill in with compatibility checks when rust-webxr supports this
+        let p = Promise::new(&self.global());
+        p.resolve_native(&());
+        p
     }
 }
 
