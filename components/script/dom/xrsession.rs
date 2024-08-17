@@ -5,9 +5,8 @@
 use std::cell::Cell;
 use std::collections::HashMap;
 use std::f64::consts::{FRAC_PI_2, PI};
-use std::mem;
-use std::ptr;
 use std::rc::Rc;
+use std::{mem, ptr};
 
 use dom_struct::dom_struct;
 use euclid::{RigidTransform3D, Transform3D, Vector3D};
@@ -934,8 +933,10 @@ impl XRSessionMethods for XRSession {
         } else {
             let framerates = session.supported_frame_rates();
             rooted!(in (*cx) let mut array = ptr::null_mut::<JSObject>());
-            Some(create_buffer_source(cx, framerates, array.handle_mut())
-                .expect("Failed to construct supported frame rates array"))
+            Some(
+                create_buffer_source(cx, framerates, array.handle_mut())
+                    .expect("Failed to construct supported frame rates array"),
+            )
         }
     }
 
@@ -959,7 +960,10 @@ impl XRSessionMethods for XRSession {
         let supported_frame_rates = session.supported_frame_rates();
         let promise = Promise::new_in_current_realm(comp);
 
-        if self.mode == XRSessionMode::Inline || supported_frame_rates.is_empty() || self.ended.get() {
+        if self.mode == XRSessionMode::Inline ||
+            supported_frame_rates.is_empty() ||
+            self.ended.get()
+        {
             promise.reject_error(Error::InvalidState);
             return promise;
         }
