@@ -218,9 +218,7 @@ impl XRFrameMethods for XRFrame {
             radii_vec.fill(f32::NAN);
         }
 
-        unsafe {
-            radii.update(&radii_vec);
-        }
+        radii.update(&radii_vec);
 
         Ok(all_valid)
     }
@@ -274,9 +272,7 @@ impl XRFrameMethods for XRFrame {
             transforms_vec.fill(f32::NAN);
         }
 
-        unsafe {
-            transforms.update(&transforms_vec);
-        }
+        transforms.update(&transforms_vec);
 
         Ok(all_valid)
     }

@@ -123,10 +123,8 @@ impl IIRFilterNodeMethods for IIRFilterNode {
             &mut phase_response_vec,
         );
 
-        unsafe {
-            mag_response.update(&mag_response_vec);
-            phase_response.update(&phase_response_vec);
-        }
+        mag_response.update(&mag_response_vec);
+        phase_response.update(&phase_response_vec);
 
         Ok(())
     }
