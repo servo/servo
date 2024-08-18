@@ -161,19 +161,22 @@ function xr_session_promise_test(
         }));
   }
 
-  xr_promise_test(
-    name + ' - webgl',
-    runTest,
-    properties,
-    'webgl',
-    {alpha: false, antialias: false, ...glcontextProperties}
+  document.addEventListener('DOMContentLoaded', () => {
+    xr_promise_test(
+      name + ' - webgl',
+      runTest,
+      properties,
+      'webgl',
+      {alpha: false, antialias: false, ...glcontextProperties}
     );
-  xr_promise_test(
-    name + ' - webgl2',
-    runTest,
-    properties,
-    'webgl2',
-    {alpha: false, antialias: false, ...glcontextProperties});
+    xr_promise_test(
+      name + ' - webgl2',
+      runTest,
+      properties,
+      'webgl2',
+      {alpha: false, antialias: false, ...glcontextProperties}
+    );
+  });
 }
 
 
