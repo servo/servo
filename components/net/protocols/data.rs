@@ -2,20 +2,34 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::future::Future;
+use std::pin::Pin;
+
 use data_url::forgiving_base64;
+use headers::{ContentType, HeaderMapExt};
+use http::StatusCode;
 use mime::Mime;
+use net_traits::request::Request;
+use net_traits::response::{Response, ResponseBody};
+use net_traits::{NetworkError, ResourceFetchTiming};
 use percent_encoding::percent_decode;
 use servo_url::ServoUrl;
 use url::Position;
 
-pub enum DecodeError {
+use crate::fetch::methods::{DoneChannel, FetchContext};
+use crate::protocols::ProtocolHandler;
+
+#[derive(Default)]
+pub struct DataProtocolHander {}
+
+enum DecodeError {
     InvalidDataUri,
     NonBase64DataUri,
 }
 
-pub type DecodeData = (Mime, Vec<u8>);
+type DecodeData = (Mime, Vec<u8>);
 
-pub fn decode(url: &ServoUrl) -> Result<DecodeData, DecodeError> {
+fn decode(url: &ServoUrl) -> Result<DecodeData, DecodeError> {
     // data_url could do all of this work for us,
     // except that it currently (Nov 2019) parses mime types into a
     // different Mime class than other code expects
@@ -54,4 +68,30 @@ pub fn decode(url: &ServoUrl) -> Result<DecodeData, DecodeError> {
         }
     }
     Ok((content_type, bytes))
+}
+
+impl ProtocolHandler for DataProtocolHander {
+    fn load(
+        &self,
+        request: &mut Request,
+        _done_chan: &mut DoneChannel,
+        _context: &FetchContext,
+    ) -> Pin<Box<dyn Future<Output = Response> + Send>> {
+        let url = request.current_url();
+        let response = match decode(&url) {
+            Ok((mime, bytes)) => {
+                let mut response =
+                    Response::new(url, ResourceFetchTiming::new(request.timing_type()));
+                *response.body.lock().unwrap() = ResponseBody::Done(bytes);
+                response.headers.typed_insert(ContentType::from(mime));
+                response.status = Some((StatusCode::OK, "OK".to_string()));
+                response.raw_status = Some((StatusCode::OK.as_u16(), b"OK".to_vec()));
+                response
+            },
+            Err(_) => {
+                Response::network_error(NetworkError::Internal("Decoding data URL failed".into()))
+            },
+        };
+        Box::pin(std::future::ready(response))
+    }
 }

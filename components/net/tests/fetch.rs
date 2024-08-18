@@ -27,6 +27,7 @@ use net::fetch::cors_cache::CorsCache;
 use net::fetch::methods::{self, CancellationListener, FetchContext};
 use net::filemanager_thread::FileManager;
 use net::hsts::HstsEntry;
+use net::protocols::ProtocolRegistry;
 use net::resource_thread::CoreResourceThreadPool;
 use net::test::HttpState;
 use net_traits::filemanager_thread::FileTokenCheck;
@@ -769,6 +770,7 @@ fn test_fetch_with_hsts() {
         timing: ServoArc::new(Mutex::new(ResourceFetchTiming::new(
             ResourceTimingType::Navigation,
         ))),
+        protocols: Arc::new(ProtocolRegistry::default()),
     };
 
     // The server certificate is self-signed, so we need to add an override
@@ -828,6 +830,7 @@ fn test_load_adds_host_to_hsts_list_when_url_is_https() {
         timing: ServoArc::new(Mutex::new(ResourceFetchTiming::new(
             ResourceTimingType::Navigation,
         ))),
+        protocols: Arc::new(ProtocolRegistry::default()),
     };
 
     // The server certificate is self-signed, so we need to add an override
@@ -885,6 +888,7 @@ fn test_fetch_self_signed() {
         timing: ServoArc::new(Mutex::new(ResourceFetchTiming::new(
             ResourceTimingType::Navigation,
         ))),
+        protocols: Arc::new(ProtocolRegistry::default()),
     };
 
     let mut request = RequestBuilder::new(url.clone(), Referrer::NoReferrer)

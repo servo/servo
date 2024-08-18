@@ -3,25 +3,21 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::borrow::Cow;
-use std::fs::File;
-use std::io::{self, BufReader, Seek, SeekFrom};
-use std::ops::Bound;
 use std::sync::atomic::Ordering;
 use std::sync::{Arc, Mutex};
-use std::{mem, str};
+use std::{io, mem, str};
 
 use base64::engine::general_purpose;
 use base64::Engine as _;
 use content_security_policy as csp;
 use crossbeam_channel::Sender;
 use devtools_traits::DevtoolsControlMsg;
-use headers::{AccessControlExposeHeaders, ContentType, HeaderMapExt, Range};
+use headers::{AccessControlExposeHeaders, ContentType, HeaderMapExt};
 use http::header::{self, HeaderMap, HeaderName};
 use http::{Method, StatusCode};
 use ipc_channel::ipc::{self, IpcReceiver};
-use log::{debug, warn};
+use log::warn;
 use mime::{self, Mime};
-use net_traits::blob_url_store::{parse_blob_url, BlobURLStoreError};
 use net_traits::filemanager_thread::{FileTokenCheck, RelativePos};
 use net_traits::request::{
     is_cors_safelisted_method, is_cors_safelisted_request_header, BodyChunkRequest,
@@ -37,19 +33,16 @@ use rustls::Certificate;
 use serde::{Deserialize, Serialize};
 use servo_arc::Arc as ServoArc;
 use servo_url::ServoUrl;
-use tokio::sync::mpsc::{
-    unbounded_channel, UnboundedReceiver as TokioReceiver, UnboundedSender as TokioSender,
-};
+use tokio::sync::mpsc::{UnboundedReceiver as TokioReceiver, UnboundedSender as TokioSender};
 
-use crate::data_loader::decode;
 use crate::fetch::cors_cache::CorsCache;
 use crate::fetch::headers::determine_nosniff;
-use crate::filemanager_thread::{FileManager, FILE_CHUNK_SIZE};
+use crate::filemanager_thread::FileManager;
 use crate::http_loader::{
     determine_requests_referrer, http_fetch, set_default_accept, set_default_accept_language,
     HttpState,
 };
-use crate::local_directory_listing;
+use crate::protocols::ProtocolRegistry;
 use crate::subresource_integrity::is_response_integrity_valid;
 
 pub type Target<'a> = &'a mut (dyn FetchTaskTarget + Send);
@@ -69,6 +62,7 @@ pub struct FetchContext {
     pub file_token: FileTokenCheck,
     pub cancellation_listener: Arc<Mutex<CancellationListener>>,
     pub timing: ServoArc<Mutex<ResourceFetchTiming>>,
+    pub protocols: Arc<ProtocolRegistry>,
 }
 
 pub struct CancellationListener {
@@ -597,42 +591,6 @@ impl RangeRequestBounds {
     }
 }
 
-/// Get the range bounds if the `Range` header is present.
-fn get_range_request_bounds(range: Option<Range>) -> RangeRequestBounds {
-    if let Some(ref range) = range {
-        let (start, end) = match range
-            .iter()
-            .collect::<Vec<(Bound<u64>, Bound<u64>)>>()
-            .first()
-        {
-            Some(&(Bound::Included(start), Bound::Unbounded)) => (start, None),
-            Some(&(Bound::Included(start), Bound::Included(end))) => {
-                // `end` should be less or equal to `start`.
-                (start, Some(i64::max(start as i64, end as i64)))
-            },
-            Some(&(Bound::Unbounded, Bound::Included(offset))) => {
-                return RangeRequestBounds::Pending(offset);
-            },
-            _ => (0, None),
-        };
-        RangeRequestBounds::Final(RelativePos::from_opts(Some(start as i64), end))
-    } else {
-        RangeRequestBounds::Final(RelativePos::from_opts(Some(0), None))
-    }
-}
-
-fn partial_content(response: &mut Response) {
-    let reason = "Partial Content".to_owned();
-    response.status = Some((StatusCode::PARTIAL_CONTENT, reason.clone()));
-    response.raw_status = Some((StatusCode::PARTIAL_CONTENT.as_u16(), reason.into()));
-}
-
-fn range_not_satisfiable_error(response: &mut Response) {
-    let reason = "Range Not Satisfiable".to_owned();
-    response.status = Some((StatusCode::RANGE_NOT_SATISFIABLE, reason.clone()));
-    response.raw_status = Some((StatusCode::RANGE_NOT_SATISFIABLE.as_u16(), reason.into()));
-}
-
 fn create_blank_reply(url: ServoUrl, timing_type: ResourceTimingType) -> Response {
     let mut response = Response::new(url, ResourceFetchTiming::new(timing_type));
     response
@@ -696,7 +654,8 @@ async fn scheme_fetch(
 ) -> Response {
     let url = request.current_url();
 
-    match url.scheme() {
+    let scheme = url.scheme();
+    match scheme {
         "about" if url.path() == "blank" => create_blank_reply(url, request.timing_type()),
 
         "chrome" if url.path() == "allowcert" => {
@@ -713,158 +672,10 @@ async fn scheme_fetch(
             .await
         },
 
-        "data" => match decode(&url) {
-            Ok((mime, bytes)) => {
-                let mut response =
-                    Response::new(url, ResourceFetchTiming::new(request.timing_type()));
-                *response.body.lock().unwrap() = ResponseBody::Done(bytes);
-                response.headers.typed_insert(ContentType::from(mime));
-                response.status = Some((StatusCode::OK, "OK".to_string()));
-                response.raw_status = Some((StatusCode::OK.as_u16(), b"OK".to_vec()));
-                response
-            },
-            Err(_) => {
-                Response::network_error(NetworkError::Internal("Decoding data URL failed".into()))
-            },
+        _ => match context.protocols.get(scheme) {
+            Some(handler) => handler.load(request, done_chan, context).await,
+            None => Response::network_error(NetworkError::Internal("Unexpected scheme".into())),
         },
-
-        "file" => {
-            if request.method != Method::GET {
-                return Response::network_error(NetworkError::Internal(
-                    "Unexpected method for file".into(),
-                ));
-            }
-            if let Ok(file_path) = url.to_file_path() {
-                if file_path.is_dir() {
-                    return local_directory_listing::fetch(request, url, file_path);
-                }
-
-                if let Ok(file) = File::open(file_path.clone()) {
-                    // Get range bounds (if any) and try to seek to the requested offset.
-                    // If seeking fails, bail out with a NetworkError.
-                    let file_size = match file.metadata() {
-                        Ok(metadata) => Some(metadata.len()),
-                        Err(_) => None,
-                    };
-
-                    let mut response =
-                        Response::new(url, ResourceFetchTiming::new(request.timing_type()));
-
-                    let range_header = request.headers.typed_get::<Range>();
-                    let is_range_request = range_header.is_some();
-                    let Ok(range) = get_range_request_bounds(range_header).get_final(file_size)
-                    else {
-                        range_not_satisfiable_error(&mut response);
-                        return response;
-                    };
-                    let mut reader = BufReader::with_capacity(FILE_CHUNK_SIZE, file);
-                    if reader.seek(SeekFrom::Start(range.start as u64)).is_err() {
-                        return Response::network_error(NetworkError::Internal(
-                            "Unexpected method for file".into(),
-                        ));
-                    }
-
-                    // Set response status to 206 if Range header is present.
-                    // At this point we should have already validated the header.
-                    if is_range_request {
-                        partial_content(&mut response);
-                    }
-
-                    // Set Content-Type header.
-                    let mime = mime_guess::from_path(file_path).first_or_octet_stream();
-                    response.headers.typed_insert(ContentType::from(mime));
-
-                    // Setup channel to receive cross-thread messages about the file fetch
-                    // operation.
-                    let (mut done_sender, done_receiver) = unbounded_channel();
-                    *done_chan = Some((done_sender.clone(), done_receiver));
-
-                    *response.body.lock().unwrap() = ResponseBody::Receiving(vec![]);
-
-                    context.filemanager.lock().unwrap().fetch_file_in_chunks(
-                        &mut done_sender,
-                        reader,
-                        response.body.clone(),
-                        context.cancellation_listener.clone(),
-                        range,
-                    );
-
-                    response
-                } else {
-                    Response::network_error(NetworkError::Internal("Opening file failed".into()))
-                }
-            } else {
-                Response::network_error(NetworkError::Internal(
-                    "Constructing file path failed".into(),
-                ))
-            }
-        },
-
-        "blob" => {
-            debug!("Loading blob {}", url.as_str());
-            // Step 2.
-            if request.method != Method::GET {
-                return Response::network_error(NetworkError::Internal(
-                    "Unexpected method for blob".into(),
-                ));
-            }
-
-            let range_header = request.headers.typed_get::<Range>();
-            let is_range_request = range_header.is_some();
-            // We will get a final version of this range once we have
-            // the length of the data backing the blob.
-            let range = get_range_request_bounds(range_header);
-
-            let (id, origin) = match parse_blob_url(&url) {
-                Ok((id, origin)) => (id, origin),
-                Err(error) => {
-                    return Response::network_error(NetworkError::Internal(format!(
-                        "Invalid blob URL ({error})"
-                    )));
-                },
-            };
-
-            let mut response = Response::new(url, ResourceFetchTiming::new(request.timing_type()));
-            response.status = Some((StatusCode::OK, "OK".to_string()));
-            response.raw_status = Some((StatusCode::OK.as_u16(), b"OK".to_vec()));
-
-            if is_range_request {
-                partial_content(&mut response);
-            }
-
-            let (mut done_sender, done_receiver) = unbounded_channel();
-            *done_chan = Some((done_sender.clone(), done_receiver));
-            *response.body.lock().unwrap() = ResponseBody::Receiving(vec![]);
-
-            if let Err(err) = context.filemanager.lock().unwrap().fetch_file(
-                &mut done_sender,
-                context.cancellation_listener.clone(),
-                id,
-                &context.file_token,
-                origin,
-                &mut response,
-                range,
-            ) {
-                let _ = done_sender.send(Data::Done);
-                let err = match err {
-                    BlobURLStoreError::InvalidRange => {
-                        range_not_satisfiable_error(&mut response);
-                        return response;
-                    },
-                    _ => format!("{:?}", err),
-                };
-                return Response::network_error(NetworkError::Internal(err));
-            };
-
-            response
-        },
-
-        "ftp" => {
-            debug!("ftp is not implemented");
-            Response::network_error(NetworkError::Internal("Unexpected scheme".into()))
-        },
-
-        _ => Response::network_error(NetworkError::Internal("Unexpected scheme".into())),
     }
 }
 
