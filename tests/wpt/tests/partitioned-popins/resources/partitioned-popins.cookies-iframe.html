@@ -1,0 +1,15 @@
+<!doctype html>
+<meta charset="utf-8">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+(async function() {
+  // Step 5 (partitioned-popins/partitioned-popins.cookies.tentative.sub.https.window.js)
+  const id = (new URLSearchParams(window.location.search)).get("id");
+  test_driver.set_test_context(window.top);
+  document.cookie = "third-party-strict=" + id + "; Partitioned; SameSite=Strict; Secure";
+  document.cookie = "third-party-lax=" + id + "; Partitioned; SameSite=Lax; Secure";
+  document.cookie = "third-party-none=" + id + "; Partitioned; SameSite=None; Secure";
+  window.top.postMessage({type: "iframe-set", message: "Set third-party data"}, "*");
+})();
+</script>

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-shapes-2/#shapes-from-image"/>
+<link rel="help" href="https://drafts.csswg.org/css-shapes-2/#shape-outside-property"/>
+<meta name="flags" content="ahem"/>
+<meta name="assert"
+  content="WebKit and Blink had a bug that a negative margin was applied
+           incorrectly if float's writing-mode was different from the
+           container's writing-mode. This test verifies a browser has no
+           such bug."/>
+<link rel="match" href="reference/shape-image-000-ref.html"/>
+<link rel="stylesheet" href="/fonts/ahem.css" />
+<style>
+.container {
+  width: 100px;
+  font: 10px/1 Ahem;
+  background-color: red;
+  color: rgb(0, 100, 0);
+  overflow: hidden;
+}
+#f {
+  display: inline-block;
+  width: 100px;
+  height: 100px;
+  background: url(support/left-half-rectangle.png);
+  shape-outside: url(support/left-half-rectangle.png);
+  float: left;
+  margin-left: -10px;
+  writing-mode: vertical-lr;
+}
+</style>
+<p>The test passes if you see a solid green square. There should be no red.</p>
+
+<div class="container"><span id="f"></span>
+XXXXXX
+XXXXXX
+XXXXXX
+XXXXXX
+XXXXXX
+XXXXXX
+XXXXXX
+XXXXXX
+XXXXXX
+XXXXXX
+</div>

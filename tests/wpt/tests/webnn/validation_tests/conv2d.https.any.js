@@ -1,5 +1,8 @@
 // META: title=validation tests for WebNN API conv2d operation
 // META: global=window,dedicatedworker
+// META: variant=?cpu
+// META: variant=?gpu
+// META: variant=?npu
 // META: script=../resources/utils_validation.js
 
 'use strict';
@@ -555,13 +558,8 @@ tests.forEach(
         assert_equals(output.dataType(), test.output.dataType);
         assert_array_equals(output.shape(), test.output.dimensions);
       } else {
-        try {
-          builder.conv2d(input, filter, test.options);
-        } catch (e) {
-          assert_equals(e.name, 'TypeError');
-          const error_message = e.message;
-          const regrexp = /\[conv_2d_\*\]/;
-          assert_not_equals(error_message.match(regrexp), null);
-        }
+        const regrexp = /\[conv_2d_\*\]/;
+        assert_throws_with_label(
+            () => builder.conv2d(input, filter, test.options), regrexp);
       }
     }, test.name));

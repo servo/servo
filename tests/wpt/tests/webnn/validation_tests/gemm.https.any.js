@@ -1,5 +1,8 @@
 // META: title=validation tests for WebNN API gemm operation
 // META: global=window,dedicatedworker
+// META: variant=?cpu
+// META: variant=?gpu
+// META: variant=?npu
 // META: script=../resources/utils_validation.js
 
 'use strict';
@@ -20,6 +23,8 @@ multi_builder_test(async (t, builder, otherBuilder) => {
   assert_throws_js(TypeError, () => builder.gemm(a, b, options));
 }, '[gemm] throw if c option is from another builder');
 
+const label = 'gemm_xxx';
+
 const tests = [
   {
     name: '[gemm] Test building gemm with default option.',
@@ -32,6 +37,7 @@ const tests = [
         '[gemm] Throw if inputShapeA[1] is not equal to inputShapeB[0] default options.',
     a: {dataType: 'float32', dimensions: [2, 3]},
     b: {dataType: 'float32', dimensions: [2, 4]},
+    options: {label}
   },
   {
     name: '[gemm] Test building gemm with aTranspose=true.',
@@ -49,6 +55,7 @@ const tests = [
     b: {dataType: 'float32', dimensions: [3, 4]},
     options: {
       aTranspose: true,
+      label: label,
     },
   },
   {
@@ -67,22 +74,26 @@ const tests = [
     b: {dataType: 'float32', dimensions: [3, 4]},
     options: {
       bTranspose: true,
+      label: label,
     },
   },
   {
     name: '[gemm] Throw if the rank of inputA is not 2.',
     a: {dataType: 'float32', dimensions: [2, 3, 1]},
     b: {dataType: 'float32', dimensions: [2, 4]},
+    options: {label}
   },
   {
     name: '[gemm] Throw if the rank of inputB is not 2.',
     a: {dataType: 'float32', dimensions: [2, 4]},
     b: {dataType: 'float32', dimensions: [2, 3, 1]},
+    options: {label}
   },
   {
     name: '[gemm] Throw if data types of two inputs do not match.',
     a: {dataType: 'float32', dimensions: [2, 3]},
     b: {dataType: 'float16', dimensions: [3, 4]},
+    options: {label}
   },
   {
     name: '[gemm] Test building gemm with inputC.',
@@ -109,12 +120,14 @@ const tests = [
     b: {dataType: 'float32', dimensions: [3, 4]},
     options: {
       c: {dataType: 'float32', dimensions: [2, 3]},
+      label: label,
     },
   },
   {
     name: '[gemm] Throw if the input data type is not floating point.',
     a: {dataType: 'int32', dimensions: [2, 3]},
-    b: {dataType: 'int32', dimensions: [3, 4]}
+    b: {dataType: 'int32', dimensions: [3, 4]},
+    options: {label}
   },
   {
     name:
@@ -125,6 +138,7 @@ const tests = [
       c: {dataType: 'float16', dimensions: [2, 4]},
       aTranspose: true,
       bTranspose: true,
+      label: label,
     },
   },
   {
@@ -135,6 +149,7 @@ const tests = [
       c: {dataType: 'float32', dimensions: [2, 3, 4]},
       aTranspose: true,
       bTranspose: true,
+      label: label,
     },
   },
 ];
@@ -157,6 +172,8 @@ tests.forEach(
         assert_equals(output.dataType(), test.output.dataType);
         assert_array_equals(output.shape(), test.output.dimensions);
       } else {
-        assert_throws_js(TypeError, () => builder.gemm(a, b, test.options));
+        const regrexp = new RegExp('\\[' + label + '\\]');
+        assert_throws_with_label(
+            () => builder.gemm(a, b, test.options), regrexp);
       }
     }, test.name));

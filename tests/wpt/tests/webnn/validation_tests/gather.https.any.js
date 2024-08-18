@@ -1,5 +1,8 @@
 // META: title=validation tests for WebNN API gather operation
 // META: global=window,dedicatedworker
+// META: variant=?cpu
+// META: variant=?gpu
+// META: variant=?npu
 // META: script=../resources/utils_validation.js
 
 'use strict';
@@ -35,26 +38,26 @@ const tests = [
   {
     name: '[gather] TypeError is expected if the input is a scalar',
     input: {dataType: 'float16', dimensions: []},
-    indices: {dataType: 'int64', dimensions: [1]}
+    indices: {dataType: 'int64', dimensions: [1]},
   },
   {
     name:
         '[gather] TypeError is expected if the axis is greater than the rank of input',
     input: {dataType: 'float16', dimensions: [1, 2, 3]},
     indices: {dataType: 'int32', dimensions: [5, 6]},
-    axis: 4
+    axis: 4,
   },
   {
     name:
         '[gather] TypeError is expected if the data type of indices is float32 which is invalid',
     input: {dataType: 'float16', dimensions: [1, 2, 3, 4]},
-    indices: {dataType: 'float32', dimensions: [5, 6]}
+    indices: {dataType: 'float32', dimensions: [5, 6]},
   },
   {
     name:
         '[gather] TypeError is expected if the data type of indices is uint64 which is invalid',
     input: {dataType: 'float16', dimensions: [1, 2, 3, 4]},
-    indices: {dataType: 'uint64', dimensions: [5, 6]}
+    indices: {dataType: 'uint64', dimensions: [5, 6]},
   }
 ];
 
@@ -78,8 +81,11 @@ tests.forEach(
         assert_equals(output.dataType(), test.output.dataType);
         assert_array_equals(output.shape(), test.output.dimensions);
       } else {
-        assert_throws_js(
-            TypeError, () => builder.gather(input, indices, options));
+        const label = 'gather_'
+        options.label = label;
+        const regrexp = new RegExp('\\[' + label + '\\]');
+        assert_throws_with_label(
+            () => builder.gather(input, indices, options), regrexp);
       }
     }, test.name));
 

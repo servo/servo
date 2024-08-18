@@ -58,6 +58,8 @@ const ArrowUp = '\uE013';
 const ArrowRight = '\uE014';
 const ArrowDown = '\uE015';
 const Space = ' ';
+const Tab = '\uE004';
+const Shift = '\uE008';
 const form = document.querySelector('form');
 const notform = document.getElementById('notform');
 
@@ -218,5 +220,49 @@ for (const id of ['defaultbutton-defaultdatalist',
     assert_equals(select.value, 'one',
       'The selects value should change after pressing enter on a different option.');
   }, `${id}: When the listbox is open, the enter key should commit the selected option.`);
+
+  promise_test(async t => {
+    addCloseCleanup(t);
+
+    const customButton = select.querySelector('button');
+    if (customButton) {
+      customButton.focus();
+      await test_driver.send_keys(customButton, Space);
+    } else {
+      select.focus();
+      await test_driver.send_keys(select, Space);
+    }
+    assert_true(select.matches(':open'),
+      'Space should open the listbox.');
+    assert_equals(document.activeElement, select.querySelector('.one'),
+      'The first option should be focused when opening the listbox.');
+
+    await test_driver.send_keys(document.activeElement, Tab);
+    assert_false(select.matches(':open'),
+      'Tab should close the listbox.');
+
+    // TODO(crbug.com/40263709): Remove this blur when focus on close is improved.
+    document.activeElement.blur();
+
+    if (customButton) {
+      customButton.focus();
+      await test_driver.send_keys(customButton, Space);
+    } else {
+      await test_driver.send_keys(select, Space);
+    }
+    assert_true(select.matches(':open'),
+      'Second space should open the listbox.');
+    assert_equals(document.activeElement, select.querySelector('.one'),
+      'The first option should be focused when opening the listbox.');
+
+    const actions = new test_driver.Actions()
+      .keyDown(Shift)
+      .keyDown(Tab)
+      .keyUp(Tab)
+      .keyUp(Shift);
+    await actions.send();
+    assert_false(select.matches(':open'),
+      'Shift+tab should close the listbox.');
+  }, `${id}: When the listbox is open, the tab key should close the listbox.`);
 }
 </script>

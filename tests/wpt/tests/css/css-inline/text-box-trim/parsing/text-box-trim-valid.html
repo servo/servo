@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<title>text-box-trim parses valid values according to its grammar</title>
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#leading-trim">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+
+<script>
+test_valid_value('text-box-trim', 'none');
+test_valid_value('text-box-trim', 'trim-start');
+test_valid_value('text-box-trim', 'trim-end');
+test_valid_value('text-box-trim', 'trim-both');
+</script>

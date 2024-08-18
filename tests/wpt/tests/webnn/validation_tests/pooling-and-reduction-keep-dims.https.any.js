@@ -1,5 +1,8 @@
 // META: title=validation tests for pooling and reduction operators keep dimensions
 // META: global=window,dedicatedworker
+// META: variant=?cpu
+// META: variant=?gpu
+// META: variant=?npu
 // META: script=../resources/utils.js
 // META: script=../resources/utils_validation.js
 // META: timeout=long

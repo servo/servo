@@ -24,6 +24,28 @@ const getHardSwishPrecisionTolerance = (graphResources) => {
 
 const hardSwishTests = [
   {
+    'name': 'hardSwish float32 0D tensor',
+    'graph': {
+      'inputs': {
+        'hardSwishInput': {
+          'data': [0.7341583371162415],
+          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+        }
+      },
+      'operators': [{
+        'name': 'hardSwish',
+        'arguments': [{'input': 'hardSwishInput'}],
+        'outputs': 'hardSwishOutput'
+      }],
+      'expectedOutputs': {
+        'hardSwishOutput': {
+          'data': [0.4569105803966522],
+          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+        }
+      }
+    }
+  },
+  {
     'name': 'hardSwish float32 1D constant tensor',
     'graph': {
       'inputs': {

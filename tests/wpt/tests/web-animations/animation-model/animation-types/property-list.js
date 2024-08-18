@@ -1421,13 +1421,13 @@ const gCSSProperties2 = {
   'text-box-edge': {
     // https://drafts.csswg.org/css-inline-3/#text-edges
     types: [
-      { type: 'discrete', options: [ [ 'leading', 'text' ] ] }
+      { type: 'discrete', options: [ [ 'auto', 'text' ] ] }
     ]
   },
   'text-box-trim': {
     // https://drafts.csswg.org/css-inline-3/#propdef-text-box-trim
     types: [
-      { type: 'discrete', options: [ [ 'none', 'start' ] ] }
+      { type: 'discrete', options: [ [ 'none', 'trim-start' ] ] }
     ]
   },
   'text-decoration': {
@@ -1590,6 +1590,12 @@ const gCSSProperties2 = {
   'vertical-align': {
     // https://drafts.csswg.org/css21/visudet.html#propdef-vertical-align
     types: [
+    ]
+  },
+  'view-transition-class': {
+    // https://drafts.csswg.org/css-view-transitions/#propdef-view-transition-name
+    types: [
+      { type: 'discrete', options: [ [ 'none', 'card scale-animation' ] ] },
     ]
   },
   'view-transition-name': {

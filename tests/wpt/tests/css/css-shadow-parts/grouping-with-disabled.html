@@ -4,16 +4,20 @@
 <style>
   my-element::part(button) {
     font-family: fantasy;
-  }
-  my-element::part(button):disabled {
     background-color: #ff0000;
   }
+  #grouped {
+    color: #ff0000;
+  }
+  my-element::part(button):disabled {
+    background-color: #00ff00;
+  }
   my-element::part(button):disabled,
-  p {
-    color: #0000ff;
+  #grouped {
+    color: #00ff00;
   }
   my-element::part(not-a-part):disabled,
-  p {
+  #grouped {
     font-family: monospace;
   }
 </style>
@@ -24,7 +28,7 @@
   <script src="/resources/testharnessreport.js"></script>
   <script>
     const RED = "rgb(255, 0, 0)";
-    const BLUE = "rgb(0, 0, 255)";
+    const GREEN = "rgb(0, 255, 0)";
     customElements.define(
       "my-element",
       class MyElement extends HTMLElement {
@@ -48,12 +52,12 @@
     }, "Styles applied to ::part(...)");
 
     test(() => {
-        assert_equals(getComputedStyle(subject.inner).backgroundColor, RED);
+        assert_equals(getComputedStyle(subject.inner).backgroundColor, GREEN);
     }, "Styles applied to ::part(...):disabled");
 
     test(() => {
-        assert_equals(getComputedStyle(subject.inner).color, BLUE);
-        assert_equals(getComputedStyle(grouped).color, BLUE);
+        assert_equals(getComputedStyle(subject.inner).color, GREEN);
+        assert_equals(getComputedStyle(grouped).color, GREEN);
     }, "Styles applied via grouped selector including matched ::part(...):disabled");
 
     test(() => {

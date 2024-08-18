@@ -40,32 +40,6 @@
   </div>
 </div>
 
-<div class="test-case" data-expect="C,D,B,A"
-      data-description="Grid items are in display contents containers.">
-  <div class=box>
-    <div style="display:contents" tabindex="0">
-      <div style="display:contents" tabindex="0">
-        <button style="order: 4" id="A">A</button>
-      </div>
-    </div>
-    <div style="display:contents" tabindex="0">
-      <div style="display:contents" tabindex="0">
-        <button style="order: 3" id="B">B</button>
-      </div>
-    </div>
-    <div style="display:contents" tabindex="0">
-      <div style="display:contents" tabindex="0">
-        <button style="order: 1" id="C">C</button>
-      </div>
-    </div>
-    <div style="display:contents" tabindex="0">
-      <div style="display:contents" tabindex="0">
-        <button style="order: 2" id="D">D</button>
-      </div>
-    </div>
-  </div>
-</div>
-
 <div class="test-case"
       data-expect="wrapper,div3,button3b,button3a,div2,button2,div1,button1b,button1a"
       data-description="Grid items are grid containers.">

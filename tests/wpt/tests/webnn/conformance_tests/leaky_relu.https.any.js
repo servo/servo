@@ -71,6 +71,28 @@ const leakyReluTests = [
     }
   },
   {
+    'name': 'leakyRelu float32 0D tensor default options',
+    'graph': {
+      'inputs': {
+        'leakyReluInput': {
+          'data': [-19.053640365600586],
+          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+        }
+      },
+      'operators': [{
+        'name': 'leakyRelu',
+        'arguments': [{'input': 'leakyReluInput'}],
+        'outputs': 'leakyReluOutput'
+      }],
+      'expectedOutputs': {
+        'leakyReluOutput': {
+          'data': [-0.19053640961647034],
+          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+        }
+      }
+    }
+  },
+  {
     'name': 'leakyRelu float32 1D tensor default options',
     'graph': {
       'inputs': {

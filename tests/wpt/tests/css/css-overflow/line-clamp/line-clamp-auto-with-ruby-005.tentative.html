@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: `line-clamp: auto` with ruby</title>
+<link rel="author" title="Andreu Botella" href="mailto:abotella@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="match" href="reference/line-clamp-auto-with-ruby-005-ref.html">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<meta name="assert" content="If a line-under ruby would increase the bottom leading of what would be the last line before clamp so that it does not fully fit within the height, but instead the ruby annotation space eats into the box's bottom padding, then the clamp point will be set after that line.">
+<style>
+.clamp {
+  line-clamp: auto;
+  max-height: 5lh;
+  font: 16px / 32px serif;
+  white-space: pre;
+  background-color: yellow;
+  padding: 0 4px;
+
+  /* With the Ahem font, the text is 16px = .5lh tall. Without ruby, the leading
+   * would be evenly distributed, so the bottom leading would be .25lh. Since
+   * the ruby annotation is 1lh tall, we need .75lh of padding to completely
+   * contain it. */
+  padding-bottom: .75lh;
+}
+ruby {
+  font-family: Ahem;
+  ruby-position: under;
+}
+rt {
+  font: 32px / 32px Ahem;
+  color: blue;
+}
+</style>
+
+<div class="clamp">Line 1
+Line 2
+Line 3
+Line 4
+<ruby>Line 5<rt>X</ruby>
+Line 6</div>
