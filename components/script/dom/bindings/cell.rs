@@ -103,6 +103,7 @@ impl<T> DomRefCell<T> {
     /// # Panics
     ///
     /// Panics if the value is currently mutably borrowed.
+    #[track_caller]
     pub fn borrow(&self) -> Ref<T> {
         self.value.borrow()
     }
@@ -115,6 +116,7 @@ impl<T> DomRefCell<T> {
     /// # Panics
     ///
     /// Panics if the value is currently borrowed.
+    #[track_caller]
     pub fn borrow_mut(&self) -> RefMut<T> {
         self.value.borrow_mut()
     }
