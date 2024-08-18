@@ -82,7 +82,9 @@ impl XRFrameMethods for XRFrame {
 
     /// <https://www.w3.org/TR/webxr/#dom-xrframe-predicteddisplaytime>
     fn PredictedDisplayTime(&self) -> Finite<f64> {
-        todo!()
+        // TODO: If inline, return rAF callback time instead
+        Finite::new(self.data.predicted_display_time)
+            .expect("Failed to create predictedDisplayTime")
     }
 
     /// <https://immersive-web.github.io/webxr/#dom-xrframe-getviewerpose>
