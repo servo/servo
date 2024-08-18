@@ -8,6 +8,7 @@ use base::id::{BrowsingContextId, PipelineId, TopLevelBrowsingContextId};
 use bitflags::bitflags;
 use dom_struct::dom_struct;
 use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
+use js::jsapi::JSAutoRealm;
 use js::rust::HandleObject;
 use profile_traits::ipc as ProfiledIpc;
 use script_traits::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
@@ -40,7 +41,12 @@ use crate::dom::node::{
 };
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::windowproxy::WindowProxy;
+<<<<<<< HEAD
 use crate::script_runtime::CanGc;
+=======
+use crate::microtask::{Microtask, MicrotaskRunnable};
+use crate::realms::enter_realm;
+>>>>>>> ca5d9db468 (Sync load event for about:blank iframe elements.)
 use crate::script_thread::ScriptThread;
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf)]
@@ -291,6 +297,11 @@ impl HTMLIFrameElement {
         let element = self.upcast::<Element>();
         let src = element.get_string_attribute(&local_name!("src"));
         if mode == ProcessingMode::FirstTime && (src.is_empty() || src == "about:blank") {
+            let task = IframeElementMicrotask {
+                elem: DomRoot::from_ref(self),
+            };
+            ScriptThread::await_stable_state(Microtask::IframeElement(task));
+            //self.iframe_load_event_steps(self.about_blank_pipeline_id.get().unwrap());
             return;
         }
 
@@ -488,10 +499,15 @@ impl HTMLIFrameElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#iframe-load-event-steps> steps 1-4
-    pub fn iframe_load_event_steps(&self, loaded_pipeline: PipelineId, can_gc: CanGc) {
+    pub fn iframe_load_event_steps(&self, loaded_pipeline: PipelineId, can_gc: CanGc,     pub fn iframe_load_event_steps(&self, loaded_pipeline: PipelineId, dispatch_load_for_about_blank: bool) {
+) {
         // TODO(#9592): assert that the load blocker is present at all times when we
         //              can guarantee that it's created for the case of iframe.reload().
         if Some(loaded_pipeline) != self.pending_pipeline_id.get() {
+            return;
+        }
+
+        if Some(loaded_pipeline) == self.about_blank_pipeline_id.get() && !dispatch_load_for_about_blank {
             return;
         }
 
@@ -786,5 +802,20 @@ impl VirtualMethods for HTMLIFrameElement {
         // a new iframe. Without this, the constellation gets very
         // confused.
         self.destroy_nested_browsing_context();
+    }
+}
+
+#[derive(JSTraceable, MallocSizeOf)]
+pub struct IframeElementMicrotask {
+    elem: DomRoot<HTMLIFrameElement>,
+}
+
+impl MicrotaskRunnable for IframeElementMicrotask {
+    fn handler(&self) {
+        self.elem.iframe_load_event_steps(self.elem.about_blank_pipeline_id.get().unwrap(), true);
+    }
+
+    fn enter_realm(&self) -> JSAutoRealm {
+        enter_realm(&*self.elem)
     }
 }

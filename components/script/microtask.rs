@@ -19,6 +19,7 @@ use crate::dom::bindings::codegen::Bindings::PromiseBinding::PromiseJobCallback;
 use crate::dom::bindings::codegen::Bindings::VoidFunctionBinding::VoidFunction;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::htmliframeelement::IframeElementMicrotask;
 use crate::dom::htmlimageelement::ImageElementMicrotask;
 use crate::dom::htmlmediaelement::MediaElementMicrotask;
 use crate::dom::mutationobserver::MutationObserver;
@@ -41,6 +42,7 @@ pub enum Microtask {
     User(UserMicrotask),
     MediaElement(MediaElementMicrotask),
     ImageElement(ImageElementMicrotask),
+    IframeElement(IframeElementMicrotask),
     CustomElementReaction,
     NotifyMutationObservers,
 }
@@ -133,6 +135,10 @@ impl MicrotaskQueue {
                     Microtask::ImageElement(ref task) => {
                         let _realm = task.enter_realm();
                         task.handler(can_gc);
+                    },
+                    Microtask::IframeElement(ref task) => {
+                        let _realm = task.enter_realm();
+                        task.handler();
                     },
                     Microtask::CustomElementReaction => {
                         ScriptThread::invoke_backup_element_queue(can_gc);

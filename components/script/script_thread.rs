@@ -3448,7 +3448,7 @@ impl ScriptThread {
             .borrow()
             .find_iframe(parent_id, browsing_context_id);
         match iframe {
-            Some(iframe) => iframe.iframe_load_event_steps(child_id, can_gc),
+            Some(iframe) => iframe.iframe_load_event_steps(child_id, can_gc, false),
             None => warn!("Message sent to closed pipeline {}.", parent_id),
         }
     }
