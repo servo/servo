@@ -38,7 +38,7 @@ cookie = { package = "cookie", version = "0.18" }
 crossbeam-channel = "0.5"
 cssparser = { version = "0.34", features = ["serde"] }
 darling = { version = "0.20", default-features = false }
-data-url = "0.1.0"
+data-url = "0.3"
 devtools_traits = { path = "components/shared/devtools" }
 embedder_traits = { path = "components/shared/embedder" }
 encoding_rs = "0.8"
