@@ -499,15 +499,21 @@ impl HTMLIFrameElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#iframe-load-event-steps> steps 1-4
-    pub fn iframe_load_event_steps(&self, loaded_pipeline: PipelineId, can_gc: CanGc,     pub fn iframe_load_event_steps(&self, loaded_pipeline: PipelineId, dispatch_load_for_about_blank: bool) {
-) {
+    pub fn iframe_load_event_steps(
+        &self,
+        loaded_pipeline: PipelineId,
+        can_gc: CanGc,
+        dispatch_load_for_about_blank: bool,
+    ) {
         // TODO(#9592): assert that the load blocker is present at all times when we
         //              can guarantee that it's created for the case of iframe.reload().
         if Some(loaded_pipeline) != self.pending_pipeline_id.get() {
             return;
         }
 
-        if Some(loaded_pipeline) == self.about_blank_pipeline_id.get() && !dispatch_load_for_about_blank {
+        if Some(loaded_pipeline) == self.about_blank_pipeline_id.get() &&
+            !dispatch_load_for_about_blank
+        {
             return;
         }
 
@@ -812,7 +818,8 @@ pub struct IframeElementMicrotask {
 
 impl MicrotaskRunnable for IframeElementMicrotask {
     fn handler(&self) {
-        self.elem.iframe_load_event_steps(self.elem.about_blank_pipeline_id.get().unwrap(), true);
+        self.elem
+            .iframe_load_event_steps(self.elem.about_blank_pipeline_id.get().unwrap(), true);
     }
 
     fn enter_realm(&self) -> JSAutoRealm {
