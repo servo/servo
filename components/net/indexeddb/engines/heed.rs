@@ -38,9 +38,11 @@ impl HeedEngine {
         db_dir.push(db_file_name);
 
         std::fs::create_dir_all(&db_dir).expect("Could not create OS directory for idb");
+        // FIXME:(arihant2math) gracefully handle errors like hitting max dbs
         #[allow(unsafe_code)]
         let env = unsafe {
             EnvOpenOptions::new()
+                .max_dbs(1024)
                 .open(db_dir)
                 .expect("Failed to open db_dir")
         };
@@ -67,6 +69,7 @@ impl KvsEngine for HeedEngine {
             .heed_env
             .write_txn()
             .expect("Could not create idb store writer");
+        let _ = self.heed_env.clear_stale_readers();
         let new_store: HeedDatabase = self
             .heed_env
             .create_database(&mut write_txn, Some(&*store_name.to_string()))
@@ -89,6 +92,32 @@ impl KvsEngine for HeedEngine {
             .write()
             .expect("Could not acquire lock on stores")
             .insert(store_name, store);
+    }
+
+    fn delete_store(&self, store_name: SanitizedName) {
+        // TODO: Actually delete store instead of just clearing it
+        let mut write_txn = self
+            .heed_env
+            .write_txn()
+            .expect("Could not create idb store writer");
+        let store: HeedDatabase = self
+            .heed_env
+            .create_database(&mut write_txn, Some(&*store_name.to_string()))
+            .expect("Failed to create idb store");
+        store.clear(&mut write_txn).expect("Could not clear store");
+        let open_stores = self.open_stores.read().unwrap();
+        if !open_stores.contains_key(&store_name) {
+            return;
+        }
+        drop(open_stores);
+        let mut open_stores = self.open_stores.write().unwrap();
+        open_stores.retain(|key, _| key != &store_name);
+    }
+
+    fn close_store(&self, store_name: SanitizedName) {
+        // FIXME:(arihant2math) return error if no store ...
+        let mut open_stores = self.open_stores.write().unwrap();
+        open_stores.retain(|key, _| key != &store_name);
     }
 
     // Starts a transaction, processes all operations for that transaction,
@@ -206,6 +235,16 @@ impl KvsEngine for HeedEngine {
                                 .expect("Could not get store");
                             let result = store.inner.delete(&mut wtxn, &key).ok().and(Some(key));
                             request.sender.send(result).unwrap();
+                        },
+                        AsyncOperation::Count(key) => {
+                            let key: Vec<u8> = bincode::serialize(&key).unwrap();
+                            let stores = stores
+                                .read()
+                                .expect("Could not acquire read lock on stores");
+                            let store = stores
+                                .get(&request.store_name)
+                                .expect("Could not get store");
+                            // FIXME:(arihant2math) Return count with sender
                         },
                     }
                 }

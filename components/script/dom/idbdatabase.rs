@@ -214,7 +214,7 @@ impl IDBDatabaseMethods for IDBDatabase {
         );
         object_store.set_transaction(&upgrade_transaction);
 
-        // FIXME:(rasviitanen!!!) Move this to constructor
+        // FIXME:(arihant2math!!!) Move this to constructor
         let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
 
         let operation = SyncOperation::CreateObjectStore(
@@ -242,8 +242,55 @@ impl IDBDatabaseMethods for IDBDatabase {
     }
 
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbdatabase-deleteobjectstore
-    fn DeleteObjectStore(&self, _name: DOMString) {
-        unimplemented!();
+    fn DeleteObjectStore(&self, name: DOMString) {
+        // Steps 1 & 2
+        let transaction = self.upgrade_transaction.get();
+        let transaction = match transaction {
+            Some(transaction) => transaction,
+            // FIXME:(arihant2math) Return error
+            None => return,
+        };
+
+        // Step 3
+
+        if !transaction.is_active() {
+            // FIXME:(arihant2math) return error instead
+            return;
+        }
+
+        // Step 4
+        // FIXME:(arihant2math) check if the store is in the database
+
+        // Step 5
+        self.object_store_names
+            .borrow_mut()
+            .retain(|store_name| store_name.to_string() != name.to_string());
+
+        // Step 6
+        // FIXME:(arihant2math) Remove from index set ...
+
+        // Step 7
+        // FIXME:(arihant2math!!!) Move this to constructor
+        let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
+
+        let operation = SyncOperation::DeleteObjectStore(
+            sender,
+            self.global().origin().immutable().clone(),
+            self.name.to_string(),
+            name.to_string(),
+        );
+
+        self.get_idb_thread()
+            .send(IndexedDBThreadMsg::Sync(operation))
+            .unwrap();
+
+        if receiver
+            .recv()
+            .expect("Could not receive object store creation status")
+            .is_err()
+        {
+            warn!("Object store deletion failed in idb thread");
+        };
     }
 
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbdatabase-name

@@ -106,7 +106,8 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
 
     // Executes all requests for a transaction (without committing)
     fn start_transaction(&mut self, txn: u64, sender: Option<IpcSender<Result<(), ()>>>) {
-        // FIXME:(arihant2math) find a way to optimizations in this function rather than on the engine level code (less repetition)
+        // FIXME:(arihant2math) find a way to optimizations in this function
+        // rather than on the engine level code (less repetition)
         self.transactions.remove(&txn).map(|txn| {
             self.engine.process_transaction(txn).blocking_recv();
         });
@@ -133,6 +134,16 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
         self.engine.create_store(store_name, auto_increment);
 
         sender.send(Ok(())).unwrap();
+    }
+
+    fn delete_object_store(
+        &mut self,
+        sender: IpcSender<Result<(), ()>>,
+        store_name: SanitizedName,
+    ) {
+        self.engine.delete_store(store_name);
+
+        sender.send(Ok(())).unwrap()
     }
 }
 
@@ -297,6 +308,11 @@ impl IndexedDBManager {
                 let store_name = SanitizedName::new(store_name);
                 self.get_database_mut(origin, db_name)
                     .map(|db| db.create_object_store(sender, store_name, auto_increment));
+            },
+            SyncOperation::DeleteObjectStore(sender, origin, db_name, store_name) => {
+                let store_name = SanitizedName::new(store_name);
+                self.get_database_mut(origin, db_name)
+                    .map(|db| db.delete_object_store(sender, store_name));
             },
             SyncOperation::StartTransaction(sender, origin, db_name, txn) => {
                 self.get_database_mut(origin, db_name).map(|db| {
