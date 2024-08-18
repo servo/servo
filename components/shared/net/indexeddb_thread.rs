@@ -19,6 +19,7 @@ pub enum IndexedDBThreadReturnType {
     Exit,
 }
 
+// https://www.w3.org/TR/IndexedDB-2/#enumdef-idbtransactionmode
 #[derive(Debug, Deserialize, Serialize)]
 pub enum IndexedDBTxnMode {
     Readonly,
@@ -35,6 +36,11 @@ pub enum IndexedDBKeyType {
     Date(Vec<u8>),
     // FIXME:(arihant2math) implment Array(),
 }
+
+// https://www.w3.org/TR/IndexedDB-2/#key-range
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[allow(unused)]
+pub enum IndexedDBKeyRange {}
 
 // Operations that are not executed instantly, but rather added to a
 // queue that is eventually run.
@@ -54,6 +60,10 @@ pub enum AsyncOperation {
 
     /// Removes the key/value pair for the given key in the associated idb data
     RemoveItem(
+        IndexedDBKeyType, // Key
+    ),
+
+    Count(
         IndexedDBKeyType, // Key
     ),
 }
@@ -91,6 +101,13 @@ pub enum SyncOperation {
         String, // Database
         String, // Store
         bool,
+    ),
+
+    DeleteObjectStore(
+        IpcSender<Result<(), ()>>,
+        ImmutableOrigin,
+        String, // Database
+        String, // Store
     ),
 
     OpenDatabase(

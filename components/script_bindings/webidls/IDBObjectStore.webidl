@@ -19,14 +19,14 @@ interface IDBObjectStore {
   [NewObject, Throws] IDBRequest put(any value, optional any key);
   [NewObject, Throws] IDBRequest add(any value, optional any key);
   [NewObject, Throws] IDBRequest delete(any query);
-  [NewObject] IDBRequest clear();
+  [NewObject, Throws] IDBRequest clear();
   [NewObject, Throws] IDBRequest get(any query);
   [NewObject] IDBRequest getKey(any query);
   [NewObject] IDBRequest getAll(optional any query,
                                 optional [EnforceRange] unsigned long count);
   [NewObject] IDBRequest getAllKeys(optional any query,
                                     optional [EnforceRange] unsigned long count);
-  [NewObject] IDBRequest count(optional any query);
+  [NewObject, Throws] IDBRequest count(optional any query);
 
   // [NewObject] IDBRequest openCursor(optional any query,
   //                                   optional IDBCursorDirection direction = "next");

@@ -76,13 +76,14 @@ impl IDBObjectStore {
         IDBObjectStore {
             reflector_: Reflector::new(),
             name: DomRefCell::new(name),
-            key_path: key_path,
+            key_path,
 
             index_names: DOMStringList::new(global, Vec::new()),
             transaction: Default::default(),
+            // FIXME:(arihant2math)
             auto_increment: false,
 
-            db_name: db_name,
+            db_name,
         }
     }
 
@@ -114,15 +115,26 @@ impl IDBObjectStore {
 
     // https://www.w3.org/TR/IndexedDB-2/#valid-key-path
     pub fn is_valid_key_path(key_path: &StrOrStringSequence) -> bool {
+        fn is_identifier(s: &str) -> bool {
+            // FIXME: (arihant2math)
+            true
+        }
+
         let is_valid = |path: &DOMString| {
             let path = path.to_string();
-            let mut identifiers = path.split('.').into_iter();
-
-            while let Some(_identifier) = identifiers.next() {
-                // FIXME:(rasviitanen) Implement this properly
-            }
-
-            true
+            return if path.is_empty() {
+                true
+            } else if is_identifier(&path) {
+                true
+            } else {
+                let parts = path.split(".");
+                for part in parts {
+                    if !is_identifier(part) {
+                        return false;
+                    }
+                }
+                true
+            };
         };
 
         match key_path {
@@ -181,6 +193,7 @@ impl IDBObjectStore {
                 }
 
                 if let ESClass::Date = built_in_class {
+                    // FIXME:(arihant2math) implement it the correct way
                     let key =
                         structuredclone::write(cx, input, None).expect("Could not serialize key");
                     return Ok(IndexedDBKeyType::Date(key.serialized.clone()));
@@ -491,7 +504,7 @@ impl IDBObjectStoreMethods for IDBObjectStore {
     }
 
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-clear
-    fn Clear(&self) -> DomRoot<IDBRequest> {
+    fn Clear(&self) -> Fallible<DomRoot<IDBRequest>> {
         unimplemented!();
     }
 
@@ -530,8 +543,30 @@ impl IDBObjectStoreMethods for IDBObjectStore {
     }
 
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-count
-    fn Count(&self, _cx: SafeJSContext, _query: HandleValue) -> DomRoot<IDBRequest> {
-        unimplemented!();
+    fn Count(&self, cx: SafeJSContext, query: HandleValue) -> Fallible<DomRoot<IDBRequest>> {
+        // Step 1
+        let transaction = self.transaction.get().expect("Could not get transaction");
+
+        // Step 2
+        // FIXME(arihant2math): investigate further
+
+        // Step 3
+        // FIXME(arihant2math): Cannot tell if store has been deleted
+
+        // Step 4
+        if !transaction.is_active() {
+            return Err(Error::TransactionInactive);
+        }
+
+        // Step 5
+        let serialized_query = IDBObjectStore::convert_value_to_key(cx, query, None);
+
+        // Step 6
+        // match serialized_query {
+        //     Ok(q) => IDBRequest::execute_async(&*self, AsyncOperation::Count(q), None),
+        //     Err(e) => Err(e),
+        // }
+        Err(Error::NotSupported)
     }
 
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-name
@@ -561,6 +596,7 @@ impl IDBObjectStoreMethods for IDBObjectStore {
 
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-autoincrement
     fn AutoIncrement(&self) -> bool {
-        unimplemented!();
+        // FIXME(arihant2math): This is wrong
+        self.auto_increment
     }
 }

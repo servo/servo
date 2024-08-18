@@ -57,6 +57,10 @@ pub struct KvsTransaction {
 pub trait KvsEngine {
     fn create_store(&self, store_name: SanitizedName, auto_increment: bool);
 
+    fn delete_store(&self, store_name: SanitizedName);
+
+    fn close_store(&self, store_name: SanitizedName);
+
     fn process_transaction(
         &self,
         transaction: KvsTransaction,
