@@ -278,9 +278,7 @@ impl AudioBufferMethods for AudioBuffer {
             }
         }
 
-        unsafe {
-            destination.update(&dest);
-        }
+        destination.update(&dest);
 
         Ok(())
     }
