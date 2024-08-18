@@ -3506,8 +3506,7 @@ dependencies = [
 [[package]]
 name = "ipc-channel"
 version = "0.18.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e46231d1db8ea8f874012b1b87efb9e968f763c577220372a9c7caadce1448da"
+source = "git+https://github.com/sagudev/ipc-channel?branch=update-windows#7ba3edf3a165041c1cb1980c7547443f10c85ea2"
 dependencies = [
  "bincode",
  "crossbeam-channel",
@@ -3519,7 +3518,7 @@ dependencies = [
  "serde",
  "tempfile",
  "uuid",
- "windows 0.48.0",
+ "windows 0.58.0",
 ]
 
 [[package]]

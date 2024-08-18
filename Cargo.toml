@@ -194,3 +194,4 @@ strip = true
 #
 # [patch."https://github.com/servo/<repository>"]
 # <crate> = { path = "/path/to/local/checkout" }
+ipc-channel = { git = "https://github.com/sagudev/ipc-channel", branch = "update-windows" }
