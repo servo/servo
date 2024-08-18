@@ -698,7 +698,7 @@ fn rendered_text_collection_steps<'dom>(node: impl LayoutNode<'dom>) -> Vec<Inne
         }
 
         match display {
-            Display::TableCell if iterator.peek().is_some() => {
+            Display::TableCell if node.next_sibling().is_some() => {
                 // Step 6: If node's computed value of 'display' is 'table-cell', and node's CSS box
                 // is not the last 'table-cell' box of its enclosing 'table-row' box, then append a
                 // string containing a single U+0009 TAB code point to items.
@@ -706,7 +706,7 @@ fn rendered_text_collection_steps<'dom>(node: impl LayoutNode<'dom>) -> Vec<Inne
                     "\u{0009}", /* tab */
                 )));
             },
-            Display::TableRow if iterator.peek().is_some() => {
+            Display::TableRow if node.next_sibling().is_some() => {
                 // Step 7: If node's computed value of 'display' is 'table-row', and node's CSS box
                 // is not the last 'table-row' box of the nearest ancestor 'table' box, then append
                 // a string containing a single U+000A LF code point to items.
