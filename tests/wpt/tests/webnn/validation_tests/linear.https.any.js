@@ -1,12 +1,16 @@
 // META: title=validation tests for WebNN API linear operation
 // META: global=window,dedicatedworker
+// META: variant=?cpu
+// META: variant=?gpu
+// META: variant=?npu
 // META: script=../resources/utils_validation.js
 
 'use strict';
 
 validateInputFromAnotherBuilder('linear');
 
-validateUnaryOperation('linear', floatingPointTypes);
+const label = 'linear_xxx';
+validateUnaryOperation('linear', floatingPointTypes, label);
 
 promise_test(async t => {
   const builder = new MLGraphBuilder(context);

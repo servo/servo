@@ -1,12 +1,17 @@
 // META: title=validation tests for WebNN API hardSigmoid operation
 // META: global=window,dedicatedworker
+// META: variant=?cpu
+// META: variant=?gpu
+// META: variant=?npu
 // META: script=../resources/utils_validation.js
 
 'use strict';
 
 validateInputFromAnotherBuilder('hardSigmoid');
 
-validateUnaryOperation('hardSigmoid', floatingPointTypes);
+const label = 'hard_sigmoid';
+
+validateUnaryOperation('hardSigmoid', floatingPointTypes, label);
 
 promise_test(async t => {
   const builder = new MLGraphBuilder(context);

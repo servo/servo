@@ -1,19 +1,18 @@
 <!DOCTYPE html>
-<title>Tests block boxes's edges are trimmed at text-over/text-under baselines of their first/last formatted lines</title>
-<link rel="help" href="https://drafts.csswg.org/css-inline-3/#leading-trim">
+<title>text-box-trim trims the block-start (not over) side of a line box</title>
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#text-box-trim">
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#text-box-edge">
 <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
 <link rel="match" href="text-box-trim-half-leading-block-box-002-ref.html">
 
 <style>
 .div-parent {
   outline: 1px solid orange;
-  font-family: Ahem;
-  font-size: 20px;
-  line-height: 3;
-  writing-mode:vertical-lr;
-  text-box-trim: start;
+  font: 20px/3 Ahem;
+  writing-mode: vertical-lr;
+  text-box-trim: trim-start;
   text-box-edge: text;
 }
 </style>
 
-<div class ="div-parent">Test</div>
+<div class="div-parent">Test</div>

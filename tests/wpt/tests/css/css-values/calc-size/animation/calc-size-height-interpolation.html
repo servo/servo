@@ -13,6 +13,9 @@
   width: 600px;
   height: 300px;
 }
+html.no-parent-height .parent {
+  height: auto;
+}
 .target {
   display: block;
 }
@@ -331,5 +334,66 @@
     from: 'calc-size(calc-size(calc-size(calc-size(calc-size(calc-size(calc-size(calc-size(calc-size(calc-size(calc-size(calc-size(calc-size(calc-size(calc-size(calc-size(calc-size(calc-size(calc-size(calc-size(auto, size / 2 + size / 2), size / 2 + size / 2), size / 2 + size / 2), size / 2 + size / 2), size / 2 + size / 2), size / 2 + size / 2), size / 2 + size / 2), size / 2 + size / 2), size / 2 + size / 2), size / 2 + size / 2), size / 2 + size / 2), size / 2 + size / 2), size / 2 + size / 2), size / 2 + size / 2), size / 2 + size / 2), size / 2 + size / 2), size / 2 + size / 2), size / 2 + size / 2), size / 2 + size / 2), size / 2 + size / 2)',
     to: 'calc-size(auto, size * 3)',
   });
+
+  test_interpolation({
+    property: 'height',
+    from: 'calc-size(20%, size)',
+    to: 'calc-size(60%, size)',
+  }, [
+    { at: 0, expect: '60px' },
+    { at: 0.5, expect: '120px' },
+    { at: 1, expect: '180px' },
+  ]);
+
+  document.documentElement.classList.add("no-parent-height");
+
+  // repeat the previous test, but with height:auto on the parent
+  test_interpolation({
+    property: 'height',
+    from: 'calc-size(20%, size)',
+    to: 'calc-size(60%, size)',
+  }, [
+    { at: 0, expect: '100px' },
+    { at: 0.5, expect: '100px' },
+    { at: 1, expect: '100px' },
+  ]);
+
+  test_interpolation({
+    property: 'height',
+    from: 'calc-size(50px, size)',
+    to: 'calc-size(60%, size)',
+  }, [
+    { at: 0, expect: '100px' },
+    { at: 0.5, expect: '100px' },
+    { at: 1, expect: '100px' },
+  ]);
+
+  test_interpolation({
+    property: 'height',
+    from: 'calc-size(50px, size)',
+    to: 'calc-size(200px, size)',
+  }, [
+    { at: 0, expect: '50px' },
+    { at: 0.5, expect: '125px' },
+    { at: 1, expect: '200px' },
+  ]);
+
+  document.documentElement.classList.remove("no-parent-height");
+
+  test_no_interpolation({
+    property: 'height',
+    from: 'calc-size(50%, size)',
+    to: 'calc-size(min-content, size)',
+  });
+
+  test_interpolation({
+    property: 'height',
+    from: 'calc-size(50px, size)',
+    to: 'calc-size(min-content, size)',
+  }, [
+    { at: 0, expect: '50px' },
+    { at: 0.5, expect: '75px' },
+    { at: 1, expect: '100px' },
+  ]);
 
 </script>

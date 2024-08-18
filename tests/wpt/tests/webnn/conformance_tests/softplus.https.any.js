@@ -65,6 +65,28 @@ const softplusTests = [
     }
   },
   {
+    'name': 'softplus float32 0D tensor',
+    'graph': {
+      'inputs': {
+        'softplusInput': {
+          'data': [5.626614570617676],
+          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+        }
+      },
+      'operators': [{
+        'name': 'softplus',
+        'arguments': [{'input': 'softplusInput'}],
+        'outputs': 'softplusOutput'
+      }],
+      'expectedOutputs': {
+        'softplusOutput': {
+          'data': [5.630208969116211],
+          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+        }
+      }
+    }
+  },
+  {
     'name': 'softplus float32 1D tensor',
     'graph': {
       'inputs': {

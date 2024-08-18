@@ -30,10 +30,10 @@
     function test_valid_attr(property, attrString, attrValue, expectedValue) {
         var elem = document.getElementById("attr");
         elem.setAttribute("data-foo", attrValue);
-        elem.style[property]= attrString;
+        elem.style.setProperty(property, attrString);
 
         var expectedElem =  document.getElementById("expected");
-        expectedElem.style[property] = expectedValue;
+        expectedElem.style.setProperty(property, expectedValue);
 
         test(() => {
             assert_equals(window.getComputedStyle(elem).getPropertyValue(property),
@@ -42,8 +42,8 @@
                           "\' should be valid for the property \'" + property + "\'.");
         });
 
-        elem.style[property] = null;
-        expectedElem.style[property] = null;
+        elem.style.setProperty(property, null);
+        expectedElem.style.setProperty(property, null);
     }
 
     function test_invalid_attr(property, attrString, attrValue) {
@@ -51,14 +51,14 @@
         var expectedValue = window.getComputedStyle(elem).getPropertyValue(property);
 
         elem.setAttribute("data-foo", attrValue);
-        elem.style[property]= attrString;
+        elem.style.setProperty(property, attrString);
 
         test(() => {
             assert_equals(window.getComputedStyle(elem).getPropertyValue(property), expectedValue,
                           "Setting property \'" + property + "\' to the value \'" + attrString +
                           "\', where \'data-foo=" + attrValue + "\' should not change it's value.");
         });
-        elem.style[property] = null;
+        elem.style.setProperty(property, null);
     }
 
     function test_dimension_types_and_units() {

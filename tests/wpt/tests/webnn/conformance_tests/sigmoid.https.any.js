@@ -66,6 +66,28 @@ const sigmoidTests = [
     }
   },
   {
+    'name': 'sigmoid float32 0D tensor',
+    'graph': {
+      'inputs': {
+        'sigmoidInput': {
+          'data': [-0.37699514627456665],
+          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+        }
+      },
+      'operators': [{
+        'name': 'sigmoid',
+        'arguments': [{'input': 'sigmoidInput'}],
+        'outputs': 'sigmoidOutput'
+      }],
+      'expectedOutputs': {
+        'sigmoidOutput': {
+          'data': [0.4068518280982971],
+          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+        }
+      }
+    }
+  },
+  {
     'name': 'sigmoid float32 1D tensor',
     'graph': {
       'inputs': {

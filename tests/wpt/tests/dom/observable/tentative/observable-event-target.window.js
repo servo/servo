@@ -9,8 +9,8 @@ test(() => {
       document.querySelector('body').appendChild(document.createElement('div'));
 
   const body = document.querySelector('body');
-  const captureObservable = body.on('click', {capture: true});
-  const bubbleObservable = body.on('click', {capture: false});
+  const captureObservable = body.when('click', {capture: true});
+  const bubbleObservable = body.when('click', {capture: false});
 
   const results = [];
   captureObservable.subscribe(e => results.push(e.eventPhase));
@@ -24,7 +24,7 @@ test(() => {
 test(() => {
   const target = new EventTarget();
 
-  const observable = target.on('event', {passive: true});
+  const observable = target.when('event', {passive: true});
   observable.subscribe(event => {
     assert_false(event.defaultPrevented);
     // Should do nothing, since `observable` is "passive".

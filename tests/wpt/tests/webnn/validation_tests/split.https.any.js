@@ -1,5 +1,8 @@
 // META: title=validation tests for WebNN API split operation
 // META: global=window,dedicatedworker
+// META: variant=?cpu
+// META: variant=?gpu
+// META: variant=?npu
 // META: script=../resources/utils_validation.js
 
 'use strict';
@@ -13,6 +16,7 @@ multi_builder_test(async (t, builder, otherBuilder) => {
       TypeError, () => builder.split(inputFromOtherBuilder, splits));
 }, '[split] throw if input is from another builder');
 
+const label = 'xxx-split';
 const tests = [
   {
     name: '[split] Test with default options.',
@@ -38,6 +42,7 @@ const tests = [
     name: '[split] Throw if splitting a scalar.',
     input: {dataType: 'float32', dimensions: []},
     splits: [2],
+    options: {label}
   },
   {
     name: '[split] Throw if axis is larger than input rank.',
@@ -45,6 +50,7 @@ const tests = [
     splits: [2],
     options: {
       axis: 2,
+      label: label,
     }
   },
   {
@@ -53,6 +59,7 @@ const tests = [
     splits: [0],
     options: {
       axis: 0,
+      label: label,
     }
   },
   {
@@ -61,6 +68,7 @@ const tests = [
     splits: 0,
     options: {
       axis: 0,
+      label: label,
     },
   },
   {
@@ -70,6 +78,7 @@ const tests = [
     splits: [2],
     options: {
       axis: 1,
+      label: label,
     }
   },
   {
@@ -79,6 +88,7 @@ const tests = [
     splits: 2,
     options: {
       axis: 1,
+      label: label,
     },
   },
   {
@@ -88,6 +98,7 @@ const tests = [
     splits: [2, 2, 3],
     options: {
       axis: 1,
+      label: label,
     }
   },
 ];
@@ -106,7 +117,8 @@ tests.forEach(
           assert_array_equals(outputs[i].shape(), test.outputs[i].dimensions);
         }
       } else {
-        assert_throws_js(
-            TypeError, () => builder.split(input, test.splits, test.options));
+        const regrexp = new RegExp('\\[' + label + '\\]');
+        assert_throws_with_label(
+            () => builder.split(input, test.splits, test.options), regrexp);
       }
     }, test.name));

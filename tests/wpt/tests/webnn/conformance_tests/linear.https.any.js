@@ -69,6 +69,28 @@ const linearTests = [
     }
   },
   {
+    'name': 'linear float32 0D tensor default options',
+    'graph': {
+      'inputs': {
+        'linearInput': {
+          'data': [-1.12251615524292],
+          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+        }
+      },
+      'operators': [{
+        'name': 'linear',
+        'arguments': [{'input': 'linearInput'}],
+        'outputs': 'linearOutput'
+      }],
+      'expectedOutputs': {
+        'linearOutput': {
+          'data': [-1.12251615524292],
+          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+        }
+      }
+    }
+  },
+  {
     'name': 'linear float32 1D tensor default options',
     'graph': {
       'inputs': {

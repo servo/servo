@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>CSS Masonry: masonry-track-* parsing</title>
+<link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+<link rel="help" href="https://tabatkins.github.io/specs/css-masonry/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<body>
+<script>
+  // auto
+  test_valid_value("masonry-track-end", "AuTo", "auto");
+  test_valid_value("masonry-track-start", "AuTo", "auto");
+
+  // <custom-ident>
+  test_valid_value("masonry-track-end", "a_3");
+  test_valid_value("masonry-track-start", "-_π");
+
+  // <integer> && <custom-ident>?
+  test_valid_value("masonry-track-end", "Z -44", "-44 Z");
+  test_valid_value("masonry-track-start", "+90", "90");
+
+  // span && [ <integer> || <custom-ident> ]
+  test_valid_value("masonry-track-end", "SpAn i 2", "span 2 i");
+  test_valid_value("masonry-track-start", "2 i span", "span 2 i");
+</script>

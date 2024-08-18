@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<title>Inheritance of CSS Inline Layout Text Edge properties</title>
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#text-box-edge">
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#text-box-trim">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/inheritance-testcommon.js"></script>
+<div id="container">
+  <div id="target"></div>
+</div>
+<script>
+assert_not_inherited('text-box-edge', 'auto', 'cap');
+assert_not_inherited('text-box-trim', 'none', 'trim-start');
+</script>
