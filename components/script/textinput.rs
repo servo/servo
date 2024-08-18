@@ -8,7 +8,6 @@ use std::borrow::ToOwned;
 use std::cmp::min;
 use std::default::Default;
 use std::ops::{Add, AddAssign, Range};
-use std::usize;
 
 use keyboard_types::{Key, KeyState, Modifiers, ShortcutMatcher};
 use unicode_segmentation::UnicodeSegmentation;

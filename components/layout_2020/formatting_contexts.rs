@@ -19,7 +19,7 @@ use crate::fragment_tree::{BaseFragmentInfo, Fragment, FragmentFlags};
 use crate::positioned::PositioningContext;
 use crate::replaced::ReplacedContent;
 use crate::sizing::{self, ContentSizes};
-use crate::style_ext::DisplayInside;
+use crate::style_ext::{ComputedValuesExt, DisplayInside};
 use crate::table::Table;
 use crate::ContainingBlock;
 
@@ -180,7 +180,7 @@ impl IndependentFormattingContext {
         match self {
             Self::NonReplaced(inner) => inner
                 .contents
-                .inline_content_sizes(layout_context, inner.style.writing_mode),
+                .inline_content_sizes(layout_context, inner.style.effective_writing_mode()),
             Self::Replaced(inner) => inner.contents.inline_content_sizes(&inner.style),
         }
     }
@@ -237,7 +237,7 @@ impl NonReplacedFormattingContext {
     }
 
     pub fn inline_content_sizes(&mut self, layout_context: &LayoutContext) -> ContentSizes {
-        let writing_mode = self.style.writing_mode;
+        let writing_mode = self.style.effective_writing_mode();
         let contents = &mut self.contents;
         *self
             .content_sizes
@@ -256,7 +256,7 @@ impl NonReplacedFormattingContext {
             || {
                 *self.content_sizes.get_or_insert_with(|| {
                     self.contents
-                        .inline_content_sizes(layout_context, self.style.writing_mode)
+                        .inline_content_sizes(layout_context, self.style.effective_writing_mode())
                 })
             },
             get_auto_minimum,

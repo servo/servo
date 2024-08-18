@@ -976,7 +976,8 @@ impl FloatBox {
                         );
                         children = replaced.contents.make_fragments(
                             &replaced.style,
-                            content_size.to_physical_size(containing_block.style.writing_mode),
+                            content_size
+                                .to_physical_size(containing_block.effective_writing_mode()),
                         )
                     },
                 };
@@ -986,7 +987,7 @@ impl FloatBox {
                     size: content_size,
                 };
 
-                let containing_block_writing_mode = containing_block.style.writing_mode;
+                let containing_block_writing_mode = containing_block.effective_writing_mode();
                 BoxFragment::new(
                     self.contents.base_fragment_info(),
                     style.clone(),

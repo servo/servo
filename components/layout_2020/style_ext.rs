@@ -183,6 +183,7 @@ impl AspectRatio {
 }
 
 pub(crate) trait ComputedValuesExt {
+    fn effective_writing_mode(&self) -> WritingMode;
     fn box_offsets(
         &self,
         containing_block: &ContainingBlock,
@@ -266,6 +267,10 @@ pub(crate) trait ComputedValuesExt {
 }
 
 impl ComputedValuesExt for ComputedValues {
+    fn effective_writing_mode(&self) -> WritingMode {
+        WritingMode::horizontal_tb()
+    }
+
     fn box_offsets(
         &self,
         containing_block: &ContainingBlock,
@@ -278,7 +283,7 @@ impl ComputedValuesExt for ComputedValues {
                 position.bottom.as_ref(),
                 position.left.as_ref(),
             ),
-            containing_block.style.writing_mode,
+            containing_block.effective_writing_mode(),
         )
     }
 
@@ -333,7 +338,7 @@ impl ComputedValuesExt for ComputedValues {
         pbm: &PaddingBorderMargin,
     ) -> LogicalVec2<LengthOrAuto> {
         let box_size = self
-            .box_size(containing_block.style.writing_mode)
+            .box_size(containing_block.effective_writing_mode())
             .percentages_relative_to(containing_block);
         self.content_box_size_for_box_size(box_size, pbm)
     }
@@ -364,7 +369,7 @@ impl ComputedValuesExt for ComputedValues {
         pbm: &PaddingBorderMargin,
     ) -> LogicalVec2<LengthOrAuto> {
         let box_size = self
-            .min_box_size(containing_block.style.writing_mode)
+            .min_box_size(containing_block.effective_writing_mode())
             .percentages_relative_to(containing_block);
         self.content_min_box_size_for_min_size(box_size, pbm)
     }
@@ -394,7 +399,7 @@ impl ComputedValuesExt for ComputedValues {
         pbm: &PaddingBorderMargin,
     ) -> LogicalVec2<Option<Length>> {
         let max_box_size = self
-            .max_box_size(containing_block.style.writing_mode)
+            .max_box_size(containing_block.effective_writing_mode())
             .percentages_relative_to(containing_block);
 
         self.content_max_box_size_for_max_size(max_box_size, pbm)
@@ -425,11 +430,11 @@ impl ComputedValuesExt for ComputedValues {
     fn padding_border_margin(&self, containing_block: &ContainingBlock) -> PaddingBorderMargin {
         let cbis = containing_block.inline_size;
         let padding = self
-            .padding(containing_block.style.writing_mode)
+            .padding(containing_block.effective_writing_mode())
             .percentages_relative_to(cbis.into());
-        let border = self.border_width(containing_block.style.writing_mode);
+        let border = self.border_width(containing_block.effective_writing_mode());
         let margin = self
-            .margin(containing_block.style.writing_mode)
+            .margin(containing_block.effective_writing_mode())
             .percentages_relative_to(cbis.into());
         PaddingBorderMargin {
             padding_border_sums: LogicalVec2 {

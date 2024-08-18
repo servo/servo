@@ -27,11 +27,16 @@ callback XRFrameRequestCallback = undefined (DOMHighResTimeStamp time, XRFrame f
 interface XRSession : EventTarget {
   // Attributes
   readonly attribute XRVisibilityState visibilityState;
+  readonly attribute float? frameRate;
+  readonly attribute Float32Array? supportedFrameRates;
   [SameObject] readonly attribute XRRenderState renderState;
   [SameObject] readonly attribute XRInputSourceArray inputSources;
+  readonly attribute /*FrozenArray<DOMString>*/ any enabledFeatures;
+  readonly attribute boolean isSystemKeyboardSupported;
 
   // Methods
   [Throws] undefined updateRenderState(optional XRRenderStateInit state = {});
+  Promise<undefined> updateTargetFrameRate(float rate);
   Promise<XRReferenceSpace> requestReferenceSpace(XRReferenceSpaceType type);
 
   long requestAnimationFrame(XRFrameRequestCallback callback);
@@ -49,6 +54,7 @@ interface XRSession : EventTarget {
   attribute EventHandler onsqueezestart;
   attribute EventHandler onsqueezeend;
   attribute EventHandler onvisibilitychange;
+  attribute EventHandler onframeratechange;
 
   // AR Module
   // Attributes

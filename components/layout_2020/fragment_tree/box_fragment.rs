@@ -165,15 +165,16 @@ impl BoxFragment {
     /// Get the baselines for this [`BoxFragment`] if they are compatible with the given [`WritingMode`].
     /// If they are not compatible, [`Baselines::default()`] is returned.
     pub fn baselines(&self, writing_mode: WritingMode) -> Baselines {
-        let mut baselines =
-            if writing_mode.is_horizontal() == self.style.writing_mode.is_horizontal() {
-                self.baselines
-            } else {
-                // If the writing mode of the container requesting baselines is not
-                // compatible, ensure that the baselines established by this fragment are
-                // not used.
-                Baselines::default()
-            };
+        let mut baselines = if writing_mode.is_horizontal() ==
+            self.style.effective_writing_mode().is_horizontal()
+        {
+            self.baselines
+        } else {
+            // If the writing mode of the container requesting baselines is not
+            // compatible, ensure that the baselines established by this fragment are
+            // not used.
+            Baselines::default()
+        };
 
         // From the https://drafts.csswg.org/css-align-3/#baseline-export section on "block containers":
         // > However, for legacy reasons if its baseline-source is auto (the initial

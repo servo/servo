@@ -221,6 +221,7 @@ impl FromJSValConvertible for DOMString {
 /// Convert the given `JSString` to a `DOMString`. Fails if the string does not
 /// contain valid UTF-16.
 pub unsafe fn jsstring_to_str(cx: *mut JSContext, s: *mut JSString) -> DOMString {
+    assert!(!s.is_null());
     let latin1 = JS_DeprecatedStringHasLatin1Chars(s);
     DOMString::from_string(if latin1 {
         latin1_to_string(cx, s)
