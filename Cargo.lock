@@ -5892,7 +5892,7 @@ dependencies = [
 [[package]]
 name = "servo-media"
 version = "0.1.0"
-source = "git+https://github.com/Taym95/media?branch=fix/handle-audiorenderthread-errors#2ae2c3714799b108d03b919a18028a757be2f047"
+source = "git+https://github.com/servo/media#ed1d4c7c11c93e7e66afc0224fc15f70d6b1fe83"
 dependencies = [
  "once_cell",
  "servo-media-audio",
@@ -5905,7 +5905,7 @@ dependencies = [
 [[package]]
 name = "servo-media-audio"
 version = "0.2.0"
-source = "git+https://github.com/Taym95/media?branch=fix/handle-audiorenderthread-errors#2ae2c3714799b108d03b919a18028a757be2f047"
+source = "git+https://github.com/servo/media#ed1d4c7c11c93e7e66afc0224fc15f70d6b1fe83"
 dependencies = [
  "byte-slice-cast",
  "euclid",
@@ -5926,7 +5926,7 @@ dependencies = [
 [[package]]
 name = "servo-media-derive"
 version = "0.1.0"
-source = "git+https://github.com/Taym95/media?branch=fix/handle-audiorenderthread-errors#2ae2c3714799b108d03b919a18028a757be2f047"
+source = "git+https://github.com/servo/media#ed1d4c7c11c93e7e66afc0224fc15f70d6b1fe83"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -5936,7 +5936,7 @@ dependencies = [
 [[package]]
 name = "servo-media-dummy"
 version = "0.1.0"
-source = "git+https://github.com/Taym95/media?branch=fix/handle-audiorenderthread-errors#2ae2c3714799b108d03b919a18028a757be2f047"
+source = "git+https://github.com/servo/media#ed1d4c7c11c93e7e66afc0224fc15f70d6b1fe83"
 dependencies = [
  "ipc-channel",
  "servo-media",
@@ -5950,7 +5950,7 @@ dependencies = [
 [[package]]
 name = "servo-media-gstreamer"
 version = "0.1.0"
-source = "git+https://github.com/Taym95/media?branch=fix/handle-audiorenderthread-errors#2ae2c3714799b108d03b919a18028a757be2f047"
+source = "git+https://github.com/servo/media#ed1d4c7c11c93e7e66afc0224fc15f70d6b1fe83"
 dependencies = [
  "byte-slice-cast",
  "glib",
@@ -5984,7 +5984,7 @@ dependencies = [
 [[package]]
 name = "servo-media-gstreamer-render"
 version = "0.1.0"
-source = "git+https://github.com/Taym95/media?branch=fix/handle-audiorenderthread-errors#2ae2c3714799b108d03b919a18028a757be2f047"
+source = "git+https://github.com/servo/media#ed1d4c7c11c93e7e66afc0224fc15f70d6b1fe83"
 dependencies = [
  "gstreamer",
  "gstreamer-video",
@@ -5994,7 +5994,7 @@ dependencies = [
 [[package]]
 name = "servo-media-gstreamer-render-android"
 version = "0.1.0"
-source = "git+https://github.com/Taym95/media?branch=fix/handle-audiorenderthread-errors#2ae2c3714799b108d03b919a18028a757be2f047"
+source = "git+https://github.com/servo/media#ed1d4c7c11c93e7e66afc0224fc15f70d6b1fe83"
 dependencies = [
  "glib",
  "gstreamer",
@@ -6008,7 +6008,7 @@ dependencies = [
 [[package]]
 name = "servo-media-gstreamer-render-unix"
 version = "0.1.0"
-source = "git+https://github.com/Taym95/media?branch=fix/handle-audiorenderthread-errors#2ae2c3714799b108d03b919a18028a757be2f047"
+source = "git+https://github.com/servo/media#ed1d4c7c11c93e7e66afc0224fc15f70d6b1fe83"
 dependencies = [
  "glib",
  "gstreamer",
@@ -6023,7 +6023,7 @@ dependencies = [
 [[package]]
 name = "servo-media-player"
 version = "0.1.0"
-source = "git+https://github.com/Taym95/media?branch=fix/handle-audiorenderthread-errors#2ae2c3714799b108d03b919a18028a757be2f047"
+source = "git+https://github.com/servo/media#ed1d4c7c11c93e7e66afc0224fc15f70d6b1fe83"
 dependencies = [
  "ipc-channel",
  "serde",
@@ -6035,7 +6035,7 @@ dependencies = [
 [[package]]
 name = "servo-media-streams"
 version = "0.1.0"
-source = "git+https://github.com/Taym95/media?branch=fix/handle-audiorenderthread-errors#2ae2c3714799b108d03b919a18028a757be2f047"
+source = "git+https://github.com/servo/media#ed1d4c7c11c93e7e66afc0224fc15f70d6b1fe83"
 dependencies = [
  "lazy_static",
  "uuid",
@@ -6044,12 +6044,12 @@ dependencies = [
 [[package]]
 name = "servo-media-traits"
 version = "0.1.0"
-source = "git+https://github.com/Taym95/media?branch=fix/handle-audiorenderthread-errors#2ae2c3714799b108d03b919a18028a757be2f047"
+source = "git+https://github.com/servo/media#ed1d4c7c11c93e7e66afc0224fc15f70d6b1fe83"
 
 [[package]]
 name = "servo-media-webrtc"
 version = "0.1.0"
-source = "git+https://github.com/Taym95/media?branch=fix/handle-audiorenderthread-errors#2ae2c3714799b108d03b919a18028a757be2f047"
+source = "git+https://github.com/servo/media#ed1d4c7c11c93e7e66afc0224fc15f70d6b1fe83"
 dependencies = [
  "lazy_static",
  "log",
