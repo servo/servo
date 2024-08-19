@@ -79,7 +79,7 @@ ipc-channel = { workspace = true, features = ["force-inprocess"] }
 hilog = "0.1.0"
 napi-derive-ohos = "0.0.9"
 napi-ohos = "0.1"
-ohos-sys = { version = "0.2.1", features = ["xcomponent"] }
+ohos-sys = { version = "0.2.2", features = ["xcomponent"] }
 
 [target.'cfg(any(target_os = "android", target_env = "ohos"))'.dependencies]
 nix = { workspace = true, features = ["fs"] }
