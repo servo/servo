@@ -9,7 +9,7 @@ use std::str::FromStr;
 use dom_struct::dom_struct;
 use indexmap::IndexSet;
 use js::rust::HandleObject;
-use webgpu::wgt;
+use webgpu::wgt::Features;
 
 use super::bindings::like::Setlike;
 use crate::dom::bindings::cell::DomRefCell;
@@ -39,43 +39,66 @@ pub struct GPUSupportedFeatures {
     // internal storage for features
     #[custom_trace]
     internal: DomRefCell<IndexSet<GPUFeatureName>>,
+    #[ignore_malloc_size_of = "defined in wgpu-types"]
+    #[no_trace]
+    features: Features,
 }
 
 impl GPUSupportedFeatures {
     fn new(
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        features: wgt::Features,
+        features: Features,
     ) -> DomRoot<GPUSupportedFeatures> {
         let mut set = IndexSet::new();
-        if features.contains(wgt::Features::DEPTH_CLIP_CONTROL) {
+        if features.contains(Features::DEPTH_CLIP_CONTROL) {
             set.insert(GPUFeatureName::Depth_clip_control);
         }
-        if features.contains(wgt::Features::DEPTH32FLOAT_STENCIL8) {
+        if features.contains(Features::DEPTH32FLOAT_STENCIL8) {
             set.insert(GPUFeatureName::Depth32float_stencil8);
         }
-        if features.contains(wgt::Features::PIPELINE_STATISTICS_QUERY) {
-            set.insert(GPUFeatureName::Pipeline_statistics_query);
-        }
-        if features.contains(wgt::Features::TEXTURE_COMPRESSION_BC) {
+        if features.contains(Features::TEXTURE_COMPRESSION_BC) {
             set.insert(GPUFeatureName::Texture_compression_bc);
         }
-        if features.contains(wgt::Features::TEXTURE_COMPRESSION_ETC2) {
+        // TODO: texture-compression-bc-sliced-3d when wgpu supports it
+        if features.contains(Features::TEXTURE_COMPRESSION_ETC2) {
             set.insert(GPUFeatureName::Texture_compression_etc2);
         }
-        if features.contains(wgt::Features::TEXTURE_COMPRESSION_ASTC) {
+        if features.contains(Features::TEXTURE_COMPRESSION_ASTC) {
             set.insert(GPUFeatureName::Texture_compression_astc);
         }
-        if features.contains(wgt::Features::TIMESTAMP_QUERY) {
+        if features.contains(Features::TIMESTAMP_QUERY) {
             set.insert(GPUFeatureName::Timestamp_query);
         }
-        if features.contains(wgt::Features::INDIRECT_FIRST_INSTANCE) {
+        if features.contains(Features::INDIRECT_FIRST_INSTANCE) {
             set.insert(GPUFeatureName::Indirect_first_instance);
         }
+        // While this feature exists in wgpu, it's not supported by naga yet
+        // https://github.com/gfx-rs/wgpu/issues/4384
+        /*
+        if features.contains(Features::SHADER_F16) {
+            set.insert(GPUFeatureName::Shader_f16);
+        }
+        */
+        if features.contains(Features::RG11B10UFLOAT_RENDERABLE) {
+            set.insert(GPUFeatureName::Rg11b10ufloat_renderable);
+        }
+        if features.contains(Features::BGRA8UNORM_STORAGE) {
+            set.insert(GPUFeatureName::Bgra8unorm_storage);
+        }
+        if features.contains(Features::FLOAT32_FILTERABLE) {
+            set.insert(GPUFeatureName::Float32_filterable);
+        }
+        // TODO: clip-distances when wgpu supports it
+        if features.contains(Features::DUAL_SOURCE_BLENDING) {
+            set.insert(GPUFeatureName::Dual_source_blending);
+        }
+
         reflect_dom_object_with_proto(
             Box::new(GPUSupportedFeatures {
                 reflector: Reflector::new(),
                 internal: DomRefCell::new(set),
+                features,
             }),
             global,
             proto,
@@ -86,9 +109,15 @@ impl GPUSupportedFeatures {
     pub fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        features: wgt::Features,
+        features: Features,
     ) -> Fallible<DomRoot<GPUSupportedFeatures>> {
         Ok(GPUSupportedFeatures::new(global, proto, features))
+    }
+}
+
+impl GPUSupportedFeatures {
+    pub fn wgpu_features(&self) -> Features {
+        self.features
     }
 }
 
@@ -98,17 +127,24 @@ impl GPUSupportedFeaturesMethods for GPUSupportedFeatures {
     }
 }
 
-pub fn gpu_to_wgt_feature(feature: GPUFeatureName) -> Option<wgt::Features> {
+pub fn gpu_to_wgt_feature(feature: GPUFeatureName) -> Option<Features> {
     match feature {
-        GPUFeatureName::Depth_clip_control => Some(wgt::Features::DEPTH_CLIP_CONTROL),
-        GPUFeatureName::Depth24unorm_stencil8 => None,
-        GPUFeatureName::Depth32float_stencil8 => Some(wgt::Features::DEPTH32FLOAT_STENCIL8),
-        GPUFeatureName::Pipeline_statistics_query => Some(wgt::Features::PIPELINE_STATISTICS_QUERY),
-        GPUFeatureName::Texture_compression_bc => Some(wgt::Features::TEXTURE_COMPRESSION_BC),
-        GPUFeatureName::Texture_compression_etc2 => Some(wgt::Features::TEXTURE_COMPRESSION_ETC2),
-        GPUFeatureName::Texture_compression_astc => Some(wgt::Features::TEXTURE_COMPRESSION_ASTC),
-        GPUFeatureName::Timestamp_query => Some(wgt::Features::TIMESTAMP_QUERY),
-        GPUFeatureName::Indirect_first_instance => Some(wgt::Features::INDIRECT_FIRST_INSTANCE),
+        GPUFeatureName::Depth_clip_control => Some(Features::DEPTH_CLIP_CONTROL),
+        GPUFeatureName::Depth32float_stencil8 => Some(Features::DEPTH32FLOAT_STENCIL8),
+        GPUFeatureName::Texture_compression_bc => Some(Features::TEXTURE_COMPRESSION_BC),
+        GPUFeatureName::Texture_compression_etc2 => Some(Features::TEXTURE_COMPRESSION_ETC2),
+        GPUFeatureName::Texture_compression_astc => Some(Features::TEXTURE_COMPRESSION_ASTC),
+        GPUFeatureName::Timestamp_query => Some(Features::TIMESTAMP_QUERY),
+        GPUFeatureName::Indirect_first_instance => Some(Features::INDIRECT_FIRST_INSTANCE),
+        // While this feature exists in wgpu, it's not supported by naga yet
+        // https://github.com/gfx-rs/wgpu/issues/4384
+        GPUFeatureName::Shader_f16 => None,
+        GPUFeatureName::Rg11b10ufloat_renderable => Some(Features::RG11B10UFLOAT_RENDERABLE),
+        GPUFeatureName::Bgra8unorm_storage => Some(Features::BGRA8UNORM_STORAGE),
+        GPUFeatureName::Float32_filterable => Some(Features::FLOAT32_FILTERABLE),
+        GPUFeatureName::Dual_source_blending => Some(Features::DUAL_SOURCE_BLENDING),
+        GPUFeatureName::Texture_compression_bc_sliced_3d => None,
+        GPUFeatureName::Clip_distances => None,
     }
 }
 

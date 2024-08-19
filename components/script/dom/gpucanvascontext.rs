@@ -20,6 +20,7 @@ use super::bindings::codegen::Bindings::WebGPUBinding::GPUTextureUsageConstants;
 use super::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanvas;
 use super::bindings::error::{Error, Fallible};
 use super::bindings::root::MutNullableDom;
+use super::bindings::str::USVString;
 use super::gputexture::GPUTexture;
 use crate::dom::bindings::codegen::Bindings::HTMLCanvasElementBinding::HTMLCanvasElement_Binding::HTMLCanvasElementMethods;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
@@ -207,7 +208,9 @@ impl GPUCanvasContextMethods for GPUCanvasContext {
     fn Configure(&self, descriptor: &GPUCanvasConfiguration) -> Fallible<()> {
         // Step 1 is let
         // Step 2
-        // TODO: device features
+        descriptor
+            .device
+            .validate_texture_format_required_features(&descriptor.format)?;
         let format = match descriptor.format {
             GPUTextureFormat::Rgba8unorm | GPUTextureFormat::Rgba8unorm_srgb => ImageFormat::RGBA8,
             GPUTextureFormat::Bgra8unorm | GPUTextureFormat::Bgra8unorm_srgb => ImageFormat::BGRA8,
@@ -220,7 +223,11 @@ impl GPUCanvasContextMethods for GPUCanvasContext {
         };
 
         // Step 3
-        // TODO: device features
+        for view_format in &descriptor.viewFormats {
+            descriptor
+                .device
+                .validate_texture_format_required_features(view_format)?;
+        }
 
         // Step 4
         let size = self.size();
@@ -236,7 +243,9 @@ impl GPUCanvasContextMethods for GPUCanvasContext {
             }),
             viewFormats: descriptor.viewFormats.clone(),
             // other members to default
-            parent: GPUObjectDescriptorBase { label: None },
+            parent: GPUObjectDescriptorBase {
+                label: USVString::default(),
+            },
             dimension: GPUTextureDimension::_2d,
         };
 
