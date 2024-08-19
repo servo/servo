@@ -132,31 +132,21 @@ class PackageCommands(CommandBase):
                      default=None,
                      help='Package using the given Gradle flavor')
     @CommandBase.common_command_arguments(build_configuration=False, build_type=True)
-    def package(self, build_type: BuildType, android=None, target=None, flavor=None, with_asan=False):
-        if android is None:
-            android = self.config["build"]["android"]
-        if target and android:
-            print("Please specify either --target or --android.")
-            sys.exit(1)
-        if not android:
-            android = self.setup_configuration_for_android_target(target)
-        else:
-            target = self.config["android"]["target"]
-
-        self.cross_compile_target = target
+    @CommandBase.allow_target_configuration
+    def package(self, build_type: BuildType, flavor=None, with_asan=False):
         env = self.build_env()
-        binary_path = self.get_binary_path(build_type, target=target, android=android, asan=with_asan)
+        binary_path = self.get_binary_path(build_type, asan=with_asan)
         dir_to_root = self.get_top_dir()
         target_dir = path.dirname(binary_path)
-        if android:
-            android_target = self.config["android"]["target"]
-            if "aarch64" in android_target:
+        if self.is_android():
+            target_triple = self.target.triple()
+            if "aarch64" in target_triple:
                 arch_string = "Arm64"
-            elif "armv7" in android_target:
+            elif "armv7" in target_triple:
                 arch_string = "Armv7"
-            elif "i686" in android_target:
+            elif "i686" in target_triple:
                 arch_string = "x86"
-            elif "x86_64" in android_target:
+            elif "x86_64" in target_triple:
                 arch_string = "x64"
             else:
                 arch_string = "Arm"
@@ -211,7 +201,7 @@ class PackageCommands(CommandBase):
 
             print("Packaging GStreamer...")
             dmg_binary = path.join(content_dir, "servo")
-            servo.gstreamer.package_gstreamer_dylibs(dmg_binary, lib_dir)
+            servo.gstreamer.package_gstreamer_dylibs(dmg_binary, lib_dir, self.target)
 
             print("Adding version to Credits.rtf")
             version_command = [binary_path, '--version']
@@ -368,30 +358,25 @@ class PackageCommands(CommandBase):
                      default=None,
                      help='Install the given target platform')
     @CommandBase.common_command_arguments(build_configuration=False, build_type=True)
-    def install(self, build_type: BuildType, android=False, emulator=False, usb=False, target=None, with_asan=False):
-        if target and android:
-            print("Please specify either --target or --android.")
-            sys.exit(1)
-        if not android:
-            android = self.setup_configuration_for_android_target(target)
-        self.cross_compile_target = target
-
+    @CommandBase.allow_target_configuration
+    def install(self, build_type: BuildType, emulator=False, usb=False, with_asan=False):
         env = self.build_env()
         try:
-            binary_path = self.get_binary_path(build_type, android=android, asan=with_asan)
+            binary_path = self.get_binary_path(build_type, asan=with_asan)
         except BuildNotFound:
             print("Servo build not found. Building servo...")
             result = Registrar.dispatch(
-                "build", context=self.context, build_type=build_type, android=android,
+                "build", context=self.context, build_type=build_type
             )
             if result:
                 return result
             try:
-                binary_path = self.get_binary_path(build_type, android=android, asan=with_asan)
+                binary_path = self.get_binary_path(build_type, asan=with_asan)
             except BuildNotFound:
                 print("Rebuilding Servo did not solve the missing build problem.")
                 return 1
-        if android:
+
+        if self.is_android():
             pkg_path = self.get_apk_path(build_type)
             exec_command = [self.android_adb_path(env)]
             if emulator and usb:
@@ -409,7 +394,7 @@ class PackageCommands(CommandBase):
         if not path.exists(pkg_path):
             print("Servo package not found. Packaging servo...")
             result = Registrar.dispatch(
-                "package", context=self.context, build_type=build_type, android=android,
+                "package", context=self.context, build_type=build_type
             )
             if result != 0:
                 return result

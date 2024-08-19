@@ -85,7 +85,7 @@ jobs:
           APK_SIGNING_KEY_ALIAS: ${{ secrets.APK_SIGNING_KEY_ALIAS }}
           APK_SIGNING_KEY_PASS: ${{ secrets.APK_SIGNING_KEY_PASS }}
         run: |
-          python3 ./mach build --use-crown --locked --android --target ${{ matrix.arch }} --${{ inputs.profile }}
+          python3 ./mach build --use-crown --locked --target ${{ matrix.arch }} --${{ inputs.profile }}
           cp -r target/cargo-timings target/cargo-timings-android-${{ matrix.arch }}
       # TODO: This is disabled since APK crashes during startup.
       # See https://github.com/servo/servo/issues/31134
