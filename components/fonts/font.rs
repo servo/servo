@@ -320,7 +320,6 @@ struct ShapeCacheEntry {
 
 impl Font {
     pub fn shape_text(&self, text: &str, options: &ShapingOptions) -> Arc<GlyphStore> {
-        let this = self as *const Font;
         let lookup_key = ShapeCacheEntry {
             text: text.to_owned(),
             options: *options,
@@ -348,9 +347,7 @@ impl Font {
             self.shape_text_fast(text, options, &mut glyphs);
         } else {
             debug!("shape_text: Using Harfbuzz.");
-            self.shaper
-                .get_or_init(|| Shaper::new(this))
-                .shape_text(text, options, &mut glyphs);
+            self.shape_text_harfbuzz(text, options, &mut glyphs);
         }
 
         let shaped_text = Arc::new(glyphs);
@@ -364,6 +361,13 @@ impl Font {
         );
 
         shaped_text
+    }
+
+    fn shape_text_harfbuzz(&self, text: &str, options: &ShapingOptions, glyphs: &mut GlyphStore) {
+        let this = self as *const Font;
+        self.shaper
+            .get_or_init(|| Shaper::new(this))
+            .shape_text(text, options, glyphs);
     }
 
     fn can_do_fast_shaping(&self, text: &str, options: &ShapingOptions) -> bool {
@@ -855,4 +859,88 @@ pub(crate) fn map_platform_values_to_style_values(mapping: &[(f64, f64)], value:
     }
 
     mapping[mapping.len() - 1].1
+}
+
+#[cfg(test)]
+mod test {
+    #[cfg(target_os = "windows")]
+    #[test]
+    fn test_shape_text_fast() {
+        use std::fs::File;
+        use std::io::Read;
+        use std::path::PathBuf;
+        use std::sync::Arc;
+
+        use app_units::Au;
+        use euclid::num::Zero;
+        use servo_url::ServoUrl;
+        use style::properties::longhands::font_variant_caps::computed_value::T as FontVariantCaps;
+        use style::values::computed::{FontStretch, FontStyle, FontWeight};
+        use unicode_script::Script;
+
+        use crate::platform::font::PlatformFont;
+        use crate::{
+            Font, FontDescriptor, FontIdentifier, FontTemplate, GlyphStore, PlatformFontMethods,
+            ShapingFlags, ShapingOptions,
+        };
+
+        let path: PathBuf = [
+            env!("CARGO_MANIFEST_DIR"),
+            "tests",
+            "support",
+            "dejavu-fonts-ttf-2.37",
+            "ttf",
+            "DejaVuSans.ttf",
+        ]
+        .iter()
+        .collect();
+
+        let identifier = FontIdentifier::Web(ServoUrl::from_file_path(path.clone()).unwrap());
+        let file = File::open(path).unwrap();
+        let data: Arc<Vec<u8>> = Arc::new(file.bytes().map(|b| b.unwrap()).collect());
+        let platform_font =
+            PlatformFont::new_from_data(identifier.clone(), data.clone(), 0, None).unwrap();
+
+        let template = FontTemplate {
+            identifier,
+            descriptor: platform_font.descriptor(),
+            data: Some(data),
+            stylesheet: None,
+        };
+        let descriptor = FontDescriptor {
+            weight: FontWeight::normal(),
+            stretch: FontStretch::hundred(),
+            style: FontStyle::normal(),
+            variant: FontVariantCaps::Normal,
+            pt_size: Au::from_px(24),
+        };
+        let font = Font::new(
+            Arc::new(atomic_refcell::AtomicRefCell::new(template)),
+            descriptor,
+            None,
+        )
+        .unwrap();
+
+        let shaping_options = ShapingOptions {
+            letter_spacing: None,
+            word_spacing: Au::zero(),
+            script: Script::Latin,
+            flags: ShapingFlags::empty(),
+        };
+        let text = "WAVE";
+
+        assert!(font.can_do_fast_shaping(text, &shaping_options));
+
+        let mut expected_glyphs = GlyphStore::new(text.len(), false, false, false);
+        font.shape_text_harfbuzz(text, &shaping_options, &mut expected_glyphs);
+
+        let mut glyphs = GlyphStore::new(text.len(), false, false, false);
+        font.shape_text_fast(text, &shaping_options, &mut glyphs);
+
+        assert_eq!(glyphs.len(), expected_glyphs.len());
+        assert_eq!(
+            glyphs.total_advance().to_nearest_px(),
+            expected_glyphs.total_advance().to_nearest_px()
+        );
+    }
 }

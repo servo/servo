@@ -9,7 +9,7 @@ publish.workspace = true
 [lib]
 name = "fonts"
 path = "lib.rs"
-test = false
+test = true
 doctest = false
 
 [dependencies]
