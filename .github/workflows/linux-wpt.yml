@@ -5,7 +5,7 @@ on:
       profile:
         required: true
         type: string
-      wpt-tests-to-run:
+      wpt-args:
         default: ""
         required: false
         type: string
@@ -67,13 +67,13 @@ jobs:
           python3 ./mach test-wpt \
             $WPT_LAYOUT_ARG \
             $WPT_ALWAYS_SUCCEED_ARG \
-            ${{ inputs.wpt-tests-to-run }} \
             --${{ inputs.profile }} --processes $(nproc) --timeout-multiplier 2 \
             --total-chunks ${{ env.max_chunk_id }} --this-chunk ${{ matrix.chunk_id }} \
             --log-raw wpt-full-logs/linux-${{ inputs.wpt-layout }}/raw/${{ matrix.chunk_id }}.log \
             --log-wptreport wpt-full-logs/linux-${{ inputs.wpt-layout }}/wptreport/${{ matrix.chunk_id }}.json \
             --log-raw-unexpected wpt-filtered-logs/linux-${{ inputs.wpt-layout }}/${{ matrix.chunk_id }}.log \
-            --filter-intermittents wpt-filtered-logs/linux-${{ inputs.wpt-layout }}/${{ matrix.chunk_id }}.json
+            --filter-intermittents wpt-filtered-logs/linux-${{ inputs.wpt-layout }}/${{ matrix.chunk_id }}.json \
+            ${{ inputs.wpt-args }}
         env:
           GITHUB_CONTEXT: ${{ toJson(github) }}
       - name: Archive results (filtered)
