@@ -25,4 +25,4 @@ style_config = { workspace = true }
 url = { workspace = true }
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
-dirs-next = "2.0"
+dirs = "5.0"
