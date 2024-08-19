@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://issues.chromium.org/issues/40265812">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<select id=defaultbutton disabled style="appearance:base-select">
+  <option>one</option>
+  <option>two</option>
+</select>
+
+<select id=custombutton disabled style="appearance:base-select">
+  <button>button</button>
+  <option>one</option>
+  <option>two</option>
+</select>
+
+<script>
+['defaultbutton', 'custombutton'].forEach(id => {
+  promise_test(async () => {
+    const select = document.getElementById(id);
+    select.focus();
+    assert_not_equals(document.activeElement, select,
+      'select should not be focusable when disabled.');
+
+    await test_driver.click(select);
+    assert_false(select.matches(':open'),
+      'select should not be open after clicking when disabled.');
+
+    const button = select.querySelector('button');
+    if (button) {
+      button.focus();
+      assert_not_equals(document.activeElement, button,
+        'select button should not be focusable when select is disabled.');
+
+      await test_driver.click(button);
+      assert_false(select.matches(':open'),
+        'select should not be open after clicking button when disabled.');
+    }
+  }, `${id}: <select disabled> should prevent focus and activation with appearance:base-select.`);
+});
+</script>

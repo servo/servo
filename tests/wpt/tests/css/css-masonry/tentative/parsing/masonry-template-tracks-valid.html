@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>CSS Masonry: Parsing masonry-template-tracks with valid values</title>
+<link rel="author" title="Ethan Jimenez" href="mailto:ethavar@microsoft.com">
+<link rel="help" href="https://tabatkins.github.io/specs/css-masonry/#template-tracks">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script>
+  test_valid_value("masonry-template-tracks", "auto");
+  test_valid_value("masonry-template-tracks", "10px");
+  test_valid_value("masonry-template-tracks", "20%");
+  test_valid_value("masonry-template-tracks", "calc(-0.5em + 10px)");
+  test_valid_value("masonry-template-tracks", "calc(0.5em + 10px)");
+  test_valid_value("masonry-template-tracks", "calc(30% + 40vw)");
+  test_valid_value("masonry-template-tracks", "5FR", "5fr");
+  test_valid_value("masonry-template-tracks", "min-content");
+  test_valid_value("masonry-template-tracks", "Max-Content", "max-content");
+  test_valid_value("masonry-template-tracks", "AuTo", "auto");
+  test_valid_value("masonry-template-tracks", "1fr 2fr 1fr");
+  test_valid_value("masonry-template-tracks", "minmax(10px, auto)");
+  test_valid_value("masonry-template-tracks", "minmax(20%, max-content)");
+  test_valid_value("masonry-template-tracks", "minmax(calc(-0.5em + 10px), min-content)");
+  test_valid_value("masonry-template-tracks", "minmax(calc(0.5em + 10px), 5fr)");
+  test_valid_value("masonry-template-tracks", "minmax(calc(30% + 40vw), 10px)");
+  test_valid_value("masonry-template-tracks", "minmax(min-content, 20%)");
+  test_valid_value("masonry-template-tracks", "minmax(max-content, calc(-0.5em + 10px))");
+  test_valid_value("masonry-template-tracks", "minmax(auto, calc(0.5em + 10px))");
+  test_valid_value("masonry-template-tracks", "repeat(5, auto)");
+  test_valid_value("masonry-template-tracks", "repeat(auto-fill, 25%)");
+  test_valid_value("masonry-template-tracks", "[] 150px [] 1fr []", "150px 1fr");
+  test_valid_value("masonry-template-tracks", "repeat(1, [] 10px [])", "repeat(1, 10px)");
+</script>

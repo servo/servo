@@ -12,15 +12,14 @@ html:active-view-transition #positive1 { background: green; }
 html:active-view-transition-type(foo) #positive2 { background: green; }
 html:active-view-transition-type(foo, bar) #positive3 { background: green; }
 html:active-view-transition-type(bar, baz, ba0) #positive4 { background: green; }
-html:has(:active-view-transition-type(bar)) #positive5 { background: green; }
-html:active-view-transition:active-view-transition-type(foo) #positive6 { background: green; }
+html:active-view-transition:active-view-transition-type(foo) #positive5 { background: green; }
 
 /* specificity checks, both a-v-t and a-v-t-t are equal */
-html:active-view-transition-type(foo, bar) #positive7 { background: red; }
-html:active-view-transition #positive7 { background: green; }
+html:active-view-transition-type(foo, bar) #positive6 { background: red; }
+html:active-view-transition #positive6 { background: green; }
 
-html:active-view-transition #positive8 { background: red; }
-html:active-view-transition-type(foo, bar) #positive8 { background: green; }
+html:active-view-transition #positive7 { background: red; }
+html:active-view-transition-type(foo, bar) #positive7 { background: green; }
 
 /* negative checks */
 html:active-view-transition-type(fooo) #negative1 { background: red; }
@@ -31,6 +30,7 @@ html:active-view-transition(foo) #negative4 { background: red; }
 html:active-view-transition-type(foo,) #negative5 { background: red; }
 html:active-view-transition-type() #negative6 { background: red; }
 html:active-view-transition-type(,) #negative7 { background: red; }
+html:has(:active-view-transition-type(bar)) #negative8 { background: red; }
 
 .test {
   width: 100px;
@@ -41,9 +41,8 @@ html:active-view-transition-type(,) #negative7 { background: red; }
 #positive3 { view-transition-name: positive3; background: red }
 #positive4 { view-transition-name: positive4; background: red }
 #positive5 { view-transition-name: positive5; background: red }
-#positive6 { view-transition-name: positive6; background: red }
+#positive6 { view-transition-name: positive6; background: yellow }
 #positive7 { view-transition-name: positive7; background: yellow }
-#positive8 { view-transition-name: positive8; background: yellow }
 #negative1 { view-transition-name: negative1; background: green }
 #negative2 { view-transition-name: negative2; background: green }
 #negative3 { view-transition-name: negative3; background: green }
@@ -51,10 +50,11 @@ html:active-view-transition-type(,) #negative7 { background: red; }
 #negative5 { view-transition-name: negative5; background: green }
 #negative6 { view-transition-name: negative6; background: green }
 #negative7 { view-transition-name: negative7; background: green }
+#negative8 { view-transition-name: negative8; background: green }
 
 #container {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, 100px);
   grid-gap: 10px;
 }
 
@@ -89,7 +89,6 @@ html:active-view-transition::view-transition { background: lightpink }
   <div class="test" id="positive5"></div>
   <div class="test" id="positive6"></div>
   <div class="test" id="positive7"></div>
-  <div class="test" id="positive8"></div>
   <div class="test" id="negative1"></div>
   <div class="test" id="negative2"></div>
   <div class="test" id="negative3"></div>
@@ -97,6 +96,7 @@ html:active-view-transition::view-transition { background: lightpink }
   <div class="test" id="negative5"></div>
   <div class="test" id="negative6"></div>
   <div class="test" id="negative7"></div>
+  <div class="test" id="negative8"></div>
 </div>
 
 <script>

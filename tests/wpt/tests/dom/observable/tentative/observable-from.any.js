@@ -23,7 +23,7 @@ test(() => {
 
 test(() => {
   const target = new EventTarget();
-  const observable = target.on('custom');
+  const observable = target.when('custom');
   const from_observable = Observable.from(observable);
   assert_equals(observable, from_observable);
 }, "from(): Given an observable, it returns that exact observable");

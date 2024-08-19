@@ -1,0 +1,24 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>:host(:has(...)) deep internal descendent</title>
+<link rel="help" href="https://drafts.csswg.org/css-scoping/#host-selector">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square-only.html">
+<p>Test passes if there is a filled green square.</p>
+<div id="host">
+    <template shadowrootmode="open">
+      <style>
+        div {
+          width: 100px;
+          height: 100px;
+          background-color: red;
+        }
+        :host:has(h1) div {
+          background-color: green;
+        }
+      </style>
+      <div></div>
+      <section>
+        <h1></h1>
+      </section>
+    </template>
+</div>

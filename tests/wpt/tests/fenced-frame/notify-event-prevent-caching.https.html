@@ -158,5 +158,65 @@
 
     }, 'Test that fenced frame notifyEvent() cannot reuse a cached event' +
        ' after dispatch finishes, even if it has never been notified before.');
+
+    promise_test(async (t) => {
+      const fencedframe = await attachFencedFrameContext(
+                  {generator_api: 'fledge'});
+
+      // First, click and cache a click event.
+      await fencedframe.execute(() => {
+        window.first_click_listener = (e) => {
+          window.cached_event = e;
+        };
+        document.addEventListener('click', window.first_click_listener);
+      });
+
+      await multiClick(10, 10, fencedframe.element);
+
+      // Next, register a new click listener to catch the cached event when it's
+      // re-dispatched.
+      await fencedframe.execute(async () => {
+        document.removeEventListener('click', window.first_click_listener);
+        window.click_promise = new Promise((resolve, reject) => {
+          document.addEventListener('click', (e) => {
+            try {
+              assert_true(navigator.userActivation.isActive);
+              window.fence.notifyEvent(e);
+              reject('notifyEvent() should not fire.')
+            } catch (err) {
+              if (err.name != 'SecurityError') {
+                reject('Unexpected error: ' + err.message);
+              }
+
+              resolve('PASS');
+            }
+          });
+        });
+
+        // We need user activation when re-dispatching the event, which will
+        // ensure that the re-dispatch is the sole reason for notifyEvent()
+        // failing to fire. We'll simulate a mousedown to provide transient
+        // activation, and *then* re-dispatch the cached click event, in an
+        // attempt to scam an additional notifyEvent().
+        document.addEventListener('mousedown', (e) => {
+          document.dispatchEvent(window.cached_event);
+        });
+      });
+
+      // Send a mousedown event to the fenced frame. We can't send a full
+      // click because it will interfere with the manual event dispatch.
+      let actions = new test_driver.Actions();
+      for (let i = 0; i < 3; i++) {
+        await actions.pointerMove(10, 10, {origin: fencedframe.element})
+        .pointerDown()
+        .send();
+      }
+
+      await fencedframe.execute(async () => {
+        await window.click_promise;
+      });
+
+    }, 'Test that re-dispatching a cached click event does not allow it to be' +
+       ' used with notifyEvent()');
   </script>
 </body>

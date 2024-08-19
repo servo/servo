@@ -1,0 +1,100 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>scroll{Width,Height} with visible overflow and negative margins.</title>
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#extension-to-the-element-interface">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1906475">
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<style>
+body { margin: 0 }
+.wrapper {
+  width: 80px;
+  height: 80px;
+  border: 1px solid #d1d1d2;
+  padding: 1px 4px 8px 16px;
+  border-width: 1px 2px 3px 4px;
+  border-right-width: 50px;
+  border-bottom-width: 40px;
+}
+.inner {
+  margin: -100px;
+  height: 300px;
+  width: 300px;
+  background-color: blue;
+}
+</style>
+<div class="wrapper">
+  <div class="inner"></div>
+</div>
+<script>
+const wrapper = document.querySelector(".wrapper");
+const contentBox = {
+  width: 80,
+  height: 80,
+};
+const paddingBox = {
+  width: contentBox.width + 4 + 16,
+  height: contentBox.height + 1 + 8,
+};
+for (let display of ["block", "flex", "grid"]) {
+  for (let flexDirection of ["row", "row-reverse", "column", "column-reverse"]) {
+    if (flexDirection != "row" && display != "flex") {
+      // Don't bother retesting with all flexDirection values unless we're actually a flex container
+      continue;
+    }
+    for (let flexWrap of ["", "wrap-reverse"]) {
+      if (flexWrap != "" && display != "flex") {
+        // Don't bother retesting with all flexWrap values unless we're actually a flex container
+        continue;
+      }
+      for (let direction of ["ltr", "rtl"]) {
+        for (let writingMode of ["horizontal-tb", "vertical-lr", "vertical-rl"]) {
+          for (let overflow of ["visible", "hidden", "auto", "clip", "scroll"]) {
+            wrapper.style.display = display;
+            wrapper.style.overflow = overflow;
+            wrapper.style.direction = direction;
+            wrapper.style.writingMode = writingMode;
+            wrapper.style.flexDirection = flexDirection;
+            wrapper.style.flexWrap = flexWrap;
+            // Suppress scrollbars because they get added to the padding are
+            // and would need to account for them in flexbox.
+            wrapper.style.scrollbarWidth = display == "flex" ? "none" : "";
+            let vertical = writingMode.startsWith("vertical");
+            let scrollToTop = vertical && direction == "rtl";
+            let scrollToLeft = (!vertical && direction == "rtl") || writingMode == "vertical-rl";
+            let flexMainAxisIsVertical = flexDirection.startsWith("row") == vertical;
+            if (display == "flex") {
+              if (flexDirection.endsWith("-reverse")) {
+                if (flexMainAxisIsVertical) {
+                  scrollToTop = !scrollToTop;
+                } else {
+                  scrollToLeft = !scrollToLeft;
+                }
+              }
+              if (flexWrap == "wrap-reverse") {
+                if (flexMainAxisIsVertical) {
+                  scrollToLeft = !scrollToLeft;
+                } else {
+                  scrollToTop = !scrollToTop;
+                }
+              }
+            }
+            test(function() {
+              assert_greater_than_equal(wrapper.scrollWidth, paddingBox.width, "scrollWidth should be at least padding box width");
+              let padding = display == "flex" && !flexMainAxisIsVertical ? paddingBox.width - contentBox.width : 0;
+              assert_equals(wrapper.scrollWidth, (scrollToLeft ? 204 : 216) - padding, "scrollWidth");
+            }, "scrollWidth with negative margins: " + wrapper.style.cssText);
+            test(function() {
+              assert_greater_than_equal(wrapper.scrollHeight, paddingBox.height, "scrollHeight should be at least padding box height");
+              let padding = display == "flex" && flexMainAxisIsVertical ? paddingBox.width - contentBox.width : 0;
+              assert_equals(wrapper.scrollHeight, (scrollToTop ? 208 : 201) - padding, "scrollHeight");
+            }, "scrollHeight with negative margins: " + wrapper.style.cssText);
+          }
+        }
+      }
+    }
+  }
+}
+</script>

@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS text decoration test: emphasis marks and punctuation</title>
+<link rel="match" href="text-emphasis-punctuation-1-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-text-decor/#text-emphasis-style-property">
+<meta name="assert" content="emphasis marks are not drawn for punctuation (with a small set of exceptions)">
+
+<style>
+.emph { text-emphasis: filled circle; }
+</style>
+
+<p>The punctuation should <b>not</b> have emphasis marks:</p>
+<p class="emph">Abc (def) gh? Ijk. Lm, n-op! [Qrst…uv] wx/yz.</p>

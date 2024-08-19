@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<title>text-box shorthand defaults omitted values per spec</title>
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#propdef-text-box">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/shorthand-testcommon.js"></script>
+<script>
+test_shorthand_value('text-box', 'normal', {
+  'text-box-trim': 'none',
+  'text-box-edge': 'auto',
+});
+
+test_shorthand_value('text-box', 'none', {
+  'text-box-trim': 'none',
+  'text-box-edge': 'auto',
+});
+
+test_shorthand_value('text-box', 'trim-start', {
+  'text-box-trim': 'trim-start',
+  'text-box-edge': 'auto',
+});
+
+test_shorthand_value('text-box', 'ex', {
+  'text-box-trim': 'trim-both',
+  'text-box-edge': 'ex',
+});
+</script>

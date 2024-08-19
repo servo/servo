@@ -1,24 +1,36 @@
 // META: timeout=long
 // META: title=validation tests for WebNN API MLContext::destroy()
 // META: global=window,dedicatedworker
+// META: variant=?cpu
+// META: variant=?gpu
+// META: variant=?npu
 
 'use strict';
 
+let contextOptions;
+
+promise_setup(async () => {
+  if (navigator.ml === undefined) {
+    return;
+  }
+  contextOptions = {deviceType: location.search.substring(1)};
+}, {explicit_timeout: true});
+
 promise_test(async t => {
-  const context = await navigator.ml.createContext();
+  const context = await navigator.ml.createContext(contextOptions);
   context.destroy();
   await context.lost;
 }, 'Context will be lost by destroyed.');
 
 promise_test(async t => {
-  const context = await navigator.ml.createContext();
+  const context = await navigator.ml.createContext(contextOptions);
   context.destroy();
   context.destroy();
   await context.lost;
 }, 'Context can be destroyed twice.');
 
 promise_test(async t => {
-  const context = await navigator.ml.createContext();
+  const context = await navigator.ml.createContext(contextOptions);
   const builder = new MLGraphBuilder(context);
   context.destroy();
   assert_throws_dom('InvalidStateError', () => {
@@ -28,7 +40,7 @@ promise_test(async t => {
 }, 'Destroyed context can not build operator.');
 
 promise_test(async t => {
-  const context = await navigator.ml.createContext();
+  const context = await navigator.ml.createContext(contextOptions);
   context.destroy();
   assert_throws_dom('InvalidStateError', () => {
     new MLGraphBuilder(context);
@@ -36,7 +48,7 @@ promise_test(async t => {
 }, 'Destroyed context can not create graph builder.');
 
 promise_test(async t => {
-  const context = await navigator.ml.createContext();
+  const context = await navigator.ml.createContext(contextOptions);
   const builder = new MLGraphBuilder(context);
   const operandType = {dataType: 'float32', dimensions: [1]};
   const input_operand = builder.input('input', operandType);
@@ -49,7 +61,7 @@ promise_test(async t => {
 }, 'Destroyed context can not build graph.');
 
 promise_test(async t => {
-  const context = await navigator.ml.createContext();
+  const context = await navigator.ml.createContext(contextOptions);
   const builder = new MLGraphBuilder(context);
   const operandType = {dataType: 'float32', dimensions: [1]};
   const input_operand = builder.input('input', operandType);
@@ -65,7 +77,7 @@ promise_test(async t => {
 }, 'Destroyed context can not compute.');
 
 promise_test(async t => {
-  const context = await navigator.ml.createContext();
+  const context = await navigator.ml.createContext(contextOptions);
   const builder = new MLGraphBuilder(context);
   const operandType = {dataType: 'float32', dimensions: [1]};
   const lhsOperand = builder.input('lhs', operandType);
@@ -89,7 +101,7 @@ promise_test(async t => {
 }, 'Destroyed context can not dispatch.');
 
 promise_test(async t => {
-  const context = await navigator.ml.createContext();
+  const context = await navigator.ml.createContext(contextOptions);
   const builder = new MLGraphBuilder(context);
   const operandType = {dataType: 'float32', dimensions: [1]};
   const lhsOperand = builder.input('lhs', operandType);
@@ -111,7 +123,7 @@ promise_test(async t => {
 }, 'Executing dispatch() before context destroyed is OK.');
 
 promise_test(async t => {
-  const context = await navigator.ml.createContext();
+  const context = await navigator.ml.createContext(contextOptions);
   context.destroy();
   promise_rejects_dom(
       t, 'InvalidStateError',
@@ -119,7 +131,7 @@ promise_test(async t => {
 }, 'Destroyed context can not create buffer.');
 
 promise_test(async t => {
-  const context = await navigator.ml.createContext();
+  const context = await navigator.ml.createContext(contextOptions);
   const buffer =
       await context.createBuffer({dataType: 'float32', dimensions: [1]});
   context.destroy();
@@ -127,7 +139,7 @@ promise_test(async t => {
 }, 'Destroyed context can not read buffer.');
 
 promise_test(async t => {
-  const context = await navigator.ml.createContext();
+  const context = await navigator.ml.createContext(contextOptions);
   const buffer =
       await context.createBuffer({dataType: 'float32', dimensions: [1]});
   let promise = context.readBuffer(buffer);
@@ -136,9 +148,9 @@ promise_test(async t => {
 }, 'Pending promise of readbuffer() will be rejected immediately when context is destroyed.');
 
 promise_test(async t => {
-  const context = await navigator.ml.createContext();
+  const context = await navigator.ml.createContext(contextOptions);
   // Destroying another context doesn't impact the first context.
-  const another_context = await navigator.ml.createContext();
+  const another_context = await navigator.ml.createContext(contextOptions);
   another_context.destroy();
   const buffer =
       await context.createBuffer({dataType: 'float32', dimensions: [1]});

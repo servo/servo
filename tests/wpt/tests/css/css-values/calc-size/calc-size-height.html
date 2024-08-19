@@ -35,6 +35,7 @@ let basic_tests = [
   { value: "calc-size(30px, 15em)", expected: "300px" },
   { value: "calc-size(calc-size(any, 30px), 15em)", expected: "300px" },
   { value: "calc-size(calc-size(2in, 30px), 15em)", expected: "300px" },
+  { value: "calc-size(calc-size(any, 300px), size * 2)", expected: "600px" },
   { value: "calc-size(calc-size(min-content, 30px), 15em)", expected: "300px" },
   { value: "calc-size(calc-size(min-content, size), size)", expected: "10px" },
   { value: "calc-size(any, 31% + 12px)", expected_auto: "12px", expected_definite: "43px" },

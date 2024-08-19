@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<title>non-scaling-stroke with scaling</title>
+<link rel="help" href="https://svgwg.org/svg2-draft/painting.html#PaintingVectorEffects" />
+<link rel="match" href="green-100x100.svg" />
+<body>
+<svg>
+  <defs>
+    <style>
+     html, body {
+       width: 100%;
+       height: 100%;
+       border: none;
+       padding: 0;
+       margin: 0;
+       overflow: hidden;
+     }
+     svg {
+       width: 200%;
+       height: 200%;
+       transform: scale(0.1);
+       transform-origin: top left;
+     }
+    </style>
+  </defs>
+  <rect fill="red" width="500" height="500" stroke="green" stroke-width="1000" vector-effect="non-scaling-stroke"/>
+</svg>
+</body>
+</html>

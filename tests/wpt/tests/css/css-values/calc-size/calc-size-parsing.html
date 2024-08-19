@@ -43,6 +43,7 @@ test_valid_value("width",      "calc-size(fit-content, 50% + size / 2)");
 test_valid_value("width",      "calc-size(any, 25em)");
 test_valid_value("width",      "calc-size(any, 40%)");
 test_valid_value("width",      "calc-size(any, 50px + 30%)", "calc-size(any, 30% + 50px)");
+test_valid_value("width",      "calc-size(calc-size(any, 30px), size)");
 test_invalid_value("width",    "calc-size(any, size)");
 test_invalid_value("width",    "calc-size(any, fit-content)");
 test_invalid_value("width",    "calc-size(any, max-content)");
@@ -105,5 +106,10 @@ test_invalid_value("max-width", "calc-size(content, size)");
 test_invalid_value("max-height", "calc-size(content, size)");
 test_invalid_value("min-width", "calc-size(content, size)");
 test_invalid_value("min-height", "calc-size(content, size)");
+
+test_valid_value("width", "calc-size(0px, 0px)");
+test_invalid_value("width", "calc-size(0, 0px)");
+test_invalid_value("width", "calc-size(0px, 0)");
+test_invalid_value("width", "calc-size(0, 0)");
 
 </script>

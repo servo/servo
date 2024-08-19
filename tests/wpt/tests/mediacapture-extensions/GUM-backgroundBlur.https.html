@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Test background blur support</title>
+<title>Test background blur and segmentation mask support</title>
 <link rel="help" href="https://w3c.github.io/mediacapture-extensions/">
 </head>
 <body>
 <h1 class="instructions">Description</h1>
-<p class="instructions">This test checks background blur support.</p>
+<p class="instructions">This test checks background blur and segmentation mask support.</p>
 <div id='log'></div>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
@@ -14,7 +14,8 @@
 "use strict";
 
 const constraintSet = {
-  backgroundBlur: true
+  backgroundBlur: true,
+  backgroundSegmentationMask: true,
 };
 
 Object.keys(constraintSet).forEach(property => {

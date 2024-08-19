@@ -1,5 +1,8 @@
 // META: title=ensure WebNN MLContext.compute() rejecting detached buffers
 // META: global=window,dedicatedworker
+// META: variant=?cpu
+// META: variant=?gpu
+// META: variant=?npu
 // META: script=../resources/utils_validation.js
 
 // These tests are used to reproduce the Chromium issue:

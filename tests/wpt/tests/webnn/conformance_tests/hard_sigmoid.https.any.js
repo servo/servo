@@ -30,6 +30,28 @@ const getHardSigmoidPrecisionTolerance = (graphResources) => {
 
 const hardSigmoidTests = [
   {
+    'name': 'hardSigmoid float32 positive 0D tensor default options',
+    'graph': {
+      'inputs': {
+        'hardSigmoidInput': {
+          'data': [0.05907066911458969],
+          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+        }
+      },
+      'operators': [{
+        'name': 'hardSigmoid',
+        'arguments': [{'input': 'hardSigmoidInput'}],
+        'outputs': 'hardSigmoidOutput'
+      }],
+      'expectedOutputs': {
+        'hardSigmoidOutput': {
+          'data': [0.5118141174316406],
+          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+        }
+      }
+    }
+  },
+  {
     'name': 'hardSigmoid float32 positive 1D constant tensor default options',
     'graph': {
       'inputs': {

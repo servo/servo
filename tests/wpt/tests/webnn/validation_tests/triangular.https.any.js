@@ -1,5 +1,8 @@
 // META: title=validation tests for WebNN API triangular operation
 // META: global=window,dedicatedworker
+// META: variant=?cpu
+// META: variant=?gpu
+// META: variant=?npu
 // META: script=../resources/utils_validation.js
 
 'use strict';
@@ -11,7 +14,11 @@ promise_test(async t => {
   for (let dimensions of allWebNNDimensionsArray.slice(0, 2)) {
     for (let dataType of allWebNNOperandDataTypes) {
       const input = builder.input(`input${++inputIndex}`, {dataType, dimensions});
-      assert_throws_js(TypeError, () => builder.triangular(input));
+      const label = 'triangular_3';
+      const options = {label};
+      const regrexp = new RegExp('\\[' + label + '\\]');
+      assert_throws_with_label(
+          () => builder.triangular(input, options), regrexp);
     }
   }
 }, '[triangular] TypeError is expected if input\'s rank is less than 2');
