@@ -2,13 +2,16 @@
 --min-version 2.0.1 angle-stuck-depth-textures.html
 canvas-remains-unchanged-after-used-in-webgl-texture.html
 --min-version 2.0.1 compressed-tex-from-pbo-crash.html
+--min-version 2.0.1 compressed-tex-image.html
 --min-version 2.0.1 copy-texture-cube-map-AMD-bug.html
 --min-version 2.0.1 copy-texture-cube-map-bug.html
 copy-texture-image.html
 copy-texture-image-luma-format.html
 --min-version 2.0.1 copy-texture-image-same-texture.html
 copy-texture-image-webgl-specific.html
+--min-version 2.0.1 generate-mipmap-with-large-base-level.html
 gl-get-tex-parameter.html
+--min-version 2.0.1 immutable-tex-render-feedback.html
 --min-version 2.0.1 integer-cubemap-texture-sampling.html
 --min-version 2.0.1 integer-cubemap-specification-order-bug.html
 mipmap-fbo.html
@@ -17,6 +20,7 @@ mipmap-fbo.html
 --min-version 2.0.1 origin-clean-conformance-offscreencanvas.html
 tex-3d-size-limit.html
 --min-version 2.0.1 tex-base-level-bug.html
+--min-version 2.0.1 tex-image-10bpc.html
 tex-image-and-sub-image-with-array-buffer-view-sub-source.html
 tex-image-with-bad-args.html
 tex-image-with-bad-args-from-dom-elements.html

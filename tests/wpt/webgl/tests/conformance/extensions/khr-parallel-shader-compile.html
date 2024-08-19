@@ -1,0 +1,248 @@
+<!--
+Copyright (c) 2020 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<style>
+.spinner {
+    width: 100px;
+    height: 100px;
+    border: 20px solid transparent;
+    border-top: 20px solid black;
+    border-radius: 100%;
+    text-align: center;
+    padding: 10px;
+}
+@keyframes rotation {
+    from { transorm: rotate(0); }
+    to { transform: rotate(360deg); }
+}
+</style>
+</head>
+<body>
+<div id="description"></div>
+<button onclick='compileShaders()'>The spinners below should not stutter when you click this button.</button>
+<div class="spinner" style="animation: rotation 2s infinite linear;">CSS</div>
+<div class="spinner" id=spinner>JS</div>
+<div id="console"></div>
+<canvas id=canvas></canvas>
+<script>
+"use strict";
+description("Test KHR_parallel_shader_compile");
+
+function spinSpinner() {
+    let degrees = (performance.now() / 1000 / 2 % 1.) * 360;
+    spinner.style.transform = `rotate(${degrees}deg)`;
+    requestAnimationFrame(spinSpinner);
+}
+spinSpinner();
+
+const wtu = WebGLTestUtils;
+
+const gl = wtu.create3DContext();
+const loseContext = wtu.getExtensionWithKnownPrefixes(gl, "WEBGL_lose_context");
+
+let counter = 0;
+const vertexSource = (extra) => `
+void main() {
+    vec4 result = vec4(0.${counter++});
+${extra || ''}
+    gl_Position = result;
+}`;
+const fragmentSource = (extra) => `
+precision highp float;
+void main() {
+    vec4 result = vec4(0.${counter++});
+${extra || ''}
+    gl_FragColor = result;
+}`;
+
+let vs = gl.createShader(gl.VERTEX_SHADER);
+let fs = gl.createShader(gl.FRAGMENT_SHADER);
+let program = gl.createProgram();
+gl.attachShader(program, vs);
+gl.attachShader(program, fs);
+
+const COMPLETION_STATUS_KHR = 0x91B1;
+
+gl.shaderSource(vs, vertexSource());
+gl.compileShader(vs);
+let status = gl.getShaderParameter(vs, COMPLETION_STATUS_KHR);
+if (status !== null) testFailed('Extension disabled, status should be null');
+wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "extension disabled");
+
+gl.shaderSource(fs, fragmentSource());
+gl.compileShader(fs);
+
+gl.linkProgram(program);
+status = gl.getProgramParameter(program, COMPLETION_STATUS_KHR);
+if (status !== null) testFailed('Extension disabled, status should be null');
+wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "extension disabled");
+
+const ext = wtu.getExtensionWithKnownPrefixes(gl, "KHR_parallel_shader_compile");
+
+let successfullyParsed = false;
+
+let extraCode = '';
+
+(async () => {
+
+    if (!ext) {
+        testPassed("No KHR_parallel_shader_compile support -- this is legal");
+    } else {
+        testPassed("Successfully enabled KHR_parallel_shader_compile extension");
+
+        shouldBe("ext.COMPLETION_STATUS_KHR", "0x91B1");
+
+        debug("Checking that status is a boolean.");
+        gl.shaderSource(vs, vertexSource());
+        gl.compileShader(vs);
+        let status = gl.getShaderParameter(vs, COMPLETION_STATUS_KHR);
+        if (status !== true && status !== false) testFailed("status should be a boolean");
+
+        gl.linkProgram(program);
+        status = gl.getProgramParameter(program, COMPLETION_STATUS_KHR);
+        if (status !== true && status !== false) testFailed("status should be a boolean");
+
+        const minimumShaderCompileDurationMs = 500;
+        debug(`Constructing shader that takes > ${minimumShaderCompileDurationMs} ms to compile.`);
+        let measuredCompileDuration = 0;
+        extraCode = '\n    if (true) { result += vec4(0.0000001); }';
+        for (let i = 0; measuredCompileDuration < minimumShaderCompileDurationMs; i++) {
+            extraCode += extraCode;
+            extraCode += extraCode;
+            if (i < 4) continue;
+            gl.shaderSource(vs, vertexSource(extraCode));
+            gl.shaderSource(fs, fragmentSource(extraCode));
+            gl.compileShader(vs);
+            gl.compileShader(fs);
+            gl.linkProgram(program);
+            const start = performance.now();
+            if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+                testFailed(`Shaders failed to compile.
+                            program: ${gl.getProgramInfoLog(program)}
+                            vs: ${gl.getShaderInfoLog(vs)}
+                            fs: ${gl.getShaderInfoLog(fs)}`);
+                break;
+            }
+            measuredCompileDuration = performance.now() - start;
+        }
+
+        debug('');
+        gl.shaderSource(vs, vertexSource(extraCode));
+        gl.shaderSource(fs, fragmentSource(extraCode));
+        gl.compileShader(vs);
+        gl.compileShader(fs);
+        gl.linkProgram(program);
+
+        let start = performance.now();
+        gl.getShaderParameter(fs, COMPLETION_STATUS_KHR);
+        gl.getShaderParameter(vs, COMPLETION_STATUS_KHR);
+        let duration = performance.now() - start;
+        if (duration > 100)
+            testFailed(`Querying shader status should not wait for compilation. Took ${duration} ms`);
+
+        let frames = 0;
+        const maximumTimeToWait = measuredCompileDuration * 4;
+        while (!gl.getProgramParameter(program, COMPLETION_STATUS_KHR)
+            && performance.now() - start < maximumTimeToWait) {
+            frames++;
+            await new Promise(requestAnimationFrame);
+        }
+        duration = performance.now() - start;
+        if (!gl.getProgramParameter(program, COMPLETION_STATUS_KHR)) {
+            testFailed(`Program took longer than ${maximumTimeToWait} ms to compile. Expected: ${measuredCompileDuration} ms, actual: ${duration} ms`);
+        } else if (!gl.getShaderParameter(vs, COMPLETION_STATUS_KHR) || !gl.getShaderParameter(fs, COMPLETION_STATUS_KHR)) {
+            testFailed('Program linked before shaders finished compiling.');
+        } else if (frames <= 6) {
+            testFailed(`Program should have taken many more than 6 frames to compile. Actual value: ${frames} frames, duration ${performance.now() - start} ms.`);
+        } else {
+            console.log(`COMPLETION_STATUS_KHR sucessfully transitioned from false to true in ${frames} frames and ${duration} ms.`);
+            testPassed(`COMPLETION_STATUS_KHR sucessfully transitioned from false to true`);
+        }
+
+        debug("Checking that compiling lots of programs in parallel eventually completes.");
+        let programs = [];
+        for (let i = 0; i < 256; ++i) {
+            gl.shaderSource(vs, vertexSource());
+            gl.shaderSource(fs, fragmentSource());
+            gl.compileShader(vs);
+            gl.compileShader(fs);
+            let program = gl.createProgram();
+            gl.attachShader(program, vs);
+            gl.attachShader(program, fs);
+            gl.linkProgram(program);
+            programs.push(program);
+        }
+        let allDone = false;
+        while (!allDone) {
+            allDone = true;
+            for (let i = 0; i < programs.length; ++i) {
+                if (!gl.getProgramParameter(programs[i], COMPLETION_STATUS_KHR)) {
+                    allDone = false;
+                    break;
+                }
+            }
+            if (!allDone) {
+                await new Promise(requestAnimationFrame);
+            }
+        }
+
+        debug("Checking that status is true when context is lost.");
+        if (loseContext) {
+            gl.shaderSource(vs, vertexSource(extraCode));
+            gl.shaderSource(fs, fragmentSource(extraCode));
+            gl.compileShader(vs);
+            gl.compileShader(fs);
+            gl.linkProgram(program);
+            loseContext.loseContext();
+            status = gl.getShaderParameter(vs, COMPLETION_STATUS_KHR);
+            if (status !== true) testFailed("shader status should be true when context is lost");
+            status = gl.getProgramParameter(program, COMPLETION_STATUS_KHR);
+            if (status !== true) testFailed("program status should be true when context is lost");
+            loseContext.restoreContext();
+            vs = gl.createShader(gl.VERTEX_SHADER);
+            fs = gl.createShader(gl.FRAGMENT_SHADER);
+            program = gl.createProgram();
+        }
+    }
+    finishTest();
+})();
+
+async function compileShaders() {
+    console.log('Compiling shaders');
+    const gl = canvas.getContext('webgl');
+    const vs = gl.createShader(gl.VERTEX_SHADER);
+    const fs = gl.createShader(gl.FRAGMENT_SHADER);
+    const program = gl.createProgram();
+    gl.getExtension(wtu.getExtensionWithKnownPrefixes(gl, "KHR_parallel_shader_compile"));
+    gl.attachShader(program, vs);
+    gl.attachShader(program, fs);
+    gl.shaderSource(vs, vertexSource(extraCode));
+    gl.shaderSource(fs, fragmentSource(extraCode));
+    gl.compileShader(vs);
+    gl.compileShader(fs);
+    gl.linkProgram(program);
+    while (!gl.getProgramParameter(program, COMPLETION_STATUS_KHR)) {
+        gl.getShaderParameter(vs, COMPLETION_STATUS_KHR);
+        gl.getShaderParameter(fs, COMPLETION_STATUS_KHR);
+        await new Promise(requestAnimationFrame);
+    }
+    gl.getProgramParameter(program, gl.LINK_STATUS);
+    console.log('Compilation finished.');
+}
+
+</script>
+
+</body>
+</html>

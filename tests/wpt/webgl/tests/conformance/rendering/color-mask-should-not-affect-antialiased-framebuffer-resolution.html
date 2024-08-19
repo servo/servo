@@ -1,0 +1,73 @@
+<!--
+Copyright (c) 2021 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL ColorMask Should Not Affect Antialiased Framebuffer Resolution</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<canvas id="canvas" width="8" height="8"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+
+<script>
+"use strict";
+
+const wtu = WebGLTestUtils;
+description("This test verifies that the colorMask state does not affect resolution of the antialiased framebuffer.");
+
+debug('Regression test for <a href="https://crbug.com/1257769">https://crbug.com/1257769</a> and <a href="https://bugs.webkit.org/show_bug.cgi?id=220129">https://bugs.webkit.org/show_bug.cgi?id=220129</a>');
+
+function run() {
+    const gl = wtu.create3DContext("canvas", { antialias: true, alpha: true });
+
+    if (!gl) {
+        testFailed("WebGL context does not exist");
+        finishTest();
+        return;
+    }
+
+    testPassed("WebGL context exists");
+
+    const program = wtu.setupColorQuad(gl);
+
+    // Clear the default (multisampled) framebuffer to red.
+    gl.clearColor(1, 0, 0, 1);
+    gl.colorMask(true, true, true, true);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    // Draw a transparent green quad.
+    gl.useProgram(program);
+    wtu.drawFloatColorQuad(gl, [ 0, 255, 0, 0 ]);
+
+    // Clear the alpha channel.
+    gl.colorMask(false, false, false, true);
+    gl.clearColor(0, 0, 0, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    // At this point, even setting the colorMask to all-true won't
+    // work around the bug, since that state is latched inside ANGLE
+    // only during draws / clears.
+
+    wtu.checkCanvas(gl, [ 0, 255, 0, 255 ], "should be green", 1);
+    finishTest();
+}
+
+var successfullyParsed = true;
+
+requestAnimationFrame(run);
+
+</script>
+
+</body>
+</html>

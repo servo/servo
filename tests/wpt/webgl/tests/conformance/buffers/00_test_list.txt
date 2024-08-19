@@ -10,4 +10,5 @@ index-validation-crash-with-buffer-sub-data.html
 index-validation-verifies-too-many-indices.html
 index-validation-with-resized-buffer.html
 index-validation.html
+--min-version 1.0.4 vertex-buffer-updated-after-draw.html
 

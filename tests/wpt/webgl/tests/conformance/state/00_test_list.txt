@@ -1,3 +1,4 @@
+--min-version 1.0.4  fb-attach-implicit-target-assignment.html
 gl-enable-enum-test.html
 --max-version 1.9.9 gl-enum-tests.html
 gl-get-calls.html

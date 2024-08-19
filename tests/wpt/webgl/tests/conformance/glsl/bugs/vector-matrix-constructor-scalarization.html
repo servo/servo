@@ -1,0 +1,183 @@
+<!--
+Copyright (c) 2021 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title></title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+
+<!--
+
+Original Shadertoy:
+https://www.shadertoy.com/view/ttGyzh
+
+  float a = 0.;           // bug
+  #define A 0.            // ok
+//#define A min(0.,iTime) // bug
+
+
+  #define r(a)    mat2( cos( a + vec4(0,-1.5708,1.5708,0) ) )   // bug
+//#define r(a)    mat2( cos(a), -sin(a), sin(a), cos(a) )       // no bug
+//#define r(a)    cos(a),sin(a))               // no bug ( vec instead of mat )
+//#define r(a)    cos(a+vec2(0,-1.5708))       // no bug ( vec instead of mat )
+
+vec2 c;
+#define f(U,a)  ( c = (U) * r(a) , sin(10.*c.x) )
+
+void mainImage( out vec4 O, vec2 U )
+{
+    U /= iResolution.xy;
+
+    O = U.y > .5
+          ? vec4( f(U,a) , f(U*4.,a) , 0,0)   // top
+          : vec4( f(U,A) , f(U*4.,A) , 0,0);  // bottom
+}
+-->
+
+<script id="vshader" type="x-shader/x-vertex">
+attribute vec2 aPosition;
+attribute vec2 aTexCoord;
+
+varying vec2 vTexCoord;
+
+void main(void) {
+  gl_Position = vec4(aPosition, 0.0, 1.0);
+  vTexCoord = aTexCoord;
+}
+</script>
+<script id="fshader" type="x-shader/x-fragment">
+precision mediump float;
+
+varying vec2 vTexCoord;
+
+float a = 0.;
+#define A 0.
+
+#define r(a)    mat2( cos( a + vec4(0,-1.5708,1.5708,0) ) )
+vec2 c;
+#define f(U,a)  ( c = (U) * r(a) , sin(10.*c.x) )
+
+void main() {
+    vec2 U = vTexCoord;
+
+    gl_FragColor = U.y > .5
+        ? vec4( f(U,a) , f(U*4.,a) , 0,1.0)   // top
+        : vec4( f(U,A) , f(U*4.,A) , 0,1.0);  // bottom
+}
+</script>
+
+<script id="compileVShader" type="x-shader/x-vertex">
+varying vec2 v_texcoord;
+
+void main() {
+    v_texcoord = vec2(0.0, 0.0);
+    gl_Position = vec4(1.0, 0.0, 0.0, 1.0);
+}
+</script>
+<script id="compileFShader" type="x-shader/x-fragment">
+// From http://crbug.com/398694
+precision mediump float;
+uniform sampler2D s_texture;
+uniform vec4 color_weights;
+varying vec2 v_texcoord;
+void main() {
+  gl_FragColor = color_weights * mat4(
+    vec4(texture2D(s_texture, v_texcoord).rgb, 1.0),
+    vec4(texture2D(s_texture, v_texcoord).rgb, 1.0),
+    vec4(texture2D(s_texture, v_texcoord).rgb, 1.0),
+    vec4(texture2D(s_texture, v_texcoord).rgb, 1.0));
+}
+</script>
+
+</head>
+<body>
+<canvas id="example"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+debug("");
+
+description("Vector and matrix constructor scalarization workaround (SH_SCALARIZE_VEC_AND_MAT_CONSTRUCTOR_ARGS) caused bugs");
+debug('Regression test for <a href="http://crbug.com/1165751">crbug.com/1165751</a>');
+
+// Note: Firefox reports that without this workaround, there are
+// failures on at least Windows / Intel GPU / OpenGL on:
+// conformance/glsl/constructors/glsl-construct-mat2.html
+// https://searchfox.org/mozilla-central/source/dom/canvas/WebGLShaderValidator.cpp#63
+
+// Chromium reported that
+// conformance/glsl/misc/shader-struct-scope.html failed on macOS and
+// on Linux AMD without this workaround enabled:
+// http://crbug.com/angleproject/701
+
+const wtu = WebGLTestUtils;
+const canvas = document.getElementById("example");
+const sz = canvas.width = canvas.height = 256;
+const gl = wtu.create3DContext(canvas, undefined);
+
+if (!gl) {
+    testFailed("WebGL context creation failed");
+    finishTest();
+} else {
+    testPassed("WebGL context creation succeeded");
+    runDrawTest();
+    runCompileTest();
+    finishTest();
+}
+
+function runDrawTest() {
+    debug("Ensure that shader translation isn't broken by the vector and matrix constructor scalarization workaround");
+    let positionLocation = 0;
+    let texCoordLocation = 1;
+    wtu.setupUnitQuad(gl, positionLocation, texCoordLocation);
+    let program = wtu.setupProgram(gl, ["vshader", "fshader"],
+                                   ["aPosition", "aTexCoord"],
+                                   [positionLocation, texCoordLocation], true);
+    if (!program) {
+        testFailed("Error compiling shaders");
+        return;
+    }
+    gl.useProgram(program);
+    // Buffers returned from setupQuad above, and ignored, are already bound.
+    wtu.drawUnitQuad(gl);
+
+    // Top and bottom halves should be roughly equal. Go through one
+    // horizontal scanline in the middle.
+    const compareHeight = sz / 4;
+    let pixelValue = new Uint8Array(4);
+    let allEqual = true;
+    // Empirically found that tolerance between the top and bottom
+    // needs to be up to roughly 8 on some platforms.
+    const tolerance = 8;
+    let tempBuf = new Uint8Array(4);
+    // Step over some pixels to spew slightly fewer comparison messages.
+    for (let x = 0; x < sz; x += 4) {
+        gl.readPixels(x, compareHeight, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixelValue);
+        wtu.checkCanvasRect(gl, x, sz - compareHeight, 1, 1, pixelValue, undefined, tolerance, tempBuf);
+    }
+}
+
+function runCompileTest() {
+    debug("Running compilation test");
+    let program = wtu.setupProgram(gl, ["compileVShader", "compileFShader"], [], [], true);
+    if (program) {
+        testPassed("Shader previously requiring SH_SCALARIZE_VEC_AND_MAT_CONSTRUCTOR_ARGS compiled successfully");
+    } else {
+        testFailed("Shader previously requiring SH_SCALARIZE_VEC_AND_MAT_CONSTRUCTOR_ARGS failed to compile");
+    }
+}
+
+</script>
+
+</body>
+</html>

@@ -1,28 +1,7 @@
 <!--
-
-/*
-** Copyright (c) 2012 The Khronos Group Inc.
-**
-** Permission is hereby granted, free of charge, to any person obtaining a
-** copy of this software and/or associated documentation files (the
-** "Materials"), to deal in the Materials without restriction, including
-** without limitation the rights to use, copy, modify, merge, publish,
-** distribute, sublicense, and/or sell copies of the Materials, and to
-** permit persons to whom the Materials are furnished to do so, subject to
-** the following conditions:
-**
-** The above copyright notice and this permission notice shall be included
-** in all copies or substantial portions of the Materials.
-**
-** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
-*/
-
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
 -->
 
 <!DOCTYPE html>
@@ -90,10 +69,10 @@ if (!gl) {
     gl.vertexAttribPointer(0, 1, gl.UNSIGNED_INT, 0, 0, 0);
     wtu.glErrorShouldBe(gl, gl.INVALID_ENUM,
             "vertexAttribPointer should not support UNSIGNED_INT");
-    gl.vertexAttribPointer(0, 1, gl.FIXED, 0, 0, 0);
-    wtu.glErrorShouldBe(gl, gl.INVALID_ENUM,
-            "vertexAttribPointer should not support FIXED");
   }
+  gl.vertexAttribPointer(0, 1, gl.FIXED, 0, 0, 0);
+  wtu.glErrorShouldBe(gl, gl.INVALID_ENUM,
+          "vertexAttribPointer should not support FIXED");
 
   var checkVertexAttribPointer = function(
       gl, err, reason, size, type, normalize, stride, offset) {
@@ -123,6 +102,16 @@ if (!gl) {
     { type:gl.FLOAT,          bytesPerComponent: 4 },
   ];
 
+  if (wtu.getDefault3DContextVersion() >= 2) {
+    types.push(...[
+        { type:gl.INT,                         bytesPerComponent: 4 },
+        { type:gl.UNSIGNED_INT,                bytesPerComponent: 4 },
+        { type:gl.HALF_FLOAT,                  bytesPerComponent: 2 },
+        { type:gl.INT_2_10_10_10_REV,          bytesPerComponent: 4, minSize: 4 },
+        { type:gl.UNSIGNED_INT_2_10_10_10_REV, bytesPerComponent: 4, minSize: 4 },
+      ]);
+  }
+
   for (var ii = 0; ii < types.length; ++ii) {
     var info = types[ii];
     debug("");
@@ -151,6 +140,10 @@ if (!gl) {
             reason = "because stride is bad";
             err = gl.INVALID_OPERATION;
           }
+          if (size < info.minSize) {
+            reason = "because size < minSize";
+            err = gl.INVALID_OPERATION;
+          }
           checkVertexAttribPointer(
               gl, err, reason, size, info.type, false, stride, offset);
         }
@@ -158,10 +151,10 @@ if (!gl) {
 
         if (offset == 0) {
           checkVertexAttribPointer(
-              gl, gl.NO_ERROR, "at stride limit",
+              gl, size < info.minSize ? gl.INVALID_OPERATION : gl.NO_ERROR, "at stride limit",
               size, info.type, false, stride, offset);
           checkVertexAttribPointer(
-              gl, gl.INVALID_VALUE, "over stride limit",
+              gl, size < info.minSize ? [gl.INVALID_OPERATION, gl.INVALID_VALUE] : gl.INVALID_VALUE, "over stride limit",
               size, info.type, false,
               stride + info.bytesPerComponent, offset);
         }

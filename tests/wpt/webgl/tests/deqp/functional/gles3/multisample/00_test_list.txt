@@ -1,0 +1,6 @@
+# This file is auto-generated from multisample_test_generator.py
+# DO NOT EDIT!
+default_fbo.html
+fbo_4_samples.html
+fbo_8_samples.html
+fbo_max_samples.html

@@ -1,0 +1,1159 @@
+# WARNING: This file is auto-generated. Do NOT modify it manually, but rather
+# modify the generating script file. Otherwise changes will be lost!
+# See split-swizzles.js
+
+group vec4_swizzles "vec4 swizzles"
+
+	case mediump_vec4_x
+		version 300 es
+		values
+		{
+			input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+			output float out0 = [ 0.0 | 1.0 | -0.5 | -32.0 | -0.75 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = in0.x;
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case mediump_vec4_w
+		version 300 es
+		values
+		{
+			input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+			output float out0 = [ 0.825 | 1.75 | 9.0 | 24.0 | 0.25 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = in0.w;
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case mediump_vec4_wx
+		version 300 es
+		values
+		{
+			input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+			output vec2 out0 = [ vec2(0.825, 0.0) | vec2(1.75, 1.0) | vec2(9.0, -0.5) | vec2(24.0, -32.0) | vec2(0.25, -0.75) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = in0.wx;
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case mediump_vec4_wz
+		version 300 es
+		values
+		{
+			input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+			output vec2 out0 = [ vec2(0.825, 0.75) | vec2(1.75, 1.125) | vec2(9.0, -4.875) | vec2(24.0, -51.0) | vec2(0.25, 0.0526315789474) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = in0.wz;
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case mediump_vec4_www
+		version 300 es
+		values
+		{
+			input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+			output vec3 out0 = [ vec3(0.825, 0.825, 0.825) | vec3(1.75, 1.75, 1.75) | vec3(9.0, 9.0, 9.0) | vec3(24.0, 24.0, 24.0) | vec3(0.25, 0.25, 0.25) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = in0.www;
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case mediump_vec4_yyw
+		version 300 es
+		values
+		{
+			input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+			output vec3 out0 = [ vec3(0.5, 0.5, 0.825) | vec3(1.25, 1.25, 1.75) | vec3(-2.25, -2.25, 9.0) | vec3(64.0, 64.0, 24.0) | vec3(-0.0322580645161, -0.0322580645161, 0.25) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = in0.yyw;
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case mediump_vec4_wzy
+		version 300 es
+		values
+		{
+			input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+			output vec3 out0 = [ vec3(0.825, 0.75, 0.5) | vec3(1.75, 1.125, 1.25) | vec3(9.0, -4.875, -2.25) | vec3(24.0, -51.0, 64.0) | vec3(0.25, 0.0526315789474, -0.0322580645161) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = in0.wzy;
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case mediump_vec4_xyzw
+		version 300 es
+		values
+		{
+			input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+			output vec4 out0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = in0.xyzw;
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case mediump_vec4_wzyx
+		version 300 es
+		values
+		{
+			input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+			output vec4 out0 = [ vec4(0.825, 0.75, 0.5, 0.0) | vec4(1.75, 1.125, 1.25, 1.0) | vec4(9.0, -4.875, -2.25, -0.5) | vec4(24.0, -51.0, 64.0, -32.0) | vec4(0.25, 0.0526315789474, -0.0322580645161, -0.75) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = in0.wzyx;
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case mediump_vec4_xxxx
+		version 300 es
+		values
+		{
+			input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+			output vec4 out0 = [ vec4(0.0, 0.0, 0.0, 0.0) | vec4(1.0, 1.0, 1.0, 1.0) | vec4(-0.5, -0.5, -0.5, -0.5) | vec4(-32.0, -32.0, -32.0, -32.0) | vec4(-0.75, -0.75, -0.75, -0.75) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = in0.xxxx;
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case mediump_vec4_yyyy
+		version 300 es
+		values
+		{
+			input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+			output vec4 out0 = [ vec4(0.5, 0.5, 0.5, 0.5) | vec4(1.25, 1.25, 1.25, 1.25) | vec4(-2.25, -2.25, -2.25, -2.25) | vec4(64.0, 64.0, 64.0, 64.0) | vec4(-0.0322580645161, -0.0322580645161, -0.0322580645161, -0.0322580645161) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = in0.yyyy;
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case mediump_vec4_wwww
+		version 300 es
+		values
+		{
+			input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+			output vec4 out0 = [ vec4(0.825, 0.825, 0.825, 0.825) | vec4(1.75, 1.75, 1.75, 1.75) | vec4(9.0, 9.0, 9.0, 9.0) | vec4(24.0, 24.0, 24.0, 24.0) | vec4(0.25, 0.25, 0.25, 0.25) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = in0.wwww;
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case mediump_vec4_wzzw
+		version 300 es
+		values
+		{
+			input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+			output vec4 out0 = [ vec4(0.825, 0.75, 0.75, 0.825) | vec4(1.75, 1.125, 1.125, 1.75) | vec4(9.0, -4.875, -4.875, 9.0) | vec4(24.0, -51.0, -51.0, 24.0) | vec4(0.25, 0.0526315789474, 0.0526315789474, 0.25) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = in0.wzzw;
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case mediump_vec4_wwwy
+		version 300 es
+		values
+		{
+			input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+			output vec4 out0 = [ vec4(0.825, 0.825, 0.825, 0.5) | vec4(1.75, 1.75, 1.75, 1.25) | vec4(9.0, 9.0, 9.0, -2.25) | vec4(24.0, 24.0, 24.0, 64.0) | vec4(0.25, 0.25, 0.25, -0.0322580645161) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = in0.wwwy;
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case mediump_vec4_xyxx
+		version 300 es
+		values
+		{
+			input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+			output vec4 out0 = [ vec4(0.0, 0.5, 0.0, 0.0) | vec4(1.0, 1.25, 1.0, 1.0) | vec4(-0.5, -2.25, -0.5, -0.5) | vec4(-32.0, 64.0, -32.0, -32.0) | vec4(-0.75, -0.0322580645161, -0.75, -0.75) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = in0.xyxx;
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case mediump_vec4_zzwz
+		version 300 es
+		values
+		{
+			input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+			output vec4 out0 = [ vec4(0.75, 0.75, 0.825, 0.75) | vec4(1.125, 1.125, 1.75, 1.125) | vec4(-4.875, -4.875, 9.0, -4.875) | vec4(-51.0, -51.0, 24.0, -51.0) | vec4(0.0526315789474, 0.0526315789474, 0.25, 0.0526315789474) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = in0.zzwz;
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case mediump_vec4_s
+		version 300 es
+		values
+		{
+			input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+			output float out0 = [ 0.0 | 1.0 | -0.5 | -32.0 | -0.75 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = in0.s;
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case mediump_vec4_q
+		version 300 es
+		values
+		{
+			input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+			output float out0 = [ 0.825 | 1.75 | 9.0 | 24.0 | 0.25 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = in0.q;
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case mediump_vec4_qs
+		version 300 es
+		values
+		{
+			input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+			output vec2 out0 = [ vec2(0.825, 0.0) | vec2(1.75, 1.0) | vec2(9.0, -0.5) | vec2(24.0, -32.0) | vec2(0.25, -0.75) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = in0.qs;
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case mediump_vec4_qp
+		version 300 es
+		values
+		{
+			input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+			output vec2 out0 = [ vec2(0.825, 0.75) | vec2(1.75, 1.125) | vec2(9.0, -4.875) | vec2(24.0, -51.0) | vec2(0.25, 0.0526315789474) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = in0.qp;
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case mediump_vec4_qqq
+		version 300 es
+		values
+		{
+			input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+			output vec3 out0 = [ vec3(0.825, 0.825, 0.825) | vec3(1.75, 1.75, 1.75) | vec3(9.0, 9.0, 9.0) | vec3(24.0, 24.0, 24.0) | vec3(0.25, 0.25, 0.25) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = in0.qqq;
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case mediump_vec4_ttq
+		version 300 es
+		values
+		{
+			input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+			output vec3 out0 = [ vec3(0.5, 0.5, 0.825) | vec3(1.25, 1.25, 1.75) | vec3(-2.25, -2.25, 9.0) | vec3(64.0, 64.0, 24.0) | vec3(-0.0322580645161, -0.0322580645161, 0.25) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = in0.ttq;
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case mediump_vec4_qpt
+		version 300 es
+		values
+		{
+			input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+			output vec3 out0 = [ vec3(0.825, 0.75, 0.5) | vec3(1.75, 1.125, 1.25) | vec3(9.0, -4.875, -2.25) | vec3(24.0, -51.0, 64.0) | vec3(0.25, 0.0526315789474, -0.0322580645161) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = in0.qpt;
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case mediump_vec4_stpq
+		version 300 es
+		values
+		{
+			input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+			output vec4 out0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = in0.stpq;
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case mediump_vec4_qpts
+		version 300 es
+		values
+		{
+			input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+			output vec4 out0 = [ vec4(0.825, 0.75, 0.5, 0.0) | vec4(1.75, 1.125, 1.25, 1.0) | vec4(9.0, -4.875, -2.25, -0.5) | vec4(24.0, -51.0, 64.0, -32.0) | vec4(0.25, 0.0526315789474, -0.0322580645161, -0.75) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = in0.qpts;
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case mediump_vec4_ssss
+		version 300 es
+		values
+		{
+			input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+			output vec4 out0 = [ vec4(0.0, 0.0, 0.0, 0.0) | vec4(1.0, 1.0, 1.0, 1.0) | vec4(-0.5, -0.5, -0.5, -0.5) | vec4(-32.0, -32.0, -32.0, -32.0) | vec4(-0.75, -0.75, -0.75, -0.75) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = in0.ssss;
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case mediump_vec4_tttt
+		version 300 es
+		values
+		{
+			input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+			output vec4 out0 = [ vec4(0.5, 0.5, 0.5, 0.5) | vec4(1.25, 1.25, 1.25, 1.25) | vec4(-2.25, -2.25, -2.25, -2.25) | vec4(64.0, 64.0, 64.0, 64.0) | vec4(-0.0322580645161, -0.0322580645161, -0.0322580645161, -0.0322580645161) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = in0.tttt;
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case mediump_vec4_qqqq
+		version 300 es
+		values
+		{
+			input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+			output vec4 out0 = [ vec4(0.825, 0.825, 0.825, 0.825) | vec4(1.75, 1.75, 1.75, 1.75) | vec4(9.0, 9.0, 9.0, 9.0) | vec4(24.0, 24.0, 24.0, 24.0) | vec4(0.25, 0.25, 0.25, 0.25) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = in0.qqqq;
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case mediump_vec4_qppq
+		version 300 es
+		values
+		{
+			input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+			output vec4 out0 = [ vec4(0.825, 0.75, 0.75, 0.825) | vec4(1.75, 1.125, 1.125, 1.75) | vec4(9.0, -4.875, -4.875, 9.0) | vec4(24.0, -51.0, -51.0, 24.0) | vec4(0.25, 0.0526315789474, 0.0526315789474, 0.25) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = in0.qppq;
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case mediump_vec4_qqqt
+		version 300 es
+		values
+		{
+			input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+			output vec4 out0 = [ vec4(0.825, 0.825, 0.825, 0.5) | vec4(1.75, 1.75, 1.75, 1.25) | vec4(9.0, 9.0, 9.0, -2.25) | vec4(24.0, 24.0, 24.0, 64.0) | vec4(0.25, 0.25, 0.25, -0.0322580645161) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = in0.qqqt;
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case mediump_vec4_stss
+		version 300 es
+		values
+		{
+			input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+			output vec4 out0 = [ vec4(0.0, 0.5, 0.0, 0.0) | vec4(1.0, 1.25, 1.0, 1.0) | vec4(-0.5, -2.25, -0.5, -0.5) | vec4(-32.0, 64.0, -32.0, -32.0) | vec4(-0.75, -0.0322580645161, -0.75, -0.75) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = in0.stss;
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case mediump_vec4_ppqp
+		version 300 es
+		values
+		{
+			input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+			output vec4 out0 = [ vec4(0.75, 0.75, 0.825, 0.75) | vec4(1.125, 1.125, 1.75, 1.125) | vec4(-4.875, -4.875, 9.0, -4.875) | vec4(-51.0, -51.0, 24.0, -51.0) | vec4(0.0526315789474, 0.0526315789474, 0.25, 0.0526315789474) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = in0.ppqp;
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case mediump_vec4_r
+		version 300 es
+		values
+		{
+			input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+			output float out0 = [ 0.0 | 1.0 | -0.5 | -32.0 | -0.75 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = in0.r;
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case mediump_vec4_a
+		version 300 es
+		values
+		{
+			input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+			output float out0 = [ 0.825 | 1.75 | 9.0 | 24.0 | 0.25 ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = in0.a;
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case mediump_vec4_ar
+		version 300 es
+		values
+		{
+			input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+			output vec2 out0 = [ vec2(0.825, 0.0) | vec2(1.75, 1.0) | vec2(9.0, -0.5) | vec2(24.0, -32.0) | vec2(0.25, -0.75) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = in0.ar;
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case mediump_vec4_ab
+		version 300 es
+		values
+		{
+			input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+			output vec2 out0 = [ vec2(0.825, 0.75) | vec2(1.75, 1.125) | vec2(9.0, -4.875) | vec2(24.0, -51.0) | vec2(0.25, 0.0526315789474) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = in0.ab;
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case mediump_vec4_aaa
+		version 300 es
+		values
+		{
+			input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+			output vec3 out0 = [ vec3(0.825, 0.825, 0.825) | vec3(1.75, 1.75, 1.75) | vec3(9.0, 9.0, 9.0) | vec3(24.0, 24.0, 24.0) | vec3(0.25, 0.25, 0.25) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = in0.aaa;
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case mediump_vec4_gga
+		version 300 es
+		values
+		{
+			input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+			output vec3 out0 = [ vec3(0.5, 0.5, 0.825) | vec3(1.25, 1.25, 1.75) | vec3(-2.25, -2.25, 9.0) | vec3(64.0, 64.0, 24.0) | vec3(-0.0322580645161, -0.0322580645161, 0.25) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = in0.gga;
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case mediump_vec4_abg
+		version 300 es
+		values
+		{
+			input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+			output vec3 out0 = [ vec3(0.825, 0.75, 0.5) | vec3(1.75, 1.125, 1.25) | vec3(9.0, -4.875, -2.25) | vec3(24.0, -51.0, 64.0) | vec3(0.25, 0.0526315789474, -0.0322580645161) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = in0.abg;
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case mediump_vec4_rgba
+		version 300 es
+		values
+		{
+			input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+			output vec4 out0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = in0.rgba;
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case mediump_vec4_abgr
+		version 300 es
+		values
+		{
+			input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+			output vec4 out0 = [ vec4(0.825, 0.75, 0.5, 0.0) | vec4(1.75, 1.125, 1.25, 1.0) | vec4(9.0, -4.875, -2.25, -0.5) | vec4(24.0, -51.0, 64.0, -32.0) | vec4(0.25, 0.0526315789474, -0.0322580645161, -0.75) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = in0.abgr;
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case mediump_vec4_rrrr
+		version 300 es
+		values
+		{
+			input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+			output vec4 out0 = [ vec4(0.0, 0.0, 0.0, 0.0) | vec4(1.0, 1.0, 1.0, 1.0) | vec4(-0.5, -0.5, -0.5, -0.5) | vec4(-32.0, -32.0, -32.0, -32.0) | vec4(-0.75, -0.75, -0.75, -0.75) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = in0.rrrr;
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case mediump_vec4_gggg
+		version 300 es
+		values
+		{
+			input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+			output vec4 out0 = [ vec4(0.5, 0.5, 0.5, 0.5) | vec4(1.25, 1.25, 1.25, 1.25) | vec4(-2.25, -2.25, -2.25, -2.25) | vec4(64.0, 64.0, 64.0, 64.0) | vec4(-0.0322580645161, -0.0322580645161, -0.0322580645161, -0.0322580645161) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = in0.gggg;
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case mediump_vec4_aaaa
+		version 300 es
+		values
+		{
+			input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+			output vec4 out0 = [ vec4(0.825, 0.825, 0.825, 0.825) | vec4(1.75, 1.75, 1.75, 1.75) | vec4(9.0, 9.0, 9.0, 9.0) | vec4(24.0, 24.0, 24.0, 24.0) | vec4(0.25, 0.25, 0.25, 0.25) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = in0.aaaa;
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case mediump_vec4_abba
+		version 300 es
+		values
+		{
+			input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+			output vec4 out0 = [ vec4(0.825, 0.75, 0.75, 0.825) | vec4(1.75, 1.125, 1.125, 1.75) | vec4(9.0, -4.875, -4.875, 9.0) | vec4(24.0, -51.0, -51.0, 24.0) | vec4(0.25, 0.0526315789474, 0.0526315789474, 0.25) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = in0.abba;
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case mediump_vec4_aaag
+		version 300 es
+		values
+		{
+			input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+			output vec4 out0 = [ vec4(0.825, 0.825, 0.825, 0.5) | vec4(1.75, 1.75, 1.75, 1.25) | vec4(9.0, 9.0, 9.0, -2.25) | vec4(24.0, 24.0, 24.0, 64.0) | vec4(0.25, 0.25, 0.25, -0.0322580645161) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = in0.aaag;
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case mediump_vec4_rgrr
+		version 300 es
+		values
+		{
+			input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+			output vec4 out0 = [ vec4(0.0, 0.5, 0.0, 0.0) | vec4(1.0, 1.25, 1.0, 1.0) | vec4(-0.5, -2.25, -0.5, -0.5) | vec4(-32.0, 64.0, -32.0, -32.0) | vec4(-0.75, -0.0322580645161, -0.75, -0.75) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = in0.rgrr;
+				${OUTPUT}
+			}
+		""
+	end
+
+
+	case mediump_vec4_bbab
+		version 300 es
+		values
+		{
+			input vec4 in0 = [ vec4(0.0, 0.5, 0.75, 0.825) | vec4(1.0, 1.25, 1.125, 1.75) | vec4(-0.5, -2.25, -4.875, 9.0) | vec4(-32.0, 64.0, -51.0, 24.0) | vec4(-0.75, -0.0322580645161, 0.0526315789474, 0.25) ];
+			output vec4 out0 = [ vec4(0.75, 0.75, 0.825, 0.75) | vec4(1.125, 1.125, 1.75, 1.125) | vec4(-4.875, -4.875, 9.0, -4.875) | vec4(-51.0, -51.0, 24.0, -51.0) | vec4(0.0526315789474, 0.0526315789474, 0.25, 0.0526315789474) ];
+		}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = in0.bbab;
+				${OUTPUT}
+			}
+		""
+	end
+
+
+end # vec4_swizzles

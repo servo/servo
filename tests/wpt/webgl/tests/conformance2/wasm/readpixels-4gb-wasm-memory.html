@@ -1,0 +1,63 @@
+<!--
+Copyright (c) 2023 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>gl.readPixels() test to Wasm Memory 4GB in size.</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"> </script>
+</head>
+<body>
+<canvas id="canvas" width="2" height="2" style="width: 40px; height: 40px;"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+description(document.title);
+debug("Tests that readPixels can be called on the end of a WebAssembly Memory of nearly 4GB in size.");
+debug("");
+let wtu = WebGLTestUtils;
+let gl = wtu.create3DContext("canvas", undefined, 2);
+
+const PAGE = 65536;
+const SIZE = 4*1024*1024*1024 - PAGE; // when uint32_t size is max, we can only reach one page short of full 4GB
+(() => {
+  let view;
+  try {
+    view = new Uint8Array(new WebAssembly.Memory({ initial: SIZE / PAGE }).buffer);
+  } catch (e) {
+    testPassed(`Allocating ${SIZE} threw: ${e}`);
+    return;
+  }
+
+  // Clear the canvas to a specific color
+  const expectedColor = [42, 84, 128, 255];
+  gl.clearColor(expectedColor[0]/255.0, expectedColor[1]/255.0, expectedColor[2]/255.0, expectedColor[3]/255.0);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+
+  // Test that gl.readPixels() can be called with a high offset to Memory
+  const offset = SIZE - 4;
+  view.set([0,0,0,0], offset); // For good measure, clear data at offset before reading
+  try {
+    gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, view, offset);
+  } catch (e) {
+    testFailed(`readPixels from ${view.length} byte view threw: ${e}`);
+    return;
+  }
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+  let obtainedColor = view.subarray(offset, offset+4);
+  expectArray(obtainedColor, expectedColor);
+})();
+
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+</body>
+</html>

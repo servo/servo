@@ -1,24 +1,7 @@
 /*
-** Copyright (c) 2016 The Khronos Group Inc.
-**
-** Permission is hereby granted, free of charge, to any person obtaining a
-** copy of this software and/or associated documentation files (the
-** "Materials"), to deal in the Materials without restriction, including
-** without limitation the rights to use, copy, modify, merge, publish,
-** distribute, sublicense, and/or sell copies of the Materials, and to
-** permit persons to whom the Materials are furnished to do so, subject to
-** the following conditions:
-**
-** The above copyright notice and this permission notice shall be included
-** in all copies or substantial portions of the Materials.
-**
-** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
 */
 
 function generateTest(internalFormat, pixelFormat, pixelType, prologue, resourcePath, defaultContextVersion) {
@@ -177,24 +160,8 @@ function generateTest(internalFormat, pixelFormat, pixelType, prologue, resource
               sourceSubRectangleString);
 
         var loc;
-        var skipCorner = false;
         if (bindingTarget == gl.TEXTURE_CUBE_MAP) {
             loc = gl.getUniformLocation(program, "face");
-            switch (gl[pixelFormat]) {
-              case gl.RED_INTEGER:
-              case gl.RG_INTEGER:
-              case gl.RGB_INTEGER:
-              case gl.RGBA_INTEGER:
-                // https://github.com/KhronosGroup/WebGL/issues/1819
-                skipCorner = true;
-                break;
-            }
-        }
-
-        if (skipCorner && sourceSubRectangle &&
-                sourceSubRectangle[2] == 1 && sourceSubRectangle[3] == 1) {
-            debug("Test skipped, see WebGL#1819");
-            return;
         }
 
         // Initialize the contents of the source canvas.
@@ -258,12 +225,6 @@ function generateTest(internalFormat, pixelFormat, pixelType, prologue, resource
         // out of the canvas.
         var outputCanvasWidth = gl.drawingBufferWidth;
         var outputCanvasHeight = gl.drawingBufferHeight;
-        var outputCanvasHalfWidth = Math.floor(outputCanvasWidth / 2);
-        var outputCanvasHalfHeight = Math.floor(outputCanvasHeight / 2);
-        var top = 0;
-        var bottom = outputCanvasHeight - outputCanvasHalfHeight;
-        var left = 0;
-        var right = outputCanvasWidth - outputCanvasHalfWidth;
 
         for (var tt = 0; tt < targets.length; ++tt) {
             if (bindingTarget == gl.TEXTURE_CUBE_MAP) {
@@ -272,17 +233,8 @@ function generateTest(internalFormat, pixelFormat, pixelType, prologue, resource
             // Draw the triangles
             wtu.clearAndDrawUnitQuad(gl, [0, 0, 0, 255]);
 
-            // Check the four quadrants and make sure they have the right color.
-            // This is split up into four tests only because of the driver bug above.
             var msg = 'should be ' + expected;
-            wtu.checkCanvasRect(gl, left, top, outputCanvasHalfWidth, outputCanvasHalfHeight, expected, msg);
-            if (!skipCorner) {
-                wtu.checkCanvasRect(gl, right, top, outputCanvasHalfWidth, outputCanvasHalfHeight, expected, msg);
-            }
-            wtu.checkCanvasRect(gl, left, bottom, outputCanvasHalfWidth, outputCanvasHalfHeight, expected, msg);
-            if (!skipCorner) {
-                wtu.checkCanvasRect(gl, right, bottom, outputCanvasHalfWidth, outputCanvasHalfHeight, expected, msg);
-            }
+            wtu.checkCanvasRect(gl, 0, 0, outputCanvasWidth, outputCanvasHeight, expected, msg);
         }
     }
 

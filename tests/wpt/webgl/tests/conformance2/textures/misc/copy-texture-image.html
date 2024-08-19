@@ -1,28 +1,7 @@
 <!--
-
-/*
-** Copyright (c) 2016 The Khronos Group Inc.
-**
-** Permission is hereby granted, free of charge, to any person obtaining a
-** copy of this software and/or associated documentation files (the
-** "Materials"), to deal in the Materials without restriction, including
-** without limitation the rights to use, copy, modify, merge, publish,
-** distribute, sublicense, and/or sell copies of the Materials, and to
-** permit persons to whom the Materials are furnished to do so, subject to
-** the following conditions:
-**
-** The above copyright notice and this permission notice shall be included
-** in all copies or substantial portions of the Materials.
-**
-** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
-*/
-
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
 -->
 
 <!DOCTYPE html>
@@ -72,7 +51,7 @@ function checkFramebuffer(expected) {
 }
 
 var testInternalformat = function () {
-    var goodByteFormats = [
+    var goodUnormFormats = [
         "RGB",
         "RGBA",
         "LUMINANCE_ALPHA",
@@ -83,7 +62,7 @@ var testInternalformat = function () {
         "RGB8",
         "RGBA8",
     ];
-    var goodByteFormatsWithUnmatchedComponentSizes = [
+    var goodUnormFormatsWithUnmatchedComponentSizes = [
         "RGB565",
         "RGBA4",
         "RGB5_A1",
@@ -96,6 +75,7 @@ var testInternalformat = function () {
     var goodIntFormats = [
         "R32I",
         "RG32I",
+        "RGB32I",
         "RGBA32I",
     ];
     var goodIntFormatsWithUnmatchedComponentSizes = [
@@ -103,12 +83,15 @@ var testInternalformat = function () {
         "R16I",
         "RG8I",
         "RG16I",
+        "RGB8I",
+        "RGB16I",
         "RGBA8I",
         "RGBA16I",
     ];
     var goodUnsignedIntFormats = [
         "R32UI",
         "RG32UI",
+        "RGB32UI",
         "RGBA32UI",
     ];
     var goodUnsignedIntFormatsWithUnmatchedComponentSizes = [
@@ -117,26 +100,33 @@ var testInternalformat = function () {
         "RG8UI",
         "RG16UI",
         "RGB10_A2UI",
+        "RGB8UI",
+        "RGB16UI",
         "RGBA8UI",
         "RGBA16UI",
     ];
-    var badByteFormats = [
+    const snormFormats = [
         "R8_SNORM",
         "RG8_SNORM",
         "RGB8_SNORM",
         "RGBA8_SNORM",
     ];
-    var badIntFormats = [
-        "RGB8I",
-        "RGB16I",
-        "RGB32I",
+    const float16Formats = [
+        "R16F",
+        "RG16F",
+        "RGB16F",
+        "RGBA16F",
     ];
-    var badUnsingedIntFormats = [
-        "RGB8UI",
-        "RGB16UI",
-        "RGB32UI",
+    const float32Formats = [
+        "R32F",
+        "RG32F",
+        "RGB32F",
+        "RGBA32F",
     ];
-    var badDepthStencilFormats = [
+    const float11Formats = [
+        "R11F_G11F_B10F",
+    ];
+    const depthAndOrStencilFormats = [
         "DEPTH_COMPONENT16",
         "DEPTH_COMPONENT24",
         "DEPTH_COMPONENT32F",
@@ -150,68 +140,97 @@ var testInternalformat = function () {
         var fbo = gl.createFramebuffer();
         var srcTexture = gl.createTexture();
         gl.bindTexture(gl.TEXTURE_2D, srcTexture);
-        gl.texImage2D(gl.TEXTURE_2D, 0, srcTexFormatsTypes.internalformat, 64, 64, 0, srcTexFormatsTypes.format, srcTexFormatsTypes.type, null);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl[srcTexFormatsTypes.internalformat], 64, 64, 0, srcTexFormatsTypes.format, srcTexFormatsTypes.type, null);
         gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
         gl.framebufferTexture2D(gl.FRAMEBUFFER, fboAttachmentType, gl.TEXTURE_2D, srcTexture, 0);
         checkFramebuffer([gl.FRAMEBUFFER_COMPLETE]);
 
         gl.bindTexture(gl.TEXTURE_2D, texture);
         gl.copyTexImage2D(gl.TEXTURE_2D, 0, gl[internalformat], 0, 0, 64, 64, 0);
-        wtu.glErrorShouldBe(gl, expected, msg + enumToString(gl[internalformat]));
+        wtu.glErrorShouldBe(gl, expected, msg + srcTexFormatsTypes.internalformat + '=>' + internalformat);
 
         gl.deleteTexture(srcTexture);
         gl.deleteFramebuffer(fbo);
     }
 
-    goodByteFormats.forEach(function(internalformat) {
-        var srcTexFormatsTypes = { internalformat: gl.RGBA, format: gl.RGBA, type: gl.UNSIGNED_BYTE };
+    goodUnormFormats.forEach(function(internalformat) {
+        var srcTexFormatsTypes = { internalformat: "RGBA", format: gl.RGBA, type: gl.UNSIGNED_BYTE };
         testFormat(internalformat, srcTexFormatsTypes, gl.COLOR_ATTACHMENT0, gl.NO_ERROR, "copyTexImage2D should succeed for good internalformat ");
-        srcTexFormatsTypes = { internalformat: gl.RGBA8, format: gl.RGBA, type: gl.UNSIGNED_BYTE };
+        srcTexFormatsTypes = { internalformat: "RGBA8", format: gl.RGBA, type: gl.UNSIGNED_BYTE };
         testFormat(internalformat, srcTexFormatsTypes, gl.COLOR_ATTACHMENT0, gl.NO_ERROR, "copyTexImage2D should succeed for good internalformat ");
     });
-    goodByteFormatsWithUnmatchedComponentSizes.forEach(function(internalformat) {
-        var srcTexFormatsTypes = { internalformat: gl.RGBA8, format: gl.RGBA, type: gl.UNSIGNED_BYTE };
+    goodUnormFormatsWithUnmatchedComponentSizes.forEach(function(internalformat) {
+        var srcTexFormatsTypes = { internalformat: "RGBA8", format: gl.RGBA, type: gl.UNSIGNED_BYTE };
         testFormat(internalformat, srcTexFormatsTypes, gl.COLOR_ATTACHMENT0, gl.INVALID_OPERATION,
                    "copyTexImage2D should fail for good internalformat with unmatched component sizes  ");
     });
+
     goodSRGBFormats.forEach(function(internalformat) {
-        var srcTexFormatsTypes = { internalformat: gl.SRGB8_ALPHA8, format: gl.RGBA, type: gl.UNSIGNED_BYTE };
+        var srcTexFormatsTypes = { internalformat: "SRGB8_ALPHA8", format: gl.RGBA, type: gl.UNSIGNED_BYTE };
         testFormat(internalformat, srcTexFormatsTypes, gl.COLOR_ATTACHMENT0, gl.NO_ERROR, "copyTexImage2D should succeed for good internalformat ");
     });
+
     goodIntFormats.forEach(function(internalformat) {
-        var srcTexFormatsTypes = { internalformat: gl.RGBA32I, format: gl.RGBA_INTEGER, type: gl.INT };
+        var srcTexFormatsTypes = { internalformat: "RGBA32I", format: gl.RGBA_INTEGER, type: gl.INT };
         testFormat(internalformat, srcTexFormatsTypes, gl.COLOR_ATTACHMENT0, gl.NO_ERROR, "copyTexImage2D should succeed for good internalformat ");
     });
     goodIntFormatsWithUnmatchedComponentSizes.forEach(function(internalformat) {
-        var srcTexFormatsTypes = { internalformat: gl.RGBA32I, format: gl.RGBA_INTEGER, type: gl.INT };
-        testFormat(internalformat, srcTexFormatsTypes, gl.COLOR_ATTACHMENT0, gl.INVALID_OPERATION,
-                   "copyTexImage2D should fail for good internalformat with unmatched component sizes ");
-    });
-    goodUnsignedIntFormats.forEach(function(internalformat) {
-        var srcTexFormatsTypes = { internalformat: gl.RGBA32UI, format: gl.RGBA_INTEGER, type: gl.UNSIGNED_INT };
-        testFormat(internalformat, srcTexFormatsTypes, gl.COLOR_ATTACHMENT0, gl.NO_ERROR, "copyTexImage2D should succeed for good internalformat ");
-    });
-    goodUnsignedIntFormatsWithUnmatchedComponentSizes.forEach(function(internalformat) {
-        var srcTexFormatsTypes = { internalformat: gl.RGBA32UI, format: gl.RGBA_INTEGER, type: gl.UNSIGNED_INT };
+        var srcTexFormatsTypes = { internalformat: "RGBA32I", format: gl.RGBA_INTEGER, type: gl.INT };
         testFormat(internalformat, srcTexFormatsTypes, gl.COLOR_ATTACHMENT0, gl.INVALID_OPERATION,
                    "copyTexImage2D should fail for good internalformat with unmatched component sizes ");
     });
 
-    badByteFormats.forEach(function(internalformat) {
-        var srcTexFormatsTypes = { internalformat: gl.RGBA8, format: gl.RGBA, type: gl.UNSIGNED_BYTE };
-        testFormat(internalformat, srcTexFormatsTypes, gl.COLOR_ATTACHMENT0, gl.INVALID_ENUM, "copyTexImage2D should fail for bad internalformat ");
+    goodUnsignedIntFormats.forEach(function(internalformat) {
+        var srcTexFormatsTypes = { internalformat: "RGBA32UI", format: gl.RGBA_INTEGER, type: gl.UNSIGNED_INT };
+        testFormat(internalformat, srcTexFormatsTypes, gl.COLOR_ATTACHMENT0, gl.NO_ERROR, "copyTexImage2D should succeed for good internalformat ");
     });
-    badIntFormats.forEach(function(internalformat) {
-        var srcTexFormatsTypes = { internalformat: gl.RGBA32I, format: gl.RGBA_INTEGER, type: gl.INT };
-        testFormat(internalformat, srcTexFormatsTypes, gl.COLOR_ATTACHMENT0, gl.INVALID_ENUM, "copyTexImage2D should fail for bad internalformat ");
+    goodUnsignedIntFormatsWithUnmatchedComponentSizes.forEach(function(internalformat) {
+        var srcTexFormatsTypes = { internalformat: "RGBA32UI", format: gl.RGBA_INTEGER, type: gl.UNSIGNED_INT };
+        testFormat(internalformat, srcTexFormatsTypes, gl.COLOR_ATTACHMENT0, gl.INVALID_OPERATION,
+                   "copyTexImage2D should fail for good internalformat with unmatched component sizes ");
     });
-    badUnsingedIntFormats.forEach(function(internalformat) {
-        var srcTexFormatsTypes = { internalformat: gl.RGBA32UI, format: gl.RGBA_INTEGER, type: gl.UNSIGNED_INT };
-        testFormat(internalformat, srcTexFormatsTypes, gl.COLOR_ATTACHMENT0, gl.INVALID_ENUM, "copyTexImage2D should fail for bad internalformat ");
+
+    snormFormats.forEach(function(internalformat) {
+        const srcTexFormatsTypes = { internalformat: "RGBA8", format: gl.RGBA, type: gl.UNSIGNED_BYTE };
+        testFormat(internalformat, srcTexFormatsTypes, gl.COLOR_ATTACHMENT0, [gl.INVALID_ENUM, gl.INVALID_OPERATION], "copyTexImage2D should fail for snorm internalformat ");
     });
-    badDepthStencilFormats.forEach(function(internalformat) {
-        var srcTexFormatsTypes = { internalformat: gl.DEPTH24_STENCIL8, format: gl.DEPTH_STENCIL, type: gl.UNSIGNED_INT_24_8};
-        testFormat(internalformat, srcTexFormatsTypes, gl.DEPTH_STENCIL_ATTACHMENT, gl.INVALID_ENUM, "copyTexImage2D should fail for bad internalformat ");
+
+    if (gl.getExtension("EXT_color_buffer_float")) {
+        float16Formats.forEach(function(internalformat) {
+            var srcTexFormatsTypes = { internalformat: "RGBA16F", format: gl.RGBA, type: gl.FLOAT };
+            testFormat(internalformat, srcTexFormatsTypes, gl.COLOR_ATTACHMENT0, gl.NO_ERROR, "copyTexImage2D should succeed for float16 internalformat ");
+        });
+        float32Formats.forEach(function(internalformat) {
+            var srcTexFormatsTypes = { internalformat: "RGBA32F", format: gl.RGBA, type: gl.FLOAT };
+            testFormat(internalformat, srcTexFormatsTypes, gl.COLOR_ATTACHMENT0, gl.NO_ERROR, "copyTexImage2D should succeed for float32 internalformat ");
+        });
+        float11Formats.forEach(function(internalformat) {
+            var srcTexFormatsTypes = { internalformat: "R11F_G11F_B10F", format: gl.RGB, type: gl.FLOAT };
+            testFormat(internalformat, srcTexFormatsTypes, gl.COLOR_ATTACHMENT0, gl.NO_ERROR, "copyTexImage2D should succeed for R11F_G11F_B10F internalformat ");
+        });
+
+        float32Formats.concat(float11Formats).forEach(function(internalformat) {
+            var srcTexFormatsTypes = { internalformat: "RGBA16F", format: gl.RGBA, type: gl.FLOAT };
+            testFormat(internalformat, srcTexFormatsTypes, gl.COLOR_ATTACHMENT0, gl.INVALID_OPERATION,
+                       "copyTexImage2D should fail for non-float16 internalformat (unmatched component sizes) ");
+        });
+        float16Formats.concat(float11Formats).forEach(function(internalformat) {
+            var srcTexFormatsTypes = { internalformat: "RGBA32F", format: gl.RGBA, type: gl.FLOAT };
+            testFormat(internalformat, srcTexFormatsTypes, gl.COLOR_ATTACHMENT0, gl.INVALID_OPERATION,
+                       "copyTexImage2D should fail for non-float32 internalformat (unmatched component sizes) ");
+        });
+        float16Formats.concat(float32Formats).forEach(function(internalformat) {
+            var srcTexFormatsTypes = { internalformat: "R11F_G11F_B10F", format: gl.RGB, type: gl.FLOAT };
+            testFormat(internalformat, srcTexFormatsTypes, gl.COLOR_ATTACHMENT0, gl.INVALID_OPERATION,
+                       "copyTexImage2D should fail for non-R11F_G11F_B10F internalformat (unmatched component sizes) ");
+        });
+    }
+
+    depthAndOrStencilFormats.forEach(function(internalformat) {
+        var srcTexFormatsTypes = { internalformat: "DEPTH24_STENCIL8", format: gl.DEPTH_STENCIL, type: gl.UNSIGNED_INT_24_8};
+        testFormat(internalformat, srcTexFormatsTypes, gl.DEPTH_STENCIL_ATTACHMENT,
+                   [gl.INVALID_ENUM, gl.INVALID_OPERATION],
+                   "copyTexImage2D should fail for depth internalformat ");
     });
 
     gl.deleteTexture(texture);

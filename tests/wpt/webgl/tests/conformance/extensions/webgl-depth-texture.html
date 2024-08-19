@@ -1,28 +1,7 @@
 <!--
-
-/*
-** Copyright (c) 2012 The Khronos Group Inc.
-**
-** Permission is hereby granted, free of charge, to any person obtaining a
-** copy of this software and/or associated documentation files (the
-** "Materials"), to deal in the Materials without restriction, including
-** without limitation the rights to use, copy, modify, merge, publish,
-** distribute, sublicense, and/or sell copies of the Materials, and to
-** permit persons to whom the Materials are furnished to do so, subject to
-** the following conditions:
-**
-** The above copyright notice and this permission notice shall be included
-** in all copies or substantial portions of the Materials.
-**
-** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
-*/
-
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
 -->
 <!DOCTYPE html>
 <html>
@@ -50,7 +29,7 @@ uniform sampler2D u_texture;
 uniform vec2 u_resolution;
 void main()
 {
-    vec2 texcoord = gl_FragCoord.xy / u_resolution;
+    vec2 texcoord = (gl_FragCoord.xy - vec2(0.5)) / (u_resolution - vec2(1.0));
     gl_FragColor = texture2D(u_texture, texcoord);
 }
 </script>
@@ -144,7 +123,8 @@ function dumpIt(gl, res, msg) {
 function runTestExtension(unpackFlipY) {
     debug("Testing WEBGL_depth_texture. UNPACK_FLIP_Y_WEBGL: " + unpackFlipY);
 
-    var res = 8;
+    const res = 2;
+    const destRes = 4;
 
     // make canvas for testing.
     canvas2 = document.createElement("canvas");
@@ -156,7 +136,7 @@ function runTestExtension(unpackFlipY) {
 
     var program = wtu.setupProgram(gl, ['vshader', 'fshader'], ['a_position']);
     gl.useProgram(program);
-    gl.uniform2f(gl.getUniformLocation(program, "u_resolution"), res, res);
+    gl.uniform2f(gl.getUniformLocation(program, "u_resolution"), destRes, destRes);
 
     var buffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
@@ -215,6 +195,7 @@ function runTestExtension(unpackFlipY) {
         ];
 
         for (var jj = 0; jj < filterModes.length; ++jj) {
+            debug('');
             debug('testing ' + filterModes[jj] + ' filtering');
             var filterMode = gl[filterModes[jj]];
 
@@ -282,58 +263,96 @@ function runTestExtension(unpackFlipY) {
             // use the default texture to render with while we return to the depth texture.
             gl.bindTexture(gl.TEXTURE_2D, null);
 
-            // render the z-quad
-            gl.enable(gl.DEPTH_TEST);
-            gl.clearColor(1, 0, 0, 1);
-            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-            gl.drawArrays(gl.TRIANGLES, 0, 6);
+            /* Setup 2x2 depth texture:
+             * 1 0.6 0.8
+             * |
+             * 0 0.2 0.4
+             *    0---1
+             */
+            const d00 = 0.2;
+            const d01 = 0.4;
+            const d10 = 0.6;
+            const d11 = 0.8;
 
-            dumpIt(gl, res, "--first--");
+            gl.enable(gl.SCISSOR_TEST);
+
+            gl.scissor(0, 0, 1, 1);
+            gl.clearDepth(d00);
+            gl.clear(gl.DEPTH_BUFFER_BIT);
+
+            gl.scissor(1, 0, 1, 1);
+            gl.clearDepth(d10);
+            gl.clear(gl.DEPTH_BUFFER_BIT);
+
+            gl.scissor(0, 1, 1, 1);
+            gl.clearDepth(d01);
+            gl.clear(gl.DEPTH_BUFFER_BIT);
+
+            gl.scissor(1, 1, 1, 1);
+            gl.clearDepth(d11);
+            gl.clear(gl.DEPTH_BUFFER_BIT);
+
+            gl.disable(gl.SCISSOR_TEST);
 
             // render the depth texture.
             gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+            gl.canvas.width = destRes;
+            gl.canvas.height = destRes;
+            gl.viewport(0, 0, destRes, destRes);
             gl.bindTexture(gl.TEXTURE_2D, tex);
-            gl.clearColor(0, 0, 1, 1);
+
+            gl.disable(gl.DITHER);
+            gl.enable(gl.DEPTH_TEST);
+            gl.clearColor(1, 0, 0, 1);
+            gl.clearDepth(1.0);
             gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
             gl.drawArrays(gl.TRIANGLES, 0, 6);
 
-            var actualPixels = new Uint8Array(res * res * 4);
-            gl.readPixels(0, 0, res, res, gl.RGBA, gl.UNSIGNED_BYTE, actualPixels);
-
             dumpIt(gl, res, "--depth--");
 
-            // Check that each pixel's R value is less than that of the previous pixel
-            // in either direction. Basically verify we have a gradient.
-            var success = true;
-            for (var yy = 0; yy < res; ++yy) {
-                for (var xx = 0; xx < res; ++xx) {
-                    var actual = (yy * res + xx) * 4;
-                    var left = actual - 4;
-                    var down = actual - res * 4;
+            var actualPixels = new Uint8Array(destRes * destRes * 4);
+            gl.readPixels(0, 0, destRes, destRes, gl.RGBA, gl.UNSIGNED_BYTE, actualPixels);
 
-                    if (xx > 0) {
-                        if (actualPixels[actual] <= actualPixels[left]) {
-                            testFailed("actual(" + actualPixels[actual] + ") < left(" + actualPixels[left] + ")");
-                            success = false;
-                        }
+            const eps = 0.002;
+
+            let expectedMin;
+            let expectedMax;
+            if (filterMode == gl.NEAREST) {
+                expectedMin = [
+                    d00, d00, d10, d10,
+                    d00, d00, d10, d10,
+                    d01, d01, d11, d11,
+                    d01, d01, d11, d11
+                ];
+                expectedMax = expectedMin.slice();
+            } else {
+                expectedMin = [
+                    d00, d00, d00, d10,
+                    d00, d00, d00, d10,
+                    d00, d00, d00, d10,
+                    d01, d01, d01, d11,
+                ];
+                expectedMax = [
+                    d00, d10, d10, d10,
+                    d01, d11, d11, d11,
+                    d01, d11, d11, d11,
+                    d01, d11, d11, d11,
+                ];
+            }
+
+            for (var yy = 0; yy < destRes; ++yy) {
+                for (var xx = 0; xx < destRes; ++xx) {
+                    const t = xx + destRes*yy;
+                    const was = actualPixels[4*t] / 255.0; // 4bpp
+                    const eMin = expectedMin[t];
+                    const eMax = expectedMax[t];
+                    let func = testPassed;
+                    const text = `At ${xx},${yy}, expected within [${eMin},${eMax}], was ${was.toFixed(3)}`
+                    if (was <= eMin - eps || was >= eMax + eps) {
+                        func = testFailed;
                     }
-                    if (yy > 0) {
-                        if (actualPixels[actual] <= actualPixels[down]) {
-                            testFailed("actual(" + actualPixels[actual] + ") < down(" + actualPixels[down] + ")");
-                            success = false;
-                        }
-                    }
+                    func(text);
                 }
-            }
-
-            // Check that bottom left corner is vastly different thatn top right.
-            if (actualPixels[(res * res - 1) * 4] - actualPixels[0] < 0xC0) {
-                testFailed("corners are not different enough");
-                success = false;
-            }
-
-            if (success) {
-                testPassed("depth texture rendered correctly.");
             }
 
             // check limitations

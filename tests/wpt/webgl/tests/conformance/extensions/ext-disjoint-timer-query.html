@@ -1,26 +1,7 @@
 <!--
-/*
-** Copyright (c) 2015 The Khronos Group Inc.
-**
-** Permission is hereby granted, free of charge, to any person obtaining a
-** copy of this software and/or associated documentation files (the
-** "Materials"), to deal in the Materials without restriction, including
-** without limitation the rights to use, copy, modify, merge, publish,
-** distribute, sublicense, and/or sell copies of the Materials, and to
-** permit persons to whom the Materials are furnished to do so, subject to
-** the following conditions:
-**
-** The above copyright notice and this permission notice shall be included
-** in all copies or substantial portions of the Materials.
-**
-** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
-*/
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
 -->
 
 <!DOCTYPE html>
@@ -46,7 +27,9 @@ description("This test verifies the functionality of the EXT_disjoint_timer_quer
 var wtu = WebGLTestUtils;
 var canvas = document.getElementById("canvas");
 var gl = wtu.create3DContext(canvas);
+var gl2 = null;
 var ext = null;
+var ext2 = null;
 var query = null;
 var query2 = null;
 var elapsed_query = null;
@@ -82,6 +65,8 @@ if (!gl) {
                 runTimeStampTest();
             }
             verifyQueryResultsNotAvailable();
+            verifyDeleteQueryBehavior();
+            verifyDeleteQueryErrorBehavior();
 
             window.requestAnimationFrame(checkQueryResults);
         }
@@ -264,6 +249,61 @@ function verifyQueryResultsNotAvailable() {
     }
 
     testPassed("Queries' results didn't become available in a spin loop");
+}
+
+function verifyDeleteQueryBehavior() {
+    debug("");
+    debug("Testing deleting an active query should end it.");
+
+    // Use a new context for this test
+    gl2 = wtu.create3DContext(null, null, 1);
+    if (!gl2) return;
+    ext2 = gl2.getExtension("EXT_disjoint_timer_query");
+    if (!ext2) return;
+
+    query = ext2.createQueryEXT();
+    ext2.beginQueryEXT(ext2.TIME_ELAPSED_EXT, query);
+    wtu.glErrorShouldBe(gl2, gl2.NONE, "The query began successfully");
+    ext2.deleteQueryEXT(query);
+    wtu.glErrorShouldBe(gl2, gl2.NONE, "Deletion of the active query succeeds");
+    shouldBeNull("ext2.getQueryEXT(ext2.TIME_ELAPSED_EXT, ext2.CURRENT_QUERY_EXT)");
+    shouldBeFalse("ext2.isQueryEXT(query)");
+    query = ext2.createQueryEXT();
+    ext2.beginQueryEXT(ext2.TIME_ELAPSED_EXT, query);
+    wtu.glErrorShouldBe(gl2, gl2.NONE, "Beginning a new query succeeds");
+    ext2.endQueryEXT(ext2.TIME_ELAPSED_EXT);
+    ext2.deleteQueryEXT(query);
+    wtu.glErrorShouldBe(gl2, gl2.NONE);
+    query = null;
+    ext2 = null;
+    gl2 = null;
+}
+
+function verifyDeleteQueryErrorBehavior() {
+    debug("");
+    debug("Testing deleting a query created by another context.");
+
+    // Use new contexts for this test
+    gl2 = wtu.create3DContext(null, null, 1);
+    var gl3 = wtu.create3DContext(null, null, 1);
+    if (!gl2 || !gl3) return;
+    ext2 = gl2.getExtension("EXT_disjoint_timer_query");
+    var ext3 = gl3.getExtension("EXT_disjoint_timer_query");
+    if (!ext2 || !ext3) return;
+
+    query = ext2.createQueryEXT();
+    ext2.beginQueryEXT(ext2.TIME_ELAPSED_EXT, query);
+    ext3.deleteQueryEXT(query);
+    wtu.glErrorShouldBe(gl3, gl3.INVALID_OPERATION);
+    shouldBeTrue("ext2.isQueryEXT(query)");
+    shouldBe("ext2.getQueryEXT(ext2.TIME_ELAPSED_EXT, ext2.CURRENT_QUERY_EXT)", "query");
+    ext2.endQueryEXT(ext2.TIME_ELAPSED_EXT);
+    ext2.deleteQueryEXT(query);
+    wtu.glErrorShouldBe(gl2, gl2.NONE);
+    query = null;
+    ext2 = null;
+    gl2 = null;
+    gl3 = null;
 }
 
 function checkQueryResults() {

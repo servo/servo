@@ -1,0 +1,206 @@
+# WARNING: This file is auto-generated. Do NOT modify it manually, but rather
+# modify the generating script file. Otherwise changes will be lost!
+# See split-conversions.js
+
+group matrix_to_matrix "Matrix to Matrix Conversions"
+
+	case mat4_to_mat4
+		values
+		{
+			input mat4 in0 = [ mat4(1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0) | mat4(6.5, 32.0, 0.125, -6.725, 12.5, 0.0208333333333, 0.0625, -0.5, -0.75, -8.425, 0.03125, -0.0125, 9.975, -6.542, 0.015625, 9.975) ];
+			output mat4 out0 = [ mat4(1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0) | mat4(6.5, 32.0, 0.125, -6.725, 12.5, 0.0208333333333, 0.0625, -0.5, -0.75, -8.425, 0.03125, -0.0125, 9.975, -6.542, 0.015625, 9.975) ];
+		}
+
+		both ""
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = mat4(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case mat4_to_mat3
+		values
+		{
+			input mat4 in0 = [ mat4(1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0) | mat4(6.5, 32.0, 0.125, -6.725, 12.5, 0.0208333333333, 0.0625, -0.5, -0.75, -8.425, 0.03125, -0.0125, 9.975, -6.542, 0.015625, 9.975) ];
+			output mat3 out0 = [ mat3(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0) | mat3(6.5, 32.0, 0.125, 12.5, 0.0208333333333, 0.0625, -0.75, -8.425, 0.03125) ];
+		}
+
+		both ""
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = mat3(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case mat4_to_mat2
+		values
+		{
+			input mat4 in0 = [ mat4(1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0) | mat4(6.5, 32.0, 0.125, -6.725, 12.5, 0.0208333333333, 0.0625, -0.5, -0.75, -8.425, 0.03125, -0.0125, 9.975, -6.542, 0.015625, 9.975) ];
+			output mat2 out0 = [ mat2(1.0, 0.0, 0.0, 1.0) | mat2(6.5, 32.0, 12.5, 0.0208333333333) ];
+		}
+
+		both ""
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = mat2(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case mat3_to_mat4
+		values
+		{
+			input mat3 in0 = [ mat3(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0) | mat3(6.5, 32.0, 0.125, 12.5, 0.03125, 0.0625, -0.75, 0.015625, 0.03125) ];
+			output mat4 out0 = [ mat4(1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0) | mat4(6.5, 32.0, 0.125, 0.0, 12.5, 0.03125, 0.0625, 0.0, -0.75, 0.015625, 0.03125, 0.0, 0.0, 0.0, 0.0, 1.0) ];
+		}
+
+		both ""
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = mat4(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case mat3_to_mat3
+		values
+		{
+			input mat3 in0 = [ mat3(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0) | mat3(6.5, 32.0, 0.125, 12.5, 0.03125, 0.0625, -0.75, 0.015625, 0.03125) ];
+			output mat3 out0 = [ mat3(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0) | mat3(6.5, 32.0, 0.125, 12.5, 0.03125, 0.0625, -0.75, 0.015625, 0.03125) ];
+		}
+
+		both ""
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = mat3(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case mat3_to_mat2
+		values
+		{
+			input mat3 in0 = [ mat3(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0) | mat3(6.5, 32.0, 0.125, 12.5, 0.03125, 0.0625, -0.75, 0.015625, 0.03125) ];
+			output mat2 out0 = [ mat2(1.0, 0.0, 0.0, 1.0) | mat2(6.5, 32.0, 12.5, 0.03125) ];
+		}
+
+		both ""
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = mat2(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case mat2_to_mat4
+		values
+		{
+			input mat2 in0 = [ mat2(1.0, 0.0, 0.0, 1.0) | mat2(6.5, -0.75, 12.5, 9.975) | mat2(6.5, -0.75, 12.5, 9.975) | mat2(8.0, -24.0, 16.0, -16.0) | mat2(0.125, 0.03125, 0.0625, 0.015625) | mat2(-18.725, -0.0125, -0.5, 19.975) ];
+			output mat4 out0 = [ mat4(1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0) | mat4(6.5, -0.75, 0.0, 0.0, 12.5, 9.975, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0) | mat4(6.5, -0.75, 0.0, 0.0, 12.5, 9.975, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0) | mat4(8.0, -24.0, 0.0, 0.0, 16.0, -16.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0) | mat4(0.125, 0.03125, 0.0, 0.0, 0.0625, 0.015625, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0) | mat4(-18.725, -0.0125, 0.0, 0.0, -0.5, 19.975, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0) ];
+		}
+
+		both ""
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = mat4(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case mat2_to_mat3
+		values
+		{
+			input mat2 in0 = [ mat2(1.0, 0.0, 0.0, 1.0) | mat2(6.5, -0.75, 12.5, 9.975) | mat2(6.5, -0.75, 12.5, 9.975) | mat2(8.0, -24.0, 16.0, -16.0) | mat2(0.125, 0.03125, 0.0625, 0.015625) | mat2(-18.725, -0.0125, -0.5, 19.975) ];
+			output mat3 out0 = [ mat3(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0) | mat3(6.5, -0.75, 0.0, 12.5, 9.975, 0.0, 0.0, 0.0, 1.0) | mat3(6.5, -0.75, 0.0, 12.5, 9.975, 0.0, 0.0, 0.0, 1.0) | mat3(8.0, -24.0, 0.0, 16.0, -16.0, 0.0, 0.0, 0.0, 1.0) | mat3(0.125, 0.03125, 0.0, 0.0625, 0.015625, 0.0, 0.0, 0.0, 1.0) | mat3(-18.725, -0.0125, 0.0, -0.5, 19.975, 0.0, 0.0, 0.0, 1.0) ];
+		}
+
+		both ""
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = mat3(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case mat2_to_mat2
+		values
+		{
+			input mat2 in0 = [ mat2(1.0, 0.0, 0.0, 1.0) | mat2(6.5, -0.75, 12.5, 9.975) | mat2(6.5, -0.75, 12.5, 9.975) | mat2(8.0, -24.0, 16.0, -16.0) | mat2(0.125, 0.03125, 0.0625, 0.015625) | mat2(-18.725, -0.0125, -0.5, 19.975) ];
+			output mat2 out0 = [ mat2(1.0, 0.0, 0.0, 1.0) | mat2(6.5, -0.75, 12.5, 9.975) | mat2(6.5, -0.75, 12.5, 9.975) | mat2(8.0, -24.0, 16.0, -16.0) | mat2(0.125, 0.03125, 0.0625, 0.015625) | mat2(-18.725, -0.0125, -0.5, 19.975) ];
+		}
+
+		both ""
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				out0 = mat2(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+
+end # matrix_to_matrix

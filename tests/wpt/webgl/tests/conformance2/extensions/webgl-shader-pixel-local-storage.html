@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL WEBGL_shader_pixel_local_storage Conformance Tests</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/desktop-gl-constants.js"></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<script src="../../js/tests/compositing-test.js"></script>
+<script src="../../js/tests/invalid-vertex-attrib-test.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<canvas id="canvas" width="128" height="128" style="background-color:#080"> </canvas>
+<canvas id="canvas_no_alpha" width="128" height="128"> </canvas>
+<div id="console"></div>
+<script>
+"use strict";
+description("This test verifies the functionality of the WEBGL_shader_pixel_local_storage " +
+            "extension, if it is available.");
+
+const wtu = WebGLTestUtils;
+const canvas = document.getElementById("canvas");
+const gl = wtu.create3DContext(canvas, {alpha: true}, 2);
+const gl_no_alpha = wtu.create3DContext("canvas_no_alpha", {alpha: false}, 2);
+let pls = null;
+
+// Outputs a fullscreen quad from a 4-vertex triangle strip.
+const fullscreenQuadVertexShader = `#version 300 es
+void main() {
+    gl_Position.x = (gl_VertexID & 1) == 0 ? -1. : 1.;
+    gl_Position.y = (gl_VertexID & 2) == 0 ? -1. : 1.;
+    gl_Position.zw = vec2(0, 1);
+}`;
+
+function arraysEqual(a, b) {
+  if (typeof a !== typeof b)
+    return false;
+  if (a.length != b.length)
+    return false;
+  for (let i = 0; i < a.length; ++i) {
+    if (a[i] !== b[i])
+      return false;
+  }
+  return true;
+}
+
+async function runTest() {
+  if (!gl) {
+    testFailed("WebGL2 context does not exist");
+    finishTest();
+    return;
+  }
+
+  debug("\nCheck the behavior surrounding WEBGL_shader_pixel_local_storage being enabled.");
+  checkExtensionNotSupportedWhenDisabled();
+  checkDependencyExtensionsEnabled(false);
+  debug("Enable WEBGL_shader_pixel_local_storage.");
+  pls = gl.getExtension("WEBGL_shader_pixel_local_storage");
+  wtu.runExtensionSupportedTest(gl, "WEBGL_shader_pixel_local_storage", pls != null);
+  if (!pls) {
+    finishTest();
+    return;
+  }
+  checkDependencyExtensionsEnabled(true);
+
+  checkImplementationDependentLimits();
+  checkInitialValues();
+  checkWebGLNonNormativeBehavior();
+
+  await checkRendering(gl);
+  await checkRendering(gl_no_alpha);
+
+  finishTest();
+}
+
+function checkExtensionNotSupportedWhenDisabled() {
+  debug("\nCheck that a context does not support WEBGL_shader_pixel_local_storage before it is " +
+        "enabled");
+  shouldBeNull("gl.getParameter(0x96E0 /*MAX_PIXEL_LOCAL_STORAGE_PLANES_WEBGL*/)");
+  wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "parameter unknown without enabling the extension");
+  shouldBeNull(
+    "gl.getParameter(0x96E1 /*MAX_COLOR_ATTACHMENTS_WITH_ACTIVE_PIXEL_LOCAL_STORAGE_WEBGL*/)");
+  wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "parameter unknown without enabling the extension");
+  shouldBeNull(
+    "gl.getParameter(0x96E2 /*MAX_COMBINED_DRAW_BUFFERS_AND_PIXEL_LOCAL_STORAGE_PLANES_WEBGL*/)");
+  wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "parameter unknown without enabling the extension");
+  shouldBeNull(
+    "gl.getParameter(0x96E3 /*PIXEL_LOCAL_STORAGE_ACTIVE_PLANES_WEBGL*/)");
+  wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "parameter unknown without enabling the extension");
+  wtu.glErrorShouldBe(gl, gl.NONE);
+}
+
+function checkDependencyExtensionsEnabled(enabled) {
+  debug("\nCheck that dependency extensions of WEBGL_shader_pixel_local_storage are " +
+        (enabled ? "enabled" : "disabled"));
+  if (wtu.getSupportedExtensionWithKnownPrefixes(gl, "OES_draw_buffers_indexed") !== undefined) {
+    gl.getIndexedParameter(gl.BLEND_EQUATION_RGB, 1);
+    wtu.glErrorShouldBe(gl, enabled ? gl.NONE : gl.INVALID_ENUM,
+                        "OES_draw_buffers_indexed not enabled or disabled as expected");
+  }
+  if (wtu.getSupportedExtensionWithKnownPrefixes(gl, "EXT_color_buffer_float") !== undefined) {
+    gl.bindRenderbuffer(gl.RENDERBUFFER, gl.createRenderbuffer());
+    gl.renderbufferStorage(gl.RENDERBUFFER, gl.R32F, 1, 1);
+    wtu.glErrorShouldBe(gl, enabled ? gl.NONE : gl.INVALID_ENUM,
+                        "EXT_color_buffer_float not enabled or disabled as expected");
+    gl.bindRenderbuffer(gl.RENDERBUFFER, null);
+  }
+  if (wtu.getSupportedExtensionWithKnownPrefixes(gl, "EXT_color_buffer_half_float") !== undefined) {
+    gl.bindRenderbuffer(gl.RENDERBUFFER, gl.createRenderbuffer());
+    gl.renderbufferStorage(gl.RENDERBUFFER, gl.RG16F, 1, 1);
+    wtu.glErrorShouldBe(gl, enabled ? gl.NONE : gl.INVALID_ENUM,
+                        "EXT_color_buffer_half_float not enabled or disabled as expected");
+    gl.bindRenderbuffer(gl.RENDERBUFFER, null);
+  }
+}
+
+function checkImplementationDependentLimits() {
+  debug("\nVerify conformant implementation-dependent PLS limits.");
+  window.MAX_PIXEL_LOCAL_STORAGE_PLANES =
+    gl.getParameter(pls.MAX_PIXEL_LOCAL_STORAGE_PLANES_WEBGL);
+  window.MAX_COLOR_ATTACHMENTS_WITH_ACTIVE_PIXEL_LOCAL_STORAGE =
+    gl.getParameter(pls.MAX_COLOR_ATTACHMENTS_WITH_ACTIVE_PIXEL_LOCAL_STORAGE_WEBGL);
+  window.MAX_COMBINED_DRAW_BUFFERS_AND_PIXEL_LOCAL_STORAGE_PLANES =
+    gl.getParameter(pls.MAX_COMBINED_DRAW_BUFFERS_AND_PIXEL_LOCAL_STORAGE_PLANES_WEBGL);
+  wtu.glErrorShouldBe(gl, gl.NONE, "Pixel local storage queries should be supported.");
+
+  window.MAX_COLOR_ATTACHMENTS = gl.getParameter(gl.MAX_COLOR_ATTACHMENTS);
+  window.MAX_DRAW_BUFFERS = gl.getParameter(gl.MAX_DRAW_BUFFERS);
+
+  // Table 6.X: Impementation Dependent Pixel Local Storage Limits.
+  shouldBeTrue("MAX_PIXEL_LOCAL_STORAGE_PLANES >= 4");
+  shouldBeTrue("MAX_COLOR_ATTACHMENTS_WITH_ACTIVE_PIXEL_LOCAL_STORAGE >= 0");
+  shouldBeTrue("MAX_COMBINED_DRAW_BUFFERS_AND_PIXEL_LOCAL_STORAGE_PLANES >= 4");
+
+  // Logical deductions based on 6.X.
+  shouldBeTrue(`MAX_COMBINED_DRAW_BUFFERS_AND_PIXEL_LOCAL_STORAGE_PLANES >=
+               MAX_PIXEL_LOCAL_STORAGE_PLANES`);
+  shouldBeTrue(`MAX_COMBINED_DRAW_BUFFERS_AND_PIXEL_LOCAL_STORAGE_PLANES >=
+               MAX_COLOR_ATTACHMENTS_WITH_ACTIVE_PIXEL_LOCAL_STORAGE`);
+  shouldBeTrue(`MAX_COLOR_ATTACHMENTS + MAX_PIXEL_LOCAL_STORAGE_PLANES >=
+               MAX_COMBINED_DRAW_BUFFERS_AND_PIXEL_LOCAL_STORAGE_PLANES`);
+  shouldBeTrue(`MAX_DRAW_BUFFERS + MAX_PIXEL_LOCAL_STORAGE_PLANES >=
+               MAX_COMBINED_DRAW_BUFFERS_AND_PIXEL_LOCAL_STORAGE_PLANES`);
+}
+
+function checkInitialValues() {
+  debug("\nCheck that PLS state has the correct initial values.");
+  shouldBeTrue("gl.getParameter(pls.PIXEL_LOCAL_STORAGE_ACTIVE_PLANES_WEBGL) == 0");
+  wtu.glErrorShouldBe(
+      gl, gl.NONE,
+      "It's valid to query GL_PIXEL_LOCAL_STORAGE_ACTIVE_PLANES_WEBGL even when fbo 0 is bound.");
+
+  // Table 6.Y: Pixel Local Storage State
+  gl.bindFramebuffer(gl.FRAMEBUFFER, gl.createFramebuffer());
+  shouldBeTrue("gl.getParameter(pls.PIXEL_LOCAL_STORAGE_ACTIVE_PLANES_WEBGL) == 0");
+  debug("Check the initial clear values for each plane.");
+  const MAX_PIXEL_LOCAL_STORAGE_PLANES =
+    gl.getParameter(pls.MAX_PIXEL_LOCAL_STORAGE_PLANES_WEBGL);
+  for (let i = 0; i < MAX_PIXEL_LOCAL_STORAGE_PLANES; ++i)
+  {
+    expectTrue(pls.getFramebufferPixelLocalStorageParameterWEBGL(
+        i, pls.PIXEL_LOCAL_FORMAT_WEBGL) == gl.NONE);
+    expectTrue(pls.getFramebufferPixelLocalStorageParameterWEBGL(
+        i, pls.PIXEL_LOCAL_TEXTURE_NAME_WEBGL) == null);
+    expectTrue(pls.getFramebufferPixelLocalStorageParameterWEBGL(
+        i, pls.PIXEL_LOCAL_TEXTURE_LEVEL_WEBGL) == 0);
+    expectTrue(pls.getFramebufferPixelLocalStorageParameterWEBGL(
+        i, pls.PIXEL_LOCAL_TEXTURE_LAYER_WEBGL) == 0);
+    expectTrue(arraysEqual(
+        pls.getFramebufferPixelLocalStorageParameterWEBGL(
+            i, pls.PIXEL_LOCAL_CLEAR_VALUE_FLOAT_WEBGL),
+        new Float32Array([0, 0, 0, 0])));
+    expectTrue(arraysEqual(
+        pls.getFramebufferPixelLocalStorageParameterWEBGL(
+            i, pls.PIXEL_LOCAL_CLEAR_VALUE_INT_WEBGL),
+        new Int32Array([0, 0, 0, 0])));
+    expectTrue(arraysEqual(
+        pls.getFramebufferPixelLocalStorageParameterWEBGL(
+            i, pls.PIXEL_LOCAL_CLEAR_VALUE_UNSIGNED_INT_WEBGL),
+        new Uint32Array([0, 0, 0, 0])));
+  }
+  wtu.glErrorShouldBe(gl, gl.NONE);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+}
+
+function checkWebGLNonNormativeBehavior() {
+  debug("\nCheck the WebGL-specific behavior not found in the " +
+        "ANGLE_shader_pixel_local_storage specification.");
+  gl.bindFramebuffer(gl.FRAMEBUFFER, gl.createFramebuffer());
+
+  debug("If 'texture' has been deleted, generates an INVALID_OPERATION error.");
+  wtu.glErrorShouldBe(gl, gl.NONE);
+  const tex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  gl.texStorage2D(gl.TEXTURE_2D, 1, gl.RGBA8, 1, 1);
+  wtu.glErrorShouldBe(gl, gl.NONE);
+  gl.deleteTexture(tex);
+  pls.framebufferTexturePixelLocalStorageWEBGL(0, tex, 0, 0);
+  wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION);
+
+  debug("\nIf 'texture' was generated by a different WebGL2RenderingContext than this one, " +
+        "generates an INVALID_OPERATION error.");
+  const gl2 = wtu.create3DContext(null, null, 2);
+  const tex2 = gl2.createTexture();
+  gl2.bindTexture(gl2.TEXTURE_2D, tex2);
+  gl2.texStorage2D(gl2.TEXTURE_2D, 1, gl2.RGBA8, 1, 1);
+  pls.framebufferTexturePixelLocalStorageWEBGL(0, tex2, 0, 0);
+  wtu.glErrorShouldBe(gl2, gl2.NONE);
+  wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION);
+
+  debug("\nIf value has less than srcOffset + 4 elements, generates an INVALID_VALUE error.");
+  wtu.glErrorShouldBe(gl, gl.NONE);
+  pls.framebufferPixelLocalClearValuefvWEBGL(0, new Float32Array(3));
+  wtu.glErrorShouldBe(gl, gl.INVALID_VALUE);
+  pls.framebufferPixelLocalClearValuefvWEBGL(1, [0, 0, 0]);
+  wtu.glErrorShouldBe(gl, gl.INVALID_VALUE);
+  pls.framebufferPixelLocalClearValueivWEBGL(2, new Int32Array(3));
+  wtu.glErrorShouldBe(gl, gl.INVALID_VALUE);
+  pls.framebufferPixelLocalClearValueivWEBGL(3, [0, 0, 0]);
+  wtu.glErrorShouldBe(gl, gl.INVALID_VALUE);
+  pls.framebufferPixelLocalClearValueuivWEBGL(4, new Uint32Array(3));
+  wtu.glErrorShouldBe(gl, gl.INVALID_VALUE);
+  pls.framebufferPixelLocalClearValueuivWEBGL(3, [0, 0, 0]);
+  wtu.glErrorShouldBe(gl, gl.INVALID_VALUE);
+  pls.framebufferPixelLocalClearValuefvWEBGL(2, new Float32Array(5), 2);
+  wtu.glErrorShouldBe(gl, gl.INVALID_VALUE);
+  pls.framebufferPixelLocalClearValuefvWEBGL(2, new Float32Array(5), 4294967295);
+  wtu.glErrorShouldBe(gl, gl.INVALID_VALUE);
+  pls.framebufferPixelLocalClearValuefvWEBGL(1, [0, 0, 0, 0, 0], 2);
+  wtu.glErrorShouldBe(gl, gl.INVALID_VALUE);
+  pls.framebufferPixelLocalClearValueivWEBGL(0, new Int32Array(5), 2);
+  wtu.glErrorShouldBe(gl, gl.INVALID_VALUE);
+  pls.framebufferPixelLocalClearValueivWEBGL(1, [0, 0, 0, 0, 0], 2);
+  wtu.glErrorShouldBe(gl, gl.INVALID_VALUE);
+  pls.framebufferPixelLocalClearValueuivWEBGL(2, new Uint32Array(5), 2);
+  wtu.glErrorShouldBe(gl, gl.INVALID_VALUE);
+  pls.framebufferPixelLocalClearValueuivWEBGL(3, [0, 0, 0, 0, 0], 2);
+  wtu.glErrorShouldBe(gl, gl.INVALID_VALUE);
+
+  debug("\nCheck that srcOffset works properly.");
+  const arr = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+  pls.framebufferPixelLocalClearValuefvWEBGL(0, new Float32Array(arr), 1);
+  wtu.glErrorShouldBe(gl, gl.NONE);
+  shouldBeTrue(`arraysEqual(pls.getFramebufferPixelLocalStorageParameterWEBGL(
+                                0, pls.PIXEL_LOCAL_CLEAR_VALUE_FLOAT_WEBGL),
+                            new Float32Array([1, 2, 3, 4]))`);
+  pls.framebufferPixelLocalClearValuefvWEBGL(1, arr, 2);
+  wtu.glErrorShouldBe(gl, gl.NONE);
+  shouldBeTrue(`arraysEqual(pls.getFramebufferPixelLocalStorageParameterWEBGL(
+                                1, pls.PIXEL_LOCAL_CLEAR_VALUE_FLOAT_WEBGL),
+                            [2, 3, 4, 5])`);
+  pls.framebufferPixelLocalClearValueivWEBGL(2, new Int32Array(arr), 3);
+  wtu.glErrorShouldBe(gl, gl.NONE);
+  shouldBeTrue(`arraysEqual(pls.getFramebufferPixelLocalStorageParameterWEBGL(
+                                2, pls.PIXEL_LOCAL_CLEAR_VALUE_INT_WEBGL),
+                            new Float32Array([3, 4, 5, 6]))`);
+  pls.framebufferPixelLocalClearValueivWEBGL(3, arr, 4);
+  wtu.glErrorShouldBe(gl, gl.NONE);
+  shouldBeTrue(`arraysEqual(pls.getFramebufferPixelLocalStorageParameterWEBGL(
+                                3, pls.PIXEL_LOCAL_CLEAR_VALUE_INT_WEBGL),
+                            [4, 5, 6, 7])`);
+  pls.framebufferPixelLocalClearValueuivWEBGL(2, new Uint32Array(arr), 5);
+  wtu.glErrorShouldBe(gl, gl.NONE);
+  shouldBeTrue(`arraysEqual(pls.getFramebufferPixelLocalStorageParameterWEBGL(
+                                2, pls.PIXEL_LOCAL_CLEAR_VALUE_UNSIGNED_INT_WEBGL),
+                            new Uint32Array([5, 6, 7, 8]))`);
+  pls.framebufferPixelLocalClearValueuivWEBGL(1, arr, 6);
+  wtu.glErrorShouldBe(gl, gl.NONE);
+  shouldBeTrue(`arraysEqual(pls.getFramebufferPixelLocalStorageParameterWEBGL(
+                                1, pls.PIXEL_LOCAL_CLEAR_VALUE_UNSIGNED_INT_WEBGL),
+                            [6, 7, 8, 9])`);
+  wtu.glErrorShouldBe(gl, gl.NONE);
+
+  debug("\nCheck that PIXEL_LOCAL_TEXTURE_NAME_WEBGL returns a WebGLTexture.");
+  shouldBeTrue(`pls.getFramebufferPixelLocalStorageParameterWEBGL(
+                    0, pls.PIXEL_LOCAL_TEXTURE_NAME_WEBGL) === null`);
+  window.validTex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, validTex);
+  gl.texStorage2D(gl.TEXTURE_2D, 1, gl.RGBA8, 1, 1);
+  wtu.glErrorShouldBe(gl, gl.NONE);
+  pls.framebufferTexturePixelLocalStorageWEBGL(0, validTex, 0, 0);
+  shouldBeTrue(`pls.getFramebufferPixelLocalStorageParameterWEBGL(
+                    0, pls.PIXEL_LOCAL_TEXTURE_NAME_WEBGL) === validTex`);
+  pls.framebufferTexturePixelLocalStorageWEBGL(0, null, 0, 0);
+  shouldBeTrue(`pls.getFramebufferPixelLocalStorageParameterWEBGL(
+                    0, pls.PIXEL_LOCAL_TEXTURE_NAME_WEBGL) === null`);
+
+  wtu.glErrorShouldBe(gl, gl.NONE);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+}
+
+async function checkRendering(localGL) {
+  const localCanvas = localGL.canvas;
+  const alpha = localGL.getContextAttributes().alpha;
+  debug("\nCheck very simple rendering with {alpha: " + alpha + "}");
+
+  const localPLS = localGL.getExtension("WEBGL_shader_pixel_local_storage");
+  if (!localPLS) {
+    testFailed("localGL doesn't support pixel local storage.");
+    return;
+  }
+
+  const tex = localGL.createTexture();
+  localGL.bindTexture(localGL.TEXTURE_2D, tex);
+  localGL.texStorage2D(localGL.TEXTURE_2D, 1, localGL.RGBA8, localCanvas.width, localCanvas.height);
+  wtu.glErrorShouldBe(localGL, localGL.NONE);
+
+  const plsFBO = localGL.createFramebuffer();
+  localGL.bindFramebuffer(localGL.FRAMEBUFFER, plsFBO);
+  localPLS.framebufferTexturePixelLocalStorageWEBGL(0, tex, 0, 0);
+  wtu.glErrorShouldBe(localGL, localGL.NONE);
+
+  localGL.viewport(0, 0, localCanvas.width, localCanvas.height);
+
+  // Adds a uniform color into the existing color in pixel local storage.
+  const fs = `#version 300 es
+  #extension GL_ANGLE_shader_pixel_local_storage : require
+  precision lowp float;
+  uniform vec4 color;
+  layout(binding=0, rgba8) uniform lowp pixelLocalANGLE pls;
+  void main() {
+    vec4 newColor = color + pixelLocalLoadANGLE(pls);
+    pixelLocalStoreANGLE(pls, newColor);
+  }`;
+
+  const program = wtu.setupProgram(localGL, [fullscreenQuadVertexShader, fs]);
+  if (!program) {
+    testFailed("Failed to compile program.");
+    return;
+  }
+
+  localGL.useProgram(program);
+  const colorUniLocation = localGL.getUniformLocation(program, "color");
+  wtu.glErrorShouldBe(localGL, localGL.NONE);
+
+  // Disable color mask to ensure PLS and canvas manage their own color masks properly.
+  localGL.colorMask(false, true, false, true);
+
+  // Set global variables for shouldBeTrue().
+  window.localGL = localGL;
+  window.localPLS = localPLS;
+
+  debug("\nCheck that pixel local storage works properly");
+  localGL.disable(localGL.DITHER);
+  localPLS.beginPixelLocalStorageWEBGL([localPLS.LOAD_OP_ZERO_WEBGL]);
+  wtu.glErrorShouldBe(localGL, localGL.NONE);
+  shouldBeTrue("localGL.getParameter(localPLS.PIXEL_LOCAL_STORAGE_ACTIVE_PLANES_WEBGL) == 1");
+
+  localGL.uniform4f(colorUniLocation, 0, 1, 0, 0);
+  localGL.drawArrays(localGL.TRIANGLE_STRIP, 0, 4);
+
+  localPLS.pixelLocalStorageBarrierWEBGL();
+
+  localGL.uniform4f(colorUniLocation, 1, 0, 0, 0);
+  localGL.drawArrays(localGL.TRIANGLE_STRIP, 0, 4);
+
+  localPLS.endPixelLocalStorageWEBGL([localPLS.STORE_OP_STORE_WEBGL]);
+  wtu.glErrorShouldBe(localGL, localGL.NONE);
+  shouldBeTrue("localGL.getParameter(localPLS.PIXEL_LOCAL_STORAGE_ACTIVE_PLANES_WEBGL) == 0");
+
+  const readFBO = localGL.createFramebuffer();
+  localGL.bindFramebuffer(localGL.READ_FRAMEBUFFER, readFBO);
+  localGL.framebufferTexture2D(localGL.READ_FRAMEBUFFER, localGL.COLOR_ATTACHMENT0,
+                               localGL.TEXTURE_2D, tex, 0);
+  wtu.glErrorShouldBe(localGL, localGL.NONE);
+  wtu.checkCanvas(localGL, [255, 255, 0, 0]);
+
+  debug("\nCheck that alpha is properly handled in the main canvas.");
+  localGL.bindFramebuffer(localGL.DRAW_FRAMEBUFFER, null);
+  localGL.blitFramebuffer(0, 0, localCanvas.width, localCanvas.height, 0, 0, localCanvas.width,
+                          localCanvas.height, localGL.COLOR_BUFFER_BIT, localGL.NEAREST);
+  localGL.bindFramebuffer(localGL.FRAMEBUFFER, null);
+  wtu.glErrorShouldBe(localGL, localGL.NONE);
+  wtu.checkCanvas(localGL, [255, 255, 0, alpha ? 0 : 255]);
+
+  localGL.bindFramebuffer(localGL.FRAMEBUFFER, plsFBO);
+  localPLS.beginPixelLocalStorageWEBGL([localPLS.LOAD_OP_LOAD_WEBGL]);
+  wtu.glErrorShouldBe(localGL, localGL.NONE);
+  shouldBeTrue("localGL.getParameter(localPLS.PIXEL_LOCAL_STORAGE_ACTIVE_PLANES_WEBGL) == 1");
+
+  debug("\nGoing down from composite.");
+
+  // The canvas should get cleared after compositing, even if PLS is active and color mask is
+  // disabled.
+  await new Promise(resolve => wtu.waitForComposite(resolve));
+
+  // Reset global variables for shouldBeTrue() after await.
+  window.localGL = localGL;
+  window.localPLS = localPLS;
+
+  debug("\nBack from composite!");
+  debug("\nPLS should still be active on plsFBO even after being interrupted for compositing.");
+  wtu.glErrorShouldBe(localGL, localGL.NONE);
+  shouldBeTrue("localGL.getParameter(localPLS.PIXEL_LOCAL_STORAGE_ACTIVE_PLANES_WEBGL) == 1");
+
+  localGL.uniform4f(colorUniLocation, 0, 0, 1, 0);
+  localGL.drawArrays(localGL.TRIANGLE_STRIP, 0, 4);
+
+  localPLS.endPixelLocalStorageWEBGL([localPLS.STORE_OP_STORE_WEBGL]);
+  wtu.glErrorShouldBe(localGL, localGL.NONE);
+  shouldBeTrue("localGL.getParameter(localPLS.PIXEL_LOCAL_STORAGE_ACTIVE_PLANES_WEBGL) == 0");
+
+  debug("\nThe canvas should have gotten cleared while PLS was active.");
+  localGL.bindFramebuffer(localGL.FRAMEBUFFER, null);
+  wtu.checkCanvas(localGL, [0, 0, 0, alpha ? 0 : 255]);
+
+  debug("\nThe additional PLS draw to plsFBO should have still worked after being interrupted " +
+        "for compositing.");
+  localGL.bindFramebuffer(localGL.READ_FRAMEBUFFER, readFBO);
+  wtu.checkCanvas(localGL, [255, 255, 255, 0]);
+  wtu.glErrorShouldBe(localGL, localGL.NONE);
+
+  // Draws 'tex' to the canvas.
+  const fs2 = `#version 300 es
+  uniform lowp sampler2D tex;
+  out lowp vec4 fragColor;
+  void main() {
+    ivec2 pixelCoord = ivec2(floor(gl_FragCoord.xy));
+    fragColor = texelFetch(tex, pixelCoord, 0);
+  }`;
+
+  const program2 = wtu.setupProgram(localGL, [fullscreenQuadVertexShader, fs2]);
+  if (!program2) {
+    testFailed("Failed to compile program2.");
+    return;
+  }
+
+  debug("\nBlue should still be disabled in the color mask. Alpha is not disabled but should be " +
+        "implicitly disabled since the canvas doesn't have alpha.");
+  localGL.useProgram(program2);
+  localGL.uniform1i(localGL.getUniformLocation(program2, "tex"), 0);
+  localGL.bindFramebuffer(localGL.FRAMEBUFFER, null);
+  localGL.drawArrays(localGL.TRIANGLE_STRIP, 0, 4);
+  wtu.checkCanvas(localGL, [0, 255, 0, alpha ? 0 : 255]);
+
+  debug("\nThe client's color mask should have been preserved.");
+  shouldBeTrue(`arraysEqual(localGL.getParameter(localGL.COLOR_WRITEMASK),
+                            [false, true, false, true])`);
+}
+
+runTest();
+var successfullyParsed = true;
+</script>
+</body>
+</html>

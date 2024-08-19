@@ -1,0 +1,239 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Deleted Object Behavior</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="canvases">
+<canvas id="canvas1">
+</div>
+<div id="console"></div>
+
+<script>
+"use strict";
+description("Verifies behavior of deleted objects");
+
+const wtu = WebGLTestUtils;
+const canvas1 = document.getElementById("canvas1");
+const sz = 64;
+canvas1.width = sz;
+canvas1.height = sz;
+const gl = wtu.create3DContext("canvas1");
+let tex, rb; // for shouldBe
+
+function testBoundFBOTexture() {
+  debug("Verifies that a texture attached to a bound framebuffer and then deleted is automatically detached");
+
+  let fb = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+  tex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, sz, sz, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors during framebuffer setup");
+  // The WebGL 1.0 spec guarantees that this combination of attachments results
+  // in a complete framebuffer.
+  shouldBe("gl.checkFramebufferStatus(gl.FRAMEBUFFER)", "gl.FRAMEBUFFER_COMPLETE",
+           "Framebuffer should be complete after setup");
+  debug("Texture should still be bound to the context");
+  shouldBe("gl.getParameter(gl.TEXTURE_BINDING_2D)", "tex");
+  // Delete the texture.
+  gl.deleteTexture(tex);
+  debug("Texture should have been unbound from the context");
+  shouldBeNull("gl.getParameter(gl.TEXTURE_BINDING_2D)");
+  debug("Framebuffer should report that the texture was detached");
+  shouldBe("gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE)", "gl.NONE");
+  debug("Framebuffer should be incomplete after texture was deleted");
+  shouldNotBe("gl.checkFramebufferStatus(gl.FRAMEBUFFER)", "gl.FRAMEBUFFER_COMPLETE");
+  debug("Texture should not report that it's still a texture after deletion");
+  shouldBe("gl.isTexture(tex)", "false");
+  // Framebuffer should not function.
+  gl.clearColor(0.0, 1.0, 0.0, 1.0);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+  wtu.glErrorShouldBe(gl, gl.INVALID_FRAMEBUFFER_OPERATION, "Framebuffer should not work after deleting its only attachment");
+  // Default framebuffer shouldn't have been touched.
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  wtu.checkCanvasRect(gl, 0, 0, sz, sz, [0, 0, 0, 0], "default framebuffer should be transparent black");
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors after verifying default framebuffer's contents");
+  // Attempt to bind deleted texture should fail.
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "from binding deleted texture");
+  debug("");
+  gl.deleteFramebuffer(fb);
+}
+
+function testUnboundFBOTexture() {
+  debug("Verifies that a texture attached to an unbound framebuffer and then deleted remains usable until detached");
+
+  let fb = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+  tex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, sz, sz, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors during framebuffer setup");
+  // The WebGL 1.0 spec guarantees that this combination of attachments results
+  // in a complete framebuffer.
+  shouldBe("gl.checkFramebufferStatus(gl.FRAMEBUFFER)", "gl.FRAMEBUFFER_COMPLETE",
+           "Framebuffer should be complete after setup");
+  // Unbind the framebuffer from the context so that deleting the texture
+  // doesn't automatically unbind it from the framebuffer.
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  debug("Texture should still be bound to the context");
+  shouldBe("gl.getParameter(gl.TEXTURE_BINDING_2D)", "tex");
+  // Delete the texture.
+  gl.deleteTexture(tex);
+  debug("Texture should have been unbound from the context");
+  shouldBeNull("gl.getParameter(gl.TEXTURE_BINDING_2D)");
+  // Framebuffer should still be complete.
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+  debug("Framebuffer should still be complete after texture was deleted");
+  shouldBe("gl.checkFramebufferStatus(gl.FRAMEBUFFER)", "gl.FRAMEBUFFER_COMPLETE");
+  debug("Framebuffer should report that the texture is still attached");
+  shouldBe("gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME)", "tex");
+  debug("Texture should not report that it's still a texture after deletion");
+  shouldBe("gl.isTexture(tex)", "false");
+  // Framebuffer should still function.
+  gl.clearColor(0.0, 1.0, 0.0, 1.0);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+  wtu.checkCanvasRect(gl, 0, 0, sz, sz, [0, 255, 0, 255], "framebuffer should be green");
+  // Deleting texture a second time should not unbind it from the framebuffer.
+  gl.deleteTexture(tex);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "deleting an object twice is not an error");
+  debug("Framebuffer should still report that the texture is attached");
+  shouldBe("gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME)", "tex");
+  // Default framebuffer shouldn't have been touched.
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  wtu.checkCanvasRect(gl, 0, 0, sz, sz, [0, 0, 0, 0], "default framebuffer should be transparent black");
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors after verifying framebuffers' contents");
+  // Attempt to bind deleted texture should fail.
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "from binding deleted texture");
+  debug("");
+  gl.deleteFramebuffer(fb);
+}
+
+function testBoundFBORenderbuffer() {
+  debug("Verifies that a renderbuffer attached to a bound framebuffer and then deleted is automatically detached");
+
+  let fb = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+  rb = gl.createRenderbuffer();
+  gl.bindRenderbuffer(gl.RENDERBUFFER, rb);
+  gl.renderbufferStorage(gl.RENDERBUFFER, gl.RGBA4, sz, sz)
+  gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, rb);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors during framebuffer setup");
+  // The WebGL 1.0 spec doesn't guarantee that this framebuffer configuration
+  // will be complete.
+  if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) != gl.FRAMEBUFFER_COMPLETE) {
+    debug("Framebuffer with GL_RGBA4 renderbuffer was incomplete; skipping test");
+    return;
+  }
+  debug("Renderbuffer should still be bound to the context");
+  shouldBe("gl.getParameter(gl.RENDERBUFFER_BINDING)", "rb");
+  // Delete the renderbuffer.
+  gl.deleteRenderbuffer(rb);
+  debug("Renderbuffer should have been unbound from the context");
+  shouldBeNull("gl.getParameter(gl.RENDERBUFFER_BINDING)");
+  debug("Framebuffer should report that the texture was detached");
+  shouldBe("gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE)", "gl.NONE");
+  debug("Framebuffer should be incomplete after renderbuffer was deleted");
+  shouldNotBe("gl.checkFramebufferStatus(gl.FRAMEBUFFER)", "gl.FRAMEBUFFER_COMPLETE");
+  debug("Renderbuffer should not report that it's still a renderbuffer after deletion");
+  shouldBe("gl.isRenderbuffer(rb)", "false");
+  // Framebuffer should not function.
+  gl.clearColor(0.0, 1.0, 0.0, 1.0);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+  wtu.glErrorShouldBe(gl, gl.INVALID_FRAMEBUFFER_OPERATION, "Framebuffer should not work after deleting its only attachment");
+  // Default framebuffer shouldn't have been touched.
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  wtu.checkCanvasRect(gl, 0, 0, sz, sz, [0, 0, 0, 0], "default framebuffer should be transparent black");
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors after verifying framebuffers' contents");
+  // Attempt to bind deleted renderbuffer should fail.
+  gl.bindRenderbuffer(gl.RENDERBUFFER, rb);
+  wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "from binding deleted renderbuffer");
+  debug("");
+  gl.deleteFramebuffer(fb);
+}
+
+function testUnboundFBORenderbuffer() {
+  debug("Verifies that a renderbuffer attached to an unbound framebuffer and then deleted remains usable until detached");
+
+  let fb = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+  rb = gl.createRenderbuffer();
+  gl.bindRenderbuffer(gl.RENDERBUFFER, rb);
+  gl.renderbufferStorage(gl.RENDERBUFFER, gl.RGBA4, sz, sz)
+  gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, rb);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors during framebuffer setup");
+  // The WebGL 1.0 spec doesn't guarantee that this framebuffer configuration
+  // will be complete.
+  if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) != gl.FRAMEBUFFER_COMPLETE) {
+    debug("Framebuffer with GL_RGBA4 renderbuffer was incomplete; skipping test");
+    return;
+  }
+  // Unbind the framebuffer from the context so that deleting the renderbuffer
+  // doesn't automatically unbind it from the framebuffer.
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  debug("Renderbuffer should still be bound to the context");
+  shouldBe("gl.getParameter(gl.RENDERBUFFER_BINDING)", "rb");
+  // Delete the renderbuffer.
+  gl.deleteRenderbuffer(rb);
+  debug("Renderbuffer should have been unbound from the context");
+  shouldBeNull("gl.getParameter(gl.RENDERBUFFER_BINDING)");
+  // Framebuffer should still be complete.
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+  debug("Framebuffer should still be complete after renderbuffer was deleted");
+  shouldBe("gl.checkFramebufferStatus(gl.FRAMEBUFFER)", "gl.FRAMEBUFFER_COMPLETE");
+  debug("Framebuffer should report that the renderbuffer is still attached");
+  shouldBe("gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME)", "rb");
+  debug("Renderbuffer should not report that it's still a renderbuffer after deletion");
+  shouldBe("gl.isRenderbuffer(rb)", "false");
+  // Framebuffer should still function.
+  gl.clearColor(0.0, 1.0, 0.0, 1.0);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+  // Use a high tolerance to accommodate low bit depth precision.
+  wtu.checkCanvasRect(gl, 0, 0, sz, sz, [0, 255, 0, 255], "framebuffer should be green", 20);
+  // Deleting renderbuffer a second time should not unbind it from the framebuffer.
+  gl.deleteRenderbuffer(rb);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "deleting an object twice is not an error");
+  debug("Framebuffer should still report that the renderbuffer is attached");
+  shouldBe("gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME)", "rb");
+  // Default framebuffer shouldn't have been touched.
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  wtu.checkCanvasRect(gl, 0, 0, sz, sz, [0, 0, 0, 0], "default framebuffer should be transparent black");
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors after verifying framebuffers' contents");
+  // Attempt to bind deleted renderbuffer should fail.
+  gl.bindRenderbuffer(gl.RENDERBUFFER, rb);
+  wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "from binding deleted renderbuffer");
+  debug("");
+  gl.deleteFramebuffer(fb);
+}
+
+function runTests() {
+  testBoundFBOTexture();
+  testUnboundFBOTexture();
+  testBoundFBORenderbuffer();
+  testUnboundFBORenderbuffer();
+  finishTest();
+}
+
+requestAnimationFrame(runTests);
+
+var successfullyParsed = true;
+</script>
+</body>
+</html>

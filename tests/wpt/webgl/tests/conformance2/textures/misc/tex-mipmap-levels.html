@@ -1,28 +1,7 @@
 <!--
-
-/*
-** Copyright (c) 2014 The Khronos Group Inc.
-**
-** Permission is hereby granted, free of charge, to any person obtaining a
-** copy of this software and/or associated documentation files (the
-** "Materials"), to deal in the Materials without restriction, including
-** without limitation the rights to use, copy, modify, merge, publish,
-** distribute, sublicense, and/or sell copies of the Materials, and to
-** permit persons to whom the Materials are furnished to do so, subject to
-** the following conditions:
-**
-** The above copyright notice and this permission notice shall be included
-** in all copies or substantial portions of the Materials.
-**
-** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
-*/
-
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
 -->
 
 <!DOCTYPE html>
@@ -125,13 +104,13 @@ wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Should be no errors from setup.");
   wtu.glErrorShouldBe(gl, gl.NO_ERROR, "texParameter(TEXTURE_MIN_FILTER) should succeed");
   wtu.clearAndDrawUnitQuad(gl);
   wtu.glErrorShouldBe(gl, gl.NO_ERROR, "clearAndDrawQuad should succeed");
-  wtu.checkCanvas(gl, [0, 0, 255, 255], "should draw with [0, 0, 255, 255]");
+  wtu.checkCanvas(gl, [0, 0, 255, 255], "filling partial levels: should draw with [0, 0, 255, 255]");
 
   // Test that generateMipmap works with partial levels.
   gl.generateMipmap(gl.TEXTURE_2D);
   wtu.glErrorShouldBe(gl, gl.NO_ERROR, "generateMipmap should succeed");
   wtu.clearAndDrawUnitQuad(gl);
-  wtu.checkCanvas(gl, [255, 0, 0, 255], "should draw with [255, 0, 0, 255]");
+  wtu.checkCanvas(gl, [255, 0, 0, 255], "generateMipmap with partial levels: should draw with [255, 0, 0, 255]");
   gl.deleteTexture(tex);
 
   // Test incompleteless for partial levels.
@@ -193,7 +172,7 @@ wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Should be no errors from setup.");
   gl.bindTexture(gl.TEXTURE_2D, tex);
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
   gl.generateMipmap(gl.TEXTURE_2D);
-  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "generateMipmap should succeed for zero-size texture");
+  wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "generateMipmap should fail for zero-size texture");
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, 8, 8, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(8 * 8 * 4));
   gl.generateMipmap(gl.TEXTURE_2D);
   wtu.glErrorShouldBe(gl, gl.NO_ERROR, "generateMipmap should succeed");
@@ -208,7 +187,7 @@ wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Should be no errors from setup.");
   if (gl.getExtension('EXT_color_buffer_float') && gl.getExtension('OES_texture_float_linear')) {
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, 0, 0, 0, gl.RGBA, gl.FLOAT, null);
       gl.generateMipmap(gl.TEXTURE_2D);
-      wtu.glErrorShouldBe(gl, gl.NO_ERROR, "generateMipmap should succeed for zero-size texture");
+      wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "generateMipmap should fail for zero-size texture");
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, 8, 8, 0, gl.RGBA, gl.FLOAT, new Float32Array(8 * 8 * 4));
       gl.generateMipmap(gl.TEXTURE_2D);
       wtu.glErrorShouldBe(gl, gl.NO_ERROR, "generateMipmap should succeed");
@@ -234,7 +213,7 @@ wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Should be no errors from setup.");
   wtu.glErrorShouldBe(gl, gl.NO_ERROR, "texStorage2D should succeed");
   wtu.clearAndDrawUnitQuad(gl);
   wtu.glErrorShouldBe(gl, gl.NO_ERROR, "clearAndDrawQuad should succeed");
-  wtu.checkCanvas(gl, [255, 0, 0, 255], "should draw with [255, 0, 0, 255]");
+  wtu.checkCanvas(gl, [255, 0, 0, 255], "non-zero base level texStorage2D: should draw with [255, 0, 0, 255]");
   gl.deleteTexture(tex);
 
 })();

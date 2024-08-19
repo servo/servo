@@ -1,24 +1,7 @@
 /*
-** Copyright (c) 2016 The Khronos Group Inc.
-**
-** Permission is hereby granted, free of charge, to any person obtaining a
-** copy of this software and/or associated documentation files (the
-** "Materials"), to deal in the Materials without restriction, including
-** without limitation the rights to use, copy, modify, merge, publish,
-** distribute, sublicense, and/or sell copies of the Materials, and to
-** permit persons to whom the Materials are furnished to do so, subject to
-** the following conditions:
-**
-** The above copyright notice and this permission notice shall be included
-** in all copies or substantial portions of the Materials.
-**
-** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
 */
 
 function generateTest(internalFormat, pixelFormat, pixelType, prologue, resourcePath, defaultContextVersion) {
@@ -27,7 +10,7 @@ function generateTest(internalFormat, pixelFormat, pixelType, prologue, resource
     var gl = null;
     var successfullyParsed = false;
 
-    function init()
+    async function init()
     {
         description('Verify texImage2D and texSubImage2D code paths taking ImageBitmap created from a Blob (' + internalFormat + '/' + pixelFormat + '/' + pixelType + ')');
 
@@ -48,17 +31,18 @@ function generateTest(internalFormat, pixelFormat, pixelType, prologue, resource
         gl.clearColor(0,0,0,1);
         gl.clearDepth(1);
 
-        var xhr = new XMLHttpRequest();
-        xhr.open("GET", resourcePath + "red-green-semi-transparent.png");
-        xhr.responseType = 'blob';
-        xhr.onload = function() {
-            var blob = xhr.response;
-            runImageBitmapTest(blob, 0.5, internalFormat, pixelFormat, pixelType, gl, tiu, wtu, false)
-            .then(() => {
-                finishTest();
-            });
-        };
-        xhr.send();
+        debug('*** Running tests against red-green-semi-transparent.png ***');
+        let response = await fetch(resourcePath + "red-green-semi-transparent.png");
+        let blob = await response.blob();
+        await runImageBitmapTest(blob, 0.5, internalFormat, pixelFormat, pixelType, gl, tiu, wtu, false);
+        debug('*** Running tests against red-green-128x128-linear-profile.jpg ***');
+        response = await fetch(resourcePath + "red-green-128x128-linear-profile.jpg");
+        blob = await response.blob();
+        // This test requires a huge tolerance because browsers - at least currently - vary
+        // widely in the colorspace conversion results for this image.
+        let tolerance = 120;
+        await runImageBitmapTest(blob, 1.0, internalFormat, pixelFormat, pixelType, gl, tiu, wtu, false, tolerance);
+        finishTest();
     }
 
     return init;

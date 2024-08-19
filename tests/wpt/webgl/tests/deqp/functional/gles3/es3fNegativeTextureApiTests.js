@@ -1123,8 +1123,6 @@ goog.scope(function() {
 
         testGroup.addChild(new es3fApiCase.ApiCaseCallback('generatemipmap', 'Invalid gl.generateMipmap() usage', gl,
         function() {
-            if (!haveCompressedTextureETC) { etc2Unsupported(); return; }
-
             /** @type{Array<WebGLTexture>} */ var texture = [];
             /** @type{WebGLFramebuffer} */ var fbo;
             texture[0] = gl.createTexture();
@@ -1151,11 +1149,15 @@ goog.scope(function() {
             gl.generateMipmap(gl.TEXTURE_CUBE_MAP);
             this.expectError(gl.INVALID_OPERATION);
 
-            bufferedLogToConsole('gl.INVALID_OPERATION is generated if the zero level array is stored in a compressed internal format.');
-            gl.bindTexture(gl.TEXTURE_2D, texture[1]);
-            gl.compressedTexImage2D(gl.TEXTURE_2D, 0, gl.COMPRESSED_RGBA8_ETC2_EAC, 0, 0, 0, new Uint8Array(0));
-            gl.generateMipmap(gl.TEXTURE_2D);
-            this.expectError(gl.INVALID_OPERATION);
+            if (haveCompressedTextureETC) {
+                bufferedLogToConsole('gl.INVALID_OPERATION is generated if the zero level array is stored in a compressed internal format.');
+                gl.bindTexture(gl.TEXTURE_2D, texture[1]);
+                gl.compressedTexImage2D(gl.TEXTURE_2D, 0, gl.COMPRESSED_RGBA8_ETC2_EAC, 0, 0, 0, new Uint8Array(0));
+                gl.generateMipmap(gl.TEXTURE_2D);
+                this.expectError(gl.INVALID_OPERATION);
+            } else {
+                etc2Unsupported();
+            }
 
             bufferedLogToConsole('gl.INVALID_OPERATION is generated if the level base array was not specified with an unsized internal format or a sized internal format that is both color-renderable and texture-filterable.');
             gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB8_SNORM, 0, 0, 0, gl.RGB, gl.BYTE, null);
@@ -2806,7 +2808,6 @@ goog.scope(function() {
 
         testGroup.addChild(new es3fApiCase.ApiCaseCallback('texstorage2d', 'Invalid gl.texStorage2D() usage', gl,
         function() {
-            if (!haveCompressedTextureETC) { etc2Unsupported(); return; }
             /** @type{WebGLTexture} */ var texture;
             texture = gl.createTexture();
             gl.bindTexture (gl.TEXTURE_2D, texture);

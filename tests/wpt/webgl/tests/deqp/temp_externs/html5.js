@@ -2818,11 +2818,6 @@ Document.prototype.visibilityState;
 /**
  * @type {string}
  */
-Document.prototype.mozVisibilityState;
-
-/**
- * @type {string}
- */
 Document.prototype.webkitVisibilityState;
 
 /**
@@ -2835,11 +2830,6 @@ Document.prototype.msVisibilityState;
  * @type {boolean}
  */
 Document.prototype.hidden;
-
-/**
- * @type {boolean}
- */
-Document.prototype.mozHidden;
 
 /**
  * @type {boolean}

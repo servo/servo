@@ -1,0 +1,265 @@
+<!--
+Copyright (c) 2022 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset=utf-8>
+<title>Upload texture from video into srgb internalformats</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+    <div id="description"></div>
+    <div id="console"></div>
+    <div>
+        Video:
+        <canvas id="e_rgba" width="300" height="200"></canvas>
+        0x7f: <canvas id="e_rgba_color" width="30" height="200"></canvas>
+        <div>GL.RGBA</div>
+    </div>
+    <hr>
+    <div>
+        Video:
+        <canvas id="e_srgb8" width="300" height="200"></canvas>
+        0x7f: <canvas id="e_srgb8_color" width="30" height="200"></canvas>
+        <div>GL.SRGB8</div>
+    </div>
+    <hr>
+    <div>
+        Video:
+        <canvas id="e_srgb8_alpha8" width="300" height="200"></canvas>
+        0x7f: <canvas id="e_srgb8_alpha8_color" width="30" height="200"></canvas>
+        <div>GL.SRGB8_ALPHA8</div>
+    </div>
+<script>
+"use strict";
+const wtu = WebGLTestUtils;
+description();
+
+const DATA_URL_FOR_720p_png_bt709_bt709_tv_yuv420p_vp9_webm = '\
+data:video/webm;base64,GkXfo59ChoEBQveBAULygQRC84EIQoKEd2VibUKHgQJChYECGFOAZwEA\
+AAAAAAMBEU2bdLpNu4tTq4QVSalmU6yBoU27i1OrhBZUrmtTrIHGTbuMU6uEElTDZ1OsggElTbuMU6u\
+EHFO7a1OsggLr7AEAAAAAAABZAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAVSalmoCrXsYMPQ\
+kBNgIRMYXZmV0GETGF2ZkSJiEBEAAAAAAAAFlSua9quAQAAAAAAAFHXgQFzxYgAAAAAAAAAAZyBACK1\
+nIN1bmSGhVZfVlA5g4EBI+ODhAJiWgDgAQAAAAAAAB6wggUAuoIC0JqBAlWwkFW6gQFVsYEBVbuBAVW\
+5gQESVMNn43NzAQAAAAAAAFljwItjxYgAAAAAAAAAAWfIAQAAAAAAABxFo4dFTkNPREVSRIePTGF2Yy\
+BsaWJ2cHgtdnA5Z8iiRaOIRFVSQVRJT05Eh5QwMDowMDowMC4wNDAwMDAwMDAAAB9DtnVBWOeBAKNBU\
+oEAAICCSYNCQE/wLPYAOCQcGAAYAFB/N9H/HZUjnnscu9GvIJt3936AAAAAACh4E4g/fJ8GmILlgmQ6\
+iUMwWlrCvdZpJAjY24ONeWCZEIrug5k4YTeAAAAAaXgTiD98nwaYguWCZDq6Zy9PLtRqFgTRRWpDzEC\
+RrKr8wtgzCibnQJwWtOOaHH9ZRjl4+aOQHHoHk/YUdplRSYiwuJO6LIyUXumq92uzm/wLAqBN0N9kRR\
+evcxyTv6VcsFqLJ5W5INE4AAAAAGN4E3vgaWsaGceNeWlTmlA/W7BnrSNUEx9X/o/hlK8PPDCgN5Kpw\
+0gRJkKtiMQMtYO7DQAUWLnf3+GjIUUj4hiAGdY+FNLJIdswhZLCeSDQfqV1btKL/ns57OfXQc0R3HFz\
+YyB4E3vgaWsaGceNeWjppQzBaWtIcWVNbYO5ARh7kHkq6WBosnlbkfoAHFO7a5G7j7OBALeK94EB8YI\
+BjfCBAw==';
+
+function invoke(fn) { return fn(); }
+
+invoke(async () => {
+    const video = document.createElement("video");
+    video.src = DATA_URL_FOR_720p_png_bt709_bt709_tv_yuv420p_vp9_webm;
+    if (!video.canPlayType('video/webm')) {
+        debug('Browser can not play webm videos. Skipping test.');
+        finishTest();
+        return;
+    }
+
+    video.muted = true;
+    video.loop = true;
+    video.crossOrigin = "anonymous";
+    try {
+        await video.play();
+    } catch (e) {
+        debug('Browser could not play this specific video. Skipping test.');
+        finishTest();
+        return;
+    }
+
+    function renderTex(canvas, fn_tex_image) {
+        const gl = canvas.gl = wtu.create3DContext(canvas);
+
+        const vs = `
+attribute float a_VertexID;
+varying vec2 v_uv;
+void main() {
+    float id = a_VertexID;
+    v_uv.x = mod(id, 2.0);
+    id -= v_uv.x;
+    id /= 2.0;
+    v_uv.y = mod(id, 2.0);
+    gl_Position = vec4(2.0 * v_uv - 1.0, 0, 1);
+}`;
+
+        const fs = `
+precision mediump float;
+uniform sampler2D tex;
+varying vec2 v_uv;
+void main() {
+    gl_FragColor = texture2D(tex, v_uv);
+}`;
+
+        const program = gl.createProgram();
+        let shader = gl.createShader(gl.VERTEX_SHADER);
+        gl.shaderSource(shader, vs);
+        gl.compileShader(shader);
+        gl.attachShader(program, shader);
+        shader = gl.createShader(gl.FRAGMENT_SHADER);
+        gl.shaderSource(shader, fs);
+        gl.compileShader(shader);
+        gl.attachShader(program, shader);
+        gl.bindAttribLocation(program, 0, 'a_VertexID');
+        gl.linkProgram(program);
+        gl.useProgram(program);
+        if (gl.getError()) throw 'Error during linking';
+
+        const vbuf = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, vbuf);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([0,1,2,3]), gl.STATIC_DRAW);
+        gl.enableVertexAttribArray(0);
+        gl.vertexAttribPointer(0, 1, gl.FLOAT, false, 0, 0);
+
+        const texture = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+
+        const draw = function() {
+            //requestAnimationFrame(draw);
+            fn_tex_image(gl);
+            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+        };
+        draw();
+
+        if (gl.getError()) throw 'Error during drawing';
+    }
+
+    const GL = WebGL2RenderingContext;
+    const COLOR_DATA = new Uint8Array([127, 127, 127, 255]);
+
+    function internalformat_webgl1or2(gl, internalformat_name) {
+        let internalformat = gl[internalformat_name];
+        if (!internalformat) {
+            const ext = gl.getExtension('EXT_srgb');
+            if (!ext) {
+                testPassed('EXT_srgb not supported. (ok!)');
+                return;
+            }
+            switch (internalformat_name) {
+            case 'SRGB8':
+                internalformat = ext.SRGB_EXT;
+                break;
+            case 'SRGB8_ALPHA8':
+                internalformat = ext.SRGB_ALPHA_EXT;
+                break;
+            default:
+                throw internalformat_name;
+            }
+        }
+        return internalformat;
+    }
+
+    function begin(e_video, e_color, internalformat_name, unpackformat) {
+        renderTex(e_video, gl => {
+            const internalformat = internalformat_webgl1or2(gl, internalformat_name);
+            if (!gl.SRGB8) {
+                unpackformat = internalformat; // Must match in webgl1.
+            }
+            gl.texImage2D(GL.TEXTURE_2D, 0, internalformat,
+                unpackformat, GL.UNSIGNED_BYTE, video);
+        });
+        renderTex(e_color, gl => {
+            const internalformat = internalformat_webgl1or2(gl, internalformat_name);
+            if (!gl.SRGB8) {
+                unpackformat = internalformat; // Must match in webgl1.
+            }
+            gl.texImage2D(GL.TEXTURE_2D, 0, internalformat, 1, 1, 0,
+                unpackformat, GL.UNSIGNED_BYTE, COLOR_DATA);
+        });
+    }
+
+    begin(e_rgba, e_rgba_color, 'RGBA', GL.RGBA);
+    begin(e_srgb8, e_srgb8_color, 'SRGB8', GL.RGB);
+    begin(e_srgb8_alpha8, e_srgb8_alpha8_color, 'SRGB8_ALPHA8', GL.RGBA);
+
+    // -
+
+    const GREY50_COLOR_COORD = {
+        x: 0,
+        y: 0,
+    };
+    const GREY50_TEX_COORD = {
+        x: e_rgba.width/2 + 1,
+        y: e_rgba.height/2 + 1,
+    };
+    const fn_test = (canvas, coord, data) => {
+        wtu.checkCanvasRect(canvas.gl, coord.x, coord.y, 1, 1, data,
+            `${canvas.id} @${JSON.stringify(coord)}`);
+    }
+
+    debug('');
+    debug('e_rgba');
+    fn_test(e_rgba_color, GREY50_COLOR_COORD, [0x7f, 0x7f, 0x7f, 0xff]);
+    fn_test(e_rgba, GREY50_TEX_COORD, [0x7f, 0x7f, 0x7f, 0xff]);
+
+    debug('');
+    debug('e_srgb8');
+    fn_test(e_srgb8_color, GREY50_COLOR_COORD, [0x36, 0x36, 0x36, 0xff]);
+    fn_test(e_srgb8, GREY50_TEX_COORD, [0x36, 0x36, 0x36, 0xff]);
+
+    debug('');
+    debug('e_srgb8_alpha8');
+    fn_test(e_srgb8_alpha8_color, GREY50_COLOR_COORD, [0x36, 0x36, 0x36, 0xff]);
+    fn_test(e_srgb8_alpha8, GREY50_TEX_COORD, [0x36, 0x36, 0x36, 0xff]);
+
+    finishTest();
+});
+
+/*
+async function blobToDataURL(blob) {
+    const fr = new FileReader();
+    return await new Promise((yes, no) => {
+        fr.addEventListener('loadend', ev => {
+            if (fr.result) {
+                return yes(fr.result);
+            }
+            return no(fr.error);
+        });
+        fr.readAsDataURL(blob);
+    });
+}
+
+async function fetchDataUrl(url, wrapAt) {
+    const r = await fetch(url);
+    const b = await r.blob();
+    const durl = await blobToDataURL(b);
+    return durl;
+}
+
+function wrapLines(str, wrapAt) {
+    const lines = [];
+    let remaining = str;
+    while (remaining) {
+        lines.push(remaining.slice(0, wrapAt));
+        remaining = remaining.slice(wrapAt);
+    }
+    return lines;
+}
+
+(async () => {
+    const url = '720p.png.bt709.bt709.tv.yuv420p.vp9.webm';
+    const ident = 'DATA_URL_FOR_' + url.replaceAll('.', '_');
+    const durl = await fetchDataUrl(url);
+    const lines = wrapLines(durl, 79);
+    console.log(ident, '= \'\\\n' + lines.join('\\\n') + '\';');
+})();
+*/
+</script>
+</body>
+</html>

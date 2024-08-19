@@ -1,28 +1,7 @@
 ﻿<!--
-
-/*
-** Copyright (c) 2016 The Khronos Group Inc.
-**
-** Permission is hereby granted, free of charge, to any person obtaining a
-** copy of this software and/or associated documentation files (the
-** "Materials"), to deal in the Materials without restriction, including
-** without limitation the rights to use, copy, modify, merge, publish,
-** distribute, sublicense, and/or sell copies of the Materials, and to
-** permit persons to whom the Materials are furnished to do so, subject to
-** the following conditions:
-**
-** The above copyright notice and this permission notice shall be included
-** in all copies or substantial portions of the Materials.
-**
-** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
-*/
-
+Copyright (c) 2021 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
 -->
 
 <!DOCTYPE html>
@@ -66,6 +45,18 @@ void main() {
 }
 </script>
 
+<script id="vs-es2" type="x-shader/x-vertex">
+void main() {
+  gl_Position = vec4(0, 0, 0, 1);
+}
+</script>
+<script id="fs-es2" type="x-shader/x-fragment">
+precision mediump float;
+void main() {
+  gl_FragColor = vec4(0, 1, 0, 1);
+}
+</script>
+
 <script>
 "use strict";
 description("This test verifies getFragDataLocation behaviors.");
@@ -84,13 +75,22 @@ if (!gl) {
 }
 
 function runTests() {
-  var program = wtu.setupProgram(gl, ["vs", "fs"]);
-  var programArray = wtu.setupProgram(gl, ["vs", "fs-array"]);
-  if (!program || !programArray) {
+  window.program = wtu.setupProgram(gl, ["vs", "fs"]);
+  window.programArray = wtu.setupProgram(gl, ["vs", "fs-array"]);
+  window.programEs2 = wtu.setupProgram(gl, ["vs-es2", "fs-es2"]);
+  if (!program || !programArray || !programEs2) {
     testFailed("Set up program failed");
     return;
   }
   wtu.glErrorShouldBe(gl, gl.NO_ERROR, "No GL error from set up");
+
+  shouldBe("gl.getFragDataLocation(program, 'gl_FragColor')", "-1");
+  shouldBe("gl.getFragDataLocation(programArray, 'gl_FragColor')", "-1");
+  shouldBe("gl.getFragDataLocation(programEs2, 'gl_FragColor')", "-1");
+  shouldBe("gl.getFragDataLocation(program, 'gl_FragData')", "-1");
+  shouldBe("gl.getFragDataLocation(programArray, 'gl_FragData')", "-1");
+  shouldBe("gl.getFragDataLocation(programEs2, 'gl_FragData')", "-1");
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "No GL error from gl_* queries");
 
   var loc0 = gl.getFragDataLocation(program, "fragColor0");
   var loc1 = gl.getFragDataLocation(program, "fragColor1");

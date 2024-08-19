@@ -1,28 +1,7 @@
 <!--
-
-/*
-** Copyright (c) 2012 The Khronos Group Inc.
-**
-** Permission is hereby granted, free of charge, to any person obtaining a
-** copy of this software and/or associated documentation files (the
-** "Materials"), to deal in the Materials without restriction, including
-** without limitation the rights to use, copy, modify, merge, publish,
-** distribute, sublicense, and/or sell copies of the Materials, and to
-** permit persons to whom the Materials are furnished to do so, subject to
-** the following conditions:
-**
-** The above copyright notice and this permission notice shall be included
-** in all copies or substantial portions of the Materials.
-**
-** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
-*/
-
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
 -->
 
 <!DOCTYPE html>
@@ -117,15 +96,24 @@ function bufferDataSizesTest() {
 
         { parameter: new ArrayBuffer(0), expectedBufferSize: 0 },
         { parameter: new ArrayBuffer(4), expectedBufferSize: 4 },
+        { parameter: new Uint8Array(new ArrayBuffer(5)), expectedBufferSize: 5 },
+        { parameter: new DataView(new ArrayBuffer(7)), expectedBufferSize: 7 },
 
         { parameter: "WebGL Rocks!", expectedBufferSize: 0 },
         { parameter: { mystring: "WebGL Rocks!" }, expectedBufferSize: 0 },
     ];
 
+    if (window.SharedArrayBuffer) {
+        bufferDataParams.push(
+            { parameter: new SharedArrayBuffer(3), expectedBufferSize: 3 },
+            { parameter: new Uint8Array(new SharedArrayBuffer(6)), expectedBufferSize: 6 },
+            { parameter: new DataView(new SharedArrayBuffer(8)), expectedBufferSize: 8 }
+        );
+    }
+
     bufferDataParams.forEach(function (bufferDataParam) {
         var buffer = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-
         gl.bufferData(gl.ARRAY_BUFFER, bufferDataParam.parameter, gl.STATIC_DRAW);
         wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Passing " + bufferDataParam.parameter + " to bufferData");
 
@@ -177,7 +165,34 @@ function bufferSubDataTest() {
     shouldThrow("gl.bufferSubData(gl.ARRAY_BUFFER, 0, { mynumber: 42});");
     shouldThrow("gl.bufferSubData(gl.ARRAY_BUFFER, 10, null)");
     shouldThrow("gl.bufferSubData(gl.ARRAY_BUFFER, 10, undefined)");
+
+    if (window.SharedArrayBuffer) {
+        const validDatas = [
+            'new SharedArrayBuffer(3)',
+            'new Uint8Array(new SharedArrayBuffer(3))',
+            'new DataView(new SharedArrayBuffer(3))',
+        ];
+        for (const x of validDatas) {
+            shouldNotThrow(`gl.bufferSubData(gl.ARRAY_BUFFER, 0, ${x})`);
+        }
+    }
+
     wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should generate no GL error");
+
+    // -
+    // Firefox bug: https://bugzilla.mozilla.org/show_bug.cgi?id=1611837
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+    gl.bufferSubData(gl.ARRAY_BUFFER, 0, new ArrayBuffer(0));
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION,
+        "Calling bufferSubData with empty ArrayBuffer and null WebGLBuffer should fail");
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+    gl.bufferSubData(gl.ARRAY_BUFFER, 0, new ArrayBuffer(0));
+    wtu.glErrorShouldBe(gl, 0,
+        "Calling bufferSubData with empty ArrayBuffer and non-null WebGLBuffer should succeed");
+
+    // -
 
     gl.bindBuffer(gl.ARRAY_BUFFER, null);
 }
