@@ -360,32 +360,50 @@ impl ReplacedContent {
     ///
     /// Also used in other cases, for example
     /// <https://drafts.csswg.org/css2/visudet.html#block-replaced-width>
-    pub fn used_size_as_if_inline_element(
+    pub(crate) fn used_size_as_if_inline_element(
         &self,
         containing_block: &ContainingBlock,
         style: &ComputedValues,
-        box_size: Option<LogicalVec2<AuOrAuto>>,
         pbm: &PaddingBorderMargin,
     ) -> LogicalVec2<Au> {
-        let mode = style.effective_writing_mode();
-        let intrinsic_size = self.flow_relative_intrinsic_size(style);
-        let intrinsic_ratio = self.preferred_aspect_ratio(&containing_block.into(), style);
-
-        let box_size = box_size.unwrap_or(
-            style
-                .content_box_size(containing_block, pbm)
-                // We need to clamp to zero here to obtain the proper aspect
-                // ratio when box-sizing is border-box and the inner box size
-                // would otherwise be negative.
-                .map(|v| v.map(|v| Au::from(v).max(Au::zero()))),
-        );
-        let max_box_size = style
-            .content_max_box_size(containing_block, pbm)
-            .map(|v| v.map(Au::from));
+        let box_size = style
+            .content_box_size(containing_block, pbm)
+            // We need to clamp to zero here to obtain the proper aspect
+            // ratio when box-sizing is border-box and the inner box size
+            // would otherwise be negative.
+            .map(|v| v.map(|v| Au::from(v).max(Au::zero())));
         let min_box_size = style
             .content_min_box_size(containing_block, pbm)
             .map(|v| v.map(Au::from))
             .auto_is(Au::zero);
+        let max_box_size = style
+            .content_max_box_size(containing_block, pbm)
+            .map(|v| v.map(Au::from));
+        self.used_size_as_if_inline_element_from_content_box_sizes(
+            containing_block,
+            style,
+            box_size,
+            min_box_size,
+            max_box_size,
+        )
+    }
+
+    /// <https://drafts.csswg.org/css2/visudet.html#inline-replaced-width>
+    /// <https://drafts.csswg.org/css2/visudet.html#inline-replaced-height>
+    ///
+    /// Also used in other cases, for example
+    /// <https://drafts.csswg.org/css2/visudet.html#block-replaced-width>
+    pub(crate) fn used_size_as_if_inline_element_from_content_box_sizes(
+        &self,
+        containing_block: &ContainingBlock,
+        style: &ComputedValues,
+        box_size: LogicalVec2<AuOrAuto>,
+        min_box_size: LogicalVec2<Au>,
+        max_box_size: LogicalVec2<Option<Au>>,
+    ) -> LogicalVec2<Au> {
+        let mode = style.effective_writing_mode();
+        let intrinsic_size = self.flow_relative_intrinsic_size(style);
+        let intrinsic_ratio = self.preferred_aspect_ratio(&containing_block.into(), style);
 
         let default_object_size = || {
             // FIXME:

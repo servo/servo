@@ -372,6 +372,7 @@ fn calculate_inline_content_size_for_block_level_boxes(
                         layout_context,
                         containing_block,
                         &LogicalVec2::zero(),
+                        false, /* auto_block_size_stretches_to_containing_block */
                     )
                     .max(ContentSizes::zero());
                 let style_box = &float_box.contents.style().get_box();
@@ -384,6 +385,7 @@ fn calculate_inline_content_size_for_block_level_boxes(
                     style,
                     &containing_block,
                     &LogicalVec2::zero(),
+                    false, /* auto_block_size_stretches_to_containing_block */
                     |containing_block_for_children| {
                         contents.inline_content_sizes(layout_context, containing_block_for_children)
                     },
@@ -400,6 +402,7 @@ fn calculate_inline_content_size_for_block_level_boxes(
                         layout_context,
                         containing_block,
                         &LogicalVec2::zero(),
+                        false, /* auto_block_size_stretches_to_containing_block */
                     )
                     .max(ContentSizes::zero());
                 Some((size, Float::None, independent.style().get_box().clear))
@@ -1296,7 +1299,7 @@ fn layout_in_flow_replaced_block_level(
     mut sequential_layout_state: Option<&mut SequentialLayoutState>,
 ) -> BoxFragment {
     let pbm = style.padding_border_margin(containing_block);
-    let content_size = replaced.used_size_as_if_inline_element(containing_block, style, None, &pbm);
+    let content_size = replaced.used_size_as_if_inline_element(containing_block, style, &pbm);
 
     let margin_inline_start;
     let margin_inline_end;

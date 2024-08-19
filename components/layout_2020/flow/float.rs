@@ -980,7 +980,6 @@ impl FloatBox {
                         content_size = replaced.contents.used_size_as_if_inline_element(
                             containing_block,
                             &replaced.style,
-                            None,
                             &pbm,
                         );
                         children = replaced.contents.make_fragments(
