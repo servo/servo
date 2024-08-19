@@ -80,6 +80,30 @@ const reluTests = [
     }
   },
   {
+    'name': 'relu float32 0D tensor',
+    'graph': {
+      'inputs': {
+        'reluInput': {
+          'data': [79.04724884033203],
+          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+        }
+      },
+      'operators': [{
+        'name': 'relu',
+        'arguments': [{'input': 'reluInput'}],
+        'outputs': 'reluOutput'
+      }],
+      'expectedOutputs': {
+        'reluOutput': {
+          'data': [
+            79.04724884033203,
+          ],
+          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+        }
+      }
+    }
+  },
+  {
     'name': 'relu float32 1D tensor',
     'graph': {
       'inputs': {

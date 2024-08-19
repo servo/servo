@@ -1,0 +1,40 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/wai-aria/scripts/aria-utils.js"></script>
+</head>
+
+<body>
+  <button id="toggle-button" popovertarget="x-popover-1">Toggle the popover</button>
+  <x-popover-1 id="x-popover-1">
+    <template shadowrootmode="open" shadowrootreferencetarget="popover-1">
+      <div id="popover-1" popover>Popover content inside shadow root</div>
+    </template>
+  </x-popover-1>
+
+  <script>
+    test(function () {
+      const xPopover = document.getElementById("x-popover-1");
+      const popover = xPopover.shadowRoot.getElementById("popover-1");
+
+      let showCount = 0;
+      popover.addEventListener('beforetoggle', (e) => {
+        if (e.newState === "open")
+          ++showCount;
+      });
+
+      const toggleButton = document.getElementById("toggle-button");
+      toggleButton.click();
+
+      assert_equals(showCount, 1, "showCount");
+    }, "Shadow root reference target works with popovertarget attribute.");
+  </script>
+</body>
+
+</html>

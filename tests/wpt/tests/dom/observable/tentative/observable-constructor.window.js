@@ -111,7 +111,7 @@ promise_test(async t => {
     //   1. A traditional event listener
     //   2. An observable
     event_target.addEventListener('customevent', e => parentResults.push(e));
-    const source = event_target.on('customevent');
+    const source = event_target.when('customevent');
     source.subscribe(e => parentResults.push(e));
 
     // Detach the iframe and fire an event at the event target. The parent will

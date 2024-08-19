@@ -1,0 +1,91 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/wai-aria/scripts/aria-utils.js"></script>
+</head>
+
+<body>
+<!-- 1. Label for attribute targets a custom element using shadowrootreferencetarget -->
+
+<label for="x-input1">Input 1</label>
+<x-input1 id="x-input1">
+  <template shadowrootmode="open" shadowrootreferencetarget="input1">
+    <input id="input1">
+  </template>
+</x-input1>
+
+<script>
+  promise_test(async t => {
+    const x_input = document.getElementById('x-input1');
+    const input = x_input.shadowRoot.getElementById('input1');
+
+    // The label should apply to the input element and not the host.
+    assert_equals(await test_driver.get_computed_label(x_input), "");
+    assert_equals(await test_driver.get_computed_label(input), "Input 1");
+  }, "Label for attribute targets a custom element using shadowrootreferencetarget");
+</script>
+
+<!-- 2. Label for attribute targets a custom element using shadowrootreferencetarget inside multiple layers of shadow roots -->
+
+<label for="x-outer2">Input 2</label>
+<x-outer2 id="x-outer2">
+  <template shadowrootmode="open" shadowrootreferencetarget="x-inner2">
+    <x-inner2 id="x-inner2">
+      <template shadowrootmode="open" shadowrootreferencetarget="input2">
+        <input id="input2">
+      </template>
+    </x-inner2>
+  </template>
+</x-outer2>
+
+<script>
+  promise_test(async t => {
+    const outer = document.getElementById('x-outer2');
+    const inner = outer.shadowRoot.getElementById('x-inner2');
+    const input = inner.shadowRoot.getElementById('input2');
+
+    // The label should apply to the input element and not any of the hosts.
+    assert_equals(await test_driver.get_computed_label(outer), "");
+    assert_equals(await test_driver.get_computed_label(inner), "");
+    assert_equals(await test_driver.get_computed_label(input), "Input 2");
+  }, "Label for attribute targets a custom element using shadowrootreferencetarget inside multiple layers of shadow roots");
+</script>
+
+
+<!-- 3. Multiple labels targeting a custom element using shadowrootreferencetarget inside multiple layers of shadow roots -->
+
+<label for="x-outer3">A</label>
+<x-outer3 id="x-outer3">
+  <template shadowrootmode="open" shadowrootreferencetarget="x-inner3">
+    <label for="x-inner3">B</label>
+    <x-inner3 id="x-inner3">
+      <template shadowrootmode="open" shadowrootreferencetarget="input3">
+        <label for="input3">C</label>
+        <input id="input3">
+        <label for="input3">D</label>
+      </template>
+    </x-inner3>
+    <label for="x-inner3">E</label>
+  </template>
+</x-outer3>
+<label for="x-outer3">F</label>
+
+<script>
+    promise_test(async t => {
+      const outer = document.getElementById('x-outer3');
+      const inner = outer.shadowRoot.getElementById('x-inner3');
+      const input = inner.shadowRoot.getElementById('input3');
+      const computed_label = await test_driver.get_computed_label(input);
+      assert_equals(computed_label, "A B C D E F");
+    }, "Multiple labels targeting a custom element using shadowrootreferencetarget inside multiple layers of shadow roots");
+  </script>
+
+</body>
+
+</html>

@@ -1,0 +1,57 @@
+<!doctype html>
+<link rel="help" href="https://drafts.csswg.org/css-color-6/#color-layers">
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="match" href="color-layers-no-blend-mode-ref.html">
+<meta name="fuzzy" content="maxDifference=0-3; totalPixels=0-127500" />
+<style>
+.test { width: 50px; height: 50px; display: inline-block; }
+</style>
+<body>
+<script>
+    function createTest(colors) {
+        const div = document.createElement("div");
+        div.className = "test";
+        div.style.backgroundColor = `color-layers(${colors.join(", ")})`;
+        return div;
+    }
+    const opaqueColors = [
+        "red",
+        "blue",
+        "green",
+        "purple",
+        "orange",
+        "color(display-p3 1 0.5 0)",
+        "currentcolor",
+        "canvas",
+        "color-mix(in lab, red, blue)",
+    ];
+    const semiTransparentColors = [
+        "rgb(from yellow r g b / 0.5)",
+        "rgba(0, 255, 128, 0.6)",
+        "color-mix(in lab, purple, rgba(0,0,0,0.5))",
+        "hsla(0, 100%, 20%, 0.4)",
+    ];
+
+    // Test layering with opaque colors on top (top color wins)
+    for (const opaqueColor of opaqueColors) {
+        document.body.append(createTest([opaqueColor, ...semiTransparentColors]));
+    }
+    // Test layering multiple semi-transparent colors
+    for (let i = 0; i < semiTransparentColors.length; i++) {
+        let sliceUntilEndMinusI = semiTransparentColors.slice(0, semiTransparentColors.length - i);
+        let sliceUntilI = semiTransparentColors.slice(0, i);
+        let sliceFromIPlusOne = semiTransparentColors.slice(i + 1, semiTransparentColors.length);
+        document.body.append(createTest(sliceUntilEndMinusI));
+
+        // Interleave one opaque color.
+        for (const opaqueColor of opaqueColors) {
+            document.body.append(createTest([...sliceUntilEndMinusI, opaqueColor]));
+            if (sliceFromIPlusOne.length)
+                document.body.append(createTest([...sliceUntilI, opaqueColor, ...sliceFromIPlusOne]));
+        }
+
+        if (sliceFromIPlusOne.length)
+            document.body.append(createTest([...sliceUntilI, ...sliceFromIPlusOne]));
+    }
+</script>
+</body>

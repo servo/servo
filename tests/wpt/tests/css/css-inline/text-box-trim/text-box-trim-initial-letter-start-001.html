@@ -1,6 +1,7 @@
 <!DOCTYPE html>
-<link rel="help" href="https://drafts.csswg.org/css-inline-3/#propdef-text-box-edge">
-<link rel="help" href="https://drafts.csswg.org/css-inline-3/#propdef-text-box-trim">
+<title>text-box-trim: trim-start works even in the presence of initial-letter</title>
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#text-box-trim">
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#text-box-edge">
 <link rel="match" href="text-box-trim-initial-letter-start-001-ref.html">
 <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
 <style>
@@ -9,10 +10,8 @@
   background: lightgray;
 }
 .target {
-  font-family: Ahem;
-  font-size: 50px;
-  line-height: 1;
-  text-box-trim: start;
+  font: 40px/1 Ahem;
+  text-box-trim: trim-start;
   text-box-edge: text;
 }
 .target::first-letter {
@@ -20,4 +19,4 @@
 }
 </style>
 <div class="spacer"></div>
-<div class="target">&#x00C9;&#x00C9;</div>
+<div class="target">ApÉx</div>

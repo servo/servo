@@ -282,7 +282,7 @@ async def test_with_new_navigation_inside_page(
 </html>
 """
     )
-    await subscribe_events(events=["browsingContext"])
+    await subscribe_events(events=[NAVIGATION_FAILED_EVENT])
     on_navigation_failed = wait_for_event(NAVIGATION_FAILED_EVENT)
 
     result = await bidi_session.browsing_context.navigate(

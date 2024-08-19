@@ -65,6 +65,50 @@ const softsignTests = [
     }
   },
   {
+    'name': 'softsign positive float32 0D tensor',
+    'graph': {
+      'inputs': {
+        'softsignInput': {
+          'data': [1.5834133625030518],
+          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+        }
+      },
+      'operators': [{
+        'name': 'softsign',
+        'arguments': [{'input': 'softsignInput'}],
+        'outputs': 'softsignOutput'
+      }],
+      'expectedOutputs': {
+        'softsignOutput': {
+          'data': [0.6129152178764343],
+          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'softsign negative float32 0D tensor',
+    'graph': {
+      'inputs': {
+        'softsignInput': {
+          'data': [-2.597844123840332],
+          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+        }
+      },
+      'operators': [{
+        'name': 'softsign',
+        'arguments': [{'input': 'softsignInput'}],
+        'outputs': 'softsignOutput'
+      }],
+      'expectedOutputs': {
+        'softsignOutput': {
+          'data': [-0.7220557928085327],
+          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+        }
+      }
+    }
+  },
+  {
     'name': 'softsign positive float32 1D tensor',
     'graph': {
       'inputs': {

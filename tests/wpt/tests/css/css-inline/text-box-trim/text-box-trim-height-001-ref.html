@@ -3,15 +3,36 @@
 <style>
 .spacer {
   background: lightgray;
-  block-size: 100px;
+  block-size: 20px;
 }
 .target {
-  font-family: Ahem;
-  font-size: 100px;
-  line-height: 1;
+  font: 100px/1 Ahem;
+}
+
+.height > .target,
+.min-height > .target {
   height: 120px;
 }
+
+.max-height > .target {
+  height: 10px;
+}
 </style>
-<div class="spacer"></div>
-<div class="target">A</div>
-<div class="spacer"></div>
+
+<div class="height">
+  <div class="spacer"></div>
+  <div class="target">ApÉx</div>
+  <div class="spacer"></div>
+</div>
+
+<div class="min-height">
+  <div class="spacer"></div>
+  <div class="target">ApÉx</div>
+  <div class="spacer"></div>
+</div>
+
+<div class="max-height">
+  <div class="spacer"></div>
+  <div class="target">ApÉx</div>
+  <div class="spacer"></div>
+</div>

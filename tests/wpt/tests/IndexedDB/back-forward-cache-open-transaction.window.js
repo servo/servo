@@ -14,11 +14,12 @@ promise_test(async t => {
   const rc1 = await rcHelper.addWindow(
       /*config=*/ null, /*options=*/ {features: 'noopener'});
 
-  await rc1.executeScript(() => {
+  const dbname = t.name + Math.random();
+  await rc1.executeScript((dbname) => {
     return new Promise(resolve => {
       // Create an IndexedDB database and the object store named `store` as the
       // test scope for the transaction later on.
-      const db = indexedDB.open(/*name=*/ 'test_idb', /*version=*/ 1);
+      const db = indexedDB.open(/*name=*/ dbname, /*version=*/ 1);
       db.onupgradeneeded = () => {
         db.result.createObjectStore('store');
         addEventListener('pagehide', () => {
@@ -36,7 +37,7 @@ promise_test(async t => {
         resolve();
       };
     });
-  });
+  }, [dbname]);
 
   await assertBFCacheEligibility(rc1, /*shouldRestoreFromBFCache=*/ true);
 });

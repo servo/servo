@@ -1,0 +1,23 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  document.designMode = "on";
+  let win;
+  try {
+    win = top.open("data:text/html,This is new window");
+  } catch (e) {
+  }
+  document.designMode = "off";
+  document.documentElement.innerHTML = document.documentElement.innerHTML;
+  win?.close();
+  focus();
+}, {once: true});
+</script>
+</head>
+<body>
+<small contenteditable></small>
+</body>
+</html>
