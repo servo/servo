@@ -713,7 +713,9 @@ impl WindowMethods for Window {
     fn SetOpener(&self, cx: JSContext, value: HandleValue) -> ErrorResult {
         // Step 1.
         if value.is_null() {
-            self.window_proxy().disown();
+            if let Some(proxy) = self.window_proxy.get() {
+                proxy.disown();
+            }
             return Ok(());
         }
         // Step 2.
