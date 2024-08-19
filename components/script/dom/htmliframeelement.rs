@@ -299,9 +299,9 @@ impl HTMLIFrameElement {
         if mode == ProcessingMode::FirstTime && (src.is_empty() || src == "about:blank") {
             let task = IframeElementMicrotask {
                 elem: DomRoot::from_ref(self),
+                about_blank_pipeline: self.about_blank_pipeline_id.get().unwrap(),
             };
             ScriptThread::await_stable_state(Microtask::IframeElement(task));
-            //self.iframe_load_event_steps(self.about_blank_pipeline_id.get().unwrap());
             return;
         }
 
@@ -814,12 +814,14 @@ impl VirtualMethods for HTMLIFrameElement {
 #[derive(JSTraceable, MallocSizeOf)]
 pub struct IframeElementMicrotask {
     elem: DomRoot<HTMLIFrameElement>,
+    #[no_trace]
+    about_blank_pipeline: PipelineId,
 }
 
 impl MicrotaskRunnable for IframeElementMicrotask {
     fn handler(&self) {
         self.elem
-            .iframe_load_event_steps(self.elem.about_blank_pipeline_id.get().unwrap(), true);
+            .iframe_load_event_steps(self.about_blank_pipeline, true);
     }
 
     fn enter_realm(&self) -> JSAutoRealm {
