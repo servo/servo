@@ -193,7 +193,8 @@ impl GPUDevice {
 
     /// <https://gpuweb.github.io/gpuweb/#abstract-opdef-validate-texture-format-required-features>
     ///
-    /// Also returns wgpu's `TextureFormat` as it already does conversion inside
+    /// Validates that the device suppports required features,
+    /// and if so returns an ok containing wgpu's `TextureFormat`
     pub fn validate_texture_format_required_features(
         &self,
         format: &GPUTextureFormat,
