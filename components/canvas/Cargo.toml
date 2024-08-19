@@ -21,7 +21,7 @@ canvas_traits = { workspace = true }
 crossbeam-channel = { workspace = true }
 cssparser = { workspace = true }
 euclid = { workspace = true }
-font-kit = { version = "0.13" }
+font-kit = { version = "0.14" }
 fnv = { workspace = true }
 fonts = { path = "../fonts" }
 half = "2"
@@ -34,7 +34,7 @@ parking_lot = { workspace = true }
 pathfinder_geometry = "0.5"
 pixels = { path = "../pixels" }
 range = { path = "../range" }
-raqote = "0.8.4"
+raqote = { git = "https://github.com/jrmuizel/raqote", rev = "64716c8" }
 servo_arc = { workspace = true }
 sparkle = { workspace = true }
 style = { workspace = true }
