@@ -82,7 +82,8 @@ impl XRFrameMethods for XRFrame {
 
     /// <https://www.w3.org/TR/webxr/#dom-xrframe-predicteddisplaytime>
     fn PredictedDisplayTime(&self) -> Finite<f64> {
-        // TODO: If inline, return rAF callback time instead
+        // TODO: If inline, return the same value
+        // as the timestamp passed to XRFrameRequestCallback
         Finite::new(self.data.predicted_display_time)
             .expect("Failed to create predictedDisplayTime")
     }
