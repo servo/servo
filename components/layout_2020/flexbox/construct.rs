@@ -229,9 +229,6 @@ where
             FlexLevelBox::OutOfFlowAbsolutelyPositionedBox(_) => 0,
         });
 
-        FlexContainer {
-            children,
-            style: self.info.style.clone(),
-        }
+        FlexContainer::new(&self.info.style, children)
     }
 }
