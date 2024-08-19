@@ -1242,7 +1242,6 @@ impl WGPU {
                         data,
                     } => {
                         let global = &self.global;
-                        //TODO: Report result to content process
                         let result = gfx_select!(queue_id => global.queue_write_buffer(
                             queue_id,
                             buffer_id,
