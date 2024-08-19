@@ -10,7 +10,7 @@ on:
         default: "release"
         type: choice
         options: ["release", "debug", "production"]
-      wpt-tests-to-run:
+      wpt-args:
         default: ""
         required: false
         type: string
@@ -75,7 +75,7 @@ jobs:
             if (context.eventName == "workflow_dispatch") {
               // WPT-related overrides only affect Linux currently, as tests don't run by default on other platforms.
               configuration.matrix[0].wpt_layout = "${{ inputs.wpt-layout }}" || "none";
-              configuration.matrix[0].wpt_tests_to_run = "${{ inputs.wpt-tests-to-run }}" || "";
+              configuration.matrix[0].wpt_args = "${{ inputs.wpt-args }}" || "";
 
               let unit_tests = Boolean(${{ inputs.unit-tests }});
               let profile = '${{ inputs.profile }}';
@@ -103,7 +103,7 @@ jobs:
       wpt-layout: ${{ matrix.wpt_layout }}
       profile: ${{ matrix.profile }}
       unit-tests: ${{ matrix.unit_tests }}
-      wpt-tests-to-run: ${{ matrix.wpt_tests_to_run }}
+      wpt-args: ${{ matrix.wpt_args }}
 
   build-result:
     name: Result

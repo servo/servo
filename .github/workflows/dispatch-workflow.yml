@@ -8,7 +8,7 @@ on:
       profile:
         required: true
         type: string
-      wpt-tests-to-run:
+      wpt-args:
         required: true
         type: string
       wpt-layout:
@@ -37,7 +37,7 @@ jobs:
       profile: ${{ inputs.profile }}
       wpt-layout: ${{ inputs.wpt-layout }}
       unit-tests: ${{ inputs.unit-tests }}
-      wpt-tests-to-run: ${{ inputs.wpt-tests-to-run }}
+      wpt-args: ${{ inputs.wpt-args }}
 
   linux:
     if: ${{ inputs.workflow == 'linux' }}
@@ -48,7 +48,7 @@ jobs:
       profile: ${{ inputs.profile }}
       wpt-layout: ${{ inputs.wpt-layout }}
       unit-tests: ${{ inputs.unit-tests }}
-      wpt-tests-to-run: ${{ inputs.wpt-tests-to-run }}
+      wpt-args: ${{ inputs.wpt-args }}
 
   android:
     if: ${{ inputs.workflow == 'android' }}

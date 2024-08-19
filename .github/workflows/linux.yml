@@ -6,7 +6,7 @@ on:
         required: false
         default: "release"
         type: string
-      wpt-tests-to-run:
+      wpt-args:
         default: ""
         required: false
         type: string
@@ -35,7 +35,7 @@ on:
         default: "release"
         type: choice
         options: ["release", "debug", "production"]
-      wpt-tests-to-run:
+      wpt-args:
         default: ""
         required: false
         type: string
@@ -161,7 +161,7 @@ jobs:
     needs: ["build"]
     uses: ./.github/workflows/linux-wpt.yml
     with:
-      wpt-tests-to-run: ${{ inputs.wpt-tests-to-run }}
+      wpt-args: ${{ inputs.wpt-args }}
       profile: ${{ inputs.profile }}
       wpt-sync-from-upstream: ${{ inputs.wpt-sync-from-upstream }}
       wpt-layout: "layout-2020"
@@ -173,7 +173,7 @@ jobs:
     needs: ["build"]
     uses: ./.github/workflows/linux-wpt.yml
     with:
-      wpt-tests-to-run: ${{ inputs.wpt-tests-to-run }}
+      wpt-args: ${{ inputs.wpt-args }}
       profile: ${{ inputs.profile }}
       wpt-sync-from-upstream: ${{ inputs.wpt-sync-from-upstream }}
       wpt-layout: "layout-2013"
