@@ -142,6 +142,7 @@ pub mod constructor;
 pub mod conversions;
 pub mod error;
 pub mod finalize;
+pub mod function;
 pub mod guard;
 pub mod import;
 pub mod inheritance;
