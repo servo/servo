@@ -16,6 +16,22 @@ use style::Zero;
 
 use crate::style_ext::{Clamp, ComputedValuesExt};
 
+#[derive(PartialEq)]
+pub(crate) enum IntrinsicSizingMode {
+    /// Used to refer to a min-content contribution or max-content contribution.
+    /// This is the size that a box contributes to its containing block’s min-content
+    /// or max-content size. Note this is based on the outer size of the box,
+    /// and takes into account the relevant sizing properties of the element.
+    /// <https://drafts.csswg.org/css-sizing-3/#contributions>
+    Contribution,
+    /// Used to refer to a min-content size or max-content size.
+    /// This is the size based on the contents of an element, without regard for its context.
+    /// Note this is usually based on the inner (content-box) size of the box,
+    /// and ignores the relevant sizing properties of the element.
+    /// <https://drafts.csswg.org/css-sizing-3/#intrinsic>
+    Size,
+}
+
 #[derive(Clone, Copy, Debug, Default, Serialize)]
 pub(crate) struct ContentSizes {
     pub min_content: Au,
