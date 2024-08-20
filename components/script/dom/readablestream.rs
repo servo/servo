@@ -181,7 +181,7 @@ impl ReadableStream {
             UnderlyingSourceType::Memory(bytes.len()),
         );
         stream.enqueue_native(bytes);
-        stream.close_native();
+        stream.close();
         stream
     }
 
@@ -255,15 +255,6 @@ impl ReadableStream {
         }
     }
 
-    /// <https://streams.spec.whatwg.org/#readable-stream-close>
-    /// Note: in other use cases this call happens via the controller.
-    pub fn close_native(&self) {
-        match self.controller {
-            ControllerType::Default(ref controller) => controller.close(),
-            _ => unreachable!("Native closing a stream with a non-default controller"),
-        }
-    }
-
     /// Returns a boolean reflecting whether the stream has all data in memory.
     /// Useful for native source integration only.
     pub fn in_memory(&self) -> bool {
@@ -332,6 +323,7 @@ impl ReadableStream {
         }
     }
 
+    /// <https://streams.spec.whatwg.org/#is-readable-stream-locked>
     pub fn is_locked(&self) -> bool {
         match self.reader {
             ReaderType::Default(ref reader) => reader.get().is_some(),
@@ -398,19 +390,57 @@ impl ReadableStream {
             ),
         }
     }
+
+    /// <https://streams.spec.whatwg.org/#readable-stream-close>
+    pub fn close(&self) {
+        self.state.set(ReadableStreamState::Closed);
+        match self.reader {
+            ReaderType::Default(ref reader) => {
+                if let Some(reader) = reader.get() {
+                    reader.close();
+                }
+            },
+            ReaderType::BYOB(ref reader) => todo!(),
+        }
+    }
+
+    /// <https://streams.spec.whatwg.org/#readable-stream-cancel>
+    fn cancel(&self, promise: &Promise, reason: SafeHandleValue) {
+        self.disturbed.set(true);
+
+        if self.is_closed() {
+            return promise.resolve_native(&());
+        }
+
+        if self.is_errored() {
+            // TODO: resolve with stored_error.
+            return promise.reject_native(&());
+        }
+
+        self.close();
+
+        // TODO: run the bytes reader steps.
+
+        // TODO: react to sourceCancelPromise.
+    }
 }
 
 impl ReadableStreamMethods for ReadableStream {
     /// <https://streams.spec.whatwg.org/#rs-locked>
     fn Locked(&self) -> bool {
-        // TODO
-        false
+        self.is_locked()
     }
 
     /// <https://streams.spec.whatwg.org/#rs-cancel>
-    fn Cancel(&self, _cx: SafeJSContext, _reason: SafeHandleValue) -> Rc<Promise> {
-        // TODO
-        Promise::new(&self.reflector_.global())
+    fn Cancel(&self, _cx: SafeJSContext, reason: SafeHandleValue) -> Rc<Promise> {
+        let promise = Promise::new(&self.reflector_.global());
+        if !self.is_locked() {
+            // TODO: reject with a TypeError exception.
+            promise.reject_native(&());
+        } else {
+            self.cancel(&promise, reason);
+        }
+        promise
     }
 
     /// <https://streams.spec.whatwg.org/#rs-get-reader>
