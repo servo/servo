@@ -3,6 +3,9 @@ name: Windows
 on:
   workflow_call:
     inputs:
+      unique-id:
+        required: false
+        type: string
       self-hosted-runner:
         required: false
         default: false
@@ -24,6 +27,9 @@ on:
         type: string
   workflow_dispatch:
     inputs:
+      unique-id:
+        required: false
+        type: string
       self-hosted-runner:
         required: false
         default: false
@@ -41,6 +47,9 @@ on:
         required: false
         default: false
         type: boolean
+      github-release-id:
+        required: false
+        type: string
 
 env:
   RUST_BACKTRACE: 1
@@ -55,7 +64,7 @@ env:
 
 jobs:
   build:
-    name: Windows Build
+    name: ${{ inputs.unique-id && format('Windows Build [{0}]', inputs.unique-id) || 'Windows Build' }}
     runs-on: ${{ inputs.self-hosted-runner && 'self-hosted-windows10' || 'windows-2022' }}
     steps:
       - if: ${{ ! inputs.self-hosted-runner && github.event_name != 'pull_request_target' }}
