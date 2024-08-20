@@ -14,7 +14,10 @@ enum XREye {
 interface XRView {
   readonly attribute XREye eye;
   readonly attribute Float32Array projectionMatrix;
-  readonly attribute XRRigidTransform transform;
+  [SameObject] readonly attribute XRRigidTransform transform;
+  readonly attribute double? recommendedViewportScale;
+
+  undefined requestViewportScale(double? scale);
 
   // AR Module
   readonly attribute boolean isFirstPersonObserver;

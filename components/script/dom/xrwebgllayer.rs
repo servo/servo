@@ -316,13 +316,18 @@ impl XRWebGLLayerMethods for XRWebGLLayer {
         let index = view.viewport_index();
 
         let viewport = self.session().with_session(|s| {
-            // Inline sssions
+            // Inline sessions
             if s.viewports().is_empty() {
                 Rect::from_size(self.size().to_i32())
             } else {
                 s.viewports()[index]
             }
         });
+
+        // NOTE: According to spec, viewport sizes should be recalculated here if the
+        // requested viewport scale has changed. However, existing browser implementations
+        // don't seem to do this for stereoscopic immersive sessions.
+        // Revisit if Servo gets support for handheld AR/VR via ARCore/ARKit
 
         Some(XRViewport::new(&self.global(), viewport))
     }
