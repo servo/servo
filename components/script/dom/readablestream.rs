@@ -21,9 +21,12 @@ use js::jsapi::{
     ReadableStreamReaderMode, ReadableStreamReaderReleaseLock, ReadableStreamUnderlyingSource,
     ReadableStreamUpdateDataAvailableFromSource, UnwrapReadableStream,
 };
-use js::jsval::{JSVal, UndefinedValue};
-use js::rust::{HandleValue as SafeHandleValue, IntoHandle};
+use js::jsval::{JSVal, ObjectValue, UndefinedValue};
+use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue, IntoHandle};
 
+use super::bindings::import::module::Fallible;
+use crate::dom::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStrategy;
+use crate::dom::bindings::codegen::Bindings::UnderlyingSourceBinding::UnderlyingSource;
 use crate::dom::bindings::conversions::{ConversionBehavior, ConversionResult};
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
@@ -59,6 +62,36 @@ pub struct ReadableStream {
 }
 
 impl ReadableStream {
+    #[allow(non_snake_case)]
+    /// <https://streams.spec.whatwg.org/#rs-constructor>
+    pub fn Constructor(
+        cx: SafeJSContext,
+        _global: &GlobalScope,
+        _proto: Option<SafeHandleObject>,
+        underlying_source: Option<*mut JSObject>,
+        _strategy: &QueuingStrategy,
+    ) -> Fallible<DomRoot<Self>> {
+        // Step 1
+        rooted!(in(*cx) let underlying_source_obj = underlying_source.unwrap_or(ptr::null_mut()));
+        // Step 2
+        let _underlying_source_dict = if !underlying_source_obj.is_null() {
+            rooted!(in(*cx) let obj_val = ObjectValue(underlying_source_obj.get()));
+            match UnderlyingSource::new(cx, obj_val.handle()) {
+                Ok(ConversionResult::Success(val)) => val,
+                Ok(ConversionResult::Failure(error)) => return Err(Error::Type(error.to_string())),
+                _ => {
+                    return Err(Error::Type(
+                        "Unknown format for underlying source.".to_string(),
+                    ))
+                },
+            }
+        } else {
+            UnderlyingSource::empty()
+        };
+        // TODO
+        Err(Error::NotFound)
+    }
+
     fn new_inherited(
         external_underlying_source: Option<Rc<ExternalUnderlyingSourceController>>,
     ) -> ReadableStream {
