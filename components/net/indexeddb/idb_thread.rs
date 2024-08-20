@@ -173,7 +173,6 @@ impl IndexedDBManager {
                     Ok(msg) => msg,
                     Err(e) => match e {
                         IpcError::Disconnected => {
-                            error!("indexeddb ipc channel has been dropped, breaking loop");
                             break;
                         },
                         other => Err(other).unwrap(),
