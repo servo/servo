@@ -128,7 +128,7 @@ tokio-rustls = "0.24"
 tungstenite = "0.20"
 uluru = "3.0"
 unicode-bidi = "0.3.15"
-unicode-properties = { version = "0.1.1", features = ["emoji"] }
+unicode-properties = { version = "0.1.2", features = ["emoji"] }
 unicode-script = "0.5"
 unicode-segmentation = "1.1.0"
 url = "2.5"
