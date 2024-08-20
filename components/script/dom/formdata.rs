@@ -175,6 +175,8 @@ impl FormDataMethods for FormData {
     #[allow(crown::unrooted_must_root)]
     // https://xhr.spec.whatwg.org/#dom-formdata-set
     fn Set_(&self, name: USVString, blob: &Blob, filename: Option<USVString>) {
+        let file = self.create_an_entry(blob, filename);
+
         let mut data = self.data.borrow_mut();
         let local_name = LocalName::from(name.0.clone());
 
@@ -185,9 +187,7 @@ impl FormDataMethods for FormData {
             FormDatum {
                 ty: DOMString::from("file"),
                 name: DOMString::from(name.0),
-                value: FormDatumValue::File(DomRoot::from_ref(
-                    &*self.create_an_entry(blob, filename),
-                )),
+                value: FormDatumValue::File(file),
             },
         ));
     }

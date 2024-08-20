@@ -4287,15 +4287,15 @@ impl DocumentMethods for Document {
     // https://dom.spec.whatwg.org/#dom-document-getelementsbytagname
     fn GetElementsByTagName(&self, qualified_name: DOMString) -> DomRoot<HTMLCollection> {
         let qualified_name = LocalName::from(&*qualified_name);
-        match self.tag_map.borrow_mut().entry(qualified_name.clone()) {
-            Occupied(entry) => DomRoot::from_ref(entry.get()),
-            Vacant(entry) => {
-                let result =
-                    HTMLCollection::by_qualified_name(&self.window, self.upcast(), qualified_name);
-                entry.insert(Dom::from_ref(&*result));
-                result
-            },
+        if let Some(entry) = self.tag_map.borrow_mut().get(&qualified_name) {
+            return DomRoot::from_ref(entry);
         }
+        let result =
+            HTMLCollection::by_qualified_name(&self.window, self.upcast(), qualified_name.clone());
+        self.tag_map
+            .borrow_mut()
+            .insert(qualified_name, Dom::from_ref(&*result));
+        result
     }
 
     // https://dom.spec.whatwg.org/#dom-document-getelementsbytagnamens
