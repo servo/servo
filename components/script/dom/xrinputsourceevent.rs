@@ -20,6 +20,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
 use crate::dom::xrframe::XRFrame;
 use crate::dom::xrinputsource::XRInputSource;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct XRInputSourceEvent {
@@ -62,6 +63,7 @@ impl XRInputSourceEvent {
             Box::new(XRInputSourceEvent::new_inherited(frame, source)),
             global,
             proto,
+            CanGc::note(),
         );
         {
             let event = trackevent.upcast::<Event>();

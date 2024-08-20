@@ -17,6 +17,7 @@ use crate::dom::event::Event;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
 use crate::dom::xrsession::XRSession;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct XRSessionEvent {
@@ -55,6 +56,7 @@ impl XRSessionEvent {
             Box::new(XRSessionEvent::new_inherited(session)),
             global,
             proto,
+            CanGc::note(),
         );
         {
             let event = trackevent.upcast::<Event>();

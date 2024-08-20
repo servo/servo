@@ -24,6 +24,7 @@ use crate::dom::node::{window_from_node, Node};
 use crate::dom::resizeobserverentry::ResizeObserverEntry;
 use crate::dom::resizeobserversize::{ResizeObserverSize, ResizeObserverSizeImpl};
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 
 /// <https://drafts.csswg.org/resize-observer/#calculate-depth-for-node>
@@ -63,7 +64,7 @@ impl ResizeObserver {
         callback: Rc<ResizeObserverCallback>,
     ) -> DomRoot<ResizeObserver> {
         let observer = Box::new(ResizeObserver::new_inherited(callback));
-        reflect_dom_object_with_proto(observer, window, proto)
+        reflect_dom_object_with_proto(observer, window, proto, CanGc::note())
     }
 
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobserver-resizeobserver>

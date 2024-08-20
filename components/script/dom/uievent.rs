@@ -19,6 +19,7 @@ use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 // https://w3c.github.io/uievents/#interface-uievent
 #[dom_struct]
@@ -45,7 +46,12 @@ impl UIEvent {
         window: &Window,
         proto: Option<HandleObject>,
     ) -> DomRoot<UIEvent> {
-        reflect_dom_object_with_proto(Box::new(UIEvent::new_inherited()), window, proto)
+        reflect_dom_object_with_proto(
+            Box::new(UIEvent::new_inherited()),
+            window,
+            proto,
+            CanGc::note(),
+        )
     }
 
     pub fn new(

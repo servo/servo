@@ -177,7 +177,7 @@ use crate::dom::window::{ReflowReason, Window};
 use crate::dom::windowproxy::WindowProxy;
 use crate::fetch::FetchCanceller;
 use crate::realms::{AlreadyInRealm, InRealm};
-use crate::script_runtime::{CommonScriptMsg, ScriptThreadEventCategory};
+use crate::script_runtime::{CanGc, CommonScriptMsg, ScriptThreadEventCategory};
 use crate::script_thread::{MainThreadScriptMsg, ScriptThread};
 use crate::stylesheet_set::StylesheetSetRef;
 use crate::task::TaskBox;
@@ -3504,6 +3504,7 @@ impl Document {
             )),
             window,
             proto,
+            CanGc::note(),
         );
         {
             let node = document.upcast::<Node>();

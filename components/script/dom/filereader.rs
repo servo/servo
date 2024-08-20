@@ -35,7 +35,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::progressevent::ProgressEvent;
 use crate::realms::enter_realm;
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{CanGc, JSContext};
 use crate::task_source::file_reading::FileReadingTask;
 use crate::task_source::{TaskSource, TaskSourceName};
 
@@ -154,7 +154,12 @@ impl FileReader {
     }
 
     fn new(global: &GlobalScope, proto: Option<HandleObject>) -> DomRoot<FileReader> {
-        reflect_dom_object_with_proto(Box::new(FileReader::new_inherited()), global, proto)
+        reflect_dom_object_with_proto(
+            Box::new(FileReader::new_inherited()),
+            global,
+            proto,
+            CanGc::note(),
+        )
     }
 
     #[allow(non_snake_case)]

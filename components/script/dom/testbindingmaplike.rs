@@ -18,6 +18,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::maplike;
+use crate::script_runtime::CanGc;
 
 /// maplike<DOMString, long>
 #[dom_struct]
@@ -36,6 +37,7 @@ impl TestBindingMaplike {
             }),
             global,
             proto,
+            CanGc::note(),
         )
     }
 

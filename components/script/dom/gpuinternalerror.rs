@@ -10,6 +10,7 @@ use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct GPUInternalError {
@@ -28,7 +29,12 @@ impl GPUInternalError {
         proto: Option<HandleObject>,
         message: DOMString,
     ) -> DomRoot<Self> {
-        reflect_dom_object_with_proto(Box::new(Self::new_inherited(message)), global, proto)
+        reflect_dom_object_with_proto(
+            Box::new(Self::new_inherited(message)),
+            global,
+            proto,
+            CanGc::note(),
+        )
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-GPUInternalError-GPUInternalError>

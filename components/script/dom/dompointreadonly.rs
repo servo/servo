@@ -13,6 +13,7 @@ use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
+use crate::script_runtime::CanGc;
 
 // http://dev.w3.org/fxtf/geometry/Overview.html#dompointreadonly
 #[dom_struct]
@@ -52,6 +53,7 @@ impl DOMPointReadOnly {
             Box::new(DOMPointReadOnly::new_inherited(x, y, z, w)),
             global,
             proto,
+            CanGc::note(),
         )
     }
 

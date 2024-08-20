@@ -31,6 +31,7 @@ use crate::dom::offlineaudiocompletionevent::OfflineAudioCompletionEvent;
 use crate::dom::promise::Promise;
 use crate::dom::window::Window;
 use crate::realms::InRealm;
+use crate::script_runtime::CanGc;
 use crate::task_source::TaskSource;
 
 #[dom_struct]
@@ -92,6 +93,7 @@ impl OfflineAudioContext {
             Box::new(context),
             window,
             proto,
+            CanGc::note(),
         ))
     }
 

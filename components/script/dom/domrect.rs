@@ -12,6 +12,7 @@ use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::domrectreadonly::DOMRectReadOnly;
 use crate::dom::globalscope::GlobalScope;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct DOMRect {
@@ -41,6 +42,7 @@ impl DOMRect {
             Box::new(DOMRect::new_inherited(x, y, width, height)),
             global,
             proto,
+            CanGc::note(),
         )
     }
 

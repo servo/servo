@@ -50,6 +50,7 @@ use crate::dom::rtcsessiondescription::RTCSessionDescription;
 use crate::dom::rtctrackevent::RTCTrackEvent;
 use crate::dom::window::Window;
 use crate::realms::{enter_realm, InRealm};
+use crate::script_runtime::CanGc;
 use crate::task::TaskCanceller;
 use crate::task_source::networking::NetworkingTaskSource;
 use crate::task_source::TaskSource;
@@ -202,6 +203,7 @@ impl RTCPeerConnection {
             Box::new(RTCPeerConnection::new_inherited()),
             global,
             proto,
+            CanGc::note(),
         );
         let signaller = this.make_signaller();
         *this.controller.borrow_mut() = Some(ServoMedia::get().unwrap().create_webrtc(signaller));

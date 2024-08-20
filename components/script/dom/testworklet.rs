@@ -20,6 +20,7 @@ use crate::dom::window::Window;
 use crate::dom::worklet::Worklet;
 use crate::dom::workletglobalscope::WorkletGlobalScopeType;
 use crate::realms::InRealm;
+use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 
 #[dom_struct]
@@ -42,6 +43,7 @@ impl TestWorklet {
             Box::new(TestWorklet::new_inherited(&worklet)),
             window,
             proto,
+            CanGc::note(),
         )
     }
 

@@ -19,6 +19,7 @@ use crate::dom::event::Event;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::rtcicecandidate::RTCIceCandidate;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct RTCPeerConnectionIceEvent {
@@ -61,6 +62,7 @@ impl RTCPeerConnectionIceEvent {
             Box::new(RTCPeerConnectionIceEvent::new_inherited(candidate, url)),
             global,
             proto,
+            CanGc::note(),
         );
         let evt = e.upcast::<Event>();
         evt.init_event(ty, false, false); // XXXManishearth bubbles/cancelable?

@@ -15,6 +15,7 @@ use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::mediasession::MediaSession;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct MediaMetadata {
@@ -45,7 +46,12 @@ impl MediaMetadata {
         proto: Option<HandleObject>,
         init: &MediaMetadataInit,
     ) -> DomRoot<MediaMetadata> {
-        reflect_dom_object_with_proto(Box::new(MediaMetadata::new_inherited(init)), global, proto)
+        reflect_dom_object_with_proto(
+            Box::new(MediaMetadata::new_inherited(init)),
+            global,
+            proto,
+            CanGc::note(),
+        )
     }
 
     /// <https://w3c.github.io/mediasession/#dom-mediametadata-mediametadata>

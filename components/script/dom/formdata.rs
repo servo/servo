@@ -21,6 +21,7 @@ use crate::dom::blob::Blob;
 use crate::dom::file::File;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlformelement::{FormDatum, FormDatumValue, HTMLFormElement};
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct FormData {
@@ -57,6 +58,7 @@ impl FormData {
             Box::new(FormData::new_inherited(form_datums)),
             global,
             proto,
+            CanGc::note(),
         )
     }
 

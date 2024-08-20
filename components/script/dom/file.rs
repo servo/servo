@@ -18,6 +18,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::blob::{blob_parts_to_bytes, normalize_type_string, Blob};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct File {
@@ -64,6 +65,7 @@ impl File {
             Box::new(File::new_inherited(&blob_impl, name, modified)),
             global,
             proto,
+            CanGc::note(),
         );
         global.track_file(&file, blob_impl);
         file

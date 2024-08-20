@@ -35,6 +35,7 @@ use crate::dom::node::{Node, ShadowIncluding, UnbindContext};
 use crate::dom::selection::Selection;
 use crate::dom::text::Text;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct Range {
@@ -110,6 +111,7 @@ impl Range {
             )),
             document.window(),
             proto,
+            CanGc::note(),
         );
         start_container.ranges().push(WeakRef::new(&range));
         if start_container != end_container {

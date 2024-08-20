@@ -14,6 +14,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct RTCSessionDescription {
@@ -41,6 +42,7 @@ impl RTCSessionDescription {
             Box::new(RTCSessionDescription::new_inherited(ty, sdp)),
             global,
             proto,
+            CanGc::note(),
         )
     }
 

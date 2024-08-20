@@ -23,6 +23,7 @@ use crate::dom::blob::Blob;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::urlhelper::UrlHelper;
 use crate::dom::urlsearchparams::URLSearchParams;
+use crate::script_runtime::CanGc;
 
 /// <https://url.spec.whatwg.org/#url>
 #[dom_struct]
@@ -47,7 +48,12 @@ impl URL {
     }
 
     fn new(global: &GlobalScope, proto: Option<HandleObject>, url: ServoUrl) -> DomRoot<URL> {
-        reflect_dom_object_with_proto(Box::new(URL::new_inherited(url)), global, proto)
+        reflect_dom_object_with_proto(
+            Box::new(URL::new_inherited(url)),
+            global,
+            proto,
+            CanGc::note(),
+        )
     }
 
     pub fn query_pairs(&self) -> Vec<(String, String)> {

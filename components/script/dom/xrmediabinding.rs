@@ -16,6 +16,7 @@ use crate::dom::xrcylinderlayer::XRCylinderLayer;
 use crate::dom::xrequirectlayer::XREquirectLayer;
 use crate::dom::xrquadlayer::XRQuadLayer;
 use crate::dom::xrsession::XRSession;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct XRMediaBinding {
@@ -40,6 +41,7 @@ impl XRMediaBinding {
             Box::new(XRMediaBinding::new_inherited(session)),
             global,
             proto,
+            CanGc::note(),
         )
     }
 

@@ -17,6 +17,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::mediastreamtrack::MediaStreamTrack;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct MediaStream {
@@ -38,7 +39,12 @@ impl MediaStream {
     }
 
     fn new_with_proto(global: &GlobalScope, proto: Option<HandleObject>) -> DomRoot<MediaStream> {
-        reflect_dom_object_with_proto(Box::new(MediaStream::new_inherited()), global, proto)
+        reflect_dom_object_with_proto(
+            Box::new(MediaStream::new_inherited()),
+            global,
+            proto,
+            CanGc::note(),
+        )
     }
 
     pub fn new_single(

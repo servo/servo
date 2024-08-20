@@ -17,6 +17,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct AnimationEvent {
@@ -51,6 +52,7 @@ impl AnimationEvent {
             Box::new(AnimationEvent::new_inherited(init)),
             window,
             proto,
+            CanGc::note(),
         );
         {
             let event = ev.upcast::<Event>();

@@ -19,7 +19,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::blob::Blob;
 use crate::dom::filereader::FileReaderSharedFunctionality;
 use crate::dom::globalscope::GlobalScope;
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{CanGc, JSContext};
 
 #[dom_struct]
 pub struct FileReaderSync {
@@ -34,7 +34,12 @@ impl FileReaderSync {
     }
 
     fn new(global: &GlobalScope, proto: Option<HandleObject>) -> DomRoot<FileReaderSync> {
-        reflect_dom_object_with_proto(Box::new(FileReaderSync::new_inherited()), global, proto)
+        reflect_dom_object_with_proto(
+            Box::new(FileReaderSync::new_inherited()),
+            global,
+            proto,
+            CanGc::note(),
+        )
     }
 
     #[allow(non_snake_case)]

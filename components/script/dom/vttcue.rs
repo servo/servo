@@ -22,6 +22,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::texttrackcue::TextTrackCue;
 use crate::dom::vttregion::VTTRegion;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct VTTCue {
@@ -71,6 +72,7 @@ impl VTTCue {
             Box::new(Self::new_inherited(start_time, end_time, text)),
             global,
             proto,
+            CanGc::note(),
         )
     }
 

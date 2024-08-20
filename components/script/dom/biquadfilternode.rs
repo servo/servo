@@ -27,6 +27,7 @@ use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct BiquadFilterNode {
@@ -128,7 +129,12 @@ impl BiquadFilterNode {
         options: &BiquadFilterOptions,
     ) -> Fallible<DomRoot<BiquadFilterNode>> {
         let node = BiquadFilterNode::new_inherited(window, context, options)?;
-        Ok(reflect_dom_object_with_proto(Box::new(node), window, proto))
+        Ok(reflect_dom_object_with_proto(
+            Box::new(node),
+            window,
+            proto,
+            CanGc::note(),
+        ))
     }
 
     #[allow(non_snake_case)]

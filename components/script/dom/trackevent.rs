@@ -21,6 +21,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::texttrack::TextTrack;
 use crate::dom::videotrack::VideoTrack;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[crown::unrooted_must_root_lint::must_root]
 #[derive(JSTraceable, MallocSizeOf)]
@@ -81,6 +82,7 @@ impl TrackEvent {
             Box::new(TrackEvent::new_inherited(track)),
             global,
             proto,
+            CanGc::note(),
         );
         {
             let event = te.upcast::<Event>();

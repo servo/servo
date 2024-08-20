@@ -24,6 +24,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::node::Node;
 use crate::dom::uievent::UIEvent;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct MouseEvent {
@@ -82,7 +83,12 @@ impl MouseEvent {
         window: &Window,
         proto: Option<HandleObject>,
     ) -> DomRoot<MouseEvent> {
-        reflect_dom_object_with_proto(Box::new(MouseEvent::new_inherited()), window, proto)
+        reflect_dom_object_with_proto(
+            Box::new(MouseEvent::new_inherited()),
+            window,
+            proto,
+            CanGc::note(),
+        )
     }
 
     #[allow(clippy::too_many_arguments)]

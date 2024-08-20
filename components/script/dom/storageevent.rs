@@ -18,6 +18,7 @@ use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::storage::Storage;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct StorageEvent {
@@ -61,6 +62,7 @@ impl StorageEvent {
             Box::new(StorageEvent::new_inherited(None, None, None, url, None)),
             window,
             proto,
+            CanGc::note(),
         )
     }
 
@@ -113,6 +115,7 @@ impl StorageEvent {
             )),
             global,
             proto,
+            CanGc::note(),
         );
         {
             let event = ev.upcast::<Event>();

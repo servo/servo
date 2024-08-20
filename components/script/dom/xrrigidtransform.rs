@@ -17,7 +17,7 @@ use crate::dom::dompointreadonly::DOMPointReadOnly;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
 use crate::dom::xrsession::ApiRigidTransform;
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{CanGc, JSContext};
 
 #[dom_struct]
 pub struct XRRigidTransform {
@@ -57,6 +57,7 @@ impl XRRigidTransform {
             Box::new(XRRigidTransform::new_inherited(transform)),
             global,
             proto,
+            CanGc::note(),
         )
     }
 

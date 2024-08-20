@@ -15,6 +15,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::uievent::UIEvent;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct CompositionEvent {
@@ -66,6 +67,7 @@ impl CompositionEvent {
             }),
             window,
             proto,
+            CanGc::note(),
         );
         ev.uievent
             .InitUIEvent(type_, can_bubble, cancelable, view, detail);

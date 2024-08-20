@@ -17,6 +17,7 @@ use crate::dom::event::Event;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 #[allow(non_snake_case)]
@@ -55,6 +56,7 @@ impl SubmitEvent {
             Box::new(SubmitEvent::new_inherited(submitter)),
             global,
             proto,
+            CanGc::note(),
         );
         {
             let event = ev.upcast::<Event>();

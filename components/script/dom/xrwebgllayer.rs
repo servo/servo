@@ -30,6 +30,7 @@ use crate::dom::xrlayer::XRLayer;
 use crate::dom::xrsession::XRSession;
 use crate::dom::xrview::XRView;
 use crate::dom::xrviewport::XRViewport;
+use crate::script_runtime::CanGc;
 
 impl<'a> From<&'a XRWebGLLayerInit> for LayerInit {
     fn from(init: &'a XRWebGLLayerInit) -> LayerInit {
@@ -94,6 +95,7 @@ impl XRWebGLLayer {
             )),
             global,
             proto,
+            CanGc::note(),
         )
     }
 

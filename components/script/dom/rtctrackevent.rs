@@ -17,6 +17,7 @@ use crate::dom::event::Event;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::mediastreamtrack::MediaStreamTrack;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct RTCTrackEvent {
@@ -55,6 +56,7 @@ impl RTCTrackEvent {
             Box::new(RTCTrackEvent::new_inherited(track)),
             global,
             proto,
+            CanGc::note(),
         );
         {
             let event = trackevent.upcast::<Event>();

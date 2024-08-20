@@ -12,6 +12,7 @@ use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct GPUError {
@@ -38,7 +39,12 @@ impl GPUError {
         proto: Option<HandleObject>,
         message: DOMString,
     ) -> DomRoot<Self> {
-        reflect_dom_object_with_proto(Box::new(GPUError::new_inherited(message)), global, proto)
+        reflect_dom_object_with_proto(
+            Box::new(GPUError::new_inherited(message)),
+            global,
+            proto,
+            CanGc::note(),
+        )
     }
 
     pub fn from_error(global: &GlobalScope, error: Error) -> DomRoot<Self> {

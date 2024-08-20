@@ -21,6 +21,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLDocument};
 use crate::dom::servoparser::ServoParser;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct DOMParser {
@@ -37,7 +38,12 @@ impl DOMParser {
     }
 
     fn new(window: &Window, proto: Option<HandleObject>) -> DomRoot<DOMParser> {
-        reflect_dom_object_with_proto(Box::new(DOMParser::new_inherited(window)), window, proto)
+        reflect_dom_object_with_proto(
+            Box::new(DOMParser::new_inherited(window)),
+            window,
+            proto,
+            CanGc::note(),
+        )
     }
 
     #[allow(non_snake_case)]

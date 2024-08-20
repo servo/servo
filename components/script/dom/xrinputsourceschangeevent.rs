@@ -23,7 +23,7 @@ use crate::dom::window::Window;
 use crate::dom::xrinputsource::XRInputSource;
 use crate::dom::xrsession::XRSession;
 use crate::realms::enter_realm;
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{CanGc, JSContext};
 
 #[dom_struct]
 pub struct XRInputSourcesChangeEvent {
@@ -76,6 +76,7 @@ impl XRInputSourcesChangeEvent {
             Box::new(XRInputSourcesChangeEvent::new_inherited(session)),
             global,
             proto,
+            CanGc::note(),
         );
         {
             let event = changeevent.upcast::<Event>();

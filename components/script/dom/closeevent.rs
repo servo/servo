@@ -16,6 +16,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::globalscope::GlobalScope;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct CloseEvent {
@@ -62,7 +63,7 @@ impl CloseEvent {
         reason: DOMString,
     ) -> DomRoot<CloseEvent> {
         let event = Box::new(CloseEvent::new_inherited(wasClean, code, reason));
-        let ev = reflect_dom_object_with_proto(event, global, proto);
+        let ev = reflect_dom_object_with_proto(event, global, proto, CanGc::note());
         {
             let event = ev.upcast::<Event>();
             event.init_event(type_, bool::from(bubbles), bool::from(cancelable));

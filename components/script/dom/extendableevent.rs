@@ -15,7 +15,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
 use crate::dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{CanGc, JSContext};
 
 // https://w3c.github.io/ServiceWorker/#extendable-event
 #[dom_struct]
@@ -53,6 +53,7 @@ impl ExtendableEvent {
             Box::new(ExtendableEvent::new_inherited()),
             worker,
             proto,
+            CanGc::note(),
         );
         {
             let event = ev.upcast::<Event>();

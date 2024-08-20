@@ -24,7 +24,7 @@ use crate::dom::extendableevent::ExtendableEvent;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageport::MessagePort;
 use crate::dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{CanGc, JSContext};
 
 #[dom_struct]
 #[allow(non_snake_case)]
@@ -105,7 +105,7 @@ impl ExtendableMessageEvent {
             lastEventId,
             ports,
         ));
-        let ev = reflect_dom_object_with_proto(ev, global, proto);
+        let ev = reflect_dom_object_with_proto(ev, global, proto, CanGc::note());
         {
             let event = ev.upcast::<Event>();
             event.init_event(type_, bubbles, cancelable);

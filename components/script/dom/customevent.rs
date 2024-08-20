@@ -19,7 +19,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::event::Event;
 use crate::dom::globalscope::GlobalScope;
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{CanGc, JSContext};
 
 // https://dom.spec.whatwg.org/#interface-customevent
 #[dom_struct]
@@ -45,7 +45,12 @@ impl CustomEvent {
         global: &GlobalScope,
         proto: Option<HandleObject>,
     ) -> DomRoot<CustomEvent> {
-        reflect_dom_object_with_proto(Box::new(CustomEvent::new_inherited()), global, proto)
+        reflect_dom_object_with_proto(
+            Box::new(CustomEvent::new_inherited()),
+            global,
+            proto,
+            CanGc::note(),
+        )
     }
 
     fn new(

@@ -17,6 +17,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::globalscope::GlobalScope;
+use crate::script_runtime::CanGc;
 
 // https://w3c.github.io/webappsec-csp/#securitypolicyviolationevent
 #[dom_struct]
@@ -64,6 +65,7 @@ impl SecurityPolicyViolationEvent {
             Box::new(SecurityPolicyViolationEvent::new_inherited(init)),
             global,
             proto,
+            CanGc::note(),
         )
     }
 

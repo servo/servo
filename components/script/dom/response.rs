@@ -31,7 +31,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::headers::{is_obs_text, is_vchar, Guard, Headers};
 use crate::dom::promise::Promise;
 use crate::dom::readablestream::{ExternalUnderlyingSource, ReadableStream};
-use crate::script_runtime::{JSContext as SafeJSContext, StreamConsumer};
+use crate::script_runtime::{CanGc, JSContext as SafeJSContext, StreamConsumer};
 
 #[dom_struct]
 pub struct Response {
@@ -81,7 +81,12 @@ impl Response {
     }
 
     fn new_with_proto(global: &GlobalScope, proto: Option<HandleObject>) -> DomRoot<Response> {
-        reflect_dom_object_with_proto(Box::new(Response::new_inherited(global)), global, proto)
+        reflect_dom_object_with_proto(
+            Box::new(Response::new_inherited(global)),
+            global,
+            proto,
+            CanGc::note(),
+        )
     }
 
     // https://fetch.spec.whatwg.org/#initialize-a-response

@@ -12,6 +12,7 @@ use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::dompointreadonly::{DOMPointReadOnly, DOMPointWriteMethods};
 use crate::dom::globalscope::GlobalScope;
+use crate::script_runtime::CanGc;
 
 // http://dev.w3.org/fxtf/geometry/Overview.html#dompoint
 #[dom_struct]
@@ -39,7 +40,12 @@ impl DOMPoint {
         z: f64,
         w: f64,
     ) -> DomRoot<DOMPoint> {
-        reflect_dom_object_with_proto(Box::new(DOMPoint::new_inherited(x, y, z, w)), global, proto)
+        reflect_dom_object_with_proto(
+            Box::new(DOMPoint::new_inherited(x, y, z, w)),
+            global,
+            proto,
+            CanGc::note(),
+        )
     }
 
     pub fn Constructor(

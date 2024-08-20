@@ -27,6 +27,7 @@ use crate::dom::xrquadlayer::XRQuadLayer;
 use crate::dom::xrsession::XRSession;
 use crate::dom::xrview::XRView;
 use crate::dom::xrwebglsubimage::XRWebGLSubImage;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct XRWebGLBinding {
@@ -54,6 +55,7 @@ impl XRWebGLBinding {
             Box::new(XRWebGLBinding::new_inherited(session, context)),
             global,
             proto,
+            CanGc::note(),
         )
     }
 

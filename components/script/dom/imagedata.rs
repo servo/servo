@@ -21,7 +21,7 @@ use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{CanGc, JSContext};
 
 #[dom_struct]
 pub struct ImageData {
@@ -101,7 +101,12 @@ impl ImageData {
             data: heap_typed_array,
         });
 
-        Ok(reflect_dom_object_with_proto(imagedata, global, proto))
+        Ok(reflect_dom_object_with_proto(
+            imagedata,
+            global,
+            proto,
+            CanGc::note(),
+        ))
     }
 
     fn new_without_jsobject(
@@ -131,7 +136,12 @@ impl ImageData {
             data: heap_typed_array,
         });
 
-        Ok(reflect_dom_object_with_proto(imagedata, global, proto))
+        Ok(reflect_dom_object_with_proto(
+            imagedata,
+            global,
+            proto,
+            CanGc::note(),
+        ))
     }
     /// <https://html.spec.whatwg.org/multipage/#pixel-manipulation:dom-imagedata-3>
     #[allow(non_snake_case)]

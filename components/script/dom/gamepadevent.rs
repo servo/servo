@@ -18,6 +18,7 @@ use crate::dom::event::Event;
 use crate::dom::gamepad::Gamepad;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct GamepadEvent {
@@ -60,6 +61,7 @@ impl GamepadEvent {
             Box::new(GamepadEvent::new_inherited(gamepad)),
             global,
             proto,
+            CanGc::note(),
         );
         {
             let event = ev.upcast::<Event>();

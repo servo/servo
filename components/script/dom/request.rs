@@ -38,7 +38,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::headers::{Guard, Headers};
 use crate::dom::promise::Promise;
 use crate::dom::readablestream::ReadableStream;
-use crate::script_runtime::JSContext as SafeJSContext;
+use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 #[dom_struct]
 pub struct Request {
@@ -60,7 +60,12 @@ impl Request {
     }
 
     fn new(global: &GlobalScope, proto: Option<HandleObject>, url: ServoUrl) -> DomRoot<Request> {
-        reflect_dom_object_with_proto(Box::new(Request::new_inherited(global, url)), global, proto)
+        reflect_dom_object_with_proto(
+            Box::new(Request::new_inherited(global, url)),
+            global,
+            proto,
+            CanGc::note(),
+        )
     }
 
     // https://fetch.spec.whatwg.org/#dom-request

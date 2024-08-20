@@ -16,6 +16,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
 use crate::dom::window::Window;
 use crate::dom::xrlayer::XRLayer;
+use crate::script_runtime::CanGc;
 
 // https://w3c.github.io/uievents/#interface-uievent
 #[dom_struct]
@@ -33,7 +34,12 @@ impl XRLayerEvent {
     }
 
     fn new(window: &Window, proto: Option<HandleObject>, layer: &XRLayer) -> DomRoot<XRLayerEvent> {
-        reflect_dom_object_with_proto(Box::new(XRLayerEvent::new_inherited(layer)), window, proto)
+        reflect_dom_object_with_proto(
+            Box::new(XRLayerEvent::new_inherited(layer)),
+            window,
+            proto,
+            CanGc::note(),
+        )
     }
 
     #[allow(non_snake_case)]

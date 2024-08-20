@@ -49,7 +49,7 @@ use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::url::URL;
 use crate::realms::InRealm;
-use crate::script_runtime::JSContext as SafeJSContext;
+use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::timers::OneshotTimerCallback;
 
 #[dom_struct]
@@ -68,7 +68,12 @@ impl TestBinding {
     }
 
     fn new(global: &GlobalScope, proto: Option<HandleObject>) -> DomRoot<TestBinding> {
-        reflect_dom_object_with_proto(Box::new(TestBinding::new_inherited()), global, proto)
+        reflect_dom_object_with_proto(
+            Box::new(TestBinding::new_inherited()),
+            global,
+            proto,
+            CanGc::note(),
+        )
     }
 
     pub fn Constructor(

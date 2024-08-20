@@ -16,6 +16,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::gpuerror::GPUError;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct GPUUncapturedErrorEvent {
@@ -50,6 +51,7 @@ impl GPUUncapturedErrorEvent {
             Box::new(GPUUncapturedErrorEvent::new_inherited(init)),
             global,
             proto,
+            CanGc::note(),
         );
         ev.event.init_event(
             Atom::from(type_),

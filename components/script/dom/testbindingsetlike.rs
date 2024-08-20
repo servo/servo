@@ -16,6 +16,7 @@ use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
+use crate::script_runtime::CanGc;
 use crate::setlike;
 
 // setlike<DOMString>
@@ -35,6 +36,7 @@ impl TestBindingSetlike {
             }),
             global,
             proto,
+            CanGc::note(),
         )
     }
 

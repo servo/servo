@@ -13,6 +13,7 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::node::Node;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct XMLSerializer {
@@ -33,6 +34,7 @@ impl XMLSerializer {
             Box::new(XMLSerializer::new_inherited(window)),
             window,
             proto,
+            CanGc::note(),
         )
     }
 

@@ -20,6 +20,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
 use crate::dom::uievent::UIEvent;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct KeyboardEvent {
@@ -61,7 +62,12 @@ impl KeyboardEvent {
         window: &Window,
         proto: Option<HandleObject>,
     ) -> DomRoot<KeyboardEvent> {
-        reflect_dom_object_with_proto(Box::new(KeyboardEvent::new_inherited()), window, proto)
+        reflect_dom_object_with_proto(
+            Box::new(KeyboardEvent::new_inherited()),
+            window,
+            proto,
+            CanGc::note(),
+        )
     }
 
     #[allow(clippy::too_many_arguments)]

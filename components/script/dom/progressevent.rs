@@ -16,6 +16,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::globalscope::GlobalScope;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct ProgressEvent {
@@ -75,6 +76,7 @@ impl ProgressEvent {
             )),
             global,
             proto,
+            CanGc::note(),
         );
         {
             let event = ev.upcast::<Event>();

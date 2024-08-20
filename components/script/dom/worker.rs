@@ -37,7 +37,7 @@ use crate::dom::messageevent::MessageEvent;
 use crate::dom::window::Window;
 use crate::dom::workerglobalscope::prepare_workerscope_init;
 use crate::realms::enter_realm;
-use crate::script_runtime::{ContextForRequestInterrupt, JSContext};
+use crate::script_runtime::{CanGc, ContextForRequestInterrupt, JSContext};
 use crate::task::TaskOnce;
 
 pub type TrustedWorkerAddress = Trusted<Worker>;
@@ -79,6 +79,7 @@ impl Worker {
             Box::new(Worker::new_inherited(sender, closing)),
             global,
             proto,
+            CanGc::note(),
         )
     }
 

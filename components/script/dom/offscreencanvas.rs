@@ -23,7 +23,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlcanvaselement::HTMLCanvasElement;
 use crate::dom::offscreencanvasrenderingcontext2d::OffscreenCanvasRenderingContext2D;
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{CanGc, JSContext};
 
 #[crown::unrooted_must_root_lint::must_root]
 #[derive(Clone, JSTraceable, MallocSizeOf)]
@@ -68,6 +68,7 @@ impl OffscreenCanvas {
             Box::new(OffscreenCanvas::new_inherited(width, height, placeholder)),
             global,
             proto,
+            CanGc::note(),
         )
     }
 

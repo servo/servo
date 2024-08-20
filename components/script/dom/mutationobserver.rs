@@ -22,6 +22,7 @@ use crate::dom::mutationrecord::MutationRecord;
 use crate::dom::node::{Node, ShadowIncluding};
 use crate::dom::window::Window;
 use crate::microtask::Microtask;
+use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 
 #[dom_struct]
@@ -74,7 +75,7 @@ impl MutationObserver {
         callback: Rc<MutationCallback>,
     ) -> DomRoot<MutationObserver> {
         let boxed_observer = Box::new(MutationObserver::new_inherited(callback));
-        reflect_dom_object_with_proto(boxed_observer, global, proto)
+        reflect_dom_object_with_proto(boxed_observer, global, proto, CanGc::note())
     }
 
     fn new_inherited(callback: Rc<MutationCallback>) -> MutationObserver {

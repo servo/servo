@@ -17,7 +17,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::structuredclone;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
-use crate::script_runtime::JSContext as SafeJSContext;
+use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 #[dom_struct]
 pub struct BroadcastChannel {
@@ -48,6 +48,7 @@ impl BroadcastChannel {
             Box::new(BroadcastChannel::new_inherited(name)),
             global,
             proto,
+            CanGc::note(),
         );
         global.track_broadcast_channel(&channel);
         channel

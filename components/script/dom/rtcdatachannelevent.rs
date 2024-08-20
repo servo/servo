@@ -18,6 +18,7 @@ use crate::dom::event::Event;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::rtcdatachannel::RTCDataChannel;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct RTCDataChannelEvent {
@@ -55,6 +56,7 @@ impl RTCDataChannelEvent {
             Box::new(RTCDataChannelEvent::new_inherited(channel)),
             global,
             proto,
+            CanGc::note(),
         );
         {
             let event = event.upcast::<Event>();

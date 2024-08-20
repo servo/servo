@@ -19,6 +19,7 @@ use crate::dom::event::{EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::uievent::UIEvent;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct FocusEvent {
@@ -42,7 +43,12 @@ impl FocusEvent {
         window: &Window,
         proto: Option<HandleObject>,
     ) -> DomRoot<FocusEvent> {
-        reflect_dom_object_with_proto(Box::new(FocusEvent::new_inherited()), window, proto)
+        reflect_dom_object_with_proto(
+            Box::new(FocusEvent::new_inherited()),
+            window,
+            proto,
+            CanGc::note(),
+        )
     }
 
     pub fn new(

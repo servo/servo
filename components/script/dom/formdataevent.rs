@@ -18,6 +18,7 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::formdata::FormData;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct FormDataEvent {
@@ -51,6 +52,7 @@ impl FormDataEvent {
             }),
             global,
             proto,
+            CanGc::note(),
         );
 
         {

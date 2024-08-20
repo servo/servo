@@ -18,6 +18,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 // https://html.spec.whatwg.org/multipage/#pagetransitionevent
 #[dom_struct]
@@ -42,6 +43,7 @@ impl PageTransitionEvent {
             Box::new(PageTransitionEvent::new_inherited()),
             window,
             proto,
+            CanGc::note(),
         )
     }
 

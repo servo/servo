@@ -55,6 +55,7 @@ use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::realms::{enter_realm, InRealm};
+use crate::script_runtime::CanGc;
 
 #[derive(Clone, JSTraceable, MallocSizeOf, PartialEq)]
 pub enum CommonEventHandler {
@@ -361,7 +362,12 @@ impl EventTarget {
     }
 
     fn new(global: &GlobalScope, proto: Option<HandleObject>) -> DomRoot<EventTarget> {
-        reflect_dom_object_with_proto(Box::new(EventTarget::new_inherited()), global, proto)
+        reflect_dom_object_with_proto(
+            Box::new(EventTarget::new_inherited()),
+            global,
+            proto,
+            CanGc::note(),
+        )
     }
 
     #[allow(non_snake_case)]

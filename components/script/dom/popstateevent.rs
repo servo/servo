@@ -20,7 +20,7 @@ use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::window::Window;
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{CanGc, JSContext};
 
 // https://html.spec.whatwg.org/multipage/#the-popstateevent-interface
 #[dom_struct]
@@ -39,7 +39,12 @@ impl PopStateEvent {
     }
 
     fn new_uninitialized(window: &Window, proto: Option<HandleObject>) -> DomRoot<PopStateEvent> {
-        reflect_dom_object_with_proto(Box::new(PopStateEvent::new_inherited()), window, proto)
+        reflect_dom_object_with_proto(
+            Box::new(PopStateEvent::new_inherited()),
+            window,
+            proto,
+            CanGc::note(),
+        )
     }
 
     fn new(

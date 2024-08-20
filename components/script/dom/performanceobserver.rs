@@ -24,7 +24,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::performance::PerformanceEntryList;
 use crate::dom::performanceentry::PerformanceEntry;
 use crate::dom::performanceobserverentrylist::PerformanceObserverEntryList;
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{CanGc, JSContext};
 
 /// List of allowed performance entry types, in alphabetical order.
 pub const VALID_ENTRY_TYPES: &[&str] = &[
@@ -82,7 +82,7 @@ impl PerformanceObserver {
         entries: DOMPerformanceEntryList,
     ) -> DomRoot<PerformanceObserver> {
         let observer = PerformanceObserver::new_inherited(callback, DomRefCell::new(entries));
-        reflect_dom_object_with_proto(Box::new(observer), global, proto)
+        reflect_dom_object_with_proto(Box::new(observer), global, proto, CanGc::note())
     }
 
     #[allow(non_snake_case)]

@@ -38,8 +38,8 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageevent::MessageEvent;
-use crate::script_runtime::CommonScriptMsg;
 use crate::script_runtime::ScriptThreadEventCategory::WebSocketEvent;
+use crate::script_runtime::{CanGc, CommonScriptMsg};
 use crate::task::{TaskCanceller, TaskOnce};
 use crate::task_source::websocket::WebsocketTaskSource;
 use crate::task_source::TaskSource;
@@ -139,6 +139,7 @@ impl WebSocket {
             Box::new(WebSocket::new_inherited(url, sender)),
             global,
             proto,
+            CanGc::note(),
         )
     }
 

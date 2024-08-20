@@ -12,6 +12,7 @@ use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct DOMRectReadOnly {
@@ -45,6 +46,7 @@ impl DOMRectReadOnly {
             Box::new(DOMRectReadOnly::new_inherited(x, y, width, height)),
             global,
             proto,
+            CanGc::note(),
         )
     }
 

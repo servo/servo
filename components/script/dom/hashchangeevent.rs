@@ -16,6 +16,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::event::Event;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 // https://html.spec.whatwg.org/multipage/#hashchangeevent
 #[dom_struct]
@@ -46,6 +47,7 @@ impl HashChangeEvent {
             Box::new(HashChangeEvent::new_inherited(String::new(), String::new())),
             window,
             proto,
+            CanGc::note(),
         )
     }
 
@@ -73,6 +75,7 @@ impl HashChangeEvent {
             Box::new(HashChangeEvent::new_inherited(old_url, new_url)),
             window,
             proto,
+            CanGc::note(),
         );
         {
             let event = ev.upcast::<Event>();

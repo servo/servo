@@ -23,7 +23,7 @@ use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{CanGc, JSContext};
 
 #[dom_struct]
 pub struct PromiseRejectionEvent {
@@ -77,6 +77,7 @@ impl PromiseRejectionEvent {
             Box::new(PromiseRejectionEvent::new_inherited()),
             global,
             proto,
+            CanGc::note(),
         );
         ev.promise.set(promise.get());
 

@@ -15,6 +15,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::document::Document;
 use crate::dom::node::Node;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct StaticRange {
@@ -59,6 +60,7 @@ impl StaticRange {
             )),
             document.window(),
             proto,
+            CanGc::note(),
         );
         staticrange
     }

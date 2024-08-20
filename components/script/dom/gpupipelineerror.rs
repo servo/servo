@@ -13,6 +13,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::domexception::DOMException;
 use crate::dom::globalscope::GlobalScope;
+use crate::script_runtime::CanGc;
 
 /// <https://gpuweb.github.io/gpuweb/#gpupipelineerror>
 #[dom_struct]
@@ -39,6 +40,7 @@ impl GPUPipelineError {
             Box::new(Self::new_inherited(message, reason)),
             global,
             proto,
+            CanGc::note(),
         )
     }
 

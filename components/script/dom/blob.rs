@@ -30,7 +30,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::readablestream::ReadableStream;
 use crate::realms::{AlreadyInRealm, InRealm};
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{CanGc, JSContext};
 
 // https://w3c.github.io/FileAPI/#blob
 #[dom_struct]
@@ -50,8 +50,12 @@ impl Blob {
         proto: Option<HandleObject>,
         blob_impl: BlobImpl,
     ) -> DomRoot<Blob> {
-        let dom_blob =
-            reflect_dom_object_with_proto(Box::new(Blob::new_inherited(&blob_impl)), global, proto);
+        let dom_blob = reflect_dom_object_with_proto(
+            Box::new(Blob::new_inherited(&blob_impl)),
+            global,
+            proto,
+            CanGc::note(),
+        );
         global.track_blob(&dom_blob, blob_impl);
         dom_blob
     }

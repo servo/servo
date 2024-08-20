@@ -18,6 +18,7 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct OfflineAudioCompletionEvent {
@@ -52,7 +53,7 @@ impl OfflineAudioCompletionEvent {
         rendered_buffer: &AudioBuffer,
     ) -> DomRoot<OfflineAudioCompletionEvent> {
         let event = Box::new(OfflineAudioCompletionEvent::new_inherited(rendered_buffer));
-        let ev = reflect_dom_object_with_proto(event, window, proto);
+        let ev = reflect_dom_object_with_proto(event, window, proto, CanGc::note());
         {
             let event = ev.upcast::<Event>();
             event.init_event(type_, bool::from(bubbles), bool::from(cancelable));

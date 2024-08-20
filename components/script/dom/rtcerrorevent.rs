@@ -18,6 +18,7 @@ use crate::dom::event::Event;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::rtcerror::RTCError;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct RTCErrorEvent {
@@ -55,6 +56,7 @@ impl RTCErrorEvent {
             Box::new(RTCErrorEvent::new_inherited(error)),
             global,
             proto,
+            CanGc::note(),
         );
         {
             let event = event.upcast::<Event>();

@@ -19,6 +19,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::mouseevent::MouseEvent;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct WheelEvent {
@@ -41,7 +42,12 @@ impl WheelEvent {
     }
 
     fn new_unintialized(window: &Window, proto: Option<HandleObject>) -> DomRoot<WheelEvent> {
-        reflect_dom_object_with_proto(Box::new(WheelEvent::new_inherited()), window, proto)
+        reflect_dom_object_with_proto(
+            Box::new(WheelEvent::new_inherited()),
+            window,
+            proto,
+            CanGc::note(),
+        )
     }
 
     #[allow(clippy::too_many_arguments)]

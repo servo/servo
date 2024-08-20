@@ -28,6 +28,7 @@ use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct AudioBufferSourceNode {
@@ -111,7 +112,12 @@ impl AudioBufferSourceNode {
         options: &AudioBufferSourceOptions,
     ) -> Fallible<DomRoot<AudioBufferSourceNode>> {
         let node = AudioBufferSourceNode::new_inherited(window, context, options)?;
-        Ok(reflect_dom_object_with_proto(Box::new(node), window, proto))
+        Ok(reflect_dom_object_with_proto(
+            Box::new(node),
+            window,
+            proto,
+            CanGc::note(),
+        ))
     }
 
     #[allow(non_snake_case)]

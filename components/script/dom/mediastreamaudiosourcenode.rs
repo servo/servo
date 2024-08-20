@@ -18,6 +18,7 @@ use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::mediastream::MediaStream;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct MediaStreamAudioSourceNode {
@@ -66,7 +67,12 @@ impl MediaStreamAudioSourceNode {
         stream: &MediaStream,
     ) -> Fallible<DomRoot<MediaStreamAudioSourceNode>> {
         let node = MediaStreamAudioSourceNode::new_inherited(context, stream)?;
-        Ok(reflect_dom_object_with_proto(Box::new(node), window, proto))
+        Ok(reflect_dom_object_with_proto(
+            Box::new(node),
+            window,
+            proto,
+            CanGc::note(),
+        ))
     }
 
     #[allow(non_snake_case)]

@@ -14,6 +14,7 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::dompoint::DOMPoint;
 use crate::dom::domrect::DOMRect;
 use crate::dom::globalscope::GlobalScope;
+use crate::script_runtime::CanGc;
 
 // https://drafts.fxtf.org/geometry/#DOMQuad
 #[dom_struct]
@@ -59,6 +60,7 @@ impl DOMQuad {
             Box::new(DOMQuad::new_inherited(p1, p2, p3, p4)),
             global,
             proto,
+            CanGc::note(),
         )
     }
 

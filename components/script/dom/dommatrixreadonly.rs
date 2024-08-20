@@ -30,7 +30,7 @@ use crate::dom::dommatrix::DOMMatrix;
 use crate::dom::dompoint::DOMPoint;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{CanGc, JSContext};
 
 #[dom_struct]
 #[allow(non_snake_case)]
@@ -55,7 +55,7 @@ impl DOMMatrixReadOnly {
         matrix: Transform3D<f64>,
     ) -> DomRoot<Self> {
         let dommatrix = Self::new_inherited(is2D, matrix);
-        reflect_dom_object_with_proto(Box::new(dommatrix), global, proto)
+        reflect_dom_object_with_proto(Box::new(dommatrix), global, proto, CanGc::note())
     }
 
     pub fn new_inherited(is2D: bool, matrix: Transform3D<f64>) -> Self {

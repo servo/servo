@@ -17,6 +17,7 @@ use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::weakref::MutableWeakRef;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::url::URL;
+use crate::script_runtime::CanGc;
 
 /// <https://url.spec.whatwg.org/#interface-urlsearchparams>
 #[dom_struct]
@@ -46,7 +47,12 @@ impl URLSearchParams {
         proto: Option<HandleObject>,
         url: Option<&URL>,
     ) -> DomRoot<URLSearchParams> {
-        reflect_dom_object_with_proto(Box::new(URLSearchParams::new_inherited(url)), global, proto)
+        reflect_dom_object_with_proto(
+            Box::new(URLSearchParams::new_inherited(url)),
+            global,
+            proto,
+            CanGc::note(),
+        )
     }
 
     /// <https://url.spec.whatwg.org/#dom-urlsearchparams-urlsearchparams>

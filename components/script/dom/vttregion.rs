@@ -16,6 +16,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct VTTRegion {
@@ -46,7 +47,12 @@ impl VTTRegion {
     }
 
     fn new(global: &GlobalScope, proto: Option<HandleObject>) -> DomRoot<Self> {
-        reflect_dom_object_with_proto(Box::new(Self::new_inherited()), global, proto)
+        reflect_dom_object_with_proto(
+            Box::new(Self::new_inherited()),
+            global,
+            proto,
+            CanGc::note(),
+        )
     }
 
     #[allow(non_snake_case)]

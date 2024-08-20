@@ -20,6 +20,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 // https://drafts.csswg.org/cssom-view/#dom-mediaquerylistevent-mediaquerylistevent
 #[dom_struct]
@@ -41,7 +42,7 @@ impl MediaQueryListEvent {
             media,
             matches: Cell::new(matches),
         });
-        reflect_dom_object_with_proto(ev, global, proto)
+        reflect_dom_object_with_proto(ev, global, proto, CanGc::note())
     }
 
     pub fn new(

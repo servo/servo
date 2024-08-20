@@ -22,7 +22,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::globalscope::GlobalScope;
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{CanGc, JSContext};
 
 #[dom_struct]
 pub struct ErrorEvent {
@@ -48,7 +48,12 @@ impl ErrorEvent {
     }
 
     fn new_uninitialized(global: &GlobalScope, proto: Option<HandleObject>) -> DomRoot<ErrorEvent> {
-        reflect_dom_object_with_proto(Box::new(ErrorEvent::new_inherited()), global, proto)
+        reflect_dom_object_with_proto(
+            Box::new(ErrorEvent::new_inherited()),
+            global,
+            proto,
+            CanGc::note(),
+        )
     }
 
     #[allow(clippy::too_many_arguments)]

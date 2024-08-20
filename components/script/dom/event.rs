@@ -34,6 +34,7 @@ use crate::dom::node::{Node, ShadowIncluding};
 use crate::dom::performance::reduce_timing_resolution;
 use crate::dom::virtualmethods::vtable_for;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 use crate::task::TaskOnce;
 
 #[dom_struct]
@@ -83,7 +84,12 @@ impl Event {
         global: &GlobalScope,
         proto: Option<HandleObject>,
     ) -> DomRoot<Event> {
-        reflect_dom_object_with_proto(Box::new(Event::new_inherited()), global, proto)
+        reflect_dom_object_with_proto(
+            Box::new(Event::new_inherited()),
+            global,
+            proto,
+            CanGc::note(),
+        )
     }
 
     pub fn new(

@@ -18,7 +18,7 @@ use crate::dom::dompointreadonly::DOMPointReadOnly;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
 use crate::dom::xrrigidtransform::XRRigidTransform;
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{CanGc, JSContext};
 
 #[dom_struct]
 pub struct XRRay {
@@ -44,7 +44,12 @@ impl XRRay {
         proto: Option<HandleObject>,
         ray: Ray<ApiSpace>,
     ) -> DomRoot<XRRay> {
-        reflect_dom_object_with_proto(Box::new(XRRay::new_inherited(ray)), global, proto)
+        reflect_dom_object_with_proto(
+            Box::new(XRRay::new_inherited(ray)),
+            global,
+            proto,
+            CanGc::note(),
+        )
     }
 
     #[allow(non_snake_case)]

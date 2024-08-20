@@ -14,6 +14,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::domexception::{DOMErrorName, DOMException};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct RTCError {
@@ -56,6 +57,7 @@ impl RTCError {
             Box::new(RTCError::new_inherited(global, init, message)),
             global,
             proto,
+            CanGc::note(),
         )
     }
 

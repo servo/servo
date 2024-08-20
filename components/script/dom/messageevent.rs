@@ -26,7 +26,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageport::MessagePort;
 use crate::dom::serviceworker::ServiceWorker;
 use crate::dom::windowproxy::WindowProxy;
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{CanGc, JSContext};
 
 #[crown::unrooted_must_root_lint::must_root]
 #[derive(JSTraceable, MallocSizeOf)]
@@ -125,7 +125,7 @@ impl MessageEvent {
             lastEventId,
             ports,
         ));
-        let ev = reflect_dom_object_with_proto(ev, global, proto);
+        let ev = reflect_dom_object_with_proto(ev, global, proto, CanGc::note());
         ev.data.set(data.get());
 
         ev

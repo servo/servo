@@ -17,6 +17,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct WebGLContextEvent {
@@ -66,6 +67,7 @@ impl WebGLContextEvent {
             Box::new(WebGLContextEvent::new_inherited(status_message)),
             window,
             proto,
+            CanGc::note(),
         );
 
         {

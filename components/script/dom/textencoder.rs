@@ -16,7 +16,7 @@ use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::globalscope::GlobalScope;
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{CanGc, JSContext};
 
 #[dom_struct]
 pub struct TextEncoder {
@@ -31,7 +31,12 @@ impl TextEncoder {
     }
 
     fn new(global: &GlobalScope, proto: Option<HandleObject>) -> DomRoot<TextEncoder> {
-        reflect_dom_object_with_proto(Box::new(TextEncoder::new_inherited()), global, proto)
+        reflect_dom_object_with_proto(
+            Box::new(TextEncoder::new_inherited()),
+            global,
+            proto,
+            CanGc::note(),
+        )
     }
 
     // https://encoding.spec.whatwg.org/#dom-textencoder

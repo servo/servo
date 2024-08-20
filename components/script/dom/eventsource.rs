@@ -44,6 +44,7 @@ use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::fetch::{create_a_potential_cors_request, FetchCanceller};
 use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
 use crate::realms::enter_realm;
+use crate::script_runtime::CanGc;
 use crate::task_source::{TaskSource, TaskSourceName};
 use crate::timers::OneshotTimerCallback;
 
@@ -475,6 +476,7 @@ impl EventSource {
             Box::new(EventSource::new_inherited(url, with_credentials)),
             global,
             proto,
+            CanGc::note(),
         )
     }
 

@@ -10,6 +10,7 @@ use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageport::MessagePort;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct MessageChannel {
@@ -47,6 +48,7 @@ impl MessageChannel {
             Box::new(MessageChannel::new_inherited(&port1, &port2)),
             incumbent,
             proto,
+            CanGc::note(),
         )
     }
 
