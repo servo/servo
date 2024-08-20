@@ -2889,7 +2889,8 @@ class CGWrapMethod(CGAbstractMethod):
         args = [Argument('SafeJSContext', 'cx'),
                 Argument('&GlobalScope', 'scope'),
                 Argument('Option<HandleObject>', 'given_proto'),
-                Argument(f"Box<{descriptor.concreteType}>", 'object')]
+                Argument(f"Box<{descriptor.concreteType}>", 'object'),
+                Argument('CanGc', '_can_gc')]
         retval = f'DomRoot<{descriptor.concreteType}>'
         CGAbstractMethod.__init__(self, descriptor, 'Wrap', retval, args,
                                   pub=True, unsafe=True)
@@ -3082,6 +3083,7 @@ impl DomObjectWrap for {name} {{
         &GlobalScope,
         Option<HandleObject>,
         Box<Self>,
+        CanGc,
     ) -> Root<Dom<Self>> = Wrap;
 }}
 """
@@ -3105,6 +3107,7 @@ impl DomObjectIteratorWrap for {name} {{
         &GlobalScope,
         Option<HandleObject>,
         Box<IterableIterator<Self>>,
+        CanGc,
     ) -> Root<Dom<IterableIterator<Self>>> = Wrap;
 }}
 """
