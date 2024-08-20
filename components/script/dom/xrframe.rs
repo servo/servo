@@ -12,6 +12,7 @@ use webxr_api::{Frame, LayerId, SubImages};
 use crate::dom::bindings::codegen::Bindings::XRFrameBinding::XRFrameMethods;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
@@ -79,6 +80,14 @@ impl XRFrameMethods for XRFrame {
         DomRoot::from_ref(&self.session)
     }
 
+    /// <https://www.w3.org/TR/webxr/#dom-xrframe-predicteddisplaytime>
+    fn PredictedDisplayTime(&self) -> Finite<f64> {
+        // TODO: If inline, return the same value
+        // as the timestamp passed to XRFrameRequestCallback
+        Finite::new(self.data.predicted_display_time)
+            .expect("Failed to create predictedDisplayTime")
+    }
+
     /// <https://immersive-web.github.io/webxr/#dom-xrframe-getviewerpose>
     fn GetViewerPose(
         &self,
@@ -114,9 +123,9 @@ impl XRFrameMethods for XRFrame {
     fn GetPose(
         &self,
         space: &XRSpace,
-        relative_to: &XRSpace,
+        base_space: &XRSpace,
     ) -> Result<Option<DomRoot<XRPose>>, Error> {
-        if self.session != space.session() || self.session != relative_to.session() {
+        if self.session != space.session() || self.session != base_space.session() {
             return Err(Error::InvalidState);
         }
         if !self.active.get() {
@@ -127,12 +136,12 @@ impl XRFrameMethods for XRFrame {
         } else {
             return Ok(None);
         };
-        let relative_to = if let Some(r) = self.get_pose(relative_to) {
+        let base_space = if let Some(r) = self.get_pose(base_space) {
             r
         } else {
             return Ok(None);
         };
-        let pose = space.then(&relative_to.inverse());
+        let pose = space.then(&base_space.inverse());
         Ok(Some(XRPose::new(&self.global(), pose)))
     }
 
@@ -140,10 +149,10 @@ impl XRFrameMethods for XRFrame {
     fn GetJointPose(
         &self,
         space: &XRJointSpace,
-        relative_to: &XRSpace,
+        base_space: &XRSpace,
     ) -> Result<Option<DomRoot<XRJointPose>>, Error> {
         if self.session != space.upcast::<XRSpace>().session() ||
-            self.session != relative_to.session()
+            self.session != base_space.session()
         {
             return Err(Error::InvalidState);
         }
@@ -155,12 +164,12 @@ impl XRFrameMethods for XRFrame {
         } else {
             return Ok(None);
         };
-        let relative_to = if let Some(r) = self.get_pose(relative_to) {
+        let base_space = if let Some(r) = self.get_pose(base_space) {
             r
         } else {
             return Ok(None);
         };
-        let pose = joint_frame.pose.then(&relative_to.inverse());
+        let pose = joint_frame.pose.then(&base_space.inverse());
         Ok(Some(XRJointPose::new(
             &self.global(),
             pose.cast_unit(),

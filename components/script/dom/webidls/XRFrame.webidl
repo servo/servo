@@ -6,10 +6,11 @@
 
 [SecureContext, Exposed=Window, Pref="dom.webxr.enabled"]
 interface XRFrame {
-  readonly attribute XRSession session;
+  [SameObject] readonly attribute XRSession session;
+  readonly attribute DOMHighResTimeStamp predictedDisplayTime;
 
   [Throws] XRViewerPose? getViewerPose(XRReferenceSpace referenceSpace);
-  [Throws] XRPose? getPose(XRSpace space, XRSpace relativeTo);
+  [Throws] XRPose? getPose(XRSpace space, XRSpace baseSpace);
 
   // WebXR Hand Input
   [Pref="dom.webxr.hands.enabled", Throws]
