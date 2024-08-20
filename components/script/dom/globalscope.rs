@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::borrow::Cow;
-use std::cell::Cell;
+use std::cell::{Cell, OnceCell};
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, VecDeque};
 use std::ops::Index;
@@ -70,6 +70,7 @@ use super::bindings::trace::{HashMapTracedValues, RootedTraceableBox};
 use crate::dom::bindings::cell::{DomRefCell, RefMut};
 use crate::dom::bindings::codegen::Bindings::BroadcastChannelBinding::BroadcastChannelMethods;
 use crate::dom::bindings::codegen::Bindings::EventSourceBinding::EventSource_Binding::EventSourceMethods;
+use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use crate::dom::bindings::codegen::Bindings::ImageBitmapBinding::{
     ImageBitmapOptions, ImageBitmapSource,
 };
@@ -88,6 +89,7 @@ use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::settings_stack::{entry_global, incumbent_global, AutoEntryScript};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::structuredclone;
+use crate::dom::bindings::trace::CustomTraceable;
 use crate::dom::bindings::utils::to_frozen_array;
 use crate::dom::bindings::weakref::{DOMTracker, WeakRef};
 use crate::dom::blob::Blob;
@@ -113,9 +115,10 @@ use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
 use crate::dom::performance::Performance;
 use crate::dom::performanceobserver::VALID_ENTRY_TYPES;
 use crate::dom::promise::Promise;
-use crate::dom::readablestream::{ExternalUnderlyingSource, ReadableStream};
+use crate::dom::readablestream::ReadableStream;
 use crate::dom::serviceworker::ServiceWorker;
 use crate::dom::serviceworkerregistration::ServiceWorkerRegistration;
+use crate::dom::underlyingsourcecontainer::UnderlyingSourceType;
 use crate::dom::window::Window;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::dom::workletglobalscope::WorkletGlobalScope;
@@ -355,6 +358,20 @@ pub struct GlobalScope {
 
     /// Is considered in a secure context
     inherited_secure_context: Option<bool>,
+
+    /// The byte length queuing strategy size function that will be initialized once
+    /// `size` getter of `ByteLengthQueuingStrategy` is called.
+    ///
+    /// <https://streams.spec.whatwg.org/#byte-length-queuing-strategy-size-function>
+    #[ignore_malloc_size_of = "Rc<T> is hard"]
+    byte_length_queuing_strategy_size_function: OnceCell<Rc<Function>>,
+
+    /// The count queuing strategy size function that will be initialized once
+    /// `size` getter of `CountQueuingStrategy` is called.
+    ///
+    /// <https://streams.spec.whatwg.org/#count-queuing-strategy-size-function>
+    #[ignore_malloc_size_of = "Rc<T> is hard"]
+    count_queuing_strategy_size_function: OnceCell<Rc<Function>>,
 }
 
 /// A wrapper for glue-code between the ipc router and the event-loop.
@@ -617,10 +634,10 @@ impl MessageListener {
 }
 
 /// Callback used to enqueue file chunks to streams as part of FileListener.
-fn stream_handle_incoming(stream: &ReadableStream, bytes: Fallible<Vec<u8>>, can_gc: CanGc) {
+fn stream_handle_incoming(stream: &ReadableStream, bytes: Fallible<Vec<u8>>, _can_gc: CanGc) {
     match bytes {
         Ok(b) => {
-            stream.enqueue_native(b, can_gc);
+            stream.enqueue_native(b);
         },
         Err(e) => {
             stream.error_native(e);
@@ -630,7 +647,7 @@ fn stream_handle_incoming(stream: &ReadableStream, bytes: Fallible<Vec<u8>>, can
 
 /// Callback used to close streams as part of FileListener.
 fn stream_handle_eof(stream: &ReadableStream) {
-    stream.close_native();
+    stream.close();
 }
 
 impl FileListener {
@@ -804,6 +821,8 @@ impl GlobalScope {
             console_count_map: Default::default(),
             dynamic_modules: DomRefCell::new(DynamicModuleList::new()),
             inherited_secure_context,
+            byte_length_queuing_strategy_size_function: OnceCell::new(),
+            count_queuing_strategy_size_function: OnceCell::new(),
         }
     }
 
@@ -2000,7 +2019,7 @@ impl GlobalScope {
 
         let stream = ReadableStream::new_with_external_underlying_source(
             self,
-            ExternalUnderlyingSource::Blob(size),
+            UnderlyingSourceType::Blob(size),
         );
 
         let recv = self.send_msg(file_id);
@@ -3422,6 +3441,33 @@ impl GlobalScope {
             cancellation_receiver,
             network_listener.into_callback(),
         );
+    }
+
+    pub(crate) fn set_byte_length_queuing_strategy_size(&self, function: Rc<Function>) {
+        if let Err(_) = self
+            .byte_length_queuing_strategy_size_function
+            .set(function)
+        {
+            warn!("byte length queuing strategy size function is set twice.");
+        };
+    }
+
+    pub(crate) fn get_byte_length_queuing_strategy_size(&self) -> Option<Rc<Function>> {
+        self.byte_length_queuing_strategy_size_function
+            .get()
+            .map(|s| s.clone())
+    }
+
+    pub(crate) fn set_count_queuing_strategy_size(&self, function: Rc<Function>) {
+        if let Err(_) = self.count_queuing_strategy_size_function.set(function) {
+            warn!("count queuing strategy size function is set twice.");
+        };
+    }
+
+    pub(crate) fn get_count_queuing_strategy_size(&self) -> Option<Rc<Function>> {
+        self.count_queuing_strategy_size_function
+            .get()
+            .map(|s| s.clone())
     }
 }
 
