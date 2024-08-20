@@ -640,7 +640,7 @@ fn stream_handle_incoming(stream: &ReadableStream, bytes: Result<Vec<u8>, Error>
 
 /// Callback used to close streams as part of FileListener.
 fn stream_handle_eof(stream: &ReadableStream) {
-    stream.close_native();
+    stream.close();
 }
 
 impl FileListener {

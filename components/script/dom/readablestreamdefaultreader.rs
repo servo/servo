@@ -3,8 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use std::collections::VecDeque;
-use std::ptr;
 use std::rc::Rc;
+use std::{mem, ptr};
 
 use dom_struct::dom_struct;
 use js::conversions::ToJSValConvertible;
@@ -141,6 +141,15 @@ impl ReadableStreamDefaultReader {
         )
     }
 
+    /// <https://streams.spec.whatwg.org/#readable-stream-close>
+    pub fn close(&self) {
+        self.closed_promise.resolve_native(&());
+        let pending_requests = mem::take(&mut *self.read_requests.borrow_mut());
+        for request in pending_requests {
+            request.close_steps();
+        }
+    }
+
     /// <https://streams.spec.whatwg.org/#readable-stream-add-read-request>
     pub fn add_read_request(&self, read_request: ReadRequest) {
         self.read_requests.borrow_mut().push_back(read_request);
@@ -154,7 +163,8 @@ impl ReadableStreamDefaultReader {
     /// <https://streams.spec.whatwg.org/#readable-stream-error>
     pub fn error(&self, _error: Error) {
         self.closed_promise.reject_native(&());
-        for request in self.read_requests.borrow_mut().drain(0..) {
+        let pending_requests = mem::take(&mut *self.read_requests.borrow_mut());
+        for request in pending_requests {
             request.error_steps();
         }
     }
