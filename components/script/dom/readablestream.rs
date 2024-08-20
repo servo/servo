@@ -332,6 +332,7 @@ impl ReadableStream {
         }
     }
 
+    /// <https://streams.spec.whatwg.org/#is-readable-stream-locked>
     pub fn is_locked(&self) -> bool {
         match self.reader {
             ReaderType::Default(ref reader) => reader.get().is_some(),
@@ -403,8 +404,7 @@ impl ReadableStream {
 impl ReadableStreamMethods for ReadableStream {
     /// <https://streams.spec.whatwg.org/#rs-locked>
     fn Locked(&self) -> bool {
-        // TODO
-        false
+        self.is_locked()
     }
 
     /// <https://streams.spec.whatwg.org/#rs-cancel>
