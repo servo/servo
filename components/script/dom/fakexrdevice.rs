@@ -327,6 +327,7 @@ impl From<XRTargetRayMode> for TargetRayMode {
             XRTargetRayMode::Gaze => TargetRayMode::Gaze,
             XRTargetRayMode::Tracked_pointer => TargetRayMode::TrackedPointer,
             XRTargetRayMode::Screen => TargetRayMode::Screen,
+            XRTargetRayMode::Transient_pointer => TargetRayMode::TransientPointer,
         }
     }
 }

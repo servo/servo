@@ -127,6 +127,7 @@ impl XRInputSourceMethods for XRInputSource {
             TargetRayMode::Gaze => XRTargetRayMode::Gaze,
             TargetRayMode::TrackedPointer => XRTargetRayMode::Tracked_pointer,
             TargetRayMode::Screen => XRTargetRayMode::Screen,
+            TargetRayMode::TransientPointer => XRTargetRayMode::Transient_pointer,
         }
     }
 
@@ -152,6 +153,13 @@ impl XRInputSourceMethods for XRInputSource {
     // https://immersive-web.github.io/webxr/#dom-xrinputsource-profiles
     fn Profiles(&self, _cx: JSContext) -> JSVal {
         self.profiles.get()
+    }
+
+    /// <https://www.w3.org/TR/webxr/#dom-xrinputsource-skiprendering>
+    fn SkipRendering(&self) -> bool {
+        // Servo is not currently supported anywhere that would allow for skipped
+        // controller rendering.
+        false
     }
 
     /// <https://www.w3.org/TR/webxr-gamepads-module-1/#xrinputsource-interface>
