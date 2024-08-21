@@ -25,7 +25,7 @@ use js::jsapi::{
 use js::jsval::{Int32Value, JSVal, ObjectValue, UndefinedValue};
 use js::rust::wrappers::{
     AddPromiseReactions, CallOriginalPromiseReject, CallOriginalPromiseResolve, GetPromiseState,
-    IsPromiseObject, NewPromiseObject, RejectPromise, ResolvePromise,
+    IsPromiseObject, GetPromiseIsHandled, SetAnyPromiseIsHandled, NewPromiseObject, RejectPromise, ResolvePromise,
     SetPromiseUserInputEventHandlingState,
 };
 use js::rust::{HandleObject, HandleValue, MutableHandleObject, Runtime};
@@ -262,6 +262,21 @@ impl Promise {
                 reject_func.handle(),
             );
             assert!(ok);
+        }
+    }
+
+    #[allow(unsafe_code)]
+    pub fn get_promise_is_handled(&self) -> bool {
+        unsafe {
+            GetPromiseIsHandled(self.reflector().get_jsobject())
+        }
+    }
+
+    #[allow(unsafe_code)]
+    pub fn set_promise_is_handled(&self) -> bool {
+        let cx = GlobalScope::get_cx();
+        unsafe{
+            SetAnyPromiseIsHandled(*cx, self.reflector().get_jsobject())
         }
     }
 }
