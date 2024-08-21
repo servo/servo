@@ -116,33 +116,45 @@ impl GPUQueueMethods for GPUQueue {
         data_offset: GPUSize64,
         size: Option<GPUSize64>,
     ) -> Fallible<()> {
-        let bytes = match data {
+        // Step 1
+        let sizeof_element: usize = match data {
+            BufferSource::ArrayBufferView(ref d) => d.get_array_type().byte_size().unwrap_or(1),
+            BufferSource::ArrayBuffer(_) => 1,
+        };
+        let data = match data {
             BufferSource::ArrayBufferView(d) => d.to_vec(),
             BufferSource::ArrayBuffer(d) => d.to_vec(),
         };
+        // Step 2
+        let data_size: usize = data.len() / sizeof_element;
+        debug_assert_eq!(data.len() % sizeof_element, 0);
+        // Step 3
         let content_size = if let Some(s) = size {
             s
         } else {
-            bytes.len() as GPUSize64 - data_offset
+            (data_size as GPUSize64)
+                .checked_sub(data_offset)
+                .ok_or(Error::Operation)?
         };
-        let valid = data_offset + content_size <= bytes.len() as u64 &&
-            buffer.state() == GPUBufferState::Unmapped &&
-            content_size % wgt::COPY_BUFFER_ALIGNMENT == 0 &&
-            buffer_offset % wgt::COPY_BUFFER_ALIGNMENT == 0;
 
+        // Step 4
+        let valid = data_offset + content_size <= data_size as u64 &&
+            content_size * sizeof_element as u64 % wgt::COPY_BUFFER_ALIGNMENT == 0;
         if !valid {
             return Err(Error::Operation);
         }
 
-        let final_data = IpcSharedMemory::from_bytes(
-            &bytes[data_offset as usize..(data_offset + content_size) as usize],
+        // Step 5&6
+        let contents = IpcSharedMemory::from_bytes(
+            &data[(data_offset as usize) * sizeof_element..
+                ((data_offset + content_size) as usize) * sizeof_element],
         );
         if let Err(e) = self.channel.0.send(WebGPURequest::WriteBuffer {
             device_id: self.device.borrow().as_ref().unwrap().id().0,
             queue_id: self.queue.0,
             buffer_id: buffer.id().0,
             buffer_offset,
-            data: final_data,
+            data: contents,
         }) {
             warn!("Failed to send WriteBuffer({:?}) ({})", buffer.id(), e);
             return Err(Error::Operation);
