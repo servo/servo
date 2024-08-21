@@ -155,6 +155,7 @@ impl XRInputSourceMethods for XRInputSource {
         self.profiles.get()
     }
 
+    /// <https://www.w3.org/TR/webxr/#dom-xrinputsource-skiprendering>
     fn SkipRendering(&self) -> bool {
         // Servo is not currently supported anywhere that would allow for skipped
         // controller rendering.
