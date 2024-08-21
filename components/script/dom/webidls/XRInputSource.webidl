@@ -13,7 +13,8 @@ enum XRHandedness {
 enum XRTargetRayMode {
   "gaze",
   "tracked-pointer",
-  "screen"
+  "screen",
+  "transient-pointer"
 };
 
 [SecureContext, Exposed=Window, Pref="dom.webxr.enabled"]
@@ -22,9 +23,13 @@ interface XRInputSource {
   readonly attribute XRTargetRayMode targetRayMode;
   [SameObject] readonly attribute XRSpace targetRaySpace;
   [SameObject] readonly attribute XRSpace? gripSpace;
-  [SameObject] readonly attribute Gamepad? gamepad;
   /* [SameObject] */ readonly attribute /* FrozenArray<DOMString> */ any profiles;
+  readonly attribute boolean skipRendering;
 
+  // WebXR Gamepads Module
+  [SameObject] readonly attribute Gamepad? gamepad;
+
+  // Hand Input
   [Pref="dom.webxr.hands.enabled"]
   readonly attribute XRHand? hand;
 };
