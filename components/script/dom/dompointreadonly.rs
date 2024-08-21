@@ -38,7 +38,7 @@ impl DOMPointReadOnly {
     }
 
     pub fn new(global: &GlobalScope, x: f64, y: f64, z: f64, w: f64) -> DomRoot<DOMPointReadOnly> {
-        Self::new_with_proto(global, None, x, y, z, w)
+        Self::new_with_proto(global, None, x, y, z, w, CanGc::note())
     }
 
     fn new_with_proto(
@@ -48,24 +48,28 @@ impl DOMPointReadOnly {
         y: f64,
         z: f64,
         w: f64,
+        can_gc: CanGc,
     ) -> DomRoot<DOMPointReadOnly> {
         reflect_dom_object_with_proto(
             Box::new(DOMPointReadOnly::new_inherited(x, y, z, w)),
             global,
             proto,
-            CanGc::note(),
+            can_gc,
         )
     }
 
     pub fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         x: f64,
         y: f64,
         z: f64,
         w: f64,
     ) -> Fallible<DomRoot<DOMPointReadOnly>> {
-        Ok(DOMPointReadOnly::new_with_proto(global, proto, x, y, z, w))
+        Ok(DOMPointReadOnly::new_with_proto(
+            global, proto, x, y, z, w, can_gc,
+        ))
     }
 
     // https://drafts.fxtf.org/geometry/#dom-dompointreadonly-frompoint

@@ -33,12 +33,17 @@ impl XRLayerEvent {
         }
     }
 
-    fn new(window: &Window, proto: Option<HandleObject>, layer: &XRLayer) -> DomRoot<XRLayerEvent> {
+    fn new(
+        window: &Window,
+        proto: Option<HandleObject>,
+        layer: &XRLayer,
+        can_gc: CanGc,
+    ) -> DomRoot<XRLayerEvent> {
         reflect_dom_object_with_proto(
             Box::new(XRLayerEvent::new_inherited(layer)),
             window,
             proto,
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -46,10 +51,11 @@ impl XRLayerEvent {
     pub fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         type_: DOMString,
         init: &XRLayerEventInit,
     ) -> DomRoot<XRLayerEvent> {
-        let event = XRLayerEvent::new(window, proto, &init.layer);
+        let event = XRLayerEvent::new(window, proto, &init.layer, can_gc);
         let type_ = Atom::from(type_);
         let bubbles = init.parent.bubbles;
         let cancelable = init.parent.cancelable;

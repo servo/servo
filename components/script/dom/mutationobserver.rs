@@ -73,9 +73,10 @@ impl MutationObserver {
         global: &Window,
         proto: Option<HandleObject>,
         callback: Rc<MutationCallback>,
+        can_gc: CanGc,
     ) -> DomRoot<MutationObserver> {
         let boxed_observer = Box::new(MutationObserver::new_inherited(callback));
-        reflect_dom_object_with_proto(boxed_observer, global, proto, CanGc::note())
+        reflect_dom_object_with_proto(boxed_observer, global, proto, can_gc)
     }
 
     fn new_inherited(callback: Rc<MutationCallback>) -> MutationObserver {
@@ -91,10 +92,11 @@ impl MutationObserver {
     pub fn Constructor(
         global: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         callback: Rc<MutationCallback>,
     ) -> Fallible<DomRoot<MutationObserver>> {
         global.set_exists_mut_observer();
-        let observer = MutationObserver::new_with_proto(global, proto, callback);
+        let observer = MutationObserver::new_with_proto(global, proto, callback, can_gc);
         ScriptThread::add_mutation_observer(&observer);
         Ok(observer)
     }

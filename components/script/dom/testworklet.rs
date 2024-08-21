@@ -37,13 +37,13 @@ impl TestWorklet {
         }
     }
 
-    fn new(window: &Window, proto: Option<HandleObject>) -> DomRoot<TestWorklet> {
+    fn new(window: &Window, proto: Option<HandleObject>, can_gc: CanGc) -> DomRoot<TestWorklet> {
         let worklet = Worklet::new(window, WorkletGlobalScopeType::Test);
         reflect_dom_object_with_proto(
             Box::new(TestWorklet::new_inherited(&worklet)),
             window,
             proto,
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -51,8 +51,9 @@ impl TestWorklet {
     pub fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<TestWorklet>> {
-        Ok(TestWorklet::new(window, proto))
+        Ok(TestWorklet::new(window, proto, can_gc))
     }
 }
 

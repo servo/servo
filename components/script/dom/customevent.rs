@@ -38,18 +38,19 @@ impl CustomEvent {
     }
 
     pub fn new_uninitialized(global: &GlobalScope) -> DomRoot<CustomEvent> {
-        Self::new_uninitialized_with_proto(global, None)
+        Self::new_uninitialized_with_proto(global, None, CanGc::note())
     }
 
     fn new_uninitialized_with_proto(
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> DomRoot<CustomEvent> {
         reflect_dom_object_with_proto(
             Box::new(CustomEvent::new_inherited()),
             global,
             proto,
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -60,8 +61,9 @@ impl CustomEvent {
         bubbles: bool,
         cancelable: bool,
         detail: HandleValue,
+        can_gc: CanGc,
     ) -> DomRoot<CustomEvent> {
-        let ev = CustomEvent::new_uninitialized_with_proto(global, proto);
+        let ev = CustomEvent::new_uninitialized_with_proto(global, proto, can_gc);
         ev.init_custom_event(type_, bubbles, cancelable, detail);
         ev
     }
@@ -70,6 +72,7 @@ impl CustomEvent {
     pub fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         type_: DOMString,
         init: RootedTraceableBox<CustomEventBinding::CustomEventInit>,
     ) -> Fallible<DomRoot<CustomEvent>> {
@@ -80,6 +83,7 @@ impl CustomEvent {
             init.parent.bubbles,
             init.parent.cancelable,
             init.detail.handle(),
+            can_gc,
         ))
     }
 

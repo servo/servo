@@ -47,13 +47,12 @@ impl ErrorEvent {
         }
     }
 
-    fn new_uninitialized(global: &GlobalScope, proto: Option<HandleObject>) -> DomRoot<ErrorEvent> {
-        reflect_dom_object_with_proto(
-            Box::new(ErrorEvent::new_inherited()),
-            global,
-            proto,
-            CanGc::note(),
-        )
+    fn new_uninitialized(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        can_gc: CanGc,
+    ) -> DomRoot<ErrorEvent> {
+        reflect_dom_object_with_proto(Box::new(ErrorEvent::new_inherited()), global, proto, can_gc)
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -69,7 +68,17 @@ impl ErrorEvent {
         error: HandleValue,
     ) -> DomRoot<ErrorEvent> {
         Self::new_with_proto(
-            global, None, type_, bubbles, cancelable, message, filename, lineno, colno, error,
+            global,
+            None,
+            type_,
+            bubbles,
+            cancelable,
+            message,
+            filename,
+            lineno,
+            colno,
+            error,
+            CanGc::note(),
         )
     }
 
@@ -85,8 +94,9 @@ impl ErrorEvent {
         lineno: u32,
         colno: u32,
         error: HandleValue,
+        can_gc: CanGc,
     ) -> DomRoot<ErrorEvent> {
-        let ev = ErrorEvent::new_uninitialized(global, proto);
+        let ev = ErrorEvent::new_uninitialized(global, proto, can_gc);
         {
             let event = ev.upcast::<Event>();
             event.init_event(type_, bool::from(bubbles), bool::from(cancelable));
@@ -103,6 +113,7 @@ impl ErrorEvent {
     pub fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         type_: DOMString,
         init: RootedTraceableBox<ErrorEventBinding::ErrorEventInit>,
     ) -> Fallible<DomRoot<ErrorEvent>> {
@@ -135,6 +146,7 @@ impl ErrorEvent {
             line_num,
             col_num,
             init.error.handle(),
+            can_gc,
         );
         Ok(event)
     }

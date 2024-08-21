@@ -30,12 +30,16 @@ impl TextEncoder {
         }
     }
 
-    fn new(global: &GlobalScope, proto: Option<HandleObject>) -> DomRoot<TextEncoder> {
+    fn new(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        can_gc: CanGc,
+    ) -> DomRoot<TextEncoder> {
         reflect_dom_object_with_proto(
             Box::new(TextEncoder::new_inherited()),
             global,
             proto,
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -44,8 +48,9 @@ impl TextEncoder {
     pub fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<TextEncoder>> {
-        Ok(TextEncoder::new(global, proto))
+        Ok(TextEncoder::new(global, proto, can_gc))
     }
 }
 

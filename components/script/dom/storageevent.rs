@@ -50,19 +50,20 @@ impl StorageEvent {
     }
 
     pub fn new_uninitialized(window: &Window, url: DOMString) -> DomRoot<StorageEvent> {
-        Self::new_uninitialized_with_proto(window, None, url)
+        Self::new_uninitialized_with_proto(window, None, url, CanGc::note())
     }
 
     fn new_uninitialized_with_proto(
         window: &Window,
         proto: Option<HandleObject>,
         url: DOMString,
+        can_gc: CanGc,
     ) -> DomRoot<StorageEvent> {
         reflect_dom_object_with_proto(
             Box::new(StorageEvent::new_inherited(None, None, None, url, None)),
             window,
             proto,
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -89,6 +90,7 @@ impl StorageEvent {
             newValue,
             url,
             storageArea,
+            CanGc::note(),
         )
     }
 
@@ -104,6 +106,7 @@ impl StorageEvent {
         newValue: Option<DOMString>,
         url: DOMString,
         storageArea: Option<&Storage>,
+        can_gc: CanGc,
     ) -> DomRoot<StorageEvent> {
         let ev = reflect_dom_object_with_proto(
             Box::new(StorageEvent::new_inherited(
@@ -115,7 +118,7 @@ impl StorageEvent {
             )),
             global,
             proto,
-            CanGc::note(),
+            can_gc,
         );
         {
             let event = ev.upcast::<Event>();
@@ -127,6 +130,7 @@ impl StorageEvent {
     pub fn Constructor(
         global: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         type_: DOMString,
         init: &StorageEventBinding::StorageEventInit,
     ) -> Fallible<DomRoot<StorageEvent>> {
@@ -148,6 +152,7 @@ impl StorageEvent {
             newValue,
             url,
             storageArea,
+            can_gc,
         );
         Ok(event)
     }

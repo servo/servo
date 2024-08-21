@@ -53,16 +53,19 @@ impl GPUError {
                 global,
                 None,
                 DOMString::from_string(msg),
+                CanGc::note(),
             )),
             Error::OutOfMemory(msg) => DomRoot::upcast(GPUOutOfMemoryError::new_with_proto(
                 global,
                 None,
                 DOMString::from_string(msg),
+                CanGc::note(),
             )),
             Error::Internal(msg) => DomRoot::upcast(GPUInternalError::new_with_proto(
                 global,
                 None,
                 DOMString::from_string(msg),
+                CanGc::note(),
             )),
         }
     }

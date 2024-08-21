@@ -52,7 +52,15 @@ impl WebGLContextEvent {
         cancelable: EventCancelable,
         status_message: DOMString,
     ) -> DomRoot<WebGLContextEvent> {
-        Self::new_with_proto(window, None, type_, bubbles, cancelable, status_message)
+        Self::new_with_proto(
+            window,
+            None,
+            type_,
+            bubbles,
+            cancelable,
+            status_message,
+            CanGc::note(),
+        )
     }
 
     fn new_with_proto(
@@ -62,12 +70,13 @@ impl WebGLContextEvent {
         bubbles: EventBubbles,
         cancelable: EventCancelable,
         status_message: DOMString,
+        can_gc: CanGc,
     ) -> DomRoot<WebGLContextEvent> {
         let event = reflect_dom_object_with_proto(
             Box::new(WebGLContextEvent::new_inherited(status_message)),
             window,
             proto,
-            CanGc::note(),
+            can_gc,
         );
 
         {
@@ -82,6 +91,7 @@ impl WebGLContextEvent {
     pub fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         type_: DOMString,
         init: &WebGLContextEventInit,
     ) -> Fallible<DomRoot<WebGLContextEvent>> {
@@ -101,6 +111,7 @@ impl WebGLContextEvent {
             bubbles,
             cancelable,
             status_message,
+            can_gc,
         ))
     }
 }

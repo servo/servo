@@ -361,12 +361,16 @@ impl EventTarget {
         }
     }
 
-    fn new(global: &GlobalScope, proto: Option<HandleObject>) -> DomRoot<EventTarget> {
+    fn new(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        can_gc: CanGc,
+    ) -> DomRoot<EventTarget> {
         reflect_dom_object_with_proto(
             Box::new(EventTarget::new_inherited()),
             global,
             proto,
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -374,8 +378,9 @@ impl EventTarget {
     pub fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<EventTarget>> {
-        Ok(EventTarget::new(global, proto))
+        Ok(EventTarget::new(global, proto, can_gc))
     }
 
     /// Determine if there are any listeners for a given event type.

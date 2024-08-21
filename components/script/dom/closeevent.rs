@@ -47,7 +47,15 @@ impl CloseEvent {
         reason: DOMString,
     ) -> DomRoot<CloseEvent> {
         Self::new_with_proto(
-            global, None, type_, bubbles, cancelable, wasClean, code, reason,
+            global,
+            None,
+            type_,
+            bubbles,
+            cancelable,
+            wasClean,
+            code,
+            reason,
+            CanGc::note(),
         )
     }
 
@@ -61,9 +69,10 @@ impl CloseEvent {
         wasClean: bool,
         code: u16,
         reason: DOMString,
+        can_gc: CanGc,
     ) -> DomRoot<CloseEvent> {
         let event = Box::new(CloseEvent::new_inherited(wasClean, code, reason));
-        let ev = reflect_dom_object_with_proto(event, global, proto, CanGc::note());
+        let ev = reflect_dom_object_with_proto(event, global, proto, can_gc);
         {
             let event = ev.upcast::<Event>();
             event.init_event(type_, bool::from(bubbles), bool::from(cancelable));
@@ -74,6 +83,7 @@ impl CloseEvent {
     pub fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         type_: DOMString,
         init: &CloseEventBinding::CloseEventInit,
     ) -> Fallible<DomRoot<CloseEvent>> {
@@ -88,6 +98,7 @@ impl CloseEvent {
             init.wasClean,
             init.code,
             init.reason.clone(),
+            can_gc,
         ))
     }
 }

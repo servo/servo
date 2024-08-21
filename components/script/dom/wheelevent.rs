@@ -41,13 +41,12 @@ impl WheelEvent {
         }
     }
 
-    fn new_unintialized(window: &Window, proto: Option<HandleObject>) -> DomRoot<WheelEvent> {
-        reflect_dom_object_with_proto(
-            Box::new(WheelEvent::new_inherited()),
-            window,
-            proto,
-            CanGc::note(),
-        )
+    fn new_unintialized(
+        window: &Window,
+        proto: Option<HandleObject>,
+        can_gc: CanGc,
+    ) -> DomRoot<WheelEvent> {
+        reflect_dom_object_with_proto(Box::new(WheelEvent::new_inherited()), window, proto, can_gc)
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -64,8 +63,18 @@ impl WheelEvent {
         delta_mode: u32,
     ) -> DomRoot<WheelEvent> {
         Self::new_with_proto(
-            window, None, type_, can_bubble, cancelable, view, detail, delta_x, delta_y, delta_z,
+            window,
+            None,
+            type_,
+            can_bubble,
+            cancelable,
+            view,
+            detail,
+            delta_x,
+            delta_y,
+            delta_z,
             delta_mode,
+            CanGc::note(),
         )
     }
 
@@ -82,8 +91,9 @@ impl WheelEvent {
         delta_y: Finite<f64>,
         delta_z: Finite<f64>,
         delta_mode: u32,
+        can_gc: CanGc,
     ) -> DomRoot<WheelEvent> {
-        let ev = WheelEvent::new_unintialized(window, proto);
+        let ev = WheelEvent::new_unintialized(window, proto, can_gc);
         ev.InitWheelEvent(
             type_,
             bool::from(can_bubble),
@@ -103,6 +113,7 @@ impl WheelEvent {
     pub fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         type_: DOMString,
         init: &WheelEventBinding::WheelEventInit,
     ) -> Fallible<DomRoot<WheelEvent>> {
@@ -118,6 +129,7 @@ impl WheelEvent {
             init.deltaY,
             init.deltaZ,
             init.deltaMode,
+            can_gc,
         );
 
         Ok(event)

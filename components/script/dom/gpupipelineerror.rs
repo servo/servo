@@ -35,12 +35,13 @@ impl GPUPipelineError {
         proto: Option<HandleObject>,
         message: DOMString,
         reason: GPUPipelineErrorReason,
+        can_gc: CanGc,
     ) -> DomRoot<Self> {
         reflect_dom_object_with_proto(
             Box::new(Self::new_inherited(message, reason)),
             global,
             proto,
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -49,7 +50,7 @@ impl GPUPipelineError {
         message: DOMString,
         reason: GPUPipelineErrorReason,
     ) -> DomRoot<Self> {
-        Self::new_with_proto(global, None, message, reason)
+        Self::new_with_proto(global, None, message, reason, CanGc::note())
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpupipelineerror-constructor>
@@ -57,10 +58,11 @@ impl GPUPipelineError {
     pub fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         message: DOMString,
         options: &GPUPipelineErrorInit,
     ) -> DomRoot<Self> {
-        Self::new_with_proto(global, proto, message, options.reason)
+        Self::new_with_proto(global, proto, message, options.reason, can_gc)
     }
 }
 

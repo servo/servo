@@ -60,12 +60,13 @@ impl SecurityPolicyViolationEvent {
         global: &GlobalScope,
         init: &SecurityPolicyViolationEventInit,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> DomRoot<SecurityPolicyViolationEvent> {
         reflect_dom_object_with_proto(
             Box::new(SecurityPolicyViolationEvent::new_inherited(init)),
             global,
             proto,
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -76,8 +77,9 @@ impl SecurityPolicyViolationEvent {
         bubbles: EventBubbles,
         cancelable: EventCancelable,
         init: &SecurityPolicyViolationEventInit,
+        can_gc: CanGc,
     ) -> DomRoot<Self> {
-        let ev = SecurityPolicyViolationEvent::new_initialized(global, init, proto);
+        let ev = SecurityPolicyViolationEvent::new_initialized(global, init, proto, can_gc);
         {
             let event = ev.upcast::<Event>();
             event.init_event(type_, bool::from(bubbles), bool::from(cancelable));
@@ -92,13 +94,22 @@ impl SecurityPolicyViolationEvent {
         cancelable: EventCancelable,
         init: &SecurityPolicyViolationEventInit,
     ) -> DomRoot<Self> {
-        Self::new_with_proto(global, None, type_, bubbles, cancelable, init)
+        Self::new_with_proto(
+            global,
+            None,
+            type_,
+            bubbles,
+            cancelable,
+            init,
+            CanGc::note(),
+        )
     }
 
     #[allow(non_snake_case)]
     pub fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         type_: DOMString,
         init: &SecurityPolicyViolationEventInit,
     ) -> DomRoot<Self> {
@@ -109,6 +120,7 @@ impl SecurityPolicyViolationEvent {
             EventBubbles::from(init.parent.bubbles),
             EventCancelable::from(init.parent.cancelable),
             init,
+            can_gc,
         )
     }
 }

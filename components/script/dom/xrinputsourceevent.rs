@@ -47,7 +47,16 @@ impl XRInputSourceEvent {
         frame: &XRFrame,
         source: &XRInputSource,
     ) -> DomRoot<XRInputSourceEvent> {
-        Self::new_with_proto(global, None, type_, bubbles, cancelable, frame, source)
+        Self::new_with_proto(
+            global,
+            None,
+            type_,
+            bubbles,
+            cancelable,
+            frame,
+            source,
+            CanGc::note(),
+        )
     }
 
     fn new_with_proto(
@@ -58,12 +67,13 @@ impl XRInputSourceEvent {
         cancelable: bool,
         frame: &XRFrame,
         source: &XRInputSource,
+        can_gc: CanGc,
     ) -> DomRoot<XRInputSourceEvent> {
         let trackevent = reflect_dom_object_with_proto(
             Box::new(XRInputSourceEvent::new_inherited(frame, source)),
             global,
             proto,
-            CanGc::note(),
+            can_gc,
         );
         {
             let event = trackevent.upcast::<Event>();
@@ -76,6 +86,7 @@ impl XRInputSourceEvent {
     pub fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         type_: DOMString,
         init: &XRInputSourceEventBinding::XRInputSourceEventInit,
     ) -> Fallible<DomRoot<XRInputSourceEvent>> {
@@ -87,6 +98,7 @@ impl XRInputSourceEvent {
             init.parent.cancelable,
             &init.frame,
             &init.inputSource,
+            can_gc,
         ))
     }
 }

@@ -29,7 +29,11 @@ pub struct TestBindingMaplike {
 }
 
 impl TestBindingMaplike {
-    fn new(global: &GlobalScope, proto: Option<HandleObject>) -> DomRoot<TestBindingMaplike> {
+    fn new(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        can_gc: CanGc,
+    ) -> DomRoot<TestBindingMaplike> {
         reflect_dom_object_with_proto(
             Box::new(TestBindingMaplike {
                 reflector: Reflector::new(),
@@ -37,7 +41,7 @@ impl TestBindingMaplike {
             }),
             global,
             proto,
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -45,8 +49,9 @@ impl TestBindingMaplike {
     pub fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<TestBindingMaplike>> {
-        Ok(TestBindingMaplike::new(global, proto))
+        Ok(TestBindingMaplike::new(global, proto, can_gc))
     }
 }
 

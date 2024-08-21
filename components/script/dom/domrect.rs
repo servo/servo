@@ -27,7 +27,7 @@ impl DOMRect {
     }
 
     pub fn new(global: &GlobalScope, x: f64, y: f64, width: f64, height: f64) -> DomRoot<DOMRect> {
-        Self::new_with_proto(global, None, x, y, width, height)
+        Self::new_with_proto(global, None, x, y, width, height, CanGc::note())
     }
 
     fn new_with_proto(
@@ -37,12 +37,13 @@ impl DOMRect {
         y: f64,
         width: f64,
         height: f64,
+        can_gc: CanGc,
     ) -> DomRoot<DOMRect> {
         reflect_dom_object_with_proto(
             Box::new(DOMRect::new_inherited(x, y, width, height)),
             global,
             proto,
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -50,12 +51,15 @@ impl DOMRect {
     pub fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         x: f64,
         y: f64,
         width: f64,
         height: f64,
     ) -> Fallible<DomRoot<DOMRect>> {
-        Ok(DOMRect::new_with_proto(global, proto, x, y, width, height))
+        Ok(DOMRect::new_with_proto(
+            global, proto, x, y, width, height, can_gc,
+        ))
     }
 }
 

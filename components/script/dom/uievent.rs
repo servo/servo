@@ -39,19 +39,15 @@ impl UIEvent {
     }
 
     pub fn new_uninitialized(window: &Window) -> DomRoot<UIEvent> {
-        Self::new_uninitialized_with_proto(window, None)
+        Self::new_uninitialized_with_proto(window, None, CanGc::note())
     }
 
     fn new_uninitialized_with_proto(
         window: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> DomRoot<UIEvent> {
-        reflect_dom_object_with_proto(
-            Box::new(UIEvent::new_inherited()),
-            window,
-            proto,
-            CanGc::note(),
-        )
+        reflect_dom_object_with_proto(Box::new(UIEvent::new_inherited()), window, proto, can_gc)
     }
 
     pub fn new(
@@ -62,7 +58,16 @@ impl UIEvent {
         view: Option<&Window>,
         detail: i32,
     ) -> DomRoot<UIEvent> {
-        Self::new_with_proto(window, None, type_, can_bubble, cancelable, view, detail)
+        Self::new_with_proto(
+            window,
+            None,
+            type_,
+            can_bubble,
+            cancelable,
+            view,
+            detail,
+            CanGc::note(),
+        )
     }
 
     fn new_with_proto(
@@ -73,8 +78,9 @@ impl UIEvent {
         cancelable: EventCancelable,
         view: Option<&Window>,
         detail: i32,
+        can_gc: CanGc,
     ) -> DomRoot<UIEvent> {
-        let ev = UIEvent::new_uninitialized_with_proto(window, proto);
+        let ev = UIEvent::new_uninitialized_with_proto(window, proto, can_gc);
         ev.InitUIEvent(
             type_,
             bool::from(can_bubble),
@@ -89,6 +95,7 @@ impl UIEvent {
     pub fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         type_: DOMString,
         init: &UIEventBinding::UIEventInit,
     ) -> Fallible<DomRoot<UIEvent>> {
@@ -102,6 +109,7 @@ impl UIEvent {
             cancelable,
             init.view.as_deref(),
             init.detail,
+            can_gc,
         );
         Ok(event)
     }

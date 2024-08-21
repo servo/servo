@@ -41,7 +41,15 @@ impl RTCTrackEvent {
         cancelable: bool,
         track: &MediaStreamTrack,
     ) -> DomRoot<RTCTrackEvent> {
-        Self::new_with_proto(global, None, type_, bubbles, cancelable, track)
+        Self::new_with_proto(
+            global,
+            None,
+            type_,
+            bubbles,
+            cancelable,
+            track,
+            CanGc::note(),
+        )
     }
 
     fn new_with_proto(
@@ -51,12 +59,13 @@ impl RTCTrackEvent {
         bubbles: bool,
         cancelable: bool,
         track: &MediaStreamTrack,
+        can_gc: CanGc,
     ) -> DomRoot<RTCTrackEvent> {
         let trackevent = reflect_dom_object_with_proto(
             Box::new(RTCTrackEvent::new_inherited(track)),
             global,
             proto,
-            CanGc::note(),
+            can_gc,
         );
         {
             let event = trackevent.upcast::<Event>();
@@ -69,6 +78,7 @@ impl RTCTrackEvent {
     pub fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         type_: DOMString,
         init: &RTCTrackEventBinding::RTCTrackEventInit,
     ) -> Fallible<DomRoot<RTCTrackEvent>> {
@@ -79,6 +89,7 @@ impl RTCTrackEvent {
             init.parent.bubbles,
             init.parent.cancelable,
             &init.track,
+            can_gc,
         ))
     }
 }

@@ -28,12 +28,13 @@ impl GPUOutOfMemoryError {
         global: &GlobalScope,
         proto: Option<HandleObject>,
         message: DOMString,
+        can_gc: CanGc,
     ) -> DomRoot<Self> {
         reflect_dom_object_with_proto(
             Box::new(Self::new_inherited(message)),
             global,
             proto,
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -42,8 +43,9 @@ impl GPUOutOfMemoryError {
     pub fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         message: DOMString,
     ) -> DomRoot<Self> {
-        Self::new_with_proto(global, proto, message)
+        Self::new_with_proto(global, proto, message, can_gc)
     }
 }

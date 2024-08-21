@@ -68,7 +68,7 @@ impl ConstantSourceNode {
         context: &BaseAudioContext,
         options: &ConstantSourceOptions,
     ) -> Fallible<DomRoot<ConstantSourceNode>> {
-        Self::new_with_proto(window, None, context, options)
+        Self::new_with_proto(window, None, context, options, CanGc::note())
     }
 
     #[allow(crown::unrooted_must_root)]
@@ -77,13 +77,14 @@ impl ConstantSourceNode {
         proto: Option<HandleObject>,
         context: &BaseAudioContext,
         options: &ConstantSourceOptions,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<ConstantSourceNode>> {
         let node = ConstantSourceNode::new_inherited(window, context, options)?;
         Ok(reflect_dom_object_with_proto(
             Box::new(node),
             window,
             proto,
-            CanGc::note(),
+            can_gc,
         ))
     }
 
@@ -91,10 +92,11 @@ impl ConstantSourceNode {
     pub fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         context: &BaseAudioContext,
         options: &ConstantSourceOptions,
     ) -> Fallible<DomRoot<ConstantSourceNode>> {
-        ConstantSourceNode::new_with_proto(window, proto, context, options)
+        ConstantSourceNode::new_with_proto(window, proto, context, options, can_gc)
     }
 }
 

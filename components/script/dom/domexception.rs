@@ -151,6 +151,7 @@ impl DOMException {
     pub fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         message: DOMString,
         name: DOMString,
     ) -> Result<DomRoot<DOMException>, Error> {
@@ -158,7 +159,7 @@ impl DOMException {
             Box::new(DOMException::new_inherited(message, name)),
             global,
             proto,
-            CanGc::note(),
+            can_gc,
         ))
     }
 

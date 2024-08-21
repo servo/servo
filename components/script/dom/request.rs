@@ -59,12 +59,17 @@ impl Request {
         }
     }
 
-    fn new(global: &GlobalScope, proto: Option<HandleObject>, url: ServoUrl) -> DomRoot<Request> {
+    fn new(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        url: ServoUrl,
+        can_gc: CanGc,
+    ) -> DomRoot<Request> {
         reflect_dom_object_with_proto(
             Box::new(Request::new_inherited(global, url)),
             global,
             proto,
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -73,6 +78,7 @@ impl Request {
     pub fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         mut input: RequestInfo,
         init: RootedTraceableBox<RequestInit>,
     ) -> Fallible<DomRoot<Request>> {
@@ -288,7 +294,7 @@ impl Request {
         // Step 27 TODO: "If init["priority"] exists..."
 
         // Step 28
-        let r = Request::from_net_request(global, proto, request);
+        let r = Request::from_net_request(global, proto, request, can_gc);
 
         // Step 29 TODO: "Set this's signal to new AbortSignal object..."
         // Step 30 TODO: "If signal is not null..."
@@ -441,17 +447,18 @@ impl Request {
         global: &GlobalScope,
         proto: Option<HandleObject>,
         net_request: NetTraitsRequest,
+        can_gc: CanGc,
     ) -> DomRoot<Request> {
-        let r = Request::new(global, proto, net_request.current_url());
+        let r = Request::new(global, proto, net_request.current_url(), can_gc);
         *r.request.borrow_mut() = net_request;
         r
     }
 
-    fn clone_from(r: &Request) -> Fallible<DomRoot<Request>> {
+    fn clone_from(r: &Request, can_gc: CanGc) -> Fallible<DomRoot<Request>> {
         let req = r.request.borrow();
         let url = req.url();
         let headers_guard = r.Headers().get_guard();
-        let r_clone = Request::new(&r.global(), None, url);
+        let r_clone = Request::new(&r.global(), None, url, can_gc);
         r_clone.request.borrow_mut().pipeline_id = req.pipeline_id;
         {
             let mut borrowed_r_request = r_clone.request.borrow_mut();
@@ -619,7 +626,7 @@ impl RequestMethods for Request {
         }
 
         // Step 2
-        Request::clone_from(self)
+        Request::clone_from(self, CanGc::note())
     }
 
     // https://fetch.spec.whatwg.org/#dom-body-text

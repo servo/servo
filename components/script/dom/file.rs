@@ -50,7 +50,7 @@ impl File {
         name: DOMString,
         modified: Option<i64>,
     ) -> DomRoot<File> {
-        Self::new_with_proto(global, None, blob_impl, name, modified)
+        Self::new_with_proto(global, None, blob_impl, name, modified, CanGc::note())
     }
 
     #[allow(crown::unrooted_must_root)]
@@ -60,12 +60,13 @@ impl File {
         blob_impl: BlobImpl,
         name: DOMString,
         modified: Option<i64>,
+        can_gc: CanGc,
     ) -> DomRoot<File> {
         let file = reflect_dom_object_with_proto(
             Box::new(File::new_inherited(&blob_impl, name, modified)),
             global,
             proto,
-            CanGc::note(),
+            can_gc,
         );
         global.track_file(&file, blob_impl);
         file
@@ -98,6 +99,7 @@ impl File {
     pub fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         fileBits: Vec<ArrayBufferOrArrayBufferViewOrBlobOrString>,
         filename: DOMString,
         filePropertyBag: &FileBinding::FilePropertyBag,
@@ -120,6 +122,7 @@ impl File {
             BlobImpl::new_from_bytes(bytes, type_string),
             replaced_filename,
             modified,
+            can_gc,
         ))
     }
 

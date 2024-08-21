@@ -60,7 +60,7 @@ impl ChannelMergerNode {
         context: &BaseAudioContext,
         options: &ChannelMergerOptions,
     ) -> Fallible<DomRoot<ChannelMergerNode>> {
-        Self::new_with_proto(window, None, context, options)
+        Self::new_with_proto(window, None, context, options, CanGc::note())
     }
 
     #[allow(crown::unrooted_must_root)]
@@ -69,13 +69,14 @@ impl ChannelMergerNode {
         proto: Option<HandleObject>,
         context: &BaseAudioContext,
         options: &ChannelMergerOptions,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<ChannelMergerNode>> {
         let node = ChannelMergerNode::new_inherited(window, context, options)?;
         Ok(reflect_dom_object_with_proto(
             Box::new(node),
             window,
             proto,
-            CanGc::note(),
+            can_gc,
         ))
     }
 
@@ -83,10 +84,11 @@ impl ChannelMergerNode {
     pub fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         context: &BaseAudioContext,
         options: &ChannelMergerOptions,
     ) -> Fallible<DomRoot<ChannelMergerNode>> {
-        ChannelMergerNode::new_with_proto(window, proto, context, options)
+        ChannelMergerNode::new_with_proto(window, proto, context, options, can_gc)
     }
 }
 

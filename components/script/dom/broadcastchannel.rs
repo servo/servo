@@ -34,21 +34,23 @@ impl BroadcastChannel {
     pub fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         name: DOMString,
     ) -> DomRoot<BroadcastChannel> {
-        BroadcastChannel::new(global, proto, name)
+        BroadcastChannel::new(global, proto, name, can_gc)
     }
 
     fn new(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         name: DOMString,
+        can_gc: CanGc,
     ) -> DomRoot<BroadcastChannel> {
         let channel = reflect_dom_object_with_proto(
             Box::new(BroadcastChannel::new_inherited(name)),
             global,
             proto,
-            CanGc::note(),
+            can_gc,
         );
         global.track_broadcast_channel(&channel);
         channel

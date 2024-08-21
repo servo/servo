@@ -33,12 +33,16 @@ impl FileReaderSync {
         }
     }
 
-    fn new(global: &GlobalScope, proto: Option<HandleObject>) -> DomRoot<FileReaderSync> {
+    fn new(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        can_gc: CanGc,
+    ) -> DomRoot<FileReaderSync> {
         reflect_dom_object_with_proto(
             Box::new(FileReaderSync::new_inherited()),
             global,
             proto,
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -46,8 +50,9 @@ impl FileReaderSync {
     pub fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<FileReaderSync>> {
-        Ok(FileReaderSync::new(global, proto))
+        Ok(FileReaderSync::new(global, proto, can_gc))
     }
 
     fn get_blob_bytes(blob: &Blob) -> Result<Vec<u8>, Error> {

@@ -84,6 +84,7 @@ impl XRWebGLLayer {
         init: &XRWebGLLayerInit,
         framebuffer: Option<&WebGLFramebuffer>,
         layer_id: Option<LayerId>,
+        can_gc: CanGc,
     ) -> DomRoot<XRWebGLLayer> {
         reflect_dom_object_with_proto(
             Box::new(XRWebGLLayer::new_inherited(
@@ -95,7 +96,7 @@ impl XRWebGLLayer {
             )),
             global,
             proto,
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -104,6 +105,7 @@ impl XRWebGLLayer {
     pub fn Constructor(
         global: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         session: &XRSession,
         context: XRWebGLRenderingContext,
         init: &XRWebGLLayerInit,
@@ -155,6 +157,7 @@ impl XRWebGLLayer {
             init,
             framebuffer.as_deref(),
             layer_id,
+            can_gc,
         ))
     }
 

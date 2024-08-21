@@ -28,7 +28,11 @@ pub struct TestBindingSetlike {
 }
 
 impl TestBindingSetlike {
-    fn new(global: &GlobalScope, proto: Option<HandleObject>) -> DomRoot<TestBindingSetlike> {
+    fn new(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        can_gc: CanGc,
+    ) -> DomRoot<TestBindingSetlike> {
         reflect_dom_object_with_proto(
             Box::new(TestBindingSetlike {
                 reflector: Reflector::new(),
@@ -36,7 +40,7 @@ impl TestBindingSetlike {
             }),
             global,
             proto,
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -44,8 +48,9 @@ impl TestBindingSetlike {
     pub fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<TestBindingSetlike>> {
-        Ok(TestBindingSetlike::new(global, proto))
+        Ok(TestBindingSetlike::new(global, proto, can_gc))
     }
 }
 

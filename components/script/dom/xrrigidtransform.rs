@@ -45,19 +45,20 @@ impl XRRigidTransform {
     }
 
     pub fn new(global: &GlobalScope, transform: ApiRigidTransform) -> DomRoot<XRRigidTransform> {
-        Self::new_with_proto(global, None, transform)
+        Self::new_with_proto(global, None, transform, CanGc::note())
     }
 
     fn new_with_proto(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         transform: ApiRigidTransform,
+        can_gc: CanGc,
     ) -> DomRoot<XRRigidTransform> {
         reflect_dom_object_with_proto(
             Box::new(XRRigidTransform::new_inherited(transform)),
             global,
             proto,
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -71,6 +72,7 @@ impl XRRigidTransform {
     pub fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         position: &DOMPointInit,
         orientation: &DOMPointInit,
     ) -> Fallible<DomRoot<Self>> {
@@ -99,6 +101,7 @@ impl XRRigidTransform {
             &window.global(),
             proto,
             transform,
+            can_gc,
         ))
     }
 }

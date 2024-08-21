@@ -89,6 +89,7 @@ impl AudioBuffer {
             length,
             sample_rate,
             initial_data,
+            CanGc::note(),
         )
     }
 
@@ -100,9 +101,10 @@ impl AudioBuffer {
         length: u32,
         sample_rate: f32,
         initial_data: Option<&[Vec<f32>]>,
+        can_gc: CanGc,
     ) -> DomRoot<AudioBuffer> {
         let buffer = AudioBuffer::new_inherited(number_of_channels, length, sample_rate);
-        let buffer = reflect_dom_object_with_proto(Box::new(buffer), global, proto, CanGc::note());
+        let buffer = reflect_dom_object_with_proto(Box::new(buffer), global, proto, can_gc);
         buffer.set_initial_data(initial_data);
         buffer
     }
@@ -112,6 +114,7 @@ impl AudioBuffer {
     pub fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         options: &AudioBufferOptions,
     ) -> Fallible<DomRoot<AudioBuffer>> {
         if options.length == 0 ||
@@ -129,6 +132,7 @@ impl AudioBuffer {
             options.length,
             *options.sampleRate,
             None,
+            can_gc,
         ))
     }
 

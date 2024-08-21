@@ -219,12 +219,16 @@ impl XMLHttpRequest {
         }
     }
 
-    fn new(global: &GlobalScope, proto: Option<HandleObject>) -> DomRoot<XMLHttpRequest> {
+    fn new(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        can_gc: CanGc,
+    ) -> DomRoot<XMLHttpRequest> {
         reflect_dom_object_with_proto(
             Box::new(XMLHttpRequest::new_inherited(global)),
             global,
             proto,
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -233,8 +237,9 @@ impl XMLHttpRequest {
     pub fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<XMLHttpRequest>> {
-        Ok(XMLHttpRequest::new(global, proto))
+        Ok(XMLHttpRequest::new(global, proto, can_gc))
     }
 
     fn sync_in_window(&self) -> bool {

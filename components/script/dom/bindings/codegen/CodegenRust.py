@@ -6237,7 +6237,7 @@ if proto_result.is_err() {{
 """
             name = self.constructor.identifier.name
             nativeName = MakeNativeName(self.descriptor.binaryNameFor(name))
-            args = ["&global", "Some(desired_proto.handle())"]
+            args = ["&global", "Some(desired_proto.handle())", "CanGc::note()"]
             constructorCall = CGMethodCall(args, nativeName, True,
                                            self.descriptor, self.constructor)
         return CGList([CGGeneric(preamble), constructorCall])

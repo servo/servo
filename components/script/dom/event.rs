@@ -77,19 +77,15 @@ impl Event {
     }
 
     pub fn new_uninitialized(global: &GlobalScope) -> DomRoot<Event> {
-        Self::new_uninitialized_with_proto(global, None)
+        Self::new_uninitialized_with_proto(global, None, CanGc::note())
     }
 
     pub fn new_uninitialized_with_proto(
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> DomRoot<Event> {
-        reflect_dom_object_with_proto(
-            Box::new(Event::new_inherited()),
-            global,
-            proto,
-            CanGc::note(),
-        )
+        reflect_dom_object_with_proto(Box::new(Event::new_inherited()), global, proto, can_gc)
     }
 
     pub fn new(
@@ -98,7 +94,7 @@ impl Event {
         bubbles: EventBubbles,
         cancelable: EventCancelable,
     ) -> DomRoot<Event> {
-        Self::new_with_proto(global, None, type_, bubbles, cancelable)
+        Self::new_with_proto(global, None, type_, bubbles, cancelable, CanGc::note())
     }
 
     fn new_with_proto(
@@ -107,8 +103,9 @@ impl Event {
         type_: Atom,
         bubbles: EventBubbles,
         cancelable: EventCancelable,
+        can_gc: CanGc,
     ) -> DomRoot<Event> {
-        let event = Event::new_uninitialized_with_proto(global, proto);
+        let event = Event::new_uninitialized_with_proto(global, proto, can_gc);
         event.init_event(type_, bool::from(bubbles), bool::from(cancelable));
         event
     }
@@ -117,6 +114,7 @@ impl Event {
     pub fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         type_: DOMString,
         init: &EventBinding::EventInit,
     ) -> Fallible<DomRoot<Event>> {
@@ -128,6 +126,7 @@ impl Event {
             Atom::from(type_),
             bubbles,
             cancelable,
+            can_gc,
         ))
     }
 

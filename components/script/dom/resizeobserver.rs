@@ -62,9 +62,10 @@ impl ResizeObserver {
         window: &Window,
         proto: Option<HandleObject>,
         callback: Rc<ResizeObserverCallback>,
+        can_gc: CanGc,
     ) -> DomRoot<ResizeObserver> {
         let observer = Box::new(ResizeObserver::new_inherited(callback));
-        reflect_dom_object_with_proto(observer, window, proto, CanGc::note())
+        reflect_dom_object_with_proto(observer, window, proto, can_gc)
     }
 
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobserver-resizeobserver>
@@ -72,9 +73,10 @@ impl ResizeObserver {
     pub fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         callback: Rc<ResizeObserverCallback>,
     ) -> DomRoot<ResizeObserver> {
-        let rooted_observer = ResizeObserver::new(window, proto, callback);
+        let rooted_observer = ResizeObserver::new(window, proto, callback, can_gc);
         let document = window.Document();
         document.add_resize_observer(&rooted_observer);
         rooted_observer
@@ -129,6 +131,7 @@ impl ResizeObserver {
                 box_size.origin.y.to_f64_px(),
                 width,
                 height,
+                CanGc::note(),
             );
             let entry = ResizeObserverEntry::new(
                 &window,

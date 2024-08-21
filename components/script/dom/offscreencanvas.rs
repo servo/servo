@@ -63,12 +63,13 @@ impl OffscreenCanvas {
         width: u64,
         height: u64,
         placeholder: Option<&HTMLCanvasElement>,
+        can_gc: CanGc,
     ) -> DomRoot<OffscreenCanvas> {
         reflect_dom_object_with_proto(
             Box::new(OffscreenCanvas::new_inherited(width, height, placeholder)),
             global,
             proto,
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -76,10 +77,11 @@ impl OffscreenCanvas {
     pub fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         width: u64,
         height: u64,
     ) -> Fallible<DomRoot<OffscreenCanvas>> {
-        let offscreencanvas = OffscreenCanvas::new(global, proto, width, height, None);
+        let offscreencanvas = OffscreenCanvas::new(global, proto, width, height, None, can_gc);
         Ok(offscreencanvas)
     }
 

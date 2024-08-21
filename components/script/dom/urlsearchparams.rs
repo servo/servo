@@ -39,19 +39,20 @@ impl URLSearchParams {
     }
 
     pub fn new(global: &GlobalScope, url: Option<&URL>) -> DomRoot<URLSearchParams> {
-        Self::new_with_proto(global, None, url)
+        Self::new_with_proto(global, None, url, CanGc::note())
     }
 
     pub fn new_with_proto(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         url: Option<&URL>,
+        can_gc: CanGc,
     ) -> DomRoot<URLSearchParams> {
         reflect_dom_object_with_proto(
             Box::new(URLSearchParams::new_inherited(url)),
             global,
             proto,
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -60,10 +61,11 @@ impl URLSearchParams {
     pub fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         init: USVStringSequenceSequenceOrUSVStringUSVStringRecordOrUSVString,
     ) -> Fallible<DomRoot<URLSearchParams>> {
         // Step 1.
-        let query = URLSearchParams::new_with_proto(global, proto, None);
+        let query = URLSearchParams::new_with_proto(global, proto, None, can_gc);
         match init {
             USVStringSequenceSequenceOrUSVStringUSVStringRecordOrUSVString::USVStringSequenceSequence(init) => {
                 // Step 2.

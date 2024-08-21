@@ -56,7 +56,15 @@ impl XRInputSourcesChangeEvent {
         removed: &[DomRoot<XRInputSource>],
     ) -> DomRoot<XRInputSourcesChangeEvent> {
         Self::new_with_proto(
-            global, None, type_, bubbles, cancelable, session, added, removed,
+            global,
+            None,
+            type_,
+            bubbles,
+            cancelable,
+            session,
+            added,
+            removed,
+            CanGc::note(),
         )
     }
 
@@ -71,12 +79,13 @@ impl XRInputSourcesChangeEvent {
         session: &XRSession,
         added: &[DomRoot<XRInputSource>],
         removed: &[DomRoot<XRInputSource>],
+        can_gc: CanGc,
     ) -> DomRoot<XRInputSourcesChangeEvent> {
         let changeevent = reflect_dom_object_with_proto(
             Box::new(XRInputSourcesChangeEvent::new_inherited(session)),
             global,
             proto,
-            CanGc::note(),
+            can_gc,
         );
         {
             let event = changeevent.upcast::<Event>();
@@ -100,6 +109,7 @@ impl XRInputSourcesChangeEvent {
     pub fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         type_: DOMString,
         init: &XRInputSourcesChangeEventBinding::XRInputSourcesChangeEventInit,
     ) -> DomRoot<XRInputSourcesChangeEvent> {
@@ -112,6 +122,7 @@ impl XRInputSourcesChangeEvent {
             &init.session,
             &init.added,
             &init.removed,
+            can_gc,
         )
     }
 }

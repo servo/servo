@@ -101,7 +101,7 @@ impl AudioBufferSourceNode {
         context: &BaseAudioContext,
         options: &AudioBufferSourceOptions,
     ) -> Fallible<DomRoot<AudioBufferSourceNode>> {
-        Self::new_with_proto(window, None, context, options)
+        Self::new_with_proto(window, None, context, options, CanGc::note())
     }
 
     #[allow(crown::unrooted_must_root)]
@@ -110,13 +110,14 @@ impl AudioBufferSourceNode {
         proto: Option<HandleObject>,
         context: &BaseAudioContext,
         options: &AudioBufferSourceOptions,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<AudioBufferSourceNode>> {
         let node = AudioBufferSourceNode::new_inherited(window, context, options)?;
         Ok(reflect_dom_object_with_proto(
             Box::new(node),
             window,
             proto,
-            CanGc::note(),
+            can_gc,
         ))
     }
 
@@ -124,10 +125,11 @@ impl AudioBufferSourceNode {
     pub fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         context: &BaseAudioContext,
         options: &AudioBufferSourceOptions,
     ) -> Fallible<DomRoot<AudioBufferSourceNode>> {
-        AudioBufferSourceNode::new_with_proto(window, proto, context, options)
+        AudioBufferSourceNode::new_with_proto(window, proto, context, options, can_gc)
     }
 }
 

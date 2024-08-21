@@ -37,12 +37,12 @@ impl DOMParser {
         }
     }
 
-    fn new(window: &Window, proto: Option<HandleObject>) -> DomRoot<DOMParser> {
+    fn new(window: &Window, proto: Option<HandleObject>, can_gc: CanGc) -> DomRoot<DOMParser> {
         reflect_dom_object_with_proto(
             Box::new(DOMParser::new_inherited(window)),
             window,
             proto,
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -50,8 +50,9 @@ impl DOMParser {
     pub fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<DOMParser>> {
-        Ok(DOMParser::new(window, proto))
+        Ok(DOMParser::new(window, proto, can_gc))
     }
 }
 

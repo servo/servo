@@ -34,7 +34,15 @@ impl FormDataEvent {
         cancelable: EventCancelable,
         form_data: &FormData,
     ) -> DomRoot<FormDataEvent> {
-        Self::new_with_proto(global, None, type_, can_bubble, cancelable, form_data)
+        Self::new_with_proto(
+            global,
+            None,
+            type_,
+            can_bubble,
+            cancelable,
+            form_data,
+            CanGc::note(),
+        )
     }
 
     fn new_with_proto(
@@ -44,6 +52,7 @@ impl FormDataEvent {
         can_bubble: EventBubbles,
         cancelable: EventCancelable,
         form_data: &FormData,
+        can_gc: CanGc,
     ) -> DomRoot<FormDataEvent> {
         let ev = reflect_dom_object_with_proto(
             Box::new(FormDataEvent {
@@ -52,7 +61,7 @@ impl FormDataEvent {
             }),
             global,
             proto,
-            CanGc::note(),
+            can_gc,
         );
 
         {
@@ -66,6 +75,7 @@ impl FormDataEvent {
     pub fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         type_: DOMString,
         init: &FormDataEventBinding::FormDataEventInit,
     ) -> Fallible<DomRoot<FormDataEvent>> {
@@ -79,6 +89,7 @@ impl FormDataEvent {
             bubbles,
             cancelable,
             &init.formData.clone(),
+            can_gc,
         );
 
         Ok(event)

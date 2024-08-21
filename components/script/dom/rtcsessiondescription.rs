@@ -37,12 +37,13 @@ impl RTCSessionDescription {
         proto: Option<HandleObject>,
         ty: RTCSdpType,
         sdp: DOMString,
+        can_gc: CanGc,
     ) -> DomRoot<RTCSessionDescription> {
         reflect_dom_object_with_proto(
             Box::new(RTCSessionDescription::new_inherited(ty, sdp)),
             global,
             proto,
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -50,6 +51,7 @@ impl RTCSessionDescription {
     pub fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         config: &RTCSessionDescriptionInit,
     ) -> Fallible<DomRoot<RTCSessionDescription>> {
         Ok(RTCSessionDescription::new(
@@ -57,6 +59,7 @@ impl RTCSessionDescription {
             proto,
             config.type_,
             config.sdp.clone(),
+            can_gc,
         ))
     }
 }

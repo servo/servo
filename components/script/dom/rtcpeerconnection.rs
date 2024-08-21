@@ -198,12 +198,13 @@ impl RTCPeerConnection {
         global: &GlobalScope,
         proto: Option<HandleObject>,
         config: &RTCConfiguration,
+        can_gc: CanGc,
     ) -> DomRoot<RTCPeerConnection> {
         let this = reflect_dom_object_with_proto(
             Box::new(RTCPeerConnection::new_inherited()),
             global,
             proto,
-            CanGc::note(),
+            can_gc,
         );
         let signaller = this.make_signaller();
         *this.controller.borrow_mut() = Some(ServoMedia::get().unwrap().create_webrtc(signaller));
@@ -234,9 +235,15 @@ impl RTCPeerConnection {
     pub fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         config: &RTCConfiguration,
     ) -> Fallible<DomRoot<RTCPeerConnection>> {
-        Ok(RTCPeerConnection::new(&window.global(), proto, config))
+        Ok(RTCPeerConnection::new(
+            &window.global(),
+            proto,
+            config,
+            can_gc,
+        ))
     }
 
     pub fn get_webrtc_controller(&self) -> &DomRefCell<Option<WebRtcController>> {
@@ -652,6 +659,7 @@ impl RTCPeerConnectionMethods for RTCPeerConnection {
                             let desc = RTCSessionDescription::Constructor(
                                 this.global().as_window(),
                                 None,
+                                CanGc::note(),
                                 &desc,
                             ).unwrap();
                             this.local_description.set(Some(&desc));
@@ -692,6 +700,7 @@ impl RTCPeerConnectionMethods for RTCPeerConnection {
                             let desc = RTCSessionDescription::Constructor(
                                 this.global().as_window(),
                                 None,
+                                CanGc::note(),
                                 &desc,
                             ).unwrap();
                             this.remote_description.set(Some(&desc));

@@ -43,7 +43,11 @@ impl Iterable for TestBindingPairIterable {
 }
 
 impl TestBindingPairIterable {
-    fn new(global: &GlobalScope, proto: Option<HandleObject>) -> DomRoot<TestBindingPairIterable> {
+    fn new(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        can_gc: CanGc,
+    ) -> DomRoot<TestBindingPairIterable> {
         reflect_dom_object_with_proto(
             Box::new(TestBindingPairIterable {
                 reflector: Reflector::new(),
@@ -51,7 +55,7 @@ impl TestBindingPairIterable {
             }),
             global,
             proto,
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -59,8 +63,9 @@ impl TestBindingPairIterable {
     pub fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<TestBindingPairIterable>> {
-        Ok(TestBindingPairIterable::new(global, proto))
+        Ok(TestBindingPairIterable::new(global, proto, can_gc))
     }
 }
 

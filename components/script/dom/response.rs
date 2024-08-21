@@ -77,15 +77,19 @@ impl Response {
 
     // https://fetch.spec.whatwg.org/#dom-response
     pub fn new(global: &GlobalScope) -> DomRoot<Response> {
-        Self::new_with_proto(global, None)
+        Self::new_with_proto(global, None, CanGc::note())
     }
 
-    fn new_with_proto(global: &GlobalScope, proto: Option<HandleObject>) -> DomRoot<Response> {
+    fn new_with_proto(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        can_gc: CanGc,
+    ) -> DomRoot<Response> {
         reflect_dom_object_with_proto(
             Box::new(Response::new_inherited(global)),
             global,
             proto,
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -93,6 +97,7 @@ impl Response {
     pub fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         body: Option<BodyInit>,
         init: &ResponseBinding::ResponseInit,
     ) -> Fallible<DomRoot<Response>> {
@@ -112,7 +117,7 @@ impl Response {
             ));
         }
 
-        let r = Response::new_with_proto(global, proto);
+        let r = Response::new_with_proto(global, proto, can_gc);
 
         // Step 3
         *r.status.borrow_mut() = Some(StatusCode::from_u16(init.status).unwrap());

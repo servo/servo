@@ -38,12 +38,13 @@ impl PageTransitionEvent {
     fn new_uninitialized(
         window: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> DomRoot<PageTransitionEvent> {
         reflect_dom_object_with_proto(
             Box::new(PageTransitionEvent::new_inherited()),
             window,
             proto,
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -54,7 +55,15 @@ impl PageTransitionEvent {
         cancelable: bool,
         persisted: bool,
     ) -> DomRoot<PageTransitionEvent> {
-        Self::new_with_proto(window, None, type_, bubbles, cancelable, persisted)
+        Self::new_with_proto(
+            window,
+            None,
+            type_,
+            bubbles,
+            cancelable,
+            persisted,
+            CanGc::note(),
+        )
     }
 
     fn new_with_proto(
@@ -64,8 +73,9 @@ impl PageTransitionEvent {
         bubbles: bool,
         cancelable: bool,
         persisted: bool,
+        can_gc: CanGc,
     ) -> DomRoot<PageTransitionEvent> {
-        let ev = PageTransitionEvent::new_uninitialized(window, proto);
+        let ev = PageTransitionEvent::new_uninitialized(window, proto, can_gc);
         ev.persisted.set(persisted);
         {
             let event = ev.upcast::<Event>();
@@ -78,6 +88,7 @@ impl PageTransitionEvent {
     pub fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         type_: DOMString,
         init: &PageTransitionEventBinding::PageTransitionEventInit,
     ) -> Fallible<DomRoot<PageTransitionEvent>> {
@@ -88,6 +99,7 @@ impl PageTransitionEvent {
             init.parent.bubbles,
             init.parent.cancelable,
             init.persisted,
+            can_gc,
         ))
     }
 }

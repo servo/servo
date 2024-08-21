@@ -46,19 +46,20 @@ impl FormData {
     }
 
     pub fn new(form_datums: Option<Vec<FormDatum>>, global: &GlobalScope) -> DomRoot<FormData> {
-        Self::new_with_proto(form_datums, global, None)
+        Self::new_with_proto(form_datums, global, None, CanGc::note())
     }
 
     fn new_with_proto(
         form_datums: Option<Vec<FormDatum>>,
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> DomRoot<FormData> {
         reflect_dom_object_with_proto(
             Box::new(FormData::new_inherited(form_datums)),
             global,
             proto,
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -67,16 +68,22 @@ impl FormData {
     pub fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         form: Option<&HTMLFormElement>,
     ) -> Fallible<DomRoot<FormData>> {
         if let Some(opt_form) = form {
             return match opt_form.get_form_dataset(None, None) {
-                Some(form_datums) => Ok(FormData::new_with_proto(Some(form_datums), global, proto)),
+                Some(form_datums) => Ok(FormData::new_with_proto(
+                    Some(form_datums),
+                    global,
+                    proto,
+                    can_gc,
+                )),
                 None => Err(Error::InvalidState),
             };
         }
 
-        Ok(FormData::new_with_proto(None, global, proto))
+        Ok(FormData::new_with_proto(None, global, proto, can_gc))
     }
 }
 

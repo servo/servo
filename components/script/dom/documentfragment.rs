@@ -21,6 +21,7 @@ use crate::dom::htmlcollection::HTMLCollection;
 use crate::dom::node::{window_from_node, Node};
 use crate::dom::nodelist::NodeList;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 // https://dom.spec.whatwg.org/#documentfragment
 #[dom_struct]
@@ -58,6 +59,7 @@ impl DocumentFragment {
     pub fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
+        _can_gc: CanGc,
     ) -> Fallible<DomRoot<DocumentFragment>> {
         let document = window.Document();
 

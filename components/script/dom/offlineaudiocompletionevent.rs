@@ -41,7 +41,15 @@ impl OfflineAudioCompletionEvent {
         cancelable: EventCancelable,
         rendered_buffer: &AudioBuffer,
     ) -> DomRoot<OfflineAudioCompletionEvent> {
-        Self::new_with_proto(window, None, type_, bubbles, cancelable, rendered_buffer)
+        Self::new_with_proto(
+            window,
+            None,
+            type_,
+            bubbles,
+            cancelable,
+            rendered_buffer,
+            CanGc::note(),
+        )
     }
 
     fn new_with_proto(
@@ -51,9 +59,10 @@ impl OfflineAudioCompletionEvent {
         bubbles: EventBubbles,
         cancelable: EventCancelable,
         rendered_buffer: &AudioBuffer,
+        can_gc: CanGc,
     ) -> DomRoot<OfflineAudioCompletionEvent> {
         let event = Box::new(OfflineAudioCompletionEvent::new_inherited(rendered_buffer));
-        let ev = reflect_dom_object_with_proto(event, window, proto, CanGc::note());
+        let ev = reflect_dom_object_with_proto(event, window, proto, can_gc);
         {
             let event = ev.upcast::<Event>();
             event.init_event(type_, bool::from(bubbles), bool::from(cancelable));
@@ -65,6 +74,7 @@ impl OfflineAudioCompletionEvent {
     pub fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         type_: DOMString,
         init: &OfflineAudioCompletionEventInit,
     ) -> Fallible<DomRoot<OfflineAudioCompletionEvent>> {
@@ -77,6 +87,7 @@ impl OfflineAudioCompletionEvent {
             bubbles,
             cancelable,
             &init.renderedBuffer,
+            can_gc,
         ))
     }
 }

@@ -42,14 +42,16 @@ impl StaticRange {
         document: &Document,
         proto: Option<HandleObject>,
         init: &StaticRangeInit,
+        can_gc: CanGc,
     ) -> DomRoot<StaticRange> {
-        StaticRange::new_with_proto(document, proto, init)
+        StaticRange::new_with_proto(document, proto, init, can_gc)
     }
 
     pub fn new_with_proto(
         document: &Document,
         proto: Option<HandleObject>,
         init: &StaticRangeInit,
+        can_gc: CanGc,
     ) -> DomRoot<StaticRange> {
         let staticrange = reflect_dom_object_with_proto(
             Box::new(StaticRange::new_inherited(
@@ -60,7 +62,7 @@ impl StaticRange {
             )),
             document.window(),
             proto,
-            CanGc::note(),
+            can_gc,
         );
         staticrange
     }
@@ -70,6 +72,7 @@ impl StaticRange {
     pub fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         init: &StaticRangeInit,
     ) -> Fallible<DomRoot<StaticRange>> {
         match init.startContainer.type_id() {
@@ -85,6 +88,6 @@ impl StaticRange {
             _ => (),
         }
         let document = window.Document();
-        Ok(StaticRange::new_with_doc(&document, proto, init))
+        Ok(StaticRange::new_with_doc(&document, proto, init, can_gc))
     }
 }

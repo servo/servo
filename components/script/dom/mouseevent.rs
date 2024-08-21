@@ -76,19 +76,15 @@ impl MouseEvent {
     }
 
     pub fn new_uninitialized(window: &Window) -> DomRoot<MouseEvent> {
-        Self::new_uninitialized_with_proto(window, None)
+        Self::new_uninitialized_with_proto(window, None, CanGc::note())
     }
 
     fn new_uninitialized_with_proto(
         window: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> DomRoot<MouseEvent> {
-        reflect_dom_object_with_proto(
-            Box::new(MouseEvent::new_inherited()),
-            window,
-            proto,
-            CanGc::note(),
-        )
+        reflect_dom_object_with_proto(Box::new(MouseEvent::new_inherited()), window, proto, can_gc)
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -132,6 +128,7 @@ impl MouseEvent {
             buttons,
             related_target,
             point_in_target,
+            CanGc::note(),
         )
     }
 
@@ -156,8 +153,9 @@ impl MouseEvent {
         buttons: u16,
         related_target: Option<&EventTarget>,
         point_in_target: Option<Point2D<f32>>,
+        can_gc: CanGc,
     ) -> DomRoot<MouseEvent> {
-        let ev = MouseEvent::new_uninitialized_with_proto(window, proto);
+        let ev = MouseEvent::new_uninitialized_with_proto(window, proto, can_gc);
         ev.InitMouseEvent(
             type_,
             bool::from(can_bubble),
@@ -187,6 +185,7 @@ impl MouseEvent {
     pub fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         type_: DOMString,
         init: &MouseEventBinding::MouseEventInit,
     ) -> Fallible<DomRoot<MouseEvent>> {
@@ -212,6 +211,7 @@ impl MouseEvent {
             init.buttons,
             init.relatedTarget.as_deref(),
             None,
+            can_gc,
         );
         Ok(event)
     }

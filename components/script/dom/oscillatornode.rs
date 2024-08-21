@@ -92,7 +92,7 @@ impl OscillatorNode {
         context: &BaseAudioContext,
         options: &OscillatorOptions,
     ) -> Fallible<DomRoot<OscillatorNode>> {
-        Self::new_with_proto(window, None, context, options)
+        Self::new_with_proto(window, None, context, options, CanGc::note())
     }
 
     #[allow(crown::unrooted_must_root)]
@@ -101,13 +101,14 @@ impl OscillatorNode {
         proto: Option<HandleObject>,
         context: &BaseAudioContext,
         options: &OscillatorOptions,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<OscillatorNode>> {
         let node = OscillatorNode::new_inherited(window, context, options)?;
         Ok(reflect_dom_object_with_proto(
             Box::new(node),
             window,
             proto,
-            CanGc::note(),
+            can_gc,
         ))
     }
 
@@ -115,10 +116,11 @@ impl OscillatorNode {
     pub fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         context: &BaseAudioContext,
         options: &OscillatorOptions,
     ) -> Fallible<DomRoot<OscillatorNode>> {
-        OscillatorNode::new_with_proto(window, proto, context, options)
+        OscillatorNode::new_with_proto(window, proto, context, options, can_gc)
     }
 }
 

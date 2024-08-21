@@ -41,12 +41,13 @@ impl DOMRectReadOnly {
         y: f64,
         width: f64,
         height: f64,
+        can_gc: CanGc,
     ) -> DomRoot<DOMRectReadOnly> {
         reflect_dom_object_with_proto(
             Box::new(DOMRectReadOnly::new_inherited(x, y, width, height)),
             global,
             proto,
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -54,12 +55,15 @@ impl DOMRectReadOnly {
     pub fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         x: f64,
         y: f64,
         width: f64,
         height: f64,
     ) -> Fallible<DomRoot<DOMRectReadOnly>> {
-        Ok(DOMRectReadOnly::new(global, proto, x, y, width, height))
+        Ok(DOMRectReadOnly::new(
+            global, proto, x, y, width, height, can_gc,
+        ))
     }
 
     pub fn set_x(&self, value: f64) {

@@ -79,7 +79,7 @@ impl StereoPannerNode {
         context: &BaseAudioContext,
         options: &StereoPannerOptions,
     ) -> Fallible<DomRoot<StereoPannerNode>> {
-        Self::new_with_proto(window, None, context, options)
+        Self::new_with_proto(window, None, context, options, CanGc::note())
     }
 
     #[allow(crown::unrooted_must_root)]
@@ -88,13 +88,14 @@ impl StereoPannerNode {
         proto: Option<HandleObject>,
         context: &BaseAudioContext,
         options: &StereoPannerOptions,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<StereoPannerNode>> {
         let node = StereoPannerNode::new_inherited(window, context, options)?;
         Ok(reflect_dom_object_with_proto(
             Box::new(node),
             window,
             proto,
-            CanGc::note(),
+            can_gc,
         ))
     }
 
@@ -102,10 +103,11 @@ impl StereoPannerNode {
     pub fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         context: &BaseAudioContext,
         options: &StereoPannerOptions,
     ) -> Fallible<DomRoot<StereoPannerNode>> {
-        StereoPannerNode::new_with_proto(window, proto, context, options)
+        StereoPannerNode::new_with_proto(window, proto, context, options, can_gc)
     }
 }
 

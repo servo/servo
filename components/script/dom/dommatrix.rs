@@ -30,7 +30,7 @@ pub struct DOMMatrix {
 #[allow(non_snake_case)]
 impl DOMMatrix {
     pub fn new(global: &GlobalScope, is2D: bool, matrix: Transform3D<f64>) -> DomRoot<Self> {
-        Self::new_with_proto(global, None, is2D, matrix)
+        Self::new_with_proto(global, None, is2D, matrix, CanGc::note())
     }
 
     #[allow(crown::unrooted_must_root)]
@@ -39,9 +39,10 @@ impl DOMMatrix {
         proto: Option<HandleObject>,
         is2D: bool,
         matrix: Transform3D<f64>,
+        can_gc: CanGc,
     ) -> DomRoot<Self> {
         let dommatrix = Self::new_inherited(is2D, matrix);
-        reflect_dom_object_with_proto(Box::new(dommatrix), global, proto, CanGc::note())
+        reflect_dom_object_with_proto(Box::new(dommatrix), global, proto, can_gc)
     }
 
     pub fn new_inherited(is2D: bool, matrix: Transform3D<f64>) -> Self {
@@ -54,6 +55,7 @@ impl DOMMatrix {
     pub fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         init: Option<StringOrUnrestrictedDoubleSequence>,
     ) -> Fallible<DomRoot<Self>> {
         if init.is_none() {
@@ -62,6 +64,7 @@ impl DOMMatrix {
                 proto,
                 true,
                 Transform3D::identity(),
+                can_gc,
             ));
         }
         match init.unwrap() {
@@ -75,11 +78,11 @@ impl DOMMatrix {
                     return Ok(Self::new(global, true, Transform3D::identity()));
                 }
                 transform_to_matrix(s.to_string())
-                    .map(|(is2D, matrix)| Self::new_with_proto(global, proto, is2D, matrix))
+                    .map(|(is2D, matrix)| Self::new_with_proto(global, proto, is2D, matrix, can_gc))
             },
             StringOrUnrestrictedDoubleSequence::UnrestrictedDoubleSequence(ref entries) => {
                 entries_to_matrix(&entries[..])
-                    .map(|(is2D, matrix)| Self::new_with_proto(global, proto, is2D, matrix))
+                    .map(|(is2D, matrix)| Self::new_with_proto(global, proto, is2D, matrix, can_gc))
             },
         }
     }
@@ -102,6 +105,7 @@ impl DOMMatrix {
         DOMMatrix::Constructor(
             global,
             None,
+            CanGc::note(),
             Some(StringOrUnrestrictedDoubleSequence::UnrestrictedDoubleSequence(vec)),
         )
     }
@@ -115,6 +119,7 @@ impl DOMMatrix {
         DOMMatrix::Constructor(
             global,
             None,
+            CanGc::note(),
             Some(StringOrUnrestrictedDoubleSequence::UnrestrictedDoubleSequence(vec)),
         )
     }

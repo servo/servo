@@ -47,13 +47,13 @@ impl URL {
         }
     }
 
-    fn new(global: &GlobalScope, proto: Option<HandleObject>, url: ServoUrl) -> DomRoot<URL> {
-        reflect_dom_object_with_proto(
-            Box::new(URL::new_inherited(url)),
-            global,
-            proto,
-            CanGc::note(),
-        )
+    fn new(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        url: ServoUrl,
+        can_gc: CanGc,
+    ) -> DomRoot<URL> {
+        reflect_dom_object_with_proto(Box::new(URL::new_inherited(url)), global, proto, can_gc)
     }
 
     pub fn query_pairs(&self) -> Vec<(String, String)> {
@@ -85,6 +85,7 @@ impl URL {
     pub fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         url: USVString,
         base: Option<USVString>,
     ) -> Fallible<DomRoot<URL>> {
@@ -119,7 +120,7 @@ impl URL {
         // Step 7. Set this’s query object’s URL object to this.
 
         // Step 4. Set this’s URL to parsedURL.
-        Ok(URL::new(global, proto, parsed_url))
+        Ok(URL::new(global, proto, parsed_url, can_gc))
     }
 
     /// <https://url.spec.whatwg.org/#dom-url-canparse>
@@ -158,7 +159,7 @@ impl URL {
         // These steps are all handled while mapping the Result to an Option<ServoUrl>.
         // Regarding initialization, the same condition should apply here as stated in the comments
         // in Self::Constructor above - construct it on-demand inside `URL::SearchParams`.
-        Some(URL::new(global, None, parsed_url.ok()?))
+        Some(URL::new(global, None, parsed_url.ok()?, CanGc::note()))
     }
 
     /// <https://w3c.github.io/FileAPI/#dfn-createObjectURL>

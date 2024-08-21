@@ -72,9 +72,13 @@ impl Range {
         }
     }
 
-    pub fn new_with_doc(document: &Document, proto: Option<HandleObject>) -> DomRoot<Range> {
+    pub fn new_with_doc(
+        document: &Document,
+        proto: Option<HandleObject>,
+        can_gc: CanGc,
+    ) -> DomRoot<Range> {
         let root = document.upcast();
-        Range::new_with_proto(document, proto, root, 0, root, 0)
+        Range::new_with_proto(document, proto, root, 0, root, 0, can_gc)
     }
 
     pub fn new(
@@ -91,6 +95,7 @@ impl Range {
             start_offset,
             end_container,
             end_offset,
+            CanGc::note(),
         )
     }
 
@@ -101,6 +106,7 @@ impl Range {
         start_offset: u32,
         end_container: &Node,
         end_offset: u32,
+        can_gc: CanGc,
     ) -> DomRoot<Range> {
         let range = reflect_dom_object_with_proto(
             Box::new(Range::new_inherited(
@@ -111,7 +117,7 @@ impl Range {
             )),
             document.window(),
             proto,
-            CanGc::note(),
+            can_gc,
         );
         start_container.ranges().push(WeakRef::new(&range));
         if start_container != end_container {
@@ -122,9 +128,13 @@ impl Range {
 
     /// <https://dom.spec.whatwg.org/#dom-range>
     #[allow(non_snake_case)]
-    pub fn Constructor(window: &Window, proto: Option<HandleObject>) -> Fallible<DomRoot<Range>> {
+    pub fn Constructor(
+        window: &Window,
+        proto: Option<HandleObject>,
+        can_gc: CanGc,
+    ) -> Fallible<DomRoot<Range>> {
         let document = window.Document();
-        Ok(Range::new_with_doc(&document, proto))
+        Ok(Range::new_with_doc(&document, proto, can_gc))
     }
 
     /// <https://dom.spec.whatwg.org/#contained>

@@ -47,7 +47,7 @@ impl MediaStreamTrackAudioSourceNode {
         context: &AudioContext,
         track: &MediaStreamTrack,
     ) -> Fallible<DomRoot<MediaStreamTrackAudioSourceNode>> {
-        Self::new_with_proto(window, None, context, track)
+        Self::new_with_proto(window, None, context, track, CanGc::note())
     }
 
     #[allow(crown::unrooted_must_root)]
@@ -56,13 +56,14 @@ impl MediaStreamTrackAudioSourceNode {
         proto: Option<HandleObject>,
         context: &AudioContext,
         track: &MediaStreamTrack,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<MediaStreamTrackAudioSourceNode>> {
         let node = MediaStreamTrackAudioSourceNode::new_inherited(context, track)?;
         Ok(reflect_dom_object_with_proto(
             Box::new(node),
             window,
             proto,
-            CanGc::note(),
+            can_gc,
         ))
     }
 
@@ -70,6 +71,7 @@ impl MediaStreamTrackAudioSourceNode {
     pub fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         context: &AudioContext,
         options: &MediaStreamTrackAudioSourceOptions,
     ) -> Fallible<DomRoot<MediaStreamTrackAudioSourceNode>> {
@@ -78,6 +80,7 @@ impl MediaStreamTrackAudioSourceNode {
             proto,
             context,
             &options.mediaStreamTrack,
+            can_gc,
         )
     }
 }

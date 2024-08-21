@@ -153,21 +153,21 @@ impl FileReader {
         }
     }
 
-    fn new(global: &GlobalScope, proto: Option<HandleObject>) -> DomRoot<FileReader> {
-        reflect_dom_object_with_proto(
-            Box::new(FileReader::new_inherited()),
-            global,
-            proto,
-            CanGc::note(),
-        )
+    fn new(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        can_gc: CanGc,
+    ) -> DomRoot<FileReader> {
+        reflect_dom_object_with_proto(Box::new(FileReader::new_inherited()), global, proto, can_gc)
     }
 
     #[allow(non_snake_case)]
     pub fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<FileReader>> {
-        Ok(FileReader::new(global, proto))
+        Ok(FileReader::new(global, proto, can_gc))
     }
 
     //https://w3c.github.io/FileAPI/#dfn-error-steps

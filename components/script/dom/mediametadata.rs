@@ -38,19 +38,20 @@ impl MediaMetadata {
     }
 
     pub fn new(global: &Window, init: &MediaMetadataInit) -> DomRoot<MediaMetadata> {
-        Self::new_with_proto(global, None, init)
+        Self::new_with_proto(global, None, init, CanGc::note())
     }
 
     fn new_with_proto(
         global: &Window,
         proto: Option<HandleObject>,
         init: &MediaMetadataInit,
+        can_gc: CanGc,
     ) -> DomRoot<MediaMetadata> {
         reflect_dom_object_with_proto(
             Box::new(MediaMetadata::new_inherited(init)),
             global,
             proto,
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -59,9 +60,10 @@ impl MediaMetadata {
     pub fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         init: &MediaMetadataInit,
     ) -> Fallible<DomRoot<MediaMetadata>> {
-        Ok(MediaMetadata::new_with_proto(window, proto, init))
+        Ok(MediaMetadata::new_with_proto(window, proto, init, can_gc))
     }
 
     fn queue_update_metadata_algorithm(&self) {

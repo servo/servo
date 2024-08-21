@@ -54,6 +54,7 @@ impl ProgressEvent {
             length_computable,
             loaded,
             total,
+            CanGc::note(),
         )
     }
 
@@ -67,6 +68,7 @@ impl ProgressEvent {
         length_computable: bool,
         loaded: u64,
         total: u64,
+        can_gc: CanGc,
     ) -> DomRoot<ProgressEvent> {
         let ev = reflect_dom_object_with_proto(
             Box::new(ProgressEvent::new_inherited(
@@ -76,7 +78,7 @@ impl ProgressEvent {
             )),
             global,
             proto,
-            CanGc::note(),
+            can_gc,
         );
         {
             let event = ev.upcast::<Event>();
@@ -89,6 +91,7 @@ impl ProgressEvent {
     pub fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         type_: DOMString,
         init: &ProgressEventBinding::ProgressEventInit,
     ) -> Fallible<DomRoot<ProgressEvent>> {
@@ -103,6 +106,7 @@ impl ProgressEvent {
             init.lengthComputable,
             init.loaded,
             init.total,
+            can_gc,
         );
         Ok(ev)
     }

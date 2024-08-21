@@ -471,12 +471,13 @@ impl EventSource {
         proto: Option<HandleObject>,
         url: ServoUrl,
         with_credentials: bool,
+        can_gc: CanGc,
     ) -> DomRoot<EventSource> {
         reflect_dom_object_with_proto(
             Box::new(EventSource::new_inherited(url, with_credentials)),
             global,
             proto,
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -516,6 +517,7 @@ impl EventSource {
     pub fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         url: DOMString,
         event_source_init: &EventSourceInit,
     ) -> Fallible<DomRoot<EventSource>> {
@@ -533,6 +535,7 @@ impl EventSource {
             proto,
             url_record.clone(),
             event_source_init.withCredentials,
+            can_gc,
         );
         global.track_event_source(&ev);
         // Steps 6-7

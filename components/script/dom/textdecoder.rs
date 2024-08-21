@@ -66,12 +66,13 @@ impl TextDecoder {
         encoding: &'static Encoding,
         fatal: bool,
         ignoreBOM: bool,
+        can_gc: CanGc,
     ) -> DomRoot<TextDecoder> {
         reflect_dom_object_with_proto(
             Box::new(TextDecoder::new_inherited(encoding, fatal, ignoreBOM)),
             global,
             proto,
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -79,6 +80,7 @@ impl TextDecoder {
     pub fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         label: DOMString,
         options: &TextDecoderBinding::TextDecoderOptions,
     ) -> Fallible<DomRoot<TextDecoder>> {
@@ -92,6 +94,7 @@ impl TextDecoder {
             encoding,
             options.fatal,
             options.ignoreBOM,
+            can_gc,
         ))
     }
 }

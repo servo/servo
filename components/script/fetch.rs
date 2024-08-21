@@ -39,6 +39,7 @@ use crate::network_listener::{
     self, submit_timing_data, NetworkListener, PreInvoke, ResourceTimingListener,
 };
 use crate::realms::{enter_realm, InRealm};
+use crate::script_runtime::CanGc;
 use crate::task_source::TaskSourceName;
 
 struct FetchContext {
@@ -150,7 +151,7 @@ pub fn Fetch(
     let response = Response::new(global);
 
     // Step 2
-    let request = match Request::Constructor(global, None, input, init) {
+    let request = match Request::Constructor(global, None, CanGc::note(), input, init) {
         Err(e) => {
             response.error_stream(e.clone());
             promise.reject_error(e);

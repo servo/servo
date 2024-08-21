@@ -67,12 +67,13 @@ impl VTTCue {
         start_time: f64,
         end_time: f64,
         text: DOMString,
+        can_gc: CanGc,
     ) -> DomRoot<Self> {
         reflect_dom_object_with_proto(
             Box::new(Self::new_inherited(start_time, end_time, text)),
             global,
             proto,
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -80,11 +81,19 @@ impl VTTCue {
     pub fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         start_time: Finite<f64>,
         end_time: Finite<f64>,
         text: DOMString,
     ) -> DomRoot<Self> {
-        VTTCue::new(&window.global(), proto, *start_time, *end_time, text)
+        VTTCue::new(
+            &window.global(),
+            proto,
+            *start_time,
+            *end_time,
+            text,
+            can_gc,
+        )
     }
 }
 

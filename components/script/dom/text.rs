@@ -18,6 +18,7 @@ use crate::dom::characterdata::CharacterData;
 use crate::dom::document::Document;
 use crate::dom::node::Node;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 /// An HTML text node.
 #[dom_struct]
@@ -52,6 +53,7 @@ impl Text {
     pub fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
+        _can_gc: CanGc,
         text: DOMString,
     ) -> Fallible<DomRoot<Text>> {
         let document = window.Document();

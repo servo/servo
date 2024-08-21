@@ -39,7 +39,7 @@ impl AnimationEvent {
     }
 
     pub fn new(window: &Window, type_: Atom, init: &AnimationEventInit) -> DomRoot<AnimationEvent> {
-        Self::new_with_proto(window, None, type_, init)
+        Self::new_with_proto(window, None, type_, init, CanGc::note())
     }
 
     fn new_with_proto(
@@ -47,12 +47,13 @@ impl AnimationEvent {
         proto: Option<HandleObject>,
         type_: Atom,
         init: &AnimationEventInit,
+        can_gc: CanGc,
     ) -> DomRoot<AnimationEvent> {
         let ev = reflect_dom_object_with_proto(
             Box::new(AnimationEvent::new_inherited(init)),
             window,
             proto,
-            CanGc::note(),
+            can_gc,
         );
         {
             let event = ev.upcast::<Event>();
@@ -65,10 +66,11 @@ impl AnimationEvent {
     pub fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         type_: DOMString,
         init: &AnimationEventInit,
     ) -> DomRoot<AnimationEvent> {
-        AnimationEvent::new_with_proto(window, proto, Atom::from(type_), init)
+        AnimationEvent::new_with_proto(window, proto, Atom::from(type_), init, can_gc)
     }
 }
 

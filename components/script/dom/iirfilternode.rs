@@ -73,7 +73,7 @@ impl IIRFilterNode {
         context: &BaseAudioContext,
         options: &IIRFilterOptions,
     ) -> Fallible<DomRoot<IIRFilterNode>> {
-        Self::new_with_proto(window, None, context, options)
+        Self::new_with_proto(window, None, context, options, CanGc::note())
     }
 
     #[allow(crown::unrooted_must_root)]
@@ -82,13 +82,14 @@ impl IIRFilterNode {
         proto: Option<HandleObject>,
         context: &BaseAudioContext,
         options: &IIRFilterOptions,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<IIRFilterNode>> {
         let node = IIRFilterNode::new_inherited(window, context, options)?;
         Ok(reflect_dom_object_with_proto(
             Box::new(node),
             window,
             proto,
-            CanGc::note(),
+            can_gc,
         ))
     }
 
@@ -96,10 +97,11 @@ impl IIRFilterNode {
     pub fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         context: &BaseAudioContext,
         options: &IIRFilterOptions,
     ) -> Fallible<DomRoot<IIRFilterNode>> {
-        IIRFilterNode::new_with_proto(window, proto, context, options)
+        IIRFilterNode::new_with_proto(window, proto, context, options, can_gc)
     }
 }
 

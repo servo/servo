@@ -3409,6 +3409,7 @@ impl Document {
     pub fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<Document>> {
         let doc = window.Document();
         let docloader = DocumentLoader::new(&doc.loader());
@@ -3428,6 +3429,7 @@ impl Document {
             None,
             None,
             Default::default(),
+            can_gc,
         ))
     }
 
@@ -3464,6 +3466,7 @@ impl Document {
             referrer_policy,
             status_code,
             canceller,
+            CanGc::note(),
         )
     }
 
@@ -3484,6 +3487,7 @@ impl Document {
         referrer_policy: Option<ReferrerPolicy>,
         status_code: Option<u16>,
         canceller: FetchCanceller,
+        can_gc: CanGc,
     ) -> DomRoot<Document> {
         let document = reflect_dom_object_with_proto(
             Box::new(Document::new_inherited(
@@ -3504,7 +3508,7 @@ impl Document {
             )),
             window,
             proto,
-            CanGc::note(),
+            can_gc,
         );
         {
             let node = document.upcast::<Node>();
@@ -4594,7 +4598,7 @@ impl DocumentMethods for Document {
 
     // https://dom.spec.whatwg.org/#dom-document-createrange
     fn CreateRange(&self) -> DomRoot<Range> {
-        Range::new_with_doc(self, None)
+        Range::new_with_doc(self, None, CanGc::note())
     }
 
     // https://dom.spec.whatwg.org/#dom-document-createnodeiteratorroot-whattoshow-filter

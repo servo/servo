@@ -45,7 +45,15 @@ impl CompositionEvent {
         data: DOMString,
     ) -> DomRoot<CompositionEvent> {
         Self::new_with_proto(
-            window, None, type_, can_bubble, cancelable, view, detail, data,
+            window,
+            None,
+            type_,
+            can_bubble,
+            cancelable,
+            view,
+            detail,
+            data,
+            CanGc::note(),
         )
     }
 
@@ -59,6 +67,7 @@ impl CompositionEvent {
         view: Option<&Window>,
         detail: i32,
         data: DOMString,
+        can_gc: CanGc,
     ) -> DomRoot<CompositionEvent> {
         let ev = reflect_dom_object_with_proto(
             Box::new(CompositionEvent {
@@ -67,7 +76,7 @@ impl CompositionEvent {
             }),
             window,
             proto,
-            CanGc::note(),
+            can_gc,
         );
         ev.uievent
             .InitUIEvent(type_, can_bubble, cancelable, view, detail);
@@ -78,6 +87,7 @@ impl CompositionEvent {
     pub fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         type_: DOMString,
         init: &CompositionEventBinding::CompositionEventInit,
     ) -> Fallible<DomRoot<CompositionEvent>> {
@@ -90,6 +100,7 @@ impl CompositionEvent {
             init.parent.view.as_deref(),
             init.parent.detail,
             init.data.clone(),
+            can_gc,
         );
         Ok(event)
     }

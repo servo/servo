@@ -60,7 +60,7 @@ use crate::dom::window::Window;
 use crate::dom::xmlserializer::XMLSerializer;
 use crate::realms::enter_realm;
 use crate::script_module::ScriptFetchOptions;
-use crate::script_runtime::JSContext as SafeJSContext;
+use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::script_thread::{Documents, ScriptThread};
 
 fn find_node_by_unique_id(
@@ -722,7 +722,7 @@ pub fn handle_get_page_source(
                     Some(element) => match element.GetOuterHTML() {
                         Ok(source) => Ok(source.to_string()),
                         Err(_) => {
-                            match XMLSerializer::new(document.window(), None)
+                            match XMLSerializer::new(document.window(), None, CanGc::note())
                                 .SerializeToString(element.upcast::<Node>())
                             {
                                 Ok(source) => Ok(source.to_string()),

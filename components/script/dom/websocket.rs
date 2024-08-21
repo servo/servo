@@ -134,12 +134,13 @@ impl WebSocket {
         proto: Option<HandleObject>,
         url: ServoUrl,
         sender: IpcSender<WebSocketDomAction>,
+        can_gc: CanGc,
     ) -> DomRoot<WebSocket> {
         reflect_dom_object_with_proto(
             Box::new(WebSocket::new_inherited(url, sender)),
             global,
             proto,
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -148,6 +149,7 @@ impl WebSocket {
     pub fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         url: DOMString,
         protocols: Option<StringOrStringSequence>,
     ) -> Fallible<DomRoot<WebSocket>> {
@@ -201,7 +203,7 @@ impl WebSocket {
             ProfiledIpc::IpcReceiver<WebSocketNetworkEvent>,
         ) = ProfiledIpc::channel(global.time_profiler_chan().clone()).unwrap();
 
-        let ws = WebSocket::new(global, proto, url_record.clone(), dom_action_sender);
+        let ws = WebSocket::new(global, proto, url_record.clone(), dom_action_sender, can_gc);
         let address = Trusted::new(&*ws);
 
         // Step 8.

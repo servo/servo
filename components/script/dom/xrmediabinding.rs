@@ -36,12 +36,13 @@ impl XRMediaBinding {
         global: &Window,
         proto: Option<HandleObject>,
         session: &XRSession,
+        can_gc: CanGc,
     ) -> DomRoot<XRMediaBinding> {
         reflect_dom_object_with_proto(
             Box::new(XRMediaBinding::new_inherited(session)),
             global,
             proto,
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -49,6 +50,7 @@ impl XRMediaBinding {
     pub fn Constructor(
         global: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         session: &XRSession,
     ) -> Fallible<DomRoot<XRMediaBinding>> {
         // Step 1.
@@ -62,7 +64,7 @@ impl XRMediaBinding {
         }
 
         // Steps 3-5.
-        Ok(XRMediaBinding::new(global, proto, session))
+        Ok(XRMediaBinding::new(global, proto, session, can_gc))
     }
 }
 

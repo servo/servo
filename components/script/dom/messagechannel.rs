@@ -25,12 +25,17 @@ impl MessageChannel {
     pub fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> DomRoot<MessageChannel> {
-        MessageChannel::new(global, proto)
+        MessageChannel::new(global, proto, can_gc)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-messagechannel>
-    fn new(incumbent: &GlobalScope, proto: Option<HandleObject>) -> DomRoot<MessageChannel> {
+    fn new(
+        incumbent: &GlobalScope,
+        proto: Option<HandleObject>,
+        can_gc: CanGc,
+    ) -> DomRoot<MessageChannel> {
         // Step 1
         let port1 = MessagePort::new(incumbent);
 
@@ -48,7 +53,7 @@ impl MessageChannel {
             Box::new(MessageChannel::new_inherited(&port1, &port2)),
             incumbent,
             proto,
-            CanGc::note(),
+            can_gc,
         )
     }
 

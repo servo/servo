@@ -118,7 +118,7 @@ impl BiquadFilterNode {
         context: &BaseAudioContext,
         options: &BiquadFilterOptions,
     ) -> Fallible<DomRoot<BiquadFilterNode>> {
-        Self::new_with_proto(window, None, context, options)
+        Self::new_with_proto(window, None, context, options, CanGc::note())
     }
 
     #[allow(crown::unrooted_must_root)]
@@ -127,13 +127,14 @@ impl BiquadFilterNode {
         proto: Option<HandleObject>,
         context: &BaseAudioContext,
         options: &BiquadFilterOptions,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<BiquadFilterNode>> {
         let node = BiquadFilterNode::new_inherited(window, context, options)?;
         Ok(reflect_dom_object_with_proto(
             Box::new(node),
             window,
             proto,
-            CanGc::note(),
+            can_gc,
         ))
     }
 
@@ -141,10 +142,11 @@ impl BiquadFilterNode {
     pub fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         context: &BaseAudioContext,
         options: &BiquadFilterOptions,
     ) -> Fallible<DomRoot<BiquadFilterNode>> {
-        BiquadFilterNode::new_with_proto(window, proto, context, options)
+        BiquadFilterNode::new_with_proto(window, proto, context, options, can_gc)
     }
 }
 

@@ -62,7 +62,7 @@ impl ChannelSplitterNode {
         context: &BaseAudioContext,
         options: &ChannelSplitterOptions,
     ) -> Fallible<DomRoot<ChannelSplitterNode>> {
-        Self::new_with_proto(window, None, context, options)
+        Self::new_with_proto(window, None, context, options, CanGc::note())
     }
 
     #[allow(crown::unrooted_must_root)]
@@ -71,13 +71,14 @@ impl ChannelSplitterNode {
         proto: Option<HandleObject>,
         context: &BaseAudioContext,
         options: &ChannelSplitterOptions,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<ChannelSplitterNode>> {
         let node = ChannelSplitterNode::new_inherited(window, context, options)?;
         Ok(reflect_dom_object_with_proto(
             Box::new(node),
             window,
             proto,
-            CanGc::note(),
+            can_gc,
         ))
     }
 
@@ -85,9 +86,10 @@ impl ChannelSplitterNode {
     pub fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         context: &BaseAudioContext,
         options: &ChannelSplitterOptions,
     ) -> Fallible<DomRoot<ChannelSplitterNode>> {
-        ChannelSplitterNode::new_with_proto(window, proto, context, options)
+        ChannelSplitterNode::new_with_proto(window, proto, context, options, can_gc)
     }
 }
