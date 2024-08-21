@@ -38,6 +38,11 @@ jobs:
       wpt-layout: ${{ github.event_name == 'pull_request' && 'none' || '2020' }}
     secrets: inherit
 
+  lint:
+    name: Lint & Tidy
+    uses: ./.github/workflows/lint.yml
+    secrets: inherit
+
   build-android:
     name: Android
     if: ${{ github.event_name != 'pull_request' }}

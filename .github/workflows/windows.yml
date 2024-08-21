@@ -64,16 +64,8 @@ jobs:
         run: choco upgrade llvm
       - name: ccache
         uses: hendrikmuhs/ccache-action@v1.2
-      - name: Install taplo
-        uses: baptiste0928/cargo-install@v3
-        with:
-          crate: taplo-cli
-          locked: true
-      - name: Install cargo-deny
-        uses: baptiste0928/cargo-install@v3
-        with:
-          crate: cargo-deny
-          locked: true
+      - name: Install crown
+        run: cargo install --path support/crown
       - name: Install wixtoolset
         run: |
           choco install wixtoolset
@@ -86,7 +78,6 @@ jobs:
           python -m pip install --upgrade pip
           python mach fetch
           python mach bootstrap-gstreamer
-          cargo install --path support/crown
       # For some reason WiX isn't currently on the GitHub runner path. This is a
       # temporary workaround until that is fixed.
       - name: Add WiX to Path

@@ -50,6 +50,12 @@ jobs:
       unit-tests: ${{ inputs.unit-tests }}
       wpt-args: ${{ inputs.wpt-args }}
 
+  lint:
+    if: ${{ inputs.workflow == 'lint' }}
+    name: Lint & Tidy
+    uses: ./.github/workflows/lint.yml
+    secrets: inherit
+
   android:
     if: ${{ inputs.workflow == 'android' }}
     name: Android

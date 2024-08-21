@@ -44,20 +44,12 @@ jobs:
           fetch-depth: 2
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.4
-      - name: Install taplo
-        uses: baptiste0928/cargo-install@v3
-        with:
-          crate: taplo-cli
-          locked: true
-      - name: Install cargo-deny
-        uses: baptiste0928/cargo-install@v3
-        with:
-          crate: cargo-deny
-          locked: true
+      - name: Install crown
+        run: cargo install --path support/crown
       - name: Bootstrap Python
         run: python3 -m pip install --upgrade pip virtualenv
       - name: Bootstrap dependencies
-        run: sudo apt update && python3 ./mach bootstrap
+        run: sudo apt update && python3 ./mach bootstrap --skip-lints
       - name: Setup OpenHarmony SDK
         id: setup_sdk
         uses: openharmony-rs/setup-ohos-sdk@v0.1

@@ -47,6 +47,7 @@ class Workflow(str, Enum):
     WINDOWS = "windows"
     ANDROID = "android"
     OHOS = "ohos"
+    LINT = "lint"
 
 
 @dataclass
@@ -104,6 +105,8 @@ def handle_preset(s: str) -> Optional[JobConfig]:
                          wpt_args="--processes 1 _webgpu",  # run only webgpu cts
                          profile="production",  # WebGPU works to slow with debug assert
                          unit_tests=False)  # production profile does not work with unit-tests
+    elif s in ["lint", "tidy"]:
+        return JobConfig("Lint & Tidy", Workflow.LINT)
     else:
         return None
 
@@ -138,7 +141,7 @@ class Config(object):
                 self.fail_fast = True
                 continue  # skip over keyword
             if word == "full":
-                words.extend(["linux-wpt", "macos", "windows", "android", "ohos"])
+                words.extend(["linux-wpt", "macos", "windows", "android", "ohos", "lint"])
                 continue  # skip over keyword
 
             job = handle_preset(word)
