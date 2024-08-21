@@ -94,7 +94,8 @@ jobs:
           # up all workflow runs, and for each run, looking up its jobs!
           wait_for_workflow_run_to_appear() {
             local unique_id=$1
-            local tries=10
+            local tries=5
+            local sleep=5
 
             # Contrary to the API docs, ?created must have offset +00:00 (UTC),
             # or no results will be returned.
@@ -127,7 +128,7 @@ jobs:
                 fi
                 j=$((j + 1))
               done
-              sleep 1
+              sleep $sleep
               i=$((i + 1))
             done
             echo "No workflow run found!"
@@ -140,7 +141,8 @@ jobs:
           self_hosted_run_url=$workflow_run_url
           echo "Self-hosted workflow run: $self_hosted_run_url"
 
-          tries=10
+          tries=5
+          sleep=5
           i=0
           while [ $i -lt $tries ]; do
             self_hosted_run_status=$(gh api "$self_hosted_run_url" -q .status)
@@ -148,7 +150,7 @@ jobs:
             if [ "$self_hosted_run_status" != queued ]; then
               break
             fi
-            sleep 1
+            sleep $sleep
             i=$((i + 1))
           done
           if [ "$self_hosted_run_status" != queued ]; then
@@ -174,7 +176,9 @@ jobs:
       - name: Wait for workflow run to finish
         run: |
           export GH_TOKEN=${{ secrets.GITHUB_TOKEN }}
+          start_time=$(date +\%s)
 
+          sleep=60
           i=0
           while true; do
             run_conclusion=$(gh api '${{ steps.dispatch.outputs.url }}' -q .conclusion)
@@ -186,11 +190,9 @@ jobs:
                 exit 1
               fi
             else
-              if [ $((i % 10)) -eq 0 ]; then
-                echo "Waiting for workflow run to finish... ($i)"
-              fi
+              echo "Waiting for workflow run to finish... ($(($(date +\%s) - start_time)) seconds elapsed)"
             fi
-            sleep 1
+            sleep $sleep
             i=$((i + 1))
           done
 
