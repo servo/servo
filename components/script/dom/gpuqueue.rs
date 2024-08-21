@@ -127,7 +127,7 @@ impl GPUQueueMethods for GPUQueue {
         };
         // Step 2
         let data_size: usize = data.len() / sizeof_element;
-        assert_eq!(data.len() % sizeof_element, 0);
+        debug_assert_eq!(data.len() % sizeof_element, 0);
         // Step 3
         let content_size = if let Some(s) = size {
             s
