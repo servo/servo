@@ -8,6 +8,7 @@ use crate::dom::bindings::codegen::Bindings::XRPoseBinding::XRPoseMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::dompointreadonly::DOMPointReadOnly;
 use crate::dom::xrrigidtransform::XRRigidTransform;
 use crate::dom::xrsession::ApiRigidTransform;
 
@@ -36,5 +37,24 @@ impl XRPoseMethods for XRPose {
     /// <https://immersive-web.github.io/webxr/#dom-xrpose-transform>
     fn Transform(&self) -> DomRoot<XRRigidTransform> {
         DomRoot::from_ref(&self.transform)
+    }
+
+    /// <https://www.w3.org/TR/webxr/#dom-xrpose-linearvelocity>
+    fn GetLinearVelocity(&self) -> Option<DomRoot<DOMPointReadOnly>> {
+        // TODO: Expose from webxr crate
+        None
+    }
+
+    /// <https://www.w3.org/TR/webxr/#dom-xrpose-angularvelocity>
+    fn GetAngularVelocity(&self) -> Option<DomRoot<DOMPointReadOnly>> {
+        // TODO: Expose from webxr crate
+        None
+    }
+
+    /// <https://www.w3.org/TR/webxr/#dom-xrpose-emulatedposition>
+    fn EmulatedPosition(&self) -> bool {
+        // There are currently no instances in which we would need to rely
+        // on emulation for reporting pose, so return false.
+        false
     }
 }
