@@ -3,13 +3,6 @@ name: Windows
 on:
   workflow_call:
     inputs:
-      unique-id:
-        required: false
-        type: string
-      self-hosted-runner:
-        required: false
-        default: false
-        type: boolean
       profile:
         required: false
         default: "release"
@@ -27,13 +20,6 @@ on:
         type: string
   workflow_dispatch:
     inputs:
-      unique-id:
-        required: false
-        type: string
-      self-hosted-runner:
-        required: false
-        default: false
-        type: boolean
       profile:
         required: false
         default: "release"
@@ -47,9 +33,6 @@ on:
         required: false
         default: false
         type: boolean
-      github-release-id:
-        required: false
-        type: string
 
 env:
   RUST_BACKTRACE: 1
@@ -63,61 +46,153 @@ env:
   RUSTUP_WINDOWS_PATH_ADD_BIN: 1
 
 jobs:
-  build:
-    name: ${{ inputs.unique-id && format('Windows Build [{0}]', inputs.unique-id) || 'Windows Build' }}
-    runs-on: ${{ inputs.self-hosted-runner && 'self-hosted-windows10' || 'windows-2022' }}
+  # Automatic runner selection for job: build
+  # Runs the underlying job (“workload”) on a self-hosted runner if available,
+  # with the help of a `runner-select` job and a `runner-timeout` job.
+
+  # Selects a self-hosted runner if available, or else a GitHub-hosted runner.
+  # We generate a unique id for the workload, find an idle self-hosted runner
+  # with the given `image:` label that wasn’t already reserved by another
+  # `runner-select` job run, and reserve it with a `reserved-for:<id>` label.
+  runner-select:
+    name: Runner select
+    runs-on: ubuntu-latest
+    outputs:
+      unique-id: ${{ steps.select.outputs.unique_id }}
+      selected-runner-label: ${{ steps.select.outputs.selected_runner_label }}
+      is-self-hosted: ${{ steps.select.outputs.is_self_hosted }}
+    concurrency:
+      group: servo-reserve-self-hosted-runner
+      cancel-in-progress: false
+    permissions: write-all
     steps:
-      - if: ${{ ! inputs.self-hosted-runner && github.event_name != 'pull_request_target' }}
+      - name: Select and reserve best available runner
+        id: select
+        # Set the variables below to your desired runner images, runner scope
+        # (org or repo), and a token with permission to write to that scope.
+        run: |
+          github_hosted_runner_label=windows-2022
+          self_hosted_image_label=self-hosted-image:windows10
+          self_hosted_runner_scope=/repos/${{ github.repository }}/actions/runners
+          export GH_TOKEN=${{ secrets.RUNNER_API_TOKEN }}
+
+          runners=$(mktemp)
+          gh api "$self_hosted_runner_scope" > $runners
+
+          # Generate a unique id that allows the workload job to find the runner
+          # we are reserving for it (via runner labels), and allows the timeout
+          # job to find the workload job run (via the job’s friendly name), even
+          # if there are multiple instances in the workflow call tree.
+          random32=$(LC_ALL=C < /dev/urandom tr -dC 0-9a-f 2> /dev/null | head -c 8)
+          unique_id=${{ github.repository }}/${{ github.run_id }}/$random32
+          echo "unique_id=$unique_id" | tee -a $GITHUB_OUTPUT
+
+          # Find a runner that is online, not busy, and not already reserved for
+          # any job (label prefix “reserved-for:”).
+          runner_id=$(mktemp)
+          if ! < $runners > $runner_id jq \
+            --arg self_hosted_image_label "$self_hosted_image_label" -e '
+              .runners
+              | map(select(.status == "online" and .busy == false))
+              | map(select([.labels[].name] | index($self_hosted_image_label) | not | not))
+              | map(select([.labels[].name] | map(startswith("reserved-for:")) | index(true) | not))
+              | first | .id'; then
+            echo "selected_runner_label=$github_hosted_runner_label" | tee -a $GITHUB_OUTPUT
+            echo 'is_self_hosted=false' | tee -a $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # Reserve that runner by adding a label containing the unique id.
+          # Job concurrency ensures that runners never get assigned twice.
+          reserved_since=$(date +\%s)
+          gh api "$self_hosted_runner_scope/$(cat $runner_id)/labels" \
+            -f "labels[]=reserved-for:$unique_id" \
+            -f "labels[]=reserved-since:$reserved_since" \
+            --method POST --silent
+          echo "selected_runner_label=reserved-for:$unique_id" | tee -a $GITHUB_OUTPUT
+          echo 'is_self_hosted=true' | tee -a $GITHUB_OUTPUT
+
+  # In the unlikely event the selected runner goes down after we reserve it but
+  # before the workload starts, cancel the workflow run.
+  runner-timeout:
+    name: Runner timeout
+    runs-on: ubuntu-latest
+    needs:
+      - runner-select
+    steps:
+      - name: Wait a bit
+        run: sleep 30
+
+      - name: Cancel if workload job is still queued
+        run: |
+          run_url=/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          export GH_TOKEN=${{ secrets.GITHUB_TOKEN }}
+
+          if [ "$(gh api "$run_url/jobs" \
+            | jq -er --arg id '${{ needs.runner-select.outputs.unique-id }}' \
+              '.jobs[] | select(.name | contains("[" + $id + "]")) | .status'
+          )" = queued ]; then
+            echo "Timeout waiting for runner assignment! Cancelling workflow run"
+            gh api "$run_url/cancel" --method POST
+          fi
+
+  build:
+    needs:
+      - runner-select
+    name: Windows Build [${{ needs.runner-select.outputs.unique-id }}]
+    runs-on: ${{ needs.runner-select.outputs.selected-runner-label }}
+    steps:
+      - if: ${{ ! fromJSON(needs.runner-select.outputs.is-self-hosted) && github.event_name != 'pull_request_target' }}
         uses: actions/checkout@v4
-      - if: ${{ ! inputs.self-hosted-runner && github.event_name == 'pull_request_target' }}
+      - if: ${{ ! fromJSON(needs.runner-select.outputs.is-self-hosted) && github.event_name == 'pull_request_target' }}
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 2
 
       # Faster checkout for self-hosted runner that uses prebaked repo.
-      - if: ${{ inputs.self-hosted-runner && github.event_name != 'pull_request_target' }}
+      - if: ${{ fromJSON(needs.runner-select.outputs.is-self-hosted) && github.event_name != 'pull_request_target' }}
         run: git fetch --depth=2 origin $env:GITHUB_SHA
-      - if: ${{ inputs.self-hosted-runner && github.event_name == 'pull_request_target' }}
+      - if: ${{ fromJSON(needs.runner-select.outputs.is-self-hosted) && github.event_name == 'pull_request_target' }}
         run: git fetch --depth=2 origin refs/pull/${{ github.event_number }}/head
-      - if: ${{ inputs.self-hosted-runner }}
+      - if: ${{ fromJSON(needs.runner-select.outputs.is-self-hosted) }}
         run: git switch --detach FETCH_HEAD
 
       - name: ccache
         # FIXME: “Error: Restoring cache failed: Error: Unable to locate executable file: sh.”
-        if: ${{ ! inputs.self-hosted-runner }}
+        if: ${{ ! fromJSON(needs.runner-select.outputs.is-self-hosted) }}
         uses: hendrikmuhs/ccache-action@v1.2
 
       # Install missing tools in a GitHub-hosted runner.
       # Workaround for https://github.com/actions/runner-images/issues/10001:
       - name: Upgrade llvm
-        if: ${{ ! inputs.self-hosted-runner }}
+        if: ${{ ! fromJSON(needs.runner-select.outputs.is-self-hosted) }}
         run: choco upgrade llvm
       - name: Install taplo
         # Already installed in self-hosted runner (also, pwsh command not found).
-        if: ${{ ! inputs.self-hosted-runner }}
+        if: ${{ ! fromJSON(needs.runner-select.outputs.is-self-hosted) }}
         uses: baptiste0928/cargo-install@v3
         with:
           crate: taplo-cli
           locked: true
       - name: Install cargo-deny
         # Already installed in self-hosted runner (also, pwsh command not found).
-        if: ${{ ! inputs.self-hosted-runner }}
+        if: ${{ ! fromJSON(needs.runner-select.outputs.is-self-hosted) }}
         uses: baptiste0928/cargo-install@v3
         with:
           crate: cargo-deny
           locked: true
       - name: Install wixtoolset
-        if: ${{ ! inputs.self-hosted-runner }}
+        if: ${{ ! fromJSON(needs.runner-select.outputs.is-self-hosted) }}
         run: |
           choco install wixtoolset
           echo "C:\\Program Files (x86)\\WiX Toolset v3.11\\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
       - uses: actions/setup-python@v5
-        if: ${{ ! inputs.self-hosted-runner }}
+        if: ${{ ! fromJSON(needs.runner-select.outputs.is-self-hosted) }}
         with:
           python-version: "3.10"
       - name: Bootstrap
-        if: ${{ ! inputs.self-hosted-runner }}
+        if: ${{ ! fromJSON(needs.runner-select.outputs.is-self-hosted) }}
         run: |
           python -m pip install --upgrade pip
           python mach fetch
@@ -126,13 +201,13 @@ jobs:
       # For some reason WiX isn't currently on the GitHub runner path. This is a
       # temporary workaround until that is fixed.
       - name: Add WiX to Path
-        if: ${{ ! inputs.self-hosted-runner }}
+        if: ${{ ! fromJSON(needs.runner-select.outputs.is-self-hosted) }}
         run: |
           "$env:WIX\bin" >> $env:GITHUB_PATH
 
       # Configure tools in a self-hosted runner.
       - name: Add python and wixtoolset to path
-        if: ${{ inputs.self-hosted-runner }}
+        if: ${{ fromJSON(needs.runner-select.outputs.is-self-hosted) }}
         run: |
           "$env:LOCALAPPDATA\Programs\Python\Python312" >> $env:GITHUB_PATH
           "C:\Program Files (x86)\WiX Toolset v3.11\bin" >> $env:GITHUB_PATH
@@ -142,7 +217,7 @@ jobs:
           python mach build --use-crown --locked --${{ inputs.profile }}
           cp C:\a\servo\servo\target\cargo-timings C:\a\servo\servo\target\cargo-timings-windows -Recurse
       - name: Copy resources
-        if: ${{ ! inputs.self-hosted-runner }}
+        if: ${{ ! fromJSON(needs.runner-select.outputs.is-self-hosted) }}
         # GitHub-hosted runners check out the repo on D: drive.
         run: cp D:\a\servo\servo\resources C:\a\servo\servo -Recurse
       - name: Smoketest

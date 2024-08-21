@@ -22,7 +22,7 @@ jobs:
   win:
     if: ${{ inputs.workflow == 'windows' }}
     name: Windows
-    uses: ./.github/workflows/windows-auto.yml
+    uses: ./.github/workflows/windows.yml
     secrets: inherit
     with:
       profile: ${{ inputs.profile }}
