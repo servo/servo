@@ -19,32 +19,12 @@ on:
         type: boolean
 
 jobs:
-  # Generate unique ids that distinguish each auto-runner build from other
-  # auto-runner builds in the same workflow call tree.
-  # FIXME: we should really do this in the “foo-platform-auto” build itself,
-  # but needs-context expressions are busted in jobs.<job id>.concurrency,
-  # despite being supported according to the docs:
-  # <https://docs.github.com/en/actions/writing-workflows/workflow-syntax-for-github-actions#jobsjob_idconcurrency>
-  unique-ids:
-    name: Generate unique ids
-    runs-on: ubuntu-latest
-    outputs:
-      win: ${{ steps.generate.outputs.win }}
-    steps:
-      - id: generate
-        run: |
-          win=$(LC_ALL=C < /dev/urandom tr -dC 0-9A-Za-z_- 2> /dev/null | head -c 8)
-          echo "win=${{ github.repository }}/${{ github.run_id }}/$win" | tee -a "$GITHUB_OUTPUT"
-
   win:
     if: ${{ inputs.workflow == 'windows' }}
     name: Windows
     uses: ./.github/workflows/windows-auto.yml
-    needs:
-      - unique-ids
     secrets: inherit
     with:
-      unique-id: ${{ needs.unique-ids.outputs.win }}
       profile: ${{ inputs.profile }}
       unit-tests: ${{ inputs.unit-tests }}
 
