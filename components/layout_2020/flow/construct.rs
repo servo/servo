@@ -217,6 +217,7 @@ where
             self.text_decoration_line,
             !self.have_already_seen_first_line_for_text_indent,
             self.info.is_single_line_text_input(),
+            self.info.style.writing_mode.to_bidi_level(),
         ) {
             // There are two options here. This block was composed of both one or more inline formatting contexts
             // and child blocks OR this block was a single inline formatting context. In the latter case, we
@@ -489,6 +490,7 @@ where
                 self.context,
                 self.text_decoration_line,
                 !self.have_already_seen_first_line_for_text_indent,
+                self.info.style.writing_mode.to_bidi_level(),
             )
         {
             self.push_block_level_job_for_inline_formatting_context(inline_formatting_context);
@@ -602,6 +604,7 @@ where
             self.text_decoration_line,
             !self.have_already_seen_first_line_for_text_indent,
             self.info.is_single_line_text_input(),
+            self.info.style.writing_mode.to_bidi_level(),
         ) {
             self.push_block_level_job_for_inline_formatting_context(inline_formatting_context);
         }

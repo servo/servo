@@ -8,9 +8,7 @@ use std::ops::{Add, AddAssign, Neg, Sub, SubAssign};
 
 use app_units::Au;
 use serde::Serialize;
-use style::logical_geometry::{
-    BlockFlowDirection, InlineBaseDirection, PhysicalCorner, WritingMode,
-};
+use style::logical_geometry::{BlockFlowDirection, InlineBaseDirection, WritingMode};
 use style::values::computed::{CSSPixelLength, Length, LengthPercentage};
 use style::values::generics::length::GenericLengthPercentageOrAuto as AutoOr;
 use style::Zero;
@@ -489,15 +487,10 @@ impl<T> LogicalRect<T> {
 
     pub fn to_physical(&self, mode: WritingMode) -> PhysicalRect<T>
     where
-        T: Clone,
+        T: Copy,
     {
-        // Top-left corner
-        let (tl_x, tl_y) = match mode.start_start_physical_corner() {
-            PhysicalCorner::TopLeft => (&self.start_corner.inline, &self.start_corner.block),
-            _ => unimplemented!(),
-        };
         PhysicalRect::new(
-            PhysicalPoint::new(tl_x.clone(), tl_y.clone()),
+            self.start_corner.to_physical_point(mode),
             self.size.to_physical_size(mode),
         )
     }

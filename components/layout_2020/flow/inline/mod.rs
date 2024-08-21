@@ -108,6 +108,7 @@ use text_run::{
     add_or_get_font, get_font_for_first_font_for_style, TextRun, XI_LINE_BREAKING_CLASS_GL,
     XI_LINE_BREAKING_CLASS_WJ, XI_LINE_BREAKING_CLASS_ZWJ,
 };
+use unicode_bidi::{BidiInfo, Level};
 use webrender_api::FontInstanceKey;
 use xi_unicode::linebreak_property;
 
@@ -161,8 +162,12 @@ pub(crate) struct InlineFormattingContext {
     /// Whether or not this [`InlineFormattingContext`] contains floats.
     pub(super) contains_floats: bool,
 
-    /// Whether or not this is an inline formatting context for a single line text input.
+    /// Whether or not this is an [`InlineFormattingContext`] for a single line text input.
     pub(super) is_single_line_text_input: bool,
+
+    /// Whether or not this is an [`InlineFormattingContext`] has right-to-left content, which
+    /// will require reordering during layout.
+    pub(super) has_right_to_left_content: bool,
 }
 
 /// A collection of data used to cache [`FontMetrics`] in the [`InlineFormattingContext`]
@@ -178,11 +183,15 @@ pub(crate) enum InlineItem {
     StartInlineBox(InlineBoxIdentifier),
     EndInlineBox,
     TextRun(TextRun),
-    OutOfFlowAbsolutelyPositionedBox(ArcRefCell<AbsolutelyPositionedBox>),
+    OutOfFlowAbsolutelyPositionedBox(
+        ArcRefCell<AbsolutelyPositionedBox>,
+        usize, /* offset_in_text */
+    ),
     OutOfFlowFloatBox(FloatBox),
     Atomic(
         IndependentFormattingContext,
         usize, /* offset_in_text */
+        Level, /* bidi_level */
     ),
 }
 
@@ -639,6 +648,9 @@ pub(super) struct InlineFormattingContextState<'a, 'b> {
     /// are laying out. This is used to propagate baselines to the ancestors of
     /// `display: inline-block` elements and table content.
     baselines: Baselines,
+
+    /// Whether or not the [`InlineFormattingContext`] being laid out has right-to-left content.
+    has_right_to_left_content: bool,
 }
 
 impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
@@ -853,7 +865,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
         let start_positioning_context_length = self.positioning_context.len();
         let fragments = LineItemLayout::layout_line_items(
             self,
-            &mut line_to_layout.line_items.into_iter(),
+            line_to_layout.line_items,
             start_position,
             &effective_block_advance,
             justification_adjustment,
@@ -907,9 +919,9 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
         last_line_or_forced_line_break: bool,
     ) -> (Au, Au) {
         enum TextAlign {
-            Start,
+            Left,
             Center,
-            End,
+            Right,
         }
         let style = self.containing_block.style;
         let mut text_align_keyword = style.clone_text_align();
@@ -930,24 +942,24 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
         }
 
         let text_align = match text_align_keyword {
-            TextAlignKeyword::Start => TextAlign::Start,
+            TextAlignKeyword::Start => {
+                if style.writing_mode.line_left_is_inline_start() {
+                    TextAlign::Left
+                } else {
+                    TextAlign::Right
+                }
+            },
             TextAlignKeyword::Center | TextAlignKeyword::MozCenter => TextAlign::Center,
-            TextAlignKeyword::End => TextAlign::End,
-            TextAlignKeyword::Left | TextAlignKeyword::MozLeft => {
-                if style.effective_writing_mode().line_left_is_inline_start() {
-                    TextAlign::Start
+            TextAlignKeyword::End => {
+                if style.writing_mode.line_left_is_inline_start() {
+                    TextAlign::Right
                 } else {
-                    TextAlign::End
+                    TextAlign::Left
                 }
             },
-            TextAlignKeyword::Right | TextAlignKeyword::MozRight => {
-                if style.effective_writing_mode().line_left_is_inline_start() {
-                    TextAlign::End
-                } else {
-                    TextAlign::Start
-                }
-            },
-            TextAlignKeyword::Justify => TextAlign::Start,
+            TextAlignKeyword::Left | TextAlignKeyword::MozLeft => TextAlign::Left,
+            TextAlignKeyword::Right | TextAlignKeyword::MozRight => TextAlign::Right,
+            TextAlignKeyword::Justify => TextAlign::Left,
         };
 
         let (line_start, available_space) = match self.current_line.placement_among_floats.get() {
@@ -968,8 +980,8 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
         let line_length = self.current_line.inline_position - whitespace_trimmed - text_indent;
         let adjusted_line_start = line_start +
             match text_align {
-                TextAlign::Start => text_indent,
-                TextAlign::End => (available_space - line_length).max(text_indent),
+                TextAlign::Left => text_indent,
+                TextAlign::Right => (available_space - line_length).max(text_indent),
                 TextAlign::Center => (available_space - line_length + text_indent)
                     .scale_by(0.5)
                     .max(text_indent),
@@ -1241,6 +1253,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
         glyph_store: std::sync::Arc<GlyphStore>,
         text_run: &TextRun,
         font_index: usize,
+        bidi_level: Level,
     ) {
         let inline_advance = glyph_store.total_advance();
         let flags = if glyph_store.is_whitespace() {
@@ -1288,8 +1301,8 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
         let current_inline_box_identifier = self.current_inline_box_identifier();
         match self.current_line_segment.line_items.last_mut() {
             Some(LineItem::TextRun(inline_box_identifier, line_item))
-                if ifc_font_info.key == line_item.font_key &&
-                    *inline_box_identifier == current_inline_box_identifier =>
+                if *inline_box_identifier == current_inline_box_identifier &&
+                    line_item.can_merge(ifc_font_info.key, bidi_level) =>
             {
                 line_item.text.push(glyph_store);
                 return;
@@ -1306,6 +1319,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
                 font_metrics,
                 font_key: ifc_font_info.key,
                 text_decoration_line: self.current_inline_container_state().text_decoration_line,
+                bidi_level,
             },
         ));
     }
@@ -1436,26 +1450,9 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
             assert!(!will_break);
         }
 
-        // Try to merge all TextRuns in the line.
-        let to_skip = match (
-            self.current_line.line_items.last_mut(),
-            segment_items.first_mut(),
-        ) {
-            (
-                Some(LineItem::TextRun(last_inline_box_identifier, last_line_item)),
-                Some(LineItem::TextRun(first_inline_box_identifier, first_segment_item)),
-            ) if last_line_item.font_key == first_segment_item.font_key &&
-                last_inline_box_identifier == first_inline_box_identifier =>
-            {
-                last_line_item.text.append(&mut first_segment_item.text);
-                1
-            },
-            _ => 0,
-        };
-
         self.current_line
             .line_items
-            .extend(segment_items.into_iter().skip(to_skip));
+            .extend(segment_items.into_iter());
         self.current_line.has_content |= self.current_line_segment.has_content;
 
         self.current_line_segment.reset();
@@ -1510,10 +1507,14 @@ impl InlineFormattingContext {
         text_decoration_line: TextDecorationLine,
         has_first_formatted_line: bool,
         is_single_line_text_input: bool,
+        starting_bidi_level: Level,
     ) -> Self {
         // This is to prevent a double borrow.
         let text_content: String = builder.text_segments.into_iter().collect();
         let mut font_metrics = Vec::new();
+
+        let bidi_info = BidiInfo::new(&text_content, Some(starting_bidi_level));
+        let has_right_to_left_content = bidi_info.has_rtl();
 
         let mut new_linebreaker = LineBreaker::new(text_content.as_str());
         for item in builder.inline_items.iter() {
@@ -1524,6 +1525,7 @@ impl InlineFormattingContext {
                         &layout_context.font_context,
                         &mut new_linebreaker,
                         &mut font_metrics,
+                        &bidi_info,
                     );
                 },
                 InlineItem::StartInlineBox(identifier) => {
@@ -1537,7 +1539,12 @@ impl InlineFormattingContext {
                             Some(add_or_get_font(&font, &mut font_metrics));
                     }
                 },
-                _ => {},
+                InlineItem::Atomic(_, index_in_text, bidi_level) => {
+                    *bidi_level = bidi_info.levels[*index_in_text];
+                },
+                InlineItem::OutOfFlowAbsolutelyPositionedBox(..) |
+                InlineItem::OutOfFlowFloatBox(_) |
+                InlineItem::EndInlineBox => {},
             }
         }
 
@@ -1550,6 +1557,7 @@ impl InlineFormattingContext {
             has_first_formatted_line,
             contains_floats: builder.contains_floats,
             is_single_line_text_input,
+            has_right_to_left_content,
         }
     }
 
@@ -1630,6 +1638,7 @@ impl InlineFormattingContext {
             white_space_collapse: style_text.white_space_collapse,
             text_wrap_mode: style_text.text_wrap_mode,
             baselines: Baselines::default(),
+            has_right_to_left_content: self.has_right_to_left_content,
         };
 
         // FIXME(pcwalton): This assumes that margins never collapse through inline formatting
@@ -1654,15 +1663,16 @@ impl InlineFormattingContext {
                 },
                 InlineItem::EndInlineBox => ifc.finish_inline_box(),
                 InlineItem::TextRun(run) => run.layout_into_line_items(&mut ifc),
-                InlineItem::Atomic(atomic_formatting_context, offset_in_text) => {
+                InlineItem::Atomic(atomic_formatting_context, offset_in_text, bidi_level) => {
                     atomic_formatting_context.layout_into_line_items(
                         layout_context,
                         self,
                         &mut ifc,
                         *offset_in_text,
+                        *bidi_level,
                     );
                 },
-                InlineItem::OutOfFlowAbsolutelyPositionedBox(positioned_box) => {
+                InlineItem::OutOfFlowAbsolutelyPositionedBox(positioned_box, _) => {
                     ifc.push_line_item_to_unbreakable_segment(LineItem::AbsolutelyPositioned(
                         ifc.current_inline_box_identifier(),
                         AbsolutelyPositionedLineItem {
@@ -1907,6 +1917,7 @@ impl IndependentFormattingContext {
         inline_formatting_context: &InlineFormattingContext,
         inline_formatting_context_state: &mut InlineFormattingContextState,
         offset_in_text: usize,
+        bidi_level: Level,
     ) {
         let style = self.style();
         let container_writing_mode = inline_formatting_context_state
@@ -1986,9 +1997,13 @@ impl IndependentFormattingContext {
                     inline_formatting_context_state
                         .containing_block
                         .style
-                        .effective_writing_mode(),
-                    containing_block_for_children.effective_writing_mode(),
-                    "Mixed writing modes are not supported yet"
+                        .writing_mode
+                        .is_horizontal(),
+                    containing_block_for_children
+                        .style
+                        .writing_mode
+                        .is_horizontal(),
+                    "Mixed horizontal and vertical writing modes are not supported yet"
                 );
 
                 // This always collects for the nearest positioned ancestor even if the parent positioning
@@ -2081,6 +2096,7 @@ impl IndependentFormattingContext {
                 positioning_context: child_positioning_context,
                 baseline_offset_in_parent,
                 baseline_offset_in_item: baseline_offset,
+                bidi_level,
             },
         ));
 
@@ -2378,7 +2394,7 @@ impl<'a> ContentSizesComputation<'a> {
                     }
                 }
             },
-            InlineItem::Atomic(atomic, offset_in_text) => {
+            InlineItem::Atomic(atomic, offset_in_text, _level) => {
                 // TODO: need to handle TextWrapMode::Nowrap.
                 if !inline_formatting_context
                     .previous_character_prevents_soft_wrap_opportunity(*offset_in_text)

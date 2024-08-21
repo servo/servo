@@ -8,6 +8,7 @@ use std::char::{ToLowercase, ToUppercase};
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 use style::values::computed::TextDecorationLine;
 use style::values::specified::text::TextTransformCase;
+use unicode_bidi::Level;
 use unicode_segmentation::UnicodeSegmentation;
 
 use super::text_run::TextRun;
@@ -19,6 +20,7 @@ use crate::dom_traversal::NodeAndStyleInfo;
 use crate::flow::float::FloatBox;
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::positioned::AbsolutelyPositionedBox;
+use crate::style_ext::ComputedValuesExt;
 
 #[derive(Default)]
 pub(crate) struct InlineFormattingContextBuilder {
@@ -82,6 +84,11 @@ impl InlineFormattingContextBuilder {
         !self.inline_box_stack.is_empty()
     }
 
+    fn push_control_character_string(&mut self, string_to_push: &str) {
+        self.text_segments.push(string_to_push.to_owned());
+        self.current_text_offset += string_to_push.len();
+    }
+
     /// Return true if this [`InlineFormattingContextBuilder`] is empty for the purposes of ignoring
     /// during box tree construction. An IFC is empty if it only contains TextRuns with
     /// completely collapsible whitespace. When that happens it can be ignored completely.
@@ -101,7 +108,7 @@ impl InlineFormattingContextBuilder {
                 // Text content is handled by `self.has_uncollapsible_text` content above in order
                 // to avoid having to iterate through the character once again.
                 InlineItem::TextRun(_) => true,
-                InlineItem::OutOfFlowAbsolutelyPositionedBox(_) => false,
+                InlineItem::OutOfFlowAbsolutelyPositionedBox(..) => false,
                 InlineItem::OutOfFlowFloatBox(_) => false,
                 InlineItem::Atomic(..) => false,
             }
@@ -119,14 +126,13 @@ impl InlineFormattingContextBuilder {
         let inline_level_box = ArcRefCell::new(InlineItem::Atomic(
             independent_formatting_context,
             self.current_text_offset,
+            Level::ltr(), /* This will be assigned later if necessary. */
         ));
         self.inline_items.push(inline_level_box.clone());
 
         // Push an object replacement character for this atomic, which will ensure that the line breaker
         // inserts a line breaking opportunity here.
-        let string_to_push = "\u{fffc}";
-        self.text_segments.push(string_to_push.to_owned());
-        self.current_text_offset += string_to_push.len();
+        self.push_control_character_string("\u{fffc}");
 
         self.last_inline_box_ended_with_collapsible_white_space = false;
         self.on_word_boundary = true;
@@ -141,7 +147,9 @@ impl InlineFormattingContextBuilder {
         let absolutely_positioned_box = ArcRefCell::new(absolutely_positioned_box);
         let inline_level_box = ArcRefCell::new(InlineItem::OutOfFlowAbsolutelyPositionedBox(
             absolutely_positioned_box,
+            self.current_text_offset,
         ));
+
         self.inline_items.push(inline_level_box.clone());
         inline_level_box
     }
@@ -154,6 +162,8 @@ impl InlineFormattingContextBuilder {
     }
 
     pub(crate) fn start_inline_box(&mut self, inline_box: InlineBox) {
+        self.push_control_character_string(inline_box.style.bidi_control_chars().0);
+
         let identifier = self.inline_boxes.start_inline_box(inline_box);
         self.inline_items
             .push(ArcRefCell::new(InlineItem::StartInlineBox(identifier)));
@@ -164,6 +174,9 @@ impl InlineFormattingContextBuilder {
         let identifier = self.end_inline_box_internal();
         let inline_level_box = self.inline_boxes.get(&identifier);
         inline_level_box.borrow_mut().is_last_fragment = true;
+
+        self.push_control_character_string(inline_level_box.borrow().style.bidi_control_chars().1);
+
         inline_level_box
     }
 
@@ -261,6 +274,7 @@ impl InlineFormattingContextBuilder {
         layout_context: &LayoutContext,
         text_decoration_line: TextDecorationLine,
         has_first_formatted_line: bool,
+        default_bidi_level: Level,
     ) -> Option<InlineFormattingContext> {
         if self.is_empty() {
             return None;
@@ -293,6 +307,7 @@ impl InlineFormattingContextBuilder {
             text_decoration_line,
             has_first_formatted_line,
             /* is_single_line_text_input = */ false,
+            default_bidi_level,
         )
     }
 
@@ -303,6 +318,7 @@ impl InlineFormattingContextBuilder {
         text_decoration_line: TextDecorationLine,
         has_first_formatted_line: bool,
         is_single_line_text_input: bool,
+        default_bidi_level: Level,
     ) -> Option<InlineFormattingContext> {
         if self.is_empty() {
             return None;
@@ -317,6 +333,7 @@ impl InlineFormattingContextBuilder {
             text_decoration_line,
             has_first_formatted_line,
             is_single_line_text_input,
+            default_bidi_level,
         ))
     }
 }

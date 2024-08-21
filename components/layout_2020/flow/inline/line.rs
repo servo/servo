@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::rc::Rc;
-use std::vec::IntoIter;
 
 use app_units::Au;
 use bitflags::bitflags;
@@ -18,6 +17,7 @@ use style::values::specified::box_::DisplayOutside;
 use style::values::specified::text::TextDecorationLine;
 use style::values::Either;
 use style::Zero;
+use unicode_bidi::{BidiInfo, Level};
 use webrender_api::FontInstanceKey;
 
 use super::inline_box::{
@@ -170,7 +170,7 @@ pub(super) struct LineItemLayout<'a> {
 impl<'a> LineItemLayout<'a> {
     pub(super) fn layout_line_items(
         state: &mut InlineFormattingContextState,
-        iterator: &mut IntoIter<LineItem>,
+        line_items: Vec<LineItem>,
         start_position: LogicalVec2<Au>,
         effective_block_advance: &LineBlockSizes,
         justification_adjustment: Au,
@@ -191,7 +191,7 @@ impl<'a> LineItemLayout<'a> {
             },
             justification_adjustment,
         }
-        .layout(iterator)
+        .layout(line_items, state.has_right_to_left_content)
     }
 
     /// Start and end inline boxes in tree order, so that it reflects the given inline box.
@@ -217,8 +217,40 @@ impl<'a> LineItemLayout<'a> {
         }
     }
 
-    pub(super) fn layout(&mut self, iterator: &mut IntoIter<LineItem>) -> Vec<Fragment> {
-        for item in iterator.by_ref() {
+    pub(super) fn layout(
+        &mut self,
+        mut line_items: Vec<LineItem>,
+        has_right_to_left_content: bool,
+    ) -> Vec<Fragment> {
+        let mut last_level: Level = Level::ltr();
+        let levels: Vec<_> = line_items
+            .iter()
+            .map(|item| {
+                let level = match item {
+                    LineItem::TextRun(_, text_run) => text_run.bidi_level,
+                    // TODO: This level needs either to be last_level, or if there were
+                    // unicode characters inserted for the inline box, we need to get the
+                    // level from them.
+                    LineItem::StartInlineBoxPaddingBorderMargin(_) => last_level,
+                    LineItem::EndInlineBoxPaddingBorderMargin(_) => last_level,
+                    LineItem::Atomic(_, atomic) => atomic.bidi_level,
+                    LineItem::AbsolutelyPositioned(..) => last_level,
+                    LineItem::Float(..) => {
+                        // At this point the float is already positioned, so it doesn't really matter what
+                        // position it's fragment has in the order of line items.
+                        last_level
+                    },
+                };
+                last_level = level;
+                level
+            })
+            .collect();
+
+        if has_right_to_left_content {
+            sort_by_indices_in_place(&mut line_items, BidiInfo::reorder_visual(&levels));
+        }
+
+        for item in line_items.into_iter().by_ref() {
             // When preparing to lay out a new line item, start and end inline boxes, so that the current
             // inline box state reflects the item's parent. Items in the line are not necessarily in tree
             // order due to BiDi and other reordering so the inline box of the item could potentially be
@@ -304,10 +336,10 @@ impl<'a> LineItemLayout<'a> {
     }
 
     fn end_inline_box(&mut self) {
-        let outer_state = self.state_stack.pop().expect("Ended unknown inline box 11");
+        let outer_state = self.state_stack.pop().expect("Ended unknown inline box");
         let mut inner_state = std::mem::replace(&mut self.state, outer_state);
 
-        let identifier = inner_state.identifier.expect("Ended unknown inline box 22");
+        let identifier = inner_state.identifier.expect("Ended unknown inline box");
         let inline_box_state = &*self.inline_box_states[identifier.index_in_inline_boxes as usize];
         let inline_box = self.inline_boxes.get(&identifier);
         let inline_box = &*(inline_box.borrow());
@@ -315,23 +347,24 @@ impl<'a> LineItemLayout<'a> {
         let mut padding = inline_box_state.pbm.padding;
         let mut border = inline_box_state.pbm.border;
         let mut margin = inline_box_state.pbm.margin.auto_is(Au::zero);
-        if !inner_state
+
+        let had_start = inner_state
             .flags
-            .contains(LineLayoutInlineContainerFlags::HAD_START_PBM)
-        {
+            .contains(LineLayoutInlineContainerFlags::HAD_START_PBM);
+        let had_end = inner_state
+            .flags
+            .contains(LineLayoutInlineContainerFlags::HAD_END_PBM);
+
+        if !had_start {
             padding.inline_start = Au::zero();
             border.inline_start = Au::zero();
             margin.inline_start = Au::zero();
         }
-        if !inner_state
-            .flags
-            .contains(LineLayoutInlineContainerFlags::HAD_END_PBM)
-        {
+        if !had_end {
             padding.inline_end = Au::zero();
             border.inline_end = Au::zero();
             margin.inline_end = Au::zero();
         }
-
         // If the inline box didn't have any content at all and it isn't the first fragment for
         // an element (needed for layout queries currently) and it didn't have any padding, border,
         // or margin do not make a fragment for it.
@@ -339,12 +372,7 @@ impl<'a> LineItemLayout<'a> {
         // Note: This is an optimization, but also has side effects. Any fragments on a line will
         // force the baseline to advance in the parent IFC.
         let pbm_sums = padding + border + margin;
-        if inner_state.fragments.is_empty() &&
-            !inner_state
-                .flags
-                .contains(LineLayoutInlineContainerFlags::HAD_START_PBM) &&
-            pbm_sums.inline_sum().is_zero()
-        {
+        if inner_state.fragments.is_empty() && !had_start && pbm_sums.inline_sum().is_zero() {
             return;
         }
 
@@ -645,6 +673,8 @@ pub(super) struct TextRunLineItem {
     pub font_metrics: FontMetrics,
     pub font_key: FontInstanceKey,
     pub text_decoration_line: TextDecorationLine,
+    /// The BiDi level of this [`TextRunLineItem`] to enable reordering.
+    pub bidi_level: Level,
 }
 
 impl TextRunLineItem {
@@ -697,6 +727,10 @@ impl TextRunLineItem {
         // Only keep going if we only encountered whitespace.
         self.text.is_empty()
     }
+
+    pub(crate) fn can_merge(&self, font_key: FontInstanceKey, bidi_level: Level) -> bool {
+        self.font_key == font_key && self.bidi_level == bidi_level
+    }
 }
 
 pub(super) struct AtomicLineItem {
@@ -711,6 +745,9 @@ pub(super) struct AtomicLineItem {
 
     /// The offset of the baseline inside this item.
     pub baseline_offset_in_item: Au,
+
+    /// The BiDi level of this [`AtomicLineItem`] to enable reordering.
+    pub bidi_level: Level,
 }
 
 impl AtomicLineItem {
@@ -751,5 +788,26 @@ fn line_height(parent_style: &ComputedValues, font_metrics: &FontMetrics) -> Len
         LineHeight::Normal => Length::from(font_metrics.line_gap),
         LineHeight::Number(number) => font_size * number.0,
         LineHeight::Length(length) => length.0,
+    }
+}
+
+/// Sort a mutable slice by the the given indices array in place, reording the slice so that final
+/// value of `slice[x]` is `slice[indices[x]]`.
+fn sort_by_indices_in_place<T>(data: &mut [T], mut indices: Vec<usize>) {
+    for idx in 0..data.len() {
+        if indices[idx] == idx {
+            continue;
+        }
+
+        let mut current_idx = idx;
+        loop {
+            let target_idx = indices[current_idx];
+            indices[current_idx] = current_idx;
+            if indices[target_idx] == target_idx {
+                break;
+            }
+            data.swap(current_idx, target_idx);
+            current_idx = target_idx;
+        }
     }
 }
