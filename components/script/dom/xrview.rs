@@ -31,9 +31,7 @@ pub struct XRView {
     #[no_trace]
     view: View<ApiSpace>,
     transform: Dom<XRRigidTransform>,
-    viewport_modifiable: Cell<bool>,
     requested_viewport_scale: Cell<f64>,
-    current_viewport_scale: Cell<f64>,
 }
 
 impl XRView {
@@ -52,9 +50,7 @@ impl XRView {
             proj: HeapBufferSource::default(),
             view,
             transform: Dom::from_ref(transform),
-            viewport_modifiable: Cell::new(true),
             requested_viewport_scale: Cell::new(1.0),
-            current_viewport_scale: Cell::new(1.0),
         }
     }
 
