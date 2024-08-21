@@ -171,13 +171,13 @@ impl FlexItemLayoutResult {
         let flags = fragment_info.flags;
 
         let containing_block = flex_context.containing_block;
-        let container_writing_mode = containing_block.effective_writing_mode();
+        let container_writing_mode = containing_block.style.writing_mode;
         let style = item.box_.style();
         let mut fragment = BoxFragment::new(
             fragment_info,
             style.clone(),
             self.fragments,
-            content_rect.to_physical(container_writing_mode),
+            content_rect.to_physical(Some(flex_context.containing_block)),
             flex_context
                 .sides_to_flow_relative(item.padding)
                 .to_physical(container_writing_mode),
@@ -199,7 +199,7 @@ impl FlexItemLayoutResult {
 
         if style.clone_position() == Position::Relative {
             fragment.content_rect.origin += relative_adjustement(style, containing_block)
-                .to_physical_size(containing_block.effective_writing_mode())
+                .to_physical_size(containing_block.style.writing_mode)
         }
 
         (fragment, self.positioning_context)
@@ -409,7 +409,7 @@ impl FlexContainer {
         let mut sum_of_flex_shrink_factors = 0.0;
         let mut item_infos = vec![];
 
-        let container_is_horizontal = self.style.effective_writing_mode().is_horizontal();
+        let container_is_horizontal = self.style.writing_mode.is_horizontal();
         for kid in self.children.iter() {
             let kid = &mut *kid.borrow_mut();
             match kid {
@@ -806,8 +806,8 @@ impl FlexContainer {
                     all_baselines.last = line_all_baselines.last;
                 }
 
-                let physical_line_position = flow_relative_line_position
-                    .to_physical_size(self.style.effective_writing_mode());
+                let physical_line_position =
+                    flow_relative_line_position.to_physical_size(self.style.writing_mode);
                 for (fragment, _) in &mut final_line_layout.item_fragments {
                     fragment.content_rect.origin += physical_line_position;
                 }
@@ -912,12 +912,13 @@ impl FlexContainer {
             start_corner: LogicalVec2::zero(),
             size: self.config.flex_axis.vec2_to_flow_relative(container_size),
         }
-        .to_physical(containing_block.effective_writing_mode());
+        .to_physical(Some(containing_block));
 
         let hoisted_box = AbsolutelyPositionedBox::to_hoisted(
             absolutely_positioned_box,
             static_position_rect,
             logical_alignment,
+            self.config.writing_mode,
         );
         let hoisted_fragment = hoisted_box.fragment.clone();
         positioning_context.push(hoisted_box);
@@ -995,14 +996,8 @@ fn allocate_free_cross_space_for_flex_line(
 impl<'a> FlexItem<'a> {
     fn new(flex_context: &FlexContext, box_: &'a mut FlexItemBox) -> Self {
         let containing_block = flex_context.containing_block;
-        let parent_writing_mode = containing_block.effective_writing_mode();
-        let item_writing_mode = box_.style().effective_writing_mode();
-
-        // https://drafts.csswg.org/css-writing-modes/#orthogonal-flows
-        assert_eq!(
-            parent_writing_mode, item_writing_mode,
-            "Mixed writing modes are not supported yet"
-        );
+        let parent_writing_mode = containing_block.style.writing_mode;
+        let item_writing_mode = box_.style().writing_mode;
 
         let container_is_horizontal = parent_writing_mode.is_horizontal();
         let item_is_horizontal = item_writing_mode.is_horizontal();
@@ -1697,15 +1692,6 @@ impl FlexItem<'_> {
                 )
             });
 
-        // https://drafts.csswg.org/css-writing-modes/#orthogonal-flows
-        let container_writing_mode = containing_block.effective_writing_mode();
-        assert_eq!(
-            container_writing_mode,
-            self.box_.style().effective_writing_mode(),
-            "Mixed writing modes are not supported yet"
-        );
-        // … and also the item’s inline axis.
-
         let cross_size = match used_cross_size_override {
             Some(s) => AuOrAuto::LengthPercentage(s),
             None => self.content_box_size.cross.map(|cross_size| {
@@ -1717,14 +1703,11 @@ impl FlexItem<'_> {
         };
 
         let ifc = &mut self.box_.independent_formatting_context;
-        let item_writing_mode = ifc.style().effective_writing_mode();
+        let item_writing_mode = ifc.style().writing_mode;
         let item_is_horizontal = item_writing_mode.is_horizontal();
         let flex_axis = flex_context.config.flex_axis;
         let cross_axis_is_item_block_axis = cross_axis_is_item_block_axis(
-            containing_block
-                .style
-                .effective_writing_mode()
-                .is_horizontal(),
+            containing_block.style.writing_mode.is_horizontal(),
             item_is_horizontal,
             flex_axis,
         );
@@ -1769,6 +1752,7 @@ impl FlexItem<'_> {
             )
         };
 
+        let container_writing_mode = containing_block.style.writing_mode;
         match ifc {
             IndependentFormattingContext::Replaced(replaced) => {
                 let size = replaced
@@ -1820,7 +1804,7 @@ impl FlexItem<'_> {
 
                 let item_writing_mode_is_orthogonal_to_container_writing_mode =
                     flex_context.config.writing_mode.is_horizontal() !=
-                        non_replaced.style.effective_writing_mode().is_horizontal();
+                        non_replaced.style.writing_mode.is_horizontal();
                 let has_compatible_baseline = match flex_context.config.flex_axis {
                     FlexAxis::Row => !item_writing_mode_is_orthogonal_to_container_writing_mode,
                     FlexAxis::Column => item_writing_mode_is_orthogonal_to_container_writing_mode,
@@ -2013,7 +1997,7 @@ impl FlexItemBox {
         let flex_axis = config.flex_axis;
         let main_start_cross_start = config.main_start_cross_start_sides_are;
         let style = self.style().clone();
-        let item_writing_mode = style.effective_writing_mode();
+        let item_writing_mode = style.writing_mode;
         let item_is_horizontal = item_writing_mode.is_horizontal();
         let cross_axis_is_item_block_axis =
             cross_axis_is_item_block_axis(container_is_horizontal, item_is_horizontal, flex_axis);

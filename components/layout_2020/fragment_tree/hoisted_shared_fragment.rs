@@ -4,6 +4,7 @@
 
 use app_units::Au;
 use serde::Serialize;
+use style::logical_geometry::WritingMode;
 use style::values::specified::align::AlignFlags;
 
 use super::Fragment;
@@ -26,17 +27,24 @@ pub(crate) struct HoistedSharedFragment {
     /// These values are dependent on the layout mode (currently only interesting for
     /// flexbox).
     pub resolved_alignment: LogicalVec2<AlignFlags>,
+    /// This is the [`WritingMode`] of the original parent of the element that created this
+    /// hoisted absolutely-positioned fragment. This helps to interpret the offset for
+    /// static positioning. If the writing mode is right-to-left or bottom-to-top, the static
+    /// offset needs to be adjusted by the absolutely positioned element's inline size.
+    pub original_parent_writing_mode: WritingMode,
 }
 
 impl HoistedSharedFragment {
     pub(crate) fn new(
         static_position_rect: PhysicalRect<Au>,
         resolved_alignment: LogicalVec2<AlignFlags>,
+        original_parent_writing_mode: WritingMode,
     ) -> Self {
         HoistedSharedFragment {
             fragment: None,
             static_position_rect,
             resolved_alignment,
+            original_parent_writing_mode,
         }
     }
 }

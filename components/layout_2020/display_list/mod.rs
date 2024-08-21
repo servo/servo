@@ -707,7 +707,6 @@ impl<'a> BuilderForBoxFragment<'a> {
                     painting_area_override: None,
                     positioning_area_override: Some(
                         positioning_area
-                            .to_physical(self.fragment.style.effective_writing_mode())
                             .translate(self.containing_block.origin.to_vector())
                             .to_webrender(),
                     ),

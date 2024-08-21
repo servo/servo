@@ -17,7 +17,6 @@ use crate::cell::ArcRefCell;
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragment_tree::BaseFragmentInfo;
 use crate::positioned::AbsolutelyPositionedBox;
-use crate::style_ext::ComputedValuesExt;
 
 mod construct;
 mod geom;
@@ -69,7 +68,7 @@ impl FlexContainerConfig {
 
         FlexContainerConfig {
             container_is_single_line,
-            writing_mode: container_style.effective_writing_mode(),
+            writing_mode: container_style.writing_mode,
             flex_axis,
             flex_direction,
             flex_direction_is_reversed,
