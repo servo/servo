@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
+
 use dom_struct::dom_struct;
 use euclid::RigidTransform3D;
 use js::typedarray::{Float32, Float32Array};
@@ -9,6 +11,7 @@ use webxr_api::{ApiSpace, View};
 
 use super::bindings::buffer_source::HeapBufferSource;
 use crate::dom::bindings::codegen::Bindings::XRViewBinding::{XREye, XRViewMethods};
+use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
@@ -28,6 +31,7 @@ pub struct XRView {
     #[no_trace]
     view: View<ApiSpace>,
     transform: Dom<XRRigidTransform>,
+    requested_viewport_scale: Cell<f64>,
 }
 
 impl XRView {
@@ -46,6 +50,7 @@ impl XRView {
             proj: HeapBufferSource::default(),
             view,
             transform: Dom::from_ref(transform),
+            requested_viewport_scale: Cell::new(1.0),
         }
     }
 
@@ -105,6 +110,22 @@ impl XRViewMethods for XRView {
     /// <https://immersive-web.github.io/webxr/#dom-xrview-transform>
     fn Transform(&self) -> DomRoot<XRRigidTransform> {
         DomRoot::from_ref(&self.transform)
+    }
+
+    /// <https://www.w3.org/TR/webxr/#dom-xrview-recommendedviewportscale>
+    fn GetRecommendedViewportScale(&self) -> Option<Finite<f64>> {
+        // Just return 1.0 since we currently will always use full-sized viewports
+        Finite::new(1.0)
+    }
+
+    /// <https://www.w3.org/TR/webxr/#dom-xrview-requestviewportscale>
+    fn RequestViewportScale(&self, scale: Option<Finite<f64>>) {
+        if let Some(scale) = scale {
+            if *scale > 0.0 {
+                let clamped_scale = scale.clamp(0.0, 1.0);
+                self.requested_viewport_scale.set(clamped_scale);
+            }
+        }
     }
 
     /// <https://www.w3.org/TR/webxr-ar-module-1/#dom-xrview-isfirstpersonobserver>
