@@ -120,6 +120,7 @@ use crate::dom::hashchangeevent::HashChangeEvent;
 use crate::dom::history::History;
 use crate::dom::htmlcollection::{CollectionFilter, HTMLCollection};
 use crate::dom::htmliframeelement::HTMLIFrameElement;
+use crate::dom::idbfactory::IDBFactory;
 use crate::dom::identityhub::Identities;
 use crate::dom::location::Location;
 use crate::dom::mediaquerylist::{MediaQueryList, MediaQueryListMatchState};
@@ -197,6 +198,7 @@ pub struct Window {
     document: MutNullableDom<Document>,
     location: MutNullableDom<Location>,
     history: MutNullableDom<History>,
+    indexeddb: MutNullableDom<IDBFactory>,
     custom_element_registry: MutNullableDom<CustomElementRegistry>,
     performance: MutNullableDom<Performance>,
     navigation_start: Cell<u64>,
@@ -805,6 +807,14 @@ impl WindowMethods for Window {
     // https://html.spec.whatwg.org/multipage/#dom-history
     fn History(&self) -> DomRoot<History> {
         self.history.or_init(|| History::new(self))
+    }
+
+    // https://w3c.github.io/IndexedDB/#factory-interface
+    fn IndexedDB(&self) -> DomRoot<IDBFactory> {
+        self.indexeddb.or_init(|| {
+            let global_scope = self.upcast::<GlobalScope>();
+            IDBFactory::new(global_scope)
+        })
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-window-customelements
@@ -2598,6 +2608,7 @@ impl Window {
             navigator: Default::default(),
             location: Default::default(),
             history: Default::default(),
+            indexeddb: Default::default(),
             custom_element_registry: Default::default(),
             window_proxy: Default::default(),
             document: Default::default(),

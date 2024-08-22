@@ -149,6 +149,7 @@ use crate::script_runtime::{
 };
 use crate::task_manager::TaskManager;
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
+use crate::task_source::database_access::DatabaseAccessTaskSource;
 use crate::task_source::dom_manipulation::DOMManipulationTaskSource;
 use crate::task_source::file_reading::FileReadingTaskSource;
 use crate::task_source::gamepad::GamepadTaskSource;
@@ -553,6 +554,8 @@ pub struct ScriptThread {
     /// A channel to hand out to script thread-based entities that need to be able to enqueue
     /// events in the event queue.
     chan: MainThreadScriptChan,
+
+    database_access_task_sender: Box<dyn ScriptChan>,
 
     dom_manipulation_task_sender: Box<dyn ScriptChan>,
 
@@ -1352,6 +1355,7 @@ impl ScriptThread {
             closing,
 
             chan: MainThreadScriptChan(chan.clone()),
+            database_access_task_sender: boxed_script_sender.clone(),
             dom_manipulation_task_sender: boxed_script_sender.clone(),
             gamepad_task_sender: boxed_script_sender.clone(),
             media_element_task_sender: chan.clone(),
@@ -2077,6 +2081,9 @@ impl ScriptThread {
         let hang_annotation = match category {
             ScriptThreadEventCategory::AttachLayout => ScriptHangAnnotation::AttachLayout,
             ScriptThreadEventCategory::ConstellationMsg => ScriptHangAnnotation::ConstellationMsg,
+            ScriptThreadEventCategory::DatabaseAccessEvent => {
+                ScriptHangAnnotation::DatabaseAccessEvent
+            },
             ScriptThreadEventCategory::DevtoolsMsg => ScriptHangAnnotation::DevtoolsMsg,
             ScriptThreadEventCategory::DocumentEvent => ScriptHangAnnotation::DocumentEvent,
             ScriptThreadEventCategory::DomEvent => ScriptHangAnnotation::DomEvent,
@@ -2191,6 +2198,9 @@ impl ScriptThread {
                 ScriptThreadEventCategory::AttachLayout => ProfilerCategory::ScriptAttachLayout,
                 ScriptThreadEventCategory::ConstellationMsg => {
                     ProfilerCategory::ScriptConstellationMsg
+                },
+                ScriptThreadEventCategory::DatabaseAccessEvent => {
+                    ProfilerCategory::ScriptDatabaseAccessEvent
                 },
                 ScriptThreadEventCategory::DevtoolsMsg => ProfilerCategory::ScriptDevtoolsMsg,
                 ScriptThreadEventCategory::DocumentEvent => ProfilerCategory::ScriptDocumentEvent,
@@ -3186,6 +3196,10 @@ impl ScriptThread {
         PortMessageQueue(self.port_message_sender.clone(), pipeline_id)
     }
 
+    pub fn database_access_task_source(&self, pipeline_id: PipelineId) -> DatabaseAccessTaskSource {
+        DatabaseAccessTaskSource(self.database_access_task_sender.clone(), pipeline_id)
+    }
+
     pub fn file_reading_task_source(&self, pipeline_id: PipelineId) -> FileReadingTaskSource {
         FileReadingTaskSource(self.file_reading_task_sender.clone(), pipeline_id)
     }
@@ -3549,6 +3563,7 @@ impl ScriptThread {
         };
 
         let task_manager = TaskManager::new(
+            self.database_access_task_source(incomplete.pipeline_id),
             self.dom_manipulation_task_source(incomplete.pipeline_id),
             self.file_reading_task_source(incomplete.pipeline_id),
             self.gamepad_task_source(incomplete.pipeline_id),

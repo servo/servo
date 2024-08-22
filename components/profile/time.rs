@@ -117,6 +117,7 @@ impl Formattable for ProfilerCategory {
             ProfilerCategory::ImageSaving => "Image Saving",
             ProfilerCategory::ScriptAttachLayout => "Script Attach Layout",
             ProfilerCategory::ScriptConstellationMsg => "Script Constellation Msg",
+            ProfilerCategory::ScriptDatabaseAccessEvent => "Script Database Access Event",
             ProfilerCategory::ScriptDevtoolsMsg => "Script Devtools Msg",
             ProfilerCategory::ScriptDocumentEvent => "Script Document Event",
             ProfilerCategory::ScriptDomEvent => "Script Dom Event",

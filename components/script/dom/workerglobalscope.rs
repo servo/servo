@@ -44,6 +44,7 @@ use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::crypto::Crypto;
 use crate::dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::idbfactory::IDBFactory;
 use crate::dom::identityhub::Identities;
 use crate::dom::performance::Performance;
 use crate::dom::promise::Promise;
@@ -58,6 +59,7 @@ use crate::script_runtime::{
     ScriptPort,
 };
 use crate::task::TaskCanceller;
+use crate::task_source::database_access::DatabaseAccessTaskSource;
 use crate::task_source::dom_manipulation::DOMManipulationTaskSource;
 use crate::task_source::file_reading::FileReadingTaskSource;
 use crate::task_source::networking::NetworkingTaskSource;
@@ -126,6 +128,7 @@ pub struct WorkerGlobalScope {
 
     navigation_start_precise: u64,
     performance: MutNullableDom<Performance>,
+    indexeddb: MutNullableDom<IDBFactory>,
 }
 
 impl WorkerGlobalScope {
@@ -171,6 +174,7 @@ impl WorkerGlobalScope {
             from_devtools_receiver,
             navigation_start_precise: precise_time_ns(),
             performance: Default::default(),
+            indexeddb: Default::default(),
         }
     }
 
@@ -239,6 +243,14 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
     // https://html.spec.whatwg.org/multipage/#dom-workerglobalscope-self
     fn Self_(&self) -> DomRoot<WorkerGlobalScope> {
         DomRoot::from_ref(self)
+    }
+
+    // https://w3c.github.io/IndexedDB/#factory-interface
+    fn IndexedDB(&self) -> DomRoot<IDBFactory> {
+        self.indexeddb.or_init(|| {
+            let global_scope = self.upcast::<GlobalScope>();
+            IDBFactory::new(global_scope)
+        })
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-workerglobalscope-location
@@ -489,6 +501,10 @@ impl WorkerGlobalScope {
 
     pub fn dom_manipulation_task_source(&self) -> DOMManipulationTaskSource {
         DOMManipulationTaskSource(self.script_chan(), self.pipeline_id())
+    }
+
+    pub fn database_access_task_source(&self) -> DatabaseAccessTaskSource {
+        DatabaseAccessTaskSource(self.script_chan(), self.pipeline_id())
     }
 
     pub fn file_reading_task_source(&self) -> FileReadingTaskSource {

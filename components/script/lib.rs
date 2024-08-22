@@ -95,4 +95,5 @@ mod webdriver_handlers;
 mod window_named_properties;
 
 pub use init::init;
+pub use realms::enter_realm;
 pub use script_runtime::JSEngineSetup;

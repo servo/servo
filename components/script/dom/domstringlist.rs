@@ -8,7 +8,7 @@ use crate::dom::bindings::codegen::Bindings::DOMStringListBinding::DOMStringList
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
-use crate::dom::window::Window;
+use crate::dom::globalscope::GlobalScope;
 
 #[dom_struct]
 pub struct DOMStringList {
@@ -25,9 +25,8 @@ impl DOMStringList {
         }
     }
 
-    #[allow(unused)]
-    pub fn new(window: &Window, strings: Vec<DOMString>) -> DomRoot<DOMStringList> {
-        reflect_dom_object(Box::new(DOMStringList::new_inherited(strings)), window)
+    pub fn new(global: &GlobalScope, strings: Vec<DOMString>) -> DomRoot<DOMStringList> {
+        reflect_dom_object(Box::new(DOMStringList::new_inherited(strings)), global)
     }
 }
 

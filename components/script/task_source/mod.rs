@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+pub mod database_access;
 pub mod dom_manipulation;
 pub mod file_reading;
 pub mod gamepad;
@@ -29,6 +30,7 @@ use crate::task::{TaskCanceller, TaskOnce};
 /// [`TaskSourceName::all`].
 #[derive(Clone, Copy, Eq, Hash, JSTraceable, PartialEq)]
 pub enum TaskSourceName {
+    DatabaseAccess,
     DOMManipulation,
     FileReading,
     HistoryTraversal,

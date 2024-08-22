@@ -24,6 +24,7 @@ use log::{debug, warn};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use net_traits::blob_url_store::parse_blob_url;
 use net_traits::filemanager_thread::FileTokenCheck;
+use net_traits::indexeddb_thread::IndexedDBThreadMsg;
 use net_traits::request::{Destination, RequestBuilder};
 use net_traits::response::{Response, ResponseInit};
 use net_traits::storage_thread::StorageThreadMsg;
@@ -52,6 +53,7 @@ use crate::filemanager_thread::FileManager;
 use crate::hsts::HstsList;
 use crate::http_cache::HttpCache;
 use crate::http_loader::{http_redirect_fetch, HttpState};
+use crate::indexeddb::idb_thread::IndexedDBThreadFactory;
 use crate::storage_thread::StorageThreadFactory;
 use crate::websocket_loader;
 
@@ -98,10 +100,11 @@ pub fn new_resource_threads(
         ca_certificates,
         ignore_certificate_errors,
     );
+    let idb: IpcSender<IndexedDBThreadMsg> = IndexedDBThreadFactory::new(config_dir.clone());
     let storage: IpcSender<StorageThreadMsg> = StorageThreadFactory::new(config_dir);
     (
-        ResourceThreads::new(public_core, storage.clone()),
-        ResourceThreads::new(private_core, storage),
+        ResourceThreads::new(public_core, storage.clone(), idb.clone()),
+        ResourceThreads::new(private_core, storage, idb),
     )
 }
 

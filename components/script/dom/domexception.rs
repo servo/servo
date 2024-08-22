@@ -41,6 +41,10 @@ pub enum DOMErrorName {
     TimeoutError = DOMExceptionConstants::TIMEOUT_ERR,
     InvalidNodeTypeError = DOMExceptionConstants::INVALID_NODE_TYPE_ERR,
     DataCloneError = DOMExceptionConstants::DATA_CLONE_ERR,
+    DataError,
+    TransactionInactiveError,
+    ReadOnlyError,
+    VersionError,
     EncodingError,
     NotReadableError,
     OperationError,
@@ -71,6 +75,10 @@ impl DOMErrorName {
             "TimeoutError" => Some(DOMErrorName::TimeoutError),
             "InvalidNodeTypeError" => Some(DOMErrorName::InvalidNodeTypeError),
             "DataCloneError" => Some(DOMErrorName::DataCloneError),
+            "DataError" => Some(DOMErrorName::DataError),
+            "TransactionInactiveError" => Some(DOMErrorName::TransactionInactiveError),
+            "ReadOnlyError" => Some(DOMErrorName::ReadOnlyError),
+            "VersionError" => Some(DOMErrorName::VersionError),
             "EncodingError" => Some(DOMErrorName::EncodingError),
             "NotReadableError" => Some(DOMErrorName::NotReadableError),
             "OperationError" => Some(DOMErrorName::OperationError),
@@ -117,6 +125,14 @@ impl DOMException {
                 "The supplied node is incorrect or has an incorrect ancestor for this operation."
             },
             DOMErrorName::DataCloneError => "The object can not be cloned.",
+            DOMErrorName::DataError => "Provided data is inadequate.",
+            DOMErrorName::TransactionInactiveError => {
+                "A request was placed against a transaction which is currently not active, or which is finished."
+            },
+            DOMErrorName::ReadOnlyError => "The mutating operation was attempted in a \"readonly\" transaction.",
+            DOMErrorName::VersionError => {
+                "An attempt was made to open a database using a lower version than the existing version."
+            },
             DOMErrorName::EncodingError => {
                 "The encoding operation (either encoded or decoding) failed."
             },

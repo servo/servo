@@ -27,6 +27,7 @@ use servo_rand::RngCore;
 use servo_url::{ImmutableOrigin, ServoUrl};
 
 use crate::filemanager_thread::FileManagerThreadMsg;
+use crate::indexeddb_thread::IndexedDBThreadMsg;
 use crate::request::{Request, RequestBuilder};
 use crate::response::{HttpsState, Response, ResponseInit};
 use crate::storage_thread::StorageThreadMsg;
@@ -34,6 +35,7 @@ use crate::storage_thread::StorageThreadMsg;
 pub mod blob_url_store;
 pub mod filemanager_thread;
 pub mod image_cache;
+pub mod indexeddb_thread;
 pub mod pub_domains;
 pub mod quality;
 pub mod request;
@@ -344,13 +346,19 @@ where
 pub struct ResourceThreads {
     pub core_thread: CoreResourceThread,
     storage_thread: IpcSender<StorageThreadMsg>,
+    idb_thread: IpcSender<IndexedDBThreadMsg>,
 }
 
 impl ResourceThreads {
-    pub fn new(c: CoreResourceThread, s: IpcSender<StorageThreadMsg>) -> ResourceThreads {
+    pub fn new(
+        c: CoreResourceThread,
+        s: IpcSender<StorageThreadMsg>,
+        i: IpcSender<IndexedDBThreadMsg>,
+    ) -> ResourceThreads {
         ResourceThreads {
             core_thread: c,
             storage_thread: s,
+            idb_thread: i,
         }
     }
 
@@ -366,6 +374,16 @@ impl IpcSend<CoreResourceMsg> for ResourceThreads {
 
     fn sender(&self) -> IpcSender<CoreResourceMsg> {
         self.core_thread.clone()
+    }
+}
+
+impl IpcSend<IndexedDBThreadMsg> for ResourceThreads {
+    fn send(&self, msg: IndexedDBThreadMsg) -> IpcSendResult {
+        self.idb_thread.send(msg)
+    }
+
+    fn sender(&self) -> IpcSender<IndexedDBThreadMsg> {
+        self.idb_thread.clone()
     }
 }
 

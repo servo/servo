@@ -125,6 +125,7 @@ use crate::script_runtime::{
 use crate::script_thread::{MainThreadScriptChan, ScriptThread};
 use crate::security_manager::CSPViolationReporter;
 use crate::task::TaskCanceller;
+use crate::task_source::database_access::DatabaseAccessTaskSource;
 use crate::task_source::dom_manipulation::DOMManipulationTaskSource;
 use crate::task_source::file_reading::FileReadingTaskSource;
 use crate::task_source::gamepad::GamepadTaskSource;
@@ -3002,6 +3003,16 @@ impl GlobalScope {
         }
         if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
             return worker.file_reading_task_source();
+        }
+        unreachable!();
+    }
+
+    pub fn database_access_task_source(&self) -> DatabaseAccessTaskSource {
+        if let Some(window) = self.downcast::<Window>() {
+            return window.task_manager().database_access_task_source();
+        }
+        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+            return worker.database_access_task_source();
         }
         unreachable!();
     }

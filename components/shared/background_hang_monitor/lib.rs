@@ -18,6 +18,7 @@ use serde::{Deserialize, Serialize};
 pub enum ScriptHangAnnotation {
     AttachLayout,
     ConstellationMsg,
+    DatabaseAccessEvent,
     DevtoolsMsg,
     DocumentEvent,
     DomEvent,

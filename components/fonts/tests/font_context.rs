@@ -172,7 +172,8 @@ fn font_family(names: Vec<&str>) -> FontFamily {
 fn mock_resource_threads() -> ResourceThreads {
     let (core_sender, _) = ipc::channel().unwrap();
     let (storage_sender, _) = ipc::channel().unwrap();
-    ResourceThreads::new(core_sender, storage_sender)
+    let (indexeddb_sender, _) = ipc::channel().unwrap();
+    ResourceThreads::new(core_sender, storage_sender, indexeddb_sender)
 }
 
 #[test]
