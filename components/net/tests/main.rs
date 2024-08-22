@@ -37,6 +37,7 @@ use hyper::{Body, Request as HyperRequest, Response as HyperResponse};
 use net::fetch::cors_cache::CorsCache;
 use net::fetch::methods::{self, CancellationListener, FetchContext};
 use net::filemanager_thread::FileManager;
+use net::protocols::ProtocolRegistry;
 use net::resource_thread::CoreResourceThreadPool;
 use net::test::HttpState;
 use net_traits::filemanager_thread::FileTokenCheck;
@@ -114,6 +115,7 @@ fn new_fetch_context(
         timing: ServoArc::new(Mutex::new(ResourceFetchTiming::new(
             ResourceTimingType::Navigation,
         ))),
+        protocols: Arc::new(ProtocolRegistry::with_internal_protocols()),
     }
 }
 impl FetchTaskTarget for FetchResponseCollector {

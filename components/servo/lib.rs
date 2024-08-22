@@ -71,6 +71,7 @@ use ipc_channel::ipc::{self, IpcSender};
 pub use layout_thread_2013;
 use log::{error, trace, warn, Log, Metadata, Record};
 use media::{GLPlayerThreads, GlApi, NativeDisplay, WindowGLContext};
+use net::protocols::ProtocolRegistry;
 use net::resource_thread::new_resource_threads;
 use profile::{mem as profile_mem, time as profile_time};
 use profile_traits::{mem, time};
@@ -427,6 +428,9 @@ where
 
         // Create the constellation, which maintains the engine pipelines, including script and
         // layout, as well as the navigation context.
+        let mut protocols = ProtocolRegistry::with_internal_protocols();
+        protocols.merge(embedder.get_protocol_handlers());
+
         let constellation_chan = create_constellation(
             user_agent,
             opts.config_dir.clone(),
@@ -444,6 +448,7 @@ where
             window_size,
             external_images,
             wgpu_image_map,
+            protocols,
         );
 
         if cfg!(feature = "webdriver") {
@@ -1002,6 +1007,7 @@ fn create_constellation(
     initial_window_size: WindowSizeData,
     external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
     wgpu_image_map: Arc<Mutex<HashMap<u64, webgpu::PresentationData>>>,
+    protocols: ProtocolRegistry,
 ) -> Sender<ConstellationMsg> {
     // Global configuration options, parsed from the command line.
     let opts = opts::get();
@@ -1018,6 +1024,7 @@ fn create_constellation(
         config_dir,
         opts.certificate_path.clone(),
         opts.ignore_certificate_errors,
+        Arc::new(protocols),
     );
 
     let font_cache_thread = FontCacheThread::new(Box::new(WebRenderFontApiCompositorProxy(
