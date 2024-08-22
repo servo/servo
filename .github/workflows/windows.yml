@@ -210,7 +210,7 @@ jobs:
       - name: Add python and wixtoolset to path
         if: ${{ fromJSON(needs.runner-select.outputs.is-self-hosted) }}
         run: |
-          "$env:LOCALAPPDATA\Programs\Python\Python312" >> $env:GITHUB_PATH
+          "$env:LOCALAPPDATA\Programs\Python\Python310" >> $env:GITHUB_PATH
           "C:\Program Files (x86)\WiX Toolset v3.11\bin" >> $env:GITHUB_PATH
 
       - name: Build (${{ inputs.profile }})
