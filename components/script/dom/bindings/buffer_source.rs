@@ -4,13 +4,9 @@
 
 #![allow(unsafe_code)]
 
-use std::borrow::BorrowMut;
-use std::ffi::c_void;
 use std::marker::PhantomData;
 use std::ptr;
-use std::sync::{Arc, Mutex};
 
-use js::jsapi::glue::NewExternalArrayBuffer;
 use js::jsapi::{Heap, JSObject, JS_GetArrayBufferViewBuffer, JS_IsArrayBufferViewObject};
 use js::rust::wrappers::DetachArrayBuffer;
 use js::rust::{CustomAutoRooterGuard, Handle, MutableHandleObject};
@@ -399,47 +395,5 @@ where
         Err(())
     } else {
         TypedArray::from(dest.get())
-    }
-}
-
-pub fn create_new_external_array_buffer<T>(
-    cx: JSContext,
-    mapping: Arc<Mutex<Vec<T::Element>>>,
-    offset: usize,
-    range_size: usize,
-    m_end: usize,
-) -> HeapBufferSource<T>
-where
-    T: TypedArrayElement + TypedArrayElementCreator,
-    T::Element: Clone + Copy,
-{
-    /// `freeFunc()` must be threadsafe, should be safely callable from any thread
-    /// without causing conflicts , unexpected behavior.
-    /// <https://github.com/servo/mozjs/blob/main/mozjs-sys/mozjs/js/public/ArrayBuffer.h#L89>
-    unsafe extern "C" fn free_func(_contents: *mut c_void, free_user_data: *mut c_void) {
-        // Clippy warns about "creating a `Arc` from a void raw pointer" here, but suggests
-        // the exact same line to fix it. Doing the cast is tricky because of the use of
-        // a generic type in this parameter.
-        #[allow(clippy::from_raw_with_void_ptr)]
-        let _ = Arc::from_raw(free_user_data as *const _);
-    }
-
-    unsafe {
-        let mapping_slice_ptr = mapping.lock().unwrap().borrow_mut()[offset..m_end].as_mut_ptr();
-
-        // rooted! is needed to ensure memory safety and prevent potential garbage collection issues.
-        // https://github.com/mozilla-spidermonkey/spidermonkey-embedding-examples/blob/esr78/docs/GC%20Rooting%20Guide.md#performance-tweaking
-        rooted!(in(*cx) let array_buffer = NewExternalArrayBuffer(
-            *cx,
-            range_size,
-            mapping_slice_ptr as _,
-            Some(free_func),
-            Arc::into_raw(mapping) as _,
-        ));
-
-        HeapBufferSource {
-            buffer_source: BufferSource::ArrayBuffer(Heap::boxed(*array_buffer)),
-            phantom: PhantomData,
-        }
     }
 }

@@ -40,8 +40,8 @@ use crate::gpu_error::ErrorScope;
 use crate::poll_thread::Poller;
 use crate::render_commands::apply_render_command;
 use crate::{
-    Adapter, ComputePassId, Error, Pipeline, PopError, PresentationData, RenderPassId, WebGPU,
-    WebGPUAdapter, WebGPUDevice, WebGPUMsg, WebGPUQueue, WebGPURequest, WebGPUResponse,
+    Adapter, ComputePassId, Error, Mapping, Pipeline, PopError, PresentationData, RenderPassId,
+    WebGPU, WebGPUAdapter, WebGPUDevice, WebGPUMsg, WebGPUQueue, WebGPURequest, WebGPUResponse,
 };
 
 pub const PRESENTATION_BUFFER_COUNT: usize = 10;
@@ -191,11 +191,11 @@ impl WGPU {
                         let callback = BufferMapCallback::from_rust(Box::from(
                             move |result: BufferAccessResult| {
                                 drop(token);
-                                let response = result.map(|_| {
+                                let response = result.and_then(|_| {
                                     let global = &glob;
                                     let (slice_pointer, range_size) = gfx_select!(buffer_id =>
-                                            global.buffer_get_mapped_range(buffer_id, 0, None))
-                                    .unwrap();
+                                            global.buffer_get_mapped_range(buffer_id, offset, size))
+                                    ?;
                                     // SAFETY: guarantee to be safe from wgpu
                                     let data = unsafe {
                                         slice::from_raw_parts(
@@ -204,7 +204,11 @@ impl WGPU {
                                         )
                                     };
 
-                                    IpcSharedMemory::from_bytes(data)
+                                    Ok(Mapping {
+                                        data: IpcSharedMemory::from_bytes(data),
+                                        range: offset..offset + range_size,
+                                        mode: host_map,
+                                    })
                                 });
                                 if let Err(e) =
                                     resp_sender.send(WebGPUResponse::BufferMapAsync(response))
@@ -226,13 +230,6 @@ impl WGPU {
                             operation
                         ));
                         self.poller.wake();
-                        if let Err(e) = &result {
-                            if let Err(w) =
-                                sender.send(WebGPUResponse::BufferMapAsync(Err(e.to_owned())))
-                            {
-                                warn!("Failed to send BufferMapAsync Response ({:?})", w);
-                            }
-                        }
                         // Per spec we also need to raise validation error here
                         self.maybe_dispatch_wgpu_error(device_id, result.err());
                     },
@@ -1208,31 +1205,31 @@ impl WGPU {
                     },
                     WebGPURequest::UnmapBuffer {
                         buffer_id,
-                        device_id,
                         array_buffer,
-                        is_map_read,
+                        write_back,
                         offset,
                         size,
                     } => {
                         let global = &self.global;
-                        if !is_map_read {
-                            let (slice_pointer, range_size) =
-                                gfx_select!(buffer_id => global.buffer_get_mapped_range(
+                        if write_back {
+                            if let Ok((slice_pointer, range_size)) = gfx_select!(
+                                buffer_id => global.buffer_get_mapped_range(
                                     buffer_id,
                                     offset,
                                     Some(size)
-                                ))
-                                .unwrap();
-                            unsafe {
-                                slice::from_raw_parts_mut(
-                                    slice_pointer.as_ptr(),
-                                    range_size as usize,
                                 )
+                            ) {
+                                unsafe {
+                                    slice::from_raw_parts_mut(
+                                        slice_pointer.as_ptr(),
+                                        range_size as usize,
+                                    )
+                                }
+                                .copy_from_slice(&array_buffer);
                             }
-                            .copy_from_slice(&array_buffer);
                         }
-                        let result = gfx_select!(buffer_id => global.buffer_unmap(buffer_id));
-                        self.maybe_dispatch_wgpu_error(device_id, result.err());
+                        // Ignore result because this operation always succeed from user perspective
+                        let _result = gfx_select!(buffer_id => global.buffer_unmap(buffer_id));
                     },
                     WebGPURequest::WriteBuffer {
                         device_id,
