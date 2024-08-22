@@ -24,6 +24,7 @@ interface XRWebGLLayer: XRLayer {
   // Attributes
   readonly attribute boolean antialias;
   readonly attribute boolean ignoreDepthValues;
+  attribute float? fixedFoveation;
 
   [SameObject] readonly attribute WebGLFramebuffer? framebuffer;
   readonly attribute unsigned long framebufferWidth;
@@ -32,8 +33,8 @@ interface XRWebGLLayer: XRLayer {
   // Methods
   XRViewport? getViewport(XRView view);
 
-  // // Static Methods
-  // static double getNativeFramebufferScaleFactor(XRSession session);
+  // Static Methods
+  static double getNativeFramebufferScaleFactor(XRSession session);
 };
 
 partial interface mixin WebGLRenderingContextBase {

@@ -17,6 +17,7 @@ use crate::dom::bindings::codegen::Bindings::XRWebGLLayerBinding::{
 };
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
@@ -156,6 +157,13 @@ impl XRWebGLLayer {
         ))
     }
 
+    /// <https://www.w3.org/TR/webxr/#dom-xrwebgllayer-getnativeframebufferscalefactor>
+    #[allow(non_snake_case)]
+    pub fn GetNativeFramebufferScaleFactor(_window: &Window, session: &XRSession) -> Finite<f64> {
+        let value: f64 = if session.is_ended() { 0.0 } else { 1.0 };
+        Finite::wrap(value)
+    }
+
     pub fn layer_id(&self) -> Option<LayerId> {
         self.xr_layer.layer_id()
     }
@@ -290,6 +298,17 @@ impl XRWebGLLayerMethods for XRWebGLLayer {
     /// <https://immersive-web.github.io/webxr/#dom-xrwebgllayer-ignoredepthvalues>
     fn IgnoreDepthValues(&self) -> bool {
         self.ignore_depth_values
+    }
+
+    /// <https://www.w3.org/TR/webxr/#dom-xrwebgllayer-fixedfoveation>
+    fn GetFixedFoveation(&self) -> Option<Finite<f32>> {
+        // Fixed foveation is only available on Quest/Pico headset runtimes
+        None
+    }
+
+    /// <https://www.w3.org/TR/webxr/#dom-xrwebgllayer-fixedfoveation>
+    fn SetFixedFoveation(&self, _value: Option<Finite<f32>>) {
+        // no-op until fixed foveation is supported
     }
 
     /// <https://immersive-web.github.io/webxr/#dom-xrwebgllayer-framebuffer>
