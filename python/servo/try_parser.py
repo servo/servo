@@ -225,7 +225,14 @@ class TestParser(unittest.TestCase):
                                   "profile": "release",
                                   "unit_tests": False,
                                   "wpt_args": ""
-                              }
+                              },
+                              {
+                                  "name": "Lint & Tidy",
+                                  "workflow": "lint",
+                                  "wpt_layout": "none",
+                                  "profile": "release",
+                                  "unit_tests": False,
+                                  "wpt_args": ""}
                               ]})
 
     def test_job_merging(self):
@@ -262,7 +269,7 @@ class TestParser(unittest.TestCase):
         self.assertEqual(a, JobConfig("Linux", Workflow.LINUX, unit_tests=True))
 
     def test_full(self):
-        self.assertDictEqual(json.loads(Config("linux-wpt macos windows android ohos").to_json()),
+        self.assertDictEqual(json.loads(Config("linux-wpt macos windows android ohos lint").to_json()),
                              json.loads(Config("").to_json()))
 
 
