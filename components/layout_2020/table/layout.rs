@@ -35,7 +35,7 @@ use crate::positioned::{relative_adjustement, PositioningContext, PositioningCon
 use crate::sizing::ContentSizes;
 use crate::style_ext::{Clamp, ComputedValuesExt, PaddingBorderMargin};
 use crate::table::TableSlotCoordinates;
-use crate::ContainingBlock;
+use crate::{ContainingBlock, IndefiniteContainingBlock};
 
 /// A result of a final or speculative layout of a single cell in
 /// the table. Note that this is only done for slots that are not
@@ -201,10 +201,10 @@ impl<'a> TableLayout<'a> {
 
                 let (size, min_size, max_size) =
                     get_outer_sizes_from_style(&cell.style, writing_mode, &padding_border_sums);
-                let mut inline_content_sizes = cell
-                    .contents
-                    .contents
-                    .inline_content_sizes(layout_context, writing_mode);
+                let mut inline_content_sizes = cell.contents.contents.inline_content_sizes(
+                    layout_context,
+                    &IndefiniteContainingBlock::new_for_style(&cell.style),
+                );
                 inline_content_sizes.min_content += padding_border_sums.inline;
                 inline_content_sizes.max_content += padding_border_sums.inline;
 
@@ -685,15 +685,15 @@ impl<'a> TableLayout<'a> {
                 let max_size;
                 let padding_border_sums;
                 let size_is_auto;
+                let style;
                 {
                     let context = caption.context.borrow();
-                    let padding = context
-                        .style
+                    style = context.style.clone();
+                    let padding = style
                         .padding(writing_mode)
                         .percentages_relative_to(Length::zero());
-                    let border = context.style.border_width(writing_mode);
-                    let margin = context
-                        .style
+                    let border = style.border_width(writing_mode);
+                    let margin = style
                         .margin(writing_mode)
                         .percentages_relative_to(Length::zero())
                         .auto_is(Length::zero);
@@ -705,12 +705,9 @@ impl<'a> TableLayout<'a> {
                             .into(),
                     };
 
-                    (size, min_size, max_size) = get_outer_sizes_from_style(
-                        &context.style,
-                        writing_mode,
-                        &padding_border_sums,
-                    );
-                    size_is_auto = context.style.box_size(writing_mode).inline.is_auto();
+                    (size, min_size, max_size) =
+                        get_outer_sizes_from_style(&style, writing_mode, &padding_border_sums);
+                    size_is_auto = style.box_size(writing_mode).inline.is_auto();
                 }
 
                 // If an inline size is defined it should serve as the upper limit and lower limit
@@ -718,10 +715,10 @@ impl<'a> TableLayout<'a> {
                 let inline_size = if !size_is_auto {
                     size.inline
                 } else {
-                    let inline_content_sizes = caption
-                        .context
-                        .borrow_mut()
-                        .inline_content_sizes(layout_context);
+                    let inline_content_sizes = caption.context.borrow_mut().inline_content_sizes(
+                        layout_context,
+                        &IndefiniteContainingBlock::new_for_style(&style),
+                    );
                     inline_content_sizes.min_content + padding_border_sums.inline
                 };
 
@@ -2439,8 +2436,9 @@ impl Table {
     pub(crate) fn inline_content_sizes(
         &mut self,
         layout_context: &LayoutContext,
-        writing_mode: WritingMode,
+        containing_block: &IndefiniteContainingBlock,
     ) -> ContentSizes {
+        let writing_mode = containing_block.style.effective_writing_mode();
         let mut layout = TableLayout::new(self);
         let mut table_content_sizes = layout.compute_grid_min_max(layout_context, writing_mode);
 

@@ -94,7 +94,6 @@ use style::computed_values::text_wrap_mode::T as TextWrapMode;
 use style::computed_values::vertical_align::T as VerticalAlign;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 use style::context::QuirksMode;
-use style::logical_geometry::WritingMode;
 use style::properties::style_structs::InheritedText;
 use style::properties::ComputedValues;
 use style::values::computed::{Clear, Length};
@@ -128,7 +127,7 @@ use crate::geom::{LogicalRect, LogicalVec2, PhysicalRect, ToLogical};
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
 use crate::sizing::ContentSizes;
 use crate::style_ext::{ComputedValuesExt, PaddingBorderMargin};
-use crate::ContainingBlock;
+use crate::{ContainingBlock, IndefiniteContainingBlock};
 
 // From gfxFontConstants.h in Firefox.
 static FONT_SUBSCRIPT_OFFSET_RATIO: f32 = 0.20;
@@ -1559,9 +1558,9 @@ impl InlineFormattingContext {
     pub(super) fn inline_content_sizes(
         &self,
         layout_context: &LayoutContext,
-        containing_block_writing_mode: WritingMode,
+        containing_block: &IndefiniteContainingBlock,
     ) -> ContentSizes {
-        ContentSizesComputation::compute(self, layout_context, containing_block_writing_mode)
+        ContentSizesComputation::compute(self, layout_context, containing_block)
     }
 
     pub(super) fn layout(
@@ -1959,7 +1958,10 @@ impl IndependentFormattingContext {
                     let available_size =
                         layout.containing_block.inline_size - pbm_sums.inline_sum();
                     non_replaced
-                        .inline_content_sizes(layout.layout_context)
+                        .inline_content_sizes(
+                            layout.layout_context,
+                            &layout.containing_block.into(),
+                        )
                         .shrink_to_fit(available_size)
                         .into()
                 });
@@ -2258,7 +2260,7 @@ fn inline_container_needs_strut(
 /// A struct which takes care of computing [`ContentSizes`] for an [`InlineFormattingContext`].
 struct ContentSizesComputation<'layout_data> {
     layout_context: &'layout_data LayoutContext<'layout_data>,
-    containing_block_writing_mode: WritingMode,
+    containing_block: &'layout_data IndefiniteContainingBlock<'layout_data>,
     paragraph: ContentSizes,
     current_line: ContentSizes,
     /// Size for whitepsace pending to be added to this line.
@@ -2296,14 +2298,14 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
                 let zero = Length::zero();
                 let padding = inline_box
                     .style
-                    .padding(self.containing_block_writing_mode)
+                    .padding(self.containing_block.style.writing_mode)
                     .percentages_relative_to(zero);
                 let border = inline_box
                     .style
-                    .border_width(self.containing_block_writing_mode);
+                    .border_width(self.containing_block.style.writing_mode);
                 let margin = inline_box
                     .style
-                    .margin(self.containing_block_writing_mode)
+                    .margin(self.containing_block.style.writing_mode)
                     .percentages_relative_to(zero)
                     .auto_is(Length::zero);
 
@@ -2376,9 +2378,10 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
                     self.line_break_opportunity();
                 }
 
+                // TODO: Resolve block sizes...
                 let outer = atomic.outer_inline_content_sizes(
                     self.layout_context,
-                    self.containing_block_writing_mode,
+                    self.containing_block,
                     Au::zero,
                 );
 
@@ -2427,11 +2430,11 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
     fn compute(
         inline_formatting_context: &InlineFormattingContext,
         layout_context: &'layout_data LayoutContext,
-        containing_block_writing_mode: WritingMode,
+        containing_block: &'layout_data IndefiniteContainingBlock,
     ) -> ContentSizes {
         Self {
             layout_context,
-            containing_block_writing_mode,
+            containing_block,
             paragraph: ContentSizes::zero(),
             current_line: ContentSizes::zero(),
             pending_whitespace: Au::zero(),

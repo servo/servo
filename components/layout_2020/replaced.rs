@@ -30,7 +30,7 @@ use crate::fragment_tree::{BaseFragmentInfo, Fragment, IFrameFragment, ImageFrag
 use crate::geom::{LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSize};
 use crate::sizing::ContentSizes;
 use crate::style_ext::{Clamp, ComputedValuesExt, PaddingBorderMargin};
-use crate::{AuOrAuto, ContainingBlock};
+use crate::{AuOrAuto, ContainingBlock, IndefiniteContainingBlock};
 
 #[derive(Debug, Serialize)]
 pub(crate) struct ReplacedContent {
@@ -251,12 +251,16 @@ impl ReplacedContent {
         })
     }
 
-    pub fn inline_content_sizes(&self, style: &ComputedValues) -> ContentSizes {
+    pub fn inline_content_sizes(
+        &self,
+        _: &LayoutContext,
+        containing_block: &IndefiniteContainingBlock,
+    ) -> ContentSizes {
         // FIXME: min/max-content of replaced elements is not defined in
         // https://dbaron.org/css/intrinsic/
         // This seems sensible?
         let inline = self
-            .flow_relative_intrinsic_size(style)
+            .flow_relative_intrinsic_size(containing_block.style)
             .inline
             .unwrap_or(Au::zero());
         ContentSizes {

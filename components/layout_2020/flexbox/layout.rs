@@ -8,7 +8,6 @@ use std::cmp::Ordering;
 use app_units::Au;
 use atomic_refcell::AtomicRefMut;
 use itertools::izip;
-use style::logical_geometry::WritingMode;
 use style::properties::longhands::align_items::computed_value::T as AlignItems;
 use style::properties::longhands::align_self::computed_value::T as AlignSelf;
 use style::properties::longhands::box_sizing::computed_value::T as BoxSizing;
@@ -32,7 +31,7 @@ use crate::geom::{AuOrAuto, LogicalRect, LogicalSides, LogicalVec2};
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext, PositioningContextLength};
 use crate::sizing::{ContentSizes, IntrinsicSizingMode};
 use crate::style_ext::{Clamp, ComputedValuesExt, PaddingBorderMargin};
-use crate::ContainingBlock;
+use crate::{ContainingBlock, IndefiniteContainingBlock};
 
 // FIMXE: “Flex items […] `z-index` values other than `auto` create a stacking context
 // even if `position` is `static` (behaving exactly as if `position` were `relative`).”
@@ -199,10 +198,10 @@ impl FlexContainer {
     pub fn inline_content_sizes(
         &mut self,
         layout_context: &LayoutContext,
-        writing_mode: WritingMode,
+        containing_block: &IndefiniteContainingBlock,
     ) -> ContentSizes {
         match self.config.flex_axis {
-            FlexAxis::Row => self.main_content_sizes(layout_context, writing_mode, || {
+            FlexAxis::Row => self.main_content_sizes(layout_context, containing_block, || {
                 unreachable!(
                     "Unexpected FlexContext query during row flex intrinsic size calculation."
                 )
@@ -239,7 +238,7 @@ impl FlexContainer {
     fn main_content_sizes<'a>(
         &self,
         layout_context: &LayoutContext,
-        writing_mode: WritingMode,
+        _containing_block: &IndefiniteContainingBlock,
         flex_context_getter: impl Fn() -> &'a FlexContext<'a>,
     ) -> ContentSizes {
         // - TODO: calculate intrinsic cross sizes when container is a column
@@ -266,7 +265,6 @@ impl FlexContainer {
 
                     let info = item.main_content_size_info(
                         layout_context,
-                        writing_mode,
                         container_is_horizontal,
                         self.config.flex_axis,
                         self.config.main_start_cross_start_sides_are,
@@ -408,7 +406,7 @@ impl FlexContainer {
         let container_main_size = match self.config.flex_axis {
             FlexAxis::Row => containing_block.inline_size,
             FlexAxis::Column => containing_block.block_size.auto_is(|| {
-                self.main_content_sizes(layout_context, self.style.writing_mode, || &flex_context)
+                self.main_content_sizes(layout_context, &containing_block.into(), || &flex_context)
                     .max_content
             }),
         };
@@ -1588,6 +1586,9 @@ impl FlexItem<'_> {
                     item_is_horizontal,
                     flex_context.config.flex_axis,
                 );
+
+                let style = non_replaced.style.clone();
+                let indefinite_containing_block = IndefiniteContainingBlock::new_for_style(&style);
                 let (inline_size, block_size) = if cross_axis_is_item_block_axis {
                     (used_main_size, cross_size)
                 } else {
@@ -1595,7 +1596,7 @@ impl FlexItem<'_> {
                         cross_size.auto_is(|| {
                             let content_contributions = non_replaced.outer_inline_content_sizes(
                                 flex_context.layout_context,
-                                container_writing_mode,
+                                &indefinite_containing_block,
                                 Au::zero,
                             );
                             containing_block
@@ -1818,7 +1819,6 @@ impl FlexItemBox {
     fn main_content_size_info<'a>(
         &mut self,
         layout_context: &LayoutContext,
-        container_writing_mode: WritingMode,
         container_is_horizontal: bool,
         flex_axis: FlexAxis,
         main_start_cross_start: MainStartCrossStart,
@@ -1884,11 +1884,17 @@ impl FlexItemBox {
         // Compute the min-content and max-content contributions of the item.
         // <https://drafts.csswg.org/css-flexbox/#intrinsic-item-contributions>
         let content_contribution_sizes = match flex_axis {
-            FlexAxis::Row => self
-                .independent_formatting_context
-                .outer_inline_content_sizes(layout_context, container_writing_mode, || {
-                    automatic_min_size
-                }),
+            FlexAxis::Row => {
+                let style = self.style().clone();
+                let indefinite_containing_block = IndefiniteContainingBlock::new_for_style(&style);
+
+                self.independent_formatting_context
+                    .outer_inline_content_sizes(
+                        layout_context,
+                        &indefinite_containing_block,
+                        || automatic_min_size,
+                    )
+            },
             FlexAxis::Column => {
                 let size = self.layout_for_block_content_size(
                     flex_context_getter(),
@@ -2253,8 +2259,14 @@ impl FlexItemBox {
                         if will_stretch {
                             containing_block_inline_size_minus_pbm
                         } else {
-                            let inline_content_sizes =
-                                non_replaced.inline_content_sizes(flex_context.layout_context);
+                            let style = non_replaced.style.clone();
+                            let indefinite_containing_block =
+                                IndefiniteContainingBlock::new_for_style(&style);
+                            let inline_content_sizes = non_replaced.inline_content_sizes(
+                                flex_context.layout_context,
+                                &indefinite_containing_block,
+                            );
+
                             containing_block_inline_size_minus_pbm
                                 .min(inline_content_sizes.max_content)
                                 .max(inline_content_sizes.min_content)

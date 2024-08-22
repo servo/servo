@@ -35,6 +35,37 @@ use style_ext::ComputedValuesExt;
 
 use crate::geom::LogicalVec2;
 
+/// A containing block useful for calculating inline content sizes, which may
+/// have inline sizes that depend on block sizes due to aspect ratio.
+pub(crate) struct IndefiniteContainingBlock<'a> {
+    pub size: LogicalVec2<AuOrAuto>,
+    pub style: &'a ComputedValues,
+}
+
+impl<'a> IndefiniteContainingBlock<'a> {
+    fn new_for_style(style: &'a ComputedValues) -> Self {
+        IndefiniteContainingBlock {
+            size: LogicalVec2 {
+                inline: AuOrAuto::Auto,
+                block: AuOrAuto::Auto,
+            },
+            style,
+        }
+    }
+}
+
+impl<'a> From<&'_ ContainingBlock<'a>> for IndefiniteContainingBlock<'a> {
+    fn from(containing_block: &ContainingBlock<'a>) -> Self {
+        IndefiniteContainingBlock {
+            size: LogicalVec2 {
+                inline: AuOrAuto::LengthPercentage(containing_block.inline_size),
+                block: containing_block.block_size,
+            },
+            style: containing_block.style,
+        }
+    }
+}
+
 pub struct ContainingBlock<'a> {
     inline_size: Au,
     block_size: AuOrAuto,

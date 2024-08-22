@@ -8,13 +8,12 @@ use std::ops::{Add, AddAssign};
 
 use app_units::Au;
 use serde::Serialize;
-use style::logical_geometry::WritingMode;
 use style::properties::longhands::box_sizing::computed_value::T as BoxSizing;
-use style::properties::ComputedValues;
 use style::values::computed::Length;
 use style::Zero;
 
 use crate::style_ext::{Clamp, ComputedValuesExt};
+use crate::IndefiniteContainingBlock;
 
 #[derive(PartialEq)]
 pub(crate) enum IntrinsicSizingMode {
@@ -104,11 +103,13 @@ impl ContentSizes {
 }
 
 pub(crate) fn outer_inline(
-    style: &ComputedValues,
-    containing_block_writing_mode: WritingMode,
+    containing_block: &IndefiniteContainingBlock,
     get_content_size: impl FnOnce() -> ContentSizes,
     get_auto_minimum: impl FnOnce() -> Au,
 ) -> ContentSizes {
+    let style = containing_block.style;
+    let containing_block_writing_mode = style.effective_writing_mode();
+
     let padding = style.padding(containing_block_writing_mode);
     let border = style.border_width(containing_block_writing_mode);
     let margin = style.margin(containing_block_writing_mode);

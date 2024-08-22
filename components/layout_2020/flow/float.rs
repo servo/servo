@@ -29,7 +29,7 @@ use crate::fragment_tree::{BoxFragment, CollapsedBlockMargins, CollapsedMargin};
 use crate::geom::{LogicalRect, LogicalVec2, ToLogical};
 use crate::positioned::PositioningContext;
 use crate::style_ext::{ComputedValuesExt, DisplayInside, PaddingBorderMargin};
-use crate::ContainingBlock;
+use crate::{ContainingBlock, IndefiniteContainingBlock};
 
 /// A floating box.
 #[derive(Debug, Serialize)]
@@ -905,20 +905,20 @@ impl FloatBox {
                     IndependentFormattingContext::NonReplaced(ref mut non_replaced) => {
                         // Calculate inline size.
                         // https://drafts.csswg.org/css2/#float-width
-                        let box_size = non_replaced.style.content_box_size(containing_block, &pbm);
-                        let max_box_size = non_replaced
-                            .style
-                            .content_max_box_size(containing_block, &pbm);
-                        let min_box_size = non_replaced
-                            .style
+                        let style = non_replaced.style.clone();
+                        let box_size = style.content_box_size(containing_block, &pbm);
+                        let max_box_size = style.content_max_box_size(containing_block, &pbm);
+                        let min_box_size = style
                             .content_min_box_size(containing_block, &pbm)
                             .auto_is(Length::zero);
 
                         let tentative_inline_size = box_size.inline.auto_is(|| {
                             let available_size =
                                 containing_block.inline_size - pbm_sums.inline_sum();
+                            let indefinite_containing_block =
+                                IndefiniteContainingBlock::new_for_style(&style);
                             non_replaced
-                                .inline_content_sizes(layout_context)
+                                .inline_content_sizes(layout_context, &indefinite_containing_block)
                                 .shrink_to_fit(available_size)
                                 .into()
                         });
