@@ -157,11 +157,9 @@ impl XRWebGLLayer {
         ))
     }
 
+    /// <https://www.w3.org/TR/webxr/#dom-xrwebgllayer-getnativeframebufferscalefactor>
     #[allow(non_snake_case)]
-    pub fn GetNativeFramebufferScaleFactor(
-        _window: &Window,
-        session: &XRSession,
-    ) -> Finite<f64> {
+    pub fn GetNativeFramebufferScaleFactor(_window: &Window, session: &XRSession) -> Finite<f64> {
         let value: f64 = if session.is_ended() { 0.0 } else { 1.0 };
         Finite::wrap(value)
     }
@@ -302,11 +300,13 @@ impl XRWebGLLayerMethods for XRWebGLLayer {
         self.ignore_depth_values
     }
 
+    /// <https://www.w3.org/TR/webxr/#dom-xrwebgllayer-fixedfoveation>
     fn GetFixedFoveation(&self) -> Option<Finite<f32>> {
         // Fixed foveation is only available on Quest/Pico headset runtimes
         None
     }
 
+    /// <https://www.w3.org/TR/webxr/#dom-xrwebgllayer-fixedfoveation>
     fn SetFixedFoveation(&self, _value: Option<Finite<f32>>) {
         // no-op until fixed foveation is supported
     }
