@@ -73,7 +73,7 @@ jobs:
         run: |
           github_hosted_runner_label=windows-2022
           self_hosted_image_label=self-hosted-image:windows10
-          self_hosted_runner_scope=/repos/${{ github.repository }}/actions/runners
+          self_hosted_runner_scope=/orgs/${{ github.repository_owner }}/actions/runners
           export GH_TOKEN=${{ secrets.RUNNER_API_TOKEN }}
 
           runners=$(mktemp)
