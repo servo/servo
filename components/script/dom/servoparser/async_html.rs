@@ -318,9 +318,7 @@ impl Tokenizer {
                     let script = self.get_node(&script.id);
                     return TokenizerResult::Script(DomRoot::from_ref(script.downcast().unwrap()));
                 },
-                ToTokenizerMsg::End => {
-                    return TokenizerResult::Done;
-                },
+                ToTokenizerMsg::End => return TokenizerResult::Done,
             };
         }
     }
