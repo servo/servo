@@ -82,14 +82,6 @@ jobs:
             exit 0
           }
 
-          # RUNNER_API_TOKEN secret will be unavailable in forks.
-          if [ -z "$GH_TOKEN" ]; then
-            fall_back_to_github_hosted
-          fi
-
-          runners=$(mktemp)
-          gh api "$self_hosted_runner_scope" > $runners
-
           # Generate a unique id that allows the workload job to find the runner
           # we are reserving for it (via runner labels), and allows the timeout
           # job to find the workload job run (via the job’s friendly name), even
@@ -97,6 +89,14 @@ jobs:
           random32=$(LC_ALL=C < /dev/urandom tr -dC 0-9a-f 2> /dev/null | head -c 8)
           unique_id=${{ github.repository }}/${{ github.run_id }}/$random32
           echo "unique_id=$unique_id" | tee -a $GITHUB_OUTPUT
+
+          # RUNNER_API_TOKEN secret will be unavailable in forks.
+          if [ -z "$GH_TOKEN" ]; then
+            fall_back_to_github_hosted
+          fi
+
+          runners=$(mktemp)
+          gh api "$self_hosted_runner_scope" > $runners
 
           # Find a runner that is online, not busy, and not already reserved for
           # any job (label prefix “reserved-for:”).
