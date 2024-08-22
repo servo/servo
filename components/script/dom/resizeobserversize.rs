@@ -8,6 +8,7 @@ use crate::dom::bindings::codegen::Bindings::ResizeObserverSizeBinding::ResizeOb
 use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 /// Non-DOM implementation backing `ResizeObserverSize`.
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
@@ -50,7 +51,7 @@ impl ResizeObserverSize {
 
     pub fn new(window: &Window, size_impl: ResizeObserverSizeImpl) -> DomRoot<ResizeObserverSize> {
         let observer_size = Box::new(ResizeObserverSize::new_inherited(size_impl));
-        reflect_dom_object_with_proto(observer_size, window, None)
+        reflect_dom_object_with_proto(observer_size, window, None, CanGc::note())
     }
 }
 

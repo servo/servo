@@ -18,6 +18,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct TransitionEvent {
@@ -43,7 +44,7 @@ impl TransitionEvent {
         type_: Atom,
         init: &TransitionEventInit,
     ) -> DomRoot<TransitionEvent> {
-        Self::new_with_proto(window, None, type_, init)
+        Self::new_with_proto(window, None, type_, init, CanGc::note())
     }
 
     fn new_with_proto(
@@ -51,11 +52,13 @@ impl TransitionEvent {
         proto: Option<HandleObject>,
         type_: Atom,
         init: &TransitionEventInit,
+        can_gc: CanGc,
     ) -> DomRoot<TransitionEvent> {
         let ev = reflect_dom_object_with_proto(
             Box::new(TransitionEvent::new_inherited(init)),
             window,
             proto,
+            can_gc,
         );
         {
             let event = ev.upcast::<Event>();
@@ -68,6 +71,7 @@ impl TransitionEvent {
     pub fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         type_: DOMString,
         init: &TransitionEventInit,
     ) -> Fallible<DomRoot<TransitionEvent>> {
@@ -76,6 +80,7 @@ impl TransitionEvent {
             proto,
             Atom::from(type_),
             init,
+            can_gc,
         ))
     }
 }

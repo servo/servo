@@ -20,6 +20,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
 use crate::dom::uievent::UIEvent;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct KeyboardEvent {
@@ -54,14 +55,20 @@ impl KeyboardEvent {
     }
 
     pub fn new_uninitialized(window: &Window) -> DomRoot<KeyboardEvent> {
-        Self::new_uninitialized_with_proto(window, None)
+        Self::new_uninitialized_with_proto(window, None, CanGc::note())
     }
 
     fn new_uninitialized_with_proto(
         window: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> DomRoot<KeyboardEvent> {
-        reflect_dom_object_with_proto(Box::new(KeyboardEvent::new_inherited()), window, proto)
+        reflect_dom_object_with_proto(
+            Box::new(KeyboardEvent::new_inherited()),
+            window,
+            proto,
+            can_gc,
+        )
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -97,6 +104,7 @@ impl KeyboardEvent {
             modifiers,
             char_code,
             key_code,
+            CanGc::note(),
         )
     }
 
@@ -117,8 +125,9 @@ impl KeyboardEvent {
         modifiers: Modifiers,
         char_code: u32,
         key_code: u32,
+        can_gc: CanGc,
     ) -> DomRoot<KeyboardEvent> {
-        let ev = KeyboardEvent::new_uninitialized_with_proto(window, proto);
+        let ev = KeyboardEvent::new_uninitialized_with_proto(window, proto, can_gc);
         ev.InitKeyboardEvent(
             type_,
             can_bubble,
@@ -143,6 +152,7 @@ impl KeyboardEvent {
     pub fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         type_: DOMString,
         init: &KeyboardEventBinding::KeyboardEventInit,
     ) -> Fallible<DomRoot<KeyboardEvent>> {
@@ -167,6 +177,7 @@ impl KeyboardEvent {
             modifiers,
             0,
             0,
+            can_gc,
         );
         *event.key.borrow_mut() = init.key.clone();
         Ok(event)

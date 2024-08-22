@@ -1119,3 +1119,11 @@ impl Runnable {
         }
     }
 }
+
+pub struct CanGc(());
+
+impl CanGc {
+    pub fn note() -> CanGc {
+        CanGc(())
+    }
+}

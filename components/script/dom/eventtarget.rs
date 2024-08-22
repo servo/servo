@@ -55,6 +55,7 @@ use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::realms::{enter_realm, InRealm};
+use crate::script_runtime::CanGc;
 
 #[derive(Clone, JSTraceable, MallocSizeOf, PartialEq)]
 pub enum CommonEventHandler {
@@ -360,16 +361,26 @@ impl EventTarget {
         }
     }
 
-    fn new(global: &GlobalScope, proto: Option<HandleObject>) -> DomRoot<EventTarget> {
-        reflect_dom_object_with_proto(Box::new(EventTarget::new_inherited()), global, proto)
+    fn new(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        can_gc: CanGc,
+    ) -> DomRoot<EventTarget> {
+        reflect_dom_object_with_proto(
+            Box::new(EventTarget::new_inherited()),
+            global,
+            proto,
+            can_gc,
+        )
     }
 
     #[allow(non_snake_case)]
     pub fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<EventTarget>> {
-        Ok(EventTarget::new(global, proto))
+        Ok(EventTarget::new(global, proto, can_gc))
     }
 
     /// Determine if there are any listeners for a given event type.

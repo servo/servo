@@ -31,6 +31,7 @@ use crate::dom::xrlayer::XRLayer;
 use crate::dom::xrsession::XRSession;
 use crate::dom::xrview::XRView;
 use crate::dom::xrviewport::XRViewport;
+use crate::script_runtime::CanGc;
 
 impl<'a> From<&'a XRWebGLLayerInit> for LayerInit {
     fn from(init: &'a XRWebGLLayerInit) -> LayerInit {
@@ -84,6 +85,7 @@ impl XRWebGLLayer {
         init: &XRWebGLLayerInit,
         framebuffer: Option<&WebGLFramebuffer>,
         layer_id: Option<LayerId>,
+        can_gc: CanGc,
     ) -> DomRoot<XRWebGLLayer> {
         reflect_dom_object_with_proto(
             Box::new(XRWebGLLayer::new_inherited(
@@ -95,6 +97,7 @@ impl XRWebGLLayer {
             )),
             global,
             proto,
+            can_gc,
         )
     }
 
@@ -103,6 +106,7 @@ impl XRWebGLLayer {
     pub fn Constructor(
         global: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         session: &XRSession,
         context: XRWebGLRenderingContext,
         init: &XRWebGLLayerInit,
@@ -154,6 +158,7 @@ impl XRWebGLLayer {
             init,
             framebuffer.as_deref(),
             layer_id,
+            can_gc,
         ))
     }
 

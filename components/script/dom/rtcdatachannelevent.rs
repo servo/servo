@@ -18,6 +18,7 @@ use crate::dom::event::Event;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::rtcdatachannel::RTCDataChannel;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct RTCDataChannelEvent {
@@ -40,7 +41,15 @@ impl RTCDataChannelEvent {
         cancelable: bool,
         channel: &RTCDataChannel,
     ) -> DomRoot<RTCDataChannelEvent> {
-        Self::new_with_proto(global, None, type_, bubbles, cancelable, channel)
+        Self::new_with_proto(
+            global,
+            None,
+            type_,
+            bubbles,
+            cancelable,
+            channel,
+            CanGc::note(),
+        )
     }
 
     fn new_with_proto(
@@ -50,11 +59,13 @@ impl RTCDataChannelEvent {
         bubbles: bool,
         cancelable: bool,
         channel: &RTCDataChannel,
+        can_gc: CanGc,
     ) -> DomRoot<RTCDataChannelEvent> {
         let event = reflect_dom_object_with_proto(
             Box::new(RTCDataChannelEvent::new_inherited(channel)),
             global,
             proto,
+            can_gc,
         );
         {
             let event = event.upcast::<Event>();
@@ -67,6 +78,7 @@ impl RTCDataChannelEvent {
     pub fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         type_: DOMString,
         init: &RTCDataChannelEventInit,
     ) -> DomRoot<RTCDataChannelEvent> {
@@ -77,6 +89,7 @@ impl RTCDataChannelEvent {
             init.parent.bubbles,
             init.parent.cancelable,
             &init.channel,
+            can_gc,
         )
     }
 }

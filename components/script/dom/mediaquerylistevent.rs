@@ -20,6 +20,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 // https://drafts.csswg.org/cssom-view/#dom-mediaquerylistevent-mediaquerylistevent
 #[dom_struct]
@@ -35,13 +36,14 @@ impl MediaQueryListEvent {
         proto: Option<HandleObject>,
         media: DOMString,
         matches: bool,
+        can_gc: CanGc,
     ) -> DomRoot<MediaQueryListEvent> {
         let ev = Box::new(MediaQueryListEvent {
             event: Event::new_inherited(),
             media,
             matches: Cell::new(matches),
         });
-        reflect_dom_object_with_proto(ev, global, proto)
+        reflect_dom_object_with_proto(ev, global, proto, can_gc)
     }
 
     pub fn new(
@@ -52,7 +54,16 @@ impl MediaQueryListEvent {
         media: DOMString,
         matches: bool,
     ) -> DomRoot<MediaQueryListEvent> {
-        Self::new_with_proto(global, None, type_, bubbles, cancelable, media, matches)
+        Self::new_with_proto(
+            global,
+            None,
+            type_,
+            bubbles,
+            cancelable,
+            media,
+            matches,
+            CanGc::note(),
+        )
     }
 
     fn new_with_proto(
@@ -63,8 +74,9 @@ impl MediaQueryListEvent {
         cancelable: bool,
         media: DOMString,
         matches: bool,
+        can_gc: CanGc,
     ) -> DomRoot<MediaQueryListEvent> {
-        let ev = MediaQueryListEvent::new_initialized(global, proto, media, matches);
+        let ev = MediaQueryListEvent::new_initialized(global, proto, media, matches, can_gc);
         {
             let event = ev.upcast::<Event>();
             event.init_event(type_, bubbles, cancelable);
@@ -76,6 +88,7 @@ impl MediaQueryListEvent {
     pub fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         type_: DOMString,
         init: &MediaQueryListEventInit,
     ) -> Fallible<DomRoot<MediaQueryListEvent>> {
@@ -88,6 +101,7 @@ impl MediaQueryListEvent {
             init.parent.cancelable,
             init.media.clone(),
             init.matches,
+            can_gc,
         ))
     }
 }

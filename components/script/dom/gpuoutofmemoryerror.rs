@@ -10,6 +10,7 @@ use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct GPUOutOfMemoryError {
@@ -27,8 +28,14 @@ impl GPUOutOfMemoryError {
         global: &GlobalScope,
         proto: Option<HandleObject>,
         message: DOMString,
+        can_gc: CanGc,
     ) -> DomRoot<Self> {
-        reflect_dom_object_with_proto(Box::new(Self::new_inherited(message)), global, proto)
+        reflect_dom_object_with_proto(
+            Box::new(Self::new_inherited(message)),
+            global,
+            proto,
+            can_gc,
+        )
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-GPUOutOfMemoryError-GPUOutOfMemoryError>
@@ -36,8 +43,9 @@ impl GPUOutOfMemoryError {
     pub fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         message: DOMString,
     ) -> DomRoot<Self> {
-        Self::new_with_proto(global, proto, message)
+        Self::new_with_proto(global, proto, message, can_gc)
     }
 }

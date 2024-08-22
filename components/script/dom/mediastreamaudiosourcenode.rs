@@ -18,6 +18,7 @@ use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::mediastream::MediaStream;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct MediaStreamAudioSourceNode {
@@ -55,7 +56,7 @@ impl MediaStreamAudioSourceNode {
         context: &AudioContext,
         stream: &MediaStream,
     ) -> Fallible<DomRoot<MediaStreamAudioSourceNode>> {
-        Self::new_with_proto(window, None, context, stream)
+        Self::new_with_proto(window, None, context, stream, CanGc::note())
     }
 
     #[allow(crown::unrooted_must_root)]
@@ -64,19 +65,32 @@ impl MediaStreamAudioSourceNode {
         proto: Option<HandleObject>,
         context: &AudioContext,
         stream: &MediaStream,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<MediaStreamAudioSourceNode>> {
         let node = MediaStreamAudioSourceNode::new_inherited(context, stream)?;
-        Ok(reflect_dom_object_with_proto(Box::new(node), window, proto))
+        Ok(reflect_dom_object_with_proto(
+            Box::new(node),
+            window,
+            proto,
+            can_gc,
+        ))
     }
 
     #[allow(non_snake_case)]
     pub fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         context: &AudioContext,
         options: &MediaStreamAudioSourceOptions,
     ) -> Fallible<DomRoot<MediaStreamAudioSourceNode>> {
-        MediaStreamAudioSourceNode::new_with_proto(window, proto, context, &options.mediaStream)
+        MediaStreamAudioSourceNode::new_with_proto(
+            window,
+            proto,
+            context,
+            &options.mediaStream,
+            can_gc,
+        )
     }
 }
 

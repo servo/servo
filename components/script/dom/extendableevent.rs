@@ -15,7 +15,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
 use crate::dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{CanGc, JSContext};
 
 // https://w3c.github.io/ServiceWorker/#extendable-event
 #[dom_struct]
@@ -39,7 +39,7 @@ impl ExtendableEvent {
         bubbles: bool,
         cancelable: bool,
     ) -> DomRoot<ExtendableEvent> {
-        Self::new_with_proto(worker, None, type_, bubbles, cancelable)
+        Self::new_with_proto(worker, None, type_, bubbles, cancelable, CanGc::note())
     }
 
     fn new_with_proto(
@@ -48,11 +48,13 @@ impl ExtendableEvent {
         type_: Atom,
         bubbles: bool,
         cancelable: bool,
+        can_gc: CanGc,
     ) -> DomRoot<ExtendableEvent> {
         let ev = reflect_dom_object_with_proto(
             Box::new(ExtendableEvent::new_inherited()),
             worker,
             proto,
+            can_gc,
         );
         {
             let event = ev.upcast::<Event>();
@@ -64,6 +66,7 @@ impl ExtendableEvent {
     pub fn Constructor(
         worker: &ServiceWorkerGlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         type_: DOMString,
         init: &ExtendableEventBinding::ExtendableEventInit,
     ) -> Fallible<DomRoot<ExtendableEvent>> {
@@ -73,6 +76,7 @@ impl ExtendableEvent {
             Atom::from(type_),
             init.parent.bubbles,
             init.parent.cancelable,
+            can_gc,
         ))
     }
 

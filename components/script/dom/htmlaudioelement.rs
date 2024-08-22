@@ -17,6 +17,7 @@ use crate::dom::element::{CustomElementCreationMode, Element, ElementCreator};
 use crate::dom::htmlmediaelement::HTMLMediaElement;
 use crate::dom::node::Node;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct HTMLAudioElement {
@@ -55,6 +56,7 @@ impl HTMLAudioElement {
     pub fn Audio(
         window: &Window,
         proto: Option<HandleObject>,
+        _can_gc: CanGc,
         src: Option<DOMString>,
     ) -> Fallible<DomRoot<HTMLAudioElement>> {
         let element = Element::create(

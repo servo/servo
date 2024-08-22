@@ -49,7 +49,7 @@ use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::url::URL;
 use crate::realms::InRealm;
-use crate::script_runtime::JSContext as SafeJSContext;
+use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::timers::OneshotTimerCallback;
 
 #[dom_struct]
@@ -67,33 +67,45 @@ impl TestBinding {
         }
     }
 
-    fn new(global: &GlobalScope, proto: Option<HandleObject>) -> DomRoot<TestBinding> {
-        reflect_dom_object_with_proto(Box::new(TestBinding::new_inherited()), global, proto)
+    fn new(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        can_gc: CanGc,
+    ) -> DomRoot<TestBinding> {
+        reflect_dom_object_with_proto(
+            Box::new(TestBinding::new_inherited()),
+            global,
+            proto,
+            can_gc,
+        )
     }
 
     pub fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<TestBinding>> {
-        Ok(TestBinding::new(global, proto))
+        Ok(TestBinding::new(global, proto, can_gc))
     }
 
     #[allow(unused_variables)]
     pub fn Constructor_(
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         nums: Vec<f64>,
     ) -> Fallible<DomRoot<TestBinding>> {
-        Ok(TestBinding::new(global, proto))
+        Ok(TestBinding::new(global, proto, can_gc))
     }
 
     #[allow(unused_variables)]
     pub fn Constructor__(
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         num: f64,
     ) -> Fallible<DomRoot<TestBinding>> {
-        Ok(TestBinding::new(global, proto))
+        Ok(TestBinding::new(global, proto, can_gc))
     }
 }
 

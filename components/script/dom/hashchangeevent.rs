@@ -16,6 +16,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::event::Event;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 // https://html.spec.whatwg.org/multipage/#hashchangeevent
 #[dom_struct]
@@ -46,6 +47,7 @@ impl HashChangeEvent {
             Box::new(HashChangeEvent::new_inherited(String::new(), String::new())),
             window,
             proto,
+            CanGc::note(),
         )
     }
 
@@ -57,7 +59,16 @@ impl HashChangeEvent {
         old_url: String,
         new_url: String,
     ) -> DomRoot<HashChangeEvent> {
-        Self::new_with_proto(window, None, type_, bubbles, cancelable, old_url, new_url)
+        Self::new_with_proto(
+            window,
+            None,
+            type_,
+            bubbles,
+            cancelable,
+            old_url,
+            new_url,
+            CanGc::note(),
+        )
     }
 
     fn new_with_proto(
@@ -68,11 +79,13 @@ impl HashChangeEvent {
         cancelable: bool,
         old_url: String,
         new_url: String,
+        can_gc: CanGc,
     ) -> DomRoot<HashChangeEvent> {
         let ev = reflect_dom_object_with_proto(
             Box::new(HashChangeEvent::new_inherited(old_url, new_url)),
             window,
             proto,
+            can_gc,
         );
         {
             let event = ev.upcast::<Event>();
@@ -85,6 +98,7 @@ impl HashChangeEvent {
     pub fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         type_: DOMString,
         init: &HashChangeEventBinding::HashChangeEventInit,
     ) -> Fallible<DomRoot<HashChangeEvent>> {
@@ -96,6 +110,7 @@ impl HashChangeEvent {
             init.parent.cancelable,
             init.oldURL.0.clone(),
             init.newURL.0.clone(),
+            can_gc,
         ))
     }
 }

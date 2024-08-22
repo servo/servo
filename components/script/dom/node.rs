@@ -103,6 +103,7 @@ use crate::dom::svgsvgelement::{LayoutSVGSVGElementHelpers, SVGSVGElement};
 use crate::dom::text::Text;
 use crate::dom::virtualmethods::{vtable_for, VirtualMethods};
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 
 //
@@ -1788,7 +1789,7 @@ impl Node {
         N: DerivedFrom<Node> + DomObject + DomObjectWrap,
     {
         let window = document.window();
-        reflect_dom_object_with_proto(node, window, proto)
+        reflect_dom_object_with_proto(node, window, proto, CanGc::note())
     }
 
     pub fn new_inherited(doc: &Document) -> Node {

@@ -18,7 +18,7 @@ use crate::dom::dompointreadonly::DOMPointReadOnly;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
 use crate::dom::xrrigidtransform::XRRigidTransform;
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{CanGc, JSContext};
 
 #[dom_struct]
 pub struct XRRay {
@@ -43,8 +43,9 @@ impl XRRay {
         global: &GlobalScope,
         proto: Option<HandleObject>,
         ray: Ray<ApiSpace>,
+        can_gc: CanGc,
     ) -> DomRoot<XRRay> {
-        reflect_dom_object_with_proto(Box::new(XRRay::new_inherited(ray)), global, proto)
+        reflect_dom_object_with_proto(Box::new(XRRay::new_inherited(ray)), global, proto, can_gc)
     }
 
     #[allow(non_snake_case)]
@@ -52,6 +53,7 @@ impl XRRay {
     pub fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         origin: &DOMPointInit,
         direction: &XRRayDirectionInit,
     ) -> Fallible<DomRoot<Self>> {
@@ -79,6 +81,7 @@ impl XRRay {
             &window.global(),
             proto,
             Ray { origin, direction },
+            can_gc,
         ))
     }
 
@@ -87,6 +90,7 @@ impl XRRay {
     pub fn Constructor_(
         window: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         transform: &XRRigidTransform,
     ) -> Fallible<DomRoot<Self>> {
         let transform = transform.transform();
@@ -99,6 +103,7 @@ impl XRRay {
             &window.global(),
             proto,
             Ray { origin, direction },
+            can_gc,
         ))
     }
 

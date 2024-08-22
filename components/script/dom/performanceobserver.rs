@@ -24,7 +24,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::performance::PerformanceEntryList;
 use crate::dom::performanceentry::PerformanceEntry;
 use crate::dom::performanceobserverentrylist::PerformanceObserverEntryList;
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{CanGc, JSContext};
 
 /// List of allowed performance entry types, in alphabetical order.
 pub const VALID_ENTRY_TYPES: &[&str] = &[
@@ -71,7 +71,7 @@ impl PerformanceObserver {
         callback: Rc<PerformanceObserverCallback>,
         entries: DOMPerformanceEntryList,
     ) -> DomRoot<PerformanceObserver> {
-        Self::new_with_proto(global, None, callback, entries)
+        Self::new_with_proto(global, None, callback, entries, CanGc::note())
     }
 
     #[allow(crown::unrooted_must_root)]
@@ -80,15 +80,17 @@ impl PerformanceObserver {
         proto: Option<HandleObject>,
         callback: Rc<PerformanceObserverCallback>,
         entries: DOMPerformanceEntryList,
+        can_gc: CanGc,
     ) -> DomRoot<PerformanceObserver> {
         let observer = PerformanceObserver::new_inherited(callback, DomRefCell::new(entries));
-        reflect_dom_object_with_proto(Box::new(observer), global, proto)
+        reflect_dom_object_with_proto(Box::new(observer), global, proto, can_gc)
     }
 
     #[allow(non_snake_case)]
     pub fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         callback: Rc<PerformanceObserverCallback>,
     ) -> Fallible<DomRoot<PerformanceObserver>> {
         Ok(PerformanceObserver::new_with_proto(
@@ -96,6 +98,7 @@ impl PerformanceObserver {
             proto,
             callback,
             Vec::new(),
+            can_gc,
         ))
     }
 

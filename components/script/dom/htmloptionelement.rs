@@ -35,6 +35,7 @@ use crate::dom::validation::Validatable;
 use crate::dom::validitystate::ValidationFlags;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct HTMLOptionElement {
@@ -86,6 +87,7 @@ impl HTMLOptionElement {
     pub fn Option(
         window: &Window,
         proto: Option<HandleObject>,
+        _can_gc: CanGc,
         text: DOMString,
         value: Option<DOMString>,
         default_selected: bool,

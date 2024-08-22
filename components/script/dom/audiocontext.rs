@@ -33,6 +33,7 @@ use crate::dom::mediastreamtrackaudiosourcenode::MediaStreamTrackAudioSourceNode
 use crate::dom::promise::Promise;
 use crate::dom::window::Window;
 use crate::realms::InRealm;
+use crate::script_runtime::CanGc;
 use crate::task_source::TaskSource;
 
 #[dom_struct]
@@ -86,10 +87,11 @@ impl AudioContext {
         window: &Window,
         proto: Option<HandleObject>,
         options: &AudioContextOptions,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<AudioContext>> {
         let pipeline_id = window.pipeline_id();
         let context = AudioContext::new_inherited(options, pipeline_id)?;
-        let context = reflect_dom_object_with_proto(Box::new(context), window, proto);
+        let context = reflect_dom_object_with_proto(Box::new(context), window, proto, can_gc);
         context.resume();
         Ok(context)
     }
@@ -99,9 +101,10 @@ impl AudioContext {
     pub fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         options: &AudioContextOptions,
     ) -> Fallible<DomRoot<AudioContext>> {
-        AudioContext::new(window, proto, options)
+        AudioContext::new(window, proto, options, can_gc)
     }
 
     fn resume(&self) {

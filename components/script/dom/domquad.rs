@@ -14,6 +14,7 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::dompoint::DOMPoint;
 use crate::dom::domrect::DOMRect;
 use crate::dom::globalscope::GlobalScope;
+use crate::script_runtime::CanGc;
 
 // https://drafts.fxtf.org/geometry/#DOMQuad
 #[dom_struct]
@@ -44,7 +45,7 @@ impl DOMQuad {
         p3: &DOMPoint,
         p4: &DOMPoint,
     ) -> DomRoot<DOMQuad> {
-        Self::new_with_proto(global, None, p1, p2, p3, p4)
+        Self::new_with_proto(global, None, p1, p2, p3, p4, CanGc::note())
     }
 
     fn new_with_proto(
@@ -54,17 +55,20 @@ impl DOMQuad {
         p2: &DOMPoint,
         p3: &DOMPoint,
         p4: &DOMPoint,
+        can_gc: CanGc,
     ) -> DomRoot<DOMQuad> {
         reflect_dom_object_with_proto(
             Box::new(DOMQuad::new_inherited(p1, p2, p3, p4)),
             global,
             proto,
+            can_gc,
         )
     }
 
     pub fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         p1: &DOMPointInit,
         p2: &DOMPointInit,
         p3: &DOMPointInit,
@@ -77,6 +81,7 @@ impl DOMQuad {
             &DOMPoint::new_from_init(global, p2),
             &DOMPoint::new_from_init(global, p3),
             &DOMPoint::new_from_init(global, p4),
+            can_gc,
         ))
     }
 
