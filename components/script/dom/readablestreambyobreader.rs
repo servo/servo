@@ -35,29 +35,26 @@ pub enum ReadIntoRequest {
 }
 
 impl ReadIntoRequest {
-    /// <https://streams.spec.whatwg.org/#read-request-chunk-steps>
-    #[allow(unsafe_code)]
+    /// <https://streams.spec.whatwg.org/#read-into-request-chunk-steps>
     pub fn chunk_steps(&self, chunk: Vec<u8>) {
+        self.resolve_request_promise(Some(chunk), false);
+    }
+
+    /// <https://streams.spec.whatwg.org/#read-into-request-close-steps>
+    pub fn close_steps(&self, chunk: Option<Vec<u8>>) {
+        self.resolve_request_promise(chunk, true);
+    }
+
+    /// <https://streams.spec.whatwg.org/#read-into-request-error-steps>
+    pub fn error_steps(&self) {
         match self {
-            ReadIntoRequest::Read(promise) => {
-                let cx = GlobalScope::get_cx();
-                rooted!(in(*cx) let mut rval = UndefinedValue());
-                let result = RootedTraceableBox::new(Heap::default());
-                unsafe {
-                    chunk.to_jsval(*cx, rval.handle_mut());
-                    result.set(*rval);
-                }
-                promise.resolve_native(&ReadableStreamReadResult {
-                    done: Some(false),
-                    value: result,
-                });
-            },
+            // TODO: pass error type.
+            ReadIntoRequest::Read(promise) => promise.reject_native(&()),
         }
     }
 
-    /// <https://streams.spec.whatwg.org/#ref-for-read-request-close-step>
     #[allow(unsafe_code)]
-    pub fn close_steps(&self, chunk: Option<Vec<u8>>) {
+    fn resolve_request_promise(&self, chunk: Option<Vec<u8>>, done: bool) {
         match self {
             ReadIntoRequest::Read(promise) => {
                 let cx = GlobalScope::get_cx();
@@ -70,18 +67,10 @@ impl ReadIntoRequest {
                     }
                 }
                 promise.resolve_native(&ReadableStreamReadResult {
-                    done: Some(true),
+                    done: Some(done),
                     value: result,
                 });
             },
-        }
-    }
-
-    /// <https://streams.spec.whatwg.org/#ref-for-read-request-close-step>
-    pub fn error_steps(&self) {
-        match self {
-            // TODO: pass error type.
-            ReadIntoRequest::Read(promise) => promise.reject_native(&()),
         }
     }
 }
