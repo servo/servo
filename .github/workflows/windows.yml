@@ -76,6 +76,17 @@ jobs:
           self_hosted_runner_scope=/orgs/${{ github.repository_owner }}/actions/runners
           export GH_TOKEN=${{ secrets.RUNNER_API_TOKEN }}
 
+          fall_back_to_github_hosted() {
+            echo "selected_runner_label=$github_hosted_runner_label" | tee -a $GITHUB_OUTPUT
+            echo 'is_self_hosted=false' | tee -a $GITHUB_OUTPUT
+            exit 0
+          }
+
+          # RUNNER_API_TOKEN secret will be unavailable in forks.
+          if [ -z "$GH_TOKEN" ]; then
+            fall_back_to_github_hosted
+          fi
+
           runners=$(mktemp)
           gh api "$self_hosted_runner_scope" > $runners
 
@@ -97,9 +108,7 @@ jobs:
               | map(select([.labels[].name] | index($self_hosted_image_label) | not | not))
               | map(select([.labels[].name] | map(startswith("reserved-for:")) | index(true) | not))
               | first | .id'; then
-            echo "selected_runner_label=$github_hosted_runner_label" | tee -a $GITHUB_OUTPUT
-            echo 'is_self_hosted=false' | tee -a $GITHUB_OUTPUT
-            exit 0
+            fall_back_to_github_hosted
           fi
 
           # Reserve that runner by adding a label containing the unique id.
