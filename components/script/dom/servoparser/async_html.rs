@@ -298,28 +298,31 @@ impl Tokenizer {
             .unwrap();
 
         loop {
-            match self
-                .receiver
-                .recv()
-                .expect("Unexpected channel panic in main thread.")
-            {
-                ToTokenizerMsg::ProcessOperation(parse_op) => self.process_operation(parse_op),
-                ToTokenizerMsg::TokenizerResultDone { updated_input } => {
-                    let buffer_queue = create_buffer_queue(updated_input);
-                    input.replace_with(buffer_queue);
+            match self.receiver.recv() {
+                Ok(message) => match message {
+                    ToTokenizerMsg::ProcessOperation(parse_op) => self.process_operation(parse_op),
+                    ToTokenizerMsg::TokenizerResultDone { updated_input } => {
+                        let buffer_queue = create_buffer_queue(updated_input);
+                        input.replace_with(buffer_queue);
+                        return TokenizerResult::Done;
+                    },
+                    ToTokenizerMsg::TokenizerResultScript {
+                        script,
+                        updated_input,
+                    } => {
+                        let buffer_queue = create_buffer_queue(updated_input);
+                        input.replace_with(buffer_queue);
+                        let script = self.get_node(&script.id);
+                        return TokenizerResult::Script(DomRoot::from_ref(
+                            script.downcast().unwrap(),
+                        ));
+                    },
+                    ToTokenizerMsg::End => unreachable!(),
+                },
+                Err(_) => {
                     return TokenizerResult::Done;
                 },
-                ToTokenizerMsg::TokenizerResultScript {
-                    script,
-                    updated_input,
-                } => {
-                    let buffer_queue = create_buffer_queue(updated_input);
-                    input.replace_with(buffer_queue);
-                    let script = self.get_node(&script.id);
-                    return TokenizerResult::Script(DomRoot::from_ref(script.downcast().unwrap()));
-                },
-                ToTokenizerMsg::End => unreachable!(),
-            };
+            }
         }
     }
 
