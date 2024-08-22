@@ -567,22 +567,34 @@ impl<'dom> ::selectors::Element for ServoLayoutElement<'dom> {
             NonTSPseudoClass::ReadOnly => !self
                 .element
                 .get_state_for_layout()
-                .contains(pseudo_class.state_flag()),
+                .contains(NonTSPseudoClass::ReadWrite.state_flag()),
 
             NonTSPseudoClass::Active |
+            NonTSPseudoClass::Autofill |
+            NonTSPseudoClass::Checked |
+            NonTSPseudoClass::Default |
+            NonTSPseudoClass::Defined |
+            NonTSPseudoClass::Disabled |
+            NonTSPseudoClass::Enabled |
             NonTSPseudoClass::Focus |
+            NonTSPseudoClass::FocusVisible |
+            NonTSPseudoClass::FocusWithin |
             NonTSPseudoClass::Fullscreen |
             NonTSPseudoClass::Hover |
-            NonTSPseudoClass::Defined |
-            NonTSPseudoClass::Enabled |
-            NonTSPseudoClass::Disabled |
-            NonTSPseudoClass::Checked |
-            NonTSPseudoClass::Valid |
-            NonTSPseudoClass::Invalid |
+            NonTSPseudoClass::InRange |
             NonTSPseudoClass::Indeterminate |
-            NonTSPseudoClass::ReadWrite |
+            NonTSPseudoClass::Invalid |
+            NonTSPseudoClass::Modal |
+            NonTSPseudoClass::Optional |
+            NonTSPseudoClass::OutOfRange |
             NonTSPseudoClass::PlaceholderShown |
-            NonTSPseudoClass::Target => self
+            NonTSPseudoClass::PopoverOpen |
+            NonTSPseudoClass::ReadWrite |
+            NonTSPseudoClass::Required |
+            NonTSPseudoClass::Target |
+            NonTSPseudoClass::UserInvalid |
+            NonTSPseudoClass::UserValid |
+            NonTSPseudoClass::Valid => self
                 .element
                 .get_state_for_layout()
                 .contains(pseudo_class.state_flag()),
