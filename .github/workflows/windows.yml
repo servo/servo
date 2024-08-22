@@ -112,13 +112,14 @@ jobs:
           echo "selected_runner_label=reserved-for:$unique_id" | tee -a $GITHUB_OUTPUT
           echo 'is_self_hosted=true' | tee -a $GITHUB_OUTPUT
 
-  # In the unlikely event the selected runner goes down after we reserve it but
-  # before the workload starts, cancel the workflow run.
+  # In the unlikely event a self-hosted runner was selected and reserved but it
+  # goes down before the workload starts, cancel the workflow run.
   runner-timeout:
-    name: Runner timeout
-    runs-on: ubuntu-latest
     needs:
       - runner-select
+    if: ${{ fromJSON(needs.runner-select.outputs.is-self-hosted) }}
+    name: Runner timeout
+    runs-on: ubuntu-latest
     steps:
       - name: Wait a bit
         run: sleep 30
