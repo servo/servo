@@ -213,6 +213,14 @@ impl ReadableStream {
         }
     }
 
+    // Call into the rellease steps of the controller,
+    pub fn perform_release_steps(&self) {
+        match self.controller {
+            ControllerType::Default(ref controller) => controller.perform_release_steps(),
+            _ => todo!(),
+        }
+    }
+
     /// <https://streams.spec.whatwg.org/#readable-stream-add-read-request>
     pub fn add_read_request(&self, read_request: ReadRequest) {
         match self.reader {
@@ -405,7 +413,7 @@ impl ReadableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-cancel>
-    fn cancel(&self, promise: &Promise, reason: SafeHandleValue) {
+    pub fn cancel(&self, promise: &Promise, reason: SafeHandleValue) {
         self.disturbed.set(true);
 
         if self.is_closed() {
