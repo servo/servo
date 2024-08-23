@@ -17,6 +17,7 @@ use crate::dom::bindings::codegen::Bindings::XRWebGLLayerBinding::{
 };
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
@@ -30,6 +31,7 @@ use crate::dom::xrlayer::XRLayer;
 use crate::dom::xrsession::XRSession;
 use crate::dom::xrview::XRView;
 use crate::dom::xrviewport::XRViewport;
+use crate::script_runtime::CanGc;
 
 impl<'a> From<&'a XRWebGLLayerInit> for LayerInit {
     fn from(init: &'a XRWebGLLayerInit) -> LayerInit {
@@ -83,6 +85,7 @@ impl XRWebGLLayer {
         init: &XRWebGLLayerInit,
         framebuffer: Option<&WebGLFramebuffer>,
         layer_id: Option<LayerId>,
+        can_gc: CanGc,
     ) -> DomRoot<XRWebGLLayer> {
         reflect_dom_object_with_proto(
             Box::new(XRWebGLLayer::new_inherited(
@@ -94,6 +97,7 @@ impl XRWebGLLayer {
             )),
             global,
             proto,
+            can_gc,
         )
     }
 
@@ -102,6 +106,7 @@ impl XRWebGLLayer {
     pub fn Constructor(
         global: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         session: &XRSession,
         context: XRWebGLRenderingContext,
         init: &XRWebGLLayerInit,
@@ -153,7 +158,15 @@ impl XRWebGLLayer {
             init,
             framebuffer.as_deref(),
             layer_id,
+            can_gc,
         ))
+    }
+
+    /// <https://www.w3.org/TR/webxr/#dom-xrwebgllayer-getnativeframebufferscalefactor>
+    #[allow(non_snake_case)]
+    pub fn GetNativeFramebufferScaleFactor(_window: &Window, session: &XRSession) -> Finite<f64> {
+        let value: f64 = if session.is_ended() { 0.0 } else { 1.0 };
+        Finite::wrap(value)
     }
 
     pub fn layer_id(&self) -> Option<LayerId> {
@@ -292,6 +305,17 @@ impl XRWebGLLayerMethods for XRWebGLLayer {
         self.ignore_depth_values
     }
 
+    /// <https://www.w3.org/TR/webxr/#dom-xrwebgllayer-fixedfoveation>
+    fn GetFixedFoveation(&self) -> Option<Finite<f32>> {
+        // Fixed foveation is only available on Quest/Pico headset runtimes
+        None
+    }
+
+    /// <https://www.w3.org/TR/webxr/#dom-xrwebgllayer-fixedfoveation>
+    fn SetFixedFoveation(&self, _value: Option<Finite<f32>>) {
+        // no-op until fixed foveation is supported
+    }
+
     /// <https://immersive-web.github.io/webxr/#dom-xrwebgllayer-framebuffer>
     fn GetFramebuffer(&self) -> Option<DomRoot<WebGLFramebuffer>> {
         self.framebuffer.as_ref().map(|x| DomRoot::from_ref(&**x))
@@ -316,13 +340,18 @@ impl XRWebGLLayerMethods for XRWebGLLayer {
         let index = view.viewport_index();
 
         let viewport = self.session().with_session(|s| {
-            // Inline sssions
+            // Inline sessions
             if s.viewports().is_empty() {
                 Rect::from_size(self.size().to_i32())
             } else {
                 s.viewports()[index]
             }
         });
+
+        // NOTE: According to spec, viewport sizes should be recalculated here if the
+        // requested viewport scale has changed. However, existing browser implementations
+        // don't seem to do this for stereoscopic immersive sessions.
+        // Revisit if Servo gets support for handheld AR/VR via ARCore/ARKit
 
         Some(XRViewport::new(&self.global(), viewport))
     }

@@ -1,12 +1,17 @@
 // META: title=validation tests for WebNN API clamp operation
 // META: global=window,dedicatedworker
+// META: variant=?cpu
+// META: variant=?gpu
+// META: variant=?npu
 // META: script=../resources/utils_validation.js
 
 'use strict';
 
 validateInputFromAnotherBuilder('clamp');
 
-validateUnaryOperation('clamp', allWebNNOperandDataTypes);
+const label = '123_clamp';
+
+validateUnaryOperation('clamp', allWebNNOperandDataTypes, label);
 
 promise_test(async t => {
   const builder = new MLGraphBuilder(context);
@@ -42,7 +47,6 @@ promise_test(async t => {
   assert_array_equals(output.shape(), [1, 2, 3, 4]);
 }, '[clamp] Build with options.minValue == options.maxValue');
 
-const label = '123_clamp';
 promise_test(async t => {
   const builder = new MLGraphBuilder(context);
   const options = {
@@ -59,14 +63,8 @@ promise_test(async t => {
   }
   const input =
       builder.input('input', {dataType: 'uint8', dimensions: [1, 2, 3]});
-  try {
-    builder.clamp(input, options);
-  } catch (e) {
-    assert_equals(e.name, 'TypeError');
-    const error_message = e.message;
-    const regrexp = new RegExp('\\[' + label + '\\]');
-    assert_not_equals(error_message.match(regrexp), null);
-  }
+  const regrexp = new RegExp('\\[' + label + '\\]');
+  assert_throws_with_label(() => builder.clamp(input, options), regrexp);
 }, '[clamp] Throw if options.minValue > options.maxValue');
 
 // To be removed once infinite `minValue` is allowed. Tracked in

@@ -710,7 +710,7 @@ impl<'a> BuilderForBoxFragment<'a> {
                     painting_area_override: None,
                     positioning_area_override: Some(
                         positioning_area
-                            .to_physical(self.fragment.style.writing_mode)
+                            .to_physical(self.fragment.style.effective_writing_mode())
                             .translate(self.containing_block.origin.to_vector())
                             .to_webrender(),
                     ),
@@ -840,7 +840,7 @@ impl<'a> BuilderForBoxFragment<'a> {
                     // TODO: Add support for PaintWorklet rendering.
                 },
                 Image::ImageSet(..) | Image::CrossFade(..) => {
-                    unreachable!("Shouldn't be parsed on Servo for now")
+                    // TODO: Add support for ImageSet and CrossFade rendering.
                 },
             }
         }

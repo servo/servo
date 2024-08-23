@@ -6,7 +6,6 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::Mutex;
 
-use lazy_static::lazy_static;
 use log::trace;
 /// A random number generator which shares one instance of an `OsRng`.
 ///
@@ -26,9 +25,7 @@ use rand_isaac::isaac::IsaacCore;
 use uuid::{Builder, Uuid};
 
 // The shared RNG which may hold on to a file descriptor
-lazy_static! {
-    static ref OS_RNG: Mutex<OsRng> = Mutex::new(OsRng);
-}
+static OS_RNG: Mutex<OsRng> = Mutex::new(OsRng);
 
 // Generate 32K of data between reseedings
 const RESEED_THRESHOLD: u64 = 32_768;

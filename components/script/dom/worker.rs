@@ -37,7 +37,7 @@ use crate::dom::messageevent::MessageEvent;
 use crate::dom::window::Window;
 use crate::dom::workerglobalscope::prepare_workerscope_init;
 use crate::realms::enter_realm;
-use crate::script_runtime::{ContextForRequestInterrupt, JSContext};
+use crate::script_runtime::{CanGc, ContextForRequestInterrupt, JSContext};
 use crate::task::TaskOnce;
 
 pub type TrustedWorkerAddress = Trusted<Worker>;
@@ -74,11 +74,13 @@ impl Worker {
         proto: Option<HandleObject>,
         sender: Sender<DedicatedWorkerScriptMsg>,
         closing: Arc<AtomicBool>,
+        can_gc: CanGc,
     ) -> DomRoot<Worker> {
         reflect_dom_object_with_proto(
             Box::new(Worker::new_inherited(sender, closing)),
             global,
             proto,
+            can_gc,
         )
     }
 
@@ -87,6 +89,7 @@ impl Worker {
     pub fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         script_url: USVString,
         worker_options: &WorkerOptions,
     ) -> Fallible<DomRoot<Worker>> {
@@ -98,7 +101,7 @@ impl Worker {
 
         let (sender, receiver) = unbounded();
         let closing = Arc::new(AtomicBool::new(false));
-        let worker = Worker::new(global, proto, sender.clone(), closing.clone());
+        let worker = Worker::new(global, proto, sender.clone(), closing.clone(), can_gc);
         let worker_ref = Trusted::new(&*worker);
 
         let worker_load_origin = WorkerScriptLoadOrigin {

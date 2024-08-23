@@ -630,7 +630,7 @@ unsafe fn new_rt_and_cx_with_parent(
         if pref!(js.baseline_jit.unsafe_eager_compilation.enabled) {
             0
         } else {
-            u32::max_value()
+            u32::MAX
         },
     );
     JS_SetGlobalJitCompilerOption(
@@ -639,7 +639,7 @@ unsafe fn new_rt_and_cx_with_parent(
         if pref!(js.ion.unsafe_eager_compilation.enabled) {
             0
         } else {
-            u32::max_value()
+            u32::MAX
         },
     );
     // TODO: handle js.discard_system_source.enabled
@@ -652,7 +652,7 @@ unsafe fn new_rt_and_cx_with_parent(
         JSGCParamKey::JSGC_MAX_BYTES,
         in_range(pref!(js.mem.max), 1, 0x100)
             .map(|val| (val * 1024 * 1024) as u32)
-            .unwrap_or(u32::max_value()),
+            .unwrap_or(u32::MAX),
     );
     // NOTE: This is disabled above, so enabling it here will do nothing for now.
     JS_SetGCParameter(
@@ -1117,5 +1117,13 @@ impl Runnable {
         unsafe {
             DispatchableRun(cx, self.0, maybe_shutting_down);
         }
+    }
+}
+
+pub struct CanGc(());
+
+impl CanGc {
+    pub fn note() -> CanGc {
+        CanGc(())
     }
 }

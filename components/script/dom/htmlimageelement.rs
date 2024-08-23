@@ -96,6 +96,7 @@ use crate::image_listener::{generate_cache_listener_for_element, ImageCacheListe
 use crate::microtask::{Microtask, MicrotaskRunnable};
 use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
 use crate::realms::enter_realm;
+use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 use crate::task_source::TaskSource;
 
@@ -1327,6 +1328,7 @@ impl HTMLImageElement {
     pub fn Image(
         window: &Window,
         proto: Option<HandleObject>,
+        _can_gc: CanGc,
         width: Option<u32>,
         height: Option<u32>,
     ) -> Fallible<DomRoot<HTMLImageElement>> {

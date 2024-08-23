@@ -177,7 +177,7 @@ use crate::dom::window::{ReflowReason, Window};
 use crate::dom::windowproxy::WindowProxy;
 use crate::fetch::FetchCanceller;
 use crate::realms::{AlreadyInRealm, InRealm};
-use crate::script_runtime::{CommonScriptMsg, ScriptThreadEventCategory};
+use crate::script_runtime::{CanGc, CommonScriptMsg, ScriptThreadEventCategory};
 use crate::script_thread::{MainThreadScriptMsg, ScriptThread};
 use crate::stylesheet_set::StylesheetSetRef;
 use crate::task::TaskBox;
@@ -1352,9 +1352,6 @@ impl Document {
             self.commit_focus_transaction(FocusType::Element);
             self.maybe_fire_dblclick(client_point, node, pressed_mouse_buttons);
         }
-
-        self.window
-            .reflow(ReflowGoal::Full, ReflowReason::MouseEvent);
     }
 
     fn maybe_fire_dblclick(
@@ -1570,8 +1567,6 @@ impl Document {
         // If the target has changed then store the current mouse over target for next frame.
         if target_has_changed {
             prev_mouse_over_target.set(maybe_new_target.as_deref());
-            self.window
-                .reflow(ReflowGoal::Full, ReflowReason::MouseEvent);
         }
     }
 
@@ -1772,8 +1767,6 @@ impl Document {
         let event = event.upcast::<Event>();
         let result = event.fire(&target);
 
-        window.reflow(ReflowGoal::Full, ReflowReason::MouseEvent);
-
         match result {
             EventStatus::Canceled => TouchEventResult::Processed(false),
             EventStatus::NotCanceled => TouchEventResult::Processed(true),
@@ -1857,8 +1850,6 @@ impl Document {
                 }
             }
         }
-
-        self.window.reflow(ReflowGoal::Full, ReflowReason::KeyEvent);
     }
 
     pub fn ime_dismissed(&self) {
@@ -2363,8 +2354,6 @@ impl Document {
                     // http://w3c.github.io/navigation-timing/#widl-PerformanceNavigationTiming-loadEventEnd
                     update_with_current_time_ms(&document.load_event_end);
 
-                    window.reflow(ReflowGoal::Full, ReflowReason::DocumentLoaded);
-
                     if let Some(fragment) = document.url().fragment() {
                         document.check_and_scroll_fragment(fragment);
                     }
@@ -2679,18 +2668,6 @@ impl Document {
 
     pub fn get_current_parser(&self) -> Option<DomRoot<ServoParser>> {
         self.current_parser.get()
-    }
-
-    pub fn can_invoke_script(&self) -> bool {
-        match self.get_current_parser() {
-            Some(parser) => {
-                // It is safe to run script if the parser is not actively parsing,
-                // or if it is impossible to interact with the token stream.
-                parser.parser_is_not_active() ||
-                    self.throw_on_dynamic_markup_insertion_counter.get() > 0
-            },
-            None => true,
-        }
     }
 
     /// Iterate over all iframes in the document.
@@ -3432,6 +3409,7 @@ impl Document {
     pub fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<Document>> {
         let doc = window.Document();
         let docloader = DocumentLoader::new(&doc.loader());
@@ -3451,6 +3429,7 @@ impl Document {
             None,
             None,
             Default::default(),
+            can_gc,
         ))
     }
 
@@ -3487,6 +3466,7 @@ impl Document {
             referrer_policy,
             status_code,
             canceller,
+            CanGc::note(),
         )
     }
 
@@ -3507,6 +3487,7 @@ impl Document {
         referrer_policy: Option<ReferrerPolicy>,
         status_code: Option<u16>,
         canceller: FetchCanceller,
+        can_gc: CanGc,
     ) -> DomRoot<Document> {
         let document = reflect_dom_object_with_proto(
             Box::new(Document::new_inherited(
@@ -3527,6 +3508,7 @@ impl Document {
             )),
             window,
             proto,
+            can_gc,
         );
         {
             let node = document.upcast::<Node>();
@@ -4310,15 +4292,15 @@ impl DocumentMethods for Document {
     // https://dom.spec.whatwg.org/#dom-document-getelementsbytagname
     fn GetElementsByTagName(&self, qualified_name: DOMString) -> DomRoot<HTMLCollection> {
         let qualified_name = LocalName::from(&*qualified_name);
-        match self.tag_map.borrow_mut().entry(qualified_name.clone()) {
-            Occupied(entry) => DomRoot::from_ref(entry.get()),
-            Vacant(entry) => {
-                let result =
-                    HTMLCollection::by_qualified_name(&self.window, self.upcast(), qualified_name);
-                entry.insert(Dom::from_ref(&*result));
-                result
-            },
+        if let Some(entry) = self.tag_map.borrow_mut().get(&qualified_name) {
+            return DomRoot::from_ref(entry);
         }
+        let result =
+            HTMLCollection::by_qualified_name(&self.window, self.upcast(), qualified_name.clone());
+        self.tag_map
+            .borrow_mut()
+            .insert(qualified_name, Dom::from_ref(&*result));
+        result
     }
 
     // https://dom.spec.whatwg.org/#dom-document-getelementsbytagnamens
@@ -4616,7 +4598,7 @@ impl DocumentMethods for Document {
 
     // https://dom.spec.whatwg.org/#dom-document-createrange
     fn CreateRange(&self) -> DomRoot<Range> {
-        Range::new_with_doc(self, None)
+        Range::new_with_doc(self, None, CanGc::note())
     }
 
     // https://dom.spec.whatwg.org/#dom-document-createnodeiteratorroot-whattoshow-filter

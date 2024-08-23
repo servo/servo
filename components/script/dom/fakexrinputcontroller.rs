@@ -126,6 +126,7 @@ impl FakeXRInputControllerMethods for FakeXRInputController {
             XRTargetRayMode::Gaze => TargetRayMode::Gaze,
             XRTargetRayMode::Tracked_pointer => TargetRayMode::TrackedPointer,
             XRTargetRayMode::Screen => TargetRayMode::Screen,
+            XRTargetRayMode::Transient_pointer => TargetRayMode::TransientPointer,
         };
         self.send_message(MockInputMsg::SetTargetRayMode(t));
     }

@@ -25,7 +25,6 @@ fonts = { path = "../fonts" }
 fonts_traits = { workspace = true }
 html5ever = { workspace = true }
 ipc-channel = { workspace = true }
-lazy_static = { workspace = true }
 log = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }

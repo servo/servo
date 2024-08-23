@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<title>CSS Masonry: masonry-track-* getComputedStyle()</title>
+<link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+<link rel="help" href="https://tabatkins.github.io/specs/css-masonry/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<script src="/css/support/inheritance-testcommon.js"></script>
+<div id="container">
+  <div id="target"></div>
+</div>
+<script>
+  // auto
+  test_computed_value("masonry-track-end", "auto");
+  test_computed_value("masonry-track-start", "auto");
+
+  // <custom-ident>
+  test_computed_value("masonry-track-end", "_9");
+  test_computed_value("masonry-track-start", "-_π");
+
+  // <integer> && <custom-ident>?
+  test_computed_value("masonry-track-end", "-44 Z");
+  test_computed_value("masonry-track-start", "+90 X", "90 X");
+
+  // span && [ <integer> || <custom-ident> ]
+  test_computed_value("masonry-track-end", "span 1 i", "span i");
+  test_computed_value("masonry-track-start", "span 2");
+</script>

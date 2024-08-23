@@ -187,20 +187,9 @@ jobs:
       - name: Upgrade llvm
         if: ${{ ! fromJSON(needs.runner-select.outputs.is-self-hosted) }}
         run: choco upgrade llvm
-      - name: Install taplo
-        # Already installed in self-hosted runner (also, pwsh command not found).
+      - name: Install crown
         if: ${{ ! fromJSON(needs.runner-select.outputs.is-self-hosted) }}
-        uses: baptiste0928/cargo-install@v3
-        with:
-          crate: taplo-cli
-          locked: true
-      - name: Install cargo-deny
-        # Already installed in self-hosted runner (also, pwsh command not found).
-        if: ${{ ! fromJSON(needs.runner-select.outputs.is-self-hosted) }}
-        uses: baptiste0928/cargo-install@v3
-        with:
-          crate: cargo-deny
-          locked: true
+        run: cargo install --path support/crown
       - name: Install wixtoolset
         if: ${{ ! fromJSON(needs.runner-select.outputs.is-self-hosted) }}
         run: |
@@ -216,7 +205,6 @@ jobs:
           python -m pip install --upgrade pip
           python mach fetch
           python mach bootstrap-gstreamer
-          cargo install --path support/crown
       # For some reason WiX isn't currently on the GitHub runner path. This is a
       # temporary workaround until that is fixed.
       - name: Add WiX to Path

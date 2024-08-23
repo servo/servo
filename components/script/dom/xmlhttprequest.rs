@@ -71,7 +71,7 @@ use crate::dom::xmlhttprequesteventtarget::XMLHttpRequestEventTarget;
 use crate::dom::xmlhttprequestupload::XMLHttpRequestUpload;
 use crate::fetch::FetchCanceller;
 use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{CanGc, JSContext};
 use crate::task_source::networking::NetworkingTaskSource;
 use crate::task_source::TaskSourceName;
 use crate::timers::{OneshotTimerCallback, OneshotTimerHandle};
@@ -219,11 +219,16 @@ impl XMLHttpRequest {
         }
     }
 
-    fn new(global: &GlobalScope, proto: Option<HandleObject>) -> DomRoot<XMLHttpRequest> {
+    fn new(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        can_gc: CanGc,
+    ) -> DomRoot<XMLHttpRequest> {
         reflect_dom_object_with_proto(
             Box::new(XMLHttpRequest::new_inherited(global)),
             global,
             proto,
+            can_gc,
         )
     }
 
@@ -232,8 +237,9 @@ impl XMLHttpRequest {
     pub fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<XMLHttpRequest>> {
-        Ok(XMLHttpRequest::new(global, proto))
+        Ok(XMLHttpRequest::new(global, proto, can_gc))
     }
 
     fn sync_in_window(&self) -> bool {

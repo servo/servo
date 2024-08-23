@@ -7,7 +7,7 @@ on:
         required: false
         default: "release"
         type: string
-      wpt-tests-to-run:
+      wpt-args:
         default: ""
         required: false
         type: string
@@ -32,7 +32,7 @@ on:
         default: "release"
         type: choice
         options: ["release", "debug", "production"]
-      wpt-tests-to-run:
+      wpt-args:
         default: ""
         required: false
         type: string
@@ -79,20 +79,12 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.4
-      - name: Install taplo
-        uses: baptiste0928/cargo-install@v3
-        with:
-          crate: taplo-cli
-          locked: true
-      - name: Install cargo-deny
-        uses: baptiste0928/cargo-install@v3
-        with:
-          crate: cargo-deny
-          locked: true
+      - name: Install crown
+        run: cargo install --path support/crown
       - name: Bootstrap
         run: |
           python3 -m pip install --upgrade pip
-          python3 ./mach bootstrap
+          python3 ./mach bootstrap --skip-lints
           brew install gnu-tar
       - name: Build (${{ inputs.profile }})
         run: |
@@ -158,7 +150,7 @@ jobs:
     with:
       profile: ${{ inputs.profile }}
       wpt-layout: "layout-2020"
-      wpt-tests-to-run: ${{ inputs.wpt-tests-to-run }}
+      wpt-args: ${{ inputs.wpt-args }}
     secrets: inherit
 
   wpt-2013:
@@ -169,5 +161,5 @@ jobs:
     with:
       profile: ${{ inputs.profile }}
       wpt-layout: "layout-2013"
-      wpt-tests-to-run: ${{ inputs.wpt-tests-to-run }}
+      wpt-args: ${{ inputs.wpt-args }}
     secrets: inherit

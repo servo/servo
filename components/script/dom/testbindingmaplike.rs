@@ -18,6 +18,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::maplike;
+use crate::script_runtime::CanGc;
 
 /// maplike<DOMString, long>
 #[dom_struct]
@@ -28,7 +29,11 @@ pub struct TestBindingMaplike {
 }
 
 impl TestBindingMaplike {
-    fn new(global: &GlobalScope, proto: Option<HandleObject>) -> DomRoot<TestBindingMaplike> {
+    fn new(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        can_gc: CanGc,
+    ) -> DomRoot<TestBindingMaplike> {
         reflect_dom_object_with_proto(
             Box::new(TestBindingMaplike {
                 reflector: Reflector::new(),
@@ -36,6 +41,7 @@ impl TestBindingMaplike {
             }),
             global,
             proto,
+            can_gc,
         )
     }
 
@@ -43,8 +49,9 @@ impl TestBindingMaplike {
     pub fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<TestBindingMaplike>> {
-        Ok(TestBindingMaplike::new(global, proto))
+        Ok(TestBindingMaplike::new(global, proto, can_gc))
     }
 }
 

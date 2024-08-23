@@ -7,12 +7,14 @@ use js::jsapi::{JSObject, Type};
 use js::rust::CustomAutoRooterGuard;
 use js::typedarray::{ArrayBufferView, ArrayBufferViewU8, TypedArray};
 use servo_rand::{RngCore, ServoRng};
+use uuid::Uuid;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::CryptoBinding::CryptoMethods;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::JSContext;
 
@@ -40,7 +42,7 @@ impl Crypto {
 
 impl CryptoMethods for Crypto {
     #[allow(unsafe_code)]
-    // https://dvcs.w3.org/hg/webcrypto-api/raw-file/tip/spec/Overview.html#Crypto-method-getRandomValues
+    // https://w3c.github.io/webcrypto/#Crypto-method-getRandomValues
     fn GetRandomValues(
         &self,
         _cx: JSContext,
@@ -60,6 +62,15 @@ impl CryptoMethods for Crypto {
             TypedArray::<ArrayBufferViewU8, *mut JSObject>::from(*underlying_object)
                 .map_err(|_| Error::JSFailed)
         }
+    }
+
+    // https://w3c.github.io/webcrypto/#Crypto-method-randomUUID
+    fn RandomUUID(&self) -> USVString {
+        let uuid = Uuid::new_v4();
+        uuid.hyphenated()
+            .encode_lower(&mut Uuid::encode_buffer())
+            .to_owned()
+            .into()
     }
 }
 

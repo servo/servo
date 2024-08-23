@@ -23,7 +23,7 @@ use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{CanGc, JSContext};
 
 #[dom_struct]
 pub struct PromiseRejectionEvent {
@@ -60,6 +60,7 @@ impl PromiseRejectionEvent {
             cancelable,
             promise.promise_obj(),
             reason,
+            CanGc::note(),
         )
     }
 
@@ -72,11 +73,13 @@ impl PromiseRejectionEvent {
         cancelable: EventCancelable,
         promise: HandleObject,
         reason: HandleValue,
+        can_gc: CanGc,
     ) -> DomRoot<Self> {
         let ev = reflect_dom_object_with_proto(
             Box::new(PromiseRejectionEvent::new_inherited()),
             global,
             proto,
+            can_gc,
         );
         ev.promise.set(promise.get());
 
@@ -93,6 +96,7 @@ impl PromiseRejectionEvent {
     pub fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         type_: DOMString,
         init: RootedTraceableBox<PromiseRejectionEventBinding::PromiseRejectionEventInit>,
     ) -> Fallible<DomRoot<Self>> {
@@ -108,6 +112,7 @@ impl PromiseRejectionEvent {
             cancelable,
             init.promise.handle(),
             reason,
+            can_gc,
         );
         Ok(event)
     }

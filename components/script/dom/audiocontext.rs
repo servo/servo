@@ -33,6 +33,7 @@ use crate::dom::mediastreamtrackaudiosourcenode::MediaStreamTrackAudioSourceNode
 use crate::dom::promise::Promise;
 use crate::dom::window::Window;
 use crate::realms::InRealm;
+use crate::script_runtime::CanGc;
 use crate::task_source::TaskSource;
 
 #[dom_struct]
@@ -48,12 +49,15 @@ pub struct AudioContext {
 impl AudioContext {
     #[allow(crown::unrooted_must_root)]
     // https://webaudio.github.io/web-audio-api/#AudioContext-constructors
-    fn new_inherited(options: &AudioContextOptions, pipeline_id: PipelineId) -> AudioContext {
+    fn new_inherited(
+        options: &AudioContextOptions,
+        pipeline_id: PipelineId,
+    ) -> Fallible<AudioContext> {
         // Steps 1-3.
         let context = BaseAudioContext::new_inherited(
             BaseAudioContextOptions::AudioContext(options.into()),
             pipeline_id,
-        );
+        )?;
 
         // Step 4.1.
         let latency_hint = match options.latencyHint {
@@ -70,12 +74,12 @@ impl AudioContext {
         // Steps 5 and 6 of the construction algorithm will happen in `resume`,
         // after reflecting dom object.
 
-        AudioContext {
+        Ok(AudioContext {
             context,
             latency_hint,
             base_latency: 0.,   // TODO
             output_latency: 0., // TODO
-        }
+        })
     }
 
     #[allow(crown::unrooted_must_root)]
@@ -83,12 +87,13 @@ impl AudioContext {
         window: &Window,
         proto: Option<HandleObject>,
         options: &AudioContextOptions,
-    ) -> DomRoot<AudioContext> {
+        can_gc: CanGc,
+    ) -> Fallible<DomRoot<AudioContext>> {
         let pipeline_id = window.pipeline_id();
-        let context = AudioContext::new_inherited(options, pipeline_id);
-        let context = reflect_dom_object_with_proto(Box::new(context), window, proto);
+        let context = AudioContext::new_inherited(options, pipeline_id)?;
+        let context = reflect_dom_object_with_proto(Box::new(context), window, proto, can_gc);
         context.resume();
-        context
+        Ok(context)
     }
 
     // https://webaudio.github.io/web-audio-api/#AudioContext-constructors
@@ -96,9 +101,10 @@ impl AudioContext {
     pub fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         options: &AudioContextOptions,
     ) -> Fallible<DomRoot<AudioContext>> {
-        Ok(AudioContext::new(window, proto, options))
+        AudioContext::new(window, proto, options, can_gc)
     }
 
     fn resume(&self) {

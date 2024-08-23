@@ -1,12 +1,18 @@
 // META: title=validation tests for WebNN API elu operation
 // META: global=window,dedicatedworker
+// META: variant=?cpu
+// META: variant=?gpu
+// META: variant=?npu
 // META: script=../resources/utils_validation.js
 
 'use strict';
 
 validateInputFromAnotherBuilder('elu');
 
-validateSingleInputOperation('elu');
+const label = 'elu_xxx';
+const regrexp = new RegExp('\\[' + label + '\\]');
+
+validateSingleInputOperation('elu', label);
 
 promise_test(async t => {
   const builder = new MLGraphBuilder(context);
@@ -20,17 +26,23 @@ promise_test(async t => {
 
 promise_test(async t => {
   const builder = new MLGraphBuilder(context);
-  const options = {alpha: -1.0};
+  const options = {
+    alpha: -1.0,
+    label: label,
+  };
   const input =
       builder.input('input', {dataType: 'float32', dimensions: [1, 2, 3]});
-  assert_throws_js(TypeError, () => builder.elu(input, options));
+  assert_throws_with_label(() => builder.elu(input, options), regrexp);
 }, '[elu] Throw if options.alpha < 0');
 
 promise_test(async t => {
   const builder = new MLGraphBuilder(context);
-  const options = {alpha: 0};
+  const options = {
+    alpha: 0,
+    label: label,
+  };
   const input = builder.input('input', {dataType: 'float32', dimensions: [1]});
-  assert_throws_js(TypeError, () => builder.elu(input, options));
+  assert_throws_with_label(() => builder.elu(input, options), regrexp);
 }, '[elu] Throw if options.alpha == 0');
 
 promise_test(async t => {

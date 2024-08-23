@@ -1,0 +1,15 @@
+<!doctype html>
+<head>
+<title>Verify that parseFromString does not panic</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe src="missing"></iframe>
+<script>
+  test(() => {
+    {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString("", "text/html");
+      assert_equals(doc.URL, document.URL);
+    }
+  });
+</script>

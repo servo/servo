@@ -14,6 +14,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::domexception::{DOMErrorName, DOMException};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct RTCError {
@@ -43,7 +44,7 @@ impl RTCError {
     }
 
     pub fn new(global: &GlobalScope, init: &RTCErrorInit, message: DOMString) -> DomRoot<RTCError> {
-        Self::new_with_proto(global, None, init, message)
+        Self::new_with_proto(global, None, init, message, CanGc::note())
     }
 
     fn new_with_proto(
@@ -51,11 +52,13 @@ impl RTCError {
         proto: Option<HandleObject>,
         init: &RTCErrorInit,
         message: DOMString,
+        can_gc: CanGc,
     ) -> DomRoot<RTCError> {
         reflect_dom_object_with_proto(
             Box::new(RTCError::new_inherited(global, init, message)),
             global,
             proto,
+            can_gc,
         )
     }
 
@@ -63,10 +66,11 @@ impl RTCError {
     pub fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         init: &RTCErrorInit,
         message: DOMString,
     ) -> DomRoot<RTCError> {
-        RTCError::new_with_proto(&window.global(), proto, init, message)
+        RTCError::new_with_proto(&window.global(), proto, init, message, can_gc)
     }
 }
 

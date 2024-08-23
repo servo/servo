@@ -18,6 +18,7 @@ use crate::dom::event::Event;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::rtcerror::RTCError;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct RTCErrorEvent {
@@ -40,7 +41,15 @@ impl RTCErrorEvent {
         cancelable: bool,
         error: &RTCError,
     ) -> DomRoot<RTCErrorEvent> {
-        Self::new_with_proto(global, None, type_, bubbles, cancelable, error)
+        Self::new_with_proto(
+            global,
+            None,
+            type_,
+            bubbles,
+            cancelable,
+            error,
+            CanGc::note(),
+        )
     }
 
     fn new_with_proto(
@@ -50,11 +59,13 @@ impl RTCErrorEvent {
         bubbles: bool,
         cancelable: bool,
         error: &RTCError,
+        can_gc: CanGc,
     ) -> DomRoot<RTCErrorEvent> {
         let event = reflect_dom_object_with_proto(
             Box::new(RTCErrorEvent::new_inherited(error)),
             global,
             proto,
+            can_gc,
         );
         {
             let event = event.upcast::<Event>();
@@ -67,6 +78,7 @@ impl RTCErrorEvent {
     pub fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         type_: DOMString,
         init: &RTCErrorEventInit,
     ) -> DomRoot<RTCErrorEvent> {
@@ -77,6 +89,7 @@ impl RTCErrorEvent {
             init.parent.bubbles,
             init.parent.cancelable,
             &init.error,
+            can_gc,
         )
     }
 }

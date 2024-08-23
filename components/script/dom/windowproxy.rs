@@ -418,7 +418,7 @@ impl WindowProxy {
 
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-opener
-    pub fn opener(&self, cx: *mut JSContext) -> JSVal {
+    pub fn opener(&self, cx: *mut JSContext, in_realm_proof: InRealm) -> JSVal {
         if self.disowned.get() {
             return NullValue();
         }
@@ -436,11 +436,8 @@ impl WindowProxy {
                     opener_id,
                 ) {
                     Some(opener_top_id) => {
-                        let in_realm_proof =
-                            AlreadyInRealm::assert_for_cx(unsafe { SafeJSContext::from_ptr(cx) });
-                        let global_to_clone_from = unsafe {
-                            GlobalScope::from_context(cx, InRealm::Already(&in_realm_proof))
-                        };
+                        let global_to_clone_from =
+                            unsafe { GlobalScope::from_context(cx, in_realm_proof) };
                         let creator =
                             CreatorBrowsingContextInfo::from(parent_browsing_context, None);
                         WindowProxy::new_dissimilar_origin(
@@ -647,6 +644,9 @@ impl WindowProxy {
             // because we want to replace the wrapper's `ProxyTraps`, but we
             // don't want to update its identity.
             rooted!(in(*cx) let new_js_proxy = handler.new_window_proxy(&cx, window_jsobject));
+            // Explicitly set this slot to a null pointer in case a GC occurs before we
+            // are ready to set it to a real value.
+            SetProxyReservedSlot(new_js_proxy.get(), 0, &PrivateValue(ptr::null_mut()));
             debug!(
                 "Transplanting proxy from {:p} to {:p}.",
                 old_js_proxy.get(),

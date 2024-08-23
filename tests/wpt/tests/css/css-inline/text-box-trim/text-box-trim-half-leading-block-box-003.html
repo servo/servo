@@ -1,22 +1,24 @@
 <!DOCTYPE html>
-<title>Tests block boxes's edges are trimmed at text-over/text-under baselines of their first/last formatted lines</title>
-<link rel="help" href="https://drafts.csswg.org/css-inline-3/#leading-trim">
+<title>text-box-trim trims through invisible line boxes</title>
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#text-box-trim">
+<link rel="help" href="https://www.w3.org/TR/css-inline-3/#invisible-line-boxes">
 <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
-<link rel="match" href="text-box-trim-half-leading-block-box-001-ref.html">
+<link rel="match" href="text-box-trim-half-leading-block-box-003-ref.html">
 
 <style>
 .div-parent {
   outline: 1px solid orange;
-  font-family: Ahem;
-  font-size: 20px;
-  line-height: 3;
-  text-box-trim: both;
+  font: 20px/3 Ahem;
+  text-box-trim: trim-both;
   text-box-edge: text;
+}
+span {
+  border-block: solid red;
 }
 </style>
 
-<div class ="div-parent">
-  <div id="0"></div>
-  <div id="1">Testline1<br>Testline2<br>Testline3</div>
-  <div id="2"></div>
+<div class="div-parent">
+  <span>    </span>
+  <div>Testline1<br>Testline2<br>Testline3</div>
+  <span>	</span>
 </div>

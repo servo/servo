@@ -9,8 +9,8 @@
 //! as possible.
 
 use std::collections::{HashMap, LinkedList};
+use std::sync::LazyLock;
 
-use lazy_static::lazy_static;
 use script_layout_interface::wrapper_traits::PseudoElementType;
 use smallvec::SmallVec;
 use style::computed_values::list_style_type::T as ListStyleType;
@@ -29,8 +29,8 @@ use crate::fragment::{
 use crate::text::TextRunScanner;
 use crate::traversal::InorderFlowTraversal;
 
-lazy_static! {
-    static ref INITIAL_QUOTES: style::ArcSlice<QuotePair> = style::ArcSlice::from_iter_leaked(
+static INITIAL_QUOTES: LazyLock<style::ArcSlice<QuotePair>> = LazyLock::new(|| {
+    style::ArcSlice::from_iter_leaked(
         vec![
             QuotePair {
                 opening: "\u{201c}".to_owned().into(),
@@ -41,9 +41,9 @@ lazy_static! {
                 closing: "\u{2019}".to_owned().into(),
             },
         ]
-        .into_iter()
-    );
-}
+        .into_iter(),
+    )
+});
 
 // Decimal styles per CSS-COUNTER-STYLES § 6.1:
 static DECIMAL: [char; 10] = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];

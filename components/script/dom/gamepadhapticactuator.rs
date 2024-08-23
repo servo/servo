@@ -26,7 +26,7 @@ use crate::dom::bindings::utils::to_frozen_array;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::realms::InRealm;
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{CanGc, JSContext};
 use crate::task::TaskCanceller;
 use crate::task_source::gamepad::GamepadTaskSource;
 use crate::task_source::{TaskSource, TaskSourceName};
@@ -125,6 +125,7 @@ impl GamepadHapticActuator {
             )),
             global,
             None,
+            CanGc::note(),
         );
         haptic_actuator
     }

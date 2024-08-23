@@ -5,6 +5,7 @@
 #![deny(unsafe_code)]
 
 use std::fmt::Display;
+use std::sync::LazyLock;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use base::id::HistoryStateId;
@@ -16,7 +17,6 @@ use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use ipc_channel::Error as IpcError;
-use lazy_static::lazy_static;
 use malloc_size_of::malloc_size_of_is_0;
 use malloc_size_of_derive::MallocSizeOf;
 use mime::Mime;
@@ -819,6 +819,5 @@ pub fn http_percent_encode(bytes: &[u8]) -> String {
     percent_encoding::percent_encode(bytes, HTTP_VALUE).to_string()
 }
 
-lazy_static! {
-    pub static ref PRIVILEGED_SECRET: u32 = servo_rand::ServoRng::default().next_u32();
-}
+pub static PRIVILEGED_SECRET: LazyLock<u32> =
+    LazyLock::new(|| servo_rand::ServoRng::default().next_u32());

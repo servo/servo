@@ -26,7 +26,7 @@ use crate::dom::bindings::reflector::{
 use crate::dom::bindings::root::{Dom, DomRoot, Root};
 use crate::dom::bindings::trace::{JSTraceable, RootedTraceableBox};
 use crate::dom::globalscope::GlobalScope;
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{CanGc, JSContext};
 
 /// The values that an iterator will iterate over.
 #[derive(JSTraceable, MallocSizeOf)]
@@ -126,6 +126,7 @@ impl<T: DomObjectIteratorWrap + JSTraceable + Iterable> DomObjectWrap for Iterab
         &GlobalScope,
         Option<HandleObject>,
         Box<Self>,
+        CanGc,
     ) -> Root<Dom<Self>> = T::ITER_WRAP;
 }
 

@@ -22,6 +22,7 @@ use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct StereoPannerNode {
@@ -78,7 +79,7 @@ impl StereoPannerNode {
         context: &BaseAudioContext,
         options: &StereoPannerOptions,
     ) -> Fallible<DomRoot<StereoPannerNode>> {
-        Self::new_with_proto(window, None, context, options)
+        Self::new_with_proto(window, None, context, options, CanGc::note())
     }
 
     #[allow(crown::unrooted_must_root)]
@@ -87,19 +88,26 @@ impl StereoPannerNode {
         proto: Option<HandleObject>,
         context: &BaseAudioContext,
         options: &StereoPannerOptions,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<StereoPannerNode>> {
         let node = StereoPannerNode::new_inherited(window, context, options)?;
-        Ok(reflect_dom_object_with_proto(Box::new(node), window, proto))
+        Ok(reflect_dom_object_with_proto(
+            Box::new(node),
+            window,
+            proto,
+            can_gc,
+        ))
     }
 
     #[allow(non_snake_case)]
     pub fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         context: &BaseAudioContext,
         options: &StereoPannerOptions,
     ) -> Fallible<DomRoot<StereoPannerNode>> {
-        StereoPannerNode::new_with_proto(window, proto, context, options)
+        StereoPannerNode::new_with_proto(window, proto, context, options, can_gc)
     }
 }
 

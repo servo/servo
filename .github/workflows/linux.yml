@@ -6,7 +6,7 @@ on:
         required: false
         default: "release"
         type: string
-      wpt-tests-to-run:
+      wpt-args:
         default: ""
         required: false
         type: string
@@ -35,7 +35,7 @@ on:
         default: "release"
         type: choice
         options: ["release", "debug", "production"]
-      wpt-tests-to-run:
+      wpt-args:
         default: ""
         required: false
         type: string
@@ -74,15 +74,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         if: github.event_name != 'pull_request_target'
-        with:
-          fetch-depth: 2 # This is necessary for `test-tidy`.
       # This is necessary to checkout the pull request if this run was triggered via a
       # `pull_request_target` event.
       - uses: actions/checkout@v4
         if: github.event_name == 'pull_request_target'
         with:
           ref: ${{ github.event.pull_request.head.sha }}
-          fetch-depth: 2 # This is necessary for `test-tidy`.
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.4
       - name: Set LIBCLANG_PATH env # needed for bindgen in mozangle
@@ -91,24 +88,14 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.10'
-      - name: Install taplo
-        uses: baptiste0928/cargo-install@v3
-        with:
-          crate: taplo-cli
-          locked: true
-      - name: Install cargo-deny
-        uses: baptiste0928/cargo-install@v3
-        with:
-          crate: cargo-deny
-          locked: true
+      - name: Install crown
+        run: cargo install --path support/crown
       - name: Bootstrap Python
         run: python3 -m pip install --upgrade pip
       - name: Bootstrap dependencies
         run: |
           sudo apt update
-          python3 ./mach bootstrap
-      - name: Tidy
-        run: python3 ./mach test-tidy --no-progress --all
+          python3 ./mach bootstrap --skip-lints
       - name: Build (${{ inputs.profile }})
         run: |
           python3 ./mach build --use-crown --locked --${{ inputs.profile }}
@@ -161,7 +148,7 @@ jobs:
     needs: ["build"]
     uses: ./.github/workflows/linux-wpt.yml
     with:
-      wpt-tests-to-run: ${{ inputs.wpt-tests-to-run }}
+      wpt-args: ${{ inputs.wpt-args }}
       profile: ${{ inputs.profile }}
       wpt-sync-from-upstream: ${{ inputs.wpt-sync-from-upstream }}
       wpt-layout: "layout-2020"
@@ -173,7 +160,7 @@ jobs:
     needs: ["build"]
     uses: ./.github/workflows/linux-wpt.yml
     with:
-      wpt-tests-to-run: ${{ inputs.wpt-tests-to-run }}
+      wpt-args: ${{ inputs.wpt-args }}
       profile: ${{ inputs.profile }}
       wpt-sync-from-upstream: ${{ inputs.wpt-sync-from-upstream }}
       wpt-layout: "layout-2013"

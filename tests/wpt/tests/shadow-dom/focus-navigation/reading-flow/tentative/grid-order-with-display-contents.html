@@ -19,7 +19,7 @@
 }
 </style>
 
-<div class="test-case" data-expect="order1,order2,order3,order4"
+<div class="test-case" data-expect="order1,order3,order2,order4"
      data-description="Items in display contents are sorted in same grid container.">
   <div class="wrapper">
     <div style="display: contents">
@@ -33,7 +33,7 @@
   </div>
 </div>
 
-<div class="test-case" data-expect="order1B,order2B,order3B,order4B,div1B,div2B"
+<div class="test-case" data-expect="div1B,order1B,order3B,div2B,order2B,order4B"
      data-description="Items in display contents are sorted in same grid container, with focusable display contents divs at the end of the focus sequence.">
   <div class="wrapper">
     <div id="div1B" style="display: contents" tabindex="0">
@@ -42,6 +42,32 @@
       <div id="div2B" style="display: contents" tabindex="0">
         <button id="order4B" style="order: 4">Order 4</button>
         <button id="order2B" style="order: 2">Order 2</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="test-case" data-expect="A1,A2,A3,B1,B2,B3,C1,C2,C3,D1,D2,D3"
+      data-description="Grid items are in nested display contents containers.">
+  <div class=box>
+    <div style="display:contents" tabindex="0" id="A1">
+      <div style="display:contents" tabindex="0" id="A2">
+        <button style="order: 4" id="A3">A</button>
+      </div>
+    </div>
+    <div style="display:contents" tabindex="0" id="B1">
+      <div style="display:contents" tabindex="0" id="B2">
+        <button style="order: 3" id="B3">B</button>
+      </div>
+    </div>
+    <div style="display:contents" tabindex="0" id="C1">
+      <div style="display:contents" tabindex="0" id="C2">
+        <button style="order: 1" id="C3">C</button>
+      </div>
+    </div>
+    <div style="display:contents" tabindex="0" id="D1">
+      <div style="display:contents" tabindex="0" id="D2">
+        <button style="order: 2" id="D3">D</button>
       </div>
     </div>
   </div>

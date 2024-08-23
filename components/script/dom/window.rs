@@ -164,23 +164,14 @@ enum WindowState {
 #[derive(Debug, MallocSizeOf)]
 pub enum ReflowReason {
     CachedPageNeededReflow,
-    DOMContentLoaded,
-    DocumentLoaded,
     ElementStateChanged,
     FirstLoad,
-    FramedContentChanged,
-    IFrameLoadEvent,
-    ImageLoaded,
-    KeyEvent,
     MissingExplicitReflow,
-    MouseEvent,
     PendingReflow,
     Query,
     RefreshTick,
     RequestAnimationFrame,
     ScrollFromScript,
-    StylesheetLoaded,
-    Timer,
     Viewport,
     WindowResize,
     WorkletLoaded,
@@ -554,9 +545,6 @@ impl Window {
 
     // see note at https://dom.spec.whatwg.org/#concept-event-dispatch step 2
     pub fn dispatch_event_with_target_override(&self, event: &Event) -> EventStatus {
-        if self.has_document() {
-            assert!(self.Document().can_invoke_script());
-        }
         event.dispatch(self.upcast(), true)
     }
 }
@@ -702,7 +690,7 @@ impl WindowMethods for Window {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-opener
-    fn GetOpener(&self, cx: JSContext) -> Fallible<JSVal> {
+    fn GetOpener(&self, cx: JSContext, in_realm_proof: InRealm) -> Fallible<JSVal> {
         // Step 1, Let current be this Window object's browsing context.
         let current = match self.window_proxy.get() {
             Some(proxy) => proxy,
@@ -717,7 +705,7 @@ impl WindowMethods for Window {
             return Ok(NullValue());
         }
         // Step 3 to 5.
-        Ok(current.opener(*cx))
+        Ok(current.opener(*cx, in_realm_proof))
     }
 
     #[allow(unsafe_code)]
@@ -725,7 +713,9 @@ impl WindowMethods for Window {
     fn SetOpener(&self, cx: JSContext, value: HandleValue) -> ErrorResult {
         // Step 1.
         if value.is_null() {
-            self.window_proxy().disown();
+            if let Some(proxy) = self.window_proxy.get() {
+                proxy.disown();
+            }
             return Ok(());
         }
         // Step 2.
@@ -2320,7 +2310,6 @@ impl Window {
 
     pub fn handle_fire_timer(&self, timer_id: TimerEventId) {
         self.upcast::<GlobalScope>().fire_timer(timer_id);
-        self.reflow(ReflowGoal::Full, ReflowReason::Timer);
     }
 
     pub fn set_window_size(&self, size: WindowSizeData) {

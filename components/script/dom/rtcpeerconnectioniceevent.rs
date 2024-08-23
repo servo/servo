@@ -19,6 +19,7 @@ use crate::dom::event::Event;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::rtcicecandidate::RTCIceCandidate;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct RTCPeerConnectionIceEvent {
@@ -46,7 +47,7 @@ impl RTCPeerConnectionIceEvent {
         url: Option<DOMString>,
         trusted: bool,
     ) -> DomRoot<RTCPeerConnectionIceEvent> {
-        Self::new_with_proto(global, None, ty, candidate, url, trusted)
+        Self::new_with_proto(global, None, ty, candidate, url, trusted, CanGc::note())
     }
 
     fn new_with_proto(
@@ -56,11 +57,13 @@ impl RTCPeerConnectionIceEvent {
         candidate: Option<&RTCIceCandidate>,
         url: Option<DOMString>,
         trusted: bool,
+        can_gc: CanGc,
     ) -> DomRoot<RTCPeerConnectionIceEvent> {
         let e = reflect_dom_object_with_proto(
             Box::new(RTCPeerConnectionIceEvent::new_inherited(candidate, url)),
             global,
             proto,
+            can_gc,
         );
         let evt = e.upcast::<Event>();
         evt.init_event(ty, false, false); // XXXManishearth bubbles/cancelable?
@@ -72,6 +75,7 @@ impl RTCPeerConnectionIceEvent {
     pub fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         ty: DOMString,
         init: &RTCPeerConnectionIceEventInit,
     ) -> Fallible<DomRoot<RTCPeerConnectionIceEvent>> {
@@ -85,6 +89,7 @@ impl RTCPeerConnectionIceEvent {
                 .map(|x| &**x),
             init.url.as_ref().and_then(|x| x.clone()),
             false,
+            can_gc,
         ))
     }
 }

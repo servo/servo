@@ -51,6 +51,9 @@ html.no-match::view-transition {
     view-transition-group: contain;
 }
 
+::view-transition-group(*) {
+    animation-play-state: paused;
+}
 ::view-transition-group(green) {
     background: green;
 }

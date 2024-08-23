@@ -18,7 +18,6 @@ base = { workspace = true }
 crossbeam-channel = { workspace = true }
 euclid = { workspace = true }
 ipc-channel = { workspace = true }
-lazy_static = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
 pixels = { path = "../../pixels" }

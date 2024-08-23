@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<title>text-box getComputedStyle() returns correctly resolved values</title>
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#propdef-text-box">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<div id="target"></div>
+<script>
+// initial values
+test_computed_value('text-box', 'normal');
+test_computed_value('text-box', 'none', 'normal');
+test_computed_value('text-box', 'none auto', 'normal');
+test_computed_value('text-box', 'auto none', 'normal');
+test_computed_value('text-box', 'auto', 'trim-both');
+
+// `<text-box-trim>`: `none | trim-start | trim-end | trim-both`
+test_computed_value('text-box', 'trim-start');
+test_computed_value('text-box', 'trim-end');
+test_computed_value('text-box', 'trim-both');
+
+// `<text-edge>`
+test_computed_value('text-box', 'text');
+test_computed_value('text-box', 'cap');
+test_computed_value('text-box', 'ideographic');
+test_computed_value('text-box', 'cap alphabetic');
+test_computed_value('text-box', 'text alphabetic');
+
+// Mix initial and non-initial values
+test_computed_value('text-box', 'trim-start auto', 'trim-start');
+test_computed_value('text-box', 'trim-both auto', 'trim-both');
+test_computed_value('text-box', 'auto trim-both', 'trim-both');
+test_computed_value('text-box', 'none text', 'none text');
+test_computed_value('text-box', 'text text none', 'none text');
+test_computed_value('text-box', 'none cap', 'none cap');
+test_computed_value('text-box', 'cap ideographic none', 'none cap ideographic');
+test_computed_value('text-box', 'ideographic none', 'none ideographic');
+
+// Both `<text-box-trim>` and `<text-box-edge>`
+test_computed_value('text-box', 'trim-both text', 'text');
+test_computed_value('text-box', 'trim-start text');
+test_computed_value('text-box', 'text text trim-both', 'text');
+test_computed_value('text-box', 'text text trim-end', 'trim-end text');
+test_computed_value('text-box', 'cap alphabetic trim-start', 'trim-start cap alphabetic');
+test_computed_value('text-box', 'trim-start cap alphabetic');
+test_computed_value('text-box', 'trim-both cap alphabetic', 'cap alphabetic');
+test_computed_value('text-box', 'trim-start ideographic ideographic', 'trim-start ideographic');
+test_computed_value('text-box', 'trim-start ideographic-ink ideographic-ink', 'trim-start ideographic-ink');
+test_computed_value('text-box', 'trim-end cap text', 'trim-end cap');
+test_computed_value('text-box', 'trim-end ex text', 'trim-end ex');
+test_computed_value('text-box', 'cap text trim-end', 'trim-end cap');
+test_computed_value('text-box', 'ex text trim-end', 'trim-end ex');
+test_computed_value('text-box', 'cap text trim-both', 'cap');
+test_computed_value('text-box', 'ex text trim-both', 'ex');
+</script>

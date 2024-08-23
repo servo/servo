@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<title>text-box-edge rejects invalid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#text-edges">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+
+<script>
+// invalid keyword
+test_invalid_value('text-box-edge', 'none');
+test_invalid_value('text-box-edge', 'normal');
+test_invalid_value('text-box-edge', 'leading');
+test_invalid_value('text-box-edge', 'auto leading');
+test_invalid_value('text-box-edge', 'leading auto');
+test_invalid_value('text-box-edge', 'normal text');
+test_invalid_value('text-box-edge', 'text none');
+
+test_invalid_value('text-box-edge', 'leading leading');
+test_invalid_value('text-box-edge', 'leading text');
+test_invalid_value('text-box-edge', 'leading cap');
+test_invalid_value('text-box-edge', 'leading ex');
+test_invalid_value('text-box-edge', 'leading ideographic');
+test_invalid_value('text-box-edge', 'leading ideographic-ink');
+
+test_invalid_value('text-box-edge', 'text leading');
+test_invalid_value('text-box-edge', 'cap leading');
+test_invalid_value('text-box-edge', 'ex leading');
+test_invalid_value('text-box-edge', 'ideographic leading');
+test_invalid_value('text-box-edge', 'ideographic-ink leading');
+
+// invalid grammar
+test_invalid_value('text-box-edge', 'alphabetic');
+test_invalid_value('text-box-edge', 'alphabetic text');
+test_invalid_value('text-box-edge', 'text cap');
+test_invalid_value('text-box-edge', 'text ex');
+test_invalid_value('text-box-edge', 'auto auto');
+test_invalid_value('text-box-edge', 'auto text');
+test_invalid_value('text-box-edge', 'text auto');
+test_invalid_value('text-box-edge', 'text text text');
+</script>

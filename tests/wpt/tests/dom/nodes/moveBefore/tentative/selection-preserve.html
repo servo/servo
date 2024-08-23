@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+</head>
+<body>
+<div id=old_parent><span id=text>Text</span></div>
+<div id="new_parent"></div>
+</body>
+<script>
+  'use strict';
+
+  promise_test(async t => {
+    const text = document.querySelector("#text");
+    const old_parent = document.querySelector("#old_parent");
+    const new_parent = document.querySelector("#new_parent");
+    const event_watcher = new EventWatcher(t, text, ["mouseup"]);
+      const actions_promise = new test_driver.Actions()
+          .pointerMove(0, 0, {origin: text})
+          .pointerDown()
+          .pointerMove(text.clientWidth, text.clientHeight, {origin: text})
+          .pointerUp()
+          .send();
+    await event_watcher.wait_for(["mouseup"]);
+    assert_equals(getSelection().anchorNode.textContent, "Text");
+    new_parent.moveBefore(text, null);
+    assert_equals(getSelection().anchorNode.textContent, "Text");
+  }, "moveBefore should not reset text selection");
+</script>
+</html>

@@ -245,7 +245,7 @@ impl PositioningContext {
 
         if style.clone_position() == Position::Relative {
             new_fragment.content_rect.origin += relative_adjustement(style, containing_block)
-                .to_physical_size(containing_block.style.writing_mode)
+                .to_physical_size(containing_block.effective_writing_mode())
         }
 
         new_fragment
@@ -267,7 +267,7 @@ impl PositioningContext {
         let containing_block = DefiniteContainingBlock {
             size: padding_rect
                 .size
-                .to_logical(new_fragment.style.writing_mode),
+                .to_logical(new_fragment.style.effective_writing_mode()),
             style: &new_fragment.style,
         };
 
@@ -486,7 +486,7 @@ impl HoistedAbsolutelyPositionedBox {
         let cbis = containing_block.size.inline;
         let cbbs = containing_block.size.block;
         let mut absolutely_positioned_box = self.absolutely_positioned_box.borrow_mut();
-        let containing_block_writing_mode = containing_block.style.writing_mode;
+        let containing_block_writing_mode = containing_block.effective_writing_mode();
         let pbm = absolutely_positioned_box
             .context
             .style()
@@ -623,8 +623,8 @@ impl HoistedAbsolutelyPositionedBox {
                         };
                         // https://drafts.csswg.org/css-writing-modes/#orthogonal-flows
                         assert_eq!(
-                            containing_block.style.writing_mode,
-                            containing_block_for_children.style.writing_mode,
+                            containing_block.effective_writing_mode(),
+                            containing_block_for_children.effective_writing_mode(),
                             "Mixed writing modes are not supported yet"
                         );
 
@@ -722,7 +722,7 @@ impl HoistedAbsolutelyPositionedBox {
             };
 
             let physical_overconstrained =
-                overconstrained.to_physical_size(containing_block.style.writing_mode);
+                overconstrained.to_physical_size(containing_block.effective_writing_mode());
 
             BoxFragment::new_with_overconstrained(
                 absolutely_positioned_box.context.base_fragment_info(),

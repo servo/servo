@@ -793,7 +793,7 @@ impl Fragment {
                     }
                 },
                 Image::CrossFade(..) | Image::ImageSet(..) => {
-                    unreachable!("Shouldn't be parsed by Servo for now")
+                    // TODO: Add support for ImageSet and CrossFade rendering.
                 },
             }
         }

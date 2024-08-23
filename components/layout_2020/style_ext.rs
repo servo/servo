@@ -3,10 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
+use style::computed_values::direction::T as Direction;
 use style::computed_values::mix_blend_mode::T as ComputedMixBlendMode;
 use style::computed_values::position::T as ComputedPosition;
 use style::computed_values::transform_style::T as ComputedTransformStyle;
-use style::logical_geometry::{Direction, WritingMode};
+use style::computed_values::unicode_bidi::T as UnicodeBidi;
+use style::logical_geometry::{Direction as AxisDirection, WritingMode};
 use style::properties::longhands::backface_visibility::computed_value::T as BackfaceVisiblity;
 use style::properties::longhands::box_sizing::computed_value::T as BoxSizing;
 use style::properties::longhands::column_span::computed_value::T as ColumnSpan;
@@ -117,7 +119,7 @@ impl DisplayLayoutInternal {
 }
 
 /// Percentages resolved but not `auto` margins
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub(crate) struct PaddingBorderMargin {
     pub padding: LogicalSides<Au>,
     pub border: LogicalSides<Au>,
@@ -163,17 +165,17 @@ impl AspectRatio {
     /// Given one side length, compute the other one.
     pub(crate) fn compute_dependent_size(
         &self,
-        ratio_dependent_axis: Direction,
+        ratio_dependent_axis: AxisDirection,
         ratio_determining_size: Au,
     ) -> Au {
         match ratio_dependent_axis {
             // Calculate the inline size from the block size
-            Direction::Inline => {
+            AxisDirection::Inline => {
                 (ratio_determining_size + self.box_sizing_adjustment.block).scale_by(self.i_over_b) -
                     self.box_sizing_adjustment.inline
             },
             // Calculate the block size from the inline size
-            Direction::Block => {
+            AxisDirection::Block => {
                 (ratio_determining_size + self.box_sizing_adjustment.inline)
                     .scale_by(1.0 / self.i_over_b) -
                     self.box_sizing_adjustment.block
@@ -183,6 +185,7 @@ impl AspectRatio {
 }
 
 pub(crate) trait ComputedValuesExt {
+    fn effective_writing_mode(&self) -> WritingMode;
     fn box_offsets(
         &self,
         containing_block: &ContainingBlock,
@@ -263,9 +266,14 @@ pub(crate) trait ComputedValuesExt {
     ) -> Option<AspectRatio>;
     fn background_is_transparent(&self) -> bool;
     fn get_webrender_primitive_flags(&self) -> wr::PrimitiveFlags;
+    fn bidi_control_chars(&self) -> (&'static str, &'static str);
 }
 
 impl ComputedValuesExt for ComputedValues {
+    fn effective_writing_mode(&self) -> WritingMode {
+        WritingMode::horizontal_tb()
+    }
+
     fn box_offsets(
         &self,
         containing_block: &ContainingBlock,
@@ -278,7 +286,7 @@ impl ComputedValuesExt for ComputedValues {
                 position.bottom.as_ref(),
                 position.left.as_ref(),
             ),
-            containing_block.style.writing_mode,
+            containing_block.effective_writing_mode(),
         )
     }
 
@@ -333,7 +341,7 @@ impl ComputedValuesExt for ComputedValues {
         pbm: &PaddingBorderMargin,
     ) -> LogicalVec2<LengthOrAuto> {
         let box_size = self
-            .box_size(containing_block.style.writing_mode)
+            .box_size(containing_block.effective_writing_mode())
             .percentages_relative_to(containing_block);
         self.content_box_size_for_box_size(box_size, pbm)
     }
@@ -364,7 +372,7 @@ impl ComputedValuesExt for ComputedValues {
         pbm: &PaddingBorderMargin,
     ) -> LogicalVec2<LengthOrAuto> {
         let box_size = self
-            .min_box_size(containing_block.style.writing_mode)
+            .min_box_size(containing_block.effective_writing_mode())
             .percentages_relative_to(containing_block);
         self.content_min_box_size_for_min_size(box_size, pbm)
     }
@@ -394,7 +402,7 @@ impl ComputedValuesExt for ComputedValues {
         pbm: &PaddingBorderMargin,
     ) -> LogicalVec2<Option<Length>> {
         let max_box_size = self
-            .max_box_size(containing_block.style.writing_mode)
+            .max_box_size(containing_block.effective_writing_mode())
             .percentages_relative_to(containing_block);
 
         self.content_max_box_size_for_max_size(max_box_size, pbm)
@@ -425,11 +433,11 @@ impl ComputedValuesExt for ComputedValues {
     fn padding_border_margin(&self, containing_block: &ContainingBlock) -> PaddingBorderMargin {
         let cbis = containing_block.inline_size;
         let padding = self
-            .padding(containing_block.style.writing_mode)
+            .padding(containing_block.effective_writing_mode())
             .percentages_relative_to(cbis.into());
-        let border = self.border_width(containing_block.style.writing_mode);
+        let border = self.border_width(containing_block.effective_writing_mode());
         let margin = self
-            .margin(containing_block.style.writing_mode)
+            .margin(containing_block.effective_writing_mode())
             .percentages_relative_to(cbis.into());
         PaddingBorderMargin {
             padding_border_sums: LogicalVec2 {
@@ -745,6 +753,31 @@ impl ComputedValuesExt for ComputedValues {
         match self.get_box().backface_visibility {
             BackfaceVisiblity::Visible => wr::PrimitiveFlags::default(),
             BackfaceVisiblity::Hidden => wr::PrimitiveFlags::empty(),
+        }
+    }
+
+    /// If the 'unicode-bidi' property has a value other than 'normal', return the bidi control codes
+    /// to inject before and after the text content of the element.
+    /// See the table in <http://dev.w3.org/csswg/css-writing-modes/#unicode-bidi>.
+    fn bidi_control_chars(&self) -> (&'static str, &'static str) {
+        match (
+            self.get_text().unicode_bidi,
+            self.get_inherited_box().direction,
+        ) {
+            (UnicodeBidi::Normal, _) => ("", ""),
+            (UnicodeBidi::Embed, Direction::Ltr) => ("\u{202a}", "\u{202c}"),
+            (UnicodeBidi::Embed, Direction::Rtl) => ("\u{202b}", "\u{202c}"),
+            (UnicodeBidi::Isolate, Direction::Ltr) => ("\u{2066}", "\u{2069}"),
+            (UnicodeBidi::Isolate, Direction::Rtl) => ("\u{2067}", "\u{2069}"),
+            (UnicodeBidi::BidiOverride, Direction::Ltr) => ("\u{202d}", "\u{202c}"),
+            (UnicodeBidi::BidiOverride, Direction::Rtl) => ("\u{202e}", "\u{202c}"),
+            (UnicodeBidi::IsolateOverride, Direction::Ltr) => {
+                ("\u{2068}\u{202d}", "\u{202c}\u{2069}")
+            },
+            (UnicodeBidi::IsolateOverride, Direction::Rtl) => {
+                ("\u{2068}\u{202e}", "\u{202c}\u{2069}")
+            },
+            (UnicodeBidi::Plaintext, _) => ("\u{2068}", "\u{2069}"),
         }
     }
 }

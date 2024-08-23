@@ -38,8 +38,8 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageevent::MessageEvent;
-use crate::script_runtime::CommonScriptMsg;
 use crate::script_runtime::ScriptThreadEventCategory::WebSocketEvent;
+use crate::script_runtime::{CanGc, CommonScriptMsg};
 use crate::task::{TaskCanceller, TaskOnce};
 use crate::task_source::websocket::WebsocketTaskSource;
 use crate::task_source::TaskSource;
@@ -134,11 +134,13 @@ impl WebSocket {
         proto: Option<HandleObject>,
         url: ServoUrl,
         sender: IpcSender<WebSocketDomAction>,
+        can_gc: CanGc,
     ) -> DomRoot<WebSocket> {
         reflect_dom_object_with_proto(
             Box::new(WebSocket::new_inherited(url, sender)),
             global,
             proto,
+            can_gc,
         )
     }
 
@@ -147,6 +149,7 @@ impl WebSocket {
     pub fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         url: DOMString,
         protocols: Option<StringOrStringSequence>,
     ) -> Fallible<DomRoot<WebSocket>> {
@@ -200,7 +203,7 @@ impl WebSocket {
             ProfiledIpc::IpcReceiver<WebSocketNetworkEvent>,
         ) = ProfiledIpc::channel(global.time_profiler_chan().clone()).unwrap();
 
-        let ws = WebSocket::new(global, proto, url_record.clone(), dom_action_sender);
+        let ws = WebSocket::new(global, proto, url_record.clone(), dom_action_sender, can_gc);
         let address = Trusted::new(&*ws);
 
         // Step 8.

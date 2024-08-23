@@ -95,6 +95,38 @@ var TESTS = [
       0.75: "calc-size(fit-content, 5px + (80px + min(10px + 20px + size * 3, -30px + (10px + size * 3) * 2) + (10px + size * 3) * 2) * 0.75)",
     },
   },
+  {
+    property: "width",
+    start: "calc-size(50%, size)",
+    end: "calc-size(calc-size(45%, (size * 2)), size + 20px)",
+    expected: {
+      0.75: "calc-size(100%, size * 0.5 * 0.25 + (20px + size * 0.45 * 2) * 0.75)",
+    },
+  },
+  {
+    property: "width",
+    start: "calc-size(40%, size)",
+    end: "calc-size(calc-size(10px, (size * 2)), size + 20px)",
+    expected: {
+      0.75: "calc-size(100%, 30px + size * 0.4 * 0.25)",
+    },
+  },
+  {
+    property: "width",
+    start: "calc-size(80px, size)",
+    end: "calc-size(calc-size(10px, (size * 2)), size + 20px)",
+    expected: {
+      0.75: "calc-size(any, 50px)",
+    },
+  },
+  {
+    property: "width",
+    start: "calc-size(80px, size)",
+    end: "calc-size(calc-size(any, 20px), size + 20px)",
+    expected: {
+      0.75: "calc-size(any, 50px)",
+    },
+  },
 ];
 
 let e = document.getElementById("test");

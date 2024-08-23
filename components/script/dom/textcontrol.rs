@@ -46,7 +46,7 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
         }
 
         // Step 2
-        self.set_range(Some(0), Some(u32::max_value()), None, None);
+        self.set_range(Some(0), Some(u32::MAX), None, None);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart

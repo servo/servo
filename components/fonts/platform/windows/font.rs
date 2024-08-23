@@ -272,7 +272,7 @@ impl PlatformFontMethods for PlatformFont {
     }
 
     fn webrender_font_instance_flags(&self) -> FontInstanceFlags {
-        FontInstanceFlags::empty()
+        FontInstanceFlags::SUBPIXEL_POSITION
     }
 
     fn typographic_bounds(&self, glyph_id: GlyphId) -> Rect<f32> {

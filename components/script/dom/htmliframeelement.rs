@@ -10,7 +10,6 @@ use dom_struct::dom_struct;
 use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
 use js::rust::HandleObject;
 use profile_traits::ipc as ProfiledIpc;
-use script_layout_interface::ReflowGoal;
 use script_traits::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
 use script_traits::{
     HistoryEntryReplacement, IFrameLoadInfo, IFrameLoadInfoWithData, JsEvalResult, LoadData,
@@ -40,7 +39,6 @@ use crate::dom::node::{
     document_from_node, window_from_node, BindContext, Node, NodeDamage, UnbindContext,
 };
 use crate::dom::virtualmethods::VirtualMethods;
-use crate::dom::window::ReflowReason;
 use crate::dom::windowproxy::WindowProxy;
 use crate::script_thread::ScriptThread;
 
@@ -420,7 +418,7 @@ impl HTMLIFrameElement {
 
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
         let window = window_from_node(self);
-        window.reflow(ReflowGoal::Full, ReflowReason::FramedContentChanged);
+        window.add_pending_reflow();
     }
 
     fn new_inherited(
@@ -500,9 +498,6 @@ impl HTMLIFrameElement {
         LoadBlocker::terminate(&mut blocker);
 
         // TODO Step 5 - unset child document `mut iframe load` flag
-
-        let window = window_from_node(self);
-        window.reflow(ReflowGoal::Full, ReflowReason::IFrameLoadEvent);
     }
 }
 

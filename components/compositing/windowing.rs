@@ -12,6 +12,7 @@ use embedder_traits::{EmbedderProxy, EventLoopWaker};
 use euclid::Scale;
 use keyboard_types::KeyboardEvent;
 use libc::c_void;
+use net::protocols::ProtocolRegistry;
 use script_traits::{
     GamepadEvent, MediaSessionActionType, MouseButton, TouchEventType, TouchId, TraversalDirection,
     WheelDelta,
@@ -221,6 +222,12 @@ pub trait EmbedderMethods {
     /// Returns the user agent string to report in network requests.
     fn get_user_agent_string(&self) -> Option<String> {
         None
+    }
+
+    /// Returns the protocol handlers implemented by that embedder.
+    /// They will be merged with the default internal ones.
+    fn get_protocol_handlers(&self) -> ProtocolRegistry {
+        ProtocolRegistry::default()
     }
 }
 

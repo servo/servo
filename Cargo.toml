@@ -38,7 +38,7 @@ cookie = { package = "cookie", version = "0.18" }
 crossbeam-channel = "0.5"
 cssparser = { version = "0.34", features = ["serde"] }
 darling = { version = "0.20", default-features = false }
-data-url = "0.1.0"
+data-url = "0.3"
 devtools_traits = { path = "components/shared/devtools" }
 embedder_traits = { path = "components/shared/embedder" }
 encoding_rs = "0.8"
@@ -58,7 +58,7 @@ gstreamer-gl-sys = "0.22"
 gstreamer-sys = "0.22"
 gstreamer-video = "0.22"
 headers = "0.3"
-html5ever = "0.27"
+html5ever = "0.28"
 http = "0.2"
 hyper = "0.14"
 hyper-rustls = { version = "0.24", default-features = false, features = ["acceptor", "http1", "http2", "logging", "tls12", "webpki-tokio"] }
@@ -72,7 +72,6 @@ itertools = "0.13"
 tikv-jemalloc-sys = "0.6.0"
 tikv-jemallocator = "0.6.0"
 keyboard-types = "0.7"
-lazy_static = "1.5"
 libc = "0.2"
 log = "0.4"
 malloc_size_of = { git = "https://github.com/servo/stylo", branch = "2024-07-16", features = ["servo"] }
@@ -99,7 +98,7 @@ rustls-pemfile = "1.0.4"
 script_layout_interface = { path = "components/shared/script_layout" }
 script_traits = { path = "components/shared/script" }
 selectors = { git = "https://github.com/servo/stylo", branch = "2024-07-16" }
-serde = "1.0.207"
+serde = "1.0.208"
 serde_bytes = "0.11"
 serde_json = "1.0"
 servo-media = { git = "https://github.com/servo/media" }
@@ -117,7 +116,7 @@ style = { git = "https://github.com/servo/stylo", branch = "2024-07-16", feature
 style_config = { git = "https://github.com/servo/stylo", branch = "2024-07-16" }
 style_dom = { git = "https://github.com/servo/stylo", package = "dom", branch = "2024-07-16" }
 style_traits = { git = "https://github.com/servo/stylo", branch = "2024-07-16", features = ["servo"] }
-surfman = { version = "0.9.5", features = ["chains"] }
+surfman = { version = "0.9.6", features = ["chains"] }
 syn = { version = "2", default-features = false, features = ["clone-impls", "derive", "parsing"] }
 synstructure = "0.13"
 thin-vec = "0.2.13"
@@ -129,7 +128,7 @@ tokio-rustls = "0.24"
 tungstenite = "0.20"
 uluru = "3.0"
 unicode-bidi = "0.3.15"
-unicode-properties = { version = "0.1.1", features = ["emoji"] }
+unicode-properties = { version = "0.1.2", features = ["emoji"] }
 unicode-script = "0.5"
 unicode-segmentation = "1.1.0"
 url = "2.5"
@@ -143,7 +142,7 @@ wgpu-core = { git = "https://github.com/gfx-rs/wgpu", rev = "781b54a8b9cee1a2cb2
 wgpu-types = { git = "https://github.com/gfx-rs/wgpu", rev = "781b54a8b9cee1a2cb22bda565662edec52eb70e" }
 windows-sys = "0.59"
 xi-unicode = "0.1.0"
-xml5ever = "0.18"
+xml5ever = "0.19"
 
 [profile.release]
 opt-level = 3

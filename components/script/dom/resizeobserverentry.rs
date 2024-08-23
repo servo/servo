@@ -13,7 +13,7 @@ use crate::dom::domrectreadonly::DOMRectReadOnly;
 use crate::dom::element::Element;
 use crate::dom::resizeobserversize::ResizeObserverSize;
 use crate::dom::window::Window;
-use crate::script_runtime::JSContext as SafeJSContext;
+use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 /// <https://drafts.csswg.org/resize-observer/#resize-observer-entry-interface>
 #[dom_struct]
@@ -73,7 +73,7 @@ impl ResizeObserverEntry {
             content_box_size,
             device_pixel_content_box_size,
         ));
-        reflect_dom_object_with_proto(entry, window, None)
+        reflect_dom_object_with_proto(entry, window, None, CanGc::note())
     }
 }
 

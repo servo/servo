@@ -4,7 +4,6 @@
 
 use std::borrow::Cow;
 use std::cell::Cell;
-use std::mem;
 
 use base::id::PipelineId;
 use base64::engine::general_purpose;
@@ -102,13 +101,13 @@ pub struct ServoParser {
     /// Input received from network.
     #[ignore_malloc_size_of = "Defined in html5ever"]
     #[no_trace]
-    network_input: DomRefCell<BufferQueue>,
+    network_input: BufferQueue,
     /// Input received from script. Used only to support document.write().
     #[ignore_malloc_size_of = "Defined in html5ever"]
     #[no_trace]
-    script_input: DomRefCell<BufferQueue>,
+    script_input: BufferQueue,
     /// The tokenizer of this parser.
-    tokenizer: DomRefCell<Tokenizer>,
+    tokenizer: Tokenizer,
     /// Whether to expect any further input from the associated network request.
     last_chunk_received: Cell<bool>,
     /// Whether this parser should avoid passing any further data to the tokenizer.
@@ -122,16 +121,10 @@ pub struct ServoParser {
     /// We do a quick-and-dirty parse of the input looking for resources to prefetch.
     // TODO: if we had speculative parsing, we could do this when speculatively
     // building the DOM. https://github.com/servo/servo/pull/19203
-    prefetch_tokenizer: DomRefCell<prefetch::Tokenizer>,
+    prefetch_tokenizer: prefetch::Tokenizer,
     #[ignore_malloc_size_of = "Defined in html5ever"]
     #[no_trace]
-    prefetch_input: DomRefCell<BufferQueue>,
-}
-
-#[derive(PartialEq)]
-enum LastChunkState {
-    Received,
-    NotReceived,
+    prefetch_input: BufferQueue,
 }
 
 pub struct ElementAttribute {
@@ -153,7 +146,7 @@ impl ElementAttribute {
 
 impl ServoParser {
     pub fn parser_is_not_active(&self) -> bool {
-        self.can_write() || self.tokenizer.try_borrow_mut().is_ok()
+        self.can_write()
     }
 
     pub fn parse_html_document(document: &Document, input: Option<DOMString>, url: ServoUrl) {
@@ -161,7 +154,6 @@ impl ServoParser {
             ServoParser::new(
                 document,
                 Tokenizer::AsyncHtml(self::async_html::Tokenizer::new(document, url, None)),
-                LastChunkState::NotReceived,
                 ParserKind::Normal,
             )
         } else {
@@ -173,14 +165,13 @@ impl ServoParser {
                     None,
                     ParsingAlgorithm::Normal,
                 )),
-                LastChunkState::NotReceived,
                 ParserKind::Normal,
             )
         };
 
         // Set as the document's current parser and initialize with `input`, if given.
         if let Some(input) = input {
-            parser.parse_string_chunk(String::from(input));
+            parser.parse_complete_string_chunk(String::from(input));
         } else {
             parser.document.set_current_parser(Some(&parser));
         }
@@ -239,10 +230,9 @@ impl ServoParser {
                 Some(fragment_context),
                 ParsingAlgorithm::Fragment,
             )),
-            LastChunkState::Received,
             ParserKind::Normal,
         );
-        parser.parse_string_chunk(String::from(input));
+        parser.parse_complete_string_chunk(String::from(input));
 
         // Step 14.
         let root_element = document.GetDocumentElement().expect("no document element");
@@ -260,7 +250,6 @@ impl ServoParser {
                 None,
                 ParsingAlgorithm::Normal,
             )),
-            LastChunkState::NotReceived,
             ParserKind::ScriptCreated,
         );
         *parser.bom_sniff.borrow_mut() = None;
@@ -271,13 +260,12 @@ impl ServoParser {
         let parser = ServoParser::new(
             document,
             Tokenizer::Xml(self::xml::Tokenizer::new(document, url)),
-            LastChunkState::NotReceived,
             ParserKind::Normal,
         );
 
         // Set as the document's current parser and initialize with `input`, if given.
         if let Some(input) = input {
-            parser.parse_string_chunk(String::from(input));
+            parser.parse_complete_string_chunk(String::from(input));
         } else {
             parser.document.set_current_parser(Some(&parser));
         }
@@ -313,12 +301,9 @@ impl ServoParser {
         assert!(self.suspended.get());
         self.suspended.set(false);
 
-        mem::swap(
-            &mut *self.script_input.borrow_mut(),
-            &mut *self.network_input.borrow_mut(),
-        );
-        while let Some(chunk) = self.script_input.borrow_mut().pop_front() {
-            self.network_input.borrow_mut().push_back(chunk);
+        self.script_input.swap_with(&self.network_input);
+        while let Some(chunk) = self.script_input.pop_front() {
+            self.network_input.push_back(chunk);
         }
 
         let script_nesting_level = self.script_nesting_level.get();
@@ -346,9 +331,7 @@ impl ServoParser {
             // parser is suspended, we just append everything to the
             // script input and abort these steps.
             for chunk in text {
-                self.script_input
-                    .borrow_mut()
-                    .push_back(String::from(chunk).into());
+                self.script_input.push_back(String::from(chunk).into());
             }
             return;
         }
@@ -356,21 +339,21 @@ impl ServoParser {
         // There is no pending parsing blocking script, so all previous calls
         // to document.write() should have seen their entire input tokenized
         // and process, with nothing pushed to the parser script input.
-        assert!(self.script_input.borrow().is_empty());
+        assert!(self.script_input.is_empty());
 
-        let mut input = BufferQueue::default();
+        let input = BufferQueue::default();
         for chunk in text {
             input.push_back(String::from(chunk).into());
         }
 
-        self.tokenize(|tokenizer| tokenizer.feed(&mut input));
+        self.tokenize(|tokenizer| tokenizer.feed(&input));
 
         if self.suspended.get() {
             // Parser got suspended, insert remaining input at end of
             // script input, following anything written by scripts executed
             // reentrantly during this call.
             while let Some(chunk) = input.pop_front() {
-                self.script_input.borrow_mut().push_back(chunk);
+                self.script_input.push_back(chunk);
             }
             return;
         }
@@ -400,15 +383,15 @@ impl ServoParser {
         self.aborted.set(true);
 
         // Step 1.
-        *self.script_input.borrow_mut() = BufferQueue::default();
-        *self.network_input.borrow_mut() = BufferQueue::default();
+        self.script_input.replace_with(BufferQueue::default());
+        self.network_input.replace_with(BufferQueue::default());
 
         // Step 2.
         self.document
             .set_ready_state(DocumentReadyState::Interactive);
 
         // Step 3.
-        self.tokenizer.borrow_mut().end();
+        self.tokenizer.end();
         self.document.set_current_parser(None);
 
         // Step 4.
@@ -421,44 +404,29 @@ impl ServoParser {
     }
 
     #[allow(crown::unrooted_must_root)]
-    fn new_inherited(
-        document: &Document,
-        tokenizer: Tokenizer,
-        last_chunk_state: LastChunkState,
-        kind: ParserKind,
-    ) -> Self {
+    fn new_inherited(document: &Document, tokenizer: Tokenizer, kind: ParserKind) -> Self {
         ServoParser {
             reflector: Reflector::new(),
             document: Dom::from_ref(document),
             bom_sniff: DomRefCell::new(Some(Vec::with_capacity(3))),
             network_decoder: DomRefCell::new(Some(NetworkDecoder::new(document.encoding()))),
-            network_input: DomRefCell::new(BufferQueue::default()),
-            script_input: DomRefCell::new(BufferQueue::default()),
-            tokenizer: DomRefCell::new(tokenizer),
-            last_chunk_received: Cell::new(last_chunk_state == LastChunkState::Received),
+            network_input: BufferQueue::default(),
+            script_input: BufferQueue::default(),
+            tokenizer,
+            last_chunk_received: Cell::new(false),
             suspended: Default::default(),
             script_nesting_level: Default::default(),
             aborted: Default::default(),
             script_created_parser: kind == ParserKind::ScriptCreated,
-            prefetch_tokenizer: DomRefCell::new(prefetch::Tokenizer::new(document)),
-            prefetch_input: DomRefCell::new(BufferQueue::default()),
+            prefetch_tokenizer: prefetch::Tokenizer::new(document),
+            prefetch_input: BufferQueue::default(),
         }
     }
 
     #[allow(crown::unrooted_must_root)]
-    fn new(
-        document: &Document,
-        tokenizer: Tokenizer,
-        last_chunk_state: LastChunkState,
-        kind: ParserKind,
-    ) -> DomRoot<Self> {
+    fn new(document: &Document, tokenizer: Tokenizer, kind: ParserKind) -> DomRoot<Self> {
         reflect_dom_object(
-            Box::new(ServoParser::new_inherited(
-                document,
-                tokenizer,
-                last_chunk_state,
-                kind,
-            )),
+            Box::new(ServoParser::new_inherited(document, tokenizer, kind)),
             document.window(),
         )
     }
@@ -480,15 +448,12 @@ impl ServoParser {
             // to prefetch. If the user script uses `document.write()`
             // to overwrite the network input, this prefetching may
             // have been wasted, but in most cases it won't.
-            let mut prefetch_input = self.prefetch_input.borrow_mut();
-            prefetch_input.push_back(chunk.clone());
-            self.prefetch_tokenizer
-                .borrow_mut()
-                .feed(&mut prefetch_input);
+            self.prefetch_input.push_back(chunk.clone());
+            self.prefetch_tokenizer.feed(&self.prefetch_input);
         }
         // Push the chunk into the network input stream,
         // which is tokenized lazily.
-        self.network_input.borrow_mut().push_back(chunk);
+        self.network_input.push_back(chunk);
     }
 
     fn push_bytes_input_chunk(&self, chunk: Vec<u8>) {
@@ -539,7 +504,7 @@ impl ServoParser {
             iframe: TimerMetadataFrameType::RootWindow,
             incremental: TimerMetadataReflowType::FirstReflow,
         };
-        let profiler_category = self.tokenizer.borrow().profiler_category();
+        let profiler_category = self.tokenizer.profiler_category();
         profile(
             profiler_category,
             Some(metadata),
@@ -553,7 +518,7 @@ impl ServoParser {
     }
 
     fn do_parse_sync(&self) {
-        assert!(self.script_input.borrow().is_empty());
+        assert!(self.script_input.is_empty());
 
         // This parser will continue to parse while there is either pending input or
         // the parser remains unsuspended.
@@ -562,26 +527,27 @@ impl ServoParser {
             if let Some(decoder) = self.network_decoder.borrow_mut().take() {
                 let chunk = decoder.finish();
                 if !chunk.is_empty() {
-                    self.network_input.borrow_mut().push_back(chunk);
+                    self.network_input.push_back(chunk);
                 }
             }
         }
-        self.tokenize(|tokenizer| tokenizer.feed(&mut self.network_input.borrow_mut()));
+        self.tokenize(|tokenizer| tokenizer.feed(&self.network_input));
 
         if self.suspended.get() {
             return;
         }
 
-        assert!(self.network_input.borrow().is_empty());
+        assert!(self.network_input.is_empty());
 
         if self.last_chunk_received.get() {
             self.finish();
         }
     }
 
-    fn parse_string_chunk(&self, input: String) {
+    fn parse_complete_string_chunk(&self, input: String) {
         self.document.set_current_parser(Some(self));
         self.push_string_input_chunk(input);
+        self.last_chunk_received.set(true);
         if !self.suspended.get() {
             self.parse_sync();
         }
@@ -595,16 +561,16 @@ impl ServoParser {
         }
     }
 
-    fn tokenize<F>(&self, mut feed: F)
+    fn tokenize<F>(&self, feed: F)
     where
-        F: FnMut(&mut Tokenizer) -> TokenizerResult<DomRoot<HTMLScriptElement>>,
+        F: Fn(&Tokenizer) -> TokenizerResult<DomRoot<HTMLScriptElement>>,
     {
         loop {
             assert!(!self.suspended.get());
             assert!(!self.aborted.get());
 
             self.document.reflow_if_reflow_timer_expired();
-            let script = match feed(&mut self.tokenizer.borrow_mut()) {
+            let script = match feed(&self.tokenizer) {
                 TokenizerResult::Done => return,
                 TokenizerResult::Script(script) => script,
             };
@@ -642,8 +608,8 @@ impl ServoParser {
     fn finish(&self) {
         assert!(!self.suspended.get());
         assert!(self.last_chunk_received.get());
-        assert!(self.script_input.borrow().is_empty());
-        assert!(self.network_input.borrow().is_empty());
+        assert!(self.script_input.is_empty());
+        assert!(self.network_input.is_empty());
         assert!(self.network_decoder.borrow().is_none());
 
         // Step 1.
@@ -651,11 +617,11 @@ impl ServoParser {
             .set_ready_state(DocumentReadyState::Interactive);
 
         // Step 2.
-        self.tokenizer.borrow_mut().end();
+        self.tokenizer.end();
         self.document.set_current_parser(None);
 
         // Steps 3-12 are in another castle, namely finish_load.
-        let url = self.tokenizer.borrow().url().clone();
+        let url = self.tokenizer.url().clone();
         self.document.finish_load(LoadType::PageSource(url));
     }
 }
@@ -699,19 +665,19 @@ enum Tokenizer {
 }
 
 impl Tokenizer {
-    fn feed(&mut self, input: &mut BufferQueue) -> TokenizerResult<DomRoot<HTMLScriptElement>> {
+    fn feed(&self, input: &BufferQueue) -> TokenizerResult<DomRoot<HTMLScriptElement>> {
         match *self {
-            Tokenizer::Html(ref mut tokenizer) => tokenizer.feed(input),
-            Tokenizer::AsyncHtml(ref mut tokenizer) => tokenizer.feed(input),
-            Tokenizer::Xml(ref mut tokenizer) => tokenizer.feed(input),
+            Tokenizer::Html(ref tokenizer) => tokenizer.feed(input),
+            Tokenizer::AsyncHtml(ref tokenizer) => tokenizer.feed(input),
+            Tokenizer::Xml(ref tokenizer) => tokenizer.feed(input),
         }
     }
 
-    fn end(&mut self) {
+    fn end(&self) {
         match *self {
-            Tokenizer::Html(ref mut tokenizer) => tokenizer.end(),
-            Tokenizer::AsyncHtml(ref mut tokenizer) => tokenizer.end(),
-            Tokenizer::Xml(ref mut tokenizer) => tokenizer.end(),
+            Tokenizer::Html(ref tokenizer) => tokenizer.end(),
+            Tokenizer::AsyncHtml(ref tokenizer) => tokenizer.end(),
+            Tokenizer::Xml(ref tokenizer) => tokenizer.end(),
         }
     }
 
@@ -723,10 +689,10 @@ impl Tokenizer {
         }
     }
 
-    fn set_plaintext_state(&mut self) {
+    fn set_plaintext_state(&self) {
         match *self {
-            Tokenizer::Html(ref mut tokenizer) => tokenizer.set_plaintext_state(),
-            Tokenizer::AsyncHtml(ref mut tokenizer) => tokenizer.set_plaintext_state(),
+            Tokenizer::Html(ref tokenizer) => tokenizer.set_plaintext_state(),
+            Tokenizer::AsyncHtml(ref tokenizer) => tokenizer.set_plaintext_state(),
             Tokenizer::Xml(_) => unimplemented!(),
         }
     }
@@ -877,7 +843,7 @@ impl FetchResponseListener for ParserContext {
                 let page = "<pre>\n".into();
                 parser.push_string_input_chunk(page);
                 parser.parse_sync();
-                parser.tokenizer.borrow_mut().set_plaintext_state();
+                parser.tokenizer.set_plaintext_state();
             },
             (mime::TEXT, mime::HTML, _) => match error {
                 Some(NetworkError::SslValidation(reason, bytes)) => {
@@ -1065,7 +1031,7 @@ pub struct Sink {
     #[no_trace]
     base_url: ServoUrl,
     document: Dom<Document>,
-    current_line: u64,
+    current_line: Cell<u64>,
     script: MutNullableDom<HTMLScriptElement>,
     parsing_algorithm: ParsingAlgorithm,
 }
@@ -1093,12 +1059,12 @@ impl TreeSink for Sink {
     type Handle = Dom<Node>;
 
     #[allow(crown::unrooted_must_root)]
-    fn get_document(&mut self) -> Dom<Node> {
+    fn get_document(&self) -> Dom<Node> {
         Dom::from_ref(self.document.upcast())
     }
 
     #[allow(crown::unrooted_must_root)]
-    fn get_template_contents(&mut self, target: &Dom<Node>) -> Dom<Node> {
+    fn get_template_contents(&self, target: &Dom<Node>) -> Dom<Node> {
         let template = target
             .downcast::<HTMLTemplateElement>()
             .expect("tried to get template contents of non-HTMLTemplateElement in HTML parsing");
@@ -1121,7 +1087,7 @@ impl TreeSink for Sink {
 
     #[allow(crown::unrooted_must_root)]
     fn create_element(
-        &mut self,
+        &self,
         name: QualName,
         attrs: Vec<Attribute>,
         _flags: ElementFlags,
@@ -1134,20 +1100,20 @@ impl TreeSink for Sink {
             name,
             attrs,
             &self.document,
-            ElementCreator::ParserCreated(self.current_line),
+            ElementCreator::ParserCreated(self.current_line.get()),
             self.parsing_algorithm,
         );
         Dom::from_ref(element.upcast())
     }
 
     #[allow(crown::unrooted_must_root)]
-    fn create_comment(&mut self, text: StrTendril) -> Dom<Node> {
+    fn create_comment(&self, text: StrTendril) -> Dom<Node> {
         let comment = Comment::new(DOMString::from(String::from(text)), &self.document, None);
         Dom::from_ref(comment.upcast())
     }
 
     #[allow(crown::unrooted_must_root)]
-    fn create_pi(&mut self, target: StrTendril, data: StrTendril) -> Dom<Node> {
+    fn create_pi(&self, target: StrTendril, data: StrTendril) -> Dom<Node> {
         let doc = &*self.document;
         let pi = ProcessingInstruction::new(
             DOMString::from(String::from(target)),
@@ -1158,7 +1124,7 @@ impl TreeSink for Sink {
     }
 
     fn associate_with_form(
-        &mut self,
+        &self,
         target: &Dom<Node>,
         form: &Dom<Node>,
         nodes: (&Dom<Node>, Option<&Dom<Node>>),
@@ -1188,7 +1154,7 @@ impl TreeSink for Sink {
     }
 
     #[allow(crown::unrooted_must_root)]
-    fn append_before_sibling(&mut self, sibling: &Dom<Node>, new_node: NodeOrText<Dom<Node>>) {
+    fn append_before_sibling(&self, sibling: &Dom<Node>, new_node: NodeOrText<Dom<Node>>) {
         let parent = sibling
             .GetParentNode()
             .expect("append_before_sibling called on node without parent");
@@ -1196,11 +1162,11 @@ impl TreeSink for Sink {
         insert(&parent, Some(sibling), new_node, self.parsing_algorithm);
     }
 
-    fn parse_error(&mut self, msg: Cow<'static, str>) {
+    fn parse_error(&self, msg: Cow<'static, str>) {
         debug!("Parse error: {}", msg);
     }
 
-    fn set_quirks_mode(&mut self, mode: QuirksMode) {
+    fn set_quirks_mode(&self, mode: QuirksMode) {
         let mode = match mode {
             QuirksMode::Quirks => ServoQuirksMode::Quirks,
             QuirksMode::LimitedQuirks => ServoQuirksMode::LimitedQuirks,
@@ -1210,13 +1176,13 @@ impl TreeSink for Sink {
     }
 
     #[allow(crown::unrooted_must_root)]
-    fn append(&mut self, parent: &Dom<Node>, child: NodeOrText<Dom<Node>>) {
+    fn append(&self, parent: &Dom<Node>, child: NodeOrText<Dom<Node>>) {
         insert(parent, None, child, self.parsing_algorithm);
     }
 
     #[allow(crown::unrooted_must_root)]
     fn append_based_on_parent_node(
-        &mut self,
+        &self,
         elem: &Dom<Node>,
         prev_elem: &Dom<Node>,
         child: NodeOrText<Dom<Node>>,
@@ -1229,7 +1195,7 @@ impl TreeSink for Sink {
     }
 
     fn append_doctype_to_document(
-        &mut self,
+        &self,
         name: StrTendril,
         public_id: StrTendril,
         system_id: StrTendril,
@@ -1246,7 +1212,7 @@ impl TreeSink for Sink {
             .expect("Appending failed");
     }
 
-    fn add_attrs_if_missing(&mut self, target: &Dom<Node>, attrs: Vec<Attribute>) {
+    fn add_attrs_if_missing(&self, target: &Dom<Node>, attrs: Vec<Attribute>) {
         let elem = target
             .downcast::<Element>()
             .expect("tried to set attrs on non-Element in HTML parsing");
@@ -1259,20 +1225,20 @@ impl TreeSink for Sink {
         }
     }
 
-    fn remove_from_parent(&mut self, target: &Dom<Node>) {
+    fn remove_from_parent(&self, target: &Dom<Node>) {
         if let Some(ref parent) = target.GetParentNode() {
             parent.RemoveChild(target).unwrap();
         }
     }
 
-    fn mark_script_already_started(&mut self, node: &Dom<Node>) {
+    fn mark_script_already_started(&self, node: &Dom<Node>) {
         let script = node.downcast::<HTMLScriptElement>();
         if let Some(script) = script {
             script.set_already_started(true)
         }
     }
 
-    fn complete_script(&mut self, node: &Dom<Node>) -> NextParserState {
+    fn complete_script(&self, node: &Dom<Node>) -> NextParserState {
         if let Some(script) = node.downcast() {
             self.script.set(Some(script));
             NextParserState::Suspend
@@ -1281,7 +1247,7 @@ impl TreeSink for Sink {
         }
     }
 
-    fn reparent_children(&mut self, node: &Dom<Node>, new_parent: &Dom<Node>) {
+    fn reparent_children(&self, node: &Dom<Node>, new_parent: &Dom<Node>) {
         while let Some(ref child) = node.GetFirstChild() {
             new_parent.AppendChild(child).unwrap();
         }
@@ -1298,11 +1264,11 @@ impl TreeSink for Sink {
             })
     }
 
-    fn set_current_line(&mut self, line_number: u64) {
-        self.current_line = line_number;
+    fn set_current_line(&self, line_number: u64) {
+        self.current_line.set(line_number);
     }
 
-    fn pop(&mut self, node: &Dom<Node>) {
+    fn pop(&self, node: &Dom<Node>) {
         let node = DomRoot::from_ref(&**node);
         vtable_for(&node).pop();
     }

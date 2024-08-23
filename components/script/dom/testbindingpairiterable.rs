@@ -15,6 +15,7 @@ use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct TestBindingPairIterable {
@@ -29,19 +30,12 @@ impl Iterable for TestBindingPairIterable {
         self.map.borrow().len() as u32
     }
     fn get_value_at_index(&self, index: u32) -> u32 {
-        *self
-            .map
-            .borrow()
-            .iter()
-            .nth(index as usize)
-            .map(|a| &a.1)
-            .unwrap()
+        *self.map.borrow().get(index as usize).map(|a| &a.1).unwrap()
     }
     fn get_key_at_index(&self, index: u32) -> DOMString {
         self.map
             .borrow()
-            .iter()
-            .nth(index as usize)
+            .get(index as usize)
             .map(|a| &a.0)
             .unwrap()
             .clone()
@@ -49,7 +43,11 @@ impl Iterable for TestBindingPairIterable {
 }
 
 impl TestBindingPairIterable {
-    fn new(global: &GlobalScope, proto: Option<HandleObject>) -> DomRoot<TestBindingPairIterable> {
+    fn new(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        can_gc: CanGc,
+    ) -> DomRoot<TestBindingPairIterable> {
         reflect_dom_object_with_proto(
             Box::new(TestBindingPairIterable {
                 reflector: Reflector::new(),
@@ -57,6 +55,7 @@ impl TestBindingPairIterable {
             }),
             global,
             proto,
+            can_gc,
         )
     }
 
@@ -64,8 +63,9 @@ impl TestBindingPairIterable {
     pub fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<TestBindingPairIterable>> {
-        Ok(TestBindingPairIterable::new(global, proto))
+        Ok(TestBindingPairIterable::new(global, proto, can_gc))
     }
 }
 

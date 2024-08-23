@@ -29,6 +29,28 @@ const getClampPrecisionTolerance = (graphResources) => {
 
 const clampTests = [
   {
+    'name': 'clamp float32 0D tensor default options',
+    'graph': {
+      'inputs': {
+        'clampInput': {
+          'data': [-9.817828178405762],
+          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+        }
+      },
+      'operators': [{
+        'name': 'clamp',
+        'arguments': [{'input': 'clampInput'}],
+        'outputs': 'clampOutput'
+      }],
+      'expectedOutputs': {
+        'clampOutput': {
+          'data': [-9.817828178405762],
+          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+        }
+      }
+    }
+  },
+  {
     'name': 'clamp float32 1D constant tensor default options',
     'graph': {
       'inputs': {

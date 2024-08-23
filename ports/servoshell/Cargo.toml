@@ -79,7 +79,7 @@ ipc-channel = { workspace = true, features = ["force-inprocess"] }
 hilog = "0.1.0"
 napi-derive-ohos = "0.0.9"
 napi-ohos = "0.1"
-ohos-sys = { version = "0.2.1", features = ["xcomponent"] }
+ohos-sys = { version = "0.2.2", features = ["xcomponent"] }
 
 [target.'cfg(any(target_os = "android", target_env = "ohos"))'.dependencies]
 nix = { workspace = true, features = ["fs"] }
@@ -99,7 +99,11 @@ euclid = { workspace = true }
 gilrs = { git = "https://gitlab.com/gilrs-project/gilrs", rev = "eafb7f2ef488874188c5d75adce9aef486be9d4e" }
 gleam = { workspace = true }
 glow = "0.13.1"
+headers = { workspace = true }
+http = { workspace = true }
 keyboard-types = { workspace = true }
+net = { path = "../../components/net" }
+net_traits = { workspace = true }
 raw-window-handle = "0.6"
 shellwords = "1.0.0"
 surfman = { workspace = true, features = ["sm-x11", "sm-raw-window-handle-06"] }

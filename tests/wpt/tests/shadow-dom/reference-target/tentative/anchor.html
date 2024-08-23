@@ -1,0 +1,57 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/wai-aria/scripts/aria-utils.js"></script>
+  <style>
+    body {
+      margin: 0;
+    }
+
+    [popover] {
+      position: absolute;
+      left: anchor(right);
+      top: anchor(top);
+      margin: 0;
+    }
+  </style>
+</head>
+
+<body>
+  <div>
+    <x-anchor id="x-anchor-1">
+      <template shadowrootmode="open" shadowrootreferencetarget="anchor">
+        <style>
+          div {
+            width: 100px;
+            height: 100px;
+          }
+
+          #anchor {
+            background-color: yellow;
+          }
+        </style>
+
+        <div></div>
+        <div id="anchor"></div>
+      </template>
+    </x-anchor>
+    <div id="popover-1" popover anchor="x-anchor-1">Popover content</div>
+  </div>
+
+  <script>
+    test(function () {
+      const popover = document.getElementById("popover-1");
+      popover.showPopover();
+      assert_equals(popover.offsetLeft, 100, "popover.offsetLeft");
+      assert_equals(popover.offsetTop, 100, "popover.offsetTop");
+    }, "ShadowRoot ReferenceTarget works with anchor attribute.");
+  </script>
+</body>
+
+</html>

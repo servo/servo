@@ -3,7 +3,7 @@ name: Mac WPT Tests
 on:
   workflow_call:
     inputs:
-      wpt-tests-to-run:
+      wpt-args:
         default: ""
         required: false
         type: string
@@ -52,12 +52,13 @@ jobs:
         run: |
           mkdir -p wpt-filtered-logs/macos-${{ inputs.wpt-layout }}
           mkdir -p wpt-full-logs/macos-${{ inputs.wpt-layout }}
-          python3 ./mach test-wpt $WPT_COMMAND_LINE_ARG ${{ inputs.wpt-tests-to-run }} \
+          python3 ./mach test-wpt $WPT_COMMAND_LINE_ARG \
             --${{ inputs.profile }} --processes $(sysctl -n hw.logicalcpu) --timeout-multiplier 8 \
             --total-chunks ${{ env.max_chunk_id }} --this-chunk ${{ matrix.chunk_id }} \
             --log-raw wpt-full-logs/macos-${{ inputs.wpt-layout }}/${{ matrix.chunk_id }}.log \
             --log-raw-unexpected wpt-filtered-logs/macos-${{ inputs.wpt-layout }}/${{ matrix.chunk_id }}.log \
             --filter-intermittents wpt-filtered-logs/macos-${{ inputs.wpt-layout }}/${{ matrix.chunk_id }}.json
+            ${{ inputs.wpt-args }}
       - name: Archive results (filtered)
         uses: actions/upload-artifact@v4
         if: ${{ always() }}

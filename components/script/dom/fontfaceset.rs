@@ -14,6 +14,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::realms::enter_realm;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct FontFaceSet {
@@ -31,7 +32,12 @@ impl FontFaceSet {
     }
 
     pub fn new(global: &GlobalScope, proto: Option<HandleObject>) -> DomRoot<Self> {
-        reflect_dom_object_with_proto(Box::new(FontFaceSet::new_inherited(global)), global, proto)
+        reflect_dom_object_with_proto(
+            Box::new(FontFaceSet::new_inherited(global)),
+            global,
+            proto,
+            CanGc::note(),
+        )
     }
 
     pub fn fulfill_ready_promise_if_needed(&self) {

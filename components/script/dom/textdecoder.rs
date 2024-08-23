@@ -19,6 +19,7 @@ use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::globalscope::GlobalScope;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 #[allow(non_snake_case)]
@@ -65,11 +66,13 @@ impl TextDecoder {
         encoding: &'static Encoding,
         fatal: bool,
         ignoreBOM: bool,
+        can_gc: CanGc,
     ) -> DomRoot<TextDecoder> {
         reflect_dom_object_with_proto(
             Box::new(TextDecoder::new_inherited(encoding, fatal, ignoreBOM)),
             global,
             proto,
+            can_gc,
         )
     }
 
@@ -77,6 +80,7 @@ impl TextDecoder {
     pub fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         label: DOMString,
         options: &TextDecoderBinding::TextDecoderOptions,
     ) -> Fallible<DomRoot<TextDecoder>> {
@@ -90,6 +94,7 @@ impl TextDecoder {
             encoding,
             options.fatal,
             options.ignoreBOM,
+            can_gc,
         ))
     }
 }

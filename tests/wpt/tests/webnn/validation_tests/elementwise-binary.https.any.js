@@ -1,5 +1,8 @@
 // META: title=validation tests for WebNN API element-wise binary operations
 // META: global=window,dedicatedworker
+// META: variant=?cpu
+// META: variant=?gpu
+// META: variant=?npu
 // META: script=../resources/utils_validation.js
 
 'use strict';
@@ -14,7 +17,8 @@ const kElementwiseBinaryOperators = [
   'pow',
 ];
 
-
+const label = 'elementwise_binary_op';
+const regrexp = new RegExp('\\[' + label + '\\]');
 const tests = [
   {
     name: '[binary] Test bidirectionally broadcastable dimensions.',
@@ -82,15 +86,17 @@ function runElementWiseBinaryTests(operatorName, tests) {
         assert_equals(output.dataType(), test.output.dataType);
         assert_array_equals(output.shape(), test.output.dimensions);
       } else {
-        assert_throws_js(TypeError, () => builder[operatorName](a, b));
+        const options = {label};
+        assert_throws_with_label(
+            () => builder[operatorName](a, b, options), regrexp);
       }
     }, test.name.replace('[binary]', `[${operatorName}]`));
   });
 }
 
 kElementwiseBinaryOperators.forEach((operatorName) => {
-  validateTwoInputsOfSameDataType(operatorName);
-  validateTwoInputsBroadcastable(operatorName);
+  validateTwoInputsOfSameDataType(operatorName, label);
+  validateTwoInputsBroadcastable(operatorName, label);
   validateTwoInputsFromMultipleBuilders(operatorName);
   runElementWiseBinaryTests(operatorName, tests);
 });

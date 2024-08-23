@@ -15,7 +15,6 @@ doctest = false
 [dependencies]
 crossbeam-channel = { workspace = true }
 ipc-channel = { workspace = true }
-lazy_static = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
 parking_lot = { workspace = true }

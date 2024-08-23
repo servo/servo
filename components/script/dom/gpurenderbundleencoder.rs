@@ -222,7 +222,7 @@ impl GPURenderBundleEncoderMethods for GPURenderBundleEncoder {
             render_bundle,
             self.device.id(),
             self.channel.clone(),
-            descriptor.parent.label.clone().unwrap_or_default(),
+            descriptor.parent.label.clone(),
         )
     }
 }

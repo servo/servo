@@ -116,7 +116,7 @@ impl BaseAudioContext {
     pub fn new_inherited(
         options: BaseAudioContextOptions,
         pipeline_id: PipelineId,
-    ) -> BaseAudioContext {
+    ) -> Fallible<BaseAudioContext> {
         let (sample_rate, channel_count) = match options {
             BaseAudioContextOptions::AudioContext(ref opt) => (opt.sample_rate, 2),
             BaseAudioContextOptions::OfflineAudioContext(ref opt) => {
@@ -126,11 +126,14 @@ impl BaseAudioContext {
 
         let client_context_id =
             ClientContextId::build(pipeline_id.namespace_id.0, pipeline_id.index.0.get());
-        BaseAudioContext {
+        let audio_context_impl = ServoMedia::get()
+            .unwrap()
+            .create_audio_context(&client_context_id, options.into())
+            .map_err(|_| Error::NotSupported)?;
+
+        Ok(BaseAudioContext {
             eventtarget: EventTarget::new_inherited(),
-            audio_context_impl: ServoMedia::get()
-                .unwrap()
-                .create_audio_context(&client_context_id, options.into()),
+            audio_context_impl,
             destination: Default::default(),
             listener: Default::default(),
             in_flight_resume_promises_queue: Default::default(),
@@ -139,7 +142,7 @@ impl BaseAudioContext {
             sample_rate,
             state: Cell::new(AudioContextState::Suspended),
             channel_count: channel_count.into(),
-        }
+        })
     }
 
     /// Tells whether this is an OfflineAudioContext or not.

@@ -124,7 +124,7 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
             self.channel.clone(),
             self,
             WebGPUComputePass(compute_pass_id),
-            descriptor.parent.label.clone().unwrap_or_default(),
+            descriptor.parent.label.clone(),
         )
     }
 
@@ -213,7 +213,7 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
             self.channel.clone(),
             WebGPURenderPass(render_pass_id),
             self,
-            descriptor.parent.label.clone().unwrap_or_default(),
+            descriptor.parent.label.clone(),
         )
     }
 
@@ -324,7 +324,7 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
             self.channel.clone(),
             buffer,
             self.buffers.borrow_mut().drain().collect(),
-            descriptor.parent.label.clone().unwrap_or_default(),
+            descriptor.parent.label.clone(),
         )
     }
 }

@@ -12632,6 +12632,13 @@
       }
      ]
     ],
+    "DOMParser-parseFromString.html": [
+     "38715db5d923e4f153e2c4a2679f644fe1e6d14d",
+     [
+      null,
+      {}
+     ]
+    ],
     "DOMParser.html": [
      "f386a3e0191af2c70dcb05790ce7db15dd5ccbf1",
      [
@@ -13767,6 +13774,39 @@
      [
       null,
       {}
+     ]
+    ],
+    "parser-reentrancy-customelement.window.js": [
+     "0df997aa6c521ef31c32c4054568ed005e011663",
+     [
+      "mozilla/parser-reentrancy-customelement.window.html?async",
+      {
+       "script_metadata": [
+        [
+         "variant",
+         "?default"
+        ],
+        [
+         "variant",
+         "?async"
+        ]
+       ]
+      }
+     ],
+     [
+      "mozilla/parser-reentrancy-customelement.window.html?default",
+      {
+       "script_metadata": [
+        [
+         "variant",
+         "?default"
+        ],
+        [
+         "variant",
+         "?async"
+        ]
+       ]
+      }
      ]
     ],
     "partial_shadow_dom.html": [

@@ -25,6 +25,7 @@ use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct IIRFilterNode {
@@ -72,7 +73,7 @@ impl IIRFilterNode {
         context: &BaseAudioContext,
         options: &IIRFilterOptions,
     ) -> Fallible<DomRoot<IIRFilterNode>> {
-        Self::new_with_proto(window, None, context, options)
+        Self::new_with_proto(window, None, context, options, CanGc::note())
     }
 
     #[allow(crown::unrooted_must_root)]
@@ -81,19 +82,26 @@ impl IIRFilterNode {
         proto: Option<HandleObject>,
         context: &BaseAudioContext,
         options: &IIRFilterOptions,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<IIRFilterNode>> {
         let node = IIRFilterNode::new_inherited(window, context, options)?;
-        Ok(reflect_dom_object_with_proto(Box::new(node), window, proto))
+        Ok(reflect_dom_object_with_proto(
+            Box::new(node),
+            window,
+            proto,
+            can_gc,
+        ))
     }
 
     #[allow(non_snake_case)]
     pub fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         context: &BaseAudioContext,
         options: &IIRFilterOptions,
     ) -> Fallible<DomRoot<IIRFilterNode>> {
-        IIRFilterNode::new_with_proto(window, proto, context, options)
+        IIRFilterNode::new_with_proto(window, proto, context, options, can_gc)
     }
 }
 
@@ -123,10 +131,8 @@ impl IIRFilterNodeMethods for IIRFilterNode {
             &mut phase_response_vec,
         );
 
-        unsafe {
-            mag_response.update(&mag_response_vec);
-            phase_response.update(&phase_response_vec);
-        }
+        mag_response.update(&mag_response_vec);
+        phase_response.update(&phase_response_vec);
 
         Ok(())
     }

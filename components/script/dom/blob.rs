@@ -30,7 +30,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::readablestream::ReadableStream;
 use crate::realms::{AlreadyInRealm, InRealm};
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{CanGc, JSContext};
 
 // https://w3c.github.io/FileAPI/#blob
 #[dom_struct]
@@ -42,16 +42,21 @@ pub struct Blob {
 
 impl Blob {
     pub fn new(global: &GlobalScope, blob_impl: BlobImpl) -> DomRoot<Blob> {
-        Self::new_with_proto(global, None, blob_impl)
+        Self::new_with_proto(global, None, blob_impl, CanGc::note())
     }
 
     fn new_with_proto(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         blob_impl: BlobImpl,
+        can_gc: CanGc,
     ) -> DomRoot<Blob> {
-        let dom_blob =
-            reflect_dom_object_with_proto(Box::new(Blob::new_inherited(&blob_impl)), global, proto);
+        let dom_blob = reflect_dom_object_with_proto(
+            Box::new(Blob::new_inherited(&blob_impl)),
+            global,
+            proto,
+            can_gc,
+        );
         global.track_blob(&dom_blob, blob_impl);
         dom_blob
     }
@@ -69,6 +74,7 @@ impl Blob {
     pub fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         blobParts: Option<Vec<ArrayBufferOrArrayBufferViewOrBlobOrString>>,
         blobPropertyBag: &BlobBinding::BlobPropertyBag,
     ) -> Fallible<DomRoot<Blob>> {
@@ -83,7 +89,7 @@ impl Blob {
         let type_string = normalize_type_string(blobPropertyBag.type_.as_ref());
         let blob_impl = BlobImpl::new_from_bytes(bytes, type_string);
 
-        Ok(Blob::new_with_proto(global, proto, blob_impl))
+        Ok(Blob::new_with_proto(global, proto, blob_impl, can_gc))
     }
 
     /// Get a slice to inner data, this might incur synchronous read and caching

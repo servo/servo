@@ -11,7 +11,7 @@ interface mixin GPUObjectBase {
 };
 
 dictionary GPUObjectDescriptorBase {
-    USVString label;
+    USVString label = "";
 };
 
 [Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]
@@ -100,21 +100,26 @@ interface GPUAdapter {
     Promise<GPUAdapterInfo> requestAdapterInfo(optional sequence<DOMString> unmaskHints = []);
 };
 
-dictionary GPUDeviceDescriptor {
+dictionary GPUDeviceDescriptor: GPUObjectDescriptorBase {
     sequence<GPUFeatureName> requiredFeatures = [];
-    record<DOMString, GPUSize64> requiredLimits;
+    record<DOMString, GPUSize64> requiredLimits;// = {};
 };
 
 enum GPUFeatureName {
     "depth-clip-control",
-    "depth24unorm-stencil8",
     "depth32float-stencil8",
-    "pipeline-statistics-query",
     "texture-compression-bc",
+    "texture-compression-bc-sliced-3d",
     "texture-compression-etc2",
     "texture-compression-astc",
     "timestamp-query",
     "indirect-first-instance",
+    "shader-f16",
+    "rg11b10ufloat-renderable",
+    "bgra8unorm-storage",
+    "float32-filterable",
+    "clip-distances",
+    "dual-source-blending",
 };
 
 [Exposed=(Window, DedicatedWorker), /*Serializable,*/ Pref="dom.webgpu.enabled"]
@@ -134,22 +139,24 @@ interface GPUDevice: EventTarget {
     [NewObject]
     GPUSampler createSampler(optional GPUSamplerDescriptor descriptor = {});
 
+    [Throws]
     GPUBindGroupLayout createBindGroupLayout(GPUBindGroupLayoutDescriptor descriptor);
     GPUPipelineLayout createPipelineLayout(GPUPipelineLayoutDescriptor descriptor);
     GPUBindGroup createBindGroup(GPUBindGroupDescriptor descriptor);
 
     GPUShaderModule createShaderModule(GPUShaderModuleDescriptor descriptor);
     GPUComputePipeline createComputePipeline(GPUComputePipelineDescriptor descriptor);
+    [Throws]
     GPURenderPipeline createRenderPipeline(GPURenderPipelineDescriptor descriptor);
 
     [NewObject]
     Promise<GPUComputePipeline> createComputePipelineAsync(GPUComputePipelineDescriptor descriptor);
-    [NewObject]
+    [Throws, NewObject]
     Promise<GPURenderPipeline> createRenderPipelineAsync(GPURenderPipelineDescriptor descriptor);
 
     [NewObject]
     GPUCommandEncoder createCommandEncoder(optional GPUCommandEncoderDescriptor descriptor = {});
-    [NewObject]
+    [Throws, NewObject]
     GPURenderBundleEncoder createRenderBundleEncoder(GPURenderBundleEncoderDescriptor descriptor);
     //[NewObject]
     //GPUQuerySet createQuerySet(GPUQuerySetDescriptor descriptor);
@@ -199,10 +206,19 @@ interface GPUMapMode {
 
 [Exposed=(Window, DedicatedWorker), Serializable , Pref="dom.webgpu.enabled"]
 interface GPUTexture {
-    [NewObject]
+    [Throws, NewObject]
     GPUTextureView createView(optional GPUTextureViewDescriptor descriptor = {});
 
     undefined destroy();
+
+    readonly attribute GPUIntegerCoordinateOut width;
+    readonly attribute GPUIntegerCoordinateOut height;
+    readonly attribute GPUIntegerCoordinateOut depthOrArrayLayers;
+    readonly attribute GPUIntegerCoordinateOut mipLevelCount;
+    readonly attribute GPUSize32Out sampleCount;
+    readonly attribute GPUTextureDimension dimension;
+    readonly attribute GPUTextureFormat format;
+    readonly attribute GPUFlagsConstant usage;
 };
 GPUTexture includes GPUObjectBase;
 
@@ -293,8 +309,10 @@ enum GPUTextureFormat {
     "bgra8unorm",
     "bgra8unorm-srgb",
     // Packed 32-bit formats
+    "rgb9e5ufloat",
+    "rgb10a2uint",
     "rgb10a2unorm",
-    "rg11b10float",
+    "rg11b10ufloat",
 
     // 64-bit formats
     "rg32uint",
@@ -309,12 +327,15 @@ enum GPUTextureFormat {
     "rgba32sint",
     "rgba32float",
 
-    // Depth and stencil formats
-    //"stencil8", //TODO
-    //"depth16unorm",
+    // Depth/stencil formats
+    "stencil8",
+    "depth16unorm",
     "depth24plus",
     "depth24plus-stencil8",
     "depth32float",
+
+    // "depth32float-stencil8" feature
+    "depth32float-stencil8",
 
     // BC compressed formats usable if "texture-compression-bc" is both
     // supported by the device/user agent and enabled in requestDevice.
@@ -333,11 +354,49 @@ enum GPUTextureFormat {
     "bc7-rgba-unorm",
     "bc7-rgba-unorm-srgb",
 
-    // "depth24unorm-stencil8" feature
-    //"depth24unorm-stencil8",
+    // ETC2 compressed formats usable if "texture-compression-etc2" is both
+    // supported by the device/user agent and enabled in requestDevice.
+    "etc2-rgb8unorm",
+    "etc2-rgb8unorm-srgb",
+    "etc2-rgb8a1unorm",
+    "etc2-rgb8a1unorm-srgb",
+    "etc2-rgba8unorm",
+    "etc2-rgba8unorm-srgb",
+    "eac-r11unorm",
+    "eac-r11snorm",
+    "eac-rg11unorm",
+    "eac-rg11snorm",
 
-    // "depth32float-stencil8" feature
-    //"depth32float-stencil8",
+    // ASTC compressed formats usable if "texture-compression-astc" is both
+    // supported by the device/user agent and enabled in requestDevice.
+    "astc-4x4-unorm",
+    "astc-4x4-unorm-srgb",
+    "astc-5x4-unorm",
+    "astc-5x4-unorm-srgb",
+    "astc-5x5-unorm",
+    "astc-5x5-unorm-srgb",
+    "astc-6x5-unorm",
+    "astc-6x5-unorm-srgb",
+    "astc-6x6-unorm",
+    "astc-6x6-unorm-srgb",
+    "astc-8x5-unorm",
+    "astc-8x5-unorm-srgb",
+    "astc-8x6-unorm",
+    "astc-8x6-unorm-srgb",
+    "astc-8x8-unorm",
+    "astc-8x8-unorm-srgb",
+    "astc-10x5-unorm",
+    "astc-10x5-unorm-srgb",
+    "astc-10x6-unorm",
+    "astc-10x6-unorm-srgb",
+    "astc-10x8-unorm",
+    "astc-10x8-unorm-srgb",
+    "astc-10x10-unorm",
+    "astc-10x10-unorm-srgb",
+    "astc-12x10-unorm",
+    "astc-12x10-unorm-srgb",
+    "astc-12x12-unorm",
+    "astc-12x12-unorm-srgb",
 };
 
 [Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]
@@ -547,7 +606,7 @@ interface mixin GPUPipelineBase {
 
 dictionary GPUProgrammableStage {
     required GPUShaderModule module;
-    required USVString entryPoint;
+    USVString entryPoint;
 };
 
 [Exposed=(Window, DedicatedWorker), Serializable, Pref="dom.webgpu.enabled"]
@@ -1159,6 +1218,12 @@ typedef [EnforceRange] unsigned long GPUIntegerCoordinate;
 typedef [EnforceRange] unsigned long GPUIndex32;
 typedef [EnforceRange] unsigned long GPUSize32;
 typedef [EnforceRange] long GPUSignedOffset32;
+
+typedef unsigned long long GPUSize64Out;
+typedef unsigned long GPUIntegerCoordinateOut;
+typedef unsigned long GPUSize32Out;
+
+typedef unsigned long GPUFlagsConstant;
 
 dictionary GPUColorDict {
     required double r;

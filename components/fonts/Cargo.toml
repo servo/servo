@@ -25,6 +25,7 @@ fontsan = { git = "https://github.com/servo/fontsan" }
 fonts_traits = { workspace = true }
 harfbuzz-sys = "0.6.1"
 ipc-channel = { workspace = true }
+itertools = { workspace = true }
 libc = { workspace = true }
 log = { workspace = true }
 malloc_size_of = { workspace = true }
@@ -63,7 +64,7 @@ freetype-sys = { workspace = true }
 servo_allocator = { path = "../allocator" }
 
 [target.'cfg(all(target_os = "linux", not(target_env = "ohos")))'.dependencies]
-fontconfig_sys = { package = "yeslogic-fontconfig-sys", version = "5" }
+fontconfig_sys = { package = "yeslogic-fontconfig-sys", version = "6" }
 
 [target.'cfg(target_os = "android")'.dependencies]
 xml-rs = "0.8"

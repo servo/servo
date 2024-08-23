@@ -1,0 +1,55 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/wai-aria/scripts/aria-utils.js"></script>
+</head>
+
+<body>
+
+<!-- 1. Declaratively defined custom label -->
+
+<x-label1 id="x-label1">
+  <template shadowrootmode="closed" shadowrootreferencetarget="label1">
+    <span>FAIL IF INCLUDED</span>
+    <label id="label1">Label 1</label>
+  </template>
+</x-label1>
+<input class="ex" aria-labelledby="x-label1" data-expectedlabel="Label 1">
+
+<!-- 2. Imperatively defined custom element -->
+
+<script>
+  customElements.define(
+    "x-label2",
+    class XLabel2 extends HTMLElement {
+      constructor() {
+        super();
+
+        this.shadowRoot_ = this.attachShadow({ mode: "closed" });
+        this.shadowRoot_.innerHTML = `
+          <span>FAIL IF INCLUDED</span>
+          <label id="label2">
+            <slot></slot>
+          </label>
+        `;
+        this.shadowRoot_.referenceTarget = "label2";
+      }
+    }
+  );
+</script>
+<x-label2 id="x-label2">Label 2</x-label2>
+<input class="ex" aria-labelledby="x-label2" data-expectedlabel="Label 2">
+
+<script>
+  AriaUtils.verifyLabelsBySelector('.ex');
+</script>
+
+</body>
+
+</html>

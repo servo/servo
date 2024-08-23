@@ -21,6 +21,7 @@ use crate::dom::blob::Blob;
 use crate::dom::file::File;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlformelement::{FormDatum, FormDatumValue, HTMLFormElement};
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct FormData {
@@ -45,18 +46,20 @@ impl FormData {
     }
 
     pub fn new(form_datums: Option<Vec<FormDatum>>, global: &GlobalScope) -> DomRoot<FormData> {
-        Self::new_with_proto(form_datums, global, None)
+        Self::new_with_proto(form_datums, global, None, CanGc::note())
     }
 
     fn new_with_proto(
         form_datums: Option<Vec<FormDatum>>,
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> DomRoot<FormData> {
         reflect_dom_object_with_proto(
             Box::new(FormData::new_inherited(form_datums)),
             global,
             proto,
+            can_gc,
         )
     }
 
@@ -65,16 +68,22 @@ impl FormData {
     pub fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         form: Option<&HTMLFormElement>,
     ) -> Fallible<DomRoot<FormData>> {
         if let Some(opt_form) = form {
             return match opt_form.get_form_dataset(None, None) {
-                Some(form_datums) => Ok(FormData::new_with_proto(Some(form_datums), global, proto)),
+                Some(form_datums) => Ok(FormData::new_with_proto(
+                    Some(form_datums),
+                    global,
+                    proto,
+                    can_gc,
+                )),
                 None => Err(Error::InvalidState),
             };
         }
 
-        Ok(FormData::new_with_proto(None, global, proto))
+        Ok(FormData::new_with_proto(None, global, proto, can_gc))
     }
 }
 
@@ -175,6 +184,8 @@ impl FormDataMethods for FormData {
     #[allow(crown::unrooted_must_root)]
     // https://xhr.spec.whatwg.org/#dom-formdata-set
     fn Set_(&self, name: USVString, blob: &Blob, filename: Option<USVString>) {
+        let file = self.create_an_entry(blob, filename);
+
         let mut data = self.data.borrow_mut();
         let local_name = LocalName::from(name.0.clone());
 
@@ -185,9 +196,7 @@ impl FormDataMethods for FormData {
             FormDatum {
                 ty: DOMString::from("file"),
                 name: DOMString::from(name.0),
-                value: FormDatumValue::File(DomRoot::from_ref(
-                    &*self.create_an_entry(blob, filename),
-                )),
+                value: FormDatumValue::File(file),
             },
         ));
     }

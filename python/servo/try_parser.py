@@ -47,6 +47,7 @@ class Workflow(str, Enum):
     WINDOWS = "windows"
     ANDROID = "android"
     OHOS = "ohos"
+    LINT = "lint"
 
 
 @dataclass
@@ -56,10 +57,10 @@ class JobConfig(object):
     wpt_layout: Layout = Layout.none
     profile: str = "release"
     unit_tests: bool = False
-    wpt_tests_to_run: str = ""
+    wpt_args: str = ""
     # These are the fields that must match in between two JobConfigs for them to be able to be
     # merged. If you modify any of the fields above, make sure to update this line as well.
-    merge_compatibility_fields: ClassVar[List[str]] = ['workflow', 'profile', 'wpt_tests_to_run']
+    merge_compatibility_fields: ClassVar[List[str]] = ['workflow', 'profile', 'wpt_args']
 
     def merge(self, other: JobConfig) -> bool:
         """Try to merge another job with this job. Returns True if merging is successful
@@ -101,9 +102,11 @@ def handle_preset(s: str) -> Optional[JobConfig]:
     elif s == "webgpu":
         return JobConfig("WebGPU CTS", Workflow.LINUX,
                          wpt_layout=Layout.layout2020,  # reftests are mode for new layout
-                         wpt_tests_to_run="_webgpu",  # run only webgpu cts
+                         wpt_args="--processes 1 _webgpu",  # run only webgpu cts
                          profile="production",  # WebGPU works to slow with debug assert
                          unit_tests=False)  # production profile does not work with unit-tests
+    elif s in ["lint", "tidy"]:
+        return JobConfig("Lint", Workflow.LINT)
     else:
         return None
 
@@ -138,7 +141,7 @@ class Config(object):
                 self.fail_fast = True
                 continue  # skip over keyword
             if word == "full":
-                words.extend(["linux-wpt", "macos", "windows", "android", "ohos"])
+                words.extend(["linux-wpt", "macos", "windows", "android", "ohos", "lint"])
                 continue  # skip over keyword
 
             job = handle_preset(word)
@@ -176,7 +179,7 @@ class TestParser(unittest.TestCase):
                                   'unit_tests': True,
                                   'workflow': 'linux',
                                   'wpt_layout': 'none',
-                                  'wpt_tests_to_run': ''
+                                  'wpt_args': ''
                               }]
                               })
 
@@ -189,7 +192,7 @@ class TestParser(unittest.TestCase):
                                   "wpt_layout": "all",
                                   "profile": "release",
                                   "unit_tests": True,
-                                  "wpt_tests_to_run": ""
+                                  "wpt_args": ""
                               },
                               {
                                   "name": "MacOS",
@@ -197,7 +200,7 @@ class TestParser(unittest.TestCase):
                                   "wpt_layout": "none",
                                   "profile": "release",
                                   "unit_tests": True,
-                                  "wpt_tests_to_run": ""
+                                  "wpt_args": ""
                               },
                               {
                                   "name": "Windows",
@@ -205,7 +208,7 @@ class TestParser(unittest.TestCase):
                                   "wpt_layout": "none",
                                   "profile": "release",
                                   "unit_tests": True,
-                                  "wpt_tests_to_run": ""
+                                  "wpt_args": ""
                               },
                               {
                                   "name": "Android",
@@ -213,7 +216,7 @@ class TestParser(unittest.TestCase):
                                   "wpt_layout": "none",
                                   "profile": "release",
                                   "unit_tests": False,
-                                  "wpt_tests_to_run": ""
+                                  "wpt_args": ""
                               },
                               {
                                   "name": "OpenHarmony",
@@ -221,8 +224,15 @@ class TestParser(unittest.TestCase):
                                   "wpt_layout": "none",
                                   "profile": "release",
                                   "unit_tests": False,
-                                  "wpt_tests_to_run": ""
-                              }
+                                  "wpt_args": ""
+                              },
+                              {
+                                  "name": "Lint",
+                                  "workflow": "lint",
+                                  "wpt_layout": "none",
+                                  "profile": "release",
+                                  "unit_tests": False,
+                                  "wpt_args": ""}
                               ]})
 
     def test_job_merging(self):
@@ -234,7 +244,7 @@ class TestParser(unittest.TestCase):
                                   'unit_tests': False,
                                   'workflow': 'linux',
                                   'wpt_layout': 'all',
-                                  'wpt_tests_to_run': ''
+                                  'wpt_args': ''
                               }]
                               })
 
@@ -254,12 +264,12 @@ class TestParser(unittest.TestCase):
         self.assertEqual(a, JobConfig("Linux", Workflow.LINUX, unit_tests=True))
 
         a = JobConfig("Linux", Workflow.LINUX, unit_tests=True)
-        b = JobConfig("Linux", Workflow.LINUX, unit_tests=True, wpt_tests_to_run="/css")
+        b = JobConfig("Linux", Workflow.LINUX, unit_tests=True, wpt_args="/css")
         self.assertFalse(a.merge(b), "Should not merge jobs that run different WPT tests.")
         self.assertEqual(a, JobConfig("Linux", Workflow.LINUX, unit_tests=True))
 
     def test_full(self):
-        self.assertDictEqual(json.loads(Config("linux-wpt macos windows android ohos").to_json()),
+        self.assertDictEqual(json.loads(Config("linux-wpt macos windows android ohos lint").to_json()),
                              json.loads(Config("").to_json()))
 
 

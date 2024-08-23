@@ -890,17 +890,45 @@ impl<'a> TableLayout<'a> {
         }
 
         let bounds = |sum_a, sum_b| self.assignable_width > sum_a && self.assignable_width < sum_b;
+
         let blend = |a: &[Au], sum_a: Au, b: &[Au], sum_b: Au| {
             // First convert the Au units to f32 in order to do floating point division.
             let weight_a =
                 (self.assignable_width - sum_b).to_f32_px() / (sum_a - sum_b).to_f32_px();
             let weight_b = 1.0 - weight_a;
-            a.iter()
+
+            let mut sum_accounting_for_floating_point_inaccuracy = Au::new(0);
+            let mut widths: Vec<Au> = a
+                .iter()
                 .zip(b.iter())
                 .map(|(guess_a, guess_b)| {
                     (guess_a.scale_by(weight_a)) + (guess_b.scale_by(weight_b))
                 })
-                .collect()
+                .inspect(|&column_width| {
+                    sum_accounting_for_floating_point_inaccuracy += column_width;
+                })
+                .collect();
+
+            if sum_accounting_for_floating_point_inaccuracy != self.assignable_width {
+                // The computations above can introduce floating-point imprecisions.
+                // Since these errors are very small (+-1Au), it's fine to simply adjust
+                // the first column such that the total width matches the assignable width
+                let difference =
+                    self.assignable_width - sum_accounting_for_floating_point_inaccuracy;
+
+                debug_assert!(
+                    difference.abs() <= Au::new(widths.len() as i32),
+                    "A deviation of more than one Au per column is unlikely to be caused by float imprecision"
+                );
+
+                // We checked if the table was empty at the top of the function, so there
+                // always is a first column
+                widths[0] += difference;
+            }
+
+            debug_assert!(widths.iter().sum::<Au>() == self.assignable_width);
+
+            widths
         };
 
         if bounds(min_content_sizes_sum, min_content_percentage_sizing_sum) {
@@ -1122,14 +1150,15 @@ impl<'a> TableLayout<'a> {
                         let border: LogicalSides<Au> = self
                             .get_collapsed_borders_for_cell(cell, coordinates)
                             .unwrap_or_else(|| {
-                                cell.style
-                                    .border_width(containing_block_for_table.style.writing_mode)
+                                cell.style.border_width(
+                                    containing_block_for_table.effective_writing_mode(),
+                                )
                             })
                             .into();
 
                         let padding: LogicalSides<Au> = cell
                             .style
-                            .padding(containing_block_for_table.style.writing_mode)
+                            .padding(containing_block_for_table.effective_writing_mode())
                             .percentages_relative_to(self.basis_for_cell_padding_percentage.into())
                             .into();
                         let inline_border_padding_sum = border.inline_sum() + padding.inline_sum();
@@ -1549,7 +1578,7 @@ impl<'a> TableLayout<'a> {
                 .start
                 .solve(),
         }
-        .to_physical_size(containing_block.style.writing_mode);
+        .to_physical_size(containing_block.effective_writing_mode());
         box_fragment.content_rect.origin += margin_offset;
 
         if let Some(positioning_context) = positioning_context.take() {
@@ -1568,7 +1597,7 @@ impl<'a> TableLayout<'a> {
         containing_block_for_children: &ContainingBlock,
         containing_block_for_table: &ContainingBlock,
     ) -> IndependentLayout {
-        let writing_mode = containing_block_for_children.style.writing_mode;
+        let writing_mode = containing_block_for_children.effective_writing_mode();
         let grid_min_max = self.compute_grid_min_max(layout_context, writing_mode);
         let caption_minimum_inline_size =
             self.compute_caption_minimum_inline_size(layout_context, writing_mode);
@@ -1601,7 +1630,7 @@ impl<'a> TableLayout<'a> {
             content_inline_size_for_table: None,
             baselines: Baselines::default(),
         };
-        let table_writing_mode = containing_block_for_children.style.writing_mode;
+        let table_writing_mode = containing_block_for_children.effective_writing_mode();
 
         table_layout
             .fragments
@@ -1696,7 +1725,7 @@ impl<'a> TableLayout<'a> {
                     inline: offset_from_wrapper.inline_start,
                     block: current_block_offset,
                 }
-                .to_physical_size(containing_block_for_children.style.writing_mode);
+                .to_physical_size(containing_block_for_children.effective_writing_mode());
                 caption_fragment.content_rect.origin += caption_offset;
                 current_block_offset += caption_fragment
                     .margin_rect()
@@ -1733,7 +1762,7 @@ impl<'a> TableLayout<'a> {
             containing_block_for_children,
             positioning_context,
         );
-        let writing_mode = containing_block_for_children.style.writing_mode;
+        let writing_mode = containing_block_for_children.effective_writing_mode();
         let first_layout_row_heights = self.do_first_row_layout(writing_mode);
         self.compute_table_height_and_final_row_heights(
             first_layout_row_heights,
@@ -1744,7 +1773,7 @@ impl<'a> TableLayout<'a> {
         assert_eq!(self.table.size.height, self.row_sizes.len());
         assert_eq!(self.table.size.width, self.distributed_column_widths.len());
 
-        let table_writing_mode = containing_block_for_children.style.writing_mode;
+        let table_writing_mode = containing_block_for_children.effective_writing_mode();
         if self.table.size.width == 0 && self.table.size.height == 0 {
             let content_rect = LogicalRect {
                 start_corner: table_pbm.border_padding_start(),
@@ -2024,7 +2053,7 @@ impl<'a> TableLayout<'a> {
         dimensions: &TableAndTrackDimensions,
         fragments: &mut Vec<Fragment>,
     ) {
-        let table_writing_mode = self.table.style.writing_mode;
+        let table_writing_mode = self.table.style.effective_writing_mode();
         for column_group in self.table.column_groups.iter() {
             if !column_group.is_empty() {
                 fragments.push(Fragment::Positioning(PositioningFragment::new_empty(
@@ -2147,7 +2176,8 @@ impl<'a> RowFragmentLayout<'a> {
             self.row.base_fragment_info,
             self.row.style.clone(),
             self.fragments,
-            self.rect.to_physical(containing_block.style.writing_mode),
+            self.rect
+                .to_physical(containing_block.effective_writing_mode()),
             PhysicalSides::zero(), /* padding */
             PhysicalSides::zero(), /* border */
             PhysicalSides::zero(), /* margin */
@@ -2210,7 +2240,8 @@ impl RowGroupFragmentLayout {
             self.base_fragment_info,
             self.style,
             self.fragments,
-            self.rect.to_physical(containing_block.style.writing_mode),
+            self.rect
+                .to_physical(containing_block.effective_writing_mode()),
             PhysicalSides::zero(), /* padding */
             PhysicalSides::zero(), /* border */
             PhysicalSides::zero(), /* margin */
@@ -2568,7 +2599,7 @@ impl TableSlotCell {
             block: vertical_align_offset,
         };
         let vertical_align_fragment = PositioningFragment::new_anonymous(
-            vertical_align_fragment_rect.to_physical(table_style.writing_mode),
+            vertical_align_fragment_rect.to_physical(table_style.effective_writing_mode()),
             layout.layout.fragments,
         );
 
@@ -2591,9 +2622,13 @@ impl TableSlotCell {
             base_fragment_info,
             self.style.clone(),
             vec![Fragment::Positioning(vertical_align_fragment)],
-            cell_content_rect.to_physical(table_style.writing_mode),
-            layout.padding.to_physical(table_style.writing_mode),
-            layout.border.to_physical(table_style.writing_mode),
+            cell_content_rect.to_physical(table_style.effective_writing_mode()),
+            layout
+                .padding
+                .to_physical(table_style.effective_writing_mode()),
+            layout
+                .border
+                .to_physical(table_style.effective_writing_mode()),
             PhysicalSides::zero(), /* margin */
             None,                  /* clearance */
             CollapsedBlockMargins::zero(),

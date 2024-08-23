@@ -1,12 +1,12 @@
 test(() => {
   const target = new EventTarget();
-  assert_implements(target.on, "The EventTarget interface has an `on` method");
-  assert_equals(typeof target.on, "function",
-      "EventTarget should have the on method");
+  assert_implements(target.when, "The EventTarget interface has an `when` method");
+  assert_equals(typeof target.when, "function",
+      "EventTarget should have the when method");
 
-  const testEvents = target.on("test");
+  const testEvents = target.when("test");
   assert_true(testEvents instanceof Observable,
-      "EventTarget.on returns an Observable");
+      "EventTarget.when() returns an Observable");
 
   const results = [];
   testEvents.subscribe({
@@ -24,11 +24,11 @@ test(() => {
 
   target.dispatchEvent(event);
   assert_array_equals(results, [event, event]);
-}, "EventTarget.on() returns an Observable");
+}, "EventTarget.when() returns an Observable");
 
 test(() => {
   const target = new EventTarget();
-  const testEvents = target.on("test");
+  const testEvents = target.when("test");
   const ac = new AbortController();
   const results = [];
   testEvents.subscribe({
@@ -58,7 +58,7 @@ test(() => {
 
 test(() => {
   const target = new EventTarget();
-  const testEvents = target.on("test");
+  const testEvents = target.when("test");
   const results = [];
   testEvents.subscribe(e => results.push(e));
   testEvents.subscribe(e => results.push(e));

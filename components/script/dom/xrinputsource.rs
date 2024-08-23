@@ -103,8 +103,7 @@ impl XRInputSource {
             .iter()
             .enumerate()
             .for_each(|(i, value)| {
-                self.gamepad
-                    .map_and_normalize_buttons(i as usize, *value as f64);
+                self.gamepad.map_and_normalize_buttons(i, *value as f64);
             });
         frame.axis_values.iter().enumerate().for_each(|(i, value)| {
             self.gamepad.map_and_normalize_axes(i, *value as f64);
@@ -128,6 +127,7 @@ impl XRInputSourceMethods for XRInputSource {
             TargetRayMode::Gaze => XRTargetRayMode::Gaze,
             TargetRayMode::TrackedPointer => XRTargetRayMode::Tracked_pointer,
             TargetRayMode::Screen => XRTargetRayMode::Screen,
+            TargetRayMode::TransientPointer => XRTargetRayMode::Transient_pointer,
         }
     }
 
@@ -153,6 +153,13 @@ impl XRInputSourceMethods for XRInputSource {
     // https://immersive-web.github.io/webxr/#dom-xrinputsource-profiles
     fn Profiles(&self, _cx: JSContext) -> JSVal {
         self.profiles.get()
+    }
+
+    /// <https://www.w3.org/TR/webxr/#dom-xrinputsource-skiprendering>
+    fn SkipRendering(&self) -> bool {
+        // Servo is not currently supported anywhere that would allow for skipped
+        // controller rendering.
+        false
     }
 
     /// <https://www.w3.org/TR/webxr-gamepads-module-1/#xrinputsource-interface>

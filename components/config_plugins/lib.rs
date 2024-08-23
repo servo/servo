@@ -108,13 +108,12 @@ impl Build {
         let num_prefs = self.path_map.len();
 
         self.output.extend(quote! {
-            lazy_static::lazy_static! {
-                pub static ref #gen_accessors: std::collections::HashMap<String, #accessor_type> = {
+            pub static #gen_accessors: std::sync::LazyLock<std::collections::HashMap<String, #accessor_type>> =
+                std::sync::LazyLock::new(|| {
                     let mut map = std::collections::HashMap::with_capacity(#num_prefs);
                     #(#values)*
                     map
-                };
-            }
+                });
         });
     }
 

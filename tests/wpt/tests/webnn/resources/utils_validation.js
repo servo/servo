@@ -203,10 +203,22 @@ promise_setup(async () => {
   if (navigator.ml === undefined) {
     return;
   }
-  context = await navigator.ml.createContext();
+  const deviceType = location.search.substring(1);
+  context = await navigator.ml.createContext({deviceType: deviceType});
 }, {explicit_timeout: true});
 
-function validateTwoInputsBroadcastable(operationName) {
+function assert_throws_with_label(func, regrexp) {
+  try {
+    func.call(this);
+    assert_true(false, 'Graph builder method unexpectedly succeeded');
+  } catch (e) {
+    assert_equals(e.name, 'TypeError');
+    const error_message = e.message;
+    assert_not_equals(error_message.match(regrexp), null);
+  }
+}
+
+function validateTwoInputsBroadcastable(operationName, label) {
   if (navigator.ml === undefined) {
     return;
   }
@@ -227,10 +239,12 @@ function validateTwoInputsBroadcastable(operationName) {
           for (let unbroadcastableDimensions of unbroadcastableDimensionsArray) {
             const inputB = builder.input(`inputB${++inputBIndex}`, {dataType, dimensions: unbroadcastableDimensions});
             assert_equals(typeof builder[operationName], 'function');
-            assert_throws_js(
-                TypeError, () => builder[operationName](inputA, inputB));
-            assert_throws_js(
-                TypeError, () => builder[operationName](inputB, inputA));
+            const options = {label};
+            const regrexp = new RegExp('\\[' + label + '\\]');
+            assert_throws_with_label(
+                () => builder[operationName](inputA, inputB, options), regrexp);
+            assert_throws_with_label(
+                () => builder[operationName](inputB, inputA, options), regrexp);
           }
         }
       }
@@ -238,7 +252,7 @@ function validateTwoInputsBroadcastable(operationName) {
   }, `[${operationName}] TypeError is expected if two inputs aren't broadcastable`);
 }
 
-function validateTwoInputsOfSameDataType(operationName) {
+function validateTwoInputsOfSameDataType(operationName, label) {
   if (navigator.ml === undefined) {
     return;
   }
@@ -274,9 +288,12 @@ function validateTwoInputsOfSameDataType(operationName) {
             }
             if (dataType !== dataTypeB) {
               const inputB = builder.input(`inputB${++inputBIndex}`, {dataType: dataTypeB, dimensions});
+              const options = {label};
+              const regrexp = new RegExp('\\[' + label + '\\]');
               assert_equals(typeof builder[subOperationName], 'function');
-              assert_throws_js(
-                  TypeError, () => builder[subOperationName](inputA, inputB));
+              assert_throws_with_label(
+                  () => builder[subOperationName](inputA, inputB, options),
+                  regrexp);
             }
           }
         }
@@ -408,7 +425,7 @@ function validateOptionsAxes(operationName) {
  * @param {Array} supportedDataTypes - Test building with these data types
  *     succeeds and test building with all other data types fails
  */
-function validateUnaryOperation(operationName, supportedDataTypes) {
+function validateUnaryOperation(operationName, supportedDataTypes, label) {
   promise_test(async t => {
     const builder = new MLGraphBuilder(context);
     for (let dataType of supportedDataTypes) {
@@ -444,7 +461,10 @@ function validateUnaryOperation(operationName, supportedDataTypes) {
       for (let dimensions of allWebNNDimensionsArray) {
         const input = builder.input(`input`, {dataType, dimensions});
         assert_equals(typeof builder[operationName], 'function');
-        assert_throws_js(TypeError, () => builder[operationName](input));
+        const options = {label};
+        const regrexp = new RegExp('\\[' + label + '\\]');
+        assert_throws_with_label(
+            () => builder[operationName](input, options), regrexp);
       }
     }
   }, `[${operationName}] Throw if the dataType is not supported for an unary operator.`);
@@ -454,7 +474,7 @@ function validateUnaryOperation(operationName, supportedDataTypes) {
  * Validate a single input operation
  * @param {String} operationName - An operation name
  */
-function validateSingleInputOperation(operationName) {
+function validateSingleInputOperation(operationName, label) {
   promise_test(async t => {
     const builder = new MLGraphBuilder(context);
     const supportedDataTypes =
@@ -489,7 +509,10 @@ function validateSingleInputOperation(operationName) {
       for (let dimensions of allWebNNDimensionsArray) {
         const input = builder.input(`input`, {dataType, dimensions});
         assert_equals(typeof builder[operationName], 'function');
-        assert_throws_js(TypeError, () => builder[operationName](input));
+        const options = {label};
+        const regrexp = new RegExp('\\[' + label + '\\]');
+        assert_throws_with_label(
+            () => builder[operationName](input, options), regrexp);
       }
     }
   }, `[${operationName}] Throw if the data type is not supported for the operator.`);

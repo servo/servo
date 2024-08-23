@@ -147,7 +147,7 @@ impl InputType {
         *self == InputType::Time
     }
 
-    fn to_str(&self) -> &str {
+    fn as_str(&self) -> &str {
         match *self {
             InputType::Button => "button",
             InputType::Checkbox => "checkbox",
@@ -1203,7 +1203,7 @@ impl HTMLInputElementMethods for HTMLInputElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-input-type
     fn Type(&self) -> DOMString {
-        DOMString::from(self.input_type().to_str())
+        DOMString::from(self.input_type().as_str())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-type
@@ -1356,7 +1356,7 @@ impl HTMLInputElementMethods for HTMLInputElement {
     // https://html.spec.whatwg.org/multipage/#dom-input-valueasnumber
     fn ValueAsNumber(&self) -> f64 {
         self.convert_string_to_number(&self.Value())
-            .unwrap_or(std::f64::NAN)
+            .unwrap_or(f64::NAN)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-valueasnumber
