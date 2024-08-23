@@ -142,8 +142,13 @@ jobs:
             | jq -er --arg id '${{ needs.runner-select.outputs.unique-id }}' \
               '.jobs[] | select(.name | contains("[" + $id + "]")) | .status'
           )" = queued ]; then
-            echo "Timeout waiting for runner assignment! Cancelling workflow run"
+            echo 'Timeout waiting for runner assignment!'
+            echo 'Hint: does this repo have permission to access the runner group?'
+            echo 'Hint: https://github.com/organizations/servo/settings/actions/runner-groups'
+            echo
+            echo 'Cancelling workflow run'
             gh api "$run_url/cancel" --method POST
+            exit 1
           fi
 
   build:
