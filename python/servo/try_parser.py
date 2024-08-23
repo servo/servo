@@ -47,6 +47,7 @@ class Workflow(str, Enum):
     WINDOWS = "windows"
     ANDROID = "android"
     OHOS = "ohos"
+    LINT = "lint"
 
 
 @dataclass
@@ -104,6 +105,8 @@ def handle_preset(s: str) -> Optional[JobConfig]:
                          wpt_args="--processes 1 _webgpu",  # run only webgpu cts
                          profile="production",  # WebGPU works to slow with debug assert
                          unit_tests=False)  # production profile does not work with unit-tests
+    elif s in ["lint", "tidy"]:
+        return JobConfig("Lint", Workflow.LINT)
     else:
         return None
 
@@ -138,7 +141,7 @@ class Config(object):
                 self.fail_fast = True
                 continue  # skip over keyword
             if word == "full":
-                words.extend(["linux-wpt", "macos", "windows", "android", "ohos"])
+                words.extend(["linux-wpt", "macos", "windows", "android", "ohos", "lint"])
                 continue  # skip over keyword
 
             job = handle_preset(word)
@@ -222,7 +225,14 @@ class TestParser(unittest.TestCase):
                                   "profile": "release",
                                   "unit_tests": False,
                                   "wpt_args": ""
-                              }
+                              },
+                              {
+                                  "name": "Lint",
+                                  "workflow": "lint",
+                                  "wpt_layout": "none",
+                                  "profile": "release",
+                                  "unit_tests": False,
+                                  "wpt_args": ""}
                               ]})
 
     def test_job_merging(self):
@@ -259,7 +269,7 @@ class TestParser(unittest.TestCase):
         self.assertEqual(a, JobConfig("Linux", Workflow.LINUX, unit_tests=True))
 
     def test_full(self):
-        self.assertDictEqual(json.loads(Config("linux-wpt macos windows android ohos").to_json()),
+        self.assertDictEqual(json.loads(Config("linux-wpt macos windows android ohos lint").to_json()),
                              json.loads(Config("").to_json()))
 
 

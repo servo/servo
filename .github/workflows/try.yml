@@ -113,6 +113,7 @@ jobs:
     needs: [ "decision", "build" ]
     steps:
       - name: Merge build timings
+        continue-on-error: true
         uses: actions/upload-artifact/merge@v4
         with:
           name: cargo-timings

@@ -3,6 +3,7 @@
 channel = "1.80.1"
 
 components = [
+    "clippy",
     # For support/crown
     "llvm-tools",
     # For support/crown

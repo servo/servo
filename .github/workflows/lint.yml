@@ -1,0 +1,59 @@
+name: Lint
+on:
+  workflow_call:
+  workflow_dispatch:
+
+env:
+  RUST_BACKTRACE: 1
+  SHELL: /bin/bash
+  SCCACHE_GHA_ENABLED: "true"
+  RUSTC_WRAPPER: "sccache"
+  CCACHE: "sccache"
+  CARGO_INCREMENTAL: 0
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        if: github.event_name != 'pull_request_target'
+        with:
+          fetch-depth: 2 # This is necessary for `test-tidy`.
+      # This is necessary to checkout the pull request if this run was triggered via a
+      # `pull_request_target` event.
+      - uses: actions/checkout@v4
+        if: github.event_name == 'pull_request_target'
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 2 # This is necessary for `test-tidy`.
+      - name: Run sccache-cache
+        uses: mozilla-actions/sccache-action@v0.0.4
+      - name: Set LIBCLANG_PATH env # needed for bindgen in mozangle
+        run: echo "LIBCLANG_PATH=/usr/lib/llvm-14/lib" >> $GITHUB_ENV
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      - name: Install taplo
+        uses: baptiste0928/cargo-install@v3
+        with:
+          crate: taplo-cli
+          locked: true
+      - name: Install cargo-deny
+        uses: baptiste0928/cargo-install@v3
+        with:
+          crate: cargo-deny
+          locked: true
+      - name: Bootstrap Python
+        run: python3 -m pip install --upgrade pip
+      - name: Bootstrap dependencies
+        run: |
+          sudo apt update
+          python3 ./mach bootstrap
+      # TODO: Do GitHub anotaions
+      # TODO: Fail on warnings
+      - name: Clippy
+        run: |
+          python3 ./mach cargo-clippy --use-crown --locked
+      - name: Tidy
+        run: python3 ./mach test-tidy --no-progress --all
