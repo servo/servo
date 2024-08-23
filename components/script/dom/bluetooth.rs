@@ -20,7 +20,7 @@ use crate::dom::bindings::codegen::UnionTypes::{ArrayBufferViewOrArrayBuffer, St
 use crate::dom::bindings::error::Error::{self, Network, Security, Type};
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
-use crate::dom::bindings::reflector::{DomObject, reflect_dom_object};
+use crate::dom::bindings::reflector::{DomObject, DomGlobal, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bluetoothdevice::BluetoothDevice;
@@ -238,7 +238,7 @@ impl Bluetooth {
     }
 }
 
-pub fn response_async<T: AsyncBluetoothListener + DomObject + 'static>(
+pub fn response_async<T: AsyncBluetoothListener + DomObject + DomGlobal + 'static>(
     promise: &Rc<Promise>,
     receiver: &T,
 ) -> IpcSender<BluetoothResponseResult> {
@@ -521,20 +521,7 @@ fn canonicalize_bluetooth_data_filter_init(
     Ok((data_prefix, mask))
 }
 
-impl From<BluetoothError> for Error {
-    fn from(error: BluetoothError) -> Self {
-        match error {
-            BluetoothError::Type(message) => Error::Type(message),
-            BluetoothError::Network => Error::Network,
-            BluetoothError::NotFound => Error::NotFound,
-            BluetoothError::NotSupported => Error::NotSupported,
-            BluetoothError::Security => Error::Security,
-            BluetoothError::InvalidState => Error::InvalidState,
-        }
-    }
-}
-
-impl BluetoothMethods for Bluetooth {
+impl BluetoothMethods<crate::DomTypeHolder> for Bluetooth {
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetooth-requestdevice
     fn RequestDevice(
         &self,

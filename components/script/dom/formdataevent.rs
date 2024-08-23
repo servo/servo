@@ -67,7 +67,7 @@ impl FormDataEvent {
     }
 }
 
-impl FormDataEventMethods for FormDataEvent {
+impl FormDataEventMethods<crate::DomTypeHolder> for FormDataEvent {
     // https://html.spec.whatwg.org/multipage/#formdataevent
     fn Constructor(
         window: &Window,

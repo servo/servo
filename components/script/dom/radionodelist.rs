@@ -63,7 +63,7 @@ impl RadioNodeList {
     }
 }
 
-impl RadioNodeListMethods for RadioNodeList {
+impl RadioNodeListMethods<crate::DomTypeHolder> for RadioNodeList {
     // https://dom.spec.whatwg.org/#dom-nodelist-length
     // https://github.com/servo/servo/issues/5875
     fn Length(&self) -> u32 {

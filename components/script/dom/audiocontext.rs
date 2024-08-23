@@ -109,7 +109,7 @@ impl AudioContext {
     }
 }
 
-impl AudioContextMethods for AudioContext {
+impl AudioContextMethods<crate::DomTypeHolder> for AudioContext {
     // https://webaudio.github.io/web-audio-api/#AudioContext-constructors
     fn Constructor(
         window: &Window,
@@ -302,29 +302,5 @@ impl AudioContextMethods for AudioContext {
         let global = self.global();
         let window = global.as_window();
         MediaStreamAudioDestinationNode::new(window, self, &AudioNodeOptions::empty(), can_gc)
-    }
-}
-
-impl From<AudioContextLatencyCategory> for LatencyCategory {
-    fn from(category: AudioContextLatencyCategory) -> Self {
-        match category {
-            AudioContextLatencyCategory::Balanced => LatencyCategory::Balanced,
-            AudioContextLatencyCategory::Interactive => LatencyCategory::Interactive,
-            AudioContextLatencyCategory::Playback => LatencyCategory::Playback,
-        }
-    }
-}
-
-impl<'a> From<&'a AudioContextOptions> for RealTimeAudioContextOptions {
-    fn from(options: &AudioContextOptions) -> Self {
-        Self {
-            sample_rate: *options.sampleRate.unwrap_or(Finite::wrap(44100.)),
-            latency_hint: match options.latencyHint {
-                AudioContextLatencyCategoryOrDouble::AudioContextLatencyCategory(category) => {
-                    category.into()
-                },
-                AudioContextLatencyCategoryOrDouble::Double(_) => LatencyCategory::Interactive, // TODO
-            },
-        }
     }
 }

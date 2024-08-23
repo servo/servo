@@ -96,7 +96,7 @@ impl XRInputSourcesChangeEvent {
     }
 }
 
-impl XRInputSourcesChangeEventMethods for XRInputSourcesChangeEvent {
+impl XRInputSourcesChangeEventMethods<crate::DomTypeHolder> for XRInputSourcesChangeEvent {
     // https://immersive-web.github.io/webxr/#dom-xrinputsourceschangeevent-xrinputsourceschangeevent
     fn Constructor(
         window: &Window,

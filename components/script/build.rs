@@ -13,6 +13,9 @@ use phf_shared::{self, FmtConst};
 use serde_json::{self, Value};
 
 fn main() {
+    println!("cargo::rerun-if-changed=../script_bindings/codegen/CodegenRust.py");
+    println!("cargo::rerun-if-changed=../script_bindings/codegen/Configuration.py");
+
     let start = Instant::now();
 
     let style_out_dir = PathBuf::from(env::var_os("DEP_SERVO_STYLE_CRATE_OUT_DIR").unwrap());
@@ -45,6 +48,10 @@ fn main() {
     }
     let phf = PathBuf::from(env::var_os("OUT_DIR").unwrap()).join("InterfaceObjectMapPhf.rs");
     let mut phf = File::create(phf).unwrap();
+    writeln!(
+        &mut phf,
+        "use crate::script_runtime::JSContext;\nuse crate::dom::bindings::codegen;\nuse js::rust::HandleObject;\nuse phf;",
+    ).unwrap();
     writeln!(
         &mut phf,
         "pub static MAP: phf::Map<&'static [u8], fn(JSContext, HandleObject)> = {};",

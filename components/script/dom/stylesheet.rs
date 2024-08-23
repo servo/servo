@@ -37,7 +37,7 @@ impl StyleSheet {
     }
 }
 
-impl StyleSheetMethods for StyleSheet {
+impl StyleSheetMethods<crate::DomTypeHolder> for StyleSheet {
     // https://drafts.csswg.org/cssom/#dom-stylesheet-type
     fn Type_(&self) -> DOMString {
         self.type_.clone()

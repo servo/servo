@@ -107,7 +107,7 @@ impl CharacterData {
     }
 }
 
-impl CharacterDataMethods for CharacterData {
+impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
     // https://dom.spec.whatwg.org/#dom-characterdata-data
     fn Data(&self) -> DOMString {
         self.data.borrow().clone()

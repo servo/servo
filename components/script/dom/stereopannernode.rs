@@ -8,6 +8,7 @@ use servo_media::audio::node::{AudioNodeInit, AudioNodeType};
 use servo_media::audio::param::ParamType;
 use servo_media::audio::stereo_panner::StereoPannerOptions as ServoMediaStereoPannerOptions;
 
+use crate::dom::audionode::AudioNodeOptionsUnwrap;
 use crate::dom::audioparam::AudioParam;
 use crate::dom::audioscheduledsourcenode::AudioScheduledSourceNode;
 use crate::dom::baseaudiocontext::BaseAudioContext;
@@ -101,7 +102,7 @@ impl StereoPannerNode {
     }
 }
 
-impl StereoPannerNodeMethods for StereoPannerNode {
+impl StereoPannerNodeMethods<crate::DomTypeHolder> for StereoPannerNode {
     // https://webaudio.github.io/web-audio-api/#dom-stereopannernode-stereopannernode
     fn Constructor(
         window: &Window,
@@ -116,11 +117,5 @@ impl StereoPannerNodeMethods for StereoPannerNode {
     // https://webaudio.github.io/web-audio-api/#dom-stereopannernode-pan
     fn Pan(&self) -> DomRoot<AudioParam> {
         DomRoot::from_ref(&self.pan)
-    }
-}
-
-impl<'a> From<&'a StereoPannerOptions> for ServoMediaStereoPannerOptions {
-    fn from(options: &'a StereoPannerOptions) -> Self {
-        Self { pan: *options.pan }
     }
 }

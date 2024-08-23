@@ -72,7 +72,7 @@ impl XRRigidTransform {
     }
 }
 
-impl XRRigidTransformMethods for XRRigidTransform {
+impl XRRigidTransformMethods<crate::DomTypeHolder> for XRRigidTransform {
     // https://immersive-web.github.io/webxr/#dom-xrrigidtransform-xrrigidtransform
     fn Constructor(
         window: &Window,

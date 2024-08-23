@@ -67,7 +67,7 @@ impl ExtendableEvent {
     }
 }
 
-impl ExtendableEventMethods for ExtendableEvent {
+impl ExtendableEventMethods<crate::DomTypeHolder> for ExtendableEvent {
     // https://w3c.github.io/ServiceWorker/#dom-extendableevent-extendableevent
     fn Constructor(
         worker: &ServiceWorkerGlobalScope,
@@ -103,8 +103,9 @@ impl ExtendableEventMethods for ExtendableEvent {
     }
 }
 
-impl Default for ExtendableEventInit {
+/*impl Default for ExtendableEventInit {
+>>>>>>> 46564b50b0 (initial import)
     fn default() -> Self {
         Self::empty()
     }
-}
+}*/

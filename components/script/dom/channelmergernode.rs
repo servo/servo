@@ -7,7 +7,7 @@ use js::rust::HandleObject;
 use servo_media::audio::channel_node::ChannelNodeOptions;
 use servo_media::audio::node::AudioNodeInit;
 
-use crate::dom::audionode::{AudioNode, MAX_CHANNEL_COUNT};
+use crate::dom::audionode::{AudioNode, AudioNodeOptionsUnwrap, MAX_CHANNEL_COUNT};
 use crate::dom::baseaudiocontext::BaseAudioContext;
 use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
     ChannelCountMode, ChannelInterpretation,
@@ -84,7 +84,7 @@ impl ChannelMergerNode {
     }
 }
 
-impl ChannelMergerNodeMethods for ChannelMergerNode {
+impl ChannelMergerNodeMethods<crate::DomTypeHolder> for ChannelMergerNode {
     /// <https://webaudio.github.io/web-audio-api/#dom-channelmergernode-channelmergernode>
     fn Constructor(
         window: &Window,
@@ -94,13 +94,5 @@ impl ChannelMergerNodeMethods for ChannelMergerNode {
         options: &ChannelMergerOptions,
     ) -> Fallible<DomRoot<ChannelMergerNode>> {
         ChannelMergerNode::new_with_proto(window, proto, context, options, can_gc)
-    }
-}
-
-impl<'a> From<&'a ChannelMergerOptions> for ChannelNodeOptions {
-    fn from(options: &'a ChannelMergerOptions) -> Self {
-        Self {
-            channels: options.numberOfInputs as u8,
-        }
     }
 }

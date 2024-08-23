@@ -29,7 +29,7 @@ impl MediaError {
     }
 }
 
-impl MediaErrorMethods for MediaError {
+impl MediaErrorMethods<crate::DomTypeHolder> for MediaError {
     // https://html.spec.whatwg.org/multipage/#dom-mediaerror-code
     fn Code(&self) -> u16 {
         self.code

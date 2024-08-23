@@ -58,7 +58,7 @@ impl CSSGroupingRule {
     }
 }
 
-impl CSSGroupingRuleMethods for CSSGroupingRule {
+impl CSSGroupingRuleMethods<crate::DomTypeHolder> for CSSGroupingRule {
     // https://drafts.csswg.org/cssom/#dom-cssgroupingrule-cssrules
     fn CssRules(&self) -> DomRoot<CSSRuleList> {
         // XXXManishearth check origin clean flag

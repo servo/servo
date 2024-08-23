@@ -47,7 +47,7 @@ impl HTMLDataElement {
     }
 }
 
-impl HTMLDataElementMethods for HTMLDataElement {
+impl HTMLDataElementMethods<crate::DomTypeHolder> for HTMLDataElement {
     // https://html.spec.whatwg.org/multipage/#dom-data-value
     make_getter!(Value, "value");
 

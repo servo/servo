@@ -52,7 +52,7 @@ impl HTMLHRElement {
     }
 }
 
-impl HTMLHRElementMethods for HTMLHRElement {
+impl HTMLHRElementMethods<crate::DomTypeHolder> for HTMLHRElement {
     // https://html.spec.whatwg.org/multipage/#dom-hr-align
     make_getter!(Align, "align");
 

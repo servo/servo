@@ -140,6 +140,7 @@ impl ImageData {
             imagedata, global, proto, can_gc,
         ))
     }
+
     #[allow(unsafe_code)]
     pub fn to_shared_memory(&self) -> IpcSharedMemory {
         IpcSharedMemory::from_bytes(unsafe { self.as_slice() })
@@ -172,7 +173,7 @@ impl ImageData {
     }
 }
 
-impl ImageDataMethods for ImageData {
+impl ImageDataMethods<crate::DomTypeHolder> for ImageData {
     /// <https://html.spec.whatwg.org/multipage/#pixel-manipulation:dom-imagedata-3>
     fn Constructor(
         global: &GlobalScope,

@@ -65,7 +65,7 @@ impl Headers {
     }
 }
 
-impl HeadersMethods for Headers {
+impl HeadersMethods<crate::DomTypeHolder> for Headers {
     // https://fetch.spec.whatwg.org/#dom-headers
     fn Constructor(
         global: &GlobalScope,

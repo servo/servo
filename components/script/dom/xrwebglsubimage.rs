@@ -21,7 +21,7 @@ pub struct XRWebGLSubImage {
     size: Size2D<u32, Viewport>,
 }
 
-impl XRWebGLSubImageMethods for XRWebGLSubImage {
+impl XRWebGLSubImageMethods<crate::DomTypeHolder> for XRWebGLSubImage {
     /// <https://immersive-web.github.io/layers/#dom-xrwebglsubimage-colortexture>
     fn ColorTexture(&self) -> DomRoot<WebGLTexture> {
         DomRoot::from_ref(&self.color_texture)

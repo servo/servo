@@ -147,7 +147,7 @@ use crate::realms::enter_realm;
 use crate::script_module::ScriptFetchOptions;
 use crate::script_runtime::{
     CanGc, CommonScriptMsg, JSContext, Runtime, ScriptChan, ScriptPort, ScriptThreadEventCategory,
-    ThreadSafeJSContext,
+    ThreadSafeJSContext, JSReports
 };
 use crate::task_manager::TaskManager;
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
@@ -2587,7 +2587,7 @@ impl ScriptThread {
             DevtoolScriptControlMsg::EvaluateJS(id, s, reply) => match documents.find_window(id) {
                 Some(window) => {
                     let global = window.upcast::<GlobalScope>();
-                    let _aes = AutoEntryScript::new(global);
+                    let _aes = AutoEntryScript::<crate::DomTypeHolder>::new(global);
                     devtools::handle_evaluate_js(global, s, reply, can_gc)
                 },
                 None => warn!("Message sent to closed pipeline {}.", id),

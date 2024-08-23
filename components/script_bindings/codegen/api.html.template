@@ -1,0 +1,6 @@
+<table id="${interface}">
+<tr>
+<th>${interface}</th>
+</tr>
+${properties}
+</table>

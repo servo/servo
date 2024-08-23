@@ -119,7 +119,12 @@ impl PaintWorkletGlobalScope {
                 missing_image_urls: Vec::new(),
             }),
         });
-        unsafe { PaintWorkletGlobalScopeBinding::Wrap(JSContext::from_ptr(runtime.cx()), global) }
+        unsafe {
+            PaintWorkletGlobalScopeBinding::GenericBindings::Wrap::<crate::DomTypeHolder>(
+                JSContext::from_ptr(runtime.cx()),
+                global,
+            )
+        }
     }
 
     pub fn image_cache(&self) -> Arc<dyn ImageCache> {
@@ -491,7 +496,7 @@ impl PaintDefinition {
     }
 }
 
-impl PaintWorkletGlobalScopeMethods for PaintWorkletGlobalScope {
+impl PaintWorkletGlobalScopeMethods<crate::DomTypeHolder> for PaintWorkletGlobalScope {
     #[allow(unsafe_code)]
     #[allow(crown::unrooted_must_root)]
     /// <https://drafts.css-houdini.org/css-paint-api/#dom-paintworkletglobalscope-registerpaint>

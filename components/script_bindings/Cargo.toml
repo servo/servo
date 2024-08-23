@@ -1,0 +1,63 @@
+[package]
+name = "script_bindings"
+build = "build.rs"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[lib]
+name = "script_bindings"
+path = "lib.rs"
+
+[features]
+js_backtrace = []
+
+[build-dependencies]
+phf_codegen = "0.11"
+phf_shared = "0.11"
+serde_json = { workspace = true }
+
+[dependencies]
+backtrace = { workspace = true }
+bincode = { workspace = true }
+bitflags = { workspace = true }
+bluetooth_traits = { workspace = true }
+canvas_traits = { workspace = true }
+chrono = { workspace = true }
+cssparser = { workspace = true }
+deny_public_fields = { path = "../deny_public_fields" }
+dom_struct = { path = "../dom_struct" }
+domobject_derive = { path = "../domobject_derive" }
+embedder_traits = { workspace = true }
+html5ever = { workspace = true }
+indexmap = { workspace = true }
+itertools = { workspace = true }
+js = { package = "mozjs", git = "https://github.com/servo/mozjs", features = ["streams"] }
+jstraceable_derive = { path = "../jstraceable_derive" }
+libc = { workspace = true }
+log = { workspace = true }
+malloc_size_of = { workspace = true }
+malloc_size_of_derive = { workspace = true }
+net_traits = { workspace = true }
+num-traits = { workspace = true }
+parking_lot = { workspace = true }
+phf = "0.11"
+regex = { workspace = true }
+script_layout_interface = { path = "../shared/script_layout" }
+script_traits = { workspace = true }
+selectors = { workspace = true }
+serde = { workspace = true }
+servo_atoms = { workspace = true }
+servo_arc = { workspace = true }
+servo_config = { path = "../config" }
+servo-media = { workspace = true }
+servo_url = { path = "../url" }
+smallvec = { workspace = true }
+style = { workspace = true }
+tendril = { version = "0.4.1", features = ["encoding_rs"] }
+time_03 = { workspace = true }
+webxr-api = { git = "https://github.com/servo/webxr", features = ["ipc"] }
+webgpu = { path = "../webgpu" }
+xml5ever = { workspace = true }

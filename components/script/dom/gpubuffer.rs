@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::hash::{Hash, Hasher};
 use std::ops::Range;
 use std::rc::Rc;
 use std::string::String;
@@ -60,6 +61,13 @@ impl ActiveBufferMapping {
             mode,
             range,
         })
+    }
+}
+
+//impl Eq for GPUBuffer {}
+impl Hash for GPUBuffer {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.id().hash(state);
     }
 }
 
@@ -184,7 +192,7 @@ impl Drop for GPUBuffer {
     }
 }
 
-impl GPUBufferMethods for GPUBuffer {
+impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
     #[allow(unsafe_code)]
     /// <https://gpuweb.github.io/gpuweb/#dom-gpubuffer-unmap>
     fn Unmap(&self) {

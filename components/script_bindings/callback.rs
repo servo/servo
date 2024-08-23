@@ -17,17 +17,18 @@ use js::jsval::{JSVal, ObjectValue, UndefinedValue};
 use js::rust::wrappers::{JS_GetProperty, JS_WrapObject};
 use js::rust::{MutableHandleObject, Runtime};
 
-use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
+use crate::codegen::DomTypes::DomTypes;
 use crate::dom::bindings::error::{report_pending_exception, Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::settings_stack::{AutoEntryScript, AutoIncumbentScript};
 use crate::dom::bindings::utils::AsCCharPtrPtr;
-use crate::dom::globalscope::GlobalScope;
-use crate::dom::window::Window;
+//use crate::dom::globalscope::GlobalScope;
+//use crate::dom::window::Window;
 use crate::realms::{enter_realm, InRealm};
 use crate::script_runtime::{CanGc, JSContext};
+use crate::utils::DomHelpers;
 
 /// The exception handling used for a call.
 #[derive(Clone, Copy, PartialEq)]
@@ -42,7 +43,7 @@ pub enum ExceptionHandling {
 /// callback interface types.
 #[derive(JSTraceable)]
 #[crown::unrooted_must_root_lint::must_root]
-pub struct CallbackObject {
+pub struct CallbackObject<D: DomTypes> {
     /// The underlying `JSObject`.
     callback: Heap<*mut JSObject>,
     permanent_js_root: Heap<JSVal>,
@@ -58,18 +59,18 @@ pub struct CallbackObject {
     ///
     /// ["callback context"]: https://heycam.github.io/webidl/#dfn-callback-context
     /// [sometimes]: https://github.com/whatwg/html/issues/2248
-    incumbent: Option<Dom<GlobalScope>>,
+    incumbent: Option<Dom<D::GlobalScope>>,
 }
 
-impl CallbackObject {
+impl<D: DomTypes> CallbackObject<D> {
     #[allow(crown::unrooted_must_root)]
     // These are used by the bindings and do not need `default()` functions.
     #[allow(clippy::new_without_default)]
-    fn new() -> CallbackObject {
-        CallbackObject {
+    fn new() -> Self {
+        Self {
             callback: Heap::default(),
             permanent_js_root: Heap::default(),
-            incumbent: GlobalScope::incumbent().map(|i| Dom::from_ref(&*i)),
+            incumbent: <D as DomHelpers<D>>::GlobalScope_incumbent().map(|i| Dom::from_ref(&*i)),
         }
     }
 
@@ -89,7 +90,7 @@ impl CallbackObject {
     }
 }
 
-impl Drop for CallbackObject {
+impl<D: DomTypes> Drop for CallbackObject<D> {
     #[allow(unsafe_code)]
     fn drop(&mut self) {
         unsafe {
@@ -99,19 +100,19 @@ impl Drop for CallbackObject {
     }
 }
 
-impl PartialEq for CallbackObject {
-    fn eq(&self, other: &CallbackObject) -> bool {
+impl<D: DomTypes> PartialEq for CallbackObject<D> {
+    fn eq(&self, other: &CallbackObject<D>) -> bool {
         self.callback.get() == other.callback.get()
     }
 }
 
 /// A trait to be implemented by concrete IDL callback function and
 /// callback interface types.
-pub trait CallbackContainer {
+pub trait CallbackContainer<D: DomTypes> {
     /// Create a new CallbackContainer object for the given `JSObject`.
     unsafe fn new(cx: JSContext, callback: *mut JSObject) -> Rc<Self>;
     /// Returns the underlying `CallbackObject`.
-    fn callback_holder(&self) -> &CallbackObject;
+    fn callback_holder(&self) -> &CallbackObject<D>;
     /// Returns the underlying `JSObject`.
     fn callback(&self) -> *mut JSObject {
         self.callback_holder().get()
@@ -120,7 +121,7 @@ pub trait CallbackContainer {
     /// incumbent global when calling the callback.
     ///
     /// ["callback context"]: https://heycam.github.io/webidl/#dfn-callback-context
-    fn incumbent(&self) -> Option<&GlobalScope> {
+    fn incumbent(&self) -> Option<&D::GlobalScope> {
         self.callback_holder().incumbent.as_deref()
     }
 }
@@ -128,23 +129,23 @@ pub trait CallbackContainer {
 /// A common base class for representing IDL callback function types.
 #[derive(JSTraceable, PartialEq)]
 #[crown::unrooted_must_root_lint::must_root]
-pub struct CallbackFunction {
-    object: CallbackObject,
+pub struct CallbackFunction<D: DomTypes> {
+    object: CallbackObject<D>,
 }
 
-impl CallbackFunction {
+impl<D: DomTypes> CallbackFunction<D> {
     /// Create a new `CallbackFunction` for this object.
     #[allow(crown::unrooted_must_root)]
     // These are used by the bindings and do not need `default()` functions.
     #[allow(clippy::new_without_default)]
-    pub fn new() -> CallbackFunction {
-        CallbackFunction {
+    pub fn new() -> Self {
+        Self {
             object: CallbackObject::new(),
         }
     }
 
     /// Returns the underlying `CallbackObject`.
-    pub fn callback_holder(&self) -> &CallbackObject {
+    pub fn callback_holder(&self) -> &CallbackObject<D> {
         &self.object
     }
 
@@ -158,22 +159,22 @@ impl CallbackFunction {
 /// A common base class for representing IDL callback interface types.
 #[derive(JSTraceable, PartialEq)]
 #[crown::unrooted_must_root_lint::must_root]
-pub struct CallbackInterface {
-    object: CallbackObject,
+pub struct CallbackInterface<D: DomTypes> {
+    object: CallbackObject<D>,
 }
 
-impl CallbackInterface {
+impl<D: DomTypes> CallbackInterface<D> {
     /// Create a new CallbackInterface object for the given `JSObject`.
     // These are used by the bindings and do not need `default()` functions.
     #[allow(clippy::new_without_default)]
-    pub fn new() -> CallbackInterface {
-        CallbackInterface {
+    pub fn new() -> Self {
+        Self {
             object: CallbackObject::new(),
         }
     }
 
     /// Returns the underlying `CallbackObject`.
-    pub fn callback_holder(&self) -> &CallbackObject {
+    pub fn callback_holder(&self) -> &CallbackObject<D> {
         &self.object
     }
 
@@ -219,10 +220,10 @@ pub fn wrap_call_this_object<T: DomObject>(cx: JSContext, p: &T, mut rval: Mutab
 
 /// A class that performs whatever setup we need to safely make a call while
 /// this class is on the stack. After `new` returns, the call is safe to make.
-pub struct CallSetup {
+pub struct CallSetup<D: DomTypes> {
     /// The global for reporting exceptions. This is the global object of the
     /// (possibly wrapped) callback object.
-    exception_global: DomRoot<GlobalScope>,
+    exception_global: DomRoot<D::GlobalScope>,
     /// The `JSContext` used for the call.
     cx: JSContext,
     /// The realm we were in before the call.
@@ -231,23 +232,23 @@ pub struct CallSetup {
     handling: ExceptionHandling,
     /// <https://heycam.github.io/webidl/#es-invoking-callback-functions>
     /// steps 8 and 18.2.
-    entry_script: Option<AutoEntryScript>,
+    entry_script: Option<AutoEntryScript<D>>,
     /// <https://heycam.github.io/webidl/#es-invoking-callback-functions>
     /// steps 9 and 18.1.
-    incumbent_script: Option<AutoIncumbentScript>,
+    incumbent_script: Option<AutoIncumbentScript<D>>,
 }
 
-impl CallSetup {
+impl<D: DomTypes> CallSetup<D> {
     /// Performs the setup needed to make a call.
     #[allow(crown::unrooted_must_root)]
-    pub fn new<T: CallbackContainer>(callback: &T, handling: ExceptionHandling) -> CallSetup {
-        let global = unsafe { GlobalScope::from_object(callback.callback()) };
-        if let Some(window) = global.downcast::<Window>() {
-            window.Document().ensure_safe_to_run_script_or_layout();
+    pub fn new<T: CallbackContainer<D>>(callback: &T, handling: ExceptionHandling) -> CallSetup<D> {
+        let global = unsafe { <D as DomHelpers<D>>::global_scope_from_object(callback.callback()) };
+        if let Some(window) = global.downcast::<D::Window>() {
+            <D as crate::DomHelpers<D>>::ensure_safe_to_run_script_or_layout(&window);
         }
-        let cx = GlobalScope::get_cx();
+        let cx = <D as DomHelpers<D>>::GlobalScope_get_cx();
 
-        let aes = AutoEntryScript::new(&global);
+        let aes = AutoEntryScript::new(&*global);
         let ais = callback.incumbent().map(AutoIncumbentScript::new);
         CallSetup {
             exception_global: global,
@@ -265,13 +266,13 @@ impl CallSetup {
     }
 }
 
-impl Drop for CallSetup {
+impl<D: DomTypes> Drop for CallSetup<D> {
     fn drop(&mut self) {
         unsafe {
             LeaveRealm(*self.cx, self.old_realm);
             if self.handling == ExceptionHandling::Report {
-                let ar = enter_realm(&*self.exception_global);
-                report_pending_exception(*self.cx, true, InRealm::Entered(&ar), CanGc::note());
+                let ar = enter_realm::<D>(&*self.exception_global);
+                report_pending_exception::<D>(*self.cx, true, InRealm::Entered(&ar), CanGc::note());
             }
             drop(self.incumbent_script.take());
             drop(self.entry_script.take().unwrap());

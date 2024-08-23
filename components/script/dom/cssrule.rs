@@ -148,7 +148,7 @@ impl CSSRule {
     }
 }
 
-impl CSSRuleMethods for CSSRule {
+impl CSSRuleMethods<crate::DomTypeHolder> for CSSRule {
     // https://drafts.csswg.org/cssom/#dom-cssrule-type
     fn Type(&self) -> u16 {
         let rule_type = self.as_specific().ty() as u16;

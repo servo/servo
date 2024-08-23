@@ -7,6 +7,7 @@ import sys
 import json
 
 SCRIPT_PATH = os.path.abspath(os.path.dirname(__file__))
+SCRIPT_BINDINGS_PATH = os.path.join(SCRIPT_PATH, "..", "..", "..", "..", "script_bindings")
 SERVO_ROOT = os.path.abspath(os.path.join(SCRIPT_PATH, "..", "..", "..", "..", ".."))
 
 
@@ -20,12 +21,14 @@ def main():
     # Do not ascend above the target dir, because it may not be called target
     # or even have a parent (see CARGO_TARGET_DIR).
     doc_servo = os.path.join(out_dir, "..", "..", "..", "..", "doc")
-    webidls_dir = os.path.join(SCRIPT_PATH, "..", "..", "webidls")
-    config_file = "Bindings.conf"
+    webidls_dir = os.path.join(SCRIPT_BINDINGS_PATH, "webidls")
+    codegen_dir = os.path.join(SCRIPT_BINDINGS_PATH, "codegen")
+    config_file = os.path.join(codegen_dir, "Bindings.conf")
+    sys.path.insert(0, codegen_dir)
 
     import WebIDL
     from Configuration import Configuration
-    from CodegenRust import CGBindingRoot
+    from CodegenRust import CGConcreteBindingRoot
 
     parser = WebIDL.Parser(make_dir(os.path.join(out_dir, "cache")))
     webidls = [name for name in os.listdir(webidls_dir) if name.endswith(".webidl")]
@@ -40,14 +43,16 @@ def main():
     make_dir(os.path.join(out_dir, "Bindings"))
 
     for name, filename in [
-        ("PrototypeList", "PrototypeList.rs"),
-        ("RegisterBindings", "RegisterBindings.rs"),
-        ("InterfaceObjectMap", "InterfaceObjectMap.rs"),
+        ("DomTypeHolder", "DomTypeHolder.rs"),
+        #("PrototypeList", "PrototypeList.rs"),
+        #("RegisterBindings", "RegisterBindings.rs"),
+        ("InterfaceObjectMap", "InterfaceObjectMapPhf.rs"),
         ("InterfaceObjectMapData", "InterfaceObjectMapData.json"),
         ("InterfaceTypes", "InterfaceTypes.rs"),
-        ("InheritTypes", "InheritTypes.rs"),
+        ("ConcreteInheritTypes", "ConcreteInheritTypes.rs"),
+        ("ConcreteBindingRoot", "ConcreteBindingRoot.rs"),
         ("Bindings", "Bindings/mod.rs"),
-        ("UnionTypes", "UnionTypes.rs"),
+        ("ConcreteUnionTypes", "ConcreteUnionTypes.rs"),
     ]:
         generate(config, name, os.path.join(out_dir, filename))
     make_dir(doc_servo)
@@ -56,7 +61,7 @@ def main():
     for webidl in webidls:
         filename = os.path.join(webidls_dir, webidl)
         prefix = "Bindings/%sBinding" % webidl[:-len(".webidl")]
-        module = CGBindingRoot(config, prefix, filename).define()
+        module = CGConcreteBindingRoot(config, prefix, filename).define()
         if module:
             with open(os.path.join(out_dir, prefix + ".rs"), "wb") as f:
                 f.write(module.encode("utf-8"))

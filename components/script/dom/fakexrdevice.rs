@@ -172,17 +172,7 @@ pub fn get_world(world: &FakeXRWorldInit) -> Fallible<MockWorld> {
     Ok(MockWorld { regions })
 }
 
-impl From<FakeXRRegionType> for EntityType {
-    fn from(x: FakeXRRegionType) -> Self {
-        match x {
-            FakeXRRegionType::Point => EntityType::Point,
-            FakeXRRegionType::Plane => EntityType::Plane,
-            FakeXRRegionType::Mesh => EntityType::Mesh,
-        }
-    }
-}
-
-impl FakeXRDeviceMethods for FakeXRDevice {
+impl FakeXRDeviceMethods<crate::DomTypeHolder> for FakeXRDevice {
     /// <https://github.com/immersive-web/webxr-test-api/blob/master/explainer.md>
     fn SetViews(
         &self,
@@ -343,26 +333,5 @@ impl FakeXRDeviceMethods for FakeXRDevice {
     /// <https://immersive-web.github.io/webxr-test-api/#dom-fakexrdevice-simulateresetpose>
     fn SimulateResetPose(&self) {
         let _ = self.sender.send(MockDeviceMsg::SimulateResetPose);
-    }
-}
-
-impl From<XRHandedness> for Handedness {
-    fn from(h: XRHandedness) -> Self {
-        match h {
-            XRHandedness::None => Handedness::None,
-            XRHandedness::Left => Handedness::Left,
-            XRHandedness::Right => Handedness::Right,
-        }
-    }
-}
-
-impl From<XRTargetRayMode> for TargetRayMode {
-    fn from(t: XRTargetRayMode) -> Self {
-        match t {
-            XRTargetRayMode::Gaze => TargetRayMode::Gaze,
-            XRTargetRayMode::Tracked_pointer => TargetRayMode::TrackedPointer,
-            XRTargetRayMode::Screen => TargetRayMode::Screen,
-            XRTargetRayMode::Transient_pointer => TargetRayMode::TransientPointer,
-        }
     }
 }

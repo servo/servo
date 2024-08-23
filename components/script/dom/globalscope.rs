@@ -2695,7 +2695,7 @@ impl GlobalScope {
 
                 let ar = enter_realm(self);
 
-                let _aes = AutoEntryScript::new(self);
+                let _aes = AutoEntryScript::<crate::DomTypeHolder>::new(self);
 
                 unsafe {
                     rooted!(in(*cx) let mut compiled_script = std::ptr::null_mut::<JSScript>());
@@ -3080,7 +3080,7 @@ impl GlobalScope {
     ///
     /// ["incumbent"]: https://html.spec.whatwg.org/multipage/#incumbent
     pub fn incumbent() -> Option<DomRoot<Self>> {
-        incumbent_global()
+        incumbent_global::<crate::DomTypeHolder>()
     }
 
     pub fn performance(&self) -> DomRoot<Performance> {

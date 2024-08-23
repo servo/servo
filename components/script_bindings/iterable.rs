@@ -16,16 +16,19 @@ use js::jsapi::{Heap, JSObject};
 use js::jsval::UndefinedValue;
 use js::rust::{HandleObject, HandleValue, MutableHandleObject};
 
+use crate::codegen::DomTypes::DomTypes;
+use crate::conversions::IDLInterface;
 use crate::dom::bindings::codegen::Bindings::IterableIteratorBinding::{
     IterableKeyAndValueResult, IterableKeyOrValueResult,
 };
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::{
-    reflect_dom_object, DomObjectIteratorWrap, DomObjectWrap, Reflector,
+    reflect_dom_object, DomGlobal, DomObjectIteratorWrap, DomObjectWrap, Reflector,
 };
 use crate::dom::bindings::root::{Dom, DomRoot, Root};
 use crate::dom::bindings::trace::{JSTraceable, RootedTraceableBox};
-use crate::dom::globalscope::GlobalScope;
+use crate::dom::bindings::utils::DOMClass;
+//use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::{CanGc, JSContext};
 
 /// The values that an iterator will iterate over.
@@ -54,16 +57,53 @@ pub trait Iterable {
 }
 
 /// An iterator over the iterable entries of a given DOM interface.
-//FIXME: #12811 prevents dom_struct with type parameters
 #[dom_struct]
-pub struct IterableIterator<T: DomObjectIteratorWrap + JSTraceable + Iterable> {
+pub struct IterableIterator<
+    D: DomTypes + 'static,
+    T: DomObjectIteratorWrap<D> + JSTraceable + Iterable + DomGlobal<D>,
+> {
     reflector: Reflector,
     iterable: Dom<T>,
     type_: IteratorType,
     index: Cell<u32>,
+    #[ignore_malloc_size_of = "zero size"]
+    _marker: NoTrace<std::marker::PhantomData<D>>,
 }
 
-impl<T: DomObjectIteratorWrap + JSTraceable + Iterable> IterableIterator<T> {
+impl<
+        D: DomTypes + 'static,
+        T: DomObjectIteratorWrap<D> + JSTraceable + Iterable, /*+ DomGlobal<D>*/
+    > IterableIterator<D, T>
+{
+    pub fn global(&self) -> DomRoot<D::GlobalScope> {
+        <Self as DomGlobal<D>>::global(self)
+    }
+}
+
+pub(crate) struct NoTrace<T>(T);
+
+//impl <D: DomTypes + 'static, T: DomObjectIteratorWrap<D> + JSTraceable + Iterable + DomGlobal<D>> DomGlobal<D> for IterablefqIterator<D, T> {}
+
+impl<
+        D: DomTypes + 'static,
+        T: DomObjectIteratorWrap<D>
+            + JSTraceable
+            + Iterable
+            + DomGlobal<D>
+            + IDLInterface
+            + IteratorDerives,
+    > IDLInterface for IterableIterator<D, T>
+{
+    fn derives(class: &'static DOMClass) -> bool {
+        <T as IteratorDerives>::derives(class)
+    }
+}
+
+impl<
+        D: DomTypes + 'static,
+        T: DomObjectIteratorWrap<D> + JSTraceable + Iterable + DomGlobal<D>,
+    > IterableIterator<D, T>
+{
     /// Create a new iterator instance for the provided iterable DOM interface.
     pub fn new(iterable: &T, type_: IteratorType) -> DomRoot<Self> {
         let iterator = Box::new(IterableIterator {
@@ -71,6 +111,7 @@ impl<T: DomObjectIteratorWrap + JSTraceable + Iterable> IterableIterator<T> {
             type_,
             iterable: Dom::from_ref(iterable),
             index: Cell::new(0),
+            _marker: NoTrace(std::marker::PhantomData),
         });
         reflect_dom_object(iterator, &*iterable.global())
     }
@@ -120,15 +161,37 @@ impl<T: DomObjectIteratorWrap + JSTraceable + Iterable> IterableIterator<T> {
     }
 }
 
-impl<T: DomObjectIteratorWrap + JSTraceable + Iterable> DomObjectWrap for IterableIterator<T> {
+impl<
+        D: DomTypes + 'static,
+        T: DomObjectIteratorWrap<D> + JSTraceable + Iterable + DomGlobal<D>,
+    > DomObjectWrap<D> for IterableIterator<D, T>
+{
     const WRAP: unsafe fn(
         JSContext,
-        &GlobalScope,
+        &D::GlobalScope,
         Option<HandleObject>,
         Box<Self>,
         CanGc,
     ) -> Root<Dom<Self>> = T::ITER_WRAP;
 }
+
+/// A version of the [IDLInterface] trait that is specific to types that have
+/// iterators defined for them. This allows the `script` crate to define the
+/// derives check for the concrete interface type, while the [IteratableIterator]
+/// type defined in this module can be parameterized over an unknown generic.
+pub trait IteratorDerives {
+    fn derives(class: &'static DOMClass) -> bool;
+}
+
+/*impl<
+        D: DomTypes + 'static,
+        T: DomObjectIteratorWrap<D> + JSTraceable + Iterable + DomGlobal<D>,
+    > PartialEq for IterableIterator<D, T>
+{
+    fn eq(&self, other: &IterableIterator<D, T>) -> bool {
+        self as *const IterableIterator<D, T> == other
+    }
+}*/
 
 fn dict_return(
     cx: JSContext,

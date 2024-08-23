@@ -52,7 +52,7 @@ impl DOMImplementation {
 }
 
 // https://dom.spec.whatwg.org/#domimplementation
-impl DOMImplementationMethods for DOMImplementation {
+impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
     // https://dom.spec.whatwg.org/#dom-domimplementation-createdocumenttype
     fn CreateDocumentType(
         &self,

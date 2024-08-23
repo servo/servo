@@ -55,7 +55,7 @@ use crate::dom::workerlocation::WorkerLocation;
 use crate::dom::workernavigator::WorkerNavigator;
 use crate::fetch;
 use crate::realms::{enter_realm, InRealm};
-use crate::script_runtime::{CanGc, CommonScriptMsg, JSContext, Runtime, ScriptChan, ScriptPort};
+use crate::script_runtime::{CanGc, CommonScriptMsg, JSContext, Runtime, ScriptChan, ScriptPort, JSReports};
 use crate::task::TaskCanceller;
 use crate::task_source::dom_manipulation::DOMManipulationTaskSource;
 use crate::task_source::file_reading::FileReadingTaskSource;
@@ -242,7 +242,7 @@ impl WorkerGlobalScope {
     }
 }
 
-impl WorkerGlobalScopeMethods for WorkerGlobalScope {
+impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
     // https://html.spec.whatwg.org/multipage/#dom-workerglobalscope-self
     fn Self_(&self) -> DomRoot<WorkerGlobalScope> {
         DomRoot::from_ref(self)
@@ -459,7 +459,7 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
 impl WorkerGlobalScope {
     #[allow(unsafe_code)]
     pub fn execute_script(&self, source: DOMString, can_gc: CanGc) {
-        let _aes = AutoEntryScript::new(self.upcast());
+        let _aes = AutoEntryScript::<crate::DomTypeHolder>::new(self.upcast());
         let cx = self.runtime.borrow().as_ref().unwrap().cx();
         rooted!(in(cx) let mut rval = UndefinedValue());
         match self.runtime.borrow().as_ref().unwrap().evaluate_script(

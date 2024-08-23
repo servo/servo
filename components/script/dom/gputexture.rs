@@ -160,7 +160,7 @@ impl GPUTexture {
     }
 }
 
-impl GPUTextureMethods for GPUTexture {
+impl GPUTextureMethods<crate::DomTypeHolder> for GPUTexture {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
     fn Label(&self) -> USVString {
         self.label.borrow().clone()

@@ -30,7 +30,7 @@ linker = "lld-link.exe"
 
 [env]
 MACOSX_DEPLOYMENT_TARGET = "10.10"
-RUSTC_BOOTSTRAP = "crown,script,style_tests"
+RUSTC_BOOTSTRAP = "crown,script,script_bindings,style_tests"
 
 [build]
 rustdocflags = ["--document-private-items"]

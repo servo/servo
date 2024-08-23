@@ -59,7 +59,7 @@ impl ResizeObserverSize {
     }
 }
 
-impl ResizeObserverSizeMethods for ResizeObserverSize {
+impl ResizeObserverSizeMethods<crate::DomTypeHolder> for ResizeObserverSize {
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobserversize-inlinesize>
     fn InlineSize(&self) -> f64 {
         self.size_impl.inline_size()

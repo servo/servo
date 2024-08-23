@@ -102,28 +102,6 @@ impl Tokenizer {
     }
 }
 
-#[allow(unsafe_code)]
-unsafe impl CustomTraceable for HtmlTokenizer<TreeBuilder<Dom<Node>, Sink>> {
-    unsafe fn trace(&self, trc: *mut JSTracer) {
-        struct Tracer(*mut JSTracer);
-        let tracer = Tracer(trc);
-
-        impl HtmlTracer for Tracer {
-            type Handle = Dom<Node>;
-            #[allow(crown::unrooted_must_root)]
-            fn trace_handle(&self, node: &Dom<Node>) {
-                unsafe {
-                    node.trace(self.0);
-                }
-            }
-        }
-
-        let tree_builder = &self.sink;
-        tree_builder.trace_handles(&tracer);
-        tree_builder.sink.trace(trc);
-    }
-}
-
 fn start_element<S: Serializer>(node: &Element, serializer: &mut S) -> io::Result<()> {
     let name = QualName::new(None, node.namespace().clone(), node.local_name().clone());
     let attrs = node

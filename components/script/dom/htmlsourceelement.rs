@@ -115,7 +115,7 @@ impl VirtualMethods for HTMLSourceElement {
     }
 }
 
-impl HTMLSourceElementMethods for HTMLSourceElement {
+impl HTMLSourceElementMethods<crate::DomTypeHolder> for HTMLSourceElement {
     // https://html.spec.whatwg.org/multipage/#dom-source-src
     make_getter!(Src, "src");
 

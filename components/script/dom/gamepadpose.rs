@@ -49,7 +49,7 @@ impl GamepadPose {
     }
 }
 
-impl GamepadPoseMethods for GamepadPose {
+impl GamepadPoseMethods<crate::DomTypeHolder> for GamepadPose {
     // https://w3c.github.io/gamepad/extensions.html#dom-gamepadpose-position
     fn GetPosition(&self, _cx: JSContext) -> Option<Float32Array> {
         self.position.buffer_to_option()

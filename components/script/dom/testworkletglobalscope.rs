@@ -51,7 +51,12 @@ impl TestWorkletGlobalScope {
             ),
             lookup_table: Default::default(),
         });
-        unsafe { TestWorkletGlobalScopeBinding::Wrap(JSContext::from_ptr(runtime.cx()), global) }
+        unsafe {
+            TestWorkletGlobalScopeBinding::GenericBindings::Wrap::<crate::DomTypeHolder>(
+                JSContext::from_ptr(runtime.cx()),
+                global,
+            )
+        }
     }
 
     pub fn perform_a_worklet_task(&self, task: TestWorkletTask) {
@@ -65,7 +70,7 @@ impl TestWorkletGlobalScope {
     }
 }
 
-impl TestWorkletGlobalScopeMethods for TestWorkletGlobalScope {
+impl TestWorkletGlobalScopeMethods<crate::DomTypeHolder> for TestWorkletGlobalScope {
     fn RegisterKeyValue(&self, key: DOMString, value: DOMString) {
         debug!("Registering test worklet key/value {}/{}.", key, value);
         self.lookup_table

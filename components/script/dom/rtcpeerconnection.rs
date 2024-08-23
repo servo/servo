@@ -523,7 +523,7 @@ impl RTCPeerConnection {
     }
 }
 
-impl RTCPeerConnectionMethods for RTCPeerConnection {
+impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
     // https://w3c.github.io/webrtc-pc/#dom-peerconnection
     fn Constructor(
         window: &Window,
@@ -819,72 +819,5 @@ impl RTCPeerConnectionMethods for RTCPeerConnection {
         init: &RTCRtpTransceiverInit,
     ) -> DomRoot<RTCRtpTransceiver> {
         RTCRtpTransceiver::new(&self.global(), init.direction)
-    }
-}
-
-impl From<SessionDescription> for RTCSessionDescriptionInit {
-    fn from(desc: SessionDescription) -> Self {
-        let type_ = match desc.type_ {
-            SdpType::Answer => RTCSdpType::Answer,
-            SdpType::Offer => RTCSdpType::Offer,
-            SdpType::Pranswer => RTCSdpType::Pranswer,
-            SdpType::Rollback => RTCSdpType::Rollback,
-        };
-        RTCSessionDescriptionInit {
-            type_,
-            sdp: desc.sdp.into(),
-        }
-    }
-}
-
-impl<'a> From<&'a RTCSessionDescriptionInit> for SessionDescription {
-    fn from(desc: &'a RTCSessionDescriptionInit) -> Self {
-        let type_ = match desc.type_ {
-            RTCSdpType::Answer => SdpType::Answer,
-            RTCSdpType::Offer => SdpType::Offer,
-            RTCSdpType::Pranswer => SdpType::Pranswer,
-            RTCSdpType::Rollback => SdpType::Rollback,
-        };
-        SessionDescription {
-            type_,
-            sdp: desc.sdp.to_string(),
-        }
-    }
-}
-
-impl From<GatheringState> for RTCIceGatheringState {
-    fn from(state: GatheringState) -> Self {
-        match state {
-            GatheringState::New => RTCIceGatheringState::New,
-            GatheringState::Gathering => RTCIceGatheringState::Gathering,
-            GatheringState::Complete => RTCIceGatheringState::Complete,
-        }
-    }
-}
-
-impl From<IceConnectionState> for RTCIceConnectionState {
-    fn from(state: IceConnectionState) -> Self {
-        match state {
-            IceConnectionState::New => RTCIceConnectionState::New,
-            IceConnectionState::Checking => RTCIceConnectionState::Checking,
-            IceConnectionState::Connected => RTCIceConnectionState::Connected,
-            IceConnectionState::Completed => RTCIceConnectionState::Completed,
-            IceConnectionState::Disconnected => RTCIceConnectionState::Disconnected,
-            IceConnectionState::Failed => RTCIceConnectionState::Failed,
-            IceConnectionState::Closed => RTCIceConnectionState::Closed,
-        }
-    }
-}
-
-impl From<SignalingState> for RTCSignalingState {
-    fn from(state: SignalingState) -> Self {
-        match state {
-            SignalingState::Stable => RTCSignalingState::Stable,
-            SignalingState::HaveLocalOffer => RTCSignalingState::Have_local_offer,
-            SignalingState::HaveRemoteOffer => RTCSignalingState::Have_remote_offer,
-            SignalingState::HaveLocalPranswer => RTCSignalingState::Have_local_pranswer,
-            SignalingState::HaveRemotePranswer => RTCSignalingState::Have_remote_pranswer,
-            SignalingState::Closed => RTCSignalingState::Closed,
-        }
     }
 }

@@ -227,7 +227,7 @@ fn console_message(global: &GlobalScope, message: DOMString, level: LogLevel) {
     })
 }
 
-impl consoleMethods for Console {
+impl consoleMethods<crate::DomTypeHolder> for Console {
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/log
     fn Log(_cx: JSContext, global: &GlobalScope, messages: Vec<HandleValue>) {
         console_messages(global, messages, LogLevel::Log)

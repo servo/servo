@@ -190,7 +190,7 @@ impl Permissions {
 }
 
 #[allow(non_snake_case)]
-impl PermissionsMethods for Permissions {
+impl PermissionsMethods<crate::DomTypeHolder> for Permissions {
     // https://w3c.github.io/permissions/#dom-permissions-query
     fn Query(&self, cx: JSContext, permissionDesc: *mut JSObject, can_gc: CanGc) -> Rc<Promise> {
         self.manipulate(Operation::Query, cx, permissionDesc, None, can_gc)
@@ -371,25 +371,5 @@ fn prompt_user_from_embedder(prompt: PermissionPrompt, gs: &GlobalScope) -> Perm
             );
             PermissionState::Denied
         },
-    }
-}
-
-impl From<PermissionName> for embedder_traits::PermissionName {
-    fn from(permission_name: PermissionName) -> Self {
-        match permission_name {
-            PermissionName::Geolocation => embedder_traits::PermissionName::Geolocation,
-            PermissionName::Notifications => embedder_traits::PermissionName::Notifications,
-            PermissionName::Push => embedder_traits::PermissionName::Push,
-            PermissionName::Midi => embedder_traits::PermissionName::Midi,
-            PermissionName::Camera => embedder_traits::PermissionName::Camera,
-            PermissionName::Microphone => embedder_traits::PermissionName::Microphone,
-            PermissionName::Speaker => embedder_traits::PermissionName::Speaker,
-            PermissionName::Device_info => embedder_traits::PermissionName::DeviceInfo,
-            PermissionName::Background_sync => embedder_traits::PermissionName::BackgroundSync,
-            PermissionName::Bluetooth => embedder_traits::PermissionName::Bluetooth,
-            PermissionName::Persistent_storage => {
-                embedder_traits::PermissionName::PersistentStorage
-            },
-        }
     }
 }

@@ -60,7 +60,7 @@ impl StylePropertyMapReadOnly {
     }
 }
 
-impl StylePropertyMapReadOnlyMethods for StylePropertyMapReadOnly {
+impl StylePropertyMapReadOnlyMethods<crate::DomTypeHolder> for StylePropertyMapReadOnly {
     /// <https://drafts.css-houdini.org/css-typed-om-1/#dom-stylepropertymapreadonly-get>
     fn Get(&self, property: DOMString) -> Option<DomRoot<CSSStyleValue>> {
         // TODO: avoid constructing an Atom

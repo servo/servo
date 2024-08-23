@@ -48,7 +48,7 @@ impl DOMRectList {
     }
 }
 
-impl DOMRectListMethods for DOMRectList {
+impl DOMRectListMethods<crate::DomTypeHolder> for DOMRectList {
     /// <https://drafts.fxtf.org/geometry/#DOMRectList>
     fn Item(&self, index: u32) -> Option<DomRoot<DOMRect>> {
         self.rects.borrow().get(index as usize).map(Dom::as_rooted)

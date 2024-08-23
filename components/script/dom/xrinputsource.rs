@@ -120,7 +120,7 @@ impl XRInputSource {
     }
 }
 
-impl XRInputSourceMethods for XRInputSource {
+impl XRInputSourceMethods<crate::DomTypeHolder> for XRInputSource {
     /// <https://immersive-web.github.io/webxr/#dom-xrinputsource-handedness>
     fn Handedness(&self) -> XRHandedness {
         match self.info.handedness {

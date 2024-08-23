@@ -91,7 +91,7 @@ impl HashChangeEvent {
     }
 }
 
-impl HashChangeEventMethods for HashChangeEvent {
+impl HashChangeEventMethods<crate::DomTypeHolder> for HashChangeEvent {
     // https://html.spec.whatwg.org/multipage/#hashchangeevent
     fn Constructor(
         window: &Window,

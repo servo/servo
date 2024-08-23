@@ -23,6 +23,7 @@ use js::jsapi::{
 use js::jsval::UndefinedValue;
 use js::rust::wrappers::{JS_ReadStructuredClone, JS_WriteStructuredClone};
 use js::rust::{CustomAutoRooterGuard, HandleValue, MutableHandleValue};
+pub use script_bindings::structuredclone::StructuredCloneTags;
 use script_traits::serializable::BlobImpl;
 use script_traits::transferable::MessagePortImpl;
 use script_traits::StructuredSerializedData;
@@ -38,20 +39,6 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageport::MessagePort;
 use crate::realms::{enter_realm, AlreadyInRealm, InRealm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
-
-// TODO: Should we add Min and Max const to https://github.com/servo/rust-mozjs/blob/master/src/consts.rs?
-// TODO: Determine for sure which value Min and Max should have.
-// NOTE: Current values found at https://dxr.mozilla.org/mozilla-central/
-// rev/ff04d410e74b69acfab17ef7e73e7397602d5a68/js/public/StructuredClone.h#323
-#[repr(u32)]
-pub(super) enum StructuredCloneTags {
-    /// To support additional types, add new tags with values incremented from the last one before Max.
-    Min = 0xFFFF8000,
-    DomBlob = 0xFFFF8001,
-    MessagePort = 0xFFFF8002,
-    Principals = 0xFFFF8003,
-    Max = 0xFFFFFFFF,
-}
 
 unsafe fn read_blob(
     owner: &GlobalScope,

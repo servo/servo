@@ -81,7 +81,7 @@ impl XRReferenceSpaceEvent {
     }
 }
 
-impl XRReferenceSpaceEventMethods for XRReferenceSpaceEvent {
+impl XRReferenceSpaceEventMethods<crate::DomTypeHolder> for XRReferenceSpaceEvent {
     /// <https://www.w3.org/TR/webxr/#dom-xrreferencespaceevent-xrreferencespaceevent>
     fn Constructor(
         window: &Window,

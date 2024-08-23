@@ -38,7 +38,7 @@ impl WebGLActiveInfo {
     }
 }
 
-impl WebGLActiveInfoMethods for WebGLActiveInfo {
+impl WebGLActiveInfoMethods<crate::DomTypeHolder> for WebGLActiveInfo {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.11.1
     fn Size(&self) -> i32 {
         self.size

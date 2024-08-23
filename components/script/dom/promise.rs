@@ -213,7 +213,7 @@ impl Promise {
         let _ac = enter_realm(self);
         rooted!(in(*cx) let mut v = UndefinedValue());
         unsafe {
-            error.to_jsval(*cx, &self.global(), v.handle_mut());
+            error.to_jsval::<crate::DomTypeHolder>(*cx, &self.global(), v.handle_mut());
         }
         self.reject(cx, v.handle());
     }
@@ -261,7 +261,7 @@ impl Promise {
         _comp: InRealm,
         can_gc: CanGc,
     ) {
-        let _ais = AutoEntryScript::new(&handler.global());
+        let _ais = AutoEntryScript::<crate::DomTypeHolder>::new(&handler.global());
         let cx = GlobalScope::get_cx();
         rooted!(in(*cx) let resolve_func =
                 create_native_handler_function(*cx,

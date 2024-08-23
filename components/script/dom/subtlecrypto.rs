@@ -142,7 +142,7 @@ impl SubtleCrypto {
     }
 }
 
-impl SubtleCryptoMethods for SubtleCrypto {
+impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
     /// <https://w3c.github.io/webcrypto/#SubtleCrypto-method-encrypt>
     fn Encrypt(
         &self,
@@ -2309,7 +2309,11 @@ fn data_to_jwk_params(alg: &str, size: &str, key: &[u8]) -> (DOMString, DOMStrin
     (jwk_alg, DOMString::from(data))
 }
 
-impl KeyAlgorithm {
+trait KeyAlgorithmHelpers {
+    fn from_name(name: DOMString, out: MutableHandleObject, cx: JSContext);
+}
+
+impl KeyAlgorithmHelpers for KeyAlgorithm {
     /// Fill the object referenced by `out` with an [KeyAlgorithm]
     /// of the specified name and size.
     #[allow(unsafe_code)]
@@ -2322,7 +2326,16 @@ impl KeyAlgorithm {
     }
 }
 
-impl HmacKeyAlgorithm {
+trait HmacKeyAlgorithmHelpers {
+    fn from_length_and_hash(
+        length: u32,
+        hash: DigestAlgorithm,
+        out: MutableHandleObject,
+        cx: JSContext,
+    );
+}
+
+impl HmacKeyAlgorithmHelpers for HmacKeyAlgorithm {
     #[allow(unsafe_code)]
     fn from_length_and_hash(
         length: u32,
@@ -2344,7 +2357,11 @@ impl HmacKeyAlgorithm {
     }
 }
 
-impl AesKeyAlgorithm {
+trait AesKeyAlgorithmHelpers {
+    fn from_name_and_size(name: DOMString, size: u16, out: MutableHandleObject, cx: JSContext);
+}
+
+impl AesKeyAlgorithmHelpers for AesKeyAlgorithm {
     /// Fill the object referenced by `out` with an [AesKeyAlgorithm]
     /// of the specified name and size.
     #[allow(unsafe_code)]

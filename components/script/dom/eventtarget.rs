@@ -70,7 +70,7 @@ pub enum CommonEventHandler {
 }
 
 impl CommonEventHandler {
-    fn parent(&self) -> &CallbackFunction {
+    fn parent(&self) -> &CallbackFunction<crate::DomTypeHolder> {
         match *self {
             CommonEventHandler::EventHandler(ref handler) => &handler.parent,
             CommonEventHandler::ErrorEventHandler(ref handler) => &handler.parent,
@@ -607,7 +607,7 @@ impl EventTarget {
     }
 
     #[allow(unsafe_code)]
-    pub fn set_event_handler_common<T: CallbackContainer>(
+    pub fn set_event_handler_common<T: CallbackContainer<crate::DomTypeHolder>>(
         &self,
         ty: &str,
         listener: Option<Rc<T>>,
@@ -623,7 +623,11 @@ impl EventTarget {
     }
 
     #[allow(unsafe_code)]
-    pub fn set_error_event_handler<T: CallbackContainer>(&self, ty: &str, listener: Option<Rc<T>>) {
+    pub fn set_error_event_handler<T: CallbackContainer<crate::DomTypeHolder>>(
+        &self,
+        ty: &str,
+        listener: Option<Rc<T>>,
+    ) {
         let cx = GlobalScope::get_cx();
 
         let event_listener = listener.map(|listener| {
@@ -635,7 +639,7 @@ impl EventTarget {
     }
 
     #[allow(unsafe_code)]
-    pub fn set_beforeunload_event_handler<T: CallbackContainer>(
+    pub fn set_beforeunload_event_handler<T: CallbackContainer<crate::DomTypeHolder>>(
         &self,
         ty: &str,
         listener: Option<Rc<T>>,
@@ -651,7 +655,7 @@ impl EventTarget {
     }
 
     #[allow(unsafe_code)]
-    pub fn get_event_handler_common<T: CallbackContainer>(
+    pub fn get_event_handler_common<T: CallbackContainer<crate::DomTypeHolder>>(
         &self,
         ty: &str,
         can_gc: CanGc,
@@ -783,7 +787,7 @@ impl EventTarget {
     }
 }
 
-impl EventTargetMethods for EventTarget {
+impl EventTargetMethods<crate::DomTypeHolder> for EventTarget {
     // https://dom.spec.whatwg.org/#dom-eventtarget-eventtarget
     fn Constructor(
         global: &GlobalScope,
@@ -829,26 +833,5 @@ impl EventTargetMethods for EventTarget {
 impl VirtualMethods for EventTarget {
     fn super_type(&self) -> Option<&dyn VirtualMethods> {
         None
-    }
-}
-
-impl From<AddEventListenerOptionsOrBoolean> for AddEventListenerOptions {
-    fn from(options: AddEventListenerOptionsOrBoolean) -> Self {
-        match options {
-            AddEventListenerOptionsOrBoolean::AddEventListenerOptions(options) => options,
-            AddEventListenerOptionsOrBoolean::Boolean(capture) => Self {
-                parent: EventListenerOptions { capture },
-                once: false,
-            },
-        }
-    }
-}
-
-impl From<EventListenerOptionsOrBoolean> for EventListenerOptions {
-    fn from(options: EventListenerOptionsOrBoolean) -> Self {
-        match options {
-            EventListenerOptionsOrBoolean::EventListenerOptions(options) => options,
-            EventListenerOptionsOrBoolean::Boolean(capture) => Self { capture },
-        }
     }
 }

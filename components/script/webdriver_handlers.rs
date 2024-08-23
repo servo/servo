@@ -42,7 +42,7 @@ use crate::dom::bindings::conversions::{
 };
 use crate::dom::bindings::error::{throw_dom_exception, Error};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::DomObject;
+use crate::dom::bindings::reflector::{DomGlobal, DomObject};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::element::Element;
@@ -191,7 +191,7 @@ pub unsafe fn jsval_to_webdriver(
         });
         let _ac = JSAutoRealm::new(cx, *object);
 
-        if is_array_like(cx, val) {
+        if is_array_like::<crate::DomTypeHolder>(cx, val) {
             let mut result: Vec<WebDriverJSValue> = Vec::new();
 
             let length = match get_property::<u32>(
@@ -1022,14 +1022,15 @@ pub fn handle_get_property(
                         property.handle_mut(),
                     )
                 } {
-                    Ok(_) => match unsafe {
-                        jsval_to_webdriver(*cx, &node.reflector().global(), property.handle())
-                    } {
-                        Ok(property) => property,
-                        Err(_) => WebDriverJSValue::Undefined,
+                    Ok(_) => {
+                        match unsafe { jsval_to_webdriver(*cx, &node.global(), property.handle()) }
+                        {
+                            Ok(property) => property,
+                            Err(_) => WebDriverJSValue::Undefined,
+                        }
                     },
                     Err(error) => {
-                        throw_dom_exception(cx, &node.reflector().global(), error);
+                        throw_dom_exception(cx, &node.global(), error);
                         WebDriverJSValue::Undefined
                     },
                 }

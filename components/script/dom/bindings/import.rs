@@ -39,7 +39,7 @@ pub mod base {
     pub use crate::dom::bindings::trace::RootedTraceableBox;
     pub use crate::dom::bindings::utils::{get_dictionary_property, set_dictionary_property};
     pub use crate::dom::globalscope::GlobalScope;
-    pub use crate::script_runtime::JSContext as SafeJSContext;
+    pub use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 }
 
 #[allow(unused_imports)]
@@ -102,7 +102,6 @@ pub mod module {
     };
     pub use crate::dom::bindings::codegen::Bindings::EventTargetBinding::EventTarget_Binding;
     pub use crate::dom::bindings::codegen::{InterfaceObjectMap, PrototypeList, RegisterBindings};
-    pub use crate::dom::bindings::constant::{ConstantSpec, ConstantVal};
     pub use crate::dom::bindings::constructor::{
         call_default_constructor, call_html_constructor, pop_current_element_queue,
         push_new_element_queue,
@@ -112,10 +111,9 @@ pub mod module {
         IDLInterface, StringificationBehavior, ToJSValConvertible, DOM_OBJECT_SLOT,
     };
     pub use crate::dom::bindings::error::{throw_constructor_without_new, Error, ErrorResult};
-    pub use crate::dom::bindings::finalize::{
+    /*pub use crate::dom::bindings::finalize::{
         finalize_common, finalize_global, finalize_weak_referenceable,
-    };
-    pub use crate::dom::bindings::guard::{Condition, Guard};
+    };*/
     pub use crate::dom::bindings::inheritance::Castable;
     pub use crate::dom::bindings::interface::{
         create_callback_interface_object, create_global_object, create_interface_prototype_object,
@@ -126,7 +124,7 @@ pub mod module {
     };
     pub use crate::dom::bindings::iterable::{Iterable, IteratorType};
     pub use crate::dom::bindings::like::{Maplike, Setlike};
-    pub use crate::dom::bindings::namespace::{create_namespace_object, NamespaceObjectClass};
+    //pub use crate::dom::bindings::namespace::{create_namespace_object, NamespaceObjectClass};
     pub use crate::dom::bindings::proxyhandler;
     pub use crate::dom::bindings::proxyhandler::{
         ensure_expando_object, get_expando_object, set_property_descriptor,

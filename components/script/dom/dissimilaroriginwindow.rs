@@ -71,7 +71,9 @@ impl DissimilarOriginWindow {
             window_proxy: Dom::from_ref(window_proxy),
             location: Default::default(),
         });
-        unsafe { DissimilarOriginWindowBinding::Wrap(cx, win) }
+        unsafe {
+            DissimilarOriginWindowBinding::GenericBindings::Wrap::<crate::DomTypeHolder>(cx, win)
+        }
     }
 
     pub fn window_proxy(&self) -> DomRoot<WindowProxy> {
@@ -79,7 +81,7 @@ impl DissimilarOriginWindow {
     }
 }
 
-impl DissimilarOriginWindowMethods for DissimilarOriginWindow {
+impl DissimilarOriginWindowMethods<crate::DomTypeHolder> for DissimilarOriginWindow {
     // https://html.spec.whatwg.org/multipage/#dom-window
     fn Window(&self) -> DomRoot<WindowProxy> {
         self.window_proxy()

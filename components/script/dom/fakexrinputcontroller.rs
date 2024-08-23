@@ -61,7 +61,7 @@ impl FakeXRInputController {
     }
 }
 
-impl FakeXRInputControllerMethods for FakeXRInputController {
+impl FakeXRInputControllerMethods<crate::DomTypeHolder> for FakeXRInputController {
     /// <https://immersive-web.github.io/webxr-test-api/#dom-fakexrinputcontroller-setpointerorigin>
     fn SetPointerOrigin(&self, origin: &FakeXRRigidTransformInit, _emulated: bool) -> Fallible<()> {
         self.send_message(MockInputMsg::SetPointerOrigin(Some(get_origin(origin)?)));
@@ -162,18 +162,6 @@ impl FakeXRInputControllerMethods for FakeXRInputController {
         // to the constructor of XRInputSource
 
         Ok(())
-    }
-}
-
-impl From<FakeXRButtonType> for MockButtonType {
-    fn from(b: FakeXRButtonType) -> Self {
-        match b {
-            FakeXRButtonType::Grip => MockButtonType::Grip,
-            FakeXRButtonType::Touchpad => MockButtonType::Touchpad,
-            FakeXRButtonType::Thumbstick => MockButtonType::Thumbstick,
-            FakeXRButtonType::Optional_button => MockButtonType::OptionalButton,
-            FakeXRButtonType::Optional_thumbstick => MockButtonType::OptionalThumbstick,
-        }
     }
 }
 

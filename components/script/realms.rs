@@ -4,48 +4,32 @@
 
 use js::jsapi::{GetCurrentRealmOrNull, JSAutoRealm};
 
+//pub use script_bindings::realms::{AlreadyInRealm, InRealm};
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::JSContext;
 
 pub struct AlreadyInRealm(());
 
+impl<'a> From<&'a script_bindings::realms::AlreadyInRealm> for AlreadyInRealm {
+    fn from(_realm: &'a script_bindings::realms::AlreadyInRealm) -> Self {
+        Self(())
+    }
+}
+
 impl AlreadyInRealm {
     #![allow(unsafe_code)]
-    pub fn assert() -> AlreadyInRealm {
-        unsafe {
-            assert!(!GetCurrentRealmOrNull(*GlobalScope::get_cx()).is_null());
-        }
-        AlreadyInRealm(())
+    pub fn assert() -> script_bindings::realms::AlreadyInRealm {
+        script_bindings::realms::AlreadyInRealm::assert::<crate::DomTypeHolder>()
     }
 
-    pub fn assert_for_cx(cx: JSContext) -> AlreadyInRealm {
-        unsafe {
-            assert!(!GetCurrentRealmOrNull(*cx).is_null());
-        }
-        AlreadyInRealm(())
+    pub fn assert_for_cx(cx: JSContext) -> script_bindings::realms::AlreadyInRealm {
+        script_bindings::realms::AlreadyInRealm::assert_for_cx(cx)
     }
 }
 
-#[derive(Clone, Copy)]
-pub enum InRealm<'a> {
-    Already(&'a AlreadyInRealm),
-    Entered(&'a JSAutoRealm),
-}
-
-impl<'a> InRealm<'a> {
-    pub fn already(token: &AlreadyInRealm) -> InRealm {
-        InRealm::Already(token)
-    }
-
-    pub fn entered(token: &JSAutoRealm) -> InRealm {
-        InRealm::Entered(token)
-    }
-}
+pub use script_bindings::realms::InRealm;
 
 pub fn enter_realm(object: &impl DomObject) -> JSAutoRealm {
-    JSAutoRealm::new(
-        *GlobalScope::get_cx(),
-        object.reflector().get_jsobject().get(),
-    )
+    script_bindings::realms::enter_realm::<crate::DomTypeHolder>(object)
 }

@@ -31,10 +31,9 @@ pub struct Tokenizer {
     inner: HtmlTokenizer<PrefetchSink>,
 }
 
-#[allow(unsafe_code)]
-unsafe impl CustomTraceable for HtmlTokenizer<PrefetchSink> {
+unsafe impl script_bindings::trace::CustomTraceable for PrefetchSink {
     unsafe fn trace(&self, trc: *mut JSTracer) {
-        self.sink.trace(trc)
+        <Self as JSTraceable>::trace(self, trc)
     }
 }
 
@@ -83,6 +82,7 @@ struct PrefetchSink {
 }
 
 /// The prefetch tokenizer produces trivial results
+#[derive(JSTraceable, Clone, Copy)]
 struct PrefetchHandle;
 
 impl TokenSink for PrefetchSink {

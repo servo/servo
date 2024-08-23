@@ -23,7 +23,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::gpubuffer::GPUBuffer;
 use crate::dom::gpucommandbuffer::GPUCommandBuffer;
 use crate::dom::gpucomputepassencoder::GPUComputePassEncoder;
-use crate::dom::gpuconvert::{convert_load_op, convert_store_op};
+use crate::dom::gpuconvert::{convert_load_op, convert_store_op, convert_image_copy_buffer, convert_image_copy_texture};
 use crate::dom::gpudevice::GPUDevice;
 use crate::dom::gpurenderpassencoder::GPURenderPassEncoder;
 
@@ -110,7 +110,7 @@ impl GPUCommandEncoder {
     }
 }
 
-impl GPUCommandEncoderMethods for GPUCommandEncoder {
+impl GPUCommandEncoderMethods<crate::DomTypeHolder> for GPUCommandEncoder {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
     fn Label(&self) -> USVString {
         self.label.borrow().clone()
@@ -246,8 +246,8 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
             .0
             .send(WebGPURequest::CopyBufferToTexture {
                 command_encoder_id: self.encoder.0,
-                source: source.into(),
-                destination: destination.try_into()?,
+                source: convert_image_copy_buffer(source),
+                destination: convert_image_copy_texture(destination)?,
                 copy_size: (&copy_size).try_into()?,
             })
             .expect("Failed to send CopyBufferToTexture");
@@ -266,8 +266,8 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
             .0
             .send(WebGPURequest::CopyTextureToBuffer {
                 command_encoder_id: self.encoder.0,
-                source: source.try_into()?,
-                destination: destination.into(),
+                source: convert_image_copy_texture(source)?,
+                destination: convert_image_copy_buffer(destination),
                 copy_size: (&copy_size).try_into()?,
             })
             .expect("Failed to send CopyTextureToBuffer");
@@ -286,8 +286,8 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
             .0
             .send(WebGPURequest::CopyTextureToTexture {
                 command_encoder_id: self.encoder.0,
-                source: source.try_into()?,
-                destination: destination.try_into()?,
+                source: convert_image_copy_texture(source)?,
+                destination: convert_image_copy_texture(destination)?,
                 copy_size: (&copy_size).try_into()?,
             })
             .expect("Failed to send CopyTextureToTexture");

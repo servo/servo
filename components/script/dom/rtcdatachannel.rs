@@ -256,7 +256,7 @@ enum SendSource<'a, 'b> {
     ArrayBufferView(CustomAutoRooterGuard<'b, ArrayBufferView>),
 }
 
-impl RTCDataChannelMethods for RTCDataChannel {
+impl RTCDataChannelMethods<crate::DomTypeHolder> for RTCDataChannel {
     // https://www.w3.org/TR/webrtc/#dom-rtcdatachannel-onopen
     event_handler!(open, GetOnopen, SetOnopen);
     // https://www.w3.org/TR/webrtc/#dom-rtcdatachannel-onbufferedamountlow
@@ -361,32 +361,5 @@ impl RTCDataChannelMethods for RTCDataChannel {
     // https://www.w3.org/TR/webrtc/#dom-rtcdatachannel-send!overload-3
     fn Send___(&self, data: CustomAutoRooterGuard<ArrayBufferView>) -> Fallible<()> {
         self.send(&SendSource::ArrayBufferView(data))
-    }
-}
-
-impl From<&RTCDataChannelInit> for DataChannelInit {
-    fn from(init: &RTCDataChannelInit) -> DataChannelInit {
-        DataChannelInit {
-            label: String::new(),
-            id: init.id,
-            max_packet_life_time: init.maxPacketLifeTime,
-            max_retransmits: init.maxRetransmits,
-            negotiated: init.negotiated,
-            ordered: init.ordered,
-            protocol: init.protocol.to_string(),
-        }
-    }
-}
-
-impl From<DataChannelState> for RTCDataChannelState {
-    fn from(state: DataChannelState) -> RTCDataChannelState {
-        match state {
-            DataChannelState::Connecting | DataChannelState::__Unknown(_) => {
-                RTCDataChannelState::Connecting
-            },
-            DataChannelState::Open => RTCDataChannelState::Open,
-            DataChannelState::Closing => RTCDataChannelState::Closing,
-            DataChannelState::Closed => RTCDataChannelState::Closed,
-        }
     }
 }

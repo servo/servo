@@ -276,7 +276,7 @@ impl BaseAudioContext {
     }
 }
 
-impl BaseAudioContextMethods for BaseAudioContext {
+impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
     /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-samplerate>
     fn SampleRate(&self) -> Finite<f32> {
         Finite::wrap(self.sample_rate)
@@ -622,16 +622,6 @@ impl From<BaseAudioContextOptions> for AudioContextOptions {
             BaseAudioContextOptions::OfflineAudioContext(options) => {
                 AudioContextOptions::OfflineAudioContext(options)
             },
-        }
-    }
-}
-
-impl From<ProcessingState> for AudioContextState {
-    fn from(state: ProcessingState) -> Self {
-        match state {
-            ProcessingState::Suspended => AudioContextState::Suspended,
-            ProcessingState::Running => AudioContextState::Running,
-            ProcessingState::Closed => AudioContextState::Closed,
         }
     }
 }

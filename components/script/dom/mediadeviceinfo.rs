@@ -54,7 +54,7 @@ impl MediaDeviceInfo {
     }
 }
 
-impl MediaDeviceInfoMethods for MediaDeviceInfo {
+impl MediaDeviceInfoMethods<crate::DomTypeHolder> for MediaDeviceInfo {
     /// <https://w3c.github.io/mediacapture-main/#dom-mediadeviceinfo-deviceid>
     fn DeviceId(&self) -> DOMString {
         self.device_id.clone()
@@ -73,15 +73,5 @@ impl MediaDeviceInfoMethods for MediaDeviceInfo {
     /// <https://w3c.github.io/mediacapture-main/#dom-mediadeviceinfo-groupid>
     fn GroupId(&self) -> DOMString {
         self.group_id.clone()
-    }
-}
-
-impl From<ServoMediaDeviceKind> for MediaDeviceKind {
-    fn from(kind: ServoMediaDeviceKind) -> MediaDeviceKind {
-        match kind {
-            ServoMediaDeviceKind::AudioInput => MediaDeviceKind::Audioinput,
-            ServoMediaDeviceKind::AudioOutput => MediaDeviceKind::Audiooutput,
-            ServoMediaDeviceKind::VideoInput => MediaDeviceKind::Videoinput,
-        }
     }
 }

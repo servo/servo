@@ -124,7 +124,7 @@ impl XRRenderState {
     }
 }
 
-impl XRRenderStateMethods for XRRenderState {
+impl XRRenderStateMethods<crate::DomTypeHolder> for XRRenderState {
     /// <https://immersive-web.github.io/webxr/#dom-xrrenderstate-depthnear>
     fn DepthNear(&self) -> Finite<f64> {
         Finite::wrap(self.depth_near.get())

@@ -93,7 +93,7 @@ impl HTMLButtonElement {
     }
 }
 
-impl HTMLButtonElementMethods for HTMLButtonElement {
+impl HTMLButtonElementMethods<crate::DomTypeHolder> for HTMLButtonElement {
     // https://html.spec.whatwg.org/multipage/#dom-fe-disabled
     make_bool_getter!(Disabled, "disabled");
 

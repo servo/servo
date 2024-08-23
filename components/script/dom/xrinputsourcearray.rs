@@ -136,7 +136,7 @@ impl XRInputSourceArray {
     }
 }
 
-impl XRInputSourceArrayMethods for XRInputSourceArray {
+impl XRInputSourceArrayMethods<crate::DomTypeHolder> for XRInputSourceArray {
     /// <https://immersive-web.github.io/webxr/#dom-xrinputsourcearray-length>
     fn Length(&self) -> u32 {
         self.input_sources.borrow().len() as u32

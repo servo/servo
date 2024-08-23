@@ -59,25 +59,3 @@ impl Tokenizer {
         &self.inner.sink.sink.base_url
     }
 }
-
-#[allow(unsafe_code)]
-unsafe impl CustomTraceable for XmlTokenizer<XmlTreeBuilder<Dom<Node>, Sink>> {
-    unsafe fn trace(&self, trc: *mut JSTracer) {
-        struct Tracer(*mut JSTracer);
-        let tracer = Tracer(trc);
-
-        impl XmlTracer for Tracer {
-            type Handle = Dom<Node>;
-            #[allow(crown::unrooted_must_root)]
-            fn trace_handle(&self, node: &Dom<Node>) {
-                unsafe {
-                    node.trace(self.0);
-                }
-            }
-        }
-
-        let tree_builder = &self.sink;
-        tree_builder.trace_handles(&tracer);
-        tree_builder.sink.trace(trc);
-    }
-}

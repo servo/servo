@@ -30,6 +30,7 @@ pub struct File {
     modified: SystemTime,
 }
 
+#[allow(non_snake_case)]
 impl File {
     #[allow(crown::unrooted_must_root)]
     fn new_inherited(blob_impl: &BlobImpl, name: DOMString, modified: Option<SystemTime>) -> File {
@@ -102,7 +103,7 @@ impl File {
     }
 }
 
-impl FileMethods for File {
+impl FileMethods<crate::DomTypeHolder> for File {
     // https://w3c.github.io/FileAPI/#file-constructor
     #[allow(non_snake_case)]
     fn Constructor(

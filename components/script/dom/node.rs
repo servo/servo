@@ -68,7 +68,7 @@ use crate::dom::bindings::inheritance::{
     SVGElementTypeId, SVGGraphicsElementTypeId, TextTypeId,
 };
 use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, DomObjectWrap};
-use crate::dom::bindings::root::{Dom, DomRoot, DomSlice, LayoutDom, MutNullableDom};
+use crate::dom::bindings::root::{Dom, DomRoot, DomSlice, LayoutDom, MutNullableDom, ToLayout};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::xmlname::namespace_from_domstring;
 use crate::dom::characterdata::{CharacterData, LayoutCharacterDataHelpers};
@@ -77,7 +77,7 @@ use crate::dom::customelementregistry::{try_upgrade_element, CallbackReaction};
 use crate::dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLDocument};
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::documenttype::DocumentType;
-use crate::dom::element::{CustomElementCreationMode, Element, ElementCreator};
+use crate::dom::element::{CustomElementCreationMode, Element, ElementCreator, SelectorWrapper};
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::htmlbodyelement::HTMLBodyElement;
@@ -486,7 +486,11 @@ impl Iterator for QuerySelectorIterator {
                     MatchingForInvalidation::No,
                 );
                 if let Some(element) = DomRoot::downcast(node) {
-                    if matches_selector_list(selectors, &element, &mut ctx) {
+                    if matches_selector_list(
+                        selectors,
+                        &SelectorWrapper::Borrowed(&element),
+                        &mut ctx,
+                    ) {
                         return Some(DomRoot::upcast(element));
                     }
                 }
@@ -994,7 +998,13 @@ impl Node {
                 assert!(&*descendants.next().unwrap() == self);
                 Ok(descendants
                     .filter_map(DomRoot::downcast)
-                    .find(|element| matches_selector_list(&selectors, element, &mut ctx)))
+                    .find(|element| {
+                        matches_selector_list(
+                            &selectors,
+                            &SelectorWrapper::Borrowed(element),
+                            &mut ctx,
+                        )
+                    }))
             },
         }
     }
@@ -1775,7 +1785,7 @@ fn as_uintptr<T>(t: &T) -> uintptr_t {
 impl Node {
     pub fn reflect_node<N>(node: Box<N>, document: &Document, can_gc: CanGc) -> DomRoot<N>
     where
-        N: DerivedFrom<Node> + DomObject + DomObjectWrap,
+        N: DerivedFrom<Node> + DomObject + DomObjectWrap<crate::DomTypeHolder>,
     {
         Self::reflect_node_with_proto(node, document, None, can_gc)
     }
@@ -1787,7 +1797,7 @@ impl Node {
         can_gc: CanGc,
     ) -> DomRoot<N>
     where
-        N: DerivedFrom<Node> + DomObject + DomObjectWrap,
+        N: DerivedFrom<Node> + DomObject + DomObjectWrap<crate::DomTypeHolder>,
     {
         let window = document.window();
         reflect_dom_object_with_proto(node, window, proto, can_gc)
@@ -2451,7 +2461,7 @@ impl Node {
     }
 }
 
-impl NodeMethods for Node {
+impl NodeMethods<crate::DomTypeHolder> for Node {
     /// <https://dom.spec.whatwg.org/#dom-node-nodetype>
     fn NodeType(&self) -> u16 {
         match self.type_id() {
@@ -3475,89 +3485,6 @@ impl UniqueId {
                 *ptr = Some(Box::new(Uuid::new_v4()));
             }
             (*ptr).as_ref().unwrap()
-        }
-    }
-}
-
-impl From<NodeTypeId> for LayoutNodeType {
-    #[inline(always)]
-    fn from(node_type: NodeTypeId) -> LayoutNodeType {
-        match node_type {
-            NodeTypeId::Element(e) => LayoutNodeType::Element(e.into()),
-            NodeTypeId::CharacterData(CharacterDataTypeId::Text(_)) => LayoutNodeType::Text,
-            x => unreachable!("Layout should not traverse nodes of type {:?}", x),
-        }
-    }
-}
-
-impl From<ElementTypeId> for LayoutElementType {
-    #[inline(always)]
-    fn from(element_type: ElementTypeId) -> LayoutElementType {
-        match element_type {
-            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLBodyElement) => {
-                LayoutElementType::HTMLBodyElement
-            },
-            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLBRElement) => {
-                LayoutElementType::HTMLBRElement
-            },
-            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLCanvasElement) => {
-                LayoutElementType::HTMLCanvasElement
-            },
-            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLHtmlElement) => {
-                LayoutElementType::HTMLHtmlElement
-            },
-            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLIFrameElement) => {
-                LayoutElementType::HTMLIFrameElement
-            },
-            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLImageElement) => {
-                LayoutElementType::HTMLImageElement
-            },
-            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLMediaElement(_)) => {
-                LayoutElementType::HTMLMediaElement
-            },
-            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement) => {
-                LayoutElementType::HTMLInputElement
-            },
-            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLOptGroupElement) => {
-                LayoutElementType::HTMLOptGroupElement
-            },
-            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLOptionElement) => {
-                LayoutElementType::HTMLOptionElement
-            },
-            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLObjectElement) => {
-                LayoutElementType::HTMLObjectElement
-            },
-            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLParagraphElement) => {
-                LayoutElementType::HTMLParagraphElement
-            },
-            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLPreElement) => {
-                LayoutElementType::HTMLPreElement
-            },
-            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLSelectElement) => {
-                LayoutElementType::HTMLSelectElement
-            },
-            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableCellElement) => {
-                LayoutElementType::HTMLTableCellElement
-            },
-            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableColElement) => {
-                LayoutElementType::HTMLTableColElement
-            },
-            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableElement) => {
-                LayoutElementType::HTMLTableElement
-            },
-            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableRowElement) => {
-                LayoutElementType::HTMLTableRowElement
-            },
-            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableSectionElement) => {
-                LayoutElementType::HTMLTableSectionElement
-            },
-            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTextAreaElement) => {
-                LayoutElementType::HTMLTextAreaElement
-            },
-            ElementTypeId::SVGElement(SVGElementTypeId::SVGGraphicsElement(
-                SVGGraphicsElementTypeId::SVGSVGElement,
-            )) => LayoutElementType::SVGSVGElement,
-            _ => LayoutElementType::Element,
         }
     }
 }

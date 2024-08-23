@@ -160,7 +160,7 @@ impl VirtualMethods for HTMLAnchorElement {
     }
 }
 
-impl HTMLAnchorElementMethods for HTMLAnchorElement {
+impl HTMLAnchorElementMethods<crate::DomTypeHolder> for HTMLAnchorElement {
     // https://html.spec.whatwg.org/multipage/#dom-a-text
     fn Text(&self) -> DOMString {
         self.upcast::<Node>().GetTextContent().unwrap()

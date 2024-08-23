@@ -72,9 +72,7 @@ impl GPURenderBundleEncoder {
             global,
         )
     }
-}
 
-impl GPURenderBundleEncoder {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createrenderbundleencoder>
     pub fn create(
         device: &GPUDevice,
@@ -124,7 +122,7 @@ impl GPURenderBundleEncoder {
     }
 }
 
-impl GPURenderBundleEncoderMethods for GPURenderBundleEncoder {
+impl GPURenderBundleEncoderMethods<crate::DomTypeHolder> for GPURenderBundleEncoder {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
     fn Label(&self) -> USVString {
         self.label.borrow().clone()

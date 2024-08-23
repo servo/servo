@@ -81,7 +81,7 @@ impl MediaElementAudioSourceNode {
     }
 }
 
-impl MediaElementAudioSourceNodeMethods for MediaElementAudioSourceNode {
+impl MediaElementAudioSourceNodeMethods<crate::DomTypeHolder> for MediaElementAudioSourceNode {
     /// <https://webaudio.github.io/web-audio-api/#dom-mediaelementaudiosourcenode-mediaelementaudiosourcenode>
     fn Constructor(
         window: &Window,

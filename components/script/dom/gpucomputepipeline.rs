@@ -17,6 +17,7 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::gpubindgrouplayout::GPUBindGroupLayout;
+use crate::dom::gpuconvert::convert_programmable_stage;
 use crate::dom::gpudevice::GPUDevice;
 
 #[dom_struct]
@@ -81,7 +82,7 @@ impl GPUComputePipeline {
         let desc = ComputePipelineDescriptor {
             label: (&descriptor.parent.parent).into(),
             layout: pipeline_layout.explicit(),
-            stage: (&descriptor.compute).into(),
+            stage: convert_programmable_stage(&descriptor.compute),
             cache: None,
         };
 
@@ -101,7 +102,7 @@ impl GPUComputePipeline {
     }
 }
 
-impl GPUComputePipelineMethods for GPUComputePipeline {
+impl GPUComputePipelineMethods<crate::DomTypeHolder> for GPUComputePipeline {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
     fn Label(&self) -> USVString {
         self.label.borrow().clone()

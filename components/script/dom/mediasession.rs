@@ -124,7 +124,7 @@ impl MediaSession {
     }
 }
 
-impl MediaSessionMethods for MediaSession {
+impl MediaSessionMethods<crate::DomTypeHolder> for MediaSession {
     /// <https://w3c.github.io/mediasession/#dom-mediasession-metadata>
     fn GetMetadata(&self, can_gc: CanGc) -> Option<DomRoot<MediaMetadata>> {
         if let Some(ref metadata) = *self.metadata.borrow() {
@@ -246,21 +246,5 @@ impl MediaSessionMethods for MediaSession {
         }
 
         Ok(())
-    }
-}
-
-impl From<MediaSessionAction> for MediaSessionActionType {
-    fn from(action: MediaSessionAction) -> MediaSessionActionType {
-        match action {
-            MediaSessionAction::Play => MediaSessionActionType::Play,
-            MediaSessionAction::Pause => MediaSessionActionType::Pause,
-            MediaSessionAction::Seekbackward => MediaSessionActionType::SeekBackward,
-            MediaSessionAction::Seekforward => MediaSessionActionType::SeekForward,
-            MediaSessionAction::Previoustrack => MediaSessionActionType::PreviousTrack,
-            MediaSessionAction::Nexttrack => MediaSessionActionType::NextTrack,
-            MediaSessionAction::Skipad => MediaSessionActionType::SkipAd,
-            MediaSessionAction::Stop => MediaSessionActionType::Stop,
-            MediaSessionAction::Seekto => MediaSessionActionType::SeekTo,
-        }
     }
 }

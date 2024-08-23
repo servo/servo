@@ -43,7 +43,7 @@ impl FileList {
     }
 }
 
-impl FileListMethods for FileList {
+impl FileListMethods<crate::DomTypeHolder> for FileList {
     // https://w3c.github.io/FileAPI/#dfn-length
     fn Length(&self) -> u32 {
         self.list.len() as u32

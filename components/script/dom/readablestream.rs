@@ -26,7 +26,7 @@ use js::rust::{HandleValue as SafeHandleValue, IntoHandle};
 
 use crate::dom::bindings::conversions::{ConversionBehavior, ConversionResult};
 use crate::dom::bindings::error::Error;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector, /*, DomGlobal2*/};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::settings_stack::{AutoEntryScript, AutoIncumbentScript};
 use crate::dom::bindings::utils::get_dictionary_property;
@@ -122,7 +122,7 @@ impl ReadableStream {
         source: ExternalUnderlyingSource,
     ) -> DomRoot<ReadableStream> {
         let _ar = enter_realm(global);
-        let _ais = AutoIncumbentScript::new(global);
+        let _ais = AutoIncumbentScript::<crate::DomTypeHolder>::new(global);
         let cx = GlobalScope::get_cx();
 
         let source = Rc::new(ExternalUnderlyingSourceController::new(source));
@@ -178,7 +178,7 @@ impl ReadableStream {
 
         unsafe {
             rooted!(in(*cx) let mut js_error = UndefinedValue());
-            error.to_jsval(*cx, &global, js_error.handle_mut());
+            error.to_jsval::<crate::DomTypeHolder>(*cx, &global, js_error.handle_mut());
             ReadableStreamError(
                 *cx,
                 self.js_stream.handle(),
@@ -254,7 +254,7 @@ impl ReadableStream {
 
         let global = self.global();
         let _ar = enter_realm(&*global);
-        let _aes = AutoEntryScript::new(&global);
+        let _aes = AutoEntryScript::<crate::DomTypeHolder>::new(&global);
 
         let cx = GlobalScope::get_cx();
 

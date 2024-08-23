@@ -25,7 +25,6 @@ pub struct DOMPointReadOnly {
     w: Cell<f64>,
 }
 
-#[allow(non_snake_case)]
 impl DOMPointReadOnly {
     pub fn new_inherited(x: f64, y: f64, z: f64, w: f64) -> DOMPointReadOnly {
         DOMPointReadOnly {
@@ -67,7 +66,7 @@ impl DOMPointReadOnly {
 }
 
 #[allow(non_snake_case)]
-impl DOMPointReadOnlyMethods for DOMPointReadOnly {
+impl DOMPointReadOnlyMethods<crate::DomTypeHolder> for DOMPointReadOnly {
     // https://drafts.fxtf.org/geometry/#dom-dompoint-dompoint
     fn Constructor(
         global: &GlobalScope,

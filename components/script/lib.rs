@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #![feature(register_tool)]
-#![deny(unsafe_code)]
+//#![deny(unsafe_code)]
 #![doc = "The script crate contains all matters DOM."]
 // Register the linter `crown`, which is the Servo-specific linter for the script
 // crate. Issue a warning if `crown` is not being used to compile, but not when
@@ -11,6 +11,8 @@
 #![register_tool(crown)]
 #![cfg_attr(any(doc, clippy), allow(unknown_lints))]
 #![deny(crown_is_not_used)]
+#![allow(unused_imports)]
+#![allow(unused_variables)]
 
 // These are used a lot so let's keep them for now
 #[macro_use]
@@ -104,6 +106,7 @@ pub use script_runtime::JSEngineSetup;
 // These trait exports are public, because they are used in the DOM bindings.
 // Since they are used in derive macros,
 // it is useful that they are accessible at the root of the crate.
+pub use crate::dom::bindings::codegen::DomTypeHolder::DomTypeHolder;
 pub use crate::dom::bindings::inheritance::HasParent;
 pub use crate::dom::bindings::reflector::{DomObject, MutDomObject, Reflector};
 pub use crate::dom::bindings::trace::{CustomTraceable, JSTraceable};

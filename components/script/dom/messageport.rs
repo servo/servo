@@ -269,7 +269,7 @@ impl Transferable for MessagePort {
     }
 }
 
-impl MessagePortMethods for MessagePort {
+impl MessagePortMethods<crate::DomTypeHolder> for MessagePort {
     /// <https://html.spec.whatwg.org/multipage/#dom-messageport-postmessage>
     fn PostMessage(
         &self,
