@@ -318,7 +318,7 @@ impl Tokenizer {
                     let script = self.get_node(&script.id);
                     return TokenizerResult::Script(DomRoot::from_ref(script.downcast().unwrap()));
                 },
-                ToTokenizerMsg::End => return TokenizerResult::Done,
+                _ => unreachable!(),
             };
         }
     }
@@ -334,7 +334,12 @@ impl Tokenizer {
                 .expect("Unexpected channel panic in main thread.")
             {
                 ToTokenizerMsg::ProcessOperation(parse_op) => self.process_operation(parse_op),
-                _ => return,
+                ToTokenizerMsg::TokenizerResultDone { updated_input: _ } |
+                ToTokenizerMsg::TokenizerResultScript {
+                    script: _,
+                    updated_input: _,
+                } => continue,
+                ToTokenizerMsg::End => return,
             };
         }
     }
