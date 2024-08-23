@@ -22,7 +22,7 @@ pub fn register_user_prefs(opts_matches: &Matches) {
         .filter(|path| path.exists());
 
     let mut userprefs = if let Some(path) = user_prefs_path {
-        read_prefs_file(path)
+        read_prefs_file(path.to_str().expect("Failed to read user prefs"))
     } else {
         HashMap::new()
     };
