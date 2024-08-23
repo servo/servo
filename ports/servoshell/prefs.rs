@@ -79,6 +79,7 @@ fn read_prefs_file(path: &str) -> HashMap<String, PrefValue> {
 fn test_parse_pref(arg: &str) {
     let mut opts = getopts::Options::new();
     opts.optmulti("", "pref", "", "");
+    opts.optmulti("", "prefs-file", "", "");
     let args = vec!["servo".to_string(), "--pref".to_string(), arg.to_string()];
     let matches = match opts::from_cmdline_args(opts, &args) {
         opts::ArgumentParsingResult::ContentProcess(m, _) => m,
