@@ -545,20 +545,27 @@ impl Shaper {
                 let character = text[byte_range.clone()].chars().next().unwrap();
                 if is_bidi_control(character) {
                     // Don't add any glyphs for bidi control chars
-                } else if character == '\t' {
-                    // Treat tabs in pre-formatted text as a fixed number of spaces.
-                    //
-                    // TODO: Proper tab stops.
-                    const TAB_COLS: i32 = 8;
-                    let (space_glyph_id, space_advance) = glyph_space_advance(self.font);
-                    let advance = Au::from_f64_px(space_advance) * TAB_COLS;
-                    let data =
-                        GlyphData::new(space_glyph_id, advance, Default::default(), true, true);
-                    glyphs.add_glyph_for_byte_index(byte_idx, character, &data);
                 } else {
-                    let shape = glyph_data.entry_for_glyph(glyph_span.start, &mut y_pos);
-                    let advance = self.advance_for_shaped_glyph(shape.advance, character, options);
-                    let data = GlyphData::new(shape.codepoint, advance, shape.offset, true, true);
+                    let (glyph_id, advance, offset) = if character == '\t' {
+                        // Treat tabs in pre-formatted text as a fixed number of spaces. The glyph id does
+                        // not matter here as Servo doesn't render any glyphs for whitespace.
+                        //
+                        // TODO: Proper tab stops. This should happen in layout and be based on the
+                        // size of the space character of the inline formatting context.
+                        let font = unsafe { &(*self.font) };
+                        (
+                            font.glyph_index(' ').unwrap_or(0) as hb_codepoint_t,
+                            font.metrics.space_advance * 8,
+                            Default::default(),
+                        )
+                    } else {
+                        let shape = glyph_data.entry_for_glyph(glyph_span.start, &mut y_pos);
+                        let advance =
+                            self.advance_for_shaped_glyph(shape.advance, character, options);
+                        (shape.codepoint, advance, shape.offset)
+                    };
+
+                    let data = GlyphData::new(glyph_id, advance, offset, true, true);
                     glyphs.add_glyph_for_byte_index(byte_idx, character, &data);
                 }
             } else {
@@ -706,16 +713,6 @@ extern "C" fn glyph_h_advance_func(
         let advance = (*font).glyph_h_advance(glyph as GlyphId);
         Shaper::float_to_fixed(advance)
     }
-}
-
-fn glyph_space_advance(font: *const Font) -> (hb_codepoint_t, f64) {
-    let space_unicode = ' ';
-    let space_glyph: hb_codepoint_t = match unsafe { (*font).glyph_index(space_unicode) } {
-        Some(g) => g as hb_codepoint_t,
-        None => panic!("No space info"),
-    };
-    let space_advance = unsafe { (*font).glyph_h_advance(space_glyph as GlyphId) };
-    (space_glyph, space_advance)
 }
 
 // Callback to get a font table out of a font.
