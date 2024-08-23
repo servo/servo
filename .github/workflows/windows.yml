@@ -166,7 +166,11 @@ jobs:
       - if: ${{ fromJSON(needs.runner-select.outputs.is-self-hosted) && github.event_name == 'pull_request_target' }}
         run: git fetch --depth=2 origin refs/pull/${{ github.event_number }}/head
       - if: ${{ fromJSON(needs.runner-select.outputs.is-self-hosted) }}
-        run: git switch --detach FETCH_HEAD
+        # Same as `git switch --detach FETCH_HEAD`, but fixes up dirty working
+        # trees, in case the runner image was baked with a dirty working tree.
+        run: |
+          git switch --detach
+          git reset --hard FETCH_HEAD
 
       - name: ccache
         # FIXME: “Error: Restoring cache failed: Error: Unable to locate executable file: sh.”
