@@ -39,7 +39,7 @@ jobs:
     secrets: inherit
 
   lint:
-    name: Lint & Tidy
+    name: Lint
     uses: ./.github/workflows/lint.yml
     secrets: inherit
 

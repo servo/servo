@@ -1,4 +1,4 @@
-name: Lint & Tidy
+name: Lint
 on:
   workflow_call:
   workflow_dispatch:
@@ -13,7 +13,7 @@ env:
 
 jobs:
   lint:
-    name: Lint & Tidy
+    name: Lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

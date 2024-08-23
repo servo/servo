@@ -106,7 +106,7 @@ def handle_preset(s: str) -> Optional[JobConfig]:
                          profile="production",  # WebGPU works to slow with debug assert
                          unit_tests=False)  # production profile does not work with unit-tests
     elif s in ["lint", "tidy"]:
-        return JobConfig("Lint & Tidy", Workflow.LINT)
+        return JobConfig("Lint", Workflow.LINT)
     else:
         return None
 
@@ -227,7 +227,7 @@ class TestParser(unittest.TestCase):
                                   "wpt_args": ""
                               },
                               {
-                                  "name": "Lint & Tidy",
+                                  "name": "Lint",
                                   "workflow": "lint",
                                   "wpt_layout": "none",
                                   "profile": "release",
