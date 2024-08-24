@@ -96,3 +96,7 @@ mod window_named_properties;
 
 pub use init::init;
 pub use script_runtime::JSEngineSetup;
+
+// pub exports for derive macros
+pub use crate::dom::bindings::trace::JSTraceable;
+pub use crate::dom::bindings::trace::CustomTraceable;
