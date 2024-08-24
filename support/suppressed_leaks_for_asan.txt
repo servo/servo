@@ -5,3 +5,7 @@ leak:style::bloom::BLOOM_KEY::__init
 
 # std::sync::LazyLock never frees memory because it never runs destructors, see https://doc.rust-lang.org/std/sync/struct.LazyLock.html#examples
 leak:std::sync::LazyLock
+
+# lazy_static never frees memory because it never runs destructors, see https://docs.rs/lazy_static/1.4.0/lazy_static/index.html#semantics
+# Needed because transitive dependency are still using it
+leak:lazy_static::lazy::Lazy*::get
