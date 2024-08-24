@@ -334,6 +334,8 @@ where
                 clear_color[2] as f32,
                 clear_color[3] as f32,
             );
+            // Use same texture upload method as Gecko with ANGLE:
+            // https://searchfox.org/mozilla-central/source/gfx/webrender_bindings/src/bindings.rs#1215-1219
             let upload_method = if webrender_gl.get_string(RENDERER).starts_with("ANGLE") {
                 UploadMethod::Immediate
             } else {
