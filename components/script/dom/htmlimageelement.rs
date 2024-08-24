@@ -34,13 +34,10 @@ use num_traits::ToPrimitive;
 use pixels::{CorsStatus, Image, ImageMetadata};
 use servo_url::origin::{ImmutableOrigin, MutableOrigin};
 use servo_url::ServoUrl;
-use style::attr::{
-    parse_double, parse_length, parse_unsigned_integer, AttrValue, LengthOrPercentageOrAuto,
-};
+use style::attr::{parse_integer, parse_length, AttrValue, LengthOrPercentageOrAuto};
 use style::context::QuirksMode;
 use style::media_queries::MediaList;
 use style::parser::ParserContext;
-use style::str::is_ascii_digit;
 use style::stylesheets::{CssRuleType, Origin, UrlExtraData};
 use style::values::specified::length::{Length, NoCalcLength};
 use style::values::specified::source_size_list::SourceSizeList;
@@ -100,6 +97,7 @@ use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 use crate::task_source::TaskSource;
 
+#[derive(Clone, Copy, Debug)]
 enum ParseState {
     InDescriptor,
     InParens,
@@ -128,8 +126,8 @@ pub struct ImageSource {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Descriptor {
-    pub wid: Option<u32>,
-    pub den: Option<f64>,
+    pub width: Option<u32>,
+    pub density: Option<f64>,
 }
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf)]
@@ -599,17 +597,17 @@ impl HTMLImageElement {
                 let no_density_source_of_1 = source_set
                     .image_sources
                     .iter()
-                    .all(|source| source.descriptor.den != Some(1.));
+                    .all(|source| source.descriptor.density != Some(1.));
                 let no_width_descriptor = source_set
                     .image_sources
                     .iter()
-                    .all(|source| source.descriptor.wid.is_none());
+                    .all(|source| source.descriptor.width.is_none());
                 if !is_src_empty && no_density_source_of_1 && no_width_descriptor {
                     source_set.image_sources.push(ImageSource {
                         url: src_attribute.to_string(),
                         descriptor: Descriptor {
-                            wid: None,
-                            den: None,
+                            width: None,
+                            density: None,
                         },
                     })
                 }
@@ -726,16 +724,16 @@ impl HTMLImageElement {
         // Step 2
         for imgsource in &mut source_set.image_sources {
             // Step 2.1
-            if imgsource.descriptor.den.is_some() {
+            if imgsource.descriptor.density.is_some() {
                 continue;
             }
             // Step 2.2
-            if imgsource.descriptor.wid.is_some() {
-                let wid = imgsource.descriptor.wid.unwrap();
-                imgsource.descriptor.den = Some(wid as f64 / source_size_length.to_f64_px());
+            if imgsource.descriptor.width.is_some() {
+                let wid = imgsource.descriptor.width.unwrap();
+                imgsource.descriptor.density = Some(wid as f64 / source_size_length.to_f64_px());
             } else {
                 //Step 2.3
-                imgsource.descriptor.den = Some(1_f64);
+                imgsource.descriptor.density = Some(1_f64);
             }
         }
     }
@@ -759,10 +757,10 @@ impl HTMLImageElement {
                 continue;
             }
             let imgsource = &source_set.image_sources[outer_index];
-            let pixel_density = imgsource.descriptor.den.unwrap();
+            let pixel_density = imgsource.descriptor.density.unwrap();
             for inner_index in (outer_index + 1)..len {
                 let imgsource2 = &source_set.image_sources[inner_index];
-                if pixel_density == imgsource2.descriptor.den.unwrap() {
+                if pixel_density == imgsource2.descriptor.density.unwrap() {
                     repeat_indices.insert(inner_index);
                 }
             }
@@ -774,7 +772,7 @@ impl HTMLImageElement {
             if repeat_indices.contains(&index) {
                 continue;
             }
-            let den = image_source.descriptor.den.unwrap();
+            let den = image_source.descriptor.density.unwrap();
             if max.0 < den {
                 max = (den, img_sources.len());
             }
@@ -789,7 +787,7 @@ impl HTMLImageElement {
             .device_pixel_ratio
             .get() as f64;
         for (index, image_source) in img_sources.iter().enumerate() {
-            let current_den = image_source.descriptor.den.unwrap();
+            let current_den = image_source.descriptor.density.unwrap();
             if current_den < best_candidate.0 && current_den >= device_pixel_ratio {
                 best_candidate = (current_den, index);
             }
@@ -797,7 +795,7 @@ impl HTMLImageElement {
         let selected_source = img_sources.remove(best_candidate.1).clone();
         Some((
             USVString(selected_source.url),
-            selected_source.descriptor.den.unwrap(),
+            selected_source.descriptor.density.unwrap(),
         ))
     }
 
@@ -1889,177 +1887,273 @@ fn image_dimension_setter(element: &Element, attr: LocalName, value: u32) {
 }
 
 /// Collect sequence of code points
-pub fn collect_sequence_characters<F>(s: &str, predicate: F) -> (&str, &str)
-where
-    F: Fn(&char) -> bool,
-{
-    for (i, ch) in s.chars().enumerate() {
-        if !predicate(&ch) {
-            return (&s[0..i], &s[i..]);
-        }
-    }
-
-    (s, "")
+pub fn collect_sequence_characters(
+    s: &str,
+    mut predicate: impl FnMut(&char) -> bool,
+) -> (&str, &str) {
+    let i = s.find(|ch| !predicate(&ch)).unwrap_or(s.len());
+    (&s[0..i], &s[i..])
 }
 
 /// Parse an `srcset` attribute:
 /// <https://html.spec.whatwg.org/multipage/#parsing-a-srcset-attribute>.
 pub fn parse_a_srcset_attribute(input: &str) -> Vec<ImageSource> {
-    let mut url_len = 0;
-    let mut candidates: Vec<ImageSource> = vec![];
-    while url_len < input.len() {
-        let position = &input[url_len..];
-        let (spaces, position) =
-            collect_sequence_characters(position, |c| *c == ',' || char::is_whitespace(*c));
-        // add the length of the url that we parse to advance the start index
-        let space_len = spaces.char_indices().count();
-        url_len += space_len;
-        if position.is_empty() {
+    // > 1. Let input be the value passed to this algorithm.
+    // > 2. Let position be a pointer into input, initially pointing at the start of the string.
+    let mut current_index = 0;
+
+    // > 3. Let candidates be an initially empty source set.
+    let mut candidates = vec![];
+    while current_index < input.len() {
+        let remaining_string = &input[current_index..];
+
+        // > 4. Splitting loop: Collect a sequence of code points that are ASCII whitespace or
+        // > U+002C COMMA characters from input given position. If any U+002C COMMA
+        // > characters were collected, that is a parse error.
+        let mut collected_comma = false;
+        let (collected_characters, string_after_whitespace) =
+            collect_sequence_characters(remaining_string, |character| {
+                if *character == ',' {
+                    collected_comma = true;
+                }
+                *character == ',' || character.is_ascii_whitespace()
+            });
+        if collected_comma {
+            return Vec::new();
+        }
+
+        // Add the length of collected whitespace, to find the start of the URL we are going
+        // to parse.
+        current_index += collected_characters.len();
+
+        // > 5. If position is past the end of input, return candidates.
+        if string_after_whitespace.is_empty() {
             return candidates;
         }
-        let (url, spaces) = collect_sequence_characters(position, |c| !char::is_whitespace(*c));
-        // add the counts of urls that we parse to advance the start index
-        url_len += url.chars().count();
-        let comma_count = url.chars().rev().take_while(|c| *c == ',').count();
-        let url: String = url
-            .chars()
-            .take(url.chars().count() - comma_count)
-            .collect();
-        // add 1 to start index, for the comma
-        url_len += comma_count + 1;
-        let (space, position) = collect_sequence_characters(spaces, |c| char::is_whitespace(*c));
-        let space_len = space.len();
-        url_len += space_len;
+
+        // 6. Collect a sequence of code points that are not ASCII whitespace from input
+        // given position, and let that be url.
+        let (url, _) =
+            collect_sequence_characters(string_after_whitespace, |c| !char::is_ascii_whitespace(c));
+
+        // Add the length of `url` that we will parse to advance the index of the next part
+        // of the string to prase.
+        current_index += url.len();
+
+        // 7. Let descriptors be a new empty list.
         let mut descriptors = Vec::new();
+
+        // > 8. If url ends with U+002C (,), then:
+        // >    1. Remove all trailing U+002C COMMA characters from url. If this removed
+        // >       more than one character, that is a parse error.
+        if url.ends_with(',') {
+            let image_source = ImageSource {
+                url: url.trim_end_matches(',').into(),
+                descriptor: Descriptor {
+                    width: None,
+                    density: None,
+                },
+            };
+            candidates.push(image_source);
+            continue;
+        }
+
+        // Otherwise:
+        // > 8.1. Descriptor tokenizer: Skip ASCII whitespace within input given position.
+        let descriptors_string = &input[current_index..];
+        let (spaces, descriptors_string) =
+            collect_sequence_characters(descriptors_string, |character| {
+                character.is_ascii_whitespace()
+            });
+        current_index += spaces.len();
+
+        // > 8.2. Let current descriptor be the empty string.
         let mut current_descriptor = String::new();
+
+        // > 8.3. Let state be "in descriptor".
         let mut state = ParseState::InDescriptor;
-        let mut char_stream = position.chars().enumerate();
-        let mut buffered: Option<(usize, char)> = None;
+
+        // > 8.4. Let c be the character at position. Do the following depending on the value of
+        // > state. For the purpose of this step, "EOF" is a special character representing
+        // > that position is past the end of input.
+        let mut characters = descriptors_string.chars();
+        let mut character = characters.next();
+        if character.is_some() {
+            current_index += 1;
+        }
+
         loop {
-            let next_char = buffered.take().or_else(|| char_stream.next());
-            if next_char.is_some() {
-                url_len += 1;
-            }
-            match state {
-                ParseState::InDescriptor => match next_char {
-                    Some((_, ' ')) => {
-                        if !current_descriptor.is_empty() {
-                            descriptors.push(current_descriptor.clone());
-                            current_descriptor = String::new();
-                            state = ParseState::AfterDescriptor;
-                        }
-                        continue;
-                    },
-                    Some((_, ',')) => {
-                        if !current_descriptor.is_empty() {
-                            descriptors.push(current_descriptor.clone());
-                        }
-                        break;
-                    },
-                    Some((_, c @ '(')) => {
-                        current_descriptor.push(c);
-                        state = ParseState::InParens;
-                        continue;
-                    },
-                    Some((_, c)) => {
-                        current_descriptor.push(c);
-                    },
-                    None => {
-                        if !current_descriptor.is_empty() {
-                            descriptors.push(current_descriptor.clone());
-                        }
-                        break;
-                    },
-                },
-                ParseState::InParens => match next_char {
-                    Some((_, c @ ')')) => {
-                        current_descriptor.push(c);
-                        state = ParseState::InDescriptor;
-                        continue;
-                    },
-                    Some((_, c)) => {
-                        current_descriptor.push(c);
-                        continue;
-                    },
-                    None => {
-                        if !current_descriptor.is_empty() {
-                            descriptors.push(current_descriptor.clone());
-                        }
-                        break;
-                    },
-                },
-                ParseState::AfterDescriptor => match next_char {
-                    Some((_, ' ')) => {
+            match (state, character) {
+                (ParseState::InDescriptor, Some(character)) if character.is_ascii_whitespace() => {
+                    // > If current descriptor is not empty, append current descriptor to
+                    // > descriptors and let current descriptor be the empty string. Set
+                    // > state to after descriptor.
+                    if !current_descriptor.is_empty() {
+                        descriptors.push(current_descriptor);
+                        current_descriptor = String::new();
                         state = ParseState::AfterDescriptor;
-                        continue;
-                    },
-                    Some((idx, c)) => {
-                        state = ParseState::InDescriptor;
-                        buffered = Some((idx, c));
-                        continue;
-                    },
-                    None => {
-                        if !current_descriptor.is_empty() {
-                            descriptors.push(current_descriptor.clone());
-                        }
-                        break;
-                    },
+                    }
                 },
+                (ParseState::InDescriptor, Some(',')) => {
+                    // > Advance position to the next character in input. If current descriptor
+                    // > is not empty, append current descriptor to descriptors. Jump to the
+                    // > step labeled descriptor parser.
+                    if !current_descriptor.is_empty() {
+                        descriptors.push(current_descriptor);
+                    }
+                    break;
+                },
+                (ParseState::InDescriptor, Some('(')) => {
+                    // > Append c to current descriptor. Set state to in parens.
+                    current_descriptor.push('(');
+                    state = ParseState::InParens;
+                },
+                (ParseState::InDescriptor, Some(character)) => {
+                    // > Append c to current descriptor.
+                    current_descriptor.push(character);
+                },
+                (ParseState::InDescriptor, None) => {
+                    // > If current descriptor is not empty, append current descriptor to
+                    // > descriptors. Jump to the step labeled descriptor parser.
+                    if !current_descriptor.is_empty() {
+                        descriptors.push(current_descriptor);
+                    }
+                    break;
+                },
+                (ParseState::InParens, Some(')')) => {
+                    // > Append c to current descriptor. Set state to in descriptor.
+                    current_descriptor.push(')');
+                    state = ParseState::InDescriptor;
+                },
+                (ParseState::InParens, Some(character)) => {
+                    // Append c to current descriptor.
+                    current_descriptor.push(character);
+                },
+                (ParseState::InParens, None) => {
+                    // > Append current descriptor to descriptors. Jump to the step
+                    // > labeled descriptor parser.
+                    descriptors.push(current_descriptor);
+                    break;
+                },
+                (ParseState::AfterDescriptor, Some(character))
+                    if character.is_ascii_whitespace() =>
+                {
+                    // > Stay in this state.
+                },
+                (ParseState::AfterDescriptor, Some(_)) => {
+                    // > Set state to in descriptor. Set position to the previous
+                    // > character in input.
+                    state = ParseState::InDescriptor;
+                    continue;
+                },
+                (ParseState::AfterDescriptor, None) => {
+                    // > Jump to the step labeled descriptor parser.
+                    break;
+                },
+            }
+
+            character = characters.next();
+            if character.is_some() {
+                current_index += 1;
             }
         }
 
+        // > 9. Descriptor parser: Let error be no.
         let mut error = false;
+        // > 10. Let width be absent.
         let mut width: Option<u32> = None;
+        // > 11. Let density be absent.
         let mut density: Option<f64> = None;
+        // > 12. Let future-compat-h be absent.
         let mut future_compat_h: Option<u32> = None;
-        for descriptor in descriptors {
-            let (digits, remaining) =
-                collect_sequence_characters(&descriptor, |c| is_ascii_digit(c) || *c == '.');
-            let valid_non_negative_integer = parse_unsigned_integer(digits.chars());
-            let has_w = remaining == "w";
-            let valid_floating_point = parse_double(digits);
-            let has_x = remaining == "x";
-            let has_h = remaining == "h";
-            if valid_non_negative_integer.is_ok() && has_w {
-                let result = valid_non_negative_integer;
-                error = result.is_err();
-                if width.is_some() || density.is_some() {
-                    error = true;
-                }
-                if let Ok(w) = result {
-                    width = Some(w);
-                }
-            } else if valid_floating_point.is_ok() && has_x {
-                let result = valid_floating_point;
-                error = result.is_err();
-                if width.is_some() || density.is_some() || future_compat_h.is_some() {
-                    error = true;
-                }
-                if let Ok(x) = result {
-                    density = Some(x);
-                }
-            } else if valid_non_negative_integer.is_ok() && has_h {
-                let result = valid_non_negative_integer;
-                error = result.is_err();
-                if density.is_some() || future_compat_h.is_some() {
-                    error = true;
-                }
-                if let Ok(h) = result {
-                    future_compat_h = Some(h);
-                }
-            } else {
-                error = true;
+
+        // > 13. For each descriptor in descriptors, run the appropriate set of steps from
+        // > the following list:
+        for descriptor in descriptors.into_iter() {
+            let Some(last_character) = descriptor.chars().last() else {
+                break;
+            };
+
+            let first_part_of_string = &descriptor[0..descriptor.len() - last_character.len_utf8()];
+            match last_character {
+                // > If the descriptor consists of a valid non-negative integer followed by a
+                // > U+0077 LATIN SMALL LETTER W character
+                // > 1. If the user agent does not support the sizes attribute, let error be yes.
+                // > 2. If width and density are not both absent, then let error be yes.
+                // > 3. Apply the rules for parsing non-negative integers to the descriptor.
+                // >    If the result is 0, let error be yes. Otherwise, let width be the result.
+                'w' if density.is_none() && width.is_none() => {
+                    match parse_integer(first_part_of_string.chars()) {
+                        Ok(number) if number > 0 => {
+                            width = Some(number as u32);
+                            continue;
+                        },
+                        _ => error = true,
+                    }
+                },
+
+                // > If the descriptor consists of a valid floating-point number followed by a
+                // > U+0078 LATIN SMALL LETTER X character
+                // > 1. If width, density and future-compat-h are not all absent, then let
+                // >    error be yes.
+                // > 2. Apply the rules for parsing floating-point number values to the
+                // >    descriptor. If the result is less than 0, let error be yes. Otherwise, let
+                // >    density be the result.
+                //
+                // The HTML specification has a procedure for parsing floats that is different enough from
+                // the one that stylo uses, that it's better to use Rust's float parser here. This is
+                // what Gecko does, but it also checks to see if the number is a valid HTML-spec compliant
+                // number first. Not doing that means that we might be parsing numbers that otherwise
+                // wouldn't parse.
+                // TODO: Do what Gecko does and first validate the number passed to the Rust float parser.
+                'x' if width.is_none() && density.is_none() && future_compat_h.is_none() => {
+                    match first_part_of_string.parse::<f64>() {
+                        Ok(number) if number.is_normal() && number > 0. => {
+                            density = Some(number);
+                            continue;
+                        },
+                        _ => error = true,
+                    }
+                },
+
+                // > If the descriptor consists of a valid non-negative integer followed by a
+                // > U+0068 LATIN SMALL LETTER H character
+                // >   This is a parse error.
+                // > 1. If future-compat-h and density are not both absent, then let error be
+                // >    yes.
+                // > 2. Apply the rules for parsing non-negative integers to the descriptor.
+                // >    If the result is 0, let error be yes. Otherwise, let future-compat-h be the
+                // >    result.
+                'h' if future_compat_h.is_none() && density.is_none() => {
+                    match parse_integer(first_part_of_string.chars()) {
+                        Ok(number) if number > 0 => {
+                            future_compat_h = Some(number as u32);
+                            continue;
+                        },
+                        _ => error = true,
+                    }
+                },
+
+                // > Anything else
+                // >  Let error be yes.
+                _ => error = true,
+            }
+
+            if error {
+                break;
             }
         }
+
+        // > 14. If future-compat-h is not absent and width is absent, let error be yes.
         if future_compat_h.is_some() && width.is_none() {
             error = true;
         }
+
         if !error {
-            let descriptor = Descriptor {
-                wid: width,
-                den: density,
+            let image_source = ImageSource {
+                url: url.into(),
+                descriptor: Descriptor { width, density },
             };
-            let image_source = ImageSource { url, descriptor };
             candidates.push(image_source);
         }
     }
