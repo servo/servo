@@ -3,8 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use euclid::RigidTransform3D;
-use webxr_api::{self, Frame, Space};
+use euclid::{Box2D, RigidTransform3D};
+use webxr_api::{self, Floor, Frame, Space};
 
 use crate::dom::bindings::codegen::Bindings::XRReferenceSpaceBinding::{
     XRReferenceSpaceMethods, XRReferenceSpaceType,
@@ -65,6 +65,7 @@ impl XRReferenceSpace {
             XRReferenceSpaceType::Local => webxr_api::BaseSpace::Local,
             XRReferenceSpaceType::Viewer => webxr_api::BaseSpace::Viewer,
             XRReferenceSpaceType::Local_floor => webxr_api::BaseSpace::Floor,
+            XRReferenceSpaceType::Bounded_floor => webxr_api::BaseSpace::BoundedFloor,
             _ => panic!("unsupported reference space found"),
         };
         let offset = self.offset.transform();
@@ -121,7 +122,7 @@ impl XRReferenceSpace {
                 // for most devices is (0, 0, 0)
                 Some(RigidTransform3D::identity())
             },
-            XRReferenceSpaceType::Local_floor => {
+            XRReferenceSpaceType::Local_floor | XRReferenceSpaceType::Bounded_floor => {
                 let native_to_floor = self
                     .upcast::<XRSpace>()
                     .session()
@@ -133,5 +134,11 @@ impl XRReferenceSpace {
             },
             _ => unimplemented!(),
         }
+    }
+
+    pub fn get_bounds(&self) -> Option<Box2D<f32, Floor>> {
+        self.upcast::<XRSpace>()
+            .session()
+            .with_session(|s| s.reference_space_bounds())
     }
 }

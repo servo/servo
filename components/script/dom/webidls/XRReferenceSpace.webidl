@@ -14,6 +14,7 @@ enum XRReferenceSpaceType {
 
 [SecureContext, Exposed=Window, Pref="dom.webxr.enabled"]
 interface XRReferenceSpace : XRSpace {
-  XRReferenceSpace getOffsetReferenceSpace(XRRigidTransform originOffset);
+  [NewObject] XRReferenceSpace getOffsetReferenceSpace(XRRigidTransform originOffset);
+
   // attribute EventHandler onreset;
 };
