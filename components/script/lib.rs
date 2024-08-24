@@ -101,3 +101,4 @@ pub use script_runtime::JSEngineSetup;
 pub use crate::dom::bindings::trace::JSTraceable;
 pub use crate::dom::bindings::trace::CustomTraceable;
 pub use crate::dom::bindings::inheritance::HasParent;
+pub use crate::dom::bindings::reflector::{DomObject, Reflector, MutDomObject};
