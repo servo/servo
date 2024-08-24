@@ -78,6 +78,7 @@ class ServoExecutor(ProcessTestExecutor):
             args += ["--user-stylesheet", stylesheet]
         for pref, value in self.environment.get('prefs', {}).items():
             args += ["--pref", f"{pref}={value}"]
+        args += ["--prefs-file", "resources/wpt-prefs.json"]
         if self.browser.ca_certificate_path:
             args += ["--certificate-path", self.browser.ca_certificate_path]
         if extra_args:
