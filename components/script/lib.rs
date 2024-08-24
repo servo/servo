@@ -100,3 +100,4 @@ pub use script_runtime::JSEngineSetup;
 // pub exports for derive macros
 pub use crate::dom::bindings::trace::JSTraceable;
 pub use crate::dom::bindings::trace::CustomTraceable;
+pub use crate::dom::bindings::inheritance::HasParent;
