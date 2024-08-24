@@ -3695,22 +3695,36 @@ impl SelectorsElement for DomRoot<Element> {
             // storing separate <ident> or <string>s for each language tag.
             NonTSPseudoClass::Lang(ref lang) => extended_filtering(&self.get_lang(), lang),
 
-            NonTSPseudoClass::ReadOnly => !Element::state(self).contains(pseudo_class.state_flag()),
+            NonTSPseudoClass::ReadOnly => {
+                !Element::state(self).contains(NonTSPseudoClass::ReadWrite.state_flag())
+            },
 
             NonTSPseudoClass::Active |
+            NonTSPseudoClass::Autofill |
+            NonTSPseudoClass::Checked |
+            NonTSPseudoClass::Default |
+            NonTSPseudoClass::Defined |
+            NonTSPseudoClass::Disabled |
+            NonTSPseudoClass::Enabled |
             NonTSPseudoClass::Focus |
+            NonTSPseudoClass::FocusVisible |
+            NonTSPseudoClass::FocusWithin |
             NonTSPseudoClass::Fullscreen |
             NonTSPseudoClass::Hover |
-            NonTSPseudoClass::Defined |
-            NonTSPseudoClass::Enabled |
-            NonTSPseudoClass::Disabled |
-            NonTSPseudoClass::Checked |
-            NonTSPseudoClass::Valid |
-            NonTSPseudoClass::Invalid |
+            NonTSPseudoClass::InRange |
             NonTSPseudoClass::Indeterminate |
-            NonTSPseudoClass::ReadWrite |
+            NonTSPseudoClass::Invalid |
+            NonTSPseudoClass::Modal |
+            NonTSPseudoClass::Optional |
+            NonTSPseudoClass::OutOfRange |
             NonTSPseudoClass::PlaceholderShown |
-            NonTSPseudoClass::Target => Element::state(self).contains(pseudo_class.state_flag()),
+            NonTSPseudoClass::PopoverOpen |
+            NonTSPseudoClass::ReadWrite |
+            NonTSPseudoClass::Required |
+            NonTSPseudoClass::Target |
+            NonTSPseudoClass::UserInvalid |
+            NonTSPseudoClass::UserValid |
+            NonTSPseudoClass::Valid => Element::state(self).contains(pseudo_class.state_flag()),
         }
     }
 
