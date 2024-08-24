@@ -97,8 +97,8 @@ mod window_named_properties;
 pub use init::init;
 pub use script_runtime::JSEngineSetup;
 
+// export traits to be available for derive macros
 pub use crate::dom::bindings::inheritance::HasParent;
 pub use crate::dom::bindings::reflector::{DomObject, MutDomObject, Reflector};
 pub use crate::dom::bindings::trace::CustomTraceable;
-// pub exports for derive macros
 pub use crate::dom::bindings::trace::JSTraceable;
