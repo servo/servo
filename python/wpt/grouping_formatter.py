@@ -306,7 +306,7 @@ class ServoFormatter(mozlog.formatters.base.BaseFormatter, ServoHandler):
         # Print reason that tests are skipped.
         if data["status"] == "SKIP":
             self.number_skipped += 1
-            lines = [f"SKIP {data['test']}", f"{data['message']}\n"]
+            lines = [f"SKIP {data['test']}", f"{data.get('message', '')}\n"]
             output_for_skipped_test = UnexpectedResult.wrap_and_indent_lines(lines, indent="  ")
             return self.generate_output(text=output_for_skipped_test, new_display=self.build_status_line())
 
