@@ -26,75 +26,85 @@
 <div id="outer">
   <div id="inner">
     <div id="target"></div>
+    <div id="fliptarget"></div>
   </div>
 </div>
 <script>
   const green = "rgb(0, 128, 0)";
 
-  function test_evaluation(query, expected) {
+  function test_evaluation(name, query, expected) {
     test((t) => {
       let style_node = document.createElement('style');
       t.add_cleanup(() => {
         style_node.remove();
       });
-      style_node.innerText = `@container ${query} { #target { --applied:true; } }`;
+        style_node.innerText = `
+          @container ${name} ${query} { #target { --applied:true; } }
+          @container ${name} not ${query} { #fliptarget { --applied:true; } }
+        `;
 
-      assert_equals(getComputedStyle(target).getPropertyValue('--applied'), '');
+      assert_equals(getComputedStyle(target).getPropertyValue('--applied'), '',
+                    'Initial --applied for target');
+      assert_equals(getComputedStyle(fliptarget).getPropertyValue('--applied'), '',
+                    'Initial --applied for fliptarget');
       document.head.append(style_node);
-      assert_equals(getComputedStyle(target).getPropertyValue('--applied'), expected ? 'true' : '');
-    }, `${query}`);
+      assert_equals(getComputedStyle(target).getPropertyValue('--applied'), expected ? 'true' : '',
+                    'Matching query for #target');
+      assert_equals(getComputedStyle(fliptarget).getPropertyValue('--applied'), expected ? '' : 'true',
+                    'Matching negated query for #fliptarget');
+    }, `${name} ${query}`);
   }
 
   setup(() => assert_implements_container_queries());
 
-  test_evaluation('style(--inner: true)', true);
-  test_evaluation('style(--inner:true)', true);
-  test_evaluation('style(--inner:true )', true);
-  test_evaluation('style(--inner: true )', true);
-  test_evaluation('style(--inner-no-space: true)', true);
-  test_evaluation('style(--inner-no-space:true)', true);
-  test_evaluation('style(--inner-no-space:true )', true);
-  test_evaluation('style(--inner-no-space: true )', true);
-  test_evaluation('style(--inner-space-after: true)', true);
-  test_evaluation('style(--inner-space-after:true)', true);
-  test_evaluation('style(--inner-space-after:true )', true);
-  test_evaluation('style(--inner-space-after: true )', true);
-  test_evaluation('style(--outer: true)', false);
-  test_evaluation('style(--outer:true)', false);
-  test_evaluation('style(--outer:true )', false);
-  test_evaluation('style(--outer: true )', false);
-  test_evaluation('style(--outer-no-space: true)', false);
-  test_evaluation('style(--outer-no-space:true)', false);
-  test_evaluation('style(--outer-no-space:true )', false);
-  test_evaluation('style(--outer-no-space: true )', false);
-  test_evaluation('style(--outer-space-after: true)', false);
-  test_evaluation('style(--outer-space-after:true)', false);
-  test_evaluation('style(--outer-space-after:true )', false);
-  test_evaluation('style(--outer-space-after: true )', false);
-  test_evaluation('outer style(--inner: true)', false);
-  test_evaluation('outer style(--inner:true)', false);
-  test_evaluation('outer style(--inner:true )', false);
-  test_evaluation('outer style(--inner: true )', false);
-  test_evaluation('outer style(--inner-no-space: true)', false);
-  test_evaluation('outer style(--inner-no-space:true)', false);
-  test_evaluation('outer style(--inner-no-space:true )', false);
-  test_evaluation('outer style(--inner-no-space: true )', false);
-  test_evaluation('outer style(--inner-space-after: true)', false);
-  test_evaluation('outer style(--inner-space-after:true)', false);
-  test_evaluation('outer style(--inner-space-after:true )', false);
-  test_evaluation('outer style(--inner-space-after: true )', false);
-  test_evaluation('outer style(--outer: true)', true);
-  test_evaluation('outer style(--outer:true)', true);
-  test_evaluation('outer style(--outer:true )', true);
-  test_evaluation('outer style(--outer: true )', true);
-  test_evaluation('outer style(--outer-no-space: true)', true);
-  test_evaluation('outer style(--outer-no-space:true)', true);
-  test_evaluation('outer style(--outer-no-space:true )', true);
-  test_evaluation('outer style(--outer-no-space: true )', true);
-  test_evaluation('outer style(--outer-space-after: true)', true);
-  test_evaluation('outer style(--outer-space-after:true)', true);
-  test_evaluation('outer style(--outer-space-after:true )', true);
-  test_evaluation('outer style(--outer-space-after: true )', true);
+  test_evaluation('', 'style(--inner: true)', true);
+  test_evaluation('', 'style(--inner:true)', true);
+  test_evaluation('', 'style(--inner:true )', true);
+  test_evaluation('', 'style(--inner: true )', true);
+  test_evaluation('', 'style(--inner-no-space: true)', true);
+  test_evaluation('', 'style(--inner-no-space:true)', true);
+  test_evaluation('', 'style(--inner-no-space:true )', true);
+  test_evaluation('', 'style(--inner-no-space: true )', true);
+  test_evaluation('', 'style(--inner-space-after: true)', true);
+  test_evaluation('', 'style(--inner-space-after:true)', true);
+  test_evaluation('', 'style(--inner-space-after:true )', true);
+  test_evaluation('', 'style(--inner-space-after: true )', true);
+  test_evaluation('', 'style(--outer: true)', false);
+  test_evaluation('', 'style(--outer:true)', false);
+  test_evaluation('', 'style(--outer:true )', false);
+  test_evaluation('', 'style(--outer: true )', false);
+  test_evaluation('', 'style(--outer-no-space: true)', false);
+  test_evaluation('', 'style(--outer-no-space:true)', false);
+  test_evaluation('', 'style(--outer-no-space:true )', false);
+  test_evaluation('', 'style(--outer-no-space: true )', false);
+  test_evaluation('', 'style(--outer-space-after: true)', false);
+  test_evaluation('', 'style(--outer-space-after:true)', false);
+  test_evaluation('', 'style(--outer-space-after:true )', false);
+  test_evaluation('', 'style(--outer-space-after: true )', false);
+  test_evaluation('outer', 'style(--inner: true)', false);
+  test_evaluation('outer', 'style(--inner:true)', false);
+  test_evaluation('outer', 'style(--inner:true )', false);
+  test_evaluation('outer', 'style(--inner: true )', false);
+  test_evaluation('outer', 'style(--inner-no-space: true)', false);
+  test_evaluation('outer', 'style(--inner-no-space:true)', false);
+  test_evaluation('outer', 'style(--inner-no-space:true )', false);
+  test_evaluation('outer', 'style(--inner-no-space: true )', false);
+  test_evaluation('outer', 'style(--inner-space-after: true)', false);
+  test_evaluation('outer', 'style(--inner-space-after:true)', false);
+  test_evaluation('outer', 'style(--inner-space-after:true )', false);
+  test_evaluation('outer', 'style(--inner-space-after: true )', false);
+  test_evaluation('outer', 'style(--outer: true)', true);
+  test_evaluation('outer', 'style(--outer:true)', true);
+  test_evaluation('outer', 'style(--outer:true )', true);
+  test_evaluation('outer', 'style(--outer: true )', true);
+  test_evaluation('outer', 'style(--outer-no-space: true)', true);
+  test_evaluation('outer', 'style(--outer-no-space:true)', true);
+  test_evaluation('outer', 'style(--outer-no-space:true )', true);
+  test_evaluation('outer', 'style(--outer-no-space: true )', true);
+  test_evaluation('outer', 'style(--outer-space-after: true)', true);
+  test_evaluation('outer', 'style(--outer-space-after:true)', true);
+  test_evaluation('outer', 'style(--outer-space-after:true )', true);
+  test_evaluation('outer', 'style(--outer-space-after: true )', true);
 </script>
 
 <style>
@@ -171,8 +181,11 @@
   #revert-layer {
     --foo: revert-layer;
   }
-  #revert-child, #revert-layer-child {
-      color: green;
+  @container not style(--foo: revert) {
+    #revert-child { color: green; }
+  }
+  @container not style(--foo: revert-layer) {
+    #revert-layer-child { color: green; }
   }
   @container style(--foo: revert) {
     #revert-child { color: red; }

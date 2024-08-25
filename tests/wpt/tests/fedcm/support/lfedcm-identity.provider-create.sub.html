@@ -12,6 +12,9 @@ async function createCredentials(params) {
   if (params.get("origin")) {
     identityData.effectiveOrigins = [params.get("origin")]
   }
+  if (params.get("type")) {
+    identityData.effectiveType = params.get("type")
+  }
   if (params.get("url") == "cors") {
     identityData.effectiveQueryURL = "https://{{hosts[alt][]}}:{{ports[https][0]}}/fedcm/support/acao-cors.py";
   } else if (params.get("url") == "no-cors") {
@@ -26,6 +29,9 @@ async function createCredentials(params) {
 const queryString = window.location.search;
 const params = new URLSearchParams(queryString);
 createCredentials(params).then(() => {
+  if (params.has("close")) {
+    window.close();
+  }
   if (params.has("postMessage")) {
     window.opener.postMessage("created", "*");
   }

@@ -3,7 +3,8 @@
 
 'use strict';
 
-// Step 1 (main window) Set up listener to resolve messages as they come in.
+// Spec: https://explainers-by-googlers.github.io/partitioned-popins/
+// Step 1 (main-window) Set up listener to resolve messages as they come in.
 // Step 2 (main-window) Open window for other origin.
 // Step 3 (other-window) Write first-party cookies and report success.
 // Step 4 (main-window) Embed iframe for other origin.
@@ -31,8 +32,8 @@ async_test(t => {
         break;
       case 'popin-read':
         // Step 8
-        // We want to see the same behavior a cross-site iframe would have, initially only SameSite=None, then first-party strict and lax come back for an inner fetch.
-        assert_equals(e.data.message, "ReadOnLoad:FirstPartyNone-ThirdPartyNone-,ReadOnFetch:FirstPartyStrict-FirstPartyLax-FirstPartyNone-ThirdPartyNone-");
+        // We want to see the same behavior a cross-site iframe would have, only SameSite=None available, with the ability to set additional cookies in the popin.
+        assert_equals(e.data.message, "ReadOnLoad:FirstPartyNone-ThirdPartyNone-,ReadOnFetch:FirstPartyNone-ThirdPartyNone-FirstPartyNonePopin-ThirdPartyNonePopin-,ReadOnDocument:FirstPartyNone-ThirdPartyNone-FirstPartyNonePopin-ThirdPartyNonePopin-");
         t.done();
         break;
     }

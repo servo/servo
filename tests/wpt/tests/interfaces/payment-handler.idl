@@ -94,38 +94,3 @@ dictionary AddressInit {
   DOMString recipient = "";
   DOMString phone = "";
 };
-
-dictionary PaymentOptions {
-  boolean requestPayerName = false;
-  boolean requestBillingAddress = false;
-  boolean requestPayerEmail = false;
-  boolean requestPayerPhone = false;
-  boolean requestShipping = false;
-  PaymentShippingType shippingType = "shipping";
-};
-
-dictionary PaymentShippingOption {
-  required DOMString id;
-  required DOMString label;
-  required PaymentCurrencyAmount amount;
-  boolean selected = false;
-};
-
-enum PaymentShippingType {
-  "shipping",
-  "delivery",
-  "pickup"
-};
-
-dictionary AddressErrors {
-  DOMString addressLine;
-  DOMString city;
-  DOMString country;
-  DOMString dependentLocality;
-  DOMString organization;
-  DOMString phone;
-  DOMString postalCode;
-  DOMString recipient;
-  DOMString region;
-  DOMString sortingCode;
-};

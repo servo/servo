@@ -3,8 +3,6 @@
 // (https://github.com/w3c/webref)
 // Source: CSS Font Loading Module Level 3 (https://drafts.csswg.org/css-font-loading-3/)
 
-typedef (ArrayBuffer or ArrayBufferView) BinaryData;
-
 dictionary FontFaceDescriptors {
   CSSOMString style = "normal";
   CSSOMString weight = "normal";
@@ -22,7 +20,7 @@ enum FontFaceLoadStatus { "unloaded", "loading", "loaded", "error" };
 
 [Exposed=(Window,Worker)]
 interface FontFace {
-  constructor(CSSOMString family, (CSSOMString or BinaryData) source,
+  constructor(CSSOMString family, (CSSOMString or BufferSource) source,
                 optional FontFaceDescriptors descriptors = {});
   attribute CSSOMString family;
   attribute CSSOMString style;

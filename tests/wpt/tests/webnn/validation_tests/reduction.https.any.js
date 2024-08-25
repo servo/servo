@@ -20,38 +20,9 @@ const kReductionOperators = [
   'reduceSumSquare',
 ];
 
-const kFloatRestrictReductionOperators = [
-  'reduceL2',
-  'reduceLogSum',
-  'reduceLogSumExp',
-  'reduceMean',
-];
-
-const kFloatInt32Uint32Int64Uint64RestrictReductionOperators = [
-  'reduceL1',
-  'reduceProduct',
-  'reduceSum',
-  'reduceSumSquare',
-];
-
-const kNoTypeRestrictReductionOperators = [
-  'reduceMax',
-  'reduceMin',
-];
-
 const label = 'reduce_op_xxx';
 
 const allReductionOperatorsTests = [
-  {
-    name: '[reduce] Test reduce with default options.',
-    input: {dataType: 'float32', dimensions: [1, 3, 4, 4]},
-    output: {dataType: 'float32', dimensions: []}
-  },
-  {
-    name: '[reduce] Test reduce when input\'s datatype is float16.',
-    input: {dataType: 'float16', dimensions: [1, 3, 4, 4]},
-    output: {dataType: 'float16', dimensions: []}
-  },
   {
     name: '[reduce] Test reduce with keepDimensions=true.',
     input: {dataType: 'float32', dimensions: [1, 3, 4, 4]},
@@ -84,72 +55,6 @@ const allReductionOperatorsTests = [
   },
 ];
 
-const kFloatRestrictOperatorsTests = [
-  {
-    name: '[reduce] Throw if the input data type is int32.',
-    input: {dataType: 'int32', dimensions: [1, 2, 5, 5]},
-    options: {
-      axes: [0, 1],
-      label: label,
-    },
-  },
-];
-
-const kFloatInt32Uint32Int64Uint64RestrictOperatorsTests = [
-  {
-    name: '[reduce] Test reduce when input\'s datatype is int32.',
-    input: {dataType: 'int32', dimensions: [1, 2, 5, 5]},
-    output: {dataType: 'int32', dimensions: []}
-  },
-  {
-    name: '[reduce] Test reduce when input\'s datatype is uint32.',
-    input: {dataType: 'uint32', dimensions: [1, 2, 5, 5]},
-    output: {dataType: 'uint32', dimensions: []}
-  },
-  {
-    name: '[reduce] Test reduce when input\'s datatype is int64.',
-    input: {dataType: 'int64', dimensions: [1, 2, 5, 5]},
-    output: {dataType: 'int64', dimensions: []}
-  },
-  {
-    name: '[reduce] Test reduce when input\'s datatype is uint64.',
-    input: {dataType: 'uint64', dimensions: [1, 2, 5, 5]},
-    output: {dataType: 'uint64', dimensions: []}
-  },
-  {
-    name:
-        '[reduce] Throw if the input data type is not one of the {float32, float16, int32, uint32, int64, uint64}.',
-    input: {dataType: 'int8', dimensions: [1, 2, 5, 5]},
-    options: {
-      axes: [0, 1],
-      label: label,
-    },
-  },
-];
-
-const kNoTypeRestrictOperatorsTests = [
-  {
-    name: '[reduce] Test reduce when input\'s datatype is int64.',
-    input: {dataType: 'int64', dimensions: [1, 3, 4, 4]},
-    output: {dataType: 'int64', dimensions: []}
-  },
-  {
-    name: '[reduce] Test reduce when input\'s datatype is uint64.',
-    input: {dataType: 'uint64', dimensions: [1, 3, 4, 4]},
-    output: {dataType: 'uint64', dimensions: []}
-  },
-  {
-    name: '[reduce] Test reduce when input\'s datatype is int8.',
-    input: {dataType: 'int8', dimensions: [1, 3, 4, 4]},
-    output: {dataType: 'int8', dimensions: []}
-  },
-  {
-    name: '[reduce] Test reduce when input\'s datatype is uint8.',
-    input: {dataType: 'uint8', dimensions: [1, 3, 4, 4]},
-    output: {dataType: 'uint8', dimensions: []}
-  },
-];
-
 function runReductionTests(operatorName, tests) {
   tests.forEach(test => {
     promise_test(async t => {
@@ -176,16 +81,22 @@ kReductionOperators.forEach((operatorName) => {
   runReductionTests(operatorName, allReductionOperatorsTests);
 });
 
-kFloatRestrictReductionOperators.forEach((operatorName) => {
-  runReductionTests(operatorName, kFloatRestrictOperatorsTests);
-});
-
-kFloatInt32Uint32Int64Uint64RestrictReductionOperators.forEach(
-    (operatorName) => {
-      runReductionTests(
-          operatorName, kFloatInt32Uint32Int64Uint64RestrictOperatorsTests);
-    });
-
-kNoTypeRestrictReductionOperators.forEach((operatorName) => {
-  runReductionTests(operatorName, kNoTypeRestrictOperatorsTests);
+kReductionOperators.forEach((operatorName) => {
+  promise_test(async t => {
+    for (let dataType of allWebNNOperandDataTypes) {
+      if (!context.opSupportLimits().input.dataTypes.includes(dataType)) {
+        continue;
+      }
+      const builder = new MLGraphBuilder(context);
+      const input = builder.input(`input`, {dataType, dimensions3D});
+      if (context.opSupportLimits()[operatorName].input.dataTypes.includes(
+              dataType)) {
+        const output = builder[operatorName](input);
+        assert_equals(output.dataType(), dataType);
+        assert_array_equals(output.shape(), []);
+      } else {
+        assert_throws_js(TypeError, () => builder[operatorName](input));
+      }
+    }
+  }, `[${operatorName}] Test reduce with all of the data types.`);
 });

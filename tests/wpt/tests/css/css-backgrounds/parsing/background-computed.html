@@ -27,6 +27,8 @@ test_computed_value("background-clip", "border-box", "border-box, border-box, bo
 test_computed_value("background-clip", "content-box, border-box", "content-box, border-box, content-box");
 test_computed_value("background-clip", "border-box, padding-box, content-box");
 test_computed_value("background-clip", "content-box, border-box, padding-box, content-box", "content-box, border-box, padding-box");
+test_computed_value("background-clip", "content-box, border-box, padding-box", "content-box, border-box, padding-box");
+test_computed_value("background-clip", "content-box, border-box, border-area", "content-box, border-box, border-area");
 
 // background-color always computes as a single color.
 test_computed_value("background-color", "rgb(255, 0, 0)");

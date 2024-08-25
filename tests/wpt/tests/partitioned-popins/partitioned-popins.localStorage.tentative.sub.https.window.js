@@ -3,7 +3,8 @@
 
 'use strict';
 
-// Step 1 (main window) Set up listener to resolve messages as they come in.
+// Spec: https://explainers-by-googlers.github.io/partitioned-popins/
+// Step 1 (main-window) Set up listener to resolve messages as they come in.
 // Step 2 (main-window) Open window for other origin.
 // Step 3 (other-window) Write first-party localStorage key and report success.
 // Step 4 (main-window) Embed iframe for other origin.

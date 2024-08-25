@@ -20,6 +20,7 @@
     ctx.shadowOffsetY = 3;
     ctx.shadowColor = 'rgba(0, 30, 0, 0.3)';
     ctx.shadowBlur = 3;
+    ctx.filter = 'blur(5px)';
 
     ctx.beginLayer({filter: {name: 'dropShadow', dx: -3, dy: 3}});
 
@@ -30,6 +31,7 @@
     ctx.shadowOffsetY = 6;
     ctx.shadowColor = 'rgba(0, 60, 0, 0.6)';
     ctx.shadowBlur = 3;
+    ctx.filter = 'blur(15px)';
 
     ctx.reset();
 

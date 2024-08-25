@@ -70,6 +70,7 @@ promise_test(async t => {
 promise_test(async t => {
   let initData = {
     id : "wpt-pick-me",
+    token : "token1",
   };
 
   let result1 = await navigator.credentials.create({
@@ -83,6 +84,7 @@ promise_test(async t => {
 
   let initDataWithOrigin = {
     id : "wpt-pick-me",
+    token : "token1",
     effectiveOrigins : [window.origin],
   };
 
@@ -97,7 +99,7 @@ promise_test(async t => {
   assert_not_equals(credentialGotten, undefined, "A credential is returned from the CredentialContainer.");
   assert_equals(credentialGotten.type, "identity", "The credential is an IdentityCredential");
   assert_equals(credentialGotten.id, "wpt-pick-me", "The identity matches the argument");
-
+  assert_equals(credentialGotten.token, "token1", "The token matches the argument");
 
   let promise3 = navigator.credentials.get({identity: {providers: []}});
   assert_true(promise3 instanceof Promise, "The return value of get must be a promise.");
@@ -275,6 +277,40 @@ promise_test(async t => {
 
 }, "Cross-origin identity credential collection is correctly returned when the endpoint returns success");
 
+
+promise_test(async t => {
+  let getCredentialPromise, credentialGotten;
+
+  await createLightweightCredential("https://{{hosts[alt][]}}:{{ports[https][0]}}", {
+    id: "wpt-pick-me",
+    type: "correct"
+  });
+
+  getCredentialPromise = navigator.credentials.get({identity: {providers: [{effectiveType: "correct"}]}});
+  assert_true(getCredentialPromise instanceof Promise, "The return value of get must be a promise.");
+  fedcm_select_account_promise(t, 0);
+  credentialGotten = await getCredentialPromise;
+  assert_not_equals(credentialGotten, null, "An effective credential is returned from the CredentialContainer.");
+  await clearLightweightCredential("https://{{hosts[alt][]}}:{{ports[https][0]}}", "wpt-pick-me");
+
+}, "Cross-origin identity credential collection is correctly returned when the type matches");
+
+promise_test(async t => {
+  let getCredentialPromise, credentialGotten;
+
+  await createLightweightCredential("https://{{hosts[alt][]}}:{{ports[https][0]}}", {
+    id: "wpt-pick-me",
+    type: "correct"
+  });
+
+  getCredentialPromise = navigator.credentials.get({identity: {providers: [{effectiveType: "wrong"}]}});
+  assert_true(getCredentialPromise instanceof Promise, "The return value of get must be a promise.");
+  fedcm_select_account_promise(t, 0);
+  credentialGotten = await getCredentialPromise;
+  assert_equals(credentialGotten, null, "An effective credential is not returned from the CredentialContainer.");
+  await clearLightweightCredential("https://{{hosts[alt][]}}:{{ports[https][0]}}", "wpt-pick-me");
+
+}, "Cross-origin identity credential collection is correctly filtered when the type does not match");
 
 promise_test(async t => {
   let initData = {

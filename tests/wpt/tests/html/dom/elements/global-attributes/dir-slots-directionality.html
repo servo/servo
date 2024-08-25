@@ -173,9 +173,9 @@ test(() => {
   let div = tree.querySelector("#root");
   assert_equals(html_direction(div), "ltr");
   let slot = shadow.querySelector("slot");
-  assert_equals(html_direction(slot), "rtl");
+  assert_equals(html_direction(slot), "ltr");
   tree.remove();
-}, 'dir=auto slot ignores dir attribute of assigned nodes');
+}, 'dir=auto slot ignores assigned nodes with dir attribute');
 
 test(() => {
   let [tree, shadow] = setup_tree(`
@@ -188,9 +188,9 @@ test(() => {
     <slot dir="auto"></slot>
   `);
   let slot = shadow.querySelector("slot");
-  assert_equals(html_direction(slot), "rtl");
+  assert_equals(html_direction(slot), "ltr");
   tree.remove();
-}, 'dir=auto slot considers text in bdi assigned nodes');
+}, 'dir=auto slot ignores text in bdi assigned nodes');
 
 test(() => {
   let [tree, shadow] = setup_tree(`
@@ -205,13 +205,13 @@ test(() => {
   let inp = tree.querySelector("input");
   assert_equals(html_direction(inp), "ltr");
   let slot = shadow.querySelector("slot");
-  assert_equals(html_direction(slot), "rtl");
+  assert_equals(html_direction(slot), "ltr");
   tree.remove();
 
   [tree, shadow] = setup_tree(`
     <div>
       <div id=root>
-        <input value=" ">
+        <input value="a">
         اختبر
       </div>
     </div>
@@ -221,8 +221,75 @@ test(() => {
   inp = tree.querySelector("input");
   assert_equals(html_direction(inp), "ltr");
   slot = shadow.querySelector("slot");
-  assert_equals(html_direction(slot), "ltr", "no strong character in value counts as ltr");
+  assert_equals(html_direction(slot), "rtl");
   tree.remove();
-}, 'dir=auto slot considers text in value of input element children');
+}, 'dir=auto slot ignores text in value of input element children');
+
+test(() => {
+  let [tree, shadow] = setup_tree(`
+    <div>
+      <div id=root>
+        <input value="اختبر">
+        <input type=text value="اختبر">
+        <input type=submit value="اختبر">
+        abc
+      </div>
+    </div>
+  `,`
+    <slot dir=auto></slot>
+  `);
+  let slot = shadow.querySelector("slot");
+  assert_equals(html_direction(slot), "ltr");
+  tree.remove();
+}, 'dir=auto slot is not affected by value of auto-directionality form associated elements');
+
+test(() => {
+  let [tree, shadow] = setup_tree(`
+    <div>
+      <div id=root><div slot="inner">اختبر</div></div>
+    </div>
+  `,`
+    <slot name="outer">
+      <slot name="inner" dir="auto"></slot>
+    </slot>
+  `);
+  let slot = shadow.querySelector("slot[name='inner']");
+  assert_equals(html_direction(slot), "rtl");
+  tree.remove();
+}, 'inner slot is given directionality from slotted content');
+
+test(() => {
+  let [tree, shadow] = setup_tree(`
+    <div>
+      <div id=root><div slot="inner">اختبر</div></div>
+    </div>
+  `,`
+    <slot name="outer" dir=auto>
+    </slot>
+  `);
+  let slot = shadow.querySelector("slot[name='outer']");
+  slot.innerHTML = "<slot name='inner'></slot>";
+  assert_equals(html_direction(slot), "ltr");
+  tree.remove();
+}, 'dir=auto slot is not affected by content inside inner slot (version 1)');
+
+// version 2 of the test is simpler, but initially exposed assertion failures
+// (maybe crashes?) in Chromium, so was added later.
+test(() => {
+  let [tree, shadow] = setup_tree(`
+    <div>
+      <div id=root><div slot="inner">اختبر</div></div>
+    </div>
+  `,`
+    <slot name="outer" dir=auto>
+      <slot name="inner"></slot>
+    </slot>
+  `);
+  let slot = shadow.querySelector("slot[name='outer']");
+  assert_equals(html_direction(slot), "ltr");
+  // do an extra intermediate removal to make sure it doesn't crash/assert:
+  tree.querySelector("div[slot='inner']").remove();
+  tree.remove();
+}, 'dir=auto slot is not affected by content inside inner slot (version 2)');
 
 </script>

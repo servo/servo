@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<title>Test window.fence.setReportEventDataForAutomaticBeacons</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/automatic-beacon-helper.js"></script>
+
+<body>
+<script>
+promise_test(async(t) => {
+  const fencedframe = await attachFencedFrameContext({
+    generator_api: 'fledge', register_beacon: true
+  });
+
+  const beacon = {
+    eventType: "reserved.top_navigation_start",
+    eventData: "This is the start data",
+    destination: ["buyer"],
+    crossOriginExposed: true
+  }
+
+  await fencedframe.execute(async (beacon) => {
+    const iframe = await attachIFrameContext({
+      origin: get_host_info().HTTPS_REMOTE_ORIGIN,
+      headers: [['Allow-Fenced-Frame-Automatic-Beacons', 'true']]
+    });
+    return setupAutomaticBeacon(iframe, [beacon],
+        "resources/close.html", NavigationTrigger.Click,
+        "_blank");
+  }, [beacon]);
+
+  await multiClick(10, 10, fencedframe.element)
+
+  // An automatic beacon should be sent, but no data should be attached to it,
+  // as it shouldn't have been able to be set from a cross-origin subframe.
+  await verifyBeaconData(beacon.eventType, "<No data>",
+      get_host_info().HTTPS_REMOTE_ORIGIN);
+
+  // Leaving this fenced frame around for subsequent tests can lead to
+  // flakiness.
+  document.body.removeChild(fencedframe.element);
+}, 'A cross origin subframe cannot set automatic beacon data.');
+
+</script>
+</body>

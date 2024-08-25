@@ -30,7 +30,11 @@ function buildMulGraph(context, operandDescriptor, multiplier) {
 }
 
 promise_test(async () => {
-  const operandDescriptor = {dataType: 'float32', dimensions: [1]};
+  const operandDescriptor = {
+    dataType: 'float32',
+    dimensions: [1],
+    usage: MLBufferUsage.WRITE_TO | MLBufferUsage.READ_FROM,
+  };
 
   const [mlGraph, inputBuffer1, inputBuffer2, outputBuffer] =
       await Promise.all([
@@ -66,7 +70,11 @@ promise_test(async () => {
 }, 'dispatch queues behind readBuffer');
 
 promise_test(async () => {
-  const operandDescriptor = {dataType: 'float32', dimensions: [1]};
+  const operandDescriptor = {
+    dataType: 'float32',
+    dimensions: [1],
+    usage: MLBufferUsage.WRITE_TO | MLBufferUsage.READ_FROM,
+  };
   const mlGraph = await buildMulGraph(mlContext, operandDescriptor, 3);
 
   // write/dispatch/read, write/dispatch/read, ...
@@ -90,7 +98,11 @@ promise_test(async () => {
 }, 'same graph: write/dispatch/read, write/dispatch/read, ...');
 
 promise_test(async () => {
-  const operandDescriptor = {dataType: 'float32', dimensions: [1]};
+  const operandDescriptor = {
+    dataType: 'float32',
+    dimensions: [1],
+    usage: MLBufferUsage.WRITE_TO | MLBufferUsage.READ_FROM,
+  };
   const mlGraph = await buildMulGraph(mlContext, operandDescriptor, 10);
 
   // write/write...
@@ -125,7 +137,11 @@ promise_test(async () => {
 }, 'same graph: write/write..., dispatch/read, dispatch/read, ...');
 
 promise_test(async () => {
-  const operandDescriptor = {dataType: 'float32', dimensions: [1]};
+  const operandDescriptor = {
+    dataType: 'float32',
+    dimensions: [1],
+    usage: MLBufferUsage.WRITE_TO | MLBufferUsage.READ_FROM,
+  };
   const mlGraph = await buildMulGraph(mlContext, operandDescriptor, 9);
 
   // write/write...
@@ -159,7 +175,11 @@ promise_test(async () => {
 }, 'same graph: write/write..., dispatch/dispatch..., read/read...');
 
 promise_test(async () => {
-  const operandDescriptor = {dataType: 'float32', dimensions: [1]};
+  const operandDescriptor = {
+    dataType: 'float32',
+    dimensions: [1],
+    usage: MLBufferUsage.WRITE_TO | MLBufferUsage.READ_FROM,
+  };
   const mlGraph = await buildMulGraph(mlContext, operandDescriptor, 2);
 
   const buffers = await Promise.all([
@@ -188,7 +208,11 @@ promise_test(async () => {
 }, 'same graph serial inputs: dispatch/dispatch..., read/read...');
 
 promise_test(async () => {
-  const operandDescriptor = {dataType: 'float32', dimensions: [1]};
+  const operandDescriptor = {
+    dataType: 'float32',
+    dimensions: [1],
+    usage: MLBufferUsage.WRITE_TO | MLBufferUsage.READ_FROM,
+  };
 
   // write/write...
   const testInputs = [1, 2, 3, 4];
@@ -223,7 +247,11 @@ promise_test(async () => {
 }, 'different graphs: write/write..., dispatch/read, dispatch/read, ...');
 
 promise_test(async () => {
-  const operandDescriptor = {dataType: 'float32', dimensions: [1]};
+  const operandDescriptor = {
+    dataType: 'float32',
+    dimensions: [1],
+    usage: MLBufferUsage.WRITE_TO | MLBufferUsage.READ_FROM,
+  };
 
   // write/write...
   const testInputs = [1, 2, 3, 4];
@@ -257,7 +285,11 @@ promise_test(async () => {
 }, 'different graphs: write/write..., dispatch/dispatch..., read/read...');
 
 promise_test(async () => {
-  const operandDescriptor = {dataType: 'float32', dimensions: [1]};
+  const operandDescriptor = {
+    dataType: 'float32',
+    dimensions: [1],
+    usage: MLBufferUsage.WRITE_TO | MLBufferUsage.READ_FROM,
+  };
 
   const graphs = await Promise.all([3, 2].map(async (multiplier) => {
     return buildMulGraph(mlContext, operandDescriptor, multiplier);
@@ -289,7 +321,11 @@ promise_test(async () => {
 }, 'different graphs serial inputs: dispatch/dispatch..., read/read...');
 
 promise_test(async () => {
-  const operandDescriptor = {dataType: 'float32', dimensions: [1]};
+  const operandDescriptor = {
+    dataType: 'float32',
+    dimensions: [1],
+    usage: MLBufferUsage.WRITE_TO | MLBufferUsage.READ_FROM,
+  };
 
   const graphs = await Promise.all([2, 3].map(async (multiplier) => {
     return buildMulGraph(mlContext, operandDescriptor, multiplier);
