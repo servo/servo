@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Shapes Module Level 2: parsing the shape() function</title>
+<link rel="help" href="https://drafts.csswg.org/css-shapes-2/#shape-function">
+<meta name="assert" content="Tests parsing of the circle() function">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_valid_value("clip-path", "shape(from 20px 40px, line to 20px 30px)");
+test_valid_value("clip-path", "shape(from 20px 40px, line to 20px 30px )", "shape(from 20px 40px, line to 20px 30px)");
+test_valid_value("clip-path", "shape(from 0 0, line to 100% 100%)", "shape(from 0px 0px, line to 100% 100%)");
+
+test_valid_value("clip-path", "shape(from 20px 40px, move to 20px 30px, line by 20px 30px)");
+test_valid_value("clip-path", "shape(from 20px 40px, move to 20px 30px, hline to 100px)");
+test_valid_value("clip-path", "shape(from 20px 40px, move to 20px 30px, hline by 100%)");
+test_valid_value("clip-path", "shape(from 20px 40px, move to 20px 30px, vline to 100px)");
+test_valid_value("clip-path", "shape(from 20px 40px, move to 20px 30px, vline by 100%)");
+
+test_valid_value("clip-path", "shape(from 20px 40px, curve by 20px 20px using 10px 30px)");
+test_valid_value("clip-path", "shape(from 20px 40px, curve by 20px 20px using 10px 30px 12px 32px)");
+
+test_valid_value("clip-path", "shape(from 20px 40px, smooth by 20px 20px)");
+test_valid_value("clip-path", "shape(from 20px 40px, smooth by 20px 20px using 12px 32px)");
+
+test_valid_value("clip-path", "shape(from 20px 40px, arc by 20px 20px of 10%)");
+test_valid_value("clip-path", "shape(from 20px 40px, arc by 20px 20px of 0)", "shape(from 20px 40px, arc by 20px 20px of 0px)");
+test_valid_value("clip-path", "shape(from 20px 40px, arc by 20px 20px of 10% 0)", "shape(from 20px 40px, arc by 20px 20px of 10% 0px)");
+test_valid_value("clip-path", "shape(from 20px 40px, arc by 20px 20px of 10% rotate 0deg)", "shape(from 20px 40px, arc by 20px 20px of 10%)");
+test_valid_value("clip-path", "shape(from 20px 40px, arc by 20px 20px of 10% 20%)");
+
+test_valid_value("clip-path", "shape(from 20px 40px, arc by 20px 20px of 10% 20% cw)");
+test_valid_value("clip-path", "shape(from 20px 40px, arc by 20px 20px of 10% 20% large)");
+
+test_valid_value("clip-path", "shape(from 20px 40px, arc by 20px 20px of -10% -20% large)");
+
+test_valid_value("clip-path", "shape(from 20px 40px, arc by 20px 20px of 10% rotate 1deg)");
+test_valid_value("clip-path", "shape(from 20px 40px, arc by 20px 20px of 10% 20% cw rotate 12deg)");
+test_valid_value("clip-path", "shape(from 20px 40px, arc by 20px 20px of 10% 20% cw rotate 0.52rad)");
+test_valid_value("clip-path", "shape(from 20px 40px, arc by 20px 20px of 10% 20% large rotate 12deg)");
+test_valid_value("clip-path", "shape(from 20px 40px, arc by 20px 20px of 10% 20% cw large)");
+test_valid_value("clip-path", "shape(from 20px 40px, arc by 20px 20px of 10% 20% large cw)", "shape(from 20px 40px, arc by 20px 20px of 10% 20% cw large)");
+test_valid_value("clip-path", "shape(from 20px 40px, arc by 20px 20px of 10% 20% rotate 12deg large)", "shape(from 20px 40px, arc by 20px 20px of 10% 20% large rotate 12deg)");
+</script>
+</body>
+</html>

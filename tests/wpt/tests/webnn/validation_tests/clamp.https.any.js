@@ -11,39 +11,25 @@ validateInputFromAnotherBuilder('clamp');
 
 const label = '123_clamp';
 
-validateUnaryOperation('clamp', allWebNNOperandDataTypes, label);
+validateSingleInputOperation('clamp', label);
 
 promise_test(async t => {
   const builder = new MLGraphBuilder(context);
   const options = {minValue: 1.0, maxValue: 3.0};
-  if (!context.opSupportLimits().input.dataTypes.includes('uint32')) {
-    assert_throws_js(
-        TypeError,
-        () => builder.input(
-            'input', {dataType: 'uint32', dimensions: [1, 2, 3]}));
-    return;
-  }
   const input =
-      builder.input('input', {dataType: 'uint32', dimensions: [1, 2, 3]});
+      builder.input('input', {dataType: 'float32', dimensions: [1, 2, 3]});
   const output = builder.clamp(input, options);
-  assert_equals(output.dataType(), 'uint32');
+  assert_equals(output.dataType(), 'float32');
   assert_array_equals(output.shape(), [1, 2, 3]);
 }, '[clamp] Build with options');
 
 promise_test(async t => {
   const builder = new MLGraphBuilder(context);
   const options = {minValue: 0, maxValue: 0};
-  if (!context.opSupportLimits().input.dataTypes.includes('int32')) {
-    assert_throws_js(
-        TypeError,
-        () => builder.input(
-            'input', {dataType: 'int32', dimensions: [1, 2, 3, 4]}));
-    return;
-  }
   const input =
-      builder.input('input', {dataType: 'int32', dimensions: [1, 2, 3, 4]});
+      builder.input('input', {dataType: 'float32', dimensions: [1, 2, 3, 4]});
   const output = builder.clamp(input, options);
-  assert_equals(output.dataType(), 'int32');
+  assert_equals(output.dataType(), 'float32');
   assert_array_equals(output.shape(), [1, 2, 3, 4]);
 }, '[clamp] Build with options.minValue == options.maxValue');
 
@@ -54,15 +40,8 @@ promise_test(async t => {
     maxValue: 1.0,
     label: label,
   };
-  if (!context.opSupportLimits().input.dataTypes.includes('uint8')) {
-    assert_throws_js(
-        TypeError,
-        () =>
-            builder.input('input', {dataType: 'uint8', dimensions: [1, 2, 3]}));
-    return;
-  }
   const input =
-      builder.input('input', {dataType: 'uint8', dimensions: [1, 2, 3]});
+      builder.input('input', {dataType: 'float32', dimensions: [1, 2, 3]});
   const regrexp = new RegExp('\\[' + label + '\\]');
   assert_throws_with_label(() => builder.clamp(input, options), regrexp);
 }, '[clamp] Throw if options.minValue > options.maxValue');
@@ -75,6 +54,6 @@ promise_test(async t => {
     minValue: -Infinity,
     label: label,
   };
-  const input = builder.input('input', {dataType: 'float16', dimensions: []});
+  const input = builder.input('input', {dataType: 'float32', dimensions: []});
   assert_throws_js(TypeError, () => builder.clamp(input, options));
 }, '[clamp] Throw if options.minValue is -Infinity');

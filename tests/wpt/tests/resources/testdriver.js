@@ -1128,7 +1128,7 @@
          * deleted hosts.
          *
          * Matches the `Run Bounce Tracking Mitigations
-         * https://privacycg.github.io/nav-tracking-mitigations/#run-bounce-tracking-mitigations-command`_
+         * <https://privacycg.github.io/nav-tracking-mitigations/#run-bounce-tracking-mitigations-command>`_
          * WebDriver command.
          *
          * @param {WindowProxy} [context=null] - Browsing context in which to

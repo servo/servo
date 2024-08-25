@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Viewport Segments: viewport.segments</title>
+<link rel="help" href="https://drafts.csswg.org/css-viewport-1/"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+"use strict";
+
+test(() => {
+  assert_true('segments' in viewport, "`segments` must be a property of viewport.");
+  assert_equals(viewport.segments, null, "For a viewport not segmented, no segments must be exposed.");
+});
+</script>

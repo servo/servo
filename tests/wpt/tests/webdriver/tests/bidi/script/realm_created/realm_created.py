@@ -1,3 +1,5 @@
+# META: timeout=long
+
 import pytest
 from tests.support.sync import AsyncPoll
 
@@ -21,7 +23,8 @@ async def test_unsubscribe(bidi_session):
     async def on_event(method, data):
         events.append(data)
 
-    remove_listener = bidi_session.add_event_listener(REALM_CREATED_EVENT, on_event)
+    remove_listener = bidi_session.add_event_listener(
+        REALM_CREATED_EVENT, on_event)
 
     await bidi_session.browsing_context.create(type_hint="tab")
 
@@ -39,11 +42,13 @@ async def test_create_context(bidi_session, subscribe_events, type_hint):
     async def on_event(method, data):
         events.append(data)
 
-    remove_listener = bidi_session.add_event_listener(REALM_CREATED_EVENT, on_event)
+    remove_listener = bidi_session.add_event_listener(
+        REALM_CREATED_EVENT, on_event)
 
     new_context = await bidi_session.browsing_context.create(type_hint=type_hint)
 
-    wait = AsyncPoll(bidi_session, message="Didn't receive realm created events")
+    wait = AsyncPoll(
+        bidi_session, message="Didn't receive realm created events")
     await wait.until(lambda _: len(events) >= 1)
 
     result = await bidi_session.script.get_realms(context=new_context["context"])
@@ -61,7 +66,8 @@ async def test_navigate(bidi_session, subscribe_events, inline, new_tab):
     async def on_event(method, data):
         events.append(data)
 
-    remove_listener = bidi_session.add_event_listener(REALM_CREATED_EVENT, on_event)
+    remove_listener = bidi_session.add_event_listener(
+        REALM_CREATED_EVENT, on_event)
 
     await bidi_session.browsing_context.navigate(
         context=new_tab["context"], url=inline("<div>foo</div>"), wait="complete"
@@ -86,7 +92,8 @@ async def test_reload(bidi_session, subscribe_events, new_tab, inline):
     async def on_event(method, data):
         events.append(data)
 
-    remove_listener = bidi_session.add_event_listener(REALM_CREATED_EVENT, on_event)
+    remove_listener = bidi_session.add_event_listener(
+        REALM_CREATED_EVENT, on_event)
 
     await bidi_session.browsing_context.reload(
         context=new_tab["context"], wait="complete"
@@ -135,7 +142,8 @@ async def test_iframe(bidi_session, subscribe_events, top_context, inline, domai
     async def on_event(method, data):
         events.append(data)
 
-    remove_listener = bidi_session.add_event_listener(REALM_CREATED_EVENT, on_event)
+    remove_listener = bidi_session.add_event_listener(
+        REALM_CREATED_EVENT, on_event)
 
     frame_url = inline("<div>foo</div>")
     url = inline(f"<iframe src='{frame_url}'></iframe>", domain=domain)
@@ -168,7 +176,8 @@ async def test_subscribe_to_one_context(
     async def on_event(method, data):
         events.append(data)
 
-    remove_listener = bidi_session.add_event_listener(REALM_CREATED_EVENT, on_event)
+    remove_listener = bidi_session.add_event_listener(
+        REALM_CREATED_EVENT, on_event)
 
     await bidi_session.browsing_context.navigate(
         context=top_context["context"], url=inline("<div>foo</div>"), wait="complete"
@@ -192,7 +201,7 @@ async def test_subscribe_to_one_context(
 
 @pytest.mark.parametrize("method", ["evaluate", "call_function"])
 async def test_script_when_realm_is_created(
-    bidi_session, subscribe_events, new_tab, wait_for_event,wait_for_future_safe, inline, method
+    bidi_session, subscribe_events, new_tab, wait_for_event, wait_for_future_safe, inline, method
 ):
     await bidi_session.browsing_context.navigate(
         context=new_tab["context"], url=inline("<div>foo</div>"), wait="complete"
@@ -246,10 +255,12 @@ async def test_dedicated_worker(
             nonlocal window_realm
             window_realm = data
 
-    remove_listener = bidi_session.add_event_listener(REALM_CREATED_EVENT, on_event)
+    remove_listener = bidi_session.add_event_listener(
+        REALM_CREATED_EVENT, on_event)
 
     worker_url = inline("while(true){}", doctype="js")
-    url = inline(f"<script>const worker = new Worker('{worker_url}');</script>")
+    url = inline(
+        f"<script>const worker = new Worker('{worker_url}');</script>")
     await bidi_session.browsing_context.navigate(
         url=url, context=top_context["context"], wait="complete"
     )
@@ -291,7 +302,8 @@ async def test_shared_worker(
             nonlocal window_realm
             window_realm = data
 
-    remove_listener = bidi_session.add_event_listener(REALM_CREATED_EVENT, on_event)
+    remove_listener = bidi_session.add_event_listener(
+        REALM_CREATED_EVENT, on_event)
 
     worker_url = inline("while(true){}", doctype="js")
     url = inline(
@@ -339,7 +351,8 @@ async def test_service_worker(
             nonlocal window_realm
             window_realm = data
 
-    remove_listener = bidi_session.add_event_listener(REALM_CREATED_EVENT, on_event)
+    remove_listener = bidi_session.add_event_listener(
+        REALM_CREATED_EVENT, on_event)
 
     worker_url = inline("while(true){}", doctype="js")
     url = inline(
@@ -360,6 +373,31 @@ async def test_service_worker(
             "type": "service-worker",
             "realm": any_string,
             "origin": worker_url,
+        },
+        realm,
+    )
+
+
+@pytest.mark.parametrize("type_hint", ["tab", "window"])
+async def test_existing_realm(bidi_session, wait_for_event, wait_for_future_safe, subscribe_events, test_origin, type_hint):
+    # See https://w3c.github.io/webdriver-bidi/#event-script-realmCreated
+    # "The remote end subscribe steps with subscribe priority 2"
+    top_level_context = await bidi_session.browsing_context.create(type_hint=type_hint)
+
+    await bidi_session.browsing_context.navigate(
+        context=top_level_context["context"], url=test_origin, wait="complete"
+    )
+
+    on_entry = wait_for_event(REALM_CREATED_EVENT)
+    await subscribe_events([REALM_CREATED_EVENT], contexts=[top_level_context["context"]])
+    realm = await wait_for_future_safe(on_entry)
+
+    recursive_compare(
+        {
+            "type": "window",
+            "context": top_level_context["context"],
+            "realm": any_string,
+            "origin": test_origin,
         },
         realm,
     )

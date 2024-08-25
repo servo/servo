@@ -16,7 +16,7 @@ promise_test(async t => {
   let getCredentialPromise, credentialGotten;
 
   await test_driver.bless();
-  getCredentialPromise = navigator.credentials.get({identity: {providers: [{origin: "https://{{hosts[alt][]}}:{{ports[https][0]}}/", loginURL : `https://{{hosts[alt][]}}:{{ports[https][0]}}/fedcm/support/lfedcm-identity.provider-create.sub.html?id=wpt-pick-me&origin=${encodeURIComponent("https://{{hosts[][]}}:{{ports[https][0]}}/")}`, loginTarget : "popup"}]}});
+  getCredentialPromise = navigator.credentials.get({identity: {providers: [{origin: "https://{{hosts[alt][]}}:{{ports[https][0]}}/", loginURL : `https://{{hosts[alt][]}}:{{ports[https][0]}}/fedcm/support/lfedcm-identity.provider-create.sub.html?id=wpt-pick-me&origin=${encodeURIComponent("https://{{hosts[][]}}:{{ports[https][0]}}/")}&close=true`, loginTarget : "popup"}]}});
   credentialGotten = await getCredentialPromise;
   fedcm_select_account_promise(t, 0);
   assert_not_equals(credentialGotten, null, "A discovered credential is returned from the CredentialContainer.");
@@ -28,7 +28,7 @@ promise_test(async t => {
   let getCredentialPromise, credentialGotten;
 
   await test_driver.bless();
-  getCredentialPromise = navigator.credentials.get({identity: {providers: [{loginURL : `https://{{hosts[alt][]}}:{{ports[https][0]}}/fedcm/support/lfedcm-identity.provider-create.sub.html?id=wpt-pick-me&origin=${encodeURIComponent("https://{{hosts[][]}}:{{ports[https][0]}}/")}`, loginTarget : "popup"}]}});
+  getCredentialPromise = navigator.credentials.get({identity: {providers: [{loginURL : `https://{{hosts[alt][]}}:{{ports[https][0]}}/fedcm/support/lfedcm-identity.provider-create.sub.html?id=wpt-pick-me&origin=${encodeURIComponent("https://{{hosts[][]}}:{{ports[https][0]}}/")}&close=true`, loginTarget : "popup"}]}});
   fedcm_select_account_promise(t, 0);
   credentialGotten = await getCredentialPromise;
   assert_not_equals(credentialGotten, null, "A discovered credential is returned from the CredentialContainer.");
@@ -40,7 +40,7 @@ promise_test(async t => {
   let getCredentialPromise, credentialGotten;
 
   await test_driver.bless();
-  getCredentialPromise = navigator.credentials.get({identity: {providers: [{origin: "https://{{hosts[alt][]}}:{{ports[https][0]}}/", loginURL : `https://{{hosts[alt][]}}:{{ports[https][0]}}/fedcm/support/lfedcm-identity.provider-create.sub.html?id=wpt-pick-me&url=cors`, loginTarget : "popup", effectiveQueryURL: "https://{{hosts[alt][]}}:{{ports[https][0]}}/fedcm/support/acao-cors.py"}]}});
+  getCredentialPromise = navigator.credentials.get({identity: {providers: [{origin: "https://{{hosts[alt][]}}:{{ports[https][0]}}/", loginURL : `https://{{hosts[alt][]}}:{{ports[https][0]}}/fedcm/support/lfedcm-identity.provider-create.sub.html?id=wpt-pick-me&url=cors&close=true`, loginTarget : "popup", effectiveQueryURL: "https://{{hosts[alt][]}}:{{ports[https][0]}}/fedcm/support/acao-cors.py"}]}});
   fedcm_select_account_promise(t, 0);
   credentialGotten = await getCredentialPromise;
   assert_not_equals(credentialGotten, null, "A discovered credential is returned from the CredentialContainer.");
@@ -64,12 +64,12 @@ promise_test(async t => {
 
   await test_driver.bless();
   let state = "pending";
-  getCredentialPromise = navigator.credentials.get({identity: {providers: [{origin: "https://{{hosts[alt][]}}:{{ports[https][0]}}/", loginURL : `https://{{hosts[alt][]}}:{{ports[https][0]}}/fedcm/support/lfedcm-identity.provider-create.sub.html?id=wpt-pick-me&postMessage&origin=${encodeURIComponent("https://{{hosts[alt][]}}:{{ports[https][0]}}/")}`, loginTarget : "popup"}]}});
+  getCredentialPromise = navigator.credentials.get({identity: {providers: [{origin: "https://{{hosts[alt][]}}:{{ports[https][0]}}/", loginURL : `https://{{hosts[alt][]}}:{{ports[https][0]}}/fedcm/support/lfedcm-identity.provider-create.sub.html?id=wpt-pick-me&postMessage&origin=${encodeURIComponent("https://{{hosts[alt][]}}:{{ports[https][0]}}/")}&close=true`, loginTarget : "popup"}]}});
   getCredentialPromise.finally(() => {state = "fulfilled"});
   await createdPromise;
   assert_equals(state, "pending", "promise is not fulfilled during discovery window by get.");
 
-  window.open(`https://{{hosts[alt][]}}:{{ports[https][0]}}/fedcm/support/lfedcm-identity.provider-create.sub.html?id=wpt-pick-me&origin=${encodeURIComponent("https://{{hosts[][]}}:{{ports[https][0]}}/")}`);
+  window.open(`https://{{hosts[alt][]}}:{{ports[https][0]}}/fedcm/support/lfedcm-identity.provider-create.sub.html?id=wpt-pick-me&origin=${encodeURIComponent("https://{{hosts[][]}}:{{ports[https][0]}}/")}&close=true`);
   fedcm_select_account_promise(t, 0);
   credentialGotten = await getCredentialPromise;
 
@@ -95,12 +95,12 @@ promise_test(async t => {
 
   await test_driver.bless();
   let state = "pending";
-  getCredentialPromise = navigator.credentials.get({identity: {providers: [{origin: "https://{{hosts[alt][]}}:{{ports[https][0]}}/", loginURL : `https://{{hosts[alt][www]}}:{{ports[https][0]}}/fedcm/support/lfedcm-identity.provider-create.sub.html?id=wpt-pick-me&postMessage&origin=${encodeURIComponent("https://{{hosts[][]}}:{{ports[https][0]}}/")}`, loginTarget : "popup"}]}});
+  getCredentialPromise = navigator.credentials.get({identity: {providers: [{origin: "https://{{hosts[alt][]}}:{{ports[https][0]}}/", loginURL : `https://{{hosts[alt][www]}}:{{ports[https][0]}}/fedcm/support/lfedcm-identity.provider-create.sub.html?id=wpt-pick-me&postMessage&origin=${encodeURIComponent("https://{{hosts[][]}}:{{ports[https][0]}}/")}&close=true`, loginTarget : "popup"}]}});
   getCredentialPromise.finally(() => {state = "fulfilled"});
   await createdPromise;
   assert_equals(state, "pending", "promise is not fulfilled during discovery window by get.");
 
-  window.open(`https://{{hosts[alt][]}}:{{ports[https][0]}}/fedcm/support/lfedcm-identity.provider-create.sub.html?id=wpt-pick-me&origin=${encodeURIComponent("https://{{hosts[][]}}:{{ports[https][0]}}")}`);
+  window.open(`https://{{hosts[alt][]}}:{{ports[https][0]}}/fedcm/support/lfedcm-identity.provider-create.sub.html?id=wpt-pick-me&origin=${encodeURIComponent("https://{{hosts[][]}}:{{ports[https][0]}}")}&close=true`);
   credentialGotten = await getCredentialPromise;
   fedcm_select_account_promise(t, 0);
   assert_not_equals(credentialGotten, null, "Resolved with credential because the credential was stored.");

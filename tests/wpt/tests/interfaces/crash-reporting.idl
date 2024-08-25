@@ -7,4 +7,5 @@
 interface CrashReportBody : ReportBody {
   [Default] object toJSON();
   readonly attribute DOMString? reason;
+  readonly attribute DOMString? stack;
 };

@@ -4,9 +4,10 @@
 <script src="/resources/testdriver-vendor.js"></script>
 <script>
 (async function() {
+  test_driver.set_test_context(window.opener);
+
   // Step 3 (partitioned-popins/partitioned-popins.cookies.tentative.sub.https.window.js)
   const id = (new URLSearchParams(window.location.search)).get("id");
-  test_driver.set_test_context(window.top);
   document.cookie = "first-party-strict=" + id + "; SameSite=Strict; Secure";
   document.cookie = "first-party-lax=" + id + "; SameSite=Lax; Secure";
   document.cookie = "first-party-none=" + id + "; SameSite=None; Secure";

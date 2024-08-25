@@ -29,8 +29,11 @@ promise_setup(async () => {
   }
 
   try {
-    mlBuffer =
-        await mlContext.createBuffer({dataType: 'int32', dimensions: [2, 4]});
+    mlBuffer = await mlContext.createBuffer({
+      dataType: 'int32',
+      dimensions: [2, 4],
+      usage: MLBufferUsage.WRITE_TO | MLBufferUsage.READ_FROM,
+    });
   } catch (e) {
     throw new AssertionError(
         `Unable to create buffer for ${variant} variant. ${e}`);
@@ -135,8 +138,11 @@ promise_test(async () => {
 }, `readBuffer() with a larger TypedArray`);
 
 promise_test(async (t) => {
-  const buffer =
-      await mlContext.createBuffer({dataType: 'int32', dimensions: [2, 2]});
+  const buffer = await mlContext.createBuffer({
+    dataType: 'int32',
+    dimensions: [2, 2],
+    usage: MLBufferUsage.READ_FROM,
+  });
   const arrayBufferView = new Int32Array(2 * 2);
   const arrayBuffer = arrayBufferView.buffer;
 
@@ -150,8 +156,11 @@ promise_test(async (t) => {
 }, `readBuffer() rejects on a destroyed MLBuffer`);
 
 promise_test(async (t) => {
-  const buffer =
-      await mlContext.createBuffer({dataType: 'int32', dimensions: [2, 2]});
+  const buffer = await mlContext.createBuffer({
+    dataType: 'int32',
+    dimensions: [2, 2],
+    usage: MLBufferUsage.READ_FROM,
+  });
   const arrayBufferView = new Int32Array(2 * 2);
   const arrayBuffer = arrayBufferView.buffer;
 

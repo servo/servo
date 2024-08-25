@@ -18,9 +18,12 @@
   }
 
   .test {
+    > .test-2 {
+      background-color: green;
+    }
     @supports (selector(> .test-2)) {
       > .test-2 {
-        background-color: green;
+        background-color: red;
       }
     }
   }

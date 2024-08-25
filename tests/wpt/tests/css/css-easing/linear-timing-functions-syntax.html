@@ -14,6 +14,7 @@
 <div id="target"></div>
 <script>
 test_valid_value("animation-timing-function", "linear(0 0%, 1 100%)");
+test_valid_value("animation-timing-function", "linear( 0 0%, 1 100% )", "linear(0 0%, 1 100%)");
 test_valid_value("animation-timing-function", "linear(0 0% 50%, 1 50% 100%)", "linear(0 0%, 0 50%, 1 50%, 1 100%)");
 test_valid_value("animation-timing-function", "linear(0, 0.5 25% 75%, 1 100% 100%)", "linear(0 0%, 0.5 25%, 0.5 75%, 1 100%, 1 100%)");
 test_valid_value("animation-timing-function", "linear(0, 1.3, 1, 0.92, 1, 0.99, 1, 1.004, 0.998, 1 100% 100%)", "linear(0 0%, 1.3 11.1111%, 1 22.2222%, 0.92 33.3333%, 1 44.4444%, 0.99 55.5556%, 1 66.6667%, 1.004 77.7778%, 0.998 88.8889%, 1 100%, 1 100%)");

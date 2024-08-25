@@ -77,6 +77,37 @@
     }
   </style>
 </custom-element-wrapper>
+<div>
+  <template shadowrootmode=open>
+    <!-- Inside a shadow root -->
+    <custom-element-wrapper>
+      <style slot="a">
+        @scope {
+          :scope::part(a) {
+            background: blue;
+          }
+        }
+      </style>
+    </custom-element-wrapper>
+  </template>
+</div>
+<div>
+  <template shadowrootmode=open>
+    <!-- Shadow root & host at the same time -->
+    <div style="padding: 5px;">
+      <template shadowrootmode=open>
+        <div></div>
+      </template>
+      <style>
+        @scope {
+          :scope {
+            background: red;
+          }
+        }
+      </style>
+    </div>
+  </template>
+</div>
 <script>
 customElements.define(
   "custom-element",

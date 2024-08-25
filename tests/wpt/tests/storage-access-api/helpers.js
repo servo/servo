@@ -30,10 +30,13 @@ async function CreateFrameHelper(setUpFrame, fetchTests) {
 // the document, and optionally fetch tests. Returns the loaded frame, once
 // ready.
 function CreateFrame(
-  sourceURL, fetchTests = false, frameSandboxAttribute = undefined) {
+  sourceURL, fetchTests = false, frameSandboxAttribute = undefined, frameAllowAttribute = undefined) {
   return CreateFrameHelper((frame) => {
     if (frameSandboxAttribute !== undefined) {
       frame.sandbox = frameSandboxAttribute;
+    }
+    if (frameAllowAttribute !== undefined) {
+      frame.setAttribute("allow", frameAllowAttribute);
     }
 
     frame.src = sourceURL;
@@ -224,6 +227,11 @@ function FrameHasStorageAccess(frame) {
 function RequestStorageAccessInFrame(frame) {
   return PostMessageAndAwaitReply(
       { command: "requestStorageAccess" }, frame.contentWindow);
+}
+
+function GetPermissionInFrame(frame) {
+  return PostMessageAndAwaitReply(
+    { command: "get_permission" }, frame.contentWindow);
 }
 
 // Executes test_driver.set_permission in the given frame, with the provided

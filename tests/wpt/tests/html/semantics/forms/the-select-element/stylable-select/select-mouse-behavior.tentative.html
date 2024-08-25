@@ -15,8 +15,7 @@ select {
 }
 </style>
 
-<!-- TODO(http://crbug.com/1511354): Add test cases with no <button> and no <datalist>. -->
-<select>
+<select id=custombutton-customdatalist>
   <button>button</button>
   <datalist>
     <option class=one>one</option>
@@ -24,39 +23,61 @@ select {
   </datalist>
 </select>
 
+<select id=custombutton-fallbackdatalist>
+  <button>button</button>
+  <option class=one>one</option>
+  <option class=two>two</option>
+</select>
+
+<select id=fallbackbutton-customdatalist>
+  <datalist>
+    <option class=one>one</option>
+    <option class=two>two</option>
+  </datalist>
+</select>
+
+<select id=fallbackbutton-fallbackdatalist>
+  <option class=one>one</option>
+  <option class=two>two</option>
+</select>
+
 <script>
-const select = document.querySelector('select');
-const button = document.querySelector('button');
-const optionOne = document.querySelector('option.one');
-const optionTwo = document.querySelector('option.two');
+for (const id of ['fallbackbutton-fallbackdatalist',
+                  'fallbackbutton-customdatalist',
+                  'custombutton-fallbackdatalist',
+                  'custombutton-customdatalist']) {
+  const select = document.getElementById(id);
+  const optionOne = select.querySelector('option.one');
+  const optionTwo = select.querySelector('option.two');
 
-promise_test(async () => {
-  assert_false(select.matches(':open'),
-    'Select should be closed at the start of the test.');
+  promise_test(async () => {
+    assert_false(select.matches(':open'),
+      'Select should be closed at the start of the test.');
 
-  await test_driver.click(button);
-  assert_true(select.matches(':open'),
-    'Select should be open after clicking the button.');
+    await test_driver.click(select);
+    assert_true(select.matches(':open'),
+      'Select should be open after clicking the button.');
 
-  await test_driver.click(button);
-  assert_false(select.matches(':open'),
-    'Select should be closed after clicking the button a second time.');
-}, 'Select with appearance:base-select should open and close when clicking the button.');
+    await test_driver.click(select);
+    assert_false(select.matches(':open'),
+      'Select should be closed after clicking the button a second time.');
+  }, `${id}: Select with appearance:base-select should open and close when clicking the button.`);
 
-promise_test(async () => {
-  assert_false(select.matches(':open'),
-    'Select should be closed at the start of the test.');
-  assert_equals(select.value, 'one',
-    'Select.value should be one at the start of the test.');
+  promise_test(async () => {
+    assert_false(select.matches(':open'),
+      'Select should be closed at the start of the test.');
+    assert_equals(select.value, 'one',
+      'Select.value should be one at the start of the test.');
 
-  await test_driver.click(button);
-  assert_true(select.matches(':open'),
-    'Select should be open after clicking the button.');
+    await test_driver.click(select);
+    assert_true(select.matches(':open'),
+      'Select should be open after clicking the button.');
 
-  await test_driver.click(optionTwo);
-  assert_false(select.matches(':open'),
-    'Select should be closed after clicking an option.');
-  assert_equals(select.value, 'two',
-    'Select.value should be two after clicking the option.');
-}, 'Clicking an option in an appearance:base-select select should choose the option and close the popover.');
+    await test_driver.click(optionTwo);
+    assert_false(select.matches(':open'),
+      'Select should be closed after clicking an option.');
+    assert_equals(select.value, 'two',
+      'Select.value should be two after clicking the option.');
+  }, `${id}: Clicking an option in an appearance:base-select select should choose the option and close the popover.`);
+}
 </script>

@@ -14,13 +14,18 @@ function ModifyAndWrite(chunk, transformer) {
 }
 
 function RestoreAndWrite(chunk, transformer) {
-    const value = new Uint8Array(chunk.value.data)[chunk.value.data.byteLength - 1];
+    const lastByte = new Uint8Array(chunk.value.data)[chunk.value.data.byteLength - 1];
     chunk.value.data = chunk.value.data.slice(0, chunk.value.data.byteLength - 1);
+    let frameData = chunk.value.data;
     transformer.writer.write(chunk.value);
-    if (value === modification && !chunk.value.getMetadata().rtpTimestamp)
+    if (lastByte === modification && !chunk.value.getMetadata().rtpTimestamp && frameData.byteLength == 0) {
         self.postMessage("got expected");
-    else
-        self.postMessage("unexpected value: " + value);
+    }
+    else {
+        self.postMessage("unexpected value, lastByte" + lastByte +
+            ",  frame data length: " + frameData.byteLength + " rtpTimestamp: ",
+             chunk.value.getMetadata().rtpTimestamp);
+    }
 }
 onrtctransform = (event) => {
     const transformer = event.transformer;

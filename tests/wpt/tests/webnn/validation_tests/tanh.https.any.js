@@ -10,4 +10,4 @@
 validateInputFromAnotherBuilder('tanh');
 
 const label = 'tanh-xxx';
-validateUnaryOperation('tanh', floatingPointTypes, label);
+validateSingleInputOperation('tanh', label);
