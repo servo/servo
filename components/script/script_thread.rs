@@ -2531,11 +2531,32 @@ impl ScriptThread {
             DevtoolScriptControlMsg::GetChildren(id, node_id, reply) => {
                 devtools::handle_get_children(&documents, id, node_id, reply)
             },
+            DevtoolScriptControlMsg::GetAttributeStyle(id, node_id, reply) => {
+                devtools::handle_get_attribute_style(&documents, id, node_id, reply)
+            },
+            DevtoolScriptControlMsg::GetStylesheetStyle(
+                id,
+                node_id,
+                selector,
+                stylesheet,
+                reply,
+            ) => devtools::handle_get_stylesheet_style(
+                &documents, id, node_id, selector, stylesheet, reply,
+            ),
+            DevtoolScriptControlMsg::GetSelectors(id, node_id, reply) => {
+                devtools::handle_get_selectors(&documents, id, node_id, reply)
+            },
+            DevtoolScriptControlMsg::GetComputedStyle(id, node_id, reply) => {
+                devtools::handle_get_computed_style(&documents, id, node_id, reply)
+            },
             DevtoolScriptControlMsg::GetLayout(id, node_id, reply) => {
                 devtools::handle_get_layout(&documents, id, node_id, reply)
             },
             DevtoolScriptControlMsg::ModifyAttribute(id, node_id, modifications) => {
                 devtools::handle_modify_attribute(&documents, id, node_id, modifications)
+            },
+            DevtoolScriptControlMsg::ModifyRule(id, node_id, modifications) => {
+                devtools::handle_modify_rule(&documents, id, node_id, modifications)
             },
             DevtoolScriptControlMsg::WantsLiveNotifications(id, to_send) => match documents
                 .find_window(id)
@@ -2553,6 +2574,9 @@ impl ScriptThread {
                 devtools::handle_request_animation_frame(&documents, id, name)
             },
             DevtoolScriptControlMsg::Reload(id) => devtools::handle_reload(&documents, id),
+            DevtoolScriptControlMsg::GetCssDatabase(reply) => {
+                devtools::handle_get_css_database(reply)
+            },
         }
     }
 

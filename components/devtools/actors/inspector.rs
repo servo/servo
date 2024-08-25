@@ -29,6 +29,7 @@ pub mod highlighter;
 pub mod layout;
 pub mod node;
 pub mod page_style;
+pub mod style_rule;
 pub mod walker;
 
 #[derive(Serialize)]

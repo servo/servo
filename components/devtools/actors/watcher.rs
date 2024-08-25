@@ -59,7 +59,7 @@ impl SessionContext {
             // working propperly
             supported_resources: HashMap::from([
                 ("console-message", true),
-                ("css-change", false),
+                ("css-change", true),
                 ("css-message", false),
                 ("css-registered-properties", false),
                 ("document-event", false),

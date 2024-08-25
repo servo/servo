@@ -10,6 +10,7 @@
 #![crate_type = "rlib"]
 #![deny(unsafe_code)]
 
+use std::collections::HashMap;
 use std::net::TcpStream;
 use std::time::{Duration, SystemTime};
 
@@ -152,6 +153,14 @@ pub enum TimelineMarkerType {
     DOMEvent,
 }
 
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NodeStyle {
+    pub name: String,
+    pub value: String,
+    pub priority: String,
+}
+
 /// The properties of a DOM node as computed by layout.
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -201,10 +210,27 @@ pub enum DevtoolScriptControlMsg {
     GetDocumentElement(PipelineId, IpcSender<Option<NodeInfo>>),
     /// Retrieve the details of the child nodes of the given node in the given pipeline.
     GetChildren(PipelineId, String, IpcSender<Option<Vec<NodeInfo>>>),
+    /// Retrieve the CSS style properties defined in the attribute tag for the given node.
+    GetAttributeStyle(PipelineId, String, IpcSender<Option<Vec<NodeStyle>>>),
+    /// Retrieve the CSS style properties defined in an stylesheet for the given selector.
+    GetStylesheetStyle(
+        PipelineId,
+        String,
+        String,
+        usize,
+        IpcSender<Option<Vec<NodeStyle>>>,
+    ),
+    /// Retrieves the CSS selectors for the given node. A selector is comprised of the text
+    /// of the selector and the id of the stylesheet that contains it.
+    GetSelectors(PipelineId, String, IpcSender<Option<Vec<(String, usize)>>>),
+    /// Retrieve the computed CSS style properties for the given node.
+    GetComputedStyle(PipelineId, String, IpcSender<Option<Vec<NodeStyle>>>),
     /// Retrieve the computed layout properties of the given node in the given pipeline.
     GetLayout(PipelineId, String, IpcSender<Option<ComputedNodeLayout>>),
     /// Update a given node's attributes with a list of modifications.
-    ModifyAttribute(PipelineId, String, Vec<Modification>),
+    ModifyAttribute(PipelineId, String, Vec<AttrModification>),
+    /// Update a given node's style rules with a list of modifications.
+    ModifyRule(PipelineId, String, Vec<RuleModification>),
     /// Request live console messages for a given pipeline (true if desired, false otherwise).
     WantsLiveNotifications(PipelineId, bool),
     /// Request live notifications for a given set of timeline events for a given pipeline.
@@ -220,13 +246,26 @@ pub enum DevtoolScriptControlMsg {
     RequestAnimationFrame(PipelineId, String),
     /// Direct the given pipeline to reload the current page.
     Reload(PipelineId),
+    /// Gets the list of all allowed CSS rules and possible values.
+    GetCssDatabase(IpcSender<HashMap<String, CssDatabaseProperty>>),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Modification {
+pub struct AttrModification {
     pub attribute_name: String,
     pub new_value: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RuleModification {
+    #[serde(rename = "type")]
+    pub type_: String,
+    pub index: u32,
+    pub name: String,
+    pub value: String,
+    pub priority: String,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -364,3 +403,12 @@ impl PreciseTime {
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
 pub struct WorkerId(pub Uuid);
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CssDatabaseProperty {
+    pub is_inherited: bool,
+    pub values: Vec<String>,
+    pub supports: Vec<String>,
+    pub subproperties: Vec<String>,
+}

@@ -5,67 +5,45 @@
 //! The page style actor is responsible of informing the DevTools client of the different style
 //! properties applied, including the attributes and layout of each element.
 
+use std::collections::hash_map::Entry;
 use std::collections::HashMap;
+use std::iter::once;
 use std::net::TcpStream;
 
 use base::id::PipelineId;
-use devtools_traits::DevtoolScriptControlMsg::GetLayout;
+use devtools_traits::DevtoolScriptControlMsg::{GetLayout, GetSelectors};
 use devtools_traits::{ComputedNodeLayout, DevtoolScriptControlMsg};
 use ipc_channel::ipc::{self, IpcSender};
 use serde::Serialize;
 use serde_json::{self, Map, Value};
 
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
+use crate::actors::inspector::node::NodeActor;
+use crate::actors::inspector::style_rule::{AppliedRule, ComputedDeclaration, StyleRuleActor};
+use crate::actors::inspector::walker::{find_child, WalkerActor};
 use crate::protocol::JsonPacketStream;
 use crate::StreamId;
 
 #[derive(Serialize)]
 struct GetAppliedReply {
     entries: Vec<AppliedEntry>,
-    rules: Vec<AppliedRule>,
-    sheets: Vec<AppliedSheet>,
     from: String,
 }
 
 #[derive(Serialize)]
 struct GetComputedReply {
-    computed: Vec<u32>, //XXX all css props
+    computed: HashMap<String, ComputedDeclaration>,
     from: String,
 }
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 struct AppliedEntry {
-    rule: String,
-    pseudo_element: Value,
+    rule: AppliedRule,
+    pseudo_element: Option<()>,
     is_system: bool,
-    matched_selectors: Vec<String>,
-}
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-struct AppliedRule {
-    actor: String,
-    #[serde(rename = "type")]
-    type_: String,
-    href: String,
-    css_text: String,
-    line: u32,
-    column: u32,
-    parent_style_sheet: String,
-}
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-struct AppliedSheet {
-    actor: String,
-    href: String,
-    node_href: String,
-    disabled: bool,
-    title: String,
-    system: bool,
-    style_sheet_index: isize,
-    rule_count: usize,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    inherited: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -125,13 +103,15 @@ impl Actor for PageStyleActor {
 
     /// The page style actor can handle the following messages:
     ///
-    /// - `getApplied`: Returns the applied styles for a node, placeholder
+    /// - `getApplied`: Returns the applied styles for a node, they represent the explicit css
+    /// rules set for them, both in the style attribute and in stylesheets.
     ///
-    /// - `getComputed`: Returns the computed styles for a node, placeholder
+    /// - `getComputed`: Returns the computed styles for a node, these include all of the supported
+    /// css properties calculated values.
     ///
-    /// - `getLayout`: Returns the box layout properties for a node, placeholder
+    /// - `getLayout`: Returns the box layout properties for a node.
     ///
-    /// - `isPositionEditable`: Informs whether you can change a style property in the inspector
+    /// - `isPositionEditable`: Informs whether you can change a style property in the inspector.
     fn handle_message(
         &self,
         registry: &ActorRegistry,
@@ -141,123 +121,231 @@ impl Actor for PageStyleActor {
         _id: StreamId,
     ) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
-            "getApplied" => {
-                // TODO: Query script for relevant applied styles to node (msg.node)
-                let msg = GetAppliedReply {
-                    entries: vec![],
-                    rules: vec![],
-                    sheets: vec![],
-                    from: self.name(),
-                };
-                let _ = stream.write_json_packet(&msg);
-                ActorMessageStatus::Processed
-            },
-
-            "getComputed" => {
-                // TODO: Query script for relevant computed styles on node (msg.node)
-                let msg = GetComputedReply {
-                    computed: vec![],
-                    from: self.name(),
-                };
-                let _ = stream.write_json_packet(&msg);
-                ActorMessageStatus::Processed
-            },
-
-            "getLayout" => {
-                // TODO: Query script for box layout properties of node (msg.node)
-                let target = msg.get("node").ok_or(())?.as_str().ok_or(())?;
-                let (tx, rx) = ipc::channel().map_err(|_| ())?;
-                self.script_chan
-                    .send(GetLayout(
-                        self.pipeline,
-                        registry.actor_to_script(target.to_owned()),
-                        tx,
-                    ))
-                    .unwrap();
-                let ComputedNodeLayout {
-                    display,
-                    position,
-                    z_index,
-                    box_sizing,
-                    auto_margins,
-                    margin_top,
-                    margin_right,
-                    margin_bottom,
-                    margin_left,
-                    border_top_width,
-                    border_right_width,
-                    border_bottom_width,
-                    border_left_width,
-                    padding_top,
-                    padding_right,
-                    padding_bottom,
-                    padding_left,
-                    width,
-                    height,
-                } = rx.recv().map_err(|_| ())?.ok_or(())?;
-
-                let msg_auto_margins = msg
-                    .get("autoMargins")
-                    .and_then(Value::as_bool)
-                    .unwrap_or(false);
-
-                // https://searchfox.org/mozilla-central/source/devtools/server/actors/page-style.js
-                let msg = GetLayoutReply {
-                    from: self.name(),
-                    display,
-                    position,
-                    z_index,
-                    box_sizing,
-                    auto_margins: if msg_auto_margins {
-                        let mut m = Map::new();
-                        let auto = serde_json::value::Value::String("auto".to_owned());
-                        if auto_margins.top {
-                            m.insert("top".to_owned(), auto.clone());
-                        }
-                        if auto_margins.right {
-                            m.insert("right".to_owned(), auto.clone());
-                        }
-                        if auto_margins.bottom {
-                            m.insert("bottom".to_owned(), auto.clone());
-                        }
-                        if auto_margins.left {
-                            m.insert("left".to_owned(), auto);
-                        }
-                        serde_json::value::Value::Object(m)
-                    } else {
-                        serde_json::value::Value::Null
-                    },
-                    margin_top,
-                    margin_right,
-                    margin_bottom,
-                    margin_left,
-                    border_top_width,
-                    border_right_width,
-                    border_bottom_width,
-                    border_left_width,
-                    padding_top,
-                    padding_right,
-                    padding_bottom,
-                    padding_left,
-                    width,
-                    height,
-                };
-                let msg = serde_json::to_string(&msg).map_err(|_| ())?;
-                let msg = serde_json::from_str::<Value>(&msg).map_err(|_| ())?;
-                let _ = stream.write_json_packet(&msg);
-                ActorMessageStatus::Processed
-            },
-
-            "isPositionEditable" => {
-                let msg = IsPositionEditableReply {
-                    from: self.name(),
-                    value: false,
-                };
-                let _ = stream.write_json_packet(&msg);
-                ActorMessageStatus::Processed
-            },
-
+            "getApplied" => self.get_applied(msg, registry, stream)?,
+            "getComputed" => self.get_computed(msg, registry, stream)?,
+            "getLayout" => self.get_layout(msg, registry, stream)?,
+            "isPositionEditable" => self.is_position_editable(stream),
             _ => ActorMessageStatus::Ignored,
         })
+    }
+}
+
+impl PageStyleActor {
+    fn get_applied(
+        &self,
+        msg: &Map<String, Value>,
+        registry: &ActorRegistry,
+        stream: &mut TcpStream,
+    ) -> Result<ActorMessageStatus, ()> {
+        let target = msg.get("node").ok_or(())?.as_str().ok_or(())?;
+        let node = registry.find::<NodeActor>(&target);
+        let walker = registry.find::<WalkerActor>(&node.walker);
+        let entries: Vec<_> = find_child(
+            &node.script_chan,
+            node.pipeline,
+            &target,
+            registry,
+            &walker.root_node.actor,
+            vec![],
+            |msg| msg.actor == target,
+        )
+        .unwrap_or_default()
+        .into_iter()
+        .filter_map(|node| {
+            let inherited = (node.actor != target).then(|| node.actor.clone());
+            let node_actor = registry.find::<NodeActor>(&node.actor);
+
+            // Get the css selectors that match this node present in the currently active stylesheets.
+            let selectors = (|| {
+                let (selectors_sender, selector_receiver) = ipc::channel().ok()?;
+                walker
+                    .script_chan
+                    .send(GetSelectors(
+                        walker.pipeline,
+                        registry.actor_to_script(node.actor.clone()),
+                        selectors_sender,
+                    ))
+                    .ok()?;
+                selector_receiver.recv().ok()?
+            })()
+            .unwrap_or_default();
+
+            // For each selector (plus an empty one that represents the style attribute)
+            // get all of the rules associated with it.
+            let entries =
+                once(("".into(), usize::MAX))
+                    .chain(selectors)
+                    .filter_map(move |selector| {
+                        let rule = match node_actor.style_rules.borrow_mut().entry(selector) {
+                            Entry::Vacant(e) => {
+                                let name = registry.new_name("style-rule");
+                                let actor = StyleRuleActor::new(
+                                    name.clone(),
+                                    node_actor.name(),
+                                    (e.key().0 != "").then_some(e.key().clone()),
+                                );
+                                let rule = actor.applied(registry)?;
+
+                                registry.register_later(Box::new(actor));
+                                e.insert(name);
+                                rule
+                            },
+                            Entry::Occupied(e) => {
+                                let actor = registry.find::<StyleRuleActor>(e.get());
+                                actor.applied(registry)?
+                            },
+                        };
+                        if inherited.is_some() && rule.declarations.is_empty() {
+                            return None;
+                        }
+
+                        Some(AppliedEntry {
+                            rule,
+                            // TODO: Handle pseudo elements
+                            pseudo_element: None,
+                            is_system: false,
+                            inherited: inherited.clone(),
+                        })
+                    });
+            Some(entries)
+        })
+        .flatten()
+        .collect();
+        let msg = GetAppliedReply {
+            entries,
+            from: self.name(),
+        };
+        let _ = stream.write_json_packet(&msg);
+        Ok(ActorMessageStatus::Processed)
+    }
+
+    fn get_computed(
+        &self,
+        msg: &Map<String, Value>,
+        registry: &ActorRegistry,
+        stream: &mut TcpStream,
+    ) -> Result<ActorMessageStatus, ()> {
+        let target = msg.get("node").ok_or(())?.as_str().ok_or(())?;
+        let node_actor = registry.find::<NodeActor>(&target);
+        let computed = (|| match node_actor
+            .style_rules
+            .borrow_mut()
+            .entry(("".into(), usize::MAX))
+        {
+            Entry::Vacant(e) => {
+                let name = registry.new_name("style-rule");
+                let actor = StyleRuleActor::new(name.clone(), target.into(), None);
+                let computed = actor.computed(registry)?;
+                registry.register_later(Box::new(actor));
+                e.insert(name);
+                Some(computed)
+            },
+            Entry::Occupied(e) => {
+                let actor = registry.find::<StyleRuleActor>(e.get());
+                Some(actor.computed(registry)?)
+            },
+        })()
+        .unwrap_or_default();
+        let msg = GetComputedReply {
+            computed,
+            from: self.name(),
+        };
+        let _ = stream.write_json_packet(&msg);
+        Ok(ActorMessageStatus::Processed)
+    }
+
+    fn get_layout(
+        &self,
+        msg: &Map<String, Value>,
+        registry: &ActorRegistry,
+        stream: &mut TcpStream,
+    ) -> Result<ActorMessageStatus, ()> {
+        let target = msg.get("node").ok_or(())?.as_str().ok_or(())?;
+        let (computed_node_sender, computed_node_receiver) = ipc::channel().map_err(|_| ())?;
+        self.script_chan
+            .send(GetLayout(
+                self.pipeline,
+                registry.actor_to_script(target.to_owned()),
+                computed_node_sender,
+            ))
+            .unwrap();
+        let ComputedNodeLayout {
+            display,
+            position,
+            z_index,
+            box_sizing,
+            auto_margins,
+            margin_top,
+            margin_right,
+            margin_bottom,
+            margin_left,
+            border_top_width,
+            border_right_width,
+            border_bottom_width,
+            border_left_width,
+            padding_top,
+            padding_right,
+            padding_bottom,
+            padding_left,
+            width,
+            height,
+        } = computed_node_receiver.recv().map_err(|_| ())?.ok_or(())?;
+        let msg_auto_margins = msg
+            .get("autoMargins")
+            .and_then(Value::as_bool)
+            .unwrap_or(false);
+        let msg = GetLayoutReply {
+            from: self.name(),
+            display,
+            position,
+            z_index,
+            box_sizing,
+            auto_margins: if msg_auto_margins {
+                let mut m = Map::new();
+                let auto = serde_json::value::Value::String("auto".to_owned());
+                if auto_margins.top {
+                    m.insert("top".to_owned(), auto.clone());
+                }
+                if auto_margins.right {
+                    m.insert("right".to_owned(), auto.clone());
+                }
+                if auto_margins.bottom {
+                    m.insert("bottom".to_owned(), auto.clone());
+                }
+                if auto_margins.left {
+                    m.insert("left".to_owned(), auto);
+                }
+                serde_json::value::Value::Object(m)
+            } else {
+                serde_json::value::Value::Null
+            },
+            margin_top,
+            margin_right,
+            margin_bottom,
+            margin_left,
+            border_top_width,
+            border_right_width,
+            border_bottom_width,
+            border_left_width,
+            padding_top,
+            padding_right,
+            padding_bottom,
+            padding_left,
+            width,
+            height,
+        };
+        let msg = serde_json::to_string(&msg).map_err(|_| ())?;
+        let msg = serde_json::from_str::<Value>(&msg).map_err(|_| ())?;
+        let _ = stream.write_json_packet(&msg);
+        Ok(ActorMessageStatus::Processed)
+    }
+
+    fn is_position_editable(&self, stream: &mut TcpStream) -> ActorMessageStatus {
+        let msg = IsPositionEditableReply {
+            from: self.name(),
+            value: false,
+        };
+        let _ = stream.write_json_packet(&msg);
+        ActorMessageStatus::Processed
     }
 }

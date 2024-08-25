@@ -5,6 +5,7 @@
 //! This actor represents one DOM node. It is created by the Walker actor when it is traversing the
 //! document tree.
 
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::net::TcpStream;
 
@@ -76,9 +77,10 @@ pub struct NodeActorMsg {
 
 pub struct NodeActor {
     name: String,
-    script_chan: IpcSender<DevtoolScriptControlMsg>,
-    pipeline: PipelineId,
+    pub script_chan: IpcSender<DevtoolScriptControlMsg>,
+    pub pipeline: PipelineId,
     pub walker: String,
+    pub style_rules: RefCell<HashMap<(String, usize), String>>,
 }
 
 impl Actor for NodeActor {
@@ -102,7 +104,6 @@ impl Actor for NodeActor {
     ) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "modifyAttributes" => {
-                let target = msg.get("to").ok_or(())?.as_str().ok_or(())?;
                 let mods = msg.get("modifications").ok_or(())?.as_array().ok_or(())?;
                 let modifications: Vec<_> = mods
                     .iter()
@@ -117,7 +118,7 @@ impl Actor for NodeActor {
                 self.script_chan
                     .send(ModifyAttribute(
                         self.pipeline,
-                        registry.actor_to_script(target.to_owned()),
+                        registry.actor_to_script(self.name()),
                         modifications,
                     ))
                     .map_err(|_| ())?;
@@ -176,13 +177,15 @@ impl NodeInfoToProtocol for NodeInfo {
     ) -> NodeActorMsg {
         let actor = if !actors.script_actor_registered(self.unique_id.clone()) {
             let name = actors.new_name("node");
+            actors.register_script_actor(self.unique_id, name.clone());
+
             let node_actor = NodeActor {
                 name: name.clone(),
                 script_chan: script_chan.clone(),
                 pipeline,
                 walker: walker.clone(),
+                style_rules: RefCell::new(HashMap::new()),
             };
-            actors.register_script_actor(self.unique_id, name.clone());
             actors.register_later(Box::new(node_actor));
             name
         } else {
