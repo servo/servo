@@ -96,3 +96,10 @@ mod window_named_properties;
 
 pub use init::init;
 pub use script_runtime::JSEngineSetup;
+
+// These trait exports are public, because they are used in the DOM bindings.
+// Since they are used in derive macros,
+// it is useful that they are accessible at the root of the crate.
+pub use crate::dom::bindings::inheritance::HasParent;
+pub use crate::dom::bindings::reflector::{DomObject, MutDomObject, Reflector};
+pub use crate::dom::bindings::trace::{CustomTraceable, JSTraceable};

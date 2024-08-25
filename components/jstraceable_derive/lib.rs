@@ -96,14 +96,14 @@ fn assert_not_impl_traceable(ty: &syn::Type) -> proc_macro2::TokenStream {
             #[allow(dead_code)]
             struct Invalid0;
             // forbids JSTraceable
-            impl<T> NoTraceOnJSTraceable<Invalid0> for T where T: ?Sized + crate::dom::bindings::trace::JSTraceable {}
+            impl<T> NoTraceOnJSTraceable<Invalid0> for T where T: ?Sized + crate::JSTraceable {}
 
             #[allow(dead_code)]
             struct Invalid2;
             // forbids HashMap<JSTraceble, _>
             impl<K, V, S> NoTraceOnJSTraceable<Invalid2> for std::collections::HashMap<K, V, S>
             where
-                K: crate::dom::bindings::trace::JSTraceable + std::cmp::Eq + std::hash::Hash,
+                K: crate::JSTraceable + std::cmp::Eq + std::hash::Hash,
                 S: std::hash::BuildHasher,
             {
             }
@@ -114,7 +114,7 @@ fn assert_not_impl_traceable(ty: &syn::Type) -> proc_macro2::TokenStream {
             impl<K, V, S> NoTraceOnJSTraceable<Invalid3> for std::collections::HashMap<K, V, S>
             where
                 K: std::cmp::Eq + std::hash::Hash,
-                V: crate::dom::bindings::trace::JSTraceable,
+                V: crate::JSTraceable,
                 S: std::hash::BuildHasher,
             {
             }
@@ -123,7 +123,7 @@ fn assert_not_impl_traceable(ty: &syn::Type) -> proc_macro2::TokenStream {
             struct Invalid4;
             // forbids BTreeMap<_, JSTraceble>
             impl<K, V> NoTraceOnJSTraceable<Invalid4> for std::collections::BTreeMap<K, V> where
-                K: crate::dom::bindings::trace::JSTraceable + std::cmp::Eq + std::hash::Hash
+                K: crate::JSTraceable + std::cmp::Eq + std::hash::Hash
             {
             }
 
@@ -133,7 +133,7 @@ fn assert_not_impl_traceable(ty: &syn::Type) -> proc_macro2::TokenStream {
             impl<K, V> NoTraceOnJSTraceable<Invalid5> for std::collections::BTreeMap<K, V>
             where
                 K: std::cmp::Eq + std::hash::Hash,
-                V: crate::dom::bindings::trace::JSTraceable,
+                V: crate::JSTraceable,
             {
             }
 
@@ -157,7 +157,7 @@ fn js_traceable_derive(s: synstructure::Structure) -> proc_macro2::TokenStream {
                 }
                 return None;
             } else if attr.path().is_ident("custom_trace") {
-                return Some(quote!(<dyn crate::dom::bindings::trace::CustomTraceable>::trace(#binding, tracer);));
+                return Some(quote!(<dyn crate::CustomTraceable>::trace(#binding, tracer);));
             }
         }
         Some(quote!(#binding.trace(tracer);))
@@ -171,18 +171,18 @@ fn js_traceable_derive(s: synstructure::Structure) -> proc_macro2::TokenStream {
         let ident = &param.ident;
         where_clause
             .predicates
-            .push(parse_quote!(#ident: crate::dom::bindings::trace::JSTraceable))
+            .push(parse_quote!(#ident: crate::JSTraceable))
     }
 
     let tokens = quote! {
         #asserts
 
         #[allow(unsafe_code)]
-        unsafe impl #impl_generics crate::dom::bindings::trace::JSTraceable for #name #ty_generics #where_clause {
+        unsafe impl #impl_generics crate::JSTraceable for #name #ty_generics #where_clause {
             #[inline]
             #[allow(unused_variables, unused_imports)]
             unsafe fn trace(&self, tracer: *mut js::jsapi::JSTracer) {
-                use crate::dom::bindings::trace::JSTraceable;
+                use crate::JSTraceable;
                 match *self {
                     #match_body
                 }

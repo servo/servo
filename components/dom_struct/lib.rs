@@ -38,7 +38,7 @@ pub fn dom_struct(args: TokenStream, input: TokenStream) -> TokenStream {
             quote! (
                 #s2
 
-                impl crate::dom::bindings::inheritance::HasParent for #name {
+                impl crate::HasParent for #name {
                     type Parent = #ty;
                     /// This is used in a type assertion to ensure that
                     /// the source and webidls agree as to what the parent type is

@@ -40,19 +40,19 @@ fn expand_dom_object(input: syn::DeriveInput) -> proc_macro2::TokenStream {
             unsafe fn to_jsval(&self,
                                 cx: *mut js::jsapi::JSContext,
                                 rval: js::rust::MutableHandleValue) {
-                let object = crate::dom::bindings::reflector::DomObject::reflector(self).get_jsobject();
+                let object = crate::DomObject::reflector(self).get_jsobject();
                 object.to_jsval(cx, rval)
             }
         }
 
-        impl #impl_generics crate::dom::bindings::reflector::DomObject for #name #ty_generics #where_clause {
+        impl #impl_generics crate::DomObject for #name #ty_generics #where_clause {
             #[inline]
-            fn reflector(&self) -> &crate::dom::bindings::reflector::Reflector {
+            fn reflector(&self) -> &crate::Reflector {
                 self.#first_field_name.reflector()
             }
         }
 
-        impl #impl_generics crate::dom::bindings::reflector::MutDomObject for #name #ty_generics #where_clause {
+        impl #impl_generics crate::MutDomObject for #name #ty_generics #where_clause {
             unsafe fn init_reflector(&self, obj: *mut js::jsapi::JSObject) {
                 self.#first_field_name.init_reflector(obj);
             }
@@ -74,7 +74,7 @@ fn expand_dom_object(input: syn::DeriveInput) -> proc_macro2::TokenStream {
 
     let mut generics = input.generics.clone();
     generics.params.push(parse_quote!(
-        __T: crate::dom::bindings::reflector::DomObject
+        __T: crate::DomObject
     ));
 
     let (impl_generics, _, where_clause) = generics.split_for_impl();
