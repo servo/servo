@@ -54,6 +54,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::performance::reduce_timing_resolution;
 use crate::dom::promise::Promise;
+use crate::dom::xrboundedreferencespace::XRBoundedReferenceSpace;
 use crate::dom::xrframe::XRFrame;
 use crate::dom::xrhittestsource::XRHitTestSource;
 use crate::dom::xrinputsourcearray::XRInputSourceArray;
@@ -793,9 +794,16 @@ impl XRSessionMethods for XRSession {
         // XXXManishearth reject based on session type
         // https://github.com/immersive-web/webxr/blob/master/spatial-tracking-explainer.md#practical-usage-guidelines
 
+        if !self.is_immersive() &&
+            (ty == XRReferenceSpaceType::Bounded_floor || ty == XRReferenceSpaceType::Unbounded)
+        {
+            p.reject_error(Error::NotSupported);
+            return p;
+        }
+
         match ty {
-            XRReferenceSpaceType::Bounded_floor | XRReferenceSpaceType::Unbounded => {
-                // XXXManishearth eventually support these
+            XRReferenceSpaceType::Unbounded => {
+                // XXXmsub2 figure out how to support this
                 p.reject_error(Error::NotSupported)
             },
             ty => {
@@ -814,7 +822,13 @@ impl XRSessionMethods for XRSession {
                         return p;
                     }
                 }
-                p.resolve_native(&XRReferenceSpace::new(&self.global(), self, ty));
+                if ty == XRReferenceSpaceType::Bounded_floor {
+                    let space = XRBoundedReferenceSpace::new(&self.global(), self);
+                    p.resolve_native(&space);
+                } else {
+                    let space = XRReferenceSpace::new(&self.global(), self, ty);
+                    p.resolve_native(&space);
+                }
             },
         }
         p
