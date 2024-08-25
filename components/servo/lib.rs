@@ -66,6 +66,7 @@ use fonts::FontCacheThread;
 ))]
 use gaol::sandbox::{ChildSandbox, ChildSandboxMethods};
 pub use gleam::gl;
+use gleam::gl::RENDERER;
 use ipc_channel::ipc::{self, IpcSender};
 #[cfg(feature = "layout_2013")]
 pub use layout_thread_2013;
@@ -89,7 +90,7 @@ use surfman::platform::generic::multi::context::NativeContext as LinuxNativeCont
 use surfman::{GLApi, GLVersion};
 #[cfg(all(target_os = "linux", not(target_env = "ohos")))]
 use surfman::{NativeConnection, NativeContext};
-use webrender::{RenderApiSender, ShaderPrecacheFlags};
+use webrender::{RenderApiSender, ShaderPrecacheFlags, UploadMethod, ONE_TIME_USAGE_HINT};
 use webrender_api::{
     ColorF, DocumentId, FontInstanceFlags, FontInstanceKey, FontKey, FramePublishId, ImageKey,
     NativeFontHandle,
@@ -333,6 +334,13 @@ where
                 clear_color[2] as f32,
                 clear_color[3] as f32,
             );
+            // Use same texture upload method as Gecko with ANGLE:
+            // https://searchfox.org/mozilla-central/source/gfx/webrender_bindings/src/bindings.rs#1215-1219
+            let upload_method = if webrender_gl.get_string(RENDERER).starts_with("ANGLE") {
+                UploadMethod::Immediate
+            } else {
+                UploadMethod::PixelBuffer(ONE_TIME_USAGE_HINT)
+            };
             webrender::create_webrender_instance(
                 webrender_gl.clone(),
                 render_notifier,
@@ -354,6 +362,7 @@ where
                         !opts.debug.disable_subpixel_text_antialiasing,
                     allow_texture_swizzling: pref!(gfx.texture_swizzling.enabled),
                     clear_color,
+                    upload_method,
                     ..Default::default()
                 },
                 None,
