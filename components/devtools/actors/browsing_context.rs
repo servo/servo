@@ -230,9 +230,9 @@ impl BrowsingContextActor {
         let accessibility = AccessibilityActor::new(actors.new_name("accessibility"));
 
         let properties = (|| {
-            let (tx, rx) = ipc::channel().ok()?;
-            script_sender.send(GetCssDatabase(tx)).ok()?;
-            rx.recv().ok()
+            let (properties_sender, properties_receiver) = ipc::channel().ok()?;
+            script_sender.send(GetCssDatabase(properties_sender)).ok()?;
+            properties_receiver.recv().ok()
         })()
         .unwrap_or_default();
         let css_properties = CssPropertiesActor::new(actors.new_name("css-properties"), properties);

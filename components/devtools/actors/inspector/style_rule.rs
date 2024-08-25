@@ -148,16 +148,16 @@ impl StyleRuleActor {
         let node = registry.find::<NodeActor>(&self.node);
         let walker = registry.find::<WalkerActor>(&node.walker);
 
-        let (tx, rx) = ipc::channel().ok()?;
+        let (document_sender, document_receiver) = ipc::channel().ok()?;
         walker
             .script_chan
-            .send(GetDocumentElement(walker.pipeline, tx))
+            .send(GetDocumentElement(walker.pipeline, document_sender))
             .ok()?;
-        let node = rx.recv().ok()??;
+        let node = document_receiver.recv().ok()??;
 
         // Gets the style definitions. If there is a selector, query the relevant stylesheet, if
         // not, this represents the style attribute.
-        let (tx, rx) = ipc::channel().ok()?;
+        let (style_sender, style_receiver) = ipc::channel().ok()?;
         let req = match &self.selector {
             Some(selector) => {
                 let (selector, stylesheet) = selector.clone();
@@ -166,17 +166,17 @@ impl StyleRuleActor {
                     registry.actor_to_script(self.node.clone()),
                     selector,
                     stylesheet,
-                    tx,
+                    style_sender,
                 )
             },
             None => GetAttributeStyle(
                 walker.pipeline,
                 registry.actor_to_script(self.node.clone()),
-                tx,
+                style_sender,
             ),
         };
         walker.script_chan.send(req).ok()?;
-        let style = rx.recv().ok()??;
+        let style = style_receiver.recv().ok()??;
 
         Some(AppliedRule {
             actor: self.name(),
@@ -216,16 +216,16 @@ impl StyleRuleActor {
         let node = registry.find::<NodeActor>(&self.node);
         let walker = registry.find::<WalkerActor>(&node.walker);
 
-        let (tx, rx) = ipc::channel().ok()?;
+        let (style_sender, style_receiver) = ipc::channel().ok()?;
         walker
             .script_chan
             .send(GetComputedStyle(
                 walker.pipeline,
                 registry.actor_to_script(self.node.clone()),
-                tx,
+                style_sender,
             ))
             .ok()?;
-        let style = rx.recv().ok()??;
+        let style = style_receiver.recv().ok()??;
 
         Some(
             style

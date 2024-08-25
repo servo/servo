@@ -288,7 +288,7 @@ impl WalkerActor {
 
 /// Recursively searches for a child with the specified selector
 /// If it is found, returns a list with the child and all of its ancestors.
-/// TODO: Investigate how to cache this to some extent
+/// TODO: Investigate how to cache this to some extent.
 pub fn find_child(
     script_chan: &IpcSender<DevtoolScriptControlMsg>,
     pipeline: PipelineId,
@@ -296,7 +296,7 @@ pub fn find_child(
     registry: &ActorRegistry,
     node: &str,
     mut hierarchy: Vec<NodeActorMsg>,
-    compare: impl Fn(&NodeActorMsg) -> bool + Clone,
+    compare_fn: impl Fn(&NodeActorMsg) -> bool + Clone,
 ) -> Result<Vec<NodeActorMsg>, Vec<NodeActorMsg>> {
     let (tx, rx) = ipc::channel().unwrap();
     script_chan
@@ -310,7 +310,7 @@ pub fn find_child(
 
     for child in children {
         let msg = child.encode(registry, true, script_chan.clone(), pipeline, name.into());
-        if compare(&msg) {
+        if compare_fn(&msg) {
             hierarchy.push(msg);
             return Ok(hierarchy);
         };
@@ -326,7 +326,7 @@ pub fn find_child(
             registry,
             &msg.actor,
             hierarchy,
-            compare.clone(),
+            compare_fn.clone(),
         ) {
             Ok(mut hierarchy) => {
                 hierarchy.push(msg);
