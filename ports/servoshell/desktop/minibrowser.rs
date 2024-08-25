@@ -8,8 +8,8 @@ use std::sync::Arc;
 use std::time::Instant;
 
 use egui::{
-    pos2, CentralPanel, Color32, Frame, Key, Label, Modifiers, PaintCallback, Pos2, Spinner,
-    TopBottomPanel, Vec2,
+    pos2, CentralPanel, Color32, Frame, Key, Label, Modifiers, PaintCallback, Pos2, TopBottomPanel,
+    Vec2,
 };
 use egui_glow::CallbackFn;
 use egui_winit::EventResponse;
@@ -58,6 +58,7 @@ pub enum MinibrowserEvent {
     Go,
     Back,
     Forward,
+    Reload,
 }
 
 impl Minibrowser {
@@ -144,6 +145,13 @@ impl Minibrowser {
         position.y < self.toolbar_height.get()
     }
 
+    /// Create a frameless button with square sizing, as used in the toolbar
+    fn toolbar_button(text: &str) -> egui::Button {
+        egui::Button::new(text)
+            .frame(false)
+            .min_size(Vec2 { x: 20.0, y: 20.0 })
+    }
+
     /// Update the minibrowser, but don’t paint.
     /// If `servo_framebuffer_id` is given, set up a paint callback to blit its contents to our
     /// CentralPanel when [`Minibrowser::paint`] is called.
@@ -175,36 +183,39 @@ impl Minibrowser {
             // TODO: While in fullscreen add some way to mitigate the increased phishing risk
             // when not displaying the URL bar: https://github.com/servo/servo/issues/32443
             if window.fullscreen().is_none() {
-                TopBottomPanel::top("toolbar").show(ctx, |ui| {
+                let frame = egui::Frame::default()
+                    .fill(Color32::from_gray(32))
+                    .inner_margin(4.0);
+                TopBottomPanel::top("toolbar").frame(frame).show(ctx, |ui| {
                     ui.allocate_ui_with_layout(
                         ui.available_size(),
                         egui::Layout::left_to_right(egui::Align::Center),
                         |ui| {
-                            if ui.button("back").clicked() {
+                            if ui.add(Minibrowser::toolbar_button("⏴")).clicked() {
                                 event_queue.borrow_mut().push(MinibrowserEvent::Back);
                             }
-                            if ui.button("forward").clicked() {
+                            if ui.add(Minibrowser::toolbar_button("⏵")).clicked() {
                                 event_queue.borrow_mut().push(MinibrowserEvent::Forward);
                             }
+
+                            match self.load_status {
+                                LoadStatus::LoadStart | LoadStatus::HeadParsed => {
+                                    if ui.add(Minibrowser::toolbar_button("X")).clicked() {
+                                        warn!("Tried to stop loading a page");
+                                    }
+                                },
+                                LoadStatus::LoadComplete => {
+                                    if ui.add(Minibrowser::toolbar_button("↻")).clicked() {
+                                        event_queue.borrow_mut().push(MinibrowserEvent::Reload);
+                                    }
+                                },
+                            }
+                            ui.add_space(2.0);
+
                             ui.allocate_ui_with_layout(
                                 ui.available_size(),
                                 egui::Layout::right_to_left(egui::Align::Center),
                                 |ui| {
-                                    if ui.button("go").clicked() {
-                                        event_queue.borrow_mut().push(MinibrowserEvent::Go);
-                                        location_dirty.set(false);
-                                    }
-
-                                    match self.load_status {
-                                        LoadStatus::LoadStart => {
-                                            ui.add(Spinner::new().color(Color32::GRAY));
-                                        },
-                                        LoadStatus::HeadParsed => {
-                                            ui.add(Spinner::new().color(Color32::WHITE));
-                                        },
-                                        LoadStatus::LoadComplete => { /* No Spinner */ },
-                                    }
-
                                     let location_field = ui.add_sized(
                                         ui.available_size(),
                                         egui::TextEdit::singleline(&mut *location.borrow_mut()),
@@ -375,6 +386,10 @@ impl Minibrowser {
                         browser_id,
                         TraversalDirection::Forward(1),
                     ));
+                },
+                MinibrowserEvent::Reload => {
+                    let browser_id = browser.webview_id().unwrap();
+                    app_event_queue.push(EmbedderEvent::Reload(browser_id));
                 },
             }
         }
