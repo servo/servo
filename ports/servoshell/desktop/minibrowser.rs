@@ -145,7 +145,7 @@ impl Minibrowser {
         position.y < self.toolbar_height.get()
     }
 
-    /// Create a frameless button with square sizing, as used in the toolbar
+    /// Create a frameless button with square sizing, as used in the toolbar.
     fn toolbar_button(text: &str) -> egui::Button {
         egui::Button::new(text)
             .frame(false)
@@ -201,7 +201,7 @@ impl Minibrowser {
                             match self.load_status {
                                 LoadStatus::LoadStart | LoadStatus::HeadParsed => {
                                     if ui.add(Minibrowser::toolbar_button("X")).clicked() {
-                                        warn!("Tried to stop loading a page");
+                                        warn!("Do not support stop yet.");
                                     }
                                 },
                                 LoadStatus::LoadComplete => {
