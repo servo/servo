@@ -101,7 +101,7 @@
   "js.werror.enabled": false,
   "layout.animations.test.enabled": false,
   "layout.columns.enabled": false,
-  "layout.flexbox.enabled": false,
+  "layout.flexbox.enabled": true,
   "layout.legacy_layout": false,
   "layout.threads": 3,
   "layout.writing-mode.enabled": false,
