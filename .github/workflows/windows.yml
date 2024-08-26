@@ -42,7 +42,7 @@ env:
   # clang_sys will search msys path before Program Files\LLVM
   # so we need to override this behaviour until we update clang-sys
   # https://github.com/KyleMayes/clang-sys/issues/150
-  LIBCLANG_PATH: C:\\Program Files\\LLVM\\bin
+  LIBCLANG_PATH: C:\Program Files\LLVM\bin
   RUSTUP_WINDOWS_PATH_ADD_BIN: 1
 
 jobs:
@@ -212,12 +212,12 @@ jobs:
         run: |
           "$env:WIX\bin" >> $env:GITHUB_PATH
 
-      # Configure tools in a self-hosted runner.
-      - name: Add python and wixtoolset to path
+      - name: Check configuration for incremental builds
         if: ${{ fromJSON(needs.runner-select.outputs.is-self-hosted) }}
         run: |
-          "$env:LOCALAPPDATA\Programs\Python\Python310" >> $env:GITHUB_PATH
-          "C:\Program Files (x86)\WiX Toolset v3.11\bin" >> $env:GITHUB_PATH
+          cat C:\init\incremental_build_debug.txt
+          echo "`$env:LIBCLANG_PATH now = $env:LIBCLANG_PATH"
+          echo "`$env:PATH now = $env:PATH"
 
       - name: Build (${{ inputs.profile }})
         run: |
