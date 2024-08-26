@@ -321,12 +321,10 @@ class MachCommands(CommandBase):
         )
         return self._test_wpt(build_type=build_type, android=True, **kwargs)
 
-    def _test_wpt(self, build_type: BuildType, with_asan=False, android=False, **kwargs):
-        if not android:
-            os.environ.update(self.build_env())
-
+    @CommandBase.allow_target_configuration
+    def _test_wpt(self, build_type: BuildType, with_asan=False, **kwargs):
         # TODO(mrobinson): Why do we pass the wrong binary path in when running WPT on Android?
-        binary_path = self.get_binary_path(build_type=build_type, asan=with_asan)
+        binary_path = self.get_binary_path(build_type, asan=with_asan)
         return_value = wpt.run.run_tests(binary_path, **kwargs)
         return return_value if not kwargs["always_succeed"] else 0
 
@@ -388,7 +386,6 @@ class MachCommands(CommandBase):
         avd = "servo-x86"
         target = "i686-linux-android"
         print("Assuming --target " + target)
-        self.cross_compile_target = target
 
         env = self.build_env()
         os.environ["PATH"] = env["PATH"]

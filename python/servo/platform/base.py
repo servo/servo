@@ -12,6 +12,8 @@ import shutil
 import subprocess
 from typing import Optional
 
+from .build_target import BuildTarget
+
 
 class Base:
     def __init__(self, triple: str):
@@ -21,7 +23,7 @@ class Base:
         self.is_linux = False
         self.is_macos = False
 
-    def gstreamer_root(self, _cross_compilation_target: Optional[str]) -> Optional[str]:
+    def gstreamer_root(self, target: BuildTarget) -> Optional[str]:
         raise NotImplementedError("Do not know how to get GStreamer path for platform.")
 
     def executable_suffix(self) -> str:
@@ -30,13 +32,13 @@ class Base:
     def _platform_bootstrap(self, _force: bool) -> bool:
         raise NotImplementedError("Bootstrap installation detection not yet available.")
 
-    def _platform_bootstrap_gstreamer(self, _force: bool) -> bool:
+    def _platform_bootstrap_gstreamer(self, _target: BuildTarget, _force: bool) -> bool:
         raise NotImplementedError(
             "GStreamer bootstrap support is not yet available for your OS."
         )
 
-    def is_gstreamer_installed(self, cross_compilation_target: Optional[str]) -> bool:
-        gstreamer_root = self.gstreamer_root(cross_compilation_target)
+    def is_gstreamer_installed(self, target: BuildTarget) -> bool:
+        gstreamer_root = self.gstreamer_root(target)
         if gstreamer_root:
             pkg_config = os.path.join(gstreamer_root, "bin", "pkg-config")
         else:
@@ -100,8 +102,9 @@ class Base:
         return False
 
     def bootstrap_gstreamer(self, force: bool):
-        if not self._platform_bootstrap_gstreamer(force):
-            root = self.gstreamer_root(None)
+        target = BuildTarget.from_triple(self.triple)
+        if not self._platform_bootstrap_gstreamer(target, force):
+            root = self.gstreamer_root(target)
             if root:
                 print(f"GStreamer found at: {root}")
             else:

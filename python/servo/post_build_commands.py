@@ -82,7 +82,8 @@ class PostBuildCommands(CommandBase):
         'params', nargs='...',
         help="Command-line arguments to be passed through to Servo")
     @CommandBase.common_command_arguments(build_configuration=False, build_type=True)
-    def run(self, params, build_type: BuildType, android=None, debugger=False, debugger_cmd=None,
+    @CommandBase.allow_target_configuration
+    def run(self, params, build_type: BuildType, debugger=False, debugger_cmd=None,
             headless=False, software=False, bin=None, emulator=False, usb=False, nightly=None, with_asan=False):
         env = self.build_env()
         env["RUST_BACKTRACE"] = "1"
@@ -98,10 +99,7 @@ class PostBuildCommands(CommandBase):
         if debugger_cmd:
             debugger = True
 
-        if android is None:
-            android = self.config["build"]["android"]
-
-        if android:
+        if self.is_android():
             if debugger:
                 print("Android on-device debugging is not supported by mach yet. See")
                 print("https://github.com/servo/servo/wiki/Building-for-Android#debugging-on-device")
@@ -136,7 +134,9 @@ class PostBuildCommands(CommandBase):
             shell.communicate(bytes("\n".join(script) + "\n", "utf8"))
             return shell.wait()
 
-        args = [bin or self.get_nightly_binary_path(nightly) or self.get_binary_path(build_type, asan=with_asan)]
+        args = [bin
+                or self.get_nightly_binary_path(nightly)
+                or self.get_binary_path(build_type, asan=with_asan)]
 
         if headless:
             args.append('-z')

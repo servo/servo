@@ -13,13 +13,10 @@ import os.path as path
 import pathlib
 import shutil
 import stat
-import subprocess
 import sys
-import urllib
 
 from time import time
-from typing import Dict, Optional
-import zipfile
+from typing import Optional
 
 import notifypy
 
@@ -37,6 +34,7 @@ import servo.visual_studio
 
 from servo.command_base import BuildType, CommandBase, call, check_call
 from servo.gstreamer import windows_dlls, windows_plugins, package_gstreamer_dylibs
+from servo.platform.build_target import BuildTarget
 
 SUPPORTED_ASAN_TARGETS = ["aarch64-apple-darwin", "aarch64-unknown-linux-gnu",
                           "x86_64-apple-darwin", "x86_64-unknown-linux-gnu"]
@@ -83,7 +81,7 @@ class MachCommands(CommandBase):
         self.ensure_clobbered()
 
         host = servo.platform.host_triple()
-        target_triple = self.cross_compile_target or servo.platform.host_triple()
+        target_triple = self.target.triple()
 
         if with_asan:
             if target_triple not in SUPPORTED_ASAN_TARGETS:
@@ -133,21 +131,15 @@ class MachCommands(CommandBase):
             "rustc", opts, env=env, verbose=verbose, **kwargs)
 
         if status == 0:
-            built_binary = self.get_binary_path(
-                build_type,
-                target=self.cross_compile_target,
-                android=self.is_android_build,
-                asan=with_asan
-            )
+            built_binary = self.get_binary_path(build_type, asan=with_asan)
 
-            if self.is_android_build and not no_package:
-                rv = Registrar.dispatch("package", context=self.context, build_type=build_type,
-                                        target=self.cross_compile_target, flavor=None)
+            if not no_package and self.target.needs_packaging():
+                rv = Registrar.dispatch("package", context=self.context, build_type=build_type, flavor=None)
                 if rv:
                     return rv
 
             if sys.platform == "win32":
-                if not copy_windows_dlls_to_build_directory(built_binary, target_triple):
+                if not copy_windows_dlls_to_build_directory(built_binary, self.target):
                     status = 1
 
             elif sys.platform == "darwin":
@@ -156,9 +148,7 @@ class MachCommands(CommandBase):
 
                 if self.enable_media:
                     library_target_directory = path.join(path.dirname(built_binary), "lib/")
-                    if not package_gstreamer_dylibs(built_binary,
-                                                    library_target_directory,
-                                                    self.cross_compile_target):
+                    if not package_gstreamer_dylibs(built_binary, library_target_directory, self.target):
                         return 1
 
                 # On the Mac, set a lovely icon. This makes it easier to pick out the Servo binary in tools
@@ -183,40 +173,6 @@ class MachCommands(CommandBase):
         print(build_message)
 
         return status
-
-    def download_and_build_android_dependencies_if_needed(self, env: Dict[str, str]):
-        if not self.is_android_build:
-            return
-
-        # Build the name of the package containing all GStreamer dependencies
-        # according to the build target.
-        android_lib = self.config["android"]["lib"]
-        gst_lib = f"gst-build-{android_lib}"
-        gst_lib_zip = f"gstreamer-{android_lib}-1.16.0-20190517-095630.zip"
-        gst_lib_path = os.path.join(self.target_path, "gstreamer", gst_lib)
-        pkg_config_path = os.path.join(gst_lib_path, "pkgconfig")
-        env["PKG_CONFIG_PATH"] = pkg_config_path
-        if not os.path.exists(gst_lib_path):
-            # Download GStreamer dependencies if they have not already been downloaded
-            # This bundle is generated with `libgstreamer_android_gen`
-            # Follow these instructions to build and deploy new binaries
-            # https://github.com/servo/libgstreamer_android_gen#build
-            gst_url = f"https://servo-deps-2.s3.amazonaws.com/gstreamer/{gst_lib_zip}"
-            print(f"Downloading GStreamer dependencies ({gst_url})")
-
-            urllib.request.urlretrieve(gst_url, gst_lib_zip)
-            zip_ref = zipfile.ZipFile(gst_lib_zip, "r")
-            zip_ref.extractall(os.path.join(self.target_path, "gstreamer"))
-            os.remove(gst_lib_zip)
-
-            # Change pkgconfig info to make all GStreamer dependencies point
-            # to the libgstreamer_android.so bundle.
-            for each in os.listdir(pkg_config_path):
-                if each.endswith('.pc'):
-                    print(f"Setting pkgconfig info for {each}")
-                    target_path = os.path.join(pkg_config_path, each)
-                    expr = f"s#libdir=.*#libdir={gst_lib_path}#g"
-                    subprocess.call(["perl", "-i", "-pe", expr, target_path])
 
     @Command('clean',
              description='Clean the target/ and python/_venv[version]/ directories',
@@ -296,7 +252,7 @@ class MachCommands(CommandBase):
                 print(f"[Warning] Could not generate notification: {e}", file=sys.stderr)
 
 
-def copy_windows_dlls_to_build_directory(servo_binary: str, target_triple: str) -> bool:
+def copy_windows_dlls_to_build_directory(servo_binary: str, target: BuildTarget) -> bool:
     servo_exe_dir = os.path.dirname(servo_binary)
     assert os.path.exists(servo_exe_dir)
 
@@ -317,18 +273,18 @@ def copy_windows_dlls_to_build_directory(servo_binary: str, target_triple: str) 
     find_and_copy_built_dll("libGLESv2.dll")
 
     print(" • Copying GStreamer DLLs to binary directory...")
-    if not package_gstreamer_dlls(servo_exe_dir, target_triple):
+    if not package_gstreamer_dlls(servo_exe_dir, target):
         return False
 
     print(" • Copying MSVC DLLs to binary directory...")
-    if not package_msvc_dlls(servo_exe_dir, target_triple):
+    if not package_msvc_dlls(servo_exe_dir, target):
         return False
 
     return True
 
 
-def package_gstreamer_dlls(servo_exe_dir: str, target: str):
-    gst_root = servo.platform.get().gstreamer_root(cross_compilation_target=target)
+def package_gstreamer_dlls(servo_exe_dir: str, target: BuildTarget):
+    gst_root = servo.platform.get().gstreamer_root(target)
     if not gst_root:
         print("Could not find GStreamer installation directory.")
         return False
@@ -366,7 +322,7 @@ def package_gstreamer_dlls(servo_exe_dir: str, target: str):
     return not missing
 
 
-def package_msvc_dlls(servo_exe_dir: str, target: str):
+def package_msvc_dlls(servo_exe_dir: str, target: BuildTarget):
     def copy_file(dll_path: Optional[str]) -> bool:
         if not dll_path or not os.path.exists(dll_path):
             print(f"WARNING: Could not find DLL at {dll_path}", file=sys.stderr)
@@ -383,7 +339,7 @@ def package_msvc_dlls(servo_exe_dir: str, target: str):
         "x86_64": "x64",
         "i686": "x86",
         "aarch64": "arm64",
-    }[target.split('-')[0]]
+    }[target.triple().split('-')[0]]
 
     for msvc_redist_dir in servo.visual_studio.find_msvc_redist_dirs(vs_platform):
         if copy_file(os.path.join(msvc_redist_dir, "msvcp140.dll")) and \

@@ -7,12 +7,13 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
+import distro
 import os
 import subprocess
 from typing import Optional, Tuple
 
-import distro
 from .base import Base
+from .build_target import BuildTarget
 
 # Please keep these in sync with the packages on the wiki, using the instructions below
 # https://github.com/servo/servo/wiki/Building
@@ -211,10 +212,10 @@ class Linux(Base):
             raise EnvironmentError("Installation of dependencies failed.")
         return True
 
-    def gstreamer_root(self, cross_compilation_target: Optional[str]) -> Optional[str]:
+    def gstreamer_root(self, _target: BuildTarget) -> Optional[str]:
         return None
 
-    def _platform_bootstrap_gstreamer(self, _force: bool) -> bool:
+    def _platform_bootstrap_gstreamer(self, _target: BuildTarget, _force: bool) -> bool:
         raise EnvironmentError(
             "Bootstrapping GStreamer on Linux is not supported. "
             + "Please install it using your distribution package manager.")
