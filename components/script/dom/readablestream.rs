@@ -451,14 +451,24 @@ impl ReadableStream {
 
     /// <https://streams.spec.whatwg.org/#readable-stream-close>
     pub fn close(&self) {
+        // step 1
+        assert!(self.is_readable());
+
+        // step 2
         self.state.set(ReadableStreamState::Closed);
+
         match self.reader {
             ReaderType::Default(ref reader) => {
                 if let Some(reader) = reader.get() {
                     reader.close();
                 }
             },
-            ReaderType::BYOB(ref reader) => todo!(),
+            ReaderType::BYOB(ref reader) => {
+                if let Some(reader) = reader.get() {
+                    // step 5
+                    reader.close();
+                }
+            },
         }
     }
 

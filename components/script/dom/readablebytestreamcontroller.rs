@@ -138,6 +138,8 @@ pub struct ReadableByteStreamController {
     auto_allocate_chunk_size: Option<usize>,
 
     pending_pull_intos: RefCell<Vec<PullIntoDescriptor>>,
+
+    closed_requested: bool,
 }
 
 impl ReadableByteStreamController {
@@ -155,6 +157,7 @@ impl ReadableByteStreamController {
             stream: MutNullableDom::new(None),
             auto_allocate_chunk_size: None,
             pending_pull_intos: RefCell::new(Vec::new()),
+            closed_requested: false,
         }
     }
 
@@ -300,7 +303,29 @@ impl ReadableByteStreamController {
         read_request.chunk_steps(view.to_vec());
     }
 
+    /// <https://streams.spec.whatwg.org/#readable-byte-stream-controller-handle-queue-drain>
     fn handle_queue_drain(&self) {
+        let stream: DomRoot<ReadableStream> = self
+            .stream
+            .get()
+            .expect("Controller must have a stream when pull steps are called into.");
+        // step 1
+        assert!(stream.is_readable());
+
+        // step 2
+        if self.queue.borrow().total_size == 0 && self.closed_requested {
+            // TODO: step 2.1
+            self.clear_algorithm();
+            // step 2.2
+            stream.close();
+        } else {
+            // step 3
+            self.call_pull_if_needed();
+        }
+    }
+
+    /// <https://streams.spec.whatwg.org/#readable-byte-stream-controller-clear-algorithms>
+    fn clear_algorithm(&self) {
         todo!()
     }
 }

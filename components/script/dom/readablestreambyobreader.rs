@@ -130,6 +130,12 @@ impl ReadableStreamBYOBReader {
         )
     }
 
+    /// <https://streams.spec.whatwg.org/#readable-stream-close>
+    pub fn close(&self) {
+        // step 5
+        self.closed_promise.resolve_native(&());
+    }
+
     /// <https://streams.spec.whatwg.org/#readable-stream-add-read-into-request>
     pub fn add_read_into_request(&self, read_into_request: ReadIntoRequest) {
         self.read_into_requests
