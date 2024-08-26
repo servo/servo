@@ -4008,9 +4008,9 @@ dependencies = [
 
 [[package]]
 name = "libz-sys"
-version = "1.1.19"
+version = "1.1.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fdc53a7799a7496ebc9fd29f31f7df80e83c9bda5299768af5f9e59eeea74647"
+checksum = "d2d16453e800a8cf6dd2fc3eb4bc99b786a9b90c663b8559a5b1a041bf89e472"
 dependencies = [
  "cc",
  "libc",
