@@ -3,17 +3,17 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 /// Log an event from winit ([winit::event::Event]) at trace level.
-/// - To disable tracing: RUST_LOG='servoshell<winit@=off'
-/// - To enable tracing: RUST_LOG='servoshell<winit@'
+/// - To disable tracing: RUST_LOG='servoshell-from-winit:=off'
+/// - To enable tracing: RUST_LOG='servoshell-from-winit:'
 /// - Recommended filters when tracing is enabled:
-///   - servoshell<winit@DeviceEvent=off
-///   - servoshell<winit@MainEventsCleared=off
-///   - servoshell<winit@NewEvents(WaitCancelled)=off
-///   - servoshell<winit@RedrawEventsCleared=off
-///   - servoshell<winit@RedrawRequested=off
-///   - servoshell<winit@UserEvent(WakerEvent)=off
-///   - servoshell<winit@WindowEvent(AxisMotion)=off
-///   - servoshell<winit@WindowEvent(CursorMoved)=off
+///   - servoshell-from-winit:DeviceEvent=off
+///   - servoshell-from-winit:MainEventsCleared=off
+///   - servoshell-from-winit:NewEvents:WaitCancelled=off
+///   - servoshell-from-winit:RedrawEventsCleared=off
+///   - servoshell-from-winit:RedrawRequested=off
+///   - servoshell-from-winit:UserEvent:WakerEvent=off
+///   - servoshell-from-winit:WindowEvent:AxisMotion=off
+///   - servoshell-from-winit:WindowEvent:CursorMoved=off
 macro_rules! trace_winit_event {
     // This macro only exists to put the docs in the same file as the target prefix,
     // so the macro definition is always the same.
@@ -23,11 +23,11 @@ macro_rules! trace_winit_event {
 }
 
 /// Log an event from servo ([servo::embedder_traits::EmbedderMsg]) at trace level.
-/// - To disable tracing: RUST_LOG='servoshell<servo@=off'
-/// - To enable tracing: RUST_LOG='servoshell<servo@'
+/// - To disable tracing: RUST_LOG='servoshell-from-servo:=off'
+/// - To enable tracing: RUST_LOG='servoshell-from-servo:'
 /// - Recommended filters when tracing is enabled:
-///   - servoshell<servo@EventDelivered=off
-///   - servoshell<servo@ReadyToPresent=off
+///   - servoshell-from-servo:EventDelivered=off
+///   - servoshell-from-servo:ReadyToPresent=off
 macro_rules! trace_embedder_msg {
     // This macro only exists to put the docs in the same file as the target prefix,
     // so the macro definition is always the same.
@@ -37,11 +37,11 @@ macro_rules! trace_embedder_msg {
 }
 
 /// Log an event to servo ([servo::compositing::windowing::EmbedderEvent]) at trace level.
-/// - To disable tracing: RUST_LOG='servoshell>servo@=off'
-/// - To enable tracing: RUST_LOG='servoshell>servo@'
+/// - To disable tracing: RUST_LOG='servoshell-to-servo:=off'
+/// - To enable tracing: RUST_LOG='servoshell-to-servo:'
 /// - Recommended filters when tracing is enabled:
-///   - servoshell>servo@Idle=off
-///   - servoshell>servo@MouseWindowMoveEventClass=off
+///   - servoshell-to-servo:Idle=off
+///   - servoshell-to-servo:MouseWindowMoveEventClass=off
 macro_rules! trace_embedder_event {
     // This macro only exists to put the docs in the same file as the target prefix,
     // so the macro definition is always the same.
@@ -63,7 +63,7 @@ mod from_winit {
 
     macro_rules! target {
         ($($name:literal)+) => {
-            concat!("servoshell<winit@", $($name),+)
+            concat!("servoshell-from-winit:", $($name),+)
         };
     }
 
@@ -72,14 +72,14 @@ mod from_winit {
             use winit::event::StartCause;
             match self {
                 Self::NewEvents(start_cause) => match start_cause {
-                    StartCause::ResumeTimeReached { .. } => target!("NewEvents(ResumeTimeReached)"),
-                    StartCause::WaitCancelled { .. } => target!("NewEvents(WaitCancelled)"),
-                    StartCause::Poll => target!("NewEvents(Poll)"),
-                    StartCause::Init => target!("NewEvents(Init)"),
+                    StartCause::ResumeTimeReached { .. } => target!("NewEvents:ResumeTimeReached"),
+                    StartCause::WaitCancelled { .. } => target!("NewEvents:WaitCancelled"),
+                    StartCause::Poll => target!("NewEvents:Poll"),
+                    StartCause::Init => target!("NewEvents:Init"),
                 },
                 Self::WindowEvent { event, .. } => event.log_target(),
                 Self::DeviceEvent { .. } => target!("DeviceEvent"),
-                Self::UserEvent(WakerEvent) => target!("UserEvent(WakerEvent)"),
+                Self::UserEvent(WakerEvent) => target!("UserEvent:WakerEvent"),
                 Self::Suspended => target!("Suspended"),
                 Self::Resumed => target!("Resumed"),
                 Self::AboutToWait => target!("AboutToWait"),
@@ -93,7 +93,7 @@ mod from_winit {
         fn log_target(&self) -> &'static str {
             macro_rules! target_variant {
                 ($name:literal) => {
-                    target!("WindowEvent(" $name ")")
+                    target!("WindowEvent:" $name)
                 };
             }
             match self {
@@ -134,7 +134,7 @@ mod from_servo {
 
     macro_rules! target {
         ($($name:literal)+) => {
-            concat!("servoshell<servo@", $($name),+)
+            concat!("servoshell-from-servo:", $($name),+)
         };
     }
 
@@ -188,7 +188,7 @@ mod to_servo {
 
     macro_rules! target {
         ($($name:literal)+) => {
-            concat!("servoshell>servo@", $($name),+)
+            concat!("servoshell-to-servo:", $($name),+)
         };
     }
 

@@ -3,12 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 /// Log an event from compositor at trace level.
-/// - To disable tracing: RUST_LOG='constellation<compositor@=off'
-/// - To enable tracing: RUST_LOG='constellation<compositor@'
+/// - To disable tracing: RUST_LOG='constellation-from-compositor:=off'
+/// - To enable tracing: RUST_LOG='constellation-from-compositor:'
 /// - Recommended filters when tracing is enabled:
-///   - constellation<compositor@ForwardEvent(MouseMoveEvent)=off
-///   - constellation<compositor@LogEntry=off
-///   - constellation<compositor@ReadyToPresent=off
+///   - constellation-from-compositor:ForwardEvent:MouseMoveEvent=off
+///   - constellation-from-compositor:LogEntry=off
+///   - constellation-from-compositor:ReadyToPresent=off
 macro_rules! trace_msg_from_compositor {
     // This macro only exists to put the docs in the same file as the target prefix,
     // so the macro definition is always the same.
@@ -18,10 +18,10 @@ macro_rules! trace_msg_from_compositor {
 }
 
 /// Log an event from script at trace level.
-/// - To disable tracing: RUST_LOG='constellation<script@=off'
-/// - To enable tracing: RUST_LOG='constellation<script@'
+/// - To disable tracing: RUST_LOG='constellation-from-script:=off'
+/// - To enable tracing: RUST_LOG='constellation-from-script:'
 /// - Recommended filters when tracing is enabled:
-///   - constellation<script@LogEntry=off
+///   - constellation-from-script:LogEntry=off
 macro_rules! trace_script_msg {
     // This macro only exists to put the docs in the same file as the target prefix,
     // so the macro definition is always the same.
@@ -31,8 +31,8 @@ macro_rules! trace_script_msg {
 }
 
 /// Log an event from layout at trace level.
-/// - To disable tracing: RUST_LOG='constellation<layout@=off'
-/// - To enable tracing: RUST_LOG='constellation<layout@'
+/// - To disable tracing: RUST_LOG='constellation-from-layout:=off'
+/// - To enable tracing: RUST_LOG='constellation-from-layout:'
 macro_rules! trace_layout_msg {
     // This macro only exists to put the docs in the same file as the target prefix,
     // so the macro definition is always the same.
@@ -51,7 +51,7 @@ mod from_compositor {
 
     macro_rules! target {
         ($($name:literal)+) => {
-            concat!("constellation<compositor@", $($name),+)
+            concat!("constellation-from-compositor:", $($name),+)
         };
     }
 
@@ -99,7 +99,7 @@ mod from_compositor {
         fn log_target(&self) -> &'static str {
             macro_rules! target_variant {
                 ($name:literal) => {
-                    target!("ForwardEvent(" $name ")")
+                    target!("ForwardEvent:" $name)
                 };
             }
             match self {
@@ -122,7 +122,7 @@ mod from_script {
 
     macro_rules! target {
         ($($name:literal)+) => {
-            concat!("constellation<script@", $($name),+)
+            concat!("constellation-from-script:", $($name),+)
         };
     }
 
@@ -196,7 +196,7 @@ mod from_script {
         fn log_target(&self) -> &'static str {
             macro_rules! target_variant {
                 ($name:literal) => {
-                    target!("ForwardToEmbedder(" $name ")")
+                    target!("ForwardToEmbedder:" $name)
                 };
             }
             match self {
@@ -249,7 +249,7 @@ mod from_layout {
 
     macro_rules! target {
         ($($name:literal)+) => {
-            concat!("constellation<layout@", $($name),+)
+            concat!("constellation-from-layout:", $($name),+)
         };
     }
 

@@ -3,8 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 /// Log an event from constellation at trace level.
-/// - To disable tracing: RUST_LOG='compositor<constellation@=off'
-/// - To enable tracing: RUST_LOG='compositor<constellation@'
+/// - To disable tracing: RUST_LOG='compositor-from-constellation:=off'
+/// - To enable tracing: RUST_LOG='compositor-from-constellation:'
 macro_rules! trace_msg_from_constellation {
     // This macro only exists to put the docs in the same file as the target prefix,
     // so the macro definition is always the same.
@@ -23,7 +23,7 @@ mod from_constellation {
 
     macro_rules! target {
         ($($name:literal)+) => {
-            concat!("compositor<constellation@", $($name),+)
+            concat!("compositor-from-constellation:", $($name),+)
         };
     }
 

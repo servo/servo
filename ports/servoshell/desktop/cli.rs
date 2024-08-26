@@ -23,8 +23,6 @@ pub fn main() {
     // compositor-to-constellation and script-to-constellation logging.
     // <https://tokio.rs/tokio/topics/tracing>
     // <https://docs.rs/tracing-subscriber/0.3.18/tracing_subscriber/fmt/index.html#composing-layers>
-    // FIXME: our event tracing log targets are considered “invalid filter directive”
-    // <https://book.servo.org/hacking/debugging.html#event-tracing>
     let env_filter_layer = EnvFilter::from_default_env();
     let fmt_layer = tracing_subscriber::fmt::layer();
     tracing_subscriber::registry()
