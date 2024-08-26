@@ -799,15 +799,20 @@ class CommandBase(object):
             return
 
         servo.platform.get().passive_bootstrap()
+        self.context.bootstrapped = True
 
-        needs_toolchain_install = self.target.triple() not in \
-            check_output(["rustup", "target", "list", "--installed"],
-                         cwd=self.context.topdir).decode()
-        if needs_toolchain_install:
+        # Toolchain installation is handled automatically for non cross compilation builds.
+        if not self.target.is_cross_build():
+            return
+
+        installed_targets = check_output(
+            ["rustup", "target", "list", "--installed"],
+            cwd=self.context.topdir
+        ).decode()
+        if self.target.triple() not in installed_targets:
             check_call(["rustup", "target", "add", self.target.triple()],
                        cwd=self.context.topdir)
 
-        self.context.bootstrapped = True
 
     def ensure_rustup_version(self):
         try:
