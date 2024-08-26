@@ -91,6 +91,14 @@ jobs:
           unique_id=${{ github.repository }}/${{ github.run_id }}/$random32
           echo "unique_id=$unique_id" | tee -a $GITHUB_OUTPUT
 
+          # Disable self-hosted runners by creating a repository variable named
+          # NO_SELF_HOSTED_RUNNERS with any non-empty value.
+          # <https://github.com/servo/servo/settings/variables/actions>
+          if [ -n '${{ vars.NO_SELF_HOSTED_RUNNERS }}' ]; then
+            echo 'NO_SELF_HOSTED_RUNNERS is set!'
+            fall_back_to_github_hosted
+          fi
+
           # RUNNER_API_TOKEN secret will be unavailable in forks.
           if [ -z "$GH_TOKEN" ]; then
             echo 'RUNNER_API_TOKEN not set!'
