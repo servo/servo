@@ -226,7 +226,7 @@ jobs:
       - name: Install crown
         run: cargo install --path support/crown --force
 
-      - name: Check configuration for incremental builds
+      - name: Debug logging for incremental builds
         if: ${{ fromJSON(needs.runner-select.outputs.is-self-hosted) }}
         run: |
           cat C:\init\incremental_build_debug.txt
