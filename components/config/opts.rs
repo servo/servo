@@ -734,7 +734,6 @@ pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingR
     let legacy_layout = opt_match.opt_present("legacy-layout");
     if legacy_layout {
         set_pref!(layout.legacy_layout, true);
-        set_pref!(layout.flexbox.enabled, true);
     }
 
     let opts = Opts {
