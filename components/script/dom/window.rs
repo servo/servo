@@ -60,6 +60,7 @@ use script_traits::{
 use selectors::attr::CaseSensitivity;
 use servo_arc::Arc as ServoArc;
 use servo_atoms::Atom;
+use servo_config::pref;
 use servo_geometry::{f32_rect_to_au_rect, MaxRect};
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use style::dom::OpaqueNode;
@@ -757,7 +758,9 @@ impl WindowMethods for Window {
             let is_auxiliary = window_proxy.is_auxiliary();
 
             // https://html.spec.whatwg.org/multipage/#script-closable
-            let is_script_closable = (self.is_top_level() && history_length == 1) || is_auxiliary;
+            let is_script_closable = (self.is_top_level() && history_length == 1) ||
+                is_auxiliary ||
+                pref!(dom.allow_scripts_to_close_windows);
 
             // TODO: rest of Step 3:
             // Is the incumbent settings object's responsible browsing context familiar with current?

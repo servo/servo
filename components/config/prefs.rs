@@ -238,6 +238,7 @@ mod gen {
                         enabled: bool,
                     }
                 },
+                allow_scripts_to_close_windows: bool,
                 canvas_capture: {
                     enabled: bool,
                 },
