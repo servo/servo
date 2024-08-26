@@ -189,6 +189,7 @@ impl ReadableByteStreamController {
 
     /// <https://streams.spec.whatwg.org/#readable-byte-stream-controller-call-pull-if-needed>
     fn call_pull_if_needed(&self) {
+        // step 1,2
         if !self.should_pull() {
             return;
         }
@@ -196,10 +197,16 @@ impl ReadableByteStreamController {
         let global = self.global();
         let rooted_byte_controller = DomRoot::from_ref(self);
         let controller = Controller::ReadableByteStreamController(rooted_byte_controller.clone());
+
+        // TODO: missing step 3,4,5
+
+        // step 6
         if let Some(promise) = self.underlying_source.call_pull_algorithm(controller) {
+            // TODO: step 7
             let fulfillment_handler = Box::new(PullAlgorithmFulfillmentHandler {
                 controller: Dom::from_ref(&*rooted_byte_controller),
             });
+            // TODO: step 8
             let rejection_handler = Box::new(PullAlgorithmRejectionHandler {
                 controller: Dom::from_ref(&*rooted_byte_controller),
             });
@@ -222,22 +229,35 @@ impl ReadableByteStreamController {
 
     /// <https://streams.spec.whatwg.org/#rbs-controller-private-pull>
     pub fn perform_pull_steps(&self, read_request: ReadRequest) {
+        // step 1
         let stream: DomRoot<ReadableStream> = self
             .stream
             .get()
             .expect("Controller must have a stream when pull steps are called into.");
 
+        // step 2
         assert!(stream.has_default_reader());
 
+        // step 3
         if self.queue.borrow().total_size > 0 {
+            // step 3.1
             assert!(stream.get_num_read_requests() == 0);
+            // step 3.2
             self.fill_read_request_from_queue(&read_request);
+            // step 3.3
             return;
         }
 
+        // step 4,5
         if let Some(auto_allocate_chunk_size) = self.auto_allocate_chunk_size {
+            // step 5.1
+            let buffer = Vec::new();
+
+            // TODO: missing step 5.2
+
+            // step 5.3
             let descriptor = PullIntoDescriptor {
-                buffer: Vec::new(),
+                buffer, // step 5.1
                 buffer_byte_length: auto_allocate_chunk_size,
                 byte_offset: 0,
                 byte_length: auto_allocate_chunk_size,
@@ -247,26 +267,36 @@ impl ReadableByteStreamController {
                 view_constructor: ViewConstructor::TypedArray, // TODO: %Uint8Array% constructor
                 reader_type: Some(ReaderType::Default),
             };
+
+            // step 5.4
             self.pending_pull_intos.borrow_mut().push(descriptor);
-            self.fill_read_request_from_queue(&read_request); // TODO:
         }
 
+        // step 6
         stream.add_read_request(read_request);
+        // step 7
         self.call_pull_if_needed();
     }
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablebytestreamcontrollerfillreadrequestfromqueue>
     pub fn fill_read_request_from_queue(&self, read_request: &ReadRequest) {
+        // step 1
         assert!(self.queue.borrow().total_size > 0);
 
+        // step 2,3
         let entry = self.dequeue_value();
 
+        // step 4
         self.queue.borrow_mut().total_size -= entry.byte_length;
 
+        // step 5
         // TODO:
         self.handle_queue_drain();
 
+        // step 6
         let view = entry.to_view();
+
+        // step 7
         read_request.chunk_steps(view.to_vec());
     }
 
