@@ -198,9 +198,6 @@ jobs:
       - name: Upgrade llvm
         if: ${{ ! fromJSON(needs.runner-select.outputs.is-self-hosted) }}
         run: choco upgrade llvm
-      - name: Install crown
-        if: ${{ ! fromJSON(needs.runner-select.outputs.is-self-hosted) }}
-        run: cargo install --path support/crown
       - name: Install wixtoolset
         if: ${{ ! fromJSON(needs.runner-select.outputs.is-self-hosted) }}
         run: |
@@ -222,6 +219,12 @@ jobs:
         if: ${{ ! fromJSON(needs.runner-select.outputs.is-self-hosted) }}
         run: |
           "$env:WIX\bin" >> $env:GITHUB_PATH
+
+      # Always install crown, even on self-hosted runners, because it is tightly
+      # coupled to the rustc version, and we may have the wrong version if the
+      # commit we are building uses a different rustc version.
+      - name: Install crown
+        run: cargo install --path support/crown --force
 
       - name: Check configuration for incremental builds
         if: ${{ fromJSON(needs.runner-select.outputs.is-self-hosted) }}
