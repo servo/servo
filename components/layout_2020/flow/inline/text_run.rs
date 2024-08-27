@@ -374,7 +374,7 @@ impl TextRun {
                     specified_word_spacing.to_used_value(Au::from_f64_px(space_width))
                 });
 
-                let mut flags = flags.clone();
+                let mut flags = flags;
                 if segment.bidi_level.is_rtl() {
                     flags.insert(ShapingFlags::RTL_FLAG);
                 }
