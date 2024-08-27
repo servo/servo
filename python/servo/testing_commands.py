@@ -304,8 +304,8 @@ class MachCommands(CommandBase):
              description='Run the regular web platform test suite',
              category='testing',
              parser=wpt.create_parser)
-    @CommandBase.common_command_arguments(binary=True)
-    def test_wpt(self, servo_binary, **kwargs):
+    @CommandBase.common_command_arguments(binary_selection=True)
+    def test_wpt(self, servo_binary: str, **kwargs):
         return self._test_wpt(servo_binary, **kwargs)
 
     @Command('test-wpt-android',
@@ -323,7 +323,7 @@ class MachCommands(CommandBase):
         return self._test_wpt(sys.executable, android=True, **kwargs)
 
     @CommandBase.allow_target_configuration
-    def _test_wpt(self, servo_binary, **kwargs):
+    def _test_wpt(self, servo_binary: str, **kwargs):
         # TODO(mrobinson): Why do we pass the wrong binary path in when running WPT on Android?
         return_value = wpt.run.run_tests(servo_binary, **kwargs)
         return return_value if not kwargs["always_succeed"] else 0
@@ -402,15 +402,15 @@ class MachCommands(CommandBase):
 
     @Command('test-dromaeo', description='Run the Dromaeo test suite', category='testing')
     @CommandArgument('tests', default=["recommended"], nargs="...", help="Specific tests to run")
-    @CommandBase.common_command_arguments(binary=True)
-    def test_dromaeo(self, tests, servo_binary):
+    @CommandBase.common_command_arguments(binary_selection=True)
+    def test_dromaeo(self, tests, servo_binary: str):
         return self.dromaeo_test_runner(tests, servo_binary)
 
     @Command('update-jquery',
              description='Update the jQuery test suite expected results',
              category='testing')
-    @CommandBase.common_command_arguments(binary=True)
-    def update_jquery(self, servo_binary):
+    @CommandBase.common_command_arguments(binary_selection=True)
+    def update_jquery(self, servo_binary: str):
         return self.jquery_test_runner("update", servo_binary)
 
     @Command('compare_dromaeo',
@@ -469,7 +469,7 @@ class MachCommands(CommandBase):
                     print("{}|{}|{}|{}".format(a1.ljust(width_col1), str(b1).ljust(width_col2),
                           str(c1).ljust(width_col3), str(d1).ljust(width_col4)))
 
-    def jquery_test_runner(self, cmd, binary):
+    def jquery_test_runner(self, cmd, binary: str):
         base_dir = path.abspath(path.join("tests", "jquery"))
         jquery_dir = path.join(base_dir, "jquery")
         run_file = path.join(base_dir, "run_jquery.py")
@@ -488,7 +488,7 @@ class MachCommands(CommandBase):
 
         return call([run_file, cmd, bin_path, base_dir])
 
-    def dromaeo_test_runner(self, tests, binary):
+    def dromaeo_test_runner(self, tests, binary: str):
         base_dir = path.abspath(path.join("tests", "dromaeo"))
         dromaeo_dir = path.join(base_dir, "dromaeo")
         run_file = path.join(base_dir, "run_dromaeo.py")
@@ -764,8 +764,8 @@ tests/wpt/mozilla/tests for Servo-only tests""" % reference_path)
              category='testing')
     @CommandArgument('params', nargs='...',
                      help="Command-line arguments to be passed through to Servo")
-    @CommandBase.common_command_arguments(binary=True)
-    def smoketest(self, servo_binary, params):
+    @CommandBase.common_command_arguments(binary_selection=True)
+    def smoketest(self, servo_binary: str, params):
         # We pass `-f` here so that any thread panic will cause Servo to exit,
         # preventing a panic from hanging execution. This means that these kind
         # of panics won't cause timeouts on CI.

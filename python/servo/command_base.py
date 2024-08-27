@@ -520,9 +520,9 @@ class CommandBase(object):
         return env
 
     @staticmethod
-    def common_command_arguments(build_configuration=False, build_type=False, binary=False):
+    def common_command_arguments(build_configuration=False, build_type=False, binary_selection=False):
         decorators = []
-        if build_type or binary:
+        if build_type or binary_selection:
             decorators += [
                 CommandArgumentGroup('Build Type'),
                 CommandArgument('--release', '-r', group="Build Type",
@@ -591,7 +591,7 @@ class CommandBase(object):
                 )
             ]
 
-        if binary:
+        if binary_selection:
             decorators += [
                 CommandArgumentGroup('Binary select'),
                 CommandArgument('--bin', default=None,
@@ -602,7 +602,7 @@ class CommandBase(object):
 
         def decorator_function(original_function):
             def configuration_decorator(self, *args, **kwargs):
-                if build_type or binary:
+                if build_type or binary_selection:
                     # If `build_type` already exists in kwargs we are doing a recursive dispatch.
                     if 'build_type' not in kwargs:
                         kwargs['build_type'] = self.configure_build_type(
@@ -618,7 +618,7 @@ class CommandBase(object):
                     self.features = kwargs.get("features", None) or []
                     self.enable_media = self.is_media_enabled(kwargs['media_stack'])
 
-                if binary:
+                if binary_selection:
                     if 'servo_binary' not in kwargs:
                         kwargs['servo_binary'] = (kwargs.get('bin')
                                                   or self.get_nightly_binary_path(kwargs.get('nightly'))
