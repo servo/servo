@@ -68,10 +68,7 @@ impl ContentSizes {
 
 impl Zero for ContentSizes {
     fn zero() -> Self {
-        Self {
-            min_content: Au::zero(),
-            max_content: Au::zero(),
-        }
+        Au::zero().into()
     }
 
     fn is_zero(&self) -> bool {
@@ -100,6 +97,15 @@ impl ContentSizes {
     /// <https://drafts.csswg.org/css2/visudet.html#shrink-to-fit-float>
     pub fn shrink_to_fit(&self, available_size: Au) -> Au {
         available_size.max(self.min_content).min(self.max_content)
+    }
+}
+
+impl From<Au> for ContentSizes {
+    fn from(size: Au) -> Self {
+        Self {
+            min_content: size,
+            max_content: size,
+        }
     }
 }
 
@@ -159,10 +165,7 @@ pub(crate) fn outer_inline(
                 BoxSizing::ContentBox => clamped + pb_lengths,
                 BoxSizing::BorderBox => clamped,
             };
-            ContentSizes {
-                min_content: border_box_size,
-                max_content: border_box_size,
-            }
+            border_box_size.into()
         },
         None => get_content_size().map(|content_box_size| {
             match box_sizing {

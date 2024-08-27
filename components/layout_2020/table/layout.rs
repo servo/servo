@@ -248,10 +248,7 @@ impl<'a> TableLayout<'a> {
                 // These sizes are incorporated after the first row layout pass, when the block size
                 // of the layout is known.
                 let block_measure = CellOrTrackMeasure {
-                    content_sizes: ContentSizes {
-                        min_content: size.block,
-                        max_content: size.block,
-                    },
+                    content_sizes: size.block.into(),
                     percentage: percentage_contribution.block,
                 };
 
@@ -1204,14 +1201,10 @@ impl<'a> TableLayout<'a> {
                     continue;
                 };
 
-                let content_size_from_layout = ContentSizes {
-                    min_content: layout.layout.content_block_size,
-                    max_content: layout.layout.content_block_size,
-                };
                 self.cell_measures[row_index][column_index]
                     .block
                     .content_sizes
-                    .max_assign(content_size_from_layout);
+                    .max_assign(layout.layout.content_block_size.into());
             }
         }
     }
@@ -2524,10 +2517,7 @@ impl Table {
             get_size_percentage_contribution_from_style(&row.style, writing_mode);
 
         CellOrTrackMeasure {
-            content_sizes: ContentSizes {
-                min_content: size,
-                max_content: size,
-            },
+            content_sizes: size.into(),
             percentage: percentage_contribution.block,
         }
     }
