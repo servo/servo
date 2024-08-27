@@ -26,7 +26,6 @@ import servo.util
 import servo.platform
 
 from servo.command_base import (
-    BuildType,
     CommandBase,
     check_call,
     is_linux,
@@ -74,17 +73,18 @@ class PostBuildCommands(CommandBase):
                      help='Launch in headless mode')
     @CommandArgument('--software', '-s', action='store_true',
                      help='Launch with software rendering')
-    @CommandArgument('--bin', default=None,
-                     help='Launch with specific binary')
-    @CommandArgument('--nightly', '-n', default=None,
-                     help='Specify a YYYY-MM-DD nightly build to run')
     @CommandArgument(
         'params', nargs='...',
         help="Command-line arguments to be passed through to Servo")
-    @CommandBase.common_command_arguments(build_configuration=False, build_type=True)
+    @CommandBase.common_command_arguments(build_configuration=False, build_type=False, binary=True)
     @CommandBase.allow_target_configuration
-    def run(self, params, build_type: BuildType, debugger=False, debugger_cmd=None,
-            headless=False, software=False, bin=None, emulator=False, usb=False, nightly=None, with_asan=False):
+    def run(self, servo_binary, params, debugger=False, debugger_cmd=None,
+            headless=False, software=False, emulator=False, usb=False):
+        self._run(servo_binary, params, debugger, debugger_cmd,
+                  headless, software, emulator, usb)
+
+    def _run(self, servo_binary, params, debugger=False, debugger_cmd=None,
+             headless=False, software=False, emulator=False, usb=False):
         env = self.build_env()
         env["RUST_BACKTRACE"] = "1"
         if software:
@@ -134,9 +134,7 @@ class PostBuildCommands(CommandBase):
             shell.communicate(bytes("\n".join(script) + "\n", "utf8"))
             return shell.wait()
 
-        args = [bin
-                or self.get_nightly_binary_path(nightly)
-                or self.get_binary_path(build_type, asan=with_asan)]
+        args = [servo_binary]
 
         if headless:
             args.append('-z')
@@ -200,20 +198,15 @@ class PostBuildCommands(CommandBase):
     @Command('rr-record',
              description='Run Servo whilst recording execution with rr',
              category='post-build')
-    @CommandArgument('--bin', default=None,
-                     help='Launch with specific binary')
-    @CommandArgument('--nightly', '-n', default=None,
-                     help='Specify a YYYY-MM-DD nightly build to run')
     @CommandArgument(
         'params', nargs='...',
         help="Command-line arguments to be passed through to Servo")
-    @CommandBase.common_command_arguments(build_configuration=False, build_type=True)
-    def rr_record(self, build_type: BuildType, bin=None, nightly=None, with_asan=False, params=[]):
+    @CommandBase.common_command_arguments(binary=True)
+    def rr_record(self, servo_binary, with_asan=False, params=[]):
         env = self.build_env()
         env["RUST_BACKTRACE"] = "1"
 
-        servo_cmd = [bin or self.get_nightly_binary_path(nightly)
-                     or self.get_binary_path(build_type, asan=with_asan)] + params
+        servo_cmd = [servo_binary] + params
         rr_cmd = ['rr', '--fatal-errors', 'record']
         try:
             check_call(rr_cmd + servo_cmd)
