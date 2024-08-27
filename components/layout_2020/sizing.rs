@@ -8,13 +8,11 @@ use std::ops::{Add, AddAssign};
 
 use app_units::Au;
 use serde::Serialize;
-use style::logical_geometry::WritingMode;
-use style::properties::longhands::box_sizing::computed_value::T as BoxSizing;
 use style::properties::ComputedValues;
-use style::values::computed::Length;
 use style::Zero;
 
 use crate::style_ext::{Clamp, ComputedValuesExt};
+use crate::{AuOrAuto, IndefiniteContainingBlock, LogicalVec2};
 
 #[derive(PartialEq)]
 pub(crate) enum IntrinsicSizingMode {
@@ -111,70 +109,31 @@ impl From<Au> for ContentSizes {
 
 pub(crate) fn outer_inline(
     style: &ComputedValues,
-    containing_block_writing_mode: WritingMode,
-    get_content_size: impl FnOnce() -> ContentSizes,
-    get_auto_minimum: impl FnOnce() -> Au,
+    containing_block: &IndefiniteContainingBlock,
+    auto_minimum: &LogicalVec2<Au>,
+    get_content_size: impl FnOnce(&IndefiniteContainingBlock) -> ContentSizes,
 ) -> ContentSizes {
-    let padding = style.padding(containing_block_writing_mode);
-    let border = style.border_width(containing_block_writing_mode);
-    let margin = style.margin(containing_block_writing_mode);
-
-    // For margins and paddings, a cyclic percentage is resolved against zero
-    // for determining intrinsic size contributions.
-    // https://drafts.csswg.org/css-sizing-3/#min-percentage-contribution
-    let zero = Length::zero();
-    let pb_lengths = Au::from(
-        border.inline_sum() +
-            padding.inline_start.percentage_relative_to(zero) +
-            padding.inline_end.percentage_relative_to(zero),
-    );
-    let mut m_lengths = zero;
-    if let Some(m) = margin.inline_start.non_auto() {
-        m_lengths += m.percentage_relative_to(zero)
-    }
-    if let Some(m) = margin.inline_end.non_auto() {
-        m_lengths += m.percentage_relative_to(zero)
-    }
-
-    let box_sizing = style.get_position().box_sizing;
-    let inline_size = style
-        .box_size(containing_block_writing_mode)
-        .inline
-        .non_auto()
-        // Percentages for 'width' are treated as 'auto'
-        .and_then(|lp| lp.to_length());
-    let min_inline_size = style
-        .min_box_size(containing_block_writing_mode)
-        .inline
-        // Percentages for 'min-width' are treated as zero
-        .percentage_relative_to(zero)
-        .map(Au::from)
-        .auto_is(get_auto_minimum);
-    let max_inline_size = style
-        .max_box_size(containing_block_writing_mode)
-        .inline
-        // Percentages for 'max-width' are treated as 'none'
-        .and_then(|lp| lp.to_length())
-        .map(Au::from);
-    let clamp = |l: Au| l.clamp_between_extremums(min_inline_size, max_inline_size);
-
-    let border_box_sizes = match inline_size {
-        Some(non_auto) => {
-            let clamped = clamp(non_auto.into());
-            let border_box_size = match box_sizing {
-                BoxSizing::ContentBox => clamped + pb_lengths,
-                BoxSizing::BorderBox => clamped,
-            };
-            border_box_size.into()
-        },
-        None => get_content_size().map(|content_box_size| {
-            match box_sizing {
-                // Clamp to 'min-width' and 'max-width', which are sizing the…
-                BoxSizing::ContentBox => clamp(content_box_size) + pb_lengths,
-                BoxSizing::BorderBox => clamp(content_box_size + pb_lengths),
-            }
-        }),
+    let (content_box_size, content_min_size, content_max_size, pbm) =
+        style.content_box_sizes_and_padding_border_margin(containing_block);
+    let content_min_size = LogicalVec2 {
+        inline: content_min_size.inline.auto_is(|| auto_minimum.inline),
+        block: content_min_size.block.auto_is(|| auto_minimum.block),
     };
-
-    border_box_sizes.map(|s| s + m_lengths.into())
+    let pbm_inline_sum = pbm.padding_border_sums.inline +
+        pbm.margin.inline_start.auto_is(Au::zero) +
+        pbm.margin.inline_end.auto_is(Au::zero);
+    let adjust = |v: Au| {
+        v.clamp_between_extremums(content_min_size.inline, content_max_size.inline) + pbm_inline_sum
+    };
+    match content_box_size.inline {
+        AuOrAuto::LengthPercentage(inline_size) => adjust(inline_size).into(),
+        AuOrAuto::Auto => {
+            let block_size = content_box_size
+                .block
+                .map(|v| v.clamp_between_extremums(content_min_size.block, content_max_size.block));
+            let containing_block_for_children =
+                IndefiniteContainingBlock::new_for_style_and_block_size(style, block_size);
+            get_content_size(&containing_block_for_children).map(adjust)
+        },
+    }
 }

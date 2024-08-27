@@ -94,7 +94,6 @@ use style::computed_values::text_wrap_mode::T as TextWrapMode;
 use style::computed_values::vertical_align::T as VerticalAlign;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 use style::context::QuirksMode;
-use style::logical_geometry::WritingMode;
 use style::properties::style_structs::InheritedText;
 use style::properties::ComputedValues;
 use style::values::computed::{Clear, Length};
@@ -128,7 +127,7 @@ use crate::geom::{LogicalRect, LogicalVec2, PhysicalRect, ToLogical};
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
 use crate::sizing::ContentSizes;
 use crate::style_ext::{Clamp, ComputedValuesExt, PaddingBorderMargin};
-use crate::ContainingBlock;
+use crate::{ContainingBlock, IndefiniteContainingBlock};
 
 // From gfxFontConstants.h in Firefox.
 static FONT_SUBSCRIPT_OFFSET_RATIO: f32 = 0.20;
@@ -1557,9 +1556,9 @@ impl InlineFormattingContext {
     pub(super) fn inline_content_sizes(
         &self,
         layout_context: &LayoutContext,
-        containing_block_writing_mode: WritingMode,
+        containing_block_for_children: &IndefiniteContainingBlock,
     ) -> ContentSizes {
-        ContentSizesComputation::compute(self, layout_context, containing_block_writing_mode)
+        ContentSizesComputation::compute(self, layout_context, containing_block_for_children)
     }
 
     pub(super) fn layout(
@@ -1954,13 +1953,19 @@ impl IndependentFormattingContext {
                     .content_min_box_size(layout.containing_block, &pbm)
                     .map(|v| v.map(Au::from))
                     .auto_is(Au::zero);
+                let block_size = box_size
+                    .block
+                    .map(|v| v.clamp_between_extremums(min_box_size.block, max_box_size.block));
 
                 // https://drafts.csswg.org/css2/visudet.html#inlineblock-width
                 let tentative_inline_size = box_size.inline.auto_is(|| {
+                    let style = non_replaced.style.clone();
+                    let containing_block_for_children =
+                        IndefiniteContainingBlock::new_for_style_and_block_size(&style, block_size);
                     let available_size =
                         layout.containing_block.inline_size - pbm_sums.inline_sum();
                     non_replaced
-                        .inline_content_sizes(layout.layout_context)
+                        .inline_content_sizes(layout.layout_context, &containing_block_for_children)
                         .shrink_to_fit(available_size)
                 });
 
@@ -1969,9 +1974,6 @@ impl IndependentFormattingContext {
                 // always results in that size.
                 let inline_size = tentative_inline_size
                     .clamp_between_extremums(min_box_size.inline, max_box_size.inline);
-                let block_size = box_size
-                    .block
-                    .map(|v| v.clamp_between_extremums(min_box_size.block, max_box_size.block));
 
                 let containing_block_for_children = ContainingBlock {
                     inline_size,
@@ -2259,7 +2261,7 @@ fn inline_container_needs_strut(
 /// A struct which takes care of computing [`ContentSizes`] for an [`InlineFormattingContext`].
 struct ContentSizesComputation<'layout_data> {
     layout_context: &'layout_data LayoutContext<'layout_data>,
-    containing_block_writing_mode: WritingMode,
+    containing_block: &'layout_data IndefiniteContainingBlock<'layout_data>,
     paragraph: ContentSizes,
     current_line: ContentSizes,
     /// Size for whitepsace pending to be added to this line.
@@ -2297,14 +2299,14 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
                 let zero = Length::zero();
                 let padding = inline_box
                     .style
-                    .padding(self.containing_block_writing_mode)
+                    .padding(self.containing_block.style.writing_mode)
                     .percentages_relative_to(zero);
                 let border = inline_box
                     .style
-                    .border_width(self.containing_block_writing_mode);
+                    .border_width(self.containing_block.style.writing_mode);
                 let margin = inline_box
                     .style
-                    .margin(self.containing_block_writing_mode)
+                    .margin(self.containing_block.style.writing_mode)
                     .percentages_relative_to(zero)
                     .auto_is(Length::zero);
 
@@ -2379,8 +2381,8 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
 
                 let outer = atomic.outer_inline_content_sizes(
                     self.layout_context,
-                    self.containing_block_writing_mode,
-                    Au::zero,
+                    self.containing_block,
+                    &LogicalVec2::zero(),
                 );
 
                 if !inline_formatting_context
@@ -2428,11 +2430,11 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
     fn compute(
         inline_formatting_context: &InlineFormattingContext,
         layout_context: &'layout_data LayoutContext,
-        containing_block_writing_mode: WritingMode,
+        containing_block: &'layout_data IndefiniteContainingBlock,
     ) -> ContentSizes {
         Self {
             layout_context,
-            containing_block_writing_mode,
+            containing_block,
             paragraph: ContentSizes::zero(),
             current_line: ContentSizes::zero(),
             pending_whitespace: Au::zero(),

@@ -27,7 +27,7 @@ use crate::geom::{
     PhysicalPoint, PhysicalRect, ToLogical,
 };
 use crate::style_ext::{ComputedValuesExt, DisplayInside};
-use crate::{ContainingBlock, DefiniteContainingBlock};
+use crate::{ContainingBlock, DefiniteContainingBlock, IndefiniteContainingBlock};
 
 #[derive(Debug, Serialize)]
 pub(crate) struct AbsolutelyPositionedBox {
@@ -578,8 +578,16 @@ impl HoistedAbsolutelyPositionedBox {
                         let margin_sum = inline_axis.margin_start + inline_axis.margin_end;
                         let available_size =
                             cbis - anchor - pbm.padding_border_sums.inline - margin_sum;
+
+                        let style = non_replaced.style.clone();
+                        let containing_block_for_children =
+                            IndefiniteContainingBlock::from(containing_block)
+                                .new_for_intrinsic_inline_size_of_child(
+                                    &style,
+                                    &LogicalVec2::zero(),
+                                );
                         non_replaced
-                            .inline_content_sizes(layout_context)
+                            .inline_content_sizes(layout_context, &containing_block_for_children)
                             .shrink_to_fit(available_size)
                     });
 

@@ -35,7 +35,7 @@ use crate::positioned::{relative_adjustement, PositioningContext, PositioningCon
 use crate::sizing::ContentSizes;
 use crate::style_ext::{Clamp, ComputedValuesExt, PaddingBorderMargin};
 use crate::table::TableSlotCoordinates;
-use crate::ContainingBlock;
+use crate::{ContainingBlock, IndefiniteContainingBlock};
 
 /// A result of a final or speculative layout of a single cell in
 /// the table. Note that this is only done for slots that are not
@@ -201,10 +201,10 @@ impl<'a> TableLayout<'a> {
 
                 let (size, min_size, max_size) =
                     get_outer_sizes_from_style(&cell.style, writing_mode, &padding_border_sums);
-                let mut inline_content_sizes = cell
-                    .contents
-                    .contents
-                    .inline_content_sizes(layout_context, writing_mode);
+                let mut inline_content_sizes = cell.contents.contents.inline_content_sizes(
+                    layout_context,
+                    &IndefiniteContainingBlock::new_for_style(&cell.style),
+                );
                 inline_content_sizes.min_content += padding_border_sums.inline;
                 inline_content_sizes.max_content += padding_border_sums.inline;
 
@@ -677,52 +677,42 @@ impl<'a> TableLayout<'a> {
             .captions
             .iter()
             .map(|caption| {
-                let size;
-                let min_size;
-                let max_size;
-                let padding_border_sums;
-                let size_is_auto;
-                {
-                    let context = caption.context.borrow();
-                    let padding = context
-                        .style
-                        .padding(writing_mode)
-                        .percentages_relative_to(Length::zero());
-                    let border = context.style.border_width(writing_mode);
-                    let margin = context
-                        .style
-                        .margin(writing_mode)
-                        .percentages_relative_to(Length::zero())
-                        .auto_is(Length::zero);
+                let mut context = caption.context.borrow_mut();
+                let padding = context
+                    .style
+                    .padding(writing_mode)
+                    .percentages_relative_to(Length::zero());
+                let border = context.style.border_width(writing_mode);
+                let margin = context
+                    .style
+                    .margin(writing_mode)
+                    .percentages_relative_to(Length::zero())
+                    .auto_is(Length::zero);
 
-                    padding_border_sums = LogicalVec2 {
-                        inline: (padding.inline_sum() + border.inline_sum() + margin.inline_sum())
-                            .into(),
-                        block: (padding.block_sum() + border.block_sum() + margin.block_sum())
-                            .into(),
-                    };
+                let padding_border_sums = LogicalVec2 {
+                    inline: (padding.inline_sum() + border.inline_sum() + margin.inline_sum())
+                        .into(),
+                    block: (padding.block_sum() + border.block_sum() + margin.block_sum()).into(),
+                };
 
-                    (size, min_size, max_size) = get_outer_sizes_from_style(
-                        &context.style,
-                        writing_mode,
-                        &padding_border_sums,
-                    );
-                    size_is_auto = context.style.box_size(writing_mode).inline.is_auto();
-                }
+                let (size, min_size, max_size) =
+                    get_outer_sizes_from_style(&context.style, writing_mode, &padding_border_sums);
+                let size_is_auto = context.style.box_size(writing_mode).inline.is_auto();
 
                 // If an inline size is defined it should serve as the upper limit and lower limit
                 // of the caption inline size.
-                let inline_size = if !size_is_auto {
+                if !size_is_auto {
                     size.inline
                 } else {
-                    let inline_content_sizes = caption
-                        .context
-                        .borrow_mut()
-                        .inline_content_sizes(layout_context);
+                    let style = context.style.clone();
+                    let inline_content_sizes = context.inline_content_sizes(
+                        layout_context,
+                        &IndefiniteContainingBlock::new_for_style(&style),
+                    );
                     inline_content_sizes.min_content + padding_border_sums.inline
-                };
-
-                inline_size.min(max_size.inline).max(min_size.inline)
+                }
+                .min(max_size.inline)
+                .max(min_size.inline)
             })
             .max()
             .unwrap_or_default()
@@ -2432,8 +2422,9 @@ impl Table {
     pub(crate) fn inline_content_sizes(
         &mut self,
         layout_context: &LayoutContext,
-        writing_mode: WritingMode,
+        containing_block_for_children: &IndefiniteContainingBlock,
     ) -> ContentSizes {
+        let writing_mode = containing_block_for_children.style.effective_writing_mode();
         let mut layout = TableLayout::new(self);
         let mut table_content_sizes = layout.compute_grid_min_max(layout_context, writing_mode);
 
