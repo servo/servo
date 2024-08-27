@@ -1114,7 +1114,7 @@ impl InitialFlexLineLayout<'_> {
         let item_layout_results = items
             .iter_mut()
             .zip(&item_used_main_sizes)
-            .map(|(item, &used_main_size)| item.layout(used_main_size, &flex_context, None))
+            .map(|(item, &used_main_size)| item.layout(used_main_size, flex_context, None))
             .collect::<Vec<_>>();
 
         // https://drafts.csswg.org/css-flexbox/#algo-cross-line
@@ -1411,7 +1411,7 @@ impl InitialFlexLineLayout<'_> {
                 //  treating this used size as its definite cross size
                 //  so that percentage-sized children can be resolved.”
                 *item_layout_result =
-                    item.layout(*used_main_size, &flex_context, Some(used_cross_size));
+                    item.layout(*used_main_size, flex_context, Some(used_cross_size));
             }
 
             // TODO: This also needs to check whether we have a compatible writing mode.

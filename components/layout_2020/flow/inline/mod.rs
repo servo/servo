@@ -1442,9 +1442,7 @@ impl<'layout_dta> InlineFormattingContextLayout<'layout_dta> {
             assert!(!will_break);
         }
 
-        self.current_line
-            .line_items
-            .extend(segment_items.into_iter());
+        self.current_line.line_items.extend(segment_items);
         self.current_line.has_content |= self.current_line_segment.has_content;
 
         self.current_line_segment.reset();
@@ -1964,7 +1962,6 @@ impl IndependentFormattingContext {
                     non_replaced
                         .inline_content_sizes(layout.layout_context)
                         .shrink_to_fit(available_size)
-                        .into()
                 });
 
                 // https://drafts.csswg.org/css2/visudet.html#min-max-widths
