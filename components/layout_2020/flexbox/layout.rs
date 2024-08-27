@@ -1940,20 +1940,16 @@ impl FlexItemBox {
                 .outer_inline_content_sizes(layout_context, container_writing_mode, || {
                     automatic_min_size
                 }),
-            FlexAxis::Column => {
-                let size = self.layout_for_block_content_size(
+            FlexAxis::Column => self
+                .layout_for_block_content_size(
                     flex_context_getter(),
                     &pbm,
                     content_box_size,
                     content_min_size_no_auto,
                     content_max_size,
                     IntrinsicSizingMode::Contribution,
-                );
-                ContentSizes {
-                    min_content: size,
-                    max_content: size,
-                }
-            },
+                )
+                .into(),
         };
 
         let content_box_size = flex_axis.vec2_to_flex_relative(content_box_size);
