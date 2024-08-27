@@ -57,9 +57,10 @@ libservo = { path = "../../components/servo" }
 cfg-if = { workspace = true }
 log = { workspace = true }
 getopts = { workspace = true }
+mime_guess = { workspace = true }
 url = { workspace = true }
 servo-media = { workspace = true }
-
+tokio = { workspace = true }
 
 [target.'cfg(target_os = "android")'.dependencies]
 android_logger = "0.14"

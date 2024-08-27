@@ -12,7 +12,7 @@ use webxr::glwindow::GlWindowDiscovery;
 #[cfg(target_os = "windows")]
 use webxr::openxr::OpenXrDiscovery;
 
-use crate::desktop::protocols::urlinfo;
+use crate::desktop::protocols::{resource, servo as servo_handler, urlinfo};
 
 pub enum XrDiscovery {
     GlWindow(GlWindowDiscovery),
@@ -61,6 +61,8 @@ impl EmbedderMethods for EmbedderCallbacks {
     fn get_protocol_handlers(&self) -> ProtocolRegistry {
         let mut registry = ProtocolRegistry::default();
         registry.register("urlinfo", urlinfo::UrlInfoProtocolHander::default());
+        registry.register("servo", servo_handler::ServoProtocolHander::default());
+        registry.register("resource", resource::ResourceProtocolHander::default());
         registry
     }
 }
