@@ -40,7 +40,7 @@ def host_triple():
         cpu_type = "x86_64"
     elif cpu_type == "arm":
         cpu_type = "arm"
-    elif cpu_type == "aarch64":
+    elif cpu_type in ["aarch64", "arm64"]:
         cpu_type = "aarch64"
     else:
         cpu_type = "unknown"
