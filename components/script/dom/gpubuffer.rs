@@ -47,11 +47,14 @@ impl ActiveBufferMapping {
     /// <https://gpuweb.github.io/gpuweb/#abstract-opdef-initialize-an-active-buffer-mapping>
     pub fn new(mode: GPUMapModeFlags, range: Range<u64>) -> Fallible<Self> {
         // Step 1
-        let size: usize = (range.end - range.start).try_into().unwrap();
+        let size = range.end - range.start;
         // Step 2
         if size > (1 << 53) - 1 {
             return Err(Error::Range("Over MAX_SAFE_INTEGER".to_string()));
         }
+        let size: usize = size
+            .try_into()
+            .map_err(|_| Error::Range("Over usize".to_string()))?;
         Ok(Self {
             data: DataBlock::new_zeroed(size),
             mode,
