@@ -38,6 +38,8 @@ class ServoExecutor(ProcessTestExecutor):
         self.environment = {}
         self.protocol = ConnectionlessProtocol(self, browser)
 
+        self.wpt_prefs_path = self.find_wpt_prefs()
+
         hosts_fd, self.hosts_path = tempfile.mkstemp()
         with os.fdopen(hosts_fd, "w") as f:
             f.write(make_hosts_file(server_config, "127.0.0.1"))
@@ -64,6 +66,19 @@ class ServoExecutor(ProcessTestExecutor):
         else:
             self.logger.process_output(self.proc.pid, line, " ".join(self.command), self.test.url)
 
+    def find_wpt_prefs(self):
+        default_path = os.path.join("resources", "wpt-prefs.json")
+        # The cwd is the servo repo for `./mach test-wpt`, but on WPT runners
+        # it is the virtual environment where the nightly is extracted. In the
+        # latter case, the cwd has the `servo` folder inside which we find the
+        # binary and the 'resources' directory.
+        for dir in [".", "./servo"]:
+            candidate = os.path.abspath(os.path.join(dir, default_path))
+            if os.path.isfile(candidate):
+                return candidate
+        self.logger.error("Unable to find wpt-prefs.json")
+        return default_path
+
     def build_servo_command(self, test, extra_args=None, debug_opts="replace-surrogates"):
         args = [
             "--hard-fail", "-u", "Servo/wptrunner",
@@ -78,7 +93,7 @@ class ServoExecutor(ProcessTestExecutor):
             args += ["--user-stylesheet", stylesheet]
         for pref, value in self.environment.get('prefs', {}).items():
             args += ["--pref", f"{pref}={value}"]
-        args += ["--prefs-file", "resources/wpt-prefs.json"]
+        args += ["--prefs-file", self.wpt_prefs_path]
         if self.browser.ca_certificate_path:
             args += ["--certificate-path", self.browser.ca_certificate_path]
         if extra_args:
