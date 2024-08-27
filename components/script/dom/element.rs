@@ -107,7 +107,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::htmlanchorelement::HTMLAnchorElement;
 use crate::dom::htmlbodyelement::{HTMLBodyElement, HTMLBodyElementLayoutHelpers};
 use crate::dom::htmlbuttonelement::HTMLButtonElement;
-use crate::dom::htmlcanvaselement::{HTMLCanvasElement, LayoutHTMLCanvasElementHelpers};
+use crate::dom::htmlcanvaselement::LayoutHTMLCanvasElementHelpers;
 use crate::dom::htmlcollection::HTMLCollection;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmlfieldsetelement::HTMLFieldSetElement;
@@ -852,8 +852,6 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
         } else if let Some(this) = self.downcast::<HTMLHRElement>() {
             // https://html.spec.whatwg.org/multipage/#the-hr-element-2:attr-hr-width
             this.get_width()
-        } else if let Some(this) = self.downcast::<HTMLCanvasElement>() {
-            this.get_width()
         } else {
             LengthOrPercentageOrAuto::Auto
         };
@@ -886,8 +884,6 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
         let height = if let Some(this) = self.downcast::<HTMLIFrameElement>() {
             this.get_height()
         } else if let Some(this) = self.downcast::<HTMLImageElement>() {
-            this.get_height()
-        } else if let Some(this) = self.downcast::<HTMLCanvasElement>() {
             this.get_height()
         } else {
             LengthOrPercentageOrAuto::Auto

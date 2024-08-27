@@ -17,7 +17,7 @@ use script_layout_interface::{HTMLCanvasData, HTMLCanvasDataSource};
 use script_traits::ScriptMsg;
 use servo_media::streams::registry::MediaStreamId;
 use servo_media::streams::MediaStreamType;
-use style::attr::{AttrValue, LengthOrPercentageOrAuto};
+use style::attr::AttrValue;
 
 use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::{ref_filter_map, DomRefCell, Ref};
@@ -127,8 +127,6 @@ pub trait LayoutCanvasRenderingContextHelpers {
 
 pub trait LayoutHTMLCanvasElementHelpers {
     fn data(self) -> HTMLCanvasData;
-    fn get_width(self) -> LengthOrPercentageOrAuto;
-    fn get_height(self) -> LengthOrPercentageOrAuto;
     fn get_canvas_id_for_layout(self) -> CanvasId;
 }
 
@@ -159,20 +157,6 @@ impl LayoutHTMLCanvasElementHelpers for LayoutDom<'_, HTMLCanvasElement> {
             height: height_attr.map_or(DEFAULT_HEIGHT, |val| val.as_uint()),
             canvas_id: self.get_canvas_id_for_layout(),
         }
-    }
-
-    fn get_width(self) -> LengthOrPercentageOrAuto {
-        self.upcast::<Element>()
-            .get_attr_for_layout(&ns!(), &local_name!("width"))
-            .map(AttrValue::as_uint_px_dimension)
-            .unwrap_or(LengthOrPercentageOrAuto::Auto)
-    }
-
-    fn get_height(self) -> LengthOrPercentageOrAuto {
-        self.upcast::<Element>()
-            .get_attr_for_layout(&ns!(), &local_name!("height"))
-            .map(AttrValue::as_uint_px_dimension)
-            .unwrap_or(LengthOrPercentageOrAuto::Auto)
     }
 
     #[allow(unsafe_code)]
