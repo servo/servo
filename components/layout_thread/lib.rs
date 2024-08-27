@@ -27,7 +27,6 @@ use fonts::{
 };
 use fonts_traits::WebFontLoadFinishedCallback;
 use fxhash::{FxHashMap, FxHashSet};
-use histogram::Histogram;
 use ipc_channel::ipc::IpcSender;
 use layout::construct::ConstructionResult;
 use layout::context::{LayoutContext, RegisteredPainter, RegisteredPainters};
@@ -174,9 +173,6 @@ pub struct LayoutThread {
 
     /// Paint time metrics.
     paint_time_metrics: PaintTimeMetrics,
-
-    /// The time a layout query has waited before serviced by layout.
-    layout_query_waiting_time: Histogram,
 
     /// The sizes of all iframes encountered during the last layout operation.
     last_iframe_sizes: RefCell<FnvHashMap<BrowsingContextId, Size2D<f32, CSSPixel>>>,
@@ -470,15 +466,6 @@ impl Layout for LayoutThread {
         // Drop the root flow explicitly to avoid holding style data, such as
         // rule nodes.  The `Stylist` checks when it is dropped that all rule
         // nodes have been GCed, so we want drop anyone who holds them first.
-        let waiting_time_min = self.layout_query_waiting_time.minimum().unwrap_or(0);
-        let waiting_time_max = self.layout_query_waiting_time.maximum().unwrap_or(0);
-        let waiting_time_mean = self.layout_query_waiting_time.mean().unwrap_or(0);
-        let waiting_time_stddev = self.layout_query_waiting_time.stddev().unwrap_or(0);
-        debug!(
-            "layout: query waiting time: min: {}, max: {}, mean: {}, standard_deviation: {}",
-            waiting_time_min, waiting_time_max, waiting_time_mean, waiting_time_stddev
-        );
-
         self.root_flow.borrow_mut().take();
     }
 
@@ -625,7 +612,6 @@ impl LayoutThread {
             scroll_offsets: Default::default(),
             webrender_image_cache: Arc::new(RwLock::new(FnvHashMap::default())),
             paint_time_metrics,
-            layout_query_waiting_time: Histogram::new(),
             last_iframe_sizes: Default::default(),
             debug: opts::get().debug.clone(),
             nonincremental_layout: opts::get().nonincremental_layout,
@@ -967,14 +953,6 @@ impl LayoutThread {
         debug!("layout: received layout request for: {}", self.url);
         debug!("Number of objects in DOM: {}", data.dom_count);
         debug!("layout: parallel? {}", self.parallel_flag);
-
-        // Record the time that layout query has been waited.
-        let now = time::precise_time_ns();
-        if let ReflowGoal::LayoutQuery(_, timestamp) = data.reflow_goal {
-            self.layout_query_waiting_time
-                .increment(now - timestamp)
-                .expect("layout: wrong layout query timestamp");
-        };
 
         let Some(root_element) = document.root_element() else {
             debug!("layout: No root node: bailing");

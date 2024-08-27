@@ -2066,10 +2066,7 @@ impl Window {
     }
 
     pub fn layout_reflow(&self, query_msg: QueryMsg) -> bool {
-        self.reflow(
-            ReflowGoal::LayoutQuery(query_msg, time::precise_time_ns()),
-            ReflowReason::Query,
-        )
+        self.reflow(ReflowGoal::LayoutQuery(query_msg), ReflowReason::Query)
     }
 
     pub fn resolved_font_style_query(&self, node: &Node, value: String) -> Option<ServoArc<Font>> {
@@ -2732,7 +2729,7 @@ fn debug_reflow_events(id: PipelineId, reflow_goal: &ReflowGoal, reason: &Reflow
         ReflowGoal::Full => "\tFull",
         ReflowGoal::TickAnimations => "\tTickAnimations",
         ReflowGoal::UpdateScrollNode(_) => "\tUpdateScrollNode",
-        ReflowGoal::LayoutQuery(ref query_msg, _) => match *query_msg {
+        ReflowGoal::LayoutQuery(ref query_msg) => match *query_msg {
             QueryMsg::ContentBox => "\tContentBoxQuery",
             QueryMsg::ContentBoxes => "\tContentBoxesQuery",
             QueryMsg::NodesFromPointQuery => "\tNodesFromPointQuery",
