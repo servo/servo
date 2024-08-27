@@ -173,13 +173,13 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha }}
-          fetch-depth: 2
+          fetch-depth: 1
 
       # Faster checkout for self-hosted runner that uses prebaked repo.
       - if: ${{ fromJSON(needs.runner-select.outputs.is-self-hosted) && github.event_name != 'pull_request_target' }}
-        run: git fetch --depth=2 origin $env:GITHUB_SHA
+        run: git fetch --depth=1 origin $env:GITHUB_SHA
       - if: ${{ fromJSON(needs.runner-select.outputs.is-self-hosted) && github.event_name == 'pull_request_target' }}
-        run: git fetch --depth=2 origin refs/pull/${{ github.event_number }}/head
+        run: git fetch --depth=1 origin refs/pull/${{ github.event_number }}/head
       - if: ${{ fromJSON(needs.runner-select.outputs.is-self-hosted) }}
         # Same as `git switch --detach FETCH_HEAD`, but fixes up dirty working
         # trees, in case the runner image was baked with a dirty working tree.
