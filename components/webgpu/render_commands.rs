@@ -5,7 +5,7 @@
 //! Render pass commands
 
 use serde::{Deserialize, Serialize};
-use wgpu_core::command::{DynRenderPass, RenderPassError};
+use wgpu_core::command::{RenderPass, RenderPassError};
 use wgpu_core::global::Global;
 
 use crate::wgc::id;
@@ -73,17 +73,19 @@ pub enum RenderCommand {
 }
 
 pub fn apply_render_command(
-    context: &Global,
-    pass: &mut Box<dyn DynRenderPass>,
+    global: &Global,
+    pass: &mut RenderPass,
     command: RenderCommand,
 ) -> Result<(), RenderPassError> {
     match command {
-        RenderCommand::SetPipeline(pipeline_id) => pass.set_pipeline(context, pipeline_id),
+        RenderCommand::SetPipeline(pipeline_id) => {
+            global.render_pass_set_pipeline(pass, pipeline_id)
+        },
         RenderCommand::SetBindGroup {
             index,
             bind_group_id,
             offsets,
-        } => pass.set_bind_group(context, index, bind_group_id, &offsets),
+        } => global.render_pass_set_bind_group(pass, index, bind_group_id, &offsets),
         RenderCommand::SetViewport {
             x,
             y,
@@ -91,36 +93,38 @@ pub fn apply_render_command(
             height,
             min_depth,
             max_depth,
-        } => pass.set_viewport(context, x, y, width, height, min_depth, max_depth),
+        } => global.render_pass_set_viewport(pass, x, y, width, height, min_depth, max_depth),
         RenderCommand::SetScissorRect {
             x,
             y,
             width,
             height,
-        } => pass.set_scissor_rect(context, x, y, width, height),
-        RenderCommand::SetBlendConstant(color) => pass.set_blend_constant(context, color),
+        } => global.render_pass_set_scissor_rect(pass, x, y, width, height),
+        RenderCommand::SetBlendConstant(color) => {
+            global.render_pass_set_blend_constant(pass, color)
+        },
         RenderCommand::SetStencilReference(reference) => {
-            pass.set_stencil_reference(context, reference)
+            global.render_pass_set_stencil_reference(pass, reference)
         },
         RenderCommand::SetIndexBuffer {
             buffer_id,
             index_format,
             offset,
             size,
-        } => pass.set_index_buffer(context, buffer_id, index_format, offset, size),
+        } => global.render_pass_set_index_buffer(pass, buffer_id, index_format, offset, size),
         RenderCommand::SetVertexBuffer {
             slot,
             buffer_id,
             offset,
             size,
-        } => pass.set_vertex_buffer(context, slot, buffer_id, offset, size),
+        } => global.render_pass_set_vertex_buffer(pass, slot, buffer_id, offset, size),
         RenderCommand::Draw {
             vertex_count,
             instance_count,
             first_vertex,
             first_instance,
-        } => pass.draw(
-            context,
+        } => global.render_pass_draw(
+            pass,
             vertex_count,
             instance_count,
             first_vertex,
@@ -132,8 +136,8 @@ pub fn apply_render_command(
             first_index,
             base_vertex,
             first_instance,
-        } => pass.draw_indexed(
-            context,
+        } => global.render_pass_draw_indexed(
+            pass,
             index_count,
             instance_count,
             first_index,
@@ -141,11 +145,13 @@ pub fn apply_render_command(
             first_instance,
         ),
         RenderCommand::DrawIndirect { buffer_id, offset } => {
-            pass.draw_indirect(context, buffer_id, offset)
+            global.render_pass_draw_indirect(pass, buffer_id, offset)
         },
         RenderCommand::DrawIndexedIndirect { buffer_id, offset } => {
-            pass.draw_indexed_indirect(context, buffer_id, offset)
+            global.render_pass_draw_indexed_indirect(pass, buffer_id, offset)
         },
-        RenderCommand::ExecuteBundles(bundles) => pass.execute_bundles(context, &bundles),
+        RenderCommand::ExecuteBundles(bundles) => {
+            global.render_pass_execute_bundles(pass, &bundles)
+        },
     }
 }
