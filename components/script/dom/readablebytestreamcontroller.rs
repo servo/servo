@@ -6,7 +6,9 @@ use std::cell::RefCell;
 use std::collections::VecDeque;
 
 use dom_struct::dom_struct;
+use js::jsapi::JSObject;
 use js::rust::{HandleValue as SafeHandleValue, HandleValue};
+use js::typedarray::{ArrayBuffer, TypedArray, Uint8};
 
 use super::bindings::codegen::UnionTypes::ReadableStreamDefaultControllerOrReadableByteStreamController as Controller;
 use super::bindings::reflector::{reflect_dom_object, DomObject};
@@ -14,26 +16,23 @@ use super::promisenativehandler::Callback;
 use super::readablestreambyobreader::ReadIntoRequest;
 use super::readablestreamdefaultreader::ReadRequest;
 use super::types::{GlobalScope, PromiseNativeHandler};
+use crate::dom::bindings::buffer_source::create_buffer_source;
 use crate::dom::bindings::codegen::Bindings::ReadableByteStreamControllerBinding::ReadableByteStreamControllerMethods;
 use crate::dom::bindings::import::module::{Error, Fallible};
 use crate::dom::bindings::reflector::Reflector;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::readablestream::ReadableStream;
 use crate::dom::underlyingsourcecontainer::{UnderlyingSourceContainer, UnderlyingSourceType};
+use crate::js::rust::CustomTrace;
 use crate::realms::{enter_realm, InRealm};
 use crate::script_runtime::{JSContext, JSContext as SafeJSContext};
 
+/// <https://streams.spec.whatwg.org/#readable-byte-stream-queue-entry>
 #[derive(JSTraceable)]
 pub struct ReadableByteStreamQueueEntry {
-    buffer: Vec<u8>,
+    buffer: ArrayBuffer,
     byte_offset: usize,
     byte_length: usize,
-}
-
-impl ReadableByteStreamQueueEntry {
-    fn to_view(&self) -> &[u8] {
-        &self.buffer[self.byte_offset..self.byte_offset + self.byte_length]
-    }
 }
 
 /// <https://streams.spec.whatwg.org/#queue-with-sizes>
@@ -101,7 +100,7 @@ enum ReaderType {
     Default,
 }
 
-// TODO: function?
+// TODO: temporary implementation, should change after having real usage
 #[derive(JSTraceable)]
 enum ViewConstructor {
     TypedArray,
@@ -231,7 +230,7 @@ impl ReadableByteStreamController {
     }
 
     /// <https://streams.spec.whatwg.org/#rbs-controller-private-pull>
-    pub fn perform_pull_steps(&self, read_request: ReadRequest) {
+    pub fn perform_pull_steps(&self, cx: SafeJSContext, read_request: ReadRequest) {
         // step 1
         let stream: DomRoot<ReadableStream> = self
             .stream
@@ -246,7 +245,7 @@ impl ReadableByteStreamController {
             // step 3.1
             assert!(stream.get_num_read_requests() == 0);
             // step 3.2
-            self.fill_read_request_from_queue(&read_request);
+            self.fill_read_request_from_queue(cx, &read_request);
             // step 3.3
             return;
         }
@@ -282,7 +281,8 @@ impl ReadableByteStreamController {
     }
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablebytestreamcontrollerfillreadrequestfromqueue>
-    pub fn fill_read_request_from_queue(&self, read_request: &ReadRequest) {
+    #[allow(unsafe_code)]
+    pub fn fill_read_request_from_queue(&self, cx: SafeJSContext, read_request: &ReadRequest) {
         // step 1
         assert!(self.queue.borrow().total_size > 0);
 
@@ -293,11 +293,22 @@ impl ReadableByteStreamController {
         self.queue.borrow_mut().total_size -= entry.byte_length;
 
         // step 5
-        // TODO:
         self.handle_queue_drain();
 
         // step 6
-        let view = entry.to_view();
+        let buffer: &[u8] = unsafe {
+            let start = entry.byte_offset;
+            let end = entry.byte_offset + entry.byte_length;
+            &entry
+                .buffer
+                .as_slice()
+                .get(start..end)
+                .expect("ArrayBuffer slice should not overflow")
+        };
+        rooted!(in (*cx) let mut array = std::ptr::null_mut::<JSObject>());
+        let view: TypedArray<Uint8, *mut JSObject> =
+            create_buffer_source(cx, buffer, array.handle_mut())
+                .expect("Converting to Uint8Array should never fail");
 
         // step 7
         read_request.chunk_steps(view.to_vec());

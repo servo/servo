@@ -217,7 +217,7 @@ impl ReadableStream {
     pub fn perform_pull_steps(&self, read_request: ReadRequest) {
         match self.controller {
             ControllerType::Default(ref controller) => controller.perform_pull_steps(read_request),
-            ControllerType::Byte(ref controller) => controller.perform_pull_steps(read_request),
+            _ => todo!(),
         }
     }
 
