@@ -5,7 +5,6 @@
 use app_units::Au;
 use serde::Serialize;
 use servo_arc::Arc;
-use style::logical_geometry::Direction;
 use style::properties::ComputedValues;
 use style::selector_parser::PseudoElement;
 use style::values::specified::text::TextDecorationLine;
@@ -180,14 +179,17 @@ impl IndependentFormattingContext {
         &mut self,
         layout_context: &LayoutContext,
         containing_block_for_children: &IndefiniteContainingBlock,
+        containing_block: &IndefiniteContainingBlock,
     ) -> ContentSizes {
         match self {
             Self::NonReplaced(inner) => {
                 inner.inline_content_sizes(layout_context, containing_block_for_children)
             },
-            Self::Replaced(inner) => inner
-                .contents
-                .inline_content_sizes(layout_context, containing_block_for_children),
+            Self::Replaced(inner) => inner.contents.inline_content_sizes(
+                layout_context,
+                containing_block_for_children,
+                inner.preferred_aspect_ratio(containing_block),
+            ),
         }
     }
 
@@ -211,20 +213,11 @@ impl IndependentFormattingContext {
                 containing_block,
                 auto_minimum,
                 |containing_block_for_children| {
-                    match (
-                        containing_block_for_children.size.block,
+                    replaced.contents.inline_content_sizes(
+                        layout_context,
+                        containing_block_for_children,
                         replaced.preferred_aspect_ratio(containing_block),
-                    ) {
-                        (AuOrAuto::LengthPercentage(block_size), Some(ratio)) => {
-                            return ratio
-                                .compute_dependent_size(Direction::Inline, block_size)
-                                .into();
-                        },
-                        _ => {},
-                    }
-                    replaced
-                        .contents
-                        .inline_content_sizes(layout_context, containing_block_for_children)
+                    )
                 },
             ),
         }

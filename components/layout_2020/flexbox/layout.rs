@@ -346,6 +346,7 @@ impl FlexContainer {
                             &ifc.style().clone(),
                             &LogicalVec2::zero(),
                         ),
+                        containing_block_for_children,
                     ));
                 },
                 FlexLevelBox::OutOfFlowAbsolutelyPositionedBox(_) => {},
@@ -955,6 +956,7 @@ impl<'a> FlexItem<'a> {
             main: flex_relative_content_min_size.main.auto_is(|| {
                 box_.automatic_min_size(
                     flex_context.layout_context,
+                    &containing_block.into(),
                     cross_axis_is_item_block_axis,
                     flex_relative_content_box_size,
                     flex_relative_content_min_size,
@@ -989,6 +991,7 @@ impl<'a> FlexItem<'a> {
 
         let (flex_base_size, flex_base_size_is_definite) = box_.flex_base_size(
             flex_context.layout_context,
+            &containing_block.into(),
             flex_context.container_definite_inner_size,
             cross_axis_is_item_block_axis,
             flex_relative_content_box_size,
@@ -1913,6 +1916,7 @@ impl FlexItemBox {
             style.content_box_sizes_and_padding_border_margin(containing_block);
         let automatic_min_size = self.automatic_min_size(
             layout_context,
+            containing_block,
             cross_axis_is_item_block_axis,
             flex_axis.vec2_to_flex_relative(content_box_size),
             flex_axis.vec2_to_flex_relative(content_min_size),
@@ -1984,6 +1988,7 @@ impl FlexItemBox {
         // we compute the base sizes of the items twice. We should consider caching.
         let (flex_base_size, _) = self.flex_base_size(
             layout_context,
+            containing_block,
             FlexRelativeVec2 {
                 main: None,
                 cross: None,
@@ -2091,6 +2096,7 @@ impl FlexItemBox {
     fn automatic_min_size(
         &mut self,
         layout_context: &LayoutContext,
+        containing_block: &IndefiniteContainingBlock,
         cross_axis_is_item_block_axis: bool,
         content_box_size: FlexRelativeVec2<AuOrAuto>,
         min_size: FlexRelativeVec2<GenericLengthPercentageOrAuto<Au>>,
@@ -2159,7 +2165,11 @@ impl FlexItemBox {
             let containing_block_for_children =
                 IndefiniteContainingBlock::new_for_style_and_block_size(&style, block_size);
             self.independent_formatting_context
-                .inline_content_sizes(layout_context, &containing_block_for_children)
+                .inline_content_sizes(
+                    layout_context,
+                    &containing_block_for_children,
+                    containing_block,
+                )
                 .min_content
         } else {
             block_content_size_callback(self)
@@ -2191,6 +2201,7 @@ impl FlexItemBox {
     fn flex_base_size(
         &mut self,
         layout_context: &LayoutContext,
+        containing_block: &IndefiniteContainingBlock,
         container_definite_inner_size: FlexRelativeVec2<Option<Au>>,
         cross_axis_is_item_block_axis: bool,
         content_box_size: FlexRelativeVec2<AuOrAuto>,
@@ -2276,7 +2287,11 @@ impl FlexItemBox {
                     let containing_block_for_children =
                         IndefiniteContainingBlock::new_for_style_and_block_size(&style, block_size);
                     flex_item
-                        .inline_content_sizes(layout_context, &containing_block_for_children)
+                        .inline_content_sizes(
+                            layout_context,
+                            &containing_block_for_children,
+                            containing_block,
+                        )
                         .max_content
                 } else {
                     block_content_size_callback(self)
