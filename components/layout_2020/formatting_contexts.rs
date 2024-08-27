@@ -178,9 +178,7 @@ impl IndependentFormattingContext {
 
     pub fn inline_content_sizes(&mut self, layout_context: &LayoutContext) -> ContentSizes {
         match self {
-            Self::NonReplaced(inner) => inner
-                .contents
-                .inline_content_sizes(layout_context, inner.style.effective_writing_mode()),
+            Self::NonReplaced(inner) => inner.inline_content_sizes(layout_context),
             Self::Replaced(inner) => inner.contents.inline_content_sizes(&inner.style),
         }
     }
