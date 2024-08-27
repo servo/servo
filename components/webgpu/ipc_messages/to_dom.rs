@@ -4,10 +4,13 @@
 
 //! IPC messages that are send to WebGPU DOM objects.
 
+use std::ops::Range;
+
 use ipc_channel::ipc::IpcSharedMemory;
 use serde::{Deserialize, Serialize};
 use wgc::id;
 use wgc::pipeline::CreateShaderModuleError;
+use wgpu_core::device::HostMap;
 use wgpu_core::instance::{RequestAdapterError, RequestDeviceError};
 use wgpu_core::resource::BufferAccessError;
 pub use {wgpu_core as wgc, wgpu_types as wgt};
@@ -73,6 +76,13 @@ pub struct Pipeline<T: std::fmt::Debug + Serialize> {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
+pub struct Mapping {
+    pub data: IpcSharedMemory,
+    pub mode: HostMap,
+    pub range: Range<u64>,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
 #[allow(clippy::large_enum_variant)]
 pub enum WebGPUResponse {
     /// WebGPU is disabled
@@ -85,7 +95,7 @@ pub enum WebGPUResponse {
             Result<wgt::DeviceDescriptor<Option<String>>, RequestDeviceError>,
         ),
     ),
-    BufferMapAsync(Result<IpcSharedMemory, BufferAccessError>),
+    BufferMapAsync(Result<Mapping, BufferAccessError>),
     SubmittedWorkDone,
     PoppedErrorScope(Result<Option<Error>, PopError>),
     CompilationInfo(Option<ShaderCompilationInfo>),

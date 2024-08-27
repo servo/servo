@@ -20,7 +20,7 @@ use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::gpubuffer::{GPUBuffer, GPUBufferState};
+use crate::dom::gpubuffer::GPUBuffer;
 use crate::dom::gpucommandbuffer::GPUCommandBuffer;
 use crate::dom::gpuconvert::{
     convert_ic_texture, convert_image_data_layout, convert_texture_size_to_dict,
@@ -80,21 +80,6 @@ impl GPUQueueMethods for GPUQueue {
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuqueue-submit>
     fn Submit(&self, command_buffers: Vec<DomRoot<GPUCommandBuffer>>) {
-        let valid = command_buffers.iter().all(|cb| {
-            cb.buffers()
-                .iter()
-                .all(|b| matches!(b.state(), GPUBufferState::Unmapped))
-        });
-        if !valid {
-            self.device
-                .borrow()
-                .as_ref()
-                .unwrap()
-                .dispatch_error(webgpu::Error::Validation(String::from(
-                    "Referenced GPUBuffer(s) are not Unmapped",
-                )));
-            return;
-        }
         let command_buffers = command_buffers.iter().map(|cb| cb.id().0).collect();
         self.channel
             .0

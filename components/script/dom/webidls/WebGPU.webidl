@@ -165,16 +165,27 @@ GPUDevice includes GPUObjectBase;
 
 [Exposed=(Window, DedicatedWorker), Serializable, Pref="dom.webgpu.enabled"]
 interface GPUBuffer {
+    readonly attribute GPUSize64Out size;
+    readonly attribute GPUFlagsConstant usage;
+
+    readonly attribute GPUBufferMapState mapState;
+
     [NewObject]
     Promise<undefined> mapAsync(GPUMapModeFlags mode, optional GPUSize64 offset = 0, optional GPUSize64 size);
     [NewObject, Throws]
     ArrayBuffer getMappedRange(optional GPUSize64 offset = 0, optional GPUSize64 size);
-    [Throws]
     undefined unmap();
-    [Throws]
+
     undefined destroy();
 };
 GPUBuffer includes GPUObjectBase;
+
+
+enum GPUBufferMapState {
+    "unmapped",
+    "pending",
+    "mapped",
+};
 
 dictionary GPUBufferDescriptor : GPUObjectDescriptorBase {
     required GPUSize64 size;
@@ -184,24 +195,24 @@ dictionary GPUBufferDescriptor : GPUObjectDescriptorBase {
 
 typedef [EnforceRange] unsigned long GPUBufferUsageFlags;
 [Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]
-interface GPUBufferUsage {
-    const GPUBufferUsageFlags MAP_READ      = 0x0001;
-    const GPUBufferUsageFlags MAP_WRITE     = 0x0002;
-    const GPUBufferUsageFlags COPY_SRC      = 0x0004;
-    const GPUBufferUsageFlags COPY_DST      = 0x0008;
-    const GPUBufferUsageFlags INDEX         = 0x0010;
-    const GPUBufferUsageFlags VERTEX        = 0x0020;
-    const GPUBufferUsageFlags UNIFORM       = 0x0040;
-    const GPUBufferUsageFlags STORAGE       = 0x0080;
-    const GPUBufferUsageFlags INDIRECT      = 0x0100;
-    const GPUBufferUsageFlags QUERY_RESOLVE = 0x0200;
+namespace GPUBufferUsage {
+    const GPUFlagsConstant MAP_READ      = 0x0001;
+    const GPUFlagsConstant MAP_WRITE     = 0x0002;
+    const GPUFlagsConstant COPY_SRC      = 0x0004;
+    const GPUFlagsConstant COPY_DST      = 0x0008;
+    const GPUFlagsConstant INDEX         = 0x0010;
+    const GPUFlagsConstant VERTEX        = 0x0020;
+    const GPUFlagsConstant UNIFORM       = 0x0040;
+    const GPUFlagsConstant STORAGE       = 0x0080;
+    const GPUFlagsConstant INDIRECT      = 0x0100;
+    const GPUFlagsConstant QUERY_RESOLVE = 0x0200;
 };
 
 typedef [EnforceRange] unsigned long GPUMapModeFlags;
 [Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]
-interface GPUMapMode {
-    const GPUMapModeFlags READ  = 0x0001;
-    const GPUMapModeFlags WRITE = 0x0002;
+namespace GPUMapMode {
+    const GPUFlagsConstant READ  = 0x0001;
+    const GPUFlagsConstant WRITE = 0x0002;
 };
 
 [Exposed=(Window, DedicatedWorker), Serializable , Pref="dom.webgpu.enabled"]

@@ -9,7 +9,6 @@ use std::cell::Cell;
 use std::collections::HashMap;
 use std::num::NonZeroU64;
 use std::rc::Rc;
-use std::sync::{Arc, Mutex};
 
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject};
@@ -24,7 +23,9 @@ use webgpu::{
     WebGPUResponse,
 };
 
-use super::bindings::codegen::Bindings::WebGPUBinding::{GPUPipelineErrorReason, GPUTextureFormat};
+use super::bindings::codegen::Bindings::WebGPUBinding::{
+    GPUMapModeConstants, GPUPipelineErrorReason, GPUTextureFormat,
+};
 use super::bindings::codegen::UnionTypes::GPUPipelineLayoutOrGPUAutoLayoutMode;
 use super::bindings::error::Fallible;
 use super::gpu::AsyncWGPUListener;
@@ -55,7 +56,7 @@ use crate::dom::gpu::response_async;
 use crate::dom::gpuadapter::GPUAdapter;
 use crate::dom::gpubindgroup::GPUBindGroup;
 use crate::dom::gpubindgrouplayout::GPUBindGroupLayout;
-use crate::dom::gpubuffer::{GPUBuffer, GPUBufferMapInfo, GPUBufferState};
+use crate::dom::gpubuffer::{ActiveBufferMapping, GPUBuffer};
 use crate::dom::gpucommandencoder::GPUCommandEncoder;
 use crate::dom::gpucomputepipeline::GPUComputePipeline;
 use crate::dom::gpuconvert::{
@@ -211,6 +212,10 @@ impl GPUDevice {
                 "{texture_format:?} is not supported by this GPUDevice"
             )))
         }
+    }
+
+    pub fn is_lost(&self) -> bool {
+        self.lost_promise.borrow().is_fulfilled()
     }
 
     fn get_pipeline_layout_data(
@@ -452,31 +457,23 @@ impl GPUDeviceMethods for GPUDevice {
             .expect("Failed to create WebGPU buffer");
 
         let buffer = webgpu::WebGPUBuffer(id);
-        let map_info;
-        let state;
-        if descriptor.mappedAtCreation {
-            let buf_data = vec![0u8; descriptor.size as usize];
-            map_info = DomRefCell::new(Some(GPUBufferMapInfo {
-                mapping: Arc::new(Mutex::new(buf_data)),
-                mapping_range: 0..descriptor.size,
-                mapped_ranges: Vec::new(),
-                js_buffers: Vec::new(),
-                map_mode: None,
-            }));
-            state = GPUBufferState::MappedAtCreation;
+        let mapping = if descriptor.mappedAtCreation {
+            Some(ActiveBufferMapping::new(
+                GPUMapModeConstants::WRITE,
+                0..descriptor.size,
+            )?)
         } else {
-            map_info = DomRefCell::new(None);
-            state = GPUBufferState::Unmapped;
-        }
+            None
+        };
 
         Ok(GPUBuffer::new(
             &self.global(),
             self.channel.clone(),
             buffer,
             self,
-            state,
             descriptor.size,
-            map_info,
+            descriptor.usage,
+            mapping,
             descriptor.parent.label.clone(),
         ))
     }

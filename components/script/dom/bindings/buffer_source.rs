@@ -4,18 +4,23 @@
 
 #![allow(unsafe_code)]
 
-use std::borrow::BorrowMut;
 use std::ffi::c_void;
 use std::marker::PhantomData;
+use std::ops::Range;
 use std::ptr;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
-use js::jsapi::glue::NewExternalArrayBuffer;
-use js::jsapi::{Heap, JSObject, JS_GetArrayBufferViewBuffer, JS_IsArrayBufferViewObject};
+use js::jsapi::{
+    Heap, JSObject, JS_GetArrayBufferViewBuffer, JS_IsArrayBufferViewObject, NewExternalArrayBuffer,
+};
 use js::rust::wrappers::DetachArrayBuffer;
 use js::rust::{CustomAutoRooterGuard, Handle, MutableHandleObject};
-use js::typedarray::{CreateWith, TypedArray, TypedArrayElement, TypedArrayElementCreator};
+use js::typedarray::{
+    ArrayBuffer, CreateWith, HeapArrayBuffer, TypedArray, TypedArrayElement,
+    TypedArrayElementCreator,
+};
 
+use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::JSContext;
 
 /// <https://webidl.spec.whatwg.org/#BufferSource>
@@ -402,44 +407,103 @@ where
     }
 }
 
-pub fn create_new_external_array_buffer<T>(
-    cx: JSContext,
-    mapping: Arc<Mutex<Vec<T::Element>>>,
-    offset: usize,
-    range_size: usize,
-    m_end: usize,
-) -> HeapBufferSource<T>
-where
-    T: TypedArrayElement + TypedArrayElementCreator,
-    T::Element: Clone + Copy,
-{
-    /// `freeFunc()` must be threadsafe, should be safely callable from any thread
-    /// without causing conflicts , unexpected behavior.
-    /// <https://github.com/servo/mozjs/blob/main/mozjs-sys/mozjs/js/public/ArrayBuffer.h#L89>
-    unsafe extern "C" fn free_func(_contents: *mut c_void, free_user_data: *mut c_void) {
-        // Clippy warns about "creating a `Arc` from a void raw pointer" here, but suggests
-        // the exact same line to fix it. Doing the cast is tricky because of the use of
-        // a generic type in this parameter.
-        #[allow(clippy::from_raw_with_void_ptr)]
-        let _ = Arc::from_raw(free_user_data as *const _);
+#[derive(JSTraceable, MallocSizeOf)]
+pub struct DataBlock {
+    #[ignore_malloc_size_of = "Arc"]
+    data: Arc<Box<[u8]>>,
+    /// Data views (mutable subslices of data)
+    data_views: Vec<DataView>,
+}
+
+/// Returns true if two non-inclusive ranges overlap
+// https://stackoverflow.com/questions/3269434/whats-the-most-efficient-way-to-test-if-two-ranges-overlap
+fn range_overlap<T: std::cmp::PartialOrd>(range1: &Range<T>, range2: &Range<T>) -> bool {
+    range1.start < range2.end && range2.start < range1.end
+}
+
+impl DataBlock {
+    pub fn new_zeroed(size: usize) -> Self {
+        let data = vec![0; size];
+        Self {
+            data: Arc::new(data.into_boxed_slice()),
+            data_views: Vec::new(),
+        }
     }
 
-    unsafe {
-        let mapping_slice_ptr = mapping.lock().unwrap().borrow_mut()[offset..m_end].as_mut_ptr();
+    /// Panics if there is any active view or src data is not same length
+    pub fn load(&mut self, src: &[u8]) {
+        // `Arc::get_mut` ensures there are no views
+        Arc::get_mut(&mut self.data).unwrap().clone_from_slice(src)
+    }
 
-        // rooted! is needed to ensure memory safety and prevent potential garbage collection issues.
-        // https://github.com/mozilla-spidermonkey/spidermonkey-embedding-examples/blob/esr78/docs/GC%20Rooting%20Guide.md#performance-tweaking
-        rooted!(in(*cx) let array_buffer = NewExternalArrayBuffer(
-            *cx,
-            range_size,
-            mapping_slice_ptr as _,
-            Some(free_func),
-            Arc::into_raw(mapping) as _,
-        ));
+    /// Panics if there is any active view
+    pub fn data(&mut self) -> &mut [u8] {
+        // `Arc::get_mut` ensures there are no views
+        Arc::get_mut(&mut self.data).unwrap()
+    }
 
-        HeapBufferSource {
-            buffer_source: BufferSource::ArrayBuffer(Heap::boxed(*array_buffer)),
-            phantom: PhantomData,
+    pub fn clear_views(&mut self) {
+        self.data_views.clear()
+    }
+
+    /// Returns error if requested range is already mapped
+    pub fn view(&mut self, range: Range<usize>) -> Result<&DataView, ()> {
+        if self
+            .data_views
+            .iter()
+            .any(|view| range_overlap(&view.range, &range))
+        {
+            return Err(());
         }
+        let cx = GlobalScope::get_cx();
+        /// `freeFunc()` must be threadsafe, should be safely callable from any thread
+        /// without causing conflicts, unexpected behavior.
+        unsafe extern "C" fn free_func(_contents: *mut c_void, free_user_data: *mut c_void) {
+            // Clippy warns about "creating a `Arc` from a void raw pointer" here, but suggests
+            // the exact same line to fix it. Doing the cast is tricky because of the use of
+            // a generic type in this parameter.
+            #[allow(clippy::from_raw_with_void_ptr)]
+            drop(Arc::from_raw(free_user_data as *const _));
+        }
+        let raw: *mut Box<[u8]> = Arc::into_raw(Arc::clone(&self.data)) as _;
+        rooted!(in(*cx) let object = unsafe {
+            NewExternalArrayBuffer(
+                *cx,
+                range.end - range.start,
+                // SAFETY: This is safe because we have checked there is no overlapping view
+                (*raw)[range.clone()].as_mut_ptr() as _,
+                Some(free_func),
+                raw as _,
+            )
+        });
+        self.data_views.push(DataView {
+            range,
+            buffer: HeapArrayBuffer::from(*object).unwrap(),
+        });
+        Ok(self.data_views.last().unwrap())
+    }
+}
+
+#[derive(JSTraceable, MallocSizeOf)]
+pub struct DataView {
+    #[no_trace]
+    range: Range<usize>,
+    #[ignore_malloc_size_of = "defined in mozjs"]
+    buffer: HeapArrayBuffer,
+}
+
+impl DataView {
+    pub fn array_buffer(&self) -> ArrayBuffer {
+        unsafe { ArrayBuffer::from(self.buffer.underlying_object().get()).unwrap() }
+    }
+}
+
+impl Drop for DataView {
+    #[allow(unsafe_code)]
+    fn drop(&mut self) {
+        let cx = GlobalScope::get_cx();
+        assert!(unsafe {
+            js::jsapi::DetachArrayBuffer(*cx, self.buffer.underlying_object().handle())
+        })
     }
 }
