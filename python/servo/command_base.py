@@ -813,7 +813,6 @@ class CommandBase(object):
             check_call(["rustup", "target", "add", self.target.triple()],
                        cwd=self.context.topdir)
 
-
     def ensure_rustup_version(self):
         try:
             version_line = subprocess.check_output(
