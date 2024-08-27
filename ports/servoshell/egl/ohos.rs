@@ -13,7 +13,6 @@ use std::time::Duration;
 
 use log::{debug, error, info, warn, LevelFilter};
 use napi_derive_ohos::{module_exports, napi};
-use napi_ohos::bindgen_prelude::Undefined;
 use napi_ohos::threadsafe_function::{
     ErrorStrategy, ThreadsafeFunction, ThreadsafeFunctionCallMode,
 };
@@ -85,6 +84,8 @@ enum TouchEventType {
 enum ServoAction {
     WakeUp,
     LoadUrl(String),
+    GoBack,
+    GoForward,
     TouchEvent {
         kind: TouchEventType,
         x: f32,
@@ -120,6 +121,8 @@ impl ServoAction {
         let res = match self {
             WakeUp => servo.perform_updates(),
             LoadUrl(url) => servo.load_uri(url.as_str()),
+            GoBack => servo.go_back(),
+            GoForward => servo.go_forward(),
             TouchEvent {
                 kind,
                 x,
@@ -357,9 +360,19 @@ fn init(exports: JsObject, env: Env) -> napi_ohos::Result<()> {
 }
 
 #[napi(js_name = "loadURL")]
-pub fn load_url(url: String) -> Undefined {
+pub fn load_url(url: String) {
     debug!("load url");
     call(ServoAction::LoadUrl(url)).expect("Failed to load url");
+}
+
+#[napi]
+pub fn go_back() {
+    call(ServoAction::GoBack).expect("Failed to call servo");
+}
+
+#[napi]
+pub fn go_forward() {
+    call(ServoAction::GoForward).expect("Failed to call servo");
 }
 
 #[napi(js_name = "registerURLcallback")]
