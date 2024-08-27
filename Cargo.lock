@@ -2852,12 +2852,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "histogram"
-version = "0.6.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "12cb882ccb290b8646e554b157ab0b71e64e8d5bef775cd66b6531e52d302669"
-
-[[package]]
 name = "home"
 version = "0.5.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3766,7 +3760,6 @@ dependencies = [
  "fonts",
  "fonts_traits",
  "fxhash",
- "histogram",
  "ipc-channel",
  "layout_2013",
  "log",
@@ -3787,7 +3780,6 @@ dependencies = [
  "servo_url",
  "style",
  "style_traits",
- "time 0.1.45",
  "url",
  "webrender_api",
  "webrender_traits",

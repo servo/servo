@@ -310,7 +310,7 @@ pub enum QueryMsg {
 pub enum ReflowGoal {
     Full,
     TickAnimations,
-    LayoutQuery(QueryMsg, u64),
+    LayoutQuery(QueryMsg),
 
     /// Tells layout about a single new scrolling offset from the script. The rest will
     /// remain untouched and layout won't forward this back to script.
@@ -323,7 +323,7 @@ impl ReflowGoal {
     pub fn needs_display_list(&self) -> bool {
         match *self {
             ReflowGoal::Full | ReflowGoal::TickAnimations | ReflowGoal::UpdateScrollNode(_) => true,
-            ReflowGoal::LayoutQuery(ref querymsg, _) => match *querymsg {
+            ReflowGoal::LayoutQuery(ref querymsg) => match *querymsg {
                 QueryMsg::ElementInnerTextQuery |
                 QueryMsg::InnerWindowDimensionsQuery |
                 QueryMsg::NodesFromPointQuery |
@@ -345,7 +345,7 @@ impl ReflowGoal {
     pub fn needs_display(&self) -> bool {
         match *self {
             ReflowGoal::Full | ReflowGoal::TickAnimations | ReflowGoal::UpdateScrollNode(_) => true,
-            ReflowGoal::LayoutQuery(ref querymsg, _) => match *querymsg {
+            ReflowGoal::LayoutQuery(ref querymsg) => match *querymsg {
                 QueryMsg::NodesFromPointQuery |
                 QueryMsg::TextIndexQuery |
                 QueryMsg::ElementInnerTextQuery => true,
