@@ -55,7 +55,7 @@ jobs:
   # with the given `image:` label that wasn’t already reserved by another
   # `runner-select` job run, and reserve it with a `reserved-for:<id>` label.
   runner-select:
-    name: Runner select
+    name: Select Runner
     runs-on: ubuntu-latest
     outputs:
       unique-id: ${{ steps.select.outputs.unique_id }}
@@ -87,8 +87,7 @@ jobs:
           # we are reserving for it (via runner labels), and allows the timeout
           # job to find the workload job run (via the job’s friendly name), even
           # if there are multiple instances in the workflow call tree.
-          random32=$(LC_ALL=C < /dev/urandom tr -dC 0-9a-f 2> /dev/null | head -c 8)
-          unique_id=${{ github.repository }}/${{ github.run_id }}/$random32
+          unique_id=$(uuidgen)
           echo "unique_id=$unique_id" | tee -a $GITHUB_OUTPUT
 
           # Disable self-hosted runners by creating a repository variable named
@@ -138,7 +137,7 @@ jobs:
     needs:
       - runner-select
     if: ${{ fromJSON(needs.runner-select.outputs.is-self-hosted) }}
-    name: Runner timeout
+    name: Detect Runner Timeout
     runs-on: ubuntu-latest
     steps:
       - name: Wait a bit
