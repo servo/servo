@@ -127,7 +127,7 @@ use crate::fragment_tree::{
 use crate::geom::{LogicalRect, LogicalVec2, PhysicalRect, ToLogical};
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
 use crate::sizing::ContentSizes;
-use crate::style_ext::{ComputedValuesExt, PaddingBorderMargin};
+use crate::style_ext::{Clamp, ComputedValuesExt, PaddingBorderMargin};
 use crate::ContainingBlock;
 
 // From gfxFontConstants.h in Firefox.
@@ -1945,14 +1945,17 @@ impl IndependentFormattingContext {
             IndependentFormattingContext::NonReplaced(non_replaced) => {
                 let box_size = non_replaced
                     .style
-                    .content_box_size(layout.containing_block, &pbm);
+                    .content_box_size(layout.containing_block, &pbm)
+                    .map(|v| v.map(Au::from));
                 let max_box_size = non_replaced
                     .style
-                    .content_max_box_size(layout.containing_block, &pbm);
+                    .content_max_box_size(layout.containing_block, &pbm)
+                    .map(|v| v.map(Au::from));
                 let min_box_size = non_replaced
                     .style
                     .content_min_box_size(layout.containing_block, &pbm)
-                    .auto_is(Length::zero);
+                    .map(|v| v.map(Au::from))
+                    .auto_is(Au::zero);
 
                 // https://drafts.csswg.org/css2/visudet.html#inlineblock-width
                 let tentative_inline_size = box_size.inline.auto_is(|| {
@@ -1969,10 +1972,13 @@ impl IndependentFormattingContext {
                 // always results in that size.
                 let inline_size = tentative_inline_size
                     .clamp_between_extremums(min_box_size.inline, max_box_size.inline);
+                let block_size = box_size
+                    .block
+                    .map(|v| v.clamp_between_extremums(min_box_size.block, max_box_size.block));
 
                 let containing_block_for_children = ContainingBlock {
-                    inline_size: inline_size.into(),
-                    block_size: box_size.block.map(|t| t.into()),
+                    inline_size,
+                    block_size,
                     style: &non_replaced.style,
                 };
                 assert_eq!(
@@ -2001,17 +2007,15 @@ impl IndependentFormattingContext {
                         Some(inline) => (inline, independent_layout.content_block_size),
                         None => {
                             // https://drafts.csswg.org/css2/visudet.html#block-root-margin
-                            let tentative_block_size = box_size
-                                .block
-                                .auto_is(|| independent_layout.content_block_size.into());
-
-                            // https://drafts.csswg.org/css2/visudet.html#min-max-heights
-                            // In this case “applying the rules above again” with a non-auto block-size
-                            // always results in that size.
-                            let block_size = tentative_block_size
-                                .clamp_between_extremums(min_box_size.block, max_box_size.block);
-
-                            (inline_size.into(), block_size.into())
+                            let block_size = block_size.auto_is(|| {
+                                // https://drafts.csswg.org/css2/visudet.html#min-max-heights
+                                // In this case “applying the rules above again” with a non-auto block-size
+                                // always results in that size.
+                                independent_layout
+                                    .content_block_size
+                                    .clamp_between_extremums(min_box_size.block, max_box_size.block)
+                            });
+                            (inline_size, block_size)
                         },
                     };
 
