@@ -1201,16 +1201,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "96a6ac251f4a2aca6b3f91340350eab87ae57c3f127ffeb585e92bd336717991"
 
 [[package]]
-name = "d3d12"
-version = "22.0.0"
-source = "git+https://github.com/gfx-rs/wgpu?rev=781b54a8b9cee1a2cb22bda565662edec52eb70e#781b54a8b9cee1a2cb22bda565662edec52eb70e"
-dependencies = [
- "bitflags 2.6.0",
- "libloading",
- "winapi",
-]
-
-[[package]]
 name = "darling"
 version = "0.20.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2392,6 +2382,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "98ff03b468aa837d70984d55f5d3f846f6ec31fe34bbb97c4f85219caeee1ca4"
 dependencies = [
  "bitflags 2.6.0",
+]
+
+[[package]]
+name = "gpu-allocator"
+version = "0.27.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c151a2a5ef800297b4e79efa4f4bec035c5f51d5ae587287c9b952bdf734cacd"
+dependencies = [
+ "log",
+ "presser",
+ "thiserror",
+ "windows 0.58.0",
 ]
 
 [[package]]
@@ -4373,7 +4375,7 @@ checksum = "956787520e75e9bd233246045d19f42fb73242759cc57fba9611d940ae96d4b0"
 [[package]]
 name = "naga"
 version = "22.0.0"
-source = "git+https://github.com/gfx-rs/wgpu?rev=781b54a8b9cee1a2cb22bda565662edec52eb70e#781b54a8b9cee1a2cb22bda565662edec52eb70e"
+source = "git+https://github.com/gfx-rs/wgpu?rev=338678ad5f66b74d1df1daee6afb028f964244b8#338678ad5f66b74d1df1daee6afb028f964244b8"
 dependencies = [
  "arrayvec",
  "bit-set",
@@ -5122,6 +5124,12 @@ name = "precomputed-hash"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "925383efa346730478fb4838dbe9137d2a47675ad789c546d150a6e1dd4ab31c"
+
+[[package]]
+name = "presser"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e8cf8e6a8aa66ce33f63993ffc4ea4271eb5b0530a9002db8455ea6050c77bfa"
 
 [[package]]
 name = "proc-macro-crate"
@@ -7806,7 +7814,7 @@ checksum = "53a85b86a771b1c87058196170769dd264f66c0782acf1ae6cc51bfd64b39082"
 [[package]]
 name = "wgpu-core"
 version = "22.0.0"
-source = "git+https://github.com/gfx-rs/wgpu?rev=781b54a8b9cee1a2cb22bda565662edec52eb70e#781b54a8b9cee1a2cb22bda565662edec52eb70e"
+source = "git+https://github.com/gfx-rs/wgpu?rev=338678ad5f66b74d1df1daee6afb028f964244b8#338678ad5f66b74d1df1daee6afb028f964244b8"
 dependencies = [
  "arrayvec",
  "bit-vec",
@@ -7831,7 +7839,7 @@ dependencies = [
 [[package]]
 name = "wgpu-hal"
 version = "22.0.0"
-source = "git+https://github.com/gfx-rs/wgpu?rev=781b54a8b9cee1a2cb22bda565662edec52eb70e#781b54a8b9cee1a2cb22bda565662edec52eb70e"
+source = "git+https://github.com/gfx-rs/wgpu?rev=338678ad5f66b74d1df1daee6afb028f964244b8#338678ad5f66b74d1df1daee6afb028f964244b8"
 dependencies = [
  "android_system_properties",
  "arrayvec",
@@ -7841,10 +7849,10 @@ dependencies = [
  "block",
  "cfg_aliases 0.1.1",
  "core-graphics-types",
- "d3d12",
  "glow 0.14.0",
  "glutin_wgl_sys",
  "gpu-alloc",
+ "gpu-allocator",
  "gpu-descriptor",
  "js-sys",
  "khronos-egl",
@@ -7866,14 +7874,14 @@ dependencies = [
  "wasm-bindgen",
  "web-sys",
  "wgpu-types",
- "winapi",
  "windows 0.58.0",
+ "windows-core 0.58.0",
 ]
 
 [[package]]
 name = "wgpu-types"
 version = "22.0.0"
-source = "git+https://github.com/gfx-rs/wgpu?rev=781b54a8b9cee1a2cb22bda565662edec52eb70e#781b54a8b9cee1a2cb22bda565662edec52eb70e"
+source = "git+https://github.com/gfx-rs/wgpu?rev=338678ad5f66b74d1df1daee6afb028f964244b8#338678ad5f66b74d1df1daee6afb028f964244b8"
 dependencies = [
  "bitflags 2.6.0",
  "js-sys",
