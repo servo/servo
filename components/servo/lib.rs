@@ -474,7 +474,7 @@ where
 
         // The compositor coordinates with the client window to create the final
         // rendered page and display it somewhere.
-        let compositor = IOCompositor::create(
+        let compositor = IOCompositor::new(
             window,
             InitialCompositorState {
                 sender: compositor_proxy,
@@ -493,6 +493,7 @@ where
             opts.exit_after_load,
             opts.debug.convert_mouse_to_touch,
             top_level_browsing_context_id,
+            embedder.get_version_string().unwrap_or_default(),
         );
 
         let servo = Servo {

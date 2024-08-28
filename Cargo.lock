@@ -902,7 +902,6 @@ dependencies = [
  "style_traits",
  "surfman",
  "time 0.1.45",
- "toml 0.5.11",
  "webrender",
  "webrender_api",
  "webrender_traits",

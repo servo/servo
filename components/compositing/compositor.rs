@@ -215,6 +215,10 @@ pub struct IOCompositor<Window: WindowMethods + ?Sized> {
     /// The [`Instant`] of the last animation tick, used to avoid flooding the Constellation and
     /// ScriptThread with a deluge of animation ticks.
     last_animation_tick: Instant,
+
+    /// The string representing the version of Servo that is running. This is used to tag
+    /// WebRender capture output.
+    version_string: String,
 }
 
 #[derive(Clone, Copy)]
@@ -350,13 +354,14 @@ pub enum CompositeTarget {
 }
 
 impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
-    fn new(
+    pub fn new(
         window: Rc<Window>,
         state: InitialCompositorState,
         composite_target: CompositeTarget,
         exit_after_load: bool,
         convert_mouse_to_touch: bool,
         top_level_browsing_context_id: TopLevelBrowsingContextId,
+        version_string: String,
     ) -> Self {
         let embedder_coordinates = window.get_coordinates();
         let mut webviews = WebViewManager::default();
@@ -377,7 +382,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             .show(top_level_browsing_context_id)
             .expect("Infallible due to add");
 
-        IOCompositor {
+        let compositor = IOCompositor {
             embedder_coordinates: window.get_coordinates(),
             window,
             port: state.receiver,
@@ -415,27 +420,9 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             pending_frames: 0,
             waiting_on_present: false,
             last_animation_tick: Instant::now(),
-        }
-    }
+            version_string,
+        };
 
-    pub fn create(
-        window: Rc<Window>,
-        state: InitialCompositorState,
-        composite_target: CompositeTarget,
-        exit_after_load: bool,
-        convert_mouse_to_touch: bool,
-        top_level_browsing_context_id: TopLevelBrowsingContextId,
-    ) -> Self {
-        let compositor = IOCompositor::new(
-            window,
-            state,
-            composite_target,
-            exit_after_load,
-            convert_mouse_to_touch,
-            top_level_browsing_context_id,
-        );
-
-        // Make sure the GL state is OK
         compositor.assert_gl_framebuffer_complete();
         compositor
     }
@@ -2489,42 +2476,25 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             .iter()
             .filter_map(|val| {
                 val.as_ref()
-                    .map(|dir| dir.join("capture_webrender").join(&capture_id))
+                    .map(|dir| dir.join("webrender-captures").join(&capture_id))
                     .ok()
             })
-            .find(|val| match create_dir_all(val) {
-                Ok(_) => true,
-                Err(err) => {
-                    eprintln!("Unable to create path '{:?}' for capture: {:?}", &val, err);
-                    false
-                },
-            });
+            .find(|val| create_dir_all(val).is_ok());
 
-        match available_path {
-            Some(capture_path) => {
-                let revision_file_path = capture_path.join("wr.txt");
+        let Some(capture_path) = available_path else {
+            eprintln!("Couldn't create a path for WebRender captures.");
+            return;
+        };
 
-                debug!(
-                    "Trying to save webrender capture under {:?}",
-                    &revision_file_path
-                );
-                self.webrender_api
-                    .save_capture(capture_path, CaptureBits::all());
+        println!("Saving WebRender capture to {capture_path:?}");
+        self.webrender_api
+            .save_capture(capture_path.clone(), CaptureBits::all());
 
-                match File::create(revision_file_path) {
-                    Ok(mut file) => {
-                        let revision = include!(concat!(env!("OUT_DIR"), "/webrender_revision.rs"));
-                        if let Err(err) = write!(&mut file, "{}", revision) {
-                            eprintln!("Unable to write webrender revision: {:?}", err)
-                        }
-                    },
-                    Err(err) => eprintln!(
-                        "Capture triggered, creating webrender revision info skipped: {:?}",
-                        err
-                    ),
-                }
-            },
-            None => eprintln!("Unable to locate path to save captures"),
+        let version_file_path = capture_path.join("servo-version.txt");
+        if let Err(error) = File::create(version_file_path)
+            .and_then(|mut file| write!(file, "{}", self.version_string))
+        {
+            eprintln!("Unable to write servo version for WebRender Capture: {error:?}");
         }
     }
 }
