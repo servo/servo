@@ -681,6 +681,19 @@ fn rendered_text_collection_steps<'dom>(node: impl LayoutNode<'dom>) -> Vec<Inne
 
                 results.push(InnerOrOuterTextItem::Text(result));
 
+                // Step 6: If node's computed value of 'display' is 'table-cell', and node's CSS box
+                // is not the last 'table-cell' box of its enclosing 'table-row' box, then append a
+                // string containing a single U+0009 TAB code point to items.
+                let parent_style = child.to_threadsafe().parent_style();
+
+                if parent_style.get_box().display == Display::TableCell &&
+                    !is_last_table_cell_in_row(child.parent_node().unwrap())
+                {
+                    results.push(InnerOrOuterTextItem::Text(String::from(
+                        "\u{0009}", /* tab */
+                    )));
+                }
+
                 continue;
             },
             LayoutNodeType::Element(LayoutElementType::HTMLBRElement) => {
@@ -698,14 +711,6 @@ fn rendered_text_collection_steps<'dom>(node: impl LayoutNode<'dom>) -> Vec<Inne
         }
 
         match display {
-            Display::TableCell if node.next_sibling().is_some() => {
-                // Step 6: If node's computed value of 'display' is 'table-cell', and node's CSS box
-                // is not the last 'table-cell' box of its enclosing 'table-row' box, then append a
-                // string containing a single U+0009 TAB code point to items.
-                results.push(InnerOrOuterTextItem::Text(String::from(
-                    "\u{0009}", /* tab */
-                )));
-            },
             Display::TableRow if node.next_sibling().is_some() => {
                 // Step 7: If node's computed value of 'display' is 'table-row', and node's CSS box
                 // is not the last 'table-row' box of the nearest ancestor 'table' box, then append
@@ -725,6 +730,30 @@ fn rendered_text_collection_steps<'dom>(node: impl LayoutNode<'dom>) -> Vec<Inne
     }
 
     results.into_iter().collect()
+}
+
+fn is_last_table_cell_in_row<'dom>(node: impl LayoutNode<'dom>) -> bool {
+    if let Some(parent_node) = node.parent_node() {
+        let child_cells = parent_node.traverse_preorder().filter(|child| {
+            let element_data = match child.style_data() {
+                Some(data) => &data.element_data,
+                None => return false,
+            };
+
+            let style = match element_data.borrow().styles.get_primary() {
+                None => return false,
+                Some(style) => style.clone(),
+            };
+
+            return style.get_box().display == Display::TableCell;
+        });
+
+        if let Some(last_child) = child_cells.last() {
+            return last_child == node;
+        }
+    }
+
+    return false;
 }
 
 /// <https://html.spec.whatwg.org/multipage/#descendant-text-content>
