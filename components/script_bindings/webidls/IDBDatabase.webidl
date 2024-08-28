@@ -14,12 +14,9 @@ interface IDBDatabase : EventTarget {
   readonly attribute unsigned long long version;
   readonly attribute DOMStringList objectStoreNames;
 
-  [NewObject] IDBTransaction transaction((DOMString or sequence<DOMString>) storeNames
-,
-                                         optional IDBTransactionMode mode
- = "readonly",
-                                         optional IDBTransactionOptions options
- = {});
+  [NewObject] IDBTransaction transaction((DOMString or sequence<DOMString>) storeNames,
+                                         optional IDBTransactionMode mode = "readonly",
+                                         optional IDBTransactionOptions options = {});
   undefined close();
 
   [Throws, NewObject] IDBObjectStore createObjectStore(

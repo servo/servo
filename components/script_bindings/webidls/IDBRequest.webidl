@@ -22,7 +22,7 @@ interface IDBRequest : EventTarget {
   attribute EventHandler onerror;
 };
 
-// https://w3c.github.io/IndexedDB/#idbrequest
+// https://w3c.github.io/IndexedDB/#enumdef-idbrequestreadystate
 enum IDBRequestReadyState {
   "pending",
   "done"

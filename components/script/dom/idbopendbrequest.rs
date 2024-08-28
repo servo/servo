@@ -90,10 +90,8 @@ impl OpenRequestListener {
 
         match result {
             Ok(_) => {
-                let cx = GlobalScope::get_cx();
                 let _ac = enter_realm(&*open_request);
-                rooted!(in(*cx) let mut answer = UndefinedValue());
-                open_request.set_result(answer.handle());
+                open_request.set_result(js::jsapi::UndefinedHandleValue);
 
                 let event = Event::new(
                     &global,
@@ -101,7 +99,7 @@ impl OpenRequestListener {
                     EventBubbles::DoesNotBubble,
                     EventCancelable::NotCancelable,
                 );
-                event.upcast::<Event>().fire(open_request.upcast());
+                event.fire(open_request.upcast());
             },
             Err(_e) => {
                 // FIXME(rasviitanen) Set the error of request to the
@@ -113,7 +111,7 @@ impl OpenRequestListener {
                     EventBubbles::Bubbles,
                     EventCancelable::Cancelable,
                 );
-                event.upcast::<Event>().fire(open_request.upcast());
+                event.fire(open_request.upcast());
             },
         }
     }
@@ -257,24 +255,25 @@ impl IDBOpenDBRequest {
                             response_listener.handle_open_db(name, version, message.to().unwrap());
                         // If an upgrade event was created, it will be responsible for
                         // dispatching the success event
-                        if !did_upgrade {
-                            let request = trusted_request.root();
-                            let global = request.global();
-                            match result {
-                                Ok(db) => {
-                                    request.dispatch_success(&*db);
-                                },
-                                Err(dom_exception) => {
-                                    request.set_result(HandleValue::undefined());
-                                    request.set_error(dom_exception);
-                                    let event = Event::new(
-                                        &global,
-                                        Atom::from("error"),
-                                        EventBubbles::Bubbles,
-                                        EventCancelable::Cancelable,
-                                    );
-                                    event.upcast::<Event>().fire(request.upcast());
-                                }
+                        if did_upgrade {
+                            return;
+                        }
+                        let request = trusted_request.root();
+                        let global = request.global();
+                        match result {
+                            Ok(db) => {
+                                request.dispatch_success(&*db);
+                            },
+                            Err(dom_exception) => {
+                                request.set_result(HandleValue::undefined());
+                                request.set_error(dom_exception);
+                                let event = Event::new(
+                                    &global,
+                                    Atom::from("error"),
+                                    EventBubbles::Bubbles,
+                                    EventCancelable::Cancelable,
+                                );
+                                event.fire(request.upcast());
                             }
                         }
                     }),
@@ -354,7 +353,7 @@ impl IDBOpenDBRequest {
                         EventBubbles::DoesNotBubble,
                         EventCancelable::NotCancelable,
                     );
-                    event.upcast::<Event>().fire(this.upcast());
+                    event.fire(this.upcast());
                 }),
                 global.upcast(),
             )

@@ -37,7 +37,6 @@ impl IDBFactory {
 
 impl IDBFactoryMethods for IDBFactory {
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbfactory-open
-    #[allow(unsafe_code)]
     fn Open(&self, name: DOMString, version: Option<u64>) -> Fallible<DomRoot<IDBOpenDBRequest>> {
         // Step 1: If version is 0 (zero), throw a TypeError.
         if version == Some(0) {
@@ -90,13 +89,13 @@ impl IDBFactoryMethods for IDBFactory {
         Ok(request)
     }
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbfactory-databases
-    fn Databases(&self) -> Rc<Promise> {
-        unimplemented!();
-    }
-
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbfactory-cmp
-    fn Cmp(&self, _cx: SafeJSContext, _first: HandleValue, _second: HandleValue) -> i16 {
-        unimplemented!();
-    }
+    // // https://www.w3.org/TR/IndexedDB-2/#dom-idbfactory-databases
+    // fn Databases(&self) -> Rc<Promise> {
+    //     unimplemented!();
+    // }
+    //
+    // // https://www.w3.org/TR/IndexedDB-2/#dom-idbfactory-cmp
+    // fn Cmp(&self, _cx: SafeJSContext, _first: HandleValue, _second: HandleValue) -> i16 {
+    //     unimplemented!();
+    // }
 }
