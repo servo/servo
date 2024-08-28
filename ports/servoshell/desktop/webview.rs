@@ -536,7 +536,7 @@ where
     fn platform_handle_key(&mut self, _key_event: KeyboardEvent) {}
 
     /// Handle key events after they have been handled by Servo.
-    fn handle_key_from_servo(&mut self, _: Option<WebViewId>, event: KeyboardEvent) {
+    fn handle_key_from_servo(&mut self, webview_id: Option<WebViewId>, event: KeyboardEvent) {
         ShortcutMatcher::from_event(event)
             .shortcut(CMD_OR_CONTROL, '=', || {
                 self.event_queue.push(EmbedderEvent::Zoom(1.1))
@@ -555,49 +555,67 @@ where
                     0.0,
                     -self.window.page_height() + 2.0 * LINE_HEIGHT,
                 ));
-                self.scroll_window_from_key(scroll_location, TouchEventType::Move);
+                self.scroll_window_from_key(scroll_location, TouchEventType::Move, webview_id);
             })
             .shortcut(Modifiers::empty(), Key::PageUp, || {
                 let scroll_location = ScrollLocation::Delta(Vector2D::new(
                     0.0,
                     self.window.page_height() - 2.0 * LINE_HEIGHT,
                 ));
-                self.scroll_window_from_key(scroll_location, TouchEventType::Move);
+                self.scroll_window_from_key(scroll_location, TouchEventType::Move, webview_id);
             })
             .shortcut(Modifiers::empty(), Key::Home, || {
-                self.scroll_window_from_key(ScrollLocation::Start, TouchEventType::Move);
+                self.scroll_window_from_key(
+                    ScrollLocation::Start,
+                    TouchEventType::Move,
+                    webview_id,
+                );
             })
             .shortcut(Modifiers::empty(), Key::End, || {
-                self.scroll_window_from_key(ScrollLocation::End, TouchEventType::Move);
+                self.scroll_window_from_key(ScrollLocation::End, TouchEventType::Move, webview_id);
             })
             .shortcut(Modifiers::empty(), Key::ArrowUp, || {
                 self.scroll_window_from_key(
                     ScrollLocation::Delta(Vector2D::new(0.0, 3.0 * LINE_HEIGHT)),
                     TouchEventType::Move,
+                    webview_id,
                 );
             })
             .shortcut(Modifiers::empty(), Key::ArrowDown, || {
                 self.scroll_window_from_key(
                     ScrollLocation::Delta(Vector2D::new(0.0, -3.0 * LINE_HEIGHT)),
                     TouchEventType::Move,
+                    webview_id,
                 );
             })
             .shortcut(Modifiers::empty(), Key::ArrowLeft, || {
                 self.scroll_window_from_key(
                     ScrollLocation::Delta(Vector2D::new(LINE_HEIGHT, 0.0)),
                     TouchEventType::Move,
+                    webview_id,
                 );
             })
             .shortcut(Modifiers::empty(), Key::ArrowRight, || {
                 self.scroll_window_from_key(
                     ScrollLocation::Delta(Vector2D::new(-LINE_HEIGHT, 0.0)),
                     TouchEventType::Move,
+                    webview_id,
                 );
             });
     }
 
-    fn scroll_window_from_key(&mut self, scroll_location: ScrollLocation, phase: TouchEventType) {
-        let event = EmbedderEvent::Scroll(scroll_location, Point2D::zero(), phase);
+    fn scroll_window_from_key(
+        &mut self,
+        scroll_location: ScrollLocation,
+        phase: TouchEventType,
+        webview_id: Option<WebViewId>,
+    ) {
+        // In minibrowser mode the webview is offset by the toolbar
+        let origin = webview_id
+            .and_then(|id| self.webviews.get(&id))
+            .and_then(|webview| Some(webview.rect.min.ceil().to_i32()))
+            .unwrap_or(Point2D::zero());
+        let event = EmbedderEvent::Scroll(scroll_location, origin, phase);
         self.event_queue.push(event);
     }
 
