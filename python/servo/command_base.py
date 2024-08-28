@@ -593,7 +593,7 @@ class CommandBase(object):
 
         if binary_selection:
             decorators += [
-                CommandArgumentGroup('Binary select'),
+                CommandArgumentGroup('Binary selection'),
                 CommandArgument('--bin', default=None,
                                 help='Launch with specific binary'),
                 CommandArgument('--nightly', '-n', default=None,
