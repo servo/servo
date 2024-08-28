@@ -138,12 +138,12 @@ impl PageStyleActor {
         stream: &mut TcpStream,
     ) -> Result<ActorMessageStatus, ()> {
         let target = msg.get("node").ok_or(())?.as_str().ok_or(())?;
-        let node = registry.find::<NodeActor>(&target);
+        let node = registry.find::<NodeActor>(target);
         let walker = registry.find::<WalkerActor>(&node.walker);
         let entries: Vec<_> = find_child(
             &node.script_chan,
             node.pipeline,
-            &target,
+            target,
             registry,
             &walker.root_node.actor,
             vec![],
@@ -182,7 +182,7 @@ impl PageStyleActor {
                                 let actor = StyleRuleActor::new(
                                     name.clone(),
                                     node_actor.name(),
-                                    (e.key().0 != "").then_some(e.key().clone()),
+                                    (!e.key().0.is_empty()).then_some(e.key().clone()),
                                 );
                                 let rule = actor.applied(registry)?;
 
@@ -226,7 +226,7 @@ impl PageStyleActor {
         stream: &mut TcpStream,
     ) -> Result<ActorMessageStatus, ()> {
         let target = msg.get("node").ok_or(())?.as_str().ok_or(())?;
-        let node_actor = registry.find::<NodeActor>(&target);
+        let node_actor = registry.find::<NodeActor>(target);
         let computed = (|| match node_actor
             .style_rules
             .borrow_mut()
