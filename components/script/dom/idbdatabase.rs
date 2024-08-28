@@ -35,14 +35,17 @@ use crate::task_source::TaskSource;
 #[dom_struct]
 pub struct IDBDatabase {
     eventtarget: EventTarget,
+    /// <https://w3c.github.io/IndexedDB/#database-name>
     name: DOMString,
+    /// <https://w3c.github.io/IndexedDB/#database-version>
     version: Cell<u64>,
+    /// <https://w3c.github.io/IndexedDB/#object-store>
     object_store_names: DomRefCell<Vec<DOMString>>,
-
-    // No specification below this line
+    /// <https://w3c.github.io/IndexedDB/#database-upgrade-transaction>
     upgrade_transaction: MutNullableDom<IDBTransaction>,
 
     // Flags
+    /// https://w3c.github.io/IndexedDB/#connection-close-pending-flag
     closing: Cell<bool>,
 }
 
