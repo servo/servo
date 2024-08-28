@@ -25,14 +25,15 @@ use style::properties::ComputedValues;
 use style::values::computed::image::Image;
 use style::values::computed::{
     BorderImageSideWidth, BorderImageWidth, BorderStyle, Color, Length, LengthPercentage,
-    NonNegativeLengthOrNumber, NumberOrPercentage, OutlineStyle,
+    LengthPercentageOrAuto, NonNegativeLengthOrNumber, NumberOrPercentage, OutlineStyle,
 };
 use style::values::generics::rect::Rect;
 use style::values::generics::NonNegative;
 use style::values::specified::text::TextDecorationLine;
 use style::values::specified::ui::CursorKind;
+use style::Zero;
 use style_traits::{CSSPixel, DevicePixel};
-use webrender_api::units::LayoutPixel;
+use webrender_api::units::{LayoutPixel, LayoutSize};
 use webrender_api::{
     self as wr, units, BorderDetails, BoxShadowClipMode, ClipChainId, CommonItemProperties,
     ImageRendering, NinePatchBorder, NinePatchBorderSource,
@@ -53,6 +54,7 @@ use crate::replaced::IntrinsicSizes;
 use crate::style_ext::ComputedValuesExt;
 
 mod background;
+mod clip_path;
 mod conversions;
 mod gradient;
 mod stacking_context;
@@ -482,6 +484,7 @@ struct BuilderForBoxFragment<'a> {
     fragment: &'a BoxFragment,
     containing_block: &'a PhysicalRect<Au>,
     border_rect: units::LayoutRect,
+    margin_rect: OnceCell<units::LayoutRect>,
     padding_rect: OnceCell<units::LayoutRect>,
     content_rect: OnceCell<units::LayoutRect>,
     border_radius: wr::BorderRadius,
@@ -514,23 +517,7 @@ impl<'a> BuilderForBoxFragment<'a> {
                 bottom_right: corner(&b.border_bottom_right_radius),
                 bottom_left: corner(&b.border_bottom_left_radius),
             };
-            // Normalize radii that add up to > 100%.
-            // https://www.w3.org/TR/css-backgrounds-3/#corner-overlap
-            // > Let f = min(L_i/S_i), where i ∈ {top, right, bottom, left},
-            // > S_i is the sum of the two corresponding radii of the corners on side i,
-            // > and L_top = L_bottom = the width of the box,
-            // > and L_left = L_right = the height of the box.
-            // > If f < 1, then all corner radii are reduced by multiplying them by f.
-            let f = (border_rect.width() / (radius.top_left.width + radius.top_right.width))
-                .min(border_rect.width() / (radius.bottom_left.width + radius.bottom_right.width))
-                .min(border_rect.height() / (radius.top_left.height + radius.bottom_left.height))
-                .min(border_rect.height() / (radius.top_right.height + radius.bottom_right.height));
-            if f < 1.0 {
-                radius.top_left *= f;
-                radius.top_right *= f;
-                radius.bottom_right *= f;
-                radius.bottom_left *= f;
-            }
+            normalize_radii(&border_rect, &mut radius);
             radius
         };
 
@@ -539,6 +526,7 @@ impl<'a> BuilderForBoxFragment<'a> {
             containing_block,
             border_rect,
             border_radius,
+            margin_rect: OnceCell::new(),
             padding_rect: OnceCell::new(),
             content_rect: OnceCell::new(),
             border_edge_clip_chain_id: RefCell::new(None),
@@ -560,6 +548,15 @@ impl<'a> BuilderForBoxFragment<'a> {
         self.padding_rect.get_or_init(|| {
             self.fragment
                 .padding_rect()
+                .translate(self.containing_block.origin.to_vector())
+                .to_webrender()
+        })
+    }
+
+    fn margin_rect(&self) -> &units::LayoutRect {
+        self.margin_rect.get_or_init(|| {
+            self.fragment
+                .margin_rect()
                 .translate(self.containing_block.origin.to_vector())
                 .to_webrender()
         })
@@ -1299,4 +1296,85 @@ fn resolve_border_image_slice(
         resolve_percentage(border_image_slice.2, size.height),
         resolve_percentage(border_image_slice.3, size.width),
     )
+}
+
+pub(super) fn normalize_radii(rect: &units::LayoutRect, radius: &mut wr::BorderRadius) {
+    // Normalize radii that add up to > 100%.
+    // https://www.w3.org/TR/css-backgrounds-3/#corner-overlap
+    // > Let f = min(L_i/S_i), where i ∈ {top, right, bottom, left},
+    // > S_i is the sum of the two corresponding radii of the corners on side i,
+    // > and L_top = L_bottom = the width of the box,
+    // > and L_left = L_right = the height of the box.
+    // > If f < 1, then all corner radii are reduced by multiplying them by f.
+    let f = (rect.width() / (radius.top_left.width + radius.top_right.width))
+        .min(rect.width() / (radius.bottom_left.width + radius.bottom_right.width))
+        .min(rect.height() / (radius.top_left.height + radius.bottom_left.height))
+        .min(rect.height() / (radius.top_right.height + radius.bottom_right.height));
+    if f < 1.0 {
+        radius.top_left *= f;
+        radius.top_right *= f;
+        radius.bottom_right *= f;
+        radius.bottom_left *= f;
+    }
+}
+
+/// <https://drafts.csswg.org/css-shapes-1/#valdef-shape-box-margin-box>
+/// > The corner radii of this shape are determined by the corresponding
+/// > border-radius and margin values. If the ratio of border-radius/margin is 1 or more,
+/// > or margin is negative or zero, then the margin box corner radius is
+/// > max(border-radius + margin, 0). If the ratio of border-radius/margin is less than 1,
+/// > and margin is positive, then the margin box corner radius is
+/// > border-radius + margin * (1 + (ratio-1)^3).
+pub(super) fn compute_margin_box_radius(
+    radius: wr::BorderRadius,
+    layout_rect: LayoutSize,
+    fragment: &BoxFragment,
+) -> wr::BorderRadius {
+    let margin = fragment.style.get_margin();
+    let adjust_radius = |radius: f32, margin: f32| -> f32 {
+        if margin <= 0. || (radius / margin) >= 1. {
+            (radius + margin).max(0.)
+        } else {
+            radius + (margin * (1. + (radius / margin - 1.).powf(3.)))
+        }
+    };
+    let compute_margin_radius = |radius: LayoutSize,
+                                 layout_rect: LayoutSize,
+                                 margin: Size2D<LengthPercentageOrAuto, UnknownUnit>|
+     -> LayoutSize {
+        let width = margin
+            .width
+            .auto_is(LengthPercentage::zero)
+            .resolve(Length::new(layout_rect.width));
+        let height = margin
+            .height
+            .auto_is(LengthPercentage::zero)
+            .resolve(Length::new(layout_rect.height));
+        LayoutSize::new(
+            adjust_radius(radius.width, width.px()),
+            adjust_radius(radius.height, height.px()),
+        )
+    };
+    wr::BorderRadius {
+        top_left: compute_margin_radius(
+            radius.top_left,
+            layout_rect,
+            Size2D::new(margin.margin_left.clone(), margin.margin_top.clone()),
+        ),
+        top_right: compute_margin_radius(
+            radius.top_right,
+            layout_rect,
+            Size2D::new(margin.margin_right.clone(), margin.margin_top.clone()),
+        ),
+        bottom_left: compute_margin_radius(
+            radius.bottom_left,
+            layout_rect,
+            Size2D::new(margin.margin_left.clone(), margin.margin_bottom.clone()),
+        ),
+        bottom_right: compute_margin_radius(
+            radius.bottom_right,
+            layout_rect,
+            Size2D::new(margin.margin_right.clone(), margin.margin_bottom.clone()),
+        ),
+    }
 }
