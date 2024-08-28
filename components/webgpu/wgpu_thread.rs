@@ -579,11 +579,9 @@ impl WGPU {
                         descriptor,
                     } => {
                         let global = &self.global;
-                        if let Some(desc) = descriptor {
-                            let (_, error) =
-                                global.device_create_texture(device_id, &desc, Some(texture_id));
-                            self.maybe_dispatch_wgpu_error(device_id, error);
-                        }
+                        let (_, error) =
+                            global.device_create_texture(device_id, &descriptor, Some(texture_id));
+                        self.maybe_dispatch_wgpu_error(device_id, error);
                     },
                     WebGPURequest::CreateTextureView {
                         texture_id,

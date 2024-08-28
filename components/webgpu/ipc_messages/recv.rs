@@ -144,7 +144,7 @@ pub enum WebGPURequest {
     CreateTexture {
         device_id: id::DeviceId,
         texture_id: id::TextureId,
-        descriptor: Option<TextureDescriptor<'static>>,
+        descriptor: TextureDescriptor<'static>,
     },
     CreateTextureView {
         texture_id: id::TextureId,

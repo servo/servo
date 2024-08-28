@@ -852,38 +852,30 @@ impl GPUDeviceMethods for GPUDevice {
     fn CreateTexture(&self, descriptor: &GPUTextureDescriptor) -> Fallible<DomRoot<GPUTexture>> {
         // TODO(sagudev): This should be https://gpuweb.github.io/gpuweb/#abstract-opdef-validate-gpuextent3d-shape
         let size = convert_texture_size_to_dict(&descriptor.size);
-        // TODO(sagudev): We should pass invalid bits to wgpu
-        let desc = wgt::TextureUsages::from_bits(descriptor.usage)
-            .map(|usg| -> Fallible<_> {
-                Ok(wgpu_res::TextureDescriptor {
-                    label: convert_label(&descriptor.parent),
-                    size: convert_texture_size_to_wgt(&size),
-                    mip_level_count: descriptor.mipLevelCount,
-                    sample_count: descriptor.sampleCount,
-                    dimension: match descriptor.dimension {
-                        GPUTextureDimension::_1d => wgt::TextureDimension::D1,
-                        GPUTextureDimension::_2d => wgt::TextureDimension::D2,
-                        GPUTextureDimension::_3d => wgt::TextureDimension::D3,
-                    },
-                    format: self.validate_texture_format_required_features(&descriptor.format)?,
-                    usage: usg,
-                    view_formats: descriptor
-                        .viewFormats
-                        .iter()
-                        .map(|tf| self.validate_texture_format_required_features(tf))
-                        .collect::<Fallible<_>>()?,
-                })
-            })
-            .transpose()?;
+        let desc = wgpu_res::TextureDescriptor {
+            label: convert_label(&descriptor.parent),
+            size: convert_texture_size_to_wgt(&size),
+            mip_level_count: descriptor.mipLevelCount,
+            sample_count: descriptor.sampleCount,
+            dimension: match descriptor.dimension {
+                GPUTextureDimension::_1d => wgt::TextureDimension::D1,
+                GPUTextureDimension::_2d => wgt::TextureDimension::D2,
+                GPUTextureDimension::_3d => wgt::TextureDimension::D3,
+            },
+            format: self.validate_texture_format_required_features(&descriptor.format)?,
+            usage: wgt::TextureUsages::from_bits_retain(descriptor.usage),
+            view_formats: descriptor
+                .viewFormats
+                .iter()
+                .map(|tf| self.validate_texture_format_required_features(tf))
+                .collect::<Fallible<_>>()?,
+        };
 
         let texture_id = self
             .global()
             .wgpu_id_hub()
             .create_texture_id(self.device.0.backend());
 
-        if desc.is_none() {
-            return Err(Error::Type(String::from("Invalid GPUTextureUsage")));
-        }
         self.channel
             .0
             .send(WebGPURequest::CreateTexture {
