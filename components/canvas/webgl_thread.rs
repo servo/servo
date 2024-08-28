@@ -1046,7 +1046,7 @@ impl WebGLImpl {
                 gl.clear_color(r, g, b, a);
             },
             WebGLCommand::ClearDepth(depth) => {
-                let value = depth.max(0.).min(1.) as f64;
+                let value = depth.clamp(0., 1.) as f64;
                 state.depth_clear_value = value;
                 gl.clear_depth(value)
             },
@@ -1085,7 +1085,7 @@ impl WebGLImpl {
                 state.restore_depth_invariant(gl);
             },
             WebGLCommand::DepthRange(near, far) => {
-                gl.depth_range(near.max(0.).min(1.) as f64, far.max(0.).min(1.) as f64)
+                gl.depth_range(near.clamp(0., 1.) as f64, far.clamp(0., 1.) as f64)
             },
             WebGLCommand::Disable(cap) => match cap {
                 gl::SCISSOR_TEST => {
