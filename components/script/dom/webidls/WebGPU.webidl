@@ -874,7 +874,7 @@ dictionary GPUCommandBufferDescriptor : GPUObjectDescriptorBase {
 interface GPUCommandEncoder {
     [NewObject]
     GPUComputePassEncoder beginComputePass(optional GPUComputePassDescriptor descriptor = {});
-    [NewObject]
+    [NewObject, Throws]
     GPURenderPassEncoder beginRenderPass(GPURenderPassDescriptor descriptor);
 
     undefined copyBufferToBuffer(
@@ -952,6 +952,7 @@ interface GPURenderPassEncoder {
     undefined setScissorRect(GPUIntegerCoordinate x, GPUIntegerCoordinate y,
                              GPUIntegerCoordinate width, GPUIntegerCoordinate height);
 
+    [Throws]
     undefined setBlendConstant(GPUColor color);
     undefined setStencilReference(GPUStencilValue reference);
 

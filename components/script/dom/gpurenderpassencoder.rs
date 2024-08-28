@@ -6,6 +6,7 @@ use dom_struct::dom_struct;
 use webgpu::{wgt, RenderCommand, WebGPU, WebGPURenderPass, WebGPURequest};
 
 use super::bindings::codegen::Bindings::WebGPUBinding::GPUIndexFormat;
+use super::bindings::error::Fallible;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUColor, GPURenderPassEncoderMethods,
@@ -18,6 +19,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::gpubindgroup::GPUBindGroup;
 use crate::dom::gpubuffer::GPUBuffer;
 use crate::dom::gpucommandencoder::GPUCommandEncoder;
+use crate::dom::gpuconvert::convert_color;
 use crate::dom::gpurenderbundle::GPURenderBundle;
 use crate::dom::gpurenderpipeline::GPURenderPipeline;
 
@@ -129,28 +131,9 @@ impl GPURenderPassEncoderMethods for GPURenderPassEncoder {
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderpassencoder-setblendcolor>
-    fn SetBlendConstant(&self, color: GPUColor) {
-        let color = match color {
-            GPUColor::GPUColorDict(d) => wgt::Color {
-                r: *d.r,
-                g: *d.g,
-                b: *d.b,
-                a: *d.a,
-            },
-            GPUColor::DoubleSequence(mut s) => {
-                if s.len() < 3 {
-                    s.resize(3, Finite::wrap(0.0f64));
-                }
-                s.resize(4, Finite::wrap(1.0f64));
-                wgt::Color {
-                    r: *s[0],
-                    g: *s[1],
-                    b: *s[2],
-                    a: *s[3],
-                }
-            },
-        };
-        self.send_render_command(RenderCommand::SetBlendConstant(color))
+    fn SetBlendConstant(&self, color: GPUColor) -> Fallible<()> {
+        self.send_render_command(RenderCommand::SetBlendConstant(convert_color(&color)?));
+        Ok(())
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderpassencoder-setstencilreference>

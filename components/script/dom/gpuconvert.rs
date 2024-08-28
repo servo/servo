@@ -11,7 +11,7 @@ use webgpu::wgt::{self, AstcBlock, AstcChannel};
 use super::bindings::error::Error;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUAddressMode, GPUBindGroupLayoutEntry, GPUBlendComponent, GPUBlendFactor, GPUBlendOperation,
-    GPUBufferBindingType, GPUCompareFunction, GPUCullMode, GPUExtent3D, GPUFilterMode,
+    GPUBufferBindingType, GPUColor, GPUCompareFunction, GPUCullMode, GPUExtent3D, GPUFilterMode,
     GPUFrontFace, GPUImageCopyBuffer, GPUImageCopyTexture, GPUImageDataLayout, GPUIndexFormat,
     GPULoadOp, GPUObjectDescriptorBase, GPUOrigin3D, GPUPrimitiveState, GPUPrimitiveTopology,
     GPUSamplerBindingType, GPUStencilOperation, GPUStorageTextureAccess, GPUStoreOp,
@@ -554,4 +554,28 @@ pub fn convert_bind_group_layout_entry(
         ty,
         count: None,
     }))
+}
+
+pub fn convert_color(color: &GPUColor) -> Fallible<wgt::Color> {
+    match color {
+        GPUColor::DoubleSequence(s) => {
+            // https://gpuweb.github.io/gpuweb/#abstract-opdef-validate-gpucolor-shape
+            if s.len() != 4 {
+                Err(Error::Type("GPUColor sequence must be len 4".to_string()))
+            } else {
+                Ok(wgt::Color {
+                    r: *s[0],
+                    g: *s[1],
+                    b: *s[2],
+                    a: *s[3],
+                })
+            }
+        },
+        GPUColor::GPUColorDict(d) => Ok(wgt::Color {
+            r: *d.r,
+            g: *d.g,
+            b: *d.b,
+            a: *d.a,
+        }),
+    }
 }
