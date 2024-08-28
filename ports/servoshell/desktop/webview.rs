@@ -416,11 +416,9 @@ where
 
     /// Handle key events before sending them to Servo.
     fn handle_key_from_window(&mut self, key_event: KeyboardEvent) {
-        ShortcutMatcher::from_event(key_event.clone())
+        let embedder_event = ShortcutMatcher::from_event(key_event.clone())
             .shortcut(CMD_OR_CONTROL, 'R', || {
-                if let Some(id) = self.focused_webview_id {
-                    self.event_queue.push(EmbedderEvent::Reload(id));
-                }
+                self.focused_webview_id.map(EmbedderEvent::Reload)
             })
             .shortcut(CMD_OR_CONTROL, 'L', || {
                 if !opts::get().minibrowser {
@@ -435,28 +433,24 @@ where
 
                     let title = "URL or search query";
                     let input = tinyfiledialogs::input_box(title, title, &tiny_dialog_escape(&url));
-                    if let Some(input) = input {
-                        if let Some(url) = location_bar_input_to_url(&input) {
-                            if let Some(id) = self.focused_webview_id {
-                                self.event_queue.push(EmbedderEvent::LoadUrl(id, url));
-                            }
-                        }
-                    }
+                    input.and_then(|input| {
+                        location_bar_input_to_url(&input).and_then(|url| {
+                            self.focused_webview_id
+                                .map(|id| EmbedderEvent::LoadUrl(id, url))
+                        })
+                    })
+                } else {
+                    None
                 }
             })
             .shortcut(CMD_OR_CONTROL, 'W', || {
-                if let Some(id) = self.focused_webview_id {
-                    self.event_queue.push(EmbedderEvent::CloseWebView(id));
-                }
+                self.focused_webview_id.map(EmbedderEvent::CloseWebView)
             })
             .shortcut(CMD_OR_CONTROL, 'T', || {
                 let url = ServoUrl::parse("servo:newtab").unwrap();
-                self.event_queue
-                    .push(EmbedderEvent::NewWebView(url, WebViewId::new()));
+                Some(EmbedderEvent::NewWebView(url, WebViewId::new()))
             })
-            .shortcut(CMD_OR_CONTROL, 'Q', || {
-                self.event_queue.push(EmbedderEvent::Quit);
-            })
+            .shortcut(CMD_OR_CONTROL, 'Q', || Some(EmbedderEvent::Quit))
             .shortcut(CMD_OR_CONTROL, 'P', || {
                 let rate = env::var("SAMPLING_RATE")
                     .ok()
@@ -466,76 +460,68 @@ where
                     .ok()
                     .and_then(|s| s.parse().ok())
                     .unwrap_or(10);
-                self.event_queue.push(EmbedderEvent::ToggleSamplingProfiler(
+                Some(EmbedderEvent::ToggleSamplingProfiler(
                     Duration::from_millis(rate),
                     Duration::from_secs(duration),
-                ));
+                ))
             })
             .shortcut(Modifiers::CONTROL, Key::F9, || {
-                self.event_queue.push(EmbedderEvent::CaptureWebRender)
+                Some(EmbedderEvent::CaptureWebRender)
             })
             .shortcut(Modifiers::CONTROL, Key::F10, || {
-                self.event_queue.push(EmbedderEvent::ToggleWebRenderDebug(
+                Some(EmbedderEvent::ToggleWebRenderDebug(
                     WebRenderDebugOption::RenderTargetDebug,
-                ));
+                ))
             })
             .shortcut(Modifiers::CONTROL, Key::F11, || {
-                self.event_queue.push(EmbedderEvent::ToggleWebRenderDebug(
+                Some(EmbedderEvent::ToggleWebRenderDebug(
                     WebRenderDebugOption::TextureCacheDebug,
-                ));
+                ))
             })
             .shortcut(Modifiers::CONTROL, Key::F12, || {
-                self.event_queue.push(EmbedderEvent::ToggleWebRenderDebug(
+                Some(EmbedderEvent::ToggleWebRenderDebug(
                     WebRenderDebugOption::Profiler,
-                ));
+                ))
             })
             .shortcut(CMD_OR_ALT, Key::ArrowRight, || {
-                if let Some(id) = self.focused_webview_id {
-                    let event = EmbedderEvent::Navigation(id, TraversalDirection::Forward(1));
-                    self.event_queue.push(event);
-                }
+                self.focused_webview_id
+                    .map(|id| EmbedderEvent::Navigation(id, TraversalDirection::Forward(1)))
             })
+            .optional_shortcut(
+                cfg!(not(target_os = "windows")),
+                CMD_OR_CONTROL,
+                ']',
+                || {
+                    self.focused_webview_id()
+                        .map(|id| EmbedderEvent::Navigation(id, TraversalDirection::Forward(1)))
+                },
+            )
             .shortcut(CMD_OR_ALT, Key::ArrowLeft, || {
-                if let Some(id) = self.focused_webview_id {
-                    let event = EmbedderEvent::Navigation(id, TraversalDirection::Back(1));
-                    self.event_queue.push(event);
-                }
+                self.focused_webview_id
+                    .map(|id| EmbedderEvent::Navigation(id, TraversalDirection::Back(1)))
             })
-            .shortcut(Modifiers::empty(), Key::Escape, || {
-                let state = self.window.get_fullscreen();
-                if state {
-                    if let Some(id) = self.focused_webview_id {
-                        let event = EmbedderEvent::ExitFullScreen(id);
-                        self.event_queue.push(event);
-                    }
-                } else {
-                    self.platform_handle_key(key_event.clone());
-                }
+            .optional_shortcut(
+                cfg!(not(target_os = "windows")),
+                CMD_OR_CONTROL,
+                '[',
+                || {
+                    self.focused_webview_id
+                        .map(|id| EmbedderEvent::Navigation(id, TraversalDirection::Back(1)))
+                },
+            )
+            .optional_shortcut(
+                self.window.get_fullscreen(),
+                Modifiers::empty(),
+                Key::Escape,
+                || self.focused_webview_id.map(EmbedderEvent::ExitFullScreen),
+            )
+            .otherwise(|| {
+                self.focused_webview_id
+                    .map(|_id| EmbedderEvent::Keyboard(key_event))
             })
-            .otherwise(|| self.platform_handle_key(key_event));
-    }
-
-    #[cfg(not(target_os = "windows"))]
-    fn platform_handle_key(&mut self, key_event: KeyboardEvent) {
-        if let Some(id) = self.focused_webview_id {
-            if let Some(event) = ShortcutMatcher::from_event(key_event.clone())
-                .shortcut(CMD_OR_CONTROL, '[', || {
-                    EmbedderEvent::Navigation(id, TraversalDirection::Back(1))
-                })
-                .shortcut(CMD_OR_CONTROL, ']', || {
-                    EmbedderEvent::Navigation(id, TraversalDirection::Forward(1))
-                })
-                .otherwise(|| EmbedderEvent::Keyboard(key_event))
-            {
-                self.event_queue.push(event)
-            }
-        }
-    }
-
-    #[cfg(target_os = "windows")]
-    fn platform_handle_key(&mut self, key_event: KeyboardEvent) {
-        if self.focused_webview_id.is_some() {
-            self.event_queue.push(EmbedderEvent::Keyboard(key_event));
+            .flatten();
+        if let Some(event) = embedder_event {
+            self.event_queue.push(event);
         }
     }
 
