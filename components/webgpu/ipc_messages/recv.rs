@@ -5,8 +5,6 @@
 //! IPC messages that are received in wgpu thread
 //! (usually from script thread more specifically from dom objects)
 
-use std::borrow::Cow;
-
 use arrayvec::ArrayVec;
 use base::id::PipelineId;
 use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
@@ -27,6 +25,7 @@ use wgc::resource::{
     BufferDescriptor, SamplerDescriptor, TextureDescriptor, TextureViewDescriptor,
 };
 use wgpu_core::command::{RenderPassColorAttachment, RenderPassDepthStencilAttachment};
+use wgpu_core::Label;
 pub use {wgpu_core as wgc, wgpu_types as wgt};
 
 use crate::identity::*;
@@ -46,9 +45,7 @@ pub enum WebGPURequest {
     CommandEncoderFinish {
         command_encoder_id: id::CommandEncoderId,
         device_id: id::DeviceId,
-        is_error: bool,
-        // TODO(zakorgy): Serialize CommandBufferDescriptor in wgpu-core
-        // wgc::command::CommandBufferDescriptor,
+        desc: wgt::CommandBufferDescriptor<Label<'static>>,
     },
     CopyBufferToBuffer {
         command_encoder_id: id::CommandEncoderId,
@@ -93,10 +90,8 @@ pub enum WebGPURequest {
     },
     CreateCommandEncoder {
         device_id: id::DeviceId,
-        // TODO(zakorgy): Serialize CommandEncoderDescriptor in wgpu-core
-        // wgc::command::CommandEncoderDescriptor,
         command_encoder_id: id::CommandEncoderId,
-        label: Option<Cow<'static, str>>,
+        desc: wgt::CommandEncoderDescriptor<Label<'static>>,
     },
     CreateComputePipeline {
         device_id: id::DeviceId,
@@ -203,7 +198,7 @@ pub enum WebGPURequest {
     BeginComputePass {
         command_encoder_id: id::CommandEncoderId,
         compute_pass_id: ComputePassId,
-        label: Option<Cow<'static, str>>,
+        label: Label<'static>,
         device_id: id::DeviceId,
     },
     ComputePassSetPipeline {
@@ -240,7 +235,7 @@ pub enum WebGPURequest {
     BeginRenderPass {
         command_encoder_id: id::CommandEncoderId,
         render_pass_id: RenderPassId,
-        label: Option<Cow<'static, str>>,
+        label: Label<'static>,
         color_attachments: Vec<Option<RenderPassColorAttachment>>,
         depth_stencil_attachment: Option<RenderPassDepthStencilAttachment>,
         device_id: id::DeviceId,

@@ -2,9 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::Cell;
-use std::collections::HashSet;
-
 use dom_struct::dom_struct;
 use webgpu::wgc::command as wgpu_com;
 use webgpu::{self, wgt, WebGPU, WebGPUComputePass, WebGPURenderPass, WebGPURequest};
@@ -40,9 +37,7 @@ pub struct GPUCommandEncoder {
     label: DomRefCell<USVString>,
     #[no_trace]
     encoder: webgpu::WebGPUCommandEncoder,
-    buffers: DomRefCell<HashSet<DomRoot<GPUBuffer>>>,
     device: Dom<GPUDevice>,
-    valid: Cell<bool>,
 }
 
 impl GPUCommandEncoder {
@@ -58,8 +53,6 @@ impl GPUCommandEncoder {
             label: DomRefCell::new(label),
             device: Dom::from_ref(device),
             encoder,
-            buffers: DomRefCell::new(HashSet::new()),
-            valid: Cell::new(true),
         }
     }
 
@@ -226,10 +219,6 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
         destination_offset: GPUSize64,
         size: GPUSize64,
     ) {
-        self.buffers.borrow_mut().insert(DomRoot::from_ref(source));
-        self.buffers
-            .borrow_mut()
-            .insert(DomRoot::from_ref(destination));
         self.channel
             .0
             .send(WebGPURequest::CopyBufferToBuffer {
@@ -250,10 +239,6 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
         destination: &GPUImageCopyTexture,
         copy_size: GPUExtent3D,
     ) -> Fallible<()> {
-        self.buffers
-            .borrow_mut()
-            .insert(DomRoot::from_ref(&*source.buffer));
-
         self.channel
             .0
             .send(WebGPURequest::CopyBufferToTexture {
@@ -274,10 +259,6 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
         destination: &GPUImageCopyBuffer,
         copy_size: GPUExtent3D,
     ) -> Fallible<()> {
-        self.buffers
-            .borrow_mut()
-            .insert(DomRoot::from_ref(&*destination.buffer));
-
         self.channel
             .0
             .send(WebGPURequest::CopyTextureToBuffer {
@@ -318,9 +299,9 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
             .send(WebGPURequest::CommandEncoderFinish {
                 command_encoder_id: self.encoder.0,
                 device_id: self.device.id().0,
-                is_error: !self.valid.get(),
-                // TODO(zakorgy): We should use `_descriptor` here after it's not empty
-                // and the underlying wgpu-core struct is serializable
+                desc: wgt::CommandBufferDescriptor {
+                    label: convert_label(&descriptor.parent),
+                },
             })
             .expect("Failed to send Finish");
 
@@ -329,7 +310,6 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
             &self.global(),
             self.channel.clone(),
             buffer,
-            self.buffers.borrow_mut().drain().collect(),
             descriptor.parent.label.clone(),
         )
     }

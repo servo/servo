@@ -230,21 +230,15 @@ impl WGPU {
                     WebGPURequest::CommandEncoderFinish {
                         command_encoder_id,
                         device_id,
-                        is_error,
+                        desc,
                     } => {
                         let global = &self.global;
-                        let result = if is_error {
-                            Err(Error::Validation(String::from("Invalid GPUCommandEncoder")))
-                        } else if let Some(err) =
+                        let result = if let Some(err) =
                             self.error_command_encoders.get(&command_encoder_id)
                         {
                             Err(Error::Validation(err.clone()))
-                        } else if let Some(error) = global
-                            .command_encoder_finish(
-                                command_encoder_id,
-                                &wgt::CommandBufferDescriptor::default(),
-                            )
-                            .1
+                        } else if let Some(error) =
+                            global.command_encoder_finish(command_encoder_id, &desc).1
                         {
                             Err(Error::from_error(error))
                         } else {
@@ -363,10 +357,9 @@ impl WGPU {
                     WebGPURequest::CreateCommandEncoder {
                         device_id,
                         command_encoder_id,
-                        label,
+                        desc,
                     } => {
                         let global = &self.global;
-                        let desc = wgt::CommandEncoderDescriptor { label };
                         let (_, error) = global.device_create_command_encoder(
                             device_id,
                             &desc,

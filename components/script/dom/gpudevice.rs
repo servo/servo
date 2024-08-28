@@ -761,7 +761,9 @@ impl GPUDeviceMethods for GPUDevice {
             .send(WebGPURequest::CreateCommandEncoder {
                 device_id: self.device.0,
                 command_encoder_id,
-                label: convert_label(&descriptor.parent),
+                desc: wgt::CommandEncoderDescriptor {
+                    label: convert_label(&descriptor.parent),
+                },
             })
             .expect("Failed to create WebGPU command encoder");
 
