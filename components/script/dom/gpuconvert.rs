@@ -429,33 +429,48 @@ pub fn convert_ic_buffer(ic_buffer: &GPUImageCopyBuffer) -> wgpu_com::ImageCopyB
     }
 }
 
-pub fn convert_ic_texture(ic_texture: &GPUImageCopyTexture) -> wgpu_com::ImageCopyTexture {
-    wgpu_com::ImageCopyTexture {
+pub fn convert_origin3d(origin: &GPUOrigin3D) -> Fallible<wgt::Origin3d> {
+    match origin {
+        GPUOrigin3D::RangeEnforcedUnsignedLongSequence(v) => {
+            // https://gpuweb.github.io/gpuweb/#abstract-opdef-validate-gpuorigin3d-shape
+            if v.len() > 3 {
+                Err(Error::Type(
+                    "sequence is too long for GPUOrigin3D".to_string(),
+                ))
+            } else {
+                Ok(wgt::Origin3d {
+                    x: v.get(0).copied().unwrap_or(0),
+                    y: v.get(1).copied().unwrap_or(0),
+                    z: v.get(2).copied().unwrap_or(0),
+                })
+            }
+        },
+        GPUOrigin3D::GPUOrigin3DDict(d) => Ok(wgt::Origin3d {
+            x: d.x,
+            y: d.y,
+            z: d.z,
+        }),
+    }
+}
+
+pub fn convert_ic_texture(
+    ic_texture: &GPUImageCopyTexture,
+) -> Fallible<wgpu_com::ImageCopyTexture> {
+    Ok(wgpu_com::ImageCopyTexture {
         texture: ic_texture.texture.id().0,
         mip_level: ic_texture.mipLevel,
-        origin: match ic_texture.origin {
-            Some(GPUOrigin3D::RangeEnforcedUnsignedLongSequence(ref v)) => {
-                let mut w = v.clone();
-                w.resize(3, 0);
-                wgt::Origin3d {
-                    x: w[0],
-                    y: w[1],
-                    z: w[2],
-                }
-            },
-            Some(GPUOrigin3D::GPUOrigin3DDict(ref d)) => wgt::Origin3d {
-                x: d.x,
-                y: d.y,
-                z: d.z,
-            },
-            None => wgt::Origin3d::default(),
-        },
+        origin: ic_texture
+            .origin
+            .as_ref()
+            .map(|origin| convert_origin3d(origin))
+            .transpose()?
+            .unwrap_or_default(),
         aspect: match ic_texture.aspect {
             GPUTextureAspect::All => wgt::TextureAspect::All,
             GPUTextureAspect::Stencil_only => wgt::TextureAspect::StencilOnly,
             GPUTextureAspect::Depth_only => wgt::TextureAspect::DepthOnly,
         },
-    }
+    })
 }
 
 pub fn convert_label(parent: &GPUObjectDescriptorBase) -> Option<Cow<'static, str>> {

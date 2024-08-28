@@ -163,7 +163,7 @@ impl GPUQueueMethods for GPUQueue {
             return Err(Error::Operation);
         }
 
-        let texture_cv = convert_ic_texture(destination);
+        let texture_cv = convert_ic_texture(destination)?;
         let texture_layout = convert_image_data_layout(data_layout);
         let write_size = convert_texture_size(&size)?;
         let final_data = IpcSharedMemory::from_bytes(&bytes);

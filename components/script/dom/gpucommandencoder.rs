@@ -244,7 +244,7 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
             .send(WebGPURequest::CopyBufferToTexture {
                 command_encoder_id: self.encoder.0,
                 source: convert_ic_buffer(source),
-                destination: convert_ic_texture(destination),
+                destination: convert_ic_texture(destination)?,
                 copy_size: convert_texture_size(&copy_size)?,
             })
             .expect("Failed to send CopyBufferToTexture");
@@ -263,7 +263,7 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
             .0
             .send(WebGPURequest::CopyTextureToBuffer {
                 command_encoder_id: self.encoder.0,
-                source: convert_ic_texture(source),
+                source: convert_ic_texture(source)?,
                 destination: convert_ic_buffer(destination),
                 copy_size: convert_texture_size(&copy_size)?,
             })
@@ -283,8 +283,8 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
             .0
             .send(WebGPURequest::CopyTextureToTexture {
                 command_encoder_id: self.encoder.0,
-                source: convert_ic_texture(source),
-                destination: convert_ic_texture(destination),
+                source: convert_ic_texture(source)?,
+                destination: convert_ic_texture(destination)?,
                 copy_size: convert_texture_size(&copy_size)?,
             })
             .expect("Failed to send CopyTextureToTexture");
