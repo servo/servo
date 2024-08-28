@@ -949,7 +949,7 @@ impl FloatBox {
                                     inline_size.into(),
                                 ),
                                 None => (
-                                    box_size.block.auto_is(|| {
+                                    block_size.auto_is(|| {
                                         Length::from(independent_layout.content_block_size)
                                             .clamp_between_extremums(
                                                 min_box_size.block,
