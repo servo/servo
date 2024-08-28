@@ -28,7 +28,9 @@ impl IndexedDBThreadFactory for IpcSender<IndexedDBThreadMsg> {
         let (chan, port) = ipc::channel().unwrap();
 
         let mut idb_base_dir = PathBuf::new();
-        config_dir.map(|p| idb_base_dir.push(p));
+        if let Some(p) = config_dir {
+            idb_base_dir.push(p);
+        }
         idb_base_dir.push("IndexedDB");
 
         thread::Builder::new()
@@ -108,9 +110,9 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
     fn start_transaction(&mut self, txn: u64, sender: Option<IpcSender<Result<(), ()>>>) {
         // FIXME:(arihant2math) find a way to optimizations in this function
         // rather than on the engine level code (less repetition)
-        self.transactions.remove(&txn).map(|txn| {
-            self.engine.process_transaction(txn).blocking_recv();
-        });
+        if let Some(txn) = self.transactions.remove(&txn) {
+            let _ = self.engine.process_transaction(txn).blocking_recv();
+        }
 
         // We have a sender if the transaction is started manually, and they
         // probably want to know when it is finished
@@ -133,7 +135,7 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
     ) {
         self.engine.create_store(store_name, auto_increment);
 
-        sender.send(Ok(())).unwrap();
+        let _ = sender.send(Ok(()));
     }
 
     fn delete_object_store(
@@ -143,7 +145,7 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
     ) {
         self.engine.delete_store(store_name);
 
-        sender.send(Ok(())).unwrap()
+        let _ = sender.send(Ok(()));
     }
 }
 
@@ -165,42 +167,43 @@ impl IndexedDBManager {
 
 impl IndexedDBManager {
     fn start(&mut self) {
-        if pref!(dom.indexeddb.enabled) {
-            loop {
-                // FIXME:(arihant2math) No message *most likely* means that
-                // the ipc sender has been dropped, so we break the look
-                let message = match self.port.recv() {
-                    Ok(msg) => msg,
-                    Err(e) => match e {
-                        IpcError::Disconnected => {
-                            break;
-                        },
-                        other => Err(other).unwrap(),
+        if !pref!(dom.indexeddb.enabled) {
+            return;
+        }
+        loop {
+            // FIXME:(arihant2math) No message *most likely* means that
+            // the ipc sender has been dropped, so we break the look
+            let message = match self.port.recv() {
+                Ok(msg) => msg,
+                Err(e) => match e {
+                    IpcError::Disconnected => {
+                        break;
                     },
-                };
-                match message {
-                    IndexedDBThreadMsg::Sync(operation) => {
-                        self.handle_sync_operation(operation);
-                    },
-                    IndexedDBThreadMsg::Async(
-                        sender,
-                        origin,
-                        db_name,
-                        store_name,
-                        txn,
-                        mode,
-                        operation,
-                    ) => {
-                        let store_name = SanitizedName::new(store_name);
-                        self.get_database_mut(origin, db_name).map(|db| {
-                            // Queues an operation for a transaction without starting it
-                            db.queue_operation(sender, store_name, txn, mode, operation);
-                            // FIXME:(arihant2math) Schedule transactions properly:
-                            // for now, we start them directly.
-                            db.start_transaction(txn, None);
-                        });
-                    },
-                }
+                    other => Err(other).unwrap(),
+                },
+            };
+            match message {
+                IndexedDBThreadMsg::Sync(operation) => {
+                    self.handle_sync_operation(operation);
+                },
+                IndexedDBThreadMsg::Async(
+                    sender,
+                    origin,
+                    db_name,
+                    store_name,
+                    txn,
+                    mode,
+                    operation,
+                ) => {
+                    let store_name = SanitizedName::new(store_name);
+                    if let Some(db) = self.get_database_mut(origin, db_name) {
+                        // Queues an operation for a transaction without starting it
+                        db.queue_operation(sender, store_name, txn, mode, operation);
+                        // FIXME:(arihant2math) Schedule transactions properly:
+                        // for now, we start them directly.
+                        db.start_transaction(txn, None);
+                    }
+                },
             }
         }
     }
@@ -247,11 +250,11 @@ impl IndexedDBManager {
                             HeedEngine::new(idb_base_dir, &idb_description.as_path()),
                             version.unwrap_or(0),
                         );
-                        sender.send(db.version).unwrap();
+                        let _ = sender.send(db.version);
                         e.insert(db);
                     },
                     Entry::Occupied(db) => {
-                        sender.send(db.get().version).unwrap();
+                        let _ = sender.send(db.get().version);
                     },
                 }
             },
@@ -263,12 +266,13 @@ impl IndexedDBManager {
                 self.databases.remove(&idb_description);
 
                 // FIXME:(rasviitanen) Possible security issue?
+                // FIXME:(arihant2math) using remove_dir_all with arbitrary input ...
                 let mut db_dir = self.idb_base_dir.clone();
                 db_dir.push(&idb_description.as_path());
                 if std::fs::remove_dir_all(&db_dir).is_err() {
-                    sender.send(Err(())).unwrap();
+                    let _ = sender.send(Err(()));
                 } else {
-                    sender.send(Ok(())).unwrap();
+                    let _ = sender.send(Ok(()));
                 }
             },
             SyncOperation::HasKeyGenerator(sender, origin, db_name, store_name) => {
@@ -286,9 +290,9 @@ impl IndexedDBManager {
                     .expect("Could not send commit status");
             },
             SyncOperation::UpgradeVersion(sender, origin, db_name, _txn, version) => {
-                self.get_database_mut(origin, db_name).map(|db| {
+                if let Some(db) = self.get_database_mut(origin, db_name) {
                     db.version = version;
-                });
+                };
 
                 // FIXME:(arihant2math) Get the version from the database instead
                 // We never fail as of now, so we can just return it like this
@@ -305,38 +309,35 @@ impl IndexedDBManager {
                 auto_increment,
             ) => {
                 let store_name = SanitizedName::new(store_name);
-                self.get_database_mut(origin, db_name)
-                    .map(|db| db.create_object_store(sender, store_name, auto_increment));
+                if let Some(db) = self.get_database_mut(origin, db_name) {
+                    db.create_object_store(sender, store_name, auto_increment);
+                }
             },
             SyncOperation::DeleteObjectStore(sender, origin, db_name, store_name) => {
                 let store_name = SanitizedName::new(store_name);
-                self.get_database_mut(origin, db_name)
-                    .map(|db| db.delete_object_store(sender, store_name));
+                if let Some(db) = self.get_database_mut(origin, db_name) {
+                    db.delete_object_store(sender, store_name);
+                }
             },
             SyncOperation::StartTransaction(sender, origin, db_name, txn) => {
-                self.get_database_mut(origin, db_name).map(|db| {
+                if let Some(db) = self.get_database_mut(origin, db_name) {
                     db.start_transaction(txn, Some(sender));
-                });
+                };
             },
             SyncOperation::Version(sender, origin, db_name) => {
-                self.get_database(origin, db_name)
-                    .map(|db| {
-                        sender.send(db.version).unwrap();
-                    })
-                    .unwrap();
+                if let Some(db) = self.get_database(origin, db_name) {
+                    let _ = sender.send(db.version);
+                };
             },
-            SyncOperation::RegisterNewTxn(sender, origin, db_name) => self
-                .get_database_mut(origin, db_name)
-                .map(|db| {
+            SyncOperation::RegisterNewTxn(sender, origin, db_name) => {
+                if let Some(db) = self.get_database_mut(origin, db_name) {
                     db.serial_number_counter += 1;
-                    sender
-                        .send(db.serial_number_counter)
-                        .expect("Could not send serial number");
-                })
-                .unwrap(),
+                    let _ = sender.send(db.serial_number_counter);
+                }
+            }
             SyncOperation::Exit(sender) => {
                 // FIXME:(rasviitanen) Nothing to do?
-                let _ = sender.send(IndexedDBThreadReturnType::Exit).unwrap();
+                let _ = sender.send(IndexedDBThreadReturnType::Exit);
             },
         }
     }

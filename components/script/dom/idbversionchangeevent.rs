@@ -31,8 +31,8 @@ impl IDBVersionChangeEvent {
     pub fn new_inherited(old_version: u64, new_version: Option<u64>) -> IDBVersionChangeEvent {
         IDBVersionChangeEvent {
             event: Event::new_inherited(),
-            old_version: old_version,
-            new_version: new_version,
+            old_version,
+            new_version,
         }
     }
 
@@ -44,6 +44,17 @@ impl IDBVersionChangeEvent {
         old_version: u64,
         new_version: Option<u64>,
     ) -> DomRoot<IDBVersionChangeEvent> {
+        Self::new_with_proto(global, type_, bool::from(bubbles), bool::from(cancelable), old_version, new_version)
+    }
+
+    fn new_with_proto(
+        global: &GlobalScope,
+        type_: Atom,
+        bubbles: bool,
+        cancelable: bool,
+        old_version: u64,
+        new_version: Option<u64>,
+    ) -> DomRoot<Self> {
         let ev = reflect_dom_object(
             Box::new(IDBVersionChangeEvent::new_inherited(
                 old_version,
@@ -53,25 +64,7 @@ impl IDBVersionChangeEvent {
         );
         {
             let event = ev.upcast::<Event>();
-            event.init_event(type_, bool::from(bubbles), bool::from(cancelable));
-        }
-        ev
-    }
-
-    fn new_with_proto(
-        global: &GlobalScope,
-        proto: Option<HandleObject>,
-        type_: Atom,
-        init: &IDBVersionChangeEventInit,
-    ) -> DomRoot<Self> {
-        let ev = reflect_dom_object_with_proto(
-            Box::new(Self::new_inherited(init.oldVersion, init.newVersion)),
-            global,
-            proto,
-        );
-        {
-            let event = ev.upcast::<Event>();
-            event.init_event(type_, init.parent.bubbles, init.parent.cancelable);
+            event.init_event(type_, bubbles, cancelable);
         }
         ev
     }
@@ -83,7 +76,7 @@ impl IDBVersionChangeEvent {
         type_: DOMString,
         init: &IDBVersionChangeEventInit,
     ) -> DomRoot<Self> {
-        Self::new_with_proto(&window.global(), proto, Atom::from(type_), init)
+        Self::new_with_proto(&window.global(), Atom::from(type_), init.parent.bubbles, init.parent.cancelable, init.oldVersion, init.newVersion)
     }
 }
 

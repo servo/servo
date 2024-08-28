@@ -12,7 +12,7 @@
 interface IDBTransaction : EventTarget {
   readonly attribute DOMStringList objectStoreNames;
   readonly attribute IDBTransactionMode mode;
-  readonly attribute IDBTransactionDurability durability;
+  // readonly attribute IDBTransactionDurability durability;
   [SameObject] readonly attribute IDBDatabase db;
   readonly attribute DOMException? error;
 

@@ -41,7 +41,7 @@ interface IDBObjectStore {
   // void deleteIndex(DOMString name);
 };
 
-// https://w3c.github.io/IndexedDB/#idbobjectstore
+// https://w3c.github.io/IndexedDB/#dictdef-idbindexparameters
 dictionary IDBIndexParameters {
   boolean unique = false;
   boolean multiEntry = false;

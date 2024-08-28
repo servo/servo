@@ -175,7 +175,7 @@ impl IDBRequest {
         }
 
         // Step 3: If request was not given, let request be a new request with source as source.
-        let request = request.unwrap_or({
+        let request = request.unwrap_or_else(|| {
             let new_request = IDBRequest::new(&global);
             new_request.set_source(Some(source));
             new_request.set_transaction(&transaction);

@@ -124,7 +124,7 @@ impl IDBDatabase {
 }
 
 impl IDBDatabaseMethods for IDBDatabase {
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbdatabase-transaction
+    /// <https://w3c.github.io/IndexedDB/#dom-idbdatabase-transaction>
     fn Transaction(
         &self,
         store_names: StringOrStringSequence,
@@ -238,6 +238,7 @@ impl IDBDatabaseMethods for IDBDatabase {
             .is_err()
         {
             warn!("Object store creation failed in idb thread");
+            return Err(Error::JSFailed);
         };
 
         self.object_store_names.borrow_mut().push(name);
@@ -289,7 +290,7 @@ impl IDBDatabaseMethods for IDBDatabase {
 
         if receiver
             .recv()
-            .expect("Could not receive object store creation status")
+            .expect("Could not receive object store deletion status")
             .is_err()
         {
             warn!("Object store deletion failed in idb thread");
@@ -308,6 +309,7 @@ impl IDBDatabaseMethods for IDBDatabase {
 
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbdatabase-objectstorenames
     fn ObjectStoreNames(&self) -> DomRoot<DOMStringList> {
+        // FIXME: (arihant2math) Sort the list of names, as per spec
         DOMStringList::new(&self.global(), self.object_store_names.borrow().clone())
     }
 
