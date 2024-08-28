@@ -533,7 +533,11 @@ where
     }
 
     #[cfg(target_os = "windows")]
-    fn platform_handle_key(&mut self, _key_event: KeyboardEvent) {}
+    fn platform_handle_key(&mut self, key_event: KeyboardEvent) {
+        if self.focused_webview_id.is_some() {
+            self.event_queue.push(EmbedderEvent::Keyboard(key_event));
+        }
+    }
 
     /// Handle key events after they have been handled by Servo.
     fn handle_key_from_servo(&mut self, _: Option<WebViewId>, event: KeyboardEvent) {
