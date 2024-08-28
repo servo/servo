@@ -74,7 +74,7 @@ tikv-jemallocator = "0.6.0"
 keyboard-types = "0.7"
 libc = "0.2"
 log = "0.4"
-malloc_size_of = { git = "https://github.com/servo/stylo", rev = "refs/pull/62/head", features = ["servo"] }
+malloc_size_of = { git = "https://github.com/servo/stylo", branch = "2024-07-16", features = ["servo"] }
 malloc_size_of_derive = "0.1"
 mime = "0.3.13"
 mime_guess = "2.0.5"
@@ -104,25 +104,25 @@ serde_json = "1.0"
 servo-media = { git = "https://github.com/servo/media" }
 servo-media-dummy = { git = "https://github.com/servo/media" }
 servo-media-gstreamer = { git = "https://github.com/servo/media" }
-servo_arc = { git = "https://github.com/servo/stylo", rev = "refs/pull/62/head", features = ["servo"] }
-servo_atoms = { git = "https://github.com/servo/stylo", rev = "refs/pull/62/head" }
-size_of_test = { git = "https://github.com/servo/stylo", rev = "refs/pull/62/head" }
+servo_arc = { git = "https://github.com/servo/stylo", branch = "2024-07-16", features = ["servo"] }
+servo_atoms = { git = "https://github.com/servo/stylo", branch = "2024-07-16" }
+size_of_test = { git = "https://github.com/servo/stylo", branch = "2024-07-16" }
 smallbitvec = "2.5.3"
 smallvec = "1.13"
 sparkle = "0.1.26"
 string_cache = "0.8"
 string_cache_codegen = "0.5"
-style = { git = "https://github.com/servo/stylo", rev = "refs/pull/62/head", features = ["servo"] }
-style_config = { git = "https://github.com/servo/stylo", rev = "refs/pull/62/head" }
-style_dom = { git = "https://github.com/servo/stylo", package = "dom", rev = "refs/pull/62/head" }
-style_traits = { git = "https://github.com/servo/stylo", rev = "refs/pull/62/head", features = ["servo"] }
+style = { git = "https://github.com/servo/stylo", branch = "2024-07-16", features = ["servo"] }
+style_config = { git = "https://github.com/servo/stylo", branch = "2024-07-16" }
+style_dom = { git = "https://github.com/servo/stylo", package = "dom", branch = "2024-07-16" }
+style_traits = { git = "https://github.com/servo/stylo", branch = "2024-07-16", features = ["servo"] }
 surfman = { version = "0.9.6", features = ["chains"] }
 syn = { version = "2", default-features = false, features = ["clone-impls", "derive", "parsing"] }
 synstructure = "0.13"
 thin-vec = "0.2.13"
 time = "0.1.41"
 time_03 = { package = "time", version = "0.3", features = ["serde"] }
-to_shmem = { git = "https://github.com/servo/stylo", rev = "refs/pull/62/head" }
+to_shmem = { git = "https://github.com/servo/stylo", branch = "2024-07-16" }
 tokio = "1"
 tokio-rustls = "0.24"
 tungstenite = "0.20"

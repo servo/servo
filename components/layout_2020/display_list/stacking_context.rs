@@ -29,10 +29,11 @@ use webrender_traits::display_list::{ScrollSensitivity, ScrollTreeNodeId, Scroll
 use wr::units::{LayoutPixel, LayoutSize};
 use wr::{ClipChainId, SpatialTreeItemKey, StickyOffsetBounds};
 
+use super::clip_path::build_clip_path_clip_chain_if_necessary;
 use super::DisplayList;
 use crate::cell::ArcRefCell;
 use crate::display_list::conversions::{FilterToWebRender, ToWebRender};
-use crate::display_list::DisplayListBuilder;
+use crate::display_list::{BuilderForBoxFragment, DisplayListBuilder};
 use crate::fragment_tree::{
     BoxFragment, ContainingBlockManager, Fragment, FragmentFlags, FragmentTree, PositioningFragment,
 };
@@ -656,8 +657,7 @@ impl StackingContext {
             }
         }
 
-        let mut fragment_builder =
-            super::BuilderForBoxFragment::new(box_fragment, containing_block);
+        let mut fragment_builder = BuilderForBoxFragment::new(box_fragment, containing_block);
         let painter = super::background::BackgroundPainter {
             style,
             painting_area_override: Some(painting_area),
@@ -1061,15 +1061,21 @@ impl BoxFragment {
             );
         }
 
-        let clip_path_chain_id = self.build_clip_path_frame_if_necessary(
+        // `clip-path` needs to be applied before filters and creates a stacking context, so it can be
+        // applied directly to the stacking context itself.
+        // before
+        let stacking_context_clip_chain_id = build_clip_path_clip_chain_if_necessary(
+            self.style.clone_clip_path(),
             display_list,
-            containing_block.scroll_node_id,
-            containing_block.clip_chain_id,
-            &containing_block.rect,
-        );
+            &containing_block.scroll_node_id,
+            &containing_block.clip_chain_id,
+            BuilderForBoxFragment::new(self, &containing_block.rect),
+        )
+        .unwrap_or(containing_block.clip_chain_id);
+
         let mut child_stacking_context = parent_stacking_context.create_descendant(
             containing_block.scroll_node_id.spatial_id,
-            clip_path_chain_id.unwrap_or(containing_block.clip_chain_id),
+            stacking_context_clip_chain_id,
             self.style.clone(),
             self.base.flags,
             context_type,
@@ -1126,6 +1132,16 @@ impl BoxFragment {
             &new_scroll_node_id,
             &new_clip_chain_id,
             &containing_block.rect,
+        ) {
+            new_clip_chain_id = clip_chain_id;
+        }
+
+        if let Some(clip_chain_id) = build_clip_path_clip_chain_if_necessary(
+            self.style.clone_clip_path(),
+            display_list,
+            &new_scroll_node_id,
+            &new_clip_chain_id,
+            BuilderForBoxFragment::new(self, &containing_block.rect),
         ) {
             new_clip_chain_id = clip_chain_id;
         }
@@ -1416,22 +1432,6 @@ impl BoxFragment {
         );
 
         Some(sticky_node_id)
-    }
-
-    fn build_clip_path_frame_if_necessary(
-        &self,
-        display_list: &mut DisplayList,
-        parent_scroll_node_id: ScrollTreeNodeId,
-        parent_clip_chain_id: wr::ClipChainId,
-        containing_block_rect: &PhysicalRect<Au>,
-    ) -> Option<wr::ClipChainId> {
-        super::clip_path::build(
-            self.style.clone_clip_path(),
-            display_list,
-            parent_scroll_node_id,
-            parent_clip_chain_id,
-            super::BuilderForBoxFragment::new(self, containing_block_rect),
-        )
     }
 
     /// Optionally returns the data for building a reference frame, without yet building it.

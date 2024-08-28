@@ -1298,7 +1298,7 @@ fn resolve_border_image_slice(
     )
 }
 
-pub(crate) fn normalize_radii(rect: &units::LayoutRect, radius: &mut wr::BorderRadius) {
+pub(super) fn normalize_radii(rect: &units::LayoutRect, radius: &mut wr::BorderRadius) {
     // Normalize radii that add up to > 100%.
     // https://www.w3.org/TR/css-backgrounds-3/#corner-overlap
     // > Let f = min(L_i/S_i), where i ∈ {top, right, bottom, left},
@@ -1325,7 +1325,7 @@ pub(crate) fn normalize_radii(rect: &units::LayoutRect, radius: &mut wr::BorderR
 /// > max(border-radius + margin, 0). If the ratio of border-radius/margin is less than 1,
 /// > and margin is positive, then the margin box corner radius is
 /// > border-radius + margin * (1 + (ratio-1)^3).
-pub(crate) fn compute_marginbox_radius(
+pub(super) fn compute_margin_box_radius(
     radius: wr::BorderRadius,
     layout_rect: LayoutSize,
     fragment: &BoxFragment,
