@@ -1626,7 +1626,12 @@ impl FlexItem<'_> {
             IndependentFormattingContext::NonReplaced(non_replaced) => {
                 let cross_size = match used_cross_size_override {
                     Some(s) => AuOrAuto::LengthPercentage(s),
-                    None => self.content_box_size.cross.map(|t| t),
+                    None => self.content_box_size.cross.map(|cross_size| {
+                        cross_size.clamp_between_extremums(
+                            self.content_min_size.cross,
+                            self.content_max_size.cross,
+                        )
+                    }),
                 };
 
                 let item_writing_mode = non_replaced.style.effective_writing_mode();
