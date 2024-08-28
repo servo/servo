@@ -3056,12 +3056,6 @@ impl IDLInterface for {name} {{
         {check}
     }}
 }}
-
-impl PartialEq for {name} {{
-    fn eq(&self, other: &{name}) -> bool {{
-        self as *const {name} == other
-    }}
-}}
 """
 
 
