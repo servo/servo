@@ -276,9 +276,9 @@ impl Minibrowser {
                     |ui| {
                         for (webview_id, webview) in webviews.webviews().into_iter() {
                             let msg = match (&webview.title, &webview.url) {
-                                (Some(title), _) => title.clone(),
-                                (None, Some(url)) => url.to_string(),
-                                _ => "".to_owned(),
+                                (Some(title), _) if !title.is_empty() => title.clone(),
+                                (_, Some(url)) => url.to_string(),
+                                _ => "New Tab".to_owned(),
                             };
                             let tab = ui.add(SelectableLabel::new(
                                 webview.focused,
