@@ -462,10 +462,12 @@ dictionary GPUBindGroupLayoutDescriptor : GPUObjectDescriptorBase {
 dictionary GPUBindGroupLayoutEntry {
     required GPUIndex32 binding;
     required GPUShaderStageFlags visibility;
+
     GPUBufferBindingLayout buffer;
     GPUSamplerBindingLayout sampler;
     GPUTextureBindingLayout texture;
     GPUStorageTextureBindingLayout storageTexture;
+    GPUExternalTextureBindingLayout externalTexture;
 };
 
 typedef [EnforceRange] unsigned long GPUShaderStageFlags;
@@ -514,12 +516,17 @@ dictionary GPUTextureBindingLayout {
 
 enum GPUStorageTextureAccess {
     "write-only",
+    "read-only",
+    "read-write",
 };
 
 dictionary GPUStorageTextureBindingLayout {
     GPUStorageTextureAccess access = "write-only";
     required GPUTextureFormat format;
     GPUTextureViewDimension viewDimension = "2d";
+};
+
+dictionary GPUExternalTextureBindingLayout {
 };
 
 [Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]

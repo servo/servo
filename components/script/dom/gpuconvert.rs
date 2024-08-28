@@ -3,17 +3,22 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::borrow::Cow;
+use std::num::NonZeroU64;
 
 use webgpu::wgc::command as wgpu_com;
 use webgpu::wgt::{self, AstcBlock, AstcChannel};
 
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
-    GPUAddressMode, GPUBlendComponent, GPUBlendFactor, GPUBlendOperation, GPUCompareFunction,
-    GPUCullMode, GPUExtent3D, GPUExtent3DDict, GPUFilterMode, GPUFrontFace, GPUImageCopyBuffer,
-    GPUImageCopyTexture, GPUImageDataLayout, GPUIndexFormat, GPULoadOp, GPUObjectDescriptorBase,
-    GPUOrigin3D, GPUPrimitiveState, GPUPrimitiveTopology, GPUStencilOperation, GPUStoreOp,
-    GPUTextureAspect, GPUTextureFormat, GPUTextureViewDimension, GPUVertexFormat,
+    GPUAddressMode, GPUBindGroupLayoutEntry, GPUBlendComponent, GPUBlendFactor, GPUBlendOperation,
+    GPUBufferBindingType, GPUCompareFunction, GPUCullMode, GPUExtent3D, GPUExtent3DDict,
+    GPUFilterMode, GPUFrontFace, GPUImageCopyBuffer, GPUImageCopyTexture, GPUImageDataLayout,
+    GPUIndexFormat, GPULoadOp, GPUObjectDescriptorBase, GPUOrigin3D, GPUPrimitiveState,
+    GPUPrimitiveTopology, GPUSamplerBindingType, GPUStencilOperation, GPUStorageTextureAccess,
+    GPUStoreOp, GPUTextureAspect, GPUTextureFormat, GPUTextureSampleType, GPUTextureViewDimension,
+    GPUVertexFormat,
 };
+use crate::dom::bindings::error::Fallible;
+use crate::dom::types::GPUDevice;
 
 pub fn convert_texture_format(format: GPUTextureFormat) -> wgt::TextureFormat {
     match format {
@@ -461,4 +466,79 @@ pub fn convert_label(parent: &GPUObjectDescriptorBase) -> Option<Cow<'static, st
     } else {
         Some(Cow::Owned(parent.label.to_string()))
     }
+}
+
+pub fn convert_bind_group_layout_entry(
+    bgle: &GPUBindGroupLayoutEntry,
+    device: &GPUDevice,
+) -> Fallible<Result<wgt::BindGroupLayoutEntry, webgpu::Error>> {
+    let number_of_provided_bindings = bgle.buffer.is_some() as u8 +
+        bgle.sampler.is_some() as u8 +
+        bgle.storageTexture.is_some() as u8 +
+        bgle.texture.is_some() as u8;
+    let ty = if let Some(buffer) = &bgle.buffer {
+        Some(wgt::BindingType::Buffer {
+            ty: match buffer.type_ {
+                GPUBufferBindingType::Uniform => wgt::BufferBindingType::Uniform,
+                GPUBufferBindingType::Storage => {
+                    wgt::BufferBindingType::Storage { read_only: false }
+                },
+                GPUBufferBindingType::Read_only_storage => {
+                    wgt::BufferBindingType::Storage { read_only: true }
+                },
+            },
+            has_dynamic_offset: buffer.hasDynamicOffset,
+            min_binding_size: NonZeroU64::new(buffer.minBindingSize),
+        })
+    } else if let Some(sampler) = &bgle.sampler {
+        Some(wgt::BindingType::Sampler(match sampler.type_ {
+            GPUSamplerBindingType::Filtering => wgt::SamplerBindingType::Filtering,
+            GPUSamplerBindingType::Non_filtering => wgt::SamplerBindingType::NonFiltering,
+            GPUSamplerBindingType::Comparison => wgt::SamplerBindingType::Comparison,
+        }))
+    } else if let Some(storage) = &bgle.storageTexture {
+        Some(wgt::BindingType::StorageTexture {
+            access: match storage.access {
+                GPUStorageTextureAccess::Write_only => wgt::StorageTextureAccess::WriteOnly,
+                GPUStorageTextureAccess::Read_only => wgt::StorageTextureAccess::ReadOnly,
+                GPUStorageTextureAccess::Read_write => wgt::StorageTextureAccess::ReadWrite,
+            },
+            format: device.validate_texture_format_required_features(&storage.format)?,
+            view_dimension: convert_view_dimension(storage.viewDimension),
+        })
+    } else if let Some(texture) = &bgle.texture {
+        Some(wgt::BindingType::Texture {
+            sample_type: match texture.sampleType {
+                GPUTextureSampleType::Float => wgt::TextureSampleType::Float { filterable: true },
+                GPUTextureSampleType::Unfilterable_float => {
+                    wgt::TextureSampleType::Float { filterable: false }
+                },
+                GPUTextureSampleType::Depth => wgt::TextureSampleType::Depth,
+                GPUTextureSampleType::Sint => wgt::TextureSampleType::Sint,
+                GPUTextureSampleType::Uint => wgt::TextureSampleType::Uint,
+            },
+            view_dimension: convert_view_dimension(texture.viewDimension),
+            multisampled: texture.multisampled,
+        })
+    } else {
+        assert_eq!(number_of_provided_bindings, 0);
+        None
+    };
+    // Check for number of bindings should actually be done in device-timeline,
+    // but we do it last on content-timeline to have some visible effect
+    let ty = if number_of_provided_bindings != 1 {
+        None
+    } else {
+        ty
+    }
+    .ok_or(webgpu::Error::Validation(
+        "Exactly on entry type must be provided".to_string(),
+    ));
+
+    Ok(ty.map(|ty| wgt::BindGroupLayoutEntry {
+        binding: bgle.binding,
+        visibility: wgt::ShaderStages::from_bits_retain(bgle.visibility),
+        ty,
+        count: None,
+    }))
 }
