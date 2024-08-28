@@ -69,10 +69,11 @@ class ServoExecutor(ProcessTestExecutor):
     def find_wpt_prefs(self):
         default_path = os.path.join("resources", "wpt-prefs.json")
         # The cwd is the servo repo for `./mach test-wpt`, but on WPT runners
-        # it is the virtual environment where the nightly is extracted. In the
-        # latter case, the cwd has the `servo` folder inside which we find the
+        # it is the WPT repo. The nightly tar is extracted inside the python
+        # virtual environment within the repo. This means that on WPT runners,
+        # the cwd has the `_venv/servo` directory inside which we find the
         # binary and the 'resources' directory.
-        for dir in [".", "./servo"]:
+        for dir in [".", "./_venv/servo"]:
             candidate = os.path.abspath(os.path.join(dir, default_path))
             if os.path.isfile(candidate):
                 return candidate
