@@ -140,12 +140,11 @@ class MockGitHubAPIServer():
 
             assert params["is"] == "pr"
             assert params["state"] == "open"
-            assert "author" in params
             assert "head" in params
-            head_ref = f"{params['author']}:{params['head']}"
+            head_ref = f":{params['head']}"
 
             for pull_request in self.pulls:
-                if pull_request.head == head_ref:
+                if pull_request.head.endswith(head_ref):
                     return json.dumps({
                         "total_count": 1,
                         "items": [{
