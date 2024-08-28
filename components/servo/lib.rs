@@ -27,7 +27,9 @@ use std::borrow::Cow;
 use std::cell::{Cell, RefCell};
 use std::cmp::max;
 use std::collections::HashMap;
+use std::io::Write;
 use std::path::PathBuf;
+use std::process;
 use std::rc::{Rc, Weak};
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -60,7 +62,7 @@ use constellation::{
 };
 use crossbeam_channel::{Receiver, Sender, unbounded};
 pub use embedder_traits::*;
-use env_logger::Builder as EnvLoggerBuilder;
+use env_logger::{Builder as EnvLoggerBuilder, Logger};
 use euclid::Scale;
 use fonts::SystemFontService;
 #[cfg(all(
@@ -127,6 +129,27 @@ pub use crate::webview_delegate::{
     AllowOrDenyRequest, AuthenticationRequest, NavigationRequest, PermissionRequest,
     WebResourceLoad, WebViewDelegate,
 };
+
+/// Creates a logger that will prefix messages with the current PID.
+fn create_env_logger(prefix: &str) -> Logger {
+    let prefix = prefix.to_owned();
+    EnvLoggerBuilder::from_env(env_logger::Env::default())
+        .format(move |buf, record| {
+            let level_style = buf.default_level_style(record.level());
+
+            writeln!(
+                buf,
+                "[{prefix} {} {} {level_style}{:5}{level_style:#} {}:{}] {}",
+                process::id(),
+                buf.timestamp(),
+                record.level(),
+                record.module_path().unwrap_or("unknown"),
+                record.line().unwrap_or(0),
+                record.args()
+            )
+        })
+        .build()
+}
 
 #[cfg(feature = "webdriver")]
 fn webdriver(port: u16, constellation: Sender<ConstellationMsg>) {
@@ -628,8 +651,7 @@ impl Servo {
 
     pub fn setup_logging(&self) {
         let constellation_chan = self.constellation_proxy.sender();
-        let env = env_logger::Env::default();
-        let env_logger = EnvLoggerBuilder::from_env(env).build();
+        let env_logger = create_env_logger("MAIN");
         let con_logger = FromCompositorLogger::new(constellation_chan);
 
         let filter = max(env_logger.filter(), con_logger.filter());
@@ -1123,8 +1145,7 @@ where
 
 pub fn set_logger(script_to_constellation_chan: ScriptToConstellationChan) {
     let con_logger = FromScriptLogger::new(script_to_constellation_chan);
-    let env = env_logger::Env::default();
-    let env_logger = EnvLoggerBuilder::from_env(env).build();
+    let env_logger = create_env_logger("CONT");
 
     let filter = max(env_logger.filter(), con_logger.filter());
     let logger = BothLogger(env_logger, con_logger);
