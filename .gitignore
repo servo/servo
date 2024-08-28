@@ -12,6 +12,7 @@
 /python/_venv*
 /python/tidy/servo_tidy.egg-info
 /tests/wpt/sync
+/tests/dromaeo/dromaeo
 *.pkl
 *.pyc
 *.swp
