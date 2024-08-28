@@ -275,8 +275,8 @@ impl Minibrowser {
                     egui::Layout::left_to_right(egui::Align::Center),
                     |ui| {
                         for (webview_id, webview) in webviews.webviews().into_iter() {
-                            let msg = match (webview.title.clone(), webview.url.clone()) {
-                                (Some(title), _) => title,
+                            let msg = match (&webview.title, &webview.url) {
+                                (Some(title), _) => title.clone(),
                                 (None, Some(url)) => url.to_string(),
                                 _ => "".to_owned(),
                             };
