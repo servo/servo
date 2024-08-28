@@ -7,9 +7,11 @@ use std::num::NonZeroU32;
 use std::sync::Arc;
 use std::time::Instant;
 
+use egui::text::{CCursor, CCursorRange};
+use egui::text_edit::TextEditState;
 use egui::{
-    pos2, CentralPanel, Color32, Frame, Key, Label, Modifiers, PaintCallback, Pos2, Spinner,
-    TopBottomPanel, Vec2,
+    pos2, CentralPanel, Color32, Frame, Key, Label, Modifiers, PaintCallback, Pos2,
+    SelectableLabel, TopBottomPanel, Vec2,
 };
 use egui_glow::CallbackFn;
 use egui_winit::EventResponse;
@@ -58,6 +60,16 @@ pub enum MinibrowserEvent {
     Go,
     Back,
     Forward,
+    Reload,
+}
+
+fn truncate_with_ellipsis(input: &str, max_length: usize) -> String {
+    if input.chars().count() > max_length {
+        let truncated: String = input.chars().take(max_length.saturating_sub(1)).collect();
+        format!("{}…", truncated)
+    } else {
+        input.to_string()
+    }
 }
 
 impl Minibrowser {
@@ -144,6 +156,13 @@ impl Minibrowser {
         position.y < self.toolbar_height.get()
     }
 
+    /// Create a frameless button with square sizing, as used in the toolbar.
+    fn toolbar_button(text: &str) -> egui::Button {
+        egui::Button::new(text)
+            .frame(false)
+            .min_size(Vec2 { x: 20.0, y: 20.0 })
+    }
+
     /// Update the minibrowser, but don’t paint.
     /// If `servo_framebuffer_id` is given, set up a paint callback to blit its contents to our
     /// CentralPanel when [`Minibrowser::paint`] is called.
@@ -175,39 +194,44 @@ impl Minibrowser {
             // TODO: While in fullscreen add some way to mitigate the increased phishing risk
             // when not displaying the URL bar: https://github.com/servo/servo/issues/32443
             if window.fullscreen().is_none() {
-                TopBottomPanel::top("toolbar").show(ctx, |ui| {
+                let frame = egui::Frame::default()
+                    .fill(Color32::from_gray(32))
+                    .inner_margin(4.0);
+                TopBottomPanel::top("toolbar").frame(frame).show(ctx, |ui| {
                     ui.allocate_ui_with_layout(
                         ui.available_size(),
                         egui::Layout::left_to_right(egui::Align::Center),
                         |ui| {
-                            if ui.button("back").clicked() {
+                            if ui.add(Minibrowser::toolbar_button("⏴")).clicked() {
                                 event_queue.borrow_mut().push(MinibrowserEvent::Back);
                             }
-                            if ui.button("forward").clicked() {
+                            if ui.add(Minibrowser::toolbar_button("⏵")).clicked() {
                                 event_queue.borrow_mut().push(MinibrowserEvent::Forward);
                             }
+
+                            match self.load_status {
+                                LoadStatus::LoadStart | LoadStatus::HeadParsed => {
+                                    if ui.add(Minibrowser::toolbar_button("X")).clicked() {
+                                        warn!("Do not support stop yet.");
+                                    }
+                                },
+                                LoadStatus::LoadComplete => {
+                                    if ui.add(Minibrowser::toolbar_button("↻")).clicked() {
+                                        event_queue.borrow_mut().push(MinibrowserEvent::Reload);
+                                    }
+                                },
+                            }
+                            ui.add_space(2.0);
+
                             ui.allocate_ui_with_layout(
                                 ui.available_size(),
                                 egui::Layout::right_to_left(egui::Align::Center),
                                 |ui| {
-                                    if ui.button("go").clicked() {
-                                        event_queue.borrow_mut().push(MinibrowserEvent::Go);
-                                        location_dirty.set(false);
-                                    }
-
-                                    match self.load_status {
-                                        LoadStatus::LoadStart => {
-                                            ui.add(Spinner::new().color(Color32::GRAY));
-                                        },
-                                        LoadStatus::HeadParsed => {
-                                            ui.add(Spinner::new().color(Color32::WHITE));
-                                        },
-                                        LoadStatus::LoadComplete => { /* No Spinner */ },
-                                    }
-
+                                    let location_id = egui::Id::new("location_input");
                                     let location_field = ui.add_sized(
                                         ui.available_size(),
-                                        egui::TextEdit::singleline(&mut *location.borrow_mut()),
+                                        egui::TextEdit::singleline(&mut *location.borrow_mut())
+                                            .id(location_id),
                                     );
 
                                     if location_field.changed() {
@@ -217,6 +241,16 @@ impl Minibrowser {
                                         i.clone().consume_key(Modifiers::COMMAND, Key::L)
                                     }) {
                                         location_field.request_focus();
+                                        if let Some(mut state) =
+                                            TextEditState::load(ui.ctx(), location_id)
+                                        {
+                                            // Select the whole input.
+                                            state.cursor.set_char_range(Some(CCursorRange::two(
+                                                CCursor::new(0),
+                                                CCursor::new(location.borrow().len()),
+                                            )));
+                                            state.store(ui.ctx(), location_id);
+                                        }
                                     }
                                     if location_field.lost_focus() &&
                                         ui.input(|i| i.clone().key_pressed(Key::Enter))
@@ -231,6 +265,36 @@ impl Minibrowser {
                 });
             };
 
+            let mut embedder_events = vec![];
+
+            // A simple Tab header strip, using egui 'SelectableLabel' elements.
+            // TODO: Add a way to close a tab eg. with a [x] control.
+            TopBottomPanel::top("tabs").show(ctx, |ui| {
+                ui.allocate_ui_with_layout(
+                    ui.available_size(),
+                    egui::Layout::left_to_right(egui::Align::Center),
+                    |ui| {
+                        for (webview_id, webview) in webviews.webviews().into_iter() {
+                            let msg = match (webview.title.clone(), webview.url.clone()) {
+                                (Some(title), _) => title,
+                                (None, Some(url)) => url.to_string(),
+                                _ => "".to_owned(),
+                            };
+                            let tab = ui.add(SelectableLabel::new(
+                                webview.focused,
+                                truncate_with_ellipsis(&msg, 20),
+                            ));
+                            let tab = tab.on_hover_ui(|ui| {
+                                ui.label(&msg);
+                            });
+                            if !webview.focused && tab.clicked() {
+                                embedder_events.push(EmbedderEvent::FocusWebView(webview_id));
+                            }
+                        }
+                    },
+                );
+            });
+
             // The toolbar height is where the Context’s available rect starts.
             // For reasons that are unclear, the TopBottomPanel’s ui cursor exceeds this by one egui
             // point, but the Context is correct and the TopBottomPanel is wrong.
@@ -244,7 +308,6 @@ impl Minibrowser {
             let Some(webview) = webviews.get_mut(focused_webview_id) else {
                 return;
             };
-            let mut embedder_events = vec![];
 
             CentralPanel::default()
                 .frame(Frame::none())
@@ -351,9 +414,9 @@ impl Minibrowser {
         app_event_queue: &mut Vec<EmbedderEvent>,
     ) {
         for event in self.event_queue.borrow_mut().drain(..) {
+            let browser_id = browser.focused_webview_id().unwrap();
             match event {
                 MinibrowserEvent::Go => {
-                    let browser_id = browser.webview_id().unwrap();
                     let location = self.location.borrow();
                     if let Some(url) = location_bar_input_to_url(&location.clone()) {
                         app_event_queue.push(EmbedderEvent::LoadUrl(browser_id, url));
@@ -363,18 +426,20 @@ impl Minibrowser {
                     }
                 },
                 MinibrowserEvent::Back => {
-                    let browser_id = browser.webview_id().unwrap();
                     app_event_queue.push(EmbedderEvent::Navigation(
                         browser_id,
                         TraversalDirection::Back(1),
                     ));
                 },
                 MinibrowserEvent::Forward => {
-                    let browser_id = browser.webview_id().unwrap();
                     app_event_queue.push(EmbedderEvent::Navigation(
                         browser_id,
                         TraversalDirection::Forward(1),
                     ));
+                },
+                MinibrowserEvent::Reload => {
+                    let browser_id = browser.focused_webview_id().unwrap();
+                    app_event_queue.push(EmbedderEvent::Reload(browser_id));
                 },
             }
         }
@@ -392,7 +457,7 @@ impl Minibrowser {
         }
 
         match browser.current_url_string() {
-            Some(location) if location != self.location.get_mut() => {
+            Some(location) if location != *self.location.get_mut() => {
                 self.location = RefCell::new(location.to_owned());
                 true
             },

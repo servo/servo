@@ -70,7 +70,7 @@ pub fn convert_texture_format(format: GPUTextureFormat) -> wgt::TextureFormat {
         GPUTextureFormat::Bc6h_rgb_float => wgt::TextureFormat::Bc6hRgbFloat,
         GPUTextureFormat::Rgb9e5ufloat => wgt::TextureFormat::Rgb9e5Ufloat,
         GPUTextureFormat::Rgb10a2uint => wgt::TextureFormat::Rgb10a2Uint,
-        GPUTextureFormat::Rg11b10ufloat => wgt::TextureFormat::Rg11b10Float,
+        GPUTextureFormat::Rg11b10ufloat => wgt::TextureFormat::Rg11b10UFloat,
         GPUTextureFormat::Stencil8 => wgt::TextureFormat::Stencil8,
         GPUTextureFormat::Depth16unorm => wgt::TextureFormat::Depth16Unorm,
         GPUTextureFormat::Depth32float_stencil8 => wgt::TextureFormat::Depth32FloatStencil8,

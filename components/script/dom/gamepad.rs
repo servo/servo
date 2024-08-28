@@ -23,7 +23,7 @@ use crate::dom::gamepadevent::{GamepadEvent, GamepadEventType};
 use crate::dom::gamepadhapticactuator::GamepadHapticActuator;
 use crate::dom::gamepadpose::GamepadPose;
 use crate::dom::globalscope::GlobalScope;
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{CanGc, JSContext};
 
 // This value is for determining when to consider a gamepad as having a user gesture
 // from an axis tilt. This matches the threshold in Chromium.
@@ -142,6 +142,7 @@ impl Gamepad {
             )),
             global,
             None,
+            CanGc::note(),
         );
         gamepad.init_axes();
         gamepad

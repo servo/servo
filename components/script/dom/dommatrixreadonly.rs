@@ -30,7 +30,7 @@ use crate::dom::dommatrix::DOMMatrix;
 use crate::dom::dompoint::DOMPoint;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{CanGc, JSContext};
 
 #[dom_struct]
 #[allow(non_snake_case)]
@@ -44,7 +44,7 @@ pub struct DOMMatrixReadOnly {
 #[allow(non_snake_case)]
 impl DOMMatrixReadOnly {
     pub fn new(global: &GlobalScope, is2D: bool, matrix: Transform3D<f64>) -> DomRoot<Self> {
-        Self::new_with_proto(global, None, is2D, matrix)
+        Self::new_with_proto(global, None, is2D, matrix, CanGc::note())
     }
 
     #[allow(crown::unrooted_must_root)]
@@ -53,9 +53,10 @@ impl DOMMatrixReadOnly {
         proto: Option<HandleObject>,
         is2D: bool,
         matrix: Transform3D<f64>,
+        can_gc: CanGc,
     ) -> DomRoot<Self> {
         let dommatrix = Self::new_inherited(is2D, matrix);
-        reflect_dom_object_with_proto(Box::new(dommatrix), global, proto)
+        reflect_dom_object_with_proto(Box::new(dommatrix), global, proto, can_gc)
     }
 
     pub fn new_inherited(is2D: bool, matrix: Transform3D<f64>) -> Self {
@@ -70,6 +71,7 @@ impl DOMMatrixReadOnly {
     pub fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         init: Option<StringOrUnrestrictedDoubleSequence>,
     ) -> Fallible<DomRoot<Self>> {
         if init.is_none() {
@@ -78,6 +80,7 @@ impl DOMMatrixReadOnly {
                 proto,
                 true,
                 Transform3D::identity(),
+                can_gc,
             ));
         }
         match init.unwrap() {
@@ -91,11 +94,11 @@ impl DOMMatrixReadOnly {
                     return Ok(Self::new(global, true, Transform3D::identity()));
                 }
                 transform_to_matrix(s.to_string())
-                    .map(|(is2D, matrix)| Self::new_with_proto(global, proto, is2D, matrix))
+                    .map(|(is2D, matrix)| Self::new_with_proto(global, proto, is2D, matrix, can_gc))
             },
             StringOrUnrestrictedDoubleSequence::UnrestrictedDoubleSequence(ref entries) => {
                 entries_to_matrix(&entries[..])
-                    .map(|(is2D, matrix)| Self::new_with_proto(global, proto, is2D, matrix))
+                    .map(|(is2D, matrix)| Self::new_with_proto(global, proto, is2D, matrix, can_gc))
             },
         }
     }
@@ -411,6 +414,7 @@ impl DOMMatrixReadOnly {
         DOMMatrixReadOnly::Constructor(
             global,
             None,
+            CanGc::note(),
             Some(StringOrUnrestrictedDoubleSequence::UnrestrictedDoubleSequence(vec)),
         )
     }
@@ -425,6 +429,7 @@ impl DOMMatrixReadOnly {
         DOMMatrixReadOnly::Constructor(
             global,
             None,
+            CanGc::note(),
             Some(StringOrUnrestrictedDoubleSequence::UnrestrictedDoubleSequence(vec)),
         )
     }

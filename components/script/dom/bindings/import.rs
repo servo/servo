@@ -145,4 +145,5 @@ pub mod module {
     pub use crate::dom::types::{AnalyserNode, AudioNode, BaseAudioContext, EventTarget};
     pub use crate::mem::malloc_size_of_including_raw_self;
     pub use crate::realms::{AlreadyInRealm, InRealm};
+    pub use crate::script_runtime::CanGc;
 }

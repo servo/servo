@@ -15,6 +15,7 @@ use crate::dom::bindings::reflector::{
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
+use crate::script_runtime::CanGc;
 
 #[repr(u16)]
 #[derive(Clone, Copy, Debug, Eq, JSTraceable, MallocSizeOf, Ord, PartialEq, PartialOrd)]
@@ -150,6 +151,7 @@ impl DOMException {
     pub fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         message: DOMString,
         name: DOMString,
     ) -> Result<DomRoot<DOMException>, Error> {
@@ -157,6 +159,7 @@ impl DOMException {
             Box::new(DOMException::new_inherited(message, name)),
             global,
             proto,
+            can_gc,
         ))
     }
 

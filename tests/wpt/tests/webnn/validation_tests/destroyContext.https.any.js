@@ -132,16 +132,22 @@ promise_test(async t => {
 
 promise_test(async t => {
   const context = await navigator.ml.createContext(contextOptions);
-  const buffer =
-      await context.createBuffer({dataType: 'float32', dimensions: [1]});
+  const buffer = await context.createBuffer({
+    dataType: 'float32',
+    dimensions: [1],
+    usage: MLBufferUsage.READ_FROM,
+  });
   context.destroy();
   promise_rejects_dom(t, 'InvalidStateError', context.readBuffer(buffer));
 }, 'Destroyed context can not read buffer.');
 
 promise_test(async t => {
   const context = await navigator.ml.createContext(contextOptions);
-  const buffer =
-      await context.createBuffer({dataType: 'float32', dimensions: [1]});
+  const buffer = await context.createBuffer({
+    dataType: 'float32',
+    dimensions: [1],
+    usage: MLBufferUsage.READ_FROM,
+  });
   let promise = context.readBuffer(buffer);
   context.destroy();
   promise_rejects_dom(t, 'InvalidStateError', promise);
@@ -152,8 +158,11 @@ promise_test(async t => {
   // Destroying another context doesn't impact the first context.
   const another_context = await navigator.ml.createContext(contextOptions);
   another_context.destroy();
-  const buffer =
-      await context.createBuffer({dataType: 'float32', dimensions: [1]});
+  const buffer = await context.createBuffer({
+    dataType: 'float32',
+    dimensions: [1],
+    usage: MLBufferUsage.WRITE_TO,
+  });
   let arrayBuffer = new ArrayBuffer(4);
   context.destroy();
   assert_throws_dom('InvalidStateError', () => {

@@ -13,6 +13,11 @@ import subprocess
 import sys
 from typing import Set
 
+# This file is called as a script from components/servo/build.rs, so
+# we need to explicitly modify the search path here.
+sys.path[0:0] = [os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))]
+from servo.platform.build_target import BuildTarget  # noqa: E402
+
 GSTREAMER_BASE_LIBS = [
     # gstreamer
     "gstbase",
@@ -242,7 +247,7 @@ def find_non_system_dependencies_with_otool(binary_path: str) -> Set[str]:
     return output
 
 
-def package_gstreamer_dylibs(binary_path: str, library_target_directory: str, cross_compilation_target: str = None):
+def package_gstreamer_dylibs(binary_path: str, library_target_directory: str, target: BuildTarget):
     """Copy all GStreamer dependencies to the "lib" subdirectory of a built version of
        Servo. Also update any transitive shared library paths so that they are relative to
        this subdirectory."""
@@ -250,7 +255,7 @@ def package_gstreamer_dylibs(binary_path: str, library_target_directory: str, cr
     # This import only works when called from `mach`.
     import servo.platform
 
-    gstreamer_root = servo.platform.get().gstreamer_root(cross_compilation_target)
+    gstreamer_root = servo.platform.get().gstreamer_root(target)
     gstreamer_version = servo.platform.macos.GSTREAMER_PLUGIN_VERSION
     gstreamer_root_libs = os.path.join(gstreamer_root, "lib")
 

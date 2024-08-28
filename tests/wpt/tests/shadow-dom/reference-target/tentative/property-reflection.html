@@ -1,7 +1,7 @@
 <!DOCTYPE HTML>
 <html>
-
 <head>
+  <script src="/html/resources/common.js"></script>
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
   <script src="/resources/testdriver.js"></script>
@@ -9,202 +9,95 @@
   <script src="/resources/testdriver-actions.js"></script>
   <script src="/wai-aria/scripts/aria-utils.js"></script>
 </head>
-
 <body>
-  <div>
-    <x-div id="x-div">
-      <template shadowrootmode="open" shadowrootreferencetarget="target">
-        <div id="target"></div>
-      </template>
-    </x-div>
-    <x-input id="x-input">
-      <template shadowrootmode="open" shadowrootreferencetarget="target">
-        <input id="target">
-      </template>
-    </x-input>
-    <x-form id="x-form">
-      <template shadowrootmode="open" shadowrootreferencetarget="target">
-        <form id="target"></form>
-      </template>
-    </x-form>
-    <x-datalist id="x-datalist">
-      <template shadowrootmode="open" shadowrootreferencetarget="target">
-        <datalist id="target"></datalist>
-      </template>
-    </x-datalist>
-    <div id="aria-activedescendant-test" aria-activedescendant="x-div"></div>
-    <div id="aria-controls-test" aria-controls="x-div"></div>
-    <div id="aria-describedby-test" aria-describedby="x-div"></div>
-    <div id="aria-details-test" aria-details="x-div"></div>
-    <div id="aria-errormessage-test" aria-errormessage="x-div"></div>
-    <div id="aria-flowto-test" aria-flowto="x-div"></div>
-    <div id="aria-labelledby-test" aria-labelledby="x-div"></div>
-    <div id="aria-owns-test" aria-owns="x-div"></div>
-    <label id="label-for-test" for="x-input"></label>
-    <button id="button-form-test" form="x-form"></button>
-    <input id="input-form-test" form="x-form" />
-    <object id="object-form-test" form="x-form"></object>
-    <label id="label-form-test" for="form-test"></label>
-    <fieldset id="fieldset-form-test" form="x-form">
-      <legend id="legend-form-test"></legend>
-    </fieldset>
-    <output id="output-form-test" form="x-form"></output>
-    <select id="select-form-test" form="x-form">
-      <option id="option-form-test"></option>
-    </select>
-    <textarea id="textarea-form-test" form="x-form"></textarea>
-    <input id="input-datalist-test" list="x-datalist" />
-    <div id="anchor-test" anchor="x-div"></div>
-    <button id="button-commandfor-test" commandfor="x-div"></button>
-    <input id="input-commandfor-test" commandfor="x-div">
-    <button id="button-popovertarget-test" popovertarget="x-div"></button>
-    <input id="input-popovertarget-test" popovertarget="x-div" />
-    <button id="button-interestarget-test" interesttarget="x-div"></button>
-    <input id="input-interestarget-test" interesttarget="x-div">
-  </div>
+  <div id="host-container"></div>
   <script>
-    const divHost = document.querySelector("#x-div");
+    const Behavior = Object.freeze({
+      ReflectsHost: 'ReflectsHost',
+      ReflectsHostInArray: 'ReflectsHostInArray',
+      IsNull: 'IsNull',
+      ReflectsHostID: 'ReflectsHostID',
+      ReflectsHostIDInDOMTokenList: 'ReflectsHostIDInDOMTokenList',
+    });
 
-    test(function () {
-      const testElement = document.querySelector("#aria-activedescendant-test");
-      assert_equals(testElement.ariaActiveDescendantElement, divHost);
-    }, "ariaActiveDescendantElement reflects reference target host element");
+    function test_property_reflection(referencing_element_type, referenced_element_type, attribute, reflected_property, expected_behavior) {
+      // There's nothing to test if the referencing element type doesn't have the reflecting
+      // property.
+      if (!(reflected_property in document.createElement(referencing_element_type))) {
+        return;
+      }
 
-    test(function () {
-      const testElement = document.querySelector("#aria-controls-test");
-      assert_array_equals(testElement.ariaControlsElements, [divHost]);
-    }, "ariaControlsElements reflects reference target host element");
+      test(function () {
+        const referencing_element = document.createElement(referencing_element_type);
+        document.body.appendChild(referencing_element);
+        referencing_element.setAttribute(attribute, "host-id");
+        const host_container = document.querySelector("#host-container");
+        host_container.setHTMLUnsafe(`
+        <div id="host-id">
+          <template shadowrootmode="open" shadowrootreferencetarget="target">
+            <${referenced_element_type} id="target"></${referenced_element_type}>
+          </template>
+        </div>`);
+        const host = host_container.firstElementChild;
+        if (expected_behavior === Behavior.ReflectsHost) {
+          assert_equals(referencing_element[reflected_property], host);
+        } else if (expected_behavior === Behavior.ReflectsHostInArray) {
+          assert_array_equals(referencing_element[reflected_property], [host]);
+        } else if (expected_behavior === Behavior.IsNull) {
+          assert_equals(referencing_element[reflected_property], null);
+        } else if (expected_behavior === Behavior.ReflectsHostID) {
+          assert_equals(referencing_element[reflected_property], "host-id");
+        } else if (expected_behavior === Behavior.ReflectsHostIDInDOMTokenList) {
+          assert_true(referencing_element[reflected_property] instanceof DOMTokenList);
+          assert_array_equals(Array.from(referencing_element[reflected_property]), ["host-id"]);
+        }
+        referencing_element.remove();
+        host_container.setHTMLUnsafe("");
+      }, `${referencing_element_type}.${reflected_property} has reflection behavior ${expected_behavior} when pointing to ${referenced_element_type} with reference target`);
+    }
 
-    test(function () {
-      const testElement = document.querySelector("#aria-describedby-test");
-      assert_array_equals(testElement.ariaDescribedByElements, [divHost]);
-    }, "ariaDescribedByElements reflects reference target host element");
+    // We want to test types of elements that are associated with properties that can reflect other
+    // elements and can therefore interact with reference target in interesting ways.
+    // The HTML5_LABELABLE_ELEMENTS are defined in https://html.spec.whatwg.org/#category-label,
+    // while non_labelable_element_types is a manually curated list of other elements with
+    // reflecting properties (plus div as representative of more "normal" elements).
+    // We'll test all permutations of these element types being both the referencing element
+    // pointing into the reference target shadow host, and being the referenced element inside
+    // the shadow.
+    const non_labelable_element_types = ["div", "object", "label", "fieldset", "legend", "option", "datalist", "form"];
+    const element_types = HTML5_LABELABLE_ELEMENTS.concat(non_labelable_element_types);
 
-    test(function () {
-      const testElement = document.querySelector("#aria-details-test");
-      assert_array_equals(testElement.ariaDetailsElements, [divHost]);
-    }, "ariaDetailsElements reflects reference target host element");
+    for(let referencing_element_type of element_types) {
+      for(let referenced_element_type of element_types) {
+        test_property_reflection(referencing_element_type, referenced_element_type, "aria-controls", "ariaControlsElements", Behavior.ReflectsHostInArray);
+        test_property_reflection(referencing_element_type, referenced_element_type, "aria-activedescendant", "ariaActiveDescendantElement", Behavior.ReflectsHost);
+        test_property_reflection(referencing_element_type, referenced_element_type, "aria-describedby", "ariaDescribedByElements", Behavior.ReflectsHostInArray);
+        test_property_reflection(referencing_element_type, referenced_element_type, "aria-details", "ariaDetailsElements", Behavior.ReflectsHostInArray);
+        test_property_reflection(referencing_element_type, referenced_element_type, "aria-errormessage", "ariaErrorMessageElements", Behavior.ReflectsHostInArray);
+        test_property_reflection(referencing_element_type, referenced_element_type, "aria-flowto", "ariaFlowToElements", Behavior.ReflectsHostInArray);
+        test_property_reflection(referencing_element_type, referenced_element_type, "aria-labeledby", "ariaLabelledByElements", Behavior.ReflectsHostInArray);
+        test_property_reflection(referencing_element_type, referenced_element_type, "aria-owns", "ariaOwnsElements", Behavior.ReflectsHostInArray);
 
-    test(function () {
-      const testElement = document.querySelector("#aria-errormessage-test");
-      assert_array_equals(testElement.ariaErrorMessageElements, [divHost]);
-    }, "ariaErrorMessageElements reflects reference target host element");
+        test_property_reflection(referencing_element_type, referenced_element_type, "anchor", "anchorElement", Behavior.ReflectsHost);
+        test_property_reflection(referencing_element_type, referenced_element_type, "commandfor", "commandForElement", Behavior.ReflectsHost);
+        test_property_reflection(referencing_element_type, referenced_element_type, "popovertarget", "popoverTargetElement", Behavior.ReflectsHost);
+        test_property_reflection(referencing_element_type, referenced_element_type, "interesttarget", "interestTargetElement", Behavior.ReflectsHost);
 
-    test(function () {
-      const testElement = document.querySelector("#aria-flowto-test");
-      assert_array_equals(testElement.ariaFlowToElements, [divHost]);
-    }, "ariaFlowToElements reflects reference target host element");
+        const expected_htmlFor_property_behavior = (referencing_element_type == "output") ? Behavior.ReflectsHostIDInDOMTokenList : Behavior.ReflectsHostID;
+        test_property_reflection(referencing_element_type, referenced_element_type, "for", "htmlFor", expected_htmlFor_property_behavior);
 
-    test(function () {
-      const testElement = document.querySelector("#aria-labelledby-test");
-      assert_array_equals(testElement.ariaLabelledByElements, [divHost]);
-    }, "ariaLabelledByElements reflects reference target host element");
+        // It's unclear whether `form` and `list` should return null or should return the
+        // shadow host. See https://github.com/WICG/webcomponents/issues/1072.
+        test_property_reflection(referencing_element_type, referenced_element_type, "form", "form", Behavior.IsNull);
+        test_property_reflection(referencing_element_type, referenced_element_type, "list", "list", Behavior.IsNull);
 
-    test(function () {
-      const testElement = document.querySelector("#aria-owns-test");
-      assert_array_equals(testElement.ariaOwnsElements, [divHost]);
-    }, "ariaOwnsElements reflects reference target host element");
-
-    test(function () {
-      const testButton = document.querySelector("#button-form-test");
-      assert_equals(testButton.form, null);
-    }, "HTMLButtonElement.form reflects null when used with a reference target element");
-
-    test(function () {
-      const testInput = document.querySelector("#input-form-test");
-      assert_equals(testInput.form, null);
-    }, "HTMLInputElement.form reflects null when used with a reference target element");
-
-    test(function () {
-      const testObject = document.querySelector("#object-form-test");
-      assert_equals(testObject.form, null);
-    }, "HTMLObjectElement.form reflects null when used with a reference target element");
-
-    test(function () {
-      const testLabel = document.querySelector("#label-form-test");
-      assert_equals(testLabel.form, null);
-    }, "HTMLLabelElement.form reflects null when used with a reference target element");
-
-    test(function () {
-      const testFieldSet = document.querySelector("#fieldset-form-test");
-      assert_equals(testFieldSet.form, null);
-    }, "HTMLFieldSetElement.form reflects null when used with a reference target element");
-
-    test(function () {
-      const testLegend = document.querySelector("#legend-form-test");
-      assert_equals(testLegend.form, null);
-    }, "HTMLLegendElement.form reflects null when used with a reference target element");
-
-    test(function () {
-      const testOutput = document.querySelector("#output-form-test");
-      assert_equals(testOutput.form, null);
-    }, "HTMLOutputElement.form reflects null when used with a reference target element");
-
-    test(function () {
-      const testSelect = document.querySelector("#select-form-test");
-      assert_equals(testSelect.form, null);
-    }, "HTMLSelectElement.form reflects null when used with a reference target element");
-
-    test(function () {
-      const testOption = document.querySelector("#option-form-test");
-      assert_equals(testOption.form, null);
-    }, "HTMLOptionElement.form reflects null when used with a reference target element");
-
-    test(function () {
-      const testTextArea = document.querySelector("#textarea-form-test");
-      assert_equals(testTextArea.form, null);
-    }, "HTMLTextAreaElement.form reflects null when used with a reference target element");
-
-    test(function () {
-      const testElement = document.querySelector("#label-for-test");
-      assert_equals(testElement.htmlFor, "x-input");
-    }, "HTMLLabelElement.htmlFor reflects reference target host element");
-
-    test(function () {
-      const testElement = document.querySelector("#label-for-test");
-      const inputHost = document.querySelector("#x-input");
-      assert_equals(testElement.control, inputHost);
-    }, "HTMLLabelElement.control reflects reference target host element");
-
-    test(function () {
-      const testElement = document.querySelector("#input-datalist-test");
-      assert_equals(testElement.list, null);
-    }, "HTMLInputElement.list reflects null when used with a reference target element");
-
-    test(function () {
-      const testElement = document.querySelector("#anchor-test");
-      assert_equals(testElement.anchorElement, divHost);
-    }, "HTMLElement.anchorElement reflects reference target host element");
-
-    test(function () {
-      const testElement = document.querySelector("#button-commandfor-test");
-      assert_equals(testElement.commandForElement, divHost);
-    }, "HTMLButtonElement.commandForElement reflects reference target host element");
-
-    test(function () {
-      const testElement = document.querySelector("#input-commandfor-test");
-      assert_equals(testElement.commandForElement, divHost);
-    }, "HTMLInputElement.commandForElement reflects reference target host element");
-
-    test(function () {
-      const testElement = document.querySelector("#button-popovertarget-test");
-      assert_equals(testElement.popoverTargetElement, divHost);
-    }, "HTMLButtonElement.popoverTargetElement reflects reference target host element");
-
-    test(function () {
-      const testElement = document.querySelector("#input-popovertarget-test");
-      assert_equals(testElement.popoverTargetElement, divHost);
-    }, "HTMLInputElement.popoverTargetElement reflects reference target host element");
-
-    test(function () {
-      const testElement = document.querySelector("#button-interestarget-test");
-      assert_equals(testElement.interestTargetElement, divHost);
-    }, "HTMLButtonElement.interestTargetElement reflects reference target host element");
-
-    test(function () {
-      const testElement = document.querySelector("#input-interestarget-test");
-      assert_equals(testElement.interestTargetElement, divHost);
-    }, "HTMLInputElement.interestTargetElement reflects reference target host element");
+        // It's unclear whether this should always reflect the host even if the underlying
+        // referenced element isn't labelable. See
+        // https://github.com/WICG/webcomponents/issues/1072#issuecomment-2305875929
+        const expected_control_property_behavior = HTML5_LABELABLE_ELEMENTS.includes(referenced_element_type) ? Behavior.ReflectsHost : Behavior.IsNull;
+        test_property_reflection(referencing_element_type, referenced_element_type, "for", "control", expected_control_property_behavior);
+      }
+    }
   </script>
 </body>
 

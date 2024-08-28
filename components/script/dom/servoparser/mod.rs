@@ -313,7 +313,7 @@ impl ServoParser {
         script.execute(result);
         self.script_nesting_level.set(script_nesting_level);
 
-        if !self.suspended.get() {
+        if !self.suspended.get() && !self.aborted.get() {
             self.parse_sync();
         }
     }

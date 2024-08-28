@@ -12,11 +12,6 @@ validateInputFromAnotherBuilder('transpose');
 const label = 'transpose-2';
 const tests = [
   {
-    name: '[transpose] Test building transpose with default options.',
-    input: {dataType: 'float32', dimensions: [1, 2, 3, 4]},
-    output: {dataType: 'float32', dimensions: [4, 3, 2, 1]}
-  },
-  {
     name: '[transpose] Test building transpose with permutation=[0, 2, 3, 1].',
     input: {dataType: 'float32', dimensions: [1, 2, 3, 4]},
     options: {permutation: [0, 2, 3, 1]},
@@ -78,3 +73,22 @@ tests.forEach(
         }
       }
     }, test.name));
+
+promise_test(async t => {
+  for (let dataType of allWebNNOperandDataTypes) {
+    if (!context.opSupportLimits().input.dataTypes.includes(dataType)) {
+      continue;
+    }
+    const builder = new MLGraphBuilder(context);
+    const dimensions = [1, 2, 3, 4];
+    const input = builder.input(`input`, {dataType, dimensions});
+    if (context.opSupportLimits().transpose.input.dataTypes.includes(
+            dataType)) {
+      const output = builder.transpose(input);
+      assert_equals(output.dataType(), dataType);
+      assert_array_equals(output.shape(), [4, 3, 2, 1]);
+    } else {
+      assert_throws_js(TypeError, () => builder.transpose(input));
+    }
+  }
+}, `[transpose] Test transpose with all of the data types.`);

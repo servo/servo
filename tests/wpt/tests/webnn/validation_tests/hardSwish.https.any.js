@@ -10,4 +10,4 @@
 validateInputFromAnotherBuilder('hardSwish');
 
 const label = 'hard_swish';
-validateUnaryOperation('hardSwish', floatingPointTypes, label);
+validateSingleInputOperation('hardSwish', label);

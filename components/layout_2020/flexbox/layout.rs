@@ -8,6 +8,7 @@ use std::cmp::Ordering;
 use app_units::Au;
 use atomic_refcell::AtomicRefMut;
 use itertools::izip;
+use style::computed_values::position::T as Position;
 use style::logical_geometry::WritingMode;
 use style::properties::longhands::align_items::computed_value::T as AlignItems;
 use style::properties::longhands::align_self::computed_value::T as AlignSelf;
@@ -29,7 +30,9 @@ use crate::context::LayoutContext;
 use crate::formatting_contexts::{Baselines, IndependentFormattingContext, IndependentLayout};
 use crate::fragment_tree::{BoxFragment, CollapsedBlockMargins, Fragment, FragmentFlags};
 use crate::geom::{AuOrAuto, LogicalRect, LogicalSides, LogicalVec2};
-use crate::positioned::{AbsolutelyPositionedBox, PositioningContext, PositioningContextLength};
+use crate::positioned::{
+    relative_adjustement, AbsolutelyPositionedBox, PositioningContext, PositioningContextLength,
+};
 use crate::sizing::{ContentSizes, IntrinsicSizingMode};
 use crate::style_ext::{Clamp, ComputedValuesExt, PaddingBorderMargin};
 use crate::ContainingBlock;
@@ -100,6 +103,109 @@ impl FlexItemLayoutResult {
     fn get_or_synthesize_baseline_with_block_size(&self, block_size: Au, item: &FlexItem) -> Au {
         self.baseline_relative_to_margin_box
             .unwrap_or_else(|| item.synthesized_baseline_relative_to_margin_box(block_size))
+    }
+
+    fn collect_fragment(
+        mut self,
+        initial_flex_layout: &InitialFlexLineLayout,
+        item: &FlexItem,
+        item_used_size: FlexRelativeVec2<Au>,
+        item_margin: FlexRelativeSides<Au>,
+        item_main_interval: Au,
+        final_line_cross_size: Au,
+        shared_alignment_baseline: &Option<Au>,
+        flex_context: &mut FlexContext,
+        all_baselines: &mut Baselines,
+        main_position_cursor: &mut Au,
+    ) -> (BoxFragment, PositioningContext) {
+        // https://drafts.csswg.org/css-flexbox/#algo-main-align
+        // “Align the items along the main-axis”
+        *main_position_cursor +=
+            item_margin.main_start + item.border.main_start + item.padding.main_start;
+        let item_content_main_start_position = *main_position_cursor;
+
+        *main_position_cursor += item_used_size.main +
+            item.padding.main_end +
+            item.border.main_end +
+            item_margin.main_end +
+            item_main_interval;
+
+        // https://drafts.csswg.org/css-flexbox/#algo-cross-align
+        let item_content_cross_start_position = item.align_along_cross_axis(
+            &item_margin,
+            &item_used_size.cross,
+            final_line_cross_size,
+            self.baseline_relative_to_margin_box.unwrap_or_default(),
+            shared_alignment_baseline.unwrap_or_default(),
+            flex_context.config.flex_wrap_reverse,
+        );
+
+        let start_corner = FlexRelativeVec2 {
+            main: item_content_main_start_position,
+            cross: item_content_cross_start_position,
+        };
+
+        // Need to collect both baselines from baseline participation and other baselines.
+        let final_line_size = FlexRelativeVec2 {
+            main: initial_flex_layout.line_size.main,
+            cross: final_line_cross_size,
+        };
+        let content_rect = flex_context.rect_to_flow_relative(
+            final_line_size,
+            FlexRelativeRect {
+                start_corner,
+                size: item_used_size,
+            },
+        );
+        let margin = flex_context.sides_to_flow_relative(item_margin);
+        let collapsed_margin = CollapsedBlockMargins::from_margin(&margin);
+
+        if let Some(item_baseline) = self.baseline_relative_to_margin_box.as_ref() {
+            let item_baseline = *item_baseline + item_content_cross_start_position -
+                item.border.cross_start -
+                item.padding.cross_start -
+                item_margin.cross_start;
+            all_baselines.first.get_or_insert(item_baseline);
+            all_baselines.last = Some(item_baseline);
+        }
+
+        let mut fragment_info = item.box_.base_fragment_info();
+        fragment_info.flags.insert(FragmentFlags::IS_FLEX_ITEM);
+        let flags = fragment_info.flags;
+
+        let containing_block = flex_context.containing_block;
+        let container_writing_mode = containing_block.effective_writing_mode();
+        let style = item.box_.style();
+        let mut fragment = BoxFragment::new(
+            fragment_info,
+            style.clone(),
+            self.fragments,
+            content_rect.to_physical(container_writing_mode),
+            flex_context
+                .sides_to_flow_relative(item.padding)
+                .to_physical(container_writing_mode),
+            flex_context
+                .sides_to_flow_relative(item.border)
+                .to_physical(container_writing_mode),
+            margin.to_physical(container_writing_mode),
+            None, /* clearance */
+            collapsed_margin,
+        );
+
+        // If this flex item establishes a containing block for absolutely-positioned
+        // descendants, then lay out any relevant absolutely-positioned children. This
+        // will remove those children from `self.positioning_context`.
+        if style.establishes_containing_block_for_absolute_descendants(flags) {
+            self.positioning_context
+                .layout_collected_children(flex_context.layout_context, &mut fragment);
+        }
+
+        if style.clone_position() == Position::Relative {
+            fragment.content_rect.origin += relative_adjustement(style, containing_block)
+                .to_physical_size(containing_block.effective_writing_mode())
+        }
+
+        (fragment, self.positioning_context)
     }
 }
 
@@ -1008,7 +1114,7 @@ impl InitialFlexLineLayout<'_> {
         let item_layout_results = items
             .iter_mut()
             .zip(&item_used_main_sizes)
-            .map(|(item, &used_main_size)| item.layout(used_main_size, &flex_context, None))
+            .map(|(item, &used_main_size)| item.layout(used_main_size, flex_context, None))
             .collect::<Vec<_>>();
 
         // https://drafts.csswg.org/css-flexbox/#algo-cross-line
@@ -1305,7 +1411,7 @@ impl InitialFlexLineLayout<'_> {
                 //  treating this used size as its definite cross size
                 //  so that percentage-sized children can be resolved.”
                 *item_layout_result =
-                    item.layout(*used_main_size, &flex_context, Some(used_cross_size));
+                    item.layout(*used_main_size, flex_context, Some(used_cross_size));
             }
 
             // TODO: This also needs to check whether we have a compatible writing mode.
@@ -1408,91 +1514,33 @@ impl InitialFlexLineLayout<'_> {
 
         let mut all_baselines = Baselines::default();
         let mut main_position_cursor = main_start_position;
+
+        let items = std::mem::take(&mut self.items);
+        let item_layout_results = std::mem::take(&mut self.item_layout_results);
         let item_fragments = izip!(
-            self.items.iter(),
+            items,
             item_margins,
             self.item_used_main_sizes.iter(),
             item_used_cross_sizes.iter(),
-            self.item_layout_results.into_iter()
+            item_layout_results.into_iter(),
         )
         .map(
             |(item, item_margin, item_used_main_size, item_used_cross_size, item_layout_result)| {
-                // https://drafts.csswg.org/css-flexbox/#algo-main-align
-                // “Align the items along the main-axis”
-                main_position_cursor +=
-                    item_margin.main_start + item.border.main_start + item.padding.main_start;
-                let item_content_main_start_position = main_position_cursor;
-                main_position_cursor += *item_used_main_size +
-                    item.padding.main_end +
-                    item.border.main_end +
-                    item_margin.main_end +
-                    item_main_interval;
-
-                // https://drafts.csswg.org/css-flexbox/#algo-cross-align
-                let item_content_cross_start_position = item.align_along_cross_axis(
-                    &item_margin,
-                    item_used_cross_size,
-                    final_line_cross_size,
-                    item_layout_result
-                        .baseline_relative_to_margin_box
-                        .unwrap_or_default(),
-                    shared_alignment_baseline.unwrap_or_default(),
-                    flex_context.config.flex_wrap_reverse,
-                );
-
-                let start_corner = FlexRelativeVec2 {
-                    main: item_content_main_start_position,
-                    cross: item_content_cross_start_position,
-                };
-                let size = FlexRelativeVec2 {
+                let item_used_size = FlexRelativeVec2 {
                     main: *item_used_main_size,
                     cross: *item_used_cross_size,
                 };
-
-                // Need to collect both baselines from baseline participation and other baselines.
-                let final_line_size = FlexRelativeVec2 {
-                    main: self.line_size.main,
-                    cross: final_line_cross_size,
-                };
-                let content_rect = flex_context.rect_to_flow_relative(
-                    final_line_size,
-                    FlexRelativeRect { start_corner, size },
-                );
-                let margin = flex_context.sides_to_flow_relative(item_margin);
-                let collapsed_margin = CollapsedBlockMargins::from_margin(&margin);
-
-                if let Some(item_baseline) =
-                    item_layout_result.baseline_relative_to_margin_box.as_ref()
-                {
-                    let item_baseline = *item_baseline + item_content_cross_start_position -
-                        item.border.cross_start -
-                        item.padding.cross_start -
-                        item_margin.cross_start;
-                    all_baselines.first.get_or_insert(item_baseline);
-                    all_baselines.last = Some(item_baseline);
-                }
-
-                let mut fragment_info = item.box_.base_fragment_info();
-                fragment_info.flags.insert(FragmentFlags::IS_FLEX_ITEM);
-
-                let container_writing_mode = flex_context.containing_block.effective_writing_mode();
-                (
-                    BoxFragment::new(
-                        fragment_info,
-                        item.box_.style().clone(),
-                        item_layout_result.fragments,
-                        content_rect.to_physical(container_writing_mode),
-                        flex_context
-                            .sides_to_flow_relative(item.padding)
-                            .to_physical(container_writing_mode),
-                        flex_context
-                            .sides_to_flow_relative(item.border)
-                            .to_physical(container_writing_mode),
-                        margin.to_physical(container_writing_mode),
-                        None, /* clearance */
-                        collapsed_margin,
-                    ),
-                    item_layout_result.positioning_context,
+                item_layout_result.collect_fragment(
+                    &self,
+                    item,
+                    item_used_size,
+                    item_margin,
+                    item_main_interval,
+                    final_line_cross_size,
+                    &shared_alignment_baseline,
+                    flex_context,
+                    &mut all_baselines,
+                    &mut main_position_cursor,
                 )
             },
         )
@@ -1519,11 +1567,14 @@ impl FlexItem<'_> {
         used_cross_size_override: Option<Au>,
     ) -> FlexItemLayoutResult {
         let containing_block = &flex_context.containing_block;
-        let mut positioning_context = PositioningContext::new_for_subtree(
-            flex_context
-                .positioning_context
-                .collects_for_nearest_positioned_ancestor(),
-        );
+        let mut positioning_context = PositioningContext::new_for_style(self.box_.style())
+            .unwrap_or_else(|| {
+                PositioningContext::new_for_subtree(
+                    flex_context
+                        .positioning_context
+                        .collects_for_nearest_positioned_ancestor(),
+                )
+            });
 
         // https://drafts.csswg.org/css-writing-modes/#orthogonal-flows
         let container_writing_mode = containing_block.effective_writing_mode();
@@ -1889,20 +1940,16 @@ impl FlexItemBox {
                 .outer_inline_content_sizes(layout_context, container_writing_mode, || {
                     automatic_min_size
                 }),
-            FlexAxis::Column => {
-                let size = self.layout_for_block_content_size(
+            FlexAxis::Column => self
+                .layout_for_block_content_size(
                     flex_context_getter(),
                     &pbm,
                     content_box_size,
                     content_min_size_no_auto,
                     content_max_size,
                     IntrinsicSizingMode::Contribution,
-                );
-                ContentSizes {
-                    min_content: size,
-                    max_content: size,
-                }
-            },
+                )
+                .into(),
         };
 
         let content_box_size = flex_axis.vec2_to_flex_relative(content_box_size);

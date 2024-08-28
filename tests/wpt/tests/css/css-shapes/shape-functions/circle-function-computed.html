@@ -19,8 +19,8 @@ test_computed_value("shape-outside", "circle(at 10% 20%)");
 test_computed_value("shape-outside", "circle(4% at top right)", "circle(4% at 100% 0%)");
 test_computed_value("shape-outside", "circle(calc(100% - 20px) at calc(100% - 20px) calc(100% / 4))", "circle(calc(100% - 20px) at calc(100% - 20px) 25%)");
 
-test_computed_value("shape-outside", "circle(closest-corner at center)", "circle(closest-corner at 50% 50%");
-test_computed_value("shape-outside", "circle(closest-corner at 20px 50px)", "circle(closest-corner at 20px 50px");
+test_computed_value("shape-outside", "circle(closest-corner at center)", "circle(closest-corner at 50% 50%)");
+test_computed_value("shape-outside", "circle(closest-corner at 20px 50px)", "circle(closest-corner at 20px 50px)");
 test_computed_value("shape-outside", "circle(closest-side at center)", "circle(at 50% 50%)");
 test_computed_value("shape-outside", "circle(closest-side at 20px 30%)", "circle(at 20px 30%)");
 test_computed_value("shape-outside", "circle(farthest-corner at center top)", "circle(farthest-corner at 50% 0%)");

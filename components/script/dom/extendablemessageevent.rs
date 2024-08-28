@@ -24,7 +24,7 @@ use crate::dom::extendableevent::ExtendableEvent;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageport::MessagePort;
 use crate::dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{CanGc, JSContext};
 
 #[dom_struct]
 #[allow(non_snake_case)]
@@ -85,6 +85,7 @@ impl ExtendableMessageEvent {
             origin,
             lastEventId,
             ports,
+            CanGc::note(),
         )
     }
 
@@ -99,13 +100,14 @@ impl ExtendableMessageEvent {
         origin: DOMString,
         lastEventId: DOMString,
         ports: Vec<DomRoot<MessagePort>>,
+        can_gc: CanGc,
     ) -> DomRoot<ExtendableMessageEvent> {
         let ev = Box::new(ExtendableMessageEvent::new_inherited(
             origin,
             lastEventId,
             ports,
         ));
-        let ev = reflect_dom_object_with_proto(ev, global, proto);
+        let ev = reflect_dom_object_with_proto(ev, global, proto, can_gc);
         {
             let event = ev.upcast::<Event>();
             event.init_event(type_, bubbles, cancelable);
@@ -118,6 +120,7 @@ impl ExtendableMessageEvent {
     pub fn Constructor(
         worker: &ServiceWorkerGlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         type_: DOMString,
         init: RootedTraceableBox<ExtendableMessageEventBinding::ExtendableMessageEventInit>,
     ) -> Fallible<DomRoot<ExtendableMessageEvent>> {
@@ -132,6 +135,7 @@ impl ExtendableMessageEvent {
             init.origin.clone(),
             init.lastEventId.clone(),
             vec![],
+            can_gc,
         );
         Ok(ev)
     }

@@ -16,6 +16,7 @@ use crate::dom::xrcylinderlayer::XRCylinderLayer;
 use crate::dom::xrequirectlayer::XREquirectLayer;
 use crate::dom::xrquadlayer::XRQuadLayer;
 use crate::dom::xrsession::XRSession;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct XRMediaBinding {
@@ -35,11 +36,13 @@ impl XRMediaBinding {
         global: &Window,
         proto: Option<HandleObject>,
         session: &XRSession,
+        can_gc: CanGc,
     ) -> DomRoot<XRMediaBinding> {
         reflect_dom_object_with_proto(
             Box::new(XRMediaBinding::new_inherited(session)),
             global,
             proto,
+            can_gc,
         )
     }
 
@@ -47,6 +50,7 @@ impl XRMediaBinding {
     pub fn Constructor(
         global: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         session: &XRSession,
     ) -> Fallible<DomRoot<XRMediaBinding>> {
         // Step 1.
@@ -60,7 +64,7 @@ impl XRMediaBinding {
         }
 
         // Steps 3-5.
-        Ok(XRMediaBinding::new(global, proto, session))
+        Ok(XRMediaBinding::new(global, proto, session, can_gc))
     }
 }
 

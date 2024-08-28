@@ -31,7 +31,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::headers::{is_obs_text, is_vchar, Guard, Headers};
 use crate::dom::promise::Promise;
 use crate::dom::readablestream::{ExternalUnderlyingSource, ReadableStream};
-use crate::script_runtime::{JSContext as SafeJSContext, StreamConsumer};
+use crate::script_runtime::{CanGc, JSContext as SafeJSContext, StreamConsumer};
 
 #[dom_struct]
 pub struct Response {
@@ -77,17 +77,27 @@ impl Response {
 
     // https://fetch.spec.whatwg.org/#dom-response
     pub fn new(global: &GlobalScope) -> DomRoot<Response> {
-        Self::new_with_proto(global, None)
+        Self::new_with_proto(global, None, CanGc::note())
     }
 
-    fn new_with_proto(global: &GlobalScope, proto: Option<HandleObject>) -> DomRoot<Response> {
-        reflect_dom_object_with_proto(Box::new(Response::new_inherited(global)), global, proto)
+    fn new_with_proto(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        can_gc: CanGc,
+    ) -> DomRoot<Response> {
+        reflect_dom_object_with_proto(
+            Box::new(Response::new_inherited(global)),
+            global,
+            proto,
+            can_gc,
+        )
     }
 
     // https://fetch.spec.whatwg.org/#initialize-a-response
     pub fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         body: Option<BodyInit>,
         init: &ResponseBinding::ResponseInit,
     ) -> Fallible<DomRoot<Response>> {
@@ -107,7 +117,7 @@ impl Response {
             ));
         }
 
-        let r = Response::new_with_proto(global, proto);
+        let r = Response::new_with_proto(global, proto, can_gc);
 
         // Step 3
         *r.status.borrow_mut() = Some(StatusCode::from_u16(init.status).unwrap());

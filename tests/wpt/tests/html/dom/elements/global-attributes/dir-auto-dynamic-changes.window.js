@@ -371,31 +371,22 @@ test(() => {
     <slot dir=auto></slot>
   `);
   let slot = shadow.querySelector("slot");
-  assert_equals(html_direction(slot), "rtl");
-  let inp = tree.querySelector("input");
-  inp.value = "abc";
   assert_equals(html_direction(slot), "ltr");
   tree.remove();
-}, 'dir=auto slot is updated by text in value of input element children');
+}, 'dir=auto slot is not affected by text in value of input element children');
 
 test(() => {
-  let [tree, shadow] = setup_tree(`
+  let tree = setup_tree(`
     <div>
-      <div id=root>
-        <input value="اختبر">
-        abc
-      </div>
+      <input dir="auto" value="اختبر">
     </div>
-  `,`
-    <slot dir=auto></slot>
   `);
-  let slot = shadow.querySelector("slot");
-  assert_equals(html_direction(slot), "rtl");
   let inp = tree.querySelector("input");
+  assert_equals(html_direction(inp), "rtl");
   inp.type = "month";
-  assert_equals(html_direction(slot), "ltr");
+  assert_equals(html_direction(inp), "ltr");
   tree.remove();
-}, 'dir=auto slot is updated if input stops being auto-directionality form-associated');
+}, 'input direction changes if it stops being auto-directionality form-associated');
 
 test(() => {
   let [tree, shadow] = setup_tree(`

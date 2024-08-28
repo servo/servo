@@ -52,6 +52,12 @@ pub struct Promise {
     permanent_js_root: Heap<JSVal>,
 }
 
+impl PartialEq for Promise {
+    fn eq(&self, other: &Self) -> bool {
+        self.reflector == other.reflector
+    }
+}
+
 /// Private helper to enable adding new methods to `Rc<Promise>`.
 trait PromiseHelper {
     fn initialize(&self, cx: SafeJSContext);
@@ -229,6 +235,18 @@ impl Promise {
     pub fn is_fulfilled(&self) -> bool {
         let state = unsafe { GetPromiseState(self.promise_obj()) };
         matches!(state, PromiseState::Rejected | PromiseState::Fulfilled)
+    }
+
+    #[allow(unsafe_code)]
+    pub fn is_rejected(&self) -> bool {
+        let state = unsafe { GetPromiseState(self.promise_obj()) };
+        matches!(state, PromiseState::Rejected)
+    }
+
+    #[allow(unsafe_code)]
+    pub fn is_pending(&self) -> bool {
+        let state = unsafe { GetPromiseState(self.promise_obj()) };
+        matches!(state, PromiseState::Pending)
     }
 
     #[allow(unsafe_code)]

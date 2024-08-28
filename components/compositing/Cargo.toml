@@ -1,6 +1,5 @@
 [package]
 name = "compositing"
-build = "build.rs"
 version.workspace = true
 authors.workspace = true
 license.workspace = true
@@ -49,6 +48,3 @@ webxr = { git = "https://github.com/servo/webxr" }
 
 [dev-dependencies]
 surfman = { workspace = true }
-
-[build-dependencies]
-toml = "0.5"

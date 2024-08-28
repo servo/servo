@@ -53,6 +53,7 @@ pub trait Castable: IDLInterface + DomObject + Sized {
     }
 }
 
+#[allow(missing_docs)]
 pub trait HasParent {
     type Parent;
     fn as_parent(&self) -> &Self::Parent;

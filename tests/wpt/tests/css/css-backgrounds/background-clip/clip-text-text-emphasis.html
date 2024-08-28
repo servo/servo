@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<title>background-clip:text with text emphasis</title>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-4/#valdef-background-clip-text">
+<link rel="match" href="clip-text-text-emphasis-ref.html">
+<meta name="fuzzy" content="maxDifference=0-45; totalPixels=0-5100">
+<style>
+.clip {
+  font-size: 80px;
+  text-emphasis: filled transparent;
+  color: transparent;
+  background-color: green;
+  background-clip: text;
+}
+</style>
+<div class="clip">Text with text emphasis</div>

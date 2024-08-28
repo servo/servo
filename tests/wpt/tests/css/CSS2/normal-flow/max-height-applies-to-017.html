@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>CSS Test: Max-Height applied to element with 'display' set to 'inline-block'</title>
+<link rel="author" title="Oriol Brufau" href="obrufau@igalia.com">
+<link rel="help" href="http://www.w3.org/TR/CSS21/visudet.html#min-max-heights">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="The percentage in #child should resolve against the 100px maximum of #parent, not against 200px.">
+
+<style>
+#parent {
+  display: inline-block;
+  height: 200px;
+  max-height: 100px;
+  background: red;
+}
+#child {
+  display: inline-block;
+  width: 100px;
+  height: 100%;
+  background: green;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="parent">
+  <span id="child"></span>
+</div>

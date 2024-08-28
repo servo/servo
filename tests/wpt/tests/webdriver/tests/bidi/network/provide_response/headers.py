@@ -89,7 +89,7 @@ async def test_set_cookie_header_before_request_sent(
     on_load = wait_for_event(LOAD_EVENT)
 
     response_header = Header(
-        name="Set-Cookie", value=NetworkStringValue("foo=bar;Path=/")
+        name="Set-Cookie", value=NetworkStringValue("aaa=bbb;Path=/")
     )
 
     await bidi_session.network.provide_response(
@@ -109,14 +109,16 @@ async def test_set_cookie_header_before_request_sent(
 
     expected_cookie = {
         "httpOnly": False,
-        "name": "foo",
+        "name": "aaa",
         "path": "/",
         "sameSite": "none",
         "secure": False,
         "size": 6,
-        "value": {"type": "string", "value": "bar"},
+        "value": {"type": "string", "value": "bbb"},
     }
     recursive_compare(expected_cookie, cookie)
+
+    await bidi_session.storage.delete_cookies()
 
 
 # Check that cookies from Set-Cookie headers of the headers parameter
@@ -187,3 +189,5 @@ async def test_set_cookie_header_and_cookies_before_request_sent(
         "value": {"type": "string", "value": "biz"},
     }
     recursive_compare(expected_cookie_from_cookies_param, cookie_from_cookies_param)
+
+    await bidi_session.storage.delete_cookies()

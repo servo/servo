@@ -21,7 +21,7 @@ use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{CanGc, JSContext};
 
 #[dom_struct]
 pub struct ImageData {
@@ -48,9 +48,16 @@ impl ImageData {
                 d.resize(len as usize, 0);
                 let data = CreateWith::Slice(&d[..]);
                 Uint8ClampedArray::create(*cx, data, js_object.handle_mut()).unwrap();
-                Self::new_with_jsobject(global, None, width, Some(height), js_object.get())
+                Self::new_with_jsobject(
+                    global,
+                    None,
+                    width,
+                    Some(height),
+                    js_object.get(),
+                    CanGc::note(),
+                )
             } else {
-                Self::new_without_jsobject(global, None, width, height)
+                Self::new_without_jsobject(global, None, width, height, CanGc::note())
             }
         }
     }
@@ -62,6 +69,7 @@ impl ImageData {
         width: u32,
         opt_height: Option<u32>,
         jsobject: *mut JSObject,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<ImageData>> {
         let heap_typed_array = match new_initialized_heap_buffer_source::<ClampedU8>(
             HeapTypedArrayInit::Buffer(BufferSource::Uint8ClampedArray(Heap::boxed(jsobject))),
@@ -101,7 +109,9 @@ impl ImageData {
             data: heap_typed_array,
         });
 
-        Ok(reflect_dom_object_with_proto(imagedata, global, proto))
+        Ok(reflect_dom_object_with_proto(
+            imagedata, global, proto, can_gc,
+        ))
     }
 
     fn new_without_jsobject(
@@ -109,6 +119,7 @@ impl ImageData {
         proto: Option<HandleObject>,
         width: u32,
         height: u32,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<ImageData>> {
         if width == 0 || height == 0 {
             return Err(Error::IndexSize);
@@ -131,17 +142,20 @@ impl ImageData {
             data: heap_typed_array,
         });
 
-        Ok(reflect_dom_object_with_proto(imagedata, global, proto))
+        Ok(reflect_dom_object_with_proto(
+            imagedata, global, proto, can_gc,
+        ))
     }
     /// <https://html.spec.whatwg.org/multipage/#pixel-manipulation:dom-imagedata-3>
     #[allow(non_snake_case)]
     pub fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         width: u32,
         height: u32,
     ) -> Fallible<DomRoot<Self>> {
-        Self::new_without_jsobject(global, proto, width, height)
+        Self::new_without_jsobject(global, proto, width, height, can_gc)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#pixel-manipulation:dom-imagedata-4>
@@ -150,11 +164,12 @@ impl ImageData {
         cx: JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         jsobject: *mut JSObject,
         width: u32,
         opt_height: Option<u32>,
     ) -> Fallible<DomRoot<Self>> {
-        Self::new_with_jsobject(global, proto, width, opt_height, jsobject)
+        Self::new_with_jsobject(global, proto, width, opt_height, jsobject, can_gc)
     }
 
     /// Nothing must change the array on the JS side while the slice is live.

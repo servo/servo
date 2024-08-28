@@ -25,6 +25,7 @@ var removedInterfaces = [
   "Entity",
   "EntityReference",
   "EventException", // DOM Events
+  "MutationEvent",
   "NameList",
   "Notation",
   "TypeInfo",
@@ -219,4 +220,46 @@ EventPrototypeRemoved.forEach(name => {
     assert_equals((new Event("test"))[name], undefined)
   }, "Event.prototype should not have this property: " + name)
 })
+
+// For reference, these events were defined in
+// https://www.w3.org/TR/2003/NOTE-DOM-Level-3-Events-20031107/DOM3-Events.html#events-Events-EventTypes-complete
+const mutationEvents = [
+  'DOMSubtreeModified',
+  'DOMNodeInserted',
+  'DOMNodeRemoved',
+  'DOMNodeRemovedFromDocument',
+  'DOMNodeInsertedIntoDocument',
+  'DOMCharacterDataModified',
+  'DOMAttrModified',
+  'DOMAttributeNameChanged',
+  'DOMElementNameChanged',
+];
+mutationEvents.forEach(evt => {
+  promise_test(async (t) => {
+    const target = document.createElement('div');
+    let fired = false;
+    function listener(event) {
+      fired = true;
+    }
+    target.addEventListener(evt,listener);
+    document.body.addEventListener(evt,listener);
+    target.append('here');
+    t.add_cleanup(() => target.remove());
+    document.body.appendChild(target);
+
+    // Trigger all mutation types except DOMElementNameChanged, which could
+    // only be triggered by a call to the (deprecated, removed)
+    // Document.renameNode() API.
+    target.remove();
+    document.body.appendChild(target);
+    target.setAttribute('test','foo');
+    target.attributes[0].value='bar';
+    target.attributes[0].name='baz';
+    target.firstChild.textContent = "bar";
+    // Mutation events were synchronous, but ensure even async versions
+    // would fail this test.
+    await new Promise(resolve=>t.step_timeout(resolve,0));
+    assert_false(fired,'Event was fired');
+  }, `The ${evt} mutation event must not be fired.`);
+});
 </script>

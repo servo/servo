@@ -205,7 +205,6 @@ class MachCommands(CommandBase):
             print(logfile + " doesn't exist")
             return -1
 
-        self.cross_compile_target = target
         env = self.build_env()
         ndk_stack = path.join(env["ANDROID_NDK"], "ndk-stack")
         self.setup_configuration_for_android_target(target)
@@ -226,8 +225,6 @@ class MachCommands(CommandBase):
     @CommandArgument('--target', action='store', default="armv7-linux-androideabi",
                      help="Build target")
     def ndk_gdb(self, release, target):
-        self.cross_compile_target = target
-        self.setup_configuration_for_android_target(target)
         env = self.build_env()
         ndk_gdb = path.join(env["ANDROID_NDK"], "ndk-gdb")
         adb_path = path.join(env["ANDROID_SDK"], "platform-tools", "adb")

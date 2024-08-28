@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<title>prefers-color-scheme propagation - page supports dark</title>
+<link rel="help" href="https://drafts.csswg.org/css-color-adjust/#color-scheme-effect">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/4772">
+<link rel="match" href="color-scheme-iframe-preferred-page-dark-ref.html">
+<meta name="color-scheme" content="dark">
+<style>
+  iframe {
+    display: block;
+    border: none;
+    width: 100px;
+    height: 100px;
+  }
+</style>
+<iframe style="color-scheme: normal" src="support/prefers-color-scheme-blue-purple.html"></iframe>

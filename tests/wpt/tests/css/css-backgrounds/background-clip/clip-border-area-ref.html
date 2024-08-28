@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+    .test {
+        display: inline-block;
+        margin: 20px;
+        width: 300px;
+        height: 150px;
+        box-sizing: border-box;
+        border: 50px solid blue;
+    }
+
+    .rounded {
+        border-radius: 40%;
+    }
+
+    .missing-border {
+        border-right-style: hidden;
+    }
+
+    .double {
+        border-style: double;
+    }
+
+    .inset {
+        border-style: solid;
+    }
+
+    .complex {
+        border-right-style: double;
+        border-bottom-style: dashed;
+        border-left-style: dotted;
+    }
+</style>
+</head>
+<body>
+
+<div class="test"></div>
+<div class="test rounded"></div>
+<div class="test missing-border"></div>
+<div class="test double"></div>
+<div class="test inset"></div>
+<div class="test complex"></div>
+
+</body>
+</html>

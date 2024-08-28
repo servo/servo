@@ -1,0 +1,28 @@
+<!doctype html>
+<title>Navigating to a text fragment directive in a new tab</title>
+<meta charset=utf-8>
+<link rel="help" href="https://wicg.github.io/ScrollToTextFragment/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/utils.js"></script>
+<script src="stash.js"></script>
+<body></body>
+<script>
+promise_test(async t =>  new Promise((resolve, reject) =>{
+  let key = token();
+  document.body.innerHTML = `<a href="scroll-to-text-fragment-target.html?key=${key}#:~:text=test">Click me</a>`;
+  const link = document.querySelector("a");
+  test_driver.bless('Open a URL with a text directive in a new tab', () => {
+    test_driver.send_keys(document.body, '\uE004'); // TAB to focus the link
+    test_driver.send_keys(link, '\uE009\uE007'); // CTRL + ENTER
+  });
+  fetchResults(key, resolve, reject);
+}).then(data => {
+  assert_equals(data.scrollPosition, 'text', 'Expected ctrl+click on a link to be user activated.');
+}), `Test that the text fragment directive requires a user activation when invoked by clicking a link in the same or a new tab`);
+
+
+</script>

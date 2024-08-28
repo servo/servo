@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::Write;
@@ -40,8 +41,6 @@ use crate::desktop::tracing::{trace_embedder_event, trace_embedder_msg};
 use crate::parser::location_bar_input_to_url;
 
 pub struct WebViewManager<Window: WindowPortsMethods + ?Sized> {
-    current_url: Option<ServoUrl>,
-    current_url_string: Option<String>,
     status_text: Option<String>,
 
     /// List of top-level browsing contexts.
@@ -56,7 +55,10 @@ pub struct WebViewManager<Window: WindowPortsMethods + ?Sized> {
     /// Modified by EmbedderMsg::WebViewFocused and EmbedderMsg::WebViewBlurred.
     focused_webview_id: Option<WebViewId>,
 
-    title: Option<String>,
+    /// Pre-creation state for WebViews.
+    /// This is needed because in some situations the WebViewOpened event is sent
+    /// after ChangePageTitle and HistoryChanged
+    webview_preload_data: HashMap<WebViewId, WebViewPreloadData>,
 
     window: Rc<Window>,
     event_queue: Vec<EmbedderEvent>,
@@ -64,17 +66,12 @@ pub struct WebViewManager<Window: WindowPortsMethods + ?Sized> {
     gamepad: Option<Gilrs>,
     haptic_effects: HashMap<usize, HapticEffect>,
     shutdown_requested: bool,
-    load_status: LoadStatus,
 }
 
-#[derive(Debug)]
-pub struct WebView {
-    pub rect: DeviceRect,
-}
-
-pub struct ServoEventResponse {
-    pub need_present: bool,
-    pub need_update: bool,
+#[derive(Clone, Default)]
+struct WebViewPreloadData {
+    title: Option<String>,
+    url: Option<ServoUrl>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -82,6 +79,33 @@ pub enum LoadStatus {
     HeadParsed,
     LoadStart,
     LoadComplete,
+}
+
+// The state of each Tab/WebView
+#[derive(Debug)]
+pub struct WebView {
+    pub rect: DeviceRect,
+    pub title: Option<String>,
+    pub url: Option<ServoUrl>,
+    pub focused: bool,
+    pub load_status: LoadStatus,
+}
+
+impl WebView {
+    fn new(rect: DeviceRect, preload_data: WebViewPreloadData) -> Self {
+        Self {
+            rect,
+            title: preload_data.title,
+            url: preload_data.url,
+            focused: false,
+            load_status: LoadStatus::LoadComplete,
+        }
+    }
+}
+
+pub struct ServoEventResponse {
+    pub need_present: bool,
+    pub need_update: bool,
 }
 
 pub struct HapticEffect {
@@ -95,13 +119,11 @@ where
 {
     pub fn new(window: Rc<Window>) -> WebViewManager<Window> {
         WebViewManager {
-            title: None,
-            current_url: None,
-            current_url_string: None,
             status_text: None,
             webviews: HashMap::default(),
             creation_order: vec![],
             focused_webview_id: None,
+            webview_preload_data: HashMap::default(),
             window,
             clipboard: match Clipboard::new() {
                 Ok(c) => Some(c),
@@ -121,28 +143,44 @@ where
 
             event_queue: Vec::new(),
             shutdown_requested: false,
-            load_status: LoadStatus::LoadComplete,
         }
-    }
-
-    pub fn webview_id(&self) -> Option<WebViewId> {
-        self.focused_webview_id
     }
 
     pub fn get_mut(&mut self, webview_id: WebViewId) -> Option<&mut WebView> {
         self.webviews.get_mut(&webview_id)
     }
 
+    // Returns the existing preload data for the given WebView, or a new one.
+    fn ensure_preload_data_mut(&mut self, webview_id: &WebViewId) -> &mut WebViewPreloadData {
+        if let Entry::Vacant(entry) = self.webview_preload_data.entry(webview_id.clone()) {
+            entry.insert(WebViewPreloadData::default());
+        }
+        self.webview_preload_data.get_mut(webview_id).unwrap()
+    }
+
     pub fn focused_webview_id(&self) -> Option<WebViewId> {
         self.focused_webview_id
     }
 
-    pub fn current_url_string(&self) -> Option<&str> {
-        self.current_url_string.as_deref()
+    pub fn current_url_string(&self) -> Option<String> {
+        match self.focused_webview() {
+            Some(webview) => webview.url.as_ref().map(|url| url.to_string()),
+            None => None,
+        }
+    }
+
+    pub fn focused_webview(&self) -> Option<&WebView> {
+        match self.focused_webview_id {
+            Some(id) => self.webviews.get(&id),
+            None => None,
+        }
     }
 
     pub fn load_status(&self) -> LoadStatus {
-        self.load_status
+        match self.focused_webview() {
+            Some(webview) => webview.load_status,
+            None => LoadStatus::LoadComplete,
+        }
     }
 
     pub fn status_text(&self) -> Option<String> {
@@ -151,6 +189,15 @@ where
 
     pub fn get_events(&mut self) -> Vec<EmbedderEvent> {
         std::mem::take(&mut self.event_queue)
+    }
+
+    // Returns the webviews in the creation order.
+    pub fn webviews(&self) -> Vec<(WebViewId, &WebView)> {
+        let mut res = vec![];
+        for id in &self.creation_order {
+            res.push((*id, self.webviews.get(id).unwrap()))
+        }
+        res
     }
 
     pub fn handle_window_events(&mut self, events: Vec<EmbedderEvent>) {
@@ -377,11 +424,15 @@ where
             })
             .shortcut(CMD_OR_CONTROL, 'L', || {
                 if !opts::get().minibrowser {
-                    let url: String = if let Some(ref current_url) = self.current_url {
-                        current_url.to_string()
-                    } else {
-                        String::from("")
+                    let url = match self.focused_webview() {
+                        Some(webview) => webview
+                            .url
+                            .as_ref()
+                            .map(|url| url.to_string())
+                            .unwrap_or_else(String::default),
+                        None => String::default(),
                     };
+
                     let title = "URL or search query";
                     let input = tinyfiledialogs::input_box(title, title, &tiny_dialog_escape(&url));
                     if let Some(input) = input {
@@ -392,6 +443,16 @@ where
                         }
                     }
                 }
+            })
+            .shortcut(CMD_OR_CONTROL, 'W', || {
+                if let Some(id) = self.focused_webview_id {
+                    self.event_queue.push(EmbedderEvent::CloseWebView(id));
+                }
+            })
+            .shortcut(CMD_OR_CONTROL, 'T', || {
+                let url = ServoUrl::parse("servo:newtab").unwrap();
+                self.event_queue
+                    .push(EmbedderEvent::NewWebView(url, WebViewId::new()));
             })
             .shortcut(CMD_OR_CONTROL, 'Q', || {
                 self.event_queue.push(EmbedderEvent::Quit);
@@ -545,7 +606,7 @@ where
         &mut self,
         events: Drain<'_, (Option<WebViewId>, EmbedderMsg)>,
     ) -> ServoEventResponse {
-        let mut need_present = self.load_status != LoadStatus::LoadComplete;
+        let mut need_present = self.load_status() != LoadStatus::LoadComplete;
         let mut need_update = false;
         for (webview_id, msg) in events {
             if let Some(webview_id) = webview_id {
@@ -559,19 +620,23 @@ where
                     need_update = true;
                 },
                 EmbedderMsg::ChangePageTitle(title) => {
-                    self.title = title;
-
-                    let fallback_title: String = if let Some(ref current_url) = self.current_url {
-                        current_url.to_string()
-                    } else {
-                        String::from("Untitled")
-                    };
-                    let title = match self.title {
-                        Some(ref title) if !title.is_empty() => &**title,
-                        _ => &fallback_title,
-                    };
-                    let title = format!("{} - Servo", title);
-                    self.window.set_title(&title);
+                    // Set the title to the target webview, and update the OS window title
+                    // if this is the currently focused one.
+                    if let Some(webview_id) = webview_id {
+                        if let Some(webview) = self.get_mut(webview_id) {
+                            webview.title = title.clone();
+                            if webview.focused {
+                                self.window.set_title(&format!(
+                                    "{} - Servo",
+                                    title.clone().unwrap_or_default()
+                                ));
+                            }
+                            need_update = true;
+                        } else {
+                            let data = self.ensure_preload_data_mut(&webview_id);
+                            data.title = title.clone();
+                        }
+                    }
                 },
                 EmbedderMsg::MoveTo(point) => {
                     self.window.set_position(point);
@@ -701,14 +766,19 @@ where
                     let mut rect = self.window.get_coordinates().get_viewport().to_f32();
                     rect.min.y += toolbar * scale;
 
-                    self.webviews.insert(new_webview_id, WebView { rect });
-                    self.creation_order.push(new_webview_id);
-                    self.event_queue
-                        .push(EmbedderEvent::FocusWebView(new_webview_id));
-                    self.event_queue
-                        .push(EmbedderEvent::MoveResizeWebView(new_webview_id, rect));
-                    self.event_queue
-                        .push(EmbedderEvent::RaiseWebViewToTop(new_webview_id, true));
+                    // Make sure to not add duplicates into the creation_order vector.
+                    // This can happen as explained in https://github.com/servo/servo/issues/33075
+                    let preload_data = self.ensure_preload_data_mut(&new_webview_id).clone();
+                    if let Entry::Vacant(entry) = self.webviews.entry(new_webview_id) {
+                        entry.insert(WebView::new(rect, preload_data));
+                        self.creation_order.push(new_webview_id);
+                        self.event_queue
+                            .push(EmbedderEvent::FocusWebView(new_webview_id));
+                        self.event_queue
+                            .push(EmbedderEvent::MoveResizeWebView(new_webview_id, rect));
+                        self.event_queue
+                            .push(EmbedderEvent::RaiseWebViewToTop(new_webview_id, true));
+                    }
                 },
                 EmbedderMsg::WebViewClosed(webview_id) => {
                     self.webviews.retain(|&id, _| id != webview_id);
@@ -722,13 +792,20 @@ where
                     }
                 },
                 EmbedderMsg::WebViewFocused(webview_id) => {
+                    for (id, webview) in &mut self.webviews {
+                        webview.focused = *id == webview_id;
+                    }
                     self.focused_webview_id = Some(webview_id);
+                    need_update = true;
                     // Show the most recently created webview and hide all others.
                     // TODO: Stop doing this once we have full multiple webviews support
                     self.event_queue
                         .push(EmbedderEvent::ShowWebView(webview_id, true));
                 },
                 EmbedderMsg::WebViewBlurred => {
+                    for webview in self.webviews.values_mut() {
+                        webview.focused = false;
+                    }
                     self.focused_webview_id = None;
                 },
                 EmbedderMsg::Keyboard(key_event) => {
@@ -761,24 +838,42 @@ where
                     // FIXME: show favicons in the UI somehow
                 },
                 EmbedderMsg::HeadParsed => {
-                    self.load_status = LoadStatus::HeadParsed;
-                    need_update = true;
+                    if let Some(webview_id) = webview_id {
+                        if let Some(webview) = self.get_mut(webview_id) {
+                            webview.load_status = LoadStatus::HeadParsed;
+                            need_update = true;
+                        }
+                    }
                 },
                 EmbedderMsg::HistoryChanged(urls, current) => {
-                    self.current_url = Some(urls[current].clone());
-                    self.current_url_string = Some(urls[current].clone().into_string());
-                    need_update = true;
+                    if let Some(webview_id) = webview_id {
+                        if let Some(webview) = self.get_mut(webview_id) {
+                            webview.url = Some(urls[current].clone());
+                            need_update = true;
+                        } else {
+                            let data = self.ensure_preload_data_mut(&webview_id);
+                            data.url = Some(urls[current].clone());
+                        }
+                    }
                 },
                 EmbedderMsg::SetFullscreenState(state) => {
                     self.window.set_fullscreen(state);
                 },
                 EmbedderMsg::LoadStart => {
-                    self.load_status = LoadStatus::LoadStart;
-                    need_update = true;
+                    if let Some(webview_id) = webview_id {
+                        if let Some(webview) = self.get_mut(webview_id) {
+                            webview.load_status = LoadStatus::LoadStart;
+                            need_update = true;
+                        }
+                    }
                 },
                 EmbedderMsg::LoadComplete => {
-                    self.load_status = LoadStatus::LoadComplete;
-                    need_update = true;
+                    if let Some(webview_id) = webview_id {
+                        if let Some(webview) = self.get_mut(webview_id) {
+                            webview.load_status = LoadStatus::LoadComplete;
+                            need_update = true;
+                        }
+                    }
                 },
                 EmbedderMsg::Shutdown => {
                     self.shutdown_requested = true;

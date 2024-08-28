@@ -19,6 +19,7 @@ use crate::dom::event::{EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::uievent::UIEvent;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct FocusEvent {
@@ -35,14 +36,15 @@ impl FocusEvent {
     }
 
     pub fn new_uninitialized(window: &Window) -> DomRoot<FocusEvent> {
-        Self::new_uninitialized_with_proto(window, None)
+        Self::new_uninitialized_with_proto(window, None, CanGc::note())
     }
 
     pub fn new_uninitialized_with_proto(
         window: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> DomRoot<FocusEvent> {
-        reflect_dom_object_with_proto(Box::new(FocusEvent::new_inherited()), window, proto)
+        reflect_dom_object_with_proto(Box::new(FocusEvent::new_inherited()), window, proto, can_gc)
     }
 
     pub fn new(
@@ -63,6 +65,7 @@ impl FocusEvent {
             view,
             detail,
             related_target,
+            CanGc::note(),
         )
     }
 
@@ -76,8 +79,9 @@ impl FocusEvent {
         view: Option<&Window>,
         detail: i32,
         related_target: Option<&EventTarget>,
+        can_gc: CanGc,
     ) -> DomRoot<FocusEvent> {
-        let ev = FocusEvent::new_uninitialized_with_proto(window, proto);
+        let ev = FocusEvent::new_uninitialized_with_proto(window, proto, can_gc);
         ev.upcast::<UIEvent>().InitUIEvent(
             type_,
             bool::from(can_bubble),
@@ -93,6 +97,7 @@ impl FocusEvent {
     pub fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         type_: DOMString,
         init: &FocusEventBinding::FocusEventInit,
     ) -> Fallible<DomRoot<FocusEvent>> {
@@ -107,6 +112,7 @@ impl FocusEvent {
             init.parent.view.as_deref(),
             init.parent.detail,
             init.relatedTarget.as_deref(),
+            can_gc,
         );
         Ok(event)
     }

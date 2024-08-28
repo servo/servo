@@ -20,6 +20,7 @@ use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::{is_token, ByteString};
 use crate::dom::globalscope::GlobalScope;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct Headers {
@@ -50,11 +51,15 @@ impl Headers {
     }
 
     pub fn new(global: &GlobalScope) -> DomRoot<Headers> {
-        Self::new_with_proto(global, None)
+        Self::new_with_proto(global, None, CanGc::note())
     }
 
-    fn new_with_proto(global: &GlobalScope, proto: Option<HandleObject>) -> DomRoot<Headers> {
-        reflect_dom_object_with_proto(Box::new(Headers::new_inherited()), global, proto)
+    fn new_with_proto(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        can_gc: CanGc,
+    ) -> DomRoot<Headers> {
+        reflect_dom_object_with_proto(Box::new(Headers::new_inherited()), global, proto, can_gc)
     }
 
     // https://fetch.spec.whatwg.org/#dom-headers
@@ -62,9 +67,10 @@ impl Headers {
     pub fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         init: Option<HeadersInit>,
     ) -> Fallible<DomRoot<Headers>> {
-        let dom_headers_new = Headers::new_with_proto(global, proto);
+        let dom_headers_new = Headers::new_with_proto(global, proto, can_gc);
         dom_headers_new.fill(init)?;
         Ok(dom_headers_new)
     }

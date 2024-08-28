@@ -1,0 +1,57 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+html,
+body {
+  height: 100%;
+  padding: 0;
+  margin: 0;
+}
+
+body {
+  background-color: #121619;
+  font-family: sans-serif;
+  color: hsl(0, 0%, 96%);
+  font-weight: 400;
+  line-height: 1.5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+img {
+  width: 25vw;
+}
+
+form {
+    margin: 1em;
+}
+
+input {
+  width: 50vw;
+}
+
+a {
+  color: #1191e8;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+a:hover {
+  color: #42bf64;
+}
+
+/* This should not be needed but paper over missing default styles */
+button {
+  padding-block: 1px;
+  padding-inline: 8px;
+  box-sizing: border-box;
+}
+
+form {
+  display: flex;
+  justify-items: center;
+  gap: 0.5em;
+}

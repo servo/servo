@@ -24,7 +24,7 @@
 Servo.app
 .config.mk.last
 /glfw
-capture_webrender/
+webrender-captures/
 /screenshots
 
 # Allow CSV files to be used as resources in tests

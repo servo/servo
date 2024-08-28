@@ -13,6 +13,7 @@ use crate::dom::characterdata::CharacterData;
 use crate::dom::document::Document;
 use crate::dom::node::Node;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 /// An HTML comment.
 #[dom_struct]
@@ -43,6 +44,7 @@ impl Comment {
     pub fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
+        _can_gc: CanGc,
         data: DOMString,
     ) -> Fallible<DomRoot<Comment>> {
         let document = window.Document();

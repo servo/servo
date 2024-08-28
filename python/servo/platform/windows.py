@@ -14,8 +14,10 @@ from typing import Optional
 import urllib
 import zipfile
 
-from .. import util
+from servo import util
+
 from .base import Base
+from .build_target import BuildTarget
 
 DEPS_URL = "https://github.com/servo/servo-build-deps/releases/download/msvc-deps"
 DEPENDENCIES = {
@@ -57,7 +59,7 @@ class Windows(Base):
         else:
             print("done")
 
-    def _platform_bootstrap(self, force: bool = False) -> bool:
+    def _platform_bootstrap(self, force: bool) -> bool:
         installed_something = self.passive_bootstrap()
 
         try:
@@ -77,7 +79,8 @@ class Windows(Base):
             print("Could not run chocolatey.  Follow manual build setup instructions.")
             raise e
 
-        installed_something |= self._platform_bootstrap_gstreamer(force)
+        target = BuildTarget.from_triple(None)
+        installed_something |= self._platform_bootstrap_gstreamer(target, force)
         return installed_something
 
     def passive_bootstrap(self) -> bool:
@@ -103,8 +106,8 @@ class Windows(Base):
 
         return True
 
-    def gstreamer_root(self, cross_compilation_target: Optional[str]) -> Optional[str]:
-        build_target_triple = cross_compilation_target or self.triple
+    def gstreamer_root(self, target: BuildTarget) -> Optional[str]:
+        build_target_triple = target.triple()
         gst_arch_names = {
             "x86_64": "X86_64",
             "x86": "X86",
@@ -132,11 +135,11 @@ class Windows(Base):
 
         return None
 
-    def is_gstreamer_installed(self, cross_compilation_target: Optional[str]) -> bool:
-        return self.gstreamer_root(cross_compilation_target) is not None
+    def is_gstreamer_installed(self, target: BuildTarget) -> bool:
+        return self.gstreamer_root(target) is not None
 
-    def _platform_bootstrap_gstreamer(self, force: bool) -> bool:
-        if not force and self.is_gstreamer_installed(cross_compilation_target=None):
+    def _platform_bootstrap_gstreamer(self, target: BuildTarget, force: bool) -> bool:
+        if not force and self.is_gstreamer_installed(target):
             return False
 
         if "x86_64" not in self.triple:
@@ -171,5 +174,5 @@ class Windows(Base):
                     "msiexec.exe", "-ArgumentList", f"@({quoted_arguments})", ").ExitCode"
                 ])
 
-            assert self.is_gstreamer_installed(cross_compilation_target=None)
+            assert self.is_gstreamer_installed(target)
             return True

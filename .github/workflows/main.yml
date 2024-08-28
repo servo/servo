@@ -38,6 +38,11 @@ jobs:
       wpt-layout: ${{ github.event_name == 'pull_request' && 'none' || '2020' }}
     secrets: inherit
 
+  lint:
+    name: Lint
+    uses: ./.github/workflows/lint.yml
+    secrets: inherit
+
   build-android:
     name: Android
     if: ${{ github.event_name != 'pull_request' }}
@@ -64,6 +69,7 @@ jobs:
       - "build-linux"
       - "build-android"
       - "build-ohos"
+      - "lint"
     steps:
       - name: Merge build timings
         uses: actions/upload-artifact/merge@v4

@@ -26,7 +26,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageport::MessagePort;
 use crate::dom::serviceworker::ServiceWorker;
 use crate::dom::windowproxy::WindowProxy;
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{CanGc, JSContext};
 
 #[crown::unrooted_must_root_lint::must_root]
 #[derive(JSTraceable, MallocSizeOf)]
@@ -92,12 +92,13 @@ impl MessageEvent {
     }
 
     pub fn new_uninitialized(global: &GlobalScope) -> DomRoot<MessageEvent> {
-        Self::new_uninitialized_with_proto(global, None)
+        Self::new_uninitialized_with_proto(global, None, CanGc::note())
     }
 
     fn new_uninitialized_with_proto(
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> DomRoot<MessageEvent> {
         MessageEvent::new_initialized(
             global,
@@ -107,6 +108,7 @@ impl MessageEvent {
             None,
             DOMString::new(),
             vec![],
+            can_gc,
         )
     }
 
@@ -118,6 +120,7 @@ impl MessageEvent {
         source: Option<&WindowProxyOrMessagePortOrServiceWorker>,
         lastEventId: DOMString,
         ports: Vec<DomRoot<MessagePort>>,
+        can_gc: CanGc,
     ) -> DomRoot<MessageEvent> {
         let ev = Box::new(MessageEvent::new_inherited(
             origin,
@@ -125,7 +128,7 @@ impl MessageEvent {
             lastEventId,
             ports,
         ));
-        let ev = reflect_dom_object_with_proto(ev, global, proto);
+        let ev = reflect_dom_object_with_proto(ev, global, proto, can_gc);
         ev.data.set(data.get());
 
         ev
@@ -154,6 +157,7 @@ impl MessageEvent {
             source,
             lastEventId,
             ports,
+            CanGc::note(),
         )
     }
 
@@ -169,9 +173,18 @@ impl MessageEvent {
         source: Option<&WindowProxyOrMessagePortOrServiceWorker>,
         lastEventId: DOMString,
         ports: Vec<DomRoot<MessagePort>>,
+        can_gc: CanGc,
     ) -> DomRoot<MessageEvent> {
-        let ev =
-            MessageEvent::new_initialized(global, proto, data, origin, source, lastEventId, ports);
+        let ev = MessageEvent::new_initialized(
+            global,
+            proto,
+            data,
+            origin,
+            source,
+            lastEventId,
+            ports,
+            can_gc,
+        );
         {
             let event = ev.upcast::<Event>();
             event.init_event(type_, bubbles, cancelable);
@@ -182,6 +195,7 @@ impl MessageEvent {
     pub fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         type_: DOMString,
         init: RootedTraceableBox<MessageEventBinding::MessageEventInit>,
     ) -> Fallible<DomRoot<MessageEvent>> {
@@ -196,6 +210,7 @@ impl MessageEvent {
             init.source.as_ref(),
             init.lastEventId.clone(),
             init.ports.clone(),
+            can_gc,
         );
         Ok(ev)
     }

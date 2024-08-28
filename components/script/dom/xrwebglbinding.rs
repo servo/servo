@@ -27,6 +27,7 @@ use crate::dom::xrquadlayer::XRQuadLayer;
 use crate::dom::xrsession::XRSession;
 use crate::dom::xrview::XRView;
 use crate::dom::xrwebglsubimage::XRWebGLSubImage;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct XRWebGLBinding {
@@ -49,11 +50,13 @@ impl XRWebGLBinding {
         proto: Option<HandleObject>,
         session: &XRSession,
         context: &WebGLRenderingContext,
+        can_gc: CanGc,
     ) -> DomRoot<XRWebGLBinding> {
         reflect_dom_object_with_proto(
             Box::new(XRWebGLBinding::new_inherited(session, context)),
             global,
             proto,
+            can_gc,
         )
     }
 
@@ -61,6 +64,7 @@ impl XRWebGLBinding {
     pub fn Constructor(
         global: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         session: &XRSession,
         context: WebGLRenderingContextOrWebGL2RenderingContext,
     ) -> DomRoot<XRWebGLBinding> {
@@ -70,7 +74,7 @@ impl XRWebGLBinding {
                 ctx.base_context()
             },
         };
-        XRWebGLBinding::new(global, proto, session, &context)
+        XRWebGLBinding::new(global, proto, session, &context, can_gc)
     }
 }
 

@@ -22,14 +22,16 @@ pub fn register_user_prefs(opts_matches: &Matches) {
         .filter(|path| path.exists());
 
     let mut userprefs = if let Some(path) = user_prefs_path {
-        let mut file = File::open(path).expect("Error opening user prefs");
-        let mut txt = String::new();
-        file.read_to_string(&mut txt)
-            .expect("Can't read user prefs file");
-        prefs::read_prefs_map(&txt).expect("Can't parse user prefs file")
+        read_prefs_file(path.to_str().expect("Failed to read user prefs"))
     } else {
         HashMap::new()
     };
+
+    let prefs_from_files: Vec<HashMap<String, PrefValue>> = opts_matches
+        .opt_strs("prefs-file")
+        .iter()
+        .map(|path| read_prefs_file(path))
+        .collect();
 
     let argprefs: HashMap<String, PrefValue> = opts_matches
         .opt_strs("pref")
@@ -54,16 +56,30 @@ pub fn register_user_prefs(opts_matches: &Matches) {
         })
         .collect();
 
-    // --pref overrides user prefs.json
+    // Apply --prefs-file prefs first
+    for prefs in prefs_from_files {
+        userprefs.extend(prefs);
+    }
+
+    // Then apply individually passed prefs from --pref
     userprefs.extend(argprefs);
 
     prefs::add_user_prefs(userprefs);
+}
+
+fn read_prefs_file(path: &str) -> HashMap<String, PrefValue> {
+    let mut file = File::open(path).expect("Error opening user prefs");
+    let mut txt = String::new();
+    file.read_to_string(&mut txt)
+        .expect("Can't read user prefs file");
+    prefs::read_prefs_map(&txt).expect("Can't parse user prefs file")
 }
 
 #[cfg(test)]
 fn test_parse_pref(arg: &str) {
     let mut opts = getopts::Options::new();
     opts.optmulti("", "pref", "", "");
+    opts.optmulti("", "prefs-file", "", "");
     let args = vec!["servo".to_string(), "--pref".to_string(), arg.to_string()];
     let matches = match opts::from_cmdline_args(opts, &args) {
         opts::ArgumentParsingResult::ContentProcess(m, _) => m,

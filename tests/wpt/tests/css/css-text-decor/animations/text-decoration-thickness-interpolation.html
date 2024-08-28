@@ -62,10 +62,10 @@ test_interpolation({
   from: '100%',
   to: '0%',
 }, [
-  {at: 0, expect: '16px'},
-  {at: 0.3, expect: '11.2px'},
-  {at: 0.6, expect: '6.4px'},
-  {at: 1, expect: '0px'},
+  {at: 0, expect: '100%'},
+  {at: 0.3, expect: '70%'},
+  {at: 0.6, expect: '40%'},
+  {at: 1, expect: '0%'},
 ]);
 
 test_interpolation({
@@ -73,10 +73,10 @@ test_interpolation({
   from: '100%',
   to: '200%',
 }, [
-  {at: 0, expect: '16px'},
-  {at: 0.3, expect: '20.8px'},
-  {at: 0.6, expect: '25.6px'},
-  {at: 1, expect: '32px'},
+  {at: 0, expect: '100%'},
+  {at: 0.3, expect: '130%'},
+  {at: 0.6, expect: '160%'},
+  {at: 1, expect: '200%'},
 ]);
 
 test_interpolation({
@@ -106,10 +106,10 @@ test_interpolation({
   from: '16px',
   to: '0%',
 }, [
-  {at: 0, expect: '16px'},
-  {at: 0.3, expect: '11.2px'},
-  {at: 0.6, expect: '6.4px'},
-  {at: 1, expect: '0px'},
+  {at: 0, expect: 'calc(0% + 16px)'},
+  {at: 0.3, expect: 'calc(0% + 11.2px)'},
+  {at: 0.6, expect: 'calc(0% + 6.4px)'},
+  {at: 1, expect: '0%'},
 ]);
 
 test_interpolation({
@@ -117,10 +117,10 @@ test_interpolation({
   from: '16px',
   to: '200%',
 }, [
-  {at: 0, expect: '16px'},
-  {at: 0.3, expect: '20.8px'},
-  {at: 0.6, expect: '25.6px'},
-  {at: 1, expect: '32px'},
+  {at: 0, expect: 'calc(0% + 16px)'},
+  {at: 0.3, expect: 'calc(60% + 11.2px)'},
+  {at: 0.6, expect: 'calc(120% + 6.4px)'},
+  {at: 1, expect: '200%'},
 ]);
 
 test_interpolation({
@@ -150,10 +150,10 @@ test_interpolation({
   from: '1em',
   to: '0%',
 }, [
-  {at: 0, expect: '16px'},
-  {at: 0.3, expect: '11.2px'},
-  {at: 0.6, expect: '6.4px'},
-  {at: 1, expect: '0px'},
+  {at: 0, expect: 'calc(0% + 16px)'},
+  {at: 0.3, expect: 'calc(0% + 11.2px)'},
+  {at: 0.6, expect: 'calc(0% + 6.4px)'},
+  {at: 1, expect: '0%'},
 ]);
 
 test_interpolation({
@@ -161,10 +161,10 @@ test_interpolation({
   from: '1em',
   to: '200%',
 }, [
-  {at: 0, expect: '16px'},
-  {at: 0.3, expect: '20.8px'},
-  {at: 0.6, expect: '25.6px'},
-  {at: 1, expect: '32px'},
+  {at: 0, expect: 'calc(0% + 16px)'},
+  {at: 0.3, expect: 'calc(60% + 11.2px)'},
+  {at: 0.6, expect: 'calc(120% + 6.4px)'},
+  {at: 1, expect: '200%'},
 ]);
 
 test_interpolation({
@@ -172,10 +172,10 @@ test_interpolation({
   from: '100%',
   to: '0px',
 }, [
-  {at: 0, expect: '16px'},
-  {at: 0.3, expect: '11.2px'},
-  {at: 0.6, expect: '6.4px'},
-  {at: 1, expect: '0px'},
+  {at: 0, expect: '100%'},
+  {at: 0.3, expect: '70%'},
+  {at: 0.6, expect: '40%'},
+  {at: 1, expect: '0%'},
 ]);
 
 test_interpolation({
@@ -183,10 +183,10 @@ test_interpolation({
   from: '100%',
   to: '32px',
 }, [
-  {at: 0, expect: '16px'},
-  {at: 0.3, expect: '20.8px'},
-  {at: 0.6, expect: '25.6px'},
-  {at: 1, expect: '32px'},
+  {at: 0, expect: '100%'},
+  {at: 0.3, expect: 'calc(70% + 9.6px)'},
+  {at: 0.6, expect: 'calc(40% + 19.2px)'},
+  {at: 1, expect: 'calc(0% + 32px)'},
 ]);
 
 test_interpolation({
@@ -194,10 +194,10 @@ test_interpolation({
   from: '100%',
   to: '0em',
 }, [
-  {at: 0, expect: '16px'},
-  {at: 0.3, expect: '11.2px'},
-  {at: 0.6, expect: '6.4px'},
-  {at: 1, expect: '0px'},
+  {at: 0, expect: '100%'},
+  {at: 0.3, expect: '70%'},
+  {at: 0.6, expect: '40%'},
+  {at: 1, expect: '0%'},
 ]);
 
 test_interpolation({
@@ -205,9 +205,9 @@ test_interpolation({
   from: '100%',
   to: '2em',
 }, [
-  {at: 0, expect: '16px'},
-  {at: 0.3, expect: '20.8px'},
-  {at: 0.6, expect: '25.6px'},
-  {at: 1, expect: '32px'},
+  {at: 0, expect: '100%'},
+  {at: 0.3, expect: 'calc(70% + 9.6px)'},
+  {at: 0.6, expect: 'calc(40% + 19.2px)'},
+  {at: 1, expect: 'calc(0% + 32px)'},
 ]);
 </script>

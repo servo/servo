@@ -14,6 +14,7 @@ use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct TestBindingIterable {
@@ -22,7 +23,11 @@ pub struct TestBindingIterable {
 }
 
 impl TestBindingIterable {
-    fn new(global: &GlobalScope, proto: Option<HandleObject>) -> DomRoot<TestBindingIterable> {
+    fn new(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        can_gc: CanGc,
+    ) -> DomRoot<TestBindingIterable> {
         reflect_dom_object_with_proto(
             Box::new(TestBindingIterable {
                 reflector: Reflector::new(),
@@ -30,6 +35,7 @@ impl TestBindingIterable {
             }),
             global,
             proto,
+            can_gc,
         )
     }
 
@@ -37,8 +43,9 @@ impl TestBindingIterable {
     pub fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<TestBindingIterable>> {
-        Ok(TestBindingIterable::new(global, proto))
+        Ok(TestBindingIterable::new(global, proto, can_gc))
     }
 }
 

@@ -11,7 +11,7 @@ validateInputFromAnotherBuilder('hardSigmoid');
 
 const label = 'hard_sigmoid';
 
-validateUnaryOperation('hardSigmoid', floatingPointTypes, label);
+validateSingleInputOperation('hardSigmoid', label);
 
 promise_test(async t => {
   const builder = new MLGraphBuilder(context);

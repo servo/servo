@@ -17,7 +17,7 @@ pub fn init() {
     resources::set(Box::new(ResourceReader));
 }
 
-fn resources_dir_path() -> PathBuf {
+pub(crate) fn resources_dir_path() -> PathBuf {
     // This needs to be called before the process is sandboxed
     // as we only give permission to read inside the resources directory,
     // not the permissions the "search" for the resources directory.

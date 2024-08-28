@@ -9,7 +9,7 @@ use std::net::TcpStream;
 
 use base::id::PipelineId;
 use devtools_traits::DevtoolScriptControlMsg::{GetChildren, GetDocumentElement};
-use devtools_traits::{DevtoolScriptControlMsg, Modification};
+use devtools_traits::{AttrModification, DevtoolScriptControlMsg};
 use ipc_channel::ipc::{self, IpcSender};
 use serde::Serialize;
 use serde_json::{self, Map, Value};
@@ -31,7 +31,7 @@ pub struct WalkerActor {
     pub script_chan: IpcSender<DevtoolScriptControlMsg>,
     pub pipeline: PipelineId,
     pub root_node: NodeActorMsg,
-    pub mutations: RefCell<Vec<(Modification, String)>>,
+    pub mutations: RefCell<Vec<(AttrModification, String)>>,
 }
 
 #[derive(Serialize)]
@@ -235,9 +235,9 @@ impl Actor for WalkerActor {
                     self.pipeline,
                     &self.name,
                     registry,
-                    selector,
                     node,
                     vec![],
+                    |msg| msg.display_name == selector,
                 )
                 .map_err(|_| ())?;
                 hierarchy.reverse();
@@ -273,7 +273,7 @@ impl WalkerActor {
         &self,
         stream: &mut TcpStream,
         target: &str,
-        modifications: &[Modification],
+        modifications: &[AttrModification],
     ) {
         {
             let mut mutations = self.mutations.borrow_mut();
@@ -288,14 +288,15 @@ impl WalkerActor {
 
 /// Recursively searches for a child with the specified selector
 /// If it is found, returns a list with the child and all of its ancestors.
-fn find_child(
+/// TODO: Investigate how to cache this to some extent.
+pub fn find_child(
     script_chan: &IpcSender<DevtoolScriptControlMsg>,
     pipeline: PipelineId,
     name: &str,
     registry: &ActorRegistry,
-    selector: &str,
     node: &str,
     mut hierarchy: Vec<NodeActorMsg>,
+    compare_fn: impl Fn(&NodeActorMsg) -> bool + Clone,
 ) -> Result<Vec<NodeActorMsg>, Vec<NodeActorMsg>> {
     let (tx, rx) = ipc::channel().unwrap();
     script_chan
@@ -309,7 +310,7 @@ fn find_child(
 
     for child in children {
         let msg = child.encode(registry, true, script_chan.clone(), pipeline, name.into());
-        if msg.display_name == selector {
+        if compare_fn(&msg) {
             hierarchy.push(msg);
             return Ok(hierarchy);
         };
@@ -323,9 +324,9 @@ fn find_child(
             pipeline,
             name,
             registry,
-            selector,
             &msg.actor,
             hierarchy,
+            compare_fn.clone(),
         ) {
             Ok(mut hierarchy) => {
                 hierarchy.push(msg);

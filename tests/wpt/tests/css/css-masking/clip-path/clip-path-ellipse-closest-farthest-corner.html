@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Masking: Test clip-path property and ellipse function with absolute values</title>
+    <link rel="help" href="http://www.w3.org/TR/css-masking-1/#clipping-paths">
+    <link rel="help" href="http://www.w3.org/TR/css-masking-1/#propdef-clip-path">
+    <link rel="match" href="reference/clip-path-ellipse-2-ref.html">
+    <meta name="fuzzy" content="maxDifference=0-1; totalPixels=0-300">
+    <meta name="assert" content="The clip-path property takes the basic shape
+        'ellipse' for clipping. Test the farthest-corner and closest-corner radial size keywords.">
+    <style>
+        .test {
+            position: absolute;
+            left: 150px;
+            top: 100px;
+            width: 250px;
+            height: 275px;
+            background-color: red;
+            clip-path: ellipse(farthest-corner closest-corner at 175px 100px);
+        }
+
+        .inner {
+            position: absolute;
+            top: -60px;
+            left: -110px;
+            width: 550px;
+            height: 420px;
+            background-color: green;
+        }
+    </style>
+</head>
+<body>
+    <p>The test passes if there is a full green ellipse.</p>
+    <div class="test">
+        <div class="inner"></div>
+    </div>
+</body>
+</html>

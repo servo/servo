@@ -623,6 +623,7 @@ pub mod xmlhttprequest;
 pub mod xmlhttprequesteventtarget;
 pub mod xmlhttprequestupload;
 pub mod xmlserializer;
+pub mod xrboundedreferencespace;
 pub mod xrcompositionlayer;
 pub mod xrcubelayer;
 pub mod xrcylinderlayer;

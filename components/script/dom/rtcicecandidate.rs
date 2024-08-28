@@ -14,6 +14,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct RTCIceCandidate {
@@ -54,6 +55,7 @@ impl RTCIceCandidate {
             sdp_m_id,
             sdp_m_line_index,
             username_fragment,
+            CanGc::note(),
         )
     }
 
@@ -64,6 +66,7 @@ impl RTCIceCandidate {
         sdp_m_id: Option<DOMString>,
         sdp_m_line_index: Option<u16>,
         username_fragment: Option<DOMString>,
+        can_gc: CanGc,
     ) -> DomRoot<RTCIceCandidate> {
         reflect_dom_object_with_proto(
             Box::new(RTCIceCandidate::new_inherited(
@@ -74,6 +77,7 @@ impl RTCIceCandidate {
             )),
             global,
             proto,
+            can_gc,
         )
     }
 
@@ -81,6 +85,7 @@ impl RTCIceCandidate {
     pub fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         config: &RTCIceCandidateInit,
     ) -> Fallible<DomRoot<RTCIceCandidate>> {
         if config.sdpMid.is_none() && config.sdpMLineIndex.is_none() {
@@ -95,6 +100,7 @@ impl RTCIceCandidate {
             config.sdpMid.clone(),
             config.sdpMLineIndex,
             config.usernameFragment.clone(),
+            can_gc,
         ))
     }
 }

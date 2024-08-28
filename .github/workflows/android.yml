@@ -50,20 +50,12 @@ jobs:
           fetch-depth: 2
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.4
-      - name: Install taplo
-        uses: baptiste0928/cargo-install@v3
-        with:
-          crate: taplo-cli
-          locked: true
-      - name: Install cargo-deny
-        uses: baptiste0928/cargo-install@v3
-        with:
-          crate: cargo-deny
-          locked: true
+      - name: Install crown
+        run: cargo install --path support/crown
       - name: Bootstrap Python
         run: python3 -m pip install --upgrade pip virtualenv
       - name: Bootstrap dependencies
-        run: sudo apt update && python3 ./mach bootstrap
+        run: sudo apt update && python3 ./mach bootstrap --skip-lints
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
@@ -93,7 +85,7 @@ jobs:
           APK_SIGNING_KEY_ALIAS: ${{ secrets.APK_SIGNING_KEY_ALIAS }}
           APK_SIGNING_KEY_PASS: ${{ secrets.APK_SIGNING_KEY_PASS }}
         run: |
-          python3 ./mach build --use-crown --locked --android --target ${{ matrix.arch }} --${{ inputs.profile }}
+          python3 ./mach build --use-crown --locked --target ${{ matrix.arch }} --${{ inputs.profile }}
           cp -r target/cargo-timings target/cargo-timings-android-${{ matrix.arch }}
       # TODO: This is disabled since APK crashes during startup.
       # See https://github.com/servo/servo/issues/31134

@@ -13,7 +13,7 @@ use super::bindings::utils::to_frozen_array;
 use super::types::GPUCompilationMessage;
 use crate::dom::bindings::reflector::Reflector;
 use crate::dom::globalscope::GlobalScope;
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{CanGc, JSContext};
 
 #[dom_struct]
 pub struct GPUCompilationInfo {
@@ -32,7 +32,12 @@ impl GPUCompilationInfo {
 
     #[allow(dead_code)]
     pub fn new(global: &GlobalScope, msg: Vec<DomRoot<GPUCompilationMessage>>) -> DomRoot<Self> {
-        reflect_dom_object_with_proto(Box::new(Self::new_inherited(msg)), global, None)
+        reflect_dom_object_with_proto(
+            Box::new(Self::new_inherited(msg)),
+            global,
+            None,
+            CanGc::note(),
+        )
     }
 
     pub fn from(global: &GlobalScope, error: Option<ShaderCompilationInfo>) -> DomRoot<Self> {

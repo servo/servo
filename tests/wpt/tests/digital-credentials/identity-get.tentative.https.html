@@ -1,6 +1,6 @@
 <!DOCTYPE html>
-<title>Digital Identity Credential tests.</title>
-<link rel="help" href="https://wicg.github.io/digital-identities/">
+<title>Digital Credential tests.</title>
+<link rel="help" href="https://wicg.github.io/digital-credentials/" />
 <script src="/common/get-host-info.sub.js"></script>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -8,27 +8,188 @@
 <script src="/resources/testdriver-vendor.js"></script>
 
 <body>
+  <iframe id="same-origin"></iframe>
+  <iframe id="cross-origin" allow="digital-credentials-get"></iframe>
+</body>
 <script type="module">
-import { buildValidNavigatorIdentityRequest, requestIdentityWithActivation } from './support/helper.js';
+  import { makeGetOptions, sendMessage, loadIframe } from "./support/helper.js";
 
-// This regex removes the filename from the path so that we just get
-// the directory.
-const host = get_host_info();
-const basePath = window.location.pathname.replace(/\/[^\/]*$/, '/');
-const remoteBaseURL = host.HTTPS_REMOTE_ORIGIN + basePath;
+  const iframeSameOrigin = document.querySelector("iframe#same-origin");
+  const iframeCrossOrigin = document.querySelector("iframe#cross-origin");
 
-// Requires browser to have mode where OS-presented digital-identity-prompt is
-// bypassed in favour of returning "fake_test_token" directly.
+  promise_setup(async () => {
+    const hostInfo = get_host_info();
+    await Promise.all([
+      loadIframe(
+        iframeCrossOrigin,
+        `${hostInfo.HTTPS_REMOTE_ORIGIN}/digital-credentials/support/iframe.html`
+      ),
+      loadIframe(iframeSameOrigin, "/digital-credentials/support/iframe.html"),
+    ]);
+  });
 
-promise_test(async t => {
-  let request = buildValidNavigatorIdentityRequest();
-  request.digital.providers = undefined;
-  await promise_rejects_js(t, TypeError, requestIdentityWithActivation(test_driver, request));
-}, "navigator.identity.get() API fails if DigitalCredentialRequestOptions::providers is not specified.");
+  promise_test(async (t) => {
+    iframeSameOrigin.focus();
+    for (const global of [window, iframeSameOrigin.contentWindow]) {
+      await promise_rejects_dom(
+        t,
+        "NotSupportedError",
+        global.DOMException,
+        global.navigator.identity.get()
+      );
 
-promise_test(async t => {
-  let request = buildValidNavigatorIdentityRequest();
-  request.digital.providers = [];
-  await promise_rejects_js(t, TypeError, requestIdentityWithActivation(test_driver, request));
-}, "navigator.identity.get() API fails if there are no providers.");
+      await promise_rejects_dom(
+        t,
+        "NotSupportedError",
+        global.DOMException,
+        global.navigator.identity.get({})
+      );
+
+      await promise_rejects_dom(
+        t,
+        "NotSupportedError",
+        global.DOMException,
+        global.navigator.identity.get({ x: "y" })
+      );
+
+      await promise_rejects_dom(
+        t,
+        "NotSupportedError",
+        global.DOMException,
+        global.navigator.identity.get({ x: "y", y: "z" })
+      );
+
+      await promise_rejects_dom(
+        t,
+        "NotSupportedError",
+        global.DOMException,
+        global.navigator.identity.get({ mediation: "required" })
+      );
+
+      const abortController = new AbortController();
+      const { signal } = abortController;
+
+      await promise_rejects_dom(
+        t,
+        "NotSupportedError",
+        global.DOMException,
+        global.navigator.identity.get({ signal })
+      );
+
+      await promise_rejects_dom(
+        t,
+        "NotSupportedError",
+        global.DOMException,
+        global.navigator.identity.get({ signal, mediation: "required" })
+      );
+    }
+  }, "Calling navigator.identity.get() without an digital member same origin.");
+
+  promise_test(async (t) => {
+    for (const provider of [undefined, []]) {
+      const options = makeGetOptions(provider);
+      await test_driver.bless("user activation");
+      await promise_rejects_js(t, TypeError, navigator.identity.get(options));
+    }
+  }, "navigator.identity.get() API rejects if there are no providers.");
+
+  promise_test(async (t) => {
+    iframeSameOrigin.focus();
+    const { contentWindow: iframeWindow } = iframeSameOrigin;
+    for (const provider of [undefined, []]) {
+      const options = makeGetOptions(provider);
+      await test_driver.bless("user activation");
+      await promise_rejects_js(
+        t,
+        iframeWindow.TypeError,
+        iframeWindow.navigator.identity.get(options)
+      );
+    }
+  }, "navigator.identity.get() API rejects if there are no providers for same-origin iframe.");
+
+  promise_test(async (t) => {
+    iframeCrossOrigin.focus();
+    for (const provider of [undefined, []]) {
+      const options = makeGetOptions(provider);
+      const result = await sendMessage(iframeCrossOrigin, {
+        action: "get",
+        options,
+      });
+      assert_equals(result.constructor, "TypeError");
+    }
+  }, "navigator.identity.get() API rejects if there are no providers in cross-origin iframe.");
+
+  promise_test(async (t) => {
+    const abortController = new AbortController();
+    const { signal } = abortController;
+    abortController.abort();
+    for (const options of [{ signal }, { signal, ...makeGetOptions([]) }]) {
+      await promise_rejects_dom(
+        t,
+        "AbortError",
+        navigator.identity.get(options)
+      );
+    }
+  }, "navigator.identity.get() promise is rejected if called with an aborted signal.");
+
+  promise_test(async (t) => {
+    iframeSameOrigin.focus();
+    const { contentWindow: iframeWindow } = iframeSameOrigin;
+    const abortController = new iframeWindow.AbortController();
+    const { signal } = abortController;
+    abortController.abort();
+    for (const options of [{ signal }, { signal, ...makeGetOptions([]) }]) {
+      await test_driver.bless("user activation");
+      await promise_rejects_dom(
+        t,
+        "AbortError",
+        iframeWindow.DOMException,
+        iframeWindow.navigator.identity.get(options)
+      );
+      assert_true(
+        navigator.userActivation.isActive,
+        "User activation is still active."
+      );
+    }
+  }, "navigator.identity.get() promise is rejected if called with an aborted signal in same-origin iframe.");
+
+  promise_test(async (t) => {
+    iframeCrossOrigin.focus();
+    for (const options of [undefined, {}, makeGetOptions([])]) {
+      const result = await sendMessage(iframeCrossOrigin, {
+        abort: "before",
+        action: "get",
+        options,
+      });
+      assert_equals(result.constructor, "DOMException");
+      assert_equals(result.name, "AbortError");
+    }
+  }, "navigator.identity.get() promise is rejected if called with an aborted signal in cross-origin iframe.");
+
+  promise_test(async (t) => {
+    const abortController = new AbortController();
+    const { signal } = abortController;
+    const options = makeGetOptions("openid4vp");
+    await test_driver.bless("user activation");
+    const promise = promise_rejects_dom(
+      t,
+      "AbortError",
+      DOMException,
+      navigator.identity.get(options)
+    );
+    abortController.abort();
+    await promise;
+  }, "navigator.identity.get() promise is rejected if abort controller is aborted after call to get().");
+
+  promise_test(async (t) => {
+    iframeCrossOrigin.focus();
+    const result = await sendMessage(iframeCrossOrigin, {
+      abort: "after",
+      action: "get",
+      needsActivation: true,
+      options: makeGetOptions("openid4vp"),
+    });
+    assert_equals(result.constructor, "DOMException");
+    assert_equals(result.name, "AbortError");
+  }, "navigator.identity.get() promise is rejected if abort controller is aborted after call to get() in cross-origin iframe.");
 </script>

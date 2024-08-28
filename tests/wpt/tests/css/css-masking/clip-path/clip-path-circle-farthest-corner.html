@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Masking: Test clip-path property and circle with farthest-corner on rectangular div</title>
+    <link rel="help" href="http://www.w3.org/TR/css-masking-1/#clipping-paths">
+    <link rel="help" href="http://www.w3.org/TR/css-masking-1/#the-clip-path">
+    <link rel="match" href="reference/clip-path-circle-4-ref.html">
+    <meta name="fuzzy" content="maxDifference=0-40; totalPixels=0-2000">
+    <meta name="assert" content="The clip-path property takes the basic shape
+    'circle' for clipping. The size of the circle is computed using the farthest corner,
+    which makes the circle larger than the box.">
+    <style>
+    body {
+        padding: 0;
+        margin: 0;
+    }
+
+    .test {
+        position: absolute;
+        left: 100px;
+        top: 150px;
+        width: 200px;
+        height: 300px;
+        background-color: red;
+        clip-path: circle(farthest-corner at 200px 150px);
+    }
+
+    .inner {
+        position: absolute;
+        top: -110px;
+        left: -100px;
+        width: 600px;
+        height: 520px;
+        background-color: green;
+    }
+    </style>
+</head>
+<body>
+    <p>The test passes if there is a full green circle.</p>
+    <div class="test">
+        <div class="inner"></div>
+        <div class="center-indicator"></div>
+    </div>
+</body>
+</html>

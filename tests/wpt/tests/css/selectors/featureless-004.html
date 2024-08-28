@@ -1,0 +1,43 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Logical combo pseudos can match if their argument is allowed to</title>
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#featureless">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square-only.html">
+<p>Test passes if there is a filled green square.</p>
+<div class=host>
+    <template shadowrootmode="open">
+      <style>
+        div {
+          width: 100px;
+          height: 20px;
+        }
+        .red { background-color: red; }
+        .green { background-color: green; }
+
+        :is(:host, aside) .t1 {
+          background-color: green;
+        }
+        :not(:not(:host)) .t2 {
+          background-color: green;
+        }
+
+
+        :not(aside) .t3 {
+          background-color: red;
+        }
+        :not(.foo:host) .t4 {
+          background-color: red;
+        }
+        :not(:host > .foo) .t5 {
+          background-color: red;
+        }
+      </style>
+      <div class="red t1"></div>
+      <div class="red t2"></div>
+      <div class="green t3"></div>
+      <div class="green t4"></div>
+      <div class="green t5"></div>
+      <slot></slot>
+    </template>
+    <section></section>
+</div>

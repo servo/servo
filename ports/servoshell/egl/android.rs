@@ -9,13 +9,11 @@ mod simpleservo;
 use std::collections::HashMap;
 use std::os::raw::{c_char, c_int, c_void};
 use std::sync::Arc;
-use std::thread;
 
 use android_logger::{self, Config, FilterBuilder};
 use jni::objects::{GlobalRef, JClass, JObject, JString, JValue, JValueOwned};
 use jni::sys::{jboolean, jfloat, jint, jobject, jstring, JNI_TRUE};
 use jni::{JNIEnv, JavaVM};
-use libc::{dup2, pipe, read};
 use log::{debug, error, info, warn};
 use simpleservo::{
     DeviceIntRect, EventLoopWaker, InitOptions, InputMethodType, MediaSessionPlaybackState,

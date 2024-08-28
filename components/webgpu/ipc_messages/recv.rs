@@ -267,9 +267,8 @@ pub enum WebGPURequest {
     },
     UnmapBuffer {
         buffer_id: id::BufferId,
-        device_id: id::DeviceId,
         array_buffer: IpcSharedMemory,
-        is_map_read: bool,
+        write_back: bool,
         offset: u64,
         size: u64,
     },

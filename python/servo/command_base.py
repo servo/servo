@@ -10,17 +10,13 @@
 from __future__ import annotations
 
 import contextlib
-import errno
-import json
-import pathlib
 from enum import Enum
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 import functools
 import gzip
 import itertools
 import locale
 import os
-import platform
 import re
 import shutil
 import subprocess
@@ -35,16 +31,17 @@ from glob import glob
 from os import path
 from subprocess import PIPE
 from xml.etree.ElementTree import XML
-from packaging.version import parse as parse_version
 
 import toml
 
 from mach.decorators import CommandArgument, CommandArgumentGroup
 from mach.registrar import Registrar
 
+from servo.platform.build_target import BuildTarget, AndroidTarget, OpenHarmonyTarget
+from servo.util import download_file, get_default_cache_dir
+
 import servo.platform
 import servo.util as util
-from servo.util import download_file, get_default_cache_dir
 
 NIGHTLY_REPOSITORY_URL = "https://servo-builds2.s3.amazonaws.com/"
 ASAN_LEAK_SUPPRESSION_FILE = "support/suppressed_leaks_for_asan.txt"
@@ -256,9 +253,10 @@ class CommandBase(object):
         self.context = context
         self.enable_media = False
         self.features = []
-        self.cross_compile_target = None
-        self.is_android_build = False
-        self.target_path = util.get_target_dir()
+
+        # Default to native build target. This will later be overriden
+        # by `configure_build_target`
+        self.target = BuildTarget.from_triple(None)
 
         def get_env_bool(var, default):
             # Contents of env vars are strings by default. This returns the
@@ -317,9 +315,6 @@ class CommandBase(object):
         self.config.setdefault("ohos", {})
         self.config["ohos"].setdefault("ndk", "")
 
-        # Set default android target
-        self.setup_configuration_for_android_target("armv7-linux-androideabi")
-
     _rust_toolchain = None
 
     def rust_toolchain(self):
@@ -339,28 +334,16 @@ class CommandBase(object):
         apk_name = "servoapp.apk"
         return path.join(base_path, build_type.directory_name(), apk_name)
 
-    def get_binary_path(self, build_type: BuildType, target=None, android=False, asan=False):
-        if target is None and asan:
-            target = servo.platform.host_triple()
-
+    def get_binary_path(self, build_type: BuildType, asan: bool = False):
         base_path = util.get_target_dir()
-
-        if android:
-            base_path = path.join(base_path, self.config["android"]["target"])
-        elif target:
-            base_path = path.join(base_path, target)
-        if android or (target is not None and "-ohos" in target):
-            return path.join(base_path, build_type.directory_name(), "libservoshell.so")
-
-        binary_name = f"servo{servo.platform.get().executable_suffix()}"
+        if asan or self.target.is_cross_build():
+            base_path = path.join(base_path, self.target.triple())
+        binary_name = self.target.binary_name()
         binary_path = path.join(base_path, build_type.directory_name(), binary_name)
 
         if not path.exists(binary_path):
-            if target is None:
-                print("WARNING: Fallback to host-triplet prefixed target dirctory for binary path.")
-                return self.get_binary_path(build_type, target=servo.platform.host_triple(), android=android)
-            else:
-                raise BuildNotFound('No Servo binary found. Perhaps you forgot to run `./mach build`?')
+            raise BuildNotFound('No Servo binary found. Perhaps you forgot to run `./mach build`?')
+
         return binary_path
 
     def detach_volume(self, mounted_volume):
@@ -491,9 +474,9 @@ class CommandBase(object):
 
         # If we are installing on MacOS and Windows, we need to make sure that GStreamer's
         # `pkg-config` is on the path and takes precedence over other `pkg-config`s.
-        if self.enable_media and not self.is_android_build:
+        if self.enable_media:
             platform = servo.platform.get()
-            gstreamer_root = platform.gstreamer_root(cross_compilation_target=self.cross_compile_target)
+            gstreamer_root = platform.gstreamer_root(self.target)
             if gstreamer_root:
                 util.prepend_paths_to_env(env, "PATH", os.path.join(gstreamer_root, "bin"))
 
@@ -532,271 +515,9 @@ class CommandBase(object):
         # Suppress known false-positives during memory leak sanitizing.
         env["LSAN_OPTIONS"] = f"{env.get('LSAN_OPTIONS', '')}:suppressions={ASAN_LEAK_SUPPRESSION_FILE}"
 
-        self.build_android_env_if_needed(env)
-        self.build_ohos_env_if_needed(env)
+        self.target.configure_build_environment(env, self.config, self.context.topdir)
 
         return env
-
-    def build_android_env_if_needed(self, env: Dict[str, str]):
-        if not self.is_android_build:
-            return
-
-        # Paths to Android build tools:
-        if self.config["android"]["sdk"]:
-            env["ANDROID_SDK_ROOT"] = self.config["android"]["sdk"]
-        if self.config["android"]["ndk"]:
-            env["ANDROID_NDK_ROOT"] = self.config["android"]["ndk"]
-
-        toolchains = path.join(self.context.topdir, "android-toolchains")
-        for kind in ["sdk", "ndk"]:
-            default = os.path.join(toolchains, kind)
-            if os.path.isdir(default):
-                env.setdefault(f"ANDROID_{kind.upper()}_ROOT", default)
-
-        if "IN_NIX_SHELL" in env and ("ANDROID_NDK_ROOT" not in env or "ANDROID_SDK_ROOT" not in env):
-            print("Please set SERVO_ANDROID_BUILD=1 when starting the Nix shell to include the Android SDK/NDK.")
-            sys.exit(1)
-        if "ANDROID_NDK_ROOT" not in env:
-            print("Please set the ANDROID_NDK_ROOT environment variable.")
-            sys.exit(1)
-        if "ANDROID_SDK_ROOT" not in env:
-            print("Please set the ANDROID_SDK_ROOT environment variable.")
-            sys.exit(1)
-
-        android_platform = self.config["android"]["platform"]
-        android_toolchain_name = self.config["android"]["toolchain_name"]
-        android_lib = self.config["android"]["lib"]
-
-        android_api = android_platform.replace('android-', '')
-
-        # Check if the NDK version is 26
-        if not os.path.isfile(path.join(env["ANDROID_NDK_ROOT"], 'source.properties')):
-            print("ANDROID_NDK should have file `source.properties`.")
-            print("The environment variable ANDROID_NDK_ROOT may be set at a wrong path.")
-            sys.exit(1)
-        with open(path.join(env["ANDROID_NDK_ROOT"], 'source.properties'), encoding="utf8") as ndk_properties:
-            lines = ndk_properties.readlines()
-            if lines[1].split(' = ')[1].split('.')[0] != '26':
-                print("Servo currently only supports NDK r26c.")
-                sys.exit(1)
-
-        # Android builds also require having the gcc bits on the PATH and various INCLUDE
-        # path munging if you do not want to install a standalone NDK. See:
-        # https://dxr.mozilla.org/mozilla-central/source/build/autoconf/android.m4#139-161
-        os_type = platform.system().lower()
-        if os_type not in ["linux", "darwin"]:
-            raise Exception("Android cross builds are only supported on Linux and macOS.")
-
-        cpu_type = platform.machine().lower()
-        host_suffix = "unknown"
-        if cpu_type in ["i386", "i486", "i686", "i768", "x86"]:
-            host_suffix = "x86"
-        elif cpu_type in ["x86_64", "x86-64", "x64", "amd64"]:
-            host_suffix = "x86_64"
-        host = os_type + "-" + host_suffix
-
-        host_cc = env.get('HOST_CC') or shutil.which("clang")
-        host_cxx = env.get('HOST_CXX') or shutil.which("clang++")
-
-        llvm_toolchain = path.join(env['ANDROID_NDK_ROOT'], "toolchains", "llvm", "prebuilt", host)
-        env['PATH'] = (env['PATH'] + ':' + path.join(llvm_toolchain, "bin"))
-
-        def to_ndk_bin(prog):
-            return path.join(llvm_toolchain, "bin", prog)
-
-        # This workaround is due to an issue in the x86_64 Android NDK that introduces
-        # an undefined reference to the symbol '__extendsftf2'.
-        # See https://github.com/termux/termux-packages/issues/8029#issuecomment-1369150244
-        if "x86_64" in self.cross_compile_target:
-            libclangrt_filename = subprocess.run(
-                [to_ndk_bin(f"x86_64-linux-android{android_api}-clang"), "--print-libgcc-file-name"],
-                check=True,
-                capture_output=True,
-                encoding="utf8"
-            ).stdout
-            env['RUSTFLAGS'] = env.get('RUSTFLAGS', "")
-            env["RUSTFLAGS"] += f"-C link-arg={libclangrt_filename}"
-
-        env["RUST_TARGET"] = self.cross_compile_target
-        env['HOST_CC'] = host_cc
-        env['HOST_CXX'] = host_cxx
-        env['HOST_CFLAGS'] = ''
-        env['HOST_CXXFLAGS'] = ''
-        env['TARGET_CC'] = to_ndk_bin("clang")
-        env['TARGET_CPP'] = to_ndk_bin("clang") + " -E"
-        env['TARGET_CXX'] = to_ndk_bin("clang++")
-
-        env['TARGET_AR'] = to_ndk_bin("llvm-ar")
-        env['TARGET_RANLIB'] = to_ndk_bin("llvm-ranlib")
-        env['TARGET_OBJCOPY'] = to_ndk_bin("llvm-objcopy")
-        env['TARGET_YASM'] = to_ndk_bin("yasm")
-        env['TARGET_STRIP'] = to_ndk_bin("llvm-strip")
-        env['RUST_FONTCONFIG_DLOPEN'] = "on"
-
-        env["LIBCLANG_PATH"] = path.join(llvm_toolchain, "lib")
-        env["CLANG_PATH"] = to_ndk_bin("clang")
-
-        # A cheat-sheet for some of the build errors caused by getting the search path wrong...
-        #
-        # fatal error: 'limits' file not found
-        #   -- add -I cxx_include
-        # unknown type name '__locale_t' (when running bindgen in mozjs_sys)
-        #   -- add -isystem sysroot_include
-        # error: use of undeclared identifier 'UINTMAX_C'
-        #   -- add -D__STDC_CONSTANT_MACROS
-        #
-        # Also worth remembering: autoconf uses C for its configuration,
-        # even for C++ builds, so the C flags need to line up with the C++ flags.
-        env['TARGET_CFLAGS'] = "--target=" + android_toolchain_name
-        env['TARGET_CXXFLAGS'] = "--target=" + android_toolchain_name
-
-        # These two variables are needed for the mozjs compilation.
-        env['ANDROID_API_LEVEL'] = android_api
-        env["ANDROID_NDK_HOME"] = env["ANDROID_NDK_ROOT"]
-
-        # The two variables set below are passed by our custom
-        # support/android/toolchain.cmake to the NDK's CMake toolchain file
-        env["ANDROID_ABI"] = android_lib
-        env["ANDROID_PLATFORM"] = android_platform
-        env["NDK_CMAKE_TOOLCHAIN_FILE"] = path.join(
-            env['ANDROID_NDK_ROOT'], "build", "cmake", "android.toolchain.cmake")
-        env["CMAKE_TOOLCHAIN_FILE"] = path.join(
-            self.context.topdir, "support", "android", "toolchain.cmake")
-
-        # Set output dir for gradle aar files
-        env["AAR_OUT_DIR"] = path.join(self.context.topdir, "target", "android", "aar")
-        if not os.path.exists(env['AAR_OUT_DIR']):
-            os.makedirs(env['AAR_OUT_DIR'])
-
-        env['TARGET_PKG_CONFIG_SYSROOT_DIR'] = path.join(llvm_toolchain, 'sysroot')
-
-    def build_ohos_env_if_needed(self, env: Dict[str, str]):
-        if not (self.cross_compile_target and self.cross_compile_target.endswith('-ohos')):
-            return
-
-        # Paths to OpenHarmony SDK and build tools:
-        # Note: `OHOS_SDK_NATIVE` is the CMake variable name the `hvigor` build-system
-        # uses for the native directory of the SDK, so we use the same name to be consistent.
-        if "OHOS_SDK_NATIVE" not in env and self.config["ohos"]["ndk"]:
-            env["OHOS_SDK_NATIVE"] = self.config["ohos"]["ndk"]
-
-        if "OHOS_SDK_NATIVE" not in env:
-            print("Please set the OHOS_SDK_NATIVE environment variable to the location of the `native` directory "
-                  "in the OpenHarmony SDK.")
-            sys.exit(1)
-
-        ndk_root = pathlib.Path(env["OHOS_SDK_NATIVE"])
-
-        if not ndk_root.is_dir():
-            print(f"OHOS_SDK_NATIVE is not set to a valid directory: `{ndk_root}`")
-            sys.exit(1)
-
-        ndk_root = ndk_root.resolve()
-        package_info = ndk_root.joinpath("oh-uni-package.json")
-        try:
-            with open(package_info) as meta_file:
-                meta = json.load(meta_file)
-            ohos_api_version = int(meta['apiVersion'])
-            ohos_sdk_version = parse_version(meta['version'])
-            if ohos_sdk_version < parse_version('4.0'):
-                print("Warning: mach build currently assumes at least the OpenHarmony 4.0 SDK is used.")
-            print(f"Info: The OpenHarmony SDK {ohos_sdk_version} is targeting API-level {ohos_api_version}")
-        except Exception as e:
-            print(f"Failed to read metadata information from {package_info}")
-            print(f"Exception: {e}")
-
-        # The OpenHarmony SDK for Windows hosts currently does not contain a libclang shared library,
-        # which is required by `bindgen` (see issue
-        # https://gitee.com/openharmony/third_party_llvm-project/issues/I8H50W). Using upstream `clang` is currently
-        # also not easily possible, since `libcxx` support still needs to be upstreamed (
-        # https://github.com/llvm/llvm-project/pull/73114).
-        os_type = platform.system().lower()
-        if os_type not in ["linux", "darwin"]:
-            raise Exception("OpenHarmony builds are currently only supported on Linux and macOS Hosts.")
-
-        llvm_toolchain = ndk_root.joinpath("llvm")
-        llvm_bin = llvm_toolchain.joinpath("bin")
-        ohos_sysroot = ndk_root.joinpath("sysroot")
-        if not (llvm_toolchain.is_dir() and llvm_bin.is_dir()):
-            print(f"Expected to find `llvm` and `llvm/bin` folder under $OHOS_SDK_NATIVE at `{llvm_toolchain}`")
-            sys.exit(1)
-        if not ohos_sysroot.is_dir():
-            print(f"Could not find OpenHarmony sysroot in {ndk_root}")
-            sys.exit(1)
-
-        # Note: We don't use the `<target_triple>-clang` wrappers on purpose, since
-        # a) the OH 4.0 SDK does not have them yet AND
-        # b) the wrappers in the newer SDKs are bash scripts, which can cause problems
-        # on windows, depending on how the wrapper is called.
-        # Instead, we ensure that all the necessary flags for the c-compiler are set
-        # via environment variables such as `TARGET_CFLAGS`.
-        def to_sdk_llvm_bin(prog: str):
-            if is_windows():
-                prog = prog + '.exe'
-            llvm_prog = llvm_bin.joinpath(prog)
-            if not llvm_prog.is_file():
-                raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), llvm_prog)
-            return str(llvm_bin.joinpath(prog))
-
-        # CC and CXX should already be set to appropriate host compilers by `build_env()`
-        env['HOST_CC'] = env['CC']
-        env['HOST_CXX'] = env['CXX']
-        env['TARGET_AR'] = to_sdk_llvm_bin("llvm-ar")
-        env['TARGET_RANLIB'] = to_sdk_llvm_bin("llvm-ranlib")
-        env['TARGET_READELF'] = to_sdk_llvm_bin("llvm-readelf")
-        env['TARGET_OBJCOPY'] = to_sdk_llvm_bin("llvm-objcopy")
-        env['TARGET_STRIP'] = to_sdk_llvm_bin("llvm-strip")
-
-        rust_target_triple = str(self.cross_compile_target).replace('-', '_')
-        ndk_clang = to_sdk_llvm_bin(f"{self.cross_compile_target}-clang")
-        ndk_clangxx = to_sdk_llvm_bin(f"{self.cross_compile_target}-clang++")
-        env[f'CC_{rust_target_triple}'] = ndk_clang
-        env[f'CXX_{rust_target_triple}'] = ndk_clangxx
-        # The clang target name is different from the LLVM target name
-        clang_target_triple = str(self.cross_compile_target).replace('-unknown-', '-')
-        clang_target_triple_underscore = clang_target_triple.replace('-', '_')
-        env[f'CC_{clang_target_triple_underscore}'] = ndk_clang
-        env[f'CXX_{clang_target_triple_underscore}'] = ndk_clangxx
-        # rustc linker
-        env[f'CARGO_TARGET_{rust_target_triple.upper()}_LINKER'] = ndk_clang
-        # We could also use a cross-compile wrapper
-        env["RUSTFLAGS"] += f' -Clink-arg=--target={clang_target_triple}'
-        env["RUSTFLAGS"] += f' -Clink-arg=--sysroot={ohos_sysroot}'
-
-        env['HOST_CFLAGS'] = ''
-        env['HOST_CXXFLAGS'] = ''
-        ohos_cflags = ['-D__MUSL__', f' --target={clang_target_triple}', f' --sysroot={ohos_sysroot}']
-        if clang_target_triple.startswith('armv7-'):
-            ohos_cflags.extend(['-march=armv7-a', '-mfloat-abi=softfp', '-mtune=generic-armv7-a', '-mthumb'])
-        ohos_cflags_str = " ".join(ohos_cflags)
-        env['TARGET_CFLAGS'] = ohos_cflags_str
-        env['TARGET_CPPFLAGS'] = '-D__MUSL__'
-        env['TARGET_CXXFLAGS'] = ohos_cflags_str
-
-        # CMake related flags
-        cmake_toolchain_file = ndk_root.joinpath("build", "cmake", "ohos.toolchain.cmake")
-        if cmake_toolchain_file.is_file():
-            env[f'CMAKE_TOOLCHAIN_FILE_{rust_target_triple}'] = str(cmake_toolchain_file)
-        else:
-            print(
-                f"Warning: Failed to find the OpenHarmony CMake Toolchain file - Expected it at {cmake_toolchain_file}")
-        env[f'CMAKE_C_COMPILER_{rust_target_triple}'] = ndk_clang
-        env[f'CMAKE_CXX_COMPILER_{rust_target_triple}'] = ndk_clangxx
-
-        # pkg-config
-        pkg_config_path = '{}:{}'.format(str(ohos_sysroot.joinpath("usr", "lib", "pkgconfig")),
-                                         str(ohos_sysroot.joinpath("usr", "share", "pkgconfig")))
-        env[f'PKG_CONFIG_SYSROOT_DIR_{rust_target_triple}'] = str(ohos_sysroot)
-        env[f'PKG_CONFIG_PATH_{rust_target_triple}'] = pkg_config_path
-
-        # bindgen / libclang-sys
-        env["LIBCLANG_PATH"] = path.join(llvm_toolchain, "lib")
-        env["CLANG_PATH"] = ndk_clangxx
-        env[f'CXXSTDLIB_{clang_target_triple_underscore}'] = "c++"
-        bindgen_extra_clangs_args_var = f'BINDGEN_EXTRA_CLANG_ARGS_{rust_target_triple}'
-        bindgen_extra_clangs_args = env.get(bindgen_extra_clangs_args_var, "")
-        bindgen_extra_clangs_args = bindgen_extra_clangs_args + " " + ohos_cflags_str
-        env[bindgen_extra_clangs_args_var] = bindgen_extra_clangs_args
 
     @staticmethod
     def common_command_arguments(build_configuration=False, build_type=False):
@@ -884,7 +605,7 @@ class CommandBase(object):
                     kwargs.pop('profile', None)
 
                 if build_configuration:
-                    self.configure_cross_compilation(kwargs['target'], kwargs['android'], kwargs['win_arm64'])
+                    self.configure_build_target(kwargs)
                     self.features = kwargs.get("features", None) or []
                     self.enable_media = self.is_media_enabled(kwargs['media_stack'])
 
@@ -897,6 +618,16 @@ class CommandBase(object):
             return configuration_decorator
 
         return decorator_function
+
+    @staticmethod
+    def allow_target_configuration(original_function):
+        def target_configuration_decorator(self, *args, **kwargs):
+            self.configure_build_target(kwargs, suppress_log=True)
+            kwargs.pop('target', False)
+            kwargs.pop('android', False)
+            return original_function(self, *args, **kwargs)
+
+        return target_configuration_decorator
 
     def configure_build_type(self, release: bool, dev: bool, prod: bool, profile: Optional[str]) -> BuildType:
         option_count = release + dev + prod + (profile is not None)
@@ -926,33 +657,32 @@ class CommandBase(object):
         else:
             return BuildType.custom(profile)
 
-    def configure_cross_compilation(
-            self,
-            cross_compile_target: Optional[str],
-            android: Optional[str],
-            win_arm64: Optional[str]):
-        # Force the UWP-enabled target if the convenience UWP flags are passed.
-        if android is None:
-            android = self.config["build"]["android"]
-        if android:
-            if not cross_compile_target:
-                cross_compile_target = self.config["android"]["target"]
-            assert cross_compile_target
-            assert self.setup_configuration_for_android_target(cross_compile_target)
-        elif cross_compile_target:
-            # If a target was specified, it might also be an android target,
-            # so set up the configuration in that case.
-            self.setup_configuration_for_android_target(cross_compile_target)
+    def configure_build_target(self, kwargs: Dict[str, Any], suppress_log: bool = False):
+        if hasattr(self.context, 'target'):
+            # This call is for a dispatched command and we've already configured
+            # the target, so just use it.
+            self.target = self.context.target
+            return
 
-        self.cross_compile_target = cross_compile_target
-        self.is_android_build = (cross_compile_target and "android" in cross_compile_target)
-        self.target_path = servo.util.get_target_dir()
-        if self.is_android_build:
-            assert self.cross_compile_target
-            self.target_path = path.join(self.target_path, "android", self.cross_compile_target)
+        android = kwargs.get('android') or self.config["build"]["android"]
+        target_triple = kwargs.get('target')
 
-        if self.cross_compile_target:
-            print(f"Targeting '{self.cross_compile_target}' for cross-compilation")
+        if android and target_triple:
+            print("Please specify either --target or --android.")
+            sys.exit(1)
+
+        #  Set the default Android target
+        if android and not target_triple:
+            target_triple = "armv7-linux-androideabi"
+
+        self.target = BuildTarget.from_triple(target_triple)
+
+        self.context.target = self.target
+        if self.target.is_cross_build() and not suppress_log:
+            print(f"Targeting '{self.target.triple()}' for cross-compilation")
+
+    def is_android(self):
+        return isinstance(self.target, AndroidTarget)
 
     def is_media_enabled(self, media_stack: Optional[str]):
         """Determine whether media is enabled based on the value of the build target
@@ -962,7 +692,7 @@ class CommandBase(object):
             if self.config["build"]["media-stack"] != "auto":
                 media_stack = self.config["build"]["media-stack"]
                 assert media_stack
-            elif not self.cross_compile_target:
+            elif not self.target.is_cross_build():
                 media_stack = "gstreamer"
             else:
                 media_stack = "dummy"
@@ -971,8 +701,8 @@ class CommandBase(object):
         # Once we drop support for this platform (it's currently needed for wpt.fyi runners),
         # we can remove this workaround and officially only support Ubuntu 22.04 and up.
         platform = servo.platform.get()
-        if not self.cross_compile_target and platform.is_linux and \
-                not platform.is_gstreamer_installed(self.cross_compile_target):
+        if not self.target.is_cross_build() and platform.is_linux and \
+                not platform.is_gstreamer_installed(self.target):
             return False
 
         return media_stack != "dummy"
@@ -988,12 +718,10 @@ class CommandBase(object):
     ):
         env = env or self.build_env()
 
-        # Android GStreamer integration is handled elsewhere.
         # NB: On non-Linux platforms we cannot check whether GStreamer is installed until
         # environment variables are set via `self.build_env()`.
         platform = servo.platform.get()
-        if self.enable_media and not self.is_android_build and \
-                not platform.is_gstreamer_installed(self.cross_compile_target):
+        if self.enable_media and not platform.is_gstreamer_installed(self.target):
             raise FileNotFoundError(
                 "GStreamer libraries not found (>= version 1.18)."
                 "Please see installation instructions in README.md"
@@ -1007,9 +735,9 @@ class CommandBase(object):
             ]
         if target_override:
             args += ["--target", target_override]
-        elif self.cross_compile_target:
-            args += ["--target", self.cross_compile_target]
-            if self.is_android_build or '-ohos' in self.cross_compile_target:
+        elif self.target.is_cross_build():
+            args += ["--target", self.target.triple()]
+            if type(self.target) in [AndroidTarget, OpenHarmonyTarget]:
                 # Note: in practice `cargo rustc` should just be used unconditionally.
                 assert command != 'build', "For Android / OpenHarmony `cargo rustc` must be used instead of cargo build"
                 if command == 'rustc':
@@ -1066,60 +794,24 @@ class CommandBase(object):
                 return sdk_adb
         return "emulator"
 
-    def setup_configuration_for_android_target(self, target: str):
-        """If cross-compilation targets Android, configure the Android
-           build by writing the appropriate toolchain configuration values
-           into the stored configuration."""
-        if target == "armv7-linux-androideabi":
-            self.config["android"]["platform"] = "android-30"
-            self.config["android"]["target"] = target
-            self.config["android"]["toolchain_prefix"] = "arm-linux-androideabi"
-            self.config["android"]["arch"] = "arm"
-            self.config["android"]["lib"] = "armeabi-v7a"
-            self.config["android"]["toolchain_name"] = "armv7a-linux-androideabi30"
-            return True
-        elif target == "aarch64-linux-android":
-            self.config["android"]["platform"] = "android-30"
-            self.config["android"]["target"] = target
-            self.config["android"]["toolchain_prefix"] = target
-            self.config["android"]["arch"] = "arm64"
-            self.config["android"]["lib"] = "arm64-v8a"
-            self.config["android"]["toolchain_name"] = "aarch64-linux-androideabi30"
-            return True
-        elif target == "i686-linux-android":
-            # https://github.com/jemalloc/jemalloc/issues/1279
-            self.config["android"]["platform"] = "android-30"
-            self.config["android"]["target"] = target
-            self.config["android"]["toolchain_prefix"] = target
-            self.config["android"]["arch"] = "x86"
-            self.config["android"]["lib"] = "x86"
-            self.config["android"]["toolchain_name"] = "i686-linux-android30"
-            return True
-        elif target == "x86_64-linux-android":
-            self.config["android"]["platform"] = "android-30"
-            self.config["android"]["target"] = target
-            self.config["android"]["toolchain_prefix"] = target
-            self.config["android"]["arch"] = "x86_64"
-            self.config["android"]["lib"] = "x86_64"
-            self.config["android"]["toolchain_name"] = "x86_64-linux-android30"
-            return True
-        return False
-
     def ensure_bootstrapped(self):
         if self.context.bootstrapped:
             return
 
         servo.platform.get().passive_bootstrap()
-
-        needs_toolchain_install = self.cross_compile_target and \
-            self.cross_compile_target not in \
-            check_output(["rustup", "target", "list", "--installed"],
-                         cwd=self.context.topdir).decode()
-        if needs_toolchain_install:
-            check_call(["rustup", "target", "add", self.cross_compile_target],
-                       cwd=self.context.topdir)
-
         self.context.bootstrapped = True
+
+        # Toolchain installation is handled automatically for non cross compilation builds.
+        if not self.target.is_cross_build():
+            return
+
+        installed_targets = check_output(
+            ["rustup", "target", "list", "--installed"],
+            cwd=self.context.topdir
+        ).decode()
+        if self.target.triple() not in installed_targets:
+            check_call(["rustup", "target", "add", self.target.triple()],
+                       cwd=self.context.topdir)
 
     def ensure_rustup_version(self):
         try:

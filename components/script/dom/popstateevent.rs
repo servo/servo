@@ -20,7 +20,7 @@ use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::window::Window;
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{CanGc, JSContext};
 
 // https://html.spec.whatwg.org/multipage/#the-popstateevent-interface
 #[dom_struct]
@@ -38,8 +38,17 @@ impl PopStateEvent {
         }
     }
 
-    fn new_uninitialized(window: &Window, proto: Option<HandleObject>) -> DomRoot<PopStateEvent> {
-        reflect_dom_object_with_proto(Box::new(PopStateEvent::new_inherited()), window, proto)
+    fn new_uninitialized(
+        window: &Window,
+        proto: Option<HandleObject>,
+        can_gc: CanGc,
+    ) -> DomRoot<PopStateEvent> {
+        reflect_dom_object_with_proto(
+            Box::new(PopStateEvent::new_inherited()),
+            window,
+            proto,
+            can_gc,
+        )
     }
 
     fn new(
@@ -49,8 +58,9 @@ impl PopStateEvent {
         bubbles: bool,
         cancelable: bool,
         state: HandleValue,
+        can_gc: CanGc,
     ) -> DomRoot<PopStateEvent> {
-        let ev = PopStateEvent::new_uninitialized(window, proto);
+        let ev = PopStateEvent::new_uninitialized(window, proto, can_gc);
         ev.state.set(state.get());
         {
             let event = ev.upcast::<Event>();
@@ -63,6 +73,7 @@ impl PopStateEvent {
     pub fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         type_: DOMString,
         init: RootedTraceableBox<PopStateEventBinding::PopStateEventInit>,
     ) -> Fallible<DomRoot<PopStateEvent>> {
@@ -73,11 +84,20 @@ impl PopStateEvent {
             init.parent.bubbles,
             init.parent.cancelable,
             init.state.handle(),
+            can_gc,
         ))
     }
 
     pub fn dispatch_jsval(target: &EventTarget, window: &Window, state: HandleValue) {
-        let event = PopStateEvent::new(window, None, atom!("popstate"), false, false, state);
+        let event = PopStateEvent::new(
+            window,
+            None,
+            atom!("popstate"),
+            false,
+            false,
+            state,
+            CanGc::note(),
+        );
         event.upcast::<Event>().fire(target);
     }
 }

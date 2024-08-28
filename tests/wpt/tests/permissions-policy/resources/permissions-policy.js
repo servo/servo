@@ -30,7 +30,7 @@ function assert_permissions_policy_supported() {
 //    promise. Used by test_feature_availability_with_post_message_result()
 function test_feature_availability(
     feature_descriptionOrObject, test, src, expect_feature_available, feature_name,
-    allowfullscreen, is_promise_test = false) {
+    allowfullscreen, is_promise_test = false, needs_focus = false) {
 
   if (feature_descriptionOrObject && feature_descriptionOrObject instanceof Object) {
     const {
@@ -41,6 +41,7 @@ function test_feature_availability(
       feature_name,
       allowfullscreen,
       is_promise_test,
+      needs_focus,
     } = feature_descriptionOrObject;
     return test_feature_availability(
       feature_description,
@@ -49,7 +50,8 @@ function test_feature_availability(
       expect_feature_available,
       feature_name,
       allowfullscreen,
-      is_promise_test
+      is_promise_test,
+      needs_focus,
     );
   }
 
@@ -84,6 +86,9 @@ function test_feature_availability(
                     window.addEventListener('message', resolve);
                   }).then(expectFeatureAvailable);
   document.body.appendChild(frame);
+  if (needs_focus) {
+    frame.focus();
+  }
   return promise;
 }
 

@@ -45,6 +45,12 @@ pub fn main() {
         "A preference to set to disable",
         "dom.webgpu.enabled=false",
     );
+    opts.optmulti(
+        "",
+        "prefs-file",
+        "Load in additional prefs from a file.",
+        "--prefs-file /path/to/prefs.json",
+    );
 
     let opts_matches;
     let content_process_token;

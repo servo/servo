@@ -55,13 +55,19 @@ window.addEventListener("message", async (event) => {
       await test_driver.set_permission(...event.data.args);
       reply(undefined);
       break;
-    case "observe_permission_change":
+    case "get_permission": {
+      const status = await navigator.permissions.query({name: "storage-access"});
+      reply(status.state);
+      break;
+    }
+    case "observe_permission_change": {
       const status = await navigator.permissions.query({name: "storage-access"});
       status.addEventListener("change", (event) => {
         parent.postMessage(event.target.state, '*');
       }, { once: true });
       reply('permission_change_observer_installed');
       break;
+    }
     case "reload":
       window.location.reload();
       break;

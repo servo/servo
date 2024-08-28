@@ -15,7 +15,7 @@ use crate::dom::bindings::root::{Dom, DomRoot, Root};
 use crate::dom::bindings::trace::JSTraceable;
 use crate::dom::globalscope::GlobalScope;
 use crate::realms::AlreadyInRealm;
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{CanGc, JSContext};
 
 /// Create the reflector for a new DOM object and yield ownership to the
 /// reflector.
@@ -25,20 +25,29 @@ where
     U: DerivedFrom<GlobalScope>,
 {
     let global_scope = global.upcast();
-    unsafe { T::WRAP(GlobalScope::get_cx(), global_scope, None, obj) }
+    unsafe {
+        T::WRAP(
+            GlobalScope::get_cx(),
+            global_scope,
+            None,
+            obj,
+            CanGc::note(),
+        )
+    }
 }
 
 pub fn reflect_dom_object_with_proto<T, U>(
     obj: Box<T>,
     global: &U,
     proto: Option<HandleObject>,
+    can_gc: CanGc,
 ) -> DomRoot<T>
 where
     T: DomObject + DomObjectWrap,
     U: DerivedFrom<GlobalScope>,
 {
     let global_scope = global.upcast();
-    unsafe { T::WRAP(GlobalScope::get_cx(), global_scope, proto, obj) }
+    unsafe { T::WRAP(GlobalScope::get_cx(), global_scope, proto, obj, can_gc) }
 }
 
 /// A struct to store a reference to the reflector of a DOM object.
@@ -131,6 +140,7 @@ pub trait DomObjectWrap: Sized + DomObject {
         &GlobalScope,
         Option<HandleObject>,
         Box<Self>,
+        CanGc,
     ) -> Root<Dom<Self>>;
 }
 
@@ -143,5 +153,6 @@ pub trait DomObjectIteratorWrap: DomObjectWrap + JSTraceable + Iterable {
         &GlobalScope,
         Option<HandleObject>,
         Box<IterableIterator<Self>>,
+        CanGc,
     ) -> Root<Dom<IterableIterator<Self>>>;
 }

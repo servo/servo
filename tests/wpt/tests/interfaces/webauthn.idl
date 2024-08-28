@@ -19,7 +19,7 @@ typedef DOMString Base64URLString;
 typedef object PublicKeyCredentialJSON;
 
 dictionary RegistrationResponseJSON {
-    required Base64URLString id;
+    required DOMString id;
     required Base64URLString rawId;
     required AuthenticatorAttestationResponseJSON response;
     DOMString authenticatorAttachment;
@@ -45,7 +45,7 @@ dictionary AuthenticatorAttestationResponseJSON {
 };
 
 dictionary AuthenticationResponseJSON {
-    required Base64URLString id;
+    required DOMString id;
     required Base64URLString rawId;
     required AuthenticatorAssertionResponseJSON response;
     DOMString authenticatorAttachment;
@@ -106,8 +106,8 @@ dictionary PublicKeyCredentialUserEntityJSON {
 };
 
 dictionary PublicKeyCredentialDescriptorJSON {
-    required Base64URLString        id;
     required DOMString              type;
+    required Base64URLString        id;
     sequence<DOMString>             transports;
 };
 
@@ -211,7 +211,7 @@ enum AttestationConveyancePreference {
 dictionary PublicKeyCredentialRequestOptions {
     required BufferSource                challenge;
     unsigned long                        timeout;
-    USVString                            rpId;
+    DOMString                            rpId;
     sequence<PublicKeyCredentialDescriptor> allowCredentials = [];
     DOMString                            userVerification = "preferred";
     sequence<DOMString>                  hints = [];
@@ -228,8 +228,8 @@ dictionary CollectedClientData {
     required DOMString           type;
     required DOMString           challenge;
     required DOMString           origin;
-    DOMString                    topOrigin;
     boolean                      crossOrigin;
+    DOMString                    topOrigin;
 };
 
 dictionary TokenBinding {
@@ -356,22 +356,4 @@ dictionary AuthenticationExtensionsLargeBlobOutputs {
     boolean supported;
     ArrayBuffer blob;
     boolean written;
-};
-
-dictionary AuthenticationExtensionsSupplementalPubKeysInputs {
-    required sequence<DOMString> scopes;
-    DOMString attestation = "indirect";
-    sequence<DOMString> attestationFormats = [];
-};
-
-partial dictionary AuthenticationExtensionsClientInputs {
-    AuthenticationExtensionsSupplementalPubKeysInputs supplementalPubKeys;
-};
-
-dictionary AuthenticationExtensionsSupplementalPubKeysOutputs {
-    required sequence<ArrayBuffer> signatures;
-};
-
-partial dictionary AuthenticationExtensionsClientOutputs {
-    AuthenticationExtensionsSupplementalPubKeysOutputs supplementalPubKeys;
 };

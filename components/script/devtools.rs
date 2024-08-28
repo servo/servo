@@ -2,34 +2,42 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::collections::HashMap;
 use std::rc::Rc;
 use std::str;
 
 use base::id::PipelineId;
 use devtools_traits::{
-    AutoMargins, ComputedNodeLayout, EvaluateJSReply, Modification, NodeInfo, TimelineMarker,
-    TimelineMarkerType,
+    AttrModification, AutoMargins, ComputedNodeLayout, CssDatabaseProperty, EvaluateJSReply,
+    NodeInfo, NodeStyle, RuleModification, TimelineMarker, TimelineMarkerType,
 };
 use ipc_channel::ipc::IpcSender;
 use js::jsval::UndefinedValue;
 use js::rust::ToString;
 use uuid::Uuid;
 
+use crate::dom::bindings::codegen::Bindings::CSSRuleListBinding::CSSRuleListMethods;
 use crate::dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;
+use crate::dom::bindings::codegen::Bindings::CSSStyleRuleBinding::CSSStyleRuleMethods;
+use crate::dom::bindings::codegen::Bindings::CSSStyleSheetBinding::CSSStyleSheetMethods;
 use crate::dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
+use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeConstants;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::conversions::{jsstring_to_str, ConversionResult, FromJSValConvertible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
+use crate::dom::cssstyledeclaration::ENABLED_LONGHAND_PROPERTIES;
+use crate::dom::cssstylerule::CSSStyleRule;
 use crate::dom::document::AnimationFrameCallback;
 use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlscriptelement::SourceCode;
-use crate::dom::node::{window_from_node, Node, ShadowIncluding};
+use crate::dom::node::{stylesheets_owner_from_node, window_from_node, Node, ShadowIncluding};
+use crate::dom::types::HTMLElement;
 use crate::realms::enter_realm;
 use crate::script_module::ScriptFetchOptions;
 use crate::script_thread::Documents;
@@ -169,6 +177,151 @@ pub fn handle_get_children(
     };
 }
 
+pub fn handle_get_attribute_style(
+    documents: &Documents,
+    pipeline: PipelineId,
+    node_id: String,
+    reply: IpcSender<Option<Vec<NodeStyle>>>,
+) {
+    let node = match find_node_by_unique_id(documents, pipeline, &node_id) {
+        None => return reply.send(None).unwrap(),
+        Some(found_node) => found_node,
+    };
+
+    let elem = node
+        .downcast::<HTMLElement>()
+        .expect("This should be an HTMLElement");
+    let style = elem.Style();
+
+    let msg = (0..style.Length())
+        .map(|i| {
+            let name = style.Item(i);
+            NodeStyle {
+                name: name.to_string(),
+                value: style.GetPropertyValue(name.clone()).to_string(),
+                priority: style.GetPropertyPriority(name).to_string(),
+            }
+        })
+        .collect();
+
+    reply.send(Some(msg)).unwrap();
+}
+
+#[allow(crown::unrooted_must_root)]
+pub fn handle_get_stylesheet_style(
+    documents: &Documents,
+    pipeline: PipelineId,
+    node_id: String,
+    selector: String,
+    stylesheet: usize,
+    reply: IpcSender<Option<Vec<NodeStyle>>>,
+) {
+    let msg = (|| {
+        let node = find_node_by_unique_id(documents, pipeline, &node_id)?;
+
+        let document = documents.find_document(pipeline)?;
+        let _realm = enter_realm(document.window());
+        let owner = stylesheets_owner_from_node(&*node);
+
+        let stylesheet = owner.stylesheet_at(stylesheet)?;
+        let list = stylesheet.GetCssRules().ok()?;
+
+        let styles = (0..list.Length())
+            .filter_map(move |i| {
+                let rule = list.Item(i)?;
+                let style = rule.downcast::<CSSStyleRule>()?;
+                if *selector != *style.SelectorText() {
+                    return None;
+                };
+                Some(style.Style())
+            })
+            .map(|style| {
+                (0..style.Length()).map(move |i| {
+                    let name = style.Item(i);
+                    NodeStyle {
+                        name: name.to_string(),
+                        value: style.GetPropertyValue(name.clone()).to_string(),
+                        priority: style.GetPropertyPriority(name).to_string(),
+                    }
+                })
+            })
+            .flatten()
+            .collect();
+
+        Some(styles)
+    })();
+
+    reply.send(msg).unwrap();
+}
+
+#[allow(crown::unrooted_must_root)]
+pub fn handle_get_selectors(
+    documents: &Documents,
+    pipeline: PipelineId,
+    node_id: String,
+    reply: IpcSender<Option<Vec<(String, usize)>>>,
+) {
+    let msg = (|| {
+        let node = find_node_by_unique_id(documents, pipeline, &node_id)?;
+
+        let document = documents.find_document(pipeline)?;
+        let _realm = enter_realm(document.window());
+        let owner = stylesheets_owner_from_node(&*node);
+
+        let rules = (0..owner.stylesheet_count())
+            .filter_map(|i| {
+                let stylesheet = owner.stylesheet_at(i)?;
+                let list = stylesheet.GetCssRules().ok()?;
+                let elem = node.downcast::<Element>()?;
+
+                Some((0..list.Length()).filter_map(move |j| {
+                    let rule = list.Item(j)?;
+                    let style = rule.downcast::<CSSStyleRule>()?;
+                    let selector = style.SelectorText();
+                    let _ = elem.Matches(selector.clone()).ok()?.then_some(())?;
+                    Some((selector.into(), i))
+                }))
+            })
+            .flatten()
+            .collect();
+
+        Some(rules)
+    })();
+
+    reply.send(msg).unwrap();
+}
+
+pub fn handle_get_computed_style(
+    documents: &Documents,
+    pipeline: PipelineId,
+    node_id: String,
+    reply: IpcSender<Option<Vec<NodeStyle>>>,
+) {
+    let node = match find_node_by_unique_id(documents, pipeline, &node_id) {
+        None => return reply.send(None).unwrap(),
+        Some(found_node) => found_node,
+    };
+
+    let window = window_from_node(&*node);
+    let elem = node
+        .downcast::<Element>()
+        .expect("This should be an element");
+    let computed_style = window.GetComputedStyle(elem, None);
+
+    let msg = (0..computed_style.Length())
+        .map(|i| {
+            let name = computed_style.Item(i);
+            NodeStyle {
+                name: name.to_string(),
+                value: computed_style.GetPropertyValue(name.clone()).to_string(),
+                priority: computed_style.GetPropertyPriority(name).to_string(),
+            }
+        })
+        .collect();
+
+    reply.send(Some(msg)).unwrap();
+}
+
 pub fn handle_get_layout(
     documents: &Documents,
     pipeline: PipelineId,
@@ -233,7 +386,7 @@ pub fn handle_modify_attribute(
     documents: &Documents,
     pipeline: PipelineId,
     node_id: String,
-    modifications: Vec<Modification>,
+    modifications: Vec<AttrModification>,
 ) {
     let Some(document) = documents.find_document(pipeline) else {
         return warn!("document for pipeline id {} is not found", &pipeline);
@@ -264,6 +417,38 @@ pub fn handle_modify_attribute(
             },
             None => elem.RemoveAttribute(DOMString::from(modification.attribute_name)),
         }
+    }
+}
+
+pub fn handle_modify_rule(
+    documents: &Documents,
+    pipeline: PipelineId,
+    node_id: String,
+    modifications: Vec<RuleModification>,
+) {
+    let Some(document) = documents.find_document(pipeline) else {
+        return warn!("Document for pipeline id {} is not found", &pipeline);
+    };
+    let _realm = enter_realm(document.window());
+
+    let Some(node) = find_node_by_unique_id(documents, pipeline, &node_id) else {
+        return warn!(
+            "Node id {} for pipeline id {} is not found",
+            &node_id, &pipeline
+        );
+    };
+
+    let elem = node
+        .downcast::<HTMLElement>()
+        .expect("This should be an HTMLElement");
+    let style = elem.Style();
+
+    for modification in modifications {
+        let _ = style.SetProperty(
+            modification.name.into(),
+            modification.value.into(),
+            modification.priority.into(),
+        );
     }
 }
 
@@ -303,4 +488,22 @@ pub fn handle_reload(documents: &Documents, id: PipelineId) {
     if let Some(win) = documents.find_window(id) {
         win.Location().reload_without_origin_check();
     }
+}
+
+pub fn handle_get_css_database(reply: IpcSender<HashMap<String, CssDatabaseProperty>>) {
+    let database: HashMap<_, _> = ENABLED_LONGHAND_PROPERTIES
+        .iter()
+        .map(|l| {
+            (
+                l.name().into(),
+                CssDatabaseProperty {
+                    is_inherited: l.inherited(),
+                    values: vec![], // TODO: Get allowed values for each property
+                    supports: vec![],
+                    subproperties: vec![l.name().into()],
+                },
+            )
+        })
+        .collect();
+    let _ = reply.send(database);
 }

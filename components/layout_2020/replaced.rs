@@ -255,14 +255,10 @@ impl ReplacedContent {
         // FIXME: min/max-content of replaced elements is not defined in
         // https://dbaron.org/css/intrinsic/
         // This seems sensible?
-        let inline = self
-            .flow_relative_intrinsic_size(style)
+        self.flow_relative_intrinsic_size(style)
             .inline
-            .unwrap_or(Au::zero());
-        ContentSizes {
-            min_content: inline,
-            max_content: inline,
-        }
+            .unwrap_or(Au::zero())
+            .into()
     }
 
     pub fn make_fragments(

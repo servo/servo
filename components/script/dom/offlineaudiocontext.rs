@@ -31,6 +31,7 @@ use crate::dom::offlineaudiocompletionevent::OfflineAudioCompletionEvent;
 use crate::dom::promise::Promise;
 use crate::dom::window::Window;
 use crate::realms::InRealm;
+use crate::script_runtime::CanGc;
 use crate::task_source::TaskSource;
 
 #[dom_struct]
@@ -77,6 +78,7 @@ impl OfflineAudioContext {
         channel_count: u32,
         length: u32,
         sample_rate: f32,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<OfflineAudioContext>> {
         if channel_count > MAX_CHANNEL_COUNT ||
             channel_count == 0 ||
@@ -92,12 +94,14 @@ impl OfflineAudioContext {
             Box::new(context),
             window,
             proto,
+            can_gc,
         ))
     }
 
     pub fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         options: &OfflineAudioContextOptions,
     ) -> Fallible<DomRoot<OfflineAudioContext>> {
         OfflineAudioContext::new(
@@ -106,17 +110,26 @@ impl OfflineAudioContext {
             options.numberOfChannels,
             options.length,
             *options.sampleRate,
+            can_gc,
         )
     }
 
     pub fn Constructor_(
         window: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         number_of_channels: u32,
         length: u32,
         sample_rate: Finite<f32>,
     ) -> Fallible<DomRoot<OfflineAudioContext>> {
-        OfflineAudioContext::new(window, proto, number_of_channels, length, *sample_rate)
+        OfflineAudioContext::new(
+            window,
+            proto,
+            number_of_channels,
+            length,
+            *sample_rate,
+            can_gc,
+        )
     }
 }
 

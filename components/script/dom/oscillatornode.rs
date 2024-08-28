@@ -28,6 +28,7 @@ use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct OscillatorNode {
@@ -91,7 +92,7 @@ impl OscillatorNode {
         context: &BaseAudioContext,
         options: &OscillatorOptions,
     ) -> Fallible<DomRoot<OscillatorNode>> {
-        Self::new_with_proto(window, None, context, options)
+        Self::new_with_proto(window, None, context, options, CanGc::note())
     }
 
     #[allow(crown::unrooted_must_root)]
@@ -100,19 +101,26 @@ impl OscillatorNode {
         proto: Option<HandleObject>,
         context: &BaseAudioContext,
         options: &OscillatorOptions,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<OscillatorNode>> {
         let node = OscillatorNode::new_inherited(window, context, options)?;
-        Ok(reflect_dom_object_with_proto(Box::new(node), window, proto))
+        Ok(reflect_dom_object_with_proto(
+            Box::new(node),
+            window,
+            proto,
+            can_gc,
+        ))
     }
 
     #[allow(non_snake_case)]
     pub fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         context: &BaseAudioContext,
         options: &OscillatorOptions,
     ) -> Fallible<DomRoot<OscillatorNode>> {
-        OscillatorNode::new_with_proto(window, proto, context, options)
+        OscillatorNode::new_with_proto(window, proto, context, options, can_gc)
     }
 }
 

@@ -230,6 +230,7 @@ class ServoFormatter(mozlog.formatters.base.BaseFormatter, ServoHandler):
         ServoHandler.__init__(self)
         self.current_display = ""
         self.interactive = os.isatty(sys.stdout.fileno())
+        self.number_skipped = 0
 
         if self.interactive:
             self.line_width = os.get_terminal_size().columns
@@ -296,16 +297,23 @@ class ServoFormatter(mozlog.formatters.base.BaseFormatter, ServoHandler):
 
     def test_end(self, data):
         unexpected_result = ServoHandler.test_end(self, data)
-        if not unexpected_result:
-            if self.interactive:
-                return self.generate_output(new_display=self.build_status_line())
-            else:
-                return self.generate_output(text="%s%s\n" % (self.test_counter(), data["test"]))
+        if unexpected_result:
+            # Surround test output by newlines so that it is easier to read.
+            output_for_unexpected_test = f"{unexpected_result}\n"
+            return self.generate_output(text=output_for_unexpected_test,
+                                        new_display=self.build_status_line())
 
-        # Surround test output by newlines so that it is easier to read.
-        output_for_unexpected_test = f"{unexpected_result}\n"
-        return self.generate_output(text=output_for_unexpected_test,
-                                    new_display=self.build_status_line())
+        # Print reason that tests are skipped.
+        if data["status"] == "SKIP":
+            self.number_skipped += 1
+            lines = [f"SKIP {data['test']}", f"{data.get('message', '')}\n"]
+            output_for_skipped_test = UnexpectedResult.wrap_and_indent_lines(lines, indent="  ")
+            return self.generate_output(text=output_for_skipped_test, new_display=self.build_status_line())
+
+        if self.interactive:
+            return self.generate_output(new_display=self.build_status_line())
+        else:
+            return self.generate_output(text="%s%s\n" % (self.test_counter(), data["test"]))
 
     def test_status(self, data):
         ServoHandler.test_status(self, data)
@@ -319,8 +327,9 @@ class ServoFormatter(mozlog.formatters.base.BaseFormatter, ServoHandler):
 
         output += u"Ran %i tests finished in %.1f seconds.\n" % (
             self.completed_tests, (data["time"] - self.suite_start_time) / 1000)
-        output += u"  \u2022 %i ran as expected. %i tests skipped.\n" % (
-            sum(self.expected.values()), self.expected['SKIP'])
+        output += f"  \u2022 {len(self.expected.values())} ran as expected.\n"
+        if self.number_skipped:
+            output += f"    \u2022 {self.number_skipped} skipped.\n"
 
         def text_for_unexpected_list(text, section):
             tests = self.unexpected_tests[section]
