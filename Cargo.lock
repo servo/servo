@@ -4898,7 +4898,7 @@ dependencies = [
 [[package]]
 name = "peek-poke"
 version = "0.3.0"
-source = "git+https://github.com/servo/webrender?branch=0.65#c0bcdd024adac1297ceb2f34a2de46731243c970"
+source = "git+https://github.com/servo/webrender?branch=0.65#8468e81608b00d83c62466f1c0f5ef73d44fda76"
 dependencies = [
  "euclid",
  "peek-poke-derive",
@@ -4907,7 +4907,7 @@ dependencies = [
 [[package]]
 name = "peek-poke-derive"
 version = "0.3.0"
-source = "git+https://github.com/servo/webrender?branch=0.65#c0bcdd024adac1297ceb2f34a2de46731243c970"
+source = "git+https://github.com/servo/webrender?branch=0.65#8468e81608b00d83c62466f1c0f5ef73d44fda76"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -7700,7 +7700,7 @@ checksum = "5f20c57d8d7db6d3b86154206ae5d8fba62dd39573114de97c2cb0578251f8e1"
 [[package]]
 name = "webrender"
 version = "0.65.0"
-source = "git+https://github.com/servo/webrender?branch=0.65#c0bcdd024adac1297ceb2f34a2de46731243c970"
+source = "git+https://github.com/servo/webrender?branch=0.65#8468e81608b00d83c62466f1c0f5ef73d44fda76"
 dependencies = [
  "bincode",
  "bitflags 2.6.0",
@@ -7735,7 +7735,7 @@ dependencies = [
 [[package]]
 name = "webrender_api"
 version = "0.65.0"
-source = "git+https://github.com/servo/webrender?branch=0.65#c0bcdd024adac1297ceb2f34a2de46731243c970"
+source = "git+https://github.com/servo/webrender?branch=0.65#8468e81608b00d83c62466f1c0f5ef73d44fda76"
 dependencies = [
  "app_units",
  "bitflags 2.6.0",
@@ -7754,7 +7754,7 @@ dependencies = [
 [[package]]
 name = "webrender_build"
 version = "0.0.2"
-source = "git+https://github.com/servo/webrender?branch=0.65#c0bcdd024adac1297ceb2f34a2de46731243c970"
+source = "git+https://github.com/servo/webrender?branch=0.65#8468e81608b00d83c62466f1c0f5ef73d44fda76"
 dependencies = [
  "bitflags 2.6.0",
  "lazy_static",
@@ -8320,7 +8320,7 @@ dependencies = [
 [[package]]
 name = "wr_glyph_rasterizer"
 version = "0.1.0"
-source = "git+https://github.com/servo/webrender?branch=0.65#c0bcdd024adac1297ceb2f34a2de46731243c970"
+source = "git+https://github.com/servo/webrender?branch=0.65#8468e81608b00d83c62466f1c0f5ef73d44fda76"
 dependencies = [
  "core-foundation",
  "core-graphics",
@@ -8345,7 +8345,7 @@ dependencies = [
 [[package]]
 name = "wr_malloc_size_of"
 version = "0.0.3"
-source = "git+https://github.com/servo/webrender?branch=0.65#c0bcdd024adac1297ceb2f34a2de46731243c970"
+source = "git+https://github.com/servo/webrender?branch=0.65#8468e81608b00d83c62466f1c0f5ef73d44fda76"
 dependencies = [
  "app_units",
  "euclid",
