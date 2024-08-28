@@ -9,6 +9,7 @@ use dom_struct::dom_struct;
 use webgpu::wgc::command as wgpu_com;
 use webgpu::{self, wgt, WebGPU, WebGPUComputePass, WebGPURenderPass, WebGPURequest};
 
+use super::bindings::error::Fallible;
 use super::gpuconvert::convert_label;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
@@ -25,8 +26,7 @@ use crate::dom::gpubuffer::GPUBuffer;
 use crate::dom::gpucommandbuffer::GPUCommandBuffer;
 use crate::dom::gpucomputepassencoder::GPUComputePassEncoder;
 use crate::dom::gpuconvert::{
-    convert_ic_buffer, convert_ic_texture, convert_load_op, convert_store_op,
-    convert_texture_size_to_dict, convert_texture_size_to_wgt,
+    convert_ic_buffer, convert_ic_texture, convert_load_op, convert_store_op, convert_texture_size,
 };
 use crate::dom::gpudevice::GPUDevice;
 use crate::dom::gpurenderpassencoder::GPURenderPassEncoder;
@@ -249,7 +249,7 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
         source: &GPUImageCopyBuffer,
         destination: &GPUImageCopyTexture,
         copy_size: GPUExtent3D,
-    ) {
+    ) -> Fallible<()> {
         self.buffers
             .borrow_mut()
             .insert(DomRoot::from_ref(&*source.buffer));
@@ -260,9 +260,11 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
                 command_encoder_id: self.encoder.0,
                 source: convert_ic_buffer(source),
                 destination: convert_ic_texture(destination),
-                copy_size: convert_texture_size_to_wgt(&convert_texture_size_to_dict(&copy_size)),
+                copy_size: convert_texture_size(&copy_size)?,
             })
             .expect("Failed to send CopyBufferToTexture");
+
+        Ok(())
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpucommandencoder-copybuffertotexture>
@@ -271,7 +273,7 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
         source: &GPUImageCopyTexture,
         destination: &GPUImageCopyBuffer,
         copy_size: GPUExtent3D,
-    ) {
+    ) -> Fallible<()> {
         self.buffers
             .borrow_mut()
             .insert(DomRoot::from_ref(&*destination.buffer));
@@ -282,9 +284,11 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
                 command_encoder_id: self.encoder.0,
                 source: convert_ic_texture(source),
                 destination: convert_ic_buffer(destination),
-                copy_size: convert_texture_size_to_wgt(&convert_texture_size_to_dict(&copy_size)),
+                copy_size: convert_texture_size(&copy_size)?,
             })
             .expect("Failed to send CopyTextureToBuffer");
+
+        Ok(())
     }
 
     /// <https://gpuweb.github.io/gpuweb/#GPUCommandEncoder-copyTextureToTexture>
@@ -293,16 +297,18 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
         source: &GPUImageCopyTexture,
         destination: &GPUImageCopyTexture,
         copy_size: GPUExtent3D,
-    ) {
+    ) -> Fallible<()> {
         self.channel
             .0
             .send(WebGPURequest::CopyTextureToTexture {
                 command_encoder_id: self.encoder.0,
                 source: convert_ic_texture(source),
                 destination: convert_ic_texture(destination),
-                copy_size: convert_texture_size_to_wgt(&convert_texture_size_to_dict(&copy_size)),
+                copy_size: convert_texture_size(&copy_size)?,
             })
             .expect("Failed to send CopyTextureToTexture");
+
+        Ok(())
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpucommandencoder-finish>

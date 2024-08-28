@@ -8,13 +8,14 @@ use std::num::NonZeroU64;
 use webgpu::wgc::command as wgpu_com;
 use webgpu::wgt::{self, AstcBlock, AstcChannel};
 
+use super::bindings::error::Error;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUAddressMode, GPUBindGroupLayoutEntry, GPUBlendComponent, GPUBlendFactor, GPUBlendOperation,
-    GPUBufferBindingType, GPUCompareFunction, GPUCullMode, GPUExtent3D, GPUExtent3DDict,
-    GPUFilterMode, GPUFrontFace, GPUImageCopyBuffer, GPUImageCopyTexture, GPUImageDataLayout,
-    GPUIndexFormat, GPULoadOp, GPUObjectDescriptorBase, GPUOrigin3D, GPUPrimitiveState,
-    GPUPrimitiveTopology, GPUSamplerBindingType, GPUStencilOperation, GPUStorageTextureAccess,
-    GPUStoreOp, GPUTextureAspect, GPUTextureFormat, GPUTextureSampleType, GPUTextureViewDimension,
+    GPUBufferBindingType, GPUCompareFunction, GPUCullMode, GPUExtent3D, GPUFilterMode,
+    GPUFrontFace, GPUImageCopyBuffer, GPUImageCopyTexture, GPUImageDataLayout, GPUIndexFormat,
+    GPULoadOp, GPUObjectDescriptorBase, GPUOrigin3D, GPUPrimitiveState, GPUPrimitiveTopology,
+    GPUSamplerBindingType, GPUStencilOperation, GPUStorageTextureAccess, GPUStoreOp,
+    GPUTextureAspect, GPUTextureFormat, GPUTextureSampleType, GPUTextureViewDimension,
     GPUVertexFormat,
 };
 use crate::dom::bindings::error::Fallible;
@@ -217,30 +218,27 @@ pub fn convert_texture_view_dimension(
     }
 }
 
-pub fn convert_texture_size_to_dict(size: &GPUExtent3D) -> GPUExtent3DDict {
+pub fn convert_texture_size(size: &GPUExtent3D) -> Fallible<wgt::Extent3d> {
     match *size {
-        GPUExtent3D::GPUExtent3DDict(ref dict) => GPUExtent3DDict {
+        GPUExtent3D::GPUExtent3DDict(ref dict) => Ok(wgt::Extent3d {
             width: dict.width,
             height: dict.height,
-            depthOrArrayLayers: dict.depthOrArrayLayers,
-        },
+            depth_or_array_layers: dict.depthOrArrayLayers,
+        }),
         GPUExtent3D::RangeEnforcedUnsignedLongSequence(ref v) => {
-            let mut w = v.clone();
-            w.resize(3, 1);
-            GPUExtent3DDict {
-                width: w[0],
-                height: w[1],
-                depthOrArrayLayers: w[2],
+            // https://gpuweb.github.io/gpuweb/#abstract-opdef-validate-gpuextent3d-shape
+            if v.len() < 1 || v.len() > 3 {
+                Err(Error::Type(
+                    "GPUExtent3D size must be between 1 and 3 (inclusive)".to_string(),
+                ))
+            } else {
+                Ok(wgt::Extent3d {
+                    width: v[0],
+                    height: v.get(1).copied().unwrap_or(1),
+                    depth_or_array_layers: v.get(2).copied().unwrap_or(1),
+                })
             }
         },
-    }
-}
-
-pub fn convert_texture_size_to_wgt(size: &GPUExtent3DDict) -> wgt::Extent3d {
-    wgt::Extent3d {
-        width: size.width,
-        height: size.height,
-        depth_or_array_layers: size.depthOrArrayLayers,
     }
 }
 

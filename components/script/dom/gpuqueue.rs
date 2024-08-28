@@ -22,10 +22,7 @@ use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::gpubuffer::GPUBuffer;
 use crate::dom::gpucommandbuffer::GPUCommandBuffer;
-use crate::dom::gpuconvert::{
-    convert_ic_texture, convert_image_data_layout, convert_texture_size_to_dict,
-    convert_texture_size_to_wgt,
-};
+use crate::dom::gpuconvert::{convert_ic_texture, convert_image_data_layout, convert_texture_size};
 use crate::dom::gpudevice::GPUDevice;
 use crate::dom::promise::Promise;
 
@@ -168,7 +165,7 @@ impl GPUQueueMethods for GPUQueue {
 
         let texture_cv = convert_ic_texture(destination);
         let texture_layout = convert_image_data_layout(data_layout);
-        let write_size = convert_texture_size_to_wgt(&convert_texture_size_to_dict(&size));
+        let write_size = convert_texture_size(&size)?;
         let final_data = IpcSharedMemory::from_bytes(&bytes);
 
         if let Err(e) = self.channel.0.send(WebGPURequest::WriteTexture {

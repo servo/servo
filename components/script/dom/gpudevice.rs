@@ -61,7 +61,7 @@ use crate::dom::gpucomputepipeline::GPUComputePipeline;
 use crate::dom::gpuconvert::{
     convert_address_mode, convert_blend_component, convert_compare_function, convert_filter_mode,
     convert_label, convert_primitive_state, convert_stencil_op, convert_texture_format,
-    convert_texture_size_to_dict, convert_texture_size_to_wgt, convert_vertex_format,
+    convert_texture_size, convert_vertex_format,
 };
 use crate::dom::gpupipelinelayout::GPUPipelineLayout;
 use crate::dom::gpuqueue::GPUQueue;
@@ -778,11 +778,10 @@ impl GPUDeviceMethods for GPUDevice {
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createtexture>
     fn CreateTexture(&self, descriptor: &GPUTextureDescriptor) -> Fallible<DomRoot<GPUTexture>> {
-        // TODO(sagudev): This should be https://gpuweb.github.io/gpuweb/#abstract-opdef-validate-gpuextent3d-shape
-        let size = convert_texture_size_to_dict(&descriptor.size);
+        let size = convert_texture_size(&descriptor.size)?;
         let desc = wgpu_res::TextureDescriptor {
             label: convert_label(&descriptor.parent),
-            size: convert_texture_size_to_wgt(&size),
+            size,
             mip_level_count: descriptor.mipLevelCount,
             sample_count: descriptor.sampleCount,
             dimension: match descriptor.dimension {
