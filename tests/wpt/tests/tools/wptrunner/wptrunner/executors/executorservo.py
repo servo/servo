@@ -71,9 +71,9 @@ class ServoExecutor(ProcessTestExecutor):
         # The cwd is the servo repo for `./mach test-wpt`, but on WPT runners
         # it is the WPT repo. The nightly tar is extracted inside the python
         # virtual environment within the repo. This means that on WPT runners,
-        # the cwd has the `_venv/servo` directory inside which we find the
+        # the cwd has the `_venv3/servo` directory inside which we find the
         # binary and the 'resources' directory.
-        for dir in [".", "./_venv/servo"]:
+        for dir in [".", "./_venv3/servo"]:
             candidate = os.path.abspath(os.path.join(dir, default_path))
             if os.path.isfile(candidate):
                 return candidate
