@@ -36,7 +36,7 @@ pub(crate) const XI_LINE_BREAKING_CLASS_CM: u8 = 9;
 pub(crate) const XI_LINE_BREAKING_CLASS_GL: u8 = 12;
 pub(crate) const XI_LINE_BREAKING_CLASS_ZW: u8 = 28;
 pub(crate) const XI_LINE_BREAKING_CLASS_WJ: u8 = 30;
-pub(crate) const XI_LINE_BREAKING_CLASS_ZWJ: u8 = 40;
+pub(crate) const XI_LINE_BREAKING_CLASS_ZWJ: u8 = 42;
 
 /// <https://www.w3.org/TR/css-display-3/#css-text-run>
 #[derive(Debug, Serialize)]
