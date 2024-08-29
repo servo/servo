@@ -180,7 +180,7 @@ class WPTSync:
                 wpt_branch_name_from_servo_pr_number(servo_pr.number)
             )
             upstream_pr = self.wpt.get_open_pull_request_for_branch(
-                downstream_wpt_branch
+                self.github_username, downstream_wpt_branch
             )
             if upstream_pr:
                 logging.info(

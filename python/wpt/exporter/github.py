@@ -72,7 +72,9 @@ class GithubRepository:
         return GithubBranch(self, name)
 
     def get_open_pull_request_for_branch(
-        self, branch: GithubBranch
+        self,
+        github_username: str,
+        branch: GithubBranch
     ) -> Optional[PullRequest]:
         """If this repository has an open pull request with the
         given source head reference targeting the main branch,
@@ -82,7 +84,7 @@ class GithubRepository:
             "is:pr",
             "state:open",
             f"repo:{self.repo}",
-            f"author:{branch.repo.org}",
+            f"author:{github_username}",
             f"head:{branch.name}",
         ])
         response = authenticated(self.sync, "GET", f"search/issues?q={params}")
