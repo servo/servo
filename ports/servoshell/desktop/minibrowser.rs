@@ -19,12 +19,14 @@ use euclid::{Box2D, Length, Point2D, Scale, Size2D};
 use gleam::gl;
 use glow::NativeFramebuffer;
 use log::{trace, warn};
+use servo::base::id::WebViewId;
 use servo::compositing::windowing::EmbedderEvent;
 use servo::script_traits::TraversalDirection;
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::servo_url::ServoUrl;
 use servo::style_traits::DevicePixel;
 use servo::webrender_traits::RenderingContext;
+use servo::TopLevelBrowsingContextId;
 use winit::event::{ElementState, MouseButton};
 
 use super::egui_glue::EguiGlow;
@@ -61,6 +63,7 @@ pub enum MinibrowserEvent {
     Back,
     Forward,
     Reload,
+    NewWebView,
 }
 
 fn truncate_with_ellipsis(input: &str, max_length: usize) -> String {
@@ -161,6 +164,82 @@ impl Minibrowser {
         egui::Button::new(text)
             .frame(false)
             .min_size(Vec2 { x: 20.0, y: 20.0 })
+    }
+
+    /// Draws a browser tab, checking for clicks and returns an appropriate [EmbedderEvent]
+    /// Using a custom widget here would've been nice, but it doesn't seem as though egui
+    /// supports that, so we arrange multiple Widgets in a way that they look connected.
+    fn browser_tab(
+        ui: &mut egui::Ui,
+        label: &str,
+        selected: bool,
+        webview_id: TopLevelBrowsingContextId,
+    ) -> Option<EmbedderEvent> {
+        let old_item_spacing = ui.spacing().item_spacing;
+        ui.spacing_mut().item_spacing = egui::vec2(0.0, 0.0);
+
+        let visuals = ui.visuals_mut();
+        // Remove the stroke so we don't see the border between the close button and the label
+        visuals.widgets.active.bg_stroke.width = 0.0;
+        visuals.widgets.hovered.bg_stroke.width = 0.0;
+        // Now we make sure the fill color is always the same, irrespective of state, that way
+        // we can make sure that both the label and close button have the same background color
+        visuals.widgets.noninteractive.weak_bg_fill = egui::Color32::from_gray(40);
+        visuals.widgets.inactive.weak_bg_fill = visuals.widgets.noninteractive.weak_bg_fill;
+        visuals.widgets.hovered.weak_bg_fill = visuals.widgets.inactive.weak_bg_fill;
+        visuals.widgets.active.weak_bg_fill = visuals.widgets.hovered.weak_bg_fill;
+        visuals.selection.bg_fill = visuals.widgets.active.weak_bg_fill;
+        visuals.selection.stroke.color = egui::Color32::from_gray(255);
+
+        // Expansion would also show that they are 2 separate widgets
+        visuals.widgets.active.expansion = 0.0;
+        visuals.widgets.hovered.expansion = 0.0;
+        // The rounding is changed so it looks as though the 2 widgets are a single widget
+        // with a uniform rounding
+        let rounding = egui::Rounding {
+            ne: 0.0,
+            nw: 4.0,
+            sw: 4.0,
+            se: 0.0,
+        };
+        visuals.widgets.active.rounding = rounding;
+        visuals.widgets.hovered.rounding = rounding;
+        visuals.widgets.inactive.rounding = rounding;
+
+        let tab = ui.add(SelectableLabel::new(
+            selected,
+            truncate_with_ellipsis(label, 20),
+        ));
+        let tab = tab.on_hover_ui(|ui| {
+            ui.label(label);
+        });
+
+        let rounding = egui::Rounding {
+            ne: 4.0,
+            nw: 0.0,
+            sw: 0.0,
+            se: 4.0,
+        };
+        let visuals = ui.visuals_mut();
+        visuals.widgets.active.rounding = rounding;
+        visuals.widgets.hovered.rounding = rounding;
+        visuals.widgets.inactive.rounding = rounding;
+
+        let fill_color = if selected || tab.hovered() {
+            egui::Color32::from_gray(40)
+        } else {
+            egui::Color32::from_gray(32)
+        };
+
+        ui.spacing_mut().item_spacing = old_item_spacing;
+        let close_button = ui.add(egui::Button::new("X").fill(fill_color));
+        if close_button.clicked() || close_button.middle_clicked() || tab.middle_clicked() {
+            Some(EmbedderEvent::CloseWebView(webview_id))
+        } else if !selected && tab.clicked() {
+            Some(EmbedderEvent::FocusWebView(webview_id))
+        } else {
+            None
+        }
     }
 
     /// Update the minibrowser, but don’t paint.
@@ -267,29 +346,26 @@ impl Minibrowser {
 
             let mut embedder_events = vec![];
 
-            // A simple Tab header strip, using egui 'SelectableLabel' elements.
-            // TODO: Add a way to close a tab eg. with a [x] control.
+            // A simple Tab header strip
             TopBottomPanel::top("tabs").show(ctx, |ui| {
                 ui.allocate_ui_with_layout(
                     ui.available_size(),
                     egui::Layout::left_to_right(egui::Align::Center),
                     |ui| {
                         for (webview_id, webview) in webviews.webviews().into_iter() {
-                            let msg = match (&webview.title, &webview.url) {
-                                (Some(title), _) if !title.is_empty() => title.clone(),
-                                (_, Some(url)) => url.to_string(),
-                                _ => "New Tab".to_owned(),
+                            let label = match (&webview.title, &webview.url) {
+                                (Some(title), _) => title,
+                                (None, Some(url)) => &url.to_string(),
+                                _ => "New Tab",
                             };
-                            let tab = ui.add(SelectableLabel::new(
-                                webview.focused,
-                                truncate_with_ellipsis(&msg, 20),
-                            ));
-                            let tab = tab.on_hover_ui(|ui| {
-                                ui.label(&msg);
-                            });
-                            if !webview.focused && tab.clicked() {
-                                embedder_events.push(EmbedderEvent::FocusWebView(webview_id));
+                            if let Some(event) =
+                                Self::browser_tab(ui, label, webview.focused, webview_id)
+                            {
+                                embedder_events.push(event);
                             }
+                        }
+                        if ui.add(Minibrowser::toolbar_button("+")).clicked() {
+                            event_queue.borrow_mut().push(MinibrowserEvent::NewWebView);
                         }
                     },
                 );
@@ -440,6 +516,10 @@ impl Minibrowser {
                 MinibrowserEvent::Reload => {
                     let browser_id = browser.focused_webview_id().unwrap();
                     app_event_queue.push(EmbedderEvent::Reload(browser_id));
+                },
+                MinibrowserEvent::NewWebView => {
+                    let url = ServoUrl::parse("servo:newtab").unwrap();
+                    app_event_queue.push(EmbedderEvent::NewWebView(url, WebViewId::new()));
                 },
             }
         }
