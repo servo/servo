@@ -141,27 +141,7 @@ impl App {
             if let winit::event::Event::NewEvents(winit::event::StartCause::Init) = event {
                 let surfman = window.rendering_context();
 
-                let xr_discovery = if pref!(dom.webxr.glwindow.enabled) && !opts::get().headless {
-                    let window = window.clone();
-                    // This should be safe because run_forever does, in fact,
-                    // run forever. The event loop window target doesn't get
-                    // moved, and does outlast this closure, and we won't
-                    // ever try to make use of it once shutdown begins and
-                    // it stops being valid.
-                    let w = unsafe {
-                        std::mem::transmute::<
-                            &EventLoopWindowTarget<WakerEvent>,
-                            &'static EventLoopWindowTarget<WakerEvent>,
-                        >(w.unwrap())
-                    };
-                    let factory = Box::new(move || Ok(window.new_glwindow(w)));
-                    Some(XrDiscovery::GlWindow(GlWindowDiscovery::new(
-                        surfman.connection(),
-                        surfman.adapter(),
-                        surfman.context_attributes(),
-                        factory,
-                    )))
-                } else if pref!(dom.webxr.openxr.enabled) && !opts::get().headless {
+                let openxr_discovery = if pref!(dom.webxr.openxr.enabled) && !opts::get().headless {
                     #[cfg(target_os = "windows")]
                     let openxr = {
                         let app_info = AppInfo::new("Servoshell", 0, "Servo", 0);
@@ -174,6 +154,33 @@ impl App {
                 } else {
                     None
                 };
+
+                let glwindow_discovery =
+                    if pref!(dom.webxr.glwindow.enabled) && !opts::get().headless {
+                        let window = window.clone();
+                        // This should be safe because run_forever does, in fact,
+                        // run forever. The event loop window target doesn't get
+                        // moved, and does outlast this closure, and we won't
+                        // ever try to make use of it once shutdown begins and
+                        // it stops being valid.
+                        let w = unsafe {
+                            std::mem::transmute::<
+                                &EventLoopWindowTarget<WakerEvent>,
+                                &'static EventLoopWindowTarget<WakerEvent>,
+                            >(w.unwrap())
+                        };
+                        let factory = Box::new(move || Ok(window.new_glwindow(w)));
+                        Some(XrDiscovery::GlWindow(GlWindowDiscovery::new(
+                            surfman.connection(),
+                            surfman.adapter(),
+                            surfman.context_attributes(),
+                            factory,
+                        )))
+                    } else {
+                        None
+                    };
+
+                let xr_discovery = openxr_discovery.or(glwindow_discovery);
 
                 let window = window.clone();
                 // Implements embedder methods, used by libservo and constellation.
