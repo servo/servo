@@ -255,15 +255,22 @@ impl ReplacedContent {
         &self,
         _: &LayoutContext,
         containing_block_for_children: &IndefiniteContainingBlock,
+        preferred_aspect_ratio: Option<AspectRatio>,
     ) -> ContentSizes {
         // FIXME: min/max-content of replaced elements is not defined in
         // https://dbaron.org/css/intrinsic/
         // This seems sensible?
-
-        self.flow_relative_intrinsic_size(containing_block_for_children.style)
-            .inline
-            .unwrap_or(Au::zero())
-            .into()
+        let block_size = containing_block_for_children.size.block;
+        let inline_size = match (block_size, preferred_aspect_ratio) {
+            (AuOrAuto::LengthPercentage(block_size), Some(ratio)) => {
+                ratio.compute_dependent_size(Direction::Inline, block_size)
+            },
+            _ => self
+                .flow_relative_intrinsic_size(containing_block_for_children.style)
+                .inline
+                .unwrap_or_else(Au::zero),
+        };
+        inline_size.into()
     }
 
     pub fn make_fragments(
