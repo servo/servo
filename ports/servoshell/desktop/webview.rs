@@ -613,7 +613,7 @@ where
         // In minibrowser mode the webview is offset by the toolbar
         let origin = webview_id
             .and_then(|id| self.webviews.get(&id))
-            .and_then(|webview| Some(webview.rect.min.ceil().to_i32()))
+            .map(|webview| webview.rect.min.ceil().to_i32())
             .unwrap_or(Point2D::zero());
         let event = EmbedderEvent::Scroll(scroll_location, origin, phase);
         self.event_queue.push(event);
