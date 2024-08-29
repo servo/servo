@@ -3741,7 +3741,6 @@ dependencies = [
  "style_traits",
  "unicode-bidi",
  "unicode-script",
- "unicode-segmentation",
  "url",
  "webrender_api",
  "webrender_traits",
