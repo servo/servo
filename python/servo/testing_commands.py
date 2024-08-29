@@ -402,9 +402,10 @@ class MachCommands(CommandBase):
 
     @Command('test-dromaeo', description='Run the Dromaeo test suite', category='testing')
     @CommandArgument('tests', default=["recommended"], nargs="...", help="Specific tests to run")
+    @CommandArgument('--bmf-output', default=None, help="Specify BMF JSON output file")
     @CommandBase.common_command_arguments(binary_selection=True)
-    def test_dromaeo(self, tests, servo_binary: str):
-        return self.dromaeo_test_runner(tests, servo_binary)
+    def test_dromaeo(self, tests, servo_binary: str, bmf_output: str | None = None):
+        return self.dromaeo_test_runner(tests, servo_binary, bmf_output)
 
     @Command('update-jquery',
              description='Update the jQuery test suite expected results',
@@ -488,10 +489,14 @@ class MachCommands(CommandBase):
 
         return call([run_file, cmd, bin_path, base_dir])
 
-    def dromaeo_test_runner(self, tests, binary: str):
+    def dromaeo_test_runner(self, tests, binary: str, bmf_output: str | None):
         base_dir = path.abspath(path.join("tests", "dromaeo"))
         dromaeo_dir = path.join(base_dir, "dromaeo")
         run_file = path.join(base_dir, "run_dromaeo.py")
+        if bmf_output:
+            bmf_output = path.abspath(bmf_output)
+        else:
+            bmf_output = ""
 
         # Clone the Dromaeo repository if it doesn't exist
         if not os.path.isdir(dromaeo_dir):
@@ -510,7 +515,7 @@ class MachCommands(CommandBase):
         bin_path = path.abspath(binary)
 
         return check_call(
-            [run_file, "|".join(tests), bin_path, base_dir])
+            [run_file, "|".join(tests), bin_path, base_dir, bmf_output])
 
 
 def create_parser_create():
