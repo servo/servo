@@ -141,7 +141,7 @@ webrender_traits = { path = "components/shared/webrender" }
 wgpu-core = { git = "https://github.com/gfx-rs/wgpu", rev = "338678ad5f66b74d1df1daee6afb028f964244b8" }
 wgpu-types = { git = "https://github.com/gfx-rs/wgpu", rev = "338678ad5f66b74d1df1daee6afb028f964244b8" }
 windows-sys = "0.59"
-xi-unicode = "0.1.0"
+xi-unicode = "0.3.0"
 xml5ever = "0.19"
 
 [profile.release]
