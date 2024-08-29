@@ -176,6 +176,7 @@ impl Minibrowser {
         webview_id: TopLevelBrowsingContextId,
     ) -> Option<EmbedderEvent> {
         let old_item_spacing = ui.spacing().item_spacing;
+        let old_visuals = ui.visuals().clone();
         ui.spacing_mut().item_spacing = egui::vec2(0.0, 0.0);
 
         let visuals = ui.visuals_mut();
@@ -233,6 +234,7 @@ impl Minibrowser {
 
         ui.spacing_mut().item_spacing = old_item_spacing;
         let close_button = ui.add(egui::Button::new("X").fill(fill_color));
+        *ui.visuals_mut() = old_visuals;
         if close_button.clicked() || close_button.middle_clicked() || tab.middle_clicked() {
             Some(EmbedderEvent::CloseWebView(webview_id))
         } else if !selected && tab.clicked() {
