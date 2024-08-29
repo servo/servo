@@ -145,7 +145,7 @@ use script_traits::{
     PortMessageTask, SWManagerMsg, SWManagerSenders, ScriptMsg as FromScriptMsg,
     ScriptToConstellationChan, ServiceWorkerManagerFactory, ServiceWorkerMsg,
     StructuredSerializedData, TimerSchedulerMsg, TraversalDirection, UpdatePipelineIdReason,
-    WebDriverCommandMsg, WindowSizeData, WindowSizeType,
+    WebDriverCommandMsg, WindowSizeData, WindowSizeType, NewLayoutInfo,
 };
 use serde::{Deserialize, Serialize};
 use servo_config::{opts, pref};
@@ -825,6 +825,7 @@ where
             // This is for testing the hardening of the constellation.
             self.maybe_close_random_pipeline();
             self.handle_request();
+            println!("Pipelines: {:?}", self.pipelines.keys());
         }
         self.handle_shutdown();
     }
@@ -1261,6 +1262,8 @@ where
             Ok(request) => request,
             Err(err) => return error!("Deserialization failed ({}).", err),
         };
+        
+        //println!("Hanlding request: {:?}", request);
 
         match request {
             Request::PipelineNamespace(message) => {
@@ -3143,6 +3146,11 @@ where
             ..
         } = load_info.info;
 
+        println!(
+            "Constellation handle_script_loaded_url_in_iframe_msg for {:?} ",
+            new_pipeline_id
+        );
+
         // If no url is specified, reload.
         let old_pipeline = load_info
             .old_pipeline_id
@@ -3213,29 +3221,25 @@ where
         if !(browsing_context_size == load_info.window_size.initial_viewport) {
             log::warn!("debug assertion failed! browsing_context_size == load_info.window_size.initial_viewport");
         }
+        
+        let new_layout_info = NewLayoutInfo {
+            parent_info: Some(parent_pipeline_id),
+            new_pipeline_id,
+            browsing_context_id,
+            top_level_browsing_context_id,
+            opener: None,
+            load_data: load_info.load_data,
+            window_size: load_info.window_size,
+        };
+        
+        let pipeline = self.pipelines.get(&new_pipeline_id).unwrap();
+        
 
-        // Create the new pipeline, attached to the parent and push to pending changes
-        self.new_pipeline(
-            new_pipeline_id,
-            browsing_context_id,
-            top_level_browsing_context_id,
-            Some(parent_pipeline_id),
-            None,
-            browsing_context_size,
-            load_info.load_data,
-            load_info.sandbox,
-            is_private,
-            browsing_context_throttled,
-        );
-        self.add_pending_change(SessionHistoryChange {
-            top_level_browsing_context_id,
-            browsing_context_id,
-            new_pipeline_id,
-            replace,
-            // Browsing context for iframe already exists.
-            new_browsing_context_info: None,
-            window_size: load_info.window_size.initial_viewport,
-        });
+        if let Err(e) =
+            pipeline.event_loop.send(ConstellationControlMsg::AttachLayout(new_layout_info))
+        {
+            warn!("Sending to script during pipeline creation failed ({})", e);
+        }
     }
 
     fn handle_script_new_iframe(&mut self, load_info: IFrameLoadInfoWithData) {
@@ -3247,6 +3251,11 @@ where
             is_private,
             ..
         } = load_info.info;
+
+        println!(
+            "Constellation handle_script_new_iframe for {:?} ",
+            new_pipeline_id
+        );
 
         let (script_sender, parent_browsing_context_id) =
             match self.pipelines.get(&parent_pipeline_id) {
@@ -3411,9 +3420,10 @@ where
     }
 
     fn handle_tick_animation(&mut self, pipeline_id: PipelineId, tick_type: AnimationTickType) {
+        println!("handle_tick_animation for {:?}", pipeline_id);
         let pipeline = match self.pipelines.get(&pipeline_id) {
             Some(pipeline) => pipeline,
-            None => return warn!("{}: Got script tick after closure", pipeline_id),
+            None => return println!("{}: Got script tick after closure", pipeline_id),
         };
 
         let message = ConstellationControlMsg::TickAllAnimations(pipeline_id, tick_type);
@@ -3601,6 +3611,10 @@ where
         top_level_browsing_context_id: TopLevelBrowsingContextId,
         pipeline_id: PipelineId,
     ) {
+        println!(
+            "Constellation: handle_load_complete_msg for {:?}",
+            pipeline_id
+        );
         let mut webdriver_reset = false;
         if let Some((expected_pipeline_id, ref reply_chan)) = self.webdriver.load_channel {
             debug!("Sending load to WebDriver");

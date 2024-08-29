@@ -57,7 +57,7 @@ bitflags! {
     }
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Debug)]
 enum PipelineType {
     InitialAboutBlank,
     Navigation,
@@ -124,6 +124,7 @@ impl HTMLIFrameElement {
         pipeline_type: PipelineType,
         replace: HistoryEntryReplacement,
     ) {
+        println!("Starting new pipeline type: {:?}", pipeline_type);
         let sandboxed = if self.is_sandboxed() {
             IFrameSandboxed
         } else {
@@ -174,7 +175,11 @@ impl HTMLIFrameElement {
 
         let window = window_from_node(self);
         let old_pipeline_id = self.pipeline_id();
-        let new_pipeline_id = PipelineId::new();
+        let new_pipeline_id = if let Some(id) = self.about_blank_pipeline_id.get() {
+            id
+        } else {
+            PipelineId::new()
+        };
         self.pending_pipeline_id.set(Some(new_pipeline_id));
 
         let global_scope = window.upcast::<GlobalScope>();
@@ -261,6 +266,10 @@ impl HTMLIFrameElement {
             );
             let element = self.upcast::<Element>();
             load_data.srcdoc = String::from(element.get_string_attribute(&local_name!("srcdoc")));
+            println!(
+                "(srddoc) - Navigating or reloading child bc with {:?}",
+                load_data
+            );
             self.navigate_or_reload_child_browsing_context(
                 load_data,
                 HistoryEntryReplacement::Disabled,
@@ -347,6 +356,7 @@ impl HTMLIFrameElement {
         } else {
             HistoryEntryReplacement::Disabled
         };
+        println!("Navigating or reloading child bc with {:?}", load_data);
         self.navigate_or_reload_child_browsing_context(load_data, replace);
     }
 
@@ -385,6 +395,7 @@ impl HTMLIFrameElement {
         self.top_level_browsing_context_id
             .set(Some(top_level_browsing_context_id));
         self.browsing_context_id.set(Some(browsing_context_id));
+        println!("Creating nested browsing context with: {:?}", load_data);
         self.start_new_pipeline(
             load_data,
             PipelineType::InitialAboutBlank,
@@ -716,7 +727,7 @@ impl VirtualMethods for HTMLIFrameElement {
             // to the newly-created browsing context, and then process the
             // iframe attributes for the "first time"."
             if this.upcast::<Node>().is_connected_with_browsing_context() {
-                debug!("iframe bound to browsing context.");
+                println!("iframe bound to browsing context.");
                 debug_assert!(tree_connected, "is_connected_with_bc, but not tree_connected");
                 this.create_nested_browsing_context();
                 this.process_the_iframe_attributes(ProcessingMode::FirstTime);

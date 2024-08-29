@@ -2882,8 +2882,10 @@ impl ScriptThread {
             load_data.inherited_secure_context,
         );
         if load_data.url.as_str() == "about:blank" {
+            println!("Start page load about blank for: {:?}", new_pipeline_id);
             self.start_page_load_about_blank(new_load, load_data.js_eval_result);
         } else if load_data.url.as_str() == "about:srcdoc" {
+            println!("Start page_load_about_srcdoc for: {:?}", new_pipeline_id);
             self.page_load_about_srcdoc(new_load, load_data);
         } else {
             self.pre_page_load(new_load, load_data);
@@ -3904,6 +3906,7 @@ impl ScriptThread {
             .borrow()
             .find_iframe(parent_pipeline_id, browsing_context_id);
         if let Some(iframe) = iframe {
+            println!("Script-thread navigating iframe with: {:?}", load_data);
             iframe.navigate_or_reload_child_browsing_context(load_data, replace);
         }
     }

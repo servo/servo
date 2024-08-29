@@ -2311,11 +2311,17 @@ impl Document {
 
         assert!(!self.loader.borrow().events_inhibited());
         self.loader.borrow_mut().inhibit_events();
+        
+        if self.url().as_str() == "about:blank" {
+            println!("Not queueing doc load for: {:?}", self.window().pipeline_id());
+            return;
+        }
 
         // The rest will ever run only once per document.
         // Step 7.
         debug!("Document loads are complete.");
         let document = Trusted::new(self);
+        println!("Queuing doc load for {:}", self.window().pipeline_id());
         self.window
             .task_manager()
             .dom_manipulation_task_source()
