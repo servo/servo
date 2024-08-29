@@ -16,6 +16,7 @@ import os.path as path
 import shutil
 import subprocess
 import textwrap
+import json
 
 from python.servo.post_build_commands import PostBuildCommands
 import wpt
@@ -407,6 +408,12 @@ class MachCommands(CommandBase):
     def test_dromaeo(self, tests, servo_binary: str, bmf_output: str | None = None):
         return self.dromaeo_test_runner(tests, servo_binary, bmf_output)
 
+    @Command('test-speedometer', description="Run servo's speedometer", category='testing')
+    @CommandArgument('--bmf-output', default=None, help="Specify BMF JSON output file")
+    @CommandBase.common_command_arguments(binary_selection=True)
+    def test_speedometer(self, servo_binary: str, bmf_output: str | None = None):
+        return self.speedometer_runner(servo_binary, bmf_output)
+
     @Command('update-jquery',
              description='Update the jQuery test suite expected results',
              category='testing')
@@ -516,6 +523,35 @@ class MachCommands(CommandBase):
 
         return check_call(
             [run_file, "|".join(tests), bin_path, base_dir, bmf_output])
+
+    def speedometer_runner(self, binary: str, bmf_output: str | None):
+        speedometer = json.loads(subprocess.check_output([
+            binary,
+            "https://servospeedometer.netlify.app?headless=1",
+            "--pref", "dom.allow_scripts_to_close_windows",
+            "--resolution=1100x900",
+            "--headless"], timeout=60).decode())
+
+        print(f"Score: {speedometer['Score']['mean']} ± {speedometer['Score']['delta']}")
+
+        if bmf_output:
+            output = dict()
+
+            def parse_speedometer_result(result):
+                output[f"Speedometer/{result['name']}"] = {
+                    'latency': {  # speedometer has ms we need to convert to ns
+                        'value': float(result['mean']) * 1000.0,
+                        'lower_value': float(result['min']) * 1000.0,
+                        'upper_value': float(result['max']) * 1000.0,
+                    }
+                }
+                for child in result['children']:
+                    parse_speedometer_result(child)
+
+            for v in speedometer.values():
+                parse_speedometer_result(v)
+            with open(bmf_output, 'w', encoding='utf-8') as f:
+                json.dump(output, f, indent=4)
 
 
 def create_parser_create():
