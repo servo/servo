@@ -24,7 +24,7 @@ pub type AuOrAuto = AutoOr<Au>;
 pub type LengthOrAuto = AutoOr<Length>;
 pub type LengthPercentageOrAuto<'a> = AutoOr<&'a LengthPercentage>;
 
-#[derive(Clone, Copy, Serialize)]
+#[derive(Clone, Copy, PartialEq, Serialize)]
 pub struct LogicalVec2<T> {
     pub inline: T,
     pub block: T,
@@ -150,7 +150,7 @@ impl<T: Clone> LogicalVec2<AutoOr<T>> {
 }
 
 impl LogicalVec2<LengthPercentageOrAuto<'_>> {
-    pub fn percentages_relative_to(
+    pub(crate) fn percentages_relative_to(
         &self,
         containing_block: &ContainingBlock,
     ) -> LogicalVec2<LengthOrAuto> {
@@ -165,8 +165,32 @@ impl LogicalVec2<LengthPercentageOrAuto<'_>> {
     }
 }
 
+impl LogicalVec2<LengthPercentageOrAuto<'_>> {
+    pub(crate) fn percentages_relative_to_basis(
+        &self,
+        basis: &LogicalVec2<Length>,
+    ) -> LogicalVec2<LengthOrAuto> {
+        LogicalVec2 {
+            inline: self.inline.percentage_relative_to(basis.inline),
+            block: self.block.percentage_relative_to(basis.block),
+        }
+    }
+}
+
+impl LogicalVec2<LengthPercentageOrAuto<'_>> {
+    pub(crate) fn maybe_percentages_relative_to_basis(
+        &self,
+        basis: &LogicalVec2<Option<Length>>,
+    ) -> LogicalVec2<LengthOrAuto> {
+        LogicalVec2 {
+            inline: self.inline.maybe_percentage_relative_to(basis.inline),
+            block: self.block.maybe_percentage_relative_to(basis.block),
+        }
+    }
+}
+
 impl LogicalVec2<Option<&'_ LengthPercentage>> {
-    pub fn percentages_relative_to(
+    pub(crate) fn percentages_relative_to(
         &self,
         containing_block: &ContainingBlock,
     ) -> LogicalVec2<Option<Length>> {
@@ -179,6 +203,22 @@ impl LogicalVec2<Option<&'_ LengthPercentage>> {
                     containing_block.block_size.map(|t| t.into()).non_auto(),
                 )
             }),
+        }
+    }
+}
+
+impl LogicalVec2<Option<&'_ LengthPercentage>> {
+    pub(crate) fn maybe_percentages_relative_to_basis(
+        &self,
+        basis: &LogicalVec2<Option<Length>>,
+    ) -> LogicalVec2<Option<Length>> {
+        LogicalVec2 {
+            inline: self
+                .inline
+                .and_then(|v| v.maybe_percentage_relative_to(basis.inline)),
+            block: self
+                .block
+                .and_then(|v| v.maybe_percentage_relative_to(basis.block)),
         }
     }
 }

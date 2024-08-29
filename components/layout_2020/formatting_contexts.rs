@@ -5,7 +5,7 @@
 use app_units::Au;
 use serde::Serialize;
 use servo_arc::Arc;
-use style::logical_geometry::WritingMode;
+use style::logical_geometry::Direction;
 use style::properties::ComputedValues;
 use style::selector_parser::PseudoElement;
 use style::values::specified::text::TextDecorationLine;
@@ -19,9 +19,9 @@ use crate::fragment_tree::{BaseFragmentInfo, Fragment, FragmentFlags};
 use crate::positioned::PositioningContext;
 use crate::replaced::ReplacedContent;
 use crate::sizing::{self, ContentSizes};
-use crate::style_ext::{ComputedValuesExt, DisplayInside};
+use crate::style_ext::{AspectRatio, DisplayInside};
 use crate::table::Table;
-use crate::ContainingBlock;
+use crate::{AuOrAuto, ContainingBlock, IndefiniteContainingBlock, LogicalVec2};
 
 /// <https://drafts.csswg.org/css-display/#independent-formatting-context>
 #[derive(Debug, Serialize)]
@@ -36,7 +36,7 @@ pub(crate) struct NonReplacedFormattingContext {
     #[serde(skip_serializing)]
     pub style: Arc<ComputedValues>,
     /// If it was requested during construction
-    pub content_sizes: Option<ContentSizes>,
+    pub content_sizes: Option<(AuOrAuto, ContentSizes)>,
     pub contents: NonReplacedFormattingContextContents,
 }
 
@@ -176,30 +176,56 @@ impl IndependentFormattingContext {
         }
     }
 
-    pub fn inline_content_sizes(&mut self, layout_context: &LayoutContext) -> ContentSizes {
+    pub(crate) fn inline_content_sizes(
+        &mut self,
+        layout_context: &LayoutContext,
+        containing_block_for_children: &IndefiniteContainingBlock,
+    ) -> ContentSizes {
         match self {
-            Self::NonReplaced(inner) => inner.inline_content_sizes(layout_context),
-            Self::Replaced(inner) => inner.contents.inline_content_sizes(&inner.style),
+            Self::NonReplaced(inner) => {
+                inner.inline_content_sizes(layout_context, containing_block_for_children)
+            },
+            Self::Replaced(inner) => inner
+                .contents
+                .inline_content_sizes(layout_context, containing_block_for_children),
         }
     }
 
-    pub fn outer_inline_content_sizes(
+    pub(crate) fn outer_inline_content_sizes(
         &mut self,
         layout_context: &LayoutContext,
-        containing_block_writing_mode: WritingMode,
-        get_auto_minimum: impl FnOnce() -> Au,
+        containing_block: &IndefiniteContainingBlock,
+        auto_minimum: &LogicalVec2<Au>,
     ) -> ContentSizes {
         match self {
-            Self::NonReplaced(non_replaced) => non_replaced.outer_inline_content_sizes(
-                layout_context,
-                containing_block_writing_mode,
-                get_auto_minimum,
+            Self::NonReplaced(non_replaced) => sizing::outer_inline(
+                &non_replaced.style.clone(),
+                containing_block,
+                auto_minimum,
+                |containing_block_for_children| {
+                    non_replaced.inline_content_sizes(layout_context, containing_block_for_children)
+                },
             ),
             Self::Replaced(replaced) => sizing::outer_inline(
                 &replaced.style,
-                containing_block_writing_mode,
-                || replaced.contents.inline_content_sizes(&replaced.style),
-                get_auto_minimum,
+                containing_block,
+                auto_minimum,
+                |containing_block_for_children| {
+                    match (
+                        containing_block_for_children.size.block,
+                        replaced.preferred_aspect_ratio(containing_block),
+                    ) {
+                        (AuOrAuto::LengthPercentage(block_size), Some(ratio)) => {
+                            return ratio
+                                .compute_dependent_size(Direction::Inline, block_size)
+                                .into();
+                        },
+                        _ => {},
+                    }
+                    replaced
+                        .contents
+                        .inline_content_sizes(layout_context, containing_block_for_children)
+                },
             ),
         }
     }
@@ -234,46 +260,59 @@ impl NonReplacedFormattingContext {
         }
     }
 
-    pub fn inline_content_sizes(&mut self, layout_context: &LayoutContext) -> ContentSizes {
-        let writing_mode = self.style.effective_writing_mode();
-        let contents = &mut self.contents;
-        *self
-            .content_sizes
-            .get_or_insert_with(|| contents.inline_content_sizes(layout_context, writing_mode))
-    }
-
-    pub fn outer_inline_content_sizes(
+    pub(crate) fn inline_content_sizes(
         &mut self,
         layout_context: &LayoutContext,
-        containing_block_writing_mode: WritingMode,
-        get_auto_minimum: impl FnOnce() -> Au,
+        containing_block_for_children: &IndefiniteContainingBlock,
     ) -> ContentSizes {
-        sizing::outer_inline(
-            &self.style,
-            containing_block_writing_mode,
-            || {
-                *self.content_sizes.get_or_insert_with(|| {
-                    self.contents
-                        .inline_content_sizes(layout_context, self.style.effective_writing_mode())
-                })
-            },
-            get_auto_minimum,
-        )
+        assert_eq!(
+            containing_block_for_children.size.inline,
+            AuOrAuto::Auto,
+            "inline_content_sizes() got non-auto containing block inline-size",
+        );
+        if let Some((previous_cb_block_size, result)) = self.content_sizes {
+            if previous_cb_block_size == containing_block_for_children.size.block {
+                return result;
+            }
+            // TODO: Should we keep multiple caches for various block sizes?
+        }
+
+        self.content_sizes
+            .insert((
+                containing_block_for_children.size.block,
+                self.contents
+                    .inline_content_sizes(layout_context, &containing_block_for_children),
+            ))
+            .1
     }
 }
 
 impl NonReplacedFormattingContextContents {
-    pub fn inline_content_sizes(
+    pub(crate) fn inline_content_sizes(
         &mut self,
         layout_context: &LayoutContext,
-        writing_mode: WritingMode,
+        containing_block_for_children: &IndefiniteContainingBlock,
     ) -> ContentSizes {
         match self {
             Self::Flow(inner) => inner
                 .contents
-                .inline_content_sizes(layout_context, writing_mode),
-            Self::Flex(inner) => inner.inline_content_sizes(layout_context, writing_mode),
-            Self::Table(table) => table.inline_content_sizes(layout_context, writing_mode),
+                .inline_content_sizes(layout_context, containing_block_for_children),
+            Self::Flex(inner) => {
+                inner.inline_content_sizes(layout_context, containing_block_for_children)
+            },
+            Self::Table(table) => {
+                table.inline_content_sizes(layout_context, containing_block_for_children)
+            },
         }
+    }
+}
+
+impl ReplacedFormattingContext {
+    pub(crate) fn preferred_aspect_ratio(
+        &self,
+        containing_block: &IndefiniteContainingBlock,
+    ) -> Option<AspectRatio> {
+        self.contents
+            .preferred_aspect_ratio(containing_block, &self.style)
     }
 }

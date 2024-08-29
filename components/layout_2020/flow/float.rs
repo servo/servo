@@ -18,7 +18,7 @@ use servo_arc::Arc;
 use style::computed_values::float::T as FloatProperty;
 use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
-use style::values::computed::{Clear, Length};
+use style::values::computed::Clear;
 use style::values::specified::text::TextDecorationLine;
 
 use crate::context::LayoutContext;
@@ -28,8 +28,8 @@ use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragment_tree::{BoxFragment, CollapsedBlockMargins, CollapsedMargin};
 use crate::geom::{LogicalRect, LogicalVec2, ToLogical};
 use crate::positioned::PositioningContext;
-use crate::style_ext::{ComputedValuesExt, DisplayInside, PaddingBorderMargin};
-use crate::ContainingBlock;
+use crate::style_ext::{Clamp, ComputedValuesExt, DisplayInside, PaddingBorderMargin};
+use crate::{ContainingBlock, IndefiniteContainingBlock};
 
 /// A floating box.
 #[derive(Debug, Serialize)]
@@ -905,35 +905,44 @@ impl FloatBox {
                     IndependentFormattingContext::NonReplaced(ref mut non_replaced) => {
                         // Calculate inline size.
                         // https://drafts.csswg.org/css2/#float-width
-                        let box_size = non_replaced.style.content_box_size(containing_block, &pbm);
-                        let max_box_size = non_replaced
-                            .style
-                            .content_max_box_size(containing_block, &pbm);
-                        let min_box_size = non_replaced
-                            .style
+                        let style = non_replaced.style.clone();
+                        let box_size = style
+                            .content_box_size(containing_block, &pbm)
+                            .map(|v| v.map(Au::from));
+                        let max_box_size = style
+                            .content_max_box_size(containing_block, &pbm)
+                            .map(|v| v.map(Au::from));
+                        let min_box_size = style
                             .content_min_box_size(containing_block, &pbm)
-                            .auto_is(Length::zero);
+                            .map(|v| v.map(Au::from))
+                            .auto_is(Au::zero);
 
-                        let tentative_inline_size = box_size.inline.auto_is(|| {
-                            let available_size =
-                                containing_block.inline_size - pbm_sums.inline_sum();
-                            non_replaced
-                                .inline_content_sizes(layout_context)
-                                .shrink_to_fit(available_size)
-                                .into()
-                        });
-                        let inline_size = tentative_inline_size
-                            .clamp_between_extremums(min_box_size.inline, max_box_size.inline);
                         let block_size = box_size.block.map(|size| {
                             size.clamp_between_extremums(min_box_size.block, max_box_size.block)
                         });
+                        let tentative_inline_size = box_size.inline.auto_is(|| {
+                            let available_size =
+                                containing_block.inline_size - pbm_sums.inline_sum();
+                            let containing_block_for_children =
+                                IndefiniteContainingBlock::new_for_style_and_block_size(
+                                    &style, block_size,
+                                );
+                            non_replaced
+                                .inline_content_sizes(
+                                    layout_context,
+                                    &containing_block_for_children,
+                                )
+                                .shrink_to_fit(available_size)
+                        });
+                        let inline_size = tentative_inline_size
+                            .clamp_between_extremums(min_box_size.inline, max_box_size.inline);
 
                         // Calculate block size.
                         // https://drafts.csswg.org/css2/#block-root-margin
                         // FIXME(pcwalton): Is a tree rank of zero correct here?
                         let containing_block_for_children = ContainingBlock {
-                            inline_size: inline_size.into(),
-                            block_size: block_size.map(|t| t.into()),
+                            inline_size,
+                            block_size,
                             style: &non_replaced.style,
                         };
                         let independent_layout = non_replaced.layout(
@@ -944,13 +953,13 @@ impl FloatBox {
                         );
                         let (block_size, inline_size) =
                             match independent_layout.content_inline_size_for_table {
-                                Some(inline_size) => (
-                                    independent_layout.content_block_size.into(),
-                                    inline_size.into(),
-                                ),
+                                Some(inline_size) => {
+                                    (independent_layout.content_block_size, inline_size)
+                                },
                                 None => (
                                     block_size.auto_is(|| {
-                                        Length::from(independent_layout.content_block_size)
+                                        independent_layout
+                                            .content_block_size
                                             .clamp_between_extremums(
                                                 min_box_size.block,
                                                 max_box_size.block,
@@ -960,8 +969,8 @@ impl FloatBox {
                                 ),
                             };
                         content_size = LogicalVec2 {
-                            inline: inline_size.into(),
-                            block: block_size.into(),
+                            inline: inline_size,
+                            block: block_size,
                         };
                         children = independent_layout.fragments;
                     },

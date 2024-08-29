@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#item-margins">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#intrinsic-main-sizes">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<meta name="assert" content="The flex container becomes 100px tall because the padding percentage of the item resolves against its width.">
+
+<p>Test passes if there is a filled green square.</p>
+<div style="display: flex; background: green; flex-direction: column; width: 100px;">
+  <div style="width: 100px; padding-bottom: 100%"></div>
+</div>

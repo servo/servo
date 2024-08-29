@@ -36,7 +36,7 @@ use crate::positioned::{AbsolutelyPositionedBox, PositioningContext, Positioning
 use crate::replaced::ReplacedContent;
 use crate::sizing::{self, ContentSizes};
 use crate::style_ext::{Clamp, ComputedValuesExt, PaddingBorderMargin};
-use crate::ContainingBlock;
+use crate::{ContainingBlock, IndefiniteContainingBlock};
 
 mod construct;
 pub mod float;
@@ -227,10 +227,10 @@ impl OutsideMarker {
         sequential_layout_state: Option<&mut SequentialLayoutState>,
         collapsible_with_parent_start_margin: Option<CollapsibleWithParentStartMargin>,
     ) -> Fragment {
-        let containing_block_writing_mode = containing_block.effective_writing_mode();
-        let content_sizes = self
-            .block_container
-            .inline_content_sizes(layout_context, containing_block_writing_mode);
+        let content_sizes = self.block_container.inline_content_sizes(
+            layout_context,
+            &IndefiniteContainingBlock::new_for_style(&self.marker_style),
+        );
         let containing_block_for_children = ContainingBlock {
             inline_size: content_sizes.max_content,
             block_size: AuOrAuto::auto(),
@@ -244,6 +244,8 @@ impl OutsideMarker {
             sequential_layout_state,
             collapsible_with_parent_start_margin.unwrap_or(CollapsibleWithParentStartMargin(false)),
         );
+
+        let containing_block_writing_mode = containing_block.effective_writing_mode();
         let max_inline_size =
             flow_layout
                 .fragments
@@ -357,7 +359,7 @@ impl BlockFormattingContext {
 fn calculate_inline_content_size_for_block_level_boxes(
     boxes: &[ArcRefCell<BlockLevelBox>],
     layout_context: &LayoutContext,
-    writing_mode: WritingMode,
+    containing_block: &IndefiniteContainingBlock,
 ) -> ContentSizes {
     let get_box_info = |box_: &ArcRefCell<BlockLevelBox>| {
         match &mut *box_.borrow_mut() {
@@ -366,7 +368,11 @@ fn calculate_inline_content_size_for_block_level_boxes(
             BlockLevelBox::OutOfFlowFloatBox(ref mut float_box) => {
                 let size = float_box
                     .contents
-                    .outer_inline_content_sizes(layout_context, writing_mode, Au::zero)
+                    .outer_inline_content_sizes(
+                        layout_context,
+                        containing_block,
+                        &LogicalVec2::zero(),
+                    )
                     .max(ContentSizes::zero());
                 let style_box = &float_box.contents.style().get_box();
                 Some((size, style_box.float, style_box.clear))
@@ -376,12 +382,11 @@ fn calculate_inline_content_size_for_block_level_boxes(
             } => {
                 let size = sizing::outer_inline(
                     style,
-                    writing_mode,
-                    || {
-                        contents
-                            .inline_content_sizes(layout_context, style.effective_writing_mode())
+                    &containing_block,
+                    &LogicalVec2::zero(),
+                    |containing_block_for_children| {
+                        contents.inline_content_sizes(layout_context, containing_block_for_children)
                     },
-                    Au::zero,
                 )
                 .max(ContentSizes::zero());
                 // A block in the same BFC can overlap floats, it's not moved next to them,
@@ -391,7 +396,11 @@ fn calculate_inline_content_size_for_block_level_boxes(
             },
             BlockLevelBox::Independent(ref mut independent) => {
                 let size = independent
-                    .outer_inline_content_sizes(layout_context, writing_mode, Au::zero)
+                    .outer_inline_content_sizes(
+                        layout_context,
+                        containing_block,
+                        &LogicalVec2::zero(),
+                    )
                     .max(ContentSizes::zero());
                 Some((size, Float::None, independent.style().get_box().clear))
             },
@@ -498,16 +507,16 @@ impl BlockContainer {
     pub(super) fn inline_content_sizes(
         &self,
         layout_context: &LayoutContext,
-        writing_mode: WritingMode,
+        containing_block_for_children: &IndefiniteContainingBlock,
     ) -> ContentSizes {
         match &self {
             Self::BlockLevelBoxes(boxes) => calculate_inline_content_size_for_block_level_boxes(
                 boxes,
                 layout_context,
-                writing_mode,
+                containing_block_for_children,
             ),
             Self::InlineFormattingContext(context) => {
-                context.inline_content_sizes(layout_context, writing_mode)
+                context.inline_content_sizes(layout_context, containing_block_for_children)
             },
         }
     }
