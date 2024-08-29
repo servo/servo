@@ -238,7 +238,7 @@ impl ReplacedContent {
         LogicalVec2::from_physical_size(&intrinsic_size, style.effective_writing_mode())
     }
 
-    pub(crate) fn inline_size_over_block_size_intrinsic_ratio(
+    fn inline_size_over_block_size_intrinsic_ratio(
         &self,
         style: &ComputedValues,
     ) -> Option<CSSFloat> {

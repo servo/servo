@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<link rel="author" title="Oriol Brufau" href="obrufau@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#min-size-auto">
+<link rel="match" href="../../reference/ref-filled-green-100px-square-only.html">
+<meta name="assert" content="
+    The automatic minimum size makes the flex item be 50px wide (converted from the height through the aspect ratio).
+    Adding the borders, the flex container is then a 100x100 square.">
+
+<style>
+.flex {
+  display: inline-flex;
+  border: solid 25px green;
+}
+.flex img {
+  height: 50px;
+  flex: 0 0 0px;
+  aspect-ratio: 1 / 1;
+}
+</style>
+<p>Test passes if there is a filled green square.</p>
+<div class="flex">
+  <img src="support/20x50-green.png">
+</div>

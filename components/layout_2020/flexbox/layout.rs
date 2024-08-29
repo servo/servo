@@ -9,6 +9,7 @@ use app_units::Au;
 use atomic_refcell::AtomicRefMut;
 use itertools::izip;
 use style::computed_values::position::T as Position;
+use style::logical_geometry::Direction;
 use style::properties::longhands::align_items::computed_value::T as AlignItems;
 use style::properties::longhands::align_self::computed_value::T as AlignSelf;
 use style::properties::longhands::box_sizing::computed_value::T as BoxSizing;
@@ -2124,38 +2125,27 @@ impl FlexItemBox {
         // > size suggestion is that size. It is otherwise undefined.
         let specified_size_suggestion = content_box_size.main.non_auto();
 
-        let (is_replaced, main_size_over_cross_size_intrinsic_ratio) =
-            match self.independent_formatting_context {
-                IndependentFormattingContext::NonReplaced(_) => (false, None),
-                IndependentFormattingContext::Replaced(ref replaced) => {
-                    let ratio = replaced
-                        .contents
-                        .inline_size_over_block_size_intrinsic_ratio(
-                            self.independent_formatting_context.style(),
-                        )
-                        .map(|ratio| {
-                            if cross_axis_is_item_block_axis {
-                                ratio
-                            } else {
-                                1.0 / ratio
-                            }
-                        });
-                    (true, ratio)
-                },
-            };
+        let (is_replaced, ratio) = match self.independent_formatting_context {
+            IndependentFormattingContext::NonReplaced(_) => (false, None),
+            IndependentFormattingContext::Replaced(ref replaced) => {
+                (true, replaced.preferred_aspect_ratio(containing_block))
+            },
+        };
+        let main_axis = if cross_axis_is_item_block_axis {
+            Direction::Inline
+        } else {
+            Direction::Block
+        };
 
         // > **transferred size suggestion**
         // > If the item has a preferred aspect ratio and its preferred cross size is definite, then the
         // > transferred size suggestion is that size (clamped by its minimum and maximum cross sizes if they
         // > are definite), converted through the aspect ratio. It is otherwise undefined.
-        let transferred_size_suggestion = match (
-            main_size_over_cross_size_intrinsic_ratio,
-            content_box_size.cross,
-        ) {
+        let transferred_size_suggestion = match (ratio, content_box_size.cross) {
             (Some(ratio), AuOrAuto::LengthPercentage(cross_size)) => {
                 let cross_size = cross_size
                     .clamp_between_extremums(min_size.cross.auto_is(Au::zero), max_size.cross);
-                Some(cross_size.scale_by(ratio))
+                Some(ratio.compute_dependent_size(main_axis, cross_size))
             },
             _ => None,
         };
@@ -2181,11 +2171,13 @@ impl FlexItemBox {
         } else {
             block_content_size_callback(self)
         };
-        let content_size_suggestion = main_size_over_cross_size_intrinsic_ratio
+        let content_size_suggestion = ratio
             .map(|ratio| {
                 main_content_size.clamp_between_extremums(
-                    min_size.cross.auto_is(Au::zero).scale_by(ratio),
-                    max_size.cross.map(|l| l.scale_by(ratio)),
+                    ratio.compute_dependent_size(main_axis, min_size.cross.auto_is(Au::zero)),
+                    max_size
+                        .cross
+                        .map(|l| ratio.compute_dependent_size(main_axis, l)),
                 )
             })
             .unwrap_or(main_content_size);
