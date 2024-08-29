@@ -5,11 +5,11 @@
 use std::borrow::Cow;
 use std::char::{ToLowercase, ToUppercase};
 
+use icu_segmenter::WordSegmenter;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 use style::values::computed::TextDecorationLine;
 use style::values::specified::text::TextTransformCase;
 use unicode_bidi::Level;
-use unicode_segmentation::UnicodeSegmentation;
 
 use super::text_run::TextRun;
 use super::{InlineBox, InlineBoxIdentifier, InlineBoxes, InlineFormattingContext, InlineItem};
@@ -601,13 +601,14 @@ fn capitalize_string(string: &str, allow_word_at_start: bool) -> String {
     let mut output_string = String::new();
     output_string.reserve(string.len());
 
-    let mut bounds = string.unicode_word_indices().peekable();
+    let word_segmenter = WordSegmenter::new_auto();
+    let mut bounds = word_segmenter.segment_str(string).peekable();
     let mut byte_index = 0;
     for character in string.chars() {
         let current_byte_index = byte_index;
         byte_index += character.len_utf8();
 
-        if let Some((next_index, _)) = bounds.peek() {
+        if let Some(next_index) = bounds.peek() {
             if *next_index == current_byte_index {
                 bounds.next();
 
