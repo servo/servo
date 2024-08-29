@@ -1932,9 +1932,16 @@ impl FlexItemBox {
                 )
             },
         );
-        let content_min_size_no_auto = LogicalVec2 {
-            inline: content_min_size.inline.auto_is(|| automatic_min_size),
-            block: content_min_size.block.auto_is(Au::zero),
+        let content_min_size_no_auto = if cross_axis_is_item_block_axis {
+            LogicalVec2 {
+                inline: content_min_size.inline.auto_is(|| automatic_min_size),
+                block: content_min_size.block.auto_is(Au::zero),
+            }
+        } else {
+            LogicalVec2 {
+                inline: content_min_size.inline.auto_is(Au::zero),
+                block: content_min_size.block.auto_is(|| automatic_min_size),
+            }
         };
         let block_content_size_callback = |item: &mut FlexItemBox| {
             item.layout_for_block_content_size(
