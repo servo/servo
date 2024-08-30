@@ -4781,6 +4781,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0f2fd4c1b349c53cd06dfa959bb53076453960d793961caafd367e64c3bb5522"
 
 [[package]]
+name = "ohos-vsync"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5871e38034a33e8d43c711a40d39e24fd3500f43b61b9269b8586f608a70aec3"
+dependencies = [
+ "ohos-sys",
+]
+
+[[package]]
 name = "once_cell"
 version = "1.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6207,6 +6216,7 @@ dependencies = [
  "net_traits",
  "nix",
  "ohos-sys",
+ "ohos-vsync",
  "raw-window-handle",
  "serde_json",
  "servo-media",

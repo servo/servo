@@ -11,7 +11,7 @@ use std::thread;
 use std::thread::sleep;
 use std::time::Duration;
 
-use log::{debug, error, info, warn, LevelFilter};
+use log::{debug, error, info, trace, warn, LevelFilter};
 use napi_derive_ohos::{module_exports, napi};
 use napi_ohos::threadsafe_function::{
     ErrorStrategy, ThreadsafeFunction, ThreadsafeFunctionCallMode,
@@ -93,6 +93,7 @@ enum ServoAction {
         pointer_id: i32,
     },
     Initialize(Box<InitOpts>),
+    Vsync,
 }
 
 // Todo: Need to check if OnceLock is suitable, or if the TS function can be destroyed, e.g.
@@ -132,10 +133,42 @@ impl ServoAction {
             Initialize(_init_opts) => {
                 panic!("Received Initialize event, even though servo is already initialized")
             },
+
+            Vsync => {
+                servo.perform_updates().expect("Infallible");
+                servo.present_if_needed();
+                // Todo: perform_updates() (before or after present) if animating?
+                Ok(())
+            },
         };
         if let Err(e) = res {
             error!("Failed to do {self:?} with error {e}");
         }
+    }
+}
+
+/// Vsync callback
+///
+/// # Safety
+///
+/// The caller should pass a valid raw NativeVsync object to us via
+/// `native_vsync.request_raw_callback_with_self(Some(on_vsync_cb))`
+unsafe extern "C" fn on_vsync_cb(
+    timestamp: ::core::ffi::c_longlong,
+    data: *mut ::core::ffi::c_void,
+) {
+    trace!("Vsync callback at time {timestamp}");
+    // SAFETY: We require the function registering us as a callback
+    let (native_vsync, data) = unsafe {
+        let native = ohos_vsync::NativeVsync::from_raw(data.cast());
+        (native, 0)
+    };
+    call(ServoAction::Vsync).unwrap();
+    // Todo: Do we have a callback for when the frame finished rendering?
+    unsafe {
+        native_vsync
+            .request_raw_callback_with_self(Some(on_vsync_cb))
+            .unwrap();
     }
 }
 
@@ -148,6 +181,9 @@ pub extern "C" fn on_surface_created_cb(xcomponent: *mut OH_NativeXComponent, wi
     let xc_wrapper = XComponentWrapper(xcomponent);
     let window_wrapper = WindowWrapper(window);
 
+    // Todo: Perhaps it would be better to move this thread into the vsync signal thread.
+    // This would allow us to save one thread and the IPC for the vsync signal.
+    //
     // Each thread will send its id via the channel
     let _main_surface_thread = thread::spawn(move || {
         let (tx, rx): (Sender<ServoAction>, Receiver<ServoAction>) = mpsc::channel();
@@ -178,9 +214,19 @@ pub extern "C" fn on_surface_created_cb(xcomponent: *mut OH_NativeXComponent, wi
         .expect("Servo initialization failed");
 
         info!("Surface created!");
+        let native_vsync =
+            ohos_vsync::NativeVsync::new("ServoVsync").expect("Failed to create NativeVsync");
+        // get_period() returns an error - perhaps we need to wait until the first callback?
+        // info!("Native vsync period is {} nanoseconds", native_vsync.get_period().unwrap());
+        unsafe {
+            native_vsync
+                .request_raw_callback_with_self(Some(on_vsync_cb))
+                .expect("Failed to request vsync callback")
+        }
+        info!("Enabled Vsync!");
 
         while let Ok(action) = rx.recv() {
-            info!("Wakeup message received!");
+            trace!("Wakeup message received!");
             action.do_action(&mut servo);
         }
 
@@ -513,7 +559,9 @@ impl HostTrait for HostCallbacks {
 
     fn on_history_changed(&self, can_go_back: bool, can_go_forward: bool) {}
 
-    fn on_animating_changed(&self, animating: bool) {}
+    fn on_animating_changed(&self, animating: bool) {
+        // todo: should we tell the vsync thread that it should perform updates?
+    }
 
     fn on_shutdown_complete(&self) {}
 
