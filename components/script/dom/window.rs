@@ -12,6 +12,7 @@ use std::ptr::NonNull;
 use std::rc::Rc;
 use std::sync::atomic::Ordering;
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
 use std::{cmp, env, mem};
 
 use app_units::Au;
@@ -882,7 +883,7 @@ impl WindowMethods for Window {
         self.upcast::<GlobalScope>().set_timeout_or_interval(
             callback,
             args,
-            timeout,
+            Duration::from_millis(timeout.max(0) as u64),
             IsInterval::NonInterval,
         )
     }
@@ -908,7 +909,7 @@ impl WindowMethods for Window {
         self.upcast::<GlobalScope>().set_timeout_or_interval(
             callback,
             args,
-            timeout,
+            Duration::from_millis(timeout.max(0) as u64),
             IsInterval::Interval,
         )
     }

@@ -5735,7 +5735,6 @@ dependencies = [
  "servo_url",
  "smallvec",
  "style_traits",
- "time 0.1.45",
  "uuid",
  "webdriver",
  "webgpu",

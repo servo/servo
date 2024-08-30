@@ -47,8 +47,7 @@ use profile_traits::time::{TimerMetadata, TimerMetadataFrameType, TimerMetadataR
 use script_layout_interface::{PendingRestyle, ReflowGoal, TrustedNodeAddress};
 use script_traits::{
     AnimationState, AnimationTickType, CompositorEvent, DocumentActivity, MouseButton,
-    MouseEventType, MsDuration, ScriptMsg, TouchEventType, TouchId, UntrustedNodeAddress,
-    WheelDelta,
+    MouseEventType, ScriptMsg, TouchEventType, TouchId, UntrustedNodeAddress, WheelDelta,
 };
 use servo_arc::Arc;
 use servo_atoms::Atom;
@@ -1993,7 +1992,7 @@ impl Document {
             };
             self.global().schedule_callback(
                 OneshotTimerCallback::FakeRequestAnimationFrame(callback),
-                MsDuration::new(FAKE_REQUEST_ANIMATION_FRAME_DELAY),
+                Duration::from_millis(FAKE_REQUEST_ANIMATION_FRAME_DELAY),
             );
         } else if !self.running_animation_callbacks.get() {
             // No need to send a `ChangeRunningAnimationsState` if we're running animation callbacks:
@@ -2443,7 +2442,7 @@ impl Document {
                                     window: window_from_node(&*document),
                                     url: url.clone(),
                                 }),
-                                MsDuration::new(time.saturating_mul(1000)),
+                                Duration::from_secs(*time),
                             );
                         }
                         // Note: this will, among others, result in the "iframe-load-event-steps" being run.

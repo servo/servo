@@ -6,6 +6,7 @@ use std::default::Default;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::time::Duration;
 
 use base::id::{PipelineId, PipelineNamespace};
 use crossbeam_channel::Receiver;
@@ -345,7 +346,7 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
         self.upcast::<GlobalScope>().set_timeout_or_interval(
             callback,
             args,
-            timeout,
+            Duration::from_millis(timeout.max(0) as u64),
             IsInterval::NonInterval,
         )
     }
@@ -371,7 +372,7 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
         self.upcast::<GlobalScope>().set_timeout_or_interval(
             callback,
             args,
-            timeout,
+            Duration::from_millis(timeout.max(0) as u64),
             IsInterval::Interval,
         )
     }
