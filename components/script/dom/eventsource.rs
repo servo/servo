@@ -6,9 +6,9 @@ use std::cell::Cell;
 use std::mem;
 use std::str::{Chars, FromStr};
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
 
 use dom_struct::dom_struct;
-use euclid::Length;
 use headers::ContentType;
 use http::header::{self, HeaderName, HeaderValue};
 use ipc_channel::ipc;
@@ -48,7 +48,7 @@ use crate::script_runtime::CanGc;
 use crate::task_source::{TaskSource, TaskSourceName};
 use crate::timers::OneshotTimerCallback;
 
-const DEFAULT_RECONNECTION_TIME: u64 = 5000;
+const DEFAULT_RECONNECTION_TIME: Duration = Duration::from_millis(5000);
 
 #[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq)]
 struct GenerationId(u32);
@@ -69,7 +69,7 @@ pub struct EventSource {
     #[no_trace]
     request: DomRefCell<Option<RequestBuilder>>,
     last_event_id: DomRefCell<DOMString>,
-    reconnection_time: Cell<u64>,
+    reconnection_time: Cell<Duration>,
     generation_id: Cell<GenerationId>,
 
     ready_state: Cell<ReadyState>,
@@ -162,7 +162,7 @@ impl EventSourceContext {
                 event_source.upcast::<EventTarget>().fire_event(atom!("error"));
 
                 // Step 2.
-                let duration = Length::new(event_source.reconnection_time.get());
+                let duration = event_source.reconnection_time.get();
 
                 // Step 3.
                 // TODO: Optionally wait some more.
@@ -192,7 +192,10 @@ impl EventSourceContext {
             "id" => mem::swap(&mut self.last_event_id, &mut self.value),
             "retry" => {
                 if let Ok(time) = u64::from_str(&self.value) {
-                    self.event_source.root().reconnection_time.set(time);
+                    self.event_source
+                        .root()
+                        .reconnection_time
+                        .set(Duration::from_millis(time));
                 }
             },
             _ => (),

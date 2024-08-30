@@ -64,10 +64,9 @@ impl TimerScheduler {
     /// Handle an incoming timer request.
     pub fn handle_timer_request(&mut self, request: TimerSchedulerMsg) {
         let TimerEventRequest(_, _, _, delay) = request.0;
-        let schedule = Instant::now() + Duration::from_millis(delay.get());
         let event = ScheduledEvent {
             request: request.0,
-            for_time: schedule,
+            for_time: Instant::now() + delay,
         };
         self.0.push(event);
     }

@@ -11,7 +11,7 @@ use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::thread::JoinHandle;
-use std::time::{Instant, SystemTime, UNIX_EPOCH};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use std::{mem, ptr};
 
 use base::id::{
@@ -53,7 +53,7 @@ use script_traits::serializable::{BlobData, BlobImpl, FileBlob};
 use script_traits::transferable::MessagePortImpl;
 use script_traits::{
     BroadcastMsg, GamepadEvent, GamepadSupportedHapticEffects, GamepadUpdateType, MessagePortMsg,
-    MsDuration, PortMessageTask, ScriptMsg, ScriptToConstellationChan, TimerEvent, TimerEventId,
+    PortMessageTask, ScriptMsg, ScriptToConstellationChan, TimerEvent, TimerEventId,
     TimerSchedulerMsg, TimerSource,
 };
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
@@ -2741,7 +2741,7 @@ impl GlobalScope {
     pub fn schedule_callback(
         &self,
         callback: OneshotTimerCallback,
-        duration: MsDuration,
+        duration: Duration,
     ) -> OneshotTimerHandle {
         self.setup_timers();
         self.timers
@@ -2757,7 +2757,7 @@ impl GlobalScope {
         &self,
         callback: TimerCallback,
         arguments: Vec<HandleValue>,
-        timeout: i32,
+        timeout: Duration,
         is_interval: IsInterval,
     ) -> i32 {
         self.setup_timers();

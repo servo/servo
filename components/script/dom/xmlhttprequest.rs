@@ -7,11 +7,11 @@ use std::cell::Cell;
 use std::default::Default;
 use std::str::{self, FromStr};
 use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
 use std::{cmp, slice};
 
 use dom_struct::dom_struct;
 use encoding_rs::{Encoding, UTF_8};
-use euclid::Length;
 use headers::{ContentLength, ContentType, HeaderMapExt};
 use html5ever::serialize;
 use html5ever::serialize::SerializeOpts;
@@ -125,7 +125,7 @@ impl XHRProgress {
 pub struct XMLHttpRequest {
     eventtarget: XMLHttpRequestEventTarget,
     ready_state: Cell<XMLHttpRequestState>,
-    timeout: Cell<u32>,
+    timeout: Cell<Duration>,
     with_credentials: Cell<bool>,
     upload: Dom<XMLHttpRequestUpload>,
     response_url: DomRefCell<String>,
@@ -162,7 +162,7 @@ pub struct XMLHttpRequest {
     send_flag: Cell<bool>,
 
     timeout_cancel: DomRefCell<Option<OneshotTimerHandle>>,
-    fetch_time: Cell<i64>,
+    fetch_time: Cell<Instant>,
     generation_id: Cell<GenerationId>,
     response_status: Cell<Result<(), ()>>,
     #[no_trace]
@@ -185,7 +185,7 @@ impl XMLHttpRequest {
         XMLHttpRequest {
             eventtarget: XMLHttpRequestEventTarget::new_inherited(),
             ready_state: Cell::new(XMLHttpRequestState::Unsent),
-            timeout: Cell::new(0u32),
+            timeout: Cell::new(Duration::ZERO),
             with_credentials: Cell::new(false),
             upload: Dom::from_ref(&*XMLHttpRequestUpload::new(global)),
             response_url: DomRefCell::new(String::new()),
@@ -210,7 +210,7 @@ impl XMLHttpRequest {
             send_flag: Cell::new(false),
 
             timeout_cancel: DomRefCell::new(None),
-            fetch_time: Cell::new(0),
+            fetch_time: Cell::new(Instant::now()),
             generation_id: Cell::new(GenerationId(0)),
             response_status: Cell::new(Ok(())),
             referrer: global.get_referrer(),
@@ -420,7 +420,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                 // Step 10
                 if !asynch {
                     // FIXME: This should only happen if the global environment is a document environment
-                    if self.timeout.get() != 0 ||
+                    if !self.timeout.get().is_zero() ||
                         self.response_type.get() != XMLHttpRequestResponseType::_empty
                     {
                         return Err(Error::InvalidAccess);
@@ -514,7 +514,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
 
     /// <https://xhr.spec.whatwg.org/#the-timeout-attribute>
     fn Timeout(&self) -> u32 {
-        self.timeout.get()
+        self.timeout.get().as_millis() as u32
     }
 
     /// <https://xhr.spec.whatwg.org/#the-timeout-attribute>
@@ -523,20 +523,22 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
         if self.sync_in_window() {
             return Err(Error::InvalidAccess);
         }
+
         // Step 2
+        let timeout = Duration::from_millis(timeout as u64);
         self.timeout.set(timeout);
 
         if self.send_flag.get() {
-            if timeout == 0 {
+            if timeout.is_zero() {
                 self.cancel_timeout();
                 return Ok(());
             }
-            let progress = time::now().to_timespec().sec - self.fetch_time.get();
-            if timeout > (progress * 1000) as u32 {
-                self.set_timeout(timeout - (progress * 1000) as u32);
+            let progress = Instant::now() - self.fetch_time.get();
+            if timeout > progress {
+                self.set_timeout(timeout - progress);
             } else {
                 // Immediately execute the timeout steps
-                self.set_timeout(0);
+                self.set_timeout(Duration::ZERO);
             }
         }
         Ok(())
@@ -788,7 +790,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             }
         }
 
-        self.fetch_time.set(time::now().to_timespec().sec);
+        self.fetch_time.set(Instant::now());
 
         let rv = self.fetch(request, &self.global());
         // Step 10
@@ -797,7 +799,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
         }
 
         let timeout = self.timeout.get();
-        if timeout > 0 {
+        if timeout > Duration::ZERO {
             self.set_timeout(timeout);
         }
         Ok(())
@@ -1298,14 +1300,13 @@ impl XMLHttpRequest {
         self.dispatch_progress_event(false, type_, len, total);
     }
 
-    fn set_timeout(&self, duration_ms: u32) {
+    fn set_timeout(&self, duration: Duration) {
         // Sets up the object to timeout in a given number of milliseconds
         // This will cancel all previous timeouts
         let callback = OneshotTimerCallback::XhrTimeout(XHRTimeoutCallback {
             xhr: Trusted::new(self),
             generation_id: self.generation_id.get(),
         });
-        let duration = Length::new(duration_ms as u64);
         *self.timeout_cancel.borrow_mut() =
             Some(self.global().schedule_callback(callback, duration));
     }

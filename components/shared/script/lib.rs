@@ -18,6 +18,7 @@ use std::borrow::Cow;
 use std::collections::{HashMap, VecDeque};
 use std::fmt;
 use std::sync::Arc;
+use std::time::Duration;
 
 use background_hang_monitor_api::BackgroundHangMonitorRegister;
 use base::id::{
@@ -32,7 +33,7 @@ use crossbeam_channel::{RecvTimeoutError, Sender};
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId};
 use embedder_traits::CompositorEventVariant;
 use euclid::default::Point2D;
-use euclid::{Length, Rect, Scale, Size2D, UnknownUnit, Vector2D};
+use euclid::{Rect, Scale, Size2D, UnknownUnit, Vector2D};
 use http::{HeaderMap, Method};
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use ipc_channel::Error as IpcError;
@@ -577,7 +578,7 @@ pub struct TimerEventRequest(
     pub IpcSender<TimerEvent>,
     pub TimerSource,
     pub TimerEventId,
-    pub MsDuration,
+    pub Duration,
 );
 
 /// The message used to send a request to the timer scheduler.
@@ -602,23 +603,6 @@ pub enum TimerSource {
 /// The id to be used for a `TimerEvent` is defined by the corresponding `TimerEventRequest`.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
 pub struct TimerEventId(pub u32);
-
-/// Unit of measurement.
-#[derive(Clone, Copy, MallocSizeOf)]
-pub enum Milliseconds {}
-/// Unit of measurement.
-#[derive(Clone, Copy, MallocSizeOf)]
-pub enum Nanoseconds {}
-
-/// Amount of milliseconds.
-pub type MsDuration = Length<u64, Milliseconds>;
-/// Amount of nanoseconds.
-pub type NsDuration = Length<u64, Nanoseconds>;
-
-/// Returns the duration since an unspecified epoch measured in ms.
-pub fn precise_time_ms() -> MsDuration {
-    Length::new(time::precise_time_ns() / (1000 * 1000))
-}
 
 /// Data needed to construct a script thread.
 ///

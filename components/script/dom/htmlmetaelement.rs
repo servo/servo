@@ -4,12 +4,13 @@
 
 use std::str::FromStr;
 use std::sync::LazyLock;
+use std::time::Duration;
 
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use js::rust::HandleObject;
 use regex::bytes::Regex;
-use script_traits::{HistoryEntryReplacement, MsDuration};
+use script_traits::HistoryEntryReplacement;
 use servo_url::ServoUrl;
 use style::str::HTML_SPACE_CHARACTERS;
 
@@ -207,7 +208,7 @@ impl HTMLMetaElement {
                     window: window.clone(),
                     url: url_record,
                 }),
-                MsDuration::new(time.saturating_mul(1000)),
+                Duration::from_secs(time),
             );
             document.set_declarative_refresh(DeclarativeRefresh::CreatedAfterLoad);
         } else {

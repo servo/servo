@@ -3,21 +3,18 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
-use std::cmp::{self, Ord, Ordering};
+use std::cmp::{Ord, Ordering};
 use std::collections::HashMap;
 use std::default::Default;
 use std::rc::Rc;
+use std::time::{Duration, Instant};
 
 use deny_public_fields::DenyPublicFields;
-use euclid::Length;
 use ipc_channel::ipc::IpcSender;
 use js::jsapi::Heap;
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::HandleValue;
-use script_traits::{
-    precise_time_ms, MsDuration, TimerEvent, TimerEventId, TimerEventRequest, TimerSchedulerMsg,
-    TimerSource,
-};
+use script_traits::{TimerEvent, TimerEventId, TimerEventRequest, TimerSchedulerMsg, TimerSource};
 use servo_config::pref;
 
 use crate::dom::bindings::callback::ExceptionHandling::Report;
@@ -52,14 +49,12 @@ pub struct OneshotTimers {
     scheduler_chan: IpcSender<TimerSchedulerMsg>,
     next_timer_handle: Cell<OneshotTimerHandle>,
     timers: DomRefCell<Vec<OneshotTimer>>,
-    #[no_trace]
-    suspended_since: Cell<Option<MsDuration>>,
+    suspended_since: Cell<Option<Instant>>,
     /// Initially 0, increased whenever the associated document is reactivated
     /// by the amount of ms the document was inactive. The current time can be
     /// offset back by this amount for a coherent time across document
     /// activations.
-    #[no_trace]
-    suspension_offset: Cell<MsDuration>,
+    suspension_offset: Cell<Duration>,
     /// Calls to `fire_timer` with a different argument than this get ignored.
     /// They were previously scheduled and got invalidated when
     ///  - timers were suspended,
@@ -76,8 +71,7 @@ struct OneshotTimer {
     #[no_trace]
     source: TimerSource,
     callback: OneshotTimerCallback,
-    #[no_trace]
-    scheduled_for: MsDuration,
+    scheduled_for: Instant,
 }
 
 // This enum is required to work around the fact that trait objects do not support generic methods.
@@ -137,7 +131,7 @@ impl OneshotTimers {
             next_timer_handle: Cell::new(OneshotTimerHandle(1)),
             timers: DomRefCell::new(Vec::new()),
             suspended_since: Cell::new(None),
-            suspension_offset: Cell::new(Length::new(0)),
+            suspension_offset: Cell::new(Duration::ZERO),
             expected_event_id: Cell::new(TimerEventId(0)),
         }
     }
@@ -151,20 +145,18 @@ impl OneshotTimers {
     pub fn schedule_callback(
         &self,
         callback: OneshotTimerCallback,
-        duration: MsDuration,
+        duration: Duration,
         source: TimerSource,
     ) -> OneshotTimerHandle {
         let new_handle = self.next_timer_handle.get();
         self.next_timer_handle
             .set(OneshotTimerHandle(new_handle.0 + 1));
 
-        let scheduled_for = self.base_time() + duration;
-
         let timer = OneshotTimer {
             handle: new_handle,
             source,
             callback,
-            scheduled_for,
+            scheduled_for: self.base_time() + duration,
         };
 
         {
@@ -247,18 +239,18 @@ impl OneshotTimers {
         self.schedule_timer_call();
     }
 
-    fn base_time(&self) -> MsDuration {
+    fn base_time(&self) -> Instant {
         let offset = self.suspension_offset.get();
-
         match self.suspended_since.get() {
-            Some(time) => time - offset,
-            None => precise_time_ms() - offset,
+            Some(suspend_time) => suspend_time - offset,
+            None => Instant::now() - offset,
         }
     }
 
     pub fn slow_down(&self) {
-        let duration = pref!(js.timers.minimum_duration) as u64;
-        self.js_timers.set_min_duration(MsDuration::new(duration));
+        let min_duration_ms = pref!(js.timers.minimum_duration) as u64;
+        self.js_timers
+            .set_min_duration(Duration::from_millis(min_duration_ms));
     }
 
     pub fn speed_up(&self) {
@@ -272,14 +264,14 @@ impl OneshotTimers {
         }
 
         debug!("Suspending timers.");
-        self.suspended_since.set(Some(precise_time_ms()));
+        self.suspended_since.set(Some(Instant::now()));
         self.invalidate_expected_event_id();
     }
 
     pub fn resume(&self) {
         // Resume is idempotent: do nothing if the timers are already resumed.
         let additional_offset = match self.suspended_since.get() {
-            Some(suspended_since) => precise_time_ms() - suspended_since,
+            Some(suspended_since) => Instant::now() - suspended_since,
             None => return warn!("Resuming an already resumed timer."),
         };
 
@@ -302,12 +294,7 @@ impl OneshotTimers {
         if let Some(timer) = timers.last() {
             let expected_event_id = self.invalidate_expected_event_id();
 
-            let delay = Length::new(
-                timer
-                    .scheduled_for
-                    .get()
-                    .saturating_sub(precise_time_ms().get()),
-            );
+            let delay = timer.scheduled_for - Instant::now();
             let request = TimerEventRequest(
                 self.timer_event_chan
                     .borrow()
@@ -339,7 +326,7 @@ impl OneshotTimers {
         global: &GlobalScope,
         callback: TimerCallback,
         arguments: Vec<HandleValue>,
-        timeout: i32,
+        timeout: Duration,
         is_interval: IsInterval,
         source: TimerSource,
     ) -> i32 {
@@ -369,8 +356,7 @@ pub struct JsTimers {
     /// The nesting level of the currently executing timer task or 0.
     nesting_level: Cell<u32>,
     /// Used to introduce a minimum delay in event intervals
-    #[no_trace]
-    min_duration: Cell<Option<MsDuration>>,
+    min_duration: Cell<Option<Duration>>,
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -391,8 +377,7 @@ pub struct JsTimerTask {
     callback: InternalTimerCallback,
     is_interval: IsInterval,
     nesting_level: u32,
-    #[no_trace]
-    duration: MsDuration,
+    duration: Duration,
     is_user_interacting: bool,
 }
 
@@ -436,7 +421,7 @@ impl JsTimers {
         global: &GlobalScope,
         callback: TimerCallback,
         arguments: Vec<HandleValue>,
-        timeout: i32,
+        timeout: Duration,
         is_interval: IsInterval,
         source: TimerSource,
     ) -> i32 {
@@ -480,11 +465,11 @@ impl JsTimers {
             is_interval,
             is_user_interacting: ScriptThread::is_user_interacting(),
             nesting_level: 0,
-            duration: Length::new(0),
+            duration: Duration::ZERO,
         };
 
         // step 5
-        task.duration = Length::new(cmp::max(0, timeout) as u64);
+        task.duration = timeout.max(Duration::ZERO);
 
         // step 3, 6-9, 11-14
         self.initialize_and_schedule(global, task);
@@ -501,7 +486,7 @@ impl JsTimers {
         }
     }
 
-    pub fn set_min_duration(&self, duration: MsDuration) {
+    pub fn set_min_duration(&self, duration: Duration) {
         self.min_duration.set(Some(duration));
     }
 
@@ -510,9 +495,9 @@ impl JsTimers {
     }
 
     // see step 13 of https://html.spec.whatwg.org/multipage/#timer-initialisation-steps
-    fn user_agent_pad(&self, current_duration: MsDuration) -> MsDuration {
+    fn user_agent_pad(&self, current_duration: Duration) -> Duration {
         match self.min_duration.get() {
-            Some(min_duration) => cmp::max(min_duration, current_duration),
+            Some(min_duration) => min_duration.max(current_duration),
             None => current_duration,
         }
     }
@@ -543,10 +528,10 @@ impl JsTimers {
 }
 
 // see step 7 of https://html.spec.whatwg.org/multipage/#timer-initialisation-steps
-fn clamp_duration(nesting_level: u32, unclamped: MsDuration) -> MsDuration {
-    let lower_bound = if nesting_level > 5 { 4 } else { 0 };
-
-    cmp::max(Length::new(lower_bound), unclamped)
+fn clamp_duration(nesting_level: u32, unclamped: Duration) -> Duration {
+    let lower_bound_ms = if nesting_level > 5 { 4 } else { 0 };
+    let lower_bound = Duration::from_millis(lower_bound_ms);
+    lower_bound.max(unclamped)
 }
 
 impl JsTimerTask {

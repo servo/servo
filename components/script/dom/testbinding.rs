@@ -7,6 +7,7 @@
 use std::borrow::ToOwned;
 use std::ptr::{self, NonNull};
 use std::rc::Rc;
+use std::time::Duration;
 
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject, JS_NewPlainObject};
@@ -14,7 +15,6 @@ use js::jsval::{JSVal, NullValue};
 use js::rust::{CustomAutoRooterGuard, HandleObject, HandleValue};
 use js::typedarray::{self, Uint8ClampedArray};
 use script_traits::serializable::BlobImpl;
-use script_traits::MsDuration;
 use servo_config::prefs;
 
 use crate::dom::bindings::buffer_source::create_buffer_source;
@@ -999,7 +999,7 @@ impl TestBindingMethods for TestBinding {
         };
         let _ = self.global().schedule_callback(
             OneshotTimerCallback::TestBindingCallback(cb),
-            MsDuration::new(delay),
+            Duration::from_millis(delay),
         );
     }
 
