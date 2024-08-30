@@ -1917,12 +1917,7 @@ impl IndependentFormattingContext {
             IndependentFormattingContext::Replaced(replaced) => {
                 let size = replaced
                     .contents
-                    .used_size_as_if_inline_element(
-                        layout.containing_block,
-                        &replaced.style,
-                        None,
-                        &pbm,
-                    )
+                    .used_size_as_if_inline_element(layout.containing_block, &replaced.style, &pbm)
                     .to_physical_size(container_writing_mode);
                 let fragments = replaced.contents.make_fragments(&replaced.style, size);
                 let content_rect = PhysicalRect::new(pbm_physical_origin, size);
@@ -2383,6 +2378,7 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
                     self.layout_context,
                     self.containing_block,
                     &LogicalVec2::zero(),
+                    false, /* auto_block_size_stretches_to_containing_block */
                 );
 
                 if !inline_formatting_context

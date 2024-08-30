@@ -198,12 +198,14 @@ impl IndependentFormattingContext {
         layout_context: &LayoutContext,
         containing_block: &IndefiniteContainingBlock,
         auto_minimum: &LogicalVec2<Au>,
+        auto_block_size_stretches_to_containing_block: bool,
     ) -> ContentSizes {
         match self {
             Self::NonReplaced(non_replaced) => sizing::outer_inline(
                 &non_replaced.style.clone(),
                 containing_block,
                 auto_minimum,
+                auto_block_size_stretches_to_containing_block,
                 |containing_block_for_children| {
                     non_replaced.inline_content_sizes(layout_context, containing_block_for_children)
                 },
@@ -212,6 +214,7 @@ impl IndependentFormattingContext {
                 &replaced.style,
                 containing_block,
                 auto_minimum,
+                auto_block_size_stretches_to_containing_block,
                 |containing_block_for_children| {
                     replaced.contents.inline_content_sizes(
                         layout_context,
@@ -220,6 +223,16 @@ impl IndependentFormattingContext {
                     )
                 },
             ),
+        }
+    }
+
+    pub(crate) fn preferred_aspect_ratio(
+        &self,
+        containing_block: &IndefiniteContainingBlock,
+    ) -> Option<AspectRatio> {
+        match self {
+            Self::NonReplaced(_) => None,
+            Self::Replaced(replaced) => replaced.preferred_aspect_ratio(containing_block),
         }
     }
 }
