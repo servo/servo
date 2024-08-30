@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::time::Duration;
+
 use dom_struct::dom_struct;
 use embedder_traits::EmbedderMsg;
 use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
@@ -23,9 +25,8 @@ use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::{document_from_node, window_from_node, BindContext, Node};
 use crate::dom::virtualmethods::VirtualMethods;
 
-/// How long we should wait before performing the initial reflow after `<body>` is parsed, in
-/// nanoseconds.
-const INITIAL_REFLOW_DELAY: u64 = 200_000_000;
+/// How long we should wait before performing the initial reflow after `<body>` is parsed.
+const INITIAL_REFLOW_DELAY: Duration = Duration::from_millis(200);
 
 #[dom_struct]
 pub struct HTMLBodyElement {
@@ -155,7 +156,7 @@ impl VirtualMethods for HTMLBodyElement {
 
         let window = window_from_node(self);
         let document = window.Document();
-        document.set_reflow_timeout(time::precise_time_ns() + INITIAL_REFLOW_DELAY);
+        document.set_reflow_timeout(INITIAL_REFLOW_DELAY);
         if window.is_top_level() {
             let msg = EmbedderMsg::HeadParsed;
             window.send_to_embedder(msg);
