@@ -7,7 +7,6 @@
 use std::borrow::Cow;
 use std::cell::Cell;
 use std::collections::HashMap;
-use std::num::NonZeroU64;
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
@@ -29,6 +28,7 @@ use super::bindings::codegen::Bindings::WebGPUBinding::{
 use super::bindings::codegen::UnionTypes::GPUPipelineLayoutOrGPUAutoLayoutMode;
 use super::bindings::error::Fallible;
 use super::gpu::AsyncWGPUListener;
+use super::gpuconvert::convert_bind_group_layout_entry;
 use super::gpudevicelostinfo::GPUDeviceLostInfo;
 use super::gpupipelineerror::GPUPipelineError;
 use super::gpusupportedlimits::GPUSupportedLimits;
@@ -37,13 +37,12 @@ use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventInit;
 use crate::dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
-    GPUBindGroupDescriptor, GPUBindGroupLayoutDescriptor, GPUBindingResource, GPUBufferBindingType,
-    GPUBufferDescriptor, GPUCommandEncoderDescriptor, GPUComputePipelineDescriptor,
-    GPUDeviceLostReason, GPUDeviceMethods, GPUErrorFilter, GPUPipelineLayoutDescriptor,
-    GPURenderBundleEncoderDescriptor, GPURenderPipelineDescriptor, GPUSamplerBindingType,
-    GPUSamplerDescriptor, GPUShaderModuleDescriptor, GPUStorageTextureAccess,
-    GPUSupportedLimitsMethods, GPUTextureDescriptor, GPUTextureDimension, GPUTextureSampleType,
-    GPUUncapturedErrorEventInit, GPUVertexStepMode,
+    GPUBindGroupDescriptor, GPUBindGroupLayoutDescriptor, GPUBindingResource, GPUBufferDescriptor,
+    GPUCommandEncoderDescriptor, GPUComputePipelineDescriptor, GPUDeviceLostReason,
+    GPUDeviceMethods, GPUErrorFilter, GPUPipelineLayoutDescriptor,
+    GPURenderBundleEncoderDescriptor, GPURenderPipelineDescriptor, GPUSamplerDescriptor,
+    GPUShaderModuleDescriptor, GPUSupportedLimitsMethods, GPUTextureDescriptor,
+    GPUTextureDimension, GPUUncapturedErrorEventInit, GPUVertexStepMode,
 };
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
@@ -62,8 +61,7 @@ use crate::dom::gpucomputepipeline::GPUComputePipeline;
 use crate::dom::gpuconvert::{
     convert_address_mode, convert_blend_component, convert_compare_function, convert_filter_mode,
     convert_label, convert_primitive_state, convert_stencil_op, convert_texture_format,
-    convert_texture_size_to_dict, convert_texture_size_to_wgt, convert_vertex_format,
-    convert_view_dimension,
+    convert_texture_size, convert_vertex_format,
 };
 use crate::dom::gpupipelinelayout::GPUPipelineLayout;
 use crate::dom::gpuqueue::GPUQueue;
@@ -484,91 +482,21 @@ impl GPUDeviceMethods for GPUDevice {
         &self,
         descriptor: &GPUBindGroupLayoutDescriptor,
     ) -> Fallible<DomRoot<GPUBindGroupLayout>> {
-        // TODO(sagudev): pass invalid bits to wgpu
-        let mut valid = true;
         let entries = descriptor
             .entries
             .iter()
-            .map(|bind| {
-                let visibility = match wgt::ShaderStages::from_bits(bind.visibility) {
-                    Some(visibility) => visibility,
-                    None => {
-                        valid = false;
-                        wgt::ShaderStages::empty()
-                    },
-                };
-                let ty = if let Some(buffer) = &bind.buffer {
-                    wgt::BindingType::Buffer {
-                        ty: match buffer.type_ {
-                            GPUBufferBindingType::Uniform => wgt::BufferBindingType::Uniform,
-                            GPUBufferBindingType::Storage => {
-                                wgt::BufferBindingType::Storage { read_only: false }
-                            },
-                            GPUBufferBindingType::Read_only_storage => {
-                                wgt::BufferBindingType::Storage { read_only: true }
-                            },
-                        },
-                        has_dynamic_offset: buffer.hasDynamicOffset,
-                        min_binding_size: NonZeroU64::new(buffer.minBindingSize),
-                    }
-                } else if let Some(sampler) = &bind.sampler {
-                    wgt::BindingType::Sampler(match sampler.type_ {
-                        GPUSamplerBindingType::Filtering => wgt::SamplerBindingType::Filtering,
-                        GPUSamplerBindingType::Non_filtering => {
-                            wgt::SamplerBindingType::NonFiltering
-                        },
-                        GPUSamplerBindingType::Comparison => wgt::SamplerBindingType::Comparison,
-                    })
-                } else if let Some(storage) = &bind.storageTexture {
-                    wgt::BindingType::StorageTexture {
-                        access: match storage.access {
-                            GPUStorageTextureAccess::Write_only => {
-                                wgt::StorageTextureAccess::WriteOnly
-                            },
-                        },
-                        format: self.validate_texture_format_required_features(&storage.format)?,
-                        view_dimension: convert_view_dimension(storage.viewDimension),
-                    }
-                } else if let Some(texture) = &bind.texture {
-                    wgt::BindingType::Texture {
-                        sample_type: match texture.sampleType {
-                            GPUTextureSampleType::Float => {
-                                wgt::TextureSampleType::Float { filterable: true }
-                            },
-                            GPUTextureSampleType::Unfilterable_float => {
-                                wgt::TextureSampleType::Float { filterable: false }
-                            },
-                            GPUTextureSampleType::Depth => wgt::TextureSampleType::Depth,
-                            GPUTextureSampleType::Sint => wgt::TextureSampleType::Sint,
-                            GPUTextureSampleType::Uint => wgt::TextureSampleType::Uint,
-                        },
-                        view_dimension: convert_view_dimension(texture.viewDimension),
-                        multisampled: texture.multisampled,
-                    }
-                } else {
-                    valid = false;
-                    todo!("Handle error");
-                };
+            .map(|bgle| convert_bind_group_layout_entry(bgle, &self))
+            .collect::<Fallible<Result<Vec<_>, _>>>()?;
 
-                Ok(wgt::BindGroupLayoutEntry {
-                    binding: bind.binding,
-                    visibility,
-                    ty,
-                    count: None,
-                })
-            })
-            .collect::<Fallible<Vec<_>>>()?;
-
-        let desc = if valid {
-            Some(wgpu_bind::BindGroupLayoutDescriptor {
+        let desc = match entries {
+            Ok(entries) => Some(wgpu_bind::BindGroupLayoutDescriptor {
                 label: convert_label(&descriptor.parent),
                 entries: Cow::Owned(entries),
-            })
-        } else {
-            self.dispatch_error(webgpu::Error::Validation(String::from(
-                "Invalid GPUShaderStage",
-            )));
-            None
+            }),
+            Err(error) => {
+                self.dispatch_error(error);
+                None
+            },
         };
 
         let bind_group_layout_id = self
@@ -833,7 +761,9 @@ impl GPUDeviceMethods for GPUDevice {
             .send(WebGPURequest::CreateCommandEncoder {
                 device_id: self.device.0,
                 command_encoder_id,
-                label: convert_label(&descriptor.parent),
+                desc: wgt::CommandEncoderDescriptor {
+                    label: convert_label(&descriptor.parent),
+                },
             })
             .expect("Failed to create WebGPU command encoder");
 
@@ -850,40 +780,31 @@ impl GPUDeviceMethods for GPUDevice {
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createtexture>
     fn CreateTexture(&self, descriptor: &GPUTextureDescriptor) -> Fallible<DomRoot<GPUTexture>> {
-        // TODO(sagudev): This should be https://gpuweb.github.io/gpuweb/#abstract-opdef-validate-gpuextent3d-shape
-        let size = convert_texture_size_to_dict(&descriptor.size);
-        // TODO(sagudev): We should pass invalid bits to wgpu
-        let desc = wgt::TextureUsages::from_bits(descriptor.usage)
-            .map(|usg| -> Fallible<_> {
-                Ok(wgpu_res::TextureDescriptor {
-                    label: convert_label(&descriptor.parent),
-                    size: convert_texture_size_to_wgt(&size),
-                    mip_level_count: descriptor.mipLevelCount,
-                    sample_count: descriptor.sampleCount,
-                    dimension: match descriptor.dimension {
-                        GPUTextureDimension::_1d => wgt::TextureDimension::D1,
-                        GPUTextureDimension::_2d => wgt::TextureDimension::D2,
-                        GPUTextureDimension::_3d => wgt::TextureDimension::D3,
-                    },
-                    format: self.validate_texture_format_required_features(&descriptor.format)?,
-                    usage: usg,
-                    view_formats: descriptor
-                        .viewFormats
-                        .iter()
-                        .map(|tf| self.validate_texture_format_required_features(tf))
-                        .collect::<Fallible<_>>()?,
-                })
-            })
-            .transpose()?;
+        let size = convert_texture_size(&descriptor.size)?;
+        let desc = wgpu_res::TextureDescriptor {
+            label: convert_label(&descriptor.parent),
+            size,
+            mip_level_count: descriptor.mipLevelCount,
+            sample_count: descriptor.sampleCount,
+            dimension: match descriptor.dimension {
+                GPUTextureDimension::_1d => wgt::TextureDimension::D1,
+                GPUTextureDimension::_2d => wgt::TextureDimension::D2,
+                GPUTextureDimension::_3d => wgt::TextureDimension::D3,
+            },
+            format: self.validate_texture_format_required_features(&descriptor.format)?,
+            usage: wgt::TextureUsages::from_bits_retain(descriptor.usage),
+            view_formats: descriptor
+                .viewFormats
+                .iter()
+                .map(|tf| self.validate_texture_format_required_features(tf))
+                .collect::<Fallible<_>>()?,
+        };
 
         let texture_id = self
             .global()
             .wgpu_id_hub()
             .create_texture_id(self.device.0.backend());
 
-        if desc.is_none() {
-            return Err(Error::Type(String::from("Invalid GPUTextureUsage")));
-        }
         self.channel
             .0
             .send(WebGPURequest::CreateTexture {

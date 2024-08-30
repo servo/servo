@@ -12,7 +12,7 @@ use webgpu::{wgt, WebGPU, WebGPURequest, WebGPUTexture, WebGPUTextureView};
 use super::bindings::error::Fallible;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
-    GPUExtent3DDict, GPUTextureAspect, GPUTextureDimension, GPUTextureFormat, GPUTextureMethods,
+    GPUTextureAspect, GPUTextureDimension, GPUTextureFormat, GPUTextureMethods,
     GPUTextureViewDescriptor,
 };
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
@@ -33,8 +33,9 @@ pub struct GPUTexture {
     #[ignore_malloc_size_of = "channels are hard"]
     #[no_trace]
     channel: WebGPU,
-    #[ignore_malloc_size_of = "defined in webgpu"]
-    texture_size: GPUExtent3DDict,
+    #[ignore_malloc_size_of = "defined in wgpu"]
+    #[no_trace]
+    texture_size: wgt::Extent3d,
     mip_level_count: u32,
     sample_count: u32,
     dimension: GPUTextureDimension,
@@ -49,7 +50,7 @@ impl GPUTexture {
         texture: WebGPUTexture,
         device: &GPUDevice,
         channel: WebGPU,
-        texture_size: GPUExtent3DDict,
+        texture_size: wgt::Extent3d,
         mip_level_count: u32,
         sample_count: u32,
         dimension: GPUTextureDimension,
@@ -79,7 +80,7 @@ impl GPUTexture {
         texture: WebGPUTexture,
         device: &GPUDevice,
         channel: WebGPU,
-        texture_size: GPUExtent3DDict,
+        texture_size: wgt::Extent3d,
         mip_level_count: u32,
         sample_count: u32,
         dimension: GPUTextureDimension,
@@ -230,7 +231,7 @@ impl GPUTextureMethods for GPUTexture {
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gputexture-depthorarraylayers>
     fn DepthOrArrayLayers(&self) -> u32 {
-        self.texture_size.depthOrArrayLayers
+        self.texture_size.depth_or_array_layers
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gputexture-miplevelcount>

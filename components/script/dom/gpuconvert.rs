@@ -3,17 +3,23 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::borrow::Cow;
+use std::num::NonZeroU64;
 
 use webgpu::wgc::command as wgpu_com;
 use webgpu::wgt::{self, AstcBlock, AstcChannel};
 
+use super::bindings::error::Error;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
-    GPUAddressMode, GPUBlendComponent, GPUBlendFactor, GPUBlendOperation, GPUCompareFunction,
-    GPUCullMode, GPUExtent3D, GPUExtent3DDict, GPUFilterMode, GPUFrontFace, GPUImageCopyBuffer,
-    GPUImageCopyTexture, GPUImageDataLayout, GPUIndexFormat, GPULoadOp, GPUObjectDescriptorBase,
-    GPUOrigin3D, GPUPrimitiveState, GPUPrimitiveTopology, GPUStencilOperation, GPUStoreOp,
-    GPUTextureAspect, GPUTextureFormat, GPUTextureViewDimension, GPUVertexFormat,
+    GPUAddressMode, GPUBindGroupLayoutEntry, GPUBlendComponent, GPUBlendFactor, GPUBlendOperation,
+    GPUBufferBindingType, GPUColor, GPUCompareFunction, GPUCullMode, GPUExtent3D, GPUFilterMode,
+    GPUFrontFace, GPUImageCopyBuffer, GPUImageCopyTexture, GPUImageDataLayout, GPUIndexFormat,
+    GPULoadOp, GPUObjectDescriptorBase, GPUOrigin3D, GPUPrimitiveState, GPUPrimitiveTopology,
+    GPUSamplerBindingType, GPUStencilOperation, GPUStorageTextureAccess, GPUStoreOp,
+    GPUTextureAspect, GPUTextureFormat, GPUTextureSampleType, GPUTextureViewDimension,
+    GPUVertexFormat,
 };
+use crate::dom::bindings::error::Fallible;
+use crate::dom::types::GPUDevice;
 
 pub fn convert_texture_format(format: GPUTextureFormat) -> wgt::TextureFormat {
     match format {
@@ -212,30 +218,27 @@ pub fn convert_texture_view_dimension(
     }
 }
 
-pub fn convert_texture_size_to_dict(size: &GPUExtent3D) -> GPUExtent3DDict {
+pub fn convert_texture_size(size: &GPUExtent3D) -> Fallible<wgt::Extent3d> {
     match *size {
-        GPUExtent3D::GPUExtent3DDict(ref dict) => GPUExtent3DDict {
+        GPUExtent3D::GPUExtent3DDict(ref dict) => Ok(wgt::Extent3d {
             width: dict.width,
             height: dict.height,
-            depthOrArrayLayers: dict.depthOrArrayLayers,
-        },
+            depth_or_array_layers: dict.depthOrArrayLayers,
+        }),
         GPUExtent3D::RangeEnforcedUnsignedLongSequence(ref v) => {
-            let mut w = v.clone();
-            w.resize(3, 1);
-            GPUExtent3DDict {
-                width: w[0],
-                height: w[1],
-                depthOrArrayLayers: w[2],
+            // https://gpuweb.github.io/gpuweb/#abstract-opdef-validate-gpuextent3d-shape
+            if v.len() < 1 || v.len() > 3 {
+                Err(Error::Type(
+                    "GPUExtent3D size must be between 1 and 3 (inclusive)".to_string(),
+                ))
+            } else {
+                Ok(wgt::Extent3d {
+                    width: v[0],
+                    height: v.get(1).copied().unwrap_or(1),
+                    depth_or_array_layers: v.get(2).copied().unwrap_or(1),
+                })
             }
         },
-    }
-}
-
-pub fn convert_texture_size_to_wgt(size: &GPUExtent3DDict) -> wgt::Extent3d {
-    wgt::Extent3d {
-        width: size.width,
-        height: size.height,
-        depth_or_array_layers: size.depthOrArrayLayers,
     }
 }
 
@@ -426,33 +429,48 @@ pub fn convert_ic_buffer(ic_buffer: &GPUImageCopyBuffer) -> wgpu_com::ImageCopyB
     }
 }
 
-pub fn convert_ic_texture(ic_texture: &GPUImageCopyTexture) -> wgpu_com::ImageCopyTexture {
-    wgpu_com::ImageCopyTexture {
+pub fn convert_origin3d(origin: &GPUOrigin3D) -> Fallible<wgt::Origin3d> {
+    match origin {
+        GPUOrigin3D::RangeEnforcedUnsignedLongSequence(v) => {
+            // https://gpuweb.github.io/gpuweb/#abstract-opdef-validate-gpuorigin3d-shape
+            if v.len() > 3 {
+                Err(Error::Type(
+                    "sequence is too long for GPUOrigin3D".to_string(),
+                ))
+            } else {
+                Ok(wgt::Origin3d {
+                    x: v.get(0).copied().unwrap_or(0),
+                    y: v.get(1).copied().unwrap_or(0),
+                    z: v.get(2).copied().unwrap_or(0),
+                })
+            }
+        },
+        GPUOrigin3D::GPUOrigin3DDict(d) => Ok(wgt::Origin3d {
+            x: d.x,
+            y: d.y,
+            z: d.z,
+        }),
+    }
+}
+
+pub fn convert_ic_texture(
+    ic_texture: &GPUImageCopyTexture,
+) -> Fallible<wgpu_com::ImageCopyTexture> {
+    Ok(wgpu_com::ImageCopyTexture {
         texture: ic_texture.texture.id().0,
         mip_level: ic_texture.mipLevel,
-        origin: match ic_texture.origin {
-            Some(GPUOrigin3D::RangeEnforcedUnsignedLongSequence(ref v)) => {
-                let mut w = v.clone();
-                w.resize(3, 0);
-                wgt::Origin3d {
-                    x: w[0],
-                    y: w[1],
-                    z: w[2],
-                }
-            },
-            Some(GPUOrigin3D::GPUOrigin3DDict(ref d)) => wgt::Origin3d {
-                x: d.x,
-                y: d.y,
-                z: d.z,
-            },
-            None => wgt::Origin3d::default(),
-        },
+        origin: ic_texture
+            .origin
+            .as_ref()
+            .map(|origin| convert_origin3d(origin))
+            .transpose()?
+            .unwrap_or_default(),
         aspect: match ic_texture.aspect {
             GPUTextureAspect::All => wgt::TextureAspect::All,
             GPUTextureAspect::Stencil_only => wgt::TextureAspect::StencilOnly,
             GPUTextureAspect::Depth_only => wgt::TextureAspect::DepthOnly,
         },
-    }
+    })
 }
 
 pub fn convert_label(parent: &GPUObjectDescriptorBase) -> Option<Cow<'static, str>> {
@@ -460,5 +478,104 @@ pub fn convert_label(parent: &GPUObjectDescriptorBase) -> Option<Cow<'static, st
         None
     } else {
         Some(Cow::Owned(parent.label.to_string()))
+    }
+}
+
+pub fn convert_bind_group_layout_entry(
+    bgle: &GPUBindGroupLayoutEntry,
+    device: &GPUDevice,
+) -> Fallible<Result<wgt::BindGroupLayoutEntry, webgpu::Error>> {
+    let number_of_provided_bindings = bgle.buffer.is_some() as u8 +
+        bgle.sampler.is_some() as u8 +
+        bgle.storageTexture.is_some() as u8 +
+        bgle.texture.is_some() as u8;
+    let ty = if let Some(buffer) = &bgle.buffer {
+        Some(wgt::BindingType::Buffer {
+            ty: match buffer.type_ {
+                GPUBufferBindingType::Uniform => wgt::BufferBindingType::Uniform,
+                GPUBufferBindingType::Storage => {
+                    wgt::BufferBindingType::Storage { read_only: false }
+                },
+                GPUBufferBindingType::Read_only_storage => {
+                    wgt::BufferBindingType::Storage { read_only: true }
+                },
+            },
+            has_dynamic_offset: buffer.hasDynamicOffset,
+            min_binding_size: NonZeroU64::new(buffer.minBindingSize),
+        })
+    } else if let Some(sampler) = &bgle.sampler {
+        Some(wgt::BindingType::Sampler(match sampler.type_ {
+            GPUSamplerBindingType::Filtering => wgt::SamplerBindingType::Filtering,
+            GPUSamplerBindingType::Non_filtering => wgt::SamplerBindingType::NonFiltering,
+            GPUSamplerBindingType::Comparison => wgt::SamplerBindingType::Comparison,
+        }))
+    } else if let Some(storage) = &bgle.storageTexture {
+        Some(wgt::BindingType::StorageTexture {
+            access: match storage.access {
+                GPUStorageTextureAccess::Write_only => wgt::StorageTextureAccess::WriteOnly,
+                GPUStorageTextureAccess::Read_only => wgt::StorageTextureAccess::ReadOnly,
+                GPUStorageTextureAccess::Read_write => wgt::StorageTextureAccess::ReadWrite,
+            },
+            format: device.validate_texture_format_required_features(&storage.format)?,
+            view_dimension: convert_view_dimension(storage.viewDimension),
+        })
+    } else if let Some(texture) = &bgle.texture {
+        Some(wgt::BindingType::Texture {
+            sample_type: match texture.sampleType {
+                GPUTextureSampleType::Float => wgt::TextureSampleType::Float { filterable: true },
+                GPUTextureSampleType::Unfilterable_float => {
+                    wgt::TextureSampleType::Float { filterable: false }
+                },
+                GPUTextureSampleType::Depth => wgt::TextureSampleType::Depth,
+                GPUTextureSampleType::Sint => wgt::TextureSampleType::Sint,
+                GPUTextureSampleType::Uint => wgt::TextureSampleType::Uint,
+            },
+            view_dimension: convert_view_dimension(texture.viewDimension),
+            multisampled: texture.multisampled,
+        })
+    } else {
+        assert_eq!(number_of_provided_bindings, 0);
+        None
+    };
+    // Check for number of bindings should actually be done in device-timeline,
+    // but we do it last on content-timeline to have some visible effect
+    let ty = if number_of_provided_bindings != 1 {
+        None
+    } else {
+        ty
+    }
+    .ok_or(webgpu::Error::Validation(
+        "Exactly on entry type must be provided".to_string(),
+    ));
+
+    Ok(ty.map(|ty| wgt::BindGroupLayoutEntry {
+        binding: bgle.binding,
+        visibility: wgt::ShaderStages::from_bits_retain(bgle.visibility),
+        ty,
+        count: None,
+    }))
+}
+
+pub fn convert_color(color: &GPUColor) -> Fallible<wgt::Color> {
+    match color {
+        GPUColor::DoubleSequence(s) => {
+            // https://gpuweb.github.io/gpuweb/#abstract-opdef-validate-gpucolor-shape
+            if s.len() != 4 {
+                Err(Error::Type("GPUColor sequence must be len 4".to_string()))
+            } else {
+                Ok(wgt::Color {
+                    r: *s[0],
+                    g: *s[1],
+                    b: *s[2],
+                    a: *s[3],
+                })
+            }
+        },
+        GPUColor::GPUColorDict(d) => Ok(wgt::Color {
+            r: *d.r,
+            g: *d.g,
+            b: *d.b,
+            a: *d.a,
+        }),
     }
 }

@@ -462,10 +462,12 @@ dictionary GPUBindGroupLayoutDescriptor : GPUObjectDescriptorBase {
 dictionary GPUBindGroupLayoutEntry {
     required GPUIndex32 binding;
     required GPUShaderStageFlags visibility;
+
     GPUBufferBindingLayout buffer;
     GPUSamplerBindingLayout sampler;
     GPUTextureBindingLayout texture;
     GPUStorageTextureBindingLayout storageTexture;
+    GPUExternalTextureBindingLayout externalTexture;
 };
 
 typedef [EnforceRange] unsigned long GPUShaderStageFlags;
@@ -514,12 +516,17 @@ dictionary GPUTextureBindingLayout {
 
 enum GPUStorageTextureAccess {
     "write-only",
+    "read-only",
+    "read-write",
 };
 
 dictionary GPUStorageTextureBindingLayout {
     GPUStorageTextureAccess access = "write-only";
     required GPUTextureFormat format;
     GPUTextureViewDimension viewDimension = "2d";
+};
+
+dictionary GPUExternalTextureBindingLayout {
 };
 
 [Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]
@@ -867,7 +874,7 @@ dictionary GPUCommandBufferDescriptor : GPUObjectDescriptorBase {
 interface GPUCommandEncoder {
     [NewObject]
     GPUComputePassEncoder beginComputePass(optional GPUComputePassDescriptor descriptor = {});
-    [NewObject]
+    [NewObject, Throws]
     GPURenderPassEncoder beginRenderPass(GPURenderPassDescriptor descriptor);
 
     undefined copyBufferToBuffer(
@@ -877,16 +884,19 @@ interface GPUCommandEncoder {
         GPUSize64 destinationOffset,
         GPUSize64 size);
 
+    [Throws]
     undefined copyBufferToTexture(
         GPUImageCopyBuffer source,
         GPUImageCopyTexture destination,
         GPUExtent3D copySize);
 
+    [Throws]
     undefined copyTextureToBuffer(
         GPUImageCopyTexture source,
         GPUImageCopyBuffer destination,
         GPUExtent3D copySize);
 
+    [Throws]
     undefined copyTextureToTexture(
         GPUImageCopyTexture source,
         GPUImageCopyTexture destination,
@@ -942,6 +952,7 @@ interface GPURenderPassEncoder {
     undefined setScissorRect(GPUIntegerCoordinate x, GPUIntegerCoordinate y,
                              GPUIntegerCoordinate width, GPUIntegerCoordinate height);
 
+    [Throws]
     undefined setBlendConstant(GPUColor color);
     undefined setStencilReference(GPUStencilValue reference);
 
