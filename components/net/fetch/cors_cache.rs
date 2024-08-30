@@ -9,11 +9,12 @@
 //! This library will eventually become the core of the Fetch crate
 //! with CORSRequest being expanded into FetchRequest (etc)
 
+use std::time::{Duration, Instant};
+
 use http::header::HeaderName;
 use http::Method;
 use net_traits::request::{CredentialsMode, Origin, Request};
 use servo_url::ServoUrl;
-use time::{self, Timespec};
 
 /// Union type for CORS cache entries
 ///
@@ -45,17 +46,17 @@ impl HeaderOrMethod {
 pub struct CorsCacheEntry {
     pub origin: Origin,
     pub url: ServoUrl,
-    pub max_age: u32,
+    pub max_age: Duration,
     pub credentials: bool,
     pub header_or_method: HeaderOrMethod,
-    created: Timespec,
+    created: Instant,
 }
 
 impl CorsCacheEntry {
     fn new(
         origin: Origin,
         url: ServoUrl,
-        max_age: u32,
+        max_age: Duration,
         credentials: bool,
         header_or_method: HeaderOrMethod,
     ) -> CorsCacheEntry {
@@ -65,7 +66,7 @@ impl CorsCacheEntry {
             max_age,
             credentials,
             header_or_method,
-            created: time::now().to_timespec(),
+            created: Instant::now(),
         }
     }
 }
@@ -107,10 +108,10 @@ impl CorsCache {
     /// Remove old entries
     pub fn cleanup(&mut self) {
         let CorsCache(buf) = self.clone();
-        let now = time::now().to_timespec();
+        let now = Instant::now();
         let new_buf: Vec<CorsCacheEntry> = buf
             .into_iter()
-            .filter(|e| now.sec < e.created.sec + e.max_age as i64)
+            .filter(|e| now < e.created + e.max_age)
             .collect();
         *self = CorsCache(new_buf);
     }
@@ -129,7 +130,7 @@ impl CorsCache {
         &mut self,
         request: &Request,
         header_name: &HeaderName,
-        new_max_age: u32,
+        new_max_age: Duration,
     ) -> bool {
         match self
             .find_entry_by_header(request, header_name)
@@ -163,7 +164,7 @@ impl CorsCache {
         &mut self,
         request: &Request,
         method: Method,
-        new_max_age: u32,
+        new_max_age: Duration,
     ) -> bool {
         match self
             .find_entry_by_method(request, method.clone())

@@ -2097,7 +2097,6 @@ async fn cors_preflight_fetch(
             .typed_get::<AccessControlMaxAge>()
             .map(|acma| acma.into())
             .unwrap_or(Duration::from_secs(5));
-        let max_age = max_age.as_secs() as u32;
         // Substep 10
         // TODO: Need to define what an imposed limit on max-age is
 
