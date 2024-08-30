@@ -20,7 +20,6 @@
 //! * `hyper::Method`
 //! * `hyper::Uri`
 //! * `mime::Mime`
-//! * `time::Tm`
 //!
 //! # How do I use a data type with a `HeaderMap` member with Serde?
 //!
@@ -78,7 +77,6 @@ use serde::de::{self, Error, MapAccess, SeqAccess, Visitor};
 use serde::ser::{SerializeMap, SerializeSeq};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_bytes::{ByteBuf, Bytes};
-use time::{strptime, Tm};
 
 /// Deserialises a `T` value with a given deserializer.
 ///
@@ -601,43 +599,6 @@ impl<'de> Visitor<'de> for StatusVisitor {
             .next_element::<String>()?
             .ok_or_else(|| V::Error::custom("Can't find the reason string"))?;
         Ok((code, reason))
-    }
-}
-
-impl<'de> Deserialize<'de> for De<Tm> {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        struct TmVisitor;
-
-        impl<'de> Visitor<'de> for TmVisitor {
-            type Value = De<Tm>;
-
-            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-                write!(formatter, "a date and time according to RFC 3339")
-            }
-
-            fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
-            where
-                E: de::Error,
-            {
-                strptime(v, "%Y-%m-%dT%H:%M:%SZ")
-                    .map(De::new)
-                    .map_err(|e| E::custom(e.to_string()))
-            }
-        }
-
-        deserializer.deserialize_string(TmVisitor)
-    }
-}
-
-impl<'a> Serialize for Ser<'a, Tm> {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        serializer.serialize_str(&self.v.rfc3339().to_string())
     }
 }
 

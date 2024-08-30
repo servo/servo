@@ -1277,7 +1277,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b42b6fa04a440b495c8b04d0e71b707c585f83cb9cb28cf8cd0d976c315e31b4"
 dependencies = [
  "powerfmt",
- "serde",
 ]
 
 [[package]]
@@ -2967,8 +2966,6 @@ dependencies = [
  "serde",
  "serde_bytes",
  "serde_test",
- "time 0.1.45",
- "time 0.3.36",
 ]
 
 [[package]]
@@ -4518,7 +4515,6 @@ dependencies = [
  "servo_url",
  "sha2",
  "time 0.1.45",
- "time 0.3.36",
  "tokio",
  "tokio-rustls",
  "tokio-stream",

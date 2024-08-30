@@ -15,7 +15,6 @@ use hyper::{Method, StatusCode, Uri};
 use hyper_serde::{De, Ser, Serde};
 use mime::Mime;
 use serde::{Deserialize, Serialize};
-use time::Tm;
 
 fn is_supported<T>()
 where
@@ -33,6 +32,5 @@ fn supported() {
     is_supported::<Method>();
     is_supported::<Mime>();
     is_supported::<StatusCode>();
-    is_supported::<Tm>();
     is_supported::<Uri>();
 }
