@@ -327,7 +327,7 @@ pub struct Document {
     /// The current active HTML parser, to allow resuming after interruptions.
     current_parser: MutNullableDom<ServoParser>,
     /// When we should kick off a reflow. This happens during parsing.
-    reflow_timeout: Cell<Option<u64>>,
+    reflow_timeout: Cell<Option<Instant>>,
     /// The cached first `base` element with an `href` attribute.
     base_element: MutNullableDom<HTMLBaseElement>,
     /// This field is set to the document itself for inert documents.
@@ -898,27 +898,32 @@ impl Document {
 
     /// Reflows and disarms the timer if the reflow timer has expired.
     pub fn reflow_if_reflow_timer_expired(&self) {
-        if let Some(reflow_timeout) = self.reflow_timeout.get() {
-            if time::precise_time_ns() < reflow_timeout {
-                return;
-            }
+        let Some(reflow_timeout) = self.reflow_timeout.get() else {
+            return;
+        };
 
-            self.reflow_timeout.set(None);
-            self.window
-                .reflow(ReflowGoal::Full, ReflowReason::RefreshTick);
+        if Instant::now() < reflow_timeout {
+            return;
         }
+
+        self.reflow_timeout.set(None);
+        self.window
+            .reflow(ReflowGoal::Full, ReflowReason::RefreshTick);
     }
 
-    /// Schedules a reflow to be kicked off at the given `timeout` (in `time::precise_time_ns()`
-    /// units). This reflow happens even if the event loop is busy. This is used to display initial
-    /// page content during parsing.
-    pub fn set_reflow_timeout(&self, timeout: u64) {
-        if let Some(existing_timeout) = self.reflow_timeout.get() {
-            if existing_timeout < timeout {
-                return;
-            }
+    /// Schedules a reflow to be kicked off at the given [`Duration`] in the future. This reflow
+    /// happens even if the event loop is busy. This is used to display initial page content during
+    /// parsing.
+    pub fn set_reflow_timeout(&self, duration: Duration) {
+        let new_reflow_time = Instant::now() + duration;
+
+        // Do not schedule a timeout that is longer than the one that is currently queued.
+        if matches!(self.reflow_timeout.get(), Some(existing_timeout) if existing_timeout < new_reflow_time)
+        {
+            return;
         }
-        self.reflow_timeout.set(Some(timeout))
+
+        self.reflow_timeout.set(Some(new_reflow_time))
     }
 
     /// Remove any existing association between the provided id and any elements in this document.
