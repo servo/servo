@@ -23,8 +23,6 @@ hyper = { workspace = true }
 mime = { workspace = true }
 serde = { workspace = true }
 serde_bytes = { workspace = true }
-time = { workspace = true }
-time_03 = { workspace = true }
 
 [dev-dependencies]
 serde_test = "1.0"

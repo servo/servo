@@ -121,7 +121,6 @@ syn = { version = "2", default-features = false, features = ["clone-impls", "der
 synstructure = "0.13"
 thin-vec = "0.2.13"
 time = "0.1.41"
-time_03 = { package = "time", version = "0.3", features = ["serde"] }
 to_shmem = { git = "https://github.com/servo/stylo", branch = "2024-07-16" }
 tokio = "1"
 tokio-rustls = "0.24"

@@ -7,14 +7,13 @@
 
 use std::borrow::ToOwned;
 use std::net::{Ipv4Addr, Ipv6Addr};
+use std::time::{Duration, SystemTime};
 
 use cookie::Cookie;
 use net_traits::pub_domains::is_pub_domain;
 use net_traits::CookieSource;
 use serde::{Deserialize, Serialize};
 use servo_url::ServoUrl;
-use time::{now, Tm};
-use time_03::OffsetDateTime;
 
 /// A stored cookie that wraps the definition in cookie-rs. This is used to implement
 /// various behaviours defined in the spec that rely on an associated request URL,
@@ -28,17 +27,9 @@ pub struct ServoCookie {
     pub cookie: Cookie<'static>,
     pub host_only: bool,
     pub persistent: bool,
-    #[serde(
-        deserialize_with = "hyper_serde::deserialize",
-        serialize_with = "hyper_serde::serialize"
-    )]
-    pub creation_time: Tm,
-    #[serde(
-        deserialize_with = "hyper_serde::deserialize",
-        serialize_with = "hyper_serde::serialize"
-    )]
-    pub last_access: Tm,
-    pub expiry_time: Option<OffsetDateTime>,
+    pub creation_time: SystemTime,
+    pub last_access: SystemTime,
+    pub expiry_time: Option<SystemTime>,
 }
 
 impl ServoCookie {
@@ -60,9 +51,11 @@ impl ServoCookie {
         source: CookieSource,
     ) -> Option<ServoCookie> {
         // Step 3
-        let (persistent, expiry_time) = match (cookie.max_age(), cookie.expires_datetime()) {
-            (Some(max_age), _) => (true, Some(time_03::OffsetDateTime::now_utc() + max_age)),
-            (_, Some(date_time)) => (true, Some(date_time)),
+        let max_age: Option<Duration> =
+            cookie.max_age().and_then(|max_age| max_age.try_into().ok());
+        let (persistent, expiry_time) = match (max_age, cookie.expires_datetime()) {
+            (Some(max_age), _) => (true, Some(SystemTime::now() + max_age)),
+            (_, Some(date_time)) => (true, Some(date_time.into())),
             _ => (false, None),
         };
 
@@ -131,18 +124,18 @@ impl ServoCookie {
             cookie,
             host_only,
             persistent,
-            creation_time: now(),
-            last_access: now(),
+            creation_time: SystemTime::now(),
+            last_access: SystemTime::now(),
             expiry_time,
         })
     }
 
     pub fn touch(&mut self) {
-        self.last_access = now();
+        self.last_access = SystemTime::now();
     }
 
     pub fn set_expiry_time_in_past(&mut self) {
-        self.expiry_time = Some(time_03::OffsetDateTime::UNIX_EPOCH);
+        self.expiry_time = Some(SystemTime::UNIX_EPOCH)
     }
 
     // http://tools.ietf.org/html/rfc6265#section-5.1.4

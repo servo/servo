@@ -8,6 +8,8 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
+use std::time::Duration;
+
 use cookie::{Cookie, CookieBuilder};
 use headers::ContentType;
 use http::header::{self, HeaderMap, HeaderValue};
@@ -15,7 +17,6 @@ use http::StatusCode;
 use hyper::{Method, Uri};
 use hyper_serde::{De, Ser};
 use serde_test::{assert_de_tokens, assert_ser_tokens, Token};
-use time_03::Duration;
 
 #[test]
 fn test_content_type() {
@@ -32,7 +33,7 @@ fn test_cookie() {
     // string with a bunch of indices in it which apparently is different from the exact same
     // cookie but parsed as a bunch of strings.
     let cookie: Cookie = CookieBuilder::new("Hello", "World!")
-        .max_age(Duration::seconds(42))
+        .max_age(Duration::from_secs(42).try_into().unwrap_or_default())
         .domain("servo.org")
         .path("/")
         .secure(true)
@@ -109,17 +110,6 @@ fn test_raw_status() {
 
     assert_ser_tokens(&Ser::new(&raw_status), tokens);
     assert_de_tokens(&De::new(raw_status), tokens);
-}
-
-#[test]
-fn test_tm() {
-    use time::strptime;
-
-    let time = strptime("2017-02-22T12:03:31Z", "%Y-%m-%dT%H:%M:%SZ").unwrap();
-    let tokens = &[Token::Str("2017-02-22T12:03:31Z")];
-
-    assert_ser_tokens(&Ser::new(&time), tokens);
-    assert_de_tokens(&De::new(time), tokens);
 }
 
 #[test]
