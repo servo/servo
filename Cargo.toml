@@ -194,6 +194,3 @@ strip = true
 #
 # [patch."https://github.com/servo/<repository>"]
 # <crate> = { path = "/path/to/local/checkout" }
-
-# patch dwrote for https://github.com/servo/dwrote-rs/pull/55
-dwrote = { git = "https://github.com/servo/dwrote-rs", rev = "f2f644d3de8dee9a71c90e0376fd44531e5c2eec" }

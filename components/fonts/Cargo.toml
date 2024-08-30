@@ -74,5 +74,5 @@ harfbuzz-sys = { version = "0.6.1", features = ["bundled"] }
 
 [target.'cfg(target_os = "windows")'.dependencies]
 harfbuzz-sys = { version = "0.6", features = ["bundled"] }
-dwrote = "0.11"
+dwrote = "0.11.1"
 truetype = { version = "0.47.3", features = ["ignore-invalid-language-ids"] }
