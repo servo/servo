@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use euclid::{Box2D, RigidTransform3D};
+use euclid::{Point2D, RigidTransform3D};
 use webxr_api::{self, Floor, Frame, Space};
 
 use crate::dom::bindings::codegen::Bindings::XRReferenceSpaceBinding::{
@@ -136,7 +136,7 @@ impl XRReferenceSpace {
         }
     }
 
-    pub fn get_bounds(&self) -> Option<Box2D<f32, Floor>> {
+    pub fn get_bounds(&self) -> Option<Vec<Point2D<f32, Floor>>> {
         self.upcast::<XRSpace>()
             .session()
             .with_session(|s| s.reference_space_bounds())

@@ -61,36 +61,14 @@ impl XRBoundedReferenceSpaceMethods for XRBoundedReferenceSpace {
     /// <https://www.w3.org/TR/webxr/#dom-xrboundedreferencespace-boundsgeometry>
     fn BoundsGeometry(&self, cx: JSContext) -> JSVal {
         if let Some(bounds) = self.xrspace.get_bounds() {
-            let point1 = DOMPointReadOnly::new(
-                &self.global(),
-                bounds.min.x.into(),
-                0.0,
-                bounds.min.y.into(),
-                1.0,
-            );
-            let point2 = DOMPointReadOnly::new(
-                &self.global(),
-                bounds.min.x.into(),
-                0.0,
-                bounds.max.y.into(),
-                1.0,
-            );
-            let point3 = DOMPointReadOnly::new(
-                &self.global(),
-                bounds.max.x.into(),
-                0.0,
-                bounds.max.y.into(),
-                1.0,
-            );
-            let point4 = DOMPointReadOnly::new(
-                &self.global(),
-                bounds.max.x.into(),
-                0.0,
-                bounds.min.y.into(),
-                1.0,
-            );
+            let points: Vec<DomRoot<DOMPointReadOnly>> = bounds
+                .into_iter()
+                .map(|point| {
+                    DOMPointReadOnly::new(&self.global(), point.x.into(), 0.0, point.y.into(), 1.0)
+                })
+                .collect();
 
-            to_frozen_array(&[point1, point2, point3, point4], cx)
+            to_frozen_array(&points, cx)
         } else {
             to_frozen_array::<DomRoot<DOMPointReadOnly>>(&[], cx)
         }

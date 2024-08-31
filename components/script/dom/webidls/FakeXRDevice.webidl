@@ -6,29 +6,31 @@
 
 [Exposed=Window, Pref="dom.webxr.test"]
 interface FakeXRDevice {
-  // Sets the values to be used for subsequent
-  // requestAnimationFrame() callbacks.
-  [Throws] undefined setViews(sequence<FakeXRViewInit> views);
-
-  [Throws] undefined setViewerOrigin(FakeXRRigidTransformInit origin, optional boolean emulatedPosition = false);
-  undefined clearViewerOrigin();
-
-  [Throws] undefined setFloorOrigin(FakeXRRigidTransformInit origin);
-  undefined clearFloorOrigin();
-
-  // // Simulates devices focusing and blurring sessions.
-  undefined simulateVisibilityChange(XRVisibilityState state);
-
-  // void setBoundsGeometry(sequence<FakeXRBoundsPoint> boundsCoodinates);
-
-  [Throws] FakeXRInputController simulateInputSourceConnection(FakeXRInputSourceInit init);
+  // Sets the values to be used for subsequent requestAnimationFrame() callbacks.
+  [Throws] undefined setViews(sequence<FakeXRViewInit> views, sequence<FakeXRViewInit> secondaryViews);
 
   // behaves as if device was disconnected
   Promise<undefined> disconnect();
 
+  [Throws] undefined setViewerOrigin(FakeXRRigidTransformInit origin, optional boolean emulatedPosition = false);
+  undefined clearViewerOrigin();
+  [Throws] undefined setFloorOrigin(FakeXRRigidTransformInit origin);
+  undefined clearFloorOrigin();
+  [Throws] undefined setBoundsGeometry(sequence<FakeXRBoundsPoint> boundsCoodinates);
+  // undefined simulateResetPose();
+
+  // Simulates devices focusing and blurring sessions.
+  undefined simulateVisibilityChange(XRVisibilityState state);
+
+  [Throws] FakeXRInputController simulateInputSourceConnection(FakeXRInputSourceInit init);
+
   // Hit test extensions:
   [Throws] undefined setWorld(FakeXRWorldInit world);
   undefined clearWorld();
+
+  // Depth sensing extensions:
+  // undefined setDepthSensingData(FakeXRDepthSensingDataInit depthSensingData);
+  // undefined clearDepthSensingData();
 };
 
 // https://immersive-web.github.io/webxr/#dom-xrwebgllayer-getviewport

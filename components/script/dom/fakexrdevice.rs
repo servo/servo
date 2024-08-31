@@ -17,8 +17,8 @@ use webxr_api::{
 
 use crate::dom::bindings::codegen::Bindings::DOMPointBinding::DOMPointInit;
 use crate::dom::bindings::codegen::Bindings::FakeXRDeviceBinding::{
-    FakeXRDeviceMethods, FakeXRRegionType, FakeXRRigidTransformInit, FakeXRViewInit,
-    FakeXRWorldInit,
+    FakeXRBoundsPoint, FakeXRDeviceMethods, FakeXRRegionType, FakeXRRigidTransformInit,
+    FakeXRViewInit, FakeXRWorldInit,
 };
 use crate::dom::bindings::codegen::Bindings::FakeXRInputControllerBinding::FakeXRInputSourceInit;
 use crate::dom::bindings::codegen::Bindings::XRInputSourceBinding::{
@@ -183,10 +183,15 @@ impl From<FakeXRRegionType> for EntityType {
 
 impl FakeXRDeviceMethods for FakeXRDevice {
     /// <https://github.com/immersive-web/webxr-test-api/blob/master/explainer.md>
-    fn SetViews(&self, views: Vec<FakeXRViewInit>) -> Fallible<()> {
+    fn SetViews(
+        &self,
+        views: Vec<FakeXRViewInit>,
+        _secondary_views: Vec<FakeXRViewInit>,
+    ) -> Fallible<()> {
         let _ = self
             .sender
             .send(MockDeviceMsg::SetViews(get_views(&views)?));
+        // TODO: Support setting secondary views for mock backend
         Ok(())
     }
 
@@ -308,6 +313,24 @@ impl FakeXRDeviceMethods for FakeXRDevice {
         );
         self.disconnect(sender);
         p
+    }
+
+    fn SetBoundsGeometry(&self, bounds_coodinates: Vec<FakeXRBoundsPoint>) -> Fallible<()> {
+        if bounds_coodinates.len() < 3 {
+            return Err(Error::Type(
+                "Bounds geometry must contain at least 3 points".into(),
+            ));
+        }
+        let coords = bounds_coodinates
+            .iter()
+            .map(|coord| {
+                let x = *coord.x.unwrap() as f32;
+                let y = *coord.z.unwrap() as f32;
+                Point2D::new(x, y)
+            })
+            .collect();
+        let _ = self.sender.send(MockDeviceMsg::SetBoundsGeometry(coords));
+        Ok(())
     }
 }
 
