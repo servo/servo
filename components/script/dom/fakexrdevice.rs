@@ -315,6 +315,7 @@ impl FakeXRDeviceMethods for FakeXRDevice {
         p
     }
 
+    /// <https://immersive-web.github.io/webxr-test-api/#dom-fakexrdevice-setboundsgeometry>
     fn SetBoundsGeometry(&self, bounds_coodinates: Vec<FakeXRBoundsPoint>) -> Fallible<()> {
         if bounds_coodinates.len() < 3 {
             return Err(Error::Type(
