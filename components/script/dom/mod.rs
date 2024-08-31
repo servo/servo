@@ -226,6 +226,7 @@ pub mod audioparam;
 pub mod audioscheduledsourcenode;
 pub mod audiotrack;
 pub mod audiotracklist;
+pub mod autofill;
 pub mod baseaudiocontext;
 pub mod beforeunloadevent;
 pub mod bindings;

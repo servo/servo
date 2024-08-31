@@ -35,6 +35,7 @@ use url::Url;
 
 use crate::dom::activation::Activatable;
 use crate::dom::attr::Attr;
+use crate::dom::autofill::AutofillData;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
@@ -484,6 +485,27 @@ impl HTMLInputElement {
         matches!(
             self.input_type(),
             InputType::Date | InputType::Month | InputType::Week | InputType::Time
+        )
+    }
+
+    fn does_autocomplete_apply(&self) -> bool {
+        matches!(
+            self.input_type(),
+            InputType::Hidden |
+                InputType::Text |
+                InputType::Search |
+                InputType::Tel |
+                InputType::Url |
+                InputType::Email |
+                InputType::Password |
+                InputType::Date |
+                InputType::Month |
+                InputType::Week |
+                InputType::Time |
+                InputType::DatetimeLocal |
+                InputType::Number |
+                InputType::Range |
+                InputType::Color
         )
     }
 
@@ -1141,6 +1163,18 @@ impl HTMLInputElementMethods for HTMLInputElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-input-alt
     make_setter!(SetAlt, "alt");
+
+    // https://html.spec.whatwg.org/multipage/#dom-fe-autocomplete
+    fn Autocomplete(&self) -> DOMString {
+        if !self.does_autocomplete_apply() {
+            return DOMString::new();
+        }
+
+        AutofillData::from_form_control(self).idl_exposed_value
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-fe-autocomplete
+    make_setter!(SetAutocomplete, "autocomplete");
 
     // https://html.spec.whatwg.org/multipage/#dom-input-dirName
     make_getter!(DirName, "dirname");

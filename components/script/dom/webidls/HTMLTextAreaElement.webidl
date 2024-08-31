@@ -7,8 +7,8 @@
 interface HTMLTextAreaElement : HTMLElement {
   [HTMLConstructor] constructor();
 
-  // [CEReactions]
-  //          attribute DOMString autocomplete;
+  [CEReactions]
+           attribute DOMString autocomplete;
   // [CEReactions]
   //          attribute boolean autofocus;
   [CEReactions, SetterThrows]

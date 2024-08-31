@@ -7,6 +7,8 @@
 interface HTMLSelectElement : HTMLElement {
   [HTMLConstructor] constructor();
 
+  [CEReactions]
+           attribute DOMString autocomplete;
   // [CEReactions]
   //          attribute boolean autofocus;
   [CEReactions]
