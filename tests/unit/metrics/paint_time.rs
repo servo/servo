@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use base::cross_process_instant::CrossProcessInstant;
 use base::id::TEST_PIPELINE_ID;
 use base::Epoch;
 use ipc_channel::ipc;
@@ -22,17 +23,18 @@ fn test_paint_metrics_construction() {
     let profiler_chan = ProfilerChan(sender);
     let (layout_sender, _) = ipc::channel().unwrap();
     let (script_sender, _) = ipc::channel().unwrap();
+    let start_time = CrossProcessInstant::now();
     let paint_time_metrics = PaintTimeMetrics::new(
         TEST_PIPELINE_ID,
         profiler_chan,
         layout_sender,
         script_sender,
         ServoUrl::parse("about:blank").unwrap(),
-        0,
+        start_time,
     );
     assert_eq!(
         (&paint_time_metrics).get_navigation_start(),
-        Some(0),
+        Some(start_time),
         "navigation start is set properly"
     );
     assert_eq!(
@@ -52,13 +54,14 @@ fn test_common(display_list_is_contentful: bool, epoch: Epoch) -> PaintTimeMetri
     let profiler_chan = ProfilerChan(sender);
     let (layout_sender, _) = ipc::channel().unwrap();
     let (script_sender, _) = ipc::channel().unwrap();
+    let start_time = CrossProcessInstant::now();
     let mut paint_time_metrics = PaintTimeMetrics::new(
         TEST_PIPELINE_ID,
         profiler_chan,
         layout_sender,
         script_sender,
         ServoUrl::parse("about:blank").unwrap(),
-        0,
+        start_time,
     );
     let dummy_profiler_metadata_factory = DummyProfilerMetadataFactory {};
 
@@ -79,7 +82,7 @@ fn test_common(display_list_is_contentful: bool, epoch: Epoch) -> PaintTimeMetri
         "first contentful paint is None"
     );
 
-    let navigation_start = time::precise_time_ns();
+    let navigation_start = CrossProcessInstant::now();
     paint_time_metrics.set_navigation_start(navigation_start);
     assert_eq!(
         (&paint_time_metrics).get_navigation_start().unwrap(),
@@ -94,7 +97,7 @@ fn test_common(display_list_is_contentful: bool, epoch: Epoch) -> PaintTimeMetri
 fn test_first_paint_setter() {
     let epoch = Epoch(0);
     let paint_time_metrics = test_common(false, epoch);
-    let now = time::precise_time_ns();
+    let now = CrossProcessInstant::now();
     paint_time_metrics.maybe_set_metric(epoch, now);
     assert!(
         paint_time_metrics.get_first_paint().is_some(),
@@ -111,7 +114,7 @@ fn test_first_paint_setter() {
 fn test_first_contentful_paint_setter() {
     let epoch = Epoch(0);
     let paint_time_metrics = test_common(true, epoch);
-    let now = time::precise_time_ns();
+    let now = CrossProcessInstant::now();
     paint_time_metrics.maybe_set_metric(epoch, now);
     assert!(
         paint_time_metrics.get_first_contentful_paint().is_some(),

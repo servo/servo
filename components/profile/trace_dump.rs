@@ -7,6 +7,7 @@
 use std::io::{self, Write};
 use std::{fs, path};
 
+use base::cross_process_instant::CrossProcessInstant;
 use profile_traits::time::{ProfilerCategory, TimerMetadata};
 use serde::Serialize;
 
@@ -44,13 +45,14 @@ impl TraceDump {
     pub fn write_one(
         &mut self,
         category: &(ProfilerCategory, Option<TimerMetadata>),
-        time: (u64, u64),
+        start_time: CrossProcessInstant,
+        end_time: CrossProcessInstant,
     ) {
         let entry = TraceEntry {
             category: category.0,
             metadata: category.1.clone(),
-            start_time: time.0,
-            end_time: time.1,
+            start_time: (start_time - CrossProcessInstant::epoch()).whole_nanoseconds() as u64,
+            end_time: (end_time - CrossProcessInstant::epoch()).whole_nanoseconds() as u64,
         };
         serde_json::to_writer(&mut self.file, &entry).unwrap();
         writeln!(&mut self.file, ",").unwrap();

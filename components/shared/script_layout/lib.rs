@@ -17,6 +17,7 @@ use std::sync::Arc;
 
 use app_units::Au;
 use atomic_refcell::AtomicRefCell;
+use base::cross_process_instant::CrossProcessInstant;
 use base::id::{BrowsingContextId, PipelineId};
 use base::Epoch;
 use canvas_traits::canvas::{CanvasId, CanvasMsg};
@@ -229,7 +230,7 @@ pub trait Layout {
     fn set_scroll_states(&mut self, scroll_states: &[ScrollState]);
 
     /// Set the paint time for a specific epoch.
-    fn set_epoch_paint_time(&mut self, epoch: Epoch, paint_time: u64);
+    fn set_epoch_paint_time(&mut self, epoch: Epoch, paint_time: CrossProcessInstant);
 
     fn query_content_box(&self, node: OpaqueNode) -> Option<Rect<Au>>;
     fn query_content_boxes(&self, node: OpaqueNode) -> Vec<Rect<Au>>;

@@ -8,7 +8,7 @@ use std::borrow::ToOwned;
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::thread;
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 use ipc_channel::ipc::{self, IpcReceiver};
 use ipc_channel::router::ROUTER;
@@ -16,8 +16,6 @@ use profile_traits::mem::{
     ProfilerChan, ProfilerMsg, ReportKind, Reporter, ReporterRequest, ReportsChan,
 };
 use profile_traits::path;
-
-use crate::time::duration_from_seconds;
 
 pub struct Profiler {
     /// The port through which messages are received.
@@ -43,7 +41,7 @@ impl Profiler {
             thread::Builder::new()
                 .name("MemoryProfTimer".to_owned())
                 .spawn(move || loop {
-                    thread::sleep(duration_from_seconds(period));
+                    thread::sleep(Duration::from_secs_f64(period));
                     if chan.send(ProfilerMsg::Print).is_err() {
                         break;
                     }

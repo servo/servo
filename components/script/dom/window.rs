@@ -17,6 +17,7 @@ use std::{cmp, env, mem};
 
 use app_units::Au;
 use backtrace::Backtrace;
+use base::cross_process_instant::CrossProcessInstant;
 use base::id::{BrowsingContextId, PipelineId};
 use base64::Engine;
 use bluetooth_traits::BluetoothRequest;
@@ -201,8 +202,8 @@ pub struct Window {
     history: MutNullableDom<History>,
     custom_element_registry: MutNullableDom<CustomElementRegistry>,
     performance: MutNullableDom<Performance>,
-    navigation_start: Cell<u64>,
-    navigation_start_precise: Cell<u64>,
+    #[no_trace]
+    navigation_start: Cell<CrossProcessInstant>,
     screen: MutNullableDom<Screen>,
     session_storage: MutNullableDom<Storage>,
     local_storage: MutNullableDom<Storage>,
@@ -985,7 +986,7 @@ impl WindowMethods for Window {
     fn Performance(&self) -> DomRoot<Performance> {
         self.performance.or_init(|| {
             let global_scope = self.upcast::<GlobalScope>();
-            Performance::new(global_scope, self.navigation_start_precise.get())
+            Performance::new(global_scope, self.navigation_start.get())
         })
     }
 
@@ -1623,10 +1624,6 @@ impl Window {
     // https://drafts.css-houdini.org/css-paint-api-1/#paint-worklet
     pub fn paint_worklet(&self) -> DomRoot<Worklet> {
         self.paint_worklet.or_init(|| self.new_paint_worklet())
-    }
-
-    pub fn get_navigation_start(&self) -> u64 {
-        self.navigation_start_precise.get()
     }
 
     pub fn has_document(&self) -> bool {
@@ -2492,10 +2489,7 @@ impl Window {
     }
 
     pub fn set_navigation_start(&self) {
-        let current_time = time::get_time();
-        let now = (current_time.sec * 1000 + current_time.nsec as i64 / 1000000) as u64;
-        self.navigation_start.set(now);
-        self.navigation_start_precise.set(time::precise_time_ns());
+        self.navigation_start.set(CrossProcessInstant::now());
     }
 
     pub fn send_to_embedder(&self, msg: EmbedderMsg) {
@@ -2545,8 +2539,7 @@ impl Window {
         window_size: WindowSizeData,
         origin: MutableOrigin,
         creator_url: ServoUrl,
-        navigation_start: u64,
-        navigation_start_precise: u64,
+        navigation_start: CrossProcessInstant,
         webgl_chan: Option<WebGLChan>,
         webxr_registry: webxr_api::Registry,
         microtask_queue: Rc<MicrotaskQueue>,
@@ -2604,7 +2597,6 @@ impl Window {
             document: Default::default(),
             performance: Default::default(),
             navigation_start: Cell::new(navigation_start),
-            navigation_start_precise: Cell::new(navigation_start_precise),
             screen: Default::default(),
             session_storage: Default::default(),
             local_storage: Default::default(),

@@ -341,8 +341,8 @@ pub struct HttpRequest {
     pub pipeline_id: PipelineId,
     pub started_date_time: SystemTime,
     pub time_stamp: i64,
-    pub connect_time: u64,
-    pub send_time: u64,
+    pub connect_time: Duration,
+    pub send_time: Duration,
     pub is_xhr: bool,
 }
 

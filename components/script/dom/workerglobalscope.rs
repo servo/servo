@@ -8,6 +8,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 
+use base::cross_process_instant::CrossProcessInstant;
 use base::id::{PipelineId, PipelineNamespace};
 use crossbeam_channel::Receiver;
 use devtools_traits::{DevtoolScriptControlMsg, WorkerId};
@@ -22,7 +23,6 @@ use net_traits::request::{
 use net_traits::IpcSend;
 use script_traits::WorkerGlobalScopeInit;
 use servo_url::{MutableOrigin, ServoUrl};
-use time::precise_time_ns;
 use uuid::Uuid;
 
 use super::bindings::codegen::Bindings::MessagePortBinding::StructuredSerializeOptions;
@@ -125,7 +125,8 @@ pub struct WorkerGlobalScope {
     /// `IpcSender` doesn't exist
     from_devtools_receiver: Receiver<DevtoolScriptControlMsg>,
 
-    navigation_start_precise: u64,
+    #[no_trace]
+    navigation_start: CrossProcessInstant,
     performance: MutNullableDom<Performance>,
 }
 
@@ -170,7 +171,7 @@ impl WorkerGlobalScope {
             navigator: Default::default(),
             from_devtools_sender: init.from_devtools_sender,
             from_devtools_receiver,
-            navigation_start_precise: precise_time_ns(),
+            navigation_start: CrossProcessInstant::now(),
             performance: Default::default(),
         }
     }
@@ -415,7 +416,7 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
     fn Performance(&self) -> DomRoot<Performance> {
         self.performance.or_init(|| {
             let global_scope = self.upcast::<GlobalScope>();
-            Performance::new(global_scope, self.navigation_start_precise)
+            Performance::new(global_scope, self.navigation_start)
         })
     }
 
