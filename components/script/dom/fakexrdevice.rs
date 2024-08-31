@@ -186,7 +186,7 @@ impl FakeXRDeviceMethods for FakeXRDevice {
     fn SetViews(
         &self,
         views: Vec<FakeXRViewInit>,
-        _secondary_views: Vec<FakeXRViewInit>,
+        _secondary_views: Option<Vec<FakeXRViewInit>>,
     ) -> Fallible<()> {
         let _ = self
             .sender

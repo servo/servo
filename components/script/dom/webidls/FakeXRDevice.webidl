@@ -7,7 +7,7 @@
 [Exposed=Window, Pref="dom.webxr.test"]
 interface FakeXRDevice {
   // Sets the values to be used for subsequent requestAnimationFrame() callbacks.
-  [Throws] undefined setViews(sequence<FakeXRViewInit> views, sequence<FakeXRViewInit> secondaryViews);
+  [Throws] undefined setViews(sequence<FakeXRViewInit> views, optional sequence<FakeXRViewInit> secondaryViews);
 
   // behaves as if device was disconnected
   Promise<undefined> disconnect();
