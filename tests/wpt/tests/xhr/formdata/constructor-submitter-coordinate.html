@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset='utf-8'>
+<link rel='help' href='https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#constructing-the-form-data-set'>
+<link ref='help' href='https://xhr.spec.whatwg.org/#dom-formdata'>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+
+<form>
+  <input type=image src='/media/1x1-green.png'></button>
+</form>
+
+<script>
+"use strict";
+
+test(() => {
+  const form = document.querySelector("form");
+  const submitter = form.querySelector("input[type=image]");
+
+  let formData;
+  form.addEventListener("submit", e => {
+    e.preventDefault();
+    formData = new FormData(form, submitter);
+  });
+
+  const domRect = submitter.getBoundingClientRect();
+  submitter.dispatchEvent(
+    new MouseEvent("click", {
+      clientX: Math.round(domRect.x) + 1,
+      clientY: Math.round(domRect.y) + 2
+    })
+  );
+
+  assert_equals(formData?.get("x"), "1");
+  assert_equals(formData?.get("y"), "2");
+}, "The constructed FormData object should contain correct entries for Image Button submitter's dispatched coordinate");
+</script>

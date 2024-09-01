@@ -1,0 +1,13 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: CSS Viewport Module Level 1 (https://drafts.csswg.org/css-viewport/)
+
+partial interface Window {
+[SameObject, Replaceable] readonly attribute Viewport viewport;
+};
+
+[Exposed=Window]
+interface Viewport {
+  readonly attribute FrozenArray<DOMRect>? segments;
+};

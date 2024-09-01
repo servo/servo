@@ -35,6 +35,6 @@ from .error import (
     UnknownErrorException,
     UnknownMethodException,
     UnsupportedOperationException,
-    WebDriverException)
-from .bidi import (
-    BidiSession)
+    WebDriverException,
+)
+from .bidi import BidiSession, BidiWindow

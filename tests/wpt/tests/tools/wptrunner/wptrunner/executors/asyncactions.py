@@ -1,12 +1,17 @@
 # mypy: allow-untyped-defs
 
-import webdriver
+webdriver = None
 
+
+def do_delayed_imports():
+    global webdriver
+    import webdriver
 
 class BidiSessionSubscribeAction:
     name = "bidi.session.subscribe"
 
     def __init__(self, logger, protocol):
+        do_delayed_imports()
         self.logger = logger
         self.protocol = protocol
 

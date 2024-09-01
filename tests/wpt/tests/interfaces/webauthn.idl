@@ -128,6 +128,30 @@ dictionary PublicKeyCredentialRequestOptionsJSON {
     AuthenticationExtensionsClientInputsJSON                extensions;
 };
 
+partial interface PublicKeyCredential {
+    static Promise<undefined> signalUnknownCredential(UnknownCredentialOptions options);
+    static Promise<undefined> signalAllAcceptedCredentials(AllAcceptedCredentialsOptions options);
+    static Promise<undefined> signalCurrentUserDetails(CurrentUserDetailsOptions options);
+};
+
+dictionary UnknownCredentialOptions {
+    required DOMString                     rpId;
+    required Base64URLString               credentialId;
+};
+
+dictionary AllAcceptedCredentialsOptions {
+    required DOMString                     rpId;
+    required Base64URLString               userId;
+    required sequence<Base64URLString>     allAcceptedCredentialIds;
+};
+
+dictionary CurrentUserDetailsOptions {
+    required DOMString                     rpId;
+    required Base64URLString               userId;
+    required DOMString                     name;
+    required DOMString                     displayName;
+};
+
 [SecureContext, Exposed=Window]
 interface AuthenticatorResponse {
     [SameObject] readonly attribute ArrayBuffer      clientDataJSON;
@@ -272,7 +296,10 @@ enum ClientCapability {
     "hybridTransport",
     "passkeyPlatformAuthenticator",
     "userVerifyingPlatformAuthenticator",
-    "relatedOrigins"
+    "relatedOrigins",
+    "signalAllAcceptedCredentials",
+    "signalCurrentUserDetails",
+    "signalUnknownCredential"
 };
 
 enum PublicKeyCredentialHints {
@@ -303,7 +330,7 @@ partial dictionary AuthenticationExtensionsClientInputs {
 
 dictionary CredentialPropertiesOutput {
     boolean rk;
-    USVString authenticatorDisplayName;
+    DOMString authenticatorDisplayName;
 };
 
 partial dictionary AuthenticationExtensionsClientOutputs {

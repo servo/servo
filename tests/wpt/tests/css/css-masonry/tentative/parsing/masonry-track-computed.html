@@ -25,4 +25,23 @@
   // span && [ <integer> || <custom-ident> ]
   test_computed_value("masonry-track-end", "span 1 i", "span i");
   test_computed_value("masonry-track-start", "span 2");
+
+  // Computed Value for `masonry-track` should be the shortest
+  // serialization possible.
+  test_computed_value("masonry-track", "auto / auto", "auto");
+  test_computed_value("masonry-track", "auto", "auto");
+  test_computed_value("masonry-track", "10 / auto", "10");
+  test_computed_value("masonry-track", "10", "10");
+  test_computed_value("masonry-track", "-10 / auto", "-10");
+  test_computed_value("masonry-track", "-10", "-10");
+  test_computed_value("masonry-track", "first / first", "first");
+  test_computed_value("masonry-track", "first", "first");
+  test_computed_value("masonry-track", "span 2 / auto", "span 2");
+  test_computed_value("masonry-track", "span 2", "span 2");
+  test_computed_value("masonry-track", "2 first / auto", "2 first");
+  test_computed_value("masonry-track", "2 first", "2 first");
+  test_computed_value("masonry-track", "span first / auto", "span first");
+  test_computed_value("masonry-track", "span first", "span first");
+  test_computed_value("masonry-track", "span 2 first / auto", "span 2 first");
+  test_computed_value("masonry-track", "span 2 first", "span 2 first");
 </script>

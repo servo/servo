@@ -68,4 +68,10 @@ for (const array of arrays) {
     test(function() {
         assert_true(self.crypto.getRandomValues(new ctor(0)).length == 0)
     }, "Null arrays: " + array);
+
+    test(function() {
+        class Buffer extends ctor {}
+        // Must not throw for the test to pass
+        self.crypto.getRandomValues(new Buffer(256));
+    }, "Subclass of " + array);
 }

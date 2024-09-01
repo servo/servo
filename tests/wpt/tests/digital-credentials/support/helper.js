@@ -9,16 +9,17 @@
  */
 /**
  * @param {ProviderType | ProviderType[]} [providersToUse=["default"]]
+ * @param {CredentialMediationRequirement} [mediation="required"]
  * @returns {CredentialRequestOptions}
  */
-export function makeGetOptions(providersToUse = ["default"]) {
+export function makeGetOptions(providersToUse = ["default"], mediation = "required") {
   if (typeof providersToUse === "string") {
     if (providersToUse === "default" || providersToUse === "openid4vp"){
       return makeGetOptions([providersToUse]);
     }
   }
   if (!Array.isArray(providersToUse) || !providersToUse?.length) {
-    return { digital: { providers: providersToUse } };
+    return { digital: { providers: providersToUse }, mediation };
   }
   const providers = [];
   for (const provider of providersToUse) {
@@ -31,10 +32,9 @@ export function makeGetOptions(providersToUse = ["default"]) {
         break;
       default:
         throw new Error(`Unknown provider type: ${provider}`);
-        break;
     }
   }
-  return { digital: { providers } };
+  return { digital: { providers }, mediation };
 }
 /**
  *

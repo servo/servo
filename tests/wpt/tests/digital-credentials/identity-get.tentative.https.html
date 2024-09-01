@@ -192,4 +192,13 @@
     assert_equals(result.constructor, "DOMException");
     assert_equals(result.name, "AbortError");
   }, "navigator.identity.get() promise is rejected if abort controller is aborted after call to get() in cross-origin iframe.");
+
+  promise_test(async (t) => {
+    /** @type sequence<CredentialMediationRequirement> */
+    const disallowedMediations = [ "conditional", "optional", "silent"];
+    for (const mediation of disallowedMediations) {
+      const options = makeGetOptions("default", mediation);
+      await promise_rejects_js(t, TypeError, navigator.identity.get(options));
+    }
+  }, "Mediation is required to get a DigitalCredential.");
 </script>

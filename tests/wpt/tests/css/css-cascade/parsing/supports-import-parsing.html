@@ -38,7 +38,7 @@
     }, rule + ' should be a valid supports() import rule');
   }
 
-  function test_invalid_supports_import(rule) {
+  function test_unsupported_supports_import(rule) {
     test(function() {
       const {sheet, cssRules} = setupSheet(rule);
 
@@ -47,7 +47,19 @@
     }, rule + ' should still be a valid import rule with an invalid supports() declaration');
   }
 
-  test_valid_supports_import('@import url("nonexist.css") supports();');
+  function test_invalid_supports_import(rule) {
+    test(function() {
+      const style = document.createElement("style");
+      document.head.append(style);
+      const {sheet} = style;
+      const {cssRules} = sheet;
+
+      assert_equals(cssRules.length, 0, "Sheet should have no rules");
+    }, rule + ' should be an invalid import rule due to an invalid supports() declaration');
+  }
+
+  test_invalid_supports_import('@import url("nonexist.css") supports();');
+  test_invalid_supports_import('@import url("nonexist.css") supports(foo: bar);');
   test_valid_supports_import('@import url("nonexist.css") supports(display:block);');
   test_valid_supports_import('@import url("nonexist.css") supports((display:flex));');
   test_valid_supports_import('@import url("nonexist.css") supports(not (display: flex));');
@@ -56,7 +68,8 @@
   test_valid_supports_import('@import url("nonexist.css") supports((display: flex) or (foo: bar));');
   test_valid_supports_import('@import url("nonexist.css") supports(display: block !important);');
 
-  test_valid_supports_import('@import url("nonexist.css") layer supports();');
+  test_invalid_supports_import('@import url("nonexist.css") layer supports();');
+  test_invalid_supports_import('@import url("nonexist.css") layer supports(foo: bar);');
   test_valid_supports_import('@import url("nonexist.css") layer(A) supports((display: flex) or (foo: bar));');
   test_valid_supports_import('@import url("nonexist.css") layer(A.B) supports((display: flex) and (foo: bar));');
 
@@ -74,5 +87,6 @@
   test_valid_supports_import('@import "nonexist.css" supports(display:block);',
                              '@import url("nonexist.css") supports(display:block);');
 
-  test_invalid_supports_import('@import url("nonexist.css") supports;');
+  // “supports” gets parsed as an (unsupported) media query.
+  test_unsupported_supports_import('@import url("nonexist.css") supports;');
 </script>

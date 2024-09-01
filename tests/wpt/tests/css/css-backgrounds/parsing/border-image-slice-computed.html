@@ -8,16 +8,28 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/css/support/computed-testcommon.js"></script>
+<style>
+  #container {
+    container-type: inline-size;
+    width: 100px;
+  }
+</style>
 </head>
 <body>
-<div id="target"></div>
+<div id="container">
+  <div id="target"></div>
+</div>
 <script>
+
 test_computed_value("border-image-slice", "1");
 test_computed_value("border-image-slice", "1 2%");
 test_computed_value("border-image-slice", "1 2% 3");
 test_computed_value("border-image-slice", "1 2% 3 4%");
 
 test_computed_value("border-image-slice", "1% 2 3% 4 fill");
+
+test_computed_value("border-image-slice", 'calc(10 + (sign(2cqw - 10px) * 5))', '5');
+test_computed_value("border-image-slice", 'calc(10 + (sign(2cqw - 10px) * 5)) calc(20% + (sign(2cqw - 10px) * 5%))', '5 15%');
 </script>
 </body>
 </html>

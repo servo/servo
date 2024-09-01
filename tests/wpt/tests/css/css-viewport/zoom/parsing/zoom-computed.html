@@ -5,17 +5,27 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/css/support/computed-testcommon.js"></script>
-<div id="target"></div>
+<style>
+  #container {
+    container-type: inline-size;
+    width: 100px;
+  }
+</style>
+<div id="container">
+  <div id="target"></div>
+</div>
 <script>
 test_computed_value("zoom", "normal", "1");
 
 test_computed_value("zoom", "1", "1");
 test_computed_value("zoom", "1.5", "1.5");
 test_computed_value("zoom", "0.75", "0.75");
+test_computed_value("zoom", 'calc(1 + (sign(2cqw - 10px) * 0.5))', '0.5');
 
 test_computed_value("zoom", "100%", "1");
 test_computed_value("zoom", "150%", "1.5");
 test_computed_value("zoom", "75%", "0.75");
+test_computed_value("zoom", 'calc(100% + (sign(2cqw - 10px) * 50%))', '0.5');
 
 // Legacy crap, wat
 test_computed_value("zoom", "0", "1");

@@ -24,3 +24,11 @@ async function setupLoopbackWithCodecAndGetReader(t, codec) {
   await exchangeOfferAnswer(caller, callee);
   return senderStreams.readable.getReader();
 }
+
+function appendToBuffer(buffer, value) {
+  const result = new ArrayBuffer(buffer.byteLength + 1);
+  const byteResult = new Uint8Array(result);
+  byteResult.set(new Uint8Array(buffer), 0);
+  byteResult[buffer.byteLength] = value;
+  return result;
+}

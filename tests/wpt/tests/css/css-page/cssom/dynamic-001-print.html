@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/cssom/#the-csspagerule-interface">
+<link rel="help" href="https://drafts.csswg.org/css-page-3/">
+<link rel="match" href="dynamic-001-print-ref.html">
+<style id="sheet">
+  @page { }
+  body {
+    background: green;
+  }
+</style>
+<script>
+  let pageRule = document.getElementById("sheet").sheet.rules[0];
+  pageRule.insertRule("@top-center { content:'This text should be seen at the top, and there should be a green square below.'; vertical-align:top; }");
+  pageRule.style.setProperty("margin", "50px 0 0");
+  pageRule.style.setProperty("border", "solid white");
+  pageRule.style.setProperty("border-width", "0 300px");
+  pageRule.style.setProperty("width", "100px");
+  pageRule.style.setProperty("height", "100px");
+</script>

@@ -7,7 +7,12 @@ pytestmark = pytest.mark.asyncio
 
 @pytest.mark.parametrize("navigate", [False, True], ids=["fetch", "navigate"])
 async def test_continue_auth_required(
-    setup_blocked_request, subscribe_events, wait_for_event, bidi_session, navigate, wait_for_future_safe
+    setup_blocked_request,
+    subscribe_events,
+    wait_for_event,
+    bidi_session,
+    navigate,
+    wait_for_future_safe,
 ):
     # Setup unique username / password because browsers cache credentials.
     username = f"test_continue_auth_required_{navigate}"
@@ -31,7 +36,12 @@ async def test_continue_auth_required(
 
 @pytest.mark.parametrize("navigate", [False, True], ids=["fetch", "navigate"])
 async def test_continue_response_started(
-    setup_blocked_request, subscribe_events, wait_for_event, bidi_session, navigate, wait_for_future_safe
+    setup_blocked_request,
+    subscribe_events,
+    wait_for_event,
+    bidi_session,
+    navigate,
+    wait_for_future_safe,
 ):
     request = await setup_blocked_request("responseStarted", navigate=navigate)
 

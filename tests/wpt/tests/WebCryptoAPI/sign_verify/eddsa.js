@@ -217,26 +217,6 @@ function run_test() {
       }, "Sign and verify using generated " + vector.algorithmName + " keys.");
   });
 
-  // When verifying an Ed25519 or Ed448 signature, if the public key or the first half of the signature (R) is
-  // an invalid or small-order element, return false.
-  Object.keys(kSmallOrderTestCases).forEach(function (algorithmName) {
-      var algorithm = {name: algorithmName};
-      kSmallOrderTestCases[algorithmName].forEach(function(test) {
-          promise_test(async() => {
-              let isVerified = true;
-              let publicKey;
-              try {
-                  publicKey = await subtle.importKey("raw", test.keyData, algorithm, false, ["verify"])
-                  isVerified = await subtle.verify(algorithm, publicKey, test.signature, test.message);
-              } catch (err) {
-                  assert_true(publicKey !== undefined, "Public key should be valid.");
-                  assert_unreached("The operation shouldn't fail, but it thown this error: " + err.name + ": " + err.message + ".");
-              }
-              assert_equals(isVerified, test.verified, "Signature verification result.");
-          }, algorithmName + " Verification checks with small-order key of order - Test " + test.id);
-      });
-  });
-
   // Returns a copy of the sourceBuffer it is sent.
   function copyBuffer(sourceBuffer) {
       var source = new Uint8Array(sourceBuffer);
@@ -247,23 +227,6 @@ function run_test() {
       }
 
       return copy;
-  }
-
-  function equalBuffers(a, b) {
-      if (a.byteLength !== b.byteLength) {
-          return false;
-      }
-
-      var aBytes = new Uint8Array(a);
-      var bBytes = new Uint8Array(b);
-
-      for (var i=0; i<a.byteLength; i++) {
-          if (aBytes[i] !== bBytes[i]) {
-              return false;
-          }
-      }
-
-      return true;
   }
 
   return;

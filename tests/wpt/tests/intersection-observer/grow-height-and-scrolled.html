@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="help" href="https://crbug.com/40895558">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./resources/intersection-observer-test-utils.js"></script>
+
+<div id="target" style="background: green">
+  <div id="content" style="height: 100vh"></div>
+</div>
+
+<script>
+var entries = [];
+new IntersectionObserver(function(changes) {
+  target.style.background = changes[0].isIntersecting ? 'green' : 'red';
+  entries = entries.concat(changes);
+}, {root: document}).observe(target);
+
+runTestCycle(function() {
+  assert_equals(entries.length, 1, "Initial notification");
+  runTestCycle(scroll);
+  content.style.height = "300vh";
+}, "IntersectionObserver should only report intersection change after the target grows height and is scrolled.");
+
+function scroll() {
+  runTestCycle(check_no_new_entries);
+  window.scrollTo(0, 10000);
+}
+
+function check_no_new_entries() {
+  assert_equals(entries.length, 1, "No new notifications");
+}
+</script>

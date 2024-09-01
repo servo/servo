@@ -10,6 +10,8 @@
 <script src="/css/support/computed-testcommon.js"></script>
 <style>
   #container {
+    container-type: inline-size;
+    width: 100px;
     font-size: 40px;
   }
 </style>
@@ -31,6 +33,10 @@ test_computed_value("line-height", "calc(200% + 10px)", "90px");
 
 test_computed_value('line-height', 'calc(10px - 0.5em)', '0px');
 test_computed_value('line-height', 'calc(10px + 0.5em)', '30px');
+
+test_computed_value("line-height", 'calc(10 + (sign(2cqw - 10px) * 5))', '200px');
+test_computed_value("line-height", 'calc(10% + (sign(2cqw - 10px) * 5%))', '2px');
+test_computed_value("line-height", 'calc(10px + (sign(2cqw - 10px) * 5px))', '5px');
 </script>
 </body>
 </html>

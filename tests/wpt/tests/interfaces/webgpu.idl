@@ -35,7 +35,6 @@ interface GPUSupportedLimits {
     readonly attribute unsigned long long maxBufferSize;
     readonly attribute unsigned long maxVertexAttributes;
     readonly attribute unsigned long maxVertexBufferArrayStride;
-    readonly attribute unsigned long maxInterStageShaderComponents;
     readonly attribute unsigned long maxInterStageShaderVariables;
     readonly attribute unsigned long maxColorAttachments;
     readonly attribute unsigned long maxColorAttachmentBytesPerSample;
@@ -101,7 +100,7 @@ interface GPUAdapter {
 dictionary GPUDeviceDescriptor
          : GPUObjectDescriptorBase {
     sequence<GPUFeatureName> requiredFeatures = [];
-    record<DOMString, GPUSize64> requiredLimits = {};
+    record<DOMString, (GPUSize64 or undefined)> requiredLimits = {};
     GPUQueueDescriptor defaultQueue = {};
 };
 
@@ -579,7 +578,6 @@ GPUShaderModule includes GPUObjectBase;
 dictionary GPUShaderModuleDescriptor
          : GPUObjectDescriptorBase {
     required USVString code;
-    object sourceMap;
     sequence<GPUShaderModuleCompilationHint> compilationHints = [];
 };
 

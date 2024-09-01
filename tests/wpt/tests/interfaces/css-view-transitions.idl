@@ -3,7 +3,7 @@
 // (https://github.com/w3c/webref)
 // Source: CSS View Transitions Module Level 1 (https://drafts.csswg.org/css-view-transitions-1/)
 
-callback UpdateCallback = Promise<any> ();
+callback ViewTransitionUpdateCallback = Promise<any> ();
 
 [Exposed=Window]
 interface ViewTransition {

@@ -10,6 +10,7 @@ interface HTMLFencedFrameElement : HTMLElement {
   [CEReactions] attribute FencedFrameConfig? config;
   [CEReactions] attribute DOMString width;
   [CEReactions] attribute DOMString height;
+  [SameObject, PutForwards=value] readonly attribute DOMTokenList sandbox;
   [CEReactions] attribute DOMString allow;
 };
 

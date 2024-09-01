@@ -57,6 +57,11 @@ for (let property of insetProperties) {
       for (let fallback of fallbacks) {
         let value = `anchor(${name ? name + ' ' : ''}${side}${fallback ? ', ' + fallback : ''})`;
         test_valid_value(property, value);
+        if (name) {
+          // The <anchor-element> is allowed to appear after the <anchor-side>
+          let value_flip_order = `anchor(${side} ${name}${fallback ? ', ' + fallback : ''})`;
+          test_valid_value(property, value_flip_order, value);
+        }
       }
     }
   }

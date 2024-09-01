@@ -42,6 +42,7 @@ test(function() {
     assert_true(e instanceof PageSwapEvent);
     assert_equals(e.type, "pageswap");
     assert_equals(e.viewTransition, viewTransition);
+    viewTransition.skipTransition();
 }, "Constructing pageswap event with a viewTransition");
 test(function() {
     const viewTransition = document.startViewTransition();
@@ -50,5 +51,6 @@ test(function() {
     assert_equals(e.type, "pageswap");
     assert_equals(e.viewTransition, viewTransition);
     assert_equals(e.activation, navigation.activation);
+    viewTransition.skipTransition();
 }, "Constructing pageswap event with a viewTransition and activation");
 </script>

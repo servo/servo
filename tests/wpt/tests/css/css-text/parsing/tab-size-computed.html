@@ -9,23 +9,31 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/css/support/computed-testcommon.js"></script>
 <style>
+  #container {
+    container-type: inline-size;
+    width: 100px;
+  }
   #target {
     font-size: 40px;
   }
 </style>
 </head>
 <body>
-<div id="target"></div>
+<div id="container">
+  <div id="target"></div>
+</div>
 <script>
 test_computed_value("tab-size", "0");
 test_computed_value("tab-size", "16");
 test_computed_value("tab-size", "4");
 test_computed_value("tab-size", "2.5");
+test_computed_value("tab-size", 'calc(10 + (sign(2cqw - 10px) * 5))', '5');
 
 test_computed_value("tab-size", "0px");
 test_computed_value("tab-size", "10px");
 test_computed_value("tab-size", "calc(10px + 0.5em)", "30px");
 test_computed_value("tab-size", "calc(10px - 0.5em)", "0px");
+test_computed_value("tab-size", 'calc(10px + (sign(2cqw - 10px) * 5px))', '5px');
 </script>
 </body>
 </html>

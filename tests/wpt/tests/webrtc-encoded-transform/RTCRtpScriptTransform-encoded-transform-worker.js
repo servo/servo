@@ -1,12 +1,6 @@
-const modification = 1;
+importScripts("helper.js");
 
-function appendToBuffer(buffer, value) {
-    const result = new ArrayBuffer(buffer.byteLength + 1);
-    const byteResult = new Uint8Array(result);
-    byteResult.set(new Uint8Array(buffer), 0);
-    byteResult[buffer.byteLength] = value;
-    return result;
-}
+const modification = 1;
 
 function ModifyAndWrite(chunk, transformer) {
     chunk.value.data = appendToBuffer(chunk.value.data, modification);
@@ -22,9 +16,11 @@ function RestoreAndWrite(chunk, transformer) {
         self.postMessage("got expected");
     }
     else {
-        self.postMessage("unexpected value, lastByte" + lastByte +
-            ",  frame data length: " + frameData.byteLength + " rtpTimestamp: ",
-             chunk.value.getMetadata().rtpTimestamp);
+        self.postMessage("unexpected value: lastByte (got " + lastByte +
+            ", expected " + modification +
+            "),  frame data length (got " + frameData.byteLength +
+            ", expected 0), rtpTimestamp (got " +
+             chunk.value.getMetadata().rtpTimestamp + ", expected null)");
     }
 }
 onrtctransform = (event) => {

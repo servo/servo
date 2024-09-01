@@ -227,10 +227,11 @@ test_applied("<string># | <string>+", "'foo', 'bar'", false, '"foo", "bar"');
 test_applied("<string># | <string>+", "'foo', 'bar' ", false, '"foo", "bar"');
 test_applied("<string># | <string>+", `"foo", 'bar'`, false, '"foo", "bar"');
 
-test_not_applied("<string>", "'foo bar", false);
-test_not_applied("<string>", `"bar 'baz'`, false);
-test_not_applied("<string>+ | <string>#", `'foo' "bar`, false);
-test_not_applied("<string># | <string>+", `"foo", 'bar`, false);
+test_not_applied("<string>", "1px", false);
+test_not_applied("<string>", "foo", false);
+test_not_applied("<string>", "calc(1 + 2)", false);
+test_not_applied("<string>", "rgb(255, 99, 71)", false);
+test_not_applied("<string>", "'foo' 2px", false);
 
 // inherits: true/false
 test_applied('<color>', 'tomato', false, 'rgb(255, 99, 71)');

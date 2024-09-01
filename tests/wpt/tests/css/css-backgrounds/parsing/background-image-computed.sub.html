@@ -45,7 +45,7 @@ test_computed_value('background-image', 'radial-gradient(ellipse calc(0.5em + 10
 test_computed_value('background-image', 'conic-gradient(rgb(255, 0, 0), rgb(0, 0, 255))');
 test_computed_value('background-image', 'conic-gradient(red, gold)', 'conic-gradient(rgb(255, 0, 0), rgb(255, 215, 0))');
 test_computed_value('background-image', 'conic-gradient(red 0%, gold 100%)', 'conic-gradient(rgb(255, 0, 0) 0%, rgb(255, 215, 0) 100%)')
-test_computed_value('background-image', 'conic-gradient(red 0deg, gold 1turn)', 'conic-gradient(rgb(255, 0, 0) 0deg, rgb(255, 215, 0) 1turn)');
+test_computed_value('background-image', 'conic-gradient(red 0deg, gold 1turn)', 'conic-gradient(rgb(255, 0, 0) 0deg, rgb(255, 215, 0) 360deg)');
 test_computed_value('background-image', 'conic-gradient(white -50%, black 150%)', 'conic-gradient(rgb(255, 255, 255) -50%, rgb(0, 0, 0) 150%)');
 test_computed_value('background-image', 'conic-gradient(white -180deg, black 540deg)', 'conic-gradient(rgb(255, 255, 255) -180deg, rgb(0, 0, 0) 540deg)');
 test_computed_value('background-image', 'conic-gradient(hsl(0,0%,75%), hsl(0,0%,25%))', 'conic-gradient(rgb(191, 191, 191), rgb(64, 64, 64))');

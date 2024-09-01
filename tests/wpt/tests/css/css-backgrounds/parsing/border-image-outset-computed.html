@@ -9,19 +9,25 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/css/support/computed-testcommon.js"></script>
 <style>
-  #target {
+  #container {
     font-size: 40px;
+    container-type: inline-size;
+    width: 100px;
   }
 </style>
 </head>
 <body>
-<div id="target"></div>
+<div id="container">
+  <div id="target"></div>
+</div>
 <script>
 test_computed_value("border-image-outset", "1px");
 test_computed_value("border-image-outset", "1px 2");
 test_computed_value("border-image-outset", "1px 2 3px");
 test_computed_value("border-image-outset", "1px 2 3px 4");
 test_computed_value("border-image-outset", "0 calc(0.5em + 10px) 3 calc(-0.5em + 10px)", "0 30px 3 0px");
+test_computed_value("border-image-outset", "calc(10 + (sign(2cqw - 10px) * 5))", "5");
+test_computed_value("border-image-outset", "calc(10 + (sign(2cqw - 10px) * 5)) calc(20px + (sign(2cqw - 10px) * 5px)", "5 15px");
 </script>
 </body>
 </html>

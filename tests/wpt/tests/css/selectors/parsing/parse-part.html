@@ -33,6 +33,9 @@
   test_invalid_selector(":part('foo')");
   test_invalid_selector(":part([foo])");
   test_invalid_selector('::part(foo) + ::part(bar)');
+  // Note: the serialization behavior of the following is as resolved in
+  // https://github.com/w3c/csswg-drafts/issues/8356 but it has not yet been
+  // specified.
   test_valid_forgiving_selector("::part(foo):is(ul)");
   test_valid_forgiving_selector("::part(foo):is(nav ul)");
   test_valid_forgiving_selector("::part(foo):where(ul)");

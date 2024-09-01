@@ -12,7 +12,7 @@ select {
   appearance: base-select;
 }
 
-select::select-fallback-datalist {
+select::picker(select) {
   transition-behavior: allow-discrete;
   transition-duration: 100s;
   transition-property: display, overlay, opacity, color;
@@ -21,12 +21,12 @@ select::select-fallback-datalist {
   color: black;
 }
 
-select::select-fallback-datalist:popover-open {
+select::picker(select):popover-open {
   opacity: 1;
   color: rgb(200, 0, 0);
 }
 @starting-style {
-  select::select-fallback-datalist:popover-open {
+  select::picker(select):popover-open {
     opacity: 0;
     color: black;
   }
@@ -54,5 +54,5 @@ promise_test(async () => {
   await new Promise(requestAnimationFrame);
   assert_equals(getComputedStyle(firstOption).color, 'rgb(100, 0, 0)',
     'option color should start animating when opening the picker.');
-}, 'select::select-fallback-datalist should support author provided top layer animations.');
+}, 'select::picker(select) should support author provided top layer animations.');
 </script>

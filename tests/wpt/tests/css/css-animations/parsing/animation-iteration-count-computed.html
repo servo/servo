@@ -8,11 +8,20 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/css/support/computed-testcommon.js"></script>
+<style>
+  #container {
+    container-type: inline-size;
+    width: 100px;
+  }
+</style>
 </head>
 <body>
-<div id="target"></div>
+<div id="container">
+  <div id="target"></div>
+</div>
 <script>
 test_computed_value("animation-iteration-count", "0, infinite, 3");
+test_computed_value("animation-iteration-count", "calc(10 + (sign(2cqw - 10px) * 5))", "5");
 </script>
 </body>
 </html>

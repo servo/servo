@@ -5,7 +5,12 @@
 // META: variant=?mp3
 // META: variant=?opus
 // META: variant=?pcm_alaw
-// META: variant=?pcm_mulaw
+// META: variant=?pcm_ulaw
+// META: variant=?pcm_u8
+// META: variant=?pcm_s16
+// META: variant=?pcm_s24
+// META: variant=?pcm_s32
+// META: variant=?pcm_f32
 
 const ADTS_AAC_DATA = {
   src: 'sfx.adts',
@@ -82,38 +87,29 @@ const OPUS_DATA = {
   duration: 20000
 };
 
-const PCM_ALAW_DATA = {
-  src: 'sfx-alaw.wav',
-  config: {
-    codec: 'alaw',
-    sampleRate: 48000,
-    numberOfChannels: 1,
-  },
-  // Any arbitrary grouping should work.
-  chunks: [
-    {offset: 0, size: 2048}, {offset: 2048, size: 2048},
-    {offset: 4096, size: 2048}, {offset: 6144, size: 2048},
-    {offset: 8192, size: 2048}, {offset: 10240, size: 92}
-  ],
-  duration: 35555
-};
+function pcm(codec, dataOffset) {
+  return {
+    src: `sfx-${codec}.wav`,
+    config: {
+      codec: codec,
+      sampleRate: 48000,
+      numberOfChannels: 1,
+    },
 
-const PCM_MULAW_DATA = {
-  src: 'sfx-mulaw.wav',
-  config: {
-    codec: 'ulaw',
-    sampleRate: 48000,
-    numberOfChannels: 1,
-  },
+    // Chunk are arbitrary and will be generated lazily
+    chunks: [],
+    offset: dataOffset,
+    duration: 0
+  }
+}
 
-  // Any arbitrary grouping should work.
-  chunks: [
-    {offset: 0, size: 2048}, {offset: 2048, size: 2048},
-    {offset: 4096, size: 2048}, {offset: 6144, size: 2048},
-    {offset: 8192, size: 2048}, {offset: 10240, size: 92}
-  ],
-  duration: 35555
-};
+const PCM_ULAW_DATA = pcm("ulaw", 0x5c);
+const PCM_ALAW_DATA = pcm("alaw", 0x5c);
+const PCM_U8_DATA = pcm("pcm-u8", 0x4e);
+const PCM_S16_DATA = pcm("pcm-s16", 0x4e);
+const PCM_S24_DATA = pcm("pcm-s24", 0x66);
+const PCM_S32_DATA = pcm("pcm-s32", 0x66);
+const PCM_F32_DATA = pcm("pcm-f32", 0x72);
 
 // Allows mutating `callbacks` after constructing the AudioDecoder, wraps calls
 // in t.step().
@@ -151,7 +147,12 @@ promise_setup(async () => {
     '?mp4_aac': MP4_AAC_DATA,
     '?opus': OPUS_DATA,
     '?pcm_alaw': PCM_ALAW_DATA,
-    '?pcm_mulaw': PCM_MULAW_DATA,
+    '?pcm_ulaw': PCM_ULAW_DATA,
+    '?pcm_u8': PCM_U8_DATA,
+    '?pcm_s16': PCM_S16_DATA,
+    '?pcm_s24': PCM_S24_DATA,
+    '?pcm_s32': PCM_S32_DATA,
+    '?pcm_f32': PCM_F32_DATA,
   }[location.search];
 
   // Don't run any tests if the codec is not supported.
@@ -177,7 +178,31 @@ promise_setup(async () => {
     CONFIG.description = view(buf, data.config.description);
   }
 
-  CHUNK_DATA = data.chunks.map((chunk, i) => view(buf, chunk));
+  CHUNK_DATA = [];
+  // For PCM, split in chunks of 1200 bytes and compute the rest
+  if (data.chunks.length == 0) {
+    let offset = data.offset;
+    // 1200 is divisible by 2 and 3 and is a plausible packet length
+    // for PCM: this means that there won't be samples split in two packet
+    let PACKET_LENGTH = 1200;
+    let bytesPerSample = 0;
+    switch (data.config.codec) {
+      case "pcm-s16": bytesPerSample = 2; break;
+      case "pcm-s24": bytesPerSample = 3; break;
+      case "pcm-s32": bytesPerSample = 4; break;
+      case "pcm-f32": bytesPerSample = 4; break;
+      default: bytesPerSample = 1; break;
+    }
+    while (offset < buf.byteLength) {
+      let size = Math.min(buf.byteLength - offset, PACKET_LENGTH);
+      assert_equals(size % bytesPerSample, 0);
+      CHUNK_DATA.push(view(buf, {offset, size}));
+      offset += size;
+    }
+    data.duration = 1000 * 1000 * PACKET_LENGTH / data.config.sampleRate / bytesPerSample;
+  } else {
+    CHUNK_DATA = data.chunks.map((chunk, i) => view(buf, chunk));
+  }
 
   CHUNKS = CHUNK_DATA.map((encodedData, i) => new EncodedAudioChunk({
                             type: 'key',

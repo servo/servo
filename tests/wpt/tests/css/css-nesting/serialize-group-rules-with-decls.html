@@ -35,12 +35,12 @@
 
   assert_becomes(
     "div { @media screen { color: red; background-color: green; } }",
-    "div {\n  @media screen {\n  & { color: red; background-color: green; }\n}\n}",
+    "div {\n  @media screen {\n  color: red; background-color: green;\n}\n}",
     "Mixed declarations/rules are on two lines."
   );
   assert_becomes(
     "div {\n  @supports selector(&) { color: red; background-color: green; } &:hover { color: navy; } }",
-    "div {\n  @supports selector(&) {\n  & { color: red; background-color: green; }\n}\n  &:hover { color: navy; }\n}",
+    "div {\n  @supports selector(&) {\n  color: red; background-color: green;\n}\n  &:hover { color: navy; }\n}",
     "Implicit rule is serialized",
   );
 
@@ -62,12 +62,12 @@
   );
   assert_becomes(
     "div { @media screen { color: red; & { color: red; }",
-    "div {\n  @media screen {\n  & { color: red; }\n  & { color: red; }\n}\n}",
+    "div {\n  @media screen {\n  color: red;\n  & { color: red; }\n}\n}",
     "Implicit like rule after decls"
   );
   assert_becomes(
     "div { @media screen { color: red; & { color: blue; }",
-    "div {\n  @media screen {\n  & { color: red; }\n  & { color: blue; }\n}\n}",
+    "div {\n  @media screen {\n  color: red;\n  & { color: blue; }\n}\n}",
     "Implicit like rule after decls, missing closing braces"
   );
   assert_becomes(

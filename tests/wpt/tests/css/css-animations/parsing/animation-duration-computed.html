@@ -8,12 +8,21 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/css/support/computed-testcommon.js"></script>
+<style>
+  #container {
+    container-type: inline-size;
+    width: 100px;
+  }
+</style>
 </head>
 <body>
-<div id="target"></div>
+<div id="container">
+  <div id="target"></div>
+</div>
 <script>
 test_computed_value("animation-duration", "500ms", "0.5s");
 test_computed_value("animation-duration", "calc(2 * 3s)", "6s");
+test_computed_value("animation-duration", 'calc(10s + (sign(2cqw - 10px) * 5s))', '5s');
 test_computed_value("animation-duration", "20s, 10s");
 
 // https://github.com/w3c/csswg-drafts/issues/6530

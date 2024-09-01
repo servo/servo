@@ -13,6 +13,7 @@
 </div>
 <style>
   #container {
+    container-type: inline-size;
     color: rgb(255, 0, 0);
   }
 </style>
@@ -49,6 +50,10 @@ for (const colorSpace of [ "srgb", "srgb-linear", "a98-rgb", "rec2020", "prophot
 
     test_computed_value("color", `color(${colorSpace} calc(NaN) 0 0)`, `color(${colorSpace} 0 0 0)`);
     test_computed_value("color", `color(${colorSpace} calc(0 / 0) 0 0)`, `color(${colorSpace} 0 0 0)`);
+
+    // calc(50% + (sign(1em - 10px) * 10%)), with its font relative units, must be evaluatated for computed value.
+    test_computed_value("color", `color(${colorSpace} calc(50% + (sign(1em - 10px) * 10%)) 0 0 / 0.5)`, `color(${colorSpace} 0.6 0 0 / 0.5)`);
+    test_computed_value("color", `color(${colorSpace} 0.5 0 0 / calc(50% + (sign(1em - 10px) * 10%)))`, `color(${colorSpace} 0.5 0 0 / 0.6)`);
 }
 
 for (const colorSpace of [ "xyz", "xyz-d50", "xyz-d65" ]) {
@@ -78,6 +83,10 @@ for (const colorSpace of [ "xyz", "xyz-d50", "xyz-d65" ]) {
 
     test_computed_value("color", `color(${colorSpace} calc(NaN) 0 0)`, `color(${resultColorSpace} 0 0 0)`);
     test_computed_value("color", `color(${colorSpace} calc(0 / 0) 0 0)`, `color(${resultColorSpace} 0 0 0)`);
+
+    // calc(50% + (sign(1em - 10px) * 10%)), with its font relative units, must be evaluatated for computed value.
+    test_computed_value("color", `color(${colorSpace} calc(0.5 + (sign(1em - 10px) * 0.1)) 0 0 / 0.5)`, `color(${resultColorSpace} 0.6 0 0 / 0.5)`);
+    test_computed_value("color", `color(${colorSpace} 0.5 0 0 / calc(0.5 + (sign(1em - 10px) * 0.1)))`, `color(${resultColorSpace} 0.5 0 0 / 0.6)`);
 }
 
 // Opaque sRGB in color()
@@ -279,4 +288,11 @@ test_computed_value("color", "color(display-p3 0.5 -199 0.75)", "color(display-p
 test_computed_value("color", "color(display-p3 184 1.00001 1103)", "color(display-p3 184 1.00001 1103)", "[Display P3 color with component > 1 should not clamp]");
 test_computed_value("color", "color(srgb 0.1 0.2 0.3 / 1.9)", "color(srgb 0.1 0.2 0.3)", "[Alpha > 1 should clamp]");
 test_computed_value("color", "color(srgb 1 1 1 / -0.2)", "color(srgb 1 1 1 / 0)", "[Negative alpha should clamp]");
+
+
+// Ensure that `calc` values work with dynamically changing relative units (slighly different alpha values to make test harness not complain about duplicate tests).
+document.getElementById("container").style.width = "1000px";
+test_computed_value("color", `color(srgb calc(0.5 + (sign(2cqw - 10px) * 0.1)) 0 0 / 0.51)`, `color(srgb 0.6 0 0 / 0.51)`);
+document.getElementById("container").style.width = "100px";
+test_computed_value("color", `color(srgb calc(0.5 + (sign(2cqw - 10px) * 0.1)) 0 0 / 0.52)`, `color(srgb 0.4 0 0 / 0.52)`);
 </script>

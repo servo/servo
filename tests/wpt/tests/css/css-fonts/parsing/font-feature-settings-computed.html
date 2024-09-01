@@ -11,8 +11,17 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/css/support/computed-testcommon.js"></script>
 </head>
+<style>
+  #container {
+    container-type: inline-size;
+    width: 100px;
+  }
+</style>
+</head>
 <body>
-<div id="target"></div>
+<div id="container">
+  <div id="target"></div>
+</div>
 <script>
 test_computed_value('font-feature-settings', 'normal');
 
@@ -25,6 +34,10 @@ test_computed_value('font-feature-settings', '"tnum", "hist"', '"hist", "tnum"')
 test_computed_value('font-feature-settings', '"PKRN"');
 
 test_computed_value('font-feature-settings', '"dlig", "smcp", "dlig" 0', '"dlig" 0, "smcp"');
+
+test_computed_value('font-feature-settings', '"liga" calc(10 + (sign(2cqw - 10px) * 5))', '"liga" 5');
+test_computed_value('font-feature-settings', '"liga" calc(10 + (sign(2cqw - 10px) * 5)), "dlig" calc(20 + (sign(2cqw - 10px) * 5))', '"dlig" 15, "liga" 5');
+
 </script>
 </body>
 </html>

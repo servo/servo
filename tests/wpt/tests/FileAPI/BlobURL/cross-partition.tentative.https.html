@@ -71,6 +71,8 @@ const add_iframe_js = (iframe_origin, response_queue_uuid) => `
                    "/resources/common.js");
   await importScript("/html/anonymous-iframe/resources/common.js");
   await importScript("/common/utils.js");
+
+  // dispatcher.js has already been loaded by the popup this is running in.
   await send("${response_queue_uuid}", newIframe("${iframe_origin}"));
 `;
 
@@ -86,15 +88,15 @@ async function create_test_iframes(t, response_queue_uuid) {
   const not_same_site_popup_uuid = newPopup(t, cross_site_origin);
   await send(not_same_site_popup_uuid,
        add_iframe_js(same_site_origin, response_queue_uuid));
-  const iframe_1_uuid = await receive(response_queue_uuid);
+  const cross_site_iframe_uuid = await receive(response_queue_uuid);
 
   // Create a same-origin iframe in a same-site popup.
   const same_origin_popup_uuid = newPopup(t, same_site_origin);
   await send(same_origin_popup_uuid,
        add_iframe_js(same_site_origin, response_queue_uuid));
-  const iframe_2_uuid = await receive(response_queue_uuid);
+  const same_site_iframe_uuid = await receive(response_queue_uuid);
 
-  return [iframe_1_uuid, iframe_2_uuid];
+  return [cross_site_iframe_uuid, same_site_iframe_uuid];
 }
 
 // Tests revoking blob URL for same and cross partition iframes.
@@ -114,11 +116,11 @@ promise_test(t => {
       // Creates same and cross partition iframes.
       const response_queue_uuid = token();
 
-      const [iframe_1_uuid, iframe_2_uuid] =
+      const [cross_site_iframe_uuid, same_site_iframe_uuid] =
         await create_test_iframes(t, response_queue_uuid);
 
       // Attempt to revoke blob URL in cross partition iframe.
-      await send(iframe_1_uuid, can_blob_url_be_revoked_js(blob_url, response_queue_uuid));
+      await send(cross_site_iframe_uuid, can_blob_url_be_revoked_js(blob_url, response_queue_uuid));
       var response_1 = await receive(response_queue_uuid);
       if (response_1 !== js_finished) {
         reject(response_1);
@@ -129,7 +131,7 @@ promise_test(t => {
       }
 
       // Attempt to revoke blob URL in same partition iframe.
-      await send(iframe_2_uuid, can_blob_url_be_revoked_js(blob_url, response_queue_uuid));
+      await send(same_site_iframe_uuid, can_blob_url_be_revoked_js(blob_url, response_queue_uuid));
       var response_2 = await receive(response_queue_uuid);
       if (response_2 !== js_finished) {
         reject(response_2);
@@ -160,6 +162,8 @@ const create_dedicated_worker_js = (origin, response_queue_uuid) => `
                     "/resources/common.js");
   await importScript("/html/anonymous-iframe/resources/common.js");
   await importScript("/common/utils.js");
+
+  // dispatcher.js has already been loaded by the popup this is running in.
   const newWorker = ${newWorker};
   await send("${response_queue_uuid}", newWorker("${origin}"));
 `;
@@ -170,13 +174,13 @@ promise_test(t => {
     try {
       const response_queue_uuid = token();
 
-      const [iframe_1_uuid, iframe_2_uuid] =
+      const [cross_site_iframe_uuid, same_site_iframe_uuid] =
         await create_test_iframes(t, response_queue_uuid);
 
-      await send(iframe_1_uuid, create_dedicated_worker_js(same_site_origin, response_queue_uuid));
+      await send(cross_site_iframe_uuid, create_dedicated_worker_js(same_site_origin, response_queue_uuid));
       const worker_1_uuid = await receive(response_queue_uuid);
 
-      await send(iframe_2_uuid, create_dedicated_worker_js(same_site_origin, response_queue_uuid));
+      await send(same_site_iframe_uuid, create_dedicated_worker_js(same_site_origin, response_queue_uuid));
       const worker_2_uuid = await receive(response_queue_uuid);
 
       const blob = new Blob(["blob data"], {type : "text/plain"});
@@ -223,6 +227,8 @@ const create_shared_worker_js = (origin, response_queue_uuid) => `
                     "/resources/common.js");
   await importScript("/html/anonymous-iframe/resources/common.js");
   await importScript("/common/utils.js");
+
+  // dispatcher.js has already been loaded by the popup this is running in.
   const newSharedWorker = ${newSharedWorker};
   await send("${response_queue_uuid}", newSharedWorker("${origin}"));
 `;
@@ -233,15 +239,15 @@ promise_test(t => {
     try {
       const response_queue_uuid = token();
 
-      const [iframe_1_uuid, iframe_2_uuid] =
+      const [cross_site_iframe_uuid, same_site_iframe_uuid] =
         await create_test_iframes(t, response_queue_uuid);
 
       // Create a shared worker in the cross-top-level-site iframe.
-      await send(iframe_1_uuid, create_shared_worker_js(same_site_origin, response_queue_uuid));
+      await send(cross_site_iframe_uuid, create_shared_worker_js(same_site_origin, response_queue_uuid));
       const worker_1_uuid = await receive(response_queue_uuid);
 
       // Create a shared worker in the same-top-level-site iframe.
-      await send(iframe_2_uuid, create_shared_worker_js(same_site_origin, response_queue_uuid));
+      await send(same_site_iframe_uuid, create_shared_worker_js(same_site_origin, response_queue_uuid));
       const worker_2_uuid = await receive(response_queue_uuid);
 
       const blob = new Blob(["blob data"], {type : "text/plain"});
@@ -293,6 +299,8 @@ const create_service_worker_js = (origin, response_queue_uuid) => `
                     "/resources/common.js");
   await importScript("/html/anonymous-iframe/resources/common.js");
   await importScript("/common/utils.js");
+
+  // dispatcher.js has already been loaded by the popup this is running in.
   const newServiceWorker = ${newServiceWorker};
   await send("${response_queue_uuid}", await newServiceWorker("${origin}"));
 `;
@@ -303,11 +311,11 @@ promise_test(t => {
     try {
       const response_queue_uuid = token();
 
-      const [iframe_1_uuid, iframe_2_uuid] =
+      const [cross_site_iframe_uuid, same_site_iframe_uuid] =
         await create_test_iframes(t, response_queue_uuid);
 
       // Create a service worker in either iframe.
-      await send(iframe_1_uuid, create_service_worker_js(same_site_origin, response_queue_uuid));
+      await send(cross_site_iframe_uuid, create_service_worker_js(same_site_origin, response_queue_uuid));
       var worker_1_uuid = await receive(response_queue_uuid);
       t.add_cleanup(() =>
         send(worker_1_uuid, "self.registration.unregister();"));
@@ -347,18 +355,18 @@ promise_test(t => {
       // Creates same and cross partition iframes.
       const response_queue_uuid = token();
 
-      const [iframe_1_uuid, iframe_2_uuid] =
+      const [cross_site_iframe_uuid, same_site_iframe_uuid] =
         await create_test_iframes(t, response_queue_uuid);
 
       // Attempt to fetch blob URL in cross partition iframe.
-      await send(iframe_1_uuid, can_blob_url_be_fetched_js(blob_url, response_queue_uuid));
+      await send(cross_site_iframe_uuid, can_blob_url_be_fetched_js(blob_url, response_queue_uuid));
       var response_1 = await receive(response_queue_uuid);
       if (response_1 !== fetch_unsuccessful_response) {
         reject(`Blob URL was fetched in not-same-top-level-site iframe: ${response_1}`);
       }
 
       // Attempt to fetch blob URL in same partition iframe.
-      await send(iframe_2_uuid, can_blob_url_be_fetched_js(blob_url, response_queue_uuid));
+      await send(same_site_iframe_uuid, can_blob_url_be_fetched_js(blob_url, response_queue_uuid));
       var response_2 = await receive(response_queue_uuid);
       if (response_2 !== fetch_successful_response) {
         reject(`Blob URL wasn't fetched in same-top-level-site iframe: ${response_2}`);
@@ -378,15 +386,15 @@ promise_test(t => {
       const response_queue_uuid = token();
 
       // Creates same and cross partition iframes.
-      const [iframe_1_uuid, iframe_2_uuid] =
+      const [cross_site_iframe_uuid, same_site_iframe_uuid] =
         await create_test_iframes(t, response_queue_uuid);
 
       // Creates a dedicated worker in the cross-top-level-site iframe.
-      await send(iframe_1_uuid, create_dedicated_worker_js(same_site_origin, response_queue_uuid));
+      await send(cross_site_iframe_uuid, create_dedicated_worker_js(same_site_origin, response_queue_uuid));
       const worker_1_uuid = await receive(response_queue_uuid);
 
       // Creates a dedicated worker in the same-top-level-site iframe.
-      await send(iframe_2_uuid, create_dedicated_worker_js(same_site_origin, response_queue_uuid));
+      await send(same_site_iframe_uuid, create_dedicated_worker_js(same_site_origin, response_queue_uuid));
       const worker_2_uuid = await receive(response_queue_uuid);
 
       const blob = new Blob(["blob data"], {type : "text/plain"});
@@ -420,15 +428,15 @@ promise_test(t => {
     try {
       const response_queue_uuid = token();
 
-      const [iframe_1_uuid, iframe_2_uuid] =
+      const [cross_site_iframe_uuid, same_site_iframe_uuid] =
         await create_test_iframes(t, response_queue_uuid);
 
       // Create a shared worker in the cross-top-level-site iframe.
-      await send(iframe_1_uuid, create_shared_worker_js(same_site_origin, response_queue_uuid));
+      await send(cross_site_iframe_uuid, create_shared_worker_js(same_site_origin, response_queue_uuid));
       const worker_1_uuid = await receive(response_queue_uuid);
 
       // Create a shared worker in the same-top-level-site iframe.
-      await send(iframe_2_uuid, create_shared_worker_js(same_site_origin, response_queue_uuid));
+      await send(same_site_iframe_uuid, create_shared_worker_js(same_site_origin, response_queue_uuid));
       const worker_2_uuid = await receive(response_queue_uuid);
 
       const blob = new Blob(["blob data"], {type : "text/plain"});
@@ -462,7 +470,7 @@ promise_test(t => {
     try {
       const response_queue_uuid = token();
 
-      const [iframe_1_uuid, iframe_2_uuid] =
+      const [cross_site_iframe_uuid, same_site_iframe_uuid] =
         await create_test_iframes(t, response_queue_uuid);
 
       const blob = new Blob(["blob data"], {type : "text/plain"});
@@ -470,7 +478,7 @@ promise_test(t => {
       t.add_cleanup(() => window.URL.revokeObjectURL(blob_url));
 
       // Create a service worker in cross-top-level-site iframe.
-      await send(iframe_1_uuid, create_service_worker_js(same_site_origin, response_queue_uuid));
+      await send(cross_site_iframe_uuid, create_service_worker_js(same_site_origin, response_queue_uuid));
       var worker_1_uuid = await receive(response_queue_uuid);
       t.add_cleanup(() =>
         send(worker_1_uuid, "self.registration.unregister();"));
@@ -483,7 +491,7 @@ promise_test(t => {
       }
 
       // Create a service worker in same-top-level-site iframe.
-      await send(iframe_2_uuid, create_service_worker_js(same_site_origin, response_queue_uuid));
+      await send(same_site_iframe_uuid, create_service_worker_js(same_site_origin, response_queue_uuid));
       var worker_2_uuid = await receive(response_queue_uuid);
       t.add_cleanup(() =>
         send(worker_2_uuid, "self.registration.unregister();"));

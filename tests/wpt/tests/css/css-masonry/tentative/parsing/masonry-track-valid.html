@@ -5,6 +5,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/css/support/parsing-testcommon.js"></script>
+<script src="/css/support/shorthand-testcommon.js"></script>
 <body>
 <script>
   // auto
@@ -22,4 +23,76 @@
   // span && [ <integer> || <custom-ident> ]
   test_valid_value("masonry-track-end", "SpAn i 2", "span 2 i");
   test_valid_value("masonry-track-start", "2 i span", "span 2 i");
+
+  // masonry-track shorthand
+  test_shorthand_value("masonry-track", "auto / auto", {
+    "masonry-track-start": "auto",
+    "masonry-track-end": "auto"
+  });
+  test_shorthand_value("masonry-track", "auto", {
+      "masonry-track-start": "auto",
+      "masonry-track-end": "auto"
+  });
+
+  test_shorthand_value("masonry-track", "10 / auto", {
+      "masonry-track-start": "10",
+      "masonry-track-end": "auto"
+  });
+  test_shorthand_value("masonry-track", "10", {
+      "masonry-track-start": "10",
+      "masonry-track-end": "auto"
+  });
+
+  test_shorthand_value("masonry-track", "-10 / auto", {
+      "masonry-track-start": "-10",
+      "masonry-track-end": "auto"
+  });
+  test_shorthand_value("masonry-track", "-10", {
+      "masonry-track-start": "-10",
+      "masonry-track-end": "auto"
+  });
+
+  test_shorthand_value("masonry-track", "span 2 / auto", {
+      "masonry-track-start": "span 2",
+      "masonry-track-end": "auto"
+  });
+  test_shorthand_value("masonry-track", "span 2", {
+      "masonry-track-start": "span 2",
+      "masonry-track-end": "auto"
+  });
+
+  test_shorthand_value("masonry-track", "3 last / auto", {
+      "masonry-track-start": "3 last",
+      "masonry-track-end": "auto"
+  });
+  test_shorthand_value("masonry-track", "3 last", {
+      "masonry-track-start": "3 last",
+      "masonry-track-end": "auto"
+  });
+
+  test_shorthand_value("masonry-track", "span first / auto", {
+      "masonry-track-start": "span first",
+      "masonry-track-end": "auto"
+  });
+  test_shorthand_value("masonry-track", "span first", {
+      "masonry-track-start": "span first",
+      "masonry-track-end": "auto"
+  });
+  test_shorthand_value("masonry-track", "span 2 first / auto", {
+      "masonry-track-start": "span 2 first",
+      "masonry-track-end": "auto"
+  });
+  test_shorthand_value("masonry-track", "span 2 first", {
+      "masonry-track-start": "span 2 first",
+      "masonry-track-end": "auto"
+  });
+
+  test_shorthand_value("masonry-track", "last / last", {
+      "masonry-track-start": "last",
+      "masonry-track-end": "last"
+  });
+  test_shorthand_value("masonry-track", "last", {
+      "masonry-track-start": "last",
+      "masonry-track-end": "last"
+  });
 </script>

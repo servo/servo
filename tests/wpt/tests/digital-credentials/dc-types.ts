@@ -1,4 +1,9 @@
 export type ProviderType = "default" | "openid4vp";
+export type CredentialMediationRequirement =
+  | "conditional"
+  | "optional"
+  | "required"
+  | "silent";
 
 /**
  * @see https://wicg.github.io/digital-credentials/#dom-identityrequestprovider
@@ -26,12 +31,17 @@ export interface CredentialRequestOptions {
    * The digital credential request options.
    */
   digital: DigitalCredentialRequestOptions;
+  mediation: CredentialMediationRequirement;
 }
 
 /**
  * The actions that can be performed on the API via the iframe.
  */
-export type IframeActionType = "create" | "get" | "ping" | "preventSilentAccess" ;
+export type IframeActionType =
+  | "create"
+  | "get"
+  | "ping"
+  | "preventSilentAccess";
 
 /**
  * If present, when the abort controller should be aborted
@@ -53,8 +63,8 @@ export interface EventData {
    */
   options?: object;
   /**
-  * If the API needs to blessed before the action is performed.
-  */
+   * If the API needs to blessed before the action is performed.
+   */
   needsUserActivation?: boolean;
 }
 
