@@ -330,7 +330,7 @@ class CommandBase(object):
 
     def get_apk_path(self, build_type: BuildType):
         base_path = util.get_target_dir()
-        base_path = path.join(base_path, "android", self.config["android"]["target"])
+        base_path = path.join(base_path, "android", self.target.triple())
         apk_name = "servoapp.apk"
         return path.join(base_path, build_type.directory_name(), apk_name)
 
