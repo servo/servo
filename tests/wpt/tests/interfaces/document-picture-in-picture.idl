@@ -21,6 +21,7 @@ dictionary DocumentPictureInPictureOptions {
   [EnforceRange] unsigned long long width = 0;
   [EnforceRange] unsigned long long height = 0;
   boolean disallowReturnToOpener = false;
+  boolean preferInitialWindowPlacement = false;
 };
 
 [Exposed=Window, SecureContext]

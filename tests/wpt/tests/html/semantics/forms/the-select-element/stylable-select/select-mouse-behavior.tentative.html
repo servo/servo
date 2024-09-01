@@ -15,37 +15,19 @@ select {
 }
 </style>
 
-<select id=custombutton-customdatalist>
-  <button>button</button>
-  <datalist>
-    <option class=one>one</option>
-    <option class=two>two</option>
-  </datalist>
-</select>
-
-<select id=custombutton-fallbackdatalist>
+<select id=custombutton>
   <button>button</button>
   <option class=one>one</option>
   <option class=two>two</option>
 </select>
 
-<select id=fallbackbutton-customdatalist>
-  <datalist>
-    <option class=one>one</option>
-    <option class=two>two</option>
-  </datalist>
-</select>
-
-<select id=fallbackbutton-fallbackdatalist>
+<select id=fallbackbutton>
   <option class=one>one</option>
   <option class=two>two</option>
 </select>
 
 <script>
-for (const id of ['fallbackbutton-fallbackdatalist',
-                  'fallbackbutton-customdatalist',
-                  'custombutton-fallbackdatalist',
-                  'custombutton-customdatalist']) {
+for (const id of ['fallbackbutton', 'custombutton']) {
   const select = document.getElementById(id);
   const optionOne = select.querySelector('option.one');
   const optionTwo = select.querySelector('option.two');

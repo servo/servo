@@ -415,3 +415,31 @@ test(() => {
   assert_equals(html_direction(div), 'rtl', 'host dir change propagated via slot');
   tree.remove();
 }, 'slot provides updated directionality from host to a dir=auto container');
+
+test(() => {
+  let input = setup_tree(`<input type="text">`);
+  assert_equals(html_direction(input), "ltr", "initial direction of input");
+  input.value = "\u05D0";
+  assert_equals(html_direction(input), "ltr", "direction of input with RTL contents");
+  input.dir = "auto";
+  assert_equals(html_direction(input), "rtl", "direction of input dir=auto with RTL contents");
+  input.value = "a";
+  assert_equals(html_direction(input), "ltr", "direction of input dir=auto with LTR contents");
+  input.dir = "rtl";
+  assert_equals(html_direction(input), "rtl", "direction of input dir=rtl with LTR contents");
+  input.value = "ab";
+  assert_equals(html_direction(input), "rtl", "direction of input dir=rtl with LTR contents (2)");
+  input.value = "\u05D0";
+  assert_equals(html_direction(input), "rtl", "direction of input dir=rtl with RTL contents");
+
+  let textarea = setup_tree(`<textarea dir="auto"></textarea>`);
+  assert_equals(html_direction(textarea), "ltr", "direction of textarea dir=auto with empty contents");
+  textarea.value = "a";
+  assert_equals(html_direction(textarea), "ltr", "direction of textarea dir=auto with LTR contents");
+  textarea.value = "\u05D0";
+  assert_equals(html_direction(textarea), "rtl", "direction of textarea dir=auto with RTL contents");
+  textarea.dir = "rtl";
+  assert_equals(html_direction(textarea), "rtl", "direction of textarea dir=rtl with RTL contents");
+  textarea.value = "a";
+  assert_equals(html_direction(textarea), "rtl", "direction of textarea dir=rtl with LTR contents");
+}, 'text input and textarea value changes should only be reflected in :dir() when dir=auto (value changes)');

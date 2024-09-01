@@ -68,6 +68,16 @@ promise_test(async t => {
 
 
 promise_test(async t => {
+
+  let promise4 = navigator.credentials.get({identity: {providers: []}});
+  assert_true(promise4 instanceof Promise, "The return value of get must be a promise.");
+  let result4 = await promise4;
+  assert_equals(result4, null, "A credential is not returned from the CredentialContainer when a request with no providers is given");
+
+}, "Collecting from no providers yields a promise with null resolution");
+
+
+promise_test(async t => {
   let initData = {
     id : "wpt-pick-me",
     token : "token1",

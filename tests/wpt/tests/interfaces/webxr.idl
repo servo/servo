@@ -178,7 +178,7 @@ interface XRInputSource {
   [SameObject] readonly attribute XRSpace targetRaySpace;
   [SameObject] readonly attribute XRSpace? gripSpace;
   [SameObject] readonly attribute FrozenArray<DOMString> profiles;
-  [SameObject] readonly attribute boolean skipRendering;
+  readonly attribute boolean skipRendering;
 };
 
 [SecureContext, Exposed=Window]

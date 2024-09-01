@@ -12,7 +12,7 @@
 promise_test(async t => {
   const main = await setupTest();
   const iframe_1 = await createNestedIframe(
-      main, 'HTTP_ORIGIN', '', 'allow-top-navigation allow-same-origin');
+    main, 'HTTP_ORIGIN', '', 'allow-top-navigation allow-same-origin');
 
   await attemptTopNavigation(iframe_1, true);
 }, 'A same-origin frame with delivered sandbox flags can navigate top');

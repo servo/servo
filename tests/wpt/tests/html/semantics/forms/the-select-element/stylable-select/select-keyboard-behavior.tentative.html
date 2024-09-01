@@ -19,34 +19,17 @@ select {
 <form></form>
 
 <div id=notform>
-  <select id=defaultbutton-defaultdatalist>
+  <select id=defaultbutton>
     <option class=one>one</option>
     <option class=two>two</option>
     <option class=three>three</option>
   </select>
 
-  <select id=defaultbutton-customdatalist>
-    <datalist>
-      <option class=one>one</option>
-      <option class=two>two</option>
-      <option class=three>three</option>
-    </datalist>
-  </select>
-
-  <select id=custombutton-defaultdatalist>
+  <select id=custombutton>
     <button>custom button</button>
     <option class=one>one</option>
     <option class=two>two</option>
     <option class=three>three</option>
-  </select>
-
-  <select id=custombutton-customdatalist>
-    <button>custom button</button>
-    <datalist>
-      <option class=one>one</option>
-      <option class=two>two</option>
-      <option class=three>three</option>
-    </datalist>
   </select>
 </div>
 
@@ -63,10 +46,7 @@ const Shift = '\uE008';
 const form = document.querySelector('form');
 const notform = document.getElementById('notform');
 
-for (const id of ['defaultbutton-defaultdatalist',
-                  'defaultbutton-customdatalist',
-                  'custombutton-defaultdatalist',
-                  'custombutton-customdatalist']) {
+for (const id of ['defaultbutton', 'custombutton']) {
   const select = document.getElementById(id);
 
   async function closeListbox() {

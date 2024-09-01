@@ -156,6 +156,160 @@ promise_test(async (test) => {
 
 }, "Sender skips some frames and only writes one back. Receiver only receives that frame.");
 
+promise_test(async (test) => {
+    const worker = new Worker('RTCRtpScriptTransform-encoded-transform-different-owner-worker.js');
+    const data = await new Promise(resolve => worker.onmessage = (event) => resolve(event.data));
+    assert_equals(data, "registered");
+
+    await setMediaPermission("granted", ["camera"]);
+    const localStream = await navigator.mediaDevices.getUserMedia({video: true});
+
+    let sender1, receiver1, sender2, receiver2;
+    const senderTransform1 = new RTCRtpScriptTransform(worker, {name:'sender1'});
+    const receiverTransform1 = new RTCRtpScriptTransform(worker, {name:'receiver1'});
+    const senderTransform2 = new RTCRtpScriptTransform(worker, {name:'sender2'});
+    const receiverTransform2 = new RTCRtpScriptTransform(worker, {name:'receiver2'});
+
+    const remoteStream1 = await new Promise((resolve, reject) => {
+        createConnections(test, (firstConnection) => {
+            sender1 = firstConnection.addTrack(localStream.getVideoTracks()[0], localStream);
+            sender1.transform = senderTransform1;
+        }, (secondConnection) => {
+            secondConnection.ontrack = (trackEvent) => {
+                receiver1 = trackEvent.receiver;
+                receiver1.transform = receiverTransform1;
+                resolve(trackEvent.streams[0]);
+            };
+        });
+    });
+
+    const remoteStream2 = await new Promise((resolve, reject) => {
+        createConnections(test, (firstConnection) => {
+            sender2 = firstConnection.addTrack(localStream.getVideoTracks()[0], localStream);
+            sender2.transform = senderTransform2;
+        }, (secondConnection) => {
+            secondConnection.ontrack = (trackEvent) => {
+                receiver2 = trackEvent.receiver;
+                receiver2.transform = receiverTransform2;
+                resolve(trackEvent.streams[0]);
+            };
+        });
+    });
+
+    video.srcObject = remoteStream2;
+    const updatePromise = new Promise(resolve => worker.onmessage = (event) => resolve(event.data));
+    assert_equals(await updatePromise, "got expected");
+}, "The sender sends both a video frame it doesn't own and one it does. Receiver only gets the frame owned by the sender.");
+
+promise_test(async (test) => {
+    const worker = new Worker('RTCRtpScriptTransform-encoded-transform-different-owner-worker.js');
+    const data = await new Promise(resolve => worker.onmessage = (event) => resolve(event.data));
+    assert_equals(data, "registered");
+
+    await setMediaPermission("granted", ["microphone"]);
+    const localStream = await navigator.mediaDevices.getUserMedia({audio: true});
+
+    let sender1, receiver1, sender2, receiver2;
+    const senderTransform1 = new RTCRtpScriptTransform(worker, {name:'sender1'});
+    const receiverTransform1 = new RTCRtpScriptTransform(worker, {name:'receiver1'});
+    const senderTransform2 = new RTCRtpScriptTransform(worker, {name:'sender2'});
+    const receiverTransform2 = new RTCRtpScriptTransform(worker, {name:'receiver2'});
+
+    const remoteStream1 = await new Promise((resolve, reject) => {
+        createConnections(test, (firstConnection) => {
+            sender1 = firstConnection.addTrack(localStream.getAudioTracks()[0], localStream);
+            sender1.transform = senderTransform1;
+        }, (secondConnection) => {
+            secondConnection.ontrack = (trackEvent) => {
+                receiver1 = trackEvent.receiver;
+                receiver1.transform = receiverTransform1;
+                resolve(trackEvent.streams[0]);
+            };
+        });
+    });
+
+    const remoteStream2 = await new Promise((resolve, reject) => {
+        createConnections(test, (firstConnection) => {
+            sender2 = firstConnection.addTrack(localStream.getAudioTracks()[0], localStream);
+            sender2.transform = senderTransform2;
+        }, (secondConnection) => {
+            secondConnection.ontrack = (trackEvent) => {
+                receiver2 = trackEvent.receiver;
+                receiver2.transform = receiverTransform2;
+                resolve(trackEvent.streams[0]);
+            };
+        });
+    });
+
+    video.srcObject = remoteStream2;
+    const updatePromise = new Promise(resolve => worker.onmessage = (event) => resolve(event.data));
+    assert_equals(await updatePromise, "got expected");
+}, "The sender sends both an audio frame it doesn't own and one it does. Receiver only gets the frame owned by the sender.");
+
+promise_test(async (test) => {
+    const worker = new Worker('RTCRtpScriptTransform-encoded-transform-different-order-worker.js');
+    const data = await new Promise(resolve => worker.onmessage = (event) => resolve(event.data));
+    assert_equals(data, "registered");
+
+    await setMediaPermission("granted", ["camera"]);
+    const localStream = await navigator.mediaDevices.getUserMedia({video: true});
+
+    let sender, receiver;
+    const senderTransform = new RTCRtpScriptTransform(worker, {name:'sender'});
+    const receiverTransform = new RTCRtpScriptTransform(worker, {name:'receiver'});
+
+    const stream = await new Promise((resolve, reject) => {
+        createConnections(test, (firstConnection) => {
+            sender = firstConnection.addTrack(localStream.getVideoTracks()[0], localStream);
+            sender.transform = senderTransform;
+        }, (secondConnection) => {
+            secondConnection.ontrack = (trackEvent) => {
+                receiver = trackEvent.receiver;
+                receiver.transform = receiverTransform;
+                resolve(trackEvent.streams[0]);
+            };
+        });
+    });
+
+    video.srcObject = stream;
+
+    const updatePromise = new Promise(resolve => worker.onmessage = (event) => resolve(event.data));
+    assert_equals(await updatePromise, "got expected");
+
+}, "Sender writes video frames in incorrect order. Frames written in incorrect order are discarded.");
+
+promise_test(async (test) => {
+    const worker = new Worker('RTCRtpScriptTransform-encoded-transform-different-order-worker.js');
+    const data = await new Promise(resolve => worker.onmessage = (event) => resolve(event.data));
+    assert_equals(data, "registered");
+
+    await setMediaPermission("granted", ["microphone"]);
+    const localStream = await navigator.mediaDevices.getUserMedia({audio: true});
+
+    let sender, receiver;
+    const senderTransform = new RTCRtpScriptTransform(worker, {name:'sender'});
+    const receiverTransform = new RTCRtpScriptTransform(worker, {name:'receiver'});
+
+    const stream = await new Promise((resolve, reject) => {
+        createConnections(test, (firstConnection) => {
+            sender = firstConnection.addTrack(localStream.getAudioTracks()[0], localStream);
+            sender.transform = senderTransform;
+        }, (secondConnection) => {
+            secondConnection.ontrack = (trackEvent) => {
+                receiver = trackEvent.receiver;
+                receiver.transform = receiverTransform;
+                resolve(trackEvent.streams[0]);
+            };
+        });
+    });
+
+    video.srcObject = stream;
+
+    const updatePromise = new Promise(resolve => worker.onmessage = (event) => resolve(event.data));
+    assert_equals(await updatePromise, "got expected");
+
+}, "Sender writes audio frames in incorrect order. Frames written in incorrect order are discarded.");
+
         </script>
     </body>
 </html>

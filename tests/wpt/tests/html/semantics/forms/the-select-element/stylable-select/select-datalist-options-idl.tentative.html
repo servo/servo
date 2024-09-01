@@ -6,16 +6,16 @@
 
 <select>
   <option class=one>one</option>
-  <datalist id=datalist1>
+  <div id=div1>
     <option class=two>two</option>
-    <div id=div1>
+    <div>
       <option class=three>three</option>
     </div>
     <option class=four>four</option>
-  </datalist>
-  <datalist>
+  </div>
+  <div>
     <option class=five>five</option>
-  </datalist>
+  </div>
   <div id=div2>
     <option class=six>six</option>
   </div>
@@ -25,14 +25,13 @@
 const select = document.querySelector('select');
 
 function runTest() {
-  const datalist = document.getElementById('datalist1');
+  const wrapperDiv = document.getElementById('div1');
   const firstOption = select.querySelector('option.one');
   const secondOption = select.querySelector('option.two');
   const thirdOption = select.querySelector('option.three');
   const fourthOption = select.querySelector('option.four');
   const fifthOption = select.querySelector('option.five');
   const sixthOption = select.querySelector('option.six');
-  const datalistChildDiv = document.getElementById('div1');
   const selectChildDiv = document.getElementById('div2');
 
   assert_equals(select.length, 6, 'select.length');
@@ -57,7 +56,7 @@ function runTest() {
   assert_equals(select.options[3], fifthOption, 'select.options[1] after removing an option');
   assert_equals(select.options[4], sixthOption, 'select.options[1] after removing an option');
 
-  datalist.appendChild(fourthOption);
+  wrapperDiv.appendChild(fourthOption);
   assert_equals(select.length, 6, 'select.length after re-adding an option');
   assert_equals(select.options.length, 6, 'select.options.length after re-adding an option');
   assert_equals(select.options[0], firstOption, 'select.options[0] after re-adding an option');
@@ -78,22 +77,22 @@ function runTest() {
   assert_equals(select.options[5], fourthOption, 'select.options[5] after moving option to child div');
 
   // reset back to normal for the next test
-  datalist.appendChild(fourthOption);
+  wrapperDiv.appendChild(fourthOption);
   select.value = 'one';
 }
 
 test(() => {
   runTest();
-}, 'Option elements should work if they are a descendant of a selects datalist.');
+}, 'Option elements should work if they are a descendant of a selects wrapper div.');
 
 test(() => {
   select.setAttribute('multiple', '');
   runTest();
-}, 'Options in datalist should still work when the multiple attribute is added.');
+}, 'Options in wrapper div should still work when the multiple attribute is added.');
 
 test(() => {
   select.innerHTML = select.innerHTML;
   select.value = 'one';
   runTest();
-}, 'Options in datalist in multiple should work after re-parsing and re-attaching.');
+}, 'Options in wrapper div in multiple should work after re-parsing and re-attaching.');
 </script>

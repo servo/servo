@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+  <head>
+      <!--<meta http-equiv="Content-Type" content="text/html;charset=ISO-8859-8">-->
+      <meta http-equiv="Content-Type" content="text/html;charset=ISO-8859-5">
+      <script src="/resources/testharness.js"></script>
+      <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <script>
+      "use strict";
+      test(() => {
+        assert_equals(document.characterSet, "ISO-8859-5");
+      }, "document.characterSet must be determined by meta http-equiv");
+    </script>
+  </body>
+</html>

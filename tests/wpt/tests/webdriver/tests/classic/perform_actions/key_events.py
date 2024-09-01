@@ -9,15 +9,22 @@ from tests.support.helpers import filter_dict, filter_supported_key_events
 from tests.support.keys import ALL_EVENTS, ALTERNATIVE_KEY_NAMES, Keys
 
 
+def get_key_events(session):
+    """Return list of key events. Filters out non-key events to prevent noise
+    from OS mouse events."""
+    all_events = get_events(session)
+    return [event for event in all_events if event["type"].startswith("key")]
+
+
 def test_keyup_only_sends_no_events(session, key_reporter, key_chain):
     key_chain.key_up("a").perform()
 
     assert len(get_keys(key_reporter)) == 0
-    assert len(get_events(session)) == 0
+    assert len(get_key_events(session)) == 0
 
     session.actions.release()
     assert len(get_keys(key_reporter)) == 0
-    assert len(get_events(session)) == 0
+    assert len(get_key_events(session)) == 0
 
 
 @pytest.mark.parametrize("key, event", [
@@ -41,7 +48,7 @@ def test_modifier_key_sends_correct_events(session, key_reporter, key_chain, key
         .key_down(key) \
         .key_up(key) \
         .perform()
-    all_events = get_events(session)
+    all_events = get_key_events(session)
 
     expected = [
         {"code": code, "key": value, "type": "keydown"},
@@ -66,7 +73,7 @@ def test_non_printable_key_sends_events(session, key_reporter, key_chain, key, e
         .key_down(key) \
         .key_up(key) \
         .perform()
-    all_events = get_events(session)
+    all_events = get_key_events(session)
 
     expected = [
         {"code": code, "key": value, "type": "keydown"},
@@ -108,7 +115,7 @@ def test_printable_key_sends_correct_events(session, key_reporter, key_chain, va
         .key_down(value) \
         .key_up(value) \
         .perform()
-    all_events = get_events(session)
+    all_events = get_key_events(session)
 
     expected = [
         {"code": code, "key": value, "type": "keydown"},
@@ -127,7 +134,7 @@ def test_sequence_of_keydown_printable_keys_sends_events(session, key_reporter, 
         .key_down("a") \
         .key_down("b") \
         .perform()
-    all_events = get_events(session)
+    all_events = get_key_events(session)
 
     expected = [
         {"code": "KeyA", "key": "a", "type": "keydown"},
@@ -144,7 +151,7 @@ def test_sequence_of_keydown_printable_keys_sends_events(session, key_reporter, 
 
 def test_sequence_of_keydown_printable_characters_sends_events(session, key_reporter, key_chain):
     key_chain.send_keys("ef").perform()
-    all_events = get_events(session)
+    all_events = get_key_events(session)
 
     expected = [
         {"code": "KeyE", "key": "e", "type": "keydown"},
@@ -177,7 +184,7 @@ def test_special_key_sends_keydown(session, key_reporter, key_chain, name, expec
     key_chain.key_down(getattr(Keys, name)).perform()
 
     # only interested in keydown
-    first_event = get_events(session)[0]
+    first_event = get_key_events(session)[0]
     # make a copy so we can throw out irrelevant keys and compare to events
     expected = dict(expected)
 
@@ -212,7 +219,7 @@ def test_space_char_equals_pua(session, key_reporter, key_chain):
         .key_down(" ") \
         .key_up(" ") \
         .perform()
-    all_events = get_events(session)
+    all_events = get_key_events(session)
     by_type = defaultdict(list)
     for event in all_events:
         by_type[event["type"]].append(event)

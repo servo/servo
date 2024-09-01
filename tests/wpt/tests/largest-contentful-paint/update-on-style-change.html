@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>LargestContentfulPaint entries should NOT be emitted for updates to previous LargestContentfulPaint elements.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+  <script>
+      promise_test(async (t) => {
+      assert_implements(window.LargestContentfulPaint, "LargestContentfulPaint is not implemented");
+      let lcpEntries = [];
+      await new Promise(resolve => t.step_timeout(() => {
+        new PerformanceObserver(list => {
+          lcpEntries = lcpEntries.concat(list.getEntries())
+          if (lcpEntries.length > 1) {
+            assert_unreached("There shouldn't be more than 1 LCP entry for an element.");
+          }
+          if (lcpEntries) {
+            assert_equals(lcpEntries.length, 1, "There should be only 1 LCP entry for one element. ");
+            assert_equals(lcpEntries[0].id, "text", "The LCP should have id 'text'");
+            resolve();
+          }
+        }).observe({ type: 'largest-contentful-paint', buffered: true });
+      }, 200));
+    })
+  </script>
+  <div id="text">text</div>
+  <link rel="stylesheet" href="/resources/slow-style-change.py">
+</body>

@@ -1,0 +1,37 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script>
+"use strict";
+
+document.addEventListener("DOMContentLoaded", async () => {
+  const q = document.querySelector("q");
+  const data = document.querySelector("data");
+  const meter = document.querySelector("meter");
+  const button = document.querySelector("button");
+  button.addEventListener(
+    "focusout",
+    () => document.createElement("a").append(q)
+  );
+  const promiseButtonFocus = new Promise(resolve => {
+    button.addEventListener("button", resolve, {once: true});
+  });
+  button.focus();
+  promiseButtonFocus;
+  document.designMode = "on";
+  q.insertBefore(document.body, data);
+  meter.insertBefore(data, meter.childNodes[0]);
+}, {once: true});
+</script>
+</head>
+<body>
+<q>
+  <data>
+</q>
+<dialog>
+  <meter>
+</dialog>
+<button></button>
+</body>
+</html>

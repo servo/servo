@@ -12,10 +12,10 @@ partial dictionary CredentialRequestOptions {
 };
 
 dictionary DigitalCredentialRequestOptions {
-  sequence<IdentityRequestProvider> providers;
+  sequence<DigitalCredentialsProvider> providers;
 };
 
-dictionary IdentityRequestProvider {
+dictionary DigitalCredentialsProvider {
   required DOMString protocol;
   required object request;
 };
@@ -23,5 +23,5 @@ dictionary IdentityRequestProvider {
 [Exposed=Window, SecureContext]
 interface DigitalCredential : Credential {
   readonly attribute DOMString protocol;
-  readonly attribute any data;
+  readonly attribute object data;
 };

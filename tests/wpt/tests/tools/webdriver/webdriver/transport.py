@@ -93,7 +93,7 @@ class Response:
             headers = ResponseHeaders(http_response.getheaders())
         except ValueError:
             raise ValueError("Failed to decode response body as JSON:\n" +
-                             http_response.read())
+                             repr(http_response.read()))
 
         return cls(http_response.status, body, headers)
 

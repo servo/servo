@@ -3,11 +3,9 @@
 // (https://github.com/w3c/webref)
 // Source: CSS View Transitions Module Level 2 (https://drafts.csswg.org/css-view-transitions-2/)
 
-enum ViewTransitionNavigation { "auto", "none" };
-
 [Exposed=Window]
 interface CSSViewTransitionRule : CSSRule {
-  readonly attribute ViewTransitionNavigation navigation;
+  readonly attribute CSSOMString navigation;
   [SameObject] readonly attribute FrozenArray<CSSOMString> types;
 };
 
@@ -22,11 +20,10 @@ partial interface ViewTransition {
 };
 
 dictionary StartViewTransitionOptions {
-  UpdateCallback? update = null;
+  ViewTransitionUpdateCallback? update = null;
   sequence<DOMString>? types = null;
 };
 
 partial interface Document {
-
-  ViewTransition startViewTransition(optional (UpdateCallback or StartViewTransitionOptions) callbackOptions = {});
+  ViewTransition startViewTransition(optional (ViewTransitionUpdateCallback or StartViewTransitionOptions) callbackOptions = {});
 };

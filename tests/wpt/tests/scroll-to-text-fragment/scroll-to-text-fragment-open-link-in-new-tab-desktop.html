@@ -21,7 +21,7 @@ promise_test(async t =>  new Promise((resolve, reject) =>{
   });
   fetchResults(key, resolve, reject);
 }).then(data => {
-  assert_equals(data.scrollPosition, 'text', 'Expected ctrl+click on a link to be user activated.');
+  assert_true(data.scrollPosition != 'top', 'Expected ctrl+click on a link to be user activated.');
 }), `Test that the text fragment directive requires a user activation when invoked by clicking a link in the same or a new tab`);
 
 

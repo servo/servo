@@ -339,16 +339,15 @@ test((t) => {
   <div>
     <style>
       .a {
-        /* We're supposed to prepend :scope to this declaration. If we do that,
-           then :where() does not matter, since :scope does not gain any
-           specificity from the enclosing @scope rule. However, if an
-           implementation incorrectly prepends & instead, then :where() is
-           needed to avoid the test incorrectly passing due to specificity. */
-        @scope (:where(&) .b) {
+        /* The '& .b' selector is wrapped in :where() to prevent a false
+           positive when the implementation incorrectly wraps
+           the z-index declaration in a rule with &-behavior
+           rather than :where(:scope)-behavior. */
+        @scope (:where(& .b)) {
           z-index: 1; /* Should win due to proximity */
         }
       }
-      .b { z-index: 2; }
+      :where(.b) { z-index: 2; }
     </style>
     <div class=a>
       <div class="b x">

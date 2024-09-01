@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Lists: getComputedStyle().counterReset</title>
+<link rel="help" href="https://drafts.csswg.org/css-lists-3/#propdef-counter-reset">
+<meta name="assert" content="tests that counter-reset grammar is supported.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<style>
+  #container {
+    container-type: inline-size;
+    width: 100px;
+  }
+</style>
+</head>
+<body>
+<div id="container">
+  <div id="target"></div>
+</div>
+<script>
+test_computed_value('counter-reset', 'none');
+test_computed_value('counter-reset', 'myCounter', 'myCounter 0');
+test_computed_value('counter-reset', 'myCounter 5');
+test_computed_value('counter-reset', 'myCounter 7 otherCounter 8');
+test_computed_value('counter-reset', 'myCounter otherCounter -8', 'myCounter 0 otherCounter -8');
+test_computed_value('counter-reset', 'myCounter 7 otherCounter', 'myCounter 7 otherCounter 0');
+test_computed_value('counter-reset', 'myCounter calc(10 + (sign(2cqw - 10px) * 5))', 'myCounter 5');
+test_computed_value('counter-reset', 'myCounter calc(10 + (sign(2cqw - 10px) * 5)) otherCounter calc(15 + (sign(2cqw - 10px) * 5))', 'myCounter 5 otherCounter 10');
+</script>
+</body>
+</html>

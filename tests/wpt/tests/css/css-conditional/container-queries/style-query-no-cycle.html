@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<title>CSS Container Queries Test: </title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#style-container">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/cq-testcommon.js"></script>
+<style>
+  #container { --foo: bar; }
+  @container style(--foo: var(--foo)) {
+    #target { color: green; }
+  }
+</style>
+<div id="container">
+  <div id="target">Should be green</div>
+</div>
+<script>
+  setup(() => assert_implements_container_queries());
+
+  test(() => {
+    assert_equals(getComputedStyle(target).color, "rgb(0, 128, 0)");
+  }, "style(--foo: var(--foo)) should match");
+</script>

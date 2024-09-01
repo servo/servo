@@ -17,6 +17,7 @@
 </div>
 <style>
   #container {
+    container-type: inline-size;
     color: rgb(255, 0, 0);
   }
 </style>
@@ -3759,11 +3760,37 @@ tests = [
     ["hsla(360, 37.5%, 62.5%, 1)", "rgb(195, 124, 124)", "HSL/HSLA value should parse and round correctly"],
     ["hsl(360, 37.5%, 75%)", "rgb(215, 167, 167)", "HSL/HSLA value should parse and round correctly"],
     ["hsla(360, 37.5%, 75%, 0)", "rgba(215, 167, 167, 0)", "HSL/HSLA value should parse and round correctly"],
+
+    // calc(50% + (sign(1em - 10px) * 10%)), with its font relative units, must be evaluatated for computed value.
+    ["hsl(calc(50deg + (sign(1em - 10px) * 10deg)), 100%, 37.5%, 50%)", "rgba(191, 191, 0, 0.5)"],
+    ["hsla(calc(50deg + (sign(1em - 10px) * 10deg)), 100%, 37.5%, 50%)", "rgba(191, 191, 0, 0.5)"],
+    ["hsl(calc(50 + (sign(1em - 10px) * 10)), 100%, 37.5%, 50%)", "rgba(191, 191, 0, 0.5)"],
+    ["hsla(calc(50 + (sign(1em - 10px) * 10)), 100%, 37.5%, 50%)", "rgba(191, 191, 0, 0.5)"],
+    ["hsl(60deg, 100%, 37.5%, calc(50% + (sign(1em - 10px) * 10%)))", "rgba(191, 191, 0, 0.6)"],
+    ["hsla(60deg, 100%, 37.5%, calc(50% + (sign(1em - 10px) * 10%)))", "rgba(191, 191, 0, 0.6)"],
+    ["hsl(60, 100%, 37.5%, calc(50% + (sign(1em - 10px) * 10%)))", "rgba(191, 191, 0, 0.6)"],
+    ["hsla(60, 100%, 37.5%, calc(50% + (sign(1em - 10px) * 10%)))", "rgba(191, 191, 0, 0.6)"],
+
+    ["hsl(calc(50deg + (sign(1em - 10px) * 10deg)) 100% 37.5% / 50%)", "rgba(191, 191, 0, 0.5)"],
+    ["hsla(calc(50deg + (sign(1em - 10px) * 10deg)) 100% 37.5% / 50%)", "rgba(191, 191, 0, 0.5)"],
+    ["hsl(calc(50 + (sign(1em - 10px) * 10)) 100 37.5 / 0.5)", "rgba(191, 191, 0, 0.5)"],
+    ["hsla(calc(50 + (sign(1em - 10px) * 10)) 100 37.5 / 0.5)", "rgba(191, 191, 0, 0.5)"],
+    ["hsl(60deg 100% 37.5% / calc(50% + (sign(1em - 10px) * 10%)))", "rgba(191, 191, 0, 0.6)"],
+    ["hsla(60deg 100% 37.5% / calc(50% + (sign(1em - 10px) * 10%)))", "rgba(191, 191, 0, 0.6)"],
+    ["hsl(60 100 37.5 / calc(0.75 + (sign(1em - 10px) * 0.1)))", "rgba(191, 191, 0, 0.85)"],
+    ["hsla(60 100 37.5 / calc(0.75 + (sign(1em - 10px) * 0.1)))", "rgba(191, 191, 0, 0.85)"],
 ];
 
 for (const test of tests) {
     test_computed_value("color", test[0], test[1], test[2] ? `[${test[2]}]` : undefined);
 }
+
+// Ensure that `calc` values work with dynamically changing relative units (slighly different alpha values to make test harness not complain about duplicate tests).
+document.getElementById("container").style.width = "1000px";
+test_computed_value("color", "hsla(calc(50deg + (sign(2cqw - 10px) * 10deg)), 100%, 37.5%, 51%)", "rgba(191, 191, 0, 0.51)");
+document.getElementById("container").style.width = "100px";
+test_computed_value("color", "hsla(calc(50deg + (sign(2cqw - 10px) * 10deg)), 100%, 37.5%, 52%)", "rgba(191, 127, 0, 0.52)");
+
 </script>
 </body>
 </html>

@@ -26,11 +26,15 @@ test_computed_value("width", "calc(10.135262721212548pc - 199pt / NaN)", "0px");
 
 test_computed_value("width", "max(15px, NaN * 1px)", "0px");
 test_computed_value("width", "max(NaN * 1px, 15px)", "0px");
+test_computed_value("width", "max(-15px, NaN * 1px)", "0px");
+test_computed_value("width", "max(NaN * 1px, -15px)", "0px");
 test_computed_value("width", "min(15px, NaN * 1px)", "0px");
 test_computed_value("width", "min(NaN * 1px, 15px)", "0px");
+test_computed_value("width", "min(-15px, NaN * 1px)", "0px");
+test_computed_value("width", "min(NaN * 1px, -15px)", "0px");
 
 test_computed_value("width", "calc(infinity * 1px - infinity * 1%)", "0px");
-test_computed_value("width", "calc(infinity * 1px + infinity * 1%)", "0px");
+testComputedValueGreaterOrLowerThan("width", "calc(infinity * 1px + infinity * 1%)", REALLY_LARGE);
 test_computed_value("width", "calc(min(NaN * 1px, infinity * 1px) + max(infinity * 1px, -infinity * 1px))", "0px");
 test_computed_value("width", "calc(infinity * 1px - max(infinity * 1%, 0%))", "0px");
 
@@ -48,7 +52,7 @@ testComputedValueGreaterOrLowerThan("margin-left", "calc(min(-infinity * 1px, 10
 // For <time>
 test_computed_value("animation-duration", "calc(NaN * 1s)", "0s");
 testComputedValueGreaterOrLowerThan("animation-duration", "calc(infinity * 1s)", REALLY_LARGE);
-test_computed_value("animation-duration", "calc(1 / 0 * 1s)", "0s");
+testComputedValueGreaterOrLowerThan("animation-duration", "calc(1 / 0 * 1s)", REALLY_LARGE);
 testComputedValueGreaterOrLowerThan("animation-duration", "calc(max(infinity * 1s, 10s)", REALLY_LARGE);
 
 testComputedValueGreaterOrLowerThan("transition-delay", "calc(-infinity* 1s)", REALLY_LARGE_NEGATIVE);

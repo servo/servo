@@ -493,6 +493,30 @@
         fuzzy_test_computed_color(`color-mix(in ${colorSpace}, color(${colorSpace} .1 .2 .3 / 25%) 0%, color(${colorSpace} none none none / 50%))`, `color(${resultColorSpace} 0.1 0.2 0.3 / 0.5)`);
         fuzzy_test_computed_color(`color-mix(in ${colorSpace}, color(${colorSpace} .1 .2 .3 / 25%) 0%, color(${colorSpace} 0.5 none none / 50%))`, `color(${resultColorSpace} 0.5 0.2 0.3 / 0.5)`);
     }
+
+    // Test percent normalization
+    fuzzy_test_computed_color(`color-mix(in srgb, red 50%,       blue 50%)`,          `color(srgb 0.5 0 0.5)`);                 // `color-mix(in srgb, red, blue)`            both 50%
+    fuzzy_test_computed_color(`color-mix(in srgb, red 10%,       blue 90%)`,          `color(srgb 0.1 0 0.9)`);                 // `color-mix(in srgb, red 10%, blue)`        sum to 100%
+    fuzzy_test_computed_color(`color-mix(in srgb, red 50%,       blue 40%)`,          `color(srgb 0.555556 0 0.444444 / 0.9)`); // `color-mix(in srgb, red 50%, blue 40%)`    only one is 50% (p1)
+    fuzzy_test_computed_color(`color-mix(in srgb, red 40%,       blue 50%)`,          `color(srgb 0.444444 0 0.555556 / 0.9)`); // `color-mix(in srgb, red 40%, blue 50%)`    only one is 50% (p2)
+    fuzzy_test_computed_color(`color-mix(in srgb, red 30%,       blue 40%)`,          `color(srgb 0.428571 0 0.571429 / 0.7)`); // `color-mix(in srgb, red 30%, blue 40%)`    sum to less than 100
+    fuzzy_test_computed_color(`color-mix(in srgb, red 75%,       blue 75%)`,          `color(srgb 0.5 0 0.5)`);                 // `color-mix(in srgb, red 75%, blue 75%)`    sum to more than 100
+    fuzzy_test_computed_color(`color-mix(in srgb, red calc(10%), blue 50%)`,          `color(srgb 0.166667 0 0.833333 / 0.6)`); // `color-mix(in srgb, red 10%, blue 50%)`    one is `calc()` (p1)
+    fuzzy_test_computed_color(`color-mix(in srgb, red 50%,       blue calc(10%))`,    `color(srgb 0.833333 0 0.166667 / 0.6)`); // `color-mix(in srgb, red 50%, blue 10%))`   one is `calc()` (p2)
+    fuzzy_test_computed_color(`color-mix(in srgb, red calc(10%), blue calc(90%))`,    `color(srgb 0.1 0 0.9)`);                 // `color-mix(in srgb, red, blue)`            both are `calc()`, sum to 100%
+    fuzzy_test_computed_color(`color-mix(in srgb, red calc(10%), blue calc(80%))`,    `color(srgb 0.111111 0 0.888889 / 0.9)`); // `color-mix(in srgb, red 10%, blue 80%)`    both are `calc()`,
+    fuzzy_test_computed_color(`color-mix(in srgb, red 50%,       blue)`,              `color(srgb 0.5 0 0.5)`);                 // `color-mix(in srgb, red, blue)`            only p1 specified, is 50%
+    fuzzy_test_computed_color(`color-mix(in srgb, red 10%,       blue)`,              `color(srgb 0.1 0 0.9)`);                 // `color-mix(in srgb, red 10%, blue)`        only p1 specified
+    fuzzy_test_computed_color(`color-mix(in srgb, red calc(50%), blue)`,              `color(srgb 0.5 0 0.5)`);                 // `color-mix(in srgb, red, blue)`            only p1 specified, is `calc()` is 50%
+    fuzzy_test_computed_color(`color-mix(in srgb, red calc(10%), blue)`,              `color(srgb 0.1 0 0.9)`);                 // `color-mix(in srgb, red 10%, blue)`        only p1 specified, is `calc()`
+    fuzzy_test_computed_color(`color-mix(in srgb, red,           blue 50%)`,          `color(srgb 0.5 0 0.5)`);                 // `color-mix(in srgb, red, blue)`            only p2 specified, is 50%
+    fuzzy_test_computed_color(`color-mix(in srgb, red,           blue 90%)`,          `color(srgb 0.1 0 0.9)`);                 // `color-mix(in srgb, red 10%, blue)`        only p2 specified
+    fuzzy_test_computed_color(`color-mix(in srgb, red,           blue calc(50%))`,    `color(srgb 0.5 0 0.5)`);                 // `color-mix(in srgb, red, blue)`            only p2 specified, is `calc()`, is 50%
+    fuzzy_test_computed_color(`color-mix(in srgb, red,           blue calc(90%))`,    `color(srgb 0.1 0 0.9)`);                 // `color-mix(in srgb, red 10%, blue)`        only p2 specified, is `calc()`
+    fuzzy_test_computed_color(`color-mix(in srgb, red,           blue)`,              `color(srgb 0.5 0 0.5)`);                 // `color-mix(in srgb, red, blue)`            neither is specified
+
+    // Percent with calc that uses font-relative length.
+    fuzzy_test_computed_color(`color-mix(in srgb, red calc(50% + (sign(100em - 1px) * 10%)), blue)`, `color(srgb 0.6 0 0.4)`);
 </script>
 </body>
 </html>

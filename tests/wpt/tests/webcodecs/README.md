@@ -114,12 +114,6 @@ sox -n -r 48000 sfx.wav synth 1 sine 480
 ffmpeg -i sfx.wav -frames:a 10 -acodec aac -b:a 96K sfx.adts
 ```
 
-### sfx-alaw.wav
-```
-sox -n -r 48000 sfx.wav synth 1 sine 480
-ffmpeg -i sfx.wav -frames:a 10 -acodec pcm_alaw sfx-alaw.wav
-```
-
 ### sfx.mp3
 ```
 sox -n -r 48000 sfx.wav synth 1 sine 480
@@ -132,17 +126,25 @@ sox -n -r 48000 sfx.wav synth 1 sine 480
 ffmpeg -i sfx.wav -frames:a 10 -acodec aac -b:a 96K sfx-aac.mp4
 ```
 
-### sfx-mulaw.wav
+### sfx-*.wav
 ```
 sox -n -r 48000 sfx.wav synth 1 sine 480
-ffmpeg -i sfx.wav -frames:a 10 -acodec pcm_mulaw sfx-mulaw.wav
+for codec in s16 s24 s32 f32
+do
+  # Add "le" suffix
+  ffmpeg -i sfx.wav -frames:a 10 -acodec pcm_"$codec"le sfx-pcm-$codec.wav
+done
+ffmpeg -i sfx.wav -frames:a 10 -acodec pcm_u8 sfx-pcm-u8.wav
+for codec in alaw mulaw
+do
+  ffmpeg -i sfx.wav -frames:a 10 -acodec pcm_$codec sfx-$codec.wav
+done
 ```
 
 ### sfx-opus.ogg
 ```
 sox -n -r 48000 sfx.wav synth 1 sine 480
 ffmpeg -i sfx.wav -frames:a 10 -acodec libopus -b:a 96K sfx-opus.ogg
-```
 
 ### av1.mp4
 ```

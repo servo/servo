@@ -7,8 +7,8 @@
 <script src="/permissions-policy/resources/permissions-policy.js"></script>
 <script src="/common/get-host-info.sub.js"></script>
 <body></body>
-<script>
-    "use strict";
+<script type="module">
+    import { makeGetOptions } from "./support/helper.js";
     const { HTTPS_REMOTE_ORIGIN } = get_host_info();
     const same_origin_src =
         "/permissions-policy/resources/digital-credentials-get.html";
@@ -19,7 +19,7 @@
         await promise_rejects_js(
             test,
             TypeError,
-            navigator.identity.get({ digital: { providers: [] } })
+            navigator.identity.get(makeGetOptions([]))
         );
     }, "Permissions-Policy header digital-credentials-get=(self) allows the top-level document.");
 

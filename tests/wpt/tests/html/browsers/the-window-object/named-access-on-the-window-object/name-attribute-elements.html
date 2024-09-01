@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Named access on the window object - name attribute</title>
+<link rel="author" title="Matthew Phillips" href="mailto:matthew@matthewphillips.info">
+<link rel="help" href="https://html.spec.whatwg.org/#named-access-on-the-window-object">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<script>
+"use strict";
+
+test(() => {
+  const localNames = ["embed", "form", "img", "object"];
+
+  for (const localName of localNames) {
+    const element = document.createElement(localName);
+    element.setAttribute("name", "positive");
+    document.body.appendChild(element);
+  }
+
+  localNames.forEach((tagName, index) => {
+    const element = window.positive[index];
+    assert_not_equals(element, undefined);
+    assert_equals(element.localName, localNames[index]);
+  });
+}, "Only elements with specific local names may be returned if their name attribute matches");
+
+test(t => {
+  // Not exhaustive
+  const localNames = [
+    "a", "area", "frameset",
+    "div", "span", "style", "script", "h1", "strong", "input",
+    "audio", "button", "select", "textarea"
+  ];
+
+  for (const localName of localNames) {
+    const element = document.createElement(localName);
+    element.setAttribute("name", "negative");
+    document.body.appendChild(element);
+
+    t.add_cleanup(() => element.remove());
+  }
+
+  assert_equals(window.negative, undefined);
+}, "Only elements with specific local names may be returned if their name attribute matches (negative test)");
+
+test(() => {
+  // Not exhaustive
+  const localNames = [
+    "a", "area", "frameset",
+    "div", "span", "style", "script", "h1", "strong", "input",
+    "audio", "button", "select", "textarea"
+  ];
+
+  const img = document.createElement("img");
+  img.setAttribute("name", "removed");
+  document.body.appendChild(img);
+
+  for (const localName of localNames) {
+    const element = document.createElement(localName);
+    element.setAttribute("name", "removed");
+    document.body.appendChild(element);
+    element.remove();
+  }
+
+  assert_equals(window.removed, img);
+}, "Removing an element for which the name attribute is not tracked, must not cause errors upon removing it");
+</script>

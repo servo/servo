@@ -46,11 +46,12 @@
     assert_equals(rules.length, 1);
     assert_equals(rules[0].selectorText, 'div');
     let div = rules[0];
-    let x = div.style.getPropertyValue('--x');
-    assert_equals(x.trim(), 'hover { }\n    .b { }');
     let childRules = div.cssRules;
-    assert_equals(childRules.length, 1);
+    assert_equals(childRules.length, 2);
     assert_equals(childRules[0].selectorText, '& .a');
+    assert_true(childRules[1] instanceof CSSNestedDeclarations)
+    let x = childRules[1].style.getPropertyValue('--x');
+    assert_equals(x.trim(), 'hover { }\n    .b { }');
   }, 'Nested rule that looks like a custom property declaration');
 </script>
 

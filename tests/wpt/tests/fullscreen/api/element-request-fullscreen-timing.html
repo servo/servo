@@ -14,19 +14,25 @@ promise_test(async t => {
   // callbacks should be run after it is fired, before the timer callback.
   // The resize event should fire before the fullscreenchange event.
   const events = [];
-  const callback = t.step_func(event => {
-    // fullscreenElement should have changed before either event is fired.
-    assert_equals(document.fullscreenElement, div, `fullscreenElement in {event.type} event`);
-    events.push(event.type);
-    if (event.type == 'fullscreenchange') {
-      step_timeout(t.unreached_func('timer callback'));
-      requestAnimationFrame(t.step_func_done(() => {
-        assert_array_equals(events, ['resize', 'fullscreenchange'], 'event order');
-      }));
-    }
+  const p = new Promise(resolve => {
+    const callback = t.step_func(event => {
+      // fullscreenElement should have changed before either event is fired.
+      assert_equals(document.fullscreenElement, div, `fullscreenElement in {event.type} event`);
+      events.push(event.type);
+      if (event.type == 'fullscreenchange') {
+        step_timeout(t.unreached_func('timer callback'));
+        requestAnimationFrame(t.step_func_done(() => {
+          assert_array_equals(events, ['resize', 'fullscreenchange'], 'event order');
+          resolve();
+        }));
+      }
+    });
+    document.onfullscreenchange = window.onresize = callback;
   });
-  document.onfullscreenchange = window.onresize = callback;
   await trusted_request(div);
+  await p;
+  // so the user doesn't have to exit for themselves
+  document.exitFullscreen();
 }, 'Timing of fullscreenchange and resize events');
 
 async_test(t => {

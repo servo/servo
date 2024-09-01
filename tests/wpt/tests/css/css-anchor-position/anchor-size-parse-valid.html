@@ -53,10 +53,21 @@ for (let name of anchorNames) {
       for (let fallback of fallbacks) {
         let value = `anchor-size(${name ? name + ' ' : ''}${size}${fallback ? ', ' + fallback : ''})`;
         test_valid_value(property, value);
+        if (name) {
+          // The <anchor-element> is allowed to appear after the <anchor-size>
+          let value_flip_order = `anchor-size(${size} ${name}${fallback ? ', ' + fallback : ''})`;
+          test_valid_value(property, value_flip_order, value);
+        }
       }
     }
   }
 }
+
+// Implicit <anchor-size>
+test_valid_value('width', 'anchor-size()');
+test_valid_value('width', 'anchor-size(--foo)');
+test_valid_value('width', 'anchor-size(--foo, 10px)');
+test_valid_value('width', 'anchor-size(10px)');
 
 // Tests that anchor-size() can be used in a calc tree
 test_valid_value('width', 'calc((anchor-size(--foo width) + anchor-size(--bar height)) / 2)');

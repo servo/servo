@@ -18,6 +18,8 @@ test_invalid_value('width', 'anchor-size(--foo width,)');
 test_invalid_value('width', 'anchor-size(--foo width height)');
 test_invalid_value('width', 'anchor-size(--foo width, 10px 20%)');
 test_invalid_value('width', 'anchor-size(--foo width, 10px, 20%)');
+test_invalid_value('width', 'anchor-size(--foo,)');
+test_invalid_value('width', 'anchor-size(, 10px)');
 
 // Anchor name must be a dashed ident
 test_invalid_value('width', 'anchor-size(foo width)');

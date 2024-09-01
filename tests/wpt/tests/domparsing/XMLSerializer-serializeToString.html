@@ -225,6 +225,12 @@ test(function() {
   assert_equals(serialize(root), '<div xmlns="http://www.w3.org/1999/xhtml"></div><span xmlns="http://www.w3.org/1999/xhtml"></span>');
 }, 'Check if document fragment serializes.');
 
+test(function () {
+  const root = document.createElement("img");
+  root.append(document.createElement("style"));
+  root.append(document.createElement("style"));
+  assert_equals(serialize(root), '<img xmlns=\"http://www.w3.org/1999/xhtml\"><style></style><style></style></img>');
+}, 'Check children were included for void elements')
 
 </script>
  </body>

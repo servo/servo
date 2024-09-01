@@ -8,9 +8,17 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/css/support/computed-testcommon.js"></script>
+<style>
+  #container {
+    container-type: inline-size;
+    width: 100px;
+  }
+</style>
 </head>
 <body>
-<div id="target"></div>
+<div id="container">
+  <div id="target"></div>
+</div>
 <script>
 test_computed_value('counter-set', 'none');
 test_computed_value('counter-set', 'myCounter', 'myCounter 0');
@@ -18,6 +26,8 @@ test_computed_value('counter-set', 'myCounter 5');
 test_computed_value('counter-set', 'myCounter 7 otherCounter 8');
 test_computed_value('counter-set', 'myCounter otherCounter 8', 'myCounter 0 otherCounter 8');
 test_computed_value('counter-set', 'myCounter 7 otherCounter', 'myCounter 7 otherCounter 0');
+test_computed_value('counter-set', 'myCounter calc(10 + (sign(2cqw - 10px) * 5))', 'myCounter 5');
+test_computed_value('counter-set', 'myCounter calc(10 + (sign(2cqw - 10px) * 5)) otherCounter calc(15 + (sign(2cqw - 10px) * 5))', 'myCounter 5 otherCounter 10');
 </script>
 </body>
 </html>

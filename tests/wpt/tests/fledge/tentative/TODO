@@ -82,7 +82,8 @@ Need tests for (likely not a complete list):
 * Remaining interest group updates.
     * Check that an update with one valid field and one invalid one fails.
     * Test that an update works if owner and/or name match those in the interest group.
-    * Test updating the update URL and bidding script URL so they are all the same origin (requires updating test fixture to handle multiple updates).
+    * Test updating the update URL and bidding script URL so they are all the
+      same origin (requires updating test fixture to handle multiple updates).
     * Test when Ads is null.
     * Test updating a cross origin interest group.
     * Test fields that are updatable but do not make it to 'generateBid'.
@@ -96,3 +97,5 @@ If possible:
     but maybe a test where batching could be used, and make sure things work,
     whether batching is used or not?
 * reporting timeout being 0.
+* Test input with invalid https origin in web platform tests for both trusted bidding
+  and scoring signals coordinators.

@@ -17,6 +17,7 @@
 </div>
 <style>
   #container {
+    container-type: inline-size;
     color: rgb(255, 0, 0);
   }
 </style>
@@ -73,11 +74,24 @@ tests = [
     ["hwb(90 50% 50% / 0)", "rgba(128, 128, 128, 0)", "HWB value should parse and round correctly"],
     ["hwb(90 50% 50% / 0.2)", "rgba(128, 128, 128, 0.2)", "HWB value should parse and round correctly"],
     ["hwb(90 50% 50% / 1)", "rgb(128, 128, 128)", "HWB value should parse and round correctly"],
+
+    // calc(50% + (sign(1em - 10px) * 10%)), with its font relative units, must be evaluatated for computed value.
+    ["hwb(calc(110deg + (sign(1em - 10px) * 10deg)) 30% 50% / 50%)", "rgba(77, 128, 77, 0.5)"],
+    ["hwb(calc(110 + (sign(1em - 10px) * 10)) 30 50 / 0.5)", "rgba(77, 128, 77, 0.5)"],
+    ["hwb(120deg 30% 50% / calc(50% + (sign(1em - 10px) * 10%)))", "rgba(77, 128, 77, 0.6)"],
+    ["hwb(120 30 50 / calc(0.75 + (sign(1em - 10px) * 0.1)))", "rgba(77, 128, 77, 0.85)"],
 ];
 
 for (const test of tests) {
     test_computed_value("color", test[0], test[1], test[2] ? `[${test[2]}]` : undefined);
 }
+
+// Ensure that `calc` values work with dynamically changing relative units (slighly different alpha values to make test harness not complain about duplicate tests).
+document.getElementById("container").style.width = "1000px";
+test_computed_value("color", "hwb(calc(110deg + (sign(2cqw - 10px) * 10deg)) 30 50 / 51%)", "rgba(77, 128, 77, 0.51)");
+document.getElementById("container").style.width = "100px";
+test_computed_value("color", "hwb(calc(110deg + (sign(2cqw - 10px) * 10deg)) 30 50 / 52%)", "rgba(94, 128, 77, 0.52)");
+
 </script>
 </body>
 </html>

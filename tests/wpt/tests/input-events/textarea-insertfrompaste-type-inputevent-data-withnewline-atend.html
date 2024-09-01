@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<textarea id="text" cols=60>Copying and pasting first line including interchange newline
+  at the end should set the event.data with the selected part for inputType insertFromPaste</textarea>
+<script>
+  const text = document.getElementById("text");
+  let eventData;
+  text.addEventListener('input', (evt) => {
+    if(evt.inputType == 'insertFromPaste')
+      eventData = evt.data;
+  });
+  test(function () {
+    text.focus();
+    // Selecting first line inluding interchange newline at the end.
+    text.setSelectionRange(0, 61);
+    const selectedData = getSelection().toString();
+    // Copy and paste should fire input event with inputType insertFromPaste.
+    document.execCommand("copy");
+    document.execCommand("paste");
+    // Event data should now be set with the first line of the text.
+    assert_equals(selectedData, "Copying and pasting first line including interchange newline\n");
+    assert_equals(eventData, selectedData);
+  }, 'Input event data for inputType insertFromPaste should be set');
+</script>
+</body>
+</html>

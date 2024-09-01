@@ -34,11 +34,39 @@
         event.type + ".getPredictedEvents is a function");
     assert_equals(typeof event.getPredictedEvents(), "object",
         event.type + ".getPredictedEvents() returns an object");
+
+    let predicted_events = event.getPredictedEvents();
+
     if (event.type == "pointermove") {
-      assert_greater_than_equal(event.getPredictedEvents().length, 0,
+      assert_greater_than_equal(predicted_events.length, 0,
           event.type + ".getPredictedEvents() has 0 or more entry");
+      for (let i = 0; i < predicted_events.length; i++) {
+        let predicted_event = predicted_events[i];
+
+        assert_equals(predicted_event.isTrusted, true,
+          "predicted_event.isTrusted is true");
+        assert_equals(predicted_event.bubbles, false,
+          "predicted_event.bubbles is false");
+        assert_equals(predicted_event.cancelable, false,
+          "predicted_event.cancelable is false");
+
+        assert_equals(predicted_event.pointerId, event.pointerId,
+          "predicted_event.pointerId matches the same in the container event");
+        assert_equals(predicted_event.pointerType, event.pointerType,
+          "predicted_event.pointerType matches the same in the container event");
+        assert_equals(predicted_event.isPrimary, event.isPrimary,
+          "predicted_event.isPrimary matches the same in the container event");
+        assert_equals(predicted_event.target, event.target,
+          "predicted_event.target matches the same in the container event");
+
+        if (i > 0) {
+          assert_greater_than_equal(predicted_event.timeStamp,
+            predicted_events[i - 1].timeStamp,
+            "predicted_event.timeStamp must be ascending");
+        }
+      }
     } else {
-      assert_equals(event.getPredictedEvents().length, 0,
+      assert_equals(predicted_events.length, 0,
           event.type + ".getPredictedEvents() has 0 entry");
     }
   }

@@ -21,6 +21,7 @@
     --negative: -100;
   }
   #container {
+    container-type: inline-size;
     color: rgb(255, 0, 0);
   }
 </style>
@@ -112,11 +113,40 @@ tests = [
 
     ["rgb(var(--high), 0, 0)", "rgb(255, 0, 0)", "Variables above 255 get clamped to 255."],
     ["rgb(var(--negative), 64, 128)", "rgb(0, 64, 128)", "Variables below 0 get clamped to 0."],
+
+    // calc(50% + (sign(1em - 10px) * 10%)), with its font relative units, must be evaluatated for computed value.
+    ["rgb(calc(50% + (sign(1em - 10px) * 10%)), 0%, 0%, 50%)", "rgba(153, 0, 0, 0.5)"],
+    ["rgba(calc(50% + (sign(1em - 10px) * 10%)), 0%, 0%, 50%)", "rgba(153, 0, 0, 0.5)"],
+    ["rgb(calc(50 + (sign(1em - 10px) * 10)), 0, 0, 0.5)", "rgba(60, 0, 0, 0.5)"],
+    ["rgba(calc(50 + (sign(1em - 10px) * 10)), 0, 0, 0.5)", "rgba(60, 0, 0, 0.5)"],
+    ["rgb(0%, 0%, 0%, calc(50% + (sign(1em - 10px) * 10%)))", "rgba(0, 0, 0, 0.6)"],
+    ["rgba(0%, 0%, 0%, calc(50% + (sign(1em - 10px) * 10%)))", "rgba(0, 0, 0, 0.6)"],
+    ["rgb(0, 0, 0, calc(0.75 + (sign(1em - 10px) * 0.1)))", "rgba(0, 0, 0, 0.85)"],
+    ["rgba(0, 0, 0, calc(0.75 + (sign(1em - 10px) * 0.1)))", "rgba(0, 0, 0, 0.85)"],
+
+    ["rgb(calc(50% + (sign(1em - 10px) * 10%)) 0% 0% / 50%)", "rgba(153, 0, 0, 0.5)"],
+    ["rgba(calc(50% + (sign(1em - 10px) * 10%)) 0% 0% / 50%)", "rgba(153, 0, 0, 0.5)"],
+    ["rgb(calc(50 + (sign(1em - 10px) * 10)) 0 0 / 0.5)", "rgba(60, 0, 0, 0.5)"],
+    ["rgba(calc(50 + (sign(1em - 10px) * 10)) 0 0 / 0.5)", "rgba(60, 0, 0, 0.5)"],
+    ["rgb(0% 0% 0% / calc(50% + (sign(1em - 10px) * 10%)))", "rgba(0, 0, 0, 0.6)"],
+    ["rgba(0% 0% 0% / calc(50% + (sign(1em - 10px) * 10%)))", "rgba(0, 0, 0, 0.6)"],
+    ["rgb(0 0 0 / calc(0.75 + (sign(1em - 10px) * 0.1)))", "rgba(0, 0, 0, 0.85)"],
+    ["rgba(0 0 0 / calc(0.75 + (sign(1em - 10px) * 0.1)))", "rgba(0, 0, 0, 0.85)"],
+
+    ["rgba(calc(50% + (sign(1em - 10px) * 10%)) 0 0% / 0.5)", "rgba(153, 0, 0, 0.5)"],
+    ["rgba(0% 0 0% / calc(0.75 + (sign(1em - 10px) * 0.1)))", "rgba(0, 0, 0, 0.85)"],
 ];
 
 for (const test of tests) {
     test_computed_value("color", test[0], test[1], test[2] ? `[${test[2]}]` : undefined);
 }
+
+// Ensure that `calc` values work with dynamically changing relative units (slighly different alpha values to make test harness not complain about duplicate tests).
+document.getElementById("container").style.width = "1000px";
+test_computed_value("color", "rgba(calc(50% + (sign(2cqw - 10px) * 10%)), 0%, 0%, 51%)", "rgba(153, 0, 0, 0.51)");
+document.getElementById("container").style.width = "100px";
+test_computed_value("color", "rgba(calc(50% + (sign(2cqw - 10px) * 10%)), 0%, 0%, 52%)", "rgba(102, 0, 0, 0.52)");
+
 </script>
 </body>
 </html>

@@ -1,9 +1,16 @@
+# mypy: allow-untyped-defs, allow-untyped-calls
+
 from abc import ABC
 import math
 from typing import Any, Dict, Union
 from .undefined import UNDEFINED
-from ..client import WebElement
 
+WebElement = None
+
+
+def do_delayed_imports():
+    global WebElement
+    from ..client import WebElement
 
 class BidiValue(ABC):
     """Represents the non-primitive values received via BiDi."""
@@ -11,6 +18,7 @@ class BidiValue(ABC):
     type: str
 
     def __init__(self, protocol_value: Dict[str, Any]):
+        do_delayed_imports()
         assert isinstance(protocol_value, dict)
         assert isinstance(protocol_value["type"], str)
         self.type = protocol_value["type"]
@@ -30,12 +38,13 @@ class BidiNode(BidiValue):
     shared_id: str
 
     def __init__(self, protocol_value: Dict[str, Any]):
+        do_delayed_imports()
         super().__init__(protocol_value)
         assert self.type == "node"
         self.shared_id = self.protocol_value["sharedId"]
 
     def to_classic_protocol_value(self) -> Dict[str, Any]:
-        return {WebElement.identifier: self.shared_id}
+        return {WebElement.identifier: self.shared_id}  # type: ignore
 
 
 class BidiWindow(BidiValue):

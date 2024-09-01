@@ -11,6 +11,7 @@ async_test(test => {
     assert_true(happened);
     assert_true(client.responseText.includes(`Content-Length: ${data.length}`));
   });
+  client.onerror = test.unreached_func();
   client.open("POST", "resources/echo-headers.py");
   client.send(data);
 }, "Uploads need to set the Content-Length header");
