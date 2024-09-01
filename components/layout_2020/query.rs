@@ -16,6 +16,7 @@ use script_layout_interface::{LayoutElementType, LayoutNodeType, OffsetParentRes
 use servo_arc::Arc as ServoArc;
 use servo_url::ServoUrl;
 use style::computed_values::display::T as Display;
+use style::computed_values::float::T as Float;
 use style::computed_values::position::T as Position;
 use style::computed_values::visibility::T as Visibility;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapseValue;
@@ -605,6 +606,8 @@ fn rendered_text_collection_steps<'dom>(node: impl LayoutNode<'dom>) -> Vec<Inne
         }
 
         let display = style.get_box().display;
+        let position = style.get_box().position;
+        let float = style.get_box().float;
 
         // Step 3: If node is not being rendered, then return items. For the purpose of this step,
         // the following elements must act as described if the computed value of the 'display'
@@ -625,7 +628,7 @@ fn rendered_text_collection_steps<'dom>(node: impl LayoutNode<'dom>) -> Vec<Inne
         }
 
         match child.type_id() {
-            LayoutNodeType::Text => {
+            LayoutNodeType::Text if !is_replaced_content(node) => {
                 // Step 4: If node is a Text node, then for each CSS text box produced by node, in
                 // content order, compute the text of the box after application of the CSS
                 // 'white-space' processing rules and 'text-transform' rules, set items to the list
@@ -684,14 +687,18 @@ fn rendered_text_collection_steps<'dom>(node: impl LayoutNode<'dom>) -> Vec<Inne
                 // Step 6: If node's computed value of 'display' is 'table-cell', and node's CSS box
                 // is not the last 'table-cell' box of its enclosing 'table-row' box, then append a
                 // string containing a single U+0009 TAB code point to items.
-                let parent_style = child.to_threadsafe().parent_style();
-
-                if parent_style.get_box().display == Display::TableCell &&
-                    !is_last_table_cell_in_row(child.parent_node().unwrap())
-                {
+                if display == Display::TableCell && !is_last_table_cell_in_row(node) {
                     results.push(InnerOrOuterTextItem::Text(String::from(
                         "\u{0009}", /* tab */
                     )));
+                }
+
+                // Step 9: If node's used value of 'display' is block-level or 'table-caption', then
+                // append 1 (a required line break count) at the beginning and end of items.
+                // Floats and absolutely-positioned elements fall into this category.
+                if position == Position::Absolute || float != Float::None {
+                    results.insert(0, InnerOrOuterTextItem::RequiredLineBreakCount(1));
+                    results.push(InnerOrOuterTextItem::RequiredLineBreakCount(1));
                 }
 
                 continue;
@@ -730,6 +737,19 @@ fn rendered_text_collection_steps<'dom>(node: impl LayoutNode<'dom>) -> Vec<Inne
     }
 
     results.into_iter().collect()
+}
+
+/// When collecting text content for innerText, the text content of the children of these node
+/// types should be ignored
+fn is_replaced_content<'dom>(node: impl LayoutNode<'dom>) -> bool {
+    matches!(
+        node.type_id(),
+        LayoutNodeType::Element(LayoutElementType::HTMLMediaElement) |
+        LayoutNodeType::Element(LayoutElementType::HTMLTextAreaElement) |
+            LayoutNodeType::Element(LayoutElementType::HTMLIFrameElement) |
+            LayoutNodeType::Element(LayoutElementType::HTMLCanvasElement) |
+            LayoutNodeType::Element(LayoutElementType::HTMLImageElement)
+    )
 }
 
 fn is_last_table_cell_in_row<'dom>(node: impl LayoutNode<'dom>) -> bool {
