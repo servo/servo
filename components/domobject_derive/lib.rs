@@ -57,6 +57,14 @@ fn expand_dom_object(input: syn::DeriveInput) -> proc_macro2::TokenStream {
                 self.#first_field_name.init_reflector(obj);
             }
         }
+
+        impl #impl_generics Eq for #name #ty_generics #where_clause {}
+
+        impl #impl_generics PartialEq for #name #ty_generics #where_clause {
+            fn eq(&self, other: &Self) -> bool {
+                crate::DomObject::reflector(self) == crate::DomObject::reflector(other)
+            }
+        }
     };
 
     let mut params = proc_macro2::TokenStream::new();

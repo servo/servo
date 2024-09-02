@@ -52,12 +52,6 @@ pub struct Promise {
     permanent_js_root: Heap<JSVal>,
 }
 
-impl PartialEq for Promise {
-    fn eq(&self, other: &Self) -> bool {
-        self.reflector == other.reflector
-    }
-}
-
 /// Private helper to enable adding new methods to `Rc<Promise>`.
 trait PromiseHelper {
     fn initialize(&self, cx: SafeJSContext);
