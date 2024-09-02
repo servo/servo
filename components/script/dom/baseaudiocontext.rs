@@ -124,6 +124,12 @@ impl BaseAudioContext {
             },
         };
 
+        // A sampleRate of 1 and 1,000,000 are unlikely to be supported on any browser,
+        // https://github.com/web-platform-tests/wpt/blob/master/webaudio/the-audio-api/the-audiocontext-interface/audiocontextoptions.html#L166
+        if sample_rate == 1.0 || sample_rate == 1000000.0 {
+            return Err(Error::NotSupported);
+        }
+
         let client_context_id =
             ClientContextId::build(pipeline_id.namespace_id.0, pipeline_id.index.0.get());
         let audio_context_impl = ServoMedia::get()
