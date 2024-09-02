@@ -46,14 +46,6 @@ pub fn dom_struct(args: TokenStream, input: TokenStream) -> TokenStream {
                         &self.#ident
                     }
                 }
-
-                impl Eq for #name {}
-
-                impl PartialEq for #name {
-                    fn eq(&self, other: &Self) -> bool {
-                        crate::DomObject::reflector(self) == crate::DomObject::reflector(other)
-                    }
-                }
             )
             .into()
         } else {
