@@ -200,47 +200,11 @@ impl ReadableStreamDefaultReaderMethods for ReadableStreamDefaultReader {
 
     /// <https://streams.spec.whatwg.org/#default-reader-release-lock>
     fn ReleaseLock(&self) {
-        // step 1
-        if self.stream.get().is_none() {
-            return;
-        }
-
-        // <https://streams.spec.whatwg.org/#readable-stream-reader-generic-release>
-        // step 2.1.2
-        assert!(self.stream.get().is_some());
-        // step 2.1.3
-        let stream = self.stream.get().unwrap();
-        assert!(stream.is_locked());
-
-        if stream.is_readable() {
-            // step 2.1.4
-            self.closed_promise
-                .reject_error(Error::Type("stream state is not readable".to_owned()));
+        if let Some(stream) = self.stream.get() {
+            stream.release_lock();
         } else {
-            // step 2.1.5
-            self.closed_promise.reject_error(Error::Type(
-                "Cannot release lock due to stream state.".to_owned(),
-            ));
-        }
-
-        // step 2.1.6
-        self.closed_promise.set_promise_is_handled();
-
-        // step 2.1.7
-        stream.perform_release_steps();
-
-        // step 2.1.8 & 2.1.9
-        self.stream.set(None);
-
-        // step  3.1
-        let error = Error::Type("No chunks are available because the stream is errored".to_owned());
-
-        // <https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaultreadererrorreadrequests>
-        // step 3.2
-        self.empty_read_requests();
-        // step 3.3
-        for request in self.read_requests.borrow_mut().drain(0..) {
-            request.error_steps(error.clone());
+            // step 1
+            return;
         }
     }
 
