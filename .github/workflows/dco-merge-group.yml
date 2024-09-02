@@ -1,0 +1,12 @@
+# Mostly copied from https://github.com/onnx/onnx/blob/main/.github/workflows/dco_merge_group.yml
+# Because of https://github.com/dcoapp/app/issues/199
+
+name: DCO
+on:
+  merge_group:
+
+jobs:
+  DCO:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "dummy DCO workflow (it won't run any check actually) to trigger by merge_group in order to enable merge queue"
