@@ -475,7 +475,7 @@ pub fn convert_ic_texture(
     })
 }
 
-pub fn convert_label(parent: &GPUObjectDescriptorBase) -> Option<Cow<'static, str>> {
+pub fn convert_label<'a>(parent: &GPUObjectDescriptorBase) -> Option<Cow<'a, str>> {
     if parent.label.is_empty() {
         None
     } else {
@@ -582,9 +582,7 @@ pub fn convert_color(color: &GPUColor) -> Fallible<wgt::Color> {
     }
 }
 
-pub fn convert_stage_desc<'a, 'b>(
-    stage: &'a GPUProgrammableStage,
-) -> ProgrammableStageDescriptor<'b> {
+pub fn convert_stage_desc<'a>(stage: &GPUProgrammableStage) -> ProgrammableStageDescriptor<'a> {
     ProgrammableStageDescriptor {
         module: stage.module.id().0,
         entry_point: stage

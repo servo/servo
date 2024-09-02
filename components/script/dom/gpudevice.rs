@@ -245,12 +245,12 @@ impl GPUDevice {
         }
     }
 
-    fn parse_render_pipeline(
+    fn parse_render_pipeline<'a>(
         &self,
         descriptor: &GPURenderPipelineDescriptor,
     ) -> Fallible<(
         Option<(PipelineLayoutId, Vec<BindGroupLayoutId>)>,
-        RenderPipelineDescriptor<'static>,
+        RenderPipelineDescriptor<'a>,
     )> {
         let (layout, implicit_ids, _) = self.get_pipeline_layout_data(&descriptor.parent.layout);
 
