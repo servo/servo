@@ -127,6 +127,7 @@ jobs:
           gh api "$self_hosted_runner_scope/$(cat $runner_id)/labels" \
             -f "labels[]=reserved-for:$unique_id" \
             -f "labels[]=reserved-since:$reserved_since" \
+            -f 'labels[]=reserved-by:${{ github.repository }}/actions/runs/${{ github.run_id }}' \
             --method POST --silent
           echo "selected_runner_label=reserved-for:$unique_id" | tee -a $GITHUB_OUTPUT
           echo 'is_self_hosted=true' | tee -a $GITHUB_OUTPUT
