@@ -6,8 +6,10 @@ use std::borrow::Cow;
 use std::num::NonZeroU64;
 
 use webgpu::wgc::command as wgpu_com;
+use webgpu::wgc::pipeline::ProgrammableStageDescriptor;
 use webgpu::wgt::{self, AstcBlock, AstcChannel};
 
+use super::bindings::codegen::Bindings::WebGPUBinding::GPUProgrammableStage;
 use super::bindings::error::Error;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUAddressMode, GPUBindGroupLayoutEntry, GPUBlendComponent, GPUBlendFactor, GPUBlendOperation,
@@ -577,5 +579,25 @@ pub fn convert_color(color: &GPUColor) -> Fallible<wgt::Color> {
             b: *d.b,
             a: *d.a,
         }),
+    }
+}
+
+pub fn convert_stage_desc<'a, 'b>(
+    stage: &'a GPUProgrammableStage,
+) -> ProgrammableStageDescriptor<'b> {
+    ProgrammableStageDescriptor {
+        module: stage.module.id().0,
+        entry_point: stage
+            .entryPoint
+            .as_ref()
+            .map(|ep| Cow::Owned(ep.to_string())),
+        constants: Cow::Owned(
+            stage
+                .constants
+                .as_ref()
+                .map(|records| records.iter().map(|(k, v)| (k.0.clone(), **v)).collect())
+                .unwrap_or_default(),
+        ),
+        zero_initialize_workgroup_memory: true,
     }
 }
