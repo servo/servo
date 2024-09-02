@@ -57,7 +57,7 @@ DNF_PKGS = ['libtool', 'gcc-c++', 'libXi-devel', 'freetype-devel',
             'gstreamer1-devel', 'gstreamer1-plugins-base-devel',
             'gstreamer1-plugins-good', 'gstreamer1-plugins-bad-free-devel',
             'gstreamer1-plugins-ugly-free', 'libjpeg-turbo-devel',
-            'zlib', 'libjpeg', 'vulkan-loader', 'libxkbcommon',
+            'zlib-ng', 'libjpeg-turbo', 'vulkan-loader', 'libxkbcommon',
             'libxkbcommon-x11']
 
 # https://voidlinux.org/packages/
@@ -181,11 +181,14 @@ class Linux(Base):
                                stdout=subprocess.PIPE, stderr=subprocess.PIPE) != 0:
                 install = True
         elif self.distro in ['CentOS', 'CentOS Linux', 'Fedora', 'Fedora Linux', 'Fedora Linux Asahi Remix']:
-            installed_pkgs = str(subprocess.check_output(['rpm', '-qa'])).replace('\n', '|')
+            command = ['dnf', 'install']
+            installed_pkgs: [str] = (
+                subprocess.check_output(['rpm', '--query', '--all', '--queryformat', '%{NAME}\n'],
+                                        encoding='utf-8')
+                .split('\n'))
             pkgs = DNF_PKGS
             for pkg in pkgs:
-                command = ['dnf', 'install']
-                if "|{}".format(pkg) not in installed_pkgs:
+                if pkg not in installed_pkgs:
                     install = True
                     break
         elif self.distro == 'void':
