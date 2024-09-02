@@ -31,6 +31,7 @@ use style::shared_lock::SharedRwLock;
 use style::stylesheets::{CssRuleType, Origin, UrlExtraData};
 use style::stylist::RuleInclusion;
 use style::traversal::resolve_style;
+use style::values::computed::Float;
 use style::values::generics::font::LineHeight;
 use style_traits::{ParsingMode, ToCss};
 
@@ -530,23 +531,19 @@ fn get_the_text_steps<'dom>(node: impl LayoutNode<'dom>) -> String {
     // Step 2: Let results be a new empty list.
     let mut result = Vec::new();
 
-    let rendered_text = rendered_text_collection_steps(node);
-
     let mut max_req_line_break_count = 0;
 
-    for item in rendered_text {
+    for item in rendered_text_collection_steps(node, &mut Default::default()) {
         match item {
             InnerOrOuterTextItem::Text(s) => {
-                if max_req_line_break_count > 0 {
-                    // Step 5.
-                    for _ in 0..max_req_line_break_count {
-                        result.push("\u{000A}".to_owned());
-                    }
-                    max_req_line_break_count = 0;
-                }
                 // Step 3.
                 if !s.is_empty() {
-                    result.push(s.to_owned());
+                    if max_req_line_break_count > 0 {
+                        // Step 5.
+                        result.push("\u{000A}".repeat(max_req_line_break_count));
+                        max_req_line_break_count = 0;
+                    }
+                    result.push(s);
                 }
             },
             InnerOrOuterTextItem::RequiredLineBreakCount(count) => {
@@ -564,67 +561,139 @@ fn get_the_text_steps<'dom>(node: impl LayoutNode<'dom>) -> String {
             },
         }
     }
-
     result.into_iter().collect()
 }
 
 enum InnerOrOuterTextItem {
     Text(String),
-    RequiredLineBreakCount(u32),
+    RequiredLineBreakCount(usize),
+}
+
+#[derive(Clone)]
+struct RenderedTextCollectionState {
+    /// Used to make sure we don't add a \n before the first row
+    first_table_row: bool,
+    /// Used to make sure we don't add a \t before the first column
+    first_table_cell: bool,
+    /// Keeps track of whether we're inside a table, since there are special rules like ommiting everything that's not
+    /// inside a TableCell/TableCaption
+    within_table: bool,
+    /// Determines whether we truncate leading whitespaces for normal nodes or not
+    may_start_with_whitespace: bool,
+    /// Is set whenever we truncated a white space char, used to prepend a single space before the next element,
+    /// that way we truncate trailing white space without having to look ahead
+    did_truncate_trailing_white_space: bool,
+    /// Is set to true when we're rendering the children of TableCell/TableCaption elements, that way we render
+    /// everything inside those as normal, while omitting everything that's in a Table but NOT in a Cell/Caption
+    within_table_content: bool,
+}
+
+impl Default for RenderedTextCollectionState {
+    fn default() -> Self {
+        RenderedTextCollectionState {
+            first_table_row: true,
+            first_table_cell: true,
+            may_start_with_whitespace: true,
+            did_truncate_trailing_white_space: false,
+            within_table: false,
+            within_table_content: false,
+        }
+    }
 }
 
 /// <https://html.spec.whatwg.org/multipage/#rendered-text-collection-steps>
-fn rendered_text_collection_steps<'dom>(node: impl LayoutNode<'dom>) -> Vec<InnerOrOuterTextItem> {
-    // Step 2: Let results be a new empty list.
-    let mut results = Vec::new();
+fn rendered_text_collection_steps<'dom>(
+    node: impl LayoutNode<'dom>,
+    state: &mut RenderedTextCollectionState,
+) -> Vec<InnerOrOuterTextItem> {
+    // Step 1. Let items be the result of running the rendered text collection
+    // steps with each child node of node in tree order,
+    // and then concatenating the results to a single list.
+    let mut items = vec![];
+    if !node.is_connected() || !(node.is_element() || node.is_text_node()) {
+        return items;
+    }
 
-    // Step 3: For each child node node of element run:
-    // <https://html.spec.whatwg.org/multipage/#rendered-text-collection-steps>
-    let mut iterator = node.traverse_preorder().peekable();
+    match node.type_id() {
+        LayoutNodeType::Text => {
+            if let Some(element) = node.parent_node() {
+                // Select/Option/OptGroup elements are handled a bit differently.
+                // Basically: a Select can only contain Options or OptGroups, while
+                // OptGroups may also contain Options. Everything else gets ignored.
+                match element.type_id() {
+                    LayoutNodeType::Element(LayoutElementType::HTMLOptGroupElement) => {
+                        if let Some(element) = element.parent_node() {
+                            if !matches!(
+                                element.type_id(),
+                                LayoutNodeType::Element(LayoutElementType::HTMLSelectElement)
+                            ) {
+                                return items;
+                            }
+                        } else {
+                            return items;
+                        }
+                    },
+                    LayoutNodeType::Element(LayoutElementType::HTMLSelectElement) => return items,
+                    _ => {},
+                }
 
-    while let Some(child) = iterator.next() {
-        let node = match child.type_id() {
-            LayoutNodeType::Text => child.parent_node().unwrap(),
-            _ => child,
-        };
+                // Tables are also a bit special, mainly by only allowing
+                // content within TableCell or TableCaption elements once
+                // we're inside a Table.
+                if state.within_table && !state.within_table_content {
+                    return items;
+                }
 
-        let element_data = match node.style_data() {
-            Some(data) => &data.element_data,
-            None => continue,
-        };
+                let element_data = match element.style_data() {
+                    Some(data) => &data.element_data,
+                    None => return items,
+                };
 
-        let style = match element_data.borrow().styles.get_primary() {
-            None => continue,
-            Some(style) => style.clone(),
-        };
+                let style = match element_data.borrow().styles.get_primary() {
+                    None => return items,
+                    Some(style) => style.clone(),
+                };
 
-        // Step 2: If node's computed value of 'visibility' is not 'visible', then return items.
-        if style.get_inherited_box().visibility != Visibility::Visible {
-            continue;
-        }
+                // Step 2: If node's computed value of 'visibility' is not 'visible', then return items.
+                //
+                // We need to do this check here on the Text fragment, if we did it on the element and
+                // just skipped rendering all child nodes then there'd be no way to override the
+                // visibility in a child node.
+                if style.get_inherited_box().visibility != Visibility::Visible {
+                    return items;
+                }
 
-        let display = style.get_box().display;
+                // Step 3: If node is not being rendered, then return items. For the purpose of this step,
+                // the following elements must act as described if the computed value of the 'display'
+                // property is not 'none':
+                let display = style.get_box().display;
+                if display == Display::None {
+                    match element.type_id() {
+                        // Even if set to Display::None, Option/OptGroup elements need to
+                        // be rendered.
+                        LayoutNodeType::Element(LayoutElementType::HTMLOptGroupElement) |
+                        LayoutNodeType::Element(LayoutElementType::HTMLOptionElement) => {},
+                        _ => {
+                            return items;
+                        },
+                    }
+                }
 
-        // Step 3: If node is not being rendered, then return items. For the purpose of this step,
-        // the following elements must act as described if the computed value of the 'display'
-        // property is not 'none':
-        if !child.is_connected() || display == Display::None {
-            match child.type_id() {
-                LayoutNodeType::Element(LayoutElementType::HTMLSelectElement) |
-                LayoutNodeType::Element(LayoutElementType::HTMLOptGroupElement) |
-                LayoutNodeType::Element(LayoutElementType::HTMLOptionElement) => {
-                    let content = descendant_text_content(child);
+                let text_content = node.to_threadsafe().node_text_content();
 
-                    results.push(InnerOrOuterTextItem::Text(content));
-                },
-                _ => {},
-            }
+                let white_space_collapse = style.clone_white_space_collapse();
+                let preserve_whitespace = white_space_collapse == WhiteSpaceCollapseValue::Preserve;
+                // Now we need to decide on whether to remove beginning white space or not, this
+                // is mainly decided by the elements we rendered before, but may be overwritten by the white-space
+                // property.
+                let trim_beginning_white_space = !preserve_whitespace &&
+                    (state.may_start_with_whitespace || display == Display::InlineBlock);
+                let with_white_space_rules_applied: WhitespaceCollapse<_> = WhitespaceCollapse::new(
+                    text_content.chars(),
+                    white_space_collapse,
+                    trim_beginning_white_space,
+                );
 
-            continue;
-        }
-
-        match child.type_id() {
-            LayoutNodeType::Text => {
                 // Step 4: If node is a Text node, then for each CSS text box produced by node, in
                 // content order, compute the text of the box after application of the CSS
                 // 'white-space' processing rules and 'text-transform' rules, set items to the list
@@ -632,147 +701,229 @@ fn rendered_text_collection_steps<'dom>(node: impl LayoutNode<'dom>) -> Vec<Inne
                 // rules are slightly modified: collapsible spaces at the end of lines are always
                 // collapsed, but they are only removed if the line is the last line of the block,
                 // or it ends with a br element. Soft hyphens should be preserved.
-                let text_content = child.to_threadsafe().node_text_content();
-
-                // In the case of a child text node of a <pre> element, we can skip this processing
-                let is_preformatted_element =
-                    node.type_id() == LayoutNodeType::Element(LayoutElementType::HTMLPreElement);
-
-                let is_final_character_whitespace = text_content
-                    .chars()
-                    .last()
-                    .filter(|c| c.is_ascii_whitespace())
-                    .is_some();
-
-                let white_space_collapse = style.clone_white_space_collapse();
-
-                // To account for the deviations from normal white-space processing, omit the final
-                // character of the text if it meets specific conditions
-                let num_chars_to_take = match (
-                    white_space_collapse == WhiteSpaceCollapseValue::Preserve,
-                    is_preformatted_element,
-                    is_final_character_whitespace,
-                    iterator.peek(),
-                ) {
-                    // Remove trailing whitespace before <br> elements
-                    (false, false, true, Some(el))
-                        if el.type_id() ==
-                            LayoutNodeType::Element(LayoutElementType::HTMLBRElement) =>
-                    {
-                        text_content.len() - 1
-                    },
-                    // Remove trailing whitespace if this is the last line of the block
-                    (false, false, true, None) => text_content.len() - 1,
-                    _ => text_content.len(),
-                };
-
-                let with_white_space_rules_applied = WhitespaceCollapse::new(
-                    text_content.chars().take(num_chars_to_take),
-                    white_space_collapse,
-                    white_space_collapse != WhiteSpaceCollapseValue::Preserve,
-                );
-
-                let result = TextTransformation::new(
+                let mut transformed_text = TextTransformation::new(
                     with_white_space_rules_applied,
                     style.clone_text_transform().case(),
                 )
                 .collect::<String>();
 
-                results.push(InnerOrOuterTextItem::Text(result));
+                let is_preformatted_element =
+                    white_space_collapse == WhiteSpaceCollapseValue::Preserve;
 
-                // Step 6: If node's computed value of 'display' is 'table-cell', and node's CSS box
-                // is not the last 'table-cell' box of its enclosing 'table-row' box, then append a
-                // string containing a single U+0009 TAB code point to items.
-                let parent_style = child.to_threadsafe().parent_style();
+                let is_final_character_whitespace = transformed_text
+                    .chars()
+                    .next_back()
+                    .filter(|c| c.is_ascii_whitespace())
+                    .is_some();
 
-                if parent_style.get_box().display == Display::TableCell &&
-                    !is_last_table_cell_in_row(child.parent_node().unwrap())
-                {
-                    results.push(InnerOrOuterTextItem::Text(String::from(
-                        "\u{0009}", /* tab */
-                    )));
+                let is_first_character_whitespace = transformed_text
+                    .chars()
+                    .next()
+                    .filter(|c| c.is_ascii_whitespace())
+                    .is_some();
+
+                // By truncating trailing white space and then adding it back in once we
+                // encounter another text node we can ensure no trailing white space for
+                // normal text without having to look ahead
+                if state.did_truncate_trailing_white_space && !is_first_character_whitespace {
+                    items.push(InnerOrOuterTextItem::Text(String::from(" ")));
+                };
+
+                if transformed_text.len() > 0 {
+                    // Here we decide whether to keep or truncate the final white
+                    // space character, if there is one.
+                    if is_final_character_whitespace && !is_preformatted_element {
+                        state.may_start_with_whitespace = false;
+                        state.did_truncate_trailing_white_space = true;
+                        transformed_text.pop();
+                    } else {
+                        state.may_start_with_whitespace = is_final_character_whitespace;
+                        state.did_truncate_trailing_white_space = false;
+                    }
+                    items.push(InnerOrOuterTextItem::Text(transformed_text));
                 }
-
-                continue;
-            },
-            LayoutNodeType::Element(LayoutElementType::HTMLBRElement) => {
-                // Step 5: If node is a br element, then append a string containing a single U+000A
-                // LF code point to items.
-                results.push(InnerOrOuterTextItem::Text(String::from("\u{000A}")));
-            },
-            LayoutNodeType::Element(LayoutElementType::HTMLParagraphElement) => {
-                // Step 8: If node is a p element, then append 2 (a required line break count) at
-                // the beginning and end of items.
-                results.insert(0, InnerOrOuterTextItem::RequiredLineBreakCount(2));
-                results.push(InnerOrOuterTextItem::RequiredLineBreakCount(2));
-            },
-            _ => {},
-        }
-
-        match display {
-            Display::TableRow if node.next_sibling().is_some() => {
-                // Step 7: If node's computed value of 'display' is 'table-row', and node's CSS box
-                // is not the last 'table-row' box of the nearest ancestor 'table' box, then append
-                // a string containing a single U+000A LF code point to items.
-                results.push(InnerOrOuterTextItem::Text(String::from(
-                    "\u{000A}", /* line feed */
-                )));
-            },
-            Display::Block | Display::Flex | Display::TableCaption | Display::Table => {
-                // Step 9: If node's used value of 'display' is block-level or 'table-caption', then
-                // append 1 (a required line break count) at the beginning and end of items.
-                results.insert(0, InnerOrOuterTextItem::RequiredLineBreakCount(1));
-                results.push(InnerOrOuterTextItem::RequiredLineBreakCount(1));
-            },
-            _ => {},
-        }
-    }
-
-    results.into_iter().collect()
-}
-
-fn is_last_table_cell_in_row<'dom>(node: impl LayoutNode<'dom>) -> bool {
-    if let Some(parent_node) = node.parent_node() {
-        let child_cells = parent_node.traverse_preorder().filter(|child| {
-            let element_data = match child.style_data() {
+            } else {
+                // If we don't have a parent element then there's no style data available,
+                // in this (pretty unlikely) case we just return the Text fragment as is.
+                items.push(InnerOrOuterTextItem::Text(
+                    node.to_threadsafe().node_text_content().into(),
+                ));
+            }
+        },
+        LayoutNodeType::Element(LayoutElementType::HTMLBRElement) => {
+            // Step 5: If node is a br element, then append a string containing a single U+000A
+            // LF code point to items.
+            state.did_truncate_trailing_white_space = false;
+            state.may_start_with_whitespace = true;
+            items.push(InnerOrOuterTextItem::Text(String::from("\u{000A}")));
+        },
+        _ => {
+            // First we need to gather some infos to setup the various flags
+            // before rendering the child nodes
+            let element_data = match node.style_data() {
                 Some(data) => &data.element_data,
-                None => return false,
+                None => return items,
             };
 
             let style = match element_data.borrow().styles.get_primary() {
-                None => return false,
                 Some(style) => style.clone(),
+                None => return items,
             };
+            let inherited_box = style.get_inherited_box();
 
-            return style.get_box().display == Display::TableCell;
-        });
-
-        if let Some(last_child) = child_cells.last() {
-            return last_child == node;
-        }
-    }
-
-    return false;
-}
-
-/// <https://html.spec.whatwg.org/multipage/#descendant-text-content>
-fn descendant_text_content<'dom>(node: impl LayoutNode<'dom>) -> String {
-    node.traverse_preorder()
-        .filter_map(|child| {
-            if child.type_id() == LayoutNodeType::Text {
-                let text_content = child.to_threadsafe().node_text_content();
-
-                if !text_content.is_empty() {
-                    Some(text_content.into())
-                } else {
-                    None
+            if inherited_box.visibility != Visibility::Visible {
+                // If the element is not visible then we'll immediatly render all children,
+                // skipping all other processing.
+                // We can't just stop here since a child can override a parents visibility.
+                for child in node.dom_children() {
+                    items.append(&mut rendered_text_collection_steps(child, state));
                 }
-            } else {
-                None
+                return items;
             }
-        })
-        .collect::<Vec<String>>()
-        .concat()
+
+            let style_box = style.get_box();
+            let display = style_box.display;
+            let mut surrounding_line_breaks = 0;
+
+            // Treat absolutely positioned or floated elements like Block elements
+            if style_box.position == Position::Absolute || style_box.float != Float::None {
+                surrounding_line_breaks = 1;
+            }
+
+            // Depending on the display property we have to do various things
+            // before we can render the child nodes.
+            match display {
+                Display::InlineBlock => {
+                    // InlineBlock's are a bit strange, in that they don't produce a Linebreak, yet
+                    // disable white space truncation before and after it, making it one of the few
+                    // cases where one can have multiple white space characters following one another.
+                    if state.did_truncate_trailing_white_space {
+                        items.push(InnerOrOuterTextItem::Text(String::from(" ")));
+                        state.did_truncate_trailing_white_space = false;
+                        state.may_start_with_whitespace = true;
+                    }
+                },
+                Display::Block => {
+                    surrounding_line_breaks = 1;
+                },
+                Display::Table => {
+                    surrounding_line_breaks = 1;
+                    state.within_table = true;
+                },
+                Display::TableCell => {
+                    if !state.first_table_cell {
+                        items.push(InnerOrOuterTextItem::Text(String::from(
+                            "\u{0009}", /* tab */
+                        )));
+                        // Make sure we don't add a white-space we removed from the previous node
+                        state.did_truncate_trailing_white_space = false;
+                    }
+                    state.first_table_cell = false;
+                    state.within_table_content = true;
+                },
+                Display::TableRow => {
+                    if !state.first_table_row {
+                        items.push(InnerOrOuterTextItem::Text(String::from(
+                            "\u{000A}", /* Line Feed */
+                        )));
+                        // Make sure we don't add a white-space we removed from the previous node
+                        state.did_truncate_trailing_white_space = false;
+                    }
+                    state.first_table_row = false;
+                    state.first_table_cell = true;
+                },
+                Display::TableCaption => {
+                    // As long as there's content in the table then the caption is on a new row
+                    if !state.first_table_cell || !state.first_table_row {
+                        items.push(InnerOrOuterTextItem::Text(String::from(
+                            "\u{000A}", /* Line Feed */
+                        )));
+                        // Make sure we don't add a white-space we removed from the previous node
+                        state.did_truncate_trailing_white_space = false;
+                    }
+                    state.first_table_row = false;
+                    state.first_table_cell = true;
+                    state.within_table_content = true;
+                },
+                _ => {},
+            }
+
+            match node.type_id() {
+                // Step 8: If node is a p element, then append 2 (a required line break count) at
+                // the beginning and end of items.
+                LayoutNodeType::Element(LayoutElementType::HTMLParagraphElement) => {
+                    surrounding_line_breaks = 2;
+                },
+                // Option/OptGroup elements should go on separate lines, by treating them like
+                // Block elements we can achieve that.
+                LayoutNodeType::Element(LayoutElementType::HTMLOptionElement) |
+                LayoutNodeType::Element(LayoutElementType::HTMLOptGroupElement) => {
+                    surrounding_line_breaks = 1;
+                },
+                _ => {},
+            }
+
+            if surrounding_line_breaks > 0 {
+                items.push(InnerOrOuterTextItem::RequiredLineBreakCount(
+                    surrounding_line_breaks,
+                ));
+                state.did_truncate_trailing_white_space = false;
+                state.may_start_with_whitespace = true;
+            }
+
+            match node.type_id() {
+                // Any text/content contained in these elements is ignored.
+                // However we still need to check whether we have to prepend a
+                // space Since for example <span>asd <input> qwe</span> must
+                // product "asd  qwe" (note the 2 spaces)
+                LayoutNodeType::Element(LayoutElementType::HTMLCanvasElement) |
+                LayoutNodeType::Element(LayoutElementType::HTMLImageElement) |
+                LayoutNodeType::Element(LayoutElementType::HTMLIFrameElement) |
+                LayoutNodeType::Element(LayoutElementType::HTMLObjectElement) |
+                LayoutNodeType::Element(LayoutElementType::HTMLInputElement) |
+                LayoutNodeType::Element(LayoutElementType::HTMLTextAreaElement) |
+                LayoutNodeType::Element(LayoutElementType::HTMLMediaElement) => {
+                    if display != Display::Block && state.did_truncate_trailing_white_space {
+                        items.push(InnerOrOuterTextItem::Text(String::from(" ")));
+                        state.did_truncate_trailing_white_space = false;
+                    };
+                    state.may_start_with_whitespace = false;
+                },
+                _ => {
+                    // Now we can finally iterate over all children, appending whatever
+                    // they produce to items.
+                    for child in node.dom_children() {
+                        items.append(&mut rendered_text_collection_steps(child, state));
+                    }
+                },
+            }
+
+            // Depending on the display property we still need to do some
+            // cleanup after rendering all child nodes
+            match display {
+                Display::InlineBlock => {
+                    state.did_truncate_trailing_white_space = false;
+                    state.may_start_with_whitespace = false;
+                },
+                Display::Table => {
+                    state.within_table = false;
+                },
+                Display::TableCell | Display::TableCaption => {
+                    state.within_table_content = false;
+                },
+                _ => {},
+            }
+
+            if surrounding_line_breaks > 0 {
+                items.push(InnerOrOuterTextItem::RequiredLineBreakCount(
+                    surrounding_line_breaks,
+                ));
+                state.did_truncate_trailing_white_space = false;
+                state.may_start_with_whitespace = true;
+            }
+        },
+    };
+    items
 }
 
 pub fn process_text_index_request(_node: OpaqueNode, _point: Point2D<Au>) -> Option<usize> {
