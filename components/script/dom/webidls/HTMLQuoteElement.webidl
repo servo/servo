@@ -7,6 +7,6 @@
 interface HTMLQuoteElement : HTMLElement {
   [HTMLConstructor] constructor();
 
-  // [CEReactions]
-  //          attribute DOMString cite;
+  [CEReactions]
+           attribute USVString cite;
 };
