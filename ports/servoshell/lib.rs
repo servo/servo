@@ -42,22 +42,24 @@ pub fn main() {
 pub fn init_tracing() {
     #[cfg(feature = "tracing")]
     {
-        use tracing::subscriber::set_global_default;
-        use tracing_perfetto::PerfettoLayer;
-        use tracing_subscriber::layer::SubscriberExt;
+        let subscriber = tracing_subscriber::registry();
 
-        let file = std::fs::File::create("servo.pftrace").unwrap();
-        let perfetto_layer = PerfettoLayer::new(std::sync::Mutex::new(file));
-
-        // Set up a custom tracing subscriber and PerfettoLayer for performance tracing.
-        // The servo.pftrace file can be uploaded to https://ui.perfetto.dev for analysis.
-        let subscriber = tracing_subscriber::registry().with(perfetto_layer);
+        #[cfg(feature = "tracing-perfetto")]
+        let subscriber = {
+            use tracing_subscriber::layer::SubscriberExt;
+            // Set up a PerfettoLayer for performance tracing.
+            // The servo.pftrace file can be uploaded to https://ui.perfetto.dev for analysis.
+            let file = std::fs::File::create("servo.pftrace").unwrap();
+            let perfetto_layer = tracing_perfetto::PerfettoLayer::new(std::sync::Mutex::new(file));
+            subscriber.with(perfetto_layer)
+        };
 
         // Same as SubscriberInitExt::init, but avoids initialising the tracing-log compat layer,
         // since it would break Servo’s FromScriptLogger and FromCompositorLogger.
         // <https://docs.rs/tracing-subscriber/0.3.18/tracing_subscriber/util/trait.SubscriberInitExt.html#method.init>
         // <https://docs.rs/tracing/0.1.40/tracing/#consuming-log-records>
-        set_global_default(subscriber).expect("Failed to set tracing subscriber");
+        tracing::subscriber::set_global_default(subscriber)
+            .expect("Failed to set tracing subscriber");
     }
 }
 
