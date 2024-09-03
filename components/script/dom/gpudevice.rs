@@ -27,7 +27,7 @@ use super::bindings::codegen::Bindings::WebGPUBinding::{
 use super::bindings::codegen::UnionTypes::GPUPipelineLayoutOrGPUAutoLayoutMode;
 use super::bindings::error::Fallible;
 use super::gpu::AsyncWGPUListener;
-use super::gpuconvert::{convert_bind_group_layout_entry, convert_stage_desc};
+use super::gpuconvert::convert_bind_group_layout_entry;
 use super::gpudevicelostinfo::GPUDeviceLostInfo;
 use super::gpupipelineerror::GPUPipelineError;
 use super::gpusupportedlimits::GPUSupportedLimits;
@@ -259,7 +259,7 @@ impl GPUDevice {
             layout,
             cache: None,
             vertex: wgpu_pipe::VertexState {
-                stage: convert_stage_desc(&descriptor.vertex.parent),
+                stage: (&descriptor.vertex.parent).into(),
                 buffers: Cow::Owned(
                     descriptor
                         .vertex
@@ -291,7 +291,7 @@ impl GPUDevice {
                 .as_ref()
                 .map(|stage| -> Fallible<wgpu_pipe::FragmentState> {
                     Ok(wgpu_pipe::FragmentState {
-                        stage: convert_stage_desc(&stage.parent),
+                        stage: (&stage.parent).into(),
                         targets: Cow::Owned(
                             stage
                                 .targets
@@ -650,7 +650,7 @@ impl GPUDeviceMethods for GPUDevice {
         let desc = wgpu_pipe::ComputePipelineDescriptor {
             label: convert_label(&descriptor.parent.parent),
             layout,
-            stage: convert_stage_desc(&descriptor.compute),
+            stage: (&descriptor.compute).into(),
             cache: None,
         };
 
@@ -692,7 +692,7 @@ impl GPUDeviceMethods for GPUDevice {
         let desc = wgpu_pipe::ComputePipelineDescriptor {
             label: convert_label(&descriptor.parent.parent),
             layout,
-            stage: convert_stage_desc(&descriptor.compute),
+            stage: (&descriptor.compute).into(),
             cache: None,
         };
 

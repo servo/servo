@@ -582,20 +582,22 @@ pub fn convert_color(color: &GPUColor) -> Fallible<wgt::Color> {
     }
 }
 
-pub fn convert_stage_desc<'a>(stage: &GPUProgrammableStage) -> ProgrammableStageDescriptor<'a> {
-    ProgrammableStageDescriptor {
-        module: stage.module.id().0,
-        entry_point: stage
-            .entryPoint
-            .as_ref()
-            .map(|ep| Cow::Owned(ep.to_string())),
-        constants: Cow::Owned(
-            stage
-                .constants
+impl<'a> From<&GPUProgrammableStage> for ProgrammableStageDescriptor<'a> {
+    fn from(stage: &GPUProgrammableStage) -> Self {
+        Self {
+            module: stage.module.id().0,
+            entry_point: stage
+                .entryPoint
                 .as_ref()
-                .map(|records| records.iter().map(|(k, v)| (k.0.clone(), **v)).collect())
-                .unwrap_or_default(),
-        ),
-        zero_initialize_workgroup_memory: true,
+                .map(|ep| Cow::Owned(ep.to_string())),
+            constants: Cow::Owned(
+                stage
+                    .constants
+                    .as_ref()
+                    .map(|records| records.iter().map(|(k, v)| (k.0.clone(), **v)).collect())
+                    .unwrap_or_default(),
+            ),
+            zero_initialize_workgroup_memory: true,
+        }
     }
 }
