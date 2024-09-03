@@ -163,7 +163,8 @@ where
 pub unsafe fn jsid_to_string(cx: *mut JSContext, id: HandleId) -> Option<DOMString> {
     let id_raw = *id;
     if id_raw.is_string() {
-        return Some(jsstring_to_str(cx, id_raw.to_string()));
+        let jsstr = std::ptr::NonNull::new(id_raw.to_string()).unwrap();
+        return Some(jsstring_to_str(cx, jsstr));
     }
 
     if id_raw.is_int() {
@@ -207,12 +208,12 @@ impl FromJSValConvertible for DOMString {
         if null_behavior == StringificationBehavior::Empty && value.get().is_null() {
             Ok(ConversionResult::Success(DOMString::new()))
         } else {
-            let jsstr = ToString(cx, value);
-            if jsstr.is_null() {
-                debug!("ToString failed");
-                Err(())
-            } else {
-                Ok(ConversionResult::Success(jsstring_to_str(cx, jsstr)))
+            match ptr::NonNull::new(ToString(cx, value)) {
+                Some(jsstr) => Ok(ConversionResult::Success(jsstring_to_str(cx, jsstr))),
+                None => {
+                    debug!("ToString failed");
+                    Err(())
+                },
             }
         }
     }
@@ -220,14 +221,13 @@ impl FromJSValConvertible for DOMString {
 
 /// Convert the given `JSString` to a `DOMString`. Fails if the string does not
 /// contain valid UTF-16.
-pub unsafe fn jsstring_to_str(cx: *mut JSContext, s: *mut JSString) -> DOMString {
-    assert!(!s.is_null());
-    let latin1 = JS_DeprecatedStringHasLatin1Chars(s);
+pub unsafe fn jsstring_to_str(cx: *mut JSContext, s: ptr::NonNull<JSString>) -> DOMString {
+    let latin1 = JS_DeprecatedStringHasLatin1Chars(s.as_ptr());
     DOMString::from_string(if latin1 {
-        latin1_to_string(cx, s)
+        latin1_to_string(cx, s.as_ptr())
     } else {
         let mut length = 0;
-        let chars = JS_GetTwoByteStringCharsAndLength(cx, ptr::null(), s, &mut length);
+        let chars = JS_GetTwoByteStringCharsAndLength(cx, ptr::null(), s.as_ptr(), &mut length);
         assert!(!chars.is_null());
         let potentially_ill_formed_utf16 = slice::from_raw_parts(chars, length);
         let mut s = String::with_capacity(length);
@@ -268,12 +268,11 @@ impl FromJSValConvertible for USVString {
         value: HandleValue,
         _: (),
     ) -> Result<ConversionResult<USVString>, ()> {
-        let jsstr = ToString(cx, value);
-        if jsstr.is_null() {
+        let Some(jsstr) = ptr::NonNull::new(ToString(cx, value)) else {
             debug!("ToString failed");
             return Err(());
-        }
-        let latin1 = JS_DeprecatedStringHasLatin1Chars(jsstr);
+        };
+        let latin1 = JS_DeprecatedStringHasLatin1Chars(jsstr.as_ptr());
         if latin1 {
             // FIXME(ajeffrey): Convert directly from DOMString to USVString
             return Ok(ConversionResult::Success(USVString(String::from(
@@ -281,7 +280,7 @@ impl FromJSValConvertible for USVString {
             ))));
         }
         let mut length = 0;
-        let chars = JS_GetTwoByteStringCharsAndLength(cx, ptr::null(), jsstr, &mut length);
+        let chars = JS_GetTwoByteStringCharsAndLength(cx, ptr::null(), jsstr.as_ptr(), &mut length);
         assert!(!chars.is_null());
         let char_vec = slice::from_raw_parts(chars, length);
         Ok(ConversionResult::Success(USVString(

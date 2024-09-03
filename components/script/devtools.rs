@@ -71,13 +71,14 @@ pub fn handle_evaluate_js(global: &GlobalScope, eval: String, reply: IpcSender<E
                 },
             )
         } else if rval.is_string() {
-            EvaluateJSReply::StringValue(String::from(jsstring_to_str(*cx, rval.to_string())))
+            let jsstr = std::ptr::NonNull::new(rval.to_string()).unwrap();
+            EvaluateJSReply::StringValue(String::from(jsstring_to_str(*cx, jsstr)))
         } else if rval.is_null() {
             EvaluateJSReply::NullValue
         } else {
             assert!(rval.is_object());
 
-            let jsstr = ToString(*cx, rval.handle());
+            let jsstr = std::ptr::NonNull::new(ToString(*cx, rval.handle())).unwrap();
             let class_name = jsstring_to_str(*cx, jsstr);
 
             EvaluateJSReply::ActorValue {

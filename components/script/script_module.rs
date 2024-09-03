@@ -609,7 +609,7 @@ impl ModuleTree {
         url: &ServoUrl,
         specifier: RawHandle<*mut JSString>,
     ) -> Result<ServoUrl, UrlParseError> {
-        let specifier_str = unsafe { jsstring_to_str(cx, *specifier) };
+        let specifier_str = unsafe { jsstring_to_str(cx, ptr::NonNull::new(*specifier).unwrap()) };
 
         // Step 1.
         if let Ok(specifier_url) = ServoUrl::parse(&specifier_str) {

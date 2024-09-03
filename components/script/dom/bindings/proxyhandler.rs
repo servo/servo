@@ -259,7 +259,7 @@ unsafe fn id_to_source(cx: SafeJSContext, id: RawHandleId) -> Option<DOMString> 
             jsstr.set(jsapi::JS_ValueToSource(*cx, value.handle().into()));
             jsstr.get()
         })
-        .filter(|jsstr| !jsstr.is_null())
+        .and_then(|jsstr| ptr::NonNull::new(jsstr))
         .map(|jsstr| jsstring_to_str(*cx, jsstr))
 }
 
