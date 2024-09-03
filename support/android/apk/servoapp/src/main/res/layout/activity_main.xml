@@ -16,90 +16,113 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
-        <LinearLayout
+        <androidx.appcompat.widget.Toolbar
+            android:id="@+id/my_toolbar"
             android:layout_width="match_parent"
-            android:layout_height="50dp"
-            android:orientation="horizontal">
+            android:layout_height="?attr/actionBarSize"
+            android:background="?attr/colorPrimary"
+            android:elevation="4dp"
+            android:theme="@style/ThemeOverlay.AppCompat.ActionBar"
+            app:popupTheme="@style/ThemeOverlay.AppCompat.Light">
+    
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="50dp"
+                android:orientation="horizontal">
 
-            <Button
-                android:id="@+id/backbutton"
-                style="@android:style/Widget.Material.Button"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:onClick="onBackClicked"
-                android:text="Back"
-                android:textSize="10sp" />
+                <EditText
+                    android:id="@+id/urlfield"
+                    style="@android:style/Widget.Material.EditText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:ems="10"
+                    android:hint="URL or Search"
+                    android:inputType="textUri"
+                    android:selectAllOnFocus="true"
+                    android:singleLine="true"
+                    android:imeOptions="actionDone"/>
 
-            <Button
-                android:id="@+id/forwardbutton"
-                style="@android:style/Widget.Material.Button"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:onClick="onForwardClicked"
-                android:text="Fwd"
-                android:textSize="10sp" />
+                <ProgressBar
+                    android:id="@+id/progressbar"
+                    style="@android:style/Widget.ProgressBar"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:indeterminate="true" />
 
-            <EditText
-                android:id="@+id/urlfield"
-                style="@android:style/Widget.Material.EditText"
-                android:layout_width="wrap_content"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:ems="10"
-                android:hint="URL or Search"
-                android:inputType="textUri"
-                android:selectAllOnFocus="true"
-                android:singleLine="true"
-                android:imeOptions="actionDone"/>
+                <ImageButton
+                    android:id="@+id/stopbutton"
+                    style="@android:style/Widget.Material.ImageButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:scaleType="centerInside"
+                    android:adjustViewBounds="true"
+                    android:onClick="onStopClicked"
+                    android:src="@drawable/cancel" />
 
-            <ProgressBar
-                android:id="@+id/progressbar"
-                style="@android:style/Widget.ProgressBar"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:indeterminate="true" />
+                <ImageButton
+                    android:id="@+id/reloadbutton"
+                    style="@android:style/Widget.Material.ImageButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:scaleType="centerInside"
+                    android:adjustViewBounds="true"
+                    android:onClick="onReloadClicked"
+                    android:src="@drawable/refresh" />
 
-            <Button
-                android:id="@+id/stopbutton"
-                style="@android:style/Widget.Material.Button"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:onClick="onStopClicked"
-                android:text="Stop"
-                android:textSize="10sp" />
+                <TextView
+                    android:id="@+id/redrawing"
+                    android:layout_width="70dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:fontFamily="monospace"
+                    android:text="idle"
+                    android:textAlignment="center"
+                    android:textSize="10sp"
+                    android:visibility="visible" />
 
-            <Button
-                android:id="@+id/reloadbutton"
-                style="@android:style/Widget.Material.Button"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:onClick="onReloadClicked"
-                android:text="Rld"
-                android:textSize="10sp" />
+            </LinearLayout>
 
-            <TextView
-                android:id="@+id/redrawing"
-                android:layout_width="70dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:fontFamily="monospace"
-                android:text="idle"
-                android:textAlignment="center"
-                android:textSize="10sp"
-                android:visibility="visible" />
-
-        </LinearLayout>
+        </androidx.appcompat.widget.Toolbar>
 
         <org.servo.servoview.ServoView
             android:id="@+id/servoview"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
+            android:layout_weight="1"
             android:focusable="true"/>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:orientation="horizontal">
+            
+            <ImageButton
+                android:id="@+id/backbutton"
+                style="@android:style/Widget.Material.ImageButton"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:scaleType="centerInside"
+                android:adjustViewBounds="true"
+                android:onClick="onBackClicked"
+                android:src="@drawable/history_back" />
+
+            <ImageButton
+                android:id="@+id/forwardbutton"
+                style="@android:style/Widget.Material.ImageButton"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:scaleType="centerInside"
+                android:adjustViewBounds="true"
+                android:onClick="onForwardClicked"
+                android:src="@drawable/history_forward" />
+
+        </LinearLayout>
 
     </LinearLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>

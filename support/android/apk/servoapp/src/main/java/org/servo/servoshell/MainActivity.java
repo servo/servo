@@ -19,6 +19,7 @@ import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
@@ -32,10 +33,10 @@ public class MainActivity extends Activity implements Servo.Client {
     private static final String LOGTAG = "MainActivity";
 
     ServoView mServoView;
-    Button mBackButton;
-    Button mFwdButton;
-    Button mReloadButton;
-    Button mStopButton;
+    ImageButton mBackButton;
+    ImageButton mFwdButton;
+    ImageButton mReloadButton;
+    ImageButton mStopButton;
     EditText mUrlField;
     ProgressBar mProgressBar;
     TextView mIdleText;
@@ -59,6 +60,9 @@ public class MainActivity extends Activity implements Servo.Client {
 
         mBackButton.setEnabled(false);
         mFwdButton.setEnabled(false);
+
+        // Avoid reload/stop icons doubling up on launch
+        mReloadButton.setVisibility(View.GONE);
 
         mServoView.setClient(this);
         mServoView.requestFocus();

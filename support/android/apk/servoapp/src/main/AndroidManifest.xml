@@ -12,7 +12,8 @@
     <application android:label="Servo" android:icon="@mipmap/servo">
         <activity android:name=".MainActivity"
             android:configChanges="density|keyboardHidden|navigation|orientation|screenSize|uiMode"
-            android:exported="true">
+            android:exported="true"
+            android:theme="@style/AppTheme">
             <meta-data android:name="android.app.lib_name" android:value="servo" />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
