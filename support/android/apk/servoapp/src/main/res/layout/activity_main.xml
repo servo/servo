@@ -49,7 +49,8 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:indeterminate="true" />
+                    android:indeterminate="true"
+                    android:gravity="center" />
 
                 <ImageButton
                     android:id="@+id/stopbutton"
@@ -60,7 +61,8 @@
                     android:scaleType="centerInside"
                     android:adjustViewBounds="true"
                     android:onClick="onStopClicked"
-                    android:src="@drawable/cancel" />
+                    android:src="@drawable/cancel"
+                    android:gravity="center" />
 
                 <ImageButton
                     android:id="@+id/reloadbutton"
@@ -71,18 +73,20 @@
                     android:scaleType="centerInside"
                     android:adjustViewBounds="true"
                     android:onClick="onReloadClicked"
-                    android:src="@drawable/refresh" />
+                    android:src="@drawable/refresh"
+                    android:gravity="center" />
 
                 <TextView
                     android:id="@+id/redrawing"
-                    android:layout_width="70dp"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:fontFamily="monospace"
                     android:text="idle"
                     android:textAlignment="center"
                     android:textSize="10sp"
-                    android:visibility="visible" />
+                    android:visibility="visible"
+                    android:gravity="center" />
 
             </LinearLayout>
 
