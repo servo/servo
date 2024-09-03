@@ -16,7 +16,7 @@ use webgpu::wgc::pipeline::RenderPipelineDescriptor;
 use webgpu::wgc::{
     binding_model as wgpu_bind, command as wgpu_com, pipeline as wgpu_pipe, resource as wgpu_res,
 };
-use webgpu::wgt::TextureFormat;
+use webgpu::wgt::{BlendComponent, TextureFormat};
 use webgpu::{
     self, wgt, PopError, WebGPU, WebGPUComputePipeline, WebGPURenderPipeline, WebGPURequest,
     WebGPUResponse,
@@ -58,11 +58,7 @@ use crate::dom::gpubindgrouplayout::GPUBindGroupLayout;
 use crate::dom::gpubuffer::{ActiveBufferMapping, GPUBuffer};
 use crate::dom::gpucommandencoder::GPUCommandEncoder;
 use crate::dom::gpucomputepipeline::GPUComputePipeline;
-use crate::dom::gpuconvert::{
-    convert_address_mode, convert_blend_component, convert_compare_function, convert_filter_mode,
-    convert_label, convert_primitive_state, convert_stencil_op, convert_texture_format,
-    convert_texture_size, convert_vertex_format,
-};
+use crate::dom::gpuconvert::convert_label;
 use crate::dom::gpupipelinelayout::GPUPipelineLayout;
 use crate::dom::gpuqueue::GPUQueue;
 use crate::dom::gpurenderbundleencoder::GPURenderBundleEncoder;
@@ -198,7 +194,7 @@ impl GPUDevice {
         &self,
         format: &GPUTextureFormat,
     ) -> Fallible<TextureFormat> {
-        let texture_format = convert_texture_format(*format);
+        let texture_format: TextureFormat = (*format).into();
         if self
             .features
             .wgpu_features()
@@ -287,7 +283,7 @@ impl GPUDevice {
                                     .attributes
                                     .iter()
                                     .map(|att| wgt::VertexAttribute {
-                                        format: convert_vertex_format(att.format),
+                                        format: att.format.into(),
                                         offset: att.offset,
                                         shader_location: att.shaderLocation,
                                     })
@@ -326,12 +322,8 @@ impl GPUDevice {
                                                 ),
                                                 blend: state.blend.as_ref().map(|blend| {
                                                     wgt::BlendState {
-                                                        color: convert_blend_component(
-                                                            &blend.color,
-                                                        ),
-                                                        alpha: convert_blend_component(
-                                                            &blend.alpha,
-                                                        ),
+                                                        color: (&blend.color).into(),
+                                                        alpha: (&blend.alpha).into(),
                                                     }
                                                 }),
                                             })
@@ -342,7 +334,7 @@ impl GPUDevice {
                     })
                 })
                 .transpose()?,
-            primitive: convert_primitive_state(&descriptor.primitive),
+            primitive: (&descriptor.primitive).into(),
             depth_stencil: descriptor
                 .depthStencil
                 .as_ref()
@@ -351,25 +343,20 @@ impl GPUDevice {
                         .map(|format| wgt::DepthStencilState {
                             format,
                             depth_write_enabled: dss_desc.depthWriteEnabled,
-                            depth_compare: convert_compare_function(dss_desc.depthCompare),
+                            depth_compare: dss_desc.depthCompare.into(),
                             stencil: wgt::StencilState {
                                 front: wgt::StencilFaceState {
-                                    compare: convert_compare_function(
-                                        dss_desc.stencilFront.compare,
-                                    ),
-                                    fail_op: convert_stencil_op(dss_desc.stencilFront.failOp),
-                                    depth_fail_op: convert_stencil_op(
-                                        dss_desc.stencilFront.depthFailOp,
-                                    ),
-                                    pass_op: convert_stencil_op(dss_desc.stencilFront.passOp),
+                                    compare: dss_desc.stencilFront.compare.into(),
+
+                                    fail_op: dss_desc.stencilFront.failOp.into(),
+                                    depth_fail_op: dss_desc.stencilFront.depthFailOp.into(),
+                                    pass_op: dss_desc.stencilFront.passOp.into(),
                                 },
                                 back: wgt::StencilFaceState {
-                                    compare: convert_compare_function(dss_desc.stencilBack.compare),
-                                    fail_op: convert_stencil_op(dss_desc.stencilBack.failOp),
-                                    depth_fail_op: convert_stencil_op(
-                                        dss_desc.stencilBack.depthFailOp,
-                                    ),
-                                    pass_op: convert_stencil_op(dss_desc.stencilBack.passOp),
+                                    compare: dss_desc.stencilBack.compare.into(),
+                                    fail_op: dss_desc.stencilBack.failOp.into(),
+                                    depth_fail_op: dss_desc.stencilBack.depthFailOp.into(),
+                                    pass_op: dss_desc.stencilBack.passOp.into(),
                                 },
                                 read_mask: dss_desc.stencilReadMask,
                                 write_mask: dss_desc.stencilWriteMask,
@@ -780,7 +767,7 @@ impl GPUDeviceMethods for GPUDevice {
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createtexture>
     fn CreateTexture(&self, descriptor: &GPUTextureDescriptor) -> Fallible<DomRoot<GPUTexture>> {
-        let size = convert_texture_size(&descriptor.size)?;
+        let size = (&descriptor.size).try_into()?;
         let desc = wgpu_res::TextureDescriptor {
             label: convert_label(&descriptor.parent),
             size,
@@ -841,16 +828,18 @@ impl GPUDeviceMethods for GPUDevice {
         let desc = wgpu_res::SamplerDescriptor {
             label: convert_label(&descriptor.parent),
             address_modes: [
-                convert_address_mode(descriptor.addressModeU),
-                convert_address_mode(descriptor.addressModeV),
-                convert_address_mode(descriptor.addressModeW),
+                descriptor.addressModeU.into(),
+                descriptor.addressModeV.into(),
+                descriptor.addressModeW.into(),
             ],
-            mag_filter: convert_filter_mode(descriptor.magFilter),
-            min_filter: convert_filter_mode(descriptor.minFilter),
-            mipmap_filter: convert_filter_mode(descriptor.mipmapFilter),
+            mag_filter: descriptor.magFilter.into(),
+            min_filter: descriptor.minFilter.into(),
+            mipmap_filter: descriptor.mipmapFilter.into(),
             lod_min_clamp: *descriptor.lodMinClamp,
             lod_max_clamp: *descriptor.lodMaxClamp,
-            compare: descriptor.compare.map(convert_compare_function),
+            compare: descriptor
+                .compare
+                .map(|gpu_compare_function| gpu_compare_function.into()),
             anisotropy_clamp: 1,
             border_color: None,
         };

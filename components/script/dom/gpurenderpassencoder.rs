@@ -19,7 +19,6 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::gpubindgroup::GPUBindGroup;
 use crate::dom::gpubuffer::GPUBuffer;
 use crate::dom::gpucommandencoder::GPUCommandEncoder;
-use crate::dom::gpuconvert::convert_color;
 use crate::dom::gpurenderbundle::GPURenderBundle;
 use crate::dom::gpurenderpipeline::GPURenderPipeline;
 
@@ -132,7 +131,7 @@ impl GPURenderPassEncoderMethods for GPURenderPassEncoder {
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderpassencoder-setblendcolor>
     fn SetBlendConstant(&self, color: GPUColor) -> Fallible<()> {
-        self.send_render_command(RenderCommand::SetBlendConstant(convert_color(&color)?));
+        self.send_render_command(RenderCommand::SetBlendConstant((&color).try_into()?));
         Ok(())
     }
 

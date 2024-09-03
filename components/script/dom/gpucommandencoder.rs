@@ -4,10 +4,11 @@
 
 use dom_struct::dom_struct;
 use webgpu::wgc::command as wgpu_com;
+use webgpu::wgt::Color;
 use webgpu::{self, wgt, WebGPU, WebGPUComputePass, WebGPURenderPass, WebGPURequest};
 
 use super::bindings::error::Fallible;
-use super::gpuconvert::{convert_color, convert_label};
+use super::gpuconvert::convert_label;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUCommandBufferDescriptor, GPUCommandEncoderMethods, GPUComputePassDescriptor, GPUExtent3D,
@@ -20,9 +21,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::gpubuffer::GPUBuffer;
 use crate::dom::gpucommandbuffer::GPUCommandBuffer;
 use crate::dom::gpucomputepassencoder::GPUComputePassEncoder;
-use crate::dom::gpuconvert::{
-    convert_ic_buffer, convert_ic_texture, convert_load_op, convert_store_op, convert_texture_size,
-};
+use crate::dom::gpuconvert::{convert_load_op, convert_store_op};
 use crate::dom::gpudevice::GPUDevice;
 use crate::dom::gpurenderpassencoder::GPURenderPassEncoder;
 
@@ -152,7 +151,7 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
                     clear_value: color
                         .clearValue
                         .as_ref()
-                        .map(|color| convert_color(color))
+                        .map(|color| (color).try_into())
                         .transpose()?
                         .unwrap_or_default(),
                     read_only: false,
@@ -222,9 +221,9 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
             .0
             .send(WebGPURequest::CopyBufferToTexture {
                 command_encoder_id: self.encoder.0,
-                source: convert_ic_buffer(source),
-                destination: convert_ic_texture(destination)?,
-                copy_size: convert_texture_size(&copy_size)?,
+                source: source.into(),
+                destination: destination.try_into()?,
+                copy_size: (&copy_size).try_into()?,
             })
             .expect("Failed to send CopyBufferToTexture");
 
@@ -242,9 +241,9 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
             .0
             .send(WebGPURequest::CopyTextureToBuffer {
                 command_encoder_id: self.encoder.0,
-                source: convert_ic_texture(source)?,
-                destination: convert_ic_buffer(destination),
-                copy_size: convert_texture_size(&copy_size)?,
+                source: source.try_into()?,
+                destination: destination.into(),
+                copy_size: (&copy_size).try_into()?,
             })
             .expect("Failed to send CopyTextureToBuffer");
 
@@ -262,9 +261,9 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
             .0
             .send(WebGPURequest::CopyTextureToTexture {
                 command_encoder_id: self.encoder.0,
-                source: convert_ic_texture(source)?,
-                destination: convert_ic_texture(destination)?,
-                copy_size: convert_texture_size(&copy_size)?,
+                source: source.try_into()?,
+                destination: destination.try_into()?,
+                copy_size: (&copy_size).try_into()?,
             })
             .expect("Failed to send CopyTextureToTexture");
 
