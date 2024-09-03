@@ -10,8 +10,8 @@ use std::time::Instant;
 use egui::text::{CCursor, CCursorRange};
 use egui::text_edit::TextEditState;
 use egui::{
-    pos2, CentralPanel, Color32, Frame, Key, Label, Modifiers, PaintCallback, Pos2,
-    SelectableLabel, TopBottomPanel, Vec2,
+    pos2, CentralPanel, Frame, Key, Label, Modifiers, PaintCallback, Pos2, SelectableLabel,
+    TopBottomPanel, Vec2,
 };
 use egui_glow::CallbackFn;
 use egui_winit::EventResponse;
@@ -177,6 +177,8 @@ impl Minibrowser {
     ) -> Option<EmbedderEvent> {
         let old_item_spacing = ui.spacing().item_spacing;
         let old_visuals = ui.visuals().clone();
+        let active_bg_color = old_visuals.widgets.active.weak_bg_fill;
+        let inactive_bg_color = old_visuals.window_fill;
         ui.spacing_mut().item_spacing = egui::vec2(0.0, 0.0);
 
         let visuals = ui.visuals_mut();
@@ -185,12 +187,13 @@ impl Minibrowser {
         visuals.widgets.hovered.bg_stroke.width = 0.0;
         // Now we make sure the fill color is always the same, irrespective of state, that way
         // we can make sure that both the label and close button have the same background color
-        visuals.widgets.noninteractive.weak_bg_fill = egui::Color32::from_gray(40);
-        visuals.widgets.inactive.weak_bg_fill = visuals.widgets.noninteractive.weak_bg_fill;
-        visuals.widgets.hovered.weak_bg_fill = visuals.widgets.inactive.weak_bg_fill;
-        visuals.widgets.active.weak_bg_fill = visuals.widgets.hovered.weak_bg_fill;
-        visuals.selection.bg_fill = visuals.widgets.active.weak_bg_fill;
-        visuals.selection.stroke.color = egui::Color32::from_gray(255);
+        visuals.widgets.noninteractive.weak_bg_fill = inactive_bg_color;
+        visuals.widgets.inactive.weak_bg_fill = inactive_bg_color;
+        visuals.widgets.hovered.weak_bg_fill = active_bg_color;
+        visuals.widgets.active.weak_bg_fill = active_bg_color;
+        visuals.selection.bg_fill = active_bg_color;
+        visuals.selection.stroke.color = visuals.widgets.active.fg_stroke.color;
+        visuals.widgets.hovered.fg_stroke.color = visuals.widgets.active.fg_stroke.color;
 
         // Expansion would also show that they are 2 separate widgets
         visuals.widgets.active.expansion = 0.0;
@@ -227,9 +230,9 @@ impl Minibrowser {
         visuals.widgets.inactive.rounding = rounding;
 
         let fill_color = if selected || tab.hovered() {
-            egui::Color32::from_gray(40)
+            active_bg_color
         } else {
-            egui::Color32::from_gray(32)
+            inactive_bg_color
         };
 
         ui.spacing_mut().item_spacing = old_item_spacing;
@@ -276,7 +279,7 @@ impl Minibrowser {
             // when not displaying the URL bar: https://github.com/servo/servo/issues/32443
             if window.fullscreen().is_none() {
                 let frame = egui::Frame::default()
-                    .fill(Color32::from_gray(32))
+                    .fill(ctx.style().visuals.window_fill)
                     .inner_margin(4.0);
                 TopBottomPanel::top("toolbar").frame(frame).show(ctx, |ui| {
                     ui.allocate_ui_with_layout(
