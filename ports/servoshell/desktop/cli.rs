@@ -8,12 +8,41 @@ use getopts::Options;
 use log::error;
 use servo::config::opts::{self, ArgumentParsingResult};
 use servo::servo_config::pref;
+#[cfg(feature = "tracing")]
+use tracing::subscriber::set_global_default;
+#[cfg(feature = "tracing")]
+use tracing_perfetto::PerfettoLayer;
+#[cfg(feature = "tracing")]
+use tracing_subscriber::layer::SubscriberExt;
+#[cfg(feature = "tracing")]
+use tracing_subscriber::util::SubscriberInitExt;
+#[cfg(feature = "tracing")]
+use tracing_subscriber::EnvFilter;
 
 use crate::desktop::app::App;
 use crate::panic_hook;
 
 pub fn main() {
     crate::crash_handler::install();
+
+    #[cfg(feature = "tracing")]
+    {
+        let file = std::fs::File::create("servo.pftrace").unwrap();
+        let perfetto_layer = PerfettoLayer::new(std::sync::Mutex::new(file));
+
+        // Set up a custom tracing subscriber and PerfettoLayer for performance tracing.
+        // The servo.pftrace file can be uploaded to https://ui.perfetto.dev for analysis.
+        let env_filter_layer = EnvFilter::from_default_env();
+        let subscriber = tracing_subscriber::registry()
+            .with(env_filter_layer)
+            .with(perfetto_layer);
+
+        // Set the subscriber as the global default for tracing. This means it will be used
+        // throughout the entire program unless a thread-local subscriber is set.
+        // Can only be set once; subsequent attempts will fail.
+        // <https://docs.rs/tracing/0.1.40/src/tracing/subscriber.rs.html#30>
+        set_global_default(subscriber).expect("Failed to set global default subscriber");
+    }
 
     crate::resources::init();
 
