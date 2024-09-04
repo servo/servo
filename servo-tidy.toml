@@ -15,6 +15,7 @@ rand = [
     "quickcheck", # Only used in tests
     "servo_rand",
     "tungstenite",
+    "tracing-perfetto",
 ]
 
 [ignore]
@@ -64,8 +65,23 @@ packages = [
     "phf_generator",
     "phf_shared",
 
+    # petgraph uses old version
+    "fixedbitset",
+
+    # servo-media-audio uses old version
+    "petgraph",
+
     # icu (from mozjs) uses old version
+    # tracing-subscriber (tokio-rs/tracing#3033) uses old version
+    # regex -> regex-automata 0.4.7
+    # icu_list -> regex-automata 0.2.0
+    # tracing-subscriber -> matchers -> regex-automata 0.1.0
     "regex-automata",
+
+    # tracing-subscriber (tokio-rs/tracing#3033) uses old version
+    # regex [-> regex-automata 0.4.7] -> regex-syntax 0.8.4
+    # tracing-subscriber -> matchers -> regex-automata 0.1.0 -> regex-syntax 0.6.29
+    "regex-syntax",
 ]
 # Files that are ignored for all tidy and lint checks.
 files = [

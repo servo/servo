@@ -23,6 +23,7 @@
 .coverage
 .DS_Store
 Servo.app
+servo.pftrace
 .config.mk.last
 /glfw
 webrender-captures/
