@@ -107,6 +107,7 @@ pub fn init(
     waker: Box<dyn EventLoopWaker>,
     callbacks: Box<dyn HostTrait>,
 ) -> Result<(), &'static str> {
+    crate::init_tracing();
     resources::set(Box::new(ResourceReaderInstance::new()));
 
     if let Some(prefs) = init_opts.prefs {

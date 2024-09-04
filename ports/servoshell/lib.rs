@@ -39,17 +39,28 @@ pub fn main() {
     desktop::cli::main()
 }
 
-#[cfg(target_os = "android")]
-pub fn main() {
-    println!(
-        "Cannot start /ports/servoshell/ on Android. \
-                Use /support/android/apk/ + `libservoshell.so` instead"
-    );
-}
+pub fn init_tracing() {
+    #[cfg(feature = "tracing")]
+    {
+        let subscriber = tracing_subscriber::registry();
 
-#[cfg(target_env = "ohos")]
-pub fn main() {
-    println!("You shouldn't start /ports/servoshell/ on OpenHarmony.");
+        #[cfg(feature = "tracing-perfetto")]
+        let subscriber = {
+            use tracing_subscriber::layer::SubscriberExt;
+            // Set up a PerfettoLayer for performance tracing.
+            // The servo.pftrace file can be uploaded to https://ui.perfetto.dev for analysis.
+            let file = std::fs::File::create("servo.pftrace").unwrap();
+            let perfetto_layer = tracing_perfetto::PerfettoLayer::new(std::sync::Mutex::new(file));
+            subscriber.with(perfetto_layer)
+        };
+
+        // Same as SubscriberInitExt::init, but avoids initialising the tracing-log compat layer,
+        // since it would break Servo’s FromScriptLogger and FromCompositorLogger.
+        // <https://docs.rs/tracing-subscriber/0.3.18/tracing_subscriber/util/trait.SubscriberInitExt.html#method.init>
+        // <https://docs.rs/tracing/0.1.40/tracing/#consuming-log-records>
+        tracing::subscriber::set_global_default(subscriber)
+            .expect("Failed to set tracing subscriber");
+    }
 }
 
 pub fn servo_version() -> String {

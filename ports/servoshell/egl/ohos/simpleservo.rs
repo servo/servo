@@ -40,6 +40,7 @@ pub fn init(
     callbacks: Box<dyn HostTrait>,
 ) -> Result<ServoGlue, &'static str> {
     info!("Entered simpleservo init function");
+    crate::init_tracing();
     resources::set(Box::new(ResourceReaderInstance::new()));
 
     gl.clear_color(1.0, 1.0, 1.0, 1.0);
