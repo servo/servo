@@ -61,9 +61,9 @@ jobs:
       unique-id: ${{ steps.select.outputs.unique_id }}
       selected-runner-label: ${{ steps.select.outputs.selected_runner_label }}
       is-self-hosted: ${{ steps.select.outputs.is_self_hosted }}
-    concurrency:
-      group: servo-reserve-self-hosted-runner
-      cancel-in-progress: false
+    #concurrency:
+    #  group: servo-reserve-self-hosted-runner
+    #  cancel-in-progress: false
     permissions: write-all
     steps:
       - name: Select and reserve best available runner
@@ -82,6 +82,9 @@ jobs:
             echo 'is_self_hosted=false' | tee -a $GITHUB_OUTPUT
             exit 0
           }
+
+          echo 'forced github hosted runners!'
+          fall_back_to_github_hosted
 
           # Generate a unique id that allows the workload job to find the runner
           # we are reserving for it (via runner labels), and allows the timeout
