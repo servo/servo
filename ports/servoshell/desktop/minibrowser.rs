@@ -366,6 +366,7 @@ impl Minibrowser {
                             if let Some(event) =
                                 Self::browser_tab(ui, label, webview.focused, webview_id)
                             {
+                                location_dirty.set(false);
                                 embedder_events.push(event);
                             }
                         }
@@ -523,6 +524,7 @@ impl Minibrowser {
                     app_event_queue.push(EmbedderEvent::Reload(browser_id));
                 },
                 MinibrowserEvent::NewWebView => {
+                    self.location_dirty.set(false);
                     let url = ServoUrl::parse("servo:newtab").unwrap();
                     app_event_queue.push(EmbedderEvent::NewWebView(url, WebViewId::new()));
                 },
