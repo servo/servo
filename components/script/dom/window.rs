@@ -13,7 +13,7 @@ use std::rc::Rc;
 use std::sync::atomic::Ordering;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
-use std::{cmp, env, mem};
+use std::{cmp, env};
 
 use app_units::Au;
 use backtrace::Backtrace;
@@ -216,9 +216,9 @@ pub struct Window {
     #[no_trace]
     devtools_marker_sender: DomRefCell<Option<IpcSender<Option<TimelineMarker>>>>,
 
-    /// Pending resize events, if any.
+    /// Most recent unhandled resize event, if any.
     #[no_trace]
-    resize_events: DomRefCell<Vec<(WindowSizeData, WindowSizeType)>>,
+    unhandled_resize_event: DomRefCell<Option<(WindowSizeData, WindowSizeType)>>,
 
     /// Parent id associated with this page, if any.
     #[no_trace]
@@ -2339,11 +2339,13 @@ impl Window {
     }
 
     pub fn add_resize_event(&self, event: WindowSizeData, event_type: WindowSizeType) {
-        self.resize_events.borrow_mut().push((event, event_type));
+        // Whenever we receive a new resize event we forget about all the ones that came before
+        // it, to avoid unnecessary relayouts
+        *self.unhandled_resize_event.borrow_mut() = Some((event, event_type))
     }
 
-    pub fn steal_resize_events(&self) -> Vec<(WindowSizeData, WindowSizeType)> {
-        mem::take(&mut self.resize_events.borrow_mut())
+    pub fn take_unhandled_resize_event(&self) -> Option<(WindowSizeData, WindowSizeType)> {
+        self.unhandled_resize_event.borrow_mut().take()
     }
 
     pub fn set_page_clip_rect_with_new_viewport(&self, viewport: UntypedRect<f32>) -> bool {
@@ -2615,7 +2617,7 @@ impl Window {
             bluetooth_thread,
             bluetooth_extra_permission_data: BluetoothExtraPermissionData::new(),
             page_clip_rect: Cell::new(MaxRect::max_rect()),
-            resize_events: Default::default(),
+            unhandled_resize_event: Default::default(),
             window_size: Cell::new(window_size),
             current_viewport: Cell::new(initial_viewport.to_untyped()),
             suppress_reflow: Cell::new(true),
