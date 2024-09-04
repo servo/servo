@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::future::Future;
+use std::future::{ready, Future};
 use std::pin::Pin;
 
 use data_url::forgiving_base64;
-use headers::{ContentType, HeaderMapExt};
+use headers::{ContentType, HeaderMapExt, Range};
 use http::StatusCode;
 use mime::Mime;
 use net_traits::request::Request;
@@ -16,6 +16,7 @@ use percent_encoding::percent_decode;
 use servo_url::ServoUrl;
 use url::Position;
 
+use super::{get_range_request_bounds, partial_content, range_not_satisfiable_error};
 use crate::fetch::methods::{DoneChannel, FetchContext};
 use crate::protocols::ProtocolHandler;
 
@@ -82,10 +83,33 @@ impl ProtocolHandler for DataProtocolHander {
             Ok((mime, bytes)) => {
                 let mut response =
                     Response::new(url, ResourceFetchTiming::new(request.timing_type()));
-                *response.body.lock().unwrap() = ResponseBody::Done(bytes);
+
+                let range_header = request.headers.typed_get::<Range>();
+                let response_body = if range_header.is_some() {
+                    let Ok(range) =
+                        get_range_request_bounds(range_header).get_final(Some(bytes.len() as u64))
+                    else {
+                        range_not_satisfiable_error(&mut response);
+                        return Box::pin(ready(response));
+                    };
+
+                    partial_content(&mut response);
+
+                    let range_data = &bytes[range.to_abs_range(bytes.len())];
+                    if range_data.len() == bytes.len() {
+                        ResponseBody::Done(bytes)
+                    } else {
+                        ResponseBody::Done(range_data.into())
+                    }
+                } else {
+                    response.status = Some((StatusCode::OK, "OK".to_string()));
+                    response.raw_status = Some((StatusCode::OK.as_u16(), b"OK".to_vec()));
+
+                    ResponseBody::Done(bytes)
+                };
+
+                *response.body.lock().unwrap() = response_body;
                 response.headers.typed_insert(ContentType::from(mime));
-                response.status = Some((StatusCode::OK, "OK".to_string()));
-                response.raw_status = Some((StatusCode::OK.as_u16(), b"OK".to_vec()));
                 response
             },
             Err(_) => {

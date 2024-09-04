@@ -4,7 +4,7 @@
 
 use std::ops::Deref;
 
-use headers::{ContentType, HeaderMapExt};
+use headers::{ContentType, HeaderMapExt, Range};
 use hyper_serde::Serde;
 use mime::{self, Mime};
 use net_traits::request::{Origin, Referrer, Request};
@@ -20,7 +20,10 @@ fn assert_parse(
     content_type: Option<ContentType>,
     charset: Option<&str>,
     data: Option<&[u8]>,
+    range: Option<Range>,
 ) {
+    use http::StatusCode;
+
     let url = ServoUrl::parse(url).unwrap();
     let origin = Origin::Origin(url.origin());
     let mut request = Request::new(
@@ -30,6 +33,12 @@ fn assert_parse(
         None,
         HttpsState::None,
     );
+    let is_range_request = if let Some(range) = range {
+        request.headers.typed_insert(range);
+        true
+    } else {
+        false
+    };
 
     let response = fetch(&mut request, None);
 
@@ -40,6 +49,12 @@ fn assert_parse(
 
             let header_content_type = response.headers.typed_get::<ContentType>();
             assert_eq!(header_content_type, content_type);
+            if is_range_request {
+                assert_eq!(
+                    response.status,
+                    Some((StatusCode::PARTIAL_CONTENT, "Partial Content".to_owned()))
+                );
+            }
 
             let metadata = match response.metadata() {
                 Ok(FetchMetadata::Filtered {
@@ -60,20 +75,31 @@ fn assert_parse(
             }
         },
         None => {
-            assert!(response.is_network_error());
-            assert_eq!(
-                response.metadata().err(),
-                Some(NetworkError::Internal(
-                    "Decoding data URL failed".to_owned()
-                ))
-            );
+            if is_range_request {
+                assert!(!response.is_network_error());
+                assert_eq!(
+                    response.actual_response().status,
+                    Some((
+                        StatusCode::RANGE_NOT_SATISFIABLE,
+                        "Range Not Satisfiable".to_owned()
+                    ))
+                );
+            } else {
+                assert!(response.is_network_error());
+                assert_eq!(
+                    response.metadata().err(),
+                    Some(NetworkError::Internal(
+                        "Decoding data URL failed".to_owned()
+                    ))
+                );
+            }
         },
     }
 }
 
 #[test]
 fn empty_invalid() {
-    assert_parse("data:", None, None, None);
+    assert_parse("data:", None, None, None, None);
 }
 
 #[test]
@@ -85,6 +111,7 @@ fn plain() {
         )),
         Some("us-ascii"),
         Some(b"hello world"),
+        None,
     );
 }
 
@@ -95,6 +122,29 @@ fn plain_ct() {
         Some(ContentType::from(mime::TEXT_PLAIN)),
         None,
         Some(b"hello"),
+        None,
+    );
+}
+
+#[test]
+fn plain_ct_range() {
+    assert_parse(
+        "data:text/plain,hello%20world",
+        Some(ContentType::from(mime::TEXT_PLAIN)),
+        None,
+        Some(b"world"),
+        Some(Range::bytes(6..).unwrap()),
+    );
+}
+
+#[test]
+fn plain_ct_range_invalid() {
+    assert_parse(
+        "data:text/plain,hello%20world",
+        Some(ContentType::from(mime::TEXT_PLAIN)),
+        None,
+        None,
+        Some(Range::bytes(100..).unwrap()),
     );
 }
 
@@ -105,6 +155,7 @@ fn plain_html() {
         Some(ContentType::from(mime::TEXT_HTML)),
         None,
         Some(b"<p>Servo</p>"),
+        None,
     );
 }
 
@@ -117,6 +168,7 @@ fn plain_charset() {
         )),
         Some("latin1"),
         Some(b"hello"),
+        None,
     );
 }
 
@@ -127,6 +179,7 @@ fn plain_only_charset() {
         Some(ContentType::from(mime::TEXT_PLAIN_UTF_8)),
         Some("utf-8"),
         Some(b"hello"),
+        None,
     );
 }
 
@@ -139,6 +192,7 @@ fn base64() {
         )),
         Some("us-ascii"),
         Some(&[0x0B, 0xAD, 0xBE, 0xEF]),
+        None,
     );
 }
 
@@ -149,6 +203,7 @@ fn base64_ct() {
         Some(ContentType::from(mime::APPLICATION_OCTET_STREAM)),
         None,
         Some(&[0x0B, 0xAD, 0xBE, 0xEF]),
+        None,
     );
 }
 
@@ -163,5 +218,6 @@ fn base64_charset() {
         Some(&[
             0xF0, 0xF2, 0xE5, 0xF7, 0xE5, 0xE4, 0x20, 0xED, 0xE5, 0xE4, 0xF7, 0xE5, 0xE4,
         ]),
+        None,
     );
 }
