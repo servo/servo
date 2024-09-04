@@ -61,20 +61,18 @@ jobs:
       unique-id: ${{ steps.select.outputs.unique_id }}
       selected-runner-label: ${{ steps.select.outputs.selected_runner_label }}
       is-self-hosted: ${{ steps.select.outputs.is_self_hosted }}
-    #concurrency:
-    #  group: servo-reserve-self-hosted-runner
-    #  cancel-in-progress: false
-    permissions: write-all
     steps:
       - name: Select and reserve best available runner
         id: select
         # Set the variables below to your desired runner images, runner scope
-        # (org or repo), and a token with permission to write to that scope.
+        # (org or repo), and monitor API URL.
         run: |
           github_hosted_runner_label=windows-2022
-          self_hosted_image_label=self-hosted-image:windows10
+          self_hosted_image_name=servo-windows10
           self_hosted_runner_scope=/orgs/${{ github.repository_owner }}/actions/runners
-          export GH_TOKEN=${{ secrets.RUNNER_API_TOKEN }}
+          monitor_api_base_url=https://ci0.servo.org
+
+          set -euo pipefail
 
           fall_back_to_github_hosted() {
             echo 'Falling back to GitHub-hosted runner'
@@ -82,9 +80,6 @@ jobs:
             echo 'is_self_hosted=false' | tee -a $GITHUB_OUTPUT
             exit 0
           }
-
-          echo 'forced github hosted runners!'
-          fall_back_to_github_hosted
 
           # Generate a unique id that allows the workload job to find the runner
           # we are reserving for it (via runner labels), and allows the timeout
@@ -101,37 +96,20 @@ jobs:
             fall_back_to_github_hosted
           fi
 
-          # RUNNER_API_TOKEN secret will be unavailable in forks.
-          if [ -z "$GH_TOKEN" ]; then
-            echo 'RUNNER_API_TOKEN not set!'
-            fall_back_to_github_hosted
-          fi
-
-          runners=$(mktemp)
-          gh api "$self_hosted_runner_scope" > $runners
-
-          # Find a runner that is online, not busy, and not already reserved for
-          # any job (label prefix “reserved-for:”).
-          runner_id=$(mktemp)
-          if ! < $runners > $runner_id jq \
-            --arg self_hosted_image_label "$self_hosted_image_label" -e '
-              .runners
-              | map(select(.status == "online" and .busy == false))
-              | map(select([.labels[].name] | index($self_hosted_image_label) | not | not))
-              | map(select([.labels[].name] | map(startswith("reserved-for:")) | index(true) | not))
-              | first | .id'; then
+          # Use the monitor API to reserve a runner. If we get an object with
+          # runner details, we succeeded. If we get null, we failed.
+          take_runner_url=$monitor_api_base_url/$self_hosted_image_name/$unique_id/${{ github.repository }}/${{ github.run_id }}
+          echo
+          echo POST "$take_runner_url"
+          if ! curl -fsS --max-time 10 -X POST "$take_runner_url" \
+              -H 'Authorization: Bearer ${{ secrets.SERVO_CI_MONITOR_API_TOKEN }}' \
+              | jq -e; then
+            echo
             echo 'No self-hosted runners available!'
             fall_back_to_github_hosted
           fi
 
-          # Reserve that runner by adding a label containing the unique id.
-          # Job concurrency ensures that runners never get assigned twice.
-          reserved_since=$(date +\%s)
-          gh api "$self_hosted_runner_scope/$(cat $runner_id)/labels" \
-            -f "labels[]=reserved-for:$unique_id" \
-            -f "labels[]=reserved-since:$reserved_since" \
-            -f 'labels[]=reserved-by:${{ github.repository }}/actions/runs/${{ github.run_id }}' \
-            --method POST --silent
+          echo
           echo "selected_runner_label=reserved-for:$unique_id" | tee -a $GITHUB_OUTPUT
           echo 'is_self_hosted=true' | tee -a $GITHUB_OUTPUT
 
