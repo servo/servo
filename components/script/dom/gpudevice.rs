@@ -6,7 +6,6 @@
 
 use std::borrow::Cow;
 use std::cell::Cell;
-use std::collections::HashMap;
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
@@ -246,12 +245,12 @@ impl GPUDevice {
         }
     }
 
-    fn parse_render_pipeline(
+    fn parse_render_pipeline<'a>(
         &self,
         descriptor: &GPURenderPipelineDescriptor,
     ) -> Fallible<(
         Option<(PipelineLayoutId, Vec<BindGroupLayoutId>)>,
-        RenderPipelineDescriptor<'static>,
+        RenderPipelineDescriptor<'a>,
     )> {
         let (layout, implicit_ids, _) = self.get_pipeline_layout_data(&descriptor.parent.layout);
 
@@ -260,17 +259,7 @@ impl GPUDevice {
             layout,
             cache: None,
             vertex: wgpu_pipe::VertexState {
-                stage: wgpu_pipe::ProgrammableStageDescriptor {
-                    module: descriptor.vertex.parent.module.id().0,
-                    entry_point: descriptor
-                        .vertex
-                        .parent
-                        .entryPoint
-                        .as_ref()
-                        .map(|ep| Cow::Owned(ep.to_string())),
-                    constants: Cow::Owned(HashMap::new()),
-                    zero_initialize_workgroup_memory: true,
-                },
+                stage: (&descriptor.vertex.parent).into(),
                 buffers: Cow::Owned(
                     descriptor
                         .vertex
@@ -302,16 +291,7 @@ impl GPUDevice {
                 .as_ref()
                 .map(|stage| -> Fallible<wgpu_pipe::FragmentState> {
                     Ok(wgpu_pipe::FragmentState {
-                        stage: wgpu_pipe::ProgrammableStageDescriptor {
-                            module: stage.parent.module.id().0,
-                            entry_point: stage
-                                .parent
-                                .entryPoint
-                                .as_ref()
-                                .map(|ep| Cow::Owned(ep.to_string())),
-                            constants: Cow::Owned(HashMap::new()),
-                            zero_initialize_workgroup_memory: true,
-                        },
+                        stage: (&stage.parent).into(),
                         targets: Cow::Owned(
                             stage
                                 .targets
@@ -670,16 +650,7 @@ impl GPUDeviceMethods for GPUDevice {
         let desc = wgpu_pipe::ComputePipelineDescriptor {
             label: convert_label(&descriptor.parent.parent),
             layout,
-            stage: wgpu_pipe::ProgrammableStageDescriptor {
-                module: descriptor.compute.module.id().0,
-                entry_point: descriptor
-                    .compute
-                    .entryPoint
-                    .as_ref()
-                    .map(|ep| Cow::Owned(ep.to_string())),
-                constants: Cow::Owned(HashMap::new()),
-                zero_initialize_workgroup_memory: true,
-            },
+            stage: (&descriptor.compute).into(),
             cache: None,
         };
 
@@ -721,16 +692,7 @@ impl GPUDeviceMethods for GPUDevice {
         let desc = wgpu_pipe::ComputePipelineDescriptor {
             label: convert_label(&descriptor.parent.parent),
             layout,
-            stage: wgpu_pipe::ProgrammableStageDescriptor {
-                module: descriptor.compute.module.id().0,
-                entry_point: descriptor
-                    .compute
-                    .entryPoint
-                    .as_ref()
-                    .map(|ep| Cow::Owned(ep.to_string())),
-                constants: Cow::Owned(HashMap::new()),
-                zero_initialize_workgroup_memory: true,
-            },
+            stage: (&descriptor.compute).into(),
             cache: None,
         };
 
