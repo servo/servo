@@ -6,6 +6,7 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSharedMemory;
+use webgpu::wgt::Extent3d;
 use webgpu::{wgt, WebGPU, WebGPUQueue, WebGPURequest, WebGPUResponse};
 
 use super::bindings::codegen::Bindings::WebGPUBinding::{GPUImageCopyTexture, GPUImageDataLayout};
@@ -22,7 +23,6 @@ use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::gpubuffer::GPUBuffer;
 use crate::dom::gpucommandbuffer::GPUCommandBuffer;
-use crate::dom::gpuconvert::{convert_ic_texture, convert_image_data_layout, convert_texture_size};
 use crate::dom::gpudevice::GPUDevice;
 use crate::dom::promise::Promise;
 
@@ -163,9 +163,9 @@ impl GPUQueueMethods for GPUQueue {
             return Err(Error::Operation);
         }
 
-        let texture_cv = convert_ic_texture(destination)?;
-        let texture_layout = convert_image_data_layout(data_layout);
-        let write_size = convert_texture_size(&size)?;
+        let texture_cv = destination.try_into()?;
+        let texture_layout = data_layout.into();
+        let write_size = (&size).try_into()?;
         let final_data = IpcSharedMemory::from_bytes(&bytes);
 
         if let Err(e) = self.channel.0.send(WebGPURequest::WriteTexture {

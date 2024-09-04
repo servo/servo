@@ -19,7 +19,7 @@ use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::gpuconvert::{convert_label, convert_texture_view_dimension};
+use crate::dom::gpuconvert::convert_label;
 use crate::dom::gpudevice::GPUDevice;
 use crate::dom::gputextureview::GPUTextureView;
 
@@ -155,7 +155,7 @@ impl GPUTextureMethods for GPUTexture {
                     .format
                     .map(|f| self.device.validate_texture_format_required_features(&f))
                     .transpose()?,
-                dimension: descriptor.dimension.map(convert_texture_view_dimension),
+                dimension: descriptor.dimension.map(|dimension| dimension.into()),
                 range: wgt::ImageSubresourceRange {
                     aspect: match descriptor.aspect {
                         GPUTextureAspect::All => wgt::TextureAspect::All,
