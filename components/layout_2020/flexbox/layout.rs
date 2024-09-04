@@ -361,13 +361,11 @@ impl FlexContainer {
                     // columns, and sum the column sizes and gaps.
                     // TODO: Use the proper automatic minimum size.
                     let ifc = &mut item.independent_formatting_context;
-                    content_sizes.max_assign(ifc.inline_content_sizes(
+                    content_sizes.max_assign(ifc.outer_inline_content_sizes(
                         layout_context,
-                        &containing_block_for_children.new_for_intrinsic_inline_size_of_child(
-                            &ifc.style().clone(),
-                            &LogicalVec2::zero(),
-                        ),
                         containing_block_for_children,
+                        &LogicalVec2::zero(),
+                        false, /* auto_block_size_stretches_to_containing_block */
                     ));
                 },
                 FlexLevelBox::OutOfFlowAbsolutelyPositionedBox(_) => {},
