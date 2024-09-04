@@ -94,6 +94,8 @@ mod webdriver_handlers;
 #[warn(deprecated)]
 mod window_named_properties;
 
+mod link_relations;
+
 pub use init::init;
 pub use script_runtime::JSEngineSetup;
 

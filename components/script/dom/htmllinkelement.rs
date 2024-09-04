@@ -17,7 +17,6 @@ use servo_atoms::Atom;
 use style::attr::AttrValue;
 use style::media_queries::MediaList;
 use style::parser::ParserContext as CssParserContext;
-use style::str::HTML_SPACE_CHARACTERS;
 use style::stylesheets::{CssRuleType, Origin, Stylesheet, UrlExtraData};
 use style_traits::ParsingMode;
 
@@ -42,6 +41,7 @@ use crate::dom::node::{
 };
 use crate::dom::stylesheet::StyleSheet as DOMStyleSheet;
 use crate::dom::virtualmethods::VirtualMethods;
+use crate::link_relations::LinkRelations;
 use crate::stylesheet_loader::{StylesheetContextSource, StylesheetLoader, StylesheetOwner};
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
@@ -56,7 +56,17 @@ impl RequestGenerationId {
 #[dom_struct]
 pub struct HTMLLinkElement {
     htmlelement: HTMLElement,
+    /// The relations as specified by the "rel" attribute
     rel_list: MutNullableDom<DOMTokenList>,
+
+    /// The link relations as they are used in practice.
+    ///
+    /// The reason this is seperate from [HTMLLinkElement::rel_list] is that
+    /// a literal list is a bit unwieldy and that there are corner cases to consider
+    /// (Like `rev="made"` implying an author relationship that is not represented in rel_list)
+    #[no_trace]
+    relations: Cell<LinkRelations>,
+
     #[ignore_malloc_size_of = "Arc"]
     #[no_trace]
     stylesheet: DomRefCell<Option<Arc<Stylesheet>>>,
@@ -83,6 +93,7 @@ impl HTMLLinkElement {
         HTMLLinkElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             rel_list: Default::default(),
+            relations: Cell::new(LinkRelations::empty()),
             parser_inserted: Cell::new(creator.is_parser_created()),
             stylesheet: DomRefCell::new(None),
             cssom_stylesheet: MutNullableDom::new(None),
@@ -146,13 +157,7 @@ impl HTMLLinkElement {
     }
 
     pub fn is_alternate(&self) -> bool {
-        let rel = get_attr(self.upcast(), &local_name!("rel"));
-        match rel {
-            Some(ref value) => value
-                .split(HTML_SPACE_CHARACTERS)
-                .any(|s| s.eq_ignore_ascii_case("alternate")),
-            None => false,
-        }
+        self.relations.get().contains(LinkRelations::ALTERNATE)
     }
 
     fn clean_stylesheet_ownership(&self) {
@@ -171,27 +176,6 @@ fn get_attr(element: &Element, local_name: &LocalName) -> Option<String> {
     })
 }
 
-fn string_is_stylesheet(value: &Option<String>) -> bool {
-    match *value {
-        Some(ref value) => value
-            .split(HTML_SPACE_CHARACTERS)
-            .any(|s| s.eq_ignore_ascii_case("stylesheet")),
-        None => false,
-    }
-}
-
-/// Favicon spec usage in accordance with CEF implementation:
-/// only url of icon is required/used
-/// <https://html.spec.whatwg.org/multipage/#rel-icon>
-fn is_favicon(value: &Option<String>) -> bool {
-    match *value {
-        Some(ref value) => value
-            .split(HTML_SPACE_CHARACTERS)
-            .any(|s| s.eq_ignore_ascii_case("icon") || s.eq_ignore_ascii_case("apple-touch-icon")),
-        None => false,
-    }
-}
-
 impl VirtualMethods for HTMLLinkElement {
     fn super_type(&self) -> Option<&dyn VirtualMethods> {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
@@ -203,25 +187,24 @@ impl VirtualMethods for HTMLLinkElement {
             return;
         }
 
-        let rel = get_attr(self.upcast(), &local_name!("rel"));
         match *attr.local_name() {
+            local_name!("rel") | local_name!("rev") => {
+                self.relations
+                    .set(LinkRelations::for_element(self.upcast()));
+            },
             local_name!("href") => {
-                if string_is_stylesheet(&rel) {
+                if self.relations.get().contains(LinkRelations::STYLESHEET) {
                     self.handle_stylesheet_url(&attr.value());
-                } else if is_favicon(&rel) {
+                }
+
+                if self.relations.get().contains(LinkRelations::ICON) {
                     let sizes = get_attr(self.upcast(), &local_name!("sizes"));
-                    self.handle_favicon_url(rel.as_ref().unwrap(), &attr.value(), &sizes);
+                    self.handle_favicon_url(&attr.value(), &sizes);
                 }
             },
-            local_name!("sizes") => {
-                if is_favicon(&rel) {
-                    if let Some(ref href) = get_attr(self.upcast(), &local_name!("href")) {
-                        self.handle_favicon_url(
-                            rel.as_ref().unwrap(),
-                            href,
-                            &Some(attr.value().to_string()),
-                        );
-                    }
+            local_name!("sizes") if self.relations.get().contains(LinkRelations::ICON) => {
+                if let Some(ref href) = get_attr(self.upcast(), &local_name!("href")) {
+                    self.handle_favicon_url(href, &Some(attr.value().to_string()));
                 }
             },
             _ => {},
@@ -243,19 +226,20 @@ impl VirtualMethods for HTMLLinkElement {
             s.bind_to_tree(context);
         }
 
+        self.relations.set(LinkRelations::for_element(self.upcast()));
+
         if context.tree_connected {
             let element = self.upcast();
 
-            let rel = get_attr(element, &local_name!("rel"));
             let href = get_attr(element, &local_name!("href"));
-            let sizes = get_attr(self.upcast(), &local_name!("sizes"));
 
             match href {
-                Some(ref href) if string_is_stylesheet(&rel) => {
+                Some(ref href) if self.relations.get().contains(LinkRelations::STYLESHEET) => {
                     self.handle_stylesheet_url(href);
                 },
-                Some(ref href) if is_favicon(&rel) => {
-                    self.handle_favicon_url(rel.as_ref().unwrap(), href, &sizes);
+                Some(ref href) if self.relations.get().contains(LinkRelations::ICON) => {
+                    let sizes = get_attr(self.upcast(), &local_name!("sizes"));
+                    self.handle_favicon_url(href, &sizes);
                 },
                 _ => {},
             }
@@ -348,7 +332,7 @@ impl HTMLLinkElement {
         );
     }
 
-    fn handle_favicon_url(&self, _rel: &str, href: &str, _sizes: &Option<String>) {
+    fn handle_favicon_url(&self, href: &str, _sizes: &Option<String>) {
         let document = document_from_node(self);
         match document.base_url().join(href) {
             Ok(url) => {
