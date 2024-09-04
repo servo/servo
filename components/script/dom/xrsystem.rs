@@ -187,8 +187,6 @@ impl XRSystemMethods for XRSystem {
         let mut optional_features = vec![];
         let cx = GlobalScope::get_cx();
 
-        // We are supposed to include "viewer" and on immersive devices "local"
-        // by default here, but this is handled directly in requestReferenceSpace()
         if let Some(ref r) = init.requiredFeatures {
             for feature in r {
                 unsafe {
@@ -220,6 +218,14 @@ impl XRSystemMethods for XRSystem {
                     }
                 }
             }
+        }
+
+        if !required_features.contains(&"viewer".to_string()) {
+            required_features.push("viewer".to_string());
+        }
+
+        if !required_features.contains(&"local".to_string()) && mode != XRSessionMode::Inline {
+            required_features.push("local".to_string());
         }
 
         let init = SessionInit {
