@@ -26,6 +26,8 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::types::DOMException;
 use crate::script_runtime::JSContext;
 
+use super::bindings::weakref::WeakRef;
+
 #[derive(JSTraceable, MallocSizeOf)]
 pub enum AbortAlgorithm {
     RemoveEventListener(
@@ -51,6 +53,10 @@ pub struct AbortSignal {
     #[ignore_malloc_size_of = "Defined in rust-mozjs"]
     reason: Heap<JSVal>,
     abort_algorithms: DomRefCell<Vec<AbortAlgorithm>>,
+
+    source_signals: Vec<WeakRef<AbortSignal>>,
+    dependent_signals: Vec<WeakRef<AbortSignal>>,
+    dependent: bool,
 }
 
 impl AbortSignal {
@@ -59,11 +65,48 @@ impl AbortSignal {
             event_target: EventTarget::new_inherited(),
             reason: Heap::default(),
             abort_algorithms: DomRefCell::default(),
+            source_signals: Vec::default(),
+            dependent_signals: Vec::default(),
+            dependent: false,
         }
     }
     pub fn new(global: &GlobalScope) -> DomRoot<Self> {
         reflect_dom_object(Box::new(Self::new_inherited()), global)
     }
+    // https://dom.spec.whatwg.org/#create-a-dependent-abort-signal
+    fn create_dependent_signal(global: &GlobalScope, mut signals: Vec<DomRoot<Self>>) -> DomRoot<Self> {
+        let mut result_signal = Self::new_inherited(); // 1
+        for signal in &signals { // 2
+            if signal.Aborted() {
+                result_signal.reason = signal.reason;
+                return reflect_dom_object(Box::new(result_signal), global);
+            }
+        }
+        result_signal.dependent = true; // 3
+        for signal in &mut signals { // 4
+            if signal.dependent { // 4.2
+                for source_signal in &signal.source_signals {
+                    // ignore dropped source signals
+                    if let Some(source_signal) = source_signal.root() {
+                        // 4.2.1
+                        assert!(!source_signal.Aborted());
+                        assert!(!source_signal.dependent);
+                        // 4.2.2
+                        result_signal.source_signals.push(WeakRef::new(&source_signal));
+                        // 4.2.3
+                        source_signal.dependent_signals.push(WeakRef::new(&result_signal));
+                    }
+                }
+            } else { // 4.1
+                // 4.1.1
+                result_signal.source_signals.push(WeakRef::new(signal));
+                // 4.1.2
+                signal.dependent_signals.push(WeakRef::new(&result_signal));
+            }
+        }
+        todo!()
+    }
+
     /// <https://dom.spec.whatwg.org/#abortsignal-add>
     pub fn add_abort_algorithm(&self, alg: AbortAlgorithm) {
         if !self.Aborted() {

@@ -21,6 +21,7 @@ interface Request {
   readonly attribute RequestCache cache;
   readonly attribute RequestRedirect redirect;
   readonly attribute DOMString integrity;
+  readonly attribute AbortSignal signal;
 
   [NewObject, Throws] Request clone();
 };
@@ -38,6 +39,7 @@ dictionary RequestInit {
   RequestCache cache;
   RequestRedirect redirect;
   DOMString integrity;
+  AbortSignal? signal;
   any window; // can only be set to null
 };
 

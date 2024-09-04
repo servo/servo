@@ -40,6 +40,8 @@ use crate::dom::promise::Promise;
 use crate::dom::readablestream::ReadableStream;
 use crate::script_runtime::JSContext as SafeJSContext;
 
+use super::abortsignal::AbortSignal;
+
 #[dom_struct]
 pub struct Request {
     reflector_: Reflector,
@@ -47,6 +49,7 @@ pub struct Request {
     request: DomRefCell<NetTraitsRequest>,
     body_stream: MutNullableDom<ReadableStream>,
     headers: MutNullableDom<Headers>,
+    signal: MutNullableDom<AbortSignal>,
 }
 
 impl Request {
@@ -56,6 +59,7 @@ impl Request {
             request: DomRefCell::new(net_request_from_global(global, url)),
             body_stream: MutNullableDom::new(None),
             headers: Default::default(),
+            signal: Default::default(),
         }
     }
 
@@ -640,6 +644,11 @@ impl RequestMethods for Request {
     // https://fetch.spec.whatwg.org/#dom-body-arraybuffer
     fn ArrayBuffer(&self) -> Rc<Promise> {
         consume_body(self, BodyType::ArrayBuffer)
+    }
+
+    // https://fetch.spec.whatwg.org/#dom-request-signal
+    fn Signal(&self) -> DomRoot<AbortSignal> {
+        todo!()
     }
 }
 
