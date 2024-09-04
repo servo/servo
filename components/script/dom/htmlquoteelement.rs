@@ -6,7 +6,9 @@ use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use js::rust::HandleObject;
 
+use crate::dom::bindings::codegen::Bindings::HTMLQuoteElementBinding::HTMLQuoteElementMethods;
 use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::str::USVString;
 use crate::dom::document::Document;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::Node;
@@ -42,4 +44,12 @@ impl HTMLQuoteElement {
             proto,
         )
     }
+}
+
+impl HTMLQuoteElementMethods for HTMLQuoteElement {
+    // https://html.spec.whatwg.org/multipage/#dom-quote-cite
+    make_url_getter!(Cite, "cite");
+
+    // https://html.spec.whatwg.org/multipage/#dom-quote-cite
+    make_url_setter!(SetCite, "cite");
 }
