@@ -59,10 +59,6 @@ on:
 env:
   RUST_BACKTRACE: 1
   SHELL: /bin/bash
-  # SCCACHE_GHA_ENABLED: "true"
-  # RUSTC_WRAPPER: "sccache"
-  # CCACHE: "sccache"
-  # CARGO_INCREMENTAL: 0
 
 jobs:
   # Runs the underlying job (“workload”) on a self-hosted runner if available,
@@ -91,6 +87,13 @@ jobs:
     # runners which still use 20.04.
     runs-on: ${{ needs.runner-select.outputs.selected-runner-label }}
     steps:
+      - if: ${{ ! fromJSON(needs.runner-select.outputs.is-self-hosted) }}
+        run: |
+          echo SCCACHE_GHA_ENABLED=true >> $GITHUB_ENV
+          echo RUSTC_WRAPPER=sccache >> $GITHUB_ENV
+          echo CCACHE=sccache >> $GITHUB_ENV
+          echo CARGO_INCREMENTAL=0 >> $GITHUB_ENV
+
       - uses: actions/checkout@v4
         if: ${{ ! fromJSON(needs.runner-select.outputs.is-self-hosted) && github.event_name != 'pull_request_target' }}
       # This is necessary to checkout the pull request if this run was triggered via a
