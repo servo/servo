@@ -1646,7 +1646,6 @@ impl<'a> TableLayout<'a> {
                 let caption_fragment = Fragment::Box(caption_fragment);
                 positioning_context.adjust_static_position_of_hoisted_fragments(
                     &caption_fragment,
-                    table_writing_mode,
                     original_positioning_context_length,
                 );
                 Some(caption_fragment)
@@ -1683,7 +1682,6 @@ impl<'a> TableLayout<'a> {
         let grid_fragment = Fragment::Box(grid_fragment);
         positioning_context.adjust_static_position_of_hoisted_fragments(
             &grid_fragment,
-            table_writing_mode,
             original_positioning_context_length,
         );
         table_layout.fragments.push(grid_fragment);
@@ -1719,7 +1717,6 @@ impl<'a> TableLayout<'a> {
                 let caption_fragment = Fragment::Box(caption_fragment);
                 positioning_context.adjust_static_position_of_hoisted_fragments(
                     &caption_fragment,
-                    table_writing_mode,
                     original_positioning_context_length,
                 );
                 Some(caption_fragment)
@@ -2591,10 +2588,12 @@ impl TableSlotCell {
         // TODO(mrobinson): This is correct for absolutes that are direct children of the table
         // cell, but wrong for absolute fragments that are more deeply nested in the hierarchy of
         // fragments.
+        let physical_cell_rect =
+            cell_content_rect.to_physical(table_style.effective_writing_mode());
         layout
             .positioning_context
             .adjust_static_position_of_hoisted_fragments_with_offset(
-                &cell_content_rect.start_corner,
+                &physical_cell_rect.origin.to_vector(),
                 PositioningContextLength::zero(),
             );
         positioning_context.append(layout.positioning_context);
@@ -2603,7 +2602,7 @@ impl TableSlotCell {
             base_fragment_info,
             self.style.clone(),
             vec![Fragment::Positioning(vertical_align_fragment)],
-            cell_content_rect.to_physical(table_style.effective_writing_mode()),
+            physical_cell_rect,
             layout
                 .padding
                 .to_physical(table_style.effective_writing_mode()),

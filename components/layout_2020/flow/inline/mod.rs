@@ -886,13 +886,13 @@ impl<'layout_dta> InlineFormattingContextLayout<'layout_dta> {
             },
         };
 
+        let line_rect = line_rect.to_physical(self.containing_block.effective_writing_mode());
         self.positioning_context
             .adjust_static_position_of_hoisted_fragments_with_offset(
-                &line_rect.start_corner,
+                &line_rect.origin.to_vector(),
                 start_positioning_context_length,
             );
 
-        let line_rect = line_rect.to_physical(self.containing_block.effective_writing_mode());
         self.fragments
             .push(Fragment::Positioning(PositioningFragment::new_anonymous(
                 line_rect, fragments,

@@ -15,6 +15,7 @@ use style::computed_values::float::T as Float;
 use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
 use style::values::computed::{Length, LengthOrAuto, Size};
+use style::values::specified::align::AlignFlags;
 use style::values::specified::{Display, TextAlignKeyword};
 use style::Zero;
 
@@ -594,7 +595,6 @@ fn layout_block_level_children_in_parallel(
             placement_state.place_fragment_and_update_baseline(&mut fragment, None);
             child_positioning_context.adjust_static_position_of_hoisted_fragments(
                 &fragment,
-                containing_block.effective_writing_mode(),
                 PositioningContextLength::zero(),
             );
             positioning_context.append(child_positioning_context);
@@ -632,7 +632,6 @@ fn layout_block_level_children_sequentially(
                 .place_fragment_and_update_baseline(&mut fragment, Some(sequential_layout_state));
             positioning_context.adjust_static_position_of_hoisted_fragments(
                 &fragment,
-                containing_block.effective_writing_mode(),
                 positioning_context_length_before_layout,
             );
 
@@ -709,11 +708,14 @@ impl BlockLevelBox {
             BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(box_) => {
                 let hoisted_box = AbsolutelyPositionedBox::to_hoisted(
                     box_.clone(),
-                    // This is incorrect, however we do not know the
-                    // correct positioning until later, in place_block_level_fragment,
-                    // and this value will be adjusted there
-                    LogicalVec2::zero(),
-                    containing_block,
+                    // This is incorrect, however we do not know the correct positioning
+                    // until later, in PlacementState::place_fragment, and this value will be
+                    // adjusted there
+                    PhysicalRect::zero(),
+                    LogicalVec2 {
+                        inline: AlignFlags::START,
+                        block: AlignFlags::START,
+                    },
                 );
                 let hoisted_fragment = hoisted_box.fragment.clone();
                 positioning_context.push(hoisted_box);
@@ -1817,11 +1819,17 @@ impl PlacementState {
                 }
             },
             Fragment::AbsoluteOrFixedPositioned(fragment) => {
-                let offset = LogicalVec2 {
-                    block: (self.current_margin.solve() + self.current_block_direction_position),
-                    inline: Au::zero(),
-                };
-                fragment.borrow_mut().adjust_offsets(offset);
+                // The alignment of absolutes in block flow layout is always "start", so the size of
+                // the static position rectangle does not matter.
+                fragment.borrow_mut().static_position_rect = LogicalRect {
+                    start_corner: LogicalVec2 {
+                        block: (self.current_margin.solve() +
+                            self.current_block_direction_position),
+                        inline: Au::zero(),
+                    },
+                    size: LogicalVec2::zero(),
+                }
+                .to_physical(self.writing_mode);
             },
             Fragment::Float(box_fragment) => {
                 let sequential_layout_state = sequential_layout_state
