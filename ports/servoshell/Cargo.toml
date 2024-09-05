@@ -49,6 +49,7 @@ native-bluetooth = ["libservo/native-bluetooth"]
 profilemozjs = ["libservo/profilemozjs"]
 refcell_backtrace = ["libservo/refcell_backtrace"]
 tracing = ["dep:tracing", "dep:tracing-subscriber"]
+tracing-hitrace = ["tracing", "dep:hitrace"]
 tracing-perfetto = ["tracing", "dep:tracing-perfetto"]
 webdriver = ["libservo/webdriver"]
 webgl_backtrace = ["libservo/webgl_backtrace"]
@@ -59,6 +60,7 @@ libservo = { path = "../../components/servo" }
 cfg-if = { workspace = true }
 log = { workspace = true }
 getopts = { workspace = true }
+hitrace = { workspace = true, optional = true }
 mime_guess = { workspace = true }
 url = { workspace = true }
 servo-media = { workspace = true }
