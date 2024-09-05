@@ -1,5 +1,3 @@
-# Runs the underlying job (“workload”) on a self-hosted runner if available,
-# with the help of a `runner-select` job and a `runner-timeout` job.
 name: Self-hosted runner timeout
 
 on:
