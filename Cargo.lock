@@ -340,12 +340,16 @@ version = "0.0.1"
 dependencies = [
  "crossbeam-channel",
  "ipc-channel",
+ "libc",
+ "mach2",
  "malloc_size_of",
  "malloc_size_of_derive",
  "parking_lot",
  "serde",
  "size_of_test",
+ "time 0.3.36",
  "webrender_api",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -758,6 +762,7 @@ dependencies = [
  "iana-time-zone",
  "js-sys",
  "num-traits",
+ "serde",
  "wasm-bindgen",
  "windows-targets 0.52.6",
 ]
@@ -1288,6 +1293,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b42b6fa04a440b495c8b04d0e71b707c585f83cb9cb28cf8cd0d976c315e31b4"
 dependencies = [
  "powerfmt",
+ "serde",
 ]
 
 [[package]]
@@ -3794,6 +3800,7 @@ dependencies = [
  "servo_url",
  "style",
  "style_traits",
+ "time 0.3.36",
  "url",
  "webrender_api",
  "webrender_traits",
@@ -5216,6 +5223,7 @@ dependencies = [
 name = "profile"
 version = "0.0.1"
 dependencies = [
+ "base",
  "ipc-channel",
  "libc",
  "profile_traits",
@@ -5225,6 +5233,7 @@ dependencies = [
  "servo_config",
  "task_info",
  "tikv-jemalloc-sys",
+ "time 0.3.36",
 ]
 
 [[package]]
@@ -5235,19 +5244,21 @@ dependencies = [
  "profile",
  "profile_traits",
  "servo_config",
+ "time 0.3.36",
 ]
 
 [[package]]
 name = "profile_traits"
 version = "0.0.1"
 dependencies = [
+ "base",
  "crossbeam-channel",
  "ipc-channel",
  "log",
  "serde",
  "servo_config",
  "signpost",
- "time 0.1.45",
+ "time 0.3.36",
 ]
 
 [[package]]
@@ -5764,6 +5775,7 @@ dependencies = [
  "tempfile",
  "tendril",
  "time 0.1.45",
+ "time 0.3.36",
  "unicode-bidi",
  "unicode-segmentation",
  "url",

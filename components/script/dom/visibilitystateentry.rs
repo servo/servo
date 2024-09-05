@@ -4,7 +4,9 @@
 
 use std::ops::Deref;
 
+use base::cross_process_instant::CrossProcessInstant;
 use dom_struct::dom_struct;
+use time_03::Duration;
 
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentVisibilityState;
 use crate::dom::bindings::codegen::Bindings::PerformanceEntryBinding::PerformanceEntryMethods;
@@ -23,7 +25,10 @@ pub struct VisibilityStateEntry {
 
 impl VisibilityStateEntry {
     #[allow(crown::unrooted_must_root)]
-    fn new_inherited(state: DocumentVisibilityState, timestamp: f64) -> VisibilityStateEntry {
+    fn new_inherited(
+        state: DocumentVisibilityState,
+        timestamp: CrossProcessInstant,
+    ) -> VisibilityStateEntry {
         let name = match state {
             DocumentVisibilityState::Visible => DOMString::from("visible"),
             DocumentVisibilityState::Hidden => DOMString::from("hidden"),
@@ -32,8 +37,8 @@ impl VisibilityStateEntry {
             entry: PerformanceEntry::new_inherited(
                 name,
                 DOMString::from("visibility-state"),
-                timestamp,
-                0.,
+                Some(timestamp),
+                Duration::ZERO,
             ),
         }
     }
@@ -41,7 +46,7 @@ impl VisibilityStateEntry {
     pub fn new(
         global: &GlobalScope,
         state: DocumentVisibilityState,
-        timestamp: f64,
+        timestamp: CrossProcessInstant,
     ) -> DomRoot<VisibilityStateEntry> {
         reflect_dom_object(
             Box::new(VisibilityStateEntry::new_inherited(state, timestamp)),

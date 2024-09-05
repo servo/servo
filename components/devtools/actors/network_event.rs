@@ -6,7 +6,7 @@
 //! Handles interaction with the remote web console on network events (HTTP requests, responses) in Servo.
 
 use std::net::TcpStream;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use chrono::{Local, LocalResult, TimeZone};
 use devtools_traits::{HttpRequest as DevtoolsHttpRequest, HttpResponse as DevtoolsHttpResponse};
@@ -26,8 +26,8 @@ struct HttpRequest {
     body: Option<Vec<u8>>,
     started_date_time: SystemTime,
     time_stamp: i64,
-    connect_time: u64,
-    send_time: u64,
+    connect_time: Duration,
+    send_time: Duration,
 }
 
 struct HttpResponse {
@@ -300,8 +300,8 @@ impl Actor for NetworkEventActor {
                 let timings_obj = Timings {
                     blocked: 0,
                     dns: 0,
-                    connect: self.request.connect_time,
-                    send: self.request.send_time,
+                    connect: self.request.connect_time.as_millis() as u64,
+                    send: self.request.send_time.as_millis() as u64,
                     wait: 0,
                     receive: 0,
                 };
@@ -345,8 +345,8 @@ impl NetworkEventActor {
                     .duration_since(UNIX_EPOCH)
                     .unwrap_or_default()
                     .as_secs() as i64,
-                send_time: 0,
-                connect_time: 0,
+                send_time: Duration::ZERO,
+                connect_time: Duration::ZERO,
             },
             response: HttpResponse {
                 headers: None,
@@ -493,7 +493,7 @@ impl NetworkEventActor {
         }
     }
 
-    pub fn total_time(&self) -> u64 {
+    pub fn total_time(&self) -> Duration {
         self.request.connect_time + self.request.send_time
     }
 }

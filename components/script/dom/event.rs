@@ -5,10 +5,10 @@
 use std::cell::Cell;
 use std::default::Default;
 
+use base::cross_process_instant::CrossProcessInstant;
 use devtools_traits::{TimelineMarker, TimelineMarkerType};
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
-use metrics::ToMs;
 use servo_atoms::Atom;
 
 use crate::dom::bindings::callback::ExceptionHandling;
@@ -16,7 +16,6 @@ use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::EventBinding;
 use crate::dom::bindings::codegen::Bindings::EventBinding::{EventConstants, EventMethods};
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::DOMHighResTimeStamp;
-use crate::dom::bindings::codegen::Bindings::PerformanceBinding::Performance_Binding::PerformanceMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
@@ -31,7 +30,6 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlinputelement::InputActivationState;
 use crate::dom::mouseevent::MouseEvent;
 use crate::dom::node::{Node, ShadowIncluding};
-use crate::dom::performance::reduce_timing_resolution;
 use crate::dom::virtualmethods::vtable_for;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
@@ -53,7 +51,8 @@ pub struct Event {
     trusted: Cell<bool>,
     dispatching: Cell<bool>,
     initialized: Cell<bool>,
-    precise_time_ns: u64,
+    #[no_trace]
+    time_stamp: CrossProcessInstant,
 }
 
 impl Event {
@@ -72,7 +71,7 @@ impl Event {
             trusted: Cell::new(false),
             dispatching: Cell::new(false),
             initialized: Cell::new(false),
-            precise_time_ns: time::precise_time_ns(),
+            time_stamp: CrossProcessInstant::now(),
         }
     }
 
@@ -498,10 +497,9 @@ impl EventMethods for Event {
 
     /// <https://dom.spec.whatwg.org/#dom-event-timestamp>
     fn TimeStamp(&self) -> DOMHighResTimeStamp {
-        reduce_timing_resolution(
-            (self.precise_time_ns - (*self.global().performance().TimeOrigin()).round() as u64)
-                .to_ms(),
-        )
+        self.global()
+            .performance()
+            .to_dom_high_res_time_stamp(self.time_stamp)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-event-initevent>

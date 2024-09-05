@@ -105,6 +105,7 @@ swapper = "0.1"
 tempfile = "3"
 tendril = { version = "0.4.1", features = ["encoding_rs"] }
 time = { workspace = true }
+time_03 = { workspace = true }
 unicode-bidi = { workspace = true }
 unicode-segmentation = { workspace = true }
 url = { workspace = true }

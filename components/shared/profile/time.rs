@@ -2,12 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::time::{SystemTime, UNIX_EPOCH};
-
+use base::cross_process_instant::CrossProcessInstant;
 use ipc_channel::ipc::IpcSender;
 use log::warn;
 use serde::{Deserialize, Serialize};
 use servo_config::opts;
+use time_03::Duration;
 
 #[derive(Clone, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
 pub struct TimerMetadata {
@@ -30,13 +30,16 @@ impl ProfilerChan {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum ProfilerData {
     NoRecords,
-    Record(Vec<f64>),
+    Record(Vec<Duration>),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum ProfilerMsg {
     /// Normal message used for reporting time
-    Time((ProfilerCategory, Option<TimerMetadata>), (u64, u64)),
+    Time(
+        (ProfilerCategory, Option<TimerMetadata>),
+        (CrossProcessInstant, CrossProcessInstant),
+    ),
     /// Message used to get time spend entries for a particular ProfilerBuckets (in nanoseconds)
     Get(
         (ProfilerCategory, Option<TimerMetadata>),
@@ -139,28 +142,15 @@ where
     if opts::get().debug.signpost {
         signpost::start(category as u32, &[0, 0, 0, (category as usize) >> 4]);
     }
-    let start_time = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_nanos();
-
+    let start_time = CrossProcessInstant::now();
     let val = callback();
+    let end_time = CrossProcessInstant::now();
 
-    let end_time = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_nanos();
     if opts::get().debug.signpost {
         signpost::end(category as u32, &[0, 0, 0, (category as usize) >> 4]);
     }
 
-    send_profile_data(
-        category,
-        meta,
-        &profiler_chan,
-        start_time as u64,
-        end_time as u64,
-    );
+    send_profile_data(category, meta, &profiler_chan, start_time, end_time);
     val
 }
 
@@ -168,8 +158,8 @@ pub fn send_profile_data(
     category: ProfilerCategory,
     meta: Option<TimerMetadata>,
     profiler_chan: &ProfilerChan,
-    start_time: u64,
-    end_time: u64,
+    start_time: CrossProcessInstant,
+    end_time: CrossProcessInstant,
 ) {
     profiler_chan.send(ProfilerMsg::Time((category, meta), (start_time, end_time)));
 }

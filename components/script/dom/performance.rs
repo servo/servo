@@ -6,8 +6,9 @@ use std::cell::Cell;
 use std::cmp::Ordering;
 use std::collections::VecDeque;
 
+use base::cross_process_instant::CrossProcessInstant;
 use dom_struct::dom_struct;
-use metrics::ToMs;
+use time_03::Duration;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::{
@@ -105,16 +106,12 @@ impl PerformanceEntryList {
         &self,
         name: DOMString,
         entry_type: DOMString,
-    ) -> f64 {
-        match self
-            .entries
+    ) -> Option<CrossProcessInstant> {
+        self.entries
             .iter()
             .rev()
             .find(|e| *e.entry_type() == *entry_type && *e.name() == *name)
-        {
-            Some(entry) => entry.start_time(),
-            None => 0.,
-        }
+            .and_then(|entry| entry.start_time())
     }
 }
 
@@ -139,7 +136,10 @@ pub struct Performance {
     buffer: DomRefCell<PerformanceEntryList>,
     observers: DomRefCell<Vec<PerformanceObserver>>,
     pending_notification_observers_task: Cell<bool>,
-    navigation_start_precise: u64,
+    #[no_trace]
+    /// The `timeOrigin` as described in
+    /// <https://html.spec.whatwg.org/multipage/#concept-settings-object-time-origin>.
+    time_origin: CrossProcessInstant,
     /// <https://w3c.github.io/performance-timeline/#dfn-maxbuffersize>
     /// The max-size of the buffer, set to 0 once the pipeline exits.
     /// TODO: have one max-size per entry type.
@@ -150,13 +150,13 @@ pub struct Performance {
 }
 
 impl Performance {
-    fn new_inherited(navigation_start_precise: u64) -> Performance {
+    fn new_inherited(time_origin: CrossProcessInstant) -> Performance {
         Performance {
             eventtarget: EventTarget::new_inherited(),
             buffer: DomRefCell::new(PerformanceEntryList::new(Vec::new())),
             observers: DomRefCell::new(Vec::new()),
             pending_notification_observers_task: Cell::new(false),
-            navigation_start_precise,
+            time_origin,
             resource_timing_buffer_size_limit: Cell::new(250),
             resource_timing_buffer_current_size: Cell::new(0),
             resource_timing_buffer_pending_full_event: Cell::new(false),
@@ -164,11 +164,28 @@ impl Performance {
         }
     }
 
-    pub fn new(global: &GlobalScope, navigation_start_precise: u64) -> DomRoot<Performance> {
+    pub fn new(
+        global: &GlobalScope,
+        navigation_start: CrossProcessInstant,
+    ) -> DomRoot<Performance> {
         reflect_dom_object(
-            Box::new(Performance::new_inherited(navigation_start_precise)),
+            Box::new(Performance::new_inherited(navigation_start)),
             global,
         )
+    }
+
+    pub(crate) fn to_dom_high_res_time_stamp(
+        &self,
+        instant: CrossProcessInstant,
+    ) -> DOMHighResTimeStamp {
+        (instant - self.time_origin).to_dom_high_res_time_stamp()
+    }
+
+    pub(crate) fn maybe_to_dom_high_res_time_stamp(
+        &self,
+        instant: Option<CrossProcessInstant>,
+    ) -> DOMHighResTimeStamp {
+        self.to_dom_high_res_time_stamp(instant.unwrap_or(self.time_origin))
     }
 
     /// Clear all buffered performance entries, and disable the buffer.
@@ -329,10 +346,6 @@ impl Performance {
         }
     }
 
-    fn now(&self) -> f64 {
-        (time::precise_time_ns() - self.navigation_start_precise).to_ms()
-    }
-
     fn can_add_resource_timing_entry(&self) -> bool {
         self.resource_timing_buffer_current_size.get() <=
             self.resource_timing_buffer_size_limit.get()
@@ -423,12 +436,12 @@ impl PerformanceMethods for Performance {
 
     // https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/HighResolutionTime/Overview.html#dom-performance-now
     fn Now(&self) -> DOMHighResTimeStamp {
-        reduce_timing_resolution(self.now())
+        self.to_dom_high_res_time_stamp(CrossProcessInstant::now())
     }
 
     // https://www.w3.org/TR/hr-time-2/#dom-performance-timeorigin
     fn TimeOrigin(&self) -> DOMHighResTimeStamp {
-        reduce_timing_resolution(self.navigation_start_precise as f64)
+        (self.time_origin - CrossProcessInstant::epoch()).to_dom_high_res_time_stamp()
     }
 
     // https://www.w3.org/TR/performance-timeline-2/#dom-performance-getentries
@@ -465,7 +478,12 @@ impl PerformanceMethods for Performance {
         }
 
         // Steps 2 to 6.
-        let entry = PerformanceMark::new(&global, mark_name, self.now(), 0.);
+        let entry = PerformanceMark::new(
+            &global,
+            mark_name,
+            CrossProcessInstant::now(),
+            Duration::ZERO,
+        );
         // Steps 7 and 8.
         self.queue_entry(entry.upcast::<PerformanceEntry>());
 
@@ -488,22 +506,23 @@ impl PerformanceMethods for Performance {
         end_mark: Option<DOMString>,
     ) -> Fallible<()> {
         // Steps 1 and 2.
-        let end_time = match end_mark {
-            Some(name) => self
-                .buffer
-                .borrow()
-                .get_last_entry_start_time_with_name_and_type(DOMString::from("mark"), name),
-            None => self.now(),
-        };
+        let end_time = end_mark
+            .map(|name| {
+                self.buffer
+                    .borrow()
+                    .get_last_entry_start_time_with_name_and_type(DOMString::from("mark"), name)
+                    .unwrap_or(self.time_origin)
+            })
+            .unwrap_or_else(CrossProcessInstant::now);
 
         // Step 3.
-        let start_time = match start_mark {
-            Some(name) => self
-                .buffer
-                .borrow()
-                .get_last_entry_start_time_with_name_and_type(DOMString::from("mark"), name),
-            None => 0.,
-        };
+        let start_time = start_mark
+            .and_then(|name| {
+                self.buffer
+                    .borrow()
+                    .get_last_entry_start_time_with_name_and_type(DOMString::from("mark"), name)
+            })
+            .unwrap_or(self.time_origin);
 
         // Steps 4 to 8.
         let entry = PerformanceMeasure::new(
@@ -548,13 +567,18 @@ impl PerformanceMethods for Performance {
     );
 }
 
-// https://www.w3.org/TR/hr-time-2/#clock-resolution
-pub fn reduce_timing_resolution(exact: f64) -> DOMHighResTimeStamp {
-    // We need a granularity no finer than 5 microseconds.
-    // 5 microseconds isn't an exactly representable f64 so WPT tests
-    // might occasionally corner-case on rounding.
-    // web-platform-tests/wpt#21526 wants us to use an integer number of
-    // microseconds; the next divisor of milliseconds up from 5 microseconds
-    // is 10, which is 1/100th of a millisecond.
-    Finite::wrap((exact * 100.0).floor() / 100.0)
+pub(crate) trait ToDOMHighResTimeStamp {
+    fn to_dom_high_res_time_stamp(&self) -> DOMHighResTimeStamp;
+}
+
+impl ToDOMHighResTimeStamp for Duration {
+    fn to_dom_high_res_time_stamp(&self) -> DOMHighResTimeStamp {
+        // https://www.w3.org/TR/hr-time-2/#clock-resolution
+        // We need a granularity no finer than 5 microseconds. 5 microseconds isn't an
+        // exactly representable f64 so WPT tests might occasionally corner-case on
+        // rounding.  web-platform-tests/wpt#21526 wants us to use an integer number of
+        // microseconds; the next divisor of milliseconds up from 5 microseconds is 10.
+        let microseconds_rounded = (self.whole_microseconds() as f64 / 10.).floor() * 10.;
+        Finite::wrap(microseconds_rounded / 1000.)
+    }
 }

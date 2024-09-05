@@ -15,6 +15,7 @@ use std::process;
 use std::sync::{Arc, LazyLock, Mutex};
 
 use app_units::Au;
+use base::cross_process_instant::CrossProcessInstant;
 use base::id::{BrowsingContextId, PipelineId};
 use base::Epoch;
 use embedder_traits::resources::{self, Resource};
@@ -101,6 +102,7 @@ use style::values::computed::font::GenericFontFamily;
 use style::values::computed::{FontSize, Length, NonNegativeLength};
 use style::values::specified::font::KeywordInfo;
 use style_traits::{CSSPixel, DevicePixel, SpeculativePainter};
+use time_03::Duration;
 use url::Url;
 use webrender_api::{units, ColorF, HitTestFlags};
 use webrender_traits::WebRenderScriptApi;
@@ -541,7 +543,7 @@ impl Layout for LayoutThread {
             .collect();
     }
 
-    fn set_epoch_paint_time(&mut self, epoch: Epoch, paint_time: u64) {
+    fn set_epoch_paint_time(&mut self, epoch: Epoch, paint_time: CrossProcessInstant) {
         self.paint_time_metrics.maybe_set_metric(epoch, paint_time);
     }
 }
@@ -1112,13 +1114,15 @@ impl LayoutThread {
                 },
             );
             // TODO(pcwalton): Measure energy usage of text shaping, perhaps?
-            let text_shaping_time = get_and_reset_text_shaping_performance_counter() / num_threads;
+            let text_shaping_time = Duration::nanoseconds(
+                (get_and_reset_text_shaping_performance_counter() / num_threads) as i64,
+            );
             profile_time::send_profile_data(
                 profile_time::ProfilerCategory::LayoutTextShaping,
                 self.profiler_metadata(),
                 &self.time_profiler_chan,
-                0,
-                text_shaping_time as u64,
+                CrossProcessInstant::epoch(),
+                CrossProcessInstant::epoch() + text_shaping_time,
             );
 
             // Retrieve the (possibly rebuilt) root flow.

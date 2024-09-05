@@ -2,8 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::time::{SystemTime, UNIX_EPOCH};
-
+use base::cross_process_instant::CrossProcessInstant;
 use ipc_channel::ipc;
 use metrics::{InteractiveFlag, InteractiveMetrics, ProfilerMetadataFactory, ProgressiveWebMetric};
 use profile_traits::time::{ProfilerChan, TimerMetadata};
@@ -25,7 +24,7 @@ fn test_interactive() -> InteractiveMetrics {
     assert_eq!((&interactive).get_navigation_start(), None);
     assert_eq!(interactive.get_tti(), None);
 
-    interactive.set_navigation_start(time::precise_time_ns());
+    interactive.set_navigation_start(CrossProcessInstant::now());
 
     interactive
 }
@@ -56,21 +55,24 @@ fn test_set_mta() {
     let profiler_metadata_factory = DummyProfilerMetadataFactory {};
 
     let interactive = test_interactive();
-    let t = time::precise_time_ns();
+    let now = CrossProcessInstant::now();
     interactive.maybe_set_tti(
         &profiler_metadata_factory,
-        InteractiveFlag::TimeToInteractive(t),
+        InteractiveFlag::TimeToInteractive(now),
     );
-    let mta = interactive.get_main_thread_available();
-    assert!(mta.is_some());
-    assert_eq!(mta, Some(t));
+    let main_thread_available_time = interactive.get_main_thread_available();
+    assert!(main_thread_available_time.is_some());
+    assert_eq!(main_thread_available_time, Some(now));
 
     //try to overwrite
     interactive.maybe_set_tti(
         &profiler_metadata_factory,
-        InteractiveFlag::TimeToInteractive(time::precise_time_ns()),
+        InteractiveFlag::TimeToInteractive(CrossProcessInstant::now()),
     );
-    assert_eq!(interactive.get_main_thread_available(), mta);
+    assert_eq!(
+        interactive.get_main_thread_available(),
+        main_thread_available_time
+    );
     assert_eq!(interactive.get_tti(), None);
 }
 
@@ -79,23 +81,22 @@ fn test_set_tti_dcl() {
     let profiler_metadata_factory = DummyProfilerMetadataFactory {};
 
     let interactive = test_interactive();
-    let t = time::precise_time_ns();
+    let now = CrossProcessInstant::now();
     interactive.maybe_set_tti(
         &profiler_metadata_factory,
-        InteractiveFlag::TimeToInteractive(t),
+        InteractiveFlag::TimeToInteractive(now),
     );
-    let mta = interactive.get_main_thread_available();
-    assert!(mta.is_some());
+    let main_thread_available_time = interactive.get_main_thread_available();
+    assert!(main_thread_available_time.is_some());
 
     interactive.maybe_set_tti(
         &profiler_metadata_factory,
         InteractiveFlag::DOMContentLoaded,
     );
-    let dcl = interactive.get_dom_content_loaded();
-    assert!(dcl.is_some());
+    let dom_content_loaded_time = interactive.get_dom_content_loaded();
+    assert!(dom_content_loaded_time.is_some());
 
-    let interactive_time = dcl.unwrap() - (&interactive).get_navigation_start().unwrap();
-    assert_eq!(interactive.get_tti(), Some(interactive_time));
+    assert_eq!(interactive.get_tti(), dom_content_loaded_time);
 }
 
 #[test]
@@ -110,19 +111,15 @@ fn test_set_tti_mta() {
     let dcl = interactive.get_dom_content_loaded();
     assert!(dcl.is_some());
 
-    let t = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_nanos() as u64;
+    let time = CrossProcessInstant::now();
     interactive.maybe_set_tti(
         &profiler_metadata_factory,
-        InteractiveFlag::TimeToInteractive(t),
+        InteractiveFlag::TimeToInteractive(time),
     );
     let mta = interactive.get_main_thread_available();
     assert!(mta.is_some());
 
-    let interactive_time = mta.unwrap() - (&interactive).get_navigation_start().unwrap();
-    assert_eq!(interactive.get_tti(), Some(interactive_time));
+    assert_eq!(interactive.get_tti(), mta);
 }
 
 // TODO InteractiveWindow tests

@@ -11,6 +11,7 @@ use std::iter::once;
 use std::rc::Rc;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
+use base::cross_process_instant::CrossProcessInstant;
 use base::id::{PipelineId, TopLevelBrowsingContextId, WebViewId};
 use base::{Epoch, WebRenderEpochToU16};
 use compositing_traits::{
@@ -2147,10 +2148,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         // ones that the paint metrics recorder is expecting. In that case, we get the current
         // time, inform layout about it and remove the pending metric from the list.
         if !self.pending_paint_metrics.is_empty() {
-            let paint_time = SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap_or_default()
-                .as_nanos() as u64;
+            let paint_time = CrossProcessInstant::now();
             let mut to_remove = Vec::new();
             // For each pending paint metrics pipeline id
             for (id, pending_epoch) in &self.pending_paint_metrics {

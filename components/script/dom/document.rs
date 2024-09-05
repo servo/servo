@@ -14,6 +14,7 @@ use std::slice::from_ref;
 use std::sync::LazyLock;
 use std::time::{Duration, Instant};
 
+use base::cross_process_instant::CrossProcessInstant;
 use base::id::BrowsingContextId;
 use canvas_traits::webgl::{self, WebGLContextId, WebGLMsg};
 use content_security_policy::{self as csp, CspList};
@@ -342,16 +343,24 @@ pub struct Document {
     active_touch_points: DomRefCell<Vec<Dom<Touch>>>,
     /// Navigation Timing properties:
     /// <https://w3c.github.io/navigation-timing/#sec-PerformanceNavigationTiming>
-    dom_loading: Cell<u64>,
-    dom_interactive: Cell<u64>,
-    dom_content_loaded_event_start: Cell<u64>,
-    dom_content_loaded_event_end: Cell<u64>,
-    dom_complete: Cell<u64>,
-    top_level_dom_complete: Cell<u64>,
-    load_event_start: Cell<u64>,
-    load_event_end: Cell<u64>,
-    unload_event_start: Cell<u64>,
-    unload_event_end: Cell<u64>,
+    #[no_trace]
+    dom_interactive: Cell<Option<CrossProcessInstant>>,
+    #[no_trace]
+    dom_content_loaded_event_start: Cell<Option<CrossProcessInstant>>,
+    #[no_trace]
+    dom_content_loaded_event_end: Cell<Option<CrossProcessInstant>>,
+    #[no_trace]
+    dom_complete: Cell<Option<CrossProcessInstant>>,
+    #[no_trace]
+    top_level_dom_complete: Cell<Option<CrossProcessInstant>>,
+    #[no_trace]
+    load_event_start: Cell<Option<CrossProcessInstant>>,
+    #[no_trace]
+    load_event_end: Cell<Option<CrossProcessInstant>>,
+    #[no_trace]
+    unload_event_start: Cell<Option<CrossProcessInstant>>,
+    #[no_trace]
+    unload_event_end: Cell<Option<CrossProcessInstant>>,
     /// <https://html.spec.whatwg.org/multipage/#concept-document-https-state>
     #[no_trace]
     https_state: Cell<HttpsState>,
@@ -1068,15 +1077,14 @@ impl Document {
                     self.send_to_embedder(EmbedderMsg::LoadStart);
                     self.send_to_embedder(EmbedderMsg::Status(None));
                 }
-                update_with_current_time_ms(&self.dom_loading);
             },
             DocumentReadyState::Complete => {
                 if self.window().is_top_level() {
                     self.send_to_embedder(EmbedderMsg::LoadComplete);
                 }
-                update_with_current_time_ms(&self.dom_complete);
+                update_with_current_instant(&self.dom_complete);
             },
-            DocumentReadyState::Interactive => update_with_current_time_ms(&self.dom_interactive),
+            DocumentReadyState::Interactive => update_with_current_instant(&self.dom_interactive),
         };
 
         self.ready_state.set(state);
@@ -2153,8 +2161,8 @@ impl Document {
         let loader = self.loader.borrow();
 
         // Servo measures when the top-level content (not iframes) is loaded.
-        if (self.top_level_dom_complete.get() == 0) && loader.is_only_blocked_by_iframes() {
-            update_with_current_time_ms(&self.top_level_dom_complete);
+        if self.top_level_dom_complete.get().is_none() && loader.is_only_blocked_by_iframes() {
+            update_with_current_instant(&self.top_level_dom_complete);
         }
 
         if loader.is_blocked() || loader.events_inhibited() {
@@ -2347,7 +2355,7 @@ impl Document {
                     event.set_trusted(true);
 
                     // http://w3c.github.io/navigation-timing/#widl-PerformanceNavigationTiming-loadEventStart
-                    update_with_current_time_ms(&document.load_event_start);
+                    update_with_current_instant(&document.load_event_start);
 
                     debug!("About to dispatch load for {:?}", document.url());
                     // FIXME(nox): Why are errors silenced here?
@@ -2356,7 +2364,7 @@ impl Document {
                     );
 
                     // http://w3c.github.io/navigation-timing/#widl-PerformanceNavigationTiming-loadEventEnd
-                    update_with_current_time_ms(&document.load_event_end);
+                    update_with_current_instant(&document.load_event_end);
 
                     if let Some(fragment) = document.url().fragment() {
                         document.check_and_scroll_fragment(fragment);
@@ -2592,7 +2600,7 @@ impl Document {
             "Complete before DOMContentLoaded?"
         );
 
-        update_with_current_time_ms(&self.dom_content_loaded_event_start);
+        update_with_current_instant(&self.dom_content_loaded_event_start);
 
         // Step 4.1.
         let window = self.window();
@@ -2604,7 +2612,7 @@ impl Document {
                 task!(fire_dom_content_loaded_event: move || {
                 let document = document.root();
                 document.upcast::<EventTarget>().fire_bubbling_event(atom!("DOMContentLoaded"));
-                update_with_current_time_ms(&document.dom_content_loaded_event_end);
+                update_with_current_instant(&document.dom_content_loaded_event_end);
                 }),
                 window.upcast(),
             )
@@ -2690,15 +2698,11 @@ impl Document {
             .find(|node| node.browsing_context_id() == Some(browsing_context_id))
     }
 
-    pub fn get_dom_loading(&self) -> u64 {
-        self.dom_loading.get()
-    }
-
-    pub fn get_dom_interactive(&self) -> u64 {
+    pub fn get_dom_interactive(&self) -> Option<CrossProcessInstant> {
         self.dom_interactive.get()
     }
 
-    pub fn set_navigation_start(&self, navigation_start: u64) {
+    pub fn set_navigation_start(&self, navigation_start: CrossProcessInstant) {
         self.interactive_time
             .borrow_mut()
             .set_navigation_start(navigation_start);
@@ -2712,35 +2716,35 @@ impl Document {
         self.get_interactive_metrics().get_tti().is_some()
     }
 
-    pub fn get_dom_content_loaded_event_start(&self) -> u64 {
+    pub fn get_dom_content_loaded_event_start(&self) -> Option<CrossProcessInstant> {
         self.dom_content_loaded_event_start.get()
     }
 
-    pub fn get_dom_content_loaded_event_end(&self) -> u64 {
+    pub fn get_dom_content_loaded_event_end(&self) -> Option<CrossProcessInstant> {
         self.dom_content_loaded_event_end.get()
     }
 
-    pub fn get_dom_complete(&self) -> u64 {
+    pub fn get_dom_complete(&self) -> Option<CrossProcessInstant> {
         self.dom_complete.get()
     }
 
-    pub fn get_top_level_dom_complete(&self) -> u64 {
+    pub fn get_top_level_dom_complete(&self) -> Option<CrossProcessInstant> {
         self.top_level_dom_complete.get()
     }
 
-    pub fn get_load_event_start(&self) -> u64 {
+    pub fn get_load_event_start(&self) -> Option<CrossProcessInstant> {
         self.load_event_start.get()
     }
 
-    pub fn get_load_event_end(&self) -> u64 {
+    pub fn get_load_event_end(&self) -> Option<CrossProcessInstant> {
         self.load_event_end.get()
     }
 
-    pub fn get_unload_event_start(&self) -> u64 {
+    pub fn get_unload_event_start(&self) -> Option<CrossProcessInstant> {
         self.unload_event_start.get()
     }
 
-    pub fn get_unload_event_end(&self) -> u64 {
+    pub fn get_unload_event_end(&self) -> Option<CrossProcessInstant> {
         self.unload_event_end.get()
     }
 
@@ -3236,7 +3240,6 @@ impl Document {
             pending_restyles: DomRefCell::new(HashMap::new()),
             needs_paint: Cell::new(false),
             active_touch_points: DomRefCell::new(Vec::new()),
-            dom_loading: Cell::new(Default::default()),
             dom_interactive: Cell::new(Default::default()),
             dom_content_loaded_event_start: Cell::new(Default::default()),
             dom_content_loaded_event_end: Cell::new(Default::default()),
@@ -4101,11 +4104,8 @@ impl Document {
         self.visibility_state.set(visibility_state);
         // Step 3 Queue a new VisibilityStateEntry whose visibility state is visibilityState and whose timestamp is
         // the current high resolution time given document's relevant global object.
-        let entry = VisibilityStateEntry::new(
-            &self.global(),
-            visibility_state,
-            *self.global().performance().Now(),
-        );
+        let entry =
+            VisibilityStateEntry::new(&self.global(), visibility_state, CrossProcessInstant::now());
         self.window
             .Performance()
             .queue_entry(entry.upcast::<PerformanceEntry>());
@@ -5441,11 +5441,9 @@ impl DocumentMethods for Document {
     }
 }
 
-fn update_with_current_time_ms(marker: &Cell<u64>) {
-    if marker.get() == 0 {
-        let time = time::get_time();
-        let current_time_ms = time.sec * 1000 + time.nsec as i64 / 1000000;
-        marker.set(current_time_ms as u64);
+fn update_with_current_instant(marker: &Cell<Option<CrossProcessInstant>>) {
+    if marker.get().is_none() {
+        marker.set(Some(CrossProcessInstant::now()))
     }
 }
 

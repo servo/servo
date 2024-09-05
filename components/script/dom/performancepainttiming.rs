@@ -2,9 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use base::cross_process_instant::CrossProcessInstant;
 use dom_struct::dom_struct;
-use metrics::ToMs;
 use script_traits::ProgressiveWebMetricType;
+use time_03::Duration;
 
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::DomRoot;
@@ -20,7 +21,7 @@ pub struct PerformancePaintTiming {
 impl PerformancePaintTiming {
     fn new_inherited(
         metric_type: ProgressiveWebMetricType,
-        start_time: u64,
+        start_time: CrossProcessInstant,
     ) -> PerformancePaintTiming {
         let name = match metric_type {
             ProgressiveWebMetricType::FirstPaint => DOMString::from("first-paint"),
@@ -33,8 +34,8 @@ impl PerformancePaintTiming {
             entry: PerformanceEntry::new_inherited(
                 name,
                 DOMString::from("paint"),
-                start_time.to_ms(),
-                0.,
+                Some(start_time),
+                Duration::ZERO,
             ),
         }
     }
@@ -43,7 +44,7 @@ impl PerformancePaintTiming {
     pub fn new(
         global: &GlobalScope,
         metric_type: ProgressiveWebMetricType,
-        start_time: u64,
+        start_time: CrossProcessInstant,
     ) -> DomRoot<PerformancePaintTiming> {
         let entry = PerformancePaintTiming::new_inherited(metric_type, start_time);
         reflect_dom_object(Box::new(entry), global)

@@ -515,7 +515,7 @@ fn run_server(
                     update_type: "eventTimings".to_owned(),
                 };
                 let extra = EventTimingsUpdateMsg {
-                    total_time: actor.total_time(),
+                    total_time: actor.total_time().as_millis() as u64,
                 };
                 for stream in &mut connections {
                     let _ = stream.write_merged_json_packet(&msg, &extra);
