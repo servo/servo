@@ -414,6 +414,17 @@ where
         self.shutdown_requested
     }
 
+    fn focus_webview_by_index(&self, index: usize) -> Option<EmbedderEvent> {
+        Some(EmbedderEvent::FocusWebView(self.webviews().get(index)?.0))
+    }
+
+    fn get_focused_webview_index(&self) -> Option<usize> {
+        let focused_id = self.focused_webview_id?;
+        self.webviews()
+            .iter()
+            .position(|webview| webview.0 == focused_id)
+    }
+
     /// Handle key events before sending them to Servo.
     fn handle_key_from_window(&mut self, key_event: KeyboardEvent) {
         let embedder_event = ShortcutMatcher::from_event(key_event.clone())
@@ -442,6 +453,37 @@ where
                 } else {
                     None
                 }
+            })
+            // Select the first 8 tabs via shortcuts
+            .shortcut(CMD_OR_CONTROL, '1', || self.focus_webview_by_index(0))
+            .shortcut(CMD_OR_CONTROL, '2', || self.focus_webview_by_index(1))
+            .shortcut(CMD_OR_CONTROL, '3', || self.focus_webview_by_index(2))
+            .shortcut(CMD_OR_CONTROL, '4', || self.focus_webview_by_index(3))
+            .shortcut(CMD_OR_CONTROL, '5', || self.focus_webview_by_index(4))
+            .shortcut(CMD_OR_CONTROL, '6', || self.focus_webview_by_index(5))
+            .shortcut(CMD_OR_CONTROL, '7', || self.focus_webview_by_index(6))
+            .shortcut(CMD_OR_CONTROL, '8', || self.focus_webview_by_index(7))
+            // Cmd/Ctrl 9 is a bit different in that it focuses the last tab instead of the 9th
+            .shortcut(CMD_OR_CONTROL, '9', || {
+                let len = self.webviews().len();
+                if len > 0 {
+                    self.focus_webview_by_index(len - 1)
+                } else {
+                    None
+                }
+            })
+            .shortcut(Modifiers::CONTROL, Key::PageDown, || {
+                let i = self.get_focused_webview_index()?;
+                self.focus_webview_by_index((i + 1) % self.webviews().len())
+            })
+            .shortcut(Modifiers::CONTROL, Key::PageUp, || {
+                let index = self.get_focused_webview_index()?;
+                let new_index = if index == 0 {
+                    self.webviews().len() - 1
+                } else {
+                    index - 1
+                };
+                self.focus_webview_by_index(new_index)
             })
             .shortcut(CMD_OR_CONTROL, 'W', || {
                 self.focused_webview_id.map(EmbedderEvent::CloseWebView)
