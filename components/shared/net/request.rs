@@ -25,6 +25,8 @@ pub enum Initiator {
     ImageSet,
     Manifest,
     XSLT,
+    Prefetch,
+    Link,
 }
 
 /// A request [destination](https://fetch.spec.whatwg.org/#concept-request-destination)

@@ -2,29 +2,40 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::borrow::ToOwned;
+use std::borrow::{Borrow, ToOwned};
 use std::cell::Cell;
 use std::default::Default;
+use std::sync;
 
 use cssparser::{Parser as CssParser, ParserInput};
 use dom_struct::dom_struct;
 use embedder_traits::EmbedderMsg;
 use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
+use ipc_channel::ipc;
+use ipc_channel::router::ROUTER;
 use js::rust::HandleObject;
-use net_traits::ReferrerPolicy;
+use net_traits::request::{Destination, Initiator, Referrer, RequestBuilder};
+use net_traits::{
+    CoreResourceMsg, FetchChannels, FetchMetadata, FetchResponseListener, IpcSend, NetworkError,
+    ReferrerPolicy, ResourceFetchTiming, ResourceTimingType,
+};
 use servo_arc::Arc;
 use servo_atoms::Atom;
+use servo_url::ServoUrl;
 use style::attr::AttrValue;
 use style::media_queries::MediaList;
 use style::parser::ParserContext as CssParserContext;
 use style::stylesheets::{CssRuleType, Origin, Stylesheet, UrlExtraData};
 use style_traits::ParsingMode;
 
+use super::types::GlobalScope;
 use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenList_Binding::DOMTokenListMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLLinkElementBinding::HTMLLinkElementMethods;
 use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::refcounted::Trusted;
+use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::cssstylesheet::CSSStyleSheet;
@@ -39,10 +50,14 @@ use crate::dom::node::{
     document_from_node, stylesheets_owner_from_node, window_from_node, BindContext, Node,
     UnbindContext,
 };
+use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::dom::stylesheet::StyleSheet as DOMStyleSheet;
 use crate::dom::virtualmethods::VirtualMethods;
+use crate::fetch::create_a_potential_cors_request;
 use crate::link_relations::LinkRelations;
+use crate::network_listener::{submit_timing, NetworkListener, PreInvoke, ResourceTimingListener};
 use crate::stylesheet_loader::{StylesheetContextSource, StylesheetLoader, StylesheetOwner};
+use crate::task_source::TaskSourceName;
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
 pub struct RequestGenerationId(u32);
@@ -51,6 +66,18 @@ impl RequestGenerationId {
     fn increment(self) -> RequestGenerationId {
         RequestGenerationId(self.0 + 1)
     }
+}
+
+/// <https://html.spec.whatwg.org/multipage/semantics.html#link-processing-options>
+struct LinkProcessingOptions {
+    href: String,
+    destination: Option<Destination>,
+    integrity: String,
+    link_type: String,
+    referrer_policy: Option<ReferrerPolicy>,
+    source_set: Option<()>,
+    base_url: ServoUrl,
+    // Some fields that we don't need yet are missing
 }
 
 #[dom_struct]
@@ -201,10 +228,19 @@ impl VirtualMethods for HTMLLinkElement {
                     let sizes = get_attr(self.upcast(), &local_name!("sizes"));
                     self.handle_favicon_url(&attr.value(), &sizes);
                 }
+
+                if self.relations.get().contains(LinkRelations::PREFETCH) {
+                    self.fetch_and_process_prefetch_link(&attr.value());
+                }
             },
             local_name!("sizes") if self.relations.get().contains(LinkRelations::ICON) => {
                 if let Some(ref href) = get_attr(self.upcast(), &local_name!("href")) {
                     self.handle_favicon_url(href, &Some(attr.value().to_string()));
+                }
+            },
+            local_name!("crossorigin") => {
+                if self.relations.get().contains(LinkRelations::PREFETCH) {
+                    self.fetch_and_process_prefetch_link(&attr.value());
                 }
             },
             _ => {},
@@ -226,22 +262,26 @@ impl VirtualMethods for HTMLLinkElement {
             s.bind_to_tree(context);
         }
 
-        self.relations.set(LinkRelations::for_element(self.upcast()));
+        self.relations
+            .set(LinkRelations::for_element(self.upcast()));
 
         if context.tree_connected {
             let element = self.upcast();
 
-            let href = get_attr(element, &local_name!("href"));
+            if let Some(href) = get_attr(element, &local_name!("href")) {
+                let relations = self.relations.get();
+                if relations.contains(LinkRelations::STYLESHEET) {
+                    self.handle_stylesheet_url(&href);
+                }
 
-            match href {
-                Some(ref href) if self.relations.get().contains(LinkRelations::STYLESHEET) => {
-                    self.handle_stylesheet_url(href);
-                },
-                Some(ref href) if self.relations.get().contains(LinkRelations::ICON) => {
+                if relations.contains(LinkRelations::ICON) {
                     let sizes = get_attr(self.upcast(), &local_name!("sizes"));
-                    self.handle_favicon_url(href, &sizes);
-                },
-                _ => {},
+                    self.handle_favicon_url(&href, &sizes);
+                }
+
+                if relations.contains(LinkRelations::PREFETCH) {
+                    self.fetch_and_process_prefetch_link(&href);
+                }
             }
         }
     }
@@ -259,6 +299,109 @@ impl VirtualMethods for HTMLLinkElement {
 }
 
 impl HTMLLinkElement {
+    /// <https://html.spec.whatwg.org/multipage/semantics.html#create-link-options-from-element>
+    fn processing_options(&self) -> LinkProcessingOptions {
+        // Step 1.
+        let document = self.upcast::<Node>().owner_doc();
+
+        // Step 2.
+        let mut options = LinkProcessingOptions {
+            href: String::new(),
+            destination: Some(Destination::None), // FIXME
+            integrity: String::new(),
+            link_type: String::new(),
+
+            referrer_policy: self.referrer_policy(), // FIXME
+            source_set: None,
+            base_url: document.borrow().base_url(),
+        };
+
+        // Step 3.
+        let element = self.upcast::<Element>();
+        if let Some(href_attribute) = element.get_attribute(&ns!(), &local_name!("href")) {
+            options.href = (**href_attribute.value()).to_owned();
+        }
+
+        // Step 4.
+        if let Some(integrity_attribute) = element.get_attribute(&ns!(), &local_name!("integrity"))
+        {
+            options.integrity = (**integrity_attribute.value()).to_owned();
+        }
+
+        // Step 5.
+        if let Some(type_attribute) = element.get_attribute(&ns!(), &local_name!("type")) {
+            options.link_type = (**type_attribute.value()).to_owned();
+        }
+
+        // Step 6.
+        assert!(!options.href.is_empty() || options.source_set.is_some());
+
+        // Step 7.
+        options
+    }
+
+    /// The `fetch and process the linked resource` algorithm for [`rel="prefetch"`](https://html.spec.whatwg.org/multipage/links.html#link-type-prefetch)
+    fn fetch_and_process_prefetch_link(&self, href: &str) {
+        // Step 1.
+        if href.is_empty() {
+            return;
+        }
+
+        // Step 2.
+        let mut options = self.processing_options();
+
+        // Step 3.
+        options.destination = Some(Destination::None);
+
+        // Step 4.
+        let url = options.base_url.clone();
+        let Some(request) = options.create_link_request() else {
+            // Step 5.
+            return;
+        };
+
+        // Step 6.
+        let request = request.initiator(Initiator::Prefetch);
+
+        // Step 7 - 8: Send the actual fetch request
+        let (action_sender, action_receiver) = ipc::channel().unwrap();
+        let document = self.upcast::<Node>().owner_doc();
+        let window = document.window();
+
+        let (task_source, canceller) = window
+            .task_manager()
+            .networking_task_source_with_canceller();
+
+        let fetch_context = sync::Arc::new(sync::Mutex::new(PrefetchContext {
+            url: url,
+            document: Trusted::new(&document),
+            resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
+        }));
+
+        let listener = NetworkListener {
+            context: fetch_context,
+            task_source,
+            canceller: Some(canceller),
+        };
+
+        ROUTER.add_route(
+            action_receiver.to_opaque(),
+            Box::new(move |message| {
+                listener.notify_fetch(message.to().unwrap());
+            }),
+        );
+
+        window
+            .upcast::<GlobalScope>()
+            .resource_threads()
+            .sender()
+            .send(CoreResourceMsg::Fetch(
+                request,
+                FetchChannels::ResponseMsg(action_sender, None),
+            ))
+            .unwrap();
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#concept-link-obtain>
     fn handle_stylesheet_url(&self, href: &str) {
         let document = document_from_node(self);
@@ -493,5 +636,110 @@ impl HTMLLinkElementMethods for HTMLLinkElement {
     // https://drafts.csswg.org/cssom/#dom-linkstyle-sheet
     fn GetSheet(&self) -> Option<DomRoot<DOMStyleSheet>> {
         self.get_cssom_stylesheet().map(DomRoot::upcast)
+    }
+}
+
+impl LinkProcessingOptions {
+    /// <https://html.spec.whatwg.org/multipage/semantics.html#create-a-link-request>
+    fn create_link_request(self) -> Option<RequestBuilder> {
+        // Step 1.
+        assert!(!self.href.is_empty());
+
+        // Step 2.
+        let Some(destination) = self.destination else {
+            return None;
+        };
+
+        // Step 3 - 4.
+        // TODO: The spec passes a base url which is incompatible with the
+        //       "encoding-parse a URL" algorithm.
+        let Ok(url) = self.base_url.join(&self.href) else {
+            return None;
+        };
+
+        // Step 5.
+        // FIXME: set remaining fields
+        // FIXME: Use correct referrer
+        let builder =
+            create_a_potential_cors_request(url, destination, None, None, Referrer::NoReferrer)
+                .integrity_metadata(self.integrity) // Step 7.
+                .referrer_policy(self.referrer_policy); // Step 9.
+
+        // Step 12
+        Some(builder)
+    }
+}
+
+/// <https://html.spec.whatwg.org/multipage/links.html#translate-a-preload-destination>
+fn translate_a_preload_destination(potential_destination: &str) -> Option<Destination> {
+    let destination = match potential_destination {
+        "fetch" => Destination::None,
+        "font" => Destination::Font,
+        "image" => Destination::Image,
+        "script" => Destination::Script,
+        "track" => Destination::Track,
+        _ => return None,
+    };
+
+    Some(destination)
+}
+
+struct PrefetchContext {
+    /// The document that the `<link>` element is in
+    document: Trusted<Document>,
+
+    resource_timing: ResourceFetchTiming,
+
+    /// The url being prefetched
+    url: ServoUrl,
+}
+
+impl FetchResponseListener for PrefetchContext {
+    fn process_request_body(&mut self) {}
+
+    fn process_request_eof(&mut self) {}
+
+    fn process_response(&mut self, fetch_metadata: Result<FetchMetadata, NetworkError>) {
+        _ = fetch_metadata;
+    }
+
+    fn process_response_chunk(&mut self, chunk: Vec<u8>) {
+        _ = chunk;
+    }
+
+    fn process_response_eof(&mut self, response: Result<ResourceFetchTiming, NetworkError>) {
+        _ = response;
+    }
+
+    fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming {
+        &mut self.resource_timing
+    }
+
+    fn resource_timing(&self) -> &ResourceFetchTiming {
+        &self.resource_timing
+    }
+
+    fn submit_resource_timing(&mut self) {
+        submit_timing(self)
+    }
+}
+
+impl ResourceTimingListener for PrefetchContext {
+    fn resource_timing_information(&self) -> (InitiatorType, ServoUrl) {
+        (
+            InitiatorType::LocalName("link".to_string()),
+            self.url.clone(),
+        )
+    }
+
+    fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
+        self.document.root().global()
+    }
+}
+
+impl PreInvoke for PrefetchContext {
+    fn should_invoke(&self) -> bool {
+        // Prefetch requests are never aborted.
+        true
     }
 }
