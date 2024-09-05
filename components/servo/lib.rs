@@ -223,6 +223,7 @@ impl<Window> Servo<Window>
 where
     Window: WindowMethods + 'static + ?Sized,
 {
+    #[tracing::instrument(skip(embedder, window))]
     pub fn new(
         mut embedder: Box<dyn EmbedderMethods>,
         window: Rc<Window>,
