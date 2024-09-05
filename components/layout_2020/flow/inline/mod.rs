@@ -1984,15 +1984,12 @@ impl IndependentFormattingContext {
                     "Mixed horizontal and vertical writing modes are not supported yet"
                 );
 
-                // This always collects for the nearest positioned ancestor even if the parent positioning
-                // context doesn't. The thing is we haven't kept track up to this point and there isn't
-                // any harm in keeping the hoisted boxes separate.
-                child_positioning_context = Some(PositioningContext::new_for_subtree(
-                    true, /* collects_for_nearest_positioned_ancestor */
-                ));
+                let mut positioning_context =
+                    PositioningContext::new_for_style(&non_replaced.style)
+                        .unwrap_or_else(|| PositioningContext::new_for_subtree(true));
                 let independent_layout = non_replaced.layout(
                     layout.layout_context,
-                    child_positioning_context.as_mut().unwrap(),
+                    &mut positioning_context,
                     &containing_block_for_children,
                     layout.containing_block,
                 );
@@ -2022,7 +2019,7 @@ impl IndependentFormattingContext {
                     .to_physical_size(container_writing_mode),
                 );
 
-                BoxFragment::new(
+                let mut fragment = BoxFragment::new(
                     non_replaced.base_fragment_info,
                     non_replaced.style.clone(),
                     independent_layout.fragments,
@@ -2033,7 +2030,18 @@ impl IndependentFormattingContext {
                     None,
                     CollapsedBlockMargins::zero(),
                 )
-                .with_baselines(independent_layout.baselines)
+                .with_baselines(independent_layout.baselines);
+
+                if fragment
+                    .style
+                    .establishes_containing_block_for_absolute_descendants(fragment.base.flags)
+                {
+                    positioning_context
+                        .layout_collected_children(layout.layout_context, &mut fragment);
+                }
+                child_positioning_context = Some(positioning_context);
+
+                fragment
             },
         };
 
