@@ -72,11 +72,13 @@ where
 #[allow(unsafe_code)]
 unsafe fn handle_value_to_string(cx: *mut jsapi::JSContext, value: HandleValue) -> DOMString {
     rooted!(in(cx) let mut js_string = std::ptr::null_mut::<jsapi::JSString>());
-    js_string.set(JS_ValueToSource(cx, value));
-    if js_string.is_null() {
-        return "<error converting value to string>".into();
+    match std::ptr::NonNull::new(JS_ValueToSource(cx, value)) {
+        Some(js_str) => {
+            js_string.set(js_str.as_ptr());
+            jsstring_to_str(cx, js_str)
+        },
+        None => "<error converting value to string>".into(),
     }
-    jsstring_to_str(cx, *js_string)
 }
 
 #[allow(unsafe_code)]
@@ -84,7 +86,7 @@ fn stringify_handle_value(message: HandleValue) -> DOMString {
     let cx = *GlobalScope::get_cx();
     unsafe {
         if message.is_string() {
-            return jsstring_to_str(cx, message.to_string());
+            return jsstring_to_str(cx, std::ptr::NonNull::new(message.to_string()).unwrap());
         }
         unsafe fn stringify_object_from_handle_value(
             cx: *mut jsapi::JSContext,

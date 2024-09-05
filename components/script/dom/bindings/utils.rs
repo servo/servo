@@ -237,19 +237,19 @@ pub unsafe fn find_enum_value<'a, T>(
     v: HandleValue,
     pairs: &'a [(&'static str, T)],
 ) -> Result<(Option<&'a T>, DOMString), ()> {
-    let jsstr = ToString(cx, v);
-    if jsstr.is_null() {
-        return Err(());
+    match ptr::NonNull::new(ToString(cx, v)) {
+        Some(jsstr) => {
+            let search = jsstring_to_str(cx, jsstr);
+            Ok((
+                pairs
+                    .iter()
+                    .find(|&&(key, _)| search == *key)
+                    .map(|(_, ev)| ev),
+                search,
+            ))
+        },
+        None => Err(()),
     }
-
-    let search = jsstring_to_str(cx, jsstr);
-    Ok((
-        pairs
-            .iter()
-            .find(|&&(key, _)| search == *key)
-            .map(|(_, ev)| ev),
-        search,
-    ))
 }
 
 /// Returns wether `obj` is a platform object using dynamic unwrap
