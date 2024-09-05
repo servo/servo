@@ -28,7 +28,7 @@ use style::parser::ParserContext as CssParserContext;
 use style::stylesheets::{CssRuleType, Origin, Stylesheet, UrlExtraData};
 use style_traits::ParsingMode;
 
-use super::types::GlobalScope;
+use super::types::{EventTarget, GlobalScope};
 use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenList_Binding::DOMTokenListMethods;
@@ -374,7 +374,7 @@ impl HTMLLinkElement {
 
         let fetch_context = sync::Arc::new(sync::Mutex::new(PrefetchContext {
             url: url,
-            document: Trusted::new(&document),
+            link: Trusted::new(self),
             resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
         }));
 
@@ -685,8 +685,8 @@ fn translate_a_preload_destination(potential_destination: &str) -> Option<Destin
 }
 
 struct PrefetchContext {
-    /// The document that the `<link>` element is in
-    document: Trusted<Document>,
+    /// The `<link>` element that caused this prefetch operation
+    link: Trusted<HTMLLinkElement>,
 
     resource_timing: ResourceFetchTiming,
 
@@ -708,7 +708,17 @@ impl FetchResponseListener for PrefetchContext {
     }
 
     fn process_response_eof(&mut self, response: Result<ResourceFetchTiming, NetworkError>) {
-        _ = response;
+        if response.is_ok() {
+            self.link
+                .root()
+                .upcast::<EventTarget>()
+                .fire_event(atom!("load"));
+        } else {
+            self.link
+                .root()
+                .upcast::<EventTarget>()
+                .fire_event(atom!("error"));
+        }
     }
 
     fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming {
@@ -727,13 +737,17 @@ impl FetchResponseListener for PrefetchContext {
 impl ResourceTimingListener for PrefetchContext {
     fn resource_timing_information(&self) -> (InitiatorType, ServoUrl) {
         (
-            InitiatorType::LocalName("link".to_string()),
+            InitiatorType::LocalName("prefetch".to_string()),
             self.url.clone(),
         )
     }
 
     fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
-        self.document.root().global()
+        self.link
+            .root()
+            .upcast::<Node>()
+            .owner_doc()
+            .global()
     }
 }
 
