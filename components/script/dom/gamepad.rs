@@ -96,6 +96,7 @@ impl Gamepad {
         axis_bounds: (f64, f64),
         button_bounds: (f64, f64),
         supported_haptic_effects: GamepadSupportedHapticEffects,
+        xr: bool,
     ) -> DomRoot<Gamepad> {
         Self::new_with_proto(
             global,
@@ -105,6 +106,7 @@ impl Gamepad {
             axis_bounds,
             button_bounds,
             supported_haptic_effects,
+            xr,
         )
     }
 
@@ -121,15 +123,17 @@ impl Gamepad {
         axis_bounds: (f64, f64),
         button_bounds: (f64, f64),
         supported_haptic_effects: GamepadSupportedHapticEffects,
+        xr: bool,
     ) -> DomRoot<Gamepad> {
         let button_list = GamepadButtonList::init_buttons(global);
         let vibration_actuator =
             GamepadHapticActuator::new(global, gamepad_id, supported_haptic_effects);
+        let index = if xr { -1 } else { 0 };
         let gamepad = reflect_dom_object_with_proto(
             Box::new(Gamepad::new_inherited(
                 gamepad_id,
                 id,
-                0,
+                index,
                 true,
                 0.,
                 mapping_type,

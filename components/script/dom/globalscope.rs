@@ -3236,7 +3236,8 @@ impl GlobalScope {
                             "standard".into(),
                             axis_bounds,
                             button_bounds,
-                            supported_haptic_effects
+                            supported_haptic_effects,
+                            false
                         );
                         navigator.set_gamepad(selected_index as usize, &gamepad);
                     }
