@@ -206,7 +206,7 @@ impl GPUDevice {
         self.lost_promise.borrow().is_fulfilled()
     }
 
-    fn get_pipeline_layout_data(
+    pub fn get_pipeline_layout_data(
         &self,
         layout: &GPUPipelineLayoutOrGPUAutoLayoutMode,
     ) -> (
@@ -236,7 +236,7 @@ impl GPUDevice {
         }
     }
 
-    fn parse_render_pipeline<'a>(
+    pub fn parse_render_pipeline<'a>(
         &self,
         descriptor: &GPURenderPipelineDescriptor,
     ) -> Fallible<(
@@ -435,32 +435,7 @@ impl GPUDeviceMethods for GPUDevice {
         &self,
         descriptor: &GPUComputePipelineDescriptor,
     ) -> DomRoot<GPUComputePipeline> {
-        let compute_pipeline_id = self
-            .global()
-            .wgpu_id_hub()
-            .create_compute_pipeline_id(self.device.0.backend());
-
-        let (layout, implicit_ids, _) = self.get_pipeline_layout_data(&descriptor.parent.layout);
-
-        let desc = wgpu_pipe::ComputePipelineDescriptor {
-            label: convert_label(&descriptor.parent.parent),
-            layout,
-            stage: (&descriptor.compute).into(),
-            cache: None,
-        };
-
-        self.channel
-            .0
-            .send(WebGPURequest::CreateComputePipeline {
-                device_id: self.device.0,
-                compute_pipeline_id,
-                descriptor: desc,
-                implicit_ids,
-                async_sender: None,
-            })
-            .expect("Failed to create WebGPU ComputePipeline");
-
-        let compute_pipeline = webgpu::WebGPUComputePipeline(compute_pipeline_id);
+        let compute_pipeline = GPUComputePipeline::create(self, descriptor, None);
         GPUComputePipeline::new(
             &self.global(),
             compute_pipeline,
@@ -477,30 +452,7 @@ impl GPUDeviceMethods for GPUDevice {
     ) -> Rc<Promise> {
         let promise = Promise::new_in_current_realm(comp);
         let sender = response_async(&promise, self);
-        let compute_pipeline_id = self
-            .global()
-            .wgpu_id_hub()
-            .create_compute_pipeline_id(self.device.0.backend());
-
-        let (layout, implicit_ids, _) = self.get_pipeline_layout_data(&descriptor.parent.layout);
-
-        let desc = wgpu_pipe::ComputePipelineDescriptor {
-            label: convert_label(&descriptor.parent.parent),
-            layout,
-            stage: (&descriptor.compute).into(),
-            cache: None,
-        };
-
-        self.channel
-            .0
-            .send(WebGPURequest::CreateComputePipeline {
-                device_id: self.device.0,
-                compute_pipeline_id,
-                descriptor: desc,
-                implicit_ids,
-                async_sender: Some(sender),
-            })
-            .expect("Failed to create WebGPU ComputePipeline");
+        GPUComputePipeline::create(self, descriptor, Some(sender));
         promise
     }
 
@@ -527,26 +479,7 @@ impl GPUDeviceMethods for GPUDevice {
         &self,
         descriptor: &GPURenderPipelineDescriptor,
     ) -> Fallible<DomRoot<GPURenderPipeline>> {
-        let (implicit_ids, desc) = self.parse_render_pipeline(&descriptor)?;
-
-        let render_pipeline_id = self
-            .global()
-            .wgpu_id_hub()
-            .create_render_pipeline_id(self.device.0.backend());
-
-        self.channel
-            .0
-            .send(WebGPURequest::CreateRenderPipeline {
-                device_id: self.device.0,
-                render_pipeline_id,
-                descriptor: desc,
-                implicit_ids,
-                async_sender: None,
-            })
-            .expect("Failed to create WebGPU render pipeline");
-
-        let render_pipeline = webgpu::WebGPURenderPipeline(render_pipeline_id);
-
+        let render_pipeline = GPURenderPipeline::create(self, descriptor, None)?;
         Ok(GPURenderPipeline::new(
             &self.global(),
             render_pipeline,
@@ -561,27 +494,11 @@ impl GPUDeviceMethods for GPUDevice {
         descriptor: &GPURenderPipelineDescriptor,
         comp: InRealm,
     ) -> Fallible<Rc<Promise>> {
-        let (implicit_ids, desc) = self.parse_render_pipeline(&descriptor)?;
-
         let promise = Promise::new_in_current_realm(comp);
+        // FIXME: if ``GPURenderPipeline::create` fails we should remove IpcReceiver from set
+        // but this is currently not possible
         let sender = response_async(&promise, self);
-
-        let render_pipeline_id = self
-            .global()
-            .wgpu_id_hub()
-            .create_render_pipeline_id(self.device.0.backend());
-
-        self.channel
-            .0
-            .send(WebGPURequest::CreateRenderPipeline {
-                device_id: self.device.0,
-                render_pipeline_id,
-                descriptor: desc,
-                implicit_ids,
-                async_sender: Some(sender),
-            })
-            .expect("Failed to create WebGPU render pipeline");
-
+        GPURenderPipeline::create(self, descriptor, Some(sender))?;
         Ok(promise)
     }
 
