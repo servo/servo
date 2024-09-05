@@ -67,8 +67,12 @@ jobs:
     uses: ./.github/workflows/self-hosted-runner-select.yml
     secrets: inherit
     with:
+      # Ubuntu 22.04 has glibc 2.34 so the binaries produced
+      # won't run on systems with older glibc e.g wpt.fyi
+      # runners which still use 20.04.
       github-hosted-runner-label: ubuntu-${{ inputs.upload && '20.04' || '22.04' }}
       self-hosted-image-name: servo-ubuntu2204
+      force-github-hosted-runner: ${{ inputs.upload }}
   runner-timeout:
     needs:
       - runner-select
@@ -82,9 +86,6 @@ jobs:
     needs:
       - runner-select
     name: Linux Build [${{ needs.runner-select.outputs.unique-id }}]
-    # Ubuntu 22.04 has glibc 2.34 so the binaries produced
-    # won't run on systems with older glibc e.g wpt.fyi
-    # runners which still use 20.04.
     runs-on: ${{ needs.runner-select.outputs.selected-runner-label }}
     steps:
       - if: ${{ ! fromJSON(needs.runner-select.outputs.is-self-hosted) }}
