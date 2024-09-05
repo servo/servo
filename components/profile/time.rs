@@ -10,7 +10,6 @@ use std::fs::File;
 use std::io::{self, Write};
 use std::path::Path;
 use std::thread;
-use std::time::Duration;
 
 use ipc_channel::ipc::{self, IpcReceiver};
 use profile_traits::time::{
@@ -18,6 +17,7 @@ use profile_traits::time::{
     TimerMetadataFrameType, TimerMetadataReflowType,
 };
 use servo_config::opts::OutputOptions;
+use time_03::Duration;
 
 use crate::trace_dump::TraceDump;
 
@@ -156,7 +156,7 @@ impl Formattable for ProfilerCategory {
     }
 }
 
-type ProfilerBuckets = BTreeMap<(ProfilerCategory, Option<TimerMetadata>), Vec<f64>>;
+type ProfilerBuckets = BTreeMap<(ProfilerCategory, Option<TimerMetadata>), Vec<Duration>>;
 
 // back end of the profiler that handles data aggregation and performance metrics
 pub struct Profiler {
@@ -192,7 +192,7 @@ impl Profiler {
                         thread::Builder::new()
                             .name("TimeProfTimer".to_owned())
                             .spawn(move || loop {
-                                thread::sleep(duration_from_seconds(period));
+                                thread::sleep(std::time::Duration::from_secs_f64(period));
                                 if chan.send(ProfilerMsg::Print).is_err() {
                                     break;
                                 }
@@ -258,18 +258,17 @@ impl Profiler {
         }
     }
 
-    fn find_or_insert(&mut self, k: (ProfilerCategory, Option<TimerMetadata>), t: f64) {
-        self.buckets.entry(k).or_default().push(t);
+    fn find_or_insert(&mut self, k: (ProfilerCategory, Option<TimerMetadata>), duration: Duration) {
+        self.buckets.entry(k).or_default().push(duration);
     }
 
     fn handle_msg(&mut self, msg: ProfilerMsg) -> bool {
         match msg.clone() {
-            ProfilerMsg::Time(k, t) => {
+            ProfilerMsg::Time(category_and_metadata, (start_time, end_time)) => {
                 if let Some(ref mut trace) = self.trace {
-                    trace.write_one(&k, t);
+                    trace.write_one(&category_and_metadata, start_time, end_time);
                 }
-                let ms = (t.1 - t.0) as f64 / 1000000f64;
-                self.find_or_insert(k, ms);
+                self.find_or_insert(category_and_metadata, end_time - start_time);
             },
             ProfilerMsg::Print => {
                 if let Some(ProfilerMsg::Time(..)) = self.last_msg {
@@ -300,16 +299,16 @@ impl Profiler {
     }
 
     /// Get tuple (mean, median, min, max) for profiler statistics.
-    pub fn get_statistics(data: &[f64]) -> (f64, f64, f64, f64) {
-        data.iter().fold(-f64::INFINITY, |a, &b| {
-            debug_assert!(a <= b, "Data must be sorted");
-            b
-        });
+    pub fn get_statistics(data: &[Duration]) -> (Duration, Duration, Duration, Duration) {
+        debug_assert!(
+            data.windows(2).all(|window| window[0] <= window[1]),
+            "Data must be sorted"
+        );
 
         let data_len = data.len();
         debug_assert!(data_len > 0);
         let (mean, median, min, max) = (
-            data.iter().sum::<f64>() / (data_len as f64),
+            data.iter().sum::<Duration>() / data_len as u32,
             data[data_len / 2],
             data[0],
             data[data_len - 1],
@@ -341,10 +340,10 @@ impl Profiler {
                             "{}\t{}\t{:15.4}\t{:15.4}\t{:15.4}\t{:15.4}\t{:15}",
                             category.format(&self.output),
                             meta.format(&self.output),
-                            mean,
-                            median,
-                            min,
-                            max,
+                            mean.as_seconds_f64() * 1000.,
+                            median.as_seconds_f64() * 1000.,
+                            min.as_seconds_f64() * 1000.,
+                            max.as_seconds_f64() * 1000.,
                             data_len
                         )
                         .unwrap();
@@ -384,10 +383,10 @@ impl Profiler {
                             "{:-35}{} {:15.4} {:15.4} {:15.4} {:15.4} {:15}",
                             category.format(&self.output),
                             meta.format(&self.output),
-                            mean,
-                            median,
-                            min,
-                            max,
+                            mean.as_seconds_f64() * 1000.,
+                            median.as_seconds_f64() * 1000.,
+                            min.as_seconds_f64() * 1000.,
+                            max.as_seconds_f64() * 1000.,
                             data_len
                         )
                         .unwrap();
@@ -404,18 +403,4 @@ impl Profiler {
             None => { /* Do nothing if no output option has been set */ },
         };
     }
-}
-
-pub fn duration_from_seconds(secs: f64) -> Duration {
-    pub const NANOS_PER_SEC: u32 = 1_000_000_000;
-
-    // Get number of seconds and check that it fits in a u64.
-    let whole_secs = secs.trunc();
-    assert!(whole_secs >= 0.0 && whole_secs <= u64::MAX as f64);
-
-    // Get number of nanoseconds. This should always fit in a u32, but check anyway.
-    let nanos = (secs.fract() * (NANOS_PER_SEC as f64)).trunc();
-    assert!(nanos >= 0.0 && nanos <= u32::MAX as f64);
-
-    Duration::new(whole_secs as u64, nanos as u32)
 }

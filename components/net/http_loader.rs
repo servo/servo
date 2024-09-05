@@ -9,6 +9,7 @@ use std::sync::{Arc as StdArc, Condvar, Mutex, RwLock};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use async_recursion::async_recursion;
+use base::cross_process_instant::CrossProcessInstant;
 use base::id::{HistoryStateId, PipelineId};
 use crossbeam_channel::Sender;
 use devtools_traits::{
@@ -114,10 +115,6 @@ impl Default for HttpState {
             override_manager,
         }
     }
-}
-
-fn precise_time_ms() -> u64 {
-    time::precise_time_ns() / (1000 * 1000)
 }
 
 // Step 3 of https://fetch.spec.whatwg.org/#concept-fetch.
@@ -353,19 +350,22 @@ fn prepare_devtools_request(
     headers: HeaderMap,
     body: Option<Vec<u8>>,
     pipeline_id: PipelineId,
-    now: SystemTime,
-    connect_time: u64,
-    send_time: u64,
+    connect_time: Duration,
+    send_time: Duration,
     is_xhr: bool,
 ) -> ChromeToDevtoolsControlMsg {
+    let started_date_time = SystemTime::now();
     let request = DevtoolsHttpRequest {
         url,
         method,
         headers,
         body,
         pipeline_id,
-        started_date_time: now,
-        time_stamp: now.duration_since(UNIX_EPOCH).unwrap_or_default().as_secs() as i64,
+        started_date_time,
+        time_stamp: started_date_time
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs() as i64,
         connect_time,
         send_time,
         is_xhr,
@@ -614,7 +614,7 @@ async fn obtain_response(
 
         // TODO(#21261) connect_start: set if a persistent connection is *not* used and the last non-redirected
         // fetch passes the timing allow check
-        let connect_start = precise_time_ms();
+        let connect_start = CrossProcessInstant::now();
         context
             .timing
             .lock()
@@ -638,7 +638,7 @@ async fn obtain_response(
         };
         *request.headers_mut() = headers.clone();
 
-        let connect_end = precise_time_ms();
+        let connect_end = CrossProcessInstant::now();
         context
             .timing
             .lock()
@@ -649,7 +649,7 @@ async fn obtain_response(
         let pipeline_id = *pipeline_id;
         let closure_url = url.clone();
         let method = method.clone();
-        let send_start = precise_time_ms();
+        let send_start = CrossProcessInstant::now();
 
         let host = request.uri().host().unwrap_or("").to_owned();
         let override_manager = context.state.override_manager.clone();
@@ -658,7 +658,7 @@ async fn obtain_response(
         client
             .request(request)
             .and_then(move |res| {
-                let send_end = precise_time_ms();
+                let send_end = CrossProcessInstant::now();
 
                 // TODO(#21271) response_start: immediately after receiving first byte of response
 
@@ -671,9 +671,8 @@ async fn obtain_response(
                             headers,
                             Some(devtools_bytes.lock().unwrap().clone()),
                             pipeline_id,
-                            SystemTime::now(),
-                            connect_end - connect_start,
-                            send_end - send_start,
+                            (connect_end - connect_start).unsigned_abs(),
+                            (send_end - send_start).unsigned_abs(),
                             is_xhr,
                         ))
                     // TODO: ^This is not right, connect_start is taken before contructing the

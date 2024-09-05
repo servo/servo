@@ -5,8 +5,8 @@
 #![deny(unsafe_code)]
 
 use std::fmt::Display;
-use std::time::{SystemTime, UNIX_EPOCH};
 
+use base::cross_process_instant::CrossProcessInstant;
 use base::id::HistoryStateId;
 use cookie::Cookie;
 use headers::{ContentType, HeaderMapExt, ReferrerPolicy as ReferrerPolicyHeader};
@@ -20,7 +20,6 @@ use lazy_static::lazy_static;
 use malloc_size_of::malloc_size_of_is_0;
 use malloc_size_of_derive::MallocSizeOf;
 use mime::Mime;
-use num_traits::Zero;
 use rustls::Certificate;
 use serde::{Deserialize, Serialize};
 use servo_rand::RngCore;
@@ -494,21 +493,21 @@ pub struct ResourceCorsData {
 
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct ResourceFetchTiming {
-    pub domain_lookup_start: u64,
+    pub domain_lookup_start: Option<CrossProcessInstant>,
     pub timing_check_passed: bool,
     pub timing_type: ResourceTimingType,
     /// Number of redirects until final resource (currently limited to 20)
     pub redirect_count: u16,
-    pub request_start: u64,
-    pub secure_connection_start: u64,
-    pub response_start: u64,
-    pub fetch_start: u64,
-    pub response_end: u64,
-    pub redirect_start: u64,
-    pub redirect_end: u64,
-    pub connect_start: u64,
-    pub connect_end: u64,
-    pub start_time: u64,
+    pub request_start: Option<CrossProcessInstant>,
+    pub secure_connection_start: Option<CrossProcessInstant>,
+    pub response_start: Option<CrossProcessInstant>,
+    pub fetch_start: Option<CrossProcessInstant>,
+    pub response_end: Option<CrossProcessInstant>,
+    pub redirect_start: Option<CrossProcessInstant>,
+    pub redirect_end: Option<CrossProcessInstant>,
+    pub connect_start: Option<CrossProcessInstant>,
+    pub connect_end: Option<CrossProcessInstant>,
+    pub start_time: Option<CrossProcessInstant>,
 }
 
 pub enum RedirectStartValue {
@@ -539,8 +538,8 @@ pub enum ResourceAttribute {
     RedirectStart(RedirectStartValue),
     RedirectEnd(RedirectEndValue),
     FetchStart,
-    ConnectStart(u64),
-    ConnectEnd(u64),
+    ConnectStart(CrossProcessInstant),
+    ConnectEnd(CrossProcessInstant),
     SecureConnectionStart,
     ResponseEnd,
     StartTime(ResourceTimeValue),
@@ -559,18 +558,18 @@ impl ResourceFetchTiming {
         ResourceFetchTiming {
             timing_type,
             timing_check_passed: true,
-            domain_lookup_start: 0,
+            domain_lookup_start: None,
             redirect_count: 0,
-            secure_connection_start: 0,
-            request_start: 0,
-            response_start: 0,
-            fetch_start: 0,
-            redirect_start: 0,
-            redirect_end: 0,
-            connect_start: 0,
-            connect_end: 0,
-            response_end: 0,
-            start_time: 0,
+            secure_connection_start: None,
+            request_start: None,
+            response_start: None,
+            fetch_start: None,
+            redirect_start: None,
+            redirect_end: None,
+            connect_start: None,
+            connect_end: None,
+            response_end: None,
+            start_time: None,
         }
     }
 
@@ -586,47 +585,41 @@ impl ResourceFetchTiming {
         if !self.timing_check_passed && !should_attribute_always_be_updated {
             return;
         }
-        let now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_nanos() as u64;
+        let now = Some(CrossProcessInstant::now());
         match attribute {
             ResourceAttribute::DomainLookupStart => self.domain_lookup_start = now,
             ResourceAttribute::RedirectCount(count) => self.redirect_count = count,
             ResourceAttribute::RequestStart => self.request_start = now,
             ResourceAttribute::ResponseStart => self.response_start = now,
             ResourceAttribute::RedirectStart(val) => match val {
-                RedirectStartValue::Zero => self.redirect_start = 0,
+                RedirectStartValue::Zero => self.redirect_start = None,
                 RedirectStartValue::FetchStart => {
-                    if self.redirect_start.is_zero() {
+                    if self.redirect_start.is_none() {
                         self.redirect_start = self.fetch_start
                     }
                 },
             },
             ResourceAttribute::RedirectEnd(val) => match val {
-                RedirectEndValue::Zero => self.redirect_end = 0,
+                RedirectEndValue::Zero => self.redirect_end = None,
                 RedirectEndValue::ResponseEnd => self.redirect_end = self.response_end,
             },
             ResourceAttribute::FetchStart => self.fetch_start = now,
-            ResourceAttribute::ConnectStart(val) => self.connect_start = val,
-            ResourceAttribute::ConnectEnd(val) => self.connect_end = val,
+            ResourceAttribute::ConnectStart(instant) => self.connect_start = Some(instant),
+            ResourceAttribute::ConnectEnd(instant) => self.connect_end = Some(instant),
             ResourceAttribute::SecureConnectionStart => self.secure_connection_start = now,
             ResourceAttribute::ResponseEnd => self.response_end = now,
             ResourceAttribute::StartTime(val) => match val {
                 ResourceTimeValue::RedirectStart
-                    if self.redirect_start.is_zero() || !self.timing_check_passed => {},
+                    if self.redirect_start.is_none() || !self.timing_check_passed => {},
                 _ => self.start_time = self.get_time_value(val),
             },
         }
     }
 
-    fn get_time_value(&self, time: ResourceTimeValue) -> u64 {
+    fn get_time_value(&self, time: ResourceTimeValue) -> Option<CrossProcessInstant> {
         match time {
-            ResourceTimeValue::Zero => 0,
-            ResourceTimeValue::Now => SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap_or_default()
-                .as_nanos() as u64,
+            ResourceTimeValue::Zero => None,
+            ResourceTimeValue::Now => Some(CrossProcessInstant::now()),
             ResourceTimeValue::FetchStart => self.fetch_start,
             ResourceTimeValue::RedirectStart => self.redirect_start,
         }
@@ -634,13 +627,13 @@ impl ResourceFetchTiming {
 
     pub fn mark_timing_check_failed(&mut self) {
         self.timing_check_passed = false;
-        self.domain_lookup_start = 0;
+        self.domain_lookup_start = None;
         self.redirect_count = 0;
-        self.request_start = 0;
-        self.response_start = 0;
-        self.redirect_start = 0;
-        self.connect_start = 0;
-        self.connect_end = 0;
+        self.request_start = None;
+        self.response_start = None;
+        self.redirect_start = None;
+        self.connect_start = None;
+        self.connect_end = None;
     }
 }
 

@@ -53,6 +53,7 @@ pub const BASE: u32 = ot_tag!('B', 'A', 'S', 'E');
 
 pub const LAST_RESORT_GLYPH_ADVANCE: FractionalPixel = 10.0;
 
+/// Nanoseconds spent shaping text across all layout threads.
 static TEXT_SHAPING_PERFORMANCE_COUNTER: AtomicUsize = AtomicUsize::new(0);
 
 // PlatformFont encapsulates access to the platform's font API,
@@ -783,6 +784,7 @@ impl RunMetrics {
     }
 }
 
+/// Get the number of nanoseconds spent shaping text across all threads.
 pub fn get_and_reset_text_shaping_performance_counter() -> usize {
     TEXT_SHAPING_PERFORMANCE_COUNTER.swap(0, Ordering::SeqCst)
 }

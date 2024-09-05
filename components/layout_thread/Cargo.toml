@@ -43,6 +43,7 @@ servo_url = { path = "../url" }
 style = { workspace = true }
 style_traits = { workspace = true }
 time = { workspace = true }
+time_03 = { workspace = true }
 url = { workspace = true }
 webrender_api = { workspace = true }
 webrender_traits = { workspace = true }

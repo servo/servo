@@ -16,6 +16,7 @@ use std::process;
 use std::sync::Arc;
 
 use app_units::Au;
+use base::cross_process_instant::CrossProcessInstant;
 use base::id::{BrowsingContextId, PipelineId};
 use base::Epoch;
 use embedder_traits::resources::{self, Resource};
@@ -474,7 +475,7 @@ impl Layout for LayoutThread {
             .collect();
     }
 
-    fn set_epoch_paint_time(&mut self, epoch: Epoch, paint_time: u64) {
+    fn set_epoch_paint_time(&mut self, epoch: Epoch, paint_time: CrossProcessInstant) {
         self.paint_time_metrics.maybe_set_metric(epoch, paint_time);
     }
 }

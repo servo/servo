@@ -6,6 +6,7 @@ use std::borrow::Cow;
 use std::cell::Cell;
 use std::mem;
 
+use base::cross_process_instant::CrossProcessInstant;
 use base::id::PipelineId;
 use base64::engine::general_purpose;
 use base64::Engine as _;
@@ -971,11 +972,15 @@ impl FetchResponseListener for ParserContext {
             parser.parse_sync();
         }
 
-        //TODO only update if this is the current document resource
+        // TODO: Only update if this is the current document resource.
+        // TODO(mrobinson): Pass a proper fetch_start parameter here instead of `CrossProcessInstant::now()`.
         if let Some(pushed_index) = self.pushed_entry_index {
             let document = &parser.document;
-            let performance_entry =
-                PerformanceNavigationTiming::new(&document.global(), 0, 0, document);
+            let performance_entry = PerformanceNavigationTiming::new(
+                &document.global(),
+                CrossProcessInstant::now(),
+                document,
+            );
             document
                 .global()
                 .performance()
@@ -1003,9 +1008,12 @@ impl FetchResponseListener for ParserContext {
 
         let document = &parser.document;
 
-        //TODO nav_start and nav_start_precise
-        let performance_entry =
-            PerformanceNavigationTiming::new(&document.global(), 0, 0, document);
+        // TODO: Pass a proper fetch start time here.
+        let performance_entry = PerformanceNavigationTiming::new(
+            &document.global(),
+            CrossProcessInstant::now(),
+            document,
+        );
         self.pushed_entry_index = document
             .global()
             .performance()

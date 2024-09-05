@@ -27,12 +27,13 @@ use std::result::Result;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::thread;
-use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
+use std::time::{Duration, Instant, SystemTime};
 
 use background_hang_monitor_api::{
     BackgroundHangMonitor, BackgroundHangMonitorExitSignal, HangAnnotation, MonitoredComponentId,
     MonitoredComponentType, ScriptHangAnnotation,
 };
+use base::cross_process_instant::CrossProcessInstant;
 use base::id::{
     BrowsingContextId, HistoryStateId, PipelineId, PipelineNamespace, TopLevelBrowsingContextId,
 };
@@ -91,7 +92,6 @@ use servo_config::opts;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use style::dom::OpaqueNode;
 use style::thread_state::{self, ThreadState};
-use time::precise_time_ns;
 use url::Position;
 use webgpu::{WebGPUDevice, WebGPUMsg};
 use webrender_api::DocumentId;
@@ -213,10 +213,9 @@ struct InProgressLoad {
     /// The origin for the document
     #[no_trace]
     origin: MutableOrigin,
-    /// Timestamp reporting the time in milliseconds when the browser started this load.
-    navigation_start: u64,
-    /// High res timestamp reporting the time in nanoseconds when the browser started this load.
-    navigation_start_precise: u64,
+    /// Timestamp reporting the time when the browser started this load.
+    #[no_trace]
+    navigation_start: CrossProcessInstant,
     /// For cancelling the fetch
     canceller: FetchCanceller,
     /// If inheriting the security context
@@ -237,11 +236,7 @@ impl InProgressLoad {
         origin: MutableOrigin,
         inherited_secure_context: Option<bool>,
     ) -> InProgressLoad {
-        let duration = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap_or_default();
-        let navigation_start = duration.as_millis();
-        let navigation_start_precise = precise_time_ns();
+        let navigation_start = CrossProcessInstant::now();
         InProgressLoad {
             pipeline_id: id,
             browsing_context_id,
@@ -253,8 +248,7 @@ impl InProgressLoad {
             throttled: false,
             url,
             origin,
-            navigation_start: navigation_start as u64,
-            navigation_start_precise,
+            navigation_start,
             canceller: Default::default(),
             inherited_secure_context,
         }
@@ -2430,7 +2424,12 @@ impl ScriptThread {
         )
     }
 
-    fn handle_set_epoch_paint_time(&self, pipeline_id: PipelineId, epoch: Epoch, time: u64) {
+    fn handle_set_epoch_paint_time(
+        &self,
+        pipeline_id: PipelineId,
+        epoch: Epoch,
+        time: CrossProcessInstant,
+    ) {
         let Some(window) = self.documents.borrow().find_window(pipeline_id) else {
             warn!("Received set epoch paint time message for closed pipeline {pipeline_id}.");
             return;
@@ -3571,7 +3570,7 @@ impl ScriptThread {
             self.layout_to_constellation_chan.clone(),
             self.control_chan.clone(),
             final_url.clone(),
-            incomplete.navigation_start_precise,
+            incomplete.navigation_start,
         );
 
         let layout_config = LayoutConfig {
@@ -3611,7 +3610,6 @@ impl ScriptThread {
             origin.clone(),
             final_url.clone(),
             incomplete.navigation_start,
-            incomplete.navigation_start_precise,
             self.webgl_chan.as_ref().map(|chan| chan.channel()),
             self.webxr_registry.clone(),
             self.microtask_queue.clone(),
@@ -3746,7 +3744,7 @@ impl ScriptThread {
         );
 
         document.set_https_state(metadata.https_state);
-        document.set_navigation_start(incomplete.navigation_start_precise);
+        document.set_navigation_start(incomplete.navigation_start);
 
         if is_html_document == IsHTMLDocument::NonHTMLDocument {
             ServoParser::parse_xml_document(&document, None, final_url);
@@ -4137,7 +4135,7 @@ impl ScriptThread {
         &self,
         pipeline_id: PipelineId,
         metric_type: ProgressiveWebMetricType,
-        metric_value: u64,
+        metric_value: CrossProcessInstant,
     ) {
         let window = self.documents.borrow().find_window(pipeline_id);
         if let Some(window) = window {

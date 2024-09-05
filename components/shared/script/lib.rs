@@ -20,6 +20,7 @@ use std::fmt;
 use std::sync::Arc;
 
 use background_hang_monitor_api::BackgroundHangMonitorRegister;
+use base::cross_process_instant::CrossProcessInstant;
 use base::id::{
     BlobId, BrowsingContextId, HistoryStateId, MessagePortId, PipelineId, PipelineNamespaceId,
     TopLevelBrowsingContextId,
@@ -372,7 +373,7 @@ pub enum ConstellationControlMsg {
     /// Reload the given page.
     Reload(PipelineId),
     /// Notifies the script thread about a new recorded paint metric.
-    PaintMetric(PipelineId, ProgressiveWebMetricType, u64),
+    PaintMetric(PipelineId, ProgressiveWebMetricType, CrossProcessInstant),
     /// Notifies the media session about a user requested media session action.
     MediaSessionAction(PipelineId, MediaSessionActionType),
     /// Notifies script thread that WebGPU server has started
@@ -381,7 +382,7 @@ pub enum ConstellationControlMsg {
     /// pipeline via the Constellation.
     SetScrollStates(PipelineId, Vec<ScrollState>),
     /// Send the paint time for a specific epoch.
-    SetEpochPaintTime(PipelineId, Epoch, u64),
+    SetEpochPaintTime(PipelineId, Epoch, CrossProcessInstant),
 }
 
 impl fmt::Debug for ConstellationControlMsg {

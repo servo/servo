@@ -21,4 +21,14 @@ malloc_size_of_derive = { workspace = true }
 parking_lot = { workspace = true }
 serde = { workspace = true }
 size_of_test = { workspace = true }
+time_03 = { workspace = true }
 webrender_api = { workspace = true }
+
+[target.'cfg(any(target_os = "macos", target_os = "ios"))'.dependencies]
+mach2 = { workspace = true }
+
+[target.'cfg(all(unix, not(any(target_os = "macos", target_os = "ios"))))'.dependencies]
+libc = { workspace = true }
+
+[target.'cfg(target_os = "windows")'.dependencies]
+windows-sys = { workspace = true, features = ["Win32_System_Performance"] }

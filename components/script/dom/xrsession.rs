@@ -8,11 +8,11 @@ use std::f64::consts::{FRAC_PI_2, PI};
 use std::mem;
 use std::rc::Rc;
 
+use base::cross_process_instant::CrossProcessInstant;
 use dom_struct::dom_struct;
 use euclid::{RigidTransform3D, Transform3D, Vector3D};
 use ipc_channel::ipc::IpcReceiver;
 use ipc_channel::router::ROUTER;
-use metrics::ToMs;
 use profile_traits::ipc;
 use webxr_api::{
     self, util, ApiSpace, ContextId as WebXRContextId, Display, EntityTypes, EnvironmentBlendMode,
@@ -45,7 +45,6 @@ use crate::dom::bindings::root::{Dom, DomRoot, MutDom, MutNullableDom};
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::performance::reduce_timing_resolution;
 use crate::dom::promise::Promise;
 use crate::dom::xrframe::XRFrame;
 use crate::dom::xrhittestsource::XRHitTestSource;
@@ -189,7 +188,7 @@ impl XRSession {
             frame_receiver.to_opaque(),
             Box::new(move |message| {
                 let frame: Frame = message.to().unwrap();
-                let time = time::precise_time_ns();
+                let time = CrossProcessInstant::now();
                 let this = this.clone();
                 let _ = task_source.queue_with_canceller(
                     task!(xr_raf_callback: move || {
@@ -363,7 +362,7 @@ impl XRSession {
     }
 
     /// <https://immersive-web.github.io/webxr/#xr-animation-frame>
-    fn raf_callback(&self, mut frame: Frame, time: u64) {
+    fn raf_callback(&self, mut frame: Frame, time: CrossProcessInstant) {
         debug!("WebXR RAF callback {:?}", frame);
 
         // Step 1-2 happen in the xebxr device thread
@@ -413,10 +412,10 @@ impl XRSession {
             assert!(current.is_empty());
             mem::swap(&mut *self.raf_callback_list.borrow_mut(), &mut current);
         }
-        let start = self.global().as_window().get_navigation_start();
-        let time = reduce_timing_resolution((time - start).to_ms());
 
+        let time = self.global().performance().to_dom_high_res_time_stamp(time);
         let frame = XRFrame::new(&self.global(), self, frame);
+
         // Step 8-9
         frame.set_active(true);
         frame.set_animation_frame(true);

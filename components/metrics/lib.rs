@@ -5,8 +5,9 @@
 use std::cell::{Cell, RefCell};
 use std::cmp::Ordering;
 use std::collections::HashMap;
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::Duration;
 
+use base::cross_process_instant::CrossProcessInstant;
 use base::id::PipelineId;
 use base::Epoch;
 use ipc_channel::ipc::IpcSender;
@@ -22,10 +23,14 @@ pub trait ProfilerMetadataFactory {
 }
 
 pub trait ProgressiveWebMetric {
-    fn get_navigation_start(&self) -> Option<u64>;
-    fn set_navigation_start(&mut self, time: u64);
+    fn get_navigation_start(&self) -> Option<CrossProcessInstant>;
+    fn set_navigation_start(&mut self, time: CrossProcessInstant);
     fn get_time_profiler_chan(&self) -> &ProfilerChan;
-    fn send_queued_constellation_msg(&self, name: ProgressiveWebMetricType, time: u64);
+    fn send_queued_constellation_msg(
+        &self,
+        name: ProgressiveWebMetricType,
+        time: CrossProcessInstant,
+    );
     fn get_url(&self) -> &ServoUrl;
 }
 
@@ -50,40 +55,36 @@ fn set_metric<U: ProgressiveWebMetric>(
     metadata: Option<TimerMetadata>,
     metric_type: ProgressiveWebMetricType,
     category: ProfilerCategory,
-    attr: &Cell<Option<u64>>,
-    metric_time: Option<u64>,
+    attr: &Cell<Option<CrossProcessInstant>>,
+    metric_time: Option<CrossProcessInstant>,
     url: &ServoUrl,
 ) {
-    let navigation_start = match pwm.get_navigation_start() {
-        Some(time) => time,
-        None => {
-            warn!("Trying to set metric before navigation start");
-            return;
-        },
-    };
-    let now = match metric_time {
-        Some(time) => time,
-        None => SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_nanos() as u64,
-    };
-    let time = now - navigation_start;
-    attr.set(Some(time));
+    let metric_time = metric_time.unwrap_or_else(CrossProcessInstant::now);
+    attr.set(Some(metric_time));
 
     // Queue performance observer notification.
-    pwm.send_queued_constellation_msg(metric_type, time);
+    pwm.send_queued_constellation_msg(metric_type, metric_time);
 
     // Send the metric to the time profiler.
-    send_profile_data(category, metadata, pwm.get_time_profiler_chan(), time, time);
+    send_profile_data(
+        category,
+        metadata,
+        pwm.get_time_profiler_chan(),
+        metric_time,
+        metric_time,
+    );
 
     // Print the metric to console if the print-pwm option was given.
     if opts::get().print_pwm {
+        let navigation_start = pwm
+            .get_navigation_start()
+            .unwrap_or_else(CrossProcessInstant::epoch);
         println!(
-            "Navigation start: {}",
-            pwm.get_navigation_start().unwrap().to_ms()
+            "{:?} {:?} {:?}",
+            url,
+            metric_type,
+            (metric_time - navigation_start).as_seconds_f64()
         );
-        println!("{:?} {:?} {:?}", url, metric_type, time.to_ms());
     }
 }
 
@@ -96,13 +97,13 @@ fn set_metric<U: ProgressiveWebMetric>(
 #[derive(MallocSizeOf)]
 pub struct InteractiveMetrics {
     /// when we navigated to the page
-    navigation_start: Option<u64>,
+    navigation_start: Option<CrossProcessInstant>,
     /// indicates if the page is visually ready
-    dom_content_loaded: Cell<Option<u64>>,
+    dom_content_loaded: Cell<Option<CrossProcessInstant>>,
     /// main thread is available -- there's been a 10s window with no tasks longer than 50ms
-    main_thread_available: Cell<Option<u64>>,
+    main_thread_available: Cell<Option<CrossProcessInstant>>,
     // max(main_thread_available, dom_content_loaded)
-    time_to_interactive: Cell<Option<u64>>,
+    time_to_interactive: Cell<Option<CrossProcessInstant>>,
     #[ignore_malloc_size_of = "can't measure channels"]
     time_profiler_chan: ProfilerChan,
     url: ServoUrl,
@@ -110,13 +111,13 @@ pub struct InteractiveMetrics {
 
 #[derive(Clone, Copy, Debug, MallocSizeOf)]
 pub struct InteractiveWindow {
-    start: SystemTime,
+    start: CrossProcessInstant,
 }
 
 impl Default for InteractiveWindow {
     fn default() -> Self {
         Self {
-            start: SystemTime::now(),
+            start: CrossProcessInstant::now(),
         }
     }
 }
@@ -127,29 +128,23 @@ impl InteractiveWindow {
     //   restart: there was a task > 50ms
     //   not all documents are interactive
     pub fn start_window(&mut self) {
-        self.start = SystemTime::now();
+        self.start = CrossProcessInstant::now();
     }
 
     /// check if 10s has elapsed since start
     pub fn needs_check(&self) -> bool {
-        SystemTime::now()
-            .duration_since(self.start)
-            .unwrap_or_default() >=
-            INTERACTIVE_WINDOW_SECONDS
+        CrossProcessInstant::now() - self.start > INTERACTIVE_WINDOW_SECONDS
     }
 
-    pub fn get_start(&self) -> u64 {
+    pub fn get_start(&self) -> CrossProcessInstant {
         self.start
-            .duration_since(UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_nanos() as u64
     }
 }
 
 #[derive(Debug)]
 pub enum InteractiveFlag {
     DOMContentLoaded,
-    TimeToInteractive(u64),
+    TimeToInteractive(CrossProcessInstant),
 }
 
 impl InteractiveMetrics {
@@ -166,26 +161,22 @@ impl InteractiveMetrics {
 
     pub fn set_dom_content_loaded(&self) {
         if self.dom_content_loaded.get().is_none() {
-            self.dom_content_loaded.set(Some(
-                SystemTime::now()
-                    .duration_since(UNIX_EPOCH)
-                    .unwrap_or_default()
-                    .as_nanos() as u64,
-            ));
+            self.dom_content_loaded
+                .set(Some(CrossProcessInstant::now()));
         }
     }
 
-    pub fn set_main_thread_available(&self, time: u64) {
+    pub fn set_main_thread_available(&self, time: CrossProcessInstant) {
         if self.main_thread_available.get().is_none() {
             self.main_thread_available.set(Some(time));
         }
     }
 
-    pub fn get_dom_content_loaded(&self) -> Option<u64> {
+    pub fn get_dom_content_loaded(&self) -> Option<CrossProcessInstant> {
         self.dom_content_loaded.get()
     }
 
-    pub fn get_main_thread_available(&self) -> Option<u64> {
+    pub fn get_main_thread_available(&self) -> Option<CrossProcessInstant> {
         self.main_thread_available.get()
     }
 
@@ -225,7 +216,7 @@ impl InteractiveMetrics {
         );
     }
 
-    pub fn get_tti(&self) -> Option<u64> {
+    pub fn get_tti(&self) -> Option<CrossProcessInstant> {
         self.time_to_interactive.get()
     }
 
@@ -235,15 +226,20 @@ impl InteractiveMetrics {
 }
 
 impl ProgressiveWebMetric for InteractiveMetrics {
-    fn get_navigation_start(&self) -> Option<u64> {
+    fn get_navigation_start(&self) -> Option<CrossProcessInstant> {
         self.navigation_start
     }
 
-    fn set_navigation_start(&mut self, time: u64) {
+    fn set_navigation_start(&mut self, time: CrossProcessInstant) {
         self.navigation_start = Some(time);
     }
 
-    fn send_queued_constellation_msg(&self, _name: ProgressiveWebMetricType, _time: u64) {}
+    fn send_queued_constellation_msg(
+        &self,
+        _name: ProgressiveWebMetricType,
+        _time: CrossProcessInstant,
+    ) {
+    }
 
     fn get_time_profiler_chan(&self) -> &ProfilerChan {
         &self.time_profiler_chan
@@ -257,9 +253,9 @@ impl ProgressiveWebMetric for InteractiveMetrics {
 // https://w3c.github.io/paint-timing/
 pub struct PaintTimeMetrics {
     pending_metrics: RefCell<HashMap<Epoch, (Option<TimerMetadata>, bool)>>,
-    navigation_start: u64,
-    first_paint: Cell<Option<u64>>,
-    first_contentful_paint: Cell<Option<u64>>,
+    navigation_start: CrossProcessInstant,
+    first_paint: Cell<Option<CrossProcessInstant>>,
+    first_contentful_paint: Cell<Option<CrossProcessInstant>>,
     pipeline_id: PipelineId,
     time_profiler_chan: ProfilerChan,
     constellation_chan: IpcSender<LayoutMsg>,
@@ -274,7 +270,7 @@ impl PaintTimeMetrics {
         constellation_chan: IpcSender<LayoutMsg>,
         script_chan: IpcSender<ConstellationControlMsg>,
         url: ServoUrl,
-        navigation_start: u64,
+        navigation_start: CrossProcessInstant,
     ) -> PaintTimeMetrics {
         PaintTimeMetrics {
             pending_metrics: RefCell::new(HashMap::new()),
@@ -338,7 +334,7 @@ impl PaintTimeMetrics {
         }
     }
 
-    pub fn maybe_set_metric(&self, epoch: Epoch, paint_time: u64) {
+    pub fn maybe_set_metric(&self, epoch: Epoch, paint_time: CrossProcessInstant) {
         if self.first_paint.get().is_some() && self.first_contentful_paint.get().is_some() {
             // If we already set all paint metrics we just bail out.
             return;
@@ -370,25 +366,29 @@ impl PaintTimeMetrics {
         }
     }
 
-    pub fn get_first_paint(&self) -> Option<u64> {
+    pub fn get_first_paint(&self) -> Option<CrossProcessInstant> {
         self.first_paint.get()
     }
 
-    pub fn get_first_contentful_paint(&self) -> Option<u64> {
+    pub fn get_first_contentful_paint(&self) -> Option<CrossProcessInstant> {
         self.first_contentful_paint.get()
     }
 }
 
 impl ProgressiveWebMetric for PaintTimeMetrics {
-    fn get_navigation_start(&self) -> Option<u64> {
+    fn get_navigation_start(&self) -> Option<CrossProcessInstant> {
         Some(self.navigation_start)
     }
 
-    fn set_navigation_start(&mut self, time: u64) {
+    fn set_navigation_start(&mut self, time: CrossProcessInstant) {
         self.navigation_start = time;
     }
 
-    fn send_queued_constellation_msg(&self, name: ProgressiveWebMetricType, time: u64) {
+    fn send_queued_constellation_msg(
+        &self,
+        name: ProgressiveWebMetricType,
+        time: CrossProcessInstant,
+    ) {
         let msg = ConstellationControlMsg::PaintMetric(self.pipeline_id, name, time);
         if let Err(e) = self.script_chan.send(msg) {
             warn!("Sending metric to script thread failed ({}).", e);

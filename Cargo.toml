@@ -31,7 +31,7 @@ bluetooth_traits = { path = "components/shared/bluetooth" }
 byteorder = "1.5"
 canvas_traits = { path = "components/shared/canvas" }
 cfg-if = "1.0.0"
-chrono = "0.4"
+chrono = { version = "0.4", features = ["serde"] }
 compositing_traits = { path = "components/shared/compositing" }
 content-security-policy = { version = "0.5", features = ["serde"] }
 cookie = { package = "cookie", version = "0.18" }
@@ -75,6 +75,7 @@ keyboard-types = "0.7"
 lazy_static = "1.5"
 libc = "0.2"
 log = "0.4"
+mach2 = "0.4"
 malloc_size_of = { git = "https://github.com/servo/stylo", branch = "2024-07-16", features = ["servo"] }
 malloc_size_of_derive = "0.1"
 mime = "0.3.13"

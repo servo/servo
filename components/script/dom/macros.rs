@@ -579,6 +579,9 @@ macro_rules! rooted_vec {
 /// DOM struct implementation for simple interfaces inheriting from PerformanceEntry.
 macro_rules! impl_performance_entry_struct(
     ($binding:ident, $struct:ident, $type:expr) => (
+        use base::cross_process_instant::CrossProcessInstant;
+        use time_03::Duration;
+
         use crate::dom::bindings::reflector::reflect_dom_object;
         use crate::dom::bindings::root::DomRoot;
         use crate::dom::bindings::str::DOMString;
@@ -592,12 +595,12 @@ macro_rules! impl_performance_entry_struct(
         }
 
         impl $struct {
-            fn new_inherited(name: DOMString, start_time: f64, duration: f64)
+            fn new_inherited(name: DOMString, start_time: CrossProcessInstant, duration: Duration)
                 -> $struct {
                 $struct {
                     entry: PerformanceEntry::new_inherited(name,
                                                            DOMString::from($type),
-                                                           start_time,
+                                                           Some(start_time),
                                                            duration)
                 }
             }
@@ -605,8 +608,8 @@ macro_rules! impl_performance_entry_struct(
             #[allow(crown::unrooted_must_root)]
             pub fn new(global: &GlobalScope,
                        name: DOMString,
-                       start_time: f64,
-                       duration: f64) -> DomRoot<$struct> {
+                       start_time: CrossProcessInstant,
+                       duration: Duration) -> DomRoot<$struct> {
                 let entry = $struct::new_inherited(name, start_time, duration);
                 reflect_dom_object(Box::new(entry), global)
             }
