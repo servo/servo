@@ -709,11 +709,16 @@ impl XRSessionMethods for XRSession {
             pending.set_depth_near(near);
         }
         if let Some(far) = init.depthFar {
+            let mut far = *far;
             // Step 9 from #apply-the-pending-render-state
             // this may need to be changed if backends wish to impose
             // further constraints
-            // currently the maximum is infinity, so we do nothing
-            pending.set_depth_far(*far);
+            // currently the maximum is infinity, so just check that
+            // the value is non-negative
+            if far < 0. {
+                far = 0.;
+            }
+            pending.set_depth_far(far);
         }
         if let Some(fov) = init.inlineVerticalFieldOfView {
             let mut fov = *fov;

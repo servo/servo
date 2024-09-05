@@ -83,6 +83,26 @@ impl XRRigidTransform {
             )));
         }
 
+        if !position.x.is_finite() ||
+            !position.y.is_finite() ||
+            !position.z.is_finite() ||
+            !position.w.is_finite()
+        {
+            return Err(Error::Type(
+                "Position must not contain non-finite values".into(),
+            ));
+        }
+
+        if !orientation.x.is_finite() ||
+            !orientation.y.is_finite() ||
+            !orientation.z.is_finite() ||
+            !orientation.w.is_finite()
+        {
+            return Err(Error::Type(
+                "Orientation must not contain non-finite values".into(),
+            ));
+        }
+
         let translate = Vector3D::new(position.x as f32, position.y as f32, position.z as f32);
         let rotate = Rotation3D::unit_quaternion(
             orientation.x as f32,
