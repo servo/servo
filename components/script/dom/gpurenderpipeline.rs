@@ -3,7 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use webgpu::{WebGPU, WebGPUBindGroupLayout, WebGPURenderPipeline, WebGPURequest};
+use ipc_channel::ipc::IpcSender;
+use webgpu::wgc::id::{BindGroupLayoutId, PipelineLayoutId};
+use webgpu::wgc::pipeline::RenderPipelineDescriptor;
+use webgpu::{WebGPU, WebGPUBindGroupLayout, WebGPURenderPipeline, WebGPURequest, WebGPUResponse};
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPURenderPipelineMethods;
@@ -62,6 +65,33 @@ impl GPURenderPipeline {
 impl GPURenderPipeline {
     pub fn id(&self) -> WebGPURenderPipeline {
         self.render_pipeline
+    }
+
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createrenderpipeline>
+    pub fn create(
+        device: &GPUDevice,
+        implicit_ids: Option<(PipelineLayoutId, Vec<BindGroupLayoutId>)>,
+        descriptor: RenderPipelineDescriptor<'static>,
+        async_sender: Option<IpcSender<WebGPUResponse>>,
+    ) -> Fallible<WebGPURenderPipeline> {
+        let render_pipeline_id = device
+            .global()
+            .wgpu_id_hub()
+            .create_render_pipeline_id(device.id().0.backend());
+
+        device
+            .channel()
+            .0
+            .send(WebGPURequest::CreateRenderPipeline {
+                device_id: device.id().0,
+                render_pipeline_id,
+                descriptor,
+                implicit_ids,
+                async_sender,
+            })
+            .expect("Failed to create WebGPU render pipeline");
+
+        Ok(WebGPURenderPipeline(render_pipeline_id))
     }
 }
 

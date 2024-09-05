@@ -3,16 +3,21 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use webgpu::{WebGPU, WebGPUBindGroupLayout, WebGPUComputePipeline, WebGPURequest};
+use ipc_channel::ipc::IpcSender;
+use webgpu::wgc::pipeline::ComputePipelineDescriptor;
+use webgpu::{WebGPU, WebGPUBindGroupLayout, WebGPUComputePipeline, WebGPURequest, WebGPUResponse};
 
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUComputePipelineMethods;
+use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
+    GPUComputePipelineDescriptor, GPUComputePipelineMethods,
+};
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::gpubindgrouplayout::GPUBindGroupLayout;
+use crate::dom::gpuconvert::convert_label;
 use crate::dom::gpudevice::GPUDevice;
 
 #[dom_struct]
@@ -62,6 +67,41 @@ impl GPUComputePipeline {
 impl GPUComputePipeline {
     pub fn id(&self) -> &WebGPUComputePipeline {
         &self.compute_pipeline
+    }
+
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createcomputepipeline>
+    pub fn create(
+        device: &GPUDevice,
+        descriptor: &GPUComputePipelineDescriptor,
+        async_sender: Option<IpcSender<WebGPUResponse>>,
+    ) -> WebGPUComputePipeline {
+        let compute_pipeline_id = device
+            .global()
+            .wgpu_id_hub()
+            .create_compute_pipeline_id(device.id().0.backend());
+
+        let (layout, implicit_ids, _) = device.get_pipeline_layout_data(&descriptor.parent.layout);
+
+        let desc = ComputePipelineDescriptor {
+            label: convert_label(&descriptor.parent.parent),
+            layout,
+            stage: (&descriptor.compute).into(),
+            cache: None,
+        };
+
+        device
+            .channel()
+            .0
+            .send(WebGPURequest::CreateComputePipeline {
+                device_id: device.id().0,
+                compute_pipeline_id,
+                descriptor: desc,
+                implicit_ids,
+                async_sender,
+            })
+            .expect("Failed to create WebGPU ComputePipeline");
+
+        WebGPUComputePipeline(compute_pipeline_id)
     }
 }
 

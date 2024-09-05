@@ -2,15 +2,22 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::borrow::Cow;
+
 use dom_struct::dom_struct;
+use webgpu::wgc::binding_model::PipelineLayoutDescriptor;
 use webgpu::{WebGPU, WebGPUBindGroupLayout, WebGPUPipelineLayout, WebGPURequest};
 
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUPipelineLayoutMethods;
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
+    GPUPipelineLayoutDescriptor, GPUPipelineLayoutMethods,
+};
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::gpuconvert::convert_label;
+use crate::dom::gpudevice::GPUDevice;
 
 #[dom_struct]
 pub struct GPUPipelineLayout {
@@ -67,6 +74,47 @@ impl GPUPipelineLayout {
 
     pub fn bind_group_layouts(&self) -> Vec<WebGPUBindGroupLayout> {
         self.bind_group_layouts.clone()
+    }
+
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createpipelinelayout>
+    pub fn create(
+        device: &GPUDevice,
+        descriptor: &GPUPipelineLayoutDescriptor,
+    ) -> DomRoot<GPUPipelineLayout> {
+        let bgls = descriptor
+            .bindGroupLayouts
+            .iter()
+            .map(|each| each.id())
+            .collect::<Vec<_>>();
+
+        let desc = PipelineLayoutDescriptor {
+            label: convert_label(&descriptor.parent),
+            bind_group_layouts: Cow::Owned(bgls.iter().map(|l| l.0).collect::<Vec<_>>()),
+            push_constant_ranges: Cow::Owned(vec![]),
+        };
+
+        let pipeline_layout_id = device
+            .global()
+            .wgpu_id_hub()
+            .create_pipeline_layout_id(device.id().0.backend());
+        device
+            .channel()
+            .0
+            .send(WebGPURequest::CreatePipelineLayout {
+                device_id: device.id().0,
+                pipeline_layout_id,
+                descriptor: desc,
+            })
+            .expect("Failed to create WebGPU PipelineLayout");
+
+        let pipeline_layout = WebGPUPipelineLayout(pipeline_layout_id);
+        GPUPipelineLayout::new(
+            &device.global(),
+            device.channel().clone(),
+            pipeline_layout,
+            descriptor.parent.label.clone(),
+            bgls,
+        )
     }
 }
 

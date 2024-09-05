@@ -4,15 +4,18 @@
 
 use dom_struct::dom_struct;
 use webgpu::wgc::command as wgpu_com;
-use webgpu::wgt::Color;
-use webgpu::{self, wgt, WebGPU, WebGPUComputePass, WebGPURenderPass, WebGPURequest};
+use webgpu::{
+    wgt, WebGPU, WebGPUCommandBuffer, WebGPUCommandEncoder, WebGPUComputePass, WebGPUDevice,
+    WebGPURenderPass, WebGPURequest,
+};
 
 use super::bindings::error::Fallible;
 use super::gpuconvert::convert_label;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
-    GPUCommandBufferDescriptor, GPUCommandEncoderMethods, GPUComputePassDescriptor, GPUExtent3D,
-    GPUImageCopyBuffer, GPUImageCopyTexture, GPURenderPassDescriptor, GPUSize64,
+    GPUCommandBufferDescriptor, GPUCommandEncoderDescriptor, GPUCommandEncoderMethods,
+    GPUComputePassDescriptor, GPUExtent3D, GPUImageCopyBuffer, GPUImageCopyTexture,
+    GPURenderPassDescriptor, GPUSize64,
 };
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
@@ -33,7 +36,7 @@ pub struct GPUCommandEncoder {
     channel: WebGPU,
     label: DomRefCell<USVString>,
     #[no_trace]
-    encoder: webgpu::WebGPUCommandEncoder,
+    encoder: WebGPUCommandEncoder,
     device: Dom<GPUDevice>,
 }
 
@@ -41,7 +44,7 @@ impl GPUCommandEncoder {
     pub fn new_inherited(
         channel: WebGPU,
         device: &GPUDevice,
-        encoder: webgpu::WebGPUCommandEncoder,
+        encoder: WebGPUCommandEncoder,
         label: USVString,
     ) -> Self {
         Self {
@@ -57,7 +60,7 @@ impl GPUCommandEncoder {
         global: &GlobalScope,
         channel: WebGPU,
         device: &GPUDevice,
-        encoder: webgpu::WebGPUCommandEncoder,
+        encoder: WebGPUCommandEncoder,
         label: USVString,
     ) -> DomRoot<Self> {
         reflect_dom_object(
@@ -70,12 +73,44 @@ impl GPUCommandEncoder {
 }
 
 impl GPUCommandEncoder {
-    pub fn id(&self) -> webgpu::WebGPUCommandEncoder {
+    pub fn id(&self) -> WebGPUCommandEncoder {
         self.encoder
     }
 
-    pub fn device_id(&self) -> webgpu::WebGPUDevice {
+    pub fn device_id(&self) -> WebGPUDevice {
         self.device.id()
+    }
+
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createcommandencoder>
+    pub fn create(
+        device: &GPUDevice,
+        descriptor: &GPUCommandEncoderDescriptor,
+    ) -> DomRoot<GPUCommandEncoder> {
+        let command_encoder_id = device
+            .global()
+            .wgpu_id_hub()
+            .create_command_encoder_id(device.id().0.backend());
+        device
+            .channel()
+            .0
+            .send(WebGPURequest::CreateCommandEncoder {
+                device_id: device.id().0,
+                command_encoder_id,
+                desc: wgt::CommandEncoderDescriptor {
+                    label: convert_label(&descriptor.parent),
+                },
+            })
+            .expect("Failed to create WebGPU command encoder");
+
+        let encoder = WebGPUCommandEncoder(command_encoder_id);
+
+        GPUCommandEncoder::new(
+            &device.global(),
+            device.channel().clone(),
+            device,
+            encoder,
+            descriptor.parent.label.clone(),
+        )
     }
 }
 
@@ -283,7 +318,7 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
             })
             .expect("Failed to send Finish");
 
-        let buffer = webgpu::WebGPUCommandBuffer(self.encoder.0.into_command_buffer_id());
+        let buffer = WebGPUCommandBuffer(self.encoder.0.into_command_buffer_id());
         GPUCommandBuffer::new(
             &self.global(),
             self.channel.clone(),

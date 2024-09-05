@@ -12,8 +12,8 @@ use webgpu::{wgt, WebGPU, WebGPURequest, WebGPUTexture, WebGPUTextureView};
 use super::bindings::error::Fallible;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
-    GPUTextureAspect, GPUTextureDimension, GPUTextureFormat, GPUTextureMethods,
-    GPUTextureViewDescriptor,
+    GPUTextureAspect, GPUTextureDescriptor, GPUTextureDimension, GPUTextureFormat,
+    GPUTextureMethods, GPUTextureViewDescriptor,
 };
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
@@ -127,6 +127,59 @@ impl Drop for GPUTexture {
 impl GPUTexture {
     pub fn id(&self) -> WebGPUTexture {
         self.texture
+    }
+
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createtexture>
+    pub fn create(
+        device: &GPUDevice,
+        descriptor: &GPUTextureDescriptor,
+    ) -> Fallible<DomRoot<GPUTexture>> {
+        let size = (&descriptor.size).try_into()?;
+        let desc = wgt::TextureDescriptor {
+            label: convert_label(&descriptor.parent),
+            size,
+            mip_level_count: descriptor.mipLevelCount,
+            sample_count: descriptor.sampleCount,
+            dimension: descriptor.dimension.into(),
+            format: device.validate_texture_format_required_features(&descriptor.format)?,
+            usage: wgt::TextureUsages::from_bits_retain(descriptor.usage),
+            view_formats: descriptor
+                .viewFormats
+                .iter()
+                .map(|tf| device.validate_texture_format_required_features(tf))
+                .collect::<Fallible<_>>()?,
+        };
+
+        let texture_id = device
+            .global()
+            .wgpu_id_hub()
+            .create_texture_id(device.id().0.backend());
+
+        device
+            .channel()
+            .0
+            .send(WebGPURequest::CreateTexture {
+                device_id: device.id().0,
+                texture_id,
+                descriptor: desc,
+            })
+            .expect("Failed to create WebGPU Texture");
+
+        let texture = WebGPUTexture(texture_id);
+
+        Ok(GPUTexture::new(
+            &device.global(),
+            texture,
+            device,
+            device.channel().clone(),
+            size,
+            descriptor.mipLevelCount,
+            descriptor.sampleCount,
+            descriptor.dimension,
+            descriptor.format,
+            descriptor.usage,
+            descriptor.parent.label.clone(),
+        ))
     }
 }
 

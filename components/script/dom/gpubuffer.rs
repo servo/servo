@@ -14,14 +14,15 @@ use webgpu::{wgt, Mapping, WebGPU, WebGPUBuffer, WebGPURequest, WebGPUResponse};
 
 use super::bindings::buffer_source::DataBlock;
 use super::bindings::codegen::Bindings::WebGPUBinding::{
-    GPUBufferMapState, GPUFlagsConstant, GPUMapModeFlags,
+    GPUBufferDescriptor, GPUBufferMapState, GPUFlagsConstant, GPUMapModeFlags,
 };
+use super::gpuconvert::convert_label;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUBufferMethods, GPUMapModeConstants, GPUSize64,
 };
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
@@ -129,6 +130,54 @@ impl GPUBuffer {
 impl GPUBuffer {
     pub fn id(&self) -> WebGPUBuffer {
         self.buffer
+    }
+
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createbuffer>
+    pub fn create(
+        device: &GPUDevice,
+        descriptor: &GPUBufferDescriptor,
+    ) -> Fallible<DomRoot<GPUBuffer>> {
+        let desc = wgt::BufferDescriptor {
+            label: convert_label(&descriptor.parent),
+            size: descriptor.size as wgt::BufferAddress,
+            usage: wgt::BufferUsages::from_bits_retain(descriptor.usage),
+            mapped_at_creation: descriptor.mappedAtCreation,
+        };
+        let id = device
+            .global()
+            .wgpu_id_hub()
+            .create_buffer_id(device.id().0.backend());
+
+        device
+            .channel()
+            .0
+            .send(WebGPURequest::CreateBuffer {
+                device_id: device.id().0,
+                buffer_id: id,
+                descriptor: desc,
+            })
+            .expect("Failed to create WebGPU buffer");
+
+        let buffer = WebGPUBuffer(id);
+        let mapping = if descriptor.mappedAtCreation {
+            Some(ActiveBufferMapping::new(
+                GPUMapModeConstants::WRITE,
+                0..descriptor.size,
+            )?)
+        } else {
+            None
+        };
+
+        Ok(GPUBuffer::new(
+            &device.global(),
+            device.channel().clone(),
+            buffer,
+            device,
+            descriptor.size,
+            descriptor.usage,
+            mapping,
+            descriptor.parent.label.clone(),
+        ))
     }
 }
 

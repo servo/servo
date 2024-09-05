@@ -5,20 +5,23 @@
 use std::borrow::Cow;
 use std::num::NonZeroU64;
 
+use webgpu::wgc::binding_model::{BindGroupEntry, BindingResource, BufferBinding};
 use webgpu::wgc::command as wgpu_com;
 use webgpu::wgc::pipeline::ProgrammableStageDescriptor;
 use webgpu::wgt::{self, AstcBlock, AstcChannel};
 
-use super::bindings::codegen::Bindings::WebGPUBinding::GPUProgrammableStage;
+use super::bindings::codegen::Bindings::WebGPUBinding::{
+    GPUProgrammableStage, GPUTextureDimension,
+};
 use super::bindings::error::Error;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
-    GPUAddressMode, GPUBindGroupLayoutEntry, GPUBlendComponent, GPUBlendFactor, GPUBlendOperation,
-    GPUBufferBindingType, GPUColor, GPUCompareFunction, GPUCullMode, GPUExtent3D, GPUFilterMode,
-    GPUFrontFace, GPUImageCopyBuffer, GPUImageCopyTexture, GPUImageDataLayout, GPUIndexFormat,
-    GPULoadOp, GPUObjectDescriptorBase, GPUOrigin3D, GPUPrimitiveState, GPUPrimitiveTopology,
-    GPUSamplerBindingType, GPUStencilOperation, GPUStorageTextureAccess, GPUStoreOp,
-    GPUTextureAspect, GPUTextureFormat, GPUTextureSampleType, GPUTextureViewDimension,
-    GPUVertexFormat,
+    GPUAddressMode, GPUBindGroupEntry, GPUBindGroupLayoutEntry, GPUBindingResource,
+    GPUBlendComponent, GPUBlendFactor, GPUBlendOperation, GPUBufferBindingType, GPUColor,
+    GPUCompareFunction, GPUCullMode, GPUExtent3D, GPUFilterMode, GPUFrontFace, GPUImageCopyBuffer,
+    GPUImageCopyTexture, GPUImageDataLayout, GPUIndexFormat, GPULoadOp, GPUObjectDescriptorBase,
+    GPUOrigin3D, GPUPrimitiveState, GPUPrimitiveTopology, GPUSamplerBindingType,
+    GPUStencilOperation, GPUStorageTextureAccess, GPUStoreOp, GPUTextureAspect, GPUTextureFormat,
+    GPUTextureSampleType, GPUTextureViewDimension, GPUVertexFormat,
 };
 use crate::dom::bindings::error::Fallible;
 use crate::dom::types::GPUDevice;
@@ -621,6 +624,35 @@ impl<'a> From<&GPUProgrammableStage> for ProgrammableStageDescriptor<'a> {
                     .unwrap_or_default(),
             ),
             zero_initialize_workgroup_memory: true,
+        }
+    }
+}
+
+impl From<&GPUBindGroupEntry> for BindGroupEntry<'_> {
+    fn from(entry: &GPUBindGroupEntry) -> Self {
+        Self {
+            binding: entry.binding,
+            resource: match entry.resource {
+                GPUBindingResource::GPUSampler(ref s) => BindingResource::Sampler(s.id().0),
+                GPUBindingResource::GPUTextureView(ref t) => BindingResource::TextureView(t.id().0),
+                GPUBindingResource::GPUBufferBinding(ref b) => {
+                    BindingResource::Buffer(BufferBinding {
+                        buffer_id: b.buffer.id().0,
+                        offset: b.offset,
+                        size: b.size.and_then(wgt::BufferSize::new),
+                    })
+                },
+            },
+        }
+    }
+}
+
+impl From<GPUTextureDimension> for wgt::TextureDimension {
+    fn from(dimension: GPUTextureDimension) -> Self {
+        match dimension {
+            GPUTextureDimension::_1d => wgt::TextureDimension::D1,
+            GPUTextureDimension::_2d => wgt::TextureDimension::D2,
+            GPUTextureDimension::_3d => wgt::TextureDimension::D3,
         }
     }
 }

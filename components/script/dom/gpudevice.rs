@@ -11,23 +11,18 @@ use std::rc::Rc;
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject};
 use webgpu::wgc::id::{BindGroupLayoutId, PipelineLayoutId};
+use webgpu::wgc::pipeline as wgpu_pipe;
 use webgpu::wgc::pipeline::RenderPipelineDescriptor;
-use webgpu::wgc::{
-    binding_model as wgpu_bind, command as wgpu_com, pipeline as wgpu_pipe, resource as wgpu_res,
-};
-use webgpu::wgt::{BlendComponent, TextureFormat};
+use webgpu::wgt::TextureFormat;
 use webgpu::{
-    self, wgt, PopError, WebGPU, WebGPUComputePipeline, WebGPURenderPipeline, WebGPURequest,
+    wgt, PopError, WebGPU, WebGPUComputePipeline, WebGPURenderPipeline, WebGPURequest,
     WebGPUResponse,
 };
 
-use super::bindings::codegen::Bindings::WebGPUBinding::{
-    GPUMapModeConstants, GPUPipelineErrorReason, GPUTextureFormat,
-};
+use super::bindings::codegen::Bindings::WebGPUBinding::{GPUPipelineErrorReason, GPUTextureFormat};
 use super::bindings::codegen::UnionTypes::GPUPipelineLayoutOrGPUAutoLayoutMode;
 use super::bindings::error::Fallible;
 use super::gpu::AsyncWGPUListener;
-use super::gpuconvert::convert_bind_group_layout_entry;
 use super::gpudevicelostinfo::GPUDeviceLostInfo;
 use super::gpupipelineerror::GPUPipelineError;
 use super::gpusupportedlimits::GPUSupportedLimits;
@@ -36,12 +31,12 @@ use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventInit;
 use crate::dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
-    GPUBindGroupDescriptor, GPUBindGroupLayoutDescriptor, GPUBindingResource, GPUBufferDescriptor,
+    GPUBindGroupDescriptor, GPUBindGroupLayoutDescriptor, GPUBufferDescriptor,
     GPUCommandEncoderDescriptor, GPUComputePipelineDescriptor, GPUDeviceLostReason,
     GPUDeviceMethods, GPUErrorFilter, GPUPipelineLayoutDescriptor,
     GPURenderBundleEncoderDescriptor, GPURenderPipelineDescriptor, GPUSamplerDescriptor,
     GPUShaderModuleDescriptor, GPUSupportedLimitsMethods, GPUTextureDescriptor,
-    GPUTextureDimension, GPUUncapturedErrorEventInit, GPUVertexStepMode,
+    GPUUncapturedErrorEventInit, GPUVertexStepMode,
 };
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
@@ -54,7 +49,7 @@ use crate::dom::gpu::response_async;
 use crate::dom::gpuadapter::GPUAdapter;
 use crate::dom::gpubindgroup::GPUBindGroup;
 use crate::dom::gpubindgrouplayout::GPUBindGroupLayout;
-use crate::dom::gpubuffer::{ActiveBufferMapping, GPUBuffer};
+use crate::dom::gpubuffer::GPUBuffer;
 use crate::dom::gpucommandencoder::GPUCommandEncoder;
 use crate::dom::gpucomputepipeline::GPUComputePipeline;
 use crate::dom::gpuconvert::convert_label;
@@ -211,7 +206,7 @@ impl GPUDevice {
         self.lost_promise.borrow().is_fulfilled()
     }
 
-    fn get_pipeline_layout_data(
+    pub fn get_pipeline_layout_data(
         &self,
         layout: &GPUPipelineLayoutOrGPUAutoLayoutMode,
     ) -> (
@@ -241,7 +236,7 @@ impl GPUDevice {
         }
     }
 
-    fn parse_render_pipeline<'a>(
+    pub fn parse_render_pipeline<'a>(
         &self,
         descriptor: &GPURenderPipelineDescriptor,
     ) -> Fallible<(
@@ -401,46 +396,7 @@ impl GPUDeviceMethods for GPUDevice {
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createbuffer>
     fn CreateBuffer(&self, descriptor: &GPUBufferDescriptor) -> Fallible<DomRoot<GPUBuffer>> {
-        let desc = wgpu_res::BufferDescriptor {
-            label: convert_label(&descriptor.parent),
-            size: descriptor.size as wgt::BufferAddress,
-            usage: wgt::BufferUsages::from_bits_retain(descriptor.usage),
-            mapped_at_creation: descriptor.mappedAtCreation,
-        };
-        let id = self
-            .global()
-            .wgpu_id_hub()
-            .create_buffer_id(self.device.0.backend());
-
-        self.channel
-            .0
-            .send(WebGPURequest::CreateBuffer {
-                device_id: self.device.0,
-                buffer_id: id,
-                descriptor: desc,
-            })
-            .expect("Failed to create WebGPU buffer");
-
-        let buffer = webgpu::WebGPUBuffer(id);
-        let mapping = if descriptor.mappedAtCreation {
-            Some(ActiveBufferMapping::new(
-                GPUMapModeConstants::WRITE,
-                0..descriptor.size,
-            )?)
-        } else {
-            None
-        };
-
-        Ok(GPUBuffer::new(
-            &self.global(),
-            self.channel.clone(),
-            buffer,
-            self,
-            descriptor.size,
-            descriptor.usage,
-            mapping,
-            descriptor.parent.label.clone(),
-        ))
+        GPUBuffer::create(self, descriptor)
     }
 
     /// <https://gpuweb.github.io/gpuweb/#GPUDevice-createBindGroupLayout>
@@ -449,44 +405,7 @@ impl GPUDeviceMethods for GPUDevice {
         &self,
         descriptor: &GPUBindGroupLayoutDescriptor,
     ) -> Fallible<DomRoot<GPUBindGroupLayout>> {
-        let entries = descriptor
-            .entries
-            .iter()
-            .map(|bgle| convert_bind_group_layout_entry(bgle, &self))
-            .collect::<Fallible<Result<Vec<_>, _>>>()?;
-
-        let desc = match entries {
-            Ok(entries) => Some(wgpu_bind::BindGroupLayoutDescriptor {
-                label: convert_label(&descriptor.parent),
-                entries: Cow::Owned(entries),
-            }),
-            Err(error) => {
-                self.dispatch_error(error);
-                None
-            },
-        };
-
-        let bind_group_layout_id = self
-            .global()
-            .wgpu_id_hub()
-            .create_bind_group_layout_id(self.device.0.backend());
-        self.channel
-            .0
-            .send(WebGPURequest::CreateBindGroupLayout {
-                device_id: self.device.0,
-                bind_group_layout_id,
-                descriptor: desc,
-            })
-            .expect("Failed to create WebGPU BindGroupLayout");
-
-        let bgl = webgpu::WebGPUBindGroupLayout(bind_group_layout_id);
-
-        Ok(GPUBindGroupLayout::new(
-            &self.global(),
-            self.channel.clone(),
-            bgl,
-            descriptor.parent.label.clone(),
-        ))
+        GPUBindGroupLayout::create(self, descriptor)
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createpipelinelayout>
@@ -494,100 +413,12 @@ impl GPUDeviceMethods for GPUDevice {
         &self,
         descriptor: &GPUPipelineLayoutDescriptor,
     ) -> DomRoot<GPUPipelineLayout> {
-        let desc = wgpu_bind::PipelineLayoutDescriptor {
-            label: convert_label(&descriptor.parent),
-            bind_group_layouts: Cow::Owned(
-                descriptor
-                    .bindGroupLayouts
-                    .iter()
-                    .map(|each| each.id().0)
-                    .collect::<Vec<_>>(),
-            ),
-            push_constant_ranges: Cow::Owned(vec![]),
-        };
-
-        let pipeline_layout_id = self
-            .global()
-            .wgpu_id_hub()
-            .create_pipeline_layout_id(self.device.0.backend());
-        self.channel
-            .0
-            .send(WebGPURequest::CreatePipelineLayout {
-                device_id: self.device.0,
-                pipeline_layout_id,
-                descriptor: desc,
-            })
-            .expect("Failed to create WebGPU PipelineLayout");
-
-        let bgls = descriptor
-            .bindGroupLayouts
-            .iter()
-            .map(|each| each.id())
-            .collect::<Vec<_>>();
-        let pipeline_layout = webgpu::WebGPUPipelineLayout(pipeline_layout_id);
-        GPUPipelineLayout::new(
-            &self.global(),
-            self.channel.clone(),
-            pipeline_layout,
-            descriptor.parent.label.clone(),
-            bgls,
-        )
+        GPUPipelineLayout::create(self, descriptor)
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createbindgroup>
     fn CreateBindGroup(&self, descriptor: &GPUBindGroupDescriptor) -> DomRoot<GPUBindGroup> {
-        let entries = descriptor
-            .entries
-            .iter()
-            .map(|bind| wgpu_bind::BindGroupEntry {
-                binding: bind.binding,
-                resource: match bind.resource {
-                    GPUBindingResource::GPUSampler(ref s) => {
-                        wgpu_bind::BindingResource::Sampler(s.id().0)
-                    },
-                    GPUBindingResource::GPUTextureView(ref t) => {
-                        wgpu_bind::BindingResource::TextureView(t.id().0)
-                    },
-                    GPUBindingResource::GPUBufferBinding(ref b) => {
-                        wgpu_bind::BindingResource::Buffer(wgpu_bind::BufferBinding {
-                            buffer_id: b.buffer.id().0,
-                            offset: b.offset,
-                            size: b.size.and_then(wgt::BufferSize::new),
-                        })
-                    },
-                },
-            })
-            .collect::<Vec<_>>();
-
-        let desc = wgpu_bind::BindGroupDescriptor {
-            label: convert_label(&descriptor.parent),
-            layout: descriptor.layout.id().0,
-            entries: Cow::Owned(entries),
-        };
-
-        let bind_group_id = self
-            .global()
-            .wgpu_id_hub()
-            .create_bind_group_id(self.device.0.backend());
-        self.channel
-            .0
-            .send(WebGPURequest::CreateBindGroup {
-                device_id: self.device.0,
-                bind_group_id,
-                descriptor: desc,
-            })
-            .expect("Failed to create WebGPU BindGroup");
-
-        let bind_group = webgpu::WebGPUBindGroup(bind_group_id);
-
-        GPUBindGroup::new(
-            &self.global(),
-            self.channel.clone(),
-            bind_group,
-            self.device,
-            &descriptor.layout,
-            descriptor.parent.label.clone(),
-        )
+        GPUBindGroup::create(self, descriptor)
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createshadermodule>
@@ -596,30 +427,7 @@ impl GPUDeviceMethods for GPUDevice {
         descriptor: RootedTraceableBox<GPUShaderModuleDescriptor>,
         comp: InRealm,
     ) -> DomRoot<GPUShaderModule> {
-        let program_id = self
-            .global()
-            .wgpu_id_hub()
-            .create_shader_module_id(self.device.0.backend());
-        let promise = Promise::new_in_current_realm(comp);
-        let shader_module = GPUShaderModule::new(
-            &self.global(),
-            self.channel.clone(),
-            webgpu::WebGPUShaderModule(program_id),
-            descriptor.parent.label.clone(),
-            promise.clone(),
-        );
-        let sender = response_async(&promise, &*shader_module);
-        self.channel
-            .0
-            .send(WebGPURequest::CreateShaderModule {
-                device_id: self.device.0,
-                program_id,
-                program: descriptor.code.0.clone(),
-                label: None,
-                sender,
-            })
-            .expect("Failed to create WebGPU ShaderModule");
-        shader_module
+        GPUShaderModule::create(self, descriptor, comp)
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createcomputepipeline>
@@ -627,32 +435,7 @@ impl GPUDeviceMethods for GPUDevice {
         &self,
         descriptor: &GPUComputePipelineDescriptor,
     ) -> DomRoot<GPUComputePipeline> {
-        let compute_pipeline_id = self
-            .global()
-            .wgpu_id_hub()
-            .create_compute_pipeline_id(self.device.0.backend());
-
-        let (layout, implicit_ids, _) = self.get_pipeline_layout_data(&descriptor.parent.layout);
-
-        let desc = wgpu_pipe::ComputePipelineDescriptor {
-            label: convert_label(&descriptor.parent.parent),
-            layout,
-            stage: (&descriptor.compute).into(),
-            cache: None,
-        };
-
-        self.channel
-            .0
-            .send(WebGPURequest::CreateComputePipeline {
-                device_id: self.device.0,
-                compute_pipeline_id,
-                descriptor: desc,
-                implicit_ids,
-                async_sender: None,
-            })
-            .expect("Failed to create WebGPU ComputePipeline");
-
-        let compute_pipeline = webgpu::WebGPUComputePipeline(compute_pipeline_id);
+        let compute_pipeline = GPUComputePipeline::create(self, descriptor, None);
         GPUComputePipeline::new(
             &self.global(),
             compute_pipeline,
@@ -669,30 +452,7 @@ impl GPUDeviceMethods for GPUDevice {
     ) -> Rc<Promise> {
         let promise = Promise::new_in_current_realm(comp);
         let sender = response_async(&promise, self);
-        let compute_pipeline_id = self
-            .global()
-            .wgpu_id_hub()
-            .create_compute_pipeline_id(self.device.0.backend());
-
-        let (layout, implicit_ids, _) = self.get_pipeline_layout_data(&descriptor.parent.layout);
-
-        let desc = wgpu_pipe::ComputePipelineDescriptor {
-            label: convert_label(&descriptor.parent.parent),
-            layout,
-            stage: (&descriptor.compute).into(),
-            cache: None,
-        };
-
-        self.channel
-            .0
-            .send(WebGPURequest::CreateComputePipeline {
-                device_id: self.device.0,
-                compute_pipeline_id,
-                descriptor: desc,
-                implicit_ids,
-                async_sender: Some(sender),
-            })
-            .expect("Failed to create WebGPU ComputePipeline");
+        GPUComputePipeline::create(self, descriptor, Some(sender));
         promise
     }
 
@@ -701,130 +461,17 @@ impl GPUDeviceMethods for GPUDevice {
         &self,
         descriptor: &GPUCommandEncoderDescriptor,
     ) -> DomRoot<GPUCommandEncoder> {
-        let command_encoder_id = self
-            .global()
-            .wgpu_id_hub()
-            .create_command_encoder_id(self.device.0.backend());
-        self.channel
-            .0
-            .send(WebGPURequest::CreateCommandEncoder {
-                device_id: self.device.0,
-                command_encoder_id,
-                desc: wgt::CommandEncoderDescriptor {
-                    label: convert_label(&descriptor.parent),
-                },
-            })
-            .expect("Failed to create WebGPU command encoder");
-
-        let encoder = webgpu::WebGPUCommandEncoder(command_encoder_id);
-
-        GPUCommandEncoder::new(
-            &self.global(),
-            self.channel.clone(),
-            self,
-            encoder,
-            descriptor.parent.label.clone(),
-        )
+        GPUCommandEncoder::create(self, descriptor)
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createtexture>
     fn CreateTexture(&self, descriptor: &GPUTextureDescriptor) -> Fallible<DomRoot<GPUTexture>> {
-        let size = (&descriptor.size).try_into()?;
-        let desc = wgpu_res::TextureDescriptor {
-            label: convert_label(&descriptor.parent),
-            size,
-            mip_level_count: descriptor.mipLevelCount,
-            sample_count: descriptor.sampleCount,
-            dimension: match descriptor.dimension {
-                GPUTextureDimension::_1d => wgt::TextureDimension::D1,
-                GPUTextureDimension::_2d => wgt::TextureDimension::D2,
-                GPUTextureDimension::_3d => wgt::TextureDimension::D3,
-            },
-            format: self.validate_texture_format_required_features(&descriptor.format)?,
-            usage: wgt::TextureUsages::from_bits_retain(descriptor.usage),
-            view_formats: descriptor
-                .viewFormats
-                .iter()
-                .map(|tf| self.validate_texture_format_required_features(tf))
-                .collect::<Fallible<_>>()?,
-        };
-
-        let texture_id = self
-            .global()
-            .wgpu_id_hub()
-            .create_texture_id(self.device.0.backend());
-
-        self.channel
-            .0
-            .send(WebGPURequest::CreateTexture {
-                device_id: self.device.0,
-                texture_id,
-                descriptor: desc,
-            })
-            .expect("Failed to create WebGPU Texture");
-
-        let texture = webgpu::WebGPUTexture(texture_id);
-
-        Ok(GPUTexture::new(
-            &self.global(),
-            texture,
-            self,
-            self.channel.clone(),
-            size,
-            descriptor.mipLevelCount,
-            descriptor.sampleCount,
-            descriptor.dimension,
-            descriptor.format,
-            descriptor.usage,
-            descriptor.parent.label.clone(),
-        ))
+        GPUTexture::create(self, descriptor)
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createsampler>
     fn CreateSampler(&self, descriptor: &GPUSamplerDescriptor) -> DomRoot<GPUSampler> {
-        let sampler_id = self
-            .global()
-            .wgpu_id_hub()
-            .create_sampler_id(self.device.0.backend());
-        let compare_enable = descriptor.compare.is_some();
-        let desc = wgpu_res::SamplerDescriptor {
-            label: convert_label(&descriptor.parent),
-            address_modes: [
-                descriptor.addressModeU.into(),
-                descriptor.addressModeV.into(),
-                descriptor.addressModeW.into(),
-            ],
-            mag_filter: descriptor.magFilter.into(),
-            min_filter: descriptor.minFilter.into(),
-            mipmap_filter: descriptor.mipmapFilter.into(),
-            lod_min_clamp: *descriptor.lodMinClamp,
-            lod_max_clamp: *descriptor.lodMaxClamp,
-            compare: descriptor
-                .compare
-                .map(|gpu_compare_function| gpu_compare_function.into()),
-            anisotropy_clamp: 1,
-            border_color: None,
-        };
-
-        self.channel
-            .0
-            .send(WebGPURequest::CreateSampler {
-                device_id: self.device.0,
-                sampler_id,
-                descriptor: desc,
-            })
-            .expect("Failed to create WebGPU sampler");
-
-        let sampler = webgpu::WebGPUSampler(sampler_id);
-
-        GPUSampler::new(
-            &self.global(),
-            self.channel.clone(),
-            self.device,
-            compare_enable,
-            sampler,
-            descriptor.parent.label.clone(),
-        )
+        GPUSampler::create(self, descriptor)
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createrenderpipeline>
@@ -833,25 +480,7 @@ impl GPUDeviceMethods for GPUDevice {
         descriptor: &GPURenderPipelineDescriptor,
     ) -> Fallible<DomRoot<GPURenderPipeline>> {
         let (implicit_ids, desc) = self.parse_render_pipeline(&descriptor)?;
-
-        let render_pipeline_id = self
-            .global()
-            .wgpu_id_hub()
-            .create_render_pipeline_id(self.device.0.backend());
-
-        self.channel
-            .0
-            .send(WebGPURequest::CreateRenderPipeline {
-                device_id: self.device.0,
-                render_pipeline_id,
-                descriptor: desc,
-                implicit_ids,
-                async_sender: None,
-            })
-            .expect("Failed to create WebGPU render pipeline");
-
-        let render_pipeline = webgpu::WebGPURenderPipeline(render_pipeline_id);
-
+        let render_pipeline = GPURenderPipeline::create(self, implicit_ids, desc, None)?;
         Ok(GPURenderPipeline::new(
             &self.global(),
             render_pipeline,
@@ -867,26 +496,9 @@ impl GPUDeviceMethods for GPUDevice {
         comp: InRealm,
     ) -> Fallible<Rc<Promise>> {
         let (implicit_ids, desc) = self.parse_render_pipeline(&descriptor)?;
-
         let promise = Promise::new_in_current_realm(comp);
         let sender = response_async(&promise, self);
-
-        let render_pipeline_id = self
-            .global()
-            .wgpu_id_hub()
-            .create_render_pipeline_id(self.device.0.backend());
-
-        self.channel
-            .0
-            .send(WebGPURequest::CreateRenderPipeline {
-                device_id: self.device.0,
-                render_pipeline_id,
-                descriptor: desc,
-                implicit_ids,
-                async_sender: Some(sender),
-            })
-            .expect("Failed to create WebGPU render pipeline");
-
+        GPURenderPipeline::create(self, implicit_ids, desc, Some(sender))?;
         Ok(promise)
     }
 
@@ -895,46 +507,7 @@ impl GPUDeviceMethods for GPUDevice {
         &self,
         descriptor: &GPURenderBundleEncoderDescriptor,
     ) -> Fallible<DomRoot<GPURenderBundleEncoder>> {
-        let desc = wgpu_com::RenderBundleEncoderDescriptor {
-            label: convert_label(&descriptor.parent.parent),
-            color_formats: Cow::Owned(
-                descriptor
-                    .parent
-                    .colorFormats
-                    .iter()
-                    .map(|format| {
-                        self.validate_texture_format_required_features(format)
-                            .map(|f| Some(f))
-                    })
-                    .collect::<Fallible<Vec<_>>>()?,
-            ),
-            depth_stencil: descriptor
-                .parent
-                .depthStencilFormat
-                .map(|dsf| {
-                    self.validate_texture_format_required_features(&dsf)
-                        .map(|format| wgt::RenderBundleDepthStencil {
-                            format,
-                            depth_read_only: descriptor.depthReadOnly,
-                            stencil_read_only: descriptor.stencilReadOnly,
-                        })
-                })
-                .transpose()?,
-            sample_count: descriptor.parent.sampleCount,
-            multiview: None,
-        };
-
-        // Handle error gracefully
-        let render_bundle_encoder =
-            wgpu_com::RenderBundleEncoder::new(&desc, self.device.0, None).unwrap();
-
-        Ok(GPURenderBundleEncoder::new(
-            &self.global(),
-            render_bundle_encoder,
-            self,
-            self.channel.clone(),
-            descriptor.parent.parent.label.clone(),
-        ))
+        GPURenderBundleEncoder::create(self, descriptor)
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-pusherrorscope>

@@ -2,16 +2,23 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::borrow::Cow;
+
 use dom_struct::dom_struct;
+use webgpu::wgc::binding_model::BindGroupDescriptor;
 use webgpu::{WebGPU, WebGPUBindGroup, WebGPUDevice, WebGPURequest};
 
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUBindGroupMethods;
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
+    GPUBindGroupDescriptor, GPUBindGroupMethods,
+};
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::gpubindgrouplayout::GPUBindGroupLayout;
+use crate::dom::gpuconvert::convert_label;
+use crate::dom::gpudevice::GPUDevice;
 
 #[dom_struct]
 pub struct GPUBindGroup {
@@ -65,6 +72,49 @@ impl GPUBindGroup {
 impl GPUBindGroup {
     pub fn id(&self) -> &WebGPUBindGroup {
         &self.bind_group
+    }
+
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createbindgroup>
+    pub fn create(
+        device: &GPUDevice,
+        descriptor: &GPUBindGroupDescriptor,
+    ) -> DomRoot<GPUBindGroup> {
+        let entries = descriptor
+            .entries
+            .iter()
+            .map(|bind| bind.into())
+            .collect::<Vec<_>>();
+
+        let desc = BindGroupDescriptor {
+            label: convert_label(&descriptor.parent),
+            layout: descriptor.layout.id().0,
+            entries: Cow::Owned(entries),
+        };
+
+        let bind_group_id = device
+            .global()
+            .wgpu_id_hub()
+            .create_bind_group_id(device.id().0.backend());
+        device
+            .channel()
+            .0
+            .send(WebGPURequest::CreateBindGroup {
+                device_id: device.id().0,
+                bind_group_id,
+                descriptor: desc,
+            })
+            .expect("Failed to create WebGPU BindGroup");
+
+        let bind_group = WebGPUBindGroup(bind_group_id);
+
+        GPUBindGroup::new(
+            &device.global(),
+            device.channel().clone(),
+            bind_group,
+            device.id(),
+            &descriptor.layout,
+            descriptor.parent.label.clone(),
+        )
     }
 }
 
