@@ -31,9 +31,8 @@ on:
 
 jobs:
   # Selects a self-hosted runner if available, or else a GitHub-hosted runner.
-  # We generate a unique id for the workload, find an idle self-hosted runner
-  # with the given `image:` label that wasn’t already reserved by another
-  # `runner-select` job run, and reserve it with a `reserved-for:<id>` label.
+  # We generate a unique id for the workload, then ask our monitor API to
+  # reserve a self-hosted runner for us.
   runner-select:
     name: Select Runner
     runs-on: ubuntu-latest
