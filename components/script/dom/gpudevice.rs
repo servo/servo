@@ -479,7 +479,8 @@ impl GPUDeviceMethods for GPUDevice {
         &self,
         descriptor: &GPURenderPipelineDescriptor,
     ) -> Fallible<DomRoot<GPURenderPipeline>> {
-        let render_pipeline = GPURenderPipeline::create(self, descriptor, None)?;
+        let (implicit_ids, desc) = self.parse_render_pipeline(&descriptor)?;
+        let render_pipeline = GPURenderPipeline::create(self, implicit_ids, desc, None)?;
         Ok(GPURenderPipeline::new(
             &self.global(),
             render_pipeline,
@@ -494,11 +495,10 @@ impl GPUDeviceMethods for GPUDevice {
         descriptor: &GPURenderPipelineDescriptor,
         comp: InRealm,
     ) -> Fallible<Rc<Promise>> {
+        let (implicit_ids, desc) = self.parse_render_pipeline(&descriptor)?;
         let promise = Promise::new_in_current_realm(comp);
-        // FIXME: if ``GPURenderPipeline::create` fails we should remove IpcReceiver from set
-        // but this is currently not possible
         let sender = response_async(&promise, self);
-        GPURenderPipeline::create(self, descriptor, Some(sender))?;
+        GPURenderPipeline::create(self, implicit_ids, desc, Some(sender))?;
         Ok(promise)
     }
 

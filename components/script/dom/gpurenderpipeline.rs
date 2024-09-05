@@ -4,12 +4,12 @@
 
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
+use webgpu::wgc::id::{BindGroupLayoutId, PipelineLayoutId};
+use webgpu::wgc::pipeline::RenderPipelineDescriptor;
 use webgpu::{WebGPU, WebGPUBindGroupLayout, WebGPURenderPipeline, WebGPURequest, WebGPUResponse};
 
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
-    GPURenderPipelineDescriptor, GPURenderPipelineMethods,
-};
+use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPURenderPipelineMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
@@ -70,11 +70,10 @@ impl GPURenderPipeline {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createrenderpipeline>
     pub fn create(
         device: &GPUDevice,
-        descriptor: &GPURenderPipelineDescriptor,
+        implicit_ids: Option<(PipelineLayoutId, Vec<BindGroupLayoutId>)>,
+        descriptor: RenderPipelineDescriptor<'static>,
         async_sender: Option<IpcSender<WebGPUResponse>>,
     ) -> Fallible<WebGPURenderPipeline> {
-        let (implicit_ids, desc) = device.parse_render_pipeline(&descriptor)?;
-
         let render_pipeline_id = device
             .global()
             .wgpu_id_hub()
@@ -86,7 +85,7 @@ impl GPURenderPipeline {
             .send(WebGPURequest::CreateRenderPipeline {
                 device_id: device.id().0,
                 render_pipeline_id,
-                descriptor: desc,
+                descriptor,
                 implicit_ids,
                 async_sender,
             })
