@@ -2,15 +2,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::borrow::Cow;
+
 use dom_struct::dom_struct;
-use webgpu::wgc::command::{bundle_ffi as wgpu_bundle, RenderBundleEncoder};
+use webgpu::wgc::command::{
+    bundle_ffi as wgpu_bundle, RenderBundleEncoder, RenderBundleEncoderDescriptor,
+};
 use webgpu::{wgt, WebGPU, WebGPURenderBundle, WebGPURequest};
 
 use super::bindings::codegen::Bindings::WebGPUBinding::GPUIndexFormat;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
-    GPURenderBundleDescriptor, GPURenderBundleEncoderMethods,
+    GPURenderBundleDescriptor, GPURenderBundleEncoderDescriptor, GPURenderBundleEncoderMethods,
 };
+use crate::dom::bindings::import::module::Fallible;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
@@ -67,6 +72,56 @@ impl GPURenderBundleEncoder {
             )),
             global,
         )
+    }
+}
+
+impl GPURenderBundleEncoder {
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createrenderbundleencoder>
+    pub fn create(
+        device: &GPUDevice,
+        descriptor: &GPURenderBundleEncoderDescriptor,
+    ) -> Fallible<DomRoot<GPURenderBundleEncoder>> {
+        let desc = RenderBundleEncoderDescriptor {
+            label: convert_label(&descriptor.parent.parent),
+            color_formats: Cow::Owned(
+                descriptor
+                    .parent
+                    .colorFormats
+                    .iter()
+                    .map(|format| {
+                        device
+                            .validate_texture_format_required_features(format)
+                            .map(|f| Some(f))
+                    })
+                    .collect::<Fallible<Vec<_>>>()?,
+            ),
+            depth_stencil: descriptor
+                .parent
+                .depthStencilFormat
+                .map(|dsf| {
+                    device
+                        .validate_texture_format_required_features(&dsf)
+                        .map(|format| wgt::RenderBundleDepthStencil {
+                            format,
+                            depth_read_only: descriptor.depthReadOnly,
+                            stencil_read_only: descriptor.stencilReadOnly,
+                        })
+                })
+                .transpose()?,
+            sample_count: descriptor.parent.sampleCount,
+            multiview: None,
+        };
+
+        // Handle error gracefully
+        let render_bundle_encoder = RenderBundleEncoder::new(&desc, device.id().0, None).unwrap();
+
+        Ok(GPURenderBundleEncoder::new(
+            &device.global(),
+            render_bundle_encoder,
+            device,
+            device.channel().clone(),
+            descriptor.parent.parent.label.clone(),
+        ))
     }
 }
 

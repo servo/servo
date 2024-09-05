@@ -6,7 +6,6 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSharedMemory;
-use webgpu::wgt::Extent3d;
 use webgpu::{wgt, WebGPU, WebGPUQueue, WebGPURequest, WebGPUResponse};
 
 use super::bindings::codegen::Bindings::WebGPUBinding::{GPUImageCopyTexture, GPUImageDataLayout};

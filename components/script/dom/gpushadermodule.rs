@@ -10,12 +10,18 @@ use webgpu::{WebGPU, WebGPURequest, WebGPUResponse, WebGPUShaderModule};
 use super::gpu::AsyncWGPUListener;
 use super::gpucompilationinfo::GPUCompilationInfo;
 use super::promise::Promise;
+use super::types::GPUDevice;
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUShaderModuleMethods;
+use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
+    GPUShaderModuleDescriptor, GPUShaderModuleMethods,
+};
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::USVString;
+use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::gpu::response_async;
+use crate::realms::InRealm;
 
 #[dom_struct]
 pub struct GPUShaderModule {
@@ -68,6 +74,39 @@ impl GPUShaderModule {
 impl GPUShaderModule {
     pub fn id(&self) -> WebGPUShaderModule {
         self.shader_module
+    }
+
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createshadermodule>
+    pub fn create(
+        device: &GPUDevice,
+        descriptor: RootedTraceableBox<GPUShaderModuleDescriptor>,
+        comp: InRealm,
+    ) -> DomRoot<GPUShaderModule> {
+        let program_id = device
+            .global()
+            .wgpu_id_hub()
+            .create_shader_module_id(device.id().0.backend());
+        let promise = Promise::new_in_current_realm(comp);
+        let shader_module = GPUShaderModule::new(
+            &device.global(),
+            device.channel().clone(),
+            WebGPUShaderModule(program_id),
+            descriptor.parent.label.clone(),
+            promise.clone(),
+        );
+        let sender = response_async(&promise, &*shader_module);
+        device
+            .channel()
+            .0
+            .send(WebGPURequest::CreateShaderModule {
+                device_id: device.id().0,
+                program_id,
+                program: descriptor.code.0.clone(),
+                label: None,
+                sender,
+            })
+            .expect("Failed to create WebGPU ShaderModule");
+        shader_module
     }
 }
 
