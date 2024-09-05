@@ -247,7 +247,8 @@ impl FlexContainerConfig {
     fn align_for(&self, align_self: AlignSelf) -> AlignItems {
         let value = align_self.0 .0.value();
         let mapped_value = match value {
-            AlignFlags::AUTO | AlignFlags::NORMAL => self.align_items.0,
+            AlignFlags::AUTO => self.align_items.0,
+            AlignFlags::NORMAL => AlignFlags::STRETCH,
             _ => value,
         };
         AlignItems(mapped_value)
