@@ -152,6 +152,7 @@ use servo_config::{opts, pref};
 use servo_rand::{random, Rng, ServoRng, SliceRandom};
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
 use style_traits::CSSPixel;
+use tracing::{span, Level};
 use webgpu::{self, WebGPU, WebGPURequest, WebGPUResponse};
 use webrender::{RenderApi, RenderApiSender};
 use webrender_api::DocumentId;
@@ -1331,6 +1332,7 @@ where
         }
     }
 
+    #[tracing::instrument(skip(self))]
     fn handle_request_from_compositor(&mut self, message: FromCompositorMsg) {
         trace_msg_from_compositor!(message, "{message:?}");
         match message {
@@ -1543,6 +1545,8 @@ where
                 self.set_webview_throttled(webview_id, throttled);
             },
             FromCompositorMsg::ReadyToPresent(webview_ids) => {
+                let span = span!(Level::TRACE, "FromCompositorMsg::ReadyToPresent");
+                let _enter = span.enter();
                 self.embedder_proxy
                     .send((None, EmbedderMsg::ReadyToPresent(webview_ids)));
             },
