@@ -8,12 +8,12 @@
 
 use base::id::PipelineId;
 use crossbeam_channel::Sender;
-use http::HeaderMap;
+use http::{header, HeaderMap};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use log::warn;
-use net::http_loader::{set_default_accept, set_default_accept_language};
-use net_traits::request::{Destination, Referrer, RequestBuilder};
+use net::http_loader::{set_default_accept_language, DOCUMENT_ACCEPT_HEADER_VALUE};
+use net_traits::request::{Referrer, RequestBuilder};
 use net_traits::response::ResponseInit;
 use net_traits::{
     CoreResourceMsg, FetchChannels, FetchMetadata, FetchResponseMsg, IpcSend, NetworkError,
@@ -66,7 +66,17 @@ impl NetworkListener {
                 None,
             ),
             None => {
-                set_default_accept(Destination::Document, &mut listener.request_builder.headers);
+                if !listener
+                    .request_builder
+                    .headers
+                    .contains_key(header::ACCEPT)
+                {
+                    listener
+                        .request_builder
+                        .headers
+                        .insert(header::ACCEPT, DOCUMENT_ACCEPT_HEADER_VALUE);
+                }
+
                 set_default_accept_language(&mut listener.request_builder.headers);
 
                 CoreResourceMsg::Fetch(

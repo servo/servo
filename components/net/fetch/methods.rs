@@ -133,7 +133,7 @@ pub async fn fetch_with_cors_cache(
     }
 
     // Step 3.
-    set_default_accept(request.destination, &mut request.headers);
+    set_default_accept(request);
 
     // Step 4.
     set_default_accept_language(&mut request.headers);

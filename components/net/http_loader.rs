@@ -35,13 +35,12 @@ use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use log::{debug, error, info, log_enabled, warn};
 use net_traits::pub_domains::reg_suffix;
-use net_traits::quality::{quality_to_value, Quality, QualityItem};
 use net_traits::request::Origin::Origin as SpecificOrigin;
 use net_traits::request::{
     get_cors_unsafe_header_names, is_cors_non_wildcard_request_header_name,
     is_cors_safelisted_method, is_cors_safelisted_request_header, BodyChunkRequest,
-    BodyChunkResponse, CacheMode, CredentialsMode, Destination, Origin, RedirectMode, Referrer,
-    Request, RequestBuilder, RequestMode, ResponseTainting, ServiceWorkersMode,
+    BodyChunkResponse, CacheMode, CredentialsMode, Destination, Initiator, Origin, RedirectMode,
+    Referrer, Request, RequestBuilder, RequestMode, ResponseTainting, ServiceWorkersMode,
 };
 use net_traits::response::{HttpsState, Response, ResponseBody, ResponseType};
 use net_traits::{
@@ -69,6 +68,10 @@ use crate::fetch::methods::{main_fetch, Data, DoneChannel, FetchContext, Target}
 use crate::hsts::HstsList;
 use crate::http_cache::{CacheKey, HttpCache};
 use crate::resource_thread::AuthCache;
+
+/// <https://fetch.spec.whatwg.org/#document-accept-header-value>
+pub const DOCUMENT_ACCEPT_HEADER_VALUE: HeaderValue =
+    HeaderValue::from_static("text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
 
 /// The various states an entry of the HttpCache can be in.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -117,41 +120,29 @@ impl Default for HttpState {
     }
 }
 
-// Step 3 of https://fetch.spec.whatwg.org/#concept-fetch.
-pub fn set_default_accept(destination: Destination, headers: &mut HeaderMap) {
-    if headers.contains_key(header::ACCEPT) {
+/// Step 13 of <https://fetch.spec.whatwg.org/#concept-fetch>.
+pub fn set_default_accept(request: &mut Request) {
+    if request.headers.contains_key(header::ACCEPT) {
         return;
     }
-    let value = match destination {
-        // Step 3.2.
-        Destination::Document => vec![
-            QualityItem::new(mime::TEXT_HTML, Quality::from_u16(1000)),
-            QualityItem::new(
-                "application/xhtml+xml".parse().unwrap(),
-                Quality::from_u16(1000),
-            ),
-            QualityItem::new("application/xml".parse().unwrap(), Quality::from_u16(900)),
-            QualityItem::new(mime::STAR_STAR, Quality::from_u16(800)),
-        ],
-        // Step 3.3.
-        Destination::Image => vec![
-            QualityItem::new(mime::IMAGE_PNG, Quality::from_u16(1000)),
-            QualityItem::new(mime::IMAGE_SVG, Quality::from_u16(1000)),
-            QualityItem::new(mime::IMAGE_STAR, Quality::from_u16(800)),
-            QualityItem::new(mime::STAR_STAR, Quality::from_u16(500)),
-        ],
-        // Step 3.3.
-        Destination::Style => vec![
-            QualityItem::new(mime::TEXT_CSS, Quality::from_u16(1000)),
-            QualityItem::new(mime::STAR_STAR, Quality::from_u16(100)),
-        ],
-        // Step 3.1.
-        _ => vec![QualityItem::new(mime::STAR_STAR, Quality::from_u16(1000))],
+
+    let value = if request.initiator == Initiator::Prefetch {
+        DOCUMENT_ACCEPT_HEADER_VALUE
+    } else {
+        match request.destination {
+            Destination::Document | Destination::Frame | Destination::IFrame => {
+                DOCUMENT_ACCEPT_HEADER_VALUE
+            },
+            Destination::Image => {
+                HeaderValue::from_static("image/png,image/svg+xml,image/*;q=0.8,*/*;q=0.5")
+            },
+            Destination::Json => HeaderValue::from_static("application/json,*/*;q=0.5"),
+            Destination::Style => HeaderValue::from_static("text/css,*/*;q=0.1"),
+            _ => HeaderValue::from_static("*/*"),
+        }
     };
 
-    // Step 3.4.
-    // TODO(eijebong): Change this once typed headers are done
-    headers.insert(header::ACCEPT, quality_to_value(value));
+    request.headers.insert(header::ACCEPT, value);
 }
 
 fn set_default_accept_encoding(headers: &mut HeaderMap) {
