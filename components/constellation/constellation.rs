@@ -1332,7 +1332,7 @@ where
         }
     }
 
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn handle_request_from_compositor(&mut self, message: FromCompositorMsg) {
         trace_msg_from_compositor!(message, "{message:?}");
         match message {
@@ -1545,7 +1545,11 @@ where
                 self.set_webview_throttled(webview_id, throttled);
             },
             FromCompositorMsg::ReadyToPresent(webview_ids) => {
-                let span = span!(Level::TRACE, "FromCompositorMsg::ReadyToPresent");
+                let span = span!(
+                    Level::TRACE,
+                    "FromCompositorMsg::ReadyToPresent",
+                    servo_profiling = true
+                );
                 let _enter = span.enter();
                 self.embedder_proxy
                     .send((None, EmbedderMsg::ReadyToPresent(webview_ids)));
