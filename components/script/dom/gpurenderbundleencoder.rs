@@ -22,7 +22,6 @@ use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::gpubindgroup::GPUBindGroup;
 use crate::dom::gpubuffer::GPUBuffer;
-use crate::dom::gpuconvert::convert_label;
 use crate::dom::gpudevice::GPUDevice;
 use crate::dom::gpurenderbundle::GPURenderBundle;
 use crate::dom::gpurenderpipeline::GPURenderPipeline;
@@ -82,7 +81,7 @@ impl GPURenderBundleEncoder {
         descriptor: &GPURenderBundleEncoderDescriptor,
     ) -> Fallible<DomRoot<GPURenderBundleEncoder>> {
         let desc = RenderBundleEncoderDescriptor {
-            label: convert_label(&descriptor.parent.parent),
+            label: (&descriptor.parent.parent).into(),
             color_formats: Cow::Owned(
                 descriptor
                     .parent
@@ -253,7 +252,7 @@ impl GPURenderBundleEncoderMethods for GPURenderBundleEncoder {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderbundleencoder-finish>
     fn Finish(&self, descriptor: &GPURenderBundleDescriptor) -> DomRoot<GPURenderBundle> {
         let desc = wgt::RenderBundleDescriptor {
-            label: convert_label(&descriptor.parent),
+            label: (&descriptor.parent).into(),
         };
         let encoder = self.render_bundle_encoder.borrow_mut().take().unwrap();
         let render_bundle_id = self

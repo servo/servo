@@ -497,14 +497,15 @@ impl TryFrom<&GPUImageCopyTexture> for wgpu_com::ImageCopyTexture {
     }
 }
 
-pub fn convert_label<'a>(parent: &GPUObjectDescriptorBase) -> Option<Cow<'a, str>> {
-    if parent.label.is_empty() {
-        None
-    } else {
-        Some(Cow::Owned(parent.label.to_string()))
+impl<'a> Into<Option<Cow<'a, str>>> for &GPUObjectDescriptorBase {
+    fn into(self) -> Option<Cow<'a, str>> {
+        if self.label.is_empty() {
+            None
+        } else {
+            Some(Cow::Owned(self.label.to_string()))
+        }
     }
 }
-
 pub fn convert_bind_group_layout_entry(
     bgle: &GPUBindGroupLayoutEntry,
     device: &GPUDevice,

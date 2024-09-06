@@ -16,7 +16,6 @@ use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::gpuconvert::convert_label;
 use crate::dom::gpudevice::GPUDevice;
 
 #[dom_struct]
@@ -88,7 +87,7 @@ impl GPUPipelineLayout {
             .collect::<Vec<_>>();
 
         let desc = PipelineLayoutDescriptor {
-            label: convert_label(&descriptor.parent),
+            label: (&descriptor.parent).into(),
             bind_group_layouts: Cow::Owned(bgls.iter().map(|l| l.0).collect::<Vec<_>>()),
             push_constant_ranges: Cow::Owned(vec![]),
         };
