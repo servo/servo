@@ -147,6 +147,8 @@ cfg_if! {
         {
             fn on_enter(&self, id: &Id, ctx: tracing_subscriber::layer::Context<'_, S>) {
                 if let Some(metadata) = ctx.metadata(id) {
+                    // TODO: is this expensive? Would extensions be faster?
+                    // <https://docs.rs/tracing-subscriber/0.3.18/tracing_subscriber/registry/struct.ExtensionsMut.html>
                     if metadata.fields().field("servo_profiling").is_some() {
                         #[cfg(debug_assertions)]
                         HITRACE_NAME_STACK.with_borrow_mut(|stack|
