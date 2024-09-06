@@ -198,10 +198,7 @@ fn get_response_expiry(response: &Response) -> Duration {
             return Duration::ZERO;
         }
         if let Some(max_age) = directives.max_age().or(directives.s_max_age()) {
-            if max_age < age {
-                return Duration::ZERO;
-            }
-            return max_age - age;
+            return max_age.saturating_sub(age);
         }
     }
     match response.headers.typed_get::<Expires>() {
@@ -221,7 +218,7 @@ fn get_response_expiry(response: &Response) -> Duration {
         // <https://tools.ietf.org/html/rfc7234#section-5.5.4>
         // Since presently we do not generate a Warning header field with a 113 warn-code,
         // 24 hours minus response age is the max for heuristic calculation.
-        let max_heuristic = Duration::from_secs(24 * 60 * 60) - age;
+        let max_heuristic = Duration::from_secs(24 * 60 * 60).saturating_sub(age);
         let heuristic_freshness = if let Some(last_modified) =
             // If the response has a Last-Modified header field,
             // caches are encouraged to use a heuristic expiration value
