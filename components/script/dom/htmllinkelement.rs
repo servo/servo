@@ -14,7 +14,7 @@ use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::rust::HandleObject;
-use net_traits::request::{Destination, Initiator, Referrer, RequestBuilder};
+use net_traits::request::{CorsSettings, Destination, Initiator, Referrer, RequestBuilder};
 use net_traits::{
     CoreResourceMsg, FetchChannels, FetchMetadata, FetchResponseListener, IpcSend, NetworkError,
     ReferrerPolicy, ResourceFetchTiming, ResourceTimingType,
@@ -42,8 +42,9 @@ use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::dom::document::Document;
 use crate::dom::domtokenlist::DOMTokenList;
 use crate::dom::element::{
-    cors_setting_for_element, reflect_cross_origin_attribute, reflect_referrer_policy_attribute,
-    set_cross_origin_attribute, AttributeMutation, Element, ElementCreator,
+    cors_setting_for_element, referrer_policy_for_element, reflect_cross_origin_attribute,
+    reflect_referrer_policy_attribute, set_cross_origin_attribute, AttributeMutation, Element,
+    ElementCreator,
 };
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::{
@@ -57,7 +58,6 @@ use crate::fetch::create_a_potential_cors_request;
 use crate::link_relations::LinkRelations;
 use crate::network_listener::{submit_timing, NetworkListener, PreInvoke, ResourceTimingListener};
 use crate::stylesheet_loader::{StylesheetContextSource, StylesheetLoader, StylesheetOwner};
-use crate::task_source::TaskSourceName;
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
 pub struct RequestGenerationId(u32);
@@ -74,6 +74,7 @@ struct LinkProcessingOptions {
     destination: Option<Destination>,
     integrity: String,
     link_type: String,
+    cross_origin: Option<CorsSettings>,
     referrer_policy: Option<ReferrerPolicy>,
     source_set: Option<()>,
     base_url: ServoUrl,
@@ -301,23 +302,29 @@ impl VirtualMethods for HTMLLinkElement {
 impl HTMLLinkElement {
     /// <https://html.spec.whatwg.org/multipage/semantics.html#create-link-options-from-element>
     fn processing_options(&self) -> LinkProcessingOptions {
+        let element = self.upcast::<Element>();
+
         // Step 1.
         let document = self.upcast::<Node>().owner_doc();
 
         // Step 2.
+        let destination = element
+            .get_attribute(&ns!(), &local_name!("as"))
+            .map(|attr| translate_a_preload_destination(&*attr.value()))
+            .unwrap_or(Destination::None);
+
         let mut options = LinkProcessingOptions {
             href: String::new(),
-            destination: Some(Destination::None), // FIXME
+            destination: Some(destination),
             integrity: String::new(),
             link_type: String::new(),
-
-            referrer_policy: self.referrer_policy(), // FIXME
+            cross_origin: cors_setting_for_element(element),
+            referrer_policy: referrer_policy_for_element(element),
             source_set: None,
             base_url: document.borrow().base_url(),
         };
 
         // Step 3.
-        let element = self.upcast::<Element>();
         if let Some(href_attribute) = element.get_attribute(&ns!(), &local_name!("href")) {
             options.href = (**href_attribute.value()).to_owned();
         }
@@ -660,10 +667,15 @@ impl LinkProcessingOptions {
         // Step 5.
         // FIXME: set remaining fields
         // FIXME: Use correct referrer
-        let builder =
-            create_a_potential_cors_request(url, destination, None, None, Referrer::NoReferrer)
-                .integrity_metadata(self.integrity) // Step 7.
-                .referrer_policy(self.referrer_policy); // Step 9.
+        let builder = create_a_potential_cors_request(
+            url,
+            destination,
+            self.cross_origin,
+            None,
+            Referrer::NoReferrer,
+        )
+        .integrity_metadata(self.integrity) // Step 7.
+        .referrer_policy(self.referrer_policy); // Step 9.
 
         // Step 12
         Some(builder)
@@ -671,17 +683,15 @@ impl LinkProcessingOptions {
 }
 
 /// <https://html.spec.whatwg.org/multipage/links.html#translate-a-preload-destination>
-fn translate_a_preload_destination(potential_destination: &str) -> Option<Destination> {
-    let destination = match potential_destination {
+fn translate_a_preload_destination(potential_destination: &str) -> Destination {
+    match potential_destination {
         "fetch" => Destination::None,
         "font" => Destination::Font,
         "image" => Destination::Image,
         "script" => Destination::Script,
         "track" => Destination::Track,
-        _ => return None,
-    };
-
-    Some(destination)
+        _ => Destination::None,
+    }
 }
 
 struct PrefetchContext {
@@ -743,11 +753,7 @@ impl ResourceTimingListener for PrefetchContext {
     }
 
     fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
-        self.link
-            .root()
-            .upcast::<Node>()
-            .owner_doc()
-            .global()
+        self.link.root().upcast::<Node>().owner_doc().global()
     }
 }
 
