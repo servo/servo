@@ -17,7 +17,6 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::gpubindgrouplayout::GPUBindGroupLayout;
-use crate::dom::gpuconvert::convert_label;
 use crate::dom::gpudevice::GPUDevice;
 
 #[dom_struct]
@@ -86,7 +85,7 @@ impl GPUBindGroup {
             .collect::<Vec<_>>();
 
         let desc = BindGroupDescriptor {
-            label: convert_label(&descriptor.parent),
+            label: (&descriptor.parent).into(),
             layout: descriptor.layout.id().0,
             entries: Cow::Owned(entries),
         };

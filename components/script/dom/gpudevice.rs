@@ -52,7 +52,6 @@ use crate::dom::gpubindgrouplayout::GPUBindGroupLayout;
 use crate::dom::gpubuffer::GPUBuffer;
 use crate::dom::gpucommandencoder::GPUCommandEncoder;
 use crate::dom::gpucomputepipeline::GPUComputePipeline;
-use crate::dom::gpuconvert::convert_label;
 use crate::dom::gpupipelinelayout::GPUPipelineLayout;
 use crate::dom::gpuqueue::GPUQueue;
 use crate::dom::gpurenderbundleencoder::GPURenderBundleEncoder;
@@ -246,7 +245,7 @@ impl GPUDevice {
         let (layout, implicit_ids, _) = self.get_pipeline_layout_data(&descriptor.parent.layout);
 
         let desc = wgpu_pipe::RenderPipelineDescriptor {
-            label: convert_label(&descriptor.parent.parent),
+            label: (&descriptor.parent.parent).into(),
             layout,
             cache: None,
             vertex: wgpu_pipe::VertexState {
