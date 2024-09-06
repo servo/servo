@@ -1,5 +1,16 @@
 {
  "items": {
+  "crashtest": {
+   "mozilla": {
+    "test-crash.html": [
+     "e997887d5b6a28e85497b5943bb2ef526b252c2d",
+     [
+      null,
+      {}
+     ]
+    ]
+   }
+  },
   "reftest": {
    "css": {
     "abs-overflow-stackingcontext.html": [

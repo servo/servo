@@ -2018,9 +2018,10 @@ impl Window {
         if self.prepare_for_screenshot && for_display {
             // Checks if the html element has reftest-wait attribute present.
             // See http://testthewebforward.org/docs/reftests.html
+            // and https://web-platform-tests.org/writing-tests/crashtest.html
             let html_element = document.GetDocumentElement();
             let reftest_wait = html_element.map_or(false, |elem| {
-                elem.has_class(&atom!("reftest-wait"), CaseSensitivity::CaseSensitive)
+                elem.has_class(&atom!("reftest-wait"), CaseSensitivity::CaseSensitive) || elem.has_class(&atom!("test-wait"), CaseSensitivity::CaseSensitive)
             });
 
             let has_sent_idle_message = self.has_sent_idle_message.get();
