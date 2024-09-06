@@ -68,7 +68,7 @@ impl RequestGenerationId {
     }
 }
 
-/// <https://html.spec.whatwg.org/multipage/semantics.html#link-processing-options>
+/// <https://html.spec.whatwg.org/multipage/#link-processing-options>
 struct LinkProcessingOptions {
     href: String,
     destination: Option<Destination>,
@@ -300,7 +300,7 @@ impl VirtualMethods for HTMLLinkElement {
 }
 
 impl HTMLLinkElement {
-    /// <https://html.spec.whatwg.org/multipage/semantics.html#create-link-options-from-element>
+    /// <https://html.spec.whatwg.org/multipage/#create-link-options-from-element>
     fn processing_options(&self) -> LinkProcessingOptions {
         let element = self.upcast::<Element>();
 
@@ -347,7 +347,7 @@ impl HTMLLinkElement {
         options
     }
 
-    /// The `fetch and process the linked resource` algorithm for [`rel="prefetch"`](https://html.spec.whatwg.org/multipage/links.html#link-type-prefetch)
+    /// The `fetch and process the linked resource` algorithm for [`rel="prefetch"`](https://html.spec.whatwg.org/multipage/#link-type-prefetch)
     fn fetch_and_process_prefetch_link(&self, href: &str) {
         // Step 1.
         if href.is_empty() {
@@ -647,7 +647,7 @@ impl HTMLLinkElementMethods for HTMLLinkElement {
 }
 
 impl LinkProcessingOptions {
-    /// <https://html.spec.whatwg.org/multipage/semantics.html#create-a-link-request>
+    /// <https://html.spec.whatwg.org/multipage/#create-a-link-request>
     fn create_link_request(self) -> Option<RequestBuilder> {
         // Step 1.
         assert!(!self.href.is_empty());
@@ -682,7 +682,7 @@ impl LinkProcessingOptions {
     }
 }
 
-/// <https://html.spec.whatwg.org/multipage/links.html#translate-a-preload-destination>
+/// <https://html.spec.whatwg.org/multipage/#translate-a-preload-destination>
 fn translate_a_preload_destination(potential_destination: &str) -> Destination {
     match potential_destination {
         "fetch" => Destination::None,
