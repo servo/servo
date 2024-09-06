@@ -14,20 +14,21 @@ use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::datatransfer::DataTransfer;
-use crate::dom::event::Event;
+use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct ClipboardEvent {
     event: Event,
-    clipboardData: MutNullableDom<DataTransfer>,
+    clipboard_data: MutNullableDom<DataTransfer>,
 }
 
 impl ClipboardEvent {
     pub fn new_inherited() -> ClipboardEvent {
         ClipboardEvent {
             event: Event::new_inherited(),
-            clipboardData: MutNullableDom::new(None),
+            clipboard_data: MutNullableDom::new(None),
         }
     }
 
@@ -35,29 +36,50 @@ impl ClipboardEvent {
         window: &Window,
         proto: Option<HandleObject>,
         type_: DOMString,
-        clipboardData: Option<&DataTransfer>,
+        can_bubble: EventBubbles,
+        cancelable: EventCancelable,
+        clipboard_data: Option<&DataTransfer>,
+        can_gc: CanGc,
     ) -> DomRoot<ClipboardEvent> {
-        let ev =
-            reflect_dom_object_with_proto(Box::new(ClipboardEvent::new_inherited()), window, proto);
-        ev.upcast::<Event>().InitEvent(type_, true, true);
-        ev.clipboardData.set(clipboardData);
+        let ev = reflect_dom_object_with_proto(
+            Box::new(ClipboardEvent::new_inherited()),
+            window,
+            proto,
+            can_gc,
+        );
+        ev.upcast::<Event>()
+            .InitEvent(type_, bool::from(can_bubble), bool::from(cancelable));
+        ev.clipboard_data.set(clipboard_data);
         ev
     }
 
+    #[allow(non_snake_case)]
     pub fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
         type_: DOMString,
         init: &ClipboardEventInit,
     ) -> DomRoot<ClipboardEvent> {
-        ClipboardEvent::new(window, proto, type_, init.clipboardData.as_deref())
+        // Missing composed field
+        let bubbles = EventBubbles::from(init.parent.bubbles);
+        let cancelable = EventCancelable::from(init.parent.cancelable);
+        ClipboardEvent::new(
+            window,
+            proto,
+            type_,
+            bubbles,
+            cancelable,
+            init.clipboardData.as_deref(),
+            can_gc,
+        )
     }
 }
 
 impl ClipboardEventMethods for ClipboardEvent {
     // https://www.w3.org/TR/clipboard-apis/#dom-clipboardevent-clipboarddata
     fn GetClipboardData(&self) -> Option<DomRoot<DataTransfer>> {
-        self.clipboardData.get()
+        self.clipboard_data.get()
     }
 
     // https://dom.spec.whatwg.org/#dom-event-istrusted
