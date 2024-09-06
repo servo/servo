@@ -512,43 +512,42 @@ fn is_eligible_parent(fragment: &BoxFragment) -> bool {
             .contains(FragmentFlags::IS_TABLE_TH_OR_TD_ELEMENT)
 }
 
-// https://html.spec.whatwg.org/multipage/#the-innertext-idl-attribute
-pub fn process_element_inner_text_query<'dom>(node: impl LayoutNode<'dom>) -> String {
-    get_the_text_steps(node)
-}
-
-/// <https://html.spec.whatwg.org/multipage/#dom-outertext>
-pub fn process_element_outer_text_query<'dom>(node: impl LayoutNode<'dom>) -> String {
-    get_the_text_steps(node)
-}
-
 /// <https://html.spec.whatwg.org/multipage/#get-the-text-steps>
-fn get_the_text_steps<'dom>(node: impl LayoutNode<'dom>) -> String {
+pub fn get_the_text_steps<'dom>(node: impl LayoutNode<'dom>) -> String {
     // Step 1: If element is not being rendered or if the user agent is a non-CSS user agent, then
     // return element's descendant text content.
     // This is taken care of in HTMLElemnent code
 
     // Step 2: Let results be a new empty list.
-    let mut result = Vec::new();
-
+    let mut results = Vec::new();
     let mut max_req_line_break_count = 0;
 
-    for item in rendered_text_collection_steps(node, &mut Default::default()) {
+    // Step 3: For each child node node of element:
+    let mut state = Default::default();
+    for child in node.dom_children() {
+        // Step 1: Let current be the list resulting in running the rendered text collection steps with node.
+        let mut current = rendered_text_collection_steps(child, &mut state);
+        // Step 2: For each item item in current, append item to results.
+        results.append(&mut current);
+    }
+
+    let mut output = Vec::new();
+    for item in results {
         match item {
             InnerOrOuterTextItem::Text(s) => {
                 // Step 3.
                 if !s.is_empty() {
                     if max_req_line_break_count > 0 {
                         // Step 5.
-                        result.push("\u{000A}".repeat(max_req_line_break_count));
+                        output.push("\u{000A}".repeat(max_req_line_break_count));
                         max_req_line_break_count = 0;
                     }
-                    result.push(s);
+                    output.push(s);
                 }
             },
             InnerOrOuterTextItem::RequiredLineBreakCount(count) => {
                 // Step 4.
-                if result.is_empty() {
+                if output.is_empty() {
                     // Remove required line break count at the start.
                     continue;
                 }
@@ -561,7 +560,7 @@ fn get_the_text_steps<'dom>(node: impl LayoutNode<'dom>) -> String {
             },
         }
     }
-    result.into_iter().collect()
+    output.into_iter().collect()
 }
 
 enum InnerOrOuterTextItem {
@@ -617,10 +616,20 @@ fn rendered_text_collection_steps<'dom>(
     match node.type_id() {
         LayoutNodeType::Text => {
             if let Some(element) = node.parent_node() {
-                // Select/Option/OptGroup elements are handled a bit differently.
-                // Basically: a Select can only contain Options or OptGroups, while
-                // OptGroups may also contain Options. Everything else gets ignored.
                 match element.type_id() {
+                    // Any text contained in these elements must be ignored.
+                    LayoutNodeType::Element(LayoutElementType::HTMLCanvasElement) |
+                    LayoutNodeType::Element(LayoutElementType::HTMLImageElement) |
+                    LayoutNodeType::Element(LayoutElementType::HTMLIFrameElement) |
+                    LayoutNodeType::Element(LayoutElementType::HTMLObjectElement) |
+                    LayoutNodeType::Element(LayoutElementType::HTMLInputElement) |
+                    LayoutNodeType::Element(LayoutElementType::HTMLTextAreaElement) |
+                    LayoutNodeType::Element(LayoutElementType::HTMLMediaElement) => {
+                        return items;
+                    },
+                    // Select/Option/OptGroup elements are handled a bit differently.
+                    // Basically: a Select can only contain Options or OptGroups, while
+                    // OptGroups may also contain Options. Everything else gets ignored.
                     LayoutNodeType::Element(LayoutElementType::HTMLOptGroupElement) => {
                         if let Some(element) = element.parent_node() {
                             if !matches!(
@@ -793,23 +802,14 @@ fn rendered_text_collection_steps<'dom>(
             // Depending on the display property we have to do various things
             // before we can render the child nodes.
             match display {
-                Display::InlineBlock => {
-                    // InlineBlock's are a bit strange, in that they don't produce a Linebreak, yet
-                    // disable white space truncation before and after it, making it one of the few
-                    // cases where one can have multiple white space characters following one another.
-                    if state.did_truncate_trailing_white_space {
-                        items.push(InnerOrOuterTextItem::Text(String::from(" ")));
-                        state.did_truncate_trailing_white_space = false;
-                        state.may_start_with_whitespace = true;
-                    }
-                },
-                Display::Block => {
-                    surrounding_line_breaks = 1;
-                },
                 Display::Table => {
                     surrounding_line_breaks = 1;
                     state.within_table = true;
                 },
+                // Step 6: If node's computed value of 'display' is 'table-cell',
+                // and node's CSS box is not the last 'table-cell' box of its
+                // enclosing 'table-row' box, then append a string containing
+                // a single U+0009 TAB code point to items.
                 Display::TableCell => {
                     if !state.first_table_cell {
                         items.push(InnerOrOuterTextItem::Text(String::from(
@@ -821,6 +821,10 @@ fn rendered_text_collection_steps<'dom>(
                     state.first_table_cell = false;
                     state.within_table_content = true;
                 },
+                // Step 7: If node's computed value of 'display' is 'table-row',
+                // and node's CSS box is not the last 'table-row' box of the nearest
+                // ancestor 'table' box, then append a string containing a single U+000A
+                // LF code point to items.
                 Display::TableRow => {
                     if !state.first_table_row {
                         items.push(InnerOrOuterTextItem::Text(String::from(
@@ -832,18 +836,24 @@ fn rendered_text_collection_steps<'dom>(
                     state.first_table_row = false;
                     state.first_table_cell = true;
                 },
+                // Step 9: If node's used value of 'display' is block-level or 'table-caption',
+                // then append 1 (a required line break count) at the beginning and end of items.
+                Display::Block => {
+                    surrounding_line_breaks = 1;
+                },
                 Display::TableCaption => {
-                    // As long as there's content in the table then the caption is on a new row
-                    if !state.first_table_cell || !state.first_table_row {
-                        items.push(InnerOrOuterTextItem::Text(String::from(
-                            "\u{000A}", /* Line Feed */
-                        )));
-                        // Make sure we don't add a white-space we removed from the previous node
-                        state.did_truncate_trailing_white_space = false;
-                    }
-                    state.first_table_row = false;
-                    state.first_table_cell = true;
+                    surrounding_line_breaks = 1;
                     state.within_table_content = true;
+                },
+                Display::InlineBlock => {
+                    // InlineBlock's are a bit strange, in that they don't produce a Linebreak, yet
+                    // disable white space truncation before and after it, making it one of the few
+                    // cases where one can have multiple white space characters following one another.
+                    if state.did_truncate_trailing_white_space {
+                        items.push(InnerOrOuterTextItem::Text(String::from(" ")));
+                        state.did_truncate_trailing_white_space = false;
+                        state.may_start_with_whitespace = true;
+                    }
                 },
                 _ => {},
             }

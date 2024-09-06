@@ -106,6 +106,30 @@ impl HTMLElement {
         let eventtarget = self.upcast::<EventTarget>();
         eventtarget.is::<HTMLBodyElement>() || eventtarget.is::<HTMLFrameSetElement>()
     }
+
+    /// Calls into the layout engine to generate a plain text representation
+    /// of a [`HTMLElement`] as specified when getting the `.innerText` or
+    /// `.outerText` in JavaScript.`
+    ///
+    /// <https://html.spec.whatwg.org/multipage/#get-the-text-steps>
+    fn get_inner_outer_text(&self) -> DOMString {
+        let node = self.upcast::<Node>();
+        let window = window_from_node(node);
+        let element = self.as_element();
+
+        // Step 1.
+        let element_not_rendered = !node.is_connected() || !element.has_css_layout_box();
+        if element_not_rendered {
+            return node.GetTextContent().unwrap();
+        }
+
+        window.layout_reflow(QueryMsg::ElementInnerOuterTextQuery);
+        let text = window
+            .layout()
+            .query_element_inner_outer_text(node.to_trusted_node_address());
+
+        DOMString::from(text)
+    }
 }
 
 impl HTMLElementMethods for HTMLElement {
@@ -450,23 +474,9 @@ impl HTMLElementMethods for HTMLElement {
         rect.size.height.to_nearest_px()
     }
 
-    // https://html.spec.whatwg.org/multipage/#the-innertext-idl-attribute
+    /// <https://html.spec.whatwg.org/multipage/#the-innertext-idl-attribute>
     fn InnerText(&self) -> DOMString {
-        let node = self.upcast::<Node>();
-        let window = window_from_node(node);
-        let element = self.as_element();
-
-        // Step 1.
-        let element_not_rendered = !node.is_connected() || !element.has_css_layout_box();
-        if element_not_rendered {
-            return node.GetTextContent().unwrap();
-        }
-
-        window.layout_reflow(QueryMsg::ElementInnerTextQuery);
-        let text = window
-            .layout()
-            .query_element_inner_text(node.to_trusted_node_address());
-        DOMString::from(text)
+        self.get_inner_outer_text()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#set-the-inner-text-steps>
@@ -481,25 +491,10 @@ impl HTMLElementMethods for HTMLElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-outertext>
     fn GetOuterText(&self) -> Fallible<DOMString> {
-        let node = self.upcast::<Node>();
-        let window = window_from_node(node);
-        let element = self.as_element();
-
-        // Step 1.
-        let element_not_rendered = !node.is_connected() || !element.has_css_layout_box();
-        if element_not_rendered {
-            return Ok(node.GetTextContent().unwrap());
-        }
-
-        window.layout_reflow(QueryMsg::ElementOuterTextQuery);
-        let text = window
-            .layout()
-            .query_element_outer_text(node.to_trusted_node_address());
-
-        Ok(DOMString::from(text))
+        Ok(self.get_inner_outer_text())
     }
 
-    /// <https://html.spec.whatwg.org/multipage/#the-innertext-idl-attribute%3Adom-outertext-2>
+    /// <https://html.spec.whatwg.org/multipage/#the-innertext-idl-attribute:dom-outertext-2>
     fn SetOuterText(&self, input: DOMString) -> Fallible<()> {
         // Step 1: If this's parent is null, then throw a "NoModificationAllowedError" DOMException.
         let Some(parent) = self.upcast::<Node>().GetParentNode() else {
@@ -524,33 +519,22 @@ impl HTMLElementMethods for HTMLElement {
         if fragment.upcast::<Node>().children_count() == 0 {
             let text_node = Text::new(DOMString::from("".to_owned()), &document);
 
-            fragment
-                .upcast::<Node>()
-                .AppendChild(text_node.upcast())
-                .unwrap();
+            fragment.upcast::<Node>().AppendChild(text_node.upcast())?;
         }
 
         // Step 6: Replace this with fragment within this's parent.
-        if let Err(error) = parent.ReplaceChild(fragment.upcast(), node) {
-            warn!("Failed to replace child node: {:?}", error);
-        }
+        parent.ReplaceChild(fragment.upcast(), node)?;
 
         // Step 7: If next is non-null and next's previous sibling is a Text node, then merge with
         // the next text node given next's previous sibling.
         if let Some(next_sibling) = next {
             if let Some(node) = next_sibling.GetPreviousSibling() {
-                if node.is::<Text>() {
-                    self.merge_with_the_next_text_node(node);
-                }
+                Self::merge_with_the_next_text_node(node);
             }
         }
 
         // Step 8: If previous is a Text node, then merge with the next text node given previous.
-        if let Some(node) = previous {
-            if node.is::<Text>() {
-                self.merge_with_the_next_text_node(node);
-            }
-        }
+        previous.map(Self::merge_with_the_next_text_node);
 
         Ok(())
     }
@@ -948,7 +932,7 @@ impl HTMLElement {
         // of input.
         let mut position = input.chars().peekable();
 
-        // Step : Let text be the empty string.
+        // Step 3: Let text be the empty string.
         let mut text = String::new();
 
         // Step 4
@@ -988,30 +972,36 @@ impl HTMLElement {
         fragment
     }
 
+    /// Checks whether a given [`DomRoot<Node>`] and its next sibling are
+    /// of type [`Text`], and if so merges them into a single [`Text`]
+    /// node.
+    ///
     /// <https://html.spec.whatwg.org/multipage/#merge-with-the-next-text-node>
-    fn merge_with_the_next_text_node(&self, node: DomRoot<Node>) {
-        // Step 1: Let next be node's next sibling.
-        if let Some(next) = node.GetNextSibling() {
-            // Step 2: If next is not a Text node, then return.
-            if next.is::<Text>() {
-                // Step 3: Replace data with node, node's data's length, 0, and next's data.
-                let node_chars = node.downcast::<CharacterData>().unwrap();
-                let next_chars = next.downcast::<CharacterData>().unwrap();
-
-                if let Err(error) =
-                    node_chars.ReplaceData(node_chars.Length(), 0, next_chars.Data())
-                {
-                    warn!("Failed to replace character data: {:?}", error);
-
-                    return;
-                }
-
-                // Step 4: If next's parent is non-null, then remove next.
-                if next.has_parent() {
-                    next.remove_self();
-                }
-            }
+    fn merge_with_the_next_text_node(node: DomRoot<Node>) {
+        // Make sure node is a Text node
+        if !node.is::<Text>() {
+            return;
         }
+
+        // Step 1: Let next be node's next sibling.
+        let next = match node.GetNextSibling() {
+            Some(next) => next,
+            None => return,
+        };
+
+        // Step 2: If next is not a Text node, then return.
+        if !next.is::<Text>() {
+            return;
+        }
+        // Step 3: Replace data with node, node's data's length, 0, and next's data.
+        let node_chars = node.downcast::<CharacterData>().expect("Node is Text");
+        let next_chars = next.downcast::<CharacterData>().expect("Next node is Text");
+        node_chars
+            .ReplaceData(node_chars.Length(), 0, next_chars.Data())
+            .expect("Got chars from Text");
+
+        // Step 4:Remove next.
+        next.remove_self();
     }
 }
 

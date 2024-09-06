@@ -241,8 +241,7 @@ pub trait Layout {
     fn query_content_box(&self, node: OpaqueNode) -> Option<Rect<Au>>;
     fn query_content_boxes(&self, node: OpaqueNode) -> Vec<Rect<Au>>;
     fn query_client_rect(&self, node: OpaqueNode) -> Rect<i32>;
-    fn query_element_inner_text(&self, node: TrustedNodeAddress) -> String;
-    fn query_element_outer_text(&self, node: TrustedNodeAddress) -> String;
+    fn query_element_inner_outer_text(&self, node: TrustedNodeAddress) -> String;
     fn query_inner_window_dimension(
         &self,
         context: BrowsingContextId,
@@ -308,8 +307,7 @@ pub enum QueryMsg {
     NodesFromPointQuery,
     ResolvedStyleQuery,
     StyleQuery,
-    ElementInnerTextQuery,
-    ElementOuterTextQuery,
+    ElementInnerOuterTextQuery,
     ResolvedFontStyleQuery,
     InnerWindowDimensionsQuery,
 }
@@ -333,8 +331,7 @@ impl ReflowGoal {
         match *self {
             ReflowGoal::Full | ReflowGoal::TickAnimations | ReflowGoal::UpdateScrollNode(_) => true,
             ReflowGoal::LayoutQuery(ref querymsg) => match *querymsg {
-                QueryMsg::ElementInnerTextQuery |
-                QueryMsg::ElementOuterTextQuery |
+                QueryMsg::ElementInnerOuterTextQuery |
                 QueryMsg::InnerWindowDimensionsQuery |
                 QueryMsg::NodesFromPointQuery |
                 QueryMsg::ResolvedStyleQuery |
@@ -358,8 +355,7 @@ impl ReflowGoal {
             ReflowGoal::LayoutQuery(ref querymsg) => match *querymsg {
                 QueryMsg::NodesFromPointQuery |
                 QueryMsg::TextIndexQuery |
-                QueryMsg::ElementInnerTextQuery => true,
-                QueryMsg::ElementOuterTextQuery => true,
+                QueryMsg::ElementInnerOuterTextQuery => true,
                 QueryMsg::ContentBox |
                 QueryMsg::ContentBoxes |
                 QueryMsg::ClientRectQuery |

@@ -2737,8 +2737,7 @@ fn debug_reflow_events(id: PipelineId, reflow_goal: &ReflowGoal, reason: &Reflow
             QueryMsg::OffsetParentQuery => "\tOffsetParentQuery",
             QueryMsg::StyleQuery => "\tStyleQuery",
             QueryMsg::TextIndexQuery => "\tTextIndexQuery",
-            QueryMsg::ElementInnerTextQuery => "\tElementInnerTextQuery",
-            QueryMsg::ElementOuterTextQuery => "\tElementOuterTextQuery",
+            QueryMsg::ElementInnerOuterTextQuery => "\tElementInnerOuterTextQuery",
             QueryMsg::InnerWindowDimensionsQuery => "\tInnerWindowDimensionsQuery",
         },
     };
