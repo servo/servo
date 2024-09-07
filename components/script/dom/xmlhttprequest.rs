@@ -59,7 +59,7 @@ use crate::dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLD
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::headers::{extract_mime_type, is_forbidden_header_name};
+use crate::dom::headers::{extract_mime_type, is_forbidden_request_header};
 use crate::dom::node::Node;
 use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::dom::progressevent::ProgressEvent;
@@ -460,41 +460,37 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
 
     /// <https://xhr.spec.whatwg.org/#the-setrequestheader()-method>
     fn SetRequestHeader(&self, name: ByteString, value: ByteString) -> ErrorResult {
-        // Step 1, 2
+        // Step 1: If this’s state is not opened, then throw an "InvalidStateError" DOMException.
+        // Step 2: If this’s send() flag is set, then throw an "InvalidStateError" DOMException.
         if self.ready_state.get() != XMLHttpRequestState::Opened || self.send_flag.get() {
             return Err(Error::InvalidState);
         }
 
-        // Step 3
+        // Step 3: Normalize value.
         let value = trim_http_whitespace(&value);
 
-        // Step 4
+        // Step 4: If name is not a header name or value is not a header value, then throw a
+        // "SyntaxError" DOMException.
         if !is_token(&name) || !is_field_value(value) {
             return Err(Error::Syntax);
         }
-        let name_lower = name.to_lower();
-        let name_str = match name_lower.as_str() {
-            Some(s) => {
-                // Step 5
-                // Disallowed headers and header prefixes:
-                // https://fetch.spec.whatwg.org/#forbidden-header-name
-                if is_forbidden_header_name(s) {
-                    return Ok(());
-                } else {
-                    s
-                }
-            },
-            None => unreachable!(),
-        };
+
+        let name_str = name.as_str().ok_or(Error::Syntax)?;
+
+        // Step 5: If (name, value) is a forbidden request-header, then return.
+        if is_forbidden_request_header(name_str, &value.to_vec()) {
+            return Ok(());
+        }
 
         debug!(
             "SetRequestHeader: name={:?}, value={:?}",
-            name.as_str(),
+            name_str,
             str::from_utf8(value).ok()
         );
         let mut headers = self.request_headers.borrow_mut();
 
-        // Step 6
+        // Step 6: Combine (name, value) in this’s author request headers.
+        // https://fetch.spec.whatwg.org/#concept-header-list-combine
         let value = match headers.get(name_str).map(HeaderValue::as_bytes) {
             Some(raw) => {
                 let mut buf = raw.to_vec();

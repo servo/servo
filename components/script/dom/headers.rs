@@ -9,7 +9,9 @@ use data_url::mime::Mime as DataUrlMime;
 use dom_struct::dom_struct;
 use http::header::{HeaderMap as HyperHeaders, HeaderName, HeaderValue};
 use js::rust::HandleObject;
-use net_traits::fetch::headers::get_value_from_header_list;
+use net_traits::fetch::headers::{
+    get_decode_and_split_header_value, get_value_from_header_list, is_forbidden_method,
+};
 use net_traits::request::is_cors_safelisted_request_header;
 
 use crate::dom::bindings::cell::DomRefCell;
@@ -85,12 +87,15 @@ impl HeadersMethods for Headers {
         // Step 2
         // https://fetch.spec.whatwg.org/#headers-validate
         let (mut valid_name, valid_value) = validate_name_and_value(name, value)?;
+
         valid_name = valid_name.to_lowercase();
 
         if self.guard.get() == Guard::Immutable {
             return Err(Error::Type("Guard is immutable".to_string()));
         }
-        if self.guard.get() == Guard::Request && is_forbidden_header_name(&valid_name) {
+        if self.guard.get() == Guard::Request &&
+            is_forbidden_request_header(&valid_name, &valid_value)
+        {
             return Ok(());
         }
         if self.guard.get() == Guard::Response && is_forbidden_response_header(&valid_name) {
@@ -141,13 +146,18 @@ impl HeadersMethods for Headers {
     // https://fetch.spec.whatwg.org/#dom-headers-delete
     fn Delete(&self, name: ByteString) -> ErrorResult {
         // Step 1
-        let valid_name = validate_name(name)?;
+        let (mut valid_name, valid_value) = validate_name_and_value(name, ByteString::new(vec![]))?;
+
+        valid_name = valid_name.to_lowercase();
+
         // Step 2
         if self.guard.get() == Guard::Immutable {
             return Err(Error::Type("Guard is immutable".to_string()));
         }
         // Step 3
-        if self.guard.get() == Guard::Request && is_forbidden_header_name(&valid_name) {
+        if self.guard.get() == Guard::Request &&
+            is_forbidden_request_header(&valid_name, &valid_value)
+        {
             return Ok(());
         }
         // Step 4
@@ -205,7 +215,9 @@ impl HeadersMethods for Headers {
             return Err(Error::Type("Guard is immutable".to_string()));
         }
         // Step 4
-        if self.guard.get() == Guard::Request && is_forbidden_header_name(&valid_name) {
+        if self.guard.get() == Guard::Request &&
+            is_forbidden_request_header(&valid_name, &valid_value)
+        {
             return Ok(());
         }
         // Step 5
@@ -358,14 +370,12 @@ impl Iterable for Headers {
     }
 }
 
-// https://fetch.spec.whatwg.org/#forbidden-response-header-name
-fn is_forbidden_response_header(name: &str) -> bool {
-    matches!(name, "set-cookie" | "set-cookie2")
-}
-
-// https://fetch.spec.whatwg.org/#forbidden-header-name
-pub fn is_forbidden_header_name(name: &str) -> bool {
-    let disallowed_headers = [
+/// This function will internally convert `name` to lowercase for matching, so explicitly converting
+/// before calling is not necessary
+///
+/// <https://fetch.spec.whatwg.org/#forbidden-request-header>
+pub fn is_forbidden_request_header(name: &str, value: &[u8]) -> bool {
+    let forbidden_header_names = [
         "accept-charset",
         "accept-encoding",
         "access-control-request-headers",
@@ -386,14 +396,61 @@ pub fn is_forbidden_header_name(name: &str) -> bool {
         "transfer-encoding",
         "upgrade",
         "via",
+        // This list is defined in the fetch spec, however the draft spec for private-network-access
+        // proposes this additional forbidden name, which is currently included in WPT tests. See:
+        // https://wicg.github.io/private-network-access/#forbidden-header-names
+        "access-control-request-private-network",
     ];
 
-    let disallowed_header_prefixes = ["sec-", "proxy-"];
+    // Step 1: If name is a byte-case-insensitive match for one of (forbidden_header_names), return
+    // true
+    let lowercase_name = name.to_lowercase();
 
-    disallowed_headers.iter().any(|header| *header == name) ||
-        disallowed_header_prefixes
+    if forbidden_header_names
+        .iter()
+        .any(|header| *header == lowercase_name.as_str())
+    {
+        return true;
+    }
+
+    let forbidden_header_prefixes = ["sec-", "proxy-"];
+
+    // Step 2: If name when byte-lowercased starts with `proxy-` or `sec-`, then return true.
+    if forbidden_header_prefixes
+        .iter()
+        .any(|prefix| lowercase_name.starts_with(prefix))
+    {
+        return true;
+    }
+
+    let potentially_forbidden_header_names = [
+        "x-http-method",
+        "x-http-method-override",
+        "x-method-override",
+    ];
+
+    // Step 3: If name is a byte-case-insensitive match for one of (potentially_forbidden_header_names)
+    if potentially_forbidden_header_names
+        .iter()
+        .any(|header| *header == lowercase_name)
+    {
+        // Step 3.1: Let parsedValues be the result of getting, decoding, and splitting value.
+        let parsed_values = get_decode_and_split_header_value(value.to_vec());
+
+        // Step 3.2: For each method of parsedValues: if the isomorphic encoding of method is a
+        // forbidden method, then return true.
+        return parsed_values
             .iter()
-            .any(|prefix| name.starts_with(prefix))
+            .any(|s| is_forbidden_method(s.as_bytes()));
+    }
+
+    // Step 4: Return false.
+    false
+}
+
+// https://fetch.spec.whatwg.org/#forbidden-response-header-name
+fn is_forbidden_response_header(name: &str) -> bool {
+    matches!(name, "set-cookie" | "set-cookie2")
 }
 
 // There is some unresolved confusion over the definition of a name and a value.
