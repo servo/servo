@@ -19,7 +19,7 @@ use style::values::computed::length::Size;
 use style::values::computed::Length;
 use style::values::generics::flex::GenericFlexBasis as FlexBasis;
 use style::values::generics::length::{GenericLengthPercentageOrAuto, LengthPercentageOrNormal};
-use style::values::specified::align::AlignFlags;
+use style::values::specified::align::{AlignFlags, AxisDirection};
 use style::Zero;
 
 use super::geom::{FlexAxis, FlexRelativeRect, FlexRelativeSides, FlexRelativeVec2};
@@ -99,9 +99,9 @@ struct FlexItemLayoutResult {
 }
 
 impl FlexItemLayoutResult {
-    fn get_or_synthesize_baseline_with_block_size(&self, block_size: Au, item: &FlexItem) -> Au {
+    fn get_or_synthesize_baseline_with_cross_size(&self, cross_size: Au, item: &FlexItem) -> Au {
         self.baseline_relative_to_margin_box
-            .unwrap_or_else(|| item.synthesized_baseline_relative_to_margin_box(block_size))
+            .unwrap_or_else(|| item.synthesized_baseline_relative_to_margin_box(cross_size))
     }
 
     fn collect_fragment(
@@ -731,6 +731,7 @@ impl FlexContainer {
             _ => Au::zero(),
         };
 
+        let inline_axis_is_main_axis = self.config.flex_axis == FlexAxis::Row;
         let mut baseline_alignment_participating_baselines = Baselines::default();
         let mut all_baselines = Baselines::default();
         let flex_item_fragments: Vec<_> = initial_line_layouts
@@ -786,20 +787,27 @@ impl FlexContainer {
                         },
                     };
 
-                let line_shared_alignment_baseline = final_line_layout
-                    .shared_alignment_baseline
-                    .map(|baseline| baseline + flow_relative_line_position.block);
+                if inline_axis_is_main_axis {
+                    let line_shared_alignment_baseline = final_line_layout
+                        .shared_alignment_baseline
+                        .map(|baseline| baseline + flow_relative_line_position.block);
+                    if index == 0 {
+                        baseline_alignment_participating_baselines.first =
+                            line_shared_alignment_baseline;
+                    }
+                    if index == num_lines - 1 {
+                        baseline_alignment_participating_baselines.last =
+                            line_shared_alignment_baseline;
+                    }
+                }
+
                 let line_all_baselines = final_line_layout
                     .all_baselines
                     .offset(flow_relative_line_position.block);
                 if index == 0 {
-                    baseline_alignment_participating_baselines.first =
-                        line_shared_alignment_baseline;
                     all_baselines.first = line_all_baselines.first;
                 }
                 if index == num_lines - 1 {
-                    baseline_alignment_participating_baselines.last =
-                        line_shared_alignment_baseline;
                     all_baselines.last = line_all_baselines.last;
                 }
 
@@ -1389,7 +1397,7 @@ impl InitialFlexLineLayout<'_> {
                 item.align_self.0.value(),
                 AlignFlags::BASELINE | AlignFlags::LAST_BASELINE
             ) {
-                let baseline = item_result.get_or_synthesize_baseline_with_block_size(
+                let baseline = item_result.get_or_synthesize_baseline_with_cross_size(
                     item_result.hypothetical_cross_size,
                     item,
                 );
@@ -1475,9 +1483,8 @@ impl InitialFlexLineLayout<'_> {
                     item.layout(*used_main_size, flex_context, Some(used_cross_size));
             }
 
-            // TODO: This also needs to check whether we have a compatible writing mode.
             let baseline = item_layout_result
-                .get_or_synthesize_baseline_with_block_size(used_cross_size, item);
+                .get_or_synthesize_baseline_with_cross_size(used_cross_size, item);
             if matches!(
                 item.align_self.0.value(),
                 AlignFlags::BASELINE | AlignFlags::LAST_BASELINE
@@ -1758,8 +1765,23 @@ impl FlexItem<'_> {
                     containing_block,
                 );
 
-                let baselines_relative_to_margin_box =
-                    self.layout_baselines_relative_to_margin_box(&content_box_baselines);
+                let item_writing_mode_is_orthogonal_to_container_writing_mode =
+                    flex_context.config.writing_mode.is_horizontal() !=
+                        non_replaced.style.effective_writing_mode().is_horizontal();
+                let has_compatible_baseline = match flex_context.config.flex_axis {
+                    FlexAxis::Row => !item_writing_mode_is_orthogonal_to_container_writing_mode,
+                    FlexAxis::Column => item_writing_mode_is_orthogonal_to_container_writing_mode,
+                };
+
+                let baselines_relative_to_margin_box = if has_compatible_baseline {
+                    content_box_baselines.offset(
+                        self.margin.cross_start.auto_is(Au::zero) +
+                            self.padding.cross_start +
+                            self.border.cross_start,
+                    )
+                } else {
+                    Baselines::default()
+                };
 
                 let baseline_relative_to_margin_box = match self.align_self.0.value() {
                     // ‘baseline’ computes to ‘first baseline’.
@@ -1791,17 +1813,6 @@ impl FlexItem<'_> {
                 }
             },
         }
-    }
-
-    fn layout_baselines_relative_to_margin_box(
-        &self,
-        baselines_relative_to_content_box: &Baselines,
-    ) -> Baselines {
-        baselines_relative_to_content_box.offset(
-            self.margin.cross_start.auto_is(Au::zero) +
-                self.padding.cross_start +
-                self.border.cross_start,
-        )
     }
 
     fn synthesized_baseline_relative_to_margin_box(&self, content_size: Au) -> Au {
