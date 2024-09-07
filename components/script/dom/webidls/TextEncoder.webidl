@@ -3,10 +3,17 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 /* https://encoding.spec.whatwg.org/#interface-textencoder */
+
+dictionary TextEncoderEncodeIntoResult {
+  unsigned long long read;
+  unsigned long long written;
+};
+
 [Exposed=(Window,Worker)]
 interface TextEncoder {
    [Throws] constructor();
    readonly attribute DOMString encoding;
    [NewObject]
    Uint8Array encode(optional USVString input = "");
+   TextEncoderEncodeIntoResult encodeInto(USVString source, [AllowShared] Uint8Array destination);
 };
