@@ -159,6 +159,7 @@ impl Worker {
             global.wgpu_id_hub(),
             control_receiver,
             context_sender,
+            CanGc::note(),
         );
 
         let context = context_receiver

@@ -45,7 +45,7 @@ use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::fetch::load_whole_resource;
 use crate::realms::{enter_realm, AlreadyInRealm, InRealm};
 use crate::script_runtime::{
-    new_rt_and_cx, CommonScriptMsg, ContextForRequestInterrupt, JSContext as SafeJSContext,
+    new_rt_and_cx, CanGc, CommonScriptMsg, ContextForRequestInterrupt, JSContext as SafeJSContext,
     Runtime, ScriptChan,
 };
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
@@ -295,6 +295,7 @@ impl ServiceWorkerGlobalScope {
         control_receiver: Receiver<ServiceWorkerControlMsg>,
         context_sender: Sender<ContextForRequestInterrupt>,
         closing: Arc<AtomicBool>,
+        _can_gc: CanGc,
     ) -> JoinHandle<()> {
         let ScopeThings {
             script_url,
@@ -398,7 +399,7 @@ impl ServiceWorkerGlobalScope {
                             // which happens after the closing flag is set to true,
                             // or until the worker has run beyond its allocated time.
                             while !scope.is_closing() && !global.has_timed_out() {
-                                run_worker_event_loop(&*global, None);
+                                run_worker_event_loop(&*global, None, CanGc::note());
                             }
                         },
                         reporter_name,

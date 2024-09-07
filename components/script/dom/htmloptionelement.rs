@@ -87,7 +87,7 @@ impl HTMLOptionElement {
     pub fn Option(
         window: &Window,
         proto: Option<HandleObject>,
-        _can_gc: CanGc,
+        can_gc: CanGc,
         text: DOMString,
         value: Option<DOMString>,
         default_selected: bool,
@@ -100,6 +100,7 @@ impl HTMLOptionElement {
             ElementCreator::ScriptCreated,
             CustomElementCreationMode::Synchronous,
             proto,
+            can_gc,
         );
 
         let option = DomRoot::downcast::<HTMLOptionElement>(element).unwrap();

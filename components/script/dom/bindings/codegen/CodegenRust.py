@@ -3725,7 +3725,7 @@ class CGCallGenerator(CGThing):
         ]))
 
         if hasCEReactions:
-            self.cgRoot.append(CGGeneric("pop_current_element_queue();\n"))
+            self.cgRoot.append(CGGeneric("pop_current_element_queue(CanGc::note());\n"))
 
         if isFallible:
             if static:

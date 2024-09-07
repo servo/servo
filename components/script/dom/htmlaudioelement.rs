@@ -56,7 +56,7 @@ impl HTMLAudioElement {
     pub fn Audio(
         window: &Window,
         proto: Option<HandleObject>,
-        _can_gc: CanGc,
+        can_gc: CanGc,
         src: Option<DOMString>,
     ) -> Fallible<DomRoot<HTMLAudioElement>> {
         let element = Element::create(
@@ -66,6 +66,7 @@ impl HTMLAudioElement {
             ElementCreator::ScriptCreated,
             CustomElementCreationMode::Synchronous,
             proto,
+            can_gc,
         );
 
         let audio = DomRoot::downcast::<HTMLAudioElement>(element).unwrap();

@@ -14,6 +14,7 @@ use servo_url::ServoUrl;
 use crate::dom::bindings::root::Dom;
 use crate::dom::document::Document;
 use crate::fetch::FetchCanceller;
+use crate::script_runtime::CanGc;
 
 #[derive(Clone, Debug, JSTraceable, MallocSizeOf, PartialEq)]
 pub enum LoadType {
@@ -48,9 +49,9 @@ impl LoadBlocker {
     }
 
     /// Remove this load from the associated document's list of blocking loads.
-    pub fn terminate(blocker: &mut Option<LoadBlocker>) {
+    pub fn terminate(blocker: &mut Option<LoadBlocker>, can_gc: CanGc) {
         if let Some(this) = blocker.as_mut() {
-            this.doc.finish_load(this.load.take().unwrap());
+            this.doc.finish_load(this.load.take().unwrap(), can_gc);
         }
         *blocker = None;
     }
@@ -59,7 +60,7 @@ impl LoadBlocker {
 impl Drop for LoadBlocker {
     fn drop(&mut self) {
         if let Some(load) = self.load.take() {
-            self.doc.finish_load(load);
+            self.doc.finish_load(load, CanGc::note());
         }
     }
 }

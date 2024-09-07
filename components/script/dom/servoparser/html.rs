@@ -30,6 +30,7 @@ use crate::dom::htmltemplateelement::HTMLTemplateElement;
 use crate::dom::node::Node;
 use crate::dom::processinginstruction::ProcessingInstruction;
 use crate::dom::servoparser::{ParsingAlgorithm, Sink};
+use crate::script_runtime::CanGc;
 
 #[derive(JSTraceable, MallocSizeOf)]
 #[crown::unrooted_must_root_lint::must_root]
@@ -163,7 +164,7 @@ fn rev_children_iter(n: &Node) -> impl Iterator<Item = DomRoot<Node>> {
     }
 
     match n.downcast::<HTMLTemplateElement>() {
-        Some(t) => t.Content().upcast::<Node>().rev_children(),
+        Some(t) => t.Content(CanGc::note()).upcast::<Node>().rev_children(),
         None => n.rev_children(),
     }
 }

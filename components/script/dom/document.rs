@@ -2117,7 +2117,7 @@ impl Document {
 
     // https://html.spec.whatwg.org/multipage/#the-end
     // https://html.spec.whatwg.org/multipage/#delay-the-load-event
-    pub fn finish_load(&self, load: LoadType) {
+    pub fn finish_load(&self, load: LoadType, can_gc: CanGc) {
         // This does not delay the load event anymore.
         debug!("Document got finish_load: {:?}", load);
         self.loader.borrow_mut().finish_load(&load);
@@ -2126,7 +2126,7 @@ impl Document {
             LoadType::Stylesheet(_) => {
                 // A stylesheet finishing to load may unblock any pending
                 // parsing-blocking script or deferred script.
-                self.process_pending_parsing_blocking_script();
+                self.process_pending_parsing_blocking_script(can_gc);
 
                 // Step 3.
                 self.process_deferred_scripts();
@@ -2489,6 +2489,7 @@ impl Document {
         &self,
         element: &HTMLScriptElement,
         result: ScriptResult,
+        can_gc: CanGc,
     ) {
         {
             let mut blocking_script = self.pending_parsing_blocking_script.borrow_mut();
@@ -2496,10 +2497,10 @@ impl Document {
             assert!(&*entry.element == element);
             entry.loaded(result);
         }
-        self.process_pending_parsing_blocking_script();
+        self.process_pending_parsing_blocking_script(can_gc);
     }
 
-    fn process_pending_parsing_blocking_script(&self) {
+    fn process_pending_parsing_blocking_script(&self, can_gc: CanGc) {
         if self.script_blocking_stylesheets_count.get() > 0 {
             return;
         }
@@ -2512,7 +2513,7 @@ impl Document {
             *self.pending_parsing_blocking_script.borrow_mut() = None;
             self.get_current_parser()
                 .unwrap()
-                .resume_with_pending_parsing_blocking_script(&element, result);
+                .resume_with_pending_parsing_blocking_script(&element, result, can_gc);
         }
     }
 
@@ -2629,7 +2630,7 @@ impl Document {
     }
 
     // https://html.spec.whatwg.org/multipage/#abort-a-document
-    pub fn abort(&self) {
+    pub fn abort(&self, can_gc: CanGc) {
         // We need to inhibit the loader before anything else.
         self.loader.borrow_mut().inhibit_events();
 
@@ -2637,7 +2638,7 @@ impl Document {
         for iframe in self.iter_iframes() {
             if let Some(document) = iframe.GetContentDocument() {
                 // TODO: abort the active documents of every child browsing context.
-                document.abort();
+                document.abort(CanGc::note());
                 // TODO: salvageable flag.
             }
         }
@@ -2666,7 +2667,7 @@ impl Document {
         // Step 3.
         if let Some(parser) = self.get_current_parser() {
             self.active_parser_was_aborted.set(true);
-            parser.abort();
+            parser.abort(can_gc);
             self.salvageable.set(false);
         }
     }
@@ -3457,6 +3458,7 @@ impl Document {
         referrer_policy: Option<ReferrerPolicy>,
         status_code: Option<u16>,
         canceller: FetchCanceller,
+        can_gc: CanGc,
     ) -> DomRoot<Document> {
         Self::new_with_proto(
             window,
@@ -3474,7 +3476,7 @@ impl Document {
             referrer_policy,
             status_code,
             canceller,
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -3613,7 +3615,7 @@ impl Document {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#appropriate-template-contents-owner-document>
-    pub fn appropriate_template_contents_owner_document(&self) -> DomRoot<Document> {
+    pub fn appropriate_template_contents_owner_document(&self, can_gc: CanGc) -> DomRoot<Document> {
         self.appropriate_template_contents_owner_document
             .or_init(|| {
                 let doctype = if self.is_html_document {
@@ -3637,6 +3639,7 @@ impl Document {
                     None,
                     None,
                     Default::default(),
+                    can_gc,
                 );
                 new_doc
                     .appropriate_template_contents_owner_document
@@ -4351,6 +4354,7 @@ impl DocumentMethods for Document {
         &self,
         mut local_name: DOMString,
         options: StringOrElementCreationOptions,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<Element>> {
         if xml_name_type(&local_name) == Invalid {
             debug!("Not a valid element name");
@@ -4384,6 +4388,7 @@ impl DocumentMethods for Document {
             ElementCreator::ScriptCreated,
             CustomElementCreationMode::Synchronous,
             None,
+            can_gc,
         ))
     }
 
@@ -4393,6 +4398,7 @@ impl DocumentMethods for Document {
         namespace: Option<DOMString>,
         qualified_name: DOMString,
         options: StringOrElementCreationOptions,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<Element>> {
         let (namespace, prefix, local_name) = validate_and_extract(namespace, &qualified_name)?;
         let name = QualName::new(prefix, namespace, local_name);
@@ -4409,6 +4415,7 @@ impl DocumentMethods for Document {
             ElementCreator::ScriptCreated,
             CustomElementCreationMode::Synchronous,
             None,
+            can_gc,
         ))
     }
 
@@ -4507,7 +4514,7 @@ impl DocumentMethods for Document {
     }
 
     // https://dom.spec.whatwg.org/#dom-document-importnode
-    fn ImportNode(&self, node: &Node, deep: bool) -> Fallible<DomRoot<Node>> {
+    fn ImportNode(&self, node: &Node, deep: bool, can_gc: CanGc) -> Fallible<DomRoot<Node>> {
         // Step 1.
         if node.is::<Document>() || node.is::<ShadowRoot>() {
             return Err(Error::NotSupported);
@@ -4520,7 +4527,7 @@ impl DocumentMethods for Document {
             CloneChildrenFlag::DoNotCloneChildren
         };
 
-        Ok(Node::clone(node, Some(self), clone_children))
+        Ok(Node::clone(node, Some(self), clone_children, can_gc))
     }
 
     // https://dom.spec.whatwg.org/#dom-document-adoptnode
@@ -4656,7 +4663,7 @@ impl DocumentMethods for Document {
     }
 
     // https://html.spec.whatwg.org/multipage/#document.title
-    fn SetTitle(&self, title: DOMString) {
+    fn SetTitle(&self, title: DOMString, can_gc: CanGc) {
         let root = match self.GetDocumentElement() {
             Some(root) => root,
             None => return,
@@ -4677,6 +4684,7 @@ impl DocumentMethods for Document {
                         ElementCreator::ScriptCreated,
                         CustomElementCreationMode::Synchronous,
                         None,
+                        can_gc,
                     );
                     let parent = root.upcast::<Node>();
                     let child = elem.upcast::<Node>();
@@ -4702,6 +4710,7 @@ impl DocumentMethods for Document {
                             ElementCreator::ScriptCreated,
                             CustomElementCreationMode::Synchronous,
                             None,
+                            can_gc,
                         );
                         head.upcast::<Node>().AppendChild(elem.upcast()).unwrap()
                     },
@@ -5222,7 +5231,7 @@ impl DocumentMethods for Document {
         if self.has_browsing_context() {
             // spec says "stop document loading",
             // which is a process that does more than just abort
-            self.abort();
+            self.abort(CanGc::note());
         }
 
         // Step 9
@@ -5296,7 +5305,7 @@ impl DocumentMethods for Document {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-write
-    fn Write(&self, text: Vec<DOMString>) -> ErrorResult {
+    fn Write(&self, text: Vec<DOMString>, can_gc: CanGc) -> ErrorResult {
         if !self.is_html_document() {
             // Step 1.
             return Err(Error::InvalidState);
@@ -5334,20 +5343,20 @@ impl DocumentMethods for Document {
         // TODO: handle reload override buffer.
 
         // Steps 6-8.
-        parser.write(text);
+        parser.write(text, can_gc);
 
         // Step 9.
         Ok(())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-writeln
-    fn Writeln(&self, mut text: Vec<DOMString>) -> ErrorResult {
+    fn Writeln(&self, mut text: Vec<DOMString>, can_gc: CanGc) -> ErrorResult {
         text.push("\n".into());
-        self.Write(text)
+        self.Write(text, can_gc)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-close
-    fn Close(&self) -> ErrorResult {
+    fn Close(&self, can_gc: CanGc) -> ErrorResult {
         if !self.is_html_document() {
             // Step 1.
             return Err(Error::InvalidState);
@@ -5367,7 +5376,7 @@ impl DocumentMethods for Document {
         };
 
         // Step 4-6.
-        parser.close();
+        parser.close(can_gc);
 
         Ok(())
     }

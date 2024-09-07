@@ -32,6 +32,7 @@ impl MediaElementAudioSourceNode {
     fn new_inherited(
         context: &AudioContext,
         media_element: &HTMLMediaElement,
+        can_gc: CanGc,
     ) -> Fallible<MediaElementAudioSourceNode> {
         let node = AudioNode::new_inherited(
             AudioNodeInit::MediaElementSourceNode,
@@ -45,7 +46,7 @@ impl MediaElementAudioSourceNode {
             MediaElementSourceNodeMessage::GetAudioRenderer(sender),
         ));
         let audio_renderer = receiver.recv().unwrap();
-        media_element.set_audio_renderer(audio_renderer);
+        media_element.set_audio_renderer(audio_renderer, can_gc);
         let media_element = Dom::from_ref(media_element);
         Ok(MediaElementAudioSourceNode {
             node,
@@ -69,12 +70,12 @@ impl MediaElementAudioSourceNode {
         media_element: &HTMLMediaElement,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<MediaElementAudioSourceNode>> {
-        let node = MediaElementAudioSourceNode::new_inherited(context, media_element)?;
+        let node = MediaElementAudioSourceNode::new_inherited(context, media_element, can_gc)?;
         Ok(reflect_dom_object_with_proto(
             Box::new(node),
             window,
             proto,
-            can_gc,
+            CanGc::note(),
         ))
     }
 

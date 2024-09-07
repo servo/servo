@@ -11,6 +11,7 @@ use js::rust::Runtime;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::trace::JSTraceable;
 use crate::dom::globalscope::GlobalScope;
+use crate::script_runtime::CanGc;
 
 thread_local!(static STACK: RefCell<Vec<StackEntry>> = const { RefCell::new(Vec::new()) });
 
@@ -76,7 +77,7 @@ impl Drop for AutoEntryScript {
 
         // Step 5
         if !thread::panicking() && incumbent_global().is_none() {
-            self.global.perform_a_microtask_checkpoint();
+            self.global.perform_a_microtask_checkpoint(CanGc::note());
         }
     }
 }
