@@ -1234,10 +1234,10 @@ impl Document {
         }
     }
 
-    /// Return the title if one is specified
-    ///
-    /// https://html.spec.whatwg.org/multipage/#document.title
-    fn get_title(&self) -> Option<DOMString> {
+    /// Determine the title of the [`Document`] according to the specification at:
+    /// <https://html.spec.whatwg.org/multipage/#document.title>. The difference
+    /// here is that when the title isn't specified `None` is returned.
+    fn title(&self) -> Option<DOMString> {
         let title = self.GetDocumentElement().and_then(|root| {
             if root.namespace() == &ns!(svg) && root.local_name() == &local_name!("svg") {
                 // Step 1.
@@ -1266,7 +1266,7 @@ impl Document {
     pub fn send_title_to_embedder(&self) {
         let window = self.window();
         if window.is_top_level() {
-            let title = self.get_title().map(String::from);
+            let title = self.title().map(String::from);
             self.send_to_embedder(EmbedderMsg::ChangePageTitle(title));
         }
     }
@@ -4655,7 +4655,7 @@ impl DocumentMethods for Document {
 
     // https://html.spec.whatwg.org/multipage/#document.title
     fn Title(&self) -> DOMString {
-        self.get_title().unwrap_or_else(|| DOMString::from(""))
+        self.title().unwrap_or_else(|| DOMString::from(""))
     }
 
     // https://html.spec.whatwg.org/multipage/#document.title
