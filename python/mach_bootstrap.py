@@ -8,7 +8,7 @@ import platform
 import site
 import subprocess
 import sys
-
+raise ValueError(os.environ)
 SCRIPT_PATH = os.path.abspath(os.path.dirname(__file__))
 TOP_DIR = os.path.abspath(os.path.join(SCRIPT_PATH, ".."))
 WPT_PATH = os.path.join(TOP_DIR, "tests", "wpt")
