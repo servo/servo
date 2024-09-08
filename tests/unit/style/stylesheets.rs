@@ -134,7 +134,7 @@ fn test_report_error_stylesheet() {
         (
             14,
             52,
-            "Unsupported keyframe property declaration: 'margin: 0 invalid 0;'",
+            "Unsupported property declaration: 'margin: 0 invalid 0;'",
         ),
     ]);
 
