@@ -3,11 +3,16 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use style::color::{AbsoluteColor, ColorSpace};
-use style::values::animated::{Animate, Procedure, ToAnimatedValue};
+use style::properties::style_structs::Font;
+use style::properties::ComputedValues;
+use style::values::animated::{Animate, Context, Procedure, ToAnimatedValue};
 
 fn interpolate_color(from: AbsoluteColor, to: AbsoluteColor, progress: f64) -> AbsoluteColor {
-    let from = from.to_animated_value();
-    let to = to.to_animated_value();
+    let context = Context {
+        style: &ComputedValues::initial_values_with_font_override(Font::initial_values()),
+    };
+    let from = from.to_animated_value(&context);
+    let to = to.to_animated_value(&context);
     AbsoluteColor::from_animated_value(
         from.animate(&to, Procedure::Interpolate { progress })
             .unwrap(),
