@@ -9,9 +9,7 @@ use std::collections::HashMap;
 use std::slice;
 use std::sync::{Arc, Mutex};
 
-use arrayvec::ArrayVec;
 use base::id::PipelineId;
-use euclid::default::Size2D;
 use ipc_channel::ipc::{IpcReceiver, IpcSender, IpcSharedMemory};
 use log::{error, info, warn};
 use servo_config::pref;
@@ -41,9 +39,8 @@ use crate::poll_thread::Poller;
 use crate::render_commands::apply_render_command;
 use crate::swapchain::{WGPUImageMap, WebGPUContextId};
 use crate::{
-    Adapter, ComputePassId, Error, Mapping, Pipeline, PopError, PresentationData, RenderPassId,
-    WebGPU, WebGPUAdapter, WebGPUDevice, WebGPUMsg, WebGPUQueue, WebGPURequest, WebGPUResponse,
-    PRESENTATION_BUFFER_COUNT,
+    Adapter, ComputePassId, Error, Mapping, Pipeline, PopError, RenderPassId, WebGPU,
+    WebGPUAdapter, WebGPUDevice, WebGPUMsg, WebGPUQueue, WebGPURequest, WebGPUResponse,
 };
 
 #[derive(Eq, Hash, PartialEq)]
@@ -114,10 +111,10 @@ pub(crate) struct WGPU {
     /// because wgpu does not invalidate command encoder object
     /// (this is also reused for invalidation of command buffers)
     error_command_encoders: HashMap<id::CommandEncoderId, String>,
-    webrender_api: Arc<Mutex<RenderApi>>,
-    webrender_document: DocumentId,
-    external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
-    wgpu_image_map: WGPUImageMap,
+    pub(crate) webrender_api: Arc<Mutex<RenderApi>>,
+    pub(crate) webrender_document: DocumentId,
+    pub(crate) external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
+    pub(crate) wgpu_image_map: WGPUImageMap,
     /// Provides access to poller thread
     poller: Poller,
     /// Store compute passes
@@ -527,44 +524,18 @@ impl WGPU {
                         buffer_ids,
                         context_id,
                         sender,
-                        image_desc,
-                        image_data,
+                        size,
+                        format,
                     } => {
-                        let height = image_desc.size.height;
-                        let width = image_desc.size.width;
-                        let buffer_stride =
-                            ((width * 4) as u32 | (wgt::COPY_BYTES_PER_ROW_ALIGNMENT - 1)) + 1;
-                        let mut wr = self.webrender_api.lock().unwrap();
+                        let wr = self.webrender_api.lock().unwrap();
                         let image_key = wr.generate_image_key();
                         if let Err(e) = sender.send(image_key) {
                             warn!("Failed to send ImageKey ({})", e);
                         }
-                        let _ = self.wgpu_image_map.lock().unwrap().insert(
-                            context_id,
-                            PresentationData {
-                                device_id,
-                                queue_id,
-                                data: vec![255; (buffer_stride * height as u32) as usize],
-                                size: Size2D::new(width, height),
-                                unassigned_buffer_ids: buffer_ids,
-                                available_buffer_ids: ArrayVec::<
-                                    id::BufferId,
-                                    PRESENTATION_BUFFER_COUNT,
-                                >::new(),
-                                queued_buffer_ids: ArrayVec::<
-                                    id::BufferId,
-                                    PRESENTATION_BUFFER_COUNT,
-                                >::new(),
-                                buffer_stride,
-                                image_key,
-                                image_desc,
-                                image_data: image_data.clone(),
-                            },
-                        );
-
-                        let mut txn = Transaction::new();
-                        txn.add_image(image_key, image_desc, image_data, None);
-                        wr.send_transaction(self.webrender_document, txn);
+                        self.create_swapchain(
+                            device_id, queue_id, buffer_ids, context_id, format, size, image_key,
+                            wr,
+                        )
                     },
                     WebGPURequest::CreateTexture {
                         device_id,
@@ -1054,10 +1025,13 @@ impl WGPU {
                             if let Some(present_data) =
                                 self.wgpu_image_map.lock().unwrap().get_mut(&context_id)
                             {
-                                size = present_data.size;
+                                size = present_data.image_desc.size;
                                 device_id = present_data.device_id;
                                 queue_id = present_data.queue_id;
-                                buffer_stride = present_data.buffer_stride;
+                                buffer_stride = present_data
+                                    .image_desc
+                                    .stride
+                                    .expect("Stride should be set when creating swapchain");
                                 buffer_id = if let Some(b_id) =
                                     present_data.available_buffer_ids.pop()
                                 {
@@ -1065,7 +1039,7 @@ impl WGPU {
                                 } else if let Some(b_id) = present_data.unassigned_buffer_ids.pop()
                                 {
                                     let buffer_size =
-                                        (buffer_stride * size.height as u32) as wgt::BufferAddress;
+                                        (buffer_stride * size.height) as wgt::BufferAddress;
                                     let buffer_desc = wgt::BufferDescriptor {
                                         label: None,
                                         size: buffer_size,
@@ -1090,8 +1064,7 @@ impl WGPU {
                             }
                         }
 
-                        let buffer_size =
-                            (size.height as u32 * buffer_stride) as wgt::BufferAddress;
+                        let buffer_size = (size.height * buffer_stride) as wgt::BufferAddress;
                         let comm_desc = wgt::CommandEncoderDescriptor { label: None };
                         let _ = global.device_create_command_encoder(
                             device_id,
@@ -1103,7 +1076,7 @@ impl WGPU {
                             buffer: buffer_id,
                             layout: wgt::ImageDataLayout {
                                 offset: 0,
-                                bytes_per_row: Some(buffer_stride),
+                                bytes_per_row: Some(buffer_stride as u32),
                                 rows_per_image: None,
                             },
                         };

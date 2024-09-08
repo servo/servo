@@ -10,7 +10,8 @@ use base::id::PipelineId;
 use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
-use webrender_api::{ImageData, ImageDescriptor, ImageKey};
+use webrender_api::units::DeviceIntSize;
+use webrender_api::{ImageFormat, ImageKey};
 use wgc::binding_model::{
     BindGroupDescriptor, BindGroupLayoutDescriptor, PipelineLayoutDescriptor,
 };
@@ -134,8 +135,8 @@ pub enum WebGPURequest {
         buffer_ids: ArrayVec<id::BufferId, PRESENTATION_BUFFER_COUNT>,
         context_id: WebGPUContextId,
         sender: IpcSender<ImageKey>,
-        image_desc: ImageDescriptor,
-        image_data: ImageData,
+        format: ImageFormat,
+        size: DeviceIntSize,
     },
     CreateTexture {
         device_id: id::DeviceId,

@@ -11,11 +11,8 @@ use ipc_channel::ipc;
 use script_layout_interface::HTMLCanvasDataSource;
 use webgpu::swapchain::WebGPUContextId;
 use webgpu::wgc::id;
-use webgpu::{wgt, WebGPU, WebGPURequest, WebGPUTexture, PRESENTATION_BUFFER_COUNT};
-use webrender_api::{
-    units, ExternalImageData, ExternalImageId, ExternalImageType, ImageData, ImageDescriptor,
-    ImageDescriptorFlags, ImageFormat, ImageKey,
-};
+use webgpu::{WebGPU, WebGPURequest, WebGPUTexture, PRESENTATION_BUFFER_COUNT};
+use webrender_api::{units, ImageFormat, ImageKey};
 
 use super::bindings::codegen::Bindings::WebGPUBinding::GPUTextureUsageConstants;
 use super::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanvas;
@@ -249,22 +246,6 @@ impl GPUCanvasContextMethods for GPUCanvasContext {
         };
 
         // Step 8
-        let image_desc = ImageDescriptor {
-            format,
-            size: units::DeviceIntSize::new(size.width as i32, size.height as i32),
-            stride: Some(
-                (((size.width as u32 * 4) | (wgt::COPY_BYTES_PER_ROW_ALIGNMENT - 1)) + 1) as i32,
-            ),
-            offset: 0,
-            flags: ImageDescriptorFlags::from_bits(1).unwrap(),
-        };
-
-        let image_data = ImageData::External(ExternalImageData {
-            id: ExternalImageId(self.context_id.0),
-            channel_index: 0,
-            image_type: ExternalImageType::Buffer,
-        });
-
         let (sender, receiver) = ipc::channel().unwrap();
 
         let mut buffer_ids = ArrayVec::<id::BufferId, PRESENTATION_BUFFER_COUNT>::new();
@@ -284,8 +265,8 @@ impl GPUCanvasContextMethods for GPUCanvasContext {
                 buffer_ids,
                 context_id: self.context_id,
                 sender,
-                image_desc,
-                image_data,
+                format,
+                size: units::DeviceIntSize::new(size.width as i32, size.height as i32),
             })
             .expect("Failed to create WebGPU SwapChain");
 
