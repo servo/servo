@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<title>CSS Scroll Snap 2 Test: scrollsnapchange on scroll-snap-type change</title>
+<link rel="help" href="https://drafts.csswg.org/css-scroll-snap-2/#snap-events">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/css-scroll-snap/support/common.js"></script>
+<style>
+  html {
+    scroll-snap-type: y mandatory;
+    overflow-y: scroll;
+  }
+  #snapped {
+    scroll-snap-align: start;
+  }
+  #filler {
+    height: 10000px;
+  }
+</style>
+<div id="snapped"></div>
+<div id="filler"></div>
+<script>
+  promise_test(async (t) => {
+    await waitForNextFrame();
+    document.documentElement.style.scrollSnapType = "initial";
+
+    await waitForNextFrame();
+    document.documentElement.style.scrollSnapType = "";
+
+    await new Promise((resolve, reject) => {
+      window.addEventListener("scrollsnapchange", (event) => {
+        if (event.snapTargetBlock === snapped) {
+          resolve();
+        }
+      });
+      requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(() => reject())));
+    });
+  }, "Trigger scrollsnapchange event on scroll-snap-type change");
+</script>

@@ -3,6 +3,7 @@
 <link rel="help" href="https://github.com/w3c/csswg-drafts/issues/866">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="../../support/shorthand-testcommon.js"></script>
 <div id="test" style="word-wrap: break-word; overflow-wrap: break-word;"></div>
 <script>
 test(function() {
@@ -13,4 +14,6 @@ test(function() {
     assert_equals(getComputedStyle(div).wordWrap, "break-word");
     assert_equals(getComputedStyle(div).overflowWrap, "break-word");
 }, "word-wrap should be defined as an alias of overflow-wrap");
+
+test_is_legacy_name_alias("word-wrap", "overflow-wrap");
 </script>

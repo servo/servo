@@ -1,0 +1,42 @@
+on:
+  workflow_call:
+    inputs:
+      artifact-name:
+        required: true
+        type: string
+
+jobs:
+  wpt-fyi-notify:
+    name: "Notify wpt.fyi"
+    runs-on:
+      - ubuntu-22.04
+    steps:
+      - name: "wpt.fyi"
+        uses: fjogeleit/http-request-action@v1
+        with:
+          url: 'https://wpt.fyi/api/checks/github-actions/'
+          method: 'POST'
+          contentType: 'application/x-www-form-urlencoded'
+          data: |
+            ${{ format(
+                  '{{"run_id": {0}, "owner": {1}, "repo": {2}, "artifact_name": {3}}}',
+                  toJSON(github.run_id),
+                  toJSON(github.repository_owner),
+                  toJSON(github.event.repository.name),
+                  toJSON(inputs.artifact-name)
+            ) }}
+
+      - name: "staging.wpt.fyi"
+        uses: fjogeleit/http-request-action@v1
+        with:
+          url: 'https://staging.wpt.fyi/api/checks/github-actions/'
+          method: 'POST'
+          contentType: 'application/x-www-form-urlencoded'
+          data: |
+            ${{ format(
+                  '{{"run_id": {0}, "owner": {1}, "repo": {2}, "artifact_name": {3}}}',
+                  toJSON(github.run_id),
+                  toJSON(github.repository_owner),
+                  toJSON(github.event.repository.name),
+                  toJSON(inputs.artifact-name)
+            ) }}

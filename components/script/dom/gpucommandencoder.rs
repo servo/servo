@@ -10,7 +10,6 @@ use webgpu::{
 };
 
 use super::bindings::error::Fallible;
-use super::gpuconvert::convert_label;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUCommandBufferDescriptor, GPUCommandEncoderDescriptor, GPUCommandEncoderMethods,
@@ -97,7 +96,7 @@ impl GPUCommandEncoder {
                 device_id: device.id().0,
                 command_encoder_id,
                 desc: wgt::CommandEncoderDescriptor {
-                    label: convert_label(&descriptor.parent),
+                    label: (&descriptor.parent).into(),
                 },
             })
             .expect("Failed to create WebGPU command encoder");
@@ -138,7 +137,7 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
         if let Err(e) = self.channel.0.send(WebGPURequest::BeginComputePass {
             command_encoder_id: self.id().0,
             compute_pass_id,
-            label: convert_label(&descriptor.parent),
+            label: (&descriptor.parent).into(),
             device_id: self.device.id().0,
         }) {
             warn!("Failed to send WebGPURequest::BeginComputePass {e:?}");
@@ -206,7 +205,7 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
         if let Err(e) = self.channel.0.send(WebGPURequest::BeginRenderPass {
             command_encoder_id: self.id().0,
             render_pass_id,
-            label: convert_label(&descriptor.parent),
+            label: (&descriptor.parent).into(),
             depth_stencil_attachment,
             color_attachments,
             device_id: self.device.id().0,
@@ -313,7 +312,7 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
                 command_encoder_id: self.encoder.0,
                 device_id: self.device.id().0,
                 desc: wgt::CommandBufferDescriptor {
-                    label: convert_label(&descriptor.parent),
+                    label: (&descriptor.parent).into(),
                 },
             })
             .expect("Failed to send Finish");

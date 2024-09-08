@@ -57,6 +57,9 @@
         assert_equals(coalesced_event.target, event.target,
           "coalesced_event.target matches the same in the container event");
 
+        assert_equals(coalesced_event.getCoalescedEvents().length, 0,
+                      "Coalesced events shouldn't have coalesced events themselves.");
+
         if (i > 0) {
           assert_greater_than_equal(coalesced_event.timeStamp,
             coalesced_events[i - 1].timeStamp,

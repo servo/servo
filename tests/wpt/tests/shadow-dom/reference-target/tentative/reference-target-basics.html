@@ -1,0 +1,72 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+</head>
+<body>
+
+<div id="host1">
+  <template shadowrootmode="open"></template>
+</div>
+
+<div id="host2">
+  <template shadowrootmode="open" shadowrootreferencetarget></template>
+</div>
+
+<div id="host3">
+  <template shadowrootmode="open" shadowrootreferencetarget="targetID"></template>
+</div>
+
+<script>
+
+test(() => {
+  const shadow1 = document.querySelector("#host1").shadowRoot;
+  assert_equals(shadow1.referenceTarget, "");
+
+  const shadow2 = document.querySelector("#host2").shadowRoot;
+  assert_equals(shadow2.referenceTarget, "");
+}, "ShadowRoot.referenceTarget defaults to empty string when shadow is created declaratively");
+
+test(() => {
+  const shadow1 = document.querySelector("#host3").shadowRoot;
+  assert_equals(shadow1.referenceTarget, "targetID");
+}, "<template> shadowrootreferencetarget sets referenceTarget on shadow root");
+
+test(() => {
+  const host1 = document.createElement("div");
+  const shadow1 = host1.attachShadow({"mode": "open"});
+  assert_equals(shadow1.referenceTarget, "");
+
+  const host2 = document.createElement("div");
+  const shadow2 = host2.attachShadow({"mode": "open", "referenceTarget": null});
+  assert_equals(shadow2.referenceTarget, "null");
+
+  const host3 = document.createElement("div");
+  const shadow3 = host3.attachShadow({"mode": "open", "referenceTarget": ""});
+  assert_equals(shadow3.referenceTarget, "");
+}, "ShadowRoot.referenceTarget defaults to empty string when shadow is created imperatively");
+
+test(() => {
+  const host1 = document.createElement("div");
+  const shadow1 = host1.attachShadow({"mode": "open", "referenceTarget": "targetID"});
+  assert_equals(shadow1.referenceTarget, "targetID");
+
+  const host2 = document.createElement("div");
+  const shadow2 = host2.attachShadow({"mode": "open", "referenceTarget": 42});
+  assert_equals(shadow2.referenceTarget, "42");
+
+  const host3 = document.createElement("div");
+  const shadow3 = host3.attachShadow({"mode": "open", "referenceTarget": true});
+  assert_equals(shadow3.referenceTarget, "true");
+
+  const host4 = document.createElement("div");
+  const shadow4 = host4.attachShadow({"mode": "open", "referenceTarget": {"foo": "bar"}});
+  assert_equals(shadow4.referenceTarget, "[object Object]");
+}, "ShadowRootInitDict can be used to set referenceTarget on shadow root");
+
+</script>
+</body>
+</html>

@@ -19,7 +19,6 @@ use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::gpuconvert::convert_label;
 use crate::dom::gpudevice::GPUDevice;
 use crate::dom::gputextureview::GPUTextureView;
 
@@ -136,7 +135,7 @@ impl GPUTexture {
     ) -> Fallible<DomRoot<GPUTexture>> {
         let size = (&descriptor.size).try_into()?;
         let desc = wgt::TextureDescriptor {
-            label: convert_label(&descriptor.parent),
+            label: (&descriptor.parent).into(),
             size,
             mip_level_count: descriptor.mipLevelCount,
             sample_count: descriptor.sampleCount,
@@ -203,7 +202,7 @@ impl GPUTextureMethods for GPUTexture {
             !matches!(descriptor.arrayLayerCount, Some(0))
         {
             Some(resource::TextureViewDescriptor {
-                label: convert_label(&descriptor.parent),
+                label: (&descriptor.parent).into(),
                 format: descriptor
                     .format
                     .map(|f| self.device.validate_texture_format_required_features(&f))

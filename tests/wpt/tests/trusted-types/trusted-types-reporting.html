@@ -127,6 +127,16 @@
   }, "Trusted Type violation report: creating a forbidden-but-not-reported policy.");
 
   promise_test(t => {
+    let p = promise_violation("require-trusted-types-for 'script")()
+         .then(expect_blocked_uri("trusted-types-sink"))
+         .then(expect_sample("Element insertAdjacentHTML|x"));
+    expect_throws(() => {
+      document.getElementById("div").insertAdjacentHTML("beforebegin", "x");
+    });
+    return p;
+  }, "Trusted Type violation report: blocked URI and sample for insertAdjacentHTML");
+
+  promise_test(t => {
     let p = promise_violation("require-trusted-types-for 'script'")();
     expect_throws(_ => document.getElementById("script").src = url);
     return p;

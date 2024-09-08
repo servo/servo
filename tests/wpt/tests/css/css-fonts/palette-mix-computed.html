@@ -10,6 +10,11 @@
 <script src="/css/support/computed-testcommon.js"></script>
 </head>
 <body>
+<style>
+:root {
+  font-size: 16px;
+}
+</style>
 <div id="target"></div>
 <script>
     test_computed_value(`font-palette`, `palette-mix(in oklab, light 30%, dark)`);
@@ -28,6 +33,10 @@
     test_computed_value(`font-palette`, `palette-mix(in oklab, light 30%, dark 70%)`, `palette-mix(in oklab, light 30%, dark)`);
     test_computed_value(`font-palette`, `palette-mix(in oklab, light 60%, dark)`, `palette-mix(in oklab, light 60%, dark)`);
     test_computed_value(`font-palette`, `palette-mix(in oklab, light 10%, dark 40%)`, `palette-mix(in oklab, light 10%, dark 40%)`);
+
+    // With sign() function
+    test_computed_value(`font-palette`, `palette-mix(in oklab, light calc(sign(1rem - 1px) * 10%), dark calc(sign(1rem - 1px) * 40%))`, `palette-mix(in oklab, light 10%, dark 40%)`);
+
 
     // Color spaces parsing
     for (const colorSpace of [ "hsl", "hwb", "lch", "oklch", "lab", "oklab", "srgb", "srgb-linear", "xyz", "xyz-d50", "xyz-d65" ]) {

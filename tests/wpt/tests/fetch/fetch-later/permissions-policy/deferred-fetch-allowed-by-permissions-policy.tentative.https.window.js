@@ -34,8 +34,8 @@ async_test(t => {
   test_feature_availability(
       'fetchLater()', t,
       getDeferredFetchPolicyInIframeHelperUrl(HTTPS_NOTSAMESITE_ORIGIN),
-      expect_feature_unavailable_default);
-}, `${description} disallows fetchLater() in the cross-origin iframe.`);
+      expect_feature_available_default);
+}, `${description} allows fetchLater() in the cross-origin iframe.`);
 
 async_test(t => {
   test_feature_availability(

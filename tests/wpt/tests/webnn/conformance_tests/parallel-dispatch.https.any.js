@@ -33,7 +33,7 @@ promise_test(async () => {
   const operandDescriptor = {
     dataType: 'float32',
     dimensions: [1],
-    usage: MLBufferUsage.WRITE_TO | MLBufferUsage.READ_FROM,
+    usage: MLTensorUsage.WRITE_TO | MLTensorUsage.READ_FROM,
   };
 
   const [mlGraph, inputBuffer1, inputBuffer2, outputBuffer] =
@@ -73,7 +73,7 @@ promise_test(async () => {
   const operandDescriptor = {
     dataType: 'float32',
     dimensions: [1],
-    usage: MLBufferUsage.WRITE_TO | MLBufferUsage.READ_FROM,
+    usage: MLTensorUsage.WRITE_TO | MLTensorUsage.READ_FROM,
   };
   const mlGraph = await buildMulGraph(mlContext, operandDescriptor, 3);
 
@@ -101,7 +101,7 @@ promise_test(async () => {
   const operandDescriptor = {
     dataType: 'float32',
     dimensions: [1],
-    usage: MLBufferUsage.WRITE_TO | MLBufferUsage.READ_FROM,
+    usage: MLTensorUsage.WRITE_TO | MLTensorUsage.READ_FROM,
   };
   const mlGraph = await buildMulGraph(mlContext, operandDescriptor, 10);
 
@@ -140,7 +140,7 @@ promise_test(async () => {
   const operandDescriptor = {
     dataType: 'float32',
     dimensions: [1],
-    usage: MLBufferUsage.WRITE_TO | MLBufferUsage.READ_FROM,
+    usage: MLTensorUsage.WRITE_TO | MLTensorUsage.READ_FROM,
   };
   const mlGraph = await buildMulGraph(mlContext, operandDescriptor, 9);
 
@@ -178,7 +178,7 @@ promise_test(async () => {
   const operandDescriptor = {
     dataType: 'float32',
     dimensions: [1],
-    usage: MLBufferUsage.WRITE_TO | MLBufferUsage.READ_FROM,
+    usage: MLTensorUsage.WRITE_TO | MLTensorUsage.READ_FROM,
   };
   const mlGraph = await buildMulGraph(mlContext, operandDescriptor, 2);
 
@@ -211,7 +211,7 @@ promise_test(async () => {
   const operandDescriptor = {
     dataType: 'float32',
     dimensions: [1],
-    usage: MLBufferUsage.WRITE_TO | MLBufferUsage.READ_FROM,
+    usage: MLTensorUsage.WRITE_TO | MLTensorUsage.READ_FROM,
   };
 
   // write/write...
@@ -250,7 +250,7 @@ promise_test(async () => {
   const operandDescriptor = {
     dataType: 'float32',
     dimensions: [1],
-    usage: MLBufferUsage.WRITE_TO | MLBufferUsage.READ_FROM,
+    usage: MLTensorUsage.WRITE_TO | MLTensorUsage.READ_FROM,
   };
 
   // write/write...
@@ -288,7 +288,7 @@ promise_test(async () => {
   const operandDescriptor = {
     dataType: 'float32',
     dimensions: [1],
-    usage: MLBufferUsage.WRITE_TO | MLBufferUsage.READ_FROM,
+    usage: MLTensorUsage.WRITE_TO | MLTensorUsage.READ_FROM,
   };
 
   const graphs = await Promise.all([3, 2].map(async (multiplier) => {
@@ -324,7 +324,7 @@ promise_test(async () => {
   const operandDescriptor = {
     dataType: 'float32',
     dimensions: [1],
-    usage: MLBufferUsage.WRITE_TO | MLBufferUsage.READ_FROM,
+    usage: MLTensorUsage.WRITE_TO | MLTensorUsage.READ_FROM,
   };
 
   const graphs = await Promise.all([2, 3].map(async (multiplier) => {

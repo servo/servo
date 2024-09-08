@@ -5,8 +5,7 @@
 // https://console.spec.whatwg.org/
 
 [ClassString="Console",
- Exposed=(Window,Worker,Worklet),
- ProtoObjectHack]
+ Exposed=(Window,Worker,Worklet)]
 namespace console {
   // Logging
   undefined log(any... messages);

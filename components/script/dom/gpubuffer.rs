@@ -16,7 +16,6 @@ use super::bindings::buffer_source::DataBlock;
 use super::bindings::codegen::Bindings::WebGPUBinding::{
     GPUBufferDescriptor, GPUBufferMapState, GPUFlagsConstant, GPUMapModeFlags,
 };
-use super::gpuconvert::convert_label;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUBufferMethods, GPUMapModeConstants, GPUSize64,
@@ -138,7 +137,7 @@ impl GPUBuffer {
         descriptor: &GPUBufferDescriptor,
     ) -> Fallible<DomRoot<GPUBuffer>> {
         let desc = wgt::BufferDescriptor {
-            label: convert_label(&descriptor.parent),
+            label: (&descriptor.parent).into(),
             size: descriptor.size as wgt::BufferAddress,
             usage: wgt::BufferUsages::from_bits_retain(descriptor.usage),
             mapped_at_creation: descriptor.mappedAtCreation,

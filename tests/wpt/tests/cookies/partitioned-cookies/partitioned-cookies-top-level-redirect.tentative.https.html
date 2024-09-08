@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<meta charset="utf-8"/>
+<meta name="timeout" content="long">
+<meta name="help" href="https://github.com/WICG/CHIPS#chips-cookies-having-independent-partitioned-state">
+<title>Test partitioned cookies redirect top-level site to cross-site and back</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/cookies/resources/cookie-helper.sub.js"></script>
+<script src="/cookies/partitioned-cookies/resources/test-helpers.js"></script>
+
+<body>
+<script>
+
+  const partitionedCookie = "ancestor=chain";
+  // Cross-site html file will add query param 'redirect=true'
+  // to indicate that redirect has been initiated. This is done
+  // to allow for the redirect to return the window to this site.
+  // This is needed to prevent a timeout in the test harness.
+  if(!window.location.href.includes("redirect=true")){
+    const partitionedCookieAttributes =
+      "; Secure; Path=/; SameSite=None; Partitioned";
+    const partitionedCookieLine =
+      partitionedCookie + partitionedCookieAttributes;
+    // Set partitioned cookie to top-level site.
+    document.cookie = partitionedCookieLine;
+
+    // Confirm that cookie has been set.
+    assert_true(document.cookie.includes(partitionedCookie));
+
+    //Create cross-site url and navigate to it.
+    const crossSiteUrl = new URL(
+      './resources/partitioned-cookies-top-level-redirect.html?location='
+      +`${window.location.href}`,
+      get_host_info().HTTPS_NOTSAMESITE_ORIGIN + self.location.pathname);
+
+    window.location=crossSiteUrl.href;
+  }
+
+  // Confirm that the partitioned cookie is available after redirect
+  // back from cross-site in document and http headers.
+  test(() => {
+      assert_true(document.cookie.includes(partitionedCookie));
+      assert_true(window.location.href.includes(partitionedCookie));
+    },"Partitioned Cookies are available in top-level cross-site to same-site redirects");
+
+</script>
+</body>
+

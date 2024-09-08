@@ -17,7 +17,6 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::gpubindgrouplayout::GPUBindGroupLayout;
-use crate::dom::gpuconvert::convert_label;
 use crate::dom::gpudevice::GPUDevice;
 
 #[dom_struct]
@@ -83,7 +82,7 @@ impl GPUComputePipeline {
         let (layout, implicit_ids, _) = device.get_pipeline_layout_data(&descriptor.parent.layout);
 
         let desc = ComputePipelineDescriptor {
-            label: convert_label(&descriptor.parent.parent),
+            label: (&descriptor.parent.parent).into(),
             layout,
             stage: (&descriptor.compute).into(),
             cache: None,

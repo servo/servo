@@ -61,7 +61,8 @@ def check_args(**kwargs):
 def browser_kwargs(logger, test_type, run_info_data, config, **kwargs):
     return {"binary": kwargs["binary"],
             "webdriver_binary": kwargs["webdriver_binary"],
-            "webdriver_args": kwargs.get("webdriver_args")}
+            "webdriver_args": kwargs.get("webdriver_args"),
+            "leak_check": kwargs.get("leak_check", False)}
 
 
 def executor_kwargs(logger, test_type, test_environment, run_info_data, subsuite,
@@ -208,8 +209,10 @@ def update_properties():
 class ChromeBrowser(WebDriverBrowser):
     def __init__(self,
                  logger: StructuredLogger,
+                 leak_check: bool = False,
                  **kwargs: Any):
         super().__init__(logger, **kwargs)
+        self._leak_check = leak_check
         self._actual_port = None
 
     def restart_on_test_type_change(self, new_test_type: str, old_test_type: str) -> bool:
@@ -254,6 +257,11 @@ class ChromeBrowser(WebDriverBrowser):
     def stop(self, force: bool = False, **kwargs: Any) -> bool:
         self._actual_port = None
         return super().stop(force=force, **kwargs)
+
+    def executor_browser(self):
+        browser_cls, browser_kwargs = super().executor_browser()
+        return browser_cls, {**browser_kwargs, "leak_check": self._leak_check}
+
 
 class ChromeDriverOutputHandler(OutputHandler):
     PORT_RE = re.compile(rb'.*was started successfully on port (\d+)\.')

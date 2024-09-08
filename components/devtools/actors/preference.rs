@@ -5,6 +5,7 @@
 use std::collections::HashMap;
 use std::net::TcpStream;
 
+use log::warn;
 use serde::Serialize;
 use serde_json::{Map, Value};
 use servo_config::pref_util::PrefValue;
@@ -37,7 +38,10 @@ impl Actor for PreferenceActor {
         stream: &mut TcpStream,
         _id: StreamId,
     ) -> Result<ActorMessageStatus, ()> {
-        let mut key = msg.get("value").unwrap().as_str().unwrap();
+        let Some(mut key) = msg.get("value").and_then(|v| v.as_str()) else {
+            warn!("PreferenceActor: handle_message: value is not a string");
+            return Ok(ActorMessageStatus::Ignored);
+        };
 
         // Mapping to translate a Firefox preference name onto the corresponding Servo preference name
         let pref_name_mapping: HashMap<&str, &str> =

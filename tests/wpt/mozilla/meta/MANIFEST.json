@@ -2,6 +2,13 @@
  "items": {
   "crashtest": {
    "mozilla": {
+    "cache_old_response-crash.html": [
+     "d14e7c830f52bb77e81d91b533e0ce6d4a1ede82",
+     [
+      null,
+      {}
+     ]
+    ],
     "test-wait-crash.html": [
      "2419da6af0c278a17b9ff974d4418f9e386ef3e0",
      [
@@ -10516,6 +10523,10 @@
     ],
     "nested_asap_script.js": [
      "59562a8c9c39130cad411815059513c4ce0a7c04",
+     []
+    ],
+    "old_page.py": [
+     "3f096b6f5a6611f97f625d8a0420aaa96f2e2b01",
      []
     ],
     "partial_shadow_dom_layout_style_ref.html": [

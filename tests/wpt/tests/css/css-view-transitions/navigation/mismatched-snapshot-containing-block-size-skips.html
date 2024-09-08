@@ -117,9 +117,10 @@ if (is_harness_page) {
       // This simply ensures the test only runs if render blocking was
       // successful since a fetch failure looks the same as never blocking
       // rendering.
-      Promise.all([rendering_blocked_promise, rendering_unblocked_promise]).then(() => {
+      Promise.all([rendering_blocked_promise, rendering_unblocked_promise]).then(async () => {
         window.viewTransition = e.viewTransition;
         window.opener.postMessage('pagereveal');
+        await Promise.allSettled([e.viewTransition.ready]);
       }, () => {});
     });
   }

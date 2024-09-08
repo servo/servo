@@ -14,7 +14,6 @@ use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::gpuconvert::convert_label;
 use crate::dom::gpudevice::GPUDevice;
 
 #[dom_struct]
@@ -83,7 +82,7 @@ impl GPUSampler {
             .create_sampler_id(device.id().0.backend());
         let compare_enable = descriptor.compare.is_some();
         let desc = SamplerDescriptor {
-            label: convert_label(&descriptor.parent),
+            label: (&descriptor.parent).into(),
             address_modes: [
                 descriptor.addressModeU.into(),
                 descriptor.addressModeV.into(),

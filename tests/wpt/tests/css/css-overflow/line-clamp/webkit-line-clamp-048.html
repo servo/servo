@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>CSS Overflow: -webkit-line-clamp display invalidation test</title>
+<link rel="author" title="Andreu Botella" href="mailto:abotella@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="match" href="reference/webkit-line-clamp-001-ref.html">
+<meta name="assert" content="-webkit-line-clamp needs a specified value of `display: -webkit-box`, but the computed value is set to `display: flow-root`. This test checks that changing the specified value from `-webkit-box` to `flow-root` makes the box no longer a line-clamp container.">
+<script src="/common/reftest-wait.js"></script>
+<style>
+.clamp {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  overflow: hidden; /* can be removed once implementations update their old -webkit-line-clamp implementations */
+  font: 16px / 32px serif;
+  white-space: pre;
+  background-color: yellow;
+}
+</style>
+<div class="clamp">Line 1
+Line 2
+Line 3
+Line 4
+Line 5</div>
+
+<script>
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      // When `display: -webkit-box` is present with -webkit-line-clamp, its
+      // computed value becomes `display: flow-root`, but the -webkit-line-clamp
+      // behavior needs `-webkit-box` as the specified value.
+      const clampEl = document.querySelector(".clamp");
+      clampEl.style.display = getComputedStyle(clampEl).display;
+      takeScreenshot();
+    });
+  });
+</script>

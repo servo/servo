@@ -34,6 +34,12 @@ promise_test(async t => {
       popup_win = window.open('about:blank', 'popup', 'width=300,height=300');
   });
 
+  if (popup_win.document.visibilityState == "hidden") {
+    await new Promise((resolve) => {
+      popup_win.document.addEventListener("visibilitychange", resolve, { once: true });
+    });
+  }
+
   // Resize the window while the update callback is running (i.e. before
   // capturing the new state).
   let transition = popup_win.document.startViewTransition(async () => {

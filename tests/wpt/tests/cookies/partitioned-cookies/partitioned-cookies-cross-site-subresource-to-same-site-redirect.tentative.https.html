@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<meta charset="utf-8"/>
+<meta name="timeout" content="long">
+<meta name="help" href="https://github.com/WICG/CHIPS#chips-cookies-having-independent-partitioned-state">
+<title>Test partitioned cookies cross-site sub-resource redirect to same-site</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/cookies/resources/cookie-helper.sub.js"></script>
+<script src="/cookies/partitioned-cookies/resources/test-helpers.js"></script>
+
+<body>
+<script>
+  promise_test(async () => {
+  assert_equals(document.cookie, "");
+  const partitionedCookie = "ancestor=chain";
+  const partitionedCookieAttributes =
+      "; Secure; Path=/; SameSite=None; Partitioned";
+  const partitionedCookieLine =
+      partitionedCookie + partitionedCookieAttributes;
+  // Add partitioned cookie to top-level site.
+  document.cookie = partitionedCookieLine;
+  assert_true(document.cookie.includes(partitionedCookie));
+
+  //Create cross-site url for iframe.
+  const cross_site_url = new URL(
+    './resources/partitioned-cookies-empty-embed.html',
+    get_host_info().HTTPS_NOTSAMESITE_ORIGIN + self.location.pathname);
+
+  // Create cross-site iframe and wait for it to load.
+  const iframe = document.createElement("iframe");
+  iframe.src = cross_site_url.href;
+  document.body.appendChild(iframe);
+  await new Promise(r => iframe.onload = r);
+
+  // Confirm that the iframe is cross-site.
+  let iframe_url = new URL(iframe.src);
+  assert_not_equals(window.location.hostname, iframe_url.hostname);
+
+  //Create same-site url for iframe.
+  const same_site_url = new URL(
+    './resources/partitioned-cookies-empty-embed.html',
+    get_host_info().ORIGIN + self.location.pathname);
+
+  // Redirect iframe by using redirect-and-echo-cookie-header.py to append the
+  // http cookie header to the url query params for testing.
+  iframe.src = `./resources/redirect-and-echo-cookie-header.py?location=${same_site_url.href}`;
+  await new Promise(r => iframe.onload = r);
+
+  iframe_url = new URL(iframe.src);
+  assert_equals(window.location.hostname, iframe_url.hostname);
+
+  // Confirm that the cookie was in http header of the redirect request
+  assert_true(iframe.contentWindow.location.href
+    .includes(partitionedCookie));
+  assert_true(iframe.contentDocument.cookie
+      .includes(partitionedCookie));
+    }, "Partitioned cookies are sent in embedded cross-site to same-site redirects");
+</script>
+</body>
+
+

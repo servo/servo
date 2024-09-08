@@ -11,7 +11,7 @@
 <script src="/resources/testdriver-actions.js"></script>
 
 <style>
-select {
+select, select::picker(select) {
   appearance: base-select;
 }
 </style>
@@ -83,6 +83,10 @@ for (const id of ['defaultbutton', 'custombutton']) {
     await new Promise(requestAnimationFrame);
     assert_true(select.matches(':open'),
       'The select should be open after pressing space.');
+
+    await test_driver.send_keys(document.activeElement, Escape);
+    assert_equals(document.activeElement, customButton ? customButton : select,
+      'After dismissing the popover, the invoker button should be focused again.');
   }, `${id}: When the listbox is closed, spacebar should open the listbox.`);
 
   promise_test(async t => {

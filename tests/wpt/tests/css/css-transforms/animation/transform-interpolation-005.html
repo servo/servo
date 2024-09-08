@@ -152,6 +152,21 @@ test_interpolation({
   {at: 2, expect: 'matrix(-1, 0, 0, -3, 0, 6)'}
 ]);
 
+// skewY(200deg) translate(200, 200) -> translate(200, 200)
+test_interpolation({
+  property: 'transform',
+  from: 'matrix(1, 0.36, 0, 1, 200, 200)',
+  to: 'matrix(1, 0, 0, 1, 200, 200)'
+}, [
+  {at: -1, expect: 'matrix(0.87, 0.72, -0.07, 1.08, 200, 200)'},
+  {at: 0, expect: 'matrix(1, 0.36, 0, 1, 200, 200)'},
+  {at: 0.25, expect: 'matrix(1.01, 0.27, 0, 0.99, 200, 200)'},
+  {at: 0.5, expect: 'matrix(1.02, 0.18, 0.01, 0.99, 200, 200)'},
+  {at: 0.75, expect: 'matrix(1.01, 0.09, 0, 0.99, 200, 200)'},
+  {at: 1, expect: 'matrix(1, 0, 0, 1, 200, 200)'},
+  {at: 2, expect: 'matrix(0.88, -0.32, 0, 1.13, 200, 200)'}
+]);
+
 // 3-D matrix transforms.
 // TODO(kevers): Revisit 3D transform examples. It is difficult to infer
 // the quality of the matrix decompositions from the expected output.

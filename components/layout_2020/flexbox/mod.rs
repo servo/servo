@@ -2,20 +2,22 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use geom::{FlexAxis, MainStartCrossStart};
+use geom::{FlexAxis, FlexRelativeVec2, MainStartCrossStart};
 use serde::Serialize;
 use servo_arc::Arc as ServoArc;
+use style::logical_geometry::WritingMode;
 use style::properties::longhands::align_items::computed_value::T as AlignItems;
 use style::properties::longhands::flex_direction::computed_value::T as FlexDirection;
 use style::properties::longhands::flex_wrap::computed_value::T as FlexWrap;
 use style::properties::ComputedValues;
 use style::values::computed::{AlignContent, JustifyContent};
-use style::values::specified::align::AlignFlags;
+use style::values::specified::align::{AlignFlags, AxisDirection};
 
 use crate::cell::ArcRefCell;
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragment_tree::BaseFragmentInfo;
 use crate::positioned::AbsolutelyPositionedBox;
+use crate::style_ext::ComputedValuesExt;
 
 mod construct;
 mod geom;
@@ -26,6 +28,7 @@ mod layout;
 #[derive(Clone, Debug, Serialize)]
 pub(crate) struct FlexContainerConfig {
     container_is_single_line: bool,
+    writing_mode: WritingMode,
     flex_axis: FlexAxis,
     flex_direction: FlexDirection,
     flex_direction_is_reversed: bool,
@@ -66,6 +69,7 @@ impl FlexContainerConfig {
 
         FlexContainerConfig {
             container_is_single_line,
+            writing_mode: container_style.effective_writing_mode(),
             flex_axis,
             flex_direction,
             flex_direction_is_reversed,
