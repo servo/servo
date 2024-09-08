@@ -1,22 +1,40 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 use arrayvec::ArrayVec;
 use euclid::default::Size2D;
+use malloc_size_of::MallocSizeOf;
+use serde::{Deserialize, Serialize};
 use webrender_api::{ImageData, ImageDescriptor, ImageKey};
 use webrender_traits::{WebrenderExternalImageApi, WebrenderImageSource};
 use wgpu_core::id;
 
 pub const PRESENTATION_BUFFER_COUNT: usize = 10;
 
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+pub struct WebGPUContextId(pub u64);
+
+impl MallocSizeOf for WebGPUContextId {
+    fn size_of(&self, _ops: &mut malloc_size_of::MallocSizeOfOps) -> usize {
+        0
+    }
+}
+
+pub type WGPUImageMap = Arc<Mutex<HashMap<WebGPUContextId, PresentationData>>>;
+
 #[derive(Default)]
 pub struct WGPUExternalImages {
-    pub images: Arc<Mutex<HashMap<u64, PresentationData>>>,
-    pub locked_ids: HashMap<u64, Vec<u8>>,
+    pub images: Arc<Mutex<HashMap<WebGPUContextId, PresentationData>>>,
+    pub locked_ids: HashMap<WebGPUContextId, Vec<u8>>,
 }
 
 impl WebrenderExternalImageApi for WGPUExternalImages {
     fn lock(&mut self, id: u64) -> (WebrenderImageSource, Size2D<i32>) {
+        let id = WebGPUContextId(id);
         let size;
         let data;
         if let Some(present_data) = self.images.lock().unwrap().get(&id) {
@@ -34,6 +52,7 @@ impl WebrenderExternalImageApi for WGPUExternalImages {
     }
 
     fn unlock(&mut self, id: u64) {
+        let id = WebGPUContextId(id);
         let _ = self.locked_ids.remove(&id);
     }
 }

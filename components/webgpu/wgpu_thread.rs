@@ -39,6 +39,7 @@ pub use {wgpu_core as wgc, wgpu_types as wgt};
 use crate::gpu_error::ErrorScope;
 use crate::poll_thread::Poller;
 use crate::render_commands::apply_render_command;
+use crate::swapchain::{WGPUImageMap, WebGPUContextId};
 use crate::{
     Adapter, ComputePassId, Error, Mapping, Pipeline, PopError, PresentationData, RenderPassId,
     WebGPU, WebGPUAdapter, WebGPUDevice, WebGPUMsg, WebGPUQueue, WebGPURequest, WebGPUResponse,
@@ -116,7 +117,7 @@ pub(crate) struct WGPU {
     webrender_api: Arc<Mutex<RenderApi>>,
     webrender_document: DocumentId,
     external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
-    wgpu_image_map: Arc<Mutex<HashMap<u64, PresentationData>>>,
+    wgpu_image_map: WGPUImageMap,
     /// Provides access to poller thread
     poller: Poller,
     /// Store compute passes
@@ -133,7 +134,7 @@ impl WGPU {
         webrender_api_sender: RenderApiSender,
         webrender_document: DocumentId,
         external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
-        wgpu_image_map: Arc<Mutex<HashMap<u64, PresentationData>>>,
+        wgpu_image_map: WGPUImageMap,
     ) -> Self {
         let backend_pref = pref!(dom.webgpu.wgpu_backend);
         let backends = if backend_pref.is_empty() {
@@ -418,7 +419,7 @@ impl WGPU {
                             .lock()
                             .expect("Lock poisoned?")
                             .next_id(WebrenderImageHandlerType::WebGPU);
-                        if let Err(e) = sender.send(id) {
+                        if let Err(e) = sender.send(WebGPUContextId(id.0)) {
                             warn!("Failed to send ExternalImageId to new context ({})", e);
                         };
                     },
@@ -524,7 +525,7 @@ impl WGPU {
                         device_id,
                         queue_id,
                         buffer_ids,
-                        external_id,
+                        context_id,
                         sender,
                         image_desc,
                         image_data,
@@ -539,7 +540,7 @@ impl WGPU {
                             warn!("Failed to send ImageKey ({})", e);
                         }
                         let _ = self.wgpu_image_map.lock().unwrap().insert(
-                            external_id,
+                            context_id,
                             PresentationData {
                                 device_id,
                                 queue_id,
@@ -603,14 +604,14 @@ impl WGPU {
                         self.poller.wake();
                     },
                     WebGPURequest::DestroySwapChain {
-                        external_id,
+                        context_id,
                         image_key,
                     } => {
                         let data = self
                             .wgpu_image_map
                             .lock()
                             .unwrap()
-                            .remove(&external_id)
+                            .remove(&context_id)
                             .unwrap();
                         let global = &self.global;
                         for b_id in data.available_buffer_ids.iter() {
@@ -1039,7 +1040,7 @@ impl WGPU {
                         self.maybe_dispatch_error(device_id, result.err());
                     },
                     WebGPURequest::SwapChainPresent {
-                        external_id,
+                        context_id,
                         texture_id,
                         encoder_id,
                     } => {
@@ -1051,7 +1052,7 @@ impl WGPU {
                         let buffer_stride;
                         {
                             if let Some(present_data) =
-                                self.wgpu_image_map.lock().unwrap().get_mut(&external_id)
+                                self.wgpu_image_map.lock().unwrap().get_mut(&context_id)
                             {
                                 size = present_data.size;
                                 device_id = present_data.device_id;
@@ -1079,15 +1080,12 @@ impl WGPU {
                                     );
                                     b_id
                                 } else {
-                                    warn!(
-                                        "No staging buffer available for ExternalImageId({:?})",
-                                        external_id
-                                    );
+                                    warn!("No staging buffer available for {:?}", context_id);
                                     continue;
                                 };
                                 present_data.queued_buffer_ids.push(buffer_id);
                             } else {
-                                warn!("Data not found for ExternalImageId({:?})", external_id);
+                                warn!("Data not found for {:?}", context_id);
                                 continue;
                             }
                         }
@@ -1158,7 +1156,7 @@ impl WGPU {
                                     }
                                     .to_vec();
                                     if let Some(present_data) =
-                                        wgpu_image_map.lock().unwrap().get_mut(&external_id)
+                                        wgpu_image_map.lock().unwrap().get_mut(&context_id)
                                     {
                                         present_data.data = data;
                                         let mut txn = Transaction::new();
@@ -1177,10 +1175,7 @@ impl WGPU {
                                             .retain(|b_id| *b_id != buffer_id);
                                         present_data.available_buffer_ids.push(buffer_id);
                                     } else {
-                                        warn!(
-                                            "Data not found for ExternalImageId({:?})",
-                                            external_id
-                                        );
+                                        warn!("Data not found for {:?}", context_id);
                                     }
                                     let _ = global.buffer_unmap(buffer_id);
                                 },

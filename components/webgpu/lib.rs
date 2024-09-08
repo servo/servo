@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use log::warn;
+use swapchain::WGPUImageMap;
 pub use swapchain::{PresentationData, WGPUExternalImages};
 use webrender::RenderApiSender;
 use wgpu_thread::WGPU;
@@ -13,7 +14,6 @@ mod poll_thread;
 mod wgpu_thread;
 
 use std::borrow::Cow;
-use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 pub use gpu_error::{Error, ErrorFilter, PopError};
@@ -27,7 +27,7 @@ use webrender_traits::WebrenderExternalImageRegistry;
 mod gpu_error;
 mod ipc_messages;
 mod render_commands;
-mod swapchain;
+pub mod swapchain;
 pub use identity::*;
 pub use ipc_messages::recv::*;
 pub use ipc_messages::to_dom::*;
@@ -42,7 +42,7 @@ impl WebGPU {
         webrender_api_sender: RenderApiSender,
         webrender_document: DocumentId,
         external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
-        wgpu_image_map: Arc<Mutex<HashMap<u64, PresentationData>>>,
+        wgpu_image_map: WGPUImageMap,
     ) -> Option<(Self, IpcReceiver<WebGPUMsg>)> {
         if !pref!(dom.webgpu.enabled) {
             return None;

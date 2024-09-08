@@ -9,6 +9,7 @@ use dom_struct::dom_struct;
 use euclid::default::Size2D;
 use ipc_channel::ipc;
 use script_layout_interface::HTMLCanvasDataSource;
+use webgpu::swapchain::WebGPUContextId;
 use webgpu::wgc::id;
 use webgpu::{wgt, WebGPU, WebGPURequest, WebGPUTexture, PRESENTATION_BUFFER_COUNT};
 use webrender_api::{
@@ -34,9 +35,6 @@ use crate::dom::bindings::root::{DomRoot, LayoutDom};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlcanvaselement::{HTMLCanvasElement, LayoutCanvasRenderingContextHelpers};
 use crate::dom::node::{document_from_node, Node, NodeDamage};
-
-#[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd)]
-pub struct WebGPUContextId(pub u64);
 
 // TODO: make all this derivables available via new Bindings.conf option
 impl Clone for GPUCanvasConfiguration {
@@ -104,6 +102,7 @@ pub struct GPUCanvasContext {
     #[ignore_malloc_size_of = "Defined in webrender"]
     #[no_trace]
     webrender_image: Cell<Option<webrender_api::ImageKey>>,
+    #[no_trace]
     context_id: WebGPUContextId,
     /// <https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-currenttexture-slot>
     texture: MutNullableDom<GPUTexture>,
@@ -154,7 +153,7 @@ impl GPUCanvasContext {
             .wgpu_id_hub()
             .create_command_encoder_id(texture_id.backend());
         if let Err(e) = self.channel.0.send(WebGPURequest::SwapChainPresent {
-            external_id: self.context_id.0,
+            context_id: self.context_id,
             texture_id,
             encoder_id,
         }) {
@@ -283,7 +282,7 @@ impl GPUCanvasContextMethods for GPUCanvasContext {
                 device_id: descriptor.device.id().0,
                 queue_id: descriptor.device.GetQueue().id().0,
                 buffer_ids,
-                external_id: self.context_id.0,
+                context_id: self.context_id,
                 sender,
                 image_desc,
                 image_data,
@@ -301,7 +300,7 @@ impl GPUCanvasContextMethods for GPUCanvasContext {
     fn Unconfigure(&self) {
         if let Some(image_key) = self.webrender_image.take() {
             if let Err(e) = self.channel.0.send(WebGPURequest::DestroySwapChain {
-                external_id: self.context_id.0,
+                context_id: self.context_id,
                 image_key,
             }) {
                 warn!(
