@@ -147,4 +147,86 @@
     assert_equals(outer.cssRules[2].cssText, `& color:hover { }`);
     assert_equals(outer.cssRules[3].cssText, `--y: 2;`);
   }, 'Inner rule starting with an ident');
+
+  test(() => {
+    let s = new CSSStyleSheet();
+    s.replaceSync('.a {}');
+    assert_equals(s.cssRules.length, 1);
+    let a_rule = s.cssRules[0];
+    assert_equals(a_rule.cssRules.length, 0);
+    a_rule.insertRule(`
+      width: 100px;
+      height: 200px;
+    `);
+    assert_equals(a_rule.cssRules.length, 1);
+    assert_true(a_rule.cssRules[0] instanceof CSSNestedDeclarations);
+    assert_equals(a_rule.cssRules[0].cssText, `width: 100px; height: 200px;`);
+  }, 'Inserting a CSSNestedDeclaration rule into style rule');
+
+  test(() => {
+    let s = new CSSStyleSheet();
+    s.replaceSync('.a { @media (width > 100px) {} }');
+    assert_equals(s.cssRules.length, 1);
+    assert_equals(s.cssRules[0].cssRules.length, 1);
+    let media_rule = s.cssRules[0].cssRules[0];
+    assert_true(media_rule instanceof CSSMediaRule);
+    assert_equals(media_rule.cssRules.length, 0);
+    media_rule.insertRule(`
+      width: 100px;
+      height: 200px;
+    `);
+    assert_equals(media_rule.cssRules.length, 1);
+    assert_true(media_rule.cssRules[0] instanceof CSSNestedDeclarations);
+    assert_equals(media_rule.cssRules[0].cssText, `width: 100px; height: 200px;`);
+  }, 'Inserting a CSSNestedDeclaration rule into nested group rule');
+
+  test(() => {
+    let s = new CSSStyleSheet();
+    s.replaceSync('@media (width > 100px) {}');
+    assert_equals(s.cssRules.length, 1);
+    let media_rule = s.cssRules[0];
+    assert_true(media_rule instanceof CSSMediaRule);
+    assert_equals(media_rule.cssRules.length, 0);
+    assert_throws_dom('SyntaxError', () => {
+      media_rule.insertRule(`
+        width: 100px;
+        height: 200px;
+      `);
+    });
+  }, 'Attempting to insert a CSSNestedDeclaration rule into top-level @media rule');
+
+  test(() => {
+    let sheet = new CSSStyleSheet();
+    assert_throws_dom('SyntaxError', () => {
+      sheet.insertRule(`
+        width: 100px;
+        height: 200px;
+      `);
+    });
+  }, 'Attempting to insert a CSSNestedDeclaration rule into a stylesheet');
+
+  test(() => {
+    let s = new CSSStyleSheet();
+    s.replaceSync('.a {}');
+    assert_equals(s.cssRules.length, 1);
+    let a_rule = s.cssRules[0];
+    assert_equals(a_rule.cssRules.length, 0);
+    assert_throws_dom('SyntaxError', () => {
+      a_rule.insertRule('');
+    });
+  }, 'Attempting to insert a CSSNestedDeclaration rule, empty block');
+
+  test(() => {
+    let s = new CSSStyleSheet();
+    s.replaceSync('.a {}');
+    assert_equals(s.cssRules.length, 1);
+    let a_rule = s.cssRules[0];
+    assert_equals(a_rule.cssRules.length, 0);
+    assert_throws_dom('SyntaxError', () => {
+    a_rule.insertRule(`
+      xwidth: 100px;
+      xheight: 200px;
+    `);
+    });
+  }, 'Attempting to insert a CSSNestedDeclaration rule, all invalid declarations');
 </script>

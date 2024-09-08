@@ -18,11 +18,18 @@ function test_invalid_selector_combinations(pseudo) {
     test_invalid_selector(`${pseudo}.a`);
     test_invalid_selector(`${pseudo} div`);
     test_invalid_selector(`${pseudo}:hover`);
+    test_invalid_selector(`${pseudo}:active`);
+    test_invalid_selector(`${pseudo}:first-child`);
+    test_invalid_selector(`${pseudo}:last-child`);
+    test_invalid_selector(`${pseudo}:empty`);
+    test_invalid_selector(`${pseudo}:visited`);
+    test_invalid_selector(`${pseudo}:enabled`);
     test_invalid_selector(`:not(${pseudo})`);
     test_invalid_selector(`:has(${pseudo})`);
 }
 
 test_invalid_selector_combinations("::view-transition");
+test_invalid_selector("::view-transition:only-child");
 test_invalid_selector("::view-transition(*)");
 test_invalid_selector("::view-transition(valid)");
 test_invalid_selector("::view-transition(root)");

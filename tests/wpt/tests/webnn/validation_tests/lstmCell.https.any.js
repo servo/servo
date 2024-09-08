@@ -564,7 +564,9 @@ tests.forEach(
         }
       }
 
-      if (test.outputs) {
+      if (test.outputs &&
+          context.opSupportLimits().lstmCell.input.dataTypes.includes(
+              test.input.dataType)) {
         const outputs = builder.lstmCell(
             input, weight, recurrentWeight, hiddenState, cellState,
             test.hiddenSize, options);

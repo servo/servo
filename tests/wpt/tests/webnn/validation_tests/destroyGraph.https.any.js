@@ -110,17 +110,17 @@ promise_test(async t => {
   const lhsBuffer = await context.createBuffer({
     dataType: 'float32',
     dimensions: [1],
-    usage: MLBufferUsage.WRITE_TO,
+    usage: MLTensorUsage.WRITE_TO,
   });
   const rhsBuffer = await context.createBuffer({
     dataType: 'float32',
     dimensions: [1],
-    usage: MLBufferUsage.WRITE_TO,
+    usage: MLTensorUsage.WRITE_TO,
   });
   const outputBuffer = await context.createBuffer({
     dataType: 'float32',
     dimensions: [1],
-    usage: MLBufferUsage.READ_FROM,
+    usage: MLTensorUsage.READ_FROM,
   });
   // Initialize inputs
   const inputData = new Float32Array(1).fill(2.0);

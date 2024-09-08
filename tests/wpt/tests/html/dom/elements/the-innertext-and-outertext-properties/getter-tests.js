@@ -212,6 +212,7 @@ testText("<div><iframe src='data:text/html,abc'>", ""," <iframe> subdocument ign
 testText("<div><audio>abc", "", "<audio> contents ignored");
 testText("<div><video>abc", "", "<video> contents ignored");
 testText("<div><canvas>abc", "", "<canvas> contents ignored");
+testText("<div><object>abc", "", "<object> contents ignored");
 testText("<div><img alt='abc'>", "", "<img> alt text ignored");
 
 /**** Lines around blocks ****/
@@ -243,6 +244,8 @@ testText("<div>123<h3>abc</h3>def", "123\nabc\ndef", "No blank lines around <h3>
 testText("<div>123<h4>abc</h4>def", "123\nabc\ndef", "No blank lines around <h4>");
 testText("<div>123<h5>abc</h5>def", "123\nabc\ndef", "No blank lines around <h5>");
 testText("<div>123<h6>abc</h6>def", "123\nabc\ndef", "No blank lines around <h6>");
+testText("<div>123<p style='display:block'>abc", "123\n\nabc", "2 blank lines around <p> even when display:block");
+testText("<div>123<p style='display:inline-block'>abc", "123\n\nabc", "2 blank lines around <p> even when display:inline-block");
 
 /**** Spans ****/
 
@@ -326,6 +329,8 @@ testText("<div>abc<!--comment-->def", "abcdef", "comment ignored");
 testText("<br>", "", "<br>");
 testText("<p>", "", "empty <p>");
 testText("<div>", "", "empty <div>");
+testText("<div><details><summary>abc</summary>123", "abc", "unopened <details> ignored");
+testText("<div><details open><summary>abc</summary>123", "abc\n123", "opened <details> content shown");
 
 /**** text-transform ****/
 

@@ -121,7 +121,7 @@ if (CSS.supports("transform", "initial")) {
   for (let e of ["linearGradient", "radialGradient"]) {
     test(function() {
       assertPresentationAttributeIsSupported(e, "gradientTransform", "scale(2)", "transform");
-    }, `patternTransform presentation attribute supported on ${e}`);
+    }, `gradientTransform presentation attribute supported on ${e}`);
   }
 
 

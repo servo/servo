@@ -1,0 +1,100 @@
+name: "All Tests: Safari (stable)"
+
+# We never interact with the GitHub API, thus we can simply disable all
+# permissions the GitHub token would have.
+permissions: {}
+
+on:
+  push:
+    branches:
+      - epochs/daily
+      - triggers/safari_stable
+
+env:
+  # Set SAFARIDRIVER_DIAGNOSE to true to enable safaridriver diagnostics. The
+  # logs won't appear in `./wpt run` output but will be uploaded as an
+  # artifact.
+  SAFARIDRIVER_DIAGNOSE: false
+
+jobs:
+  safari-stable-results:
+    name: "All Tests: Safari (stable)"
+    runs-on:
+      - self-hosted
+      - webkit-ews
+    timeout-minutes: 180
+    strategy:
+      matrix:
+        current-chunk: [1, 2, 3, 4, 5, 6, 7, 8]
+        total-chunks: [8]
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4.1.0
+        with:
+          fetch-depth: 1
+      - name: Enable safaridriver diagnostics
+        if: env.SAFARIDRIVER_DIAGNOSE == true
+        run: |-
+          rm -rf ~/Library/Logs/com.apple.WebDriver/
+          defaults write com.apple.WebDriver DiagnosticsEnabled 1
+      - name: Enable safaridriver
+        run: |-
+          set -eux -o pipefail
+          sudo safaridriver --enable
+          defaults write com.apple.Safari WebKitJavaScriptCanOpenWindowsAutomatically 1
+      - name: Update hosts
+        run: |-
+          set -eux -o pipefail
+          ./wpt make-hosts-file | sudo tee -a /etc/hosts
+      - name: Update manifest
+        run: ./wpt manifest
+      - name: Run tests
+        run: |-
+          set -eux -o pipefail
+          export SYSTEM_VERSION_COMPAT=0
+          ./wpt run \
+            --no-manifest-update \
+            --no-restart-on-unexpected \
+            --no-fail-on-unexpected \
+            --this-chunk=${{ matrix.current-chunk }} \
+            --total-chunks=${{ matrix.total-chunks }} \
+            --chunk-type hash \
+            --log-wptreport ${{ runner.temp }}/wpt_report_${{ matrix.current-chunk }}.json \
+            --log-wptscreenshot ${{ runner.temp }}/wpt_screenshot_${{ matrix.current-chunk }}.txt \
+            --log-mach - \
+            --log-mach-level info \
+            --channel stable \
+            --kill-safari \
+            --max-restarts 100 \
+            safari
+      - name: Publish results
+        uses: actions/upload-artifact@v4.1.0
+        with:
+          name: safari-results-${{ matrix.current-chunk }}
+          path: |
+            ${{ runner.temp }}/wpt_report_*.json
+            ${{ runner.temp }}/wpt_screenshot_*.txt
+          if-no-files-found: "error"
+      - name: Publish safaridriver logs
+        if: env.SAFARIDRIVER_DIAGNOSE == true
+        uses: actions/upload-artifact@v4.1.0
+        with:
+          name: safaridriver-logs-${{ matrix.current-chunk }}
+          path: ~/Library/Logs/com.apple.WebDriver/
+          if-no-files-found: warn
+      - name: Disable safaridriver diagnostics
+        if: env.SAFARIDRIVER_DIAGNOSE == true
+        run: |-
+          defaults write com.apple.WebDriver DiagnosticsEnabled 0
+          rm -rf ~/Library/Logs/com.apple.WebDriver/
+      - name: Cleanup
+        if: always()
+        run: |-
+            set -ux
+            sudo sed -i '' '/^# Start web-platform-tests hosts$/,/^# End web-platform-tests hosts$/d' /etc/hosts
+
+  safari-stable-results-notify:
+    needs: safari-stable-results
+    uses: ./.github/workflows/wpt_fyi_notify.yml
+    with:
+      artifact-name: 'safari-results-*'

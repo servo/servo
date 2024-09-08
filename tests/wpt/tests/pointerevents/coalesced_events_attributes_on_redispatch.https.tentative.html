@@ -1,0 +1,99 @@
+<!doctype html>
+<!--
+   Tentative due to:
+   https://github.com/w3c/pointerevents/issues/514
+-->
+<title>Coalesced event properties after JS redispatches a trusted event</title>
+<meta name="variant" content="?mouse">
+<meta name="variant" content="?pen">
+<meta name="variant" content="?touch">
+<meta name="viewport" content="width=device-width">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="pointerevent_support.js"></script>
+<link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
+<style>
+  div {
+    width: 100px;
+    height: 100px;
+  }
+</style>
+<div id="target"></div>
+<div id="target2"></div>
+
+<script>
+  "use strict";
+  const pointer_type = location.search.substring(1);
+  const target = document.getElementById("target");
+  const target2 = document.getElementById("target2");
+
+  let received_num_coalesced;
+
+  function checkListAttributesBeforeRedispatch(event) {
+    assert_equals(event.type, "pointermove");
+    assert_equals(event.isTrusted, true);
+    assert_equals(event.target, target);
+
+    received_num_coalesced = event.getCoalescedEvents().length;
+    assert_greater_than_equal(received_num_coalesced, 1,
+        "pointermove.getCoalescedEvents() has at least 1 entry");
+
+    for (const coalesced_event of event.getCoalescedEvents()) {
+      assert_equals(coalesced_event.isTrusted, true,
+        "coalesced_event.isTrusted is true");
+      assert_equals(coalesced_event.target, target,
+        "coalesced_event.target matches dispatch target");
+    }
+  }
+
+  // This WPT minimally tests redispatched event attributes.  For trusted
+  // event tests, see coalesced_events_attributes.https.html.
+  function checkListAttributesAfterRedispatch(event) {
+    assert_equals(event.type, "pointermove");
+    assert_equals(event.isTrusted, false);
+    assert_equals(event.target, target2);
+
+    assert_greater_than_equal(event.getCoalescedEvents().length,
+        received_num_coalesced,
+        "pointermove.getCoalescedEvents() has the same number of entries");
+
+    for (const coalesced_event of event.getCoalescedEvents()) {
+      assert_equals(coalesced_event.isTrusted, true,
+        "coalesced_event.isTrusted maintains its original value");
+      assert_equals(coalesced_event.target, target,
+        "coalesced_event.target maintains its original value");
+    }
+  }
+
+  promise_test(async () => {
+    // We need "touch-action:none" to guarantee pointermove events.
+    target.classList.add("touchActionNone");
+
+    let pointermove_promise = getEvent("pointermove", target);
+    let pointerup_promise   = getEvent("pointerup",   target);
+
+    await new test_driver.Actions()
+        .addPointer("TestPointer", pointer_type)
+        .pointerMove(0, 0, {origin: target})
+        .pointerDown()
+        .pointerMove(20, 20, {origin: target})
+        .pointerUp()
+        .send();
+
+    let pointermove_event = await pointermove_promise;
+    await pointerup_promise;
+
+    checkListAttributesBeforeRedispatch(pointermove_event);
+
+    let pointermove_promise2 = getEvent("pointermove", target2);
+    target2.dispatchEvent(pointermove_event);
+    let pointermove_event2 = await pointermove_promise2;
+
+    checkListAttributesAfterRedispatch(pointermove_event2);
+
+    target.classList.remove("touchActionNone");
+  }, "Coalesced list in pointerdown/move/up events");
+</script>

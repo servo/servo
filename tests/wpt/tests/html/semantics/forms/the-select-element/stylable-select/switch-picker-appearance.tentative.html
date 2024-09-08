@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:masonf@chromium.org">
+<link rel=help href="https://github.com/w3c/csswg-drafts/issues/10775">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="../../../popovers/resources/popover-utils.js"></script>
+
+<style>
+  ::picker(select) {
+    background-color: red;
+  }
+  ::picker(select):popover-open {
+    background-color: green;
+  }
+</style>
+
+<select style="appearance:base-select">
+  <option>option</option>
+  <option>option</option>
+</select>
+
+<script>
+const select = document.querySelector('select');
+const red = 'rgb(255, 0, 0)';
+const green = 'rgb(0, 128, 0)';
+
+promise_test(async (t) => {
+  const style = document.createElement('style');
+  document.head.append(style);
+  t.add_cleanup(() => style.remove());
+  assert_equals(getComputedStyle(select,'::picker(select)').appearance,'none');
+  assert_equals(getComputedStyle(select,'::picker(select)').backgroundColor,red);
+  style.innerHTML = '::picker(select) {appearance: base-select}';
+  assert_equals(getComputedStyle(select,'::picker(select)').appearance,'base-select');
+  assert_equals(getComputedStyle(select,'::picker(select)').backgroundColor,red,'still closed, so popover-open doesn\'t match');
+
+  // Now open the picker
+  assert_throws_dom('NotAllowedError',() => select.showPicker(),'showPicker requires user activation');
+  assert_false(select.matches(':open'));
+  await test_driver.bless('showPicker');
+  select.showPicker();
+  assert_true(select.matches(':open'));
+  assert_equals(getComputedStyle(select,'::picker(select)').appearance,'base-select');
+  assert_equals(getComputedStyle(select,'::picker(select)').backgroundColor,green,'now open, so popover-open matches');
+
+  // Close the picker
+  await clickOn(select);
+  assert_false(select.matches(':open'));
+  assert_equals(getComputedStyle(select,'::picker(select)').backgroundColor,red,'back to closed');
+}, 'Basic functionality of select picker and appearance');
+
+promise_test(async (t) => {
+  const style = document.createElement('style');
+  document.head.append(style);
+  t.add_cleanup(() => style.remove());
+  assert_equals(getComputedStyle(select,'::picker(select)').appearance,'none');
+  style.innerHTML = '::picker(select) {appearance: auto}';
+  assert_equals(getComputedStyle(select,'::picker(select)').appearance,'auto');
+  await test_driver.bless('showPicker');
+  select.showPicker();
+  assert_equals(getComputedStyle(select,'::picker(select)').backgroundColor,red,'appearance:auto picker is never open');
+  // Close the picker
+  await clickOn(select);
+  assert_false(select.matches(':open'));
+}, 'Basic functionality of select picker with appearance:auto');
+
+promise_test(async (t) => {
+  const style = document.createElement('style');
+  document.head.append(style);
+  t.add_cleanup(() => style.remove());
+  assert_equals(getComputedStyle(select,'::picker(select)').appearance,'none');
+  style.innerHTML = '::picker(select) {appearance: none}';
+  assert_equals(getComputedStyle(select,'::picker(select)').appearance,'none');
+  await test_driver.bless('showPicker');
+  select.showPicker();
+  assert_equals(getComputedStyle(select,'::picker(select)').backgroundColor,red,'appearance:none picker is never open');
+  // Close the picker
+  await clickOn(select);
+  assert_false(select.matches(':open'));
+}, 'Basic functionality of select picker with appearance:none');
+
+promise_test(async (t) => {
+  const style = document.createElement('style');
+  document.head.append(style);
+  t.add_cleanup(() => style.remove());
+  assert_equals(getComputedStyle(select,'::picker(select)').appearance,'none');
+  style.innerHTML = `
+    ::picker(select) {appearance: base-select}
+    ::picker(select):popover-open {appearance: auto}
+    `;
+  assert_equals(getComputedStyle(select,'::picker(select)').appearance,'base-select');
+  await test_driver.bless('showPicker');
+  select.showPicker();
+  assert_false(select.matches(':open'),'Switching appearance in :popover-open should re-close the picker');
+  assert_equals(getComputedStyle(select,'::picker(select)').backgroundColor,red);
+  await new Promise(resolve => requestAnimationFrame(resolve));
+  assert_false(select.matches(':open'),'There should be no oscillation or re-opening the picker');
+  await new Promise(resolve => requestAnimationFrame(resolve));
+  assert_false(select.matches(':open'),'There should be no oscillation or re-opening the picker (2)');
+  await new Promise(resolve => requestAnimationFrame(resolve));
+  assert_false(select.matches(':open'),'There should be no oscillation or re-opening the picker (3)');
+}, 'Switching appearance in popover-open should close the picker');
+
+promise_test(async (t) => {
+  const style = document.createElement('style');
+  document.head.append(style);
+  t.add_cleanup(() => style.remove());
+  assert_equals(getComputedStyle(select,'::picker(select)').appearance,'none');
+  style.innerHTML = '::picker(select) {appearance: none}';
+  assert_equals(getComputedStyle(select,'::picker(select)').appearance,'base-select');
+  await test_driver.bless('showPicker');
+  select.showPicker();
+  assert_true(select.matches(':open'));
+  style.remove();
+  assert_false(select.matches(':open'),'changing appearance while the picker is open should close it');
+  assert_equals(getComputedStyle(select,'::picker(select)').appearance,'none');
+}, 'Switching appearance in JS after picker is open should close the picker');
+</script>

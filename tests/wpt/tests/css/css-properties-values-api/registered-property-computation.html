@@ -162,6 +162,7 @@ test_computed_value('<color>', 'color-mix(in srgb, currentcolor 20%, #ffffff 20%
 test_computed_value('<color>', 'light-dark(currentcolor, red)', 'currentcolor');
 test_computed_value('<color>', 'light-dark(lime, red)', 'rgb(0, 255, 0)');
 test_computed_value('<color>', 'color(from lime srgb g g g)', 'color(srgb 1 1 1)');
+test_computed_value('<color>', 'color(from currentcolor srgb b g r)', 'color(from currentcolor srgb b g r)');
 test_computed_value('<color>', 'color(srgb 1 1 1 / calc(NaN))', 'color(srgb 1 1 1 / 0)');
 
 // Custom ident values that look like color keywords should not be converted.

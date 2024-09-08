@@ -1,0 +1,25 @@
+This is built from hpke-js from https://github.com/dajiaji/hpke-js, version 1.2.9
+
+The build was done using the "Cloudflare Workers" instructions for the whole library,
+except the last step was changed from:
+  deno task minify > $YOUR_SRC_PATH/hpke.js
+to
+  esbuild npm/esm/mod.js --bundle --format=esm > $YOUR_SRC_PATH/hpke.js
+
+...which disabled minification, for easier debugging.
+
+The produced file incorporates the following other components:
+
+dnt (https://github.com/denoland/dnt):
+  Copyright 2018-2024 the Deno authors, under the MIT license
+
+Paul Miller's noble cryptography:
+  https://github.com/paulmillr/noble-ciphers,
+  https://github.com/paulmillr/noble-curves,
+  https://github.com/paulmillr/noble-hashes
+
+  Copyright (c) 2022 Paul Miller (paulmillr.com)
+  Copyright (c) 2023 Paul Miller (paulmillr.com)
+  Copyright (c) 2016 Thomas Pornin <pornin@bolet.org>
+
+  Under the MIT license.

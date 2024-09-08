@@ -24,6 +24,11 @@ function resetRich() {
     rich.innerHTML = '';
 }
 
+function resetPlain() {
+    inputEventsLog = [];
+    plain.innerHTML = '';
+}
+
 rich.addEventListener('beforeinput', log);
 rich.addEventListener('input', log);
 
@@ -61,6 +66,26 @@ promise_test(async function() {
     assert_equals(inputEvent.inputType, 'insertParagraph');
     assert_equals(beforeInputEvent.data, inputEvent.data);
 }, 'It triggers beforeinput and input events on typing RETURN');
+
+promise_test(async function() {
+    this.add_cleanup(resetPlain);
+    const expectedResult = [
+        // Pressing 'a'
+        'insertText',
+        // Return
+        'insertLineBreak'
+    ];
+    const result = [];
+
+    plain.addEventListener("input", (inputEvent) => {
+      result.push(inputEvent.inputType);
+    });
+    await test_driver.click(plain);
+    await test_driver.send_keys(plain,"a");
+    await test_driver.send_keys(plain,'\uE006'); // Return
+    assert_equals(result.length, expectedResult.length);
+    expectedResult.forEach((er, index) => assert_equals(result[index], er));
+}, 'Newline character in plain text editing should get insertLinebreak input event');
 
 promise_test(async function() {
     this.add_cleanup(resetRich);

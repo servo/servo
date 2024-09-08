@@ -74,7 +74,7 @@ const testDestroyWebNNBuffer = (testName) => {
 /**
  * WebNN create buffer test.
  * @param {String} testName - The name of the test operation.
- * @param {MLBufferDescriptor} bufferDescriptor - The intended buffer specs.
+ * @param {MLTensorDescriptor} bufferDescriptor - The intended buffer specs.
  */
 const testCreateWebNNBuffer = (testName, bufferDescriptor) => {
   let mlContext;
@@ -108,7 +108,7 @@ const testCreateWebNNBuffer = (testName, bufferDescriptor) => {
 /**
  * Same as above, but expect creating the buffer to fail.
  * @param {String} testName - The name of the test operation.
- * @param {MLBufferDescriptor} bufferDescriptor - The intended buffer specs.
+ * @param {MLTensorDescriptor} bufferDescriptor - The intended buffer specs.
  */
 const testCreateWebNNBufferFails = (testName, bufferDescriptor) => {
   let mlContext;
@@ -128,9 +128,9 @@ const testCreateWebNNBufferFails = (testName, bufferDescriptor) => {
 };
 
 /**
- * Asserts the buffer data in MLBuffer matches expected.
+ * Asserts the buffer data in MLTensor matches expected.
  * @param {MLContext} mlContext - The context used to create the buffer.
- * @param {MLBuffer} mlBuffer - The buffer to read and compare data.
+ * @param {MLTensor} mlBuffer - The buffer to read and compare data.
  * @param {Array} expected - Array of the expected data in the buffer.
  */
 const assert_buffer_data_equals = async (mlContext, mlBuffer, expected) => {
@@ -167,7 +167,7 @@ const testWriteWebNNBuffer = (testName) => {
     const bufferDescriptor = {
       dataType: 'int32',
       dimensions: [1],
-      usage: MLBufferUsage.WRITE_TO,
+      usage: MLTensorUsage.WRITE_TO,
     };
     let mlBuffer = await mlContext.createBuffer(bufferDescriptor);
 
@@ -216,11 +216,11 @@ const testWriteWebNNBuffer = (testName) => {
     const bufferDescriptor = {
       dataType: 'int32',
       dimensions: [2, 2],
-      usage: MLBufferUsage.WRITE_TO,
+      usage: MLTensorUsage.WRITE_TO,
     };
     let mlBuffer = await mlContext.createBuffer(bufferDescriptor);
 
-    // Writing data to a destroyed MLBuffer should throw.
+    // Writing data to a destroyed MLTensor should throw.
     mlBuffer.destroy();
 
     assert_throws_dom(
@@ -233,17 +233,17 @@ const testWriteWebNNBuffer = (testName) => {
     const bufferDescriptor = {
       dataType: 'int32',
       dimensions: [2, 3],
-      usage: MLBufferUsage.WRITE_TO,
+      usage: MLTensorUsage.WRITE_TO,
     };
     let mlBuffer = await mlContext.createBuffer(bufferDescriptor);
 
     let anotherMLContext = await navigator.ml.createContext(contextOptions);
-    let anotherMLBuffer = await anotherMLContext.createBuffer(bufferDescriptor);
+    let anotherMLTensor = await anotherMLContext.createBuffer(bufferDescriptor);
 
     let inputData =
         new Uint8Array(sizeOfDescriptor(bufferDescriptor)).fill(0xAA);
     assert_throws_js(
-        TypeError, () => mlContext.writeBuffer(anotherMLBuffer, inputData));
+        TypeError, () => mlContext.writeBuffer(anotherMLTensor, inputData));
     assert_throws_js(
         TypeError, () => anotherMLContext.writeBuffer(mlBuffer, inputData));
   }, `${testName} / context_mismatch`);
@@ -252,7 +252,7 @@ const testWriteWebNNBuffer = (testName) => {
     let mlBuffer = await mlContext.createBuffer({
       dataType: 'int32',
       dimensions: [1],
-      usage: MLBufferUsage.WRITE_TO | MLBufferUsage.READ_FROM,
+      usage: MLTensorUsage.WRITE_TO | MLTensorUsage.READ_FROM,
     });
 
     // Initialize the buffer.
@@ -275,7 +275,7 @@ const testWriteWebNNBuffer = (testName) => {
     const bufferDescriptor = {
       dataType: 'int32',
       dimensions: [2, 2],
-      usage: MLBufferUsage.WRITE_TO | MLBufferUsage.READ_FROM,
+      usage: MLTensorUsage.WRITE_TO | MLTensorUsage.READ_FROM,
     };
     let mlBuffer = await mlContext.createBuffer(bufferDescriptor);
 
@@ -326,10 +326,10 @@ const testReadWebNNBuffer = (testName) => {
     let mlBuffer = await mlContext.createBuffer({
       dataType: 'int32',
       dimensions: [2, 2],
-      usage: MLBufferUsage.READ_FROM,
+      usage: MLTensorUsage.READ_FROM,
     });
 
-    // Reading a destroyed MLBuffer should reject.
+    // Reading a destroyed MLTensor should reject.
     mlBuffer.destroy();
 
     await promise_rejects_dom(
@@ -340,7 +340,7 @@ const testReadWebNNBuffer = (testName) => {
     let mlBuffer = await mlContext.createBuffer({
       dataType: 'int32',
       dimensions: [2, 3],
-      usage: MLBufferUsage.READ_FROM,
+      usage: MLTensorUsage.READ_FROM,
     });
 
     let promise = mlContext.readBuffer(mlBuffer);
@@ -356,7 +356,7 @@ const testReadWebNNBuffer = (testName) => {
     let mlBuffer = await mlContext.createBuffer({
       dataType: 'int32',
       dimensions: [1024],
-      usage: MLBufferUsage.READ_FROM,
+      usage: MLTensorUsage.READ_FROM,
     });
 
     await assert_buffer_data_equals(
@@ -367,7 +367,7 @@ const testReadWebNNBuffer = (testName) => {
     let mlBuffer = await mlContext.createBuffer({
       dataType: 'int32',
       dimensions: [1],
-      usage: MLBufferUsage.READ_FROM | MLBufferUsage.WRITE_TO,
+      usage: MLTensorUsage.READ_FROM | MLTensorUsage.WRITE_TO,
     });
 
     // Initialize the buffer.
@@ -383,7 +383,7 @@ const testReadWebNNBuffer = (testName) => {
     let mlBuffer = await mlContext.createBuffer({
       dataType: 'int32',
       dimensions: [1],
-      usage: MLBufferUsage.WRITE_TO | MLBufferUsage.READ_FROM,
+      usage: MLTensorUsage.WRITE_TO | MLTensorUsage.READ_FROM,
     });
 
     // Initialize the buffer.
@@ -401,7 +401,7 @@ const testReadWebNNBuffer = (testName) => {
     let mlBuffer = await mlContext.createBuffer({
       dataType: 'int32',
       dimensions: [1],
-      usage: MLBufferUsage.WRITE_TO | MLBufferUsage.READ_FROM,
+      usage: MLTensorUsage.WRITE_TO | MLTensorUsage.READ_FROM,
     });
 
     // Initialize the buffer.
@@ -419,7 +419,7 @@ const testReadWebNNBuffer = (testName) => {
     let mlBuffer = await mlContext.createBuffer({
       dataType: 'int32',
       dimensions: [1],
-      usage: MLBufferUsage.WRITE_TO | MLBufferUsage.READ_FROM,
+      usage: MLTensorUsage.WRITE_TO | MLTensorUsage.READ_FROM,
     });
 
     // Initialize the buffer.
@@ -437,7 +437,7 @@ const testReadWebNNBuffer = (testName) => {
     let mlBuffer = await mlContext.createBuffer({
       dataType: 'int32',
       dimensions: [1],
-      usage: MLBufferUsage.WRITE_TO | MLBufferUsage.READ_FROM,
+      usage: MLTensorUsage.WRITE_TO | MLTensorUsage.READ_FROM,
     });
 
     const inputData = [0xAA, 0xAA, 0xAA, 0xAA];
@@ -454,15 +454,15 @@ const testReadWebNNBuffer = (testName) => {
     const bufferDescriptor = {
       dataType: 'int32',
       dimensions: [2, 3],
-      usage: MLBufferUsage.READ_FROM,
+      usage: MLTensorUsage.READ_FROM,
     };
     let mlBuffer = await mlContext.createBuffer(bufferDescriptor);
 
     let anotherMLContext = await navigator.ml.createContext(contextOptions);
-    let anotherMLBuffer = await anotherMLContext.createBuffer(bufferDescriptor);
+    let anotherMLTensor = await anotherMLContext.createBuffer(bufferDescriptor);
 
     await promise_rejects_js(
-        t, TypeError, mlContext.readBuffer(anotherMLBuffer));
+        t, TypeError, mlContext.readBuffer(anotherMLTensor));
     await promise_rejects_js(
         t, TypeError, anotherMLContext.readBuffer(mlBuffer));
   }, `${testName} / context_mismatch`);
@@ -490,7 +490,7 @@ const testDispatchWebNNBuffer = (testName) => {
     const bufferDescriptor = {
       dataType: 'float32',
       dimensions: shape,
-      usage: MLBufferUsage.WRITE_TO | MLBufferUsage.READ_FROM,
+      usage: MLTensorUsage.WRITE_TO | MLTensorUsage.READ_FROM,
     };
     const lhsOperand = builder.input('lhs', bufferDescriptor);
     const rhsOperand = builder.input('rhs', bufferDescriptor);

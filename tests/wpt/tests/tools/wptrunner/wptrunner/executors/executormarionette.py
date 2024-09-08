@@ -275,18 +275,15 @@ class MarionetteTestharnessProtocolPart(TestharnessProtocolPart):
     def test_window_loaded(self):
         """Wait until the page in the new window has been loaded.
 
-        Hereby ignore Javascript exceptions that are thrown when
+        Hereby ignore Javascript execptions that are thrown when
         the document has been unloaded due to a process change.
         """
         while True:
             try:
                 self.parent.base.execute_script(self.window_loaded_script, asynchronous=True)
                 break
-            except errors.JavascriptException as e:
-                if e.message.startswith("Script evaluation aborted: Actor"):
-                    # Special-case JavaScript errors for a JSWindowActor destroy
-                    # until a decision is made on bug 1673478.
-                    pass
+            except errors.JavascriptException:
+                pass
 
 
 class MarionettePrefsProtocolPart(PrefsProtocolPart):

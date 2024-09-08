@@ -568,7 +568,9 @@ tests.forEach(
         });
       }
 
-      if (test.output) {
+      if (test.output &&
+          context.opSupportLimits().convTranspose2d.input.dataTypes.includes(
+              test.input.dataType)) {
         const output = builder.convTranspose2d(input, filter, test.options);
         assert_equals(output.dataType(), test.output.dataType);
         assert_array_equals(output.shape(), test.output.dimensions);

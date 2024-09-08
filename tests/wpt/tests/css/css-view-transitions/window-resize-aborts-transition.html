@@ -45,6 +45,12 @@ promise_test(async t => {
         html::view-transition-old(*) {animation-duration: 10s;opacity: 1;}
       </style>`;
 
+    if (popupDoc.visibilityState == "hidden") {
+      await new Promise((resolve) => {
+        popupDoc.addEventListener("visibilitychange", resolve, { once: true });
+      });
+    }
+
     // Start a transition inside the popup.
     let transition = popupDoc.startViewTransition(() => {
       popupDoc.documentElement.classList.add('new');

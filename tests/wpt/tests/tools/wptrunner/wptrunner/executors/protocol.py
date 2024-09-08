@@ -1,10 +1,11 @@
 # mypy: allow-untyped-defs
 
+import collections
 import traceback
 from http.client import HTTPConnection
 
 from abc import ABCMeta, abstractmethod
-from typing import Any, Awaitable, Callable, ClassVar, List, Mapping, Optional, Type
+from typing import Any, Awaitable, Callable, ClassVar, List, Mapping, Optional, Tuple, Type
 
 
 def merge_dicts(target, source):
@@ -69,6 +70,8 @@ class Protocol:
 
             msg = "Post-connection steps failed"
             self.after_connect()
+            for cls in self.implements:
+                getattr(self, cls.name).after_connect()
         except Exception:
             message = "Protocol.setup caught an exception:\n"
             message += f"{msg}\n" if msg is not None else ""
@@ -111,6 +114,11 @@ class ProtocolPart:
 
     def setup(self):
         """Run any setup steps required for the ProtocolPart."""
+        pass
+
+    def after_connect(self):
+        """Run any post-connection steps. This happens after the ProtocolParts are
+        initalized so can depend on a fully-populated object."""
         pass
 
     def teardown(self):
@@ -611,6 +619,37 @@ class AssertsProtocolPart(ProtocolPart):
     def get(self):
         """Get a count of assertions since the last browser start"""
         pass
+
+
+class LeakProtocolPart(ProtocolPart):
+    """Protocol part that checks for leaked DOM objects."""
+    __metaclass__ = ABCMeta
+
+    name = "leak"
+
+    def after_connect(self):
+        self.parent.base.load("about:blank")
+        self.expected_counters = collections.Counter(self.get_counters())
+
+    @abstractmethod
+    def get_counters(self) -> Mapping[str, int]:
+        """Get counts of types of live objects (names are browser-dependent)."""
+
+    def check(self) -> Optional[Mapping[str, Tuple[int, int]]]:
+        """Check for DOM objects that outlive the current page.
+
+        Returns:
+            A map from object type to (expected, actual) counts, if one or more
+            types leaked. Otherwise, `None`.
+        """
+        self.parent.base.load("about:blank")
+        counters = collections.Counter(self.get_counters())
+        if counters - self.expected_counters:
+            return {
+                name: (self.expected_counters[name], counters[name])
+                for name in set(counters) | set(self.expected_counters)
+            }
+        return None
 
 
 class CoverageProtocolPart(ProtocolPart):

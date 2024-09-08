@@ -766,7 +766,8 @@ class WebDriverTestharnessExecutor(TestharnessExecutor):
                                      self.extra_timeout).run()
 
         if success:
-            return self.convert_result(test, data)
+            data, extra = data
+            return self.convert_result(test, data, extra=extra)
 
         return (test.make_result(*data), [])
 
@@ -874,6 +875,10 @@ class WebDriverTestharnessExecutor(TestharnessExecutor):
             # Use protocol loop to run the async cleanup.
             protocol.loop.run_until_complete(protocol.bidi_events.unsubscribe_all())
 
+        extra = {}
+        if (leak_part := getattr(protocol, "leak", None)) and (counters := leak_part.check()):
+            extra["leak_counters"] = counters
+
         # Attempt to clean up any leftover windows, if allowed. This is
         # preferable as it will blame the correct test if something goes wrong
         # closing windows, but if the user wants to see the test results we
@@ -885,7 +890,7 @@ class WebDriverTestharnessExecutor(TestharnessExecutor):
             # TODO: what to do if there are more then 1 unexpected exceptions?
             raise unexpected_exceptions[0]
 
-        return rv
+        return rv, extra
 
     def _get_next_message_classic(self, protocol, url, _):
         """
@@ -979,6 +984,9 @@ class WebDriverRefTestExecutor(RefTestExecutor):
 
         result = self.implementation.run_test(test)
 
+        if (leak_part := getattr(self.protocol, "leak", None)) and (counters := leak_part.check()):
+            result.setdefault("extra", {})["leak_counters"] = counters
+
         if self.debug_test and result["status"] in ["PASS", "FAIL", "ERROR"] and "extra" in result:
             self.protocol.debug.load_reftest_analyzer(test, result)
 
@@ -998,7 +1006,6 @@ class WebDriverRefTestExecutor(RefTestExecutor):
 
     def _screenshot(self, protocol, url, timeout):
         self.protocol.base.load(url)
-
         self.protocol.base.execute_script(self.wait_script, True)
 
         screenshot = self.protocol.webdriver.screenshot()
@@ -1052,6 +1059,7 @@ class WebDriverCrashtestExecutor(CrashtestExecutor):
     def do_crashtest(self, protocol, url, timeout):
         protocol.base.load(url)
         protocol.base.execute_script(self.wait_script, asynchronous=True)
-
-        return {"status": "PASS",
-                "message": None}
+        result = {"status": "PASS", "message": None}
+        if (leak_part := getattr(protocol, "leak", None)) and (counters := leak_part.check()):
+            result["extra"] = {"leak_counters": counters}
+        return result

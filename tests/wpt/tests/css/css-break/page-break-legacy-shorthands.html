@@ -7,6 +7,7 @@
 <link rel="help" href="https://drafts.csswg.org/css-break/#page-break-properties">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="../support/shorthand-testcommon.js"></script>
 <div></div>
 <script>
 const NEW_VALUES = ["page", "column"].filter(v => CSS.supports("break-before", v));
@@ -72,4 +73,8 @@ test(function() {
     assert_equals(div.style.cssText.indexOf("page-" + property), -1);
   }
 }, "Legacy shorthands really never appear on cssText, even when there are variable references");
+
+test_is_legacy_shorthand("page-break-before", "break-before");
+test_is_legacy_shorthand("page-break-after", "break-after");
+test_is_legacy_shorthand("page-break-inside", "break-inside");
 </script>

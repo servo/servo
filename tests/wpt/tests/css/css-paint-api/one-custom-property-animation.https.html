@@ -27,10 +27,13 @@
   background-color: blue;
 }
 </style>
+
 <script src="/common/reftest-wait.js"></script>
-<script src="/common/worklet-reftest.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+
 <body>
 <div id="canvas-geometry" class="container"></div>
+<div id="log"></div>
 
 <script id="code" type="text/worklet">
 registerPaint('geometry', class {
@@ -50,19 +53,46 @@ CSS.registerProperty({
   initialValue: '0',
   inherits: false
 });
-</script>
 
-<script>
-var blob = new Blob([document.getElementById('code').textContent],
-                    {type: 'text/javascript'});
-CSS.paintWorklet.addModule(URL.createObjectURL(blob)).then(function() {
-    document.getElementById('canvas-geometry').classList.add('animate');
-    const animations = document.getAnimations();
-    // Wait for the animation to start before completing the test.
-    document.getAnimations()[0].ready.then(() => {
-        takeScreenshot();
-    });
-});
+function logAssert(condition, message) {
+  if(!condition) {
+    document.getElementById("log").innerHTML = "<p>" + message + "</p>";
+  }
+}
+
+window.onload = async() => {
+  await waitForCompositorReady();
+
+  const blob = new Blob([document.getElementById('code').textContent],
+                         {type: 'text/javascript'});
+  // Load the module and verify it was loaded.
+  try {
+    await CSS.paintWorklet.addModule(URL.createObjectURL(blob));
+  } catch (error) {
+    logAssert(false, 'The module was not loaded: ' + error.message)
+  }
+
+  // Check that custom property is registered.
+  const style = getComputedStyle(document.documentElement);
+  logAssert(style.getPropertyValue('--foo'),
+            'Custom property is not registered');
+
+  // Trigger CSS-animation.
+  document.getElementById('canvas-geometry').classList.add('animate');
+  const animations = document.getAnimations();
+  // Verify we have an animation.
+  logAssert(animations.length == 1, 'Animation was not added');
+
+  // Force failure as a result of image mismatch instead of Timeout if
+  // animation is not created
+  if(animations.length == 1){
+    await animations[0].ready;
+  }
+  await waitForAnimationFrames(3);
+  takeScreenshot();
+};
+
+
 </script>
 </body>
 </html>

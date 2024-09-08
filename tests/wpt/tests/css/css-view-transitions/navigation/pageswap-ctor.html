@@ -36,15 +36,16 @@ test(function() {
     assert_equals(e.viewTransition, null);
     assert_equals(e.activation, null);
 }, "Constructing pageswap event with a null viewTransition");
-test(function() {
+promise_test(async t => {
     const viewTransition = document.startViewTransition();
     var e = new PageSwapEvent("pageswap", {viewTransition});
     assert_true(e instanceof PageSwapEvent);
     assert_equals(e.type, "pageswap");
     assert_equals(e.viewTransition, viewTransition);
     viewTransition.skipTransition();
+    await promise_rejects_dom(t, "AbortError", viewTransition.ready);
 }, "Constructing pageswap event with a viewTransition");
-test(function() {
+promise_test(async t => {
     const viewTransition = document.startViewTransition();
     var e = new PageSwapEvent("pageswap", {viewTransition, activation: navigation.activation});
     assert_true(e instanceof PageSwapEvent);
@@ -52,5 +53,6 @@ test(function() {
     assert_equals(e.viewTransition, viewTransition);
     assert_equals(e.activation, navigation.activation);
     viewTransition.skipTransition();
+    await promise_rejects_dom(t, "AbortError", viewTransition.ready);
 }, "Constructing pageswap event with a viewTransition and activation");
 </script>
