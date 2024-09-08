@@ -100,8 +100,8 @@ impl<P> Pass<P> {
 pub(crate) struct WGPU {
     receiver: IpcReceiver<WebGPURequest>,
     sender: IpcSender<WebGPURequest>,
-    script_sender: IpcSender<WebGPUMsg>,
-    global: Arc<wgc::global::Global>,
+    pub(crate) script_sender: IpcSender<WebGPUMsg>,
+    pub(crate) global: Arc<wgc::global::Global>,
     adapters: Vec<WebGPUAdapter>,
     devices: Arc<Mutex<HashMap<DeviceId, DeviceScope>>>,
     // Track invalid adapters https://gpuweb.github.io/gpuweb/#invalid
@@ -578,30 +578,7 @@ impl WGPU {
                         context_id,
                         image_key,
                     } => {
-                        let data = self
-                            .wgpu_image_map
-                            .lock()
-                            .unwrap()
-                            .remove(&context_id)
-                            .unwrap();
-                        let global = &self.global;
-                        for b_id in data.available_buffer_ids.iter() {
-                            global.buffer_drop(*b_id);
-                        }
-                        for b_id in data.queued_buffer_ids.iter() {
-                            global.buffer_drop(*b_id);
-                        }
-                        for b_id in data.unassigned_buffer_ids.iter() {
-                            if let Err(e) = self.script_sender.send(WebGPUMsg::FreeBuffer(*b_id)) {
-                                warn!("Unable to send FreeBuffer({:?}) ({:?})", *b_id, e);
-                            };
-                        }
-                        let mut txn = Transaction::new();
-                        txn.delete_image(image_key);
-                        self.webrender_api
-                            .lock()
-                            .unwrap()
-                            .send_transaction(self.webrender_document, txn);
+                        self.destroy_swapchain(context_id, image_key);
                     },
                     WebGPURequest::DestroyTexture {
                         device_id,

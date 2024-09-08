@@ -7,6 +7,7 @@ use std::sync::{Arc, Mutex, MutexGuard};
 
 use arrayvec::ArrayVec;
 use euclid::default::Size2D;
+use log::warn;
 use malloc_size_of::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 use webrender::{RenderApi, Transaction};
@@ -18,7 +19,7 @@ use webrender_api::{
 use webrender_traits::{WebrenderExternalImageApi, WebrenderImageSource};
 use wgpu_core::id;
 
-use crate::wgt;
+use crate::{wgt, WebGPUMsg};
 
 pub const PRESENTATION_BUFFER_COUNT: usize = 10;
 
@@ -149,5 +150,36 @@ impl crate::WGPU {
         let mut txn = Transaction::new();
         txn.add_image(image_key, image_desc, image_data, None);
         wr.send_transaction(self.webrender_document, txn);
+    }
+
+    pub(crate) fn destroy_swapchain(
+        &mut self,
+        context_id: WebGPUContextId,
+        image_key: webrender_api::ImageKey,
+    ) {
+        let data = self
+            .wgpu_image_map
+            .lock()
+            .unwrap()
+            .remove(&context_id)
+            .unwrap();
+        let global = &self.global;
+        for b_id in data.available_buffer_ids.iter() {
+            global.buffer_drop(*b_id);
+        }
+        for b_id in data.queued_buffer_ids.iter() {
+            global.buffer_drop(*b_id);
+        }
+        for b_id in data.unassigned_buffer_ids.iter() {
+            if let Err(e) = self.script_sender.send(WebGPUMsg::FreeBuffer(*b_id)) {
+                warn!("Unable to send FreeBuffer({:?}) ({:?})", *b_id, e);
+            };
+        }
+        let mut txn = Transaction::new();
+        txn.delete_image(image_key);
+        self.webrender_api
+            .lock()
+            .unwrap()
+            .send_transaction(self.webrender_document, txn);
     }
 }
