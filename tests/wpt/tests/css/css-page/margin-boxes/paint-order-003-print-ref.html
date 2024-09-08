@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<style>
+  @page {
+    size: 500px;
+    margin: 0;
+  }
+  body {
+    margin: 0;
+  }
+</style>
+<div style="height:100px; background:green;"></div>
+<div style="position:absolute; z-index:-1; left:0; bottom:0; width:100px; height:100px; background:cyan;"></div>
+<div style="position:absolute; right:0; bottom:0; width:100px; height:100px; background:yellow;"></div>
+<div style="display:flow-root; margin:0 50px; height:350px; background:#ddd;">
+  <p>The margin area above this page should be green. No red.</p>
+  <p>The cyan square in the bottom left corner should be overlapped by the gray document background.</p>
+  <p>The yellow square in the bottom right corner should be on top of the gray document background.</p>
+</div>

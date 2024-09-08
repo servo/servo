@@ -43,6 +43,7 @@ const tests = [
     name: '[layerNormalization] Test when the input data type is float16.',
     input: {dataType: 'float16', dimensions: []},
     output: {dataType: 'float16', dimensions: []},
+    options: {label}
   },
   {
     name: '[layerNormalization] Test with given axes.',
@@ -213,7 +214,9 @@ tests.forEach(
         });
       }
 
-      if (test.output) {
+      if (test.output &&
+          context.opSupportLimits().layerNormalization.input.dataTypes.includes(
+              test.input.dataType)) {
         const output = builder.layerNormalization(input, test.options);
         assert_equals(output.dataType(), test.output.dataType);
         assert_array_equals(output.shape(), test.output.dimensions);

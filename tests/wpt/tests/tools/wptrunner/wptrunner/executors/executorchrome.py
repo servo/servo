@@ -1,9 +1,10 @@
 # mypy: allow-untyped-defs
 
+import collections
 import os
 import time
 import traceback
-from typing import Type
+from typing import Mapping, MutableMapping, Type
 from urllib.parse import urljoin
 
 from webdriver import error
@@ -22,7 +23,7 @@ from .executorwebdriver import (
     WebDriverTestharnessExecutor,
     WebDriverTestharnessProtocolPart,
 )
-from .protocol import PrintProtocolPart, ProtocolPart
+from .protocol import LeakProtocolPart, PrintProtocolPart, ProtocolPart
 
 here = os.path.dirname(__file__)
 
@@ -60,6 +61,19 @@ def make_sanitizer_mixin(crashtest_executor_cls: Type[CrashtestExecutor]):  # ty
 
 
 _SanitizerMixin = make_sanitizer_mixin(WebDriverCrashtestExecutor)
+
+
+class ChromeDriverLeakProtocolPart(LeakProtocolPart):
+    def get_counters(self) -> Mapping[str, int]:
+        response = self.parent.cdp.execute_cdp_command("Memory.getDOMCountersForLeakDetection")
+        counters: MutableMapping[str, int] = collections.Counter({
+            counter["name"]: counter["count"]
+            for counter in response["counters"]
+        })
+        # Exclude resources associated with User Agent CSS from leak detection,
+        # since they are persisted through page navigation.
+        counters["live_resources"] -= counters.pop("live_ua_css_resources", 0)
+        return counters
 
 
 class ChromeDriverTestharnessProtocolPart(WebDriverTestharnessProtocolPart):
@@ -206,23 +220,54 @@ class ChromeDriverProtocol(WebDriverProtocol):
         ChromeDriverFedCMProtocolPart,
         ChromeDriverPrintProtocolPart,
         ChromeDriverTestharnessProtocolPart,
-        *(part for part in WebDriverProtocol.implements
-          if part.name != ChromeDriverTestharnessProtocolPart.name and
-            part.name != ChromeDriverFedCMProtocolPart.name)
     ]
+    for base_part in WebDriverProtocol.implements:
+        if base_part.name not in {part.name for part in implements}:
+            implements.append(base_part)
+
     reuse_window = False
     # Prefix to apply to vendor-specific WebDriver extension commands.
     vendor_prefix = "goog"
 
+    def __init__(self, executor, browser, capabilities, **kwargs):
+        self.implements = list(ChromeDriverProtocol.implements)
+        if getattr(browser, "leak_check", False):
+            self.implements.append(ChromeDriverLeakProtocolPart)
+        super().__init__(executor, browser, capabilities, **kwargs)
 
+
+def _evaluate_leaks(executor_cls):
+    if hasattr(executor_cls, "base_convert_result"):
+        # Don't wrap more than once, which can cause unbounded recursion.
+        return executor_cls
+    executor_cls.base_convert_result = executor_cls.convert_result
+
+    def convert_result(self, test, result, **kwargs):
+        test_result, subtest_results = self.base_convert_result(test, result, **kwargs)
+        if test_result.extra.get("leak_counters"):
+            test_result = test.make_result("CRASH",
+                                           test_result.message,
+                                           test_result.expected,
+                                           test_result.extra,
+                                           test_result.stack,
+                                           test_result.known_intermittent)
+        return test_result, subtest_results
+
+    executor_cls.convert_result = convert_result
+    return executor_cls
+
+
+@_evaluate_leaks
 class ChromeDriverCrashTestExecutor(WebDriverCrashtestExecutor):
     protocol_cls = ChromeDriverProtocol
 
 
+@_evaluate_leaks
 class ChromeDriverRefTestExecutor(WebDriverRefTestExecutor, _SanitizerMixin):  # type: ignore
     protocol_cls = ChromeDriverProtocol
 
 
+@_evaluate_leaks
 class ChromeDriverTestharnessExecutor(WebDriverTestharnessExecutor, _SanitizerMixin):  # type: ignore
     protocol_cls = ChromeDriverProtocol
 
@@ -249,8 +294,10 @@ class ChromeDriverTestharnessExecutor(WebDriverTestharnessExecutor, _SanitizerMi
         self.protocol.cdp.execute_cdp_command("Browser.setPermission", params)
 
 
+@_evaluate_leaks
 class ChromeDriverPrintRefTestExecutor(ChromeDriverRefTestExecutor):
     protocol_cls = ChromeDriverProtocol
+    is_print = True
 
     def setup(self, runner, protocol=None):
         super().setup(runner, protocol)

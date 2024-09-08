@@ -21,8 +21,8 @@
       await wsc.minimize();
       assert_true(document.hidden);
       const transition = document.startViewTransition();
-      await wsc.restore();
       await promise_rejects_dom(t, "InvalidStateError", transition.ready);
+      await wsc.restore();
     }, "A view transition should be immediately skipped if started when document is hidden");
 
     promise_test(async t => {

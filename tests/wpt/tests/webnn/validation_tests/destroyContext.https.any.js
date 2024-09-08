@@ -135,7 +135,7 @@ promise_test(async t => {
   const buffer = await context.createBuffer({
     dataType: 'float32',
     dimensions: [1],
-    usage: MLBufferUsage.READ_FROM,
+    usage: MLTensorUsage.READ_FROM,
   });
   context.destroy();
   promise_rejects_dom(t, 'InvalidStateError', context.readBuffer(buffer));
@@ -146,7 +146,7 @@ promise_test(async t => {
   const buffer = await context.createBuffer({
     dataType: 'float32',
     dimensions: [1],
-    usage: MLBufferUsage.READ_FROM,
+    usage: MLTensorUsage.READ_FROM,
   });
   let promise = context.readBuffer(buffer);
   context.destroy();
@@ -161,7 +161,7 @@ promise_test(async t => {
   const buffer = await context.createBuffer({
     dataType: 'float32',
     dimensions: [1],
-    usage: MLBufferUsage.WRITE_TO,
+    usage: MLTensorUsage.WRITE_TO,
   });
   let arrayBuffer = new ArrayBuffer(4);
   context.destroy();

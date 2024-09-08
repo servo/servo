@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Test endOfStream() with short frame duration</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="mediasource-util.js"></script>
+</head>
+<body>
+</body>
+<script>
+const frames_per_keyframe = 8;
+const default_sample_duration = 512;
+// Frame duration is much less than half a microsecond, but timescale is
+// representable with an unsigned 32-bit integer.
+// The last frame's start and end times would both round down if rounded to
+// the nearest microsecond.
+const fps = 8e6;
+const timescale = default_sample_duration * fps;
+const earliest_presentation_time = 1024;
+const frame0_offset = earliest_presentation_time / default_sample_duration;
+
+let media;
+promise_test(async t => {
+  media = await new Promise(
+    r => MediaSourceUtil.fetchManifestAndData(
+      t,
+      `mp4/test-v-128k-320x240-24fps-${frames_per_keyframe}kfr-manifest.json`,
+      (type, data) => r({type, data})));
+  // Truncate at end of first segment, which is also the end of 8 frames.
+  const segment0_end = 0x1b1a;
+  media.data = media.data.subarray(0, segment0_end);
+  // Overwrite timescale to shorten frame durations.
+  const media_timescale_start = 0x182;
+  write_big_endian_integer32_at_offset(timescale, media_timescale_start);
+  const segment_index_timescale_start = 0x353;
+  write_big_endian_integer32_at_offset(timescale,
+                                       segment_index_timescale_start);
+}, 'setup');
+
+function write_big_endian_integer32_at_offset(integer32, offset) {
+  media.data[offset + 0] = integer32 >> 24;
+  media.data[offset + 1] = integer32 >> 16;
+  media.data[offset + 2] = integer32 >> 8;
+  media.data[offset + 3] = integer32;
+}
+
+promise_test(async t => {
+  assert_implements_optional(MediaSource.isTypeSupported(media.type));
+
+  const v = document.createElement('video');
+  const v_watcher = new EventWatcher(t, v, ['error', 'ended']);
+  document.body.appendChild(v);
+  const media_source = new MediaSource();
+  const media_source_watcher =
+        new EventWatcher(t, media_source, ['sourceopen']);
+  v.src = URL.createObjectURL(media_source);
+  await media_source_watcher.wait_for('sourceopen');
+
+  const source_buffer = media_source.addSourceBuffer(media.type);
+  assert_equals(source_buffer.mode, 'segments', 'source_buffer.mode');
+  const source_buffer_watcher =
+        new EventWatcher(t, source_buffer, ['updateend']);
+
+  source_buffer.appendBuffer(media.data);
+  await source_buffer_watcher.wait_for('updateend');
+  assert_equals(source_buffer.buffered.length, 1,
+                'source_buffer.buffered.length after first append');
+  assert_approx_equals(source_buffer.buffered.start(0),
+                       frame0_offset / fps,
+                       1e-6,
+                       'source_buffer.buffered.start(0) after first append');
+  const bufferEnd = source_buffer.buffered.end(0);
+  assert_approx_equals(bufferEnd,
+                       (frame0_offset + frames_per_keyframe) / fps,
+                       1e-6,
+                       'source_buffer.buffered.end(0) after first append');
+
+  media_source.endOfStream();
+  assert_equals(media_source.duration, bufferEnd, 'media_source.duration');
+  assert_equals(v.duration, media_source.duration,
+                'v.duration == media_source.duration');
+
+  v.play();
+  await v_watcher.wait_for('ended');
+  assert_equals(v.currentTime, media_source.duration, 'v.currentTime');
+}, 'endOfStream() with short frame duration');
+</script>
+</html>

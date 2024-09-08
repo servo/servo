@@ -84,7 +84,8 @@ const tests = [
   {
     name: '[instanceNormalization] Test when the input data type is float16.',
     input: {dataType: 'float16', dimensions: [1, 2, 3, 4]},
-    output: {dataType: 'float16', dimensions: [1, 2, 3, 4]}
+    output: {dataType: 'float16', dimensions: [1, 2, 3, 4]},
+    options: {label}
   },
   {
     name: '[instanceNormalization] Throw if the input is not a 4-D tensor.',
@@ -195,7 +196,10 @@ tests.forEach(
         });
       }
 
-      if (test.output) {
+      if (test.output &&
+          context.opSupportLimits()
+              .instanceNormalization.input.dataTypes.includes(
+                  test.input.dataType)) {
         const output = builder.instanceNormalization(input, test.options);
         assert_equals(output.dataType(), test.output.dataType);
         assert_array_equals(output.shape(), test.output.dimensions);

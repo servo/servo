@@ -347,7 +347,9 @@ tests.forEach(
             }
           }
 
-          if (test.output) {
+          if (test.output &&
+              context.opSupportLimits().gruCell.input.dataTypes.includes(
+                  test.input.dataType)) {
             const output = builder.gruCell(
                 input, weight, recurrentWeight, hiddenState, test.hiddenSize,
                 options);

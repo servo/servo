@@ -45,9 +45,9 @@ function sorted(s) {
 // as UAs might block bfcache for their specific reasons.
 function matchReasons(expectedNotRestoredReasonsSet, notRestoredReasonsSet) {
   const missing = setMinus(
-    expectedNotRestoredReasonsSet, notRestoredReasonsSet, 'Missing reasons');
+    expectedNotRestoredReasonsSet, notRestoredReasonsSet);
   const extra = setMinus(
-      notRestoredReasonsSet, expectedNotRestoredReasonsSet, 'Extra reasons');
+      notRestoredReasonsSet, expectedNotRestoredReasonsSet);
   assert_true(missing.size == 0, `Expected: ${sorted(expectedNotRestoredReasonsSet)}\n` +
     `Got: ${sorted(notRestoredReasonsSet)}\n` +
     `Missing: ${sorted(missing)}\n` +
@@ -77,8 +77,11 @@ function extractReason(reasonSet) {
 // If the API is not available, the function will terminate instead of marking
 // the assertion failed.
 // Call `prepareForBFCache()` before navigating away to call this function.
+// `preconditionFailReasons` is a set of reasons that could be reported but
+// should PRECONDITION_FAIL if so. If `preconditionFailReasons` are reported,
+// this function will not check if `notRestoredReasons` are reported.
 async function assertNotRestoredFromBFCache(
-    remoteContextHelper, notRestoredReasons) {
+    remoteContextHelper, notRestoredReasons, preconditionFailReasons = null) {
   var beforeBFCache = await getBeforeBFCache(remoteContextHelper);
   assert_equals(beforeBFCache, undefined, 'document unexpectedly BFCached');
 
@@ -115,6 +118,20 @@ async function assertNotRestoredFromBFCache(
     }
   };
   collectReason(result);
+
+  // Check for preconditionFailReasons if set.
+  if (preconditionFailReasons) {
+    let preconditionFailReasonsSet = new Set(preconditionFailReasons);
+    const missing = setMinus(
+        preconditionFailReasonsSet, notRestoredReasonsSet);
+    const extra = setMinus(
+        notRestoredReasonsSet, preconditionFailReasonsSet);
+    // preconditionFailReasons were reported. PRECONDION_FAIL here.
+    assert_implements_optional(
+        !(missing.size == 0 && extra.size == 0),
+        'Precondition fail reasons are reported.');
+  }
+
   matchReasons(expectedNotRestoredReasonsSet, notRestoredReasonsSet);
 }
 

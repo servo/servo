@@ -155,8 +155,8 @@ this.polyfillImports = {
     return string.substring(startIndex, endIndex);
   },
   equals: (stringA, stringB) => {
-    throwIfNotString(stringA);
-    throwIfNotString(stringB);
+    if (stringA !== null) throwIfNotString(stringA);
+    if (stringB !== null) throwIfNotString(stringB);
     return stringA === stringB;
   },
   compare: (stringA, stringB) => {

@@ -1,0 +1,25 @@
+<!doctype html>
+<title>prefers-color-scheme propagation - dynamic change</title>
+<link rel="help" href="https://drafts.csswg.org/css-color-adjust/#color-scheme-effect">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  iframe {
+    display: block;
+    border: none;
+    width: 100px;
+    height: 100px;
+  }
+</style>
+<iframe id="frm" style="color-scheme: light"></iframe>
+<script>
+  promise_test(async t => {
+    await new Promise((resolve) => {
+      frm.addEventListener("load", resolve, { once: true });
+      frm.src = "support/prefers-color-scheme-blue-purple.html";
+    });
+    assert_equals(getComputedStyle(frm.contentDocument.documentElement).backgroundColor, "rgb(0, 0, 255)");
+    frm.style.colorScheme = "dark";
+    assert_equals(getComputedStyle(frm.contentDocument.documentElement).backgroundColor, "rgb(128, 0, 128)");
+  }, "Preferred color-scheme of iframe document changed through iframe element color-scheme");
+</script>

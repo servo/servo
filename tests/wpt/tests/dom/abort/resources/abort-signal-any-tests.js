@@ -221,4 +221,20 @@ function abortSignalAnyTests(signalInterface, controllerInterface) {
     assert_true(signal.aborted);
     assert_equals(signal.reason, "reason 1");
   }, `Dependent signals for ${desc} are aborted correctly for reentrant aborts ${suffix}`);
+
+  test(t => {
+    const source = signalInterface.abort();
+    const dependent = signalInterface.any([source]);
+    assert_true(source.reason instanceof DOMException);
+    assert_equals(source.reason, dependent.reason);
+  }, `Dependent signals for ${desc} should use the same DOMException instance from the already aborted source signal ${suffix}`);
+
+  test(t => {
+    const controller = new controllerInterface();
+    const source = controller.signal;
+    const dependent = signalInterface.any([source]);
+    controller.abort();
+    assert_true(source.reason instanceof DOMException);
+    assert_equals(source.reason, dependent.reason);
+  }, `Dependent signals for ${desc} should use the same DOMException instance from the source signal being aborted later ${suffix}`);
 }

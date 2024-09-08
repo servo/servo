@@ -16,6 +16,7 @@ dictionary AuctionAd {
   USVString buyerReportingId;
   USVString buyerAndSellerReportingId;
   sequence<USVString> allowedReportingOrigins;
+  DOMString adRenderId;
 };
 
 dictionary AuctionAdInterestGroupSize {
@@ -239,10 +240,8 @@ partial interface HTMLIFrameElement {
   [CEReactions] attribute boolean adAuctionHeaders;
 };
 
-dictionary PreviousWin {
-  required long long timeDelta;
-  required DOMString adJSON;
-};
+typedef (long long or AuctionAd) PreviousWinElement;
+typedef sequence<PreviousWinElement> PreviousWin;
 
 dictionary BiddingBrowserSignals {
   required DOMString topWindowHostname;

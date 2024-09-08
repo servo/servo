@@ -16,6 +16,8 @@ from webdriver.bidi.modules.network import (
     SetCookieHeader,
 )
 
+from datetime import datetime, timedelta, timezone
+
 def assert_bytes_value(bytes_value):
     assert bytes_value["type"] in ["string", "base64"]
     any_string(bytes_value["value"])
@@ -353,6 +355,9 @@ PHASE_TO_EVENT_MAP = {
     "responseStarted": [RESPONSE_STARTED_EVENT, assert_response_event],
 }
 
+expires_a_day_from_now = datetime.now(timezone.utc) + timedelta(days=1)
+expires_a_day_from_now_timestamp = int(expires_a_day_from_now.timestamp())
+
 # Common parameters for Set-Cookie headers tests used for network interception
 # commands.
 #
@@ -472,15 +477,14 @@ SET_COOKIE_TEST_PARAMETERS = [
     ),
     (
         SetCookieHeader(
-            expiry="Tue, 14 Feb 2040 17:41:14 GMT",
+            expiry=expires_a_day_from_now.strftime("%a, %d %b %Y %H:%M:%S"),
             name="foo",
             path="/",
             value=NetworkStringValue("bar"),
         ),
         None,
         {
-            # Corresponds to the timestamp in seconds for "Tue, 14 Feb 2040 17:41:14 GMT"
-            "expiry": 2212854074,
+            "expiry": expires_a_day_from_now_timestamp,
             "httpOnly": False,
             "name": "foo",
             "path": "/",

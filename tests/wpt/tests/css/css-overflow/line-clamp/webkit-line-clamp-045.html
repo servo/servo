@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>CSS Overflow: -webkit-line-clamp causes display: -webkit-box to create a block formatting context</title>
+<link rel="author" title="Andreu Botella" href="mailto:abotella@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="match" href="reference/webkit-line-clamp-005-ref.html">
+<meta name="assert" content="-webkit-line-clamp causes display: -webkit-box to create a block box, rather than to behave like display: flex as it would otherwise">
+<style>
+.clamp {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  font: 16px / 32px serif;
+  white-space: pre;
+  background-color: yellow;
+  padding: 0 4px;
+  overflow: hidden; /* can be removed once implementations update their old -webkit-line-clamp implementations */
+
+  /* If display: -webkit-box behaves the same as without -webkit-line-clamp,
+   * these properties would cause the anonymous inline box to be centered. */
+  -webkit-box-align: center;
+  -webkit-box-pack: center;
+  align-items: center;
+  justify-content: center;
+}
+</style>
+
+<div class="clamp">Line 1
+Line 2
+Line 3
+Line 4
+Line 5</div>

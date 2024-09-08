@@ -168,7 +168,7 @@ function assert_throws_if(func, shouldThrow, constructor) {
   } catch (e) {
     error = e;
   }
-  assert_equals(error !== null, shouldThrow);
+  assert_equals(error !== null, shouldThrow, "shouldThrow mismatch");
   if (shouldThrow && error !== null) {
     assert_true(error instanceof constructor);
   }
@@ -275,7 +275,7 @@ test(() => {
         builtinExports['equals'],
         polyfillExports['equals'],
         a, a
-      ), !isString, WebAssembly.RuntimeError);
+      ), a !== null && !isString, WebAssembly.RuntimeError);
 
     assert_throws_if(() => assert_same_behavior(
         builtinExports['compare'],

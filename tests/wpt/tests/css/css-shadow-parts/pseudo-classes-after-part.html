@@ -10,6 +10,8 @@
 
 // Test that non-structural pseudo-classes are allowed after ::part().
 test_valid_selector("::part(mypart):active");
+test_valid_selector("::part(mypart):active-view-transition");
+test_valid_selector("::part(mypart):active-view-transition-type(mytype)");
 test_valid_selector("::part(mypart):any-link");
 test_valid_selector("::part(mypart):autofill");
 test_valid_selector("::part(mypart):checked");
@@ -68,16 +70,13 @@ test_invalid_selector("::part(mypart):nth-last-of-type(1)");
 test_invalid_selector("::part(mypart):nth-of-type(1)");
 test_invalid_selector("::part(mypart):only-child");
 test_invalid_selector("::part(mypart):only-of-type");
-// These are structural because they only match the root element.
-test_invalid_selector("::part(mypart):active-view-transition");
-test_invalid_selector("::part(mypart):active-view-transition-type(mytype)");
 
 // Test that pseudo-classes that match based on tree information are not allowed after ::part.
 test_invalid_selector("::part(mypart):host");
 test_invalid_selector("::part(mypart):host-context(:hover)");
 test_invalid_selector("::part(mypart):has(p)");
 test_invalid_selector("::part(mypart):has(:hover)");
-test_invalid_selector("::part(mypart):scope)");
+test_invalid_selector("::part(mypart):scope");
 
 // Test that :not() applies appropriate constraints for being after ::part(),
 // but that :is() and :where() (which accept <forgiving-selector-list>) do

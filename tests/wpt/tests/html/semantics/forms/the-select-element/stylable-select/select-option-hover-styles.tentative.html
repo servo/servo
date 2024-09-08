@@ -12,10 +12,13 @@
   color: SelectedItemText;
   background-color: SelectedItem;
 }
+select, select::picker(select) {
+  appearance: base-select;
+}
 </style>
 <div id=selecteditem>SelectedItem test colors</div>
 
-<select style="appearance:base-select">
+<select>
   <option class=one>one</option>
   <option class=two>two</option>
   <option class=three disabled>disabled</option>

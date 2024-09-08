@@ -55,43 +55,50 @@
       });
 
       test(function() {
-          var element = document.querySelector("munder[accentunder='true']");
+          var element = document.getElementById("munder-accentunder")
           assert_approx_equals(fontSize(element.children[0]), fontSizeAtScriptLevelZero, epsilon, "base");
           assert_approx_equals(fontSize(element.children[1]), fontSizeAtScriptLevelZero, epsilon, "under");
       }, `automatic scriptlevel on munder (accentunder=true)`);
 
       test(function() {
-          var element = document.querySelector("mover[accent='true']");
+          var element = document.getElementById("mover-accent")
           assert_approx_equals(fontSize(element.children[0]), fontSizeAtScriptLevelZero, epsilon, "base");
           assert_approx_equals(fontSize(element.children[1]), fontSizeAtScriptLevelZero, epsilon, "over");
       }, `automatic scriptlevel on mover (accent=true)`);
 
       test(function() {
-          var element = document.querySelector("munderover[accentunder='true']");
+          var element = document.getElementById("munderover-accentunder")
           assert_approx_equals(fontSize(element.children[0]), fontSizeAtScriptLevelZero, epsilon, "base");
           assert_approx_equals(fontSize(element.children[1]), fontSizeAtScriptLevelZero, epsilon, "under");
           assert_approx_equals(fontSize(element.children[2]), fontSizeAtScriptLevelZero * .71, epsilon, "over");
       }, `automatic scriptlevel on munderover (accentunder=true)`);
 
       test(function() {
-          var element = document.querySelector("munderover[accent='true']");
+          var element = document.getElementById("munderover-accent")
           assert_approx_equals(fontSize(element.children[0]), fontSizeAtScriptLevelZero, epsilon, "base");
           assert_approx_equals(fontSize(element.children[1]), fontSizeAtScriptLevelZero * .71, epsilon, "under");
           assert_approx_equals(fontSize(element.children[2]), fontSizeAtScriptLevelZero, epsilon, "over");
       }, `automatic scriptlevel on munderover (accent=true)`);
 
       test(function() {
-          var element = document.getElementById("munderover-dynamic-case-insensitive")
+          var element = document.getElementById("munderover-case-insensitive")
+          assert_approx_equals(fontSize(element.children[0]), fontSizeAtScriptLevelZero, epsilon, "base");
+          assert_approx_equals(fontSize(element.children[1]), fontSizeAtScriptLevelZero, epsilon, "under");
+          assert_approx_equals(fontSize(element.children[2]), fontSizeAtScriptLevelZero, epsilon, "over");
+      }, "checking case-insensitivity accent/accentunder");
+
+      test(function() {
+          var element = document.getElementById("munderover-dynamic")
           assert_approx_equals(fontSize(element.children[0]), fontSizeAtScriptLevelZero, epsilon, "base");
           assert_approx_equals(fontSize(element.children[1]), fontSizeAtScriptLevelZero * .71, epsilon, "under");
           assert_approx_equals(fontSize(element.children[2]), fontSizeAtScriptLevelZero, epsilon, "over");
 
           element.removeAttribute("accent");
-          element.setAttribute("accentunder", "TrUe");
+          element.setAttribute("accentunder", "true");
           assert_approx_equals(fontSize(element.children[0]), fontSizeAtScriptLevelZero, epsilon, "base");
           assert_approx_equals(fontSize(element.children[1]), fontSizeAtScriptLevelZero, epsilon, "under");
           assert_approx_equals(fontSize(element.children[2]), fontSizeAtScriptLevelZero * .71, epsilon, "over");
-       }, "checking dynamic/case-insensitive accent/accentunder");
+      }, "checking dynamic accent/accentunder");
 
       done();
   }
@@ -179,26 +186,26 @@
     </p>
     <p>
       <math>
-        <munder accentunder="true">
+        <munder id="munder-accentunder" accentunder="true">
           <mn>0</mn>
           <mn>1</mn>
         </munder>
       </math>
       <math>
-        <mover accent="true">
+        <mover id="mover-accent" accent="true">
           <mn>0</mn>
           <mn>1</mn>
         </mover>
       </math>
       <math>
-        <munderover accent="true">
+        <munderover id="munderover-accent" accent="true">
           <mn>0</mn>
           <mn>1</mn>
           <mn>2</mn>
         </munderover>
       </math>
       <math>
-        <munderover accentunder="true">
+        <munderover id="munderover-accentunder" accentunder="true">
           <mn>0</mn>
           <mn>1</mn>
           <mn>2</mn>
@@ -207,7 +214,16 @@
     </p>
     <p>
       <math>
-        <munderover id="munderover-dynamic-case-insensitive" accent="TrUe">
+        <munderover id="munderover-case-insensitive" accent="TrUe" accentunder="TrUe">
+          <mn>0</mn>
+          <mn>1</mn>
+          <mn>2</mn>
+        </munderover>
+      </math>
+    </p>
+    <p>
+      <math>
+        <munderover id="munderover-dynamic" accent="true">
           <mn>0</mn>
           <mn>1</mn>
           <mn>2</mn>
