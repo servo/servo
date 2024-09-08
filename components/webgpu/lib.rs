@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use log::warn;
+pub use swapchain::{PresentationData, WGPUExternalImages};
 use webrender::RenderApiSender;
 use wgpu_thread::WGPU;
 pub use {wgpu_core as wgc, wgpu_types as wgt};
@@ -15,27 +16,23 @@ use std::borrow::Cow;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
-use arrayvec::ArrayVec;
-use euclid::default::Size2D;
 pub use gpu_error::{Error, ErrorFilter, PopError};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 pub use render_commands::RenderCommand;
 use serde::{Deserialize, Serialize};
 use servo_config::pref;
-use webrender_api::{DocumentId, ImageData, ImageDescriptor, ImageKey};
-use webrender_traits::{
-    WebrenderExternalImageApi, WebrenderExternalImageRegistry, WebrenderImageSource,
-};
-use wgc::id;
+use webrender_api::DocumentId;
+use webrender_traits::WebrenderExternalImageRegistry;
 
 mod gpu_error;
 mod ipc_messages;
 mod render_commands;
+mod swapchain;
 pub use identity::*;
 pub use ipc_messages::recv::*;
 pub use ipc_messages::to_dom::*;
 pub use ipc_messages::to_script::*;
-pub use wgpu_thread::PRESENTATION_BUFFER_COUNT;
+pub use swapchain::PRESENTATION_BUFFER_COUNT;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct WebGPU(pub IpcSender<WebGPURequest>);
@@ -99,47 +96,4 @@ impl WebGPU {
             .send(WebGPURequest::Exit(sender))
             .map_err(|_| "Failed to send Exit message")
     }
-}
-
-#[derive(Default)]
-pub struct WGPUExternalImages {
-    pub images: Arc<Mutex<HashMap<u64, PresentationData>>>,
-    pub locked_ids: HashMap<u64, Vec<u8>>,
-}
-
-impl WebrenderExternalImageApi for WGPUExternalImages {
-    fn lock(&mut self, id: u64) -> (WebrenderImageSource, Size2D<i32>) {
-        let size;
-        let data;
-        if let Some(present_data) = self.images.lock().unwrap().get(&id) {
-            size = present_data.size;
-            data = present_data.data.clone();
-        } else {
-            size = Size2D::new(0, 0);
-            data = Vec::new();
-        }
-        let _ = self.locked_ids.insert(id, data);
-        (
-            WebrenderImageSource::Raw(self.locked_ids.get(&id).unwrap().as_slice()),
-            size,
-        )
-    }
-
-    fn unlock(&mut self, id: u64) {
-        let _ = self.locked_ids.remove(&id);
-    }
-}
-
-pub struct PresentationData {
-    device_id: id::DeviceId,
-    queue_id: id::QueueId,
-    pub data: Vec<u8>,
-    pub size: Size2D<i32>,
-    unassigned_buffer_ids: ArrayVec<id::BufferId, PRESENTATION_BUFFER_COUNT>,
-    available_buffer_ids: ArrayVec<id::BufferId, PRESENTATION_BUFFER_COUNT>,
-    queued_buffer_ids: ArrayVec<id::BufferId, PRESENTATION_BUFFER_COUNT>,
-    buffer_stride: u32,
-    image_key: ImageKey,
-    image_desc: ImageDescriptor,
-    image_data: ImageData,
 }

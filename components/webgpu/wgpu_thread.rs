@@ -42,9 +42,8 @@ use crate::render_commands::apply_render_command;
 use crate::{
     Adapter, ComputePassId, Error, Mapping, Pipeline, PopError, PresentationData, RenderPassId,
     WebGPU, WebGPUAdapter, WebGPUDevice, WebGPUMsg, WebGPUQueue, WebGPURequest, WebGPUResponse,
+    PRESENTATION_BUFFER_COUNT,
 };
-
-pub const PRESENTATION_BUFFER_COUNT: usize = 10;
 
 #[derive(Eq, Hash, PartialEq)]
 pub(crate) struct DeviceScope {
