@@ -46,102 +46,22 @@ env:
   RUSTUP_WINDOWS_PATH_ADD_BIN: 1
 
 jobs:
-  # Automatic runner selection for job: build
   # Runs the underlying job (“workload”) on a self-hosted runner if available,
   # with the help of a `runner-select` job and a `runner-timeout` job.
-
-  # Selects a self-hosted runner if available, or else a GitHub-hosted runner.
-  # We generate a unique id for the workload, find an idle self-hosted runner
-  # with the given `image:` label that wasn’t already reserved by another
-  # `runner-select` job run, and reserve it with a `reserved-for:<id>` label.
   runner-select:
-    name: Select Runner
-    runs-on: ubuntu-latest
-    outputs:
-      unique-id: ${{ steps.select.outputs.unique_id }}
-      selected-runner-label: ${{ steps.select.outputs.selected_runner_label }}
-      is-self-hosted: ${{ steps.select.outputs.is_self_hosted }}
-    steps:
-      - name: Select and reserve best available runner
-        id: select
-        # Set the variables below to your desired runner images, runner scope
-        # (org or repo), and monitor API URL.
-        run: |
-          github_hosted_runner_label=windows-2022
-          self_hosted_image_name=servo-windows10
-          self_hosted_runner_scope=/orgs/${{ github.repository_owner }}/actions/runners
-          monitor_api_base_url=https://ci0.servo.org
-
-          set -euo pipefail
-
-          fall_back_to_github_hosted() {
-            echo 'Falling back to GitHub-hosted runner'
-            echo "selected_runner_label=$github_hosted_runner_label" | tee -a $GITHUB_OUTPUT
-            echo 'is_self_hosted=false' | tee -a $GITHUB_OUTPUT
-            exit 0
-          }
-
-          # Generate a unique id that allows the workload job to find the runner
-          # we are reserving for it (via runner labels), and allows the timeout
-          # job to find the workload job run (via the job’s friendly name), even
-          # if there are multiple instances in the workflow call tree.
-          unique_id=$(uuidgen)
-          echo "unique_id=$unique_id" | tee -a $GITHUB_OUTPUT
-
-          # Disable self-hosted runners by creating a repository variable named
-          # NO_SELF_HOSTED_RUNNERS with any non-empty value.
-          # <https://github.com/servo/servo/settings/variables/actions>
-          if [ -n '${{ vars.NO_SELF_HOSTED_RUNNERS }}' ]; then
-            echo 'NO_SELF_HOSTED_RUNNERS is set!'
-            fall_back_to_github_hosted
-          fi
-
-          # Use the monitor API to reserve a runner. If we get an object with
-          # runner details, we succeeded. If we get null, we failed.
-          take_runner_url=$monitor_api_base_url/$self_hosted_image_name/$unique_id/${{ github.repository }}/${{ github.run_id }}
-          echo
-          echo POST "$take_runner_url"
-          if ! curl -fsS --max-time 10 -X POST "$take_runner_url" \
-              -H 'Authorization: Bearer ${{ secrets.SERVO_CI_MONITOR_API_TOKEN }}' \
-              | jq -e; then
-            echo
-            echo 'No self-hosted runners available!'
-            fall_back_to_github_hosted
-          fi
-
-          echo
-          echo "selected_runner_label=reserved-for:$unique_id" | tee -a $GITHUB_OUTPUT
-          echo 'is_self_hosted=true' | tee -a $GITHUB_OUTPUT
-
-  # In the unlikely event a self-hosted runner was selected and reserved but it
-  # goes down before the workload starts, cancel the workflow run.
+    uses: ./.github/workflows/self-hosted-runner-select.yml
+    secrets: inherit
+    with:
+      github-hosted-runner-label: windows-2022
+      self-hosted-image-name: servo-windows10
   runner-timeout:
     needs:
       - runner-select
-    if: ${{ fromJSON(needs.runner-select.outputs.is-self-hosted) }}
-    name: Detect Runner Timeout
-    runs-on: ubuntu-latest
-    steps:
-      - name: Wait a bit
-        run: sleep 30
-
-      - name: Cancel if workload job is still queued
-        run: |
-          run_url=/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          export GH_TOKEN=${{ secrets.GITHUB_TOKEN }}
-
-          if [ "$(gh api "$run_url/jobs" \
-            | jq -er --arg id '${{ needs.runner-select.outputs.unique-id }}' \
-              '.jobs[] | select(.name | contains("[" + $id + "]")) | .status'
-          )" = queued ]; then
-            echo 'Timeout waiting for runner assignment!'
-            echo 'Hint: does this repo have permission to access the runner group?'
-            echo 'Hint: https://github.com/organizations/servo/settings/actions/runner-groups'
-            echo
-            echo 'Cancelling workflow run'
-            gh api "$run_url/cancel" --method POST
-            exit 1
-          fi
+    uses: ./.github/workflows/self-hosted-runner-timeout.yml
+    secrets: inherit
+    with:
+      selected-runner-label: ${{ needs.runner-select.outputs.selected-runner-label }}
+      is-self-hosted: ${{ fromJSON(needs.runner-select.outputs.is-self-hosted) }}
 
   build:
     needs:
