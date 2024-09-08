@@ -130,11 +130,11 @@ pub(super) struct LineItemLayout<'layout_data, 'layout> {
     /// The state of the overall [`super::InlineFormattingContext`] layout.
     layout: &'layout mut InlineFormattingContextLayout<'layout_data>,
 
-    /// The set of [`super::LineItemLayoutInlineContainerState`] created while laying out items
+    /// The set of [`LineItemLayoutInlineContainerState`] created while laying out items
     /// on this line. This does not include the current level of recursion.
     pub state_stack: Vec<LineItemLayoutInlineContainerState>,
 
-    /// The current [`super::LineItemLayoutInlineContainerState`].
+    /// The current [`LineItemLayoutInlineContainerState`].
     pub current_state: LineItemLayoutInlineContainerState,
 
     /// The metrics of this line, which should remain constant throughout the

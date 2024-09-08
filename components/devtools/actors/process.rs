@@ -2,8 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-//! Liberally derived from the [Firefox JS implementation]
-//! (https://searchfox.org/mozilla-central/source/devtools/server/actors/descriptors/process.js)
+//! Liberally derived from the [Firefox JS implementation].
+//!
+//! [Firefox JS implementation]: https://searchfox.org/mozilla-central/source/devtools/server/actors/descriptors/process.js
 
 use std::net::TcpStream;
 

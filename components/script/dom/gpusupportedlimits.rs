@@ -202,7 +202,7 @@ impl GPUSupportedLimitsMethods for GPUSupportedLimits {
 pub fn set_limit(limits: &mut Limits, limit: &str, value: u64) -> bool {
     /// per spec defaults are lower bounds for values
     ///
-    /// https://www.w3.org/TR/webgpu/#limit-class-maximum
+    /// <https://www.w3.org/TR/webgpu/#limit-class-maximum>
     fn set_maximum<T>(limit: &mut T, value: u64) -> bool
     where
         T: Ord + Copy + TryFrom<u64> + UpperBounded,

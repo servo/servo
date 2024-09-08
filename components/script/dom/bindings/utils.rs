@@ -625,7 +625,7 @@ impl AsCCharPtrPtr for [u8] {
     }
 }
 
-/// https://searchfox.org/mozilla-central/rev/7279a1df13a819be254fd4649e07c4ff93e4bd45/dom/bindings/BindingUtils.cpp#3300
+/// <https://searchfox.org/mozilla-central/rev/7279a1df13a819be254fd4649e07c4ff93e4bd45/dom/bindings/BindingUtils.cpp#3300>
 pub unsafe extern "C" fn generic_static_promise_method(
     cx: *mut JSContext,
     argc: libc::c_uint,
@@ -646,7 +646,7 @@ pub unsafe extern "C" fn generic_static_promise_method(
 
 /// Coverts exception to promise rejection
 ///
-/// https://searchfox.org/mozilla-central/rev/b220e40ff2ee3d10ce68e07d8a8a577d5558e2a2/dom/bindings/BindingUtils.cpp#3315
+/// <https://searchfox.org/mozilla-central/rev/b220e40ff2ee3d10ce68e07d8a8a577d5558e2a2/dom/bindings/BindingUtils.cpp#3315>
 pub unsafe fn exception_to_promise(cx: *mut JSContext, rval: RawMutableHandleValue) -> bool {
     rooted!(in(cx) let mut exception = UndefinedValue());
     if !JS_GetPendingException(cx, exception.handle_mut()) {

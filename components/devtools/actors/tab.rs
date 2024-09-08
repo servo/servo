@@ -2,10 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-//! Liberally derived from the [Firefox JS implementation]
-//! (https://searchfox.org/mozilla-central/source/devtools/server/actors/descriptors/tab.js)
 //! Descriptor actor that represents a web view. It can link a tab to the corresponding watcher
 //! actor to enable inspection.
+//!
+//! Liberally derived from the [Firefox JS implementation].
+//!
+//! [Firefox JS implementation]: https://searchfox.org/mozilla-central/source/devtools/server/actors/descriptors/tab.js
 
 use std::net::TcpStream;
 

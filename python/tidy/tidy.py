@@ -32,7 +32,10 @@ CONFIG_FILE_PATH = os.path.join(".", "servo-tidy.toml")
 WPT_CONFIG_INI_PATH = os.path.join(WPT_PATH, "config.ini")
 # regex source https://stackoverflow.com/questions/6883049/
 URL_REGEX = re.compile(br'https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+')
+UTF8_URL_REGEX = re.compile(r'https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+')
 CARGO_LOCK_FILE = os.path.join(TOPDIR, "Cargo.lock")
+
+ERROR_RAW_URL_IN_RUSTDOC = "Found raw link in rustdoc. Please escape it with angle brackets or use a markdown link."
 
 sys.path.append(os.path.join(WPT_PATH, "tests"))
 sys.path.append(os.path.join(WPT_PATH, "tests", "tools", "wptrunner"))
@@ -306,13 +309,39 @@ def check_whitespace(idx, line):
         yield (idx + 1, "CR on line")
 
 
-def check_by_line(file_name, lines):
+def check_for_raw_urls_in_rustdoc(file_name: str, idx: int, line: bytes):
+    """Check that rustdoc comments in Rust source code do not have raw URLs. These appear
+    as warnings when rustdoc is run. rustdoc warnings could be made fatal, but adding this
+    check as part of tidy catches this common problem without having to run rustdoc for all
+    of Servo."""
+    if not file_name.endswith(".rs"):
+        return
+
+    if b"///" not in line and b"//!" not in line:
+        return
+
+    # Types of URLS that are allowed:
+    #  - A URL surrounded by angle or square brackets.
+    #  - A markdown link.
+    #  - A URL as part of a markdown definition identifer.
+    #    [link text]: https://example.com
+    match = URL_REGEX.search(line)
+    if match and (
+            not line[match.start() - 1:].startswith(b"<")
+            and not line[match.start() - 1:].startswith(b"[")
+            and not line[match.start() - 2:].startswith(b"](")
+            and not line[match.start() - 3:].startswith(b"]: ")):
+        yield (idx + 1, ERROR_RAW_URL_IN_RUSTDOC)
+
+
+def check_by_line(file_name: str, lines: list[bytes]):
     for idx, line in enumerate(lines):
         errors = itertools.chain(
             check_length(file_name, idx, line),
             check_whitespace(idx, line),
             check_whatwg_specific_url(idx, line),
             check_whatwg_single_page_url(idx, line),
+            check_for_raw_urls_in_rustdoc(file_name, idx, line),
         )
 
         for error in errors:

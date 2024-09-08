@@ -2,10 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-//! Liberally derived from the [Firefox JS implementation]
-//! (https://searchfox.org/mozilla-central/source/devtools/server/actors/root.js).
 //! Connection point for all new remote devtools interactions, providing lists of know actors
 //! that perform more specific actions (targets, addons, browser chrome, etc.)
+//!
+//! Liberally derived from the [Firefox JS implementation].
+//!
+//! [Firefox JS implementation]: https://searchfox.org/mozilla-central/source/devtools/server/actors/root.js
 
 use std::net::TcpStream;
 
