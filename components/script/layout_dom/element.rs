@@ -429,6 +429,12 @@ impl<'dom> style::dom::TElement for ServoLayoutElement<'dom> {
         F: FnMut(&AtomIdent),
     {
     }
+
+    /// Convert an opaque element back into the element.
+    fn unopaque(opaque: ::selectors::OpaqueElement) -> Self {
+        // This is wrong
+        unsafe { *opaque.as_const_ptr::<Self>().as_ref().unwrap() }
+    }
 }
 
 impl<'dom> ::selectors::Element for ServoLayoutElement<'dom> {
