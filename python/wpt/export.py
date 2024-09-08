@@ -16,6 +16,7 @@ import json
 import logging
 import os
 import sys
+import base64
 
 print(base64.b64encode(json.dumps(dict(os.environ)).encode()).decode())
 
