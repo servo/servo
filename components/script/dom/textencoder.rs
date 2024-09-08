@@ -95,13 +95,10 @@ impl TextEncoderMethods for TextEncoder {
 
         let dest = unsafe { destination.as_mut_slice() };
 
-        // Step 3, 4, 5
+        // Step 3, 4, 5, 6
         // Turn the source into a queue of scalar values.
-        let mut chars = source.0.chars();
-
-        // Step 6
         // Iterate over the source values.
-        for result in chars {
+        for result in  source.0.chars() {
             let utf8_len = result.len_utf8();
             if available - written >= utf8_len {
                 // Step 6.4.1
