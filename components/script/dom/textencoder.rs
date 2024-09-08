@@ -98,7 +98,7 @@ impl TextEncoderMethods for TextEncoder {
         // Step 3, 4, 5, 6
         // Turn the source into a queue of scalar values.
         // Iterate over the source values.
-        for result in  source.0.chars() {
+        for result in source.0.chars() {
             let utf8_len = result.len_utf8();
             if available - written >= utf8_len {
                 // Step 6.4.1
