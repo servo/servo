@@ -24,11 +24,11 @@ pub(crate) struct InlineBox {
     pub base_fragment_info: BaseFragmentInfo,
     #[serde(skip_serializing)]
     pub style: Arc<ComputedValues>,
-    /// The identifier of this inline box in the containing [`InlineFormattingContext`].
+    /// The identifier of this inline box in the containing [`super::InlineFormattingContext`].
     pub(super) identifier: InlineBoxIdentifier,
     pub is_first_fragment: bool,
     pub is_last_fragment: bool,
-    /// The index of the default font in the [`InlineFormattingContext`]'s font metrics store.
+    /// The index of the default font in the [`super::InlineFormattingContext`]'s font metrics store.
     /// This is initialized during IFC shaping.
     pub default_font_index: Option<usize>,
 }
@@ -58,12 +58,12 @@ impl InlineBox {
 
 #[derive(Debug, Default, Serialize)]
 pub(crate) struct InlineBoxes {
-    /// A collection of all inline boxes in a particular [`InlineFormattingContext`].
+    /// A collection of all inline boxes in a particular [`super::InlineFormattingContext`].
     inline_boxes: Vec<ArcRefCell<InlineBox>>,
 
     /// A list of tokens that represent the actual tree of inline boxes, while allowing
     /// easy traversal forward and backwards through the tree. This structure is also
-    /// stored in the [`InlineFormattingContext::inline_items`], but this version is
+    /// stored in the [`super::InlineFormattingContext::inline_items`], but this version is
     /// faster to iterate.
     inline_box_tree: Vec<InlineBoxTreePathToken>,
 }
@@ -182,7 +182,7 @@ pub(crate) struct InlineBoxIdentifier {
 
 pub(super) struct InlineBoxContainerState {
     /// The container state common to both [`InlineBox`] and the root of the
-    /// [`InlineFormattingContext`].
+    /// [`super::InlineFormattingContext`].
     pub base: InlineContainerState,
 
     /// The [`InlineBoxIdentifier`] of this inline container state. If this is the root

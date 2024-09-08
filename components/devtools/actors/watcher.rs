@@ -2,11 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-//! Liberally derived from the [Firefox JS implementation]
-//! (https://searchfox.org/mozilla-central/source/devtools/server/actors/watcher.js).
 //! The watcher is the main entry point when debugging an element. Right now only web views are supported.
 //! It talks to the devtools remote and lists the capabilities of the inspected target, and it serves
 //! as a bridge for messages between actors.
+//!
+//! Liberally derived from the [Firefox JS implementation].
+//!
+//! [Firefox JS implementation]: https://searchfox.org/mozilla-central/source/devtools/server/actors/descriptors/watcher.js
 
 use std::collections::HashMap;
 use std::net::TcpStream;

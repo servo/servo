@@ -217,7 +217,7 @@ enum ObservationState {
     Skipped,
 }
 
-/// https://drafts.csswg.org/resize-observer/#resizeobservation
+/// <https://drafts.csswg.org/resize-observer/#resizeobservation>
 #[derive(JSTraceable, MallocSizeOf)]
 struct ResizeObservation {
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobservation-target>

@@ -140,7 +140,7 @@ pub(crate) struct DisplayListBuilder<'a> {
     /// list building functions.
     current_scroll_node_id: ScrollTreeNodeId,
 
-    /// The current [ScrollNodeTreeId] for this [DisplayListBuilder]. This is necessary in addition
+    /// The current [ScrollTreeNodeId] for this [DisplayListBuilder]. This is necessary in addition
     /// to the [Self::current_scroll_node_id], because some pieces of fragments as backgrounds with
     /// `background-attachment: fixed` need to not scroll while the rest of the fragment does.
     current_reference_frame_scroll_node_id: ScrollTreeNodeId,

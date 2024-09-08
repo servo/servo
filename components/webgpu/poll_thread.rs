@@ -42,7 +42,7 @@ pub(crate) struct Poller {
     handle: Option<JoinHandle<()>>,
     /// Lock for device maintain calls (in poll_all_devices and queue_submit)
     ///
-    /// This is workaround for wgpu deadlocks: https://github.com/gfx-rs/wgpu/issues/5572
+    /// This is workaround for wgpu deadlocks: <https://github.com/gfx-rs/wgpu/issues/5572>
     lock: Arc<Mutex<()>>,
 }
 

@@ -49,7 +49,7 @@ impl FontFaceSet {
 }
 
 impl FontFaceSetMethods for FontFaceSet {
-    /// https://drafts.csswg.org/css-font-loading/#dom-fontfaceset-ready
+    /// <https://drafts.csswg.org/css-font-loading/#dom-fontfaceset-ready>
     fn Ready(&self) -> Rc<Promise> {
         self.promise.clone()
     }

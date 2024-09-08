@@ -737,9 +737,8 @@ impl<'layout_dta> InlineFormattingContextLayout<'layout_dta> {
         self.inline_box_state_stack.push(inline_box_state);
     }
 
-    /// Finish laying out a particular [`InlineBox`] into line items. This will add the
-    /// final [`InlineBoxLineItem`] to the state and pop its state off of
-    /// [`Self::inline_box_state_stack`].
+    /// Finish laying out a particular [`InlineBox`] into line items. This will
+    /// pop its state off of [`Self::inline_box_state_stack`].
     fn finish_inline_box(&mut self) {
         let inline_box_state = match self.inline_box_state_stack.pop() {
             Some(inline_box_state) => inline_box_state,

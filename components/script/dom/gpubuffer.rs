@@ -216,7 +216,7 @@ impl GPUBufferMethods for GPUBuffer {
         }
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpubuffer-destroy
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpubuffer-destroy>
     fn Destroy(&self) {
         // Step 1
         self.Unmap();

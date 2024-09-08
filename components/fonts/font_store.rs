@@ -184,7 +184,7 @@ impl WebRenderFontStore {
 /// have a complex set of fonts.
 ///
 /// This optimization is taken from:
-/// https://searchfox.org/mozilla-central/source/gfx/thebes/gfxFontEntry.cpp.
+/// <https://searchfox.org/mozilla-central/source/gfx/thebes/gfxFontEntry.cpp>.
 #[derive(Clone, Debug, Default)]
 struct SimpleFamily {
     regular: Option<FontTemplateRef>,
