@@ -20,8 +20,9 @@ use webrender_api::{
 };
 use webrender_traits::{WebrenderExternalImageApi, WebrenderImageSource};
 use wgpu_core::device::HostMap;
+use wgpu_core::global::Global;
 use wgpu_core::id;
-use wgpu_core::resource::{BufferMapCallback, BufferMapOperation};
+use wgpu_core::resource::{BufferAccessError, BufferMapCallback, BufferMapOperation};
 
 use crate::{wgt, WebGPUMsg};
 
@@ -229,49 +230,26 @@ impl crate::WGPU {
         );
         let _ = global.command_encoder_finish(encoder_id, &wgt::CommandBufferDescriptor::default());
         let _ = global.queue_submit(queue_id, &[encoder_id.into_command_buffer_id()]);
-        let glob = Arc::clone(&self.global);
-        let wgpu_image_map = Arc::clone(&self.wgpu_image_map);
-        let webrender_api = Arc::clone(&self.webrender_api);
-        let webrender_document = self.webrender_document;
-        let token = self.poller.token();
-        let callback = BufferMapCallback::from_rust(Box::from(move |result| {
-            drop(token);
-            match result {
-                Ok(()) => {
-                    let global = &glob;
-                    let (slice_pointer, range_size) = global
-                        .buffer_get_mapped_range(buffer_id, 0, Some(buffer_size as u64))
-                        .unwrap();
-                    let data = unsafe {
-                        slice::from_raw_parts(slice_pointer.as_ptr(), range_size as usize)
-                    }
-                    .to_vec();
-                    if let Some(present_data) = wgpu_image_map.lock().unwrap().get_mut(&context_id)
-                    {
-                        present_data.data = data;
-                        let mut txn = Transaction::new();
-                        txn.update_image(
-                            present_data.image_key,
-                            present_data.image_desc,
-                            present_data.image_data.clone(),
-                            &DirtyRect::All,
-                        );
-                        webrender_api
-                            .lock()
-                            .unwrap()
-                            .send_transaction(webrender_document, txn);
-                        present_data
-                            .queued_buffer_ids
-                            .retain(|b_id| *b_id != buffer_id);
-                        present_data.available_buffer_ids.push(buffer_id);
-                    } else {
-                        error!("Data not found for {:?}", context_id);
-                    }
-                    let _ = global.buffer_unmap(buffer_id);
-                },
-                _ => error!("Could not map buffer({:?})", buffer_id),
-            }
-        }));
+        let callback = {
+            let global = Arc::clone(&self.global);
+            let wgpu_image_map = Arc::clone(&self.wgpu_image_map);
+            let webrender_api = Arc::clone(&self.webrender_api);
+            let webrender_document = self.webrender_document;
+            let token = self.poller.token();
+            BufferMapCallback::from_rust(Box::from(move |result| {
+                drop(token);
+                update_wr_image(
+                    result,
+                    global,
+                    buffer_id,
+                    buffer_size,
+                    wgpu_image_map,
+                    context_id,
+                    webrender_api,
+                    webrender_document,
+                );
+            }))
+        };
         let map_op = BufferMapOperation {
             host: HostMap::Read,
             callback: Some(callback),
@@ -311,5 +289,49 @@ impl crate::WGPU {
             .lock()
             .unwrap()
             .send_transaction(self.webrender_document, txn);
+    }
+}
+
+fn update_wr_image(
+    result: Result<(), BufferAccessError>,
+    global: Arc<Global>,
+    buffer_id: id::BufferId,
+    buffer_size: u64,
+    wgpu_image_map: WGPUImageMap,
+    context_id: WebGPUContextId,
+    webrender_api: Arc<Mutex<RenderApi>>,
+    webrender_document: webrender_api::DocumentId,
+) {
+    match result {
+        Ok(()) => {
+            let (slice_pointer, range_size) = global
+                .buffer_get_mapped_range(buffer_id, 0, Some(buffer_size as u64))
+                .unwrap();
+            let data =
+                unsafe { slice::from_raw_parts(slice_pointer.as_ptr(), range_size as usize) }
+                    .to_vec();
+            if let Some(present_data) = wgpu_image_map.lock().unwrap().get_mut(&context_id) {
+                present_data.data = data;
+                let mut txn = Transaction::new();
+                txn.update_image(
+                    present_data.image_key,
+                    present_data.image_desc,
+                    present_data.image_data.clone(),
+                    &DirtyRect::All,
+                );
+                webrender_api
+                    .lock()
+                    .unwrap()
+                    .send_transaction(webrender_document, txn);
+                present_data
+                    .queued_buffer_ids
+                    .retain(|b_id| *b_id != buffer_id);
+                present_data.available_buffer_ids.push(buffer_id);
+            } else {
+                error!("Data not found for {:?}", context_id);
+            }
+            let _ = global.buffer_unmap(buffer_id);
+        },
+        _ => error!("Could not map buffer({:?})", buffer_id),
     }
 }
