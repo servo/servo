@@ -106,7 +106,7 @@ servo-media = { git = "https://github.com/servo/media" }
 servo-media-dummy = { git = "https://github.com/servo/media" }
 servo-media-gstreamer = { git = "https://github.com/servo/media" }
 servo_arc = { git = "https://github.com/servo/stylo", branch = "2024-07-16", features = ["servo"] }
-servo_atoms = { git = "https://github.com/Taym95/stylo", branch = "add-test-wait" }
+servo_atoms = { git = "https://github.com/servo/stylo", branch = "2024-07-16" }
 size_of_test = { git = "https://github.com/servo/stylo", branch = "2024-07-16" }
 smallbitvec = "2.5.3"
 smallvec = "1.13"

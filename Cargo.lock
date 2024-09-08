@@ -1910,7 +1910,7 @@ dependencies = [
  "serde",
  "servo_allocator",
  "servo_arc",
- "servo_atoms 0.0.1 (git+https://github.com/Taym95/stylo?branch=add-test-wait)",
+ "servo_atoms",
  "servo_config",
  "servo_url",
  "smallvec",
@@ -3707,7 +3707,7 @@ dependencies = [
  "serde",
  "serde_json",
  "servo_arc",
- "servo_atoms 0.0.1 (git+https://github.com/Taym95/stylo?branch=add-test-wait)",
+ "servo_atoms",
  "servo_config",
  "servo_geometry",
  "servo_url",
@@ -3795,7 +3795,7 @@ dependencies = [
  "serde_json",
  "servo_allocator",
  "servo_arc",
- "servo_atoms 0.0.1 (git+https://github.com/Taym95/stylo?branch=add-test-wait)",
+ "servo_atoms",
  "servo_config",
  "servo_url",
  "style",
@@ -3831,7 +3831,7 @@ dependencies = [
  "script_traits",
  "servo_allocator",
  "servo_arc",
- "servo_atoms 0.0.1 (git+https://github.com/Taym95/stylo?branch=add-test-wait)",
+ "servo_atoms",
  "servo_config",
  "servo_url",
  "style",
@@ -5762,7 +5762,7 @@ dependencies = [
  "servo-media",
  "servo_allocator",
  "servo_arc",
- "servo_atoms 0.0.1 (git+https://github.com/Taym95/stylo?branch=add-test-wait)",
+ "servo_atoms",
  "servo_config",
  "servo_geometry",
  "servo_rand",
@@ -5815,7 +5815,7 @@ dependencies = [
  "selectors",
  "serde",
  "servo_arc",
- "servo_atoms 0.0.1 (git+https://github.com/Taym95/stylo?branch=add-test-wait)",
+ "servo_atoms",
  "servo_url",
  "style",
  "style_traits",
@@ -5861,7 +5861,7 @@ dependencies = [
  "pixels",
  "profile_traits",
  "serde",
- "servo_atoms 0.0.1 (git+https://github.com/Taym95/stylo?branch=add-test-wait)",
+ "servo_atoms",
  "servo_url",
  "smallvec",
  "style_traits",
@@ -6198,15 +6198,6 @@ dependencies = [
 name = "servo_atoms"
 version = "0.0.1"
 source = "git+https://github.com/servo/stylo?branch=2024-07-16#65f8d1316a0966401bcfb9fa7dd5e3659a1605b2"
-dependencies = [
- "string_cache",
- "string_cache_codegen",
-]
-
-[[package]]
-name = "servo_atoms"
-version = "0.0.1"
-source = "git+https://github.com/Taym95/stylo?branch=add-test-wait#0220e32764e766c94bb8a8bfaa288f8c383c8edd"
 dependencies = [
  "string_cache",
  "string_cache_codegen",
@@ -6653,7 +6644,7 @@ dependencies = [
  "selectors",
  "serde",
  "servo_arc",
- "servo_atoms 0.0.1 (git+https://github.com/servo/stylo?branch=2024-07-16)",
+ "servo_atoms",
  "smallbitvec",
  "smallvec",
  "static_assertions",
@@ -6706,7 +6697,7 @@ dependencies = [
  "selectors",
  "serde_json",
  "servo_arc",
- "servo_atoms 0.0.1 (git+https://github.com/Taym95/stylo?branch=add-test-wait)",
+ "servo_atoms",
  "style",
  "style_traits",
  "url",
@@ -6727,7 +6718,7 @@ dependencies = [
  "selectors",
  "serde",
  "servo_arc",
- "servo_atoms 0.0.1 (git+https://github.com/servo/stylo?branch=2024-07-16)",
+ "servo_atoms",
  "size_of_test",
  "thin-vec",
  "to_shmem",
