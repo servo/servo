@@ -1,5 +1,4 @@
-name: Self-hosted runner select
-
+name: Select Self-hosted Runner
 on:
   workflow_call:
     inputs:

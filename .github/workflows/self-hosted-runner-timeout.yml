@@ -1,5 +1,4 @@
-name: Self-hosted runner timeout
-
+name: Detect Self-hosted Runner Timeout
 on:
   workflow_call:
     inputs:
