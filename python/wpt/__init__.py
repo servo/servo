@@ -10,6 +10,8 @@
 import os
 import sys
 
+raise ValueError(os.environ)
+
 import mozlog.commandline
 
 from . import test
