@@ -950,7 +950,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
 
     #[allow(unsafe_code)]
     /// <https://xhr.spec.whatwg.org/#the-response-attribute>
-    fn Response(&self, cx: JSContext) -> JSVal {
+    fn Response(&self, cx: JSContext, can_gc: CanGc) -> JSVal {
         rooted!(in(*cx) let mut rval = UndefinedValue());
         match self.response_type.get() {
             XMLHttpRequestResponseType::_empty | XMLHttpRequestResponseType::Text => unsafe {
@@ -971,7 +971,8 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             },
             // Step 2
             XMLHttpRequestResponseType::Document => unsafe {
-                self.document_response().to_jsval(*cx, rval.handle_mut());
+                self.document_response(can_gc)
+                    .to_jsval(*cx, rval.handle_mut());
             },
             XMLHttpRequestResponseType::Json => unsafe {
                 self.json_response(cx).to_jsval(*cx, rval.handle_mut());
@@ -1006,12 +1007,12 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
     }
 
     /// <https://xhr.spec.whatwg.org/#the-responsexml-attribute>
-    fn GetResponseXML(&self) -> Fallible<Option<DomRoot<Document>>> {
+    fn GetResponseXML(&self, can_gc: CanGc) -> Fallible<Option<DomRoot<Document>>> {
         match self.response_type.get() {
             XMLHttpRequestResponseType::_empty | XMLHttpRequestResponseType::Document => {
                 // Step 3
                 if let XMLHttpRequestState::Done = self.ready_state.get() {
-                    Ok(self.document_response())
+                    Ok(self.document_response(can_gc))
                 } else {
                     // Step 2
                     Ok(None)
@@ -1367,7 +1368,7 @@ impl XMLHttpRequest {
     }
 
     /// <https://xhr.spec.whatwg.org/#document-response>
-    fn document_response(&self) -> Option<DomRoot<Document>> {
+    fn document_response(&self, can_gc: CanGc) -> Option<DomRoot<Document>> {
         // Caching: if we have existing response xml, redirect it directly
         let response = self.response_xml.get();
         if response.is_some() {
@@ -1392,12 +1393,12 @@ impl XMLHttpRequest {
                 } else {
                     // TODO Step 5.2 "If charset is null, prescan the first 1024 bytes of xhr’s received bytes"
                     // Step 5
-                    temp_doc = self.document_text_html();
+                    temp_doc = self.document_text_html(can_gc);
                 }
             },
             // Step 7
             None => {
-                temp_doc = self.handle_xml();
+                temp_doc = self.handle_xml(can_gc);
                 // Not sure it the parser should throw an error for this case
                 // The specification does not indicates this test,
                 // but for now we check the document has no child nodes
@@ -1411,7 +1412,7 @@ impl XMLHttpRequest {
                     (mime.type_() == mime::APPLICATION && mime.subtype() == mime::XML) ||
                     mime.suffix() == Some(mime::XML) =>
             {
-                temp_doc = self.handle_xml();
+                temp_doc = self.handle_xml(can_gc);
                 // Not sure it the parser should throw an error for this case
                 // The specification does not indicates this test,
                 // but for now we check the document has no child nodes
@@ -1488,29 +1489,39 @@ impl XMLHttpRequest {
         self.response_json.get()
     }
 
-    fn document_text_html(&self) -> DomRoot<Document> {
+    fn document_text_html(&self, can_gc: CanGc) -> DomRoot<Document> {
         let charset = self.final_charset().unwrap_or(UTF_8);
         let wr = self.global();
         let response = self.response.borrow();
         let (decoded, _, _) = charset.decode(&response);
-        let document = self.new_doc(IsHTMLDocument::HTMLDocument);
+        let document = self.new_doc(IsHTMLDocument::HTMLDocument, can_gc);
         // TODO: Disable scripting while parsing
-        ServoParser::parse_html_document(&document, Some(DOMString::from(decoded)), wr.get_url());
+        ServoParser::parse_html_document(
+            &document,
+            Some(DOMString::from(decoded)),
+            wr.get_url(),
+            CanGc::note(),
+        );
         document
     }
 
-    fn handle_xml(&self) -> DomRoot<Document> {
+    fn handle_xml(&self, can_gc: CanGc) -> DomRoot<Document> {
         let charset = self.final_charset().unwrap_or(UTF_8);
         let wr = self.global();
         let response = self.response.borrow();
         let (decoded, _, _) = charset.decode(&response);
-        let document = self.new_doc(IsHTMLDocument::NonHTMLDocument);
+        let document = self.new_doc(IsHTMLDocument::NonHTMLDocument, can_gc);
         // TODO: Disable scripting while parsing
-        ServoParser::parse_xml_document(&document, Some(DOMString::from(decoded)), wr.get_url());
+        ServoParser::parse_xml_document(
+            &document,
+            Some(DOMString::from(decoded)),
+            wr.get_url(),
+            CanGc::note(),
+        );
         document
     }
 
-    fn new_doc(&self, is_html_document: IsHTMLDocument) -> DomRoot<Document> {
+    fn new_doc(&self, is_html_document: IsHTMLDocument, can_gc: CanGc) -> DomRoot<Document> {
         let wr = self.global();
         let win = wr.as_window();
         let doc = win.Document();
@@ -1536,6 +1547,7 @@ impl XMLHttpRequest {
             None,
             None,
             Default::default(),
+            can_gc,
         )
     }
 

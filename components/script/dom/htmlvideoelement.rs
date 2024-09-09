@@ -42,6 +42,7 @@ use crate::dom::virtualmethods::VirtualMethods;
 use crate::fetch::FetchCanceller;
 use crate::image_listener::{generate_cache_listener_for_element, ImageCacheListener};
 use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
+use crate::script_runtime::CanGc;
 
 const DEFAULT_WIDTH: u32 = 300;
 const DEFAULT_HEIGHT: u32 = 150;
@@ -137,7 +138,7 @@ impl HTMLVideoElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#poster-frame>
-    fn fetch_poster_frame(&self, poster_url: &str) {
+    fn fetch_poster_frame(&self, poster_url: &str, can_gc: CanGc) {
         // Step 1.
         let cancel_receiver = self.poster_frame_canceller.borrow_mut().initialize();
         self.generation_id.set(self.generation_id.get() + 1);
@@ -176,7 +177,7 @@ impl HTMLVideoElement {
                 self.process_image_response(ImageResponse::Loaded(image, url));
             },
             ImageCacheResult::ReadyForRequest(id) => {
-                self.do_fetch_poster_frame(poster_url, id, cancel_receiver)
+                self.do_fetch_poster_frame(poster_url, id, cancel_receiver, can_gc)
             },
             _ => (),
         }
@@ -188,6 +189,7 @@ impl HTMLVideoElement {
         poster_url: ServoUrl,
         id: PendingImageId,
         cancel_receiver: ipc::IpcReceiver<()>,
+        can_gc: CanGc,
     ) {
         // Continuation of step 4.
         let document = document_from_node(self);
@@ -205,7 +207,7 @@ impl HTMLVideoElement {
         // (which triggers no media load algorithm unless a explicit call to .load() is done)
         // will block the document's load event forever.
         let mut blocker = self.load_blocker.borrow_mut();
-        LoadBlocker::terminate(&mut blocker);
+        LoadBlocker::terminate(&mut blocker, can_gc);
         *blocker = Some(LoadBlocker::new(
             &document_from_node(self),
             LoadType::Image(poster_url.clone()),
@@ -280,7 +282,7 @@ impl VirtualMethods for HTMLVideoElement {
 
         if let Some(new_value) = mutation.new_value(attr) {
             if attr.local_name() == &local_name!("poster") {
-                self.fetch_poster_frame(&new_value);
+                self.fetch_poster_frame(&new_value, CanGc::note());
             }
         }
     }
@@ -296,13 +298,13 @@ impl ImageCacheListener for HTMLVideoElement {
             ImageResponse::Loaded(image, url) => {
                 debug!("Loaded poster image for video element: {:?}", url);
                 self.htmlmediaelement.process_poster_image_loaded(image);
-                LoadBlocker::terminate(&mut self.load_blocker.borrow_mut());
+                LoadBlocker::terminate(&mut self.load_blocker.borrow_mut(), CanGc::note());
             },
             ImageResponse::MetadataLoaded(..) => {},
             // The image cache may have loaded a placeholder for an invalid poster url
             ImageResponse::PlaceholderLoaded(..) | ImageResponse::None => {
                 // A failed load should unblock the document load.
-                LoadBlocker::terminate(&mut self.load_blocker.borrow_mut());
+                LoadBlocker::terminate(&mut self.load_blocker.borrow_mut(), CanGc::note());
             },
         }
     }

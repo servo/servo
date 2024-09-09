@@ -148,6 +148,7 @@ use crate::dom::validation::Validatable;
 use crate::dom::validitystate::ValidationFlags;
 use crate::dom::virtualmethods::{vtable_for, VirtualMethods};
 use crate::dom::window::ReflowReason;
+use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 use crate::stylesheet_loader::StylesheetOwner;
 use crate::task::TaskOnce;
@@ -262,8 +263,9 @@ impl Element {
         creator: ElementCreator,
         mode: CustomElementCreationMode,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> DomRoot<Element> {
-        create_element(name, is, document, creator, mode, proto)
+        create_element(name, is, document, creator, mode, proto, can_gc)
     }
 
     pub fn new_inherited(
@@ -397,7 +399,7 @@ impl Element {
         }
     }
 
-    pub fn invoke_reactions(&self) {
+    pub fn invoke_reactions(&self, _can_gc: CanGc) {
         loop {
             rooted_vec!(let mut reactions);
             match *self.rare_data_mut() {
@@ -412,7 +414,7 @@ impl Element {
             }
 
             for reaction in reactions.iter() {
-                reaction.invoke(self);
+                reaction.invoke(self, CanGc::note());
             }
 
             reactions.clear();
@@ -1872,15 +1874,19 @@ impl Element {
     }
 
     // https://w3c.github.io/DOM-Parsing/#parsing
-    pub fn parse_fragment(&self, markup: DOMString) -> Fallible<DomRoot<DocumentFragment>> {
+    pub fn parse_fragment(
+        &self,
+        markup: DOMString,
+        can_gc: CanGc,
+    ) -> Fallible<DomRoot<DocumentFragment>> {
         // Steps 1-2.
         // TODO(#11995): XML case.
-        let new_children = ServoParser::parse_html_fragment(self, markup);
+        let new_children = ServoParser::parse_html_fragment(self, markup, can_gc);
         // Step 3.
         // See https://github.com/w3c/DOM-Parsing/issues/61.
         let context_document = {
             if let Some(template) = self.downcast::<HTMLTemplateElement>() {
-                template.Content().upcast::<Node>().owner_doc()
+                template.Content(CanGc::note()).upcast::<Node>().owner_doc()
             } else {
                 document_from_node(self)
             }
@@ -2633,11 +2639,11 @@ impl ElementMethods for Element {
     }
 
     /// <https://w3c.github.io/DOM-Parsing/#widl-Element-innerHTML>
-    fn SetInnerHTML(&self, value: DOMString) -> ErrorResult {
+    fn SetInnerHTML(&self, value: DOMString, can_gc: CanGc) -> ErrorResult {
         // Step 2.
         // https://github.com/w3c/DOM-Parsing/issues/1
         let target = if let Some(template) = self.downcast::<HTMLTemplateElement>() {
-            DomRoot::upcast(template.Content())
+            DomRoot::upcast(template.Content(can_gc))
         } else {
             DomRoot::from_ref(self.upcast())
         };
@@ -2656,7 +2662,7 @@ impl ElementMethods for Element {
         }
 
         // Step 1.
-        let frag = self.parse_fragment(value)?;
+        let frag = self.parse_fragment(value, CanGc::note())?;
 
         Node::replace_all(Some(frag.upcast()), &target);
         Ok(())
@@ -2672,7 +2678,7 @@ impl ElementMethods for Element {
     }
 
     // https://w3c.github.io/DOM-Parsing/#dom-element-outerhtml
-    fn SetOuterHTML(&self, value: DOMString) -> ErrorResult {
+    fn SetOuterHTML(&self, value: DOMString, can_gc: CanGc) -> ErrorResult {
         let context_document = document_from_node(self);
         let context_node = self.upcast::<Node>();
         // Step 1.
@@ -2697,6 +2703,7 @@ impl ElementMethods for Element {
                     ElementCreator::ScriptCreated,
                     CustomElementCreationMode::Synchronous,
                     None,
+                    can_gc,
                 );
                 DomRoot::upcast(body_elem)
             },
@@ -2704,7 +2711,7 @@ impl ElementMethods for Element {
         };
 
         // Step 5.
-        let frag = parent.parse_fragment(value)?;
+        let frag = parent.parse_fragment(value, CanGc::note())?;
         // Step 6.
         context_parent.ReplaceChild(frag.upcast(), context_node)?;
         Ok(())
@@ -2862,7 +2869,12 @@ impl ElementMethods for Element {
     }
 
     // https://w3c.github.io/DOM-Parsing/#dom-element-insertadjacenthtml
-    fn InsertAdjacentHTML(&self, position: DOMString, text: DOMString) -> ErrorResult {
+    fn InsertAdjacentHTML(
+        &self,
+        position: DOMString,
+        text: DOMString,
+        can_gc: CanGc,
+    ) -> ErrorResult {
         // Step 1.
         let position = position.parse::<AdjacentPosition>()?;
 
@@ -2886,7 +2898,7 @@ impl ElementMethods for Element {
             Element::fragment_parsing_context(&context.owner_doc(), context.downcast::<Element>());
 
         // Step 3.
-        let fragment = context.parse_fragment(text)?;
+        let fragment = context.parse_fragment(text, can_gc)?;
 
         // Step 4.
         self.insert_adjacent(position, fragment.upcast())

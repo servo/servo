@@ -87,6 +87,7 @@ impl Range {
         start_offset: u32,
         end_container: &Node,
         end_offset: u32,
+        can_gc: CanGc,
     ) -> DomRoot<Range> {
         Self::new_with_proto(
             document,
@@ -95,7 +96,7 @@ impl Range {
             start_offset,
             end_container,
             end_offset,
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -482,7 +483,7 @@ impl RangeMethods for Range {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-range-clonerange>
-    fn CloneRange(&self) -> DomRoot<Range> {
+    fn CloneRange(&self, can_gc: CanGc) -> DomRoot<Range> {
         let start_node = self.start_container();
         let owner_doc = start_node.owner_doc();
         Range::new(
@@ -491,6 +492,7 @@ impl RangeMethods for Range {
             self.start_offset(),
             &self.end_container(),
             self.end_offset(),
+            can_gc,
         )
     }
 
@@ -552,7 +554,7 @@ impl RangeMethods for Range {
 
     /// <https://dom.spec.whatwg.org/#dom-range-clonecontents>
     /// <https://dom.spec.whatwg.org/#concept-range-clone>
-    fn CloneContents(&self) -> Fallible<DomRoot<DocumentFragment>> {
+    fn CloneContents(&self, can_gc: CanGc) -> Fallible<DomRoot<DocumentFragment>> {
         // Step 3.
         let start_node = self.start_container();
         let start_offset = self.start_offset();
@@ -598,7 +600,7 @@ impl RangeMethods for Range {
                 fragment.upcast::<Node>().AppendChild(&clone)?;
             } else {
                 // Step 14.1.
-                let clone = child.CloneNode(/* deep */ false)?;
+                let clone = child.CloneNode(/* deep */ false, CanGc::note())?;
                 // Step 14.2.
                 fragment.upcast::<Node>().AppendChild(&clone)?;
                 // Step 14.3.
@@ -608,9 +610,10 @@ impl RangeMethods for Range {
                     start_offset,
                     &child,
                     child.len(),
+                    can_gc,
                 );
                 // Step 14.4.
-                let subfragment = subrange.CloneContents()?;
+                let subfragment = subrange.CloneContents(CanGc::note())?;
                 // Step 14.5.
                 clone.AppendChild(subfragment.upcast())?;
             }
@@ -619,7 +622,7 @@ impl RangeMethods for Range {
         // Step 15.
         for child in contained_children {
             // Step 15.1.
-            let clone = child.CloneNode(/* deep */ true)?;
+            let clone = child.CloneNode(/* deep */ true, CanGc::note())?;
             // Step 15.2.
             fragment.upcast::<Node>().AppendChild(&clone)?;
         }
@@ -635,13 +638,20 @@ impl RangeMethods for Range {
                 fragment.upcast::<Node>().AppendChild(&clone)?;
             } else {
                 // Step 17.1.
-                let clone = child.CloneNode(/* deep */ false)?;
+                let clone = child.CloneNode(/* deep */ false, CanGc::note())?;
                 // Step 17.2.
                 fragment.upcast::<Node>().AppendChild(&clone)?;
                 // Step 17.3.
-                let subrange = Range::new(&clone.owner_doc(), &child, 0, &end_node, end_offset);
+                let subrange = Range::new(
+                    &clone.owner_doc(),
+                    &child,
+                    0,
+                    &end_node,
+                    end_offset,
+                    CanGc::note(),
+                );
                 // Step 17.4.
-                let subfragment = subrange.CloneContents()?;
+                let subfragment = subrange.CloneContents(CanGc::note())?;
                 // Step 17.5.
                 clone.AppendChild(subfragment.upcast())?;
             }
@@ -653,7 +663,7 @@ impl RangeMethods for Range {
 
     /// <https://dom.spec.whatwg.org/#dom-range-extractcontents>
     /// <https://dom.spec.whatwg.org/#concept-range-extract>
-    fn ExtractContents(&self) -> Fallible<DomRoot<DocumentFragment>> {
+    fn ExtractContents(&self, can_gc: CanGc) -> Fallible<DomRoot<DocumentFragment>> {
         // Step 3.
         let start_node = self.start_container();
         let start_offset = self.start_offset();
@@ -671,7 +681,7 @@ impl RangeMethods for Range {
         if end_node == start_node {
             if let Some(end_data) = end_node.downcast::<CharacterData>() {
                 // Step 4.1.
-                let clone = end_node.CloneNode(/* deep */ true)?;
+                let clone = end_node.CloneNode(/* deep */ true, CanGc::note())?;
                 // Step 4.2.
                 let text = end_data.SubstringData(start_offset, end_offset - start_offset);
                 clone
@@ -712,7 +722,7 @@ impl RangeMethods for Range {
             if let Some(start_data) = child.downcast::<CharacterData>() {
                 assert!(child == start_node);
                 // Step 15.1.
-                let clone = start_node.CloneNode(/* deep */ true)?;
+                let clone = start_node.CloneNode(/* deep */ true, CanGc::note())?;
                 // Step 15.2.
                 let text = start_data.SubstringData(start_offset, start_node.len() - start_offset);
                 clone
@@ -729,7 +739,7 @@ impl RangeMethods for Range {
                 )?;
             } else {
                 // Step 16.1.
-                let clone = child.CloneNode(/* deep */ false)?;
+                let clone = child.CloneNode(/* deep */ false, CanGc::note())?;
                 // Step 16.2.
                 fragment.upcast::<Node>().AppendChild(&clone)?;
                 // Step 16.3.
@@ -739,9 +749,10 @@ impl RangeMethods for Range {
                     start_offset,
                     &child,
                     child.len(),
+                    can_gc,
                 );
                 // Step 16.4.
-                let subfragment = subrange.ExtractContents()?;
+                let subfragment = subrange.ExtractContents(CanGc::note())?;
                 // Step 16.5.
                 clone.AppendChild(subfragment.upcast())?;
             }
@@ -756,7 +767,7 @@ impl RangeMethods for Range {
             if let Some(end_data) = child.downcast::<CharacterData>() {
                 assert!(child == end_node);
                 // Step 18.1.
-                let clone = end_node.CloneNode(/* deep */ true)?;
+                let clone = end_node.CloneNode(/* deep */ true, CanGc::note())?;
                 // Step 18.2.
                 let text = end_data.SubstringData(0, end_offset);
                 clone
@@ -769,13 +780,20 @@ impl RangeMethods for Range {
                 end_data.ReplaceData(0, end_offset, DOMString::new())?;
             } else {
                 // Step 19.1.
-                let clone = child.CloneNode(/* deep */ false)?;
+                let clone = child.CloneNode(/* deep */ false, CanGc::note())?;
                 // Step 19.2.
                 fragment.upcast::<Node>().AppendChild(&clone)?;
                 // Step 19.3.
-                let subrange = Range::new(&clone.owner_doc(), &child, 0, &end_node, end_offset);
+                let subrange = Range::new(
+                    &clone.owner_doc(),
+                    &child,
+                    0,
+                    &end_node,
+                    end_offset,
+                    CanGc::note(),
+                );
                 // Step 19.4.
-                let subfragment = subrange.ExtractContents()?;
+                let subfragment = subrange.ExtractContents(CanGc::note())?;
                 // Step 19.5.
                 clone.AppendChild(subfragment.upcast())?;
             }
@@ -964,7 +982,7 @@ impl RangeMethods for Range {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-range-surroundcontents>
-    fn SurroundContents(&self, new_parent: &Node) -> ErrorResult {
+    fn SurroundContents(&self, new_parent: &Node, can_gc: CanGc) -> ErrorResult {
         // Step 1.
         let start = self.start_container();
         let end = self.end_container();
@@ -989,7 +1007,7 @@ impl RangeMethods for Range {
         }
 
         // Step 3.
-        let fragment = self.ExtractContents()?;
+        let fragment = self.ExtractContents(can_gc)?;
 
         // Step 4.
         Node::replace_all(None, new_parent);
@@ -1056,7 +1074,11 @@ impl RangeMethods for Range {
     }
 
     /// <https://dvcs.w3.org/hg/innerhtml/raw-file/tip/index.html#extensions-to-the-range-interface>
-    fn CreateContextualFragment(&self, fragment: DOMString) -> Fallible<DomRoot<DocumentFragment>> {
+    fn CreateContextualFragment(
+        &self,
+        fragment: DOMString,
+        can_gc: CanGc,
+    ) -> Fallible<DomRoot<DocumentFragment>> {
         // Step 1.
         let node = self.start_container();
         let owner_doc = node.owner_doc();
@@ -1074,7 +1096,7 @@ impl RangeMethods for Range {
         let element = Element::fragment_parsing_context(&owner_doc, element.as_deref());
 
         // Step 3.
-        let fragment_node = element.parse_fragment(fragment)?;
+        let fragment_node = element.parse_fragment(fragment, can_gc)?;
 
         // Step 4.
         for node in fragment_node

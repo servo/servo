@@ -48,7 +48,7 @@ use crate::dom::promise::Promise;
 use crate::dom::window::Window;
 use crate::microtask::Microtask;
 use crate::realms::{enter_realm, InRealm};
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{CanGc, JSContext};
 use crate::script_thread::ScriptThread;
 
 /// <https://dom.spec.whatwg.org/#concept-element-custom-element-state>
@@ -718,6 +718,7 @@ impl CustomElementDefinition {
         &self,
         document: &Document,
         prefix: Option<Prefix>,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<Element>> {
         let window = document.window();
         let cx = GlobalScope::get_cx();
@@ -738,7 +739,7 @@ impl CustomElementDefinition {
         if is_execution_stack_empty() {
             window
                 .upcast::<GlobalScope>()
-                .perform_a_microtask_checkpoint();
+                .perform_a_microtask_checkpoint(can_gc);
         }
 
         rooted!(in(*cx) let element_val = ObjectValue(element.get()));
@@ -783,7 +784,7 @@ impl CustomElementDefinition {
 
 /// <https://html.spec.whatwg.org/multipage/#concept-upgrade-an-element>
 #[allow(unsafe_code)]
-pub fn upgrade_element(definition: Rc<CustomElementDefinition>, element: &Element) {
+pub fn upgrade_element(definition: Rc<CustomElementDefinition>, element: &Element, can_gc: CanGc) {
     // Step 1
     let state = element.get_custom_element_state();
     if state != CustomElementState::Undefined && state != CustomElementState::Uncustomized {
@@ -824,7 +825,7 @@ pub fn upgrade_element(definition: Rc<CustomElementDefinition>, element: &Elemen
         .push(ConstructionStackEntry::Element(DomRoot::from_ref(element)));
 
     // Steps 7-8, successful case
-    let result = run_upgrade_constructor(&definition.constructor, element);
+    let result = run_upgrade_constructor(&definition.constructor, element, can_gc);
 
     // "regardless of whether the above steps threw an exception" step
     definition.construction_stack.borrow_mut().pop();
@@ -897,6 +898,7 @@ pub fn upgrade_element(definition: Rc<CustomElementDefinition>, element: &Elemen
 fn run_upgrade_constructor(
     constructor: &Rc<CustomElementConstructor>,
     element: &Element,
+    can_gc: CanGc,
 ) -> ErrorResult {
     let window = window_from_node(element);
     let cx = GlobalScope::get_cx();
@@ -929,7 +931,7 @@ fn run_upgrade_constructor(
         if is_execution_stack_empty() {
             window
                 .upcast::<GlobalScope>()
-                .perform_a_microtask_checkpoint();
+                .perform_a_microtask_checkpoint(can_gc);
         }
 
         // Step 8.3
@@ -982,11 +984,11 @@ pub enum CustomElementReaction {
 impl CustomElementReaction {
     /// <https://html.spec.whatwg.org/multipage/#invoke-custom-element-reactions>
     #[allow(unsafe_code)]
-    pub fn invoke(&self, element: &Element) {
+    pub fn invoke(&self, element: &Element, can_gc: CanGc) {
         // Step 2.1
         match *self {
             CustomElementReaction::Upgrade(ref definition) => {
-                upgrade_element(definition.clone(), element)
+                upgrade_element(definition.clone(), element, can_gc)
             },
             CustomElementReaction::Callback(ref callback, ref arguments) => {
                 // We're rooted, so it's safe to hand out a handle to objects in Heap
@@ -1039,12 +1041,12 @@ impl CustomElementReactionStack {
         self.stack.borrow_mut().push(ElementQueue::new());
     }
 
-    pub fn pop_current_element_queue(&self) {
+    pub fn pop_current_element_queue(&self, can_gc: CanGc) {
         rooted_vec!(let mut stack);
         mem::swap(&mut *stack, &mut *self.stack.borrow_mut());
 
         if let Some(current_queue) = stack.last() {
-            current_queue.invoke_reactions();
+            current_queue.invoke_reactions(can_gc);
         }
         stack.pop();
 
@@ -1054,9 +1056,9 @@ impl CustomElementReactionStack {
 
     /// <https://html.spec.whatwg.org/multipage/#enqueue-an-element-on-the-appropriate-element-queue>
     /// Step 4
-    pub fn invoke_backup_element_queue(&self) {
+    pub fn invoke_backup_element_queue(&self, can_gc: CanGc) {
         // Step 4.1
-        self.backup_queue.invoke_reactions();
+        self.backup_queue.invoke_reactions(can_gc);
 
         // Step 4.2
         self.processing_backup_element_queue
@@ -1237,10 +1239,10 @@ impl ElementQueue {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#invoke-custom-element-reactions>
-    fn invoke_reactions(&self) {
+    fn invoke_reactions(&self, _can_gc: CanGc) {
         // Steps 1-2
         while let Some(element) = self.next_element() {
-            element.invoke_reactions()
+            element.invoke_reactions(CanGc::note())
         }
         self.queue.borrow_mut().clear();
     }

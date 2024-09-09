@@ -41,6 +41,7 @@ use crate::dom::node::Node;
 use crate::dom::processinginstruction::ProcessingInstruction;
 use crate::dom::servoparser::{create_element_for_token, ElementAttribute, ParsingAlgorithm};
 use crate::dom::virtualmethods::vtable_for;
+use crate::script_runtime::CanGc;
 
 type ParseNodeId = usize;
 
@@ -283,7 +284,11 @@ impl Tokenizer {
         tokenizer
     }
 
-    pub fn feed(&self, input: &BufferQueue) -> TokenizerResult<DomRoot<HTMLScriptElement>> {
+    pub fn feed(
+        &self,
+        input: &BufferQueue,
+        _can_gc: CanGc,
+    ) -> TokenizerResult<DomRoot<HTMLScriptElement>> {
         let mut send_tendrils = VecDeque::new();
         while let Some(str) = input.pop_front() {
             send_tendrils.push_back(SendTendril::from(str));
@@ -303,7 +308,9 @@ impl Tokenizer {
                 .recv()
                 .expect("Unexpected channel panic in main thread.")
             {
-                ToTokenizerMsg::ProcessOperation(parse_op) => self.process_operation(parse_op),
+                ToTokenizerMsg::ProcessOperation(parse_op) => {
+                    self.process_operation(parse_op, CanGc::note())
+                },
                 ToTokenizerMsg::TokenizerResultDone { updated_input } => {
                     let buffer_queue = create_buffer_queue(updated_input);
                     input.replace_with(buffer_queue);
@@ -323,7 +330,7 @@ impl Tokenizer {
         }
     }
 
-    pub fn end(&self) {
+    pub fn end(&self, _can_gc: CanGc) {
         self.html_tokenizer_sender
             .send(ToHtmlTokenizerMsg::End)
             .unwrap();
@@ -333,7 +340,9 @@ impl Tokenizer {
                 .recv()
                 .expect("Unexpected channel panic in main thread.")
             {
-                ToTokenizerMsg::ProcessOperation(parse_op) => self.process_operation(parse_op),
+                ToTokenizerMsg::ProcessOperation(parse_op) => {
+                    self.process_operation(parse_op, CanGc::note())
+                },
                 ToTokenizerMsg::TokenizerResultDone { updated_input: _ } |
                 ToTokenizerMsg::TokenizerResultScript {
                     script: _,
@@ -364,7 +373,7 @@ impl Tokenizer {
         })
     }
 
-    fn append_before_sibling(&self, sibling: ParseNodeId, node: NodeOrText) {
+    fn append_before_sibling(&self, sibling: ParseNodeId, node: NodeOrText, can_gc: CanGc) {
         let node = match node {
             NodeOrText::Node(n) => {
                 HtmlNodeOrText::AppendNode(Dom::from_ref(&**self.get_node(&n.id)))
@@ -376,10 +385,10 @@ impl Tokenizer {
             .GetParentNode()
             .expect("append_before_sibling called on node without parent");
 
-        super::insert(parent, Some(sibling), node, self.parsing_algorithm);
+        super::insert(parent, Some(sibling), node, self.parsing_algorithm, can_gc);
     }
 
-    fn append(&self, parent: ParseNodeId, node: NodeOrText) {
+    fn append(&self, parent: ParseNodeId, node: NodeOrText, can_gc: CanGc) {
         let node = match node {
             NodeOrText::Node(n) => {
                 HtmlNodeOrText::AppendNode(Dom::from_ref(&**self.get_node(&n.id)))
@@ -388,7 +397,7 @@ impl Tokenizer {
         };
 
         let parent = &**self.get_node(&parent);
-        super::insert(parent, None, node, self.parsing_algorithm);
+        super::insert(parent, None, node, self.parsing_algorithm, can_gc);
     }
 
     fn has_parent_node(&self, node: ParseNodeId) -> bool {
@@ -404,7 +413,7 @@ impl Tokenizer {
         x.is_in_same_home_subtree(y)
     }
 
-    fn process_operation(&self, op: ParseOperation) {
+    fn process_operation(&self, op: ParseOperation, can_gc: CanGc) {
         let document = DomRoot::from_ref(&**self.get_node(&0));
         let document = document
             .downcast::<Document>()
@@ -415,7 +424,7 @@ impl Tokenizer {
                 let template = target
                     .downcast::<HTMLTemplateElement>()
                     .expect("Tried to extract contents from non-template element while parsing");
-                self.insert_node(contents, Dom::from_ref(template.Content().upcast()));
+                self.insert_node(contents, Dom::from_ref(template.Content(can_gc).upcast()));
             },
             ParseOperation::CreateElement {
                 node,
@@ -433,6 +442,7 @@ impl Tokenizer {
                     &self.document,
                     ElementCreator::ParserCreated(current_line),
                     ParsingAlgorithm::Normal,
+                    can_gc,
                 );
                 self.insert_node(node, Dom::from_ref(element.upcast()));
             },
@@ -441,10 +451,10 @@ impl Tokenizer {
                 self.insert_node(node, Dom::from_ref(comment.upcast()));
             },
             ParseOperation::AppendBeforeSibling { sibling, node } => {
-                self.append_before_sibling(sibling, node);
+                self.append_before_sibling(sibling, node, can_gc);
             },
             ParseOperation::Append { parent, node } => {
-                self.append(parent, node);
+                self.append(parent, node, can_gc);
             },
             ParseOperation::AppendBasedOnParentNode {
                 element,
@@ -452,9 +462,9 @@ impl Tokenizer {
                 node,
             } => {
                 if self.has_parent_node(element) {
-                    self.append_before_sibling(element, node);
+                    self.append_before_sibling(element, node, can_gc);
                 } else {
-                    self.append(prev_element, node);
+                    self.append(prev_element, node, can_gc);
                 }
             },
             ParseOperation::AppendDoctypeToDocument {

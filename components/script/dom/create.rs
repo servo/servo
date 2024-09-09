@@ -86,6 +86,7 @@ use crate::dom::htmlvideoelement::HTMLVideoElement;
 use crate::dom::svgelement::SVGElement;
 use crate::dom::svgsvgelement::SVGSVGElement;
 use crate::realms::{enter_realm, InRealm};
+use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 
 fn create_svg_element(
@@ -127,6 +128,7 @@ fn create_html_element(
     creator: ElementCreator,
     mode: CustomElementCreationMode,
     proto: Option<HandleObject>,
+    can_gc: CanGc,
 ) -> DomRoot<Element> {
     assert_eq!(name.ns, ns!(html));
 
@@ -150,7 +152,7 @@ fn create_html_element(
                 CustomElementCreationMode::Synchronous => {
                     let local_name = name.local.clone();
                     //TODO(jdm) Pass proto to create_element?
-                    return match definition.create_element(document, prefix.clone()) {
+                    return match definition.create_element(document, prefix.clone(), can_gc) {
                         Ok(element) => {
                             element.set_custom_element_definition(definition.clone());
                             element
@@ -185,7 +187,9 @@ fn create_html_element(
             element.set_custom_element_state(CustomElementState::Undefined);
             match mode {
                 // Step 5.3
-                CustomElementCreationMode::Synchronous => upgrade_element(definition, &element),
+                CustomElementCreationMode::Synchronous => {
+                    upgrade_element(definition, &element, can_gc)
+                },
                 // Step 5.4
                 CustomElementCreationMode::Asynchronous => {
                     ScriptThread::enqueue_upgrade_reaction(&element, definition)
@@ -395,10 +399,11 @@ pub fn create_element(
     creator: ElementCreator,
     mode: CustomElementCreationMode,
     proto: Option<HandleObject>,
+    can_gc: CanGc,
 ) -> DomRoot<Element> {
     let prefix = name.prefix.clone();
     match name.ns {
-        ns!(html) => create_html_element(name, prefix, is, document, creator, mode, proto),
+        ns!(html) => create_html_element(name, prefix, is, document, creator, mode, proto, can_gc),
         ns!(svg) => create_svg_element(name, prefix, document, proto),
         _ => Element::new(name.local, name.ns, prefix, document, proto),
     }

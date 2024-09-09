@@ -72,7 +72,7 @@ use crate::dom::window::Window;
 use crate::dom::worker::TrustedWorkerAddress;
 use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
 use crate::realms::{enter_realm, AlreadyInRealm, InRealm};
-use crate::script_runtime::JSContext as SafeJSContext;
+use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::task::TaskBox;
 use crate::task_source::TaskSourceName;
 
@@ -1091,7 +1091,7 @@ impl FetchResponseListener for ModuleContext {
         if let Some(window) = global.downcast::<Window>() {
             window
                 .Document()
-                .finish_load(LoadType::Script(self.url.clone()));
+                .finish_load(LoadType::Script(self.url.clone()), CanGc::note());
         }
 
         // Step 9-1 & 9-2.

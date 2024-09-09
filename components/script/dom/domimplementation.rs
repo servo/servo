@@ -28,6 +28,7 @@ use crate::dom::htmltitleelement::HTMLTitleElement;
 use crate::dom::node::Node;
 use crate::dom::text::Text;
 use crate::dom::xmldocument::XMLDocument;
+use crate::script_runtime::CanGc;
 
 // https://dom.spec.whatwg.org/#domimplementation
 #[dom_struct]
@@ -74,6 +75,7 @@ impl DOMImplementationMethods for DOMImplementation {
         maybe_namespace: Option<DOMString>,
         qname: DOMString,
         maybe_doctype: Option<&DocumentType>,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<XMLDocument>> {
         let win = self.document.window();
         let loader = DocumentLoader::new(&self.document.loader());
@@ -108,7 +110,7 @@ impl DOMImplementationMethods for DOMImplementation {
                 });
             match doc
                 .upcast::<Document>()
-                .CreateElementNS(maybe_namespace, qname, options)
+                .CreateElementNS(maybe_namespace, qname, options, can_gc)
             {
                 Err(error) => return Err(error),
                 Ok(elem) => Some(elem),
@@ -137,7 +139,7 @@ impl DOMImplementationMethods for DOMImplementation {
     }
 
     // https://dom.spec.whatwg.org/#dom-domimplementation-createhtmldocument
-    fn CreateHTMLDocument(&self, title: Option<DOMString>) -> DomRoot<Document> {
+    fn CreateHTMLDocument(&self, title: Option<DOMString>, can_gc: CanGc) -> DomRoot<Document> {
         let win = self.document.window();
         let loader = DocumentLoader::new(&self.document.loader());
 
@@ -157,6 +159,7 @@ impl DOMImplementationMethods for DOMImplementation {
             None,
             None,
             Default::default(),
+            can_gc,
         );
 
         {

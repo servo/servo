@@ -44,6 +44,7 @@ use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::dom::shadowroot::ShadowRoot;
 use crate::fetch::create_a_potential_cors_request;
 use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
+use crate::script_runtime::CanGc;
 
 pub trait StylesheetOwner {
     /// Returns whether this element was inserted by the parser (i.e., it should
@@ -213,7 +214,7 @@ impl FetchResponseListener for StylesheetContext {
             document.decrement_script_blocking_stylesheet_count();
         }
 
-        document.finish_load(LoadType::Stylesheet(self.url.clone()));
+        document.finish_load(LoadType::Stylesheet(self.url.clone()), CanGc::note());
 
         if let Some(any_failed) = owner.load_finished(successful) {
             let event = if any_failed {
