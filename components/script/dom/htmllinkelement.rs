@@ -304,10 +304,10 @@ impl HTMLLinkElement {
     fn processing_options(&self) -> LinkProcessingOptions {
         let element = self.upcast::<Element>();
 
-        // Step 1.
+        // Step 1. Let document be el's node document.
         let document = self.upcast::<Node>().owner_doc();
 
-        // Step 2.
+        // Step 2. Let options be a new link processing options
         let destination = element
             .get_attribute(&ns!(), &local_name!("as"))
             .map(|attr| translate_a_preload_destination(&*attr.value()))
@@ -320,57 +320,60 @@ impl HTMLLinkElement {
             link_type: String::new(),
             cross_origin: cors_setting_for_element(element),
             referrer_policy: referrer_policy_for_element(element),
-            source_set: None,
+            source_set: None, // FIXME
             base_url: document.borrow().base_url(),
         };
 
-        // Step 3.
+        // Step 3. If el has an href attribute, then set options's href to the value of el's href attribute.
         if let Some(href_attribute) = element.get_attribute(&ns!(), &local_name!("href")) {
             options.href = (**href_attribute.value()).to_owned();
         }
 
-        // Step 4.
+        // Step 4. If el has an integrity attribute, then set options's integrity
+        //         to the value of el's integrity content attribute.
         if let Some(integrity_attribute) = element.get_attribute(&ns!(), &local_name!("integrity"))
         {
             options.integrity = (**integrity_attribute.value()).to_owned();
         }
 
-        // Step 5.
+        // Step 5. If el has a type attribute, then set options's type to the value of el's type attribute.
         if let Some(type_attribute) = element.get_attribute(&ns!(), &local_name!("type")) {
             options.link_type = (**type_attribute.value()).to_owned();
         }
 
-        // Step 6.
+        // Step 6. Assert: options's href is not the empty string, or options's source set is not null.
         assert!(!options.href.is_empty() || options.source_set.is_some());
 
-        // Step 7.
+        // Step 7. Return options.
         options
     }
 
     /// The `fetch and process the linked resource` algorithm for [`rel="prefetch"`](https://html.spec.whatwg.org/multipage/#link-type-prefetch)
     fn fetch_and_process_prefetch_link(&self, href: &str) {
-        // Step 1.
+        // Step 1. If el's href attribute's value is the empty string, then return.
         if href.is_empty() {
             return;
         }
 
-        // Step 2.
+        // Step 2. Let options be the result of creating link options from el.
         let mut options = self.processing_options();
 
-        // Step 3.
+        // Step 3. Set options's destination to the empty string.
         options.destination = Some(Destination::None);
 
-        // Step 4.
+        // Step 4. Let request be the result of creating a link request given options.
         let url = options.base_url.clone();
         let Some(request) = options.create_link_request() else {
-            // Step 5.
+            // Step 5. If request is null, then return.
             return;
         };
 
-        // Step 6.
+        // Step 6. Set request's initiator to "prefetch".
         let request = request.initiator(Initiator::Prefetch);
 
-        // Step 7 - 8: Send the actual fetch request
+        // (Step 7, firing load/error events is handled in the FetchResponseListener impl for PrefetchContext)
+
+        // Step 8. The user agent should fetch request, with processResponseConsumeBody set to processPrefetchResponse.
         let (action_sender, action_receiver) = ipc::channel().unwrap();
         let document = self.upcast::<Node>().owner_doc();
         let window = document.window();
@@ -649,23 +652,30 @@ impl HTMLLinkElementMethods for HTMLLinkElement {
 impl LinkProcessingOptions {
     /// <https://html.spec.whatwg.org/multipage/#create-a-link-request>
     fn create_link_request(self) -> Option<RequestBuilder> {
-        // Step 1.
+        // Step 1. Assert: options's href is not the empty string.
         assert!(!self.href.is_empty());
 
-        // Step 2.
+        // Step 2. If options's destination is null, then return null.
         let Some(destination) = self.destination else {
             return None;
         };
 
-        // Step 3 - 4.
+        // Step 3. Let url be the result of encoding-parsing a URL given options's href, relative to options's base URL.
         // TODO: The spec passes a base url which is incompatible with the
         //       "encoding-parse a URL" algorithm.
         let Ok(url) = self.base_url.join(&self.href) else {
+            // Step 4. If url is failure, then return null.
             return None;
         };
 
-        // Step 5.
-        // FIXME: set remaining fields
+        // Step 5. Let request be the result of creating a potential-CORS request given
+        //         url, options's destination, and options's crossorigin.
+        // FIXME: Step 6. Set request's policy container to options's policy container.
+        // Step 7. Set request's integrity metadata to options's integrity.
+        // FIXME: Step 8. Set request's cryptographic nonce metadata to options's cryptographic nonce metadata.
+        // Step 9. Set request's referrer policy to options's referrer policy.
+        // FIXME: Step 10. Set request's client to options's environment.
+        // FIXME: Step 11. Set request's priority to options's fetch priority.
         // FIXME: Use correct referrer
         let builder = create_a_potential_cors_request(
             url,
@@ -674,10 +684,10 @@ impl LinkProcessingOptions {
             None,
             Referrer::NoReferrer,
         )
-        .integrity_metadata(self.integrity) // Step 7.
-        .referrer_policy(self.referrer_policy); // Step 9.
+        .integrity_metadata(self.integrity)
+        .referrer_policy(self.referrer_policy);
 
-        // Step 12
+        // Step 12. Return request.
         Some(builder)
     }
 }
@@ -717,17 +727,20 @@ impl FetchResponseListener for PrefetchContext {
         _ = chunk;
     }
 
+    // Step 7 of `fetch and process the linked resource` in https://html.spec.whatwg.org/multipage/#link-type-prefetch
     fn process_response_eof(&mut self, response: Result<ResourceFetchTiming, NetworkError>) {
-        if response.is_ok() {
-            self.link
-                .root()
-                .upcast::<EventTarget>()
-                .fire_event(atom!("load"));
-        } else {
+        if response.is_err() {
+            // Step 1. If response is a network error, fire an event named error at el.
             self.link
                 .root()
                 .upcast::<EventTarget>()
                 .fire_event(atom!("error"));
+        } else {
+            // Step 2. Otherwise, fire an event named load at el.
+            self.link
+                .root()
+                .upcast::<EventTarget>()
+                .fire_event(atom!("load"));
         }
     }
 
