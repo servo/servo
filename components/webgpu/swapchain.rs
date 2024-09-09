@@ -41,7 +41,7 @@ pub type WGPUImageMap = Arc<Mutex<HashMap<WebGPUContextId, PresentationData>>>;
 
 #[derive(Default)]
 pub struct WGPUExternalImages {
-    pub images: Arc<Mutex<HashMap<WebGPUContextId, PresentationData>>>,
+    pub images: WGPUImageMap,
     pub locked_ids: HashMap<WebGPUContextId, Vec<u8>>,
 }
 
