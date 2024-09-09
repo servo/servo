@@ -113,6 +113,7 @@ use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{
     Dom, DomRoot, MutNullableDom, RootCollection, ThreadLocalStackRoots,
 };
+use crate::dom::bindings::settings_stack::AutoEntryScript;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::{HashMapTracedValues, JSTraceable};
 use crate::dom::customelementregistry::{
@@ -2518,7 +2519,11 @@ impl ScriptThread {
         let documents = self.documents.borrow();
         match msg {
             DevtoolScriptControlMsg::EvaluateJS(id, s, reply) => match documents.find_window(id) {
-                Some(window) => devtools::handle_evaluate_js(window.upcast(), s, reply),
+                Some(window) => {
+                    let global = window.upcast::<GlobalScope>();
+                    let _aes = AutoEntryScript::new(&global);
+                    devtools::handle_evaluate_js(&global, s, reply)
+                },
                 None => warn!("Message sent to closed pipeline {}.", id),
             },
             DevtoolScriptControlMsg::GetRootNode(id, reply) => {
