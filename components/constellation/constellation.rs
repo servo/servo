@@ -153,6 +153,7 @@ use servo_rand::{random, Rng, ServoRng, SliceRandom};
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
 use style_traits::CSSPixel;
 use tracing::{span, Level};
+use webgpu::swapchain::WGPUImageMap;
 use webgpu::{self, WebGPU, WebGPURequest, WebGPUResponse};
 use webrender::{RenderApi, RenderApiSender};
 use webrender_api::DocumentId;
@@ -219,7 +220,7 @@ struct WebrenderWGPU {
     webrender_external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
 
     /// WebGPU data that supplied to Webrender for rendering
-    wgpu_image_map: Arc<Mutex<HashMap<u64, webgpu::PresentationData>>>,
+    wgpu_image_map: WGPUImageMap,
 }
 
 /// Servo supports multiple top-level browsing contexts or “webviews”, so `Constellation` needs to
@@ -552,7 +553,7 @@ pub struct InitialConstellationState {
     /// User agent string to report in network requests.
     pub user_agent: Cow<'static, str>,
 
-    pub wgpu_image_map: Arc<Mutex<HashMap<u64, webgpu::PresentationData>>>,
+    pub wgpu_image_map: WGPUImageMap,
 }
 
 /// Data needed for webdriver

@@ -65,6 +65,7 @@ use style::stylesheet_set::DocumentStylesheetSet;
 use style::stylesheets::{Origin, OriginSet, Stylesheet};
 use url::Host;
 use uuid::Uuid;
+use webgpu::swapchain::WebGPUContextId;
 use webrender_api::units::DeviceIntRect;
 
 use crate::animation_timeline::AnimationTimeline;
@@ -123,7 +124,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::focusevent::FocusEvent;
 use crate::dom::fontfaceset::FontFaceSet;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::gpucanvascontext::{GPUCanvasContext, WebGPUContextId};
+use crate::dom::gpucanvascontext::GPUCanvasContext;
 use crate::dom::hashchangeevent::HashChangeEvent;
 use crate::dom::htmlanchorelement::HTMLAnchorElement;
 use crate::dom::htmlareaelement::HTMLAreaElement;
@@ -442,7 +443,7 @@ pub struct Document {
     dirty_webgl_contexts:
         DomRefCell<HashMapTracedValues<WebGLContextId, Dom<WebGLRenderingContext>>>,
     /// List of all WebGPU context IDs that need flushing.
-    dirty_webgpu_contexts: DomRefCell<HashMap<WebGPUContextId, Dom<GPUCanvasContext>>>,
+    dirty_webgpu_contexts: DomRefCell<HashMapTracedValues<WebGPUContextId, Dom<GPUCanvasContext>>>,
     /// <https://html.spec.whatwg.org/multipage/#concept-document-csp-list>
     #[ignore_malloc_size_of = "Defined in rust-content-security-policy"]
     #[no_trace]
@@ -3278,7 +3279,7 @@ impl Document {
             shadow_roots_styles_changed: Cell::new(false),
             media_controls: DomRefCell::new(HashMap::new()),
             dirty_webgl_contexts: DomRefCell::new(HashMapTracedValues::new()),
-            dirty_webgpu_contexts: DomRefCell::new(HashMap::new()),
+            dirty_webgpu_contexts: DomRefCell::new(HashMapTracedValues::new()),
             csp_list: DomRefCell::new(None),
             selection: MutNullableDom::new(None),
             animation_timeline: if pref!(layout.animations.test.enabled) {
