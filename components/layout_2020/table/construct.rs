@@ -370,82 +370,85 @@ impl TableBuilder {
     }
 
     fn move_row_group_to_front(&mut self, index_to_move: usize) {
-        if index_to_move == 0 {
-            return;
-        }
-
-        // Move the slots associated with this group.
-        let row_range = self.table.row_groups[index_to_move].track_range.clone();
-        let removed_slots: Vec<Vec<TableSlot>> = self
-            .table
-            .slots
-            .splice(row_range.clone(), std::iter::empty())
-            .collect();
-        self.table.slots.splice(0..0, removed_slots);
-
-        // Move the rows associated with this group.
-        let removed_rows: Vec<TableTrack> = self
-            .table
-            .rows
-            .splice(row_range, std::iter::empty())
-            .collect();
-        self.table.rows.splice(0..0, removed_rows);
-
         // Move the group itself.
-        let removed_row_group = self.table.row_groups.remove(index_to_move);
-        self.table.row_groups.insert(0, removed_row_group);
+        if index_to_move > 0 {
+            let removed_row_group = self.table.row_groups.remove(index_to_move);
+            self.table.row_groups.insert(0, removed_row_group);
 
-        for row in self.table.rows.iter_mut() {
-            match row.group_index.as_mut() {
-                Some(group_index) if *group_index < index_to_move => *group_index += 1,
-                Some(group_index) if *group_index == index_to_move => *group_index = 0,
-                _ => {},
+            for row in self.table.rows.iter_mut() {
+                match row.group_index.as_mut() {
+                    Some(group_index) if *group_index < index_to_move => *group_index += 1,
+                    Some(group_index) if *group_index == index_to_move => *group_index = 0,
+                    _ => {},
+                }
             }
         }
 
-        // Do this now, rather than after possibly moving a `<tfoot>` row group to the end,
-        // because moving row groups depends on an accurate `track_range` in every group.
-        self.regenerate_track_ranges();
+        let row_range = self.table.row_groups[0].track_range.clone();
+        if row_range.start > 0 {
+            // Move the slots associated with the moved group.
+            let removed_slots: Vec<Vec<TableSlot>> = self
+                .table
+                .slots
+                .splice(row_range.clone(), std::iter::empty())
+                .collect();
+            self.table.slots.splice(0..0, removed_slots);
+
+            // Move the rows associated with the moved group.
+            let removed_rows: Vec<TableTrack> = self
+                .table
+                .rows
+                .splice(row_range, std::iter::empty())
+                .collect();
+            self.table.rows.splice(0..0, removed_rows);
+
+            // Do this now, rather than after possibly moving a `<tfoot>` row group to the end,
+            // because moving row groups depends on an accurate `track_range` in every group.
+            self.regenerate_track_ranges();
+        }
     }
 
     fn move_row_group_to_end(&mut self, index_to_move: usize) {
         let last_row_group_index = self.table.row_groups.len() - 1;
-        if index_to_move == last_row_group_index {
-            return;
-        }
-
-        // Move the slots associated with this group.
-        let row_range = self.table.row_groups[index_to_move].track_range.clone();
-        let removed_slots: Vec<Vec<TableSlot>> = self
-            .table
-            .slots
-            .splice(row_range.clone(), std::iter::empty())
-            .collect();
-        self.table.slots.extend(removed_slots);
-
-        // Move the rows associated with this group.
-        let removed_rows: Vec<TableTrack> = self
-            .table
-            .rows
-            .splice(row_range, std::iter::empty())
-            .collect();
-        self.table.rows.extend(removed_rows);
 
         // Move the group itself.
-        let removed_row_group = self.table.row_groups.remove(index_to_move);
-        self.table.row_groups.push(removed_row_group);
+        if index_to_move < last_row_group_index {
+            let removed_row_group = self.table.row_groups.remove(index_to_move);
+            self.table.row_groups.push(removed_row_group);
 
-        for row in self.table.rows.iter_mut() {
-            match row.group_index.as_mut() {
-                Some(group_index) if *group_index > index_to_move => *group_index -= 1,
-                Some(group_index) if *group_index == index_to_move => {
-                    *group_index = last_row_group_index
-                },
-                _ => {},
+            for row in self.table.rows.iter_mut() {
+                match row.group_index.as_mut() {
+                    Some(group_index) if *group_index > index_to_move => *group_index -= 1,
+                    Some(group_index) if *group_index == index_to_move => {
+                        *group_index = last_row_group_index
+                    },
+                    _ => {},
+                }
             }
         }
 
-        self.regenerate_track_ranges();
+        let row_range = self.table.row_groups[last_row_group_index]
+            .track_range
+            .clone();
+        if row_range.end < self.table.rows.len() {
+            // Move the slots associated with the moved group.
+            let removed_slots: Vec<Vec<TableSlot>> = self
+                .table
+                .slots
+                .splice(row_range.clone(), std::iter::empty())
+                .collect();
+            self.table.slots.extend(removed_slots);
+
+            // Move the rows associated with the moved group.
+            let removed_rows: Vec<TableTrack> = self
+                .table
+                .rows
+                .splice(row_range, std::iter::empty())
+                .collect();
+            self.table.rows.extend(removed_rows);
+
+            self.regenerate_track_ranges();
+        }
     }
 
     /// Turn all rowspan=0 rows into the real value to avoid having to make the calculation
