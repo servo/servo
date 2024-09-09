@@ -15,10 +15,13 @@ use style::properties::longhands::column_span::computed_value::T as ColumnSpan;
 use style::properties::ComputedValues;
 use style::values::computed::basic_shape::ClipPath;
 use style::values::computed::image::Image as ComputedImageLayer;
-use style::values::computed::{Length, LengthPercentage, NonNegativeLengthPercentage, Size};
+use style::values::computed::{
+    AlignItems, Length, LengthPercentage, NonNegativeLengthPercentage, Size,
+};
 use style::values::generics::box_::Perspective;
 use style::values::generics::length::MaxSize;
 use style::values::generics::position::{GenericAspectRatio, PreferredRatio};
+use style::values::specified::align::AlignFlags;
 use style::values::specified::{box_ as stylo, Overflow};
 use style::values::CSSFloat;
 use style::Zero;
@@ -283,6 +286,11 @@ pub(crate) trait ComputedValuesExt {
     fn background_is_transparent(&self) -> bool;
     fn get_webrender_primitive_flags(&self) -> wr::PrimitiveFlags;
     fn bidi_control_chars(&self) -> (&'static str, &'static str);
+    fn resolve_align_self(
+        &self,
+        resolved_auto_value: AlignItems,
+        resolved_normal_value: AlignItems,
+    ) -> AlignItems;
 }
 
 impl ComputedValuesExt for ComputedValues {
@@ -871,6 +879,18 @@ impl ComputedValuesExt for ComputedValues {
                 ("\u{2068}\u{202e}", "\u{202c}\u{2069}")
             },
             (UnicodeBidi::Plaintext, _) => ("\u{2068}", "\u{2069}"),
+        }
+    }
+
+    fn resolve_align_self(
+        &self,
+        resolved_auto_value: AlignItems,
+        resolved_normal_value: AlignItems,
+    ) -> AlignItems {
+        match self.clone_align_self().0 .0 {
+            AlignFlags::AUTO => resolved_auto_value,
+            AlignFlags::NORMAL => resolved_normal_value,
+            value => AlignItems(value),
         }
     }
 }

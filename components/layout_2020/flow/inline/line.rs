@@ -11,6 +11,7 @@ use style::properties::ComputedValues;
 use style::values::computed::Length;
 use style::values::generics::box_::{GenericVerticalAlign, VerticalAlignKeyword};
 use style::values::generics::font::LineHeight;
+use style::values::specified::align::AlignFlags;
 use style::values::specified::box_::DisplayOutside;
 use style::values::specified::text::TextDecorationLine;
 use style::values::Either;
@@ -24,7 +25,7 @@ use crate::cell::ArcRefCell;
 use crate::fragment_tree::{
     BaseFragmentInfo, BoxFragment, CollapsedBlockMargins, Fragment, TextFragment,
 };
-use crate::geom::{LogicalRect, LogicalVec2, ToLogical};
+use crate::geom::{LogicalRect, LogicalVec2};
 use crate::positioned::{
     relative_adjustement, AbsolutelyPositionedBox, PositioningContext, PositioningContextLength,
 };
@@ -368,15 +369,13 @@ impl<'layout_data, 'layout> LineItemLayout<'layout_data, 'layout> {
         };
 
         let ifc_writing_mode = self.layout.containing_block.effective_writing_mode();
-        if inner_state
-            .flags
-            .contains(LineLayoutInlineContainerFlags::HAD_ANY_FLOATS)
-        {
-            for fragment in inner_state.fragments.iter_mut() {
-                if let Fragment::Float(box_fragment) = fragment {
+        for fragment in inner_state.fragments.iter_mut() {
+            match fragment {
+                Fragment::Float(box_fragment) => {
                     box_fragment.content_rect.origin -=
                         pbm_sums.start_offset().to_physical_size(ifc_writing_mode);
-                }
+                },
+                _ => {},
             }
         }
 
@@ -404,7 +403,7 @@ impl<'layout_data, 'layout> LineItemLayout<'layout_data, 'layout> {
                 positioning_context
                     .layout_collected_children(self.layout.layout_context, &mut fragment);
                 positioning_context.adjust_static_position_of_hoisted_fragments_with_offset(
-                    &fragment.content_rect.origin.to_logical(ifc_writing_mode),
+                    &fragment.content_rect.origin.to_vector(),
                     PositioningContextLength::zero(),
                 );
                 self.current_positioning_context_mut()
@@ -413,7 +412,7 @@ impl<'layout_data, 'layout> LineItemLayout<'layout_data, 'layout> {
             Either::Second(start_offset) => {
                 self.current_positioning_context_mut()
                     .adjust_static_position_of_hoisted_fragments_with_offset(
-                        &fragment.content_rect.origin.to_logical(ifc_writing_mode),
+                        &fragment.content_rect.origin.to_vector(),
                         start_offset,
                     );
             },
@@ -526,11 +525,7 @@ impl<'layout_data, 'layout> LineItemLayout<'layout_data, 'layout> {
 
         if let Some(mut positioning_context) = atomic.positioning_context {
             positioning_context.adjust_static_position_of_hoisted_fragments_with_offset(
-                &atomic
-                    .fragment
-                    .content_rect
-                    .origin
-                    .to_logical(ifc_writing_mode),
+                &atomic.fragment.content_rect.origin.to_vector(),
                 PositioningContextLength::zero(),
             );
             self.current_positioning_context_mut()
@@ -574,10 +569,21 @@ impl<'layout_data, 'layout> LineItemLayout<'layout_data, 'layout> {
                 }
             };
 
+        // Since alignment of absolutes in inlines is currently always `start`, the size of
+        // of the static position rectangle does not matter.
+        let static_position_rect = LogicalRect {
+            start_corner: initial_start_corner,
+            size: LogicalVec2::zero(),
+        }
+        .to_physical(self.layout.containing_block.effective_writing_mode());
+
         let hoisted_box = AbsolutelyPositionedBox::to_hoisted(
             absolute.absolutely_positioned_box.clone(),
-            initial_start_corner.into(),
-            self.layout.containing_block,
+            static_position_rect,
+            LogicalVec2 {
+                inline: AlignFlags::START,
+                block: AlignFlags::START,
+            },
         );
         let hoisted_fragment = hoisted_box.fragment.clone();
         self.current_positioning_context_mut().push(hoisted_box);

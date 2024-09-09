@@ -7,9 +7,8 @@ use rayon::iter::IntoParallelRefMutIterator;
 use rayon::prelude::{IndexedParallelIterator, ParallelIterator};
 use serde::Serialize;
 use style::computed_values::position::T as Position;
-use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
-use style::values::computed::Length;
+use style::values::specified::align::{AlignFlags, AxisDirection};
 use style::values::specified::text::TextDecorationLine;
 use style::Zero;
 
@@ -19,12 +18,11 @@ use crate::dom::NodeExt;
 use crate::dom_traversal::{Contents, NodeAndStyleInfo};
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragment_tree::{
-    AbsoluteBoxOffsets, BoxFragment, CollapsedBlockMargins, Fragment, FragmentFlags,
-    HoistedSharedFragment,
+    BoxFragment, CollapsedBlockMargins, Fragment, FragmentFlags, HoistedSharedFragment,
 };
 use crate::geom::{
     AuOrAuto, LengthOrAuto, LengthPercentageOrAuto, LogicalRect, LogicalSides, LogicalVec2,
-    PhysicalPoint, PhysicalRect, ToLogical,
+    PhysicalPoint, PhysicalRect, PhysicalVec, ToLogical,
 };
 use crate::style_ext::{ComputedValuesExt, DisplayInside};
 use crate::{ContainingBlock, DefiniteContainingBlock, IndefiniteContainingBlock};
@@ -72,49 +70,16 @@ impl AbsolutelyPositionedBox {
     }
 
     pub(crate) fn to_hoisted(
-        self_: ArcRefCell<Self>,
-        initial_start_corner: LogicalVec2<Length>,
-        containing_block: &ContainingBlock,
+        absolutely_positioned_box: ArcRefCell<Self>,
+        static_position_rectangle: PhysicalRect<Au>,
+        resolved_alignment: LogicalVec2<AlignFlags>,
     ) -> HoistedAbsolutelyPositionedBox {
-        fn absolute_box_offsets(
-            initial_static_start: Length,
-            start: LengthPercentageOrAuto<'_>,
-            end: LengthPercentageOrAuto<'_>,
-        ) -> AbsoluteBoxOffsets {
-            match (start.non_auto(), end.non_auto()) {
-                (None, None) => AbsoluteBoxOffsets::StaticStart {
-                    start: initial_static_start.into(),
-                },
-                (Some(start), Some(end)) => AbsoluteBoxOffsets::Both {
-                    start: start.clone(),
-                    end: end.clone(),
-                },
-                (None, Some(end)) => AbsoluteBoxOffsets::End { end: end.clone() },
-                (Some(start), None) => AbsoluteBoxOffsets::Start {
-                    start: start.clone(),
-                },
-            }
-        }
-
-        let box_offsets = {
-            let box_ = self_.borrow();
-            let box_offsets = box_.context.style().box_offsets(containing_block);
-            LogicalVec2 {
-                inline: absolute_box_offsets(
-                    initial_start_corner.inline,
-                    box_offsets.inline_start,
-                    box_offsets.inline_end,
-                ),
-                block: absolute_box_offsets(
-                    initial_start_corner.block,
-                    box_offsets.block_start,
-                    box_offsets.block_end,
-                ),
-            }
-        };
         HoistedAbsolutelyPositionedBox {
-            fragment: ArcRefCell::new(HoistedSharedFragment::new(box_offsets)),
-            absolutely_positioned_box: self_,
+            fragment: ArcRefCell::new(HoistedSharedFragment::new(
+                static_position_rectangle,
+                resolved_alignment,
+            )),
+            absolutely_positioned_box,
         }
     }
 }
@@ -178,7 +143,6 @@ impl PositioningContext {
     pub(crate) fn adjust_static_position_of_hoisted_fragments(
         &mut self,
         parent_fragment: &Fragment,
-        parent_fragment_writing_mode: WritingMode,
         index: PositioningContextLength,
     ) {
         let start_offset = match &parent_fragment {
@@ -186,37 +150,39 @@ impl PositioningContext {
             Fragment::AbsoluteOrFixedPositioned(_) => return,
             Fragment::Positioning(fragment) => &fragment.rect.origin,
             _ => unreachable!(),
-        }
-        .to_logical(parent_fragment_writing_mode);
-        self.adjust_static_position_of_hoisted_fragments_with_offset(&start_offset, index);
+        };
+        self.adjust_static_position_of_hoisted_fragments_with_offset(
+            &start_offset.to_vector(),
+            index,
+        );
     }
 
     /// See documentation for [PositioningContext::adjust_static_position_of_hoisted_fragments].
     pub(crate) fn adjust_static_position_of_hoisted_fragments_with_offset(
         &mut self,
-        start_offset: &LogicalVec2<Au>,
+        offset: &PhysicalVec<Au>,
         index: PositioningContextLength,
     ) {
-        let update_fragment_if_needed = |hoisted_fragment: &mut HoistedAbsolutelyPositionedBox| {
-            let mut fragment = hoisted_fragment.fragment.borrow_mut();
-            if let AbsoluteBoxOffsets::StaticStart { start } = &mut fragment.box_offsets.inline {
-                *start += start_offset.inline;
-            }
-            if let AbsoluteBoxOffsets::StaticStart { start } = &mut fragment.box_offsets.block {
-                *start += start_offset.block;
-            }
-        };
-
         if let Some(hoisted_boxes) = self.for_nearest_positioned_ancestor.as_mut() {
             hoisted_boxes
                 .iter_mut()
                 .skip(index.for_nearest_positioned_ancestor)
-                .for_each(update_fragment_if_needed);
+                .for_each(|hoisted_fragment| {
+                    hoisted_fragment
+                        .fragment
+                        .borrow_mut()
+                        .adjust_offsets(offset)
+                })
         }
         self.for_nearest_containing_block_for_all_descendants
             .iter_mut()
             .skip(index.for_nearest_containing_block_for_all_descendants)
-            .for_each(update_fragment_if_needed);
+            .for_each(|hoisted_fragment| {
+                hoisted_fragment
+                    .fragment
+                    .borrow_mut()
+                    .adjust_offsets(offset)
+            })
     }
 
     /// Given `fragment_layout_fn`, a closure which lays out a fragment in a provided
@@ -486,11 +452,9 @@ impl HoistedAbsolutelyPositionedBox {
         let cbis = containing_block.size.inline;
         let cbbs = containing_block.size.block;
         let mut absolutely_positioned_box = self.absolutely_positioned_box.borrow_mut();
-        let containing_block_writing_mode = containing_block.effective_writing_mode();
-        let pbm = absolutely_positioned_box
-            .context
-            .style()
-            .padding_border_margin(&containing_block.into());
+        let containing_block_writing_mode = containing_block.style.effective_writing_mode();
+        let style = absolutely_positioned_box.context.style().clone();
+        let pbm = style.padding_border_margin(&containing_block.into());
 
         let computed_size = match &absolutely_positioned_box.context {
             IndependentFormattingContext::Replaced(replaced) => {
@@ -506,28 +470,62 @@ impl HoistedAbsolutelyPositionedBox {
                     block: LengthOrAuto::LengthPercentage(used_size.block.into()),
                 }
             },
-            IndependentFormattingContext::NonReplaced(non_replaced) => non_replaced
-                .style
-                .content_box_size(&containing_block.into(), &pbm),
+            IndependentFormattingContext::NonReplaced(..) => {
+                style.content_box_size(&containing_block.into(), &pbm)
+            },
         };
 
         let shared_fragment = self.fragment.borrow();
+        let static_position_rect = shared_fragment
+            .static_position_rect
+            .to_logical(containing_block_writing_mode);
+
+        let indefinite_containing_block = containing_block.into();
+        let box_offset = style.box_offsets(&indefinite_containing_block);
+
+        // When the "static-position rect" doesn't come into play, we do not do any alignment
+        // in the inline axis.
+        let inline_box_offsets = AbsoluteBoxOffsets {
+            start: box_offset.inline_start,
+            end: box_offset.inline_end,
+        };
+        let inline_alignment = match inline_box_offsets.either_specified() {
+            true => AlignFlags::START | AlignFlags::SAFE,
+            false => shared_fragment.resolved_alignment.inline,
+        };
+
         let inline_axis_solver = AbsoluteAxisSolver {
+            axis: AxisDirection::Inline,
             containing_size: cbis,
             padding_border_sum: pbm.padding_border_sums.inline,
             computed_margin_start: pbm.margin.inline_start,
             computed_margin_end: pbm.margin.inline_end,
             avoid_negative_margin_start: true,
-            box_offsets: &shared_fragment.box_offsets.inline,
+            box_offsets: inline_box_offsets,
+            static_position_rect_axis: static_position_rect.get_axis(AxisDirection::Inline),
+            alignment: inline_alignment,
         };
 
+        // When the "static-position rect" doesn't come into play, we re-resolve "align-self"
+        // against this containing block.
+        let block_box_offsets = AbsoluteBoxOffsets {
+            start: box_offset.block_start,
+            end: box_offset.block_end,
+        };
+        let block_alignment = match block_box_offsets.either_specified() {
+            true => style.clone_align_self().0 .0,
+            false => shared_fragment.resolved_alignment.block,
+        };
         let block_axis_solver = AbsoluteAxisSolver {
+            axis: AxisDirection::Block,
             containing_size: cbbs,
             padding_border_sum: pbm.padding_border_sums.block,
             computed_margin_start: pbm.margin.block_start,
             computed_margin_end: pbm.margin.block_end,
             avoid_negative_margin_start: false,
-            box_offsets: &shared_fragment.box_offsets.block,
+            box_offsets: block_box_offsets,
+            static_position_rect_axis: static_position_rect.get_axis(AxisDirection::Block),
+            alignment: block_alignment,
         };
         let overconstrained = LogicalVec2 {
             inline: inline_axis_solver.is_overconstrained_for_size(computed_size.inline),
@@ -560,7 +558,7 @@ impl HoistedAbsolutelyPositionedBox {
                     // https://drafts.csswg.org/css2/#min-max-heights
                     let min_size = non_replaced
                         .style
-                        .content_min_box_size(&containing_block.into(), &pbm)
+                        .content_min_box_size(&indefinite_containing_block, &pbm)
                         .map(|t| t.map(Au::from).auto_is(Au::zero));
                     let max_size = non_replaced
                         .style
@@ -720,13 +718,20 @@ impl HoistedAbsolutelyPositionedBox {
                 },
             };
 
-            let content_rect = LogicalRect {
+            let mut content_rect = LogicalRect {
                 start_corner: LogicalVec2 {
                     inline: inline_start,
                     block: block_start,
                 },
                 size: content_size,
             };
+
+            let margin_box_rect = content_rect
+                .inflate(&pbm.padding)
+                .inflate(&pbm.border)
+                .inflate(&margin);
+            block_axis_solver.solve_alignment(margin_box_rect, &mut content_rect);
+            inline_axis_solver.solve_alignment(margin_box_rect, &mut content_rect);
 
             let physical_overconstrained =
                 overconstrained.to_physical_size(containing_block.effective_writing_mode());
@@ -754,10 +759,7 @@ impl HoistedAbsolutelyPositionedBox {
         // other elements. If any of them have a static start position though, we need to
         // adjust it to account for the start corner of this absolute.
         positioning_context.adjust_static_position_of_hoisted_fragments_with_offset(
-            &new_fragment
-                .content_rect
-                .origin
-                .to_logical(containing_block_writing_mode),
+            &new_fragment.content_rect.origin.to_vector(),
             PositioningContextLength::zero(),
         );
 
@@ -768,6 +770,42 @@ impl HoistedAbsolutelyPositionedBox {
     }
 }
 
+#[derive(Clone, Copy)]
+struct RectAxis {
+    origin: Au,
+    length: Au,
+}
+
+impl LogicalRect<Au> {
+    fn get_axis(&self, axis: AxisDirection) -> RectAxis {
+        match axis {
+            AxisDirection::Block => RectAxis {
+                origin: self.start_corner.block,
+                length: self.size.block,
+            },
+            AxisDirection::Inline => RectAxis {
+                origin: self.start_corner.inline,
+                length: self.size.inline,
+            },
+        }
+    }
+}
+
+#[derive(Debug)]
+struct AbsoluteBoxOffsets<'a> {
+    start: LengthPercentageOrAuto<'a>,
+    end: LengthPercentageOrAuto<'a>,
+}
+
+impl AbsoluteBoxOffsets<'_> {
+    pub(crate) fn both_specified(&self) -> bool {
+        !self.start.is_auto() && !self.end.is_auto()
+    }
+
+    pub(crate) fn either_specified(&self) -> bool {
+        !self.start.is_auto() || !self.end.is_auto()
+    }
+}
 enum Anchor {
     Start(Au),
     End(Au),
@@ -781,12 +819,15 @@ struct AxisResult {
 }
 
 struct AbsoluteAxisSolver<'a> {
+    axis: AxisDirection,
     containing_size: Au,
     padding_border_sum: Au,
     computed_margin_start: AuOrAuto,
     computed_margin_end: AuOrAuto,
     avoid_negative_margin_start: bool,
-    box_offsets: &'a AbsoluteBoxOffsets,
+    box_offsets: AbsoluteBoxOffsets<'a>,
+    static_position_rect_axis: RectAxis,
+    alignment: AlignFlags,
 }
 
 impl<'a> AbsoluteAxisSolver<'a> {
@@ -802,14 +843,17 @@ impl<'a> AbsoluteAxisSolver<'a> {
     ///
     /// In the replaced case, `size` is never `Auto`.
     fn solve_for_size(&self, computed_size: AuOrAuto) -> AxisResult {
-        match self.box_offsets {
-            AbsoluteBoxOffsets::StaticStart { start } => AxisResult {
-                anchor: Anchor::Start(*start),
+        match (
+            self.box_offsets.start.non_auto(),
+            self.box_offsets.end.non_auto(),
+        ) {
+            (None, None) => AxisResult {
+                anchor: Anchor::Start(self.static_position_rect_axis.origin),
                 size: computed_size,
                 margin_start: self.computed_margin_start.auto_is(Au::zero),
                 margin_end: self.computed_margin_end.auto_is(Au::zero),
             },
-            AbsoluteBoxOffsets::Start { start } => AxisResult {
+            (Some(start), None) => AxisResult {
                 anchor: Anchor::Start(
                     start
                         .percentage_relative_to(self.containing_size.into())
@@ -819,7 +863,7 @@ impl<'a> AbsoluteAxisSolver<'a> {
                 margin_start: self.computed_margin_start.auto_is(Au::zero),
                 margin_end: self.computed_margin_end.auto_is(Au::zero),
             },
-            AbsoluteBoxOffsets::End { end } => AxisResult {
+            (None, Some(end)) => AxisResult {
                 anchor: Anchor::End(
                     end.percentage_relative_to(self.containing_size.into())
                         .into(),
@@ -828,7 +872,7 @@ impl<'a> AbsoluteAxisSolver<'a> {
                 margin_start: self.computed_margin_start.auto_is(Au::zero),
                 margin_end: self.computed_margin_end.auto_is(Au::zero),
             },
-            AbsoluteBoxOffsets::Both { start, end } => {
+            (Some(start), Some(end)) => {
                 let start = start.percentage_relative_to(self.containing_size.into());
                 let end = end.percentage_relative_to(self.containing_size.into());
 
@@ -893,6 +937,66 @@ impl<'a> AbsoluteAxisSolver<'a> {
             self.box_offsets.both_specified() &&
             !self.computed_margin_start.is_auto() &&
             !self.computed_margin_end.is_auto()
+    }
+
+    fn origin_for_alignment_or_justification(&self, margin_box_axis: RectAxis) -> Option<Au> {
+        let alignment_container = match (
+            self.box_offsets.start.non_auto(),
+            self.box_offsets.end.non_auto(),
+        ) {
+            (None, None) => self.static_position_rect_axis,
+            (Some(start), Some(end)) => {
+                let start = start.percentage_relative_to(self.containing_size.into());
+                let end = end.percentage_relative_to(self.containing_size.into());
+
+                RectAxis {
+                    origin: start.into(),
+                    length: self.containing_size - (end + start).into(),
+                }
+            },
+            _ => return None,
+        };
+
+        let mut value_after_safety = self.alignment.value();
+        if self.alignment.flags() == AlignFlags::SAFE &&
+            margin_box_axis.length > alignment_container.length
+        {
+            value_after_safety = AlignFlags::START;
+        }
+
+        match value_after_safety {
+            AlignFlags::CENTER | AlignFlags::SPACE_AROUND | AlignFlags::SPACE_EVENLY => Some(
+                alignment_container.origin +
+                    ((alignment_container.length - margin_box_axis.length) / 2),
+            ),
+            AlignFlags::FLEX_END | AlignFlags::END => Some(
+                alignment_container.origin + alignment_container.length - margin_box_axis.length,
+            ),
+            _ => None,
+        }
+    }
+
+    fn solve_alignment(
+        &self,
+        margin_box_rect: LogicalRect<Au>,
+        content_box_rect: &mut LogicalRect<Au>,
+    ) {
+        let Some(new_origin) =
+            self.origin_for_alignment_or_justification(margin_box_rect.get_axis(self.axis))
+        else {
+            return;
+        };
+
+        match self.axis {
+            AxisDirection::Block => {
+                content_box_rect.start_corner.block +=
+                    new_origin - margin_box_rect.start_corner.block
+            },
+            AxisDirection::Inline => {
+                content_box_rect.start_corner.inline +=
+                    new_origin - margin_box_rect.start_corner.inline
+            },
+        }
     }
 }
 

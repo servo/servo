@@ -18,6 +18,7 @@ use crate::ContainingBlock;
 
 pub type PhysicalPoint<U> = euclid::Point2D<U, CSSPixel>;
 pub type PhysicalSize<U> = euclid::Size2D<U, CSSPixel>;
+pub type PhysicalVec<U> = euclid::Vector2D<U, CSSPixel>;
 pub type PhysicalRect<U> = euclid::Rect<U, CSSPixel>;
 pub type PhysicalSides<U> = euclid::SideOffsets2D<U, CSSPixel>;
 pub type AuOrAuto = AutoOr<Au>;

@@ -11,7 +11,6 @@ use itertools::izip;
 use style::computed_values::position::T as Position;
 use style::logical_geometry::Direction;
 use style::properties::longhands::align_items::computed_value::T as AlignItems;
-use style::properties::longhands::align_self::computed_value::T as AlignSelf;
 use style::properties::longhands::box_sizing::computed_value::T as BoxSizing;
 use style::properties::longhands::flex_wrap::computed_value::T as FlexWrap;
 use style::properties::ComputedValues;
@@ -136,7 +135,7 @@ impl FlexItemLayoutResult {
             final_line_cross_size,
             self.baseline_relative_to_margin_box.unwrap_or_default(),
             shared_alignment_baseline.unwrap_or_default(),
-            flex_context.config.flex_wrap_reverse,
+            flex_context.config.flex_wrap_is_reversed,
         );
 
         let start_corner = FlexRelativeVec2 {
@@ -244,16 +243,6 @@ struct FinalFlexLineLayout {
 }
 
 impl FlexContainerConfig {
-    fn align_for(&self, align_self: AlignSelf) -> AlignItems {
-        let value = align_self.0 .0.value();
-        let mapped_value = match value {
-            AlignFlags::AUTO => self.align_items.0,
-            AlignFlags::NORMAL => AlignFlags::STRETCH,
-            _ => value,
-        };
-        AlignItems(mapped_value)
-    }
-
     /// Whether an item with an `auto` preferred cross size needs to be stretched
     /// to fill the flex container.
     /// <https://drafts.csswg.org/css-flexbox/#stretched>
@@ -264,9 +253,39 @@ impl FlexContainerConfig {
     ) -> bool {
         self.container_is_single_line &&
             item_with_auto_cross_size_stretches_to_line_size(
-                self.align_for(item_style.clone_align_self()),
+                AlignItems(self.resolve_align_self_for_child(item_style)),
                 item_margin,
             )
+    }
+
+    fn resolve_reversable_flex_alignment(
+        &self,
+        align_flags: AlignFlags,
+        reversed: bool,
+    ) -> AlignFlags {
+        match (align_flags.value(), reversed) {
+            (AlignFlags::FLEX_START, false) => AlignFlags::START | align_flags.flags(),
+            (AlignFlags::FLEX_START, true) => AlignFlags::END | align_flags.flags(),
+            (AlignFlags::FLEX_END, false) => AlignFlags::END | align_flags.flags(),
+            (AlignFlags::FLEX_END, true) => AlignFlags::START | align_flags.flags(),
+            (_, _) => align_flags,
+        }
+    }
+
+    fn resolve_align_self_for_child(&self, child_style: &ComputedValues) -> AlignFlags {
+        self.resolve_reversable_flex_alignment(
+            child_style
+                .resolve_align_self(self.align_items, AlignItems(AlignFlags::STRETCH))
+                .0,
+            self.flex_wrap_is_reversed,
+        )
+    }
+
+    fn resolve_justify_content_for_child(&self) -> AlignFlags {
+        self.resolve_reversable_flex_alignment(
+            self.justify_content.0.primary(),
+            self.flex_direction_is_reversed,
+        )
     }
 }
 
@@ -298,10 +317,6 @@ impl FlexContext<'_> {
             base_rect_size,
             rect,
         )
-    }
-
-    fn align_for(&self, align_self: AlignSelf) -> AlignItems {
-        self.config.align_for(align_self)
     }
 }
 
@@ -632,24 +647,15 @@ impl FlexContainer {
                 flex_context.container_max_cross_size,
             );
 
-        let content_block_size = match flex_context.config.flex_axis {
-            FlexAxis::Row => {
-                // `container_main_size` ends up unused here but in this case that’s fine
-                // since it was already exactly the one decided by the outer formatting context.
-                container_cross_size
-            },
-            FlexAxis::Column => {
-                // FIXME: `container_cross_size` ends up unused here, which is a bug.
-                // It is meant to be the used inline-size, but the parent formatting context
-                // has already decided a possibly-different used inline-size.
-                // The spec is missing something to resolve this conflict:
-                // https://github.com/w3c/csswg-drafts/issues/5190
-                // And we’ll need to change the signature of `IndependentFormattingContext::layout`
-                // to allow the inner formatting context to “negotiate” a used inline-size
-                // with the outer one somehow.
-                container_main_size
-            },
+        let container_size = FlexRelativeVec2 {
+            main: container_main_size,
+            cross: container_cross_size,
         };
+        let content_block_size = flex_context
+            .config
+            .flex_axis
+            .vec2_to_flow_relative(container_size)
+            .block;
 
         let mut remaining_free_cross_space = flex_context
             .container_definite_inner_size
@@ -704,23 +710,13 @@ impl FlexContainer {
         };
 
         // Implement "unsafe" alignment. "safe" alignment is handled by the fallback process above.
+        let resolved_align_content = self.config.resolve_reversable_flex_alignment(
+            resolved_align_content,
+            flex_context.config.flex_wrap_is_reversed,
+        );
         let mut cross_start_position_cursor = match resolved_align_content {
             AlignFlags::START => Au::zero(),
-            AlignFlags::FLEX_START => {
-                if flex_context.config.flex_wrap_reverse {
-                    remaining_free_cross_space
-                } else {
-                    Au::zero()
-                }
-            },
             AlignFlags::END => remaining_free_cross_space,
-            AlignFlags::FLEX_END => {
-                if flex_context.config.flex_wrap_reverse {
-                    Au::zero()
-                } else {
-                    remaining_free_cross_space
-                }
-            },
             AlignFlags::CENTER => remaining_free_cross_space / 2,
             AlignFlags::STRETCH => Au::zero(),
             AlignFlags::SPACE_BETWEEN => Au::zero(),
@@ -764,7 +760,7 @@ impl FlexContainer {
                     cross_gap;
 
                 let flow_relative_line_position =
-                    match (self.config.flex_axis, self.config.flex_wrap_reverse) {
+                    match (self.config.flex_axis, self.config.flex_wrap_is_reversed) {
                         (FlexAxis::Row, false) => LogicalVec2 {
                             block: line_cross_start_position,
                             inline: Au::zero(),
@@ -824,16 +820,13 @@ impl FlexContainer {
         let fragments = absolutely_positioned_items_with_original_order
             .into_iter()
             .map(|child_as_abspos| match child_as_abspos {
-                FlexContent::AbsolutelyPositionedBox(absolutely_positioned) => {
-                    let hoisted_box = AbsolutelyPositionedBox::to_hoisted(
-                        absolutely_positioned,
-                        LogicalVec2::zero(),
+                FlexContent::AbsolutelyPositionedBox(absolutely_positioned_box) => self
+                    .create_absolutely_positioned_flex_child_fragment(
+                        absolutely_positioned_box,
                         containing_block,
-                    );
-                    let hoisted_fragment = hoisted_box.fragment.clone();
-                    positioning_context.push(hoisted_box);
-                    Fragment::AbsoluteOrFixedPositioned(hoisted_fragment)
-                },
+                        container_size,
+                        positioning_context,
+                    ),
                 FlexContent::FlexItemPlaceholder => {
                     // The `flex_item_fragments` iterator yields one fragment
                     // per flex item, in the original order.
@@ -842,7 +835,6 @@ impl FlexContainer {
                     let fragment = Fragment::Box(fragment);
                     child_positioning_context.adjust_static_position_of_hoisted_fragments(
                         &fragment,
-                        self.style.effective_writing_mode(),
                         PositioningContextLength::zero(),
                     );
                     positioning_context.append(child_positioning_context);
@@ -869,6 +861,68 @@ impl FlexContainer {
             content_inline_size_for_table: None,
             baselines,
         }
+    }
+
+    /// Create a absolutely positioned flex child fragment, using the rules the
+    /// specification dictates. This should take into account the alignment and
+    /// justification values of the container and the child to position it within a
+    /// "inset-modified containing block," which may be either the "static-position
+    /// rectangle" that's calculated below or a modified version of the absolute's
+    /// containing block adjusted by the insets specified in the item's style.
+    ///
+    /// From <https://drafts.csswg.org/css-flexbox/#abspos-items>:
+    /// > The cross-axis edges of the static-position rectangle of an
+    /// > absolutely-positioned child of a flex container are the content edges of the
+    /// > flex container The main-axis edges of the static-position rectangle are where
+    /// > the margin edges of the child would be positioned if it were the sole flex item
+    /// > in the flex container, assuming both the child and the flex container were
+    /// > fixed-size boxes of their used size. (For this purpose, auto margins are
+    /// > treated as zero.)
+    fn create_absolutely_positioned_flex_child_fragment(
+        &self,
+        absolutely_positioned_box: ArcRefCell<AbsolutelyPositionedBox>,
+        containing_block: &ContainingBlock,
+        container_size: FlexRelativeVec2<Au>,
+        positioning_context: &mut PositioningContext,
+    ) -> Fragment {
+        let alignment = {
+            let fragment = absolutely_positioned_box.borrow();
+            let make_flex_only_values_directional_for_absolutes =
+                |value: AlignFlags, reversed: bool| match (value.value(), reversed) {
+                    (AlignFlags::NORMAL | AlignFlags::AUTO | AlignFlags::STRETCH, true) => {
+                        AlignFlags::END | AlignFlags::SAFE
+                    },
+                    (AlignFlags::STRETCH, false) => AlignFlags::START | AlignFlags::SAFE,
+                    _ => value,
+                };
+            let cross = make_flex_only_values_directional_for_absolutes(
+                self.config
+                    .resolve_align_self_for_child(fragment.context.style()),
+                self.config.flex_wrap_is_reversed,
+            );
+            let main = make_flex_only_values_directional_for_absolutes(
+                self.config.resolve_justify_content_for_child(),
+                self.config.flex_direction_is_reversed,
+            );
+
+            FlexRelativeVec2 { cross, main }
+        };
+        let logical_alignment = self.config.flex_axis.vec2_to_flow_relative(alignment);
+
+        let static_position_rect = LogicalRect {
+            start_corner: LogicalVec2::zero(),
+            size: self.config.flex_axis.vec2_to_flow_relative(container_size),
+        }
+        .to_physical(containing_block.effective_writing_mode());
+
+        let hoisted_box = AbsolutelyPositionedBox::to_hoisted(
+            absolutely_positioned_box,
+            static_position_rect,
+            logical_alignment,
+        );
+        let hoisted_fragment = hoisted_box.fragment.clone();
+        positioning_context.push(hoisted_box);
+        Fragment::AbsoluteOrFixedPositioned(hoisted_fragment)
     }
 
     fn available_cross_space_for_flex_items(
@@ -1022,8 +1076,11 @@ impl<'a> FlexItem<'a> {
             cross: flex_relative_content_min_size.cross.auto_is(Au::zero),
         };
 
-        let align_self = flex_context.align_for(box_.style().clone_align_self());
-
+        let align_self = AlignItems(
+            flex_context
+                .config
+                .resolve_align_self_for_child(box_.style()),
+        );
         let (flex_base_size, flex_base_size_is_definite) = box_.flex_base_size(
             flex_context.layout_context,
             &containing_block.into(),
@@ -1922,8 +1979,7 @@ impl FlexItem<'_> {
                 Au::zero()
             } else {
                 match self.align_self.0.value() {
-                    AlignFlags::FLEX_START | AlignFlags::STRETCH => Au::zero(),
-                    AlignFlags::FLEX_END => ending_alignment,
+                    AlignFlags::STRETCH => Au::zero(),
                     AlignFlags::CENTER => ending_alignment / 2,
                     AlignFlags::BASELINE | AlignFlags::LAST_BASELINE => {
                         max_propagated_baseline - propagated_baseline
