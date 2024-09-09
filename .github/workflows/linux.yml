@@ -108,7 +108,7 @@ jobs:
       - if: ${{ fromJSON(needs.runner-select.outputs.is-self-hosted) && github.event_name != 'pull_request_target' }}
         run: git fetch --depth=1 origin $env:GITHUB_SHA
       - if: ${{ fromJSON(needs.runner-select.outputs.is-self-hosted) && github.event_name == 'pull_request_target' }}
-        run: git fetch --depth=1 origin refs/pull/${{ github.event_number }}/head
+        run: git fetch --depth=1 origin ${{ github.event.pull_request.head.sha }}
       - if: ${{ fromJSON(needs.runner-select.outputs.is-self-hosted) }}
         # Same as `git switch --detach FETCH_HEAD`, but fixes up dirty working
         # trees, in case the runner image was baked with a dirty working tree.
