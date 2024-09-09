@@ -55,6 +55,7 @@ impl XRInputSource {
                 supports_dual_rumble: false,
                 supports_trigger_rumble: false,
             },
+            true,
         );
         XRInputSource {
             reflector: Reflector::new(),
