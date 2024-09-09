@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use geom::{FlexAxis, FlexRelativeVec2, MainStartCrossStart};
+use geom::{FlexAxis, MainStartCrossStart};
 use serde::Serialize;
 use servo_arc::Arc as ServoArc;
 use style::logical_geometry::WritingMode;
@@ -11,7 +11,7 @@ use style::properties::longhands::flex_direction::computed_value::T as FlexDirec
 use style::properties::longhands::flex_wrap::computed_value::T as FlexWrap;
 use style::properties::ComputedValues;
 use style::values::computed::{AlignContent, JustifyContent};
-use style::values::specified::align::{AlignFlags, AxisDirection};
+use style::values::specified::align::AlignFlags;
 
 use crate::cell::ArcRefCell;
 use crate::formatting_contexts::IndependentFormattingContext;
