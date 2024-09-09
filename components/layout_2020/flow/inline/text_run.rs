@@ -225,6 +225,7 @@ impl TextRunSegment {
             let mut whitespace = slice.end..slice.end;
             let mut rev_char_indices = word.char_indices().rev().peekable();
 
+            let mut ends_with_whitespace = false;
             let ends_with_newline = rev_char_indices
                 .peek()
                 .map_or(false, |&(_, character)| character == '\n');
@@ -232,6 +233,7 @@ impl TextRunSegment {
                 .take_while(|&(_, character)| char_is_whitespace(character))
                 .last()
             {
+                ends_with_whitespace = true;
                 whitespace.start = slice.start + first_white_space_index;
 
                 // If line breaking for a piece of text that has `white-space-collapse: break-spaces` there
@@ -252,10 +254,7 @@ impl TextRunSegment {
 
             // If there's no whitespace and `word-break` is set to `keep-all`, try increasing the slice.
             // TODO: This should only happen for CJK text.
-            let can_break_anywhere = text_style.word_break == WordBreak::BreakAll ||
-                text_style.overflow_wrap == OverflowWrap::Anywhere ||
-                text_style.overflow_wrap == OverflowWrap::BreakWord;
-            if whitespace.is_empty() &&
+            if !ends_with_whitespace &&
                 *break_index != self.range.end &&
                 text_style.word_break == WordBreak::KeepAll &&
                 !can_break_anywhere
