@@ -315,10 +315,10 @@ impl LocationMethods for Location {
             // Step 5: Set copyURL's fragment to the empty string.
             // Step 6: Basic URL parse input, with copyURL as url and fragment state as
             // state override.
-            let new_fragment = match value.0.as_str() {
-                "" => Some("#"),
-                _ if value.0.starts_with('#') => Some(&value.0[1..]),
-                _ => Some(value.0.as_str()),
+            let new_fragment = if value.0.starts_with('#') {
+                Some(&value.0[1..])
+            } else {
+                Some(value.0.as_str())
             };
             // Step 7: If copyURL's fragment is this's url's fragment, then return.
             if copy_url.fragment() == new_fragment {
