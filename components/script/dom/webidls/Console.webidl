@@ -26,6 +26,7 @@ namespace console {
   undefined groupEnd();
 
   // Timing
-  undefined time(DOMString message);
-  undefined timeEnd(DOMString message);
+  undefined time(optional DOMString label = "default");
+  undefined timeLog(optional DOMString label = "default", any... data);
+  undefined timeEnd(optional DOMString label = "default");
 };

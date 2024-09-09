@@ -2285,6 +2285,21 @@ impl GlobalScope {
         }
     }
 
+    /// Computes the delta time since a label has been created
+    ///
+    /// Returns an error if the label does not exist.
+    pub fn time_log(&self, label: &str) -> Result<u64, ()> {
+        self.console_timers
+            .borrow()
+            .get(label)
+            .ok_or(())
+            .map(|&start| (Instant::now() - start).as_millis() as u64)
+    }
+
+    /// Computes the delta time since a label has been created and stops
+    /// tracking the label.
+    ///
+    /// Returns an error if the label does not exist.
     pub fn time_end(&self, label: &str) -> Result<u64, ()> {
         self.console_timers
             .borrow_mut()
