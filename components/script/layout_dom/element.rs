@@ -441,7 +441,10 @@ impl<'dom> ::selectors::Element for ServoLayoutElement<'dom> {
     type Impl = SelectorImpl;
 
     fn opaque(&self) -> ::selectors::OpaqueElement {
-        ::selectors::OpaqueElement::new(unsafe { &*(self.as_node().opaque().0 as *const ()) })
+        let r =
+            ::selectors::OpaqueElement::new(unsafe { &*(self.as_node().opaque().0 as *const ()) });
+        assert_eq!(ServoLayoutElement::unopaque(r), *self);
+        r
     }
 
     fn parent_element(&self) -> Option<Self> {
