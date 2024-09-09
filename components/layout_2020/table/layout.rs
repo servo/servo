@@ -12,6 +12,7 @@ use style::computed_values::border_collapse::T as BorderCollapse;
 use style::computed_values::box_sizing::T as BoxSizing;
 use style::computed_values::caption_side::T as CaptionSide;
 use style::computed_values::empty_cells::T as EmptyCells;
+use style::computed_values::table_layout::T as TableLayoutMode;
 use style::computed_values::visibility::T as Visibility;
 use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
@@ -172,6 +173,9 @@ impl<'a> TableLayout<'a> {
         layout_context: &LayoutContext,
         writing_mode: WritingMode,
     ) {
+        let is_in_fixed_mode = self.table.style.get_table().clone_table_layout() ==
+            TableLayoutMode::Fixed &&
+            !self.table.style.box_size(writing_mode).inline.is_auto();
         let row_measures = vec![LogicalVec2::zero(); self.table.size.width];
         self.cell_measures = vec![row_measures; self.table.size.height];
 
@@ -201,47 +205,63 @@ impl<'a> TableLayout<'a> {
 
                 let (size, min_size, max_size) =
                     get_outer_sizes_from_style(&cell.style, writing_mode, &padding_border_sums);
-                let mut inline_content_sizes = cell.contents.contents.inline_content_sizes(
-                    layout_context,
-                    &IndefiniteContainingBlock::new_for_style(&cell.style),
-                );
-                inline_content_sizes.min_content += padding_border_sums.inline;
-                inline_content_sizes.max_content += padding_border_sums.inline;
-
-                // TODO: the max-content size should never be smaller than the min-content size!
-                inline_content_sizes.max_content = inline_content_sizes
-                    .max_content
-                    .max(inline_content_sizes.min_content);
-
                 let percentage_contribution =
                     get_size_percentage_contribution_from_style(&cell.style, writing_mode);
 
-                // These formulas differ from the spec, but seem to match Gecko and Blink.
-                let outer_min_content_width = inline_content_sizes
-                    .min_content
-                    .min(max_size.inline)
-                    .max(min_size.inline);
-                let outer_max_content_width = if self.columns[column_index].constrained {
-                    inline_content_sizes
-                        .min_content
-                        .max(size.inline)
-                        .min(max_size.inline)
-                        .max(min_size.inline)
+                // <https://drafts.csswg.org/css-tables/#in-fixed-mode>
+                // > When a table-root is laid out in fixed mode, the content of its table-cells is ignored
+                // > for the purpose of width computation, the aggregation algorithm for column sizing considers
+                // > only table-cells belonging to the first row track
+                let inline_measure = if is_in_fixed_mode && row_index > 0 {
+                    CellOrTrackMeasure::zero()
                 } else {
-                    inline_content_sizes
-                        .max_content
-                        .max(size.inline)
-                        .min(max_size.inline)
-                        .max(min_size.inline)
-                };
-                assert!(outer_min_content_width <= outer_max_content_width);
+                    let mut inline_content_sizes = if is_in_fixed_mode {
+                        ContentSizes::zero()
+                    } else {
+                        cell.contents.contents.inline_content_sizes(
+                            layout_context,
+                            &IndefiniteContainingBlock::new_for_style(&cell.style),
+                        )
+                    };
+                    inline_content_sizes.min_content += padding_border_sums.inline;
+                    inline_content_sizes.max_content += padding_border_sums.inline;
 
-                let inline_measure = CellOrTrackMeasure {
-                    content_sizes: ContentSizes {
-                        min_content: outer_min_content_width,
-                        max_content: outer_max_content_width,
-                    },
-                    percentage: percentage_contribution.inline,
+                    // TODO: the max-content size should never be smaller than the min-content size!
+                    inline_content_sizes.max_content = inline_content_sizes
+                        .max_content
+                        .max(inline_content_sizes.min_content);
+
+                    // These formulas differ from the spec, but seem to match Gecko and Blink.
+                    let outer_min_content_width = if is_in_fixed_mode {
+                        size.inline.min(max_size.inline).max(min_size.inline)
+                    } else {
+                        inline_content_sizes
+                            .min_content
+                            .min(max_size.inline)
+                            .max(min_size.inline)
+                    };
+                    let outer_max_content_width = if self.columns[column_index].constrained {
+                        inline_content_sizes
+                            .min_content
+                            .max(size.inline)
+                            .min(max_size.inline)
+                            .max(min_size.inline)
+                    } else {
+                        inline_content_sizes
+                            .max_content
+                            .max(size.inline)
+                            .min(max_size.inline)
+                            .max(min_size.inline)
+                    };
+                    assert!(outer_min_content_width <= outer_max_content_width);
+
+                    CellOrTrackMeasure {
+                        content_sizes: ContentSizes {
+                            min_content: outer_min_content_width,
+                            max_content: outer_max_content_width,
+                        },
+                        percentage: percentage_contribution.inline,
+                    }
                 };
 
                 // This measure doesn't take into account the `min-content` and `max-content` sizes.
