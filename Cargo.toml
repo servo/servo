@@ -121,8 +121,7 @@ surfman = { version = "0.9.8", features = ["chains"] }
 syn = { version = "2", default-features = false, features = ["clone-impls", "derive", "parsing"] }
 synstructure = "0.13"
 thin-vec = "0.2.13"
-time = "0.1.41"
-time_03 = { package = "time", version = "0.3", features = ["large-dates", "serde"] }
+time_03 = { package = "time", version = "0.3", features = ["large-dates", "local-offset", "serde"] }
 to_shmem = { git = "https://github.com/servo/stylo", branch = "2024-07-16" }
 tokio = "1"
 tokio-rustls = "0.24"

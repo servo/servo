@@ -61,6 +61,16 @@ impl Add<Duration> for CrossProcessInstant {
     }
 }
 
+impl Sub<Duration> for CrossProcessInstant {
+    type Output = Self;
+
+    fn sub(self, rhs: Duration) -> Self::Output {
+        Self {
+            value: self.value - rhs.whole_nanoseconds() as u64,
+        }
+    }
+}
+
 #[cfg(all(unix, not(any(target_os = "macos", target_os = "ios"))))]
 mod platform {
     use libc::timespec;

@@ -5,6 +5,7 @@
 use std::cmp::{max, min};
 use std::ops::Range;
 use std::path::PathBuf;
+use std::time::SystemTime;
 
 use embedder_traits::FilterPattern;
 use ipc_channel::ipc::IpcSender;
@@ -115,7 +116,7 @@ impl RelativePos {
 pub struct SelectedFile {
     pub id: Uuid,
     pub filename: PathBuf,
-    pub modified: u64,
+    pub modified: SystemTime,
     pub size: u64,
     // https://w3c.github.io/FileAPI/#dfn-type
     pub type_string: String,

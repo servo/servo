@@ -14,6 +14,7 @@ use std::collections::HashMap;
 use std::net::TcpStream;
 use std::time::{Duration, SystemTime};
 
+use base::cross_process_instant::CrossProcessInstant;
 use base::id::{BrowsingContextId, PipelineId};
 use bitflags::bitflags;
 use http::{HeaderMap, Method};
@@ -134,16 +135,16 @@ pub struct NodeInfo {
 
 pub struct StartedTimelineMarker {
     name: String,
-    start_time: PreciseTime,
+    start_time: CrossProcessInstant,
     start_stack: Option<Vec<()>>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct TimelineMarker {
     pub name: String,
-    pub start_time: PreciseTime,
+    pub start_time: CrossProcessInstant,
     pub start_stack: Option<Vec<()>>,
-    pub end_time: PreciseTime,
+    pub end_time: CrossProcessInstant,
     pub end_stack: Option<Vec<()>>,
 }
 
@@ -364,7 +365,7 @@ impl TimelineMarker {
     pub fn start(name: String) -> StartedTimelineMarker {
         StartedTimelineMarker {
             name,
-            start_time: PreciseTime::now(),
+            start_time: CrossProcessInstant::now(),
             start_stack: None,
         }
     }
@@ -376,31 +377,11 @@ impl StartedTimelineMarker {
             name: self.name,
             start_time: self.start_time,
             start_stack: self.start_stack,
-            end_time: PreciseTime::now(),
+            end_time: CrossProcessInstant::now(),
             end_stack: None,
         }
     }
 }
-
-/// A replacement for `time::PreciseTime` that isn't opaque, so we can serialize it.
-///
-/// The reason why this doesn't go upstream is that `time` is slated to be part of Rust's standard
-/// library, which definitely can't have any dependencies on `serde`. But `serde` can't implement
-/// `Deserialize` and `Serialize` itself, because `time::PreciseTime` is opaque! A Catch-22. So I'm
-/// duplicating the definition here.
-#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
-pub struct PreciseTime(u64);
-
-impl PreciseTime {
-    pub fn now() -> PreciseTime {
-        PreciseTime(time::precise_time_ns())
-    }
-
-    pub fn to(&self, later: PreciseTime) -> Duration {
-        Duration::from_nanos(later.0 - self.0)
-    }
-}
-
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
 pub struct WorkerId(pub Uuid);
 
