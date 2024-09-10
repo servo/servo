@@ -2875,6 +2875,21 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "12cb882ccb290b8646e554b157ab0b71e64e8d5bef775cd66b6531e52d302669"
 
 [[package]]
+name = "hitrace"
+version = "0.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f92c0ae6f30b32eaeb811143fba3b56864f477b2e69458b13779a07b3aaf2f6e"
+dependencies = [
+ "hitrace-sys",
+]
+
+[[package]]
+name = "hitrace-sys"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "315f4e893d1caac3a97b9e6cbcf211a7012c6615cd688e4430f0cd5712ac3a3f"
+
+[[package]]
 name = "home"
 version = "0.5.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6258,6 +6273,7 @@ dependencies = [
  "gleam",
  "glow 0.13.1",
  "hilog",
+ "hitrace",
  "image",
  "ipc-channel",
  "jni",
