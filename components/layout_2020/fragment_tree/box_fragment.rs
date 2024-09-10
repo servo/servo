@@ -10,7 +10,7 @@ use style::computed_values::overflow_x::T as ComputedOverflow;
 use style::computed_values::position::T as ComputedPosition;
 use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
-use style::values::computed::{CSSPixelLength, Length, LengthPercentage, LengthPercentageOrAuto};
+use style::values::computed::{LengthPercentage, LengthPercentageOrAuto};
 use style::Zero;
 
 use super::{BaseFragment, BaseFragmentInfo, CollapsedBlockMargins, Fragment};
@@ -304,7 +304,7 @@ impl BoxFragment {
             return resolved_sticky_insets;
         }
 
-        let convert_to_length_or_auto = |sides: PhysicalSides<Au>| {
+        let convert_to_au_or_auto = |sides: PhysicalSides<Au>| {
             PhysicalSides::new(
                 AuOrAuto::LengthPercentage(sides.top),
                 AuOrAuto::LengthPercentage(sides.right),
@@ -321,29 +321,23 @@ impl BoxFragment {
         // https://drafts.csswg.org/cssom/#resolved-values
         let insets = self.style.get_position();
         if position == ComputedPosition::Relative {
-            let get_resolved_axis =
-                |start: &LengthPercentageOrAuto,
-                 end: &LengthPercentageOrAuto,
-                 container_length: CSSPixelLength| {
-                    let start = start.map(|v| v.percentage_relative_to(container_length));
-                    let end = end.map(|v| v.percentage_relative_to(container_length));
-                    match (start.non_auto(), end.non_auto()) {
-                        (None, None) => (Length::zero(), Length::zero()),
-                        (None, Some(end)) => (-end, end),
-                        (Some(start), None) => (start, -start),
-                        // This is the overconstrained case, for which the resolved insets will
-                        // simply be the computed insets.
-                        (Some(start), Some(end)) => (start, end),
-                    }
-                };
-            let (left, right) = get_resolved_axis(&insets.left, &insets.right, cb_width.into());
-            let (top, bottom) = get_resolved_axis(&insets.top, &insets.bottom, cb_height.into());
-            return convert_to_length_or_auto(PhysicalSides::new(
-                top.into(),
-                right.into(),
-                bottom.into(),
-                left.into(),
-            ));
+            let get_resolved_axis = |start: &LengthPercentageOrAuto,
+                                     end: &LengthPercentageOrAuto,
+                                     container_length: Au| {
+                let start = start.map(|value| value.to_used_value(container_length));
+                let end = end.map(|value| value.to_used_value(container_length));
+                match (start.non_auto(), end.non_auto()) {
+                    (None, None) => (Au::zero(), Au::zero()),
+                    (None, Some(end)) => (-end, end),
+                    (Some(start), None) => (start, -start),
+                    // This is the overconstrained case, for which the resolved insets will
+                    // simply be the computed insets.
+                    (Some(start), Some(end)) => (start, end),
+                }
+            };
+            let (left, right) = get_resolved_axis(&insets.left, &insets.right, cb_width);
+            let (top, bottom) = get_resolved_axis(&insets.top, &insets.bottom, cb_height);
+            return convert_to_au_or_auto(PhysicalSides::new(top, right, bottom, left));
         }
 
         debug_assert!(
@@ -353,8 +347,7 @@ impl BoxFragment {
         let resolve = |value: &LengthPercentageOrAuto, container_length: Au| -> Au {
             value
                 .auto_is(LengthPercentage::zero)
-                .percentage_relative_to(container_length.into())
-                .into()
+                .to_used_value(container_length)
         };
 
         let (top, bottom) = if self.overconstrained.height {
@@ -374,6 +367,6 @@ impl BoxFragment {
             (content_rect.origin.x, cb_width - content_rect.max_x())
         };
 
-        convert_to_length_or_auto(PhysicalSides::new(top, right, bottom, left))
+        convert_to_au_or_auto(PhysicalSides::new(top, right, bottom, left))
     }
 }

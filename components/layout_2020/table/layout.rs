@@ -15,7 +15,7 @@ use style::computed_values::empty_cells::T as EmptyCells;
 use style::computed_values::visibility::T as Visibility;
 use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
-use style::values::computed::{Length, LengthPercentage as ComputedLengthPercentage, Percentage};
+use style::values::computed::{LengthPercentage as ComputedLengthPercentage, Percentage};
 use style::values::generics::box_::{GenericVerticalAlign as VerticalAlign, VerticalAlignKeyword};
 use style::values::generics::length::GenericLengthPercentageOrAuto::{Auto, LengthPercentage};
 use style::Zero;
@@ -185,7 +185,7 @@ impl<'a> TableLayout<'a> {
                 let padding = cell
                     .style
                     .padding(writing_mode)
-                    .percentages_relative_to(Length::zero());
+                    .percentages_relative_to(Au::zero());
 
                 let border = self
                     .get_collapsed_borders_for_cell(
@@ -195,8 +195,8 @@ impl<'a> TableLayout<'a> {
                     .unwrap_or_else(|| cell.style.border_width(writing_mode));
 
                 let padding_border_sums = LogicalVec2 {
-                    inline: (padding.inline_sum() + border.inline_sum()).into(),
-                    block: (padding.block_sum() + border.block_sum()).into(),
+                    inline: (padding.inline_sum() + border.inline_sum()),
+                    block: (padding.block_sum() + border.block_sum()),
                 };
 
                 let (size, min_size, max_size) =
@@ -681,18 +681,17 @@ impl<'a> TableLayout<'a> {
                 let padding = context
                     .style
                     .padding(writing_mode)
-                    .percentages_relative_to(Length::zero());
+                    .percentages_relative_to(Au::zero());
                 let border = context.style.border_width(writing_mode);
                 let margin = context
                     .style
                     .margin(writing_mode)
-                    .percentages_relative_to(Length::zero())
-                    .auto_is(Length::zero);
+                    .percentages_relative_to(Au::zero())
+                    .auto_is(Au::zero);
 
                 let padding_border_sums = LogicalVec2 {
-                    inline: (padding.inline_sum() + border.inline_sum() + margin.inline_sum())
-                        .into(),
-                    block: (padding.block_sum() + border.block_sum() + margin.block_sum()).into(),
+                    inline: (padding.inline_sum() + border.inline_sum() + margin.inline_sum()),
+                    block: (padding.block_sum() + border.block_sum() + margin.block_sum()),
                 };
 
                 let (size, min_size, max_size) =
@@ -752,8 +751,7 @@ impl<'a> TableLayout<'a> {
                 let min_width: Au = style
                     .content_min_box_size(containing_block_for_table, &self.pbm)
                     .inline
-                    .auto_is(Length::zero)
-                    .into();
+                    .auto_is(Au::zero);
                 resolved_table_width
                     .clamp(grid_min_max.min_content, grid_min_max.max_content)
                     .max(min_width)
@@ -1140,14 +1138,12 @@ impl<'a> TableLayout<'a> {
                                 cell.style.border_width(
                                     containing_block_for_table.effective_writing_mode(),
                                 )
-                            })
-                            .into();
+                            });
 
                         let padding: LogicalSides<Au> = cell
                             .style
                             .padding(containing_block_for_table.effective_writing_mode())
-                            .percentages_relative_to(self.basis_for_cell_padding_percentage.into())
-                            .into();
+                            .percentages_relative_to(self.basis_for_cell_padding_percentage);
                         let inline_border_padding_sum = border.inline_sum() + padding.inline_sum();
 
                         let mut total_cell_width: Au = (column_index..column_index + cell.colspan)
@@ -2076,12 +2072,10 @@ impl<'a> TableLayout<'a> {
                 };
 
                 let border = cell.style.border_width(writing_mode);
-                collapsed_borders.block[row_index].max_assign(border.block_start.into());
-                collapsed_borders.block[row_index + cell.rowspan]
-                    .max_assign(border.block_end.into());
-                collapsed_borders.inline[column_index].max_assign(border.inline_start.into());
-                collapsed_borders.inline[column_index + cell.colspan]
-                    .max_assign(border.inline_end.into());
+                collapsed_borders.block[row_index].max_assign(border.block_start);
+                collapsed_borders.block[row_index + cell.rowspan].max_assign(border.block_end);
+                collapsed_borders.inline[column_index].max_assign(border.inline_start);
+                collapsed_borders.inline[column_index + cell.colspan].max_assign(border.inline_end);
             }
         }
 
@@ -2092,29 +2086,28 @@ impl<'a> TableLayout<'a> {
         &self,
         cell: &TableSlotCell,
         coordinates: TableSlotCoordinates,
-    ) -> Option<LogicalSides<Length>> {
+    ) -> Option<LogicalSides<Au>> {
         let collapsed_borders = self.collapsed_borders.as_ref()?;
         let end_x = coordinates.x + cell.colspan;
         let end_y = coordinates.y + cell.rowspan;
-        let mut result: LogicalSides<Length> = LogicalSides {
+        let mut result = LogicalSides {
             inline_start: collapsed_borders.inline[coordinates.x],
             inline_end: collapsed_borders.inline[end_x],
             block_start: collapsed_borders.block[coordinates.y],
             block_end: collapsed_borders.block[end_y],
-        }
-        .into();
+        };
 
         if coordinates.x != 0 {
-            result.inline_start = result.inline_start / 2.0;
+            result.inline_start /= 2;
         }
         if coordinates.y != 0 {
-            result.block_start = result.block_start / 2.0;
+            result.block_start /= 2;
         }
         if end_x != self.table.size.width {
-            result.inline_end = result.inline_end / 2.0;
+            result.inline_end /= 2;
         }
         if end_y != self.table.size.height {
-            result.block_end = result.block_end / 2.0;
+            result.block_end /= 2;
         }
 
         Some(result)
@@ -2436,9 +2429,9 @@ impl Table {
             let padding = self
                 .style
                 .padding(writing_mode)
-                .percentages_relative_to(Length::zero());
+                .percentages_relative_to(Au::zero());
             let border = self.style.border_width(writing_mode);
-            caption_minimum_inline_size -= (padding.inline_sum() + border.inline_sum()).into();
+            caption_minimum_inline_size -= padding.inline_sum() + border.inline_sum();
             table_content_sizes
                 .min_content
                 .max_assign(caption_minimum_inline_size);

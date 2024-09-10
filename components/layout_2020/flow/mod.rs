@@ -14,7 +14,7 @@ use style::computed_values::clear::T as Clear;
 use style::computed_values::float::T as Float;
 use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
-use style::values::computed::{Length, LengthOrAuto, Size};
+use style::values::computed::{Length, Size};
 use style::values::specified::align::AlignFlags;
 use style::values::specified::{Display, TextAlignKeyword};
 use style::Zero;
@@ -136,7 +136,7 @@ impl BlockLevelBox {
 
         let min_size = style
             .content_min_box_size(containing_block, &pbm)
-            .auto_is(Length::zero);
+            .auto_is(Au::zero);
         let max_size = style.content_max_box_size(containing_block, &pbm);
         let prefered_size = style.content_box_size(containing_block, &pbm);
         let inline_size = prefered_size
@@ -144,19 +144,18 @@ impl BlockLevelBox {
             .auto_is(|| {
                 let margin_inline_start = pbm.margin.inline_start.auto_is(Au::zero);
                 let margin_inline_end = pbm.margin.inline_end.auto_is(Au::zero);
-                (containing_block.inline_size -
+                containing_block.inline_size -
                     pbm.padding_border_sums.inline -
                     margin_inline_start -
-                    margin_inline_end)
-                    .into()
+                    margin_inline_end
             })
             .clamp_between_extremums(min_size.inline, max_size.inline);
         let block_size = prefered_size
             .block
-            .map(|size| Au::from(size.clamp_between_extremums(min_size.block, max_size.block)));
+            .map(|size| size.clamp_between_extremums(min_size.block, max_size.block));
 
         let containing_block_for_children = ContainingBlock {
-            inline_size: inline_size.into(),
+            inline_size,
             block_size,
             style,
         };
@@ -384,7 +383,7 @@ fn calculate_inline_content_size_for_block_level_boxes(
             } => {
                 let size = sizing::outer_inline(
                     style,
-                    &containing_block,
+                    containing_block,
                     &LogicalVec2::zero(),
                     false, /* auto_block_size_stretches_to_containing_block */
                     |containing_block_for_children| {
@@ -854,7 +853,7 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
         sequential_layout_state.as_deref_mut(),
         CollapsibleWithParentStartMargin(start_margin_can_collapse_with_children),
     );
-    let mut content_block_size = flow_layout.content_block_size;
+    let mut content_block_size: Au = flow_layout.content_block_size.into();
 
     // Update margins.
     let mut block_margins_collapsed_with_children = CollapsedBlockMargins::from_margin(&margin);
@@ -888,13 +887,11 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
             .end
             .adjoin_assign(&collapsible_margins_in_children.end);
     } else {
-        content_block_size += collapsible_margins_in_children.end.solve().into();
+        content_block_size += collapsible_margins_in_children.end.solve();
     }
 
     let block_size = containing_block_for_children.block_size.auto_is(|| {
-        content_block_size
-            .clamp_between_extremums(min_box_size.block, max_box_size.block)
-            .into()
+        content_block_size.clamp_between_extremums(min_box_size.block, max_box_size.block)
     });
 
     if let Some(ref mut sequential_layout_state) = sequential_layout_state {
@@ -913,7 +910,7 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
         // the block direction. In that case, the ceiling for floats is effectively raised
         // as long as no floats in the overflowing content lowered it.
         sequential_layout_state.advance_block_position(
-            block_size - content_block_size.into() + pbm.padding.block_end + pbm.border.block_end,
+            block_size - content_block_size + pbm.padding.block_end + pbm.border.block_end,
         );
 
         if !end_margin_can_collapse_with_children {
@@ -995,10 +992,9 @@ impl NonReplacedFormattingContext {
             Some(inline_size) => (layout.content_block_size, inline_size),
             None => (
                 containing_block_for_children.block_size.auto_is(|| {
-                    layout.content_block_size.clamp_between_extremums(
-                        min_box_size.block.into(),
-                        max_box_size.block.map(|t| t.into()),
-                    )
+                    layout
+                        .content_block_size
+                        .clamp_between_extremums(min_box_size.block, max_box_size.block)
                 }),
                 containing_block_for_children.inline_size,
             ),
@@ -1054,7 +1050,7 @@ impl NonReplacedFormattingContext {
         let min_box_size = self
             .style
             .content_min_box_size(containing_block, &pbm)
-            .auto_is(Length::zero);
+            .auto_is(Au::zero);
         let block_size = box_size.block.map(|block_size| {
             block_size.clamp_between_extremums(min_box_size.block, max_box_size.block)
         });
@@ -1079,15 +1075,15 @@ impl NonReplacedFormattingContext {
         let clearance;
         let mut content_size;
         let mut layout;
-        if let LengthOrAuto::LengthPercentage(ref inline_size) = box_size.inline {
+        if let AuOrAuto::LengthPercentage(ref inline_size) = box_size.inline {
             let inline_size =
                 inline_size.clamp_between_extremums(min_box_size.inline, max_box_size.inline);
             layout = self.layout(
                 layout_context,
                 positioning_context,
                 &ContainingBlock {
-                    inline_size: inline_size.into(),
-                    block_size: block_size.map(|t| t.into()),
+                    inline_size,
+                    block_size,
                     style: &self.style,
                 },
                 containing_block,
@@ -1097,12 +1093,12 @@ impl NonReplacedFormattingContext {
                 content_size = LogicalVec2 {
                     block: layout.content_block_size,
                     inline: inline_size,
-                }
-                .into();
+                };
             } else {
                 content_size = LogicalVec2 {
                     block: block_size.auto_is(|| {
-                        Length::from(layout.content_block_size)
+                        layout
+                            .content_block_size
                             .clamp_between_extremums(min_box_size.block, max_box_size.block)
                     }),
                     inline: inline_size,
@@ -1118,7 +1114,7 @@ impl NonReplacedFormattingContext {
                 &collapsed_margin_block_start,
                 containing_block,
                 &pbm,
-                content_size + pbm.padding_border_sums.into(),
+                content_size + pbm.padding_border_sums,
                 &self.style,
             );
         } else {
@@ -1135,8 +1131,8 @@ impl NonReplacedFormattingContext {
 
             // Create a PlacementAmongFloats using the minimum size in all dimensions as the object size.
             let minimum_size_of_block = LogicalVec2 {
-                inline: min_box_size.inline.into(),
-                block: block_size.auto_is(|| min_box_size.block).into(),
+                inline: min_box_size.inline,
+                block: block_size.auto_is(|| min_box_size.block),
             } + pbm.padding_border_sums;
             let mut placement = PlacementAmongFloats::new(
                 &sequential_layout_state.floats,
@@ -1149,8 +1145,9 @@ impl NonReplacedFormattingContext {
             loop {
                 // First try to place the block using the minimum size as the object size.
                 placement_rect = placement.place();
-                let proposed_inline_size =
-                    Length::from(placement_rect.size.inline - pbm.padding_border_sums.inline)
+                let proposed_inline_size = placement_rect.size.inline -
+                    pbm.padding_border_sums
+                        .inline
                         .clamp_between_extremums(min_box_size.inline, max_box_size.inline);
 
                 // Now lay out the block using the inline size we calculated from the placement.
@@ -1161,8 +1158,8 @@ impl NonReplacedFormattingContext {
                     layout_context,
                     positioning_context,
                     &ContainingBlock {
-                        inline_size: proposed_inline_size.into(),
-                        block_size: block_size.map(|t| t.into()),
+                        inline_size: proposed_inline_size,
+                        block_size,
                         style: &self.style,
                     },
                     containing_block,
@@ -1185,12 +1182,12 @@ impl NonReplacedFormattingContext {
                     content_size = LogicalVec2 {
                         block: layout.content_block_size,
                         inline: inline_size,
-                    }
-                    .into();
+                    };
                 } else {
                     content_size = LogicalVec2 {
                         block: block_size.auto_is(|| {
-                            Length::from(layout.content_block_size)
+                            layout
+                                .content_block_size
                                 .clamp_between_extremums(min_box_size.block, max_box_size.block)
                         }),
                         inline: proposed_inline_size,
@@ -1201,7 +1198,7 @@ impl NonReplacedFormattingContext {
                 // size of auto. Try to fit it into our precalculated placement among the
                 // floats. If it fits, then we can stop trying layout candidates.
                 if placement.try_to_expand_for_auto_block_size(
-                    Au::from(content_size.block) + pbm.padding_border_sums.block,
+                    content_size.block + pbm.padding_border_sums.block,
                     &placement_rect.size,
                 ) {
                     break;
@@ -1233,8 +1230,8 @@ impl NonReplacedFormattingContext {
                 sequential_layout_state,
                 containing_block,
                 &pbm,
-                content_size.inline + pbm.padding_border_sums.inline.into(),
-                placement_rect.into(),
+                content_size.inline + pbm.padding_border_sums.inline,
+                placement_rect,
             );
         }
 
@@ -1255,9 +1252,7 @@ impl NonReplacedFormattingContext {
         // Margins can never collapse into independent formatting contexts.
         sequential_layout_state.collapse_margins();
         sequential_layout_state.advance_block_position(
-            pbm.padding_border_sums.block +
-                Au::from(content_size.block) +
-                clearance.unwrap_or_else(Au::zero),
+            pbm.padding_border_sums.block + content_size.block + clearance.unwrap_or_else(Au::zero),
         );
         sequential_layout_state.adjoin_assign(&CollapsedMargin::new(margin.block_end));
 
@@ -1270,7 +1265,7 @@ impl NonReplacedFormattingContext {
                     pbm.border.inline_start +
                     effective_margin_inline_start,
             },
-            size: content_size.into(),
+            size: content_size,
         };
         let block_margins_collapsed_with_children = CollapsedBlockMargins::from_margin(&margin);
 
@@ -1335,7 +1330,7 @@ fn layout_in_flow_replaced_block_level(
             &collapsed_margin_block_start,
             containing_block,
             &pbm,
-            size.into(),
+            size,
             style,
         );
 
@@ -1399,8 +1394,8 @@ fn layout_in_flow_replaced_block_level(
 struct ContainingBlockPaddingAndBorder<'a> {
     containing_block: ContainingBlock<'a>,
     pbm: PaddingBorderMargin,
-    min_box_size: LogicalVec2<Length>,
-    max_box_size: LogicalVec2<Option<Length>>,
+    min_box_size: LogicalVec2<Au>,
+    max_box_size: LogicalVec2<Option<Au>>,
 }
 
 struct ResolvedMargins {
@@ -1430,7 +1425,7 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
     let max_box_size = style.content_max_box_size(containing_block, &pbm);
     let min_box_size = style
         .content_min_box_size(containing_block, &pbm)
-        .auto_is(Length::zero);
+        .auto_is(Au::zero);
 
     // https://drafts.csswg.org/css2/#the-width-property
     // https://drafts.csswg.org/css2/visudet.html#min-max-widths
@@ -1439,24 +1434,23 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
         .auto_is(|| {
             let margin_inline_start = pbm.margin.inline_start.auto_is(Au::zero);
             let margin_inline_end = pbm.margin.inline_end.auto_is(Au::zero);
-            (containing_block.inline_size -
+            containing_block.inline_size -
                 pbm.padding_border_sums.inline -
                 margin_inline_start -
-                margin_inline_end)
-                .into()
+                margin_inline_end
         })
         .clamp_between_extremums(min_box_size.inline, max_box_size.inline);
 
     // https://drafts.csswg.org/css2/#the-height-property
     // https://drafts.csswg.org/css2/visudet.html#min-max-heights
     let mut block_size = box_size.block;
-    if let LengthOrAuto::LengthPercentage(ref mut block_size) = block_size {
+    if let AuOrAuto::LengthPercentage(ref mut block_size) = block_size {
         *block_size = block_size.clamp_between_extremums(min_box_size.block, max_box_size.block);
     }
 
     let containing_block_for_children = ContainingBlock {
-        inline_size: inline_size.into(),
-        block_size: block_size.map(|t| t.into()),
+        inline_size,
+        block_size,
         style,
     };
     // https://drafts.csswg.org/css-writing-modes/#orthogonal-flows
@@ -1585,14 +1579,14 @@ fn solve_inline_margins_avoiding_floats(
     sequential_layout_state: &SequentialLayoutState,
     containing_block: &ContainingBlock,
     pbm: &PaddingBorderMargin,
-    inline_size: Length,
-    placement_rect: LogicalRect<Length>,
+    inline_size: Au,
+    placement_rect: LogicalRect<Au>,
 ) -> ((Au, Au), Au) {
-    let free_space = Au::from(placement_rect.size.inline - inline_size);
+    let free_space = placement_rect.size.inline - inline_size;
     debug_assert!(free_space >= Au::zero());
     let cb_info = &sequential_layout_state.floats.containing_block_info;
-    let start_adjustment = Au::from(placement_rect.start_corner.inline) - cb_info.inline_start;
-    let end_adjustment = cb_info.inline_end - placement_rect.max_inline_position().into();
+    let start_adjustment = placement_rect.start_corner.inline - cb_info.inline_start;
+    let end_adjustment = cb_info.inline_end - placement_rect.max_inline_position();
     let mut justification = Au::zero();
     let inline_margins = match (pbm.margin.inline_start, pbm.margin.inline_end) {
         (AuOrAuto::Auto, AuOrAuto::Auto) => {
@@ -1625,7 +1619,7 @@ fn solve_clearance_and_inline_margins_avoiding_floats(
     block_start_margin: &CollapsedMargin,
     containing_block: &ContainingBlock,
     pbm: &PaddingBorderMargin,
-    size: LogicalVec2<Length>,
+    size: LogicalVec2<Au>,
     style: &Arc<ComputedValues>,
 ) -> (Option<Au>, (Au, Au), Au) {
     let (clearance, placement_rect) = sequential_layout_state
@@ -1633,14 +1627,14 @@ fn solve_clearance_and_inline_margins_avoiding_floats(
             style.get_box().clear,
             block_start_margin,
             pbm,
-            size.into(),
+            size,
         );
     let (inline_margins, effective_margin_inline_start) = solve_inline_margins_avoiding_floats(
         sequential_layout_state,
         containing_block,
         pbm,
         size.inline,
-        placement_rect.into(),
+        placement_rect,
     );
     (clearance, inline_margins, effective_margin_inline_start)
 }

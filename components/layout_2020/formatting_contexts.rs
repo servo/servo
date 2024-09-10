@@ -287,7 +287,7 @@ impl NonReplacedFormattingContext {
             .insert((
                 containing_block_for_children.size.block,
                 self.contents
-                    .inline_content_sizes(layout_context, &containing_block_for_children),
+                    .inline_content_sizes(layout_context, containing_block_for_children),
             ))
             .1
     }

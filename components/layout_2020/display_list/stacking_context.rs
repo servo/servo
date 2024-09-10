@@ -1507,12 +1507,12 @@ impl BoxFragment {
         let transform_origin = &self.style.get_box().transform_origin;
         let transform_origin_x = transform_origin
             .horizontal
-            .percentage_relative_to(border_rect.size.width.into())
-            .px();
+            .to_used_value(border_rect.size.width)
+            .to_f32_px();
         let transform_origin_y = transform_origin
             .vertical
-            .percentage_relative_to(border_rect.size.height.into())
-            .px();
+            .to_used_value(border_rect.size.height)
+            .to_f32_px();
         let transform_origin_z = transform_origin.depth.px();
 
         let pre_transform = LayoutTransform::translation(
