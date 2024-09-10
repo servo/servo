@@ -4,6 +4,7 @@
 
 use std::collections::HashMap;
 use std::ops::ControlFlow;
+use std::ptr::NonNull;
 use std::slice;
 use std::sync::{Arc, Mutex, MutexGuard};
 
@@ -39,6 +40,40 @@ impl MallocSizeOf for WebGPUContextId {
 
 pub type WGPUImageMap = Arc<Mutex<HashMap<WebGPUContextId, PresentationData>>>;
 
+struct GPUPresentationBuffer {
+    global: Arc<Global>,
+    buffer_id: id::BufferId,
+    data: NonNull<u8>,
+    size: usize,
+}
+
+// This is safe because [`GPUPresentationBuffer`] is always wrapped in Arc Mutex of [`WGPUImageMap`]
+unsafe impl Send for GPUPresentationBuffer {}
+unsafe impl Sync for GPUPresentationBuffer {}
+
+impl GPUPresentationBuffer {
+    fn new(global: Arc<Global>, buffer_id: id::BufferId, buffer_size: u64) -> Self {
+        let (data, size) = global
+            .buffer_get_mapped_range(buffer_id, 0, Some(buffer_size))
+            .unwrap();
+        GPUPresentationBuffer {
+            global,
+            buffer_id,
+            data,
+            size: size as usize,
+        }
+    }
+    fn slice(&self) -> &[u8] {
+        unsafe { slice::from_raw_parts(self.data.as_ptr(), self.size) }
+    }
+}
+
+impl Drop for GPUPresentationBuffer {
+    fn drop(&mut self) {
+        let _ = self.global.buffer_unmap(self.buffer_id);
+    }
+}
+
 #[derive(Default)]
 pub struct WGPUExternalImages {
     pub images: WGPUImageMap,
@@ -52,7 +87,11 @@ impl WebrenderExternalImageApi for WGPUExternalImages {
         let data;
         if let Some(present_data) = self.images.lock().unwrap().get(&id) {
             size = present_data.image_desc.size.cast_unit();
-            data = present_data.data.clone();
+            data = if let Some(present_data) = &present_data.data {
+                present_data.slice().to_vec()
+            } else {
+                present_data.dummy_data()
+            };
         } else {
             size = Size2D::new(0, 0);
             data = Vec::new();
@@ -71,15 +110,15 @@ impl WebrenderExternalImageApi for WGPUExternalImages {
 }
 
 pub struct PresentationData {
-    pub device_id: id::DeviceId,
-    pub queue_id: id::QueueId,
-    pub data: Vec<u8>,
-    pub unassigned_buffer_ids: ArrayVec<id::BufferId, PRESENTATION_BUFFER_COUNT>,
-    pub available_buffer_ids: ArrayVec<id::BufferId, PRESENTATION_BUFFER_COUNT>,
-    pub queued_buffer_ids: ArrayVec<id::BufferId, PRESENTATION_BUFFER_COUNT>,
-    pub image_key: ImageKey,
-    pub image_desc: ImageDescriptor,
-    pub image_data: ImageData,
+    device_id: id::DeviceId,
+    queue_id: id::QueueId,
+    data: Option<GPUPresentationBuffer>,
+    unassigned_buffer_ids: ArrayVec<id::BufferId, PRESENTATION_BUFFER_COUNT>,
+    available_buffer_ids: ArrayVec<id::BufferId, PRESENTATION_BUFFER_COUNT>,
+    queued_buffer_ids: ArrayVec<id::BufferId, PRESENTATION_BUFFER_COUNT>,
+    image_key: ImageKey,
+    image_desc: ImageDescriptor,
+    image_data: ImageData,
 }
 
 impl PresentationData {
@@ -91,18 +130,10 @@ impl PresentationData {
         image_desc: ImageDescriptor,
         image_data: ImageData,
     ) -> Self {
-        let height = image_desc.size.height;
         Self {
             device_id,
             queue_id,
-            // TODO: transparent black image
-            data: vec![
-                255;
-                (image_desc
-                    .stride
-                    .expect("Stride should be set when creating swapchain") *
-                    height) as usize
-            ],
+            data: None,
             unassigned_buffer_ids: buffer_ids,
             available_buffer_ids: ArrayVec::<id::BufferId, PRESENTATION_BUFFER_COUNT>::new(),
             queued_buffer_ids: ArrayVec::<id::BufferId, PRESENTATION_BUFFER_COUNT>::new(),
@@ -110,6 +141,23 @@ impl PresentationData {
             image_desc,
             image_data,
         }
+    }
+
+    fn dummy_data(&self) -> Vec<u8> {
+        let size = (self
+            .image_desc
+            .stride
+            .expect("Stride should be set when creating swapchain") *
+            self.image_desc.size.height) as usize;
+        vec![0; size]
+    }
+
+    fn unmap_old_buffer(&mut self, presentation_buffer: GPUPresentationBuffer) {
+        self.queued_buffer_ids
+            .retain(|b_id| *b_id != presentation_buffer.buffer_id);
+        self.available_buffer_ids
+            .push(presentation_buffer.buffer_id);
+        drop(presentation_buffer);
     }
 }
 
@@ -304,14 +352,9 @@ fn update_wr_image(
 ) {
     match result {
         Ok(()) => {
-            let (slice_pointer, range_size) = global
-                .buffer_get_mapped_range(buffer_id, 0, Some(buffer_size as u64))
-                .unwrap();
-            let data =
-                unsafe { slice::from_raw_parts(slice_pointer.as_ptr(), range_size as usize) }
-                    .to_vec();
+            let presentation_buffer = GPUPresentationBuffer::new(global, buffer_id, buffer_size);
             if let Some(present_data) = wgpu_image_map.lock().unwrap().get_mut(&context_id) {
-                present_data.data = data;
+                let old_presentation_buffer = present_data.data.replace(presentation_buffer);
                 let mut txn = Transaction::new();
                 txn.update_image(
                     present_data.image_key,
@@ -323,14 +366,12 @@ fn update_wr_image(
                     .lock()
                     .unwrap()
                     .send_transaction(webrender_document, txn);
-                present_data
-                    .queued_buffer_ids
-                    .retain(|b_id| *b_id != buffer_id);
-                present_data.available_buffer_ids.push(buffer_id);
+                if let Some(old_presentation_buffer) = old_presentation_buffer {
+                    present_data.unmap_old_buffer(old_presentation_buffer)
+                }
             } else {
                 error!("Data not found for {:?}", context_id);
             }
-            let _ = global.buffer_unmap(buffer_id);
         },
         _ => error!("Could not map buffer({:?})", buffer_id),
     }
