@@ -1647,6 +1647,14 @@ impl ScriptThread {
             return;
         }
 
+        // Run rafs for all pipeline, if a raf tick was received for any.
+        // This ensures relative ordering of rafs between parent doc and iframes.
+        let should_run_rafs = self
+            .documents
+            .borrow()
+            .iter()
+            .any(|(_, doc)| doc.has_received_raf_tick());
+
         // TODO: The specification says to filter out non-renderable documents,
         // as well as those for which a rendering update would be unnecessary,
         // but this isn't happening here.
@@ -1708,7 +1716,7 @@ impl ScriptThread {
             // https://html.spec.whatwg.org/multipage/#context-lost-steps.
 
             // Run the animation frame callbacks.
-            document.tick_all_animations();
+            document.tick_all_animations(should_run_rafs);
 
             // Run the resize observer steps.
             let _realm = enter_realm(&*document);

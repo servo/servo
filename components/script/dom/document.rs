@@ -3335,10 +3335,17 @@ impl Document {
         self.pending_animation_ticks.borrow_mut().extend(tick_type);
     }
 
+    /// Whether this document has received an animation tick for rafs.
+    pub fn has_received_raf_tick(&self) -> bool {
+        self.pending_animation_ticks
+            .borrow()
+            .contains(AnimationTickType::REQUEST_ANIMATION_FRAME)
+    }
+
     /// As part of a `update_the_rendering` task, tick all pending animations.
-    pub fn tick_all_animations(&self) {
+    pub fn tick_all_animations(&self, should_run_rafs: bool) {
         let tick_type = mem::take(&mut *self.pending_animation_ticks.borrow_mut());
-        if tick_type.contains(AnimationTickType::REQUEST_ANIMATION_FRAME) {
+        if should_run_rafs {
             self.run_the_animation_frame_callbacks();
         }
         if tick_type.contains(AnimationTickType::CSS_ANIMATIONS_AND_TRANSITIONS) {
