@@ -1,0 +1,8 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<meta charset="utf-8">
+<meta name="assert" content="The test should not crash.">
+
+<script>
+  fetch('/common/slow.py?delay=5000').then(() => document.documentElement.classList.remove("test-wait"));
+</script>
