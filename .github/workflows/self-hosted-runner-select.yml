@@ -69,7 +69,7 @@ jobs:
           # <https://github.com/servo/servo/settings/variables/actions>
           if [ -n '${{ vars.NO_SELF_HOSTED_RUNNERS }}' ]; then
             echo 'NO_SELF_HOSTED_RUNNERS is set!'
-            fall_back_to_github_hosted
+            # fall_back_to_github_hosted
           fi
 
           if [ '${{ inputs.force-github-hosted-runner }}' = true ]; then
