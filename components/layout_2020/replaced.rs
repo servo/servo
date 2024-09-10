@@ -374,11 +374,8 @@ impl ReplacedContent {
             .map(|value| value.map(|value| value.max(Au::zero())));
         let min_box_size = style
             .content_min_box_size(containing_block, pbm)
-            .map(|value| value.map(Au::from))
             .auto_is(Au::zero);
-        let max_box_size = style
-            .content_max_box_size(containing_block, pbm)
-            .map(|value| value.map(Au::from));
+        let max_box_size = style.content_max_box_size(containing_block, pbm);
         self.used_size_as_if_inline_element_from_content_box_sizes(
             containing_block,
             style,

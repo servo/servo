@@ -159,11 +159,14 @@ impl LogicalVec2<LengthPercentageOrAuto<'_>> {
             inline: self
                 .inline
                 .map(|value| value.to_used_value(containing_block.inline_size)),
-            block: match (self.block, containing_block.block_size.non_auto()) {
-                (AutoOr::LengthPercentage(block_size), Some(basis)) => {
-                    AuOrAuto::LengthPercentage(block_size.to_used_value(basis))
-                },
-                _ => AuOrAuto::Auto,
+            block: {
+                let containing_block_block_size =
+                    containing_block.block_size.non_auto().map(Into::into);
+                self.block
+                    .non_auto()
+                    .and_then(|value| value.maybe_to_used_value(containing_block_block_size))
+                    .map(|value| AuOrAuto::LengthPercentage(value))
+                    .unwrap_or(AuOrAuto::Auto)
             },
         }
     }
@@ -186,19 +189,20 @@ impl LogicalVec2<LengthPercentageOrAuto<'_>> {
         &self,
         basis: &LogicalVec2<Option<Au>>,
     ) -> LogicalVec2<AuOrAuto> {
+        let basis = basis.map(|value| value.map(Into::into));
         LogicalVec2 {
-            inline: match (self.inline, basis.inline) {
-                (AutoOr::LengthPercentage(inline_size), Some(basis)) => {
-                    AuOrAuto::LengthPercentage(inline_size.to_used_value(basis))
-                },
-                _ => AuOrAuto::Auto,
-            },
-            block: match (self.block, basis.block) {
-                (AutoOr::LengthPercentage(block_size), Some(basis)) => {
-                    AuOrAuto::LengthPercentage(block_size.to_used_value(basis))
-                },
-                _ => AuOrAuto::Auto,
-            },
+            inline: self
+                .inline
+                .non_auto()
+                .and_then(|value| value.maybe_to_used_value(basis.inline))
+                .map(|value| AuOrAuto::LengthPercentage(value))
+                .unwrap_or(AuOrAuto::Auto),
+            block: self
+                .block
+                .non_auto()
+                .and_then(|value| value.maybe_to_used_value(basis.block))
+                .map(|value| AuOrAuto::LengthPercentage(value))
+                .unwrap_or(AuOrAuto::Auto),
         }
     }
 }

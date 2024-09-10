@@ -377,8 +377,12 @@ impl ComputedValuesExt for ComputedValues {
             BoxSizing::BorderBox => LogicalVec2 {
                 // These may be negative, but will later be clamped by `min-width`/`min-height`
                 // which is clamped to zero.
-                inline: box_size.inline.map(|value| value - pbm.padding_border_sums.inline),
-                block: box_size.block.map(|value| value - pbm.padding_border_sums.block),
+                inline: box_size
+                    .inline
+                    .map(|value| value - pbm.padding_border_sums.inline),
+                block: box_size
+                    .block
+                    .map(|value| value - pbm.padding_border_sums.block),
             },
         }
     }
