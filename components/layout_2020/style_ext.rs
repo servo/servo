@@ -15,9 +15,7 @@ use style::properties::longhands::column_span::computed_value::T as ColumnSpan;
 use style::properties::ComputedValues;
 use style::values::computed::basic_shape::ClipPath;
 use style::values::computed::image::Image as ComputedImageLayer;
-use style::values::computed::{
-    AlignItems, Length, LengthPercentage, NonNegativeLengthPercentage, Size,
-};
+use style::values::computed::{AlignItems, LengthPercentage, NonNegativeLengthPercentage, Size};
 use style::values::generics::box_::Perspective;
 use style::values::generics::length::MaxSize;
 use style::values::generics::position::{GenericAspectRatio, PreferredRatio};
@@ -30,8 +28,7 @@ use webrender_api as wr;
 use crate::dom_traversal::Contents;
 use crate::fragment_tree::FragmentFlags;
 use crate::geom::{
-    AuOrAuto, LengthOrAuto, LengthPercentageOrAuto, LogicalSides, LogicalVec2, PhysicalSides,
-    PhysicalSize,
+    AuOrAuto, LengthPercentageOrAuto, LogicalSides, LogicalVec2, PhysicalSides, PhysicalSize,
 };
 use crate::{ContainingBlock, IndefiniteContainingBlock};
 
@@ -210,32 +207,32 @@ pub(crate) trait ComputedValuesExt {
         &self,
         containing_block: &ContainingBlock,
         pbm: &PaddingBorderMargin,
-    ) -> LogicalVec2<LengthOrAuto>;
+    ) -> LogicalVec2<AuOrAuto>;
     fn content_box_size_for_box_size(
         &self,
-        box_size: LogicalVec2<LengthOrAuto>,
+        box_size: LogicalVec2<AuOrAuto>,
         pbm: &PaddingBorderMargin,
-    ) -> LogicalVec2<LengthOrAuto>;
+    ) -> LogicalVec2<AuOrAuto>;
     fn content_min_box_size(
         &self,
         containing_block: &ContainingBlock,
         pbm: &PaddingBorderMargin,
-    ) -> LogicalVec2<LengthOrAuto>;
+    ) -> LogicalVec2<AuOrAuto>;
     fn content_min_box_size_for_min_size(
         &self,
-        box_size: LogicalVec2<LengthOrAuto>,
+        box_size: LogicalVec2<AuOrAuto>,
         pbm: &PaddingBorderMargin,
-    ) -> LogicalVec2<LengthOrAuto>;
+    ) -> LogicalVec2<AuOrAuto>;
     fn content_max_box_size(
         &self,
         containing_block: &ContainingBlock,
         pbm: &PaddingBorderMargin,
-    ) -> LogicalVec2<Option<Length>>;
+    ) -> LogicalVec2<Option<Au>>;
     fn content_max_box_size_for_max_size(
         &self,
-        box_size: LogicalVec2<Option<Length>>,
+        box_size: LogicalVec2<Option<Au>>,
         pbm: &PaddingBorderMargin,
-    ) -> LogicalVec2<Option<Length>>;
+    ) -> LogicalVec2<Option<Au>>;
     fn content_box_sizes_and_padding_border_margin(
         &self,
         containing_block: &IndefiniteContainingBlock,
@@ -259,7 +256,7 @@ pub(crate) trait ComputedValuesExt {
         &self,
         containing_block_writing_mode: WritingMode,
     ) -> LogicalSides<&LengthPercentage>;
-    fn border_width(&self, containing_block_writing_mode: WritingMode) -> LogicalSides<Length>;
+    fn border_width(&self, containing_block_writing_mode: WritingMode) -> LogicalSides<Au>;
     fn margin(
         &self,
         containing_block_writing_mode: WritingMode,
@@ -363,7 +360,7 @@ impl ComputedValuesExt for ComputedValues {
         &self,
         containing_block: &ContainingBlock,
         pbm: &PaddingBorderMargin,
-    ) -> LogicalVec2<LengthOrAuto> {
+    ) -> LogicalVec2<AuOrAuto> {
         let box_size = self
             .box_size(containing_block.effective_writing_mode())
             .percentages_relative_to(containing_block);
@@ -372,20 +369,16 @@ impl ComputedValuesExt for ComputedValues {
 
     fn content_box_size_for_box_size(
         &self,
-        box_size: LogicalVec2<LengthOrAuto>,
+        box_size: LogicalVec2<AuOrAuto>,
         pbm: &PaddingBorderMargin,
-    ) -> LogicalVec2<LengthOrAuto> {
+    ) -> LogicalVec2<AuOrAuto> {
         match self.get_position().box_sizing {
             BoxSizing::ContentBox => box_size,
             BoxSizing::BorderBox => LogicalVec2 {
                 // These may be negative, but will later be clamped by `min-width`/`min-height`
                 // which is clamped to zero.
-                inline: box_size
-                    .inline
-                    .map(|i| i - pbm.padding_border_sums.inline.into()),
-                block: box_size
-                    .block
-                    .map(|b| b - pbm.padding_border_sums.block.into()),
+                inline: box_size.inline.map(|value| value - pbm.padding_border_sums.inline),
+                block: box_size.block.map(|value| value - pbm.padding_border_sums.block),
             },
         }
     }
@@ -394,7 +387,7 @@ impl ComputedValuesExt for ComputedValues {
         &self,
         containing_block: &ContainingBlock,
         pbm: &PaddingBorderMargin,
-    ) -> LogicalVec2<LengthOrAuto> {
+    ) -> LogicalVec2<AuOrAuto> {
         let box_size = self
             .min_box_size(containing_block.effective_writing_mode())
             .percentages_relative_to(containing_block);
@@ -403,19 +396,19 @@ impl ComputedValuesExt for ComputedValues {
 
     fn content_min_box_size_for_min_size(
         &self,
-        min_box_size: LogicalVec2<LengthOrAuto>,
+        min_box_size: LogicalVec2<AuOrAuto>,
         pbm: &PaddingBorderMargin,
-    ) -> LogicalVec2<LengthOrAuto> {
+    ) -> LogicalVec2<AuOrAuto> {
         match self.get_position().box_sizing {
             BoxSizing::ContentBox => min_box_size,
             BoxSizing::BorderBox => LogicalVec2 {
                 // Clamp to zero to make sure the used size components are non-negative
                 inline: min_box_size
                     .inline
-                    .map(|i| (i - pbm.padding_border_sums.inline.into()).max(Length::zero())),
+                    .map(|value| (value - pbm.padding_border_sums.inline).max(Au::zero())),
                 block: min_box_size
                     .block
-                    .map(|b| (b - pbm.padding_border_sums.block.into()).max(Length::zero())),
+                    .map(|value| (value - pbm.padding_border_sums.block).max(Au::zero())),
             },
         }
     }
@@ -424,7 +417,7 @@ impl ComputedValuesExt for ComputedValues {
         &self,
         containing_block: &ContainingBlock,
         pbm: &PaddingBorderMargin,
-    ) -> LogicalVec2<Option<Length>> {
+    ) -> LogicalVec2<Option<Au>> {
         let max_box_size = self
             .max_box_size(containing_block.effective_writing_mode())
             .percentages_relative_to(containing_block);
@@ -434,9 +427,9 @@ impl ComputedValuesExt for ComputedValues {
 
     fn content_max_box_size_for_max_size(
         &self,
-        max_box_size: LogicalVec2<Option<Length>>,
+        max_box_size: LogicalVec2<Option<Au>>,
         pbm: &PaddingBorderMargin,
-    ) -> LogicalVec2<Option<Length>> {
+    ) -> LogicalVec2<Option<Au>> {
         match self.get_position().box_sizing {
             BoxSizing::ContentBox => max_box_size,
             BoxSizing::BorderBox => {
@@ -445,10 +438,10 @@ impl ComputedValuesExt for ComputedValues {
                 LogicalVec2 {
                     inline: max_box_size
                         .inline
-                        .map(|i| i - pbm.padding_border_sums.inline.into()),
+                        .map(|value| value - pbm.padding_border_sums.inline),
                     block: max_box_size
                         .block
-                        .map(|b| b - pbm.padding_border_sums.block.into()),
+                        .map(|value| value - pbm.padding_border_sums.block),
                 }
             },
         }
@@ -468,9 +461,9 @@ impl ComputedValuesExt for ComputedValues {
         // indefinite percentages, we treat the entire value as the initial value of the property.
         // However, for min size properties, as well as for margins and paddings,
         // we instead resolve indefinite percentages against zero.
-        let containing_block_size = containing_block.size.map(|v| v.non_auto().map(Into::into));
+        let containing_block_size = containing_block.size.map(|value| value.non_auto());
         let containing_block_size_auto_is_zero =
-            containing_block_size.map(|v| v.unwrap_or_else(Length::zero));
+            containing_block_size.map(|value| value.unwrap_or_else(Au::zero));
         let writing_mode = self.writing_mode;
         let pbm = self.padding_border_margin_with_writing_mode_and_containing_block_inline_size(
             writing_mode,
@@ -501,19 +494,19 @@ impl ComputedValuesExt for ComputedValues {
         let cbis = containing_block.inline_size;
         let padding = self
             .padding(containing_block.effective_writing_mode())
-            .percentages_relative_to(cbis.into());
+            .percentages_relative_to(cbis);
         let border = self.border_width(containing_block.effective_writing_mode());
         let margin = self
             .margin(containing_block.effective_writing_mode())
-            .percentages_relative_to(cbis.into());
+            .percentages_relative_to(cbis);
         PaddingBorderMargin {
             padding_border_sums: LogicalVec2 {
-                inline: (padding.inline_sum() + border.inline_sum()).into(),
-                block: (padding.block_sum() + border.block_sum()).into(),
+                inline: (padding.inline_sum() + border.inline_sum()),
+                block: (padding.block_sum() + border.block_sum()),
             },
-            padding: padding.into(),
-            border: border.into(),
-            margin: margin.map(|t| t.map(|m| m.into())),
+            padding,
+            border,
+            margin,
         }
     }
 
@@ -523,19 +516,19 @@ impl ComputedValuesExt for ComputedValues {
     ) -> PaddingBorderMargin {
         let padding = self
             .padding(writing_mode)
-            .percentages_relative_to(Length::zero());
+            .percentages_relative_to(Au::zero());
         let border = self.border_width(writing_mode);
         let margin = self
             .margin(writing_mode)
-            .percentages_relative_to(Length::zero());
+            .percentages_relative_to(Au::zero());
         PaddingBorderMargin {
             padding_border_sums: LogicalVec2 {
-                inline: (padding.inline_sum() + border.inline_sum()).into(),
-                block: (padding.block_sum() + border.block_sum()).into(),
+                inline: (padding.inline_sum() + border.inline_sum()),
+                block: (padding.block_sum() + border.block_sum()),
             },
-            padding: padding.into(),
-            border: border.into(),
-            margin: margin.map(|t| t.map(|m| m.into())),
+            padding,
+            border,
+            margin,
         }
     }
 
@@ -544,7 +537,7 @@ impl ComputedValuesExt for ComputedValues {
         writing_mode: WritingMode,
         containing_block_inline_size: Au,
     ) -> PaddingBorderMargin {
-        let containing_block_inline_size = containing_block_inline_size.into();
+        let containing_block_inline_size = containing_block_inline_size;
         let padding = self
             .padding(writing_mode)
             .percentages_relative_to(containing_block_inline_size);
@@ -554,12 +547,12 @@ impl ComputedValuesExt for ComputedValues {
             .percentages_relative_to(containing_block_inline_size);
         PaddingBorderMargin {
             padding_border_sums: LogicalVec2 {
-                inline: (padding.inline_sum() + border.inline_sum()).into(),
-                block: (padding.block_sum() + border.block_sum()).into(),
+                inline: (padding.inline_sum() + border.inline_sum()),
+                block: (padding.block_sum() + border.block_sum()),
             },
-            padding: padding.into(),
-            border: border.into(),
-            margin: margin.map(|margin_side| margin_side.map(Into::into)),
+            padding,
+            border,
+            margin,
         }
     }
 
@@ -579,14 +572,14 @@ impl ComputedValuesExt for ComputedValues {
         )
     }
 
-    fn border_width(&self, containing_block_writing_mode: WritingMode) -> LogicalSides<Length> {
+    fn border_width(&self, containing_block_writing_mode: WritingMode) -> LogicalSides<Au> {
         let border = self.get_border();
         LogicalSides::from_physical(
             &PhysicalSides::new(
-                border.border_top_width.into(),
-                border.border_right_width.into(),
-                border.border_bottom_width.into(),
-                border.border_left_width.into(),
+                border.border_top_width,
+                border.border_right_width,
+                border.border_bottom_width,
+                border.border_left_width,
             ),
             containing_block_writing_mode,
         )

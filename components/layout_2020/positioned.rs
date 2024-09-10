@@ -21,8 +21,8 @@ use crate::fragment_tree::{
     BoxFragment, CollapsedBlockMargins, Fragment, FragmentFlags, HoistedSharedFragment,
 };
 use crate::geom::{
-    AuOrAuto, LengthOrAuto, LengthPercentageOrAuto, LogicalRect, LogicalSides, LogicalVec2,
-    PhysicalPoint, PhysicalRect, PhysicalVec, ToLogical,
+    AuOrAuto, LengthPercentageOrAuto, LogicalRect, LogicalSides, LogicalVec2, PhysicalPoint,
+    PhysicalRect, PhysicalVec, ToLogical,
 };
 use crate::style_ext::{ComputedValuesExt, DisplayInside};
 use crate::{ContainingBlock, DefiniteContainingBlock, IndefiniteContainingBlock};
@@ -466,8 +466,8 @@ impl HoistedAbsolutelyPositionedBox {
                     &pbm,
                 );
                 LogicalVec2 {
-                    inline: LengthOrAuto::LengthPercentage(used_size.inline.into()),
-                    block: LengthOrAuto::LengthPercentage(used_size.block.into()),
+                    inline: AuOrAuto::LengthPercentage(used_size.inline),
+                    block: AuOrAuto::LengthPercentage(used_size.block),
                 }
             },
             IndependentFormattingContext::NonReplaced(..) => {
@@ -532,10 +532,8 @@ impl HoistedAbsolutelyPositionedBox {
             block: block_axis_solver.is_overconstrained_for_size(computed_size.block),
         };
 
-        let mut inline_axis =
-            inline_axis_solver.solve_for_size(computed_size.inline.map(|t| t.into()));
-        let mut block_axis =
-            block_axis_solver.solve_for_size(computed_size.block.map(|t| t.into()));
+        let mut inline_axis = inline_axis_solver.solve_for_size(computed_size.inline);
+        let mut block_axis = block_axis_solver.solve_for_size(computed_size.block);
 
         let mut positioning_context =
             PositioningContext::new_for_style(absolutely_positioned_box.context.style()).unwrap();
@@ -547,7 +545,7 @@ impl HoistedAbsolutelyPositionedBox {
                     // https://drafts.csswg.org/css2/visudet.html#abs-replaced-width
                     // https://drafts.csswg.org/css2/visudet.html#abs-replaced-height
                     let style = &replaced.style;
-                    content_size = computed_size.auto_is(|| unreachable!()).into();
+                    content_size = computed_size.auto_is(|| unreachable!());
                     fragments = replaced.contents.make_fragments(
                         style,
                         content_size.to_physical_size(containing_block_writing_mode),
@@ -854,38 +852,27 @@ impl<'a> AbsoluteAxisSolver<'a> {
                 margin_end: self.computed_margin_end.auto_is(Au::zero),
             },
             (Some(start), None) => AxisResult {
-                anchor: Anchor::Start(
-                    start
-                        .percentage_relative_to(self.containing_size.into())
-                        .into(),
-                ),
+                anchor: Anchor::Start(start.to_used_value(self.containing_size)),
                 size: computed_size,
                 margin_start: self.computed_margin_start.auto_is(Au::zero),
                 margin_end: self.computed_margin_end.auto_is(Au::zero),
             },
             (None, Some(end)) => AxisResult {
-                anchor: Anchor::End(
-                    end.percentage_relative_to(self.containing_size.into())
-                        .into(),
-                ),
+                anchor: Anchor::End(end.to_used_value(self.containing_size)),
                 size: computed_size,
                 margin_start: self.computed_margin_start.auto_is(Au::zero),
                 margin_end: self.computed_margin_end.auto_is(Au::zero),
             },
             (Some(start), Some(end)) => {
-                let start = start.percentage_relative_to(self.containing_size.into());
-                let end = end.percentage_relative_to(self.containing_size.into());
+                let start = start.to_used_value(self.containing_size);
+                let end = end.to_used_value(self.containing_size);
 
                 let margin_start;
                 let margin_end;
                 let used_size;
                 if let AuOrAuto::LengthPercentage(s) = computed_size {
                     used_size = s;
-                    let margins = self.containing_size -
-                        start.into() -
-                        end.into() -
-                        self.padding_border_sum -
-                        s;
+                    let margins = self.containing_size - start - end - self.padding_border_sum - s;
                     match (self.computed_margin_start, self.computed_margin_end) {
                         (AuOrAuto::Auto, AuOrAuto::Auto) => {
                             if self.avoid_negative_margin_start && margins < Au::zero() {
@@ -916,14 +903,14 @@ impl<'a> AbsoluteAxisSolver<'a> {
                     // This may be negative, but the caller will later effectively
                     // clamp it to ‘min-inline-size’ or ‘min-block-size’.
                     used_size = self.containing_size -
-                        start.into() -
-                        end.into() -
+                        start -
+                        end -
                         self.padding_border_sum -
                         margin_start -
                         margin_end;
                 };
                 AxisResult {
-                    anchor: Anchor::Start(start.into()),
+                    anchor: Anchor::Start(start),
                     size: AuOrAuto::LengthPercentage(used_size),
                     margin_start,
                     margin_end,
@@ -932,7 +919,7 @@ impl<'a> AbsoluteAxisSolver<'a> {
         }
     }
 
-    fn is_overconstrained_for_size(&self, computed_size: LengthOrAuto) -> bool {
+    fn is_overconstrained_for_size(&self, computed_size: AuOrAuto) -> bool {
         !computed_size.is_auto() &&
             self.box_offsets.both_specified() &&
             !self.computed_margin_start.is_auto() &&
@@ -946,12 +933,12 @@ impl<'a> AbsoluteAxisSolver<'a> {
         ) {
             (None, None) => self.static_position_rect_axis,
             (Some(start), Some(end)) => {
-                let start = start.percentage_relative_to(self.containing_size.into());
-                let end = end.percentage_relative_to(self.containing_size.into());
+                let start = start.to_used_value(self.containing_size);
+                let end = end.to_used_value(self.containing_size);
 
                 RectAxis {
-                    origin: start.into(),
-                    length: self.containing_size - (end + start).into(),
+                    origin: start,
+                    length: self.containing_size - (end + start),
                 }
             },
             _ => return None,
@@ -1021,11 +1008,11 @@ pub(crate) fn relative_adjustement(
     let box_offsets = style
         .box_offsets(containing_block)
         .map_inline_and_block_axes(
-            |v| v.percentage_relative_to(cbis.into()).map(Au::from),
-            |v| match cbbs.non_auto() {
-                Some(cbbs) => v.percentage_relative_to(cbbs.into()).map(Au::from),
-                None => match v.non_auto().and_then(|v| v.to_length()) {
-                    Some(v) => AuOrAuto::LengthPercentage(v.into()),
+            |value| value.map(|value| value.to_used_value(cbis)),
+            |value| match cbbs.non_auto() {
+                Some(cbbs) => value.map(|value| value.to_used_value(cbbs)),
+                None => match value.non_auto().and_then(|value| value.to_length()) {
+                    Some(value) => AuOrAuto::LengthPercentage(value.into()),
                     None => AuOrAuto::Auto,
                 },
             },

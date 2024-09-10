@@ -67,7 +67,7 @@ impl<'a> IndefiniteContainingBlock<'a> {
         auto_minimum: &LogicalVec2<Au>,
     ) -> Self {
         let (content_box_size, content_min_size, content_max_size, _) =
-            style.content_box_sizes_and_padding_border_margin(&self);
+            style.content_box_sizes_and_padding_border_margin(self);
         let block_size = content_box_size.block.map(|v| {
             v.clamp_between_extremums(
                 content_min_size.block.auto_is(|| auto_minimum.block),

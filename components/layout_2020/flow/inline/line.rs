@@ -370,12 +370,9 @@ impl<'layout_data, 'layout> LineItemLayout<'layout_data, 'layout> {
 
         let ifc_writing_mode = self.layout.containing_block.effective_writing_mode();
         for fragment in inner_state.fragments.iter_mut() {
-            match fragment {
-                Fragment::Float(box_fragment) => {
-                    box_fragment.content_rect.origin -=
-                        pbm_sums.start_offset().to_physical_size(ifc_writing_mode);
-                },
-                _ => {},
+            if let Fragment::Float(box_fragment) = fragment {
+                box_fragment.content_rect.origin -=
+                    pbm_sums.start_offset().to_physical_size(ifc_writing_mode);
             }
         }
 

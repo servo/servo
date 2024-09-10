@@ -154,14 +154,17 @@ impl LogicalVec2<LengthPercentageOrAuto<'_>> {
     pub(crate) fn percentages_relative_to(
         &self,
         containing_block: &ContainingBlock,
-    ) -> LogicalVec2<LengthOrAuto> {
+    ) -> LogicalVec2<AuOrAuto> {
         LogicalVec2 {
             inline: self
                 .inline
-                .percentage_relative_to(containing_block.inline_size.into()),
-            block: self.block.maybe_percentage_relative_to(
-                containing_block.block_size.map(|t| t.into()).non_auto(),
-            ),
+                .map(|value| value.to_used_value(containing_block.inline_size)),
+            block: match (self.block, containing_block.block_size.non_auto()) {
+                (AutoOr::LengthPercentage(block_size), Some(basis)) => {
+                    AuOrAuto::LengthPercentage(block_size.to_used_value(basis))
+                },
+                _ => AuOrAuto::Auto,
+            },
         }
     }
 }
@@ -169,11 +172,11 @@ impl LogicalVec2<LengthPercentageOrAuto<'_>> {
 impl LogicalVec2<LengthPercentageOrAuto<'_>> {
     pub(crate) fn percentages_relative_to_basis(
         &self,
-        basis: &LogicalVec2<Length>,
-    ) -> LogicalVec2<LengthOrAuto> {
+        basis: &LogicalVec2<Au>,
+    ) -> LogicalVec2<AuOrAuto> {
         LogicalVec2 {
-            inline: self.inline.percentage_relative_to(basis.inline),
-            block: self.block.percentage_relative_to(basis.block),
+            inline: self.inline.map(|value| value.to_used_value(basis.inline)),
+            block: self.block.map(|value| value.to_used_value(basis.block)),
         }
     }
 }
@@ -181,11 +184,21 @@ impl LogicalVec2<LengthPercentageOrAuto<'_>> {
 impl LogicalVec2<LengthPercentageOrAuto<'_>> {
     pub(crate) fn maybe_percentages_relative_to_basis(
         &self,
-        basis: &LogicalVec2<Option<Length>>,
-    ) -> LogicalVec2<LengthOrAuto> {
+        basis: &LogicalVec2<Option<Au>>,
+    ) -> LogicalVec2<AuOrAuto> {
         LogicalVec2 {
-            inline: self.inline.maybe_percentage_relative_to(basis.inline),
-            block: self.block.maybe_percentage_relative_to(basis.block),
+            inline: match (self.inline, basis.inline) {
+                (AutoOr::LengthPercentage(inline_size), Some(basis)) => {
+                    AuOrAuto::LengthPercentage(inline_size.to_used_value(basis))
+                },
+                _ => AuOrAuto::Auto,
+            },
+            block: match (self.block, basis.block) {
+                (AutoOr::LengthPercentage(block_size), Some(basis)) => {
+                    AuOrAuto::LengthPercentage(block_size.to_used_value(basis))
+                },
+                _ => AuOrAuto::Auto,
+            },
         }
     }
 }
@@ -194,15 +207,13 @@ impl LogicalVec2<Option<&'_ LengthPercentage>> {
     pub(crate) fn percentages_relative_to(
         &self,
         containing_block: &ContainingBlock,
-    ) -> LogicalVec2<Option<Length>> {
+    ) -> LogicalVec2<Option<Au>> {
         LogicalVec2 {
             inline: self
                 .inline
-                .map(|lp| lp.percentage_relative_to(containing_block.inline_size.into())),
+                .map(|lp| lp.to_used_value(containing_block.inline_size)),
             block: self.block.and_then(|lp| {
-                lp.maybe_percentage_relative_to(
-                    containing_block.block_size.map(|t| t.into()).non_auto(),
-                )
+                lp.maybe_to_used_value(containing_block.block_size.map(Into::into).non_auto())
             }),
         }
     }
@@ -211,15 +222,15 @@ impl LogicalVec2<Option<&'_ LengthPercentage>> {
 impl LogicalVec2<Option<&'_ LengthPercentage>> {
     pub(crate) fn maybe_percentages_relative_to_basis(
         &self,
-        basis: &LogicalVec2<Option<Length>>,
-    ) -> LogicalVec2<Option<Length>> {
+        basis: &LogicalVec2<Option<Au>>,
+    ) -> LogicalVec2<Option<Au>> {
         LogicalVec2 {
             inline: self
                 .inline
-                .and_then(|v| v.maybe_percentage_relative_to(basis.inline)),
+                .and_then(|v| v.maybe_to_used_value(basis.inline.map(Into::into))),
             block: self
                 .block
-                .and_then(|v| v.maybe_percentage_relative_to(basis.block)),
+                .and_then(|v| v.maybe_to_used_value(basis.block.map(Into::into))),
         }
     }
 }
@@ -389,14 +400,14 @@ impl<T: Copy> LogicalSides<T> {
 }
 
 impl LogicalSides<&'_ LengthPercentage> {
-    pub fn percentages_relative_to(&self, basis: Length) -> LogicalSides<Length> {
-        self.map(|s| s.percentage_relative_to(basis))
+    pub fn percentages_relative_to(&self, basis: Au) -> LogicalSides<Au> {
+        self.map(|value| value.to_used_value(basis))
     }
 }
 
 impl LogicalSides<LengthPercentageOrAuto<'_>> {
-    pub fn percentages_relative_to(&self, basis: Length) -> LogicalSides<LengthOrAuto> {
-        self.map(|s| s.percentage_relative_to(basis))
+    pub fn percentages_relative_to(&self, basis: Au) -> LogicalSides<AuOrAuto> {
+        self.map(|value| value.map(|value| value.to_used_value(basis)))
     }
 }
 

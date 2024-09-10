@@ -96,7 +96,7 @@ use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 use style::context::QuirksMode;
 use style::properties::style_structs::InheritedText;
 use style::properties::ComputedValues;
-use style::values::computed::{Clear, Length};
+use style::values::computed::Clear;
 use style::values::generics::box_::VerticalAlignKeyword;
 use style::values::generics::font::LineHeight;
 use style::values::specified::box_::BaselineSource;
@@ -2298,7 +2298,7 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
                 // https://drafts.csswg.org/css-sizing-3/#min-percentage-contribution
                 let inline_box = inline_formatting_context.inline_boxes.get(identifier);
                 let inline_box = (*inline_box).borrow();
-                let zero = Length::zero();
+                let zero = Au::zero();
                 let padding = inline_box
                     .style
                     .padding(self.containing_block.style.writing_mode)
@@ -2310,14 +2310,14 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
                     .style
                     .margin(self.containing_block.style.writing_mode)
                     .percentages_relative_to(zero)
-                    .auto_is(Length::zero);
+                    .auto_is(Au::zero);
 
                 let pbm = margin + padding + border;
                 if inline_box.is_first_fragment {
-                    self.add_inline_size(pbm.inline_start.into());
+                    self.add_inline_size(pbm.inline_start);
                 }
                 if inline_box.is_last_fragment {
-                    self.ending_inline_pbm_stack.push(pbm.inline_end.into());
+                    self.ending_inline_pbm_stack.push(pbm.inline_end);
                 } else {
                     self.ending_inline_pbm_stack.push(Au::zero());
                 }

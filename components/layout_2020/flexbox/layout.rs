@@ -15,7 +15,6 @@ use style::properties::longhands::box_sizing::computed_value::T as BoxSizing;
 use style::properties::longhands::flex_wrap::computed_value::T as FlexWrap;
 use style::properties::ComputedValues;
 use style::values::computed::length::Size;
-use style::values::computed::Length;
 use style::values::generics::flex::GenericFlexBasis as FlexBasis;
 use style::values::generics::length::{GenericLengthPercentageOrAuto, LengthPercentageOrNormal};
 use style::values::specified::align::AlignFlags;
@@ -938,15 +937,12 @@ impl FlexContainer {
         let min_box_size = self
             .style
             .content_min_box_size(containing_block_for_container, &pbm)
-            .auto_is(Length::zero);
+            .auto_is(Au::zero);
 
         let max_box_size = self.config.flex_axis.vec2_to_flex_relative(max_box_size);
         let min_box_size = self.config.flex_axis.vec2_to_flex_relative(min_box_size);
 
-        (
-            min_box_size.cross.into(),
-            max_box_size.cross.map(Into::into),
-        )
+        (min_box_size.cross, max_box_size.cross.map(Into::into))
     }
 }
 
@@ -1042,7 +1038,7 @@ impl<'a> FlexItem<'a> {
 
         let item_with_auto_cross_size_stretches_to_container_size = flex_context
             .config
-            .item_with_auto_cross_size_stretches_to_container_size(&box_.style(), &margin);
+            .item_with_auto_cross_size_stretches_to_container_size(box_.style(), &margin);
 
         let flex_relative_content_box_size = flex_context.vec2_to_flex_relative(content_box_size);
         let flex_relative_content_max_size = flex_context.vec2_to_flex_relative(max_size);
@@ -2361,8 +2357,8 @@ impl FlexItemBox {
                     Some(container_definite_main_size) => {
                         let length = length_percentage
                             .0
-                            .percentage_relative_to(container_definite_main_size.into());
-                        FlexBasis::Size(apply_box_sizing(length.into()))
+                            .to_used_value(container_definite_main_size);
+                        FlexBasis::Size(apply_box_sizing(length))
                     },
                     None => {
                         if let Some(length) = length_percentage.0.to_length() {

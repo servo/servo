@@ -371,14 +371,14 @@ impl ReplacedContent {
             // We need to clamp to zero here to obtain the proper aspect
             // ratio when box-sizing is border-box and the inner box size
             // would otherwise be negative.
-            .map(|v| v.map(|v| Au::from(v).max(Au::zero())));
+            .map(|value| value.map(|value| value.max(Au::zero())));
         let min_box_size = style
             .content_min_box_size(containing_block, pbm)
-            .map(|v| v.map(Au::from))
+            .map(|value| value.map(Au::from))
             .auto_is(Au::zero);
         let max_box_size = style
             .content_max_box_size(containing_block, pbm)
-            .map(|v| v.map(Au::from));
+            .map(|value| value.map(Au::from));
         self.used_size_as_if_inline_element_from_content_box_sizes(
             containing_block,
             style,
