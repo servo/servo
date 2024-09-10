@@ -106,7 +106,7 @@ jobs:
 
       # Faster checkout for self-hosted runner that uses prebaked repo.
       - if: ${{ fromJSON(needs.runner-select.outputs.is-self-hosted) && github.event_name != 'pull_request_target' }}
-        run: git fetch --depth=1 origin $env:GITHUB_SHA
+        run: git fetch --depth=1 origin $GITHUB_SHA
       - if: ${{ fromJSON(needs.runner-select.outputs.is-self-hosted) && github.event_name == 'pull_request_target' }}
         run: git fetch --depth=1 origin ${{ github.event.pull_request.head.sha }}
       - if: ${{ fromJSON(needs.runner-select.outputs.is-self-hosted) }}
