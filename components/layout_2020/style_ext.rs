@@ -541,7 +541,6 @@ impl ComputedValuesExt for ComputedValues {
         writing_mode: WritingMode,
         containing_block_inline_size: Au,
     ) -> PaddingBorderMargin {
-        let containing_block_inline_size = containing_block_inline_size;
         let padding = self
             .padding(writing_mode)
             .percentages_relative_to(containing_block_inline_size);
