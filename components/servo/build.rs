@@ -29,6 +29,8 @@ fn main() {
 /// 1. Trying to find python3/python in $VIRTUAL_ENV (this should be from servos venv)
 /// 2. Checking PYTHON3 (set by mach)
 /// 3. Falling back to the system installation.
+///
+/// Note: This function should be kept in sync with the version in `components/script/build.rs`
 fn find_python() -> PathBuf {
     let mut candidates = vec![];
     if let Some(venv) = env::var_os("VIRTUAL_ENV") {
