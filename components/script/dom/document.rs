@@ -1235,11 +1235,39 @@ impl Document {
         }
     }
 
+    /// Determine the title of the [`Document`] according to the specification at:
+    /// <https://html.spec.whatwg.org/multipage/#document.title>. The difference
+    /// here is that when the title isn't specified `None` is returned.
+    fn title(&self) -> Option<DOMString> {
+        let title = self.GetDocumentElement().and_then(|root| {
+            if root.namespace() == &ns!(svg) && root.local_name() == &local_name!("svg") {
+                // Step 1.
+                root.upcast::<Node>()
+                    .child_elements()
+                    .find(|node| {
+                        node.namespace() == &ns!(svg) && node.local_name() == &local_name!("title")
+                    })
+                    .map(DomRoot::upcast::<Node>)
+            } else {
+                // Step 2.
+                root.upcast::<Node>()
+                    .traverse_preorder(ShadowIncluding::No)
+                    .find(|node| node.is::<HTMLTitleElement>())
+            }
+        });
+
+        title.map(|title| {
+            // Steps 3-4.
+            let value = title.child_text_content();
+            DOMString::from(str_join(split_html_space_chars(&value), " "))
+        })
+    }
+
     /// Sends this document's title to the constellation.
     pub fn send_title_to_embedder(&self) {
         let window = self.window();
         if window.is_top_level() {
-            let title = Some(String::from(self.Title()));
+            let title = self.title().map(String::from);
             self.send_to_embedder(EmbedderMsg::ChangePageTitle(title));
         }
     }
@@ -4635,31 +4663,7 @@ impl DocumentMethods for Document {
 
     // https://html.spec.whatwg.org/multipage/#document.title
     fn Title(&self) -> DOMString {
-        let title = self.GetDocumentElement().and_then(|root| {
-            if root.namespace() == &ns!(svg) && root.local_name() == &local_name!("svg") {
-                // Step 1.
-                root.upcast::<Node>()
-                    .child_elements()
-                    .find(|node| {
-                        node.namespace() == &ns!(svg) && node.local_name() == &local_name!("title")
-                    })
-                    .map(DomRoot::upcast::<Node>)
-            } else {
-                // Step 2.
-                root.upcast::<Node>()
-                    .traverse_preorder(ShadowIncluding::No)
-                    .find(|node| node.is::<HTMLTitleElement>())
-            }
-        });
-
-        match title {
-            None => DOMString::new(),
-            Some(ref title) => {
-                // Steps 3-4.
-                let value = title.child_text_content();
-                DOMString::from(str_join(split_html_space_chars(&value), " "))
-            },
-        }
+        self.title().unwrap_or_else(|| DOMString::from(""))
     }
 
     // https://html.spec.whatwg.org/multipage/#document.title
