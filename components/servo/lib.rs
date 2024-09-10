@@ -1301,35 +1301,27 @@ fn default_user_agent_string_for(agent: UserAgent) -> String {
     let servo_version = get_servo_version();
 
     #[cfg(all(target_os = "linux", target_arch = "x86_64", not(target_env = "ohos")))]
-    let desktop_ua_string = format!(
-        "Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Servo/{} Firefox/111.0",
-        servo_version
-    );
+    let desktop_ua_string =
+        format!("Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Servo/{servo_version} Firefox/111.0");
     #[cfg(all(
         target_os = "linux",
         not(target_arch = "x86_64"),
         not(target_env = "ohos")
     ))]
-    let desktop_ua_string = format!(
-        "Mozilla/5.0 (X11; Linux i686; rv:109.0) Servo/{} Firefox/111.0",
-        servo_version
-    );
+    let desktop_ua_string =
+        format!("Mozilla/5.0 (X11; Linux i686; rv:109.0) Servo/{servo_version} Firefox/111.0");
 
     #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
     let desktop_ua_string = format!(
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Servo/{} Firefox/111.0",
-        servo_version
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Servo/{servo_version} Firefox/111.0"
     );
     #[cfg(all(target_os = "windows", not(target_arch = "x86_64")))]
-    let desktop_ua_string = format!(
-        "Mozilla/5.0 (Windows NT 10.0; rv:109.0) Servo/{} Firefox/111.0",
-        servo_version
-    );
+    let desktop_ua_string =
+        format!("Mozilla/5.0 (Windows NT 10.0; rv:109.0) Servo/{servo_version} Firefox/111.0");
 
     #[cfg(target_os = "macos")]
     let desktop_ua_string = format!(
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) Servo/{} Firefox/111.0",
-        servo_version
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) Servo/{servo_version} Firefox/111.0"
     );
 
     #[cfg(any(target_os = "android", target_env = "ohos"))]
@@ -1338,16 +1330,13 @@ fn default_user_agent_string_for(agent: UserAgent) -> String {
     match agent {
         UserAgent::Desktop => desktop_ua_string,
         UserAgent::Android => format!(
-            "Mozilla/5.0 (Android; Mobile; rv:109.0) Servo/{} Firefox/111.0",
-            servo_version
+            "Mozilla/5.0 (Android; Mobile; rv:109.0) Servo/{servo_version} Firefox/111.0"
         ),
         UserAgent::OpenHarmony => format!(
-            "Mozilla/5.0 (OpenHarmony; Mobile; rv:109.0) Servo/{} Firefox/111.0",
-            servo_version
+            "Mozilla/5.0 (OpenHarmony; Mobile; rv:109.0) Servo/{servo_version} Firefox/111.0"
         ),
         UserAgent::iOS => format!(
-            "Mozilla/5.0 (iPhone; CPU iPhone OS 16_4 like Mac OS X; rv:109.0) Servo/{} Firefox/111.0",
-            servo_version
+            "Mozilla/5.0 (iPhone; CPU iPhone OS 16_4 like Mac OS X; rv:109.0) Servo/{servo_version} Firefox/111.0"
         ),
     }
 }
