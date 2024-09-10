@@ -240,7 +240,7 @@ impl BoxFragment {
                 \nclearance={:?}\
                 \nscrollable_overflow={:?}\
                 \nbaselines={:?}\
-                \noverflow={:?} / {:?}",
+                \noverflow={:?}",
             self.base,
             self.content_rect,
             self.padding_rect(),
@@ -249,8 +249,7 @@ impl BoxFragment {
             self.clearance,
             self.scrollable_overflow(),
             self.baselines,
-            self.style.get_box().overflow_x,
-            self.style.get_box().overflow_y,
+            self.style.effective_overflow(),
         ));
 
         for child in &self.children {
@@ -273,12 +272,13 @@ impl BoxFragment {
             overflow.max_y().max(scrollable_overflow.max_y()),
         );
 
-        if self.style.get_box().overflow_y == ComputedOverflow::Visible {
+        let overflow_style = self.style.effective_overflow();
+        if overflow_style.y == ComputedOverflow::Visible {
             overflow.origin.y = overflow.origin.y.min(scrollable_overflow.origin.y);
             overflow.size.height = bottom_right.y - overflow.origin.y;
         }
 
-        if self.style.get_box().overflow_x == ComputedOverflow::Visible {
+        if overflow_style.x == ComputedOverflow::Visible {
             overflow.origin.x = overflow.origin.x.min(scrollable_overflow.origin.x);
             overflow.size.width = bottom_right.x - overflow.origin.x;
         }

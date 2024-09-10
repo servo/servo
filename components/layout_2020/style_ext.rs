@@ -13,6 +13,7 @@ use style::properties::longhands::backface_visibility::computed_value::T as Back
 use style::properties::longhands::box_sizing::computed_value::T as BoxSizing;
 use style::properties::longhands::column_span::computed_value::T as ColumnSpan;
 use style::properties::ComputedValues;
+use style::servo::selector_parser::PseudoElement;
 use style::values::computed::basic_shape::ClipPath;
 use style::values::computed::image::Image as ComputedImageLayer;
 use style::values::computed::{AlignItems, LengthPercentage, NonNegativeLengthPercentage, Size};
@@ -29,6 +30,7 @@ use crate::dom_traversal::Contents;
 use crate::fragment_tree::FragmentFlags;
 use crate::geom::{
     AuOrAuto, LengthPercentageOrAuto, LogicalSides, LogicalVec2, PhysicalSides, PhysicalSize,
+    PhysicalVec,
 };
 use crate::{ContainingBlock, IndefiniteContainingBlock};
 
@@ -263,6 +265,7 @@ pub(crate) trait ComputedValuesExt {
     ) -> LogicalSides<LengthPercentageOrAuto<'_>>;
     fn has_transform_or_perspective(&self, fragment_flags: FragmentFlags) -> bool;
     fn effective_z_index(&self, fragment_flags: FragmentFlags) -> i32;
+    fn effective_overflow(&self) -> PhysicalVec<Overflow>;
     fn establishes_block_formatting_context(&self) -> bool;
     fn establishes_stacking_context(&self, fragment_flags: FragmentFlags) -> bool;
     fn establishes_scroll_container(&self) -> bool;
@@ -639,10 +642,60 @@ impl ComputedValuesExt for ComputedValues {
         }
     }
 
+    /// Get the effective overflow of this box. The property only applies to block containers,
+    /// flex containers, and grid containers. And some box types only accept a few values.
+    /// <https://www.w3.org/TR/css-overflow-3/#overflow-control>
+    fn effective_overflow(&self) -> PhysicalVec<Overflow> {
+        let style_box = self.get_box();
+        let mut overflow_x = style_box.overflow_x;
+        let mut overflow_y = style_box.overflow_y;
+        // According to <https://drafts.csswg.org/css-tables/#global-style-overrides>,
+        // overflow applies to table-wrapper boxes and not to table grid boxes.
+        // That's what Blink and WebKit do, however Firefox matches a CSSWG resolution that says
+        // the opposite: <https://lists.w3.org/Archives/Public/www-style/2012Aug/0298.html>
+        // Due to the way that we implement table-wrapper boxes, it's easier to align with Firefox.
+        match style_box.display.inside() {
+            stylo::DisplayInside::Table
+                if matches!(self.pseudo(), Some(PseudoElement::ServoTableGrid)) =>
+            {
+                // <https://drafts.csswg.org/css-tables/#global-style-overrides>
+                // Tables ignore overflow values different than visible, clip and hidden.
+                // We also need to make sure that both axes have the same scrollability.
+                if matches!(overflow_x, Overflow::Auto | Overflow::Scroll) {
+                    overflow_x = Overflow::Visible;
+                    if overflow_y.is_scrollable() {
+                        overflow_y = Overflow::Visible;
+                    }
+                }
+                if matches!(overflow_y, Overflow::Auto | Overflow::Scroll) {
+                    overflow_y = Overflow::Visible;
+                    if overflow_x.is_scrollable() {
+                        overflow_x = Overflow::Visible;
+                    }
+                }
+            },
+            stylo::DisplayInside::TableColumn |
+            stylo::DisplayInside::TableColumnGroup |
+            stylo::DisplayInside::TableRow |
+            stylo::DisplayInside::TableRowGroup |
+            stylo::DisplayInside::TableHeaderGroup |
+            stylo::DisplayInside::TableFooterGroup |
+            stylo::DisplayInside::Table => {
+                // <https://drafts.csswg.org/css-tables/#global-style-overrides>
+                // Table-track and table-track-group boxes ignore overflow.
+                // We also ignore it on table-wrapper boxes (see above).
+                overflow_x = Overflow::Visible;
+                overflow_y = Overflow::Visible;
+            },
+            _ => {},
+        }
+        PhysicalVec::new(overflow_x, overflow_y)
+    }
+
     /// Return true if this style is a normal block and establishes
     /// a new block formatting context.
     fn establishes_block_formatting_context(&self) -> bool {
-        if self.get_box().overflow_x.is_scrollable() {
+        if self.establishes_scroll_container() {
             return true;
         }
 
@@ -660,8 +713,7 @@ impl ComputedValuesExt for ComputedValues {
 
     /// Whether or not the `overflow` value of this style establishes a scroll container.
     fn establishes_scroll_container(&self) -> bool {
-        self.get_box().overflow_x != Overflow::Visible ||
-            self.get_box().overflow_y != Overflow::Visible
+        self.effective_overflow().x.is_scrollable()
     }
 
     /// Returns true if this fragment establishes a new stacking context and false otherwise.
