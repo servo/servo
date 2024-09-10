@@ -19,6 +19,7 @@ use crate::dom::document::Document;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::node::{window_from_node, Node};
 use crate::dom::range::Range;
+use crate::script_runtime::CanGc;
 use crate::task_source::TaskSource;
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf)]
@@ -241,7 +242,7 @@ impl SelectionMethods for Selection {
     }
 
     // https://w3c.github.io/selection-api/#dom-selection-collapse
-    fn Collapse(&self, node: Option<&Node>, offset: u32) -> ErrorResult {
+    fn Collapse(&self, node: Option<&Node>, offset: u32, can_gc: CanGc) -> ErrorResult {
         if let Some(node) = node {
             if node.is_doctype() {
                 // w3c/selection-api#118
@@ -258,7 +259,7 @@ impl SelectionMethods for Selection {
             }
 
             // Steps 4-5
-            let range = Range::new(&self.document, node, offset, node, offset);
+            let range = Range::new(&self.document, node, offset, node, offset, can_gc);
 
             // Step 6
             self.set_range(&range);
@@ -276,23 +277,27 @@ impl SelectionMethods for Selection {
     // TODO: When implementing actual selection UI, this may be the correct
     // method to call as the start-of-selection action, after a
     // selectstart event has fired and not been cancelled.
-    fn SetPosition(&self, node: Option<&Node>, offset: u32) -> ErrorResult {
-        self.Collapse(node, offset)
+    fn SetPosition(&self, node: Option<&Node>, offset: u32, can_gc: CanGc) -> ErrorResult {
+        self.Collapse(node, offset, can_gc)
     }
 
     // https://w3c.github.io/selection-api/#dom-selection-collapsetostart
-    fn CollapseToStart(&self) -> ErrorResult {
+    fn CollapseToStart(&self, can_gc: CanGc) -> ErrorResult {
         if let Some(range) = self.range.get() {
-            self.Collapse(Some(&*range.start_container()), range.start_offset())
+            self.Collapse(
+                Some(&*range.start_container()),
+                range.start_offset(),
+                can_gc,
+            )
         } else {
             Err(Error::InvalidState)
         }
     }
 
     // https://w3c.github.io/selection-api/#dom-selection-collapsetoend
-    fn CollapseToEnd(&self) -> ErrorResult {
+    fn CollapseToEnd(&self, can_gc: CanGc) -> ErrorResult {
         if let Some(range) = self.range.get() {
-            self.Collapse(Some(&*range.end_container()), range.end_offset())
+            self.Collapse(Some(&*range.end_container()), range.end_offset(), can_gc)
         } else {
             Err(Error::InvalidState)
         }
@@ -301,7 +306,7 @@ impl SelectionMethods for Selection {
     // https://w3c.github.io/selection-api/#dom-selection-extend
     // TODO: When implementing actual selection UI, this may be the correct
     // method to call as the continue-selection action
-    fn Extend(&self, node: &Node, offset: u32) -> ErrorResult {
+    fn Extend(&self, node: &Node, offset: u32, can_gc: CanGc) -> ErrorResult {
         if !self.is_same_root(node) {
             // Step 1
             return Ok(());
@@ -321,7 +326,14 @@ impl SelectionMethods for Selection {
             // Step 4
             if !self.is_same_root(&range.start_container()) {
                 // Step 5, and its following 8 and 9
-                self.set_range(&Range::new(&self.document, node, offset, node, offset));
+                self.set_range(&Range::new(
+                    &self.document,
+                    node,
+                    offset,
+                    node,
+                    offset,
+                    can_gc,
+                ));
                 self.direction.set(Direction::Forwards);
             } else {
                 let old_anchor_node = &*self.GetAnchorNode().unwrap(); // has range, therefore has anchor node
@@ -341,6 +353,7 @@ impl SelectionMethods for Selection {
                         old_anchor_offset,
                         node,
                         offset,
+                        can_gc,
                     ));
                     self.direction.set(Direction::Forwards);
                 } else {
@@ -351,6 +364,7 @@ impl SelectionMethods for Selection {
                         offset,
                         old_anchor_node,
                         old_anchor_offset,
+                        can_gc,
                     ));
                     self.direction.set(Direction::Backwards);
                 }
@@ -369,6 +383,7 @@ impl SelectionMethods for Selection {
         anchor_offset: u32,
         focus_node: &Node,
         focus_offset: u32,
+        can_gc: CanGc,
     ) -> ErrorResult {
         // Step 1
         if anchor_node.is_doctype() || focus_node.is_doctype() {
@@ -400,6 +415,7 @@ impl SelectionMethods for Selection {
                 focus_offset,
                 anchor_node,
                 anchor_offset,
+                can_gc,
             ));
             self.direction.set(Direction::Backwards);
         } else {
@@ -409,6 +425,7 @@ impl SelectionMethods for Selection {
                 anchor_offset,
                 focus_node,
                 focus_offset,
+                can_gc,
             ));
             self.direction.set(Direction::Forwards);
         }
@@ -416,7 +433,7 @@ impl SelectionMethods for Selection {
     }
 
     // https://w3c.github.io/selection-api/#dom-selection-selectallchildren
-    fn SelectAllChildren(&self, node: &Node) -> ErrorResult {
+    fn SelectAllChildren(&self, node: &Node, can_gc: CanGc) -> ErrorResult {
         if node.is_doctype() {
             // w3c/selection-api#118
             return Err(Error::InvalidNodeType);
@@ -434,6 +451,7 @@ impl SelectionMethods for Selection {
             0,
             node,
             node.children_count(),
+            can_gc,
         ));
 
         self.direction.set(Direction::Forwards);

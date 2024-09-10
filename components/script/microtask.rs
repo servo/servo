@@ -23,7 +23,7 @@ use crate::dom::htmlimageelement::ImageElementMicrotask;
 use crate::dom::htmlmediaelement::MediaElementMicrotask;
 use crate::dom::mutationobserver::MutationObserver;
 use crate::realms::enter_realm;
-use crate::script_runtime::{notify_about_rejected_promises, JSContext};
+use crate::script_runtime::{notify_about_rejected_promises, CanGc, JSContext};
 use crate::script_thread::ScriptThread;
 
 /// A collection of microtasks in FIFO order.
@@ -46,7 +46,7 @@ pub enum Microtask {
 }
 
 pub trait MicrotaskRunnable {
-    fn handler(&self) {}
+    fn handler(&self, _can_gc: CanGc) {}
     fn enter_realm(&self) -> JSAutoRealm;
 }
 
@@ -87,6 +87,7 @@ impl MicrotaskQueue {
         cx: JSContext,
         target_provider: F,
         globalscopes: Vec<DomRoot<GlobalScope>>,
+        _can_gc: CanGc,
     ) where
         F: Fn(PipelineId) -> Option<DomRoot<GlobalScope>>,
     {
@@ -127,14 +128,14 @@ impl MicrotaskQueue {
                     },
                     Microtask::MediaElement(ref task) => {
                         let _realm = task.enter_realm();
-                        task.handler();
+                        task.handler(CanGc::note());
                     },
                     Microtask::ImageElement(ref task) => {
                         let _realm = task.enter_realm();
-                        task.handler();
+                        task.handler(CanGc::note());
                     },
                     Microtask::CustomElementReaction => {
-                        ScriptThread::invoke_backup_element_queue();
+                        ScriptThread::invoke_backup_element_queue(CanGc::note());
                     },
                     Microtask::NotifyMutationObservers => {
                         MutationObserver::notify_mutation_observers();

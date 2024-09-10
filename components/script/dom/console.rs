@@ -271,18 +271,29 @@ impl Console {
         };
     }
 
-    // https://developer.mozilla.org/en-US/docs/Web/API/Console/time
+    // https://console.spec.whatwg.org/#time
     pub fn Time(global: &GlobalScope, label: DOMString) {
         if let Ok(()) = global.time(label.clone()) {
-            let message = DOMString::from(format!("{}: timer started", label));
+            let message = DOMString::from(format!("{label}: timer started"));
             console_message(global, message, LogLevel::Log);
         }
     }
 
-    // https://developer.mozilla.org/en-US/docs/Web/API/Console/timeEnd
+    // https://console.spec.whatwg.org/#timelog
+    pub fn TimeLog(_cx: JSContext, global: &GlobalScope, label: DOMString, data: Vec<HandleValue>) {
+        if let Ok(delta) = global.time_log(&label) {
+            let message = DOMString::from(format!(
+                "{label}: {delta}ms {}",
+                stringify_handle_values(data)
+            ));
+            console_message(global, message, LogLevel::Log);
+        }
+    }
+
+    // https://console.spec.whatwg.org/#timeend
     pub fn TimeEnd(global: &GlobalScope, label: DOMString) {
         if let Ok(delta) = global.time_end(&label) {
-            let message = DOMString::from(format!("{}: {}ms", label, delta));
+            let message = DOMString::from(format!("{label}: {delta}ms"));
             console_message(global, message, LogLevel::Log);
         }
     }

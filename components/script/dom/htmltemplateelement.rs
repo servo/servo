@@ -16,6 +16,7 @@ use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::{document_from_node, CloneChildrenFlag, Node};
 use crate::dom::virtualmethods::VirtualMethods;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct HTMLTemplateElement {
@@ -59,10 +60,10 @@ impl HTMLTemplateElement {
 
 impl HTMLTemplateElementMethods for HTMLTemplateElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-template-content>
-    fn Content(&self) -> DomRoot<DocumentFragment> {
+    fn Content(&self, can_gc: CanGc) -> DomRoot<DocumentFragment> {
         self.contents.or_init(|| {
             let doc = document_from_node(self);
-            doc.appropriate_template_contents_owner_document()
+            doc.appropriate_template_contents_owner_document(can_gc)
                 .CreateDocumentFragment()
         })
     }
@@ -77,9 +78,10 @@ impl VirtualMethods for HTMLTemplateElement {
     fn adopting_steps(&self, old_doc: &Document) {
         self.super_type().unwrap().adopting_steps(old_doc);
         // Step 1.
-        let doc = document_from_node(self).appropriate_template_contents_owner_document();
+        let doc =
+            document_from_node(self).appropriate_template_contents_owner_document(CanGc::note());
         // Step 2.
-        Node::adopt(self.Content().upcast(), &doc);
+        Node::adopt(self.Content(CanGc::note()).upcast(), &doc);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-template-element:concept-node-clone-ext>
@@ -98,13 +100,14 @@ impl VirtualMethods for HTMLTemplateElement {
         }
         let copy = copy.downcast::<HTMLTemplateElement>().unwrap();
         // Steps 2-3.
-        let copy_contents = DomRoot::upcast::<Node>(copy.Content());
+        let copy_contents = DomRoot::upcast::<Node>(copy.Content(CanGc::note()));
         let copy_contents_doc = copy_contents.owner_doc();
-        for child in self.Content().upcast::<Node>().children() {
+        for child in self.Content(CanGc::note()).upcast::<Node>().children() {
             let copy_child = Node::clone(
                 &child,
                 Some(&copy_contents_doc),
                 CloneChildrenFlag::CloneChildren,
+                CanGc::note(),
             );
             copy_contents.AppendChild(&copy_child).unwrap();
         }

@@ -10,7 +10,8 @@ use base::id::PipelineId;
 use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
-use webrender_api::{ExternalImageId, ImageData, ImageDescriptor, ImageKey};
+use webrender_api::units::DeviceIntSize;
+use webrender_api::{ImageFormat, ImageKey};
 use wgc::binding_model::{
     BindGroupDescriptor, BindGroupLayoutDescriptor, PipelineLayoutDescriptor,
 };
@@ -30,6 +31,7 @@ pub use {wgpu_core as wgc, wgpu_types as wgt};
 
 use crate::identity::*;
 use crate::render_commands::RenderCommand;
+use crate::swapchain::WebGPUContextId;
 use crate::{Error, ErrorFilter, WebGPUResponse, PRESENTATION_BUFFER_COUNT};
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -101,7 +103,7 @@ pub enum WebGPURequest {
         /// present only on ASYNC versions
         async_sender: Option<IpcSender<WebGPUResponse>>,
     },
-    CreateContext(IpcSender<ExternalImageId>),
+    CreateContext(IpcSender<WebGPUContextId>),
     CreatePipelineLayout {
         device_id: id::DeviceId,
         pipeline_layout_id: id::PipelineLayoutId,
@@ -131,10 +133,10 @@ pub enum WebGPURequest {
         device_id: id::DeviceId,
         queue_id: id::QueueId,
         buffer_ids: ArrayVec<id::BufferId, PRESENTATION_BUFFER_COUNT>,
-        external_id: u64,
+        context_id: WebGPUContextId,
         sender: IpcSender<ImageKey>,
-        image_desc: ImageDescriptor,
-        image_data: ImageData,
+        format: ImageFormat,
+        size: DeviceIntSize,
     },
     CreateTexture {
         device_id: id::DeviceId,
@@ -154,7 +156,7 @@ pub enum WebGPURequest {
         texture_id: id::TextureId,
     },
     DestroySwapChain {
-        external_id: u64,
+        context_id: WebGPUContextId,
         image_key: ImageKey,
     },
     DropTexture(id::TextureId),
@@ -256,7 +258,7 @@ pub enum WebGPURequest {
         command_buffers: Vec<id::CommandBufferId>,
     },
     SwapChainPresent {
-        external_id: u64,
+        context_id: WebGPUContextId,
         texture_id: id::TextureId,
         encoder_id: id::CommandEncoderId,
     },

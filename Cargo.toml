@@ -58,6 +58,7 @@ gstreamer-gl-sys = "0.22"
 gstreamer-sys = "0.22"
 gstreamer-video = "0.22"
 headers = "0.3"
+hitrace = "0.1.4"
 html5ever = "0.28"
 http = "0.2"
 hyper = "0.14"
@@ -122,7 +123,7 @@ syn = { version = "2", default-features = false, features = ["clone-impls", "der
 synstructure = "0.13"
 thin-vec = "0.2.13"
 time = "0.1.41"
-time_03 = { package = "time", version = "0.3", features = ["serde"] }
+time_03 = { package = "time", version = "0.3", features = ["large-dates", "serde"] }
 to_shmem = { git = "https://github.com/servo/stylo", branch = "2024-07-16" }
 tokio = "1"
 tokio-rustls = "0.24"

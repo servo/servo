@@ -144,7 +144,7 @@ use crate::layout_image::fetch_image_for_layout;
 use crate::microtask::MicrotaskQueue;
 use crate::realms::InRealm;
 use crate::script_runtime::{
-    CommonScriptMsg, JSContext, Runtime, ScriptChan, ScriptPort, ScriptThreadEventCategory,
+    CanGc, CommonScriptMsg, JSContext, Runtime, ScriptChan, ScriptPort, ScriptThreadEventCategory,
 };
 use crate::script_thread::{
     ImageCacheMsg, MainThreadScriptChan, MainThreadScriptMsg, ScriptThread,
@@ -676,10 +676,10 @@ impl WindowMethods for Window {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-window-stop
-    fn Stop(&self) {
+    fn Stop(&self, can_gc: CanGc) {
         // TODO: Cancel ongoing navigation.
         let doc = self.Document();
-        doc.abort();
+        doc.abort(can_gc);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-open

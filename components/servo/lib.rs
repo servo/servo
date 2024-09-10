@@ -19,7 +19,6 @@
 
 use std::borrow::{BorrowMut, Cow};
 use std::cmp::max;
-use std::collections::HashMap;
 use std::path::PathBuf;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
@@ -90,6 +89,7 @@ use surfman::platform::generic::multi::context::NativeContext as LinuxNativeCont
 use surfman::{GLApi, GLVersion};
 #[cfg(all(target_os = "linux", not(target_env = "ohos")))]
 use surfman::{NativeConnection, NativeContext};
+use webgpu::swapchain::WGPUImageMap;
 use webrender::{RenderApiSender, ShaderPrecacheFlags, UploadMethod, ONE_TIME_USAGE_HINT};
 use webrender_api::{
     ColorF, DocumentId, FontInstanceFlags, FontInstanceKey, FontKey, FramePublishId, ImageKey,
@@ -225,7 +225,7 @@ impl<Window> Servo<Window>
 where
     Window: WindowMethods + 'static + ?Sized,
 {
-    #[tracing::instrument(skip(embedder, window))]
+    #[tracing::instrument(skip(embedder, window), fields(servo_profiling = true))]
     pub fn new(
         mut embedder: Box<dyn EmbedderMethods>,
         window: Rc<Window>,
@@ -1017,7 +1017,7 @@ fn create_constellation(
     glplayer_threads: Option<GLPlayerThreads>,
     initial_window_size: WindowSizeData,
     external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
-    wgpu_image_map: Arc<Mutex<HashMap<u64, webgpu::PresentationData>>>,
+    wgpu_image_map: WGPUImageMap,
     protocols: ProtocolRegistry,
 ) -> Sender<ConstellationMsg> {
     // Global configuration options, parsed from the command line.

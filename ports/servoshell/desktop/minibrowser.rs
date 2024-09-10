@@ -359,8 +359,8 @@ impl Minibrowser {
                     |ui| {
                         for (webview_id, webview) in webviews.webviews().into_iter() {
                             let label = match (&webview.title, &webview.url) {
-                                (Some(title), _) => title,
-                                (None, Some(url)) => &url.to_string(),
+                                (Some(title), _) if !title.is_empty() => title,
+                                (_, Some(url)) => &url.to_string(),
                                 _ => "New Tab",
                             };
                             if let Some(event) =

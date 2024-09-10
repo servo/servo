@@ -66,6 +66,7 @@ use crate::realms::enter_realm;
 use crate::script_module::{
     fetch_external_module_script, fetch_inline_module_script, ModuleOwner, ScriptFetchOptions,
 };
+use crate::script_runtime::CanGc;
 use crate::task::TaskCanceller;
 use crate::task_source::dom_manipulation::DOMManipulationTaskSource;
 use crate::task_source::{TaskSource, TaskSourceName};
@@ -304,6 +305,7 @@ fn finish_fetching_a_classic_script(
     script_kind: ExternalScriptKind,
     url: ServoUrl,
     load: ScriptResult,
+    can_gc: CanGc,
 ) {
     // Step 11, Asynchronously complete this algorithm with script,
     // which refers to step 26.6 "When the chosen algorithm asynchronously completes",
@@ -315,11 +317,11 @@ fn finish_fetching_a_classic_script(
         ExternalScriptKind::AsapInOrder => document.asap_in_order_script_loaded(elem, load),
         ExternalScriptKind::Deferred => document.deferred_script_loaded(elem, load),
         ExternalScriptKind::ParsingBlocking => {
-            document.pending_parsing_blocking_script_loaded(elem, load)
+            document.pending_parsing_blocking_script_loaded(elem, load, can_gc)
         },
     }
 
-    document.finish_load(LoadType::Script(url));
+    document.finish_load(LoadType::Script(url), CanGc::note());
 }
 
 pub type ScriptResult = Result<ScriptOrigin, NoTrace<NetworkError>>;
@@ -397,6 +399,7 @@ impl FetchResponseListener for ClassicContext {
                     self.kind,
                     self.url.clone(),
                     Err(NoTrace(err.clone())),
+                    CanGc::note(),
                 );
                 return;
             },
@@ -457,7 +460,13 @@ impl FetchResponseListener for ClassicContext {
             self.fetch_options.clone(),
             ScriptType::Classic,
         );
-        finish_fetching_a_classic_script(&elem, self.kind, self.url.clone(), Ok(load));
+        finish_fetching_a_classic_script(
+            &elem,
+            self.kind,
+            self.url.clone(),
+            Ok(load),
+            CanGc::note(),
+        );
         //}
     }
 

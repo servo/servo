@@ -694,7 +694,7 @@ class CommandBase(object):
 
         #  Set the default Android target
         if android and not target_triple:
-            target_triple = "armv7-linux-androideabi"
+            target_triple = "aarch64-linux-android"
 
         self.target = BuildTarget.from_triple(target_triple)
 

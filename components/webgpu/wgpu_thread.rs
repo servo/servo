@@ -6,23 +6,20 @@
 
 use std::borrow::Cow;
 use std::collections::HashMap;
+use std::ops::ControlFlow;
 use std::slice;
 use std::sync::{Arc, Mutex};
 
-use arrayvec::ArrayVec;
 use base::id::PipelineId;
-use euclid::default::Size2D;
 use ipc_channel::ipc::{IpcReceiver, IpcSender, IpcSharedMemory};
-use log::{error, info, warn};
+use log::{info, warn};
 use servo_config::pref;
-use webrender::{RenderApi, RenderApiSender, Transaction};
-use webrender_api::{DirtyRect, DocumentId};
+use webrender::{RenderApi, RenderApiSender};
+use webrender_api::DocumentId;
 use webrender_traits::{WebrenderExternalImageRegistry, WebrenderImageHandlerType};
-use wgc::command::{
-    ComputePass, ComputePassDescriptor, ImageCopyBuffer, ImageCopyTexture, RenderPass,
-};
+use wgc::command::{ComputePass, ComputePassDescriptor, RenderPass};
 use wgc::device::queue::SubmittedWorkDoneClosure;
-use wgc::device::{DeviceDescriptor, DeviceLostClosure, HostMap, ImplicitPipelineIds};
+use wgc::device::{DeviceDescriptor, DeviceLostClosure, ImplicitPipelineIds};
 use wgc::id;
 use wgc::id::DeviceId;
 use wgc::instance::parse_backends_from_comma_list;
@@ -39,12 +36,11 @@ pub use {wgpu_core as wgc, wgpu_types as wgt};
 use crate::gpu_error::ErrorScope;
 use crate::poll_thread::Poller;
 use crate::render_commands::apply_render_command;
+use crate::swapchain::{WGPUImageMap, WebGPUContextId};
 use crate::{
-    Adapter, ComputePassId, Error, Mapping, Pipeline, PopError, PresentationData, RenderPassId,
-    WebGPU, WebGPUAdapter, WebGPUDevice, WebGPUMsg, WebGPUQueue, WebGPURequest, WebGPUResponse,
+    Adapter, ComputePassId, Error, Mapping, Pipeline, PopError, RenderPassId, WebGPU,
+    WebGPUAdapter, WebGPUDevice, WebGPUMsg, WebGPUQueue, WebGPURequest, WebGPUResponse,
 };
-
-pub const PRESENTATION_BUFFER_COUNT: usize = 10;
 
 #[derive(Eq, Hash, PartialEq)]
 pub(crate) struct DeviceScope {
@@ -103,8 +99,8 @@ impl<P> Pass<P> {
 pub(crate) struct WGPU {
     receiver: IpcReceiver<WebGPURequest>,
     sender: IpcSender<WebGPURequest>,
-    script_sender: IpcSender<WebGPUMsg>,
-    global: Arc<wgc::global::Global>,
+    pub(crate) script_sender: IpcSender<WebGPUMsg>,
+    pub(crate) global: Arc<wgc::global::Global>,
     adapters: Vec<WebGPUAdapter>,
     devices: Arc<Mutex<HashMap<DeviceId, DeviceScope>>>,
     // Track invalid adapters https://gpuweb.github.io/gpuweb/#invalid
@@ -114,12 +110,12 @@ pub(crate) struct WGPU {
     /// because wgpu does not invalidate command encoder object
     /// (this is also reused for invalidation of command buffers)
     error_command_encoders: HashMap<id::CommandEncoderId, String>,
-    webrender_api: Arc<Mutex<RenderApi>>,
-    webrender_document: DocumentId,
-    external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
-    wgpu_image_map: Arc<Mutex<HashMap<u64, PresentationData>>>,
+    pub(crate) webrender_api: Arc<Mutex<RenderApi>>,
+    pub(crate) webrender_document: DocumentId,
+    pub(crate) external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
+    pub(crate) wgpu_image_map: WGPUImageMap,
     /// Provides access to poller thread
-    poller: Poller,
+    pub(crate) poller: Poller,
     /// Store compute passes
     compute_passes: HashMap<ComputePassId, Pass<ComputePass>>,
     /// Store render passes
@@ -134,7 +130,7 @@ impl WGPU {
         webrender_api_sender: RenderApiSender,
         webrender_document: DocumentId,
         external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
-        wgpu_image_map: Arc<Mutex<HashMap<u64, PresentationData>>>,
+        wgpu_image_map: WGPUImageMap,
     ) -> Self {
         let backend_pref = pref!(dom.webgpu.wgpu_backend);
         let backends = if backend_pref.is_empty() {
@@ -419,7 +415,7 @@ impl WGPU {
                             .lock()
                             .expect("Lock poisoned?")
                             .next_id(WebrenderImageHandlerType::WebGPU);
-                        if let Err(e) = sender.send(id) {
+                        if let Err(e) = sender.send(WebGPUContextId(id.0)) {
                             warn!("Failed to send ExternalImageId to new context ({})", e);
                         };
                     },
@@ -525,46 +521,20 @@ impl WGPU {
                         device_id,
                         queue_id,
                         buffer_ids,
-                        external_id,
+                        context_id,
                         sender,
-                        image_desc,
-                        image_data,
+                        size,
+                        format,
                     } => {
-                        let height = image_desc.size.height;
-                        let width = image_desc.size.width;
-                        let buffer_stride =
-                            ((width * 4) as u32 | (wgt::COPY_BYTES_PER_ROW_ALIGNMENT - 1)) + 1;
-                        let mut wr = self.webrender_api.lock().unwrap();
+                        let wr = self.webrender_api.lock().unwrap();
                         let image_key = wr.generate_image_key();
                         if let Err(e) = sender.send(image_key) {
                             warn!("Failed to send ImageKey ({})", e);
                         }
-                        let _ = self.wgpu_image_map.lock().unwrap().insert(
-                            external_id,
-                            PresentationData {
-                                device_id,
-                                queue_id,
-                                data: vec![255; (buffer_stride * height as u32) as usize],
-                                size: Size2D::new(width, height),
-                                unassigned_buffer_ids: buffer_ids,
-                                available_buffer_ids: ArrayVec::<
-                                    id::BufferId,
-                                    PRESENTATION_BUFFER_COUNT,
-                                >::new(),
-                                queued_buffer_ids: ArrayVec::<
-                                    id::BufferId,
-                                    PRESENTATION_BUFFER_COUNT,
-                                >::new(),
-                                buffer_stride,
-                                image_key,
-                                image_desc,
-                                image_data: image_data.clone(),
-                            },
-                        );
-
-                        let mut txn = Transaction::new();
-                        txn.add_image(image_key, image_desc, image_data, None);
-                        wr.send_transaction(self.webrender_document, txn);
+                        self.create_swapchain(
+                            device_id, queue_id, buffer_ids, context_id, format, size, image_key,
+                            wr,
+                        )
                     },
                     WebGPURequest::CreateTexture {
                         device_id,
@@ -604,33 +574,10 @@ impl WGPU {
                         self.poller.wake();
                     },
                     WebGPURequest::DestroySwapChain {
-                        external_id,
+                        context_id,
                         image_key,
                     } => {
-                        let data = self
-                            .wgpu_image_map
-                            .lock()
-                            .unwrap()
-                            .remove(&external_id)
-                            .unwrap();
-                        let global = &self.global;
-                        for b_id in data.available_buffer_ids.iter() {
-                            global.buffer_drop(*b_id);
-                        }
-                        for b_id in data.queued_buffer_ids.iter() {
-                            global.buffer_drop(*b_id);
-                        }
-                        for b_id in data.unassigned_buffer_ids.iter() {
-                            if let Err(e) = self.script_sender.send(WebGPUMsg::FreeBuffer(*b_id)) {
-                                warn!("Unable to send FreeBuffer({:?}) ({:?})", *b_id, e);
-                            };
-                        }
-                        let mut txn = Transaction::new();
-                        txn.delete_image(image_key);
-                        self.webrender_api
-                            .lock()
-                            .unwrap()
-                            .send_transaction(self.webrender_document, txn);
+                        self.destroy_swapchain(context_id, image_key);
                     },
                     WebGPURequest::DestroyTexture {
                         device_id,
@@ -1040,160 +987,15 @@ impl WGPU {
                         self.maybe_dispatch_error(device_id, result.err());
                     },
                     WebGPURequest::SwapChainPresent {
-                        external_id,
+                        context_id,
                         texture_id,
                         encoder_id,
                     } => {
-                        let global = &self.global;
-                        let device_id;
-                        let queue_id;
-                        let size;
-                        let buffer_id;
-                        let buffer_stride;
+                        if let ControlFlow::Break(_) =
+                            self.swapchain_present(context_id, encoder_id, texture_id)
                         {
-                            if let Some(present_data) =
-                                self.wgpu_image_map.lock().unwrap().get_mut(&external_id)
-                            {
-                                size = present_data.size;
-                                device_id = present_data.device_id;
-                                queue_id = present_data.queue_id;
-                                buffer_stride = present_data.buffer_stride;
-                                buffer_id = if let Some(b_id) =
-                                    present_data.available_buffer_ids.pop()
-                                {
-                                    b_id
-                                } else if let Some(b_id) = present_data.unassigned_buffer_ids.pop()
-                                {
-                                    let buffer_size =
-                                        (buffer_stride * size.height as u32) as wgt::BufferAddress;
-                                    let buffer_desc = wgt::BufferDescriptor {
-                                        label: None,
-                                        size: buffer_size,
-                                        usage: wgt::BufferUsages::MAP_READ |
-                                            wgt::BufferUsages::COPY_DST,
-                                        mapped_at_creation: false,
-                                    };
-                                    let _ = global.device_create_buffer(
-                                        device_id,
-                                        &buffer_desc,
-                                        Some(b_id),
-                                    );
-                                    b_id
-                                } else {
-                                    warn!(
-                                        "No staging buffer available for ExternalImageId({:?})",
-                                        external_id
-                                    );
-                                    continue;
-                                };
-                                present_data.queued_buffer_ids.push(buffer_id);
-                            } else {
-                                warn!("Data not found for ExternalImageId({:?})", external_id);
-                                continue;
-                            }
+                            continue;
                         }
-
-                        let buffer_size =
-                            (size.height as u32 * buffer_stride) as wgt::BufferAddress;
-                        let comm_desc = wgt::CommandEncoderDescriptor { label: None };
-                        let _ = global.device_create_command_encoder(
-                            device_id,
-                            &comm_desc,
-                            Some(encoder_id),
-                        );
-
-                        let buffer_cv = ImageCopyBuffer {
-                            buffer: buffer_id,
-                            layout: wgt::ImageDataLayout {
-                                offset: 0,
-                                bytes_per_row: Some(buffer_stride),
-                                rows_per_image: None,
-                            },
-                        };
-                        let texture_cv = ImageCopyTexture {
-                            texture: texture_id,
-                            mip_level: 0,
-                            origin: wgt::Origin3d::ZERO,
-                            aspect: wgt::TextureAspect::All,
-                        };
-                        let copy_size = wgt::Extent3d {
-                            width: size.width as u32,
-                            height: size.height as u32,
-                            depth_or_array_layers: 1,
-                        };
-                        let _ = global.command_encoder_copy_texture_to_buffer(
-                            encoder_id,
-                            &texture_cv,
-                            &buffer_cv,
-                            &copy_size,
-                        );
-                        let _ = global.command_encoder_finish(
-                            encoder_id,
-                            &wgt::CommandBufferDescriptor::default(),
-                        );
-                        let _ =
-                            global.queue_submit(queue_id, &[encoder_id.into_command_buffer_id()]);
-
-                        let glob = Arc::clone(&self.global);
-                        let wgpu_image_map = Arc::clone(&self.wgpu_image_map);
-                        let webrender_api = Arc::clone(&self.webrender_api);
-                        let webrender_document = self.webrender_document;
-                        let token = self.poller.token();
-                        let callback = BufferMapCallback::from_rust(Box::from(move |result| {
-                            drop(token);
-                            match result {
-                                Ok(()) => {
-                                    let global = &glob;
-                                    let (slice_pointer, range_size) = global
-                                        .buffer_get_mapped_range(
-                                            buffer_id,
-                                            0,
-                                            Some(buffer_size as u64),
-                                        )
-                                        .unwrap();
-                                    let data = unsafe {
-                                        slice::from_raw_parts(
-                                            slice_pointer.as_ptr(),
-                                            range_size as usize,
-                                        )
-                                    }
-                                    .to_vec();
-                                    if let Some(present_data) =
-                                        wgpu_image_map.lock().unwrap().get_mut(&external_id)
-                                    {
-                                        present_data.data = data;
-                                        let mut txn = Transaction::new();
-                                        txn.update_image(
-                                            present_data.image_key,
-                                            present_data.image_desc,
-                                            present_data.image_data.clone(),
-                                            &DirtyRect::All,
-                                        );
-                                        webrender_api
-                                            .lock()
-                                            .unwrap()
-                                            .send_transaction(webrender_document, txn);
-                                        present_data
-                                            .queued_buffer_ids
-                                            .retain(|b_id| *b_id != buffer_id);
-                                        present_data.available_buffer_ids.push(buffer_id);
-                                    } else {
-                                        warn!(
-                                            "Data not found for ExternalImageId({:?})",
-                                            external_id
-                                        );
-                                    }
-                                    let _ = global.buffer_unmap(buffer_id);
-                                },
-                                _ => error!("Could not map buffer({:?})", buffer_id),
-                            }
-                        }));
-                        let map_op = BufferMapOperation {
-                            host: HostMap::Read,
-                            callback: Some(callback),
-                        };
-                        let _ = global.buffer_map_async(buffer_id, 0, Some(buffer_size), map_op);
-                        self.poller.wake();
                     },
                     WebGPURequest::UnmapBuffer {
                         buffer_id,

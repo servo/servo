@@ -40,6 +40,7 @@ use crate::dom::node::{
 };
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::windowproxy::WindowProxy;
+use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf)]
@@ -114,8 +115,9 @@ impl HTMLIFrameElement {
         &self,
         load_data: LoadData,
         replace: HistoryEntryReplacement,
+        can_gc: CanGc,
     ) {
-        self.start_new_pipeline(load_data, PipelineType::Navigation, replace);
+        self.start_new_pipeline(load_data, PipelineType::Navigation, replace, can_gc);
     }
 
     fn start_new_pipeline(
@@ -123,6 +125,7 @@ impl HTMLIFrameElement {
         mut load_data: LoadData,
         pipeline_type: PipelineType,
         replace: HistoryEntryReplacement,
+        can_gc: CanGc,
     ) {
         let sandboxed = if self.is_sandboxed() {
             IFrameSandboxed
@@ -146,7 +149,7 @@ impl HTMLIFrameElement {
             let mut load_blocker = self.load_blocker.borrow_mut();
             // Any oustanding load is finished from the point of view of the blocked
             // document; the new navigation will continue blocking it.
-            LoadBlocker::terminate(&mut load_blocker);
+            LoadBlocker::terminate(&mut load_blocker, can_gc);
         }
 
         if load_data.url.scheme() == "javascript" {
@@ -241,7 +244,7 @@ impl HTMLIFrameElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#process-the-iframe-attributes>
-    fn process_the_iframe_attributes(&self, mode: ProcessingMode) {
+    fn process_the_iframe_attributes(&self, mode: ProcessingMode, can_gc: CanGc) {
         // > 1. If `element`'s `srcdoc` attribute is specified, then:
         if self
             .upcast::<Element>()
@@ -264,6 +267,7 @@ impl HTMLIFrameElement {
             self.navigate_or_reload_child_browsing_context(
                 load_data,
                 HistoryEntryReplacement::Disabled,
+                can_gc,
             );
             return;
         }
@@ -347,10 +351,10 @@ impl HTMLIFrameElement {
         } else {
             HistoryEntryReplacement::Disabled
         };
-        self.navigate_or_reload_child_browsing_context(load_data, replace);
+        self.navigate_or_reload_child_browsing_context(load_data, replace, CanGc::note());
     }
 
-    fn create_nested_browsing_context(&self) {
+    fn create_nested_browsing_context(&self, can_gc: CanGc) {
         // Synchronously create a new browsing context, which will present
         // `about:blank`. (This is not a navigation.)
         //
@@ -389,6 +393,7 @@ impl HTMLIFrameElement {
             load_data,
             PipelineType::InitialAboutBlank,
             HistoryEntryReplacement::Disabled,
+            can_gc,
         );
     }
 
@@ -400,7 +405,12 @@ impl HTMLIFrameElement {
         self.browsing_context_id.set(None);
     }
 
-    pub fn update_pipeline_id(&self, new_pipeline_id: PipelineId, reason: UpdatePipelineIdReason) {
+    pub fn update_pipeline_id(
+        &self,
+        new_pipeline_id: PipelineId,
+        reason: UpdatePipelineIdReason,
+        can_gc: CanGc,
+    ) {
         if self.pending_pipeline_id.get() != Some(new_pipeline_id) &&
             reason == UpdatePipelineIdReason::Navigation
         {
@@ -413,7 +423,7 @@ impl HTMLIFrameElement {
         // The load blocker will be terminated for a navigation in iframe_load_event_steps.
         if reason == UpdatePipelineIdReason::Traversal {
             let mut blocker = self.load_blocker.borrow_mut();
-            LoadBlocker::terminate(&mut blocker);
+            LoadBlocker::terminate(&mut blocker, can_gc);
         }
 
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
@@ -478,7 +488,7 @@ impl HTMLIFrameElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#iframe-load-event-steps> steps 1-4
-    pub fn iframe_load_event_steps(&self, loaded_pipeline: PipelineId) {
+    pub fn iframe_load_event_steps(&self, loaded_pipeline: PipelineId, can_gc: CanGc) {
         // TODO(#9592): assert that the load blocker is present at all times when we
         //              can guarantee that it's created for the case of iframe.reload().
         if Some(loaded_pipeline) != self.pending_pipeline_id.get() {
@@ -495,7 +505,7 @@ impl HTMLIFrameElement {
         self.upcast::<EventTarget>().fire_event(atom!("load"));
 
         let mut blocker = self.load_blocker.borrow_mut();
-        LoadBlocker::terminate(&mut blocker);
+        LoadBlocker::terminate(&mut blocker, can_gc);
 
         // TODO Step 5 - unset child document `mut iframe load` flag
     }
@@ -667,7 +677,7 @@ impl VirtualMethods for HTMLIFrameElement {
                 // trigger the processing of iframe attributes whenever "srcdoc" attribute is set, changed or removed
                 if self.upcast::<Node>().is_connected_with_browsing_context() {
                     debug!("iframe srcdoc modified while in browsing context.");
-                    self.process_the_iframe_attributes(ProcessingMode::NotFirstTime);
+                    self.process_the_iframe_attributes(ProcessingMode::NotFirstTime, CanGc::note());
                 }
             },
             local_name!("src") => {
@@ -681,7 +691,7 @@ impl VirtualMethods for HTMLIFrameElement {
                 // the child browsing context to be created.
                 if self.upcast::<Node>().is_connected_with_browsing_context() {
                     debug!("iframe src set while in browsing context.");
-                    self.process_the_iframe_attributes(ProcessingMode::NotFirstTime);
+                    self.process_the_iframe_attributes(ProcessingMode::NotFirstTime, CanGc::note());
                 }
             },
             _ => {},
@@ -718,8 +728,8 @@ impl VirtualMethods for HTMLIFrameElement {
             if this.upcast::<Node>().is_connected_with_browsing_context() {
                 debug!("iframe bound to browsing context.");
                 debug_assert!(tree_connected, "is_connected_with_bc, but not tree_connected");
-                this.create_nested_browsing_context();
-                this.process_the_iframe_attributes(ProcessingMode::FirstTime);
+                this.create_nested_browsing_context(CanGc::note());
+                this.process_the_iframe_attributes(ProcessingMode::FirstTime, CanGc::note());
             }
         }));
     }
@@ -728,7 +738,7 @@ impl VirtualMethods for HTMLIFrameElement {
         self.super_type().unwrap().unbind_from_tree(context);
 
         let mut blocker = self.load_blocker.borrow_mut();
-        LoadBlocker::terminate(&mut blocker);
+        LoadBlocker::terminate(&mut blocker, CanGc::note());
 
         // https://html.spec.whatwg.org/multipage/#a-browsing-context-is-discarded
         let window = window_from_node(self);

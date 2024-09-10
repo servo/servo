@@ -120,7 +120,8 @@ use crate::microtask::{Microtask, MicrotaskQueue, UserMicrotask};
 use crate::realms::{enter_realm, AlreadyInRealm, InRealm};
 use crate::script_module::{DynamicModuleList, ModuleScript, ModuleTree, ScriptFetchOptions};
 use crate::script_runtime::{
-    CommonScriptMsg, ContextForRequestInterrupt, JSContext as SafeJSContext, ScriptChan, ScriptPort,
+    CanGc, CommonScriptMsg, ContextForRequestInterrupt, JSContext as SafeJSContext, ScriptChan,
+    ScriptPort,
 };
 use crate::script_thread::{MainThreadScriptChan, ScriptThread};
 use crate::security_manager::CSPViolationReporter;
@@ -2285,6 +2286,21 @@ impl GlobalScope {
         }
     }
 
+    /// Computes the delta time since a label has been created
+    ///
+    /// Returns an error if the label does not exist.
+    pub fn time_log(&self, label: &str) -> Result<u64, ()> {
+        self.console_timers
+            .borrow()
+            .get(label)
+            .ok_or(())
+            .map(|&start| (Instant::now() - start).as_millis() as u64)
+    }
+
+    /// Computes the delta time since a label has been created and stops
+    /// tracking the label.
+    ///
+    /// Returns an error if the label does not exist.
     pub fn time_end(&self, label: &str) -> Result<u64, ()> {
         self.console_timers
             .borrow_mut()
@@ -2937,13 +2953,14 @@ impl GlobalScope {
     }
 
     /// Perform a microtask checkpoint.
-    pub fn perform_a_microtask_checkpoint(&self) {
+    pub fn perform_a_microtask_checkpoint(&self, can_gc: CanGc) {
         // Only perform the checkpoint if we're not shutting down.
         if self.can_continue_running() {
             self.microtask_queue.checkpoint(
                 GlobalScope::get_cx(),
                 |_| Some(DomRoot::from_ref(self)),
                 vec![DomRoot::from_ref(self)],
+                can_gc,
             );
         }
     }

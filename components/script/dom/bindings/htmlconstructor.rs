@@ -51,7 +51,7 @@ use crate::dom::element::{Element, ElementCreator};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::window::Window;
-use crate::script_runtime::{JSContext, JSContext as SafeJSContext};
+use crate::script_runtime::{CanGc, JSContext, JSContext as SafeJSContext};
 use crate::script_thread::ScriptThread;
 
 // https://html.spec.whatwg.org/multipage/#htmlconstructor
@@ -369,8 +369,8 @@ pub fn get_constructor_object_from_local_name(
     }
 }
 
-pub fn pop_current_element_queue() {
-    ScriptThread::pop_current_element_queue();
+pub fn pop_current_element_queue(can_gc: CanGc) {
+    ScriptThread::pop_current_element_queue(can_gc);
 }
 
 pub fn push_new_element_queue() {

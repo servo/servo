@@ -62,6 +62,7 @@ impl DOMParserMethods for DOMParser {
         &self,
         s: DOMString,
         ty: DOMParserBinding::SupportedType,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<Document>> {
         let url = self.window.get_url();
         let content_type = ty
@@ -87,8 +88,9 @@ impl DOMParserMethods for DOMParser {
                     None,
                     None,
                     Default::default(),
+                    can_gc,
                 );
-                ServoParser::parse_html_document(&document, Some(s), url);
+                ServoParser::parse_html_document(&document, Some(s), url, CanGc::note());
                 document.set_ready_state(DocumentReadyState::Complete);
                 Ok(document)
             },
@@ -108,8 +110,9 @@ impl DOMParserMethods for DOMParser {
                     None,
                     None,
                     Default::default(),
+                    can_gc,
                 );
-                ServoParser::parse_xml_document(&document, Some(s), url);
+                ServoParser::parse_xml_document(&document, Some(s), url, CanGc::note());
                 document.set_ready_state(DocumentReadyState::Complete);
                 Ok(document)
             },

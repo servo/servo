@@ -13,7 +13,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::worker::TrustedWorkerAddress;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::realms::enter_realm;
-use crate::script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort};
+use crate::script_runtime::{CanGc, CommonScriptMsg, ScriptChan, ScriptPort};
 use crate::task_queue::{QueuedTaskConversion, TaskQueue};
 
 /// A ScriptChan that can be cloned freely and will silently send a TrustedWorkerAddress with
@@ -101,6 +101,7 @@ pub trait WorkerEventLoopMethods {
 pub fn run_worker_event_loop<T, WorkerMsg, Event>(
     worker_scope: &T,
     worker: Option<&TrustedWorkerAddress>,
+    _can_gc: CanGc,
 ) where
     WorkerMsg: QueuedTaskConversion + Send,
     T: WorkerEventLoopMethods<WorkerMsg = WorkerMsg, Event = Event>
@@ -155,7 +156,7 @@ pub fn run_worker_event_loop<T, WorkerMsg, Event>(
         };
         worker_scope
             .upcast::<GlobalScope>()
-            .perform_a_microtask_checkpoint();
+            .perform_a_microtask_checkpoint(CanGc::note());
     }
     worker_scope
         .upcast::<GlobalScope>()

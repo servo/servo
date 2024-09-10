@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
+
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use js::rust::HandleObject;
@@ -19,6 +21,7 @@ use crate::dom::virtualmethods::VirtualMethods;
 #[dom_struct]
 pub struct HTMLTitleElement {
     htmlelement: HTMLElement,
+    popped: Cell<bool>,
 }
 
 impl HTMLTitleElement {
@@ -29,6 +32,7 @@ impl HTMLTitleElement {
     ) -> HTMLTitleElement {
         HTMLTitleElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
+            popped: Cell::new(false),
         }
     }
 
@@ -46,6 +50,13 @@ impl HTMLTitleElement {
             document,
             proto,
         )
+    }
+
+    fn notify_title_changed(&self) {
+        let node = self.upcast::<Node>();
+        if node.is_in_doc() {
+            node.owner_doc().title_changed();
+        }
     }
 }
 
@@ -70,9 +81,11 @@ impl VirtualMethods for HTMLTitleElement {
         if let Some(s) = self.super_type() {
             s.children_changed(mutation);
         }
-        let node = self.upcast::<Node>();
-        if node.is_in_doc() {
-            node.owner_doc().title_changed();
+
+        // Notify of title changes only after the initial full parsing
+        // of the element.
+        if self.popped.get() {
+            self.notify_title_changed();
         }
     }
 
@@ -84,5 +97,17 @@ impl VirtualMethods for HTMLTitleElement {
         if context.tree_in_doc {
             node.owner_doc().title_changed();
         }
+    }
+
+    fn pop(&self) {
+        if let Some(s) = self.super_type() {
+            s.pop();
+        }
+
+        self.popped.set(true);
+
+        // Initial notification of title change, once the full text
+        // is available.
+        self.notify_title_changed();
     }
 }

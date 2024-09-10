@@ -113,6 +113,7 @@ use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{
     Dom, DomRoot, MutNullableDom, RootCollection, ThreadLocalStackRoots,
 };
+use crate::dom::bindings::settings_stack::AutoEntryScript;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::{HashMapTracedValues, JSTraceable};
 use crate::dom::customelementregistry::{
@@ -144,8 +145,8 @@ use crate::microtask::{Microtask, MicrotaskQueue};
 use crate::realms::enter_realm;
 use crate::script_module::ScriptFetchOptions;
 use crate::script_runtime::{
-    get_reports, new_rt_and_cx, CommonScriptMsg, ContextForRequestInterrupt, JSContext, Runtime,
-    ScriptChan, ScriptPort, ScriptThreadEventCategory,
+    get_reports, new_rt_and_cx, CanGc, CommonScriptMsg, ContextForRequestInterrupt, JSContext,
+    Runtime, ScriptChan, ScriptPort, ScriptThreadEventCategory,
 };
 use crate::task_manager::TaskManager;
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
@@ -839,7 +840,7 @@ impl ScriptThreadFactory for ScriptThread {
                 let reporter_name = format!("script-reporter-{:?}", id);
                 mem_profiler_chan.run_with_memory_reporting(
                     || {
-                        script_thread.start();
+                        script_thread.start(CanGc::note());
                         let _ = script_thread.content_process_shutdown_chan.send(());
                     },
                     reporter_name,
@@ -934,10 +935,11 @@ impl ScriptThread {
     pub fn page_headers_available(
         id: &PipelineId,
         metadata: Option<Metadata>,
+        can_gc: CanGc,
     ) -> Option<DomRoot<ServoParser>> {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
-            script_thread.handle_page_headers_available(id, metadata)
+            script_thread.handle_page_headers_available(id, metadata, can_gc)
         })
     }
 
@@ -1207,13 +1209,13 @@ impl ScriptThread {
         })
     }
 
-    pub fn pop_current_element_queue() {
+    pub fn pop_current_element_queue(can_gc: CanGc) {
         SCRIPT_THREAD_ROOT.with(|root| {
             if let Some(script_thread) = root.get() {
                 let script_thread = unsafe { &*script_thread };
                 script_thread
                     .custom_element_reaction_stack
-                    .pop_current_element_queue();
+                    .pop_current_element_queue(can_gc);
             }
         })
     }
@@ -1244,13 +1246,13 @@ impl ScriptThread {
         })
     }
 
-    pub fn invoke_backup_element_queue() {
+    pub fn invoke_backup_element_queue(can_gc: CanGc) {
         SCRIPT_THREAD_ROOT.with(|root| {
             if let Some(script_thread) = root.get() {
                 let script_thread = unsafe { &*script_thread };
                 script_thread
                     .custom_element_reaction_stack
-                    .invoke_backup_element_queue();
+                    .invoke_backup_element_queue(can_gc);
             }
         })
     }
@@ -1446,9 +1448,9 @@ impl ScriptThread {
 
     /// Starts the script thread. After calling this method, the script thread will loop receiving
     /// messages on its port.
-    pub fn start(&self) {
+    pub fn start(&self, _can_gc: CanGc) {
         debug!("Starting script thread.");
-        while self.handle_msgs() {
+        while self.handle_msgs(CanGc::note()) {
             // Go on...
             debug!("Running script thread.");
         }
@@ -1780,7 +1782,7 @@ impl ScriptThread {
     }
 
     /// Handle incoming messages from other tasks and the task queue.
-    fn handle_msgs(&self) -> bool {
+    fn handle_msgs(&self, _can_gc: CanGc) -> bool {
         use self::MixedMessage::{
             FromConstellation, FromDevtools, FromImageCache, FromScript, FromWebGPUServer,
         };
@@ -1892,7 +1894,7 @@ impl ScriptThread {
                     // Run the "update the rendering" task.
                     task.run_box();
                     // Always perform a microtrask checkpoint after running a task.
-                    self.perform_a_microtask_checkpoint();
+                    self.perform_a_microtask_checkpoint(CanGc::note());
                 },
                 FromScript(MainThreadScriptMsg::Inactive) => {
                     // An event came-in from a document that is not fully-active, it has been stored by the task-queue.
@@ -1947,14 +1949,18 @@ impl ScriptThread {
                 // If we've received the closed signal from the BHM, only handle exit messages.
                 match msg {
                     FromConstellation(ConstellationControlMsg::ExitScriptThread) => {
-                        self.handle_exit_script_thread_msg();
+                        self.handle_exit_script_thread_msg(CanGc::note());
                         return false;
                     },
                     FromConstellation(ConstellationControlMsg::ExitPipeline(
                         pipeline_id,
                         discard_browsing_context,
                     )) => {
-                        self.handle_exit_pipeline_msg(pipeline_id, discard_browsing_context);
+                        self.handle_exit_pipeline_msg(
+                            pipeline_id,
+                            discard_browsing_context,
+                            CanGc::note(),
+                        );
                     },
                     _ => {},
                 }
@@ -1964,10 +1970,12 @@ impl ScriptThread {
             let result = self.profile_event(category, pipeline_id, move || {
                 match msg {
                     FromConstellation(ConstellationControlMsg::ExitScriptThread) => {
-                        self.handle_exit_script_thread_msg();
+                        self.handle_exit_script_thread_msg(CanGc::note());
                         return Some(false);
                     },
-                    FromConstellation(inner_msg) => self.handle_msg_from_constellation(inner_msg),
+                    FromConstellation(inner_msg) => {
+                        self.handle_msg_from_constellation(inner_msg, CanGc::note())
+                    },
                     FromScript(inner_msg) => self.handle_msg_from_script(inner_msg),
                     FromDevtools(inner_msg) => self.handle_msg_from_devtools(inner_msg),
                     FromImageCache(inner_msg) => self.handle_msg_from_image_cache(inner_msg),
@@ -1983,7 +1991,7 @@ impl ScriptThread {
 
             // https://html.spec.whatwg.org/multipage/#event-loop-processing-model step 6
             // TODO(#32003): A microtask checkpoint is only supposed to be performed after running a task.
-            self.perform_a_microtask_checkpoint();
+            self.perform_a_microtask_checkpoint(CanGc::note());
         }
 
         {
@@ -2245,7 +2253,7 @@ impl ScriptThread {
         value
     }
 
-    fn handle_msg_from_constellation(&self, msg: ConstellationControlMsg) {
+    fn handle_msg_from_constellation(&self, msg: ConstellationControlMsg, can_gc: CanGc) {
         match msg {
             ConstellationControlMsg::StopDelayingLoadEventsMode(pipeline_id) => {
                 self.handle_stop_delaying_load_events_mode(pipeline_id)
@@ -2272,6 +2280,7 @@ impl ScriptThread {
                 browsing_context_id,
                 load_data,
                 replace,
+                can_gc,
             ),
             ConstellationControlMsg::UnloadDocument(pipeline_id) => {
                 self.handle_unload_document(pipeline_id)
@@ -2324,6 +2333,7 @@ impl ScriptThread {
                 top_level_browsing_context_id,
                 new_pipeline_id,
                 reason,
+                can_gc,
             ),
             ConstellationControlMsg::UpdateHistoryState(pipeline_id, history_state_id, url) => {
                 self.handle_update_history_state_msg(pipeline_id, history_state_id, url)
@@ -2344,7 +2354,7 @@ impl ScriptThread {
                 target: browsing_context_id,
                 parent: parent_id,
                 child: child_id,
-            } => self.handle_iframe_load_event(parent_id, browsing_context_id, child_id),
+            } => self.handle_iframe_load_event(parent_id, browsing_context_id, child_id, can_gc),
             ConstellationControlMsg::DispatchStorageEvent(
                 pipeline_id,
                 storage,
@@ -2358,13 +2368,13 @@ impl ScriptThread {
             },
             ConstellationControlMsg::Reload(pipeline_id) => self.handle_reload(pipeline_id),
             ConstellationControlMsg::ExitPipeline(pipeline_id, discard_browsing_context) => {
-                self.handle_exit_pipeline_msg(pipeline_id, discard_browsing_context)
+                self.handle_exit_pipeline_msg(pipeline_id, discard_browsing_context, can_gc)
             },
             ConstellationControlMsg::PaintMetric(pipeline_id, metric_type, metric_value) => {
                 self.handle_paint_metric(pipeline_id, metric_type, metric_value)
             },
             ConstellationControlMsg::MediaSessionAction(pipeline_id, action) => {
-                self.handle_media_session_action(pipeline_id, action)
+                self.handle_media_session_action(pipeline_id, action, can_gc)
             },
             ConstellationControlMsg::SetWebGPUPort(port) => {
                 if self.webgpu_port.borrow().is_some() {
@@ -2518,7 +2528,11 @@ impl ScriptThread {
         let documents = self.documents.borrow();
         match msg {
             DevtoolScriptControlMsg::EvaluateJS(id, s, reply) => match documents.find_window(id) {
-                Some(window) => devtools::handle_evaluate_js(window.upcast(), s, reply),
+                Some(window) => {
+                    let global = window.upcast::<GlobalScope>();
+                    let _aes = AutoEntryScript::new(&global);
+                    devtools::handle_evaluate_js(&global, s, reply)
+                },
                 None => warn!("Message sent to closed pipeline {}.", id),
             },
             DevtoolScriptControlMsg::GetRootNode(id, reply) => {
@@ -3045,13 +3059,14 @@ impl ScriptThread {
         top_level_browsing_context_id: TopLevelBrowsingContextId,
         new_pipeline_id: PipelineId,
         reason: UpdatePipelineIdReason,
+        can_gc: CanGc,
     ) {
         let frame_element = self
             .documents
             .borrow()
             .find_iframe(parent_pipeline_id, browsing_context_id);
         if let Some(frame_element) = frame_element {
-            frame_element.update_pipeline_id(new_pipeline_id, reason);
+            frame_element.update_pipeline_id(new_pipeline_id, reason, can_gc);
         }
 
         if let Some(window) = self.documents.borrow().find_window(new_pipeline_id) {
@@ -3118,6 +3133,7 @@ impl ScriptThread {
         &self,
         id: &PipelineId,
         metadata: Option<Metadata>,
+        _can_gc: CanGc,
     ) -> Option<DomRoot<ServoParser>> {
         let idx = self
             .incomplete_loads
@@ -3156,7 +3172,7 @@ impl ScriptThread {
                 };
 
                 let load = self.incomplete_loads.borrow_mut().remove(idx);
-                metadata.map(|meta| self.load(meta, load))
+                metadata.map(|meta| self.load(meta, load, CanGc::note()))
             },
             None => {
                 assert!(self.closed_pipelines.borrow().contains(id));
@@ -3239,7 +3255,12 @@ impl ScriptThread {
     }
 
     /// Handles a request to exit a pipeline and shut down layout.
-    fn handle_exit_pipeline_msg(&self, id: PipelineId, discard_bc: DiscardBrowsingContext) {
+    fn handle_exit_pipeline_msg(
+        &self,
+        id: PipelineId,
+        discard_bc: DiscardBrowsingContext,
+        can_gc: CanGc,
+    ) {
         debug!("{id}: Starting pipeline exit.");
 
         self.closed_pipelines.borrow_mut().insert(id);
@@ -3256,7 +3277,7 @@ impl ScriptThread {
                 .any(|load| load.pipeline_id == id));
 
             if let Some(parser) = document.get_current_parser() {
-                parser.abort();
+                parser.abort(can_gc);
             }
 
             debug!("{id}: Shutting down layout");
@@ -3293,7 +3314,7 @@ impl ScriptThread {
     }
 
     /// Handles a request to exit the script thread and shut down layout.
-    fn handle_exit_script_thread_msg(&self) {
+    fn handle_exit_script_thread_msg(&self, _can_gc: CanGc) {
         debug!("Exiting script thread.");
 
         let mut pipeline_ids = Vec::new();
@@ -3313,7 +3334,7 @@ impl ScriptThread {
         );
 
         for pipeline_id in pipeline_ids {
-            self.handle_exit_pipeline_msg(pipeline_id, DiscardBrowsingContext::Yes);
+            self.handle_exit_pipeline_msg(pipeline_id, DiscardBrowsingContext::Yes, CanGc::note());
         }
 
         self.background_hang_monitor.unregister();
@@ -3394,13 +3415,14 @@ impl ScriptThread {
         parent_id: PipelineId,
         browsing_context_id: BrowsingContextId,
         child_id: PipelineId,
+        can_gc: CanGc,
     ) {
         let iframe = self
             .documents
             .borrow()
             .find_iframe(parent_id, browsing_context_id);
         match iframe {
-            Some(iframe) => iframe.iframe_load_event_steps(child_id),
+            Some(iframe) => iframe.iframe_load_event_steps(child_id, can_gc),
             None => warn!("Message sent to closed pipeline {}.", parent_id),
         }
     }
@@ -3542,7 +3564,12 @@ impl ScriptThread {
 
     /// The entry point to document loading. Defines bindings, sets up the window and document
     /// objects, parses HTML and CSS, and kicks off initial layout.
-    fn load(&self, metadata: Metadata, incomplete: InProgressLoad) -> DomRoot<ServoParser> {
+    fn load(
+        &self,
+        metadata: Metadata,
+        incomplete: InProgressLoad,
+        can_gc: CanGc,
+    ) -> DomRoot<ServoParser> {
         let final_url = metadata.final_url.clone();
         {
             self.script_sender
@@ -3731,6 +3758,7 @@ impl ScriptThread {
             referrer_policy,
             Some(status_code),
             incomplete.canceller,
+            CanGc::note(),
         );
         document.set_ready_state(DocumentReadyState::Loading);
 
@@ -3753,6 +3781,7 @@ impl ScriptThread {
                 window_proxy.top_level_browsing_context_id(),
                 incomplete.pipeline_id,
                 UpdatePipelineIdReason::Navigation,
+                can_gc,
             );
         }
 
@@ -3771,9 +3800,9 @@ impl ScriptThread {
         document.set_navigation_start(incomplete.navigation_start);
 
         if is_html_document == IsHTMLDocument::NonHTMLDocument {
-            ServoParser::parse_xml_document(&document, None, final_url);
+            ServoParser::parse_xml_document(&document, None, final_url, CanGc::note());
         } else {
-            ServoParser::parse_html_document(&document, None, final_url);
+            ServoParser::parse_html_document(&document, None, final_url, CanGc::note());
         }
 
         if incomplete.activity == DocumentActivity::FullyActive {
@@ -3896,13 +3925,14 @@ impl ScriptThread {
         browsing_context_id: BrowsingContextId,
         load_data: LoadData,
         replace: HistoryEntryReplacement,
+        can_gc: CanGc,
     ) {
         let iframe = self
             .documents
             .borrow()
             .find_iframe(parent_pipeline_id, browsing_context_id);
         if let Some(iframe) = iframe {
-            iframe.navigate_or_reload_child_browsing_context(load_data, replace);
+            iframe.navigate_or_reload_child_browsing_context(load_data, replace, can_gc);
         }
     }
 
@@ -4174,10 +4204,15 @@ impl ScriptThread {
         }
     }
 
-    fn handle_media_session_action(&self, pipeline_id: PipelineId, action: MediaSessionActionType) {
+    fn handle_media_session_action(
+        &self,
+        pipeline_id: PipelineId,
+        action: MediaSessionActionType,
+        can_gc: CanGc,
+    ) {
         if let Some(window) = self.documents.borrow().find_window(pipeline_id) {
             let media_session = window.Navigator().MediaSession();
-            media_session.handle_action(action);
+            media_session.handle_action(action, can_gc);
         } else {
             warn!("No MediaSession for this pipeline ID");
         };
@@ -4192,7 +4227,7 @@ impl ScriptThread {
         });
     }
 
-    fn perform_a_microtask_checkpoint(&self) {
+    fn perform_a_microtask_checkpoint(&self, can_gc: CanGc) {
         // Only perform the checkpoint if we're not shutting down.
         if self.can_continue_running_inner() {
             let globals = self
@@ -4206,6 +4241,7 @@ impl ScriptThread {
                 self.get_cx(),
                 |id| self.documents.borrow().find_global(id),
                 globals,
+                can_gc,
             )
         }
     }

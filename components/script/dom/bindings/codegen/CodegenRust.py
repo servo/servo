@@ -3700,6 +3700,8 @@ class CGCallGenerator(CGThing):
             args.prepend(CGGeneric("cx"))
         if nativeMethodName in descriptor.inRealmMethods:
             args.append(CGGeneric("InRealm::already(&AlreadyInRealm::assert_for_cx(cx))"))
+        if nativeMethodName in descriptor.canGcMethods:
+            args.append(CGGeneric("CanGc::note()"))
 
         # Build up our actual call
         self.cgRoot = CGList([], "\n")
@@ -3723,7 +3725,7 @@ class CGCallGenerator(CGThing):
         ]))
 
         if hasCEReactions:
-            self.cgRoot.append(CGGeneric("pop_current_element_queue();\n"))
+            self.cgRoot.append(CGGeneric("pop_current_element_queue(CanGc::note());\n"))
 
         if isFallible:
             if static:
@@ -6263,7 +6265,7 @@ class CGInterfaceTrait(CGThing):
     def __init__(self, descriptor):
         CGThing.__init__(self)
 
-        def attribute_arguments(needCx, argument=None, inRealm=False):
+        def attribute_arguments(needCx, argument=None, inRealm=False, canGc=False):
             if needCx:
                 yield "cx", "SafeJSContext"
 
@@ -6272,6 +6274,9 @@ class CGInterfaceTrait(CGThing):
 
             if inRealm:
                 yield "_comp", "InRealm"
+
+            if canGc:
+                yield "_can_gc", "CanGc"
 
         def members():
             for m in descriptor.interface.members:
@@ -6283,7 +6288,8 @@ class CGInterfaceTrait(CGThing):
                     infallible = 'infallible' in descriptor.getExtendedAttributes(m)
                     for idx, (rettype, arguments) in enumerate(m.signatures()):
                         arguments = method_arguments(descriptor, rettype, arguments,
-                                                     inRealm=name in descriptor.inRealmMethods)
+                                                     inRealm=name in descriptor.inRealmMethods,
+                                                     canGc=name in descriptor.canGcMethods)
                         rettype = return_type(descriptor, rettype, infallible)
                         yield f"{name}{'_' * idx}", arguments, rettype
                 elif m.isAttr() and not m.isStatic():
@@ -6292,7 +6298,8 @@ class CGInterfaceTrait(CGThing):
                     yield (name,
                            attribute_arguments(
                                typeNeedsCx(m.type, True),
-                               inRealm=name in descriptor.inRealmMethods
+                               inRealm=name in descriptor.inRealmMethods,
+                               canGc=name in descriptor.canGcMethods
                            ),
                            return_type(descriptor, m.type, infallible))
 
@@ -6307,7 +6314,8 @@ class CGInterfaceTrait(CGThing):
                                attribute_arguments(
                                    typeNeedsCx(m.type, False),
                                    m.type,
-                                   inRealm=name in descriptor.inRealmMethods
+                                   inRealm=name in descriptor.inRealmMethods,
+                                   canGc=name in descriptor.canGcMethods
                                ),
                                rettype)
 
@@ -6324,7 +6332,8 @@ class CGInterfaceTrait(CGThing):
                         if not rettype.nullable():
                             rettype = IDLNullableType(rettype.location, rettype)
                         arguments = method_arguments(descriptor, rettype, arguments,
-                                                     inRealm=name in descriptor.inRealmMethods)
+                                                     inRealm=name in descriptor.inRealmMethods,
+                                                     canGc=name in descriptor.canGcMethods)
 
                         # If this interface 'supports named properties', then we
                         # should be able to access 'supported property names'
@@ -6335,7 +6344,8 @@ class CGInterfaceTrait(CGThing):
                             yield "SupportedPropertyNames", [], "Vec<DOMString>"
                     else:
                         arguments = method_arguments(descriptor, rettype, arguments,
-                                                     inRealm=name in descriptor.inRealmMethods)
+                                                     inRealm=name in descriptor.inRealmMethods,
+                                                     canGc=name in descriptor.canGcMethods)
                     rettype = return_type(descriptor, rettype, infallible)
                     yield name, arguments, rettype
 
@@ -7123,7 +7133,8 @@ def argument_type(descriptorProvider, ty, optional=False, defaultValue=None, var
     return declType.define()
 
 
-def method_arguments(descriptorProvider, returnType, arguments, passJSBits=True, trailing=None, inRealm=False):
+def method_arguments(descriptorProvider, returnType, arguments, passJSBits=True, trailing=None,
+                     inRealm=False, canGc=False):
     if needCx(returnType, arguments, passJSBits):
         yield "cx", "SafeJSContext"
 
@@ -7137,6 +7148,9 @@ def method_arguments(descriptorProvider, returnType, arguments, passJSBits=True,
 
     if inRealm:
         yield "_comp", "InRealm"
+
+    if canGc:
+        yield "_can_gc", "CanGc"
 
 
 def return_type(descriptorProvider, rettype, infallible):

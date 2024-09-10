@@ -2240,6 +2240,7 @@ impl Node {
         node: &Node,
         maybe_doc: Option<&Document>,
         clone_children: CloneChildrenFlag,
+        can_gc: CanGc,
     ) -> DomRoot<Node> {
         // Step 1.
         let document = match maybe_doc {
@@ -2306,6 +2307,7 @@ impl Node {
                     None,
                     document.status_code(),
                     Default::default(),
+                    CanGc::note(),
                 );
                 DomRoot::upcast::<Node>(document)
             },
@@ -2323,6 +2325,7 @@ impl Node {
                     ElementCreator::ScriptCreated,
                     CustomElementCreationMode::Asynchronous,
                     None,
+                    can_gc,
                 );
                 DomRoot::upcast::<Node>(element)
             },
@@ -2366,7 +2369,8 @@ impl Node {
         // Step 6.
         if clone_children == CloneChildrenFlag::CloneChildren {
             for child in node.children() {
-                let child_copy = Node::clone(&child, Some(&document), clone_children);
+                let child_copy =
+                    Node::clone(&child, Some(&document), clone_children, CanGc::note());
                 let _inserted_node = Node::pre_insert(&child_copy, &copy, None);
             }
         }
@@ -2816,7 +2820,7 @@ impl NodeMethods for Node {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-node-clonenode>
-    fn CloneNode(&self, deep: bool) -> Fallible<DomRoot<Node>> {
+    fn CloneNode(&self, deep: bool, can_gc: CanGc) -> Fallible<DomRoot<Node>> {
         if deep && self.is::<ShadowRoot>() {
             return Err(Error::NotSupported);
         }
@@ -2828,6 +2832,7 @@ impl NodeMethods for Node {
             } else {
                 CloneChildrenFlag::DoNotCloneChildren
             },
+            can_gc,
         ))
     }
 
