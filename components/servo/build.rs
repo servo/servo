@@ -34,13 +34,13 @@ fn main() {
 fn find_python() -> PathBuf {
     let mut candidates = vec![];
     if let Some(venv) = env::var_os("VIRTUAL_ENV") {
-        let base = PathBuf::from(venv);
-        let bin = base.join("bin");
-        let python = bin.join("python");
-        let python3 = bin.join("python3");
+        let bin_directory = PathBuf::from(venv).join("bin");
+
+        let python3 = bin_directory.join("python3");
         if python3.exists() {
             candidates.push(python3);
         }
+        let python = bin_directory.join("python");
         if python.exists() {
             candidates.push(python);
         }
@@ -70,7 +70,7 @@ fn find_python() -> PathBuf {
         .map(|c| c.into_os_string())
         .collect::<Vec<_>>();
     panic!(
-        "Can't find python (tried {:?})! Try enabling servos python venv, \
+        "Can't find python (tried {:?})! Try enabling Servo's Python venv, \
         setting the PYTHON3 env var or adding python3 to PATH.",
         candidates.join(", ".as_ref())
     )
