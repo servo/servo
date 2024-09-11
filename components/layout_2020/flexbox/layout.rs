@@ -892,6 +892,8 @@ impl FlexContainer {
                         AlignFlags::END | AlignFlags::SAFE
                     },
                     (AlignFlags::STRETCH, false) => AlignFlags::START | AlignFlags::SAFE,
+                    (AlignFlags::SPACE_BETWEEN, false) => AlignFlags::START | AlignFlags::SAFE,
+                    (AlignFlags::SPACE_BETWEEN, true) => AlignFlags::END | AlignFlags::SAFE,
                     _ => value,
                 };
             let cross = make_flex_only_values_directional_for_absolutes(
