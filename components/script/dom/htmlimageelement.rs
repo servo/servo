@@ -450,13 +450,13 @@ impl HTMLImageElement {
             (ImageResponse::Loaded(image, url), ImageRequestPhase::Pending) => {
                 self.abort_request(State::Unavailable, ImageRequestPhase::Pending, can_gc);
                 self.image_request.set(ImageRequestPhase::Current);
-                self.handle_loaded_image(image, url, CanGc::note());
+                self.handle_loaded_image(image, url, can_gc);
                 (true, false)
             },
             (ImageResponse::PlaceholderLoaded(image, url), ImageRequestPhase::Pending) => {
                 self.abort_request(State::Unavailable, ImageRequestPhase::Pending, can_gc);
                 self.image_request.set(ImageRequestPhase::Current);
-                self.handle_loaded_image(image, url, CanGc::note());
+                self.handle_loaded_image(image, url, can_gc);
                 (false, true)
             },
             (ImageResponse::MetadataLoaded(meta), ImageRequestPhase::Current) => {
@@ -474,7 +474,7 @@ impl HTMLImageElement {
             },
             (ImageResponse::None, ImageRequestPhase::Pending) => {
                 self.abort_request(State::Broken, ImageRequestPhase::Current, can_gc);
-                self.abort_request(State::Broken, ImageRequestPhase::Pending, CanGc::note());
+                self.abort_request(State::Broken, ImageRequestPhase::Pending, can_gc);
                 self.image_request.set(ImageRequestPhase::Current);
                 (false, true)
             },
@@ -874,7 +874,7 @@ impl HTMLImageElement {
                 }
             },
         }
-        self.fetch_image(url, CanGc::note());
+        self.fetch_image(url, can_gc);
     }
 
     /// Step 8-12 of html.spec.whatwg.org/multipage/#update-the-image-data
@@ -888,7 +888,7 @@ impl HTMLImageElement {
             Some(data) => data,
             None => {
                 self.abort_request(State::Broken, ImageRequestPhase::Current, can_gc);
-                self.abort_request(State::Broken, ImageRequestPhase::Pending, CanGc::note());
+                self.abort_request(State::Broken, ImageRequestPhase::Pending, can_gc);
                 // Step 9.
                 // FIXME(nox): Why are errors silenced here?
                 let _ = task_source.queue(
@@ -923,7 +923,7 @@ impl HTMLImageElement {
             },
             Err(_) => {
                 self.abort_request(State::Broken, ImageRequestPhase::Current, can_gc);
-                self.abort_request(State::Broken, ImageRequestPhase::Pending, CanGc::note());
+                self.abort_request(State::Broken, ImageRequestPhase::Pending, can_gc);
                 // Step 12.1-12.5.
                 let src = src.0;
                 // FIXME(nox): Why are errors silenced here?
@@ -1011,11 +1011,7 @@ impl HTMLImageElement {
                         ImageRequestPhase::Current,
                         can_gc,
                     );
-                    self.abort_request(
-                        State::Unavailable,
-                        ImageRequestPhase::Pending,
-                        CanGc::note(),
-                    );
+                    self.abort_request(State::Unavailable, ImageRequestPhase::Pending, can_gc);
                     let mut current_request = self.current_request.borrow_mut();
                     current_request.final_url = Some(img_url.clone());
                     current_request.image = Some(image.clone());
@@ -1069,7 +1065,7 @@ impl HTMLImageElement {
             elem: &HTMLImageElement,
             selected_source: String,
             selected_pixel_density: f64,
-            _can_gc: CanGc,
+            can_gc: CanGc,
         ) -> IpcSender<PendingImageResponse> {
             let trusted_node = Trusted::new(elem);
             let (responder_sender, responder_receiver) = ipc::channel().unwrap();
@@ -1095,7 +1091,7 @@ impl HTMLImageElement {
                             if generation == element.generation.get() {
                                 element.process_image_response_for_environment_change(image,
                                     USVString::from(selected_source_clone), generation,
-                                    selected_pixel_density, CanGc::note());
+                                    selected_pixel_density, can_gc);
                             }
                         }),
                         &canceller,
@@ -1150,7 +1146,7 @@ impl HTMLImageElement {
             &mut self.pending_request.borrow_mut(),
             &img_url,
             &selected_source,
-            CanGc::note(),
+            can_gc,
         );
 
         let window = window_from_node(self);
@@ -1161,7 +1157,7 @@ impl HTMLImageElement {
             self,
             selected_source.0.clone(),
             selected_pixel_density,
-            CanGc::note(),
+            can_gc,
         );
         let cache_result = image_cache.track_image(
             img_url.clone(),
@@ -1382,7 +1378,7 @@ impl HTMLImageElement {
 
         // run update_the_image_data when the element is created.
         // https://html.spec.whatwg.org/multipage/#when-to-obtain-images
-        image.update_the_image_data(CanGc::note());
+        image.update_the_image_data(can_gc);
 
         Ok(image)
     }

@@ -250,11 +250,11 @@ impl ServiceWorkerManager {
         None
     }
 
-    fn handle_message(&mut self, _can_gc: CanGc) {
+    fn handle_message(&mut self, can_gc: CanGc) {
         while let Ok(message) = self.receive_message() {
             let should_continue = match message {
                 Message::FromConstellation(msg) => {
-                    self.handle_message_from_constellation(msg, CanGc::note())
+                    self.handle_message_from_constellation(msg, can_gc)
                 },
                 Message::FromResource(msg) => self.handle_message_from_resource(msg),
             };

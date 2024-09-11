@@ -1124,6 +1124,7 @@ impl Runnable {
     }
 }
 
+#[derive(Clone, Copy, Debug)]
 pub struct CanGc(());
 
 impl CanGc {

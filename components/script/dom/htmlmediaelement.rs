@@ -1352,7 +1352,7 @@ impl HTMLMediaElement {
         }
     }
 
-    fn setup_media_player(&self, resource: &Resource, _can_gc: CanGc) -> Result<(), ()> {
+    fn setup_media_player(&self, resource: &Resource, can_gc: CanGc) -> Result<(), ()> {
         let stream_type = match *resource {
             Resource::Object => {
                 if let Some(ref src_object) = *self.src_object.borrow() {
@@ -1403,7 +1403,7 @@ impl HTMLMediaElement {
                 let this = trusted_node.clone();
                 if let Err(err) = task_source.queue_with_canceller(
                     task!(handle_player_event: move || {
-                        this.root().handle_player_event(&event, CanGc::note());
+                        this.root().handle_player_event(&event, can_gc);
                     }),
                     &canceller,
                 ) {
