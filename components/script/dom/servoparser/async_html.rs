@@ -694,6 +694,7 @@ impl TreeSink for Sink {
     }
 
     type Handle = ParseNode;
+    type ElemName<'a> = ExpandedName<'a> where Self: 'a;
 
     fn get_document(&self) -> Self::Handle {
         self.document_node.clone()
