@@ -18,8 +18,6 @@ import traceback
 import uuid
 from collections.abc import Iterable
 
-from six import string_types
-
 from .base import (
     CommandContext,
     MachError,
@@ -538,7 +536,7 @@ To see more help for a specific command, run:
 
             machrc, .machrc
         """
-        if isinstance(paths, string_types):
+        if isinstance(paths, str):
             paths = [paths]
 
         valid_names = ('machrc', '.machrc')
