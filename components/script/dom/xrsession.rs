@@ -33,6 +33,7 @@ use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::Wind
 use crate::dom::bindings::codegen::Bindings::XRHitTestSourceBinding::{
     XRHitTestOptionsInit, XRHitTestTrackableType,
 };
+use crate::dom::bindings::codegen::Bindings::XRInputSourceArrayBinding::XRInputSourceArray_Binding::XRInputSourceArrayMethods;
 use crate::dom::bindings::codegen::Bindings::XRReferenceSpaceBinding::XRReferenceSpaceType;
 use crate::dom::bindings::codegen::Bindings::XRRenderStateBinding::{
     XRRenderStateInit, XRRenderStateMethods,
@@ -867,6 +868,11 @@ impl XRSessionMethods for XRSession {
         self.ended.set(true);
         global.as_window().Navigator().Xr().end_session(self);
         self.session.borrow_mut().end_session();
+        // Disconnect any still-attached XRInputSources
+        for source in 0..self.input_sources.Length() {
+            self.input_sources
+                .remove_input_source(self, InputId(source));
+        }
         p
     }
 
