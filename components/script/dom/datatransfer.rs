@@ -117,4 +117,19 @@ impl DataTransferMethods for DataTransfer {
     fn SetDragImage(&self, image: &Element, x: i32, y: i32) {
         todo!()
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-datatransfer-getdata
+    fn GetData(&self, format: DOMString) -> DOMString {
+        self.items.get_data(format)
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-datatransfer-setdata
+    fn SetData(&self, format: DOMString, data: DOMString) {
+        self.items.set_data(format, data);
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-datatransfer-cleardata
+    fn ClearData(&self, format: Option<DOMString>) {
+        self.items.clear_data(format);
+    }
 }
