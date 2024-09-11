@@ -62,6 +62,19 @@ impl DataTransferItem {
         matches!(self.item, Kind::Text(_) if self.type_.borrow().eq(type_))
     }
 
+    pub fn is_file_kind(&self) -> bool {
+        matches!(self.item, Kind::File(_))
+    }
+
+    pub fn get_string(&self, type_: &DOMString) -> Option<DOMString> {
+        if let Kind::Text(data) = &self.item {
+            if self.type_.borrow().eq(type_) {
+                return Some(data.clone());
+            }
+        };
+        None
+    }
+
     pub fn set_data_transfer(&self, data_transfer: Option<&DataTransfer>) {
         self.data_transfer.set(data_transfer);
     }

@@ -17,8 +17,8 @@ interface DataTransfer {
 
   /* old interface */
   //readonly attribute FrozenArray<DOMString> types;
-  //DOMString getData(DOMString format);
-  //undefined setData(DOMString format, DOMString data);
-  //undefined clearData(optional DOMString format);
+  DOMString getData(DOMString format);
+  undefined setData(DOMString format, DOMString data);
+  undefined clearData(optional DOMString format);
   //[SameObject] readonly attribute FileList files;
 };

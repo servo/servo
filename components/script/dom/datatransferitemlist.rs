@@ -49,6 +49,83 @@ impl DataTransferItemList {
             item.set_data_transfer(data_transfer);
         }
     }
+
+    pub fn get_data(&self, mut format: DOMString) -> DOMString {
+        if self
+            .data_transfer
+            .root()
+            .is_some_and(|data_transfer| data_transfer.can_read())
+        {
+            let mut convert_to_URL = false;
+            format.make_ascii_lowercase();
+            let type_ = match format.as_ref() {
+                "text" => DOMString::from("text/plain"),
+                "url" => {
+                    convert_to_URL = true;
+                    DOMString::from("text/uri-list")
+                },
+                _ => return DOMString::from(""),
+            };
+
+            for item in self.items.borrow().iter() {
+                if let Some(mut result) = item.get_string(&type_) {
+                    if convert_to_URL {
+                        //TODO parse uri-list as [RFC2483]
+                    }
+                    return result;
+                };
+            }
+        }
+        DOMString::from("")
+    }
+
+    pub fn set_data(&self, mut format: DOMString, data: DOMString) {
+        if self
+            .data_transfer
+            .root()
+            .is_some_and(|data_transfer| data_transfer.can_write())
+        {
+            format.make_ascii_lowercase();
+            let type_ = match format.as_ref() {
+                "text" => DOMString::from("text/plain"),
+                "url" => DOMString::from("text/uri-list"),
+                _ => return,
+            };
+
+            self.items
+                .borrow_mut()
+                .retain(|item| !item.type_already_present(&type_));
+            let item = DataTransferItem::new(
+                &self.global(),
+                type_,
+                Kind::Text(data),
+                self.data_transfer.root().as_deref(),
+            );
+            self.items.borrow_mut().push(item);
+        }
+    }
+
+    pub fn clear_data(&self, format: Option<DOMString>) {
+        if self
+            .data_transfer
+            .root()
+            .is_some_and(|data_transfer| data_transfer.can_write())
+        {
+            if let Some(mut format) = format {
+                format.make_ascii_lowercase();
+                let type_ = match format.as_ref() {
+                    "text" => DOMString::from("text/plain"),
+                    "url" => DOMString::from("text/uri-list"),
+                    _ => return,
+                };
+                self.items
+                    .borrow_mut()
+                    .retain(|item| !item.type_already_present(&type_));
+            } else {
+                self.items.borrow_mut().retain(|item| item.is_file_kind());
+            }
+        }
+    }
 }
 
 impl DataTransferItemListMethods for DataTransferItemList {
