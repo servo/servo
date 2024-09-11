@@ -57,8 +57,6 @@ struct FileStoreEntry {
 #[derive(Clone)]
 struct FileMetaData {
     path: PathBuf,
-    /// Modified time in UNIX Epoch format
-    _modified: u64,
     size: u64,
 }
 
@@ -639,11 +637,6 @@ impl FileManagerStore {
         let modified = metadata
             .modified()
             .map_err(|e| FileSystemError(e.to_string()))?;
-        let elapsed = modified
-            .elapsed()
-            .map_err(|e| FileSystemError(e.to_string()))?;
-        // Unix Epoch: https://doc.servo.org/std/time/constant.UNIX_EPOCH.html
-        let modified_epoch = elapsed.as_secs() * 1000 + elapsed.subsec_nanos() as u64 / 1000000;
         let file_size = metadata.len();
         let file_name = file_path
             .file_name()
@@ -651,7 +644,6 @@ impl FileManagerStore {
 
         let file_impl = FileImpl::MetaDataOnly(FileMetaData {
             path: file_path.to_path_buf(),
-            _modified: modified_epoch,
             size: file_size,
         });
 
@@ -678,7 +670,7 @@ impl FileManagerStore {
         Ok(SelectedFile {
             id,
             filename: filename_path.to_path_buf(),
-            modified: modified_epoch,
+            modified,
             size: file_size,
             type_string,
         })

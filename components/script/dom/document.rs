@@ -17,6 +17,7 @@ use std::time::{Duration, Instant};
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::BrowsingContextId;
 use canvas_traits::webgl::{self, WebGLContextId, WebGLMsg};
+use chrono::Local;
 use content_security_policy::{self as csp, CspList};
 use cookie::Cookie;
 use cssparser::match_ignore_ascii_case;
@@ -4625,15 +4626,14 @@ impl DocumentMethods for Document {
 
     // https://html.spec.whatwg.org/multipage/#dom-document-lastmodified
     fn LastModified(&self) -> DOMString {
-        match self.last_modified {
-            Some(ref t) => DOMString::from(t.clone()),
-            None => DOMString::from(
-                time::now()
-                    .strftime("%m/%d/%Y %H:%M:%S")
-                    .unwrap()
-                    .to_string(),
-            ),
-        }
+        DOMString::from(self.last_modified.as_ref().cloned().unwrap_or_else(|| {
+            // Ideally this would get the local time using `time`, but `time` always fails to get the local
+            // timezone on Unix unless the application is single threaded unless the library is explicitly
+            // set to "unsound" mode. Maybe that's fine, but it needs more investigation. see
+            // https://nvd.nist.gov/vuln/detail/CVE-2020-26235
+            // When `time` supports a thread-safe way of getting the local time zone we could use it here.
+            Local::now().format("%m/%d/%Y %H:%M:%S").to_string()
+        }))
     }
 
     // https://dom.spec.whatwg.org/#dom-document-createrange

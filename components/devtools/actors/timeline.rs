@@ -12,9 +12,10 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 
+use base::cross_process_instant::CrossProcessInstant;
 use base::id::PipelineId;
 use devtools_traits::DevtoolScriptControlMsg::{DropTimelineMarkers, SetTimelineMarkers};
-use devtools_traits::{DevtoolScriptControlMsg, PreciseTime, TimelineMarker, TimelineMarkerType};
+use devtools_traits::{DevtoolScriptControlMsg, TimelineMarker, TimelineMarkerType};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use serde::{Serialize, Serializer};
 use serde_json::{Map, Value};
@@ -41,7 +42,7 @@ struct Emitter {
     from: String,
     stream: TcpStream,
     registry: Arc<Mutex<ActorRegistry>>,
-    start_stamp: PreciseTime,
+    start_stamp: CrossProcessInstant,
 
     framerate_actor: Option<String>,
     memory_actor: Option<String>,
@@ -110,8 +111,8 @@ struct FramerateEmitterReply {
 pub struct HighResolutionStamp(f64);
 
 impl HighResolutionStamp {
-    pub fn new(start_stamp: PreciseTime, time: PreciseTime) -> HighResolutionStamp {
-        let duration = start_stamp.to(time).as_micros();
+    pub fn new(start_stamp: CrossProcessInstant, time: CrossProcessInstant) -> HighResolutionStamp {
+        let duration = (time - start_stamp).whole_microseconds();
         HighResolutionStamp(duration as f64 / 1000_f64)
     }
 
@@ -242,7 +243,10 @@ impl Actor for TimelineActor {
 
                 let msg = StartReply {
                     from: self.name(),
-                    value: HighResolutionStamp::new(registry.start_stamp(), PreciseTime::now()),
+                    value: HighResolutionStamp::new(
+                        registry.start_stamp(),
+                        CrossProcessInstant::now(),
+                    ),
                 };
                 let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
@@ -251,7 +255,10 @@ impl Actor for TimelineActor {
             "stop" => {
                 let msg = StopReply {
                     from: self.name(),
-                    value: HighResolutionStamp::new(registry.start_stamp(), PreciseTime::now()),
+                    value: HighResolutionStamp::new(
+                        registry.start_stamp(),
+                        CrossProcessInstant::now(),
+                    ),
                 };
 
                 let _ = stream.write_json_packet(&msg);
@@ -295,7 +302,7 @@ impl Emitter {
     pub fn new(
         name: String,
         registry: Arc<Mutex<ActorRegistry>>,
-        start_stamp: PreciseTime,
+        start_stamp: CrossProcessInstant,
         stream: TcpStream,
         memory_actor_name: Option<String>,
         framerate_actor_name: Option<String>,
@@ -322,7 +329,7 @@ impl Emitter {
     }
 
     fn send(&mut self, markers: Vec<TimelineMarkerReply>) -> Result<(), Box<dyn Error>> {
-        let end_time = PreciseTime::now();
+        let end_time = CrossProcessInstant::now();
         let reply = MarkersEmitterReply {
             type_: "markers".to_owned(),
             markers,

@@ -19,7 +19,6 @@ The supported types are:
 * `hyper::method::Method`
 * `hyper::Uri`
 * `mime::Mime`
-* `time::Tm`
 
 For more details, see the crate documentation.
 
