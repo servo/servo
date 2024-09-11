@@ -352,8 +352,9 @@ fn update_wr_image(
 ) {
     match result {
         Ok(()) => {
-            let presentation_buffer = GPUPresentationBuffer::new(global, buffer_id, buffer_size);
             if let Some(present_data) = wgpu_image_map.lock().unwrap().get_mut(&context_id) {
+                let presentation_buffer =
+                    GPUPresentationBuffer::new(global, buffer_id, buffer_size);
                 let old_presentation_buffer = present_data.data.replace(presentation_buffer);
                 let mut txn = Transaction::new();
                 txn.update_image(
