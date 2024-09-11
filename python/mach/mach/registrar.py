@@ -6,8 +6,6 @@ from __future__ import absolute_import, print_function, unicode_literals
 
 import time
 
-import six
-
 from .base import MachError
 
 INVALID_COMMAND_CONTEXT = r'''
@@ -111,7 +109,7 @@ class MachRegistrar(object):
         end_time = time.time()
 
         result = result or 0
-        assert isinstance(result, six.integer_types)
+        assert isinstance(result, int)
 
         if context and not debug_command:
             postrun = getattr(context, 'post_dispatch_handler', None)
