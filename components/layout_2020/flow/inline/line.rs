@@ -5,6 +5,7 @@
 use app_units::Au;
 use bitflags::bitflags;
 use fonts::{FontMetrics, GlyphStore};
+use itertools::Either;
 use servo_arc::Arc;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 use style::properties::ComputedValues;
@@ -14,7 +15,6 @@ use style::values::generics::font::LineHeight;
 use style::values::specified::align::AlignFlags;
 use style::values::specified::box_::DisplayOutside;
 use style::values::specified::text::TextDecorationLine;
-use style::values::Either;
 use style::Zero;
 use unicode_bidi::{BidiInfo, Level};
 use webrender_api::FontInstanceKey;
@@ -25,10 +25,11 @@ use crate::cell::ArcRefCell;
 use crate::fragment_tree::{
     BaseFragmentInfo, BoxFragment, CollapsedBlockMargins, Fragment, TextFragment,
 };
-use crate::geom::{LogicalRect, LogicalVec2};
+use crate::geom::{AuOrAuto, LogicalRect, LogicalVec2, PhysicalRect, ToLogical};
 use crate::positioned::{
     relative_adjustement, AbsolutelyPositionedBox, PositioningContext, PositioningContextLength,
 };
+use crate::ContainingBlock;
 
 pub(super) struct LineMetrics {
     /// The block offset of the line start in the containing
@@ -49,10 +50,10 @@ bitflags! {
         const HAD_ANY_LINE_ITEMS = 1 << 0;
         /// Whether or not the starting inline border, padding, or margin of the inline box
         /// was encountered.
-        const HAD_START_PBM = 1 << 2;
+        const HAD_LEFT_PBM = 1 << 2;
         /// Whether or not the ending inline border, padding, or margin of the inline box
         /// was encountered.
-        const HAD_END_PBM = 1 << 3;
+        const HAD_RIGHT_PBM = 1 << 3;
         /// Whether or not any floats were encountered while laying out this inline box.
         const HAD_ANY_FLOATS = 1 << 4;
     }
@@ -66,16 +67,21 @@ pub(super) struct LineItemLayoutInlineContainerState {
     /// that is currently being laid out.
     pub identifier: Option<InlineBoxIdentifier>,
 
-    /// The fragments that are laid out into this inline container on a line.
-    pub fragments: Vec<Fragment>,
+    /// The fragments and their logical rectangle relative within the current inline box (or
+    /// line). These logical rectangles will be converted into physical ones and the Fragment's
+    /// `content_rect` will be updated once the inline box's final size is known in
+    /// [`LineItemLayout::end_inline_box`].
+    pub fragments: Vec<(Fragment, LogicalRect<Au>)>,
 
-    /// The current inline adavnce of the layout in the coordinates of this inline box.
+    /// The current inline advance of the layout in the coordinates of this inline box.
     pub inline_advance: Au,
 
     /// Flags which track various features during layout.
     flags: LineLayoutInlineContainerFlags,
 
-    /// The offset of the parent, relative to the start position of the line.
+    /// The offset of the parent, relative to the start position of the line, not including
+    /// any inline start and end borders which are only processed when the inline box is
+    /// finished.
     pub parent_offset: LogicalVec2<Au>,
 
     /// The block offset of the parent's baseline relative to the block start of the line. This
@@ -117,7 +123,7 @@ impl LineItemLayoutInlineContainerState {
             None,
             LogicalVec2::zero(),
             baseline_offset,
-            Either::Second(PositioningContextLength::zero()),
+            Either::Right(PositioningContextLength::zero()),
         );
         state.inline_advance = starting_inline_advance;
         state
@@ -208,8 +214,8 @@ impl<'layout_data, 'layout> LineItemLayout<'layout_data, 'layout> {
                     // TODO: This level needs either to be last_level, or if there were
                     // unicode characters inserted for the inline box, we need to get the
                     // level from them.
-                    LineItem::StartInlineBoxPaddingBorderMargin(_) => last_level,
-                    LineItem::EndInlineBoxPaddingBorderMargin(_) => last_level,
+                    LineItem::LeftInlineBoxPaddingBorderMargin(_) => last_level,
+                    LineItem::RightInlineBoxPaddingBorderMargin(_) => last_level,
                     LineItem::Atomic(_, atomic) => atomic.bidi_level,
                     LineItem::AbsolutelyPositioned(..) => last_level,
                     LineItem::Float(..) => {
@@ -227,7 +233,25 @@ impl<'layout_data, 'layout> LineItemLayout<'layout_data, 'layout> {
             sort_by_indices_in_place(&mut line_items, BidiInfo::reorder_visual(&levels));
         }
 
-        for item in line_items.into_iter().by_ref() {
+        // `BidiInfo::reorder_visual` will reorder the contents of the line so that they
+        // are in the correct order as if one was looking at the line from left-to-right.
+        // During this layout we do not lay out from left to right. Instead we lay out
+        // from inline-start to inline-end. If the overall line contents have been flipped
+        // for BiDi, flip them again so that they are in line start-to-end order rather
+        // than left-to-right order.
+        let line_item_iterator = if self
+            .layout
+            .containing_block
+            .style
+            .writing_mode
+            .is_bidi_ltr()
+        {
+            Either::Left(line_items.into_iter())
+        } else {
+            Either::Right(line_items.into_iter().rev())
+        };
+
+        for item in line_item_iterator.into_iter().by_ref() {
             // When preparing to lay out a new line item, start and end inline boxes, so that the current
             // inline box state reflects the item's parent. Items in the line are not necessarily in tree
             // order due to BiDi and other reordering so the inline box of the item could potentially be
@@ -238,15 +262,15 @@ impl<'layout_data, 'layout> LineItemLayout<'layout_data, 'layout> {
                 .flags
                 .insert(LineLayoutInlineContainerFlags::HAD_ANY_LINE_ITEMS);
             match item {
-                LineItem::StartInlineBoxPaddingBorderMargin(_) => {
+                LineItem::LeftInlineBoxPaddingBorderMargin(_) => {
                     self.current_state
                         .flags
-                        .insert(LineLayoutInlineContainerFlags::HAD_START_PBM);
+                        .insert(LineLayoutInlineContainerFlags::HAD_LEFT_PBM);
                 },
-                LineItem::EndInlineBoxPaddingBorderMargin(_) => {
+                LineItem::RightInlineBoxPaddingBorderMargin(_) => {
                     self.current_state
                         .flags
-                        .insert(LineLayoutInlineContainerFlags::HAD_END_PBM);
+                        .insert(LineLayoutInlineContainerFlags::HAD_RIGHT_PBM);
                 },
                 LineItem::TextRun(_, text_run) => self.layout_text_run(text_run),
                 LineItem::Atomic(_, atomic) => self.layout_atomic(atomic),
@@ -257,11 +281,29 @@ impl<'layout_data, 'layout> LineItemLayout<'layout_data, 'layout> {
 
         // Move back to the root of the inline box tree, so that all boxes are ended.
         self.prepare_layout_for_inline_box(None);
-        std::mem::take(&mut self.current_state.fragments)
+
+        let fragments_and_rectangles = std::mem::take(&mut self.current_state.fragments);
+        fragments_and_rectangles
+            .into_iter()
+            .map(|(mut fragment, logical_rect)| {
+                if matches!(fragment, Fragment::Float(_)) {
+                    return fragment;
+                }
+
+                // We do not know the actual physical position of a logically laid out inline element, until
+                // we know the width of the containing inline block. This step converts the logical rectangle
+                // into a physical one based on the inline formatting context width.
+                if let Some(content_rect) = fragment.content_rect_mut() {
+                    *content_rect = logical_rect.to_physical(Some(self.layout.containing_block))
+                }
+
+                fragment
+            })
+            .collect()
     }
 
     fn current_positioning_context_mut(&mut self) -> &mut PositioningContext {
-        if let Either::First(ref mut positioning_context) = self
+        if let Either::Left(ref mut positioning_context) = self
             .current_state
             .positioning_context_or_start_offset_in_parent
         {
@@ -272,8 +314,8 @@ impl<'layout_data, 'layout> LineItemLayout<'layout_data, 'layout> {
             .rev()
             .find_map(
                 |state| match state.positioning_context_or_start_offset_in_parent {
-                    Either::First(ref mut positioning_context) => Some(positioning_context),
-                    Either::Second(_) => None,
+                    Either::Left(ref mut positioning_context) => Some(positioning_context),
+                    Either::Right(_) => None,
                 },
             )
             .unwrap_or(self.layout.positioning_context)
@@ -292,8 +334,8 @@ impl<'layout_data, 'layout> LineItemLayout<'layout_data, 'layout> {
 
         let positioning_context_or_start_offset_in_parent =
             match PositioningContext::new_for_style(style) {
-                Some(positioning_context) => Either::First(positioning_context),
-                None => Either::Second(self.current_positioning_context_mut().len()),
+                Some(positioning_context) => Either::Left(positioning_context),
+                None => Either::Right(self.current_positioning_context_mut().len()),
             };
 
         let parent_offset = LogicalVec2 {
@@ -316,7 +358,7 @@ impl<'layout_data, 'layout> LineItemLayout<'layout_data, 'layout> {
 
     fn end_inline_box(&mut self) {
         let outer_state = self.state_stack.pop().expect("Ended unknown inline box");
-        let mut inner_state = std::mem::replace(&mut self.current_state, outer_state);
+        let inner_state = std::mem::replace(&mut self.current_state, outer_state);
 
         let identifier = inner_state.identifier.expect("Ended unknown inline box");
         let inline_box_state =
@@ -328,12 +370,24 @@ impl<'layout_data, 'layout> LineItemLayout<'layout_data, 'layout> {
         let mut border = inline_box_state.pbm.border;
         let mut margin = inline_box_state.pbm.margin.auto_is(Au::zero);
 
-        let had_start = inner_state
+        let had_left = inner_state
             .flags
-            .contains(LineLayoutInlineContainerFlags::HAD_START_PBM);
-        let had_end = inner_state
+            .contains(LineLayoutInlineContainerFlags::HAD_LEFT_PBM);
+        let had_right = inner_state
             .flags
-            .contains(LineLayoutInlineContainerFlags::HAD_END_PBM);
+            .contains(LineLayoutInlineContainerFlags::HAD_RIGHT_PBM);
+
+        let (had_start, had_end) = if self
+            .layout
+            .containing_block
+            .style
+            .writing_mode
+            .is_bidi_ltr()
+        {
+            (had_left, had_right)
+        } else {
+            (had_right, had_left)
+        };
 
         if !had_start {
             padding.inline_start = Au::zero();
@@ -368,14 +422,6 @@ impl<'layout_data, 'layout> LineItemLayout<'layout_data, 'layout> {
             },
         };
 
-        let ifc_writing_mode = self.layout.containing_block.effective_writing_mode();
-        for fragment in inner_state.fragments.iter_mut() {
-            if let Fragment::Float(box_fragment) = fragment {
-                box_fragment.content_rect.origin -=
-                    pbm_sums.start_offset().to_physical_size(ifc_writing_mode);
-            }
-        }
-
         // Relative adjustment should not affect the rest of line layout, so we can
         // do it right before creating the Fragment.
         let style = &inline_box.style;
@@ -383,11 +429,40 @@ impl<'layout_data, 'layout> LineItemLayout<'layout_data, 'layout> {
             content_rect.start_corner += relative_adjustement(style, self.layout.containing_block);
         }
 
+        let ifc_writing_mode = self.layout.containing_block.style.writing_mode;
+        let inline_box_containing_block = ContainingBlock {
+            inline_size: content_rect.size.inline,
+            block_size: AuOrAuto::Auto,
+            style: &self.layout.containing_block.style,
+        };
+        let fragments = inner_state
+            .fragments
+            .into_iter()
+            .map(|(mut fragment, logical_rect)| {
+                let is_float = matches!(fragment, Fragment::Float(_));
+                if let Some(content_rect) = fragment.content_rect_mut() {
+                    if is_float {
+                        content_rect.origin -=
+                            pbm_sums.start_offset().to_physical_size(ifc_writing_mode);
+                    } else {
+                        // We do not know the actual physical position of a logically laid out inline element, until
+                        // we know the width of the containing inline block. This step converts the logical rectangle
+                        // into a physical one now that we've computed inline size of the containing inline block above.
+                        *content_rect = logical_rect.to_physical(Some(&inline_box_containing_block))
+                    }
+                }
+                fragment
+            })
+            .collect();
+
+        // Previously all the fragment's children were positioned relative to the linebox,
+        // but they need to be made relative to this fragment.
+        let physical_content_rect = content_rect.to_physical(Some(self.layout.containing_block));
         let mut fragment = BoxFragment::new(
             inline_box.base_fragment_info,
             style.clone(),
-            inner_state.fragments,
-            content_rect.to_physical(ifc_writing_mode),
+            fragments,
+            physical_content_rect,
             padding.to_physical(ifc_writing_mode),
             border.to_physical(ifc_writing_mode),
             margin.to_physical(ifc_writing_mode),
@@ -395,28 +470,36 @@ impl<'layout_data, 'layout> LineItemLayout<'layout_data, 'layout> {
             CollapsedBlockMargins::zero(),
         );
 
+        let offset_from_parent_ifc = LogicalVec2 {
+            inline: pbm_sums.inline_start + self.current_state.inline_advance,
+            block: content_rect.start_corner.block,
+        }
+        .to_physical_vector(self.layout.containing_block.style.writing_mode);
+
         match inner_state.positioning_context_or_start_offset_in_parent {
-            Either::First(mut positioning_context) => {
+            Either::Left(mut positioning_context) => {
                 positioning_context
                     .layout_collected_children(self.layout.layout_context, &mut fragment);
                 positioning_context.adjust_static_position_of_hoisted_fragments_with_offset(
-                    &fragment.content_rect.origin.to_vector(),
+                    &offset_from_parent_ifc,
                     PositioningContextLength::zero(),
                 );
                 self.current_positioning_context_mut()
                     .append(positioning_context);
             },
-            Either::Second(start_offset) => {
+            Either::Right(start_offset) => {
                 self.current_positioning_context_mut()
                     .adjust_static_position_of_hoisted_fragments_with_offset(
-                        &fragment.content_rect.origin.to_vector(),
+                        &offset_from_parent_ifc,
                         start_offset,
                     );
             },
         }
 
         self.current_state.inline_advance += inner_state.inline_advance + pbm_sums.inline_sum();
-        self.current_state.fragments.push(Fragment::Box(fragment));
+        self.current_state
+            .fragments
+            .push((Fragment::Box(fragment), content_rect));
     }
 
     fn calculate_inline_box_block_start(
@@ -477,8 +560,7 @@ impl<'layout_data, 'layout> LineItemLayout<'layout_data, 'layout> {
                 text_item.font_metrics.ascent -
                 self.current_state.parent_offset.block,
         };
-
-        let rect = LogicalRect {
+        let content_rect = LogicalRect {
             start_corner,
             size: LogicalVec2 {
                 block: text_item.font_metrics.line_gap,
@@ -487,29 +569,37 @@ impl<'layout_data, 'layout> LineItemLayout<'layout_data, 'layout> {
         };
 
         self.current_state.inline_advance += inline_advance;
-        self.current_state
-            .fragments
-            .push(Fragment::Text(TextFragment {
+        self.current_state.fragments.push((
+            Fragment::Text(TextFragment {
                 base: text_item.base_fragment_info.into(),
                 parent_style: text_item.parent_style,
-                rect: rect.to_physical(self.layout.containing_block.effective_writing_mode()),
+                rect: PhysicalRect::zero(),
                 font_metrics: text_item.font_metrics,
                 font_key: text_item.font_key,
                 glyphs: text_item.text,
                 text_decoration_line: text_item.text_decoration_line,
                 justification_adjustment: self.justification_adjustment,
-            }));
+            }),
+            content_rect,
+        ));
     }
 
-    fn layout_atomic(&mut self, mut atomic: AtomicLineItem) {
+    fn layout_atomic(&mut self, atomic: AtomicLineItem) {
         // The initial `start_corner` of the Fragment is only the PaddingBorderMargin sum start
         // offset, which is the sum of the start component of the padding, border, and margin.
         // This needs to be added to the calculated block and inline positions.
         // Make the final result relative to the parent box.
+        let ifc_writing_mode = self.layout.containing_block.style.writing_mode;
+        let padding_border_margin_sides = atomic
+            .fragment
+            .padding_border_margin()
+            .to_logical(ifc_writing_mode);
+
         let mut atomic_offset = LogicalVec2 {
-            inline: self.current_state.inline_advance,
+            inline: self.current_state.inline_advance + padding_border_margin_sides.inline_start,
             block: atomic.calculate_block_start(&self.line_metrics) -
-                self.current_state.parent_offset.block,
+                self.current_state.parent_offset.block +
+                padding_border_margin_sides.block_start,
         };
 
         if atomic.fragment.style.clone_position().is_relative() {
@@ -517,14 +607,25 @@ impl<'layout_data, 'layout> LineItemLayout<'layout_data, 'layout> {
                 relative_adjustement(&atomic.fragment.style, self.layout.containing_block);
         }
 
-        let ifc_writing_mode = self.layout.containing_block.effective_writing_mode();
-        atomic.fragment.content_rect.origin += atomic_offset.to_physical_size(ifc_writing_mode);
+        // Reconstruct a logical rectangle relative to the inline box container that will be used
+        // after the inline box is procesed to find a final physical rectangle.
+        let content_rect = LogicalRect {
+            start_corner: atomic_offset,
+            size: atomic
+                .fragment
+                .content_rect
+                .size
+                .to_logical(ifc_writing_mode),
+        };
 
         if let Some(mut positioning_context) = atomic.positioning_context {
+            let physical_rect_as_if_in_root =
+                content_rect.to_physical(Some(self.layout.containing_block));
             positioning_context.adjust_static_position_of_hoisted_fragments_with_offset(
-                &atomic.fragment.content_rect.origin.to_vector(),
+                &physical_rect_as_if_in_root.origin.to_vector(),
                 PositioningContextLength::zero(),
             );
+
             self.current_positioning_context_mut()
                 .append(positioning_context);
         }
@@ -532,7 +633,7 @@ impl<'layout_data, 'layout> LineItemLayout<'layout_data, 'layout> {
         self.current_state.inline_advance += atomic.size.inline;
         self.current_state
             .fragments
-            .push(Fragment::Box(atomic.fragment));
+            .push((Fragment::Box(atomic.fragment), content_rect));
     }
 
     fn layout_absolute(&mut self, absolute: AbsolutelyPositionedLineItem) {
@@ -572,7 +673,7 @@ impl<'layout_data, 'layout> LineItemLayout<'layout_data, 'layout> {
             start_corner: initial_start_corner,
             size: LogicalVec2::zero(),
         }
-        .to_physical(self.layout.containing_block.effective_writing_mode());
+        .to_physical(Some(self.layout.containing_block));
 
         let hoisted_box = AbsolutelyPositionedBox::to_hoisted(
             absolute.absolutely_positioned_box.clone(),
@@ -581,12 +682,15 @@ impl<'layout_data, 'layout> LineItemLayout<'layout_data, 'layout> {
                 inline: AlignFlags::START,
                 block: AlignFlags::START,
             },
+            self.layout.containing_block.style.writing_mode,
         );
+
         let hoisted_fragment = hoisted_box.fragment.clone();
         self.current_positioning_context_mut().push(hoisted_box);
-        self.current_state
-            .fragments
-            .push(Fragment::AbsoluteOrFixedPositioned(hoisted_fragment));
+        self.current_state.fragments.push((
+            Fragment::AbsoluteOrFixedPositioned(hoisted_fragment),
+            LogicalRect::zero(),
+        ));
     }
 
     fn layout_float(&mut self, mut float: FloatLineItem) {
@@ -604,16 +708,17 @@ impl<'layout_data, 'layout> LineItemLayout<'layout_data, 'layout> {
             block: self.line_metrics.block_offset + self.current_state.parent_offset.block,
         };
         float.fragment.content_rect.origin -= distance_from_parent_to_ifc
-            .to_physical_size(self.layout.containing_block.effective_writing_mode());
+            .to_physical_size(self.layout.containing_block.style.writing_mode);
+
         self.current_state
             .fragments
-            .push(Fragment::Float(float.fragment));
+            .push((Fragment::Float(float.fragment), LogicalRect::zero()));
     }
 }
 
 pub(super) enum LineItem {
-    StartInlineBoxPaddingBorderMargin(InlineBoxIdentifier),
-    EndInlineBoxPaddingBorderMargin(InlineBoxIdentifier),
+    LeftInlineBoxPaddingBorderMargin(InlineBoxIdentifier),
+    RightInlineBoxPaddingBorderMargin(InlineBoxIdentifier),
     TextRun(Option<InlineBoxIdentifier>, TextRunLineItem),
     Atomic(Option<InlineBoxIdentifier>, AtomicLineItem),
     AbsolutelyPositioned(Option<InlineBoxIdentifier>, AbsolutelyPositionedLineItem),
@@ -623,8 +728,8 @@ pub(super) enum LineItem {
 impl LineItem {
     fn inline_box_identifier(&self) -> Option<InlineBoxIdentifier> {
         match self {
-            LineItem::StartInlineBoxPaddingBorderMargin(identifier) => Some(*identifier),
-            LineItem::EndInlineBoxPaddingBorderMargin(identifier) => Some(*identifier),
+            LineItem::LeftInlineBoxPaddingBorderMargin(identifier) => Some(*identifier),
+            LineItem::RightInlineBoxPaddingBorderMargin(identifier) => Some(*identifier),
             LineItem::TextRun(identifier, _) => *identifier,
             LineItem::Atomic(identifier, _) => *identifier,
             LineItem::AbsolutelyPositioned(identifier, _) => *identifier,
@@ -634,8 +739,8 @@ impl LineItem {
 
     pub(super) fn trim_whitespace_at_end(&mut self, whitespace_trimmed: &mut Au) -> bool {
         match self {
-            LineItem::StartInlineBoxPaddingBorderMargin(_) => true,
-            LineItem::EndInlineBoxPaddingBorderMargin(_) => true,
+            LineItem::LeftInlineBoxPaddingBorderMargin(_) => true,
+            LineItem::RightInlineBoxPaddingBorderMargin(_) => true,
             LineItem::TextRun(_, ref mut item) => item.trim_whitespace_at_end(whitespace_trimmed),
             LineItem::Atomic(..) => false,
             LineItem::AbsolutelyPositioned(..) => true,
@@ -645,8 +750,8 @@ impl LineItem {
 
     pub(super) fn trim_whitespace_at_start(&mut self, whitespace_trimmed: &mut Au) -> bool {
         match self {
-            LineItem::StartInlineBoxPaddingBorderMargin(_) => true,
-            LineItem::EndInlineBoxPaddingBorderMargin(_) => true,
+            LineItem::LeftInlineBoxPaddingBorderMargin(_) => true,
+            LineItem::RightInlineBoxPaddingBorderMargin(_) => true,
             LineItem::TextRun(_, ref mut item) => item.trim_whitespace_at_start(whitespace_trimmed),
             LineItem::Atomic(..) => false,
             LineItem::AbsolutelyPositioned(..) => true,

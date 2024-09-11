@@ -32,7 +32,6 @@ use style::values::generics::font::LineHeight;
 use style_traits::{ParsingMode, ToCss};
 
 use crate::fragment_tree::{BoxFragment, Fragment, FragmentFlags, FragmentTree, Tag};
-use crate::style_ext::ComputedValuesExt;
 
 pub fn process_content_box_request(
     requested_node: OpaqueNode,
@@ -136,7 +135,7 @@ pub fn process_resolved_style_request<'dom>(
             return style.computed_value_to_string(PropertyDeclarationId::Custom(name));
         },
     }
-    .to_physical(style.effective_writing_mode());
+    .to_physical(style.writing_mode);
 
     let computed_style =
         || style.computed_value_to_string(PropertyDeclarationId::Longhand(longhand_id));

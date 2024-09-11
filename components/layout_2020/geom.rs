@@ -70,19 +70,6 @@ impl<T: Clone> LogicalVec2<T> {
         }
     }
 
-    pub fn from_physical_point(physical_point: &PhysicalPoint<T>, mode: WritingMode) -> Self {
-        // https://drafts.csswg.org/css-writing-modes/#logical-to-physical
-        let (i, b) = if mode.is_horizontal() {
-            (&physical_point.x, &physical_point.y)
-        } else {
-            (&physical_point.y, &physical_point.x)
-        };
-        LogicalVec2 {
-            inline: i.clone(),
-            block: b.clone(),
-        }
-    }
-
     pub fn map<U>(&self, f: impl Fn(&T) -> U) -> LogicalVec2<U> {
         LogicalVec2 {
             inline: f(&self.inline),
@@ -271,15 +258,48 @@ impl<T: Clone> LogicalVec2<T> {
         };
         PhysicalSize::new(x.clone(), y.clone())
     }
+}
 
-    pub fn to_physical_point(&self, mode: WritingMode) -> PhysicalPoint<T> {
-        // https://drafts.csswg.org/css-writing-modes/#logical-to-physical
-        let (x, y) = if mode.is_horizontal() {
-            (&self.inline, &self.block)
+impl<T: Copy + Neg<Output = T>> LogicalVec2<T> {
+    pub fn to_physical_vector(&self, mode: WritingMode) -> PhysicalVec<T> {
+        if mode.is_horizontal() {
+            if mode.is_bidi_ltr() {
+                PhysicalVec::new(self.inline, self.block)
+            } else {
+                PhysicalVec::new(-self.inline, self.block)
+            }
         } else {
-            (&self.block, &self.inline)
-        };
-        PhysicalPoint::new(x.clone(), y.clone())
+            if mode.is_inline_tb() {
+                PhysicalVec::new(self.block, self.inline)
+            } else {
+                PhysicalVec::new(-self.block, self.inline)
+            }
+        }
+    }
+}
+
+impl LogicalVec2<Au> {
+    #[inline]
+    pub fn to_physical_point(
+        &self,
+        containing_block: Option<&ContainingBlock>,
+    ) -> PhysicalPoint<Au> {
+        let mode = containing_block.map_or_else(WritingMode::horizontal_tb, |containing_block| {
+            containing_block.style.writing_mode
+        });
+        if mode.is_vertical() {
+            // TODO: Bottom-to-top writing modes are not supported yet.
+            PhysicalPoint::new(self.block, self.inline)
+        } else {
+            let y = self.block;
+            let x = match containing_block {
+                Some(containing_block) if !mode.is_bidi_ltr() => {
+                    containing_block.inline_size - self.inline
+                },
+                _ => self.inline,
+            };
+            PhysicalPoint::new(x, y)
+        }
     }
 }
 
@@ -540,15 +560,36 @@ impl<T> LogicalRect<T> {
             },
         }
     }
+}
 
-    pub fn to_physical(&self, mode: WritingMode) -> PhysicalRect<T>
-    where
-        T: Copy,
-    {
-        PhysicalRect::new(
-            self.start_corner.to_physical_point(mode),
-            self.size.to_physical_size(mode),
-        )
+impl LogicalRect<Au> {
+    pub fn to_physical<'a>(
+        &self,
+        containing_block: Option<&ContainingBlock<'a>>,
+    ) -> PhysicalRect<Au> {
+        let mode = containing_block.map_or_else(WritingMode::horizontal_tb, |containing_block| {
+            containing_block.style.writing_mode
+        });
+        let (x, y, width, height) = if mode.is_vertical() {
+            // TODO: Bottom-to-top writing modes are not supported.
+            (
+                self.start_corner.block,
+                self.start_corner.inline,
+                self.size.block,
+                self.size.inline,
+            )
+        } else {
+            let y = self.start_corner.block;
+            let x = match containing_block {
+                Some(containing_block) if !mode.is_bidi_ltr() => {
+                    containing_block.inline_size - self.max_inline_position()
+                },
+                _ => self.start_corner.inline,
+            };
+            (x, y, self.size.inline, self.size.block)
+        };
+
+        PhysicalRect::new(PhysicalPoint::new(x, y), PhysicalSize::new(width, height))
     }
 }
 
@@ -592,32 +633,74 @@ pub(crate) trait ToLogical<Unit, LogicalType> {
     fn to_logical(&self, writing_mode: WritingMode) -> LogicalType;
 }
 
-impl<Unit: Copy> ToLogical<Unit, LogicalRect<Unit>> for PhysicalRect<Unit> {
-    fn to_logical(&self, writing_mode: WritingMode) -> LogicalRect<Unit> {
-        LogicalRect {
-            start_corner: LogicalVec2::from_physical_size(
-                &PhysicalSize::new(self.origin.x, self.origin.y),
-                writing_mode,
-            ),
-            size: LogicalVec2::from_physical_size(&self.size, writing_mode),
-        }
-    }
-}
-
 impl<Unit: Copy> ToLogical<Unit, LogicalVec2<Unit>> for PhysicalSize<Unit> {
     fn to_logical(&self, writing_mode: WritingMode) -> LogicalVec2<Unit> {
         LogicalVec2::from_physical_size(self, writing_mode)
     }
 }
 
-impl<Unit: Copy> ToLogical<Unit, LogicalVec2<Unit>> for PhysicalPoint<Unit> {
-    fn to_logical(&self, writing_mode: WritingMode) -> LogicalVec2<Unit> {
-        LogicalVec2::from_physical_point(self, writing_mode)
-    }
-}
-
 impl<Unit: Copy> ToLogical<Unit, LogicalSides<Unit>> for PhysicalSides<Unit> {
     fn to_logical(&self, writing_mode: WritingMode) -> LogicalSides<Unit> {
         LogicalSides::from_physical(self, writing_mode)
+    }
+}
+
+pub(crate) trait ToLogicalWithContainingBlock<LogicalType> {
+    fn to_logical(&self, containing_block: &ContainingBlock) -> LogicalType;
+}
+
+impl ToLogicalWithContainingBlock<LogicalVec2<Au>> for PhysicalPoint<Au> {
+    fn to_logical(&self, containing_block: &ContainingBlock) -> LogicalVec2<Au> {
+        let writing_mode = containing_block.style.writing_mode;
+        // TODO: Bottom-to-top and right-to-left vertical writing modes are not supported yet.
+        if writing_mode.is_vertical() {
+            LogicalVec2 {
+                inline: self.y,
+                block: self.x,
+            }
+        } else {
+            LogicalVec2 {
+                inline: if writing_mode.is_bidi_ltr() {
+                    self.x
+                } else {
+                    containing_block.inline_size - self.x
+                },
+                block: self.y,
+            }
+        }
+    }
+}
+
+impl ToLogicalWithContainingBlock<LogicalRect<Au>> for PhysicalRect<Au> {
+    fn to_logical(&self, containing_block: &ContainingBlock) -> LogicalRect<Au> {
+        let inline_start;
+        let block_start;
+        let inline;
+        let block;
+
+        let writing_mode = containing_block.style.writing_mode;
+        if writing_mode.is_vertical() {
+            // TODO: Bottom-to-top and right-to-left vertical writing modes are not supported yet.
+            inline = self.size.height;
+            block = self.size.width;
+            block_start = self.origin.x;
+            inline_start = self.origin.y;
+        } else {
+            inline = self.size.width;
+            block = self.size.height;
+            block_start = self.origin.y;
+            if writing_mode.is_bidi_ltr() {
+                inline_start = self.origin.x;
+            } else {
+                inline_start = containing_block.inline_size - (self.origin.x + self.size.width);
+            }
+        }
+        LogicalRect {
+            start_corner: LogicalVec2 {
+                inline: inline_start,
+                block: block_start,
+            },
+            size: LogicalVec2 { inline, block },
+        }
     }
 }

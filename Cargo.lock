@@ -915,7 +915,6 @@ dependencies = [
  "servo_url",
  "style_traits",
  "surfman",
- "time 0.1.45",
  "tracing",
  "webrender",
  "webrender_api",
@@ -1352,7 +1351,6 @@ dependencies = [
  "malloc_size_of_derive",
  "serde",
  "servo_url",
- "time 0.1.45",
  "uuid",
 ]
 
@@ -4281,7 +4279,6 @@ dependencies = [
  "metrics",
  "profile_traits",
  "servo_url",
- "time 0.1.45",
 ]
 
 [[package]]
@@ -4560,7 +4557,7 @@ dependencies = [
  "servo_config",
  "servo_url",
  "sha2",
- "time 0.1.45",
+ "time 0.3.36",
  "tokio",
  "tokio-rustls",
  "tokio-stream",
@@ -5789,7 +5786,6 @@ dependencies = [
  "swapper",
  "tempfile",
  "tendril",
- "time 0.1.45",
  "time 0.3.36",
  "unicode-bidi",
  "unicode-segmentation",

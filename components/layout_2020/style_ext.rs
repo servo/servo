@@ -13,6 +13,7 @@ use style::properties::longhands::backface_visibility::computed_value::T as Back
 use style::properties::longhands::box_sizing::computed_value::T as BoxSizing;
 use style::properties::longhands::column_span::computed_value::T as ColumnSpan;
 use style::properties::ComputedValues;
+use style::servo::selector_parser::PseudoElement;
 use style::values::computed::basic_shape::ClipPath;
 use style::values::computed::image::Image as ComputedImageLayer;
 use style::values::computed::{AlignItems, LengthPercentage, NonNegativeLengthPercentage, Size};
@@ -29,6 +30,7 @@ use crate::dom_traversal::Contents;
 use crate::fragment_tree::FragmentFlags;
 use crate::geom::{
     AuOrAuto, LengthPercentageOrAuto, LogicalSides, LogicalVec2, PhysicalSides, PhysicalSize,
+    PhysicalVec,
 };
 use crate::{ContainingBlock, IndefiniteContainingBlock};
 
@@ -139,13 +141,6 @@ impl PaddingBorderMargin {
             padding_border_sums: LogicalVec2::zero(),
         }
     }
-
-    pub(crate) fn border_padding_start(&self) -> LogicalVec2<Au> {
-        LogicalVec2 {
-            inline: self.border.inline_start + self.padding.inline_start,
-            block: self.border.block_start + self.padding.block_start,
-        }
-    }
 }
 
 /// Resolved `aspect-ratio` property with respect to a specific element. Depends
@@ -186,7 +181,6 @@ impl AspectRatio {
 }
 
 pub(crate) trait ComputedValuesExt {
-    fn effective_writing_mode(&self) -> WritingMode;
     fn box_offsets(
         &self,
         containing_block: &ContainingBlock,
@@ -263,6 +257,7 @@ pub(crate) trait ComputedValuesExt {
     ) -> LogicalSides<LengthPercentageOrAuto<'_>>;
     fn has_transform_or_perspective(&self, fragment_flags: FragmentFlags) -> bool;
     fn effective_z_index(&self, fragment_flags: FragmentFlags) -> i32;
+    fn effective_overflow(&self) -> PhysicalVec<Overflow>;
     fn establishes_block_formatting_context(&self) -> bool;
     fn establishes_stacking_context(&self, fragment_flags: FragmentFlags) -> bool;
     fn establishes_scroll_container(&self) -> bool;
@@ -291,10 +286,6 @@ pub(crate) trait ComputedValuesExt {
 }
 
 impl ComputedValuesExt for ComputedValues {
-    fn effective_writing_mode(&self) -> WritingMode {
-        WritingMode::horizontal_tb()
-    }
-
     fn box_offsets(
         &self,
         containing_block: &ContainingBlock,
@@ -307,7 +298,7 @@ impl ComputedValuesExt for ComputedValues {
                 position.bottom.as_ref(),
                 position.left.as_ref(),
             ),
-            containing_block.effective_writing_mode(),
+            containing_block.style.writing_mode,
         )
     }
 
@@ -362,7 +353,7 @@ impl ComputedValuesExt for ComputedValues {
         pbm: &PaddingBorderMargin,
     ) -> LogicalVec2<AuOrAuto> {
         let box_size = self
-            .box_size(containing_block.effective_writing_mode())
+            .box_size(containing_block.style.writing_mode)
             .percentages_relative_to(containing_block);
         self.content_box_size_for_box_size(box_size, pbm)
     }
@@ -393,7 +384,7 @@ impl ComputedValuesExt for ComputedValues {
         pbm: &PaddingBorderMargin,
     ) -> LogicalVec2<AuOrAuto> {
         let box_size = self
-            .min_box_size(containing_block.effective_writing_mode())
+            .min_box_size(containing_block.style.writing_mode)
             .percentages_relative_to(containing_block);
         self.content_min_box_size_for_min_size(box_size, pbm)
     }
@@ -423,7 +414,7 @@ impl ComputedValuesExt for ComputedValues {
         pbm: &PaddingBorderMargin,
     ) -> LogicalVec2<Option<Au>> {
         let max_box_size = self
-            .max_box_size(containing_block.effective_writing_mode())
+            .max_box_size(containing_block.style.writing_mode)
             .percentages_relative_to(containing_block);
 
         self.content_max_box_size_for_max_size(max_box_size, pbm)
@@ -495,23 +486,10 @@ impl ComputedValuesExt for ComputedValues {
     }
 
     fn padding_border_margin(&self, containing_block: &ContainingBlock) -> PaddingBorderMargin {
-        let cbis = containing_block.inline_size;
-        let padding = self
-            .padding(containing_block.effective_writing_mode())
-            .percentages_relative_to(cbis);
-        let border = self.border_width(containing_block.effective_writing_mode());
-        let margin = self
-            .margin(containing_block.effective_writing_mode())
-            .percentages_relative_to(cbis);
-        PaddingBorderMargin {
-            padding_border_sums: LogicalVec2 {
-                inline: (padding.inline_sum() + border.inline_sum()),
-                block: (padding.block_sum() + border.block_sum()),
-            },
-            padding,
-            border,
-            margin,
-        }
+        self.padding_border_margin_with_writing_mode_and_containing_block_inline_size(
+            containing_block.style.writing_mode,
+            containing_block.inline_size,
+        )
     }
 
     fn padding_border_margin_for_intrinsic_size(
@@ -639,10 +617,60 @@ impl ComputedValuesExt for ComputedValues {
         }
     }
 
+    /// Get the effective overflow of this box. The property only applies to block containers,
+    /// flex containers, and grid containers. And some box types only accept a few values.
+    /// <https://www.w3.org/TR/css-overflow-3/#overflow-control>
+    fn effective_overflow(&self) -> PhysicalVec<Overflow> {
+        let style_box = self.get_box();
+        let mut overflow_x = style_box.overflow_x;
+        let mut overflow_y = style_box.overflow_y;
+        // According to <https://drafts.csswg.org/css-tables/#global-style-overrides>,
+        // overflow applies to table-wrapper boxes and not to table grid boxes.
+        // That's what Blink and WebKit do, however Firefox matches a CSSWG resolution that says
+        // the opposite: <https://lists.w3.org/Archives/Public/www-style/2012Aug/0298.html>
+        // Due to the way that we implement table-wrapper boxes, it's easier to align with Firefox.
+        match style_box.display.inside() {
+            stylo::DisplayInside::Table
+                if matches!(self.pseudo(), Some(PseudoElement::ServoTableGrid)) =>
+            {
+                // <https://drafts.csswg.org/css-tables/#global-style-overrides>
+                // Tables ignore overflow values different than visible, clip and hidden.
+                // We also need to make sure that both axes have the same scrollability.
+                if matches!(overflow_x, Overflow::Auto | Overflow::Scroll) {
+                    overflow_x = Overflow::Visible;
+                    if overflow_y.is_scrollable() {
+                        overflow_y = Overflow::Visible;
+                    }
+                }
+                if matches!(overflow_y, Overflow::Auto | Overflow::Scroll) {
+                    overflow_y = Overflow::Visible;
+                    if overflow_x.is_scrollable() {
+                        overflow_x = Overflow::Visible;
+                    }
+                }
+            },
+            stylo::DisplayInside::TableColumn |
+            stylo::DisplayInside::TableColumnGroup |
+            stylo::DisplayInside::TableRow |
+            stylo::DisplayInside::TableRowGroup |
+            stylo::DisplayInside::TableHeaderGroup |
+            stylo::DisplayInside::TableFooterGroup |
+            stylo::DisplayInside::Table => {
+                // <https://drafts.csswg.org/css-tables/#global-style-overrides>
+                // Table-track and table-track-group boxes ignore overflow.
+                // We also ignore it on table-wrapper boxes (see above).
+                overflow_x = Overflow::Visible;
+                overflow_y = Overflow::Visible;
+            },
+            _ => {},
+        }
+        PhysicalVec::new(overflow_x, overflow_y)
+    }
+
     /// Return true if this style is a normal block and establishes
     /// a new block formatting context.
     fn establishes_block_formatting_context(&self) -> bool {
-        if self.get_box().overflow_x.is_scrollable() {
+        if self.establishes_scroll_container() {
             return true;
         }
 
@@ -660,8 +688,7 @@ impl ComputedValuesExt for ComputedValues {
 
     /// Whether or not the `overflow` value of this style establishes a scroll container.
     fn establishes_scroll_container(&self) -> bool {
-        self.get_box().overflow_x != Overflow::Visible ||
-            self.get_box().overflow_y != Overflow::Visible
+        self.effective_overflow().x.is_scrollable()
     }
 
     /// Returns true if this fragment establishes a new stacking context and false otherwise.

@@ -7,6 +7,7 @@ use rayon::iter::IntoParallelRefMutIterator;
 use rayon::prelude::{IndexedParallelIterator, ParallelIterator};
 use serde::Serialize;
 use style::computed_values::position::T as Position;
+use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
 use style::values::specified::align::{AlignFlags, AxisDirection};
 use style::values::specified::text::TextDecorationLine;
@@ -22,7 +23,7 @@ use crate::fragment_tree::{
 };
 use crate::geom::{
     AuOrAuto, LengthPercentageOrAuto, LogicalRect, LogicalSides, LogicalVec2, PhysicalPoint,
-    PhysicalRect, PhysicalVec, ToLogical,
+    PhysicalRect, PhysicalVec, ToLogical, ToLogicalWithContainingBlock,
 };
 use crate::style_ext::{ComputedValuesExt, DisplayInside};
 use crate::{ContainingBlock, DefiniteContainingBlock, IndefiniteContainingBlock};
@@ -73,11 +74,13 @@ impl AbsolutelyPositionedBox {
         absolutely_positioned_box: ArcRefCell<Self>,
         static_position_rectangle: PhysicalRect<Au>,
         resolved_alignment: LogicalVec2<AlignFlags>,
+        original_parent_writing_mode: WritingMode,
     ) -> HoistedAbsolutelyPositionedBox {
         HoistedAbsolutelyPositionedBox {
             fragment: ArcRefCell::new(HoistedSharedFragment::new(
                 static_position_rectangle,
                 resolved_alignment,
+                original_parent_writing_mode,
             )),
             absolutely_positioned_box,
         }
@@ -211,7 +214,7 @@ impl PositioningContext {
 
         if style.clone_position() == Position::Relative {
             new_fragment.content_rect.origin += relative_adjustement(style, containing_block)
-                .to_physical_size(containing_block.effective_writing_mode())
+                .to_physical_vector(containing_block.style.writing_mode)
         }
 
         new_fragment
@@ -233,7 +236,7 @@ impl PositioningContext {
         let containing_block = DefiniteContainingBlock {
             size: padding_rect
                 .size
-                .to_logical(new_fragment.style.effective_writing_mode()),
+                .to_logical(new_fragment.style.writing_mode),
             style: &new_fragment.style,
         };
 
@@ -376,7 +379,7 @@ impl PositioningContext {
 }
 
 /// A data structure which stores the size of a positioning context.
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub(crate) struct PositioningContextLength {
     /// The number of boxes that will be hoisted the the nearest positioned ancestor for
     /// layout.
@@ -452,9 +455,10 @@ impl HoistedAbsolutelyPositionedBox {
         let cbis = containing_block.size.inline;
         let cbbs = containing_block.size.block;
         let mut absolutely_positioned_box = self.absolutely_positioned_box.borrow_mut();
-        let containing_block_writing_mode = containing_block.style.effective_writing_mode();
+        let containing_block_writing_mode = containing_block.style.writing_mode;
         let style = absolutely_positioned_box.context.style().clone();
         let pbm = style.padding_border_margin(&containing_block.into());
+        let indefinite_containing_block = containing_block.into();
 
         let computed_size = match &absolutely_positioned_box.context {
             IndependentFormattingContext::Replaced(replaced) => {
@@ -470,17 +474,16 @@ impl HoistedAbsolutelyPositionedBox {
                     block: AuOrAuto::LengthPercentage(used_size.block),
                 }
             },
-            IndependentFormattingContext::NonReplaced(..) => {
-                style.content_box_size(&containing_block.into(), &pbm)
-            },
+            IndependentFormattingContext::NonReplaced(non_replaced) => non_replaced
+                .style
+                .content_box_size(&indefinite_containing_block, &pbm),
         };
 
         let shared_fragment = self.fragment.borrow();
         let static_position_rect = shared_fragment
             .static_position_rect
-            .to_logical(containing_block_writing_mode);
+            .to_logical(&indefinite_containing_block);
 
-        let indefinite_containing_block = containing_block.into();
         let box_offset = style.box_offsets(&indefinite_containing_block);
 
         // When the "static-position rect" doesn't come into play, we do not do any alignment
@@ -504,6 +507,8 @@ impl HoistedAbsolutelyPositionedBox {
             box_offsets: inline_box_offsets,
             static_position_rect_axis: static_position_rect.get_axis(AxisDirection::Inline),
             alignment: inline_alignment,
+            flip_anchor: !(shared_fragment.original_parent_writing_mode.is_bidi_ltr() ==
+                indefinite_containing_block.style.writing_mode.is_bidi_ltr()),
         };
 
         // When the "static-position rect" doesn't come into play, we re-resolve "align-self"
@@ -526,6 +531,7 @@ impl HoistedAbsolutelyPositionedBox {
             box_offsets: block_box_offsets,
             static_position_rect_axis: static_position_rect.get_axis(AxisDirection::Block),
             alignment: block_alignment,
+            flip_anchor: false,
         };
         let overconstrained = LogicalVec2 {
             inline: inline_axis_solver.is_overconstrained_for_size(computed_size.inline),
@@ -535,8 +541,7 @@ impl HoistedAbsolutelyPositionedBox {
         let mut inline_axis = inline_axis_solver.solve_for_size(computed_size.inline);
         let mut block_axis = block_axis_solver.solve_for_size(computed_size.block);
 
-        let mut positioning_context =
-            PositioningContext::new_for_style(absolutely_positioned_box.context.style()).unwrap();
+        let mut positioning_context = PositioningContext::new_for_style(&style).unwrap();
         let mut new_fragment = {
             let content_size: LogicalVec2<Au>;
             let fragments;
@@ -544,10 +549,9 @@ impl HoistedAbsolutelyPositionedBox {
                 IndependentFormattingContext::Replaced(replaced) => {
                     // https://drafts.csswg.org/css2/visudet.html#abs-replaced-width
                     // https://drafts.csswg.org/css2/visudet.html#abs-replaced-height
-                    let style = &replaced.style;
                     content_size = computed_size.auto_is(|| unreachable!());
                     fragments = replaced.contents.make_fragments(
-                        style,
+                        &style,
                         content_size.to_physical_size(containing_block_writing_mode),
                     );
                 },
@@ -558,8 +562,7 @@ impl HoistedAbsolutelyPositionedBox {
                         .style
                         .content_min_box_size(&indefinite_containing_block, &pbm)
                         .map(|t| t.map(Au::from).auto_is(Au::zero));
-                    let max_size = non_replaced
-                        .style
+                    let max_size = style
                         .content_max_box_size(&containing_block.into(), &pbm)
                         .map(|t| t.map(Au::from));
 
@@ -622,13 +625,16 @@ impl HoistedAbsolutelyPositionedBox {
                         let containing_block_for_children = ContainingBlock {
                             inline_size,
                             block_size: size,
-                            style: &non_replaced.style,
+                            style: &style,
                         };
                         // https://drafts.csswg.org/css-writing-modes/#orthogonal-flows
                         assert_eq!(
-                            containing_block.effective_writing_mode(),
-                            containing_block_for_children.effective_writing_mode(),
-                            "Mixed writing modes are not supported yet"
+                            containing_block.style.writing_mode.is_horizontal(),
+                            containing_block_for_children
+                                .style
+                                .writing_mode
+                                .is_horizontal(),
+                            "Mixed horizontal and vertical writing modes are not supported yet"
                         );
 
                         // Clear the context since we will lay out the same descendants
@@ -732,13 +738,13 @@ impl HoistedAbsolutelyPositionedBox {
             inline_axis_solver.solve_alignment(margin_box_rect, &mut content_rect);
 
             let physical_overconstrained =
-                overconstrained.to_physical_size(containing_block.effective_writing_mode());
+                overconstrained.to_physical_size(containing_block.style.writing_mode);
 
             BoxFragment::new_with_overconstrained(
                 absolutely_positioned_box.context.base_fragment_info(),
-                absolutely_positioned_box.context.style().clone(),
+                style,
                 fragments,
-                content_rect.to_physical(containing_block_writing_mode),
+                content_rect.to_physical(Some(&containing_block.into())),
                 pbm.padding.to_physical(containing_block_writing_mode),
                 pbm.border.to_physical(containing_block_writing_mode),
                 margin.to_physical(containing_block_writing_mode),
@@ -826,8 +832,8 @@ struct AbsoluteAxisSolver<'a> {
     box_offsets: AbsoluteBoxOffsets<'a>,
     static_position_rect_axis: RectAxis,
     alignment: AlignFlags,
+    flip_anchor: bool,
 }
-
 impl<'a> AbsoluteAxisSolver<'a> {
     /// This unifies some of the parts in common in:
     ///
@@ -846,7 +852,11 @@ impl<'a> AbsoluteAxisSolver<'a> {
             self.box_offsets.end.non_auto(),
         ) {
             (None, None) => AxisResult {
-                anchor: Anchor::Start(self.static_position_rect_axis.origin),
+                anchor: if self.flip_anchor {
+                    Anchor::End(self.containing_size - self.static_position_rect_axis.origin)
+                } else {
+                    Anchor::Start(self.static_position_rect_axis.origin)
+                },
                 size: computed_size,
                 margin_start: self.computed_margin_start.auto_is(Au::zero),
                 margin_end: self.computed_margin_end.auto_is(Au::zero),

@@ -83,9 +83,9 @@ impl Arbitrary for FloatRangeInput {
         FloatRangeInput {
             start_index,
             side: if is_left {
-                FloatSide::Left
+                FloatSide::InlineStart
             } else {
-                FloatSide::Right
+                FloatSide::InlineEnd
             },
             length,
         }
@@ -185,8 +185,8 @@ fn check_node_range_setting(
 ) {
     if node.band.top >= block_range.start && node.band.top < block_range.end {
         match side {
-            FloatSide::Left => assert!(node.band.left.unwrap() >= value),
-            FloatSide::Right => assert!(node.band.right.unwrap() <= value),
+            FloatSide::InlineStart => assert!(node.band.left.unwrap() >= value),
+            FloatSide::InlineEnd => assert!(node.band.right.unwrap() <= value),
         }
     }
 
@@ -357,9 +357,9 @@ impl Arbitrary for FloatInput {
                     block: Au::from_f32_px(height as f32),
                 },
                 side: if is_left {
-                    FloatSide::Left
+                    FloatSide::InlineStart
                 } else {
-                    FloatSide::Right
+                    FloatSide::InlineEnd
                 },
                 clear: new_clear(clear),
             },
@@ -504,10 +504,10 @@ impl FloatPlacement {
 fn check_floats_rule_1(placement: &FloatPlacement) {
     for placed_float in &placement.placed_floats {
         match placed_float.info.side {
-            FloatSide::Left => assert!(
+            FloatSide::InlineStart => assert!(
                 placed_float.origin.inline >= placed_float.containing_block_info.inline_start
             ),
-            FloatSide::Right => {
+            FloatSide::InlineEnd => {
                 assert!(
                     placed_float.rect().max_inline_position() <=
                         placed_float.containing_block_info.inline_end
@@ -526,19 +526,20 @@ fn check_floats_rule_2(placement: &FloatPlacement) {
     for (this_float_index, this_float) in placement.placed_floats.iter().enumerate() {
         for prev_float in &placement.placed_floats[0..this_float_index] {
             match (this_float.info.side, prev_float.info.side) {
-                (FloatSide::Left, FloatSide::Left) => {
+                (FloatSide::InlineStart, FloatSide::InlineStart) => {
                     assert!(
                         this_float.origin.inline >= prev_float.rect().max_inline_position() ||
                             this_float.origin.block >= prev_float.rect().max_block_position()
                     );
                 },
-                (FloatSide::Right, FloatSide::Right) => {
+                (FloatSide::InlineEnd, FloatSide::InlineEnd) => {
                     assert!(
                         this_float.rect().max_inline_position() <= prev_float.origin.inline ||
                             this_float.origin.block >= prev_float.rect().max_block_position()
                     );
                 },
-                (FloatSide::Left, FloatSide::Right) | (FloatSide::Right, FloatSide::Left) => {},
+                (FloatSide::InlineStart, FloatSide::InlineEnd) |
+                (FloatSide::InlineEnd, FloatSide::InlineStart) => {},
             }
         }
     }
@@ -568,13 +569,14 @@ fn check_floats_rule_3(placement: &FloatPlacement) {
             }
 
             match (this_float.info.side, other_float.info.side) {
-                (FloatSide::Left, FloatSide::Right) => {
+                (FloatSide::InlineStart, FloatSide::InlineEnd) => {
                     assert!(this_float.rect().max_inline_position() <= other_float.origin.inline);
                 },
-                (FloatSide::Right, FloatSide::Left) => {
+                (FloatSide::InlineEnd, FloatSide::InlineStart) => {
                     assert!(this_float.origin.inline >= other_float.rect().max_inline_position());
                 },
-                (FloatSide::Left, FloatSide::Left) | (FloatSide::Right, FloatSide::Right) => {},
+                (FloatSide::InlineStart, FloatSide::InlineStart) |
+                (FloatSide::InlineEnd, FloatSide::InlineEnd) => {},
             }
         }
     }
@@ -616,14 +618,14 @@ fn check_floats_rule_7(placement: &FloatPlacement) {
     for (placed_float_index, placed_float) in placement.placed_floats.iter().enumerate() {
         // Only consider floats that stick out.
         match placed_float.info.side {
-            FloatSide::Left => {
+            FloatSide::InlineStart => {
                 if placed_float.rect().max_inline_position() <=
                     placed_float.containing_block_info.inline_end
                 {
                     continue;
                 }
             },
-            FloatSide::Right => {
+            FloatSide::InlineEnd => {
                 if placed_float.origin.inline >= placed_float.containing_block_info.inline_start {
                     continue;
                 }
@@ -686,8 +688,8 @@ fn check_floats_rule_9(floats_and_perturbations: Vec<(FloatInput, u32)>) {
             let placed_float = &mut placement.placed_floats[float_index];
             let perturbation = Au::from_f32_px(perturbation as f32);
             match placed_float.info.side {
-                FloatSide::Left => placed_float.origin.inline -= perturbation,
-                FloatSide::Right => placed_float.origin.inline += perturbation,
+                FloatSide::InlineStart => placed_float.origin.inline -= perturbation,
+                FloatSide::InlineEnd => placed_float.origin.inline += perturbation,
             }
         }
 
@@ -737,8 +739,8 @@ fn check_floats_rule_10(placement: &FloatPlacement) {
             }
 
             match this_float.info.clear {
-                Clear::Left => assert_ne!(other_float.info.side, FloatSide::Left),
-                Clear::Right => assert_ne!(other_float.info.side, FloatSide::Right),
+                Clear::Left => assert_ne!(other_float.info.side, FloatSide::InlineStart),
+                Clear::Right => assert_ne!(other_float.info.side, FloatSide::InlineEnd),
                 Clear::Both => assert!(false),
                 Clear::None => unreachable!(),
             }

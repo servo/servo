@@ -9,7 +9,7 @@ use std::mem;
 use std::net::TcpStream;
 use std::sync::{Arc, Mutex};
 
-use devtools_traits::PreciseTime;
+use base::cross_process_instant::CrossProcessInstant;
 use log::{debug, warn};
 use serde_json::{Map, Value};
 
@@ -60,7 +60,7 @@ pub struct ActorRegistry {
     script_actors: RefCell<HashMap<String, String>>,
     shareable: Option<Arc<Mutex<ActorRegistry>>>,
     next: Cell<u32>,
-    start_stamp: PreciseTime,
+    start_stamp: CrossProcessInstant,
 }
 
 impl ActorRegistry {
@@ -73,7 +73,7 @@ impl ActorRegistry {
             script_actors: RefCell::new(HashMap::new()),
             shareable: None,
             next: Cell::new(0),
-            start_stamp: PreciseTime::now(),
+            start_stamp: CrossProcessInstant::now(),
         }
     }
 
@@ -104,7 +104,7 @@ impl ActorRegistry {
     }
 
     /// Get start stamp when registry was started
-    pub fn start_stamp(&self) -> PreciseTime {
+    pub fn start_stamp(&self) -> CrossProcessInstant {
         self.start_stamp
     }
 

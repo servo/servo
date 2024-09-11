@@ -40,7 +40,6 @@ servo-media = { workspace = true }
 servo_geometry = { path = "../geometry" }
 servo_url = { path = "../url" }
 style_traits = { workspace = true }
-time = { workspace = true }
 tracing = { workspace = true }
 webrender = { workspace = true }
 webrender_api = { workspace = true }

@@ -16,6 +16,7 @@ use euclid::num::Zero;
 use serde::Serialize;
 use servo_arc::Arc;
 use style::computed_values::float::T as FloatProperty;
+use style::computed_values::position::T as Position;
 use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
 use style::values::computed::Clear;
@@ -26,8 +27,8 @@ use crate::dom::NodeExt;
 use crate::dom_traversal::{Contents, NodeAndStyleInfo};
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragment_tree::{BoxFragment, CollapsedBlockMargins, CollapsedMargin};
-use crate::geom::{LogicalRect, LogicalVec2, ToLogical};
-use crate::positioned::PositioningContext;
+use crate::geom::{LogicalRect, LogicalVec2, PhysicalPoint, PhysicalRect, ToLogical};
+use crate::positioned::{relative_adjustement, PositioningContext};
 use crate::style_ext::{Clamp, ComputedValuesExt, DisplayInside, PaddingBorderMargin};
 use crate::{ContainingBlock, IndefiniteContainingBlock};
 
@@ -412,7 +413,7 @@ impl FloatContext {
 
         // The object fits perfectly here. Place it.
         match object.side {
-            FloatSide::Left => {
+            FloatSide::InlineStart => {
                 let left_object_edge = match first_band.left {
                     Some(band_left) => band_left.max(self.containing_block_info.inline_start),
                     None => self.containing_block_info.inline_start,
@@ -422,7 +423,7 @@ impl FloatContext {
                     block: first_band.top.max(ceiling),
                 }
             },
-            FloatSide::Right => {
+            FloatSide::InlineEnd => {
                 let right_object_edge = match first_band.right {
                     Some(band_right) => band_right.min(self.containing_block_info.inline_end),
                     None => self.containing_block_info.inline_end,
@@ -441,8 +442,8 @@ impl FloatContext {
         let ceiling = self.ceiling();
         let new_float_origin = self.place_object(new_float, ceiling);
         let new_float_extent = match new_float.side {
-            FloatSide::Left => new_float_origin.inline + new_float.size.inline,
-            FloatSide::Right => new_float_origin.inline,
+            FloatSide::InlineStart => new_float_origin.inline + new_float.size.inline,
+            FloatSide::InlineEnd => new_float_origin.inline,
         };
 
         let new_float_rect = LogicalRect {
@@ -459,11 +460,11 @@ impl FloatContext {
 
         // Update clear.
         match new_float.side {
-            FloatSide::Left => {
+            FloatSide::InlineStart => {
                 self.clear_left_position
                     .max_assign(new_float_rect.max_block_position());
             },
-            FloatSide::Right => {
+            FloatSide::InlineEnd => {
                 self.clear_right_position
                     .max_assign(new_float_rect.max_block_position());
             },
@@ -513,8 +514,8 @@ pub struct PlacementInfo {
 /// See CSS 2.1 § 9.5.1: <https://www.w3.org/TR/CSS2/visuren.html#float-position>
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum FloatSide {
-    Left,
-    Right,
+    InlineStart,
+    InlineEnd,
 }
 
 /// Internal data structure that describes a nonoverlapping vertical region in which floats may be
@@ -536,11 +537,18 @@ pub struct FloatBand {
 }
 
 impl FloatSide {
-    fn from_style(style: &ComputedValues) -> Option<FloatSide> {
-        match style.get_box().float {
-            FloatProperty::None => None,
-            FloatProperty::Left => Some(FloatSide::Left),
-            FloatProperty::Right => Some(FloatSide::Right),
+    fn from_style_and_container_writing_mode(
+        style: &ComputedValues,
+        container_writing_mode: WritingMode,
+    ) -> Option<FloatSide> {
+        match (style.get_box().float, container_writing_mode.is_bidi_ltr()) {
+            (FloatProperty::None, _) => None,
+            (FloatProperty::Left, true) | (FloatProperty::Right, false) => {
+                Some(FloatSide::InlineStart)
+            },
+            (FloatProperty::Right, true) | (FloatProperty::Left, false) => {
+                Some(FloatSide::InlineEnd)
+            },
         }
     }
 }
@@ -549,7 +557,7 @@ impl FloatBand {
     /// Determines whether an object fits in a band. Returns true if the object fits.
     fn object_fits(&self, object: &PlacementInfo, walls: &ContainingBlockPositionInfo) -> bool {
         match object.side {
-            FloatSide::Left => {
+            FloatSide::InlineStart => {
                 // Compute a candidate left position for the object.
                 let candidate_left = match self.left {
                     None => walls.inline_start,
@@ -570,7 +578,7 @@ impl FloatBand {
                 }
             },
 
-            FloatSide::Right => {
+            FloatSide::InlineEnd => {
                 // Compute a candidate right position for the object.
                 let candidate_right = match self.right {
                     None => walls.inline_end,
@@ -694,13 +702,13 @@ impl FloatBandNode {
         let mut new_band = self.band;
         if self.band.top >= range.start && self.band.top < range.end {
             match side {
-                FloatSide::Left => {
+                FloatSide::InlineStart => {
                     new_band.left = match new_band.left {
                         Some(old_value) => Some(std::cmp::max(old_value, new_value)),
                         None => Some(new_value),
                     };
                 },
-                FloatSide::Right => {
+                FloatSide::InlineEnd => {
                     new_band.right = match new_band.right {
                         Some(old_value) => Some(std::cmp::min(old_value, new_value)),
                         None => Some(new_value),
@@ -984,23 +992,22 @@ impl FloatBox {
                         );
                         children = replaced.contents.make_fragments(
                             &replaced.style,
-                            content_size
-                                .to_physical_size(containing_block.effective_writing_mode()),
+                            content_size.to_physical_size(containing_block.style.writing_mode),
                         )
                     },
                 };
 
-                let content_rect = LogicalRect {
-                    start_corner: LogicalVec2::zero(),
-                    size: content_size,
-                };
+                let containing_block_writing_mode = containing_block.style.writing_mode;
+                let content_rect = PhysicalRect::new(
+                    PhysicalPoint::zero(),
+                    content_size.to_physical_size(containing_block_writing_mode),
+                );
 
-                let containing_block_writing_mode = containing_block.effective_writing_mode();
                 BoxFragment::new(
                     self.contents.base_fragment_info(),
                     style.clone(),
                     children,
-                    content_rect.to_physical(containing_block_writing_mode),
+                    content_rect,
                     pbm.padding.to_physical(containing_block_writing_mode),
                     pbm.border.to_physical(containing_block_writing_mode),
                     margin.to_physical(containing_block_writing_mode),
@@ -1203,7 +1210,7 @@ impl SequentialLayoutState {
     pub(crate) fn place_float_fragment(
         &mut self,
         box_fragment: &mut BoxFragment,
-        container_writing_mode: WritingMode,
+        containing_block: &ContainingBlock,
         margins_collapsing_with_parent_containing_block: CollapsedMargin,
         block_offset_from_containing_block_top: Au,
     ) {
@@ -1218,19 +1225,35 @@ impl SequentialLayoutState {
             block_start_of_containing_block_in_bfc + block_offset_from_containing_block_top,
         );
 
-        let pbm_sums = (box_fragment.padding + box_fragment.border + box_fragment.margin)
+        let container_writing_mode = containing_block.style.writing_mode;
+        let logical_float_size = box_fragment
+            .content_rect
+            .size
             .to_logical(container_writing_mode);
-        let content_rect = &box_fragment.content_rect.to_logical(container_writing_mode);
+        let pbm_sums = box_fragment
+            .padding_border_margin()
+            .to_logical(container_writing_mode);
         let margin_box_start_corner = self.floats.add_float(&PlacementInfo {
-            size: content_rect.size + pbm_sums.sum(),
-            side: FloatSide::from_style(&box_fragment.style).expect("Float box wasn't floated!"),
+            size: logical_float_size + pbm_sums.sum(),
+            side: FloatSide::from_style_and_container_writing_mode(
+                &box_fragment.style,
+                container_writing_mode,
+            )
+            .expect("Float box wasn't floated!"),
             clear: box_fragment.style.get_box().clear,
         });
+
+        // Re-calculate relative adjustment so that it is not lost when the BoxFragment's
+        // `content_rect` is overwritten below.
+        let relative_offset = match box_fragment.style.clone_position() {
+            Position::Relative => relative_adjustement(&box_fragment.style, containing_block),
+            _ => LogicalVec2::zero(),
+        };
 
         // This is the position of the float in the float-containing block formatting context. We add the
         // existing start corner here because we may have already gotten some relative positioning offset.
         let new_position_in_bfc =
-            margin_box_start_corner + pbm_sums.start_offset() + content_rect.start_corner;
+            margin_box_start_corner + pbm_sums.start_offset() + relative_offset;
 
         // This is the position of the float relative to the containing block start.
         let new_position_in_containing_block = LogicalVec2 {
@@ -1238,7 +1261,13 @@ impl SequentialLayoutState {
             block: new_position_in_bfc.block - block_start_of_containing_block_in_bfc,
         };
 
-        box_fragment.content_rect.origin =
-            new_position_in_containing_block.to_physical_point(container_writing_mode);
+        box_fragment.content_rect = LogicalRect {
+            start_corner: new_position_in_containing_block,
+            size: box_fragment
+                .content_rect
+                .size
+                .to_logical(container_writing_mode),
+        }
+        .to_physical(Some(&containing_block));
     }
 }

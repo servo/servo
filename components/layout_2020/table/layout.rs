@@ -28,8 +28,8 @@ use crate::fragment_tree::{
     PositioningFragment,
 };
 use crate::geom::{
-    AuOrAuto, LengthPercentageOrAuto, LogicalRect, LogicalSides, LogicalVec2, PhysicalSides,
-    ToLogical,
+    AuOrAuto, LengthPercentageOrAuto, LogicalRect, LogicalSides, LogicalVec2, PhysicalPoint,
+    PhysicalRect, PhysicalSides, ToLogical, ToLogicalWithContainingBlock,
 };
 use crate::positioned::{relative_adjustement, PositioningContext, PositioningContextLength};
 use crate::sizing::ContentSizes;
@@ -1135,14 +1135,14 @@ impl<'a> TableLayout<'a> {
                         let border: LogicalSides<Au> = self
                             .get_collapsed_borders_for_cell(cell, coordinates)
                             .unwrap_or_else(|| {
-                                cell.style.border_width(
-                                    containing_block_for_table.effective_writing_mode(),
-                                )
-                            });
+                                cell.style
+                                    .border_width(containing_block_for_table.style.writing_mode)
+                            })
+                            .into();
 
                         let padding: LogicalSides<Au> = cell
                             .style
-                            .padding(containing_block_for_table.effective_writing_mode())
+                            .padding(containing_block_for_table.style.writing_mode)
                             .percentages_relative_to(self.basis_for_cell_padding_percentage);
                         let inline_border_padding_sum = border.inline_sum() + padding.inline_sum();
 
@@ -1541,7 +1541,7 @@ impl<'a> TableLayout<'a> {
             style: containing_block.style,
         };
 
-        let mut box_fragment = context.layout_in_flow_block_level(
+        let box_fragment = context.layout_in_flow_block_level(
             layout_context,
             positioning_context
                 .as_mut()
@@ -1549,16 +1549,6 @@ impl<'a> TableLayout<'a> {
             containing_block,
             None, /* sequential_layout_state */
         );
-
-        let margin_offset = LogicalVec2 {
-            inline: Au::zero(),
-            block: box_fragment
-                .block_margins_collapsed_with_children
-                .start
-                .solve(),
-        }
-        .to_physical_size(containing_block.effective_writing_mode());
-        box_fragment.content_rect.origin += margin_offset;
 
         if let Some(positioning_context) = positioning_context.take() {
             parent_positioning_context.append(positioning_context);
@@ -1576,10 +1566,10 @@ impl<'a> TableLayout<'a> {
         containing_block_for_children: &ContainingBlock,
         containing_block_for_table: &ContainingBlock,
     ) -> IndependentLayout {
-        let writing_mode = containing_block_for_children.effective_writing_mode();
-        let grid_min_max = self.compute_grid_min_max(layout_context, writing_mode);
+        let table_writing_mode = containing_block_for_children.style.writing_mode;
+        let grid_min_max = self.compute_grid_min_max(layout_context, table_writing_mode);
         let caption_minimum_inline_size =
-            self.compute_caption_minimum_inline_size(layout_context, writing_mode);
+            self.compute_caption_minimum_inline_size(layout_context, table_writing_mode);
         self.compute_table_width(
             containing_block_for_children,
             containing_block_for_table,
@@ -1596,10 +1586,23 @@ impl<'a> TableLayout<'a> {
         //
         // TODO: This is a pretty large hack. It would be nicer to actually have the grid sized properly,
         // but it works for now.
+        //
+        // Get the padding, border, and margin of the table using the inline size of the table's containing
+        // block but in the writing of the table itself.
+        // TODO: This is broken for orthoganol flows, because the inline size of the parent isn't necessarily
+        // the inline size of the table.
+        let containing_block_for_logical_conversion = ContainingBlock {
+            inline_size: self.table_width,
+            block_size: containing_block_for_table.block_size,
+            style: containing_block_for_children.style,
+        };
         let table_pbm = self
             .table
             .style
-            .padding_border_margin(containing_block_for_table);
+            .padding_border_margin_with_writing_mode_and_containing_block_inline_size(
+                table_writing_mode,
+                containing_block_for_table.inline_size,
+            );
         let offset_from_wrapper = -table_pbm.padding - table_pbm.border;
         let mut current_block_offset = offset_from_wrapper.block_start;
 
@@ -1609,7 +1612,6 @@ impl<'a> TableLayout<'a> {
             content_inline_size_for_table: None,
             baselines: Baselines::default(),
         };
-        let table_writing_mode = containing_block_for_children.effective_writing_mode();
 
         table_layout
             .fragments
@@ -1627,12 +1629,23 @@ impl<'a> TableLayout<'a> {
                     positioning_context,
                 );
 
-                let caption_offset = LogicalVec2 {
-                    inline: offset_from_wrapper.inline_start,
-                    block: current_block_offset,
+                // The caption is not placed yet. Construct a rectangle for it in the adjusted containing block
+                // for the table children and only then convert the result to physical geometry.
+                let caption_pbm = caption_fragment
+                    .padding_border_margin()
+                    .to_logical(table_writing_mode);
+                caption_fragment.content_rect = LogicalRect {
+                    start_corner: LogicalVec2 {
+                        inline: offset_from_wrapper.inline_start + caption_pbm.inline_start,
+                        block: current_block_offset + caption_pbm.block_start,
+                    },
+                    size: caption_fragment
+                        .content_rect
+                        .size
+                        .to_logical(table_writing_mode),
                 }
-                .to_physical_size(table_writing_mode);
-                caption_fragment.content_rect.origin += caption_offset;
+                .to_physical(Some(&containing_block_for_logical_conversion));
+
                 current_block_offset += caption_fragment
                     .margin_rect()
                     .size
@@ -1652,22 +1665,37 @@ impl<'a> TableLayout<'a> {
             layout_context,
             &table_pbm,
             positioning_context,
+            &containing_block_for_logical_conversion,
             containing_block_for_children,
             containing_block_for_table,
         );
 
         // Take the baseline of the grid fragment, after adjusting it to be in the coordinate system
         // of the table wrapper.
-        let logical_grid_content_rect = grid_fragment.content_rect.to_logical(table_writing_mode);
-        table_layout.baselines = grid_fragment
-            .baselines(table_writing_mode)
-            .offset(current_block_offset + logical_grid_content_rect.start_corner.block);
+        let logical_grid_content_rect = grid_fragment
+            .content_rect
+            .to_logical(&containing_block_for_logical_conversion);
+        let grid_pbm = grid_fragment
+            .padding_border_margin()
+            .to_logical(table_writing_mode);
+        table_layout.baselines = grid_fragment.baselines(table_writing_mode).offset(
+            current_block_offset +
+                logical_grid_content_rect.start_corner.block +
+                grid_pbm.block_start,
+        );
 
-        grid_fragment.content_rect.origin += LogicalVec2 {
-            inline: offset_from_wrapper.inline_start,
-            block: current_block_offset,
+        grid_fragment.content_rect = LogicalRect {
+            start_corner: LogicalVec2 {
+                inline: offset_from_wrapper.inline_start + grid_pbm.inline_start,
+                block: current_block_offset + grid_pbm.block_start,
+            },
+            size: grid_fragment
+                .content_rect
+                .size
+                .to_logical(table_writing_mode),
         }
-        .to_physical_size(table_writing_mode);
+        .to_physical(Some(&containing_block_for_logical_conversion));
+
         current_block_offset += grid_fragment
             .border_rect()
             .size
@@ -1698,12 +1726,23 @@ impl<'a> TableLayout<'a> {
                     positioning_context,
                 );
 
-                let caption_offset = LogicalVec2 {
-                    inline: offset_from_wrapper.inline_start,
-                    block: current_block_offset,
+                // The caption is not placed yet. Construct a rectangle for it in the adjusted containing block
+                // for the table children and only then convert the result to physical geometry.
+                let caption_pbm = caption_fragment
+                    .padding_border_margin()
+                    .to_logical(table_writing_mode);
+                caption_fragment.content_rect = LogicalRect {
+                    start_corner: LogicalVec2 {
+                        inline: offset_from_wrapper.inline_start + caption_pbm.inline_start,
+                        block: current_block_offset + caption_pbm.block_start,
+                    },
+                    size: caption_fragment
+                        .content_rect
+                        .size
+                        .to_logical(table_writing_mode),
                 }
-                .to_physical_size(containing_block_for_children.effective_writing_mode());
-                caption_fragment.content_rect.origin += caption_offset;
+                .to_physical(Some(&containing_block_for_logical_conversion));
+
                 current_block_offset += caption_fragment
                     .margin_rect()
                     .size
@@ -1729,6 +1768,7 @@ impl<'a> TableLayout<'a> {
         layout_context: &LayoutContext,
         table_pbm: &PaddingBorderMargin,
         positioning_context: &mut PositioningContext,
+        containing_block_for_logical_conversion: &ContainingBlock,
         containing_block_for_children: &ContainingBlock,
         containing_block_for_table: &ContainingBlock,
     ) -> BoxFragment {
@@ -1738,8 +1778,8 @@ impl<'a> TableLayout<'a> {
             containing_block_for_children,
             positioning_context,
         );
-        let writing_mode = containing_block_for_children.effective_writing_mode();
-        let first_layout_row_heights = self.do_first_row_layout(writing_mode);
+        let table_writing_mode = containing_block_for_children.style.writing_mode;
+        let first_layout_row_heights = self.do_first_row_layout(table_writing_mode);
         self.compute_table_height_and_final_row_heights(
             first_layout_row_heights,
             containing_block_for_children,
@@ -1749,16 +1789,15 @@ impl<'a> TableLayout<'a> {
         assert_eq!(self.table.size.height, self.row_sizes.len());
         assert_eq!(self.table.size.width, self.distributed_column_widths.len());
 
-        let table_writing_mode = containing_block_for_children.effective_writing_mode();
         if self.table.size.width == 0 && self.table.size.height == 0 {
             let content_rect = LogicalRect {
-                start_corner: table_pbm.border_padding_start(),
+                start_corner: LogicalVec2::zero(),
                 size: LogicalVec2 {
                     inline: self.table_width,
                     block: self.final_table_height,
                 },
             }
-            .to_physical(table_writing_mode);
+            .to_physical(Some(containing_block_for_logical_conversion));
             return BoxFragment::new(
                 self.table.grid_base_fragment_info,
                 self.table.grid_style.clone(),
@@ -1804,8 +1843,12 @@ impl<'a> TableLayout<'a> {
             }
 
             let table_row = &self.table.rows[row_index];
-            let mut row_fragment_layout =
-                RowFragmentLayout::new(table_row, row_index, &table_and_track_dimensions);
+            let mut row_fragment_layout = RowFragmentLayout::new(
+                table_row,
+                row_index,
+                &table_and_track_dimensions,
+                &self.table.style,
+            );
 
             let old_row_group_index = row_group_fragment_layout
                 .as_ref()
@@ -1816,6 +1859,7 @@ impl<'a> TableLayout<'a> {
                     table_fragments.push(Fragment::Box(old_row_group_layout.finish(
                         layout_context,
                         positioning_context,
+                        containing_block_for_logical_conversion,
                         containing_block_for_children,
                     )));
                 }
@@ -1837,31 +1881,21 @@ impl<'a> TableLayout<'a> {
                     continue;
                 }
 
-                // The PositioningContext for cells is, in order or preference, the PositioningContext of the row,
-                // the PositioningContext of the row group, or the PositioningContext of the table.
-                let row_group_positioning_context = row_group_fragment_layout
-                    .as_mut()
-                    .and_then(|layout| layout.positioning_context.as_mut());
-                let positioning_context_for_cells = row_fragment_layout
-                    .positioning_context
-                    .as_mut()
-                    .or(row_group_positioning_context)
-                    .unwrap_or(positioning_context);
-
                 self.do_final_cell_layout(
                     row_index,
                     column_index,
                     &table_and_track_dimensions,
-                    &row_fragment_layout.rect,
-                    positioning_context_for_cells,
                     &mut baselines,
-                    &mut row_fragment_layout.fragments,
+                    &mut row_fragment_layout,
+                    row_group_fragment_layout.as_mut(),
+                    positioning_context,
                 );
             }
 
             let row_fragment = Fragment::Box(row_fragment_layout.finish(
                 layout_context,
                 positioning_context,
+                containing_block_for_logical_conversion,
                 containing_block_for_children,
                 &mut row_group_fragment_layout,
             ));
@@ -1876,18 +1910,19 @@ impl<'a> TableLayout<'a> {
             table_fragments.push(Fragment::Box(row_group_layout.finish(
                 layout_context,
                 positioning_context,
+                containing_block_for_logical_conversion,
                 containing_block_for_children,
             )));
         }
 
         let content_rect = LogicalRect {
-            start_corner: table_pbm.border_padding_start(),
+            start_corner: LogicalVec2::zero(),
             size: LogicalVec2 {
                 inline: table_and_track_dimensions.table_rect.max_inline_position(),
                 block: table_and_track_dimensions.table_rect.max_block_position(),
             },
         }
-        .to_physical(table_writing_mode);
+        .to_physical(Some(containing_block_for_logical_conversion));
         BoxFragment::new(
             self.table.grid_base_fragment_info,
             self.table.grid_style.clone(),
@@ -1930,17 +1965,26 @@ impl<'a> TableLayout<'a> {
         col_group.style.get_inherited_box().visibility == Visibility::Collapse
     }
 
-    #[allow(clippy::too_many_arguments)]
     fn do_final_cell_layout(
         &mut self,
         row_index: usize,
         column_index: usize,
         dimensions: &TableAndTrackDimensions,
-        row_rect: &LogicalRect<Au>,
-        positioning_context: &mut PositioningContext,
         baselines: &mut Baselines,
-        cell_fragments: &mut Vec<Fragment>,
+        row_fragment_layout: &mut RowFragmentLayout,
+        row_group_fragment_layout: Option<&mut RowGroupFragmentLayout>,
+        positioning_context_for_table: &mut PositioningContext,
     ) {
+        // The PositioningContext for cells is, in order or preference, the PositioningContext of the row,
+        // the PositioningContext of the row group, or the PositioningContext of the table.
+        let row_group_positioning_context =
+            row_group_fragment_layout.and_then(|layout| layout.positioning_context.as_mut());
+        let positioning_context = row_fragment_layout
+            .positioning_context
+            .as_mut()
+            .or(row_group_positioning_context)
+            .unwrap_or(positioning_context_for_table);
+
         let layout = match self.cells_laid_out[row_index][column_index].take() {
             Some(layout) => layout,
             None => {
@@ -1955,7 +1999,8 @@ impl<'a> TableLayout<'a> {
             },
         };
 
-        let row_block_offset = row_rect.start_corner.block;
+        // If this cell has baseline alignment, it can adjust the table's overall baseline.
+        let row_block_offset = row_fragment_layout.rect.start_corner.block;
         let row_baseline = self.row_baselines[row_index];
         if cell.effective_vertical_align() == VerticalAlignKeyword::Baseline && !layout.is_empty() {
             let baseline = row_block_offset + row_baseline;
@@ -1969,21 +2014,43 @@ impl<'a> TableLayout<'a> {
             cell.rowspan,
             cell.colspan,
         );
-        row_relative_cell_rect.start_corner -= row_rect.start_corner;
+        row_relative_cell_rect.start_corner -= row_fragment_layout.rect.start_corner;
         let mut fragment = cell.create_fragment(
             layout,
             row_relative_cell_rect,
             row_baseline,
             positioning_context,
             &self.table.style,
+            &row_fragment_layout.containing_block,
         );
+
+        // Make a table part rectangle relative to the row fragment for the purposes of
+        // drawing extra backgrounds.
+        //
+        // This rectangle is an offset between the row fragment and the other table
+        // part rectangle (row group, column, column group). Everything between them
+        // is laid out in a left-to-right fashion, but respecting the veritcality of
+        // the writing mode. This is why below, only the axes are flipped, but the
+        // rectangle is not flipped for RTL.
+        let make_relative_to_row_start = |mut rect: LogicalRect<Au>| {
+            rect.start_corner -= row_fragment_layout.rect.start_corner;
+            let writing_mode = row_fragment_layout.containing_block.style.writing_mode;
+            PhysicalRect::new(
+                if !writing_mode.is_vertical() {
+                    PhysicalPoint::new(rect.start_corner.inline, rect.start_corner.block)
+                } else {
+                    PhysicalPoint::new(rect.start_corner.block, rect.start_corner.inline)
+                },
+                rect.size.to_physical_size(writing_mode),
+            )
+        };
+
         let column = self.table.columns.get(column_index);
         let column_group = column
             .and_then(|column| column.group_index)
             .and_then(|index| self.table.column_groups.get(index));
         if let Some(column_group) = column_group {
-            let mut rect = dimensions.get_column_group_rect(column_group);
-            rect.start_corner -= row_rect.start_corner;
+            let rect = make_relative_to_row_start(dimensions.get_column_group_rect(column_group));
             fragment.add_extra_background(ExtraBackground {
                 style: column_group.style.clone(),
                 rect,
@@ -1991,8 +2058,7 @@ impl<'a> TableLayout<'a> {
         }
         if let Some(column) = column {
             if !column.is_anonymous {
-                let mut rect = dimensions.get_column_rect(column_index);
-                rect.start_corner -= row_rect.start_corner;
+                let rect = make_relative_to_row_start(dimensions.get_column_rect(column_index));
                 fragment.add_extra_background(ExtraBackground {
                     style: column.style.clone(),
                     rect,
@@ -2004,24 +2070,20 @@ impl<'a> TableLayout<'a> {
             .and_then(|row| row.group_index)
             .and_then(|index| self.table.row_groups.get(index));
         if let Some(row_group) = row_group {
-            let mut rect = dimensions.get_row_group_rect(row_group);
-            rect.start_corner -= row_rect.start_corner;
+            let rect = make_relative_to_row_start(dimensions.get_row_group_rect(row_group));
             fragment.add_extra_background(ExtraBackground {
                 style: row_group.style.clone(),
                 rect,
             })
         }
         if let Some(row) = row {
-            let mut rect = *row_rect;
-            rect.start_corner = LogicalVec2::zero();
+            let rect = make_relative_to_row_start(row_fragment_layout.rect);
             fragment.add_extra_background(ExtraBackground {
                 style: row.style.clone(),
                 rect,
             })
         }
-        cell_fragments.push(Fragment::Box(fragment));
-
-        // If this cell has baseline alignment, it can adjust the table's overall baseline.
+        row_fragment_layout.fragments.push(Fragment::Box(fragment));
     }
 
     fn make_fragments_for_columns_and_column_groups(
@@ -2029,14 +2091,13 @@ impl<'a> TableLayout<'a> {
         dimensions: &TableAndTrackDimensions,
         fragments: &mut Vec<Fragment>,
     ) {
-        let table_writing_mode = self.table.style.effective_writing_mode();
         for column_group in self.table.column_groups.iter() {
             if !column_group.is_empty() {
                 fragments.push(Fragment::Positioning(PositioningFragment::new_empty(
                     column_group.base_fragment_info,
                     dimensions
                         .get_column_group_rect(column_group)
-                        .to_physical(table_writing_mode),
+                        .to_physical(None),
                     column_group.style.clone(),
                 )));
             }
@@ -2045,9 +2106,7 @@ impl<'a> TableLayout<'a> {
         for (column_index, column) in self.table.columns.iter().enumerate() {
             fragments.push(Fragment::Positioning(PositioningFragment::new_empty(
                 column.base_fragment_info,
-                dimensions
-                    .get_column_rect(column_index)
-                    .to_physical(table_writing_mode),
+                dimensions.get_column_rect(column_index).to_physical(None),
                 column.style.clone(),
             )));
         }
@@ -2117,16 +2176,29 @@ impl<'a> TableLayout<'a> {
 struct RowFragmentLayout<'a> {
     row: &'a TableTrack,
     rect: LogicalRect<Au>,
+    containing_block: ContainingBlock<'a>,
     positioning_context: Option<PositioningContext>,
     fragments: Vec<Fragment>,
 }
 
 impl<'a> RowFragmentLayout<'a> {
-    fn new(table_row: &'a TableTrack, index: usize, dimensions: &TableAndTrackDimensions) -> Self {
+    fn new(
+        table_row: &'a TableTrack,
+        index: usize,
+        dimensions: &TableAndTrackDimensions,
+        table_style: &'a ComputedValues,
+    ) -> Self {
+        let rect = dimensions.get_row_rect(index);
+        let containing_block = ContainingBlock {
+            inline_size: rect.size.inline,
+            block_size: AuOrAuto::LengthPercentage(rect.size.inline),
+            style: table_style,
+        };
         Self {
             row: table_row,
-            rect: dimensions.get_row_rect(index),
+            rect,
             positioning_context: PositioningContext::new_for_style(&table_row.style),
+            containing_block,
             fragments: Vec::new(),
         }
     }
@@ -2134,23 +2206,40 @@ impl<'a> RowFragmentLayout<'a> {
         mut self,
         layout_context: &LayoutContext,
         table_positioning_context: &mut PositioningContext,
-        containing_block: &ContainingBlock,
+        containing_block_for_logical_conversion: &ContainingBlock,
+        containing_block_for_children: &ContainingBlock,
         row_group_fragment_layout: &mut Option<RowGroupFragmentLayout>,
     ) -> BoxFragment {
         if self.positioning_context.is_some() {
-            self.rect.start_corner += relative_adjustement(&self.row.style, containing_block);
+            self.rect.start_corner +=
+                relative_adjustement(&self.row.style, containing_block_for_children);
         }
 
-        if let Some(ref row_group_layout) = row_group_fragment_layout {
-            self.rect.start_corner -= row_group_layout.rect.start_corner;
-        }
+        let (inline_size, block_size) =
+            if let Some(ref row_group_layout) = row_group_fragment_layout {
+                self.rect.start_corner -= row_group_layout.rect.start_corner;
+                (
+                    row_group_layout.rect.size.inline,
+                    AuOrAuto::LengthPercentage(row_group_layout.rect.size.block),
+                )
+            } else {
+                (
+                    containing_block_for_logical_conversion.inline_size,
+                    containing_block_for_logical_conversion.block_size,
+                )
+            };
+
+        let row_group_containing_block = ContainingBlock {
+            inline_size,
+            block_size,
+            style: containing_block_for_logical_conversion.style,
+        };
 
         let mut row_fragment = BoxFragment::new(
             self.row.base_fragment_info,
             self.row.style.clone(),
             self.fragments,
-            self.rect
-                .to_physical(containing_block.effective_writing_mode()),
+            self.rect.to_physical(Some(&row_group_containing_block)),
             PhysicalSides::zero(), /* padding */
             PhysicalSides::zero(), /* border */
             PhysicalSides::zero(), /* margin */
@@ -2203,10 +2292,12 @@ impl RowGroupFragmentLayout {
         mut self,
         layout_context: &LayoutContext,
         table_positioning_context: &mut PositioningContext,
-        containing_block: &ContainingBlock,
+        containing_block_for_logical_conversion: &ContainingBlock,
+        containing_block_for_children: &ContainingBlock,
     ) -> BoxFragment {
         if self.positioning_context.is_some() {
-            self.rect.start_corner += relative_adjustement(&self.style, containing_block);
+            self.rect.start_corner +=
+                relative_adjustement(&self.style, containing_block_for_children);
         }
 
         let mut row_group_fragment = BoxFragment::new(
@@ -2214,7 +2305,7 @@ impl RowGroupFragmentLayout {
             self.style,
             self.fragments,
             self.rect
-                .to_physical(containing_block.effective_writing_mode()),
+                .to_physical(Some(containing_block_for_logical_conversion)),
             PhysicalSides::zero(), /* padding */
             PhysicalSides::zero(), /* border */
             PhysicalSides::zero(), /* margin */
@@ -2414,7 +2505,7 @@ impl Table {
         layout_context: &LayoutContext,
         containing_block_for_children: &IndefiniteContainingBlock,
     ) -> ContentSizes {
-        let writing_mode = containing_block_for_children.style.effective_writing_mode();
+        let writing_mode = containing_block_for_children.style.writing_mode;
         let mut layout = TableLayout::new(self);
         let mut table_content_sizes = layout.compute_grid_min_max(layout_context, writing_mode);
 
@@ -2536,6 +2627,7 @@ impl TableSlotCell {
         cell_baseline: Au,
         positioning_context: &mut PositioningContext,
         table_style: &ComputedValues,
+        containing_block: &ContainingBlock,
     ) -> BoxFragment {
         // This must be scoped to this function because it conflicts with euclid's Zero.
         use style::Zero as StyleZero;
@@ -2570,7 +2662,7 @@ impl TableSlotCell {
             block: vertical_align_offset,
         };
         let vertical_align_fragment = PositioningFragment::new_anonymous(
-            vertical_align_fragment_rect.to_physical(table_style.effective_writing_mode()),
+            vertical_align_fragment_rect.to_physical(None),
             layout.layout.fragments,
         );
 
@@ -2581,8 +2673,7 @@ impl TableSlotCell {
         // TODO(mrobinson): This is correct for absolutes that are direct children of the table
         // cell, but wrong for absolute fragments that are more deeply nested in the hierarchy of
         // fragments.
-        let physical_cell_rect =
-            cell_content_rect.to_physical(table_style.effective_writing_mode());
+        let physical_cell_rect = cell_content_rect.to_physical(Some(containing_block));
         layout
             .positioning_context
             .adjust_static_position_of_hoisted_fragments_with_offset(
@@ -2596,12 +2687,8 @@ impl TableSlotCell {
             self.style.clone(),
             vec![Fragment::Positioning(vertical_align_fragment)],
             physical_cell_rect,
-            layout
-                .padding
-                .to_physical(table_style.effective_writing_mode()),
-            layout
-                .border
-                .to_physical(table_style.effective_writing_mode()),
+            layout.padding.to_physical(table_style.writing_mode),
+            layout.border.to_physical(table_style.writing_mode),
             PhysicalSides::zero(), /* margin */
             None,                  /* clearance */
             CollapsedBlockMargins::zero(),

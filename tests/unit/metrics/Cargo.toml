@@ -18,4 +18,3 @@ ipc-channel = { workspace = true }
 metrics = { path = "../../../components/metrics" }
 profile_traits = { workspace = true }
 servo_url = { path = "../../../components/url" }
-time = { workspace = true }

@@ -4,7 +4,9 @@
 
 use std::collections::HashMap;
 use std::net::{Ipv4Addr, Ipv6Addr};
+use std::time::Duration;
 
+use base::cross_process_instant::CrossProcessInstant;
 use embedder_traits::resources::{self, Resource};
 use headers::{HeaderMapExt, StrictTransportSecurity};
 use http::HeaderMap;
@@ -19,15 +21,15 @@ use servo_url::{Host, ServoUrl};
 pub struct HstsEntry {
     pub host: String,
     pub include_subdomains: bool,
-    pub max_age: Option<u64>,
-    pub timestamp: Option<u64>,
+    pub max_age: Option<Duration>,
+    pub timestamp: Option<CrossProcessInstant>,
 }
 
 impl HstsEntry {
     pub fn new(
         host: String,
         subdomains: IncludeSubdomains,
-        max_age: Option<u64>,
+        max_age: Option<Duration>,
     ) -> Option<HstsEntry> {
         if host.parse::<Ipv4Addr>().is_ok() || host.parse::<Ipv6Addr>().is_ok() {
             None
@@ -36,16 +38,14 @@ impl HstsEntry {
                 host,
                 include_subdomains: (subdomains == IncludeSubdomains::Included),
                 max_age,
-                timestamp: Some(time::get_time().sec as u64),
+                timestamp: Some(CrossProcessInstant::now()),
             })
         }
     }
 
     pub fn is_expired(&self) -> bool {
         match (self.max_age, self.timestamp) {
-            (Some(max_age), Some(timestamp)) => {
-                (time::get_time().sec as u64) - timestamp >= max_age
-            },
+            (Some(max_age), Some(timestamp)) => CrossProcessInstant::now() - timestamp >= max_age,
 
             _ => false,
         }
@@ -187,11 +187,9 @@ impl HstsList {
                     IncludeSubdomains::NotIncluded
                 };
 
-                if let Some(entry) = HstsEntry::new(
-                    host.to_owned(),
-                    include_subdomains,
-                    Some(header.max_age().as_secs()),
-                ) {
+                if let Some(entry) =
+                    HstsEntry::new(host.to_owned(), include_subdomains, Some(header.max_age()))
+                {
                     info!("adding host {} to the strict transport security list", host);
                     info!("- max-age {}", header.max_age().as_secs());
                     if header.include_subdomains() {

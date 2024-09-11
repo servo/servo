@@ -67,7 +67,7 @@ impl BoxTree {
         // TODO: This should handle when different overflow is set multiple axes, which requires the
         // compositor scroll tree to allow setting a value per axis.
         let root_style = root_element.style(context);
-        let mut root_overflow = root_style.get_box().overflow_y;
+        let mut root_overflow = root_style.effective_overflow().y;
         if root_overflow == Overflow::Visible && !root_style.get_box().display.is_none() {
             for child in iter_child_nodes(root_element) {
                 if !child.to_threadsafe().as_element().map_or(false, |element| {
@@ -78,7 +78,7 @@ impl BoxTree {
 
                 let style = child.style(context);
                 if !style.get_box().display.is_none() {
-                    root_overflow = style.get_box().overflow_y;
+                    root_overflow = style.effective_overflow().y;
                     break;
                 }
             }
