@@ -34,22 +34,14 @@ fn main() {
 fn find_python() -> PathBuf {
     let mut candidates = vec![];
     if let Some(venv) = env::var_os("VIRTUAL_ENV") {
-        let bin_directory = PathBuf::from(venv).join("bin");
-
-        let python3 = bin_directory.join("python3");
-        if python3.exists() {
-            candidates.push(python3);
-        }
-        let python = bin_directory.join("python");
-        if python.exists() {
-            candidates.push(python);
-        }
-    };
+        // See: https://docs.python.org/3/library/venv.html#how-venvs-work
+        let bin_dir = if cfg!(windows) { "Scripts" } else { "bin" };
+        let bin_directory = PathBuf::from(venv).join(bin_dir);
+        candidates.push(bin_directory.join("python3"));
+        candidates.push(bin_directory.join("python"));
+    }
     if let Some(python3) = env::var_os("PYTHON3") {
-        let python3 = PathBuf::from(python3);
-        if python3.exists() {
-            candidates.push(python3);
-        }
+        candidates.push(PathBuf::from(python3));
     }
 
     let system_python = ["python3", "python"].map(PathBuf::from);
