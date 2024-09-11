@@ -550,7 +550,7 @@ To see more help for a specific command, run:
                 if os.path.isfile(path):
                     return path
 
-        files = map(find_in_dir, self.settings_paths)
+        files = map(find_in_dir, paths)
         files = filter(bool, files)
 
         self.settings.load_files(files)
