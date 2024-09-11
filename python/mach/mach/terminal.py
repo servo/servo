@@ -13,8 +13,6 @@ from __future__ import absolute_import, print_function, unicode_literals
 import logging
 import sys
 
-from six.moves import range
-
 
 class LoggingHandler(logging.Handler):
     """Custom logging handler that works with terminal window dressing.
