@@ -156,7 +156,10 @@ impl FakeXRInputControllerMethods for FakeXRInputController {
             return Err(Error::Type("Pressed value must be non-negative".into()));
         }
 
-        // TODO: Hook into gamepad state
+        // TODO: Steps 3-5 of updateButtonState
+        // Passing the one WPT test that utilizes this will require additional work
+        // to specify gamepad button/axes list lengths, as well as passing that info
+        // to the constructor of XRInputSource
 
         Ok(())
     }
@@ -174,9 +177,10 @@ impl From<FakeXRButtonType> for MockButtonType {
     }
 }
 
-pub fn init_to_mock_buttons(buttons: &Vec<FakeXRButtonStateInit>) -> Vec<MockButton> {
+/// <https://immersive-web.github.io/webxr-test-api/#parse-supported-buttons>
+pub fn init_to_mock_buttons(buttons: &[FakeXRButtonStateInit]) -> Vec<MockButton> {
     let supported: Vec<MockButton> = buttons
-        .into_iter()
+        .iter()
         .map(|b| MockButton {
             button_type: b.buttonType.into(),
             pressed: b.pressed,
