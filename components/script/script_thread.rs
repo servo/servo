@@ -1821,6 +1821,10 @@ impl ScriptThread {
         };
         debug!("Got event.");
 
+        // Prioritize only a single update of the rendering;
+        // others will run together with the other sequential tasks.
+        let mut rendering_update_already_prioritized = false;
+
         loop {
             let pipeline_id = self.message_to_pipeline(&event);
             let _realm = pipeline_id.map(|id| {
@@ -1894,15 +1898,29 @@ impl ScriptThread {
                     self.handle_event(id, event)
                 },
                 FromScript(MainThreadScriptMsg::Common(CommonScriptMsg::Task(
-                    _,
+                    category,
                     task,
-                    _pipeline_id,
+                    pipeline_id,
                     TaskSourceName::Rendering,
                 ))) => {
-                    // Run the "update the rendering" task.
-                    task.run_box();
-                    // Always perform a microtrask checkpoint after running a task.
-                    self.perform_a_microtask_checkpoint(CanGc::note());
+                    if rendering_update_already_prioritized {
+                        // If we've already updated the rendering,
+                        // run this task along with the other non-prioritized ones.
+                        sequential.push(FromScript(MainThreadScriptMsg::Common(
+                            CommonScriptMsg::Task(
+                                category,
+                                task,
+                                pipeline_id,
+                                TaskSourceName::Rendering,
+                            ),
+                        )));
+                    } else {
+                        // Run the "update the rendering" task.
+                        task.run_box();
+                        // Always perform a microtrask checkpoint after running a task.
+                        self.perform_a_microtask_checkpoint(CanGc::note());
+                        rendering_update_already_prioritized = true;
+                    }
                 },
                 FromScript(MainThreadScriptMsg::Inactive) => {
                     // An event came-in from a document that is not fully-active, it has been stored by the task-queue.
