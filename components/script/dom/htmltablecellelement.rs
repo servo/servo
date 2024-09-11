@@ -111,6 +111,7 @@ pub trait HTMLTableCellElementLayoutHelpers<'dom> {
     fn get_rowspan(self) -> Option<u32>;
     fn get_table(self) -> Option<LayoutDom<'dom, HTMLTableElement>>;
     fn get_width(self) -> LengthOrPercentageOrAuto;
+    fn get_height(self) -> LengthOrPercentageOrAuto;
 }
 
 impl<'dom> HTMLTableCellElementLayoutHelpers<'dom> for LayoutDom<'dom, HTMLTableCellElement> {
@@ -151,6 +152,14 @@ impl<'dom> HTMLTableCellElementLayoutHelpers<'dom> for LayoutDom<'dom, HTMLTable
             .cloned()
             .unwrap_or(LengthOrPercentageOrAuto::Auto)
     }
+
+    fn get_height(self) -> LengthOrPercentageOrAuto {
+        self.upcast::<Element>()
+            .get_attr_for_layout(&ns!(), &local_name!("height"))
+            .map(AttrValue::as_dimension)
+            .cloned()
+            .unwrap_or(LengthOrPercentageOrAuto::Auto)
+    }
 }
 
 impl VirtualMethods for HTMLTableCellElement {
@@ -185,6 +194,7 @@ impl VirtualMethods for HTMLTableCellElement {
             },
             local_name!("bgcolor") => AttrValue::from_legacy_color(value.into()),
             local_name!("width") => AttrValue::from_nonzero_dimension(value.into()),
+            local_name!("height") => AttrValue::from_nonzero_dimension(value.into()),
             _ => self
                 .super_type()
                 .unwrap()

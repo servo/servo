@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
 use js::rust::HandleObject;
-use style::attr::AttrValue;
+use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 
 use super::bindings::root::LayoutDom;
 use super::element::Element;
@@ -66,6 +66,7 @@ impl HTMLTableColElementMethods for HTMLTableColElement {
 
 pub trait HTMLTableColElementLayoutHelpers<'dom> {
     fn get_span(self) -> Option<u32>;
+    fn get_width(self) -> LengthOrPercentageOrAuto;
 }
 
 impl<'dom> HTMLTableColElementLayoutHelpers<'dom> for LayoutDom<'dom, HTMLTableColElement> {
@@ -73,6 +74,14 @@ impl<'dom> HTMLTableColElementLayoutHelpers<'dom> for LayoutDom<'dom, HTMLTableC
         self.upcast::<Element>()
             .get_attr_for_layout(&ns!(), &local_name!("span"))
             .map(AttrValue::as_uint)
+    }
+
+    fn get_width(self) -> LengthOrPercentageOrAuto {
+        self.upcast::<Element>()
+            .get_attr_for_layout(&ns!(), &local_name!("width"))
+            .map(AttrValue::as_dimension)
+            .cloned()
+            .unwrap_or(LengthOrPercentageOrAuto::Auto)
     }
 }
 
@@ -92,6 +101,7 @@ impl VirtualMethods for HTMLTableColElement {
                 }
                 attr
             },
+            local_name!("width") => AttrValue::from_dimension(value.into()),
             _ => self
                 .super_type()
                 .unwrap()

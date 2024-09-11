@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
 use js::rust::HandleObject;
-use style::attr::AttrValue;
+use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 use style::color::AbsoluteColor;
 
 use crate::dom::bindings::codegen::Bindings::HTMLTableElementBinding::HTMLTableElementMethods;
@@ -154,6 +154,7 @@ impl HTMLTableRowElementMethods for HTMLTableRowElement {
 
 pub trait HTMLTableRowElementLayoutHelpers {
     fn get_background_color(self) -> Option<AbsoluteColor>;
+    fn get_height(self) -> LengthOrPercentageOrAuto;
 }
 
 impl HTMLTableRowElementLayoutHelpers for LayoutDom<'_, HTMLTableRowElement> {
@@ -162,6 +163,14 @@ impl HTMLTableRowElementLayoutHelpers for LayoutDom<'_, HTMLTableRowElement> {
             .get_attr_for_layout(&ns!(), &local_name!("bgcolor"))
             .and_then(AttrValue::as_color)
             .cloned()
+    }
+
+    fn get_height(self) -> LengthOrPercentageOrAuto {
+        self.upcast::<Element>()
+            .get_attr_for_layout(&ns!(), &local_name!("height"))
+            .map(AttrValue::as_dimension)
+            .cloned()
+            .unwrap_or(LengthOrPercentageOrAuto::Auto)
     }
 }
 
@@ -173,6 +182,7 @@ impl VirtualMethods for HTMLTableRowElement {
     fn parse_plain_attribute(&self, local_name: &LocalName, value: DOMString) -> AttrValue {
         match *local_name {
             local_name!("bgcolor") => AttrValue::from_legacy_color(value.into()),
+            local_name!("height") => AttrValue::from_dimension(value.into()),
             _ => self
                 .super_type()
                 .unwrap()
