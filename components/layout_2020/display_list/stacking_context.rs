@@ -1287,8 +1287,7 @@ impl BoxFragment {
         parent_clip_id: &wr::ClipChainId,
         containing_block_rect: &PhysicalRect<Au>,
     ) -> Option<(ScrollTreeNodeId, wr::ClipChainId, LayoutSize)> {
-        let overflow_x = self.style.get_box().overflow_x;
-        let overflow_y = self.style.get_box().overflow_y;
+        let overflow = self.style.effective_overflow();
         if !self.style.establishes_scroll_container() {
             return None;
         }
@@ -1318,7 +1317,7 @@ impl BoxFragment {
         );
 
         let sensitivity =
-            if ComputedOverflow::Hidden == overflow_x && ComputedOverflow::Hidden == overflow_y {
+            if ComputedOverflow::Hidden == overflow.x && ComputedOverflow::Hidden == overflow.y {
                 ScrollSensitivity::Script
             } else {
                 ScrollSensitivity::ScriptAndInputEvents
