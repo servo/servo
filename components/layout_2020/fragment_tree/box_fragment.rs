@@ -16,9 +16,7 @@ use style::Zero;
 use super::{BaseFragment, BaseFragmentInfo, CollapsedBlockMargins, Fragment};
 use crate::cell::ArcRefCell;
 use crate::formatting_contexts::Baselines;
-use crate::geom::{
-    AuOrAuto, LogicalRect, PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize, ToLogical,
-};
+use crate::geom::{AuOrAuto, PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize, ToLogical};
 use crate::style_ext::ComputedValuesExt;
 
 /// Describes how a [`BoxFragment`] paints its background.
@@ -36,7 +34,7 @@ pub(crate) enum BackgroundMode {
 
 pub(crate) struct ExtraBackground {
     pub style: ServoArc<ComputedValues>,
-    pub rect: LogicalRect<Au>,
+    pub rect: PhysicalRect<Au>,
 }
 
 #[derive(Serialize)]
@@ -165,16 +163,15 @@ impl BoxFragment {
     /// Get the baselines for this [`BoxFragment`] if they are compatible with the given [`WritingMode`].
     /// If they are not compatible, [`Baselines::default()`] is returned.
     pub fn baselines(&self, writing_mode: WritingMode) -> Baselines {
-        let mut baselines = if writing_mode.is_horizontal() ==
-            self.style.effective_writing_mode().is_horizontal()
-        {
-            self.baselines
-        } else {
-            // If the writing mode of the container requesting baselines is not
-            // compatible, ensure that the baselines established by this fragment are
-            // not used.
-            Baselines::default()
-        };
+        let mut baselines =
+            if writing_mode.is_horizontal() == self.style.writing_mode.is_horizontal() {
+                self.baselines
+            } else {
+                // If the writing mode of the container requesting baselines is not
+                // compatible, ensure that the baselines established by this fragment are
+                // not used.
+                Baselines::default()
+            };
 
         // From the https://drafts.csswg.org/css-align-3/#baseline-export section on "block containers":
         // > However, for legacy reasons if its baseline-source is auto (the initial
@@ -185,12 +182,12 @@ impl BoxFragment {
         // This applies even if there is no baseline set, so we unconditionally set the value here
         // and ignore anything that is set via [`Self::with_baselines`].
         if self.style.establishes_scroll_container() {
-            let content_rect = self.content_rect.to_logical(writing_mode);
+            let content_rect_size = self.content_rect.size.to_logical(writing_mode);
             let padding = self.padding.to_logical(writing_mode);
             let border = self.border.to_logical(writing_mode);
             let margin = self.margin.to_logical(writing_mode);
             baselines.last = Some(
-                content_rect.size.block + padding.block_end + border.block_end + margin.block_end,
+                content_rect_size.block + padding.block_end + border.block_end + margin.block_end,
             )
         }
         baselines
@@ -227,6 +224,10 @@ impl BoxFragment {
 
     pub(crate) fn margin_rect(&self) -> PhysicalRect<Au> {
         self.border_rect().outer_rect(self.margin)
+    }
+
+    pub(crate) fn padding_border_margin(&self) -> PhysicalSides<Au> {
+        self.margin + self.border + self.padding
     }
 
     pub fn print(&self, tree: &mut PrintTree) {

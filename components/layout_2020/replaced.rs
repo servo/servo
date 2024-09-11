@@ -235,7 +235,7 @@ impl ReplacedContent {
 
     fn flow_relative_intrinsic_size(&self, style: &ComputedValues) -> LogicalVec2<Option<Au>> {
         let intrinsic_size = PhysicalSize::new(self.intrinsic.width, self.intrinsic.height);
-        LogicalVec2::from_physical_size(&intrinsic_size, style.effective_writing_mode())
+        LogicalVec2::from_physical_size(&intrinsic_size, style.writing_mode)
     }
 
     fn inline_size_over_block_size_intrinsic_ratio(
@@ -243,7 +243,7 @@ impl ReplacedContent {
         style: &ComputedValues,
     ) -> Option<CSSFloat> {
         self.intrinsic.ratio.map(|width_over_height| {
-            if style.effective_writing_mode().is_vertical() {
+            if style.writing_mode.is_vertical() {
                 1. / width_over_height
             } else {
                 width_over_height
@@ -351,7 +351,7 @@ impl ReplacedContent {
         style.preferred_aspect_ratio(
             self.inline_size_over_block_size_intrinsic_ratio(style),
             containing_block.try_into().ok().as_ref(),
-            containing_block.style.effective_writing_mode(),
+            containing_block.style.writing_mode,
         )
     }
 
@@ -398,7 +398,7 @@ impl ReplacedContent {
         min_box_size: LogicalVec2<Au>,
         max_box_size: LogicalVec2<Option<Au>>,
     ) -> LogicalVec2<Au> {
-        let mode = style.effective_writing_mode();
+        let mode = style.writing_mode;
         let intrinsic_size = self.flow_relative_intrinsic_size(style);
         let intrinsic_ratio = self.preferred_aspect_ratio(&containing_block.into(), style);
 

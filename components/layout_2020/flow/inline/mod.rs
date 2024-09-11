@@ -123,7 +123,7 @@ use crate::fragment_tree::{
     BoxFragment, CollapsedBlockMargins, CollapsedMargin, Fragment, FragmentFlags,
     PositioningFragment,
 };
-use crate::geom::{LogicalRect, LogicalVec2, PhysicalRect, ToLogical};
+use crate::geom::{LogicalRect, LogicalVec2, PhysicalPoint, PhysicalRect, ToLogical};
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
 use crate::sizing::ContentSizes;
 use crate::style_ext::{Clamp, ComputedValuesExt, PaddingBorderMargin};
@@ -719,7 +719,7 @@ impl<'layout_dta> InlineFormattingContextLayout<'layout_dta> {
                 inline_box_state.pbm.margin.inline_start.auto_is(Au::zero);
             self.current_line_segment
                 .line_items
-                .push(LineItem::StartInlineBoxPaddingBorderMargin(
+                .push(LineItem::LeftInlineBoxPaddingBorderMargin(
                     inline_box.identifier,
                 ));
         }
@@ -764,7 +764,7 @@ impl<'layout_dta> InlineFormattingContextLayout<'layout_dta> {
             self.current_line_segment.inline_size += pbm_end;
             self.current_line_segment
                 .line_items
-                .push(LineItem::EndInlineBoxPaddingBorderMargin(
+                .push(LineItem::RightInlineBoxPaddingBorderMargin(
                     inline_box_state.identifier,
                 ))
         }
@@ -872,30 +872,34 @@ impl<'layout_dta> InlineFormattingContextLayout<'layout_dta> {
         self.baselines.first.get_or_insert(baseline);
         self.baselines.last = Some(baseline);
 
-        let line_rect = LogicalRect {
-            // The inline part of this start offset was taken into account when determining
-            // the inline start of the line in `calculate_inline_start_for_current_line` so
-            // we do not need to include it in the `start_corner` of the line's main Fragment.
-            start_corner: LogicalVec2 {
-                inline: Au::zero(),
-                block: block_start_position,
-            },
+        // The inline part of this start offset was taken into account when determining
+        // the inline start of the line in `calculate_inline_start_for_current_line` so
+        // we do not need to include it in the `start_corner` of the line's main Fragment.
+        let start_corner = LogicalVec2 {
+            inline: Au::zero(),
+            block: block_start_position,
+        };
+
+        let logical_origin_in_physical_coordinates =
+            start_corner.to_physical_vector(self.containing_block.style.writing_mode);
+        self.positioning_context
+            .adjust_static_position_of_hoisted_fragments_with_offset(
+                &logical_origin_in_physical_coordinates,
+                start_positioning_context_length,
+            );
+
+        let physical_line_rect = LogicalRect {
+            start_corner,
             size: LogicalVec2 {
                 inline: self.containing_block.inline_size,
                 block: effective_block_advance.resolve(),
             },
-        };
-
-        let line_rect = line_rect.to_physical(self.containing_block.effective_writing_mode());
-        self.positioning_context
-            .adjust_static_position_of_hoisted_fragments_with_offset(
-                &line_rect.origin.to_vector(),
-                start_positioning_context_length,
-            );
-
+        }
+        .to_physical(Some(self.containing_block));
         self.fragments
             .push(Fragment::Positioning(PositioningFragment::new_anonymous(
-                line_rect, fragments,
+                physical_line_rect,
+                fragments,
             )));
     }
 
@@ -909,9 +913,9 @@ impl<'layout_dta> InlineFormattingContextLayout<'layout_dta> {
         last_line_or_forced_line_break: bool,
     ) -> (Au, Au) {
         enum TextAlign {
-            Left,
+            Start,
             Center,
-            Right,
+            End,
         }
         let style = self.containing_block.style;
         let mut text_align_keyword = style.clone_text_align();
@@ -932,24 +936,24 @@ impl<'layout_dta> InlineFormattingContextLayout<'layout_dta> {
         }
 
         let text_align = match text_align_keyword {
-            TextAlignKeyword::Start => {
-                if style.writing_mode.line_left_is_inline_start() {
-                    TextAlign::Left
-                } else {
-                    TextAlign::Right
-                }
-            },
+            TextAlignKeyword::Start => TextAlign::Start,
             TextAlignKeyword::Center | TextAlignKeyword::MozCenter => TextAlign::Center,
-            TextAlignKeyword::End => {
+            TextAlignKeyword::End => TextAlign::End,
+            TextAlignKeyword::Left | TextAlignKeyword::MozLeft => {
                 if style.writing_mode.line_left_is_inline_start() {
-                    TextAlign::Right
+                    TextAlign::Start
                 } else {
-                    TextAlign::Left
+                    TextAlign::End
                 }
             },
-            TextAlignKeyword::Left | TextAlignKeyword::MozLeft => TextAlign::Left,
-            TextAlignKeyword::Right | TextAlignKeyword::MozRight => TextAlign::Right,
-            TextAlignKeyword::Justify => TextAlign::Left,
+            TextAlignKeyword::Right | TextAlignKeyword::MozRight => {
+                if style.writing_mode.line_left_is_inline_start() {
+                    TextAlign::End
+                } else {
+                    TextAlign::Start
+                }
+            },
+            TextAlignKeyword::Justify => TextAlign::Start,
         };
 
         let (line_start, available_space) = match self.current_line.placement_among_floats.get() {
@@ -970,8 +974,8 @@ impl<'layout_dta> InlineFormattingContextLayout<'layout_dta> {
         let line_length = self.current_line.inline_position - whitespace_trimmed - text_indent;
         let adjusted_line_start = line_start +
             match text_align {
-                TextAlign::Left => text_indent,
-                TextAlign::Right => (available_space - line_length).max(text_indent),
+                TextAlign::Start => text_indent,
+                TextAlign::End => (available_space - line_length).max(text_indent),
                 TextAlign::Center => (available_space - line_length + text_indent)
                     .scale_by(0.5)
                     .max(text_indent),
@@ -1015,7 +1019,7 @@ impl<'layout_dta> InlineFormattingContextLayout<'layout_dta> {
             state.current_containing_block_offset();
         state.place_float_fragment(
             fragment,
-            self.containing_block.effective_writing_mode(),
+            self.containing_block,
             CollapsedMargin::zero(),
             block_offset_from_containining_block_top,
         );
@@ -1034,11 +1038,12 @@ impl<'layout_dta> InlineFormattingContextLayout<'layout_dta> {
         float_item: &mut FloatLineItem,
         line_inline_size_without_trailing_whitespace: Au,
     ) {
-        let margin_box = float_item
+        let logical_margin_rect_size = float_item
             .fragment
             .margin_rect()
-            .to_logical(self.containing_block.effective_writing_mode());
-        let inline_size = margin_box.size.inline.max(Au::zero());
+            .size
+            .to_logical(self.containing_block.style.writing_mode);
+        let inline_size = logical_margin_rect_size.inline.max(Au::zero());
 
         let available_inline_size = match self.current_line.placement_among_floats.get() {
             Some(placement_among_floats) => placement_among_floats.size.inline,
@@ -1902,36 +1907,22 @@ impl IndependentFormattingContext {
         bidi_level: Level,
     ) {
         let style = self.style();
-        let container_writing_mode = layout.containing_block.style.effective_writing_mode();
+        let container_writing_mode = layout.containing_block.style.writing_mode;
         let pbm = style.padding_border_margin(layout.containing_block);
         let margin = pbm.margin.auto_is(Au::zero);
         let pbm_sums = pbm.padding + pbm.border + margin;
-        let pbm_physical_origin = pbm_sums
-            .start_offset()
-            .to_physical_point(container_writing_mode);
-        let mut child_positioning_context = None;
 
         // We need to know the inline size of the atomic before deciding whether to do the line break.
-        let fragment = match self {
+        let (fragments, content_rect, baselines, mut child_positioning_context) = match self {
             IndependentFormattingContext::Replaced(replaced) => {
                 let size = replaced
                     .contents
                     .used_size_as_if_inline_element(layout.containing_block, &replaced.style, &pbm)
                     .to_physical_size(container_writing_mode);
                 let fragments = replaced.contents.make_fragments(&replaced.style, size);
-                let content_rect = PhysicalRect::new(pbm_physical_origin, size);
 
-                BoxFragment::new(
-                    replaced.base_fragment_info,
-                    replaced.style.clone(),
-                    fragments,
-                    content_rect,
-                    pbm.padding.to_physical(container_writing_mode),
-                    pbm.border.to_physical(container_writing_mode),
-                    margin.to_physical(container_writing_mode),
-                    None, /* clearance */
-                    CollapsedBlockMargins::zero(),
-                )
+                let content_rect = PhysicalRect::new(PhysicalPoint::zero(), size);
+                (fragments, content_rect, None, None)
             },
             IndependentFormattingContext::NonReplaced(non_replaced) => {
                 let box_size = non_replaced
@@ -2010,7 +2001,7 @@ impl IndependentFormattingContext {
                     };
 
                 let content_rect = PhysicalRect::new(
-                    pbm_physical_origin,
+                    PhysicalPoint::zero(),
                     LogicalVec2 {
                         block: block_size,
                         inline: inline_size,
@@ -2018,31 +2009,49 @@ impl IndependentFormattingContext {
                     .to_physical_size(container_writing_mode),
                 );
 
-                let mut fragment = BoxFragment::new(
-                    non_replaced.base_fragment_info,
-                    non_replaced.style.clone(),
+                (
                     independent_layout.fragments,
                     content_rect,
-                    pbm.padding.to_physical(container_writing_mode),
-                    pbm.border.to_physical(container_writing_mode),
-                    margin.to_physical(container_writing_mode),
-                    None,
-                    CollapsedBlockMargins::zero(),
+                    Some(independent_layout.baselines),
+                    Some(positioning_context),
                 )
-                .with_baselines(independent_layout.baselines);
-
-                if fragment
-                    .style
-                    .establishes_containing_block_for_absolute_descendants(fragment.base.flags)
-                {
-                    positioning_context
-                        .layout_collected_children(layout.layout_context, &mut fragment);
-                }
-                child_positioning_context = Some(positioning_context);
-
-                fragment
             },
         };
+
+        // Offset the content rectangle by the physical offset of the padding, border, and margin.
+        let pbm_physical_offset = pbm_sums
+            .start_offset()
+            .to_physical_size(container_writing_mode);
+        let content_rect = content_rect.translate(pbm_physical_offset.to_vector());
+
+        let fragment = BoxFragment::new(
+            self.base_fragment_info(),
+            self.style().clone(),
+            fragments,
+            content_rect,
+            pbm.padding.to_physical(container_writing_mode),
+            pbm.border.to_physical(container_writing_mode),
+            margin.to_physical(container_writing_mode),
+            None, /* clearance */
+            CollapsedBlockMargins::zero(),
+        );
+
+        // Apply baselines if necessary.
+        let mut fragment = match baselines {
+            Some(baselines) => fragment.with_baselines(baselines),
+            None => fragment,
+        };
+
+        // Lay out absolutely positioned children if this new atomic establishes a containing block
+        // for absolutes.
+        if let Some(positioning_context) = child_positioning_context.as_mut() {
+            if fragment
+                .style
+                .establishes_containing_block_for_absolute_descendants(fragment.base.flags)
+            {
+                positioning_context.layout_collected_children(layout.layout_context, &mut fragment);
+            }
+        }
 
         if layout.text_wrap_mode == TextWrapMode::Wrap &&
             !layout
@@ -2055,8 +2064,8 @@ impl IndependentFormattingContext {
         let size = pbm_sums.sum() +
             fragment
                 .content_rect
-                .to_logical(container_writing_mode)
-                .size;
+                .size
+                .to_logical(container_writing_mode);
         let baseline_offset = self
             .pick_baseline(&fragment.baselines(container_writing_mode))
             .map(|baseline| pbm_sums.block_start + baseline)

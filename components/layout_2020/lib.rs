@@ -29,7 +29,6 @@ use app_units::Au;
 pub use flow::BoxTree;
 pub use fragment_tree::FragmentTree;
 use geom::AuOrAuto;
-use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
 use style_ext::{Clamp, ComputedValuesExt};
 
@@ -107,12 +106,6 @@ pub struct ContainingBlock<'a> {
     style: &'a ComputedValues,
 }
 
-impl<'a> ContainingBlock<'a> {
-    pub(crate) fn effective_writing_mode(&self) -> WritingMode {
-        self.style.effective_writing_mode()
-    }
-}
-
 impl<'a> TryFrom<&'_ IndefiniteContainingBlock<'a>> for ContainingBlock<'a> {
     type Error = &'static str;
 
@@ -133,12 +126,6 @@ impl<'a> TryFrom<&'_ IndefiniteContainingBlock<'a>> for ContainingBlock<'a> {
 struct DefiniteContainingBlock<'a> {
     size: LogicalVec2<Au>,
     style: &'a ComputedValues,
-}
-
-impl<'a> DefiniteContainingBlock<'a> {
-    pub(crate) fn effective_writing_mode(&self) -> WritingMode {
-        self.style.effective_writing_mode()
-    }
 }
 
 impl<'a> From<&'_ DefiniteContainingBlock<'a>> for ContainingBlock<'a> {

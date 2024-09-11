@@ -109,6 +109,17 @@ impl Fragment {
             Fragment::Float(fragment) => &fragment.base,
         })
     }
+    pub(crate) fn content_rect_mut(&mut self) -> Option<&mut PhysicalRect<Au>> {
+        match self {
+            Fragment::Box(box_fragment) | Fragment::Float(box_fragment) => {
+                Some(&mut box_fragment.content_rect)
+            },
+            Fragment::Positioning(_) | Fragment::AbsoluteOrFixedPositioned(_) => None,
+            Fragment::Text(text_fragment) => Some(&mut text_fragment.rect),
+            Fragment::Image(image_fragment) => Some(&mut image_fragment.rect),
+            Fragment::IFrame(iframe_fragment) => Some(&mut iframe_fragment.rect),
+        }
+    }
 
     pub fn tag(&self) -> Option<Tag> {
         self.base().and_then(|base| base.tag)
