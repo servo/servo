@@ -446,6 +446,11 @@ pub struct GlyphStore {
     /// Whether or not this glyph store contains only glyphs for whitespace.
     is_whitespace: bool,
 
+    /// Whether or not this glyph store ends with whitespace glyphs.
+    /// Typically whitespace glyphs are placed in a separate store,
+    /// but that may not be the case with `white-space: break-spaces`.
+    ends_with_whitespace: bool,
+
     /// Whether or not this glyph store contains only a single glyph for a single
     /// preserved newline.
     is_single_preserved_newline: bool,
@@ -460,6 +465,7 @@ impl<'a> GlyphStore {
     pub fn new(
         length: usize,
         is_whitespace: bool,
+        ends_with_whitespace: bool,
         is_single_preserved_newline: bool,
         is_rtl: bool,
     ) -> GlyphStore {
@@ -472,6 +478,7 @@ impl<'a> GlyphStore {
             total_word_separators: 0,
             has_detailed_glyphs: false,
             is_whitespace,
+            ends_with_whitespace,
             is_single_preserved_newline,
             is_rtl,
         }
@@ -490,6 +497,11 @@ impl<'a> GlyphStore {
     #[inline]
     pub fn is_whitespace(&self) -> bool {
         self.is_whitespace
+    }
+
+    #[inline]
+    pub fn ends_with_whitespace(&self) -> bool {
+        self.ends_with_whitespace
     }
 
     #[inline]

@@ -217,6 +217,8 @@ impl TextRunSegment {
                 continue;
             }
 
+            let mut options = *shaping_options;
+
             // Extend the slice to the next UAX#14 line break opportunity.
             let mut slice = last_slice.end..*break_index;
             let word = &formatting_context_text[slice.clone()];
@@ -247,6 +249,9 @@ impl TextRunSegment {
                     !can_break_anywhere
                 {
                     whitespace.start += first_white_space_character.len_utf8();
+                    options
+                        .flags
+                        .insert(ShapingFlags::ENDS_WITH_WHITESPACE_SHAPING_FLAG);
                 }
 
                 slice.end = whitespace.start;
@@ -267,17 +272,17 @@ impl TextRunSegment {
 
             // Push the non-whitespace part of the range.
             if !slice.is_empty() {
-                self.shape_and_push_range(&slice, formatting_context_text, &font, shaping_options);
+                self.shape_and_push_range(&slice, formatting_context_text, &font, &options);
             }
 
             if whitespace.is_empty() {
                 continue;
             }
 
-            let mut options = *shaping_options;
-            options
-                .flags
-                .insert(ShapingFlags::IS_WHITESPACE_SHAPING_FLAG);
+            options.flags.insert(
+                ShapingFlags::IS_WHITESPACE_SHAPING_FLAG |
+                    ShapingFlags::ENDS_WITH_WHITESPACE_SHAPING_FLAG,
+            );
 
             // If `white-space-collapse: break-spaces` is active, insert a line breaking opportunity
             // between each white space character in the white space that we trimmed off.
