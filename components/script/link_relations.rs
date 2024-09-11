@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-//! Defines shared hyperref behaviour for `<link>`, `<a>`, `<area>` and `<form>` elements.
+//! Defines shared hyperlink behaviour for `<link>`, `<a>`, `<area>` and `<form>` elements.
 
 use html5ever::{local_name, namespace_url, ns};
 use malloc_size_of::malloc_size_of_is_0;
@@ -24,34 +24,91 @@ use crate::dom::types::{Element, GlobalScope};
 use crate::task_source::TaskSource;
 
 bitflags::bitflags! {
+    /// Describes the different relations that can be specified on elements using the `rel`
+    /// attribute.
+    ///
+    /// Refer to <https://html.spec.whatwg.org/multipage/#linkTypes> for more information.
     #[derive(Clone, Copy, Debug)]
     pub struct LinkRelations: u32 {
+        /// <https://html.spec.whatwg.org/multipage/#rel-alternate>
         const ALTERNATE = 1;
+
+        /// <https://html.spec.whatwg.org/multipage/#link-type-author>
         const AUTHOR = 1 << 1;
+
+        /// <https://html.spec.whatwg.org/multipage/#link-type-bookmark>
         const BOOKMARK = 1 << 2;
+
+        /// <https://html.spec.whatwg.org/multipage/#link-type-canonical>
         const CANONICAL = 1 << 3;
+
+        /// <https://html.spec.whatwg.org/multipage/#link-type-dns-prefetch>
         const DNS_PREFETCH = 1 << 4;
+
+        /// <https://html.spec.whatwg.org/multipage/#link-type-expect>
         const EXPECT = 1 << 5;
+
+        /// <https://html.spec.whatwg.org/multipage/#link-type-external>
         const EXTERNAL = 1 << 6;
+
+        /// <https://html.spec.whatwg.org/multipage/#link-type-help>
         const HELP = 1 << 7;
+
+        /// <https://html.spec.whatwg.org/multipage/#rel-icon>
         const ICON = 1 << 8;
+
+        /// <https://html.spec.whatwg.org/multipage/#link-type-license>
         const LICENSE = 1 << 9;
+
+        /// <https://html.spec.whatwg.org/multipage/#link-type-next>
         const NEXT = 1 << 10;
+
+        /// <https://html.spec.whatwg.org/multipage/#link-type-manifest>
         const MANIFEST = 1 << 11;
+
+        /// <https://html.spec.whatwg.org/multipage/#link-type-modulepreload>
         const MODULE_PRELOAD = 1 << 12;
+
+        /// <https://html.spec.whatwg.org/multipage/#link-type-nofollow>
         const NO_FOLLOW = 1 << 13;
+
+        /// <https://html.spec.whatwg.org/multipage/#link-type-noopener>
         const NO_OPENER = 1 << 14;
+
+        /// <https://html.spec.whatwg.org/multipage/#link-type-noreferrer>
         const NO_REFERRER = 1 << 15;
+
+        /// <https://html.spec.whatwg.org/multipage/#link-type-opener>
         const OPENER = 1 << 16;
+
+        /// <https://html.spec.whatwg.org/multipage/#link-type-pingback>
         const PING_BACK = 1 << 17;
+
+        /// <https://html.spec.whatwg.org/multipage/#link-type-preconnect>
         const PRECONNECT = 1 << 18;
+
+        /// <https://html.spec.whatwg.org/multipage/#link-type-prefetch>
         const PREFETCH = 1 << 19;
+
+        /// <https://html.spec.whatwg.org/multipage/#link-type-preload>
         const PRELOAD = 1 << 20;
+
+        /// <https://html.spec.whatwg.org/multipage/#link-type-prev>
         const PREV = 1 << 21;
+
+        /// <https://html.spec.whatwg.org/multipage/#link-type-privacy-policy>
         const PRIVACY_POLICY = 1 << 22;
+
+        /// <https://html.spec.whatwg.org/multipage/#link-type-search>
         const SEARCH = 1 << 23;
+
+        /// <https://html.spec.whatwg.org/multipage/#link-type-stylesheet>
         const STYLESHEET = 1 << 24;
+
+        /// <https://html.spec.whatwg.org/multipage/#link-type-tag>
         const TAG = 1 << 25;
+
+        /// <https://html.spec.whatwg.org/multipage/#link-type-terms-of-service>
         const TERMS_OF_SERVICE = 1 << 26;
     }
 }
