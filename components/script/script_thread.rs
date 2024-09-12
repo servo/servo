@@ -1822,8 +1822,9 @@ impl ScriptThread {
         debug!("Got event.");
 
         // Prioritize only a single update of the rendering;
-        // others will run together with the other sequential tasks.
-        let mut rendering_update_already_prioritized = false;
+        // others will be re-queued,
+        // but only after other sequential tasks have run below.
+        let mut rendering_update_already_prioritized: Option<HashSet<PipelineId>> = None;
 
         loop {
             let pipeline_id = self.message_to_pipeline(&event);
@@ -1903,23 +1904,19 @@ impl ScriptThread {
                     pipeline_id,
                     TaskSourceName::Rendering,
                 ))) => {
-                    if rendering_update_already_prioritized {
+                    if let Some(ref mut buffer) = rendering_update_already_prioritized {
                         // If we've already updated the rendering,
-                        // run this task along with the other non-prioritized ones.
-                        sequential.push(FromScript(MainThreadScriptMsg::Common(
-                            CommonScriptMsg::Task(
-                                category,
-                                task,
-                                pipeline_id,
-                                TaskSourceName::Rendering,
-                            ),
-                        )));
+                        // queue this for another run of the loop,
+                        // but only after having run sequential tasks below.
+                        buffer.insert(pipeline_id.expect(
+                            "Rendering tasks all should have been queued for a given pipeline.",
+                        ));
                     } else {
                         // Run the "update the rendering" task.
                         task.run_box();
                         // Always perform a microtrask checkpoint after running a task.
                         self.perform_a_microtask_checkpoint(can_gc);
-                        rendering_update_already_prioritized = true;
+                        rendering_update_already_prioritized = Some(Default::default());
                     }
                 },
                 FromScript(MainThreadScriptMsg::Inactive) => {
@@ -2061,6 +2058,13 @@ impl ScriptThread {
                 // be driven by the compositor on an as-needed basis instead, to
                 // minimize unnecessary work.
                 window.reflow(ReflowGoal::Full, ReflowReason::MissingExplicitReflow);
+            }
+        }
+
+        // Re-queue any buffered "update the rendering" task for the next tick.
+        if let Some(buffer) = rendering_update_already_prioritized {
+            for pipeline_id in buffer.into_iter() {
+                self.rendering_opportunity(pipeline_id);
             }
         }
 
