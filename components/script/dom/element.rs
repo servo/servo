@@ -850,6 +850,8 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
             this.get_width()
         } else if let Some(this) = self.downcast::<HTMLTableCellElement>() {
             this.get_width()
+        } else if let Some(this) = self.downcast::<HTMLTableColElement>() {
+            this.get_width()
         } else if let Some(this) = self.downcast::<HTMLHRElement>() {
             // https://html.spec.whatwg.org/multipage/#the-hr-element-2:attr-hr-width
             this.get_width()
@@ -885,6 +887,14 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
         let height = if let Some(this) = self.downcast::<HTMLIFrameElement>() {
             this.get_height()
         } else if let Some(this) = self.downcast::<HTMLImageElement>() {
+            this.get_height()
+        } else if let Some(this) = self.downcast::<HTMLTableElement>() {
+            this.get_height()
+        } else if let Some(this) = self.downcast::<HTMLTableCellElement>() {
+            this.get_height()
+        } else if let Some(this) = self.downcast::<HTMLTableRowElement>() {
+            this.get_height()
+        } else if let Some(this) = self.downcast::<HTMLTableSectionElement>() {
             this.get_height()
         } else {
             LengthOrPercentageOrAuto::Auto
