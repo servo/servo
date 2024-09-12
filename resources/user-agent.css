@@ -296,7 +296,10 @@ table {
   text-indent: initial;
 }
 td, th { padding: 1px; }
-th { font-weight: bold; }
+th {
+  font-weight: bold;
+  text-align: -moz-center-or-inherit;
+}
 
 thead, tbody, tfoot, table > tr { vertical-align: middle; }
 tr, td, th { vertical-align: inherit; }
