@@ -646,6 +646,7 @@ pub mod xrprojectionlayer;
 pub mod xrquadlayer;
 pub mod xrray;
 pub mod xrreferencespace;
+pub mod xrreferencespaceevent;
 pub mod xrrenderstate;
 pub mod xrrigidtransform;
 pub mod xrsession;
