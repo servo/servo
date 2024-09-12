@@ -1148,10 +1148,9 @@ impl NonReplacedFormattingContext {
             loop {
                 // First try to place the block using the minimum size as the object size.
                 placement_rect = placement.place();
-                let proposed_inline_size = placement_rect.size.inline -
-                    pbm.padding_border_sums
-                        .inline
-                        .clamp_between_extremums(min_box_size.inline, max_box_size.inline);
+                let proposed_inline_size = (placement_rect.size.inline -
+                    pbm.padding_border_sums.inline)
+                    .clamp_between_extremums(min_box_size.inline, max_box_size.inline);
 
                 // Now lay out the block using the inline size we calculated from the placement.
                 // Later we'll check to see if the resulting block size is compatible with the

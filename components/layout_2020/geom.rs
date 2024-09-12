@@ -152,8 +152,7 @@ impl LogicalVec2<LengthPercentageOrAuto<'_>> {
                 self.block
                     .non_auto()
                     .and_then(|value| value.maybe_to_used_value(containing_block_block_size))
-                    .map(|value| AuOrAuto::LengthPercentage(value))
-                    .unwrap_or(AuOrAuto::Auto)
+                    .map_or(AuOrAuto::Auto, AuOrAuto::LengthPercentage)
             },
         }
     }
@@ -182,14 +181,12 @@ impl LogicalVec2<LengthPercentageOrAuto<'_>> {
                 .inline
                 .non_auto()
                 .and_then(|value| value.maybe_to_used_value(basis.inline))
-                .map(|value| AuOrAuto::LengthPercentage(value))
-                .unwrap_or(AuOrAuto::Auto),
+                .map_or(AuOrAuto::Auto, AuOrAuto::LengthPercentage),
             block: self
                 .block
                 .non_auto()
                 .and_then(|value| value.maybe_to_used_value(basis.block))
-                .map(|value| AuOrAuto::LengthPercentage(value))
-                .unwrap_or(AuOrAuto::Auto),
+                .map_or(AuOrAuto::Auto, AuOrAuto::LengthPercentage),
         }
     }
 }

@@ -945,7 +945,7 @@ impl FlexContainer {
         let max_box_size = self.config.flex_axis.vec2_to_flex_relative(max_box_size);
         let min_box_size = self.config.flex_axis.vec2_to_flex_relative(min_box_size);
 
-        (min_box_size.cross, max_box_size.cross.map(Into::into))
+        (min_box_size.cross, max_box_size.cross)
     }
 }
 
