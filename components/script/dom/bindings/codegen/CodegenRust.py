@@ -6755,12 +6755,15 @@ class CGDictionary(CGThing):
         initParent = f"parent: {initParent},\n" if initParent else ""
         memberInits = CGList([memberInit(m, True) for m in self.memberInfo])
 
+        unsafe_if_necessary = "unsafe"
+        if not initParent and not memberInits:
+            unsafe_if_necessary = ""
         return (
             f"impl {selfName} {{\n"
             f"{CGIndenter(CGGeneric(self.makeEmpty()), indentLevel=4).define()}\n"
             "    pub fn new(cx: SafeJSContext, val: HandleValue) \n"
             f"                      -> Result<ConversionResult<{actualType}>, ()> {{\n"
-            "        unsafe {\n"
+            f"        {unsafe_if_necessary} {{\n"
             "            let object = if val.get().is_null_or_undefined() {\n"
             "                ptr::null_mut()\n"
             "            } else if val.get().is_object() {\n"
