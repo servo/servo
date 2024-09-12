@@ -69,6 +69,7 @@ impl XRInputSourceArray {
         let mut input_sources = self.input_sources.borrow_mut();
         let global = self.global();
         let removed = if let Some(i) = input_sources.iter().find(|i| i.id() == id) {
+            i.gamepad().update_connected(false, false);
             [DomRoot::from_ref(&**i)]
         } else {
             return;
@@ -94,6 +95,7 @@ impl XRInputSourceArray {
         let global = self.global();
         let root;
         let removed = if let Some(i) = input_sources.iter().find(|i| i.id() == id) {
+            i.gamepad().update_connected(false, false);
             root = [DomRoot::from_ref(&**i)];
             &root as &[_]
         } else {

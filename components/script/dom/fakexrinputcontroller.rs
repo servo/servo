@@ -5,15 +5,18 @@
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
 use webxr_api::{
-    Handedness, InputId, MockDeviceMsg, MockInputMsg, SelectEvent, SelectKind, TargetRayMode,
+    Handedness, InputId, MockButton, MockButtonType, MockDeviceMsg, MockInputMsg, SelectEvent,
+    SelectKind, TargetRayMode,
 };
 
 use crate::dom::bindings::codegen::Bindings::FakeXRDeviceBinding::FakeXRRigidTransformInit;
-use crate::dom::bindings::codegen::Bindings::FakeXRInputControllerBinding::FakeXRInputControllerMethods;
+use crate::dom::bindings::codegen::Bindings::FakeXRInputControllerBinding::{
+    FakeXRButtonStateInit, FakeXRButtonType, FakeXRInputControllerMethods,
+};
 use crate::dom::bindings::codegen::Bindings::XRInputSourceBinding::{
     XRHandedness, XRTargetRayMode,
 };
-use crate::dom::bindings::error::Fallible;
+use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
@@ -136,4 +139,56 @@ impl FakeXRInputControllerMethods for FakeXRInputController {
         let t = profiles.into_iter().map(String::from).collect();
         self.send_message(MockInputMsg::SetProfiles(t));
     }
+
+    /// <https://immersive-web.github.io/webxr-test-api/#dom-fakexrinputcontroller-setsupportedbuttons>
+    fn SetSupportedButtons(&self, supported_buttons: Vec<FakeXRButtonStateInit>) {
+        let supported = init_to_mock_buttons(&supported_buttons);
+        self.send_message(MockInputMsg::SetSupportedButtons(supported));
+    }
+
+    /// <https://immersive-web.github.io/webxr-test-api/#dom-fakexrinputcontroller-updatebuttonstate>
+    fn UpdateButtonState(&self, button_state: &FakeXRButtonStateInit) -> Fallible<()> {
+        // https://immersive-web.github.io/webxr-test-api/#validate-a-button-state
+        if (button_state.pressed || *button_state.pressedValue > 0.0) && !button_state.touched {
+            return Err(Error::Type("Pressed button must also be touched".into()));
+        }
+        if *button_state.pressedValue < 0.0 {
+            return Err(Error::Type("Pressed value must be non-negative".into()));
+        }
+
+        // TODO: Steps 3-5 of updateButtonState
+        // Passing the one WPT test that utilizes this will require additional work
+        // to specify gamepad button/axes list lengths, as well as passing that info
+        // to the constructor of XRInputSource
+
+        Ok(())
+    }
+}
+
+impl From<FakeXRButtonType> for MockButtonType {
+    fn from(b: FakeXRButtonType) -> Self {
+        match b {
+            FakeXRButtonType::Grip => MockButtonType::Grip,
+            FakeXRButtonType::Touchpad => MockButtonType::Touchpad,
+            FakeXRButtonType::Thumbstick => MockButtonType::Thumbstick,
+            FakeXRButtonType::Optional_button => MockButtonType::OptionalButton,
+            FakeXRButtonType::Optional_thumbstick => MockButtonType::OptionalThumbstick,
+        }
+    }
+}
+
+/// <https://immersive-web.github.io/webxr-test-api/#parse-supported-buttons>
+pub fn init_to_mock_buttons(buttons: &[FakeXRButtonStateInit]) -> Vec<MockButton> {
+    let supported: Vec<MockButton> = buttons
+        .iter()
+        .map(|b| MockButton {
+            button_type: b.buttonType.into(),
+            pressed: b.pressed,
+            touched: b.touched,
+            pressed_value: *b.pressedValue,
+            x_value: *b.xValue,
+            y_value: *b.yValue,
+        })
+        .collect();
+    supported
 }
