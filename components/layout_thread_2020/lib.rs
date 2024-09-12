@@ -87,6 +87,7 @@ use style::values::computed::{CSSPixelLength, FontSize, Length, NonNegativeLengt
 use style::values::specified::font::KeywordInfo;
 use style::{driver, Zero};
 use style_traits::{CSSPixel, DevicePixel, SpeculativePainter};
+use tracing::{span, Level};
 use url::Url;
 use webrender_api::units::LayoutPixel;
 use webrender_api::{units, ExternalScrollId, HitTestFlags};
@@ -184,6 +185,7 @@ impl LayoutFactory for LayoutFactoryImpl {
     }
 }
 
+#[derive(Debug)]
 struct ScriptReflowResult {
     script_reflow: ScriptReflow,
     result: RefCell<Option<ReflowComplete>>,
@@ -251,6 +253,7 @@ impl Layout for LayoutThread {
         );
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn add_stylesheet(
         &mut self,
         stylesheet: ServoArc<Stylesheet>,
@@ -270,6 +273,7 @@ impl Layout for LayoutThread {
         }
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn remove_stylesheet(&mut self, stylesheet: ServoArc<Stylesheet>) {
         let guard = stylesheet.shared_lock.read();
         let stylesheet = DocumentStyleSheet(stylesheet.clone());
@@ -278,18 +282,22 @@ impl Layout for LayoutThread {
             .remove_all_web_fonts_from_stylesheet(&stylesheet);
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn query_content_box(&self, node: OpaqueNode) -> Option<UntypedRect<Au>> {
         process_content_box_request(node, self.fragment_tree.borrow().clone())
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn query_content_boxes(&self, node: OpaqueNode) -> Vec<UntypedRect<Au>> {
         process_content_boxes_request(node, self.fragment_tree.borrow().clone())
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn query_client_rect(&self, node: OpaqueNode) -> UntypedRect<i32> {
         process_node_geometry_request(node, self.fragment_tree.borrow().clone())
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn query_element_inner_text(
         &self,
         node: script_layout_interface::TrustedNodeAddress,
@@ -307,6 +315,7 @@ impl Layout for LayoutThread {
         None
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn query_nodes_from_point(
         &self,
         point: UntypedPoint2D<f32>,
@@ -329,10 +338,12 @@ impl Layout for LayoutThread {
         results.iter().map(|result| result.node.into()).collect()
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn query_offset_parent(&self, node: OpaqueNode) -> OffsetParentResponse {
         process_offset_parent_query(node, self.fragment_tree.borrow().clone())
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn query_resolved_style(
         &self,
         node: TrustedNodeAddress,
@@ -368,6 +379,7 @@ impl Layout for LayoutThread {
         )
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn query_resolved_font_style(
         &self,
         node: TrustedNodeAddress,
@@ -400,10 +412,12 @@ impl Layout for LayoutThread {
         )
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn query_scrolling_area(&self, node: Option<OpaqueNode>) -> UntypedRect<i32> {
         process_node_scroll_area_request(node, self.fragment_tree.borrow().clone())
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn query_text_indext(
         &self,
         node: OpaqueNode,
@@ -640,6 +654,7 @@ impl LayoutThread {
     }
 
     /// The high-level routine that performs layout.
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn handle_reflow(&mut self, data: &mut ScriptReflowResult) {
         let document = unsafe { ServoLayoutNode::new(&data.document) };
         let document = document.as_document().unwrap();
@@ -759,6 +774,8 @@ impl LayoutThread {
         };
 
         if token.should_traverse() {
+            let span = span!(Level::TRACE, "driver::traverse_dom", servo_profiling = true);
+            let _enter = span.enter();
             let dirty_root: ServoLayoutNode =
                 driver::traverse_dom(&traversal, token, rayon_pool).as_node();
 
