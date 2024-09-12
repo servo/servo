@@ -85,6 +85,9 @@ impl XRReferenceSpaceMethods for XRReferenceSpace {
             &offset,
         )
     }
+
+    // https://www.w3.org/TR/webxr/#dom-xrreferencespace-onreset
+    event_handler!(reset, GetOnreset, SetOnreset);
 }
 
 impl XRReferenceSpace {
