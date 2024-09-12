@@ -59,7 +59,7 @@ gstreamer-sys = "0.22"
 gstreamer-video = "0.22"
 headers = "0.3"
 hitrace = "0.1.4"
-html5ever = "0.28"
+html5ever = "0.29"
 http = "0.2"
 hyper = "0.14"
 hyper-rustls = { version = "0.24", default-features = false, features = ["acceptor", "http1", "http2", "logging", "tls12", "webpki-tokio"] }
@@ -146,7 +146,7 @@ wgpu-core = { git = "https://github.com/gfx-rs/wgpu", rev = "0e352f5b3448236b6cb
 wgpu-types = { git = "https://github.com/gfx-rs/wgpu", rev = "0e352f5b3448236b6cbebcd146d0606b00cb3806" }
 windows-sys = "0.59"
 xi-unicode = "0.3.0"
-xml5ever = "0.19"
+xml5ever = "0.20"
 
 [profile.release]
 opt-level = 3
