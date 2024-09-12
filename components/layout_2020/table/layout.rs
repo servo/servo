@@ -882,33 +882,36 @@ impl<'a> TableLayout<'a> {
                 (self.assignable_width - sum_b).to_f32_px() / (sum_a - sum_b).to_f32_px();
             let weight_b = 1.0 - weight_a;
 
-            let mut sum_accounting_for_floating_point_inaccuracy = Au::new(0);
+            let mut remaining_assignable_width = self.assignable_width;
             let mut widths: Vec<Au> = a
                 .iter()
                 .zip(b.iter())
                 .map(|(guess_a, guess_b)| {
-                    (guess_a.scale_by(weight_a)) + (guess_b.scale_by(weight_b))
-                })
-                .inspect(|&column_width| {
-                    sum_accounting_for_floating_point_inaccuracy += column_width;
+                    let column_width = guess_a.scale_by(weight_a) + guess_b.scale_by(weight_b);
+                    // Clamp to avoid exceeding the assignable width. This could otherwise
+                    // happen when dealing with huge values whose sum is clamped to MAX_AU.
+                    let column_width = column_width.min(remaining_assignable_width);
+                    remaining_assignable_width -= column_width;
+                    column_width
                 })
                 .collect();
 
-            if sum_accounting_for_floating_point_inaccuracy != self.assignable_width {
+            if !remaining_assignable_width.is_zero() {
                 // The computations above can introduce floating-point imprecisions.
-                // Since these errors are very small (+-1Au), it's fine to simply adjust
+                // Since these errors are very small (1Au), it's fine to simply adjust
                 // the first column such that the total width matches the assignable width
-                let difference =
-                    self.assignable_width - sum_accounting_for_floating_point_inaccuracy;
-
                 debug_assert!(
-                    difference.abs() <= Au::new(widths.len() as i32),
+                    remaining_assignable_width >= Au::zero(),
+                    "Sum of columns shouldn't exceed the assignable table width"
+                );
+                debug_assert!(
+                    remaining_assignable_width <= Au::new(widths.len() as i32),
                     "A deviation of more than one Au per column is unlikely to be caused by float imprecision"
                 );
 
                 // We checked if the table was empty at the top of the function, so there
                 // always is a first column
-                widths[0] += difference;
+                widths[0] += remaining_assignable_width;
             }
 
             debug_assert!(widths.iter().sum::<Au>() == self.assignable_width);
