@@ -13,6 +13,7 @@ use style::computed_values::border_collapse::T as BorderCollapse;
 use style::computed_values::box_sizing::T as BoxSizing;
 use style::computed_values::caption_side::T as CaptionSide;
 use style::computed_values::empty_cells::T as EmptyCells;
+use style::computed_values::position::T as Position;
 use style::computed_values::table_layout::T as TableLayoutMode;
 use style::computed_values::visibility::T as Visibility;
 use style::logical_geometry::WritingMode;
@@ -1642,7 +1643,7 @@ impl<'a> TableLayout<'a> {
             style: containing_block.style,
         };
 
-        let box_fragment = context.layout_in_flow_block_level(
+        let mut box_fragment = context.layout_in_flow_block_level(
             layout_context,
             positioning_context
                 .as_mut()
@@ -1651,7 +1652,8 @@ impl<'a> TableLayout<'a> {
             None, /* sequential_layout_state */
         );
 
-        if let Some(positioning_context) = positioning_context.take() {
+        if let Some(mut positioning_context) = positioning_context.take() {
+            positioning_context.layout_collected_children(layout_context, &mut box_fragment);
             parent_positioning_context.append(positioning_context);
         }
 
@@ -1735,11 +1737,19 @@ impl<'a> TableLayout<'a> {
                 let caption_pbm = caption_fragment
                     .padding_border_margin()
                     .to_logical(table_writing_mode);
+
+                let caption_relative_offset = match caption_fragment.style.clone_position() {
+                    Position::Relative => {
+                        relative_adjustement(&caption_fragment.style, containing_block_for_children)
+                    },
+                    _ => LogicalVec2::zero(),
+                };
+
                 caption_fragment.content_rect = LogicalRect {
                     start_corner: LogicalVec2 {
                         inline: offset_from_wrapper.inline_start + caption_pbm.inline_start,
                         block: current_block_offset + caption_pbm.block_start,
-                    },
+                    } + caption_relative_offset,
                     size: caption_fragment
                         .content_rect
                         .size
