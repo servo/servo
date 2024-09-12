@@ -521,7 +521,7 @@ impl VirtualMethods for HTMLTableElement {
         match *local_name {
             local_name!("border") => AttrValue::from_u32(value.into(), 1),
             local_name!("width") => AttrValue::from_nonzero_dimension(value.into()),
-            local_name!("height") => AttrValue::from_nonzero_dimension(value.into()),
+            local_name!("height") => AttrValue::from_dimension(value.into()),
             local_name!("bgcolor") => AttrValue::from_legacy_color(value.into()),
             _ => self
                 .super_type()
