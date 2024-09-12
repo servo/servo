@@ -291,15 +291,17 @@ bitflags! {
     #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     pub struct ShapingFlags: u8 {
         /// Set if the text is entirely whitespace.
-        const IS_WHITESPACE_SHAPING_FLAG = 0x01;
+        const IS_WHITESPACE_SHAPING_FLAG = 1 << 0;
+        /// Set if the text ends with whitespace.
+        const ENDS_WITH_WHITESPACE_SHAPING_FLAG = 1 << 1;
         /// Set if we are to ignore ligatures.
-        const IGNORE_LIGATURES_SHAPING_FLAG = 0x02;
+        const IGNORE_LIGATURES_SHAPING_FLAG = 1 << 2;
         /// Set if we are to disable kerning.
-        const DISABLE_KERNING_SHAPING_FLAG = 0x04;
+        const DISABLE_KERNING_SHAPING_FLAG = 1 << 3;
         /// Text direction is right-to-left.
-        const RTL_FLAG = 0x08;
+        const RTL_FLAG = 1 << 4;
         /// Set if word-break is set to keep-all.
-        const KEEP_ALL_FLAG = 0x10;
+        const KEEP_ALL_FLAG = 1 << 5;
     }
 }
 
@@ -344,6 +346,9 @@ impl Font {
             options
                 .flags
                 .contains(ShapingFlags::IS_WHITESPACE_SHAPING_FLAG),
+            options
+                .flags
+                .contains(ShapingFlags::ENDS_WITH_WHITESPACE_SHAPING_FLAG),
             is_single_preserved_newline,
             options.flags.contains(ShapingFlags::RTL_FLAG),
         );
@@ -946,10 +951,10 @@ mod test {
 
         assert!(font.can_do_fast_shaping(text, &shaping_options));
 
-        let mut expected_glyphs = GlyphStore::new(text.len(), false, false, false);
+        let mut expected_glyphs = GlyphStore::new(text.len(), false, false, false, false);
         font.shape_text_harfbuzz(text, &shaping_options, &mut expected_glyphs);
 
-        let mut glyphs = GlyphStore::new(text.len(), false, false, false);
+        let mut glyphs = GlyphStore::new(text.len(), false, false, false, false);
         font.shape_text_fast(text, &shaping_options, &mut glyphs);
 
         assert_eq!(glyphs.len(), expected_glyphs.len());

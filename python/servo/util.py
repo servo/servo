@@ -19,7 +19,6 @@ import urllib.request
 import zipfile
 from typing import Dict, List, Union
 
-import six
 from io import BufferedIOBase, BytesIO
 from socket import error as socket_error
 
@@ -188,7 +187,7 @@ def append_paths_to_env(env: Dict[str, str], key: str, paths: Union[str, List[st
 
     existing_value = env.get(key, None)
     if existing_value:
-        new_value = six.ensure_str(existing_value) + os.pathsep + paths
+        new_value = str(existing_value) + os.pathsep + paths
     else:
         new_value = paths
     env[key] = new_value
@@ -201,7 +200,7 @@ def prepend_paths_to_env(env: Dict[str, str], key: str, paths: Union[str, List[s
     existing_value = env.get(key, None)
     new_value = paths
     if existing_value:
-        new_value += os.pathsep + six.ensure_str(existing_value)
+        new_value += os.pathsep + str(existing_value)
     env[key] = new_value
 
 

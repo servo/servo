@@ -19,10 +19,8 @@ from __future__ import absolute_import, unicode_literals
 import collections
 import os
 import sys
-import six
 from functools import wraps
-from six.moves.configparser import RawConfigParser, NoSectionError
-from six import string_types
+from configparser import RawConfigParser, NoSectionError
 
 
 class ConfigException(Exception):
@@ -62,7 +60,7 @@ class ConfigType(object):
 class StringType(ConfigType):
     @staticmethod
     def validate(value):
-        if not isinstance(value, string_types):
+        if not isinstance(value, str):
             raise TypeError()
 
     @staticmethod
@@ -109,7 +107,7 @@ class PositiveIntegerType(IntegerType):
 class PathType(StringType):
     @staticmethod
     def validate(value):
-        if not isinstance(value, string_types):
+        if not isinstance(value, str):
             raise TypeError()
 
     @staticmethod
@@ -140,7 +138,7 @@ def reraise_attribute_error(func):
             return func(*args, **kwargs)
         except KeyError:
             exc_class, exc, tb = sys.exc_info()
-            six.reraise(AttributeError().__class__, exc, tb)
+            raise(AttributeError().__class__, exc, tb)
     return _
 
 
@@ -337,7 +335,7 @@ class ConfigSettings(collections.abc.Mapping):
             extra -- A dict of additional key/value pairs to add to the
                 setting metadata.
         """
-        if isinstance(type_cls, string_types):
+        if isinstance(type_cls, str):
             type_cls = TYPE_CLASSES[type_cls]
 
         meta = {

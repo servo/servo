@@ -1647,6 +1647,14 @@ impl ScriptThread {
             return;
         }
 
+        // Run rafs for all pipeline, if a raf tick was received for any.
+        // This ensures relative ordering of rafs between parent doc and iframes.
+        let should_run_rafs = self
+            .documents
+            .borrow()
+            .iter()
+            .any(|(_, doc)| doc.has_received_raf_tick());
+
         // TODO: The specification says to filter out non-renderable documents,
         // as well as those for which a rendering update would be unnecessary,
         // but this isn't happening here.
@@ -1708,7 +1716,7 @@ impl ScriptThread {
             // https://html.spec.whatwg.org/multipage/#context-lost-steps.
 
             // Run the animation frame callbacks.
-            document.tick_all_animations();
+            document.tick_all_animations(should_run_rafs);
 
             // Run the resize observer steps.
             let _realm = enter_realm(&*document);
@@ -1813,6 +1821,10 @@ impl ScriptThread {
         };
         debug!("Got event.");
 
+        // Prioritize only a single update of the rendering;
+        // others will run together with the other sequential tasks.
+        let mut rendering_update_already_prioritized = false;
+
         loop {
             let pipeline_id = self.message_to_pipeline(&event);
             let _realm = pipeline_id.map(|id| {
@@ -1886,15 +1898,29 @@ impl ScriptThread {
                     self.handle_event(id, event)
                 },
                 FromScript(MainThreadScriptMsg::Common(CommonScriptMsg::Task(
-                    _,
+                    category,
                     task,
-                    _pipeline_id,
+                    pipeline_id,
                     TaskSourceName::Rendering,
                 ))) => {
-                    // Run the "update the rendering" task.
-                    task.run_box();
-                    // Always perform a microtrask checkpoint after running a task.
-                    self.perform_a_microtask_checkpoint(can_gc);
+                    if rendering_update_already_prioritized {
+                        // If we've already updated the rendering,
+                        // run this task along with the other non-prioritized ones.
+                        sequential.push(FromScript(MainThreadScriptMsg::Common(
+                            CommonScriptMsg::Task(
+                                category,
+                                task,
+                                pipeline_id,
+                                TaskSourceName::Rendering,
+                            ),
+                        )));
+                    } else {
+                        // Run the "update the rendering" task.
+                        task.run_box();
+                        // Always perform a microtrask checkpoint after running a task.
+                        self.perform_a_microtask_checkpoint(can_gc);
+                        rendering_update_already_prioritized = true;
+                    }
                 },
                 FromScript(MainThreadScriptMsg::Inactive) => {
                     // An event came-in from a document that is not fully-active, it has been stored by the task-queue.

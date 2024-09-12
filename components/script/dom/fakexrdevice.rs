@@ -11,8 +11,8 @@ use ipc_channel::ipc::IpcSender;
 use ipc_channel::router::ROUTER;
 use profile_traits::ipc;
 use webxr_api::{
-    EntityType, Handedness, InputId, InputSource, MockDeviceMsg, MockInputInit, MockRegion,
-    MockViewInit, MockViewsInit, MockWorld, TargetRayMode, Triangle, Visibility,
+    EntityType, Handedness, InputId, InputSource, MockButton, MockDeviceMsg, MockInputInit,
+    MockRegion, MockViewInit, MockViewsInit, MockWorld, TargetRayMode, Triangle, Visibility,
 };
 
 use crate::dom::bindings::codegen::Bindings::DOMPointBinding::DOMPointInit;
@@ -30,7 +30,7 @@ use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::refcounted::TrustedPromise;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::fakexrinputcontroller::FakeXRInputController;
+use crate::dom::fakexrinputcontroller::{init_to_mock_buttons, FakeXRInputController};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::task_source::TaskSource;
@@ -267,7 +267,10 @@ impl FakeXRDeviceMethods for FakeXRDevice {
 
         let profiles = init.profiles.iter().cloned().map(String::from).collect();
 
-        // XXXManishearth deal with supportedButtons and selection*
+        let mut supported_buttons = vec![];
+        if let Some(ref buttons) = init.supportedButtons {
+            supported_buttons.extend(init_to_mock_buttons(buttons));
+        }
 
         let source = InputSource {
             handedness,
@@ -282,6 +285,7 @@ impl FakeXRDeviceMethods for FakeXRDevice {
             source,
             pointer_origin,
             grip_origin,
+            supported_buttons,
         };
 
         let global = self.global();

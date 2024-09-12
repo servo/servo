@@ -23,8 +23,8 @@ interface FakeXRInputController {
   undefined endSelection();
   undefined simulateSelect();
 
-  // void setSupportedButtons(sequence<FakeXRButtonStateInit> supportedButtons);
-  // void updateButtonState(FakeXRButtonStateInit buttonState);
+  undefined setSupportedButtons(sequence<FakeXRButtonStateInit> supportedButtons);
+  [Throws] undefined updateButtonState(FakeXRButtonStateInit buttonState);
 };
 
 dictionary FakeXRInputSourceInit {

@@ -252,7 +252,7 @@ class MachCommands(CommandBase):
         git_db_dir = path.join(git_dir, "db")
         git_checkout_dir = path.join(git_dir, "checkouts")
         if os.path.isdir(git_db_dir):
-            git_db_list = filter(lambda f: not f.startswith('.'), os.listdir(git_db_dir))
+            git_db_list = list(filter(lambda f: not f.startswith('.'), os.listdir(git_db_dir)))
         else:
             git_db_list = []
         if os.path.isdir(git_checkout_dir):

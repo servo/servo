@@ -110,6 +110,10 @@ impl XRInputSource {
             self.gamepad.map_and_normalize_axes(i, *value as f64);
         });
     }
+
+    pub fn gamepad(&self) -> &DomRoot<Gamepad> {
+        &self.gamepad
+    }
 }
 
 impl XRInputSourceMethods for XRInputSource {

@@ -21,8 +21,8 @@ canvas_traits = { workspace = true }
 crossbeam-channel = { workspace = true }
 cssparser = { workspace = true }
 euclid = { workspace = true }
-font-kit = { version = "0.14" }
 fnv = { workspace = true }
+font-kit = "0.14"
 fonts = { path = "../fonts" }
 half = "2"
 ipc-channel = { workspace = true }
@@ -34,7 +34,7 @@ parking_lot = { workspace = true }
 pathfinder_geometry = "0.5"
 pixels = { path = "../pixels" }
 range = { path = "../range" }
-raqote = { git = "https://github.com/jrmuizel/raqote", rev = "64716c8" }
+raqote = "0.8.5"
 servo_arc = { workspace = true }
 sparkle = { workspace = true }
 style = { workspace = true }
@@ -44,5 +44,5 @@ unicode-script = { workspace = true }
 webrender = { workspace = true }
 webrender_api = { workspace = true }
 webrender_traits = { workspace = true }
-webxr-api = { git = "https://github.com/servo/webxr", features = ["ipc"] }
 webxr = { git = "https://github.com/servo/webxr", features = ["ipc"] }
+webxr-api = { git = "https://github.com/servo/webxr", features = ["ipc"] }
