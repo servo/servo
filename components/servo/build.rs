@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::{env, fs};
 
@@ -23,26 +23,47 @@ fn main() {
     fs::write(path, output.stdout).unwrap();
 }
 
-fn find_python() -> String {
-    env::var("PYTHON3").ok().unwrap_or_else(|| {
-        let candidates = if cfg!(windows) {
-            ["python3.8.exe", "python38.exe", "python.exe"]
-        } else {
-            ["python3.8", "python3", "python"]
-        };
-        for &name in &candidates {
-            if Command::new(name)
-                .arg("--version")
-                .output()
-                .ok()
-                .map_or(false, |out| out.status.success())
-            {
-                return name.to_owned();
-            }
+/// Tries to find a suitable python
+///
+/// Algorithm
+/// 1. Trying to find python3/python in $VIRTUAL_ENV (this should be from servos venv)
+/// 2. Checking PYTHON3 (set by mach)
+/// 3. Falling back to the system installation.
+///
+/// Note: This function should be kept in sync with the version in `components/script/build.rs`
+fn find_python() -> PathBuf {
+    let mut candidates = vec![];
+    if let Some(venv) = env::var_os("VIRTUAL_ENV") {
+        // See: https://docs.python.org/3/library/venv.html#how-venvs-work
+        let bin_dir = if cfg!(windows) { "Scripts" } else { "bin" };
+        let bin_directory = PathBuf::from(venv).join(bin_dir);
+        candidates.push(bin_directory.join("python3"));
+        candidates.push(bin_directory.join("python"));
+    }
+    if let Some(python3) = env::var_os("PYTHON3") {
+        candidates.push(PathBuf::from(python3));
+    }
+
+    let system_python = ["python3", "python"].map(PathBuf::from);
+    candidates.extend_from_slice(&system_python);
+
+    for name in &candidates {
+        // Command::new() allows us to omit the `.exe` suffix on windows
+        if Command::new(&name)
+            .arg("--version")
+            .output()
+            .is_ok_and(|out| out.status.success())
+        {
+            return name.to_owned();
         }
-        panic!(
-            "Can't find python (tried {})! Try fixing PATH or setting the PYTHON3 env var",
-            candidates.join(", ")
-        )
-    })
+    }
+    let candidates = candidates
+        .into_iter()
+        .map(|c| c.into_os_string())
+        .collect::<Vec<_>>();
+    panic!(
+        "Can't find python (tried {:?})! Try enabling Servo's Python venv, \
+        setting the PYTHON3 env var or adding python3 to PATH.",
+        candidates.join(", ".as_ref())
+    )
 }
