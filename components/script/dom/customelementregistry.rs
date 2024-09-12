@@ -1239,10 +1239,10 @@ impl ElementQueue {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#invoke-custom-element-reactions>
-    fn invoke_reactions(&self, _can_gc: CanGc) {
+    fn invoke_reactions(&self, can_gc: CanGc) {
         // Steps 1-2
         while let Some(element) = self.next_element() {
-            element.invoke_reactions(CanGc::note())
+            element.invoke_reactions(can_gc)
         }
         self.queue.borrow_mut().clear();
     }

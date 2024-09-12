@@ -87,7 +87,7 @@ impl MicrotaskQueue {
         cx: JSContext,
         target_provider: F,
         globalscopes: Vec<DomRoot<GlobalScope>>,
-        _can_gc: CanGc,
+        can_gc: CanGc,
     ) where
         F: Fn(PipelineId) -> Option<DomRoot<GlobalScope>>,
     {
@@ -128,14 +128,14 @@ impl MicrotaskQueue {
                     },
                     Microtask::MediaElement(ref task) => {
                         let _realm = task.enter_realm();
-                        task.handler(CanGc::note());
+                        task.handler(can_gc);
                     },
                     Microtask::ImageElement(ref task) => {
                         let _realm = task.enter_realm();
-                        task.handler(CanGc::note());
+                        task.handler(can_gc);
                     },
                     Microtask::CustomElementReaction => {
-                        ScriptThread::invoke_backup_element_queue(CanGc::note());
+                        ScriptThread::invoke_backup_element_queue(can_gc);
                     },
                     Microtask::NotifyMutationObservers => {
                         MutationObserver::notify_mutation_observers();

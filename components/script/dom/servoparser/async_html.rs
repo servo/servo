@@ -287,7 +287,7 @@ impl Tokenizer {
     pub fn feed(
         &self,
         input: &BufferQueue,
-        _can_gc: CanGc,
+        can_gc: CanGc,
     ) -> TokenizerResult<DomRoot<HTMLScriptElement>> {
         let mut send_tendrils = VecDeque::new();
         while let Some(str) = input.pop_front() {
@@ -309,7 +309,7 @@ impl Tokenizer {
                 .expect("Unexpected channel panic in main thread.")
             {
                 ToTokenizerMsg::ProcessOperation(parse_op) => {
-                    self.process_operation(parse_op, CanGc::note())
+                    self.process_operation(parse_op, can_gc)
                 },
                 ToTokenizerMsg::TokenizerResultDone { updated_input } => {
                     let buffer_queue = create_buffer_queue(updated_input);
@@ -330,7 +330,7 @@ impl Tokenizer {
         }
     }
 
-    pub fn end(&self, _can_gc: CanGc) {
+    pub fn end(&self, can_gc: CanGc) {
         self.html_tokenizer_sender
             .send(ToHtmlTokenizerMsg::End)
             .unwrap();
@@ -341,7 +341,7 @@ impl Tokenizer {
                 .expect("Unexpected channel panic in main thread.")
             {
                 ToTokenizerMsg::ProcessOperation(parse_op) => {
-                    self.process_operation(parse_op, CanGc::note())
+                    self.process_operation(parse_op, can_gc)
                 },
                 ToTokenizerMsg::TokenizerResultDone { updated_input: _ } |
                 ToTokenizerMsg::TokenizerResultScript {

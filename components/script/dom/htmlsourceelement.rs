@@ -55,11 +55,11 @@ impl HTMLSourceElement {
 
     fn iterate_next_html_image_element_siblings(
         next_siblings_iterator: impl Iterator<Item = Root<Dom<Node>>>,
-        _can_gc: CanGc,
+        can_gc: CanGc,
     ) {
         for next_sibling in next_siblings_iterator {
             if let Some(html_image_element_sibling) = next_sibling.downcast::<HTMLImageElement>() {
-                html_image_element_sibling.update_the_image_data(CanGc::note());
+                html_image_element_sibling.update_the_image_data(can_gc);
             }
         }
     }

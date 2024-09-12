@@ -101,7 +101,7 @@ pub trait WorkerEventLoopMethods {
 pub fn run_worker_event_loop<T, WorkerMsg, Event>(
     worker_scope: &T,
     worker: Option<&TrustedWorkerAddress>,
-    _can_gc: CanGc,
+    can_gc: CanGc,
 ) where
     WorkerMsg: QueuedTaskConversion + Send,
     T: WorkerEventLoopMethods<WorkerMsg = WorkerMsg, Event = Event>
@@ -156,7 +156,7 @@ pub fn run_worker_event_loop<T, WorkerMsg, Event>(
         };
         worker_scope
             .upcast::<GlobalScope>()
-            .perform_a_microtask_checkpoint(CanGc::note());
+            .perform_a_microtask_checkpoint(can_gc);
     }
     worker_scope
         .upcast::<GlobalScope>()

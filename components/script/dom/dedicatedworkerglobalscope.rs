@@ -333,7 +333,7 @@ impl DedicatedWorkerGlobalScope {
         gpu_id_hub: Arc<Identities>,
         control_receiver: Receiver<DedicatedWorkerControlMsg>,
         context_sender: Sender<ContextForRequestInterrupt>,
-        _can_gc: CanGc,
+        can_gc: CanGc,
     ) -> JoinHandle<()> {
         let serialized_worker_url = worker_url.to_string();
         let top_level_browsing_context_id = TopLevelBrowsingContextId::installed();
@@ -479,7 +479,7 @@ impl DedicatedWorkerGlobalScope {
                             // until the event loop is destroyed,
                             // which happens after the closing flag is set to true.
                             while !scope.is_closing() {
-                                run_worker_event_loop(&*global, Some(&worker), CanGc::note());
+                                run_worker_event_loop(&*global, Some(&worker), can_gc);
                             }
                         },
                         reporter_name,

@@ -75,7 +75,7 @@ impl MediaElementAudioSourceNode {
             Box::new(node),
             window,
             proto,
-            CanGc::note(),
+            can_gc,
         ))
     }
 

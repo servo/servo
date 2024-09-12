@@ -399,7 +399,7 @@ impl Element {
         }
     }
 
-    pub fn invoke_reactions(&self, _can_gc: CanGc) {
+    pub fn invoke_reactions(&self, can_gc: CanGc) {
         loop {
             rooted_vec!(let mut reactions);
             match *self.rare_data_mut() {
@@ -414,7 +414,7 @@ impl Element {
             }
 
             for reaction in reactions.iter() {
-                reaction.invoke(self, CanGc::note());
+                reaction.invoke(self, can_gc);
             }
 
             reactions.clear();

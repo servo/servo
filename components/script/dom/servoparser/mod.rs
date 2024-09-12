@@ -338,7 +338,7 @@ impl ServoParser {
     }
 
     /// Steps 6-8 of <https://html.spec.whatwg.org/multipage/#document.write()>
-    pub fn write(&self, text: Vec<DOMString>, _can_gc: CanGc) {
+    pub fn write(&self, text: Vec<DOMString>, can_gc: CanGc) {
         assert!(self.can_write());
 
         if self.document.has_pending_parsing_blocking_script() {
@@ -361,7 +361,7 @@ impl ServoParser {
             input.push_back(String::from(chunk).into());
         }
 
-        self.tokenize(|tokenizer| tokenizer.feed(&input, CanGc::note()));
+        self.tokenize(|tokenizer| tokenizer.feed(&input, can_gc));
 
         if self.suspended.get() {
             // Parser got suspended, insert remaining input at end of
@@ -532,7 +532,7 @@ impl ServoParser {
         )
     }
 
-    fn do_parse_sync(&self, _can_gc: CanGc) {
+    fn do_parse_sync(&self, can_gc: CanGc) {
         assert!(self.script_input.is_empty());
 
         // This parser will continue to parse while there is either pending input or
@@ -546,7 +546,7 @@ impl ServoParser {
                 }
             }
         }
-        self.tokenize(|tokenizer| tokenizer.feed(&self.network_input, CanGc::note()));
+        self.tokenize(|tokenizer| tokenizer.feed(&self.network_input, can_gc));
 
         if self.suspended.get() {
             return;
@@ -555,7 +555,7 @@ impl ServoParser {
         assert!(self.network_input.is_empty());
 
         if self.last_chunk_received.get() {
-            self.finish(CanGc::note());
+            self.finish(can_gc);
         }
     }
 
@@ -1353,15 +1353,7 @@ fn create_element_for_token(
         CustomElementCreationMode::Asynchronous
     };
 
-    let element = Element::create(
-        name,
-        is,
-        document,
-        creator,
-        creation_mode,
-        None,
-        CanGc::note(),
-    );
+    let element = Element::create(name, is, document, creator, creation_mode, None, can_gc);
 
     // https://html.spec.whatwg.org/multipage#the-input-element:value-sanitization-algorithm-3
     // says to invoke sanitization "when an input element is first created";
@@ -1389,7 +1381,7 @@ fn create_element_for_token(
     // Step 9.
     if will_execute_script {
         // Steps 9.1 - 9.2.
-        ScriptThread::pop_current_element_queue(CanGc::note());
+        ScriptThread::pop_current_element_queue(can_gc);
         // Step 9.3.
         document.decrement_throw_on_dynamic_markup_insertion_counter();
     }
