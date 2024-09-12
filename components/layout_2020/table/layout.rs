@@ -199,8 +199,8 @@ impl<'a> TableLayout<'a> {
                     .unwrap_or_else(|| cell.style.border_width(writing_mode));
 
                 let padding_border_sums = LogicalVec2 {
-                    inline: (padding.inline_sum() + border.inline_sum()),
-                    block: (padding.block_sum() + border.block_sum()),
+                    inline: padding.inline_sum() + border.inline_sum(),
+                    block: padding.block_sum() + border.block_sum(),
                 };
 
                 let (size, min_size, max_size) =
@@ -710,8 +710,8 @@ impl<'a> TableLayout<'a> {
                     .auto_is(Au::zero);
 
                 let padding_border_sums = LogicalVec2 {
-                    inline: (padding.inline_sum() + border.inline_sum() + margin.inline_sum()),
-                    block: (padding.block_sum() + border.block_sum() + margin.block_sum()),
+                    inline: padding.inline_sum() + border.inline_sum() + margin.inline_sum(),
+                    block: padding.block_sum() + border.block_sum() + margin.block_sum(),
                 };
 
                 let (size, min_size, max_size) =

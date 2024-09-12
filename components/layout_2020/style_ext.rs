@@ -505,8 +505,8 @@ impl ComputedValuesExt for ComputedValues {
             .percentages_relative_to(Au::zero());
         PaddingBorderMargin {
             padding_border_sums: LogicalVec2 {
-                inline: (padding.inline_sum() + border.inline_sum()),
-                block: (padding.block_sum() + border.block_sum()),
+                inline: padding.inline_sum() + border.inline_sum(),
+                block: padding.block_sum() + border.block_sum(),
             },
             padding,
             border,
@@ -528,8 +528,8 @@ impl ComputedValuesExt for ComputedValues {
             .percentages_relative_to(containing_block_inline_size);
         PaddingBorderMargin {
             padding_border_sums: LogicalVec2 {
-                inline: (padding.inline_sum() + border.inline_sum()),
-                block: (padding.block_sum() + border.block_sum()),
+                inline: padding.inline_sum() + border.inline_sum(),
+                block: padding.block_sum() + border.block_sum(),
             },
             padding,
             border,
