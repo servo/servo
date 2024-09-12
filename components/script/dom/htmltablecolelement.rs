@@ -101,7 +101,7 @@ impl VirtualMethods for HTMLTableColElement {
                 }
                 attr
             },
-            local_name!("width") => AttrValue::from_nonzero_dimension(value.into()),
+            local_name!("width") => AttrValue::from_dimension(value.into()),
             _ => self
                 .super_type()
                 .unwrap()

@@ -182,7 +182,7 @@ impl VirtualMethods for HTMLTableRowElement {
     fn parse_plain_attribute(&self, local_name: &LocalName, value: DOMString) -> AttrValue {
         match *local_name {
             local_name!("bgcolor") => AttrValue::from_legacy_color(value.into()),
-            local_name!("height") => AttrValue::from_nonzero_dimension(value.into()),
+            local_name!("height") => AttrValue::from_dimension(value.into()),
             _ => self
                 .super_type()
                 .unwrap()
