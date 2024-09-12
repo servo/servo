@@ -11,8 +11,8 @@ use ipc_channel::ipc::IpcSender;
 use ipc_channel::router::ROUTER;
 use profile_traits::ipc;
 use webxr_api::{
-    EntityType, Handedness, InputId, InputSource, MockButton, MockDeviceMsg, MockInputInit,
-    MockRegion, MockViewInit, MockViewsInit, MockWorld, TargetRayMode, Triangle, Visibility,
+    EntityType, Handedness, InputId, InputSource, MockDeviceMsg, MockInputInit, MockRegion,
+    MockViewInit, MockViewsInit, MockWorld, TargetRayMode, Triangle, Visibility,
 };
 
 use crate::dom::bindings::codegen::Bindings::DOMPointBinding::DOMPointInit;
