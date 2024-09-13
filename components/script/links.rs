@@ -390,9 +390,8 @@ pub fn follow_hyperlink(
         if let Some(suffix) = hyperlink_suffix {
             href.push_str(&suffix);
         }
-        let url = match document.base_url().join(&href) {
-            Ok(url) => url,
-            Err(_) => return,
+        let Ok(url) = document.base_url().join(&href) else {
+            return;
         };
 
         // Step 12.

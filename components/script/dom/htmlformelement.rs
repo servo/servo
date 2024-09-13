@@ -80,7 +80,7 @@ use crate::dom::radionodelist::RadioNodeList;
 use crate::dom::submitevent::SubmitEvent;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
-use crate::link_relations::{get_element_target, LinkRelations};
+use crate::links::{get_element_target, LinkRelations};
 use crate::script_thread::ScriptThread;
 use crate::task_source::TaskSource;
 

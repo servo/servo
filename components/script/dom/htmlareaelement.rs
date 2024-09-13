@@ -28,7 +28,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::{BindContext, Node};
 use crate::dom::virtualmethods::VirtualMethods;
-use crate::link_relations::{follow_hyperlink, LinkRelations};
+use crate::links::{follow_hyperlink, LinkRelations};
 
 #[derive(Debug, PartialEq)]
 pub enum Area {

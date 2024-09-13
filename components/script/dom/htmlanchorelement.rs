@@ -33,7 +33,7 @@ use crate::dom::mouseevent::MouseEvent;
 use crate::dom::node::{document_from_node, BindContext, Node};
 use crate::dom::urlhelper::UrlHelper;
 use crate::dom::virtualmethods::VirtualMethods;
-use crate::link_relations::{follow_hyperlink, LinkRelations};
+use crate::links::{follow_hyperlink, LinkRelations};
 
 #[dom_struct]
 pub struct HTMLAnchorElement {
