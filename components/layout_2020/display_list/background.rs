@@ -9,7 +9,7 @@ use style::computed_values::background_clip::single_value::T as Clip;
 use style::computed_values::background_origin::single_value::T as Origin;
 use style::properties::ComputedValues;
 use style::values::computed::background::BackgroundSize as Size;
-use style::values::computed::{Length, LengthPercentage};
+use style::values::computed::LengthPercentage;
 use style::values::specified::background::{
     BackgroundRepeat as RepeatXY, BackgroundRepeatKeyword as Repeat,
 };
@@ -204,42 +204,42 @@ pub(super) fn layout_layer(
         Size::Cover => size_contain_or_cover(ContainOrCover::Cover),
         Size::ExplicitSize { width, height } => {
             let mut width = width.non_auto().map(|lp| {
-                lp.0.percentage_relative_to(Length::new(positioning_area.size().width))
+                lp.0.to_used_value(Au::from_f32_px(positioning_area.size().width))
             });
             let mut height = height.non_auto().map(|lp| {
-                lp.0.percentage_relative_to(Length::new(positioning_area.size().height))
+                lp.0.to_used_value(Au::from_f32_px(positioning_area.size().height))
             });
 
             if width.is_none() && height.is_none() {
                 // Both computed values are 'auto':
                 // use intrinsic sizes, treating missing width or height as 'auto'
-                width = intrinsic.width.map(|v| v.into());
-                height = intrinsic.height.map(|v| v.into());
+                width = intrinsic.width;
+                height = intrinsic.height;
             }
 
             match (width, height) {
-                (Some(w), Some(h)) => units::LayoutSize::new(w.px(), h.px()),
+                (Some(w), Some(h)) => units::LayoutSize::new(w.to_f32_px(), h.to_f32_px()),
                 (Some(w), None) => {
                     let h = if let Some(intrinsic_ratio) = intrinsic.ratio {
-                        w / intrinsic_ratio
+                        w.scale_by(1.0 / intrinsic_ratio)
                     } else if let Some(intrinsic_height) = intrinsic.height {
-                        intrinsic_height.into()
+                        intrinsic_height
                     } else {
                         // Treated as 100%
-                        Au::from_f32_px(positioning_area.size().height).into()
+                        Au::from_f32_px(positioning_area.size().height)
                     };
-                    units::LayoutSize::new(w.px(), h.px())
+                    units::LayoutSize::new(w.to_f32_px(), h.to_f32_px())
                 },
                 (None, Some(h)) => {
                     let w = if let Some(intrinsic_ratio) = intrinsic.ratio {
-                        h * intrinsic_ratio
+                        h.scale_by(intrinsic_ratio)
                     } else if let Some(intrinsic_width) = intrinsic.width {
-                        intrinsic_width.into()
+                        intrinsic_width
                     } else {
                         // Treated as 100%
-                        Au::from_f32_px(positioning_area.size().width).into()
+                        Au::from_f32_px(positioning_area.size().width)
                     };
-                    units::LayoutSize::new(w.px(), h.px())
+                    units::LayoutSize::new(w.to_f32_px(), h.to_f32_px())
                 },
                 // Both comptued values were 'auto', and neither intrinsic size is present
                 (None, None) => size_contain_or_cover(ContainOrCover::Contain),
@@ -299,8 +299,8 @@ fn layout_1d(
     }
     // https://drafts.csswg.org/css-backgrounds/#background-position
     let mut position = position
-        .percentage_relative_to(Length::new(positioning_area_size - *tile_size))
-        .px();
+        .to_used_value(Au::from_f32_px(positioning_area_size - *tile_size))
+        .to_f32_px();
     let mut tile_spacing = 0.0;
     // https://drafts.csswg.org/css-backgrounds/#background-repeat
     if let Repeat::Space = repeat {

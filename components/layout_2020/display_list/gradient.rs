@@ -2,16 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use app_units::Au;
 use euclid::Size2D;
 use style::color::mix::ColorInterpolationMethod;
 use style::properties::ComputedValues;
 use style::values::computed::image::{EndingShape, Gradient, LineDirection};
-use style::values::computed::{
-    Angle, AngleOrPercentage, Color, Length, LengthPercentage, Position,
-};
+use style::values::computed::{Angle, AngleOrPercentage, Color, LengthPercentage, Position};
 use style::values::generics::image::{
     Circle, ColorStop, Ellipse, GradientFlags, GradientItem, ShapeExtent,
 };
+use style::Zero;
 use webrender_api::units::LayoutPixel;
 use webrender_api::{
     self as wr, units, ConicGradient as WebRenderConicGradient,
@@ -171,7 +171,7 @@ pub(super) fn build_linear(
     let end_point = center + half_gradient_line;
 
     let mut color_stops =
-        gradient_items_to_color_stops(style, items, Length::new(gradient_line_length));
+        gradient_items_to_color_stops(style, items, Au::from_f32_px(gradient_line_length));
     let stops = fixup_stops(&mut color_stops);
     let extend_mode = if flags.contains(GradientFlags::REPEATING) {
         wr::ExtendMode::Repeat
@@ -201,12 +201,12 @@ pub(super) fn build_radial(
     let center = units::LayoutPoint::new(
         center
             .horizontal
-            .percentage_relative_to(Length::new(gradient_box.width))
-            .px(),
+            .to_used_value(Au::from_f32_px(gradient_box.width))
+            .to_f32_px(),
         center
             .vertical
-            .percentage_relative_to(Length::new(gradient_box.height))
-            .px(),
+            .to_used_value(Au::from_f32_px(gradient_box.height))
+            .to_f32_px(),
     );
     let radii = match shape {
         EndingShape::Circle(circle) => {
@@ -232,10 +232,10 @@ pub(super) fn build_radial(
             units::LayoutSize::new(radius, radius)
         },
         EndingShape::Ellipse(Ellipse::Radii(rx, ry)) => units::LayoutSize::new(
-            rx.0.percentage_relative_to(Length::new(gradient_box.width))
-                .px(),
-            ry.0.percentage_relative_to(Length::new(gradient_box.height))
-                .px(),
+            rx.0.to_used_value(Au::from_f32_px(gradient_box.width))
+                .to_f32_px(),
+            ry.0.to_used_value(Au::from_f32_px(gradient_box.height))
+                .to_f32_px(),
         ),
         EndingShape::Ellipse(Ellipse::Extent(extent)) => match extent {
             ShapeExtent::ClosestSide | ShapeExtent::Contain => {
@@ -275,7 +275,7 @@ pub(super) fn build_radial(
     let gradient_line_length = radii.width;
 
     let mut color_stops =
-        gradient_items_to_color_stops(style, items, Length::new(gradient_line_length));
+        gradient_items_to_color_stops(style, items, Au::from_f32_px(gradient_line_length));
     let stops = fixup_stops(&mut color_stops);
     let extend_mode = if flags.contains(GradientFlags::REPEATING) {
         wr::ExtendMode::Repeat
@@ -305,12 +305,12 @@ fn build_conic(
     let center = units::LayoutPoint::new(
         center
             .horizontal
-            .percentage_relative_to(Length::new(gradient_box.width))
-            .px(),
+            .to_used_value(Au::from_f32_px(gradient_box.width))
+            .to_f32_px(),
         center
             .vertical
-            .percentage_relative_to(Length::new(gradient_box.height))
-            .px(),
+            .to_used_value(Au::from_f32_px(gradient_box.height))
+            .to_f32_px(),
     );
     let mut color_stops = conic_gradient_items_to_color_stops(style, items);
     let stops = fixup_stops(&mut color_stops);
@@ -367,7 +367,7 @@ fn conic_gradient_items_to_color_stops(
 fn gradient_items_to_color_stops(
     style: &ComputedValues,
     items: &[GradientItem<Color, LengthPercentage>],
-    gradient_line_length: Length,
+    gradient_line_length: Au,
 ) -> Vec<ColorStop<ColorF, f32>> {
     // Remove color transititon hints, which are not supported yet.
     // https://drafts.csswg.org/css-images-4/#color-transition-hint
@@ -389,11 +389,13 @@ fn gradient_items_to_color_stops(
                 }),
                 GradientItem::ComplexColorStop { color, position } => Some(ColorStop {
                     color: super::rgba(style.resolve_color(color.clone())),
-                    position: Some(if gradient_line_length.px() == 0. {
+                    position: Some(if gradient_line_length.is_zero() {
                         0.
                     } else {
-                        position.percentage_relative_to(gradient_line_length).px() /
-                            gradient_line_length.px()
+                        position
+                            .to_used_value(gradient_line_length)
+                            .scale_by(1. / gradient_line_length.to_f32_px())
+                            .to_f32_px()
                     }),
                 }),
                 // FIXME: approximate like in:

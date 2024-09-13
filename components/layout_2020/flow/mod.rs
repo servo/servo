@@ -13,7 +13,7 @@ use servo_arc::Arc;
 use style::computed_values::clear::T as Clear;
 use style::computed_values::float::T as Float;
 use style::properties::ComputedValues;
-use style::values::computed::{Length, Size};
+use style::values::computed::Size;
 use style::values::specified::align::AlignFlags;
 use style::values::specified::{Display, TextAlignKeyword};
 use style::Zero;
@@ -196,7 +196,7 @@ impl BlockLevelBox {
 
 pub(crate) struct FlowLayout {
     pub fragments: Vec<Fragment>,
-    pub content_block_size: Length,
+    pub content_block_size: Au,
     pub collapsible_margins_in_children: CollapsedBlockMargins,
     /// The offset of the baselines in this layout in the content area, if there were some. This is
     /// used to propagate inflow baselines to the ancestors of `display: inline-block` elements
@@ -285,7 +285,7 @@ impl OutsideMarker {
             },
             size: LogicalVec2 {
                 inline: max_inline_size,
-                block: flow_layout.content_block_size.into(),
+                block: flow_layout.content_block_size,
             },
         };
 
@@ -341,7 +341,7 @@ impl BlockFormattingContext {
 
         IndependentLayout {
             fragments: flow_layout.fragments,
-            content_block_size: Au::from(flow_layout.content_block_size) +
+            content_block_size: flow_layout.content_block_size +
                 flow_layout.collapsible_margins_in_children.end.solve() +
                 clearance.unwrap_or_default(),
             content_inline_size_for_table: None,
@@ -856,7 +856,7 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
         sequential_layout_state.as_deref_mut(),
         CollapsibleWithParentStartMargin(start_margin_can_collapse_with_children),
     );
-    let mut content_block_size: Au = flow_layout.content_block_size.into();
+    let mut content_block_size: Au = flow_layout.content_block_size;
 
     // Update margins.
     let mut block_margins_collapsed_with_children = CollapsedBlockMargins::from_margin(&margin);
@@ -1842,7 +1842,7 @@ impl<'container> PlacementState<'container> {
         }
     }
 
-    fn finish(mut self) -> (Length, CollapsedBlockMargins, Baselines) {
+    fn finish(mut self) -> (Au, CollapsedBlockMargins, Baselines) {
         if !self.last_in_flow_margin_collapses_with_parent_end_margin {
             self.current_block_direction_position += self.current_margin.solve();
             self.current_margin = CollapsedMargin::zero();
@@ -1861,7 +1861,7 @@ impl<'container> PlacementState<'container> {
         };
 
         (
-            total_block_size.into(),
+            total_block_size,
             CollapsedBlockMargins {
                 collapsed_through,
                 start: self.start_margin,

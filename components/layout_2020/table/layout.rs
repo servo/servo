@@ -1160,8 +1160,7 @@ impl<'a> TableLayout<'a> {
                             .unwrap_or_else(|| {
                                 cell.style
                                     .border_width(containing_block_for_table.style.writing_mode)
-                            })
-                            .into();
+                            });
 
                         let padding: LogicalSides<Au> = cell
                             .style
