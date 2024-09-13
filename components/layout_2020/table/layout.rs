@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use core::cmp::Ordering;
 use std::ops::Range;
 
 use app_units::{Au, MAX_AU};
@@ -16,7 +17,9 @@ use style::computed_values::table_layout::T as TableLayoutMode;
 use style::computed_values::visibility::T as Visibility;
 use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
-use style::values::computed::{LengthPercentage as ComputedLengthPercentage, Percentage};
+use style::values::computed::{
+    BorderStyle, LengthPercentage as ComputedLengthPercentage, Percentage,
+};
 use style::values::generics::box_::{GenericVerticalAlign as VerticalAlign, VerticalAlignKeyword};
 use style::values::generics::length::GenericLengthPercentageOrAuto::{Auto, LengthPercentage};
 use style::Zero;
@@ -92,11 +95,79 @@ struct ColumnLayout {
     has_originating_cells: bool,
 }
 
+/// A calculated collapsed border.
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct CollapsedBorder {
+    style: BorderStyle,
+    width: Au,
+}
+
+impl Default for CollapsedBorder {
+    fn default() -> Self {
+        Self::new(BorderStyle::None, Au::zero())
+    }
+}
+
+impl CollapsedBorder {
+    fn new(style: BorderStyle, width: Au) -> Self {
+        Self { style, width }
+    }
+
+    fn from_style(style: &ComputedValues, writing_mode: WritingMode) -> LogicalSides<Self> {
+        let border_style = style.border_style(writing_mode);
+        let border_width = style.border_width(writing_mode);
+        LogicalSides {
+            inline_start: Self::new(border_style.inline_start, border_width.inline_start),
+            inline_end: Self::new(border_style.inline_end, border_width.inline_end),
+            block_start: Self::new(border_style.block_start, border_width.block_start),
+            block_end: Self::new(border_style.block_end, border_width.block_end),
+        }
+    }
+
+    fn max_assign(&mut self, other: Self) {
+        if *self < other {
+            *self = other;
+        }
+    }
+}
+
+/// <https://drafts.csswg.org/css-tables/#border-specificity>
+/// > Given two borders styles, the border style having the most specificity is the border style which…
+/// > 1. … has the value "hidden" as border-style, if only one does
+/// > 2. … has the biggest border-width, once converted into css pixels
+/// > 3. … has the border-style which comes first in the following list:
+/// >    double, solid, dashed, dotted, ridge, outset, groove, inset, none
+impl Ord for CollapsedBorder {
+    fn cmp(&self, other: &Self) -> Ordering {
+        let style_specificity = |border: &Self| match border.style {
+            BorderStyle::None => 0,
+            BorderStyle::Inset => 1,
+            BorderStyle::Groove => 2,
+            BorderStyle::Outset => 3,
+            BorderStyle::Ridge => 4,
+            BorderStyle::Dotted => 5,
+            BorderStyle::Dashed => 6,
+            BorderStyle::Solid => 7,
+            BorderStyle::Double => 8,
+            BorderStyle::Hidden => 9,
+        };
+        ((self.style == BorderStyle::Hidden).cmp(&(other.style == BorderStyle::Hidden)))
+            .then_with(|| self.width.cmp(&other.width))
+            .then_with(|| style_specificity(self).cmp(&style_specificity(other)))
+    }
+}
+
+impl PartialOrd for CollapsedBorder {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
 /// The calculated collapsed borders.
 #[derive(Clone, Debug, Default)]
 struct CollapsedBorders {
-    block: Vec<Au>,
-    inline: Vec<Au>,
+    block: Vec<CollapsedBorder>,
+    inline: Vec<CollapsedBorder>,
 }
 
 /// A helper struct that performs the layout of the box tree version
@@ -2141,10 +2212,32 @@ impl<'a> TableLayout<'a> {
         }
 
         let mut collapsed_borders = CollapsedBorders {
-            block: vec![Au::zero(); self.table.size.height + 1],
-            inline: vec![Au::zero(); self.table.size.width + 1],
+            block: vec![Default::default(); self.table.size.height + 1],
+            inline: vec![Default::default(); self.table.size.width + 1],
         };
 
+        let mut apply_border =
+            |style: &ComputedValues, block: &Range<usize>, inline: &Range<usize>| {
+                let border = CollapsedBorder::from_style(style, writing_mode);
+                collapsed_borders.block[block.start].max_assign(border.block_start);
+                collapsed_borders.block[block.end].max_assign(border.block_end);
+                collapsed_borders.inline[inline.start].max_assign(border.inline_start);
+                collapsed_borders.inline[inline.end].max_assign(border.inline_end);
+            };
+        let all_rows = 0..self.table.size.height;
+        let all_columns = 0..self.table.size.width;
+        for column_group in &self.table.column_groups {
+            apply_border(&column_group.style, &all_rows, &column_group.track_range);
+        }
+        for (column_index, column) in self.table.columns.iter().enumerate() {
+            apply_border(&column.style, &all_rows, &(column_index..column_index + 1));
+        }
+        for row_group in &self.table.row_groups {
+            apply_border(&row_group.style, &row_group.track_range, &all_columns);
+        }
+        for (row_index, row) in self.table.rows.iter().enumerate() {
+            apply_border(&row.style, &(row_index..row_index + 1), &all_columns);
+        }
         for row_index in 0..self.table.size.height {
             for column_index in 0..self.table.size.width {
                 let cell = match self.table.slots[row_index][column_index] {
@@ -2152,11 +2245,11 @@ impl<'a> TableLayout<'a> {
                     _ => continue,
                 };
 
-                let border = cell.style.border_width(writing_mode);
-                collapsed_borders.block[row_index].max_assign(border.block_start);
-                collapsed_borders.block[row_index + cell.rowspan].max_assign(border.block_end);
-                collapsed_borders.inline[column_index].max_assign(border.inline_start);
-                collapsed_borders.inline[column_index + cell.colspan].max_assign(border.inline_end);
+                apply_border(
+                    &cell.style,
+                    &(row_index..row_index + cell.rowspan),
+                    &(column_index..column_index + cell.colspan),
+                );
             }
         }
 
@@ -2172,10 +2265,10 @@ impl<'a> TableLayout<'a> {
         let end_x = coordinates.x + cell.colspan;
         let end_y = coordinates.y + cell.rowspan;
         let mut result = LogicalSides {
-            inline_start: collapsed_borders.inline[coordinates.x],
-            inline_end: collapsed_borders.inline[end_x],
-            block_start: collapsed_borders.block[coordinates.y],
-            block_end: collapsed_borders.block[end_y],
+            inline_start: collapsed_borders.inline[coordinates.x].width,
+            inline_end: collapsed_borders.inline[end_x].width,
+            block_start: collapsed_borders.block[coordinates.y].width,
+            block_end: collapsed_borders.block[end_y].width,
         };
 
         if coordinates.x != 0 {
