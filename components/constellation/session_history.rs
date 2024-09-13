@@ -109,6 +109,7 @@ impl JointSessionHistory {
 
 /// Represents a pending change in a session history, that will be applied
 /// once the new pipeline has loaded and completed initial layout / paint.
+#[derive(Debug)]
 pub struct SessionHistoryChange {
     /// The browsing context to change.
     pub browsing_context_id: BrowsingContextId,

@@ -748,7 +748,7 @@ pub struct IFrameLoadInfoWithData {
 }
 
 bitflags! {
-    #[derive(Default, Deserialize, Serialize)]
+    #[derive(Debug, Default, Deserialize, Serialize)]
     /// Specifies if rAF should be triggered and/or CSS Animations and Transitions.
     pub struct AnimationTickType: u8 {
         /// Trigger a call to requestAnimationFrame.
