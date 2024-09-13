@@ -60,8 +60,7 @@ packages = [
     # stuck on 0.8.4 with no new releases.
     "env_logger",
 
-    # Stylo uses phf 0.11, while script and other dependencies use 0.10.
-    "phf",
+    # Required until a new version of string-cache is released.
     "phf_generator",
     "phf_shared",
 
