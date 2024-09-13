@@ -91,7 +91,16 @@ impl ScrollTreeNode {
     pub fn set_offset(&mut self, new_offset: LayoutVector2D) -> bool {
         match self.scroll_info {
             Some(ref mut info) => {
-                info.offset = new_offset;
+                let scrollable_width = info.scrollable_size.width;
+                let scrollable_height = info.scrollable_size.height;
+
+                if scrollable_width > 0. {
+                    info.offset.x = (new_offset.x).min(0.0).max(-scrollable_width);
+                }
+
+                if scrollable_height > 0. {
+                    info.offset.y = (new_offset.y).min(0.0).max(-scrollable_height);
+                }
                 true
             },
             _ => false,
