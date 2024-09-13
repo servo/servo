@@ -114,11 +114,21 @@ jobs:
           S3_UPLOAD_CREDENTIALS: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
           NIGHTLY_REPO_TOKEN: ${{ secrets.NIGHTLY_REPO_TOKEN }}
           NIGHTLY_REPO: ${{ github.repository_owner }}/servo-nightly-builds
+      - name: Generate artifact attestation for APK
+        if: ${{ inputs.upload }}
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-path: target/android/${{ matrix.target }}/${{ inputs.profile }}/servoapp.apk
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ inputs.profile }}-binary-android-${{ matrix.target }}
           path: target/android/${{ matrix.target }}/${{ inputs.profile }}/servoapp.apk
+      - name: Generate artifact attestation for AAR
+        if: ${{ inputs.upload }}
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-path: target/android/${{ matrix.target }}/${{ inputs.profile }}/servoview.aar
       - name: Upload AAR artifact
         uses: actions/upload-artifact@v4
         with:

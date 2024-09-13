@@ -119,6 +119,9 @@ jobs:
     name: Upload nightly (Android)
     needs:
       - create-draft-release
+    permissions:
+      id-token: write
+      attestations: write
     uses: ./.github/workflows/android.yml
     with:
       profile: "release"
