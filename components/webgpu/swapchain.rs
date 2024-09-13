@@ -47,7 +47,7 @@ struct GPUPresentationBuffer {
     size: usize,
 }
 
-// This is safe because [`GPUPresentationBuffer`] is always wrapped in Arc Mutex of [`WGPUImageMap`]
+// This is safe because `GPUPresentationBuffer` holds exclusive access to ptr
 unsafe impl Send for GPUPresentationBuffer {}
 unsafe impl Sync for GPUPresentationBuffer {}
 
@@ -63,6 +63,7 @@ impl GPUPresentationBuffer {
             size: size as usize,
         }
     }
+
     fn slice(&self) -> &[u8] {
         unsafe { slice::from_raw_parts(self.data.as_ptr(), self.size) }
     }
