@@ -587,7 +587,7 @@ enum ReadyToSave {
 /// A normal exit waits for the compositor to update its state before
 /// exiting, and delegates layout exit to script. A forced exit does
 /// not notify the compositor, and exits layout without involving script.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 enum ExitPipelineMode {
     Normal,
     Force,
@@ -618,6 +618,7 @@ where
 {
     /// Create a new constellation thread.
     #[allow(clippy::too_many_arguments)]
+    #[tracing::instrument(skip(state, layout_factory), fields(servo_profiling = true))]
     pub fn start(
         state: InitialConstellationState,
         layout_factory: Arc<dyn LayoutFactory>,
@@ -1194,6 +1195,7 @@ where
     }
 
     /// Handles loading pages, navigation, and granting access to the compositor
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn handle_request(&mut self) {
         #[derive(Debug)]
         enum Request {
@@ -1290,11 +1292,13 @@ where
         }
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn handle_request_for_pipeline_namespace(&mut self, request: PipelineNamespaceRequest) {
         let PipelineNamespaceRequest(sender) = request;
         let _ = sender.send(self.next_pipeline_namespace_id());
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn handle_request_from_background_hang_monitor(&self, message: HangMonitorAlert) {
         match message {
             HangMonitorAlert::Profile(bytes) => self
@@ -1308,6 +1312,7 @@ where
         }
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn handle_request_from_network_listener(&mut self, message: (PipelineId, FetchResponseMsg)) {
         let (id, message_) = message;
         let result = match self.pipelines.get(&id) {
@@ -1561,6 +1566,7 @@ where
         }
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn handle_request_from_script(&mut self, message: (PipelineId, FromScriptMsg)) {
         let (source_pipeline_id, content) = message;
         trace_script_msg!(content, "{source_pipeline_id}: {content:?}");
@@ -1890,6 +1896,7 @@ where
     }
 
     /// Broadcast a message via routers in various event-loops.
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn handle_schedule_broadcast(
         &self,
         pipeline_id: PipelineId,
@@ -1933,6 +1940,7 @@ where
     }
 
     /// Remove a channel-name for a given broadcast router.
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn handle_remove_broadcast_channel_name_in_router(
         &mut self,
         pipeline_id: PipelineId,
@@ -1968,6 +1976,7 @@ where
     }
 
     /// Note a new channel-name relevant to a given broadcast router.
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn handle_new_broadcast_channel_name_in_router(
         &mut self,
         pipeline_id: PipelineId,
@@ -1989,6 +1998,7 @@ where
     }
 
     /// Remove a broadcast router.
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn handle_remove_broadcast_channel_router(
         &mut self,
         pipeline_id: PipelineId,
@@ -2007,6 +2017,7 @@ where
     }
 
     /// Add a new broadcast router.
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn handle_new_broadcast_channel_router(
         &mut self,
         pipeline_id: PipelineId,
@@ -2029,6 +2040,7 @@ where
         }
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn handle_wgpu_request(
         &mut self,
         source_pipeline_id: PipelineId,
@@ -2104,6 +2116,7 @@ where
         }
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn handle_request_from_layout(&mut self, message: FromLayoutMsg) {
         trace_layout_msg!(message, "{message:?}");
         match message {
@@ -2118,6 +2131,7 @@ where
         }
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn handle_message_port_transfer_completed(
         &mut self,
         router_id: Option<MessagePortRouterId>,
@@ -2256,6 +2270,7 @@ where
         }
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn handle_complete_message_port_transfer(
         &mut self,
         router_id: MessagePortRouterId,
@@ -2336,6 +2351,7 @@ where
         }
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn handle_reroute_messageport(&mut self, port_id: MessagePortId, task: PortMessageTask) {
         let info = match self.message_ports.get_mut(&port_id) {
             Some(info) => info,
@@ -2367,6 +2383,7 @@ where
         }
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn handle_messageport_shipped(&mut self, port_id: MessagePortId) {
         if let Some(info) = self.message_ports.get_mut(&port_id) {
             match info.state {
@@ -2421,6 +2438,7 @@ where
         }
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn handle_remove_messageport(&mut self, port_id: MessagePortId) {
         let entangled = match self.message_ports.remove(&port_id) {
             Some(info) => info.entangled_with,
@@ -2468,6 +2486,7 @@ where
         }
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn handle_entangle_messageports(&mut self, port1: MessagePortId, port2: MessagePortId) {
         if let Some(info) = self.message_ports.get_mut(&port1) {
             info.entangled_with = Some(port2);
@@ -2493,6 +2512,7 @@ where
     ///
     /// The Job Queue is essentially the channel to a SW manager,
     /// which are scoped per origin.
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn handle_schedule_serviceworker_job(&mut self, pipeline_id: PipelineId, job: Job) {
         let origin = job.scope_url.origin();
 
@@ -2532,6 +2552,7 @@ where
         let _ = sw_manager.send(ServiceWorkerMsg::ScheduleJob(job));
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn handle_broadcast_storage_event(
         &self,
         pipeline_id: PipelineId,
@@ -2562,6 +2583,7 @@ where
         }
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn handle_exit(&mut self) {
         debug!("Handling exit.");
 
@@ -2642,6 +2664,7 @@ where
         }
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn handle_shutdown(&mut self) {
         debug!("Handling shutdown.");
 
@@ -2766,6 +2789,7 @@ where
         self.pipelines.remove(&pipeline_id);
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn handle_send_error(&mut self, pipeline_id: PipelineId, err: IpcError) {
         // Treat send error the same as receiving a panic message
         error!("{}: Send error ({})", pipeline_id, err);
@@ -2777,6 +2801,7 @@ where
         self.handle_panic(top_level_browsing_context_id, reason, None);
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn handle_panic(
         &mut self,
         top_level_browsing_context_id: Option<TopLevelBrowsingContextId>,
@@ -2874,6 +2899,7 @@ where
         });
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn handle_log_entry(
         &mut self,
         top_level_browsing_context_id: Option<TopLevelBrowsingContextId>,
@@ -2953,6 +2979,7 @@ where
         }
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn handle_new_top_level_browsing_context(
         &mut self,
         url: ServoUrl,
@@ -3019,6 +3046,7 @@ where
         });
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn handle_close_top_level_browsing_context(
         &mut self,
         top_level_browsing_context_id: TopLevelBrowsingContextId,
@@ -3065,6 +3093,7 @@ where
         debug!("{top_level_browsing_context_id}: Closed");
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn handle_iframe_size_msg(&mut self, iframe_sizes: Vec<IFrameSizeMsg>) {
         for IFrameSizeMsg {
             browsing_context_id,
@@ -3081,6 +3110,7 @@ where
         }
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn handle_subframe_loaded(&mut self, pipeline_id: PipelineId) {
         let browsing_context_id = match self.pipelines.get(&pipeline_id) {
             Some(pipeline) => pipeline.browsing_context_id,
@@ -3121,6 +3151,7 @@ where
         }
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn handle_navigate_request(
         &self,
         id: PipelineId,
@@ -3141,6 +3172,7 @@ where
     // iframe via script. This will result in a new pipeline being spawned and
     // a child being added to the parent browsing context. This message is never
     // the result of a page navigation.
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn handle_script_loaded_url_in_iframe_msg(&mut self, load_info: IFrameLoadInfoWithData) {
         let IFrameLoadInfo {
             parent_pipeline_id,
@@ -3247,6 +3279,7 @@ where
         });
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn handle_script_new_iframe(&mut self, load_info: IFrameLoadInfoWithData) {
         let IFrameLoadInfo {
             parent_pipeline_id,
@@ -3307,6 +3340,7 @@ where
         });
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn handle_script_new_auxiliary(&mut self, load_info: AuxiliaryBrowsingContextLoadInfo) {
         let AuxiliaryBrowsingContextLoadInfo {
             load_data,
@@ -3392,16 +3426,19 @@ where
         });
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn handle_pending_paint_metric(&self, pipeline_id: PipelineId, epoch: Epoch) {
         self.compositor_proxy
             .send(CompositorMsg::PendingPaintMetric(pipeline_id, epoch))
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn handle_set_cursor_msg(&mut self, cursor: Cursor) {
         self.embedder_proxy
             .send((None, EmbedderMsg::SetCursor(cursor)))
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn handle_change_running_animations_state(
         &mut self,
         pipeline_id: PipelineId,
@@ -3419,6 +3456,7 @@ where
         }
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn handle_tick_animation(&mut self, pipeline_id: PipelineId, tick_type: AnimationTickType) {
         let pipeline = match self.pipelines.get(&pipeline_id) {
             Some(pipeline) => pipeline,
@@ -3434,6 +3472,7 @@ where
     /// Schedule a navigation(via load_url).
     /// 1: Ask the embedder for permission.
     /// 2: Store the details of the navigation, pending approval from the embedder.
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn schedule_navigation(
         &mut self,
         top_level_browsing_context_id: TopLevelBrowsingContextId,
@@ -3460,6 +3499,7 @@ where
         self.embedder_proxy.send(msg);
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn load_url(
         &mut self,
         top_level_browsing_context_id: TopLevelBrowsingContextId,
@@ -3588,6 +3628,7 @@ where
         }
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn handle_abort_load_url_msg(&mut self, new_pipeline_id: PipelineId) {
         let pending_index = self
             .pending_changes
@@ -3605,6 +3646,7 @@ where
         }
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn handle_load_complete_msg(
         &mut self,
         top_level_browsing_context_id: TopLevelBrowsingContextId,
@@ -3653,6 +3695,7 @@ where
         }
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn handle_navigated_to_fragment(
         &mut self,
         pipeline_id: PipelineId,
@@ -3684,6 +3727,7 @@ where
         }
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn handle_traverse_history_msg(
         &mut self,
         top_level_browsing_context_id: TopLevelBrowsingContextId,
@@ -3825,6 +3869,7 @@ where
         self.update_webview_in_compositor(top_level_browsing_context_id);
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn update_browsing_context(
         &mut self,
         browsing_context_id: BrowsingContextId,
@@ -3949,6 +3994,7 @@ where
         }
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn update_pipeline(
         &mut self,
         pipeline_id: PipelineId,
@@ -3975,6 +4021,7 @@ where
         }
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn handle_joint_session_history_length(
         &self,
         top_level_browsing_context_id: TopLevelBrowsingContextId,
@@ -3988,6 +4035,7 @@ where
         let _ = response_sender.send(length as u32);
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn handle_push_history_state_msg(
         &mut self,
         pipeline_id: PipelineId,
@@ -4027,6 +4075,7 @@ where
         self.notify_history_changed(top_level_browsing_context_id);
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn handle_replace_history_state_msg(
         &mut self,
         pipeline_id: PipelineId,
@@ -4051,6 +4100,7 @@ where
         session_history.replace_history_state(pipeline_id, history_state_id, url);
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn handle_ime_dismissed(&mut self) {
         // Send to the focused browsing contexts' current pipeline.
         let focused_browsing_context_id = self
@@ -4081,6 +4131,7 @@ where
         }
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn handle_key_msg(&mut self, event: KeyboardEvent) {
         // Send to the focused browsing contexts' current pipeline.  If it
         // doesn't exist, fall back to sending to the compositor.
@@ -4119,6 +4170,7 @@ where
         }
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn handle_reload_msg(&mut self, top_level_browsing_context_id: TopLevelBrowsingContextId) {
         let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
         let pipeline_id = match self.browsing_contexts.get(&browsing_context_id) {
@@ -4137,6 +4189,7 @@ where
         }
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn handle_post_message_msg(
         &mut self,
         browsing_context_id: BrowsingContextId,
@@ -4175,6 +4228,7 @@ where
         }
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn handle_get_pipeline(
         &mut self,
         browsing_context_id: BrowsingContextId,
@@ -4196,6 +4250,7 @@ where
         }
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn handle_get_browsing_context(
         &mut self,
         pipeline_id: PipelineId,
@@ -4210,6 +4265,7 @@ where
         }
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn handle_focus_msg(&mut self, pipeline_id: PipelineId) {
         let (browsing_context_id, top_level_browsing_context_id) =
             match self.pipelines.get(&pipeline_id) {
@@ -4244,6 +4300,7 @@ where
         self.focus_parent_pipeline(browsing_context_id);
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn focus_parent_pipeline(&mut self, browsing_context_id: BrowsingContextId) {
         let parent_pipeline_id = match self.browsing_contexts.get(&browsing_context_id) {
             Some(ctx) => ctx.parent_pipeline_id,
@@ -4274,6 +4331,7 @@ where
         self.focus_parent_pipeline(parent_browsing_context_id);
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn handle_remove_iframe_msg(
         &mut self,
         browsing_context_id: BrowsingContextId,
@@ -4286,6 +4344,7 @@ where
         result
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn handle_set_throttled_complete(&mut self, pipeline_id: PipelineId, throttled: bool) {
         let browsing_context_id = match self.pipelines.get(&pipeline_id) {
             Some(pipeline) => pipeline.browsing_context_id,
@@ -4320,6 +4379,7 @@ where
         }
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn handle_create_canvas_paint_thread_msg(
         &mut self,
         size: UntypedSize2D<u64>,
@@ -4343,6 +4403,7 @@ where
         }
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn handle_webdriver_msg(&mut self, msg: WebDriverCommandMsg) {
         // Find the script channel for the given parent pipeline,
         // and pass the event to that script thread.
@@ -4473,6 +4534,7 @@ where
         }
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn set_webview_throttled(&mut self, webview_id: WebViewId, throttled: bool) {
         let browsing_context_id = BrowsingContextId::from(webview_id);
         let pipeline_id = match self.browsing_contexts.get(&browsing_context_id) {
@@ -4487,6 +4549,7 @@ where
         }
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn notify_history_changed(&self, top_level_browsing_context_id: TopLevelBrowsingContextId) {
         // Send a flat projection of the history to embedder.
         // The final vector is a concatenation of the LoadData of the past
@@ -4603,6 +4666,7 @@ where
         self.embedder_proxy.send(msg);
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn load_url_for_webdriver(
         &mut self,
         top_level_browsing_context_id: TopLevelBrowsingContextId,
@@ -4630,6 +4694,7 @@ where
         }
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn change_session_history(&mut self, change: SessionHistoryChange) {
         debug!(
             "{}: Setting to {}",
@@ -4784,6 +4849,7 @@ where
         self.update_webview_in_compositor(change.top_level_browsing_context_id);
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn focused_browsing_context_is_descendant_of(
         &self,
         browsing_context_id: BrowsingContextId,
@@ -4799,6 +4865,7 @@ where
         })
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn trim_history(&mut self, top_level_browsing_context_id: TopLevelBrowsingContextId) {
         let pipelines_to_evict = {
             let session_history = self.get_joint_session_history(top_level_browsing_context_id);
@@ -4858,6 +4925,7 @@ where
         }
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn handle_activate_document_msg(&mut self, pipeline_id: PipelineId) {
         debug!("{}: Document ready to activate", pipeline_id);
 
@@ -4903,6 +4971,7 @@ where
     }
 
     /// Called when the window is resized.
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn handle_window_size_msg(
         &mut self,
         top_level_browsing_context_id: TopLevelBrowsingContextId,
@@ -4925,6 +4994,7 @@ where
     }
 
     /// Called when the window exits from fullscreen mode
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn handle_exit_fullscreen_msg(
         &mut self,
         top_level_browsing_context_id: TopLevelBrowsingContextId,
@@ -4938,6 +5008,7 @@ where
     /// to check if the output image is "stable" and can be written as a screenshot
     /// for reftests.
     /// Since this function is only used in reftests, we do not harden it against panic.
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn handle_is_ready_to_save_image(
         &mut self,
         pipeline_states: HashMap<PipelineId, Epoch>,
@@ -5021,6 +5092,7 @@ where
     }
 
     /// Get the current activity of a pipeline.
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn get_activity(&self, pipeline_id: PipelineId) -> DocumentActivity {
         let mut ancestor_id = pipeline_id;
         loop {
@@ -5047,6 +5119,7 @@ where
     }
 
     /// Set the current activity of a pipeline.
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn set_activity(&self, pipeline_id: PipelineId, activity: DocumentActivity) {
         debug!("{}: Setting activity to {:?}", pipeline_id, activity);
         if let Some(pipeline) = self.pipelines.get(&pipeline_id) {
@@ -5065,12 +5138,14 @@ where
     }
 
     /// Update the current activity of a pipeline.
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn update_activity(&self, pipeline_id: PipelineId) {
         self.set_activity(pipeline_id, self.get_activity(pipeline_id));
     }
 
     /// Handle updating the size of a browsing context.
     /// This notifies every pipeline in the context of the new size.
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn resize_browsing_context(
         &mut self,
         new_size: WindowSizeData,
@@ -5127,6 +5202,7 @@ where
     }
 
     // Handle switching from fullscreen mode
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn switch_fullscreen_mode(&mut self, browsing_context_id: BrowsingContextId) {
         if let Some(browsing_context) = self.browsing_contexts.get(&browsing_context_id) {
             let pipeline_id = browsing_context.pipeline_id;
@@ -5146,6 +5222,7 @@ where
     }
 
     // Close and return the browsing context with the given id (and its children), if it exists.
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn close_browsing_context(
         &mut self,
         browsing_context_id: BrowsingContextId,
@@ -5185,6 +5262,7 @@ where
     }
 
     // Close the children of a browsing context
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn close_browsing_context_children(
         &mut self,
         browsing_context_id: BrowsingContextId,
@@ -5215,6 +5293,7 @@ where
     }
 
     // Discard the pipeline for a given document, udpdate the joint session history.
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn handle_discard_document(
         &mut self,
         top_level_browsing_context_id: TopLevelBrowsingContextId,
@@ -5246,6 +5325,7 @@ where
     }
 
     // Send a message to script requesting the document associated with this pipeline runs the 'unload' algorithm.
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn unload_document(&self, pipeline_id: PipelineId) {
         if let Some(pipeline) = self.pipelines.get(&pipeline_id) {
             let msg = ConstellationControlMsg::UnloadDocument(pipeline_id);
@@ -5254,6 +5334,7 @@ where
     }
 
     // Close all pipelines at and beneath a given browsing context
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn close_pipeline(
         &mut self,
         pipeline_id: PipelineId,
@@ -5317,6 +5398,7 @@ where
     }
 
     // Randomly close a pipeline -if --random-pipeline-closure-probability is set
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn maybe_close_random_pipeline(&mut self) {
         match self.random_pipeline_closure {
             Some((ref mut rng, probability)) => {
@@ -5354,6 +5436,7 @@ where
         }
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn get_joint_session_history(
         &mut self,
         top_level_id: TopLevelBrowsingContextId,
@@ -5365,6 +5448,7 @@ where
     }
 
     // Convert a browsing context to a sendable form to pass to the compositor
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn browsing_context_to_sendable(
         &self,
         browsing_context_id: BrowsingContextId,
@@ -5394,6 +5478,7 @@ where
     }
 
     /// Send the frame tree for the given webview to the compositor.
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn update_webview_in_compositor(&mut self, webview_id: WebViewId) {
         // Note that this function can panic, due to ipc-channel creation failure.
         // avoiding this panic would require a mechanism for dealing
@@ -5406,6 +5491,7 @@ where
         }
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn handle_media_session_action_msg(&mut self, action: MediaSessionActionType) {
         if let Some(media_session_pipeline_id) = self.active_media_session {
             let result = match self.pipelines.get(&media_session_pipeline_id) {
@@ -5432,6 +5518,7 @@ where
     }
 
     /// Handle GamepadEvents from the embedder and forward them to the script thread
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn handle_gamepad_msg(&mut self, event: GamepadEvent) {
         // Send to the focused browsing contexts' current pipeline.
         let focused_browsing_context_id = self

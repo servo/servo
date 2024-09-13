@@ -140,6 +140,7 @@ pub struct TrustedNodeAddress(pub *const c_void);
 unsafe impl Send for TrustedNodeAddress {}
 
 /// Whether the pending image needs to be fetched or is waiting on an existing fetch.
+#[derive(Debug)]
 pub enum PendingImageState {
     Unrequested(ServoUrl),
     PendingResponse,
@@ -148,6 +149,7 @@ pub enum PendingImageState {
 /// The data associated with an image that is not yet present in the image cache.
 /// Used by the script thread to hold on to DOM elements that need to be repainted
 /// when an image fetch is complete.
+#[derive(Debug)]
 pub struct PendingImage {
     pub state: PendingImageState,
     pub node: UntrustedNodeAddress,
@@ -365,19 +367,21 @@ impl ReflowGoal {
 }
 
 /// Information needed for a reflow.
+#[derive(Debug)]
 pub struct Reflow {
     ///  A clipping rectangle for the page, an enlarged rectangle containing the viewport.
     pub page_clip_rect: Rect<Au>,
 }
 
 /// Information derived from a layout pass that needs to be returned to the script thread.
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct ReflowComplete {
     /// The list of images that were encountered that are in progress.
     pub pending_images: Vec<PendingImage>,
 }
 
 /// Information needed for a script-initiated reflow.
+#[derive(Debug)]
 pub struct ScriptReflow {
     /// General reflow data.
     pub reflow_info: Reflow,

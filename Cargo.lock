@@ -3849,6 +3849,7 @@ dependencies = [
  "servo_url",
  "style",
  "style_traits",
+ "tracing",
  "url",
  "webrender_api",
  "webrender_traits",
