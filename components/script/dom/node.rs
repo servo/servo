@@ -1297,16 +1297,7 @@ where
 /// returns it.
 #[allow(unsafe_code)]
 pub unsafe fn from_untrusted_node_address(candidate: UntrustedNodeAddress) -> DomRoot<Node> {
-    // https://github.com/servo/servo/issues/6383
-    let candidate = candidate.0 as usize;
-    //        let object: *mut JSObject = jsfriendapi::bindgen::JS_GetAddressableObject(runtime,
-    //                                                                                  candidate);
-    let object = candidate as *mut JSObject;
-    if object.is_null() {
-        panic!("Attempted to create a `Dom<Node>` from an invalid pointer!")
-    }
-    let boxed_node = conversions::private_from_object(object) as *const Node;
-    DomRoot::from_ref(&*boxed_node)
+    DomRoot::from_ref(Node::from_untrusted_node_address(candidate))
 }
 
 #[allow(unsafe_code)]
@@ -2429,6 +2420,24 @@ impl Node {
                 .as_ref()
                 .map_or(ns!(), |elem| elem.locate_namespace(prefix)),
         }
+    }
+
+    /// If the given untrusted node address represents a valid DOM node in the given runtime,
+    /// returns it.
+    ///
+    /// # Safety
+    ///
+    /// Callers should ensure they pass an UntrustedNodeAddress that points to a valid `JSObject`
+    /// in memory that represents a `Node`.
+    #[allow(unsafe_code)]
+    pub unsafe fn from_untrusted_node_address(candidate: UntrustedNodeAddress) -> &'static Self {
+        // https://github.com/servo/servo/issues/6383
+        let candidate = candidate.0 as usize;
+        let object = candidate as *mut JSObject;
+        if object.is_null() {
+            panic!("Attempted to create a `Node` from an invalid pointer!")
+        }
+        &*(conversions::private_from_object(object) as *const Self)
     }
 }
 

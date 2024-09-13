@@ -8,10 +8,12 @@ use std::sync::atomic::Ordering;
 
 use atomic_refcell::{AtomicRef, AtomicRefMut};
 use html5ever::{local_name, namespace_url, ns, LocalName, Namespace};
+use js::jsapi::JSObject;
 use script_layout_interface::wrapper_traits::{
     LayoutNode, PseudoElementType, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
 };
 use script_layout_interface::{LayoutNodeType, StyleData};
+use script_traits::UntrustedNodeAddress;
 use selectors::attr::{AttrSelectorOperation, CaseSensitivity, NamespaceConstraint};
 use selectors::bloom::{BloomFilter, BLOOM_HASH_MASK};
 use selectors::matching::{ElementSelectorFlags, MatchingContext, VisitedHandlingMode};
@@ -44,7 +46,7 @@ use crate::dom::bindings::inheritance::{
 use crate::dom::bindings::root::LayoutDom;
 use crate::dom::characterdata::LayoutCharacterDataHelpers;
 use crate::dom::element::{Element, LayoutElementHelpers};
-use crate::dom::node::{LayoutNodeHelpers, NodeFlags};
+use crate::dom::node::{LayoutNodeHelpers, Node, NodeFlags};
 use crate::layout_dom::{ServoLayoutNode, ServoShadowRoot, ServoThreadSafeLayoutNode};
 
 /// A wrapper around elements that ensures layout can only ever access safe properties.
@@ -428,6 +430,18 @@ impl<'dom> style::dom::TElement for ServoLayoutElement<'dom> {
     where
         F: FnMut(&AtomIdent),
     {
+    }
+
+    /// Convert an opaque element back into the element.
+    fn unopaque(opaque: ::selectors::OpaqueElement) -> Self {
+        unsafe {
+            let ptr = opaque.as_const_ptr::<JSObject>();
+            let untrusted_address = UntrustedNodeAddress::from_id(ptr as usize);
+            let node = Node::from_untrusted_node_address(untrusted_address);
+            let trusted_address = node.to_trusted_node_address();
+            let servo_layout_node = ServoLayoutNode::new(&trusted_address);
+            servo_layout_node.as_element().unwrap()
+        }
     }
 }
 
