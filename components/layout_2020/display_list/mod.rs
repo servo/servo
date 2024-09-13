@@ -1028,18 +1028,17 @@ impl<'a> BuilderForBoxFragment<'a> {
         }
 
         // NB: According to CSS-BACKGROUNDS, box shadows render in *reverse* order (front to back).
-        let border_rect = self.border_rect;
         let common = builder.common_properties(MaxRect::max_rect(), &self.fragment.style);
         for box_shadow in box_shadows.iter().rev() {
-            let clip_mode = if box_shadow.inset {
-                BoxShadowClipMode::Inset
+            let (rect, clip_mode) = if box_shadow.inset {
+                (*self.padding_rect(), BoxShadowClipMode::Inset)
             } else {
-                BoxShadowClipMode::Outset
+                (self.border_rect, BoxShadowClipMode::Outset)
             };
 
             builder.wr().push_box_shadow(
                 &common,
-                border_rect,
+                rect,
                 LayoutVector2D::new(
                     box_shadow.base.horizontal.px(),
                     box_shadow.base.vertical.px(),
