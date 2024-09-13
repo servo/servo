@@ -507,8 +507,8 @@ impl HoistedAbsolutelyPositionedBox {
             box_offsets: inline_box_offsets,
             static_position_rect_axis: static_position_rect.get_axis(AxisDirection::Inline),
             alignment: inline_alignment,
-            flip_anchor: !(shared_fragment.original_parent_writing_mode.is_bidi_ltr() ==
-                indefinite_containing_block.style.writing_mode.is_bidi_ltr()),
+            flip_anchor: shared_fragment.original_parent_writing_mode.is_bidi_ltr() !=
+                indefinite_containing_block.style.writing_mode.is_bidi_ltr(),
         };
 
         // When the "static-position rect" doesn't come into play, we re-resolve "align-self"

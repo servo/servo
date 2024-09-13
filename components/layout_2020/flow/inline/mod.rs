@@ -1685,7 +1685,7 @@ impl InlineFormattingContext {
 
         FlowLayout {
             fragments: layout.fragments,
-            content_block_size: content_block_size.into(),
+            content_block_size: content_block_size,
             collapsible_margins_in_children,
             baselines: layout.baselines,
         }
@@ -1865,18 +1865,12 @@ impl InlineContainerState {
                 VerticalAlign::Keyword(VerticalAlignKeyword::Baseline) |
                 VerticalAlign::Keyword(VerticalAlignKeyword::Top) |
                 VerticalAlign::Keyword(VerticalAlignKeyword::Bottom) => Au::zero(),
-                VerticalAlign::Keyword(VerticalAlignKeyword::Sub) => Au::from_f32_px(
-                    block_size
-                        .resolve()
-                        .scale_by(FONT_SUBSCRIPT_OFFSET_RATIO)
-                        .to_f32_px(),
-                ),
-                VerticalAlign::Keyword(VerticalAlignKeyword::Super) => -Au::from_f32_px(
-                    block_size
-                        .resolve()
-                        .scale_by(FONT_SUPERSCRIPT_OFFSET_RATIO)
-                        .to_f32_px(),
-                ),
+                VerticalAlign::Keyword(VerticalAlignKeyword::Sub) => {
+                    block_size.resolve().scale_by(FONT_SUBSCRIPT_OFFSET_RATIO)
+                },
+                VerticalAlign::Keyword(VerticalAlignKeyword::Super) => {
+                    -block_size.resolve().scale_by(FONT_SUPERSCRIPT_OFFSET_RATIO)
+                },
                 VerticalAlign::Keyword(VerticalAlignKeyword::TextTop) => {
                     child_block_size.size_for_baseline_positioning.ascent - self.font_metrics.ascent
                 },
@@ -1893,7 +1887,7 @@ impl InlineContainerState {
                         child_block_size.size_for_baseline_positioning.descent
                 },
                 VerticalAlign::Length(length_percentage) => {
-                    (-length_percentage.resolve(child_block_size.line_height.into())).into()
+                    -length_percentage.to_used_value(child_block_size.line_height)
                 },
             }
     }

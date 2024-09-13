@@ -24,7 +24,7 @@ use style::properties::style_structs::Border;
 use style::properties::ComputedValues;
 use style::values::computed::image::Image;
 use style::values::computed::{
-    BorderImageSideWidth, BorderImageWidth, BorderStyle, Color, Length, LengthPercentage,
+    BorderImageSideWidth, BorderImageWidth, BorderStyle, Color, LengthPercentage,
     LengthPercentageOrAuto, NonNegativeLengthOrNumber, NumberOrPercentage, OutlineStyle,
 };
 use style::values::generics::rect::Rect;
@@ -495,19 +495,19 @@ struct BuilderForBoxFragment<'a> {
 
 impl<'a> BuilderForBoxFragment<'a> {
     fn new(fragment: &'a BoxFragment, containing_block: &'a PhysicalRect<Au>) -> Self {
-        let border_rect: units::LayoutRect = fragment
+        let border_rect = fragment
             .border_rect()
-            .translate(containing_block.origin.to_vector())
-            .to_webrender();
+            .translate(containing_block.origin.to_vector());
 
+        let webrender_border_rect = border_rect.to_webrender();
         let border_radius = {
-            let resolve = |radius: &LengthPercentage, box_size: f32| {
-                radius.percentage_relative_to(Length::new(box_size)).px()
+            let resolve = |radius: &LengthPercentage, box_size: Au| {
+                radius.to_used_value(box_size).to_f32_px()
             };
             let corner = |corner: &style::values::computed::BorderCornerRadius| {
                 Size2D::new(
-                    resolve(&corner.0.width.0, border_rect.size().width),
-                    resolve(&corner.0.height.0, border_rect.size().height),
+                    resolve(&corner.0.width.0, border_rect.size.width),
+                    resolve(&corner.0.height.0, border_rect.size.height),
                 )
             };
             let b = fragment.style.get_border();
@@ -517,14 +517,15 @@ impl<'a> BuilderForBoxFragment<'a> {
                 bottom_right: corner(&b.border_bottom_right_radius),
                 bottom_left: corner(&b.border_bottom_left_radius),
             };
-            normalize_radii(&border_rect, &mut radius);
+
+            normalize_radii(&webrender_border_rect, &mut radius);
             radius
         };
 
         Self {
             fragment,
             containing_block,
-            border_rect,
+            border_rect: webrender_border_rect,
             border_radius,
             margin_rect: OnceCell::new(),
             padding_rect: OnceCell::new(),
@@ -1343,14 +1344,14 @@ pub(super) fn compute_margin_box_radius(
         let width = margin
             .width
             .auto_is(LengthPercentage::zero)
-            .resolve(Length::new(layout_rect.width));
+            .to_used_value(Au::from_f32_px(layout_rect.width));
         let height = margin
             .height
             .auto_is(LengthPercentage::zero)
-            .resolve(Length::new(layout_rect.height));
+            .to_used_value(Au::from_f32_px(layout_rect.height));
         LayoutSize::new(
-            adjust_radius(radius.width, width.px()),
-            adjust_radius(radius.height, height.px()),
+            adjust_radius(radius.width, width.to_f32_px()),
+            adjust_radius(radius.height, height.to_f32_px()),
         )
     };
     wr::BorderRadius {

@@ -1363,23 +1363,15 @@ impl BoxFragment {
         // nearest scroll frame instead of the containing block like for other types
         // of positioning.
         let position = self.style.get_position();
+        let scroll_frame_height = Au::from_f32_px(scroll_frame_size_for_resolve.height);
+        let scroll_frame_width = Au::from_f32_px(scroll_frame_size_for_resolve.width);
         let offsets = PhysicalSides::<AuOrAuto>::new(
-            position.top.map(|v| {
-                v.resolve(Length::new(scroll_frame_size_for_resolve.height))
-                    .into()
-            }),
-            position.right.map(|v| {
-                v.resolve(Length::new(scroll_frame_size_for_resolve.width))
-                    .into()
-            }),
-            position.bottom.map(|v| {
-                v.resolve(Length::new(scroll_frame_size_for_resolve.height))
-                    .into()
-            }),
-            position.left.map(|v| {
-                v.resolve(Length::new(scroll_frame_size_for_resolve.width))
-                    .into()
-            }),
+            position.top.map(|v| v.to_used_value(scroll_frame_height)),
+            position.right.map(|v| v.to_used_value(scroll_frame_width)),
+            position
+                .bottom
+                .map(|v| v.to_used_value(scroll_frame_height)),
+            position.left.map(|v| v.to_used_value(scroll_frame_width)),
         );
         self.resolved_sticky_insets = Some(offsets);
 

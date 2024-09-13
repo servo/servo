@@ -9,7 +9,6 @@ use itertools::Either;
 use servo_arc::Arc;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 use style::properties::ComputedValues;
-use style::values::computed::Length;
 use style::values::generics::box_::{GenericVerticalAlign, VerticalAlignKeyword};
 use style::values::generics::font::LineHeight;
 use style::values::specified::align::AlignFlags;
@@ -433,7 +432,7 @@ impl<'layout_data, 'layout> LineItemLayout<'layout_data, 'layout> {
         let inline_box_containing_block = ContainingBlock {
             inline_size: content_rect.size.inline,
             block_size: AuOrAuto::Auto,
-            style: &self.layout.containing_block.style,
+            style: self.layout.containing_block.style,
         };
         let fragments = inner_state
             .fragments
@@ -515,11 +514,11 @@ impl<'layout_data, 'layout> LineItemLayout<'layout_data, 'layout> {
         // baseline, so we need to make it relative to the line block start.
         match inline_box_state.base.style.clone_vertical_align() {
             GenericVerticalAlign::Keyword(VerticalAlignKeyword::Top) => {
-                let line_height: Au = line_height(style, font_metrics).into();
+                let line_height: Au = line_height(style, font_metrics);
                 (line_height - line_gap).scale_by(0.5)
             },
             GenericVerticalAlign::Keyword(VerticalAlignKeyword::Bottom) => {
-                let line_height: Au = line_height(style, font_metrics).into();
+                let line_height: Au = line_height(style, font_metrics);
                 let half_leading = (line_height - line_gap).scale_by(0.5);
                 self.line_metrics.block_size - line_height + half_leading
             },
@@ -875,13 +874,13 @@ pub(super) struct FloatLineItem {
     pub needs_placement: bool,
 }
 
-fn line_height(parent_style: &ComputedValues, font_metrics: &FontMetrics) -> Length {
+fn line_height(parent_style: &ComputedValues, font_metrics: &FontMetrics) -> Au {
     let font = parent_style.get_font();
     let font_size = font.font_size.computed_size();
     match font.line_height {
-        LineHeight::Normal => Length::from(font_metrics.line_gap),
-        LineHeight::Number(number) => font_size * number.0,
-        LineHeight::Length(length) => length.0,
+        LineHeight::Normal => font_metrics.line_gap,
+        LineHeight::Number(number) => (font_size * number.0).into(),
+        LineHeight::Length(length) => length.0.into(),
     }
 }
 

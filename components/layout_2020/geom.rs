@@ -9,7 +9,7 @@ use std::ops::{Add, AddAssign, Neg, Sub, SubAssign};
 use app_units::Au;
 use serde::Serialize;
 use style::logical_geometry::{BlockFlowDirection, InlineBaseDirection, WritingMode};
-use style::values::computed::{CSSPixelLength, Length, LengthPercentage};
+use style::values::computed::{CSSPixelLength, LengthPercentage};
 use style::values::generics::length::GenericLengthPercentageOrAuto as AutoOr;
 use style::Zero;
 use style_traits::CSSPixel;
@@ -22,7 +22,6 @@ pub type PhysicalVec<U> = euclid::Vector2D<U, CSSPixel>;
 pub type PhysicalRect<U> = euclid::Rect<U, CSSPixel>;
 pub type PhysicalSides<U> = euclid::SideOffsets2D<U, CSSPixel>;
 pub type AuOrAuto = AutoOr<Au>;
-pub type LengthOrAuto = AutoOr<Length>;
 pub type LengthPercentageOrAuto<'a> = AutoOr<&'a LengthPercentage>;
 
 #[derive(Clone, Copy, PartialEq, Serialize)]
@@ -152,7 +151,8 @@ impl LogicalVec2<LengthPercentageOrAuto<'_>> {
                 self.block
                     .non_auto()
                     .and_then(|value| value.maybe_to_used_value(containing_block_block_size))
-                    .map_or(AuOrAuto::Auto, AuOrAuto::LengthPercentage)
+                    .map(AuOrAuto::LengthPercentage)
+                    .unwrap_or(AuOrAuto::Auto)
             },
         }
     }
@@ -181,12 +181,14 @@ impl LogicalVec2<LengthPercentageOrAuto<'_>> {
                 .inline
                 .non_auto()
                 .and_then(|value| value.maybe_to_used_value(basis.inline))
-                .map_or(AuOrAuto::Auto, AuOrAuto::LengthPercentage),
+                .map(AuOrAuto::LengthPercentage)
+                .unwrap_or(AuOrAuto::Auto),
             block: self
                 .block
                 .non_auto()
                 .and_then(|value| value.maybe_to_used_value(basis.block))
-                .map_or(AuOrAuto::Auto, AuOrAuto::LengthPercentage),
+                .map(AuOrAuto::LengthPercentage)
+                .unwrap_or(AuOrAuto::Auto),
         }
     }
 }
@@ -237,10 +239,10 @@ impl fmt::Debug for LogicalRect<Au> {
         write!(
             f,
             "Rect(i{}×b{} @ (i{},b{}))",
-            self.size.inline.to_px(),
-            self.size.block.to_px(),
-            self.start_corner.inline.to_px(),
-            self.start_corner.block.to_px(),
+            self.size.inline.to_f32_px(),
+            self.size.block.to_f32_px(),
+            self.start_corner.inline.to_f32_px(),
+            self.start_corner.block.to_f32_px(),
         )
     }
 }
@@ -265,12 +267,10 @@ impl<T: Copy + Neg<Output = T>> LogicalVec2<T> {
             } else {
                 PhysicalVec::new(-self.inline, self.block)
             }
+        } else if mode.is_inline_tb() {
+            PhysicalVec::new(self.block, self.inline)
         } else {
-            if mode.is_inline_tb() {
-                PhysicalVec::new(self.block, self.inline)
-            } else {
-                PhysicalVec::new(-self.block, self.inline)
-            }
+            PhysicalVec::new(-self.block, self.inline)
         }
     }
 }
@@ -560,10 +560,7 @@ impl<T> LogicalRect<T> {
 }
 
 impl LogicalRect<Au> {
-    pub fn to_physical<'a>(
-        &self,
-        containing_block: Option<&ContainingBlock<'a>>,
-    ) -> PhysicalRect<Au> {
+    pub fn to_physical(&self, containing_block: Option<&ContainingBlock<'_>>) -> PhysicalRect<Au> {
         let mode = containing_block.map_or_else(WritingMode::horizontal_tb, |containing_block| {
             containing_block.style.writing_mode
         });

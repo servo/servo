@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use app_units::Au;
 use style::values::computed::basic_shape::{BasicShape, ClipPath};
-use style::values::computed::length::Length;
-use style::values::computed::length_percentage::{LengthPercentage, NonNegativeLengthPercentage};
+use style::values::computed::length_percentage::NonNegativeLengthPercentage;
 use style::values::computed::position::Position;
 use style::values::generics::basic_shape::{GenericShapeRadius, ShapeBox, ShapeGeometryBox};
 use style::values::generics::position::GenericPositionOrAuto;
@@ -74,11 +74,13 @@ fn build_simple_shape(
 ) -> Option<ClipChainId> {
     match shape {
         BasicShape::Rect(rect) => {
+            let box_height = Au::from_f32_px(layout_box.height());
+            let box_width = Au::from_f32_px(layout_box.width());
             let insets = LayoutSideOffsets::new(
-                rect.rect.0.resolve(Length::new(layout_box.height())).px(),
-                rect.rect.1.resolve(Length::new(layout_box.width())).px(),
-                rect.rect.2.resolve(Length::new(layout_box.height())).px(),
-                rect.rect.3.resolve(Length::new(layout_box.width())).px(),
+                rect.rect.0.to_used_value(box_height).to_f32_px(),
+                rect.rect.1.to_used_value(box_width).to_f32_px(),
+                rect.rect.2.to_used_value(box_height).to_f32_px(),
+                rect.rect.3.to_used_value(box_width).to_f32_px(),
             );
 
             // `inner_rect()` will cause an assertion failure if the insets are larger than the
@@ -91,13 +93,10 @@ fn build_simple_shape(
                 layout_box.to_rect().inner_rect(insets).to_box2d()
             };
 
-            let resolve = |radius: &LengthPercentage, box_size: f32| {
-                radius.percentage_relative_to(Length::new(box_size)).px()
-            };
             let corner = |corner: &style::values::computed::BorderCornerRadius| {
                 LayoutSize::new(
-                    resolve(&corner.0.width.0, layout_box.size().width),
-                    resolve(&corner.0.height.0, layout_box.size().height),
+                    corner.0.width.0.to_used_value(box_width).to_f32_px(),
+                    corner.0.height.0.to_used_value(box_height).to_f32_px(),
                 )
             };
             let mut radii = webrender_api::BorderRadius {
@@ -120,11 +119,15 @@ fn build_simple_shape(
                 GenericPositionOrAuto::Position(position) => position,
                 GenericPositionOrAuto::Auto => Position::center(),
             };
-            let anchor_x = center.horizontal.resolve(Length::new(layout_box.width()));
-            let anchor_y = center.vertical.resolve(Length::new(layout_box.height()));
+            let anchor_x = center
+                .horizontal
+                .to_used_value(Au::from_f32_px(layout_box.width()));
+            let anchor_y = center
+                .vertical
+                .to_used_value(Au::from_f32_px(layout_box.height()));
             let center = layout_box
                 .min
-                .add_size(&LayoutSize::new(anchor_x.px(), anchor_y.px()));
+                .add_size(&LayoutSize::new(anchor_x.to_f32_px(), anchor_y.to_f32_px()));
 
             let horizontal =
                 compute_shape_radius(center.x, &circle.radius, layout_box.min.x, layout_box.max.x);
@@ -160,11 +163,15 @@ fn build_simple_shape(
                 GenericPositionOrAuto::Position(position) => position,
                 GenericPositionOrAuto::Auto => Position::center(),
             };
-            let anchor_x = center.horizontal.resolve(Length::new(layout_box.width()));
-            let anchor_y = center.vertical.resolve(Length::new(layout_box.height()));
+            let anchor_x = center
+                .horizontal
+                .to_used_value(Au::from_f32_px(layout_box.width()));
+            let anchor_y = center
+                .vertical
+                .to_used_value(Au::from_f32_px(layout_box.height()));
             let center = layout_box
                 .min
-                .add_size(&LayoutSize::new(anchor_x.px(), anchor_y.px()));
+                .add_size(&LayoutSize::new(anchor_x.to_f32_px(), anchor_y.to_f32_px()));
 
             let width = compute_shape_radius(
                 center.x,
@@ -212,9 +219,10 @@ fn compute_shape_radius(
     match radius {
         GenericShapeRadius::FarthestSide => distance_from_min_edge.max(distance_from_max_edge),
         GenericShapeRadius::ClosestSide => distance_from_min_edge.min(distance_from_max_edge),
-        GenericShapeRadius::Length(length) => {
-            length.0.resolve(Length::new(max_edge - min_edge)).px()
-        },
+        GenericShapeRadius::Length(length) => length
+            .0
+            .to_used_value(Au::from_f32_px(max_edge - min_edge))
+            .to_f32_px(),
     }
 }
 fn create_rect_clip_chain(
