@@ -72,6 +72,7 @@ jobs:
       - upload-linux
       - upload-win
       - upload-mac
+      - upload-android
 
   upload-win:
     # This job is only useful when run on upstream servo.
@@ -108,6 +109,19 @@ jobs:
     uses: ./.github/workflows/linux.yml
     with:
       profile: "production"
+      upload: true
+      github-release-id: ${{ needs.create-draft-release.outputs.release-id }}
+    secrets: inherit
+
+  upload-android:
+    # This job is only useful when run on upstream servo.
+    if: github.repository == 'servo/servo' || github.event_name == 'workflow_dispatch'
+    name: Upload nightly (Android)
+    needs:
+      - create-draft-release
+    uses: ./.github/workflows/android.yml
+    with:
+      profile: "release"
       upload: true
       github-release-id: ${{ needs.create-draft-release.outputs.release-id }}
     secrets: inherit
