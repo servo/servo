@@ -17,6 +17,7 @@ use crate::pipeline::Pipeline;
 /// constructing it. Thus, every time a pipeline is created for a browsing
 /// context which doesn't exist yet, these values needed for the new browsing
 /// context are stored here so that they may be available later.
+#[derive(Debug)]
 pub struct NewBrowsingContextInfo {
     /// The parent pipeline that contains this browsing context. `None` if this
     /// is a top level browsing context.
