@@ -203,7 +203,7 @@ impl<'a> TableLayout<'a> {
                     block: padding.block_sum() + border.block_sum(),
                 };
 
-                let (size, min_size, max_size) =
+                let (size, min_size, max_size, inline_size_is_auto) =
                     get_outer_sizes_from_style(&cell.style, writing_mode, &padding_border_sums);
                 let percentage_contribution =
                     get_size_percentage_contribution_from_style(&cell.style, writing_mode);
@@ -233,7 +233,13 @@ impl<'a> TableLayout<'a> {
 
                     // These formulas differ from the spec, but seem to match Gecko and Blink.
                     let outer_min_content_width = if is_in_fixed_mode {
-                        size.inline.min(max_size.inline).max(min_size.inline)
+                        if inline_size_is_auto {
+                            // This is an outer size, but we deliberately ignore borders and padding.
+                            // This is like allowing the content-box width to be negative.
+                            Au::zero()
+                        } else {
+                            size.inline.min(max_size.inline).max(min_size.inline)
+                        }
                     } else {
                         inline_content_sizes
                             .min_content
@@ -714,7 +720,7 @@ impl<'a> TableLayout<'a> {
                     block: padding.block_sum() + border.block_sum() + margin.block_sum(),
                 };
 
-                let (size, min_size, max_size) =
+                let (size, min_size, max_size, _) =
                     get_outer_sizes_from_style(&context.style, writing_mode, &padding_border_sums);
                 let size_is_auto = context.style.box_size(writing_mode).inline.is_auto();
 
@@ -2567,7 +2573,7 @@ impl Table {
             None => return CellOrTrackMeasure::zero(),
         };
 
-        let (size, min_size, max_size) =
+        let (size, min_size, max_size, _) =
             get_outer_sizes_from_style(&column.style, writing_mode, &LogicalVec2::zero());
         let percentage_contribution =
             get_size_percentage_contribution_from_style(&column.style, writing_mode);
@@ -2756,7 +2762,7 @@ fn get_outer_sizes_from_style(
     style: &Arc<ComputedValues>,
     writing_mode: WritingMode,
     padding_border_sums: &LogicalVec2<Au>,
-) -> (LogicalVec2<Au>, LogicalVec2<Au>, LogicalVec2<Au>) {
+) -> (LogicalVec2<Au>, LogicalVec2<Au>, LogicalVec2<Au>, bool) {
     let box_sizing = style.get_position().box_sizing;
     let outer_size = |size: LogicalVec2<Au>| match box_sizing {
         BoxSizing::ContentBox => size + *padding_border_sums,
@@ -2775,10 +2781,12 @@ fn get_outer_sizes_from_style(
             .map_or(MAX_AU, Au::from)
     };
 
+    let size = style.box_size(writing_mode);
     (
-        outer_size(style.box_size(writing_mode).map(get_size_for_axis)),
+        outer_size(size.map(get_size_for_axis)),
         outer_size(style.min_box_size(writing_mode).map(get_size_for_axis)),
         outer_size(style.max_box_size(writing_mode).map(get_max_size_for_axis)),
+        size.inline.is_auto(),
     )
 }
 
