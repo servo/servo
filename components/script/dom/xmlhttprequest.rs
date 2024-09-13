@@ -478,7 +478,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
         let name_str = name.as_str().ok_or(Error::Syntax)?;
 
         // Step 5: If (name, value) is a forbidden request-header, then return.
-        if is_forbidden_request_header(name_str, &value.to_vec()) {
+        if is_forbidden_request_header(name_str, &value) {
             return Ok(());
         }
 
