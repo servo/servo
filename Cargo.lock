@@ -1914,6 +1914,7 @@ dependencies = [
  "smallvec",
  "style",
  "surfman",
+ "tracing",
  "truetype",
  "unicode-bidi",
  "unicode-properties",

@@ -23,6 +23,7 @@ use style::values::computed::font::{
 };
 use style::values::computed::{FontStretch, FontWeight};
 use style::values::specified::FontStretch as SpecifiedFontStretch;
+use tracing::{span, Level};
 use webrender_api::{FontInstanceFlags, FontInstanceKey, FontKey};
 use webrender_traits::WebRenderFontApi;
 
@@ -102,12 +103,19 @@ struct FontCache {
 }
 
 impl FontCache {
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn run(&mut self) {
         loop {
             let msg = self.port.recv().unwrap();
 
             match msg {
                 Command::GetFontTemplates(descriptor_to_match, font_family, result) => {
+                    let span = span!(
+                        Level::TRACE,
+                        "Command::GetFontTemplates",
+                        servo_profiling = true
+                    );
+                    let _span = span.enter();
                     let templates =
                         self.find_font_templates(descriptor_to_match.as_ref(), &font_family);
                     debug!("Found templates for descriptor {descriptor_to_match:?}: ");
@@ -141,6 +149,9 @@ impl FontCache {
                             .font_data
                             .entry(identifier)
                             .or_insert_with(|| font_template.data());
+                        let span =
+                            span!(Level::TRACE, "FontTemplates send", servo_profiling = true);
+                        let _span = span.enter();
                         let _ = bytes_sender.send(data);
                     }
                 },
@@ -186,6 +197,7 @@ impl FontCache {
         });
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn find_font_templates(
         &mut self,
         descriptor_to_match: Option<&FontDescriptor>,
