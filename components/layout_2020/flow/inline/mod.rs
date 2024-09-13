@@ -1815,8 +1815,12 @@ impl InlineContainerState {
             ascent = font_metrics_of_first_font.ascent;
             descent = font_metrics_of_first_font.descent;
             let half_leading = (line_height - (ascent + descent)).scale_by(0.5);
+            // We want the sum of `ascent` and `descent` to equal `line_height`.
+            // If we just add `half_leading` to both, then we may not get `line_height`
+            // due to precision limitations of `Au`. Instead, we set `descent` to
+            // the value that will guarantee the correct sum.
             ascent += half_leading;
-            descent += half_leading;
+            descent = line_height - ascent;
         }
 
         LineBlockSizes {
