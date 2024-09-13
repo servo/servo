@@ -227,10 +227,14 @@ impl LinkRelations {
             Self::CANONICAL
         } else if keyword.eq_ignore_ascii_case("author") {
             Self::AUTHOR
+        } else if keyword.eq_ignore_ascii_case("bookmark") {
+            Self::BOOKMARK
         } else if keyword.eq_ignore_ascii_case("dns-prefetch") {
             Self::DNS_PREFETCH
         } else if keyword.eq_ignore_ascii_case("expect") {
             Self::EXPECT
+        } else if keyword.eq_ignore_ascii_case("external") {
+            Self::EXTERNAL
         } else if keyword.eq_ignore_ascii_case("help") {
             Self::HELP
         } else if keyword.eq_ignore_ascii_case("icon") ||
@@ -251,6 +255,14 @@ impl LinkRelations {
             Self::LICENSE
         } else if keyword.eq_ignore_ascii_case("next") {
             Self::NEXT
+        } else if keyword.eq_ignore_ascii_case("nofollow") {
+            Self::NO_FOLLOW
+        } else if keyword.eq_ignore_ascii_case("noopener") {
+            Self::NO_OPENER
+        } else if keyword.eq_ignore_ascii_case("noreferrer") {
+            Self::NO_REFERRER
+        } else if keyword.eq_ignore_ascii_case("opener") {
+            Self::OPENER
         } else if keyword.eq_ignore_ascii_case("pingback") {
             Self::PING_BACK
         } else if keyword.eq_ignore_ascii_case("preconnect") {
@@ -267,6 +279,8 @@ impl LinkRelations {
             Self::SEARCH
         } else if keyword.eq_ignore_ascii_case("stylesheet") {
             Self::STYLESHEET
+        } else if keyword.eq_ignore_ascii_case("tag") {
+            Self::TAG
         } else if keyword.eq_ignore_ascii_case("terms-of-service") {
             Self::TERMS_OF_SERVICE
         } else {
