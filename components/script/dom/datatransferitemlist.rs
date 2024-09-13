@@ -34,12 +34,16 @@ impl DataTransferItemList {
         }
     }
 
-    pub fn new(window: &Window, proto: Option<HandleObject>) -> DomRoot<DataTransferItemList> {
+    pub fn new(
+        window: &Window,
+        proto: Option<HandleObject>,
+        can_gc: CanGc,
+    ) -> DomRoot<DataTransferItemList> {
         reflect_dom_object_with_proto(
             Box::new(DataTransferItemList::new_inherited()),
             window,
             proto,
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -50,26 +54,32 @@ impl DataTransferItemList {
         }
     }
 
+    fn has_write_permission(&self) -> bool {
+        self.data_transfer
+            .root()
+            .is_some_and(|data_transfer| data_transfer.can_write())
+    }
+
     pub fn get_data(&self, mut format: DOMString) -> DOMString {
         if self
             .data_transfer
             .root()
             .is_some_and(|data_transfer| data_transfer.can_read())
         {
-            let mut convert_to_URL = false;
+            let mut convert_to_url = false;
             format.make_ascii_lowercase();
             let type_ = match format.as_ref() {
                 "text" => DOMString::from("text/plain"),
                 "url" => {
-                    convert_to_URL = true;
+                    convert_to_url = true;
                     DOMString::from("text/uri-list")
                 },
                 _ => return DOMString::from(""),
             };
 
             for item in self.items.borrow().iter() {
-                if let Some(mut result) = item.get_string(&type_) {
-                    if convert_to_URL {
+                if let Some(mut result) = item.get_string_of_type(&type_) {
+                    if convert_to_url {
                         //TODO parse uri-list as [RFC2483]
                     }
                     return result;
@@ -80,11 +90,7 @@ impl DataTransferItemList {
     }
 
     pub fn set_data(&self, mut format: DOMString, data: DOMString) {
-        if self
-            .data_transfer
-            .root()
-            .is_some_and(|data_transfer| data_transfer.can_write())
-        {
+        if self.has_write_permission() {
             format.make_ascii_lowercase();
             let type_ = match format.as_ref() {
                 "text" => DOMString::from("text/plain"),
@@ -94,7 +100,7 @@ impl DataTransferItemList {
 
             self.items
                 .borrow_mut()
-                .retain(|item| !item.type_already_present(&type_));
+                .retain(|item| !item.type_matches(&type_));
             let item = DataTransferItem::new(
                 &self.global(),
                 type_,
@@ -106,11 +112,7 @@ impl DataTransferItemList {
     }
 
     pub fn clear_data(&self, format: Option<DOMString>) {
-        if self
-            .data_transfer
-            .root()
-            .is_some_and(|data_transfer| data_transfer.can_write())
-        {
+        if self.has_write_permission() {
             if let Some(mut format) = format {
                 format.make_ascii_lowercase();
                 let type_ = match format.as_ref() {
@@ -118,9 +120,10 @@ impl DataTransferItemList {
                     "url" => DOMString::from("text/uri-list"),
                     _ => return,
                 };
+
                 self.items
                     .borrow_mut()
-                    .retain(|item| !item.type_already_present(&type_));
+                    .retain(|item| !item.type_matches(&type_));
             } else {
                 self.items.borrow_mut().retain(|item| item.is_file_kind());
             }
@@ -142,14 +145,10 @@ impl DataTransferItemListMethods for DataTransferItemList {
         data: DOMString,
         mut type_: DOMString,
     ) -> Fallible<Option<DomRoot<DataTransferItem>>> {
-        if self
-            .data_transfer
-            .root()
-            .is_some_and(|data_transfer| data_transfer.can_write())
-        {
+        if self.has_write_permission() {
             type_.make_ascii_lowercase();
             for item in self.items.borrow().iter() {
-                if item.type_already_present(&type_) {
+                if item.type_matches(&type_) {
                     return Err(Error::NotSupported);
                 }
             }
@@ -170,13 +169,10 @@ impl DataTransferItemListMethods for DataTransferItemList {
 
     // https://html.spec.whatwg.org/multipage/#dom-datatransferitemlist-add
     fn Add_(&self, data: &File) -> Fallible<Option<DomRoot<DataTransferItem>>> {
-        if self
-            .data_transfer
-            .root()
-            .is_some_and(|data_transfer| data_transfer.can_write())
-        {
+        if self.has_write_permission() {
             let mut type_ = data.file_type();
             type_.make_ascii_lowercase();
+
             let item = DataTransferItem::new(
                 &self.global(),
                 DOMString::from(type_),
@@ -184,33 +180,28 @@ impl DataTransferItemListMethods for DataTransferItemList {
                 self.data_transfer.root().as_deref(),
             );
             self.items.borrow_mut().push(item.clone());
-            return Ok(Some(item));
+
+            Ok(Some(item))
+        } else {
+            Ok(None)
         }
-        Ok(None)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-datatransferitemlist-remove
     fn Remove(&self, index: u32) -> Fallible<()> {
-        if self
-            .data_transfer
-            .root()
-            .is_some_and(|data_transfer| data_transfer.can_write())
-        {
+        if self.has_write_permission() {
             if (index as usize) < self.items.borrow().len() {
                 self.items.borrow_mut().remove(index as usize);
             }
-            return Ok(());
+            Ok(())
+        } else {
+            Err(Error::InvalidState)
         }
-        Err(Error::InvalidState)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-datatransferitemlist-clear
     fn Clear(&self) {
-        if self
-            .data_transfer
-            .root()
-            .is_some_and(|data_transfer| data_transfer.can_write())
-        {
+        if self.has_write_permission() {
             self.items.borrow_mut().clear();
         }
     }

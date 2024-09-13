@@ -49,7 +49,7 @@ impl DataTransfer {
         proto: Option<HandleObject>,
         can_gc: CanGc,
     ) -> DomRoot<DataTransfer> {
-        let item_list = DataTransferItemList::new(window, proto);
+        let item_list = DataTransferItemList::new(window, proto, can_gc);
         let data_transfer = reflect_dom_object_with_proto(
             Box::new(DataTransfer::new_inherited(&item_list)),
             window,

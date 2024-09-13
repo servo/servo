@@ -58,7 +58,7 @@ impl DataTransferItem {
         )
     }
 
-    pub fn type_already_present(&self, type_: &DOMString) -> bool {
+    pub fn type_matches(&self, type_: &DOMString) -> bool {
         matches!(self.item, Kind::Text(_) if self.type_.borrow().eq(type_))
     }
 
@@ -66,13 +66,11 @@ impl DataTransferItem {
         matches!(self.item, Kind::File(_))
     }
 
-    pub fn get_string(&self, type_: &DOMString) -> Option<DOMString> {
-        if let Kind::Text(data) = &self.item {
-            if self.type_.borrow().eq(type_) {
-                return Some(data.clone());
-            }
-        };
-        None
+    pub fn get_string_of_type(&self, type_: &DOMString) -> Option<DOMString> {
+        match self.item {
+            Kind::Text(ref data) if self.type_.borrow().eq(type_) => Some(data.clone()),
+            _ => None,
+        }
     }
 
     pub fn set_data_transfer(&self, data_transfer: Option<&DataTransfer>) {
