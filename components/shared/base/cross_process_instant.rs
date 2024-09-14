@@ -100,7 +100,7 @@ mod platform {
             unsafe { mach_timebase_info(&mut timebase_info) };
             timebase_info
         });
-        &*TIMEBASE_INFO
+        &TIMEBASE_INFO
     }
 
     #[allow(unsafe_code)]
