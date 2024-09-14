@@ -862,7 +862,9 @@ impl XRSessionMethods for XRSession {
                 }
                 if ty == XRReferenceSpaceType::Bounded_floor {
                     let space = XRBoundedReferenceSpace::new(&self.global(), self);
-                    self.reference_spaces.borrow_mut().push(DomRoot::from_ref(space.reference_space()));
+                    self.reference_spaces
+                        .borrow_mut()
+                        .push(DomRoot::from_ref(space.reference_space()));
                     p.resolve_native(&space);
                 } else {
                     let space = XRReferenceSpace::new(&self.global(), self, ty);
