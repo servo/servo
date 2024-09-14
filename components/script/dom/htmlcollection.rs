@@ -26,8 +26,8 @@ pub trait CollectionFilter: JSTraceable {
 }
 
 /// An optional `u32`, using `u32::MAX` to represent None.  It would be nicer
-/// just to use `Option<u32>`` for this, but that would produce word alignment
-/// issues since `Option<u32>`` uses 33 bits.
+/// just to use `Option<u32>` for this, but that would produce word alignment
+/// issues since `Option<u32>` uses 33 bits.
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf)]
 struct OptionU32 {
     bits: u32,

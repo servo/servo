@@ -2427,8 +2427,8 @@ impl Node {
     ///
     /// # Safety
     ///
-    /// Callers should ensure they pass an UntrustedNodeAddress that points to a valid `JSObject`
-    /// in memory that represents a `Node`.
+    /// Callers should ensure they pass an UntrustedNodeAddress that points to a valid [`JSObject`]
+    /// in memory that represents a [`Node`].
     #[allow(unsafe_code)]
     pub unsafe fn from_untrusted_node_address(candidate: UntrustedNodeAddress) -> &'static Self {
         // https://github.com/servo/servo/issues/6383

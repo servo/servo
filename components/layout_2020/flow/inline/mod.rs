@@ -48,8 +48,8 @@
 //! a linear series of items that describe the line's hierarchy of inline boxes and content. The
 //! item types are:
 //!
-//!  - [`LineItem::StartInlineBoxPaddingBorderMargin`]
-//!  - [`LineItem::EndInlineBoxPaddingBorderMargin`]
+//!  - [`LineItem::LeftInlineBoxPaddingBorderMargin`]
+//!  - [`LineItem::RightInlineBoxPaddingBorderMargin`]
 //!  - [`LineItem::TextRun`]
 //!  - [`LineItem::Atomic`]
 //!  - [`LineItem::AbsolutelyPositioned`]
