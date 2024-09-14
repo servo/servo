@@ -13,6 +13,7 @@ use http::method::InvalidMethod;
 use http::Method as HttpMethod;
 use js::jsapi::JSObject;
 use js::rust::HandleObject;
+use net_traits::fetch::headers::is_forbidden_method;
 use net_traits::request::{
     CacheMode as NetTraitsRequestCache, CredentialsMode as NetTraitsRequestCredentials,
     Destination as NetTraitsRequestDestination, Origin, RedirectMode as NetTraitsRequestRedirect,
@@ -501,14 +502,6 @@ fn normalize_method(m: &str) -> Result<HttpMethod, InvalidMethod> {
 // https://fetch.spec.whatwg.org/#concept-method
 fn is_method(m: &ByteString) -> bool {
     m.as_str().is_some()
-}
-
-// https://fetch.spec.whatwg.org/#forbidden-method
-fn is_forbidden_method(m: &ByteString) -> bool {
-    matches!(
-        m.to_lower().as_str(),
-        Some("connect") | Some("trace") | Some("track")
-    )
 }
 
 // https://fetch.spec.whatwg.org/#cors-safelisted-method
