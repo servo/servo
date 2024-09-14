@@ -60,7 +60,9 @@ use crate::dom::xrhittestsource::XRHitTestSource;
 use crate::dom::xrinputsourcearray::XRInputSourceArray;
 use crate::dom::xrinputsourceevent::XRInputSourceEvent;
 use crate::dom::xrreferencespace::XRReferenceSpace;
+use crate::dom::xrreferencespaceevent::XRReferenceSpaceEvent;
 use crate::dom::xrrenderstate::XRRenderState;
+use crate::dom::xrrigidtransform::XRRigidTransform;
 use crate::dom::xrsessionevent::XRSessionEvent;
 use crate::dom::xrspace::XRSpace;
 use crate::realms::InRealm;
@@ -109,6 +111,7 @@ pub struct XRSession {
     framerate: Cell<f32>,
     #[ignore_malloc_size_of = "promises are hard"]
     update_framerate_promise: DomRefCell<Option<Rc<Promise>>>,
+    reference_spaces: DomRefCell<Vec<DomRoot<XRReferenceSpace>>>,
 }
 
 impl XRSession {
@@ -142,6 +145,7 @@ impl XRSession {
             input_frames: DomRefCell::new(HashMap::new()),
             framerate: Cell::new(0.0),
             update_framerate_promise: DomRefCell::new(None),
+            reference_spaces: DomRefCell::new(Vec::new()),
         }
     }
 
@@ -372,6 +376,35 @@ impl XRSession {
             },
             XREvent::InputChanged(id, frame) => {
                 self.input_frames.borrow_mut().insert(id, frame);
+            },
+            XREvent::ReferenceSpaceChanged(base_space, transform) => {
+                self.reference_spaces
+                    .borrow()
+                    .iter()
+                    .filter(|space| {
+                        let base = match space.ty() {
+                            XRReferenceSpaceType::Local => webxr_api::BaseSpace::Local,
+                            XRReferenceSpaceType::Viewer => webxr_api::BaseSpace::Viewer,
+                            XRReferenceSpaceType::Local_floor => webxr_api::BaseSpace::Floor,
+                            XRReferenceSpaceType::Bounded_floor => {
+                                webxr_api::BaseSpace::BoundedFloor
+                            },
+                            _ => panic!("unsupported reference space found"),
+                        };
+                        base == base_space
+                    })
+                    .for_each(|space| {
+                        let offset = XRRigidTransform::new(&self.global(), transform);
+                        let event = XRReferenceSpaceEvent::new(
+                            &self.global(),
+                            atom!("reset"),
+                            false,
+                            false,
+                            space,
+                            &Some(offset),
+                        );
+                        event.upcast::<Event>().fire(space.upcast());
+                    });
             },
         }
     }
@@ -832,6 +865,7 @@ impl XRSessionMethods for XRSession {
                     p.resolve_native(&space);
                 } else {
                     let space = XRReferenceSpace::new(&self.global(), self, ty);
+                    self.reference_spaces.borrow_mut().push(space.clone());
                     p.resolve_native(&space);
                 }
             },

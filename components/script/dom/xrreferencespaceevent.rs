@@ -26,14 +26,19 @@ use crate::script_runtime::CanGc;
 pub struct XRReferenceSpaceEvent {
     event: Event,
     space: Dom<XRReferenceSpace>,
+    transform: Option<DomRoot<XRRigidTransform>>,
 }
 
 impl XRReferenceSpaceEvent {
     #[allow(crown::unrooted_must_root)]
-    fn new_inherited(space: &XRReferenceSpace) -> XRReferenceSpaceEvent {
+    fn new_inherited(
+        space: &XRReferenceSpace,
+        transform: &Option<DomRoot<XRRigidTransform>>,
+    ) -> XRReferenceSpaceEvent {
         XRReferenceSpaceEvent {
             event: Event::new_inherited(),
             space: Dom::from_ref(space),
+            transform: transform.clone(),
         }
     }
 
@@ -43,6 +48,7 @@ impl XRReferenceSpaceEvent {
         bubbles: bool,
         cancelable: bool,
         space: &XRReferenceSpace,
+        transform: &Option<DomRoot<XRRigidTransform>>,
     ) -> DomRoot<XRReferenceSpaceEvent> {
         Self::new_with_proto(
             global,
@@ -51,6 +57,7 @@ impl XRReferenceSpaceEvent {
             bubbles,
             cancelable,
             space,
+            transform,
             CanGc::note(),
         )
     }
@@ -62,10 +69,11 @@ impl XRReferenceSpaceEvent {
         bubbles: bool,
         cancelable: bool,
         space: &XRReferenceSpace,
+        transform: &Option<DomRoot<XRRigidTransform>>,
         can_gc: CanGc,
     ) -> DomRoot<XRReferenceSpaceEvent> {
         let trackevent = reflect_dom_object_with_proto(
-            Box::new(XRReferenceSpaceEvent::new_inherited(space)),
+            Box::new(XRReferenceSpaceEvent::new_inherited(space, transform)),
             global,
             proto,
             can_gc,
@@ -92,6 +100,7 @@ impl XRReferenceSpaceEvent {
             init.parent.bubbles,
             init.parent.cancelable,
             &init.referenceSpace,
+            &init.transform,
             can_gc,
         ))
     }
@@ -105,8 +114,7 @@ impl XRReferenceSpaceEventMethods for XRReferenceSpaceEvent {
 
     /// <https://www.w3.org/TR/webxr/#dom-xrreferencespaceevent-transform>
     fn GetTransform(&self) -> Option<DomRoot<XRRigidTransform>> {
-        // TODO: Get transform from webxr crate
-        None
+        self.transform.clone()
     }
 
     /// <https://dom.spec.whatwg.org/#dom-event-istrusted>

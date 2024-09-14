@@ -71,6 +71,10 @@ impl XRReferenceSpace {
         let offset = self.offset.transform();
         Space { base, offset }
     }
+
+    pub fn ty(&self) -> XRReferenceSpaceType {
+        self.ty
+    }
 }
 
 impl XRReferenceSpaceMethods for XRReferenceSpace {
