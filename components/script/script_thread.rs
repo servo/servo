@@ -1664,7 +1664,7 @@ impl ScriptThread {
             .iter()
             .filter(|(_, document)| document.window().is_top_level())
             .flat_map(|(id, document)| {
-                std::iter::once(id.clone()).chain(
+                std::iter::once(id).chain(
                     document
                         .iter_iframes()
                         .filter_map(|iframe| iframe.pipeline_id()),
@@ -2556,8 +2556,8 @@ impl ScriptThread {
             DevtoolScriptControlMsg::EvaluateJS(id, s, reply) => match documents.find_window(id) {
                 Some(window) => {
                     let global = window.upcast::<GlobalScope>();
-                    let _aes = AutoEntryScript::new(&global);
-                    devtools::handle_evaluate_js(&global, s, reply)
+                    let _aes = AutoEntryScript::new(global);
+                    devtools::handle_evaluate_js(global, s, reply)
                 },
                 None => warn!("Message sent to closed pipeline {}.", id),
             },

@@ -905,6 +905,6 @@ impl FromInputValueString for &str {
             ))
             .unwrap()
         });
-        RE.is_match(&self)
+        RE.is_match(self)
     }
 }

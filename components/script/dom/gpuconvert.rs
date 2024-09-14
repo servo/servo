@@ -224,7 +224,7 @@ impl TryFrom<&GPUExtent3D> for wgt::Extent3d {
             }),
             GPUExtent3D::RangeEnforcedUnsignedLongSequence(ref v) => {
                 // https://gpuweb.github.io/gpuweb/#abstract-opdef-validate-gpuextent3d-shape
-                if v.len() < 1 || v.len() > 3 {
+                if v.is_empty() || v.len() > 3 {
                     Err(Error::Type(
                         "GPUExtent3D size must be between 1 and 3 (inclusive)".to_string(),
                     ))
@@ -460,7 +460,7 @@ impl TryFrom<&GPUOrigin3D> for wgt::Origin3d {
                     ))
                 } else {
                     Ok(wgt::Origin3d {
-                        x: v.get(0).copied().unwrap_or(0),
+                        x: v.first().copied().unwrap_or(0),
                         y: v.get(1).copied().unwrap_or(0),
                         z: v.get(2).copied().unwrap_or(0),
                     })
@@ -485,7 +485,7 @@ impl TryFrom<&GPUImageCopyTexture> for wgpu_com::ImageCopyTexture {
             origin: ic_texture
                 .origin
                 .as_ref()
-                .map(|origin| wgt::Origin3d::try_from(origin))
+                .map(wgt::Origin3d::try_from)
                 .transpose()?
                 .unwrap_or_default(),
             aspect: match ic_texture.aspect {
@@ -497,12 +497,12 @@ impl TryFrom<&GPUImageCopyTexture> for wgpu_com::ImageCopyTexture {
     }
 }
 
-impl<'a> Into<Option<Cow<'a, str>>> for &GPUObjectDescriptorBase {
-    fn into(self) -> Option<Cow<'a, str>> {
-        if self.label.is_empty() {
+impl<'a> From<&GPUObjectDescriptorBase> for Option<Cow<'a, str>> {
+    fn from(val: &GPUObjectDescriptorBase) -> Self {
+        if val.label.is_empty() {
             None
         } else {
-            Some(Cow::Owned(self.label.to_string()))
+            Some(Cow::Owned(val.label.to_string()))
         }
     }
 }

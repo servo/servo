@@ -170,10 +170,13 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
                 ),
             };
             let mut throttled_tasks = self.throttled.borrow_mut();
-            throttled_tasks
-                .entry(task_source.clone())
-                .or_default()
-                .push_back((worker, category, boxed, pipeline_id, task_source));
+            throttled_tasks.entry(task_source).or_default().push_back((
+                worker,
+                category,
+                boxed,
+                pipeline_id,
+                task_source,
+            ));
         }
     }
 

@@ -99,7 +99,7 @@ impl HTMLHeadElement {
             .filter(|elem| {
                 elem.get_string_attribute(&local_name!("http-equiv"))
                     .to_ascii_lowercase() ==
-                    "content-security-policy".to_owned()
+                    *"content-security-policy"
             })
             .filter(|elem| {
                 elem.get_attribute(&ns!(), &local_name!("content"))

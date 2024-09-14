@@ -3242,7 +3242,7 @@ impl Document {
                 /// (Need to figure out what to do with the style attribute
                 /// of elements adopted into another document.)
                 static PER_PROCESS_AUTHOR_SHARED_LOCK: LazyLock<StyleSharedRwLock> =
-                    LazyLock::new(|| StyleSharedRwLock::new());
+                    LazyLock::new(StyleSharedRwLock::new);
 
                 PER_PROCESS_AUTHOR_SHARED_LOCK.clone()
                 //StyleSharedRwLock::new()

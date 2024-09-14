@@ -607,7 +607,7 @@ impl Node {
 
     pub fn is_empty(&self) -> bool {
         // A node is considered empty if its length is 0.
-        return self.len() == 0;
+        self.len() == 0
     }
 
     /// <https://dom.spec.whatwg.org/#concept-tree-index>
