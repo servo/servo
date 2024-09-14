@@ -110,13 +110,26 @@ impl WebrenderExternalImageApi for WGPUExternalImages {
     }
 }
 
+/// States of presentation buffer
+#[derive(Clone, Copy, Debug, Default, Eq, Ord, PartialEq, PartialOrd)]
+pub enum PresentationBufferState {
+    /// Initial state, buffer has yet to be created,
+    /// only it's id is reserved
+    #[default]
+    Unassigned,
+    /// Buffer is already created and ready to be used immediately
+    Available,
+    /// Buffer is currently running mapAsync
+    Mapping,
+    /// Buffer is currently actively mapped to be used by wr
+    Mapped,
+}
+
 pub struct PresentationData {
     device_id: id::DeviceId,
     queue_id: id::QueueId,
     data: Option<GPUPresentationBuffer>,
-    unassigned_buffer_ids: ArrayVec<id::BufferId, PRESENTATION_BUFFER_COUNT>,
-    available_buffer_ids: ArrayVec<id::BufferId, PRESENTATION_BUFFER_COUNT>,
-    queued_buffer_ids: ArrayVec<id::BufferId, PRESENTATION_BUFFER_COUNT>,
+    buffer_ids: ArrayVec<(id::BufferId, PresentationBufferState), PRESENTATION_BUFFER_COUNT>,
     image_key: ImageKey,
     image_desc: ImageDescriptor,
     image_data: ImageData,
@@ -135,9 +148,10 @@ impl PresentationData {
             device_id,
             queue_id,
             data: None,
-            unassigned_buffer_ids: buffer_ids,
-            available_buffer_ids: ArrayVec::<id::BufferId, PRESENTATION_BUFFER_COUNT>::new(),
-            queued_buffer_ids: ArrayVec::<id::BufferId, PRESENTATION_BUFFER_COUNT>::new(),
+            buffer_ids: buffer_ids
+                .iter()
+                .map(|&id| (id, PresentationBufferState::Unassigned))
+                .collect(),
             image_key,
             image_desc,
             image_data,
@@ -153,11 +167,59 @@ impl PresentationData {
         vec![0; size]
     }
 
+    fn buffer_stride(&self) -> i32 {
+        self.image_desc
+            .stride
+            .expect("Stride should be set when creating swapchain")
+    }
+
+    fn buffer_size(&self) -> wgt::BufferAddress {
+        (self.buffer_stride() * self.image_desc.size.height) as wgt::BufferAddress
+    }
+
+    /// Returns id of available buffer
+    /// and sets state to PresentationBufferState::Mapping
+    fn get_available_buffer(&'_ mut self, global: &Arc<Global>) -> Option<id::BufferId> {
+        if let Some((buffer_id, buffer_state)) = self
+            .buffer_ids
+            .iter_mut()
+            .find(|(_, state)| *state == PresentationBufferState::Available)
+        {
+            *buffer_state = PresentationBufferState::Mapping;
+            Some(*buffer_id)
+        } else if let Some((buffer_id, buffer_state)) = self
+            .buffer_ids
+            .iter_mut()
+            .find(|(_, state)| *state == PresentationBufferState::Unassigned)
+        {
+            *buffer_state = PresentationBufferState::Mapping;
+            let buffer_id = *buffer_id;
+            let buffer_desc = wgt::BufferDescriptor {
+                label: None,
+                size: self.buffer_size(),
+                usage: wgt::BufferUsages::MAP_READ | wgt::BufferUsages::COPY_DST,
+                mapped_at_creation: false,
+            };
+            let _ = global.device_create_buffer(self.device_id, &buffer_desc, Some(buffer_id));
+            Some(buffer_id)
+        } else {
+            None
+        }
+    }
+
+    fn get_buffer_state(&mut self, buffer_id: id::BufferId) -> &mut PresentationBufferState {
+        &mut self
+            .buffer_ids
+            .iter_mut()
+            .find(|(id, _)| *id == buffer_id)
+            .expect("Presentation buffer should have associated state")
+            .1
+    }
+
     fn unmap_old_buffer(&mut self, presentation_buffer: GPUPresentationBuffer) {
-        self.queued_buffer_ids
-            .retain(|b_id| *b_id != presentation_buffer.buffer_id);
-        self.available_buffer_ids
-            .push(presentation_buffer.buffer_id);
+        let buffer_state = self.get_buffer_state(presentation_buffer.buffer_id);
+        assert!(*buffer_state == PresentationBufferState::Mapped);
+        *buffer_state = PresentationBufferState::Available;
         drop(presentation_buffer);
     }
 }
@@ -206,6 +268,7 @@ impl crate::WGPU {
         wr.send_transaction(self.webrender_document, txn);
     }
 
+    /// Copies data async from provided texture using encoder_id to available staging presentation buffer
     pub(crate) fn swapchain_present(
         &mut self,
         context_id: WebGPUContextId,
@@ -218,38 +281,25 @@ impl crate::WGPU {
         let size;
         let buffer_id;
         let buffer_stride;
+        let buffer_size;
         {
             if let Some(present_data) = self.wgpu_image_map.lock().unwrap().get_mut(&context_id) {
                 size = present_data.image_desc.size;
                 device_id = present_data.device_id;
                 queue_id = present_data.queue_id;
-                buffer_stride = present_data
-                    .image_desc
-                    .stride
-                    .expect("Stride should be set when creating swapchain");
-                buffer_id = if let Some(b_id) = present_data.available_buffer_ids.pop() {
-                    b_id
-                } else if let Some(b_id) = present_data.unassigned_buffer_ids.pop() {
-                    let buffer_size = (buffer_stride * size.height) as wgt::BufferAddress;
-                    let buffer_desc = wgt::BufferDescriptor {
-                        label: None,
-                        size: buffer_size,
-                        usage: wgt::BufferUsages::MAP_READ | wgt::BufferUsages::COPY_DST,
-                        mapped_at_creation: false,
-                    };
-                    let _ = global.device_create_buffer(device_id, &buffer_desc, Some(b_id));
-                    b_id
+                buffer_stride = present_data.buffer_stride();
+                buffer_size = present_data.buffer_size();
+                buffer_id = if let Some(buffer_id) = present_data.get_available_buffer(global) {
+                    buffer_id
                 } else {
                     error!("No staging buffer available for {:?}", context_id);
                     return ControlFlow::Break(());
                 };
-                present_data.queued_buffer_ids.push(buffer_id);
             } else {
                 error!("Data not found for {:?}", context_id);
                 return ControlFlow::Break(());
             }
         }
-        let buffer_size = (size.height * buffer_stride) as wgt::BufferAddress;
         let comm_desc = wgt::CommandEncoderDescriptor { label: None };
         let _ = global.device_create_command_encoder(device_id, &comm_desc, Some(encoder_id));
         let buffer_cv = wgt::ImageCopyBuffer {
@@ -314,22 +364,23 @@ impl crate::WGPU {
         context_id: WebGPUContextId,
         image_key: webrender_api::ImageKey,
     ) {
-        let data = self
+        let present_data = self
             .wgpu_image_map
             .lock()
             .unwrap()
             .remove(&context_id)
             .unwrap();
-        let global = &self.global;
-        for b_id in data.available_buffer_ids.iter() {
-            global.buffer_drop(*b_id);
-        }
-        for b_id in data.queued_buffer_ids.iter() {
-            global.buffer_drop(*b_id);
-        }
-        for b_id in data.unassigned_buffer_ids.iter() {
-            if let Err(e) = self.script_sender.send(WebGPUMsg::FreeBuffer(*b_id)) {
-                warn!("Unable to send FreeBuffer({:?}) ({:?})", *b_id, e);
+        for (buffer_id, buffer_state) in present_data.buffer_ids {
+            match buffer_state {
+                PresentationBufferState::Unassigned => {
+                    /* These buffer where not allocated in wgpu */
+                },
+                _ => {
+                    self.global.buffer_drop(buffer_id);
+                },
+            }
+            if let Err(e) = self.script_sender.send(WebGPUMsg::FreeBuffer(buffer_id)) {
+                warn!("Unable to send FreeBuffer({:?}) ({:?})", buffer_id, e);
             };
         }
         let mut txn = Transaction::new();
@@ -354,6 +405,9 @@ fn update_wr_image(
     match result {
         Ok(()) => {
             if let Some(present_data) = wgpu_image_map.lock().unwrap().get_mut(&context_id) {
+                let buffer_state = present_data.get_buffer_state(buffer_id);
+                assert!(*buffer_state == PresentationBufferState::Mapping);
+                *buffer_state = PresentationBufferState::Mapped;
                 let presentation_buffer =
                     GPUPresentationBuffer::new(global, buffer_id, buffer_size);
                 let old_presentation_buffer = present_data.data.replace(presentation_buffer);
