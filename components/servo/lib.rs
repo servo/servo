@@ -1001,6 +1001,7 @@ fn get_layout_factory(legacy_layout: bool) -> Arc<dyn LayoutFactory> {
     Arc::new(layout_thread_2020::LayoutFactoryImpl())
 }
 
+#[allow(clippy::too_many_arguments)]
 fn create_constellation(
     user_agent: Cow<'static, str>,
     config_dir: Option<PathBuf>,
