@@ -638,7 +638,7 @@ pub(crate) trait FromInputValueString {
 
     /// <https://html.spec.whatwg.org/multipage/#parse-a-month-string>
     ///
-    /// Parse the month and return an [`OffsetDate`] on midnight of UTC of the morning of
+    /// Parse the month and return an [`OffsetDateTime`] on midnight of UTC of the morning of
     /// the first day of the parsed month.
     ///
     /// A valid month string should be "YYYY-MM" YYYY must be four or more digits, MM both
