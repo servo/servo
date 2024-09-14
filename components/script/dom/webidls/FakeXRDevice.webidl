@@ -17,7 +17,7 @@ interface FakeXRDevice {
   [Throws] undefined setFloorOrigin(FakeXRRigidTransformInit origin);
   undefined clearFloorOrigin();
   [Throws] undefined setBoundsGeometry(sequence<FakeXRBoundsPoint> boundsCoodinates);
-  // undefined simulateResetPose();
+  undefined simulateResetPose();
 
   // Simulates devices focusing and blurring sessions.
   undefined simulateVisibilityChange(XRVisibilityState state);
