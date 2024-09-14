@@ -36,7 +36,6 @@ from servo.command_base import (
     BuildNotFound,
     cd,
     CommandBase,
-    is_macosx,
     is_windows,
 )
 from servo.util import delete, get_target_dir
@@ -179,7 +178,7 @@ class PackageCommands(CommandBase):
             except subprocess.CalledProcessError as e:
                 print("Packaging Android exited with return value %d" % e.returncode)
                 return e.returncode
-        elif is_macosx():
+        elif 'darwin' in self.target.triple():
             print("Creating Servo.app")
             dir_to_dmg = path.join(target_dir, 'dmg')
             dir_to_app = path.join(dir_to_dmg, 'Servo.app')
@@ -248,7 +247,7 @@ class PackageCommands(CommandBase):
             delete(dir_to_dmg)
             print("Packaged Servo into " + dmg_path)
 
-        elif is_windows():
+        elif 'windows' in self.target.triple():
             dir_to_msi = path.join(target_dir, 'msi')
             if path.exists(dir_to_msi):
                 print("Cleaning up from previous packaging")
