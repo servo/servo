@@ -23,6 +23,7 @@ use servo::keyboard_types::{Key, KeyState, KeyboardEvent};
 use servo::script_traits::{
     MediaSessionActionType, MouseButton, TouchEventType, TouchId, TraversalDirection,
 };
+use servo::servo_url::ServoUrl;
 use servo::style_traits::DevicePixel;
 use servo::webrender_api::ScrollLocation;
 use servo::webrender_traits::RenderingContext;
@@ -85,6 +86,7 @@ pub struct ServoGlue {
     need_present: bool,
     callbacks: Rc<ServoWindowCallbacks>,
     events: Vec<EmbedderEvent>,
+    resource_dir: Option<String>,
     context_menu_sender: Option<IpcSender<ContextMenuResult>>,
 
     /// List of top-level browsing contexts.
@@ -106,6 +108,7 @@ impl ServoGlue {
         rendering_context: RenderingContext,
         servo: Servo<ServoWindowCallbacks>,
         callbacks: Rc<ServoWindowCallbacks>,
+        resource_dir: Option<String>,
     ) -> Self {
         Self {
             rendering_context,
@@ -114,6 +117,7 @@ impl ServoGlue {
             need_present: false,
             callbacks,
             events: vec![],
+            resource_dir,
             context_menu_sender: None,
             webviews: HashMap::default(),
             creation_order: vec![],
