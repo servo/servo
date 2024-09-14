@@ -31,6 +31,7 @@ use super::gl_glue;
 use super::host_trait::HostTrait;
 use super::servo_glue::ServoGlue;
 
+mod resources;
 mod simpleservo;
 
 // Todo: in the future these libraries should be added by Rust sys-crates
@@ -47,6 +48,8 @@ pub struct InitOpts {
     pub url: String,
     pub device_type: String,
     pub os_full_name: String,
+    /// Path to application data bundled with the servo app, e.g. web-pages.
+    pub resource_dir: String,
     pub display_density: f64,
 }
 

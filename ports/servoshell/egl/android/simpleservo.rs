@@ -27,8 +27,8 @@ use servo::webrender_traits::RenderingContext;
 use servo::{self, gl, Servo};
 use surfman::{Connection, SurfaceType};
 
+use crate::egl::android::resources::ResourceReaderInstance;
 use crate::egl::host_trait::HostTrait;
-use crate::egl::resources::ResourceReaderInstance;
 use crate::egl::servo_glue::{
     Coordinates, ServoEmbedderCallbacks, ServoGlue, ServoWindowCallbacks,
 };
@@ -173,7 +173,7 @@ pub fn init(
     );
 
     SERVO.with(|s| {
-        let mut servo_glue = ServoGlue::new(rendering_context, servo.servo, window_callbacks);
+        let mut servo_glue = ServoGlue::new(rendering_context, servo.servo, window_callbacks, None);
         let _ = servo_glue.process_event(EmbedderEvent::NewWebView(url, servo.browser_id));
         *s.borrow_mut() = Some(servo_glue);
     });
