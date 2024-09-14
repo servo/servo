@@ -19,7 +19,7 @@ use crate::script_runtime::JSContext;
 
 #[dom_struct]
 pub struct XRBoundedReferenceSpace {
-    xrspace: XRReferenceSpace,
+    reference_space: XRReferenceSpace,
     offset: Dom<XRRigidTransform>,
 }
 
@@ -29,7 +29,7 @@ impl XRBoundedReferenceSpace {
         offset: &XRRigidTransform,
     ) -> XRBoundedReferenceSpace {
         XRBoundedReferenceSpace {
-            xrspace: XRReferenceSpace::new_inherited(
+            reference_space: XRReferenceSpace::new_inherited(
                 session,
                 offset,
                 XRReferenceSpaceType::Bounded_floor,
@@ -55,12 +55,16 @@ impl XRBoundedReferenceSpace {
             global,
         )
     }
+
+    pub fn reference_space(&self) -> &XRReferenceSpace {
+        &self.reference_space
+    }
 }
 
 impl XRBoundedReferenceSpaceMethods for XRBoundedReferenceSpace {
     /// <https://www.w3.org/TR/webxr/#dom-xrboundedreferencespace-boundsgeometry>
     fn BoundsGeometry(&self, cx: JSContext) -> JSVal {
-        if let Some(bounds) = self.xrspace.get_bounds() {
+        if let Some(bounds) = self.reference_space.get_bounds() {
             let points: Vec<DomRoot<DOMPointReadOnly>> = bounds
                 .into_iter()
                 .map(|point| {
