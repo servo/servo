@@ -41,6 +41,7 @@ use net_traits::request::{
     is_cors_safelisted_method, is_cors_safelisted_request_header, BodyChunkRequest,
     BodyChunkResponse, CacheMode, CredentialsMode, Destination, Initiator, Origin, RedirectMode,
     Referrer, Request, RequestBuilder, RequestMode, ResponseTainting, ServiceWorkersMode,
+    Window as RequestWindow,
 };
 use net_traits::response::{HttpsState, Response, ResponseBody, ResponseType};
 use net_traits::{
@@ -1095,27 +1096,33 @@ async fn http_network_or_cache_fetch(
     done_chan: &mut DoneChannel,
     context: &FetchContext,
 ) -> Response {
-    // Step 2
+    // Step 3: Let httpRequest be null.
+    let mut http_request;
+
+    // Step 4: Let response be null.
     let mut response: Option<Response> = None;
-    // Step 4
+
+    // Step 7: Let the revalidatingFlag be unset.
     let mut revalidating_flag = false;
 
-    // TODO: Implement Window enum for Request
-    let request_has_no_window = true;
+    // Step 8.1: If request’s window is "no-window" and request’s redirect mode is "error", then set
+    // httpFetchParams to fetchParams and httpRequest to request.
+    let request_has_no_window = request.window == RequestWindow::NoWindow;
 
-    // Step 5.1
-    let mut http_request;
     let http_request = if request_has_no_window && request.redirect_mode == RedirectMode::Error {
         request
     } else {
-        // Step 5.2.1, .2.2 and .2.3 and 2.4
+        // Step 8.2.1: Set httpRequest to a clone of request.
         http_request = request.clone();
+
         &mut http_request
     };
 
-    // Step 5.3
-    let credentials_flag = match http_request.credentials_mode {
+    // Step 8.3: Let includeCredentials be true if one of:
+    let include_credentials = match http_request.credentials_mode {
+        // request’s credentials mode is "include"
         CredentialsMode::Include => true,
+        // request’s credentials mode is "same-origin" and request’s response tainting is "basic"
         CredentialsMode::CredentialsSameOrigin
             if http_request.response_tainting == ResponseTainting::Basic =>
         {
@@ -1124,33 +1131,42 @@ async fn http_network_or_cache_fetch(
         _ => false,
     };
 
+    // Step 8.4: If Cross-Origin-Embedder-Policy allows credentials with request returns false, then
+    // set includeCredentials to false.
+    // TODO: Requires request's client object
+
+    // Step 8.5: Let contentLength be httpRequest’s body’s length, if httpRequest’s body is
+    // non-null; otherwise null.
     let content_length_value = match http_request.body {
+        Some(ref http_request_body) => http_request_body.len().map(|size| size as u64),
+        // Step 8.7: If httpRequest’s body is null and httpRequest’s method is `POST` or `PUT`, then
+        // set contentLengthHeaderValue to `0`.
         None => match http_request.method {
-            // Step 5.5
             Method::POST | Method::PUT => Some(0),
-            // Step 5.4
             _ => None,
         },
-        // Step 5.6
-        Some(ref http_request_body) => http_request_body.len().map(|size| size as u64),
     };
 
-    // Step 5.7
+    // Step 8.9: If contentLengthHeaderValue is non-null, then append (`Content-Length`,
+    // contentLengthHeaderValue) to httpRequest’s header list.
     if let Some(content_length_value) = content_length_value {
         http_request
             .headers
             .typed_insert(ContentLength(content_length_value));
-        if http_request.keep_alive {
-            // Step 5.8 TODO: needs request's client object
-        }
     }
 
-    // Step 5.9
+    // Step 8.10: If contentLength is non-null and httpRequest’s keepalive is true, then:
+    // TODO Keepalive requires request's client object's fetch group
+
+    // Step 8.11: If httpRequest’s referrer is a URL, then:
     match http_request.referrer {
         Referrer::NoReferrer => (),
         Referrer::ReferrerUrl(ref http_request_referrer) |
         Referrer::Client(ref http_request_referrer) => {
+            // Step 8.11.1: Let referrerValue be httpRequest’s referrer, serialized and isomorphic
+            // encoded.
             if let Ok(referer) = http_request_referrer.to_string().parse::<Referer>() {
+                // Step 8.11.2: Append (`Referer`, referrerValue) to httpRequest’s header list.
                 http_request.headers.typed_insert(referer);
             } else {
                 // This error should only happen in cases where hyper and rust-url disagree
@@ -1161,7 +1177,7 @@ async fn http_network_or_cache_fetch(
         },
     };
 
-    // Step 5.10
+    // Step 8.12: Append a request `Origin` header for httpRequest.
     if cors_flag || (http_request.method != Method::GET && http_request.method != Method::HEAD) {
         debug_assert_ne!(http_request.origin, Origin::Client);
         if let Origin::Origin(ref url_origin) = http_request.origin {
@@ -1171,7 +1187,19 @@ async fn http_network_or_cache_fetch(
         }
     }
 
-    // Step 5.11
+    // Step 8.13: Append the Fetch metadata headers for httpRequest.
+    // TODO Implement Sec-Fetch-* headers
+
+    // Step 8.14: If httpRequest’s initiator is "prefetch", then set a structured field value given
+    // (`Sec-Purpose`, the token "prefetch") in httpRequest’s header list.
+    if http_request.initiator == Initiator::Prefetch {
+        if let Ok(value) = HeaderValue::from_str("prefetch") {
+            http_request.headers.insert("Sec-Purpose", value);
+        }
+    }
+
+    // Step 8.15: If httpRequest’s header list does not contain `User-Agent`, then user agents
+    // should append (`User-Agent`, default `User-Agent` value) to httpRequest’s header list.
     if !http_request.headers.contains_key(header::USER_AGENT) {
         let user_agent = context.user_agent.clone().into_owned();
         http_request
@@ -1223,7 +1251,7 @@ async fn http_network_or_cache_fetch(
 
     // Step 5.17
     // TODO some of this step can't be implemented yet
-    if credentials_flag {
+    if include_credentials {
         // Substep 1
         // TODO http://mxr.mozilla.org/servo/source/components/net/http_loader.rs#504
         // XXXManishearth http_loader has block_cookies: support content blocking here too
@@ -1436,7 +1464,7 @@ async fn http_network_or_cache_fetch(
     if response.is_none() {
         // Substep 2
         let forward_response =
-            http_network_fetch(http_request, credentials_flag, done_chan, context).await;
+            http_network_fetch(http_request, include_credentials, done_chan, context).await;
         // Substep 3
         if let Some((200..=399, _)) = forward_response.raw_status {
             if !http_request.method.is_safe() {
@@ -1555,7 +1583,7 @@ async fn http_network_or_cache_fetch(
     // Step 10
     // FIXME: Figure out what to do with request window objects
     if let (Some((StatusCode::UNAUTHORIZED, _)), false, true) =
-        (response.status.as_ref(), cors_flag, credentials_flag)
+        (response.status.as_ref(), cors_flag, include_credentials)
     {
         // Substep 1
         // TODO: Spec says requires testing on multiple WWW-Authenticate headers
