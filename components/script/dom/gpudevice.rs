@@ -478,7 +478,7 @@ impl GPUDeviceMethods for GPUDevice {
         &self,
         descriptor: &GPURenderPipelineDescriptor,
     ) -> Fallible<DomRoot<GPURenderPipeline>> {
-        let (implicit_ids, desc) = self.parse_render_pipeline(&descriptor)?;
+        let (implicit_ids, desc) = self.parse_render_pipeline(descriptor)?;
         let render_pipeline = GPURenderPipeline::create(self, implicit_ids, desc, None)?;
         Ok(GPURenderPipeline::new(
             &self.global(),
@@ -494,7 +494,7 @@ impl GPUDeviceMethods for GPUDevice {
         descriptor: &GPURenderPipelineDescriptor,
         comp: InRealm,
     ) -> Fallible<Rc<Promise>> {
-        let (implicit_ids, desc) = self.parse_render_pipeline(&descriptor)?;
+        let (implicit_ids, desc) = self.parse_render_pipeline(descriptor)?;
         let promise = Promise::new_in_current_realm(comp);
         let sender = response_async(&promise, self);
         GPURenderPipeline::create(self, implicit_ids, desc, Some(sender))?;

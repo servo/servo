@@ -49,7 +49,7 @@ impl SecurityPolicyViolationEvent {
             original_policy: init.originalPolicy.clone(),
             source_file: init.sourceFile.clone(),
             sample: init.sample.clone(),
-            disposition: init.disposition.clone(),
+            disposition: init.disposition,
             status_code: init.statusCode,
             line_number: init.lineNumber,
             column_number: init.columnNumber,
@@ -169,7 +169,7 @@ impl SecurityPolicyViolationEventMethods for SecurityPolicyViolationEvent {
 
     /// <https://w3c.github.io/webappsec-csp/#dom-securitypolicyviolationevent-disposition>
     fn Disposition(&self) -> SecurityPolicyViolationEventDisposition {
-        self.disposition.clone()
+        self.disposition
     }
 
     /// <https://w3c.github.io/webappsec-csp/#dom-securitypolicyviolationevent-statuscode>

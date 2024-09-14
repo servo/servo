@@ -90,7 +90,7 @@ impl GPURenderBundleEncoder {
                     .map(|format| {
                         device
                             .validate_texture_format_required_features(format)
-                            .map(|f| Some(f))
+                            .map(Some)
                     })
                     .collect::<Fallible<Vec<_>>>()?,
             ),

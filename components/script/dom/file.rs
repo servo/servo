@@ -37,7 +37,7 @@ impl File {
             blob: Blob::new_inherited(blob_impl),
             name,
             // https://w3c.github.io/FileAPI/#dfn-lastModified
-            modified: modified.unwrap_or_else(SystemTime::now).into(),
+            modified: modified.unwrap_or_else(SystemTime::now),
         }
     }
 
@@ -87,7 +87,7 @@ impl File {
                 normalize_type_string(&selected.type_string.to_string()),
             ),
             name,
-            Some(selected.modified.into()),
+            Some(selected.modified),
         )
     }
 

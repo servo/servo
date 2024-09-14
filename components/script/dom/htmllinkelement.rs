@@ -310,7 +310,7 @@ impl HTMLLinkElement {
         // Step 2. Let options be a new link processing options
         let destination = element
             .get_attribute(&ns!(), &local_name!("as"))
-            .map(|attr| translate_a_preload_destination(&*attr.value()))
+            .map(|attr| translate_a_preload_destination(&attr.value()))
             .unwrap_or(Destination::None);
 
         let mut options = LinkProcessingOptions {
@@ -383,7 +383,7 @@ impl HTMLLinkElement {
             .networking_task_source_with_canceller();
 
         let fetch_context = sync::Arc::new(sync::Mutex::new(PrefetchContext {
-            url: url,
+            url,
             link: Trusted::new(self),
             resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
         }));

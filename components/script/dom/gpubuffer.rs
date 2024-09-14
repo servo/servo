@@ -296,7 +296,7 @@ impl GPUBufferMethods for GPUBuffer {
         let range_size = if let Some(s) = size {
             s
         } else {
-            self.size.checked_sub(offset).unwrap_or(0)
+            self.size.saturating_sub(offset)
         };
         // Step 2: validation
         let mut mapping = self.mapping.borrow_mut();

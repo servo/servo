@@ -96,7 +96,7 @@ impl GamepadHapticActuator {
         }
         Self {
             reflector_: Reflector::new(),
-            gamepad_index: gamepad_index.into(),
+            gamepad_index: gamepad_index,
             effects,
             playing_effect_promise: DomRefCell::new(None),
             sequence_id: Cell::new(0),
@@ -118,7 +118,7 @@ impl GamepadHapticActuator {
         gamepad_index: u32,
         supported_haptic_effects: GamepadSupportedHapticEffects,
     ) -> DomRoot<GamepadHapticActuator> {
-        let haptic_actuator = reflect_dom_object_with_proto(
+        reflect_dom_object_with_proto(
             Box::new(GamepadHapticActuator::new_inherited(
                 gamepad_index,
                 supported_haptic_effects,
@@ -126,8 +126,7 @@ impl GamepadHapticActuator {
             global,
             None,
             CanGc::note(),
-        );
-        haptic_actuator
+        )
     }
 }
 
@@ -367,7 +366,7 @@ impl GamepadHapticActuator {
             return;
         }
 
-        let this = Trusted::new(&*self);
+        let this = Trusted::new(self);
         let _ = self.global().gamepad_task_source().queue(
             task!(stop_playing_effect: move || {
                 let actuator = this.root();

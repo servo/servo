@@ -152,7 +152,7 @@ where
 
     // Returns the existing preload data for the given WebView, or a new one.
     fn ensure_preload_data_mut(&mut self, webview_id: &WebViewId) -> &mut WebViewPreloadData {
-        if let Entry::Vacant(entry) = self.webview_preload_data.entry(webview_id.clone()) {
+        if let Entry::Vacant(entry) = self.webview_preload_data.entry(*webview_id) {
             entry.insert(WebViewPreloadData::default());
         }
         self.webview_preload_data.get_mut(webview_id).unwrap()

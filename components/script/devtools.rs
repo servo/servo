@@ -236,7 +236,7 @@ pub fn handle_get_stylesheet_style(
                 };
                 Some(style.Style())
             })
-            .map(|style| {
+            .flat_map(|style| {
                 (0..style.Length()).map(move |i| {
                     let name = style.Item(i);
                     NodeStyle {
@@ -246,7 +246,6 @@ pub fn handle_get_stylesheet_style(
                     }
                 })
             })
-            .flatten()
             .collect();
 
         Some(styles)
@@ -279,7 +278,7 @@ pub fn handle_get_selectors(
                     let rule = list.Item(j)?;
                     let style = rule.downcast::<CSSStyleRule>()?;
                     let selector = style.SelectorText();
-                    let _ = elem.Matches(selector.clone()).ok()?.then_some(())?;
+                    elem.Matches(selector.clone()).ok()?.then_some(())?;
                     Some((selector.into(), i))
                 }))
             })

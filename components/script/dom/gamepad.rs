@@ -317,7 +317,7 @@ impl Gamepad {
     }
 
     pub fn vibration_actuator(&self) -> &GamepadHapticActuator {
-        &*self.vibration_actuator
+        &self.vibration_actuator
     }
 }
 

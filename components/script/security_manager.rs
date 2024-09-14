@@ -161,7 +161,7 @@ impl From<SecurityPolicyViolationReport> for SecurityPolicyViolationEventInit {
             lineNumber: value.line_number,
             columnNumber: value.column_number,
             originalPolicy: value.original_policy.into(),
-            disposition: value.disposition.into(),
+            disposition: value.disposition,
             parent: EventInit::empty(),
         }
     }
