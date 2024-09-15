@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+  <title>Test dynamic change of the href attribute</title>
+  <link rel="help" href="https://w3c.github.io/mathml-core/#attributes-common-to-html-and-mathml-elements">
+  <link rel="help" href="https://w3c.github.io/mathml-core/#dom-and-javascript">
+  <link rel="help" href="https://github.com/w3c/mathml-core/issues/142">
+  <link rel="match" href="dynamic-href-001.tentative-ref.html"/>
+  <script>
+    document.documentElement.addEventListener("TestRendered", () => {
+      // Attach the href attribute to the mrow element.
+      mrow.setAttribute("href", "about:blank");
+      document.documentElement.removeAttribute("class");
+    });
+  </script>
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+  <style>
+    mrow { color: red; }
+    mrow:link { margin: 10px; color: green; }
+    mtext { font: 25px/1 Ahem; }
+  </style>
+  <math>
+    <mfrac>
+      <mrow id="mrow" width="50px" height="50px" style="background: blue">
+        <mtext>XXX</mtext>
+      </mrow>
+      <mtext>XXX</mtext>
+    </mfrac>
+  </math>
+</html>

@@ -4,6 +4,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
 </head>
 <body>
@@ -11,7 +12,9 @@
 <script>
 promise_test(async function() {
   const inputElement = document.getElementById("number_input");
+
   let events = [];
+
   inputElement.addEventListener("beforeinput", () => {
     events.push("beforeinput");
   });
@@ -22,11 +25,19 @@ promise_test(async function() {
     events.push("change");
   });
 
-  inputElement.focus();
-  // Get the spin button up arrow key location
-  const x1 = (inputElement.offsetLeft + inputElement.offsetWidth - 10);
-  const y1 = (inputElement.offsetTop + inputElement.offsetHeight / 4);
-  await test_driver_internal.click(inputElement,{x: x1, y: y1});
+  // Roughly get the offset to the spin up arrow button's center point within
+  // the iframe's viewport. Note that this is fragile and might need specific
+  // coordinates for each browser and maybe platform.
+  const rect = inputElement.getBoundingClientRect();
+  const x = rect.x + rect.width - 10;
+  const y = rect.y + Math.round(rect.height / 4);
+
+  const actions = new test_driver.Actions()
+    .pointerMove(x, y, { origin: "viewport" })
+    .pointerDown()
+    .pointerUp();
+  await actions.send();
+
   assert_array_equals(events, ['beforeinput','input','change']);
 }, "Number input should fire beforeinput event before the input and change event");
 </script>

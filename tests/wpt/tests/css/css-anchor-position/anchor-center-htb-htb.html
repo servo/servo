@@ -43,34 +43,44 @@
 <!-- no insets -->
 <div class="container">
   <div class="anchor"></div>
-  <div class="target" data-expected-width="70" data-offset-x="30"></div>
+  <div class="target" data-expected-width="100" data-offset-x="0"></div>
+</div>
+
+<div class="container">
+  <div class="anchor"></div>
+  <div class="target" style="max-width: 60px;" data-expected-width="60" data-offset-x="35"></div>
 </div>
 
 <!-- single insets -->
 <div class="container">
   <div class="anchor"></div>
-  <div class="target" style="left: 20px;" data-expected-width="70" data-offset-x="30"></div>
+  <div class="target" style="left: 20px;" data-expected-width="80" data-offset-x="20"></div>
 </div>
 
 <div class="container">
   <div class="anchor"></div>
-  <div class="target" style="right: 20px;" data-expected-width="30" data-offset-x="50"></div>
+  <div class="target" style="right: 20px;" data-expected-width="80" data-offset-x="20"></div>
 </div>
 
 <div class="container">
   <div class="anchor"></div>
-  <div class="target" style="right: -20px;" data-expected-width="110" data-offset-x="10"></div>
+  <div class="target" style="right: -20px;" data-expected-width="120" data-offset-x="0"></div>
 </div>
 
 <div class="container">
   <div class="anchor"></div>
-  <div class="target" style="right: -100px;" data-expected-width="130" data-offset-x="0"></div>
+  <div class="target" style="max-width: 100px; right: -20px;" data-expected-width="100" data-offset-x="15"></div>
+</div>
+
+<div class="container">
+  <div class="anchor"></div>
+  <div class="target" style="right: -50px;" data-expected-width="150" data-offset-x="0"></div>
 </div>
 
 <!-- both insets -->
 <div class="container">
   <div class="anchor"></div>
-  <div class="target" style="left: 10px; right: 20px;" data-expected-width="30" data-offset-x="50"></div>
+  <div class="target" style="left: 10px; right: 20px;" data-expected-width="70" data-offset-x="30"></div>
 </div>
 
 <div class="container">
@@ -80,5 +90,5 @@
 
 <div class="container">
   <div class="anchor"></div>
-  <div class="target" style="left: -10px; right: -50px;" data-expected-width="150" data-offset-x="-10"></div>
+  <div class="target" style="left: -10px; right: -50px;" data-expected-width="160" data-offset-x="-10"></div>
 </div>

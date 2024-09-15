@@ -78,7 +78,7 @@
             { value: "calc(100.5)",             isValid: true,  expectedValue: "100.5", description: "Simple calc value" },
             { value: "calc(1001)",              isValid: true, description: "Out-of-range simple calc value (should be clamped)" },
             { value: "calc(100.5*3 + 50.5)",    isValid: true,  expectedValue: "352", description: "Valid calc expression" },
-            { value: "calc(100.5*3 + 800)",     isValid: true, description: "Valid calc expression with out-of-range value (should be clamped)" },
+            { value: "calc(100.5*3 + 800)",     isValid: true, description: "Valid calc expression with out-of-range value (should be clamped)", expectedValue: "calc(1101.5)", },
             { value: "calc(100.5px + 50.5px)",  isValid: false, description: "Valid calc expression with units" },
 
             // Value range

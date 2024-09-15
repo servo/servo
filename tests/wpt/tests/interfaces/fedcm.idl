@@ -1,0 +1,106 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Federated Credential Management API (https://w3c-fedid.github.io/FedCM/)
+
+dictionary IdentityCredentialDisconnectOptions : IdentityProviderConfig {
+  required USVString accountHint;
+};
+
+[Exposed=Window, SecureContext]
+interface IdentityCredential : Credential {
+  static Promise<undefined> disconnect(optional IdentityCredentialDisconnectOptions options = {});
+  readonly attribute USVString? token;
+  readonly attribute boolean isAutoSelected;
+};
+
+dictionary DisconnectedAccount {
+  required USVString account_id;
+};
+
+partial dictionary CredentialRequestOptions {
+  IdentityCredentialRequestOptions identity;
+};
+
+enum IdentityCredentialRequestOptionsContext {
+  "signin",
+  "signup",
+  "use",
+  "continue"
+};
+
+dictionary IdentityCredentialRequestOptions {
+  required sequence<IdentityProviderRequestOptions> providers;
+  IdentityCredentialRequestOptionsContext context = "signin";
+};
+
+dictionary IdentityProviderConfig {
+  required USVString configURL;
+  required USVString clientId;
+};
+
+dictionary IdentityProviderRequestOptions : IdentityProviderConfig {
+  USVString nonce;
+  DOMString loginHint;
+  DOMString domainHint;
+};
+
+dictionary IdentityProviderWellKnown {
+  required sequence<USVString> provider_urls;
+};
+
+dictionary IdentityProviderIcon {
+  required USVString url;
+  unsigned long size;
+};
+
+dictionary IdentityProviderBranding {
+  USVString background_color;
+  USVString color;
+  sequence<IdentityProviderIcon> icons;
+  USVString name;
+};
+
+dictionary IdentityProviderAPIConfig {
+  required USVString accounts_endpoint;
+  required USVString client_metadata_endpoint;
+  required USVString id_assertion_endpoint;
+  required USVString login_url;
+  USVString disconnect_endpoint;
+  IdentityProviderBranding branding;
+};
+
+dictionary IdentityProviderAccount {
+  required USVString id;
+  required USVString name;
+  required USVString email;
+  USVString given_name;
+  USVString picture;
+  sequence<USVString> approved_clients;
+  sequence<DOMString> login_hints;
+  sequence<DOMString> domain_hints;
+};
+dictionary IdentityProviderAccountList {
+  sequence<IdentityProviderAccount> accounts;
+};
+
+dictionary IdentityProviderToken {
+  required USVString token;
+};
+
+dictionary IdentityProviderClientMetadata {
+  USVString privacy_policy_url;
+  USVString terms_of_service_url;
+};
+
+dictionary IdentityUserInfo {
+  USVString email;
+  USVString name;
+  USVString givenName;
+  USVString picture;
+};
+
+[Exposed=Window, SecureContext] interface IdentityProvider {
+    static undefined close();
+    static Promise<sequence<IdentityUserInfo>> getUserInfo(IdentityProviderConfig config);
+};

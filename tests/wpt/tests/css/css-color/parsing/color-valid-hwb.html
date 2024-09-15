@@ -58,9 +58,9 @@ tests = [
     ["hwb(90 20% 10% / calc(0 / 0))", "rgba(140, 230, 51, 0)"], // hwb(90 20% 10% / 0)
 
     // calc(50% + (sign(1em - 10px) * 10%)) cannot be evaluated eagerly because font relative units are not yet known at parse time.
-    ["hwb(calc(110deg + (sign(1em - 10px) * 10deg)) 30% 50% / 50%)", "hwb(calc(110deg + (10deg * sign(1em - 10px))) 30% 50% / 50%)"],
+    ["hwb(calc(110deg + (sign(1em - 10px) * 10deg)) 30% 50% / 50%)", "hwb(calc(110deg + (10deg * sign(1em - 10px))) 30 50 / 0.5)"],
     ["hwb(calc(110 + (sign(1em - 10px) * 10)) 30 50 / 0.5)", "hwb(calc(110 + (10 * sign(1em - 10px))) 30 50 / 0.5)"],
-    ["hwb(120deg 30% 50% / calc(50% + (sign(1em - 10px) * 10%)))", "hwb(120deg 30% 50% / calc(50% + (10% * sign(1em - 10px))))"],
+    ["hwb(120deg 30% 50% / calc(50% + (sign(1em - 10px) * 10%)))", "hwb(120 30 50 / calc(50% + (10% * sign(1em - 10px))))"],
     ["hwb(120 30 50 / calc(0.75 + (sign(1em - 10px) * 0.1)))", "hwb(120 30 50 / calc(0.75 + (0.1 * sign(1em - 10px))))"],
 ];
 

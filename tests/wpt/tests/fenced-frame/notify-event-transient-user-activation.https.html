@@ -42,7 +42,11 @@
       await fencedframe.execute(() => {
         assert_false(navigator.userActivation.isActive);
       });
-    }, 'Test that notifyEvent consumes user activation.');
+
+      assert_true(navigator.userActivation.isActive);
+      assert_true(navigator.userActivation.hasBeenActive);
+    }, 'Test that notifyEvent() consumes transient user activation in the ' +
+       'fenced frame and notifies activation to the embedder.');
 
     promise_test(async (t) => {
       const fencedframe = await attachFencedFrameContext(

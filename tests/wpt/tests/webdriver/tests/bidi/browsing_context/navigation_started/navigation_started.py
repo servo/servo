@@ -213,22 +213,6 @@ async def test_nested_iframes(
     remove_listener()
 
 
-@pytest.mark.parametrize("type_hint", ["tab", "window"])
-async def test_new_context(bidi_session, subscribe_events, wait_for_event, wait_for_future_safe, type_hint):
-    await subscribe_events(events=[NAVIGATION_STARTED_EVENT])
-
-    on_entry = wait_for_event(NAVIGATION_STARTED_EVENT)
-    top_level_context = await bidi_session.browsing_context.create(type_hint="tab")
-    navigation_info = await wait_for_future_safe(on_entry)
-    assert_navigation_info(
-        navigation_info,
-        {
-            "context": top_level_context["context"],
-            "url": "about:blank",
-        },
-    )
-
-
 async def test_same_document_navigation(bidi_session, new_tab, url, subscribe_events):
     await bidi_session.browsing_context.navigate(
         context=new_tab["context"], url=url(PAGE_EMPTY), wait="complete"
@@ -251,31 +235,6 @@ async def test_same_document_navigation(bidi_session, new_tab, url, subscribe_ev
     )
 
     remove_listener()
-
-
-async def test_window_open(bidi_session, subscribe_events, wait_for_event, wait_for_future_safe, top_context):
-    await subscribe_events(events=[NAVIGATION_STARTED_EVENT])
-
-    on_entry = wait_for_event(NAVIGATION_STARTED_EVENT)
-
-    await bidi_session.script.evaluate(
-        expression="""window.open('about:blank');""",
-        target=ContextTarget(top_context["context"]),
-        await_promise=False,
-    )
-
-    navigation_info = await wait_for_future_safe(on_entry)
-    assert_navigation_info(
-        navigation_info,
-        {
-            "url": "about:blank",
-        },
-    )
-    assert navigation_info["navigation"] is not None
-
-    # Retrieve all contexts to get the context for the new window.
-    contexts = await bidi_session.browsing_context.get_tree()
-    assert navigation_info["context"] == contexts[-1]["context"]
 
 
 async def test_document_write(bidi_session, subscribe_events, top_context):

@@ -130,6 +130,20 @@ test(t => {
 }, 'Test we can construct AudioData with a negative timestamp.');
 
 test(t => {
+  var data = new Float32Array([0]);
+  let audio_data_init = {
+    timestamp: 0,
+    data: data,
+    numberOfFrames: 1,
+    numberOfChannels: 1,
+    sampleRate: 44100,
+    format: 'f32',
+  };
+  let audioData = new AudioData(audio_data_init);
+  assert_not_equals(data.length, 0, "Input data is copied when constructing an AudioData");
+}, 'Test input array is copied on construction');
+
+test(t => {
   let audio_data_init = {
     timestamp: 0,
     data: new Float32Array([1,2,3,4,5,6,7,8]),

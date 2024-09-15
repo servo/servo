@@ -1,9 +1,6 @@
 // META: global=window,worker
-// META: title=IDBCursor.continue()
+// META: title=IDBCursor.continue() - index
 // META: script=resources/support.js
-// @author Microsoft <https://www.microsoft.com>
-// @author Odin Hørthe Omdal <mailto:odinho@opera.com>
-// @author Intel <http://www.intel.com>
 
 'use strict';
 
@@ -56,7 +53,7 @@ async_test(t => {
       count++;
     });
   };
-}, "IDBCursor.continue() - index - iterate to the next record");
+}, "Iterate to the next record");
 
 async_test(t => {
   let dbObj = {};
@@ -85,7 +82,7 @@ async_test(t => {
       t.done();
     });
   };
-}, "IDBCursor.continue() - index - attempt to pass a key parameter that is not a valid key");
+}, "Attempt to pass a key parameter that is not a valid key");
 
 async_test(t => {
   let dbObj = {};
@@ -120,7 +117,7 @@ async_test(t => {
       count++;
     });
   };
-}, "IDBCursor.continue() - index - attempt to iterate to the previous record when the direction is set for the next record");
+}, "Attempt to iterate to the previous record when the direction is set for the next record");
 
 async_test(t => {
   let dbObj = {};
@@ -166,7 +163,7 @@ async_test(t => {
       count++;
     });
   };
-}, "IDBCursor.continue() - index - attempt to iterate to the next record when the direction is set for the previous record");
+}, "Attempt to iterate to the next record when the direction is set for the previous record");
 
 async_test(t => {
   let dbObj = {};
@@ -212,7 +209,7 @@ async_test(t => {
       cursor.continue(expected[count] ? expected[count].iKey : undefined);
     });
   };
-}, "IDBCursor.continue() - index - iterate using 'prevunique'");
+}, "Iterate using 'prevunique'");
 
 async_test(t => {
   let dbObj = {};
@@ -258,7 +255,7 @@ async_test(t => {
       cursor.continue(expected[count] ? expected[count].iKey : undefined);
     });
   };
-}, "IDBCursor.continue() - index - iterate using nextunique");
+}, "Iterate using nextunique");
 
 async_test(t => {
   let db;
@@ -309,3 +306,99 @@ async_test(t => {
     });
   }
 }, "If the cursor's source or effective object store has been deleted, the implementation MUST throw a DOMException of type InvalidStateError");
+
+async_test(t => {
+  let db;
+  let count = 0;
+  const records = [
+    { pKey: "primaryKey_0", obj: { iKey: "iKey_0" } },
+    { pKey: "primaryKey_1", obj: { iKey: "iKey_1" } },
+    { pKey: "primaryKey_2", obj: { iKey: "iKey_2" } }
+  ];
+
+  const expected = [
+    ["primaryKey_2", "iKey_2"],
+    ["primaryKey_0", "iKey_0"]
+  ];
+
+  let open_rq = createdb(t);
+  open_rq.onupgradeneeded = function (e) {
+    db = e.target.result;
+    var objStore = db.createObjectStore("test", { keyPath: ["pKey", "obj.iKey"] });
+    objStore.createIndex("index", ["pKey", "obj.iKey"]);
+
+    for (var i = 0; i < records.length; i++)
+      objStore.add(records[i]);
+  };
+
+  open_rq.onsuccess = function (e) {
+    var cursor_rq = db.transaction("test", "readwrite", { durability: 'relaxed' })
+      .objectStore("test")
+      .index("index")
+      .openCursor(null, "prev");
+
+    cursor_rq.onsuccess = t.step_func(function (e) {
+      var cursor = e.target.result;
+      if (!cursor) {
+        assert_equals(count, 2, "cursor run count");
+        t.done();
+      }
+
+      if (count === 0) {
+        e.target.source.objectStore.delete(["primaryKey_1", "iKey_1"]);
+      }
+      assert_array_equals(cursor.key, expected[count], "primary key");
+
+      cursor.continue();
+      count++;
+    });
+  }
+}, "Delete next element, and iterate to it");
+
+async_test(t => {
+  let db;
+  let count = 0;
+  const records = [
+    { pKey: "primaryKey_0", obj: { iKey: "iKey_0" } },
+    { pKey: "primaryKey_2", obj: { iKey: "iKey_2" } }
+  ];
+
+  const expected = [
+    ["primaryKey_2", "iKey_2"],
+    ["primaryKey_1", "iKey_1"],
+    ["primaryKey_0", "iKey_0"]
+  ];
+
+  let open_rq = createdb(t);
+  open_rq.onupgradeneeded = function (e) {
+    db = e.target.result;
+    var objStore = db.createObjectStore("test", { keyPath: "pKey" });
+    objStore.createIndex("index", ["pKey", "obj.iKey"]);
+
+    for (var i = 0; i < records.length; i++)
+      objStore.add(records[i]);
+  };
+
+  open_rq.onsuccess = function (e) {
+    var cursor_rq = db.transaction("test", "readwrite", { durability: 'relaxed' })
+      .objectStore("test")
+      .index("index")
+      .openCursor(null, "prev");
+
+    cursor_rq.onsuccess = t.step_func(function (e) {
+      var cursor = e.target.result;
+      if (!cursor) {
+        assert_equals(count, 3, "cursor run count");
+        t.done();
+      }
+
+      if (count === 0) {
+        e.target.source.objectStore.add({ pKey: "primaryKey_1", obj: { iKey: "iKey_1" } });
+      }
+      assert_array_equals(cursor.key, expected[count], "primary key");
+
+      cursor.continue();
+      count++;
+    });
+  }
+}, "Add next element, and iterate to it");

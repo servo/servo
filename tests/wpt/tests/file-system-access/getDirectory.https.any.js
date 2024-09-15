@@ -3,28 +3,30 @@
 
 promise_test(async t => {
   const fileName = 'testFile';
+  const directory = await navigator.storage.getDirectory();
+
   t.add_cleanup(async () => {
     try {
-      await parent.removeEntry(fileName);
+      await directory.removeEntry(fileName);
     } catch {
       // Ignore any errors in case the test failed.
     }
   });
 
-  const directory = await navigator.storage.getDirectory();
   return directory.getFileHandle(fileName, {create: true});
 }, 'Call getFileHandle successfully');
 
 promise_test(async t => {
   const directoryName = 'testDirectory';
+  const directory = await navigator.storage.getDirectory();
+
   t.add_cleanup(async () => {
     try {
-      await parent.removeEntry(fileName, {recursive: true});
+      await directory.removeEntry(directoryName, {recursive: true});
     } catch {
       // Ignore any errors in case the test failed.
     }
   });
 
-  const directory = await navigator.storage.getDirectory();
   return directory.getDirectoryHandle(directoryName, {create: true});
 }, 'Call getDirectoryHandle successfully');

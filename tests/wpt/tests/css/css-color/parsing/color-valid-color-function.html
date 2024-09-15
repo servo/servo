@@ -12,68 +12,36 @@
 </head>
 <body>
 <script>
-for (const colorSpace of [ "srgb", "srgb-linear", "a98-rgb", "rec2020", "prophoto-rgb", "display-p3" ]) {
-    test_valid_value("color", `color(${colorSpace} 0% 0% 0%)`, `color(${colorSpace} 0 0 0)`);
-    test_valid_value("color", `color(${colorSpace} 10% 10% 10%)`, `color(${colorSpace} 0.1 0.1 0.1)`);
-    test_valid_value("color", `color(${colorSpace} .2 .2 25%)`, `color(${colorSpace} 0.2 0.2 0.25)`);
-    test_valid_value("color", `color(${colorSpace} 0 0 0 / 1)`, `color(${colorSpace} 0 0 0)`);
-    test_valid_value("color", `color(${colorSpace} 0% 0 0 / 0.5)`, `color(${colorSpace} 0 0 0 / 0.5)`);
-    test_valid_value("color", `color(${colorSpace} 20% 0 10/0.5)`, `color(${colorSpace} 0.2 0 10 / 0.5)`);
-    test_valid_value("color", `color(${colorSpace} 20% 0 10/50%)`, `color(${colorSpace} 0.2 0 10 / 0.5)`);
-    test_valid_value("color", `color(${colorSpace} 400% 0 10/50%)`, `color(${colorSpace} 4 0 10 / 0.5)`);
-    test_valid_value("color", `color(${colorSpace} 50% -160 160)`, `color(${colorSpace} 0.5 -160 160)`);
-    test_valid_value("color", `color(${colorSpace} 50% -200 200)`, `color(${colorSpace} 0.5 -200 200)`);
-    test_valid_value("color", `color(${colorSpace} 0 0 0 / -10%)`, `color(${colorSpace} 0 0 0 / 0)`);
-    test_valid_value("color", `color(${colorSpace} 0 0 0 / 110%)`, `color(${colorSpace} 0 0 0)`);
-    test_valid_value("color", `color(${colorSpace} 0 0 0 / 300%)`, `color(${colorSpace} 0 0 0)`);
-    test_valid_value("color", `color(${colorSpace} 200 200 200)`, `color(${colorSpace} 200 200 200)`);
-    test_valid_value("color", `color(${colorSpace} 200 200 200 / 200)`, `color(${colorSpace} 200 200 200)`);
-    test_valid_value("color", `color(${colorSpace} -200 -200 -200)`, `color(${colorSpace} -200 -200 -200)`);
-    test_valid_value("color", `color(${colorSpace} -200 -200 -200 / -200)`, `color(${colorSpace} -200 -200 -200 / 0)`);
-    test_valid_value("color", `color(${colorSpace} 200% 200% 200%)`, `color(${colorSpace} 2 2 2)`);
-    test_valid_value("color", `color(${colorSpace} 200% 200% 200% / 200%)`, `color(${colorSpace} 2 2 2)`);
-    test_valid_value("color", `color(${colorSpace} -200% -200% -200% / -200%)`, `color(${colorSpace} -2 -2 -2 / 0)`);
-    test_valid_value("color", `color(${colorSpace} calc(0.5 + 1) calc(0.5 - 1) calc(0.5) / calc(-0.5 + 1))`, `color(${colorSpace} 1.5 -0.5 0.5 / 0.5)`);
-    test_valid_value("color", `color(${colorSpace} calc(50% * 3) calc(-150% / 3) calc(50%) / calc(-50% * 3))`, `color(${colorSpace} 1.5 -0.5 0.5 / 0)`);
-
-    test_valid_value("color", `color(${colorSpace} none none none / none)`, `color(${colorSpace} none none none / none)`);
-    test_valid_value("color", `color(${colorSpace} none none none)`, `color(${colorSpace} none none none)`);
-    test_valid_value("color", `color(${colorSpace} 10% none none / none)`, `color(${colorSpace} 0.1 none none / none)`);
-    test_valid_value("color", `color(${colorSpace} none none none / 0.5)`, `color(${colorSpace} none none none / 0.5)`);
-    test_valid_value("color", `color(${colorSpace} 0 0 0 / none)`, `color(${colorSpace} 0 0 0 / none)`);
-
-    test_valid_value("color", `color(${colorSpace} 0 calc(infinity) 0)`, `color(${colorSpace} 0 calc(infinity) 0)`);
-    test_valid_value("color", `color(${colorSpace} 0 calc(-infinity) 0)`, `color(${colorSpace} 0 calc(-infinity) 0)`);
-    test_valid_value("color", `color(${colorSpace} calc(NaN) 0 0)`, `color(${colorSpace} calc(NaN) 0 0)`);
-    test_valid_value("color", `color(${colorSpace} calc(0 / 0) 0 0)`, `color(${colorSpace} calc(NaN) 0 0)`);
-
-    // calc(50% + (sign(1em - 10px) * 10%)) cannot be evaluated eagerly because font relative units are not yet known at parse time.
-    test_valid_value("color", `color(${colorSpace} calc(50% + (sign(1em - 10px) * 10%)) 0 0 / 0.5)`, `color(${colorSpace} calc(50% + (10% * sign(1em - 10px))) 0 0 / 0.5)`);
-    test_valid_value("color", `color(${colorSpace} 0.5 0 0 / calc(50% + (sign(1em - 10px) * 10%)))`, `color(${colorSpace} 0.5 0 0 / calc(50% + (10% * sign(1em - 10px))))`);
-}
-
-for (const colorSpace of [ "xyz", "xyz-d50", "xyz-d65" ]) {
+for (const colorSpace of [ "srgb", "srgb-linear", "a98-rgb", "rec2020", "prophoto-rgb", "display-p3", "xyz", "xyz-d50", "xyz-d65" ]) {
     const resultColorSpace = colorSpace == "xyz" ? "xyz-d65" : colorSpace;
 
-    test_valid_value("color", `color(${colorSpace} 0 0 0)`, `color(${resultColorSpace} 0 0 0)`);
+    test_valid_value("color", `color(${colorSpace} 0% 0% 0%)`, `color(${resultColorSpace} 0 0 0)`);
+    test_valid_value("color", `color(${colorSpace} 10% 10% 10%)`, `color(${resultColorSpace} 0.1 0.1 0.1)`);
+    test_valid_value("color", `color(${colorSpace} .2 .2 25%)`, `color(${resultColorSpace} 0.2 0.2 0.25)`);
     test_valid_value("color", `color(${colorSpace} 0 0 0 / 1)`, `color(${resultColorSpace} 0 0 0)`);
-    test_valid_value("color", `color(${colorSpace} 1 1 1)`, `color(${resultColorSpace} 1 1 1)`);
-    test_valid_value("color", `color(${colorSpace} 1 1 1 / 1)`, `color(${resultColorSpace} 1 1 1)`);
-    test_valid_value("color", `color(${colorSpace} -1 -1 -1)`, `color(${resultColorSpace} -1 -1 -1)`);
-    test_valid_value("color", `color(${colorSpace} 0.1 0.1 0.1)`, `color(${resultColorSpace} 0.1 0.1 0.1)`);
-    test_valid_value("color", `color(${colorSpace} 10 10 10)`, `color(${resultColorSpace} 10 10 10)`);
-    test_valid_value("color", `color(${colorSpace} .2 .2 .25)`, `color(${resultColorSpace} 0.2 0.2 0.25)`);
-    test_valid_value("color", `color(${colorSpace} 0 0 0 / 0.5)`, `color(${resultColorSpace} 0 0 0 / 0.5)`);
-    test_valid_value("color", `color(${colorSpace} .20 0 10/0.5)`, `color(${resultColorSpace} 0.2 0 10 / 0.5)`);
-    test_valid_value("color", `color(${colorSpace} .20 0 10/50%)`, `color(${resultColorSpace} 0.2 0 10 / 0.5)`);
+    test_valid_value("color", `color(${colorSpace} 0% 0 0 / 0.5)`, `color(${resultColorSpace} 0 0 0 / 0.5)`);
+    test_valid_value("color", `color(${colorSpace} 20% 0 10/0.5)`, `color(${resultColorSpace} 0.2 0 10 / 0.5)`);
+    test_valid_value("color", `color(${colorSpace} 20% 0 10/50%)`, `color(${resultColorSpace} 0.2 0 10 / 0.5)`);
+    test_valid_value("color", `color(${colorSpace} 400% 0 10/50%)`, `color(${resultColorSpace} 4 0 10 / 0.5)`);
+    test_valid_value("color", `color(${colorSpace} 50% -160 160)`, `color(${resultColorSpace} 0.5 -160 160)`);
+    test_valid_value("color", `color(${colorSpace} 50% -200 200)`, `color(${resultColorSpace} 0.5 -200 200)`);
     test_valid_value("color", `color(${colorSpace} 0 0 0 / -10%)`, `color(${resultColorSpace} 0 0 0 / 0)`);
     test_valid_value("color", `color(${colorSpace} 0 0 0 / 110%)`, `color(${resultColorSpace} 0 0 0)`);
     test_valid_value("color", `color(${colorSpace} 0 0 0 / 300%)`, `color(${resultColorSpace} 0 0 0)`);
-    test_valid_value("color", `color(${colorSpace} calc(0.5 + 1) calc(0.5 - 1) calc(0.5) / calc(-0.5 + 1))`, `color(${resultColorSpace} 1.5 -0.5 0.5 / 0.5)`);
+    test_valid_value("color", `color(${colorSpace} 200 200 200)`, `color(${resultColorSpace} 200 200 200)`);
+    test_valid_value("color", `color(${colorSpace} 200 200 200 / 200)`, `color(${resultColorSpace} 200 200 200)`);
+    test_valid_value("color", `color(${colorSpace} -200 -200 -200)`, `color(${resultColorSpace} -200 -200 -200)`);
+    test_valid_value("color", `color(${colorSpace} -200 -200 -200 / -200)`, `color(${resultColorSpace} -200 -200 -200 / 0)`);
+    test_valid_value("color", `color(${colorSpace} 200% 200% 200%)`, `color(${resultColorSpace} 2 2 2)`);
+    test_valid_value("color", `color(${colorSpace} 200% 200% 200% / 200%)`, `color(${resultColorSpace} 2 2 2)`);
+    test_valid_value("color", `color(${colorSpace} -200% -200% -200% / -200%)`, `color(${resultColorSpace} -2 -2 -2 / 0)`);
+    test_valid_value("color", `color(${colorSpace} calc(0.5 + 1) calc(0.5 - 1) calc(0.5) / calc(-0.5 + 1))`, `color(${resultColorSpace} calc(1.5) calc(-0.5) calc(0.5) / calc(0.5))`);
+    test_valid_value("color", `color(${colorSpace} calc(50% * 3) calc(-150% / 3) calc(50%) / calc(-50% * 3))`, `color(${resultColorSpace} calc(150%) calc(-50%) calc(50%) / calc(-150%))`);
+    test_valid_value("color", `color(${colorSpace} calc(50%) 50% 0.5)`, `color(${resultColorSpace} calc(50%) 0.5 0.5)`);
 
     test_valid_value("color", `color(${colorSpace} none none none / none)`, `color(${resultColorSpace} none none none / none)`);
     test_valid_value("color", `color(${colorSpace} none none none)`, `color(${resultColorSpace} none none none)`);
-    test_valid_value("color", `color(${colorSpace} 0.2 none none / none)`, `color(${resultColorSpace} 0.2 none none / none)`);
+    test_valid_value("color", `color(${colorSpace} 10% none none / none)`, `color(${resultColorSpace} 0.1 none none / none)`);
     test_valid_value("color", `color(${colorSpace} none none none / 0.5)`, `color(${resultColorSpace} none none none / 0.5)`);
     test_valid_value("color", `color(${colorSpace} 0 0 0 / none)`, `color(${resultColorSpace} 0 0 0 / none)`);
 
@@ -83,8 +51,8 @@ for (const colorSpace of [ "xyz", "xyz-d50", "xyz-d65" ]) {
     test_valid_value("color", `color(${colorSpace} calc(0 / 0) 0 0)`, `color(${resultColorSpace} calc(NaN) 0 0)`);
 
     // calc(50% + (sign(1em - 10px) * 10%)) cannot be evaluated eagerly because font relative units are not yet known at parse time.
-    test_valid_value("color", `color(${colorSpace} calc(0.5 + (sign(1em - 10px) * 0.1)) 0 0 / 0.5)`, `color(${resultColorSpace} calc(0.5 + (0.1 * sign(1em - 10px))) 0 0 / 0.5)`);
-    test_valid_value("color", `color(${colorSpace} 0.5 0 0 / calc(0.5 + (sign(1em - 10px) * 0.1)))`, `color(${resultColorSpace} 0.5 0 0 / calc(0.5 + (0.1 * sign(1em - 10px))))`);
+    test_valid_value("color", `color(${colorSpace} calc(50% + (sign(1em - 10px) * 10%)) 0 0 / 0.5)`, `color(${resultColorSpace} calc(50% + (10% * sign(1em - 10px))) 0 0 / 0.5)`);
+    test_valid_value("color", `color(${colorSpace} 0.5 0 0 / calc(50% + (sign(1em - 10px) * 10%)))`, `color(${resultColorSpace} 0.5 0 0 / calc(50% + (10% * sign(1em - 10px))))`);
 }
 </script>
 </body>

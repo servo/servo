@@ -166,4 +166,38 @@ test(t => {
 }, 'KeyframeEffect.getKeyframes() returns expected frames for a'
    + ' transition after resetting the effect target');
 
+test(t => {
+  const div = addDiv(t);
+
+  div.style.transition = '--foo 100s allow-discrete';
+  div.style.setProperty("--foo", "10");
+  getComputedStyle(div).getPropertyValue("--foo");
+  div.style.setProperty("--foo", "20");
+
+  const frames = getKeyframes(div);
+
+  assert_equals(frames.length, 2, 'number of frames');
+
+  const expected = [
+    { offset: 0,
+      computedOffset: 0,
+      easing: 'linear',
+      composite: 'auto',
+      "--foo": '10',
+    },
+    {
+      offset: 1,
+      computedOffset: 1,
+      easing: 'linear',
+      composite: 'auto',
+      "--foo": '20',
+    },
+  ];
+
+  for (let i = 0; i < frames.length; i++) {
+    assert_frames_equal(frames[i], expected[i], `ComputedKeyframe #${i}`);
+  }
+}, 'KeyframeEffect.getKeyframes() returns expected frames for a custom'
+      + ' property transition');
+
 </script>

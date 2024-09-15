@@ -462,4 +462,35 @@ promise_test(async t => {
   assert_in_array(mutations3.count, [0, 1], "mutation events count after inserting new3");
 }, "handling of insertion of elements into group");
 
+promise_test(async t => {
+  container.remove();
+  container.innerHTML = `
+    <details name="a">
+      <summary>1</summary>
+      This is the first item.
+    </details>
+
+    <details name="a">
+      <summary>2</summary>
+      This is the second item.
+    </details>
+  `;
+  let first = container.firstElementChild;
+  let second = first.nextElementSibling;
+  assert_false(first.open);
+  assert_false(second.open);
+  first.open = true;
+  assert_true(first.open);
+  assert_false(second.open);
+  second.open = true;
+  assert_false(first.open);
+  assert_true(second.open);
+  second.open = true;
+  assert_false(first.open);
+  assert_true(second.open);
+  second.open = false;
+  assert_false(first.open);
+  assert_false(second.open);
+}, "basic handling of mutually exclusive details when the element isn't connected");
+
 </script>

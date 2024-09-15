@@ -71,26 +71,31 @@ tests = [
     ["rgba(0, 0, 0, calc(0 / 0))", "rgba(0, 0, 0, 0)"],
 
     // calc(50% + (sign(1em - 10px) * 10%)) cannot be evaluated eagerly because font relative units are not yet known at parse time.
-    ["rgb(calc(50% + (sign(1em - 10px) * 10%)), 0%, 0%, 50%)", "rgb(calc(50% + (10% * sign(1em - 10px))) 0% 0% / 50%)"],
-    ["rgba(calc(50% + (sign(1em - 10px) * 10%)), 0%, 0%, 50%)", "rgb(calc(50% + (10% * sign(1em - 10px))) 0% 0% / 50%)"],
+    ["rgb(calc(50% + (sign(1em - 10px) * 10%)), 0%, 0%, 50%)", "rgb(calc(50% + (10% * sign(1em - 10px))) 0 0 / 0.5)"],
+    ["rgba(calc(50% + (sign(1em - 10px) * 10%)), 0%, 0%, 50%)", "rgb(calc(50% + (10% * sign(1em - 10px))) 0 0 / 0.5)"],
     ["rgb(calc(50 + (sign(1em - 10px) * 10)), 0, 0, 0.5)", "rgb(calc(50 + (10 * sign(1em - 10px))) 0 0 / 0.5)"],
     ["rgba(calc(50 + (sign(1em - 10px) * 10)), 0, 0, 0.5)", "rgb(calc(50 + (10 * sign(1em - 10px))) 0 0 / 0.5)"],
-    ["rgb(0%, 0%, 0%, calc(50% + (sign(1em - 10px) * 10%)))", "rgb(0% 0% 0% / calc(50% + (10% * sign(1em - 10px))))"],
-    ["rgba(0%, 0%, 0%, calc(50% + (sign(1em - 10px) * 10%)))", "rgb(0% 0% 0% / calc(50% + (10% * sign(1em - 10px))))"],
+    ["rgb(0%, 0%, 0%, calc(50% + (sign(1em - 10px) * 10%)))", "rgb(0 0 0 / calc(50% + (10% * sign(1em - 10px))))"],
+    ["rgba(0%, 0%, 0%, calc(50% + (sign(1em - 10px) * 10%)))", "rgb(0 0 0 / calc(50% + (10% * sign(1em - 10px))))"],
     ["rgb(0, 0, 0, calc(0.75 + (sign(1em - 10px) * 0.1)))", "rgb(0 0 0 / calc(0.75 + (0.1 * sign(1em - 10px))))"],
     ["rgba(0, 0, 0, calc(0.75 + (sign(1em - 10px) * 0.1)))", "rgb(0 0 0 / calc(0.75 + (0.1 * sign(1em - 10px))))"],
 
-    ["rgb(calc(50% + (sign(1em - 10px) * 10%)) 0% 0% / 50%)", "rgb(calc(50% + (10% * sign(1em - 10px))) 0% 0% / 50%)"],
-    ["rgba(calc(50% + (sign(1em - 10px) * 10%)) 0% 0% / 50%)", "rgb(calc(50% + (10% * sign(1em - 10px))) 0% 0% / 50%)"],
+    ["rgb(calc(50% + (sign(1em - 10px) * 10%)) 0% 0% / 50%)", "rgb(calc(50% + (10% * sign(1em - 10px))) 0 0 / 0.5)"],
+    ["rgba(calc(50% + (sign(1em - 10px) * 10%)) 0% 0% / 50%)", "rgb(calc(50% + (10% * sign(1em - 10px))) 0 0 / 0.5)"],
     ["rgb(calc(50 + (sign(1em - 10px) * 10)) 0 0 / 0.5)", "rgb(calc(50 + (10 * sign(1em - 10px))) 0 0 / 0.5)"],
     ["rgba(calc(50 + (sign(1em - 10px) * 10)) 0 0 / 0.5)", "rgb(calc(50 + (10 * sign(1em - 10px))) 0 0 / 0.5)"],
-    ["rgb(0% 0% 0% / calc(50% + (sign(1em - 10px) * 10%)))", "rgb(0% 0% 0% / calc(50% + (10% * sign(1em - 10px))))"],
-    ["rgba(0% 0% 0% / calc(50% + (sign(1em - 10px) * 10%)))", "rgb(0% 0% 0% / calc(50% + (10% * sign(1em - 10px))))"],
+    ["rgb(0% 0% 0% / calc(50% + (sign(1em - 10px) * 10%)))", "rgb(0 0 0 / calc(50% + (10% * sign(1em - 10px))))"],
+    ["rgba(0% 0% 0% / calc(50% + (sign(1em - 10px) * 10%)))", "rgb(0 0 0 / calc(50% + (10% * sign(1em - 10px))))"],
     ["rgb(0 0 0 / calc(0.75 + (sign(1em - 10px) * 0.1)))", "rgb(0 0 0 / calc(0.75 + (0.1 * sign(1em - 10px))))"],
     ["rgba(0 0 0 / calc(0.75 + (sign(1em - 10px) * 0.1)))", "rgb(0 0 0 / calc(0.75 + (0.1 * sign(1em - 10px))))"],
 
-    ["rgba(calc(50% + (sign(1em - 10px) * 10%)) 0 0% / 0.5)", "rgb(calc(50% + (10% * sign(1em - 10px))) 0 0% / 0.5)"],
-    ["rgba(0% 0 0% / calc(0.75 + (sign(1em - 10px) * 0.1)))", "rgb(0% 0 0% / calc(0.75 + (0.1 * sign(1em - 10px))))"],
+    ["rgba(calc(50% + (sign(1em - 10px) * 10%)) 0 0% / 0.5)", "rgb(calc(50% + (10% * sign(1em - 10px))) 0 0 / 0.5)"],
+    ["rgba(0% 0 0% / calc(0.75 + (sign(1em - 10px) * 0.1)))", "rgb(0 0 0 / calc(0.75 + (0.1 * sign(1em - 10px))))"],
+
+    ["rgba(calc(50 + (sign(1em - 10px) * 10)) 400 -400 / 0.5)", "rgb(calc(50 + (10 * sign(1em - 10px))) 255 0 / 0.5)"],
+    ["rgba(calc(50% + (sign(1em - 10px) * 10%)) 400% -400% / 0.5)", "rgb(calc(50% + (10% * sign(1em - 10px))) 255 0 / 0.5)"],
+    ["rgba(calc(50 + (sign(1em - 10px) * 10)), 400, -400, 0.5)", "rgb(calc(50 + (10 * sign(1em - 10px))) 255 0 / 0.5)"],
+    ["rgba(calc(50% + (sign(1em - 10px) * 10%)), 400%, -400%, 0.5)", "rgb(calc(50% + (10% * sign(1em - 10px))) 255 0 / 0.5)"],
 ];
 
 for (const test of tests) {

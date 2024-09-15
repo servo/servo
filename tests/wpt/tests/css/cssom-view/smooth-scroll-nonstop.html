@@ -6,7 +6,6 @@
 <link rel="help" href="https://drafts.csswg.org/cssom-view/#concept-smooth-scroll">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="/css/css-scroll-snap/support/common.js"></script>
 <script src="/dom/events/scrolling/scroll_support.js"></script>
 </head>
 <body>
@@ -44,7 +43,7 @@
         await waitForScrollReset(test, scroller);
         await waitForCompositorCommit(test, scroller);
 
-        const scrollend_promise = waitForScrollEnd(scroller);
+        const scrollend_promise = waitForScrollEndFallbackToDelayWithoutScrollEvent(scroller);
         const MAX_NO_MOVE_DURATION_MS = 1000;
         let resolve_stuck_promise = null;
         const stuck_promise = new Promise((resolve) => {

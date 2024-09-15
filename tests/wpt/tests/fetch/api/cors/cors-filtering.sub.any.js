@@ -12,7 +12,6 @@ function corsFilter(corsUrl, headerName, headerValue, isFiltered) {
       } else {
         assert_false(resp.headers.has(headerName), "UA should exclude " + headerName + " header from response");
       }
-      test.done();
     });
   }, "CORS filter on " + headerName + " header");
 }
@@ -36,7 +35,6 @@ function corsExposeFilter(corsUrl, headerName, headerValue, isForbidden, withCre
       } else {
         assert_false(resp.headers.has(headerName), "UA should exclude " + headerName + " header from response");
       }
-      test.done();
     });
   }, title);
 }
@@ -54,16 +52,14 @@ corsFilter(url, "Content-Length", "3" , false); // top.txt contains "top"
 corsFilter(url, "Age", "27", true);
 corsFilter(url, "Server", "wptServe" , true);
 corsFilter(url, "Warning", "Mind the gap" , true);
-corsFilter(url, "Set-Cookie", "name=value" , true);
-corsFilter(url, "Set-Cookie2", "name=value" , true);
+corsFilter(url, "Set-Cookie", "name=value; max-age=0", true);
+corsFilter(url, "Set-Cookie2", "name=value; max-age=0", true);
 
 corsExposeFilter(url, "Age", "27", false);
 corsExposeFilter(url, "Server", "wptServe" , false);
 corsExposeFilter(url, "Warning", "Mind the gap" , false);
 
-corsExposeFilter(url, "Set-Cookie", "name=value" , true);
-corsExposeFilter(url, "Set-Cookie2", "name=value" , true);
-corsExposeFilter(url, "Set-Cookie", "name=value" , true, true);
-corsExposeFilter(url, "Set-Cookie2", "name=value" , true, true);
-
-done();
+corsExposeFilter(url, "Set-Cookie", "name=value; max-age=0" , true);
+corsExposeFilter(url, "Set-Cookie2", "name=value; max-age=0" , true);
+corsExposeFilter(url, "Set-Cookie", "name=value; max-age=0" , true, true);
+corsExposeFilter(url, "Set-Cookie2", "name=value; max-age=0" , true, true);

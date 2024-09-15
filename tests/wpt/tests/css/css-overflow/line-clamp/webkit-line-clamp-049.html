@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: -webkit-line-clamp block in inline</title>
+<link rel="author" title="Andreu Botella" href="mailto:abotella@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="match" href="reference/webkit-line-clamp-049-ref.html">
+<meta name="assert" content="If -webkit-line-clamp is a block inside an inline, it works correctly.">
+
+<style>
+p span clamp {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  overflow: hidden; /* can be removed once implementations update their old -webkit-line-clamp implementations */
+  font: 16px / 32px serif;
+  white-space: pre;
+  background-color: yellow;
+}
+</style>
+
+<p><span>The following yellow box should clamp after 4 lines.
+
+<!-- Using a <clamp> element rather than e.g. <div class="clamp"> so the parser doesn't close the <p>.-->
+<clamp>Line 1
+Line 2
+Line 3
+Line 4
+Line 5</clamp>
+
+</span></p>

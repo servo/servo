@@ -24,6 +24,7 @@ interface SharedStorageWorkletGlobalScope : WorkletGlobalScope {
                      Function operationCtor);
 
   readonly attribute SharedStorage sharedStorage;
+  readonly attribute PrivateAggregation privateAggregation;
 };
 
 dictionary SharedStorageUrlWithMetadata {
@@ -77,10 +78,17 @@ dictionary SharedStorageSetMethodOptions {
   boolean ignoreIfPresent = false;
 };
 
+dictionary SharedStoragePrivateAggregationConfig {
+  USVString aggregationCoordinatorOrigin;
+  USVString contextId;
+  [EnforceRange] unsigned long long filteringIdMaxBytes;
+};
+
 dictionary SharedStorageRunOperationMethodOptions {
   object data;
   boolean resolveToConfig = false;
   boolean keepAlive = false;
+  SharedStoragePrivateAggregationConfig privateAggregationConfig;
 };
 
 dictionary SharedStorageWorkletOptions : WorkletOptions {

@@ -362,7 +362,8 @@ function extendObject(dst, src) {
 function isSimpleObject(o) {
     return (typeof o === "object" &&
         !Array.isArray(o) &&
-        !(o instanceof ArrayBuffer));
+        !(o instanceof ArrayBuffer) &&
+        !(o instanceof Uint8Array));
 }
 
 function isAbortSignal(o) {
@@ -613,8 +614,9 @@ function virtualAuthenticatorPromiseTest(
     testCb, options = {}, name = 'Virtual Authenticator Test') {
   let authenticatorArgs = Object.assign(defaultAuthenticatorArgs(), options);
   promise_test(async t => {
+    let authenticator;
     try {
-      let authenticator =
+      authenticator =
           await window.test_driver.add_virtual_authenticator(authenticatorArgs);
       t.add_cleanup(
           () => window.test_driver.remove_virtual_authenticator(authenticator));
@@ -623,7 +625,7 @@ function virtualAuthenticatorPromiseTest(
         throw error;
       }
     }
-    return testCb(t);
+    return testCb(t, authenticator);
   }, name);
 }
 

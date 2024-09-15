@@ -5,6 +5,11 @@ name: "All Tests: Safari (stable)"
 permissions: {}
 
 on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: [epochs]
+    types:
+      - completed
   push:
     branches:
       - epochs/daily
@@ -17,8 +22,24 @@ env:
   SAFARIDRIVER_DIAGNOSE: false
 
 jobs:
+  check-workflow-run:
+    name: "Check for appropriate epochs"
+    uses: ./.github/workflows/check-workflow-run.yml
+    with:
+      check-refs: '["refs/heads/epochs/daily"]'
+    permissions:
+      actions: read
+
   safari-stable-results:
     name: "All Tests: Safari (stable)"
+    needs: check-workflow-run
+    # We need always() here to then check for success/skipped from the
+    # dependency, as otherwise the skip cascades. See
+    # https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/using-jobs-in-a-workflow#defining-prerequisite-jobs.
+    if: |
+      always() &&
+      (needs.check-workflow-run.result == 'success' || needs.check-workflow-run.result == 'skipped') &&
+      (github.event_name != 'workflow_run' || fromJSON(needs.check-workflow-run.outputs.updated-refs)[0] != null)
     runs-on:
       - self-hosted
       - webkit-ews
@@ -41,7 +62,6 @@ jobs:
         run: |-
           set -eux -o pipefail
           sudo safaridriver --enable
-          defaults write com.apple.Safari WebKitJavaScriptCanOpenWindowsAutomatically 1
       - name: Update hosts
         run: |-
           set -eux -o pipefail

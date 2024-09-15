@@ -715,9 +715,16 @@ class _VariantGrid:
             _render(jinja_env, f'testharness_worker{grid}.js', self.params,
                     f'{output_files.offscreen}.worker.js')
 
+    def _generate_cairo_images(self, output_dirs: _OutputPaths) -> None:
+        """Generates the pycairo images found in the YAML test definition."""
+        for variant in self.variants:
+            variant.generate_expected_image(output_dirs)
+
     def generate_test(self, jinja_env: jinja2.Environment,
                       output_dirs: _OutputPaths) -> None:
         """Generate the test files to the specified output dirs."""
+        self._generate_cairo_images(output_dirs)
+
         output_files = output_dirs.sub_path(self.file_name)
 
         if self.template_type in (_TemplateType.REFERENCE,
@@ -854,9 +861,6 @@ def generate_test_files(name_to_dir_file: str) -> None:
             if test['name'] != grid.file_name:
                 print(f'  {grid.file_name}')
 
-            sub_dir = _get_test_sub_dir(grid.file_name, name_to_sub_dir)
-            output_sub_dirs = output_dirs.sub_path(sub_dir)
-
             _check_uniqueness(used_filenames, grid.file_name,
                               grid.canvas_types)
             for variant in grid.variants:
@@ -866,8 +870,7 @@ def generate_test_files(name_to_dir_file: str) -> None:
                              variant.params['grid_variant_names']),
                     grid.canvas_types)
 
-            for variant in grid.variants:
-                variant.generate_expected_image(output_sub_dirs)
-            grid.generate_test(jinja_env, output_sub_dirs)
+            sub_dir = _get_test_sub_dir(grid.file_name, name_to_sub_dir)
+            grid.generate_test(jinja_env, output_dirs.sub_path(sub_dir))
 
     print()

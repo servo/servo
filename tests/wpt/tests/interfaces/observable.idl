@@ -1,0 +1,106 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Observable (https://wicg.github.io/observable/)
+
+[Exposed=*]
+interface Subscriber {
+  undefined next(any value);
+  undefined error(any error);
+  undefined complete();
+  undefined addTeardown(VoidFunction teardown);
+
+  // True after the Subscriber is created, up until either
+  // complete()/error() are invoked, or the subscriber unsubscribes. Inside
+  // complete()/error(), this attribute is true.
+  readonly attribute boolean active;
+
+  readonly attribute AbortSignal signal;
+};
+
+// SubscribeCallback is where the Observable "creator’s" code lives. It’s
+// called when subscribe() is called, to set up a new subscription.
+callback SubscribeCallback = undefined (Subscriber subscriber);
+callback ObservableSubscriptionCallback = undefined (any value);
+
+dictionary SubscriptionObserver {
+  ObservableSubscriptionCallback next;
+  ObservableSubscriptionCallback error;
+  VoidFunction complete;
+};
+
+callback ObservableInspectorAbortHandler = undefined (any value);
+
+dictionary ObservableInspector {
+  ObservableSubscriptionCallback next;
+  ObservableSubscriptionCallback error;
+  VoidFunction complete;
+
+  VoidFunction subscribe;
+  ObservableInspectorAbortHandler abort;
+};
+
+typedef (ObservableSubscriptionCallback or SubscriptionObserver) ObserverUnion;
+typedef (ObservableSubscriptionCallback or ObservableInspector) ObservableInspectorUnion;
+
+dictionary SubscribeOptions {
+  AbortSignal signal;
+};
+
+callback Predicate = boolean (any value, unsigned long long index);
+callback Reducer = any (any accumulator, any currentValue, unsigned long long index);
+callback Mapper = any (any value, unsigned long long index);
+// Differs from Mapper only in return type, since this callback is exclusively
+// used to visit each element in a sequence, not transform it.
+callback Visitor = undefined (any value, unsigned long long index);
+
+// This callback returns an `any` that must convert into an `Observable`, via
+// the `Observable` conversion semantics.
+callback CatchCallback = any (any value);
+
+[Exposed=*]
+interface Observable {
+  constructor(SubscribeCallback callback);
+  undefined subscribe(optional ObserverUnion observer = {}, optional SubscribeOptions options = {});
+
+  // Constructs a native Observable from value if it’s any of the following:
+  //   - Observable
+  //   - AsyncIterable
+  //   - Iterable
+  //   - Promise
+  static Observable from(any value);
+
+  // Observable-returning operators. See "Operators" section in the spec.
+  //
+  // takeUntil() can consume promises, iterables, async iterables, and other
+  // observables.
+  Observable takeUntil(any notifier);
+  Observable map(Mapper mapper);
+  Observable filter(Predicate predicate);
+  Observable take(unsigned long long amount);
+  Observable drop(unsigned long long amount);
+  Observable flatMap(Mapper mapper);
+  Observable switchMap(Mapper mapper);
+  Observable inspect(optional ObservableInspectorUnion inspect_observer = {});
+  Observable catch(CatchCallback callback);
+  Observable finally(VoidFunction callback);
+
+  // Promise-returning operators.
+  Promise<sequence<any>> toArray(optional SubscribeOptions options = {});
+  Promise<undefined> forEach(Visitor callback, optional SubscribeOptions options = {});
+  Promise<boolean> every(Predicate predicate, optional SubscribeOptions options = {});
+  Promise<any> first(optional SubscribeOptions options = {});
+  Promise<any> last(optional SubscribeOptions options = {});
+  Promise<any> find(Predicate predicate, optional SubscribeOptions options = {});
+  Promise<boolean> some(Predicate predicate, optional SubscribeOptions options = {});
+  Promise<any> reduce(Reducer reducer, optional any initialValue, optional SubscribeOptions options = {});
+};
+
+dictionary ObservableEventListenerOptions {
+  boolean capture = false;
+  boolean passive;
+};
+
+partial interface EventTarget {
+  Observable when(DOMString type, optional ObservableEventListenerOptions options = {});
+};

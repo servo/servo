@@ -70,38 +70,6 @@ function waitForWheelEvent(eventTarget) {
   return waitForEvent(eventTarget, 'wheel');
 }
 
-function waitForScrollStop(eventTarget) {
-  const TIMEOUT_IN_MS = 200;
-
-  return new Promise(resolve => {
-    let lastScrollEventTime = performance.now();
-
-    const scrollListener = () => {
-      lastScrollEventTime = performance.now();
-    };
-    eventTarget.addEventListener('scroll', scrollListener);
-
-    const tick = () => {
-      if (performance.now() - lastScrollEventTime > TIMEOUT_IN_MS) {
-        eventTarget.removeEventListener('scroll', scrollListener);
-        resolve();
-        return;
-      }
-      requestAnimationFrame(tick); // wait another frame
-    }
-    requestAnimationFrame(tick);
-  });
-}
-
-function waitForScrollEnd(eventTarget) {
-  if (window.onscrollend !== undefined) {
-    return waitForScrollendEventNoTimeout(eventTarget);
-  }
-  return waitForScrollEvent(eventTarget).then(() => {
-    return waitForScrollStop(eventTarget);
-  });
-}
-
 function waitForScrollTo(eventTarget, getValue, targetValue) {
   return new Promise((resolve, reject) => {
     const scrollListener = (evt) => {

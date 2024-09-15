@@ -18,7 +18,7 @@
 }
 
 .target.animated::after {
-  animation: display-animation 1ms forwards;
+  animation: display-animation 1s forwards;
 }
 
 </style>
@@ -42,7 +42,8 @@ promise_test(async t => {
   assert_equals(cs.marginLeft, "100px");
   assert_equals(cs.display, "block");
 
-  await runningAnimations[0].finished;
+  runningAnimations[0].finish();
+
   assert_equals(animations().length, 1, "The animation remains after completion");
   assert_equals(cs.marginLeft, "200px");
   assert_equals(cs.display, "none");

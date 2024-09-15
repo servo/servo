@@ -43,7 +43,7 @@ main () {
     done
     # This is safe because `git push` will by default fail for a non-fast-forward
     # push, for example if the remote branch is ahead of the local branch.
-    git push --tags ${REMOTE} ${ALL_BRANCHES_NAMES}
+    git push --porcelain --tags ${REMOTE} ${ALL_BRANCHES_NAMES} | tee "${RUNNER_TEMP}/git-push-output.txt"
 }
 
 cd $WPT_ROOT

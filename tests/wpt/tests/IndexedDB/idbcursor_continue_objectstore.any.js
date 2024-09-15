@@ -1,8 +1,6 @@
 // META: global=window,worker
 // META: title=IDBCursor.continue() - object store
 // META: script=resources/support.js
-// @author Microsoft <https://www.microsoft.com>
-// @author Intel <http://www.intel.com>
 
 'use strict';
 
@@ -18,6 +16,17 @@ function createObjectStoreAndPopulate(db, records) {
 function setOnUpgradeNeeded(dbObj, records) {
   return function (event) {
     dbObj.db = event.target.result;
+    createObjectStoreAndPopulate(dbObj.db, records);
+  };
+}
+
+function setOnUpgradeNeededWithCleanup(t, dbObj, records) {
+  return function (e) {
+    dbObj.db = e.target.result;
+    t.add_cleanup(function () {
+      dbObj.db.close();
+      indexedDB.deleteDatabase(dbObj.db.name);
+    });
     createObjectStoreAndPopulate(dbObj.db, records);
   };
 }
@@ -54,7 +63,7 @@ async_test(t => {
       count++;
     });
   }
-}, "IDBCursor.continue() - object store - iterate to the next record");
+}, "Iterate to the next record");
 
 async_test(t => {
   let dbObj = {};
@@ -82,7 +91,7 @@ async_test(t => {
     });
   }
 
-}, "IDBCursor.continue() - object store - attempt to pass a key parameter is not a valid key");
+}, "Attempt to pass a key parameter is not a valid key");
 
 async_test(t => {
   let dbObj = {};
@@ -110,7 +119,7 @@ async_test(t => {
       t.done();
     });
   }
-}, "IDBCursor.continue() - object store - attempt to iterate to the previous record when the direction is set for the next record");
+}, "Attempt to iterate to the previous record when the direction is set for the next record");
 
 async_test(t => {
   let dbObj = {};
@@ -155,7 +164,7 @@ async_test(t => {
       count++;
     });
   }
-}, "IDBCursor.continue() - object store - attempt to iterate to the next record when the direction is set for the next record");
+}, "Attempt to iterate to the next record when the direction is set for the next record");
 
 async_test(t => {
   let dbObj = {};
@@ -213,3 +222,85 @@ async_test(t => {
     });
   }
 }, "If the cursor's source or effective object store has been deleted, the implementation MUST throw a DOMException of type InvalidStateError");
+
+async_test(t => {
+  let dbObj = {};
+  let count = 0;
+  const records = [
+    { pKey: "primaryKey_0" },
+    { pKey: "primaryKey_1" },
+    { pKey: "primaryKey_2" }
+  ];
+
+  const expected_records = [
+    { pKey: "primaryKey_0" },
+    { pKey: "primaryKey_2" }
+  ];
+
+  let open_rq = createdb(t);
+  open_rq.onupgradeneeded = setOnUpgradeNeededWithCleanup(t, dbObj, records);
+
+  open_rq.onsuccess = function (e) {
+    let cursor_rq = dbObj.db.transaction("test", "readwrite", { durability: 'relaxed' })
+      .objectStore("test")
+      .openCursor();
+
+    cursor_rq.onsuccess = t.step_func(function (e) {
+      let cursor = e.target.result;
+      if (!cursor) {
+        assert_equals(count, 2, "cursor run count");
+        t.done();
+      }
+
+      let record = cursor.value;
+      if (record.pKey == "primaryKey_0") {
+        e.target.source.delete("primaryKey_1");
+      }
+      assert_equals(record.pKey, expected_records[count].pKey, "primary key");
+
+      cursor.continue();
+      count++;
+    });
+  }
+}, "Delete next element, and iterate to it");
+
+async_test(t => {
+  let dbObj = {};
+  let count = 0;
+  const records = [
+    { pKey: "primaryKey_0" },
+    { pKey: "primaryKey_2" }
+  ];
+
+  const expected_records = [
+    { pKey: "primaryKey_0" },
+    { pKey: "primaryKey_1" },
+    { pKey: "primaryKey_2" }
+  ];
+
+  let open_rq = createdb(t);
+  open_rq.onupgradeneeded = setOnUpgradeNeededWithCleanup(t, dbObj, records);
+
+  open_rq.onsuccess = function (e) {
+    let cursor_rq = dbObj.db.transaction("test", "readwrite", { durability: 'relaxed' })
+      .objectStore("test")
+      .openCursor();
+
+    cursor_rq.onsuccess = t.step_func(function (e) {
+      let cursor = e.target.result;
+      if (!cursor) {
+        assert_equals(count, 3, "cursor run count");
+        t.done();
+      }
+
+      let record = cursor.value;
+      if (record.pKey == "primaryKey_0") {
+        e.target.source.add({ pKey: "primaryKey_1" });
+      }
+      assert_equals(record.pKey, expected_records[count].pKey, "primary key");
+
+      cursor.continue();
+      count++;
+    });
+  }
+}, "Add next element, and iterate to it");

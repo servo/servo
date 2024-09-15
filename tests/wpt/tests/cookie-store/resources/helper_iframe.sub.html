@@ -23,9 +23,12 @@
       });
       event.source.postMessage('Cookie has been set', event.origin);
     } else if (opname === 'get-cookie') {
-      const { name } = event.data
-      const frameCookie = await cookieStore.get(name);
+      const { name, options } = event.data
+      const frameCookie = await cookieStore.get(name, options);
       event.source.postMessage({frameCookie}, event.origin);
+    } else if (opname === 'push-state') {
+      history.pushState("foo", null, "some/path");
+      event.source.postMessage('pushState called');
     }
   });
 </script>

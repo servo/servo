@@ -108,6 +108,9 @@ class ChromeDriverTestharnessProtocolPart(WebDriverTestharnessProtocolPart):
         if not self.reuse_window:
             self.close_test_window()
         self.webdriver.window_handle = self.runner_handle
+        # TODO(web-platform-tests/wpt#48078): Find a cross-platform way to clear
+        # cookies for all domains.
+        self.parent.cdp.execute_cdp_command("Network.clearBrowserCookies")
         return self.runner_handle
 
     def open_test_window(self, window_id):

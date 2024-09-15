@@ -157,6 +157,7 @@ testInvalidUrange("u+?a");
 // U+FFFFFF is too large!
 testInvalidUrange("u+??????");
 
+testInvalidUrange("()U+123");
 
 /* Finally, verify that u+a is properly parsed
    as IDENT(u) DELIM(+) IDENT(a) in other contexts */

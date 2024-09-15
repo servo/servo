@@ -35,12 +35,10 @@
             "fullscreenElement after second exitFullscreen()"
         );
         const eventChange = new Promise((resolve) => {
-            document.addEventListener("fullscreenchange", resolve, once);
-            document.addEventListener(
-                "fullscreenchange",
-                t.unreached_func("second event fired"),
-                once
-            );
+            document.addEventListener("fullscreenchange", () => {
+                document.addEventListener("fullscreenchange", t.unreached_func("second event fired"), once);
+                resolve();
+            }, once);
         });
 
         await Promise.all([

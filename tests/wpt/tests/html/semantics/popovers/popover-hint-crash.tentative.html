@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+
+<div popover id=p>Popover</div>
+<div popover=hint id=h>Hint</div>
+<script>
+  p.showPopover();
+  h.showPopover();
+  h.addEventListener('beforetoggle',() => {
+    p.hidePopover();
+  });
+  p.hidePopover();
+  // This test passes if it does not crash.
+</script>

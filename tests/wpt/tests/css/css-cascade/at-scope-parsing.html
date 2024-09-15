@@ -49,16 +49,14 @@
   test_valid('@scope to ()', '@scope');
   test_valid('@scope () to ()', '@scope');
 
-  // Forgiving behavior (keep invalid selector as-is for the serialization):
-  test_valid('@scope (.c <> .d)');
-  test_valid('@scope (.a, .c <> .d)');
-  test_valid('@scope (.a <> .b, .c)');
-  test_valid('@scope (div::before)');
-  test_valid('@scope (div::after)');
-  test_valid('@scope (slotted(div))');
-  test_valid('@scope (.a) to (div::before)');
-  test_valid('@scope (> &) to (>>)');
-
+  test_invalid('@scope (.c <> .d)');
+  test_invalid('@scope (.a, .c <> .d)');
+  test_invalid('@scope (.a <> .b, .c)');
+  test_invalid('@scope (div::before)');
+  test_invalid('@scope (div::after)');
+  test_invalid('@scope (slotted(div))');
+  test_invalid('@scope (.a) to (div::before)');
+  test_invalid('@scope (> &) to (>>)');
   test_invalid('@scope div');
   test_invalid('@scope (.a) unknown (.c)');
   test_invalid('@scope (.a) to unknown (.c)');

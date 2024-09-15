@@ -5,6 +5,11 @@ name: "All Tests: Safari Technology Preview"
 permissions: {}
 
 on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: [epochs]
+    types:
+      - completed
   push:
     branches:
       - epochs/three_hourly
@@ -17,8 +22,24 @@ env:
   SAFARIDRIVER_DIAGNOSE: false
 
 jobs:
+  check-workflow-run:
+    name: "Check for appropriate epochs"
+    uses: ./.github/workflows/check-workflow-run.yml
+    with:
+      check-refs: '["refs/heads/epochs/three_hourly"]'
+    permissions:
+      actions: read
+
   safari-technology-preview-results:
     name: "All Tests: Safari Technology Preview"
+    needs: check-workflow-run
+    # We need always() here to then check for success/skipped from the
+    # dependency, as otherwise the skip cascades. See
+    # https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/using-jobs-in-a-workflow#defining-prerequisite-jobs.
+    if: |
+      always() &&
+      (needs.check-workflow-run.result == 'success' || needs.check-workflow-run.result == 'skipped') &&
+      (github.event_name != 'workflow_run' || fromJSON(needs.check-workflow-run.outputs.updated-refs)[0] != null)
     runs-on:
       - self-hosted
       - webkit-ews
@@ -44,7 +65,6 @@ jobs:
           ./wpt install --channel preview --download-only -d . --rename STP safari browser
           sudo installer -pkg STP.pkg -target LocalSystem
           sudo /Applications/Safari\ Technology\ Preview.app/Contents/MacOS/safaridriver --enable
-          defaults write com.apple.SafariTechnologyPreview WebKitJavaScriptCanOpenWindowsAutomatically 1
       - name: Update hosts
         run: |-
           set -eux -o pipefail

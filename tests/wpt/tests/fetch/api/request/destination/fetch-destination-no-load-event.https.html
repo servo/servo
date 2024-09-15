@@ -57,6 +57,20 @@ promise_test(async t => {
     await waitOnMessageFromSW(t);
 }, 'Background image fetches with an "image" Request.destination');
 
+// SVG use element - image destination
+// See for discussion https://github.com/whatwg/fetch/issues/1012.
+promise_test(async t => {
+    const doc = frame.contentWindow.document;
+
+    let svg = doc.createElementNS("http://www.w3.org/2000/svg", "svg");
+    let use = doc.createElementNS("http://www.w3.org/2000/svg", "use");
+    use.setAttribute("href", "dummy.svg?t=use&dest=image#ref");
+    svg.appendChild(use);
+    doc.body.appendChild(svg);
+
+    await waitOnMessageFromSW(t);
+}, 'SVG use element fetches with an "image" Request.destination');
+
 // Font destination
 ///////////////////
 

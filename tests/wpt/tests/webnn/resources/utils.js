@@ -207,6 +207,14 @@ const assert_array_approx_equals_ulp = (actual, expected, nulp, dataType, descri
       } else if (dataType === 'int64') {
         actualBitwise = actual[i];
         expectedBitwise = BigInt(expected[i]);
+      } else if (dataType === 'uint64') {
+        actualBitwise = actual[i];
+        expectedBitwise = BigUint64Array(expected[i]);
+      } else if (
+          dataType === 'int8' || dataType === 'uint8' || dataType === 'int32' ||
+          dataType === 'uint32') {
+        actualBitwise = actual[i];
+        expectedBitwise = expected[i];
       }
       distance = actualBitwise - expectedBitwise;
       distance = distance >= 0 ? distance : -distance;
