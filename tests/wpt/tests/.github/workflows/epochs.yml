@@ -18,3 +18,10 @@ jobs:
       run: ./tools/ci/epochs_update.sh
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Upload git-push output
+      uses: actions/upload-artifact@v4
+      with:
+        name: git-push-output
+        path: ${{ runner.temp }}/git-push-output.txt
+        if-no-files-found: error
+        compression-level: 1

@@ -30,7 +30,7 @@ async function simultaneousScrollIntoViewsTest(test,
   }
 
   const scrollend_promises = Array.from(scrollers, (scroller) => {
-    return waitForScrollEnd(scroller);
+    return waitForScrollEndFallbackToDelayWithoutScrollEvent(scroller);
   });
 
   // Scroll all targets into view.

@@ -139,6 +139,12 @@
   // color-mix
   fuzzy_test_computed_color(`rgb(from color-mix(in srgb, red, red) r g b / alpha)`, `color(srgb 1 0 0)`);
 
+  // color-mix combined with 'currentColor'
+  fuzzy_test_computed_color_using_currentcolor(`rgb(from color-mix(in srgb, currentColor, red) r g b / alpha)`, `color(srgb 0.7 0.1 0.3)`, `rebeccapurple`);
+
+  // Nesting combined with 'currentColor'
+  fuzzy_test_computed_color_using_currentcolor(`rgb(from rgb(from currentColor r g b) r g b)`, `color(srgb 0.4 0.2 0.6)`, `rebeccapurple`);
+
   // hsl(from ...)
 
   // Testing no modifications.
@@ -219,6 +225,7 @@
 
   // Testing with 'currentColor'
   fuzzy_test_computed_color_using_currentcolor(`hsl(from currentColor h s l)`, `color(srgb 0.4 0.2 0.6)`);
+  fuzzy_test_computed_color_using_currentcolor(`hsl(from currentColor calc((h / 360) * 360deg) s l)`, `color(srgb 0.2 0.2 0.6)`);
 
   // color-mix
   fuzzy_test_computed_color(`hsl(from color-mix(in srgb, red, red) h s l / alpha)`, `color(srgb 1 0 0)`);

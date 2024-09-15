@@ -542,3 +542,37 @@ test((t) => {
   assert_equals(getComputedStyle(b_inside).zIndex, '1');
 }, 'Scoped nested group rule');
 </script>
+
+<template id=test_scoped_within_scoped>
+  <div>
+    <style>
+      @scope (.a) {
+        @scope(#descendant) {
+          :scope {
+            z-index: 1;
+          }
+        }
+        @scope (> #child) {
+          :scope {
+            z-index: 1;
+          }
+        }
+      }
+    </style>
+    <div class="a">
+      <div id="descendant">
+      </div>
+      <div id="child">
+      </div>
+    </div>
+</div>
+</template>
+<script>
+test((t) => {
+  t.add_cleanup(() => main.replaceChildren());
+  main.append(test_scoped_within_scoped.content.cloneNode(true));
+
+  assert_equals(getComputedStyle(descendant).zIndex, '1');
+  assert_equals(getComputedStyle(child).zIndex, '1');
+}, 'Scoped nested within another scope');
+</script>

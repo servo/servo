@@ -1,6 +1,12 @@
-importScripts("helper.js");
-
 const modification = 1;
+
+function appendToBuffer(buffer, value) {
+    const result = new ArrayBuffer(buffer.byteLength + 1);
+    const byteResult = new Uint8Array(result);
+    byteResult.set(new Uint8Array(buffer), 0);
+    byteResult[buffer.byteLength] = value;
+    return result;
+}
 
 function ModifyAndWrite(chunk, transformer) {
     chunk.value.data = appendToBuffer(chunk.value.data, modification);

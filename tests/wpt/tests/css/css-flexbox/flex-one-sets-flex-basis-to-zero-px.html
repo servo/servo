@@ -76,13 +76,15 @@ and 'writing-mode' value works properly.">
   <div class="flex-half-one-zero-percent" data-expected-height="14">Flex item with flex: 0.5 1 0%</div>
 </div>
 
+<!-- Following comment follows current spec to the letter, but it is not web
+     compatible. The expectation is for what everyone is shipping. -->
 <!-- A flex-grow of 0 would size the container to the flex base size of the item (0px),
      and a flex-grow of 1 would size it to the max-content contribution of the item (14px).
      Therefore, a flew-grow of 0.5 sizes the container to the average, 7px.
      And then the item grows to fill half of that, 3.5px.
      Note that Gecko, Blink and WebKit use the flex-basis instead. -->
 <div class="flexbox column">
-  <div class="flex-half-one-zero-px" data-expected-height="4">Flex item with flex: 0.5 1 0px</div>
+  <div class="flex-half-one-zero-px" data-expected-height="0">Flex item with flex: 0.5 1 0px</div>
 </div>
 
 <div class="flexbox column">
@@ -93,10 +95,12 @@ and 'writing-mode' value works properly.">
   <div class="flex-one-one-zero-percent" data-expected-height="14">Flex item with flex: 1 1 0%</div>
 </div>
 
+<!-- Following comment follows current spec to the letter, but it is not web
+     compatible. The expectation is for what everyone is shipping. -->
 <!-- flex-grow is >= 1, so the flex container is sized to the max-content contribution of the item.
      Note that Gecko, Blink and WebKit use the flex-basis instead. -->
 <div class="flexbox column">
-  <div class="flex-one-one-zero-px" data-expected-height="14">Flex item with flex: 1 1 0px</div>
+  <div class="flex-one-one-zero-px" data-expected-height="0">Flex item with flex: 1 1 0px</div>
 </div>
 
 <div class="flexbox column vertical">
@@ -119,13 +123,15 @@ and 'writing-mode' value works properly.">
   <div class="flex-half-one-zero-percent" data-expected-width="14">Flex item with flex: 0.5 1 0%</div>
 </div>
 
+<!-- Following comment follows current spec to the letter, but it is not web
+     compatible. The expectation is for what everyone is shipping. -->
 <!-- A flex-grow of 0 would size the container to the flex base size of the item (0px),
      and a flex-grow of 1 would size it to the max-content contribution of the item (14px).
      Therefore, a flew-grow of 0.5 sizes the container to the average, 7px.
      And then the item grows to fill half of that, 3.5px.
      Note that Gecko, Blink and WebKit use the flex-basis instead. -->
 <div class="flexbox column vertical">
-  <div class="flex-half-one-zero-px" data-expected-width="4">Flex item with flex: 0.5 1 0px</div>
+  <div class="flex-half-one-zero-px" data-expected-width="0">Flex item with flex: 0.5 1 0px</div>
 </div>
 
 <div class="flexbox column vertical">
@@ -136,10 +142,12 @@ and 'writing-mode' value works properly.">
   <div class="flex-one-one-zero-percent" data-expected-width="14">Flex item with flex: 1 1 0%</div>
 </div>
 
+<!-- Following comment follows current spec to the letter, but it is not web
+     compatible. The expectation is for what everyone is shipping. -->
 <!-- flex-grow is >= 1, so the flex container is sized to the max-content contribution of the item.
      Note that Gecko, Blink and WebKit use the flex-basis instead. -->
 <div class="flexbox column vertical">
-  <div class="flex-one-one-zero-px" data-expected-width="14">Flex item with flex: 1 1 0px</div>
+  <div class="flex-one-one-zero-px" data-expected-width="0">Flex item with flex: 1 1 0px</div>
 </div>
 </body>
 </html>

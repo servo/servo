@@ -8,7 +8,6 @@
     <script src="/resources/testdriver.js"></script>
     <script src="/resources/testdriver-actions.js"></script>
     <script src="/resources/testdriver-vendor.js"></script>
-    <script src="/css/css-scroll-snap/support/common.js"></script>
     <script src="/dom/events/scrolling/scroll_support.js"></script>
   </head>
   <body>
@@ -53,8 +52,8 @@
         await waitForCompositorCommit();
 
         const scrollend_promises = [
-          waitForScrollEnd(programmatic_scroller),
-          waitForScrollEnd(gesture_scroller)
+          waitForScrollEndFallbackToDelayWithoutScrollEvent(programmatic_scroller),
+          waitForScrollEndFallbackToDelayWithoutScrollEvent(gesture_scroller)
         ]
         // As soon as we observe a scroll event, begin a gesture scroll on the
         // second scroll container.

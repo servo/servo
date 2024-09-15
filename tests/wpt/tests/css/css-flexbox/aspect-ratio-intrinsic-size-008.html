@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#valdef-align-items-stretch">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#intrinsic-sizes">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<meta name="assert" content="This checks that a flex item with an aspect-ratio transfers its size when it also has stretch alignment.">
+
+<p>Test passes if there is a filled green square.</p>
+<div style="display: inline-flex; height: 100px; background: green;">
+  <div style="padding: 3px; border: 7px solid green; margin: 10px;
+              aspect-ratio: 1/1;"></div>
+</div>

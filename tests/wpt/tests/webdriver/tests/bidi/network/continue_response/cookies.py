@@ -98,7 +98,7 @@ async def test_cookie_response_started(
     SET_COOKIE_TEST_PARAMETERS,
     ids=SET_COOKIE_TEST_IDS,
 )
-async def test_cookie_attributes_before_request_sent(
+async def test_cookie_attributes_response_started(
     setup_blocked_request,
     subscribe_events,
     bidi_session,

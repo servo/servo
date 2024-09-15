@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<title>CSS Container Queries Test: style query against document element</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#container-queries">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/cq-testcommon.js"></script>
+<style>
+  html {
+    --foo: bar;
+  }
+  @container style(--foo: bar) {
+     body { color: green; }
+  }
+</style>
+<body id="body">
+<script>
+  setup(() => assert_implements_container_queries());
+
+  test(() => {
+    assert_equals(getComputedStyle(body).color, "rgb(0, 128, 0)");
+  }, "style query should evaluate to true");
+</script>
+

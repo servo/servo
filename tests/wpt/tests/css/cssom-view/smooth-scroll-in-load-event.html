@@ -4,7 +4,7 @@
 <link rel="help" href="https://drafts.csswg.org/cssom-view/#concept-smooth-scroll">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="support/scroll-behavior.js"></script>
+<script src="/dom/events/scrolling/scroll_support.js"></script>
 <style>
   body {
     margin: 0;
@@ -35,7 +35,7 @@
       await new Promise(resolve => requestAnimationFrame(resolve));
       pageContent.style.color = "green";
 
-      await waitForScrollEnd(document.scrollingElement);
+      await waitForScrollEndFallbackToDelayWithoutScrollEvent(document);
 
       assert_equals(document.scrollingElement.scrollLeft, window.innerWidth, "Final value of scrollLeft");
       assert_equals(document.scrollingElement.scrollTop, window.innerHeight, "Final value of scrollTop");

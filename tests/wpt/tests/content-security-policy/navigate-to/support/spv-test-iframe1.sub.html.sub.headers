@@ -1,4 +1,0 @@
-Expires: Mon, 26 Jul 1997 05:00:00 GMT
-Cache-Control: no-store, no-cache, must-revalidate
-Pragma: no-cache
-Content-Security-Policy: navigate-to {{location[server]}}/content-security-policy/navigate-to/support/spv-test-iframe3.sub.html 'unsafe-allow-redirects'; report-uri /reporting/resources/report.py?op=put&reportID={{GET[report_id]}}

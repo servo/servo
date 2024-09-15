@@ -38,7 +38,7 @@ interface CSSFontFaceDescriptors : CSSStyleDeclaration {
 
 [Exposed=Window]
 interface CSSFontFaceRule : CSSRule {
-  readonly attribute CSSFontFaceDescriptors style;
+  [SameObject, PutForwards=cssText] readonly attribute CSSFontFaceDescriptors style;
 };
 
 partial interface CSSRule {  const unsigned short FONT_FEATURE_VALUES_RULE = 14;

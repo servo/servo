@@ -2,7 +2,6 @@
 <!-- meta name="viewport" content="width=device-width,initial-scale=1" -->
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="/css/css-scroll-snap/support/common.js"></script>
 <script src="/dom/events/scrolling/scroll_support.js"></script>
 <title>Check End Position of smooth scrollIntoView</title>
 <div id="container" style="height: 2500px; width: 2500px;">
@@ -27,7 +26,7 @@ promise_test(async (t) => {
   var expected_y = content.offsetTop + content_height - window_height;
   assert_not_equals(window.scrollX, expected_x, "scrollX");
   assert_not_equals(window.scrollY, expected_y, "scrollY");
-  const scrollend_promise = waitForScrollEnd(document);
+  const scrollend_promise = waitForScrollEndFallbackToDelayWithoutScrollEvent(document);
   content.scrollIntoView({behavior: "smooth", block: "nearest", inline:
 "nearest"});
   await scrollend_promise;
@@ -41,7 +40,7 @@ promise_test(async (t) => {
   var expected_y = content.offsetTop;
   assert_not_equals(window.scrollX, expected_x, "scrollX");
   assert_not_equals(window.scrollY, expected_y, "scrollY");
-  const scrollend_promise = waitForScrollEnd(document);
+  const scrollend_promise = waitForScrollEndFallbackToDelayWithoutScrollEvent(document);
   content.scrollIntoView({behavior: "smooth", block: "start", inline:
 "start"});
   await scrollend_promise;
@@ -55,7 +54,7 @@ promise_test(async (t) => {
   var expected_y = content.offsetTop + (content_height - window_height) / 2;
   assert_not_equals(window.scrollX, expected_x, "scrollX");
   assert_not_equals(window.scrollY, expected_y, "scrollY");
-  const scrollend_promise = waitForScrollEnd(document);
+  const scrollend_promise = waitForScrollEndFallbackToDelayWithoutScrollEvent(document);
   content.scrollIntoView({behavior: "smooth", block: "center", inline:
 "center"});
   await scrollend_promise;
@@ -69,7 +68,7 @@ promise_test(async (t) => {
   var expected_y = content.offsetTop + content_height - window_height;
   assert_not_equals(window.scrollX, expected_x, "scrollX");
   assert_not_equals(window.scrollY, expected_y, "scrollY");
-  const scrollend_promise = waitForScrollEnd(document);
+  const scrollend_promise = waitForScrollEndFallbackToDelayWithoutScrollEvent(document);
   content.scrollIntoView({behavior: "smooth", block: "end", inline:
 "end"});
   await scrollend_promise;

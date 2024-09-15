@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Signal current user details tests</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src=helpers.js></script>
+
+<body></body>
+<script>
+  "use strict";
+
+  const authenticatorOptions = {
+    protocol: "ctap2_1",
+    hasResidentKey: true,
+    isUserVerified: true,
+    hasUserVerification: true,
+  };
+
+  const userId = Uint8Array.from([1, 2, 3, 4]);
+
+  function createDiscoverableCredential() {
+    return createCredential({
+      options: {
+        publicKey: {
+          authenticatorSelection: {
+            residentKey: "required",
+          },
+          user: {
+            id: userId,
+            name: "reimu",
+            displayName: "Reimu Hakurei",
+          }
+        },
+      },
+    });
+  }
+
+  virtualAuthenticatorPromiseTest(async t => {
+    return promise_rejects_dom(t, "SecurityError", PublicKeyCredential.signalCurrentUserDetails({
+      rpId: "umbrella-corporation.example.com",
+      userId: base64urlEncode(userId),
+      name: "marisa",
+      displayName: "Marisa Kirisame",
+    }));
+  }, authenticatorOptions, "signalCurrentUserDetails fails with SecurityError for invalid RP IDs");
+
+  virtualAuthenticatorPromiseTest(async t => {
+    return promise_rejects_js(t, TypeError, PublicKeyCredential.signalCurrentUserDetails({
+      rpId: window.location.hostname,
+      userId: "not base 64 url",
+      name: "marisa",
+      displayName: "Marisa Kirisame",
+    }));
+  }, authenticatorOptions, "signalCurrentUserDetails fails with TypeError for invalid userId base64url");
+
+  virtualAuthenticatorPromiseTest(async (t, authenticator) => {
+    await createDiscoverableCredential();
+    PublicKeyCredential.signalCurrentUserDetails({
+      rpId: window.location.hostname,
+      userId: base64urlEncode([5, 6, 7, 8]),
+      name: "marisa",
+      displayName: "Marisa Kirisame",
+    });
+    const credential = (await window.test_driver.get_credentials(authenticator))[0];
+    // TODO(nsatragno): add assertions once https://github.com/w3c/webauthn/issues/2143 is resolved.
+  }, authenticatorOptions, "signalCurrentUserDetails does not update a different user id");
+
+  virtualAuthenticatorPromiseTest(async (t, authenticator) => {
+    await createDiscoverableCredential();
+    PublicKeyCredential.signalCurrentUserDetails({
+      rpId: window.location.hostname,
+      userId: base64urlEncode(userId),
+      name: "marisa",
+      displayName: "Marisa Kirisame",
+    });
+    const credential = (await window.test_driver.get_credentials(authenticator))[0];
+    // TODO(nsatragno): add assertions once https://github.com/w3c/webauthn/issues/2143 is resolved.
+  }, authenticatorOptions, "signalCurrentUserDetails updates a matching user id");
+</script>

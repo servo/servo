@@ -41,7 +41,7 @@
   .test tbody,
   .test tr,
   .test td {
-    writing-mode: horizontal-tb; /* For UAs not supporting vertical-rl */
+    writing-mode: horizontal-tb; /* For UAs not supporting sideways-lr */
     writing-mode: sideways-lr;
     direction: rtl;
   }
@@ -50,6 +50,7 @@
   .test[dir=rtl] tbody,
   .test[dir=rtl] tr,
   .test[dir=rtl] td {
+    writing-mode: horizontal-tb;
     direction: ltr;
   }
 </style>

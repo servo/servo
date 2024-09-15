@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<title>CSS Values and Units Test: attr() security limitations</title>
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#attr-security">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+  @property --some-url {
+    syntax: "<string>";
+    inherits: false;
+    initial-value: "empty";
+  }
+  div {
+    --some-url: attr(data-foo);
+    --some-other-url: attr(data-foo);
+  }
+</style>
+
+<html>
+  <body>
+    <div id="attr"></div>
+  </body>
+</html>
+
+<script>
+    function test_attr(property, attrString, attrValue, expectedValue) {
+        var elem = document.getElementById("attr");
+        elem.setAttribute("data-foo", attrValue);
+        elem.style.setProperty(property, attrString);
+
+        test(() => {
+            assert_equals(window.getComputedStyle(elem).getPropertyValue(property),
+                          expectedValue,
+                          "'" + property + ": " + attrString + "' with data-foo='" + attrValue + "'");
+        });
+
+        elem.style.setProperty(property, null);
+    }
+
+    // Direct use.
+    test_attr('--x',
+              'image-set(attr(data-foo))',
+              'https://does-not-exist.test/404.png',
+              'image-set("https://does-not-exist.test/404.png")');
+    test_attr('background-image',
+              'image-set(attr(data-foo))',
+              'https://does-not-exist.test/404.png',
+              'none');
+    test_attr('background-image',
+              'image-set("https://does-not-exist.test/404.png")',
+              'https://does-not-exist.test/404.png',
+              'image-set(url("https://does-not-exist.test/404.png") 1dppx)');
+
+    test_attr('--x',
+              'src(attr(data-foo))',
+              'https://does-not-exist.test/404.png',
+              'src("https://does-not-exist.test/404.png")');
+    test_attr('background-image',
+              'src(attr(data-foo))',
+              'https://does-not-exist.test/404.png',
+              'none');
+    test_attr('background-image',
+              'src("https://does-not-exist.test/404.png")',
+              'https://does-not-exist.test/404.png',
+              'src(url("https://does-not-exist.test/404.png"))');
+
+    test_attr('--x',
+              'src(string("https://does-not-exist.test" attr(data-foo)))',
+              '/404.png',
+              'src(string("https://does-not-exist.test" "/404.png"))');
+    test_attr('background-image',
+              'src(string("https://does-not-exist.test" attr(data-foo)))',
+              '/404.png',
+              'none');
+    test_attr('background-image',
+              'src(string("https://does-not-exist.test/""404.png")))',
+              '/404.png',
+              'src(url("https://does-not-exist.test/404.png"))');
+
+    test_attr('--x',
+              'image(attr(data-foo))',
+              'https://does-not-exist.test/404.png',
+              'image("https://does-not-exist.test/404.png")');
+    test_attr('background-image',
+              'image(attr(data-foo))',
+              'https://does-not-exist.test/404.png',
+              'none');
+    test_attr('background-image',
+              'image("https://does-not-exist.test/404.png")',
+              'https://does-not-exist.test/404.png',
+              'image(url("https://does-not-exist.test/404.png"))');
+
+    test_attr('--x',
+              'image(attr(data-foo))',
+              'https://does-not-exist.test/404.png',
+              'image("https://does-not-exist.test/404.png")');
+    test_attr('background-image',
+              'image(attr(data-foo))',
+              'https://does-not-exist.test/404.png',
+              'none');
+    test_attr('background-image',
+              'image("https://does-not-exist.test/404.png")',
+              'https://does-not-exist.test/404.png',
+              'image(url("https://does-not-exist.test/404.png"))');
+
+    // The remaining tests use image-set(), but should be equivalent for image() etc.
+
+    // Test in a fallback.
+    test_attr('--x',
+              'image-set(var(--y, attr(data-foo)))',
+              'https://does-not-exist.test/404.png',
+              'image-set("https://does-not-exist.test/404.png")');
+    test_attr('background-image',
+              'image-set(var(--y, attr(data-foo)))',
+              'https://does-not-exist.test/404.png',
+              'none');
+
+    // Test via a registered custom property.
+    test_attr('--x',
+              'image-set(var(--some-url))',
+              'https://does-not-exist.test/404.png',
+              'image-set("https://does-not-exist.test/404.png")');
+    test_attr('background-image',
+              'image-set(var(--some-url))',
+              'https://does-not-exist.test/404.png',
+              'none');
+
+    // Test via a non-registered custom property.
+    test_attr('--x',
+              'image-set(var(--some-other-url))',
+              'https://does-not-exist.test/404.png',
+              'image-set("https://does-not-exist.test/404.png")');
+    test_attr('background-image',
+              'image-set(var(--some-other-url))',
+              'https://does-not-exist.test/404.png',
+              'none');
+</script>

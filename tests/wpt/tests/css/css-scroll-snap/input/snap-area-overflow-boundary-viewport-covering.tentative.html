@@ -82,7 +82,7 @@ promise_test(async t => {
   assert_equals(scroller.scrollTop, 0, "verify test pre-condition");
 
   // Ensure we can freely scroll in an oversized element.
-  let scrollEndPromise = waitForScrollEnd(scroller);
+  let scrollEndPromise = waitForScrollEndFallbackToDelayWithoutScrollEvent(scroller);
   await keyPress(scroller, "ArrowDown");
   await scrollEndPromise;
   assert_greater_than(scroller.scrollTop, 0,
@@ -98,7 +98,7 @@ promise_test(async t => {
   target.style.height = `${scroller.clientHeight + 2 * scrollAmount - 1}px`;
   assert_equals(scroller.scrollTop, scrollAmount, "Verify container remains " +
       "at the same covering snap offset.");
-  scrollEndPromise = waitForScrollEnd(scroller);
+  scrollEndPromise = waitForScrollEndFallbackToDelayWithoutScrollEvent(scroller);
   await keyPress(scroller, "ArrowDown");
   await scrollEndPromise;
   assert_equals(scroller.scrollTop,
@@ -107,7 +107,7 @@ promise_test(async t => {
 
   // Must not get stuck at a snap position. Since already at the end of the
   // snap area, we should advance to the next.
-  scrollEndPromise = waitForScrollEnd(scroller);
+  scrollEndPromise = waitForScrollEndFallbackToDelayWithoutScrollEvent(scroller);
   await keyPress(scroller, "ArrowDown");
   await scrollEndPromise;
   assert_equals(scroller.scrollTop,
@@ -121,7 +121,7 @@ promise_test(async t => {
   assert_equals(scroller.scrollTop, 0, "verify test pre-condition");
 
   // Ensure we can freely scroll in an oversized element.
-  let scrollEndPromise = waitForScrollEnd(scroller);
+  let scrollEndPromise = waitForScrollEndFallbackToDelayWithoutScrollEvent(scroller);
   await new test_driver.Actions()
   .scroll(50, 50, 0, 50, {origin: scroller})
   .send();
@@ -134,7 +134,7 @@ promise_test(async t => {
   let scrollAmount =
       target.clientHeight - scroller.clientHeight - scroller.scrollTop + 1;
 
-  scrollEndPromise = waitForScrollEnd(scroller);
+  scrollEndPromise = waitForScrollEndFallbackToDelayWithoutScrollEvent(scroller);
   await new test_driver.Actions()
   .scroll(50, 50, 0, scrollAmount, {origin: scroller})
   .send();
@@ -146,7 +146,7 @@ promise_test(async t => {
   // snap area, we should advance to the next. scrollAmount must be enough to
   // advance to next snap position.
   scrollAmount = next.clientHeight / 2 + 10 /* margin-bottom */;
-  scrollEndPromise = waitForScrollEnd(scroller);
+  scrollEndPromise = waitForScrollEndFallbackToDelayWithoutScrollEvent(scroller);
   await new test_driver.Actions()
   .scroll(50, 50, 0, scrollAmount, {origin: scroller})
   .send();

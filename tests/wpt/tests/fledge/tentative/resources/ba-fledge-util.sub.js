@@ -220,6 +220,26 @@ function _sortForCbor(input) {
   }
 }
 
+// Works on both ArrayBuffer and Uint8Array, returns the same type.
+function _injectFault(input) {
+  let uint8Input;
+  if (input instanceof ArrayBuffer) {
+    uint8Input = new Uint8Array(input);
+  } else {
+    assert_true(input instanceof Uint8Array);
+    uint8Input = input;
+  }
+
+  // Just mess up the 0th byte.
+  uint8Input[0] = uint8Input[0] ^ 0x4e;
+
+  if (input instanceof ArrayBuffer) {
+    return _toArrayBuffer(uint8Input);
+  } else {
+    return uint8Input;
+  }
+}
+
 // Exported API.
 
 // Decodes the request payload produced by getInterestGroupAdAuctionData into
@@ -279,13 +299,36 @@ BA.decodeInterestGroupData = async function(igData) {
   };
 };
 
+BA.injectCborFault = 1;
+BA.injectGzipFault = 2;
+BA.injectFrameFault = 4;
+BA.injectEncryptFault = 8;
+
 // Encodes, compresses, encrypts, etc., `responseObject` into a proper
 // serverResponse in reply to `decoded`.
-BA.encodeServerResponse = async function(responseObject, decoded) {
+BA.encodeServerResponse =
+    async function(responseObject, decoded, injectFaults = 0) {
   let cborPayload = new Uint8Array(CBOR.encode(_sortForCbor(responseObject)));
+  if (injectFaults & BA.injectCborFault) {
+    cborPayload = _injectFault(cborPayload);
+  }
+
   let gzipPayload = await _gzip(cborPayload);
+  if (injectFaults & BA.injectGzipFault) {
+    gzipPayload = _injectFault(gzipPayload);
+  }
+
   let framedPayload = _toArrayBuffer(_frameServerResponse(gzipPayload));
-  return await _encryptServerResponse(framedPayload, decoded);
+  if (injectFaults & BA.injectFrameFault) {
+    framedPayload = _injectFault(framedPayload);
+  }
+
+  let encrypted = await _encryptServerResponse(framedPayload, decoded);
+  if (injectFaults & BA.injectEncryptFault) {
+    encrypted = _injectFault(encrypted);
+  }
+
+  return encrypted;
 };
 
 // Returns a hash string that can be used to authorize a given response,

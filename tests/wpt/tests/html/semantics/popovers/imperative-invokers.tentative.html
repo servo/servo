@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:masonf@chromium.org">
+<link rel=help href="https://github.com/whatwg/html/pull/9144#issuecomment-2195095228">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id=unrelated></div>
+<div id=popover popover=auto>
+  <div id=contained></div>
+  popover 1
+</div>
+<div id=popover2 popover=auto style="top:50px">
+  popover 2
+</div>
+
+<script>
+function testOneCase(shouldBeIndependent,popover2Opener,msg) {
+  test((t) => {
+    assert_false(popover.matches(':popover-open'),'starting state');
+    assert_false(popover2.matches(':popover-open'),'starting state');
+    t.add_cleanup(() => {popover.hidePopover();popover2.hidePopover()});
+    popover.showPopover();
+    assert_true(popover.matches(':popover-open'));
+    popover2Opener();
+    assert_true(popover2.matches(':popover-open'),'opener should open popover2');
+    if (shouldBeIndependent) {
+      assert_false(popover.matches(':popover-open'),'popovers should not be related');
+    } else {
+      assert_true(popover.matches(':popover-open'),'popovers should be related to each other');
+    }
+  },msg);
+}
+
+testOneCase(true,() => popover2.showPopover(),'normal opening');
+testOneCase(true,() => popover2.showPopover({invoker: unrelated}),'showPopover(unrelated)');
+testOneCase(false,() => popover2.showPopover({invoker: popover}),'showPopover(popover)');
+testOneCase(false,() => popover2.showPopover({invoker: contained}),'showPopover(contained)');
+
+testOneCase(true,() => popover2.togglePopover(true),'togglePopover(true)');
+testOneCase(true,() => popover2.togglePopover({force:true}),'togglePopover({force})');
+testOneCase(true,() => popover2.togglePopover({invoker:unrelated}),'togglePopover(unrelated)');
+testOneCase(false,() => popover2.togglePopover({invoker: popover}),'togglePopover(popover)');
+testOneCase(false,() => popover2.togglePopover({force:true, invoker: popover}),'togglePopover({force, popover})');
+
+test(() => {
+  assert_false(popover.matches(':popover-open'));
+  assert_throws_js(TypeError,() => popover2.showPopover({invoker: null}),'showPopover(null)');
+  assert_throws_js(TypeError,() => popover2.togglePopover({invoker:null}),'togglePopover(null)');
+  assert_false(popover.matches(':popover-open'));
+},'null isn\'t a valid Element');
+</script>

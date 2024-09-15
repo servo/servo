@@ -1,5 +1,6 @@
 <!doctype html>
 <meta charset="utf-8">
+<meta name="timeout" content="long">
 <title>Test RTCPeerConnection.generateCertificate</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -33,20 +34,23 @@
    *          publicExponent: new Uint8Array([1, 0, 1]), hash: "SHA-256" },
    *        and { name: "ECDSA", namedCurve: "P-256" }.
    */
-  promise_test(t =>
-    RTCPeerConnection.generateCertificate({
-      name: 'RSASSA-PKCS1-v1_5',
-      modulusLength: 2048,
-      publicExponent: new Uint8Array([1, 0, 1]),
-      hash: 'SHA-256'
-    }).then(cert => {
-      assert_true(cert instanceof RTCCertificate,
-        'Expect cert to be instance of RTCCertificate');
+  [1024, 2048].forEach(modulusLength => {
+    promise_test(t =>
+      // Test common RSA key sizes. Only 2048 is mandatory to support.
+      RTCPeerConnection.generateCertificate({
+        name: 'RSASSA-PKCS1-v1_5',
+        modulusLength,
+        publicExponent: new Uint8Array([1, 0, 1]),
+        hash: 'SHA-256'
+      }).then(cert => {
+        assert_true(cert instanceof RTCCertificate,
+          'Expect cert to be instance of RTCCertificate');
 
-      assert_greater_than(cert.expires, Date.now(),
-        'Expect generated certificate to expire reasonably long after current time');
-    }),
-    'generateCertificate() with compulsary RSASSA-PKCS1-v1_5 parameters should succeed');
+        assert_greater_than(cert.expires, Date.now(),
+          'Expect generated certificate to expire reasonably long after current time');
+      }),
+      `generateCertificate({modulusLength: ${modulusLength}}) with RSASSA-PKCS1-v1_5 parameters should succeed`);
+  });
 
   promise_test(t =>
     RTCPeerConnection.generateCertificate({

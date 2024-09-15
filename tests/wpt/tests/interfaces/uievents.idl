@@ -235,26 +235,3 @@ interface TextEvent : UIEvent {
         optional Window? view = null,
         optional DOMString data = "undefined");
 };
-
-[Exposed=Window]
-interface MutationEvent : Event {
-  // attrChangeType
-  const unsigned short MODIFICATION = 1;
-  const unsigned short ADDITION = 2;
-  const unsigned short REMOVAL = 3;
-
-  readonly attribute Node? relatedNode;
-  readonly attribute DOMString prevValue;
-  readonly attribute DOMString newValue;
-  readonly attribute DOMString attrName;
-  readonly attribute unsigned short attrChange;
-
-  undefined initMutationEvent(DOMString typeArg,
-    optional boolean bubblesArg = false,
-    optional boolean cancelableArg = false,
-    optional Node? relatedNodeArg = null,
-    optional DOMString prevValueArg = "",
-    optional DOMString newValueArg = "",
-    optional DOMString attrNameArg = "",
-    optional unsigned short attrChangeArg = 0);
-};

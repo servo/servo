@@ -147,7 +147,7 @@ def repo_files_changed(revish: Text, include_uncommitted: bool = False, include_
         # gives us that (via the merge-base)
         revish = revish.replace("..", "...")
 
-    files_list = git("diff", "--no-renames", "--name-only", "-z", revish).split("\0")
+    files_list = git("diff", "--no-renames", "--name-only", "--diff-filter=d", "-z", revish).split("\0")
     assert not files_list[-1], f"final item should be empty, got: {files_list[-1]!r}"
     files = set(files_list[:-1])
 

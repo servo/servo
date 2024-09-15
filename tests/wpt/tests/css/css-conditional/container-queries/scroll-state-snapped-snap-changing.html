@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<title>@container: scroll-state(snapped) matches for scrollchanging</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#container-rule">
+<link rel="help" href="https://drafts.csswg.org/css-scroll-snap-2/#snap-events">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/css/css-conditional/container-queries/support/cq-testcommon.js"></script>
+<script src="/css/css-transitions/support/helper.js"></script>
+<style>
+  html { scroll-snap-type: block mandatory; }
+  body { margin: 0; }
+  #filler { height: 10000px; }
+  .snapped {
+    container-type: scroll-state;
+    scroll-snap-align: start;
+    width: 100px;
+    height: 100px;
+  }
+  @container scroll-state(snapped: block) {
+    span { --snapped: true; }
+  }
+</style>
+<div id="snapped1" class="snapped">
+  <span id="target1"></span>
+</div>
+<div id="snapped2" class="snapped">
+  <span id="target2"></span>
+</div>
+<div id="filler"></div>
+<script>
+  setup(() => assert_implements_container_queries());
+
+  let changeTarget;
+  let changingTarget;
+
+  window.addEventListener("scrollsnapchange", e => changeTarget = e.snapTargetBlock);
+  window.addEventListener("scrollsnapchanging", e => changingTarget = e.snapTargetBlock);
+
+  promise_test(async t => {
+    await waitForAnimationFrames(2);
+    assert_equals(getComputedStyle(target1).getPropertyValue("--snapped"), "true");
+    assert_equals(getComputedStyle(target2).getPropertyValue("--snapped"), "");
+    assert_equals(changeTarget, snapped1, "snapchange has been called for #snapped1");
+    assert_equals(changingTarget, undefined, "snapchanging has not been called");
+    assert_equals(window.scrollY, 0);
+  }, "Initially snapped to #snapped1, scroll-state() styling #target1")
+
+  promise_test(async t => {
+    await new test_driver.Actions()
+        .addPointer("pointer1", "touch")
+        .pointerMove(0, 200, {origin: "viewport"})
+        .pointerDown()
+        .pause(50)
+        .pointerMove(0, 0, {origin: "viewport"})
+        .pause(50)
+        .send();
+    assert_equals(changeTarget, snapped1, "snapchange has not been called for #snapped2");
+    assert_equals(changingTarget, snapped2, "snapchanging has been called for #snapped2");
+    assert_equals(getComputedStyle(target1).getPropertyValue("--snapped"), "",
+                  "#target1 not matching scroll-state(snapped) while scrolling");
+    assert_equals(getComputedStyle(target2).getPropertyValue("--snapped"), "true",
+                  "#target2 matching scroll-state(snapped) while scrolling");
+  }, "scroll-state(snapped) matching #snapped2 while scrolling");
+</script>

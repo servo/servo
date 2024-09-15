@@ -78,6 +78,7 @@ interface GPU {
 };
 
 dictionary GPURequestAdapterOptions {
+    any featureLevel;
     GPUPowerPreference powerPreference;
     boolean forceFallbackAdapter = false;
 };
@@ -111,6 +112,7 @@ enum GPUFeatureName {
     "texture-compression-bc-sliced-3d",
     "texture-compression-etc2",
     "texture-compression-astc",
+    "texture-compression-astc-sliced-3d",
     "timestamp-query",
     "indirect-first-instance",
     "shader-f16",
@@ -639,7 +641,7 @@ interface mixin GPUPipelineBase {
 dictionary GPUProgrammableStage {
     required GPUShaderModule module;
     USVString entryPoint;
-    record<USVString, GPUPipelineConstantValue> constants;
+    record<USVString, GPUPipelineConstantValue> constants = {};
 };
 
 typedef double GPUPipelineConstantValue; // May represent WGSL's bool, f32, i32, u32, and f16 if enabled.

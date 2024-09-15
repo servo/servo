@@ -54,6 +54,14 @@ const invalidConfigs = [
     },
   },
   {
+    comment: 'Opus with >2 channels but no description',
+    config: {
+      codec: 'opus',
+      sampleRate: 48000,
+      numberOfChannels: 6,
+    }
+  },
+  {
     comment: 'Valid configuration except detached description',
     config: {
       codec: 'opus',

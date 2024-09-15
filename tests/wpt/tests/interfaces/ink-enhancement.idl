@@ -5,7 +5,7 @@
 
 [Exposed=Window]
 interface Ink {
-    Promise<InkPresenter> requestPresenter(
+    Promise<DelegatedInkTrailPresenter> requestPresenter(
         optional InkPresenterParam param = {});
 };
 
@@ -14,7 +14,7 @@ dictionary InkPresenterParam {
 };
 
 [Exposed=Window]
-interface InkPresenter {
+interface DelegatedInkTrailPresenter {
     readonly attribute Element? presentationArea;
 
     undefined updateInkTrailStartPoint(PointerEvent event, InkTrailStyle style);
