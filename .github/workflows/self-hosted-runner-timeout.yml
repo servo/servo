@@ -2,7 +2,7 @@ name: Detect Self-hosted Runner Timeout
 on:
   workflow_call:
     inputs:
-      selected-runner-label:
+      unique-id:
         required: true
         type: string
       is-self-hosted:
