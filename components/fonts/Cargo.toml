@@ -41,6 +41,7 @@ servo_url = { path = "../url" }
 smallvec = { workspace = true, features = ["union"] }
 surfman = { workspace = true }
 style = { workspace = true }
+tracing = { workspace = true }
 unicode-bidi = { workspace = true, features = ["with_serde"] }
 unicode-properties = { workspace = true }
 unicode-script = { workspace = true }

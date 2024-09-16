@@ -89,6 +89,7 @@ use surfman::platform::generic::multi::context::NativeContext as LinuxNativeCont
 use surfman::{GLApi, GLVersion};
 #[cfg(all(target_os = "linux", not(target_env = "ohos")))]
 use surfman::{NativeConnection, NativeContext};
+use tracing::{span, Level};
 use webgpu::swapchain::WGPUImageMap;
 use webrender::{RenderApiSender, ShaderPrecacheFlags, UploadMethod, ONE_TIME_USAGE_HINT};
 use webrender_api::{
@@ -1105,6 +1106,7 @@ impl WebRenderFontApi for WebRenderFontApiCompositorProxy {
         receiver.recv().unwrap()
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn add_font(&self, data: Arc<Vec<u8>>, index: u32) -> FontKey {
         let (sender, receiver) = unbounded();
         let (bytes_sender, bytes_receiver) =
@@ -1113,7 +1115,11 @@ impl WebRenderFontApi for WebRenderFontApiCompositorProxy {
             .send(CompositorMsg::Forwarded(ForwardedToCompositorMsg::Font(
                 FontToCompositorMsg::AddFont(sender, index, bytes_receiver),
             )));
-        let _ = bytes_sender.send(&data);
+        {
+            let span = span!(Level::TRACE, "add_font send", servo_profiling = true);
+            let _span = span.enter();
+            let _ = bytes_sender.send(&data);
+        }
         receiver.recv().unwrap()
     }
 
