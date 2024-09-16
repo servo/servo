@@ -570,9 +570,9 @@ enum InnerOrOuterTextItem {
 
 #[derive(Clone)]
 struct RenderedTextCollectionState {
-    /// Used to make sure we don't add a \n before the first row
+    /// Used to make sure we don't add a `\n` before the first row
     first_table_row: bool,
-    /// Used to make sure we don't add a \t before the first column
+    /// Used to make sure we don't add a `\t` before the first column
     first_table_cell: bool,
     /// Keeps track of whether we're inside a table, since there are special rules like ommiting everything that's not
     /// inside a TableCell/TableCaption
@@ -653,14 +653,13 @@ fn rendered_text_collection_steps<'dom>(
                     return items;
                 }
 
-                let element_data = match element.style_data() {
-                    Some(data) => &data.element_data,
-                    None => return items,
+                let Some(style_data) = element.style_data() else {
+                    return items;
                 };
 
-                let style = match element_data.borrow().styles.get_primary() {
-                    None => return items,
-                    Some(style) => style.clone(),
+                let element_data = style_data.element_data.borrow();
+                let Some(style) = element_data.styles.get_primary() else {
+                    return items;
                 };
 
                 // Step 2: If node's computed value of 'visibility' is not 'visible', then return items.
@@ -697,7 +696,7 @@ fn rendered_text_collection_steps<'dom>(
                 // property.
                 let trim_beginning_white_space = !preserve_whitespace &&
                     (state.may_start_with_whitespace || display == Display::InlineBlock);
-                let with_white_space_rules_applied: WhitespaceCollapse<_> = WhitespaceCollapse::new(
+                let with_white_space_rules_applied = WhitespaceCollapse::new(
                     text_content.chars(),
                     white_space_collapse,
                     trim_beginning_white_space,
@@ -710,11 +709,11 @@ fn rendered_text_collection_steps<'dom>(
                 // rules are slightly modified: collapsible spaces at the end of lines are always
                 // collapsed, but they are only removed if the line is the last line of the block,
                 // or it ends with a br element. Soft hyphens should be preserved.
-                let mut transformed_text = TextTransformation::new(
+                let mut transformed_text: String = TextTransformation::new(
                     with_white_space_rules_applied,
                     style.clone_text_transform().case(),
                 )
-                .collect::<String>();
+                .collect();
 
                 let is_preformatted_element =
                     white_space_collapse == WhiteSpaceCollapseValue::Preserve;
@@ -722,13 +721,13 @@ fn rendered_text_collection_steps<'dom>(
                 let is_final_character_whitespace = transformed_text
                     .chars()
                     .next_back()
-                    .filter(|c| c.is_ascii_whitespace())
+                    .filter(char::is_ascii_whitespace)
                     .is_some();
 
                 let is_first_character_whitespace = transformed_text
                     .chars()
                     .next()
-                    .filter(|c| c.is_ascii_whitespace())
+                    .filter(char::is_ascii_whitespace)
                     .is_some();
 
                 // By truncating trailing white space and then adding it back in once we
@@ -769,14 +768,13 @@ fn rendered_text_collection_steps<'dom>(
         _ => {
             // First we need to gather some infos to setup the various flags
             // before rendering the child nodes
-            let element_data = match node.style_data() {
-                Some(data) => &data.element_data,
-                None => return items,
+            let Some(style_data) = node.style_data() else {
+                return items;
             };
 
-            let style = match element_data.borrow().styles.get_primary() {
-                Some(style) => style.clone(),
-                None => return items,
+            let element_data = style_data.element_data.borrow();
+            let Some(style) = element_data.styles.get_primary() else {
+                return items;
             };
             let inherited_box = style.get_inherited_box();
 
@@ -884,7 +882,7 @@ fn rendered_text_collection_steps<'dom>(
             match node.type_id() {
                 // Any text/content contained in these elements is ignored.
                 // However we still need to check whether we have to prepend a
-                // space Since for example <span>asd <input> qwe</span> must
+                // space, since for example <span>asd <input> qwe</span> must
                 // product "asd  qwe" (note the 2 spaces)
                 LayoutNodeType::Element(LayoutElementType::HTMLCanvasElement) |
                 LayoutNodeType::Element(LayoutElementType::HTMLImageElement) |
