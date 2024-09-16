@@ -42,8 +42,8 @@ from servo.util import delete, get_target_dir
 
 PACKAGES = {
     'android': [
-        'android/aarch64-linux-android/production/servoapp.apk',
-        'android/aarch64-linux-android/production/servoview.aar',
+        'android/aarch64-linux-android/release/servoapp.apk',
+        'android/aarch64-linux-android/release/servoview.aar',
     ],
     'linux': [
         'production/servo-tech-demo.tar.gz',
