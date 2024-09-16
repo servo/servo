@@ -16,7 +16,9 @@ use style::properties::ComputedValues;
 use style::servo::selector_parser::PseudoElement;
 use style::values::computed::basic_shape::ClipPath;
 use style::values::computed::image::Image as ComputedImageLayer;
-use style::values::computed::{AlignItems, LengthPercentage, NonNegativeLengthPercentage, Size};
+use style::values::computed::{
+    AlignItems, BorderStyle, LengthPercentage, NonNegativeLengthPercentage, Size,
+};
 use style::values::generics::box_::Perspective;
 use style::values::generics::length::MaxSize;
 use style::values::generics::position::{GenericAspectRatio, PreferredRatio};
@@ -250,6 +252,8 @@ pub(crate) trait ComputedValuesExt {
         &self,
         containing_block_writing_mode: WritingMode,
     ) -> LogicalSides<&LengthPercentage>;
+    fn border_style(&self, containing_block_writing_mode: WritingMode)
+        -> LogicalSides<BorderStyle>;
     fn border_width(&self, containing_block_writing_mode: WritingMode) -> LogicalSides<Au>;
     fn margin(
         &self,
@@ -548,6 +552,22 @@ impl ComputedValuesExt for ComputedValues {
                 &padding.padding_right.0,
                 &padding.padding_bottom.0,
                 &padding.padding_left.0,
+            ),
+            containing_block_writing_mode,
+        )
+    }
+
+    fn border_style(
+        &self,
+        containing_block_writing_mode: WritingMode,
+    ) -> LogicalSides<BorderStyle> {
+        let border = self.get_border();
+        LogicalSides::from_physical(
+            &PhysicalSides::new(
+                border.border_top_style,
+                border.border_right_style,
+                border.border_bottom_style,
+                border.border_left_style,
             ),
             containing_block_writing_mode,
         )
