@@ -98,7 +98,7 @@ impl ImageData {
         }
 
         let height = len / width;
-        if opt_height.map_or(false, |x| height != x) {
+        if opt_height.is_some_and(|x| height != x) {
             return Err(Error::IndexSize);
         }
 

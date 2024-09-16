@@ -802,7 +802,7 @@ pub async fn http_fetch(
         .actual_response()
         .status
         .as_ref()
-        .map_or(false, is_redirect_status)
+        .is_some_and(is_redirect_status)
     {
         // Substep 1.
         if response
@@ -992,7 +992,7 @@ pub async fn http_redirect_fetch(
         .status
         .as_ref()
         .map_or(true, |s| s.0 != StatusCode::SEE_OTHER) &&
-        request.body.as_ref().map_or(false, |b| b.source_is_null())
+        request.body.as_ref().is_some_and(|b| b.source_is_null())
     {
         return Response::network_error(NetworkError::Internal("Request body is not done".into()));
     }
@@ -1007,7 +1007,7 @@ pub async fn http_redirect_fetch(
         .actual_response()
         .status
         .as_ref()
-        .map_or(false, |(code, _)| {
+        .is_some_and(|(code, _)| {
             ((*code == StatusCode::MOVED_PERMANENTLY || *code == StatusCode::FOUND) &&
                 request.method == Method::POST) ||
                 (*code == StatusCode::SEE_OTHER &&
@@ -1450,7 +1450,7 @@ async fn http_network_or_cache_fetch(
             forward_response
                 .status
                 .as_ref()
-                .map_or(false, |s| s.0 == StatusCode::NOT_MODIFIED)
+                .is_some_and(|s| s.0 == StatusCode::NOT_MODIFIED)
         {
             if let Ok(mut http_cache) = context.state.http_cache.write() {
                 // Ensure done_chan is None,
@@ -1989,7 +1989,7 @@ async fn cors_preflight_fetch(
         response
             .status
             .as_ref()
-            .map_or(false, |(status, _)| status.is_success())
+            .is_some_and(|(status, _)| status.is_success())
     {
         // Substep 1
         let mut methods = if response

@@ -1266,7 +1266,7 @@ pub fn is_valid_custom_element_name(name: &str) -> bool {
     // PotentialCustomElementName ::= [a-z] (PCENChar)* '-' (PCENChar)*
 
     let mut chars = name.chars();
-    if !chars.next().map_or(false, |c| c.is_ascii_lowercase()) {
+    if !chars.next().is_some_and(|c| c.is_ascii_lowercase()) {
         return false;
     }
 

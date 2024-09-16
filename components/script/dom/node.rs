@@ -783,7 +783,7 @@ impl Node {
         child
             .parent_node
             .get()
-            .map_or(false, |parent| &*parent == self)
+            .is_some_and(|parent| &*parent == self)
     }
 
     pub fn to_trusted_node_address(&self) -> TrustedNodeAddress {
@@ -825,10 +825,10 @@ impl Node {
         let viewport = Size2D::new(window.InnerWidth(), window.InnerHeight());
 
         let in_quirks_mode = document.quirks_mode() == QuirksMode::Quirks;
-        let is_root = self.downcast::<Element>().map_or(false, |e| e.is_root());
+        let is_root = self.downcast::<Element>().is_some_and(|e| e.is_root());
         let is_body_element = self
             .downcast::<HTMLBodyElement>()
-            .map_or(false, |e| e.is_the_html_body_element());
+            .is_some_and(|e| e.is_the_html_body_element());
 
         // "4. If the element is the root element and document is not in quirks mode
         // return max(viewport scrolling area width/height, viewport width/height)."
@@ -2180,7 +2180,7 @@ impl Node {
         parent.owner_doc().add_script_and_layout_blocker();
         assert!(node
             .GetParentNode()
-            .map_or(false, |node_parent| &*node_parent == parent));
+            .is_some_and(|node_parent| &*node_parent == parent));
         let cached_index = {
             if parent.ranges.is_empty() {
                 None
@@ -2809,7 +2809,7 @@ impl NodeMethods for Node {
                 }
                 while children
                     .peek()
-                    .map_or(false, |(_, sibling)| sibling.is::<Text>())
+                    .is_some_and(|(_, sibling)| sibling.is::<Text>())
                 {
                     let (index, sibling) = children.next().unwrap();
                     sibling

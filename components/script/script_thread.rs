@@ -1097,7 +1097,7 @@ impl ScriptThread {
 
     pub fn is_user_interacting() -> bool {
         SCRIPT_THREAD_ROOT.with(|root| {
-            root.get().map_or(false, |script_thread| {
+            root.get().is_some_and(|script_thread| {
                 let script_thread = unsafe { &*script_thread };
                 script_thread.is_user_interacting.get()
             })

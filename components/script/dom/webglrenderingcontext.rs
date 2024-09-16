@@ -1208,7 +1208,7 @@ impl WebGLRenderingContext {
     }
 
     pub fn is_vertex_array(&self, vao: Option<&WebGLVertexArrayObjectOES>) -> bool {
-        vao.map_or(false, |vao| {
+        vao.is_some_and(|vao| {
             // The default vertex array has no id and should never be passed around.
             assert!(vao.id().is_some());
             self.validate_ownership(vao).is_ok() && vao.ever_bound() && !vao.is_deleted()
@@ -1216,7 +1216,7 @@ impl WebGLRenderingContext {
     }
 
     pub fn is_vertex_array_webgl2(&self, vao: Option<&WebGLVertexArrayObject>) -> bool {
-        vao.map_or(false, |vao| {
+        vao.is_some_and(|vao| {
             // The default vertex array has no id and should never be passed around.
             assert!(vao.id().is_some());
             self.validate_ownership(vao).is_ok() && vao.ever_bound() && !vao.is_deleted()
@@ -2913,11 +2913,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return;
         }
         self.current_vao().unbind_buffer(buffer);
-        if self
-            .bound_buffer_array
-            .get()
-            .map_or(false, |b| buffer == &*b)
-        {
+        if self.bound_buffer_array.get().is_some_and(|b| buffer == &*b) {
             self.bound_buffer_array.set(None);
             buffer.decrement_attached_counter(Operation::Infallible);
         }
@@ -3517,7 +3513,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
     fn IsBuffer(&self, buffer: Option<&WebGLBuffer>) -> bool {
-        buffer.map_or(false, |buf| {
+        buffer.is_some_and(|buf| {
             self.validate_ownership(buf).is_ok() && buf.target().is_some() && !buf.is_deleted()
         })
     }
@@ -3529,35 +3525,31 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
     fn IsFramebuffer(&self, frame_buffer: Option<&WebGLFramebuffer>) -> bool {
-        frame_buffer.map_or(false, |buf| {
+        frame_buffer.is_some_and(|buf| {
             self.validate_ownership(buf).is_ok() && buf.target().is_some() && !buf.is_deleted()
         })
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn IsProgram(&self, program: Option<&WebGLProgram>) -> bool {
-        program.map_or(false, |p| {
-            self.validate_ownership(p).is_ok() && !p.is_deleted()
-        })
+        program.is_some_and(|p| self.validate_ownership(p).is_ok() && !p.is_deleted())
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.7
     fn IsRenderbuffer(&self, render_buffer: Option<&WebGLRenderbuffer>) -> bool {
-        render_buffer.map_or(false, |buf| {
+        render_buffer.is_some_and(|buf| {
             self.validate_ownership(buf).is_ok() && buf.ever_bound() && !buf.is_deleted()
         })
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn IsShader(&self, shader: Option<&WebGLShader>) -> bool {
-        shader.map_or(false, |s| {
-            self.validate_ownership(s).is_ok() && !s.is_deleted()
-        })
+        shader.is_some_and(|s| self.validate_ownership(s).is_ok() && !s.is_deleted())
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
     fn IsTexture(&self, texture: Option<&WebGLTexture>) -> bool {
-        texture.map_or(false, |tex| {
+        texture.is_some_and(|tex| {
             self.validate_ownership(tex).is_ok() && tex.target().is_some() && !tex.is_invalid()
         })
     }
@@ -4850,7 +4842,7 @@ impl TextureUnit {
             (&self.tex_3d, WebGL2RenderingContextConstants::TEXTURE_3D),
         ];
         for &(slot, target) in &fields {
-            if slot.get().map_or(false, |t| texture == &*t) {
+            if slot.get().is_some_and(|t| texture == &*t) {
                 slot.set(None);
                 return Some(target);
             }

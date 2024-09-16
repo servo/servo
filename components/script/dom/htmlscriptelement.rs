@@ -825,7 +825,7 @@ impl HTMLScriptElement {
                 ScriptType::Classic => {
                     if was_parser_inserted &&
                         doc.get_current_parser()
-                            .map_or(false, |parser| parser.script_nesting_level() <= 1) &&
+                            .is_some_and(|parser| parser.script_nesting_level() <= 1) &&
                         doc.get_script_blocking_stylesheets_count() > 0
                     {
                         // Step 27.h: classic, has no src, was parser-inserted, is blocked on stylesheet.

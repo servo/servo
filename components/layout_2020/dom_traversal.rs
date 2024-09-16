@@ -56,7 +56,7 @@ impl<'dom, Node: NodeExt<'dom>> NodeAndStyleInfo<Node> {
     }
 
     pub(crate) fn is_single_line_text_input(&self) -> bool {
-        self.node.map_or(false, |node| {
+        self.node.is_some_and(|node| {
             node.type_id() == LayoutNodeType::Element(LayoutElementType::HTMLInputElement)
         })
     }

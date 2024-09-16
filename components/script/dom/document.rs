@@ -3595,7 +3595,7 @@ impl Document {
         if element.namespace() != &ns!(html) {
             return false;
         }
-        element.get_name().map_or(false, |n| *n == **name)
+        element.get_name().is_some_and(|n| *n == **name)
     }
 
     fn count_node_list<F: Fn(&Node) -> bool>(&self, callback: F) -> u32 {
@@ -3935,9 +3935,9 @@ impl Document {
                     true
                 } else {
                     // Step 3
-                    window.GetFrameElement().map_or(false, |el| {
-                        el.has_attribute(&local_name!("allowfullscreen"))
-                    })
+                    window
+                        .GetFrameElement()
+                        .is_some_and(|el| el.has_attribute(&local_name!("allowfullscreen")))
                 }
             },
         }
@@ -5064,7 +5064,7 @@ impl DocumentMethods for Document {
                     HTMLElementTypeId::HTMLFormElement | HTMLElementTypeId::HTMLIFrameElement => {
                         elem.get_name().as_ref() == Some(&self.name)
                     },
-                    HTMLElementTypeId::HTMLImageElement => elem.get_name().map_or(false, |name| {
+                    HTMLElementTypeId::HTMLImageElement => elem.get_name().is_some_and(|name| {
                         name == *self.name ||
                             !name.is_empty() && elem.get_id().as_ref() == Some(&self.name)
                     }),
@@ -5217,7 +5217,7 @@ impl DocumentMethods for Document {
         // Step 5
         if self
             .get_current_parser()
-            .map_or(false, |parser| parser.is_active())
+            .is_some_and(|parser| parser.is_active())
         {
             return Ok(DomRoot::from_ref(self));
         }
@@ -5650,5 +5650,5 @@ fn is_named_element_with_id_attribute(elem: &Element) -> bool {
     // TODO handle <embed> and <object>; these depend on whether the element is
     // “exposed”, a concept that doesn’t fully make sense until embed/object
     // behaviour is actually implemented
-    elem.is::<HTMLImageElement>() && elem.get_name().map_or(false, |name| !name.is_empty())
+    elem.is::<HTMLImageElement>() && elem.get_name().is_some_and(|name| !name.is_empty())
 }

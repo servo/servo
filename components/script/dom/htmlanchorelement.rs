@@ -620,7 +620,7 @@ pub fn get_element_noopener(subject: &Element, target_attribute_value: Option<DO
     }
     let target_is_blank = target_attribute_value
         .as_ref()
-        .map_or(false, |target| target.to_lowercase() == "_blank");
+        .is_some_and(|target| target.to_lowercase() == "_blank");
     let link_types = match subject.get_attribute(&ns!(), &local_name!("rel")) {
         Some(rel) => rel.Value(),
         None => return target_is_blank,

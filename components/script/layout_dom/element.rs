@@ -507,7 +507,7 @@ impl<'dom> ::selectors::Element for ServoLayoutElement<'dom> {
         match *ns {
             NamespaceConstraint::Specific(ns) => self
                 .get_attr_enum(ns, local_name)
-                .map_or(false, |value| value.eval_selector(operation)),
+                .is_some_and(|value| value.eval_selector(operation)),
             NamespaceConstraint::Any => self
                 .element
                 .get_attr_vals_for_layout(local_name)
@@ -637,7 +637,7 @@ impl<'dom> ::selectors::Element for ServoLayoutElement<'dom> {
         unsafe {
             (*self.element.id_attribute())
                 .as_ref()
-                .map_or(false, |atom| case_sensitivity.eq_atom(atom, id))
+                .is_some_and(|atom| case_sensitivity.eq_atom(atom, id))
         }
     }
 
@@ -851,7 +851,7 @@ impl<'dom> ::selectors::Element for ServoThreadSafeLayoutElement<'dom> {
         match *ns {
             NamespaceConstraint::Specific(ns) => self
                 .get_attr_enum(ns, local_name)
-                .map_or(false, |value| value.eval_selector(operation)),
+                .is_some_and(|value| value.eval_selector(operation)),
             NamespaceConstraint::Any => self
                 .element
                 .element

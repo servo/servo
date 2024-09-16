@@ -678,7 +678,7 @@ impl StackingContext {
 
         // Steps 1 and 2: Borders and background for the root
         let mut contents = self.contents.iter().enumerate().peekable();
-        while contents.peek().map_or(false, |(_, child)| {
+        while contents.peek().is_some_and(|(_, child)| {
             child.section() == StackingContextSection::OwnBackgroundsAndBorders
         }) {
             let (i, child) = contents.next().unwrap();
@@ -694,7 +694,7 @@ impl StackingContext {
             .peekable();
         while real_stacking_contexts_and_positioned_stacking_containers
             .peek()
-            .map_or(false, |(_, child)| child.z_index() < 0)
+            .is_some_and(|(_, child)| child.z_index() < 0)
         {
             let (i, child) = real_stacking_contexts_and_positioned_stacking_containers
                 .next()
@@ -707,7 +707,7 @@ impl StackingContext {
         }
 
         // Step 4: Block backgrounds and borders
-        while contents.peek().map_or(false, |(_, child)| {
+        while contents.peek().is_some_and(|(_, child)| {
             child.section() == StackingContextSection::DescendantBackgroundsAndBorders
         }) {
             let (i, child) = contents.next().unwrap();
@@ -722,9 +722,10 @@ impl StackingContext {
         }
 
         // Steps 6 and 7: Fragments and inline stacking containers
-        while contents.peek().map_or(false, |(_, child)| {
-            child.section() == StackingContextSection::Foreground
-        }) {
+        while contents
+            .peek()
+            .is_some_and(|(_, child)| child.section() == StackingContextSection::Foreground)
+        {
             let (i, child) = contents.next().unwrap();
             self.debug_push_print_item(DebugPrintField::Contents, i);
             child.build_display_list(builder, &self.atomic_inline_stacking_containers);
@@ -741,9 +742,10 @@ impl StackingContext {
         }
 
         // Step 10: Outline
-        while contents.peek().map_or(false, |(_, child)| {
-            child.section() == StackingContextSection::Outline
-        }) {
+        while contents
+            .peek()
+            .is_some_and(|(_, child)| child.section() == StackingContextSection::Outline)
+        {
             let (i, child) = contents.next().unwrap();
             self.debug_push_print_item(DebugPrintField::Contents, i);
             child.build_display_list(builder, &self.atomic_inline_stacking_containers);

@@ -598,7 +598,7 @@ pub unsafe fn cross_origin_has_own(
     // TODO: Once we have the slot for the holder, it'd be more efficient to
     //       use `ensure_cross_origin_property_holder`. We'll need `_proxy` to
     //       do that.
-    *bp = jsid_to_string(*cx, Handle::from_raw(id)).map_or(false, |key| {
+    *bp = jsid_to_string(*cx, Handle::from_raw(id)).is_some_and(|key| {
         cross_origin_properties.keys().any(|defined_key| {
             let defined_key = CStr::from_ptr(defined_key);
             defined_key.to_bytes() == key.as_bytes()
@@ -674,7 +674,7 @@ const ALLOWLISTED_SYMBOL_CODES: &[SymbolCode] = &[
 ];
 
 unsafe fn is_cross_origin_allowlisted_prop(cx: SafeJSContext, id: RawHandleId) -> bool {
-    if jsid_to_string(*cx, Handle::from_raw(id)).map_or(false, |st| st == "then") {
+    if jsid_to_string(*cx, Handle::from_raw(id)).is_some_and(|st| st == "then") {
         return true;
     }
 

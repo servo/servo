@@ -121,7 +121,7 @@ impl DOMTokenListMethods for DOMTokenList {
     /// <https://dom.spec.whatwg.org/#dom-domtokenlist-contains>
     fn Contains(&self, token: DOMString) -> bool {
         let token = Atom::from(token);
-        self.attribute().map_or(false, |attr| {
+        self.attribute().is_some_and(|attr| {
             attr.value()
                 .as_tokens()
                 .iter()

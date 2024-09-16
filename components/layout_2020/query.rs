@@ -245,9 +245,9 @@ fn resolved_size_should_be_used_value(fragment: &Fragment) -> bool {
     match fragment {
         Fragment::Box(box_fragment) => {
             !box_fragment.style.get_box().display.is_inline_flow() ||
-                fragment.base().map_or(false, |base| {
-                    base.flags.contains(FragmentFlags::IS_REPLACED)
-                })
+                fragment
+                    .base()
+                    .is_some_and(|base| base.flags.contains(FragmentFlags::IS_REPLACED))
         },
         Fragment::Float(_) |
         Fragment::Positioning(_) |

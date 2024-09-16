@@ -430,7 +430,7 @@ impl Element {
     // https://drafts.csswg.org/cssom-view/#css-layout-box
     pub fn has_css_layout_box(&self) -> bool {
         self.style()
-            .map_or(false, |s| !s.get_box().clone_display().is_none())
+            .is_some_and(|s| !s.get_box().clone_display().is_none())
     }
 
     // https://drafts.csswg.org/cssom-view/#potentially-scrollable
@@ -477,7 +477,7 @@ impl Element {
     fn has_scrolling_box(&self) -> bool {
         // TODO: scrolling mechanism, such as scrollbar (We don't have scrollbar yet)
         //       self.has_scrolling_mechanism()
-        self.style().map_or(false, |style| {
+        self.style().is_some_and(|style| {
             style.get_box().clone_overflow_x().is_scrollable() ||
                 style.get_box().clone_overflow_y().is_scrollable()
         })
@@ -658,7 +658,7 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
 
     #[inline]
     fn has_class_for_layout(self, name: &AtomIdent, case_sensitivity: CaseSensitivity) -> bool {
-        get_attr_for_layout(self, &ns!(), &local_name!("class")).map_or(false, |attr| {
+        get_attr_for_layout(self, &ns!(), &local_name!("class")).is_some_and(|attr| {
             attr.to_tokens()
                 .unwrap()
                 .iter()
@@ -1651,7 +1651,7 @@ impl Element {
 
     pub fn has_class(&self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool {
         self.get_attribute(&ns!(), &local_name!("class"))
-            .map_or(false, |attr| {
+            .is_some_and(|attr| {
                 attr.value()
                     .as_tokens()
                     .iter()
@@ -3652,7 +3652,7 @@ impl SelectorsElement for DomRoot<Element> {
         match *ns {
             NamespaceConstraint::Specific(ns) => self
                 .get_attribute(ns, local_name)
-                .map_or(false, |attr| attr.value().eval_selector(operation)),
+                .is_some_and(|attr| attr.value().eval_selector(operation)),
             NamespaceConstraint::Any => self.attrs.borrow().iter().any(|attr| {
                 *attr.local_name() == **local_name && attr.value().eval_selector(operation)
             }),
@@ -3765,7 +3765,7 @@ impl SelectorsElement for DomRoot<Element> {
         self.id_attribute
             .borrow()
             .as_ref()
-            .map_or(false, |atom| case_sensitivity.eq_atom(id, atom))
+            .is_some_and(|atom| case_sensitivity.eq_atom(id, atom))
     }
 
     fn is_part(&self, _name: &AtomIdent) -> bool {

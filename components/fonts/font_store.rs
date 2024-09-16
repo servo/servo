@@ -215,9 +215,10 @@ impl SimpleFamily {
 
     fn remove_templates_for_stylesheet(&mut self, stylesheet: &DocumentStyleSheet) {
         let remove_if_template_matches = |template: &mut Option<FontTemplateRef>| {
-            if template.as_ref().map_or(false, |template| {
-                template.borrow().stylesheet.as_ref() == Some(stylesheet)
-            }) {
+            if template
+                .as_ref()
+                .is_some_and(|template| template.borrow().stylesheet.as_ref() == Some(stylesheet))
+            {
                 *template = None;
             }
         };

@@ -228,7 +228,7 @@ impl<'a> TextRun {
             // Split off any trailing whitespace into a separate glyph run.
             let mut whitespace = slice.end..slice.end;
             let mut rev_char_indices = word.char_indices().rev().peekable();
-            let ends_with_newline = rev_char_indices.peek().map_or(false, |&(_, c)| c == '\n');
+            let ends_with_newline = rev_char_indices.peek().is_some_and(|&(_, c)| c == '\n');
             if let Some((i, _)) = rev_char_indices
                 .take_while(|&(_, c)| char_is_whitespace(c))
                 .last()

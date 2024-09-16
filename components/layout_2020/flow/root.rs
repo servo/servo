@@ -70,9 +70,11 @@ impl BoxTree {
         let mut root_overflow = root_style.effective_overflow().y;
         if root_overflow == Overflow::Visible && !root_style.get_box().display.is_none() {
             for child in iter_child_nodes(root_element) {
-                if !child.to_threadsafe().as_element().map_or(false, |element| {
-                    element.is_body_element_of_html_element_root()
-                }) {
+                if !child
+                    .to_threadsafe()
+                    .as_element()
+                    .is_some_and(|element| element.is_body_element_of_html_element_root())
+                {
                     continue;
                 }
 

@@ -90,7 +90,7 @@ impl HTMLFieldSetElementMethods for HTMLFieldSetElement {
         impl CollectionFilter for ElementsFilter {
             fn filter<'a>(&self, elem: &'a Element, _root: &'a Node) -> bool {
                 elem.downcast::<HTMLElement>()
-                    .map_or(false, HTMLElement::is_listed_element)
+                    .is_some_and(HTMLElement::is_listed_element)
             }
         }
         let filter = Box::new(ElementsFilter);
@@ -210,7 +210,7 @@ impl VirtualMethods for HTMLFieldSetElement {
                             element.set_enabled_state(false);
                             if element
                                 .downcast::<HTMLElement>()
-                                .map_or(false, |h| h.is_form_associated_custom_element())
+                                .is_some_and(|h| h.is_form_associated_custom_element())
                             {
                                 ScriptThread::enqueue_callback_reaction(
                                     element,
@@ -231,7 +231,7 @@ impl VirtualMethods for HTMLFieldSetElement {
                             if element.enabled_state() &&
                                 element
                                     .downcast::<HTMLElement>()
-                                    .map_or(false, |h| h.is_form_associated_custom_element())
+                                    .is_some_and(|h| h.is_form_associated_custom_element())
                             {
                                 ScriptThread::enqueue_callback_reaction(
                                     element,

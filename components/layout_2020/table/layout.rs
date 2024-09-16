@@ -1136,9 +1136,9 @@ impl<'a> TableLayout<'a> {
                 // configuration for whatever PositioningContext the contents are ultimately added to.
                 let collect_for_nearest_positioned_ancestor = parent_positioning_context
                     .collects_for_nearest_positioned_ancestor() ||
-                    self.table.rows.get(row_index).map_or(false, |row| {
+                    self.table.rows.get(row_index).is_some_and(|row| {
                         let row_group_collects_for_nearest_positioned_ancestor =
-                            row.group_index.map_or(false, |group_index| {
+                            row.group_index.is_some_and(|group_index| {
                                 self.table.row_groups[group_index]
                                     .style
                                     .establishes_containing_block_for_absolute_descendants(

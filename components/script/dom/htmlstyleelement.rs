@@ -283,7 +283,7 @@ impl HTMLStyleElementMethods for HTMLStyleElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-style-disabled>
     fn Disabled(&self) -> bool {
         self.get_cssom_stylesheet()
-            .map_or(false, |sheet| sheet.disabled())
+            .is_some_and(|sheet| sheet.disabled())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-style-disabled>

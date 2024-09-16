@@ -97,8 +97,7 @@ impl PerformanceEntryList {
         entry_type: DOMString,
     ) {
         self.entries.retain(|e| {
-            *e.entry_type() != *entry_type ||
-                name.as_ref().map_or(false, |name_| *e.name() != *name_)
+            *e.entry_type() != *entry_type || name.as_ref().is_some_and(|name_| *e.name() != *name_)
         });
     }
 

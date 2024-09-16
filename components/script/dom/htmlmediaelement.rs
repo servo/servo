@@ -2187,7 +2187,7 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
         if self
             .error
             .get()
-            .map_or(false, |e| e.Code() == MEDIA_ERR_SRC_NOT_SUPPORTED)
+            .is_some_and(|e| e.Code() == MEDIA_ERR_SRC_NOT_SUPPORTED)
         {
             promise.reject_error(Error::NotSupported);
             return promise;

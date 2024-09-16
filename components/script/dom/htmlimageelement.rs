@@ -975,7 +975,7 @@ impl HTMLImageElement {
         let is_parent_picture = elem
             .upcast::<Node>()
             .GetParentElement()
-            .map_or(false, |p| p.is::<HTMLPictureElement>());
+            .is_some_and(|p| p.is::<HTMLPictureElement>());
         if src_set.is_empty() && !is_parent_picture && !src.is_empty() {
             selected_source = Some(src.clone());
             pixel_density = Some(1_f64);
@@ -1295,7 +1295,7 @@ impl HTMLImageElement {
         let is_parent_picture = elem
             .upcast::<Node>()
             .GetParentElement()
-            .map_or(false, |p| p.is::<HTMLPictureElement>());
+            .is_some_and(|p| p.is::<HTMLPictureElement>());
         has_src || is_parent_picture
     }
 
@@ -1405,7 +1405,7 @@ impl HTMLImageElement {
             .find(|n| {
                 n.upcast::<Element>()
                     .get_name()
-                    .map_or(false, |n| *n == *last)
+                    .is_some_and(|n| *n == *last)
             });
 
         useMapElements.map(|mapElem| mapElem.get_area_elements())
@@ -1420,9 +1420,7 @@ impl HTMLImageElement {
             .borrow()
             .final_url
             .as_ref()
-            .map_or(false, |url| {
-                url.scheme() == "data" || url.origin().same_origin(origin)
-            })
+            .is_some_and(|url| url.scheme() == "data" || url.origin().same_origin(origin))
     }
 }
 

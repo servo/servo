@@ -329,7 +329,7 @@ impl BluetoothManager {
         let adapter_valid = self
             .adapter
             .as_ref()
-            .map_or(false, |a| a.get_address().is_ok());
+            .is_some_and(|a| a.get_address().is_ok());
         if !adapter_valid {
             self.adapter = BluetoothAdapter::new().ok();
         }
@@ -471,9 +471,9 @@ impl BluetoothManager {
 
         services.retain(|s| {
             !uuid_is_blocklisted(&s.get_uuid().unwrap_or_default(), Blocklist::All) &&
-                self.allowed_services.get(device_id).map_or(false, |uuids| {
-                    uuids.contains(&s.get_uuid().unwrap_or_default())
-                })
+                self.allowed_services
+                    .get(device_id)
+                    .is_some_and(|uuids| uuids.contains(&s.get_uuid().unwrap_or_default()))
         });
         for service in &services {
             self.cached_services
@@ -727,7 +727,7 @@ impl BluetoothManager {
                     if !self
                         .allowed_services
                         .get(&id)
-                        .map_or(false, |s| s.contains(uuid))
+                        .is_some_and(|s| s.contains(uuid))
                     {
                         return Err(BluetoothError::Security);
                     }

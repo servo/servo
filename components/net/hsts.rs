@@ -93,7 +93,7 @@ impl HstsList {
 
     pub fn is_host_secure(&self, host: &str) -> bool {
         let base_domain = reg_suffix(host);
-        self.entries_map.get(base_domain).map_or(false, |entries| {
+        self.entries_map.get(base_domain).is_some_and(|entries| {
             entries.iter().any(|e| {
                 if e.include_subdomains {
                     e.matches_subdomain(host) || e.matches_domain(host)
@@ -105,15 +105,15 @@ impl HstsList {
     }
 
     fn has_domain(&self, host: &str, base_domain: &str) -> bool {
-        self.entries_map.get(base_domain).map_or(false, |entries| {
-            entries.iter().any(|e| e.matches_domain(host))
-        })
+        self.entries_map
+            .get(base_domain)
+            .is_some_and(|entries| entries.iter().any(|e| e.matches_domain(host)))
     }
 
     fn has_subdomain(&self, host: &str, base_domain: &str) -> bool {
-        self.entries_map.get(base_domain).map_or(false, |entries| {
-            entries.iter().any(|e| e.matches_subdomain(host))
-        })
+        self.entries_map
+            .get(base_domain)
+            .is_some_and(|entries| entries.iter().any(|e| e.matches_subdomain(host)))
     }
 
     pub fn push(&mut self, entry: HstsEntry) {
@@ -153,16 +153,16 @@ impl HstsList {
                 }) ||
                 (!pref!(network.enforce_tls.onion) &&
                     url.domain()
-                        .map_or(false, |domain| domain.ends_with(".onion")))
+                        .is_some_and(|domain| domain.ends_with(".onion")))
             {
                 url.domain()
-                    .map_or(false, |domain| self.is_host_secure(domain))
+                    .is_some_and(|domain| self.is_host_secure(domain))
             } else {
                 true
             }
         } else {
             url.domain()
-                .map_or(false, |domain| self.is_host_secure(domain))
+                .is_some_and(|domain| self.is_host_secure(domain))
         };
 
         if upgrade_scheme {

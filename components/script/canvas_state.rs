@@ -1005,7 +1005,7 @@ impl CanvasState {
         if !x.is_finite() || !y.is_finite() {
             return;
         }
-        if max_width.map_or(false, |max_width| !max_width.is_finite() || max_width <= 0.) {
+        if max_width.is_some_and(|max_width| !max_width.is_finite() || max_width <= 0.) {
             return;
         }
         if self.state.borrow().font_style.is_none() {
