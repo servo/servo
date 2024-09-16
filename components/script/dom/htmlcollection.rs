@@ -383,8 +383,8 @@ impl HTMLCollectionMethods for HTMLCollection {
 
         // Step 2.
         self.elements_iter().find(|elem| {
-            elem.get_id().map_or(false, |id| id == key) ||
-                (elem.namespace() == &ns!(html) && elem.get_name().map_or(false, |id| id == key))
+            elem.get_id().is_some_and(|id| id == key) ||
+                (elem.namespace() == &ns!(html) && elem.get_name().is_some_and(|id| id == key))
         })
     }
 

@@ -868,7 +868,7 @@ impl Fragment {
         node_address == self.node ||
             self.inline_context
                 .as_ref()
-                .map_or(false, |ctx| ctx.contains_node(node_address))
+                .is_some_and(|ctx| ctx.contains_node(node_address))
     }
 
     /// Adds a style to the inline context for this fragment. If the inline context doesn't exist
@@ -2750,9 +2750,7 @@ impl Fragment {
     /// Returns true if this fragment has a transform applied that causes it to take up no space.
     pub fn has_non_invertible_transform_or_zero_scale(&self) -> bool {
         self.transform_matrix(&Rect::default())
-            .map_or(false, |matrix| {
-                !matrix.is_invertible() || matrix.m11 == 0. || matrix.m22 == 0.
-            })
+            .is_some_and(|matrix| !matrix.is_invertible() || matrix.m11 == 0. || matrix.m22 == 0.)
     }
 
     /// Returns true if this fragment establishes a new stacking context and false otherwise.

@@ -756,7 +756,7 @@ impl HTMLInputElement {
             .traverse_preorder(ShadowIncluding::No)
             .find(|node| {
                 node.downcast::<Element>()
-                    .map_or(false, |e| e.Id() == list_string)
+                    .is_some_and(|e| e.Id() == list_string)
             });
         first_with_id
             .as_ref()

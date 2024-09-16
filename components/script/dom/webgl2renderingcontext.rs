@@ -350,7 +350,7 @@ impl WebGL2RenderingContext {
     }
 
     fn unbind_from(&self, slot: &MutNullableDom<WebGLBuffer>, buffer: &WebGLBuffer) {
-        if slot.get().map_or(false, |b| buffer == &*b) {
+        if slot.get().is_some_and(|b| buffer == &*b) {
             buffer.decrement_attached_counter(Operation::Infallible);
             slot.set(None);
         }
@@ -1452,10 +1452,10 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         }
         let src_is_elemarray = read_buffer
             .target()
-            .map_or(false, |t| t == constants::ELEMENT_ARRAY_BUFFER);
+            .is_some_and(|t| t == constants::ELEMENT_ARRAY_BUFFER);
         let dst_is_elemarray = write_buffer
             .target()
-            .map_or(false, |t| t == constants::ELEMENT_ARRAY_BUFFER);
+            .is_some_and(|t| t == constants::ELEMENT_ARRAY_BUFFER);
         if src_is_elemarray != dst_is_elemarray {
             return self.base.webgl_error(InvalidOperation);
         }
@@ -3424,7 +3424,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         if let Some(sampler) = sampler {
             handle_potential_webgl_error!(self.base, self.base.validate_ownership(sampler), return);
             for slot in self.samplers.iter() {
-                if slot.get().map_or(false, |s| sampler == &*s) {
+                if slot.get().is_some_and(|s| sampler == &*s) {
                     slot.set(None);
                 }
             }

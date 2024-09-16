@@ -128,7 +128,7 @@ impl FetchResponseListener for StylesheetContext {
                 Some(meta) => meta,
                 None => return,
             };
-            let is_css = metadata.content_type.map_or(false, |ct| {
+            let is_css = metadata.content_type.is_some_and(|ct| {
                 let mime: Mime = ct.into_inner().into();
                 mime.type_() == mime::TEXT && mime.subtype() == mime::CSS
             });
@@ -202,7 +202,7 @@ impl FetchResponseListener for StylesheetContext {
 
             // FIXME: Revisit once consensus is reached at:
             // https://github.com/whatwg/html/issues/1142
-            successful = metadata.status.map_or(false, |(code, _)| code == 200);
+            successful = metadata.status.is_some_and(|(code, _)| code == 200);
         }
 
         let owner = elem

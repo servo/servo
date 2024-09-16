@@ -673,7 +673,7 @@ impl HTMLElement {
             .chars()
             .skip_while(|&ch| ch != '\u{2d}')
             .nth(1)
-            .map_or(false, |ch| ch.is_ascii_lowercase())
+            .is_some_and(|ch| ch.is_ascii_lowercase())
         {
             return Err(Error::Syntax);
         }

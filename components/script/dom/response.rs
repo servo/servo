@@ -235,13 +235,13 @@ impl BodyMixin for Response {
     fn is_disturbed(&self) -> bool {
         self.body_stream
             .get()
-            .map_or(false, |stream| stream.is_disturbed())
+            .is_some_and(|stream| stream.is_disturbed())
     }
 
     fn is_locked(&self) -> bool {
         self.body_stream
             .get()
-            .map_or(false, |stream| stream.is_locked())
+            .is_some_and(|stream| stream.is_locked())
     }
 
     fn body(&self) -> Option<DomRoot<ReadableStream>> {

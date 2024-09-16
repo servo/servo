@@ -4858,7 +4858,7 @@ where
             .webviews
             .focused_webview()
             .map(|(_, webview)| webview.focused_browsing_context_id);
-        focused_browsing_context_id.map_or(false, |focus_ctx_id| {
+        focused_browsing_context_id.is_some_and(|focus_ctx_id| {
             focus_ctx_id == browsing_context_id ||
                 self.fully_active_descendant_browsing_contexts_iter(browsing_context_id)
                     .any(|nested_ctx| nested_ctx.id == focus_ctx_id)

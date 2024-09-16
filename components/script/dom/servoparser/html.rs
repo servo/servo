@@ -159,7 +159,7 @@ struct SerializationIterator {
 }
 
 fn rev_children_iter(n: &Node) -> impl Iterator<Item = DomRoot<Node>> {
-    if n.downcast::<Element>().map_or(false, |e| e.is_void()) {
+    if n.downcast::<Element>().is_some_and(|e| e.is_void()) {
         return Node::new_document_node().rev_children();
     }
 

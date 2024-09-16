@@ -37,7 +37,7 @@ impl BluetoothBlocklist {
     // https://webbluetoothcg.github.io/web-bluetooth/#blocklisted
     pub fn is_blocklisted(&self, uuid: &str) -> bool {
         match self.0 {
-            Some(ref map) => map.get(uuid).map_or(false, |et| et.eq(&Blocklist::All)),
+            Some(ref map) => map.get(uuid).is_some_and(|et| et.eq(&Blocklist::All)),
             None => false,
         }
     }
@@ -45,9 +45,9 @@ impl BluetoothBlocklist {
     // https://webbluetoothcg.github.io/web-bluetooth/#blocklisted-for-reads
     pub fn is_blocklisted_for_reads(&self, uuid: &str) -> bool {
         match self.0 {
-            Some(ref map) => map.get(uuid).map_or(false, |et| {
-                et.eq(&Blocklist::All) || et.eq(&Blocklist::Reads)
-            }),
+            Some(ref map) => map
+                .get(uuid)
+                .is_some_and(|et| et.eq(&Blocklist::All) || et.eq(&Blocklist::Reads)),
             None => false,
         }
     }
@@ -55,9 +55,9 @@ impl BluetoothBlocklist {
     // https://webbluetoothcg.github.io/web-bluetooth/#blocklisted-for-writes
     pub fn is_blocklisted_for_writes(&self, uuid: &str) -> bool {
         match self.0 {
-            Some(ref map) => map.get(uuid).map_or(false, |et| {
-                et.eq(&Blocklist::All) || et.eq(&Blocklist::Writes)
-            }),
+            Some(ref map) => map
+                .get(uuid)
+                .is_some_and(|et| et.eq(&Blocklist::All) || et.eq(&Blocklist::Writes)),
             None => false,
         }
     }

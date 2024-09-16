@@ -144,9 +144,9 @@ impl HTMLFormElement {
                 RadioListMode::ControlsExceptImageInputs => {
                     if child
                         .downcast::<HTMLElement>()
-                        .map_or(false, |c| c.is_listed_element()) &&
-                        (child.get_id().map_or(false, |i| i == *name) ||
-                            child.get_name().map_or(false, |n| n == *name))
+                        .is_some_and(|c| c.is_listed_element()) &&
+                        (child.get_id().is_some_and(|i| i == *name) ||
+                            child.get_name().is_some_and(|n| n == *name))
                     {
                         if let Some(inp) = child.downcast::<HTMLInputElement>() {
                             // input, only return it if it's not image-button state
@@ -160,8 +160,8 @@ impl HTMLFormElement {
                 },
                 RadioListMode::Images => {
                     return child.is::<HTMLImageElement>() &&
-                        (child.get_id().map_or(false, |i| i == *name) ||
-                            child.get_name().map_or(false, |n| n == *name));
+                        (child.get_id().is_some_and(|i| i == *name) ||
+                            child.get_name().is_some_and(|n| n == *name));
                 },
             }
         }
@@ -511,7 +511,7 @@ impl HTMLFormElementMethods for HTMLFormElement {
         for child in controls.iter() {
             if child
                 .downcast::<HTMLElement>()
-                .map_or(false, |c| c.is_listed_element())
+                .is_some_and(|c| c.is_listed_element())
             {
                 if let Some(id_atom) = child.get_id() {
                     let entry = SourcedName {
@@ -1147,13 +1147,11 @@ impl HTMLFormElement {
             // An element can only have a dirname attribute if it is a textarea element
             // or an input element whose type attribute is in either the Text state or the Search state
             let child_element = child.downcast::<Element>().unwrap();
-            let input_matches =
-                child_element
-                    .downcast::<HTMLInputElement>()
-                    .map_or(false, |input| {
-                        input.input_type() == InputType::Text ||
-                            input.input_type() == InputType::Search
-                    });
+            let input_matches = child_element
+                .downcast::<HTMLInputElement>()
+                .is_some_and(|input| {
+                    matches!(input.input_type(), InputType::Text | InputType::Search)
+                });
             let textarea_matches = child_element.is::<HTMLTextAreaElement>();
             let dirname = child_element.get_string_attribute(&local_name!("dirname"));
             if (input_matches || textarea_matches) && !dirname.is_empty() {
@@ -1642,7 +1640,7 @@ pub trait FormControl: DomObject {
         if self.to_element().has_attribute(attr) {
             input(self)
         } else {
-            self.form_owner().map_or(false, |t| owner(&t))
+            self.form_owner().is_some_and(|t| owner(&t))
         }
     }
 

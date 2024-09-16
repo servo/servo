@@ -219,7 +219,7 @@ fn construct_flows_at<'dom>(context: &LayoutContext, node: impl LayoutNode<'dom>
         if nonincremental_layout ||
             tnode.restyle_damage() != RestyleDamage::empty() ||
             node.as_element()
-                .map_or(false, |el| el.has_dirty_descendants())
+                .is_some_and(|el| el.has_dirty_descendants())
         {
             let mut flow_constructor = FlowConstructor::new(context);
             if nonincremental_layout || !flow_constructor.repair_if_possible(&tnode) {

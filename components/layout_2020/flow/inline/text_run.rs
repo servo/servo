@@ -230,7 +230,7 @@ impl TextRunSegment {
             let mut ends_with_whitespace = false;
             let ends_with_newline = rev_char_indices
                 .peek()
-                .map_or(false, |&(_, character)| character == '\n');
+                .is_some_and(|&(_, character)| character == '\n');
             if let Some((first_white_space_index, first_white_space_character)) = rev_char_indices
                 .take_while(|&(_, character)| char_is_whitespace(character))
                 .last()

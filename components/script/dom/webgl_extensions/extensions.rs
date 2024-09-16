@@ -250,7 +250,7 @@ impl WebGLExtensions {
         self.extensions
             .borrow()
             .get(&name)
-            .map_or(false, |ext| ext.is_enabled())
+            .is_some_and(|ext| ext.is_enabled())
     }
 
     pub fn supports_gl_extension(&self, name: &str) -> bool {

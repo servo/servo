@@ -2020,7 +2020,7 @@ impl Window {
             // See http://testthewebforward.org/docs/reftests.html
             // and https://web-platform-tests.org/writing-tests/crashtest.html
             let html_element = document.GetDocumentElement();
-            let reftest_wait = html_element.map_or(false, |elem| {
+            let reftest_wait = html_element.is_some_and(|elem| {
                 elem.has_class(&atom!("reftest-wait"), CaseSensitivity::CaseSensitive) ||
                     elem.has_class(&Atom::from("test-wait"), CaseSensitivity::CaseSensitive)
             });
@@ -2516,7 +2516,7 @@ impl Window {
             .get()
             .as_ref()
             .and_then(|nav| nav.xr())
-            .map_or(false, |xr| xr.pending_or_active_session())
+            .is_some_and(|xr| xr.pending_or_active_session())
     }
 }
 

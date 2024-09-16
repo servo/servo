@@ -194,7 +194,7 @@ impl VertexArrayObject {
         if self
             .element_array_buffer
             .get()
-            .map_or(false, |b| buffer == &*b)
+            .is_some_and(|b| buffer == &*b)
         {
             buffer.decrement_attached_counter(Operation::Infallible);
             self.element_array_buffer.set(None);
@@ -239,7 +239,7 @@ impl VertexArrayObject {
                     }
                 } else if max_vertices
                     .checked_mul(attrib.divisor)
-                    .map_or(false, |v| v < instance_count)
+                    .is_some_and(|v| v < instance_count)
                 {
                     return Err(WebGLError::InvalidOperation);
                 }

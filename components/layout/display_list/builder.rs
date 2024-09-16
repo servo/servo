@@ -505,9 +505,10 @@ impl<'a> DisplayListBuildState<'a> {
         // Properly order display items that make up a stacking context. "Steps" here
         // refer to the steps in CSS 2.1 Appendix E.
         // Steps 1 and 2: Borders and background for the root.
-        while child_items.last().map_or(false, |child| {
-            child.section() == DisplayListSection::BackgroundAndBorders
-        }) {
+        while child_items
+            .last()
+            .is_some_and(|child| child.section() == DisplayListSection::BackgroundAndBorders)
+        {
             list.push(child_items.pop().unwrap());
         }
 
@@ -515,31 +516,34 @@ impl<'a> DisplayListBuildState<'a> {
         let mut child_stacking_contexts = child_stacking_contexts.into_iter().peekable();
         while child_stacking_contexts
             .peek()
-            .map_or(false, |child| child.z_index < 0)
+            .is_some_and(|child| child.z_index < 0)
         {
             let context = child_stacking_contexts.next().unwrap();
             self.move_to_display_list_for_stacking_context(list, context);
         }
 
         // Step 4: Block backgrounds and borders.
-        while child_items.last().map_or(false, |child| {
-            child.section() == DisplayListSection::BlockBackgroundsAndBorders
-        }) {
+        while child_items
+            .last()
+            .is_some_and(|child| child.section() == DisplayListSection::BlockBackgroundsAndBorders)
+        {
             list.push(child_items.pop().unwrap());
         }
 
         // Step 5: Floats.
-        while child_stacking_contexts.peek().map_or(false, |child| {
-            child.context_type == StackingContextType::PseudoFloat
-        }) {
+        while child_stacking_contexts
+            .peek()
+            .is_some_and(|child| child.context_type == StackingContextType::PseudoFloat)
+        {
             let context = child_stacking_contexts.next().unwrap();
             self.move_to_display_list_for_stacking_context(list, context);
         }
 
         // Step 6 & 7: Content and inlines that generate stacking contexts.
-        while child_items.last().map_or(false, |child| {
-            child.section() == DisplayListSection::Content
-        }) {
+        while child_items
+            .last()
+            .is_some_and(|child| child.section() == DisplayListSection::Content)
+        {
             list.push(child_items.pop().unwrap());
         }
 
