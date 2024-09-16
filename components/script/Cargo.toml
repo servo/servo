@@ -78,7 +78,7 @@ num_cpus = { workspace = true }
 num-traits = { workspace = true }
 parking_lot = { workspace = true }
 percent-encoding = { workspace = true }
-phf = "0.10"
+phf = "0.11"
 pixels = { path = "../pixels" }
 profile_traits = { workspace = true }
 range = { path = "../range" }
