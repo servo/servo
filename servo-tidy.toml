@@ -76,6 +76,9 @@ packages = [
     # icu_list -> regex-automata 0.2.0
     # tracing-subscriber -> matchers -> regex-automata 0.1.0
     "regex-automata",
+
+    # gilrs is on 0.10.0, but Servo is still on 0.9.4
+    "core-foundation",
 ]
 # Files that are ignored for all tidy and lint checks.
 files = [
