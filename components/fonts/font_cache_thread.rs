@@ -149,8 +149,11 @@ impl FontCache {
                             .font_data
                             .entry(identifier)
                             .or_insert_with(|| font_template.data());
-                        let span =
-                            span!(Level::TRACE, "FontTemplates send", servo_profiling = true);
+                        let span = span!(
+                            Level::TRACE,
+                            "GetFontTemplates send",
+                            servo_profiling = true
+                        );
                         let _span = span.enter();
                         let _ = bytes_sender.send(data);
                     }
