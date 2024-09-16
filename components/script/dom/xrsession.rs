@@ -868,7 +868,9 @@ impl XRSessionMethods for XRSession {
                     p.resolve_native(&space);
                 } else {
                     let space = XRReferenceSpace::new(&self.global(), self, ty);
-                    self.reference_spaces.borrow_mut().push(Dom::from_ref(&*space));
+                    self.reference_spaces
+                        .borrow_mut()
+                        .push(Dom::from_ref(&*space));
                     p.resolve_native(&space);
                 }
             },
