@@ -26,19 +26,19 @@ use crate::script_runtime::CanGc;
 pub struct XRReferenceSpaceEvent {
     event: Event,
     space: Dom<XRReferenceSpace>,
-    transform: Option<DomRoot<XRRigidTransform>>,
+    transform: Option<Dom<XRRigidTransform>>,
 }
 
 impl XRReferenceSpaceEvent {
     #[allow(crown::unrooted_must_root)]
     fn new_inherited(
         space: &XRReferenceSpace,
-        transform: &Option<DomRoot<XRRigidTransform>>,
+        transform: Option<&XRRigidTransform>,
     ) -> XRReferenceSpaceEvent {
         XRReferenceSpaceEvent {
             event: Event::new_inherited(),
             space: Dom::from_ref(space),
-            transform: transform.clone(),
+            transform: transform.map(Dom::from_ref),
         }
     }
 
@@ -48,7 +48,7 @@ impl XRReferenceSpaceEvent {
         bubbles: bool,
         cancelable: bool,
         space: &XRReferenceSpace,
-        transform: &Option<DomRoot<XRRigidTransform>>,
+        transform: Option<&XRRigidTransform>,
     ) -> DomRoot<XRReferenceSpaceEvent> {
         Self::new_with_proto(
             global,
@@ -69,7 +69,7 @@ impl XRReferenceSpaceEvent {
         bubbles: bool,
         cancelable: bool,
         space: &XRReferenceSpace,
-        transform: &Option<DomRoot<XRRigidTransform>>,
+        transform: Option<&XRRigidTransform>,
         can_gc: CanGc,
     ) -> DomRoot<XRReferenceSpaceEvent> {
         let trackevent = reflect_dom_object_with_proto(
@@ -100,7 +100,7 @@ impl XRReferenceSpaceEvent {
             init.parent.bubbles,
             init.parent.cancelable,
             &init.referenceSpace,
-            &init.transform,
+            init.transform.as_deref(),
             can_gc,
         ))
     }
@@ -114,7 +114,11 @@ impl XRReferenceSpaceEventMethods for XRReferenceSpaceEvent {
 
     /// <https://www.w3.org/TR/webxr/#dom-xrreferencespaceevent-transform>
     fn GetTransform(&self) -> Option<DomRoot<XRRigidTransform>> {
-        self.transform.clone()
+        if let Some(ref transform) = self.transform {
+            Some(DomRoot::from_ref(&**transform))
+        } else {
+            None
+        }
     }
 
     /// <https://dom.spec.whatwg.org/#dom-event-istrusted>

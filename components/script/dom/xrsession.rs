@@ -111,7 +111,7 @@ pub struct XRSession {
     framerate: Cell<f32>,
     #[ignore_malloc_size_of = "promises are hard"]
     update_framerate_promise: DomRefCell<Option<Rc<Promise>>>,
-    reference_spaces: DomRefCell<Vec<DomRoot<XRReferenceSpace>>>,
+    reference_spaces: DomRefCell<Vec<Dom<XRReferenceSpace>>>,
 }
 
 impl XRSession {
@@ -401,7 +401,7 @@ impl XRSession {
                             false,
                             false,
                             space,
-                            &Some(offset),
+                            Some(&*offset),
                         );
                         event.upcast::<Event>().fire(space.upcast());
                     });
@@ -864,11 +864,11 @@ impl XRSessionMethods for XRSession {
                     let space = XRBoundedReferenceSpace::new(&self.global(), self);
                     self.reference_spaces
                         .borrow_mut()
-                        .push(DomRoot::from_ref(space.reference_space()));
+                        .push(Dom::from_ref(space.reference_space()));
                     p.resolve_native(&space);
                 } else {
                     let space = XRReferenceSpace::new(&self.global(), self, ty);
-                    self.reference_spaces.borrow_mut().push(space.clone());
+                    self.reference_spaces.borrow_mut().push(Dom::from_ref(&*space));
                     p.resolve_native(&space);
                 }
             },
