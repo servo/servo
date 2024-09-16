@@ -114,7 +114,7 @@ impl WebrenderExternalImageApi for WGPUExternalImages {
 #[derive(Clone, Copy, Debug, Default, Eq, Ord, PartialEq, PartialOrd)]
 pub enum PresentationBufferState {
     /// Initial state, buffer has yet to be created,
-    /// only it's id is reserved
+    /// only its id is reserved
     #[default]
     Unassigned,
     /// Buffer is already created and ready to be used immediately
@@ -218,7 +218,7 @@ impl PresentationData {
 
     fn unmap_old_buffer(&mut self, presentation_buffer: GPUPresentationBuffer) {
         let buffer_state = self.get_buffer_state(presentation_buffer.buffer_id);
-        assert!(*buffer_state == PresentationBufferState::Mapped);
+        assert_eq!(*buffer_state, PresentationBufferState::Mapped);
         *buffer_state = PresentationBufferState::Available;
         drop(presentation_buffer);
     }
@@ -373,7 +373,7 @@ impl crate::WGPU {
         for (buffer_id, buffer_state) in present_data.buffer_ids {
             match buffer_state {
                 PresentationBufferState::Unassigned => {
-                    /* These buffer where not allocated in wgpu */
+                    /* These buffer were not yet created in wgpu */
                 },
                 _ => {
                     self.global.buffer_drop(buffer_id);
@@ -406,7 +406,7 @@ fn update_wr_image(
         Ok(()) => {
             if let Some(present_data) = wgpu_image_map.lock().unwrap().get_mut(&context_id) {
                 let buffer_state = present_data.get_buffer_state(buffer_id);
-                assert!(*buffer_state == PresentationBufferState::Mapping);
+                assert_eq!(*buffer_state, PresentationBufferState::Mapping);
                 *buffer_state = PresentationBufferState::Mapped;
                 let presentation_buffer =
                     GPUPresentationBuffer::new(global, buffer_id, buffer_size);
