@@ -2354,7 +2354,6 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
                             // and start measuring from the inline origin once more.
                             if run.is_single_preserved_newline() {
                                 self.forced_line_break();
-                                self.current_line = ContentSizes::zero();
                                 continue;
                             }
                             if !matches!(
@@ -2430,18 +2429,19 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
         // it needs to either hang or be removed. If that isn't the case,
         // `commit_pending_whitespace()` should be called first.
         self.pending_whitespace.min_content = Au::zero();
-        self.paragraph.min_content =
-            std::cmp::max(self.paragraph.min_content, self.current_line.min_content);
-        self.current_line.min_content = Au::zero();
+        let current_min_content = mem::take(&mut self.current_line.min_content);
+        self.paragraph.min_content.max_assign(current_min_content);
         self.had_content_yet_for_min_content = false;
     }
 
     fn forced_line_break(&mut self) {
+        // Handle the line break for min-content sizes.
         self.line_break_opportunity();
-        self.paragraph.max_content =
-            std::cmp::max(self.paragraph.max_content, self.current_line.max_content);
-        self.current_line.max_content = Au::zero();
-        self.had_content_yet_for_min_content = false;
+
+        // Repeat the same logic, but now for max-content sizes.
+        self.pending_whitespace.max_content = Au::zero();
+        let current_max_content = mem::take(&mut self.current_line.max_content);
+        self.paragraph.max_content.max_assign(current_max_content);
         self.had_content_yet_for_max_content = false;
     }
 
