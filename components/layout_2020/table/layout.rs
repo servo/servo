@@ -805,7 +805,9 @@ impl<'a> TableLayout<'a> {
     /// Distribute width to columns, performing step 2.4 of table layout from
     /// <https://drafts.csswg.org/css-tables/#table-layout-algorithm>.
     fn distribute_width_to_columns(&self) -> Vec<Au> {
-        if self.table.slots.is_empty() {
+        // No need to do anything if there is no column.
+        // Note that tables without rows may still have columns.
+        if self.table.size.width.is_zero() {
             return Vec::new();
         }
 
@@ -935,7 +937,7 @@ impl<'a> TableLayout<'a> {
                     "A deviation of more than one Au per column is unlikely to be caused by float imprecision"
                 );
 
-                // We checked if the table was empty at the top of the function, so there
+                // We checked if the table had columns at the top of the function, so there
                 // always is a first column
                 widths[0] += remaining_assignable_width;
             }

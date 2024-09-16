@@ -271,8 +271,8 @@ impl TableBuilder {
     }
 
     pub fn finish(mut self) -> Table {
+        self.adjust_table_geometry_for_columns_and_colgroups();
         self.do_missing_cells_fixup();
-        self.remove_extra_columns_and_column_groups();
         self.reorder_first_thead_and_tfoot();
         self.do_final_rowspan_calculation();
         self.table
@@ -287,26 +287,16 @@ impl TableBuilder {
     }
 
     /// It's possible to define more table columns via `<colgroup>` and `<col>` elements
-    /// than actually exist in the table. In that case, remove these bogus columns
-    /// to prevent using them later in layout.
-    fn remove_extra_columns_and_column_groups(&mut self) {
-        let number_of_actual_table_columns = self.table.size.width;
-        self.table.columns.truncate(number_of_actual_table_columns);
-
-        let mut remove_from = None;
-        for (group_index, column_group) in self.table.column_groups.iter_mut().enumerate() {
-            if column_group.track_range.start >= number_of_actual_table_columns {
-                remove_from = Some(group_index);
-                break;
-            }
-            column_group.track_range.end = column_group
-                .track_range
-                .end
-                .min(number_of_actual_table_columns);
-        }
-
-        if let Some(remove_from) = remove_from {
-            self.table.column_groups.truncate(remove_from);
+    /// than actually exist in the table. In that case, increase the size of the table.
+    ///
+    /// However, if the table has no row nor row group, remove the extra columns instead.
+    /// This matches WebKit, and some tests require it, but Gecko and Blink don't do it.
+    fn adjust_table_geometry_for_columns_and_colgroups(&mut self) {
+        if self.table.rows.is_empty() && self.table.row_groups.is_empty() {
+            self.table.columns.truncate(0);
+            self.table.column_groups.truncate(0);
+        } else {
+            self.table.size.width = self.table.size.width.max(self.table.columns.len());
         }
     }
 
