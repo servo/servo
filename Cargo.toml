@@ -163,9 +163,11 @@ inherits = "production"
 strip = true
 
 [profile.profiling]
-inherits = "production"
+inherits = "release"
+debug-assertions = false
 debug = true
 lto = false
+codegen-units = 1
 
 [profile.profiling2]
 inherits = "production"
