@@ -1917,7 +1917,11 @@ impl IndependentFormattingContext {
                     .contents
                     .used_size_as_if_inline_element(layout.containing_block, &replaced.style, &pbm)
                     .to_physical_size(container_writing_mode);
-                let fragments = replaced.contents.make_fragments(&replaced.style, size);
+                let fragments = replaced.contents.make_fragments(
+                    &replaced.style,
+                    layout.containing_block,
+                    size,
+                );
 
                 let content_rect = PhysicalRect::new(PhysicalPoint::zero(), size);
                 (fragments, content_rect, None, None)

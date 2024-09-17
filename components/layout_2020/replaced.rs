@@ -14,6 +14,7 @@ use net_traits::image_cache::{ImageOrMetadataAvailable, UsePlaceholder};
 use pixels::Image;
 use serde::Serialize;
 use servo_arc::Arc as ServoArc;
+use style::computed_values::object_fit::T as ObjectFit;
 use style::logical_geometry::Direction;
 use style::properties::ComputedValues;
 use style::servo::url::ComputedUrl;
@@ -35,32 +36,35 @@ use crate::{AuOrAuto, ContainingBlock, IndefiniteContainingBlock};
 #[derive(Debug, Serialize)]
 pub(crate) struct ReplacedContent {
     pub kind: ReplacedContentKind,
-    intrinsic: IntrinsicSizes,
+    natural_size: NaturalSizes,
     base_fragment_info: BaseFragmentInfo,
 }
 
-/// * Raster images always have an intrinsic width and height, with 1 image pixel = 1px.
-///   The intrinsic ratio should be based on dividing those.
+/// The natural dimensions of a replaced element, including a height, width, and
+/// aspect ratio.
+///
+/// * Raster images always have an natural width and height, with 1 image pixel = 1px.
+///   The natural ratio should be based on dividing those.
 ///   See <https://github.com/w3c/csswg-drafts/issues/4572> for the case where either is zero.
 ///   PNG specifically disallows this but I (SimonSapin) am not sure about other formats.
 ///
-/// * Form controls have both intrinsic width and height **but no intrinsic ratio**.
+/// * Form controls have both natural width and height **but no natural ratio**.
 ///   See <https://github.com/w3c/csswg-drafts/issues/1044> and
-///   <https://drafts.csswg.org/css-images/#intrinsic-dimensions> “In general, […]”
+///   <https://drafts.csswg.org/css-images/#natural-dimensions> “In general, […]”
 ///
 /// * For SVG, see <https://svgwg.org/svg2-draft/coords.html#SizingSVGInCSS>
 ///   and again <https://github.com/w3c/csswg-drafts/issues/4572>.
 ///
-/// * IFrames do not have intrinsic width and height or intrinsic ratio according
+/// * IFrames do not have natural width and height or natural ratio according
 ///   to <https://drafts.csswg.org/css-images/#intrinsic-dimensions>.
 #[derive(Debug, Serialize)]
-pub(crate) struct IntrinsicSizes {
+pub(crate) struct NaturalSizes {
     pub width: Option<Au>,
     pub height: Option<Au>,
     pub ratio: Option<CSSFloat>,
 }
 
-impl IntrinsicSizes {
+impl NaturalSizes {
     pub(crate) fn from_width_and_height(width: f32, height: f32) -> Self {
         // https://drafts.csswg.org/css-images/#natural-aspect-ratio:
         // "If an object has a degenerate natural aspect ratio (at least one part being
@@ -145,16 +149,16 @@ impl ReplacedContent {
             }
         }
 
-        let (kind, intrinsic_size_in_dots) = {
-            if let Some((image, intrinsic_size_in_dots)) = element.as_image() {
+        let (kind, natural_size_in_dots) = {
+            if let Some((image, natural_size_in_dots)) = element.as_image() {
                 (
                     ReplacedContentKind::Image(image),
-                    Some(intrinsic_size_in_dots),
+                    Some(natural_size_in_dots),
                 )
-            } else if let Some((canvas_info, intrinsic_size_in_dots)) = element.as_canvas() {
+            } else if let Some((canvas_info, natural_size_in_dots)) = element.as_canvas() {
                 (
                     ReplacedContentKind::Canvas(canvas_info),
-                    Some(intrinsic_size_in_dots),
+                    Some(natural_size_in_dots),
                 )
             } else if let Some((pipeline_id, browsing_context_id)) = element.as_iframe() {
                 (
@@ -164,31 +168,31 @@ impl ReplacedContent {
                     }),
                     None,
                 )
-            } else if let Some((image_key, intrinsic_size_in_dots)) = element.as_video() {
+            } else if let Some((image_key, natural_size_in_dots)) = element.as_video() {
                 (
                     ReplacedContentKind::Video(VideoInfo { image_key }),
-                    Some(intrinsic_size_in_dots),
+                    Some(natural_size_in_dots),
                 )
             } else {
                 return None;
             }
         };
 
-        let intrinsic =
-            intrinsic_size_in_dots.map_or_else(IntrinsicSizes::empty, |intrinsic_size_in_dots| {
+        let natural_size =
+            natural_size_in_dots.map_or_else(NaturalSizes::empty, |naturalc_size_in_dots| {
                 // FIXME: should 'image-resolution' (when implemented) be used *instead* of
                 // `script::dom::htmlimageelement::ImageRequest::current_pixel_density`?
                 // https://drafts.csswg.org/css-images-4/#the-image-resolution
                 let dppx = 1.0;
-                let width = (intrinsic_size_in_dots.width as CSSFloat) / dppx;
-                let height = (intrinsic_size_in_dots.height as CSSFloat) / dppx;
-                IntrinsicSizes::from_width_and_height(width, height)
+                let width = (naturalc_size_in_dots.width as CSSFloat) / dppx;
+                let height = (naturalc_size_in_dots.height as CSSFloat) / dppx;
+                NaturalSizes::from_width_and_height(width, height)
             });
 
         let base_fragment_info = BaseFragmentInfo::new_for_node(element.opaque());
         Some(Self {
             kind,
-            intrinsic,
+            natural_size,
             base_fragment_info,
         })
     }
@@ -215,7 +219,7 @@ impl ReplacedContent {
 
             return Some(Self {
                 kind: ReplacedContentKind::Image(image),
-                intrinsic: IntrinsicSizes::from_width_and_height(width, height),
+                natural_size: NaturalSizes::from_width_and_height(width, height),
                 base_fragment_info: BaseFragmentInfo::new_for_node(element.opaque()),
             });
         }
@@ -234,7 +238,7 @@ impl ReplacedContent {
     }
 
     fn flow_relative_intrinsic_size(&self, style: &ComputedValues) -> LogicalVec2<Option<Au>> {
-        let intrinsic_size = PhysicalSize::new(self.intrinsic.width, self.intrinsic.height);
+        let intrinsic_size = PhysicalSize::new(self.natural_size.width, self.natural_size.height);
         LogicalVec2::from_physical_size(&intrinsic_size, style.writing_mode)
     }
 
@@ -242,7 +246,7 @@ impl ReplacedContent {
         &self,
         style: &ComputedValues,
     ) -> Option<CSSFloat> {
-        self.intrinsic.ratio.map(|width_over_height| {
+        self.natural_size.ratio.map(|width_over_height| {
             if style.writing_mode.is_vertical() {
                 1. / width_over_height
             } else {
@@ -276,9 +280,61 @@ impl ReplacedContent {
     pub fn make_fragments(
         &self,
         style: &ServoArc<ComputedValues>,
+        containing_block: &ContainingBlock,
         size: PhysicalSize<Au>,
     ) -> Vec<Fragment> {
-        let rect = PhysicalRect::new(PhysicalPoint::origin(), size);
+        let aspect_ratio = self.preferred_aspect_ratio(&containing_block.into(), style);
+        let natural_size = PhysicalSize::new(
+            self.natural_size.width.unwrap_or(size.width),
+            self.natural_size.height.unwrap_or(size.height),
+        );
+
+        let object_fit_size = aspect_ratio.map_or(size, |aspect_ratio| {
+            let preserve_aspect_ratio_with_comparison =
+                |size: PhysicalSize<Au>, comparison: fn(&Au, &Au) -> bool| {
+                    let (width_axis, height_axis) = if style.writing_mode.is_horizontal() {
+                        (Direction::Inline, Direction::Block)
+                    } else {
+                        (Direction::Block, Direction::Inline)
+                    };
+
+                    let candidate_width =
+                        aspect_ratio.compute_dependent_size(width_axis, size.height);
+                    if comparison(&candidate_width, &size.width) {
+                        return PhysicalSize::new(candidate_width, size.height);
+                    }
+
+                    let candidate_height =
+                        aspect_ratio.compute_dependent_size(height_axis, size.width);
+                    debug_assert!(comparison(&candidate_height, &size.height));
+                    PhysicalSize::new(size.width, candidate_height)
+                };
+
+            match style.clone_object_fit() {
+                ObjectFit::Fill => size,
+                ObjectFit::Contain => preserve_aspect_ratio_with_comparison(size, PartialOrd::le),
+                ObjectFit::Cover => preserve_aspect_ratio_with_comparison(size, PartialOrd::ge),
+                ObjectFit::None => natural_size,
+                ObjectFit::ScaleDown => {
+                    preserve_aspect_ratio_with_comparison(size.min(natural_size), PartialOrd::le)
+                },
+            }
+        });
+
+        let object_position = style.clone_object_position();
+        let horizontal_position = object_position
+            .horizontal
+            .to_used_value(size.width - object_fit_size.width);
+        let vertical_position = object_position
+            .vertical
+            .to_used_value(size.height - object_fit_size.height);
+
+        let rect = PhysicalRect::new(
+            PhysicalPoint::new(horizontal_position, vertical_position),
+            object_fit_size,
+        );
+        let clip = PhysicalRect::new(PhysicalPoint::origin(), size);
+
         match &self.kind {
             ReplacedContentKind::Image(image) => image
                 .as_ref()
@@ -288,6 +344,7 @@ impl ReplacedContent {
                         base: self.base_fragment_info.into(),
                         style: style.clone(),
                         rect,
+                        clip,
                         image_key,
                     })
                 })
@@ -297,6 +354,7 @@ impl ReplacedContent {
                 base: self.base_fragment_info.into(),
                 style: style.clone(),
                 rect,
+                clip,
                 image_key: video.image_key,
             })],
             ReplacedContentKind::IFrame(iframe) => {
@@ -309,8 +367,8 @@ impl ReplacedContent {
                 })]
             },
             ReplacedContentKind::Canvas(canvas_info) => {
-                if self.intrinsic.width == Some(Au::zero()) ||
-                    self.intrinsic.height == Some(Au::zero())
+                if self.natural_size.width == Some(Au::zero()) ||
+                    self.natural_size.height == Some(Au::zero())
                 {
                     return vec![];
                 }
@@ -337,6 +395,7 @@ impl ReplacedContent {
                     base: self.base_fragment_info.into(),
                     style: style.clone(),
                     rect,
+                    clip,
                     image_key,
                 })]
             },

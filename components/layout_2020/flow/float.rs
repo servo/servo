@@ -992,6 +992,7 @@ impl FloatBox {
                         );
                         children = replaced.contents.make_fragments(
                             &replaced.style,
+                            containing_block,
                             content_size.to_physical_size(containing_block.style.writing_mode),
                         )
                     },

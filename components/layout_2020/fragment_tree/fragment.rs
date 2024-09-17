@@ -83,6 +83,7 @@ pub(crate) struct ImageFragment {
     #[serde(skip_serializing)]
     pub style: ServoArc<ComputedValues>,
     pub rect: PhysicalRect<Au>,
+    pub clip: PhysicalRect<Au>,
     #[serde(skip_serializing)]
     pub image_key: ImageKey,
 }

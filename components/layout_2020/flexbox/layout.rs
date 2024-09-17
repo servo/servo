@@ -1772,6 +1772,7 @@ impl FlexItem<'_> {
                 let cross_size = flex_axis.vec2_to_flex_relative(size).cross;
                 let fragments = replaced.contents.make_fragments(
                     &replaced.style,
+                    containing_block,
                     size.to_physical_size(container_writing_mode),
                 );
 

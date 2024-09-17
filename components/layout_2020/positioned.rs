@@ -552,6 +552,7 @@ impl HoistedAbsolutelyPositionedBox {
                     content_size = computed_size.auto_is(|| unreachable!());
                     fragments = replaced.contents.make_fragments(
                         &style,
+                        &containing_block.into(),
                         content_size.to_physical_size(containing_block_writing_mode),
                     );
                 },
