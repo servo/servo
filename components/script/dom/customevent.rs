@@ -11,7 +11,6 @@ use servo_atoms::Atom;
 use crate::dom::bindings::codegen::Bindings::CustomEventBinding;
 use crate::dom::bindings::codegen::Bindings::CustomEventBinding::CustomEventMethods;
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
-use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::DomRoot;
@@ -75,8 +74,8 @@ impl CustomEvent {
         can_gc: CanGc,
         type_: DOMString,
         init: RootedTraceableBox<CustomEventBinding::CustomEventInit>,
-    ) -> Fallible<DomRoot<CustomEvent>> {
-        Ok(CustomEvent::new(
+    ) -> DomRoot<CustomEvent> {
+        CustomEvent::new(
             global,
             proto,
             Atom::from(type_),
@@ -84,7 +83,7 @@ impl CustomEvent {
             init.parent.cancelable,
             init.detail.handle(),
             can_gc,
-        ))
+        )
     }
 
     fn init_custom_event(

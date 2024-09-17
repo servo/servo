@@ -6,7 +6,7 @@
  * https://dom.spec.whatwg.org/#event
  */
 
-[Exposed=(Window,Worker)]
+[Exposed=*]
 interface Event {
   [Throws] constructor(DOMString type, optional EventInit eventInitDict = {});
   [Pure]
