@@ -29,9 +29,9 @@ use crate::font::{
     FontMetrics, FontTableMethods, FontTableTag, FractionalPixel, PlatformFontMethods, GPOS, GSUB,
     KERN,
 };
-use crate::font_cache_thread::FontIdentifier;
 use crate::font_template::FontTemplateDescriptor;
 use crate::glyph::GlyphId;
+use crate::system_font_service::FontIdentifier;
 
 // This constant is not present in the freetype
 // bindings due to bindgen not handling the way

@@ -23,8 +23,8 @@ use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect, Size2D as 
 use euclid::{Point2D, Rect, Scale, Size2D};
 use fnv::FnvHashMap;
 use fonts::{
-    get_and_reset_text_shaping_performance_counter, FontCacheThread, FontContext,
-    FontContextWebFontMethods,
+    get_and_reset_text_shaping_performance_counter, FontContext, FontContextWebFontMethods,
+    SystemFontServiceProxy,
 };
 use fonts_traits::WebFontLoadFinishedCallback;
 use fxhash::{FxHashMap, FxHashSet};
@@ -133,10 +133,10 @@ pub struct LayoutThread {
     /// Reference to the script thread image cache.
     image_cache: Arc<dyn ImageCache>,
 
-    /// A FontContext tFontCacheThreadImplg layout.
-    font_context: Arc<FontContext<FontCacheThread>>,
+    /// A per-layout FontContext managing font access.
+    font_context: Arc<FontContext<SystemFontServiceProxy>>,
 
-    /// Is this the first reflow iFontCacheThreadImplread?
+    /// Is this the first reflow in this layout?
     first_reflow: Cell<bool>,
 
     /// Flag to indicate whether to use parallel operations
@@ -199,7 +199,7 @@ impl LayoutFactory for LayoutFactoryImpl {
             config.script_chan,
             config.image_cache,
             config.resource_threads,
-            config.font_cache_thread,
+            config.system_font_service,
             config.time_profiler_chan,
             config.webrender_api_sender,
             config.paint_time_metrics,
@@ -560,7 +560,7 @@ impl LayoutThread {
         script_chan: IpcSender<ConstellationControlMsg>,
         image_cache: Arc<dyn ImageCache>,
         resource_threads: ResourceThreads,
-        font_cache_thread: FontCacheThread,
+        system_font_service: Arc<SystemFontServiceProxy>,
         time_profiler_chan: profile_time::ProfilerChan,
         webrender_api: WebRenderScriptApi,
         paint_time_metrics: PaintTimeMetrics,
@@ -577,7 +577,7 @@ impl LayoutThread {
             keyword_info: KeywordInfo::medium(),
         };
 
-        let font_context = Arc::new(FontContext::new(font_cache_thread, resource_threads));
+        let font_context = Arc::new(FontContext::new(system_font_service, resource_threads));
         let device = Device::new(
             MediaType::screen(),
             QuirksMode::NoQuirks,

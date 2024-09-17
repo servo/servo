@@ -121,7 +121,7 @@ use embedder_traits::{
 };
 use euclid::default::Size2D as UntypedSize2D;
 use euclid::Size2D;
-use fonts::FontCacheThread;
+use fonts::SystemFontServiceProxy;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use ipc_channel::Error as IpcError;
@@ -346,7 +346,7 @@ pub struct Constellation<STF, SWF> {
 
     /// A channel for the constellation to send messages to the font
     /// cache thread.
-    font_cache_thread: FontCacheThread,
+    system_font_service: Arc<SystemFontServiceProxy>,
 
     /// A channel for the constellation to send messages to the
     /// devtools thread.
@@ -515,8 +515,8 @@ pub struct InitialConstellationState {
     /// A channel to the bluetooth thread.
     pub bluetooth_thread: IpcSender<BluetoothRequest>,
 
-    /// A channel to the font cache thread.
-    pub font_cache_thread: FontCacheThread,
+    /// A proxy to the `SystemFontService` which manages the list of system fonts.
+    pub system_font_service: Arc<SystemFontServiceProxy>,
 
     /// A channel to the resource thread.
     pub public_resource_threads: ResourceThreads,
@@ -762,7 +762,7 @@ where
                     bluetooth_ipc_sender: state.bluetooth_thread,
                     public_resource_threads: state.public_resource_threads,
                     private_resource_threads: state.private_resource_threads,
-                    font_cache_thread: state.font_cache_thread,
+                    system_font_service: state.system_font_service,
                     sw_managers: Default::default(),
                     swmanager_receiver,
                     swmanager_ipc_sender,
@@ -1042,7 +1042,7 @@ where
             devtools_sender: self.devtools_sender.clone(),
             bluetooth_thread: self.bluetooth_ipc_sender.clone(),
             swmanager_thread: self.swmanager_ipc_sender.clone(),
-            font_cache_thread: self.font_cache_thread.clone(),
+            system_font_service: self.system_font_service.clone(),
             resource_threads,
             time_profiler_chan: self.time_profiler_chan.clone(),
             mem_profiler_chan: self.mem_profiler_chan.clone(),
@@ -2760,8 +2760,8 @@ where
             }
         }
 
-        debug!("Exiting font cache thread.");
-        self.font_cache_thread.exit();
+        debug!("Exiting the system font service thread.");
+        self.system_font_service.exit();
 
         // Receive exit signals from threads.
         if let Err(e) = core_ipc_receiver.recv() {

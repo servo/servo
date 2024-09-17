@@ -48,7 +48,7 @@ use devtools_traits::{
 };
 use embedder_traits::EmbedderMsg;
 use euclid::default::{Point2D, Rect};
-use fonts::FontCacheThread;
+use fonts::SystemFontServiceProxy;
 use headers::{HeaderMapExt, LastModified, ReferrerPolicy as ReferrerPolicyHeader};
 use html5ever::{local_name, namespace_url, ns};
 use hyper_serde::Serde;
@@ -593,9 +593,9 @@ pub struct ScriptThread {
     #[no_trace]
     layout_to_constellation_chan: IpcSender<LayoutMsg>,
 
-    /// The font cache thread to use for layout that happens in this [`ScriptThread`].
+    /// A proxy to the `SystemFontService` to use for accessing system font lists.
     #[no_trace]
-    font_cache_thread: FontCacheThread,
+    system_font_service: Arc<SystemFontServiceProxy>,
 
     /// The port on which we receive messages from the image cache
     #[no_trace]
@@ -786,7 +786,7 @@ impl ScriptThreadFactory for ScriptThread {
     fn create(
         state: InitialScriptState,
         layout_factory: Arc<dyn LayoutFactory>,
-        font_cache_thread: FontCacheThread,
+        system_font_service: Arc<SystemFontServiceProxy>,
         load_data: LoadData,
         user_agent: Cow<'static, str>,
     ) {
@@ -813,7 +813,7 @@ impl ScriptThreadFactory for ScriptThread {
                     script_port,
                     script_chan.clone(),
                     layout_factory,
-                    font_cache_thread,
+                    system_font_service,
                     user_agent,
                 );
 
@@ -1282,7 +1282,7 @@ impl ScriptThread {
         port: Receiver<MainThreadScriptMsg>,
         chan: Sender<MainThreadScriptMsg>,
         layout_factory: Arc<dyn LayoutFactory>,
-        font_cache_thread: FontCacheThread,
+        system_font_service: Arc<SystemFontServiceProxy>,
         user_agent: Cow<'static, str>,
     ) -> ScriptThread {
         let opts = opts::get();
@@ -1387,7 +1387,7 @@ impl ScriptThread {
             mutation_observers: Default::default(),
 
             layout_to_constellation_chan: state.layout_to_constellation_chan,
-            font_cache_thread,
+            system_font_service,
 
             webgl_chan: state.webgl_chan,
             webxr_registry: state.webxr_registry,
@@ -3657,7 +3657,7 @@ impl ScriptThread {
             constellation_chan: self.layout_to_constellation_chan.clone(),
             script_chan: self.control_chan.clone(),
             image_cache: self.image_cache.clone(),
-            font_cache_thread: self.font_cache_thread.clone(),
+            system_font_service: self.system_font_service.clone(),
             resource_threads: self.resource_threads.clone(),
             time_profiler_chan: self.time_profiler_chan.clone(),
             webrender_api_sender: self.webrender_api_sender.clone(),

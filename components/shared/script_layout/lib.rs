@@ -24,7 +24,7 @@ use canvas_traits::canvas::{CanvasId, CanvasMsg};
 use crossbeam_channel::Sender;
 use euclid::default::{Point2D, Rect};
 use euclid::Size2D;
-use fonts::FontCacheThread;
+use fonts::SystemFontServiceProxy;
 use ipc_channel::ipc::IpcSender;
 use libc::c_void;
 use malloc_size_of_derive::MallocSizeOf;
@@ -171,7 +171,7 @@ pub struct LayoutConfig {
     pub script_chan: IpcSender<ConstellationControlMsg>,
     pub image_cache: Arc<dyn ImageCache>,
     pub resource_threads: ResourceThreads,
-    pub font_cache_thread: FontCacheThread,
+    pub system_font_service: Arc<SystemFontServiceProxy>,
     pub time_profiler_chan: time::ProfilerChan,
     pub webrender_api_sender: WebRenderScriptApi,
     pub paint_time_metrics: PaintTimeMetrics,
@@ -277,7 +277,7 @@ pub trait ScriptThreadFactory {
     fn create(
         state: InitialScriptState,
         layout_factory: Arc<dyn LayoutFactory>,
-        font_cache_thread: FontCacheThread,
+        system_font_service: Arc<SystemFontServiceProxy>,
         load_data: LoadData,
         user_agent: Cow<'static, str>,
     );

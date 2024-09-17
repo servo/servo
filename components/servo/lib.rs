@@ -54,7 +54,7 @@ use crossbeam_channel::{unbounded, Sender};
 use embedder_traits::{EmbedderMsg, EmbedderProxy, EmbedderReceiver, EventLoopWaker};
 use env_logger::Builder as EnvLoggerBuilder;
 use euclid::Scale;
-use fonts::FontCacheThread;
+use fonts::SystemFontService;
 #[cfg(all(
     not(target_os = "windows"),
     not(target_os = "ios"),
@@ -66,7 +66,7 @@ use fonts::FontCacheThread;
 use gaol::sandbox::{ChildSandbox, ChildSandboxMethods};
 pub use gleam::gl;
 use gleam::gl::RENDERER;
-use ipc_channel::ipc::{self, IpcSender};
+use ipc_channel::ipc::{self, IpcSender, IpcSharedMemory};
 #[cfg(feature = "layout_2013")]
 pub use layout_thread_2013;
 use log::{error, trace, warn, Log, Metadata, Record};
@@ -89,7 +89,6 @@ use surfman::platform::generic::multi::context::NativeContext as LinuxNativeCont
 use surfman::{GLApi, GLVersion};
 #[cfg(all(target_os = "linux", not(target_env = "ohos")))]
 use surfman::{NativeConnection, NativeContext};
-use tracing::{span, Level};
 use webgpu::swapchain::WGPUImageMap;
 use webrender::{RenderApiSender, ShaderPrecacheFlags, UploadMethod, ONE_TIME_USAGE_HINT};
 use webrender_api::{
@@ -1040,13 +1039,16 @@ fn create_constellation(
         Arc::new(protocols),
     );
 
-    let font_cache_thread = FontCacheThread::new(Box::new(WebRenderFontApiCompositorProxy(
-        compositor_proxy.clone(),
-    )));
+    let system_font_service = Arc::new(
+        SystemFontService::spawn(Box::new(WebRenderFontApiCompositorProxy(
+            compositor_proxy.clone(),
+        )))
+        .to_proxy(),
+    );
 
     let (canvas_create_sender, canvas_ipc_sender) = CanvasPaintThread::start(
         Box::new(CanvasWebrenderApi(compositor_proxy.clone())),
-        font_cache_thread.clone(),
+        system_font_service.clone(),
         public_resource_threads.clone(),
     );
 
@@ -1055,7 +1057,7 @@ fn create_constellation(
         embedder_proxy,
         devtools_sender,
         bluetooth_thread,
-        font_cache_thread,
+        system_font_service,
         public_resource_threads,
         private_resource_threads,
         time_profiler_chan,
@@ -1106,20 +1108,12 @@ impl WebRenderFontApi for WebRenderFontApiCompositorProxy {
         receiver.recv().unwrap()
     }
 
-    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
-    fn add_font(&self, data: Arc<Vec<u8>>, index: u32) -> FontKey {
+    fn add_font(&self, data: Arc<IpcSharedMemory>, index: u32) -> FontKey {
         let (sender, receiver) = unbounded();
-        let (bytes_sender, bytes_receiver) =
-            ipc::bytes_channel().expect("failed to create IPC channel");
         self.0
             .send(CompositorMsg::Forwarded(ForwardedToCompositorMsg::Font(
-                FontToCompositorMsg::AddFont(sender, index, bytes_receiver),
+                FontToCompositorMsg::AddFont(sender, index, data),
             )));
-        {
-            let span = span!(Level::TRACE, "add_font send", servo_profiling = true);
-            let _span = span.enter();
-            let _ = bytes_sender.send(&data);
-        }
         receiver.recv().unwrap()
     }
 
@@ -1134,14 +1128,14 @@ impl WebRenderFontApi for WebRenderFontApiCompositorProxy {
 
     fn forward_add_font_message(
         &self,
-        bytes_receiver: ipc::IpcBytesReceiver,
+        data: Arc<IpcSharedMemory>,
         font_index: u32,
         result_sender: IpcSender<FontKey>,
     ) {
         let (sender, receiver) = unbounded();
         self.0
             .send(CompositorMsg::Forwarded(ForwardedToCompositorMsg::Font(
-                FontToCompositorMsg::AddFont(sender, font_index, bytes_receiver),
+                FontToCompositorMsg::AddFont(sender, font_index, data),
             )));
         let _ = result_sender.send(receiver.recv().unwrap());
     }

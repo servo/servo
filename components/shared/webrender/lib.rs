@@ -15,7 +15,7 @@ use crossbeam_channel::Sender;
 use display_list::{CompositorDisplayListInfo, ScrollTreeNodeId};
 use embedder_traits::Cursor;
 use euclid::default::Size2D;
-use ipc_channel::ipc::{self, IpcBytesReceiver, IpcSender};
+use ipc_channel::ipc::{self, IpcSender, IpcSharedMemory};
 use libc::c_void;
 use log::warn;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -190,14 +190,14 @@ pub trait WebRenderFontApi {
         size: f32,
         flags: FontInstanceFlags,
     ) -> FontInstanceKey;
-    fn add_font(&self, data: Arc<Vec<u8>>, index: u32) -> FontKey;
+    fn add_font(&self, data: Arc<IpcSharedMemory>, index: u32) -> FontKey;
     fn add_system_font(&self, handle: NativeFontHandle) -> FontKey;
 
     /// Forward a `AddFont` message, sending it on to the compositor. This is used to get WebRender
     /// [`FontKey`]s for web fonts in the per-layout `FontContext`.
     fn forward_add_font_message(
         &self,
-        bytes_receiver: IpcBytesReceiver,
+        data: Arc<IpcSharedMemory>,
         font_index: u32,
         result_sender: IpcSender<FontKey>,
     );
@@ -219,7 +219,7 @@ pub enum CanvasToCompositorMsg {
 
 pub enum FontToCompositorMsg {
     AddFontInstance(FontKey, f32, FontInstanceFlags, Sender<FontInstanceKey>),
-    AddFont(Sender<FontKey>, u32, IpcBytesReceiver),
+    AddFont(Sender<FontKey>, u32, Arc<IpcSharedMemory>),
     AddSystemFont(Sender<FontKey>, NativeFontHandle),
 }
 

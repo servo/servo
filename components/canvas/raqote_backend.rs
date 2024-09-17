@@ -555,7 +555,9 @@ impl GenericDrawTarget for raqote::DrawTarget {
             SHARED_FONT_CACHE.with(|font_cache| {
                 let identifier = template.identifier();
                 if !font_cache.borrow().contains_key(&identifier) {
-                    let Ok(font) = Font::from_bytes(template.data(), identifier.index()) else {
+                    let Ok(font) =
+                        Font::from_bytes(run.font.data.as_arc().clone(), identifier.index())
+                    else {
                         return;
                     };
                     font_cache.borrow_mut().insert(identifier.clone(), font);
