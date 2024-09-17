@@ -94,7 +94,7 @@ pub struct Table {
     /// that contains both the grid and the captions. Not all properties are actually used on the
     /// wrapper though, such as background and borders, which apply to the grid.
     #[serde(skip_serializing)]
-    style: Arc<ComputedValues>,
+    wrapper_style: Arc<ComputedValues>,
 
     /// The style of this table's grid. This is an anonymous style based on the table's style, but
     /// eliminating all the properties handled by the "wrapper."
@@ -133,12 +133,12 @@ pub struct Table {
 
 impl Table {
     pub(crate) fn new(
-        style: Arc<ComputedValues>,
+        wrapper_style: Arc<ComputedValues>,
         grid_style: Arc<ComputedValues>,
         base_fragment_info: BaseFragmentInfo,
     ) -> Self {
         Self {
-            style,
+            wrapper_style,
             grid_style,
             grid_base_fragment_info: base_fragment_info,
             captions: Vec::new(),

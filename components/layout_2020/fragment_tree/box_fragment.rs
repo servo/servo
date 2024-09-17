@@ -9,7 +9,9 @@ use servo_arc::Arc as ServoArc;
 use style::computed_values::overflow_x::T as ComputedOverflow;
 use style::computed_values::position::T as ComputedPosition;
 use style::logical_geometry::WritingMode;
+use style::properties::style_structs::Border;
 use style::properties::ComputedValues;
+use style::values::computed::{BorderStyle, Color, LengthPercentage, LengthPercentageOrAuto};
 use style::Zero;
 
 use super::{BaseFragment, BaseFragmentInfo, CollapsedBlockMargins, Fragment};
@@ -43,6 +45,36 @@ pub(crate) struct ExtraBackground {
 #[derive(Clone, Debug)]
 pub(crate) enum DetailedLayoutInfo {
     Grid(Box<DetailedTaffyGridInfo>),
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct BorderStyleColor {
+    pub style: BorderStyle,
+    pub color: Color,
+}
+
+impl BorderStyleColor {
+    pub(crate) fn new(style: BorderStyle, color: Color) -> Self {
+        Self { style, color }
+    }
+
+    pub(crate) fn from_border(border: &Border) -> PhysicalSides<Self> {
+        PhysicalSides::<Self>::new(
+            Self::new(border.border_top_style, border.border_top_color.clone()),
+            Self::new(border.border_right_style, border.border_right_color.clone()),
+            Self::new(
+                border.border_bottom_style,
+                border.border_bottom_color.clone(),
+            ),
+            Self::new(border.border_left_style, border.border_left_color.clone()),
+        )
+    }
+}
+
+impl Default for BorderStyleColor {
+    fn default() -> Self {
+        Self::new(BorderStyle::None, Color::TRANSPARENT_BLACK)
+    }
 }
 
 #[derive(Serialize)]
@@ -90,6 +122,9 @@ pub(crate) struct BoxFragment {
     /// Additional information of from layout that could be used by Javascripts and devtools.
     #[serde(skip_serializing)]
     pub detailed_layout_info: Option<DetailedLayoutInfo>,
+
+    #[serde(skip_serializing)]
+    pub custom_border_style_color: Option<PhysicalSides<BorderStyleColor>>,
 }
 
 impl BoxFragment {
@@ -125,11 +160,20 @@ impl BoxFragment {
             resolved_sticky_insets: None,
             background_mode: BackgroundMode::Normal,
             detailed_layout_info: None,
+            custom_border_style_color: None,
         }
     }
 
     pub fn with_baselines(mut self, baselines: Baselines) -> Self {
         self.baselines = baselines;
+        self
+    }
+
+    pub fn with_custom_border_style_color(
+        mut self,
+        border_style_color: Option<PhysicalSides<BorderStyleColor>>,
+    ) -> Self {
+        self.custom_border_style_color = border_style_color;
         self
     }
 

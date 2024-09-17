@@ -16,7 +16,7 @@ use style::properties::ComputedValues;
 use style::servo::selector_parser::PseudoElement;
 use style::values::computed::basic_shape::ClipPath;
 use style::values::computed::image::Image as ComputedImageLayer;
-use style::values::computed::{AlignItems, BorderStyle, Inset, LengthPercentage, Margin};
+use style::values::computed::{AlignItems, Inset, LengthPercentage, Margin};
 use style::values::generics::box_::Perspective;
 use style::values::generics::position::{GenericAspectRatio, PreferredRatio};
 use style::values::specified::align::AlignFlags;
@@ -26,7 +26,7 @@ use style::Zero;
 use webrender_api as wr;
 
 use crate::dom_traversal::Contents;
-use crate::fragment_tree::FragmentFlags;
+use crate::fragment_tree::{BorderStyleColor, FragmentFlags};
 use crate::geom::{
     AuOrAuto, LengthPercentageOrAuto, LogicalSides, LogicalVec2, PhysicalSides, PhysicalSize,
     PhysicalVec, Size, Sizes,
@@ -276,12 +276,12 @@ pub(crate) trait ComputedValuesExt {
         writing_mode: WritingMode,
         containing_block_inline_size: Au,
     ) -> PaddingBorderMargin;
-    fn padding(
+    fn padding(&self, containing_block_writing_mode: WritingMode)
+        -> LogicalSides<LengthPercentage>;
+    fn border_style_color(
         &self,
         containing_block_writing_mode: WritingMode,
-    ) -> LogicalSides<&LengthPercentage>;
-    fn border_style(&self, containing_block_writing_mode: WritingMode)
-        -> LogicalSides<BorderStyle>;
+    ) -> LogicalSides<BorderStyleColor>;
     fn border_width(&self, containing_block_writing_mode: WritingMode) -> LogicalSides<Au>;
     fn physical_margin(&self) -> PhysicalSides<LengthPercentageOrAuto<'_>>;
     fn margin(
@@ -579,36 +579,45 @@ impl ComputedValuesExt for ComputedValues {
     fn padding(
         &self,
         containing_block_writing_mode: WritingMode,
-    ) -> LogicalSides<&LengthPercentage> {
-        let padding = self.get_padding();
+    ) -> LogicalSides<LengthPercentage> {
+        if self.get_box().display.inside() == stylo::DisplayInside::Table &&
+            !matches!(self.pseudo(), Some(PseudoElement::ServoTableGrid))
+        {
+            return LogicalSides {
+                block_start: LengthPercentage::zero(),
+                block_end: LengthPercentage::zero(),
+                inline_start: LengthPercentage::zero(),
+                inline_end: LengthPercentage::zero(),
+            };
+        }
+        let padding = self.get_padding().clone();
         LogicalSides::from_physical(
             &PhysicalSides::new(
-                &padding.padding_top.0,
-                &padding.padding_right.0,
-                &padding.padding_bottom.0,
-                &padding.padding_left.0,
+                padding.padding_top.0,
+                padding.padding_right.0,
+                padding.padding_bottom.0,
+                padding.padding_left.0,
             ),
             containing_block_writing_mode,
         )
     }
 
-    fn border_style(
+    fn border_style_color(
         &self,
         containing_block_writing_mode: WritingMode,
-    ) -> LogicalSides<BorderStyle> {
-        let border = self.get_border();
+    ) -> LogicalSides<BorderStyleColor> {
         LogicalSides::from_physical(
-            &PhysicalSides::new(
-                border.border_top_style,
-                border.border_right_style,
-                border.border_bottom_style,
-                border.border_left_style,
-            ),
+            &BorderStyleColor::from_border(self.get_border()),
             containing_block_writing_mode,
         )
     }
 
     fn border_width(&self, containing_block_writing_mode: WritingMode) -> LogicalSides<Au> {
+        if self.get_box().display.inside() == stylo::DisplayInside::Table &&
+            !matches!(self.pseudo(), Some(PseudoElement::ServoTableGrid))
+        {
+            return LogicalSides::zero();
+        }
         let border = self.get_border();
         LogicalSides::from_physical(
             &PhysicalSides::new(
