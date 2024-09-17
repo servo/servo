@@ -13,12 +13,19 @@
  * http://www.openwebfoundation.org/legal/the-owf-1-0-agreements/owfa-1-0.
  */
 
-[Exposed=(Window,Worker)]
+// https://dom.spec.whatwg.org/#dom-customevent-initcustomevent
+[Exposed=*]
 interface CustomEvent : Event {
-  [Throws] constructor(DOMString type, optional CustomEventInit eventInitDict = {});
+  constructor(DOMString type, optional CustomEventInit eventInitDict = {});
+
   readonly attribute any detail;
 
-  undefined initCustomEvent(DOMString type, boolean bubbles, boolean cancelable, any detail);
+  undefined initCustomEvent(
+    DOMString type,
+    optional boolean bubbles = false,
+    optional boolean cancelable = false,
+    optional any detail = null
+  ); // legacy
 };
 
 dictionary CustomEventInit : EventInit {
