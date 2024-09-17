@@ -691,11 +691,15 @@ fn rendered_text_collection_steps<'dom>(
 
                 let white_space_collapse = style.clone_white_space_collapse();
                 let preserve_whitespace = white_space_collapse == WhiteSpaceCollapseValue::Preserve;
+                let is_inline = matches!(
+                    display,
+                    Display::InlineBlock | Display::InlineFlex | Display::InlineGrid
+                );
                 // Now we need to decide on whether to remove beginning white space or not, this
                 // is mainly decided by the elements we rendered before, but may be overwritten by the white-space
                 // property.
-                let trim_beginning_white_space = !preserve_whitespace &&
-                    (state.may_start_with_whitespace || display == Display::InlineBlock);
+                let trim_beginning_white_space =
+                    !preserve_whitespace && (state.may_start_with_whitespace || is_inline);
                 let with_white_space_rules_applied = WhitespaceCollapse::new(
                     text_content.chars(),
                     white_space_collapse,
@@ -843,7 +847,7 @@ fn rendered_text_collection_steps<'dom>(
                     surrounding_line_breaks = 1;
                     state.within_table_content = true;
                 },
-                Display::InlineBlock => {
+                Display::InlineFlex | Display::InlineGrid | Display::InlineBlock => {
                     // InlineBlock's are a bit strange, in that they don't produce a Linebreak, yet
                     // disable white space truncation before and after it, making it one of the few
                     // cases where one can have multiple white space characters following one another.
@@ -909,7 +913,7 @@ fn rendered_text_collection_steps<'dom>(
             // Depending on the display property we still need to do some
             // cleanup after rendering all child nodes
             match display {
-                Display::InlineBlock => {
+                Display::InlineFlex | Display::InlineGrid | Display::InlineBlock => {
                     state.did_truncate_trailing_white_space = false;
                     state.may_start_with_whitespace = false;
                 },
