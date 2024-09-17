@@ -169,49 +169,6 @@ debug = true
 lto = false
 codegen-units = 1
 
-[profile.profiling2]
-inherits = "production"
-debug = true
-lto = true
-
-[profile.profiling3]
-inherits = "production"
-debug = true
-
-[profile.profiling4]
-inherits = "production"
-debug = true
-codegen-units = 16
-
-[profile.profiling5]
-inherits = "production"
-debug = true
-lto = false
-codegen-units = 16
-
-[profile.profiling6]
-inherits = "production"
-debug = true
-lto = true
-codegen-units = 16
-
-[profile.profiling7]
-inherits = "production"
-debug = true
-lto = true
-codegen-units = 9999999
-
-[profile.profiling8]
-inherits = "production"
-debug = true
-codegen-units = 9999999
-
-[profile.profiling9]
-inherits = "production"
-debug = true
-lto = false
-codegen-units = 9999999
-
 [patch.crates-io]
 # If you need to temporarily test Servo with a local fork of some upstream
 # crate, add that here. Use the form:
