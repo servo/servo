@@ -60,7 +60,7 @@ jobs:
     uses: ./.github/workflows/self-hosted-runner-timeout.yml
     secrets: inherit
     with:
-      selected-runner-label: ${{ needs.runner-select.outputs.selected-runner-label }}
+      unique-id: ${{ needs.runner-select.outputs.unique-id }}
       is-self-hosted: ${{ fromJSON(needs.runner-select.outputs.is-self-hosted) }}
 
   build:
