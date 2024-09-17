@@ -337,6 +337,11 @@ impl FakeXRDeviceMethods for FakeXRDevice {
         let _ = self.sender.send(MockDeviceMsg::SetBoundsGeometry(coords));
         Ok(())
     }
+
+    /// <https://immersive-web.github.io/webxr-test-api/#dom-fakexrdevice-simulateresetpose>
+    fn SimulateResetPose(&self) {
+        let _ = self.sender.send(MockDeviceMsg::SimulateResetPose);
+    }
 }
 
 impl From<XRHandedness> for Handedness {

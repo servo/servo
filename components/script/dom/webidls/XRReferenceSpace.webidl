@@ -16,5 +16,5 @@ enum XRReferenceSpaceType {
 interface XRReferenceSpace : XRSpace {
   [NewObject] XRReferenceSpace getOffsetReferenceSpace(XRRigidTransform originOffset);
 
-  // attribute EventHandler onreset;
+  attribute EventHandler onreset;
 };
