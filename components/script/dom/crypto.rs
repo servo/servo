@@ -83,6 +83,8 @@ fn is_integer_buffer(array_type: Type) -> bool {
             Type::Uint16 |
             Type::Int16 |
             Type::Uint32 |
-            Type::Int32
+            Type::Int32 |
+            Type::BigInt64 |
+            Type::BigUint64
     )
 }
