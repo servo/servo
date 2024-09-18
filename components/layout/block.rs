@@ -419,24 +419,24 @@ impl CandidateBSizeIterator {
         // If that is not determined yet by the time we need to resolve
         // `min-height` and `max-height`, percentage values are ignored.
 
-        let block_size = match fragment.style.content_block_size() {
-            Size::Auto => MaybeAuto::Auto,
-            Size::LengthPercentage(ref lp) => {
-                MaybeAuto::from_option(lp.maybe_to_used_value(block_container_block_size))
-            },
-        };
+        let block_size = MaybeAuto::from_option(
+            fragment
+                .style
+                .content_block_size()
+                .maybe_to_used_value(block_container_block_size),
+        );
 
-        let max_block_size = match fragment.style.max_block_size() {
-            MaxSize::None => None,
-            MaxSize::LengthPercentage(ref lp) => lp.maybe_to_used_value(block_container_block_size),
-        };
+        let max_block_size = fragment
+            .style
+            .max_block_size()
+            .maybe_to_used_value(block_container_block_size);
 
-        let min_block_size = match fragment.style.min_block_size() {
-            Size::Auto => MaybeAuto::Auto,
-            Size::LengthPercentage(ref lp) => {
-                MaybeAuto::from_option(lp.maybe_to_used_value(block_container_block_size))
-            },
-        }
+        let min_block_size = MaybeAuto::from_option(
+            fragment
+                .style
+                .min_block_size()
+                .maybe_to_used_value(block_container_block_size),
+        )
         .specified_or_zero();
 
         // If the style includes `box-sizing: border-box`, subtract the border and padding.
@@ -1402,7 +1402,8 @@ impl BlockFlow {
         let content_block_size = self.fragment.style().content_block_size();
 
         match content_block_size {
-            Size::Auto => {
+            Size::LengthPercentage(ref lp) => lp.maybe_to_used_value(containing_block_size),
+            _ => {
                 let container_size = containing_block_size?;
                 let (block_start, block_end) = {
                     let position = self.fragment.style().logical_position();
@@ -1437,7 +1438,6 @@ impl BlockFlow {
                     (_, _) => None,
                 }
             },
-            Size::LengthPercentage(ref lp) => lp.maybe_to_used_value(containing_block_size),
         }
     }
 
@@ -2167,10 +2167,13 @@ impl Flow for BlockFlow {
         // If this block has a fixed width, just use that for the minimum and preferred width,
         // rather than bubbling up children inline width.
         // FIXME(emilio): This should probably be writing-mode-aware.
-        let consult_children = match self.fragment.style().get_position().width {
-            Size::Auto => true,
-            Size::LengthPercentage(ref lp) => lp.maybe_to_used_value(None).is_none(),
-        };
+        let consult_children = self
+            .fragment
+            .style()
+            .get_position()
+            .width
+            .maybe_to_used_value(None)
+            .is_none();
         self.bubble_inline_sizes_for_block(consult_children);
         self.fragment
             .restyle_damage

@@ -168,8 +168,8 @@ impl BlockLevelBox {
             return false;
         }
 
-        if !block_size_is_zero_or_auto(style.content_block_size(), containing_block) ||
-            !block_size_is_zero_or_auto(style.min_block_size(), containing_block) ||
+        if !block_size_is_zero_or_intrinsic(style.content_block_size(), containing_block) ||
+            !block_size_is_zero_or_intrinsic(style.min_block_size(), containing_block) ||
             pbm.padding_border_sums.block != Au::zero()
         {
             return false;
@@ -877,8 +877,8 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
 
     let collapsed_through = collapsible_margins_in_children.collapsed_through &&
         pbm.padding_border_sums.block == Au::zero() &&
-        block_size_is_zero_or_auto(computed_block_size, containing_block) &&
-        block_size_is_zero_or_auto(style.min_block_size(), containing_block);
+        block_size_is_zero_or_intrinsic(computed_block_size, containing_block) &&
+        block_size_is_zero_or_intrinsic(style.min_block_size(), containing_block);
     block_margins_collapsed_with_children.collapsed_through = collapsed_through;
 
     let end_margin_can_collapse_with_children = collapsed_through ||
@@ -1872,9 +1872,9 @@ impl<'container> PlacementState<'container> {
     }
 }
 
-fn block_size_is_zero_or_auto(size: &Size, containing_block: &ContainingBlock) -> bool {
+fn block_size_is_zero_or_intrinsic(size: &Size, containing_block: &ContainingBlock) -> bool {
     match size {
-        Size::Auto => true,
+        Size::Auto | Size::MinContent | Size::MaxContent | Size::FitContent | Size::Stretch => true,
         Size::LengthPercentage(ref lp) => {
             // TODO: Should this resolve definite percentages? Blink does it, Gecko and WebKit don't.
             lp.is_definitely_zero() ||

@@ -341,7 +341,11 @@ impl ComputedValuesExt for ComputedValues {
         fn unwrap(max_size: &MaxSize<NonNegativeLengthPercentage>) -> Option<&LengthPercentage> {
             match max_size {
                 MaxSize::LengthPercentage(length) => Some(&length.0),
-                MaxSize::None => None,
+                MaxSize::None |
+                MaxSize::MinContent |
+                MaxSize::MaxContent |
+                MaxSize::FitContent |
+                MaxSize::Stretch => None,
             }
         }
         let position = self.get_position();
@@ -997,7 +1001,9 @@ impl From<stylo::Display> for Display {
 fn size_to_length(size: &Size) -> LengthPercentageOrAuto {
     match size {
         Size::LengthPercentage(length) => LengthPercentageOrAuto::LengthPercentage(&length.0),
-        Size::Auto => LengthPercentageOrAuto::Auto,
+        Size::Auto | Size::MinContent | Size::MaxContent | Size::FitContent | Size::Stretch => {
+            LengthPercentageOrAuto::Auto
+        },
     }
 }
 
