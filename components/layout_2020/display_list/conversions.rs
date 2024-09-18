@@ -4,12 +4,15 @@
 
 use app_units::Au;
 use style::color::AbsoluteColor;
+use style::computed_values::image_rendering::T as ComputedImageRendering;
 use style::computed_values::mix_blend_mode::T as ComputedMixBlendMode;
 use style::computed_values::text_decoration_style::T as ComputedTextDecorationStyle;
 use style::computed_values::transform_style::T as ComputedTransformStyle;
 use style::values::computed::Filter as ComputedFilter;
 use style::values::specified::border::BorderImageRepeatKeyword;
-use webrender_api::{units, FilterOp, LineStyle, MixBlendMode, RepeatMode, Shadow, TransformStyle};
+use webrender_api::{
+    units, FilterOp, ImageRendering, LineStyle, MixBlendMode, RepeatMode, Shadow, TransformStyle,
+};
 
 use crate::geom::{PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize};
 
@@ -139,6 +142,18 @@ impl ToWebRender for BorderImageRepeatKeyword {
             BorderImageRepeatKeyword::Repeat => RepeatMode::Repeat,
             BorderImageRepeatKeyword::Round => RepeatMode::Round,
             BorderImageRepeatKeyword::Space => RepeatMode::Space,
+        }
+    }
+}
+
+impl ToWebRender for ComputedImageRendering {
+    type Type = ImageRendering;
+
+    fn to_webrender(&self) -> Self::Type {
+        match self {
+            ComputedImageRendering::Auto => ImageRendering::Auto,
+            ComputedImageRendering::CrispEdges => ImageRendering::CrispEdges,
+            ComputedImageRendering::Pixelated => ImageRendering::Pixelated,
         }
     }
 }

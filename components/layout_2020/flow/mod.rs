@@ -1307,7 +1307,7 @@ fn layout_in_flow_replaced_block_level(
 
     let containing_block_writing_mode = containing_block.style.writing_mode;
     let physical_content_size = content_size.to_physical_size(containing_block_writing_mode);
-    let fragments = replaced.make_fragments(style, physical_content_size);
+    let fragments = replaced.make_fragments(style, containing_block, physical_content_size);
 
     let clearance;
     if let Some(ref mut sequential_layout_state) = sequential_layout_state {

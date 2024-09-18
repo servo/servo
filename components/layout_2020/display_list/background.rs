@@ -17,7 +17,7 @@ use webrender_api::{self as wr, units};
 use wr::units::LayoutSize;
 use wr::ClipChainId;
 
-use crate::replaced::IntrinsicSizes;
+use crate::replaced::NaturalSizes;
 
 pub(super) struct BackgroundLayer {
     pub common: wr::CommonItemProperties,
@@ -167,7 +167,7 @@ pub(super) fn layout_layer(
     painter: &BackgroundPainter,
     builder: &mut super::DisplayListBuilder,
     layer_index: usize,
-    intrinsic: IntrinsicSizes,
+    natural_sizes: NaturalSizes,
 ) -> Option<BackgroundLayer> {
     let painting_area = painter.painting_area(fragment_builder, builder, layer_index);
     let positioning_area = painter.positioning_area(fragment_builder, layer_index);
@@ -180,19 +180,19 @@ pub(super) fn layout_layer(
     }
     let size_contain_or_cover = |background_size| {
         let mut tile_size = positioning_area.size();
-        if let Some(intrinsic_ratio) = intrinsic.ratio {
+        if let Some(natural_ratio) = natural_sizes.ratio {
             let positioning_ratio = positioning_area.size().width / positioning_area.size().height;
             // Whether the tile width (as opposed to height)
             // is scaled to that of the positioning area
             let fit_width = match background_size {
-                ContainOrCover::Contain => positioning_ratio <= intrinsic_ratio,
-                ContainOrCover::Cover => positioning_ratio > intrinsic_ratio,
+                ContainOrCover::Contain => positioning_ratio <= natural_ratio,
+                ContainOrCover::Cover => positioning_ratio > natural_ratio,
             };
             // The other dimension needs to be adjusted
             if fit_width {
-                tile_size.height = tile_size.width / intrinsic_ratio
+                tile_size.height = tile_size.width / natural_ratio
             } else {
-                tile_size.width = tile_size.height * intrinsic_ratio
+                tile_size.width = tile_size.height * natural_ratio
             }
         }
         tile_size
@@ -212,18 +212,18 @@ pub(super) fn layout_layer(
 
             if width.is_none() && height.is_none() {
                 // Both computed values are 'auto':
-                // use intrinsic sizes, treating missing width or height as 'auto'
-                width = intrinsic.width;
-                height = intrinsic.height;
+                // use natural sizes, treating missing width or height as 'auto'
+                width = natural_sizes.width;
+                height = natural_sizes.height;
             }
 
             match (width, height) {
                 (Some(w), Some(h)) => units::LayoutSize::new(w.to_f32_px(), h.to_f32_px()),
                 (Some(w), None) => {
-                    let h = if let Some(intrinsic_ratio) = intrinsic.ratio {
-                        w.scale_by(1.0 / intrinsic_ratio)
-                    } else if let Some(intrinsic_height) = intrinsic.height {
-                        intrinsic_height
+                    let h = if let Some(natural_ratio) = natural_sizes.ratio {
+                        w.scale_by(1.0 / natural_ratio)
+                    } else if let Some(natural_height) = natural_sizes.height {
+                        natural_height
                     } else {
                         // Treated as 100%
                         Au::from_f32_px(positioning_area.size().height)
@@ -231,17 +231,17 @@ pub(super) fn layout_layer(
                     units::LayoutSize::new(w.to_f32_px(), h.to_f32_px())
                 },
                 (None, Some(h)) => {
-                    let w = if let Some(intrinsic_ratio) = intrinsic.ratio {
-                        h.scale_by(intrinsic_ratio)
-                    } else if let Some(intrinsic_width) = intrinsic.width {
-                        intrinsic_width
+                    let w = if let Some(natural_ratio) = natural_sizes.ratio {
+                        h.scale_by(natural_ratio)
+                    } else if let Some(natural_width) = natural_sizes.width {
+                        natural_width
                     } else {
                         // Treated as 100%
                         Au::from_f32_px(positioning_area.size().width)
                     };
                     units::LayoutSize::new(w.to_f32_px(), h.to_f32_px())
                 },
-                // Both comptued values were 'auto', and neither intrinsic size is present
+                // Both comptued values were 'auto', and neither natural size is present
                 (None, None) => size_contain_or_cover(ContainOrCover::Contain),
             }
         },

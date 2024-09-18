@@ -50,7 +50,7 @@ use crate::fragment_tree::{
     BackgroundMode, BoxFragment, Fragment, FragmentFlags, FragmentTree, Tag, TextFragment,
 };
 use crate::geom::{PhysicalPoint, PhysicalRect};
-use crate::replaced::IntrinsicSizes;
+use crate::replaced::NaturalSizes;
 use crate::style_ext::ComputedValuesExt;
 
 mod background;
@@ -272,18 +272,31 @@ impl Fragment {
                     );
                 }
             },
-            Fragment::Image(i) => match i.style.get_inherited_box().visibility {
+            Fragment::Image(image) => match image.style.get_inherited_box().visibility {
                 Visibility::Visible => {
                     builder.is_contentful = true;
-                    let rect = i.rect.translate(containing_block.origin.to_vector());
 
-                    let common = builder.common_properties(rect.to_webrender(), &i.style);
+                    let image_rendering = image
+                        .style
+                        .get_inherited_box()
+                        .image_rendering
+                        .to_webrender();
+                    let rect = image
+                        .rect
+                        .translate(containing_block.origin.to_vector())
+                        .to_webrender();
+                    let clip = image
+                        .clip
+                        .translate(containing_block.origin.to_vector())
+                        .to_webrender();
+                    let common = builder.common_properties(clip, &image.style);
+
                     builder.wr().push_image(
                         &common,
-                        rect.to_webrender(),
-                        image_rendering(i.style.get_inherited_box().image_rendering),
+                        rect,
+                        image_rendering,
                         wr::AlphaType::PremultipliedAlpha,
-                        i.image_key,
+                        image.image_key,
                         wr::ColorF::WHITE,
                     );
                 },
@@ -736,7 +749,7 @@ impl<'a> BuilderForBoxFragment<'a> {
             match image {
                 Image::None => {},
                 Image::Gradient(ref gradient) => {
-                    let intrinsic = IntrinsicSizes::empty();
+                    let intrinsic = NaturalSizes::empty();
                     let Some(layer) =
                         &background::layout_layer(self, painter, builder, index, intrinsic)
                     else {
@@ -801,7 +814,7 @@ impl<'a> BuilderForBoxFragment<'a> {
 
                     // FIXME: https://drafts.csswg.org/css-images-4/#the-image-resolution
                     let dppx = 1.0;
-                    let intrinsic = IntrinsicSizes::from_width_and_height(
+                    let intrinsic = NaturalSizes::from_width_and_height(
                         width as f32 / dppx,
                         height as f32 / dppx,
                     );
@@ -809,14 +822,13 @@ impl<'a> BuilderForBoxFragment<'a> {
                     if let Some(layer) =
                         background::layout_layer(self, painter, builder, index, intrinsic)
                     {
-                        let image_rendering = image_rendering(style.clone_image_rendering());
                         if layer.repeat {
                             builder.wr().push_repeating_image(
                                 &layer.common,
                                 layer.bounds,
                                 layer.tile_size,
                                 layer.tile_spacing,
-                                image_rendering,
+                                style.clone_image_rendering().to_webrender(),
                                 wr::AlphaType::PremultipliedAlpha,
                                 key,
                                 wr::ColorF::WHITE,
@@ -825,7 +837,7 @@ impl<'a> BuilderForBoxFragment<'a> {
                             builder.wr().push_image(
                                 &layer.common,
                                 layer.bounds,
-                                image_rendering,
+                                style.clone_image_rendering().to_webrender(),
                                 wr::AlphaType::PremultipliedAlpha,
                                 key,
                                 wr::ColorF::WHITE,
@@ -1139,15 +1151,6 @@ fn cursor(kind: CursorKind, auto_cursor: Cursor) -> Cursor {
         CursorKind::AllScroll => Cursor::AllScroll,
         CursorKind::ZoomIn => Cursor::ZoomIn,
         CursorKind::ZoomOut => Cursor::ZoomOut,
-    }
-}
-
-fn image_rendering(ir: style::computed_values::image_rendering::T) -> wr::ImageRendering {
-    use style::computed_values::image_rendering::T as ImageRendering;
-    match ir {
-        ImageRendering::Auto => wr::ImageRendering::Auto,
-        ImageRendering::CrispEdges => wr::ImageRendering::CrispEdges,
-        ImageRendering::Pixelated => wr::ImageRendering::Pixelated,
     }
 }
 
