@@ -470,8 +470,7 @@ impl ExternalUnderlyingSourceController {
     fn enqueue_chunk(&self, cx: SafeJSContext, stream: HandleObject, mut chunk: Vec<u8>) {
         let available = {
             let mut buffer = self.buffer.borrow_mut();
-            chunk.append(&mut buffer);
-            *buffer = chunk;
+            buffer.append(&mut chunk);
             buffer.len()
         };
         self.maybe_signal_available_bytes(cx, stream, available);
