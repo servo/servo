@@ -8,7 +8,7 @@ use std::collections::VecDeque;
 use dom_struct::dom_struct;
 use js::jsapi::JSObject;
 use js::rust::{HandleValue as SafeHandleValue, HandleValue};
-use js::typedarray::{ArrayBuffer, TypedArray, Uint8};
+use js::typedarray::{ArrayBufferU8, TypedArray, Uint8};
 
 use super::bindings::codegen::UnionTypes::ReadableStreamDefaultControllerOrReadableByteStreamController as Controller;
 use super::bindings::reflector::{reflect_dom_object, DomObject};
@@ -16,21 +16,23 @@ use super::promisenativehandler::Callback;
 use super::readablestreambyobreader::ReadIntoRequest;
 use super::readablestreamdefaultreader::ReadRequest;
 use super::types::{GlobalScope, PromiseNativeHandler};
-use crate::dom::bindings::buffer_source::create_buffer_source;
+use crate::dom::bindings::buffer_source::{
+    create_buffer_source, new_initialized_heap_buffer_source, HeapBufferSource, HeapTypedArrayInit,
+};
 use crate::dom::bindings::codegen::Bindings::ReadableByteStreamControllerBinding::ReadableByteStreamControllerMethods;
 use crate::dom::bindings::import::module::{Error, Fallible};
 use crate::dom::bindings::reflector::Reflector;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::readablestream::ReadableStream;
 use crate::dom::underlyingsourcecontainer::{UnderlyingSourceContainer, UnderlyingSourceType};
-use crate::js::rust::CustomTrace;
 use crate::realms::{enter_realm, InRealm};
 use crate::script_runtime::{JSContext, JSContext as SafeJSContext};
 
 /// <https://streams.spec.whatwg.org/#readable-byte-stream-queue-entry>
-#[derive(JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 pub struct ReadableByteStreamQueueEntry {
-    buffer: ArrayBuffer,
+    #[ignore_malloc_size_of = "HeapArrayBuffer"]
+    buffer: HeapBufferSource<ArrayBufferU8>,
     byte_offset: usize,
     byte_length: usize,
 }
@@ -39,7 +41,6 @@ pub struct ReadableByteStreamQueueEntry {
 #[derive(Default, JSTraceable, MallocSizeOf)]
 pub struct QueueWithSizes {
     total_size: usize,
-    #[ignore_malloc_size_of = "ReadableByteStreamQueueEntry"]
     queue: VecDeque<ReadableByteStreamQueueEntry>,
 }
 
@@ -94,31 +95,44 @@ impl Callback for PullAlgorithmRejectionHandler {
 }
 
 // FIXME: this is similar to [`script::dom::readablestream::ReaderType`] but without reader
-#[derive(JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
+#[allow(dead_code)]
 enum ReaderType {
     BYOB,
     Default,
 }
 
 // TODO: temporary implementation, should change after having real usage
-#[derive(JSTraceable)]
-enum ViewConstructor {
-    TypedArray,
+#[derive(JSTraceable, MallocSizeOf)]
+#[allow(dead_code)]
+pub enum ViewConstructorType {
+    Int8Array,
+    Int16Array,
+    Int32Array,
+    Uint8Array,
+    Uint16Array,
+    Uint32Array,
+    Uint8ClampedArray,
+    BigInt64Array,
+    BigUint64Array,
+    Float32Array,
+    Float64Array,
     DataView,
+    ArrayBuffer,
 }
 
+/// <https://streams.spec.whatwg.org/#pull-into-descriptor>
 #[derive(JSTraceable, MallocSizeOf)]
 struct PullIntoDescriptor {
-    buffer: Vec<u8>,
+    #[ignore_malloc_size_of = "HeapArrayBuffer"]
+    buffer: HeapBufferSource<ArrayBufferU8>,
     buffer_byte_length: usize,
     byte_offset: usize,
     byte_length: usize,
     bytes_filled: usize,
     minimun_fill: usize,
     element_size: usize,
-    #[ignore_malloc_size_of = "ViewConstructor"]
-    view_constructor: ViewConstructor,
-    #[ignore_malloc_size_of = "ReaderType"]
+    view_constructor: ViewConstructorType,
     reader_type: Option<ReaderType>,
 }
 
@@ -253,20 +267,28 @@ impl ReadableByteStreamController {
         // step 4,5
         if let Some(auto_allocate_chunk_size) = self.auto_allocate_chunk_size {
             // step 5.1
-            let buffer = Vec::new();
+            let buffer =
+                new_initialized_heap_buffer_source::<ArrayBufferU8>(HeapTypedArrayInit::Info {
+                    len: auto_allocate_chunk_size as u32,
+                    cx,
+                });
 
-            // TODO: missing step 5.2
+            // step 5.2
+            if buffer.is_err() {
+                // TODO: step 5.2.1
+                return;
+            }
 
             // step 5.3
             let descriptor = PullIntoDescriptor {
-                buffer, // step 5.1
+                buffer: buffer.unwrap(),
                 buffer_byte_length: auto_allocate_chunk_size,
                 byte_offset: 0,
                 byte_length: auto_allocate_chunk_size,
                 bytes_filled: 0,
                 minimun_fill: 1,
                 element_size: 1,
-                view_constructor: ViewConstructor::TypedArray, // TODO: %Uint8Array% constructor
+                view_constructor: ViewConstructorType::Uint8Array,
                 reader_type: Some(ReaderType::Default),
             };
 
@@ -296,18 +318,21 @@ impl ReadableByteStreamController {
         self.handle_queue_drain();
 
         // step 6
-        let buffer: &[u8] = unsafe {
+        let buffer = entry
+            .buffer
+            .get_buffer()
+            .expect("Getting buffer should not fail");
+        let data: &[u8] = unsafe {
             let start = entry.byte_offset;
             let end = entry.byte_offset + entry.byte_length;
-            &entry
-                .buffer
+            buffer
                 .as_slice()
                 .get(start..end)
                 .expect("ArrayBuffer slice should not overflow")
         };
         rooted!(in (*cx) let mut array = std::ptr::null_mut::<JSObject>());
         let view: TypedArray<Uint8, *mut JSObject> =
-            create_buffer_source(cx, buffer, array.handle_mut())
+            create_buffer_source(cx, data, array.handle_mut())
                 .expect("Converting to Uint8Array should never fail");
 
         // step 7
