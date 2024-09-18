@@ -131,6 +131,3 @@ sig = "1.0"
 webxr = { git = "https://github.com/servo/webxr", features = ["ipc", "glwindow", "headless", "openxr-api"] }
 windows-sys = { workspace = true, features = ["Win32_Graphics_Gdi"] }
 libservo = { path = "../../components/servo", features = ["no-wgl"] }
-
-[lints.rust]
-unexpected_cfgs = { level = "allow", check-cfg = ['cfg(production)'] }

@@ -122,7 +122,7 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_init<'local>(
 
     // We only redirect stdout and stderr for non-production builds, since it is
     // only used for debugging purposes. This saves us one thread in production.
-    #[cfg(not(production))]
+    #[cfg(not(servo_production))]
     if let Err(e) = super::log::redirect_stdout_and_stderr() {
         error!("Failed to redirect stdout and stderr to logcat due to: {e:?}");
     }
