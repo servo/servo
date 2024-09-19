@@ -18,7 +18,7 @@ use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
-use crate::dom::readablestream::ReadableStream;
+use crate::dom::readablestream::{ReadableStream, ReadableStreamState};
 use crate::dom::readablestreamdefaultreader::ReadRequest;
 use crate::dom::underlyingsourcecontainer::{UnderlyingSourceContainer, UnderlyingSourceType};
 use crate::realms::{enter_realm, InRealm};
@@ -77,14 +77,16 @@ pub enum EnqueuedValue {
 /// <https://streams.spec.whatwg.org/#queue-with-sizes>
 #[derive(Default, JSTraceable, MallocSizeOf)]
 pub struct QueueWithSizes {
-    total_size: usize,
     #[ignore_malloc_size_of = "EnqueuedValue::Js"]
     queue: VecDeque<EnqueuedValue>,
+    /// <https://streams.spec.whatwg.org/#readablestreamdefaultcontroller-queuetotalsize>
+    total_size: f64,
 }
 
 impl QueueWithSizes {
     /// <https://streams.spec.whatwg.org/#dequeue-value>
     fn dequeue_value(&mut self) -> EnqueuedValue {
+        // TODO: update total size.
         self.queue
             .pop_front()
             .expect("Buffer cannot be empty when dequeue value is called into.")
@@ -92,6 +94,7 @@ impl QueueWithSizes {
 
     /// <https://streams.spec.whatwg.org/#enqueue-value-with-size>
     fn enqueue_value_with_size(&mut self, value: EnqueuedValue) {
+        // TODO: update total size.
         self.queue.push_back(value);
     }
 
@@ -126,12 +129,16 @@ pub struct ReadableStreamDefaultController {
     underlying_source: Dom<UnderlyingSourceContainer>,
 
     stream: MutNullableDom<ReadableStream>,
+
+    /// <https://streams.spec.whatwg.org/#readablestreamdefaultcontroller-strategyhwm>
+    strategy_hwm: f64,
 }
 
 impl ReadableStreamDefaultController {
     fn new_inherited(
         global: &GlobalScope,
         underlying_source_type: UnderlyingSourceType,
+        strategy_hwm: f64,
     ) -> ReadableStreamDefaultController {
         ReadableStreamDefaultController {
             reflector_: Reflector::new(),
@@ -141,16 +148,19 @@ impl ReadableStreamDefaultController {
                 global,
                 underlying_source_type,
             )),
+            strategy_hwm,
         }
     }
     pub fn new(
         global: &GlobalScope,
         underlying_source: UnderlyingSourceType,
+        strategy_hwm: f64,
     ) -> DomRoot<ReadableStreamDefaultController> {
         reflect_dom_object(
             Box::new(ReadableStreamDefaultController::new_inherited(
                 global,
                 underlying_source,
+                strategy_hwm,
             )),
             global,
         )
@@ -269,13 +279,33 @@ impl ReadableStreamDefaultController {
     pub fn error(&self) {
         todo!()
     }
+
+    /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-get-desired-size>
+    fn get_desired_size(&self) -> Option<f64> {
+        let Some(stream) = self.stream.get() else {
+            return None;
+        };
+
+        // If state is "errored", return null.
+        if stream.is_errored() {
+            return None;
+        }
+
+        // If state is "closed", return 0.
+        if stream.is_closed() {
+            return Some(0.0);
+        }
+
+        // Return controller.[[strategyHWM]] − controller.[[queueTotalSize]].
+        let queue = self.queue.borrow();
+        Some(self.strategy_hwm - queue.total_size)
+    }
 }
 
 impl ReadableStreamDefaultControllerMethods for ReadableStreamDefaultController {
     /// <https://streams.spec.whatwg.org/#rs-default-controller-desired-size>
     fn GetDesiredSize(&self) -> Option<f64> {
-        // TODO
-        None
+        self.get_desired_size()
     }
 
     /// <https://streams.spec.whatwg.org/#rs-default-controller-close>

@@ -28,6 +28,7 @@ use crate::dom::bindings::import::module::UnionTypes::{
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::utils::get_dictionary_property;
+use crate::dom::countqueuingstrategy::extract_high_water_mark;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::readablebytestreamcontroller::ReadableByteStreamController;
@@ -97,7 +98,7 @@ impl ReadableStream {
         global: &GlobalScope,
         _proto: Option<SafeHandleObject>,
         underlying_source: Option<*mut JSObject>,
-        _strategy: &QueuingStrategy,
+        strategy: &QueuingStrategy,
     ) -> Fallible<DomRoot<Self>> {
         // Step 1
         rooted!(in(*cx) let underlying_source_obj = underlying_source.unwrap_or(ptr::null_mut()));
@@ -124,6 +125,7 @@ impl ReadableStream {
             ReadableStreamDefaultController::new(
                 global,
                 UnderlyingSourceType::Js(underlying_source_dict),
+                extract_high_water_mark(strategy, 1.0)?,
             )
         };
         Ok(ReadableStream::new(
@@ -193,7 +195,7 @@ impl ReadableStream {
         source: UnderlyingSourceType,
     ) -> DomRoot<ReadableStream> {
         assert!(source.is_native());
-        let controller = ReadableStreamDefaultController::new(global, source);
+        let controller = ReadableStreamDefaultController::new(global, source, 1.0);
         let stream = ReadableStream::new(
             global,
             Controller::ReadableStreamDefaultController(controller.clone()),
