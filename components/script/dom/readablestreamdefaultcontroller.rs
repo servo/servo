@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::collections::VecDeque;
 use std::rc::Rc;
 
@@ -126,12 +126,20 @@ pub struct ReadableStreamDefaultController {
     /// <https://streams.spec.whatwg.org/#readablestreamdefaultcontroller-queue>
     queue: RefCell<QueueWithSizes>,
 
-    underlying_source: Dom<UnderlyingSourceContainer>,
+    /// A mutable reference to the underlying source is used to implement these two
+    /// internal slots:
+    ///
+    /// <https://streams.spec.whatwg.org/#readablestreamdefaultcontroller-pullalgorithm>
+    /// <https://streams.spec.whatwg.org/#readablestreamdefaultcontroller-cancelalgorithm>
+    underlying_source: MutNullableDom<UnderlyingSourceContainer>,
 
     stream: MutNullableDom<ReadableStream>,
 
     /// <https://streams.spec.whatwg.org/#readablestreamdefaultcontroller-strategyhwm>
     strategy_hwm: f64,
+
+    /// <https://streams.spec.whatwg.org/#readablestreamdefaultcontroller-closerequested>
+    close_requested: Cell<bool>,
 }
 
 impl ReadableStreamDefaultController {
@@ -144,11 +152,12 @@ impl ReadableStreamDefaultController {
             reflector_: Reflector::new(),
             queue: RefCell::new(Default::default()),
             stream: MutNullableDom::new(None),
-            underlying_source: Dom::from_ref(&*UnderlyingSourceContainer::new(
+            underlying_source: MutNullableDom::new(Some(&*UnderlyingSourceContainer::new(
                 global,
                 underlying_source_type,
-            )),
+            ))),
             strategy_hwm,
+            close_requested: Default::default(),
         }
     }
     pub fn new(
@@ -192,7 +201,12 @@ impl ReadableStreamDefaultController {
         let rooted_default_controller = DomRoot::from_ref(self);
         let controller =
             Controller::ReadableStreamDefaultController(rooted_default_controller.clone());
-        if let Some(promise) = self.underlying_source.call_pull_algorithm(controller) {
+
+        let Some(underlying_source) = self.underlying_source.get() else {
+            return;
+        };
+
+        if let Some(promise) = underlying_source.call_pull_algorithm(controller) {
             let fulfillment_handler = Box::new(PullAlgorithmFulfillmentHandler {
                 controller: Dom::from_ref(&*rooted_default_controller),
             });
@@ -218,7 +232,17 @@ impl ReadableStreamDefaultController {
             // TODO: use <https://streams.spec.whatwg.org/#readablestreamdefaultcontroller-strategysizealgorithm>
             let chunk = self.dequeue_value();
 
-            // TODO: handle close requested.
+            // If this.[[closeRequested]] is true and this.[[queue]] is empty
+            if self.close_requested.get() && self.queue.borrow().is_empty() {
+                // Perform ! ReadableStreamDefaultControllerClearAlgorithms(controller).
+                self.clear_algorithms();
+
+                // Perform ! ReadableStreamClose(stream).
+                self.stream
+                    .get()
+                    .expect("Controller must have a stream when pull steps are called into.")
+                    .close();
+            }
 
             self.call_pull_if_needed();
 
@@ -259,20 +283,53 @@ impl ReadableStreamDefaultController {
 
     /// Does the stream have all data in memory?
     pub fn in_memory(&self) -> bool {
-        self.underlying_source.in_memory()
+        let Some(underlying_source) = self.underlying_source.get() else {
+            return false;
+        };
+        underlying_source.in_memory()
     }
 
     /// Return bytes synchronously if the stream has all data in memory.
     pub fn get_in_memory_bytes(&self) -> Option<Vec<u8>> {
-        if self.underlying_source.in_memory() {
+        let Some(underlying_source) = self.underlying_source.get() else {
+            return None;
+        };
+        if underlying_source.in_memory() {
             return Some(self.queue.borrow().get_in_memory_bytes());
         }
         None
     }
 
+    /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-clear-algorithms>
+    fn clear_algorithms(&self) {
+        // Set controller.[[pullAlgorithm]] to undefined.
+        // Set controller.[[cancelAlgorithm]] to undefined.
+        self.underlying_source.set(None);
+
+        // TODO: Set controller.[[strategySizeAlgorithm]] to undefined.
+    }
+
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-close>
     pub fn close(&self) {
-        todo!()
+        // If ! ReadableStreamDefaultControllerCanCloseOrEnqueue(controller) is false, return.
+        if !self.can_close_or_enqueue() {
+            return;
+        }
+
+        let Some(stream) = self.stream.get() else {
+            return;
+        };
+
+        // Set controller.[[closeRequested]] to true.
+        self.close_requested.set(true);
+
+        if self.queue.borrow().is_empty() {
+            // Perform ! ReadableStreamDefaultControllerClearAlgorithms(controller).
+            self.clear_algorithms();
+
+            // Perform ! ReadableStreamClose(stream).
+            stream.close();
+        }
     }
 
     /// <https://streams.spec.whatwg.org/#ref-for-readable-stream-error>
@@ -300,6 +357,21 @@ impl ReadableStreamDefaultController {
         let queue = self.queue.borrow();
         Some(self.strategy_hwm - queue.total_size)
     }
+
+    /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-can-close-or-enqueue>
+    fn can_close_or_enqueue(&self) -> bool {
+        let Some(stream) = self.stream.get() else {
+            return false;
+        };
+
+        // If controller.[[closeRequested]] is false and state is "readable", return true.
+        if !self.close_requested.get() && stream.is_readable() {
+            return true;
+        }
+
+        // Otherwise, return false.
+        false
+    }
 }
 
 impl ReadableStreamDefaultControllerMethods for ReadableStreamDefaultController {
@@ -310,8 +382,13 @@ impl ReadableStreamDefaultControllerMethods for ReadableStreamDefaultController 
 
     /// <https://streams.spec.whatwg.org/#rs-default-controller-close>
     fn Close(&self) -> Fallible<()> {
-        // TODO
-        Err(Error::NotFound)
+        if !self.can_close_or_enqueue() {
+            return Err(Error::NotFound);
+        }
+
+        self.close();
+
+        Ok(())
     }
 
     /// <https://streams.spec.whatwg.org/#rs-default-controller-enqueue>
