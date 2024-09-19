@@ -1207,27 +1207,40 @@ async fn http_network_or_cache_fetch(
             .typed_insert::<UserAgent>(user_agent.parse().unwrap());
     }
 
+    // Steps 8.16 to 8.18
     match http_request.cache_mode {
-        // Step 5.12
+        // Step 8.16: If httpRequest’s cache mode is "default" and httpRequest’s header list
+        // contains `If-Modified-Since`, `If-None-Match`, `If-Unmodified-Since`, `If-Match`, or
+        // `If-Range`, then set httpRequest’s cache mode to "no-store".
         CacheMode::Default if is_no_store_cache(&http_request.headers) => {
             http_request.cache_mode = CacheMode::NoStore;
         },
 
-        // Step 5.13
+        // Note that the following steps (8.17 and 8.18) are being considered for removal:
+        // https://github.com/whatwg/fetch/issues/722#issuecomment-1420264615
+
+        // Step 8.17: If httpRequest’s cache mode is "no-cache", httpRequest’s prevent no-cache
+        // cache-control header modification flag is unset, and httpRequest’s header list does not
+        // contain `Cache-Control`, then append (`Cache-Control`, `max-age=0`) to httpRequest’s
+        // header list.
+        // TODO: Implement request's prevent no-cache cache-control header modification flag
+        // https://fetch.spec.whatwg.org/#no-cache-prevent-cache-control
         CacheMode::NoCache if !http_request.headers.contains_key(header::CACHE_CONTROL) => {
             http_request
                 .headers
                 .typed_insert(CacheControl::new().with_max_age(Duration::from_secs(0)));
         },
 
-        // Step 5.14
+        // Step 8.18: If httpRequest’s cache mode is "no-store" or "reload", then:
         CacheMode::Reload | CacheMode::NoStore => {
-            // Substep 1
+            // Step 8.18.1: If httpRequest’s header list does not contain `Pragma`, then append
+            // (`Pragma`, `no-cache`) to httpRequest’s header list.
             if !http_request.headers.contains_key(header::PRAGMA) {
                 http_request.headers.typed_insert(Pragma::no_cache());
             }
 
-            // Substep 2
+            // Step 8.18.2: If httpRequest’s header list does not contain `Cache-Control`, then
+            // append (`Cache-Control`, `no-cache`) to httpRequest’s header list.
             if !http_request.headers.contains_key(header::CACHE_CONTROL) {
                 http_request
                     .headers
@@ -1238,18 +1251,24 @@ async fn http_network_or_cache_fetch(
         _ => {},
     }
 
-    // Step 5.15
-    // TODO: if necessary append `Accept-Encoding`/`identity` to headers
+    // Step 8.19: If httpRequest’s header list contains `Range`, then append (`Accept-Encoding`,
+    // `identity`) to httpRequest’s header list.
+    if http_request.headers.contains_key(header::RANGE) {
+        if let Ok(value) = HeaderValue::from_str("identity") {
+            http_request.headers.insert("Accept-Encoding", value);
+        }
+    }
 
-    // Step 5.16
-    let current_url = http_request.current_url();
+    // Step 8.20: Modify httpRequest’s header list per HTTP. Do not append a given header if
+    // httpRequest’s header list contains that header’s name.
+    // `Accept`, `Accept-Charset`, and `Accept-Language` must not be included at this point.
     http_request.headers.remove(header::HOST);
-
-    // unlike http_loader, we should not set the accept header
-    // here, according to the fetch spec
+    // unlike http_loader, we should not set the accept header here
     set_default_accept_encoding(&mut http_request.headers);
 
-    // Step 5.17
+    let current_url = http_request.current_url();
+
+    // Step 8.21: If includeCredentials is true, then:
     // TODO some of this step can't be implemented yet
     if include_credentials {
         // Substep 1
