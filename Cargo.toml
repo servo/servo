@@ -166,7 +166,7 @@ strip = true
 inherits = "release"
 debug-assertions = false
 debug = true
-lto = false
+lto = "thin"
 codegen-units = 1
 
 [patch.crates-io]
