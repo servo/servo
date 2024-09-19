@@ -427,15 +427,15 @@ impl ReplacedContent {
         pbm: &PaddingBorderMargin,
     ) -> LogicalVec2<Au> {
         let box_size = style
-            .content_box_size(containing_block, pbm)
+            .content_box_size_deprecated(containing_block, pbm)
             // We need to clamp to zero here to obtain the proper aspect
             // ratio when box-sizing is border-box and the inner box size
             // would otherwise be negative.
             .map(|value| value.map(|value| value.max(Au::zero())));
         let min_box_size = style
-            .content_min_box_size(containing_block, pbm)
+            .content_min_box_size_deprecated(containing_block, pbm)
             .auto_is(Au::zero);
-        let max_box_size = style.content_max_box_size(containing_block, pbm);
+        let max_box_size = style.content_max_box_size_deprecated(containing_block, pbm);
         self.used_size_as_if_inline_element_from_content_box_sizes(
             containing_block,
             style,

@@ -33,8 +33,8 @@ use crate::fragment_tree::{
     PositioningFragment,
 };
 use crate::geom::{
-    AuOrAuto, LengthPercentageOrAuto, LogicalRect, LogicalSides, LogicalVec2, PhysicalPoint,
-    PhysicalRect, PhysicalSides, ToLogical, ToLogicalWithContainingBlock,
+    AuOrAuto, LogicalRect, LogicalSides, LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSides,
+    Size, SizeKeyword, ToLogical, ToLogicalWithContainingBlock,
 };
 use crate::positioned::{relative_adjustement, PositioningContext, PositioningContextLength};
 use crate::sizing::ContentSizes;
@@ -245,9 +245,15 @@ impl<'a> TableLayout<'a> {
         layout_context: &LayoutContext,
         writing_mode: WritingMode,
     ) {
+        // It's not clear whether `inline-size: stretch` allows fixed table mode or not,
+        // we align with Gecko and Blink.
+        // <https://github.com/w3c/csswg-drafts/issues/10937>.
         let is_in_fixed_mode = self.table.style.get_table().clone_table_layout() ==
             TableLayoutMode::Fixed &&
-            !self.table.style.box_size(writing_mode).inline.is_auto();
+            !matches!(
+                self.table.style.box_size(writing_mode).inline,
+                Size::Keyword(SizeKeyword::Initial | SizeKeyword::MaxContent)
+            );
         let row_measures = vec![LogicalVec2::zero(); self.table.size.width];
         self.cell_measures = vec![row_measures; self.table.size.height];
 
@@ -369,8 +375,8 @@ impl<'a> TableLayout<'a> {
         self.rows = vec![RowLayout::default(); self.table.size.height];
         self.columns = vec![ColumnLayout::default(); self.table.size.width];
 
-        let is_length = |size: &LengthPercentageOrAuto| {
-            size.non_auto().is_some_and(|size| !size.has_percentage())
+        let is_length = |size: &Size<ComputedLengthPercentage>| {
+            size.to_numeric().is_some_and(|size| !size.has_percentage())
         };
 
         for column_index in 0..self.table.size.width {
@@ -837,13 +843,13 @@ impl<'a> TableLayout<'a> {
         // This diverges a little from the specification, but should be equivalent
         // (other than using the stretch-fit size instead of the containing block width).
         let used_width_of_table = match style
-            .content_box_size(containing_block_for_table, &self.pbm)
+            .content_box_size_deprecated(containing_block_for_table, &self.pbm)
             .inline
         {
             LengthPercentage(_) => resolved_table_width.max(grid_min_max.min_content),
             Auto => {
                 let min_width: Au = style
-                    .content_min_box_size(containing_block_for_table, &self.pbm)
+                    .content_min_box_size_deprecated(containing_block_for_table, &self.pbm)
                     .inline
                     .auto_is(Au::zero);
                 resolved_table_width
@@ -1587,12 +1593,12 @@ impl<'a> TableLayout<'a> {
         // the resulting length, properly clamped between min-block-size and max-block-size.
         let style = &self.table.style;
         let table_height_from_style = match style
-            .content_box_size(containing_block_for_table, &self.pbm)
+            .content_box_size_deprecated(containing_block_for_table, &self.pbm)
             .block
         {
             LengthPercentage(_) => containing_block_for_children.block_size,
             Auto => style
-                .content_min_box_size(containing_block_for_table, &self.pbm)
+                .content_min_box_size_deprecated(containing_block_for_table, &self.pbm)
                 .block
                 .map(Au::from),
         }
@@ -2711,7 +2717,7 @@ impl Table {
             .style
             .box_size(writing_mode)
             .block
-            .non_auto()
+            .to_numeric()
             .and_then(|size| size.to_length())
             .map_or_else(Au::zero, Au::from);
         let percentage_contribution =
@@ -2841,12 +2847,13 @@ fn get_size_percentage_contribution_from_style(
     let max_size = style.max_box_size(writing_mode);
 
     let get_contribution_for_axis =
-        |size: LengthPercentageOrAuto<'_>, max_size: Option<&ComputedLengthPercentage>| {
+        |size: Size<ComputedLengthPercentage>, max_size: Size<ComputedLengthPercentage>| {
             let size_percentage = size
-                .non_auto()
+                .to_numeric()
                 .and_then(|length_percentage| length_percentage.to_percentage())
                 .unwrap_or(Percentage(0.));
             let max_size_percentage = max_size
+                .to_numeric()
                 .and_then(|length_percentage| length_percentage.to_percentage())
                 .unwrap_or(Percentage(f32::INFINITY));
             Percentage(size_percentage.0.min(max_size_percentage.0))
@@ -2871,22 +2878,22 @@ fn get_outer_sizes_from_style(
             block: size.block.max(padding_border_sums.block),
         },
     };
-    let get_size_for_axis = |size: &LengthPercentageOrAuto<'_>| {
-        size.non_auto()
-            .and_then(|size| size.to_length())
-            .map_or_else(Au::zero, Au::from)
-    };
-    let get_max_size_for_axis = |size: &Option<&ComputedLengthPercentage>| {
-        size.and_then(|length_percentage| length_percentage.to_length())
-            .map_or(MAX_AU, Au::from)
+    let get_size_for_axis = |size: &Size<ComputedLengthPercentage>| {
+        // TODO(#32853): This treats all sizing keywords as `auto`.
+        size.to_numeric()
+            .and_then(|length_percentage| length_percentage.to_length())
+            .map(Au::from)
     };
 
     let size = style.box_size(writing_mode);
+    let min_size = style.min_box_size(writing_mode);
+    let max_size = style.max_box_size(writing_mode);
     (
-        outer_size(size.map(get_size_for_axis)),
-        outer_size(style.min_box_size(writing_mode).map(get_size_for_axis)),
-        outer_size(style.max_box_size(writing_mode).map(get_max_size_for_axis)),
-        size.inline.is_auto(),
+        outer_size(size.map(|v| get_size_for_axis(v).unwrap_or(Au(0)))),
+        outer_size(min_size.map(|v| get_size_for_axis(v).unwrap_or(Au(0)))),
+        outer_size(max_size.map(|v| get_size_for_axis(v).unwrap_or(MAX_AU))),
+        // TODO(#32853): This treats all sizing keywords as `auto`.
+        size.inline.is_keyword(),
     )
 }
 

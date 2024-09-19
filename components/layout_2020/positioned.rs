@@ -476,7 +476,7 @@ impl HoistedAbsolutelyPositionedBox {
             },
             IndependentFormattingContext::NonReplaced(non_replaced) => non_replaced
                 .style
-                .content_box_size(&indefinite_containing_block, &pbm),
+                .content_box_size_deprecated(&indefinite_containing_block, &pbm),
         };
 
         let shared_fragment = self.fragment.borrow();
@@ -561,10 +561,10 @@ impl HoistedAbsolutelyPositionedBox {
                     // https://drafts.csswg.org/css2/#min-max-heights
                     let min_size = non_replaced
                         .style
-                        .content_min_box_size(&indefinite_containing_block, &pbm)
+                        .content_min_box_size_deprecated(&indefinite_containing_block, &pbm)
                         .map(|t| t.map(Au::from).auto_is(Au::zero));
                     let max_size = style
-                        .content_max_box_size(&containing_block.into(), &pbm)
+                        .content_max_box_size_deprecated(&containing_block.into(), &pbm)
                         .map(|t| t.map(Au::from));
 
                     // https://drafts.csswg.org/css2/visudet.html#abs-non-replaced-width

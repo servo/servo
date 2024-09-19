@@ -9,7 +9,9 @@ use std::ops::{Add, AddAssign, Neg, Sub, SubAssign};
 use app_units::Au;
 use serde::Serialize;
 use style::logical_geometry::{BlockFlowDirection, InlineBaseDirection, WritingMode};
-use style::values::computed::{CSSPixelLength, LengthPercentage};
+use style::values::computed::{
+    CSSPixelLength, LengthPercentage, MaxSize as StyleMaxSize, Size as StyleSize,
+};
 use style::values::generics::length::GenericLengthPercentageOrAuto as AutoOr;
 use style::Zero;
 use style_traits::CSSPixel;
@@ -142,89 +144,6 @@ impl<T: Zero> LogicalVec2<T> {
 impl<T: Clone> LogicalVec2<AutoOr<T>> {
     pub fn auto_is(&self, f: impl Fn() -> T) -> LogicalVec2<T> {
         self.map(|t| t.auto_is(&f))
-    }
-}
-
-impl LogicalVec2<LengthPercentageOrAuto<'_>> {
-    pub(crate) fn percentages_relative_to(
-        &self,
-        containing_block: &ContainingBlock,
-    ) -> LogicalVec2<AuOrAuto> {
-        LogicalVec2 {
-            inline: self
-                .inline
-                .map(|value| value.to_used_value(containing_block.inline_size)),
-            block: {
-                self.block
-                    .non_auto()
-                    .and_then(|value| {
-                        value.maybe_to_used_value(containing_block.block_size.non_auto())
-                    })
-                    .map_or(AuOrAuto::Auto, AuOrAuto::LengthPercentage)
-            },
-        }
-    }
-}
-
-impl LogicalVec2<LengthPercentageOrAuto<'_>> {
-    pub(crate) fn percentages_relative_to_basis(
-        &self,
-        basis: &LogicalVec2<Au>,
-    ) -> LogicalVec2<AuOrAuto> {
-        LogicalVec2 {
-            inline: self.inline.map(|value| value.to_used_value(basis.inline)),
-            block: self.block.map(|value| value.to_used_value(basis.block)),
-        }
-    }
-}
-
-impl LogicalVec2<LengthPercentageOrAuto<'_>> {
-    pub(crate) fn maybe_percentages_relative_to_basis(
-        &self,
-        basis: &LogicalVec2<Option<Au>>,
-    ) -> LogicalVec2<AuOrAuto> {
-        LogicalVec2 {
-            inline: self
-                .inline
-                .non_auto()
-                .and_then(|value| value.maybe_to_used_value(basis.inline))
-                .map_or(AuOrAuto::Auto, AuOrAuto::LengthPercentage),
-            block: self
-                .block
-                .non_auto()
-                .and_then(|value| value.maybe_to_used_value(basis.block))
-                .map_or(AuOrAuto::Auto, AuOrAuto::LengthPercentage),
-        }
-    }
-}
-
-impl LogicalVec2<Option<&'_ LengthPercentage>> {
-    pub(crate) fn percentages_relative_to(
-        &self,
-        containing_block: &ContainingBlock,
-    ) -> LogicalVec2<Option<Au>> {
-        LogicalVec2 {
-            inline: self
-                .inline
-                .map(|lp| lp.to_used_value(containing_block.inline_size)),
-            block: self
-                .block
-                .and_then(|lp| lp.maybe_to_used_value(containing_block.block_size.non_auto())),
-        }
-    }
-}
-
-impl LogicalVec2<Option<&'_ LengthPercentage>> {
-    pub(crate) fn maybe_percentages_relative_to_basis(
-        &self,
-        basis: &LogicalVec2<Option<Au>>,
-    ) -> LogicalVec2<Option<Au>> {
-        LogicalVec2 {
-            inline: self
-                .inline
-                .and_then(|v| v.maybe_to_used_value(basis.inline)),
-            block: self.block.and_then(|v| v.maybe_to_used_value(basis.block)),
-        }
     }
 }
 
@@ -698,6 +617,147 @@ impl ToLogicalWithContainingBlock<LogicalRect<Au>> for PhysicalRect<Au> {
                 block: block_start,
             },
             size: LogicalVec2 { inline, block },
+        }
+    }
+}
+
+/// The possible keywords accepted by the sizing properties.
+/// <https://drafts.csswg.org/css-sizing/#sizing-properties>
+#[derive(Clone)]
+pub(crate) enum SizeKeyword {
+    /// Represents an `auto` value for the preferred and minimum size properties,
+    /// or `none` for the maximum size properties.
+    /// <https://drafts.csswg.org/css-sizing/#valdef-width-auto>
+    /// <https://drafts.csswg.org/css-sizing/#valdef-max-width-none>
+    Initial,
+    /// <https://drafts.csswg.org/css-sizing/#valdef-width-min-content>
+    MinContent,
+    /// <https://drafts.csswg.org/css-sizing/#valdef-width-max-content>
+    MaxContent,
+    /// <https://drafts.csswg.org/css-sizing-4/#valdef-width-fit-content>
+    FitContent,
+    /// <https://drafts.csswg.org/css-sizing-4/#valdef-width-stretch>
+    Stretch,
+}
+
+/// The possible values accepted by the sizing properties,
+/// with numeric `<length-percentage>` resolved as a `T`.
+/// <https://drafts.csswg.org/css-sizing/#sizing-properties>
+#[derive(Clone)]
+pub(crate) enum Size<T> {
+    Keyword(SizeKeyword),
+    Numeric(T),
+}
+
+impl<T> Default for Size<T> {
+    #[inline]
+    fn default() -> Self {
+        Self::Keyword(SizeKeyword::Initial)
+    }
+}
+
+impl<T: Clone> Size<T> {
+    #[inline]
+    pub(crate) fn is_keyword(&self) -> bool {
+        matches!(self, Self::Keyword(_))
+    }
+
+    #[inline]
+    pub(crate) fn to_numeric(&self) -> Option<T> {
+        match self {
+            Self::Keyword(_) => None,
+            Self::Numeric(numeric) => Some(numeric).cloned(),
+        }
+    }
+
+    #[inline]
+    pub(crate) fn to_auto_or(&self) -> AutoOr<T> {
+        self.to_numeric()
+            .map_or(AutoOr::Auto, AutoOr::LengthPercentage)
+    }
+
+    #[inline]
+    pub fn map<U>(&self, f: impl FnOnce(T) -> U) -> Size<U> {
+        match self {
+            Size::Keyword(keyword) => Size::Keyword(keyword.clone()),
+            Size::Numeric(numeric) => Size::Numeric(f(numeric.clone())),
+        }
+    }
+
+    #[inline]
+    pub fn maybe_map<U>(&self, f: impl FnOnce(T) -> Option<U>) -> Option<Size<U>> {
+        Some(match self {
+            Size::Keyword(keyword) => Size::Keyword(keyword.clone()),
+            Size::Numeric(numeric) => Size::Numeric(f(numeric.clone())?),
+        })
+    }
+}
+
+impl From<StyleSize> for Size<LengthPercentage> {
+    fn from(size: StyleSize) -> Self {
+        match size {
+            StyleSize::LengthPercentage(length) => Size::Numeric(length.0),
+            StyleSize::Auto => Size::Keyword(SizeKeyword::Initial),
+            StyleSize::MinContent => Size::Keyword(SizeKeyword::MinContent),
+            StyleSize::MaxContent => Size::Keyword(SizeKeyword::MaxContent),
+            StyleSize::FitContent => Size::Keyword(SizeKeyword::FitContent),
+            StyleSize::Stretch => Size::Keyword(SizeKeyword::Stretch),
+        }
+    }
+}
+
+impl From<StyleMaxSize> for Size<LengthPercentage> {
+    fn from(max_size: StyleMaxSize) -> Self {
+        match max_size {
+            StyleMaxSize::LengthPercentage(length) => Size::Numeric(length.0),
+            StyleMaxSize::None => Size::Keyword(SizeKeyword::Initial),
+            StyleMaxSize::MinContent => Size::Keyword(SizeKeyword::MinContent),
+            StyleMaxSize::MaxContent => Size::Keyword(SizeKeyword::MaxContent),
+            StyleMaxSize::FitContent => Size::Keyword(SizeKeyword::FitContent),
+            StyleMaxSize::Stretch => Size::Keyword(SizeKeyword::Stretch),
+        }
+    }
+}
+
+impl LogicalVec2<Size<LengthPercentage>> {
+    pub(crate) fn percentages_relative_to(
+        &self,
+        containing_block: &ContainingBlock,
+    ) -> LogicalVec2<Size<Au>> {
+        LogicalVec2 {
+            inline: self
+                .inline
+                .map(|lp| lp.to_used_value(containing_block.inline_size)),
+            block: self
+                .block
+                .maybe_map(|lp| lp.maybe_to_used_value(containing_block.block_size.non_auto()))
+                .unwrap_or_default(),
+        }
+    }
+
+    pub(crate) fn maybe_percentages_relative_to_basis(
+        &self,
+        basis: &LogicalVec2<Option<Au>>,
+    ) -> LogicalVec2<Size<Au>> {
+        LogicalVec2 {
+            inline: self
+                .inline
+                .maybe_map(|v| v.maybe_to_used_value(basis.inline))
+                .unwrap_or_default(),
+            block: self
+                .block
+                .maybe_map(|v| v.maybe_to_used_value(basis.block))
+                .unwrap_or_default(),
+        }
+    }
+
+    pub(crate) fn percentages_relative_to_basis(
+        &self,
+        basis: &LogicalVec2<Au>,
+    ) -> LogicalVec2<Size<Au>> {
+        LogicalVec2 {
+            inline: self.inline.map(|value| value.to_used_value(basis.inline)),
+            block: self.block.map(|value| value.to_used_value(basis.block)),
         }
     }
 }

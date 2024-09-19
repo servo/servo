@@ -135,10 +135,10 @@ impl BlockLevelBox {
         }
 
         let min_size = style
-            .content_min_box_size(containing_block, &pbm)
+            .content_min_box_size_deprecated(containing_block, &pbm)
             .auto_is(Au::zero);
-        let max_size = style.content_max_box_size(containing_block, &pbm);
-        let prefered_size = style.content_box_size(containing_block, &pbm);
+        let max_size = style.content_max_box_size_deprecated(containing_block, &pbm);
+        let prefered_size = style.content_box_size_deprecated(containing_block, &pbm);
         let inline_size = prefered_size
             .inline
             .auto_is(|| {
@@ -1048,11 +1048,15 @@ impl NonReplacedFormattingContext {
         sequential_layout_state: &mut SequentialLayoutState,
     ) -> BoxFragment {
         let pbm = self.style.padding_border_margin(containing_block);
-        let box_size = self.style.content_box_size(containing_block, &pbm);
-        let max_box_size = self.style.content_max_box_size(containing_block, &pbm);
+        let box_size = self
+            .style
+            .content_box_size_deprecated(containing_block, &pbm);
+        let max_box_size = self
+            .style
+            .content_max_box_size_deprecated(containing_block, &pbm);
         let min_box_size = self
             .style
-            .content_min_box_size(containing_block, &pbm)
+            .content_min_box_size_deprecated(containing_block, &pbm)
             .auto_is(Au::zero);
         let block_size = box_size.block.map(|block_size| {
             block_size.clamp_between_extremums(min_box_size.block, max_box_size.block)
@@ -1424,10 +1428,10 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
     style: &'a Arc<ComputedValues>,
 ) -> ContainingBlockPaddingAndBorder<'a> {
     let pbm = style.padding_border_margin(containing_block);
-    let box_size = style.content_box_size(containing_block, &pbm);
-    let max_box_size = style.content_max_box_size(containing_block, &pbm);
+    let box_size = style.content_box_size_deprecated(containing_block, &pbm);
+    let max_box_size = style.content_max_box_size_deprecated(containing_block, &pbm);
     let min_box_size = style
-        .content_min_box_size(containing_block, &pbm)
+        .content_min_box_size_deprecated(containing_block, &pbm)
         .auto_is(Au::zero);
 
     // https://drafts.csswg.org/css2/#the-width-property

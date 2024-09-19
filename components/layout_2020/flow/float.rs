@@ -915,13 +915,13 @@ impl FloatBox {
                         // https://drafts.csswg.org/css2/#float-width
                         let style = non_replaced.style.clone();
                         let box_size = style
-                            .content_box_size(containing_block, &pbm)
+                            .content_box_size_deprecated(containing_block, &pbm)
                             .map(|v| v.map(Au::from));
                         let max_box_size = style
-                            .content_max_box_size(containing_block, &pbm)
+                            .content_max_box_size_deprecated(containing_block, &pbm)
                             .map(|v| v.map(Au::from));
                         let min_box_size = style
-                            .content_min_box_size(containing_block, &pbm)
+                            .content_min_box_size_deprecated(containing_block, &pbm)
                             .map(|v| v.map(Au::from))
                             .auto_is(Au::zero);
 
