@@ -71,6 +71,7 @@ jobs:
       - name: "Setup HAP signing config"
         env:
           SIGNING_MATERIAL: ${{ secrets.SERVO_OHOS_SIGNING_MATERIAL }}
+        if: ${{ env.SIGNING_MATERIAL != '' }} # Allows the build to pass on forks.
         run: |
           cd ~
           echo "${SIGNING_MATERIAL}" | base64 -d > servo-ohos-material.zip
@@ -89,8 +90,15 @@ jobs:
           name: cargo-timings-ohos-${{ matrix.arch }}
           # Using a wildcard here ensures that the archive includes the path.
           path: target/cargo-timings-*
-      - name: Upload HAP artifact
+      - name: Upload signed HAP artifact
+        if: ${{ env.SERVO_OHOS_SIGNING_CONFIG != '' }} # Build output has different name if not signed.
         uses: actions/upload-artifact@v4
         with:
           name: ${{ inputs.profile }}-binary-ohos-${{ matrix.arch }}
           path: target/openharmony/${{ matrix.arch }}/${{ inputs.profile }}/entry/build/default/outputs/default/servoshell-default-signed.hap
+      - name: Upload unsigned HAP artifact
+        if: ${{ env.SERVO_OHOS_SIGNING_CONFIG == '' }} # Build output has different name if not signed.
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.profile }}-binary-ohos-${{ matrix.arch }}
+          path: target/openharmony/${{ matrix.arch }}/${{ inputs.profile }}/entry/build/default/outputs/default/servoshell-default-unsigned.hap
