@@ -249,15 +249,18 @@ impl App {
                         // Intercept any ScaleFactorChanged events away from EguiGlow::on_window_event, so
                         // we can use our own logic for calculating the scale factor and set egui’s
                         // scale factor to that value manually.
-                        let effective_scale_factor = window.hidpi_factor().get();
+                        let desired_scale_factor = window.hidpi_factor().get();
+                        let effective_egui_zoom_factor = desired_scale_factor / scale_factor as f32;
+
                         info!(
-                            "window scale factor changed to {}, setting scale factor to {}",
-                            scale_factor, effective_scale_factor
+                            "window scale factor changed to {}, setting egui zoom factor to {}",
+                            scale_factor, effective_egui_zoom_factor
                         );
+
                         minibrowser
                             .context
                             .egui_ctx
-                            .set_pixels_per_point(effective_scale_factor);
+                            .set_zoom_factor(effective_egui_zoom_factor);
 
                         // Request a winit redraw event, so we can recomposite, update and paint
                         // the minibrowser, and present the new frame.
