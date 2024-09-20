@@ -207,9 +207,16 @@ impl GPUCanvasContextMethods for GPUCanvasContext {
         configuration
             .device
             .validate_texture_format_required_features(&configuration.format)?;
+        // Mapping between wr and wgpu can be determined by inspecting
+        // https://github.com/gfx-rs/wgpu/blob/9b36a3e129da04b018257564d5129caff240cb75/wgpu-hal/src/gles/conv.rs#L10
+        // https://github.com/servo/webrender/blob/1e73f384a7a86e413f91e9e430436a9bd83381cd/webrender/src/device/gl.rs#L4064
         let format = match configuration.format {
-            GPUTextureFormat::Rgba8unorm | GPUTextureFormat::Rgba8unorm_srgb => ImageFormat::RGBA8,
+            GPUTextureFormat::R8unorm => ImageFormat::R8,
             GPUTextureFormat::Bgra8unorm | GPUTextureFormat::Bgra8unorm_srgb => ImageFormat::BGRA8,
+            GPUTextureFormat::Rgba8unorm | GPUTextureFormat::Rgba8unorm_srgb => ImageFormat::RGBA8,
+            GPUTextureFormat::Rgba32float => ImageFormat::RGBAF32,
+            GPUTextureFormat::Rgba32sint => ImageFormat::RGBAI32,
+            GPUTextureFormat::Rg8unorm => ImageFormat::RG8,
             _ => {
                 return Err(Error::Type(format!(
                     "SwapChain format({:?}) not supported",
