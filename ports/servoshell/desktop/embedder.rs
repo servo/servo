@@ -8,12 +8,14 @@ use net::protocols::ProtocolRegistry;
 use servo::compositing::windowing::EmbedderMethods;
 use servo::embedder_traits::{EmbedderProxy, EventLoopWaker};
 use servo::servo_config::pref;
+#[cfg(feature = "webxr")]
 use webxr::glwindow::GlWindowDiscovery;
-#[cfg(target_os = "windows")]
+#[cfg(all(feature = "webxr", target_os = "windows"))]
 use webxr::openxr::OpenXrDiscovery;
 
 use crate::desktop::protocols::{resource, servo as servo_handler, urlinfo};
 
+#[cfg(feature = "webxr")]
 pub enum XrDiscovery {
     GlWindow(GlWindowDiscovery),
     #[cfg(target_os = "windows")]
@@ -22,16 +24,18 @@ pub enum XrDiscovery {
 
 pub struct EmbedderCallbacks {
     event_loop_waker: Box<dyn EventLoopWaker>,
+    #[cfg(feature = "webxr")]
     xr_discovery: Option<XrDiscovery>,
 }
 
 impl EmbedderCallbacks {
     pub fn new(
         event_loop_waker: Box<dyn EventLoopWaker>,
-        xr_discovery: Option<XrDiscovery>,
+        #[cfg(feature = "webxr")] xr_discovery: Option<XrDiscovery>,
     ) -> EmbedderCallbacks {
         EmbedderCallbacks {
             event_loop_waker,
+            #[cfg(feature = "webxr")]
             xr_discovery,
         }
     }
@@ -42,6 +46,7 @@ impl EmbedderMethods for EmbedderCallbacks {
         self.event_loop_waker.clone()
     }
 
+    #[cfg(feature = "webxr")]
     fn register_webxr(
         &mut self,
         xr: &mut webxr::MainThreadRegistry,

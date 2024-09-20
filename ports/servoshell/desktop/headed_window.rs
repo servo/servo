@@ -53,6 +53,7 @@ pub struct Window {
     animation_state: Cell<AnimationState>,
     fullscreen: Cell<bool>,
     device_pixel_ratio_override: Option<f32>,
+    #[cfg(feature = "webxr")]
     xr_window_poses: RefCell<Vec<Rc<XRWindowPose>>>,
     modifiers_state: Cell<ModifiersState>,
 }
@@ -150,6 +151,7 @@ impl Window {
             primary_monitor,
             screen_size,
             device_pixel_ratio_override,
+            #[cfg(feature = "webxr")]
             xr_window_poses: RefCell::new(vec![]),
             modifiers_state: Cell::new(ModifiersState::empty()),
             toolbar_height: Cell::new(Default::default()),
@@ -191,10 +193,14 @@ impl Window {
             }
         }
 
-        let xr_poses = self.xr_window_poses.borrow();
-        for xr_window_pose in &*xr_poses {
-            xr_window_pose.handle_xr_translation(&event);
+        #[cfg(feature = "webxr")]
+        {
+            let xr_poses = self.xr_window_poses.borrow();
+            for xr_window_pose in &*xr_poses {
+                xr_window_pose.handle_xr_translation(&event);
+            }
         }
+
         self.event_queue
             .borrow_mut()
             .push(EmbedderEvent::Keyboard(event));
@@ -224,9 +230,12 @@ impl Window {
 
         if event.key != Key::Unidentified {
             self.last_pressed.set(None);
-            let xr_poses = self.xr_window_poses.borrow();
-            for xr_window_pose in &*xr_poses {
-                xr_window_pose.handle_xr_rotation(&input, self.modifiers_state.get());
+            #[cfg(feature = "webxr")]
+            {
+                let xr_poses = self.xr_window_poses.borrow();
+                for xr_window_pose in &*xr_poses {
+                    xr_window_pose.handle_xr_rotation(&input, self.modifiers_state.get());
+                }
             }
             self.event_queue
                 .borrow_mut()
@@ -501,6 +510,7 @@ impl WindowPortsMethods for Window {
         }
     }
 
+    #[cfg(feature = "webxr")]
     fn new_glwindow(
         &self,
         event_loop: &winit::event_loop::EventLoopWindowTarget<WakerEvent>,
@@ -591,16 +601,19 @@ fn load_icon(icon_bytes: &[u8]) -> Icon {
     Icon::from_rgba(icon_rgba, icon_width, icon_height).expect("Failed to load icon")
 }
 
+#[cfg(feature = "webxr")]
 struct XRWindow {
     winit_window: winit::window::Window,
     pose: Rc<XRWindowPose>,
 }
 
+#[cfg(feature = "webxr")]
 struct XRWindowPose {
     xr_rotation: Cell<Rotation3D<f32, UnknownUnit, UnknownUnit>>,
     xr_translation: Cell<Vector3D<f32, UnknownUnit>>,
 }
 
+#[cfg(feature = "webxr")]
 impl webxr::glwindow::GlWindow for XRWindow {
     fn get_render_target(
         &self,
@@ -643,6 +656,7 @@ impl webxr::glwindow::GlWindow for XRWindow {
     }
 }
 
+#[cfg(feature = "webxr")]
 impl XRWindowPose {
     fn handle_xr_translation(&self, input: &KeyboardEvent) {
         if input.state != KeyState::Down {

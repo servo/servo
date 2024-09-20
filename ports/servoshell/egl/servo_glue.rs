@@ -614,19 +614,19 @@ impl ServoGlue {
                 EmbedderMsg::ReadyToPresent(_webview_ids) => {
                     self.need_present = true;
                 },
-                EmbedderMsg::Status(..) |
-                EmbedderMsg::SelectFiles(..) |
-                EmbedderMsg::MoveTo(..) |
-                EmbedderMsg::ResizeTo(..) |
-                EmbedderMsg::Keyboard(..) |
-                EmbedderMsg::SetCursor(..) |
-                EmbedderMsg::NewFavicon(..) |
-                EmbedderMsg::HeadParsed |
-                EmbedderMsg::SetFullscreenState(..) |
-                EmbedderMsg::ReportProfile(..) |
-                EmbedderMsg::EventDelivered(..) |
-                EmbedderMsg::PlayGamepadHapticEffect(..) |
-                EmbedderMsg::StopGamepadHapticEffect(..) => {},
+                EmbedderMsg::Status(..)
+                | EmbedderMsg::SelectFiles(..)
+                | EmbedderMsg::MoveTo(..)
+                | EmbedderMsg::ResizeTo(..)
+                | EmbedderMsg::Keyboard(..)
+                | EmbedderMsg::SetCursor(..)
+                | EmbedderMsg::NewFavicon(..)
+                | EmbedderMsg::HeadParsed
+                | EmbedderMsg::SetFullscreenState(..)
+                | EmbedderMsg::ReportProfile(..)
+                | EmbedderMsg::EventDelivered(..)
+                | EmbedderMsg::PlayGamepadHapticEffect(..)
+                | EmbedderMsg::StopGamepadHapticEffect(..) => {},
             }
         }
 
@@ -646,6 +646,7 @@ impl ServoGlue {
 
 pub(super) struct ServoEmbedderCallbacks {
     waker: Box<dyn EventLoopWaker>,
+    #[cfg(feature = "webxr")]
     xr_discovery: Option<webxr::Discovery>,
     #[allow(unused)]
     gl: Rc<dyn gl::Gl>,
@@ -654,11 +655,12 @@ pub(super) struct ServoEmbedderCallbacks {
 impl ServoEmbedderCallbacks {
     pub(super) fn new(
         waker: Box<dyn EventLoopWaker>,
-        xr_discovery: Option<webxr::Discovery>,
+        #[cfg(feature = "webxr")] xr_discovery: Option<webxr::Discovery>,
         gl: Rc<dyn gl::Gl>,
     ) -> Self {
         Self {
             waker,
+            #[cfg(feature = "webxr")]
             xr_discovery,
             gl,
         }
@@ -671,6 +673,7 @@ impl EmbedderMethods for ServoEmbedderCallbacks {
         self.waker.clone()
     }
 
+    #[cfg(feature = "webxr")]
     fn register_webxr(
         &mut self,
         registry: &mut webxr::MainThreadRegistry,
