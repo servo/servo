@@ -848,25 +848,30 @@ fn initial_computed_inline_size(
     preferred_width_of_all_columns: Au,
     table_border_padding: Au,
 ) -> MaybeAuto {
-    match block.fragment.style.content_inline_size() {
-        Size::Auto => {
-            if preferred_width_of_all_columns + table_border_padding <= containing_block_inline_size
-            {
-                MaybeAuto::Specified(preferred_width_of_all_columns + table_border_padding)
-            } else if minimum_width_of_all_columns > containing_block_inline_size {
-                MaybeAuto::Specified(minimum_width_of_all_columns)
-            } else {
-                MaybeAuto::Auto
-            }
-        },
-        Size::LengthPercentage(ref lp) => {
-            let used = lp.to_used_value(containing_block_inline_size);
-            MaybeAuto::Specified(max(
-                used - table_border_padding,
-                minimum_width_of_all_columns,
-            ))
-        },
-    }
+    block
+        .fragment
+        .style
+        .content_inline_size()
+        .to_used_value(containing_block_inline_size)
+        .map_or_else(
+            || {
+                if preferred_width_of_all_columns + table_border_padding <=
+                    containing_block_inline_size
+                {
+                    MaybeAuto::Specified(preferred_width_of_all_columns + table_border_padding)
+                } else if minimum_width_of_all_columns > containing_block_inline_size {
+                    MaybeAuto::Specified(minimum_width_of_all_columns)
+                } else {
+                    MaybeAuto::Auto
+                }
+            },
+            |used| {
+                MaybeAuto::Specified(max(
+                    used - table_border_padding,
+                    minimum_width_of_all_columns,
+                ))
+            },
+        )
 }
 
 struct Table {

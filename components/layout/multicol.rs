@@ -15,7 +15,7 @@ use log::{debug, trace};
 use style::logical_geometry::LogicalSize;
 use style::properties::ComputedValues;
 use style::values::computed::length::{
-    MaxSize, NonNegativeLengthOrAuto, NonNegativeLengthPercentageOrNormal, Size,
+    NonNegativeLengthOrAuto, NonNegativeLengthPercentageOrNormal,
 };
 use style::values::generics::column::ColumnCount;
 
@@ -167,14 +167,10 @@ impl Flow for MulticolFlow {
             this_fragment_is_empty: true,
             available_block_size: {
                 let style = &self.block_flow.fragment.style;
-                let size = match style.content_block_size() {
-                    Size::Auto => None,
-                    Size::LengthPercentage(ref lp) => lp.maybe_to_used_value(None),
-                };
-                let size = size.or_else(|| match style.max_block_size() {
-                    MaxSize::None => None,
-                    MaxSize::LengthPercentage(ref lp) => lp.maybe_to_used_value(None),
-                });
+                let size = style
+                    .content_block_size()
+                    .maybe_to_used_value(None)
+                    .or_else(|| style.max_block_size().maybe_to_used_value(None));
 
                 size.unwrap_or_else(|| {
                     // FIXME: do column balancing instead

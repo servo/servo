@@ -2359,9 +2359,10 @@ impl FlexItemBox {
                     },
                 }
             },
-            FlexBasis::Size(Size::Auto) => {
+            FlexBasis::Size(_) => {
                 // “When specified on a flex item, the `auto` keyword retrieves
                 //  the value of the main size property as the used `flex-basis`.”
+                // TODO(#32853): Handle other intrinsic keywords.
                 match content_box_size.main {
                     AuOrAuto::LengthPercentage(length) => FlexBasis::Size(length),
                     // “If that value is itself `auto`, then the used value is `content`.”

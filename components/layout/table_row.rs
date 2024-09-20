@@ -432,21 +432,17 @@ impl Flow for TableRowFlow {
                 // Collect minimum and preferred inline-sizes of the cell for automatic table layout
                 // calculation.
                 let child_base = kid.mut_base();
+                let resolved_child_specified_inline_size =
+                    child_specified_inline_size.maybe_to_used_value(None);
                 let child_column_inline_size = ColumnIntrinsicInlineSize {
-                    minimum_length: match child_specified_inline_size {
-                        Size::Auto => None,
-                        Size::LengthPercentage(ref lp) => lp.0.maybe_to_used_value(None),
-                    }
-                    .unwrap_or(child_base.intrinsic_inline_sizes.minimum_inline_size),
+                    minimum_length: resolved_child_specified_inline_size
+                        .unwrap_or(child_base.intrinsic_inline_sizes.minimum_inline_size),
                     percentage: match child_specified_inline_size {
-                        Size::Auto => 0.0,
                         Size::LengthPercentage(ref lp) => lp.0.to_percentage().map_or(0.0, |p| p.0),
+                        _ => 0.0,
                     },
                     preferred: child_base.intrinsic_inline_sizes.preferred_inline_size,
-                    constrained: match child_specified_inline_size {
-                        Size::Auto => false,
-                        Size::LengthPercentage(ref lp) => lp.0.maybe_to_used_value(None).is_some(),
-                    },
+                    constrained: resolved_child_specified_inline_size.is_some(),
                 };
                 min_inline_size += child_column_inline_size.minimum_length;
                 pref_inline_size += child_column_inline_size.preferred;

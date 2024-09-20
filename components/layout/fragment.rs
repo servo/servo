@@ -50,7 +50,7 @@ use style::selector_parser::RestyleDamage;
 use style::servo::restyle_damage::ServoRestyleDamage;
 use style::str::char_is_whitespace;
 use style::values::computed::counters::ContentItem;
-use style::values::computed::{Length, Size, VerticalAlign};
+use style::values::computed::{Length, VerticalAlign};
 use style::values::generics::box_::{Perspective, VerticalAlignKeyword};
 use style::values::generics::transform;
 use webrender_api::units::LayoutTransform;
@@ -1642,11 +1642,7 @@ impl Fragment {
             SpecificFragmentInfo::Canvas(_) |
             SpecificFragmentInfo::Iframe(_) |
             SpecificFragmentInfo::Svg(_) => {
-                let inline_size = match self.style.content_inline_size() {
-                    Size::Auto => None,
-                    Size::LengthPercentage(ref lp) => lp.maybe_to_used_value(None),
-                };
-
+                let inline_size = self.style.content_inline_size().maybe_to_used_value(None);
                 let mut inline_size = inline_size.unwrap_or_else(|| {
                     // We have to initialize the `border_padding` field first to make
                     // the size constraints work properly.

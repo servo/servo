@@ -307,17 +307,14 @@ impl Flow for TableFlow {
             for specified_inline_size in &kid.as_mut_table_colgroup().inline_sizes {
                 self.column_intrinsic_inline_sizes
                     .push(ColumnIntrinsicInlineSize {
-                        minimum_length: match *specified_inline_size {
-                            Size::Auto => Au(0),
-                            Size::LengthPercentage(ref lp) => {
-                                lp.maybe_to_used_value(None).unwrap_or(Au(0))
-                            },
-                        },
+                        minimum_length: specified_inline_size
+                            .maybe_to_used_value(None)
+                            .unwrap_or(Au(0)),
                         percentage: match *specified_inline_size {
-                            Size::Auto => 0.0,
                             Size::LengthPercentage(ref lp) => {
                                 lp.0.to_percentage().map_or(0.0, |p| p.0)
                             },
+                            _ => 0.0,
                         },
                         preferred: Au(0),
                         constrained: false,

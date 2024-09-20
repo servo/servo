@@ -48,11 +48,11 @@ impl AxisSize {
     /// containing block size, min constraint, and max constraint
     pub fn new(size: &Size, content_size: Option<Au>, min: &Size, max: &MaxSize) -> AxisSize {
         match size {
-            Size::Auto => AxisSize::MinMax(SizeConstraint::new(content_size, min, max, None)),
             Size::LengthPercentage(ref lp) => match lp.maybe_to_used_value(content_size) {
                 Some(length) => AxisSize::Definite(length),
                 None => AxisSize::Infinite,
             },
+            _ => AxisSize::MinMax(SizeConstraint::new(content_size, min, max, None)),
         }
     }
 }
@@ -72,10 +72,7 @@ fn from_flex_basis(flex_basis: &FlexBasis, main_length: &Size, containing_length
         _ => width,
     };
 
-    match width {
-        Size::Auto => MaybeAuto::Auto,
-        Size::LengthPercentage(ref lp) => MaybeAuto::Specified(lp.to_used_value(containing_length)),
-    }
+    MaybeAuto::from_option(width.to_used_value(containing_length))
 }
 
 /// Represents a child in a flex container. Most fields here are used in
