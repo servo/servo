@@ -641,7 +641,7 @@ impl WGPU {
                         let global = &self.global;
                         let response = self
                             .global
-                            .request_adapter(&options, backends(), Some(adapter_id))
+                            .request_adapter(&options, wgt::Backends::all(), Some(adapter_id))
                             .map(|adapter_id| {
                                 let adapter = WebGPUAdapter(adapter_id);
                                 self.adapters.push(adapter);
@@ -1311,27 +1311,4 @@ impl WGPU {
                 .or_insert_with(|| format!("{:?}", e));
         }
     }
-}
-
-fn backends() -> wgt::Backends {
-    let mut backends = wgt::Backends::empty();
-
-    #[cfg(any(target_os = "linux", target_os = "windows"))]
-    {
-        backends |= wgt::Backends::VULKAN;
-    }
-    #[cfg(target_os = "windows")]
-    {
-        backends |= wgt::Backends::DX12;
-    }
-    #[cfg(any(target_os = "ios", target_os = "macos"))]
-    {
-        backends |= wgt::Backends::METAL;
-    }
-    #[cfg(any(target_os = "linux", target_os = "windows"))]
-    {
-        backends |= wgt::Backends::GL;
-    }
-
-    backends
 }
