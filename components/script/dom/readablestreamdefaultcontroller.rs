@@ -116,6 +116,12 @@ impl QueueWithSizes {
             })
             .collect()
     }
+
+    /// <https://streams.spec.whatwg.org/#reset-queue>
+    fn reset(&mut self) {
+        self.queue.clear();
+        self.total_size = Default::default();
+    }
 }
 
 /// <https://streams.spec.whatwg.org/#readablestreamdefaultcontroller>
@@ -332,11 +338,6 @@ impl ReadableStreamDefaultController {
         }
     }
 
-    /// <https://streams.spec.whatwg.org/#ref-for-readable-stream-error>
-    pub fn error(&self) {
-        todo!()
-    }
-
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-get-desired-size>
     fn get_desired_size(&self) -> Option<f64> {
         let Some(stream) = self.stream.get() else {
@@ -372,6 +373,26 @@ impl ReadableStreamDefaultController {
         // Otherwise, return false.
         false
     }
+
+    /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-error>
+    pub fn error(&self, e: SafeHandleValue) {
+        let Some(stream) = self.stream.get() else {
+            return;
+        };
+
+        // If stream.[[state]] is not "readable", return.
+        if !stream.is_readable() {
+            return;
+        }
+
+        // Perform ! ResetQueue(controller).
+        self.queue.borrow_mut().reset();
+
+        // Perform ! ReadableStreamDefaultControllerClearAlgorithms(controller).
+        self.clear_algorithms();
+
+        stream.error(e);
+    }
 }
 
 impl ReadableStreamDefaultControllerMethods for ReadableStreamDefaultController {
@@ -398,8 +419,8 @@ impl ReadableStreamDefaultControllerMethods for ReadableStreamDefaultController 
     }
 
     /// <https://streams.spec.whatwg.org/#rs-default-controller-error>
-    fn Error(&self, _cx: SafeJSContext, _e: SafeHandleValue) -> Fallible<()> {
-        // TODO
-        Err(Error::NotFound)
+    fn Error(&self, _cx: SafeJSContext, e: SafeHandleValue) -> Fallible<()> {
+        self.error(e);
+        Ok(())
     }
 }
