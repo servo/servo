@@ -9,7 +9,6 @@ use arrayvec::ArrayVec;
 use base::id::PipelineId;
 use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
 use serde::{Deserialize, Serialize};
-use smallvec::SmallVec;
 use webrender_api::units::DeviceIntSize;
 use webrender_api::{ImageFormat, ImageKey};
 use wgc::binding_model::{
@@ -26,6 +25,7 @@ use wgc::resource::{
     BufferDescriptor, SamplerDescriptor, TextureDescriptor, TextureViewDescriptor,
 };
 use wgpu_core::command::{RenderPassColorAttachment, RenderPassDepthStencilAttachment};
+use wgpu_core::id::AdapterId;
 use wgpu_core::Label;
 pub use {wgpu_core as wgc, wgpu_types as wgt};
 
@@ -186,7 +186,7 @@ pub enum WebGPURequest {
     RequestAdapter {
         sender: IpcSender<WebGPUResponse>,
         options: RequestAdapterOptions,
-        ids: SmallVec<[id::AdapterId; 4]>,
+        adapter_id: AdapterId,
     },
     RequestDevice {
         sender: IpcSender<WebGPUResponse>,
@@ -287,7 +287,6 @@ pub enum WebGPURequest {
     QueueOnSubmittedWorkDone {
         sender: IpcSender<WebGPUResponse>,
         queue_id: id::QueueId,
-        device_id: id::DeviceId,
     },
     PushErrorScope {
         device_id: id::DeviceId,

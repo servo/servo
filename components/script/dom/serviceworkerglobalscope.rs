@@ -39,7 +39,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::extendableevent::ExtendableEvent;
 use crate::dom::extendablemessageevent::ExtendableMessageEvent;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::identityhub::Identities;
+use crate::dom::identityhub::IdentityHub;
 use crate::dom::worker::TrustedWorkerAddress;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::fetch::load_whole_resource;
@@ -241,7 +241,7 @@ impl ServiceWorkerGlobalScope {
                 runtime,
                 from_devtools_receiver,
                 closing,
-                Arc::new(Identities::new()),
+                Arc::new(IdentityHub::new()),
             ),
             task_queue: TaskQueue::new(receiver, own_sender.clone()),
             own_sender,

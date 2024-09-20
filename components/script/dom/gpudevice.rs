@@ -216,18 +216,12 @@ impl GPUDevice {
         if let GPUPipelineLayoutOrGPUAutoLayoutMode::GPUPipelineLayout(ref layout) = layout {
             (Some(layout.id().0), None, layout.bind_group_layouts())
         } else {
-            let layout_id = self
-                .global()
-                .wgpu_id_hub()
-                .create_pipeline_layout_id(self.device.0.backend());
+            let layout_id = self.global().wgpu_id_hub().create_pipeline_layout_id();
             let max_bind_grps = self.limits.MaxBindGroups();
             let mut bgls = Vec::with_capacity(max_bind_grps as usize);
             let mut bgl_ids = Vec::with_capacity(max_bind_grps as usize);
             for _ in 0..max_bind_grps {
-                let bgl = self
-                    .global()
-                    .wgpu_id_hub()
-                    .create_bind_group_layout_id(self.device.0.backend());
+                let bgl = self.global().wgpu_id_hub().create_bind_group_layout_id();
                 bgls.push(webgpu::WebGPUBindGroupLayout(bgl));
                 bgl_ids.push(bgl);
             }

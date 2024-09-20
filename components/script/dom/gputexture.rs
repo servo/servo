@@ -149,10 +149,7 @@ impl GPUTexture {
                 .collect::<Fallible<_>>()?,
         };
 
-        let texture_id = device
-            .global()
-            .wgpu_id_hub()
-            .create_texture_id(device.id().0.backend());
+        let texture_id = device.global().wgpu_id_hub().create_texture_id();
 
         device
             .channel()
@@ -228,10 +225,7 @@ impl GPUTextureMethods for GPUTexture {
             None
         };
 
-        let texture_view_id = self
-            .global()
-            .wgpu_id_hub()
-            .create_texture_view_id(self.device.id().0.backend());
+        let texture_view_id = self.global().wgpu_id_hub().create_texture_view_id();
 
         self.channel
             .0

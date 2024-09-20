@@ -45,7 +45,7 @@ use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::crypto::Crypto;
 use crate::dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::identityhub::Identities;
+use crate::dom::identityhub::IdentityHub;
 use crate::dom::performance::Performance;
 use crate::dom::promise::Promise;
 use crate::dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
@@ -140,7 +140,7 @@ impl WorkerGlobalScope {
         runtime: Runtime,
         from_devtools_receiver: Receiver<DevtoolScriptControlMsg>,
         closing: Arc<AtomicBool>,
-        gpu_id_hub: Arc<Identities>,
+        gpu_id_hub: Arc<IdentityHub>,
     ) -> Self {
         // Install a pipeline-namespace in the current thread.
         PipelineNamespace::auto_install();

@@ -20,7 +20,6 @@ log = { workspace = true }
 malloc_size_of = { workspace = true }
 serde = { workspace = true, features = ["serde_derive"] }
 servo_config = { path = "../config" }
-smallvec = { workspace = true, features = ["serde"] }
 webrender = { workspace = true }
 webrender_api = { workspace = true }
 webrender_traits = { workspace = true }

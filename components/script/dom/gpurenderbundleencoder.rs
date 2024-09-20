@@ -143,7 +143,7 @@ impl GPURenderBundleEncoderMethods for GPURenderBundleEncoder {
                 wgpu_bundle::wgpu_render_bundle_set_bind_group(
                     encoder,
                     index,
-                    bind_group.id().0,
+                    Some(bind_group.id().0),
                     dynamic_offsets.as_ptr(),
                     dynamic_offsets.len(),
                 )
@@ -255,10 +255,7 @@ impl GPURenderBundleEncoderMethods for GPURenderBundleEncoder {
             label: (&descriptor.parent).into(),
         };
         let encoder = self.render_bundle_encoder.borrow_mut().take().unwrap();
-        let render_bundle_id = self
-            .global()
-            .wgpu_id_hub()
-            .create_render_bundle_id(self.device.id().0.backend());
+        let render_bundle_id = self.global().wgpu_id_hub().create_render_bundle_id();
 
         self.channel
             .0

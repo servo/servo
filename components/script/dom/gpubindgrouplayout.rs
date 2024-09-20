@@ -89,10 +89,7 @@ impl GPUBindGroupLayout {
             },
         };
 
-        let bind_group_layout_id = device
-            .global()
-            .wgpu_id_hub()
-            .create_bind_group_layout_id(device.id().0.backend());
+        let bind_group_layout_id = device.global().wgpu_id_hub().create_bind_group_layout_id();
         device
             .channel()
             .0

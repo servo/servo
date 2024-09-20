@@ -127,7 +127,7 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlanchorelement::HTMLAnchorElement;
 use crate::dom::htmliframeelement::HTMLIFrameElement;
-use crate::dom::identityhub::Identities;
+use crate::dom::identityhub::IdentityHub;
 use crate::dom::mutationobserver::MutationObserver;
 use crate::dom::node::{window_from_node, Node, ShadowIncluding};
 use crate::dom::performanceentry::PerformanceEntry;
@@ -718,7 +718,7 @@ pub struct ScriptThread {
 
     /// Identity manager for WebGPU resources
     #[no_trace]
-    gpu_id_hub: Arc<Identities>,
+    gpu_id_hub: Arc<IdentityHub>,
 
     /// Receiver to receive commands from optional WebGPU server.
     #[no_trace]
@@ -1417,7 +1417,7 @@ impl ScriptThread {
 
             node_ids: Default::default(),
             is_user_interacting: Cell::new(false),
-            gpu_id_hub: Arc::new(Identities::new()),
+            gpu_id_hub: Arc::new(IdentityHub::new()),
             webgpu_port: RefCell::new(None),
             inherited_secure_context: state.inherited_secure_context,
             layout_factory,
