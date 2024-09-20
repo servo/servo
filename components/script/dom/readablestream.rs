@@ -7,8 +7,8 @@ use std::ptr::{self, NonNull};
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
-use js::jsapi::JSObject;
-use js::jsval::{ObjectValue, UndefinedValue};
+use js::jsapi::{Heap, JSObject};
+use js::jsval::{JSVal, ObjectValue, UndefinedValue};
 use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue};
 
 use crate::dom::bindings::cell::DomRefCell;
@@ -78,7 +78,9 @@ pub struct ReadableStream {
     controller: ControllerType,
 
     /// <https://streams.spec.whatwg.org/#readablestream-storederror>
-    stored_error: DomRefCell<Option<Error>>,
+    /// TODO: check correctness of this.
+    #[ignore_malloc_size_of = "mozjs"]
+    stored_error: Heap<*mut JSObject>,
 
     /// <https://streams.spec.whatwg.org/#readablestream-disturbed>
     disturbed: Cell<bool>,
@@ -154,7 +156,7 @@ impl ReadableStream {
                     ControllerType::Byte(Dom::from_ref(&*root))
                 },
             },
-            stored_error: DomRefCell::new(None),
+            stored_error: Heap::default(),
             disturbed: Default::default(),
             reader: reader,
             state: Cell::new(ReadableStreamState::Readable),
@@ -248,11 +250,41 @@ impl ReadableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-error>
-    /// Note: in other use cases this call happens via the controller.
-    pub fn error_native(&self, _error: Error) {
+    pub fn error(&self, e: SafeHandleValue) {
+        // Set stream.[[state]] to "errored".
         self.state.set(ReadableStreamState::Errored);
+
+        // Set stream.[[storedError]] to e.
+        {
+            let cx = GlobalScope::get_cx();
+            rooted!(in(*cx) let object = e.to_object());
+            self.stored_error.set(*object);
+        }
+
+        match self.reader {
+            ReaderType::Default(ref reader) => {
+                let Some(reader) = reader.get() else {
+                    // If reader is undefined, return.
+                    return;
+                };
+
+                // Perform ! ReadableStreamDefaultReaderErrorReadRequests(reader, e).
+                reader.error(e);
+            },
+            _ => todo!(),
+        }
+    }
+
+    /// <https://streams.spec.whatwg.org/#readable-stream-error>
+    /// Note: in other use cases this call happens via the controller.
+    pub fn error_native(&self, error: Error) {
         match self.controller {
-            ControllerType::Default(ref controller) => controller.error(),
+            ControllerType::Default(ref controller) => {
+                // TODO: use Error.
+                let cx = GlobalScope::get_cx();
+                rooted!(in(*cx) let mut rval = UndefinedValue());
+                controller.error(rval.handle());
+            },
             _ => unreachable!("Native closing a stream with a non-default controller"),
         }
     }
