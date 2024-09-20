@@ -215,6 +215,14 @@ impl ReadableStream {
         }
     }
 
+    // Call into the release steps of the controller,
+    pub fn perform_release_steps(&self) {
+        match self.controller {
+            ControllerType::Default(ref controller) => controller.perform_release_steps(),
+            _ => todo!(),
+        }
+    }
+
     /// <https://streams.spec.whatwg.org/#readable-stream-add-read-request>
     pub fn add_read_request(&self, read_request: ReadRequest) {
         match self.reader {
@@ -407,7 +415,7 @@ impl ReadableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-cancel>
-    fn cancel(&self, promise: &Promise, reason: SafeHandleValue) {
+    pub fn cancel(&self, promise: &Promise, reason: SafeHandleValue) {
         self.disturbed.set(true);
 
         if self.is_closed() {
@@ -424,6 +432,47 @@ impl ReadableStream {
         // TODO: run the bytes reader steps.
 
         // TODO: react to sourceCancelPromise.
+    }
+
+    /// <https://streams.spec.whatwg.org/#readable-stream-reader-generic-release>
+    pub fn release_lock(
+        &self,
+        closed_promise: &Promise,
+        read_requests: DomRefCell<VecDeque<ReadRequest>>,
+    ) {
+        // step 2.1.3
+        assert!(self.is_locked());
+
+        if self.is_readable() {
+            // step 2.1.4
+            closed_promise.reject_error(Error::Type("stream state is not readable".to_owned()));
+        } else {
+            // step 2.1.5
+            closed_promise.reject_error(Error::Type(
+                "Cannot release lock due to stream state.".to_owned(),
+            ));
+        }
+
+        // step 2.1.6
+        closed_promise.set_promise_is_handled();
+
+        // step 2.1.7
+        self.perform_release_steps();
+
+        // step 2.1.8 & 2.1.9
+        self.set(None);
+
+        // step  3.1
+        let error = Error::Type("No chunks are available because the stream is errored".to_owned());
+
+        let read_requests_cloned = read_requests.clone();
+        // <https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaultreadererrorreadrequests>
+        // step 3.2
+        read_requests.borrow_mut().clear();
+        // step 3.3
+        for request in read_requests_cloned.borrow_mut().drain(0..) {
+            request.error_steps(error.clone());
+        }
     }
 }
 

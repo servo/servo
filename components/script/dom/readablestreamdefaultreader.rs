@@ -12,6 +12,7 @@ use js::jsapi::Heap;
 use js::jsval::UndefinedValue;
 use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue};
 
+use super::bindings::root::MutNullableDom;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultReaderBinding::{
     ReadableStreamDefaultReaderMethods, ReadableStreamReadResult,
@@ -74,10 +75,10 @@ impl ReadRequest {
     }
 
     /// <https://streams.spec.whatwg.org/#ref-for-read-request-close-step>
-    pub fn error_steps(&self) {
+    pub fn error_steps(&self, error: Error) {
         match self {
             // TODO: pass error type.
-            ReadRequest::Read(promise) => promise.reject_native(&()),
+            ReadRequest::Read(promise) => promise.reject_error(error),
         }
     }
 }
@@ -88,8 +89,7 @@ pub struct ReadableStreamDefaultReader {
     reflector_: Reflector,
 
     /// <https://streams.spec.whatwg.org/#readablestreamgenericreader-stream>
-    /// TODO: use MutNullableDom
-    stream: Dom<ReadableStream>,
+    stream: MutNullableDom<ReadableStream>,
 
     #[ignore_malloc_size_of = "Rc is hard"]
     read_requests: DomRefCell<VecDeque<ReadRequest>>,
@@ -117,7 +117,7 @@ impl ReadableStreamDefaultReader {
     ) -> ReadableStreamDefaultReader {
         ReadableStreamDefaultReader {
             reflector_: Reflector::new(),
-            stream: Dom::from_ref(stream),
+            stream: MutNullableDom::new(Some(stream)),
             read_requests: DomRefCell::new(Default::default()),
             closed_promise,
         }
@@ -161,11 +161,11 @@ impl ReadableStreamDefaultReader {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-error>
-    pub fn error(&self, _error: Error) {
+    pub fn error(&self, error: Error) {
         self.closed_promise.reject_native(&());
         let pending_requests = mem::take(&mut *self.read_requests.borrow_mut());
         for request in pending_requests {
-            request.error_steps();
+            request.error_steps(error.clone());
         }
     }
 
@@ -176,6 +176,12 @@ impl ReadableStreamDefaultReader {
             .pop_front()
             .expect("Reader must have read request when remove is called into.")
     }
+
+    /// <https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaultreadererrorreadrequests>
+    pub fn empty_read_requests(&self) {
+        // step 2
+        self.read_requests.borrow_mut().clear();
+    }
 }
 
 impl ReadableStreamDefaultReaderMethods for ReadableStreamDefaultReader {
@@ -183,36 +189,44 @@ impl ReadableStreamDefaultReaderMethods for ReadableStreamDefaultReader {
     fn Read(&self) -> Rc<Promise> {
         let promise = Promise::new(&self.reflector_.global());
 
-        self.stream
-            .perform_pull_steps(ReadRequest::Read(promise.clone()));
+        if let Some(stream) = self.stream.get() {
+            stream.perform_pull_steps(ReadRequest::Read(promise.clone()));
+        } else {
+            promise.reject_error(Error::Type("stream is undefined".to_owned()));
+        }
 
         promise
     }
 
     /// <https://streams.spec.whatwg.org/#default-reader-release-lock>
     fn ReleaseLock(&self) {
-        if self.stream.is_readable() {
-            self.closed_promise.reject_native(&());
-        }
-
-        // TODO: https://streams.spec.whatwg.org/#readable-stream-reader-generic-release
-
-        // TODO: use TypeError.
-        // <https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaultreadererrorreadrequests>
-        for request in self.read_requests.borrow_mut().drain(0..) {
-            request.error_steps();
+        if let Some(stream) = self.stream.get() {
+            stream.release_lock();
+        } else {
+            // step 1
+            return;
         }
     }
 
     /// <https://streams.spec.whatwg.org/#generic-reader-closed>
     fn Closed(&self) -> Rc<Promise> {
-        // TODO
-        Promise::new(&self.reflector_.global())
+        self.closed_promise.clone()
     }
 
     /// <https://streams.spec.whatwg.org/#generic-reader-cancel>
-    fn Cancel(&self, _cx: SafeJSContext, _reason: SafeHandleValue) -> Rc<Promise> {
-        // TODO
-        Promise::new(&self.reflector_.global())
+    fn Cancel(&self, _cx: SafeJSContext, reason: SafeHandleValue) -> Rc<Promise> {
+        let promise = Promise::new(&self.reflector_.global());
+        // step 1
+        if self.stream.get().is_none() {
+            promise.reject_error(Error::Type("stream is undefined".to_owned()));
+            return promise;
+        }
+        let stream = self.stream.get();
+        // step 2.1 & 2.2
+        assert!(stream.is_some());
+
+        // 2.3
+        stream.unwrap().cancel(&promise, reason);
+        promise
     }
 }
