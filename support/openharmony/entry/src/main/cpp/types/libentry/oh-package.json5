@@ -1,0 +1,6 @@
+{
+  "name": "libservoshell.so",
+  "types": "./index.d.ts",
+  "version": "",
+  "description": "The native module which exposes a C API to servoshell"
+}

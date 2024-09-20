@@ -57,6 +57,7 @@ jobs:
     uses: ./.github/workflows/ohos.yml
     with:
       profile: "release"
+    secrets: inherit
 
   build-result:
     name: Result

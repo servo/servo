@@ -55,9 +55,32 @@ jobs:
         uses: openharmony-rs/setup-ohos-sdk@v0.1
         with:
           version: "4.1"
+          components: "native;toolchains;ets;js;previewer"
+          fixup-path: true
+      - name: Install node for hvigor
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+      - name: Install hvigor modules
+        run: |
+          mkdir ~/hvigor-installation
+          cd ~/hvigor-installation
+          echo "@ohos:registry=https://repo.harmonyos.com/npm/" > .npmrc
+          npm install "@ohos/hvigor@5" "@ohos/hvigor-ohos-plugin@5"
+          echo "HVIGOR_PATH=$PWD" >> $GITHUB_ENV
+      - name: "Setup HAP signing config"
+        env:
+          SIGNING_MATERIAL: ${{ secrets.SERVO_OHOS_SIGNING_MATERIAL }}
+        if: ${{ env.SIGNING_MATERIAL != '' }} # Allows the build to pass on forks.
+        run: |
+          cd ~
+          echo "${SIGNING_MATERIAL}" | base64 -d > servo-ohos-material.zip
+          unzip servo-ohos-material.zip
+          echo "SERVO_OHOS_SIGNING_CONFIG=${PWD}/servo-ohos-material/signing-configs.json" >> $GITHUB_ENV
       - name: Build (arch ${{ matrix.arch }} profile ${{ inputs.profile }})
         env:
           OHOS_SDK_NATIVE: ${{ steps.setup_sdk.outputs.ohos_sdk_native }}
+          OHOS_BASE_SDK_HOME: ${{ steps.setup_sdk.outputs.ohos-base-sdk-home }}
         run: |
           python3 ./mach build --locked --target ${{ matrix.arch }} --${{ inputs.profile }}
           cp -r target/cargo-timings target/cargo-timings-ohos-${{ matrix.arch }}
@@ -67,3 +90,15 @@ jobs:
           name: cargo-timings-ohos-${{ matrix.arch }}
           # Using a wildcard here ensures that the archive includes the path.
           path: target/cargo-timings-*
+      - name: Upload signed HAP artifact
+        if: ${{ env.SERVO_OHOS_SIGNING_CONFIG != '' }} # Build output has different name if not signed.
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.profile }}-binary-ohos-${{ matrix.arch }}
+          path: target/openharmony/${{ matrix.arch }}/${{ inputs.profile }}/entry/build/default/outputs/default/servoshell-default-signed.hap
+      - name: Upload unsigned HAP artifact
+        if: ${{ env.SERVO_OHOS_SIGNING_CONFIG == '' }} # Build output has different name if not signed.
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.profile }}-binary-ohos-${{ matrix.arch }}
+          path: target/openharmony/${{ matrix.arch }}/${{ inputs.profile }}/entry/build/default/outputs/default/servoshell-default-unsigned.hap

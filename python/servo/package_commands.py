@@ -35,6 +35,7 @@ from servo.command_base import (
     archive_deterministically,
     BuildNotFound,
     cd,
+    check_output,
     CommandBase,
     is_windows,
 )
@@ -124,6 +125,10 @@ class PackageCommands(CommandBase):
                      default=None,
                      action='store_true',
                      help='Package Android')
+    @CommandArgument('--ohos',
+                     default=None,
+                     action='store_true',
+                     help='Package OpenHarmony')
     @CommandArgument('--target', '-t',
                      default=None,
                      help='Package for given target platform')
@@ -177,6 +182,55 @@ class PackageCommands(CommandBase):
                     subprocess.check_call(argv, env=env)
             except subprocess.CalledProcessError as e:
                 print("Packaging Android exited with return value %d" % e.returncode)
+                return e.returncode
+        elif self.is_openharmony():
+            # hvigor doesn't support an option to place output files in a specific directory
+            # so copy the source files into the target/openharmony directory first.
+            ohos_app_dir = path.join(self.get_top_dir(), "support", "openharmony")
+            build_mode = build_type.directory_name()
+            ohos_target_dir = path.join(
+                self.get_top_dir(), "target", "openharmony", self.target.triple(), build_mode)
+            if path.exists(ohos_target_dir):
+                print("Cleaning up from previous packaging")
+                delete(ohos_target_dir)
+            shutil.copytree(ohos_app_dir, ohos_target_dir)
+
+            # Map non-debug profiles to 'release' buildMode HAP.
+            if build_type.is_custom():
+                build_mode = "release"
+
+            hvigor_command = ["--no-daemon", "assembleHap", "-p", "product=default", "-p", f"buildMode={build_mode}"]
+            # Detect if PATH already has hvigor, or else fallback to npm installation
+            # provided via HVIGOR_PATH
+            if "HVIGOR_PATH" not in env:
+                try:
+                    with cd(ohos_target_dir):
+                        version = check_output(["hvigorw", "--version", "--no-daemon"])
+                    print(f"Found `hvigorw` with version {str(version, 'utf-8').strip()} in system PATH")
+                    hvigor_command[0:0] = ["hvigorw"]
+                except FileNotFoundError:
+                    print("Unable to find `hvigor` tool. Please either modify PATH to include the"
+                          "path to hvigorw or set the HVIGOR_PATH environment variable to the npm"
+                          "installation containing `node_modules` directory with hvigor modules.")
+                    sys.exit(1)
+            else:
+                env["NODE_PATH"] = env["HVIGOR_PATH"] + "/node_modules"
+                hvigor_script = f"{env['HVIGOR_PATH']}/node_modules/@ohos/hvigor/bin/hvigor.js"
+                hvigor_command[0:0] = ["node", hvigor_script]
+
+            abi_string = self.target.abi_string()
+            ohos_libs_dir = path.join(ohos_target_dir, "entry", "libs", abi_string)
+            os.makedirs(ohos_libs_dir)
+            # The libservoshell.so binary that was built needs to be copied
+            # into the app folder heirarchy where hvigor expects it.
+            print(f"Copying {binary_path} to {ohos_libs_dir}")
+            shutil.copy(binary_path, ohos_libs_dir)
+            try:
+                with cd(ohos_target_dir):
+                    print("Calling", hvigor_command)
+                    subprocess.check_call(hvigor_command, env=env)
+            except subprocess.CalledProcessError as e:
+                print("Packaging OpenHarmony exited with return value %d" % e.returncode)
                 return e.returncode
         elif 'darwin' in self.target.triple():
             print("Creating Servo.app")
@@ -347,6 +401,9 @@ class PackageCommands(CommandBase):
     @CommandArgument('--android',
                      action='store_true',
                      help='Install on Android')
+    @CommandArgument('--ohos',
+                     action='store_true',
+                     help='Install on OpenHarmony')
     @CommandArgument('--emulator',
                      action='store_true',
                      help='For Android, install to the only emulated device')
@@ -376,7 +433,7 @@ class PackageCommands(CommandBase):
                 return 1
 
         if self.is_android():
-            pkg_path = self.get_apk_path(build_type)
+            pkg_path = self.target.get_package_path(build_type.directory_name())
             exec_command = [self.android_adb_path(env)]
             if emulator and usb:
                 print("Cannot install to both emulator and USB at the same time.")
@@ -386,6 +443,10 @@ class PackageCommands(CommandBase):
             if usb:
                 exec_command += ["-d"]
             exec_command += ["install", "-r", pkg_path]
+        elif self.is_openharmony():
+            pkg_path = self.target.get_package_path(build_type.directory_name())
+            hdc_path = path.join(env["OHOS_SDK_NATIVE"], "../", "toolchains", "hdc")
+            exec_command = [hdc_path, "install", "-r", pkg_path]
         elif is_windows():
             pkg_path = path.join(path.dirname(binary_path), 'msi', 'Servo.msi')
             exec_command = ["msiexec", "/i", pkg_path]
