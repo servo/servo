@@ -101,10 +101,7 @@ pub(crate) struct WGPU {
     sender: IpcSender<WebGPURequest>,
     pub(crate) script_sender: IpcSender<WebGPUMsg>,
     pub(crate) global: Arc<wgc::global::Global>,
-    adapters: Vec<WebGPUAdapter>,
     devices: Arc<Mutex<HashMap<DeviceId, DeviceScope>>>,
-    // Track invalid adapters https://gpuweb.github.io/gpuweb/#invalid
-    _invalid_adapters: Vec<WebGPUAdapter>,
     // TODO: Remove this (https://github.com/gfx-rs/wgpu/issues/867)
     /// This stores first error on command encoder,
     /// because wgpu does not invalidate command encoder object
@@ -155,9 +152,7 @@ impl WGPU {
             sender,
             script_sender,
             global,
-            adapters: Vec::new(),
             devices: Arc::new(Mutex::new(HashMap::new())),
-            _invalid_adapters: Vec::new(),
             error_command_encoders: HashMap::new(),
             webrender_api: Arc::new(Mutex::new(webrender_api_sender.create_api())),
             webrender_document,
@@ -643,15 +638,13 @@ impl WGPU {
                             .global
                             .request_adapter(&options, wgt::Backends::all(), Some(adapter_id))
                             .map(|adapter_id| {
-                                let adapter = WebGPUAdapter(adapter_id);
-                                self.adapters.push(adapter);
                                 // TODO: can we do this lazily
-                                let info = global.adapter_get_info(adapter_id);
+                                let adapter_info = global.adapter_get_info(adapter_id);
                                 let limits = global.adapter_limits(adapter_id);
                                 let features = global.adapter_features(adapter_id);
                                 Adapter {
-                                    adapter_info: info,
-                                    adapter_id: adapter,
+                                    adapter_info,
+                                    adapter_id: WebGPUAdapter(adapter_id),
                                     features,
                                     limits,
                                     channel: WebGPU(self.sender.clone()),
