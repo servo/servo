@@ -1553,7 +1553,9 @@ def MemberCondition(pref, func, exposed, secure):
     if func:
         conditions.append(f'Condition::Func({func})')
     if exposed:
-        conditions.extend([f"Condition::Exposed(InterfaceObjectMap::Globals::{camel_to_upper_snake(i)})" for i in exposed])
+        conditions.extend([
+            f"Condition::Exposed(InterfaceObjectMap::Globals::{camel_to_upper_snake(i)})" for i in exposed
+        ])
     if len(conditions) == 0:
         conditions.append("Condition::Satisfied")
     return conditions
@@ -2817,7 +2819,12 @@ class CGConstructorEnabled(CGAbstractMethod):
 
         secure = iface.getExtendedAttribute("SecureContext")
         if secure:
-            conditions.append(f"unsafe {{\nlet in_realm_proof = AlreadyInRealm::assert_for_cx(aCx);\nGlobalScope::from_context(*aCx, InRealm::Already(&in_realm_proof)).is_secure_context()\n}}")
+            conditions.append("""
+unsafe {
+    let in_realm_proof = AlreadyInRealm::assert_for_cx(aCx);
+    GlobalScope::from_context(*aCx, InRealm::Already(&in_realm_proof)).is_secure_context()
+}
+""")
 
         return CGList((CGGeneric(cond) for cond in conditions), " &&\n")
 
