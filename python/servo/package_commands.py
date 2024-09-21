@@ -132,9 +132,6 @@ class PackageCommands(CommandBase):
     @CommandArgument('--target', '-t',
                      default=None,
                      help='Package for given target platform')
-    @CommandArgument('--flavor', '-f',
-                     default=None,
-                     help='Package using the given Gradle flavor')
     @CommandBase.common_command_arguments(build_configuration=False, build_type=True)
     @CommandBase.allow_target_configuration
     def package(self, build_type: BuildType, flavor=None, with_asan=False):
@@ -203,7 +200,13 @@ class PackageCommands(CommandBase):
             if build_type.is_custom():
                 build_mode = "release"
 
-            hvigor_command = ["--no-daemon", "assembleHap", "-p", "product=default", "-p", f"buildMode={build_mode}"]
+            flavor_name = "default"
+            if flavor is not None:
+                flavor_name = flavor
+
+            hvigor_command = ["--no-daemon", "assembleHap",
+                              "-p", f"product={flavor_name}",
+                              "-p", f"buildMode={build_mode}"]
             # Detect if PATH already has hvigor, or else fallback to npm installation
             # provided via HVIGOR_PATH
             if "HVIGOR_PATH" not in env:
@@ -419,7 +422,7 @@ class PackageCommands(CommandBase):
                      help='Install the given target platform')
     @CommandBase.common_command_arguments(build_configuration=False, build_type=True)
     @CommandBase.allow_target_configuration
-    def install(self, build_type: BuildType, emulator=False, usb=False, with_asan=False):
+    def install(self, build_type: BuildType, emulator=False, usb=False, with_asan=False, flavor=None):
         env = self.build_env()
         try:
             binary_path = self.get_binary_path(build_type, asan=with_asan)
@@ -448,7 +451,7 @@ class PackageCommands(CommandBase):
                 exec_command += ["-d"]
             exec_command += ["install", "-r", pkg_path]
         elif self.is_openharmony():
-            pkg_path = self.target.get_package_path(build_type.directory_name())
+            pkg_path = self.target.get_package_path(build_type.directory_name(), flavor=flavor)
             hdc_path = path.join(env["OHOS_SDK_NATIVE"], "../", "toolchains", "hdc")
             exec_command = [hdc_path, "install", "-r", pkg_path]
         elif is_windows():
@@ -458,7 +461,7 @@ class PackageCommands(CommandBase):
         if not path.exists(pkg_path):
             print("Servo package not found. Packaging servo...")
             result = Registrar.dispatch(
-                "package", context=self.context, build_type=build_type
+                "package", context=self.context, build_type=build_type, flavor=flavor
             )
             if result != 0:
                 return result

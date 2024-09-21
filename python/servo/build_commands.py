@@ -59,7 +59,7 @@ class MachCommands(CommandBase):
                      help="Command-line arguments to be passed through to Cargo")
     @CommandBase.common_command_arguments(build_configuration=True, build_type=True)
     def build(self, build_type: BuildType, jobs=None, params=None, no_package=False,
-              verbose=False, very_verbose=False, with_asan=False, **kwargs):
+              verbose=False, very_verbose=False, with_asan=False, flavor=None, **kwargs):
         opts = params or []
 
         if build_type.is_release():
@@ -134,7 +134,7 @@ class MachCommands(CommandBase):
             built_binary = self.get_binary_path(build_type, asan=with_asan)
 
             if not no_package and self.target.needs_packaging():
-                rv = Registrar.dispatch("package", context=self.context, build_type=build_type, flavor=None)
+                rv = Registrar.dispatch("package", context=self.context, build_type=build_type, flavor=flavor)
                 if rv:
                     return rv
 
