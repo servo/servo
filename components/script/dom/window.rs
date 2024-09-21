@@ -123,7 +123,7 @@ use crate::dom::hashchangeevent::HashChangeEvent;
 use crate::dom::history::History;
 use crate::dom::htmlcollection::{CollectionFilter, HTMLCollection};
 use crate::dom::htmliframeelement::HTMLIFrameElement;
-use crate::dom::identityhub::Identities;
+use crate::dom::identityhub::IdentityHub;
 use crate::dom::location::Location;
 use crate::dom::mediaquerylist::{MediaQueryList, MediaQueryListMatchState};
 use crate::dom::mediaquerylistevent::MediaQueryListEvent;
@@ -2558,7 +2558,7 @@ impl Window {
         replace_surrogates: bool,
         user_agent: Cow<'static, str>,
         player_context: WindowGLContext,
-        gpu_id_hub: Arc<Identities>,
+        gpu_id_hub: Arc<IdentityHub>,
         inherited_secure_context: Option<bool>,
     ) -> DomRoot<Self> {
         let error_reporter = CSSErrorReporter {

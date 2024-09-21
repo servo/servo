@@ -82,10 +82,7 @@ impl GPUShaderModule {
         descriptor: RootedTraceableBox<GPUShaderModuleDescriptor>,
         comp: InRealm,
     ) -> DomRoot<GPUShaderModule> {
-        let program_id = device
-            .global()
-            .wgpu_id_hub()
-            .create_shader_module_id(device.id().0.backend());
+        let program_id = device.global().wgpu_id_hub().create_shader_module_id();
         let promise = Promise::new_in_current_realm(comp);
         let shader_module = GPUShaderModule::new(
             &device.global(),

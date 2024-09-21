@@ -74,10 +74,7 @@ impl GPUComputePipeline {
         descriptor: &GPUComputePipelineDescriptor,
         async_sender: Option<IpcSender<WebGPUResponse>>,
     ) -> WebGPUComputePipeline {
-        let compute_pipeline_id = device
-            .global()
-            .wgpu_id_hub()
-            .create_compute_pipeline_id(device.id().0.backend());
+        let compute_pipeline_id = device.global().wgpu_id_hub().create_compute_pipeline_id();
 
         let (layout, implicit_ids, _) = device.get_pipeline_layout_data(&descriptor.parent.layout);
 
@@ -117,10 +114,7 @@ impl GPUComputePipelineMethods for GPUComputePipeline {
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpupipelinebase-getbindgrouplayout>
     fn GetBindGroupLayout(&self, index: u32) -> Fallible<DomRoot<GPUBindGroupLayout>> {
-        let id = self
-            .global()
-            .wgpu_id_hub()
-            .create_bind_group_layout_id(self.compute_pipeline.0.backend());
+        let id = self.global().wgpu_id_hub().create_bind_group_layout_id();
 
         if let Err(e) = self
             .channel

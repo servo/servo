@@ -74,10 +74,7 @@ impl GPURenderPipeline {
         descriptor: RenderPipelineDescriptor<'static>,
         async_sender: Option<IpcSender<WebGPUResponse>>,
     ) -> Fallible<WebGPURenderPipeline> {
-        let render_pipeline_id = device
-            .global()
-            .wgpu_id_hub()
-            .create_render_pipeline_id(device.id().0.backend());
+        let render_pipeline_id = device.global().wgpu_id_hub().create_render_pipeline_id();
 
         device
             .channel()
@@ -108,10 +105,7 @@ impl GPURenderPipelineMethods for GPURenderPipeline {
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpupipelinebase-getbindgrouplayout>
     fn GetBindGroupLayout(&self, index: u32) -> Fallible<DomRoot<GPUBindGroupLayout>> {
-        let id = self
-            .global()
-            .wgpu_id_hub()
-            .create_bind_group_layout_id(self.render_pipeline.0.backend());
+        let id = self.global().wgpu_id_hub().create_bind_group_layout_id();
 
         if let Err(e) = self
             .channel

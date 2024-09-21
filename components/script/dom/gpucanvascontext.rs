@@ -145,10 +145,7 @@ impl GPUCanvasContext {
 
     pub fn send_swap_chain_present(&self) {
         let texture_id = self.texture_id().unwrap().0;
-        let encoder_id = self
-            .global()
-            .wgpu_id_hub()
-            .create_command_encoder_id(texture_id.backend());
+        let encoder_id = self.global().wgpu_id_hub().create_command_encoder_id();
         if let Err(e) = self.channel.0.send(WebGPURequest::SwapChainPresent {
             context_id: self.context_id,
             texture_id,
@@ -258,11 +255,7 @@ impl GPUCanvasContextMethods for GPUCanvasContext {
 
         let mut buffer_ids = ArrayVec::<id::BufferId, PRESENTATION_BUFFER_COUNT>::new();
         for _ in 0..PRESENTATION_BUFFER_COUNT {
-            buffer_ids.push(
-                self.global()
-                    .wgpu_id_hub()
-                    .create_buffer_id(configuration.device.id().0.backend()),
-            );
+            buffer_ids.push(self.global().wgpu_id_hub().create_buffer_id());
         }
 
         self.channel

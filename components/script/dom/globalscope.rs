@@ -102,7 +102,7 @@ use crate::dom::gamepad::{contains_user_gesture, Gamepad};
 use crate::dom::gamepadevent::GamepadEventType;
 use crate::dom::gpudevice::GPUDevice;
 use crate::dom::htmlscriptelement::{ScriptId, SourceCode};
-use crate::dom::identityhub::Identities;
+use crate::dom::identityhub::IdentityHub;
 use crate::dom::imagebitmap::ImageBitmap;
 use crate::dom::messageevent::MessageEvent;
 use crate::dom::messageport::MessagePort;
@@ -325,7 +325,7 @@ pub struct GlobalScope {
     /// Identity Manager for WebGPU resources
     #[ignore_malloc_size_of = "defined in wgpu"]
     #[no_trace]
-    gpu_id_hub: Arc<Identities>,
+    gpu_id_hub: Arc<IdentityHub>,
 
     /// WebGPU devices
     gpu_devices: DomRefCell<HashMapTracedValues<WebGPUDevice, WeakRef<GPUDevice>>>,
@@ -768,7 +768,7 @@ impl GlobalScope {
         microtask_queue: Rc<MicrotaskQueue>,
         is_headless: bool,
         user_agent: Cow<'static, str>,
-        gpu_id_hub: Arc<Identities>,
+        gpu_id_hub: Arc<IdentityHub>,
         inherited_secure_context: Option<bool>,
     ) -> Self {
         Self {
@@ -3154,7 +3154,7 @@ impl GlobalScope {
         None
     }
 
-    pub fn wgpu_id_hub(&self) -> Arc<Identities> {
+    pub fn wgpu_id_hub(&self) -> Arc<IdentityHub> {
         self.gpu_id_hub.clone()
     }
 

@@ -142,10 +142,7 @@ impl GPUBuffer {
             usage: wgt::BufferUsages::from_bits_retain(descriptor.usage),
             mapped_at_creation: descriptor.mappedAtCreation,
         };
-        let id = device
-            .global()
-            .wgpu_id_hub()
-            .create_buffer_id(device.id().0.backend());
+        let id = device.global().wgpu_id_hub().create_buffer_id();
 
         device
             .channel()

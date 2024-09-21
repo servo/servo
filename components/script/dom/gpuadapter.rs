@@ -140,14 +140,8 @@ impl GPUAdapterMethods for GPUAdapter {
             label: Some(descriptor.parent.label.to_string()),
             memory_hints: MemoryHints::MemoryUsage,
         };
-        let device_id = self
-            .global()
-            .wgpu_id_hub()
-            .create_device_id(self.adapter.0.backend());
-        let queue_id = self
-            .global()
-            .wgpu_id_hub()
-            .create_queue_id(self.adapter.0.backend());
+        let device_id = self.global().wgpu_id_hub().create_device_id();
+        let queue_id = self.global().wgpu_id_hub().create_queue_id();
         let pipeline_id = self.global().pipeline_id();
         if self
             .channel
@@ -222,11 +216,9 @@ impl AsyncWGPUListener for GPUAdapter {
                     RequestDeviceError::UnsupportedFeature(f).to_string(),
                 ))
             },
-            WebGPUResponse::Device((
-                _,
-                _,
-                Err(RequestDeviceError::LimitsExceeded(_) | RequestDeviceError::InvalidAdapter),
-            )) => promise.reject_error(Error::Operation),
+            WebGPUResponse::Device((_, _, Err(RequestDeviceError::LimitsExceeded(_)))) => {
+                promise.reject_error(Error::Operation)
+            },
             WebGPUResponse::Device((device_id, queue_id, Err(e))) => {
                 let device = GPUDevice::new(
                     &self.global(),

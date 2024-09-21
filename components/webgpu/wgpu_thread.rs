@@ -101,10 +101,7 @@ pub(crate) struct WGPU {
     sender: IpcSender<WebGPURequest>,
     pub(crate) script_sender: IpcSender<WebGPUMsg>,
     pub(crate) global: Arc<wgc::global::Global>,
-    adapters: Vec<WebGPUAdapter>,
     devices: Arc<Mutex<HashMap<DeviceId, DeviceScope>>>,
-    // Track invalid adapters https://gpuweb.github.io/gpuweb/#invalid
-    _invalid_adapters: Vec<WebGPUAdapter>,
     // TODO: Remove this (https://github.com/gfx-rs/wgpu/issues/867)
     /// This stores first error on command encoder,
     /// because wgpu does not invalidate command encoder object
@@ -155,9 +152,7 @@ impl WGPU {
             sender,
             script_sender,
             global,
-            adapters: Vec::new(),
             devices: Arc::new(Mutex::new(HashMap::new())),
-            _invalid_adapters: Vec::new(),
             error_command_encoders: HashMap::new(),
             webrender_api: Arc::new(Mutex::new(webrender_api_sender.create_api())),
             webrender_document,
@@ -636,22 +631,20 @@ impl WGPU {
                     WebGPURequest::RequestAdapter {
                         sender,
                         options,
-                        ids,
+                        adapter_id,
                     } => {
                         let global = &self.global;
                         let response = self
                             .global
-                            .request_adapter(&options, wgc::instance::AdapterInputs::IdSet(&ids))
+                            .request_adapter(&options, wgt::Backends::all(), Some(adapter_id))
                             .map(|adapter_id| {
-                                let adapter = WebGPUAdapter(adapter_id);
-                                self.adapters.push(adapter);
                                 // TODO: can we do this lazily
-                                let info = global.adapter_get_info(adapter_id).unwrap();
-                                let limits = global.adapter_limits(adapter_id).unwrap();
-                                let features = global.adapter_features(adapter_id).unwrap();
+                                let adapter_info = global.adapter_get_info(adapter_id);
+                                let limits = global.adapter_limits(adapter_id);
+                                let features = global.adapter_features(adapter_id);
                                 Adapter {
-                                    adapter_info: info,
-                                    adapter_id: adapter,
+                                    adapter_info,
+                                    adapter_id: WebGPUAdapter(adapter_id),
                                     features,
                                     limits,
                                     channel: WebGPU(self.sender.clone()),
@@ -680,71 +673,63 @@ impl WGPU {
                             memory_hints: MemoryHints::MemoryUsage,
                         };
                         let global = &self.global;
-                        let (device_id, queue_id, error) = global.adapter_request_device(
-                            adapter_id.0,
-                            &desc,
-                            None,
-                            Some(device_id),
-                            Some(queue_id),
-                        );
                         let device = WebGPUDevice(device_id);
                         let queue = WebGPUQueue(queue_id);
-                        if let Some(e) = error {
-                            if let Err(e) =
-                                sender.send(WebGPUResponse::Device((device, queue, Err(e))))
-                            {
-                                warn!(
-                                    "Failed to send response to WebGPURequest::RequestDevice ({})",
-                                    e
-                                )
-                            }
-                            continue;
-                        }
-                        {
-                            self.devices
-                                .lock()
-                                .unwrap()
-                                .insert(device_id, DeviceScope::new(device_id, pipeline_id));
-                        }
-                        let script_sender = self.script_sender.clone();
-                        let devices = Arc::clone(&self.devices);
-                        let callback =
-                            DeviceLostClosure::from_rust(Box::from(move |reason, msg| {
-                                let reason = match reason {
-                                    wgt::DeviceLostReason::Unknown => {
-                                        crate::DeviceLostReason::Unknown
-                                    },
-                                    wgt::DeviceLostReason::Destroyed => {
-                                        crate::DeviceLostReason::Destroyed
-                                    },
-                                    wgt::DeviceLostReason::Dropped => return, // we handle this in WebGPUMsg::FreeDevice
-                                    wgt::DeviceLostReason::ReplacedCallback => {
-                                        panic!("DeviceLost callback should only be set once")
-                                    },
-                                    wgt::DeviceLostReason::DeviceInvalid => {
-                                        crate::DeviceLostReason::Unknown
-                                    },
-                                };
-                                // make device lost by removing error scopes stack
-                                let _ = devices
-                                    .lock()
-                                    .unwrap()
-                                    .get_mut(&device_id)
-                                    .expect("Device should not be dropped by this point")
-                                    .error_scope_stack
-                                    .take();
-                                if let Err(e) = script_sender.send(WebGPUMsg::DeviceLost {
-                                    device: WebGPUDevice(device_id),
-                                    pipeline_id,
-                                    reason,
-                                    msg,
-                                }) {
-                                    warn!("Failed to send WebGPUMsg::DeviceLost: {e}");
+                        let result = global
+                            .adapter_request_device(
+                                adapter_id.0,
+                                &desc,
+                                None,
+                                Some(device_id),
+                                Some(queue_id),
+                            )
+                            .map(|_| {
+                                {
+                                    self.devices.lock().unwrap().insert(
+                                        device_id,
+                                        DeviceScope::new(device_id, pipeline_id),
+                                    );
                                 }
-                            }));
-                        global.device_set_device_lost_closure(device_id, callback);
-                        if let Err(e) =
-                            sender.send(WebGPUResponse::Device((device, queue, Ok(descriptor))))
+                                let script_sender = self.script_sender.clone();
+                                let devices = Arc::clone(&self.devices);
+                                let callback =
+                                    DeviceLostClosure::from_rust(Box::from(move |reason, msg| {
+                                        let reason = match reason {
+                                            wgt::DeviceLostReason::Unknown => {
+                                                crate::DeviceLostReason::Unknown
+                                            },
+                                            wgt::DeviceLostReason::Destroyed => {
+                                                crate::DeviceLostReason::Destroyed
+                                            },
+                                            // we handle this in WebGPUMsg::FreeDevice
+                                            wgt::DeviceLostReason::Dropped => return,
+                                            wgt::DeviceLostReason::ReplacedCallback => {
+                                                panic!(
+                                                    "DeviceLost callback should only be set once"
+                                                )
+                                            },
+                                        };
+                                        // make device lost by removing error scopes stack
+                                        let _ = devices
+                                            .lock()
+                                            .unwrap()
+                                            .get_mut(&device_id)
+                                            .expect("Device should not be dropped by this point")
+                                            .error_scope_stack
+                                            .take();
+                                        if let Err(e) = script_sender.send(WebGPUMsg::DeviceLost {
+                                            device,
+                                            pipeline_id,
+                                            reason,
+                                            msg,
+                                        }) {
+                                            warn!("Failed to send WebGPUMsg::DeviceLost: {e}");
+                                        }
+                                    }));
+                                global.device_set_device_lost_closure(device_id, callback);
+                                descriptor
+                            });
+                        if let Err(e) = sender.send(WebGPUResponse::Device((device, queue, result)))
                         {
                             warn!(
                                 "Failed to send response to WebGPURequest::RequestDevice ({})",
@@ -810,7 +795,12 @@ impl WGPU {
                         if let Pass::Open { pass, valid } = pass {
                             *valid &= self
                                 .global
-                                .compute_pass_set_bind_group(pass, index, bind_group_id, &offsets)
+                                .compute_pass_set_bind_group(
+                                    pass,
+                                    index,
+                                    Some(bind_group_id),
+                                    &offsets,
+                                )
                                 .is_ok();
                         } else {
                             self.maybe_dispatch_error(
@@ -1058,11 +1048,7 @@ impl WGPU {
                         drop(_guard);
                         self.maybe_dispatch_wgpu_error(device_id, result.err());
                     },
-                    WebGPURequest::QueueOnSubmittedWorkDone {
-                        sender,
-                        queue_id,
-                        device_id,
-                    } => {
+                    WebGPURequest::QueueOnSubmittedWorkDone { sender, queue_id } => {
                         let global = &self.global;
                         let token = self.poller.token();
                         let callback = SubmittedWorkDoneClosure::from_rust(Box::from(move || {
@@ -1071,9 +1057,8 @@ impl WGPU {
                                 warn!("Could not send SubmittedWorkDone Response ({})", e);
                             }
                         }));
-                        let result = global.queue_on_submitted_work_done(queue_id, callback);
+                        global.queue_on_submitted_work_done(queue_id, callback);
                         self.poller.wake();
-                        self.maybe_dispatch_wgpu_error(device_id, result.err());
                     },
                     WebGPURequest::DropTexture(id) => {
                         let global = &self.global;

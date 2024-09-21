@@ -2358,9 +2358,9 @@ dependencies = [
 
 [[package]]
 name = "glow"
-version = "0.14.0"
+version = "0.14.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f865cbd94bd355b89611211e49508da98a1fce0ad755c1e8448fb96711b24528"
+checksum = "2f4a888dbe8181a7535853469c21c67ca9a1cea9460b16808fc018ea9e55d248"
 dependencies = [
  "js-sys",
  "slotmap",
@@ -4426,7 +4426,7 @@ checksum = "defc4c55412d89136f966bbb339008b474350e5e6e78d2714439c386b3137a03"
 [[package]]
 name = "naga"
 version = "22.0.0"
-source = "git+https://github.com/gfx-rs/wgpu?rev=0e352f5b3448236b6cbebcd146d0606b00cb3806#0e352f5b3448236b6cbebcd146d0606b00cb3806"
+source = "git+https://github.com/gfx-rs/wgpu?rev=9f85f8aeea6c43c1a412bafc8fbcfb43aad0dd20#9f85f8aeea6c43c1a412bafc8fbcfb43aad0dd20"
 dependencies = [
  "arrayvec",
  "bit-set",
@@ -7876,7 +7876,6 @@ dependencies = [
  "malloc_size_of",
  "serde",
  "servo_config",
- "smallvec",
  "webrender",
  "webrender_api",
  "webrender_traits",
@@ -8006,7 +8005,7 @@ checksum = "53a85b86a771b1c87058196170769dd264f66c0782acf1ae6cc51bfd64b39082"
 [[package]]
 name = "wgpu-core"
 version = "22.0.0"
-source = "git+https://github.com/gfx-rs/wgpu?rev=0e352f5b3448236b6cbebcd146d0606b00cb3806#0e352f5b3448236b6cbebcd146d0606b00cb3806"
+source = "git+https://github.com/gfx-rs/wgpu?rev=9f85f8aeea6c43c1a412bafc8fbcfb43aad0dd20#9f85f8aeea6c43c1a412bafc8fbcfb43aad0dd20"
 dependencies = [
  "arrayvec",
  "bit-vec",
@@ -8031,7 +8030,7 @@ dependencies = [
 [[package]]
 name = "wgpu-hal"
 version = "22.0.0"
-source = "git+https://github.com/gfx-rs/wgpu?rev=0e352f5b3448236b6cbebcd146d0606b00cb3806#0e352f5b3448236b6cbebcd146d0606b00cb3806"
+source = "git+https://github.com/gfx-rs/wgpu?rev=9f85f8aeea6c43c1a412bafc8fbcfb43aad0dd20#9f85f8aeea6c43c1a412bafc8fbcfb43aad0dd20"
 dependencies = [
  "android_system_properties",
  "arrayvec",
@@ -8041,7 +8040,7 @@ dependencies = [
  "block",
  "cfg_aliases 0.1.1",
  "core-graphics-types",
- "glow 0.14.0",
+ "glow 0.14.1",
  "glutin_wgl_sys",
  "gpu-alloc",
  "gpu-allocator",
@@ -8073,7 +8072,7 @@ dependencies = [
 [[package]]
 name = "wgpu-types"
 version = "22.0.0"
-source = "git+https://github.com/gfx-rs/wgpu?rev=0e352f5b3448236b6cbebcd146d0606b00cb3806#0e352f5b3448236b6cbebcd146d0606b00cb3806"
+source = "git+https://github.com/gfx-rs/wgpu?rev=9f85f8aeea6c43c1a412bafc8fbcfb43aad0dd20#9f85f8aeea6c43c1a412bafc8fbcfb43aad0dd20"
 dependencies = [
  "bitflags 2.6.0",
  "js-sys",

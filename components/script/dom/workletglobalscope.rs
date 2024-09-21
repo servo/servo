@@ -22,7 +22,7 @@ use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::identityhub::Identities;
+use crate::dom::identityhub::IdentityHub;
 use crate::dom::paintworkletglobalscope::{PaintWorkletGlobalScope, PaintWorkletTask};
 use crate::dom::testworkletglobalscope::{TestWorkletGlobalScope, TestWorkletTask};
 use crate::dom::worklet::WorkletExecutor;
@@ -164,7 +164,7 @@ pub struct WorkletGlobalScopeInit {
     /// An optional string allowing the user agent to be set for testing
     pub user_agent: Cow<'static, str>,
     /// Identity manager for WebGPU resources
-    pub gpu_id_hub: Arc<Identities>,
+    pub gpu_id_hub: Arc<IdentityHub>,
     /// Is considered secure
     pub inherited_secure_context: Option<bool>,
 }

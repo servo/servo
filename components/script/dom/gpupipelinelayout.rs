@@ -92,10 +92,7 @@ impl GPUPipelineLayout {
             push_constant_ranges: Cow::Owned(vec![]),
         };
 
-        let pipeline_layout_id = device
-            .global()
-            .wgpu_id_hub()
-            .create_pipeline_layout_id(device.id().0.backend());
+        let pipeline_layout_id = device.global().wgpu_id_hub().create_pipeline_layout_id();
         device
             .channel()
             .0

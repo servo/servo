@@ -85,7 +85,7 @@ pub fn apply_render_command(
             index,
             bind_group_id,
             offsets,
-        } => global.render_pass_set_bind_group(pass, index, bind_group_id, &offsets),
+        } => global.render_pass_set_bind_group(pass, index, Some(bind_group_id), &offsets),
         RenderCommand::SetViewport {
             x,
             y,

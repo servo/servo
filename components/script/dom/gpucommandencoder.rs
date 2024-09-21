@@ -85,10 +85,7 @@ impl GPUCommandEncoder {
         device: &GPUDevice,
         descriptor: &GPUCommandEncoderDescriptor,
     ) -> DomRoot<GPUCommandEncoder> {
-        let command_encoder_id = device
-            .global()
-            .wgpu_id_hub()
-            .create_command_encoder_id(device.id().0.backend());
+        let command_encoder_id = device.global().wgpu_id_hub().create_command_encoder_id();
         device
             .channel()
             .0
@@ -129,10 +126,7 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
         &self,
         descriptor: &GPUComputePassDescriptor,
     ) -> DomRoot<GPUComputePassEncoder> {
-        let compute_pass_id = self
-            .global()
-            .wgpu_id_hub()
-            .create_compute_pass_id(self.device.id().0.backend());
+        let compute_pass_id = self.global().wgpu_id_hub().create_compute_pass_id();
 
         if let Err(e) = self.channel.0.send(WebGPURequest::BeginComputePass {
             command_encoder_id: self.id().0,
@@ -197,10 +191,7 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
                 }))
             })
             .collect::<Fallible<Vec<_>>>()?;
-        let render_pass_id = self
-            .global()
-            .wgpu_id_hub()
-            .create_render_pass_id(self.device.id().0.backend());
+        let render_pass_id = self.global().wgpu_id_hub().create_render_pass_id();
 
         if let Err(e) = self.channel.0.send(WebGPURequest::BeginRenderPass {
             command_encoder_id: self.id().0,

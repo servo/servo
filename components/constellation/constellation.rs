@@ -2087,22 +2087,24 @@ where
             Entry::Occupied(o) => Some(o.get().clone()),
         };
         match request {
-            FromScriptMsg::RequestAdapter(response_sender, options, ids) => match webgpu_chan {
-                None => {
-                    if let Err(e) = response_sender.send(WebGPUResponse::None) {
-                        warn!("Failed to send request adapter message: {}", e)
-                    }
-                },
-                Some(webgpu_chan) => {
-                    let adapter_request = WebGPURequest::RequestAdapter {
-                        sender: response_sender,
-                        options,
-                        ids,
-                    };
-                    if webgpu_chan.0.send(adapter_request).is_err() {
-                        warn!("Failed to send request adapter message on WebGPU channel");
-                    }
-                },
+            FromScriptMsg::RequestAdapter(response_sender, options, adapter_id) => {
+                match webgpu_chan {
+                    None => {
+                        if let Err(e) = response_sender.send(WebGPUResponse::None) {
+                            warn!("Failed to send request adapter message: {}", e)
+                        }
+                    },
+                    Some(webgpu_chan) => {
+                        let adapter_request = WebGPURequest::RequestAdapter {
+                            sender: response_sender,
+                            options,
+                            adapter_id,
+                        };
+                        if webgpu_chan.0.send(adapter_request).is_err() {
+                            warn!("Failed to send request adapter message on WebGPU channel");
+                        }
+                    },
+                }
             },
             FromScriptMsg::GetWebGPUChan(response_sender) => {
                 if response_sender.send(webgpu_chan).is_err() {

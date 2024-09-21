@@ -76,10 +76,7 @@ impl GPUSampler {
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createsampler>
     pub fn create(device: &GPUDevice, descriptor: &GPUSamplerDescriptor) -> DomRoot<GPUSampler> {
-        let sampler_id = device
-            .global()
-            .wgpu_id_hub()
-            .create_sampler_id(device.id().0.backend());
+        let sampler_id = device.global().wgpu_id_hub().create_sampler_id();
         let compare_enable = descriptor.compare.is_some();
         let desc = SamplerDescriptor {
             label: (&descriptor.parent).into(),

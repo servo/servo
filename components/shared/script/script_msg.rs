@@ -22,7 +22,6 @@ use net_traits::storage_thread::StorageType;
 use net_traits::CoreResourceMsg;
 use serde::{Deserialize, Serialize};
 use servo_url::{ImmutableOrigin, ServoUrl};
-use smallvec::SmallVec;
 use style_traits::CSSPixel;
 use webgpu::{wgc, WebGPU, WebGPUResponse};
 use webrender_api::units::{DeviceIntPoint, DeviceIntSize};
@@ -259,7 +258,7 @@ pub enum ScriptMsg {
     RequestAdapter(
         IpcSender<WebGPUResponse>,
         wgc::instance::RequestAdapterOptions,
-        SmallVec<[wgc::id::AdapterId; 4]>,
+        wgc::id::AdapterId,
     ),
     /// Get WebGPU channel
     GetWebGPUChan(IpcSender<Option<WebGPU>>),

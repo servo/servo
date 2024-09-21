@@ -197,7 +197,6 @@ impl GPUQueueMethods for GPUQueue {
             .send(WebGPURequest::QueueOnSubmittedWorkDone {
                 sender,
                 queue_id: self.queue.0,
-                device_id: self.device.borrow().as_ref().unwrap().id().0,
             })
         {
             warn!("QueueOnSubmittedWorkDone failed with {e}")
