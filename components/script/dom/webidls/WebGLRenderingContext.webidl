@@ -43,7 +43,7 @@ dictionary WebGLContextAttributes {
     GLboolean failIfMajorPerformanceCaveat = false;
 };
 
-[Exposed=Window]
+[Exposed=(Window,Worker)]
 interface mixin WebGLRenderingContextBase
 {
 
@@ -465,7 +465,7 @@ interface mixin WebGLRenderingContextBase
     const GLenum UNPACK_COLORSPACE_CONVERSION_WEBGL = 0x9243;
     const GLenum BROWSER_DEFAULT_WEBGL          = 0x9244;
 
-    readonly attribute HTMLCanvasElement canvas;
+    readonly attribute (HTMLCanvasElement or OffscreenCanvas) canvas;
     readonly attribute GLsizei drawingBufferWidth;
     readonly attribute GLsizei drawingBufferHeight;
 
@@ -680,7 +680,7 @@ interface mixin WebGLRenderingContextOverloads
     undefined uniformMatrix4fv(WebGLUniformLocation? location, GLboolean transpose, Float32List value);
 };
 
-[Exposed=(Window)]
+[Exposed=(Window,Worker)]
 interface WebGLRenderingContext
 {
 };
