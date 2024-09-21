@@ -458,7 +458,7 @@ pub struct GlyphStore {
     is_rtl: bool,
 }
 
-impl<'a> GlyphStore {
+impl GlyphStore {
     /// Initializes the glyph store, but doesn't actually shape anything.
     ///
     /// Use the `add_*` methods to store glyph data.

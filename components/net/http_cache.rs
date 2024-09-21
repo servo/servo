@@ -182,7 +182,7 @@ fn calculate_response_age(response: &Response) -> Duration {
         .get(header::AGE)
         .and_then(|age_header| age_header.to_str().ok())
         .and_then(|age_string| age_string.parse::<u64>().ok())
-        .map(|seconds| Duration::from_secs(seconds))
+        .map(Duration::from_secs)
         .unwrap_or_default()
 }
 

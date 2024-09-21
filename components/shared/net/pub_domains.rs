@@ -28,7 +28,7 @@ pub struct PubDomainRules {
     exceptions: HashSet<String>,
 }
 
-static PUB_DOMAINS: LazyLock<PubDomainRules> = LazyLock::new(|| load_pub_domains());
+static PUB_DOMAINS: LazyLock<PubDomainRules> = LazyLock::new(load_pub_domains);
 
 impl<'a> FromIterator<&'a str> for PubDomainRules {
     fn from_iter<T>(iter: T) -> Self

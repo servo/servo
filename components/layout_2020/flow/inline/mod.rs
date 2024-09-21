@@ -1685,7 +1685,7 @@ impl InlineFormattingContext {
 
         FlowLayout {
             fragments: layout.fragments,
-            content_block_size: content_block_size,
+            content_block_size,
             collapsible_margins_in_children,
             baselines: layout.baselines,
         }
