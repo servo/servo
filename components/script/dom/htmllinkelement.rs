@@ -656,9 +656,7 @@ impl LinkProcessingOptions {
         assert!(!self.href.is_empty());
 
         // Step 2. If options's destination is null, then return null.
-        let Some(destination) = self.destination else {
-            return None;
-        };
+        let destination = self.destination?;
 
         // Step 3. Let url be the result of encoding-parsing a URL given options's href, relative to options's base URL.
         // TODO: The spec passes a base url which is incompatible with the

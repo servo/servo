@@ -98,7 +98,7 @@ fn find_python() -> PathBuf {
 
     for name in &candidates {
         // Command::new() allows us to omit the `.exe` suffix on windows
-        if Command::new(&name)
+        if Command::new(name)
             .arg("--version")
             .output()
             .is_ok_and(|out| out.status.success())

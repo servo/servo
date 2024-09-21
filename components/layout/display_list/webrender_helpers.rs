@@ -252,7 +252,7 @@ impl DisplayItem {
 
         match *self {
             DisplayItem::Rectangle(ref mut item) => {
-                let mut rect_item = item.item.clone();
+                let mut rect_item = item.item;
                 rect_item.common = build_common_item_properties(&item.base);
                 rect_item.bounds = item.item.bounds.translate(stacking_context_offset);
 
@@ -261,7 +261,7 @@ impl DisplayItem {
                 IsContentful(false)
             },
             DisplayItem::Text(ref mut item) => {
-                let mut text_item = item.item.clone();
+                let mut text_item = item.item;
                 text_item.bounds = text_item.bounds.translate(stacking_context_offset);
                 text_item.common = build_common_item_properties(&item.base);
 
@@ -277,7 +277,7 @@ impl DisplayItem {
                 IsContentful(true)
             },
             DisplayItem::Image(ref mut item) => {
-                let mut image_item = item.item.clone();
+                let mut image_item = item.item;
                 image_item.common = build_common_item_properties(&item.base);
                 image_item.bounds = item.item.bounds.translate(stacking_context_offset);
 
@@ -286,7 +286,7 @@ impl DisplayItem {
                 IsContentful(true)
             },
             DisplayItem::RepeatingImage(ref mut item) => {
-                let mut image_item = item.item.clone();
+                let mut image_item = item.item;
                 image_item.common = build_common_item_properties(&item.base);
                 image_item.bounds = item.item.bounds.translate(stacking_context_offset);
 
@@ -295,7 +295,7 @@ impl DisplayItem {
                 IsContentful(true)
             },
             DisplayItem::Border(ref mut item) => {
-                let mut border_item = item.item.clone();
+                let mut border_item = item.item;
                 border_item.common = build_common_item_properties(&item.base);
                 border_item.bounds = item.item.bounds.translate(stacking_context_offset);
 
@@ -307,7 +307,7 @@ impl DisplayItem {
                 IsContentful(false)
             },
             DisplayItem::Gradient(ref mut item) => {
-                let mut gradient_item = item.item.clone();
+                let mut gradient_item = item.item;
                 gradient_item.common = build_common_item_properties(&item.base);
                 gradient_item.bounds = item.item.bounds.translate(stacking_context_offset);
 
@@ -317,7 +317,7 @@ impl DisplayItem {
                 IsContentful(false)
             },
             DisplayItem::RadialGradient(ref mut item) => {
-                let mut gradient_item = item.item.clone();
+                let mut gradient_item = item.item;
                 gradient_item.common = build_common_item_properties(&item.base);
                 gradient_item.bounds = item.item.bounds.translate(stacking_context_offset);
 
@@ -327,7 +327,7 @@ impl DisplayItem {
                 IsContentful(false)
             },
             DisplayItem::Line(ref mut item) => {
-                let mut line_item = item.item.clone();
+                let mut line_item = item.item;
                 line_item.common = build_common_item_properties(&item.base);
                 line_item.area = item.item.area.translate(stacking_context_offset);
 
@@ -336,7 +336,7 @@ impl DisplayItem {
                 IsContentful(false)
             },
             DisplayItem::BoxShadow(ref mut item) => {
-                let mut shadow_item = item.item.clone();
+                let mut shadow_item = item.item;
                 shadow_item.common = build_common_item_properties(&item.base);
                 shadow_item.box_bounds = item.item.box_bounds.translate(stacking_context_offset);
 

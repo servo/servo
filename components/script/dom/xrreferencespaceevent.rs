@@ -114,11 +114,9 @@ impl XRReferenceSpaceEventMethods for XRReferenceSpaceEvent {
 
     /// <https://www.w3.org/TR/webxr/#dom-xrreferencespaceevent-transform>
     fn GetTransform(&self) -> Option<DomRoot<XRRigidTransform>> {
-        if let Some(ref transform) = self.transform {
-            Some(DomRoot::from_ref(&**transform))
-        } else {
-            None
-        }
+        self.transform
+            .as_ref()
+            .map(|transform| DomRoot::from_ref(&**transform))
     }
 
     /// <https://dom.spec.whatwg.org/#dom-event-istrusted>

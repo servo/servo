@@ -96,7 +96,7 @@ impl GamepadHapticActuator {
         }
         Self {
             reflector_: Reflector::new(),
-            gamepad_index: gamepad_index,
+            gamepad_index,
             effects,
             playing_effect_promise: DomRefCell::new(None),
             sequence_id: Cell::new(0),

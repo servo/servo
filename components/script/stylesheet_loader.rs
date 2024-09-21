@@ -99,13 +99,12 @@ impl FetchResponseListener for StylesheetContext {
     fn process_request_eof(&mut self) {}
 
     fn process_response(&mut self, metadata: Result<FetchMetadata, NetworkError>) {
-        if let Ok(FetchMetadata::Filtered { ref filtered, .. }) = metadata {
-            match *filtered {
-                FilteredMetadata::Opaque | FilteredMetadata::OpaqueRedirect(_) => {
-                    self.origin_clean = false;
-                },
-                _ => {},
-            }
+        if let Ok(FetchMetadata::Filtered {
+            filtered: FilteredMetadata::Opaque | FilteredMetadata::OpaqueRedirect(_),
+            ..
+        }) = metadata
+        {
+            self.origin_clean = false;
         }
 
         self.metadata = metadata.ok().map(|m| match m {

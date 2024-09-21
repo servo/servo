@@ -7,7 +7,7 @@ use std::collections::HashSet;
 use std::default::Default;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
-use std::{char, i32, mem};
+use std::{char, mem};
 
 use app_units::{Au, AU_PER_PX};
 use base::id::PipelineId;
