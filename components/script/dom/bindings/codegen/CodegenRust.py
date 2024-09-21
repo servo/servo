@@ -1545,15 +1545,20 @@ def MemberCondition(pref, func, exposed, secure):
     assert func is None or isinstance(func, str)
     assert exposed is None or isinstance(exposed, set)
     assert func is None or pref is None or exposed is None or secure is None
+    conditions = []
     if secure:
-        return 'Condition::SecureContext()'
+        conditions.append('Condition::SecureContext()')
     if pref:
-        return f'Condition::Pref("{pref}")'
+        conditions.append(f'Condition::Pref("{pref}")')
     if func:
-        return f'Condition::Func({func})'
+        conditions.append(f'Condition::Func({func})')
     if exposed:
-        return [f"Condition::Exposed(InterfaceObjectMap::Globals::{camel_to_upper_snake(i)})" for i in exposed]
-    return "Condition::Satisfied"
+        conditions.extend([
+            f"Condition::Exposed(InterfaceObjectMap::Globals::{camel_to_upper_snake(i)})" for i in exposed
+        ])
+    if len(conditions) == 0:
+        conditions.append("Condition::Satisfied")
+    return conditions
 
 
 class PropertyDefiner:
@@ -1639,13 +1644,10 @@ class PropertyDefiner:
                 currentSpecs.append(specTerminator)
             joinedCurrentSpecs = ',\n'.join(currentSpecs)
             specs.append(f"&[\n{joinedCurrentSpecs}]\n")
-            if isinstance(cond, list):
-                for i in cond:
-                    prefableSpecs.append(
-                        prefableTemplate % (i, f"{name}_specs", len(specs) - 1))
-            else:
-                prefableSpecs.append(
-                    prefableTemplate % (cond, f"{name}_specs", len(specs) - 1))
+            conds = ','.join(cond) if isinstance(cond, list) else cond
+            prefableSpecs.append(
+                prefableTemplate % (f"&[{conds}]", f"{name}_specs", len(specs) - 1)
+            )
 
         joinedSpecs = ',\n'.join(specs)
         specsArray = (f"const {name}_specs: &[&[{specType}]] = &[\n"
@@ -2814,6 +2816,15 @@ class CGConstructorEnabled(CGAbstractMethod):
         if func:
             assert isinstance(func, list) and len(func) == 1
             conditions.append(f"{func[0]}(aCx, aObj)")
+
+        secure = iface.getExtendedAttribute("SecureContext")
+        if secure:
+            conditions.append("""
+unsafe {
+    let in_realm_proof = AlreadyInRealm::assert_for_cx(aCx);
+    GlobalScope::from_context(*aCx, InRealm::Already(&in_realm_proof)).is_secure_context()
+}
+""")
 
         return CGList((CGGeneric(cond) for cond in conditions), " &&\n")
 
