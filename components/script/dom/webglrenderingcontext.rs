@@ -683,7 +683,8 @@ impl WebGLRenderingContext {
                     HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(ref canvas) => {
                         window_from_node(&**canvas)
                     },
-                    HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(_) => {},
+                    // This is marked as unreachable as we should have returned already
+                    HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(_) => unreachable!(),
                 };
                 let cors_setting = cors_setting_for_element(image.upcast());
 
