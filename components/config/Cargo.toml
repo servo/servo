@@ -11,6 +11,9 @@ rust-version.workspace = true
 name = "servo_config"
 path = "lib.rs"
 
+[features]
+webxr = []
+
 [dependencies]
 embedder_traits = { workspace = true }
 euclid = { workspace = true }
