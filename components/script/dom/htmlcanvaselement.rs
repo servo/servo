@@ -26,6 +26,7 @@ use crate::dom::bindings::codegen::Bindings::HTMLCanvasElementBinding::{
 };
 use crate::dom::bindings::codegen::Bindings::MediaStreamBinding::MediaStreamMethods;
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLContextAttributes;
+use crate::dom::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanvas;
 use crate::dom::bindings::conversions::ConversionResult;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
@@ -206,7 +207,9 @@ impl HTMLCanvasElement {
         let window = window_from_node(self);
         let size = self.get_size();
         let attrs = Self::get_gl_attributes(cx, options)?;
-        let context = WebGLRenderingContext::new(&window, self, WebGLVersion::WebGL1, size, attrs)?;
+        let canvas = HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(DomRoot::from_ref(self));
+        let context =
+            WebGLRenderingContext::new(&window, &canvas, WebGLVersion::WebGL1, size, attrs)?;
         *self.context.borrow_mut() = Some(CanvasContext::WebGL(Dom::from_ref(&*context)));
         Some(context)
     }
@@ -229,7 +232,8 @@ impl HTMLCanvasElement {
         let window = window_from_node(self);
         let size = self.get_size();
         let attrs = Self::get_gl_attributes(cx, options)?;
-        let context = WebGL2RenderingContext::new(&window, self, size, attrs)?;
+        let canvas = HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(DomRoot::from_ref(self));
+        let context = WebGL2RenderingContext::new(&window, &canvas, size, attrs)?;
         *self.context.borrow_mut() = Some(CanvasContext::WebGL2(Dom::from_ref(&*context)));
         Some(context)
     }
