@@ -3,6 +3,8 @@ import deviceInfo from '@ohos.deviceInfo';
 
 interface ServoXComponentInterface {
   loadURL(url: string): void;
+  goBack(): void;
+  goForward(): void;
   registerURLcallback(callback: (url: string) => void): void;
   initServo(options: InitOpts): void;
 }
@@ -48,15 +50,34 @@ struct Index {
 
   build() {
     Column() {
-      TextInput({placeholder:'URL',text: $$this.urlToLoad})
-      .type(InputType.Normal)
-        .onChange((value) => {
-          this.urlToLoad = value
-        })
-        .onSubmit((EnterKeyType)=>{
-          this.xComponentContext?.loadURL(this.urlToLoad)
-          console.info('Load URL: ', this.urlToLoad)
-        })
+      Row() {
+        Button('⇦').backgroundColor(Color.White)
+          .fontColor(Color.Black)
+          .fontWeight(FontWeight.Bolder)
+          .width('12%')
+          .fontSize(12)
+          .onClick(()=>{
+            this.xComponentContext?.goBack()
+          })
+        Button('⇨').backgroundColor(Color.White)
+          .fontColor(Color.Black)
+          .fontWeight(FontWeight.Bolder)
+          .fontSize(12)
+          .width('12%')
+          .onClick(()=> {
+            this.xComponentContext?.goForward()
+          })
+        TextInput({placeholder:'URL',text: $$this.urlToLoad})
+          .type(InputType.Normal)
+          .width('76%')
+          .onChange((value) => {
+            this.urlToLoad = value
+          })
+          .onSubmit((EnterKeyType)=>{
+            this.xComponentContext?.loadURL(this.urlToLoad)
+            console.info('Load URL: ', this.urlToLoad)
+          })
+      }
       XComponent(this.xComponentAttrs)
         .focusable(true)
         .onLoad((xComponentContext) => {
@@ -65,7 +86,7 @@ struct Index {
             url: this.urlToLoad,
             deviceType: get_device_type(),
             osFullName: deviceInfo.osFullName,
-            displayDensity: get_density()
+            displayDensity: get_density(),
           }
           this.xComponentContext.initServo(init_options)
           this.xComponentContext.registerURLcallback((new_url) => {
