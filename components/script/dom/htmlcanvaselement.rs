@@ -137,12 +137,12 @@ impl LayoutHTMLCanvasElementHelpers for LayoutDom<'_, HTMLCanvasElement> {
         let source = unsafe {
             match self.unsafe_get().context.borrow_for_layout().as_ref() {
                 Some(CanvasContext::Context2d(context)) => {
-                    HTMLCanvasDataSource::Image(Some(context.to_layout().get_ipc_renderer()))
+                    HTMLCanvasDataSource::Image(context.to_layout().get_ipc_renderer())
                 },
                 Some(CanvasContext::WebGL(context)) => context.to_layout().canvas_data_source(),
                 Some(CanvasContext::WebGL2(context)) => context.to_layout().canvas_data_source(),
                 Some(CanvasContext::WebGPU(context)) => context.to_layout().canvas_data_source(),
-                None => HTMLCanvasDataSource::Image(None),
+                None => HTMLCanvasDataSource::Empty,
             }
         };
 

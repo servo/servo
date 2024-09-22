@@ -1944,20 +1944,18 @@ impl Fragment {
                 let image_key = match canvas_fragment_info.source {
                     CanvasFragmentSource::WebGL(image_key) => image_key,
                     CanvasFragmentSource::WebGPU(image_key) => image_key,
-                    CanvasFragmentSource::Image(ref ipc_renderer) => match *ipc_renderer {
-                        Some(ref ipc_renderer) => {
-                            let ipc_renderer = ipc_renderer.lock().unwrap();
-                            let (sender, receiver) = ipc::channel().unwrap();
-                            ipc_renderer
-                                .send(CanvasMsg::FromLayout(
-                                    FromLayoutMsg::SendData(sender),
-                                    canvas_fragment_info.canvas_id,
-                                ))
-                                .unwrap();
-                            receiver.recv().unwrap().image_key
-                        },
-                        None => return,
+                    CanvasFragmentSource::Image(ref ipc_renderer) => {
+                        let ipc_renderer = ipc_renderer.lock().unwrap();
+                        let (sender, receiver) = ipc::channel().unwrap();
+                        ipc_renderer
+                            .send(CanvasMsg::FromLayout(
+                                FromLayoutMsg::SendData(sender),
+                                canvas_fragment_info.canvas_id,
+                            ))
+                            .unwrap();
+                        receiver.recv().unwrap().image_key
                     },
+                    CanvasFragmentSource::Empty => return,
                 };
 
                 let base = create_base_display_item(state);

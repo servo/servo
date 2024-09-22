@@ -116,8 +116,10 @@ pub enum LayoutElementType {
 
 pub enum HTMLCanvasDataSource {
     WebGL(ImageKey),
-    Image(Option<IpcSender<CanvasMsg>>),
+    Image(IpcSender<CanvasMsg>),
     WebGPU(ImageKey),
+    /// transparent black
+    Empty,
 }
 
 pub struct HTMLCanvasData {
