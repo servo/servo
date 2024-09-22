@@ -51,7 +51,9 @@ use constellation::{
     UnprivilegedContent,
 };
 use crossbeam_channel::{unbounded, Sender};
-use embedder_traits::{EmbedderMsg, EmbedderProxy, EmbedderReceiver, EventLoopWaker};
+#[cfg(feature = "webxr")]
+use embedder_traits::EventLoopWaker;
+use embedder_traits::{EmbedderMsg, EmbedderProxy, EmbedderReceiver};
 use env_logger::Builder as EnvLoggerBuilder;
 use euclid::Scale;
 use fonts::FontCacheThread;
@@ -298,6 +300,7 @@ where
         // the client window and the compositor. This channel is unique because
         // messages to client may need to pump a platform-specific event loop
         // to deliver the message.
+        #[cfg(feature = "webxr")]
         let event_loop_waker = embedder.create_event_loop_waker();
         let (compositor_proxy, compositor_receiver) =
             create_compositor_channel(event_loop_waker.clone());
@@ -360,8 +363,8 @@ where
                     } else {
                         ShaderPrecacheFlags::empty()
                     },
-                    enable_subpixel_aa: pref!(gfx.subpixel_text_antialiasing.enabled) &&
-                        !opts.debug.disable_subpixel_text_antialiasing,
+                    enable_subpixel_aa: pref!(gfx.subpixel_text_antialiasing.enabled)
+                        && !opts.debug.disable_subpixel_text_antialiasing,
                     allow_texture_swizzling: pref!(gfx.texture_swizzling.enabled),
                     clear_color,
                     upload_method,
@@ -961,12 +964,13 @@ where
 }
 
 fn create_embedder_channel(
-    event_loop_waker: Box<dyn EventLoopWaker>,
+    #[cfg(feature = "webxr")] event_loop_waker: Box<dyn EventLoopWaker>,
 ) -> (EmbedderProxy, EmbedderReceiver) {
     let (sender, receiver) = unbounded();
     (
         EmbedderProxy {
             sender,
+            #[cfg(feature = "webxr")]
             event_loop_waker,
         },
         EmbedderReceiver { receiver },
@@ -974,12 +978,13 @@ fn create_embedder_channel(
 }
 
 fn create_compositor_channel(
-    event_loop_waker: Box<dyn EventLoopWaker>,
+    #[cfg(feature = "webxr")] event_loop_waker: Box<dyn EventLoopWaker>,
 ) -> (CompositorProxy, CompositorReceiver) {
     let (sender, receiver) = unbounded();
     (
         CompositorProxy {
             sender,
+            #[cfg(feature = "webxr")]
             event_loop_waker,
         },
         CompositorReceiver { receiver },

@@ -13,6 +13,7 @@ path = "lib.rs"
 crate-type = ["rlib"]
 
 [features]
+default = ["webxr"]
 debugmozjs = ["script/debugmozjs"]
 jitspew = ["script/jitspew"]
 js_backtrace = ["script/js_backtrace"]
@@ -29,6 +30,12 @@ webgl_backtrace = [
     "script/webgl_backtrace",
     "canvas/webgl_backtrace",
     "canvas_traits/webgl_backtrace",
+]
+webxr = [
+    "compositing/webxr",
+    "compositing_traits/webxr",
+    "embedder_traits/webxr",
+    "servo_config/webxr",
 ]
 
 [dependencies]
