@@ -94,8 +94,10 @@ impl NaturalSizes {
 #[derive(Serialize)]
 pub(crate) enum CanvasSource {
     WebGL(ImageKey),
-    Image(Option<Arc<Mutex<IpcSender<CanvasMsg>>>>),
+    Image(Arc<Mutex<IpcSender<CanvasMsg>>>),
     WebGPU(ImageKey),
+    /// transparent black
+    Empty,
 }
 
 impl fmt::Debug for CanvasSource {
@@ -107,6 +109,7 @@ impl fmt::Debug for CanvasSource {
                 CanvasSource::WebGL(_) => "WebGL",
                 CanvasSource::Image(_) => "Image",
                 CanvasSource::WebGPU(_) => "WebGPU",
+                CanvasSource::Empty => "Empty",
             }
         )
     }
@@ -376,20 +379,18 @@ impl ReplacedContent {
                 let image_key = match canvas_info.source {
                     CanvasSource::WebGL(image_key) => image_key,
                     CanvasSource::WebGPU(image_key) => image_key,
-                    CanvasSource::Image(ref ipc_renderer) => match *ipc_renderer {
-                        Some(ref ipc_renderer) => {
-                            let ipc_renderer = ipc_renderer.lock().unwrap();
-                            let (sender, receiver) = ipc::channel().unwrap();
-                            ipc_renderer
-                                .send(CanvasMsg::FromLayout(
-                                    FromLayoutMsg::SendData(sender),
-                                    canvas_info.canvas_id,
-                                ))
-                                .unwrap();
-                            receiver.recv().unwrap().image_key
-                        },
-                        None => return vec![],
+                    CanvasSource::Image(ref ipc_renderer) => {
+                        let ipc_renderer = ipc_renderer.lock().unwrap();
+                        let (sender, receiver) = ipc::channel().unwrap();
+                        ipc_renderer
+                            .send(CanvasMsg::FromLayout(
+                                FromLayoutMsg::SendData(sender),
+                                canvas_info.canvas_id,
+                            ))
+                            .unwrap();
+                        receiver.recv().unwrap().image_key
                     },
+                    CanvasSource::Empty => return vec![],
                 };
                 vec![Fragment::Image(ImageFragment {
                     base: self.base_fragment_info.into(),

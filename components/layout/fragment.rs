@@ -353,8 +353,10 @@ impl InlineAbsoluteFragmentInfo {
 #[derive(Clone)]
 pub enum CanvasFragmentSource {
     WebGL(ImageKey),
-    Image(Option<Arc<Mutex<IpcSender<CanvasMsg>>>>),
+    Image(Arc<Mutex<IpcSender<CanvasMsg>>>),
     WebGPU(ImageKey),
+    /// Transparent black
+    Empty,
 }
 
 #[derive(Clone)]
@@ -369,10 +371,11 @@ impl CanvasFragmentInfo {
     pub fn new(data: HTMLCanvasData) -> CanvasFragmentInfo {
         let source = match data.source {
             HTMLCanvasDataSource::WebGL(texture_id) => CanvasFragmentSource::WebGL(texture_id),
-            HTMLCanvasDataSource::Image(ipc_sender) => CanvasFragmentSource::Image(
-                ipc_sender.map(|renderer| Arc::new(Mutex::new(renderer))),
-            ),
+            HTMLCanvasDataSource::Image(ipc_sender) => {
+                CanvasFragmentSource::Image(Arc::new(Mutex::new(ipc_sender)))
+            },
             HTMLCanvasDataSource::WebGPU(image_key) => CanvasFragmentSource::WebGPU(image_key),
+            HTMLCanvasDataSource::Empty => CanvasFragmentSource::Empty,
         };
 
         CanvasFragmentInfo {

@@ -149,9 +149,10 @@ where
         let source = match canvas_data.source {
             HTMLCanvasDataSource::WebGL(texture_id) => CanvasSource::WebGL(texture_id),
             HTMLCanvasDataSource::Image(ipc_sender) => {
-                CanvasSource::Image(ipc_sender.map(|renderer| Arc::new(Mutex::new(renderer))))
+                CanvasSource::Image(Arc::new(Mutex::new(ipc_sender)))
             },
             HTMLCanvasDataSource::WebGPU(image_key) => CanvasSource::WebGPU(image_key),
+            HTMLCanvasDataSource::Empty => CanvasSource::Empty,
         };
         Some((
             CanvasInfo {
