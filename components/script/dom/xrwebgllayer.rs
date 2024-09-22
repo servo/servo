@@ -15,6 +15,7 @@ use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGL
 use crate::dom::bindings::codegen::Bindings::XRWebGLLayerBinding::{
     XRWebGLLayerInit, XRWebGLLayerMethods, XRWebGLRenderingContext,
 };
+use crate::dom::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanvas;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
@@ -189,7 +190,16 @@ impl XRWebGLLayer {
                 size.1.try_into().unwrap_or(0),
             )
         } else {
-            let size = self.context().Canvas().get_size();
+            let size = match self.context().Canvas() {
+                HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(canvas) => canvas.get_size(),
+                HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(canvas) => {
+                    let size = canvas.get_size();
+                    Size2D::new(
+                        size.width.try_into().unwrap_or(0),
+                        size.height.try_into().unwrap_or(0),
+                    )
+                },
+            };
             Size2D::from_untyped(size)
         }
     }

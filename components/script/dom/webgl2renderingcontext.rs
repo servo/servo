@@ -34,6 +34,7 @@ use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::{
 };
 use crate::dom::bindings::codegen::UnionTypes::{
     ArrayBufferViewOrArrayBuffer, Float32ArrayOrUnrestrictedFloatSequence,
+    HTMLCanvasElementOrOffscreenCanvas,
     ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement, Int32ArrayOrLongSequence,
     Uint32ArrayOrUnsignedLongSequence,
 };
@@ -42,7 +43,7 @@ use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::htmlcanvaselement::{HTMLCanvasElement, LayoutCanvasRenderingContextHelpers};
+use crate::dom::htmlcanvaselement::LayoutCanvasRenderingContextHelpers;
 use crate::dom::promise::Promise;
 use crate::dom::webgl_validations::tex_image_2d::{
     TexImage2DValidator, TexImage2DValidatorResult, TexStorageValidator, TexStorageValidatorResult,
@@ -139,7 +140,7 @@ struct ReadPixelsSizes {
 impl WebGL2RenderingContext {
     fn new_inherited(
         window: &Window,
-        canvas: &HTMLCanvasElement,
+        canvas: &HTMLCanvasElementOrOffscreenCanvas,
         size: Size2D<u32>,
         attrs: GLContextAttributes,
     ) -> Option<WebGL2RenderingContext> {
@@ -186,7 +187,7 @@ impl WebGL2RenderingContext {
     #[allow(crown::unrooted_must_root)]
     pub fn new(
         window: &Window,
-        canvas: &HTMLCanvasElement,
+        canvas: &HTMLCanvasElementOrOffscreenCanvas,
         size: Size2D<u32>,
         attrs: GLContextAttributes,
     ) -> Option<DomRoot<WebGL2RenderingContext>> {
@@ -902,7 +903,7 @@ impl WebGL2RenderingContext {
 
 impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.1>
-    fn Canvas(&self) -> DomRoot<HTMLCanvasElement> {
+    fn Canvas(&self) -> HTMLCanvasElementOrOffscreenCanvas {
         self.base.Canvas()
     }
 

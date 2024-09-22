@@ -6,6 +6,7 @@
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.3
 //
 
-[Abstract, Exposed=Window]
+[Abstract, Exposed=(Window,Worker)]
 interface WebGLObject {
+  attribute USVString label;
 };

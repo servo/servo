@@ -48,19 +48,18 @@ use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::{
     WebGLRenderingContextMethods,
 };
 use crate::dom::bindings::codegen::UnionTypes::{
-    ArrayBufferViewOrArrayBuffer, Float32ArrayOrUnrestrictedFloatSequence, Int32ArrayOrLongSequence,
+    ArrayBufferViewOrArrayBuffer, Float32ArrayOrUnrestrictedFloatSequence,
+    HTMLCanvasElementOrOffscreenCanvas, Int32ArrayOrLongSequence,
 };
 use crate::dom::bindings::conversions::{DerivedFrom, ToJSValConvertible};
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
-use crate::dom::bindings::root::{Dom, DomOnceCell, DomRoot, LayoutDom, MutNullableDom};
+use crate::dom::bindings::root::{DomOnceCell, DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::element::cors_setting_for_element;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
-use crate::dom::htmlcanvaselement::{
-    utils as canvas_utils, HTMLCanvasElement, LayoutCanvasRenderingContextHelpers,
-};
+use crate::dom::htmlcanvaselement::{utils as canvas_utils, LayoutCanvasRenderingContextHelpers};
 use crate::dom::node::{document_from_node, window_from_node, Node, NodeDamage};
 use crate::dom::promise::Promise;
 use crate::dom::vertexarrayobject::VertexAttribData;
@@ -182,7 +181,7 @@ pub struct WebGLRenderingContext {
     #[ignore_malloc_size_of = "Defined in surfman"]
     #[no_trace]
     limits: GLLimits,
-    canvas: Dom<HTMLCanvasElement>,
+    canvas: HTMLCanvasElementOrOffscreenCanvas,
     #[ignore_malloc_size_of = "Defined in canvas_traits"]
     #[no_trace]
     last_error: Cell<Option<WebGLError>>,
@@ -218,7 +217,7 @@ pub struct WebGLRenderingContext {
 impl WebGLRenderingContext {
     pub fn new_inherited(
         window: &Window,
-        canvas: &HTMLCanvasElement,
+        canvas: &HTMLCanvasElementOrOffscreenCanvas,
         webgl_version: WebGLVersion,
         size: Size2D<u32>,
         attrs: GLContextAttributes,
@@ -248,7 +247,7 @@ impl WebGLRenderingContext {
                 webgl_version,
                 glsl_version: ctx_data.glsl_version,
                 limits: ctx_data.limits,
-                canvas: Dom::from_ref(canvas),
+                canvas: canvas.clone(),
                 last_error: Cell::new(None),
                 texture_packing_alignment: Cell::new(4),
                 texture_unpacking_settings: Cell::new(TextureUnpacking::CONVERT_COLORSPACE),
@@ -285,7 +284,7 @@ impl WebGLRenderingContext {
     #[allow(crown::unrooted_must_root)]
     pub fn new(
         window: &Window,
-        canvas: &HTMLCanvasElement,
+        canvas: &HTMLCanvasElementOrOffscreenCanvas,
         webgl_version: WebGLVersion,
         size: Size2D<u32>,
         attrs: GLContextAttributes,
@@ -301,7 +300,14 @@ impl WebGLRenderingContext {
                     EventCancelable::Cancelable,
                     DOMString::from(msg),
                 );
-                event.upcast::<Event>().fire(canvas.upcast());
+                match canvas {
+                    HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(canvas) => {
+                        event.upcast::<Event>().fire(canvas.upcast());
+                    },
+                    HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(canvas) => {
+                        event.upcast::<Event>().fire(canvas.upcast());
+                    },
+                }
                 None
             },
         }
@@ -395,7 +401,12 @@ impl WebGLRenderingContext {
     }
 
     pub fn onscreen(&self) -> bool {
-        self.canvas.upcast::<Node>().is_connected()
+        match self.canvas {
+            HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(ref canvas) => {
+                canvas.upcast::<Node>().is_connected()
+            },
+            HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(_) => false,
+        }
     }
 
     #[inline]
@@ -535,12 +546,14 @@ impl WebGLRenderingContext {
             return;
         }
 
-        self.canvas
-            .upcast::<Node>()
-            .dirty(NodeDamage::OtherNodeDamage);
-
-        let document = document_from_node(&*self.canvas);
-        document.add_dirty_webgl_canvas(self);
+        match self.canvas {
+            HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(ref canvas) => {
+                canvas.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+                let document = document_from_node(&**canvas);
+                document.add_dirty_webgl_canvas(self);
+            },
+            HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(_) => {},
+        }
     }
 
     fn vertex_attrib(&self, indx: u32, x: f32, y: f32, z: f32, w: f32) {
@@ -648,7 +661,15 @@ impl WebGLRenderingContext {
                 false,
             ),
             TexImageSource::HTMLImageElement(image) => {
-                let document = document_from_node(&*self.canvas);
+                let document = match self.canvas {
+                    HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(ref canvas) => {
+                        document_from_node(&**canvas)
+                    },
+                    HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(ref canvas) => {
+                        // TODO: Support retrieving image pixels here for OffscreenCanvas
+                        return Ok(None);
+                    },
+                };
                 if !image.same_origin(document.origin()) {
                     return Err(Error::Security);
                 }
@@ -658,7 +679,13 @@ impl WebGLRenderingContext {
                     None => return Ok(None),
                 };
 
-                let window = window_from_node(&*self.canvas);
+                let window = match self.canvas {
+                    HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(ref canvas) => {
+                        window_from_node(&**canvas)
+                    },
+                    // This is marked as unreachable as we should have returned already
+                    HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(_) => unreachable!(),
+                };
                 let cors_setting = cors_setting_for_element(image.upcast());
 
                 let img =
@@ -1959,8 +1986,8 @@ impl Drop for WebGLRenderingContext {
 
 impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.1
-    fn Canvas(&self) -> DomRoot<HTMLCanvasElement> {
-        DomRoot::from_ref(&*self.canvas)
+    fn Canvas(&self) -> HTMLCanvasElementOrOffscreenCanvas {
+        self.canvas.clone()
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.11
