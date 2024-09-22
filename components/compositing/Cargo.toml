@@ -14,6 +14,7 @@ path = "lib.rs"
 [features]
 default = []
 multiview = []
+webxr = []
 
 [dependencies]
 base = { workspace = true }

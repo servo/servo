@@ -12,6 +12,7 @@ use base::id::{PipelineId, TopLevelBrowsingContextId};
 use base::Epoch;
 pub use constellation_msg::ConstellationMsg;
 use crossbeam_channel::{Receiver, Sender};
+#[cfg(feature = "webxr")]
 use embedder_traits::EventLoopWaker;
 use euclid::Rect;
 use ipc_channel::ipc::IpcSender;
@@ -29,6 +30,7 @@ use webrender_traits::{
 /// Sends messages to the compositor.
 pub struct CompositorProxy {
     pub sender: Sender<CompositorMsg>,
+    #[cfg(feature = "webxr")]
     pub event_loop_waker: Box<dyn EventLoopWaker>,
 }
 
@@ -37,6 +39,7 @@ impl CompositorProxy {
         if let Err(err) = self.sender.send(msg) {
             warn!("Failed to send response ({:?}).", err);
         }
+        #[cfg(feature = "webxr")]
         self.event_loop_waker.wake();
     }
 }
@@ -45,6 +48,7 @@ impl Clone for CompositorProxy {
     fn clone(&self) -> CompositorProxy {
         CompositorProxy {
             sender: self.sender.clone(),
+            #[cfg(feature = "webxr")]
             event_loop_waker: self.event_loop_waker.clone(),
         }
     }
