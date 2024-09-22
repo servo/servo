@@ -28,7 +28,7 @@ const floorTests = [
       'inputs': {
         'floorInput': {
           'data': [89.69458770751953],
-          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+          'descriptor': {shape: [], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -37,10 +37,8 @@ const floorTests = [
         'outputs': 'floorOutput'
       }],
       'expectedOutputs': {
-        'floorOutput': {
-          'data': [89],
-          'descriptor': {'dimensions': [], 'dataType': 'float32'}
-        }
+        'floorOutput':
+            {'data': [89], 'descriptor': {shape: [], dataType: 'float32'}}
       }
     }
   },
@@ -59,7 +57,7 @@ const floorTests = [
             -39.83677673339844,  32.5257568359375,    -21.213542938232422,
             -80.30911254882812,  16.674850463867188,  -72.88893127441406
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'},
+          'descriptor': {shape: [24], dataType: 'float32'},
           'constant': true
         }
       },
@@ -74,7 +72,7 @@ const floorTests = [
             89,  -80, -67, -72, 86,  6,  24,  0,  19,  0,   -25, 77,
             -34, 80,  44,  -38, -84, 65, -40, 32, -22, -81, 16,  -73
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'}
+          'descriptor': {shape: [24], dataType: 'float32'}
         }
       }
     }
@@ -94,7 +92,7 @@ const floorTests = [
             -39.83677673339844,  32.5257568359375,    -21.213542938232422,
             -80.30911254882812,  16.674850463867188,  -72.88893127441406
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'}
+          'descriptor': {shape: [24], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -108,7 +106,7 @@ const floorTests = [
             89,  -80, -67, -72, 86,  6,  24,  0,  19,  0,   -25, 77,
             -34, 80,  44,  -38, -84, 65, -40, 32, -22, -81, 16,  -73
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'}
+          'descriptor': {shape: [24], dataType: 'float32'}
         }
       }
     }
@@ -128,7 +126,7 @@ const floorTests = [
             -39.83677673339844,  32.5257568359375,    -21.213542938232422,
             -80.30911254882812,  16.674850463867188,  -72.88893127441406
           ],
-          'descriptor': {'dimensions': [4, 6], 'dataType': 'float32'}
+          'descriptor': {shape: [4, 6], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -142,7 +140,7 @@ const floorTests = [
             89,  -80, -67, -72, 86,  6,  24,  0,  19,  0,   -25, 77,
             -34, 80,  44,  -38, -84, 65, -40, 32, -22, -81, 16,  -73
           ],
-          'descriptor': {'dimensions': [4, 6], 'dataType': 'float32'}
+          'descriptor': {shape: [4, 6], dataType: 'float32'}
         }
       }
     }
@@ -162,7 +160,7 @@ const floorTests = [
             -39.83677673339844,  32.5257568359375,    -21.213542938232422,
             -80.30911254882812,  16.674850463867188,  -72.88893127441406
           ],
-          'descriptor': {'dimensions': [2, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 4], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -176,7 +174,7 @@ const floorTests = [
             89,  -80, -67, -72, 86,  6,  24,  0,  19,  0,   -25, 77,
             -34, 80,  44,  -38, -84, 65, -40, 32, -22, -81, 16,  -73
           ],
-          'descriptor': {'dimensions': [2, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 4], dataType: 'float32'}
         }
       }
     }
@@ -196,7 +194,7 @@ const floorTests = [
             -39.83677673339844,  32.5257568359375,    -21.213542938232422,
             -80.30911254882812,  16.674850463867188,  -72.88893127441406
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -210,7 +208,7 @@ const floorTests = [
             89,  -80, -67, -72, 86,  6,  24,  0,  19,  0,   -25, 77,
             -34, 80,  44,  -38, -84, 65, -40, 32, -22, -81, 16,  -73
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       }
     }
@@ -230,7 +228,7 @@ const floorTests = [
             -39.83677673339844,  32.5257568359375,    -21.213542938232422,
             -80.30911254882812,  16.674850463867188,  -72.88893127441406
           ],
-          'descriptor': {'dimensions': [2, 1, 4, 1, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 1, 4, 1, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -244,7 +242,7 @@ const floorTests = [
             89,  -80, -67, -72, 86,  6,  24,  0,  19,  0,   -25, 77,
             -34, 80,  44,  -38, -84, 65, -40, 32, -22, -81, 16,  -73
           ],
-          'descriptor': {'dimensions': [2, 1, 4, 1, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 1, 4, 1, 3], dataType: 'float32'}
         }
       }
     }

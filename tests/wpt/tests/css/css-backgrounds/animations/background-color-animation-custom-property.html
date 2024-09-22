@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="help" href="https://www.w3.org/TR/css-color-4/#interpolation">
+<link rel="help" href="ttps://www.w3.org/TR/css-easing-1/#...">
+<link rel="match" href="background-color-animation-custom-property-ref.html">
+<style>
+  @property --dark {
+    syntax: "<color>";
+    inherits: true;
+    initial-value: #000;
+  }
+
+  @property --light {
+    syntax: "<color>";
+    inherits: true;
+    initial-value: #fff;
+  }
+
+  @keyframes bgcolor {
+    0% {
+      background-color: var(--dark);
+    }
+
+    100% {
+      background-color: var(--light);
+    }
+  }
+
+  .background {
+    width: 200px;
+    height: 200px;
+    animation: bgcolor 20s steps(2, jump-both) -10s;
+  }
+
+  .background.colorize {
+    --dark: blue;
+    --light: green;
+  }
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+
+<body>
+  <div id="anim" class="background"></div>
+
+  <script>
+    document.getAnimations()[0].ready.then(() => {
+      document.getElementById("anim").classList.add("colorize");
+      waitForAnimationFrames(3).then(takeScreenshot);
+    });
+  </script>
+</body>
+
+</html>

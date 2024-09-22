@@ -121,8 +121,7 @@ directory_test(async (t, root_dir) => {
 }, 'Store handle in IndexedDB using inline keys.');
 
 directory_test(async (t, root_dir) => {
-  const expected_root_name = '';
-  assert_equals(root_dir.name, expected_root_name);
+  const expected_root_name = root_dir.name;
 
   const db = await createDatabase(t, db => {
     const store = db.createObjectStore('store', {keyPath: 'key'});

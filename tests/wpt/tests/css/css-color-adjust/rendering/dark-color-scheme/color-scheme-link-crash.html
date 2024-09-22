@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<link rel=help href="https://bugzilla.mozilla.org/show_bug.cgi?id=1917703">
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const a = document.createElement("a");
+  a.setAttribute("style", "color-scheme: dark; background-color: MenuText")
+  a.setAttribute("href", "x")
+  document.documentElement.appendChild(a)
+})
+</script>

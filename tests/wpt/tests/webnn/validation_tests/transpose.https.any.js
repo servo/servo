@@ -13,14 +13,14 @@ const label = 'transpose-2';
 const tests = [
   {
     name: '[transpose] Test building transpose with permutation=[0, 2, 3, 1].',
-    input: {dataType: 'float32', dimensions: [1, 2, 3, 4]},
+    input: {dataType: 'float32', shape: [1, 2, 3, 4]},
     options: {permutation: [0, 2, 3, 1]},
-    output: {dataType: 'float32', dimensions: [1, 3, 4, 2]}
+    output: {dataType: 'float32', shape: [1, 3, 4, 2]}
   },
   {
     name:
         '[transpose] Throw if permutation\'s size is not the same as input\'s rank.',
-    input: {dataType: 'int32', dimensions: [1, 2, 4]},
+    input: {dataType: 'int32', shape: [1, 2, 4]},
     options: {
       permutation: [0, 2, 3, 1],
       label: label,
@@ -28,7 +28,7 @@ const tests = [
   },
   {
     name: '[transpose] Throw if two values in permutation are same.',
-    input: {dataType: 'int32', dimensions: [1, 2, 3, 4]},
+    input: {dataType: 'int32', shape: [1, 2, 3, 4]},
     options: {
       permutation: [0, 2, 3, 2],
       label: label,
@@ -37,7 +37,7 @@ const tests = [
   {
     name:
         '[transpose] Throw if any value in permutation is not in the range [0,input\'s rank).',
-    input: {dataType: 'int32', dimensions: [1, 2, 3, 4]},
+    input: {dataType: 'int32', shape: [1, 2, 3, 4]},
     options: {
       permutation: [0, 1, 2, 4],
       label: label,
@@ -45,7 +45,7 @@ const tests = [
   },
   {
     name: '[transpose] Throw if any value in permutation is negative.',
-    input: {dataType: 'int32', dimensions: [1, 2, 3, 4]},
+    input: {dataType: 'int32', shape: [1, 2, 3, 4]},
     options: {
       permutation: [0, -1, 2, 3],
     },
@@ -55,13 +55,11 @@ const tests = [
 tests.forEach(
     test => promise_test(async t => {
       const builder = new MLGraphBuilder(context);
-      const input = builder.input(
-          'input',
-          {dataType: test.input.dataType, dimensions: test.input.dimensions});
+      const input = builder.input('input', test.input);
       if (test.output) {
         const output = builder.transpose(input, test.options);
         assert_equals(output.dataType(), test.output.dataType);
-        assert_array_equals(output.shape(), test.output.dimensions);
+        assert_array_equals(output.shape(), test.output.shape);
       } else {
         const options = {...test.options};
         if (options.label) {
@@ -80,8 +78,8 @@ promise_test(async t => {
       continue;
     }
     const builder = new MLGraphBuilder(context);
-    const dimensions = [1, 2, 3, 4];
-    const input = builder.input(`input`, {dataType, dimensions});
+    const shape = [1, 2, 3, 4];
+    const input = builder.input(`input`, {dataType, shape});
     if (context.opSupportLimits().transpose.input.dataTypes.includes(
             dataType)) {
       const output = builder.transpose(input);

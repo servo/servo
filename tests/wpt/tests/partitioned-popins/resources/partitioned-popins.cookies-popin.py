@@ -3,6 +3,7 @@ def main(request, response):
     id = request.GET[b'id']
     headers = setNoCacheAndCORSHeaders(request, response)
     headers[0] = (b"Content-Type", b"text/html")
+    headers.append((b'Popin-Policy', b"partitioned=*"))
     cookies = readCookies(request)
     message = b"ReadOnLoad:"
     if cookies.get(b"first-party-strict") == id:

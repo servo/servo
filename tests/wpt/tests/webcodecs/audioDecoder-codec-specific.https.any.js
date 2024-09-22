@@ -11,6 +11,7 @@
 // META: variant=?pcm_s24
 // META: variant=?pcm_s32
 // META: variant=?pcm_f32
+// META: variant=?flac
 
 const ADTS_AAC_DATA = {
   src: 'sfx.adts',
@@ -87,6 +88,22 @@ const OPUS_DATA = {
   duration: 20000
 };
 
+const FLAC_DATA = {
+  src: 'sfx.flac',
+  config: {
+    codec: 'flac',
+    sampleRate: 48000,
+    numberOfChannels: 1,
+    description: { offset: 0, size: 8287 }
+  },
+  chunks: [
+    { offset: 8288, size: 2276 },
+    { offset: 10564, size: 2038 },
+    { offset: 12602, size: 521 },
+  ],
+  duration: 20000
+};
+
 function pcm(codec, dataOffset) {
   return {
     src: `sfx-${codec}.wav`,
@@ -153,6 +170,7 @@ promise_setup(async () => {
     '?pcm_s24': PCM_S24_DATA,
     '?pcm_s32': PCM_S32_DATA,
     '?pcm_f32': PCM_F32_DATA,
+    '?flac': FLAC_DATA,
   }[location.search];
 
   // Don't run any tests if the codec is not supported.

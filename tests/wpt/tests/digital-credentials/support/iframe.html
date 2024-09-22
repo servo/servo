@@ -32,8 +32,6 @@
     }
     let result;
     try {
-      /** @type {CredentialsContainer} */
-      const identity = navigator.identity;
       if (data.abort === "before") {
         abortController.abort();
       }
@@ -43,13 +41,13 @@
           promise = Promise.resolve("pong");
           break;
         case "create":
-          promise = identity.create(data.options);
+          promise = navigator.credentials.create(data.options);
           break;
         case "get":
-          promise = identity.get(data.options);
+          promise = navigator.credentials.get(data.options);
           break;
         case "preventSilentAccess":
-          promise = identity.preventSilentAccess();
+          promise = navigator.credentials.preventSilentAccess();
           break;
         default:
           throw new Error(

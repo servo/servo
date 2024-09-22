@@ -42,7 +42,6 @@ def browser_kwargs(logger, test_type, run_info_data, config, **kwargs):
 def capabilities(server_config, **kwargs):
     browser_required_args = ["--automation",
                              "--javascript-can-open-windows-automatically=true",
-                             "--enable-xss-auditor=false",
                              "--enable-media-capabilities=true",
                              "--enable-encrypted-media=true",
                              "--enable-media-stream=true",

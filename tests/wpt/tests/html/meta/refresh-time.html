@@ -8,46 +8,40 @@
 
 <body>
 <script>
-  async function sleep(ms, test) {
-    return new Promise(resolve => {test.step_timeout(resolve, ms)});
+  async function measureRefreshTime(src) {
+    const frame = document.createElement("iframe");
+    document.body.appendChild(frame);
+
+    const loadPromise = new Promise(resolve => {
+      frame.addEventListener("load", () => {
+        resolve(performance.now());
+      });
+    });
+    frame.src = src;
+    const startTime = await loadPromise;
+
+    const unloadPromise = new Promise(resolve => {
+      frame.contentWindow.addEventListener("beforeunload", () => {
+        resolve(performance.now());
+      });
+    });
+    const endTime = await unloadPromise;
+    return endTime - startTime;
   }
 
   promise_test(async test => {
-    const frame = document.createElement("iframe");
-    document.body.appendChild(frame);
-    frame.src = "resources/refresh1.html";
-    await sleep(500, test);
-    assert_equals(frame.contentWindow.document.title, "refresh 1");
-    await sleep(1000, test);
-    assert_equals(frame.contentWindow.document.title, "got refreshed");
+    const refreshTime = await measureRefreshTime("resources/refresh1.html");
+    assert_greater_than(refreshTime, 900);
   }, "Ensure that refresh is observed");
 
   promise_test(async test => {
-    const frame = document.createElement("iframe");
-    document.body.appendChild(frame);
-    frame.src = "resources/refresh.99.html";
-    await sleep(500, test);
-    assert_equals(frame.contentWindow.document.title, "got refreshed");
-  }, "Ensure that fractions in refresh time are ignored");
-
-  promise_test(async test => {
-    const frame = document.createElement("iframe");
-    document.body.appendChild(frame);
-    frame.src = "resources/refresh1.99.html";
-    await sleep(500, test);
-    assert_equals(frame.contentWindow.document.title, "refresh 1.99");
-    await sleep(1000, test);
-    assert_equals(frame.contentWindow.document.title, "got refreshed");
+    const refreshTime = await measureRefreshTime("resources/refresh1.99.html");
+    assert_greater_than(refreshTime, 900);
   }, "Ensure that non-fractional part in refresh time does not get discarded");
 
   promise_test(async test => {
-    const frame = document.createElement("iframe");
-    document.body.appendChild(frame);
-    frame.src = "resources/refresh1dotdot5dot.html";
-    await sleep(500, test);
-    assert_equals(frame.contentWindow.document.title, "refresh 1..5.");
-    await sleep(750, test);
-    assert_equals(frame.contentWindow.document.title, "got refreshed");
+    const refreshTime = await measureRefreshTime("resources/refresh1dotdot9dot.html");
+    assert_greater_than(refreshTime, 900);
   }, "Ensure that multiple periods in refresh time just get ignored");
 </script>
 </body>

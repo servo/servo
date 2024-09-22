@@ -33,7 +33,7 @@ const reduceSumTests = [
       'inputs': {
         'reduceSumInput': {
           'data': [69.6038589477539],
-          'descriptor': {'dimensions': [], 'dataType': 'float32'},
+          'descriptor': {shape: [], dataType: 'float32'},
           'constant': true
         }
       },
@@ -45,7 +45,7 @@ const reduceSumTests = [
       'expectedOutputs': {
         'reduceSumOutput': {
           'data': 69.6038589477539,
-          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+          'descriptor': {shape: [], dataType: 'float32'}
         }
       }
     }
@@ -56,7 +56,7 @@ const reduceSumTests = [
       'inputs': {
         'reduceSumInput': {
           'data': [69.6038589477539],
-          'descriptor': {'dimensions': [], 'dataType': 'float32'},
+          'descriptor': {shape: [], dataType: 'float32'},
           'constant': true
         }
       },
@@ -68,7 +68,7 @@ const reduceSumTests = [
       'expectedOutputs': {
         'reduceSumOutput': {
           'data': 69.6038589477539,
-          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+          'descriptor': {shape: [], dataType: 'float32'}
         }
       }
     }
@@ -88,7 +88,7 @@ const reduceSumTests = [
             35.54289627075195, 42.856414794921875, 88.58631896972656,
             98.85772705078125, 25.626853942871094, 60.1761360168457
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'},
+          'descriptor': {shape: [24], dataType: 'float32'},
           'constant': true
         }
       },
@@ -100,7 +100,7 @@ const reduceSumTests = [
       'expectedOutputs': {
         'reduceSumOutput': {
           'data': 1313.87939453125,
-          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+          'descriptor': {shape: [], dataType: 'float32'}
         }
       }
     }
@@ -120,7 +120,7 @@ const reduceSumTests = [
             35.54289627075195, 42.856414794921875, 88.58631896972656,
             98.85772705078125, 25.626853942871094, 60.1761360168457
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'}
+          'descriptor': {shape: [24], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -131,7 +131,7 @@ const reduceSumTests = [
       'expectedOutputs': {
         'reduceSumOutput': {
           'data': 1313.87939453125,
-          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+          'descriptor': {shape: [], dataType: 'float32'}
         }
       }
     }
@@ -151,7 +151,7 @@ const reduceSumTests = [
             -96.29924774169922,  -68.46700286865234,  -26.107192993164062,
             -68.0182113647461,   -4.8330769538879395, -48.900699615478516
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'}
+          'descriptor': {shape: [24], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -162,7 +162,7 @@ const reduceSumTests = [
       'expectedOutputs': {
         'reduceSumOutput': {
           'data': -1163.642578125,
-          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+          'descriptor': {shape: [], dataType: 'float32'}
         }
       }
     }
@@ -176,7 +176,7 @@ const reduceSumTests = [
             56, 90, 67, 33, 20, 58, 22, 15, 86, 79, 59, 99,
             16, 95, 67, 11, 60, 89, 50, 57, 77, 89, 10, 2
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'}
+          'descriptor': {shape: [24], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -185,10 +185,8 @@ const reduceSumTests = [
         'outputs': 'reduceSumOutput'
       }],
       'expectedOutputs': {
-        'reduceSumOutput': {
-          'data': 1307,
-          'descriptor': {'dimensions': [], 'dataType': 'float32'}
-        }
+        'reduceSumOutput':
+            {'data': 1307, 'descriptor': {shape: [], dataType: 'float32'}}
       }
     }
   },
@@ -201,7 +199,7 @@ const reduceSumTests = [
             -55, -36, -74, -17, -67, -95, -3,  -67, -95, -13, -45, -9,
             -33, -98, -86, -11, -70, -44, -31, -68, -79, -24, -60, -36
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'}
+          'descriptor': {shape: [24], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -210,10 +208,8 @@ const reduceSumTests = [
         'outputs': 'reduceSumOutput'
       }],
       'expectedOutputs': {
-        'reduceSumOutput': {
-          'data': -1216,
-          'descriptor': {'dimensions': [], 'dataType': 'float32'}
-        }
+        'reduceSumOutput':
+            {'data': -1216, 'descriptor': {shape: [], dataType: 'float32'}}
       }
     }
   },
@@ -232,7 +228,7 @@ const reduceSumTests = [
             35.54289627075195, 42.856414794921875, 88.58631896972656,
             98.85772705078125, 25.626853942871094, 60.1761360168457
           ],
-          'descriptor': {'dimensions': [4, 6], 'dataType': 'float32'}
+          'descriptor': {shape: [4, 6], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -243,7 +239,7 @@ const reduceSumTests = [
       'expectedOutputs': {
         'reduceSumOutput': {
           'data': 1313.87939453125,
-          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+          'descriptor': {shape: [], dataType: 'float32'}
         }
       }
     }
@@ -263,7 +259,7 @@ const reduceSumTests = [
             35.54289627075195, 42.856414794921875, 88.58631896972656,
             98.85772705078125, 25.626853942871094, 60.1761360168457
           ],
-          'descriptor': {'dimensions': [2, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 4], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -274,7 +270,7 @@ const reduceSumTests = [
       'expectedOutputs': {
         'reduceSumOutput': {
           'data': 1313.87939453125,
-          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+          'descriptor': {shape: [], dataType: 'float32'}
         }
       }
     }
@@ -294,7 +290,7 @@ const reduceSumTests = [
             35.54289627075195, 42.856414794921875, 88.58631896972656,
             98.85772705078125, 25.626853942871094, 60.1761360168457
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -305,7 +301,7 @@ const reduceSumTests = [
       'expectedOutputs': {
         'reduceSumOutput': {
           'data': 1313.87939453125,
-          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+          'descriptor': {shape: [], dataType: 'float32'}
         }
       }
     }
@@ -325,7 +321,7 @@ const reduceSumTests = [
             35.54289627075195, 42.856414794921875, 88.58631896972656,
             98.85772705078125, 25.626853942871094, 60.1761360168457
           ],
-          'descriptor': {'dimensions': [2, 1, 4, 1, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 1, 4, 1, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -336,7 +332,7 @@ const reduceSumTests = [
       'expectedOutputs': {
         'reduceSumOutput': {
           'data': 1313.87939453125,
-          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+          'descriptor': {shape: [], dataType: 'float32'}
         }
       }
     }
@@ -356,7 +352,7 @@ const reduceSumTests = [
             35.54289627075195, 42.856414794921875, 88.58631896972656,
             98.85772705078125, 25.626853942871094, 60.1761360168457
           ],
-          'descriptor': {'dimensions': [2, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 4], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -370,7 +366,7 @@ const reduceSumTests = [
             210.44241333007812, 104.54179382324219, 226.2177734375,
             239.025390625, 260.405029296875, 273.2470397949219
           ],
-          'descriptor': {'dimensions': [2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3], dataType: 'float32'}
         }
       }
     }
@@ -390,7 +386,7 @@ const reduceSumTests = [
             35.54289627075195, 42.856414794921875, 88.58631896972656,
             98.85772705078125, 25.626853942871094, 60.1761360168457
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -405,7 +401,7 @@ const reduceSumTests = [
             179.63900756835938, 260.37457275390625, 219.3611297607422,
             246.83712768554688, 157.4895782470703, 250.1780242919922
           ],
-          'descriptor': {'dimensions': [2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3], dataType: 'float32'}
         }
       }
     }
@@ -425,7 +421,7 @@ const reduceSumTests = [
             35.54289627075195, 42.856414794921875, 88.58631896972656,
             98.85772705078125, 25.626853942871094, 60.1761360168457
           ],
-          'descriptor': {'dimensions': [2, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 4], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -438,7 +434,7 @@ const reduceSumTests = [
       'expectedOutputs': {
         'reduceSumOutput': {
           'data': 1313.87939453125,
-          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+          'descriptor': {shape: [], dataType: 'float32'}
         }
       }
     }
@@ -458,7 +454,7 @@ const reduceSumTests = [
             35.54289627075195, 42.856414794921875, 88.58631896972656,
             98.85772705078125, 25.626853942871094, 60.1761360168457
           ],
-          'descriptor': {'dimensions': [2, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 4], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -471,7 +467,7 @@ const reduceSumTests = [
       'expectedOutputs': {
         'reduceSumOutput': {
           'data': [1313.87939453125],
-          'descriptor': {'dimensions': [1, 1, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 1, 1], dataType: 'float32'}
         }
       }
     }
@@ -491,7 +487,7 @@ const reduceSumTests = [
             35.54289627075195, 42.856414794921875, 88.58631896972656,
             98.85772705078125, 25.626853942871094, 60.1761360168457
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -504,7 +500,7 @@ const reduceSumTests = [
       'expectedOutputs': {
         'reduceSumOutput': {
           'data': 1313.87939453125,
-          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+          'descriptor': {shape: [], dataType: 'float32'}
         }
       }
     }
@@ -524,7 +520,7 @@ const reduceSumTests = [
             35.54289627075195, 42.856414794921875, 88.58631896972656,
             98.85772705078125, 25.626853942871094, 60.1761360168457
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -537,7 +533,7 @@ const reduceSumTests = [
       'expectedOutputs': {
         'reduceSumOutput': {
           'data': [1313.87939453125],
-          'descriptor': {'dimensions': [1, 1, 1, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 1, 1, 1], dataType: 'float32'}
         }
       }
     }
@@ -558,7 +554,7 @@ const reduceSumTests = [
             35.54289627075195, 42.856414794921875, 88.58631896972656,
             98.85772705078125, 25.626853942871094, 60.1761360168457
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -575,7 +571,7 @@ const reduceSumTests = [
             355.21942138671875, 185.98255920410156, 362.3598937988281,
             410.3175354003906
           ],
-          'descriptor': {'dimensions': [2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2], dataType: 'float32'}
         }
       }
     }
@@ -596,7 +592,7 @@ const reduceSumTests = [
             35.54289627075195, 42.856414794921875, 88.58631896972656,
             98.85772705078125, 25.626853942871094, 60.1761360168457
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -613,7 +609,7 @@ const reduceSumTests = [
             355.21942138671875, 185.98255920410156, 362.3598937988281,
             410.3175354003906
           ],
-          'descriptor': {'dimensions': [2, 1, 2, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 1, 2, 1], dataType: 'float32'}
         }
       }
     }

@@ -18,14 +18,6 @@
 //
 // MLOperand linear(MLOperand input, optional MLLinearOptions options = {});
 
-
-const getLinearPrecisionTolerance = (graphResources) => {
-  const toleranceValueDict = {float32: 2, float16: 2};
-  const expectedDataType =
-      getExpectedDataTypeOfSingleOutput(graphResources.expectedOutputs);
-  return {metricType: 'ULP', value: toleranceValueDict[expectedDataType]};
-};
-
 const linearTests = [
   {
     'name': 'linear float32 1D constant tensor default options',
@@ -42,7 +34,7 @@ const linearTests = [
             5.2140889167785645,  9.65861701965332,   -8.721749305725098,
             -0.4533396363258362, 9.992619514465332,  -6.469675064086914
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'},
+          'descriptor': {shape: [24], dataType: 'float32'},
           'constant': true
         }
       },
@@ -63,7 +55,7 @@ const linearTests = [
             5.2140889167785645,  9.65861701965332,   -8.721749305725098,
             -0.4533396363258362, 9.992619514465332,  -6.469675064086914
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'}
+          'descriptor': {shape: [24], dataType: 'float32'}
         }
       }
     }
@@ -74,7 +66,7 @@ const linearTests = [
       'inputs': {
         'linearInput': {
           'data': [-1.12251615524292],
-          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+          'descriptor': {shape: [], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -85,7 +77,7 @@ const linearTests = [
       'expectedOutputs': {
         'linearOutput': {
           'data': [-1.12251615524292],
-          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+          'descriptor': {shape: [], dataType: 'float32'}
         }
       }
     }
@@ -105,7 +97,7 @@ const linearTests = [
             5.2140889167785645,  9.65861701965332,   -8.721749305725098,
             -0.4533396363258362, 9.992619514465332,  -6.469675064086914
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'}
+          'descriptor': {shape: [24], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -125,7 +117,7 @@ const linearTests = [
             5.2140889167785645,  9.65861701965332,   -8.721749305725098,
             -0.4533396363258362, 9.992619514465332,  -6.469675064086914
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'}
+          'descriptor': {shape: [24], dataType: 'float32'}
         }
       }
     }
@@ -145,7 +137,7 @@ const linearTests = [
             5.2140889167785645,  9.65861701965332,   -8.721749305725098,
             -0.4533396363258362, 9.992619514465332,  -6.469675064086914
           ],
-          'descriptor': {'dimensions': [4, 6], 'dataType': 'float32'}
+          'descriptor': {shape: [4, 6], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -165,7 +157,7 @@ const linearTests = [
             5.2140889167785645,  9.65861701965332,   -8.721749305725098,
             -0.4533396363258362, 9.992619514465332,  -6.469675064086914
           ],
-          'descriptor': {'dimensions': [4, 6], 'dataType': 'float32'}
+          'descriptor': {shape: [4, 6], dataType: 'float32'}
         }
       }
     }
@@ -185,7 +177,7 @@ const linearTests = [
             5.2140889167785645,  9.65861701965332,   -8.721749305725098,
             -0.4533396363258362, 9.992619514465332,  -6.469675064086914
           ],
-          'descriptor': {'dimensions': [2, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 4], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -205,7 +197,7 @@ const linearTests = [
             5.2140889167785645,  9.65861701965332,   -8.721749305725098,
             -0.4533396363258362, 9.992619514465332,  -6.469675064086914
           ],
-          'descriptor': {'dimensions': [2, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 4], dataType: 'float32'}
         }
       }
     }
@@ -225,7 +217,7 @@ const linearTests = [
             5.2140889167785645,  9.65861701965332,   -8.721749305725098,
             -0.4533396363258362, 9.992619514465332,  -6.469675064086914
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -245,7 +237,7 @@ const linearTests = [
             5.2140889167785645,  9.65861701965332,   -8.721749305725098,
             -0.4533396363258362, 9.992619514465332,  -6.469675064086914
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       }
     }
@@ -265,7 +257,7 @@ const linearTests = [
             5.2140889167785645,  9.65861701965332,   -8.721749305725098,
             -0.4533396363258362, 9.992619514465332,  -6.469675064086914
           ],
-          'descriptor': {'dimensions': [2, 1, 4, 1, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 1, 4, 1, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -285,7 +277,7 @@ const linearTests = [
             5.2140889167785645,  9.65861701965332,   -8.721749305725098,
             -0.4533396363258362, 9.992619514465332,  -6.469675064086914
           ],
-          'descriptor': {'dimensions': [2, 1, 4, 1, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 1, 4, 1, 3], dataType: 'float32'}
         }
       }
     }
@@ -306,7 +298,7 @@ const linearTests = [
             5.2140889167785645,  9.65861701965332,   -8.721749305725098,
             -0.4533396363258362, 9.992619514465332,  -6.469675064086914
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -328,7 +320,7 @@ const linearTests = [
             38.57796859741211,   71.46211242675781,   -64.53042602539062,
             -3.3541665077209473, 73.9333267211914,    -47.86779022216797
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       }
     }
@@ -349,7 +341,7 @@ const linearTests = [
             5.16057825088501,   0.8060914278030396,  9.130533218383789,
             3.1937403678894043, 5.748293399810791,   4.113487720489502
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -371,7 +363,7 @@ const linearTests = [
             11.079673767089844, 6.725186824798584,  15.049629211425781,
             9.112835884094238,  11.667388916015625, 10.032583236694336
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       }
     }
@@ -392,7 +384,7 @@ const linearTests = [
             -5.16057825088501,   -0.8060914278030396,  -9.130533218383789,
             -3.1937403678894043, -5.748293399810791,   -4.113487720489502
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -414,7 +406,7 @@ const linearTests = [
             -11.079673767089844, -6.725186824798584,  -15.049629211425781,
             -9.112835884094238,  -11.667388916015625, -10.032583236694336
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       }
     }
@@ -435,7 +427,7 @@ const linearTests = [
             5.16057825088501,   0.8060914278030396,  9.130533218383789,
             3.1937403678894043, 5.748293399810791,   4.113487720489502
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -458,7 +450,7 @@ const linearTests = [
             44.10115051269531,  11.883199691772461, 73.47402954101562,
             29.548921585083008, 48.44953155517578,  36.35394287109375
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       }
     }
@@ -479,7 +471,7 @@ const linearTests = [
             5.16057825088501,   0.8060914278030396,  9.130533218383789,
             3.1937403678894043, 5.748293399810791,   4.113487720489502
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -502,7 +494,7 @@ const linearTests = [
             -44.10115051269531,  -11.883199691772461, -73.47402954101562,
             -29.548921585083008, -48.44953155517578,  -36.35394287109375
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       }
     }
@@ -523,7 +515,7 @@ const linearTests = [
             -5.16057825088501,   -0.8060914278030396,  -9.130533218383789,
             -3.1937403678894043, -5.748293399810791,   -4.113487720489502
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -546,7 +538,7 @@ const linearTests = [
             -44.10115051269531,  -11.883199691772461, -73.47402954101562,
             -29.548921585083008, -48.44953155517578,  -36.35394287109375
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       }
     }
@@ -555,8 +547,7 @@ const linearTests = [
 
 if (navigator.ml) {
   linearTests.forEach((test) => {
-    webnn_conformance_test(
-        buildGraphAndCompute, getLinearPrecisionTolerance, test);
+    webnn_conformance_test(buildGraphAndCompute, getPrecisionTolerance, test);
   });
 } else {
   test(() => assert_implements(navigator.ml, 'missing navigator.ml'));

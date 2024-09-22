@@ -47,7 +47,7 @@ const instanceNormTests = [
             -16.574905395507812, 42.949893951416016, 73.8739242553711,
             -99.00035095214844,  -33.11322784423828, -17.380685806274414
           ],
-          'descriptor': {'dimensions': [2, 3, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 2, 2], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -67,7 +67,7 @@ const instanceNormTests = [
             -1.6783342361450195, 0.46660327911376953, 1.5037200450897217,
             -1.2981476783752441, -0.2302791178226471, 0.024706769734621048
           ],
-          'descriptor': {'dimensions': [2, 3, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 2, 2], dataType: 'float32'}
         }
       }
     }
@@ -87,11 +87,11 @@ const instanceNormTests = [
             -16.574905395507812, 42.949893951416016, 73.8739242553711,
             -99.00035095214844,  -33.11322784423828, -17.380685806274414
           ],
-          'descriptor': {'dimensions': [2, 3, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 2, 2], dataType: 'float32'}
         },
         'instanceNormScale': {
           'data': [-94.42772674560547, 66.69620513916016, -98.56572723388672],
-          'descriptor': {'dimensions': [3], 'dataType': 'float32'},
+          'descriptor': {shape: [3], dataType: 'float32'},
           'constant': true
         }
       },
@@ -115,7 +115,7 @@ const instanceNormTests = [
             -111.93852233886719, 31.120668411254883,  -148.2152557373047,
             127.95286560058594,  22.697628021240234,  -2.4352407455444336
           ],
-          'descriptor': {'dimensions': [2, 3, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 2, 2], dataType: 'float32'}
         }
       }
     }
@@ -135,11 +135,11 @@ const instanceNormTests = [
             -16.574905395507812, 42.949893951416016, 73.8739242553711,
             -99.00035095214844,  -33.11322784423828, -17.380685806274414
           ],
-          'descriptor': {'dimensions': [2, 3, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 2, 2], dataType: 'float32'}
         },
         'instanceNormBias': {
           'data': [-33.048641204833984, 4.511423587799072, -37.93617248535156],
-          'descriptor': {'dimensions': [3], 'dataType': 'float32'},
+          'descriptor': {shape: [3], dataType: 'float32'},
           'constant': true
         }
       },
@@ -163,7 +163,7 @@ const instanceNormTests = [
             2.8330893516540527,  4.978026866912842,   -36.43245315551758,
             -39.23432159423828,  -38.16645050048828,  -37.91146469116211
           ],
-          'descriptor': {'dimensions': [2, 3, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 2, 2], dataType: 'float32'}
         }
       }
     }
@@ -183,7 +183,7 @@ const instanceNormTests = [
             -16.574905395507812, 42.949893951416016, 73.8739242553711,
             -99.00035095214844,  -33.11322784423828, -17.380685806274414
           ],
-          'descriptor': {'dimensions': [2, 3, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 2, 2], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -205,7 +205,7 @@ const instanceNormTests = [
             -1.6783342361450195, 0.46660327911376953, 1.5037200450897217,
             -1.2981476783752441, -0.2302791178226471, 0.024706769734621048
           ],
-          'descriptor': {'dimensions': [2, 3, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 2, 2], dataType: 'float32'}
         }
       }
     }
@@ -226,7 +226,7 @@ const instanceNormTests = [
             -16.574905395507812, 42.949893951416016, 73.8739242553711,
             -99.00035095214844,  -33.11322784423828, -17.380685806274414
           ],
-          'descriptor': {'dimensions': [2, 3, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 2, 2], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -247,7 +247,7 @@ const instanceNormTests = [
             -1.6783342361450195, 0.46660327911376953, 1.5037200450897217,
             -1.2981476783752441, -0.2302791178226471, 0.024706769734621048
           ],
-          'descriptor': {'dimensions': [2, 3, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 2, 2], dataType: 'float32'}
         }
       }
     }
@@ -267,7 +267,7 @@ const instanceNormTests = [
             5.6758809089660645, -16.574905395507812, -33.11322784423828,
             25.68659210205078,  42.949893951416016,  -17.380685806274414
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -288,7 +288,7 @@ const instanceNormTests = [
             -1.3059037923812866, -1.6783342361450195,  -0.2302791178226471,
             -0.6197298169136047, 0.46660327911376953,  0.024706769734621048
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       }
     }
@@ -308,16 +308,16 @@ const instanceNormTests = [
             5.6758809089660645, -16.574905395507812, -33.11322784423828,
             25.68659210205078,  42.949893951416016,  -17.380685806274414
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         },
         'instanceNormScale': {
           'data': [-94.42772674560547, 66.69620513916016, -98.56572723388672],
-          'descriptor': {'dimensions': [3], 'dataType': 'float32'},
+          'descriptor': {shape: [3], dataType: 'float32'},
           'constant': true
         },
         'instanceNormBias': {
           'data': [-33.048641204833984, 4.511423587799072, -37.93617248535156],
-          'descriptor': {'dimensions': [3], 'dataType': 'float32'},
+          'descriptor': {shape: [3], dataType: 'float32'},
           'constant': true
         }
       },
@@ -347,7 +347,7 @@ const instanceNormTests = [
             90.26488494873047,   -107.4271011352539,  -15.238543510437012,
             25.471038818359375,  35.6320915222168,    -40.37141418457031
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       }
     }

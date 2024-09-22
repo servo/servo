@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>Tree effects are captured as group style</title>
+<meta name=fuzzy content="maxDifference=0-10; totalPixels=0-200000">
+<meta name="variant" content="?prop=filter&old=blur(3px)&new=blur(10px)">
+<meta name="variant" content="?prop=opacity&old=0.3&new=1">
+<meta name="variant" content="?prop=clip-path&old=inset(10px 10px)&new=inset(20px 20px)">
+<meta name="variant" content="?prop=mask-image&old=linear-gradient(rgb(0 0 0 / 80%), transparent)&new=none">
+<meta name="variant" content="?prop=mask&old=linear-gradient(red,blue) luminance&new=none">
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="match" href="tree-effects-ref.sub.html">
+<script src="/common/reftest-wait.js"></script>
+<style>
+    html {
+        view-transition-name: none;
+    }
+    body {
+        margin: 0;
+    }
+
+    .target {
+        width: 100px;
+        height: 100px;
+        margin: 20px;
+        background: green;
+        {{GET[prop]}}: {{GET[old]}};
+    }
+
+    html.vt-new .target {
+        {{GET[prop]}}: {{GET[new]}};
+    }
+
+    .override {
+        view-transition-name: override;
+    }
+
+    .passthrough {
+        view-transition-name: passthrough;
+    }
+    .animate {
+        view-transition-name: animate;
+    }
+
+    html::view-transition-group(*) {
+        animation-play-state: paused;
+    }
+
+    html::view-transition-group(override) {
+        {{GET[prop]}}: unset;
+        animation: none;
+    }
+
+    html::view-transition-group(animate) {
+        animation-timing-function: steps(1, start);
+        animation-play-state: paused;
+        animation-duration: 100s;
+    }
+
+    html::view-transition {
+        background: lightpink;
+    }
+</style>
+<body>
+    <div class="override target"></div>
+    <div class="passthrough target"></div>
+    <div class="animate target"></div>
+    <script>
+        const transition = document.startViewTransition(() => {
+            document.documentElement.classList.add("vt-new");
+        });
+        transition.ready.then(() => takeScreenshot());
+    </script>
+</body>

@@ -150,6 +150,9 @@ scheme host and port.""")
     # TODO use an empty string argument for the default subsuite
     test_selection_group.add_argument("--subsuite", action="append", dest="subsuites",
                                       help="Subsuite names to run. Runs all subsuites when omitted.")
+    test_selection_group.add_argument("--small-subsuite-size", default=50, type=int,
+                                      help="Maximum number of tests a subsuite can have to be treated as small subsuite."
+                                      "Tests from a small subsuite will be grouped in one group.")
     test_selection_group.add_argument("--include", action="append",
                                       help="URL prefix to include")
     test_selection_group.add_argument("--include-file", action="store",

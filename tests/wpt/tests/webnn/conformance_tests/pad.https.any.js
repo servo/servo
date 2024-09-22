@@ -47,7 +47,7 @@ const padTests = [
             16.863798141479492, 60.51472091674805, -70.56755065917969,
             -60.643272399902344, -47.8821907043457, 68.72557830810547
           ],
-          'descriptor': {'dimensions': [9], 'dataType': 'float32'},
+          'descriptor': {shape: [9], dataType: 'float32'},
           'constant': true
         }
       },
@@ -66,7 +66,7 @@ const padTests = [
             16.863798141479492, 60.51472091674805, -70.56755065917969,
             -60.643272399902344, -47.8821907043457, 68.72557830810547, 0
           ],
-          'descriptor': {'dimensions': [11], 'dataType': 'float32'}
+          'descriptor': {shape: [11], dataType: 'float32'}
         }
       }
     }
@@ -81,7 +81,7 @@ const padTests = [
             16.863798141479492, 60.51472091674805, -70.56755065917969,
             -60.643272399902344, -47.8821907043457, 68.72557830810547
           ],
-          'descriptor': {'dimensions': [9], 'dataType': 'float32'}
+          'descriptor': {shape: [9], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -99,7 +99,7 @@ const padTests = [
             16.863798141479492, 60.51472091674805, -70.56755065917969,
             -60.643272399902344, -47.8821907043457, 68.72557830810547, 0
           ],
-          'descriptor': {'dimensions': [11], 'dataType': 'float32'}
+          'descriptor': {shape: [11], dataType: 'float32'}
         }
       }
     }
@@ -114,7 +114,7 @@ const padTests = [
             16.863798141479492, 60.51472091674805, -70.56755065917969,
             -60.643272399902344, -47.8821907043457, 68.72557830810547
           ],
-          'descriptor': {'dimensions': [3, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [3, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -154,7 +154,7 @@ const padTests = [
             0,
             0
           ],
-          'descriptor': {'dimensions': [5, 5], 'dataType': 'float32'}
+          'descriptor': {shape: [5, 5], dataType: 'float32'}
         }
       }
     }
@@ -169,7 +169,7 @@ const padTests = [
             16.863798141479492, 60.51472091674805, -70.56755065917969,
             -60.643272399902344, -47.8821907043457, 68.72557830810547
           ],
-          'descriptor': {'dimensions': [1, 3, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 3, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -259,7 +259,7 @@ const padTests = [
             0,
             0
           ],
-          'descriptor': {'dimensions': [3, 5, 5], 'dataType': 'float32'}
+          'descriptor': {shape: [3, 5, 5], dataType: 'float32'}
         }
       }
     }
@@ -274,7 +274,7 @@ const padTests = [
             16.863798141479492, 60.51472091674805, -70.56755065917969,
             -60.643272399902344, -47.8821907043457, 68.72557830810547
           ],
-          'descriptor': {'dimensions': [1, 3, 3, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 3, 3, 1], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -364,7 +364,7 @@ const padTests = [
             0,
             0
           ],
-          'descriptor': {'dimensions': [1, 5, 5, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 5, 5, 3], dataType: 'float32'}
         }
       }
     }
@@ -379,7 +379,7 @@ const padTests = [
             16.863798141479492, 60.51472091674805, -70.56755065917969,
             -60.643272399902344, -47.8821907043457, 68.72557830810547
           ],
-          'descriptor': {'dimensions': [1, 3, 3, 1, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 3, 3, 1, 1], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -469,7 +469,7 @@ const padTests = [
             0,
             0
           ],
-          'descriptor': {'dimensions': [1, 5, 5, 1, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 5, 5, 1, 3], dataType: 'float32'}
         }
       }
     }
@@ -484,7 +484,7 @@ const padTests = [
             16.863798141479492, 60.51472091674805, -70.56755065917969,
             -60.643272399902344, -47.8821907043457, 68.72557830810547
           ],
-          'descriptor': {'dimensions': [3, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [3, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -524,7 +524,7 @@ const padTests = [
             0,
             0
           ],
-          'descriptor': {'dimensions': [5, 5], 'dataType': 'float32'}
+          'descriptor': {shape: [5, 5], dataType: 'float32'}
         }
       }
     }
@@ -539,7 +539,7 @@ const padTests = [
             16.863798141479492, 60.51472091674805, -70.56755065917969,
             -60.643272399902344, -47.8821907043457, 68.72557830810547
           ],
-          'descriptor': {'dimensions': [3, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [3, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -579,7 +579,7 @@ const padTests = [
             1,
             1
           ],
-          'descriptor': {'dimensions': [5, 5], 'dataType': 'float32'}
+          'descriptor': {shape: [5, 5], dataType: 'float32'}
         }
       }
     }
@@ -594,7 +594,7 @@ const padTests = [
             16.863798141479492, 60.51472091674805, -70.56755065917969,
             -60.643272399902344, -47.8821907043457, 68.72557830810547
           ],
-          'descriptor': {'dimensions': [1, 3, 3, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 3, 3, 1], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -626,7 +626,7 @@ const padTests = [
             -47.8821907043457,   68.72557830810547,   68.72557830810547,
             68.72557830810547
           ],
-          'descriptor': {'dimensions': [1, 7, 7, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 7, 7, 1], dataType: 'float32'}
         }
       }
     }
@@ -641,7 +641,7 @@ const padTests = [
             16.863798141479492, 60.51472091674805, -70.56755065917969,
             -60.643272399902344, -47.8821907043457, 68.72557830810547
           ],
-          'descriptor': {'dimensions': [1, 3, 3, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 3, 3, 1], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -673,7 +673,7 @@ const padTests = [
             -21.168529510498047, -91.66168975830078,  -21.168529510498047,
             22.76361846923828
           ],
-          'descriptor': {'dimensions': [1, 7, 7, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 7, 7, 1], dataType: 'float32'}
         }
       }
     }
@@ -688,7 +688,7 @@ const padTests = [
             16.863798141479492, 60.51472091674805, -70.56755065917969,
             -60.643272399902344, -47.8821907043457, 68.72557830810547
           ],
-          'descriptor': {'dimensions': [1, 3, 3, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 3, 3, 1], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -720,7 +720,7 @@ const padTests = [
             60.51472091674805,   -70.56755065917969,  -70.56755065917969,
             60.51472091674805
           ],
-          'descriptor': {'dimensions': [1, 7, 7, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 7, 7, 1], dataType: 'float32'}
         }
       }
     }

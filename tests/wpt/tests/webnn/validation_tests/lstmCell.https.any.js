@@ -10,43 +10,43 @@
 const batchSize = 3, inputSize = 4, hiddenSize = 5;
 
 // Dimensions required of required inputs.
-const kValidInputDimensions = [batchSize, inputSize];
-const kValidWeightDimensions = [4 * hiddenSize, inputSize];
-const kValidRecurrentWeightDimensions = [4 * hiddenSize, hiddenSize];
-const kValidHiddenStateDimensions = [batchSize, hiddenSize];
-const kValidCellStateDimensions = [batchSize, hiddenSize];
+const kValidInputShape = [batchSize, inputSize];
+const kValidWeightShape = [4 * hiddenSize, inputSize];
+const kValidRecurrentWeightShape = [4 * hiddenSize, hiddenSize];
+const kValidHiddenStateShape = [batchSize, hiddenSize];
+const kValidCellStateShape = [batchSize, hiddenSize];
 // Dimensions required of optional inputs.
-const kValidBiasDimensions = [4 * hiddenSize];
-const kValidPeepholeWeightDimensions = [3 * hiddenSize];
+const kValidBiasShape = [4 * hiddenSize];
+const kValidPeepholeWeightShape = [3 * hiddenSize];
 
 // Example descriptors which are valid according to the above dimensions.
 const kExampleInputDescriptor = {
   dataType: 'float32',
-  dimensions: kValidInputDimensions
+  shape: kValidInputShape
 };
 const kExampleWeightDescriptor = {
   dataType: 'float32',
-  dimensions: kValidWeightDimensions
+  shape: kValidWeightShape
 };
 const kExampleRecurrentWeightDescriptor = {
   dataType: 'float32',
-  dimensions: kValidRecurrentWeightDimensions
+  shape: kValidRecurrentWeightShape
 };
 const kExampleHiddenStateDescriptor = {
   dataType: 'float32',
-  dimensions: kValidHiddenStateDimensions
+  shape: kValidHiddenStateShape
 };
 const kExampleCellStateDescriptor = {
   dataType: 'float32',
-  dimensions: kValidCellStateDimensions
+  shape: kValidCellStateShape
 };
 const kExampleBiasDescriptor = {
   dataType: 'float32',
-  dimensions: kValidBiasDimensions
+  shape: kValidBiasShape
 };
 const kExamplePeepholeWeightDescriptor = {
   dataType: 'float32',
-  dimensions: kValidPeepholeWeightDimensions
+  shape: kValidPeepholeWeightShape
 };
 
 multi_builder_test(async (t, builder, otherBuilder) => {
@@ -192,323 +192,293 @@ multi_builder_test(async (t, builder, otherBuilder) => {
 const tests = [
   {
     name: '[lstmCell] Test with default options',
-    input: {dataType: 'float16', dimensions: [batchSize, inputSize]},
-    weight: {dataType: 'float16', dimensions: [4 * hiddenSize, inputSize]},
-    recurrentWeight:
-        {dataType: 'float16', dimensions: [4 * hiddenSize, hiddenSize]},
-    hiddenState: {dataType: 'float16', dimensions: [batchSize, hiddenSize]},
-    cellState: {dataType: 'float16', dimensions: [batchSize, hiddenSize]},
+    input: {dataType: 'float16', shape: [batchSize, inputSize]},
+    weight: {dataType: 'float16', shape: [4 * hiddenSize, inputSize]},
+    recurrentWeight: {dataType: 'float16', shape: [4 * hiddenSize, hiddenSize]},
+    hiddenState: {dataType: 'float16', shape: [batchSize, hiddenSize]},
+    cellState: {dataType: 'float16', shape: [batchSize, hiddenSize]},
     hiddenSize: hiddenSize,
     outputs: [
-      {dataType: 'float16', dimensions: [batchSize, hiddenSize]},
-      {dataType: 'float16', dimensions: [batchSize, hiddenSize]}
+      {dataType: 'float16', shape: [batchSize, hiddenSize]},
+      {dataType: 'float16', shape: [batchSize, hiddenSize]}
     ]
   },
   {
     name: '[lstmCell] Test with given options',
-    input: {dataType: 'float32', dimensions: [batchSize, inputSize]},
-    weight: {dataType: 'float32', dimensions: [4 * hiddenSize, inputSize]},
-    recurrentWeight:
-        {dataType: 'float32', dimensions: [4 * hiddenSize, hiddenSize]},
-    hiddenState: {dataType: 'float32', dimensions: [batchSize, hiddenSize]},
-    cellState: {dataType: 'float32', dimensions: [batchSize, hiddenSize]},
+    input: {dataType: 'float32', shape: [batchSize, inputSize]},
+    weight: {dataType: 'float32', shape: [4 * hiddenSize, inputSize]},
+    recurrentWeight: {dataType: 'float32', shape: [4 * hiddenSize, hiddenSize]},
+    hiddenState: {dataType: 'float32', shape: [batchSize, hiddenSize]},
+    cellState: {dataType: 'float32', shape: [batchSize, hiddenSize]},
     hiddenSize: hiddenSize,
     options: {
-      bias: {dataType: 'float32', dimensions: [4 * hiddenSize]},
-      recurrentBias: {dataType: 'float32', dimensions: [4 * hiddenSize]},
-      peepholeWeight: {dataType: 'float32', dimensions: [3 * hiddenSize]},
+      bias: {dataType: 'float32', shape: [4 * hiddenSize]},
+      recurrentBias: {dataType: 'float32', shape: [4 * hiddenSize]},
+      peepholeWeight: {dataType: 'float32', shape: [3 * hiddenSize]},
       layout: 'ifgo',
       activations: ['sigmoid', 'relu', 'tanh']
     },
     outputs: [
-      {dataType: 'float32', dimensions: [batchSize, hiddenSize]},
-      {dataType: 'float32', dimensions: [batchSize, hiddenSize]}
+      {dataType: 'float32', shape: [batchSize, hiddenSize]},
+      {dataType: 'float32', shape: [batchSize, hiddenSize]}
     ]
   },
   {
     name: '[lstmCell] Throw if hiddenSize is equal to zero',
-    input: {dataType: 'float32', dimensions: [batchSize, inputSize]},
-    weight: {dataType: 'float32', dimensions: [4 * hiddenSize, inputSize]},
-    recurrentWeight:
-        {dataType: 'float32', dimensions: [4 * hiddenSize, hiddenSize]},
-    hiddenState: {dataType: 'float32', dimensions: [batchSize, hiddenSize]},
-    cellState: {dataType: 'float32', dimensions: [batchSize, hiddenSize]},
+    input: {dataType: 'float32', shape: [batchSize, inputSize]},
+    weight: {dataType: 'float32', shape: [4 * hiddenSize, inputSize]},
+    recurrentWeight: {dataType: 'float32', shape: [4 * hiddenSize, hiddenSize]},
+    hiddenState: {dataType: 'float32', shape: [batchSize, hiddenSize]},
+    cellState: {dataType: 'float32', shape: [batchSize, hiddenSize]},
     hiddenSize: 0
   },
   {
     name: '[lstmCell] Throw if hiddenSize is too large',
-    input: {dataType: 'float32', dimensions: [batchSize, inputSize]},
-    weight: {dataType: 'float32', dimensions: [4 * hiddenSize, inputSize]},
-    recurrentWeight:
-        {dataType: 'float32', dimensions: [4 * hiddenSize, hiddenSize]},
-    hiddenState: {dataType: 'float32', dimensions: [batchSize, hiddenSize]},
-    cellState: {dataType: 'float32', dimensions: [batchSize, hiddenSize]},
+    input: {dataType: 'float32', shape: [batchSize, inputSize]},
+    weight: {dataType: 'float32', shape: [4 * hiddenSize, inputSize]},
+    recurrentWeight: {dataType: 'float32', shape: [4 * hiddenSize, hiddenSize]},
+    hiddenState: {dataType: 'float32', shape: [batchSize, hiddenSize]},
+    cellState: {dataType: 'float32', shape: [batchSize, hiddenSize]},
     hiddenSize: 4294967295
   },
   {
     name:
         '[lstmCell] Throw if the input data type is not one of the floating point types',
-    input: {dataType: 'uint32', dimensions: [batchSize, inputSize]},
-    weight: {dataType: 'float32', dimensions: [4 * hiddenSize, inputSize]},
-    recurrentWeight:
-        {dataType: 'float32', dimensions: [4 * hiddenSize, hiddenSize]},
-    hiddenState: {dataType: 'float32', dimensions: [batchSize, hiddenSize]},
-    cellState: {dataType: 'float32', dimensions: [batchSize, hiddenSize]},
+    input: {dataType: 'uint32', shape: [batchSize, inputSize]},
+    weight: {dataType: 'float32', shape: [4 * hiddenSize, inputSize]},
+    recurrentWeight: {dataType: 'float32', shape: [4 * hiddenSize, hiddenSize]},
+    hiddenState: {dataType: 'float32', shape: [batchSize, hiddenSize]},
+    cellState: {dataType: 'float32', shape: [batchSize, hiddenSize]},
     hiddenSize: hiddenSize
   },
   {
     name: '[lstmCell] Throw if the rank of input is not 2',
-    input: {dataType: 'float32', dimensions: [batchSize]},
-    weight: {dataType: 'float32', dimensions: [4 * hiddenSize, inputSize]},
-    recurrentWeight:
-        {dataType: 'float32', dimensions: [4 * hiddenSize, hiddenSize]},
-    hiddenState: {dataType: 'float32', dimensions: [batchSize, hiddenSize]},
-    cellState: {dataType: 'float32', dimensions: [batchSize, hiddenSize]},
+    input: {dataType: 'float32', shape: [batchSize]},
+    weight: {dataType: 'float32', shape: [4 * hiddenSize, inputSize]},
+    recurrentWeight: {dataType: 'float32', shape: [4 * hiddenSize, hiddenSize]},
+    hiddenState: {dataType: 'float32', shape: [batchSize, hiddenSize]},
+    cellState: {dataType: 'float32', shape: [batchSize, hiddenSize]},
     hiddenSize: hiddenSize
   },
   {
     name: '[lstmCell] Throw if the shape of input is incorrect',
-    input: {dataType: 'float32', dimensions: [batchSize, 1000]},
-    weight: {dataType: 'float32', dimensions: [4 * hiddenSize, inputSize]},
-    recurrentWeight:
-        {dataType: 'float32', dimensions: [4 * hiddenSize, hiddenSize]},
-    hiddenState: {dataType: 'float32', dimensions: [batchSize, hiddenSize]},
-    cellState: {dataType: 'float32', dimensions: [batchSize, hiddenSize]},
+    input: {dataType: 'float32', shape: [batchSize, 1000]},
+    weight: {dataType: 'float32', shape: [4 * hiddenSize, inputSize]},
+    recurrentWeight: {dataType: 'float32', shape: [4 * hiddenSize, hiddenSize]},
+    hiddenState: {dataType: 'float32', shape: [batchSize, hiddenSize]},
+    cellState: {dataType: 'float32', shape: [batchSize, hiddenSize]},
     hiddenSize: hiddenSize
   },
   {
     name: '[lstmCell] Throw if the data type of weight is incorrect',
-    input: {dataType: 'float32', dimensions: [batchSize, inputSize]},
-    weight: {dataType: 'float16', dimensions: [4 * hiddenSize, inputSize]},
-    recurrentWeight:
-        {dataType: 'float32', dimensions: [4 * hiddenSize, hiddenSize]},
-    hiddenState: {dataType: 'float32', dimensions: [batchSize, hiddenSize]},
-    cellState: {dataType: 'float32', dimensions: [batchSize, hiddenSize]},
+    input: {dataType: 'float32', shape: [batchSize, inputSize]},
+    weight: {dataType: 'float16', shape: [4 * hiddenSize, inputSize]},
+    recurrentWeight: {dataType: 'float32', shape: [4 * hiddenSize, hiddenSize]},
+    hiddenState: {dataType: 'float32', shape: [batchSize, hiddenSize]},
+    cellState: {dataType: 'float32', shape: [batchSize, hiddenSize]},
     hiddenSize: hiddenSize
   },
   {
     name: '[lstmCell] Throw if the rank of weight is not 2',
-    input: {dataType: 'float32', dimensions: [batchSize, inputSize]},
-    weight:
-        {dataType: 'float32', dimensions: [4 * hiddenSize, inputSize, 1000]},
-    recurrentWeight:
-        {dataType: 'float32', dimensions: [4 * hiddenSize, hiddenSize]},
-    hiddenState: {dataType: 'float32', dimensions: [batchSize, hiddenSize]},
-    cellState: {dataType: 'float32', dimensions: [batchSize, hiddenSize]},
+    input: {dataType: 'float32', shape: [batchSize, inputSize]},
+    weight: {dataType: 'float32', shape: [4 * hiddenSize, inputSize, 1000]},
+    recurrentWeight: {dataType: 'float32', shape: [4 * hiddenSize, hiddenSize]},
+    hiddenState: {dataType: 'float32', shape: [batchSize, hiddenSize]},
+    cellState: {dataType: 'float32', shape: [batchSize, hiddenSize]},
     hiddenSize: hiddenSize
   },
   {
     name: '[lstmCell] Throw if the shape of weight is incorrect',
-    input: {dataType: 'float32', dimensions: [batchSize, inputSize]},
-    weight: {dataType: 'float32', dimensions: [1000, inputSize]},
-    recurrentWeight:
-        {dataType: 'float32', dimensions: [4 * hiddenSize, hiddenSize]},
-    hiddenState: {dataType: 'float32', dimensions: [batchSize, hiddenSize]},
-    cellState: {dataType: 'float32', dimensions: [batchSize, hiddenSize]},
+    input: {dataType: 'float32', shape: [batchSize, inputSize]},
+    weight: {dataType: 'float32', shape: [1000, inputSize]},
+    recurrentWeight: {dataType: 'float32', shape: [4 * hiddenSize, hiddenSize]},
+    hiddenState: {dataType: 'float32', shape: [batchSize, hiddenSize]},
+    cellState: {dataType: 'float32', shape: [batchSize, hiddenSize]},
     hiddenSize: hiddenSize
   },
   {
     name: '[lstmCell] Throw if the data type of recurrentWeight is incorrect',
-    input: {dataType: 'float32', dimensions: [batchSize, inputSize]},
-    weight: {dataType: 'float32', dimensions: [4 * hiddenSize, inputSize]},
-    recurrentWeight:
-        {dataType: 'float16', dimensions: [4 * hiddenSize, hiddenSize]},
-    hiddenState: {dataType: 'float32', dimensions: [batchSize, hiddenSize]},
-    cellState: {dataType: 'float32', dimensions: [batchSize, hiddenSize]},
+    input: {dataType: 'float32', shape: [batchSize, inputSize]},
+    weight: {dataType: 'float32', shape: [4 * hiddenSize, inputSize]},
+    recurrentWeight: {dataType: 'float16', shape: [4 * hiddenSize, hiddenSize]},
+    hiddenState: {dataType: 'float32', shape: [batchSize, hiddenSize]},
+    cellState: {dataType: 'float32', shape: [batchSize, hiddenSize]},
     hiddenSize: hiddenSize
   },
   {
     name: '[lstmCell] Throw if the rank of recurrentWeight is not 2',
-    input: {dataType: 'float32', dimensions: [batchSize, inputSize]},
-    weight: {dataType: 'float32', dimensions: [4 * hiddenSize, inputSize]},
+    input: {dataType: 'float32', shape: [batchSize, inputSize]},
+    weight: {dataType: 'float32', shape: [4 * hiddenSize, inputSize]},
     recurrentWeight:
-        {dataType: 'float32', dimensions: [1000, 4 * hiddenSize, hiddenSize]},
-    hiddenState: {dataType: 'float32', dimensions: [batchSize, hiddenSize]},
-    cellState: {dataType: 'float32', dimensions: [batchSize, hiddenSize]},
+        {dataType: 'float32', shape: [1000, 4 * hiddenSize, hiddenSize]},
+    hiddenState: {dataType: 'float32', shape: [batchSize, hiddenSize]},
+    cellState: {dataType: 'float32', shape: [batchSize, hiddenSize]},
     hiddenSize: hiddenSize
   },
   {
     name: '[lstmCell] Throw if the shape of recurrentWeight is incorrect',
-    input: {dataType: 'float32', dimensions: [batchSize, inputSize]},
-    weight: {dataType: 'float32', dimensions: [4 * hiddenSize, inputSize]},
-    recurrentWeight: {dataType: 'float32', dimensions: [1000, hiddenSize]},
-    hiddenState: {dataType: 'float32', dimensions: [batchSize, hiddenSize]},
-    cellState: {dataType: 'float32', dimensions: [batchSize, hiddenSize]},
+    input: {dataType: 'float32', shape: [batchSize, inputSize]},
+    weight: {dataType: 'float32', shape: [4 * hiddenSize, inputSize]},
+    recurrentWeight: {dataType: 'float32', shape: [1000, hiddenSize]},
+    hiddenState: {dataType: 'float32', shape: [batchSize, hiddenSize]},
+    cellState: {dataType: 'float32', shape: [batchSize, hiddenSize]},
     hiddenSize: hiddenSize
   },
   {
     name: '[lstmCell] Throw if the data type of hiddenState is incorrect',
-    input: {dataType: 'float16', dimensions: [batchSize, inputSize]},
-    weight: {dataType: 'float16', dimensions: [4 * hiddenSize, inputSize]},
-    recurrentWeight:
-        {dataType: 'float16', dimensions: [4 * hiddenSize, hiddenSize]},
-    hiddenState: {dataType: 'int64', dimensions: [batchSize, hiddenSize]},
-    cellState: {dataType: 'float16', dimensions: [batchSize, hiddenSize]},
+    input: {dataType: 'float16', shape: [batchSize, inputSize]},
+    weight: {dataType: 'float16', shape: [4 * hiddenSize, inputSize]},
+    recurrentWeight: {dataType: 'float16', shape: [4 * hiddenSize, hiddenSize]},
+    hiddenState: {dataType: 'int64', shape: [batchSize, hiddenSize]},
+    cellState: {dataType: 'float16', shape: [batchSize, hiddenSize]},
     hiddenSize: hiddenSize
   },
   {
     name: '[lstmCell] Throw if the rank of hiddenState is not 2',
-    input: {dataType: 'float32', dimensions: [batchSize, inputSize]},
-    weight: {dataType: 'float32', dimensions: [4 * hiddenSize, inputSize]},
-    recurrentWeight:
-        {dataType: 'float32', dimensions: [4 * hiddenSize, hiddenSize]},
-    hiddenState: {dataType: 'float32', dimensions: [batchSize]},
-    cellState: {dataType: 'float32', dimensions: [batchSize, hiddenSize]},
+    input: {dataType: 'float32', shape: [batchSize, inputSize]},
+    weight: {dataType: 'float32', shape: [4 * hiddenSize, inputSize]},
+    recurrentWeight: {dataType: 'float32', shape: [4 * hiddenSize, hiddenSize]},
+    hiddenState: {dataType: 'float32', shape: [batchSize]},
+    cellState: {dataType: 'float32', shape: [batchSize, hiddenSize]},
     hiddenSize: hiddenSize
   },
   {
     name: '[lstmCell] Throw if the shape of hiddenState is incorrect',
-    input: {dataType: 'float32', dimensions: [batchSize, inputSize]},
-    weight: {dataType: 'float32', dimensions: [4 * hiddenSize, inputSize]},
-    recurrentWeight:
-        {dataType: 'float32', dimensions: [4 * hiddenSize, hiddenSize]},
-    hiddenState: {dataType: 'float32', dimensions: [batchSize, 1000]},
-    cellState: {dataType: 'float32', dimensions: [batchSize, hiddenSize]},
+    input: {dataType: 'float32', shape: [batchSize, inputSize]},
+    weight: {dataType: 'float32', shape: [4 * hiddenSize, inputSize]},
+    recurrentWeight: {dataType: 'float32', shape: [4 * hiddenSize, hiddenSize]},
+    hiddenState: {dataType: 'float32', shape: [batchSize, 1000]},
+    cellState: {dataType: 'float32', shape: [batchSize, hiddenSize]},
     hiddenSize: hiddenSize
   },
   {
     name: '[lstmCell] Throw if the data type of cellState is incorrect',
-    input: {dataType: 'float16', dimensions: [batchSize, inputSize]},
-    weight: {dataType: 'float16', dimensions: [4 * hiddenSize, inputSize]},
-    recurrentWeight:
-        {dataType: 'float16', dimensions: [4 * hiddenSize, hiddenSize]},
-    hiddenState: {dataType: 'float16', dimensions: [batchSize, hiddenSize]},
-    cellState: {dataType: 'float32', dimensions: [batchSize, hiddenSize]},
+    input: {dataType: 'float16', shape: [batchSize, inputSize]},
+    weight: {dataType: 'float16', shape: [4 * hiddenSize, inputSize]},
+    recurrentWeight: {dataType: 'float16', shape: [4 * hiddenSize, hiddenSize]},
+    hiddenState: {dataType: 'float16', shape: [batchSize, hiddenSize]},
+    cellState: {dataType: 'float32', shape: [batchSize, hiddenSize]},
     hiddenSize: hiddenSize
   },
   {
     name: '[lstmCell] Throw if the rank of cellState is not 2',
-    input: {dataType: 'float32', dimensions: [batchSize, inputSize]},
-    weight: {dataType: 'float32', dimensions: [4 * hiddenSize, inputSize]},
-    recurrentWeight:
-        {dataType: 'float32', dimensions: [4 * hiddenSize, hiddenSize]},
-    hiddenState: {dataType: 'float32', dimensions: [batchSize, hiddenSize]},
-    cellState: {dataType: 'float32', dimensions: [batchSize]},
+    input: {dataType: 'float32', shape: [batchSize, inputSize]},
+    weight: {dataType: 'float32', shape: [4 * hiddenSize, inputSize]},
+    recurrentWeight: {dataType: 'float32', shape: [4 * hiddenSize, hiddenSize]},
+    hiddenState: {dataType: 'float32', shape: [batchSize, hiddenSize]},
+    cellState: {dataType: 'float32', shape: [batchSize]},
     hiddenSize: hiddenSize
   },
   {
     name: '[lstmCell] Throw if the shape of cellState is incorrect',
-    input: {dataType: 'float16', dimensions: [batchSize, inputSize]},
-    weight: {dataType: 'float16', dimensions: [4 * hiddenSize, inputSize]},
-    recurrentWeight:
-        {dataType: 'float16', dimensions: [4 * hiddenSize, hiddenSize]},
-    hiddenState: {dataType: 'float16', dimensions: [batchSize, hiddenSize]},
-    cellState: {dataType: 'float16', dimensions: [batchSize, 1000]},
+    input: {dataType: 'float16', shape: [batchSize, inputSize]},
+    weight: {dataType: 'float16', shape: [4 * hiddenSize, inputSize]},
+    recurrentWeight: {dataType: 'float16', shape: [4 * hiddenSize, hiddenSize]},
+    hiddenState: {dataType: 'float16', shape: [batchSize, hiddenSize]},
+    cellState: {dataType: 'float16', shape: [batchSize, 1000]},
     hiddenSize: hiddenSize
   },
   {
     name: '[lstmCell] Throw if the data type of options.bias is incorrect',
-    input: {dataType: 'float16', dimensions: [batchSize, inputSize]},
-    weight: {dataType: 'float16', dimensions: [4 * hiddenSize, inputSize]},
-    recurrentWeight:
-        {dataType: 'float16', dimensions: [4 * hiddenSize, hiddenSize]},
-    hiddenState: {dataType: 'float16', dimensions: [batchSize, hiddenSize]},
-    cellState: {dataType: 'float16', dimensions: [batchSize, hiddenSize]},
+    input: {dataType: 'float16', shape: [batchSize, inputSize]},
+    weight: {dataType: 'float16', shape: [4 * hiddenSize, inputSize]},
+    recurrentWeight: {dataType: 'float16', shape: [4 * hiddenSize, hiddenSize]},
+    hiddenState: {dataType: 'float16', shape: [batchSize, hiddenSize]},
+    cellState: {dataType: 'float16', shape: [batchSize, hiddenSize]},
     hiddenSize: hiddenSize,
-    options: {bias: {dataType: 'int8', dimensions: [4 * hiddenSize]}}
+    options: {bias: {dataType: 'int8', shape: [4 * hiddenSize]}}
   },
   {
     name: '[lstmCell] Throw if the rank of options.bias is not 1',
-    input: {dataType: 'float16', dimensions: [batchSize, inputSize]},
-    weight: {dataType: 'float16', dimensions: [4 * hiddenSize, inputSize]},
-    recurrentWeight:
-        {dataType: 'float16', dimensions: [4 * hiddenSize, hiddenSize]},
-    hiddenState: {dataType: 'float16', dimensions: [batchSize, hiddenSize]},
-    cellState: {dataType: 'float16', dimensions: [batchSize, hiddenSize]},
+    input: {dataType: 'float16', shape: [batchSize, inputSize]},
+    weight: {dataType: 'float16', shape: [4 * hiddenSize, inputSize]},
+    recurrentWeight: {dataType: 'float16', shape: [4 * hiddenSize, hiddenSize]},
+    hiddenState: {dataType: 'float16', shape: [batchSize, hiddenSize]},
+    cellState: {dataType: 'float16', shape: [batchSize, hiddenSize]},
     hiddenSize: hiddenSize,
-    options: {bias: {dataType: 'float16', dimensions: [4 * hiddenSize, 1000]}}
+    options: {bias: {dataType: 'float16', shape: [4 * hiddenSize, 1000]}}
   },
   {
     name: '[lstmCell] Throw if the shape of options.bias is incorrect',
-    input: {dataType: 'float16', dimensions: [batchSize, inputSize]},
-    weight: {dataType: 'float16', dimensions: [4 * hiddenSize, inputSize]},
-    recurrentWeight:
-        {dataType: 'float16', dimensions: [4 * hiddenSize, hiddenSize]},
-    hiddenState: {dataType: 'float16', dimensions: [batchSize, hiddenSize]},
-    cellState: {dataType: 'float16', dimensions: [batchSize, hiddenSize]},
+    input: {dataType: 'float16', shape: [batchSize, inputSize]},
+    weight: {dataType: 'float16', shape: [4 * hiddenSize, inputSize]},
+    recurrentWeight: {dataType: 'float16', shape: [4 * hiddenSize, hiddenSize]},
+    hiddenState: {dataType: 'float16', shape: [batchSize, hiddenSize]},
+    cellState: {dataType: 'float16', shape: [batchSize, hiddenSize]},
     hiddenSize: hiddenSize,
-    options: {bias: {dataType: 'float16', dimensions: [1000]}}
+    options: {bias: {dataType: 'float16', shape: [1000]}}
   },
   {
     name:
         '[lstmCell] Throw if the data type of options.recurrentBias is incorrect',
-    input: {dataType: 'float16', dimensions: [batchSize, inputSize]},
-    weight: {dataType: 'float16', dimensions: [4 * hiddenSize, inputSize]},
-    recurrentWeight:
-        {dataType: 'float16', dimensions: [4 * hiddenSize, hiddenSize]},
-    hiddenState: {dataType: 'float16', dimensions: [batchSize, hiddenSize]},
-    cellState: {dataType: 'float16', dimensions: [batchSize, hiddenSize]},
+    input: {dataType: 'float16', shape: [batchSize, inputSize]},
+    weight: {dataType: 'float16', shape: [4 * hiddenSize, inputSize]},
+    recurrentWeight: {dataType: 'float16', shape: [4 * hiddenSize, hiddenSize]},
+    hiddenState: {dataType: 'float16', shape: [batchSize, hiddenSize]},
+    cellState: {dataType: 'float16', shape: [batchSize, hiddenSize]},
     hiddenSize: hiddenSize,
-    options: {recurrentBias: {dataType: 'uint8', dimensions: [4 * hiddenSize]}}
+    options: {recurrentBias: {dataType: 'uint8', shape: [4 * hiddenSize]}}
   },
   {
     name: '[lstmCell] Throw if the rank of options.recurrentBias is not 1',
-    input: {dataType: 'float16', dimensions: [batchSize, inputSize]},
-    weight: {dataType: 'float16', dimensions: [4 * hiddenSize, inputSize]},
-    recurrentWeight:
-        {dataType: 'float16', dimensions: [4 * hiddenSize, hiddenSize]},
-    hiddenState: {dataType: 'float16', dimensions: [batchSize, hiddenSize]},
-    cellState: {dataType: 'float16', dimensions: [batchSize, hiddenSize]},
+    input: {dataType: 'float16', shape: [batchSize, inputSize]},
+    weight: {dataType: 'float16', shape: [4 * hiddenSize, inputSize]},
+    recurrentWeight: {dataType: 'float16', shape: [4 * hiddenSize, hiddenSize]},
+    hiddenState: {dataType: 'float16', shape: [batchSize, hiddenSize]},
+    cellState: {dataType: 'float16', shape: [batchSize, hiddenSize]},
     hiddenSize: hiddenSize,
-    options: {
-      recurrentBias: {dataType: 'float16', dimensions: [4 * hiddenSize, 1000]}
-    }
+    options:
+        {recurrentBias: {dataType: 'float16', shape: [4 * hiddenSize, 1000]}}
   },
   {
     name: '[lstmCell] Throw if the shape of options.recurrentBias is incorrect',
-    input: {dataType: 'float16', dimensions: [batchSize, inputSize]},
-    weight: {dataType: 'float16', dimensions: [4 * hiddenSize, inputSize]},
-    recurrentWeight:
-        {dataType: 'float16', dimensions: [4 * hiddenSize, hiddenSize]},
-    hiddenState: {dataType: 'float16', dimensions: [batchSize, hiddenSize]},
-    cellState: {dataType: 'float16', dimensions: [batchSize, hiddenSize]},
+    input: {dataType: 'float16', shape: [batchSize, inputSize]},
+    weight: {dataType: 'float16', shape: [4 * hiddenSize, inputSize]},
+    recurrentWeight: {dataType: 'float16', shape: [4 * hiddenSize, hiddenSize]},
+    hiddenState: {dataType: 'float16', shape: [batchSize, hiddenSize]},
+    cellState: {dataType: 'float16', shape: [batchSize, hiddenSize]},
     hiddenSize: hiddenSize,
-    options: {recurrentBias: {dataType: 'float16', dimensions: [1000]}}
+    options: {recurrentBias: {dataType: 'float16', shape: [1000]}}
   },
   {
     name:
         '[lstmCell] Throw if the data type of options.peepholeWeight is incorrect',
-    input: {dataType: 'float16', dimensions: [batchSize, inputSize]},
-    weight: {dataType: 'float16', dimensions: [4 * hiddenSize, inputSize]},
-    recurrentWeight:
-        {dataType: 'float16', dimensions: [4 * hiddenSize, hiddenSize]},
-    hiddenState: {dataType: 'float16', dimensions: [batchSize, hiddenSize]},
-    cellState: {dataType: 'float16', dimensions: [batchSize, hiddenSize]},
+    input: {dataType: 'float16', shape: [batchSize, inputSize]},
+    weight: {dataType: 'float16', shape: [4 * hiddenSize, inputSize]},
+    recurrentWeight: {dataType: 'float16', shape: [4 * hiddenSize, hiddenSize]},
+    hiddenState: {dataType: 'float16', shape: [batchSize, hiddenSize]},
+    cellState: {dataType: 'float16', shape: [batchSize, hiddenSize]},
     hiddenSize: hiddenSize,
-    options:
-        {peepholeWeight: {dataType: 'float32', dimensions: [3 * hiddenSize]}}
+    options: {peepholeWeight: {dataType: 'float32', shape: [3 * hiddenSize]}}
   },
   {
     name: '[lstmCell] Throw if the rank of options.peepholeWeight is not 1',
-    input: {dataType: 'float16', dimensions: [batchSize, inputSize]},
-    weight: {dataType: 'float16', dimensions: [4 * hiddenSize, inputSize]},
-    recurrentWeight:
-        {dataType: 'float16', dimensions: [4 * hiddenSize, hiddenSize]},
-    hiddenState: {dataType: 'float16', dimensions: [batchSize, hiddenSize]},
-    cellState: {dataType: 'float16', dimensions: [batchSize, hiddenSize]},
+    input: {dataType: 'float16', shape: [batchSize, inputSize]},
+    weight: {dataType: 'float16', shape: [4 * hiddenSize, inputSize]},
+    recurrentWeight: {dataType: 'float16', shape: [4 * hiddenSize, hiddenSize]},
+    hiddenState: {dataType: 'float16', shape: [batchSize, hiddenSize]},
+    cellState: {dataType: 'float16', shape: [batchSize, hiddenSize]},
     hiddenSize: hiddenSize,
-    options: {peepholeWeight: {dataType: 'float16', dimensions: []}}
+    options: {peepholeWeight: {dataType: 'float16', shape: []}}
   },
   {
     name:
         '[lstmCell] Throw if the shape of options.peepholeWeight is incorrect',
-    input: {dataType: 'float16', dimensions: [batchSize, inputSize]},
-    weight: {dataType: 'float16', dimensions: [4 * hiddenSize, inputSize]},
-    recurrentWeight:
-        {dataType: 'float16', dimensions: [4 * hiddenSize, hiddenSize]},
-    hiddenState: {dataType: 'float16', dimensions: [batchSize, hiddenSize]},
-    cellState: {dataType: 'float16', dimensions: [batchSize, hiddenSize]},
+    input: {dataType: 'float16', shape: [batchSize, inputSize]},
+    weight: {dataType: 'float16', shape: [4 * hiddenSize, inputSize]},
+    recurrentWeight: {dataType: 'float16', shape: [4 * hiddenSize, hiddenSize]},
+    hiddenState: {dataType: 'float16', shape: [batchSize, hiddenSize]},
+    cellState: {dataType: 'float16', shape: [batchSize, hiddenSize]},
     hiddenSize: hiddenSize,
-    options: {peepholeWeight: {dataType: 'float16', dimensions: [1000]}}
+    options: {peepholeWeight: {dataType: 'float16', shape: [1000]}}
   },
   {
     name: '[lstmCell] Throw if the size of options.activations is not 3',
-    input: {dataType: 'float32', dimensions: [batchSize, inputSize]},
-    weight: {dataType: 'float32', dimensions: [4 * hiddenSize, inputSize]},
-    recurrentWeight:
-        {dataType: 'float32', dimensions: [4 * hiddenSize, hiddenSize]},
-    hiddenState: {dataType: 'float32', dimensions: [batchSize, hiddenSize]},
-    cellState: {dataType: 'float32', dimensions: [batchSize, hiddenSize]},
+    input: {dataType: 'float32', shape: [batchSize, inputSize]},
+    weight: {dataType: 'float32', shape: [4 * hiddenSize, inputSize]},
+    recurrentWeight: {dataType: 'float32', shape: [4 * hiddenSize, hiddenSize]},
+    hiddenState: {dataType: 'float32', shape: [batchSize, hiddenSize]},
+    cellState: {dataType: 'float32', shape: [batchSize, hiddenSize]},
     hiddenSize: hiddenSize,
     options: {activations: ['sigmoid', 'tanh', 'sigmoid', 'tanh']}
   }
@@ -517,44 +487,25 @@ const tests = [
 tests.forEach(
     test => promise_test(async t => {
       const builder = new MLGraphBuilder(context);
-      const input = builder.input(
-          'input',
-          {dataType: test.input.dataType, dimensions: test.input.dimensions});
-      const weight = builder.input(
-          'weight',
-          {dataType: test.weight.dataType, dimensions: test.weight.dimensions});
-      const recurrentWeight = builder.input('recurrentWeight', {
-        dataType: test.recurrentWeight.dataType,
-        dimensions: test.recurrentWeight.dimensions
-      });
-      const hiddenState = builder.input('hiddenState', {
-        dataType: test.hiddenState.dataType,
-        dimensions: test.hiddenState.dimensions
-      });
-      const cellState = builder.input('cellState', {
-        dataType: test.cellState.dataType,
-        dimensions: test.cellState.dimensions
-      });
+      const input = builder.input('input', test.input);
+      const weight = builder.input('weight', test.weight);
+      const recurrentWeight =
+          builder.input('recurrentWeight', test.recurrentWeight);
+      const hiddenState = builder.input('hiddenState', test.hiddenState);
+      const cellState = builder.input('cellState', test.cellState);
 
       const options = {};
       if (test.options) {
         if (test.options.bias) {
-          options.bias = builder.input('bias', {
-            dataType: test.options.bias.dataType,
-            dimensions: test.options.bias.dimensions
-          });
+          options.bias = builder.input('bias', test.options.bias);
         }
         if (test.options.recurrentBias) {
-          options.recurrentBias = builder.input('recurrentBias', {
-            dataType: test.options.recurrentBias.dataType,
-            dimensions: test.options.recurrentBias.dimensions
-          });
+          options.recurrentBias =
+              builder.input('recurrentBias', test.options.recurrentBias);
         }
         if (test.options.peepholeWeight) {
-          options.peepholeWeight = builder.input('peepholeWeight', {
-            dataType: test.options.peepholeWeight.dataType,
-            dimensions: test.options.peepholeWeight.dimensions
-          });
+          options.peepholeWeight =
+              builder.input('peepholeWeight', test.options.peepholeWeight);
         }
         if (test.options.layout) {
           options.layout = test.options.layout;
@@ -573,7 +524,7 @@ tests.forEach(
         assert_equals(outputs.length, test.outputs.length);
         for (let i = 0; i < outputs.length; ++i) {
           assert_equals(outputs[i].dataType(), test.outputs[i].dataType);
-          assert_array_equals(outputs[i].shape(), test.outputs[i].dimensions);
+          assert_array_equals(outputs[i].shape(), test.outputs[i].shape);
         }
       } else {
         const label = 'lstm_cell_xxx';

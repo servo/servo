@@ -46,7 +46,7 @@ const argMinMaxTests = [
             -82.78385925292969, -96.50904083251953,  39.76872634887695,
             42.1504020690918,   82.66864013671875,   85.45269012451172
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'},
+          'descriptor': {shape: [24], dataType: 'float32'},
           'constant': true
         }
       },
@@ -57,7 +57,7 @@ const argMinMaxTests = [
       }],
       'expectedOutputs': {
         'argminOutput':
-            {'data': [7], 'descriptor': {'dimensions': [], 'dataType': 'int32'}}
+            {'data': [7], 'descriptor': {shape: [], dataType: 'int32'}}
       }
     }
   },
@@ -76,7 +76,7 @@ const argMinMaxTests = [
             -82.78385925292969, -96.50904083251953,  39.76872634887695,
             42.1504020690918,   82.66864013671875,   85.45269012451172
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'}
+          'descriptor': {shape: [24], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -86,7 +86,7 @@ const argMinMaxTests = [
       }],
       'expectedOutputs': {
         'argminOutput':
-            {'data': [7], 'descriptor': {'dimensions': [], 'dataType': 'int32'}}
+            {'data': [7], 'descriptor': {shape: [], dataType: 'int32'}}
       }
     }
   },
@@ -105,7 +105,7 @@ const argMinMaxTests = [
             -82.78385925292969, -96.50904083251953,  39.76872634887695,
             42.1504020690918,   82.66864013671875,   85.45269012451172
           ],
-          'descriptor': {'dimensions': [4, 6], 'dataType': 'float32'}
+          'descriptor': {shape: [4, 6], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -116,7 +116,7 @@ const argMinMaxTests = [
       'expectedOutputs': {
         'argminOutput': {
           'data': [1, 1, 2, 0, 1, 1],
-          'descriptor': {'dimensions': [6], 'dataType': 'int32'}
+          'descriptor': {shape: [6], dataType: 'int32'}
         }
       }
     }
@@ -136,7 +136,7 @@ const argMinMaxTests = [
             -82.78385925292969, -96.50904083251953,  39.76872634887695,
             42.1504020690918,   82.66864013671875,   85.45269012451172
           ],
-          'descriptor': {'dimensions': [2, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 4], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -147,7 +147,7 @@ const argMinMaxTests = [
       'expectedOutputs': {
         'argminOutput': {
           'data': [1, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0],
-          'descriptor': {'dimensions': [3, 4], 'dataType': 'int32'}
+          'descriptor': {shape: [3, 4], dataType: 'int32'}
         }
       }
     }
@@ -167,7 +167,7 @@ const argMinMaxTests = [
             -82.78385925292969, -96.50904083251953,  39.76872634887695,
             42.1504020690918,   82.66864013671875,   85.45269012451172
           ],
-          'descriptor': {'dimensions': [2, 1, 4, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 1, 4, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -178,7 +178,7 @@ const argMinMaxTests = [
       'expectedOutputs': {
         'argminOutput': {
           'data': [1, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0],
-          'descriptor': {'dimensions': [1, 4, 3], 'dataType': 'int32'}
+          'descriptor': {shape: [1, 4, 3], dataType: 'int32'}
         }
       }
     }
@@ -198,7 +198,7 @@ const argMinMaxTests = [
             -82.78385925292969, -96.50904083251953,  39.76872634887695,
             42.1504020690918,   82.66864013671875,   85.45269012451172
           ],
-          'descriptor': {'dimensions': [2, 1, 4, 1, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 1, 4, 1, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -209,7 +209,7 @@ const argMinMaxTests = [
       'expectedOutputs': {
         'argminOutput': {
           'data': [1, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0],
-          'descriptor': {'dimensions': [1, 4, 1, 3], 'dataType': 'int32'}
+          'descriptor': {shape: [1, 4, 1, 3], dataType: 'int32'}
         }
       }
     }
@@ -229,7 +229,7 @@ const argMinMaxTests = [
             -82.78385925292969, -96.50904083251953,  39.76872634887695,
             42.1504020690918,   82.66864013671875,   85.45269012451172
           ],
-          'descriptor': {'dimensions': [2, 1, 4, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 1, 4, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -240,7 +240,7 @@ const argMinMaxTests = [
       'expectedOutputs': {
         'argminOutput': {
           'data': [2, 2, 0, 0, 0, 0],
-          'descriptor': {'dimensions': [2, 1, 3], 'dataType': 'int32'}
+          'descriptor': {shape: [2, 1, 3], dataType: 'int32'}
         }
       }
     }
@@ -260,7 +260,7 @@ const argMinMaxTests = [
             -82.78385925292969, -96.50904083251953,  39.76872634887695,
             42.1504020690918,   82.66864013671875,   85.45269012451172
           ],
-          'descriptor': {'dimensions': [2, 1, 4, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 1, 4, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -274,7 +274,7 @@ const argMinMaxTests = [
       'expectedOutputs': {
         'argminOutput': {
           'data': [1, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0],
-          'descriptor': {'dimensions': [1, 1, 4, 3], 'dataType': 'int32'}
+          'descriptor': {shape: [1, 1, 4, 3], dataType: 'int32'}
         }
       }
     }
@@ -294,7 +294,7 @@ const argMinMaxTests = [
             -82.78385925292969, -96.50904083251953,  39.76872634887695,
             42.1504020690918,   82.66864013671875,   85.45269012451172
           ],
-          'descriptor': {'dimensions': [2, 1, 4, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 1, 4, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -308,7 +308,7 @@ const argMinMaxTests = [
       'expectedOutputs': {
         'argminOutput': {
           'data': [1, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0],
-          'descriptor': {'dimensions': [1, 4, 3], 'dataType': 'int32'}
+          'descriptor': {shape: [1, 4, 3], dataType: 'int32'}
         }
       }
     }
@@ -330,7 +330,7 @@ const argMinMaxTests = [
             -41.70176696777344, 73.8133773803711,   88.46114349365234,
             -84.94000244140625, -61.48894119262695, -98.3387451171875
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'},
+          'descriptor': {shape: [24], dataType: 'float32'},
           'constant': true
         }
       },
@@ -341,7 +341,7 @@ const argMinMaxTests = [
       }],
       'expectedOutputs': {
         'argmaxOutput':
-            {'data': [3], 'descriptor': {'dimensions': [], 'dataType': 'int32'}}
+            {'data': [3], 'descriptor': {shape: [], dataType: 'int32'}}
       }
     }
   },
@@ -360,7 +360,7 @@ const argMinMaxTests = [
             -41.70176696777344, 73.8133773803711,   88.46114349365234,
             -84.94000244140625, -61.48894119262695, -98.3387451171875
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'}
+          'descriptor': {shape: [24], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -370,7 +370,7 @@ const argMinMaxTests = [
       }],
       'expectedOutputs': {
         'argmaxOutput':
-            {'data': [3], 'descriptor': {'dimensions': [], 'dataType': 'int32'}}
+            {'data': [3], 'descriptor': {shape: [], dataType: 'int32'}}
       }
     }
   },
@@ -389,7 +389,7 @@ const argMinMaxTests = [
             -41.70176696777344, 73.8133773803711,   88.46114349365234,
             -84.94000244140625, -61.48894119262695, -98.3387451171875
           ],
-          'descriptor': {'dimensions': [4, 6], 'dataType': 'float32'}
+          'descriptor': {shape: [4, 6], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -400,7 +400,7 @@ const argMinMaxTests = [
       'expectedOutputs': {
         'argmaxOutput': {
           'data': [1, 1, 1, 0, 0, 0],
-          'descriptor': {'dimensions': [6], 'dataType': 'int32'}
+          'descriptor': {shape: [6], dataType: 'int32'}
         }
       }
     }
@@ -420,7 +420,7 @@ const argMinMaxTests = [
             -41.70176696777344, 73.8133773803711,   88.46114349365234,
             -84.94000244140625, -61.48894119262695, -98.3387451171875
           ],
-          'descriptor': {'dimensions': [2, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 4], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -431,7 +431,7 @@ const argMinMaxTests = [
       'expectedOutputs': {
         'argmaxOutput': {
           'data': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-          'descriptor': {'dimensions': [3, 4], 'dataType': 'int32'}
+          'descriptor': {shape: [3, 4], dataType: 'int32'}
         }
       }
     }
@@ -451,7 +451,7 @@ const argMinMaxTests = [
             -41.70176696777344, 73.8133773803711,   88.46114349365234,
             -84.94000244140625, -61.48894119262695, -98.3387451171875
           ],
-          'descriptor': {'dimensions': [2, 1, 4, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 1, 4, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -462,7 +462,7 @@ const argMinMaxTests = [
       'expectedOutputs': {
         'argmaxOutput': {
           'data': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-          'descriptor': {'dimensions': [1, 4, 3], 'dataType': 'int32'}
+          'descriptor': {shape: [1, 4, 3], dataType: 'int32'}
         }
       }
     }
@@ -482,7 +482,7 @@ const argMinMaxTests = [
             -41.70176696777344, 73.8133773803711,   88.46114349365234,
             -84.94000244140625, -61.48894119262695, -98.3387451171875
           ],
-          'descriptor': {'dimensions': [2, 1, 4, 1, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 1, 4, 1, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -493,7 +493,7 @@ const argMinMaxTests = [
       'expectedOutputs': {
         'argmaxOutput': {
           'data': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-          'descriptor': {'dimensions': [1, 4, 1, 3], 'dataType': 'int32'}
+          'descriptor': {shape: [1, 4, 1, 3], dataType: 'int32'}
         }
       }
     }
@@ -513,7 +513,7 @@ const argMinMaxTests = [
             -41.70176696777344, 73.8133773803711,   88.46114349365234,
             -84.94000244140625, -61.48894119262695, -98.3387451171875
           ],
-          'descriptor': {'dimensions': [2, 1, 4, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 1, 4, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -524,7 +524,7 @@ const argMinMaxTests = [
       'expectedOutputs': {
         'argmaxOutput': {
           'data': [1, 2, 2, 1, 2, 2],
-          'descriptor': {'dimensions': [2, 1, 3], 'dataType': 'int32'}
+          'descriptor': {shape: [2, 1, 3], dataType: 'int32'}
         }
       }
     }
@@ -544,7 +544,7 @@ const argMinMaxTests = [
             -41.70176696777344, 73.8133773803711,   88.46114349365234,
             -84.94000244140625, -61.48894119262695, -98.3387451171875
           ],
-          'descriptor': {'dimensions': [2, 1, 4, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 1, 4, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -558,7 +558,7 @@ const argMinMaxTests = [
       'expectedOutputs': {
         'argmaxOutput': {
           'data': [2, 0, 2, 1, 2, 0, 2, 1],
-          'descriptor': {'dimensions': [2, 1, 4, 1], 'dataType': 'int32'}
+          'descriptor': {shape: [2, 1, 4, 1], dataType: 'int32'}
         }
       }
     }
@@ -578,7 +578,7 @@ const argMinMaxTests = [
             -41.70176696777344, 73.8133773803711,   88.46114349365234,
             -84.94000244140625, -61.48894119262695, -98.3387451171875
           ],
-          'descriptor': {'dimensions': [2, 1, 4, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 1, 4, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -592,7 +592,7 @@ const argMinMaxTests = [
       'expectedOutputs': {
         'argmaxOutput': {
           'data': [2, 0, 2, 1, 2, 0, 2, 1],
-          'descriptor': {'dimensions': [2, 1, 4], 'dataType': 'int32'}
+          'descriptor': {shape: [2, 1, 4], dataType: 'int32'}
         }
       }
     }

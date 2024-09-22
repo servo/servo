@@ -5,6 +5,9 @@
   background: lightgray;
   block-size: 20px;
 }
+.max-height > .spacer:first-child {
+  margin-top: 80px; /* avoid overlap */
+}
 
 .target {
   font: 100px/1 Ahem;
@@ -17,7 +20,8 @@
 }
 
 .max-height > .target {
-  height: 10px;
+  margin-top: -70px;
+  height: 80px;
 }
 </style>
 

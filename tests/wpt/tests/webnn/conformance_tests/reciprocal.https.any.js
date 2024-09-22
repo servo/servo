@@ -28,7 +28,7 @@ const reciprocalTests = [
       'inputs': {
         'reciprocalInput': {
           'data': [-9.36349105834961],
-          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+          'descriptor': {shape: [], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -39,7 +39,7 @@ const reciprocalTests = [
       'expectedOutputs': {
         'reciprocalOutput': {
           'data': [-0.10679777711629868],
-          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+          'descriptor': {shape: [], dataType: 'float32'}
         }
       }
     }
@@ -59,7 +59,7 @@ const reciprocalTests = [
             8.246277809143066,   -0.2039169818162918, -9.039937019348145,
             9.942809104919434,   -9.540112495422363,  -0.08022662252187729
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'},
+          'descriptor': {shape: [24], dataType: 'float32'},
           'constant': true
         }
       },
@@ -80,7 +80,7 @@ const reciprocalTests = [
             0.12126683443784714, -4.903956413269043,   -0.11062023788690567,
             0.10057520121335983, -0.10482056438922882, -12.464690208435059
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'}
+          'descriptor': {shape: [24], dataType: 'float32'}
         }
       }
     }
@@ -100,7 +100,7 @@ const reciprocalTests = [
             8.246277809143066,   -0.2039169818162918, -9.039937019348145,
             9.942809104919434,   -9.540112495422363,  -0.08022662252187729
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'}
+          'descriptor': {shape: [24], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -120,7 +120,7 @@ const reciprocalTests = [
             0.12126683443784714, -4.903956413269043,   -0.11062023788690567,
             0.10057520121335983, -0.10482056438922882, -12.464690208435059
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'}
+          'descriptor': {shape: [24], dataType: 'float32'}
         }
       }
     }
@@ -140,7 +140,7 @@ const reciprocalTests = [
             8.246277809143066,   -0.2039169818162918, -9.039937019348145,
             9.942809104919434,   -9.540112495422363,  -0.08022662252187729
           ],
-          'descriptor': {'dimensions': [4, 6], 'dataType': 'float32'}
+          'descriptor': {shape: [4, 6], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -160,7 +160,7 @@ const reciprocalTests = [
             0.12126683443784714, -4.903956413269043,   -0.11062023788690567,
             0.10057520121335983, -0.10482056438922882, -12.464690208435059
           ],
-          'descriptor': {'dimensions': [4, 6], 'dataType': 'float32'}
+          'descriptor': {shape: [4, 6], dataType: 'float32'}
         }
       }
     }
@@ -180,7 +180,7 @@ const reciprocalTests = [
             8.246277809143066,   -0.2039169818162918, -9.039937019348145,
             9.942809104919434,   -9.540112495422363,  -0.08022662252187729
           ],
-          'descriptor': {'dimensions': [2, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 4], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -200,7 +200,7 @@ const reciprocalTests = [
             0.12126683443784714, -4.903956413269043,   -0.11062023788690567,
             0.10057520121335983, -0.10482056438922882, -12.464690208435059
           ],
-          'descriptor': {'dimensions': [2, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 4], dataType: 'float32'}
         }
       }
     }
@@ -220,7 +220,7 @@ const reciprocalTests = [
             8.246277809143066,   -0.2039169818162918, -9.039937019348145,
             9.942809104919434,   -9.540112495422363,  -0.08022662252187729
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -240,7 +240,7 @@ const reciprocalTests = [
             0.12126683443784714, -4.903956413269043,   -0.11062023788690567,
             0.10057520121335983, -0.10482056438922882, -12.464690208435059
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       }
     }
@@ -260,7 +260,7 @@ const reciprocalTests = [
             8.246277809143066,   -0.2039169818162918, -9.039937019348145,
             9.942809104919434,   -9.540112495422363,  -0.08022662252187729
           ],
-          'descriptor': {'dimensions': [2, 1, 4, 1, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 1, 4, 1, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -280,7 +280,7 @@ const reciprocalTests = [
             0.12126683443784714, -4.903956413269043,   -0.11062023788690567,
             0.10057520121335983, -0.10482056438922882, -12.464690208435059
           ],
-          'descriptor': {'dimensions': [2, 1, 4, 1, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 1, 4, 1, 3], dataType: 'float32'}
         }
       }
     }

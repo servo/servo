@@ -24,12 +24,12 @@ const signedIntegerTypes = ['int32', 'int64', 'int8'];
 
 const unsignedLongType = 'unsigned long';
 
-const dimensions0D = [];
-const dimensions1D = [2];
-const dimensions2D = [2, 3];
-const dimensions3D = [2, 3, 4];
-const dimensions4D = [2, 3, 4, 5];
-const dimensions5D = [2, 3, 4, 5, 6];
+const shape0D = [];
+const shape1D = [2];
+const shape2D = [2, 3];
+const shape3D = [2, 3, 4];
+const shape4D = [2, 3, 4, 5];
+const shape5D = [2, 3, 4, 5, 6];
 
 const adjustOffsetsArray = [
   // Decrease 1
@@ -40,14 +40,8 @@ const adjustOffsetsArray = [
 
 // TODO
 // Add more 5+ dimensions
-const allWebNNDimensionsArray = [
-  dimensions0D,
-  dimensions1D,
-  dimensions2D,
-  dimensions3D,
-  dimensions4D,
-  dimensions5D
-];
+const allWebNNShapesArray =
+    [shape0D, shape1D, shape2D, shape3D, shape4D, shape5D];
 
 const notUnsignedLongAxisArray = [
   // String
@@ -64,15 +58,15 @@ const notUnsignedLongAxisArray = [
   new Date("2024-01-01"),
 ];
 
-function getRank(inputDimensions) {
-  return inputDimensions.length;
+function getRank(inputShape) {
+  return inputShape.length;
 }
 
-function getAxisArray(inputDimensions) {
-  return Array.from({length: inputDimensions.length}, (_, i) => i);
+function getAxisArray(inputShape) {
+  return Array.from({length: inputShape.length}, (_, i) => i);
 }
 
-function getAxesArrayContainSameValues(inputDimensions) {
+function getAxesArrayContainSameValues(inputShape) {
   // TODO
   // Currently this function returns an array containing each element which all have the same value.
   // For example axes: [0, 1, 2] for 3D input tensor
@@ -117,9 +111,9 @@ function getAxesArrayContainSameValues(inputDimensions) {
   //   [2, 2, 2]
   // ]
   const axesArrayContainSameValues = [];
-  const length = inputDimensions.length;
+  const length = inputShape.length;
   if (length >= 2) {
-    const validAxesArrayFull = getAxisArray(inputDimensions);
+    const validAxesArrayFull = getAxisArray(inputShape);
     for (let index = 0; index < length; index++) {
       axesArrayContainSameValues.push(new Array(2).fill(validAxesArrayFull[index]));
       if (length > 2) {
@@ -130,9 +124,9 @@ function getAxesArrayContainSameValues(inputDimensions) {
   return axesArrayContainSameValues;
 }
 
-function generateUnbroadcastableDimensionsArray(dimensions) {
-  // Currently this function returns an array of some unbroadcastable dimensions.
-  // for example given dimensions [2, 3, 4]
+function generateUnbroadcastableShapes(shape) {
+  // Currently this function returns an array of some unbroadcastable shapes.
+  // for example given the input shape [2, 3, 4]
   // this function returns
   // [
   //   [3, 3, 4],
@@ -149,34 +143,34 @@ function generateUnbroadcastableDimensionsArray(dimensions) {
   //   [1, 1, 1, 3],
   //   [1, 1, 1, 5],
   // ]
-  if (dimensions.every(v => v === 1)) {
-    throw new Error(`[${dimensions}] always can be broadcasted`);
+  if (shape.every(dimension => dimension === 1)) {
+    throw new Error(`[${shape}] always can be broadcasted`);
   }
-  const resultDimensions = [];
-  const length = dimensions.length;
-  if (!dimensions.slice(0, length - 1).every(v => v === 1)) {
+  const resultShapes = [];
+  const length = shape.length;
+  if (!shape.slice(0, length - 1).every(dimension => dimension === 1)) {
     for (let i = 0; i < length; i++) {
-      if (dimensions[i] !== 1) {
+      if (shape[i] !== 1) {
         for (let offset of [-1, 1]) {
-          const dimensionsB = dimensions.slice();
-          dimensionsB[i] += offset;
-          if (dimensionsB[i] !== 1) {
-            resultDimensions.push(dimensionsB);
+          const shapeB = shape.slice();
+          shapeB[i] += offset;
+          if (shapeB[i] !== 1) {
+            resultShapes.push(shapeB);
           }
         }
       }
     }
   }
-  const lastDimensionSize = dimensions[length - 1];
+  const lastDimensionSize = shape[length - 1];
   if (lastDimensionSize !== 1) {
     for (let j = 0; j <= length; j++) {
       if (lastDimensionSize > 2) {
-        resultDimensions.push(Array(j).fill(1).concat([lastDimensionSize - 1]));
+        resultShapes.push(Array(j).fill(1).concat([lastDimensionSize - 1]));
       }
-      resultDimensions.push(Array(j).fill(1).concat([lastDimensionSize + 1]));
+      resultShapes.push(Array(j).fill(1).concat([lastDimensionSize + 1]));
     }
   }
-  return resultDimensions;
+  return resultShapes;
 }
 
 function generateOutOfRangeValuesArray(type) {
@@ -229,15 +223,17 @@ function validateTwoInputsBroadcastable(operationName, label) {
         assert_throws_js(
             TypeError,
             () => builder.input(
-                `inputA${++inputAIndex}`, {dataType, dimensions1D}));
+                `inputA${++inputAIndex}`, {dataType, shape: shape1D}));
         continue;
       }
-      for (let dimensions of allWebNNDimensionsArray) {
-        if (dimensions.length > 0) {
-          const inputA = builder.input(`inputA${++inputAIndex}`, {dataType, dimensions});
-          const unbroadcastableDimensionsArray = generateUnbroadcastableDimensionsArray(dimensions);
-          for (let unbroadcastableDimensions of unbroadcastableDimensionsArray) {
-            const inputB = builder.input(`inputB${++inputBIndex}`, {dataType, dimensions: unbroadcastableDimensions});
+      for (let shape of allWebNNShapesArray) {
+        if (shape.length > 0) {
+          const inputA =
+              builder.input(`inputA${++inputAIndex}`, {dataType, shape});
+          const unbroadcastableShapes = generateUnbroadcastableShapes(shape);
+          for (let shape of unbroadcastableShapes) {
+            const inputB =
+                builder.input(`inputB${++inputBIndex}`, {dataType, shape});
             assert_equals(typeof builder[operationName], 'function');
             const options = {label};
             const regrexp = new RegExp('\\[' + label + '\\]');
@@ -272,22 +268,24 @@ function validateTwoInputsOfSameDataType(operationName, label) {
           assert_throws_js(
               TypeError,
               () => builder.input(
-                  `inputA${++inputAIndex}`, {dataType, dimensions1D}));
+                  `inputA${++inputAIndex}`, {dataType, shape: shape1D}));
           continue;
         }
-        for (let dimensions of allWebNNDimensionsArray) {
-          const inputA = builder.input(`inputA${++inputAIndex}`, {dataType, dimensions});
+        for (let shape of allWebNNShapesArray) {
+          const inputA =
+              builder.input(`inputA${++inputAIndex}`, {dataType, shape});
           for (let dataTypeB of allWebNNOperandDataTypes) {
             if (!context.opSupportLimits().input.dataTypes.includes(
                     dataTypeB)) {
               assert_throws_js(
                   TypeError,
                   () => builder.input(
-                      `inputB${++inputBIndex}`, {dataTypeB, dimensions1D}));
+                      `inputB${++inputBIndex}`, {dataTypeB, shape1D}));
               continue;
             }
             if (dataType !== dataTypeB) {
-              const inputB = builder.input(`inputB${++inputBIndex}`, {dataType: dataTypeB, dimensions});
+              const inputB = builder.input(
+                  `inputB${++inputBIndex}`, {dataType: dataTypeB, shape});
               const options = {label};
               const regrexp = new RegExp('\\[' + label + '\\]');
               assert_equals(typeof builder[subOperationName], 'function');
@@ -330,14 +328,14 @@ function validateOptionsAxes(operationName) {
           assert_throws_js(
               TypeError,
               () => builder.input(
-                  `inputA${++inputAIndex}`, {dataType, dimensions1D}));
+                  `inputA${++inputAIndex}`, {dataType, shape: shape1D}));
           continue;
         }
-        for (let dimensions of allWebNNDimensionsArray) {
-          const rank = getRank(dimensions);
+        for (let shape of allWebNNShapesArray) {
+          const rank = getRank(shape);
           if (rank >= 1) {
             const input =
-                builder.input(`input${++inputIndex}`, {dataType, dimensions});
+                builder.input(`input${++inputIndex}`, {dataType, shape});
             for (let invalidAxis of invalidAxisArray) {
               assert_equals(typeof builder[subOperationName], 'function');
               assert_throws_js(
@@ -367,14 +365,14 @@ function validateOptionsAxes(operationName) {
           assert_throws_js(
               TypeError,
               () => builder.input(
-                  `inputA${++inputAIndex}`, {dataType, dimensions1D}));
+                  `inputA${++inputAIndex}`, {dataType, shape: shape1D}));
           continue;
         }
-        for (let dimensions of allWebNNDimensionsArray) {
-          const rank = getRank(dimensions);
+        for (let shape of allWebNNShapesArray) {
+          const rank = getRank(shape);
           if (rank >= 1) {
             const input =
-                builder.input(`input${++inputIndex}`, {dataType, dimensions});
+                builder.input(`input${++inputIndex}`, {dataType, shape});
             assert_equals(typeof builder[subOperationName], 'function');
             assert_throws_js(
                 TypeError,
@@ -395,16 +393,16 @@ function validateOptionsAxes(operationName) {
           assert_throws_js(
               TypeError,
               () => builder.input(
-                  `inputA${++inputAIndex}`, {dataType, dimensions1D}));
+                  `inputA${++inputAIndex}`, {dataType, shape: shape1D}));
           continue;
         }
-        for (let dimensions of allWebNNDimensionsArray) {
-          const rank = getRank(dimensions);
+        for (let shape of allWebNNShapesArray) {
+          const rank = getRank(shape);
           if (rank >= 2) {
             const input =
-                builder.input(`input${++inputIndex}`, {dataType, dimensions});
+                builder.input(`input${++inputIndex}`, {dataType, shape});
             const axesArrayContainSameValues =
-                getAxesArrayContainSameValues(dimensions);
+                getAxesArrayContainSameValues(shape);
             for (let axes of axesArrayContainSameValues) {
               assert_equals(typeof builder[subOperationName], 'function');
               assert_throws_js(
@@ -433,15 +431,15 @@ function validateUnaryOperation(operationName, supportedDataTypes, label) {
         assert_throws_js(
             TypeError,
             () => builder.input(
-                `inputA${++inputAIndex}`, {dataType, dimensions1D}));
+                `inputA${++inputAIndex}`, {dataType, shape: shape1D}));
         continue;
       }
-      for (let dimensions of allWebNNDimensionsArray) {
-        const input = builder.input(`input`, {dataType, dimensions});
+      for (let shape of allWebNNShapesArray) {
+        const input = builder.input(`input`, {dataType, shape});
         assert_equals(typeof builder[operationName], 'function');
         const output = builder[operationName](input);
         assert_equals(output.dataType(), dataType);
-        assert_array_equals(output.shape(), dimensions);
+        assert_array_equals(output.shape(), shape);
       }
     }
   }, `[${operationName}] Test building an unary operator with supported type.`);
@@ -455,11 +453,11 @@ function validateUnaryOperation(operationName, supportedDataTypes, label) {
         assert_throws_js(
             TypeError,
             () => builder.input(
-                `inputA${++inputAIndex}`, {dataType, dimensions1D}));
+                `inputA${++inputAIndex}`, {dataType, shape: shape1D}));
         continue;
       }
-      for (let dimensions of allWebNNDimensionsArray) {
-        const input = builder.input(`input`, {dataType, dimensions});
+      for (let shape of allWebNNShapesArray) {
+        const input = builder.input(`input`, {dataType, shape});
         assert_equals(typeof builder[operationName], 'function');
         const options = {label};
         const regrexp = new RegExp('\\[' + label + '\\]');
@@ -483,11 +481,11 @@ function validateSingleInputOperation(operationName, label) {
       if (!context.opSupportLimits().input.dataTypes.includes(dataType)) {
         continue;
       }
-      for (let dimensions of allWebNNDimensionsArray) {
-        const input = builder.input(`input`, {dataType, dimensions});
+      for (let shape of allWebNNShapesArray) {
+        const input = builder.input(`input`, {dataType, shape});
         const output = builder[operationName](input);
         assert_equals(output.dataType(), dataType);
-        assert_array_equals(output.shape(), dimensions);
+        assert_array_equals(output.shape(), shape);
       }
     }
   }, `[${operationName}] Test building the operator with supported data type.`);
@@ -503,11 +501,11 @@ function validateSingleInputOperation(operationName, label) {
         assert_throws_js(
             TypeError,
             () => builder.input(
-                `inputA${++inputAIndex}`, {dataType, dimensions1D}));
+                `inputA${++inputAIndex}`, {dataType, shape: shape1D}));
         continue;
       }
-      for (let dimensions of allWebNNDimensionsArray) {
-        const input = builder.input(`input`, {dataType, dimensions});
+      for (let shape of allWebNNShapesArray) {
+        const input = builder.input(`input`, {dataType, shape});
         assert_equals(typeof builder[operationName], 'function');
         const options = {label};
         const regrexp = new RegExp('\\[' + label + '\\]');
@@ -527,7 +525,7 @@ function validateSingleInputOperation(operationName, label) {
  */
 function validateInputFromAnotherBuilder(operatorName, operatorDescriptor = {
   dataType: 'float32',
-  dimensions: [2, 2]
+  shape: [2, 2]
 }) {
   multi_builder_test(async (t, builder, otherBuilder) => {
     const inputFromOtherBuilder =
@@ -545,7 +543,7 @@ function validateInputFromAnotherBuilder(operatorName, operatorDescriptor = {
  * @param {String} operationName
  */
 function validateTwoInputsFromMultipleBuilders(operatorName) {
-  const opDescriptor = {dataType: 'float32', dimensions: [2, 2]};
+  const opDescriptor = {dataType: 'float32', shape: [2, 2]};
 
   multi_builder_test(async (t, builder, otherBuilder) => {
     const inputFromOtherBuilder = otherBuilder.input('other', opDescriptor);

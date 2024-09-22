@@ -31,15 +31,37 @@ const directory_promise = (async () => {
   return entries;
 })();
 
+async function cleanupDirectory(dir, ignoreRejections) {
+  // Get a snapshot of the entries.
+  const entries = await Array.fromAsync(dir.values());
+
+  // Call removeEntry on all of them.
+  const remove_entry_promises = entries.map(
+      entry =>
+          dir.removeEntry(entry.name, {recursive: entry.kind === 'directory'}));
+
+  // Wait for them all to resolve or reject.
+  if (ignoreRejections) {
+    await Promise.allSettled(remove_entry_promises);
+  } else {
+    await Promise.all(remove_entry_promises);
+  }
+}
+
 function directory_test(func, description) {
   promise_test(async t => {
     const directory = await directory_promise;
-    // To be resilient against tests not cleaning up properly, cleanup before
-    // every test.
-    for await (let entry of directory.values()) {
-      await directory.removeEntry(
-          entry.name, {recursive: entry.kind === 'directory'});
-    }
+
+    // To be extra resilient against bad tests, cleanup before every test.
+    await cleanupDirectory(directory, /*ignoreRejections=*/ false);
+
+    // Cleanup after every test.
+    t.add_cleanup(async () => {
+      // Ignore any rejections since other cleanup code may have deleted them
+      // before we could.
+      await cleanupDirectory(directory, /*ignoreRejections=*/ true);
+    });
+
     await func(t, directory);
   }, description);
 }

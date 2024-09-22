@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="help" href="https://www.w3.org/TR/css-color-4/#interpolation">
+<link rel="help" href="ttps://www.w3.org/TR/css-easing-1/#...">
+<link rel="match" href="background-color-animation-custom-timing-function-reverse-ref.html">
+<style>
+  @keyframes bgcolor {
+    0% {
+      background-color: rgb(90, 90, 90);
+    }
+
+    25% {
+      background-color: rgb(89, 89, 89);
+    }
+
+    50% {
+      background-color: rgb(90, 90, 90);
+    }
+
+    75% {
+      background-color: rgb(80, 80, 80);
+      animation-timing-function: cubic-bezier(0, -9, 1, -9);
+      /* Test that the correct keyframe's timing function is being used. */
+    }
+
+    100% {
+      background-color: rgb(90, 90, 90);
+    }
+  }
+
+  .background {
+    width: 200px;
+    height: 200px;
+    animation: bgcolor 10000000s -8717082s
+      /* halfway between the second to last and last keyframes.*/
+    ;
+  }
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+
+<body>
+  <div class="background"></div>
+
+  <script>
+    document.getAnimations()[0].ready.then(() => {
+      waitForAnimationFrames(3).then(takeScreenshot);
+    });
+  </script>
+</body>
+
+</html>

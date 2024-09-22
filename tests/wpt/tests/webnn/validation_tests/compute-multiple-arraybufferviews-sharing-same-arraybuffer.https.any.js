@@ -9,8 +9,8 @@
 // https://issues.chromium.org/issues/332002364
 promise_test(async t => {
   const builder = new MLGraphBuilder(context);
-  const a = builder.input('a', {dataType: 'float32', dimensions: [2]});
-  const b = builder.input('b', {dataType: 'float32', dimensions: [2]});
+  const a = builder.input('a', {dataType: 'float32', shape: [2]});
+  const b = builder.input('b', {dataType: 'float32', shape: [2]});
   const c = builder.add(a, b);
   const graph = await builder.build({c});
   const arraybuffer = new ArrayBuffer(100);
@@ -24,7 +24,7 @@ promise_test(async t => {
 
 promise_test(async t => {
   const builder = new MLGraphBuilder(context);
-  const a = builder.input('a', {dataType: 'float32', dimensions: [2]});
+  const a = builder.input('a', {dataType: 'float32', shape: [2]});
   const [b, c] = builder.split(a, 2);
   const graph = await builder.build({b, c});
   const aBuffer = new Float32Array(2);
@@ -38,7 +38,7 @@ promise_test(async t => {
 
 promise_test(async t => {
   const builder = new MLGraphBuilder(context);
-  const a = builder.input('a', {dataType: 'float32', dimensions: [2]});
+  const a = builder.input('a', {dataType: 'float32', shape: [2]});
   const b = builder.relu(a);
   const graph = await builder.build({b});
   const arraybuffer = new ArrayBuffer(100);
@@ -50,7 +50,7 @@ promise_test(async t => {
 
 promise_test(async t => {
   const builder = new MLGraphBuilder(context);
-  const a = builder.input('a', {dataType: 'float32', dimensions: [2]});
+  const a = builder.input('a', {dataType: 'float32', shape: [2]});
   const b = builder.relu(a);
   const graph = await builder.build({b});
   const buffer = new Float32Array(2);

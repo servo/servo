@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<title>Applied opacity should not be observable via getComputedStyle</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+    body {
+        margin: 0;
+    }
+    div {
+        position: absolute;
+        width: 100px;
+        height: 100px;
+        background: green;
+    }
+
+    .parent {
+        view-transition-name: parent;
+        opacity: 0.4;
+    }
+
+    .child {
+        view-transition-name: child;
+        view-transition-group: parent;
+        top: 50px;
+        left: 50px;
+    }
+</style>
+<body>
+    <div class="parent">
+        <div class="child"></div>
+    </div>
+    <script>
+        promise_test(async t => {
+            const assert_opacity = label => {
+                assert_equals(getComputedStyle(parent).opacity, "0.4", label);
+            };
+            const parent = document.querySelector(".parent");
+            assert_opacity("before transition");
+            const transition = document.startViewTransition(() => {
+                assert_opacity("in update callback");
+            });
+            await transition.ready;
+            assert_opacity("when ready");
+            await transition.finished;
+            assert_opacity("when finished");
+        });
+    </script>
+</body>

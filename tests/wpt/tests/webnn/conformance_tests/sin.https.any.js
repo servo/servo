@@ -28,7 +28,7 @@ const sinTests = [
       'inputs': {
         'sinInput': {
           'data': [79.78058624267578],
-          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+          'descriptor': {shape: [], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -39,7 +39,7 @@ const sinTests = [
       'expectedOutputs': {
         'sinOutput': {
           'data': [-0.946033775806427],
-          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+          'descriptor': {shape: [], dataType: 'float32'}
         }
       }
     }
@@ -59,7 +59,7 @@ const sinTests = [
             31.016063690185547, -94.88304901123047,  -84.58417510986328,
             44.8487434387207,   -19.000272750854492, -48.03827667236328
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'},
+          'descriptor': {shape: [24], dataType: 'float32'},
           'constant': true
         }
       },
@@ -80,7 +80,7 @@ const sinTests = [
             -0.38929200172424316, -0.59339439868927,    -0.23656263947486877,
             0.7620325684547424,   -0.15014687180519104, 0.7921885848045349
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'}
+          'descriptor': {shape: [24], dataType: 'float32'}
         }
       }
     }
@@ -100,7 +100,7 @@ const sinTests = [
             31.016063690185547, -94.88304901123047,  -84.58417510986328,
             44.8487434387207,   -19.000272750854492, -48.03827667236328
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'}
+          'descriptor': {shape: [24], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -120,7 +120,7 @@ const sinTests = [
             -0.38929200172424316, -0.59339439868927,    -0.23656263947486877,
             0.7620325684547424,   -0.15014687180519104, 0.7921885848045349
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'}
+          'descriptor': {shape: [24], dataType: 'float32'}
         }
       }
     }
@@ -140,7 +140,7 @@ const sinTests = [
             31.016063690185547, -94.88304901123047,  -84.58417510986328,
             44.8487434387207,   -19.000272750854492, -48.03827667236328
           ],
-          'descriptor': {'dimensions': [4, 6], 'dataType': 'float32'}
+          'descriptor': {shape: [4, 6], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -160,7 +160,7 @@ const sinTests = [
             -0.38929200172424316, -0.59339439868927,    -0.23656263947486877,
             0.7620325684547424,   -0.15014687180519104, 0.7921885848045349
           ],
-          'descriptor': {'dimensions': [4, 6], 'dataType': 'float32'}
+          'descriptor': {shape: [4, 6], dataType: 'float32'}
         }
       }
     }
@@ -180,7 +180,7 @@ const sinTests = [
             31.016063690185547, -94.88304901123047,  -84.58417510986328,
             44.8487434387207,   -19.000272750854492, -48.03827667236328
           ],
-          'descriptor': {'dimensions': [2, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 4], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -200,7 +200,7 @@ const sinTests = [
             -0.38929200172424316, -0.59339439868927,    -0.23656263947486877,
             0.7620325684547424,   -0.15014687180519104, 0.7921885848045349
           ],
-          'descriptor': {'dimensions': [2, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 4], dataType: 'float32'}
         }
       }
     }
@@ -220,7 +220,7 @@ const sinTests = [
             31.016063690185547, -94.88304901123047,  -84.58417510986328,
             44.8487434387207,   -19.000272750854492, -48.03827667236328
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -240,7 +240,7 @@ const sinTests = [
             -0.38929200172424316, -0.59339439868927,    -0.23656263947486877,
             0.7620325684547424,   -0.15014687180519104, 0.7921885848045349
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       }
     }
@@ -260,7 +260,7 @@ const sinTests = [
             31.016063690185547, -94.88304901123047,  -84.58417510986328,
             44.8487434387207,   -19.000272750854492, -48.03827667236328
           ],
-          'descriptor': {'dimensions': [2, 1, 4, 1, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 1, 4, 1, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -280,7 +280,7 @@ const sinTests = [
             -0.38929200172424316, -0.59339439868927,    -0.23656263947486877,
             0.7620325684547424,   -0.15014687180519104, 0.7921885848045349
           ],
-          'descriptor': {'dimensions': [2, 1, 4, 1, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 1, 4, 1, 3], dataType: 'float32'}
         }
       }
     }

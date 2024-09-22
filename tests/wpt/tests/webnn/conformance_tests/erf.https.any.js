@@ -28,7 +28,7 @@ const erfTests = [
       'inputs': {
         'erfInput': {
           'data': [-0.004352752584964037],
-          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+          'descriptor': {shape: [], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -39,7 +39,7 @@ const erfTests = [
       'expectedOutputs': {
         'erfOutput': {
           'data': [-0.004911554511636496],
-          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+          'descriptor': {shape: [], dataType: 'float32'}
         }
       }
     }
@@ -59,7 +59,7 @@ const erfTests = [
             -0.8946002721786499, -0.3920256197452545, 0.6854220628738403,
             -0.6744900345802307, -0.439808189868927,  0.2709762454032898
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'},
+          'descriptor': {shape: [24], dataType: 'float32'},
           'constant': true
         }
       },
@@ -80,7 +80,7 @@ const erfTests = [
             -0.7941843867301941,  -0.4207003712654114,  0.6676210165023804,
             -0.6598520874977112,  -0.46604686975479126, 0.29844197630882263
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'}
+          'descriptor': {shape: [24], dataType: 'float32'}
         }
       }
     }
@@ -100,7 +100,7 @@ const erfTests = [
             -0.8946002721786499, -0.3920256197452545, 0.6854220628738403,
             -0.6744900345802307, -0.439808189868927,  0.2709762454032898
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'}
+          'descriptor': {shape: [24], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -120,7 +120,7 @@ const erfTests = [
             -0.7941843867301941,  -0.4207003712654114,  0.6676210165023804,
             -0.6598520874977112,  -0.46604686975479126, 0.29844197630882263
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'}
+          'descriptor': {shape: [24], dataType: 'float32'}
         }
       }
     }
@@ -140,7 +140,7 @@ const erfTests = [
             -0.8946002721786499, -0.3920256197452545, 0.6854220628738403,
             -0.6744900345802307, -0.439808189868927,  0.2709762454032898
           ],
-          'descriptor': {'dimensions': [4, 6], 'dataType': 'float32'}
+          'descriptor': {shape: [4, 6], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -160,7 +160,7 @@ const erfTests = [
             -0.7941843867301941,  -0.4207003712654114,  0.6676210165023804,
             -0.6598520874977112,  -0.46604686975479126, 0.29844197630882263
           ],
-          'descriptor': {'dimensions': [4, 6], 'dataType': 'float32'}
+          'descriptor': {shape: [4, 6], dataType: 'float32'}
         }
       }
     }
@@ -180,7 +180,7 @@ const erfTests = [
             -0.8946002721786499, -0.3920256197452545, 0.6854220628738403,
             -0.6744900345802307, -0.439808189868927,  0.2709762454032898
           ],
-          'descriptor': {'dimensions': [2, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 4], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -200,7 +200,7 @@ const erfTests = [
             -0.7941843867301941,  -0.4207003712654114,  0.6676210165023804,
             -0.6598520874977112,  -0.46604686975479126, 0.29844197630882263
           ],
-          'descriptor': {'dimensions': [2, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 4], dataType: 'float32'}
         }
       }
     }
@@ -220,7 +220,7 @@ const erfTests = [
             -0.8946002721786499, -0.3920256197452545, 0.6854220628738403,
             -0.6744900345802307, -0.439808189868927,  0.2709762454032898
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -240,7 +240,7 @@ const erfTests = [
             -0.7941843867301941,  -0.4207003712654114,  0.6676210165023804,
             -0.6598520874977112,  -0.46604686975479126, 0.29844197630882263
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       }
     }
@@ -260,7 +260,7 @@ const erfTests = [
             -0.8946002721786499, -0.3920256197452545, 0.6854220628738403,
             -0.6744900345802307, -0.439808189868927,  0.2709762454032898
           ],
-          'descriptor': {'dimensions': [2, 1, 4, 1, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 1, 4, 1, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -280,7 +280,7 @@ const erfTests = [
             -0.7941843867301941,  -0.4207003712654114,  0.6676210165023804,
             -0.6598520874977112,  -0.46604686975479126, 0.29844197630882263
           ],
-          'descriptor': {'dimensions': [2, 1, 4, 1, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 1, 4, 1, 3], dataType: 'float32'}
         }
       }
     }

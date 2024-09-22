@@ -16,8 +16,7 @@ validateSingleInputOperation('clamp', label);
 promise_test(async t => {
   const builder = new MLGraphBuilder(context);
   const options = {minValue: 1.0, maxValue: 3.0};
-  const input =
-      builder.input('input', {dataType: 'float32', dimensions: [1, 2, 3]});
+  const input = builder.input('input', {dataType: 'float32', shape: [1, 2, 3]});
   const output = builder.clamp(input, options);
   assert_equals(output.dataType(), 'float32');
   assert_array_equals(output.shape(), [1, 2, 3]);
@@ -27,7 +26,7 @@ promise_test(async t => {
   const builder = new MLGraphBuilder(context);
   const options = {minValue: 0, maxValue: 0};
   const input =
-      builder.input('input', {dataType: 'float32', dimensions: [1, 2, 3, 4]});
+      builder.input('input', {dataType: 'float32', shape: [1, 2, 3, 4]});
   const output = builder.clamp(input, options);
   assert_equals(output.dataType(), 'float32');
   assert_array_equals(output.shape(), [1, 2, 3, 4]);
@@ -40,8 +39,7 @@ promise_test(async t => {
     maxValue: 1.0,
     label: label,
   };
-  const input =
-      builder.input('input', {dataType: 'float32', dimensions: [1, 2, 3]});
+  const input = builder.input('input', {dataType: 'float32', shape: [1, 2, 3]});
   const regrexp = new RegExp('\\[' + label + '\\]');
   assert_throws_with_label(() => builder.clamp(input, options), regrexp);
 }, '[clamp] Throw if options.minValue > options.maxValue');
@@ -54,6 +52,6 @@ promise_test(async t => {
     minValue: -Infinity,
     label: label,
   };
-  const input = builder.input('input', {dataType: 'float32', dimensions: []});
+  const input = builder.input('input', {dataType: 'float32', shape: []});
   assert_throws_js(TypeError, () => builder.clamp(input, options));
 }, '[clamp] Throw if options.minValue is -Infinity');

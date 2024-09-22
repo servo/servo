@@ -29,7 +29,7 @@ const signTests = [
             -0.946033775806427, 0.9996118545532227, 0.21998752653598785,
             -0.22639396786689758
           ],
-          'descriptor': {'dimensions': [4], 'dataType': 'float32'},
+          'descriptor': {shape: [4], dataType: 'float32'},
           'constant': true
         }
       },
@@ -41,7 +41,7 @@ const signTests = [
       'expectedOutputs': {
         'signOutput': {
           'data': [-1, 1, 1, -1],
-          'descriptor': {'dimensions': [4], 'dataType': 'float32'}
+          'descriptor': {shape: [4], dataType: 'float32'}
         }
       }
     }
@@ -55,7 +55,7 @@ const signTests = [
             -0.946033775806427, 0.9996118545532227, 0.21998752653598785,
             -0.22639396786689758
           ],
-          'descriptor': {'dimensions': [4], 'dataType': 'float16'}
+          'descriptor': {shape: [4], dataType: 'float16'}
         }
       },
       'operators': [{
@@ -66,7 +66,7 @@ const signTests = [
       'expectedOutputs': {
         'signOutput': {
           'data': [-1, 1, 1, -1],
-          'descriptor': {'dimensions': [4], 'dataType': 'float16'}
+          'descriptor': {shape: [4], dataType: 'float16'}
         }
       }
     }
@@ -79,7 +79,7 @@ const signTests = [
           'data': [
             -0.946033775806427, 0.9996118545532227, 0.21998752653598785, 0.0
           ],
-          'descriptor': {'dimensions': [4], 'dataType': 'float32'}
+          'descriptor': {shape: [4], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -90,7 +90,7 @@ const signTests = [
       'expectedOutputs': {
         'signOutput': {
           'data': [-1, 1, 1, 0],
-          'descriptor': {'dimensions': [4], 'dataType': 'float32'}
+          'descriptor': {shape: [4], dataType: 'float32'}
         }
       }
     }
@@ -101,7 +101,7 @@ const signTests = [
       'inputs': {
         'signInput': {
           'data': [-0.946033775806427, 0.9996118545532227, -Infinity, Infinity],
-          'descriptor': {'dimensions': [4], 'dataType': 'float32'}
+          'descriptor': {shape: [4], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -112,7 +112,7 @@ const signTests = [
       'expectedOutputs': {
         'signOutput': {
           'data': [-1, 1, -1, 1],
-          'descriptor': {'dimensions': [4], 'dataType': 'float32'}
+          'descriptor': {shape: [4], dataType: 'float32'}
         }
       }
     }
@@ -123,7 +123,7 @@ const signTests = [
       'inputs': {
         'signInput': {
           'data': [-1, 0, 1, 2],
-          'descriptor': {'dimensions': [2, 2], 'dataType': 'int32'}
+          'descriptor': {shape: [2, 2], dataType: 'int32'}
         }
       },
       'operators': [{
@@ -134,7 +134,7 @@ const signTests = [
       'expectedOutputs': {
         'signOutput': {
           'data': [-1, 0, 1, 1],
-          'descriptor': {'dimensions': [2, 2], 'dataType': 'int32'}
+          'descriptor': {shape: [2, 2], dataType: 'int32'}
         }
       }
     }
@@ -145,7 +145,7 @@ const signTests = [
       'inputs': {
         'signInput': {
           'data': [-1, 0, 1, 2, -2, -1, 0, 1],
-          'descriptor': {'dimensions': [2, 2, 2], 'dataType': 'int64'}
+          'descriptor': {shape: [2, 2, 2], dataType: 'int64'}
         }
       },
       'operators': [{
@@ -156,7 +156,7 @@ const signTests = [
       'expectedOutputs': {
         'signOutput': {
           'data': [-1, 0, 1, 1, -1, -1, 0, 1],
-          'descriptor': {'dimensions': [2, 2, 2], 'dataType': 'int64'}
+          'descriptor': {shape: [2, 2, 2], dataType: 'int64'}
         }
       }
     }
@@ -167,7 +167,7 @@ const signTests = [
       'inputs': {
         'signInput': {
           'data': [-1, 0, 1, 2, -2, -1, 0, 1],
-          'descriptor': {'dimensions': [1, 2, 2, 2], 'dataType': 'int8'}
+          'descriptor': {shape: [1, 2, 2, 2], dataType: 'int8'}
         }
       },
       'operators': [{
@@ -178,7 +178,7 @@ const signTests = [
       'expectedOutputs': {
         'signOutput': {
           'data': [-1, 0, 1, 1, -1, -1, 0, 1],
-          'descriptor': {'dimensions': [1, 2, 2, 2], 'dataType': 'int8'}
+          'descriptor': {shape: [1, 2, 2, 2], dataType: 'int8'}
         }
       }
     }

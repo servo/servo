@@ -99,8 +99,8 @@ promise_test(t => {
       // Attempt to open blob URL in cross partition iframe.
       await send(cross_site_iframe_uuid, does_blob_url_open_return_handle(blob_url, response_queue_uuid));
       const response_1 = await receive(response_queue_uuid);
-      if (response_1 !== navigation_handle_not_null) {
-        reject(`Blob URL wasn't opened in not-same-top-level-site iframe: ${response_1}`);
+      if (response_1 !== navigation_handle_null) {
+        reject(`Blob URL handle wasn't null in not-same-top-level-site iframe: ${response_1}`);
       }
       const noopener_response_1 = await receive(noopener_response_queue);
       if (noopener_response_1 !== opener_null_response) {

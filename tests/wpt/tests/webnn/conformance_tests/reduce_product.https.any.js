@@ -34,7 +34,7 @@ const reduceProductTests = [
       'inputs': {
         'reduceProductInput': {
           'data': [-68.75911712646484],
-          'descriptor': {'dimensions': [], 'dataType': 'float32'},
+          'descriptor': {shape: [], dataType: 'float32'},
           'constant': true
         }
       },
@@ -46,7 +46,7 @@ const reduceProductTests = [
       'expectedOutputs': {
         'reduceProductOutput': {
           'data': -68.75911712646484,
-          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+          'descriptor': {shape: [], dataType: 'float32'}
         }
       }
     }
@@ -57,7 +57,7 @@ const reduceProductTests = [
       'inputs': {
         'reduceProductInput': {
           'data': [-68.75911712646484],
-          'descriptor': {'dimensions': [], 'dataType': 'float32'},
+          'descriptor': {shape: [], dataType: 'float32'},
           'constant': true
         }
       },
@@ -70,7 +70,7 @@ const reduceProductTests = [
       'expectedOutputs': {
         'reduceProductOutput': {
           'data': -68.75911712646484,
-          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+          'descriptor': {shape: [], dataType: 'float32'}
         }
       }
     }
@@ -90,7 +90,7 @@ const reduceProductTests = [
             -85.19523620605469, -18.16986083984375,  64.83759307861328,
             -14.95883846282959, -74.50932312011719,  -11.319679260253906
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'},
+          'descriptor': {shape: [24], dataType: 'float32'},
           'constant': true
         }
       },
@@ -102,7 +102,7 @@ const reduceProductTests = [
       'expectedOutputs': {
         'reduceProductOutput': {
           'data': 1.5855958784642327e+37,
-          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+          'descriptor': {shape: [], dataType: 'float32'}
         }
       }
     }
@@ -122,7 +122,7 @@ const reduceProductTests = [
             -85.19523620605469, -18.16986083984375,  64.83759307861328,
             -14.95883846282959, -74.50932312011719,  -11.319679260253906
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'}
+          'descriptor': {shape: [24], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -133,7 +133,7 @@ const reduceProductTests = [
       'expectedOutputs': {
         'reduceProductOutput': {
           'data': 1.5855958784642327e+37,
-          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+          'descriptor': {shape: [], dataType: 'float32'}
         }
       }
     }
@@ -153,7 +153,7 @@ const reduceProductTests = [
             -85.19523620605469, -18.16986083984375,  64.83759307861328,
             -14.95883846282959, -74.50932312011719,  -11.319679260253906
           ],
-          'descriptor': {'dimensions': [4, 6], 'dataType': 'float32'}
+          'descriptor': {shape: [4, 6], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -164,7 +164,7 @@ const reduceProductTests = [
       'expectedOutputs': {
         'reduceProductOutput': {
           'data': 1.5855958784642327e+37,
-          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+          'descriptor': {shape: [], dataType: 'float32'}
         }
       }
     }
@@ -184,7 +184,7 @@ const reduceProductTests = [
             -85.19523620605469, -18.16986083984375,  64.83759307861328,
             -14.95883846282959, -74.50932312011719,  -11.319679260253906
           ],
-          'descriptor': {'dimensions': [2, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 4], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -195,7 +195,7 @@ const reduceProductTests = [
       'expectedOutputs': {
         'reduceProductOutput': {
           'data': 1.5855958784642327e+37,
-          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+          'descriptor': {shape: [], dataType: 'float32'}
         }
       }
     }
@@ -215,7 +215,7 @@ const reduceProductTests = [
             -85.19523620605469, -18.16986083984375,  64.83759307861328,
             -14.95883846282959, -74.50932312011719,  -11.319679260253906
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -226,7 +226,7 @@ const reduceProductTests = [
       'expectedOutputs': {
         'reduceProductOutput': {
           'data': 1.5855958784642327e+37,
-          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+          'descriptor': {shape: [], dataType: 'float32'}
         }
       }
     }
@@ -246,7 +246,7 @@ const reduceProductTests = [
             -85.19523620605469, -18.16986083984375,  64.83759307861328,
             -14.95883846282959, -74.50932312011719,  -11.319679260253906
           ],
-          'descriptor': {'dimensions': [2, 1, 4, 1, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 1, 4, 1, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -257,7 +257,7 @@ const reduceProductTests = [
       'expectedOutputs': {
         'reduceProductOutput': {
           'data': 1.5855958784642327e+37,
-          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+          'descriptor': {shape: [], dataType: 'float32'}
         }
       }
     }
@@ -277,7 +277,7 @@ const reduceProductTests = [
             -85.19523620605469, -18.16986083984375,  64.83759307861328,
             -14.95883846282959, -74.50932312011719,  -11.319679260253906
           ],
-          'descriptor': {'dimensions': [2, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 4], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -292,7 +292,7 @@ const reduceProductTests = [
             7519895, -1292816.375, 2441721.75, -110637.7734375, -7380313.5,
             -818030.5
           ],
-          'descriptor': {'dimensions': [2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3], dataType: 'float32'}
         }
       }
     }
@@ -312,7 +312,7 @@ const reduceProductTests = [
             -85.19523620605469, -18.16986083984375,  64.83759307861328,
             -14.95883846282959, -74.50932312011719,  -11.319679260253906
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -327,7 +327,7 @@ const reduceProductTests = [
             4227263.5, -446960.5625, 3811296.75, 1280298.5, -1343475.375,
             1280118.75
           ],
-          'descriptor': {'dimensions': [2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3], dataType: 'float32'}
         }
       }
     }
@@ -347,7 +347,7 @@ const reduceProductTests = [
             -85.19523620605469, -18.16986083984375,  64.83759307861328,
             -14.95883846282959, -74.50932312011719,  -11.319679260253906
           ],
-          'descriptor': {'dimensions': [2, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 4], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -361,7 +361,7 @@ const reduceProductTests = [
       'expectedOutputs': {
         'reduceProductOutput': {
           'data': 1.5855958784642327e+37,
-          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+          'descriptor': {shape: [], dataType: 'float32'}
         }
       }
     }
@@ -381,7 +381,7 @@ const reduceProductTests = [
             -85.19523620605469, -18.16986083984375,  64.83759307861328,
             -14.95883846282959, -74.50932312011719,  -11.319679260253906
           ],
-          'descriptor': {'dimensions': [2, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 4], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -394,7 +394,7 @@ const reduceProductTests = [
       'expectedOutputs': {
         'reduceProductOutput': {
           'data': [1.5855958784642327e+37],
-          'descriptor': {'dimensions': [1, 1, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 1, 1], dataType: 'float32'}
         }
       }
     }
@@ -414,7 +414,7 @@ const reduceProductTests = [
             -85.19523620605469, -18.16986083984375,  64.83759307861328,
             -14.95883846282959, -74.50932312011719,  -11.319679260253906
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -428,7 +428,7 @@ const reduceProductTests = [
       'expectedOutputs': {
         'reduceProductOutput': {
           'data': 1.5855958784642327e+37,
-          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+          'descriptor': {shape: [], dataType: 'float32'}
         }
       }
     }
@@ -448,7 +448,7 @@ const reduceProductTests = [
             -85.19523620605469, -18.16986083984375,  64.83759307861328,
             -14.95883846282959, -74.50932312011719,  -11.319679260253906
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -461,7 +461,7 @@ const reduceProductTests = [
       'expectedOutputs': {
         'reduceProductOutput': {
           'data': [1.5855958784642327e+37],
-          'descriptor': {'dimensions': [1, 1, 1, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 1, 1, 1], dataType: 'float32'}
         }
       }
     }
@@ -482,7 +482,7 @@ const reduceProductTests = [
             -85.19523620605469, -18.16986083984375,  64.83759307861328,
             -14.95883846282959, -74.50932312011719,  -11.319679260253906
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -496,7 +496,7 @@ const reduceProductTests = [
       'expectedOutputs': {
         'reduceProductOutput': {
           'data': [-3638925568, 6523364352, -414643360, 1610916352],
-          'descriptor': {'dimensions': [2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2], dataType: 'float32'}
         }
       }
     }
@@ -517,7 +517,7 @@ const reduceProductTests = [
             -85.19523620605469, -18.16986083984375,  64.83759307861328,
             -14.95883846282959, -74.50932312011719,  -11.319679260253906
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -531,7 +531,7 @@ const reduceProductTests = [
       'expectedOutputs': {
         'reduceProductOutput': {
           'data': [-3638925568, 6523364352, -414643360, 1610916352],
-          'descriptor': {'dimensions': [2, 1, 2, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 1, 2, 1], dataType: 'float32'}
         }
       }
     }

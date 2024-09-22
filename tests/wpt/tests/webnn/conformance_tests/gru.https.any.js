@@ -66,14 +66,14 @@ const gruTests = [
       'inputs': {
         'gruInput': {
           'data': [1, 2, 2, 1, 1, 1],
-          'descriptor': {'dimensions': [1, 3, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 3, 2], dataType: 'float32'}
         },
         'gruWeight': {
           'data': [
             1,   -1,   2, -2,  0.5, -0.5, 0, 0.1, 1,   -1,   2, -2,
             0.5, -0.5, 0, 0.1, 1,   -1,   2, -2,  0.5, -0.5, 0, 0.1
           ],
-          'descriptor': {'dimensions': [1, 12, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 12, 2], dataType: 'float32'}
         },
         'gruRecurrentWeight': {
           'data': [
@@ -82,15 +82,15 @@ const gruTests = [
             0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
             0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1
           ],
-          'descriptor': {'dimensions': [1, 12, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 12, 4], dataType: 'float32'}
         },
         'gruBias': {
           'data': [1, 2, 1, 2, 1, 1, 1, 1, 0.5, 0.5, 0.5, 0.5],
-          'descriptor': {'dimensions': [1, 12], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 12], dataType: 'float32'}
         },
         'gruRecurrentBias': {
           'data': [1, 2, 1, 2, 1, 1, 1, 1, 0.5, 0.5, 0.5, 0.5],
-          'descriptor': {'dimensions': [1, 12], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 12], dataType: 'float32'}
         },
       },
       'operators': [{
@@ -113,7 +113,7 @@ const gruTests = [
         'gruOutput': {
           'data':
               [0, 0, -0.25, -3.84, -4, -15, -2.25, -3.41, -1, -3, -1, -3.41],
-          'descriptor': {'dimensions': [1, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 3, 4], dataType: 'float32'}
         }
       }
     }
@@ -125,14 +125,14 @@ const gruTests = [
       'inputs': {
         'gruInput': {
           'data': [1, 2, 2, 1, 1, 1],
-          'descriptor': {'dimensions': [1, 3, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 3, 2], dataType: 'float32'}
         },
         'gruWeight': {
           'data': [
             1,   -1,   2, -2,  0.5, -0.5, 0, 0.1, 1,   -1,   2, -2,
             0.5, -0.5, 0, 0.1, 1,   -1,   2, -2,  0.5, -0.5, 0, 0.1
           ],
-          'descriptor': {'dimensions': [1, 12, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 12, 2], dataType: 'float32'}
         },
         'gruRecurrentWeight': {
           'data': [
@@ -141,15 +141,15 @@ const gruTests = [
             0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
             0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1
           ],
-          'descriptor': {'dimensions': [1, 12, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 12, 4], dataType: 'float32'}
         },
         'gruBias': {
           'data': [1, 2, 1, 2, 1, 1, 1, 1, 0.5, 0.5, 0.5, 0.5],
-          'descriptor': {'dimensions': [1, 12], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 12], dataType: 'float32'}
         },
         'gruRecurrentBias': {
           'data': [1, 2, 1, 2, 1, 1, 1, 1, 0.5, 0.5, 0.5, 0.5],
-          'descriptor': {'dimensions': [1, 12], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 12], dataType: 'float32'}
         },
       },
       'operators': [{
@@ -173,7 +173,7 @@ const gruTests = [
         'gruOutput': {
           'data':
               [0, 0, -0.25, -3.84, -4, -15, -2.25, -3.41, -1, -3, -1, -3.41],
-          'descriptor': {'dimensions': [1, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 3, 4], dataType: 'float32'}
         }
       }
     }
@@ -185,14 +185,14 @@ const gruTests = [
       'inputs': {
         'gruInput': {
           'data': [1, 2, 2, 1, 1, 1],
-          'descriptor': {'dimensions': [1, 3, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 3, 2], dataType: 'float32'}
         },
         'gruWeight': {
           'data': [
             1,   -1,   2, -2,  0.5, -0.5, 0, 0.1, 1,   -1,   2, -2,
             0.5, -0.5, 0, 0.1, 1,   -1,   2, -2,  0.5, -0.5, 0, 0.1
           ],
-          'descriptor': {'dimensions': [1, 12, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 12, 2], dataType: 'float32'}
         },
         'gruRecurrentWeight': {
           'data': [
@@ -201,15 +201,15 @@ const gruTests = [
             0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
             0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1
           ],
-          'descriptor': {'dimensions': [1, 12, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 12, 4], dataType: 'float32'}
         },
         'gruBias': {
           'data': [1, 2, 1, 2, 1, 1, 1, 1, 0.5, 0.5, 0.5, 0.5],
-          'descriptor': {'dimensions': [1, 12], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 12], dataType: 'float32'}
         },
         'gruRecurrentBias': {
           'data': [1, 2, 1, 2, 1, 1, 1, 1, 0.5, 0.5, 0.5, 0.5],
-          'descriptor': {'dimensions': [1, 12], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 12], dataType: 'float32'}
         },
       },
       'operators': [{
@@ -233,7 +233,7 @@ const gruTests = [
         'gruOutput': {
           'data':
               [0, 0, -0.25, -3.84, -4, -15, -2.25, -3.41, -1, -3, -1, -3.41],
-          'descriptor': {'dimensions': [1, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 3, 4], dataType: 'float32'}
         }
       }
     }
@@ -245,14 +245,14 @@ const gruTests = [
       'inputs': {
         'gruInput': {
           'data': [1, 2, 2, 1, 1, 1],
-          'descriptor': {'dimensions': [1, 3, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 3, 2], dataType: 'float32'}
         },
         'gruWeight': {
           'data': [
             1,   -1,   2, -2,  0.5, -0.5, 0, 0.1, 1,   -1,   2, -2,
             0.5, -0.5, 0, 0.1, 1,   -1,   2, -2,  0.5, -0.5, 0, 0.1
           ],
-          'descriptor': {'dimensions': [1, 12, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 12, 2], dataType: 'float32'}
         },
         'gruRecurrentWeight': {
           'data': [
@@ -261,15 +261,15 @@ const gruTests = [
             0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
             0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1
           ],
-          'descriptor': {'dimensions': [1, 12, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 12, 4], dataType: 'float32'}
         },
         'gruBias': {
           'data': [1, 1, 1, 1, 1, 2, 1, 2, 0.5, 0.5, 0.5, 0.5],
-          'descriptor': {'dimensions': [1, 12], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 12], dataType: 'float32'}
         },
         'gruRecurrentBias': {
           'data': [1, 1, 1, 1, 1, 2, 1, 2, 0.5, 0.5, 0.5, 0.5],
-          'descriptor': {'dimensions': [1, 12], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 12], dataType: 'float32'}
         },
       },
       'operators': [{
@@ -293,7 +293,7 @@ const gruTests = [
         'gruOutput': {
           'data':
               [0, 0, -0.25, -3.84, -4, -15, -2.25, -3.41, -1, -3, -1, -3.41],
-          'descriptor': {'dimensions': [1, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 3, 4], dataType: 'float32'}
         }
       }
     }
@@ -305,14 +305,14 @@ const gruTests = [
       'inputs': {
         'gruInput': {
           'data': [1, 2, 2, 1, 1, 1],
-          'descriptor': {'dimensions': [1, 3, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 3, 2], dataType: 'float32'}
         },
         'gruWeight': {
           'data': [
             1,   -1,   2, -2,  0.5, -0.5, 0, 0.1, 1,   -1,   2, -2,
             0.5, -0.5, 0, 0.1, 1,   -1,   2, -2,  0.5, -0.5, 0, 0.1
           ],
-          'descriptor': {'dimensions': [1, 12, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 12, 2], dataType: 'float32'}
         },
         'gruRecurrentWeight': {
           'data': [
@@ -321,19 +321,19 @@ const gruTests = [
             0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
             0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1
           ],
-          'descriptor': {'dimensions': [1, 12, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 12, 4], dataType: 'float32'}
         },
         'gruBias': {
           'data': [1, 2, 1, 2, 1, 1, 1, 1, 0.5, 0.5, 0.5, 0.5],
-          'descriptor': {'dimensions': [1, 12], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 12], dataType: 'float32'}
         },
         'gruRecurrentBias': {
           'data': [1, 2, 1, 2, 1, 1, 1, 1, 0.5, 0.5, 0.5, 0.5],
-          'descriptor': {'dimensions': [1, 12], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 12], dataType: 'float32'}
         },
         'gruInitialHiddenState': {
           'data': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-          'descriptor': {'dimensions': [1, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 3, 4], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -357,7 +357,7 @@ const gruTests = [
         'gruOutput': {
           'data':
               [0, 0, -0.25, -3.84, -4, -15, -2.25, -3.41, -1, -3, -1, -3.41],
-          'descriptor': {'dimensions': [1, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 3, 4], dataType: 'float32'}
         }
       }
     }
@@ -368,14 +368,14 @@ const gruTests = [
       'inputs': {
         'gruInput': {
           'data': [1, 2, 2, 1, 1, 1],
-          'descriptor': {'dimensions': [1, 3, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 3, 2], dataType: 'float32'}
         },
         'gruWeight': {
           'data': [
             1,   -1,   2, -2,  0.5, -0.5, 0, 0.1, 1,   -1,   2, -2,
             0.5, -0.5, 0, 0.1, 1,   -1,   2, -2,  0.5, -0.5, 0, 0.1
           ],
-          'descriptor': {'dimensions': [1, 12, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 12, 2], dataType: 'float32'}
         },
         'gruRecurrentWeight': {
           'data': [
@@ -384,19 +384,19 @@ const gruTests = [
             0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
             0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1
           ],
-          'descriptor': {'dimensions': [1, 12, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 12, 4], dataType: 'float32'}
         },
         'gruBias': {
           'data': [1, 2, 1, 2, 1, 1, 1, 1, 0.5, 0.5, 0.5, 0.5],
-          'descriptor': {'dimensions': [1, 12], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 12], dataType: 'float32'}
         },
         'gruRecurrentBias': {
           'data': [1, 2, 1, 2, 1, 1, 1, 1, 0.5, 0.5, 0.5, 0.5],
-          'descriptor': {'dimensions': [1, 12], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 12], dataType: 'float32'}
         },
         'gruInitialHiddenState': {
           'data': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-          'descriptor': {'dimensions': [1, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 3, 4], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -423,12 +423,12 @@ const gruTests = [
         'gruOutput1': {
           'data':
               [0, 0, -0.25, -3.84, -4, -15, -2.25, -3.41, -1, -3, -1, -3.41],
-          'descriptor': {'dimensions': [1, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 3, 4], dataType: 'float32'}
         },
         'gruOutput2': {
           'data':
               [0, 0, -0.25, -3.84, -4, -15, -2.25, -3.41, -1, -3, -1, -3.41],
-          'descriptor': {'dimensions': [1, 1, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 1, 3, 4], dataType: 'float32'}
         }
       }
     }
@@ -440,14 +440,14 @@ const gruTests = [
       'inputs': {
         'gruInput': {
           'data': [1, 2, 2, 1, 1, 1, 3, 4, 1, 2, 1, 1],
-          'descriptor': {'dimensions': [2, 3, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 2], dataType: 'float32'}
         },
         'gruWeight': {
           'data': [
             1,   -1,   2, -2,  0.5, -0.5, 0, 0.1, 1,   -1,   2, -2,
             0.5, -0.5, 0, 0.1, 1,   -1,   2, -2,  0.5, -0.5, 0, 0.1
           ],
-          'descriptor': {'dimensions': [1, 12, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 12, 2], dataType: 'float32'}
         },
         'gruRecurrentWeight': {
           'data': [
@@ -456,15 +456,15 @@ const gruTests = [
             0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
             0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1
           ],
-          'descriptor': {'dimensions': [1, 12, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 12, 4], dataType: 'float32'}
         },
         'gruBias': {
           'data': [1, 2, 1, 2, 1, 1, 1, 1, 0.5, 0.5, 0.5, 0.5],
-          'descriptor': {'dimensions': [1, 12], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 12], dataType: 'float32'}
         },
         'gruRecurrentBias': {
           'data': [1, 2, 1, 2, 1, 1, 1, 1, 0.5, 0.5, 0.5, 0.5],
-          'descriptor': {'dimensions': [1, 12], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 12], dataType: 'float32'}
         },
       },
       'operators': [{
@@ -492,7 +492,7 @@ const gruTests = [
             -1.1589999198913575, -9.476999282836914, -1.1589999198913575,
             -11.319169044494629
           ],
-          'descriptor': {'dimensions': [1, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 3, 4], dataType: 'float32'}
         }
       }
     }
@@ -504,14 +504,14 @@ const gruTests = [
       'inputs': {
         'gruInput': {
           'data': [1, 2, 2, 1, 1, 1, 3, 4, 1, 2, 1, 1],
-          'descriptor': {'dimensions': [2, 3, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 2], dataType: 'float32'}
         },
         'gruWeight': {
           'data': [
             1,   -1,   2, -2,  0.5, -0.5, 0, 0.1, 1,   -1,   2, -2,
             0.5, -0.5, 0, 0.1, 1,   -1,   2, -2,  0.5, -0.5, 0, 0.1
           ],
-          'descriptor': {'dimensions': [1, 12, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 12, 2], dataType: 'float32'}
         },
         'gruRecurrentWeight': {
           'data': [
@@ -520,15 +520,15 @@ const gruTests = [
             0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
             0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1
           ],
-          'descriptor': {'dimensions': [1, 12, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 12, 4], dataType: 'float32'}
         },
         'gruBias': {
           'data': [1, 2, 1, 2, 1, 1, 1, 1, 0.5, 0.5, 0.5, 0.5],
-          'descriptor': {'dimensions': [1, 12], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 12], dataType: 'float32'}
         },
         'gruRecurrentBias': {
           'data': [1, 2, 1, 2, 1, 1, 1, 1, 0.5, 0.5, 0.5, 0.5],
-          'descriptor': {'dimensions': [1, 12], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 12], dataType: 'float32'}
         },
       },
       'operators': [{
@@ -557,7 +557,7 @@ const gruTests = [
             -1.1589999198913575, -9.476999282836914, -1.1589999198913575,
             -11.319169044494629
           ],
-          'descriptor': {'dimensions': [1, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 3, 4], dataType: 'float32'}
         }
       }
     }
@@ -569,14 +569,14 @@ const gruTests = [
       'inputs': {
         'gruInput': {
           'data': [1, 2, 2, 1, 1, 1, 3, 4, 1, 2, 1, 1],
-          'descriptor': {'dimensions': [2, 3, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 2], dataType: 'float32'}
         },
         'gruWeight': {
           'data': [
             1,   -1,   2, -2,  0.5, -0.5, 0, 0.1, 1,   -1,   2, -2,
             0.5, -0.5, 0, 0.1, 1,   -1,   2, -2,  0.5, -0.5, 0, 0.1
           ],
-          'descriptor': {'dimensions': [1, 12, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 12, 2], dataType: 'float32'}
         },
         'gruRecurrentWeight': {
           'data': [
@@ -585,15 +585,15 @@ const gruTests = [
             0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
             0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1
           ],
-          'descriptor': {'dimensions': [1, 12, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 12, 4], dataType: 'float32'}
         },
         'gruBias': {
           'data': [1, 2, 1, 2, 1, 1, 1, 1, 0.5, 0.5, 0.5, 0.5],
-          'descriptor': {'dimensions': [1, 12], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 12], dataType: 'float32'}
         },
         'gruRecurrentBias': {
           'data': [1, 2, 1, 2, 1, 1, 1, 1, 0.5, 0.5, 0.5, 0.5],
-          'descriptor': {'dimensions': [1, 12], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 12], dataType: 'float32'}
         },
       },
       'operators': [{
@@ -622,7 +622,7 @@ const gruTests = [
             -1.1589999198913575, -9.476999282836914, -1.1589999198913575,
             -11.319169044494629
           ],
-          'descriptor': {'dimensions': [1, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 3, 4], dataType: 'float32'}
         },
         'gruOutput2': {
           'data': [
@@ -651,7 +651,7 @@ const gruTests = [
             -1,
             -3.4100000858306886
           ],
-          'descriptor': {'dimensions': [2, 1, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 1, 3, 4], dataType: 'float32'}
         }
       }
     }
@@ -662,14 +662,14 @@ const gruTests = [
       'inputs': {
         'gruInput': {
           'data': [1, 2, 2, 1, 1, 1, 3, 4, 1, 2, 1, 1],
-          'descriptor': {'dimensions': [2, 3, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 2], dataType: 'float32'}
         },
         'gruWeight': {
           'data': [
             1,   -1,   2, -2,  0.5, -0.5, 0, 0.1, 1,   -1,   2, -2,
             0.5, -0.5, 0, 0.1, 1,   -1,   2, -2,  0.5, -0.5, 0, 0.1
           ],
-          'descriptor': {'dimensions': [1, 12, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 12, 2], dataType: 'float32'}
         },
         'gruRecurrentWeight': {
           'data': [
@@ -678,19 +678,19 @@ const gruTests = [
             0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
             0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1
           ],
-          'descriptor': {'dimensions': [1, 12, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 12, 4], dataType: 'float32'}
         },
         'gruBias': {
           'data': [1, 2, 1, 2, 1, 1, 1, 1, 0.5, 0.5, 0.5, 0.5],
-          'descriptor': {'dimensions': [1, 12], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 12], dataType: 'float32'}
         },
         'gruRecurrentBias': {
           'data': [1, 2, 1, 2, 1, 1, 1, 1, 0.5, 0.5, 0.5, 0.5],
-          'descriptor': {'dimensions': [1, 12], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 12], dataType: 'float32'}
         },
         'gruInitialHiddenState': {
           'data': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-          'descriptor': {'dimensions': [1, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 3, 4], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -721,7 +721,7 @@ const gruTests = [
             -1.1589999198913575, -9.476999282836914, -1.1589999198913575,
             -11.319169044494629
           ],
-          'descriptor': {'dimensions': [1, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 3, 4], dataType: 'float32'}
         },
         'gruOutput2': {
           'data': [
@@ -750,7 +750,7 @@ const gruTests = [
             -1,
             -3.4100000858306886
           ],
-          'descriptor': {'dimensions': [2, 1, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 1, 3, 4], dataType: 'float32'}
         }
       }
     }

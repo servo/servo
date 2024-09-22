@@ -195,7 +195,7 @@ tasks:
                 browser: chrome
                 channel: dev
               use:
-                - trigger-master
+                - trigger-weekly
                 - trigger-push
             - vars:
                 browser: chrome
@@ -295,7 +295,7 @@ tasks:
                 browser: chrome
                 channel: dev
               use:
-                - trigger-master
+                - trigger-weekly
                 - trigger-push
             - vars:
                 browser: chrome

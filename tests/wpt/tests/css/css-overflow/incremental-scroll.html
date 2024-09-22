@@ -18,7 +18,7 @@ function scroll() {
   target.scrollTop += 500;
   if (target.scrollTop < 10000) {
     waitForAtLeastOneFrame().then(scroll);
-  } else if (window.testRunner) {
+  } else {
     takeScreenshot();
   }
 }

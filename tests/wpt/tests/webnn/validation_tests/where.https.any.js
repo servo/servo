@@ -9,71 +9,71 @@
 
 const kExampleConditionDescriptor = {
   dataType: 'uint8',
-  dimensions: [2, 4]
+  shape: [2, 4]
 };
 const kExampleInputDescriptor = {
   dataType: 'float32',
-  dimensions: [2, 4]
+  shape: [2, 4]
 };
 
 const tests = [
   {
     name: '[where] Throw if the condition data type is not uint8.',
-    condition: {dataType: 'float32', dimensions: [2, 4]},
-    trueValue: {dataType: 'float32', dimensions: [2, 4]},
-    falseValue: {dataType: 'float32', dimensions: [2, 4]},
+    condition: {dataType: 'float32', shape: [2, 4]},
+    trueValue: {dataType: 'float32', shape: [2, 4]},
+    falseValue: {dataType: 'float32', shape: [2, 4]},
   },
   {
     name:
         '[where] Throw if the data types of trueValue and falseValue do not match',
-    condition: {dataType: 'uint8', dimensions: [2, 4]},
-    trueValue: {dataType: 'float16', dimensions: [2, 4]},
-    falseValue: {dataType: 'float32', dimensions: [2, 4]},
+    condition: {dataType: 'uint8', shape: [2, 4]},
+    trueValue: {dataType: 'float16', shape: [2, 4]},
+    falseValue: {dataType: 'float32', shape: [2, 4]},
   },
   {
     name:
         '[where] Throw if the shapes of trueValue and falseValue are not broadcastable',
-    condition: {dataType: 'uint8', dimensions: [2, 4]},
-    trueValue: {dataType: 'float32', dimensions: [2, 4]},
-    falseValue: {dataType: 'float32', dimensions: [2, 3]},
+    condition: {dataType: 'uint8', shape: [2, 4]},
+    trueValue: {dataType: 'float32', shape: [2, 4]},
+    falseValue: {dataType: 'float32', shape: [2, 3]},
   },
   {
     name: '[where] Throw if the condition shape is not broadcastable',
-    condition: {dataType: 'uint8', dimensions: [2, 4]},
-    trueValue: {dataType: 'float32', dimensions: [2, 3]},
-    falseValue: {dataType: 'float32', dimensions: [2, 1]},
+    condition: {dataType: 'uint8', shape: [2, 4]},
+    trueValue: {dataType: 'float32', shape: [2, 3]},
+    falseValue: {dataType: 'float32', shape: [2, 1]},
   },
   {
     name:
         '[where] Test building where with 2-D condition, 2-D trueValue and 2-D falseValue using broadcast',
-    condition: {dataType: 'uint8', dimensions: [2, 1]},
-    trueValue: {dataType: 'float32', dimensions: [2, 4]},
-    falseValue: {dataType: 'float32', dimensions: [2, 4]},
-    output: {dataType: 'float32', dimensions: [2, 4]},
+    condition: {dataType: 'uint8', shape: [2, 1]},
+    trueValue: {dataType: 'float32', shape: [2, 4]},
+    falseValue: {dataType: 'float32', shape: [2, 4]},
+    output: {dataType: 'float32', shape: [2, 4]},
   },
   {
     name:
         '[where] Test building where with 2-D condition, 2-D trueValue and 3-D falseValue using broadcast',
-    condition: {dataType: 'uint8', dimensions: [1, 4]},
-    trueValue: {dataType: 'float16', dimensions: [3, 4]},
-    falseValue: {dataType: 'float16', dimensions: [2, 3, 4]},
-    output: {dataType: 'float16', dimensions: [2, 3, 4]},
+    condition: {dataType: 'uint8', shape: [1, 4]},
+    trueValue: {dataType: 'float16', shape: [3, 4]},
+    falseValue: {dataType: 'float16', shape: [2, 3, 4]},
+    output: {dataType: 'float16', shape: [2, 3, 4]},
   },
   {
     name:
         '[where] Test building where with 3-D condition, 3-D trueValue and 2-D falseValue using broadcast',
-    condition: {dataType: 'uint8', dimensions: [2, 1, 4]},
-    trueValue: {dataType: 'int32', dimensions: [2, 3, 4]},
-    falseValue: {dataType: 'int32', dimensions: [1, 4]},
-    output: {dataType: 'int32', dimensions: [2, 3, 4]},
+    condition: {dataType: 'uint8', shape: [2, 1, 4]},
+    trueValue: {dataType: 'int32', shape: [2, 3, 4]},
+    falseValue: {dataType: 'int32', shape: [1, 4]},
+    output: {dataType: 'int32', shape: [2, 3, 4]},
   },
   {
     name:
         '[where] Test building where with 4-D condition, 3-D trueValue and 2-D falseValue using broadcast',
-    condition: {dataType: 'uint8', dimensions: [2, 3, 4, 5]},
-    trueValue: {dataType: 'uint32', dimensions: [3, 4, 5]},
-    falseValue: {dataType: 'uint32', dimensions: [4, 5]},
-    output: {dataType: 'uint32', dimensions: [2, 3, 4, 5]},
+    condition: {dataType: 'uint8', shape: [2, 3, 4, 5]},
+    trueValue: {dataType: 'uint32', shape: [3, 4, 5]},
+    falseValue: {dataType: 'uint32', shape: [4, 5]},
+    output: {dataType: 'uint32', shape: [2, 3, 4, 5]},
   }
 ];
 
@@ -83,26 +83,14 @@ tests.forEach(
       for (let operand of [test.condition, test.trueValue, test.falseValue]) {
         if (!context.opSupportLimits().input.dataTypes.includes(
                 operand.dataType)) {
-          assert_throws_js(TypeError, () => builder.input('input', {
-            dataType: operand.dataType,
-            dimensions: operand.dimensions
-          }));
+          assert_throws_js(TypeError, () => builder.input('input', operand));
           return;
         }
       }
 
-      const condition = builder.input('condition', {
-        dataType: test.condition.dataType,
-        dimensions: test.condition.dimensions
-      });
-      const trueValue = builder.input('trueValue', {
-        dataType: test.trueValue.dataType,
-        dimensions: test.trueValue.dimensions
-      });
-      const falseValue = builder.input('falseValue', {
-        dataType: test.falseValue.dataType,
-        dimensions: test.falseValue.dimensions
-      });
+      const condition = builder.input('condition', test.condition);
+      const trueValue = builder.input('trueValue', test.trueValue);
+      const falseValue = builder.input('falseValue', test.falseValue);
       if (test.output &&
           context.opSupportLimits().where.condition.dataTypes.includes(
               test.condition.dataType) &&
@@ -112,7 +100,7 @@ tests.forEach(
               test.falseValue.dataType)) {
         const output = builder.where(condition, trueValue, falseValue);
         assert_equals(output.dataType(), test.output.dataType);
-        assert_array_equals(output.shape(), test.output.dimensions);
+        assert_array_equals(output.shape(), test.output.shape);
       } else {
         const label = 'where_123';
         const options = {label};

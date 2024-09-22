@@ -1,5 +1,75 @@
 'use strict';
 
+const operatorToleranceDict = {
+  batchNormalization: {float32: 6, float16: 6},
+  clamp: {float32: 0, float16: 0},
+  elu: {float32: 18, float16: 18},
+  gelu: {float32: 18, float16: 18},
+  hardSigmoid: {float32: 2, float16: 2},
+  hardSwish: {float32: 4, float16: 4},
+  leakyRelu: {float32: 1, float16: 1},
+  linear: {float32: 2, float16: 2},
+  prelu: {float32: 1, float16: 1},
+  relu: {float32: 0, float16: 0},
+  reshape: {float32: 0, float16: 0},
+  sigmoid: {float32: 34, float16: 3},
+  softplus: {float32: 18, float16: 18},
+  softsign: {float32: 3, float16: 3},
+};
+
+const getSoftmaxPrecisionTolerance =
+    (op, graphResources, intermediateOperands) => {
+      const {inputs} = graphResources;
+      const args = op.arguments;
+      let inputShape;
+      const inputIndex = args[0][Object.keys(args[0])[0]];
+      if (inputs[inputIndex]) {
+        inputShape = inputs[inputIndex].descriptor.shape;
+      } else {
+        inputShape = intermediateOperands[inputIndex].shape();
+      }
+      const axis = args.length === 2 ? args[1][Object.keys(args[1])[0]] : 1;
+      const tolerance = inputShape[axis] * 3 + 3;
+      const toleranceValueDict = {float32: tolerance, float16: tolerance};
+      const expectedDataType =
+          getExpectedDataTypeOfSingleOutput(graphResources.expectedOutputs);
+      return {metricType: 'ULP', value: toleranceValueDict[expectedDataType]};
+    };
+
+const getPrecisionTolerance = (graphResources, intermediateOperands) => {
+  const expectedDataType =
+      getExpectedDataTypeOfSingleOutput(graphResources.expectedOutputs);
+  let toleranceValue = 0;
+  graphResources.operators.forEach(op => {
+    switch (op.name) {
+      case 'conv2d':
+        toleranceValue += getConv2dPrecisionTolerance(op, graphResources,
+            intermediateOperands).value;
+        break;
+      case 'convTranspose2d':
+        toleranceValue += getConv2dPrecisionTolerance(op, graphResources,
+            intermediateOperands).value;
+        break;
+      case 'gemm':
+        toleranceValue += getGemmPrecisionTolerance(op, graphResources,
+            intermediateOperands).value;
+        break;
+      case 'softmax':
+        toleranceValue += getSoftmaxPrecisionTolerance(
+                              op, graphResources, intermediateOperands)
+                              .value;
+        break;
+      default:
+        const operatorTolerance =
+            operatorToleranceDict[op.name]?.[expectedDataType];
+        if (operatorTolerance !== undefined) {
+          toleranceValue += operatorTolerance;
+        }
+    }
+  });
+  return {metricType: 'ULP', value: toleranceValue};
+};
+
 // https://www.w3.org/TR/webnn/#enumdef-mloperanddatatype
 const TypedArrayDict = {
   float32: Float32Array,
@@ -62,8 +132,8 @@ const assertDescriptorsEquals = (outputOperand, expected) => {
       outputOperand.dataType() === dataType,
       'actual output dataType should be equal to expected output dataType');
   assert_array_equals(
-      outputOperand.shape(), expected.dimensions,
-      'actual output dimesnisons should be equal to expected output dimensions');
+      outputOperand.shape(), expected.shape,
+      'actual output shape should be equal to expected output shape');
 };
 
 // ref:
@@ -271,36 +341,36 @@ const doAssert =
  *     Array[Object.<MLNamedArrayBufferViews>]} actual
  * @param {Object} graphResources - Resources used for building a graph
  */
-const assertResultsEquals = (toleranceFunc, actual, graphResources) => {
-  const operatorName =
-      graphResources.operators.map(operator => operator.name).join(' ');
-  const expectedOutputs = graphResources.expectedOutputs;
-  const toleranceInfo = toleranceFunc(graphResources);
-  const metricType = toleranceInfo.metricType;
-  const toleranceValue = toleranceInfo.value;
-  let outputData;
+const assertResultsEquals =
+    (toleranceFunc, actual, graphResources, intermediateOperands) => {
+      const operatorName =
+          graphResources.operators.map(operator => operator.name).join(' ');
+      const expectedOutputs = graphResources.expectedOutputs;
+      const toleranceInfo = toleranceFunc(graphResources, intermediateOperands);
+      const metricType = toleranceInfo.metricType;
+      const toleranceValue = toleranceInfo.value;
+      let outputData;
 
-  for (let operandName in actual) {
-    const expectedSuboutput = expectedOutputs[operandName];
-    const expectedDescriptor = expectedSuboutput.descriptor;
-    let expectedData = expectedSuboutput.data;
-
-    outputData = actual[operandName];
-    // If data is scalar and shape is not, it means it's expecting to be
-    // filled by the scalar value. Also limit the array size so it doesn't
-    // timeout.
-    if (typeof (expectedData) === 'number' && expectedDescriptor.dimensions &&
-        sizeOfShape(expectedDescriptor.dimensions) > 1) {
-      const size = Math.min(
-          kMaximumIndexToValidate, sizeOfShape(expectedDescriptor.dimensions));
-      expectedData = new Array(size).fill(expectedData);
-      outputData = outputData.subarray(0, kMaximumIndexToValidate);
-    }
-    doAssert(
-        operatorName, outputData, expectedData, metricType, toleranceValue,
-        expectedDescriptor.dataType);
-  }
-};
+      for (let operandName in actual) {
+        const expectedSuboutput = expectedOutputs[operandName];
+        const expectedDescriptor = expectedSuboutput.descriptor;
+        let expectedData = expectedSuboutput.data;
+        outputData = actual[operandName];
+        // If data is scalar and shape is not, it means it's expecting to be
+        // filled by the scalar value. Also limit the array size so it doesn't
+        // timeout.
+        if (typeof (expectedData) === 'number' && expectedDescriptor.shape &&
+            sizeOfShape(expectedDescriptor.shape) > 1) {
+          const size = Math.min(
+              kMaximumIndexToValidate, sizeOfShape(expectedDescriptor.shape));
+          expectedData = new Array(size).fill(expectedData);
+          outputData = outputData.subarray(0, kMaximumIndexToValidate);
+        }
+        doAssert(
+            operatorName, outputData, expectedData, metricType, toleranceValue,
+            expectedDescriptor.dataType);
+      }
+    };
 
 const createOperand = (context, builder, operandName, resources) => {
   let operand;
@@ -322,7 +392,7 @@ const createOperand = (context, builder, operandName, resources) => {
       builder.constant(
           descriptor,
           getTypedArrayData(
-              descriptor.dataType, sizeOfShape(descriptor.dimensions),
+              descriptor.dataType, sizeOfShape(descriptor.shape),
               resources.data)) :
       builder.input(operandName, descriptor);
 
@@ -341,7 +411,7 @@ const prepareInputsForGraph = (inputs, resources) => {
           inputOperandResources.descriptor.castedType ?
               inputOperandResources.descriptor.castedType :
               inputOperandResources.descriptor.dataType,
-          sizeOfShape(inputOperandResources.descriptor.dimensions),
+          sizeOfShape(inputOperandResources.descriptor.shape),
           inputOperandResources.data);
     }
   }
@@ -353,7 +423,7 @@ const prepareOutputsForGraph = (outputs, resources) => {
     const dataType =
         descriptor.castedType ? descriptor.castedType : descriptor.dataType;
     outputs[operandName] =
-        new TypedArrayDict[dataType](sizeOfShape(descriptor.dimensions));
+        new TypedArrayDict[dataType](sizeOfShape(descriptor.shape));
   }
 };
 
@@ -380,15 +450,13 @@ const prepareOutputsForGraph = (outputs, resources) => {
  * @returns A Promise of MLComputeResult.
  */
 const buildGraphAndCompute = async (context, builder, graphResources) => {
-  let outputOperands;
+  const outputOperands = [];
   const graphInputs = graphResources.inputs;
   const graphOperators = graphResources.operators;
-
-  if (graphOperators.length === 1) {
-    // For a test graph with a single operator
+  const intermediateOperands = {};
+  for (const operator of graphOperators) {
     const argumentArray = [];
-
-    for (const argument of graphOperators[0].arguments) {
+    for (const argument of operator.arguments) {
       for (const argumentName in argument) {
         if (argumentName !== 'options') {
           if (graphInputs.hasOwnProperty(argument[argumentName])) {
@@ -396,6 +464,9 @@ const buildGraphAndCompute = async (context, builder, graphResources) => {
             const operand = createOperand(
                 context, builder, operandName, graphInputs[operandName]);
             argumentArray.push(operand);
+          } else if (intermediateOperands.hasOwnProperty(
+                         argument[argumentName])) {
+            argumentArray.push(intermediateOperands[argument[argumentName]]);
           } else {
             argumentArray.push(argument[argumentName]);
           }
@@ -408,20 +479,37 @@ const buildGraphAndCompute = async (context, builder, graphResources) => {
               const operand = createOperand(
                   context, builder, operandName, graphInputs[operandName]);
               argument['options'][optionalArgumentName] = operand;
+            } else if (
+                typeof value === 'string' &&
+                intermediateOperands.hasOwnProperty(value)) {
+              argument['options'][optionalArgumentName] =
+                  intermediateOperands[value];
             }
           }
           argumentArray.push(argument['options']);
         }
       }
     }
-    outputOperands = builder[graphOperators[0].name](...argumentArray);
-  } else {
-    // For a test graph with multiple operators
-    // TODO: https://issues.chromium.org/issues/333756077
+
+    const currentOutput = builder[operator.name](...argumentArray);
+    if (Array.isArray(operator.outputs)) {
+      operator.outputs.forEach((outputName, index) => {
+        intermediateOperands[outputName] = currentOutput[index];
+      });
+    } else {
+      intermediateOperands[operator.outputs] = currentOutput;
+    }
   }
 
-  if (!Array.isArray(outputOperands)) {
-    outputOperands = [outputOperands];
+  const outputNames = Object.keys(graphResources.expectedOutputs);
+  outputNames.forEach(outputName => {
+    if (intermediateOperands.hasOwnProperty(outputName)) {
+      outputOperands.push(intermediateOperands[outputName]);
+    }
+  });
+
+  if (outputOperands.length !== outputNames.length) {
+    throw new Error('Graph outputs are not properly defined');
   }
 
   for (let i = 0; i < outputOperands.length; ++i) {
@@ -461,19 +549,68 @@ const buildGraphAndCompute = async (context, builder, graphResources) => {
 
   // Execute the compiled graph.
   const result = await context.compute(graph, inputs, outputs);
-  return result;
+  return {result, intermediateOperands};
 };
 
-const getConv2dPrecisionTolerance = (graphResources) => {
+const getGemmPrecisionTolerance =
+    (op, graphResources, intermediateOperands) => {
+  // GEMM : alpha * (A x B) + beta * C
+  // An upper bound for the worst serial ordering is bounded by
+  // the number of lossy operations, where matrix multiplication
+  // is a dot product (mul and add times the number of elements)
+  // plus bias operations.
+  const {inputs} = graphResources;
+  const args = op.arguments;
+  let ShapeA;
+  const indexA = args[0][Object.keys(args[0])[0]];
+  if (inputs[indexA]) {
+    ShapeA = inputs[indexA].descriptor.shape;
+  } else {
+    ShapeA = intermediateOperands[indexA].shape();
+  }
+  const options =
+      args.length === 3 ? {...args[2][Object.keys(args[2])[0]]} : {};
+  const width = options.aTranspose ? ShapeA[0] : ShapeA[1];
+  let tolerance = width * 2;
+  // default options.alpha is 1.0
+  if (options.alpha !== undefined && options.alpha !== 1.0) {
+    tolerance++;
+  }
+  if (options.c && options.beta !== 0.0) {
+    // default options.beta is 1.0
+    if (options.beta !== undefined && options.beta !== 1.0) {
+      tolerance++;
+    }
+    tolerance++;
+  }
+
+  const toleranceValueDict = {float32: tolerance, float16: tolerance};
+  const expectedDataType =
+      getExpectedDataTypeOfSingleOutput(graphResources.expectedOutputs);
+  return {metricType: 'ULP', value: toleranceValueDict[expectedDataType]};
+};
+
+const getConv2dPrecisionTolerance =
+    (op, graphResources, intermediateOperands) => {
   // number of reduced input elements multiplied by filter and summed (a sliding
   // dot product like pooling)
-  const operatorResources = graphResources.operators[0];
-  const operatorName = operatorResources.name;
-  const args = operatorResources.arguments;
-  const inputShape = graphResources.inputs[args[0][Object.keys(args[0])[0]]]
-                         .descriptor.dimensions;
-  const filterShape = graphResources.inputs[args[1][Object.keys(args[1])[0]]]
-                          .descriptor.dimensions;
+  const {inputs} = graphResources;
+  const operatorName = op.name;
+  const args = op.arguments;
+  let inputShape;
+  const inputIndex = args[0][Object.keys(args[0])[0]];
+  const filterIndex = args[1][Object.keys(args[1])[0]];
+  if (inputs[inputIndex]) {
+    inputShape = inputs[inputIndex].descriptor.shape;
+  } else {
+    inputShape = intermediateOperands[inputIndex].shape();
+  }
+  let filterShape;
+  if (inputs[filterIndex]) {
+    filterShape = inputs[filterIndex].descriptor.shape;
+  } else {
+    filterShape = intermediateOperands[filterIndex].shape();
+  }
   const options =
       args.length === 3 ? {...args[2][Object.keys(args[2])[0]]} : {};
   let inputChannels = inputShape[1];  // default nchw inputLayout
@@ -538,7 +675,7 @@ const getReducedElementCount =
     (graphResources) => {
       const args = graphResources.operators[0].arguments;
       const inputShape = graphResources.inputs[args[0][Object.keys(args[0])[0]]]
-                             .descriptor.dimensions;
+                             .descriptor.shape;
       const rank = inputShape.length;
       const options =
           args.length === 2 ? {...args[1][Object.keys(args[1])[0]]} : {};
@@ -568,8 +705,10 @@ const webnn_conformance_test =
               `Unable to create context for ${variant} variant. ${e}`);
         }
         const builder = new MLGraphBuilder(context);
-        const result = await buildGraphAndComputeFunc(
+        const {result, intermediateOperands} = await buildGraphAndComputeFunc(
             context, builder, testResources.graph);
-        assertResultsEquals(toleranceFunc, result.outputs, testResources.graph);
+        assertResultsEquals(
+            toleranceFunc, result.outputs, testResources.graph,
+            intermediateOperands);
       }, testResources.name);
     };

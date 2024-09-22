@@ -316,3 +316,62 @@ async def test_move_to_position_in_viewport(
 
     events = await get_events(bidi_session, top_context["context"])
     assert len(events) == event_count
+
+
+@pytest.mark.parametrize("origin", ["viewport", "pointer", "element"])
+async def test_move_to_origin_position_within_frame(
+    bidi_session, get_element, iframe, inline, top_context, origin
+):
+    url = inline(
+        iframe(
+            """
+        <textarea style="width: 100px; height: 40px"></textarea>
+        <script>
+            "use strict;"
+
+            var allEvents = { events: [] };
+            window.addEventListener("mousemove", e => {
+                allEvents.events.push([
+                    e.clientX,
+                    e.clientY,
+                ]);
+            });
+        </script>
+    """
+        )
+    )
+
+    await bidi_session.browsing_context.navigate(
+        context=top_context["context"],
+        url=url,
+        wait="complete",
+    )
+
+    contexts = await bidi_session.browsing_context.get_tree(root=top_context["context"])
+    iframe = contexts[0]["children"][0]
+
+    elem = await get_element("textarea", context=iframe)
+    elem_center_point = await get_inview_center_bidi(
+        bidi_session, context=iframe, element=elem
+    )
+
+    offset = [10, 5]
+
+    if origin == "element":
+        origin = get_element_origin(elem)
+        target_point = [
+            elem_center_point["x"] + offset[0],
+            elem_center_point["y"] + offset[1],
+        ]
+    else:
+        target_point = offset
+
+    actions = Actions()
+    actions.add_pointer().pointer_move(x=offset[0], y=offset[1], origin=origin)
+
+    await bidi_session.input.perform_actions(actions=actions, context=iframe["context"])
+
+    events = await get_events(bidi_session, iframe["context"])
+
+    assert len(events) == 1
+    assert events[0] == target_point

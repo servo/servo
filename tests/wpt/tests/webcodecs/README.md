@@ -120,6 +120,12 @@ sox -n -r 48000 sfx.wav synth 1 sine 480
 ffmpeg -i sfx.wav -frames:a 10 -acodec libmp3lame -b:a 96K sfx.mp3
 ```
 
+### sfx.flac
+```
+sox -n -r 48000 sfx.wav synth 1 sine 480
+ffmpeg -i sfx.wav -frames:a 10 sfx.flac
+```
+
 ### sfx-aac.mp4
 ```
 sox -n -r 48000 sfx.wav synth 1 sine 480

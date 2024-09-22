@@ -6,6 +6,7 @@ from webdriver.bidi.modules.script import ContextTarget
 
 from tests.support.sync import AsyncPoll
 
+from ... import number_interval
 from .. import (
     assert_before_request_sent_event,
     PAGE_DATA_URL_HTML,
@@ -280,6 +281,42 @@ async def test_request_cookies(
 
 
 @pytest.mark.asyncio
+async def test_request_timing_info(
+    url,
+    wait_for_event,
+    wait_for_future_safe,
+    fetch,
+    setup_network_test,
+    current_time,
+):
+    network_events = await setup_network_test(events=[BEFORE_REQUEST_SENT_EVENT])
+    events = network_events[BEFORE_REQUEST_SENT_EVENT]
+
+    # Record the time range for the request to assert the timing info.
+    time_start = await current_time()
+
+    on_before_request_sent = wait_for_event(BEFORE_REQUEST_SENT_EVENT)
+    await fetch(url(PAGE_EMPTY_HTML), method="GET")
+    await wait_for_future_safe(on_before_request_sent)
+
+    time_end = await current_time()
+    time_range = number_interval(time_start, time_end)
+
+    assert len(events) == 1
+
+    expected_request = {
+        "method": "GET",
+        "url": url(PAGE_EMPTY_HTML),
+    }
+    assert_before_request_sent_event(
+        events[0],
+        expected_request=expected_request,
+        expected_time_range=time_range,
+        redirect_count=0,
+    )
+
+
+@pytest.mark.asyncio
 async def test_redirect(bidi_session, wait_for_event, url, fetch, setup_network_test):
     text_url = url(PAGE_EMPTY_TEXT)
     redirect_url = url(
@@ -407,6 +444,7 @@ async def test_serviceworker_request(
     wait_for_future_safe,
     fetch,
     setup_network_test,
+    current_time,
 ):
     serviceworker_url = url(PAGE_SERVICEWORKER_HTML)
     await bidi_session.browsing_context.navigate(
@@ -426,23 +464,33 @@ async def test_serviceworker_request(
 
     on_before_request_sent = wait_for_event(BEFORE_REQUEST_SENT_EVENT)
 
+    # Record the time range for the request to assert the timing info.
+    time_start = await current_time()
+
     # Make a request to serviceworker_url via fetch on the page, but any url
     # would work here as this should be intercepted by the serviceworker.
     await fetch(serviceworker_url, context=new_tab, method="GET")
     await wait_for_future_safe(on_before_request_sent)
 
+    time_end = await current_time()
+    time_range = number_interval(time_start, time_end)
+
     assert len(events) == 1
 
     assert_before_request_sent_event(
         events[0],
-        expected_request={"method": "GET", "url": serviceworker_url},
+        expected_request={
+            "method": "GET",
+            "url": serviceworker_url,
+        },
+        expected_time_range=time_range,
         redirect_count=0,
     )
 
 
 @pytest.mark.asyncio
 async def test_url_with_fragment(
-    url, wait_for_event, wait_for_future_safe, fetch, setup_network_test
+    url, wait_for_event, wait_for_future_safe, fetch, setup_network_test, current_time
 ):
     fragment_url = url(f"{PAGE_EMPTY_HTML}#foo")
 
@@ -450,15 +498,26 @@ async def test_url_with_fragment(
     events = network_events[BEFORE_REQUEST_SENT_EVENT]
 
     on_before_request_sent = wait_for_event(BEFORE_REQUEST_SENT_EVENT)
+
+    # Record the time range for the request to assert the timing info.
+    time_start = await current_time()
+
     await fetch(fragment_url, method="GET")
     await wait_for_future_safe(on_before_request_sent)
+
+    time_end = await current_time()
+    time_range = number_interval(time_start, time_end)
 
     assert len(events) == 1
 
     # Assert that the event contains the full fragment URL in requestData.
     assert_before_request_sent_event(
         events[0],
-        expected_request={"method": "GET", "url": fragment_url},
+        expected_request={
+            "method": "GET",
+            "url": fragment_url,
+        },
+        expected_time_range=time_range,
         redirect_count=0,
     )
 
@@ -470,22 +529,39 @@ async def test_url_with_fragment(
 )
 @pytest.mark.asyncio
 async def test_navigate_data_url(
-    bidi_session, top_context, wait_for_event, wait_for_future_safe, setup_network_test, page_url
+    bidi_session,
+    top_context,
+    wait_for_event,
+    wait_for_future_safe,
+    setup_network_test,
+    page_url,
+    current_time,
 ):
     network_events = await setup_network_test(events=[BEFORE_REQUEST_SENT_EVENT])
     events = network_events[BEFORE_REQUEST_SENT_EVENT]
 
     on_before_request_sent = wait_for_event(BEFORE_REQUEST_SENT_EVENT)
+
+    # Record the time range for the request to assert the timing info.
+    time_start = await current_time()
+
     result = await bidi_session.browsing_context.navigate(
         context=top_context["context"], url=page_url, wait="complete"
     )
     await wait_for_future_safe(on_before_request_sent)
 
+    time_end = await current_time()
+    time_range = number_interval(time_start, time_end)
+
     assert len(events) == 1
 
     assert_before_request_sent_event(
         events[0],
-        expected_request={"method": "GET", "url": page_url},
+        expected_request={
+            "method": "GET",
+            "url": page_url,
+        },
+        expected_time_range=time_range,
         redirect_count=0,
         navigation=result["navigation"],
     )
@@ -499,20 +575,36 @@ async def test_navigate_data_url(
 )
 @pytest.mark.asyncio
 async def test_fetch_data_url(
-    wait_for_event, wait_for_future_safe, fetch, setup_network_test, fetch_url
+    wait_for_event,
+    wait_for_future_safe,
+    fetch,
+    setup_network_test,
+    fetch_url,
+    current_time,
 ):
     network_events = await setup_network_test(events=[BEFORE_REQUEST_SENT_EVENT])
     events = network_events[BEFORE_REQUEST_SENT_EVENT]
 
     on_before_request_sent = wait_for_event(BEFORE_REQUEST_SENT_EVENT)
+
+    # Record the time range for the request to assert the timing info.
+    time_start = await current_time()
+
     await fetch(fetch_url, method="GET")
     await wait_for_future_safe(on_before_request_sent)
+
+    time_end = await current_time()
+    time_range = number_interval(time_start, time_end)
 
     assert len(events) == 1
 
     assert_before_request_sent_event(
         events[0],
-        expected_request={"method": "GET", "url": fetch_url},
+        expected_request={
+            "method": "GET",
+            "url": fetch_url,
+        },
+        expected_time_range=time_range,
         redirect_count=0,
     )
     assert events[0]["navigation"] is None

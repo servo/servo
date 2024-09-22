@@ -18,9 +18,9 @@
     await promise_rejects_dom(
       t,
       "NotAllowedError",
-      navigator.identity.get(options)
+      navigator.credentials.get(options)
     );
-  }, "navigator.identity.get() calling the API without user activation should reject with NotAllowedError.");
+  }, "navigator.credentials.get() calling the API without user activation should reject with NotAllowedError.");
 
   promise_test(async (t) => {
     await test_driver.bless();
@@ -29,10 +29,10 @@
       "User activation should be active after test_driver.bless()."
     );
     const options = makeGetOptions([]);
-    await promise_rejects_js(t, TypeError, navigator.identity.get(options));
+    await promise_rejects_js(t, TypeError, navigator.credentials.get(options));
     assert_false(
       navigator.userActivation.isActive,
-      "User activation should be consumed after navigator.identity.get()."
+      "User activation should be consumed after navigator.credentials.get()."
     );
-  }, "navigator.identity.get() consumes user activation.");
+  }, "navigator.credentials.get() consumes user activation.");
 </script>

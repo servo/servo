@@ -67,7 +67,7 @@ const buildGraphAndComputeWithConcat =
 
   // Execute the compiled graph.
   const result = await context.compute(graph, inputs, outputs);
-  return result;
+  return {result, namedOutputOperand};
 };
 
 const concatTests = [
@@ -82,7 +82,7 @@ const concatTests = [
             -0.44735023379325867, 0.11028251051902771, -0.5945112705230713,
             -0.402848482131958, -0.9531654119491577, -0.6731740236282349
           ],
-          'descriptor': {'dimensions': [12], 'dataType': 'float32'},
+          'descriptor': {shape: [12], dataType: 'float32'},
           'constant': true
         },
         'concatInput2': {
@@ -92,7 +92,7 @@ const concatTests = [
             0.6653800010681152, 0.03886038810014725, 0.5182055234909058,
             -0.8742017149925232, -0.4790218770503998, 0.1211843192577362
           ],
-          'descriptor': {'dimensions': [12], 'dataType': 'float32'},
+          'descriptor': {shape: [12], dataType: 'float32'},
           'constant': true
         }
       },
@@ -114,7 +114,7 @@ const concatTests = [
             0.6653800010681152,   0.03886038810014725,  0.5182055234909058,
             -0.8742017149925232,  -0.4790218770503998,  0.1211843192577362
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'}
+          'descriptor': {shape: [24], dataType: 'float32'}
         }
       }
     }
@@ -130,7 +130,7 @@ const concatTests = [
             -0.44735023379325867, 0.11028251051902771, -0.5945112705230713,
             -0.402848482131958, -0.9531654119491577, -0.6731740236282349
           ],
-          'descriptor': {'dimensions': [12], 'dataType': 'float32'}
+          'descriptor': {shape: [12], dataType: 'float32'}
         },
         'concatInput2': {
           'data': [
@@ -139,7 +139,7 @@ const concatTests = [
             0.6653800010681152, 0.03886038810014725, 0.5182055234909058,
             -0.8742017149925232, -0.4790218770503998, 0.1211843192577362
           ],
-          'descriptor': {'dimensions': [12], 'dataType': 'float32'}
+          'descriptor': {shape: [12], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -160,7 +160,7 @@ const concatTests = [
             0.6653800010681152,   0.03886038810014725,  0.5182055234909058,
             -0.8742017149925232,  -0.4790218770503998,  0.1211843192577362
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'}
+          'descriptor': {shape: [24], dataType: 'float32'}
         }
       }
     }
@@ -176,7 +176,7 @@ const concatTests = [
             -0.44735023379325867, 0.11028251051902771, -0.5945112705230713,
             -0.402848482131958, -0.9531654119491577, -0.6731740236282349
           ],
-          'descriptor': {'dimensions': [12], 'dataType': 'float16'}
+          'descriptor': {shape: [12], dataType: 'float16'}
         },
         'concatInput2': {
           'data': [
@@ -185,7 +185,7 @@ const concatTests = [
             0.6653800010681152, 0.03886038810014725, 0.5182055234909058,
             -0.8742017149925232, -0.4790218770503998, 0.1211843192577362
           ],
-          'descriptor': {'dimensions': [12], 'dataType': 'float16'}
+          'descriptor': {shape: [12], dataType: 'float16'}
         }
       },
       'operators': [{
@@ -204,7 +204,7 @@ const concatTests = [
             -0.720703125,   -0.79931640625, 0.66552734375,  0.038848876953125,
             0.51806640625,  -0.8740234375,  -0.47900390625, 0.12115478515625
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float16'}
+          'descriptor': {shape: [24], dataType: 'float16'}
         }
       }
     }
@@ -219,7 +219,7 @@ const concatTests = [
             -0.3944413363933563, 0.861982524394989, 0.337996244430542,
             -0.990639865398407
           ],
-          'descriptor': {'dimensions': [4], 'dataType': 'float32'}
+          'descriptor': {shape: [4], dataType: 'float32'}
         },
         'concatInput2': {
           'data': [
@@ -227,7 +227,7 @@ const concatTests = [
             0.11028251051902771, -0.5945112705230713, -0.402848482131958,
             -0.9531654119491577, -0.6731740236282349
           ],
-          'descriptor': {'dimensions': [8], 'dataType': 'float32'}
+          'descriptor': {shape: [8], dataType: 'float32'}
         },
         'concatInput3': {
           'data': [
@@ -236,7 +236,7 @@ const concatTests = [
             0.6653800010681152, 0.03886038810014725, 0.5182055234909058,
             -0.8742017149925232, -0.4790218770503998, 0.1211843192577362
           ],
-          'descriptor': {'dimensions': [12], 'dataType': 'float32'}
+          'descriptor': {shape: [12], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -259,7 +259,7 @@ const concatTests = [
             0.6653800010681152,   0.03886038810014725,  0.5182055234909058,
             -0.8742017149925232,  -0.4790218770503998,  0.1211843192577362
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'}
+          'descriptor': {shape: [24], dataType: 'float32'}
         }
       }
     }
@@ -274,7 +274,7 @@ const concatTests = [
             -0.3944413363933563, 0.861982524394989, 0.337996244430542,
             -0.990639865398407
           ],
-          'descriptor': {'dimensions': [4], 'dataType': 'float16'}
+          'descriptor': {shape: [4], dataType: 'float16'}
         },
         'concatInput2': {
           'data': [
@@ -282,7 +282,7 @@ const concatTests = [
             0.11028251051902771, -0.5945112705230713, -0.402848482131958,
             -0.9531654119491577, -0.6731740236282349
           ],
-          'descriptor': {'dimensions': [8], 'dataType': 'float16'}
+          'descriptor': {shape: [8], dataType: 'float16'}
         },
         'concatInput3': {
           'data': [
@@ -291,7 +291,7 @@ const concatTests = [
             0.6653800010681152, 0.03886038810014725, 0.5182055234909058,
             -0.8742017149925232, -0.4790218770503998, 0.1211843192577362
           ],
-          'descriptor': {'dimensions': [12], 'dataType': 'float16'}
+          'descriptor': {shape: [12], dataType: 'float16'}
         }
       },
       'operators': [{
@@ -312,7 +312,7 @@ const concatTests = [
             -0.720703125,   -0.79931640625, 0.66552734375,  0.038848876953125,
             0.51806640625,  -0.8740234375,  -0.47900390625, 0.12115478515625
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float16'}
+          'descriptor': {shape: [24], dataType: 'float16'}
         }
       }
     }
@@ -326,28 +326,28 @@ const concatTests = [
             -0.3944413363933563, 0.861982524394989, 0.337996244430542,
             -0.990639865398407, 0.576785683631897, 0.32276400923728943
           ],
-          'descriptor': {'dimensions': [6], 'dataType': 'float32'}
+          'descriptor': {shape: [6], dataType: 'float32'}
         },
         'concatInput2': {
           'data': [
             -0.44735023379325867, 0.11028251051902771, -0.5945112705230713,
             -0.402848482131958, -0.9531654119491577, -0.6731740236282349
           ],
-          'descriptor': {'dimensions': [6], 'dataType': 'float32'}
+          'descriptor': {shape: [6], dataType: 'float32'}
         },
         'concatInput3': {
           'data': [
             0.49189892411231995, -0.15864109992980957, -0.3418811559677124,
             -0.9158143401145935, -0.7206121683120728, -0.7993468642234802
           ],
-          'descriptor': {'dimensions': [6], 'dataType': 'float32'}
+          'descriptor': {shape: [6], dataType: 'float32'}
         },
         'concatInput4': {
           'data': [
             0.6653800010681152, 0.03886038810014725, 0.5182055234909058,
             -0.8742017149925232, -0.4790218770503998, 0.1211843192577362
           ],
-          'descriptor': {'dimensions': [6], 'dataType': 'float32'}
+          'descriptor': {shape: [6], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -373,7 +373,7 @@ const concatTests = [
             0.6653800010681152,   0.03886038810014725,  0.5182055234909058,
             -0.8742017149925232,  -0.4790218770503998,  0.1211843192577362
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'}
+          'descriptor': {shape: [24], dataType: 'float32'}
         }
       }
     }
@@ -387,28 +387,28 @@ const concatTests = [
             -0.3944413363933563, 0.861982524394989, 0.337996244430542,
             -0.990639865398407, 0.576785683631897, 0.32276400923728943
           ],
-          'descriptor': {'dimensions': [6], 'dataType': 'float16'}
+          'descriptor': {shape: [6], dataType: 'float16'}
         },
         'concatInput2': {
           'data': [
             -0.44735023379325867, 0.11028251051902771, -0.5945112705230713,
             -0.402848482131958, -0.9531654119491577, -0.6731740236282349
           ],
-          'descriptor': {'dimensions': [6], 'dataType': 'float16'}
+          'descriptor': {shape: [6], dataType: 'float16'}
         },
         'concatInput3': {
           'data': [
             0.49189892411231995, -0.15864109992980957, -0.3418811559677124,
             -0.9158143401145935, -0.7206121683120728, -0.7993468642234802
           ],
-          'descriptor': {'dimensions': [6], 'dataType': 'float16'}
+          'descriptor': {shape: [6], dataType: 'float16'}
         },
         'concatInput4': {
           'data': [
             0.6653800010681152, 0.03886038810014725, 0.5182055234909058,
             -0.8742017149925232, -0.4790218770503998, 0.1211843192577362
           ],
-          'descriptor': {'dimensions': [6], 'dataType': 'float16'}
+          'descriptor': {shape: [6], dataType: 'float16'}
         }
       },
       'operators': [{
@@ -432,7 +432,7 @@ const concatTests = [
             -0.720703125,   -0.79931640625, 0.66552734375,  0.038848876953125,
             0.51806640625,  -0.8740234375,  -0.47900390625, 0.12115478515625
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float16'}
+          'descriptor': {shape: [24], dataType: 'float16'}
         }
       }
     }
@@ -444,14 +444,14 @@ const concatTests = [
       'inputs': {
         'concatInput1': {
           'data': [-0.3944413363933563, 0.861982524394989],
-          'descriptor': {'dimensions': [2], 'dataType': 'float32'}
+          'descriptor': {shape: [2], dataType: 'float32'}
         },
         'concatInput2': {
           'data': [
             0.337996244430542, -0.990639865398407, 0.576785683631897,
             0.32276400923728943
           ],
-          'descriptor': {'dimensions': [4], 'dataType': 'float32'}
+          'descriptor': {shape: [4], dataType: 'float32'}
         },
         'concatInput3': {
           'data': [
@@ -459,7 +459,7 @@ const concatTests = [
             -0.402848482131958, -0.9531654119491577, -0.6731740236282349,
             0.49189892411231995, -0.15864109992980957
           ],
-          'descriptor': {'dimensions': [8], 'dataType': 'float32'}
+          'descriptor': {shape: [8], dataType: 'float32'}
         },
         'concatInput4': {
           'data': [
@@ -468,7 +468,7 @@ const concatTests = [
             0.5182055234909058, -0.8742017149925232, -0.4790218770503998,
             0.1211843192577362
           ],
-          'descriptor': {'dimensions': [10], 'dataType': 'float32'}
+          'descriptor': {shape: [10], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -494,7 +494,7 @@ const concatTests = [
             0.6653800010681152,   0.03886038810014725,  0.5182055234909058,
             -0.8742017149925232,  -0.4790218770503998,  0.1211843192577362
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'}
+          'descriptor': {shape: [24], dataType: 'float32'}
         }
       }
     }
@@ -506,14 +506,14 @@ const concatTests = [
       'inputs': {
         'concatInput1': {
           'data': [-0.3944413363933563, 0.861982524394989],
-          'descriptor': {'dimensions': [2], 'dataType': 'float16'}
+          'descriptor': {shape: [2], dataType: 'float16'}
         },
         'concatInput2': {
           'data': [
             0.337996244430542, -0.990639865398407, 0.576785683631897,
             0.32276400923728943
           ],
-          'descriptor': {'dimensions': [4], 'dataType': 'float16'}
+          'descriptor': {shape: [4], dataType: 'float16'}
         },
         'concatInput3': {
           'data': [
@@ -521,7 +521,7 @@ const concatTests = [
             -0.402848482131958, -0.9531654119491577, -0.6731740236282349,
             0.49189892411231995, -0.15864109992980957
           ],
-          'descriptor': {'dimensions': [8], 'dataType': 'float16'}
+          'descriptor': {shape: [8], dataType: 'float16'}
         },
         'concatInput4': {
           'data': [
@@ -530,7 +530,7 @@ const concatTests = [
             0.5182055234909058, -0.8742017149925232, -0.4790218770503998,
             0.1211843192577362
           ],
-          'descriptor': {'dimensions': [10], 'dataType': 'float16'}
+          'descriptor': {shape: [10], dataType: 'float16'}
         }
       },
       'operators': [{
@@ -554,7 +554,7 @@ const concatTests = [
             -0.720703125,   -0.79931640625, 0.66552734375,  0.038848876953125,
             0.51806640625,  -0.8740234375,  -0.47900390625, 0.12115478515625
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float16'}
+          'descriptor': {shape: [24], dataType: 'float16'}
         }
       }
     }
@@ -570,7 +570,7 @@ const concatTests = [
             -0.44735023379325867, 0.11028251051902771, -0.5945112705230713,
             -0.402848482131958, -0.9531654119491577, -0.6731740236282349
           ],
-          'descriptor': {'dimensions': [2, 6], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 6], dataType: 'float32'}
         },
         'concatInput2': {
           'data': [
@@ -579,7 +579,7 @@ const concatTests = [
             0.6653800010681152, 0.03886038810014725, 0.5182055234909058,
             -0.8742017149925232, -0.4790218770503998, 0.1211843192577362
           ],
-          'descriptor': {'dimensions': [2, 6], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 6], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -600,7 +600,7 @@ const concatTests = [
             0.6653800010681152,   0.03886038810014725,  0.5182055234909058,
             -0.8742017149925232,  -0.4790218770503998,  0.1211843192577362
           ],
-          'descriptor': {'dimensions': [4, 6], 'dataType': 'float32'}
+          'descriptor': {shape: [4, 6], dataType: 'float32'}
         }
       }
     }
@@ -616,7 +616,7 @@ const concatTests = [
             -0.44735023379325867, 0.11028251051902771, -0.5945112705230713,
             -0.402848482131958, -0.9531654119491577, -0.6731740236282349
           ],
-          'descriptor': {'dimensions': [2, 6], 'dataType': 'float16'}
+          'descriptor': {shape: [2, 6], dataType: 'float16'}
         },
         'concatInput2': {
           'data': [
@@ -625,7 +625,7 @@ const concatTests = [
             0.6653800010681152, 0.03886038810014725, 0.5182055234909058,
             -0.8742017149925232, -0.4790218770503998, 0.1211843192577362
           ],
-          'descriptor': {'dimensions': [2, 6], 'dataType': 'float16'}
+          'descriptor': {shape: [2, 6], dataType: 'float16'}
         }
       },
       'operators': [{
@@ -644,7 +644,7 @@ const concatTests = [
             -0.720703125,   -0.79931640625, 0.66552734375,  0.038848876953125,
             0.51806640625,  -0.8740234375,  -0.47900390625, 0.12115478515625
           ],
-          'descriptor': {'dimensions': [4, 6], 'dataType': 'float16'}
+          'descriptor': {shape: [4, 6], dataType: 'float16'}
         }
       }
     }
@@ -659,7 +659,7 @@ const concatTests = [
             -0.3944413363933563, 0.861982524394989, 0.337996244430542,
             -0.990639865398407, 0.576785683631897, 0.32276400923728943
           ],
-          'descriptor': {'dimensions': [1, 6], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 6], dataType: 'float32'}
         },
         'concatInput2': {
           'data': [
@@ -670,7 +670,7 @@ const concatTests = [
             0.6653800010681152, 0.03886038810014725, 0.5182055234909058,
             -0.8742017149925232, -0.4790218770503998, 0.1211843192577362
           ],
-          'descriptor': {'dimensions': [3, 6], 'dataType': 'float32'}
+          'descriptor': {shape: [3, 6], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -691,7 +691,7 @@ const concatTests = [
             0.6653800010681152,   0.03886038810014725,  0.5182055234909058,
             -0.8742017149925232,  -0.4790218770503998,  0.1211843192577362
           ],
-          'descriptor': {'dimensions': [4, 6], 'dataType': 'float32'}
+          'descriptor': {shape: [4, 6], dataType: 'float32'}
         }
       }
     }
@@ -706,7 +706,7 @@ const concatTests = [
             -0.3944413363933563, 0.861982524394989, 0.337996244430542,
             -0.990639865398407, 0.576785683631897, 0.32276400923728943
           ],
-          'descriptor': {'dimensions': [1, 6], 'dataType': 'float16'}
+          'descriptor': {shape: [1, 6], dataType: 'float16'}
         },
         'concatInput2': {
           'data': [
@@ -717,7 +717,7 @@ const concatTests = [
             0.6653800010681152, 0.03886038810014725, 0.5182055234909058,
             -0.8742017149925232, -0.4790218770503998, 0.1211843192577362
           ],
-          'descriptor': {'dimensions': [3, 6], 'dataType': 'float16'}
+          'descriptor': {shape: [3, 6], dataType: 'float16'}
         }
       },
       'operators': [{
@@ -736,7 +736,7 @@ const concatTests = [
             -0.720703125,   -0.79931640625, 0.66552734375,  0.038848876953125,
             0.51806640625,  -0.8740234375,  -0.47900390625, 0.12115478515625
           ],
-          'descriptor': {'dimensions': [4, 6], 'dataType': 'float16'}
+          'descriptor': {shape: [4, 6], dataType: 'float16'}
         }
       }
     }
@@ -750,28 +750,28 @@ const concatTests = [
             -0.3944413363933563, 0.861982524394989, 0.337996244430542,
             -0.990639865398407, 0.576785683631897, 0.32276400923728943
           ],
-          'descriptor': {'dimensions': [3, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [3, 2], dataType: 'float32'}
         },
         'concatInput2': {
           'data': [
             -0.44735023379325867, 0.11028251051902771, -0.5945112705230713,
             -0.402848482131958, -0.9531654119491577, -0.6731740236282349
           ],
-          'descriptor': {'dimensions': [3, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [3, 2], dataType: 'float32'}
         },
         'concatInput3': {
           'data': [
             0.49189892411231995, -0.15864109992980957, -0.3418811559677124,
             -0.9158143401145935, -0.7206121683120728, -0.7993468642234802
           ],
-          'descriptor': {'dimensions': [3, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [3, 2], dataType: 'float32'}
         },
         'concatInput4': {
           'data': [
             0.6653800010681152, 0.03886038810014725, 0.5182055234909058,
             -0.8742017149925232, -0.4790218770503998, 0.1211843192577362
           ],
-          'descriptor': {'dimensions': [3, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [3, 2], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -797,7 +797,7 @@ const concatTests = [
             0.6653800010681152,   0.03886038810014725,  0.5182055234909058,
             -0.8742017149925232,  -0.4790218770503998,  0.1211843192577362
           ],
-          'descriptor': {'dimensions': [12, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [12, 2], dataType: 'float32'}
         }
       }
     }
@@ -811,28 +811,28 @@ const concatTests = [
             -0.3944413363933563, 0.861982524394989, 0.337996244430542,
             -0.990639865398407, 0.576785683631897, 0.32276400923728943
           ],
-          'descriptor': {'dimensions': [3, 2], 'dataType': 'float16'}
+          'descriptor': {shape: [3, 2], dataType: 'float16'}
         },
         'concatInput2': {
           'data': [
             -0.44735023379325867, 0.11028251051902771, -0.5945112705230713,
             -0.402848482131958, -0.9531654119491577, -0.6731740236282349
           ],
-          'descriptor': {'dimensions': [3, 2], 'dataType': 'float16'}
+          'descriptor': {shape: [3, 2], dataType: 'float16'}
         },
         'concatInput3': {
           'data': [
             0.49189892411231995, -0.15864109992980957, -0.3418811559677124,
             -0.9158143401145935, -0.7206121683120728, -0.7993468642234802
           ],
-          'descriptor': {'dimensions': [3, 2], 'dataType': 'float16'}
+          'descriptor': {shape: [3, 2], dataType: 'float16'}
         },
         'concatInput4': {
           'data': [
             0.6653800010681152, 0.03886038810014725, 0.5182055234909058,
             -0.8742017149925232, -0.4790218770503998, 0.1211843192577362
           ],
-          'descriptor': {'dimensions': [3, 2], 'dataType': 'float16'}
+          'descriptor': {shape: [3, 2], dataType: 'float16'}
         }
       },
       'operators': [{
@@ -856,7 +856,7 @@ const concatTests = [
             -0.720703125,   -0.79931640625, 0.66552734375,  0.038848876953125,
             0.51806640625,  -0.8740234375,  -0.47900390625, 0.12115478515625
           ],
-          'descriptor': {'dimensions': [12, 2], 'dataType': 'float16'}
+          'descriptor': {shape: [12, 2], dataType: 'float16'}
         }
       }
     }
@@ -876,14 +876,14 @@ const concatTests = [
             -0.9158143401145935,  -0.7206121683120728,  -0.7993468642234802,
             0.6653800010681152,   0.03886038810014725
           ],
-          'descriptor': {'dimensions': [2, 10], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 10], dataType: 'float32'}
         },
         'concatInput2': {
           'data': [
             0.5182055234909058, -0.8742017149925232, -0.4790218770503998,
             0.1211843192577362
           ],
-          'descriptor': {'dimensions': [2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -904,7 +904,7 @@ const concatTests = [
             -0.7206121683120728,  -0.7993468642234802, 0.6653800010681152,
             0.03886038810014725,  -0.4790218770503998, 0.1211843192577362
           ],
-          'descriptor': {'dimensions': [2, 12], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 12], dataType: 'float32'}
         }
       }
     }
@@ -924,14 +924,14 @@ const concatTests = [
             -0.9158143401145935,  -0.7206121683120728,  -0.7993468642234802,
             0.6653800010681152,   0.03886038810014725
           ],
-          'descriptor': {'dimensions': [2, 10], 'dataType': 'float16'}
+          'descriptor': {shape: [2, 10], dataType: 'float16'}
         },
         'concatInput2': {
           'data': [
             0.5182055234909058, -0.8742017149925232, -0.4790218770503998,
             0.1211843192577362
           ],
-          'descriptor': {'dimensions': [2, 2], 'dataType': 'float16'}
+          'descriptor': {shape: [2, 2], dataType: 'float16'}
         }
       },
       'operators': [{
@@ -950,7 +950,7 @@ const concatTests = [
             -0.341796875,  -0.916015625,      -0.720703125,   -0.79931640625,
             0.66552734375, 0.038848876953125, -0.47900390625, 0.12115478515625
           ],
-          'descriptor': {'dimensions': [2, 12], 'dataType': 'float16'}
+          'descriptor': {shape: [2, 12], dataType: 'float16'}
         }
       }
     }
@@ -965,7 +965,7 @@ const concatTests = [
             -0.990639865398407, 0.576785683631897, 0.32276400923728943,
             -0.44735023379325867, 0.11028251051902771
           ],
-          'descriptor': {'dimensions': [4, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [4, 2], dataType: 'float32'}
         },
         'concatInput2': {
           'data': [
@@ -973,7 +973,7 @@ const concatTests = [
             -0.6731740236282349, 0.49189892411231995, -0.15864109992980957,
             -0.3418811559677124, -0.9158143401145935
           ],
-          'descriptor': {'dimensions': [4, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [4, 2], dataType: 'float32'}
         },
         'concatInput3': {
           'data': [
@@ -981,7 +981,7 @@ const concatTests = [
             0.03886038810014725, 0.5182055234909058, -0.8742017149925232,
             -0.4790218770503998, 0.1211843192577362
           ],
-          'descriptor': {'dimensions': [4, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [4, 2], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -1004,7 +1004,7 @@ const concatTests = [
             -0.44735023379325867, 0.11028251051902771, -0.3418811559677124,
             -0.9158143401145935,  -0.4790218770503998, 0.1211843192577362
           ],
-          'descriptor': {'dimensions': [4, 6], 'dataType': 'float32'}
+          'descriptor': {shape: [4, 6], dataType: 'float32'}
         }
       }
     }
@@ -1019,7 +1019,7 @@ const concatTests = [
             -0.990639865398407, 0.576785683631897, 0.32276400923728943,
             -0.44735023379325867, 0.11028251051902771
           ],
-          'descriptor': {'dimensions': [4, 2], 'dataType': 'float16'}
+          'descriptor': {shape: [4, 2], dataType: 'float16'}
         },
         'concatInput2': {
           'data': [
@@ -1027,7 +1027,7 @@ const concatTests = [
             -0.6731740236282349, 0.49189892411231995, -0.15864109992980957,
             -0.3418811559677124, -0.9158143401145935
           ],
-          'descriptor': {'dimensions': [4, 2], 'dataType': 'float16'}
+          'descriptor': {shape: [4, 2], dataType: 'float16'}
         },
         'concatInput3': {
           'data': [
@@ -1035,7 +1035,7 @@ const concatTests = [
             0.03886038810014725, 0.5182055234909058, -0.8742017149925232,
             -0.4790218770503998, 0.1211843192577362
           ],
-          'descriptor': {'dimensions': [4, 2], 'dataType': 'float16'}
+          'descriptor': {shape: [4, 2], dataType: 'float16'}
         }
       },
       'operators': [{
@@ -1056,7 +1056,7 @@ const concatTests = [
             0.51806640625, -0.8740234375,  -0.447265625,   0.11029052734375,
             -0.341796875,  -0.916015625,   -0.47900390625, 0.12115478515625
           ],
-          'descriptor': {'dimensions': [4, 6], 'dataType': 'float16'}
+          'descriptor': {shape: [4, 6], dataType: 'float16'}
         }
       }
     }
@@ -1068,21 +1068,21 @@ const concatTests = [
       'inputs': {
         'concatInput1': {
           'data': [-0.3944413363933563, 0.861982524394989, 0.337996244430542],
-          'descriptor': {'dimensions': [3, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [3, 1], dataType: 'float32'}
         },
         'concatInput2': {
           'data': [
             -0.990639865398407, 0.576785683631897, 0.32276400923728943,
             -0.44735023379325867, 0.11028251051902771, -0.5945112705230713
           ],
-          'descriptor': {'dimensions': [3, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [3, 2], dataType: 'float32'}
         },
         'concatInput3': {
           'data': [
             -0.402848482131958, -0.9531654119491577, -0.6731740236282349,
             0.49189892411231995, -0.15864109992980957, -0.3418811559677124
           ],
-          'descriptor': {'dimensions': [3, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [3, 2], dataType: 'float32'}
         },
         'concatInput4': {
           'data': [
@@ -1090,7 +1090,7 @@ const concatTests = [
             0.6653800010681152, 0.03886038810014725, 0.5182055234909058,
             -0.8742017149925232, -0.4790218770503998, 0.1211843192577362
           ],
-          'descriptor': {'dimensions': [3, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [3, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -1116,7 +1116,7 @@ const concatTests = [
             -0.5945112705230713, -0.15864109992980957, -0.3418811559677124,
             -0.8742017149925232, -0.4790218770503998,  0.1211843192577362
           ],
-          'descriptor': {'dimensions': [3, 8], 'dataType': 'float32'}
+          'descriptor': {shape: [3, 8], dataType: 'float32'}
         }
       }
     }
@@ -1128,21 +1128,21 @@ const concatTests = [
       'inputs': {
         'concatInput1': {
           'data': [-0.3944413363933563, 0.861982524394989, 0.337996244430542],
-          'descriptor': {'dimensions': [3, 1], 'dataType': 'float16'}
+          'descriptor': {shape: [3, 1], dataType: 'float16'}
         },
         'concatInput2': {
           'data': [
             -0.990639865398407, 0.576785683631897, 0.32276400923728943,
             -0.44735023379325867, 0.11028251051902771, -0.5945112705230713
           ],
-          'descriptor': {'dimensions': [3, 2], 'dataType': 'float16'}
+          'descriptor': {shape: [3, 2], dataType: 'float16'}
         },
         'concatInput3': {
           'data': [
             -0.402848482131958, -0.9531654119491577, -0.6731740236282349,
             0.49189892411231995, -0.15864109992980957, -0.3418811559677124
           ],
-          'descriptor': {'dimensions': [3, 2], 'dataType': 'float16'}
+          'descriptor': {shape: [3, 2], dataType: 'float16'}
         },
         'concatInput4': {
           'data': [
@@ -1150,7 +1150,7 @@ const concatTests = [
             0.6653800010681152, 0.03886038810014725, 0.5182055234909058,
             -0.8742017149925232, -0.4790218770503998, 0.1211843192577362
           ],
-          'descriptor': {'dimensions': [3, 3], 'dataType': 'float16'}
+          'descriptor': {shape: [3, 3], dataType: 'float16'}
         }
       },
       'operators': [{
@@ -1176,7 +1176,7 @@ const concatTests = [
             -0.5947265625,  -0.15869140625, -0.341796875,
             -0.8740234375,  -0.47900390625, 0.12115478515625
           ],
-          'descriptor': {'dimensions': [3, 8], 'dataType': 'float16'}
+          'descriptor': {shape: [3, 8], dataType: 'float16'}
         }
       }
     }
@@ -1191,7 +1191,7 @@ const concatTests = [
             -0.3944413363933563, 0.861982524394989, 0.337996244430542,
             -0.990639865398407, 0.576785683631897, 0.32276400923728943
           ],
-          'descriptor': {'dimensions': [2, 1, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 1, 3], dataType: 'float32'}
         },
         'concatInput2': {
           'data': [
@@ -1202,7 +1202,7 @@ const concatTests = [
             0.6653800010681152, 0.03886038810014725, 0.5182055234909058,
             -0.8742017149925232, -0.4790218770503998, 0.1211843192577362
           ],
-          'descriptor': {'dimensions': [6, 1, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [6, 1, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -1223,7 +1223,7 @@ const concatTests = [
             0.6653800010681152,   0.03886038810014725,  0.5182055234909058,
             -0.8742017149925232,  -0.4790218770503998,  0.1211843192577362
           ],
-          'descriptor': {'dimensions': [8, 1, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [8, 1, 3], dataType: 'float32'}
         }
       }
     }
@@ -1238,7 +1238,7 @@ const concatTests = [
             -0.3944413363933563, 0.861982524394989, 0.337996244430542,
             -0.990639865398407, 0.576785683631897, 0.32276400923728943
           ],
-          'descriptor': {'dimensions': [2, 1, 3], 'dataType': 'float16'}
+          'descriptor': {shape: [2, 1, 3], dataType: 'float16'}
         },
         'concatInput2': {
           'data': [
@@ -1249,7 +1249,7 @@ const concatTests = [
             0.6653800010681152, 0.03886038810014725, 0.5182055234909058,
             -0.8742017149925232, -0.4790218770503998, 0.1211843192577362
           ],
-          'descriptor': {'dimensions': [6, 1, 3], 'dataType': 'float16'}
+          'descriptor': {shape: [6, 1, 3], dataType: 'float16'}
         }
       },
       'operators': [{
@@ -1268,7 +1268,7 @@ const concatTests = [
             -0.720703125,   -0.79931640625, 0.66552734375,  0.038848876953125,
             0.51806640625,  -0.8740234375,  -0.47900390625, 0.12115478515625
           ],
-          'descriptor': {'dimensions': [8, 1, 3], 'dataType': 'float16'}
+          'descriptor': {shape: [8, 1, 3], dataType: 'float16'}
         }
       }
     }
@@ -1280,21 +1280,21 @@ const concatTests = [
       'inputs': {
         'concatInput1': {
           'data': [-0.3944413363933563, 0.861982524394989, 0.337996244430542],
-          'descriptor': {'dimensions': [3, 1, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [3, 1, 1], dataType: 'float32'}
         },
         'concatInput2': {
           'data': [
             -0.990639865398407, 0.576785683631897, 0.32276400923728943,
             -0.44735023379325867, 0.11028251051902771, -0.5945112705230713
           ],
-          'descriptor': {'dimensions': [3, 2, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [3, 2, 1], dataType: 'float32'}
         },
         'concatInput3': {
           'data': [
             -0.402848482131958, -0.9531654119491577, -0.6731740236282349,
             0.49189892411231995, -0.15864109992980957, -0.3418811559677124
           ],
-          'descriptor': {'dimensions': [3, 2, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [3, 2, 1], dataType: 'float32'}
         },
         'concatInput4': {
           'data': [
@@ -1302,7 +1302,7 @@ const concatTests = [
             0.6653800010681152, 0.03886038810014725, 0.5182055234909058,
             -0.8742017149925232, -0.4790218770503998, 0.1211843192577362
           ],
-          'descriptor': {'dimensions': [3, 3, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [3, 3, 1], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -1328,7 +1328,7 @@ const concatTests = [
             -0.5945112705230713, -0.15864109992980957, -0.3418811559677124,
             -0.8742017149925232, -0.4790218770503998,  0.1211843192577362
           ],
-          'descriptor': {'dimensions': [3, 8, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [3, 8, 1], dataType: 'float32'}
         }
       }
     }
@@ -1340,21 +1340,21 @@ const concatTests = [
       'inputs': {
         'concatInput1': {
           'data': [-0.3944413363933563, 0.861982524394989, 0.337996244430542],
-          'descriptor': {'dimensions': [3, 1, 1], 'dataType': 'float16'}
+          'descriptor': {shape: [3, 1, 1], dataType: 'float16'}
         },
         'concatInput2': {
           'data': [
             -0.990639865398407, 0.576785683631897, 0.32276400923728943,
             -0.44735023379325867, 0.11028251051902771, -0.5945112705230713
           ],
-          'descriptor': {'dimensions': [3, 2, 1], 'dataType': 'float16'}
+          'descriptor': {shape: [3, 2, 1], dataType: 'float16'}
         },
         'concatInput3': {
           'data': [
             -0.402848482131958, -0.9531654119491577, -0.6731740236282349,
             0.49189892411231995, -0.15864109992980957, -0.3418811559677124
           ],
-          'descriptor': {'dimensions': [3, 2, 1], 'dataType': 'float16'}
+          'descriptor': {shape: [3, 2, 1], dataType: 'float16'}
         },
         'concatInput4': {
           'data': [
@@ -1362,7 +1362,7 @@ const concatTests = [
             0.6653800010681152, 0.03886038810014725, 0.5182055234909058,
             -0.8742017149925232, -0.4790218770503998, 0.1211843192577362
           ],
-          'descriptor': {'dimensions': [3, 3, 1], 'dataType': 'float16'}
+          'descriptor': {shape: [3, 3, 1], dataType: 'float16'}
         }
       },
       'operators': [{
@@ -1388,7 +1388,7 @@ const concatTests = [
             -0.5947265625,  -0.15869140625, -0.341796875,
             -0.8740234375,  -0.47900390625, 0.12115478515625
           ],
-          'descriptor': {'dimensions': [3, 8, 1], 'dataType': 'float16'}
+          'descriptor': {shape: [3, 8, 1], dataType: 'float16'}
         }
       }
     }
@@ -1403,7 +1403,7 @@ const concatTests = [
             -0.990639865398407, 0.576785683631897, 0.32276400923728943,
             -0.44735023379325867, 0.11028251051902771
           ],
-          'descriptor': {'dimensions': [2, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2], dataType: 'float32'}
         },
         'concatInput2': {
           'data': [
@@ -1411,7 +1411,7 @@ const concatTests = [
             -0.6731740236282349, 0.49189892411231995, -0.15864109992980957,
             -0.3418811559677124, -0.9158143401145935
           ],
-          'descriptor': {'dimensions': [2, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2], dataType: 'float32'}
         },
         'concatInput3': {
           'data': [
@@ -1419,7 +1419,7 @@ const concatTests = [
             0.03886038810014725, 0.5182055234909058, -0.8742017149925232,
             -0.4790218770503998, 0.1211843192577362
           ],
-          'descriptor': {'dimensions': [2, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -1442,7 +1442,7 @@ const concatTests = [
             -0.44735023379325867, 0.11028251051902771, -0.3418811559677124,
             -0.9158143401145935,  -0.4790218770503998, 0.1211843192577362
           ],
-          'descriptor': {'dimensions': [2, 2, 6], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 6], dataType: 'float32'}
         }
       }
     }
@@ -1457,7 +1457,7 @@ const concatTests = [
             -0.990639865398407, 0.576785683631897, 0.32276400923728943,
             -0.44735023379325867, 0.11028251051902771
           ],
-          'descriptor': {'dimensions': [2, 2, 2], 'dataType': 'float16'}
+          'descriptor': {shape: [2, 2, 2], dataType: 'float16'}
         },
         'concatInput2': {
           'data': [
@@ -1465,7 +1465,7 @@ const concatTests = [
             -0.6731740236282349, 0.49189892411231995, -0.15864109992980957,
             -0.3418811559677124, -0.9158143401145935
           ],
-          'descriptor': {'dimensions': [2, 2, 2], 'dataType': 'float16'}
+          'descriptor': {shape: [2, 2, 2], dataType: 'float16'}
         },
         'concatInput3': {
           'data': [
@@ -1473,7 +1473,7 @@ const concatTests = [
             0.03886038810014725, 0.5182055234909058, -0.8742017149925232,
             -0.4790218770503998, 0.1211843192577362
           ],
-          'descriptor': {'dimensions': [2, 2, 2], 'dataType': 'float16'}
+          'descriptor': {shape: [2, 2, 2], dataType: 'float16'}
         }
       },
       'operators': [{
@@ -1494,7 +1494,7 @@ const concatTests = [
             0.51806640625, -0.8740234375,  -0.447265625,   0.11029052734375,
             -0.341796875,  -0.916015625,   -0.47900390625, 0.12115478515625
           ],
-          'descriptor': {'dimensions': [2, 2, 6], 'dataType': 'float16'}
+          'descriptor': {shape: [2, 2, 6], dataType: 'float16'}
         }
       }
     }
@@ -1509,7 +1509,7 @@ const concatTests = [
             -0.3944413363933563, 0.861982524394989, 0.337996244430542,
             -0.990639865398407, 0.576785683631897, 0.32276400923728943
           ],
-          'descriptor': {'dimensions': [1, 3, 1, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 3, 1, 2], dataType: 'float32'}
         },
         'concatInput2': {
           'data': [
@@ -1520,7 +1520,7 @@ const concatTests = [
             0.6653800010681152, 0.03886038810014725, 0.5182055234909058,
             -0.8742017149925232, -0.4790218770503998, 0.1211843192577362
           ],
-          'descriptor': {'dimensions': [3, 3, 1, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [3, 3, 1, 2], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -1541,7 +1541,7 @@ const concatTests = [
             0.6653800010681152,   0.03886038810014725,  0.5182055234909058,
             -0.8742017149925232,  -0.4790218770503998,  0.1211843192577362
           ],
-          'descriptor': {'dimensions': [4, 3, 1, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [4, 3, 1, 2], dataType: 'float32'}
         }
       }
     }
@@ -1556,7 +1556,7 @@ const concatTests = [
             -0.3944413363933563, 0.861982524394989, 0.337996244430542,
             -0.990639865398407, 0.576785683631897, 0.32276400923728943
           ],
-          'descriptor': {'dimensions': [1, 3, 1, 2], 'dataType': 'float16'}
+          'descriptor': {shape: [1, 3, 1, 2], dataType: 'float16'}
         },
         'concatInput2': {
           'data': [
@@ -1567,7 +1567,7 @@ const concatTests = [
             0.6653800010681152, 0.03886038810014725, 0.5182055234909058,
             -0.8742017149925232, -0.4790218770503998, 0.1211843192577362
           ],
-          'descriptor': {'dimensions': [3, 3, 1, 2], 'dataType': 'float16'}
+          'descriptor': {shape: [3, 3, 1, 2], dataType: 'float16'}
         }
       },
       'operators': [{
@@ -1586,7 +1586,7 @@ const concatTests = [
             -0.720703125,   -0.79931640625, 0.66552734375,  0.038848876953125,
             0.51806640625,  -0.8740234375,  -0.47900390625, 0.12115478515625
           ],
-          'descriptor': {'dimensions': [4, 3, 1, 2], 'dataType': 'float16'}
+          'descriptor': {shape: [4, 3, 1, 2], dataType: 'float16'}
         }
       }
     }
@@ -1601,7 +1601,7 @@ const concatTests = [
             -0.990639865398407, 0.576785683631897, 0.32276400923728943,
             -0.44735023379325867, 0.11028251051902771
           ],
-          'descriptor': {'dimensions': [2, 2, 1, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 1, 2], dataType: 'float32'}
         },
         'concatInput2': {
           'data': [
@@ -1609,7 +1609,7 @@ const concatTests = [
             -0.6731740236282349, 0.49189892411231995, -0.15864109992980957,
             -0.3418811559677124, -0.9158143401145935
           ],
-          'descriptor': {'dimensions': [2, 2, 1, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 1, 2], dataType: 'float32'}
         },
         'concatInput3': {
           'data': [
@@ -1617,7 +1617,7 @@ const concatTests = [
             0.03886038810014725, 0.5182055234909058, -0.8742017149925232,
             -0.4790218770503998, 0.1211843192577362
           ],
-          'descriptor': {'dimensions': [2, 2, 1, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 1, 2], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -1640,7 +1640,7 @@ const concatTests = [
             -0.3418811559677124, -0.9158143401145935, 0.5182055234909058,
             -0.8742017149925232, -0.4790218770503998, 0.1211843192577362
           ],
-          'descriptor': {'dimensions': [2, 6, 1, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 6, 1, 2], dataType: 'float32'}
         }
       }
     }
@@ -1655,7 +1655,7 @@ const concatTests = [
             -0.990639865398407, 0.576785683631897, 0.32276400923728943,
             -0.44735023379325867, 0.11028251051902771
           ],
-          'descriptor': {'dimensions': [2, 2, 1, 2], 'dataType': 'float16'}
+          'descriptor': {shape: [2, 2, 1, 2], dataType: 'float16'}
         },
         'concatInput2': {
           'data': [
@@ -1663,7 +1663,7 @@ const concatTests = [
             -0.6731740236282349, 0.49189892411231995, -0.15864109992980957,
             -0.3418811559677124, -0.9158143401145935
           ],
-          'descriptor': {'dimensions': [2, 2, 1, 2], 'dataType': 'float16'}
+          'descriptor': {shape: [2, 2, 1, 2], dataType: 'float16'}
         },
         'concatInput3': {
           'data': [
@@ -1671,7 +1671,7 @@ const concatTests = [
             0.03886038810014725, 0.5182055234909058, -0.8742017149925232,
             -0.4790218770503998, 0.1211843192577362
           ],
-          'descriptor': {'dimensions': [2, 2, 1, 2], 'dataType': 'float16'}
+          'descriptor': {shape: [2, 2, 1, 2], dataType: 'float16'}
         }
       },
       'operators': [{
@@ -1692,7 +1692,7 @@ const concatTests = [
             0.491943359375, -0.15869140625, -0.341796875,   -0.916015625,
             0.51806640625,  -0.8740234375,  -0.47900390625, 0.12115478515625
           ],
-          'descriptor': {'dimensions': [2, 6, 1, 2], 'dataType': 'float16'}
+          'descriptor': {shape: [2, 6, 1, 2], dataType: 'float16'}
         }
       }
     }
@@ -1707,7 +1707,7 @@ const concatTests = [
             -0.3944413363933563, 0.861982524394989, 0.337996244430542,
             -0.990639865398407
           ],
-          'descriptor': {'dimensions': [1, 2, 2, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 2, 1], dataType: 'float32'}
         },
         'concatInput2': {
           'data': [
@@ -1718,14 +1718,14 @@ const concatTests = [
             -0.7206121683120728, -0.7993468642234802, 0.6653800010681152,
             0.03886038810014725
           ],
-          'descriptor': {'dimensions': [1, 2, 8, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 8, 1], dataType: 'float32'}
         },
         'concatInput3': {
           'data': [
             0.5182055234909058, -0.8742017149925232, -0.4790218770503998,
             0.1211843192577362
           ],
-          'descriptor': {'dimensions': [1, 2, 2, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 2, 1], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -1748,7 +1748,7 @@ const concatTests = [
             -0.7206121683120728,  -0.7993468642234802,  0.6653800010681152,
             0.03886038810014725,  -0.4790218770503998,  0.1211843192577362
           ],
-          'descriptor': {'dimensions': [1, 2, 12, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 12, 1], dataType: 'float32'}
         }
       }
     }
@@ -1763,7 +1763,7 @@ const concatTests = [
             -0.3944413363933563, 0.861982524394989, 0.337996244430542,
             -0.990639865398407
           ],
-          'descriptor': {'dimensions': [1, 2, 2, 1], 'dataType': 'float16'}
+          'descriptor': {shape: [1, 2, 2, 1], dataType: 'float16'}
         },
         'concatInput2': {
           'data': [
@@ -1774,14 +1774,14 @@ const concatTests = [
             -0.7206121683120728, -0.7993468642234802, 0.6653800010681152,
             0.03886038810014725
           ],
-          'descriptor': {'dimensions': [1, 2, 8, 1], 'dataType': 'float16'}
+          'descriptor': {shape: [1, 2, 8, 1], dataType: 'float16'}
         },
         'concatInput3': {
           'data': [
             0.5182055234909058, -0.8742017149925232, -0.4790218770503998,
             0.1211843192577362
           ],
-          'descriptor': {'dimensions': [1, 2, 2, 1], 'dataType': 'float16'}
+          'descriptor': {shape: [1, 2, 2, 1], dataType: 'float16'}
         }
       },
       'operators': [{
@@ -1802,7 +1802,7 @@ const concatTests = [
             -0.341796875,  -0.916015625,      -0.720703125,   -0.79931640625,
             0.66552734375, 0.038848876953125, -0.47900390625, 0.12115478515625
           ],
-          'descriptor': {'dimensions': [1, 2, 12, 1], 'dataType': 'float16'}
+          'descriptor': {shape: [1, 2, 12, 1], dataType: 'float16'}
         }
       }
     }
@@ -1814,18 +1814,18 @@ const concatTests = [
       'inputs': {
         'concatInput1': {
           'data': [-0.3944413363933563, 0.861982524394989, 0.337996244430542],
-          'descriptor': {'dimensions': [1, 3, 1, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 3, 1, 1], dataType: 'float32'}
         },
         'concatInput2': {
           'data': [-0.990639865398407, 0.576785683631897, 0.32276400923728943],
-          'descriptor': {'dimensions': [1, 3, 1, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 3, 1, 1], dataType: 'float32'}
         },
         'concatInput3': {
           'data': [
             -0.44735023379325867, 0.11028251051902771, -0.5945112705230713,
             -0.402848482131958, -0.9531654119491577, -0.6731740236282349
           ],
-          'descriptor': {'dimensions': [1, 3, 1, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 3, 1, 2], dataType: 'float32'}
         },
         'concatInput4': {
           'data': [
@@ -1834,7 +1834,7 @@ const concatTests = [
             0.6653800010681152, 0.03886038810014725, 0.5182055234909058,
             -0.8742017149925232, -0.4790218770503998, 0.1211843192577362
           ],
-          'descriptor': {'dimensions': [1, 3, 1, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 3, 1, 4], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -1860,7 +1860,7 @@ const concatTests = [
             -0.9531654119491577, -0.6731740236282349, 0.5182055234909058,
             -0.8742017149925232, -0.4790218770503998, 0.1211843192577362
           ],
-          'descriptor': {'dimensions': [1, 3, 1, 8], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 3, 1, 8], dataType: 'float32'}
         }
       }
     }
@@ -1872,18 +1872,18 @@ const concatTests = [
       'inputs': {
         'concatInput1': {
           'data': [-0.3944413363933563, 0.861982524394989, 0.337996244430542],
-          'descriptor': {'dimensions': [1, 3, 1, 1], 'dataType': 'float16'}
+          'descriptor': {shape: [1, 3, 1, 1], dataType: 'float16'}
         },
         'concatInput2': {
           'data': [-0.990639865398407, 0.576785683631897, 0.32276400923728943],
-          'descriptor': {'dimensions': [1, 3, 1, 1], 'dataType': 'float16'}
+          'descriptor': {shape: [1, 3, 1, 1], dataType: 'float16'}
         },
         'concatInput3': {
           'data': [
             -0.44735023379325867, 0.11028251051902771, -0.5945112705230713,
             -0.402848482131958, -0.9531654119491577, -0.6731740236282349
           ],
-          'descriptor': {'dimensions': [1, 3, 1, 2], 'dataType': 'float16'}
+          'descriptor': {shape: [1, 3, 1, 2], dataType: 'float16'}
         },
         'concatInput4': {
           'data': [
@@ -1892,7 +1892,7 @@ const concatTests = [
             0.6653800010681152, 0.03886038810014725, 0.5182055234909058,
             -0.8742017149925232, -0.4790218770503998, 0.1211843192577362
           ],
-          'descriptor': {'dimensions': [1, 3, 1, 4], 'dataType': 'float16'}
+          'descriptor': {shape: [1, 3, 1, 4], dataType: 'float16'}
         }
       },
       'operators': [{
@@ -1916,7 +1916,7 @@ const concatTests = [
             0.337890625,    0.32275390625,  -0.953125,      -0.67333984375,
             0.51806640625,  -0.8740234375,  -0.47900390625, 0.12115478515625
           ],
-          'descriptor': {'dimensions': [1, 3, 1, 8], 'dataType': 'float16'}
+          'descriptor': {shape: [1, 3, 1, 8], dataType: 'float16'}
         }
       }
     }
@@ -1930,28 +1930,28 @@ const concatTests = [
             -0.3944413363933563, 0.861982524394989, 0.337996244430542,
             -0.990639865398407, 0.576785683631897, 0.32276400923728943
           ],
-          'descriptor': {'dimensions': [1, 2, 1, 1, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 1, 1, 3], dataType: 'float32'}
         },
         'concatInput2': {
           'data': [
             -0.44735023379325867, 0.11028251051902771, -0.5945112705230713,
             -0.402848482131958, -0.9531654119491577, -0.6731740236282349
           ],
-          'descriptor': {'dimensions': [1, 2, 1, 1, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 1, 1, 3], dataType: 'float32'}
         },
         'concatInput3': {
           'data': [
             0.49189892411231995, -0.15864109992980957, -0.3418811559677124,
             -0.9158143401145935, -0.7206121683120728, -0.7993468642234802
           ],
-          'descriptor': {'dimensions': [1, 2, 1, 1, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 1, 1, 3], dataType: 'float32'}
         },
         'concatInput4': {
           'data': [
             0.6653800010681152, 0.03886038810014725, 0.5182055234909058,
             -0.8742017149925232, -0.4790218770503998, 0.1211843192577362
           ],
-          'descriptor': {'dimensions': [1, 2, 1, 1, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 1, 1, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -1977,7 +1977,7 @@ const concatTests = [
             0.6653800010681152,   0.03886038810014725,  0.5182055234909058,
             -0.8742017149925232,  -0.4790218770503998,  0.1211843192577362
           ],
-          'descriptor': {'dimensions': [4, 2, 1, 1, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [4, 2, 1, 1, 3], dataType: 'float32'}
         }
       }
     }
@@ -1991,28 +1991,28 @@ const concatTests = [
             -0.3944413363933563, 0.861982524394989, 0.337996244430542,
             -0.990639865398407, 0.576785683631897, 0.32276400923728943
           ],
-          'descriptor': {'dimensions': [1, 2, 1, 1, 3], 'dataType': 'float16'}
+          'descriptor': {shape: [1, 2, 1, 1, 3], dataType: 'float16'}
         },
         'concatInput2': {
           'data': [
             -0.44735023379325867, 0.11028251051902771, -0.5945112705230713,
             -0.402848482131958, -0.9531654119491577, -0.6731740236282349
           ],
-          'descriptor': {'dimensions': [1, 2, 1, 1, 3], 'dataType': 'float16'}
+          'descriptor': {shape: [1, 2, 1, 1, 3], dataType: 'float16'}
         },
         'concatInput3': {
           'data': [
             0.49189892411231995, -0.15864109992980957, -0.3418811559677124,
             -0.9158143401145935, -0.7206121683120728, -0.7993468642234802
           ],
-          'descriptor': {'dimensions': [1, 2, 1, 1, 3], 'dataType': 'float16'}
+          'descriptor': {shape: [1, 2, 1, 1, 3], dataType: 'float16'}
         },
         'concatInput4': {
           'data': [
             0.6653800010681152, 0.03886038810014725, 0.5182055234909058,
             -0.8742017149925232, -0.4790218770503998, 0.1211843192577362
           ],
-          'descriptor': {'dimensions': [1, 2, 1, 1, 3], 'dataType': 'float16'}
+          'descriptor': {shape: [1, 2, 1, 1, 3], dataType: 'float16'}
         }
       },
       'operators': [{
@@ -2036,7 +2036,7 @@ const concatTests = [
             -0.720703125,   -0.79931640625, 0.66552734375,  0.038848876953125,
             0.51806640625,  -0.8740234375,  -0.47900390625, 0.12115478515625
           ],
-          'descriptor': {'dimensions': [4, 2, 1, 1, 3], 'dataType': 'float16'}
+          'descriptor': {shape: [4, 2, 1, 1, 3], dataType: 'float16'}
         }
       }
     }
@@ -2051,7 +2051,7 @@ const concatTests = [
             -0.3944413363933563, 0.861982524394989, 0.337996244430542,
             -0.990639865398407, 0.576785683631897, 0.32276400923728943
           ],
-          'descriptor': {'dimensions': [1, 2, 3, 1, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 3, 1, 1], dataType: 'float32'}
         },
         'concatInput2': {
           'data': [
@@ -2062,7 +2062,7 @@ const concatTests = [
             0.6653800010681152, 0.03886038810014725, 0.5182055234909058,
             -0.8742017149925232, -0.4790218770503998, 0.1211843192577362
           ],
-          'descriptor': {'dimensions': [1, 6, 3, 1, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 6, 3, 1, 1], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -2083,7 +2083,7 @@ const concatTests = [
             0.6653800010681152,   0.03886038810014725,  0.5182055234909058,
             -0.8742017149925232,  -0.4790218770503998,  0.1211843192577362
           ],
-          'descriptor': {'dimensions': [1, 8, 3, 1, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 8, 3, 1, 1], dataType: 'float32'}
         }
       }
     }
@@ -2098,7 +2098,7 @@ const concatTests = [
             -0.3944413363933563, 0.861982524394989, 0.337996244430542,
             -0.990639865398407, 0.576785683631897, 0.32276400923728943
           ],
-          'descriptor': {'dimensions': [1, 2, 3, 1, 1], 'dataType': 'float16'}
+          'descriptor': {shape: [1, 2, 3, 1, 1], dataType: 'float16'}
         },
         'concatInput2': {
           'data': [
@@ -2109,7 +2109,7 @@ const concatTests = [
             0.6653800010681152, 0.03886038810014725, 0.5182055234909058,
             -0.8742017149925232, -0.4790218770503998, 0.1211843192577362
           ],
-          'descriptor': {'dimensions': [1, 6, 3, 1, 1], 'dataType': 'float16'}
+          'descriptor': {shape: [1, 6, 3, 1, 1], dataType: 'float16'}
         }
       },
       'operators': [{
@@ -2128,7 +2128,7 @@ const concatTests = [
             -0.720703125,   -0.79931640625, 0.66552734375,  0.038848876953125,
             0.51806640625,  -0.8740234375,  -0.47900390625, 0.12115478515625
           ],
-          'descriptor': {'dimensions': [1, 8, 3, 1, 1], 'dataType': 'float16'}
+          'descriptor': {shape: [1, 8, 3, 1, 1], dataType: 'float16'}
         }
       }
     }
@@ -2143,7 +2143,7 @@ const concatTests = [
             -0.3944413363933563, 0.861982524394989, 0.337996244430542,
             -0.990639865398407
           ],
-          'descriptor': {'dimensions': [1, 2, 1, 1, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 1, 1, 2], dataType: 'float32'}
         },
         'concatInput2': {
           'data': [
@@ -2151,7 +2151,7 @@ const concatTests = [
             0.11028251051902771, -0.5945112705230713, -0.402848482131958,
             -0.9531654119491577, -0.6731740236282349
           ],
-          'descriptor': {'dimensions': [1, 2, 2, 1, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 2, 1, 2], dataType: 'float32'}
         },
         'concatInput3': {
           'data': [
@@ -2160,7 +2160,7 @@ const concatTests = [
             0.6653800010681152, 0.03886038810014725, 0.5182055234909058,
             -0.8742017149925232, -0.4790218770503998, 0.1211843192577362
           ],
-          'descriptor': {'dimensions': [1, 2, 3, 1, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 3, 1, 2], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -2183,7 +2183,7 @@ const concatTests = [
             0.6653800010681152,  0.03886038810014725,  0.5182055234909058,
             -0.8742017149925232, -0.4790218770503998,  0.1211843192577362
           ],
-          'descriptor': {'dimensions': [1, 2, 6, 1, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 6, 1, 2], dataType: 'float32'}
         }
       }
     }
@@ -2198,7 +2198,7 @@ const concatTests = [
             -0.3944413363933563, 0.861982524394989, 0.337996244430542,
             -0.990639865398407
           ],
-          'descriptor': {'dimensions': [1, 2, 1, 1, 2], 'dataType': 'float16'}
+          'descriptor': {shape: [1, 2, 1, 1, 2], dataType: 'float16'}
         },
         'concatInput2': {
           'data': [
@@ -2206,7 +2206,7 @@ const concatTests = [
             0.11028251051902771, -0.5945112705230713, -0.402848482131958,
             -0.9531654119491577, -0.6731740236282349
           ],
-          'descriptor': {'dimensions': [1, 2, 2, 1, 2], 'dataType': 'float16'}
+          'descriptor': {shape: [1, 2, 2, 1, 2], dataType: 'float16'}
         },
         'concatInput3': {
           'data': [
@@ -2215,7 +2215,7 @@ const concatTests = [
             0.6653800010681152, 0.03886038810014725, 0.5182055234909058,
             -0.8742017149925232, -0.4790218770503998, 0.1211843192577362
           ],
-          'descriptor': {'dimensions': [1, 2, 3, 1, 2], 'dataType': 'float16'}
+          'descriptor': {shape: [1, 2, 3, 1, 2], dataType: 'float16'}
         }
       },
       'operators': [{
@@ -2236,7 +2236,7 @@ const concatTests = [
             -0.953125,     -0.67333984375,   0.66552734375,  0.038848876953125,
             0.51806640625, -0.8740234375,    -0.47900390625, 0.12115478515625
           ],
-          'descriptor': {'dimensions': [1, 2, 6, 1, 2], 'dataType': 'float16'}
+          'descriptor': {shape: [1, 2, 6, 1, 2], dataType: 'float16'}
         }
       }
     }
@@ -2251,7 +2251,7 @@ const concatTests = [
             -0.3944413363933563, 0.861982524394989, 0.337996244430542,
             -0.990639865398407, 0.576785683631897, 0.32276400923728943
           ],
-          'descriptor': {'dimensions': [3, 1, 1, 1, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [3, 1, 1, 1, 2], dataType: 'float32'}
         },
         'concatInput2': {
           'data': [
@@ -2262,7 +2262,7 @@ const concatTests = [
             0.6653800010681152, 0.03886038810014725, 0.5182055234909058,
             -0.8742017149925232, -0.4790218770503998, 0.1211843192577362
           ],
-          'descriptor': {'dimensions': [3, 1, 1, 3, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [3, 1, 1, 3, 2], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -2283,7 +2283,7 @@ const concatTests = [
             0.6653800010681152,  0.03886038810014725, 0.5182055234909058,
             -0.8742017149925232, -0.4790218770503998, 0.1211843192577362
           ],
-          'descriptor': {'dimensions': [3, 1, 1, 4, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [3, 1, 1, 4, 2], dataType: 'float32'}
         }
       }
     }
@@ -2298,7 +2298,7 @@ const concatTests = [
             -0.3944413363933563, 0.861982524394989, 0.337996244430542,
             -0.990639865398407, 0.576785683631897, 0.32276400923728943
           ],
-          'descriptor': {'dimensions': [3, 1, 1, 1, 2], 'dataType': 'float16'}
+          'descriptor': {shape: [3, 1, 1, 1, 2], dataType: 'float16'}
         },
         'concatInput2': {
           'data': [
@@ -2309,7 +2309,7 @@ const concatTests = [
             0.6653800010681152, 0.03886038810014725, 0.5182055234909058,
             -0.8742017149925232, -0.4790218770503998, 0.1211843192577362
           ],
-          'descriptor': {'dimensions': [3, 1, 1, 3, 2], 'dataType': 'float16'}
+          'descriptor': {shape: [3, 1, 1, 3, 2], dataType: 'float16'}
         }
       },
       'operators': [{
@@ -2328,7 +2328,7 @@ const concatTests = [
             0.57666015625, 0.32275390625,  0.66552734375,  0.038848876953125,
             0.51806640625, -0.8740234375,  -0.47900390625, 0.12115478515625
           ],
-          'descriptor': {'dimensions': [3, 1, 1, 4, 2], 'dataType': 'float16'}
+          'descriptor': {shape: [3, 1, 1, 4, 2], dataType: 'float16'}
         }
       }
     }
@@ -2344,7 +2344,7 @@ const concatTests = [
             -0.990639865398407, 0.576785683631897, 0.32276400923728943,
             -0.44735023379325867, 0.11028251051902771
           ],
-          'descriptor': {'dimensions': [1, 2, 1, 1, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 1, 1, 4], dataType: 'float32'}
         },
         'concatInput2': {
           'data': [
@@ -2355,7 +2355,7 @@ const concatTests = [
             0.5182055234909058, -0.8742017149925232, -0.4790218770503998,
             0.1211843192577362
           ],
-          'descriptor': {'dimensions': [1, 2, 1, 1, 8], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 1, 1, 8], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -2376,7 +2376,7 @@ const concatTests = [
             0.6653800010681152,   0.03886038810014725, 0.5182055234909058,
             -0.8742017149925232,  -0.4790218770503998, 0.1211843192577362
           ],
-          'descriptor': {'dimensions': [1, 2, 1, 1, 12], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 1, 1, 12], dataType: 'float32'}
         }
       }
     }
@@ -2392,7 +2392,7 @@ const concatTests = [
             -0.990639865398407, 0.576785683631897, 0.32276400923728943,
             -0.44735023379325867, 0.11028251051902771
           ],
-          'descriptor': {'dimensions': [1, 2, 1, 1, 4], 'dataType': 'float16'}
+          'descriptor': {shape: [1, 2, 1, 1, 4], dataType: 'float16'}
         },
         'concatInput2': {
           'data': [
@@ -2403,7 +2403,7 @@ const concatTests = [
             0.5182055234909058, -0.8742017149925232, -0.4790218770503998,
             0.1211843192577362
           ],
-          'descriptor': {'dimensions': [1, 2, 1, 1, 8], 'dataType': 'float16'}
+          'descriptor': {shape: [1, 2, 1, 1, 8], dataType: 'float16'}
         }
       },
       'operators': [{
@@ -2422,7 +2422,7 @@ const concatTests = [
             -0.720703125,   -0.79931640625, 0.66552734375,  0.038848876953125,
             0.51806640625,  -0.8740234375,  -0.47900390625, 0.12115478515625
           ],
-          'descriptor': {'dimensions': [1, 2, 1, 1, 12], 'dataType': 'float16'}
+          'descriptor': {shape: [1, 2, 1, 1, 12], dataType: 'float16'}
         }
       }
     }

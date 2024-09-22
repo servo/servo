@@ -7,7 +7,7 @@
 
 const kExampleInputDescriptor = {
   dataType: 'float32',
-  dimensions: [2]
+  shape: [2]
 };
 
 promise_test(async t => {

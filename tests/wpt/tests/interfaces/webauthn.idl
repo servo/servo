@@ -302,7 +302,7 @@ enum ClientCapability {
     "signalUnknownCredential"
 };
 
-enum PublicKeyCredentialHints {
+enum PublicKeyCredentialHint {
     "security-key",
     "client-device",
     "hybrid",

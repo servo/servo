@@ -113,19 +113,24 @@
     `);
     assert_equals(s.cssRules.length, 1);
     let outer = s.cssRules[0];
-    assert_equals(outer.cssRules.length, 2);
+    if (window.CSSScopeRule) {
+      assert_equals(outer.cssRules.length, 2);
 
-    // @scope
-    let scope = outer.cssRules[0];
-    assert_equals(scope.cssRules.length, 3);
-    assert_true(scope.cssRules[0] instanceof CSSNestedDeclarations);
-    assert_equals(scope.cssRules[0].cssText, `--x: 1; --y: 1;`);
-    assert_equals(scope.cssRules[1].cssText, `.b { }`); // Implicit :scope here.
-    assert_true(scope.cssRules[2] instanceof CSSNestedDeclarations);
-    assert_equals(scope.cssRules[2].cssText, `--z: 1;`);
+      // @scope
+      let scope = outer.cssRules[0];
+      assert_true(scope instanceof CSSScopeRule);
+      assert_equals(scope.cssRules.length, 3);
+      assert_true(scope.cssRules[0] instanceof CSSNestedDeclarations);
+      assert_equals(scope.cssRules[0].cssText, `--x: 1; --y: 1;`);
+      assert_equals(scope.cssRules[1].cssText, `.b { }`); // Implicit :scope here.
+      assert_true(scope.cssRules[2] instanceof CSSNestedDeclarations);
+      assert_equals(scope.cssRules[2].cssText, `--z: 1;`);
 
-    assert_true(outer.cssRules[1] instanceof CSSNestedDeclarations);
-    assert_equals(outer.cssRules[1].cssText, `--w: 1;`);
+      assert_true(outer.cssRules[1] instanceof CSSNestedDeclarations);
+      assert_equals(outer.cssRules[1].cssText, `--w: 1;`);
+    } else {
+      assert_equals(outer.cssRules.length, 0);
+    }
   }, 'Nested @scope rule');
 
   test(() => {

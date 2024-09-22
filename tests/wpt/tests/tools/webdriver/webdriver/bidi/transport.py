@@ -39,7 +39,9 @@ class Transport:
         self.read_message_task: Optional[asyncio.Task[Any]] = None
 
     async def start(self) -> None:
-        self.connection = await websockets.connect(self.url)  # type: ignore
+        # Default max_size of 1048576 bytes is too small for some messages.
+        # 128MB should be enough.
+        self.connection = await websockets.connect(self.url, max_size=128 * 1024 * 1024)  # type: ignore
         self.read_message_task = self.loop.create_task(self.read_messages())
 
         for msg in self.send_buf:

@@ -13,19 +13,6 @@
 //
 // MLOperand softmax(MLOperand input, unsigned long axis);
 
-
-const getSoftmaxPrecisionTolerance = (graphResources) => {
-  const args = graphResources.operators[0].arguments;
-  const inputShape = graphResources.inputs[args[0][Object.keys(args[0])[0]]]
-                         .descriptor.dimensions;
-  const axis = args.length === 2 ? args[1][Object.keys(args[1])[0]] : 1;
-  const tolerance = inputShape[axis] * 3 + 3;
-  const toleranceValueDict = {float32: tolerance, float16: tolerance};
-  const expectedDataType =
-      getExpectedDataTypeOfSingleOutput(graphResources.expectedOutputs);
-  return {metricType: 'ULP', value: toleranceValueDict[expectedDataType]};
-};
-
 const softmaxTests = [
   {
     'name': 'softmax float32 2D constant tensor all positive',
@@ -42,7 +29,7 @@ const softmaxTests = [
             1.6371468305587769, 0.27626121044158936, 5.02822732925415,
             3.8983259201049805, 2.8967113494873047,  6.88947057723999
           ],
-          'descriptor': {'dimensions': [4, 6], 'dataType': 'float32'},
+          'descriptor': {shape: [4, 6], dataType: 'float32'},
           'constant': true
         }
       },
@@ -67,7 +54,7 @@ const softmaxTests = [
             0.12633030116558075,    0.040812913328409195,
             0.014990009367465973,   0.8125221133232117
           ],
-          'descriptor': {'dimensions': [4, 6], 'dataType': 'float32'}
+          'descriptor': {shape: [4, 6], dataType: 'float32'}
         }
       }
     }
@@ -87,7 +74,7 @@ const softmaxTests = [
             1.6371468305587769, 0.27626121044158936, 5.02822732925415,
             3.8983259201049805, 2.8967113494873047,  6.88947057723999
           ],
-          'descriptor': {'dimensions': [4, 6], 'dataType': 'float32'}
+          'descriptor': {shape: [4, 6], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -111,7 +98,7 @@ const softmaxTests = [
             0.12633030116558075,    0.040812913328409195,
             0.014990009367465973,   0.8125221133232117
           ],
-          'descriptor': {'dimensions': [4, 6], 'dataType': 'float32'}
+          'descriptor': {shape: [4, 6], dataType: 'float32'}
         }
       }
     }
@@ -131,7 +118,7 @@ const softmaxTests = [
             -1.8421411514282227, -4.994808197021484,  -9.527292251586914,
             -4.985682964324951,  -8.421041488647461,  -6.235629558563232
           ],
-          'descriptor': {'dimensions': [4, 6], 'dataType': 'float32'}
+          'descriptor': {shape: [4, 6], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -151,7 +138,7 @@ const softmaxTests = [
             0.9090295433998108,   0.0388500951230526,    0.00041779119055718184,
             0.039206232875585556, 0.0012629841221496463, 0.011233373545110226
           ],
-          'descriptor': {'dimensions': [4, 6], 'dataType': 'float32'}
+          'descriptor': {shape: [4, 6], dataType: 'float32'}
         }
       }
     }
@@ -167,7 +154,7 @@ const softmaxTests = [
             0.5397239923477173, -0.9535139799118042, -0.5920282602310181,
             -0.17344485223293304, 0.14395014941692352, -0.37920907139778137
           ],
-          'descriptor': {'dimensions': [1, 3, 4], 'dataType': 'float32'},
+          'descriptor': {shape: [1, 3, 4], dataType: 'float32'},
           'constant': true
         }
       },
@@ -184,7 +171,7 @@ const softmaxTests = [
             0.5390242338180542, 0.16964708268642426, 0.142439603805542,
             0.22368484735488892, 0.36284899711608887, 0.3012755215167999
           ],
-          'descriptor': {'dimensions': [1, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 3, 4], dataType: 'float32'}
         }
       }
     }
@@ -200,7 +187,7 @@ const softmaxTests = [
             0.5397239923477173, -0.9535139799118042, -0.5920282602310181,
             -0.17344485223293304, 0.14395014941692352, -0.37920907139778137
           ],
-          'descriptor': {'dimensions': [3, 4, 1, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [3, 4, 1, 1], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -216,7 +203,7 @@ const softmaxTests = [
             0.33747196197509766, 0.07581108063459396, 0.17110128700733185,
             0.26004093885421753, 0.3571779429912567, 0.2116798311471939
           ],
-          'descriptor': {'dimensions': [3, 4, 1, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [3, 4, 1, 1], dataType: 'float32'}
         }
       }
     }
@@ -225,8 +212,7 @@ const softmaxTests = [
 
 if (navigator.ml) {
   softmaxTests.forEach((test) => {
-    webnn_conformance_test(
-        buildGraphAndCompute, getSoftmaxPrecisionTolerance, test);
+    webnn_conformance_test(buildGraphAndCompute, getPrecisionTolerance, test);
   });
 } else {
   test(() => assert_implements(navigator.ml, 'missing navigator.ml'));

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>Opacity should apply to the whole group</title>
+<meta name=fuzzy content="maxDifference=0-255; totalPixels=0-515">
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="match" href="nested-opacity-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="resources/compute-test.js"></script>
+<style>
+    body {
+        margin: 0;
+    }
+    div {
+        position: absolute;
+        width: 100px;
+        height: 100px;
+        background: green;
+    }
+
+    .parent {
+        view-transition-name: parent;
+        opacity: 0.4;
+    }
+
+    .child {
+        view-transition-name: child;
+        view-transition-group: parent;
+        top: 50px;
+        left: 50px;
+    }
+
+    ::view-transition-old(*),
+    ::view-transition-new(*) {
+        animation-play-state: paused;
+    }
+</style>
+<body>
+    <div class="parent">
+        <div class="child"></div>
+    </div>
+</body>

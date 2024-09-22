@@ -237,4 +237,28 @@ promise_test(async t => {
   await sender.setParameters(params);
   await waitForFrameWithResolution(t, pc1, 15, 30);
 }, `scaleResolutionDownTo is orientation agnostic`);
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+  pc1.onicecandidate = e => pc2.addIceCandidate(e.candidate);
+  pc2.onicecandidate = e => pc1.addIceCandidate(e.candidate);
+
+  const track = createResizableTrack(120, 60);
+  t.add_cleanup(() => track.stop());
+  const {sender} = pc1.addTransceiver(track);
+
+  await pc1.setLocalDescription();
+  await pc2.setRemoteDescription(pc1.localDescription);
+  await pc2.setLocalDescription();
+  await pc1.setRemoteDescription(pc2.localDescription);
+
+  // Restrict to 60x60. This results in 60x30 due to maintaining aspect ratio.
+  let params = sender.getParameters();
+  params.encodings[0].scaleResolutionDownTo = { maxWidth: 60, maxHeight: 60 };
+  await sender.setParameters(params);
+  await waitForFrameWithResolution(t, pc1, 60, 30);
+}, `scaleResolutionDownTo does not change aspect ratio`);
 </script>

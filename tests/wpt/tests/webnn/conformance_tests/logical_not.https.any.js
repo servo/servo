@@ -27,7 +27,7 @@ const logicalNotTests = [
     'graph': {
       'inputs': {
         'logicalNotInput':
-            {'data': [1], 'descriptor': {'dimensions': [], 'dataType': 'uint8'}}
+            {'data': [1], 'descriptor': {shape: [], dataType: 'uint8'}}
       },
       'operators': [{
         'name': 'logicalNot',
@@ -36,7 +36,7 @@ const logicalNotTests = [
       }],
       'expectedOutputs': {
         'logicalNotOutput':
-            {'data': [0], 'descriptor': {'dimensions': [], 'dataType': 'uint8'}}
+            {'data': [0], 'descriptor': {shape: [], dataType: 'uint8'}}
       }
     }
   },
@@ -49,7 +49,7 @@ const logicalNotTests = [
             204, 130, 90, 0,   147, 42, 10,  18,  13,  235, 0,   233,
             53,  83,  9,  254, 69,  56, 219, 109, 171, 0,   228, 135
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'uint8'},
+          'descriptor': {shape: [24], dataType: 'uint8'},
           'constant': true
         }
       },
@@ -64,7 +64,7 @@ const logicalNotTests = [
             0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'uint8'}
+          'descriptor': {shape: [24], dataType: 'uint8'}
         }
       }
     }
@@ -78,7 +78,7 @@ const logicalNotTests = [
             204, 130, 90, 0,   147, 42, 10,  18,  13,  235, 0,   233,
             53,  83,  9,  254, 69,  56, 219, 109, 171, 0,   228, 135
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'uint8'}
+          'descriptor': {shape: [24], dataType: 'uint8'}
         }
       },
       'operators': [{
@@ -92,7 +92,7 @@ const logicalNotTests = [
             0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'uint8'}
+          'descriptor': {shape: [24], dataType: 'uint8'}
         }
       }
     }
@@ -106,7 +106,7 @@ const logicalNotTests = [
             204, 130, 90, 0,   147, 42, 10,  18,  13,  235, 0,   233,
             53,  83,  9,  254, 69,  56, 219, 109, 171, 0,   228, 135
           ],
-          'descriptor': {'dimensions': [4, 6], 'dataType': 'uint8'}
+          'descriptor': {shape: [4, 6], dataType: 'uint8'}
         }
       },
       'operators': [{
@@ -120,7 +120,7 @@ const logicalNotTests = [
             0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0
           ],
-          'descriptor': {'dimensions': [4, 6], 'dataType': 'uint8'}
+          'descriptor': {shape: [4, 6], dataType: 'uint8'}
         }
       }
     }
@@ -134,7 +134,7 @@ const logicalNotTests = [
             204, 130, 90, 0,   147, 42, 10,  18,  13,  235, 0,   233,
             53,  83,  9,  254, 69,  56, 219, 109, 171, 0,   228, 135
           ],
-          'descriptor': {'dimensions': [2, 3, 4], 'dataType': 'uint8'}
+          'descriptor': {shape: [2, 3, 4], dataType: 'uint8'}
         }
       },
       'operators': [{
@@ -148,7 +148,7 @@ const logicalNotTests = [
             0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0
           ],
-          'descriptor': {'dimensions': [2, 3, 4], 'dataType': 'uint8'}
+          'descriptor': {shape: [2, 3, 4], dataType: 'uint8'}
         }
       }
     }
@@ -162,7 +162,7 @@ const logicalNotTests = [
             204, 130, 90, 0,   147, 42, 10,  18,  13,  235, 0,   233,
             53,  83,  9,  254, 69,  56, 219, 109, 171, 0,   228, 135
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'uint8'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'uint8'}
         }
       },
       'operators': [{
@@ -176,7 +176,7 @@ const logicalNotTests = [
             0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'uint8'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'uint8'}
         }
       }
     }
@@ -190,7 +190,7 @@ const logicalNotTests = [
             204, 130, 90, 0,   147, 42, 10,  18,  13,  235, 0,   233,
             53,  83,  9,  254, 69,  56, 219, 109, 171, 0,   228, 135
           ],
-          'descriptor': {'dimensions': [2, 1, 4, 1, 3], 'dataType': 'uint8'}
+          'descriptor': {shape: [2, 1, 4, 1, 3], dataType: 'uint8'}
         }
       },
       'operators': [{
@@ -204,7 +204,7 @@ const logicalNotTests = [
             0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0
           ],
-          'descriptor': {'dimensions': [2, 1, 4, 1, 3], 'dataType': 'uint8'}
+          'descriptor': {shape: [2, 1, 4, 1, 3], dataType: 'uint8'}
         }
       }
     }

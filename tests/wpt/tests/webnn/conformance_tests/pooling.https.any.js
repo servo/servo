@@ -37,8 +37,8 @@
 
 const getPoolingOperatorsPrecisionTolerance = (graphResources) => {
   const args = graphResources.operators[0].arguments;
-  const inputShape = graphResources.inputs[args[0][Object.keys(args[0])[0]]]
-                         .descriptor.dimensions;
+  const inputShape =
+      graphResources.inputs[args[0][Object.keys(args[0])[0]]].descriptor.shape;
   const options =
       args.length === 2 ? {...args[1][Object.keys(args[1])[0]]} : {};
   let height;
@@ -101,7 +101,7 @@ const poolingOperatorsTests = [
             2.2384984493255615, 14.50549030303955,  68.72449493408203,
             76.45657348632812,  23.53263282775879
           ],
-          'descriptor': {'dimensions': [1, 2, 5, 5], 'dataType': 'float32'},
+          'descriptor': {shape: [1, 2, 5, 5], dataType: 'float32'},
           'constant': true
         }
       },
@@ -113,7 +113,7 @@ const poolingOperatorsTests = [
       'expectedOutputs': {
         'averagePool2dOutput': {
           'data': [47.26926803588867, 44.72445297241211],
-          'descriptor': {'dimensions': [1, 2, 1, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 1, 1], dataType: 'float32'}
         }
       }
     }
@@ -142,7 +142,7 @@ const poolingOperatorsTests = [
             2.2384984493255615, 14.50549030303955,  68.72449493408203,
             76.45657348632812,  23.53263282775879
           ],
-          'descriptor': {'dimensions': [1, 2, 5, 5], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 5, 5], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -153,7 +153,7 @@ const poolingOperatorsTests = [
       'expectedOutputs': {
         'averagePool2dOutput': {
           'data': [47.26926803588867, 44.72445297241211],
-          'descriptor': {'dimensions': [1, 2, 1, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 1, 1], dataType: 'float32'}
         }
       }
     }
@@ -182,7 +182,7 @@ const poolingOperatorsTests = [
             -26.032955169677734, -22.73752784729004,  -70.32036590576172,
             -85.28227996826172,  -92.10668182373047
           ],
-          'descriptor': {'dimensions': [1, 2, 5, 5], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 5, 5], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -193,7 +193,7 @@ const poolingOperatorsTests = [
       'expectedOutputs': {
         'averagePool2dOutput': {
           'data': [-49.258975982666016, -60.52408981323242],
-          'descriptor': {'dimensions': [1, 2, 1, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 1, 1], dataType: 'float32'}
         }
       }
     }
@@ -222,7 +222,7 @@ const poolingOperatorsTests = [
             2.2384984493255615, 14.50549030303955,  68.72449493408203,
             76.45657348632812,  23.53263282775879
           ],
-          'descriptor': {'dimensions': [1, 2, 5, 5], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 5, 5], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -243,7 +243,7 @@ const poolingOperatorsTests = [
             43.23125457763672, 37.842769622802734, 32.67961120605469,
             41.17021942138672, 42.79708480834961, 38.987247467041016
           ],
-          'descriptor': {'dimensions': [1, 2, 3, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 3, 3], dataType: 'float32'}
         }
       }
     }
@@ -273,7 +273,7 @@ const poolingOperatorsTests = [
             2.2384984493255615, 14.50549030303955,  68.72449493408203,
             76.45657348632812,  23.53263282775879
           ],
-          'descriptor': {'dimensions': [1, 2, 5, 5], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 5, 5], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -287,7 +287,7 @@ const poolingOperatorsTests = [
       'expectedOutputs': {
         'averagePool2dOutput': {
           'data': [47.26926803588867, 44.72445297241211],
-          'descriptor': {'dimensions': [1, 2, 1, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 1, 1], dataType: 'float32'}
         }
       }
     }
@@ -316,7 +316,7 @@ const poolingOperatorsTests = [
             2.2384984493255615, 14.50549030303955,  68.72449493408203,
             76.45657348632812,  23.53263282775879
           ],
-          'descriptor': {'dimensions': [1, 2, 5, 5], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 5, 5], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -334,7 +334,7 @@ const poolingOperatorsTests = [
             46.15715408325195, 46.63268280029297, 43.616947174072266,
             44.72445297241211, 44.05451583862305
           ],
-          'descriptor': {'dimensions': [1, 2, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 2, 2], dataType: 'float32'}
         }
       }
     }
@@ -363,7 +363,7 @@ const poolingOperatorsTests = [
             2.2384984493255615, 14.50549030303955,  68.72449493408203,
             76.45657348632812,  23.53263282775879
           ],
-          'descriptor': {'dimensions': [1, 2, 5, 5], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 5, 5], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -381,7 +381,7 @@ const poolingOperatorsTests = [
             54.00202560424805, 49.65404510498047, 35.84912109375,
             41.17021942138672, 38.987247467041016
           ],
-          'descriptor': {'dimensions': [1, 2, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 2, 2], dataType: 'float32'}
         }
       }
     }
@@ -410,7 +410,7 @@ const poolingOperatorsTests = [
             2.2384984493255615, 14.50549030303955,  68.72449493408203,
             76.45657348632812,  23.53263282775879
           ],
-          'descriptor': {'dimensions': [1, 2, 5, 5], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 5, 5], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -424,7 +424,7 @@ const poolingOperatorsTests = [
       'expectedOutputs': {
         'averagePool2dOutput': {
           'data': [32.2001838684082, 42.971012115478516],
-          'descriptor': {'dimensions': [1, 2, 1, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 1, 1], dataType: 'float32'}
         }
       }
     }
@@ -453,7 +453,7 @@ const poolingOperatorsTests = [
             2.2384984493255615, 14.50549030303955,  68.72449493408203,
             76.45657348632812,  23.53263282775879
           ],
-          'descriptor': {'dimensions': [1, 2, 5, 5], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 5, 5], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -465,7 +465,7 @@ const poolingOperatorsTests = [
       'expectedOutputs': {
         'averagePool2dOutput': {
           'data': [47.26926803588867, 44.72445297241211],
-          'descriptor': {'dimensions': [1, 2, 1, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 1, 1], dataType: 'float32'}
         }
       }
     }
@@ -494,7 +494,7 @@ const poolingOperatorsTests = [
             68.72449493408203,  1.4140757322311401, 76.45657348632812,
             78.10037994384766,  23.53263282775879
           ],
-          'descriptor': {'dimensions': [1, 5, 5, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 5, 5, 2], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -506,7 +506,7 @@ const poolingOperatorsTests = [
       'expectedOutputs': {
         'averagePool2dOutput': {
           'data': [47.26926803588867, 44.72445297241211],
-          'descriptor': {'dimensions': [1, 1, 1, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 1, 1, 2], dataType: 'float32'}
         }
       }
     }
@@ -536,7 +536,7 @@ const poolingOperatorsTests = [
             68.72449493408203,  1.4140757322311401, 76.45657348632812,
             78.10037994384766,  23.53263282775879
           ],
-          'descriptor': {'dimensions': [1, 5, 5, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 5, 5, 2], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -550,7 +550,7 @@ const poolingOperatorsTests = [
       'expectedOutputs': {
         'averagePool2dOutput': {
           'data': [47.26926803588867, 44.72445297241211],
-          'descriptor': {'dimensions': [1, 1, 1, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 1, 1, 2], dataType: 'float32'}
         }
       }
     }
@@ -579,7 +579,7 @@ const poolingOperatorsTests = [
             2.2384984493255615, 14.50549030303955,  68.72449493408203,
             76.45657348632812,  23.53263282775879
           ],
-          'descriptor': {'dimensions': [1, 2, 5, 5], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 5, 5], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -603,7 +603,7 @@ const poolingOperatorsTests = [
             58.46046447753906, 52.73374557495117, 39.1442985534668,
             43.23125457763672, 32.67961120605469
           ],
-          'descriptor': {'dimensions': [1, 2, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 2, 2], dataType: 'float32'}
         }
       }
     }
@@ -632,7 +632,7 @@ const poolingOperatorsTests = [
             2.2384984493255615, 14.50549030303955,  68.72449493408203,
             76.45657348632812,  23.53263282775879
           ],
-          'descriptor': {'dimensions': [1, 2, 5, 5], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 5, 5], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -659,7 +659,7 @@ const poolingOperatorsTests = [
             43.23125457763672, 32.67961120605469, 56.23945999145508,
             40.00800323486328, 43.85149002075195, 41.061283111572266
           ],
-          'descriptor': {'dimensions': [1, 2, 3, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 3, 3], dataType: 'float32'}
         }
       }
     }
@@ -689,7 +689,7 @@ const poolingOperatorsTests = [
             68.72449493408203,  1.4140757322311401, 76.45657348632812,
             78.10037994384766,  23.53263282775879
           ],
-          'descriptor': {'dimensions': [1, 5, 5, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 5, 5, 2], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -714,7 +714,7 @@ const poolingOperatorsTests = [
             39.1442985534668, 50.038944244384766, 43.23125457763672,
             58.46046447753906, 32.67961120605469
           ],
-          'descriptor': {'dimensions': [1, 2, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 2, 2], dataType: 'float32'}
         }
       }
     }
@@ -744,7 +744,7 @@ const poolingOperatorsTests = [
             68.72449493408203,  1.4140757322311401, 76.45657348632812,
             78.10037994384766,  23.53263282775879
           ],
-          'descriptor': {'dimensions': [1, 5, 5, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 5, 5, 2], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -772,7 +772,7 @@ const poolingOperatorsTests = [
             37.24428939819336, 40.00800323486328, 54.04661178588867,
             43.85149002075195, 78.58363342285156, 41.061283111572266
           ],
-          'descriptor': {'dimensions': [1, 3, 3, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 3, 3, 2], dataType: 'float32'}
         }
       }
     }
@@ -802,7 +802,7 @@ const poolingOperatorsTests = [
             2.2384984493255615, 14.50549030303955,  68.72449493408203,
             76.45657348632812,  23.53263282775879
           ],
-          'descriptor': {'dimensions': [1, 2, 5, 5], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 5, 5], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -830,7 +830,7 @@ const poolingOperatorsTests = [
             43.23125457763672, 32.67961120605469, 56.23945999145508,
             40.00800323486328, 43.85149002075195, 41.061283111572266
           ],
-          'descriptor': {'dimensions': [1, 2, 3, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 3, 3], dataType: 'float32'}
         }
       }
     }
@@ -860,7 +860,7 @@ const poolingOperatorsTests = [
             2.2384984493255615, 14.50549030303955,  68.72449493408203,
             76.45657348632812,  23.53263282775879
           ],
-          'descriptor': {'dimensions': [1, 2, 5, 5], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 5, 5], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -885,7 +885,7 @@ const poolingOperatorsTests = [
             58.46046447753906, 52.73374557495117, 39.1442985534668,
             43.23125457763672, 32.67961120605469
           ],
-          'descriptor': {'dimensions': [1, 2, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 2, 2], dataType: 'float32'}
         }
       }
     }
@@ -931,7 +931,7 @@ const poolingOperatorsTests = [
             56.961090087890625, 34.77016067504883,  0.9611223936080933,
             35.30686950683594,  98.00790405273438
           ],
-          'descriptor': {'dimensions': [1, 7, 7, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 7, 7, 2], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -958,7 +958,7 @@ const poolingOperatorsTests = [
             50.19099807739258, 29.15436363220215, 52.98439025878906,
             43.10562515258789, 66.77796936035156, 55.2725830078125
           ],
-          'descriptor': {'dimensions': [1, 3, 3, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 3, 3, 2], dataType: 'float32'}
         }
       }
     }
@@ -989,7 +989,7 @@ const poolingOperatorsTests = [
             90.86540985107422,   39.56248474121094,   67.77167510986328,
             69.69512176513672,   89.54518127441406
           ],
-          'descriptor': {'dimensions': [1, 2, 5, 5], 'dataType': 'float32'},
+          'descriptor': {shape: [1, 2, 5, 5], dataType: 'float32'},
           'constant': true
         }
       },
@@ -1001,7 +1001,7 @@ const poolingOperatorsTests = [
       'expectedOutputs': {
         'l2Pool2dOutput': {
           'data': [289.01953125, 292.6146545410156],
-          'descriptor': {'dimensions': [1, 2, 1, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 1, 1], dataType: 'float32'}
         }
       }
     }
@@ -1030,7 +1030,7 @@ const poolingOperatorsTests = [
             90.86540985107422,   39.56248474121094,   67.77167510986328,
             69.69512176513672,   89.54518127441406
           ],
-          'descriptor': {'dimensions': [1, 2, 5, 5], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 5, 5], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -1041,7 +1041,7 @@ const poolingOperatorsTests = [
       'expectedOutputs': {
         'l2Pool2dOutput': {
           'data': [289.01953125, 292.6146545410156],
-          'descriptor': {'dimensions': [1, 2, 1, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 1, 1], dataType: 'float32'}
         }
       }
     }
@@ -1070,7 +1070,7 @@ const poolingOperatorsTests = [
             -89.39192199707031,  -61.13504409790039,  -84.16869354248047,
             -77.36112213134766,  -91.17266082763672
           ],
-          'descriptor': {'dimensions': [1, 2, 5, 5], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 5, 5], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -1081,7 +1081,7 @@ const poolingOperatorsTests = [
       'expectedOutputs': {
         'l2Pool2dOutput': {
           'data': [298.928955078125, 326.83587646484375],
-          'descriptor': {'dimensions': [1, 2, 1, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 1, 1], dataType: 'float32'}
         }
       }
     }
@@ -1110,7 +1110,7 @@ const poolingOperatorsTests = [
             90.86540985107422,   39.56248474121094,   67.77167510986328,
             69.69512176513672,   89.54518127441406
           ],
-          'descriptor': {'dimensions': [1, 2, 5, 5], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 5, 5], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -1130,7 +1130,7 @@ const poolingOperatorsTests = [
             165.07762145996094, 165.45819091796875, 161.11062622070312,
             176.6307373046875, 174.245361328125, 180.60714721679688
           ],
-          'descriptor': {'dimensions': [1, 2, 3, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 3, 3], dataType: 'float32'}
         }
       }
     }
@@ -1159,7 +1159,7 @@ const poolingOperatorsTests = [
             90.86540985107422,   39.56248474121094,   67.77167510986328,
             69.69512176513672,   89.54518127441406
           ],
-          'descriptor': {'dimensions': [1, 2, 5, 5], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 5, 5], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -1176,7 +1176,7 @@ const poolingOperatorsTests = [
             269.777587890625, 241.52200317382812, 212.99337768554688,
             292.6146545410156, 253.77178955078125
           ],
-          'descriptor': {'dimensions': [1, 2, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 2, 2], dataType: 'float32'}
         }
       }
     }
@@ -1205,7 +1205,7 @@ const poolingOperatorsTests = [
             90.86540985107422,   39.56248474121094,   67.77167510986328,
             69.69512176513672,   89.54518127441406
           ],
-          'descriptor': {'dimensions': [1, 2, 5, 5], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 5, 5], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -1223,7 +1223,7 @@ const poolingOperatorsTests = [
             168.4636688232422, 170.331787109375, 174.72145080566406,
             176.6307373046875, 180.60714721679688
           ],
-          'descriptor': {'dimensions': [1, 2, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 2, 2], dataType: 'float32'}
         }
       }
     }
@@ -1252,7 +1252,7 @@ const poolingOperatorsTests = [
             90.86540985107422,   39.56248474121094,   67.77167510986328,
             69.69512176513672,   89.54518127441406
           ],
-          'descriptor': {'dimensions': [1, 2, 5, 5], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 5, 5], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -1266,7 +1266,7 @@ const poolingOperatorsTests = [
       'expectedOutputs': {
         'l2Pool2dOutput': {
           'data': [189.47933959960938, 207.25343322753906],
-          'descriptor': {'dimensions': [1, 2, 1, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 1, 1], dataType: 'float32'}
         }
       }
     }
@@ -1295,7 +1295,7 @@ const poolingOperatorsTests = [
             90.86540985107422,   39.56248474121094,   67.77167510986328,
             69.69512176513672,   89.54518127441406
           ],
-          'descriptor': {'dimensions': [1, 2, 5, 5], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 5, 5], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -1307,7 +1307,7 @@ const poolingOperatorsTests = [
       'expectedOutputs': {
         'l2Pool2dOutput': {
           'data': [289.01953125, 292.6146545410156],
-          'descriptor': {'dimensions': [1, 2, 1, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 1, 1], dataType: 'float32'}
         }
       }
     }
@@ -1336,7 +1336,7 @@ const poolingOperatorsTests = [
             67.77167510986328,   83.68133544921875,  69.69512176513672,
             21.79571533203125,   89.54518127441406
           ],
-          'descriptor': {'dimensions': [1, 5, 5, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 5, 5, 2], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -1348,7 +1348,7 @@ const poolingOperatorsTests = [
       'expectedOutputs': {
         'l2Pool2dOutput': {
           'data': [289.01953125, 292.6146545410156],
-          'descriptor': {'dimensions': [1, 1, 1, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 1, 1, 2], dataType: 'float32'}
         }
       }
     }
@@ -1377,7 +1377,7 @@ const poolingOperatorsTests = [
             90.86540985107422,   39.56248474121094,   67.77167510986328,
             69.69512176513672,   89.54518127441406
           ],
-          'descriptor': {'dimensions': [1, 2, 5, 5], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 5, 5], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -1401,7 +1401,7 @@ const poolingOperatorsTests = [
             149.63897705078125, 142.6990966796875, 139.51637268066406,
             165.07762145996094, 161.11062622070312
           ],
-          'descriptor': {'dimensions': [1, 2, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 2, 2], dataType: 'float32'}
         }
       }
     }
@@ -1430,7 +1430,7 @@ const poolingOperatorsTests = [
             90.86540985107422,   39.56248474121094,   67.77167510986328,
             69.69512176513672,   89.54518127441406
           ],
-          'descriptor': {'dimensions': [1, 2, 5, 5], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 5, 5], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -1457,7 +1457,7 @@ const poolingOperatorsTests = [
             165.07762145996094, 161.11062622070312, 96.38701629638672,
             150.1616668701172, 146.8201904296875, 8216.69921875
           ],
-          'descriptor': {'dimensions': [1, 2, 3, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 3, 3], dataType: 'float32'}
         }
       }
     }
@@ -1487,7 +1487,7 @@ const poolingOperatorsTests = [
             90.86540985107422,   39.56248474121094,   67.77167510986328,
             69.69512176513672,   89.54518127441406
           ],
-          'descriptor': {'dimensions': [1, 2, 5, 5], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 5, 5], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -1515,7 +1515,7 @@ const poolingOperatorsTests = [
             165.07762145996094, 161.11062622070312, 96.38701629638672,
             150.1616668701172, 146.8201904296875, 8216.69921875
           ],
-          'descriptor': {'dimensions': [1, 2, 3, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 3, 3], dataType: 'float32'}
         }
       }
     }
@@ -1545,7 +1545,7 @@ const poolingOperatorsTests = [
             90.86540985107422,   39.56248474121094,   67.77167510986328,
             69.69512176513672,   89.54518127441406
           ],
-          'descriptor': {'dimensions': [1, 2, 5, 5], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 5, 5], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -1570,7 +1570,7 @@ const poolingOperatorsTests = [
             149.63897705078125, 142.6990966796875, 139.51637268066406,
             165.07762145996094, 161.11062622070312
           ],
-          'descriptor': {'dimensions': [1, 2, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 2, 2], dataType: 'float32'}
         }
       }
     }
@@ -1615,7 +1615,7 @@ const poolingOperatorsTests = [
             60.689762115478516, 20.046878814697266, 13.203198432922363,
             33.33952713012695,  0.5279953479766846
           ],
-          'descriptor': {'dimensions': [1, 7, 7, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 7, 7, 2], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -1643,7 +1643,7 @@ const poolingOperatorsTests = [
             158.64576721191406, 166.2051544189453, 171.07916259765625,
             148.70985412597656, 218.7123260498047, 153.33311462402344
           ],
-          'descriptor': {'dimensions': [1, 3, 3, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 3, 3, 2], dataType: 'float32'}
         }
       }
     }
@@ -1674,7 +1674,7 @@ const poolingOperatorsTests = [
             -57.294559478759766, -26.623577117919922, 15.935754776000977,
             -78.77953338623047,  72.33577728271484
           ],
-          'descriptor': {'dimensions': [1, 2, 5, 5], 'dataType': 'float32'},
+          'descriptor': {shape: [1, 2, 5, 5], dataType: 'float32'},
           'constant': true
         }
       },
@@ -1686,7 +1686,7 @@ const poolingOperatorsTests = [
       'expectedOutputs': {
         'maxPool2dOutput': {
           'data': [99.28312683105469, 81.73119354248047],
-          'descriptor': {'dimensions': [1, 2, 1, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 1, 1], dataType: 'float32'}
         }
       }
     }
@@ -1715,7 +1715,7 @@ const poolingOperatorsTests = [
             -57.294559478759766, -26.623577117919922, 15.935754776000977,
             -78.77953338623047,  72.33577728271484
           ],
-          'descriptor': {'dimensions': [1, 2, 5, 5], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 5, 5], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -1726,7 +1726,7 @@ const poolingOperatorsTests = [
       'expectedOutputs': {
         'maxPool2dOutput': {
           'data': [99.28312683105469, 81.73119354248047],
-          'descriptor': {'dimensions': [1, 2, 1, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 1, 1], dataType: 'float32'}
         }
       }
     }
@@ -1755,7 +1755,7 @@ const poolingOperatorsTests = [
             -57.294559478759766, -26.623577117919922, 15.935754776000977,
             -78.77953338623047,  72.33577728271484
           ],
-          'descriptor': {'dimensions': [1, 2, 5, 5], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 5, 5], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -1775,7 +1775,7 @@ const poolingOperatorsTests = [
             81.73119354248047, 72.8883056640625, 72.44898986816406,
             80.30484008789062, 72.8883056640625, 72.33577728271484
           ],
-          'descriptor': {'dimensions': [1, 2, 3, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 3, 3], dataType: 'float32'}
         }
       }
     }
@@ -1804,7 +1804,7 @@ const poolingOperatorsTests = [
             -57.294559478759766, -26.623577117919922, 15.935754776000977,
             -78.77953338623047,  72.33577728271484
           ],
-          'descriptor': {'dimensions': [1, 2, 5, 5], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 5, 5], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -1821,7 +1821,7 @@ const poolingOperatorsTests = [
             99.28312683105469, 81.73119354248047, 72.8883056640625,
             81.73119354248047, 72.8883056640625
           ],
-          'descriptor': {'dimensions': [1, 2, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 2, 2], dataType: 'float32'}
         }
       }
     }
@@ -1850,7 +1850,7 @@ const poolingOperatorsTests = [
             -57.294559478759766, -26.623577117919922, 15.935754776000977,
             -78.77953338623047,  72.33577728271484
           ],
-          'descriptor': {'dimensions': [1, 2, 5, 5], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 5, 5], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -1868,7 +1868,7 @@ const poolingOperatorsTests = [
             72.1085205078125, 81.73119354248047, 72.44898986816406,
             80.30484008789062, 72.33577728271484
           ],
-          'descriptor': {'dimensions': [1, 2, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 2, 2], dataType: 'float32'}
         }
       }
     }
@@ -1897,7 +1897,7 @@ const poolingOperatorsTests = [
             -57.294559478759766, -26.623577117919922, 15.935754776000977,
             -78.77953338623047,  72.33577728271484
           ],
-          'descriptor': {'dimensions': [1, 2, 5, 5], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 5, 5], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -1911,7 +1911,7 @@ const poolingOperatorsTests = [
       'expectedOutputs': {
         'maxPool2dOutput': {
           'data': [89.00830078125, 72.33577728271484],
-          'descriptor': {'dimensions': [1, 2, 1, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 1, 1], dataType: 'float32'}
         }
       }
     }
@@ -1940,7 +1940,7 @@ const poolingOperatorsTests = [
             -57.294559478759766, -26.623577117919922, 15.935754776000977,
             -78.77953338623047,  72.33577728271484
           ],
-          'descriptor': {'dimensions': [1, 2, 5, 5], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 5, 5], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -1952,7 +1952,7 @@ const poolingOperatorsTests = [
       'expectedOutputs': {
         'maxPool2dOutput': {
           'data': [99.28312683105469, 81.73119354248047],
-          'descriptor': {'dimensions': [1, 2, 1, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 1, 1], dataType: 'float32'}
         }
       }
     }
@@ -1981,7 +1981,7 @@ const poolingOperatorsTests = [
             15.935754776000977,  39.383602142333984,  -78.77953338623047,
             7.429088115692139,   72.33577728271484
           ],
-          'descriptor': {'dimensions': [1, 5, 5, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 5, 5, 2], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -1993,7 +1993,7 @@ const poolingOperatorsTests = [
       'expectedOutputs': {
         'maxPool2dOutput': {
           'data': [99.28312683105469, 81.73119354248047],
-          'descriptor': {'dimensions': [1, 1, 1, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 1, 1, 2], dataType: 'float32'}
         }
       }
     }
@@ -2022,7 +2022,7 @@ const poolingOperatorsTests = [
             -57.294559478759766, -26.623577117919922, 15.935754776000977,
             -78.77953338623047,  72.33577728271484
           ],
-          'descriptor': {'dimensions': [1, 2, 5, 5], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 5, 5], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -2046,7 +2046,7 @@ const poolingOperatorsTests = [
             72.1085205078125, 81.73119354248047, 72.44898986816406,
             81.73119354248047, 72.44898986816406
           ],
-          'descriptor': {'dimensions': [1, 2, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 2, 2], dataType: 'float32'}
         }
       }
     }
@@ -2075,7 +2075,7 @@ const poolingOperatorsTests = [
             -57.294559478759766, -26.623577117919922, 15.935754776000977,
             -78.77953338623047,  72.33577728271484
           ],
-          'descriptor': {'dimensions': [1, 2, 5, 5], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 5, 5], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -2102,7 +2102,7 @@ const poolingOperatorsTests = [
             81.73119354248047, 72.44898986816406, 55.890525817871094,
             80.30484008789062, 72.33577728271484, 72.33577728271484
           ],
-          'descriptor': {'dimensions': [1, 2, 3, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 3, 3], dataType: 'float32'}
         }
       }
     }
@@ -2132,7 +2132,7 @@ const poolingOperatorsTests = [
             -57.294559478759766, -26.623577117919922, 15.935754776000977,
             -78.77953338623047,  72.33577728271484
           ],
-          'descriptor': {'dimensions': [1, 2, 5, 5], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 5, 5], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -2160,7 +2160,7 @@ const poolingOperatorsTests = [
             81.73119354248047, 72.44898986816406, 55.890525817871094,
             80.30484008789062, 72.33577728271484, 72.33577728271484
           ],
-          'descriptor': {'dimensions': [1, 2, 3, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 3, 3], dataType: 'float32'}
         }
       }
     }
@@ -2190,7 +2190,7 @@ const poolingOperatorsTests = [
             -57.294559478759766, -26.623577117919922, 15.935754776000977,
             -78.77953338623047,  72.33577728271484
           ],
-          'descriptor': {'dimensions': [1, 2, 5, 5], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 5, 5], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -2215,7 +2215,7 @@ const poolingOperatorsTests = [
             72.1085205078125, 81.73119354248047, 72.44898986816406,
             81.73119354248047, 72.44898986816406
           ],
-          'descriptor': {'dimensions': [1, 2, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 2, 2], dataType: 'float32'}
         }
       }
     }
@@ -2261,7 +2261,7 @@ const poolingOperatorsTests = [
             58.0643424987793,    -51.168277740478516, -17.768583297729492,
             9.961172103881836,   -52.73843002319336
           ],
-          'descriptor': {'dimensions': [1, 7, 7, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 7, 7, 2], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -2289,7 +2289,7 @@ const poolingOperatorsTests = [
             95.25411224365234, 94.72747802734375, 95.25411224365234,
             98.13465881347656, 63.419517517089844, 98.13465881347656
           ],
-          'descriptor': {'dimensions': [1, 3, 3, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 3, 3, 2], dataType: 'float32'}
         }
       }
     }

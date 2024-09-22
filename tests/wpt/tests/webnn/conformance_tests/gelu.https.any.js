@@ -14,14 +14,6 @@
 //
 // MLOperand gelu(MLOperand input);
 
-
-const getGeluPrecisionTolerance = (graphResources) => {
-  const toleranceValueDict = {float32: 18, float16: 18};
-  const expectedDataType =
-      getExpectedDataTypeOfSingleOutput(graphResources.expectedOutputs);
-  return {metricType: 'ULP', value: toleranceValueDict[expectedDataType]};
-};
-
 const geluTests = [
   {
     'name': 'gelu float32 0D scalar',
@@ -29,7 +21,7 @@ const geluTests = [
       'inputs': {
         'geluInput': {
           'data': [-0.044885843992233276],
-          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+          'descriptor': {shape: [], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -40,7 +32,7 @@ const geluTests = [
       'expectedOutputs': {
         'geluOutput': {
           'data': [-0.021639423444867134],
-          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+          'descriptor': {shape: [], dataType: 'float32'}
         }
       }
     }
@@ -51,7 +43,7 @@ const geluTests = [
       'inputs': {
         'geluInput': {
           'data': [-0.044891357421875],
-          'descriptor': {'dimensions': [], 'dataType': 'float16'}
+          'descriptor': {shape: [], dataType: 'float16'}
         }
       },
       'operators': [{
@@ -62,7 +54,7 @@ const geluTests = [
       'expectedOutputs': {
         'geluOutput': {
           'data': [-0.021636962890625],
-          'descriptor': {'dimensions': [], 'dataType': 'float16'}
+          'descriptor': {shape: [], dataType: 'float16'}
         }
       }
     }
@@ -82,7 +74,7 @@ const geluTests = [
             -0.09901237487792969, -0.8838679790496826,  -0.596120297908783,
             0.31863871216773987,  0.4794037640094757,   -0.06489315629005432
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'}
+          'descriptor': {shape: [24], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -102,7 +94,7 @@ const geluTests = [
             -0.04560155048966408, -0.1665063202381134,  -0.1642593890428543,
             0.19914908707141876,  0.3279957175254822,   -0.030767757445573807
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'}
+          'descriptor': {shape: [24], dataType: 'float32'}
         }
       }
     }
@@ -122,7 +114,7 @@ const geluTests = [
             -0.09901237487792969, -0.8838679790496826,  -0.596120297908783,
             0.31863871216773987,  0.4794037640094757,   -0.06489315629005432
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'},
+          'descriptor': {shape: [24], dataType: 'float32'},
           'constant': true
         }
       },
@@ -143,7 +135,7 @@ const geluTests = [
             -0.04560155048966408, -0.1665063202381134,  -0.1642593890428543,
             0.19914908707141876,  0.3279957175254822,   -0.030767757445573807
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'}
+          'descriptor': {shape: [24], dataType: 'float32'}
         }
       }
     }
@@ -163,7 +155,7 @@ const geluTests = [
             -0.0989990234375, -0.8837890625,    -0.59619140625,
             0.318603515625,   0.4794921875,     -0.06488037109375
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float16'}
+          'descriptor': {shape: [24], dataType: 'float16'}
         }
       },
       'operators': [{
@@ -183,7 +175,7 @@ const geluTests = [
             -0.04559326171875, -0.16650390625,     -0.164306640625,
             0.1990966796875,   0.328125,           -0.03076171875
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float16'}
+          'descriptor': {shape: [24], dataType: 'float16'}
         }
       }
     }
@@ -203,7 +195,7 @@ const geluTests = [
             -0.09901237487792969, -0.8838679790496826,  -0.596120297908783,
             0.31863871216773987,  0.4794037640094757,   -0.06489315629005432
           ],
-          'descriptor': {'dimensions': [4, 6], 'dataType': 'float32'}
+          'descriptor': {shape: [4, 6], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -223,7 +215,7 @@ const geluTests = [
             -0.04560155048966408, -0.1665063202381134,  -0.1642593890428543,
             0.19914908707141876,  0.3279957175254822,   -0.030767757445573807
           ],
-          'descriptor': {'dimensions': [4, 6], 'dataType': 'float32'}
+          'descriptor': {shape: [4, 6], dataType: 'float32'}
         }
       }
     }
@@ -243,7 +235,7 @@ const geluTests = [
             -0.0989990234375, -0.8837890625,    -0.59619140625,
             0.318603515625,   0.4794921875,     -0.06488037109375
           ],
-          'descriptor': {'dimensions': [4, 6], 'dataType': 'float16'}
+          'descriptor': {shape: [4, 6], dataType: 'float16'}
         }
       },
       'operators': [{
@@ -263,7 +255,7 @@ const geluTests = [
             -0.04559326171875, -0.16650390625,     -0.164306640625,
             0.1990966796875,   0.328125,           -0.03076171875
           ],
-          'descriptor': {'dimensions': [4, 6], 'dataType': 'float16'}
+          'descriptor': {shape: [4, 6], dataType: 'float16'}
         }
       }
     }
@@ -283,7 +275,7 @@ const geluTests = [
             -0.09901237487792969, -0.8838679790496826,  -0.596120297908783,
             0.31863871216773987,  0.4794037640094757,   -0.06489315629005432
           ],
-          'descriptor': {'dimensions': [2, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 4], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -303,7 +295,7 @@ const geluTests = [
             -0.04560155048966408, -0.1665063202381134,  -0.1642593890428543,
             0.19914908707141876,  0.3279957175254822,   -0.030767757445573807
           ],
-          'descriptor': {'dimensions': [2, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 4], dataType: 'float32'}
         }
       }
     }
@@ -323,7 +315,7 @@ const geluTests = [
             -0.0989990234375, -0.8837890625,    -0.59619140625,
             0.318603515625,   0.4794921875,     -0.06488037109375
           ],
-          'descriptor': {'dimensions': [2, 3, 4], 'dataType': 'float16'}
+          'descriptor': {shape: [2, 3, 4], dataType: 'float16'}
         }
       },
       'operators': [{
@@ -343,7 +335,7 @@ const geluTests = [
             -0.04559326171875, -0.16650390625,     -0.164306640625,
             0.1990966796875,   0.328125,           -0.03076171875
           ],
-          'descriptor': {'dimensions': [2, 3, 4], 'dataType': 'float16'}
+          'descriptor': {shape: [2, 3, 4], dataType: 'float16'}
         }
       }
     }
@@ -363,7 +355,7 @@ const geluTests = [
             -0.09901237487792969, -0.8838679790496826,  -0.596120297908783,
             0.31863871216773987,  0.4794037640094757,   -0.06489315629005432
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -383,7 +375,7 @@ const geluTests = [
             -0.04560155048966408, -0.1665063202381134,  -0.1642593890428543,
             0.19914908707141876,  0.3279957175254822,   -0.030767757445573807
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       }
     }
@@ -403,7 +395,7 @@ const geluTests = [
             -0.0989990234375, -0.8837890625,    -0.59619140625,
             0.318603515625,   0.4794921875,     -0.06488037109375
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float16'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'}
         }
       },
       'operators': [{
@@ -423,7 +415,7 @@ const geluTests = [
             -0.04559326171875, -0.16650390625,     -0.164306640625,
             0.1990966796875,   0.328125,           -0.03076171875
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float16'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'}
         }
       }
     }
@@ -443,7 +435,7 @@ const geluTests = [
             -0.09901237487792969, -0.8838679790496826,  -0.596120297908783,
             0.31863871216773987,  0.4794037640094757,   -0.06489315629005432
           ],
-          'descriptor': {'dimensions': [2, 1, 4, 1, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 1, 4, 1, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -463,7 +455,7 @@ const geluTests = [
             -0.04560155048966408, -0.1665063202381134,  -0.1642593890428543,
             0.19914908707141876,  0.3279957175254822,   -0.030767757445573807
           ],
-          'descriptor': {'dimensions': [2, 1, 4, 1, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 1, 4, 1, 3], dataType: 'float32'}
         }
       }
     }
@@ -483,7 +475,7 @@ const geluTests = [
             -0.0989990234375, -0.8837890625,    -0.59619140625,
             0.318603515625,   0.4794921875,     -0.06488037109375
           ],
-          'descriptor': {'dimensions': [2, 1, 4, 1, 3], 'dataType': 'float16'}
+          'descriptor': {shape: [2, 1, 4, 1, 3], dataType: 'float16'}
         }
       },
       'operators': [{
@@ -503,7 +495,7 @@ const geluTests = [
             -0.04559326171875, -0.16650390625,     -0.164306640625,
             0.1990966796875,   0.328125,           -0.03076171875
           ],
-          'descriptor': {'dimensions': [2, 1, 4, 1, 3], 'dataType': 'float16'}
+          'descriptor': {shape: [2, 1, 4, 1, 3], dataType: 'float16'}
         }
       }
     }
@@ -512,8 +504,7 @@ const geluTests = [
 
 if (navigator.ml) {
   geluTests.forEach((test) => {
-    webnn_conformance_test(
-        buildGraphAndCompute, getGeluPrecisionTolerance, test);
+    webnn_conformance_test(buildGraphAndCompute, getPrecisionTolerance, test);
   });
 } else {
   test(() => assert_implements(navigator.ml, 'missing navigator.ml'));

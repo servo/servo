@@ -31,7 +31,7 @@ promise_setup(async () => {
   try {
     mlTensor = await mlContext.createTensor({
       dataType: 'int32',
-      dimensions: [2, 4],
+      shape: [2, 4],
       usage: MLTensorUsage.WRITE | MLTensorUsage.READ,
     });
   } catch (e) {
@@ -140,7 +140,7 @@ promise_test(async () => {
 promise_test(async (t) => {
   const tensor = await mlContext.createTensor({
     dataType: 'int32',
-    dimensions: [2, 2],
+    shape: [2, 2],
     usage: MLTensorUsage.READ,
   });
   const arrayBufferView = new Int32Array(2 * 2);
@@ -158,7 +158,7 @@ promise_test(async (t) => {
 promise_test(async (t) => {
   const tensor = await mlContext.createTensor({
     dataType: 'int32',
-    dimensions: [2, 2],
+    shape: [2, 2],
     usage: MLTensorUsage.READ,
   });
   const arrayBufferView = new Int32Array(2 * 2);

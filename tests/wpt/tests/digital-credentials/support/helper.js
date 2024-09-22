@@ -12,10 +12,10 @@
  * @param {CredentialMediationRequirement} [mediation="required"]
  * @returns {CredentialRequestOptions}
  */
-export function makeGetOptions(providersToUse = ["default"], mediation = "required") {
+export function makeGetOptions(providersToUse, mediation = "required") {
   if (typeof providersToUse === "string") {
     if (providersToUse === "default" || providersToUse === "openid4vp"){
-      return makeGetOptions([providersToUse]);
+      return makeGetOptions([providersToUse], mediation);
     }
   }
   if (!Array.isArray(providersToUse) || !providersToUse?.length) {

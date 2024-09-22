@@ -27,7 +27,7 @@ if (navigator.ml) {
 
   promise_test(async t => {
     const builder = new MLGraphBuilder(context);
-    const a = builder.input('a', {dataType: 'float32', dimensions: [2]});
+    const a = builder.input('a', {dataType: 'float32', shape: [2]});
     const b = builder.relu(a);
     const graph = await builder.build({b});
     const arraybuffer = new ArrayBuffer(100);
@@ -43,7 +43,7 @@ if (navigator.ml) {
 
   promise_test(async t => {
     const builder = new MLGraphBuilder(context);
-    const a = builder.input('a', {dataType: 'float32', dimensions: [2]});
+    const a = builder.input('a', {dataType: 'float32', shape: [2]});
     const b = builder.relu(a);
     const graph = await builder.build({b});
     const aBuffer = new Float32Array(2);
