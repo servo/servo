@@ -410,7 +410,8 @@ impl WGPU {
                             .lock()
                             .expect("Lock poisoned?")
                             .next_id(WebrenderImageHandlerType::WebGPU);
-                        if let Err(e) = sender.send(WebGPUContextId(id.0)) {
+                        let image_key = self.webrender_api.lock().unwrap().generate_image_key();
+                        if let Err(e) = sender.send((WebGPUContextId(id.0), image_key)) {
                             warn!("Failed to send ExternalImageId to new context ({})", e);
                         };
                     },
@@ -517,20 +518,12 @@ impl WGPU {
                         queue_id,
                         buffer_ids,
                         context_id,
-                        sender,
+                        image_key,
                         size,
                         format,
-                    } => {
-                        let wr = self.webrender_api.lock().unwrap();
-                        let image_key = wr.generate_image_key();
-                        if let Err(e) = sender.send(image_key) {
-                            warn!("Failed to send ImageKey ({})", e);
-                        }
-                        self.create_swapchain(
-                            device_id, queue_id, buffer_ids, context_id, format, size, image_key,
-                            wr,
-                        )
-                    },
+                    } => self.create_swapchain(
+                        device_id, queue_id, buffer_ids, context_id, format, size, image_key,
+                    ),
                     WebGPURequest::CreateTexture {
                         device_id,
                         texture_id,

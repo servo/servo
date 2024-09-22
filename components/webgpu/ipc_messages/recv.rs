@@ -103,7 +103,7 @@ pub enum WebGPURequest {
         /// present only on ASYNC versions
         async_sender: Option<IpcSender<WebGPUResponse>>,
     },
-    CreateContext(IpcSender<WebGPUContextId>),
+    CreateContext(IpcSender<(WebGPUContextId, ImageKey)>),
     CreatePipelineLayout {
         device_id: id::DeviceId,
         pipeline_layout_id: id::PipelineLayoutId,
@@ -134,7 +134,7 @@ pub enum WebGPURequest {
         queue_id: id::QueueId,
         buffer_ids: ArrayVec<id::BufferId, PRESENTATION_BUFFER_COUNT>,
         context_id: WebGPUContextId,
-        sender: IpcSender<ImageKey>,
+        image_key: ImageKey,
         format: ImageFormat,
         size: DeviceIntSize,
     },
