@@ -5,9 +5,12 @@
 <link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
 <link rel="author" href="mailto:vmpstr@chromium.org">
 <link rel="match" href="new-content-captures-different-size-ref.html">
-<meta name=fuzzy content="maxDifference=0-40; totalPixels=0-30000">
+<meta name=fuzzy content="maxDifference=0-100; totalPixels=0-15000">
 <script src="/common/reftest-wait.js"></script>
 <style>
+  html {
+    view-transition-name: none;
+  }
 .box {
   color: red;
   background: lightblue;
@@ -38,7 +41,7 @@
 
 div.dst { background: lightgreen; }
 /* We're verifying what we capture, so just display the new contents for 5 minutes.  */
-html::view-transition-group(*) { animation-duration: 300s; }
+html::view-transition-group(*) { animation-play-state: paused; }
 html::view-transition-new(*) { animation: unset; opacity: 1; }
 html::view-transition-old(*) { animation: unset; opacity: 0; }
 /* hide the root so we show transition background to ensure we're in a transition */

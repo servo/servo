@@ -30,7 +30,7 @@ const expandTests = [
       'inputs': {
         'expandInput': {
           'data': [-6.461850643157959],
-          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+          'descriptor': {shape: [], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -50,7 +50,7 @@ const expandTests = [
             -6.461850643157959, -6.461850643157959, -6.461850643157959,
             -6.461850643157959, -6.461850643157959, -6.461850643157959
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'}
+          'descriptor': {shape: [24], dataType: 'float32'}
         }
       }
     }
@@ -61,7 +61,7 @@ const expandTests = [
       'inputs': {
         'expandInput': {
           'data': [-6.461850643157959],
-          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+          'descriptor': {shape: [], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -81,7 +81,7 @@ const expandTests = [
             -6.461850643157959, -6.461850643157959, -6.461850643157959,
             -6.461850643157959, -6.461850643157959, -6.461850643157959
           ],
-          'descriptor': {'dimensions': [4, 6], 'dataType': 'float32'}
+          'descriptor': {shape: [4, 6], dataType: 'float32'}
         }
       }
     }
@@ -92,7 +92,7 @@ const expandTests = [
       'inputs': {
         'expandInput': {
           'data': [-6.461850643157959],
-          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+          'descriptor': {shape: [], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -112,7 +112,7 @@ const expandTests = [
             -6.461850643157959, -6.461850643157959, -6.461850643157959,
             -6.461850643157959, -6.461850643157959, -6.461850643157959
           ],
-          'descriptor': {'dimensions': [2, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 4], dataType: 'float32'}
         }
       }
     }
@@ -123,7 +123,7 @@ const expandTests = [
       'inputs': {
         'expandInput': {
           'data': [-6.461850643157959],
-          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+          'descriptor': {shape: [], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -143,7 +143,7 @@ const expandTests = [
             -6.461850643157959, -6.461850643157959, -6.461850643157959,
             -6.461850643157959, -6.461850643157959, -6.461850643157959
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       }
     }
@@ -154,7 +154,7 @@ const expandTests = [
       'inputs': {
         'expandInput': {
           'data': [-6.461850643157959],
-          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+          'descriptor': {shape: [], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -174,7 +174,7 @@ const expandTests = [
             -6.461850643157959, -6.461850643157959, -6.461850643157959,
             -6.461850643157959, -6.461850643157959, -6.461850643157959
           ],
-          'descriptor': {'dimensions': [2, 2, 3, 1, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 3, 1, 2], dataType: 'float32'}
         }
       }
     }
@@ -185,7 +185,7 @@ const expandTests = [
       'inputs': {
         'expandInput': {
           'data': [-6.461850643157959],
-          'descriptor': {'dimensions': [1], 'dataType': 'float32'},
+          'descriptor': {shape: [1], dataType: 'float32'},
           'constant': true
         }
       },
@@ -206,7 +206,7 @@ const expandTests = [
             -6.461850643157959, -6.461850643157959, -6.461850643157959,
             -6.461850643157959, -6.461850643157959, -6.461850643157959
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'}
+          'descriptor': {shape: [24], dataType: 'float32'}
         }
       }
     }
@@ -217,7 +217,7 @@ const expandTests = [
       'inputs': {
         'expandInput': {
           'data': [-6.461850643157959],
-          'descriptor': {'dimensions': [1], 'dataType': 'float32'}
+          'descriptor': {shape: [1], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -237,7 +237,7 @@ const expandTests = [
             -6.461850643157959, -6.461850643157959, -6.461850643157959,
             -6.461850643157959, -6.461850643157959, -6.461850643157959
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'}
+          'descriptor': {shape: [24], dataType: 'float32'}
         }
       }
     }
@@ -248,7 +248,7 @@ const expandTests = [
       'inputs': {
         'expandInput': {
           'data': [-6.461850643157959],
-          'descriptor': {'dimensions': [1], 'dataType': 'float32'}
+          'descriptor': {shape: [1], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -268,7 +268,7 @@ const expandTests = [
             -6.461850643157959, -6.461850643157959, -6.461850643157959,
             -6.461850643157959, -6.461850643157959, -6.461850643157959
           ],
-          'descriptor': {'dimensions': [4, 6], 'dataType': 'float32'}
+          'descriptor': {shape: [4, 6], dataType: 'float32'}
         }
       }
     }
@@ -279,7 +279,7 @@ const expandTests = [
       'inputs': {
         'expandInput': {
           'data': [-6.461850643157959],
-          'descriptor': {'dimensions': [1], 'dataType': 'float32'}
+          'descriptor': {shape: [1], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -299,7 +299,7 @@ const expandTests = [
             -6.461850643157959, -6.461850643157959, -6.461850643157959,
             -6.461850643157959, -6.461850643157959, -6.461850643157959
           ],
-          'descriptor': {'dimensions': [2, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 4], dataType: 'float32'}
         }
       }
     }
@@ -310,7 +310,7 @@ const expandTests = [
       'inputs': {
         'expandInput': {
           'data': [-6.461850643157959],
-          'descriptor': {'dimensions': [1], 'dataType': 'float32'}
+          'descriptor': {shape: [1], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -330,7 +330,7 @@ const expandTests = [
             -6.461850643157959, -6.461850643157959, -6.461850643157959,
             -6.461850643157959, -6.461850643157959, -6.461850643157959
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       }
     }
@@ -341,7 +341,7 @@ const expandTests = [
       'inputs': {
         'expandInput': {
           'data': [-6.461850643157959],
-          'descriptor': {'dimensions': [1], 'dataType': 'float32'}
+          'descriptor': {shape: [1], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -361,7 +361,7 @@ const expandTests = [
             -6.461850643157959, -6.461850643157959, -6.461850643157959,
             -6.461850643157959, -6.461850643157959, -6.461850643157959
           ],
-          'descriptor': {'dimensions': [2, 2, 3, 1, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 3, 1, 2], dataType: 'float32'}
         }
       }
     }
@@ -375,7 +375,7 @@ const expandTests = [
             10.898762702941895, -29.391416549682617, -73.74250793457031,
             22.456905364990234, -97.5792465209961, -76.95013427734375
           ],
-          'descriptor': {'dimensions': [1, 6], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 6], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -395,7 +395,7 @@ const expandTests = [
             10.898762702941895, -29.391416549682617, -73.74250793457031,
             22.456905364990234, -97.5792465209961,   -76.95013427734375
           ],
-          'descriptor': {'dimensions': [4, 6], 'dataType': 'float32'}
+          'descriptor': {shape: [4, 6], dataType: 'float32'}
         }
       }
     }
@@ -409,7 +409,7 @@ const expandTests = [
             4.965915679931641, 66.14382934570312, 75.28175354003906,
             49.998130798339844
           ],
-          'descriptor': {'dimensions': [4, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [4, 1], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -429,7 +429,7 @@ const expandTests = [
             49.998130798339844, 49.998130798339844, 49.998130798339844,
             49.998130798339844, 49.998130798339844, 49.998130798339844
           ],
-          'descriptor': {'dimensions': [4, 6], 'dataType': 'float32'}
+          'descriptor': {shape: [4, 6], dataType: 'float32'}
         }
       }
     }
@@ -440,7 +440,7 @@ const expandTests = [
       'inputs': {
         'expandInput': {
           'data': [-6.461850643157959],
-          'descriptor': {'dimensions': [1, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 1], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -460,7 +460,7 @@ const expandTests = [
             -6.461850643157959, -6.461850643157959, -6.461850643157959,
             -6.461850643157959, -6.461850643157959, -6.461850643157959
           ],
-          'descriptor': {'dimensions': [4, 6], 'dataType': 'float32'}
+          'descriptor': {shape: [4, 6], dataType: 'float32'}
         }
       }
     }
@@ -474,7 +474,7 @@ const expandTests = [
             4.965915679931641, 66.14382934570312, 75.28175354003906,
             49.998130798339844
           ],
-          'descriptor': {'dimensions': [4, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [4, 1], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -494,7 +494,7 @@ const expandTests = [
             75.28175354003906,  75.28175354003906,  75.28175354003906,
             49.998130798339844, 49.998130798339844, 49.998130798339844
           ],
-          'descriptor': {'dimensions': [2, 4, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 4, 3], dataType: 'float32'}
         }
       }
     }
@@ -508,7 +508,7 @@ const expandTests = [
             10.898762702941895, -29.391416549682617, -73.74250793457031,
             22.456905364990234, -97.5792465209961, -76.95013427734375
           ],
-          'descriptor': {'dimensions': [1, 6], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 6], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -528,7 +528,7 @@ const expandTests = [
             10.898762702941895, -29.391416549682617, -73.74250793457031,
             22.456905364990234, -97.5792465209961,   -76.95013427734375
           ],
-          'descriptor': {'dimensions': [2, 1, 2, 6], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 1, 2, 6], dataType: 'float32'}
         }
       }
     }
@@ -539,7 +539,7 @@ const expandTests = [
       'inputs': {
         'expandInput': {
           'data': [-6.461850643157959],
-          'descriptor': {'dimensions': [1, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 1], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -559,7 +559,7 @@ const expandTests = [
             -6.461850643157959, -6.461850643157959, -6.461850643157959,
             -6.461850643157959, -6.461850643157959, -6.461850643157959
           ],
-          'descriptor': {'dimensions': [2, 1, 3, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 1, 3, 2, 2], dataType: 'float32'}
         }
       }
     }
@@ -570,7 +570,7 @@ const expandTests = [
       'inputs': {
         'expandInput': {
           'data': [21.694129943847656, -72.82571411132812],
-          'descriptor': {'dimensions': [1, 2, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 1], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -590,7 +590,7 @@ const expandTests = [
             -72.82571411132812, -72.82571411132812, -72.82571411132812,
             -72.82571411132812, -72.82571411132812, -72.82571411132812
           ],
-          'descriptor': {'dimensions': [2, 2, 6], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 6], dataType: 'float32'}
         }
       }
     }
@@ -601,7 +601,7 @@ const expandTests = [
       'inputs': {
         'expandInput': {
           'data': [21.694129943847656, -72.82571411132812],
-          'descriptor': {'dimensions': [1, 2, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 1], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -621,7 +621,7 @@ const expandTests = [
             21.694129943847656, 21.694129943847656, 21.694129943847656,
             -72.82571411132812, -72.82571411132812, -72.82571411132812
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       }
     }
@@ -632,7 +632,7 @@ const expandTests = [
       'inputs': {
         'expandInput': {
           'data': [21.694129943847656, -72.82571411132812],
-          'descriptor': {'dimensions': [1, 2, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 1], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -652,7 +652,7 @@ const expandTests = [
             21.694129943847656, 21.694129943847656, 21.694129943847656,
             -72.82571411132812, -72.82571411132812, -72.82571411132812
           ],
-          'descriptor': {'dimensions': [2, 1, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 1, 2, 2, 3], dataType: 'float32'}
         }
       }
     }
@@ -663,7 +663,7 @@ const expandTests = [
       'inputs': {
         'expandInput': {
           'data': [12.799123764038086, -26.550199508666992],
-          'descriptor': {'dimensions': [2, 1, 1, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 1, 1, 1], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -683,7 +683,7 @@ const expandTests = [
             -26.550199508666992, -26.550199508666992, -26.550199508666992,
             -26.550199508666992, -26.550199508666992, -26.550199508666992
           ],
-          'descriptor': {'dimensions': [2, 3, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 2, 2], dataType: 'float32'}
         }
       }
     }
@@ -694,7 +694,7 @@ const expandTests = [
       'inputs': {
         'expandInput': {
           'data': [12.799123764038086, -26.550199508666992],
-          'descriptor': {'dimensions': [2, 1, 1, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 1, 1, 1], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -714,7 +714,7 @@ const expandTests = [
             -26.550199508666992, -26.550199508666992, -26.550199508666992,
             -26.550199508666992, -26.550199508666992, -26.550199508666992
           ],
-          'descriptor': {'dimensions': [2, 2, 3, 1, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 3, 1, 2], dataType: 'float32'}
         }
       }
     }

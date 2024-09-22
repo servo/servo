@@ -5,6 +5,7 @@ from webdriver.error import TimeoutException
 
 from tests.support.sync import AsyncPoll
 
+from ... import number_interval
 from .. import (
     assert_response_event,
     AUTH_REQUIRED_EVENT,
@@ -85,6 +86,53 @@ async def test_no_authentication(
 
     assert len(events) == 0
     remove_listener()
+
+
+@pytest.mark.asyncio
+async def test_request_timing_info(
+    bidi_session,
+    new_tab,
+    wait_for_event,
+    wait_for_future_safe,
+    url,
+    fetch,
+    setup_network_test,
+    current_time,
+):
+    network_events = await setup_network_test(
+        events=[AUTH_REQUIRED_EVENT], context=new_tab["context"]
+    )
+    events = network_events[AUTH_REQUIRED_EVENT]
+
+    # Record the time range for the request to assert the timing info.
+    time_start = await current_time()
+
+    auth_url = url(
+        "/webdriver/tests/support/http_handlers/authentication.py?realm=testrealm"
+    )
+
+    on_auth_required = wait_for_event(AUTH_REQUIRED_EVENT)
+    asyncio.ensure_future(fetch(url=auth_url, context=new_tab))
+    await wait_for_future_safe(on_auth_required)
+
+    time_end = await current_time()
+    time_range = number_interval(time_start, time_end)
+
+    assert len(events) == 1
+    expected_request = {"method": "GET", "url": auth_url}
+    expected_response = {
+        "url": auth_url,
+        "authChallenges": [
+            ({"scheme": "Basic", "realm": "testrealm"}),
+        ],
+    }
+    assert_response_event(
+        events[0],
+        expected_request=expected_request,
+        expected_response=expected_response,
+        expected_time_range=time_range,
+        redirect_count=0,
+    )
 
 
 @pytest.mark.asyncio

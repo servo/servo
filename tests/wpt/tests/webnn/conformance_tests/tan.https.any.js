@@ -28,7 +28,7 @@ const tanTests = [
       'inputs': {
         'tanInput': {
           'data': [52.69781494140625],
-          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+          'descriptor': {shape: [], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -39,7 +39,7 @@ const tanTests = [
       'expectedOutputs': {
         'tanOutput': {
           'data': [-0.8582430481910706],
-          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+          'descriptor': {shape: [], dataType: 'float32'}
         }
       }
     }
@@ -59,7 +59,7 @@ const tanTests = [
             84.79766845703125,  -95.58502960205078,  15.552484512329102,
             -55.25654220581055, -26.884889602661133, 0.159261092543602
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'},
+          'descriptor': {shape: [24], dataType: 'float32'},
           'constant': true
         }
       },
@@ -80,7 +80,7 @@ const tanTests = [
             -0.025338610634207726, -4.203672409057617,   -0.1567438244819641,
             3.495089292526245,     5.453553199768066,    0.16062140464782715
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'}
+          'descriptor': {shape: [24], dataType: 'float32'}
         }
       }
     }
@@ -100,7 +100,7 @@ const tanTests = [
             84.79766845703125,  -95.58502960205078,  15.552484512329102,
             -55.25654220581055, -26.884889602661133, 0.159261092543602
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'}
+          'descriptor': {shape: [24], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -120,7 +120,7 @@ const tanTests = [
             -0.025338610634207726, -4.203672409057617,   -0.1567438244819641,
             3.495089292526245,     5.453553199768066,    0.16062140464782715
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'}
+          'descriptor': {shape: [24], dataType: 'float32'}
         }
       }
     }
@@ -140,7 +140,7 @@ const tanTests = [
             84.79766845703125,  -95.58502960205078,  15.552484512329102,
             -55.25654220581055, -26.884889602661133, 0.159261092543602
           ],
-          'descriptor': {'dimensions': [4, 6], 'dataType': 'float32'}
+          'descriptor': {shape: [4, 6], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -160,7 +160,7 @@ const tanTests = [
             -0.025338610634207726, -4.203672409057617,   -0.1567438244819641,
             3.495089292526245,     5.453553199768066,    0.16062140464782715
           ],
-          'descriptor': {'dimensions': [4, 6], 'dataType': 'float32'}
+          'descriptor': {shape: [4, 6], dataType: 'float32'}
         }
       }
     }
@@ -180,7 +180,7 @@ const tanTests = [
             84.79766845703125,  -95.58502960205078,  15.552484512329102,
             -55.25654220581055, -26.884889602661133, 0.159261092543602
           ],
-          'descriptor': {'dimensions': [2, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 4], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -200,7 +200,7 @@ const tanTests = [
             -0.025338610634207726, -4.203672409057617,   -0.1567438244819641,
             3.495089292526245,     5.453553199768066,    0.16062140464782715
           ],
-          'descriptor': {'dimensions': [2, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 4], dataType: 'float32'}
         }
       }
     }
@@ -220,7 +220,7 @@ const tanTests = [
             84.79766845703125,  -95.58502960205078,  15.552484512329102,
             -55.25654220581055, -26.884889602661133, 0.159261092543602
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -240,7 +240,7 @@ const tanTests = [
             -0.025338610634207726, -4.203672409057617,   -0.1567438244819641,
             3.495089292526245,     5.453553199768066,    0.16062140464782715
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       }
     }
@@ -260,7 +260,7 @@ const tanTests = [
             84.79766845703125,  -95.58502960205078,  15.552484512329102,
             -55.25654220581055, -26.884889602661133, 0.159261092543602
           ],
-          'descriptor': {'dimensions': [2, 1, 4, 1, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 1, 4, 1, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -280,7 +280,7 @@ const tanTests = [
             -0.025338610634207726, -4.203672409057617,   -0.1567438244819641,
             3.495089292526245,     5.453553199768066,    0.16062140464782715
           ],
-          'descriptor': {'dimensions': [2, 1, 4, 1, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 1, 4, 1, 3], dataType: 'float32'}
         }
       }
     }

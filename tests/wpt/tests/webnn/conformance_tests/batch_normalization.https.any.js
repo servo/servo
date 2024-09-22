@@ -22,14 +22,6 @@
 //     MLOperand input, MLOperand mean, MLOperand, variance,
 //     optional MLBatchNormalizationOptions options = {});
 
-
-const getBatchNormPrecisionTolerance = (graphResources) => {
-  const toleranceValueDict = {float32: 6, float16: 6};
-  const expectedDataType =
-      getExpectedDataTypeOfSingleOutput(graphResources.expectedOutputs);
-  return {metricType: 'ULP', value: toleranceValueDict[expectedDataType]};
-};
-
 const batchNormTests = [
   {
     'name':
@@ -47,21 +39,21 @@ const batchNormTests = [
             -9.359310150146484,  80.20824432373047,    -85.36802673339844,
             62.35185241699219,   -68.4724349975586,    -12.10716724395752
           ],
-          'descriptor': {'dimensions': [4, 6], 'dataType': 'float32'}
+          'descriptor': {shape: [4, 6], dataType: 'float32'}
         },
         'bnMean': {
           'data': [
             -7.814267635345459, -95.64129638671875, 38.15440368652344,
             -55.95203399658203, -87.86500549316406, -41.63645553588867
           ],
-          'descriptor': {'dimensions': [6], 'dataType': 'float32'}
+          'descriptor': {shape: [6], dataType: 'float32'}
         },
         'bnVariance': {
           'data': [
             60.31186294555664, 26.43260383605957, 53.275634765625,
             40.146121978759766, 59.41098403930664, 35.99981689453125
           ],
-          'descriptor': {'dimensions': [6], 'dataType': 'float32'}
+          'descriptor': {shape: [6], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -83,7 +75,7 @@ const batchNormTests = [
             -0.1989477425813675, 34.203548431396484, -16.923160552978516,
             18.671411514282227,  2.5159497261047363, 4.921559810638428
           ],
-          'descriptor': {'dimensions': [4, 6], 'dataType': 'float32'}
+          'descriptor': {shape: [4, 6], dataType: 'float32'}
         }
       }
     }
@@ -103,7 +95,7 @@ const batchNormTests = [
             -9.359310150146484,  80.20824432373047,    -85.36802673339844,
             62.35185241699219,   -68.4724349975586,    -12.10716724395752
           ],
-          'descriptor': {'dimensions': [4, 6], 'dataType': 'float32'},
+          'descriptor': {shape: [4, 6], dataType: 'float32'},
           'constant': true
         },
         'bnMean': {
@@ -111,7 +103,7 @@ const batchNormTests = [
             -7.814267635345459, -95.64129638671875, 38.15440368652344,
             -55.95203399658203, -87.86500549316406, -41.63645553588867
           ],
-          'descriptor': {'dimensions': [6], 'dataType': 'float32'},
+          'descriptor': {shape: [6], dataType: 'float32'},
           'constant': true
         },
         'bnVariance': {
@@ -119,7 +111,7 @@ const batchNormTests = [
             60.31186294555664, 26.43260383605957, 53.275634765625,
             40.146121978759766, 59.41098403930664, 35.99981689453125
           ],
-          'descriptor': {'dimensions': [6], 'dataType': 'float32'},
+          'descriptor': {shape: [6], dataType: 'float32'},
           'constant': true
         }
       },
@@ -142,7 +134,7 @@ const batchNormTests = [
             -0.1989477425813675, 34.203548431396484, -16.923160552978516,
             18.671411514282227,  2.5159497261047363, 4.921559810638428
           ],
-          'descriptor': {'dimensions': [4, 6], 'dataType': 'float32'}
+          'descriptor': {shape: [4, 6], dataType: 'float32'}
         }
       }
     }
@@ -162,14 +154,14 @@ const batchNormTests = [
             -9.359310150146484,  80.20824432373047,    -85.36802673339844,
             62.35185241699219,   -68.4724349975586,    -12.10716724395752
           ],
-          'descriptor': {'dimensions': [4, 6], 'dataType': 'float32'}
+          'descriptor': {shape: [4, 6], dataType: 'float32'}
         },
         'bnMean': {
           'data': [
             -7.814267635345459, -95.64129638671875, 38.15440368652344,
             -55.95203399658203, -87.86500549316406, -41.63645553588867
           ],
-          'descriptor': {'dimensions': [6], 'dataType': 'float32'},
+          'descriptor': {shape: [6], dataType: 'float32'},
           'constant': true
         },
         'bnVariance': {
@@ -177,7 +169,7 @@ const batchNormTests = [
             60.31186294555664, 26.43260383605957, 53.275634765625,
             40.146121978759766, 59.41098403930664, 35.99981689453125
           ],
-          'descriptor': {'dimensions': [6], 'dataType': 'float32'},
+          'descriptor': {shape: [6], dataType: 'float32'},
           'constant': true
         }
       },
@@ -200,7 +192,7 @@ const batchNormTests = [
             -0.1989477425813675, 34.203548431396484, -16.923160552978516,
             18.671411514282227,  2.5159497261047363, 4.921559810638428
           ],
-          'descriptor': {'dimensions': [4, 6], 'dataType': 'float32'}
+          'descriptor': {shape: [4, 6], dataType: 'float32'}
         }
       }
     }
@@ -220,16 +212,16 @@ const batchNormTests = [
             -9.359310150146484,  80.20824432373047,    -85.36802673339844,
             62.35185241699219,   -68.4724349975586,    -12.10716724395752
           ],
-          'descriptor': {'dimensions': [2, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 4], dataType: 'float32'}
         },
         'bnMean': {
           'data': [12.810380935668945, 63.13715362548828, -61.62983322143555],
-          'descriptor': {'dimensions': [3], 'dataType': 'float32'},
+          'descriptor': {shape: [3], dataType: 'float32'},
           'constant': true
         },
         'bnVariance': {
           'data': [18.358240127563477, 41.847232818603516, 16.12828254699707],
-          'descriptor': {'dimensions': [3], 'dataType': 'float32'},
+          'descriptor': {shape: [3], dataType: 'float32'},
           'constant': true
         }
       },
@@ -252,7 +244,7 @@ const batchNormTests = [
             -11.206846237182617, 2.638929843902588,   -5.910898208618164,
             30.871898651123047,  -1.7038332223892212, 12.331327438354492
           ],
-          'descriptor': {'dimensions': [2, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 4], dataType: 'float32'}
         }
       }
     }
@@ -272,16 +264,16 @@ const batchNormTests = [
             -9.359310150146484,  80.20824432373047,    -85.36802673339844,
             62.35185241699219,   -68.4724349975586,    -12.10716724395752
           ],
-          'descriptor': {'dimensions': [2, 3, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 2, 2], dataType: 'float32'}
         },
         'bnMean': {
           'data': [51.629150390625, 99.36075592041016, -96.1473617553711],
-          'descriptor': {'dimensions': [3], 'dataType': 'float32'},
+          'descriptor': {shape: [3], dataType: 'float32'},
           'constant': true
         },
         'bnVariance': {
           'data': [30.448015213012695, 86.36219024658203, 73.88455200195312],
-          'descriptor': {'dimensions': [3], 'dataType': 'float32'},
+          'descriptor': {shape: [3], dataType: 'float32'},
           'constant': true
         }
       },
@@ -304,7 +296,7 @@ const batchNormTests = [
             -11.698976516723633, -2.0609331130981445, 1.2540507316589355,
             18.43954849243164,   3.2196571826934814,  9.777103424072266
           ],
-          'descriptor': {'dimensions': [2, 3, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 2, 2], dataType: 'float32'}
         }
       }
     }
@@ -324,16 +316,16 @@ const batchNormTests = [
             -9.359310150146484,  80.20824432373047,    -85.36802673339844,
             62.35185241699219,   -68.4724349975586,    -12.10716724395752
           ],
-          'descriptor': {'dimensions': [6, 1, 1, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [6, 1, 1, 2, 2], dataType: 'float32'}
         },
         'bnMean': {
           'data': [35.4078254699707],
-          'descriptor': {'dimensions': [1], 'dataType': 'float32'},
+          'descriptor': {shape: [1], dataType: 'float32'},
           'constant': true
         },
         'bnVariance': {
           'data': [40.93109893798828],
-          'descriptor': {'dimensions': [1], 'dataType': 'float32'},
+          'descriptor': {shape: [1], dataType: 'float32'},
           'constant': true
         }
       },
@@ -356,7 +348,7 @@ const batchNormTests = [
             -6.99733304977417,   7.002535343170166,   -18.877885818481445,
             4.211489677429199,   -16.237018585205078, -7.42683744430542
           ],
-          'descriptor': {'dimensions': [6, 1, 1, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [6, 1, 1, 2, 2], dataType: 'float32'}
         }
       }
     }
@@ -376,16 +368,16 @@ const batchNormTests = [
             -9.359310150146484,  80.20824432373047,    -85.36802673339844,
             62.35185241699219,   -68.4724349975586,    -12.10716724395752
           ],
-          'descriptor': {'dimensions': [2, 3, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 2, 2], dataType: 'float32'}
         },
         'bnMean': {
           'data': [51.629150390625, 99.36075592041016, -96.1473617553711],
-          'descriptor': {'dimensions': [3], 'dataType': 'float32'},
+          'descriptor': {shape: [3], dataType: 'float32'},
           'constant': true
         },
         'bnVariance': {
           'data': [30.448015213012695, 86.36219024658203, 73.88455200195312],
-          'descriptor': {'dimensions': [3], 'dataType': 'float32'},
+          'descriptor': {shape: [3], dataType: 'float32'},
           'constant': true
         }
       },
@@ -409,7 +401,7 @@ const batchNormTests = [
             -11.698976516723633, -2.0609331130981445, 1.2540507316589355,
             18.43954849243164,   3.2196571826934814,  9.777103424072266
           ],
-          'descriptor': {'dimensions': [2, 3, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 2, 2], dataType: 'float32'}
         }
       }
     }
@@ -429,16 +421,16 @@ const batchNormTests = [
             76.8831787109375,    -9.359310150146484,   -68.4724349975586,
             97.03362274169922,   80.20824432373047,    -12.10716724395752
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         },
         'bnMean': {
           'data': [51.629150390625, 99.36075592041016, -96.1473617553711],
-          'descriptor': {'dimensions': [3], 'dataType': 'float32'},
+          'descriptor': {shape: [3], dataType: 'float32'},
           'constant': true
         },
         'bnVariance': {
           'data': [30.448015213012695, 86.36219024658203, 73.88455200195312],
-          'descriptor': {'dimensions': [3], 'dataType': 'float32'},
+          'descriptor': {shape: [3], dataType: 'float32'},
           'constant': true
         }
       },
@@ -462,7 +454,7 @@ const batchNormTests = [
             4.576685905456543,   -11.698976516723633, 3.2196571826934814,
             8.228469848632812,   -2.0609331130981445, 9.777103424072266
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       }
     }
@@ -482,21 +474,21 @@ const batchNormTests = [
             -9.359310150146484,  80.20824432373047,    -85.36802673339844,
             62.35185241699219,   -68.4724349975586,    -12.10716724395752
           ],
-          'descriptor': {'dimensions': [2, 3, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 2, 2], dataType: 'float32'}
         },
         'bnMean': {
           'data': [51.629150390625, 99.36075592041016, -96.1473617553711],
-          'descriptor': {'dimensions': [3], 'dataType': 'float32'},
+          'descriptor': {shape: [3], dataType: 'float32'},
           'constant': true
         },
         'bnVariance': {
           'data': [30.448015213012695, 86.36219024658203, 73.88455200195312],
-          'descriptor': {'dimensions': [3], 'dataType': 'float32'},
+          'descriptor': {shape: [3], dataType: 'float32'},
           'constant': true
         },
         'bnScale': {
           'data': [65.50171661376953, -71.007568359375, -5.569730758666992],
-          'descriptor': {'dimensions': [3], 'dataType': 'float32'},
+          'descriptor': {shape: [3], dataType: 'float32'},
           'constant': true
         }
       },
@@ -520,7 +512,7 @@ const batchNormTests = [
             830.7158813476562,   146.3418426513672,   -6.984724998474121,
             -102.70331573486328, -17.9326229095459,   -54.455833435058594
           ],
-          'descriptor': {'dimensions': [2, 3, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 2, 2], dataType: 'float32'}
         }
       }
     }
@@ -540,21 +532,21 @@ const batchNormTests = [
             -9.359310150146484,  80.20824432373047,    -85.36802673339844,
             62.35185241699219,   -68.4724349975586,    -12.10716724395752
           ],
-          'descriptor': {'dimensions': [2, 3, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 2, 2], dataType: 'float32'}
         },
         'bnMean': {
           'data': [51.629150390625, 99.36075592041016, -96.1473617553711],
-          'descriptor': {'dimensions': [3], 'dataType': 'float32'},
+          'descriptor': {shape: [3], dataType: 'float32'},
           'constant': true
         },
         'bnVariance': {
           'data': [30.448015213012695, 86.36219024658203, 73.88455200195312],
-          'descriptor': {'dimensions': [3], 'dataType': 'float32'},
+          'descriptor': {shape: [3], dataType: 'float32'},
           'constant': true
         },
         'bnBias': {
           'data': [64.2044677734375, 75.28591918945312, -84.57243347167969],
-          'descriptor': {'dimensions': [3], 'dataType': 'float32'},
+          'descriptor': {shape: [3], dataType: 'float32'},
           'constant': true
         }
       },
@@ -578,7 +570,7 @@ const batchNormTests = [
             63.586944580078125, 73.22498321533203,  -83.3183822631836,
             -66.13288879394531, -81.35277557373047, -74.79533386230469
           ],
-          'descriptor': {'dimensions': [2, 3, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 2, 2], dataType: 'float32'}
         }
       }
     }
@@ -598,16 +590,16 @@ const batchNormTests = [
             -9.359310150146484,  80.20824432373047,    -85.36802673339844,
             62.35185241699219,   -68.4724349975586,    -12.10716724395752
           ],
-          'descriptor': {'dimensions': [2, 3, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 2, 2], dataType: 'float32'}
         },
         'bnMean': {
           'data': [51.629150390625, 99.36075592041016, -96.1473617553711],
-          'descriptor': {'dimensions': [3], 'dataType': 'float32'},
+          'descriptor': {shape: [3], dataType: 'float32'},
           'constant': true
         },
         'bnVariance': {
           'data': [30.448015213012695, 86.36219024658203, 73.88455200195312],
-          'descriptor': {'dimensions': [3], 'dataType': 'float32'},
+          'descriptor': {shape: [3], dataType: 'float32'},
           'constant': true
         }
       },
@@ -631,7 +623,7 @@ const batchNormTests = [
             -11.698976516723633, -2.0609331130981445, 1.254050850868225,
             18.43954849243164,   3.2196574211120605,  9.777103424072266
           ],
-          'descriptor': {'dimensions': [2, 3, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 2, 2], dataType: 'float32'}
         }
       }
     }
@@ -651,26 +643,26 @@ const batchNormTests = [
             76.8831787109375,    -9.359310150146484,   -68.4724349975586,
             97.03362274169922,   80.20824432373047,    -12.10716724395752
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         },
         'bnMean': {
           'data': [51.629150390625, 99.36075592041016, -96.1473617553711],
-          'descriptor': {'dimensions': [3], 'dataType': 'float32'},
+          'descriptor': {shape: [3], dataType: 'float32'},
           'constant': true
         },
         'bnVariance': {
           'data': [30.448015213012695, 86.36219024658203, 73.88455200195312],
-          'descriptor': {'dimensions': [3], 'dataType': 'float32'},
+          'descriptor': {shape: [3], dataType: 'float32'},
           'constant': true
         },
         'bnScale': {
           'data': [65.50171661376953, -71.007568359375, -5.569730758666992],
-          'descriptor': {'dimensions': [3], 'dataType': 'float32'},
+          'descriptor': {shape: [3], dataType: 'float32'},
           'constant': true
         },
         'bnBias': {
           'data': [64.2044677734375, 75.28591918945312, -84.57243347167969],
-          'descriptor': {'dimensions': [3], 'dataType': 'float32'},
+          'descriptor': {shape: [3], dataType: 'float32'},
           'constant': true
         }
       },
@@ -701,7 +693,7 @@ const batchNormTests = [
             363.98524710447384,  906.0018322105,     -102.5050592863526,
             603.1834043179756,   221.6277675074517,  -139.02827100419768
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       }
     }
@@ -710,8 +702,7 @@ const batchNormTests = [
 
 if (navigator.ml) {
   batchNormTests.forEach((test) => {
-    webnn_conformance_test(
-        buildGraphAndCompute, getBatchNormPrecisionTolerance, test);
+    webnn_conformance_test(buildGraphAndCompute, getPrecisionTolerance, test);
   });
 } else {
   test(() => assert_implements(navigator.ml, 'missing navigator.ml'));

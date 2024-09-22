@@ -940,3 +940,21 @@ class DevicePostureProtocolPart(ProtocolPart):
     @abstractmethod
     def clear_device_posture(self):
         pass
+
+class VirtualPressureSourceProtocolPart(ProtocolPart):
+    """Protocol part for Virtual Pressure Source"""
+    __metaclass__ = ABCMeta
+
+    name = "pressure"
+
+    @abstractmethod
+    def create_virtual_pressure_source(self, source_type, metadata):
+        pass
+
+    @abstractmethod
+    def update_virtual_pressure_source(self, source_type, sample):
+        pass
+
+    @abstractmethod
+    def remove_virtual_pressure_source(self, source_type):
+        pass

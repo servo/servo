@@ -42,3 +42,21 @@ async def test_delta_invalid_value(bidi_session, current_url, new_tab, inline, v
         await bidi_session.browsing_context.traverse_history(
             context=new_tab["context"], delta=value
         )
+
+
+async def test_iframe(bidi_session, current_url, wait_for_url, new_tab, inline):
+    iframe_url_1 = inline("page 1")
+    page_url = inline(f"<iframe src='{iframe_url_1}'></iframe>")
+
+    await bidi_session.browsing_context.navigate(
+        context=new_tab["context"], url=page_url, wait="complete"
+    )
+
+    contexts = await bidi_session.browsing_context.get_tree(
+        root=new_tab["context"])
+    iframe_context = contexts[0]["children"][0]
+
+    with pytest.raises(error.InvalidArgumentException):
+        await bidi_session.browsing_context.traverse_history(
+            context=iframe_context["context"], delta=-1
+        )

@@ -6,12 +6,13 @@
 
 // Define the URL constants used for each type of message target, including
 // iframes and workers.
-const kDocumentMessageTarget = 'resources/message-target.html';
-const kSharedWorkerMessageTarget = 'resources/message-target-shared-worker.js';
+const kDocumentMessageTarget = '../fs/resources/message-target.html';
+const kSharedWorkerMessageTarget =
+    '../fs/resources/message-target-shared-worker.js';
 const kServiceWorkerMessageTarget =
-  'resources/message-target-service-worker.js';
+    '../fs/resources/message-target-service-worker.js';
 const kDedicatedWorkerMessageTarget =
-  'resources/message-target-dedicated-worker.js';
+    '../fs/resources/message-target-dedicated-worker.js';
 
 function create_dedicated_worker(test, url) {
   const dedicated_worker = new Worker(url);

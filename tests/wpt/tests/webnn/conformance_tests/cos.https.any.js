@@ -28,7 +28,7 @@ const cosTests = [
       'inputs': {
         'cosInput': {
           'data': [85.56369018554688],
-          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+          'descriptor': {shape: [], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -39,7 +39,7 @@ const cosTests = [
       'expectedOutputs': {
         'cosOutput': {
           'data': [-0.7380040884017944],
-          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+          'descriptor': {shape: [], dataType: 'float32'}
         }
       }
     }
@@ -59,7 +59,7 @@ const cosTests = [
             -98.67289733886719, -63.6115608215332,   26.85724639892578,
             83.70417022705078,  76.56607055664062,   -47.83436584472656
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'},
+          'descriptor': {shape: [24], dataType: 'float32'},
           'constant': true
         }
       },
@@ -80,7 +80,7 @@ const cosTests = [
             -0.283336341381073,   0.7111190557479858,   -0.1531042903661728,
             -0.43673399090766907, 0.39213326573371887,  -0.7580515146255493
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'}
+          'descriptor': {shape: [24], dataType: 'float32'}
         }
       }
     }
@@ -100,7 +100,7 @@ const cosTests = [
             -98.67289733886719, -63.6115608215332,   26.85724639892578,
             83.70417022705078,  76.56607055664062,   -47.83436584472656
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'}
+          'descriptor': {shape: [24], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -120,7 +120,7 @@ const cosTests = [
             -0.283336341381073,   0.7111190557479858,   -0.1531042903661728,
             -0.43673399090766907, 0.39213326573371887,  -0.7580515146255493
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'}
+          'descriptor': {shape: [24], dataType: 'float32'}
         }
       }
     }
@@ -140,7 +140,7 @@ const cosTests = [
             -98.67289733886719, -63.6115608215332,   26.85724639892578,
             83.70417022705078,  76.56607055664062,   -47.83436584472656
           ],
-          'descriptor': {'dimensions': [4, 6], 'dataType': 'float32'}
+          'descriptor': {shape: [4, 6], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -160,7 +160,7 @@ const cosTests = [
             -0.283336341381073,   0.7111190557479858,   -0.1531042903661728,
             -0.43673399090766907, 0.39213326573371887,  -0.7580515146255493
           ],
-          'descriptor': {'dimensions': [4, 6], 'dataType': 'float32'}
+          'descriptor': {shape: [4, 6], dataType: 'float32'}
         }
       }
     }
@@ -180,7 +180,7 @@ const cosTests = [
             -98.67289733886719, -63.6115608215332,   26.85724639892578,
             83.70417022705078,  76.56607055664062,   -47.83436584472656
           ],
-          'descriptor': {'dimensions': [2, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 4], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -200,7 +200,7 @@ const cosTests = [
             -0.283336341381073,   0.7111190557479858,   -0.1531042903661728,
             -0.43673399090766907, 0.39213326573371887,  -0.7580515146255493
           ],
-          'descriptor': {'dimensions': [2, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 4], dataType: 'float32'}
         }
       }
     }
@@ -220,7 +220,7 @@ const cosTests = [
             -98.67289733886719, -63.6115608215332,   26.85724639892578,
             83.70417022705078,  76.56607055664062,   -47.83436584472656
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -240,7 +240,7 @@ const cosTests = [
             -0.283336341381073,   0.7111190557479858,   -0.1531042903661728,
             -0.43673399090766907, 0.39213326573371887,  -0.7580515146255493
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       }
     }
@@ -260,7 +260,7 @@ const cosTests = [
             -98.67289733886719, -63.6115608215332,   26.85724639892578,
             83.70417022705078,  76.56607055664062,   -47.83436584472656
           ],
-          'descriptor': {'dimensions': [2, 1, 4, 1, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 1, 4, 1, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -280,7 +280,7 @@ const cosTests = [
             -0.283336341381073,   0.7111190557479858,   -0.1531042903661728,
             -0.43673399090766907, 0.39213326573371887,  -0.7580515146255493
           ],
-          'descriptor': {'dimensions': [2, 1, 4, 1, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 1, 4, 1, 3], dataType: 'float32'}
         }
       }
     }

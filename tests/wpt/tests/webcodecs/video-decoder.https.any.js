@@ -79,6 +79,10 @@ const validButUnsupportedConfigs = [
     config: {codec: 'avc1.FF000b'},
   },
   {
+    comment: 'Possible future H264 codec string (level 2.9)',
+    config: {codec: 'avc1.4D401D'},
+  },
+  {
     comment: 'Possible future HEVC codec string',
     config: {codec: 'hvc1.C99.6FFFFFF.L93'},
   },
@@ -151,17 +155,35 @@ const validConfigs = [
     comment: 'valid codec with spaces',
     config: {codec: '  vp09.00.10.08  '},
   },
+  {
+    comment: 'variant 1 of h264 codec string',
+    config: {codec: 'avc3.42001E'},
+  },
+  {
+    comment: 'variant 2 of h264 codec string',
+    config: {codec: 'avc1.42001E'},
+  },
 ];  // validConfigs
 
 validConfigs.forEach(entry => {
-  promise_test(
-    async t => {
-      try {
-        await VideoDecoder.isConfigSupported(entry.config);
-      } catch (e) {
-        assert_true(false, entry.comment + ' should not throw');
-      }
-    },
-    'Test that VideoDecoder.isConfigSupported() accepts config:' +
-        entry.comment);
+  promise_test(async t => {
+    try {
+      await VideoDecoder.isConfigSupported(entry.config);
+      var decoder = new VideoDecoder(getDefaultCodecInit(t));
+      // Something that works with all codecs:
+      entry.config.width = 1280;
+      entry.config.height = 720;
+      decoder.configure(entry.config);
+      return decoder
+        .flush()
+        .then(
+          t.step_func(e => {
+            assert_equals(decoder.state, 'configured', 'codec is configured');
+          })
+        )
+        .catch(t.unreached_func('flush succeeded unexpectedly'));
+    } catch (e) {
+      assert_true(false, entry.comment + ' should not throw');
+    }
+  }, 'Test that VideoDecoder.isConfigSupported() accepts config:' + entry.comment);
 });

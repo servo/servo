@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#intrinsic-sizes">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1919220">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="This test verifies that fieldset's width is the same as the img's width, transferred from the img's height and aspect-ratio.">
+
+<style>
+fieldset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  height: 100px;
+  width: fit-content;
+  background: red;
+}
+img {
+  height: 100%;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<fieldset>
+  <img src="aspect-ratio/support/200x200-green.png">
+</fieldset>

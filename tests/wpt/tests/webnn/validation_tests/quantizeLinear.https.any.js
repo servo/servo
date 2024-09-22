@@ -11,86 +11,79 @@ const tests = [
   {
     name:
         '[quantizeLinear] Test scale\'s shape = [3, 2, 5] and zeroPoint\'s shape = [3, 2, 5] which is the same as input\'s shape.',
-    input: {dataType: 'float32', dimensions: [3, 2, 5]},
-    scale: {dataType: 'float32', dimensions: [3, 2, 5]},
-    zeroPoint: {dataType: 'int8', dimensions: [3, 2, 5]},
-    output: {dataType: 'int8', dimensions: [3, 2, 5]},
+    input: {dataType: 'float32', shape: [3, 2, 5]},
+    scale: {dataType: 'float32', shape: [3, 2, 5]},
+    zeroPoint: {dataType: 'int8', shape: [3, 2, 5]},
+    output: {dataType: 'int8', shape: [3, 2, 5]},
   },
   {
     name:
         '[quantizeLinear] Test scale\'s shape = [5] and zeroPoint\'s shape = [5] which is unidirectionally broadcastable to input\'s shape.',
-    input: {dataType: 'float32', dimensions: [3, 2, 5]},
-    scale: {dataType: 'float32', dimensions: [5]},
-    zeroPoint: {dataType: 'int8', dimensions: [5]},
-    output: {dataType: 'int8', dimensions: [3, 2, 5]},
+    input: {dataType: 'float32', shape: [3, 2, 5]},
+    scale: {dataType: 'float32', shape: [5]},
+    zeroPoint: {dataType: 'int8', shape: [5]},
+    output: {dataType: 'int8', shape: [3, 2, 5]},
   },
   {
     name:
         '[quantizeLinear] Test scale\'s shape = [] and zeroPoint\'s shape = [] which is unidirectionally broadcastable to input\'s shape.',
-    input: {dataType: 'float32', dimensions: [3, 2, 5]},
-    scale: {dataType: 'float32', dimensions: []},
-    zeroPoint: {dataType: 'int8', dimensions: []},
-    output: {dataType: 'int8', dimensions: [3, 2, 5]},
+    input: {dataType: 'float32', shape: [3, 2, 5]},
+    scale: {dataType: 'float32', shape: []},
+    zeroPoint: {dataType: 'int8', shape: []},
+    output: {dataType: 'int8', shape: [3, 2, 5]},
   },
   {
     name:
         '[quantizeLinear] Throw if the shape of scale is not broadcastable to the shape of input.',
-    input: {dataType: 'float32', dimensions: [3, 2, 5]},
-    scale: {dataType: 'float32', dimensions: [2]},
-    zeroPoint: {dataType: 'int8', dimensions: [5]},
+    input: {dataType: 'float32', shape: [3, 2, 5]},
+    scale: {dataType: 'float32', shape: [2]},
+    zeroPoint: {dataType: 'int8', shape: [5]},
   },
   {
     name:
         '[quantizeLinear] Throw if the shape of zero_point is not broadcastable to the shape of input.',
-    input: {dataType: 'float32', dimensions: [3, 2, 5]},
-    scale: {dataType: 'float32', dimensions: [5]},
-    zeroPoint: {dataType: 'int8', dimensions: [2]},
+    input: {dataType: 'float32', shape: [3, 2, 5]},
+    scale: {dataType: 'float32', shape: [5]},
+    zeroPoint: {dataType: 'int8', shape: [2]},
   },
   {
     name:
         '[quantizeLinear] Throw if the data type of input is not the same as scale.',
-    input: {dataType: 'float32', dimensions: [3, 2, 5]},
-    scale: {dataType: 'float16', dimensions: [5]},
-    zeroPoint: {dataType: 'int8', dimensions: [5]},
+    input: {dataType: 'float32', shape: [3, 2, 5]},
+    scale: {dataType: 'float16', shape: [5]},
+    zeroPoint: {dataType: 'int8', shape: [5]},
   },
   {
     name: '[quantizeLinear] Throw if the data type of input is not float32.',
-    input: {dataType: 'int32', dimensions: [3, 2, 5]},
-    scale: {dataType: 'float32', dimensions: [5]},
-    zeroPoint: {dataType: 'int8', dimensions: [5]},
+    input: {dataType: 'int32', shape: [3, 2, 5]},
+    scale: {dataType: 'float32', shape: [5]},
+    zeroPoint: {dataType: 'int8', shape: [5]},
   },
   {
     name: '[quantizeLinear] Throw if the data type of scale is not float32.',
-    input: {dataType: 'float32', dimensions: [3, 2, 5]},
-    scale: {dataType: 'int32', dimensions: [5]},
-    zeroPoint: {dataType: 'uint8', dimensions: [5]},
+    input: {dataType: 'float32', shape: [3, 2, 5]},
+    scale: {dataType: 'int32', shape: [5]},
+    zeroPoint: {dataType: 'uint8', shape: [5]},
   },
   {
     name:
         '[dequantizeLinear] Throw if the data type of zeroPoint is not int8 or uint8.',
-    input: {dataType: 'float32', dimensions: [3, 2, 5]},
-    scale: {dataType: 'float32', dimensions: [5]},
-    zeroPoint: {dataType: 'float16', dimensions: [5]},
+    input: {dataType: 'float32', shape: [3, 2, 5]},
+    scale: {dataType: 'float32', shape: [5]},
+    zeroPoint: {dataType: 'float16', shape: [5]},
   },
 ];
 
 tests.forEach(
     test => promise_test(async t => {
       const builder = new MLGraphBuilder(context);
-      const input = builder.input(
-          'input',
-          {dataType: test.input.dataType, dimensions: test.input.dimensions});
-      const scale = builder.input(
-          'scale',
-          {dataType: test.scale.dataType, dimensions: test.scale.dimensions});
-      const zeroPoint = builder.input('zeroPoint', {
-        dataType: test.zeroPoint.dataType,
-        dimensions: test.zeroPoint.dimensions
-      });
+      const input = builder.input('input', test.input);
+      const scale = builder.input('scale', test.scale);
+      const zeroPoint = builder.input('zeroPoint', test.zeroPoint);
       if (test.output) {
         const output = builder.quantizeLinear(input, scale, zeroPoint);
         assert_equals(output.dataType(), test.output.dataType);
-        assert_array_equals(output.shape(), test.output.dimensions);
+        assert_array_equals(output.shape(), test.output.shape);
       } else {
         const label = 'quantize_linear_123';
         const options = {label};
@@ -103,11 +96,11 @@ tests.forEach(
 
 const kExampleInputDescriptor = {
   dataType: 'float32',
-  dimensions: [2, 4]
+  shape: [2, 4]
 };
 const kExampleZeroPointDescriptor = {
   dataType: 'int8',
-  dimensions: [2, 4]
+  shape: [2, 4]
 };
 multi_builder_test(async (t, builder, otherBuilder) => {
   const inputFromOtherBuilder =

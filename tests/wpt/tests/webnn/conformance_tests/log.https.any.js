@@ -28,7 +28,7 @@ const logTests = [
       'inputs': {
         'logInput': {
           'data': [63.82542037963867],
-          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+          'descriptor': {shape: [], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -39,7 +39,7 @@ const logTests = [
       'expectedOutputs': {
         'logOutput': {
           'data': [4.15615177154541],
-          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+          'descriptor': {shape: [], dataType: 'float32'}
         }
       }
     }
@@ -59,7 +59,7 @@ const logTests = [
             30.385812759399414, 13.709558486938477, 10.396759986877441,
             50.840946197509766, 5.682034492492676,  94.02275848388672
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'},
+          'descriptor': {shape: [24], dataType: 'float32'},
           'constant': true
         }
       },
@@ -80,7 +80,7 @@ const logTests = [
             3.413975715637207,  2.618093252182007,  2.34149432182312,
             3.9287021160125732, 1.7373093366622925, 4.54353666305542
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'}
+          'descriptor': {shape: [24], dataType: 'float32'}
         }
       }
     }
@@ -100,7 +100,7 @@ const logTests = [
             30.385812759399414, 13.709558486938477, 10.396759986877441,
             50.840946197509766, 5.682034492492676,  94.02275848388672
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'}
+          'descriptor': {shape: [24], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -120,7 +120,7 @@ const logTests = [
             3.413975715637207,  2.618093252182007,  2.34149432182312,
             3.9287021160125732, 1.7373093366622925, 4.54353666305542
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'}
+          'descriptor': {shape: [24], dataType: 'float32'}
         }
       }
     }
@@ -140,7 +140,7 @@ const logTests = [
             30.385812759399414, 13.709558486938477, 10.396759986877441,
             50.840946197509766, 5.682034492492676,  94.02275848388672
           ],
-          'descriptor': {'dimensions': [4, 6], 'dataType': 'float32'}
+          'descriptor': {shape: [4, 6], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -160,7 +160,7 @@ const logTests = [
             3.413975715637207,  2.618093252182007,  2.34149432182312,
             3.9287021160125732, 1.7373093366622925, 4.54353666305542
           ],
-          'descriptor': {'dimensions': [4, 6], 'dataType': 'float32'}
+          'descriptor': {shape: [4, 6], dataType: 'float32'}
         }
       }
     }
@@ -180,7 +180,7 @@ const logTests = [
             30.385812759399414, 13.709558486938477, 10.396759986877441,
             50.840946197509766, 5.682034492492676,  94.02275848388672
           ],
-          'descriptor': {'dimensions': [2, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 4], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -200,7 +200,7 @@ const logTests = [
             3.413975715637207,  2.618093252182007,  2.34149432182312,
             3.9287021160125732, 1.7373093366622925, 4.54353666305542
           ],
-          'descriptor': {'dimensions': [2, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 4], dataType: 'float32'}
         }
       }
     }
@@ -220,7 +220,7 @@ const logTests = [
             30.385812759399414, 13.709558486938477, 10.396759986877441,
             50.840946197509766, 5.682034492492676,  94.02275848388672
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -240,7 +240,7 @@ const logTests = [
             3.413975715637207,  2.618093252182007,  2.34149432182312,
             3.9287021160125732, 1.7373093366622925, 4.54353666305542
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       }
     }
@@ -260,7 +260,7 @@ const logTests = [
             30.385812759399414, 13.709558486938477, 10.396759986877441,
             50.840946197509766, 5.682034492492676,  94.02275848388672
           ],
-          'descriptor': {'dimensions': [2, 1, 4, 1, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 1, 4, 1, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -280,7 +280,7 @@ const logTests = [
             3.413975715637207,  2.618093252182007,  2.34149432182312,
             3.9287021160125732, 1.7373093366622925, 4.54353666305542
           ],
-          'descriptor': {'dimensions': [2, 1, 4, 1, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 1, 4, 1, 3], dataType: 'float32'}
         }
       }
     }

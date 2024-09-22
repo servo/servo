@@ -28,11 +28,11 @@ const greaterTests = [
       'inputs': {
         'inputA': {
           'data': [3.6851015090942383],
-          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+          'descriptor': {shape: [], dataType: 'float32'}
         },
         'inputB': {
           'data': [1.723199725151062],
-          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+          'descriptor': {shape: [], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -41,8 +41,7 @@ const greaterTests = [
         'outputs': 'output'
       }],
       'expectedOutputs': {
-        'output':
-            {'data': [1], 'descriptor': {'dimensions': [], 'dataType': 'uint8'}}
+        'output': {'data': [1], 'descriptor': {shape: [], dataType: 'uint8'}}
       }
     }
   },
@@ -61,7 +60,7 @@ const greaterTests = [
             0.7069857120513916,  2.7764203548431396,  0.978833794593811,
             -6.254901885986328,  4.409034729003906,   -6.775286674499512
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'},
+          'descriptor': {shape: [24], dataType: 'float32'},
           'constant': true
         },
         'inputB': {
@@ -75,7 +74,7 @@ const greaterTests = [
             4.982365131378174,  -2.507319211959839,  -4.518013954162598,
             8.351094245910645,  -6.161073207855225,  0.7364829182624817
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'},
+          'descriptor': {shape: [24], dataType: 'float32'},
           'constant': true
         }
       },
@@ -90,7 +89,7 @@ const greaterTests = [
             1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0,
             1, 0, 1, 0, 1, 0, 0, 1, 1, 0, 1, 0
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'uint8'}
+          'descriptor': {shape: [24], dataType: 'uint8'}
         }
       }
     }
@@ -110,7 +109,7 @@ const greaterTests = [
             0.7069857120513916,  2.7764203548431396,  0.978833794593811,
             -6.254901885986328,  4.409034729003906,   -6.775286674499512
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'}
+          'descriptor': {shape: [24], dataType: 'float32'}
         },
         'inputB': {
           'data': [
@@ -123,7 +122,7 @@ const greaterTests = [
             4.982365131378174,  -2.507319211959839,  -4.518013954162598,
             8.351094245910645,  -6.161073207855225,  0.7364829182624817
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'}
+          'descriptor': {shape: [24], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -137,7 +136,7 @@ const greaterTests = [
             1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0,
             1, 0, 1, 0, 1, 0, 0, 1, 1, 0, 1, 0
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'uint8'}
+          'descriptor': {shape: [24], dataType: 'uint8'}
         }
       }
     }
@@ -157,7 +156,7 @@ const greaterTests = [
             0.7069857120513916,  2.7764203548431396,  0.978833794593811,
             -6.254901885986328,  4.409034729003906,   -6.775286674499512
           ],
-          'descriptor': {'dimensions': [4, 6], 'dataType': 'float32'}
+          'descriptor': {shape: [4, 6], dataType: 'float32'}
         },
         'inputB': {
           'data': [
@@ -170,7 +169,7 @@ const greaterTests = [
             4.982365131378174,  -2.507319211959839,  -4.518013954162598,
             8.351094245910645,  -6.161073207855225,  0.7364829182624817
           ],
-          'descriptor': {'dimensions': [4, 6], 'dataType': 'float32'}
+          'descriptor': {shape: [4, 6], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -184,7 +183,7 @@ const greaterTests = [
             1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0,
             1, 0, 1, 0, 1, 0, 0, 1, 1, 0, 1, 0
           ],
-          'descriptor': {'dimensions': [4, 6], 'dataType': 'uint8'}
+          'descriptor': {shape: [4, 6], dataType: 'uint8'}
         }
       }
     }
@@ -204,7 +203,7 @@ const greaterTests = [
             0.7069857120513916,  2.7764203548431396,  0.978833794593811,
             -6.254901885986328,  4.409034729003906,   -6.775286674499512
           ],
-          'descriptor': {'dimensions': [2, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 4], dataType: 'float32'}
         },
         'inputB': {
           'data': [
@@ -217,7 +216,7 @@ const greaterTests = [
             4.982365131378174,  -2.507319211959839,  -4.518013954162598,
             8.351094245910645,  -6.161073207855225,  0.7364829182624817
           ],
-          'descriptor': {'dimensions': [2, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 4], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -231,7 +230,7 @@ const greaterTests = [
             1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0,
             1, 0, 1, 0, 1, 0, 0, 1, 1, 0, 1, 0
           ],
-          'descriptor': {'dimensions': [2, 3, 4], 'dataType': 'uint8'}
+          'descriptor': {shape: [2, 3, 4], dataType: 'uint8'}
         }
       }
     }
@@ -251,7 +250,7 @@ const greaterTests = [
             0.7069857120513916,  2.7764203548431396,  0.978833794593811,
             -6.254901885986328,  4.409034729003906,   -6.775286674499512
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         },
         'inputB': {
           'data': [
@@ -264,7 +263,7 @@ const greaterTests = [
             4.982365131378174,  -2.507319211959839,  -4.518013954162598,
             8.351094245910645,  -6.161073207855225,  0.7364829182624817
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -278,7 +277,7 @@ const greaterTests = [
             1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0,
             1, 0, 1, 0, 1, 0, 0, 1, 1, 0, 1, 0
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'uint8'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'uint8'}
         }
       }
     }
@@ -298,7 +297,7 @@ const greaterTests = [
             0.7069857120513916,  2.7764203548431396,  0.978833794593811,
             -6.254901885986328,  4.409034729003906,   -6.775286674499512
           ],
-          'descriptor': {'dimensions': [2, 2, 1, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 1, 2, 3], dataType: 'float32'}
         },
         'inputB': {
           'data': [
@@ -311,7 +310,7 @@ const greaterTests = [
             4.982365131378174,  -2.507319211959839,  -4.518013954162598,
             8.351094245910645,  -6.161073207855225,  0.7364829182624817
           ],
-          'descriptor': {'dimensions': [2, 2, 1, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 1, 2, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -325,7 +324,7 @@ const greaterTests = [
             1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0,
             1, 0, 1, 0, 1, 0, 0, 1, 1, 0, 1, 0
           ],
-          'descriptor': {'dimensions': [2, 2, 1, 2, 3], 'dataType': 'uint8'}
+          'descriptor': {shape: [2, 2, 1, 2, 3], dataType: 'uint8'}
         }
       }
     }
@@ -336,7 +335,7 @@ const greaterTests = [
       'inputs': {
         'inputA': {
           'data': [6.2216410636901855],
-          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+          'descriptor': {shape: [], dataType: 'float32'}
         },
         'inputB': {
           'data': [
@@ -349,7 +348,7 @@ const greaterTests = [
             0.7069857120513916,  2.7764203548431396,  0.978833794593811,
             -6.254901885986328,  4.409034729003906,   -6.775286674499512
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -363,7 +362,7 @@ const greaterTests = [
             1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
             0, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'uint8'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'uint8'}
         }
       }
     }
@@ -374,7 +373,7 @@ const greaterTests = [
       'inputs': {
         'inputA': {
           'data': [6.2216410636901855],
-          'descriptor': {'dimensions': [1], 'dataType': 'float32'}
+          'descriptor': {shape: [1], dataType: 'float32'}
         },
         'inputB': {
           'data': [
@@ -387,7 +386,7 @@ const greaterTests = [
             0.7069857120513916,  2.7764203548431396,  0.978833794593811,
             -6.254901885986328,  4.409034729003906,   -6.775286674499512
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -401,7 +400,7 @@ const greaterTests = [
             1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
             0, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'uint8'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'uint8'}
         }
       }
     }
@@ -421,14 +420,14 @@ const greaterTests = [
             0.7069857120513916,  2.7764203548431396,  0.978833794593811,
             -6.254901885986328,  4.409034729003906,   -6.775286674499512
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         },
         'inputB': {
           'data': [
             -2.684664487838745, 6.170023441314697, 9.487744331359863,
             -2.5556411743164062, -2.0436434745788574, 8.533930778503418
           ],
-          'descriptor': {'dimensions': [2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -442,7 +441,7 @@ const greaterTests = [
             0, 0, 0, 1, 1, 0, 1, 0, 0, 0, 1, 0,
             1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'uint8'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'uint8'}
         }
       }
     }
@@ -462,14 +461,14 @@ const greaterTests = [
             0.7069857120513916,  2.7764203548431396,  0.978833794593811,
             -6.254901885986328,  4.409034729003906,   -6.775286674499512
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         },
         'inputB': {
           'data': [
             -7.099076271057129, -7.781408309936523, 8.782817840576172,
             -8.948624610900879
           ],
-          'descriptor': {'dimensions': [2, 2, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 1], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -483,7 +482,7 @@ const greaterTests = [
             1, 0, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1,
             1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'uint8'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'uint8'}
         }
       }
     }
@@ -494,7 +493,7 @@ const greaterTests = [
       'inputs': {
         'inputA': {
           'data': [6.2216410636901855],
-          'descriptor': {'dimensions': [1, 1, 1, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 1, 1, 1], dataType: 'float32'}
         },
         'inputB': {
           'data': [
@@ -507,7 +506,7 @@ const greaterTests = [
             0.7069857120513916,  2.7764203548431396,  0.978833794593811,
             -6.254901885986328,  4.409034729003906,   -6.775286674499512
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -521,7 +520,7 @@ const greaterTests = [
             1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
             0, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'uint8'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'uint8'}
         }
       }
     }

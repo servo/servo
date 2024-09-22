@@ -1,0 +1,43 @@
+<!doctype html>
+<head>
+<meta charset="utf-8"/>
+<meta name="timeout" content="long">
+<meta name="help" href="https://github.com/WICG/CHIPS#chips-cookies-having-independent-partitioned-state">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/cookies/resources/cookie-helper.sub.js"></script>
+<script src="/cookies/partitioned-cookies/resources/test-helpers.js"></script>
+<title>Test partitioned cookies consider ancestor chain</title>
+</head>
+<body>
+<script>
+  // This test is sets up an A1->B->A2 frame tree, where the top-level site is embedded
+  // in a cross-site embed. If the partitionKey of the cookie has a cross-site ancestor bit,
+  // the cookie set on site A1 will not be accessible on site A2.
+  promise_test(async() => {
+    assert_equals(document.cookie, "");
+
+    const partitionedCookie = "ancestor=chain";
+    const partitionedCookieAttributes =
+        "; Secure; Path=/; SameSite=None; Partitioned";
+    const partitionedCookieLine =
+        partitionedCookie + partitionedCookieAttributes;
+    document.cookie = partitionedCookieLine;
+
+    assert_true(document.cookie.includes(partitionedCookie));
+
+    const iframe = document.createElement("iframe");
+    const url = new URL(
+      "/cookies/partitioned-cookies/resources/" +
+          "ancestor-chain-cross-site-embed.html",
+          get_host_info().HTTPS_NOTSAMESITE_ORIGIN + self.location.pathname);
+
+    iframe.src = url.href;
+    document.body.appendChild(iframe);
+
+    await fetch_tests_from_window(iframe.contentWindow);
+  }, "Setting Partitioned cookie on top-level site and embedding a cross-site iframe");
+
+</script>
+</body>

@@ -176,11 +176,10 @@
         },
 
         /**
-         * Triggers a user-initiated click
+         * Triggers a user-initiated mouse click.
          *
-         * If ``element`` isn't inside the
-         * viewport, it will be scrolled into view before the click
-         * occurs.
+         * If ``element`` isn't inside the viewport, it will be
+         * scrolled into view before the click occurs.
          *
          * If ``element`` is from a different browsing context, the
          * command will be run in that context.
@@ -1141,6 +1140,82 @@
          */
         run_bounce_tracking_mitigations: function (context = null) {
             return window.test_driver_internal.run_bounce_tracking_mitigations(context);
+        },
+
+        /**
+         * Creates a virtual pressure source.
+         *
+         * Matches the `Create virtual pressure source
+         * <https://w3c.github.io/compute-pressure/#create-virtual-pressure-source>`_
+         * WebDriver command.
+         *
+         * @param {String} source_type - A `virtual pressure source type
+         *                               <https://w3c.github.io/compute-pressure/#dom-pressuresource>`_
+         *                               such as "cpu".
+         * @param {Object} [metadata={}] - Optional parameters described
+         *                                 in `Create virtual pressure source
+         *                                 <https://w3c.github.io/compute-pressure/#create-virtual-pressure-source>`_.
+         * @param {WindowProxy} [context=null] - Browsing context in which to
+         *                                       run the call, or null for the
+         *                                       current browsing context.
+         *
+         * @returns {Promise} Fulfilled when virtual pressure source is created.
+         *                    Rejected in case the WebDriver command errors out
+         *                    (including if a virtual pressure source of the
+         *                    same type already exists).
+         */
+        create_virtual_pressure_source: function(source_type, metadata={}, context=null) {
+            return window.test_driver_internal.create_virtual_pressure_source(source_type, metadata, context);
+        },
+
+        /**
+         * Causes a virtual pressure source to report a new reading.
+         *
+         * Matches the `Update virtual pressure source
+         * <https://w3c.github.io/compute-pressure/#update-virtual-pressure-source>`_
+         * WebDriver command.
+         *
+         * @param {String} source_type - A `virtual pressure source type
+         *                               <https://w3c.github.io/compute-pressure/#dom-pressuresource>`_
+         *                               such as "cpu".
+         * @param {String} sample - A `virtual pressure state
+         *                          <https://w3c.github.io/compute-pressure/#dom-pressurestate>`_
+         *                          such as "critical".
+         * @param {WindowProxy} [context=null] - Browsing context in which to
+         *                                       run the call, or null for the
+         *                                       current browsing context.
+         *
+         * @returns {Promise} Fulfilled after the reading update reaches the
+         *                    virtual pressure source. Rejected in case the
+         *                    WebDriver command errors out (including if a
+         *                    virtual pressure source of the given type does not
+         *                    exist).
+         */
+        update_virtual_pressure_source: function(source_type, sample, context=null) {
+            return window.test_driver_internal.update_virtual_pressure_source(source_type, sample, context);
+        },
+
+        /**
+         * Removes created virtual pressure source.
+         *
+         * Matches the `Delete virtual pressure source
+         * <https://w3c.github.io/compute-pressure/#delete-virtual-pressure-source>`_
+         * WebDriver command.
+         *
+         * @param {String} source_type - A `virtual pressure source type
+         *                               <https://w3c.github.io/compute-pressure/#dom-pressuresource>`_
+         *                               such as "cpu".
+         * @param {WindowProxy} [context=null] - Browsing context in which to
+         *                                       run the call, or null for the
+         *                                       current browsing context.
+         *
+         * @returns {Promise} Fulfilled after the virtual pressure source has
+         *                    been removed or if a pressure source of the given
+         *                    type does not exist. Rejected in case the
+         *                    WebDriver command errors out.
+         */
+        remove_virtual_pressure_source: function(source_type, context=null) {
+            return window.test_driver_internal.remove_virtual_pressure_source(source_type, context);
         }
     };
 
@@ -1356,6 +1431,18 @@
 
         async run_bounce_tracking_mitigations(context=null) {
             throw new Error("run_bounce_tracking_mitigations() is not implemented by testdriver-vendor.js");
+        },
+
+        async create_virtual_pressure_source(source_type, metadata={}, context=null) {
+            throw new Error("create_virtual_pressure_source() is not implemented by testdriver-vendor.js");
+        },
+
+        async update_virtual_pressure_source(source_type, sample, context=null) {
+            throw new Error("update_virtual_pressure_source() is not implemented by testdriver-vendor.js");
+        },
+
+        async remove_virtual_pressure_source(source_type, context=null) {
+            throw new Error("remove_virtual_pressure_source() is not implemented by testdriver-vendor.js");
         }
     };
 })();

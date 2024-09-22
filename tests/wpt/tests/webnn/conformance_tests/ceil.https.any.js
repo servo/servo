@@ -28,7 +28,7 @@ const ceilTests = [
       'inputs': {
         'ceilInput': {
           'data': [67.38941955566406],
-          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+          'descriptor': {shape: [], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -37,10 +37,8 @@ const ceilTests = [
         'outputs': 'ceilOutput'
       }],
       'expectedOutputs': {
-        'ceilOutput': {
-          'data': [68],
-          'descriptor': {'dimensions': [], 'dataType': 'float32'}
-        }
+        'ceilOutput':
+            {'data': [68], 'descriptor': {shape: [], dataType: 'float32'}}
       }
     }
   },
@@ -59,7 +57,7 @@ const ceilTests = [
             69.71428680419922,   5.0031023025512695,  84.36833953857422,
             -9.390542030334473,  -27.856616973876953, -34.895931243896484
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'}
+          'descriptor': {shape: [24], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -73,7 +71,7 @@ const ceilTests = [
             68, 37, 100, -22, 33, 18,  6,  13, 84, -29, 20,  66,
             27, 25, -48, -5,  62, -87, 70, 6,  85, -9,  -27, -34
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'}
+          'descriptor': {shape: [24], dataType: 'float32'}
         }
       }
     }
@@ -93,7 +91,7 @@ const ceilTests = [
             69.71428680419922,   5.0031023025512695,  84.36833953857422,
             -9.390542030334473,  -27.856616973876953, -34.895931243896484
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'}
+          'descriptor': {shape: [24], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -107,7 +105,7 @@ const ceilTests = [
             68, 37, 100, -22, 33, 18,  6,  13, 84, -29, 20,  66,
             27, 25, -48, -5,  62, -87, 70, 6,  85, -9,  -27, -34
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'}
+          'descriptor': {shape: [24], dataType: 'float32'}
         }
       }
     }
@@ -127,7 +125,7 @@ const ceilTests = [
             69.71428680419922,   5.0031023025512695,  84.36833953857422,
             -9.390542030334473,  -27.856616973876953, -34.895931243896484
           ],
-          'descriptor': {'dimensions': [4, 6], 'dataType': 'float32'}
+          'descriptor': {shape: [4, 6], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -141,7 +139,7 @@ const ceilTests = [
             68, 37, 100, -22, 33, 18,  6,  13, 84, -29, 20,  66,
             27, 25, -48, -5,  62, -87, 70, 6,  85, -9,  -27, -34
           ],
-          'descriptor': {'dimensions': [4, 6], 'dataType': 'float32'}
+          'descriptor': {shape: [4, 6], dataType: 'float32'}
         }
       }
     }
@@ -161,7 +159,7 @@ const ceilTests = [
             69.71428680419922,   5.0031023025512695,  84.36833953857422,
             -9.390542030334473,  -27.856616973876953, -34.895931243896484
           ],
-          'descriptor': {'dimensions': [2, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 4], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -175,7 +173,7 @@ const ceilTests = [
             68, 37, 100, -22, 33, 18,  6,  13, 84, -29, 20,  66,
             27, 25, -48, -5,  62, -87, 70, 6,  85, -9,  -27, -34
           ],
-          'descriptor': {'dimensions': [2, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 4], dataType: 'float32'}
         }
       }
     }
@@ -195,7 +193,7 @@ const ceilTests = [
             69.71428680419922,   5.0031023025512695,  84.36833953857422,
             -9.390542030334473,  -27.856616973876953, -34.895931243896484
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -209,7 +207,7 @@ const ceilTests = [
             68, 37, 100, -22, 33, 18,  6,  13, 84, -29, 20,  66,
             27, 25, -48, -5,  62, -87, 70, 6,  85, -9,  -27, -34
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       }
     }
@@ -229,7 +227,7 @@ const ceilTests = [
             69.71428680419922,   5.0031023025512695,  84.36833953857422,
             -9.390542030334473,  -27.856616973876953, -34.895931243896484
           ],
-          'descriptor': {'dimensions': [2, 1, 4, 1, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 1, 4, 1, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -243,7 +241,7 @@ const ceilTests = [
             68, 37, 100, -22, 33, 18,  6,  13, 84, -29, 20,  66,
             27, 25, -48, -5,  62, -87, 70, 6,  85, -9,  -27, -34
           ],
-          'descriptor': {'dimensions': [2, 1, 4, 1, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 1, 4, 1, 3], dataType: 'float32'}
         }
       }
     }

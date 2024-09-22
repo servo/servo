@@ -51,7 +51,7 @@ const conv2dTests = [
             0.12204372137784958, 0.8422137498855591,  0.4537501037120819,
             0.21529443562030792
           ],
-          'descriptor': {'dimensions': [1, 1, 5, 5], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 1, 5, 5], dataType: 'float32'}
         },
         'conv2dFilter': {
           'data': [
@@ -59,7 +59,7 @@ const conv2dTests = [
             0.36689770221710205, 0.33974137902259827, 0.4200059771537781,
             0.3805030882358551, 0.19443586468696594, 0.5686976909637451
           ],
-          'descriptor': {'dimensions': [1, 1, 3, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 1, 3, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -74,7 +74,7 @@ const conv2dTests = [
             1.071682333946228, 1.1259644031524658, 1.4713115692138672,
             1.078782320022583, 1.155018925666809, 1.656954288482666
           ],
-          'descriptor': {'dimensions': [1, 1, 3, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 1, 3, 3], dataType: 'float32'}
         }
       }
     }
@@ -96,7 +96,7 @@ const conv2dTests = [
             0.12204372137784958, 0.8422137498855591,  0.4537501037120819,
             0.21529443562030792
           ],
-          'descriptor': {'dimensions': [1, 1, 5, 5], 'dataType': 'float32'},
+          'descriptor': {shape: [1, 1, 5, 5], dataType: 'float32'},
           'constant': true
         },
         'conv2dFilter': {
@@ -105,7 +105,7 @@ const conv2dTests = [
             0.36689770221710205, 0.33974137902259827, 0.4200059771537781,
             0.3805030882358551, 0.19443586468696594, 0.5686976909637451
           ],
-          'descriptor': {'dimensions': [1, 1, 3, 3], 'dataType': 'float32'},
+          'descriptor': {shape: [1, 1, 3, 3], dataType: 'float32'},
           'constant': true
         }
       },
@@ -121,7 +121,7 @@ const conv2dTests = [
             1.071682333946228, 1.1259644031524658, 1.4713115692138672,
             1.078782320022583, 1.155018925666809, 1.656954288482666
           ],
-          'descriptor': {'dimensions': [1, 1, 3, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 1, 3, 3], dataType: 'float32'}
         }
       }
     }
@@ -142,7 +142,7 @@ const conv2dTests = [
             0.12204372137784958, 0.8422137498855591,  0.4537501037120819,
             0.21529443562030792
           ],
-          'descriptor': {'dimensions': [1, 1, 5, 5], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 1, 5, 5], dataType: 'float32'}
         },
         'conv2dFilter': {
           'data': [
@@ -150,7 +150,7 @@ const conv2dTests = [
             0.36689770221710205, 0.33974137902259827, 0.4200059771537781,
             0.3805030882358551, 0.19443586468696594, 0.5686976909637451
           ],
-          'descriptor': {'dimensions': [1, 1, 3, 3], 'dataType': 'float32'},
+          'descriptor': {shape: [1, 1, 3, 3], dataType: 'float32'},
           'constant': true
         }
       },
@@ -166,7 +166,7 @@ const conv2dTests = [
             1.071682333946228, 1.1259644031524658, 1.4713115692138672,
             1.078782320022583, 1.155018925666809, 1.656954288482666
           ],
-          'descriptor': {'dimensions': [1, 1, 3, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 1, 3, 3], dataType: 'float32'}
         }
       }
     }
@@ -187,7 +187,7 @@ const conv2dTests = [
             0.12204372137784958, 0.8422137498855591,  0.4537501037120819,
             0.21529443562030792
           ],
-          'descriptor': {'dimensions': [1, 1, 5, 5], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 1, 5, 5], dataType: 'float32'}
         },
         'conv2dFilter': {
           'data': [
@@ -195,7 +195,7 @@ const conv2dTests = [
             0.36689770221710205, 0.33974137902259827, 0.4200059771537781,
             0.3805030882358551, 0.19443586468696594, 0.5686976909637451
           ],
-          'descriptor': {'dimensions': [1, 1, 3, 3], 'dataType': 'float32'},
+          'descriptor': {shape: [1, 1, 3, 3], dataType: 'float32'},
           'constant': true
         }
       },
@@ -220,7 +220,7 @@ const conv2dTests = [
             0.7545653581619263, 0.7729666829109192, 0.9733180403709412,
             0.9025675058364868
           ],
-          'descriptor': {'dimensions': [1, 1, 5, 5], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 1, 5, 5], dataType: 'float32'}
         }
       }
     }
@@ -241,7 +241,7 @@ const conv2dTests = [
             0.12204372137784958, 0.8422137498855591,  0.4537501037120819,
             0.21529443562030792
           ],
-          'descriptor': {'dimensions': [1, 1, 5, 5], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 1, 5, 5], dataType: 'float32'}
         },
         'conv2dFilter': {
           'data': [
@@ -249,7 +249,7 @@ const conv2dTests = [
             0.36689770221710205, 0.33974137902259827, 0.4200059771537781,
             0.3805030882358551, 0.19443586468696594, 0.5686976909637451
           ],
-          'descriptor': {'dimensions': [1, 1, 3, 3], 'dataType': 'float32'},
+          'descriptor': {shape: [1, 1, 3, 3], dataType: 'float32'},
           'constant': true
         }
       },
@@ -267,7 +267,7 @@ const conv2dTests = [
             1.5323282480239868, 1.3641656637191772, 1.078782320022583,
             1.656954288482666
           ],
-          'descriptor': {'dimensions': [1, 1, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 1, 2, 2], dataType: 'float32'}
         }
       }
     }
@@ -288,7 +288,7 @@ const conv2dTests = [
             0.12204372137784958, 0.8422137498855591,  0.4537501037120819,
             0.21529443562030792
           ],
-          'descriptor': {'dimensions': [1, 1, 5, 5], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 1, 5, 5], dataType: 'float32'}
         },
         'conv2dFilter': {
           'data': [
@@ -296,7 +296,7 @@ const conv2dTests = [
             0.36689770221710205, 0.33974137902259827, 0.4200059771537781,
             0.3805030882358551, 0.19443586468696594, 0.5686976909637451
           ],
-          'descriptor': {'dimensions': [1, 1, 3, 3], 'dataType': 'float32'},
+          'descriptor': {shape: [1, 1, 3, 3], dataType: 'float32'},
           'constant': true
         }
       },
@@ -311,7 +311,7 @@ const conv2dTests = [
       'expectedOutputs': {
         'conv2dOutput': {
           'data': [1.3599307537078857],
-          'descriptor': {'dimensions': [1, 1, 1, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 1, 1, 1], dataType: 'float32'}
         }
       }
     }
@@ -330,7 +330,7 @@ const conv2dTests = [
             0.25327208638191223, 0.5780375599861145, 0.5414554476737976,
             0.37846308946609497
           ],
-          'descriptor': {'dimensions': [1, 4, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 4, 2, 2], dataType: 'float32'}
         },
         'conv2dFilter': {
           'data': [
@@ -341,7 +341,7 @@ const conv2dTests = [
             0.5900803804397583, 0.9690897464752197, 0.23175589740276337,
             0.14805112779140472
           ],
-          'descriptor': {'dimensions': [4, 1, 2, 2], 'dataType': 'float32'},
+          'descriptor': {shape: [4, 1, 2, 2], dataType: 'float32'},
           'constant': true
         }
       },
@@ -359,7 +359,7 @@ const conv2dTests = [
             1.1808103322982788, 1.165167212486267, 1.311646819114685,
             0.8911385536193848
           ],
-          'descriptor': {'dimensions': [1, 4, 1, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 4, 1, 1], dataType: 'float32'}
         }
       }
     }
@@ -378,7 +378,7 @@ const conv2dTests = [
             0.22727376222610474, 0.5414124131202698, 0.08445341885089874,
             0.6765284538269043, 0.6193256378173828, 0.3929215967655182
           ],
-          'descriptor': {'dimensions': [2, 1, 3, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 1, 3, 3], dataType: 'float32'}
         },
         'conv2dFilter': {
           'data': [
@@ -387,7 +387,7 @@ const conv2dTests = [
             0.08139707148075104, 0.5303338766098022, 0.3072136342525482,
             0.43241235613822937, 0.9849002361297607, 0.4281076192855835
           ],
-          'descriptor': {'dimensions': [3, 1, 2, 2], 'dataType': 'float32'},
+          'descriptor': {shape: [3, 1, 2, 2], dataType: 'float32'},
           'constant': true
         }
       },
@@ -411,7 +411,7 @@ const conv2dTests = [
             0.816078782081604,   0.6780439019203186, 0.9170808792114258,
             1.082636833190918,   1.2353861331939697, 0.9810346961021423
           ],
-          'descriptor': {'dimensions': [2, 3, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 2, 2], dataType: 'float32'}
         }
       }
     }
@@ -430,7 +430,7 @@ const conv2dTests = [
             0.22727376222610474, 0.5414124131202698, 0.08445341885089874,
             0.6765284538269043, 0.6193256378173828, 0.3929215967655182
           ],
-          'descriptor': {'dimensions': [2, 3, 3, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 3, 1], dataType: 'float32'}
         },
         'conv2dFilter': {
           'data': [
@@ -439,7 +439,7 @@ const conv2dTests = [
             0.08139707148075104, 0.5303338766098022, 0.3072136342525482,
             0.43241235613822937, 0.9849002361297607, 0.4281076192855835
           ],
-          'descriptor': {'dimensions': [3, 1, 2, 2], 'dataType': 'float32'},
+          'descriptor': {shape: [3, 1, 2, 2], dataType: 'float32'},
           'constant': true
         }
       },
@@ -463,7 +463,7 @@ const conv2dTests = [
             0.8282973766326904,  0.816078782081604,  1.2353861331939697,
             0.35335418581962585, 0.6780439019203186, 0.9810346961021423
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       }
     }
@@ -482,7 +482,7 @@ const conv2dTests = [
             0.22727376222610474, 0.5414124131202698, 0.08445341885089874,
             0.6765284538269043, 0.6193256378173828, 0.3929215967655182
           ],
-          'descriptor': {'dimensions': [2, 1, 3, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 1, 3, 3], dataType: 'float32'}
         },
         'conv2dFilter': {
           'data': [
@@ -491,7 +491,7 @@ const conv2dTests = [
             0.08139707148075104, 0.5303338766098022, 0.3072136342525482,
             0.43241235613822937, 0.9849002361297607, 0.4281076192855835
           ],
-          'descriptor': {'dimensions': [3, 1, 2, 2], 'dataType': 'float32'},
+          'descriptor': {shape: [3, 1, 2, 2], dataType: 'float32'},
           'constant': true
         }
       },
@@ -515,7 +515,7 @@ const conv2dTests = [
             0.816078782081604,   0.6780439019203186, 0.9170808792114258,
             1.082636833190918,   1.2353861331939697, 0.9810346961021423
           ],
-          'descriptor': {'dimensions': [2, 3, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 2, 2], dataType: 'float32'}
         }
       }
     }
@@ -534,7 +534,7 @@ const conv2dTests = [
             0.22727376222610474, 0.5414124131202698, 0.08445341885089874,
             0.6765284538269043, 0.6193256378173828, 0.3929215967655182
           ],
-          'descriptor': {'dimensions': [2, 1, 3, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 1, 3, 3], dataType: 'float32'}
         },
         'conv2dFilter': {
           'data': [
@@ -543,7 +543,7 @@ const conv2dTests = [
             0.10836050659418106, 0.08139707148075104, 0.9849002361297607,
             0.3202308118343353, 0.5303338766098022, 0.4281076192855835
           ],
-          'descriptor': {'dimensions': [2, 2, 1, 3], 'dataType': 'float32'},
+          'descriptor': {shape: [2, 2, 1, 3], dataType: 'float32'},
           'constant': true
         }
       },
@@ -567,7 +567,7 @@ const conv2dTests = [
             0.816078782081604,   0.6780439019203186, 0.9170808792114258,
             1.082636833190918,   1.2353861331939697, 0.9810346961021423
           ],
-          'descriptor': {'dimensions': [2, 3, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 2, 2], dataType: 'float32'}
         }
       }
     }
@@ -586,7 +586,7 @@ const conv2dTests = [
             0.22727376222610474, 0.5414124131202698, 0.08445341885089874,
             0.6765284538269043, 0.6193256378173828, 0.3929215967655182
           ],
-          'descriptor': {'dimensions': [2, 1, 3, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 1, 3, 3], dataType: 'float32'}
         },
         'conv2dFilter': {
           'data': [
@@ -595,7 +595,7 @@ const conv2dTests = [
             0.08139707148075104, 0.5303338766098022, 0.3072136342525482,
             0.43241235613822937, 0.9849002361297607, 0.4281076192855835
           ],
-          'descriptor': {'dimensions': [3, 2, 2, 1], 'dataType': 'float32'},
+          'descriptor': {shape: [3, 2, 2, 1], dataType: 'float32'},
           'constant': true
         }
       },
@@ -619,7 +619,7 @@ const conv2dTests = [
             0.816078782081604,   0.6780439019203186, 0.9170808792114258,
             1.082636833190918,   1.2353861331939697, 0.9810346961021423
           ],
-          'descriptor': {'dimensions': [2, 3, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 2, 2], dataType: 'float32'}
         }
       }
     }
@@ -638,7 +638,7 @@ const conv2dTests = [
             0.22727376222610474, 0.5414124131202698, 0.08445341885089874,
             0.6765284538269043, 0.6193256378173828, 0.3929215967655182
           ],
-          'descriptor': {'dimensions': [2, 1, 3, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 1, 3, 3], dataType: 'float32'}
         },
         'conv2dFilter': {
           'data': [
@@ -647,7 +647,7 @@ const conv2dTests = [
             0.10836050659418106, 0.08139707148075104, 0.9849002361297607,
             0.3202308118343353, 0.5303338766098022, 0.4281076192855835
           ],
-          'descriptor': {'dimensions': [1, 2, 2, 3], 'dataType': 'float32'},
+          'descriptor': {shape: [1, 2, 2, 3], dataType: 'float32'},
           'constant': true
         }
       },
@@ -671,7 +671,7 @@ const conv2dTests = [
             0.816078782081604,   0.6780439019203186, 0.9170808792114258,
             1.082636833190918,   1.2353861331939697, 0.9810346961021423
           ],
-          'descriptor': {'dimensions': [2, 3, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 2, 2], dataType: 'float32'}
         }
       }
     }
@@ -690,7 +690,7 @@ const conv2dTests = [
             0.22727376222610474, 0.5414124131202698, 0.08445341885089874,
             0.6765284538269043, 0.6193256378173828, 0.3929215967655182
           ],
-          'descriptor': {'dimensions': [2, 3, 3, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 3, 1], dataType: 'float32'}
         },
         'conv2dFilter': {
           'data': [
@@ -699,7 +699,7 @@ const conv2dTests = [
             0.08139707148075104, 0.5303338766098022, 0.3072136342525482,
             0.43241235613822937, 0.9849002361297607, 0.4281076192855835
           ],
-          'descriptor': {'dimensions': [3, 1, 2, 2], 'dataType': 'float32'},
+          'descriptor': {shape: [3, 1, 2, 2], dataType: 'float32'},
           'constant': true
         }
       },
@@ -723,7 +723,7 @@ const conv2dTests = [
             0.8282973766326904,  0.816078782081604,  1.2353861331939697,
             0.35335418581962585, 0.6780439019203186, 0.9810346961021423
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       }
     }
@@ -742,7 +742,7 @@ const conv2dTests = [
             0.22727376222610474, 0.5414124131202698, 0.08445341885089874,
             0.6765284538269043, 0.6193256378173828, 0.3929215967655182
           ],
-          'descriptor': {'dimensions': [2, 3, 3, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 3, 1], dataType: 'float32'}
         },
         'conv2dFilter': {
           'data': [
@@ -751,7 +751,7 @@ const conv2dTests = [
             0.10836050659418106, 0.08139707148075104, 0.9849002361297607,
             0.3202308118343353, 0.5303338766098022, 0.4281076192855835
           ],
-          'descriptor': {'dimensions': [2, 2, 1, 3], 'dataType': 'float32'},
+          'descriptor': {shape: [2, 2, 1, 3], dataType: 'float32'},
           'constant': true
         }
       },
@@ -775,7 +775,7 @@ const conv2dTests = [
             0.8282973766326904,  0.816078782081604,  1.2353861331939697,
             0.35335418581962585, 0.6780439019203186, 0.9810346961021423
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       }
     }
@@ -794,7 +794,7 @@ const conv2dTests = [
             0.22727376222610474, 0.5414124131202698, 0.08445341885089874,
             0.6765284538269043, 0.6193256378173828, 0.3929215967655182
           ],
-          'descriptor': {'dimensions': [2, 3, 3, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 3, 1], dataType: 'float32'}
         },
         'conv2dFilter': {
           'data': [
@@ -803,7 +803,7 @@ const conv2dTests = [
             0.08139707148075104, 0.5303338766098022, 0.3072136342525482,
             0.43241235613822937, 0.9849002361297607, 0.4281076192855835
           ],
-          'descriptor': {'dimensions': [3, 2, 2, 1], 'dataType': 'float32'},
+          'descriptor': {shape: [3, 2, 2, 1], dataType: 'float32'},
           'constant': true
         }
       },
@@ -827,7 +827,7 @@ const conv2dTests = [
             0.8282973766326904,  0.816078782081604,  1.2353861331939697,
             0.35335418581962585, 0.6780439019203186, 0.9810346961021423
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       }
     }
@@ -846,7 +846,7 @@ const conv2dTests = [
             0.22727376222610474, 0.5414124131202698, 0.08445341885089874,
             0.6765284538269043, 0.6193256378173828, 0.3929215967655182
           ],
-          'descriptor': {'dimensions': [2, 3, 3, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 3, 1], dataType: 'float32'}
         },
         'conv2dFilter': {
           'data': [
@@ -855,7 +855,7 @@ const conv2dTests = [
             0.10836050659418106, 0.08139707148075104, 0.9849002361297607,
             0.3202308118343353, 0.5303338766098022, 0.4281076192855835
           ],
-          'descriptor': {'dimensions': [1, 2, 2, 3], 'dataType': 'float32'},
+          'descriptor': {shape: [1, 2, 2, 3], dataType: 'float32'},
           'constant': true
         }
       },
@@ -879,7 +879,7 @@ const conv2dTests = [
             0.8282973766326904,  0.816078782081604,  1.2353861331939697,
             0.35335418581962585, 0.6780439019203186, 0.9810346961021423
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       }
     }
@@ -897,7 +897,7 @@ const conv2dTests = [
             0.22727376222610474, 0.5414124131202698, 0.08445341885089874,
             0.6765284538269043, 0.6193256378173828, 0.3929215967655182
           ],
-          'descriptor': {'dimensions': [2, 1, 3, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 1, 3, 3], dataType: 'float32'}
         },
         'conv2dFilter': {
           'data': [
@@ -906,12 +906,12 @@ const conv2dTests = [
             0.08139707148075104, 0.5303338766098022, 0.3072136342525482,
             0.43241235613822937, 0.9849002361297607, 0.4281076192855835
           ],
-          'descriptor': {'dimensions': [3, 1, 2, 2], 'dataType': 'float32'},
+          'descriptor': {shape: [3, 1, 2, 2], dataType: 'float32'},
           'constant': true
         },
         'conv2dBias': {
           'data': [0.8135762214660645, 0.8394582867622375, 0.49444812536239624],
-          'descriptor': {'dimensions': [3], 'dataType': 'float32'},
+          'descriptor': {shape: [3], dataType: 'float32'},
           'constant': true
         }
       },
@@ -935,7 +935,7 @@ const conv2dTests = [
             1.6555371284484863, 1.5175021886825562, 1.4115289449691772,
             1.577085018157959,  1.7298341989517212, 1.4754828214645386
           ],
-          'descriptor': {'dimensions': [2, 3, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 2, 2], dataType: 'float32'}
         }
       }
     }
@@ -964,7 +964,7 @@ const conv2dTests = [
             0.2968284785747528,   0.7524365782737732,  0.029636209830641747,
             0.09028015285730362,  0.77818763256073
           ],
-          'descriptor': {'dimensions': [1, 2, 5, 5], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 5, 5], dataType: 'float32'}
         },
         'conv2dFilter': {
           'data': [
@@ -972,12 +972,12 @@ const conv2dTests = [
             0.45633891224861145, 0.40438535809516907, 0.5943626761436462,
             0.14241264760494232, 0.9036700129508972
           ],
-          'descriptor': {'dimensions': [2, 2, 1, 2], 'dataType': 'float32'},
+          'descriptor': {shape: [2, 2, 1, 2], dataType: 'float32'},
           'constant': true
         },
         'conv2dBias': {
           'data': [0.542375385761261, 0.8406118750572205],
-          'descriptor': {'dimensions': [2], 'dataType': 'float32'},
+          'descriptor': {shape: [2], dataType: 'float32'},
           'constant': true
         }
       },
@@ -1019,7 +1019,7 @@ const conv2dTests = [
             2.0131523609161377, 1.4835525751113892, 1.1790242195129395,
             2.0776233673095703, 1.378482699394226
           ],
-          'descriptor': {'dimensions': [1, 2, 5, 5], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 5, 5], dataType: 'float32'}
         }
       }
     }
@@ -1049,7 +1049,7 @@ const conv2dTests = [
             -0.3751019835472107,  -0.7108227610588074,  -0.36050301790237427,
             -0.5468712449073792,  -0.032261595129966736
           ],
-          'descriptor': {'dimensions': [1, 2, 5, 5], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 5, 5], dataType: 'float32'}
         },
         'conv2dFilter': {
           'data': [
@@ -1057,12 +1057,12 @@ const conv2dTests = [
             0.45633891224861145, 0.40438535809516907, 0.5943626761436462,
             0.14241264760494232, 0.9036700129508972
           ],
-          'descriptor': {'dimensions': [2, 2, 1, 2], 'dataType': 'float32'},
+          'descriptor': {shape: [2, 2, 1, 2], dataType: 'float32'},
           'constant': true
         },
         'conv2dBias': {
           'data': [-0.37496936321258545, -0.4363507032394409],
-          'descriptor': {'dimensions': [2], 'dataType': 'float32'},
+          'descriptor': {shape: [2], dataType: 'float32'},
           'constant': true
         }
       },
@@ -1101,7 +1101,7 @@ const conv2dTests = [
             -1.5352842807769775, -1.303133249282837,  -1.3232042789459229,
             -1.1430623531341553, -0.5107623338699341
           ],
-          'descriptor': {'dimensions': [1, 2, 5, 5], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 5, 5], dataType: 'float32'}
         }
       }
     }
@@ -1110,8 +1110,7 @@ const conv2dTests = [
 
 if (navigator.ml) {
   conv2dTests.forEach((test) => {
-    webnn_conformance_test(
-        buildGraphAndCompute, getConv2dPrecisionTolerance, test);
+    webnn_conformance_test(buildGraphAndCompute, getPrecisionTolerance, test);
   });
 } else {
   test(() => assert_implements(navigator.ml, 'missing navigator.ml'));

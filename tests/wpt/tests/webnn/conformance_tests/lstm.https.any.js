@@ -66,26 +66,26 @@ const lstmTests = [
       'inputs': {
         'lstmInput': {
           'data': [1, 2, 2, 1],
-          'descriptor': {'dimensions': [1, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 2], dataType: 'float32'}
         },
         'lstmWeight': {
           'data': [1, -1, 2, -2, 1, -1, 2, -2, 1, -1, 2, -2, 1, -1, 2, -2],
-          'descriptor': {'dimensions': [1, 8, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 8, 2], dataType: 'float32'}
         },
         'lstmRecurrentWeight': {
           'data': [
             0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
             0.1, 0.1, 0.1
           ],
-          'descriptor': {'dimensions': [1, 8, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 8, 2], dataType: 'float32'}
         },
         'lstmBias': {
           'data': [1, 2, 1, 2, 1, 2, 1, 2],
-          'descriptor': {'dimensions': [1, 8], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 8], dataType: 'float32'}
         },
         'lstmRecurrentBias': {
           'data': [1, 2, 1, 2, 1, 2, 1, 2],
-          'descriptor': {'dimensions': [1, 8], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 8], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -106,11 +106,11 @@ const lstmTests = [
       'expectedOutputs': {
         'lstmOutput1': {
           'data': [1, 8, 27, 216],
-          'descriptor': {'dimensions': [1, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 2], dataType: 'float32'}
         },
         'lstmOutput2': {
           'data': [1, 4, 9, 36],
-          'descriptor': {'dimensions': [1, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 2], dataType: 'float32'}
         }
       }
     }
@@ -122,30 +122,30 @@ const lstmTests = [
       'inputs': {
         'lstmInput': {
           'data': [1, 2, 2, 1],
-          'descriptor': {'dimensions': [1, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 2], dataType: 'float32'}
         },
         'lstmWeight': {
           'data': [1, -1, 2, -2, 1, -1, 2, -2, 1, -1, 2, -2, 1, -1, 2, -2],
-          'descriptor': {'dimensions': [1, 8, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 8, 2], dataType: 'float32'}
         },
         'lstmRecurrentWeight': {
           'data': [
             0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
             0.1, 0.1, 0.1
           ],
-          'descriptor': {'dimensions': [1, 8, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 8, 2], dataType: 'float32'}
         },
         'lstmBias': {
           'data': [1, 2, 1, 2, 1, 2, 1, 2],
-          'descriptor': {'dimensions': [1, 8], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 8], dataType: 'float32'}
         },
         'lstmRecurrentBias': {
           'data': [1, 2, 1, 2, 1, 2, 1, 2],
-          'descriptor': {'dimensions': [1, 8], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 8], dataType: 'float32'}
         },
         'lstmPeepholeWeight': {
           'data': [0, 0, 0, 0, 0, 0],
-          'descriptor': {'dimensions': [1, 6], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 6], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -167,11 +167,11 @@ const lstmTests = [
       'expectedOutputs': {
         'lstmOutput1': {
           'data': [1, 8, 27, 216],
-          'descriptor': {'dimensions': [1, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 2], dataType: 'float32'}
         },
         'lstmOutput2': {
           'data': [1, 4, 9, 36],
-          'descriptor': {'dimensions': [1, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 2], dataType: 'float32'}
         }
       }
     }
@@ -183,30 +183,30 @@ const lstmTests = [
       'inputs': {
         'lstmInput': {
           'data': [1, 2, 2, 1],
-          'descriptor': {'dimensions': [1, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 2], dataType: 'float32'}
         },
         'lstmWeight': {
           'data': [1, -1, 2, -2, 1, -1, 2, -2, 1, -1, 2, -2, 1, -1, 2, -2],
-          'descriptor': {'dimensions': [1, 8, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 8, 2], dataType: 'float32'}
         },
         'lstmRecurrentWeight': {
           'data': [
             0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
             0.1, 0.1, 0.1
           ],
-          'descriptor': {'dimensions': [1, 8, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 8, 2], dataType: 'float32'}
         },
         'lstmBias': {
           'data': [1, 2, 1, 2, 1, 2, 1, 2],
-          'descriptor': {'dimensions': [1, 8], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 8], dataType: 'float32'}
         },
         'lstmRecurrentBias': {
           'data': [1, 2, 1, 2, 1, 2, 1, 2],
-          'descriptor': {'dimensions': [1, 8], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 8], dataType: 'float32'}
         },
         'lstmInitialHiddenState': {
           'data': [0, 0, 0, 0],
-          'descriptor': {'dimensions': [1, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 2], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -228,11 +228,11 @@ const lstmTests = [
       'expectedOutputs': {
         'lstmOutput1': {
           'data': [1, 8, 27, 216],
-          'descriptor': {'dimensions': [1, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 2], dataType: 'float32'}
         },
         'lstmOutput2': {
           'data': [1, 4, 9, 36],
-          'descriptor': {'dimensions': [1, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 2], dataType: 'float32'}
         }
       }
     }
@@ -244,30 +244,30 @@ const lstmTests = [
       'inputs': {
         'lstmInput': {
           'data': [1, 2, 2, 1],
-          'descriptor': {'dimensions': [1, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 2], dataType: 'float32'}
         },
         'lstmWeight': {
           'data': [1, -1, 2, -2, 1, -1, 2, -2, 1, -1, 2, -2, 1, -1, 2, -2],
-          'descriptor': {'dimensions': [1, 8, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 8, 2], dataType: 'float32'}
         },
         'lstmRecurrentWeight': {
           'data': [
             0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
             0.1, 0.1, 0.1
           ],
-          'descriptor': {'dimensions': [1, 8, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 8, 2], dataType: 'float32'}
         },
         'lstmBias': {
           'data': [1, 2, 1, 2, 1, 2, 1, 2],
-          'descriptor': {'dimensions': [1, 8], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 8], dataType: 'float32'}
         },
         'lstmRecurrentBias': {
           'data': [1, 2, 1, 2, 1, 2, 1, 2],
-          'descriptor': {'dimensions': [1, 8], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 8], dataType: 'float32'}
         },
         'lstmInitialCellState': {
           'data': [0, 0, 0, 0],
-          'descriptor': {'dimensions': [1, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 2], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -289,11 +289,11 @@ const lstmTests = [
       'expectedOutputs': {
         'lstmOutput1': {
           'data': [1, 8, 27, 216],
-          'descriptor': {'dimensions': [1, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 2], dataType: 'float32'}
         },
         'lstmOutput2': {
           'data': [1, 4, 9, 36],
-          'descriptor': {'dimensions': [1, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 2], dataType: 'float32'}
         }
       }
     }
@@ -305,26 +305,26 @@ const lstmTests = [
       'inputs': {
         'lstmInput': {
           'data': [1, 2, 2, 1],
-          'descriptor': {'dimensions': [1, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 2], dataType: 'float32'}
         },
         'lstmWeight': {
           'data': [1, -1, 2, -2, 1, -1, 2, -2, 1, -1, 2, -2, 1, -1, 2, -2],
-          'descriptor': {'dimensions': [1, 8, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 8, 2], dataType: 'float32'}
         },
         'lstmRecurrentWeight': {
           'data': [
             0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
             0.1, 0.1, 0.1
           ],
-          'descriptor': {'dimensions': [1, 8, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 8, 2], dataType: 'float32'}
         },
         'lstmBias': {
           'data': [1, 2, 1, 2, 1, 2, 1, 2],
-          'descriptor': {'dimensions': [1, 8], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 8], dataType: 'float32'}
         },
         'lstmRecurrentBias': {
           'data': [1, 2, 1, 2, 1, 2, 1, 2],
-          'descriptor': {'dimensions': [1, 8], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 8], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -346,11 +346,11 @@ const lstmTests = [
       'expectedOutputs': {
         'lstmOutput1': {
           'data': [1, 8, 27, 216],
-          'descriptor': {'dimensions': [1, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 2], dataType: 'float32'}
         },
         'lstmOutput2': {
           'data': [1, 4, 9, 36],
-          'descriptor': {'dimensions': [1, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 2], dataType: 'float32'}
         }
       }
     }
@@ -362,26 +362,26 @@ const lstmTests = [
       'inputs': {
         'lstmInput': {
           'data': [1, 2, 2, 1],
-          'descriptor': {'dimensions': [1, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 2], dataType: 'float32'}
         },
         'lstmWeight': {
           'data': [1, -1, 2, -2, 1, -1, 2, -2, 1, -1, 2, -2, 1, -1, 2, -2],
-          'descriptor': {'dimensions': [1, 8, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 8, 2], dataType: 'float32'}
         },
         'lstmRecurrentWeight': {
           'data': [
             0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
             0.1, 0.1, 0.1
           ],
-          'descriptor': {'dimensions': [1, 8, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 8, 2], dataType: 'float32'}
         },
         'lstmBias': {
           'data': [1, 2, 1, 2, 1, 2, 1, 2],
-          'descriptor': {'dimensions': [1, 8], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 8], dataType: 'float32'}
         },
         'lstmRecurrentBias': {
           'data': [1, 2, 1, 2, 1, 2, 1, 2],
-          'descriptor': {'dimensions': [1, 8], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 8], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -403,15 +403,15 @@ const lstmTests = [
       'expectedOutputs': {
         'lstmOutput1': {
           'data': [1, 8, 27, 216],
-          'descriptor': {'dimensions': [1, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 2], dataType: 'float32'}
         },
         'lstmOutput2': {
           'data': [1, 4, 9, 36],
-          'descriptor': {'dimensions': [1, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 2], dataType: 'float32'}
         },
         'lstmOutput3': {
           'data': [1, 8, 27, 216],
-          'descriptor': {'dimensions': [1, 1, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 1, 2, 2], dataType: 'float32'}
         }
       }
     }
@@ -423,26 +423,26 @@ const lstmTests = [
       'inputs': {
         'lstmInput': {
           'data': [1, 2, 2, 1],
-          'descriptor': {'dimensions': [1, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 2], dataType: 'float32'}
         },
         'lstmWeight': {
           'data': [1, -1, 2, -2, 1, -1, 2, -2, 1, -1, 2, -2, 1, -1, 2, -2],
-          'descriptor': {'dimensions': [1, 8, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 8, 2], dataType: 'float32'}
         },
         'lstmRecurrentWeight': {
           'data': [
             0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
             0.1, 0.1, 0.1
           ],
-          'descriptor': {'dimensions': [1, 8, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 8, 2], dataType: 'float32'}
         },
         'lstmBias': {
           'data': [1, 2, 1, 2, 1, 2, 1, 2],
-          'descriptor': {'dimensions': [1, 8], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 8], dataType: 'float32'}
         },
         'lstmRecurrentBias': {
           'data': [1, 2, 1, 2, 1, 2, 1, 2],
-          'descriptor': {'dimensions': [1, 8], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 8], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -464,11 +464,11 @@ const lstmTests = [
       'expectedOutputs': {
         'lstmOutput1': {
           'data': [1, 8, 27, 216],
-          'descriptor': {'dimensions': [1, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 2], dataType: 'float32'}
         },
         'lstmOutput2': {
           'data': [1, 4, 9, 36],
-          'descriptor': {'dimensions': [1, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 2], dataType: 'float32'}
         }
       }
     }
@@ -480,26 +480,26 @@ const lstmTests = [
       'inputs': {
         'lstmInput': {
           'data': [1, 2, 2, 1],
-          'descriptor': {'dimensions': [1, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 2], dataType: 'float32'}
         },
         'lstmWeight': {
           'data': [1, -1, 2, -2, 1, -1, 2, -2, 1, -1, 2, -2, 1, -1, 2, -2],
-          'descriptor': {'dimensions': [1, 8, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 8, 2], dataType: 'float32'}
         },
         'lstmRecurrentWeight': {
           'data': [
             0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
             0.1, 0.1, 0.1
           ],
-          'descriptor': {'dimensions': [1, 8, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 8, 2], dataType: 'float32'}
         },
         'lstmBias': {
           'data': [1, 2, 1, 2, 1, 2, 1, 2],
-          'descriptor': {'dimensions': [1, 8], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 8], dataType: 'float32'}
         },
         'lstmRecurrentBias': {
           'data': [1, 2, 1, 2, 1, 2, 1, 2],
-          'descriptor': {'dimensions': [1, 8], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 8], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -521,11 +521,11 @@ const lstmTests = [
       'expectedOutputs': {
         'lstmOutput1': {
           'data': [1, 8, 27, 216],
-          'descriptor': {'dimensions': [1, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 2], dataType: 'float32'}
         },
         'lstmOutput2': {
           'data': [1, 4, 9, 36],
-          'descriptor': {'dimensions': [1, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 2], dataType: 'float32'}
         }
       }
     }
@@ -537,26 +537,26 @@ const lstmTests = [
       'inputs': {
         'lstmInput': {
           'data': [1, 2, 2, 1],
-          'descriptor': {'dimensions': [1, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 2], dataType: 'float32'}
         },
         'lstmWeight': {
           'data': [1, -1, 2, -2, 1, -1, 2, -2, 1, -1, 2, -2, 1, -1, 2, -2],
-          'descriptor': {'dimensions': [1, 8, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 8, 2], dataType: 'float32'}
         },
         'lstmRecurrentWeight': {
           'data': [
             0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
             0.1, 0.1, 0.1
           ],
-          'descriptor': {'dimensions': [1, 8, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 8, 2], dataType: 'float32'}
         },
         'lstmBias': {
           'data': [1, 2, 1, 2, 1, 2, 1, 2],
-          'descriptor': {'dimensions': [1, 8], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 8], dataType: 'float32'}
         },
         'lstmRecurrentBias': {
           'data': [1, 2, 1, 2, 1, 2, 1, 2],
-          'descriptor': {'dimensions': [1, 8], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 8], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -578,11 +578,11 @@ const lstmTests = [
       'expectedOutputs': {
         'lstmOutput1': {
           'data': [1, 8, 27, 216],
-          'descriptor': {'dimensions': [1, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 2], dataType: 'float32'}
         },
         'lstmOutput2': {
           'data': [1, 4, 9, 36],
-          'descriptor': {'dimensions': [1, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 2], dataType: 'float32'}
         }
       }
     }
@@ -593,38 +593,38 @@ const lstmTests = [
       'inputs': {
         'lstmInput': {
           'data': [1, 2, 2, 1],
-          'descriptor': {'dimensions': [1, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 2], dataType: 'float32'}
         },
         'lstmWeight': {
           'data': [1, -1, 2, -2, 1, -1, 2, -2, 1, -1, 2, -2, 1, -1, 2, -2],
-          'descriptor': {'dimensions': [1, 8, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 8, 2], dataType: 'float32'}
         },
         'lstmRecurrentWeight': {
           'data': [
             0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
             0.1, 0.1, 0.1
           ],
-          'descriptor': {'dimensions': [1, 8, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 8, 2], dataType: 'float32'}
         },
         'lstmBias': {
           'data': [1, 2, 1, 2, 1, 2, 1, 2],
-          'descriptor': {'dimensions': [1, 8], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 8], dataType: 'float32'}
         },
         'lstmRecurrentBias': {
           'data': [1, 2, 1, 2, 1, 2, 1, 2],
-          'descriptor': {'dimensions': [1, 8], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 8], dataType: 'float32'}
         },
         'lstmPeepholeWeight': {
           'data': [0, 0, 0, 0, 0, 0],
-          'descriptor': {'dimensions': [1, 6], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 6], dataType: 'float32'}
         },
         'lstmInitialHiddenState': {
           'data': [0, 0, 0, 0],
-          'descriptor': {'dimensions': [1, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 2], dataType: 'float32'}
         },
         'lstmInitialCellState': {
           'data': [0, 0, 0, 0],
-          'descriptor': {'dimensions': [1, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 2], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -651,15 +651,15 @@ const lstmTests = [
       'expectedOutputs': {
         'lstmOutput1': {
           'data': [1, 8, 27, 216],
-          'descriptor': {'dimensions': [1, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 2], dataType: 'float32'}
         },
         'lstmOutput2': {
           'data': [1, 4, 9, 36],
-          'descriptor': {'dimensions': [1, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 2], dataType: 'float32'}
         },
         'lstmOutput3': {
           'data': [1, 8, 27, 216],
-          'descriptor': {'dimensions': [1, 1, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 1, 2, 2], dataType: 'float32'}
         }
       }
     }
@@ -671,26 +671,26 @@ const lstmTests = [
       'inputs': {
         'lstmInput': {
           'data': [1, 2, 2, 1, 3, 4, 1, 2],
-          'descriptor': {'dimensions': [2, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2], dataType: 'float32'}
         },
         'lstmWeight': {
           'data': [1, -1, 2, -2, 1, -1, 2, -2, 1, -1, 2, -2, 1, -1, 2, -2],
-          'descriptor': {'dimensions': [1, 8, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 8, 2], dataType: 'float32'}
         },
         'lstmRecurrentWeight': {
           'data': [
             0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
             0.1, 0.1, 0.1
           ],
-          'descriptor': {'dimensions': [1, 8, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 8, 2], dataType: 'float32'}
         },
         'lstmBias': {
           'data': [1, 2, 1, 2, 1, 2, 1, 2],
-          'descriptor': {'dimensions': [1, 8], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 8], dataType: 'float32'}
         },
         'lstmRecurrentBias': {
           'data': [1, 2, 1, 2, 1, 2, 1, 2],
-          'descriptor': {'dimensions': [1, 8], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 8], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -715,14 +715,14 @@ const lstmTests = [
             10.469000816345215, 58.02900695800781, 74.52900695800781,
             518.948974609375
           ],
-          'descriptor': {'dimensions': [1, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 2], dataType: 'float32'}
         },
         'lstmOutput2': {
           'data': [
             5.510000228881836, 20.01000213623047, 19.110000610351564,
             75.20999908447266
           ],
-          'descriptor': {'dimensions': [1, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 2], dataType: 'float32'}
         }
       }
     }
@@ -733,38 +733,38 @@ const lstmTests = [
       'inputs': {
         'lstmInput': {
           'data': [1, 2, 2, 1, 3, 4, 1, 2],
-          'descriptor': {'dimensions': [2, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2], dataType: 'float32'}
         },
         'lstmWeight': {
           'data': [1, -1, 2, -2, 1, -1, 2, -2, 1, -1, 2, -2, 1, -1, 2, -2],
-          'descriptor': {'dimensions': [1, 8, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 8, 2], dataType: 'float32'}
         },
         'lstmRecurrentWeight': {
           'data': [
             0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
             0.1, 0.1, 0.1
           ],
-          'descriptor': {'dimensions': [1, 8, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 8, 2], dataType: 'float32'}
         },
         'lstmBias': {
           'data': [1, 2, 1, 2, 1, 2, 1, 2],
-          'descriptor': {'dimensions': [1, 8], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 8], dataType: 'float32'}
         },
         'lstmRecurrentBias': {
           'data': [1, 2, 1, 2, 1, 2, 1, 2],
-          'descriptor': {'dimensions': [1, 8], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 8], dataType: 'float32'}
         },
         'lstmPeepholeWeight': {
           'data': [0, 0, 0, 0, 0, 0],
-          'descriptor': {'dimensions': [1, 6], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 6], dataType: 'float32'}
         },
         'lstmInitialHiddenState': {
           'data': [0, 0, 0, 0],
-          'descriptor': {'dimensions': [1, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 2], dataType: 'float32'}
         },
         'lstmInitialCellState': {
           'data': [0, 0, 0, 0],
-          'descriptor': {'dimensions': [1, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 2], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -794,21 +794,21 @@ const lstmTests = [
             10.469000816345215, 58.02900695800781, 74.52900695800781,
             518.948974609375
           ],
-          'descriptor': {'dimensions': [1, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 2], dataType: 'float32'}
         },
         'lstmOutput2': {
           'data': [
             5.510000228881836, 20.01000213623047, 19.110000610351564,
             75.20999908447266
           ],
-          'descriptor': {'dimensions': [1, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 2], dataType: 'float32'}
         },
         'lstmOutput3': {
           'data': [
             10.469000816345215, 58.02900695800781, 74.52900695800781,
             518.948974609375, 1, 8, 1, 8
           ],
-          'descriptor': {'dimensions': [2, 1, 2, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 1, 2, 2], dataType: 'float32'}
         }
       }
     }

@@ -6,9 +6,9 @@
 </head>
 <body>
 <iframe src="support/frame-with-csp.sub.html"></iframe>
-<div onclick="frames[0].location.href = 'javascript:parent.postMessage(\'executed\', \'*\')'" id="special_div"></div>
 <script nonce='abc'>
   var t = async_test("Should not have executed the javascript url");
+
   frames[0].addEventListener('load', () => {
     window.onmessage = t.step_func(function(e) {
       if (e.data == "executed")
@@ -16,9 +16,10 @@
     });
     window.addEventListener('securitypolicyviolation', t.step_func_done(function(e) {
       assert_equals(e.blockedURI, 'inline');
-      assert_equals(e.violatedDirective, 'script-src-attr');
+      assert_equals(e.violatedDirective, 'script-src-elem');
     }));
-    document.getElementById('special_div').click();
+
+    frames[0].location.href = "javascript:parent.postMessage('executed', '*')";
   });
 </script>
 </body>

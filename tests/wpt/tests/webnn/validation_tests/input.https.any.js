@@ -14,48 +14,48 @@ const tests = [
         '[input] Test building a 0-D scalar input without presenting dimensions',
     name: 'input',
     descriptor: {dataType: 'float32'},
-    output: {dataType: 'float32', dimensions: []},
+    output: {dataType: 'float32', shape: []},
   },
   {
     testName: '[input] Test building a 0-D scalar input with empty dimensions',
     name: 'input',
-    descriptor: {dataType: 'float32', dimensions: []},
-    output: {dataType: 'float32', dimensions: []},
+    descriptor: {dataType: 'float32', shape: []},
+    output: {dataType: 'float32', shape: []},
   },
   {
     testName: '[input] Test building a 1-D input with int64 data type',
     name: 'input',
-    descriptor: {dataType: 'int64', dimensions: [3]},
-    output: {dataType: 'int64', dimensions: [3]},
+    descriptor: {dataType: 'int64', shape: [3]},
+    output: {dataType: 'int64', shape: [3]},
   },
   {
     testName: '[input] Test building a 2-D input without errors',
     name: 'input',
-    descriptor: {dataType: 'float32', dimensions: [3, 4]},
-    output: {dataType: 'float32', dimensions: [3, 4]},
+    descriptor: {dataType: 'float32', shape: [3, 4]},
+    output: {dataType: 'float32', shape: [3, 4]},
   },
   {
     testName: '[input] Throw if the name is empty',
     name: '',
-    descriptor: {dataType: 'float32', dimensions: [3, 4]}
+    descriptor: {dataType: 'float32', shape: [3, 4]}
   },
   {
     testName: '[input] Throw if a dimension size is 0',
     name: 'input',
-    descriptor: {dataType: 'float32', dimensions: [3, 0]}
+    descriptor: {dataType: 'float32', shape: [3, 0]}
   },
   {
     testName:
         '[input] Throw if the value of any element in dimensions is outside the \'unsigned long\' value range',
     name: 'input',
-    descriptor: {dataType: 'float32', dimensions: [kMaxUnsignedLong + 1]}
+    descriptor: {dataType: 'float32', shape: [kMaxUnsignedLong + 1]}
   },
   {
     testName: '[input] Throw if the number of elements is too large',
     name: 'input',
     descriptor: {
       dataType: 'float32',
-      dimensions: [kMaxUnsignedLong, kMaxUnsignedLong, kMaxUnsignedLong]
+      shape: [kMaxUnsignedLong, kMaxUnsignedLong, kMaxUnsignedLong]
     }
   }
 ];
@@ -66,7 +66,7 @@ tests.forEach(
       if (test.output) {
         const inputOperand = builder.input(test.name, test.descriptor);
         assert_equals(inputOperand.dataType(), test.output.dataType);
-        assert_array_equals(inputOperand.shape(), test.output.dimensions);
+        assert_array_equals(inputOperand.shape(), test.output.shape);
       } else {
         assert_throws_js(
             TypeError, () => builder.input(test.name, test.descriptor));

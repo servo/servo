@@ -39,7 +39,7 @@ const sliceTests = [
             -70.42774200439453,  59.82632064819336,  -58.46095275878906,
             79.80570983886719,   -9.857853889465332, 42.665199279785156
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'},
+          'descriptor': {shape: [24], dataType: 'float32'},
           'constant': true
         }
       },
@@ -57,7 +57,7 @@ const sliceTests = [
             -70.42774200439453, 59.82632064819336, -58.46095275878906,
             79.80570983886719, -9.857853889465332, 42.665199279785156
           ],
-          'descriptor': {'dimensions': [12], 'dataType': 'float32'}
+          'descriptor': {shape: [12], dataType: 'float32'}
         }
       }
     }
@@ -77,7 +77,7 @@ const sliceTests = [
             -70.42774200439453,  59.82632064819336,  -58.46095275878906,
             79.80570983886719,   -9.857853889465332, 42.665199279785156
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'}
+          'descriptor': {shape: [24], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -94,7 +94,7 @@ const sliceTests = [
             -70.42774200439453, 59.82632064819336, -58.46095275878906,
             79.80570983886719, -9.857853889465332, 42.665199279785156
           ],
-          'descriptor': {'dimensions': [12], 'dataType': 'float32'}
+          'descriptor': {shape: [12], dataType: 'float32'}
         }
       }
     }
@@ -114,7 +114,7 @@ const sliceTests = [
             -70.42774200439453,  59.82632064819336,  -58.46095275878906,
             79.80570983886719,   -9.857853889465332, 42.665199279785156
           ],
-          'descriptor': {'dimensions': [4, 6], 'dataType': 'float32'}
+          'descriptor': {shape: [4, 6], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -130,7 +130,7 @@ const sliceTests = [
             -27.306041717529297, -58.46095275878906, 79.80570983886719,
             -9.857853889465332, 42.665199279785156
           ],
-          'descriptor': {'dimensions': [2, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 4], dataType: 'float32'}
         }
       }
     }
@@ -150,7 +150,7 @@ const sliceTests = [
             -70.42774200439453,  59.82632064819336,  -58.46095275878906,
             79.80570983886719,   -9.857853889465332, 42.665199279785156
           ],
-          'descriptor': {'dimensions': [4, 3, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [4, 3, 2], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -166,7 +166,7 @@ const sliceTests = [
             57.4397087097168, -4.513182163238525, 74.02619171142578,
             -27.306041717529297, 79.80570983886719, 42.665199279785156
           ],
-          'descriptor': {'dimensions': [3, 2, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [3, 2, 1], dataType: 'float32'}
         }
       }
     }
@@ -186,7 +186,7 @@ const sliceTests = [
             -70.42774200439453,  59.82632064819336,  -58.46095275878906,
             79.80570983886719,   -9.857853889465332, 42.665199279785156
           ],
-          'descriptor': {'dimensions': [2, 2, 3, 2], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 3, 2], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -200,7 +200,7 @@ const sliceTests = [
       'expectedOutputs': {
         'sliceOutput': {
           'data': [-27.306041717529297, 42.665199279785156],
-          'descriptor': {'dimensions': [1, 2, 1, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 1, 1], dataType: 'float32'}
         }
       }
     }
@@ -220,7 +220,7 @@ const sliceTests = [
             -70.42774200439453,  59.82632064819336,  -58.46095275878906,
             79.80570983886719,   -9.857853889465332, 42.665199279785156
           ],
-          'descriptor': {'dimensions': [2, 2, 3, 2, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 3, 2, 1], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -234,7 +234,7 @@ const sliceTests = [
       'expectedOutputs': {
         'sliceOutput': {
           'data': [-27.306041717529297, 42.665199279785156],
-          'descriptor': {'dimensions': [1, 2, 1, 1, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 1, 1, 1], dataType: 'float32'}
         }
       }
     }

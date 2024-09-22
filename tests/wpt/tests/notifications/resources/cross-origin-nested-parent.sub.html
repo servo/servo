@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Notification nested iframe third party parent</title>
+<body>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script type="module">
+import { permissionTest } from "./permission-helper.js"
+
+// Grant the permission so that we can confirm the permission being denied
+// regardless of the actual permission status.
+test_driver.set_test_context(window.top);
+await test_driver.set_permission({ name: "notifications" }, "granted");
+
+const firstPartyOrigin = 'https://{{hosts[][]}}:{{ports[https][0]}}';
+
+permissionTest(firstPartyOrigin, "parent");
+
+const nestedChild =
+  `${firstPartyOrigin}/notifications/resources/cross-origin-nested-child.sub.html`;
+const iframe = document.createElement("iframe");
+iframe.src = nestedChild;
+document.body.append(iframe);
+</script>

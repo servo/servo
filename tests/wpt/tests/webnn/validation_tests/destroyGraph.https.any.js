@@ -22,7 +22,7 @@ promise_setup(async () => {
 
 promise_test(async t => {
   const builder = new MLGraphBuilder(context);
-  const operandType = {dataType: 'float32', dimensions: [1]};
+  const operandType = {dataType: 'float32', shape: [1]};
   const input_operand = builder.input('input', operandType);
   const const_operand = builder.constant(operandType, Float32Array.from([2]));
   const output_operand = builder.mul(input_operand, const_operand);
@@ -34,7 +34,7 @@ promise_test(async t => {
 
 promise_test(async t => {
   const builder = new MLGraphBuilder(context);
-  const operandType = {dataType: 'float32', dimensions: [1]};
+  const operandType = {dataType: 'float32', shape: [1]};
   const input_operand = builder.input('input', operandType);
   const const_operand = builder.constant(operandType, Float32Array.from([2]));
   const output_operand = builder.mul(input_operand, const_operand);
@@ -49,7 +49,7 @@ promise_test(async t => {
 
 promise_test(async t => {
   const builder = new MLGraphBuilder(context);
-  const operandType = {dataType: 'float32', dimensions: [1]};
+  const operandType = {dataType: 'float32', shape: [1]};
   const input_operand = builder.input('input', operandType);
   const const_operand = builder.constant(operandType, Float32Array.from([2]));
   const output_operand = builder.mul(input_operand, const_operand);
@@ -63,7 +63,7 @@ promise_test(async t => {
 
 promise_test(async t => {
   const builder = new MLGraphBuilder(context);
-  const operandType = {dataType: 'float32', dimensions: [1]};
+  const operandType = {dataType: 'float32', shape: [1]};
   const input_operand = builder.input('input', operandType);
   const const_operand = builder.constant(operandType, Float32Array.from([2]));
   const output_operand = builder.mul(input_operand, const_operand);
@@ -78,7 +78,7 @@ promise_test(async t => {
 
 promise_test(async t => {
   const builder = new MLGraphBuilder(context);
-  const operandType = {dataType: 'float32', dimensions: [1]};
+  const operandType = {dataType: 'float32', shape: [1]};
   const lhsOperand = builder.input('lhs', operandType);
   const rhsOperand = builder.input('rhs', operandType);
   const graph =
@@ -101,7 +101,7 @@ promise_test(async t => {
 
 promise_test(async t => {
   const builder = new MLGraphBuilder(context);
-  const operandType = {dataType: 'float32', dimensions: [1]};
+  const operandType = {dataType: 'float32', shape: [1]};
   const lhsOperand = builder.input('lhs', operandType);
   const rhsOperand = builder.input('rhs', operandType);
   const graph =
@@ -109,17 +109,17 @@ promise_test(async t => {
 
   const lhsTensor = await context.createTensor({
     dataType: 'float32',
-    dimensions: [1],
+    shape: [1],
     usage: MLTensorUsage.WRITE,
   });
   const rhsTensor = await context.createTensor({
     dataType: 'float32',
-    dimensions: [1],
+    shape: [1],
     usage: MLTensorUsage.WRITE,
   });
   const outputTensor = await context.createTensor({
     dataType: 'float32',
-    dimensions: [1],
+    shape: [1],
     usage: MLTensorUsage.READ,
   });
   // Initialize inputs

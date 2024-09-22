@@ -28,7 +28,7 @@ const sqrtTests = [
       'inputs': {
         'sqrtInput': {
           'data': [4.0044636726379395],
-          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+          'descriptor': {shape: [], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -39,7 +39,7 @@ const sqrtTests = [
       'expectedOutputs': {
         'sqrtOutput': {
           'data': [2.001115560531616],
-          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+          'descriptor': {shape: [], dataType: 'float32'}
         }
       }
     }
@@ -59,7 +59,7 @@ const sqrtTests = [
             4.424484729766846,  0.09894099831581116, 4.6900248527526855,
             1.5277378559112549, 5.929779529571533,   6.066471576690674
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'},
+          'descriptor': {shape: [24], dataType: 'float32'},
           'constant': true
         }
       },
@@ -80,7 +80,7 @@ const sqrtTests = [
             2.1034460067749023, 0.31454887986183167, 2.165646553039551,
             1.2360169887542725, 2.4351139068603516,  2.4630208015441895
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'}
+          'descriptor': {shape: [24], dataType: 'float32'}
         }
       }
     }
@@ -100,7 +100,7 @@ const sqrtTests = [
             4.424484729766846,  0.09894099831581116, 4.6900248527526855,
             1.5277378559112549, 5.929779529571533,   6.066471576690674
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'}
+          'descriptor': {shape: [24], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -120,7 +120,7 @@ const sqrtTests = [
             2.1034460067749023, 0.31454887986183167, 2.165646553039551,
             1.2360169887542725, 2.4351139068603516,  2.4630208015441895
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'}
+          'descriptor': {shape: [24], dataType: 'float32'}
         }
       }
     }
@@ -140,7 +140,7 @@ const sqrtTests = [
             4.424484729766846,  0.09894099831581116, 4.6900248527526855,
             1.5277378559112549, 5.929779529571533,   6.066471576690674
           ],
-          'descriptor': {'dimensions': [4, 6], 'dataType': 'float32'}
+          'descriptor': {shape: [4, 6], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -160,7 +160,7 @@ const sqrtTests = [
             2.1034460067749023, 0.31454887986183167, 2.165646553039551,
             1.2360169887542725, 2.4351139068603516,  2.4630208015441895
           ],
-          'descriptor': {'dimensions': [4, 6], 'dataType': 'float32'}
+          'descriptor': {shape: [4, 6], dataType: 'float32'}
         }
       }
     }
@@ -180,7 +180,7 @@ const sqrtTests = [
             4.424484729766846,  0.09894099831581116, 4.6900248527526855,
             1.5277378559112549, 5.929779529571533,   6.066471576690674
           ],
-          'descriptor': {'dimensions': [2, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 4], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -200,7 +200,7 @@ const sqrtTests = [
             2.1034460067749023, 0.31454887986183167, 2.165646553039551,
             1.2360169887542725, 2.4351139068603516,  2.4630208015441895
           ],
-          'descriptor': {'dimensions': [2, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 4], dataType: 'float32'}
         }
       }
     }
@@ -220,7 +220,7 @@ const sqrtTests = [
             4.424484729766846,  0.09894099831581116, 4.6900248527526855,
             1.5277378559112549, 5.929779529571533,   6.066471576690674
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -240,7 +240,7 @@ const sqrtTests = [
             2.1034460067749023, 0.31454887986183167, 2.165646553039551,
             1.2360169887542725, 2.4351139068603516,  2.4630208015441895
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       }
     }
@@ -260,7 +260,7 @@ const sqrtTests = [
             4.424484729766846,  0.09894099831581116, 4.6900248527526855,
             1.5277378559112549, 5.929779529571533,   6.066471576690674
           ],
-          'descriptor': {'dimensions': [2, 1, 4, 1, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 1, 4, 1, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -280,7 +280,7 @@ const sqrtTests = [
             2.1034460067749023, 0.31454887986183167, 2.165646553039551,
             1.2360169887542725, 2.4351139068603516,  2.4630208015441895
           ],
-          'descriptor': {'dimensions': [2, 1, 4, 1, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 1, 4, 1, 3], dataType: 'float32'}
         }
       }
     }

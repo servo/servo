@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<title>Digital Credential tests.</title>
+<link rel="help" href="https://wicg.github.io/digital-credentials/" />
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<body>
+  <iframe id="same-origin"></iframe>
+  <iframe id="cross-origin" allow="digital-credentials-get"></iframe>
+</body>
+<script type="module">
+  import { makeGetOptions, sendMessage, loadIframe } from "./support/helper.js";
+
+  const iframeSameOrigin = document.querySelector("iframe#same-origin");
+  const iframeCrossOrigin = document.querySelector("iframe#cross-origin");
+
+  promise_setup(async () => {
+    const hostInfo = get_host_info();
+    await Promise.all([
+      loadIframe(
+        iframeCrossOrigin,
+        `${hostInfo.HTTPS_REMOTE_ORIGIN}/digital-credentials/support/iframe.html`
+      ),
+      loadIframe(iframeSameOrigin, "/digital-credentials/support/iframe.html"),
+    ]);
+  });
+
+  promise_test(async (t) => {
+    iframeSameOrigin.focus();
+    for (const global of [window, iframeSameOrigin.contentWindow]) {
+      await promise_rejects_dom(
+        t,
+        "NotSupportedError",
+        global.DOMException,
+        global.navigator.credentials.get()
+      );
+
+      await promise_rejects_dom(
+        t,
+        "NotSupportedError",
+        global.DOMException,
+        global.navigator.credentials.get({})
+      );
+
+      await promise_rejects_dom(
+        t,
+        "NotSupportedError",
+        global.DOMException,
+        global.navigator.credentials.get({ x: "y" })
+      );
+
+      await promise_rejects_dom(
+        t,
+        "NotSupportedError",
+        global.DOMException,
+        global.navigator.credentials.get({ x: "y", y: "z" })
+      );
+
+      await promise_rejects_dom(
+        t,
+        "NotSupportedError",
+        global.DOMException,
+        global.navigator.credentials.get({ mediation: "required" })
+      );
+
+      const abortController = new AbortController();
+      const { signal } = abortController;
+
+      await promise_rejects_dom(
+        t,
+        "NotSupportedError",
+        global.DOMException,
+        global.navigator.credentials.get({ signal })
+      );
+
+      await promise_rejects_dom(
+        t,
+        "NotSupportedError",
+        global.DOMException,
+        global.navigator.credentials.get({ signal, mediation: "required" })
+      );
+    }
+  }, "Calling navigator.credentials.get() without an digital member same origin.");
+
+  promise_test(async (t) => {
+    for (const provider of [undefined, []]) {
+      const options = makeGetOptions(provider);
+      await test_driver.bless("user activation");
+      await promise_rejects_js(t, TypeError, navigator.credentials.get(options));
+    }
+  }, "navigator.credentials.get() API rejects if there are no providers.");
+
+  promise_test(async (t) => {
+    iframeSameOrigin.focus();
+    const { contentWindow: iframeWindow } = iframeSameOrigin;
+    for (const provider of [undefined, []]) {
+      const options = makeGetOptions(provider);
+      await test_driver.bless("user activation");
+      await promise_rejects_js(
+        t,
+        iframeWindow.TypeError,
+        iframeWindow.navigator.credentials.get(options)
+      );
+    }
+  }, "navigator.credentials.get() API rejects if there are no providers for same-origin iframe.");
+
+  promise_test(async (t) => {
+    iframeCrossOrigin.focus();
+    for (const provider of [undefined, []]) {
+      const options = makeGetOptions(provider);
+      const result = await sendMessage(iframeCrossOrigin, {
+        action: "get",
+        options,
+      });
+      assert_equals(result.constructor, "TypeError");
+    }
+  }, "navigator.credentials.get() API rejects if there are no providers in cross-origin iframe.");
+
+  promise_test(async (t) => {
+    const abortController = new AbortController();
+    const { signal } = abortController;
+    abortController.abort();
+    for (const options of [{ signal }, { signal, ...makeGetOptions([]) }]) {
+      await promise_rejects_dom(
+        t,
+        "AbortError",
+        navigator.credentials.get(options)
+      );
+    }
+  }, "navigator.credentials.get() promise is rejected if called with an aborted controller.");
+
+  promise_test(async (t) => {
+    iframeSameOrigin.focus();
+    const { contentWindow: iframeWindow } = iframeSameOrigin;
+    const abortController = new iframeWindow.AbortController();
+    const { signal } = abortController;
+    abortController.abort();
+    for (const options of [{ signal }, { signal, ...makeGetOptions([]) }]) {
+      await test_driver.bless("user activation");
+      await promise_rejects_dom(
+        t,
+        "AbortError",
+        iframeWindow.DOMException,
+        iframeWindow.navigator.credentials.get(options)
+      );
+      assert_true(
+        navigator.userActivation.isActive,
+        "User activation is still active."
+      );
+    }
+  }, "navigator.credentials.get() promise is rejected if called with an aborted controller in same-origin iframe.");
+
+  promise_test(async (t) => {
+    iframeCrossOrigin.focus();
+    for (const options of [undefined, {}, makeGetOptions([])]) {
+      const result = await sendMessage(iframeCrossOrigin, {
+        abort: "before",
+        action: "get",
+        options,
+      });
+      assert_equals(result.constructor, "DOMException");
+      assert_equals(result.name, "AbortError");
+    }
+  }, "navigator.credentials.get() promise is rejected if called with an aborted signal in cross-origin iframe.");
+
+  promise_test(async (t) => {
+    const abortController = new AbortController();
+    const { signal } = abortController;
+    const options = makeGetOptions("openid4vp");
+    options.signal = signal;
+    await test_driver.bless("user activation");
+    const promise = promise_rejects_dom(
+      t,
+      "AbortError",
+      DOMException,
+      navigator.credentials.get(options)
+    );
+    abortController.abort();
+    await promise;
+  }, "navigator.credentials.get() promise is rejected if abort controller is aborted after call to get().");
+
+  promise_test(async (t) => {
+    iframeCrossOrigin.focus();
+    const result = await sendMessage(iframeCrossOrigin, {
+      abort: "after",
+      action: "get",
+      needsActivation: true,
+      options: makeGetOptions("openid4vp"),
+    });
+    assert_equals(result.constructor, "DOMException");
+    assert_equals(result.name, "AbortError");
+  }, "navigator.credentials.get() promise is rejected if abort controller is aborted after call to get() in cross-origin iframe.");
+
+  promise_test(async (t) => {
+    /** @type sequence<CredentialMediationRequirement> */
+    const disallowedMediations = [ "conditional", "optional", "silent"];
+    for (const mediation of disallowedMediations) {
+      const options = makeGetOptions("default", mediation);
+      await promise_rejects_js(t, TypeError, navigator.credentials.get(options));
+    }
+  }, "Mediation is required to get a DigitalCredential.");
+</script>

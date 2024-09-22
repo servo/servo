@@ -32,7 +32,7 @@ function buildMulGraph(context, operandDescriptor, multiplier) {
 promise_test(async () => {
   const operandDescriptor = {
     dataType: 'float32',
-    dimensions: [1],
+    shape: [1],
     usage: MLTensorUsage.WRITE | MLTensorUsage.READ,
   };
 
@@ -72,7 +72,7 @@ promise_test(async () => {
 promise_test(async () => {
   const operandDescriptor = {
     dataType: 'float32',
-    dimensions: [1],
+    shape: [1],
     usage: MLTensorUsage.WRITE | MLTensorUsage.READ,
   };
   const mlGraph = await buildMulGraph(mlContext, operandDescriptor, 3);
@@ -100,7 +100,7 @@ promise_test(async () => {
 promise_test(async () => {
   const operandDescriptor = {
     dataType: 'float32',
-    dimensions: [1],
+    shape: [1],
     usage: MLTensorUsage.WRITE | MLTensorUsage.READ,
   };
   const mlGraph = await buildMulGraph(mlContext, operandDescriptor, 10);
@@ -139,7 +139,7 @@ promise_test(async () => {
 promise_test(async () => {
   const operandDescriptor = {
     dataType: 'float32',
-    dimensions: [1],
+    shape: [1],
     usage: MLTensorUsage.WRITE | MLTensorUsage.READ,
   };
   const mlGraph = await buildMulGraph(mlContext, operandDescriptor, 9);
@@ -177,7 +177,7 @@ promise_test(async () => {
 promise_test(async () => {
   const operandDescriptor = {
     dataType: 'float32',
-    dimensions: [1],
+    shape: [1],
     usage: MLTensorUsage.WRITE | MLTensorUsage.READ,
   };
   const mlGraph = await buildMulGraph(mlContext, operandDescriptor, 2);
@@ -210,7 +210,7 @@ promise_test(async () => {
 promise_test(async () => {
   const operandDescriptor = {
     dataType: 'float32',
-    dimensions: [1],
+    shape: [1],
     usage: MLTensorUsage.WRITE | MLTensorUsage.READ,
   };
 
@@ -249,7 +249,7 @@ promise_test(async () => {
 promise_test(async () => {
   const operandDescriptor = {
     dataType: 'float32',
-    dimensions: [1],
+    shape: [1],
     usage: MLTensorUsage.WRITE | MLTensorUsage.READ,
   };
 
@@ -287,7 +287,7 @@ promise_test(async () => {
 promise_test(async () => {
   const operandDescriptor = {
     dataType: 'float32',
-    dimensions: [1],
+    shape: [1],
     usage: MLTensorUsage.WRITE | MLTensorUsage.READ,
   };
 
@@ -323,7 +323,7 @@ promise_test(async () => {
 promise_test(async () => {
   const operandDescriptor = {
     dataType: 'float32',
-    dimensions: [1],
+    shape: [1],
     usage: MLTensorUsage.WRITE | MLTensorUsage.READ,
   };
 

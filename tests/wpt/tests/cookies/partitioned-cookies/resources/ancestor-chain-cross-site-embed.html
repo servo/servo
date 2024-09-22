@@ -1,0 +1,31 @@
+<!doctype html>
+<head>
+<meta charset="utf-8"/>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/cookies/resources/testharness-helpers.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/cookies/resources/cookie-helper.sub.js"></script>
+<title>Test partitioned cookies ancestor chain: cross site embed</title>
+</head>
+<body>
+<script>
+
+promise_test(async () => {
+  assert_false(document.cookie.includes("ancestor=chain"));
+
+  const iframe = document.createElement("iframe");
+    const url = new URL(
+    "./ancestor-chain-same-site-embed.html",
+    get_host_info().ORIGIN + self.location.pathname);
+
+  iframe.src = url.href;
+  document.body.appendChild(iframe);
+  new Promise(r => iframe.onload = r);
+
+ await fetch_tests_from_window(iframe.contentWindow);
+
+}, "Embed same-site embed in cross-site");
+
+</script>
+</body>

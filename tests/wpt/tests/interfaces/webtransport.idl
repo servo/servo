@@ -25,6 +25,7 @@ interface WebTransport {
   readonly attribute WebTransportCongestionControl congestionControl;
   [EnforceRange] attribute unsigned short? anticipatedConcurrentIncomingUnidirectionalStreams;
   [EnforceRange] attribute unsigned short? anticipatedConcurrentIncomingBidirectionalStreams;
+  readonly attribute DOMString protocol;
 
   readonly attribute Promise<WebTransportCloseInfo> closed;
   readonly attribute Promise<undefined> draining;
@@ -64,6 +65,7 @@ dictionary WebTransportOptions {
   WebTransportCongestionControl congestionControl = "default";
   [EnforceRange] unsigned short? anticipatedConcurrentIncomingUnidirectionalStreams = null;
   [EnforceRange] unsigned short? anticipatedConcurrentIncomingBidirectionalStreams = null;
+  sequence<DOMString> protocols = [];
 };
 
 enum WebTransportCongestionControl {

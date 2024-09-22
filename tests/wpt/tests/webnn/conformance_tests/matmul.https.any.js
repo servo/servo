@@ -15,8 +15,8 @@
 
 const getMatmulPrecisionTolerance = (graphResources) => {
   const args = graphResources.operators[0].arguments;
-  const shapeA = graphResources.inputs[args[0][Object.keys(args[0])[0]]]
-                     .descriptor.dimensions;
+  const shapeA =
+      graphResources.inputs[args[0][Object.keys(args[0])[0]]].descriptor.shape;
   const tolerance = shapeA[shapeA.length - 1] * 2;
   const toleranceValueDict = {float32: tolerance, float16: tolerance};
   const expectedDataType =
@@ -36,7 +36,7 @@ const matmulTests = [
             79.85144805908203, 99.64449310302734, 24.740541458129883,
             65.9624252319336, 38.136077880859375, 87.11140441894531
           ],
-          'descriptor': {'dimensions': [3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [3, 4], dataType: 'float32'}
         },
         'inputB': {
           'data': [
@@ -48,7 +48,7 @@ const matmulTests = [
             69.31697082519531,  31.984439849853516, 12.291812896728516,
             13.304834365844727, 85.26705169677734
           ],
-          'descriptor': {'dimensions': [4, 5], 'dataType': 'float32'}
+          'descriptor': {shape: [4, 5], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -64,7 +64,7 @@ const matmulTests = [
             5133.4072265625, 8816.5986328125, 18226.65234375, 11841.033203125,
             8869.705078125, 6051.1396484375, 5124.5390625, 12413.8984375
           ],
-          'descriptor': {'dimensions': [3, 5], 'dataType': 'float32'}
+          'descriptor': {shape: [3, 5], dataType: 'float32'}
         }
       }
     }
@@ -84,7 +84,7 @@ const matmulTests = [
             16.142963409423828, 57.45134735107422,  26.826417922973633,
             85.02970123291016,  36.1988639831543,   89.60960388183594
           ],
-          'descriptor': {'dimensions': [2, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 4], dataType: 'float32'}
         },
         'inputB': {
           'data': [
@@ -103,7 +103,7 @@ const matmulTests = [
             38.19757843017578,  78.17564392089844,  62.57684326171875,
             88.35256958007812
           ],
-          'descriptor': {'dimensions': [2, 4, 5], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 4, 5], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -125,7 +125,7 @@ const matmulTests = [
             11060.98046875,   10352.16015625,   10515.310546875,
             16153.86328125,   17833.36328125,   15971.80859375
           ],
-          'descriptor': {'dimensions': [2, 3, 5], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 5], dataType: 'float32'}
         }
       }
     }
@@ -145,7 +145,7 @@ const matmulTests = [
             16.142963409423828, 57.45134735107422,  26.826417922973633,
             85.02970123291016,  36.1988639831543,   89.60960388183594
           ],
-          'descriptor': {'dimensions': [2, 1, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 1, 3, 4], dataType: 'float32'}
         },
         'inputB': {
           'data': [
@@ -164,7 +164,7 @@ const matmulTests = [
             38.19757843017578,  78.17564392089844,  62.57684326171875,
             88.35256958007812
           ],
-          'descriptor': {'dimensions': [2, 1, 4, 5], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 1, 4, 5], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -186,7 +186,7 @@ const matmulTests = [
             11060.98046875,   10352.16015625,   10515.310546875,
             16153.86328125,   17833.36328125,   15971.80859375
           ],
-          'descriptor': {'dimensions': [2, 1, 3, 5], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 1, 3, 5], dataType: 'float32'}
         }
       }
     }
@@ -206,14 +206,14 @@ const matmulTests = [
             16.142963409423828, 57.45134735107422,  26.826417922973633,
             85.02970123291016,  36.1988639831543,   89.60960388183594
           ],
-          'descriptor': {'dimensions': [2, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 4], dataType: 'float32'}
         },
         'inputB': {
           'data': [
             27.829805374145508, 83.1454849243164, 34.41289520263672,
             83.20379638671875
           ],
-          'descriptor': {'dimensions': [1, 4, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 4, 1], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -227,7 +227,7 @@ const matmulTests = [
             15019.9462890625, 11942.376953125, 15035.0322265625,
             13553.013671875, 12302.328125, 16517.9765625
           ],
-          'descriptor': {'dimensions': [2, 3, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 1], dataType: 'float32'}
         }
       }
     }
@@ -247,14 +247,14 @@ const matmulTests = [
             16.142963409423828, 57.45134735107422,  26.826417922973633,
             85.02970123291016,  36.1988639831543,   89.60960388183594
           ],
-          'descriptor': {'dimensions': [2, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 4], dataType: 'float32'}
         },
         'inputB': {
           'data': [
             27.829805374145508, 83.1454849243164, 34.41289520263672,
             83.20379638671875
           ],
-          'descriptor': {'dimensions': [4, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [4, 1], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -268,7 +268,7 @@ const matmulTests = [
             15019.9462890625, 11942.376953125, 15035.0322265625,
             13553.013671875, 12302.328125, 16517.9765625
           ],
-          'descriptor': {'dimensions': [2, 3, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 1], dataType: 'float32'}
         }
       }
     }
@@ -296,7 +296,7 @@ const matmulTests = [
             37.49127960205078,  51.397132873535156, 53.19015121459961,
             38.33119201660156,  75.20586395263672,  3.8537938594818115
           ],
-          'descriptor': {'dimensions': [2, 2, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 3, 4], dataType: 'float32'}
         },
         'inputB': {
           'data': [
@@ -308,7 +308,7 @@ const matmulTests = [
             69.31697082519531,  31.984439849853516, 12.291812896728516,
             13.304834365844727, 85.26705169677734
           ],
-          'descriptor': {'dimensions': [1, 1, 4, 5], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 1, 4, 5], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -340,7 +340,7 @@ const matmulTests = [
             12841.802734375,   8145.45654296875,  8134.66650390625,
             4344.25,           7138.79052734375,  8497.98046875
           ],
-          'descriptor': {'dimensions': [2, 2, 3, 5], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 3, 5], dataType: 'float32'}
         }
       }
     }
@@ -368,7 +368,7 @@ const matmulTests = [
             37.49127960205078,  51.397132873535156, 53.19015121459961,
             38.33119201660156,  75.20586395263672,  3.8537938594818115
           ],
-          'descriptor': {'dimensions': [2, 2, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 3, 4], dataType: 'float32'}
         },
         'inputB': {
           'data': [
@@ -387,7 +387,7 @@ const matmulTests = [
             38.19757843017578,  78.17564392089844,  62.57684326171875,
             88.35256958007812
           ],
-          'descriptor': {'dimensions': [2, 4, 5], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 4, 5], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -419,7 +419,7 @@ const matmulTests = [
             16430.63671875,    10880.1533203125,  10752.34765625,
             6632.99462890625,  12342.2919921875,  8384.3896484375
           ],
-          'descriptor': {'dimensions': [2, 2, 3, 5], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 3, 5], dataType: 'float32'}
         }
       }
     }
@@ -448,7 +448,7 @@ const matmulTests = [
             37.49127960205078,  51.397132873535156, 53.19015121459961,
             38.33119201660156,  75.20586395263672,  3.8537938594818115
           ],
-          'descriptor': {'dimensions': [2, 2, 1, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 1, 3, 4], dataType: 'float32'}
         },
         'inputB': {
           'data': [
@@ -460,7 +460,7 @@ const matmulTests = [
             69.31697082519531,  31.984439849853516, 12.291812896728516,
             13.304834365844727, 85.26705169677734
           ],
-          'descriptor': {'dimensions': [1, 1, 1, 4, 5], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 1, 1, 4, 5], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -492,7 +492,7 @@ const matmulTests = [
             12841.802734375,   8145.45654296875,  8134.66650390625,
             4344.25,           7138.79052734375,  8497.98046875
           ],
-          'descriptor': {'dimensions': [2, 2, 1, 3, 5], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 1, 3, 5], dataType: 'float32'}
         }
       }
     }
@@ -521,7 +521,7 @@ const matmulTests = [
             37.49127960205078,  51.397132873535156, 53.19015121459961,
             38.33119201660156,  75.20586395263672,  3.8537938594818115
           ],
-          'descriptor': {'dimensions': [2, 2, 1, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 1, 3, 4], dataType: 'float32'}
         },
         'inputB': {
           'data': [
@@ -540,7 +540,7 @@ const matmulTests = [
             31.984439849853516, 12.291812896728516, 13.304834365844727,
             85.26705169677734
           ],
-          'descriptor': {'dimensions': [1, 2, 1, 4, 5], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 1, 4, 5], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -572,7 +572,7 @@ const matmulTests = [
             12841.802734375,   8145.45654296875,  8134.66650390625,
             4344.25,           7138.79052734375,  8497.98046875
           ],
-          'descriptor': {'dimensions': [2, 2, 1, 3, 5], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 1, 3, 5], dataType: 'float32'}
         }
       }
     }
@@ -600,7 +600,7 @@ const matmulTests = [
             37.49127960205078,  51.397132873535156, 53.19015121459961,
             38.33119201660156,  75.20586395263672,  3.8537938594818115
           ],
-          'descriptor': {'dimensions': [2, 2, 1, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 1, 3, 4], dataType: 'float32'}
         },
         'inputB': {
           'data': [
@@ -612,7 +612,7 @@ const matmulTests = [
             69.31697082519531,  31.984439849853516, 12.291812896728516,
             13.304834365844727, 85.26705169677734
           ],
-          'descriptor': {'dimensions': [4, 5], 'dataType': 'float32'}
+          'descriptor': {shape: [4, 5], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -644,7 +644,7 @@ const matmulTests = [
             12841.802734375,   8145.45654296875,  8134.66650390625,
             4344.25,           7138.79052734375,  8497.98046875
           ],
-          'descriptor': {'dimensions': [2, 2, 1, 3, 5], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 1, 3, 5], dataType: 'float32'}
         }
       }
     }

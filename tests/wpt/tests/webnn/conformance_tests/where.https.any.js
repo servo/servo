@@ -28,17 +28,15 @@ const whereTests = [
     'name': 'where float32 0D scalars',
     'graph': {
       'inputs': {
-        'inputCondition': {
-          'data': [247],
-          'descriptor': {'dimensions': [], 'dataType': 'uint8'}
-        },
+        'inputCondition':
+            {'data': [247], 'descriptor': {shape: [], dataType: 'uint8'}},
         'inputTrueValue': {
           'data': [-22.83924102783203],
-          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+          'descriptor': {shape: [], dataType: 'float32'}
         },
         'inputFalseValue': {
           'data': [-50.02232360839844],
-          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+          'descriptor': {shape: [], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -47,12 +45,12 @@ const whereTests = [
           {'condition': 'inputCondition'}, {'trueValue': 'inputTrueValue'},
           {'falseValue': 'inputFalseValue'}
         ],
-        'outputs': 'output'
+        'outputs': 'whereOutput'
       }],
       'expectedOutputs': {
         'whereOutput': {
           'data': [-22.83924102783203],
-          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+          'descriptor': {shape: [], dataType: 'float32'}
         }
       }
     }
@@ -66,7 +64,7 @@ const whereTests = [
             241, 0,   85,  0,   227, 51, 202, 0,  104, 227, 129, 129,
             175, 134, 130, 140, 103, 46, 158, 17, 0,   41,  94,  0
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'uint8'},
+          'descriptor': {shape: [24], dataType: 'uint8'},
           'constant': true
         },
         'inputTrueValue': {
@@ -80,7 +78,7 @@ const whereTests = [
             -29.081029891967773, -12.19106674194336, -10.8577880859375,
             -23.302522659301758, 30.851404190063477, -58.82704544067383
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'},
+          'descriptor': {shape: [24], dataType: 'float32'},
           'constant': true
         },
         'inputFalseValue': {
@@ -94,7 +92,7 @@ const whereTests = [
             22.937334060668945,  74.97810363769531,   18.877336502075195,
             62.31299591064453,   48.867103576660156,  -75.41789245605469
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'},
+          'descriptor': {shape: [24], dataType: 'float32'},
           'constant': true
         }
       },
@@ -104,7 +102,7 @@ const whereTests = [
           {'condition': 'inputCondition'}, {'trueValue': 'inputTrueValue'},
           {'falseValue': 'inputFalseValue'}
         ],
-        'outputs': 'output'
+        'outputs': 'whereOutput'
       }],
       'expectedOutputs': {
         'whereOutput': {
@@ -118,7 +116,7 @@ const whereTests = [
             -29.081029891967773, -12.19106674194336, 18.877336502075195,
             -23.302522659301758, 30.851404190063477, -75.41789245605469
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'}
+          'descriptor': {shape: [24], dataType: 'float32'}
         }
       }
     }
@@ -132,7 +130,7 @@ const whereTests = [
             241, 0,   85,  0,   227, 51, 202, 0,  104, 227, 129, 129,
             175, 134, 130, 140, 103, 46, 158, 17, 0,   41,  94,  0
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'uint8'}
+          'descriptor': {shape: [24], dataType: 'uint8'}
         },
         'inputTrueValue': {
           'data': [
@@ -145,7 +143,7 @@ const whereTests = [
             -29.081029891967773, -12.19106674194336, -10.8577880859375,
             -23.302522659301758, 30.851404190063477, -58.82704544067383
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'}
+          'descriptor': {shape: [24], dataType: 'float32'}
         },
         'inputFalseValue': {
           'data': [
@@ -158,7 +156,7 @@ const whereTests = [
             22.937334060668945,  74.97810363769531,   18.877336502075195,
             62.31299591064453,   48.867103576660156,  -75.41789245605469
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'}
+          'descriptor': {shape: [24], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -167,7 +165,7 @@ const whereTests = [
           {'condition': 'inputCondition'}, {'trueValue': 'inputTrueValue'},
           {'falseValue': 'inputFalseValue'}
         ],
-        'outputs': 'output'
+        'outputs': 'whereOutput'
       }],
       'expectedOutputs': {
         'whereOutput': {
@@ -181,7 +179,7 @@ const whereTests = [
             -29.081029891967773, -12.19106674194336, 18.877336502075195,
             -23.302522659301758, 30.851404190063477, -75.41789245605469
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'}
+          'descriptor': {shape: [24], dataType: 'float32'}
         }
       }
     }
@@ -195,7 +193,7 @@ const whereTests = [
             241, 0,   85,  0,   227, 51, 202, 0,  104, 227, 129, 129,
             175, 134, 130, 140, 103, 46, 158, 17, 0,   41,  94,  0
           ],
-          'descriptor': {'dimensions': [4, 6], 'dataType': 'uint8'}
+          'descriptor': {shape: [4, 6], dataType: 'uint8'}
         },
         'inputTrueValue': {
           'data': [
@@ -208,7 +206,7 @@ const whereTests = [
             -29.081029891967773, -12.19106674194336, -10.8577880859375,
             -23.302522659301758, 30.851404190063477, -58.82704544067383
           ],
-          'descriptor': {'dimensions': [4, 6], 'dataType': 'float32'}
+          'descriptor': {shape: [4, 6], dataType: 'float32'}
         },
         'inputFalseValue': {
           'data': [
@@ -221,7 +219,7 @@ const whereTests = [
             22.937334060668945,  74.97810363769531,   18.877336502075195,
             62.31299591064453,   48.867103576660156,  -75.41789245605469
           ],
-          'descriptor': {'dimensions': [4, 6], 'dataType': 'float32'}
+          'descriptor': {shape: [4, 6], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -230,7 +228,7 @@ const whereTests = [
           {'condition': 'inputCondition'}, {'trueValue': 'inputTrueValue'},
           {'falseValue': 'inputFalseValue'}
         ],
-        'outputs': 'output'
+        'outputs': 'whereOutput'
       }],
       'expectedOutputs': {
         'whereOutput': {
@@ -244,7 +242,7 @@ const whereTests = [
             -29.081029891967773, -12.19106674194336, 18.877336502075195,
             -23.302522659301758, 30.851404190063477, -75.41789245605469
           ],
-          'descriptor': {'dimensions': [4, 6], 'dataType': 'float32'}
+          'descriptor': {shape: [4, 6], dataType: 'float32'}
         }
       }
     }
@@ -258,7 +256,7 @@ const whereTests = [
             241, 0,   85,  0,   227, 51, 202, 0,  104, 227, 129, 129,
             175, 134, 130, 140, 103, 46, 158, 17, 0,   41,  94,  0
           ],
-          'descriptor': {'dimensions': [2, 3, 4], 'dataType': 'uint8'}
+          'descriptor': {shape: [2, 3, 4], dataType: 'uint8'}
         },
         'inputTrueValue': {
           'data': [
@@ -271,7 +269,7 @@ const whereTests = [
             -29.081029891967773, -12.19106674194336, -10.8577880859375,
             -23.302522659301758, 30.851404190063477, -58.82704544067383
           ],
-          'descriptor': {'dimensions': [2, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 4], dataType: 'float32'}
         },
         'inputFalseValue': {
           'data': [
@@ -284,7 +282,7 @@ const whereTests = [
             22.937334060668945,  74.97810363769531,   18.877336502075195,
             62.31299591064453,   48.867103576660156,  -75.41789245605469
           ],
-          'descriptor': {'dimensions': [2, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 4], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -293,7 +291,7 @@ const whereTests = [
           {'condition': 'inputCondition'}, {'trueValue': 'inputTrueValue'},
           {'falseValue': 'inputFalseValue'}
         ],
-        'outputs': 'output'
+        'outputs': 'whereOutput'
       }],
       'expectedOutputs': {
         'whereOutput': {
@@ -307,7 +305,7 @@ const whereTests = [
             -29.081029891967773, -12.19106674194336, 18.877336502075195,
             -23.302522659301758, 30.851404190063477, -75.41789245605469
           ],
-          'descriptor': {'dimensions': [2, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 4], dataType: 'float32'}
         }
       }
     }
@@ -321,7 +319,7 @@ const whereTests = [
             241, 0,   85,  0,   227, 51, 202, 0,  104, 227, 129, 129,
             175, 134, 130, 140, 103, 46, 158, 17, 0,   41,  94,  0
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'uint8'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'uint8'}
         },
         'inputTrueValue': {
           'data': [
@@ -334,7 +332,7 @@ const whereTests = [
             -29.081029891967773, -12.19106674194336, -10.8577880859375,
             -23.302522659301758, 30.851404190063477, -58.82704544067383
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         },
         'inputFalseValue': {
           'data': [
@@ -347,7 +345,7 @@ const whereTests = [
             22.937334060668945,  74.97810363769531,   18.877336502075195,
             62.31299591064453,   48.867103576660156,  -75.41789245605469
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -356,7 +354,7 @@ const whereTests = [
           {'condition': 'inputCondition'}, {'trueValue': 'inputTrueValue'},
           {'falseValue': 'inputFalseValue'}
         ],
-        'outputs': 'output'
+        'outputs': 'whereOutput'
       }],
       'expectedOutputs': {
         'whereOutput': {
@@ -370,7 +368,7 @@ const whereTests = [
             -29.081029891967773, -12.19106674194336, 18.877336502075195,
             -23.302522659301758, 30.851404190063477, -75.41789245605469
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       }
     }
@@ -384,7 +382,7 @@ const whereTests = [
             241, 0,   85,  0,   227, 51, 202, 0,  104, 227, 129, 129,
             175, 134, 130, 140, 103, 46, 158, 17, 0,   41,  94,  0
           ],
-          'descriptor': {'dimensions': [2, 2, 1, 2, 3], 'dataType': 'uint8'}
+          'descriptor': {shape: [2, 2, 1, 2, 3], dataType: 'uint8'}
         },
         'inputTrueValue': {
           'data': [
@@ -397,7 +395,7 @@ const whereTests = [
             -29.081029891967773, -12.19106674194336, -10.8577880859375,
             -23.302522659301758, 30.851404190063477, -58.82704544067383
           ],
-          'descriptor': {'dimensions': [2, 2, 1, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 1, 2, 3], dataType: 'float32'}
         },
         'inputFalseValue': {
           'data': [
@@ -410,7 +408,7 @@ const whereTests = [
             22.937334060668945,  74.97810363769531,   18.877336502075195,
             62.31299591064453,   48.867103576660156,  -75.41789245605469
           ],
-          'descriptor': {'dimensions': [2, 2, 1, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 1, 2, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -419,7 +417,7 @@ const whereTests = [
           {'condition': 'inputCondition'}, {'trueValue': 'inputTrueValue'},
           {'falseValue': 'inputFalseValue'}
         ],
-        'outputs': 'output'
+        'outputs': 'whereOutput'
       }],
       'expectedOutputs': {
         'whereOutput': {
@@ -433,7 +431,7 @@ const whereTests = [
             -29.081029891967773, -12.19106674194336, 18.877336502075195,
             -23.302522659301758, 30.851404190063477, -75.41789245605469
           ],
-          'descriptor': {'dimensions': [2, 2, 1, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 1, 2, 3], dataType: 'float32'}
         }
       }
     }
@@ -442,10 +440,8 @@ const whereTests = [
     'name': 'where float32 4D tensors only broadcast condition 0D to 4D',
     'graph': {
       'inputs': {
-        'inputCondition': {
-          'data': [247],
-          'descriptor': {'dimensions': [], 'dataType': 'uint8'}
-        },
+        'inputCondition':
+            {'data': [247], 'descriptor': {shape: [], dataType: 'uint8'}},
         'inputTrueValue': {
           'data': [
             70.27151489257812,   89.99047088623047,  -1.5351932048797607,
@@ -457,7 +453,7 @@ const whereTests = [
             -29.081029891967773, -12.19106674194336, -10.8577880859375,
             -23.302522659301758, 30.851404190063477, -58.82704544067383
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         },
         'inputFalseValue': {
           'data': [
@@ -470,7 +466,7 @@ const whereTests = [
             22.937334060668945,  74.97810363769531,   18.877336502075195,
             62.31299591064453,   48.867103576660156,  -75.41789245605469
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -479,7 +475,7 @@ const whereTests = [
           {'condition': 'inputCondition'}, {'trueValue': 'inputTrueValue'},
           {'falseValue': 'inputFalseValue'}
         ],
-        'outputs': 'output'
+        'outputs': 'whereOutput'
       }],
       'expectedOutputs': {
         'whereOutput': {
@@ -493,7 +489,7 @@ const whereTests = [
             -29.081029891967773, -12.19106674194336, -10.8577880859375,
             -23.302522659301758, 30.851404190063477, -58.82704544067383
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       }
     }
@@ -504,7 +500,7 @@ const whereTests = [
       'inputs': {
         'inputCondition': {
           'data': [253, 222, 0],
-          'descriptor': {'dimensions': [3], 'dataType': 'uint8'}
+          'descriptor': {shape: [3], dataType: 'uint8'}
         },
         'inputTrueValue': {
           'data': [
@@ -517,7 +513,7 @@ const whereTests = [
             -29.081029891967773, -12.19106674194336, -10.8577880859375,
             -23.302522659301758, 30.851404190063477, -58.82704544067383
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         },
         'inputFalseValue': {
           'data': [
@@ -530,7 +526,7 @@ const whereTests = [
             22.937334060668945,  74.97810363769531,   18.877336502075195,
             62.31299591064453,   48.867103576660156,  -75.41789245605469
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -539,7 +535,7 @@ const whereTests = [
           {'condition': 'inputCondition'}, {'trueValue': 'inputTrueValue'},
           {'falseValue': 'inputFalseValue'}
         ],
-        'outputs': 'output'
+        'outputs': 'whereOutput'
       }],
       'expectedOutputs': {
         'whereOutput': {
@@ -553,7 +549,7 @@ const whereTests = [
             -29.081029891967773, -12.19106674194336, 18.877336502075195,
             -23.302522659301758, 30.851404190063477, -75.41789245605469
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       }
     }
@@ -564,7 +560,7 @@ const whereTests = [
       'inputs': {
         'inputCondition': {
           'data': [103, 0],
-          'descriptor': {'dimensions': [2, 1], 'dataType': 'uint8'}
+          'descriptor': {shape: [2, 1], dataType: 'uint8'}
         },
         'inputTrueValue': {
           'data': [
@@ -577,7 +573,7 @@ const whereTests = [
             -29.081029891967773, -12.19106674194336, -10.8577880859375,
             -23.302522659301758, 30.851404190063477, -58.82704544067383
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         },
         'inputFalseValue': {
           'data': [
@@ -590,7 +586,7 @@ const whereTests = [
             22.937334060668945,  74.97810363769531,   18.877336502075195,
             62.31299591064453,   48.867103576660156,  -75.41789245605469
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -599,7 +595,7 @@ const whereTests = [
           {'condition': 'inputCondition'}, {'trueValue': 'inputTrueValue'},
           {'falseValue': 'inputFalseValue'}
         ],
-        'outputs': 'output'
+        'outputs': 'whereOutput'
       }],
       'expectedOutputs': {
         'whereOutput': {
@@ -613,7 +609,7 @@ const whereTests = [
             -29.081029891967773, -12.19106674194336, -10.8577880859375,
             62.31299591064453,   48.867103576660156, -75.41789245605469
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       }
     }
@@ -624,7 +620,7 @@ const whereTests = [
       'inputs': {
         'inputCondition': {
           'data': [235, 0, 93, 213, 0, 117],
-          'descriptor': {'dimensions': [1, 2, 3], 'dataType': 'uint8'}
+          'descriptor': {shape: [1, 2, 3], dataType: 'uint8'}
         },
         'inputTrueValue': {
           'data': [
@@ -637,7 +633,7 @@ const whereTests = [
             -29.081029891967773, -12.19106674194336, -10.8577880859375,
             -23.302522659301758, 30.851404190063477, -58.82704544067383
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         },
         'inputFalseValue': {
           'data': [
@@ -650,7 +646,7 @@ const whereTests = [
             22.937334060668945,  74.97810363769531,   18.877336502075195,
             62.31299591064453,   48.867103576660156,  -75.41789245605469
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -659,7 +655,7 @@ const whereTests = [
           {'condition': 'inputCondition'}, {'trueValue': 'inputTrueValue'},
           {'falseValue': 'inputFalseValue'}
         ],
-        'outputs': 'output'
+        'outputs': 'whereOutput'
       }],
       'expectedOutputs': {
         'whereOutput': {
@@ -673,7 +669,7 @@ const whereTests = [
             -29.081029891967773, 74.97810363769531,   -10.8577880859375,
             -23.302522659301758, 48.867103576660156,  -58.82704544067383
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       }
     }
@@ -684,7 +680,7 @@ const whereTests = [
       'inputs': {
         'inputCondition': {
           'data': [0, 165, 0, 90],
-          'descriptor': {'dimensions': [1, 2, 2, 1], 'dataType': 'uint8'}
+          'descriptor': {shape: [1, 2, 2, 1], dataType: 'uint8'}
         },
         'inputTrueValue': {
           'data': [
@@ -697,7 +693,7 @@ const whereTests = [
             -29.081029891967773, -12.19106674194336, -10.8577880859375,
             -23.302522659301758, 30.851404190063477, -58.82704544067383
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         },
         'inputFalseValue': {
           'data': [
@@ -710,7 +706,7 @@ const whereTests = [
             22.937334060668945,  74.97810363769531,   18.877336502075195,
             62.31299591064453,   48.867103576660156,  -75.41789245605469
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -719,7 +715,7 @@ const whereTests = [
           {'condition': 'inputCondition'}, {'trueValue': 'inputTrueValue'},
           {'falseValue': 'inputFalseValue'}
         ],
-        'outputs': 'output'
+        'outputs': 'whereOutput'
       }],
       'expectedOutputs': {
         'whereOutput': {
@@ -733,7 +729,7 @@ const whereTests = [
             22.937334060668945,  74.97810363769531,   18.877336502075195,
             -23.302522659301758, 30.851404190063477,  -58.82704544067383
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       }
     }
@@ -747,14 +743,14 @@ const whereTests = [
             241, 0,   85,  0,   227, 51, 202, 0,  104, 227, 129, 129,
             175, 134, 130, 140, 103, 46, 158, 17, 0,   41,  94,  0
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'uint8'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'uint8'}
         },
         'inputTrueValue': {
           'data': [
             38.77214050292969, 18.20477294921875, -11.542049407958984,
             -82.74693298339844, -18.61202621459961, -75.77534484863281
           ],
-          'descriptor': {'dimensions': [2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3], dataType: 'float32'}
         },
         'inputFalseValue': {
           'data': [
@@ -767,7 +763,7 @@ const whereTests = [
             22.937334060668945,  74.97810363769531,   18.877336502075195,
             62.31299591064453,   48.867103576660156,  -75.41789245605469
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -776,7 +772,7 @@ const whereTests = [
           {'condition': 'inputCondition'}, {'trueValue': 'inputTrueValue'},
           {'falseValue': 'inputFalseValue'}
         ],
-        'outputs': 'output'
+        'outputs': 'whereOutput'
       }],
       'expectedOutputs': {
         'whereOutput': {
@@ -790,7 +786,7 @@ const whereTests = [
             38.77214050292969,   18.20477294921875,  18.877336502075195,
             -82.74693298339844,  -18.61202621459961, -75.41789245605469
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       }
     }
@@ -804,14 +800,14 @@ const whereTests = [
             241, 0,   85,  0,   227, 51, 202, 0,  104, 227, 129, 129,
             175, 134, 130, 140, 103, 46, 158, 17, 0,   41,  94,  0
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'uint8'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'uint8'}
         },
         'inputTrueValue': {
           'data': [
             -29.164173126220703, 32.200286865234375, -6.146966457366943,
             -24.822790145874023
           ],
-          'descriptor': {'dimensions': [2, 2, 1, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 1, 1], dataType: 'float32'}
         },
         'inputFalseValue': {
           'data': [
@@ -824,7 +820,7 @@ const whereTests = [
             22.937334060668945,  74.97810363769531,   18.877336502075195,
             62.31299591064453,   48.867103576660156,  -75.41789245605469
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -833,7 +829,7 @@ const whereTests = [
           {'condition': 'inputCondition'}, {'trueValue': 'inputTrueValue'},
           {'falseValue': 'inputFalseValue'}
         ],
-        'outputs': 'output'
+        'outputs': 'whereOutput'
       }],
       'expectedOutputs': {
         'whereOutput': {
@@ -847,7 +843,7 @@ const whereTests = [
             -24.822790145874023, -24.822790145874023, 18.877336502075195,
             -24.822790145874023, -24.822790145874023, -75.41789245605469
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       }
     }
@@ -861,7 +857,7 @@ const whereTests = [
             241, 0,   85,  0,   227, 51, 202, 0,  104, 227, 129, 129,
             175, 134, 130, 140, 103, 46, 158, 17, 0,   41,  94,  0
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'uint8'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'uint8'}
         },
         'inputTrueValue': {
           'data': [
@@ -874,14 +870,14 @@ const whereTests = [
             -29.081029891967773, -12.19106674194336, -10.8577880859375,
             -23.302522659301758, 30.851404190063477, -58.82704544067383
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         },
         'inputFalseValue': {
           'data': [
             -86.59848022460938, -67.72773742675781, -30.731334686279297,
             -93.49223327636719
           ],
-          'descriptor': {'dimensions': [2, 2, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 1], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -890,7 +886,7 @@ const whereTests = [
           {'condition': 'inputCondition'}, {'trueValue': 'inputTrueValue'},
           {'falseValue': 'inputFalseValue'}
         ],
-        'outputs': 'output'
+        'outputs': 'whereOutput'
       }],
       'expectedOutputs': {
         'whereOutput': {
@@ -904,7 +900,7 @@ const whereTests = [
             -29.081029891967773, -12.19106674194336,  -30.731334686279297,
             -23.302522659301758, 30.851404190063477,  -93.49223327636719
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       }
     }
@@ -918,7 +914,7 @@ const whereTests = [
             241, 0,   85,  0,   227, 51, 202, 0,  104, 227, 129, 129,
             175, 134, 130, 140, 103, 46, 158, 17, 0,   41,  94,  0
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'uint8'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'uint8'}
         },
         'inputTrueValue': {
           'data': [
@@ -931,14 +927,14 @@ const whereTests = [
             -29.081029891967773, -12.19106674194336, -10.8577880859375,
             -23.302522659301758, 30.851404190063477, -58.82704544067383
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         },
         'inputFalseValue': {
           'data': [
             17.777414321899414, -1.9890096187591553, -57.28207015991211,
             -80.01390838623047, 66.87323760986328, -31.328258514404297
           ],
-          'descriptor': {'dimensions': [1, 2, 1, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 1, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -947,7 +943,7 @@ const whereTests = [
           {'condition': 'inputCondition'}, {'trueValue': 'inputTrueValue'},
           {'falseValue': 'inputFalseValue'}
         ],
-        'outputs': 'output'
+        'outputs': 'whereOutput'
       }],
       'expectedOutputs': {
         'whereOutput': {
@@ -961,7 +957,7 @@ const whereTests = [
             -29.081029891967773, -12.19106674194336,  -31.328258514404297,
             -23.302522659301758, 30.851404190063477,  -31.328258514404297
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       }
     }
@@ -972,21 +968,21 @@ const whereTests = [
       'inputs': {
         'inputCondition': {
           'data': [58, 217],
-          'descriptor': {'dimensions': [2, 1, 1, 1], 'dataType': 'uint8'}
+          'descriptor': {shape: [2, 1, 1, 1], dataType: 'uint8'}
         },
         'inputTrueValue': {
           'data': [
             38.77214050292969, 18.20477294921875, -11.542049407958984,
             -82.74693298339844, -18.61202621459961, -75.77534484863281
           ],
-          'descriptor': {'dimensions': [2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3], dataType: 'float32'}
         },
         'inputFalseValue': {
           'data': [
             -86.59848022460938, -67.72773742675781, -30.731334686279297,
             -93.49223327636719
           ],
-          'descriptor': {'dimensions': [2, 2, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 1], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -995,7 +991,7 @@ const whereTests = [
           {'condition': 'inputCondition'}, {'trueValue': 'inputTrueValue'},
           {'falseValue': 'inputFalseValue'}
         ],
-        'outputs': 'output'
+        'outputs': 'whereOutput'
       }],
       'expectedOutputs': {
         'whereOutput': {
@@ -1009,7 +1005,7 @@ const whereTests = [
             38.77214050292969,  18.20477294921875,  -11.542049407958984,
             -82.74693298339844, -18.61202621459961, -75.77534484863281
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       }
     }

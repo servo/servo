@@ -6,6 +6,7 @@ from webdriver.bidi.modules.script import ContextTarget
 
 from tests.support.sync import AsyncPoll
 
+from ... import number_interval
 from .. import (
     assert_fetch_error_event,
     assert_response_event,
@@ -213,6 +214,42 @@ async def test_request_method(
             event,
             expected_request={"url": PAGE_INVALID_URL},
         )
+
+
+@pytest.mark.asyncio
+async def test_request_timing_info(
+    bidi_session,
+    new_tab,
+    wait_for_event,
+    wait_for_future_safe,
+    url,
+    fetch,
+    setup_network_test,
+    current_time,
+):
+    network_events = await setup_network_test(
+        events=[FETCH_ERROR_EVENT], context=new_tab["context"]
+    )
+    events = network_events[FETCH_ERROR_EVENT]
+
+    # Record the time range for the request to assert the timing info.
+    time_start = await current_time()
+
+    on_fetch_error = wait_for_event(FETCH_ERROR_EVENT)
+    asyncio.ensure_future(fetch(PAGE_INVALID_URL, context=new_tab))
+    await wait_for_future_safe(on_fetch_error)
+
+    time_end = await current_time()
+    time_range = number_interval(time_start, time_end)
+
+    assert len(events) == 1
+    expected_request = {"method": "GET", "url": PAGE_INVALID_URL}
+    assert_fetch_error_event(
+        events[0],
+        expected_request=expected_request,
+        expected_time_range=time_range,
+        redirect_count=0,
+    )
 
 
 @pytest.mark.asyncio

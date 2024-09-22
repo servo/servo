@@ -16,8 +16,7 @@ validateSingleInputOperation('hardSigmoid', label);
 promise_test(async t => {
   const builder = new MLGraphBuilder(context);
   const options = {alpha: 0.5, beta: 1.0};
-  const input =
-      builder.input('input', {dataType: 'float16', dimensions: [1, 2, 3]});
+  const input = builder.input('input', {dataType: 'float16', shape: [1, 2, 3]});
   const output = builder.hardSigmoid(input, options);
   assert_equals(output.dataType(), 'float16');
   assert_array_equals(output.shape(), [1, 2, 3]);
@@ -26,13 +25,13 @@ promise_test(async t => {
 promise_test(async t => {
   const builder = new MLGraphBuilder(context);
   const options = {beta: NaN};
-  const input = builder.input('input', {dataType: 'float32', dimensions: []});
+  const input = builder.input('input', {dataType: 'float32', shape: []});
   assert_throws_js(TypeError, () => builder.hardSigmoid(input, options));
 }, '[hardSigmoid] Throw if options.beta is NaN');
 
 promise_test(async t => {
   const builder = new MLGraphBuilder(context);
   const options = {alpha: Infinity};
-  const input = builder.input('input', {dataType: 'float32', dimensions: [1]});
+  const input = builder.input('input', {dataType: 'float32', shape: [1]});
   assert_throws_js(TypeError, () => builder.hardSigmoid(input, options));
 }, '[hardSigmoid] Throw if options.alpha is Infinity');

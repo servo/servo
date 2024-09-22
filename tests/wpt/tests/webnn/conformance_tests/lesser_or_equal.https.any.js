@@ -29,11 +29,11 @@ const lesserOrEqualTests = [
       'inputs': {
         'inputA': {
           'data': [-6.978766441345215],
-          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+          'descriptor': {shape: [], dataType: 'float32'}
         },
         'inputB': {
           'data': [6.613064765930176],
-          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+          'descriptor': {shape: [], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -42,8 +42,7 @@ const lesserOrEqualTests = [
         'outputs': 'output'
       }],
       'expectedOutputs': {
-        'output':
-            {'data': [1], 'descriptor': {'dimensions': [], 'dataType': 'uint8'}}
+        'output': {'data': [1], 'descriptor': {shape: [], dataType: 'uint8'}}
       }
     }
   },
@@ -62,7 +61,7 @@ const lesserOrEqualTests = [
             1.64528226852417,   -1.4862726926803589, -4.998753547668457,
             -0.920993447303772, -9.434256553649902,  9.813238143920898
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'},
+          'descriptor': {shape: [24], dataType: 'float32'},
           'constant': true
         },
         'inputB': {
@@ -76,7 +75,7 @@ const lesserOrEqualTests = [
             -2.5953285694122314,  -4.9998064041137695, 3.118950605392456,
             9.705141067504883,    9.54673957824707,    -6.189505577087402
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'},
+          'descriptor': {shape: [24], dataType: 'float32'},
           'constant': true
         }
       },
@@ -91,7 +90,7 @@ const lesserOrEqualTests = [
             1, 1, 1, 0, 1, 0, 0, 0, 1, 1, 1, 1,
             0, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'uint8'}
+          'descriptor': {shape: [24], dataType: 'uint8'}
         }
       }
     }
@@ -111,7 +110,7 @@ const lesserOrEqualTests = [
             1.64528226852417,   -1.4862726926803589, -4.998753547668457,
             -0.920993447303772, -9.434256553649902,  9.813238143920898
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'}
+          'descriptor': {shape: [24], dataType: 'float32'}
         },
         'inputB': {
           'data': [
@@ -124,7 +123,7 @@ const lesserOrEqualTests = [
             -2.5953285694122314,  -4.9998064041137695, 3.118950605392456,
             9.705141067504883,    9.54673957824707,    -6.189505577087402
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'}
+          'descriptor': {shape: [24], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -138,7 +137,7 @@ const lesserOrEqualTests = [
             1, 1, 1, 0, 1, 0, 0, 0, 1, 1, 1, 1,
             0, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'uint8'}
+          'descriptor': {shape: [24], dataType: 'uint8'}
         }
       }
     }
@@ -158,7 +157,7 @@ const lesserOrEqualTests = [
             1.64528226852417,   -1.4862726926803589, -4.998753547668457,
             -0.920993447303772, -9.434256553649902,  9.813238143920898
           ],
-          'descriptor': {'dimensions': [4, 6], 'dataType': 'float32'}
+          'descriptor': {shape: [4, 6], dataType: 'float32'}
         },
         'inputB': {
           'data': [
@@ -171,7 +170,7 @@ const lesserOrEqualTests = [
             -2.5953285694122314,  -4.9998064041137695, 3.118950605392456,
             9.705141067504883,    9.54673957824707,    -6.189505577087402
           ],
-          'descriptor': {'dimensions': [4, 6], 'dataType': 'float32'}
+          'descriptor': {shape: [4, 6], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -185,7 +184,7 @@ const lesserOrEqualTests = [
             1, 1, 1, 0, 1, 0, 0, 0, 1, 1, 1, 1,
             0, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0
           ],
-          'descriptor': {'dimensions': [4, 6], 'dataType': 'uint8'}
+          'descriptor': {shape: [4, 6], dataType: 'uint8'}
         }
       }
     }
@@ -205,7 +204,7 @@ const lesserOrEqualTests = [
             1.64528226852417,   -1.4862726926803589, -4.998753547668457,
             -0.920993447303772, -9.434256553649902,  9.813238143920898
           ],
-          'descriptor': {'dimensions': [2, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 4], dataType: 'float32'}
         },
         'inputB': {
           'data': [
@@ -218,7 +217,7 @@ const lesserOrEqualTests = [
             -2.5953285694122314,  -4.9998064041137695, 3.118950605392456,
             9.705141067504883,    9.54673957824707,    -6.189505577087402
           ],
-          'descriptor': {'dimensions': [2, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 4], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -232,7 +231,7 @@ const lesserOrEqualTests = [
             1, 1, 1, 0, 1, 0, 0, 0, 1, 1, 1, 1,
             0, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0
           ],
-          'descriptor': {'dimensions': [2, 3, 4], 'dataType': 'uint8'}
+          'descriptor': {shape: [2, 3, 4], dataType: 'uint8'}
         }
       }
     }
@@ -252,7 +251,7 @@ const lesserOrEqualTests = [
             1.64528226852417,   -1.4862726926803589, -4.998753547668457,
             -0.920993447303772, -9.434256553649902,  9.813238143920898
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         },
         'inputB': {
           'data': [
@@ -265,7 +264,7 @@ const lesserOrEqualTests = [
             -2.5953285694122314,  -4.9998064041137695, 3.118950605392456,
             9.705141067504883,    9.54673957824707,    -6.189505577087402
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -279,7 +278,7 @@ const lesserOrEqualTests = [
             1, 1, 1, 0, 1, 0, 0, 0, 1, 1, 1, 1,
             0, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'uint8'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'uint8'}
         }
       }
     }
@@ -299,7 +298,7 @@ const lesserOrEqualTests = [
             1.64528226852417,   -1.4862726926803589, -4.998753547668457,
             -0.920993447303772, -9.434256553649902,  9.813238143920898
           ],
-          'descriptor': {'dimensions': [2, 2, 1, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 1, 2, 3], dataType: 'float32'}
         },
         'inputB': {
           'data': [
@@ -312,7 +311,7 @@ const lesserOrEqualTests = [
             -2.5953285694122314,  -4.9998064041137695, 3.118950605392456,
             9.705141067504883,    9.54673957824707,    -6.189505577087402
           ],
-          'descriptor': {'dimensions': [2, 2, 1, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 1, 2, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -326,7 +325,7 @@ const lesserOrEqualTests = [
             1, 1, 1, 0, 1, 0, 0, 0, 1, 1, 1, 1,
             0, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0
           ],
-          'descriptor': {'dimensions': [2, 2, 1, 2, 3], 'dataType': 'uint8'}
+          'descriptor': {shape: [2, 2, 1, 2, 3], dataType: 'uint8'}
         }
       }
     }
@@ -337,7 +336,7 @@ const lesserOrEqualTests = [
       'inputs': {
         'inputA': {
           'data': [4.840610980987549],
-          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+          'descriptor': {shape: [], dataType: 'float32'}
         },
         'inputB': {
           'data': [
@@ -350,7 +349,7 @@ const lesserOrEqualTests = [
             1.64528226852417,   -1.4862726926803589, -4.998753547668457,
             -0.920993447303772, -9.434256553649902,  9.813238143920898
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -364,7 +363,7 @@ const lesserOrEqualTests = [
             0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0,
             1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'uint8'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'uint8'}
         }
       }
     }
@@ -375,7 +374,7 @@ const lesserOrEqualTests = [
       'inputs': {
         'inputA': {
           'data': [4.840610980987549],
-          'descriptor': {'dimensions': [1], 'dataType': 'float32'}
+          'descriptor': {shape: [1], dataType: 'float32'}
         },
         'inputB': {
           'data': [
@@ -388,7 +387,7 @@ const lesserOrEqualTests = [
             1.64528226852417,   -1.4862726926803589, -4.998753547668457,
             -0.920993447303772, -9.434256553649902,  9.813238143920898
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -402,7 +401,7 @@ const lesserOrEqualTests = [
             0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0,
             1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'uint8'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'uint8'}
         }
       }
     }
@@ -422,14 +421,14 @@ const lesserOrEqualTests = [
             1.64528226852417,   -1.4862726926803589, -4.998753547668457,
             -0.920993447303772, -9.434256553649902,  9.813238143920898
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         },
         'inputB': {
           'data': [
             -8.499547004699707, -8.321310043334961, -7.182070732116699,
             3.418306350708008, 5.389469146728516, 6.904313087463379
           ],
-          'descriptor': {'dimensions': [2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -443,7 +442,7 @@ const lesserOrEqualTests = [
             0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1,
             0, 1, 0, 1, 1, 0, 0, 0, 0, 1, 1, 0
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'uint8'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'uint8'}
         }
       }
     }
@@ -463,14 +462,14 @@ const lesserOrEqualTests = [
             1.64528226852417,   -1.4862726926803589, -4.998753547668457,
             -0.920993447303772, -9.434256553649902,  9.813238143920898
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         },
         'inputB': {
           'data': [
             4.195140838623047, 7.8286590576171875, 6.6902031898498535,
             0.9247010350227356
           ],
-          'descriptor': {'dimensions': [2, 2, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 1], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -484,7 +483,7 @@ const lesserOrEqualTests = [
             1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
             0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'uint8'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'uint8'}
         }
       }
     }
@@ -495,7 +494,7 @@ const lesserOrEqualTests = [
       'inputs': {
         'inputA': {
           'data': [4.840610980987549],
-          'descriptor': {'dimensions': [1, 1, 1, 1], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 1, 1, 1], dataType: 'float32'}
         },
         'inputB': {
           'data': [
@@ -508,7 +507,7 @@ const lesserOrEqualTests = [
             1.64528226852417,   -1.4862726926803589, -4.998753547668457,
             -0.920993447303772, -9.434256553649902,  9.813238143920898
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -522,7 +521,7 @@ const lesserOrEqualTests = [
             0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0,
             1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'uint8'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'uint8'}
         }
       }
     }

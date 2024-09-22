@@ -25,16 +25,15 @@ promise_test(async t => {
 
   const avgPool2dInputShape = [1, 7, 7, 2048];
   const avgPool2dInput = builder.input(
-      `avgPool2dInput`, {dataType: 'float32', dimensions: avgPool2dInputShape});
+      `avgPool2dInput`, {dataType: 'float32', shape: avgPool2dInputShape});
   const avgPool2dOutput =
       builder.averagePool2d(avgPool2dInput, {layout: 'nhwc'});
   const conv2dFilterShape = [1001, 1, 1, 2048];
   const conv2dFilter = builder.constant(
-      {dataType: 'float32', dimensions: conv2dFilterShape},
+      {dataType: 'float32', shape: conv2dFilterShape},
       new Float32Array(sizeOfShape(conv2dFilterShape)).fill(1));
   const conv2dBias = builder.constant(
-      {dataType: 'float32', dimensions: [1001]},
-      new Float32Array(1001).fill(0.01));
+      {dataType: 'float32', shape: [1001]}, new Float32Array(1001).fill(0.01));
   const conv2dOutput = builder.conv2d(avgPool2dOutput, conv2dFilter, {
     inputLayout: 'nhwc',
     filterLayout: 'ohwi',
@@ -70,17 +69,15 @@ promise_test(async t => {
 
   const reduceMeanInputShape = [1, 7, 7, 2048];
   const reduceMeanInput = builder.input(
-      `reduceMeanInput`,
-      {dataType: 'float32', dimensions: reduceMeanInputShape});
+      `reduceMeanInput`, {dataType: 'float32', shape: reduceMeanInputShape});
   const reduceMeanOutput =
       builder.reduceMean(reduceMeanInput, {axes: [1, 2], keepDimensions: true});
   const conv2dFilterShape = [1001, 1, 1, 2048];
   const conv2dFilter = builder.constant(
-      {dataType: 'float32', dimensions: conv2dFilterShape},
+      {dataType: 'float32', shape: conv2dFilterShape},
       new Float32Array(sizeOfShape(conv2dFilterShape)).fill(1));
   const conv2dBias = builder.constant(
-      {dataType: 'float32', dimensions: [1001]},
-      new Float32Array(1001).fill(0.01));
+      {dataType: 'float32', shape: [1001]}, new Float32Array(1001).fill(0.01));
   const conv2dOutput = builder.conv2d(reduceMeanOutput, conv2dFilter, {
     inputLayout: 'nhwc',
     filterLayout: 'ohwi',

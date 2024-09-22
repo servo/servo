@@ -24,33 +24,33 @@ const tests = [
     name: '[binary] Test bidirectionally broadcastable dimensions.',
     //  Both inputs have axes of length one which are expanded
     //  during broadcasting.
-    a: {dataType: 'float32', dimensions: [8, 1, 6, 1]},
-    b: {dataType: 'float32', dimensions: [7, 1, 5]},
-    output: {dataType: 'float32', dimensions: [8, 7, 6, 5]}
+    a: {dataType: 'float32', shape: [8, 1, 6, 1]},
+    b: {dataType: 'float32', shape: [7, 1, 5]},
+    output: {dataType: 'float32', shape: [8, 7, 6, 5]}
   },
   {
     name: '[binary] Test unidirectionally broadcastable dimensions.',
     // Input a has a single axis of length one which is
     // expanded during broadcasting.
-    a: {dataType: 'float32', dimensions: [4, 2, 1]},
-    b: {dataType: 'float32', dimensions: [4]},
-    output: {dataType: 'float32', dimensions: [4, 2, 4]}
+    a: {dataType: 'float32', shape: [4, 2, 1]},
+    b: {dataType: 'float32', shape: [4]},
+    output: {dataType: 'float32', shape: [4, 2, 4]}
   },
   {
     name: '[binary] Test scalar broadcasting.',
-    a: {dataType: 'float32', dimensions: [4, 2, 4]},
-    b: {dataType: 'float32', dimensions: []},
-    output: {dataType: 'float32', dimensions: [4, 2, 4]}
+    a: {dataType: 'float32', shape: [4, 2, 4]},
+    b: {dataType: 'float32', shape: []},
+    output: {dataType: 'float32', shape: [4, 2, 4]}
   },
   {
     name: '[binary] Throw if the input shapes are not broadcastable.',
-    a: {dataType: 'float32', dimensions: [4, 2]},
-    b: {dataType: 'float32', dimensions: [4]},
+    a: {dataType: 'float32', shape: [4, 2]},
+    b: {dataType: 'float32', shape: [4]},
   },
   {
     name: '[binary] Throw if the input types don\'t match.',
-    a: {dataType: 'float32', dimensions: [4, 2]},
-    b: {dataType: 'int32', dimensions: [1]},
+    a: {dataType: 'float32', shape: [4, 2]},
+    b: {dataType: 'int32', shape: [1]},
   },
 ];
 
@@ -60,31 +60,21 @@ function runElementWiseBinaryTests(operatorName, tests) {
       const builder = new MLGraphBuilder(context);
       if (!context.opSupportLimits().input.dataTypes.includes(
               test.a.dataType)) {
-        assert_throws_js(
-            TypeError,
-            () => builder.input(
-                'a',
-                {dataType: test.a.dataType, dimensions: test.a.dimensions}));
+        assert_throws_js(TypeError, () => builder.input('a', test.a));
         return;
       }
       if (!context.opSupportLimits().input.dataTypes.includes(
               test.b.dataType)) {
-        assert_throws_js(
-            TypeError,
-            () => builder.input(
-                'b',
-                {dataType: test.b.dataType, dimensions: test.b.dimensions}));
+        assert_throws_js(TypeError, () => builder.input('b', test.b));
         return;
       }
-      const a = builder.input(
-          'a', {dataType: test.a.dataType, dimensions: test.a.dimensions});
-      const b = builder.input(
-          'b', {dataType: test.b.dataType, dimensions: test.b.dimensions});
+      const a = builder.input('a', test.a);
+      const b = builder.input('b', test.b);
 
       if (test.output) {
         const output = builder[operatorName](a, b);
         assert_equals(output.dataType(), test.output.dataType);
-        assert_array_equals(output.shape(), test.output.dimensions);
+        assert_array_equals(output.shape(), test.output.shape);
       } else {
         const options = {label};
         assert_throws_with_label(

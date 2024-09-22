@@ -755,10 +755,6 @@
     fuzzy_test_valid_color(`lch(from var(--mycolor) l 0 h)`);
     fuzzy_test_valid_color(`var(--mygray)`);
     fuzzy_test_valid_color(`lch(from var(--mygray) l 30 h)`);
-
-    // Ensure that converting between legacy and modern sRGB color spaces work as expected.
-    fuzzy_test_valid_color(`color(from rebeccapurple srgb r g b)`, `color(srgb 0.4 0.2 0.6)`, 0.01);
-    fuzzy_test_valid_color(`rgb(from color(srgb 0.4 0.2 0.6) r g b)`, `color(srgb 0.4 0.2 0.6)`, 0.01);
 </script>
 </body>
 </html>

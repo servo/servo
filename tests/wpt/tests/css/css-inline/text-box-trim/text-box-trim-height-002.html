@@ -10,12 +10,15 @@
   background: lightgray;
   block-size: 20px;
 }
+.max-height > .spacer:first-child {
+  margin-top: 80px; /* avoid overlap */
+}
 
 .target {
   font: 100px/2 Ahem;
   text-box-trim: trim-both;
   text-box-edge: text alphabetic;
-  align-content: end;
+  align-content: unsafe end;
 }
 
 .height > .target {

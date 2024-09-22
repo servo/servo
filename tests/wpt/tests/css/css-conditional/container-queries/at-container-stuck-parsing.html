@@ -5,81 +5,30 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/css/css-conditional/container-queries/support/cq-testcommon.js"></script>
 <div style="container-name:name;container-type:scroll-state">
-  <main id="main"></main>
+  <main id="cq-main"></main>
 </div>
 <script>
   setup(() => assert_implements_container_queries());
 
-  function cleanup_main() {
-    while (main.firstChild)
-      main.firstChild.remove();
-  }
+  test_cq_condition_known('scroll-state(stuck)');
+  test_cq_condition_known('scroll-state(stuck: none)');
+  test_cq_condition_known('scroll-state(stuck: top)');
+  test_cq_condition_known('scroll-state(stuck: left)');
+  test_cq_condition_known('scroll-state(stuck: bottom)');
+  test_cq_condition_known('scroll-state(stuck: right)');
+  test_cq_condition_known('scroll-state(stuck: block-start)');
+  test_cq_condition_known('scroll-state(stuck: block-end)');
+  test_cq_condition_known('scroll-state(stuck: inline-start)');
+  test_cq_condition_known('scroll-state(stuck: inline-end)');
+  test_cq_condition_known('(scroll-state(stuck: top))');
+  test_cq_condition_known('scroll-state((stuck: top))');
+  test_cq_condition_known('scroll-state(not ((stuck: top) and (stuck: bottom)))');
+  test_cq_condition_known('scroll-state((stuck: right) or (stuck: left))');
 
-  function set_style(text) {
-    let style = document.createElement('style');
-    style.innerText = text;
-    main.append(style);
-    return style;
-  }
-
-  function test_rule_valid(query) {
-    test(t => {
-      t.add_cleanup(cleanup_main);
-      let style = set_style(`@container ${query} {}`);
-      assert_equals(style.sheet.rules.length, 1);
-    }, query);
-  }
-
-  function test_condition_invalid(condition) {
-    test(t => {
-      t.add_cleanup(cleanup_main);
-      let style = set_style(`@container name ${condition} {}`);
-      assert_equals(style.sheet.rules.length, 0);
-    }, condition);
-  }
-
-  // Tests that 1) the condition parses, and 2) is either "unknown" or not, as
-  // specified.
-  function test_condition_valid(condition, unknown) {
-    test(t => {
-      t.add_cleanup(cleanup_main);
-      let style = set_style(`
-        @container name ${condition} {}
-        @container name (${condition}) or (not (${condition})) { main { --match:true; } }
-      `);
-      assert_equals(style.sheet.rules.length, 2);
-      const expected = unknown ? '' : 'true';
-      assert_equals(getComputedStyle(main).getPropertyValue('--match'), expected);
-    }, condition);
-  }
-
-  function test_condition_known(condition) {
-    test_condition_valid(condition, false /* unknown */);
-  }
-
-  function test_condition_unknown(condition) {
-    test_condition_valid(condition, true /* unknown */);
-  }
-
-  test_condition_known('scroll-state(stuck)');
-  test_condition_known('scroll-state(stuck: none)');
-  test_condition_known('scroll-state(stuck: top)');
-  test_condition_known('scroll-state(stuck: left)');
-  test_condition_known('scroll-state(stuck: bottom)');
-  test_condition_known('scroll-state(stuck: right)');
-  test_condition_known('scroll-state(stuck: block-start)');
-  test_condition_known('scroll-state(stuck: block-end)');
-  test_condition_known('scroll-state(stuck: inline-start)');
-  test_condition_known('scroll-state(stuck: inline-end)');
-  test_condition_known('(scroll-state(stuck: top))');
-  test_condition_known('scroll-state((stuck: top))');
-  test_condition_known('scroll-state(not ((stuck: top) and (stuck: bottom)))');
-  test_condition_known('scroll-state((stuck: right) or (stuck: left))');
-
-  test_condition_unknown('scroll-state(stuck: auto)');
-  test_condition_unknown('scroll-state(stuck: true)');
-  test_condition_unknown('scroll-state(style(stuck: top))');
-  test_condition_unknown('style(scroll-state(stuck: top))');
-  test_condition_unknown('scroll-state(stuck:)');
-  test_condition_unknown('scroll-state(--foo)');
+  test_cq_condition_unknown('scroll-state(stuck: auto)');
+  test_cq_condition_unknown('scroll-state(stuck: true)');
+  test_cq_condition_unknown('scroll-state(style(stuck: top))');
+  test_cq_condition_unknown('style(scroll-state(stuck: top))');
+  test_cq_condition_unknown('scroll-state(stuck:)');
+  test_cq_condition_unknown('scroll-state(--foo)');
 </script>

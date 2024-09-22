@@ -28,7 +28,7 @@ const tileTests = [
       'inputs': {
         'tileInput': {
           'data': [1, 2, 3, 4],
-          'descriptor': {'dimensions': [4], 'dataType': 'float32'},
+          'descriptor': {shape: [4], dataType: 'float32'},
           'constant': true
         }
       },
@@ -40,7 +40,7 @@ const tileTests = [
       'expectedOutputs': {
         'tileOutput': {
           'data': [1, 2, 3, 4, 1, 2, 3, 4],
-          'descriptor': {'dimensions': [8], 'dataType': 'float32'}
+          'descriptor': {shape: [8], dataType: 'float32'}
         }
       }
     }
@@ -51,7 +51,7 @@ const tileTests = [
       'inputs': {
         'tileInput': {
           'data': [1, 2, 3, 4],
-          'descriptor': {'dimensions': [2, 2], 'dataType': 'uint32'},
+          'descriptor': {shape: [2, 2], dataType: 'uint32'},
           'constant': true
         }
       },
@@ -66,7 +66,7 @@ const tileTests = [
             1, 2, 1, 2, 1, 2, 3, 4, 3, 4, 3, 4,
             1, 2, 1, 2, 1, 2, 3, 4, 3, 4, 3, 4
           ],
-          'descriptor': {'dimensions': [4, 6], 'dataType': 'uint32'}
+          'descriptor': {shape: [4, 6], dataType: 'uint32'}
         }
       }
     }
@@ -77,7 +77,7 @@ const tileTests = [
       'inputs': {
         'tileInput': {
           'data': [1, 2, 3, 4],
-          'descriptor': {'dimensions': [1, 1, 2, 2], 'dataType': 'int32'},
+          'descriptor': {shape: [1, 1, 2, 2], dataType: 'int32'},
           'constant': true
         }
       },
@@ -89,7 +89,7 @@ const tileTests = [
       'expectedOutputs': {
         'tileOutput': {
           'data': [1, 2, 1, 2, 3, 4, 3, 4, 1, 2, 1, 2, 3, 4, 3, 4],
-          'descriptor': {'dimensions': [1, 1, 4, 4], 'dataType': 'int32'}
+          'descriptor': {shape: [1, 1, 4, 4], dataType: 'int32'}
         }
       }
     }

@@ -4,6 +4,7 @@
 <title>Test RTCPeerConnection.generateCertificate</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="./third_party/sdp/sdp.js"></script>
 <script>
   'use strict';
 
@@ -83,6 +84,16 @@
       })),
     'generateCertificate() with invalid algorithm dict should reject with NotSupportedError');
 
+  promise_test(t =>
+    promise_rejects_dom(t, 'NotSupportedError',
+      RTCPeerConnection.generateCertificate({
+        name: 'RSASSA-PKCS1-v1_5',
+        modulusLength: 2048,
+        publicExponent: new Uint8Array([1, 0, 1]),
+        hash: 'SHA-1'
+      })),
+    'generateCertificate with RSASSA-PKCS1-v1_5 parameters and SHA-1 signature should reject with NotSupportedError');
+
   /*
    *  4.10.1. Dictionary RTCCertificateExpiration
    *    dictionary RTCCertificateExpiration {
@@ -138,5 +149,21 @@
         expires: 'invalid'
       }))
   }, 'generateCertificate() with invalid type for expires should reject with TypeError');
+
+  promise_test(t => {
+    return RTCPeerConnection.generateCertificate({
+      name: 'ECDSA',
+      namedCurve: 'P-256',
+    }).then(async cert => {
+      const pc = new RTCPeerConnection({certificates: [cert]});
+      pc.createDataChannel('wpt');
+      const offer = await pc.createOffer();
+      const sections = SDPUtils.splitSections(offer.sdp);
+      const dtlsParameters = SDPUtils.getDtlsParameters(sections[1], sections[0]);
+      assert_equals(dtlsParameters.fingerprints[0].algorithm, cert.getFingerprints()[0].algorithm);
+      // https://www.rfc-editor.org/rfc/rfc4572#section-5 requires uppercase hex in the SDP.
+      assert_equals(dtlsParameters.fingerprints[0].value, cert.getFingerprints()[0].value.toUpperCase());
+    })
+  }, 'generateCertificate() certificate fingerprint shows up in the SDP');
 
 </script>

@@ -45,7 +45,7 @@ const layerNormTests = [
             -88.03730773925781,  -26.5667724609375,   70.81292724609375,
             9.105611801147461,   56.66746139526367,   21.78444480895996
           ],
-          'descriptor': {'dimensions': [4, 6], 'dataType': 'float32'}
+          'descriptor': {shape: [4, 6], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -65,7 +65,7 @@ const layerNormTests = [
             -1.795186161994934,   -0.6376377940177917, 1.1961140632629395,
             0.034106940031051636, 0.9297415614128113,  0.2728613615036011
           ],
-          'descriptor': {'dimensions': [4, 6], 'dataType': 'float32'}
+          'descriptor': {shape: [4, 6], dataType: 'float32'}
         }
       }
     }
@@ -85,7 +85,7 @@ const layerNormTests = [
             -88.03730773925781,  -26.5667724609375,   70.81292724609375,
             9.105611801147461,   56.66746139526367,   21.78444480895996
           ],
-          'descriptor': {'dimensions': [2, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 4], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -105,7 +105,7 @@ const layerNormTests = [
             -1.7796510457992554, -0.5852779150009155, 1.3068104982376099,
             0.10783683508634567, 1.0319640636444092,  0.35418668389320374
           ],
-          'descriptor': {'dimensions': [2, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 4], dataType: 'float32'}
         }
       }
     }
@@ -125,7 +125,7 @@ const layerNormTests = [
             -88.03730773925781,  -26.5667724609375,   70.81292724609375,
             9.105611801147461,   56.66746139526367,   21.78444480895996
           ],
-          'descriptor': {'dimensions': [2, 1, 4, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 1, 4, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -145,7 +145,7 @@ const layerNormTests = [
             -1.7796510457992554, -0.5852779150009155, 1.3068104982376099,
             0.10783683508634567, 1.0319640636444092,  0.35418668389320374
           ],
-          'descriptor': {'dimensions': [2, 1, 4, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 1, 4, 3], dataType: 'float32'}
         }
       }
     }
@@ -165,7 +165,7 @@ const layerNormTests = [
             -88.03730773925781,  -26.5667724609375,   70.81292724609375,
             9.105611801147461,   56.66746139526367,   21.78444480895996
           ],
-          'descriptor': {'dimensions': [2, 1, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 1, 2, 2, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -185,7 +185,7 @@ const layerNormTests = [
             -1.7796510457992554, -0.5852779150009155, 1.3068104982376099,
             0.10783683508634567, 1.0319640636444092,  0.35418668389320374
           ],
-          'descriptor': {'dimensions': [2, 1, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 1, 2, 2, 3], dataType: 'float32'}
         }
       }
     }
@@ -205,7 +205,7 @@ const layerNormTests = [
             -88.03730773925781,  -26.5667724609375,   70.81292724609375,
             9.105611801147461,   56.66746139526367,   21.78444480895996
           ],
-          'descriptor': {'dimensions': [2, 1, 4, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 1, 4, 3], dataType: 'float32'}
         },
         'layerNormScale': {
           'data': [
@@ -214,7 +214,7 @@ const layerNormTests = [
             7.1816911697387695, 1.5054303407669067, 3.120894193649292,
             0.5214731693267822, 2.6719748973846436, -3.571370840072632
           ],
-          'descriptor': {'dimensions': [1, 4, 3], 'dataType': 'float32'},
+          'descriptor': {shape: [1, 4, 3], dataType: 'float32'},
           'constant': true
         }
       },
@@ -237,7 +237,7 @@ const layerNormTests = [
             -12.780903816223145, -0.8810951709747314, 4.0784173011779785,
             0.05623401328921318, 2.7573819160461426,  -1.2649319171905518
           ],
-          'descriptor': {'dimensions': [2, 1, 4, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 1, 4, 3], dataType: 'float32'}
         }
       }
     }
@@ -257,7 +257,7 @@ const layerNormTests = [
             -88.03730773925781,  -26.5667724609375,   70.81292724609375,
             9.105611801147461,   56.66746139526367,   21.78444480895996
           ],
-          'descriptor': {'dimensions': [2, 1, 4, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 1, 4, 3], dataType: 'float32'}
         },
         'layerNormBias': {
           'data': [
@@ -266,7 +266,7 @@ const layerNormTests = [
             -4.080942153930664, -7.137991905212402, 8.465653419494629,
             2.762545108795166, 0.8230442404747009, -3.827561378479004
           ],
-          'descriptor': {'dimensions': [1, 4, 3], 'dataType': 'float32'},
+          'descriptor': {shape: [1, 4, 3], dataType: 'float32'},
           'constant': true
         }
       },
@@ -289,7 +289,7 @@ const layerNormTests = [
             -5.860593318939209,  -7.723269939422607,  9.77246379852295,
             2.8703818321228027,  1.8550082445144653,  -3.473374605178833
           ],
-          'descriptor': {'dimensions': [2, 1, 4, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 1, 4, 3], dataType: 'float32'}
         }
       }
     }
@@ -309,7 +309,7 @@ const layerNormTests = [
             -88.03730773925781,  -26.5667724609375,   70.81292724609375,
             9.105611801147461,   56.66746139526367,   21.78444480895996
           ],
-          'descriptor': {'dimensions': [2, 1, 4, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 1, 4, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -329,7 +329,7 @@ const layerNormTests = [
             -1.0618212223052979,  -0.5766634941101074, 1.7181260585784912,
             0.539446234703064,    1.2323321104049683,  -0.5902572274208069
           ],
-          'descriptor': {'dimensions': [2, 1, 4, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 1, 4, 3], dataType: 'float32'}
         }
       }
     }
@@ -349,7 +349,7 @@ const layerNormTests = [
             -88.03730773925781,  -26.5667724609375,   70.81292724609375,
             9.105611801147461,   56.66746139526367,   21.78444480895996
           ],
-          'descriptor': {'dimensions': [2, 1, 4, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 1, 4, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -370,7 +370,7 @@ const layerNormTests = [
             -1.7796509265899658, -0.5852779150009155, 1.3068104982376099,
             0.10783682763576508, 1.0319639444351196,  0.35418668389320374
           ],
-          'descriptor': {'dimensions': [2, 1, 4, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 1, 4, 3], dataType: 'float32'}
         }
       }
     }
@@ -391,7 +391,7 @@ const layerNormTests = [
             -88.03730773925781,  -26.5667724609375,   70.81292724609375,
             9.105611801147461,   56.66746139526367,   21.78444480895996
           ],
-          'descriptor': {'dimensions': [2, 1, 4, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 1, 4, 3], dataType: 'float32'}
         },
         'layerNormScale': {
           'data': [
@@ -399,7 +399,7 @@ const layerNormTests = [
             4.707905292510986, -4.705780029296875, -5.143046855926514,
             -1.1115549802780151, 5.250569820404053
           ],
-          'descriptor': {'dimensions': [2, 4], 'dataType': 'float32'},
+          'descriptor': {shape: [2, 4], dataType: 'float32'},
           'constant': true
         }
       },
@@ -423,7 +423,7 @@ const layerNormTests = [
             1.3962621688842773,  1.185346245765686,    -1.959165334701538,
             1.8479242324829102,  3.3530402183532715,   -3.986907958984375
           ],
-          'descriptor': {'dimensions': [2, 1, 4, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 1, 4, 3], dataType: 'float32'}
         }
       }
     }
@@ -444,7 +444,7 @@ const layerNormTests = [
             -88.03730773925781,  -26.5667724609375,   70.81292724609375,
             9.105611801147461,   56.66746139526367,   21.78444480895996
           ],
-          'descriptor': {'dimensions': [2, 1, 4, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 1, 4, 3], dataType: 'float32'}
         },
         'layerNormBias': {
           'data': [
@@ -453,7 +453,7 @@ const layerNormTests = [
             9.744950294494629, -0.3958968222141266, -8.497353553771973,
             6.172536849975586, -2.8930461406707764, 1.7220044136047363
           ],
-          'descriptor': {'dimensions': [3, 1, 4], 'dataType': 'float32'},
+          'descriptor': {shape: [3, 1, 4], dataType: 'float32'},
           'constant': true
         }
       },
@@ -477,7 +477,7 @@ const layerNormTests = [
             2.5836451053619385,  9.159672737121582,  -1.5862356424331665,
             8.967641830444336,   0.6360672116279602, 2.0761911869049072
           ],
-          'descriptor': {'dimensions': [2, 1, 4, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 1, 4, 3], dataType: 'float32'}
         }
       }
     }
@@ -497,14 +497,14 @@ const layerNormTests = [
             -88.03730773925781,  -26.5667724609375,   70.81292724609375,
             9.105611801147461,   56.66746139526367,   21.78444480895996
           ],
-          'descriptor': {'dimensions': [2, 1, 4, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 1, 4, 3], dataType: 'float32'}
         },
         'layerNormScale': {
           'data': [
             7.715926647186279, 1.7371079921722412, 9.13965129852295,
             5.758823394775391, -2.8198351860046387, -0.6866958141326904
           ],
-          'descriptor': {'dimensions': [2, 3, 1], 'dataType': 'float32'},
+          'descriptor': {shape: [2, 3, 1], dataType: 'float32'},
           'constant': true
         },
         'layerNormBias': {
@@ -512,7 +512,7 @@ const layerNormTests = [
             -8.710672378540039, -7.642981052398682, 4.937538146972656,
             -2.1876745223999023, -4.067612648010254, -6.836254596710205
           ],
-          'descriptor': {'dimensions': [2, 3, 1], 'dataType': 'float32'},
+          'descriptor': {shape: [2, 3, 1], dataType: 'float32'},
           'constant': true
         }
       },
@@ -542,7 +542,7 @@ const layerNormTests = [
             -11.648612976074219, -2.117840528488159,  -7.396423816680908,
             -4.869131088256836,  -5.8111701011657715, -6.714934349060059
           ],
-          'descriptor': {'dimensions': [2, 1, 4, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 1, 4, 3], dataType: 'float32'}
         }
       }
     }

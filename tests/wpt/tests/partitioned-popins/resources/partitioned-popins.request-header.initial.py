@@ -6,4 +6,5 @@ def main(request, response):
     message += b")-"
     headers = setNoCacheAndCORSHeaders(request, response)
     headers.append((b'Location', b"/partitioned-popins/resources/partitioned-popins.request-header.http.py?message=" + message))
+    headers.append((b'Popin-Policy', b"partitioned=*"))
     return 302, headers, b'{"redirect": true}'

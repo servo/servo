@@ -10,38 +10,38 @@
 const tests = [
   {
     name: '[cumulativeSum] Test with default options',
-    input: {dataType: 'float32', dimensions: [3, 2, 5]},
+    input: {dataType: 'float32', shape: [3, 2, 5]},
     axis: 0,
-    output: {dataType: 'float32', dimensions: [3, 2, 5]}
+    output: {dataType: 'float32', shape: [3, 2, 5]}
   },
   {
     name: '[cumulativeSum] Test with axis=1',
-    input: {dataType: 'float32', dimensions: [3, 2, 5]},
+    input: {dataType: 'float32', shape: [3, 2, 5]},
     axis: 1,
-    output: {dataType: 'float32', dimensions: [3, 2, 5]}
+    output: {dataType: 'float32', shape: [3, 2, 5]}
   },
   {
     name: '[cumulativeSum] Test with exclusive=true',
-    input: {dataType: 'float32', dimensions: [3, 2, 5]},
+    input: {dataType: 'float32', shape: [3, 2, 5]},
     axis: 1,
     options: {exclusive: true},
-    output: {dataType: 'float32', dimensions: [3, 2, 5]}
+    output: {dataType: 'float32', shape: [3, 2, 5]}
   },
   {
     name: '[cumulativeSum] Test with reversed=true',
-    input: {dataType: 'float32', dimensions: [3, 2, 5]},
+    input: {dataType: 'float32', shape: [3, 2, 5]},
     axis: 1,
     options: {reversed: true},
-    output: {dataType: 'float32', dimensions: [3, 2, 5]}
+    output: {dataType: 'float32', shape: [3, 2, 5]}
   },
   {
     name: '[cumulativeSum] Throw if input is a scalar',
-    input: {dataType: 'float32', dimensions: []},
+    input: {dataType: 'float32', shape: []},
     axis: 0
   },
   {
     name: '[cumulativeSum] Throw if axis is invalid',
-    input: {dataType: 'float32', dimensions: [1, 2, 3]},
+    input: {dataType: 'float32', shape: [1, 2, 3]},
     axis: 3
   },
 ]
@@ -63,7 +63,7 @@ tests.forEach(
       if (test.output) {
         const output = builder.cumulativeSum(input, test.axis, options);
         assert_equals(output.dataType(), test.output.dataType);
-        assert_array_equals(output.shape(), test.output.dimensions);
+        assert_array_equals(output.shape(), test.output.shape);
       } else {
         const label = 'cumulative_sum';
         options.label = label;
@@ -75,7 +75,7 @@ tests.forEach(
 
 multi_builder_test(async (t, builder, otherBuilder) => {
   const inputFromOtherBuilder =
-      otherBuilder.input('input', {dataType: 'float32', dimensions: [3, 2, 5]});
+      otherBuilder.input('input', {dataType: 'float32', shape: [3, 2, 5]});
   assert_throws_js(
       TypeError, () => builder.cumulativeSum(inputFromOtherBuilder, 0));
 }, '[cumulativeSum] throw if input is from another builder');

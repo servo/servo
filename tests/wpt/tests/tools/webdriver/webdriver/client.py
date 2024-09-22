@@ -740,6 +740,29 @@ class Session:
     def screenshot(self):
         return self.send_session_command("GET", "screenshot")
 
+    @command
+    def print(self,
+              background=None,
+              margin=None,
+              orientation=None,
+              page=None,
+              page_ranges=None,
+              scale=None,
+              shrink_to_fit=None):
+        body = {}
+        for prop, value in {
+            "background": background,
+            "margin": margin,
+            "orientation": orientation,
+            "page": page,
+            "pageRanges": page_ranges,
+            "scale": scale,
+            "shrinkToFit": shrink_to_fit,
+        }.items():
+            if value is not None:
+                body[prop] = value
+        return self.send_session_command("POST", "print", body)
+
 
 class ShadowRoot:
     identifier = "shadow-6066-11e4-a52e-4f735466cecf"
@@ -884,6 +907,7 @@ class WebElement:
     @command
     def property(self, name):
         return self.send_element_command("GET", "property/%s" % name)
+
 
 class WebFrame:
     identifier = "frame-075b-4da1-b6ba-e579c2d3230a"

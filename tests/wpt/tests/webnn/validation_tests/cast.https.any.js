@@ -9,7 +9,7 @@
 
 multi_builder_test(async (t, builder, otherBuilder) => {
   const inputFromOtherBuilder =
-      otherBuilder.input('input', {dataType: 'int32', dimensions: [2, 2]});
+      otherBuilder.input('input', {dataType: 'int32', shape: [2, 2]});
 
   assert_throws_js(
       TypeError, () => builder.cast(inputFromOtherBuilder, 'int64'));

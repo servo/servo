@@ -32,17 +32,17 @@ const quantizeLinearTests = [
       'inputs': {
         'quantizeLinearInput': {
           'data': [10.794857501983643],
-          'descriptor': {'dimensions': [], 'dataType': 'float32'},
+          'descriptor': {shape: [], dataType: 'float32'},
           'constant': true
         },
         'quantizeLinearScale': {
           'data': [1.1202747821807861],
-          'descriptor': {'dimensions': [], 'dataType': 'float32'},
+          'descriptor': {shape: [], dataType: 'float32'},
           'constant': true
         },
         'quantizeLinearZeroPoint': {
           'data': [1],
-          'descriptor': {'dimensions': [], 'dataType': 'int8'},
+          'descriptor': {shape: [], dataType: 'int8'},
           'constant': true
         }
       },
@@ -56,7 +56,7 @@ const quantizeLinearTests = [
       }],
       'expectedOutputs': {
         'quantizeLinearOutput':
-            {'data': [11], 'descriptor': {'dimensions': [], 'dataType': 'int8'}}
+            {'data': [11], 'descriptor': {shape: [], dataType: 'int8'}}
       }
     }
   },
@@ -69,7 +69,7 @@ const quantizeLinearTests = [
             -2.549168109893799, -4.794857501983643, 8.413617134094238,
             6.108623504638672
           ],
-          'descriptor': {'dimensions': [4], 'dataType': 'float32'},
+          'descriptor': {shape: [4], dataType: 'float32'},
           'constant': true
         },
         'quantizeLinearScale': {
@@ -79,12 +79,12 @@ const quantizeLinearTests = [
             -4.617084980010986,
             1.1202747821807861,
           ],
-          'descriptor': {'dimensions': [4], 'dataType': 'float32'},
+          'descriptor': {shape: [4], dataType: 'float32'},
           'constant': true
         },
         'quantizeLinearZeroPoint': {
           'data': [128],
-          'descriptor': {'dimensions': [], 'dataType': 'uint8'},
+          'descriptor': {shape: [], dataType: 'uint8'},
           'constant': true
         }
       },
@@ -99,7 +99,7 @@ const quantizeLinearTests = [
       'expectedOutputs': {
         'quantizeLinearOutput': {
           'data': [128, 111, 126, 133],
-          'descriptor': {'dimensions': [4], 'dataType': 'uint8'}
+          'descriptor': {shape: [4], dataType: 'uint8'}
         }
       }
     }
@@ -114,17 +114,17 @@ const quantizeLinearTests = [
             -2.549168109893799, -4.794857501983643, 8.413617134094238,
             6.108623504638672
           ],
-          'descriptor': {'dimensions': [1, 1, 2, 2], 'dataType': 'float32'},
+          'descriptor': {shape: [1, 1, 2, 2], dataType: 'float32'},
           'constant': true
         },
         'quantizeLinearScale': {
           'data': [0.2800687253475189, -4.617084980010986],
-          'descriptor': {'dimensions': [2, 1], 'dataType': 'float32'},
+          'descriptor': {shape: [2, 1], dataType: 'float32'},
           'constant': true
         },
         'quantizeLinearZeroPoint': {
           'data': [128],
-          'descriptor': {'dimensions': [], 'dataType': 'uint8'},
+          'descriptor': {shape: [], dataType: 'uint8'},
           'constant': true
         }
       },
@@ -139,7 +139,7 @@ const quantizeLinearTests = [
       'expectedOutputs': {
         'quantizeLinearOutput': {
           'data': [119, 111, 126, 127],
-          'descriptor': {'dimensions': [1, 1, 2, 2], 'dataType': 'uint8'}
+          'descriptor': {shape: [1, 1, 2, 2], dataType: 'uint8'}
         }
       }
     }

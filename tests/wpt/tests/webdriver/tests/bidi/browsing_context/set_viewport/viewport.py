@@ -197,8 +197,8 @@ async def test_persists_on_reload(bidi_session, inline, new_tab):
     ids=["horizontal", "vertical", "both"],
 )
 @pytest.mark.parametrize(
-    "doctype",
-    ["html", "html_quirks"],
+    "quirk_mode",
+    [False, True],
     ids=["standard", "quirks"],
 )
 async def test_with_scrollbars(
@@ -207,9 +207,11 @@ async def test_with_scrollbars(
     new_tab,
     use_horizontal_scrollbar,
     use_vertical_scrollbar,
-    doctype,
+    quirk_mode,
 ):
-    viewport_dimensions = await get_viewport_dimensions(bidi_session, new_tab)
+    doctype = "html_quirks" if quirk_mode else "html"
+    viewport_dimensions = await get_viewport_dimensions(bidi_session, new_tab,
+                                                        quirk_mode=quirk_mode)
 
     width = 100
     if use_horizontal_scrollbar:
@@ -228,16 +230,18 @@ async def test_with_scrollbars(
 
     test_viewport = {"width": 499, "height": 599}
 
-    assert await get_viewport_dimensions(bidi_session, new_tab) != test_viewport
+    assert await get_viewport_dimensions(bidi_session, new_tab,
+                                         quirk_mode=quirk_mode) != test_viewport
 
     await bidi_session.browsing_context.set_viewport(
         context=new_tab["context"], viewport=test_viewport
     )
 
-    assert await get_viewport_dimensions(bidi_session, new_tab) == test_viewport
+    assert await get_viewport_dimensions(bidi_session, new_tab,
+                                         quirk_mode=quirk_mode) == test_viewport
 
     viewport_without_scrollbar = await get_viewport_dimensions(
-        bidi_session, new_tab, with_scrollbar=False
+        bidi_session, new_tab, with_scrollbar=False, quirk_mode=quirk_mode
     )
 
     # The side which has scrollbar takes up space on the other side

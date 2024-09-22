@@ -7,12 +7,12 @@
     [SameObject] readonly attribute HID hid;
 };
 
-[Exposed=ServiceWorker, SecureContext]
+[Exposed=(DedicatedWorker,ServiceWorker), SecureContext]
 partial interface WorkerNavigator {
     [SameObject] readonly attribute HID hid;
 };
 
-[Exposed=(Window,ServiceWorker), SecureContext]
+[Exposed=(DedicatedWorker,ServiceWorker,Window), SecureContext]
 interface HID : EventTarget {
     attribute EventHandler onconnect;
     attribute EventHandler ondisconnect;
@@ -33,7 +33,7 @@ dictionary HIDDeviceFilter {
     unsigned short usage;
 };
 
-[Exposed=Window, SecureContext]
+[Exposed=(DedicatedWorker,ServiceWorker,Window), SecureContext]
 interface HIDDevice : EventTarget {
     attribute EventHandler oninputreport;
     readonly attribute boolean opened;
@@ -51,7 +51,7 @@ interface HIDDevice : EventTarget {
     Promise<DataView> receiveFeatureReport([EnforceRange] octet reportId);
 };
 
-[Exposed=Window, SecureContext]
+[Exposed=(DedicatedWorker,ServiceWorker,Window), SecureContext]
 interface HIDConnectionEvent : Event {
     constructor(DOMString type, HIDConnectionEventInit eventInitDict);
     [SameObject] readonly attribute HIDDevice device;
@@ -61,7 +61,7 @@ dictionary HIDConnectionEventInit : EventInit {
     required HIDDevice device;
 };
 
-[Exposed=Window, SecureContext]
+[Exposed=(DedicatedWorker,ServiceWorker,Window), SecureContext]
 interface HIDInputReportEvent : Event {
     constructor(DOMString type, HIDInputReportEventInit eventInitDict);
     [SameObject] readonly attribute HIDDevice device;

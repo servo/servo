@@ -26,7 +26,7 @@ const testParallelCompute = () => {
     }
     // Construct a simple graph: A = B * 2.
     const builder = new MLGraphBuilder(mlContext);
-    const operandType = {dataType: 'float32', dimensions: [1]};
+    const operandType = {dataType: 'float32', shape: [1]};
     const inputOperand = builder.input('input', operandType);
     const constOperand = builder.constant(operandType, Float32Array.from([2]));
     const outputOperand = builder.mul(inputOperand, constOperand);

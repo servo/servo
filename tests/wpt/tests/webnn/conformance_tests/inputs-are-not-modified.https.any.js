@@ -21,7 +21,7 @@ promise_setup(async () => {
 promise_test(async () => {
   const builder = new MLGraphBuilder(mlContext);
   const inputOperand =
-      builder.input('input', {dataType: 'float32', dimensions: [4]});
+      builder.input('input', {dataType: 'float32', shape: [4]});
   const hardSwishOperand = builder.hardSwish(inputOperand);
   // Add some other operator for the output tensor to bind to; otherwise there
   // is no reason to implement hardSwish "in-place".
@@ -30,11 +30,11 @@ promise_test(async () => {
   const [inputTensor, outputTensor, mlGraph] = await Promise.all([
     mlContext.createTensor({
       dataType: 'float32',
-      dimensions: [4],
+      shape: [4],
       usage: MLTensorUsage.WRITE | MLTensorUsage.READ
     }),
     mlContext.createTensor(
-        {dataType: 'float32', dimensions: [4], usage: MLTensorUsage.READ}),
+        {dataType: 'float32', shape: [4], usage: MLTensorUsage.READ}),
     builder.build({'output': outputOperand})
   ]);
 
@@ -54,9 +54,9 @@ promise_test(async () => {
 promise_test(async () => {
   const builder = new MLGraphBuilder(mlContext);
   const inputOperand =
-      builder.input('input', {dataType: 'float32', dimensions: [4]});
+      builder.input('input', {dataType: 'float32', shape: [4]});
   const constantOperand = builder.constant(
-      {dataType: 'float32', dimensions: [4]}, Float32Array.from([-2, 0, 3, 4]));
+      {dataType: 'float32', shape: [4]}, Float32Array.from([-2, 0, 3, 4]));
   const mulOperand = builder.mul(inputOperand, constantOperand);
   // Add some other operator for the output tensor to bind to; otherwise there
   // is no reason to implement mul "in-place".
@@ -65,11 +65,11 @@ promise_test(async () => {
   const [inputTensor, outputTensor, mlGraph] = await Promise.all([
     mlContext.createTensor({
       dataType: 'float32',
-      dimensions: [4],
+      shape: [4],
       usage: MLTensorUsage.WRITE | MLTensorUsage.READ
     }),
     mlContext.createTensor(
-        {dataType: 'float32', dimensions: [4], usage: MLTensorUsage.READ}),
+        {dataType: 'float32', shape: [4], usage: MLTensorUsage.READ}),
     builder.build({'output': outputOperand})
   ]);
 

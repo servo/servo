@@ -57,5 +57,21 @@ function eventHandlerTest(shadowedHandlers, notShadowedHandlers, element) {
         assert_equals(obj3['on' + handler], null, `${des3} should reflect`);
       }, `shadowed ${handler} removal (${des})`);
     });
+
+    shadowedHandlers.forEach(handler => {
+      // Cannot test the error and unhandledrejection events as the test harness listens for those.
+      if (des != "document.body" || handler == "error" || handler == "unhandledrejection") {
+        return;
+      }
+      test(t => {
+        t.add_cleanup(() => {
+          obj1.removeAttribute('on' + handler);
+          window[`on${handler}Happened`] = undefined;
+        });
+        obj1.setAttribute('on' + handler, `window.on${handler}Happened = true`);
+        obj3.dispatchEvent(new Event(handler));
+        assert_true(window[`on${handler}Happened`]);
+      }, `shadowed ${handler} on body fires when event dispatched on window`);
+    });
   }
 }

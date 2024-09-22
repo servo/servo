@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>Captured opacity is applied as group style</title>
+<meta name=fuzzy content="maxDifference=0-255; totalPixels=0-515">
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="match" href="nested-opacity-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="../nested/resources/compute-test.js"></script>
+<style>
+    body {
+        margin: 0;
+    }
+    div {
+        position: absolute;
+        width: 100px;
+        height: 100px;
+        background: green;
+    }
+
+    .parent {
+        opacity: 0.7;
+        view-transition-name: parent;
+        will-change: opacity;
+    }
+
+    .child {
+        top: 50px;
+        left: 50px;
+    }
+
+    ::view-transition-group(parent) {
+        opacity: 0.4;
+        animation-name: none;
+    }
+    ::view-transition-old(*),
+    ::view-transition-new(*) {
+        animation-play-state: paused;
+    }
+</style>
+<body>
+    <div class="parent">
+        <div class="child"></div>
+    </div>
+</body>

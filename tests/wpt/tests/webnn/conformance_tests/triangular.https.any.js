@@ -46,7 +46,7 @@ const triangularTests = [
             20.88446617126465,  71.37139892578125,   -84.96932220458984,
             -88.97057342529297, 77.58269500732422,   91.03327178955078
           ],
-          'descriptor': {'dimensions': [4, 6], 'dataType': 'float32'}
+          'descriptor': {shape: [4, 6], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -82,7 +82,7 @@ const triangularTests = [
             77.58269500732422,
             91.03327178955078
           ],
-          'descriptor': {'dimensions': [4, 6], 'dataType': 'float32'}
+          'descriptor': {shape: [4, 6], dataType: 'float32'}
         }
       }
     }
@@ -102,7 +102,7 @@ const triangularTests = [
             20.88446617126465,  71.37139892578125,   -84.96932220458984,
             -88.97057342529297, 77.58269500732422,   91.03327178955078
           ],
-          'descriptor': {'dimensions': [2, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 4], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -138,7 +138,7 @@ const triangularTests = [
             77.58269500732422,
             91.03327178955078
           ],
-          'descriptor': {'dimensions': [2, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 4], dataType: 'float32'}
         }
       }
     }
@@ -158,7 +158,7 @@ const triangularTests = [
             20.88446617126465,  71.37139892578125,   -84.96932220458984,
             -88.97057342529297, 77.58269500732422,   91.03327178955078
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -182,7 +182,7 @@ const triangularTests = [
             -84.96932220458984,  0,
             77.58269500732422,   91.03327178955078
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       }
     }
@@ -202,7 +202,7 @@ const triangularTests = [
             20.88446617126465,  71.37139892578125,   -84.96932220458984,
             -88.97057342529297, 77.58269500732422,   91.03327178955078
           ],
-          'descriptor': {'dimensions': [2, 1, 4, 1, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 1, 4, 1, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -222,7 +222,7 @@ const triangularTests = [
             20.88446617126465,  71.37139892578125,   -84.96932220458984,
             -88.97057342529297, 77.58269500732422,   91.03327178955078
           ],
-          'descriptor': {'dimensions': [2, 1, 4, 1, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 1, 4, 1, 3], dataType: 'float32'}
         }
       }
     }
@@ -242,7 +242,7 @@ const triangularTests = [
             20.88446617126465,  71.37139892578125,   -84.96932220458984,
             -88.97057342529297, 77.58269500732422,   91.03327178955078
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -267,7 +267,7 @@ const triangularTests = [
             -84.96932220458984,  0,
             77.58269500732422,   91.03327178955078
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       }
     }
@@ -287,7 +287,7 @@ const triangularTests = [
             20.88446617126465,  71.37139892578125,   -84.96932220458984,
             -88.97057342529297, 77.58269500732422,   91.03327178955078
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -324,7 +324,7 @@ const triangularTests = [
             77.58269500732422,
             0
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       }
     }
@@ -344,7 +344,7 @@ const triangularTests = [
             20.88446617126465,  71.37139892578125,   -84.96932220458984,
             -88.97057342529297, 77.58269500732422,   91.03327178955078
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -369,7 +369,7 @@ const triangularTests = [
             -84.96932220458984,  0,
             77.58269500732422,   91.03327178955078
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       }
     }
@@ -389,7 +389,7 @@ const triangularTests = [
             20.88446617126465,  71.37139892578125,   -84.96932220458984,
             -88.97057342529297, 77.58269500732422,   91.03327178955078
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -426,7 +426,7 @@ const triangularTests = [
             0,
             91.03327178955078
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       }
     }
@@ -446,7 +446,7 @@ const triangularTests = [
             20.88446617126465,  71.37139892578125,   -84.96932220458984,
             -88.97057342529297, 77.58269500732422,   91.03327178955078
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -467,7 +467,7 @@ const triangularTests = [
             20.88446617126465,  71.37139892578125,   -84.96932220458984,
             -88.97057342529297, 77.58269500732422,   91.03327178955078
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       }
     }
@@ -487,7 +487,7 @@ const triangularTests = [
             20.88446617126465,  71.37139892578125,   -84.96932220458984,
             -88.97057342529297, 77.58269500732422,   91.03327178955078
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -502,7 +502,7 @@ const triangularTests = [
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       }
     }
@@ -522,7 +522,7 @@ const triangularTests = [
             20.88446617126465,  71.37139892578125,   -84.96932220458984,
             -88.97057342529297, 77.58269500732422,   91.03327178955078
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -543,7 +543,7 @@ const triangularTests = [
             20.88446617126465,  71.37139892578125,   -84.96932220458984,
             -88.97057342529297, 77.58269500732422,   91.03327178955078
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       }
     }
@@ -564,7 +564,7 @@ const triangularTests = [
             20.88446617126465,  71.37139892578125,   -84.96932220458984,
             -88.97057342529297, 77.58269500732422,   91.03327178955078
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -603,7 +603,7 @@ const triangularTests = [
             0,
             91.03327178955078
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       }
     }
@@ -624,7 +624,7 @@ const triangularTests = [
             20.88446617126465,  71.37139892578125,   -84.96932220458984,
             -88.97057342529297, 77.58269500732422,   91.03327178955078
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -647,7 +647,7 @@ const triangularTests = [
             20.88446617126465,  71.37139892578125,   0,
             -88.97057342529297, 77.58269500732422,   91.03327178955078
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       }
     }
@@ -668,7 +668,7 @@ const triangularTests = [
             20.88446617126465,  71.37139892578125,   -84.96932220458984,
             -88.97057342529297, 77.58269500732422,   91.03327178955078
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -687,7 +687,7 @@ const triangularTests = [
             0, 0, 0, 67.48285675048828,  0, 0,
             0, 0, 0, -88.97057342529297, 0, 0
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       }
     }
@@ -708,7 +708,7 @@ const triangularTests = [
             20.88446617126465,  71.37139892578125,   -84.96932220458984,
             -88.97057342529297, 77.58269500732422,   91.03327178955078
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -731,7 +731,7 @@ const triangularTests = [
             20.88446617126465,  71.37139892578125,   -84.96932220458984,
             -88.97057342529297, 77.58269500732422,   91.03327178955078
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       }
     }
@@ -752,7 +752,7 @@ const triangularTests = [
             20.88446617126465,  71.37139892578125,   -84.96932220458984,
             -88.97057342529297, 77.58269500732422,   91.03327178955078
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -769,7 +769,7 @@ const triangularTests = [
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
           ],
-          'descriptor': {'dimensions': [2, 2, 2, 3], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float32'}
         }
       }
     }

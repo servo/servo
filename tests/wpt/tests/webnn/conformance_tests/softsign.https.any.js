@@ -14,14 +14,6 @@
 //
 // MLOperand softsign(MLOperand input);
 
-
-const getSoftsignPrecisionTolerance = (graphResources) => {
-  const toleranceValueDict = {float32: 3, float16: 3};
-  const expectedDataType =
-      getExpectedDataTypeOfSingleOutput(graphResources.expectedOutputs);
-  return {metricType: 'ULP', value: toleranceValueDict[expectedDataType]};
-};
-
 const softsignTests = [
   {
     'name': 'softsign positive float32 1D constant tensor',
@@ -38,7 +30,7 @@ const softsignTests = [
             7.816190242767334,  5.849185943603516, 8.780370712280273,
             5.120515823364258,  7.117222309112549, 4.599106788635254
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'},
+          'descriptor': {shape: [24], dataType: 'float32'},
           'constant': true
         }
       },
@@ -59,7 +51,7 @@ const softsignTests = [
             0.8865723013877869,  0.8539972305297852, 0.8977543711662292,
             0.8366150856018066,  0.8768051266670227, 0.8214001059532166
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'}
+          'descriptor': {shape: [24], dataType: 'float32'}
         }
       }
     }
@@ -70,7 +62,7 @@ const softsignTests = [
       'inputs': {
         'softsignInput': {
           'data': [1.5834133625030518],
-          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+          'descriptor': {shape: [], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -81,7 +73,7 @@ const softsignTests = [
       'expectedOutputs': {
         'softsignOutput': {
           'data': [0.6129152178764343],
-          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+          'descriptor': {shape: [], dataType: 'float32'}
         }
       }
     }
@@ -92,7 +84,7 @@ const softsignTests = [
       'inputs': {
         'softsignInput': {
           'data': [-2.597844123840332],
-          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+          'descriptor': {shape: [], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -103,7 +95,7 @@ const softsignTests = [
       'expectedOutputs': {
         'softsignOutput': {
           'data': [-0.7220557928085327],
-          'descriptor': {'dimensions': [], 'dataType': 'float32'}
+          'descriptor': {shape: [], dataType: 'float32'}
         }
       }
     }
@@ -123,7 +115,7 @@ const softsignTests = [
             7.816190242767334,  5.849185943603516, 8.780370712280273,
             5.120515823364258,  7.117222309112549, 4.599106788635254
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'}
+          'descriptor': {shape: [24], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -143,7 +135,7 @@ const softsignTests = [
             0.8865723013877869,  0.8539972305297852, 0.8977543711662292,
             0.8366150856018066,  0.8768051266670227, 0.8214001059532166
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'}
+          'descriptor': {shape: [24], dataType: 'float32'}
         }
       }
     }
@@ -163,7 +155,7 @@ const softsignTests = [
             -3.5247786045074463, -4.43991231918335,   -5.234262466430664,
             -1.5911732912063599, -9.106277465820312,  -8.523774147033691
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'}
+          'descriptor': {shape: [24], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -183,7 +175,7 @@ const softsignTests = [
             -0.7789947390556335, -0.8161734938621521, -0.8395960927009583,
             -0.6140744686126709, -0.9010515809059143, -0.894999623298645
           ],
-          'descriptor': {'dimensions': [24], 'dataType': 'float32'}
+          'descriptor': {shape: [24], dataType: 'float32'}
         }
       }
     }
@@ -203,7 +195,7 @@ const softsignTests = [
             3.0513505935668945,  7.426476955413818,   -8.454667091369629,
             7.135868072509766,   -4.986093997955322,  -7.859614849090576
           ],
-          'descriptor': {'dimensions': [4, 6], 'dataType': 'float32'}
+          'descriptor': {shape: [4, 6], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -223,7 +215,7 @@ const softsignTests = [
             0.7531687617301941,  0.88132643699646,     -0.8942321538925171,
             0.8770874738693237,  -0.8329461812973022,  -0.8871282935142517
           ],
-          'descriptor': {'dimensions': [4, 6], 'dataType': 'float32'}
+          'descriptor': {shape: [4, 6], dataType: 'float32'}
         }
       }
     }
@@ -243,7 +235,7 @@ const softsignTests = [
             3.0513505935668945,  7.426476955413818,   -8.454667091369629,
             7.135868072509766,   -4.986093997955322,  -7.859614849090576
           ],
-          'descriptor': {'dimensions': [2, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 4], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -263,7 +255,7 @@ const softsignTests = [
             0.7531687617301941,  0.88132643699646,     -0.8942321538925171,
             0.8770874738693237,  -0.8329461812973022,  -0.8871282935142517
           ],
-          'descriptor': {'dimensions': [2, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [2, 3, 4], dataType: 'float32'}
         }
       }
     }
@@ -283,7 +275,7 @@ const softsignTests = [
             3.0513505935668945,  7.426476955413818,   -8.454667091369629,
             7.135868072509766,   -4.986093997955322,  -7.859614849090576
           ],
-          'descriptor': {'dimensions': [1, 2, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 3, 4], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -303,7 +295,7 @@ const softsignTests = [
             0.7531687617301941,  0.88132643699646,     -0.8942321538925171,
             0.8770874738693237,  -0.8329461812973022,  -0.8871282935142517
           ],
-          'descriptor': {'dimensions': [1, 2, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 3, 4], dataType: 'float32'}
         }
       }
     }
@@ -323,7 +315,7 @@ const softsignTests = [
             3.0513505935668945,  7.426476955413818,   -8.454667091369629,
             7.135868072509766,   -4.986093997955322,  -7.859614849090576
           ],
-          'descriptor': {'dimensions': [1, 2, 1, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 1, 3, 4], dataType: 'float32'}
         }
       },
       'operators': [{
@@ -343,7 +335,7 @@ const softsignTests = [
             0.7531687617301941,  0.88132643699646,     -0.8942321538925171,
             0.8770874738693237,  -0.8329461812973022,  -0.8871282935142517
           ],
-          'descriptor': {'dimensions': [1, 2, 1, 3, 4], 'dataType': 'float32'}
+          'descriptor': {shape: [1, 2, 1, 3, 4], dataType: 'float32'}
         }
       }
     }
@@ -352,8 +344,7 @@ const softsignTests = [
 
 if (navigator.ml) {
   softsignTests.forEach((test) => {
-    webnn_conformance_test(
-        buildGraphAndCompute, getSoftsignPrecisionTolerance, test);
+    webnn_conformance_test(buildGraphAndCompute, getPrecisionTolerance, test);
   });
 } else {
   test(() => assert_implements(navigator.ml, 'missing navigator.ml'));
