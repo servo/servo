@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::Cell;
-
 use arrayvec::ArrayVec;
 use dom_struct::dom_struct;
 use euclid::default::Size2D;
@@ -98,7 +96,7 @@ pub struct GPUCanvasContext {
     // TODO: can we have wgpu surface that is hw accelerated inside wr ...
     #[ignore_malloc_size_of = "Defined in webrender"]
     #[no_trace]
-    webrender_image: Cell<Option<webrender_api::ImageKey>>,
+    webrender_image: ImageKey,
     #[no_trace]
     context_id: WebGPUContextId,
     /// <https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-currenttexture-slot>
@@ -111,12 +109,12 @@ impl GPUCanvasContext {
         if let Err(e) = channel.0.send(WebGPURequest::CreateContext(sender)) {
             warn!("Failed to send CreateContext ({:?})", e);
         }
-        let external_id = receiver.recv().unwrap();
+        let (external_id, webrender_image) = receiver.recv().unwrap();
         Self {
             reflector_: Reflector::new(),
             channel,
             canvas,
-            webrender_image: Cell::new(None),
+            webrender_image,
             context_id: WebGPUContextId(external_id.0),
             texture: MutNullableDom::default(),
         }
@@ -135,12 +133,7 @@ impl GPUCanvasContext {
 
 impl GPUCanvasContext {
     fn layout_handle(&self) -> HTMLCanvasDataSource {
-        let image_key = if self.webrender_image.get().is_some() {
-            self.webrender_image.get().unwrap()
-        } else {
-            ImageKey::DUMMY
-        };
-        HTMLCanvasDataSource::WebGPU(image_key)
+        HTMLCanvasDataSource::WebGPU(self.webrender_image)
     }
 
     pub fn send_swap_chain_present(&self) {
@@ -251,8 +244,6 @@ impl GPUCanvasContextMethods for GPUCanvasContext {
         };
 
         // Step 8
-        let (sender, receiver) = ipc::channel().unwrap();
-
         let mut buffer_ids = ArrayVec::<id::BufferId, PRESENTATION_BUFFER_COUNT>::new();
         for _ in 0..PRESENTATION_BUFFER_COUNT {
             buffer_ids.push(self.global().wgpu_id_hub().create_buffer_id());
@@ -265,7 +256,7 @@ impl GPUCanvasContextMethods for GPUCanvasContext {
                 queue_id: configuration.device.GetQueue().id().0,
                 buffer_ids,
                 context_id: self.context_id,
-                sender,
+                image_key: self.webrender_image,
                 format,
                 size: units::DeviceIntSize::new(size.width as i32, size.height as i32),
             })
@@ -275,24 +266,23 @@ impl GPUCanvasContextMethods for GPUCanvasContext {
             &configuration.device.CreateTexture(&text_desc).unwrap(),
         ));
 
-        self.webrender_image.set(Some(receiver.recv().unwrap()));
         Ok(())
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-unconfigure>
     fn Unconfigure(&self) {
-        if let Some(image_key) = self.webrender_image.take() {
+        if let Some(texture) = self.texture.take() {
             if let Err(e) = self.channel.0.send(WebGPURequest::DestroySwapChain {
                 context_id: self.context_id,
-                image_key,
+                image_key: self.webrender_image,
             }) {
                 warn!(
                     "Failed to send DestroySwapChain-ImageKey({:?}) ({})",
-                    image_key, e
+                    self.webrender_image, e
                 );
             }
+            drop(texture);
         }
-        self.texture.take();
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-getcurrenttexture>

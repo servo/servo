@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use std::ops::ControlFlow;
 use std::ptr::NonNull;
 use std::slice;
-use std::sync::{Arc, Mutex, MutexGuard};
+use std::sync::{Arc, Mutex};
 
 use arrayvec::ArrayVec;
 use euclid::default::Size2D;
@@ -234,7 +234,6 @@ impl crate::WGPU {
         format: ImageFormat,
         size: DeviceIntSize,
         image_key: ImageKey,
-        mut wr: MutexGuard<RenderApi>,
     ) {
         let image_desc = ImageDescriptor {
             format,
@@ -265,7 +264,10 @@ impl crate::WGPU {
 
         let mut txn = Transaction::new();
         txn.add_image(image_key, image_desc, image_data, None);
-        wr.send_transaction(self.webrender_document, txn);
+        self.webrender_api
+            .lock()
+            .unwrap()
+            .send_transaction(self.webrender_document, txn);
     }
 
     /// Copies data async from provided texture using encoder_id to available staging presentation buffer
