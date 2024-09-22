@@ -15,6 +15,7 @@ use num_derive::FromPrimitive;
 use serde::{Deserialize, Serialize};
 use servo_url::ServoUrl;
 use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize};
+#[cfg(feature = "webxr")]
 pub use webxr_api::MainThreadWaker as EventLoopWaker;
 
 /// A cursor for the window. This is different from a CSS cursor (see
@@ -62,6 +63,7 @@ pub enum Cursor {
 /// Sends messages to the embedder.
 pub struct EmbedderProxy {
     pub sender: Sender<(Option<TopLevelBrowsingContextId>, EmbedderMsg)>,
+    #[cfg(feature = "webxr")]
     pub event_loop_waker: Box<dyn EventLoopWaker>,
 }
 
@@ -71,6 +73,7 @@ impl EmbedderProxy {
         if let Err(err) = self.sender.send(msg) {
             warn!("Failed to send response ({:?}).", err);
         }
+        #[cfg(feature = "webxr")]
         self.event_loop_waker.wake();
     }
 }
@@ -79,6 +82,7 @@ impl Clone for EmbedderProxy {
     fn clone(&self) -> EmbedderProxy {
         EmbedderProxy {
             sender: self.sender.clone(),
+            #[cfg(feature = "webxr")]
             event_loop_waker: self.event_loop_waker.clone(),
         }
     }
