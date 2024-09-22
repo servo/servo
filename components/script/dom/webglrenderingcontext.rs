@@ -665,7 +665,7 @@ impl WebGLRenderingContext {
                     HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(ref canvas) => {
                         document_from_node(&**canvas)
                     },
-                    HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(ref canvas) => {
+                    HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(ref _canvas) => {
                         // TODO: Support retrieving image pixels here for OffscreenCanvas
                         return Ok(None);
                     },
