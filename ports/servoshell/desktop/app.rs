@@ -444,10 +444,10 @@ impl App {
                 },
             },
 
-            winit::event::Event::LoopExiting
-            | winit::event::Event::AboutToWait
-            | winit::event::Event::MemoryWarning
-            | winit::event::Event::NewEvents(..) => {},
+            winit::event::Event::LoopExiting |
+            winit::event::Event::AboutToWait |
+            winit::event::Event::MemoryWarning |
+            winit::event::Event::NewEvents(..) => {},
         }
     }
 
