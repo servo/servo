@@ -6301,7 +6301,7 @@ dependencies = [
  "gilrs",
  "gl_generator",
  "gleam",
- "glow 0.13.1",
+ "glow 0.14.1",
  "headers",
  "hilog",
  "hitrace",
