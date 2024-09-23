@@ -195,6 +195,7 @@ pub struct InitialPipelineState {
     /// A channel to the WebGL thread.
     pub webgl_chan: Option<WebGLPipeline>,
 
+    #[cfg(feature = "webxr")]
     /// The XR device registry
     pub webxr_registry: webxr_api::Registry,
 
@@ -297,6 +298,7 @@ impl Pipeline {
                     webrender_image_api_sender: state.webrender_image_api_sender,
                     webrender_document: state.webrender_document,
                     webgl_chan: state.webgl_chan,
+                    #[cfg(feature = "webxr")]
                     webxr_registry: state.webxr_registry,
                     player_context: state.player_context,
                     user_agent: state.user_agent,
@@ -502,6 +504,7 @@ pub struct UnprivilegedPipelineContent {
     webrender_image_api_sender: webrender_traits::WebRenderNetApi,
     webrender_document: DocumentId,
     webgl_chan: Option<WebGLPipeline>,
+    #[cfg(feature = "webxr")]
     webxr_registry: webxr_api::Registry,
     player_context: WindowGLContext,
     user_agent: Cow<'static, str>,
@@ -543,6 +546,7 @@ impl UnprivilegedPipelineContent {
                 pipeline_namespace_id: self.pipeline_namespace_id,
                 content_process_shutdown_chan,
                 webgl_chan: self.webgl_chan,
+                #[cfg(feature = "webxr")]
                 webxr_registry: self.webxr_registry,
                 webrender_document: self.webrender_document,
                 webrender_api_sender: self.webrender_api_sender.clone(),

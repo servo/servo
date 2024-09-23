@@ -14,6 +14,7 @@ path = "lib.rs"
 [features]
 default = []
 multiview = []
+webxr = ["dep:webxr-api"]
 
 [dependencies]
 background_hang_monitor_api = { workspace = true }
@@ -50,7 +51,7 @@ webrender = { workspace = true }
 webrender_api = { workspace = true }
 webrender_traits = { workspace = true }
 tracing = { workspace = true }
-webxr-api = { git = "https://github.com/servo/webxr", features = ["ipc"] }
+webxr-api = { git = "https://github.com/servo/webxr", features = ["ipc"], optional = true }
 
 [target.'cfg(any(target_os="macos", all(not(target_os = "windows"), not(target_os = "ios"), not(target_os="android"), not(target_arch="arm"), not(target_arch="aarch64"))))'.dependencies]
 gaol = "0.2.1"

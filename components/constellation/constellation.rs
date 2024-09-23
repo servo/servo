@@ -464,6 +464,7 @@ pub struct Constellation<STF, SWF> {
     /// Entry point to create and get channels to a WebGLThread.
     webgl_threads: Option<WebGLThreads>,
 
+    #[cfg(feature = "webxr")]
     /// The XR device registry
     webxr_registry: webxr_api::Registry,
 
@@ -542,6 +543,7 @@ pub struct InitialConstellationState {
     /// Entry point to create and get channels to a WebGLThread.
     pub webgl_threads: Option<WebGLThreads>,
 
+    #[cfg(feature = "webxr")]
     /// The XR device registry
     pub webxr_registry: webxr_api::Registry,
 
@@ -801,6 +803,7 @@ where
                         (rng, prob)
                     }),
                     webgl_threads: state.webgl_threads,
+                    #[cfg(feature = "webxr")]
                     webxr_registry: state.webxr_registry,
                     canvas_sender: canvas_create_sender,
                     canvas_ipc_sender,
@@ -1060,6 +1063,7 @@ where
                 .webgl_threads
                 .as_ref()
                 .map(|threads| threads.pipeline()),
+            #[cfg(feature = "webxr")]
             webxr_registry: self.webxr_registry.clone(),
             player_context: self.player_context.clone(),
             user_agent: self.user_agent.clone(),
