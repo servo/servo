@@ -38,6 +38,8 @@ webxr = [
     "compositing_traits/webxr",
     "embedder_traits/webxr",
     "servo_config/webxr",
+    "constellation/webxr",
+    "canvas/webxr",
 ]
 
 [dependencies]
