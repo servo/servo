@@ -179,6 +179,7 @@ impl App {
                     None
                 };
 
+                #[cfg(feature = "webxr")]
                 let glwindow_discovery =
                     if pref!(dom.webxr.glwindow.enabled) && !opts::get().headless {
                         let window = window.clone();
@@ -204,6 +205,7 @@ impl App {
                         None
                     };
 
+                #[cfg(feature = "webxr")]
                 let xr_discovery = openxr_discovery.or(glwindow_discovery);
 
                 let window = window.clone();
