@@ -219,6 +219,7 @@ pub trait EmbedderMethods {
     /// Returns a thread-safe object to wake up the window's event loop.
     fn create_event_loop_waker(&mut self) -> Box<dyn EventLoopWaker>;
 
+    #[cfg(feature = "webxr")]
     /// Register services with a WebXR Registry.
     fn register_webxr(&mut self, _: &mut webxr::MainThreadRegistry, _: EmbedderProxy) {}
 
