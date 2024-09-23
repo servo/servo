@@ -15,7 +15,7 @@ use ipc_channel::ipc::{IpcReceiver, IpcSender, IpcSharedMemory};
 use log::{info, warn};
 use servo_config::pref;
 use webrender::{RenderApi, RenderApiSender};
-use webrender_api::DocumentId;
+use webrender_api::{DocumentId, ImageFormat};
 use webrender_traits::{WebrenderExternalImageRegistry, WebrenderImageHandlerType};
 use wgc::command::{ComputePass, ComputePassDescriptor, RenderPass};
 use wgc::device::queue::SubmittedWorkDoneClosure;
@@ -524,6 +524,46 @@ impl WGPU {
                     } => self.create_swapchain(
                         device_id, queue_id, buffer_ids, context_id, format, size, image_key,
                     ),
+                    WebGPURequest::ValidateTextureDescriptorAndCreateSwapChain {
+                        device_id,
+                        queue_id,
+                        buffer_ids,
+                        context_id,
+                        image_key,
+                        size,
+                        texture_id,
+                        descriptor,
+                    } => {
+                        // validating TextureDescriptor
+                        let global = &self.global;
+                        let (_, error) =
+                            global.device_create_texture(device_id, &descriptor, Some(texture_id));
+                        global.texture_drop(texture_id);
+                        if let Err(e) = self.script_sender.send(WebGPUMsg::FreeTexture(texture_id))
+                        {
+                            warn!("Unable to send FreeTexture({:?}) ({:?})", texture_id, e);
+                        };
+                        if let Some(error) = error {
+                            self.dispatch_error(device_id, Error::from_error(error));
+                            continue;
+                        }
+                        // Supported context formats
+                        let format = match descriptor.format {
+                            wgt::TextureFormat::Bgra8Unorm => ImageFormat::BGRA8,
+                            wgt::TextureFormat::Rgba8Unorm => ImageFormat::RGBA8,
+                            // TODO: wgt::TextureFormat::Rgba16Float, when wr supports HDR
+                            _ => {
+                                self.dispatch_error(
+                                    device_id,
+                                    Error::Validation("Unsupported context format".to_string()),
+                                );
+                                continue;
+                            },
+                        };
+                        self.create_swapchain(
+                            device_id, queue_id, buffer_ids, context_id, format, size, image_key,
+                        )
+                    },
                     WebGPURequest::CreateTexture {
                         device_id,
                         texture_id,

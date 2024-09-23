@@ -138,6 +138,16 @@ pub enum WebGPURequest {
         format: ImageFormat,
         size: DeviceIntSize,
     },
+    ValidateTextureDescriptorAndCreateSwapChain {
+        device_id: id::DeviceId,
+        queue_id: id::QueueId,
+        buffer_ids: ArrayVec<id::BufferId, PRESENTATION_BUFFER_COUNT>,
+        context_id: WebGPUContextId,
+        image_key: ImageKey,
+        size: DeviceIntSize,
+        texture_id: id::TextureId,
+        descriptor: TextureDescriptor<'static>,
+    },
     CreateTexture {
         device_id: id::DeviceId,
         texture_id: id::TextureId,

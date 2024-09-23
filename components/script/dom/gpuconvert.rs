@@ -8,10 +8,11 @@ use std::num::NonZeroU64;
 use webgpu::wgc::binding_model::{BindGroupEntry, BindingResource, BufferBinding};
 use webgpu::wgc::command as wgpu_com;
 use webgpu::wgc::pipeline::ProgrammableStageDescriptor;
+use webgpu::wgc::resource::TextureDescriptor;
 use webgpu::wgt::{self, AstcBlock, AstcChannel};
 
 use super::bindings::codegen::Bindings::WebGPUBinding::{
-    GPUProgrammableStage, GPUTextureDimension,
+    GPUProgrammableStage, GPUTextureDescriptor, GPUTextureDimension,
 };
 use super::bindings::error::Error;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
@@ -506,6 +507,7 @@ impl<'a> From<&GPUObjectDescriptorBase> for Option<Cow<'a, str>> {
         }
     }
 }
+
 pub fn convert_bind_group_layout_entry(
     bgle: &GPUBindGroupLayoutEntry,
     device: &GPUDevice,
@@ -579,6 +581,28 @@ pub fn convert_bind_group_layout_entry(
         ty,
         count: None,
     }))
+}
+
+pub fn convert_texture_descriptor(
+    descriptor: &GPUTextureDescriptor,
+    device: &GPUDevice,
+) -> Fallible<(TextureDescriptor<'static>, wgt::Extent3d)> {
+    let size = (&descriptor.size).try_into()?;
+    let desc = TextureDescriptor {
+        label: (&descriptor.parent).into(),
+        size,
+        mip_level_count: descriptor.mipLevelCount,
+        sample_count: descriptor.sampleCount,
+        dimension: descriptor.dimension.into(),
+        format: device.validate_texture_format_required_features(&descriptor.format)?,
+        usage: wgt::TextureUsages::from_bits_retain(descriptor.usage),
+        view_formats: descriptor
+            .viewFormats
+            .iter()
+            .map(|tf| device.validate_texture_format_required_features(tf))
+            .collect::<Fallible<_>>()?,
+    };
+    Ok((desc, size))
 }
 
 impl TryFrom<&GPUColor> for wgt::Color {

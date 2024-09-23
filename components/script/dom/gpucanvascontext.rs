@@ -12,20 +12,20 @@ use script_layout_interface::HTMLCanvasDataSource;
 use webgpu::swapchain::WebGPUContextId;
 use webgpu::wgc::id;
 use webgpu::{WebGPU, WebGPURequest, WebGPUTexture, PRESENTATION_BUFFER_COUNT};
-use webrender_api::{ImageFormat, ImageKey};
+use webrender_api::ImageKey;
 
 use super::bindings::codegen::Bindings::WebGPUBinding::GPUTextureUsageConstants;
 use super::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanvas;
 use super::bindings::error::{Error, Fallible};
 use super::bindings::root::MutNullableDom;
 use super::bindings::str::USVString;
+use super::gpuconvert::convert_texture_descriptor;
 use super::gputexture::GPUTexture;
 use crate::dom::bindings::codegen::Bindings::HTMLCanvasElementBinding::HTMLCanvasElement_Binding::HTMLCanvasElementMethods;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUTexture_Binding::GPUTextureMethods;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUCanvasConfiguration, GPUCanvasContextMethods, GPUDeviceMethods, GPUExtent3D,
     GPUExtent3DDict, GPUObjectDescriptorBase, GPUTextureDescriptor, GPUTextureDimension,
-    GPUTextureFormat,
 };
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
@@ -285,38 +285,11 @@ impl GPUCanvasContextMethods for GPUCanvasContext {
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-configure>
     fn Configure(&self, configuration: &GPUCanvasConfiguration) -> Fallible<()> {
-        // Step 1 is let
-        // Step 2
-        configuration
-            .device
-            .validate_texture_format_required_features(&configuration.format)?;
-        // Mapping between wr and wgpu can be determined by inspecting
-        // https://github.com/gfx-rs/wgpu/blob/9b36a3e129da04b018257564d5129caff240cb75/wgpu-hal/src/gles/conv.rs#L10
-        // https://github.com/servo/webrender/blob/1e73f384a7a86e413f91e9e430436a9bd83381cd/webrender/src/device/gl.rs#L4064
-        let format = match configuration.format {
-            GPUTextureFormat::R8unorm => ImageFormat::R8,
-            GPUTextureFormat::Bgra8unorm | GPUTextureFormat::Bgra8unorm_srgb => ImageFormat::BGRA8,
-            GPUTextureFormat::Rgba8unorm | GPUTextureFormat::Rgba8unorm_srgb => ImageFormat::RGBA8,
-            GPUTextureFormat::Rgba32float => ImageFormat::RGBAF32,
-            GPUTextureFormat::Rgba32sint => ImageFormat::RGBAI32,
-            GPUTextureFormat::Rg8unorm => ImageFormat::RG8,
-            _ => {
-                return Err(Error::Type(format!(
-                    "SwapChain format({:?}) not supported",
-                    configuration.format
-                )))
-            },
-        };
-
-        // Step 3
-        for view_format in &configuration.viewFormats {
-            configuration
-                .device
-                .validate_texture_format_required_features(view_format)?;
-        }
-
         // Step 4
         let descriptor = self.texture_descriptor_for_canvas(configuration);
+
+        // Step 2&3
+        let (desc, _) = convert_texture_descriptor(&descriptor, &configuration.device)?;
 
         // Step 5
         self.configuration.replace(Some(configuration.clone()));
@@ -328,24 +301,23 @@ impl GPUCanvasContextMethods for GPUCanvasContext {
         self.replace_drawing_buffer();
 
         // Step 8
-        // TODO: create dummy texture to trigger desc validation
-
-        // Eagerly create swapchain
         let mut buffer_ids = ArrayVec::<id::BufferId, PRESENTATION_BUFFER_COUNT>::new();
         for _ in 0..PRESENTATION_BUFFER_COUNT {
             buffer_ids.push(self.global().wgpu_id_hub().create_buffer_id());
         }
+        let texture_id = self.global().wgpu_id_hub().create_texture_id();
 
         self.channel
             .0
-            .send(WebGPURequest::CreateSwapChain {
+            .send(WebGPURequest::ValidateTextureDescriptorAndCreateSwapChain {
                 device_id: configuration.device.id().0,
                 queue_id: configuration.device.GetQueue().id().0,
                 buffer_ids,
                 context_id: self.context_id,
                 image_key: self.webrender_image,
-                format,
                 size: self.size().cast().cast_unit(),
+                texture_id,
+                descriptor: desc,
             })
             .expect("Failed to create WebGPU SwapChain");
 
