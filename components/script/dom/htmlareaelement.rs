@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
 use std::default::Default;
 use std::{f32, str};
 
@@ -14,19 +15,20 @@ use servo_atoms::Atom;
 use style::attr::AttrValue;
 
 use crate::dom::activation::Activatable;
+use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::HTMLAreaElementBinding::HTMLAreaElementMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::domtokenlist::DOMTokenList;
-use crate::dom::element::Element;
+use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
-use crate::dom::htmlanchorelement::follow_hyperlink;
 use crate::dom::htmlelement::HTMLElement;
-use crate::dom::node::Node;
+use crate::dom::node::{BindContext, Node};
 use crate::dom::virtualmethods::VirtualMethods;
+use crate::links::{follow_hyperlink, LinkRelations};
 
 #[derive(Debug, PartialEq)]
 pub enum Area {
@@ -75,7 +77,7 @@ impl Area {
             index += 1;
         }
 
-        //This vector will hold all parsed coordinates
+        // This vector will hold all parsed coordinates
         let mut number_list = Vec::new();
         let mut array = Vec::new();
 
@@ -237,6 +239,9 @@ impl Area {
 pub struct HTMLAreaElement {
     htmlelement: HTMLElement,
     rel_list: MutNullableDom<DOMTokenList>,
+
+    #[no_trace]
+    relations: Cell<LinkRelations>,
 }
 
 impl HTMLAreaElement {
@@ -248,6 +253,7 @@ impl HTMLAreaElement {
         HTMLAreaElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             rel_list: Default::default(),
+            relations: Cell::new(LinkRelations::empty()),
         }
     }
 
@@ -300,6 +306,27 @@ impl VirtualMethods for HTMLAreaElement {
                 .parse_plain_attribute(name, value),
         }
     }
+
+    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
+        self.super_type().unwrap().attribute_mutated(attr, mutation);
+
+        match *attr.local_name() {
+            local_name!("rel") | local_name!("rev") => {
+                self.relations
+                    .set(LinkRelations::for_element(self.upcast()));
+            },
+            _ => {},
+        }
+    }
+
+    fn bind_to_tree(&self, context: &BindContext) {
+        if let Some(s) = self.super_type() {
+            s.bind_to_tree(context);
+        }
+
+        self.relations
+            .set(LinkRelations::for_element(self.upcast()));
+    }
 }
 
 impl HTMLAreaElementMethods for HTMLAreaElement {
@@ -345,6 +372,6 @@ impl Activatable for HTMLAreaElement {
     }
 
     fn activation_behavior(&self, _event: &Event, _target: &EventTarget) {
-        follow_hyperlink(self.as_element(), None);
+        follow_hyperlink(self.as_element(), self.relations.get(), None);
     }
 }

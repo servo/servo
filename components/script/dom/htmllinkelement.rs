@@ -55,7 +55,7 @@ use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::dom::stylesheet::StyleSheet as DOMStyleSheet;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::fetch::create_a_potential_cors_request;
-use crate::link_relations::LinkRelations;
+use crate::links::LinkRelations;
 use crate::network_listener::{submit_timing, NetworkListener, PreInvoke, ResourceTimingListener};
 use crate::stylesheet_loader::{StylesheetContextSource, StylesheetLoader, StylesheetOwner};
 

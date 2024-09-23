@@ -24,6 +24,7 @@ use style_dom::ElementState;
 
 use super::bindings::trace::{HashMapTracedValues, NoTrace};
 use crate::body::Extractable;
+use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::AttrBinding::Attr_Binding::AttrMethods;
 use crate::dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
@@ -56,7 +57,6 @@ use crate::dom::file::File;
 use crate::dom::formdata::FormData;
 use crate::dom::formdataevent::FormDataEvent;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::htmlanchorelement::{get_element_noopener, get_element_target};
 use crate::dom::htmlbuttonelement::HTMLButtonElement;
 use crate::dom::htmlcollection::CollectionFilter;
 use crate::dom::htmldatalistelement::HTMLDataListElement;
@@ -72,7 +72,7 @@ use crate::dom::htmloutputelement::HTMLOutputElement;
 use crate::dom::htmlselectelement::HTMLSelectElement;
 use crate::dom::htmltextareaelement::HTMLTextAreaElement;
 use crate::dom::node::{
-    document_from_node, window_from_node, Node, NodeFlags, UnbindContext,
+    document_from_node, window_from_node, BindContext, Node, NodeFlags, UnbindContext,
     VecPreOrderInsertionHelper,
 };
 use crate::dom::nodelist::{NodeList, RadioListMode};
@@ -80,6 +80,7 @@ use crate::dom::radionodelist::RadioNodeList;
 use crate::dom::submitevent::SubmitEvent;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
+use crate::links::{get_element_target, LinkRelations};
 use crate::script_thread::ScriptThread;
 use crate::task_source::TaskSource;
 
@@ -98,6 +99,9 @@ pub struct HTMLFormElement {
     past_names_map: DomRefCell<HashMapTracedValues<Atom, (Dom<Element>, NoTrace<Instant>)>>,
     firing_submission_events: Cell<bool>,
     rel_list: MutNullableDom<DOMTokenList>,
+
+    #[no_trace]
+    relations: Cell<LinkRelations>,
 }
 
 impl HTMLFormElement {
@@ -121,6 +125,7 @@ impl HTMLFormElement {
             past_names_map: DomRefCell::new(HashMapTracedValues::new()),
             firing_submission_events: Cell::new(false),
             rel_list: Default::default(),
+            relations: Cell::new(LinkRelations::empty()),
         }
     }
 
@@ -798,8 +803,10 @@ impl HTMLFormElement {
             };
 
         // Step 18
-        let noopener =
-            get_element_noopener(self.upcast::<Element>(), target_attribute_value.clone());
+        let noopener = self
+            .relations
+            .get()
+            .get_element_noopener(target_attribute_value.as_ref());
 
         // Step 19
         let source = doc.browsing_context().unwrap();
@@ -1684,6 +1691,27 @@ impl VirtualMethods for HTMLFormElement {
                 .unwrap()
                 .parse_plain_attribute(name, value),
         }
+    }
+
+    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
+        self.super_type().unwrap().attribute_mutated(attr, mutation);
+
+        match *attr.local_name() {
+            local_name!("rel") | local_name!("rev") => {
+                self.relations
+                    .set(LinkRelations::for_element(self.upcast()));
+            },
+            _ => {},
+        }
+    }
+
+    fn bind_to_tree(&self, context: &BindContext) {
+        if let Some(s) = self.super_type() {
+            s.bind_to_tree(context);
+        }
+
+        self.relations
+            .set(LinkRelations::for_element(self.upcast()));
     }
 }
 
