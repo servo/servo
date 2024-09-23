@@ -41,7 +41,6 @@ pub trait WindowPortsMethods: WindowMethods {
     fn set_position(&self, _point: DeviceIntPoint) {}
     fn set_fullscreen(&self, _state: bool) {}
     fn set_cursor(&self, _cursor: Cursor) {}
-    #[cfg(feature = "webxr")]
     fn new_glwindow(
         &self,
         events_loop: &winit::event_loop::EventLoopWindowTarget<WakerEvent>,

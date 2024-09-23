@@ -18,9 +18,8 @@ use servo::config::{opts, set_pref};
 use servo::servo_config::pref;
 use servo::Servo;
 use surfman::GLApi;
-#[cfg(feature = "webxr")]
 use webxr::glwindow::GlWindowDiscovery;
-#[cfg(all(feature = "webxr", target_os = "windows"))]
+#[cfg(target_os = "windows")]
 use webxr::openxr::{AppInfo, OpenXrDiscovery};
 use winit::event::WindowEvent;
 use winit::event_loop::EventLoopWindowTarget;
@@ -30,9 +29,7 @@ use super::events_loop::{EventsLoop, WakerEvent};
 use super::minibrowser::Minibrowser;
 use super::webview::WebViewManager;
 use super::{headed_window, headless_window};
-use crate::desktop::embedder::EmbedderCallbacks;
-#[cfg(feature = "webxr")]
-use crate::desktop::embedder::XrDiscovery;
+use crate::desktop::embedder::{EmbedderCallbacks, XrDiscovery};
 use crate::desktop::tracing::trace_winit_event;
 use crate::desktop::window_trait::WindowPortsMethods;
 use crate::parser::get_default_url;
@@ -144,28 +141,7 @@ impl App {
             if let winit::event::Event::NewEvents(winit::event::StartCause::Init) = event {
                 let surfman = window.rendering_context();
 
-                #[cfg(feature = "webxr")]
                 let openxr_discovery = if pref!(dom.webxr.openxr.enabled) && !opts::get().headless {
-                    let window = window.clone();
-                    // This should be safe because run_forever does, in fact,
-                    // run forever. The event loop window target doesn't get
-                    // moved, and does outlast this closure, and we won't
-                    // ever try to make use of it once shutdown begins and
-                    // it stops being valid.
-                    let w = unsafe {
-                        std::mem::transmute::<
-                            &EventLoopWindowTarget<WakerEvent>,
-                            &'static EventLoopWindowTarget<WakerEvent>,
-                        >(w.unwrap())
-                    };
-                    let factory = Box::new(move || Ok(window.new_glwindow(w)));
-                    Some(XrDiscovery::GlWindow(GlWindowDiscovery::new(
-                        surfman.connection(),
-                        surfman.adapter(),
-                        surfman.context_attributes(),
-                        factory,
-                    )))
-                } else if pref!(dom.webxr.openxr.enabled) && !opts::get().headless {
                     #[cfg(target_os = "windows")]
                     let openxr = {
                         let app_info = AppInfo::new("Servoshell", 0, "Servo", 0);
@@ -179,7 +155,6 @@ impl App {
                     None
                 };
 
-                #[cfg(feature = "webxr")]
                 let glwindow_discovery =
                     if pref!(dom.webxr.glwindow.enabled) && !opts::get().headless {
                         let window = window.clone();
@@ -205,16 +180,11 @@ impl App {
                         None
                     };
 
-                #[cfg(feature = "webxr")]
                 let xr_discovery = openxr_discovery.or(glwindow_discovery);
 
                 let window = window.clone();
                 // Implements embedder methods, used by libservo and constellation.
-                let embedder = Box::new(EmbedderCallbacks::new(
-                    ev_waker.clone(),
-                    #[cfg(feature = "webxr")]
-                    xr_discovery,
-                ));
+                let embedder = Box::new(EmbedderCallbacks::new(ev_waker.clone(), xr_discovery));
 
                 let composite_target = if app.minibrowser.is_some() {
                     CompositeTarget::Fbo

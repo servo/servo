@@ -646,7 +646,6 @@ impl ServoGlue {
 
 pub(super) struct ServoEmbedderCallbacks {
     waker: Box<dyn EventLoopWaker>,
-    #[cfg(feature = "webxr")]
     xr_discovery: Option<webxr::Discovery>,
     #[allow(unused)]
     gl: Rc<dyn gl::Gl>,
@@ -655,12 +654,11 @@ pub(super) struct ServoEmbedderCallbacks {
 impl ServoEmbedderCallbacks {
     pub(super) fn new(
         waker: Box<dyn EventLoopWaker>,
-        #[cfg(feature = "webxr")] xr_discovery: Option<webxr::Discovery>,
+        xr_discovery: Option<webxr::Discovery>,
         gl: Rc<dyn gl::Gl>,
     ) -> Self {
         Self {
             waker,
-            #[cfg(feature = "webxr")]
             xr_discovery,
             gl,
         }
@@ -673,7 +671,6 @@ impl EmbedderMethods for ServoEmbedderCallbacks {
         self.waker.clone()
     }
 
-    #[cfg(feature = "webxr")]
     fn register_webxr(
         &mut self,
         registry: &mut webxr::MainThreadRegistry,

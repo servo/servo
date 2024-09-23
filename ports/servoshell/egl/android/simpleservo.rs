@@ -42,7 +42,6 @@ pub struct InitOptions {
     pub url: Option<String>,
     pub coordinates: Coordinates,
     pub density: f32,
-    #[cfg(feature = "webxr")]
     pub xr_discovery: Option<webxr::Discovery>,
     pub surfman_integration: SurfmanIntegration,
     pub prefs: Option<HashMap<String, PrefValue>>,
@@ -162,7 +161,6 @@ pub fn init(
 
     let embedder_callbacks = Box::new(ServoEmbedderCallbacks::new(
         waker,
-        #[cfg(feature = "webxr")]
         init_opts.xr_discovery,
         gl.clone(),
     ));
