@@ -14,7 +14,7 @@ path = "lib.rs"
 [features]
 default = []
 multiview = []
-webxr = []
+webxr = ["dep:webxr"]
 
 [dependencies]
 base = { workspace = true }
@@ -46,7 +46,7 @@ tracing = { workspace = true }
 webrender = { workspace = true }
 webrender_api = { workspace = true }
 webrender_traits = { workspace = true }
-webxr = { git = "https://github.com/servo/webxr" }
+webxr = { git = "https://github.com/servo/webxr", optional = true }
 
 [dev-dependencies]
 surfman = { workspace = true }

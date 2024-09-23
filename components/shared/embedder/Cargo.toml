@@ -12,7 +12,7 @@ name = "embedder_traits"
 path = "lib.rs"
 
 [features]
-webxr = []
+webxr = ["dep:webxr-api"]
 
 [dependencies]
 base = { workspace = true }
@@ -26,4 +26,4 @@ num-traits = { workspace = true }
 serde = { workspace = true }
 servo_url = { path = "../../url" }
 webrender_api = { workspace = true }
-webxr-api = { git = "https://github.com/servo/webxr", features = ["ipc"] }
+webxr-api = { git = "https://github.com/servo/webxr", features = ["ipc"], optional = true }

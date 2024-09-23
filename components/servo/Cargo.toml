@@ -32,6 +32,8 @@ webgl_backtrace = [
     "canvas_traits/webgl_backtrace",
 ]
 webxr = [
+    "dep:webxr",
+    "dep:webxr-api",
     "compositing/webxr",
     "compositing_traits/webxr",
     "embedder_traits/webxr",
@@ -89,8 +91,8 @@ webrender = { workspace = true }
 webrender_api = { workspace = true }
 webrender_traits = { workspace = true }
 tracing = { workspace = true }
-webxr = { git = "https://github.com/servo/webxr" }
-webxr-api = { git = "https://github.com/servo/webxr" }
+webxr = { git = "https://github.com/servo/webxr", optional = true }
+webxr-api = { git = "https://github.com/servo/webxr", optional = true }
 
 [target.'cfg(all(not(target_os = "windows"), not(target_os = "ios"), not(target_os = "android"), not(target_arch = "arm"), not(target_arch = "aarch64")))'.dependencies]
 gaol = "0.2.1"
