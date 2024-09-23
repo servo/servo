@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::borrow::Cow;
+#[cfg(feature = "webxr")]
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
@@ -18,8 +19,10 @@ use canvas_traits::webgl::{
     WebGLCreateContextResult, WebGLFramebufferBindingRequest, WebGLFramebufferId, WebGLMsg,
     WebGLMsgSender, WebGLProgramId, WebGLQueryId, WebGLReceiver, WebGLRenderbufferId,
     WebGLSLVersion, WebGLSamplerId, WebGLSender, WebGLShaderId, WebGLSyncId, WebGLTextureId,
-    WebGLVersion, WebGLVertexArrayId, WebXRCommand, WebXRLayerManagerId, YAxisTreatment,
+    WebGLVersion, WebGLVertexArrayId, YAxisTreatment,
 };
+#[cfg(feature = "webxr")]
+use canvas_traits::webgl::{WebXRCommand, WebXRLayerManagerId};
 use euclid::default::Size2D;
 use fnv::FnvHashMap;
 use half::f16;
@@ -39,7 +42,9 @@ use webrender_api::{
     ImageData, ImageDescriptor, ImageDescriptorFlags, ImageFormat, ImageKey,
 };
 use webrender_traits::{WebrenderExternalImageRegistry, WebrenderImageHandlerType};
+#[cfg(feature = "webxr")]
 use webxr::SurfmanGL as WebXRSurfman;
+#[cfg(feature = "webxr")]
 use webxr_api::{
     ContextId as WebXRContextId, Error as WebXRError, GLContexts as WebXRContexts,
     GLTypes as WebXRTypes, LayerGrandManager as WebXRLayerGrandManager,
@@ -211,6 +216,7 @@ pub(crate) struct WebGLThread {
     webrender_swap_chains: SwapChains<WebGLContextId, Device>,
     /// Whether this context is a GL or GLES context.
     api_type: gl::GlType,
+    #[cfg(feature = "webxr")]
     /// The bridge to WebXR
     pub webxr_bridge: WebXRBridge,
 }
@@ -226,6 +232,7 @@ pub(crate) struct WebGLThreadInit {
     pub connection: Connection,
     pub adapter: Adapter,
     pub api_type: gl::GlType,
+    #[cfg(feature = "webxr")]
     pub webxr_init: WebXRBridgeInit,
 }
 
@@ -245,6 +252,7 @@ impl WebGLThread {
             connection,
             adapter,
             api_type,
+            #[cfg(feature = "webxr")]
             webxr_init,
         }: WebGLThreadInit,
     ) -> Self {
@@ -262,6 +270,7 @@ impl WebGLThread {
             receiver: receiver.into_inner(),
             webrender_swap_chains,
             api_type,
+            #[cfg(feature = "webxr")]
             webxr_bridge: WebXRBridge::new(webxr_init),
         }
     }
@@ -363,6 +372,9 @@ impl WebGLThread {
                 self.handle_webgl_command(ctx_id, command, backtrace);
             },
             WebGLMsg::WebXRCommand(command) => {
+                // TODO: Add webxr feature to canvas_traits crate and disable this enum variant
+                // when the feature is disabled
+                #[cfg(feature = "webxr")]
                 self.handle_webxr_command(command);
             },
             WebGLMsg::SwapBuffers(swap_ids, sender, sent_time) => {
@@ -379,6 +391,7 @@ impl WebGLThread {
         false
     }
 
+    #[cfg(feature = "webxr")]
     /// Handles a WebXR message
     fn handle_webxr_command(&mut self, command: WebXRCommand) {
         trace!("processing {:?}", command);
@@ -710,17 +723,20 @@ impl WebGLThread {
             &mut self.bound_context_id,
         );
 
-        // Destroy WebXR layers associated with this context
-        let webxr_context_id = WebXRContextId::from(context_id);
-        let mut webxr_contexts = WebXRBridgeContexts {
-            contexts: &mut self.contexts,
-            bound_context_id: &mut self.bound_context_id,
-        };
-        self.webxr_bridge.destroy_all_layers(
-            &mut self.device,
-            &mut webxr_contexts,
-            webxr_context_id,
-        );
+        #[cfg(feature = "webxr")]
+        {
+            // Destroy WebXR layers associated with this context
+            let webxr_context_id = WebXRContextId::from(context_id);
+            let mut webxr_contexts = WebXRBridgeContexts {
+                contexts: &mut self.contexts,
+                bound_context_id: &mut self.bound_context_id,
+            };
+            self.webxr_bridge.destroy_all_layers(
+                &mut self.device,
+                &mut webxr_contexts,
+                webxr_context_id,
+            );
+        }
 
         // Release GL context.
         let mut data = match self.contexts.remove(&context_id) {
@@ -3013,6 +3029,7 @@ impl FramebufferRebindingInfo {
     }
 }
 
+#[cfg(feature = "webxr")]
 /// Bridge between WebGL and WebXR
 pub(crate) struct WebXRBridge {
     factory_receiver: crossbeam_channel::Receiver<WebXRLayerManagerFactory<WebXRSurfman>>,
@@ -3020,6 +3037,7 @@ pub(crate) struct WebXRBridge {
     next_manager_id: u32,
 }
 
+#[cfg(feature = "webxr")]
 impl WebXRBridge {
     pub(crate) fn new(init: WebXRBridgeInit) -> WebXRBridge {
         let WebXRBridgeInit {
@@ -3035,6 +3053,7 @@ impl WebXRBridge {
     }
 }
 
+#[cfg(feature = "webxr")]
 impl WebXRBridge {
     #[allow(unsafe_code)]
     fn create_layer_manager(
@@ -3130,12 +3149,14 @@ impl WebXRBridge {
     }
 }
 
+#[cfg(feature = "webxr")]
 pub(crate) struct WebXRBridgeInit {
     sender: WebGLSender<WebGLMsg>,
     factory_receiver: crossbeam_channel::Receiver<WebXRLayerManagerFactory<WebXRSurfman>>,
     factory_sender: crossbeam_channel::Sender<WebXRLayerManagerFactory<WebXRSurfman>>,
 }
 
+#[cfg(feature = "webxr")]
 impl WebXRBridgeInit {
     pub(crate) fn new(sender: WebGLSender<WebGLMsg>) -> WebXRBridgeInit {
         let (factory_sender, factory_receiver) = crossbeam_channel::unbounded();
@@ -3154,6 +3175,7 @@ impl WebXRBridgeInit {
     }
 }
 
+#[cfg(feature = "webxr")]
 struct WebXRBridgeGrandManager {
     sender: WebGLSender<WebGLMsg>,
     // WebXR layer manager factories use generic trait objects under the
@@ -3165,6 +3187,7 @@ struct WebXRBridgeGrandManager {
     factory_sender: crossbeam_channel::Sender<WebXRLayerManagerFactory<WebXRSurfman>>,
 }
 
+#[cfg(feature = "webxr")]
 impl WebXRLayerGrandManagerAPI<WebXRSurfman> for WebXRBridgeGrandManager {
     fn create_layer_manager(
         &self,
@@ -3197,12 +3220,14 @@ impl WebXRLayerGrandManagerAPI<WebXRSurfman> for WebXRBridgeGrandManager {
     }
 }
 
+#[cfg(feature = "webxr")]
 struct WebXRBridgeManager {
     sender: WebGLSender<WebGLMsg>,
     manager_id: WebXRLayerManagerId,
     layers: Vec<(WebXRContextId, WebXRLayerId)>,
 }
 
+#[cfg(feature = "webxr")]
 impl<GL: WebXRTypes> WebXRLayerManagerAPI<GL> for WebXRBridgeManager {
     fn create_layer(
         &mut self,
@@ -3287,6 +3312,7 @@ impl<GL: WebXRTypes> WebXRLayerManagerAPI<GL> for WebXRBridgeManager {
     }
 }
 
+#[cfg(feature = "webxr")]
 impl Drop for WebXRBridgeManager {
     fn drop(&mut self) {
         let _ = self
@@ -3297,11 +3323,13 @@ impl Drop for WebXRBridgeManager {
     }
 }
 
+#[cfg(feature = "webxr")]
 struct WebXRBridgeContexts<'a> {
     contexts: &'a mut FnvHashMap<WebGLContextId, GLContextData>,
     bound_context_id: &'a mut Option<WebGLContextId>,
 }
 
+#[cfg(feature = "webxr")]
 impl<'a> WebXRContexts<WebXRSurfman> for WebXRBridgeContexts<'a> {
     fn context(&mut self, device: &Device, context_id: WebXRContextId) -> Option<&mut Context> {
         let data = WebGLThread::make_current_if_needed_mut(

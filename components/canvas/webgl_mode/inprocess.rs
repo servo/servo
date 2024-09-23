@@ -18,14 +18,19 @@ use webrender_traits::{
     RenderingContext, WebrenderExternalImageApi, WebrenderExternalImageRegistry,
     WebrenderImageSource,
 };
+#[cfg(feature = "webxr")]
 use webxr::SurfmanGL as WebXRSurfman;
+#[cfg(feature = "webxr")]
 use webxr_api::LayerGrandManager as WebXRLayerGrandManager;
 
-use crate::webgl_thread::{WebGLThread, WebGLThreadInit, WebXRBridgeInit};
+#[cfg(feature = "webxr")]
+use crate::webgl_thread::WebXRBridgeInit;
+use crate::webgl_thread::{WebGLThread, WebGLThreadInit};
 
 pub struct WebGLComm {
     pub webgl_threads: WebGLThreads,
     pub image_handler: Box<dyn WebrenderExternalImageApi>,
+    #[cfg(feature = "webxr")]
     pub webxr_layer_grand_manager: WebXRLayerGrandManager<WebXRSurfman>,
 }
 
@@ -41,7 +46,9 @@ impl WebGLComm {
         debug!("WebGLThreads::new()");
         let (sender, receiver) = webgl_channel::<WebGLMsg>().unwrap();
         let webrender_swap_chains = SwapChains::new();
+        #[cfg(feature = "webxr")]
         let webxr_init = WebXRBridgeInit::new(sender.clone());
+        #[cfg(feature = "webxr")]
         let webxr_layer_grand_manager = webxr_init.layer_grand_manager();
 
         // This implementation creates a single `WebGLThread` for all the pipelines.
@@ -55,6 +62,7 @@ impl WebGLComm {
             connection: surfman.connection(),
             adapter: surfman.adapter(),
             api_type,
+            #[cfg(feature = "webxr")]
             webxr_init,
         };
 
@@ -65,6 +73,7 @@ impl WebGLComm {
         WebGLComm {
             webgl_threads: WebGLThreads(sender),
             image_handler: Box::new(external),
+            #[cfg(feature = "webxr")]
             webxr_layer_grand_manager,
         }
     }
