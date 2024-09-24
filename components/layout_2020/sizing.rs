@@ -92,9 +92,15 @@ impl AddAssign for ContentSizes {
 }
 
 impl ContentSizes {
+    /// Clamps the provided amount to be between the min-content and the max-content.
+    /// This is called "shrink-to-fit" in CSS2, and "fit-content" in CSS Sizing.
     /// <https://drafts.csswg.org/css2/visudet.html#shrink-to-fit-float>
+    /// <https://drafts.csswg.org/css-sizing/#funcdef-width-fit-content>
     pub fn shrink_to_fit(&self, available_size: Au) -> Au {
-        available_size.max(self.min_content).min(self.max_content)
+        // This formula is slightly different than what the spec says,
+        // to ensure that the minimum wins for a malformed ContentSize
+        // whose min_content is larger than its max_content.
+        available_size.min(self.max_content).max(self.min_content)
     }
 }
 

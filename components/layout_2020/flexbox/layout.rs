@@ -1737,9 +1737,8 @@ impl FlexItem<'_> {
                                 self.content_max_size.cross,
                             )
                         });
-                    (containing_block.inline_size - self.pbm_auto_is_zero.cross)
-                        .min(content_contributions.max_content)
-                        .max(content_contributions.min_content)
+                    content_contributions
+                        .shrink_to_fit(containing_block.inline_size - self.pbm_auto_is_zero.cross)
                 }),
                 // The main size of a flex item is considered to be definite if its flex basis is definite
                 // or the flex container has a definite main size.
@@ -2513,10 +2512,8 @@ impl FlexItemBox {
                                 flex_context.layout_context,
                                 &containing_block_for_children,
                             );
-
-                            containing_block_inline_size_minus_pbm
-                                .min(inline_content_sizes.max_content)
-                                .max(inline_content_sizes.min_content)
+                            inline_content_sizes
+                                .shrink_to_fit(containing_block_inline_size_minus_pbm)
                         }
                     })
                     .clamp_between_extremums(min_size.inline, max_size.inline);
