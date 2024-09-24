@@ -23,9 +23,9 @@ use webxr::SurfmanGL as WebXRSurfman;
 #[cfg(feature = "webxr")]
 use webxr_api::LayerGrandManager as WebXRLayerGrandManager;
 
-#[cfg(feature = "webxr")]
-use crate::webgl_thread::WebXRBridgeInit;
 use crate::webgl_thread::{WebGLThread, WebGLThreadInit};
+#[cfg(feature = "webxr")]
+use crate::webxr::WebXRBridgeInit;
 
 pub struct WebGLComm {
     pub webgl_threads: WebGLThreads,
