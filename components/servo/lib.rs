@@ -1026,7 +1026,7 @@ fn create_constellation(
     // Global configuration options, parsed from the command line.
     let opts = opts::get();
 
-    let bluetooth_thread:  GenericSender<BluetoothRequest> =
+    let bluetooth_thread: GenericSender<BluetoothRequest> =
         BluetoothThreadFactory::new(embedder_proxy.clone());
 
     let (public_resource_threads, private_resource_threads) = new_resource_threads(

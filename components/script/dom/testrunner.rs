@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use base::generic_channel::GenericSender;
 use bluetooth_traits::BluetoothRequest;
 use dom_struct::dom_struct;
-use base::generic_channel::GenericSender;
 use profile_traits::ipc;
 
 use crate::dom::bindings::codegen::Bindings::TestRunnerBinding::TestRunnerMethods;
@@ -31,7 +31,7 @@ impl TestRunner {
         reflect_dom_object(Box::new(TestRunner::new_inherited()), global)
     }
 
-    fn get_bluetooth_thread(&self) ->  GenericSender<BluetoothRequest> {
+    fn get_bluetooth_thread(&self) -> GenericSender<BluetoothRequest> {
         self.global().as_window().bluetooth_thread()
     }
 }

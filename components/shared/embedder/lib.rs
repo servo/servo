@@ -6,6 +6,7 @@ pub mod resources;
 
 use std::fmt::{Debug, Error, Formatter};
 
+use base::generic_channel::GenericSender;
 use base::id::{PipelineId, TopLevelBrowsingContextId, WebViewId};
 use crossbeam_channel::{Receiver, Sender};
 use ipc_channel::ipc::IpcSender;
@@ -189,7 +190,7 @@ pub enum EmbedderMsg {
     /// A pipeline panicked. First string is the reason, second one is the backtrace.
     Panic(String, Option<String>),
     /// Open dialog to select bluetooth device.
-    GetSelectedBluetoothDevice(Vec<String>, IpcSender<Option<String>>),
+    GetSelectedBluetoothDevice(Vec<String>, GenericSender<Option<String>>),
     /// Open file dialog to select files. Set boolean flag to true allows to select multiple files.
     SelectFiles(Vec<FilterPattern>, bool, IpcSender<Option<Vec<String>>>),
     /// Open interface to request permission specified by prompt.

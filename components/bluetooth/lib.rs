@@ -76,7 +76,8 @@ pub trait BluetoothThreadFactory {
 
 impl BluetoothThreadFactory for GenericSender<BluetoothRequest> {
     fn new(embedder_proxy: EmbedderProxy) -> GenericSender<BluetoothRequest> {
-        let (sender, receiver) = base::generic_channel::channel(servo_config::opts::multiprocess()).unwrap();
+        let (sender, receiver) =
+            base::generic_channel::channel(servo_config::opts::multiprocess()).unwrap();
         let adapter = if pref!(dom.bluetooth.enabled) {
             BluetoothAdapter::new()
         } else {
@@ -408,14 +409,15 @@ impl BluetoothManager {
             ]);
         }
 
-        let (ipc_sender, ipc_receiver) = ipc::channel().expect("Failed to create IPC channel!");
+        let (sender, receiver) =
+            base::generic_channel::channel(servo_config::opts::multiprocess()).unwrap();
         let msg = (
             None,
-            EmbedderMsg::GetSelectedBluetoothDevice(dialog_rows, ipc_sender),
+            EmbedderMsg::GetSelectedBluetoothDevice(dialog_rows, sender),
         );
         self.embedder_proxy.send(msg);
 
-        match ipc_receiver.recv() {
+        match receiver.recv() {
             Ok(result) => result,
             Err(e) => {
                 warn!("Failed to receive files from embedder ({:?}).", e);

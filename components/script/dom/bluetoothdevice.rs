@@ -6,6 +6,7 @@ use std::cell::Cell;
 use std::collections::HashMap;
 use std::rc::Rc;
 
+use base::generic_channel::GenericSender;
 use bluetooth_traits::{
     BluetoothCharacteristicMsg, BluetoothDescriptorMsg, BluetoothRequest, BluetoothResponse,
     BluetoothServiceMsg,
@@ -13,7 +14,6 @@ use bluetooth_traits::{
 use dom_struct::dom_struct;
 use profile_traits::ipc;
 
-use base::generic_channel::GenericSender;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::BluetoothDeviceBinding::BluetoothDeviceMethods;
 use crate::dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding::BluetoothRemoteGATTServerMethods;
@@ -182,7 +182,7 @@ impl BluetoothDevice {
         bt_descriptor
     }
 
-    fn get_bluetooth_thread(&self) ->  GenericSender<BluetoothRequest> {
+    fn get_bluetooth_thread(&self) -> GenericSender<BluetoothRequest> {
         self.global().as_window().bluetooth_thread()
     }
 

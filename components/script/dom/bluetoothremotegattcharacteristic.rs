@@ -4,10 +4,10 @@
 
 use std::rc::Rc;
 
+use base::generic_channel::GenericSender;
 use bluetooth_traits::blocklist::{uuid_is_blocklisted, Blocklist};
 use bluetooth_traits::{BluetoothRequest, BluetoothResponse, GATTType};
 use dom_struct::dom_struct;
-
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::BluetoothCharacteristicPropertiesBinding::BluetoothCharacteristicPropertiesMethods;
@@ -18,7 +18,6 @@ use crate::dom::bindings::codegen::UnionTypes::ArrayBufferViewOrArrayBuffer;
 use crate::dom::bindings::error::Error::{
     self, InvalidModification, Network, NotSupported, Security,
 };
-use base::generic_channel::GenericSender;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot};
@@ -82,7 +81,7 @@ impl BluetoothRemoteGATTCharacteristic {
         )
     }
 
-    fn get_bluetooth_thread(&self) ->  GenericSender<BluetoothRequest> {
+    fn get_bluetooth_thread(&self) -> GenericSender<BluetoothRequest> {
         self.global().as_window().bluetooth_thread()
     }
 

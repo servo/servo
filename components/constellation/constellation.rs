@@ -355,7 +355,7 @@ pub struct Constellation<STF, SWF> {
 
     /// An IPC channel for the constellation to send messages to the
     /// bluetooth thread.
-    bluetooth_ipc_sender:  GenericSender<BluetoothRequest>,
+    bluetooth_sender: GenericSender<BluetoothRequest>,
 
     /// A map of origin to sender to a Service worker manager.
     sw_managers: HashMap<ImmutableOrigin, IpcSender<ServiceWorkerMsg>>,
@@ -514,7 +514,7 @@ pub struct InitialConstellationState {
     pub devtools_sender: Option<Sender<DevtoolsControlMsg>>,
 
     /// A channel to the bluetooth thread.
-    pub bluetooth_thread:  GenericSender<BluetoothRequest>,
+    pub bluetooth_thread: GenericSender<BluetoothRequest>,
 
     /// A channel to the font cache thread.
     pub font_cache_thread: FontCacheThread,
@@ -760,7 +760,7 @@ where
                     compositor_proxy: state.compositor_proxy,
                     webviews: WebViewManager::default(),
                     devtools_sender: state.devtools_sender,
-                    bluetooth_ipc_sender: state.bluetooth_thread,
+                    bluetooth_sender: state.bluetooth_thread,
                     public_resource_threads: state.public_resource_threads,
                     private_resource_threads: state.private_resource_threads,
                     font_cache_thread: state.font_cache_thread,
@@ -1041,7 +1041,7 @@ where
             scheduler_chan: self.scheduler_ipc_sender.clone(),
             compositor_proxy: self.compositor_proxy.clone(),
             devtools_sender: self.devtools_sender.clone(),
-            bluetooth_thread: self.bluetooth_ipc_sender.clone(),
+            bluetooth_thread: self.bluetooth_sender.clone(),
             swmanager_thread: self.swmanager_ipc_sender.clone(),
             font_cache_thread: self.font_cache_thread.clone(),
             resource_threads,
@@ -2705,7 +2705,7 @@ where
         }
 
         debug!("Exiting bluetooth thread.");
-        if let Err(e) = self.bluetooth_ipc_sender.send(BluetoothRequest::Exit) {
+        if let Err(e) = self.bluetooth_sender.send(BluetoothRequest::Exit) {
             warn!("Exit bluetooth thread failed ({})", e);
         }
 

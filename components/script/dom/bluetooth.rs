@@ -152,7 +152,7 @@ impl Bluetooth {
         reflect_dom_object(Box::new(Bluetooth::new_inherited()), global)
     }
 
-    fn get_bluetooth_thread(&self) ->  GenericSender<BluetoothRequest> {
+    fn get_bluetooth_thread(&self) -> GenericSender<BluetoothRequest> {
         self.global().as_window().bluetooth_thread()
     }
 

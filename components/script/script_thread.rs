@@ -34,6 +34,7 @@ use background_hang_monitor_api::{
     MonitoredComponentType, ScriptHangAnnotation,
 };
 use base::cross_process_instant::CrossProcessInstant;
+use base::generic_channel::GenericSender;
 use base::id::{
     BrowsingContextId, HistoryStateId, PipelineId, PipelineNamespace, TopLevelBrowsingContextId,
 };
@@ -46,7 +47,6 @@ use devtools_traits::{
     CSSError, DevtoolScriptControlMsg, DevtoolsPageInfo, NavigationState,
     ScriptToDevtoolsControlMsg, WorkerId,
 };
-use base::generic_channel::GenericSender;
 use embedder_traits::EmbedderMsg;
 use euclid::default::{Point2D, Rect};
 use fonts::FontCacheThread;
@@ -535,7 +535,7 @@ pub struct ScriptThread {
     resource_threads: ResourceThreads,
     /// A handle to the bluetooth thread.
     #[no_trace]
-    bluetooth_thread:  GenericSender<BluetoothRequest>,
+    bluetooth_thread: GenericSender<BluetoothRequest>,
 
     /// A queue of tasks to be executed in this script-thread.
     task_queue: TaskQueue<MainThreadScriptMsg>,
