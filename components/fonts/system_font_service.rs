@@ -24,6 +24,7 @@ use style::values::computed::font::{
 };
 use style::values::computed::{FontStretch, FontWeight};
 use style::values::specified::FontStretch as SpecifiedFontStretch;
+use style::Atom;
 use tracing::{span, Level};
 use webrender_api::{FontInstanceFlags, FontInstanceKey, FontKey};
 use webrender_traits::WebRenderFontApi;
@@ -41,26 +42,27 @@ use crate::FontData;
 pub enum FontIdentifier {
     Local(LocalFontIdentifier),
     Web(ServoUrl),
+    Mock(Atom),
 }
 
 impl FontIdentifier {
     pub fn index(&self) -> u32 {
         match *self {
             Self::Local(ref local_font_identifier) => local_font_identifier.index(),
-            Self::Web(_) => 0,
+            Self::Web(_) | Self::Mock(_) => 0,
         }
     }
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Default, Deserialize, Serialize)]
 pub struct FontTemplateRequestResult {
-    templates: Vec<FontTemplate>,
-    template_data: Vec<(FontIdentifier, Arc<FontData>)>,
+    pub templates: Vec<FontTemplate>,
+    pub template_data: Vec<(FontIdentifier, Arc<FontData>)>,
 }
 
 /// Commands that the `FontContext` sends to the `SystemFontService`.
 #[derive(Debug, Deserialize, Serialize)]
-pub enum Command {
+pub enum SystemFontServiceMessage {
     GetFontTemplates(
         Option<FontDescriptor>,
         SingleFontFamily,
@@ -72,8 +74,6 @@ pub enum Command {
         FontInstanceFlags,
         IpcSender<FontInstanceKey>,
     ),
-    GetWebFont(Arc<FontData>, u32, IpcSender<FontKey>),
-    GetWebFontInstance(FontKey, f32, FontInstanceFlags, IpcSender<FontInstanceKey>),
     Exit(IpcSender<()>),
     Ping,
 }
@@ -93,7 +93,7 @@ struct ResolvedGenericFontFamilies {
 /// responsible for reading the list of system fonts, handling requests to match against
 /// them, and ensuring that only one copy of system font data is loaded at a time.
 pub struct SystemFontService {
-    port: IpcReceiver<Command>,
+    port: IpcReceiver<SystemFontServiceMessage>,
     local_families: FontStore,
     webrender_api: Box<dyn WebRenderFontApi>,
     webrender_fonts: HashMap<FontIdentifier, FontKey>,
@@ -102,7 +102,7 @@ pub struct SystemFontService {
 }
 
 #[derive(Clone, Deserialize, Serialize)]
-pub struct SystemFontServiceProxySender(IpcSender<Command>);
+pub struct SystemFontServiceProxySender(pub IpcSender<SystemFontServiceMessage>);
 
 impl SystemFontServiceProxySender {
     pub fn to_proxy(&self) -> SystemFontServiceProxy {
@@ -145,37 +145,21 @@ impl SystemFontService {
             let msg = self.port.recv().unwrap();
 
             match msg {
-                Command::GetFontTemplates(font_descriptor, font_family, result_sender) => {
+                SystemFontServiceMessage::GetFontTemplates(
+                    font_descriptor,
+                    font_family,
+                    result_sender,
+                ) => {
                     let span = span!(Level::TRACE, "GetFontTemplates", servo_profiling = true);
                     let _span = span.enter();
                     let _ =
                         result_sender.send(self.get_font_templates(font_descriptor, font_family));
                 },
-                Command::GetFontInstance(identifier, pt_size, flags, result) => {
+                SystemFontServiceMessage::GetFontInstance(identifier, pt_size, flags, result) => {
                     let _ = result.send(self.get_font_instance(identifier, pt_size, flags));
                 },
-                Command::GetWebFont(data, font_index, result_sender) => {
-                    self.webrender_api.forward_add_font_message(
-                        data.as_ipc_shared_memory(),
-                        font_index,
-                        result_sender,
-                    );
-                },
-                Command::GetWebFontInstance(
-                    font_key,
-                    font_size,
-                    font_instance_flags,
-                    result_sender,
-                ) => {
-                    self.webrender_api.forward_add_font_instance_message(
-                        font_key,
-                        font_size,
-                        font_instance_flags,
-                        result_sender,
-                    );
-                },
-                Command::Ping => (),
-                Command::Exit(result) => {
+                SystemFontServiceMessage::Ping => (),
+                SystemFontServiceMessage::Exit(result) => {
                     let _ = result.send(());
                     break;
                 },
@@ -325,40 +309,17 @@ impl SystemFontService {
     }
 }
 
-/// A trait for accessing the [`SystemFontServiceProxy`] necessary for unit testing.
-pub trait SystemFontServiceProxyTrait: Send + Sync {
-    fn find_matching_font_templates(
-        &self,
-        descriptor_to_match: Option<&FontDescriptor>,
-        font_family_name: &SingleFontFamily,
-    ) -> Vec<FontTemplateRef>;
-    fn get_system_font_instance(
-        &self,
-        font_identifier: FontIdentifier,
-        size: Au,
-        flags: FontInstanceFlags,
-    ) -> FontInstanceKey;
-    fn get_web_font(&self, data: Arc<FontData>, index: u32) -> FontKey;
-    fn get_web_font_instance(
-        &self,
-        font_key: FontKey,
-        size: f32,
-        flags: FontInstanceFlags,
-    ) -> FontInstanceKey;
-    fn get_font_data(&self, identifier: &FontIdentifier) -> Option<Arc<FontData>>;
-}
-
 #[derive(Debug, Eq, Hash, MallocSizeOf, PartialEq)]
 struct FontTemplateCacheKey {
     font_descriptor: Option<FontDescriptor>,
     family_descriptor: SingleFontFamily,
 }
 
-/// The public interface to the [`SystemFontService`], used by per-Document `FontContext`
-/// instances (via [`SystemFontServiceProxyTrait`]).
+/// The public interface to the [`SystemFontService`], used by per-Document
+/// `FontContext` instances.
 #[derive(Debug)]
 pub struct SystemFontServiceProxy {
-    sender: ReentrantMutex<IpcSender<Command>>,
+    sender: ReentrantMutex<IpcSender<SystemFontServiceMessage>>,
     templates: RwLock<HashMap<FontTemplateCacheKey, Vec<FontTemplateRef>>>,
     data_cache: RwLock<HashMap<FontIdentifier, Arc<FontData>>>,
 }
@@ -453,7 +414,7 @@ impl SystemFontServiceProxy {
         let (response_chan, response_port) = ipc::channel().unwrap();
         self.sender
             .lock()
-            .send(Command::Exit(response_chan))
+            .send(SystemFontServiceMessage::Exit(response_chan))
             .expect("Couldn't send SystemFontService exit message");
         response_port
             .recv()
@@ -463,10 +424,8 @@ impl SystemFontServiceProxy {
     pub fn to_sender(&self) -> SystemFontServiceProxySender {
         SystemFontServiceProxySender(self.sender.lock().clone())
     }
-}
 
-impl SystemFontServiceProxyTrait for SystemFontServiceProxy {
-    fn get_system_font_instance(
+    pub(crate) fn get_system_font_instance(
         &self,
         identifier: FontIdentifier,
         size: Au,
@@ -475,7 +434,7 @@ impl SystemFontServiceProxyTrait for SystemFontServiceProxy {
         let (response_chan, response_port) = ipc::channel().expect("failed to create IPC channel");
         self.sender
             .lock()
-            .send(Command::GetFontInstance(
+            .send(SystemFontServiceMessage::GetFontInstance(
                 identifier,
                 size,
                 flags,
@@ -485,7 +444,11 @@ impl SystemFontServiceProxyTrait for SystemFontServiceProxy {
 
         let instance_key = response_port.recv();
         if instance_key.is_err() {
-            let font_thread_has_closed = self.sender.lock().send(Command::Ping).is_err();
+            let font_thread_has_closed = self
+                .sender
+                .lock()
+                .send(SystemFontServiceMessage::Ping)
+                .is_err();
             assert!(
                 font_thread_has_closed,
                 "Failed to receive a response from live font cache"
@@ -495,7 +458,7 @@ impl SystemFontServiceProxyTrait for SystemFontServiceProxy {
         instance_key.unwrap()
     }
 
-    fn find_matching_font_templates(
+    pub(crate) fn find_matching_font_templates(
         &self,
         descriptor_to_match: Option<&FontDescriptor>,
         family_descriptor: &SingleFontFamily,
@@ -516,7 +479,7 @@ impl SystemFontServiceProxyTrait for SystemFontServiceProxy {
         let (response_chan, response_port) = ipc::channel().expect("failed to create IPC channel");
         self.sender
             .lock()
-            .send(Command::GetFontTemplates(
+            .send(SystemFontServiceMessage::GetFontTemplates(
                 descriptor_to_match.cloned(),
                 family_descriptor.clone(),
                 response_chan,
@@ -525,7 +488,11 @@ impl SystemFontServiceProxyTrait for SystemFontServiceProxy {
 
         let reply = response_port.recv();
         let Ok(reply) = reply else {
-            let font_thread_has_closed = self.sender.lock().send(Command::Ping).is_err();
+            let font_thread_has_closed = self
+                .sender
+                .lock()
+                .send(SystemFontServiceMessage::Ping)
+                .is_err();
             assert!(
                 font_thread_has_closed,
                 "Failed to receive a response from live font cache"
@@ -544,34 +511,7 @@ impl SystemFontServiceProxyTrait for SystemFontServiceProxy {
         templates
     }
 
-    fn get_web_font(&self, data: Arc<FontData>, index: u32) -> FontKey {
-        let (result_sender, result_receiver) =
-            ipc::channel().expect("failed to create IPC channel");
-        let _ = self
-            .sender
-            .lock()
-            .send(Command::GetWebFont(data, index, result_sender));
-        result_receiver.recv().unwrap()
-    }
-
-    fn get_web_font_instance(
-        &self,
-        font_key: FontKey,
-        font_size: f32,
-        font_flags: FontInstanceFlags,
-    ) -> FontInstanceKey {
-        let (result_sender, result_receiver) =
-            ipc::channel().expect("failed to create IPC channel");
-        let _ = self.sender.lock().send(Command::GetWebFontInstance(
-            font_key,
-            font_size,
-            font_flags,
-            result_sender,
-        ));
-        result_receiver.recv().unwrap()
-    }
-
-    fn get_font_data(&self, identifier: &FontIdentifier) -> Option<Arc<FontData>> {
+    pub(crate) fn get_font_data(&self, identifier: &FontIdentifier) -> Option<Arc<FontData>> {
         self.data_cache.read().get(identifier).cloned()
     }
 }

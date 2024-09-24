@@ -36,7 +36,10 @@ use super::c_str_to_string;
 use crate::font::map_platform_values_to_style_values;
 use crate::font_template::{FontTemplate, FontTemplateDescriptor};
 use crate::platform::add_noto_fallback_families;
-use crate::{EmojiPresentationPreference, FallbackFontSelectionOptions, LowercaseFontFamilyName};
+use crate::{
+    EmojiPresentationPreference, FallbackFontSelectionOptions, FontIdentifier,
+    LowercaseFontFamilyName,
+};
 
 /// An identifier for a local font on systems using Freetype.
 #[derive(Clone, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
@@ -155,9 +158,10 @@ where
             };
             let descriptor = FontTemplateDescriptor::new(weight, stretch, style);
 
-            callback(FontTemplate::new_for_local_font(
-                local_font_identifier,
+            callback(FontTemplate::new(
+                FontIdentifier::Local(local_font_identifier),
                 descriptor,
+                None,
             ))
         }
 

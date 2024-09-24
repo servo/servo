@@ -19,7 +19,8 @@ use style::Atom;
 
 use super::xml::{Attribute, Node};
 use crate::{
-    FallbackFontSelectionOptions, FontTemplate, FontTemplateDescriptor, LowercaseFontFamilyName,
+    FallbackFontSelectionOptions, FontIdentifier, FontTemplate, FontTemplateDescriptor,
+    LowercaseFontFamilyName,
 };
 
 static FONT_LIST: LazyLock<FontList> = LazyLock::new(|| FontList::new());
@@ -491,9 +492,10 @@ where
             None => StyleFontStyle::NORMAL,
         };
         let descriptor = FontTemplateDescriptor::new(weight, stretch, style);
-        callback(FontTemplate::new_for_local_font(
-            local_font_identifier,
+        callback(FontTemplate::new(
+            FontIdentifier::Local(local_font_identifier),
             descriptor,
+            None,
         ));
     };
 

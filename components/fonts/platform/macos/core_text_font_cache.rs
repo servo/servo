@@ -86,7 +86,7 @@ impl CoreTextFontCache {
 
                 core_text::font::new_from_descriptor(&descriptor, clamped_pt_size)
             },
-            FontIdentifier::Web(_) => {
+            FontIdentifier::Web(_) | FontIdentifier::Mock(_) => {
                 let provider = CGDataProvider::from_buffer(data);
                 let cgfont = CGFont::from_data_provider(provider).ok()?;
                 core_text::font::new_from_CGFont(&cgfont, clamped_pt_size)

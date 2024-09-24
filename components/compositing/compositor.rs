@@ -9,6 +9,7 @@ use std::fs::{create_dir_all, File};
 use std::io::Write;
 use std::iter::once;
 use std::rc::Rc;
+use std::sync::Arc;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use base::cross_process_instant::CrossProcessInstant;
@@ -23,7 +24,7 @@ use embedder_traits::Cursor;
 use euclid::{Point2D, Rect, Scale, Transform3D, Vector2D};
 use fnv::{FnvHashMap, FnvHashSet};
 use image::{DynamicImage, ImageFormat};
-use ipc_channel::ipc;
+use ipc_channel::ipc::{self, IpcSharedMemory};
 use libc::c_void;
 use log::{debug, error, info, trace, warn};
 use pixels::{CorsStatus, Image, PixelFormat};
@@ -43,9 +44,10 @@ use webrender_api::units::{
 };
 use webrender_api::{
     self, BuiltDisplayList, DirtyRect, DisplayListPayload, DocumentId, Epoch as WebRenderEpoch,
-    ExternalScrollId, FontInstanceOptions, HitTestFlags, PipelineId as WebRenderPipelineId,
-    PropertyBinding, ReferenceFrameKind, RenderReasons, SampledScrollOffset, ScrollLocation,
-    SpaceAndClipInfo, SpatialId, SpatialTreeItemKey, TransformStyle,
+    ExternalScrollId, FontInstanceFlags, FontInstanceKey, FontInstanceOptions, FontKey,
+    HitTestFlags, PipelineId as WebRenderPipelineId, PropertyBinding, ReferenceFrameKind,
+    RenderReasons, SampledScrollOffset, ScrollLocation, SpaceAndClipInfo, SpatialId,
+    SpatialTreeItemKey, TransformStyle,
 };
 use webrender_traits::display_list::{HitTestInfo, ScrollTree};
 use webrender_traits::{
@@ -841,6 +843,23 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     .send_transaction(self.webrender_document, txn);
             },
 
+            ForwardedToCompositorMsg::Layout(ScriptToCompositorMsg::AddFont(
+                data,
+                index,
+                key_sender,
+            )) => {
+                let _ = key_sender.send(self.add_font(index, data));
+            },
+
+            ForwardedToCompositorMsg::Layout(ScriptToCompositorMsg::AddFontInstance(
+                font_key,
+                size,
+                flags,
+                sender,
+            )) => {
+                let _ = sender.send(self.add_font_instance(font_key, size, flags));
+            },
+
             ForwardedToCompositorMsg::Layout(ScriptToCompositorMsg::RemoveFonts(
                 keys,
                 instance_keys,
@@ -865,47 +884,24 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     .send_transaction(self.webrender_document, txn);
             },
 
-            ForwardedToCompositorMsg::Font(FontToCompositorMsg::AddFontInstance(
+            ForwardedToCompositorMsg::SystemFontService(FontToCompositorMsg::AddFontInstance(
                 font_key,
                 size,
                 flags,
                 sender,
             )) => {
-                let key = self.webrender_api.generate_font_instance_key();
-                let mut transaction = Transaction::new();
-
-                let font_instance_options = FontInstanceOptions {
-                    flags,
-                    ..Default::default()
-                };
-                transaction.add_font_instance(
-                    key,
-                    font_key,
-                    size,
-                    Some(font_instance_options),
-                    None,
-                    Vec::new(),
-                );
-
-                self.webrender_api
-                    .send_transaction(self.webrender_document, transaction);
-                let _ = sender.send(key);
+                let _ = sender.send(self.add_font_instance(font_key, size, flags));
             },
 
-            ForwardedToCompositorMsg::Font(FontToCompositorMsg::AddFont(
+            ForwardedToCompositorMsg::SystemFontService(FontToCompositorMsg::AddFont(
                 key_sender,
                 index,
                 data,
             )) => {
-                let font_key = self.webrender_api.generate_font_key();
-                let mut transaction = Transaction::new();
-                transaction.add_raw_font(font_key, (**data).into(), index);
-                self.webrender_api
-                    .send_transaction(self.webrender_document, transaction);
-                let _ = key_sender.send(font_key);
+                let _ = key_sender.send(self.add_font(index, data));
             },
 
-            ForwardedToCompositorMsg::Font(FontToCompositorMsg::AddSystemFont(
+            ForwardedToCompositorMsg::SystemFontService(FontToCompositorMsg::AddSystemFont(
                 key_sender,
                 native_handle,
             )) => {
@@ -960,13 +956,23 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 self.remove_pipeline_root_layer(pipeline_id);
                 let _ = sender.send(());
             },
-            CompositorMsg::Forwarded(ForwardedToCompositorMsg::Font(
+            CompositorMsg::Forwarded(ForwardedToCompositorMsg::SystemFontService(
                 FontToCompositorMsg::AddFontInstance(_, _, _, sender),
             )) => {
                 let _ = sender.send(self.webrender_api.generate_font_instance_key());
             },
-            CompositorMsg::Forwarded(ForwardedToCompositorMsg::Font(
+            CompositorMsg::Forwarded(ForwardedToCompositorMsg::Layout(
+                ScriptToCompositorMsg::AddFontInstance(_, _, _, sender),
+            )) => {
+                let _ = sender.send(self.webrender_api.generate_font_instance_key());
+            },
+            CompositorMsg::Forwarded(ForwardedToCompositorMsg::SystemFontService(
                 FontToCompositorMsg::AddFont(sender, _, _),
+            )) => {
+                let _ = sender.send(self.webrender_api.generate_font_key());
+            },
+            CompositorMsg::Forwarded(ForwardedToCompositorMsg::Layout(
+                ScriptToCompositorMsg::AddFont(_, _, sender),
             )) => {
                 let _ = sender.send(self.webrender_api.generate_font_key());
             },
@@ -2517,5 +2523,41 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         {
             eprintln!("Unable to write servo version for WebRender Capture: {error:?}");
         }
+    }
+
+    fn add_font_instance(
+        &mut self,
+        font_key: FontKey,
+        size: f32,
+        flags: FontInstanceFlags,
+    ) -> FontInstanceKey {
+        let instance_key = self.webrender_api.generate_font_instance_key();
+        let mut transaction = Transaction::new();
+
+        let font_instance_options = FontInstanceOptions {
+            flags,
+            ..Default::default()
+        };
+        transaction.add_font_instance(
+            instance_key,
+            font_key,
+            size,
+            Some(font_instance_options),
+            None,
+            Vec::new(),
+        );
+
+        self.webrender_api
+            .send_transaction(self.webrender_document, transaction);
+        instance_key
+    }
+
+    fn add_font(&mut self, index: u32, data: Arc<IpcSharedMemory>) -> FontKey {
+        let font_key = self.webrender_api.generate_font_key();
+        let mut transaction = Transaction::new();
+        transaction.add_raw_font(font_key, (**data).into(), index);
+        self.webrender_api
+            .send_transaction(self.webrender_document, transaction);
+        font_key
     }
 }

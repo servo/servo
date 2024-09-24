@@ -11,7 +11,7 @@ use app_units::{Au, MIN_AU};
 use base::print_tree::PrintTree;
 use bitflags::bitflags;
 use euclid::default::{Point2D, Rect, Size2D};
-use fonts::FontMetrics;
+use fonts::{FontContext, FontMetrics};
 use log::debug;
 use range::{int_range_index, Range, RangeIndex};
 use script_layout_interface::wrapper_traits::PseudoElementType;
@@ -33,7 +33,7 @@ use style::values::specified::text::TextOverflowSide;
 use unicode_bidi as bidi;
 
 use crate::block::AbsoluteAssignBSizesTraversal;
-use crate::context::{LayoutContext, LayoutFontContext};
+use crate::context::LayoutContext;
 use crate::display_list::items::{DisplayListSection, OpaqueNode};
 use crate::display_list::{
     BorderPaintingMode, DisplayListBuildState, StackingContextCollectionState,
@@ -1239,7 +1239,7 @@ impl InlineFlow {
     /// `style` is the style of the block.
     pub fn minimum_line_metrics(
         &self,
-        font_context: &LayoutFontContext,
+        font_context: &FontContext,
         style: &ComputedValues,
     ) -> LineMetrics {
         InlineFlow::minimum_line_metrics_for_fragments(
@@ -1255,7 +1255,7 @@ impl InlineFlow {
     /// `style` is the style of the block that these fragments belong to.
     pub fn minimum_line_metrics_for_fragments(
         fragments: &[Fragment],
-        font_context: &LayoutFontContext,
+        font_context: &FontContext,
         style: &ComputedValues,
     ) -> LineMetrics {
         // As a special case, if this flow contains only hypothetical fragments, then the entire

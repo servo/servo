@@ -31,7 +31,7 @@ use crate::font_context::FontContext;
 use crate::font_template::{FontTemplateDescriptor, FontTemplateRef, FontTemplateRefMethods};
 use crate::platform::font::{FontTable, PlatformFont};
 pub use crate::platform::font_list::fallback_font_families;
-use crate::system_font_service::{FontIdentifier, SystemFontServiceProxyTrait};
+use crate::system_font_service::FontIdentifier;
 use crate::{
     ByteIndex, EmojiPresentationPreference, FallbackFontSelectionOptions, FontData, GlyphData,
     GlyphId, GlyphStore, Shaper,
@@ -550,9 +550,9 @@ impl FontGroup {
     /// `codepoint`. If no such font is found, returns the first available font or fallback font
     /// (which will cause a "glyph not found" character to be rendered). If no font at all can be
     /// found, returns None.
-    pub fn find_by_codepoint<S: SystemFontServiceProxyTrait>(
+    pub fn find_by_codepoint(
         &mut self,
-        font_context: &FontContext<S>,
+        font_context: &FontContext,
         codepoint: char,
         next_codepoint: Option<char>,
     ) -> Option<FontRef> {
@@ -622,10 +622,7 @@ impl FontGroup {
     }
 
     /// Find the first available font in the group, or the first available fallback font.
-    pub fn first<S: SystemFontServiceProxyTrait>(
-        &mut self,
-        font_context: &FontContext<S>,
-    ) -> Option<FontRef> {
+    pub fn first(&mut self, font_context: &FontContext) -> Option<FontRef> {
         // From https://drafts.csswg.org/css-fonts/#first-available-font:
         // > The first available font, used for example in the definition of font-relative lengths
         // > such as ex or in the definition of the line-height property, is defined to be the first
@@ -649,14 +646,13 @@ impl FontGroup {
     /// Attempts to find a font which matches the given `template_predicate` and `font_predicate`.
     /// This method mutates because we may need to load new font data in the process of finding
     /// a suitable font.
-    fn find<S, TemplatePredicate, FontPredicate>(
+    fn find<TemplatePredicate, FontPredicate>(
         &mut self,
-        font_context: &FontContext<S>,
+        font_context: &FontContext,
         template_predicate: TemplatePredicate,
         font_predicate: FontPredicate,
     ) -> Option<FontRef>
     where
-        S: SystemFontServiceProxyTrait,
         TemplatePredicate: Fn(FontTemplateRef) -> bool,
         FontPredicate: Fn(&FontRef) -> bool,
     {
@@ -678,15 +674,14 @@ impl FontGroup {
     /// `font_predicate`. The default family (i.e. "serif") will be tried first, followed by
     /// platform-specific family names. If a `codepoint` is provided, then its Unicode block may be
     /// used to refine the list of family names which will be tried.
-    fn find_fallback<S, TemplatePredicate, FontPredicate>(
+    fn find_fallback<TemplatePredicate, FontPredicate>(
         &mut self,
-        font_context: &FontContext<S>,
+        font_context: &FontContext,
         options: FallbackFontSelectionOptions,
         template_predicate: TemplatePredicate,
         font_predicate: FontPredicate,
     ) -> Option<FontRef>
     where
-        S: SystemFontServiceProxyTrait,
         TemplatePredicate: Fn(FontTemplateRef) -> bool,
         FontPredicate: Fn(&FontRef) -> bool,
     {
@@ -750,15 +745,14 @@ impl FontGroupFamily {
         }
     }
 
-    fn find<S, TemplatePredicate, FontPredicate>(
+    fn find<TemplatePredicate, FontPredicate>(
         &mut self,
         font_descriptor: &FontDescriptor,
-        font_context: &FontContext<S>,
+        font_context: &FontContext,
         template_predicate: &TemplatePredicate,
         font_predicate: &FontPredicate,
     ) -> Option<FontRef>
     where
-        S: SystemFontServiceProxyTrait,
         TemplatePredicate: Fn(FontTemplateRef) -> bool,
         FontPredicate: Fn(&FontRef) -> bool,
     {
@@ -781,10 +775,10 @@ impl FontGroupFamily {
             .next()
     }
 
-    fn members<S: SystemFontServiceProxyTrait>(
+    fn members(
         &mut self,
         font_descriptor: &FontDescriptor,
-        font_context: &FontContext<S>,
+        font_context: &FontContext,
     ) -> impl Iterator<Item = &mut FontGroupFamilyMember> {
         let family_descriptor = &self.family_descriptor;
         let members = self.members.get_or_insert_with(|| {

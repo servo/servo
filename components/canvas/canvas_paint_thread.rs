@@ -17,7 +17,7 @@ use ipc_channel::router::ROUTER;
 use log::warn;
 use net_traits::ResourceThreads;
 use webrender_api::ImageKey;
-use webrender_traits::ImageUpdate;
+use webrender_traits::{ImageUpdate, WebRenderScriptApi};
 
 use crate::canvas_data::*;
 
@@ -37,7 +37,7 @@ pub struct CanvasPaintThread<'a> {
     canvases: HashMap<CanvasId, CanvasData<'a>>,
     next_canvas_id: CanvasId,
     webrender_api: Box<dyn WebrenderApi>,
-    font_context: Arc<FontContext<SystemFontServiceProxy>>,
+    font_context: Arc<FontContext>,
 }
 
 impl<'a> CanvasPaintThread<'a> {
@@ -46,11 +46,18 @@ impl<'a> CanvasPaintThread<'a> {
         system_font_service: Arc<SystemFontServiceProxy>,
         resource_threads: ResourceThreads,
     ) -> CanvasPaintThread<'a> {
+        // This is only used for web fonts and currently canvas never uses web fonts.
+        let webrender_script_api = WebRenderScriptApi::dummy();
+
         CanvasPaintThread {
             canvases: HashMap::new(),
             next_canvas_id: CanvasId(0),
             webrender_api,
-            font_context: Arc::new(FontContext::new(system_font_service, resource_threads)),
+            font_context: Arc::new(FontContext::new(
+                system_font_service,
+                webrender_script_api,
+                resource_threads,
+            )),
         }
     }
 

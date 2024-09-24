@@ -1101,58 +1101,32 @@ impl WebRenderFontApi for WebRenderFontApiCompositorProxy {
         flags: FontInstanceFlags,
     ) -> FontInstanceKey {
         let (sender, receiver) = unbounded();
-        self.0
-            .send(CompositorMsg::Forwarded(ForwardedToCompositorMsg::Font(
-                FontToCompositorMsg::AddFontInstance(font_key, size, flags, sender),
-            )));
+        self.0.send(CompositorMsg::Forwarded(
+            ForwardedToCompositorMsg::SystemFontService(FontToCompositorMsg::AddFontInstance(
+                font_key, size, flags, sender,
+            )),
+        ));
         receiver.recv().unwrap()
     }
 
     fn add_font(&self, data: Arc<IpcSharedMemory>, index: u32) -> FontKey {
         let (sender, receiver) = unbounded();
-        self.0
-            .send(CompositorMsg::Forwarded(ForwardedToCompositorMsg::Font(
-                FontToCompositorMsg::AddFont(sender, index, data),
-            )));
+        self.0.send(CompositorMsg::Forwarded(
+            ForwardedToCompositorMsg::SystemFontService(FontToCompositorMsg::AddFont(
+                sender, index, data,
+            )),
+        ));
         receiver.recv().unwrap()
     }
 
     fn add_system_font(&self, handle: NativeFontHandle) -> FontKey {
         let (sender, receiver) = unbounded();
-        self.0
-            .send(CompositorMsg::Forwarded(ForwardedToCompositorMsg::Font(
-                FontToCompositorMsg::AddSystemFont(sender, handle),
-            )));
+        self.0.send(CompositorMsg::Forwarded(
+            ForwardedToCompositorMsg::SystemFontService(FontToCompositorMsg::AddSystemFont(
+                sender, handle,
+            )),
+        ));
         receiver.recv().unwrap()
-    }
-
-    fn forward_add_font_message(
-        &self,
-        data: Arc<IpcSharedMemory>,
-        font_index: u32,
-        result_sender: IpcSender<FontKey>,
-    ) {
-        let (sender, receiver) = unbounded();
-        self.0
-            .send(CompositorMsg::Forwarded(ForwardedToCompositorMsg::Font(
-                FontToCompositorMsg::AddFont(sender, font_index, data),
-            )));
-        let _ = result_sender.send(receiver.recv().unwrap());
-    }
-
-    fn forward_add_font_instance_message(
-        &self,
-        font_key: FontKey,
-        size: f32,
-        flags: FontInstanceFlags,
-        result_sender: IpcSender<FontInstanceKey>,
-    ) {
-        let (sender, receiver) = unbounded();
-        self.0
-            .send(CompositorMsg::Forwarded(ForwardedToCompositorMsg::Font(
-                FontToCompositorMsg::AddFontInstance(font_key, size, flags, sender),
-            )));
-        let _ = result_sender.send(receiver.recv().unwrap());
     }
 }
 

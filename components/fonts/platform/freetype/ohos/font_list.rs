@@ -22,7 +22,7 @@ use style::Atom;
 use unicode_script::Script;
 
 use crate::{
-    EmojiPresentationPreference, FallbackFontSelectionOptions, FontTemplate,
+    EmojiPresentationPreference, FallbackFontSelectionOptions, FontIdentifier, FontTemplate,
     FontTemplateDescriptor, LowercaseFontFamilyName,
 };
 
@@ -492,9 +492,10 @@ where
             None => StyleFontStyle::NORMAL,
         };
         let descriptor = FontTemplateDescriptor::new(weight, stretch, style);
-        callback(FontTemplate::new_for_local_font(
-            local_font_identifier,
+        callback(FontTemplate::new(
+            FontIdentifier::Local(local_font_identifier),
             descriptor,
+            None,
         ));
     };
 

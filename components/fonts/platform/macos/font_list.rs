@@ -18,7 +18,7 @@ use webrender_api::NativeFontHandle;
 use crate::platform::add_noto_fallback_families;
 use crate::platform::font::CoreTextFontTraitsMapping;
 use crate::{
-    EmojiPresentationPreference, FallbackFontSelectionOptions, FontTemplate,
+    EmojiPresentationPreference, FallbackFontSelectionOptions, FontIdentifier, FontTemplate,
     FontTemplateDescriptor, LowercaseFontFamilyName,
 };
 
@@ -85,7 +85,11 @@ where
                     postscript_name: Atom::from(family_descriptor.font_name()),
                     path: Atom::from(path),
                 };
-                callback(FontTemplate::new_for_local_font(identifier, descriptor));
+                callback(FontTemplate::new(
+                    FontIdentifier::Local(identifier),
+                    descriptor,
+                    None,
+                ));
             }
         }
     }

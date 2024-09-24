@@ -121,7 +121,7 @@ pub struct LayoutThread {
     image_cache: Arc<dyn ImageCache>,
 
     /// A FontContext to be used during layout.
-    font_context: Arc<FontContext<SystemFontServiceProxy>>,
+    font_context: Arc<FontContext>,
 
     /// Is this the first reflow in this LayoutThread?
     first_reflow: Cell<bool>,
@@ -521,7 +521,11 @@ impl LayoutThread {
 
         // The device pixel ratio is incorrect (it does not have the hidpi value),
         // but it will be set correctly when the initial reflow takes place.
-        let font_context = Arc::new(FontContext::new(system_font_service, resource_threads));
+        let font_context = Arc::new(FontContext::new(
+            system_font_service,
+            webrender_api_sender.clone(),
+            resource_threads,
+        ));
         let device = Device::new(
             MediaType::screen(),
             QuirksMode::NoQuirks,
@@ -1227,7 +1231,7 @@ impl RegisteredSpeculativePainters for RegisteredPaintersImpl {
     }
 }
 
-struct LayoutFontMetricsProvider(Arc<FontContext<SystemFontServiceProxy>>);
+struct LayoutFontMetricsProvider(Arc<FontContext>);
 
 impl FontMetricsProvider for LayoutFontMetricsProvider {
     fn query_font_metrics(
