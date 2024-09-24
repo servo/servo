@@ -4,7 +4,6 @@
 
 use std::cell::{Cell, RefCell};
 use std::collections::VecDeque;
-use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject};
@@ -13,7 +12,6 @@ use js::rust::{HandleValue as SafeHandleValue, HandleValue};
 use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultControllerBinding::ReadableStreamDefaultControllerMethods;
 use crate::dom::bindings::import::module::UnionTypes::ReadableStreamDefaultControllerOrReadableByteStreamController as Controller;
 use crate::dom::bindings::import::module::{Error, Fallible};
-use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::globalscope::GlobalScope;
@@ -61,7 +59,7 @@ impl Callback for PullAlgorithmRejectionHandler {
 pub struct ValueWithSize {
     // TODO: check how to properly do this one.
     value: Heap<*mut JSObject>,
-    size: Heap<*mut JSObject>,
+    size: f64,
 }
 
 /// <https://streams.spec.whatwg.org/#value-with-size>
@@ -72,6 +70,15 @@ pub enum EnqueuedValue {
     Native(Vec<u8>),
     /// A Js value.
     Js(ValueWithSize),
+}
+
+impl EnqueuedValue {
+    fn size(&self) -> f64 {
+        match self {
+            EnqueuedValue::Native(v) => v.len() as f64,
+            EnqueuedValue::Js(v) => v.size,
+        }
+    }
 }
 
 /// <https://streams.spec.whatwg.org/#queue-with-sizes>
@@ -86,15 +93,17 @@ pub struct QueueWithSizes {
 impl QueueWithSizes {
     /// <https://streams.spec.whatwg.org/#dequeue-value>
     fn dequeue_value(&mut self) -> EnqueuedValue {
-        // TODO: update total size.
-        self.queue
+        let value = self
+            .queue
             .pop_front()
-            .expect("Buffer cannot be empty when dequeue value is called into.")
+            .expect("Buffer cannot be empty when dequeue value is called into.");
+        self.total_size -= value.size();
+        value
     }
 
     /// <https://streams.spec.whatwg.org/#enqueue-value-with-size>
     fn enqueue_value_with_size(&mut self, value: EnqueuedValue) {
-        // TODO: update total size.
+        self.total_size += value.size();
         self.queue.push_back(value);
     }
 
@@ -266,6 +275,32 @@ impl ReadableStreamDefaultController {
         self.call_pull_if_needed();
     }
 
+    /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-enqueue>
+    pub fn enqueue(&self, cx: SafeJSContext, chunk: SafeHandleValue) {
+        let stream = self
+            .stream
+            .get()
+            .expect("Controller must have a stream when a chunk is enqueued.");
+        if stream.is_locked() && stream.get_num_read_requests() > 0 {
+            // TODO: stream.fulfill_read_request() with SafeHandleValue
+            return;
+        }
+
+        rooted!(in(*cx) let object = chunk.to_object());
+        let value_with_size = ValueWithSize {
+            value: Heap::default(),
+            // TODO: strategy size algo.
+            size: 0.,
+        };
+        value_with_size.value.set(*object);
+
+        // <https://streams.spec.whatwg.org/#enqueue-value-with-size>
+        let mut queue = self.queue.borrow_mut();
+        queue.enqueue_value_with_size(EnqueuedValue::Js(value_with_size));
+
+        self.call_pull_if_needed();
+    }
+
     /// Native call to
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-enqueue>
     pub fn enqueue_native(&self, chunk: Vec<u8>) {
@@ -277,8 +312,6 @@ impl ReadableStreamDefaultController {
             stream.fulfill_read_request(chunk, false);
             return;
         }
-
-        // TODO: strategy size algo.
 
         // <https://streams.spec.whatwg.org/#enqueue-value-with-size>
         let mut queue = self.queue.borrow_mut();
@@ -413,9 +446,14 @@ impl ReadableStreamDefaultControllerMethods for ReadableStreamDefaultController 
     }
 
     /// <https://streams.spec.whatwg.org/#rs-default-controller-enqueue>
-    fn Enqueue(&self, _cx: SafeJSContext, _chunk: SafeHandleValue) -> Fallible<()> {
-        // TODO
-        Err(Error::NotFound)
+    fn Enqueue(&self, cx: SafeJSContext, chunk: SafeHandleValue) -> Fallible<()> {
+        if !self.can_close_or_enqueue() {
+            return Err(Error::NotFound);
+        }
+
+        self.enqueue(cx, chunk);
+
+        Ok(())
     }
 
     /// <https://streams.spec.whatwg.org/#rs-default-controller-error>
