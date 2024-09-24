@@ -513,17 +513,11 @@ impl WGPU {
                         }
                         self.maybe_dispatch_wgpu_error(device_id, error);
                     },
-                    WebGPURequest::CreateSwapChain {
-                        device_id,
-                        queue_id,
+                    WebGPURequest::ResizeSwapChain {
                         buffer_ids,
                         context_id,
-                        image_key,
                         size,
-                        format,
-                    } => self.create_swapchain(
-                        device_id, queue_id, buffer_ids, context_id, format, size, image_key,
-                    ),
+                    } => self.resize_swapchain(context_id, buffer_ids, size),
                     WebGPURequest::ValidateTextureDescriptorAndCreateSwapChain {
                         device_id,
                         queue_id,

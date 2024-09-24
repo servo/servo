@@ -140,11 +140,28 @@ impl PresentationData {
     pub fn new(
         device_id: id::DeviceId,
         queue_id: id::QueueId,
+        context_id: WebGPUContextId,
         buffer_ids: ArrayVec<id::BufferId, PRESENTATION_BUFFER_COUNT>,
         image_key: ImageKey,
-        image_desc: ImageDescriptor,
-        image_data: ImageData,
+        format: ImageFormat,
+        size: DeviceIntSize,
     ) -> Self {
+        let image_desc = ImageDescriptor {
+            format,
+            size,
+            stride: Some(
+                (((size.width as u32 * 4) | (wgt::COPY_BYTES_PER_ROW_ALIGNMENT - 1)) + 1) as i32,
+            ),
+            offset: 0,
+            flags: ImageDescriptorFlags::IS_OPAQUE,
+        };
+
+        let image_data = ImageData::External(ExternalImageData {
+            id: ExternalImageId(context_id.0),
+            channel_index: 0,
+            image_type: ExternalImageType::Buffer,
+        });
+
         Self {
             device_id,
             queue_id,
@@ -254,6 +271,28 @@ impl PresentationData {
 }
 
 impl crate::WGPU {
+    pub(crate) fn resize_swapchain(
+        &self,
+        context_id: WebGPUContextId,
+        buffer_ids: ArrayVec<id::BufferId, PRESENTATION_BUFFER_COUNT>,
+        size: DeviceIntSize,
+    ) {
+        let presentation_data = {
+            let wgpu_image_map = self.wgpu_image_map.lock().unwrap();
+            let presentation_data = wgpu_image_map.get(&context_id).unwrap();
+            PresentationData::new(
+                presentation_data.device_id,
+                presentation_data.queue_id,
+                context_id,
+                buffer_ids,
+                presentation_data.image_key,
+                presentation_data.image_desc.format,
+                size,
+            )
+        };
+        self.recreate_swapchain(context_id, presentation_data);
+    }
+
     pub(crate) fn create_swapchain(
         &self,
         device_id: id::DeviceId,
@@ -264,33 +303,24 @@ impl crate::WGPU {
         size: DeviceIntSize,
         image_key: ImageKey,
     ) {
-        let image_desc = ImageDescriptor {
-            format,
-            size,
-            stride: Some(
-                (((size.width as u32 * 4) | (wgt::COPY_BYTES_PER_ROW_ALIGNMENT - 1)) + 1) as i32,
-            ),
-            offset: 0,
-            flags: ImageDescriptorFlags::IS_OPAQUE,
-        };
-
-        let image_data = ImageData::External(ExternalImageData {
-            id: ExternalImageId(context_id.0),
-            channel_index: 0,
-            image_type: ExternalImageType::Buffer,
-        });
-
-        let old_presentation_data = self.wgpu_image_map.lock().unwrap().insert(
+        self.recreate_swapchain(
             context_id,
             PresentationData::new(
-                device_id,
-                queue_id,
-                buffer_ids,
-                image_key,
-                image_desc,
-                image_data.clone(),
+                device_id, queue_id, context_id, buffer_ids, image_key, format, size,
             ),
         );
+    }
+
+    fn recreate_swapchain(&self, context_id: WebGPUContextId, presentation_data: PresentationData) {
+        let image_key = presentation_data.image_key;
+        let image_desc = presentation_data.image_desc;
+        let image_data = presentation_data.image_data.clone();
+
+        let old_presentation_data = self
+            .wgpu_image_map
+            .lock()
+            .unwrap()
+            .insert(context_id, presentation_data);
         if let Some(old_presentation_data) = old_presentation_data {
             old_presentation_data.destroy(
                 &self.global,

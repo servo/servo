@@ -10,7 +10,7 @@ use base::id::PipelineId;
 use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
 use serde::{Deserialize, Serialize};
 use webrender_api::units::DeviceIntSize;
-use webrender_api::{ImageFormat, ImageKey};
+use webrender_api::ImageKey;
 use wgc::binding_model::{
     BindGroupDescriptor, BindGroupLayoutDescriptor, PipelineLayoutDescriptor,
 };
@@ -129,13 +129,9 @@ pub enum WebGPURequest {
         label: Option<String>,
         sender: IpcSender<WebGPUResponse>,
     },
-    CreateSwapChain {
-        device_id: id::DeviceId,
-        queue_id: id::QueueId,
+    ResizeSwapChain {
         buffer_ids: ArrayVec<id::BufferId, PRESENTATION_BUFFER_COUNT>,
         context_id: WebGPUContextId,
-        image_key: ImageKey,
-        format: ImageFormat,
         size: DeviceIntSize,
     },
     ValidateTextureDescriptorAndCreateSwapChain {

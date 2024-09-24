@@ -21,7 +21,6 @@ use super::bindings::root::MutNullableDom;
 use super::bindings::str::USVString;
 use super::gpuconvert::convert_texture_descriptor;
 use super::gputexture::GPUTexture;
-use crate::dom::bindings::codegen::Bindings::HTMLCanvasElementBinding::HTMLCanvasElement_Binding::HTMLCanvasElementMethods;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUTexture_Binding::GPUTextureMethods;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUCanvasConfiguration, GPUCanvasContextMethods, GPUDeviceMethods, GPUExtent3D,
@@ -193,12 +192,11 @@ impl GPUCanvasContext {
         // Step 1
         self.expire_current_texture();
         // Step 2
-        //let configuration = self.configuration.borrow();
+        // let configuration = self.configuration.borrow();
         // Step 3
         self.drawing_buffer.set(DrawingBuffer::TransparentAlpha);
-        // TODO: Configuration on drawing buffer
-        // here we should recreate swapchain
-        // expire does needless copy???
+        // Technically we should always do swapchain stuff here
+        // but we can do it smarter if we know what changed
     }
 }
 
@@ -229,7 +227,7 @@ impl GPUCanvasContext {
     fn size(&self) -> Size2D<u64> {
         match &self.canvas {
             HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(canvas) => {
-                Size2D::new(canvas.Width() as u64, canvas.Height() as u64)
+                canvas.get_size().cast()
             },
             HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(canvas) => canvas.get_size(),
         }
@@ -239,11 +237,11 @@ impl GPUCanvasContext {
 // public methods for canvas handling
 // these methods should probably be behind trait for all canvases
 impl GPUCanvasContext {
-    pub fn context_id(&self) -> WebGPUContextId {
+    pub(crate) fn context_id(&self) -> WebGPUContextId {
         self.context_id
     }
 
-    pub fn mark_as_dirty(&self) {
+    pub(crate) fn mark_as_dirty(&self) {
         if let HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(canvas) = &self.canvas {
             canvas.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
             let document = document_from_node(&**canvas);
@@ -252,15 +250,27 @@ impl GPUCanvasContext {
     }
 
     /// <https://gpuweb.github.io/gpuweb/#abstract-opdef-updating-the-rendering-of-a-webgpu-canvas>
-    pub fn update_rendering_of_webgpu_canvas(&self) {
+    pub(crate) fn update_rendering_of_webgpu_canvas(&self) {
         // Step 1
         self.expire_current_texture();
     }
 
     /// <https://gpuweb.github.io/gpuweb/#abstract-opdef-update-the-canvas-size>
-    pub fn resize(&self) {
+    pub(crate) fn resize(&self) {
         // Step 1
         self.replace_drawing_buffer();
+        let mut buffer_ids = ArrayVec::<id::BufferId, PRESENTATION_BUFFER_COUNT>::new();
+        for _ in 0..PRESENTATION_BUFFER_COUNT {
+            buffer_ids.push(self.global().wgpu_id_hub().create_buffer_id());
+        }
+        self.channel
+            .0
+            .send(WebGPURequest::ResizeSwapChain {
+                buffer_ids,
+                context_id: self.context_id,
+                size: self.size().cast().cast_unit(),
+            })
+            .expect("Failed to resize WebGPU SwapChain");
         // Step 2
         let configuration = self.configuration.borrow();
         // Step 3
@@ -329,6 +339,7 @@ impl GPUCanvasContextMethods for GPUCanvasContext {
     fn Unconfigure(&self) {
         self.current_texture.take();
         let configuration = self.configuration.take();
+        self.replace_drawing_buffer();
         if configuration.is_some() {
             if let Err(e) = self.channel.0.send(WebGPURequest::DestroySwapChain {
                 context_id: self.context_id,
@@ -339,7 +350,6 @@ impl GPUCanvasContextMethods for GPUCanvasContext {
                 );
             }
         }
-        self.replace_drawing_buffer();
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-getcurrenttexture>
