@@ -10,7 +10,6 @@ use std::{slice, thread};
 use bitflags::bitflags;
 use byteorder::{ByteOrder, NativeEndian, WriteBytesExt};
 use canvas_traits::webgl;
-use canvas_traits::webgl::WebXRCommand;
 use canvas_traits::webgl::{
     ActiveAttribInfo, ActiveUniformBlockInfo, ActiveUniformInfo, AlphaTreatment,
     GLContextAttributes, GLLimits, GlType, InternalFormatIntVec, ProgramLinkInfo, TexDataType,
@@ -18,7 +17,7 @@ use canvas_traits::webgl::{
     WebGLCreateContextResult, WebGLFramebufferBindingRequest, WebGLFramebufferId, WebGLMsg,
     WebGLMsgSender, WebGLProgramId, WebGLQueryId, WebGLReceiver, WebGLRenderbufferId,
     WebGLSLVersion, WebGLSamplerId, WebGLSender, WebGLShaderId, WebGLSyncId, WebGLTextureId,
-    WebGLVersion, WebGLVertexArrayId, YAxisTreatment,
+    WebGLVersion, WebGLVertexArrayId, WebXRCommand, YAxisTreatment,
 };
 use euclid::default::Size2D;
 use fnv::FnvHashMap;
@@ -79,18 +78,18 @@ pub struct GLState {
 impl GLState {
     // Are we faking having no alpha / depth / stencil?
     fn fake_no_alpha(&self) -> bool {
-        self.drawing_to_default_framebuffer
-            & !self.requested_flags.contains(ContextAttributeFlags::ALPHA)
+        self.drawing_to_default_framebuffer &
+            !self.requested_flags.contains(ContextAttributeFlags::ALPHA)
     }
 
     fn fake_no_depth(&self) -> bool {
-        self.drawing_to_default_framebuffer
-            & !self.requested_flags.contains(ContextAttributeFlags::DEPTH)
+        self.drawing_to_default_framebuffer &
+            !self.requested_flags.contains(ContextAttributeFlags::DEPTH)
     }
 
     fn fake_no_stencil(&self) -> bool {
-        self.drawing_to_default_framebuffer
-            & !self
+        self.drawing_to_default_framebuffer &
+            !self
                 .requested_flags
                 .contains(ContextAttributeFlags::STENCIL)
     }
@@ -487,10 +486,10 @@ impl WebGLThread {
         // WebGL requires all contexts to be able to create framebuffers with
         // alpha, depth and stencil. So we always create a context with them,
         // and fake not having them if requested.
-        let flags = requested_flags
-            | ContextAttributeFlags::ALPHA
-            | ContextAttributeFlags::DEPTH
-            | ContextAttributeFlags::STENCIL;
+        let flags = requested_flags |
+            ContextAttributeFlags::ALPHA |
+            ContextAttributeFlags::DEPTH |
+            ContextAttributeFlags::STENCIL;
         let context_attributes = &ContextAttributes {
             version: webgl_version.to_surfman_version(self.api_type),
             flags,
@@ -2596,10 +2595,10 @@ fn image_to_tex_image_data(
     }
 
     match (format, data_type) {
-        (TexFormat::RGBA, TexDataType::UnsignedByte)
-        | (TexFormat::RGBA8, TexDataType::UnsignedByte) => pixels,
-        (TexFormat::RGB, TexDataType::UnsignedByte)
-        | (TexFormat::RGB8, TexDataType::UnsignedByte) => {
+        (TexFormat::RGBA, TexDataType::UnsignedByte) |
+        (TexFormat::RGBA8, TexDataType::UnsignedByte) => pixels,
+        (TexFormat::RGB, TexDataType::UnsignedByte) |
+        (TexFormat::RGB8, TexDataType::UnsignedByte) => {
             for i in 0..pixel_count {
                 let rgb = {
                     let rgb = &pixels[i * 4..i * 4 + 3];
@@ -2642,10 +2641,10 @@ fn image_to_tex_image_data(
             for i in 0..pixel_count {
                 let p = {
                     let rgba = &pixels[i * 4..i * 4 + 4];
-                    (rgba[0] as u16 & 0xf0) << 8
-                        | (rgba[1] as u16 & 0xf0) << 4
-                        | (rgba[2] as u16 & 0xf0)
-                        | (rgba[3] as u16 & 0xf0) >> 4
+                    (rgba[0] as u16 & 0xf0) << 8 |
+                        (rgba[1] as u16 & 0xf0) << 4 |
+                        (rgba[2] as u16 & 0xf0) |
+                        (rgba[3] as u16 & 0xf0) >> 4
                 };
                 NativeEndian::write_u16(&mut pixels[i * 2..i * 2 + 2], p);
             }
@@ -2656,10 +2655,10 @@ fn image_to_tex_image_data(
             for i in 0..pixel_count {
                 let p = {
                     let rgba = &pixels[i * 4..i * 4 + 4];
-                    (rgba[0] as u16 & 0xf8) << 8
-                        | (rgba[1] as u16 & 0xf8) << 3
-                        | (rgba[2] as u16 & 0xf8) >> 2
-                        | (rgba[3] as u16) >> 7
+                    (rgba[0] as u16 & 0xf8) << 8 |
+                        (rgba[1] as u16 & 0xf8) << 3 |
+                        (rgba[2] as u16 & 0xf8) >> 2 |
+                        (rgba[3] as u16) >> 7
                 };
                 NativeEndian::write_u16(&mut pixels[i * 2..i * 2 + 2], p);
             }
@@ -2670,9 +2669,9 @@ fn image_to_tex_image_data(
             for i in 0..pixel_count {
                 let p = {
                     let rgb = &pixels[i * 4..i * 4 + 3];
-                    (rgb[0] as u16 & 0xf8) << 8
-                        | (rgb[1] as u16 & 0xfc) << 3
-                        | (rgb[2] as u16 & 0xf8) >> 3
+                    (rgb[0] as u16 & 0xf8) << 8 |
+                        (rgb[1] as u16 & 0xfc) << 3 |
+                        (rgb[2] as u16 & 0xf8) >> 3
                 };
                 NativeEndian::write_u16(&mut pixels[i * 2..i * 2 + 2], p);
             }
@@ -2708,8 +2707,8 @@ fn image_to_tex_image_data(
             pixels
         },
 
-        (TexFormat::Luminance, TexDataType::Float)
-        | (TexFormat::Luminance32f, TexDataType::Float) => {
+        (TexFormat::Luminance, TexDataType::Float) |
+        (TexFormat::Luminance32f, TexDataType::Float) => {
             for rgba8 in pixels.chunks_mut(4) {
                 let p = rgba8[0] as f32;
                 NativeEndian::write_f32(rgba8, p);
@@ -2717,8 +2716,8 @@ fn image_to_tex_image_data(
             pixels
         },
 
-        (TexFormat::LuminanceAlpha, TexDataType::Float)
-        | (TexFormat::LuminanceAlpha32f, TexDataType::Float) => {
+        (TexFormat::LuminanceAlpha, TexDataType::Float) |
+        (TexFormat::LuminanceAlpha32f, TexDataType::Float) => {
             let mut data = Vec::<u8>::with_capacity(pixel_count * 8);
             for rgba8 in pixels.chunks(4) {
                 data.write_f32::<NativeEndian>(rgba8[0] as f32).unwrap();
@@ -2727,8 +2726,8 @@ fn image_to_tex_image_data(
             data
         },
 
-        (TexFormat::RGBA, TexDataType::HalfFloat)
-        | (TexFormat::RGBA16f, TexDataType::HalfFloat) => {
+        (TexFormat::RGBA, TexDataType::HalfFloat) |
+        (TexFormat::RGBA16f, TexDataType::HalfFloat) => {
             let mut rgbaf16 = Vec::<u8>::with_capacity(pixel_count * 8);
             for rgba8 in pixels.chunks(4) {
                 rgbaf16
@@ -2762,8 +2761,8 @@ fn image_to_tex_image_data(
             }
             rgbf16
         },
-        (TexFormat::Alpha, TexDataType::HalfFloat)
-        | (TexFormat::Alpha16f, TexDataType::HalfFloat) => {
+        (TexFormat::Alpha, TexDataType::HalfFloat) |
+        (TexFormat::Alpha16f, TexDataType::HalfFloat) => {
             for i in 0..pixel_count {
                 let p = f16::from_f32(pixels[i * 4 + 3] as f32).to_bits();
                 NativeEndian::write_u16(&mut pixels[i * 2..i * 2 + 2], p);
@@ -2771,8 +2770,8 @@ fn image_to_tex_image_data(
             pixels.truncate(pixel_count * 2);
             pixels
         },
-        (TexFormat::Luminance, TexDataType::HalfFloat)
-        | (TexFormat::Luminance16f, TexDataType::HalfFloat) => {
+        (TexFormat::Luminance, TexDataType::HalfFloat) |
+        (TexFormat::Luminance16f, TexDataType::HalfFloat) => {
             for i in 0..pixel_count {
                 let p = f16::from_f32(pixels[i * 4] as f32).to_bits();
                 NativeEndian::write_u16(&mut pixels[i * 2..i * 2 + 2], p);
@@ -2780,8 +2779,8 @@ fn image_to_tex_image_data(
             pixels.truncate(pixel_count * 2);
             pixels
         },
-        (TexFormat::LuminanceAlpha, TexDataType::HalfFloat)
-        | (TexFormat::LuminanceAlpha16f, TexDataType::HalfFloat) => {
+        (TexFormat::LuminanceAlpha, TexDataType::HalfFloat) |
+        (TexFormat::LuminanceAlpha16f, TexDataType::HalfFloat) => {
             for rgba8 in pixels.chunks_mut(4) {
                 let lum = f16::from_f32(rgba8[0] as f32).to_bits();
                 let a = f16::from_f32(rgba8[3] as f32).to_bits();
@@ -2825,10 +2824,10 @@ fn premultiply_inplace(format: TexFormat, data_type: TexDataType, pixels: &mut [
                 let a = extend_to_8_bits(pix & 0x0f);
                 NativeEndian::write_u16(
                     rgba,
-                    ((pixels::multiply_u8_color(r, a) & 0xf0) as u16) << 8
-                        | ((pixels::multiply_u8_color(g, a) & 0xf0) as u16) << 4
-                        | ((pixels::multiply_u8_color(b, a) & 0xf0) as u16)
-                        | ((a & 0x0f) as u16),
+                    ((pixels::multiply_u8_color(r, a) & 0xf0) as u16) << 8 |
+                        ((pixels::multiply_u8_color(g, a) & 0xf0) as u16) << 4 |
+                        ((pixels::multiply_u8_color(b, a) & 0xf0) as u16) |
+                        ((a & 0x0f) as u16),
                 );
             }
         },
@@ -2855,8 +2854,8 @@ fn flip_pixels_y(
     unpacking_alignment: usize,
     pixels: Vec<u8>,
 ) -> Vec<u8> {
-    let cpp = (data_type.element_size() * internal_format.components()
-        / data_type.components_per_element()) as usize;
+    let cpp = (data_type.element_size() * internal_format.components() /
+        data_type.components_per_element()) as usize;
 
     let stride = (width * cpp + unpacking_alignment - 1) & !(unpacking_alignment - 1);
 
