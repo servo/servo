@@ -567,13 +567,9 @@ impl WGPU {
                     } => {
                         self.destroy_swapchain(context_id, image_key);
                     },
-                    WebGPURequest::DestroyTexture {
-                        device_id,
-                        texture_id,
-                    } => {
+                    WebGPURequest::DestroyTexture(texture_id) => {
                         let global = &self.global;
-                        let result = global.texture_destroy(texture_id);
-                        self.maybe_dispatch_wgpu_error(device_id, result.err());
+                        let _ = global.texture_destroy(texture_id);
                     },
                     WebGPURequest::Exit(sender) => {
                         if let Err(e) = sender.send(()) {
