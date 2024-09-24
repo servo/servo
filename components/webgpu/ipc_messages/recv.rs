@@ -34,6 +34,14 @@ use crate::render_commands::RenderCommand;
 use crate::swapchain::WebGPUContextId;
 use crate::{Error, ErrorFilter, WebGPUResponse, PRESENTATION_BUFFER_COUNT};
 
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+pub struct ContextConfiguration {
+    pub device_id: id::DeviceId,
+    pub queue_id: id::QueueId,
+    pub format: wgt::TextureFormat,
+    pub is_opaque: bool,
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 pub enum WebGPURequest {
     BufferMapAsync {
@@ -103,7 +111,6 @@ pub enum WebGPURequest {
         /// present only on ASYNC versions
         async_sender: Option<IpcSender<WebGPUResponse>>,
     },
-    CreateContext(IpcSender<(WebGPUContextId, ImageKey)>),
     CreatePipelineLayout {
         device_id: id::DeviceId,
         pipeline_layout_id: id::PipelineLayoutId,
@@ -129,20 +136,31 @@ pub enum WebGPURequest {
         label: Option<String>,
         sender: IpcSender<WebGPUResponse>,
     },
-    ResizeSwapChain {
+    /// Creates context
+    CreateContext {
         buffer_ids: ArrayVec<id::BufferId, PRESENTATION_BUFFER_COUNT>,
-        context_id: WebGPUContextId,
         size: DeviceIntSize,
+        sender: IpcSender<(WebGPUContextId, ImageKey)>,
     },
-    ValidateTextureDescriptorAndCreateSwapChain {
-        device_id: id::DeviceId,
-        queue_id: id::QueueId,
-        buffer_ids: ArrayVec<id::BufferId, PRESENTATION_BUFFER_COUNT>,
+    /// Recreates swapchain (if needed)
+    UpdateContext {
         context_id: WebGPUContextId,
-        image_key: ImageKey,
         size: DeviceIntSize,
+        configuration: Option<ContextConfiguration>,
+    },
+    /// Reads texture to swapchains buffer and maps it
+    SwapChainPresent {
+        context_id: WebGPUContextId,
+        texture_id: id::TextureId,
+        encoder_id: id::CommandEncoderId,
+    },
+    ValidateTextureDescriptor {
+        device_id: id::DeviceId,
         texture_id: id::TextureId,
         descriptor: TextureDescriptor<'static>,
+    },
+    DestroyContext {
+        context_id: WebGPUContextId,
     },
     CreateTexture {
         device_id: id::DeviceId,
@@ -158,9 +176,6 @@ pub enum WebGPURequest {
     DestroyBuffer(id::BufferId),
     DestroyDevice(id::DeviceId),
     DestroyTexture(id::TextureId),
-    DestroySwapChain {
-        context_id: WebGPUContextId,
-    },
     DropTexture(id::TextureId),
     DropAdapter(id::AdapterId),
     DropDevice(id::DeviceId),
@@ -258,11 +273,6 @@ pub enum WebGPURequest {
         device_id: id::DeviceId,
         queue_id: id::QueueId,
         command_buffers: Vec<id::CommandBufferId>,
-    },
-    SwapChainPresent {
-        context_id: WebGPUContextId,
-        texture_id: id::TextureId,
-        encoder_id: id::CommandEncoderId,
     },
     UnmapBuffer {
         buffer_id: id::BufferId,

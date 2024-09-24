@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::{Cell, RefCell};
+use std::cell::RefCell;
 
 use arrayvec::ArrayVec;
 use dom_struct::dom_struct;
@@ -11,10 +11,15 @@ use ipc_channel::ipc;
 use script_layout_interface::HTMLCanvasDataSource;
 use webgpu::swapchain::WebGPUContextId;
 use webgpu::wgc::id;
-use webgpu::{WebGPU, WebGPURequest, WebGPUTexture, PRESENTATION_BUFFER_COUNT};
+use webgpu::{
+    ContextConfiguration, WebGPU, WebGPURequest, WebGPUTexture, PRESENTATION_BUFFER_COUNT,
+};
+use webrender_api::units::DeviceIntSize;
 use webrender_api::ImageKey;
 
-use super::bindings::codegen::Bindings::WebGPUBinding::GPUTextureUsageConstants;
+use super::bindings::codegen::Bindings::WebGPUBinding::{
+    GPUCanvasAlphaMode, GPUTextureUsageConstants,
+};
 use super::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanvas;
 use super::bindings::error::{Error, Fallible};
 use super::bindings::root::MutNullableDom;
@@ -87,10 +92,27 @@ impl malloc_size_of::MallocSizeOf for HTMLCanvasElementOrOffscreenCanvas {
     }
 }
 
-#[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf)]
-enum DrawingBuffer {
-    TransparentAlpha,
-    Wr,
+impl HTMLCanvasElementOrOffscreenCanvas {
+    fn size(&self) -> Size2D<u64> {
+        match self {
+            HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(canvas) => {
+                canvas.get_size().cast()
+            },
+            HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(canvas) => canvas.get_size(),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Default, JSTraceable, MallocSizeOf)]
+/// Helps observe changes on swapchain
+struct DrawingBuffer {
+    #[no_trace]
+    size: DeviceIntSize,
+    /// image is transparent black
+    cleared: bool,
+    #[ignore_malloc_size_of = "Defined in wgpu"]
+    #[no_trace]
+    config: Option<ContextConfiguration>,
 }
 
 #[dom_struct]
@@ -113,15 +135,28 @@ pub struct GPUCanvasContext {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-texturedescriptor-slot>
     texture_descriptor: RefCell<Option<GPUTextureDescriptor>>,
     /// Conceptually <https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-drawingbuffer-slot>
-    drawing_buffer: Cell<DrawingBuffer>,
+    drawing_buffer: RefCell<DrawingBuffer>,
     /// <https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-currenttexture-slot>
     current_texture: MutNullableDom<GPUTexture>,
 }
 
 impl GPUCanvasContext {
-    fn new_inherited(canvas: HTMLCanvasElementOrOffscreenCanvas, channel: WebGPU) -> Self {
+    fn new_inherited(
+        global: &GlobalScope,
+        canvas: HTMLCanvasElementOrOffscreenCanvas,
+        channel: WebGPU,
+    ) -> Self {
         let (sender, receiver) = ipc::channel().unwrap();
-        if let Err(e) = channel.0.send(WebGPURequest::CreateContext(sender)) {
+        let size = canvas.size().cast().cast_unit();
+        let mut buffer_ids = ArrayVec::<id::BufferId, PRESENTATION_BUFFER_COUNT>::new();
+        for _ in 0..PRESENTATION_BUFFER_COUNT {
+            buffer_ids.push(global.wgpu_id_hub().create_buffer_id());
+        }
+        if let Err(e) = channel.0.send(WebGPURequest::CreateContext {
+            buffer_ids,
+            size,
+            sender,
+        }) {
             warn!("Failed to send CreateContext ({:?})", e);
         }
         let (external_id, webrender_image) = receiver.recv().unwrap();
@@ -131,7 +166,11 @@ impl GPUCanvasContext {
             canvas,
             webrender_image,
             context_id: WebGPUContextId(external_id.0),
-            drawing_buffer: Cell::new(DrawingBuffer::TransparentAlpha),
+            drawing_buffer: RefCell::new(DrawingBuffer {
+                size,
+                cleared: true,
+                ..Default::default()
+            }),
             configuration: RefCell::new(None),
             texture_descriptor: RefCell::new(None),
             current_texture: MutNullableDom::default(),
@@ -141,6 +180,7 @@ impl GPUCanvasContext {
     pub fn new(global: &GlobalScope, canvas: &HTMLCanvasElement, channel: WebGPU) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(GPUCanvasContext::new_inherited(
+                global,
                 HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(DomRoot::from_ref(canvas)),
                 channel,
             )),
@@ -193,25 +233,45 @@ impl GPUCanvasContext {
         // Step 1
         self.expire_current_texture();
         // Step 2
-        // let configuration = self.configuration.borrow();
+        let configuration = self.configuration.borrow();
         // Step 3
-        self.drawing_buffer.set(DrawingBuffer::TransparentAlpha);
-        // Technically we should always do swapchain stuff here
-        // but we can do it smarter if we know what changed
+        let mut drawing_buffer = self.drawing_buffer.borrow_mut();
+        drawing_buffer.size = self.size().cast().cast_unit();
+        drawing_buffer.cleared = true;
+        if let Some(configuration) = configuration.as_ref() {
+            drawing_buffer.config = Some(ContextConfiguration {
+                device_id: configuration.device.id().0,
+                queue_id: configuration.device.queue_id().0,
+                format: configuration.format.into(),
+                is_opaque: matches!(configuration.alphaMode, GPUCanvasAlphaMode::Opaque),
+            });
+        } else {
+            drawing_buffer.config.take();
+        };
+        // TODO: send less
+        self.channel
+            .0
+            .send(WebGPURequest::UpdateContext {
+                context_id: self.context_id,
+                size: drawing_buffer.size,
+                configuration: drawing_buffer.config.clone(),
+            })
+            .expect("Failed to update webgpu context");
     }
 }
 
 // Internal helper methods
 impl GPUCanvasContext {
     fn layout_handle(&self) -> HTMLCanvasDataSource {
-        match self.drawing_buffer.get() {
-            DrawingBuffer::TransparentAlpha => HTMLCanvasDataSource::Empty,
-            DrawingBuffer::Wr => HTMLCanvasDataSource::WebGPU(self.webrender_image),
+        if self.drawing_buffer.borrow().cleared {
+            HTMLCanvasDataSource::Empty
+        } else {
+            HTMLCanvasDataSource::WebGPU(self.webrender_image)
         }
     }
 
     fn send_swap_chain_present(&self, texture_id: WebGPUTexture) {
-        self.drawing_buffer.set(DrawingBuffer::Wr);
+        self.drawing_buffer.borrow_mut().cleared = false;
         let encoder_id = self.global().wgpu_id_hub().create_command_encoder_id();
         if let Err(e) = self.channel.0.send(WebGPURequest::SwapChainPresent {
             context_id: self.context_id,
@@ -226,12 +286,7 @@ impl GPUCanvasContext {
     }
 
     fn size(&self) -> Size2D<u64> {
-        match &self.canvas {
-            HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(canvas) => {
-                canvas.get_size().cast()
-            },
-            HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(canvas) => canvas.get_size(),
-        }
+        self.canvas.size()
     }
 }
 
@@ -260,18 +315,6 @@ impl GPUCanvasContext {
     pub(crate) fn resize(&self) {
         // Step 1
         self.replace_drawing_buffer();
-        let mut buffer_ids = ArrayVec::<id::BufferId, PRESENTATION_BUFFER_COUNT>::new();
-        for _ in 0..PRESENTATION_BUFFER_COUNT {
-            buffer_ids.push(self.global().wgpu_id_hub().create_buffer_id());
-        }
-        self.channel
-            .0
-            .send(WebGPURequest::ResizeSwapChain {
-                buffer_ids,
-                context_id: self.context_id,
-                size: self.size().cast().cast_unit(),
-            })
-            .expect("Failed to resize WebGPU SwapChain");
         // Step 2
         let configuration = self.configuration.borrow();
         // Step 3
@@ -311,23 +354,12 @@ impl GPUCanvasContextMethods for GPUCanvasContext {
         // Step 7
         self.replace_drawing_buffer();
 
-        // Step 8
-        // Validate texture descriptor and create swapchain
-        let mut buffer_ids = ArrayVec::<id::BufferId, PRESENTATION_BUFFER_COUNT>::new();
-        for _ in 0..PRESENTATION_BUFFER_COUNT {
-            buffer_ids.push(self.global().wgpu_id_hub().create_buffer_id());
-        }
+        // Step 8: Validate texture descriptor
         let texture_id = self.global().wgpu_id_hub().create_texture_id();
-
         self.channel
             .0
-            .send(WebGPURequest::ValidateTextureDescriptorAndCreateSwapChain {
+            .send(WebGPURequest::ValidateTextureDescriptor {
                 device_id: configuration.device.id().0,
-                queue_id: configuration.device.GetQueue().id().0,
-                buffer_ids,
-                context_id: self.context_id,
-                image_key: self.webrender_image,
-                size: self.size().cast().cast_unit(),
                 texture_id,
                 descriptor: desc,
             })
@@ -338,19 +370,12 @@ impl GPUCanvasContextMethods for GPUCanvasContext {
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-unconfigure>
     fn Unconfigure(&self) {
+        // Step 1
+        self.configuration.take();
+        // Step 2
         self.current_texture.take();
-        let configuration = self.configuration.take();
+        // Step 3
         self.replace_drawing_buffer();
-        if configuration.is_some() {
-            if let Err(e) = self.channel.0.send(WebGPURequest::DestroySwapChain {
-                context_id: self.context_id,
-            }) {
-                warn!(
-                    "Failed to send DestroySwapChain-ImageKey({:?}) ({})",
-                    self.webrender_image, e
-                );
-            }
-        }
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-getcurrenttexture>
@@ -382,6 +407,13 @@ impl GPUCanvasContextMethods for GPUCanvasContext {
 
 impl Drop for GPUCanvasContext {
     fn drop(&mut self) {
-        self.Unconfigure()
+        if let Err(e) = self.channel.0.send(WebGPURequest::DestroyContext {
+            context_id: self.context_id,
+        }) {
+            warn!(
+                "Failed to send DestroySwapChain-ImageKey({:?}) ({})",
+                self.webrender_image, e
+            );
+        }
     }
 }

@@ -4,7 +4,7 @@
 
 use log::warn;
 use swapchain::WGPUImageMap;
-pub use swapchain::{PresentationData, WGPUExternalImages};
+pub use swapchain::{ContextData, WGPUExternalImages};
 use webrender::RenderApiSender;
 use wgpu_thread::WGPU;
 pub use {wgpu_core as wgc, wgpu_types as wgt};
