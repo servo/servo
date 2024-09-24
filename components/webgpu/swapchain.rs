@@ -92,6 +92,7 @@ impl WebrenderExternalImageApi for WGPUExternalImages {
             data = if let Some(present_data) = &present_data.data {
                 present_data.slice().to_vec()
             } else {
+                // This should not happen!
                 present_data.dummy_data()
             };
         } else {
@@ -398,7 +399,10 @@ impl crate::WGPU {
             &copy_size,
         );
         let _ = global.command_encoder_finish(encoder_id, &wgt::CommandBufferDescriptor::default());
-        let _ = global.queue_submit(queue_id, &[encoder_id.into_command_buffer_id()]);
+        {
+            let _guard = self.poller.lock();
+            let _ = global.queue_submit(queue_id, &[encoder_id.into_command_buffer_id()]);
+        }
         let callback = {
             let global = Arc::clone(&self.global);
             let wgpu_image_map = Arc::clone(&self.wgpu_image_map);

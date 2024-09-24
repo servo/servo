@@ -534,6 +534,7 @@ impl WGPU {
                         let (_, error) =
                             global.device_create_texture(device_id, &descriptor, Some(texture_id));
                         global.texture_drop(texture_id);
+                        self.poller.wake();
                         if let Err(e) = self.script_sender.send(WebGPUMsg::FreeTexture(texture_id))
                         {
                             warn!("Unable to send FreeTexture({:?}) ({:?})", texture_id, e);

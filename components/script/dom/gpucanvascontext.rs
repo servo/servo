@@ -160,6 +160,7 @@ impl GPUCanvasContext {
         GPUTextureDescriptor {
             format: configuration.format,
             // We need to add `COPY_SRC` so we can copy texture to presentation buffer
+            // causes FAIL on webgpu:web_platform,canvas,configure:usage:*
             usage: configuration.usage | GPUTextureUsageConstants::COPY_SRC,
             size: GPUExtent3D::GPUExtent3DDict(GPUExtent3DDict {
                 width: size.width as u32,
