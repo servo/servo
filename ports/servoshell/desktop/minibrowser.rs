@@ -88,6 +88,13 @@ impl Minibrowser {
         // Adapted from https://github.com/emilk/egui/blob/9478e50d012c5138551c38cbee16b07bc1fcf283/crates/egui_glow/examples/pure_glow.rs
         #[allow(clippy::arc_with_non_send_sync)]
         let context = EguiGlow::new(events_loop.as_winit(), Arc::new(gl), None);
+
+        // Disable the builtin egui handlers for the Ctrl+Plus, Ctrl+Minus and Ctrl+0
+        // shortcuts as they don't work well with servoshell's `device-pixel-ratio` CLI argument.
+        context
+            .egui_ctx
+            .options_mut(|options| options.zoom_with_keyboard = false);
+
         let widget_surface_fbo = match rendering_context.context_surface_info() {
             Ok(Some(info)) => NonZeroU32::new(info.framebuffer_object).map(NativeFramebuffer),
             Ok(None) => panic!("Failed to get widget surface info from surfman!"),

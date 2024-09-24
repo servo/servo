@@ -24,7 +24,7 @@ use servo::webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize};
 use servo::webrender_api::ScrollLocation;
 use servo::webrender_traits::RenderingContext;
 use surfman::{Connection, Context, Device, SurfaceType};
-use winit::dpi::{LogicalPosition, PhysicalPosition, PhysicalSize};
+use winit::dpi::{LogicalPosition, LogicalSize, PhysicalPosition, PhysicalSize};
 use winit::event::{ElementState, KeyEvent, MouseButton, MouseScrollDelta, TouchPhase};
 use winit::keyboard::{Key as LogicalKey, ModifiersState, NamedKey};
 #[cfg(any(target_os = "linux", target_os = "windows"))]
@@ -57,19 +57,6 @@ pub struct Window {
     modifiers_state: Cell<ModifiersState>,
 }
 
-#[cfg(not(target_os = "windows"))]
-fn window_creation_scale_factor() -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
-    Scale::new(1.0)
-}
-
-#[cfg(target_os = "windows")]
-fn window_creation_scale_factor() -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
-    use windows_sys::Win32::Graphics::Gdi::{GetDC, GetDeviceCaps, LOGPIXELSY};
-
-    let ppi = unsafe { GetDeviceCaps(GetDC(std::ptr::null_mut()), LOGPIXELSY as i32) };
-    Scale::new(ppi as f32 / 96.0)
-}
-
 impl Window {
     pub fn new(
         win_size: Size2D<u32, DeviceIndependentPixel>,
@@ -85,15 +72,11 @@ impl Window {
         // #9996.
         let visible = opts.output_file.is_none() && !no_native_titlebar;
 
-        let win_size: DeviceIntSize = (win_size.to_f32() * window_creation_scale_factor()).to_i32();
-        let width = win_size.to_untyped().width;
-        let height = win_size.to_untyped().height;
-
         let window_builder = winit::window::WindowBuilder::new()
             .with_title("Servo".to_string())
             .with_decorations(!no_native_titlebar)
             .with_transparent(no_native_titlebar)
-            .with_inner_size(PhysicalSize::new(width as f64, height as f64))
+            .with_inner_size(LogicalSize::new(win_size.width, win_size.height))
             .with_visible(visible);
 
         let winit_window = window_builder
@@ -128,7 +111,10 @@ impl Window {
             .window_handle()
             .expect("could not get window handle from window");
         let native_widget = connection
-            .create_native_widget_from_window_handle(window_handle, Size2D::new(width, height))
+            .create_native_widget_from_window_handle(
+                window_handle,
+                inner_size.to_i32().to_untyped(),
+            )
             .expect("Failed to create native widget");
         let surface_type = SurfaceType::Widget { native_widget };
         let rendering_context = RenderingContext::create(&connection, &adapter, surface_type)
