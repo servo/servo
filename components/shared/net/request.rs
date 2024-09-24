@@ -679,8 +679,8 @@ impl Request {
                         ReferrerPolicy::StrictOrigin |
                         ReferrerPolicy::StrictOriginWhenCrossOrigin,
                     ) => {
-                        // If request’s origin is a tuple origin, its scheme is "https", and request’s current URL’s scheme is not "https",
-                        // then set serializedOrigin to `null`.
+                        // If request’s origin is a tuple origin, its scheme is "https", and
+                        // request’s current URL’s scheme is not "https", then set serializedOrigin to `null`.
                         if let ImmutableOrigin::Tuple(scheme, _, _) = &request_origin {
                             if scheme == "https" && self.current_url().scheme() != "https" {
                                 serialized_origin = headers::Origin::NULL;
@@ -688,7 +688,8 @@ impl Request {
                         }
                     },
                     Some(ReferrerPolicy::SameOrigin) => {
-                        // If request’s origin is not same origin with request’s current URL’s origin, then set serializedOrigin to `null`.
+                        // If request’s origin is not same origin with request’s current URL’s origin,
+                        // then set serializedOrigin to `null`.
                         if *request_origin != self.current_url().origin() {
                             serialized_origin = headers::Origin::NULL;
                         }
@@ -859,7 +860,7 @@ pub fn convert_header_names_to_sorted_lowercase_set(
     ordered_set.into_iter().cloned().collect()
 }
 
-/// <https://html.spec.whatwg.org/multipage/browsers.html#ascii-serialisation-of-an-origin>
+/// <https://html.spec.whatwg.org/multipage/#ascii-serialisation-of-an-origin>
 fn immutable_origin_to_hyper_origin(origin: &ImmutableOrigin) -> headers::Origin {
     match origin {
         ImmutableOrigin::Opaque(_) => headers::Origin::NULL,

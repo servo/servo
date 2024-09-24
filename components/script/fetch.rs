@@ -177,15 +177,16 @@ pub fn Fetch(
     // Step 5. Let globalObject be request’s client’s global object.
     // NOTE:   We already get the global object as an argument
 
-    // Step 6. If globalObject is a ServiceWorkerGlobalScope object, then set request’s service-workers mode to "none".
+    // Step 6. If globalObject is a ServiceWorkerGlobalScope object, then set request’s
+    //         service-workers mode to "none".
     if global.downcast::<ServiceWorkerGlobalScope>().is_some() {
         request_init.service_workers_mode = ServiceWorkersMode::None;
     }
 
     // FIXME: Steps 8-11, abortcontroller stuff
 
-    // Step 12. Set controller to the result of calling fetch given request and processResponse given response being these steps:
-    //          [..]
+    // Step 12. Set controller to the result of calling fetch given request and
+    //           processResponse given response being these steps: [..]
     let (action_sender, action_receiver) = ipc::channel().unwrap();
     let fetch_context = Arc::new(Mutex::new(FetchContext {
         fetch_promise: Some(TrustedPromise::new(promise.clone())),

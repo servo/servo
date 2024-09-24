@@ -1136,7 +1136,8 @@ async fn http_network_or_cache_fetch(
     //           set includeCredentials to false.
     // TODO: Requires request's client object
 
-    // Step 8.5 Let contentLength be httpRequest’s body’s length, if httpRequest’s body is non-null; otherwise null.
+    // Step 8.5 Let contentLength be httpRequest’s body’s length, if httpRequest’s body is non-null;
+    //          otherwise null.
     let content_length = http_request
         .body
         .as_ref()
@@ -1146,17 +1147,20 @@ async fn http_network_or_cache_fetch(
     // Step 8.6 Let contentLengthHeaderValue be null.
     let mut content_length_header_value = None;
 
-    // Step 8.7 If httpRequest’s body is null and httpRequest’s method is `POST` or `PUT`, then set contentLengthHeaderValue to `0`.
+    // Step 8.7 If httpRequest’s body is null and httpRequest’s method is `POST` or `PUT`,
+    //          then set contentLengthHeaderValue to `0`.
     if http_request.body.is_none() && matches!(http_request.method, Method::POST | Method::PUT) {
         content_length_header_value = Some(0);
     }
 
-    // Step 8.8 If contentLength is non-null, then set contentLengthHeaderValue to contentLength, serialized and isomorphic encoded.
+    // Step 8.8 If contentLength is non-null, then set contentLengthHeaderValue to contentLength,
+    //          serialized and isomorphic encoded.
     if let Some(content_length) = content_length {
         content_length_header_value = Some(content_length);
     };
 
-    // Step 8.9 If contentLengthHeaderValue is non-null, then append (`Content-Length`, contentLengthHeaderValue) to httpRequest’s header list.
+    // Step 8.9 If contentLengthHeaderValue is non-null, then append (`Content-Length`, contentLengthHeaderValue)
+    //          to httpRequest’s header list.
     if let Some(content_length_header_value) = content_length_header_value {
         http_request
             .headers
@@ -1546,8 +1550,8 @@ async fn http_network_or_cache_fetch(
     // FIXME: Step 12. If httpRequest’s header list contains `Range`, then set response’s range-requested flag.
     // FIXME: Step 13 Set response’s request-includes-credentials to includeCredentials.
 
-    // Step 14. If response’s status is 401, httpRequest’s response tainting is not "cors", includeCredentials is true,
-    //          and request’s window is an environment settings object, then:
+    // Step 14. If response’s status is 401, httpRequest’s response tainting is not "cors",
+    //          includeCredentials is true, and request’s window is an environment settings object, then:
     // FIXME: Figure out what to do with request window objects
     if let (Some(StatusCode::UNAUTHORIZED), false, true) =
         (response.status.try_code(), cors_flag, include_credentials)
@@ -1611,7 +1615,8 @@ async fn http_network_or_cache_fetch(
     // FIXME: Step 16. If all of the following are true:
     //                 * response’s status is 421
     //                 * isNewConnectionFetch is false
-    //                 * request’s body is null, or request’s body is non-null and request’s body’s source is non-null
+    //                 * request’s body is null, or request’s body is non-null and request’s body’s
+    //                   source is non-null
     //                 then: [..]
 
     // Step 17. If isAuthenticationFetch is true, then create an authentication entry for request and the given realm.
