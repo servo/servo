@@ -43,6 +43,7 @@ use std::collections::HashMap;
 use std::rc::Rc;
 use std::str::FromStr;
 use std::sync::{Arc, Mutex};
+use base::generic_channel::GenericSender;
 
 const KEY_CONVERSION_ERROR: &str =
     "This `manufacturerData` key can not be parsed as unsigned short:";
@@ -151,7 +152,7 @@ impl Bluetooth {
         reflect_dom_object(Box::new(Bluetooth::new_inherited()), global)
     }
 
-    fn get_bluetooth_thread(&self) -> IpcSender<BluetoothRequest> {
+    fn get_bluetooth_thread(&self) ->  GenericSender<BluetoothRequest> {
         self.global().as_window().bluetooth_thread()
     }
 

@@ -97,6 +97,7 @@ use background_hang_monitor::HangMonitorRegister;
 use background_hang_monitor_api::{
     BackgroundHangMonitorControlMsg, BackgroundHangMonitorRegister, HangMonitorAlert,
 };
+use base::generic_channel::GenericSender;
 use base::id::{
     BroadcastChannelRouterId, BrowsingContextGroupId, BrowsingContextId, HistoryStateId,
     MessagePortId, MessagePortRouterId, PipelineId, PipelineNamespace, PipelineNamespaceId,
@@ -354,7 +355,7 @@ pub struct Constellation<STF, SWF> {
 
     /// An IPC channel for the constellation to send messages to the
     /// bluetooth thread.
-    bluetooth_ipc_sender: IpcSender<BluetoothRequest>,
+    bluetooth_ipc_sender:  GenericSender<BluetoothRequest>,
 
     /// A map of origin to sender to a Service worker manager.
     sw_managers: HashMap<ImmutableOrigin, IpcSender<ServiceWorkerMsg>>,
@@ -513,7 +514,7 @@ pub struct InitialConstellationState {
     pub devtools_sender: Option<Sender<DevtoolsControlMsg>>,
 
     /// A channel to the bluetooth thread.
-    pub bluetooth_thread: IpcSender<BluetoothRequest>,
+    pub bluetooth_thread:  GenericSender<BluetoothRequest>,
 
     /// A channel to the font cache thread.
     pub font_cache_thread: FontCacheThread,

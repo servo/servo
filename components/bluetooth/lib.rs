@@ -19,6 +19,7 @@ use std::string::String;
 use std::thread;
 use std::time::Duration;
 
+use base::generic_channel::{GenericReceiver, GenericSender};
 use bitflags::bitflags;
 use bluetooth_traits::blocklist::{uuid_is_blocklisted, Blocklist};
 use bluetooth_traits::scanfilter::{
@@ -30,7 +31,7 @@ use bluetooth_traits::{
     BluetoothServiceMsg, GATTType,
 };
 use embedder_traits::{EmbedderMsg, EmbedderProxy};
-use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
+use ipc_channel::ipc;
 use log::warn;
 use servo_config::pref;
 use servo_rand::{self, Rng};
@@ -73,9 +74,9 @@ pub trait BluetoothThreadFactory {
     fn new(embedder_proxy: EmbedderProxy) -> Self;
 }
 
-impl BluetoothThreadFactory for IpcSender<BluetoothRequest> {
-    fn new(embedder_proxy: EmbedderProxy) -> IpcSender<BluetoothRequest> {
-        let (sender, receiver) = ipc::channel().unwrap();
+impl BluetoothThreadFactory for GenericSender<BluetoothRequest> {
+    fn new(embedder_proxy: EmbedderProxy) -> GenericSender<BluetoothRequest> {
+        let (sender, receiver) = base::generic_channel::channel(servo_config::opts::multiprocess()).unwrap();
         let adapter = if pref!(dom.bluetooth.enabled) {
             BluetoothAdapter::new()
         } else {
@@ -197,7 +198,7 @@ fn is_mock_adapter(adapter: &BluetoothAdapter) -> bool {
 }
 
 pub struct BluetoothManager {
-    receiver: IpcReceiver<BluetoothRequest>,
+    receiver: GenericReceiver<BluetoothRequest>,
     adapter: Option<BluetoothAdapter>,
     address_to_id: HashMap<String, String>,
     service_to_device: HashMap<String, String>,
@@ -213,7 +214,7 @@ pub struct BluetoothManager {
 
 impl BluetoothManager {
     pub fn new(
-        receiver: IpcReceiver<BluetoothRequest>,
+        receiver: GenericReceiver<BluetoothRequest>,
         adapter: Option<BluetoothAdapter>,
         embedder_proxy: EmbedderProxy,
     ) -> BluetoothManager {

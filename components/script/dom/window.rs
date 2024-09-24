@@ -59,6 +59,7 @@ use script_traits::{
     ScriptToConstellationChan, ScrollState, StructuredSerializedData, TimerEventId,
     TimerSchedulerMsg, WindowSizeData, WindowSizeType,
 };
+use base::generic_channel::GenericSender;
 use selectors::attr::CaseSensitivity;
 use servo_arc::Arc as ServoArc;
 use servo_atoms::Atom;
@@ -239,7 +240,7 @@ pub struct Window {
     /// A handle for communicating messages to the bluetooth thread.
     #[ignore_malloc_size_of = "channels are hard"]
     #[no_trace]
-    bluetooth_thread: IpcSender<BluetoothRequest>,
+    bluetooth_thread:  GenericSender<BluetoothRequest>,
 
     bluetooth_extra_permission_data: BluetoothExtraPermissionData,
 
@@ -464,7 +465,7 @@ impl Window {
         })
     }
 
-    pub fn bluetooth_thread(&self) -> IpcSender<BluetoothRequest> {
+    pub fn bluetooth_thread(&self) ->  GenericSender<BluetoothRequest> {
         self.bluetooth_thread.clone()
     }
 
@@ -2531,7 +2532,7 @@ impl Window {
         image_cache_chan: Sender<ImageCacheMsg>,
         image_cache: Arc<dyn ImageCache>,
         resource_threads: ResourceThreads,
-        bluetooth_thread: IpcSender<BluetoothRequest>,
+        bluetooth_thread:  GenericSender<BluetoothRequest>,
         mem_profiler_chan: MemProfilerChan,
         time_profiler_chan: TimeProfilerChan,
         devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,

@@ -4,7 +4,7 @@
 
 //! Enum wrappers to be able to select different channel implementations at runtime.
 
-use std::fmt;
+use std::fmt::{self, Display};
 
 use ipc_channel::router::ROUTER;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -64,6 +64,12 @@ impl<T: Serialize> GenericSender<T> {
 #[derive(Debug)]
 pub struct SendError;
 pub type SendResult = Result<(), SendError>;
+
+impl Display for SendError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Failed to send message")
+    }
+}
 
 #[derive(Debug)]
 pub struct ReceiveError;

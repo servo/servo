@@ -46,6 +46,7 @@ use devtools_traits::{
     CSSError, DevtoolScriptControlMsg, DevtoolsPageInfo, NavigationState,
     ScriptToDevtoolsControlMsg, WorkerId,
 };
+use base::generic_channel::GenericSender;
 use embedder_traits::EmbedderMsg;
 use euclid::default::{Point2D, Rect};
 use fonts::FontCacheThread;
@@ -534,7 +535,7 @@ pub struct ScriptThread {
     resource_threads: ResourceThreads,
     /// A handle to the bluetooth thread.
     #[no_trace]
-    bluetooth_thread: IpcSender<BluetoothRequest>,
+    bluetooth_thread:  GenericSender<BluetoothRequest>,
 
     /// A queue of tasks to be executed in this script-thread.
     task_queue: TaskQueue<MainThreadScriptMsg>,

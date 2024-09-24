@@ -29,6 +29,7 @@ use base::id::{
 use base::Epoch;
 use bitflags::bitflags;
 use bluetooth_traits::BluetoothRequest;
+use base::generic_channel::GenericSender;
 use canvas_traits::webgl::WebGLPipeline;
 use crossbeam_channel::{RecvTimeoutError, Sender};
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId};
@@ -638,7 +639,7 @@ pub struct InitialScriptState {
     /// A channel to the resource manager thread.
     pub resource_threads: ResourceThreads,
     /// A channel to the bluetooth thread.
-    pub bluetooth_thread: IpcSender<BluetoothRequest>,
+    pub bluetooth_thread:  GenericSender<BluetoothRequest>,
     /// The image cache for this script thread.
     pub image_cache: Arc<dyn ImageCache>,
     /// A channel to the time profiler thread.

@@ -7,8 +7,7 @@ use std::rc::Rc;
 
 use bluetooth_traits::{BluetoothRequest, BluetoothResponse, GATTType};
 use dom_struct::dom_struct;
-use ipc_channel::ipc::IpcSender;
-
+use base::generic_channel::GenericSender;
 use crate::dom::bindings::codegen::Bindings::BluetoothDeviceBinding::BluetoothDeviceMethods;
 use crate::dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding::BluetoothRemoteGATTServerMethods;
 use crate::dom::bindings::error::{Error, ErrorResult};
@@ -48,7 +47,7 @@ impl BluetoothRemoteGATTServer {
         )
     }
 
-    fn get_bluetooth_thread(&self) -> IpcSender<BluetoothRequest> {
+    fn get_bluetooth_thread(&self) ->  GenericSender<BluetoothRequest> {
         self.global().as_window().bluetooth_thread()
     }
 

@@ -7,8 +7,7 @@ use std::rc::Rc;
 use bluetooth_traits::blocklist::{uuid_is_blocklisted, Blocklist};
 use bluetooth_traits::{BluetoothRequest, BluetoothResponse};
 use dom_struct::dom_struct;
-use ipc_channel::ipc::IpcSender;
-
+use base::generic_channel::GenericSender;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::BluetoothRemoteGATTCharacteristicBinding::BluetoothRemoteGATTCharacteristicMethods;
 use crate::dom::bindings::codegen::Bindings::BluetoothRemoteGATTDescriptorBinding::BluetoothRemoteGATTDescriptorMethods;
@@ -68,7 +67,7 @@ impl BluetoothRemoteGATTDescriptor {
         )
     }
 
-    fn get_bluetooth_thread(&self) -> IpcSender<BluetoothRequest> {
+    fn get_bluetooth_thread(&self) ->  GenericSender<BluetoothRequest> {
         self.global().as_window().bluetooth_thread()
     }
 

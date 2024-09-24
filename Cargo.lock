@@ -462,6 +462,7 @@ dependencies = [
 name = "bluetooth"
 version = "0.0.1"
 dependencies = [
+ "base",
  "bitflags 2.6.0",
  "bluetooth_traits",
  "blurdroid",

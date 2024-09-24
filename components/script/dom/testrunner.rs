@@ -4,7 +4,7 @@
 
 use bluetooth_traits::BluetoothRequest;
 use dom_struct::dom_struct;
-use ipc_channel::ipc::IpcSender;
+use base::generic_channel::GenericSender;
 use profile_traits::ipc;
 
 use crate::dom::bindings::codegen::Bindings::TestRunnerBinding::TestRunnerMethods;
@@ -31,7 +31,7 @@ impl TestRunner {
         reflect_dom_object(Box::new(TestRunner::new_inherited()), global)
     }
 
-    fn get_bluetooth_thread(&self) -> IpcSender<BluetoothRequest> {
+    fn get_bluetooth_thread(&self) ->  GenericSender<BluetoothRequest> {
         self.global().as_window().bluetooth_thread()
     }
 }
