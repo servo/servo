@@ -534,6 +534,7 @@ impl WGPU {
                         texture_id,
                         descriptor,
                     } => {
+                        // https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-configure
                         // validating TextureDescriptor
                         let global = &self.global;
                         let (_, error) =
@@ -601,11 +602,8 @@ impl WGPU {
                         // Wake poller thread to trigger DeviceLostClosure
                         self.poller.wake();
                     },
-                    WebGPURequest::DestroySwapChain {
-                        context_id,
-                        image_key,
-                    } => {
-                        self.destroy_swapchain(context_id, image_key);
+                    WebGPURequest::DestroySwapChain { context_id } => {
+                        self.destroy_swapchain(context_id);
                     },
                     WebGPURequest::DestroyTexture(texture_id) => {
                         let global = &self.global;

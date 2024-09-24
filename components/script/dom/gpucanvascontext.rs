@@ -301,6 +301,7 @@ impl GPUCanvasContextMethods for GPUCanvasContext {
         self.replace_drawing_buffer();
 
         // Step 8
+        // Validate texture descriptor and create swapchain
         let mut buffer_ids = ArrayVec::<id::BufferId, PRESENTATION_BUFFER_COUNT>::new();
         for _ in 0..PRESENTATION_BUFFER_COUNT {
             buffer_ids.push(self.global().wgpu_id_hub().create_buffer_id());
@@ -331,7 +332,6 @@ impl GPUCanvasContextMethods for GPUCanvasContext {
         if configuration.is_some() {
             if let Err(e) = self.channel.0.send(WebGPURequest::DestroySwapChain {
                 context_id: self.context_id,
-                image_key: self.webrender_image,
             }) {
                 warn!(
                     "Failed to send DestroySwapChain-ImageKey({:?}) ({})",

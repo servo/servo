@@ -10,14 +10,15 @@ use std::sync::{Arc, Mutex};
 
 use arrayvec::ArrayVec;
 use euclid::default::Size2D;
+use ipc_channel::ipc::IpcSender;
 use log::{error, warn};
 use malloc_size_of::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 use webrender::{RenderApi, Transaction};
 use webrender_api::units::DeviceIntSize;
 use webrender_api::{
-    DirtyRect, ExternalImageData, ExternalImageId, ExternalImageType, ImageData, ImageDescriptor,
-    ImageDescriptorFlags, ImageFormat, ImageKey,
+    DirtyRect, DocumentId, ExternalImageData, ExternalImageId, ExternalImageType, ImageData,
+    ImageDescriptor, ImageDescriptorFlags, ImageFormat, ImageKey,
 };
 use webrender_traits::{WebrenderExternalImageApi, WebrenderImageSource};
 use wgpu_core::device::HostMap;
@@ -222,6 +223,34 @@ impl PresentationData {
         *buffer_state = PresentationBufferState::Available;
         drop(presentation_buffer);
     }
+
+    fn destroy(
+        self,
+        global: &Arc<Global>,
+        script_sender: &IpcSender<WebGPUMsg>,
+        webrender_api: &Arc<Mutex<RenderApi>>,
+        webrender_document: DocumentId,
+    ) {
+        for (buffer_id, buffer_state) in self.buffer_ids {
+            match buffer_state {
+                PresentationBufferState::Unassigned => {
+                    /* These buffer were not yet created in wgpu */
+                },
+                _ => {
+                    global.buffer_drop(buffer_id);
+                },
+            }
+            if let Err(e) = script_sender.send(WebGPUMsg::FreeBuffer(buffer_id)) {
+                warn!("Unable to send FreeBuffer({:?}) ({:?})", buffer_id, e);
+            };
+        }
+        let mut txn = Transaction::new();
+        txn.delete_image(self.image_key);
+        webrender_api
+            .lock()
+            .unwrap()
+            .send_transaction(webrender_document, txn);
+    }
 }
 
 impl crate::WGPU {
@@ -250,7 +279,8 @@ impl crate::WGPU {
             channel_index: 0,
             image_type: ExternalImageType::Buffer,
         });
-        let _ = self.wgpu_image_map.lock().unwrap().insert(
+
+        let old_presentation_data = self.wgpu_image_map.lock().unwrap().insert(
             context_id,
             PresentationData::new(
                 device_id,
@@ -261,6 +291,14 @@ impl crate::WGPU {
                 image_data.clone(),
             ),
         );
+        if let Some(old_presentation_data) = old_presentation_data {
+            old_presentation_data.destroy(
+                &self.global,
+                &self.script_sender,
+                &self.webrender_api,
+                self.webrender_document,
+            );
+        }
 
         let mut txn = Transaction::new();
         txn.add_image(image_key, image_desc, image_data, None);
@@ -361,36 +399,18 @@ impl crate::WGPU {
         ControlFlow::Continue(())
     }
 
-    pub(crate) fn destroy_swapchain(
-        &mut self,
-        context_id: WebGPUContextId,
-        image_key: webrender_api::ImageKey,
-    ) {
-        let present_data = self
-            .wgpu_image_map
+    pub(crate) fn destroy_swapchain(&mut self, context_id: WebGPUContextId) {
+        self.wgpu_image_map
             .lock()
             .unwrap()
             .remove(&context_id)
-            .unwrap();
-        for (buffer_id, buffer_state) in present_data.buffer_ids {
-            match buffer_state {
-                PresentationBufferState::Unassigned => {
-                    /* These buffer were not yet created in wgpu */
-                },
-                _ => {
-                    self.global.buffer_drop(buffer_id);
-                },
-            }
-            if let Err(e) = self.script_sender.send(WebGPUMsg::FreeBuffer(buffer_id)) {
-                warn!("Unable to send FreeBuffer({:?}) ({:?})", buffer_id, e);
-            };
-        }
-        let mut txn = Transaction::new();
-        txn.delete_image(image_key);
-        self.webrender_api
-            .lock()
             .unwrap()
-            .send_transaction(self.webrender_document, txn);
+            .destroy(
+                &self.global,
+                &self.script_sender,
+                &self.webrender_api,
+                self.webrender_document,
+            );
     }
 }
 

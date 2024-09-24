@@ -164,7 +164,6 @@ pub enum WebGPURequest {
     DestroyTexture(id::TextureId),
     DestroySwapChain {
         context_id: WebGPUContextId,
-        image_key: ImageKey,
     },
     DropTexture(id::TextureId),
     DropAdapter(id::AdapterId),
