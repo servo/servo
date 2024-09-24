@@ -25,7 +25,7 @@ use wgpu_core::global::Global;
 use wgpu_core::id;
 use wgpu_core::resource::{BufferAccessError, BufferMapCallback, BufferMapOperation};
 
-use crate::{wgt, ContextConfiguration, WebGPUMsg};
+use crate::{wgt, ContextConfiguration, Error, WebGPUMsg};
 
 pub const PRESENTATION_BUFFER_COUNT: usize = 10;
 
@@ -322,15 +322,26 @@ impl crate::WGPU {
         size: DeviceIntSize,
         buffer_ids: ArrayVec<id::BufferId, PRESENTATION_BUFFER_COUNT>,
     ) {
-        assert!(self
-            .wgpu_image_map
+        let context_data = ContextData::new(context_id, image_key, size, buffer_ids);
+        let mut txn = Transaction::new();
+        txn.add_image(
+            image_key,
+            context_data.image_desc,
+            context_data.image_data.clone(),
+            None,
+        );
+        self.webrender_api
             .lock()
             .unwrap()
-            .insert(
-                context_id,
-                ContextData::new(context_id, image_key, size, buffer_ids)
-            )
-            .is_none());
+            .send_transaction(self.webrender_document, txn);
+        assert!(
+            self.wgpu_image_map
+                .lock()
+                .unwrap()
+                .insert(context_id, context_data)
+                .is_none(),
+            "Context should be created only once!"
+        );
     }
 
     pub(crate) fn update_context(
@@ -396,7 +407,15 @@ impl crate::WGPU {
         context_id: WebGPUContextId,
         encoder_id: id::Id<id::markers::CommandEncoder>,
         texture_id: id::Id<id::markers::Texture>,
-    ) {
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        fn err<T: std::error::Error + 'static>(e: Option<T>) -> Result<(), T> {
+            if let Some(error) = e {
+                Err(error)
+            } else {
+                Ok(())
+            }
+        }
+
         let global = &self.global;
         let device_id;
         let queue_id;
@@ -407,7 +426,7 @@ impl crate::WGPU {
         {
             if let Some(context_data) = self.wgpu_image_map.lock().unwrap().get_mut(&context_id) {
                 let Some(swap_chain) = context_data.swap_chain.as_ref() else {
-                    return;
+                    return Ok(());
                 };
                 size = context_data.image_desc.size;
                 device_id = swap_chain.device_id;
@@ -416,11 +435,13 @@ impl crate::WGPU {
                 buffer_size = context_data.buffer_size();
                 buffer_id = context_data.get_available_buffer(global).unwrap();
             } else {
-                return;
+                return Ok(());
             }
         }
         let comm_desc = wgt::CommandEncoderDescriptor { label: None };
-        let _ = global.device_create_command_encoder(device_id, &comm_desc, Some(encoder_id));
+        let (encoder_id, error) =
+            global.device_create_command_encoder(device_id, &comm_desc, Some(encoder_id));
+        err(error)?;
         let buffer_cv = wgt::ImageCopyBuffer {
             buffer: buffer_id,
             layout: wgt::ImageDataLayout {
@@ -440,16 +461,20 @@ impl crate::WGPU {
             height: size.height as u32,
             depth_or_array_layers: 1,
         };
-        let _ = global.command_encoder_copy_texture_to_buffer(
+        global.command_encoder_copy_texture_to_buffer(
             encoder_id,
             &texture_cv,
             &buffer_cv,
             &copy_size,
-        );
-        let _ = global.command_encoder_finish(encoder_id, &wgt::CommandBufferDescriptor::default());
+        )?;
+        let (command_buffer_id, error) =
+            global.command_encoder_finish(encoder_id, &wgt::CommandBufferDescriptor::default());
+        err(error)?;
         {
             let _guard = self.poller.lock();
-            let _ = global.queue_submit(queue_id, &[encoder_id.into_command_buffer_id()]);
+            global
+                .queue_submit(queue_id, &[command_buffer_id])
+                .map_err(Error::from_error)?;
         }
         let callback = {
             let global = Arc::clone(&self.global);
@@ -475,8 +500,9 @@ impl crate::WGPU {
             host: HostMap::Read,
             callback: Some(callback),
         };
-        let _ = global.buffer_map_async(buffer_id, 0, Some(buffer_size), map_op);
+        global.buffer_map_async(buffer_id, 0, Some(buffer_size), map_op)?;
         self.poller.wake();
+        Ok(())
     }
 
     pub(crate) fn destroy_context(&mut self, context_id: WebGPUContextId) {

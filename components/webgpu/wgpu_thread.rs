@@ -530,7 +530,10 @@ impl WGPU {
                         texture_id,
                         encoder_id,
                     } => {
-                        self.swapchain_present(context_id, encoder_id, texture_id);
+                        let result = self.swapchain_present(context_id, encoder_id, texture_id);
+                        if let Err(e) = result {
+                            log::error!("Error occured in SwapChainPresent: {e:?}");
+                        }
                     },
                     WebGPURequest::ValidateTextureDescriptor {
                         device_id,
