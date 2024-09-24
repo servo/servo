@@ -277,15 +277,25 @@ impl ReadableStreamDefaultController {
 
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-enqueue>
     pub fn enqueue(&self, cx: SafeJSContext, chunk: SafeHandleValue) {
+        // If ! ReadableStreamDefaultControllerCanCloseOrEnqueue(controller) is false, return.
+        if !self.can_close_or_enqueue() {
+            return;
+        }
+
         let stream = self
             .stream
             .get()
             .expect("Controller must have a stream when a chunk is enqueued.");
+
+        // If ! IsReadableStreamLocked(stream) is true
+        // and ! ReadableStreamGetNumReadRequests(stream) > 0,
+        // perform ! ReadableStreamFulfillReadRequest(stream, chunk, false).
         if stream.is_locked() && stream.get_num_read_requests() > 0 {
             // TODO: stream.fulfill_read_request() with SafeHandleValue
             return;
         }
 
+        // Otherwise, perform EnqueueValueWithSize(controller, chunk, chunkSize).
         rooted!(in(*cx) let object = chunk.to_object());
         let value_with_size = ValueWithSize {
             value: Heap::default(),
@@ -298,25 +308,37 @@ impl ReadableStreamDefaultController {
         let mut queue = self.queue.borrow_mut();
         queue.enqueue_value_with_size(EnqueuedValue::Js(value_with_size));
 
+        // Perform ! ReadableStreamDefaultControllerCallPullIfNeeded(controller).
         self.call_pull_if_needed();
     }
 
     /// Native call to
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-enqueue>
     pub fn enqueue_native(&self, chunk: Vec<u8>) {
+        // If ! ReadableStreamDefaultControllerCanCloseOrEnqueue(controller) is false, return.
+        if !self.can_close_or_enqueue() {
+            return;
+        }
+
         let stream = self
             .stream
             .get()
             .expect("Controller must have a stream when a chunk is enqueued.");
+
+        // If ! IsReadableStreamLocked(stream) is true
+        // and ! ReadableStreamGetNumReadRequests(stream) > 0,
+        // perform ! ReadableStreamFulfillReadRequest(stream, chunk, false).
         if stream.is_locked() && stream.get_num_read_requests() > 0 {
             stream.fulfill_read_request(chunk, false);
             return;
         }
 
+        // Otherwise, perform EnqueueValueWithSize(controller, chunk, chunkSize).
         // <https://streams.spec.whatwg.org/#enqueue-value-with-size>
         let mut queue = self.queue.borrow_mut();
         queue.enqueue_value_with_size(EnqueuedValue::Native(chunk));
 
+        // Perform ! ReadableStreamDefaultControllerCallPullIfNeeded(controller).
         self.call_pull_if_needed();
     }
 
