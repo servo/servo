@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::borrow::Cow;
 use std::cell::RefCell;
 
 use arrayvec::ArrayVec;
@@ -343,7 +344,10 @@ impl GPUCanvasContextMethods for GPUCanvasContext {
         let descriptor = self.texture_descriptor_for_canvas(configuration);
 
         // Step 2&3
-        let (desc, _) = convert_texture_descriptor(&descriptor, &configuration.device)?;
+        let (mut desc, _) = convert_texture_descriptor(&descriptor, &configuration.device)?;
+        desc.label = Some(Cow::Borrowed(
+            "dummy texture for texture descriptor validation",
+        ));
 
         // Step 5
         self.configuration.replace(Some(configuration.clone()));
