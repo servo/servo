@@ -972,8 +972,8 @@ enum InnerTextItem {
     RequiredLineBreakCount(u32),
 }
 
-// https://html.spec.whatwg.org/multipage/#the-innertext-idl-attribute
-pub fn process_element_inner_text_query<'dom>(
+/// <https://html.spec.whatwg.org/multipage/#get-the-text-steps>
+pub fn get_the_text_steps<'dom>(
     node: impl LayoutNode<'dom>,
     indexable_text: &IndexableText,
 ) -> String {
