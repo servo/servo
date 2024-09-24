@@ -4,6 +4,7 @@
 
 #![allow(non_snake_case)]
 
+mod resources;
 mod simpleservo;
 
 use std::collections::HashMap;

@@ -194,6 +194,10 @@ class PackageCommands(CommandBase):
                 print("Cleaning up from previous packaging")
                 delete(ohos_target_dir)
             shutil.copytree(ohos_app_dir, ohos_target_dir)
+            resources_src_dir = path.join(self.get_top_dir(), "resources")
+            resources_app_dir = path.join(ohos_target_dir, "AppScope", "resources", "resfile", "servo")
+            os.makedirs(resources_app_dir, exist_ok=True)
+            shutil.copytree(resources_src_dir, resources_app_dir, dirs_exist_ok=True)
 
             # Map non-debug profiles to 'release' buildMode HAP.
             if build_type.is_custom():

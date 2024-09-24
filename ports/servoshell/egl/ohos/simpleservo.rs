@@ -23,8 +23,8 @@ use servo::{self, gl, Servo};
 use surfman::{Connection, SurfaceType};
 
 use crate::egl::host_trait::HostTrait;
+use crate::egl::ohos::resources::ResourceReaderInstance;
 use crate::egl::ohos::InitOpts;
-use crate::egl::resources::ResourceReaderInstance;
 use crate::egl::servo_glue::{
     Coordinates, ServoEmbedderCallbacks, ServoGlue, ServoWindowCallbacks,
 };
@@ -41,7 +41,8 @@ pub fn init(
 ) -> Result<ServoGlue, &'static str> {
     info!("Entered simpleservo init function");
     crate::init_tracing();
-    resources::set(Box::new(ResourceReaderInstance::new()));
+    let resource_dir = PathBuf::from(&options.resource_dir).join("servo");
+    resources::set(Box::new(ResourceReaderInstance::new(resource_dir)));
 
     gl.clear_color(1.0, 1.0, 1.0, 1.0);
     gl.clear(gl::COLOR_BUFFER_BIT);
@@ -96,7 +97,12 @@ pub fn init(
         CompositeTarget::Window,
     );
 
-    let mut servo_glue = ServoGlue::new(rendering_context, servo.servo, window_callbacks);
+    let mut servo_glue = ServoGlue::new(
+        rendering_context,
+        servo.servo,
+        window_callbacks,
+        Some(options.resource_dir),
+    );
 
     let initial_url = ServoUrl::parse(options.url.as_str())
         .inspect_err(|e| error!("Invalid initial Servo URL `{}`. Error: {e:?}", options.url))
