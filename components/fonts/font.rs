@@ -27,14 +27,14 @@ use style::values::computed::{FontStretch, FontStyle, FontWeight};
 use unicode_script::Script;
 use webrender_api::{FontInstanceFlags, FontInstanceKey};
 
-use crate::font_cache_thread::{FontIdentifier, FontSource};
 use crate::font_context::FontContext;
 use crate::font_template::{FontTemplateDescriptor, FontTemplateRef, FontTemplateRefMethods};
 use crate::platform::font::{FontTable, PlatformFont};
 pub use crate::platform::font_list::fallback_font_families;
+use crate::system_font_service::{FontIdentifier, SystemFontServiceProxyTrait};
 use crate::{
-    ByteIndex, EmojiPresentationPreference, FallbackFontSelectionOptions, GlyphData, GlyphId,
-    GlyphStore, Shaper,
+    ByteIndex, EmojiPresentationPreference, FallbackFontSelectionOptions, FontData, GlyphData,
+    GlyphId, GlyphStore, Shaper,
 };
 
 #[macro_export]
@@ -66,11 +66,13 @@ pub trait PlatformFontMethods: Sized {
     fn new_from_template(
         template: FontTemplateRef,
         pt_size: Option<Au>,
+        data: &Arc<Vec<u8>>,
     ) -> Result<PlatformFont, &'static str> {
-        let data = template.data();
+        let template = template.borrow();
+
         let face_index = template.identifier().index();
-        let font_identifier = template.borrow().identifier.clone();
-        Self::new_from_data(font_identifier, data, face_index, pt_size)
+        let font_identifier = template.identifier.clone();
+        Self::new_from_data(font_identifier, data.clone(), face_index, pt_size)
     }
 
     fn new_from_data(
@@ -218,6 +220,7 @@ impl malloc_size_of::MallocSizeOf for CachedShapeData {
 #[derive(Debug)]
 pub struct Font {
     pub handle: PlatformFont,
+    pub data: Arc<FontData>,
     pub template: FontTemplateRef,
     pub metrics: FontMetrics,
     pub descriptor: FontDescriptor,
@@ -251,13 +254,19 @@ impl Font {
     pub fn new(
         template: FontTemplateRef,
         descriptor: FontDescriptor,
+        data: Arc<FontData>,
         synthesized_small_caps: Option<FontRef>,
     ) -> Result<Font, &'static str> {
-        let handle = PlatformFont::new_from_template(template.clone(), Some(descriptor.pt_size))?;
+        let handle = PlatformFont::new_from_template(
+            template.clone(),
+            Some(descriptor.pt_size),
+            data.as_arc(),
+        )?;
         let metrics = handle.metrics();
 
         Ok(Font {
             handle,
+            data,
             template,
             shaper: OnceLock::new(),
             descriptor,
@@ -526,7 +535,7 @@ impl FontGroup {
     /// `codepoint`. If no such font is found, returns the first available font or fallback font
     /// (which will cause a "glyph not found" character to be rendered). If no font at all can be
     /// found, returns None.
-    pub fn find_by_codepoint<S: FontSource>(
+    pub fn find_by_codepoint<S: SystemFontServiceProxyTrait>(
         &mut self,
         font_context: &FontContext<S>,
         codepoint: char,
@@ -598,7 +607,10 @@ impl FontGroup {
     }
 
     /// Find the first available font in the group, or the first available fallback font.
-    pub fn first<S: FontSource>(&mut self, font_context: &FontContext<S>) -> Option<FontRef> {
+    pub fn first<S: SystemFontServiceProxyTrait>(
+        &mut self,
+        font_context: &FontContext<S>,
+    ) -> Option<FontRef> {
         // From https://drafts.csswg.org/css-fonts/#first-available-font:
         // > The first available font, used for example in the definition of font-relative lengths
         // > such as ex or in the definition of the line-height property, is defined to be the first
@@ -629,7 +641,7 @@ impl FontGroup {
         font_predicate: FontPredicate,
     ) -> Option<FontRef>
     where
-        S: FontSource,
+        S: SystemFontServiceProxyTrait,
         TemplatePredicate: Fn(FontTemplateRef) -> bool,
         FontPredicate: Fn(&FontRef) -> bool,
     {
@@ -659,7 +671,7 @@ impl FontGroup {
         font_predicate: FontPredicate,
     ) -> Option<FontRef>
     where
-        S: FontSource,
+        S: SystemFontServiceProxyTrait,
         TemplatePredicate: Fn(FontTemplateRef) -> bool,
         FontPredicate: Fn(&FontRef) -> bool,
     {
@@ -731,7 +743,7 @@ impl FontGroupFamily {
         font_predicate: &FontPredicate,
     ) -> Option<FontRef>
     where
-        S: FontSource,
+        S: SystemFontServiceProxyTrait,
         TemplatePredicate: Fn(FontTemplateRef) -> bool,
         FontPredicate: Fn(&FontRef) -> bool,
     {
@@ -754,7 +766,7 @@ impl FontGroupFamily {
             .next()
     }
 
-    fn members<S: FontSource>(
+    fn members<S: SystemFontServiceProxyTrait>(
         &mut self,
         font_descriptor: &FontDescriptor,
         font_context: &FontContext<S>,
@@ -883,6 +895,8 @@ pub(crate) fn map_platform_values_to_style_values(mapping: &[(f64, f64)], value:
 
 #[cfg(test)]
 mod test {
+    use crate::FontData;
+
     #[cfg(target_os = "windows")]
     #[test]
     fn test_shape_text_fast() {
@@ -917,14 +931,16 @@ mod test {
 
         let identifier = FontIdentifier::Web(ServoUrl::from_file_path(path.clone()).unwrap());
         let file = File::open(path).unwrap();
-        let data: Arc<Vec<u8>> = Arc::new(file.bytes().map(|b| b.unwrap()).collect());
+        let data = Arc::new(FontData::from_bytes(
+            file.bytes().map(|b| b.unwrap()).collect(),
+        ));
         let platform_font =
-            PlatformFont::new_from_data(identifier.clone(), data.clone(), 0, None).unwrap();
+            PlatformFont::new_from_data(identifier.clone(), data.as_arc().clone(), 0, None)
+                .unwrap();
 
         let template = FontTemplate {
             identifier,
             descriptor: platform_font.descriptor(),
-            data: Some(data),
             stylesheet: None,
         };
         let descriptor = FontDescriptor {
@@ -937,6 +953,7 @@ mod test {
         let font = Font::new(
             Arc::new(atomic_refcell::AtomicRefCell::new(template)),
             descriptor,
+            data,
             None,
         )
         .unwrap();

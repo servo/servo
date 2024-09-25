@@ -895,12 +895,11 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             ForwardedToCompositorMsg::Font(FontToCompositorMsg::AddFont(
                 key_sender,
                 index,
-                bytes_receiver,
+                data,
             )) => {
                 let font_key = self.webrender_api.generate_font_key();
                 let mut transaction = Transaction::new();
-                let bytes = bytes_receiver.recv().unwrap_or_default();
-                transaction.add_raw_font(font_key, bytes, index);
+                transaction.add_raw_font(font_key, (**data).into(), index);
                 self.webrender_api
                     .send_transaction(self.webrender_document, transaction);
                 let _ = key_sender.send(font_key);

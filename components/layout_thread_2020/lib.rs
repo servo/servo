@@ -23,7 +23,7 @@ use embedder_traits::resources::{self, Resource};
 use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect, Size2D as UntypedSize2D};
 use euclid::{Point2D, Scale, Size2D, Vector2D};
 use fnv::FnvHashMap;
-use fonts::{FontCacheThread, FontContext, FontContextWebFontMethods};
+use fonts::{FontContext, FontContextWebFontMethods, SystemFontServiceProxy};
 use fonts_traits::WebFontLoadFinishedCallback;
 use fxhash::FxHashMap;
 use ipc_channel::ipc::IpcSender;
@@ -121,7 +121,7 @@ pub struct LayoutThread {
     image_cache: Arc<dyn ImageCache>,
 
     /// A FontContext to be used during layout.
-    font_context: Arc<FontContext<FontCacheThread>>,
+    font_context: Arc<FontContext<SystemFontServiceProxy>>,
 
     /// Is this the first reflow in this LayoutThread?
     first_reflow: Cell<bool>,
@@ -177,7 +177,7 @@ impl LayoutFactory for LayoutFactoryImpl {
             config.script_chan,
             config.image_cache,
             config.resource_threads,
-            config.font_cache_thread,
+            config.system_font_service,
             config.time_profiler_chan,
             config.webrender_api_sender,
             config.paint_time_metrics,
@@ -502,7 +502,7 @@ impl LayoutThread {
         script_chan: IpcSender<ConstellationControlMsg>,
         image_cache: Arc<dyn ImageCache>,
         resource_threads: ResourceThreads,
-        font_cache_thread: FontCacheThread,
+        system_font_service: Arc<SystemFontServiceProxy>,
         time_profiler_chan: profile_time::ProfilerChan,
         webrender_api_sender: WebRenderScriptApi,
         paint_time_metrics: PaintTimeMetrics,
@@ -521,7 +521,7 @@ impl LayoutThread {
 
         // The device pixel ratio is incorrect (it does not have the hidpi value),
         // but it will be set correctly when the initial reflow takes place.
-        let font_context = Arc::new(FontContext::new(font_cache_thread, resource_threads));
+        let font_context = Arc::new(FontContext::new(system_font_service, resource_threads));
         let device = Device::new(
             MediaType::screen(),
             QuirksMode::NoQuirks,
@@ -1227,7 +1227,7 @@ impl RegisteredSpeculativePainters for RegisteredPaintersImpl {
     }
 }
 
-struct LayoutFontMetricsProvider(Arc<FontContext<FontCacheThread>>);
+struct LayoutFontMetricsProvider(Arc<FontContext<SystemFontServiceProxy>>);
 
 impl FontMetricsProvider for LayoutFontMetricsProvider {
     fn query_font_metrics(

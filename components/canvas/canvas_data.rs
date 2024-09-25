@@ -10,8 +10,8 @@ use canvas_traits::canvas::*;
 use euclid::default::{Box2D, Point2D, Rect, Size2D, Transform2D, Vector2D};
 use euclid::point2;
 use fonts::{
-    ByteIndex, FontBaseline, FontCacheThread, FontContext, FontGroup, FontMetrics, FontRef,
-    GlyphInfo, GlyphStore, ShapingFlags, ShapingOptions, LAST_RESORT_GLYPH_ADVANCE,
+    ByteIndex, FontBaseline, FontContext, FontGroup, FontMetrics, FontRef, GlyphInfo, GlyphStore,
+    ShapingFlags, ShapingOptions, SystemFontServiceProxy, LAST_RESORT_GLYPH_ADVANCE,
 };
 use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
 use log::{debug, warn};
@@ -434,7 +434,7 @@ pub struct CanvasData<'a> {
     old_image_key: Option<ImageKey>,
     /// An old webrender image key that can be deleted when the current epoch ends.
     very_old_image_key: Option<ImageKey>,
-    font_context: Arc<FontContext<FontCacheThread>>,
+    font_context: Arc<FontContext<SystemFontServiceProxy>>,
 }
 
 fn create_backend() -> Box<dyn Backend> {
@@ -446,7 +446,7 @@ impl<'a> CanvasData<'a> {
         size: Size2D<u64>,
         webrender_api: Box<dyn WebrenderApi>,
         antialias: AntialiasMode,
-        font_context: Arc<FontContext<FontCacheThread>>,
+        font_context: Arc<FontContext<SystemFontServiceProxy>>,
     ) -> CanvasData<'a> {
         let backend = create_backend();
         let draw_target = backend.create_drawtarget(size);

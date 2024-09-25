@@ -11,7 +11,7 @@ use canvas_traits::canvas::*;
 use canvas_traits::ConstellationCanvasMsg;
 use crossbeam_channel::{select, unbounded, Sender};
 use euclid::default::Size2D;
-use fonts::{FontCacheThread, FontContext};
+use fonts::{FontContext, SystemFontServiceProxy};
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use log::warn;
@@ -37,20 +37,20 @@ pub struct CanvasPaintThread<'a> {
     canvases: HashMap<CanvasId, CanvasData<'a>>,
     next_canvas_id: CanvasId,
     webrender_api: Box<dyn WebrenderApi>,
-    font_context: Arc<FontContext<FontCacheThread>>,
+    font_context: Arc<FontContext<SystemFontServiceProxy>>,
 }
 
 impl<'a> CanvasPaintThread<'a> {
     fn new(
         webrender_api: Box<dyn WebrenderApi>,
-        font_cache_thread: FontCacheThread,
+        system_font_service: Arc<SystemFontServiceProxy>,
         resource_threads: ResourceThreads,
     ) -> CanvasPaintThread<'a> {
         CanvasPaintThread {
             canvases: HashMap::new(),
             next_canvas_id: CanvasId(0),
             webrender_api,
-            font_context: Arc::new(FontContext::new(font_cache_thread, resource_threads)),
+            font_context: Arc::new(FontContext::new(system_font_service, resource_threads)),
         }
     }
 
@@ -58,7 +58,7 @@ impl<'a> CanvasPaintThread<'a> {
     /// communicate with it.
     pub fn start(
         webrender_api: Box<dyn WebrenderApi + Send>,
-        font_cache_thread: FontCacheThread,
+        system_font_service: Arc<SystemFontServiceProxy>,
         resource_threads: ResourceThreads,
     ) -> (Sender<ConstellationCanvasMsg>, IpcSender<CanvasMsg>) {
         let (ipc_sender, ipc_receiver) = ipc::channel::<CanvasMsg>().unwrap();
@@ -68,7 +68,7 @@ impl<'a> CanvasPaintThread<'a> {
             .name("Canvas".to_owned())
             .spawn(move || {
                 let mut canvas_paint_thread = CanvasPaintThread::new(
-                    webrender_api, font_cache_thread, resource_threads);
+                    webrender_api, system_font_service, resource_threads);
                 loop {
                     select! {
                         recv(msg_receiver) -> msg => {

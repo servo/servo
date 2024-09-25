@@ -16,7 +16,7 @@ use core_text::font::CTFont;
 use core_text::font_descriptor::kCTFontURLAttribute;
 use parking_lot::RwLock;
 
-use crate::font_cache_thread::FontIdentifier;
+use crate::system_font_service::FontIdentifier;
 
 /// A cache of `CTFont` to avoid having to create `CTFont` instances over and over. It is
 /// always possible to create a `CTFont` using a `FontTemplate` even if it isn't in this

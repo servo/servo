@@ -19,6 +19,7 @@ use net_traits::request::{Destination, Referrer, RequestBuilder};
 use net_traits::{fetch_async, CoreResourceThread, FetchResponseMsg, ResourceThreads};
 use parking_lot::{Mutex, ReentrantMutex, RwLock};
 use servo_arc::Arc as ServoArc;
+use servo_url::ServoUrl;
 use style::computed_values::font_variant_caps::T as FontVariantCaps;
 use style::font_face::{FontFaceSourceFormat, FontFaceSourceFormatKeyword, Source, UrlSource};
 use style::media_queries::Device;
@@ -33,39 +34,67 @@ use webrender_api::{FontInstanceKey, FontKey};
 use crate::font::{
     Font, FontDescriptor, FontFamilyDescriptor, FontGroup, FontRef, FontSearchScope,
 };
-use crate::font_cache_thread::{CSSFontFaceDescriptors, FontIdentifier, FontSource};
 use crate::font_store::{CrossThreadFontStore, CrossThreadWebRenderFontStore};
 use crate::font_template::{FontTemplate, FontTemplateRef, FontTemplateRefMethods};
-use crate::LowercaseFontFamilyName;
+use crate::platform::font::PlatformFont;
+use crate::system_font_service::{
+    CSSFontFaceDescriptors, FontIdentifier, SystemFontServiceProxyTrait,
+};
+use crate::{FontData, LowercaseFontFamilyName, PlatformFontMethods};
 
 static SMALL_CAPS_SCALE_FACTOR: f32 = 0.8; // Matches FireFox (see gfxFont.h)
 
 /// The FontContext represents the per-thread/thread state necessary for
 /// working with fonts. It is the public API used by the layout and
-/// paint code. It talks directly to the font cache thread where
+/// paint code. It talks directly to the system font service where
 /// required.
-pub struct FontContext<S: FontSource> {
-    font_source: ReentrantMutex<S>,
+pub struct FontContext<Proxy: SystemFontServiceProxyTrait> {
+    pub(crate) system_font_service_proxy: Arc<Proxy>,
     resource_threads: ReentrantMutex<CoreResourceThread>,
-    cache: CachingFontSource<S>,
+
+    /// The actual instances of fonts ie a [`FontTemplate`] combined with a size and
+    /// other font properties, along with the font data and a platform font instance.
+    fonts: RwLock<HashMap<FontCacheKey, Option<FontRef>>>,
+
+    /// A caching map between the specification of a font in CSS style and
+    /// resolved [`FontGroup`] which contains information about all fonts that
+    /// can be selected with that style.
+    resolved_font_groups:
+        RwLock<HashMap<FontGroupCacheKey, Arc<RwLock<FontGroup>>, BuildHasherDefault<FnvHasher>>>,
+
     web_fonts: CrossThreadFontStore,
     webrender_font_store: CrossThreadWebRenderFontStore,
     have_removed_web_fonts: AtomicBool,
 }
 
-impl<S: FontSource> MallocSizeOf for FontContext<S> {
+impl<S: SystemFontServiceProxyTrait> MallocSizeOf for FontContext<S> {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        self.cache.size_of(ops)
+        let font_cache_size = self
+            .fonts
+            .read()
+            .iter()
+            .map(|(key, font)| {
+                key.size_of(ops) + font.as_ref().map_or(0, |font| (*font).size_of(ops))
+            })
+            .sum::<usize>();
+        let font_group_cache_size = self
+            .resolved_font_groups
+            .read()
+            .iter()
+            .map(|(key, font_group)| key.size_of(ops) + (*font_group.read()).size_of(ops))
+            .sum::<usize>();
+        font_cache_size + font_group_cache_size
     }
 }
 
-impl<S: FontSource> FontContext<S> {
-    pub fn new(font_source: S, resource_threads: ResourceThreads) -> FontContext<S> {
+impl<Proxy: SystemFontServiceProxyTrait> FontContext<Proxy> {
+    pub fn new(system_font_service_proxy: Arc<Proxy>, resource_threads: ResourceThreads) -> Self {
         #[allow(clippy::default_constructed_unit_structs)]
-        FontContext {
-            font_source: ReentrantMutex::new(font_source.clone()),
+        Self {
+            system_font_service_proxy,
             resource_threads: ReentrantMutex::new(resource_threads.core_thread),
-            cache: CachingFontSource::new(font_source),
+            fonts: Default::default(),
+            resolved_font_groups: Default::default(),
             web_fonts: Arc::new(RwLock::default()),
             webrender_font_store: Arc::new(RwLock::default()),
             have_removed_web_fonts: AtomicBool::new(false),
@@ -76,6 +105,14 @@ impl<S: FontSource> FontContext<S> {
         self.web_fonts.read().number_of_fonts_still_loading()
     }
 
+    pub(crate) fn get_font_data(&self, identifier: &FontIdentifier) -> Arc<FontData> {
+        self.web_fonts
+            .read()
+            .get_font_data(identifier)
+            .or_else(|| self.system_font_service_proxy.get_font_data(identifier))
+            .expect("Could not find font data")
+    }
+
     /// Handle the situation where a web font finishes loading, specifying if the load suceeded or failed.
     fn handle_web_font_load_finished(
         &self,
@@ -83,7 +120,7 @@ impl<S: FontSource> FontContext<S> {
         succeeded: bool,
     ) {
         if succeeded {
-            self.cache.invalidate_after_web_font_load();
+            self.invalidate_font_groups_after_web_font_load();
         }
         finished_callback(succeeded);
     }
@@ -103,7 +140,19 @@ impl<S: FontSource> FontContext<S> {
         style: ServoArc<FontStyleStruct>,
         size: Au,
     ) -> Arc<RwLock<FontGroup>> {
-        self.cache.font_group_with_size(style, size)
+        let cache_key = FontGroupCacheKey { size, style };
+        if let Some(font_group) = self.resolved_font_groups.read().get(&cache_key) {
+            return font_group.clone();
+        }
+
+        let mut descriptor = FontDescriptor::from(&*cache_key.style);
+        descriptor.pt_size = size;
+
+        let font_group = Arc::new(RwLock::new(FontGroup::new(&cache_key.style, descriptor)));
+        self.resolved_font_groups
+            .write()
+            .insert(cache_key, font_group.clone());
+        font_group
     }
 
     /// Returns a font matching the parameters. Fonts are cached, so repeated calls will return a
@@ -148,7 +197,7 @@ impl<S: FontSource> FontContext<S> {
             font_descriptor: font_descriptor.clone(),
         };
 
-        if let Some(font) = self.cache.fonts.read().get(&cache_key).cloned() {
+        if let Some(font) = self.fonts.read().get(&cache_key).cloned() {
             return font;
         }
 
@@ -166,7 +215,7 @@ impl<S: FontSource> FontContext<S> {
                 synthesized_small_caps_font,
             )
             .ok();
-        self.cache.fonts.write().insert(cache_key, font.clone());
+        self.fonts.write().insert(cache_key, font.clone());
         font
     }
 
@@ -192,7 +241,7 @@ impl<S: FontSource> FontContext<S> {
     }
 
     /// Try to find matching templates in this [`FontContext`], first looking in the list of web fonts and
-    /// falling back to asking the [`super::FontCacheThread`] for a matching system font.
+    /// falling back to asking the [`super::SystemFontService`] for a matching system font.
     pub fn matching_templates(
         &self,
         descriptor_to_match: &FontDescriptor,
@@ -200,8 +249,10 @@ impl<S: FontSource> FontContext<S> {
     ) -> Vec<FontTemplateRef> {
         self.matching_web_font_templates(descriptor_to_match, family_descriptor)
             .unwrap_or_else(|| {
-                self.cache
-                    .matching_templates(descriptor_to_match, family_descriptor)
+                self.system_font_service_proxy.find_matching_font_templates(
+                    Some(descriptor_to_match),
+                    &family_descriptor.family,
+                )
             })
     }
 
@@ -216,18 +267,18 @@ impl<S: FontSource> FontContext<S> {
         let mut font = Font::new(
             font_template.clone(),
             font_descriptor.clone(),
+            self.get_font_data(&font_template.identifier()),
             synthesized_small_caps,
         )?;
 
-        let font_source = self.font_source.lock();
         font.font_key = match font_template.identifier() {
-            FontIdentifier::Local(_) => font_source.get_system_font_instance(
+            FontIdentifier::Local(_) => self.system_font_service_proxy.get_system_font_instance(
                 font_template.identifier(),
                 font_descriptor.pt_size,
                 font.webrender_font_instance_flags(),
             ),
             FontIdentifier::Web(_) => self.webrender_font_store.write().get_font_instance(
-                &*font_source,
+                self,
                 font_template.clone(),
                 font_descriptor.pt_size,
                 font.webrender_font_instance_flags(),
@@ -235,6 +286,10 @@ impl<S: FontSource> FontContext<S> {
         };
 
         Ok(Arc::new(font))
+    }
+
+    fn invalidate_font_groups_after_web_font_load(&self) {
+        self.resolved_font_groups.write().clear();
     }
 }
 
@@ -263,7 +318,7 @@ pub trait FontContextWebFontMethods {
         -> (Vec<FontKey>, Vec<FontInstanceKey>);
 }
 
-impl<S: FontSource + Send + 'static> FontContextWebFontMethods for Arc<FontContext<S>> {
+impl<S: SystemFontServiceProxyTrait + 'static> FontContextWebFontMethods for Arc<FontContext<S>> {
     fn add_all_web_fonts_from_stylesheet(
         &self,
         stylesheet: &DocumentStyleSheet,
@@ -325,8 +380,7 @@ impl<S: FontSource + Send + 'static> FontContextWebFontMethods for Arc<FontConte
                                 name: family_name.name.clone(),
                                 syntax: FontFamilyNameSyntax::Quoted,
                             });
-                            self.font_source
-                                .lock()
+                            self.system_font_service_proxy
                                 .find_matching_font_templates(None, &family)
                                 .first()
                                 .cloned()
@@ -373,24 +427,27 @@ impl<S: FontSource + Send + 'static> FontContextWebFontMethods for Arc<FontConte
                 RemoteWebFontDownloader::download(url_source, this, web_font_family_name, state)
             },
             Source::Local(ref local_family_name) => {
-                if let Some(new_template) = state
+                if let Some((new_template, font_data)) = state
                     .local_fonts
                     .get(&local_family_name.name)
                     .cloned()
                     .flatten()
                     .and_then(|local_template| {
-                        FontTemplate::new_for_local_web_font(
-                            local_template,
+                        let template = FontTemplate::new_for_local_web_font(
+                            local_template.clone(),
                             &state.css_font_face_descriptors,
                             state.stylesheet.clone(),
                         )
-                        .ok()
+                        .ok()?;
+                        let font_data = self.get_font_data(&local_template.identifier());
+                        Some((template, font_data))
                     })
                 {
-                    let not_cancelled = self
-                        .web_fonts
-                        .write()
-                        .handle_web_font_loaded(&state, new_template);
+                    let not_cancelled = self.web_fonts.write().handle_web_font_loaded(
+                        &state,
+                        new_template,
+                        font_data,
+                    );
                     self.handle_web_font_load_finished(&state.finished_callback, not_cancelled);
                 } else {
                     this.process_next_web_font_source(state);
@@ -401,8 +458,8 @@ impl<S: FontSource + Send + 'static> FontContextWebFontMethods for Arc<FontConte
 
     fn remove_all_web_fonts_from_stylesheet(&self, stylesheet: &DocumentStyleSheet) {
         let mut web_fonts = self.web_fonts.write();
-        let mut fonts = self.cache.fonts.write();
-        let mut font_groups = self.cache.resolved_font_groups.write();
+        let mut fonts = self.fonts.write();
+        let mut font_groups = self.resolved_font_groups.write();
 
         // Cancel any currently in-progress web font loads.
         web_fonts.handle_stylesheet_removed(stylesheet);
@@ -443,9 +500,9 @@ impl<S: FontSource + Send + 'static> FontContextWebFontMethods for Arc<FontConte
         }
 
         // Lock everything to prevent adding new fonts while we are cleaning up the old ones.
-        let web_fonts = self.web_fonts.write();
-        let _fonts = self.cache.fonts.write();
-        let _font_groups = self.cache.resolved_font_groups.write();
+        let mut web_fonts = self.web_fonts.write();
+        let _fonts = self.fonts.write();
+        let _font_groups = self.resolved_font_groups.write();
         let mut webrender_font_store = self.webrender_font_store.write();
 
         let mut unused_identifiers: HashSet<FontIdentifier> = webrender_font_store
@@ -459,13 +516,15 @@ impl<S: FontSource + Send + 'static> FontContextWebFontMethods for Arc<FontConte
             });
         }
 
+        web_fonts.remove_all_font_data_for_identifiers(&unused_identifiers);
+
         self.have_removed_web_fonts.store(false, Ordering::Relaxed);
-        webrender_font_store.remove_all_fonts_for_identifiers(unused_identifiers)
+        webrender_font_store.remove_all_fonts_for_identifiers(&unused_identifiers)
     }
 }
 
-struct RemoteWebFontDownloader<FCT: FontSource> {
-    font_context: Arc<FontContext<FCT>>,
+struct RemoteWebFontDownloader<Proxy: SystemFontServiceProxyTrait> {
+    font_context: Arc<FontContext<Proxy>>,
     url: ServoArc<Url>,
     web_font_family_name: LowercaseFontFamilyName,
     response_valid: Mutex<bool>,
@@ -478,10 +537,10 @@ enum DownloaderResponseResult {
     Failure,
 }
 
-impl<FCT: FontSource + Send + 'static> RemoteWebFontDownloader<FCT> {
+impl<Proxy: SystemFontServiceProxyTrait + 'static> RemoteWebFontDownloader<Proxy> {
     fn download(
         url_source: UrlSource,
-        font_context: Arc<FontContext<FCT>>,
+        font_context: Arc<FontContext<Proxy>>,
         web_font_family_name: LowercaseFontFamilyName,
         state: WebFontDownloadState,
     ) {
@@ -548,7 +607,7 @@ impl<FCT: FontSource + Send + 'static> RemoteWebFontDownloader<FCT> {
         );
 
         let font_data = match fontsan::process(&font_data) {
-            Ok(bytes) => bytes,
+            Ok(bytes) => Arc::new(FontData::from_bytes(bytes)),
             Err(error) => {
                 debug!(
                     "Sanitiser rejected web font: family={} url={:?} with {error:?}",
@@ -558,20 +617,28 @@ impl<FCT: FontSource + Send + 'static> RemoteWebFontDownloader<FCT> {
             },
         };
 
-        let Ok(new_template) = FontTemplate::new_for_remote_web_font(
-            self.url.clone().into(),
-            Arc::new(font_data),
-            &state.css_font_face_descriptors,
-            Some(state.stylesheet.clone()),
-        ) else {
+        let url: ServoUrl = self.url.clone().into();
+        let identifier = FontIdentifier::Web(url.clone());
+        let Ok(handle) =
+            PlatformFont::new_from_data(identifier, font_data.as_arc().clone(), 0, None)
+        else {
+            return false;
+        };
+        let mut descriptor = handle.descriptor();
+        descriptor
+            .override_values_with_css_font_template_descriptors(&state.css_font_face_descriptors);
+
+        let Ok(new_template) =
+            FontTemplate::new_for_remote_web_font(url, descriptor, Some(state.stylesheet.clone()))
+        else {
             return false;
         };
 
-        let not_cancelled = self
-            .font_context
-            .web_fonts
-            .write()
-            .handle_web_font_loaded(state, new_template);
+        let not_cancelled = self.font_context.web_fonts.write().handle_web_font_loaded(
+            state,
+            new_template,
+            font_data,
+        );
         self.font_context
             .handle_web_font_load_finished(&state.finished_callback, not_cancelled);
 
@@ -623,119 +690,10 @@ impl<FCT: FontSource + Send + 'static> RemoteWebFontDownloader<FCT> {
     }
 }
 
-#[derive(Default)]
-pub struct CachingFontSource<FCT: FontSource> {
-    font_cache_thread: ReentrantMutex<FCT>,
-    fonts: RwLock<HashMap<FontCacheKey, Option<FontRef>>>,
-    templates: RwLock<HashMap<FontTemplateCacheKey, Vec<FontTemplateRef>>>,
-    resolved_font_groups:
-        RwLock<HashMap<FontGroupCacheKey, Arc<RwLock<FontGroup>>, BuildHasherDefault<FnvHasher>>>,
-}
-
-impl<FCT: FontSource> CachingFontSource<FCT> {
-    fn new(font_cache_thread: FCT) -> Self {
-        Self {
-            font_cache_thread: ReentrantMutex::new(font_cache_thread),
-            fonts: Default::default(),
-            templates: Default::default(),
-            resolved_font_groups: Default::default(),
-        }
-    }
-
-    fn invalidate_after_web_font_load(&self) {
-        self.resolved_font_groups.write().clear();
-    }
-
-    pub fn matching_templates(
-        &self,
-        descriptor_to_match: &FontDescriptor,
-        family_descriptor: &FontFamilyDescriptor,
-    ) -> Vec<FontTemplateRef> {
-        let cache_key = FontTemplateCacheKey {
-            font_descriptor: descriptor_to_match.clone(),
-            family_descriptor: family_descriptor.clone(),
-        };
-        if let Some(templates) = self.templates.read().get(&cache_key).cloned() {
-            return templates;
-        }
-
-        debug!(
-            "CachingFontSource: cache miss for template_descriptor={:?} family_descriptor={:?}",
-            descriptor_to_match, family_descriptor
-        );
-        let templates = self
-            .font_cache_thread
-            .lock()
-            .find_matching_font_templates(Some(descriptor_to_match), &family_descriptor.family);
-        self.templates.write().insert(cache_key, templates.clone());
-
-        templates
-    }
-
-    pub fn font_group_with_size(
-        &self,
-        style: ServoArc<FontStyleStruct>,
-        size: Au,
-    ) -> Arc<RwLock<FontGroup>> {
-        let cache_key = FontGroupCacheKey { size, style };
-        if let Some(font_group) = self.resolved_font_groups.read().get(&cache_key) {
-            return font_group.clone();
-        }
-
-        let mut descriptor = FontDescriptor::from(&*cache_key.style);
-        descriptor.pt_size = size;
-
-        let font_group = Arc::new(RwLock::new(FontGroup::new(&cache_key.style, descriptor)));
-        self.resolved_font_groups
-            .write()
-            .insert(cache_key, font_group.clone());
-        font_group
-    }
-}
-
-impl<FCT: FontSource> MallocSizeOf for CachingFontSource<FCT> {
-    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        let font_cache_size = self
-            .fonts
-            .read()
-            .iter()
-            .map(|(key, font)| {
-                key.size_of(ops) + font.as_ref().map_or(0, |font| (*font).size_of(ops))
-            })
-            .sum::<usize>();
-        let font_template_cache_size = self
-            .templates
-            .read()
-            .iter()
-            .map(|(key, templates)| {
-                let templates_size = templates
-                    .iter()
-                    .map(|template| template.borrow().size_of(ops))
-                    .sum::<usize>();
-                key.size_of(ops) + templates_size
-            })
-            .sum::<usize>();
-        let font_group_cache_size = self
-            .resolved_font_groups
-            .read()
-            .iter()
-            .map(|(key, font_group)| key.size_of(ops) + (*font_group.read()).size_of(ops))
-            .sum::<usize>();
-
-        font_cache_size + font_template_cache_size + font_group_cache_size
-    }
-}
-
 #[derive(Debug, Eq, Hash, MallocSizeOf, PartialEq)]
 struct FontCacheKey {
     font_identifier: FontIdentifier,
     font_descriptor: FontDescriptor,
-}
-
-#[derive(Debug, Eq, Hash, MallocSizeOf, PartialEq)]
-struct FontTemplateCacheKey {
-    font_descriptor: FontDescriptor,
-    family_descriptor: FontFamilyDescriptor,
 }
 
 #[derive(Debug, MallocSizeOf)]

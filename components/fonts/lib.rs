@@ -5,7 +5,6 @@
 #![deny(unsafe_code)]
 
 mod font;
-mod font_cache_thread;
 mod font_context;
 mod font_store;
 mod font_template;
@@ -13,14 +12,15 @@ mod glyph;
 #[allow(unsafe_code)]
 pub mod platform;
 mod shaper;
+mod system_font_service;
 
 pub use font::*;
-pub use font_cache_thread::*;
 pub use font_context::*;
 pub use font_store::*;
 pub use font_template::*;
 pub use glyph::*;
 pub use shaper::*;
+pub use system_font_service::*;
 use unicode_properties::{emoji, EmojiStatus, UnicodeEmoji};
 
 /// Whether or not font fallback selection prefers the emoji or text representation

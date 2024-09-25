@@ -21,7 +21,7 @@ use canvas_traits::webgl::WebGLPipeline;
 use compositing_traits::{CompositionPipeline, CompositorMsg, CompositorProxy};
 use crossbeam_channel::{unbounded, Sender};
 use devtools_traits::{DevtoolsControlMsg, ScriptToDevtoolsControlMsg};
-use fonts::FontCacheThread;
+use fonts::{SystemFontServiceProxy, SystemFontServiceProxySender};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use ipc_channel::Error;
@@ -153,8 +153,8 @@ pub struct InitialPipelineState {
     /// A channel to the service worker manager thread
     pub swmanager_thread: IpcSender<SWManagerMsg>,
 
-    /// A channel to the font cache thread.
-    pub font_cache_thread: FontCacheThread,
+    /// A proxy to the system font service, responsible for managing the list of system fonts.
+    pub system_font_service: Arc<SystemFontServiceProxy>,
 
     /// Channels to the resource-related threads.
     pub resource_threads: ResourceThreads,
@@ -281,7 +281,7 @@ impl Pipeline {
                     devtools_ipc_sender: script_to_devtools_ipc_sender,
                     bluetooth_thread: state.bluetooth_thread,
                     swmanager_thread: state.swmanager_thread,
-                    font_cache_thread: state.font_cache_thread,
+                    system_font_service: state.system_font_service.to_sender(),
                     resource_threads: state.resource_threads,
                     time_profiler_chan: state.time_profiler_chan,
                     mem_profiler_chan: state.mem_profiler_chan,
@@ -487,7 +487,7 @@ pub struct UnprivilegedPipelineContent {
     devtools_ipc_sender: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
     bluetooth_thread: IpcSender<BluetoothRequest>,
     swmanager_thread: IpcSender<SWManagerMsg>,
-    font_cache_thread: FontCacheThread,
+    system_font_service: SystemFontServiceProxySender,
     resource_threads: ResourceThreads,
     time_profiler_chan: time::ProfilerChan,
     mem_profiler_chan: profile_mem::ProfilerChan,
@@ -550,7 +550,7 @@ impl UnprivilegedPipelineContent {
                 inherited_secure_context: self.load_data.inherited_secure_context,
             },
             layout_factory,
-            self.font_cache_thread.clone(),
+            Arc::new(self.system_font_service.to_proxy()),
             self.load_data.clone(),
             self.user_agent,
         );

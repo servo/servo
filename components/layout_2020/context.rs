@@ -6,7 +6,7 @@ use std::sync::Arc;
 
 use base::id::PipelineId;
 use fnv::FnvHashMap;
-use fonts::{FontCacheThread, FontContext};
+use fonts::{FontContext, SystemFontServiceProxy};
 use net_traits::image_cache::{
     ImageCache, ImageCacheResult, ImageOrMetadataAvailable, UsePlaceholder,
 };
@@ -27,7 +27,7 @@ pub struct LayoutContext<'a> {
     pub style_context: SharedStyleContext<'a>,
 
     /// A FontContext to be used during layout.
-    pub font_context: Arc<FontContext<FontCacheThread>>,
+    pub font_context: Arc<FontContext<SystemFontServiceProxy>>,
 
     /// Reference to the script thread image cache.
     pub image_cache: Arc<dyn ImageCache>,

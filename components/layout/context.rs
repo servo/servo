@@ -11,7 +11,7 @@ use std::thread;
 
 use base::id::PipelineId;
 use fnv::FnvHasher;
-use fonts::{FontCacheThread, FontContext};
+use fonts::{FontContext, SystemFontServiceProxy};
 use net_traits::image_cache::{
     ImageCache, ImageCacheResult, ImageOrMetadataAvailable, UsePlaceholder,
 };
@@ -24,7 +24,7 @@ use style::context::{RegisteredSpeculativePainter, SharedStyleContext};
 
 use crate::display_list::items::{OpaqueNode, WebRenderImageInfo};
 
-pub type LayoutFontContext = FontContext<FontCacheThread>;
+pub type LayoutFontContext = FontContext<SystemFontServiceProxy>;
 
 type WebrenderImageCache =
     HashMap<(ServoUrl, UsePlaceholder), WebRenderImageInfo, BuildHasherDefault<FnvHasher>>;
@@ -44,7 +44,7 @@ pub struct LayoutContext<'a> {
     pub image_cache: Arc<dyn ImageCache>,
 
     /// A FontContext to be used during layout.
-    pub font_context: Arc<FontContext<FontCacheThread>>,
+    pub font_context: Arc<FontContext<SystemFontServiceProxy>>,
 
     /// A cache of WebRender image info.
     pub webrender_image_cache: Arc<RwLock<WebrenderImageCache>>,

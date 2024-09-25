@@ -452,7 +452,7 @@ impl FontList {
     }
 }
 
-// Functions used by FontCacheThread
+// Functions used by SystemFontSerivce
 pub fn for_each_available_family<F>(mut callback: F)
 where
     F: FnMut(String),
