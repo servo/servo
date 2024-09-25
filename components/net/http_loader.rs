@@ -1192,7 +1192,7 @@ async fn http_network_or_cache_fetch(
     };
 
     // Step 8.12 Append a request `Origin` header for httpRequest.
-    http_request.append_a_request_origin_header();
+    append_a_request_origin_header(http_request);
 
     // Step 8.13 Append the Fetch metadata headers for httpRequest.
     // TODO Implement Sec-Fetch-* headers
@@ -2240,4 +2240,115 @@ pub fn is_redirect_status(status: StatusCode) -> bool {
             StatusCode::TEMPORARY_REDIRECT |
             StatusCode::PERMANENT_REDIRECT
     )
+}
+
+/// <https://fetch.spec.whatwg.org/#concept-request-tainted-origin>
+fn request_has_redirect_tainted_origin(request: &Request) -> bool {
+    // https://github.com/whatwg/fetch/issues/1773
+    let Origin::Origin(request_origin) = &request.origin else {
+        panic!("origin cannot be \"client\" at this point in time");
+    };
+
+    // Step 1. Let lastURL be null.
+    let mut last_url = None;
+
+    // Step 2. For each url of request’s URL list:
+    for url in &request.url_list {
+        // Step 2.1 If lastURL is null, then set lastURL to url and continue.
+        let Some(last_url) = &mut last_url else {
+            last_url = Some(url);
+            continue;
+        };
+
+        // Step 2.2 If url’s origin is not same origin with lastURL’s origin and
+        //          request’s origin is not same origin with lastURL’s origin, then return true.
+        if url.origin() != last_url.origin() && *request_origin != last_url.origin() {
+            return true;
+        }
+
+        // Step 2.3 Set lastURL to url.
+        *last_url = url;
+    }
+
+    // Step 3. Return false.
+    false
+}
+
+/// <https://fetch.spec.whatwg.org/#serializing-a-request-origin>
+fn serialize_request_origin(request: &Request) -> headers::Origin {
+    // 1. If request has a redirect-tainted origin, then return "null".
+    if request_has_redirect_tainted_origin(request) {
+        return headers::Origin::NULL;
+    }
+
+    // 2. Return request’s origin, serialized.
+    // NOTE: https://github.com/whatwg/fetch/issues/1773
+    let Origin::Origin(origin) = &request.origin else {
+        panic!("origin cannot be \"client\" at this point in time");
+    };
+
+    match origin {
+        ImmutableOrigin::Opaque(_) => headers::Origin::NULL,
+        ImmutableOrigin::Tuple(scheme, host, port) => {
+            headers::Origin::try_from_parts(scheme, &host.to_string(), *port)
+                .expect("servo and hyper disagree about valid origins")
+        },
+    }
+}
+
+/// <https://fetch.spec.whatwg.org/#append-a-request-origin-header>
+pub fn append_a_request_origin_header(request: &mut Request) {
+    // https://github.com/whatwg/fetch/issues/1773
+    let Origin::Origin(request_origin) = &request.origin else {
+        panic!("origin cannot be \"client\" at this point in time");
+    };
+
+    // Step 1. Let serializedOrigin be the result of byte-serializing a request origin with request.
+    let mut serialized_origin = serialize_request_origin(request);
+
+    // Step 2. If request’s response tainting is "cors" or request’s mode is "websocket",
+    //         then append (`Origin`, serializedOrigin) to request’s header list.
+    if request.response_tainting == ResponseTainting::CorsTainting ||
+        matches!(request.mode, RequestMode::WebSocket { .. })
+    {
+        request.headers.typed_insert(serialized_origin);
+    }
+    // Step 3. Otherwise, if request’s method is neither `GET` nor `HEAD`, then:
+    else if !matches!(request.method, Method::GET | Method::HEAD) {
+        // Step 3.1 If request’s mode is not "cors", then switch on request’s referrer policy:
+        if request.mode != RequestMode::CorsMode {
+            match request.referrer_policy {
+                Some(ReferrerPolicy::NoReferrer) => {
+                    // Set serializedOrigin to `null`.
+                    serialized_origin = headers::Origin::NULL;
+                },
+                Some(
+                    ReferrerPolicy::NoReferrerWhenDowngrade |
+                    ReferrerPolicy::StrictOrigin |
+                    ReferrerPolicy::StrictOriginWhenCrossOrigin,
+                ) => {
+                    // If request’s origin is a tuple origin, its scheme is "https", and
+                    // request’s current URL’s scheme is not "https", then set serializedOrigin to `null`.
+                    if let ImmutableOrigin::Tuple(scheme, _, _) = &request_origin {
+                        if scheme == "https" && request.current_url().scheme() != "https" {
+                            serialized_origin = headers::Origin::NULL;
+                        }
+                    }
+                },
+                Some(ReferrerPolicy::SameOrigin) => {
+                    // If request’s origin is not same origin with request’s current URL’s origin,
+                    // then set serializedOrigin to `null`.
+                    if *request_origin != request.current_url().origin() {
+                        serialized_origin = headers::Origin::NULL;
+                    }
+                },
+                _ => {
+                    // Do nothing.
+                },
+            };
+        }
+
+        // Step 3.2. Append (`Origin`, serializedOrigin) to request’s header list.
+        request.headers.typed_insert(serialized_origin);
+    }
 }
