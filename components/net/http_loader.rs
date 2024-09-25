@@ -2290,8 +2290,9 @@ fn serialize_request_origin(request: &Request) -> headers::Origin {
     match origin {
         ImmutableOrigin::Opaque(_) => headers::Origin::NULL,
         ImmutableOrigin::Tuple(scheme, host, port) => {
+            // TODO: Ensure that hyper/servo don't disagree about valid origin headers
             headers::Origin::try_from_parts(scheme, &host.to_string(), *port)
-                .expect("servo and hyper disagree about valid origins")
+                .unwrap_or(headers::Origin::NULL)
         },
     }
 }
