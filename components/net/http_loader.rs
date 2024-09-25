@@ -1519,11 +1519,11 @@ async fn http_network_or_cache_fetch(
             // Step 10.5.1 Set response to forwardResponse.
             let forward_response = response.insert(forward_response);
 
+            // Per https://httpwg.org/specs/rfc9111.html#response.cacheability we must not cache responses
+            // if the No-Store directive is present
             if http_request.cache_mode != CacheMode::NoStore {
                 // Step 10.5.2 Store httpRequest and forwardResponse in httpCache, as per the
                 //             "Storing Responses in Caches" chapter of HTTP Caching.
-                // TODO: The spec doesn't explicitly tell us to check for CacheMode::NoStore.
-                //       Is this correct?
                 if let Ok(mut http_cache) = context.state.http_cache.write() {
                     http_cache.store(http_request, forward_response);
                 }
