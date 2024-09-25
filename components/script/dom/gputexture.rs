@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::Cell;
 use std::string::String;
 
 use dom_struct::dom_struct;
@@ -40,7 +39,6 @@ pub struct GPUTexture {
     dimension: GPUTextureDimension,
     format: GPUTextureFormat,
     texture_usage: u32,
-    destroyed: Cell<bool>,
 }
 
 impl GPUTexture {
@@ -69,7 +67,6 @@ impl GPUTexture {
             dimension,
             format,
             texture_usage,
-            destroyed: Cell::new(false),
         }
     }
 
@@ -107,9 +104,6 @@ impl GPUTexture {
 
 impl Drop for GPUTexture {
     fn drop(&mut self) {
-        if self.destroyed.get() {
-            return;
-        }
         if let Err(e) = self
             .channel
             .0
@@ -250,19 +244,16 @@ impl GPUTextureMethods for GPUTexture {
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gputexture-destroy>
     fn Destroy(&self) {
-        if self.destroyed.get() {
-            return;
-        }
-        if let Err(e) = self.channel.0.send(WebGPURequest::DestroyTexture {
-            device_id: self.device.id().0,
-            texture_id: self.texture.0,
-        }) {
+        if let Err(e) = self
+            .channel
+            .0
+            .send(WebGPURequest::DestroyTexture(self.texture.0))
+        {
             warn!(
                 "Failed to send WebGPURequest::DestroyTexture({:?}) ({})",
                 self.texture.0, e
             );
         };
-        self.destroyed.set(true);
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gputexture-width>

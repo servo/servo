@@ -151,10 +151,7 @@ pub enum WebGPURequest {
     },
     DestroyBuffer(id::BufferId),
     DestroyDevice(id::DeviceId),
-    DestroyTexture {
-        device_id: id::DeviceId,
-        texture_id: id::TextureId,
-    },
+    DestroyTexture(id::TextureId),
     DestroySwapChain {
         context_id: WebGPUContextId,
         image_key: ImageKey,
