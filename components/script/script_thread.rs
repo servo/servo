@@ -221,6 +221,8 @@ struct InProgressLoad {
     canceller: FetchCanceller,
     /// If inheriting the security context
     inherited_secure_context: Option<bool>,
+    ///
+    replacing_about_blank: bool,
 }
 
 impl InProgressLoad {
@@ -236,6 +238,7 @@ impl InProgressLoad {
         url: ServoUrl,
         origin: MutableOrigin,
         inherited_secure_context: Option<bool>,
+        replacing_about_blank: bool,
     ) -> InProgressLoad {
         let navigation_start = CrossProcessInstant::now();
         InProgressLoad {
@@ -252,6 +255,7 @@ impl InProgressLoad {
             navigation_start,
             canceller: Default::default(),
             inherited_secure_context,
+            replacing_about_blank,
         }
     }
 }
@@ -834,6 +838,7 @@ impl ScriptThreadFactory for ScriptThread {
                     load_data.url.clone(),
                     origin,
                     secure,
+                    false,
                 );
                 script_thread.pre_page_load(new_load, load_data);
 
@@ -1843,6 +1848,10 @@ impl ScriptThread {
                         ScriptThreadEventCategory::AttachLayout,
                         Some(pipeline_id),
                         || {
+                            if new_layout_info.load_data.synchronously_loaded {
+                                return;
+                            }
+
                             // If this is an about:blank or about:srcdoc load, it must share the
                             // creator's origin. This must match the logic in the constellation
                             // when creating a new pipeline
@@ -2919,6 +2928,7 @@ impl ScriptThread {
             load_data.url.clone(),
             origin,
             load_data.inherited_secure_context,
+            load_data.replacing_about_blank,
         );
         if load_data.url.as_str() == "about:blank" {
             self.start_page_load_about_blank(new_load, load_data.js_eval_result);
@@ -3306,8 +3316,10 @@ impl ScriptThread {
                 parser.abort(can_gc);
             }
 
-            debug!("{id}: Shutting down layout");
-            document.window().layout_mut().exit_now();
+            if document.is_window_relevant() {
+                debug!("{id}: Shutting down layout");
+                document.window().layout_mut().exit_now();
+            }
 
             debug!("{id}: Sending PipelineExited message to constellation");
             self.script_sender
@@ -3325,15 +3337,17 @@ impl ScriptThread {
                 }
             }
 
-            // We discard the browsing context after requesting layout shut down,
-            // to avoid running layout on detached iframes.
-            let window = document.window();
-            if discard_bc == DiscardBrowsingContext::Yes {
-                window.discard_browsing_context();
-            }
+            if document.is_window_relevant() {
+                // We discard the browsing context after requesting layout shut down,
+                // to avoid running layout on detached iframes.
+                let window = document.window();
+                if discard_bc == DiscardBrowsingContext::Yes {
+                    window.discard_browsing_context();
+                }
 
-            debug!("{id}: Clearing JavaScript runtime");
-            window.clear_js_runtime();
+                debug!("{id}: Clearing JavaScript runtime");
+                window.clear_js_runtime();
+            }
         }
 
         debug!("{id}: Finished pipeline exit");
@@ -3666,44 +3680,59 @@ impl ScriptThread {
         };
 
         // Create the window and document objects.
-        let window = Window::new(
-            self.js_runtime.clone(),
-            MainThreadScriptChan(sender.clone()),
-            task_manager,
-            self.layout_factory.create(layout_config),
-            self.image_cache_channel.clone(),
-            self.image_cache.clone(),
-            self.resource_threads.clone(),
-            self.bluetooth_thread.clone(),
-            self.mem_profiler_chan.clone(),
-            self.time_profiler_chan.clone(),
-            self.devtools_chan.clone(),
-            script_to_constellation_chan,
-            self.control_chan.clone(),
-            self.scheduler_chan.clone(),
-            incomplete.pipeline_id,
-            incomplete.parent_info,
-            incomplete.window_size,
-            origin.clone(),
-            final_url.clone(),
-            incomplete.navigation_start,
-            self.webgl_chan.as_ref().map(|chan| chan.channel()),
-            self.webxr_registry.clone(),
-            self.microtask_queue.clone(),
-            self.webrender_document,
-            self.webrender_api_sender.clone(),
-            self.relayout_event,
-            self.prepare_for_screenshot,
-            self.unminify_js,
-            self.local_script_source.clone(),
-            self.userscripts_path.clone(),
-            self.headless,
-            self.replace_surrogates,
-            self.user_agent.clone(),
-            self.player_context.clone(),
-            self.gpu_id_hub.clone(),
-            incomplete.inherited_secure_context,
-        );
+        let window = if !incomplete.replacing_about_blank {
+            Window::new(
+                self.js_runtime.clone(),
+                MainThreadScriptChan(sender.clone()),
+                task_manager,
+                self.layout_factory.create(layout_config),
+                self.image_cache_channel.clone(),
+                self.image_cache.clone(),
+                self.resource_threads.clone(),
+                self.bluetooth_thread.clone(),
+                self.mem_profiler_chan.clone(),
+                self.time_profiler_chan.clone(),
+                self.devtools_chan.clone(),
+                script_to_constellation_chan,
+                self.control_chan.clone(),
+                self.scheduler_chan.clone(),
+                incomplete.pipeline_id,
+                incomplete.parent_info,
+                incomplete.window_size,
+                origin.clone(),
+                final_url.clone(),
+                incomplete.navigation_start,
+                self.webgl_chan.as_ref().map(|chan| chan.channel()),
+                self.webxr_registry.clone(),
+                self.microtask_queue.clone(),
+                self.webrender_document,
+                self.webrender_api_sender.clone(),
+                self.relayout_event,
+                self.prepare_for_screenshot,
+                self.unminify_js,
+                self.local_script_source.clone(),
+                self.userscripts_path.clone(),
+                self.headless,
+                self.replace_surrogates,
+                self.user_agent.clone(),
+                self.player_context.clone(),
+                self.gpu_id_hub.clone(),
+                incomplete.inherited_secure_context,
+            )
+        } else {
+            let window_proxies = self.window_proxies.borrow();
+            let window_proxy = window_proxies.get(&incomplete.browsing_context_id).unwrap();
+            let old_document = window_proxy.document().unwrap();
+            old_document.window().replace_contents(crate::dom::window::ReplaceData {
+                script_to_constellation_chan,
+                task_manager,
+                layout: self.layout_factory.create(layout_config),
+                pipeline_id: incomplete.pipeline_id,
+                creator_url: final_url.clone(),
+            });
+            old_document.disown_window();
+            DomRoot::from_ref(old_document.window())            
+        };
 
         let _realm = enter_realm(&*window);
 

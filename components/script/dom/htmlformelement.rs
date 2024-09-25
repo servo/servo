@@ -831,6 +831,8 @@ impl HTMLFormElement {
             target_window.upcast::<GlobalScope>().get_referrer(),
             target_document.get_referrer_policy(),
             Some(target_window.upcast::<GlobalScope>().is_secure_context()),
+            doc.url().as_str() == "about:blank",
+            false,
         );
 
         // Step 22

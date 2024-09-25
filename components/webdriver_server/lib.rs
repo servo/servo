@@ -658,6 +658,8 @@ impl Handler {
             Referrer::NoReferrer,
             None,
             None,
+            false,
+            false,
         );
         let cmd_msg = WebDriverCommandMsg::LoadUrl(
             top_level_browsing_context_id,

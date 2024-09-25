@@ -138,7 +138,7 @@ impl MicrotaskQueue {
                     },
                     Microtask::IframeElement(ref task) => {
                         let _realm = task.enter_realm();
-                        task.handler();
+                        task.handler(can_gc);
                     },
                     Microtask::CustomElementReaction => {
                         ScriptThread::invoke_backup_element_queue(can_gc);

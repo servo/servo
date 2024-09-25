@@ -313,6 +313,8 @@ impl WindowProxy {
                 document.global().get_referrer(),
                 document.get_referrer_policy(),
                 None, // Doesn't inherit secure context
+                false,
+                true,
             );
             let load_info = AuxiliaryBrowsingContextLoadInfo {
                 load_data: load_data.clone(),
@@ -514,6 +516,7 @@ impl WindowProxy {
             let referrer_policy = target_document.get_referrer_policy();
             let pipeline_id = target_window.upcast::<GlobalScope>().pipeline_id();
             let secure = target_window.upcast::<GlobalScope>().is_secure_context();
+            let is_about_blank = target_document.url().as_str() == "about:blank";
             let load_data = LoadData::new(
                 LoadOrigin::Script(existing_document.origin().immutable().clone()),
                 url,
@@ -521,6 +524,8 @@ impl WindowProxy {
                 referrer,
                 referrer_policy,
                 Some(secure),
+                is_about_blank,
+                false,
             );
             let replacement_flag = if new {
                 HistoryEntryReplacement::Enabled

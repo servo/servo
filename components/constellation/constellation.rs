@@ -1431,6 +1431,8 @@ where
                     Referrer::NoReferrer,
                     None,
                     None,
+                    false,
+                    false,
                 );
                 let ctx_id = BrowsingContextId::from(top_level_browsing_context_id);
                 let pipeline_id = match self.browsing_contexts.get(&ctx_id) {
@@ -2997,6 +2999,8 @@ where
             Referrer::NoReferrer,
             None,
             None,
+            false,
+            false,
         );
         let sandbox = IFrameSandboxState::IFrameUnsandboxed;
         let is_private = false;
@@ -3352,7 +3356,7 @@ where
             new_pipeline_id,
         } = load_info;
 
-        let (script_sender, opener_browsing_context_id) =
+        let (_script_sender, opener_browsing_context_id) =
             match self.pipelines.get(&opener_pipeline_id) {
                 Some(pipeline) => (pipeline.event_loop.clone(), pipeline.browsing_context_id),
                 None => {
@@ -3372,7 +3376,19 @@ where
                     );
                 },
             };
-        let pipeline = Pipeline::new(
+        self.new_pipeline(
+            new_pipeline_id,
+            new_browsing_context_id,
+            new_top_level_browsing_context_id,
+            Some(opener_pipeline_id),
+            Some(opener_browsing_context_id),
+            self.window_size.initial_viewport,
+            load_data,
+            IFrameSandboxState::IFrameUnsandboxed, //XXXjdm
+            is_opener_private,
+            is_opener_throttled,
+        );
+        /*let pipeline = Pipeline::new(
             new_pipeline_id,
             new_browsing_context_id,
             new_top_level_browsing_context_id,
@@ -3384,7 +3400,7 @@ where
         );
 
         assert!(!self.pipelines.contains_key(&new_pipeline_id));
-        self.pipelines.insert(new_pipeline_id, pipeline);
+        self.pipelines.insert(new_pipeline_id, pipeline);*/
         self.webviews.add(
             new_top_level_browsing_context_id,
             WebView {

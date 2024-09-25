@@ -123,6 +123,8 @@ impl Location {
             referrer,
             referrer_policy,
             None, // Top navigation doesn't inherit secure context
+            self.window.Document().url().as_str() == "about:blank",
+            false,
         );
         self.window
             .load_url(replacement_flag, reload_triggered, load_data);

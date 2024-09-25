@@ -428,6 +428,8 @@ pub fn follow_hyperlink(
             referrer,
             referrer_policy,
             Some(secure),
+            document.url().as_str() == "about:blank",
+            false,
         );
         let target = Trusted::new(target_window);
         let task = task!(navigate_follow_hyperlink: move || {

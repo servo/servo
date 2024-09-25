@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::borrow::{Cow, ToOwned};
-use std::cell::{Cell, RefCell, RefMut};
+use std::cell::{Cell, RefCell, RefMut, Ref as StdRef};
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet};
 use std::default::Default;
@@ -185,7 +185,7 @@ pub struct Window {
     globalscope: GlobalScope,
     #[ignore_malloc_size_of = "trait objects are hard"]
     script_chan: MainThreadScriptChan,
-    task_manager: TaskManager,
+    task_manager: RefCell<TaskManager>,
     #[no_trace]
     #[ignore_malloc_size_of = "TODO: Add MallocSizeOf support to layout"]
     layout: RefCell<Box<dyn Layout>>,
@@ -357,8 +357,8 @@ pub struct Window {
 }
 
 impl Window {
-    pub fn task_manager(&self) -> &TaskManager {
-        &self.task_manager
+    pub fn task_manager(&self) -> StdRef<TaskManager> {
+        self.task_manager.borrow()
     }
 
     pub fn layout(&self) -> Ref<Box<dyn Layout>> {
@@ -405,7 +405,8 @@ impl Window {
 
     /// Cancel all current, and ignore all subsequently queued, tasks.
     pub fn ignore_all_tasks(&self) {
-        let mut ignore_flags = self.task_manager.task_cancellers.borrow_mut();
+        let task_manager = self.task_manager.borrow();
+        let mut ignore_flags = task_manager.task_cancellers.borrow_mut();
         for task_source_name in TaskSourceName::all() {
             let flag = ignore_flags.entry(*task_source_name).or_default();
             flag.store(true, Ordering::SeqCst);
@@ -1635,7 +1636,8 @@ impl Window {
     /// This sets the current `task_manager.task_cancellers` sentinel value to
     /// `true` and replaces it with a brand new one for future tasks.
     pub fn cancel_all_tasks(&self) {
-        let mut ignore_flags = self.task_manager.task_cancellers.borrow_mut();
+        let task_manager = self.task_manager.borrow();
+        let mut ignore_flags = task_manager.task_cancellers.borrow_mut();
         for task_source_name in TaskSourceName::all() {
             let flag = ignore_flags.entry(*task_source_name).or_default();
             let cancelled = std::mem::take(&mut *flag);
@@ -1647,7 +1649,8 @@ impl Window {
     /// This sets the current sentinel value to
     /// `true` and replaces it with a brand new one for future tasks.
     pub fn cancel_all_tasks_from_source(&self, task_source_name: TaskSourceName) {
-        let mut ignore_flags = self.task_manager.task_cancellers.borrow_mut();
+        let task_manager = self.task_manager.borrow();
+        let mut ignore_flags = task_manager.task_cancellers.borrow_mut();
         let flag = ignore_flags.entry(task_source_name).or_default();
         let cancelled = std::mem::take(&mut *flag);
         cancelled.store(true, Ordering::SeqCst);
@@ -2207,13 +2210,13 @@ impl Window {
 
     #[allow(unsafe_code)]
     pub fn init_window_proxy(&self, window_proxy: &WindowProxy) {
-        assert!(self.window_proxy.get().is_none());
+        //assert!(self.window_proxy.get().is_none());
         self.window_proxy.set(Some(window_proxy));
     }
 
     #[allow(unsafe_code)]
     pub fn init_document(&self, document: &Document) {
-        assert!(self.document.get().is_none());
+        //assert!(self.document.get().is_none());
         assert!(document.window() == self);
         self.document.set(Some(document));
         if !self.unminify_js {
@@ -2267,6 +2270,7 @@ impl Window {
                     ScriptThreadEventCategory::DomEvent,
                     Box::new(
                         self.task_manager
+                            .borrow()
                             .task_canceller(TaskSourceName::DOMManipulation)
                             .wrap_task(task),
                     ),
@@ -2589,7 +2593,7 @@ impl Window {
                 inherited_secure_context,
             ),
             script_chan,
-            task_manager,
+            task_manager: RefCell::new(task_manager),
             layout: RefCell::new(layout),
             image_cache_chan,
             image_cache,
@@ -2646,7 +2650,21 @@ impl Window {
             current_event: DomRefCell::new(None),
         });
 
-        unsafe { WindowBinding::Wrap(JSContext::from_ptr(runtime.cx()), win) }
+        /*if let Some(reflector) = existing_window_reflector {
+            unsafe {
+                let raw = Root::new(MaybeUnreflectedDom::from_box(win));
+                let jsobject = reflector.get_jsobject();
+                let old_window: *const Window = crate::dom::bindings::conversions::native_from_object_static(jsobject.get()).unwrap();
+                set_reflector_object(jsobject, raw.as_ptr() as *const _);
+                let root = raw.reflect_with(jsobject.get());
+                let old_window_box = Box::from_raw(old_window as *mut _);
+                // create a new reflector for the replaced window object. 
+                let _ = WindowBinding::Wrap(JSContext::from_ptr(runtime.cx()), old_window_box);
+                root
+            }
+        } else {*/
+            unsafe { WindowBinding::Wrap(JSContext::from_ptr(runtime.cx()), win) }
+        //}
     }
 
     pub fn pipeline_id(&self) -> PipelineId {
@@ -2660,6 +2678,24 @@ impl Window {
     {
         LayoutValue::new(self.layout_marker.borrow().clone(), value)
     }
+
+    pub(crate) fn replace_contents(&self, data: ReplaceData) {
+        self.globalscope.replace_contents(crate::dom::globalscope::ReplaceData {
+            pipeline_id: data.pipeline_id,
+            script_to_constellation_chan: data.script_to_constellation_chan,
+            creator_url: data.creator_url,
+        });
+        *self.task_manager.borrow_mut() = data.task_manager;
+        *self.layout.borrow_mut() = data.layout;
+    }
+}
+
+pub(crate) struct ReplaceData {
+    pub script_to_constellation_chan: ScriptToConstellationChan,
+    pub task_manager: TaskManager,
+    pub layout: Box<dyn Layout>,
+    pub pipeline_id: PipelineId,
+    pub creator_url: ServoUrl,
 }
 
 /// An instance of a value associated with a particular snapshot of layout. This stored
@@ -2798,6 +2834,7 @@ impl Window {
             ScriptThreadEventCategory::DomEvent,
             Box::new(
                 self.task_manager
+                    .borrow()
                     .task_canceller(TaskSourceName::DOMManipulation)
                     .wrap_task(task),
             ),

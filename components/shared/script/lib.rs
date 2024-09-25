@@ -162,6 +162,11 @@ pub struct LoadData {
 
     /// Servo internal: if crash details are present, trigger a crash error page with these details.
     pub crash: Option<String>,
+
+    ///
+    pub replacing_about_blank: bool,
+    ///
+    pub synchronously_loaded: bool,
 }
 
 /// The result of evaluating a javascript scheme url.
@@ -183,6 +188,8 @@ impl LoadData {
         referrer: Referrer,
         referrer_policy: Option<ReferrerPolicy>,
         inherited_secure_context: Option<bool>,
+        replacing_about_blank: bool,
+        synchronously_loaded: bool,
     ) -> LoadData {
         LoadData {
             load_origin,
@@ -197,6 +204,8 @@ impl LoadData {
             srcdoc: "".to_string(),
             inherited_secure_context,
             crash: None,
+            replacing_about_blank,
+            synchronously_loaded,
         }
     }
 }

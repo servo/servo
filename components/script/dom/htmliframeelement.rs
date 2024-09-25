@@ -41,12 +41,9 @@ use crate::dom::node::{
 };
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::windowproxy::WindowProxy;
-<<<<<<< HEAD
-use crate::script_runtime::CanGc;
-=======
 use crate::microtask::{Microtask, MicrotaskRunnable};
 use crate::realms::enter_realm;
->>>>>>> ca5d9db468 (Sync load event for about:blank iframe elements.)
+use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf)]
@@ -267,6 +264,8 @@ impl HTMLIFrameElement {
                 window.upcast::<GlobalScope>().get_referrer(),
                 document.get_referrer_policy(),
                 Some(window.upcast::<GlobalScope>().is_secure_context()),
+                false,
+                true,
             );
             let element = self.upcast::<Element>();
             load_data.srcdoc = String::from(element.get_string_attribute(&local_name!("srcdoc")));
@@ -343,6 +342,9 @@ impl HTMLIFrameElement {
         };
 
         let document = document_from_node(self);
+        let pipeline_id = self.pipeline_id();
+        let is_about_blank =
+            pipeline_id.is_some() && pipeline_id == self.about_blank_pipeline_id.get();
         let load_data = LoadData::new(
             LoadOrigin::Script(document.origin().immutable().clone()),
             url,
@@ -350,13 +352,12 @@ impl HTMLIFrameElement {
             window.upcast::<GlobalScope>().get_referrer(),
             document.get_referrer_policy(),
             Some(window.upcast::<GlobalScope>().is_secure_context()),
+            is_about_blank,
+            false,
         );
 
-        let pipeline_id = self.pipeline_id();
         // If the initial `about:blank` page is the current page, load with replacement enabled,
         // see https://html.spec.whatwg.org/multipage/#the-iframe-element:about:blank-3
-        let is_about_blank =
-            pipeline_id.is_some() && pipeline_id == self.about_blank_pipeline_id.get();
         let replace = if is_about_blank {
             HistoryEntryReplacement::Enabled
         } else {
@@ -392,6 +393,8 @@ impl HTMLIFrameElement {
             window.upcast::<GlobalScope>().get_referrer(),
             document.get_referrer_policy(),
             Some(window.upcast::<GlobalScope>().is_secure_context()),
+            false,
+            true,
         );
         let browsing_context_id = BrowsingContextId::new();
         let top_level_browsing_context_id = window.window_proxy().top_level_browsing_context_id();
@@ -819,9 +822,9 @@ pub struct IframeElementMicrotask {
 }
 
 impl MicrotaskRunnable for IframeElementMicrotask {
-    fn handler(&self) {
+    fn handler(&self, can_gc: CanGc) {
         self.elem
-            .iframe_load_event_steps(self.about_blank_pipeline, true);
+            .iframe_load_event_steps(self.about_blank_pipeline, can_gc, true);
     }
 
     fn enter_realm(&self) -> JSAutoRealm {

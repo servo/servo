@@ -487,6 +487,7 @@ pub struct Document {
     /// <https://www.iana.org/assignments/http-status-codes/http-status-codes.xhtml>
     status_code: Option<u16>,
     inhibit_load_and_pageshow: bool,
+    window_replaced: Cell<bool>,
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -3332,7 +3333,16 @@ impl Document {
             visibility_state: Cell::new(DocumentVisibilityState::Hidden),
             status_code,
             inhibit_load_and_pageshow,
+            window_replaced: Cell::new(false),
         }
+    }
+
+    pub(crate) fn disown_window(&self) {
+        self.window_replaced.set(true);
+    }
+
+    pub(crate) fn is_window_relevant(&self) -> bool {
+        !self.window_replaced.get()
     }
 
     /// Note a pending animation tick, to be processed at the next `update_the_rendering` task.

@@ -3,10 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::borrow::Cow;
-use std::cell::Cell;
+use std::cell::{Cell, RefCell, Ref};
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, VecDeque};
-use std::ops::Index;
+use std::ops::{Deref, Index};
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
@@ -208,7 +208,7 @@ pub struct GlobalScope {
 
     /// Pipeline id associated with this global.
     #[no_trace]
-    pipeline_id: PipelineId,
+    pipeline_id: Cell<PipelineId>,
 
     /// A flag to indicate whether the developer tools has requested
     /// live updates from the worker.
@@ -243,7 +243,7 @@ pub struct GlobalScope {
     /// A handle for communicating messages to the constellation thread.
     #[ignore_malloc_size_of = "channels are hard"]
     #[no_trace]
-    script_to_constellation_chan: ScriptToConstellationChan,
+    script_to_constellation_chan: RefCell<ScriptToConstellationChan>,
 
     #[ignore_malloc_size_of = "channels are hard"]
     #[no_trace]
@@ -270,7 +270,7 @@ pub struct GlobalScope {
 
     /// <https://html.spec.whatwg.org/multipage/#concept-environment-creation-url>
     #[no_trace]
-    creation_url: Option<ServoUrl>,
+    creation_url: RefCell<Option<ServoUrl>>,
 
     /// A map for storing the previous permission state read results.
     permission_state_invocation_results: DomRefCell<HashMap<String, PermissionState>>,
@@ -779,7 +779,7 @@ impl GlobalScope {
             crypto: Default::default(),
             registration_map: DomRefCell::new(HashMapTracedValues::new()),
             worker_map: DomRefCell::new(HashMapTracedValues::new()),
-            pipeline_id,
+            pipeline_id: Cell::new(pipeline_id),
             devtools_wants_updates: Default::default(),
             console_timers: DomRefCell::new(Default::default()),
             module_map: DomRefCell::new(Default::default()),
@@ -787,14 +787,14 @@ impl GlobalScope {
             devtools_chan,
             mem_profiler_chan,
             time_profiler_chan,
-            script_to_constellation_chan,
+            script_to_constellation_chan: RefCell::new(script_to_constellation_chan),
             scheduler_chan: scheduler_chan.clone(),
             in_error_reporting_mode: Default::default(),
             resource_threads,
             timers: OneshotTimers::new(scheduler_chan),
             init_timers: Default::default(),
             origin,
-            creation_url,
+            creation_url: RefCell::new(creation_url),
             permission_state_invocation_results: Default::default(),
             microtask_queue,
             list_auto_close_worker: Default::default(),
@@ -2318,7 +2318,7 @@ impl GlobalScope {
     pub fn issue_page_warning(&self, warning: &str) {
         if let Some(ref chan) = self.devtools_chan {
             let _ = chan.send(ScriptToDevtoolsControlMsg::ReportPageError(
-                self.pipeline_id,
+                self.pipeline_id.get(),
                 PageError {
                     type_: "PageError".to_string(),
                     error_message: warning.to_string(),
@@ -2352,8 +2352,8 @@ impl GlobalScope {
     }
 
     /// Get a sender to the constellation thread.
-    pub fn script_to_constellation_chan(&self) -> &ScriptToConstellationChan {
-        &self.script_to_constellation_chan
+    pub fn script_to_constellation_chan(&self) -> Ref<ScriptToConstellationChan> {
+        self.script_to_constellation_chan.borrow()
     }
 
     pub fn send_to_embedder(&self, msg: EmbedderMsg) {
@@ -2370,7 +2370,7 @@ impl GlobalScope {
 
     /// Get the `PipelineId` for this global scope.
     pub fn pipeline_id(&self) -> PipelineId {
-        self.pipeline_id
+        self.pipeline_id.get()
     }
 
     /// Get the origin for this global scope
@@ -2379,8 +2379,8 @@ impl GlobalScope {
     }
 
     /// Get the creation_url for this global scope
-    pub fn creation_url(&self) -> &Option<ServoUrl> {
-        &self.creation_url
+    pub fn creation_url(&self) -> Ref<Option<ServoUrl>> {
+        self.creation_url.borrow()
     }
 
     pub fn image_cache(&self) -> Arc<dyn ImageCache> {
@@ -2513,7 +2513,7 @@ impl GlobalScope {
             } else if self.is::<Window>() {
                 if let Some(ref chan) = self.devtools_chan {
                     let _ = chan.send(ScriptToDevtoolsControlMsg::ReportPageError(
-                        self.pipeline_id,
+                        self.pipeline_id.get(),
                         PageError {
                             type_: "PageError".to_string(),
                             error_message: error_info.message.clone(),
@@ -3129,7 +3129,7 @@ impl GlobalScope {
         if Some(false) == self.inherited_secure_context {
             return false;
         }
-        if let Some(creation_url) = self.creation_url() {
+        if let Some(creation_url) = self.creation_url().deref() {
             if creation_url.scheme() == "blob" && Some(true) == self.inherited_secure_context {
                 return true;
             }
@@ -3400,6 +3400,23 @@ impl GlobalScope {
 
         Ok(message_clone.get())
     }
+
+    pub(crate) fn replace_contents(&self, data: ReplaceData) {
+        let ReplaceData {
+            pipeline_id,
+            script_to_constellation_chan,
+            creator_url,
+        } = data;
+        self.pipeline_id.set(pipeline_id);
+        *self.script_to_constellation_chan.borrow_mut() = script_to_constellation_chan;
+        *self.creation_url.borrow_mut() = Some(creator_url);
+    }
+}
+
+pub(crate) struct ReplaceData {
+    pub pipeline_id: PipelineId,
+    pub script_to_constellation_chan: ScriptToConstellationChan,
+    pub creator_url: ServoUrl,
 }
 
 /// Returns the Rust global scope from a JS global object.
