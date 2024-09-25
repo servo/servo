@@ -28,6 +28,7 @@ use wgpu_core::resource::{BufferAccessError, BufferMapCallback, BufferMapOperati
 use crate::{wgt, ContextConfiguration, Error, WebGPUMsg};
 
 pub const PRESENTATION_BUFFER_COUNT: usize = 10;
+const DEFAULT_IMAGE_FORMAT: ImageFormat = ImageFormat::RGBA8;
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 pub struct WebGPUContextId(pub u64);
@@ -153,7 +154,7 @@ impl ContextData {
         buffer_ids: ArrayVec<id::BufferId, PRESENTATION_BUFFER_COUNT>,
     ) -> Self {
         let image_desc = ImageDescriptor {
-            format: ImageFormat::RGBA8,
+            format: DEFAULT_IMAGE_FORMAT,
             size,
             stride: Some(stride(size)),
             offset: 0,
@@ -289,7 +290,7 @@ impl ContextData {
             *buffer_state = PresentationBufferState::Unassigned;
         }
         // set defaults back
-        self.update_image_desc(self.image_desc.size, ImageFormat::RGBA8, false)
+        self.update_image_desc(self.image_desc.size, DEFAULT_IMAGE_FORMAT, false)
     }
 
     fn destroy(
