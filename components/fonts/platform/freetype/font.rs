@@ -26,8 +26,7 @@ use webrender_api::FontInstanceFlags;
 
 use super::library_handle::FreeTypeLibraryHandle;
 use crate::font::{
-    FontMetrics, FontTableMethods, FontTableTag, FractionalPixel, PlatformFontMethods, GPOS, GSUB,
-    KERN,
+    FontMetrics, FontTableMethods, FontTableTag, FractionalPixel, PlatformFontMethods,
 };
 use crate::font_template::FontTemplateDescriptor;
 use crate::glyph::GlyphId;
@@ -430,7 +429,6 @@ trait FreeTypeFaceHelpers {
     fn color(self) -> bool;
     fn set_size(self, pt_size: Au) -> Result<Au, &'static str>;
     fn glyph_load_flags(self) -> FT_Int32;
-    fn has_table(self, tag: FontTableTag) -> bool;
     fn os2_table(self) -> Option<OS2Table>;
 }
 
@@ -503,10 +501,6 @@ impl FreeTypeFaceHelpers for FT_Face {
         }
 
         load_flags as FT_Int32
-    }
-
-    fn has_table(self, tag: FontTableTag) -> bool {
-        unsafe { 0 == FT_Load_Sfnt_Table(self, tag as FT_ULong, 0, ptr::null_mut(), &mut 0) }
     }
 
     fn os2_table(self) -> Option<OS2Table> {
