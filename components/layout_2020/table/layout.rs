@@ -792,9 +792,8 @@ impl<'a> TableLayout<'a> {
                     block: padding.block_sum() + border.block_sum() + margin.block_sum(),
                 };
 
-                let (size, min_size, max_size, _) =
+                let (size, min_size, max_size, size_is_auto) =
                     get_outer_sizes_from_style(&context.style, writing_mode, &padding_border_sums);
-                let size_is_auto = context.style.box_size(writing_mode).inline.is_auto();
 
                 // If an inline size is defined it should serve as the upper limit and lower limit
                 // of the caption inline size.
