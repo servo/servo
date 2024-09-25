@@ -211,11 +211,6 @@ impl PlatformFontMethods for PlatformFont {
         Some(f)
     }
 
-    /// Can this font do basic horizontal LTR shaping without Harfbuzz?
-    fn can_do_fast_shaping(&self) -> bool {
-        self.face.has_kerning_pairs()
-    }
-
     fn glyph_h_kerning(&self, first_glyph: GlyphId, second_glyph: GlyphId) -> FractionalPixel {
         let adjustment = self
             .face
