@@ -53,6 +53,7 @@ getopts = "0.2.11"
 fonts_traits = { path = "components/shared/fonts" }
 gleam = "0.15"
 glib = "0.19"
+glow = "0.14"
 gstreamer = { version = "0.22", features = ["v1_18"] }
 gstreamer-base = "0.22"
 gstreamer-gl = "0.22"
@@ -173,6 +174,7 @@ lto = "thin"
 codegen-units = 1
 
 [patch.crates-io]
+surfman = { git = "https://github.com/sagudev/surfman", branch = "bye-sparkle" }
 # If you need to temporarily test Servo with a local fork of some upstream
 # crate, add that here. Use the form:
 #
