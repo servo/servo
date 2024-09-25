@@ -741,7 +741,7 @@ fn rendered_text_collection_steps<'dom>(
                     items.push(InnerOrOuterTextItem::Text(String::from(" ")));
                 };
 
-                if transformed_text.len() > 0 {
+                if !transformed_text.is_empty() {
                     // Here we decide whether to keep or truncate the final white
                     // space character, if there is one.
                     if is_final_character_whitespace && !is_preformatted_element {
