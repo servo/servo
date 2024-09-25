@@ -2344,7 +2344,7 @@ pub fn append_a_request_origin_header(request: &mut Request) {
                     }
                 },
                 _ => {
-                    // Do nothing.
+                    // Otherwise, do nothing.
                 },
             };
         }
