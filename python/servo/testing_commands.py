@@ -806,7 +806,7 @@ tests/wpt/mozilla/tests for Servo-only tests""" % reference_path)
     @CommandArgument('params', nargs='...',
                      help="Command-line arguments to be passed through to Servo")
     @CommandBase.common_command_arguments(binary_selection=True)
-    def smoketest(self, servo_binary: str, params):
+    def smoketest(self, servo_binary: str, params, **kwargs):
         # We pass `-f` here so that any thread panic will cause Servo to exit,
         # preventing a panic from hanging execution. This means that these kind
         # of panics won't cause timeouts on CI.

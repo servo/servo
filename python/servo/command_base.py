@@ -533,7 +533,7 @@ class CommandBase(object):
                                 help='Build with custom Cargo profile'),
                 CommandArgument('--with-asan', action='store_true', help="Build with AddressSanitizer"),
                 CommandArgument(
-                    '--flavor', default=None,
+                    '--flavor', default=None, group="Build Type",
                     help='Product flavor to be used when packaging with Gradle/Hvigor (android/ohos).'
                 ),
             ]
@@ -616,7 +616,6 @@ class CommandBase(object):
                     kwargs.pop('dev', None)
                     kwargs.pop('prod', None)
                     kwargs.pop('profile', None)
-                    self.flavor = kwargs.get('flavor', None)
 
                 if build_configuration:
                     self.configure_build_target(kwargs)
