@@ -423,6 +423,7 @@ impl crate::WGPU {
         let buffer_id;
         let buffer_stride;
         let buffer_size;
+        let image_desc;
         {
             if let Some(context_data) = self.wgpu_image_map.lock().unwrap().get_mut(&context_id) {
                 let Some(swap_chain) = context_data.swap_chain.as_ref() else {
@@ -434,6 +435,7 @@ impl crate::WGPU {
                 buffer_stride = context_data.buffer_stride();
                 buffer_size = context_data.buffer_size();
                 buffer_id = context_data.get_available_buffer(global).unwrap();
+                image_desc = context_data.image_desc.clone();
             } else {
                 return Ok(());
             }
@@ -493,6 +495,7 @@ impl crate::WGPU {
                     context_id,
                     webrender_api,
                     webrender_document,
+                    image_desc,
                 );
             }))
         };
@@ -529,12 +532,37 @@ fn update_wr_image(
     context_id: WebGPUContextId,
     webrender_api: Arc<Mutex<RenderApi>>,
     webrender_document: webrender_api::DocumentId,
+    image_desc: ImageDescriptor,
 ) {
     match result {
         Ok(()) => {
             if let Some(context_data) = wgpu_image_map.lock().unwrap().get_mut(&context_id) {
+                let config_changed = image_desc != context_data.image_desc;
                 let buffer_state = context_data.get_buffer_state(buffer_id);
                 assert_eq!(*buffer_state, PresentationBufferState::Mapping);
+                if config_changed {
+                    /*
+                    This means that while mapasync was running, context got recreated
+                    so we need to throw all out work away.
+
+                    It is also possible that we got recreated with same config,
+                    so canvas should be cleared, but we handle such case in gpucanvascontext
+                    with drawing_buffer.cleared
+
+                    One more case is that we already have newer map async done,
+                    so we can replace new image with old image but that should happen very rarely
+
+                    One possible solution to all problems is blocking device timeline
+                    (wgpu thread or introduce new timeline/thread for presentation)
+                    something like this is also mentioned in spec:
+
+                    2. Ensure that all submitted work items (e.g. queue submissions) have completed writing to the image
+                    https://gpuweb.github.io/gpuweb/#abstract-opdef-get-a-copy-of-the-image-contents-of-a-context
+                    */
+                    let _ = global.buffer_unmap(buffer_id);
+                    *buffer_state = PresentationBufferState::Available;
+                    return;
+                }
                 *buffer_state = PresentationBufferState::Mapped;
                 let presentation_buffer =
                     GPUPresentationBuffer::new(global, buffer_id, buffer_size);
