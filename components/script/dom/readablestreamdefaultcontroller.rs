@@ -7,6 +7,7 @@ use std::collections::VecDeque;
 
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject};
+use js::jsval::{JSVal, UndefinedValue};
 use js::rust::{HandleValue as SafeHandleValue, HandleValue};
 
 use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultControllerBinding::ReadableStreamDefaultControllerMethods;
@@ -14,11 +15,13 @@ use crate::dom::bindings::import::module::UnionTypes::ReadableStreamDefaultContr
 use crate::dom::bindings::import::module::{Error, Fallible};
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
+use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::readablestream::{ReadableStream, ReadableStreamState};
 use crate::dom::readablestreamdefaultreader::ReadRequest;
 use crate::dom::underlyingsourcecontainer::{UnderlyingSourceContainer, UnderlyingSourceType};
+use crate::js::conversions::ToJSValConvertible;
 use crate::realms::{enter_realm, InRealm};
 use crate::script_runtime::{JSContext, JSContext as SafeJSContext};
 
@@ -241,6 +244,7 @@ impl ReadableStreamDefaultController {
     }
 
     /// <https://streams.spec.whatwg.org/#ref-for-abstract-opdef-readablestreamcontroller-pullsteps>
+    #[allow(unsafe_code)]
     pub fn perform_pull_steps(&self, read_request: ReadRequest) {
         // if queue contains bytes, perform chunk steps.
         if !self.queue.borrow().is_empty() {
@@ -261,9 +265,19 @@ impl ReadableStreamDefaultController {
 
             self.call_pull_if_needed();
 
-            if let EnqueuedValue::Native(chunk) = chunk {
-                read_request.chunk_steps(chunk);
+            let cx = GlobalScope::get_cx();
+            rooted!(in(*cx) let mut rval = UndefinedValue());
+            let result = RootedTraceableBox::new(Heap::default());
+            match chunk {
+                EnqueuedValue::Native(chunk) => unsafe {
+                    chunk.to_jsval(*cx, rval.handle_mut());
+                },
+                EnqueuedValue::Js(value_with_size) => unsafe {
+                    value_with_size.value.to_jsval(*cx, rval.handle_mut());
+                },
             }
+            result.set(*rval);
+            read_request.chunk_steps(result);
         }
 
         // else, append read request to reader.
@@ -291,7 +305,7 @@ impl ReadableStreamDefaultController {
         // and ! ReadableStreamGetNumReadRequests(stream) > 0,
         // perform ! ReadableStreamFulfillReadRequest(stream, chunk, false).
         if stream.is_locked() && stream.get_num_read_requests() > 0 {
-            // TODO: stream.fulfill_read_request() with SafeHandleValue
+            stream.fulfill_read_request(chunk, false);
             return;
         }
 
@@ -314,32 +328,12 @@ impl ReadableStreamDefaultController {
 
     /// Native call to
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-enqueue>
+    #[allow(unsafe_code)]
     pub fn enqueue_native(&self, chunk: Vec<u8>) {
-        // If ! ReadableStreamDefaultControllerCanCloseOrEnqueue(controller) is false, return.
-        if !self.can_close_or_enqueue() {
-            return;
-        }
-
-        let stream = self
-            .stream
-            .get()
-            .expect("Controller must have a stream when a chunk is enqueued.");
-
-        // If ! IsReadableStreamLocked(stream) is true
-        // and ! ReadableStreamGetNumReadRequests(stream) > 0,
-        // perform ! ReadableStreamFulfillReadRequest(stream, chunk, false).
-        if stream.is_locked() && stream.get_num_read_requests() > 0 {
-            stream.fulfill_read_request(chunk, false);
-            return;
-        }
-
-        // Otherwise, perform EnqueueValueWithSize(controller, chunk, chunkSize).
-        // <https://streams.spec.whatwg.org/#enqueue-value-with-size>
-        let mut queue = self.queue.borrow_mut();
-        queue.enqueue_value_with_size(EnqueuedValue::Native(chunk));
-
-        // Perform ! ReadableStreamDefaultControllerCallPullIfNeeded(controller).
-        self.call_pull_if_needed();
+        let cx = GlobalScope::get_cx();
+        rooted!(in(*cx) let mut rval = UndefinedValue());
+        unsafe { chunk.to_jsval(*cx, rval.handle_mut()) };
+        self.enqueue(cx, rval.handle());
     }
 
     /// Does the stream have all data in memory?
