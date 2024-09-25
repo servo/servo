@@ -26,7 +26,7 @@ use super::core_text_font_cache::CoreTextFontCache;
 use crate::{
     map_platform_values_to_style_values, FontIdentifier, FontMetrics, FontTableMethods,
     FontTableTag, FontTemplateDescriptor, FractionalPixel, GlyphId, PlatformFontMethods, CBDT,
-    COLR, GPOS, GSUB, KERN, SBIX,
+    COLR, KERN, SBIX,
 };
 
 const KERN_PAIR_LEN: usize = 6;
@@ -59,7 +59,6 @@ pub struct PlatformFont {
     /// data stays alive of the lifetime of this struct.
     _data: Arc<Vec<u8>>,
     h_kern_subtable: Option<CachedKernTable>,
-    can_do_fast_shaping: bool,
 }
 
 // From https://developer.apple.com/documentation/coretext:
@@ -189,12 +188,8 @@ impl PlatformFontMethods for PlatformFont {
             _data: data,
             ctfont: core_text_font.clone_with_font_size(size),
             h_kern_subtable: None,
-            can_do_fast_shaping: false,
         };
         handle.h_kern_subtable = handle.find_h_kern_subtable();
-        handle.can_do_fast_shaping = handle.h_kern_subtable.is_some() &&
-            handle.table_for_tag(GPOS).is_none() &&
-            handle.table_for_tag(GSUB).is_none();
         Ok(handle)
     }
 
@@ -237,10 +232,6 @@ impl PlatformFontMethods for PlatformFont {
             }
         }
         0.0
-    }
-
-    fn can_do_fast_shaping(&self) -> bool {
-        self.can_do_fast_shaping
     }
 
     fn glyph_h_advance(&self, glyph: GlyphId) -> Option<FractionalPixel> {

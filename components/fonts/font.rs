@@ -90,8 +90,6 @@ pub trait PlatformFontMethods: Sized {
     fn glyph_h_advance(&self, _: GlyphId) -> Option<FractionalPixel>;
     fn glyph_h_kerning(&self, glyph0: GlyphId, glyph1: GlyphId) -> FractionalPixel;
 
-    /// Can this font do basic horizontal LTR shaping without Harfbuzz?
-    fn can_do_fast_shaping(&self) -> bool;
     fn metrics(&self) -> FontMetrics;
     fn table_for_tag(&self, _: FontTableTag) -> Option<FontTable>;
     fn typographic_bounds(&self, _: GlyphId) -> Rect<f32>;
@@ -237,6 +235,14 @@ pub struct Font {
     /// essentially equivalent to whether or not we use it for emoji presentation.
     /// This is cached, because getting table data is expensive.
     has_color_bitmap_or_colr_table: OnceLock<bool>,
+
+    /// Whether or not this font can do fast shaping, ie whether or not it has
+    /// a kern table, but no GSUB and GPOS tables. When this is true, Servo will
+    /// shape Latin horizontal left-to-right text without using Harfbuzz.
+    ///
+    /// FIXME: This should be removed entirely in favor of better caching if necessary.
+    /// See <https://github.com/servo/servo/pull/11273#issuecomment-222332873>.
+    can_do_fast_shaping: OnceLock<bool>,
 }
 
 impl malloc_size_of::MallocSizeOf for Font {
@@ -275,6 +281,7 @@ impl Font {
             font_key: FontInstanceKey::default(),
             synthesized_small_caps,
             has_color_bitmap_or_colr_table: OnceLock::new(),
+            can_do_fast_shaping: OnceLock::new(),
         })
     }
 
@@ -390,10 +397,18 @@ impl Font {
             .shape_text(text, options, glyphs);
     }
 
-    fn can_do_fast_shaping(&self, text: &str, options: &ShapingOptions) -> bool {
+    /// Whether not a particular text and [`ShapingOptions`] combination can use
+    /// "fast shaping" ie shaping without Harfbuzz.
+    ///
+    /// Note: This will eventually be removed.
+    pub fn can_do_fast_shaping(&self, text: &str, options: &ShapingOptions) -> bool {
         options.script == Script::Latin &&
             !options.flags.contains(ShapingFlags::RTL_FLAG) &&
-            self.handle.can_do_fast_shaping() &&
+            *self.can_do_fast_shaping.get_or_init(|| {
+                self.table_for_tag(KERN).is_some() &&
+                    self.table_for_tag(GPOS).is_none() &&
+                    self.table_for_tag(GSUB).is_none()
+            }) &&
             text.is_ascii()
     }
 
@@ -891,93 +906,4 @@ pub(crate) fn map_platform_values_to_style_values(mapping: &[(f64, f64)], value:
     }
 
     mapping[mapping.len() - 1].1
-}
-
-#[cfg(test)]
-mod test {
-    use crate::FontData;
-
-    #[cfg(target_os = "windows")]
-    #[test]
-    fn test_shape_text_fast() {
-        use std::fs::File;
-        use std::io::Read;
-        use std::path::PathBuf;
-        use std::sync::Arc;
-
-        use app_units::Au;
-        use euclid::num::Zero;
-        use servo_url::ServoUrl;
-        use style::properties::longhands::font_variant_caps::computed_value::T as FontVariantCaps;
-        use style::values::computed::{FontStretch, FontStyle, FontWeight};
-        use unicode_script::Script;
-
-        use crate::platform::font::PlatformFont;
-        use crate::{
-            Font, FontDescriptor, FontIdentifier, FontTemplate, GlyphStore, PlatformFontMethods,
-            ShapingFlags, ShapingOptions,
-        };
-
-        let path: PathBuf = [
-            env!("CARGO_MANIFEST_DIR"),
-            "tests",
-            "support",
-            "dejavu-fonts-ttf-2.37",
-            "ttf",
-            "DejaVuSans.ttf",
-        ]
-        .iter()
-        .collect();
-
-        let identifier = FontIdentifier::Web(ServoUrl::from_file_path(path.clone()).unwrap());
-        let file = File::open(path).unwrap();
-        let data = Arc::new(FontData::from_bytes(
-            file.bytes().map(|b| b.unwrap()).collect(),
-        ));
-        let platform_font =
-            PlatformFont::new_from_data(identifier.clone(), data.as_arc().clone(), 0, None)
-                .unwrap();
-
-        let template = FontTemplate {
-            identifier,
-            descriptor: platform_font.descriptor(),
-            stylesheet: None,
-        };
-        let descriptor = FontDescriptor {
-            weight: FontWeight::normal(),
-            stretch: FontStretch::hundred(),
-            style: FontStyle::normal(),
-            variant: FontVariantCaps::Normal,
-            pt_size: Au::from_px(24),
-        };
-        let font = Font::new(
-            Arc::new(atomic_refcell::AtomicRefCell::new(template)),
-            descriptor,
-            data,
-            None,
-        )
-        .unwrap();
-
-        let shaping_options = ShapingOptions {
-            letter_spacing: None,
-            word_spacing: Au::zero(),
-            script: Script::Latin,
-            flags: ShapingFlags::empty(),
-        };
-        let text = "WAVE";
-
-        assert!(font.can_do_fast_shaping(text, &shaping_options));
-
-        let mut expected_glyphs = GlyphStore::new(text.len(), false, false, false, false);
-        font.shape_text_harfbuzz(text, &shaping_options, &mut expected_glyphs);
-
-        let mut glyphs = GlyphStore::new(text.len(), false, false, false, false);
-        font.shape_text_fast(text, &shaping_options, &mut glyphs);
-
-        assert_eq!(glyphs.len(), expected_glyphs.len());
-        assert_eq!(
-            glyphs.total_advance().to_nearest_px(),
-            expected_glyphs.total_advance().to_nearest_px()
-        );
-    }
 }

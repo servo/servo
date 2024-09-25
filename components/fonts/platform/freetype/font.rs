@@ -75,7 +75,6 @@ pub struct PlatformFont {
     face: ReentrantMutex<FT_Face>,
     requested_face_size: Au,
     actual_face_size: Au,
-    can_do_fast_shaping: bool,
 }
 
 // FT_Face can be used in multiple threads, but from only one thread at a time.
@@ -135,15 +134,12 @@ impl PlatformFontMethods for PlatformFont {
             Some(requested_size) => (requested_size, face.set_size(requested_size)?),
             None => (Au::zero(), Au::zero()),
         };
-        let can_do_fast_shaping =
-            face.has_table(KERN) && !face.has_table(GPOS) && !face.has_table(GSUB);
 
         Ok(PlatformFont {
             face: ReentrantMutex::new(face),
             font_data: data,
             requested_face_size,
             actual_face_size,
-            can_do_fast_shaping,
         })
     }
 
@@ -213,10 +209,6 @@ impl PlatformFontMethods for PlatformFont {
             );
         }
         fixed_26_dot_6_to_float(delta.x) * self.unscalable_font_metrics_scale()
-    }
-
-    fn can_do_fast_shaping(&self) -> bool {
-        self.can_do_fast_shaping
     }
 
     fn glyph_h_advance(&self, glyph: GlyphId) -> Option<FractionalPixel> {
