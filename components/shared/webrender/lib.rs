@@ -192,24 +192,6 @@ pub trait WebRenderFontApi {
     ) -> FontInstanceKey;
     fn add_font(&self, data: Arc<IpcSharedMemory>, index: u32) -> FontKey;
     fn add_system_font(&self, handle: NativeFontHandle) -> FontKey;
-
-    /// Forward a `AddFont` message, sending it on to the compositor. This is used to get WebRender
-    /// [`FontKey`]s for web fonts in the per-layout `FontContext`.
-    fn forward_add_font_message(
-        &self,
-        data: Arc<IpcSharedMemory>,
-        font_index: u32,
-        result_sender: IpcSender<FontKey>,
-    );
-    /// Forward a `AddFontInstance` message, sending it on to the compositor. This is used to get
-    /// WebRender [`FontInstanceKey`]s for web fonts in the per-layout `FontContext`.
-    fn forward_add_font_instance_message(
-        &self,
-        font_key: FontKey,
-        size: f32,
-        flags: FontInstanceFlags,
-        result_receiver: IpcSender<FontInstanceKey>,
-    );
 }
 
 pub enum CanvasToCompositorMsg {
@@ -260,6 +242,8 @@ pub enum ScriptToCompositorMsg {
     UpdateImages(Vec<SerializedImageUpdate>),
     /// Remove the given font resources from our WebRender instance.
     RemoveFonts(Vec<FontKey>, Vec<FontInstanceKey>),
+    AddFontInstance(FontKey, f32, FontInstanceFlags, IpcSender<FontInstanceKey>),
+    AddFont(Arc<IpcSharedMemory>, u32, IpcSender<FontKey>),
 }
 
 /// A mechanism to send messages from networking to the WebRender instance.
@@ -294,9 +278,21 @@ impl WebRenderNetApi {
 pub struct WebRenderScriptApi(IpcSender<ScriptToCompositorMsg>);
 
 impl WebRenderScriptApi {
-    /// Create a new WebrenderIpcSender object that wraps the provided channel sender.
+    /// Create a new [`WebRenderScriptApi`] object that wraps the provided channel sender.
     pub fn new(sender: IpcSender<ScriptToCompositorMsg>) -> Self {
         Self(sender)
+    }
+
+    /// Create a new [`WebRenderScriptApi`] object that does not have a listener on the
+    /// other end.
+    pub fn dummy() -> Self {
+        let (sender, _) = ipc::channel().unwrap();
+        Self::new(sender)
+    }
+
+    /// Get the sender for this proxy.
+    pub fn sender(&self) -> &IpcSender<ScriptToCompositorMsg> {
+        &self.0
     }
 
     /// Inform WebRender of the existence of this pipeline.

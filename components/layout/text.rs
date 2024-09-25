@@ -11,7 +11,7 @@ use std::sync::Arc;
 use app_units::Au;
 use base::text::is_bidi_control;
 use fonts::{
-    self, ByteIndex, FontIdentifier, FontMetrics, FontRef, RunMetrics, ShapingFlags,
+    self, ByteIndex, FontContext, FontIdentifier, FontMetrics, FontRef, RunMetrics, ShapingFlags,
     ShapingOptions, LAST_RESORT_GLYPH_ADVANCE,
 };
 use log::{debug, warn};
@@ -28,7 +28,6 @@ use unicode_bidi as bidi;
 use unicode_script::Script;
 use xi_unicode::LineBreakLeafIter;
 
-use crate::context::LayoutFontContext;
 use crate::fragment::{
     Fragment, ScannedTextFlags, ScannedTextFragmentInfo, SpecificFragmentInfo,
     UnscannedTextFragmentInfo,
@@ -71,7 +70,7 @@ impl TextRunScanner {
 
     pub fn scan_for_runs(
         &mut self,
-        font_context: &LayoutFontContext,
+        font_context: &FontContext,
         mut fragments: LinkedList<Fragment>,
     ) -> InlineFragments {
         debug!(
@@ -151,7 +150,7 @@ impl TextRunScanner {
     /// be adjusted.
     fn flush_clump_to_list(
         &mut self,
-        font_context: &LayoutFontContext,
+        font_context: &FontContext,
         out_fragments: &mut Vec<Fragment>,
         paragraph_bytes_processed: &mut usize,
         bidi_levels: Option<&[bidi::Level]>,
@@ -538,7 +537,7 @@ fn bounding_box_for_run_metrics(
 /// Panics if no font can be found for the given font style.
 #[inline]
 pub fn font_metrics_for_style(
-    font_context: &LayoutFontContext,
+    font_context: &FontContext,
     style: crate::ServoArc<FontStyleStruct>,
 ) -> FontMetrics {
     let font_group = font_context.font_group(style);

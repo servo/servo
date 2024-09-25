@@ -134,7 +134,7 @@ pub struct LayoutThread {
     image_cache: Arc<dyn ImageCache>,
 
     /// A per-layout FontContext managing font access.
-    font_context: Arc<FontContext<SystemFontServiceProxy>>,
+    font_context: Arc<FontContext>,
 
     /// Is this the first reflow in this layout?
     first_reflow: Cell<bool>,
@@ -577,7 +577,11 @@ impl LayoutThread {
             keyword_info: KeywordInfo::medium(),
         };
 
-        let font_context = Arc::new(FontContext::new(system_font_service, resource_threads));
+        let font_context = Arc::new(FontContext::new(
+            system_font_service,
+            webrender_api.clone(),
+            resource_threads,
+        ));
         let device = Device::new(
             MediaType::screen(),
             QuirksMode::NoQuirks,

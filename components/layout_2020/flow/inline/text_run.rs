@@ -8,8 +8,7 @@ use std::ops::Range;
 use app_units::Au;
 use base::text::is_bidi_control;
 use fonts::{
-    FontContext, FontRef, GlyphRun, ShapingFlags, ShapingOptions, SystemFontServiceProxy,
-    LAST_RESORT_GLYPH_ADVANCE,
+    FontContext, FontRef, GlyphRun, ShapingFlags, ShapingOptions, LAST_RESORT_GLYPH_ADVANCE,
 };
 use fonts_traits::ByteIndex;
 use log::warn;
@@ -342,7 +341,7 @@ impl TextRun {
     pub(super) fn segment_and_shape(
         &mut self,
         formatting_context_text: &str,
-        font_context: &FontContext<SystemFontServiceProxy>,
+        font_context: &FontContext,
         linebreaker: &mut LineBreaker,
         font_cache: &mut Vec<FontKeyAndMetrics>,
         bidi_info: &BidiInfo,
@@ -410,7 +409,7 @@ impl TextRun {
     fn segment_text_by_font(
         &mut self,
         formatting_context_text: &str,
-        font_context: &FontContext<SystemFontServiceProxy>,
+        font_context: &FontContext,
         font_cache: &mut Vec<FontKeyAndMetrics>,
         bidi_info: &BidiInfo,
     ) -> Vec<(TextRunSegment, FontRef)> {
@@ -556,7 +555,7 @@ pub(super) fn add_or_get_font(font: &FontRef, ifc_fonts: &mut Vec<FontKeyAndMetr
 
 pub(super) fn get_font_for_first_font_for_style(
     style: &ComputedValues,
-    font_context: &FontContext<SystemFontServiceProxy>,
+    font_context: &FontContext,
 ) -> Option<FontRef> {
     let font = font_context
         .font_group(style.clone_font())

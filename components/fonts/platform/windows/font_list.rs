@@ -14,7 +14,7 @@ use style::values::computed::{FontStyle as StyleFontStyle, FontWeight as StyleFo
 use style::values::specified::font::FontStretchKeyword;
 
 use crate::{
-    EmojiPresentationPreference, FallbackFontSelectionOptions, FontTemplate,
+    EmojiPresentationPreference, FallbackFontSelectionOptions, FontIdentifier, FontTemplate,
     FontTemplateDescriptor, LowercaseFontFamilyName,
 };
 
@@ -78,9 +78,10 @@ where
             let local_font_identifier = LocalFontIdentifier {
                 font_descriptor: Arc::new(font.to_descriptor()),
             };
-            callback(FontTemplate::new_for_local_font(
-                local_font_identifier,
+            callback(FontTemplate::new(
+                FontIdentifier::Local(local_font_identifier),
                 template_descriptor,
+                None,
             ))
         }
     }

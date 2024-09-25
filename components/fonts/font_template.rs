@@ -9,14 +9,12 @@ use std::sync::Arc;
 use atomic_refcell::AtomicRefCell;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
-use servo_url::ServoUrl;
 use style::computed_values::font_stretch::T as FontStretch;
 use style::computed_values::font_style::T as FontStyle;
 use style::stylesheets::DocumentStyleSheet;
 use style::values::computed::font::FontWeight;
 
 use crate::font::FontDescriptor;
-use crate::platform::font_list::LocalFontIdentifier;
 use crate::system_font_service::{
     CSSFontFaceDescriptors, ComputedFontStyleDescriptor, FontIdentifier,
 };
@@ -160,29 +158,17 @@ impl Debug for FontTemplate {
 /// is common, regardless of the number of instances of
 /// this font handle per thread.
 impl FontTemplate {
-    /// Create a new [`FontTemplate`] for a system font installed locally.
-    pub fn new_for_local_font(
-        identifier: LocalFontIdentifier,
-        descriptor: FontTemplateDescriptor,
-    ) -> FontTemplate {
-        FontTemplate {
-            identifier: FontIdentifier::Local(identifier),
-            descriptor,
-            stylesheet: None,
-        }
-    }
-
-    /// Create a new [`FontTemplate`] for a `@font-family` with a `url(...)` `src` font.
-    pub fn new_for_remote_web_font(
-        url: ServoUrl,
+    /// Create a new [`FontTemplate`].
+    pub fn new(
+        identifier: FontIdentifier,
         descriptor: FontTemplateDescriptor,
         stylesheet: Option<DocumentStyleSheet>,
-    ) -> Result<FontTemplate, &'static str> {
-        Ok(FontTemplate {
-            identifier: FontIdentifier::Web(url),
+    ) -> FontTemplate {
+        FontTemplate {
+            identifier,
             descriptor,
             stylesheet,
-        })
+        }
     }
 
     /// Create a new [`FontTemplate`] for a `@font-family` with a `local(...)` `src`. This takes in

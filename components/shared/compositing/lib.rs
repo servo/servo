@@ -141,7 +141,7 @@ pub struct CompositionPipeline {
 pub enum ForwardedToCompositorMsg {
     Layout(ScriptToCompositorMsg),
     Net(NetToCompositorMsg),
-    Font(FontToCompositorMsg),
+    SystemFontService(FontToCompositorMsg),
     Canvas(CanvasToCompositorMsg),
 }
 
@@ -150,7 +150,9 @@ impl Debug for ForwardedToCompositorMsg {
         match self {
             ForwardedToCompositorMsg::Layout(_) => write!(f, "Layout(ScriptToCompositorMsg)"),
             ForwardedToCompositorMsg::Net(_) => write!(f, "Net(NetToCompositorMsg)"),
-            ForwardedToCompositorMsg::Font(_) => write!(f, "Font(FontToCompositorMsg)"),
+            ForwardedToCompositorMsg::SystemFontService(_) => {
+                write!(f, "SystemFontService(FontToCompositorMsg)")
+            },
             ForwardedToCompositorMsg::Canvas(_) => write!(f, "Canvas(CanvasToCompositorMsg)"),
         }
     }

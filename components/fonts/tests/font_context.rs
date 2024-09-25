@@ -8,20 +8,21 @@ use std::io::prelude::*;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicI32, Ordering};
 use std::sync::Arc;
+use std::thread;
 
 use app_units::Au;
 use fonts::platform::font::PlatformFont;
 use fonts::{
     fallback_font_families, FallbackFontSelectionOptions, FontContext, FontData, FontDescriptor,
-    FontFamilyDescriptor, FontIdentifier, FontSearchScope, FontTemplate, FontTemplateRef,
-    FontTemplates, PlatformFontMethods, SystemFontServiceProxyTrait,
+    FontFamilyDescriptor, FontIdentifier, FontSearchScope, FontTemplate, FontTemplateRequestResult,
+    FontTemplates, PlatformFontMethods, SystemFontServiceMessage, SystemFontServiceProxy,
+    SystemFontServiceProxySender,
 };
-use ipc_channel::ipc;
+use ipc_channel::ipc::{self, IpcReceiver};
 use net_traits::ResourceThreads;
 use parking_lot::Mutex;
 use servo_arc::Arc as ServoArc;
 use servo_atoms::Atom;
-use servo_url::ServoUrl;
 use style::properties::longhands::font_variant_caps::computed_value::T as FontVariantCaps;
 use style::properties::style_structs::Font as FontStyleStruct;
 use style::values::computed::font::{
@@ -31,15 +32,111 @@ use style::values::computed::font::{
 use style::values::computed::{FontLanguageOverride, XLang};
 use style::values::generics::font::LineHeight;
 use style::ArcSlice;
-use webrender_api::{FontInstanceFlags, FontInstanceKey, FontKey, IdNamespace};
+use webrender_api::{FontInstanceKey, IdNamespace};
+use webrender_traits::WebRenderScriptApi;
 
-struct MockFontCacheThread {
+struct TestContext {
+    context: FontContext,
+    system_font_service: Arc<MockSystemFontService>,
+    system_font_service_proxy: SystemFontServiceProxy,
+}
+
+impl TestContext {
+    fn new() -> TestContext {
+        let (system_font_service, system_font_service_proxy) = MockSystemFontService::spawn();
+        let (core_sender, _) = ipc::channel().unwrap();
+        let (storage_sender, _) = ipc::channel().unwrap();
+        let mock_resource_threads = ResourceThreads::new(core_sender, storage_sender);
+        let mock_webrender_api = WebRenderScriptApi::dummy();
+
+        let proxy_clone = Arc::new(system_font_service_proxy.to_sender().to_proxy());
+        Self {
+            context: FontContext::new(proxy_clone, mock_webrender_api, mock_resource_threads),
+            system_font_service,
+            system_font_service_proxy,
+        }
+    }
+}
+
+impl Drop for TestContext {
+    fn drop(&mut self) {
+        self.system_font_service_proxy.exit();
+    }
+}
+
+struct MockSystemFontService {
     families: Mutex<HashMap<String, FontTemplates>>,
     data: Mutex<HashMap<FontIdentifier, Arc<FontData>>>,
     find_font_count: AtomicI32,
 }
 
-impl MockFontCacheThread {
+impl MockSystemFontService {
+    pub fn spawn() -> (Arc<MockSystemFontService>, SystemFontServiceProxy) {
+        let (sender, receiver) = ipc::channel().unwrap();
+        let system_font_service = Arc::new(Self::new());
+
+        let system_font_service_clone = system_font_service.clone();
+        thread::Builder::new()
+            .name("MockSystemFontService".to_owned())
+            .spawn(move || system_font_service_clone.run(receiver))
+            .expect("Thread spawning failed");
+        (
+            system_font_service,
+            SystemFontServiceProxySender(sender).to_proxy(),
+        )
+    }
+
+    fn run(&self, receiver: IpcReceiver<SystemFontServiceMessage>) {
+        loop {
+            match receiver.recv().unwrap() {
+                SystemFontServiceMessage::GetFontTemplates(
+                    descriptor_to_match,
+                    font_family,
+                    result_sender,
+                ) => {
+                    self.find_font_count.fetch_add(1, Ordering::Relaxed);
+
+                    let SingleFontFamily::FamilyName(family_name) = font_family else {
+                        let _ = result_sender.send(FontTemplateRequestResult::default());
+                        continue;
+                    };
+
+                    let templates: Vec<_> = self
+                        .families
+                        .lock()
+                        .get_mut(&*family_name.name)
+                        .map(|family| family.find_for_descriptor(descriptor_to_match.as_ref()))
+                        .unwrap()
+                        .into_iter()
+                        .map(|template| template.borrow().clone())
+                        .collect();
+
+                    let template_data = templates
+                        .iter()
+                        .map(|template| {
+                            let identifier = template.identifier().clone();
+                            let data = self.data.lock().get(&identifier).unwrap().clone();
+                            (identifier, data)
+                        })
+                        .collect();
+
+                    let _ = result_sender.send(FontTemplateRequestResult {
+                        templates,
+                        template_data,
+                    });
+                },
+                SystemFontServiceMessage::GetFontInstance(_, _, _, result_sender) => {
+                    let _ = result_sender.send(FontInstanceKey(IdNamespace(0), 0));
+                },
+                SystemFontServiceMessage::Exit(result_sender) => {
+                    let _ = result_sender.send(());
+                    break;
+                },
+                SystemFontServiceMessage::Ping => {},
+            }
+        }
+    }
+
     fn new() -> Self {
         let proxy = Self {
             families: Default::default(),
@@ -69,18 +166,6 @@ impl MockFontCacheThread {
         proxy
     }
 
-    fn identifier_for_font_name(name: &str) -> FontIdentifier {
-        FontIdentifier::Web(Self::url_for_font_name(name))
-    }
-
-    fn url_for_font_name(name: &str) -> ServoUrl {
-        let mut path: PathBuf = [env!("CARGO_MANIFEST_DIR"), "tests", "support", "CSSTest"]
-            .iter()
-            .collect();
-        path.push(format!("{}.ttf", name));
-        ServoUrl::from_file_path(path).unwrap()
-    }
-
     fn add_face(&self, family: &mut FontTemplates, name: &str) {
         let mut path: PathBuf = [env!("CARGO_MANIFEST_DIR"), "tests", "support", "CSSTest"]
             .iter()
@@ -92,62 +177,17 @@ impl MockFontCacheThread {
             file.bytes().map(|b| b.unwrap()).collect(),
         ));
 
-        let url = Self::url_for_font_name(name);
-        let identifier = FontIdentifier::Web(url.clone());
+        let identifier = FontIdentifier::Mock(name.into());
         let handle =
             PlatformFont::new_from_data(identifier.clone(), data.as_arc().clone(), 0, None)
                 .expect("Could not load test font");
-        let template =
-            FontTemplate::new_for_remote_web_font(url, handle.descriptor(), None).unwrap();
-        family.add_template(template);
+        family.add_template(FontTemplate::new(
+            identifier.clone(),
+            handle.descriptor(),
+            None,
+        ));
 
         self.data.lock().insert(identifier, data);
-    }
-}
-
-impl SystemFontServiceProxyTrait for MockFontCacheThread {
-    fn find_matching_font_templates(
-        &self,
-        descriptor_to_match: Option<&FontDescriptor>,
-        font_family: &SingleFontFamily,
-    ) -> Vec<FontTemplateRef> {
-        self.find_font_count.fetch_add(1, Ordering::Relaxed);
-
-        let SingleFontFamily::FamilyName(family_name) = font_family else {
-            return Vec::new();
-        };
-
-        self.families
-            .lock()
-            .get_mut(&*family_name.name)
-            .map(|family| family.find_for_descriptor(descriptor_to_match))
-            .unwrap_or_default()
-    }
-
-    fn get_system_font_instance(
-        &self,
-        _font_identifier: FontIdentifier,
-        _size: Au,
-        _flags: FontInstanceFlags,
-    ) -> FontInstanceKey {
-        FontInstanceKey(IdNamespace(0), 0)
-    }
-
-    fn get_web_font(&self, _data: Arc<fonts::FontData>, _index: u32) -> FontKey {
-        FontKey(IdNamespace(0), 0)
-    }
-
-    fn get_web_font_instance(
-        &self,
-        _font_key: FontKey,
-        _size: f32,
-        _flags: FontInstanceFlags,
-    ) -> FontInstanceKey {
-        FontInstanceKey(IdNamespace(0), 0)
-    }
-
-    fn get_font_data(&self, identifier: &FontIdentifier) -> Option<Arc<fonts::FontData>> {
-        self.data.lock().get(identifier).cloned()
     }
 }
 
@@ -185,16 +225,9 @@ fn font_family(names: Vec<&str>) -> FontFamily {
     }
 }
 
-fn mock_resource_threads() -> ResourceThreads {
-    let (core_sender, _) = ipc::channel().unwrap();
-    let (storage_sender, _) = ipc::channel().unwrap();
-    ResourceThreads::new(core_sender, storage_sender)
-}
-
 #[test]
 fn test_font_group_is_cached_by_style() {
-    let source = Arc::new(MockFontCacheThread::new());
-    let context = FontContext::new(source, mock_resource_threads());
+    let context = TestContext::new();
 
     let style1 = style();
 
@@ -203,16 +236,28 @@ fn test_font_group_is_cached_by_style() {
 
     assert!(
         std::ptr::eq(
-            &*context.font_group(ServoArc::new(style1.clone())).read(),
-            &*context.font_group(ServoArc::new(style1.clone())).read()
+            &*context
+                .context
+                .font_group(ServoArc::new(style1.clone()))
+                .read(),
+            &*context
+                .context
+                .font_group(ServoArc::new(style1.clone()))
+                .read()
         ),
         "the same font group should be returned for two styles with the same hash"
     );
 
     assert!(
         !std::ptr::eq(
-            &*context.font_group(ServoArc::new(style1.clone())).read(),
-            &*context.font_group(ServoArc::new(style2.clone())).read()
+            &*context
+                .context
+                .font_group(ServoArc::new(style1.clone()))
+                .read(),
+            &*context
+                .context
+                .font_group(ServoArc::new(style2.clone()))
+                .read()
         ),
         "different font groups should be returned for two styles with different hashes"
     )
@@ -220,52 +265,60 @@ fn test_font_group_is_cached_by_style() {
 
 #[test]
 fn test_font_group_find_by_codepoint() {
-    let source = Arc::new(MockFontCacheThread::new());
-    let mut context = FontContext::new(source.clone(), mock_resource_threads());
+    let mut context = TestContext::new();
 
     let mut style = style();
     style.set_font_family(font_family(vec!["CSSTest ASCII", "CSSTest Basic"]));
 
-    let group = context.font_group(ServoArc::new(style));
+    let group = context.context.font_group(ServoArc::new(style));
 
     let font = group
         .write()
-        .find_by_codepoint(&mut context, 'a', None)
+        .find_by_codepoint(&mut context.context, 'a', None)
         .unwrap();
     assert_eq!(
         font.identifier(),
-        MockFontCacheThread::identifier_for_font_name("csstest-ascii")
+        FontIdentifier::Mock("csstest-ascii".into())
     );
     assert_eq!(
-        source.find_font_count.fetch_add(0, Ordering::Relaxed),
+        context
+            .system_font_service
+            .find_font_count
+            .fetch_add(0, Ordering::Relaxed),
         1,
         "only the first font in the list should have been loaded"
     );
 
     let font = group
         .write()
-        .find_by_codepoint(&mut context, 'a', None)
+        .find_by_codepoint(&mut context.context, 'a', None)
         .unwrap();
     assert_eq!(
         font.identifier(),
-        MockFontCacheThread::identifier_for_font_name("csstest-ascii")
+        FontIdentifier::Mock("csstest-ascii".into())
     );
     assert_eq!(
-        source.find_font_count.fetch_add(0, Ordering::Relaxed),
+        context
+            .system_font_service
+            .find_font_count
+            .fetch_add(0, Ordering::Relaxed),
         1,
         "we shouldn't load the same font a second time"
     );
 
     let font = group
         .write()
-        .find_by_codepoint(&mut context, 'á', None)
+        .find_by_codepoint(&mut context.context, 'á', None)
         .unwrap();
     assert_eq!(
         font.identifier(),
-        MockFontCacheThread::identifier_for_font_name("csstest-basic-regular")
+        FontIdentifier::Mock("csstest-basic-regular".into())
     );
     assert_eq!(
-        source.find_font_count.fetch_add(0, Ordering::Relaxed),
+        context
+            .system_font_service
+            .find_font_count
+            .fetch_add(0, Ordering::Relaxed),
         2,
         "both fonts should now have been loaded"
     );
@@ -273,39 +326,37 @@ fn test_font_group_find_by_codepoint() {
 
 #[test]
 fn test_font_fallback() {
-    let source = Arc::new(MockFontCacheThread::new());
-    let mut context = FontContext::new(source, mock_resource_threads());
+    let mut context = TestContext::new();
 
     let mut style = style();
     style.set_font_family(font_family(vec!["CSSTest ASCII"]));
 
-    let group = context.font_group(ServoArc::new(style));
+    let group = context.context.font_group(ServoArc::new(style));
 
     let font = group
         .write()
-        .find_by_codepoint(&mut context, 'a', None)
+        .find_by_codepoint(&mut context.context, 'a', None)
         .unwrap();
     assert_eq!(
         font.identifier(),
-        MockFontCacheThread::identifier_for_font_name("csstest-ascii"),
+        FontIdentifier::Mock("csstest-ascii".into()),
         "a family in the group should be used if there is a matching glyph"
     );
 
     let font = group
         .write()
-        .find_by_codepoint(&mut context, 'á', None)
+        .find_by_codepoint(&mut context.context, 'á', None)
         .unwrap();
     assert_eq!(
         font.identifier(),
-        MockFontCacheThread::identifier_for_font_name("csstest-basic-regular"),
+        FontIdentifier::Mock("csstest-basic-regular".into()),
         "a fallback font should be used if there is no matching glyph in the group"
     );
 }
 
 #[test]
 fn test_font_template_is_cached() {
-    let source = Arc::new(MockFontCacheThread::new());
-    let context = FontContext::new(source.clone(), mock_resource_threads());
+    let context = TestContext::new();
 
     let mut font_descriptor = FontDescriptor {
         weight: FontWeight::normal(),
@@ -321,14 +372,19 @@ fn test_font_template_is_cached() {
     });
     let family_descriptor = FontFamilyDescriptor::new(family, FontSearchScope::Any);
 
-    let font_template = context.matching_templates(&font_descriptor, &family_descriptor)[0].clone();
+    let font_template = context
+        .context
+        .matching_templates(&font_descriptor, &family_descriptor)[0]
+        .clone();
 
     let font1 = context
+        .context
         .font(font_template.clone(), &font_descriptor)
         .unwrap();
 
     font_descriptor.pt_size = Au(20);
     let font2 = context
+        .context
         .font(font_template.clone(), &font_descriptor)
         .unwrap();
 
@@ -338,7 +394,10 @@ fn test_font_template_is_cached() {
     );
 
     assert_eq!(
-        source.find_font_count.fetch_add(0, Ordering::Relaxed),
+        context
+            .system_font_service
+            .find_font_count
+            .fetch_add(0, Ordering::Relaxed),
         1,
         "we should only have fetched the template data from the cache thread once"
     );

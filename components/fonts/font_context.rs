@@ -12,6 +12,7 @@ use app_units::Au;
 use crossbeam_channel::unbounded;
 use fnv::FnvHasher;
 use fonts_traits::WebFontLoadFinishedCallback;
+use ipc_channel::ipc;
 use log::{debug, trace};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use malloc_size_of_derive::MallocSizeOf;
@@ -29,7 +30,8 @@ use style::stylesheets::{CssRule, DocumentStyleSheet, FontFaceRule, StylesheetIn
 use style::values::computed::font::{FamilyName, FontFamilyNameSyntax, SingleFontFamily};
 use style::Atom;
 use url::Url;
-use webrender_api::{FontInstanceKey, FontKey};
+use webrender_api::{FontInstanceFlags, FontInstanceKey, FontKey};
+use webrender_traits::{ScriptToCompositorMsg, WebRenderScriptApi};
 
 use crate::font::{
     Font, FontDescriptor, FontFamilyDescriptor, FontGroup, FontRef, FontSearchScope,
@@ -37,10 +39,8 @@ use crate::font::{
 use crate::font_store::{CrossThreadFontStore, CrossThreadWebRenderFontStore};
 use crate::font_template::{FontTemplate, FontTemplateRef, FontTemplateRefMethods};
 use crate::platform::font::PlatformFont;
-use crate::system_font_service::{
-    CSSFontFaceDescriptors, FontIdentifier, SystemFontServiceProxyTrait,
-};
-use crate::{FontData, LowercaseFontFamilyName, PlatformFontMethods};
+use crate::system_font_service::{CSSFontFaceDescriptors, FontIdentifier};
+use crate::{FontData, LowercaseFontFamilyName, PlatformFontMethods, SystemFontServiceProxy};
 
 static SMALL_CAPS_SCALE_FACTOR: f32 = 0.8; // Matches FireFox (see gfxFont.h)
 
@@ -48,9 +48,12 @@ static SMALL_CAPS_SCALE_FACTOR: f32 = 0.8; // Matches FireFox (see gfxFont.h)
 /// working with fonts. It is the public API used by the layout and
 /// paint code. It talks directly to the system font service where
 /// required.
-pub struct FontContext<Proxy: SystemFontServiceProxyTrait> {
-    pub(crate) system_font_service_proxy: Arc<Proxy>,
+pub struct FontContext {
+    pub(crate) system_font_service_proxy: Arc<SystemFontServiceProxy>,
     resource_threads: ReentrantMutex<CoreResourceThread>,
+
+    /// A sender that can send messages and receive replies from the compositor.
+    webrender_api: ReentrantMutex<WebRenderScriptApi>,
 
     /// The actual instances of fonts ie a [`FontTemplate`] combined with a size and
     /// other font properties, along with the font data and a platform font instance.
@@ -67,7 +70,7 @@ pub struct FontContext<Proxy: SystemFontServiceProxyTrait> {
     have_removed_web_fonts: AtomicBool,
 }
 
-impl<S: SystemFontServiceProxyTrait> MallocSizeOf for FontContext<S> {
+impl MallocSizeOf for FontContext {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         let font_cache_size = self
             .fonts
@@ -87,12 +90,17 @@ impl<S: SystemFontServiceProxyTrait> MallocSizeOf for FontContext<S> {
     }
 }
 
-impl<Proxy: SystemFontServiceProxyTrait> FontContext<Proxy> {
-    pub fn new(system_font_service_proxy: Arc<Proxy>, resource_threads: ResourceThreads) -> Self {
+impl FontContext {
+    pub fn new(
+        system_font_service_proxy: Arc<SystemFontServiceProxy>,
+        webrender_api: WebRenderScriptApi,
+        resource_threads: ResourceThreads,
+    ) -> Self {
         #[allow(clippy::default_constructed_unit_structs)]
         Self {
             system_font_service_proxy,
             resource_threads: ReentrantMutex::new(resource_threads.core_thread),
+            webrender_api: ReentrantMutex::new(webrender_api),
             fonts: Default::default(),
             resolved_font_groups: Default::default(),
             web_fonts: Arc::new(RwLock::default()),
@@ -106,11 +114,13 @@ impl<Proxy: SystemFontServiceProxyTrait> FontContext<Proxy> {
     }
 
     pub(crate) fn get_font_data(&self, identifier: &FontIdentifier) -> Arc<FontData> {
-        self.web_fonts
-            .read()
-            .get_font_data(identifier)
-            .or_else(|| self.system_font_service_proxy.get_font_data(identifier))
-            .expect("Could not find font data")
+        match identifier {
+            FontIdentifier::Web(_) => self.web_fonts.read().get_font_data(identifier),
+            FontIdentifier::Local(_) | FontIdentifier::Mock(_) => {
+                self.system_font_service_proxy.get_font_data(identifier)
+            },
+        }
+        .expect("Could not find font data")
     }
 
     /// Handle the situation where a web font finishes loading, specifying if the load suceeded or failed.
@@ -272,11 +282,13 @@ impl<Proxy: SystemFontServiceProxyTrait> FontContext<Proxy> {
         )?;
 
         font.font_key = match font_template.identifier() {
-            FontIdentifier::Local(_) => self.system_font_service_proxy.get_system_font_instance(
-                font_template.identifier(),
-                font_descriptor.pt_size,
-                font.webrender_font_instance_flags(),
-            ),
+            FontIdentifier::Local(_) | FontIdentifier::Mock(_) => {
+                self.system_font_service_proxy.get_system_font_instance(
+                    font_template.identifier(),
+                    font_descriptor.pt_size,
+                    font.webrender_font_instance_flags(),
+                )
+            },
             FontIdentifier::Web(_) => self.webrender_font_store.write().get_font_instance(
                 self,
                 font_template.clone(),
@@ -290,6 +302,42 @@ impl<Proxy: SystemFontServiceProxyTrait> FontContext<Proxy> {
 
     fn invalidate_font_groups_after_web_font_load(&self) {
         self.resolved_font_groups.write().clear();
+    }
+
+    pub(crate) fn get_web_font(&self, data: Arc<FontData>, index: u32) -> FontKey {
+        let (result_sender, result_receiver) =
+            ipc::channel().expect("failed to create IPC channel");
+        let _ = self
+            .webrender_api
+            .lock()
+            .sender()
+            .send(ScriptToCompositorMsg::AddFont(
+                data.as_ipc_shared_memory(),
+                index,
+                result_sender,
+            ));
+        result_receiver.recv().unwrap()
+    }
+
+    pub(crate) fn get_web_font_instance(
+        &self,
+        font_key: FontKey,
+        font_size: f32,
+        font_flags: FontInstanceFlags,
+    ) -> FontInstanceKey {
+        let (result_sender, result_receiver) =
+            ipc::channel().expect("failed to create IPC channel");
+        let _ = self
+            .webrender_api
+            .lock()
+            .sender()
+            .send(ScriptToCompositorMsg::AddFontInstance(
+                font_key,
+                font_size,
+                font_flags,
+                result_sender,
+            ));
+        result_receiver.recv().unwrap()
     }
 }
 
@@ -318,7 +366,7 @@ pub trait FontContextWebFontMethods {
         -> (Vec<FontKey>, Vec<FontInstanceKey>);
 }
 
-impl<S: SystemFontServiceProxyTrait + 'static> FontContextWebFontMethods for Arc<FontContext<S>> {
+impl FontContextWebFontMethods for Arc<FontContext> {
     fn add_all_web_fonts_from_stylesheet(
         &self,
         stylesheet: &DocumentStyleSheet,
@@ -523,8 +571,8 @@ impl<S: SystemFontServiceProxyTrait + 'static> FontContextWebFontMethods for Arc
     }
 }
 
-struct RemoteWebFontDownloader<Proxy: SystemFontServiceProxyTrait> {
-    font_context: Arc<FontContext<Proxy>>,
+struct RemoteWebFontDownloader {
+    font_context: Arc<FontContext>,
     url: ServoArc<Url>,
     web_font_family_name: LowercaseFontFamilyName,
     response_valid: Mutex<bool>,
@@ -537,10 +585,10 @@ enum DownloaderResponseResult {
     Failure,
 }
 
-impl<Proxy: SystemFontServiceProxyTrait + 'static> RemoteWebFontDownloader<Proxy> {
+impl RemoteWebFontDownloader {
     fn download(
         url_source: UrlSource,
-        font_context: Arc<FontContext<Proxy>>,
+        font_context: Arc<FontContext>,
         web_font_family_name: LowercaseFontFamilyName,
         state: WebFontDownloadState,
     ) {
@@ -628,12 +676,11 @@ impl<Proxy: SystemFontServiceProxyTrait + 'static> RemoteWebFontDownloader<Proxy
         descriptor
             .override_values_with_css_font_template_descriptors(&state.css_font_face_descriptors);
 
-        let Ok(new_template) =
-            FontTemplate::new_for_remote_web_font(url, descriptor, Some(state.stylesheet.clone()))
-        else {
-            return false;
-        };
-
+        let new_template = FontTemplate::new(
+            FontIdentifier::Web(url),
+            descriptor,
+            Some(state.stylesheet.clone()),
+        );
         let not_cancelled = self.font_context.web_fonts.write().handle_web_font_loaded(
             state,
             new_template,
