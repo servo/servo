@@ -369,52 +369,50 @@ impl<'a> TableLayout<'a> {
         self.rows = vec![RowLayout::default(); self.table.size.height];
         self.columns = vec![ColumnLayout::default(); self.table.size.width];
 
+        let is_length = |size: &LengthPercentageOrAuto| {
+            size.non_auto().is_some_and(|size| !size.has_percentage())
+        };
+
         for column_index in 0..self.table.size.width {
             if let Some(column) = self.table.columns.get(column_index) {
-                if !column.style.box_size(writing_mode).inline.is_auto() {
+                if is_length(&column.style.box_size(writing_mode).inline) {
                     self.columns[column_index].constrained = true;
                     continue;
                 }
                 if let Some(column_group_index) = column.group_index {
                     let column_group = &self.table.column_groups[column_group_index];
-                    if !column_group.style.box_size(writing_mode).inline.is_auto() {
+                    if is_length(&column_group.style.box_size(writing_mode).inline) {
                         self.columns[column_index].constrained = true;
                         continue;
                     }
                 }
-                self.columns[column_index].constrained = false;
             }
         }
 
         for row_index in 0..self.table.size.height {
             if let Some(row) = self.table.rows.get(row_index) {
-                if !row.style.box_size(writing_mode).block.is_auto() {
+                if is_length(&row.style.box_size(writing_mode).block) {
                     self.rows[row_index].constrained = true;
                     continue;
                 }
                 if let Some(row_group_index) = row.group_index {
                     let row_group = &self.table.row_groups[row_group_index];
-                    if !row_group.style.box_size(writing_mode).block.is_auto() {
+                    if is_length(&row_group.style.box_size(writing_mode).block) {
                         self.rows[row_index].constrained = true;
                         continue;
                     }
                 }
             }
-            self.rows[row_index].constrained = false;
         }
 
         for column_index in 0..self.table.size.width {
             for row_index in 0..self.table.size.height {
                 let coords = TableSlotCoordinates::new(column_index, row_index);
                 let cell_constrained = match self.table.resolve_first_cell(coords) {
-                    Some(cell) if cell.colspan == 1 => cell
-                        .style
-                        .box_size(writing_mode)
-                        .inline
-                        .non_auto()
-                        .and_then(|length_percentage| length_percentage.to_length())
-                        .is_some(),
-                    _ => false,
+                    Some(cell) if cell.colspan == 1 => {
+                        cell.style.box_size(writing_mode).map(is_length)
+                    },
+                    _ => LogicalVec2::default(),
                 };
 
                 let rowspan_greater_than_1 = match self.table.slots[row_index][column_index] {
@@ -423,12 +421,12 @@ impl<'a> TableLayout<'a> {
                 };
 
                 self.rows[row_index].has_cell_with_span_greater_than_one |= rowspan_greater_than_1;
-                self.rows[row_index].constrained |= cell_constrained;
+                self.rows[row_index].constrained |= cell_constrained.block;
 
                 let has_originating_cell =
                     matches!(self.table.get_slot(coords), Some(TableSlot::Cell(_)));
                 self.columns[column_index].has_originating_cells |= has_originating_cell;
-                self.columns[column_index].constrained |= cell_constrained;
+                self.columns[column_index].constrained |= cell_constrained.inline;
             }
         }
     }

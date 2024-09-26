@@ -55,6 +55,15 @@ impl<T: fmt::Debug> fmt::Debug for LogicalVec2<T> {
     }
 }
 
+impl<T: Default> Default for LogicalVec2<T> {
+    fn default() -> Self {
+        Self {
+            inline: T::default(),
+            block: T::default(),
+        }
+    }
+}
+
 impl<T: Clone> LogicalVec2<T> {
     pub fn from_physical_size(physical_size: &PhysicalSize<T>, mode: WritingMode) -> Self {
         // https://drafts.csswg.org/css-writing-modes/#logical-to-physical
