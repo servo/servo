@@ -178,7 +178,7 @@ use crate::dom::wheelevent::WheelEvent;
 use crate::dom::window::{ReflowReason, Window};
 use crate::dom::windowproxy::WindowProxy;
 use crate::fetch::FetchCanceller;
-use crate::realms::{AlreadyInRealm, InRealm};
+use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
 use crate::script_runtime::{CanGc, CommonScriptMsg, ScriptThreadEventCategory};
 use crate::script_thread::{MainThreadScriptMsg, ScriptThread};
 use crate::stylesheet_set::StylesheetSetRef;
@@ -2647,9 +2647,10 @@ impl Document {
             .dom_manipulation_task_source()
             .queue(
                 task!(fire_dom_content_loaded_event: move || {
-                let document = document.root();
-                document.upcast::<EventTarget>().fire_bubbling_event(atom!("DOMContentLoaded"));
-                update_with_current_instant(&document.dom_content_loaded_event_end);
+                    let document = document.root();
+                    let _realm = enter_realm(&*document);
+                    document.upcast::<EventTarget>().fire_bubbling_event(atom!("DOMContentLoaded"));
+                    update_with_current_instant(&document.dom_content_loaded_event_end);
                 }),
                 window.upcast(),
             )
