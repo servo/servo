@@ -710,7 +710,9 @@ impl Document {
             ClientContextId::build(pipeline_id.namespace_id.0, pipeline_id.index.0.get());
 
         if activity != DocumentActivity::FullyActive {
-            self.window().suspend();
+            if self.is_window_relevant() {
+                self.window().suspend();
+            }
             media.suspend(&client_context_id);
             return;
         }
