@@ -29,7 +29,7 @@ use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::bindings::utils::get_dictionary_property;
-use crate::dom::countqueuingstrategy::extract_high_water_mark;
+use crate::dom::countqueuingstrategy::{extract_high_water_mark, extract_size_algorithm};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::readablebytestreamcontroller::ReadableByteStreamController;
@@ -129,6 +129,7 @@ impl ReadableStream {
                 global,
                 UnderlyingSourceType::Js(underlying_source_dict),
                 extract_high_water_mark(strategy, 1.0)?,
+                extract_size_algorithm(strategy),
             )
         };
         Ok(ReadableStream::new(
@@ -198,7 +199,12 @@ impl ReadableStream {
         source: UnderlyingSourceType,
     ) -> DomRoot<ReadableStream> {
         assert!(source.is_native());
-        let controller = ReadableStreamDefaultController::new(global, source, 1.0);
+        let controller = ReadableStreamDefaultController::new(
+            global,
+            source,
+            1.0,
+            extract_size_algorithm(&QueuingStrategy::empty()),
+        );
         let stream = ReadableStream::new(
             global,
             Controller::ReadableStreamDefaultController(controller.clone()),

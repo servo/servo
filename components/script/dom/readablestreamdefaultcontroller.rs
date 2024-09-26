@@ -4,12 +4,17 @@
 
 use std::cell::{Cell, RefCell};
 use std::collections::VecDeque;
+use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject};
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::{HandleValue as SafeHandleValue, HandleValue};
 
+use super::bindings::codegen::Bindings::QueuingStrategyBinding::{
+    CountQueuingStrategyMethods, QueuingStrategy, QueuingStrategyInit, QueuingStrategySize,
+};
+use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultControllerBinding::ReadableStreamDefaultControllerMethods;
 use crate::dom::bindings::import::module::UnionTypes::ReadableStreamDefaultControllerOrReadableByteStreamController as Controller;
 use crate::dom::bindings::import::module::{Error, Fallible};
@@ -105,9 +110,14 @@ impl QueueWithSizes {
     }
 
     /// <https://streams.spec.whatwg.org/#enqueue-value-with-size>
-    fn enqueue_value_with_size(&mut self, value: EnqueuedValue) {
+    fn enqueue_value_with_size(&mut self, value: EnqueuedValue) -> Result<(), Error> {
+        // TODO: If ! IsNonNegativeNumber(size) is false, throw a RangeError exception.
+        // TODO: If size is +∞, throw a RangeError exception.
+
         self.total_size += value.size();
         self.queue.push_back(value);
+
+        Ok(())
     }
 
     fn is_empty(&self) -> bool {
@@ -156,6 +166,10 @@ pub struct ReadableStreamDefaultController {
     /// <https://streams.spec.whatwg.org/#readablestreamdefaultcontroller-strategyhwm>
     strategy_hwm: f64,
 
+    /// <https://streams.spec.whatwg.org/#readablestreamdefaultcontroller-strategysizealgorithm>
+    #[ignore_malloc_size_of = "mozjs"]
+    strategy_size: RefCell<Option<Rc<QueuingStrategySize>>>,
+
     /// <https://streams.spec.whatwg.org/#readablestreamdefaultcontroller-closerequested>
     close_requested: Cell<bool>,
 }
@@ -165,6 +179,7 @@ impl ReadableStreamDefaultController {
         global: &GlobalScope,
         underlying_source_type: UnderlyingSourceType,
         strategy_hwm: f64,
+        strategy_size: Rc<QueuingStrategySize>,
     ) -> ReadableStreamDefaultController {
         ReadableStreamDefaultController {
             reflector_: Reflector::new(),
@@ -175,6 +190,7 @@ impl ReadableStreamDefaultController {
                 underlying_source_type,
             ))),
             strategy_hwm,
+            strategy_size: RefCell::new(Some(strategy_size)),
             close_requested: Default::default(),
         }
     }
@@ -182,12 +198,14 @@ impl ReadableStreamDefaultController {
         global: &GlobalScope,
         underlying_source: UnderlyingSourceType,
         strategy_hwm: f64,
+        strategy_size: Rc<QueuingStrategySize>,
     ) -> DomRoot<ReadableStreamDefaultController> {
         reflect_dom_object(
             Box::new(ReadableStreamDefaultController::new_inherited(
                 global,
                 underlying_source,
                 strategy_hwm,
+                strategy_size,
             )),
             global,
         )
@@ -243,12 +261,11 @@ impl ReadableStreamDefaultController {
         }
     }
 
-    /// <https://streams.spec.whatwg.org/#ref-for-abstract-opdef-readablestreamcontroller-pullsteps>
+    /// <https://streams.spec.whatwg.org/#rs-default-controller-private-pull>
     #[allow(unsafe_code)]
     pub fn perform_pull_steps(&self, read_request: ReadRequest) {
         // if queue contains bytes, perform chunk steps.
         if !self.queue.borrow().is_empty() {
-            // TODO: use <https://streams.spec.whatwg.org/#readablestreamdefaultcontroller-strategysizealgorithm>
             let chunk = self.dequeue_value();
 
             // If this.[[closeRequested]] is true and this.[[queue]] is empty
@@ -290,10 +307,11 @@ impl ReadableStreamDefaultController {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-enqueue>
-    pub fn enqueue(&self, cx: SafeJSContext, chunk: SafeHandleValue) {
+    #[allow(unsafe_code)]
+    pub fn enqueue(&self, cx: SafeJSContext, chunk: SafeHandleValue) -> Result<(), Error> {
         // If ! ReadableStreamDefaultControllerCanCloseOrEnqueue(controller) is false, return.
         if !self.can_close_or_enqueue() {
-            return;
+            return Ok(());
         }
 
         let stream = self
@@ -306,24 +324,71 @@ impl ReadableStreamDefaultController {
         // perform ! ReadableStreamFulfillReadRequest(stream, chunk, false).
         if stream.is_locked() && stream.get_num_read_requests() > 0 {
             stream.fulfill_read_request(chunk, false);
-            return;
+            return Ok(());
         }
 
-        // Otherwise, perform EnqueueValueWithSize(controller, chunk, chunkSize).
+        // Let result be the result of performing controller.[[strategySizeAlgorithm]],
+        // passing in chunk, and interpreting the result as a completion record.
+        let size = if let Some(strategy_size) = self.strategy_size.borrow().as_ref() {
+            let result = strategy_size.Call__(chunk, ExceptionHandling::Report);
+            match result {
+                // Let chunkSize be result.[[Value]].
+                Ok(size) => size,
+                Err(error) => {
+                    // If result is an abrupt completion,
+                    rooted!(in(*cx) let mut rval = UndefinedValue());
+                    
+                    // TODO: check if this is the right globalscope.
+                    unsafe {
+                        error
+                            .clone()
+                            .to_jsval(*cx, &*self.global(), rval.handle_mut())
+                    };
+                    
+                    // Perform ! ReadableStreamDefaultControllerError(controller, result.[[Value]]).
+                    self.error(rval.handle());
+                    
+                    // Return result.
+                    return Err(error);
+                },
+            }
+        } else {
+            0.
+        };
+
+        // We create the value-with-size created inside
+        // EnqueueValueWithSize here.
         rooted!(in(*cx) let object = chunk.to_object());
         let value_with_size = ValueWithSize {
             value: Heap::default(),
-            // TODO: strategy size algo.
-            size: 0.,
+            size,
         };
         value_with_size.value.set(*object);
 
-        // <https://streams.spec.whatwg.org/#enqueue-value-with-size>
+        // Let enqueueResult be EnqueueValueWithSize(controller, chunk, chunkSize).
         let mut queue = self.queue.borrow_mut();
-        queue.enqueue_value_with_size(EnqueuedValue::Js(value_with_size));
+        if let Err(error) = queue.enqueue_value_with_size(EnqueuedValue::Js(value_with_size)) {
+            // If enqueueResult is an abrupt completion,
+            
+            rooted!(in(*cx) let mut rval = UndefinedValue());
+            // TODO: check if this is the right globalscope.
+            unsafe {
+                error
+                    .clone()
+                    .to_jsval(*cx, &*self.global(), rval.handle_mut())
+            };
+            
+            // Perform ! ReadableStreamDefaultControllerError(controller, enqueueResult.[[Value]]).
+            self.error(rval.handle());
+            
+            // Return enqueueResult.
+            return Err(error);
+        }
 
         // Perform ! ReadableStreamDefaultControllerCallPullIfNeeded(controller).
         self.call_pull_if_needed();
+
+        Ok(())
     }
 
     /// Native call to
@@ -463,13 +528,13 @@ impl ReadableStreamDefaultControllerMethods for ReadableStreamDefaultController 
 
     /// <https://streams.spec.whatwg.org/#rs-default-controller-enqueue>
     fn Enqueue(&self, cx: SafeJSContext, chunk: SafeHandleValue) -> Fallible<()> {
+        // If ! ReadableStreamDefaultControllerCanCloseOrEnqueue(this) is false, throw a TypeError exception.
         if !self.can_close_or_enqueue() {
-            return Err(Error::NotFound);
+            return Err(Error::Type("Stream cannot be enqueued to.".to_string()));
         }
 
-        self.enqueue(cx, chunk);
-
-        Ok(())
+        // Perform ? ReadableStreamDefaultControllerEnqueue(this, chunk).
+        self.enqueue(cx, chunk)
     }
 
     /// <https://streams.spec.whatwg.org/#rs-default-controller-error>
