@@ -540,7 +540,14 @@ fn update_wr_image(
             if let Some(context_data) = wgpu_image_map.lock().unwrap().get_mut(&context_id) {
                 let config_changed = image_desc != context_data.image_desc;
                 let buffer_state = context_data.get_buffer_state(buffer_id);
-                assert_eq!(*buffer_state, PresentationBufferState::Mapping);
+                match buffer_state {
+                    PresentationBufferState::Unassigned => {
+                        // throw away all work, because we are from old swapchain
+                        return;
+                    },
+                    PresentationBufferState::Mapping => {},
+                    _ => panic!("Unexpected presentation buffer state"),
+                }
                 if config_changed {
                     /*
                     This means that while mapasync was running, context got recreated
