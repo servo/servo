@@ -382,11 +382,13 @@ class OpenHarmonyTarget(CrossBuildTarget):
     def needs_packaging(self) -> bool:
         return True
 
-    def get_package_path(self, build_type_directory: str) -> str:
+    def get_package_path(self, build_type_directory: str, flavor: Optional[str] = None) -> str:
         base_path = util.get_target_dir()
         base_path = path.join(base_path, "openharmony", self.triple())
         hap_name = "servoshell-default-signed.hap"
-        build_output_path = path.join("entry", "build", "default", "outputs", "default")
+        if not flavor:
+            flavor = "default"
+        build_output_path = path.join("entry", "build", flavor, "outputs", "default")
         return path.join(base_path, build_type_directory, build_output_path, hap_name)
 
     def abi_string(self) -> str:

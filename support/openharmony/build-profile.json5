@@ -11,7 +11,7 @@
       },
       {
         "name": "harmonyos",
-        "signingConfig": "default",
+        "signingConfig": "hos",
         "compatibleSdkVersion": "4.1.0(11)",
         "targetSdkVersion": "4.1.0(11)",
         "runtimeOS": "HarmonyOS"
