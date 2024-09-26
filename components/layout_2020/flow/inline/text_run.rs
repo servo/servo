@@ -109,6 +109,7 @@ impl TextRunSegment {
         script: Script,
         bidi_level: Level,
         fonts: &[FontKeyAndMetrics],
+        font_context: &FontContext,
     ) -> bool {
         fn is_specific(script: Script) -> bool {
             script != Script::Common && script != Script::Inherited
@@ -119,7 +120,7 @@ impl TextRunSegment {
         }
 
         let current_font_key_and_metrics = &fonts[self.font_index];
-        if new_font.font_key != current_font_key_and_metrics.key ||
+        if new_font.key(font_context) != current_font_key_and_metrics.key ||
             new_font.descriptor.pt_size != current_font_key_and_metrics.pt_size
         {
             return false;
@@ -440,15 +441,18 @@ impl TextRun {
             let script = Script::from(character);
             let bidi_level = bidi_info.levels[current_byte_index];
             if let Some(current) = current.as_mut() {
-                if current
-                    .0
-                    .update_if_compatible(&font, script, bidi_level, font_cache)
-                {
+                if current.0.update_if_compatible(
+                    &font,
+                    script,
+                    bidi_level,
+                    font_cache,
+                    font_context,
+                ) {
                     continue;
                 }
             }
 
-            let font_index = add_or_get_font(&font, font_cache);
+            let font_index = add_or_get_font(&font, font_cache, font_context);
 
             // Add the new segment and finish the existing one, if we had one. If the first
             // characters in the run were control characters we may be creating the first
@@ -473,7 +477,7 @@ impl TextRun {
         // of those cases, just use the first font.
         if current.is_none() {
             current = font_group.write().first(font_context).map(|font| {
-                let font_index = add_or_get_font(&font, font_cache);
+                let font_index = add_or_get_font(&font, font_cache, font_context);
                 (
                     TextRunSegment::new(
                         font_index,
@@ -539,15 +543,22 @@ fn char_does_not_change_font(character: char) -> bool {
         class == XI_LINE_BREAKING_CLASS_ZWJ
 }
 
-pub(super) fn add_or_get_font(font: &FontRef, ifc_fonts: &mut Vec<FontKeyAndMetrics>) -> usize {
+pub(super) fn add_or_get_font(
+    font: &FontRef,
+    ifc_fonts: &mut Vec<FontKeyAndMetrics>,
+    font_context: &FontContext,
+) -> usize {
+    let font_instance_key = font.key(font_context);
     for (index, ifc_font_info) in ifc_fonts.iter().enumerate() {
-        if ifc_font_info.key == font.font_key && ifc_font_info.pt_size == font.descriptor.pt_size {
+        if ifc_font_info.key == font_instance_key &&
+            ifc_font_info.pt_size == font.descriptor.pt_size
+        {
             return index;
         }
     }
     ifc_fonts.push(FontKeyAndMetrics {
         metrics: font.metrics.clone(),
-        key: font.font_key,
+        key: font_instance_key,
         pt_size: font.descriptor.pt_size,
     });
     ifc_fonts.len() - 1

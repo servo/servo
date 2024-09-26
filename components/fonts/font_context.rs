@@ -12,7 +12,6 @@ use app_units::Au;
 use crossbeam_channel::unbounded;
 use fnv::FnvHasher;
 use fonts_traits::WebFontLoadFinishedCallback;
-use ipc_channel::ipc;
 use log::{debug, trace};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use malloc_size_of_derive::MallocSizeOf;
@@ -36,7 +35,7 @@ use webrender_traits::{ScriptToCompositorMsg, WebRenderScriptApi};
 use crate::font::{
     Font, FontDescriptor, FontFamilyDescriptor, FontGroup, FontRef, FontSearchScope,
 };
-use crate::font_store::{CrossThreadFontStore, CrossThreadWebRenderFontStore};
+use crate::font_store::CrossThreadFontStore;
 use crate::font_template::{FontTemplate, FontTemplateRef, FontTemplateRefMethods};
 use crate::platform::font::PlatformFont;
 use crate::system_font_service::{CSSFontFaceDescriptors, FontIdentifier};
@@ -66,7 +65,15 @@ pub struct FontContext {
         RwLock<HashMap<FontGroupCacheKey, Arc<RwLock<FontGroup>>, BuildHasherDefault<FnvHasher>>>,
 
     web_fonts: CrossThreadFontStore,
-    webrender_font_store: CrossThreadWebRenderFontStore,
+
+    /// A collection of WebRender [`FontKey`]s generated for the web fonts that this
+    /// [`FontContext`] controls.
+    webrender_font_keys: RwLock<HashMap<FontIdentifier, FontKey>>,
+
+    /// A collection of WebRender [`FontInstanceKey`]s generated for the web fonts that
+    /// this [`FontContext`] controls.
+    webrender_font_instance_keys: RwLock<HashMap<(FontKey, Au), FontInstanceKey>>,
+
     have_removed_web_fonts: AtomicBool,
 }
 
@@ -104,7 +111,8 @@ impl FontContext {
             fonts: Default::default(),
             resolved_font_groups: Default::default(),
             web_fonts: Arc::new(RwLock::default()),
-            webrender_font_store: Arc::new(RwLock::default()),
+            webrender_font_keys: RwLock::default(),
+            webrender_font_instance_keys: RwLock::default(),
             have_removed_web_fonts: AtomicBool::new(false),
         }
     }
@@ -274,70 +282,81 @@ impl FontContext {
         font_descriptor: FontDescriptor,
         synthesized_small_caps: Option<FontRef>,
     ) -> Result<FontRef, &'static str> {
-        let mut font = Font::new(
+        Ok(Arc::new(Font::new(
             font_template.clone(),
             font_descriptor.clone(),
             self.get_font_data(&font_template.identifier()),
             synthesized_small_caps,
-        )?;
+        )?))
+    }
 
-        font.font_key = match font_template.identifier() {
+    pub(crate) fn create_font_instance_key(&self, font: &Font) -> FontInstanceKey {
+        let result = match font.template.identifier() {
             FontIdentifier::Local(_) | FontIdentifier::Mock(_) => {
                 self.system_font_service_proxy.get_system_font_instance(
-                    font_template.identifier(),
-                    font_descriptor.pt_size,
+                    font.template.identifier(),
+                    font.descriptor.pt_size,
                     font.webrender_font_instance_flags(),
                 )
             },
-            FontIdentifier::Web(_) => self.webrender_font_store.write().get_font_instance(
+            FontIdentifier::Web(_) => self.create_web_font_instance(
                 self,
-                font_template.clone(),
-                font_descriptor.pt_size,
+                font.template.clone(),
+                font.descriptor.pt_size,
                 font.webrender_font_instance_flags(),
             ),
         };
+        result
+    }
 
-        Ok(Arc::new(font))
+    pub(crate) fn create_web_font_instance(
+        &self,
+        font_context: &FontContext,
+        font_template: FontTemplateRef,
+        pt_size: Au,
+        flags: FontInstanceFlags,
+    ) -> FontInstanceKey {
+        let identifier = font_template.identifier().clone();
+        let font_data = font_context.get_font_data(&identifier);
+        let font_key = *self
+            .webrender_font_keys
+            .write()
+            .entry(identifier.clone())
+            .or_insert_with(|| {
+                let font_key = self.system_font_service_proxy.generate_font_key();
+                let _ = self
+                    .webrender_api
+                    .lock()
+                    .sender()
+                    .send(ScriptToCompositorMsg::AddFont(
+                        font_key,
+                        font_data.as_ipc_shared_memory(),
+                        identifier.index(),
+                    ));
+                font_key
+            });
+
+        let key = *self
+            .webrender_font_instance_keys
+            .write()
+            .entry((font_key, pt_size))
+            .or_insert_with(|| {
+                let font_instance_key = self.system_font_service_proxy.generate_font_instance_key();
+                let _ = self.webrender_api.lock().sender().send(
+                    ScriptToCompositorMsg::AddFontInstance(
+                        font_instance_key,
+                        font_key,
+                        pt_size.to_f32_px(),
+                        flags,
+                    ),
+                );
+                font_instance_key
+            });
+        key
     }
 
     fn invalidate_font_groups_after_web_font_load(&self) {
         self.resolved_font_groups.write().clear();
-    }
-
-    pub(crate) fn get_web_font(&self, data: Arc<FontData>, index: u32) -> FontKey {
-        let (result_sender, result_receiver) =
-            ipc::channel().expect("failed to create IPC channel");
-        let _ = self
-            .webrender_api
-            .lock()
-            .sender()
-            .send(ScriptToCompositorMsg::AddFont(
-                data.as_ipc_shared_memory(),
-                index,
-                result_sender,
-            ));
-        result_receiver.recv().unwrap()
-    }
-
-    pub(crate) fn get_web_font_instance(
-        &self,
-        font_key: FontKey,
-        font_size: f32,
-        font_flags: FontInstanceFlags,
-    ) -> FontInstanceKey {
-        let (result_sender, result_receiver) =
-            ipc::channel().expect("failed to create IPC channel");
-        let _ = self
-            .webrender_api
-            .lock()
-            .sender()
-            .send(ScriptToCompositorMsg::AddFontInstance(
-                font_key,
-                font_size,
-                font_flags,
-                result_sender,
-            ));
-        result_receiver.recv().unwrap()
     }
 }
 
@@ -538,9 +557,16 @@ impl FontContextWebFontMethods for Arc<FontContext> {
         all: bool,
     ) -> (Vec<FontKey>, Vec<FontInstanceKey>) {
         if all {
-            let mut webrender_font_store = self.webrender_font_store.write();
+            let mut webrender_font_keys = self.webrender_font_keys.write();
+            let mut webrender_font_instance_keys = self.webrender_font_instance_keys.write();
             self.have_removed_web_fonts.store(false, Ordering::Relaxed);
-            return webrender_font_store.remove_all_fonts();
+            return (
+                webrender_font_keys.drain().map(|(_, key)| key).collect(),
+                webrender_font_instance_keys
+                    .drain()
+                    .map(|(_, key)| key)
+                    .collect(),
+            );
         }
 
         if !self.have_removed_web_fonts.load(Ordering::Relaxed) {
@@ -551,13 +577,11 @@ impl FontContextWebFontMethods for Arc<FontContext> {
         let mut web_fonts = self.web_fonts.write();
         let _fonts = self.fonts.write();
         let _font_groups = self.resolved_font_groups.write();
-        let mut webrender_font_store = self.webrender_font_store.write();
+        let mut webrender_font_keys = self.webrender_font_keys.write();
+        let mut webrender_font_instance_keys = self.webrender_font_instance_keys.write();
 
-        let mut unused_identifiers: HashSet<FontIdentifier> = webrender_font_store
-            .webrender_font_key_map
-            .keys()
-            .cloned()
-            .collect();
+        let mut unused_identifiers: HashSet<FontIdentifier> =
+            webrender_font_keys.keys().cloned().collect();
         for templates in web_fonts.families.values() {
             templates.for_all_identifiers(|identifier| {
                 unused_identifiers.remove(identifier);
@@ -567,7 +591,31 @@ impl FontContextWebFontMethods for Arc<FontContext> {
         web_fonts.remove_all_font_data_for_identifiers(&unused_identifiers);
 
         self.have_removed_web_fonts.store(false, Ordering::Relaxed);
-        webrender_font_store.remove_all_fonts_for_identifiers(&unused_identifiers)
+
+        let mut removed_keys: HashSet<FontKey> = HashSet::new();
+        webrender_font_keys.retain(|identifier, font_key| {
+            if unused_identifiers.contains(identifier) {
+                removed_keys.insert(*font_key);
+                false
+            } else {
+                true
+            }
+        });
+
+        let mut removed_instance_keys: HashSet<FontInstanceKey> = HashSet::new();
+        webrender_font_instance_keys.retain(|(font_key, _), instance_key| {
+            if removed_keys.contains(font_key) {
+                removed_instance_keys.insert(*instance_key);
+                false
+            } else {
+                true
+            }
+        });
+
+        (
+            removed_keys.into_iter().collect(),
+            removed_instance_keys.into_iter().collect(),
+        )
     }
 }
 
