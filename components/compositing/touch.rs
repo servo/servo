@@ -3,14 +3,18 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use euclid::{Point2D, Scale, Vector2D};
-use log::warn;
+use log::{debug, info, warn};
 use script_traits::{EventResult, TouchId};
 use style_traits::DevicePixel;
+use webrender_api::units::{DeviceIntPoint, LayoutVector2D};
 
 use self::TouchState::*;
 
 /// Minimum number of `DeviceIndependentPixel` to begin touch scrolling.
 const TOUCH_PAN_MIN_SCREEN_PX: f32 = 20.0;
+const FLING_SCALING_FACTOR: f32 = 0.95;
+const FLING_MINIMUM: f32 = 3.0;
+const FLING_MAX: f32 = 4000.0;
 
 pub struct TouchHandler {
     pub state: TouchState,
@@ -32,7 +36,7 @@ impl TouchPoint {
 /// The states of the touch input state machine.
 ///
 /// TODO: Add support for "flinging" (scrolling inertia)
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum TouchState {
     /// Not tracking any touch point
     Nothing,
@@ -45,7 +49,13 @@ pub enum TouchState {
     /// Contains the initial touch location.
     Touching,
     /// A single touch point is active and has started panning.
-    Panning,
+    Panning { y_velocity: f32 },
+    /// No active touch points, but there is still scrolling velocity
+    /// Note: For now we only support flinging along the y-axis
+    Flinging {
+        y_velocity: f32,
+        cursor: DeviceIntPoint,
+    },
     /// A two-finger pinch zoom gesture is active.
     Pinching,
     /// A multi-touch gesture is in progress. Contains the number of active touch points.
@@ -67,6 +77,11 @@ pub enum TouchAction {
     NoAction,
 }
 
+pub(crate) struct FlingAction {
+    pub delta: LayoutVector2D,
+    pub cursor: DeviceIntPoint,
+}
+
 impl TouchHandler {
     pub fn new() -> Self {
         TouchHandler {
@@ -81,11 +96,40 @@ impl TouchHandler {
 
         self.state = match self.state {
             Nothing => WaitingForScript,
-            Touching | Panning => Pinching,
+            Flinging { .. } => Touching,
+            Touching | Panning { .. } => Pinching,
             WaitingForScript => WaitingForScript,
             DefaultPrevented => DefaultPrevented,
             Pinching | MultiTouch => MultiTouch,
         };
+    }
+
+    // Todo: probably should rename TouchAction to something more generic, and integrate FlingAction into it
+    pub fn on_vsync(&mut self) -> Option<FlingAction> {
+        if let Flinging {
+            y_velocity,
+            ref cursor,
+        } = &mut self.state
+        {
+            let velocity = *y_velocity;
+            if velocity.abs() >= FLING_MINIMUM {
+                let delta = Vector2D::new(0.0, velocity);
+                *y_velocity = velocity * FLING_SCALING_FACTOR;
+                debug_assert!(velocity <= FLING_MAX && velocity >= -FLING_MAX);
+                info!("TouchHandler on_vsync: Fling with velocity {y_velocity}");
+                Some(FlingAction {
+                    delta,
+                    cursor: cursor.clone(),
+                })
+            } else {
+                self.state = Nothing;
+                info!("TouchHAndler on_vsync: Fling ended");
+                None
+            }
+        } else {
+            debug!("on_vsync: Not flinging.");
+            None
+        }
     }
 
     pub fn on_touch_move(&mut self, id: TouchId, point: Point2D<f32, DevicePixel>) -> TouchAction {
@@ -105,15 +149,22 @@ impl TouchHandler {
                 if delta.x.abs() > TOUCH_PAN_MIN_SCREEN_PX ||
                     delta.y.abs() > TOUCH_PAN_MIN_SCREEN_PX
                 {
-                    self.state = Panning;
+                    self.state = Panning {
+                        y_velocity: delta.y,
+                    };
                     TouchAction::Scroll(delta)
                 } else {
                     TouchAction::NoAction
                 }
             },
-            Panning => {
+            Panning { ref mut y_velocity } => {
                 let delta = point - old_point;
+                // Todo: Probably we should track 1-3 more points and use a smarter algorithm
+                *y_velocity = (delta.y + *y_velocity) / 2.0;
                 TouchAction::Scroll(delta)
+            },
+            Flinging { .. } => {
+                unreachable!("Touch Move event received without preceding down.")
             },
             DefaultPrevented => TouchAction::DispatchEvent,
             Pinching => {
@@ -139,15 +190,14 @@ impl TouchHandler {
         action
     }
 
-    pub fn on_touch_up(&mut self, id: TouchId, _point: Point2D<f32, DevicePixel>) -> TouchAction {
-        match self.active_touch_points.iter().position(|t| t.id == id) {
-            Some(i) => {
-                self.active_touch_points.swap_remove(i);
-            },
+    pub fn on_touch_up(&mut self, id: TouchId, point: Point2D<f32, DevicePixel>) -> TouchAction {
+        let old = match self.active_touch_points.iter().position(|t| t.id == id) {
+            Some(i) => Some(self.active_touch_points.swap_remove(i).point),
             None => {
                 warn!("Got a touch up event for a non-active touch point");
+                None
             },
-        }
+        };
         match self.state {
             Touching => {
                 // FIXME: If the duration exceeds some threshold, send a contextmenu event instead.
@@ -155,13 +205,36 @@ impl TouchHandler {
                 self.state = Nothing;
                 TouchAction::Click
             },
-            Nothing | Panning => {
+            Nothing => {
                 self.state = Nothing;
                 TouchAction::NoAction
             },
-            Pinching => {
-                self.state = Panning;
+            Panning { y_velocity } => {
+                if y_velocity.abs() >= FLING_MINIMUM {
+                    // Todo: point != old. Not sure which one is better to take as cursor for flinging.
+                    info!(
+                        "Transitioning to Fling. Cursor is {point:?}. Old cursor was {old:?}. \
+                        Raw velocity is {y_velocity}."
+                    );
+                    debug_assert!((point.x as i64) < (i32::MAX as i64));
+                    debug_assert!((point.y as i64) < (i32::MAX as i64));
+                    let cursor = DeviceIntPoint::new(point.x as i32, point.y as i32);
+                    // Todo: Probably we should multiply with the current refresh rate (and divide on each frame)
+                    // or save a timestamp to account for a potentially changing display refresh rate.
+                    let y_velocity = y_velocity.clamp(-FLING_MAX, FLING_MAX);
+                    self.state = Flinging { y_velocity, cursor };
+                } else {
+                    self.state = Nothing;
+                }
+                // todo: perhaps send event about fling start?
                 TouchAction::NoAction
+            },
+            Pinching => {
+                self.state = Panning { y_velocity: 0.0 };
+                TouchAction::NoAction
+            },
+            Flinging { .. } => {
+                unreachable!("On touchup received, but already flinging.")
             },
             WaitingForScript | DefaultPrevented | MultiTouch => {
                 if self.active_touch_points.is_empty() {
@@ -184,11 +257,11 @@ impl TouchHandler {
         }
         match self.state {
             Nothing => {},
-            Touching | Panning => {
+            Touching | Panning { .. } | Flinging { .. } => {
                 self.state = Nothing;
             },
             Pinching => {
-                self.state = Panning;
+                self.state = Panning { y_velocity: 0.0 };
             },
             WaitingForScript | DefaultPrevented | MultiTouch => {
                 if self.active_touch_points.is_empty() {

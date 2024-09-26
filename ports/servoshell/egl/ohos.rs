@@ -123,7 +123,7 @@ impl ServoAction {
     fn do_action(&self, servo: &mut ServoGlue) {
         use ServoAction::*;
         let res = match self {
-            WakeUp => servo.perform_updates(),
+            WakeUp => servo.perform_updates(false),
             LoadUrl(url) => servo.load_uri(url.as_str()),
             GoBack => servo.go_back(),
             GoForward => servo.go_forward(),
@@ -138,7 +138,7 @@ impl ServoAction {
             },
 
             Vsync => {
-                servo.perform_updates().expect("Infallible");
+                servo.perform_updates(true).expect("Infallible");
                 servo.present_if_needed();
                 // Todo: perform_updates() (before or after present) if animating?
                 Ok(())
@@ -306,6 +306,7 @@ fn initialize_logging_once() {
             // Show GL errors by default.
             "canvas::webgl_thread",
             "compositing::compositor",
+            "compositing::touch",
             "constellation::constellation",
         ];
         for &module in &filters {
