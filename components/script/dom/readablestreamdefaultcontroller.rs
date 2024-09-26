@@ -426,7 +426,8 @@ impl ReadableStreamDefaultController {
         // Set controller.[[cancelAlgorithm]] to undefined.
         self.underlying_source.set(None);
 
-        // TODO: Set controller.[[strategySizeAlgorithm]] to undefined.
+        // Set controller.[[strategySizeAlgorithm]] to undefined.
+        *self.strategy_size.borrow_mut() = None;
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-close>
