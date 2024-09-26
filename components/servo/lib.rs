@@ -1096,34 +1096,48 @@ struct WebRenderFontApiCompositorProxy(CompositorProxy);
 impl WebRenderFontApi for WebRenderFontApiCompositorProxy {
     fn add_font_instance(
         &self,
+        font_instance_key: FontInstanceKey,
         font_key: FontKey,
         size: f32,
         flags: FontInstanceFlags,
-    ) -> FontInstanceKey {
-        let (sender, receiver) = unbounded();
+    ) {
         self.0.send(CompositorMsg::Forwarded(
             ForwardedToCompositorMsg::SystemFontService(FontToCompositorMsg::AddFontInstance(
-                font_key, size, flags, sender,
+                font_instance_key,
+                font_key,
+                size,
+                flags,
             )),
         ));
-        receiver.recv().unwrap()
     }
 
-    fn add_font(&self, data: Arc<IpcSharedMemory>, index: u32) -> FontKey {
-        let (sender, receiver) = unbounded();
+    fn add_font(&self, font_key: FontKey, data: Arc<IpcSharedMemory>, index: u32) {
         self.0.send(CompositorMsg::Forwarded(
             ForwardedToCompositorMsg::SystemFontService(FontToCompositorMsg::AddFont(
-                sender, index, data,
+                font_key, index, data,
             )),
         ));
-        receiver.recv().unwrap()
     }
 
-    fn add_system_font(&self, handle: NativeFontHandle) -> FontKey {
-        let (sender, receiver) = unbounded();
+    fn add_system_font(&self, font_key: FontKey, handle: NativeFontHandle) {
         self.0.send(CompositorMsg::Forwarded(
             ForwardedToCompositorMsg::SystemFontService(FontToCompositorMsg::AddSystemFont(
-                sender, handle,
+                font_key, handle,
+            )),
+        ));
+    }
+
+    fn fetch_font_keys(
+        &self,
+        number_of_font_keys: usize,
+        number_of_font_instance_keys: usize,
+    ) -> (Vec<FontKey>, Vec<FontInstanceKey>) {
+        let (sender, receiver) = unbounded();
+        self.0.send(CompositorMsg::Forwarded(
+            ForwardedToCompositorMsg::SystemFontService(FontToCompositorMsg::GenerateKeys(
+                number_of_font_keys,
+                number_of_font_instance_keys,
+                sender,
             )),
         ));
         receiver.recv().unwrap()

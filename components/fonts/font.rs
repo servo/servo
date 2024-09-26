@@ -224,7 +224,7 @@ pub struct Font {
     pub descriptor: FontDescriptor,
     shaper: OnceLock<Shaper>,
     cached_shape_data: RwLock<CachedShapeData>,
-    pub font_key: FontInstanceKey,
+    pub font_instance_key: OnceLock<FontInstanceKey>,
 
     /// If this is a synthesized small caps font, then this font reference is for
     /// the version of the font used to replace lowercase ASCII letters. It's up
@@ -252,7 +252,9 @@ impl malloc_size_of::MallocSizeOf for Font {
         self.metrics.size_of(ops) +
             self.descriptor.size_of(ops) +
             self.cached_shape_data.read().size_of(ops) +
-            self.font_key.size_of(ops)
+            self.font_instance_key
+                .get()
+                .map_or(0, |key| key.size_of(ops))
     }
 }
 
@@ -278,7 +280,7 @@ impl Font {
             descriptor,
             metrics,
             cached_shape_data: Default::default(),
-            font_key: FontInstanceKey::default(),
+            font_instance_key: Default::default(),
             synthesized_small_caps,
             has_color_bitmap_or_colr_table: OnceLock::new(),
             can_do_fast_shaping: OnceLock::new(),
@@ -300,6 +302,12 @@ impl Font {
                 self.table_for_tag(CBDT).is_some() ||
                 self.table_for_tag(COLR).is_some()
         })
+    }
+
+    pub fn key(&self, font_context: &FontContext) -> FontInstanceKey {
+        *self
+            .font_instance_key
+            .get_or_init(|| font_context.create_font_instance_key(self))
     }
 }
 

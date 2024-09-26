@@ -1528,8 +1528,11 @@ impl InlineFormattingContext {
                         &inline_box.style,
                         &layout_context.font_context,
                     ) {
-                        inline_box.default_font_index =
-                            Some(add_or_get_font(&font, &mut font_metrics));
+                        inline_box.default_font_index = Some(add_or_get_font(
+                            &font,
+                            &mut font_metrics,
+                            &layout_context.font_context,
+                        ));
                     }
                 },
                 InlineItem::Atomic(_, index_in_text, bidi_level) => {

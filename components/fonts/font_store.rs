@@ -5,7 +5,6 @@
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, OnceLock};
 
-use app_units::Au;
 use atomic_refcell::AtomicRefCell;
 use ipc_channel::ipc::IpcSharedMemory;
 use log::warn;
@@ -13,13 +12,11 @@ use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
 use style::stylesheets::DocumentStyleSheet;
 use style::values::computed::{FontStyle, FontWeight};
-use webrender_api::{FontInstanceFlags, FontInstanceKey, FontKey};
 
 use crate::font::FontDescriptor;
 use crate::font_context::WebFontDownloadState;
 use crate::font_template::{FontTemplate, FontTemplateRef, FontTemplateRefMethods, IsOblique};
 use crate::system_font_service::{FontIdentifier, LowercaseFontFamilyName};
-use crate::FontContext;
 
 /// A data structure to store data for fonts. If sent across IPC channels and only a
 /// [`IpcSharedMemory`] handle is sent, avoiding the overhead of serialization and
@@ -183,84 +180,6 @@ impl FontStore {
     ) {
         self.font_data
             .retain(|font_identifier, _| identifiers.contains(font_identifier));
-    }
-}
-
-#[derive(Default)]
-pub struct WebRenderFontStore {
-    pub(crate) webrender_font_key_map: HashMap<FontIdentifier, FontKey>,
-    pub(crate) webrender_font_instance_map: HashMap<(FontKey, Au), FontInstanceKey>,
-}
-pub(crate) type CrossThreadWebRenderFontStore = Arc<RwLock<WebRenderFontStore>>;
-
-impl WebRenderFontStore {
-    pub(crate) fn get_font_instance(
-        &mut self,
-        font_context: &FontContext,
-        font_template: FontTemplateRef,
-        pt_size: Au,
-        flags: FontInstanceFlags,
-    ) -> FontInstanceKey {
-        let webrender_font_key_map = &mut self.webrender_font_key_map;
-        let identifier = font_template.identifier().clone();
-
-        let font_key = *webrender_font_key_map
-            .entry(identifier.clone())
-            .or_insert_with(|| {
-                let data = font_context.get_font_data(&identifier);
-                font_context.get_web_font(data, identifier.index())
-            });
-
-        *self
-            .webrender_font_instance_map
-            .entry((font_key, pt_size))
-            .or_insert_with(|| {
-                font_context.get_web_font_instance(font_key, pt_size.to_f32_px(), flags)
-            })
-    }
-
-    pub(crate) fn remove_all_fonts(&mut self) -> (Vec<FontKey>, Vec<FontInstanceKey>) {
-        (
-            self.webrender_font_key_map
-                .drain()
-                .map(|(_, key)| key)
-                .collect(),
-            self.webrender_font_instance_map
-                .drain()
-                .map(|(_, key)| key)
-                .collect(),
-        )
-    }
-
-    pub(crate) fn remove_all_fonts_for_identifiers(
-        &mut self,
-        identifiers: &HashSet<FontIdentifier>,
-    ) -> (Vec<FontKey>, Vec<FontInstanceKey>) {
-        let mut removed_keys: HashSet<FontKey> = HashSet::new();
-        self.webrender_font_key_map.retain(|identifier, font_key| {
-            if identifiers.contains(identifier) {
-                removed_keys.insert(*font_key);
-                false
-            } else {
-                true
-            }
-        });
-
-        let mut removed_instance_keys: HashSet<FontInstanceKey> = HashSet::new();
-        self.webrender_font_instance_map
-            .retain(|(font_key, _), instance_key| {
-                if removed_keys.contains(font_key) {
-                    removed_instance_keys.insert(*instance_key);
-                    false
-                } else {
-                    true
-                }
-            });
-
-        (
-            removed_keys.into_iter().collect(),
-            removed_instance_keys.into_iter().collect(),
-        )
     }
 }
 
