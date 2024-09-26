@@ -27,6 +27,7 @@ use crate::dom::bindings::import::module::UnionTypes::{
 };
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
+use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::bindings::utils::get_dictionary_property;
 use crate::dom::countqueuingstrategy::extract_high_water_mark;
 use crate::dom::globalscope::GlobalScope;
@@ -405,7 +406,8 @@ impl ReadableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-fulfill-read-request>
-    pub fn fulfill_read_request(&self, chunk: Vec<u8>, done: bool) {
+    #[allow(unsafe_code)]
+    pub fn fulfill_read_request(&self, chunk: SafeHandleValue, done: bool) {
         assert!(self.has_default_reader());
         match self.reader {
             ReaderType::Default(ref reader) => {
@@ -414,7 +416,11 @@ impl ReadableStream {
                     .expect("Stream must have a reader when a read request is fulfilled.");
                 let request = reader.remove_read_request();
                 if !done {
-                    request.chunk_steps(chunk);
+                    let cx = GlobalScope::get_cx();
+                    rooted!(in(*cx) let mut rval = UndefinedValue());
+                    let result = RootedTraceableBox::new(Heap::default());
+                    result.set(*chunk);
+                    request.chunk_steps(result);
                 } else {
                     request.close_steps();
                 }

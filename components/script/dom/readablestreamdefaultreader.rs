@@ -9,7 +9,7 @@ use std::{mem, ptr};
 use dom_struct::dom_struct;
 use js::conversions::ToJSValConvertible;
 use js::jsapi::Heap;
-use js::jsval::UndefinedValue;
+use js::jsval::{JSVal, UndefinedValue};
 use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue};
 
 use crate::dom::bindings::cell::DomRefCell;
@@ -39,19 +39,12 @@ pub enum ReadRequest {
 impl ReadRequest {
     /// <https://streams.spec.whatwg.org/#read-request-chunk-steps>
     #[allow(unsafe_code)]
-    pub fn chunk_steps(&self, chunk: Vec<u8>) {
+    pub fn chunk_steps(&self, chunk: RootedTraceableBox<Heap<JSVal>>) {
         match self {
             ReadRequest::Read(promise) => {
-                let cx = GlobalScope::get_cx();
-                rooted!(in(*cx) let mut rval = UndefinedValue());
-                let result = RootedTraceableBox::new(Heap::default());
-                unsafe {
-                    chunk.to_jsval(*cx, rval.handle_mut());
-                    result.set(*rval);
-                }
                 promise.resolve_native(&ReadableStreamReadResult {
                     done: Some(false),
-                    value: result,
+                    value: chunk,
                 });
             },
         }
