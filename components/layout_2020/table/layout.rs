@@ -297,11 +297,10 @@ impl<'a> TableLayout<'a> {
                     };
                     inline_content_sizes.min_content += padding_border_sums.inline;
                     inline_content_sizes.max_content += padding_border_sums.inline;
-
-                    // TODO: the max-content size should never be smaller than the min-content size!
-                    inline_content_sizes.max_content = inline_content_sizes
-                        .max_content
-                        .max(inline_content_sizes.min_content);
+                    assert!(
+                        inline_content_sizes.max_content >= inline_content_sizes.min_content,
+                        "the max-content size should never be smaller than the min-content size"
+                    );
 
                     // These formulas differ from the spec, but seem to match Gecko and Blink.
                     let outer_min_content_width = if is_in_fixed_mode {
