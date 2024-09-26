@@ -102,9 +102,9 @@ webxr = { git = "https://github.com/servo/webxr" }
 # For optional feature servo_allocator/use-system-allocator
 servo_allocator = { path = "../../components/allocator" }
 arboard = { version = "3" }
-egui = { version = "0.28.1" }
-egui_glow = { version = "0.28.1", features = ["winit"] }
-egui-winit = { version = "0.28.1", default-features = false, features = ["clipboard", "wayland"] }
+egui = { version = "0.29.0" }
+egui_glow = { version = "0.29.0", features = ["winit"] }
+egui-winit = { version = "0.29.0", default-features = false, features = ["clipboard", "wayland"] }
 euclid = { workspace = true }
 gilrs = "0.11.0"
 gleam = { workspace = true }
