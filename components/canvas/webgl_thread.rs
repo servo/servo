@@ -24,7 +24,7 @@ use euclid::default::Size2D;
 use fnv::FnvHashMap;
 use half::f16;
 use log::{debug, error, trace, warn};
-use pixels::{self, PixelFormat};
+use pixels::{self, unmultiply_inplace, PixelFormat};
 use sparkle::gl;
 use sparkle::gl::{GLint, GLuint, Gl};
 use surfman::chains::{PreserveBuffer, SwapChains, SwapChainsAPI};
@@ -2835,15 +2835,6 @@ fn premultiply_inplace(format: TexFormat, data_type: TexDataType, pixels: &mut [
         },
         // Other formats don't have alpha, so return their data untouched.
         _ => {},
-    }
-}
-
-fn unmultiply_inplace(pixels: &mut [u8]) {
-    for rgba in pixels.chunks_mut(4) {
-        let a = (rgba[3] as f32) / 255.0;
-        rgba[0] = (rgba[0] as f32 / a) as u8;
-        rgba[1] = (rgba[1] as f32 / a) as u8;
-        rgba[2] = (rgba[2] as f32 / a) as u8;
     }
 }
 
