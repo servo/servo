@@ -3681,8 +3681,8 @@ impl ScriptThread {
         };
 
         // Create the window and document objects.
-        let window = if let Some(old_pipeline) = incomplete.replacing_pipeline {
-            let old_document = ScriptThread::find_document(old_pipeline).unwrap();
+        let old_document = incomplete.replacing_pipeline.and_then(ScriptThread::find_document);
+        let window = if let Some(old_document) = old_document {
             old_document.window().replace_contents(crate::dom::window::ReplaceData {
                 script_to_constellation_chan,
                 task_manager,
