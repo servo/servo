@@ -2687,6 +2687,7 @@ impl Window {
         });
         *self.task_manager.borrow_mut() = data.task_manager;
         *self.layout.borrow_mut() = data.layout;
+        self.has_sent_idle_message.set(false);
     }
 }
 
