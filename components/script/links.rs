@@ -428,7 +428,7 @@ pub fn follow_hyperlink(
             referrer,
             referrer_policy,
             Some(secure),
-            document.url().as_str() == "about:blank",
+            (document.url().as_str() == "about:blank").then(|| document.window().pipeline_id()),
             false,
         );
         let target = Trusted::new(target_window);

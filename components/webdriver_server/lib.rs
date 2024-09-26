@@ -658,7 +658,7 @@ impl Handler {
             Referrer::NoReferrer,
             None,
             None,
-            false,
+            None,
             false,
         );
         let cmd_msg = WebDriverCommandMsg::LoadUrl(

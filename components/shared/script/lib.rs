@@ -164,7 +164,7 @@ pub struct LoadData {
     pub crash: Option<String>,
 
     ///
-    pub replacing_about_blank: bool,
+    pub replacing_pipeline: Option<PipelineId>,
     ///
     pub synchronously_loaded: bool,
 }
@@ -188,7 +188,7 @@ impl LoadData {
         referrer: Referrer,
         referrer_policy: Option<ReferrerPolicy>,
         inherited_secure_context: Option<bool>,
-        replacing_about_blank: bool,
+        replacing_pipeline: Option<PipelineId>,
         synchronously_loaded: bool,
     ) -> LoadData {
         LoadData {
@@ -204,7 +204,7 @@ impl LoadData {
             srcdoc: "".to_string(),
             inherited_secure_context,
             crash: None,
-            replacing_about_blank,
+            replacing_pipeline,
             synchronously_loaded,
         }
     }

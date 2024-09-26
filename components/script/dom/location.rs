@@ -123,7 +123,7 @@ impl Location {
             referrer,
             referrer_policy,
             None, // Top navigation doesn't inherit secure context
-            self.window.Document().url().as_str() == "about:blank",
+            (self.window.Document().url().as_str() == "about:blank").then(|| self.window.pipeline_id()),
             false,
         );
         self.window

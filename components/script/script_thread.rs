@@ -222,7 +222,8 @@ struct InProgressLoad {
     /// If inheriting the security context
     inherited_secure_context: Option<bool>,
     ///
-    replacing_about_blank: bool,
+    #[no_trace]
+    replacing_pipeline: Option<PipelineId>,
 }
 
 impl InProgressLoad {
@@ -238,7 +239,7 @@ impl InProgressLoad {
         url: ServoUrl,
         origin: MutableOrigin,
         inherited_secure_context: Option<bool>,
-        replacing_about_blank: bool,
+        replacing_pipeline: Option<PipelineId>,
     ) -> InProgressLoad {
         let navigation_start = CrossProcessInstant::now();
         InProgressLoad {
@@ -255,7 +256,7 @@ impl InProgressLoad {
             navigation_start,
             canceller: Default::default(),
             inherited_secure_context,
-            replacing_about_blank,
+            replacing_pipeline,
         }
     }
 }
@@ -838,7 +839,7 @@ impl ScriptThreadFactory for ScriptThread {
                     load_data.url.clone(),
                     origin,
                     secure,
-                    false,
+                    None,
                 );
                 script_thread.pre_page_load(new_load, load_data);
 
@@ -2928,7 +2929,7 @@ impl ScriptThread {
             load_data.url.clone(),
             origin,
             load_data.inherited_secure_context,
-            load_data.replacing_about_blank,
+            load_data.replacing_pipeline,
         );
         if load_data.url.as_str() == "about:blank" {
             self.start_page_load_about_blank(new_load, load_data.js_eval_result);
@@ -3680,7 +3681,18 @@ impl ScriptThread {
         };
 
         // Create the window and document objects.
-        let window = if !incomplete.replacing_about_blank {
+        let window = if let Some(old_pipeline) = incomplete.replacing_pipeline {
+            let old_document = ScriptThread::find_document(old_pipeline).unwrap();
+            old_document.window().replace_contents(crate::dom::window::ReplaceData {
+                script_to_constellation_chan,
+                task_manager,
+                layout: self.layout_factory.create(layout_config),
+                pipeline_id: incomplete.pipeline_id,
+                creator_url: final_url.clone(),
+            });
+            old_document.disown_window();
+            DomRoot::from_ref(old_document.window())            
+        } else {
             Window::new(
                 self.js_runtime.clone(),
                 MainThreadScriptChan(sender.clone()),
@@ -3719,19 +3731,6 @@ impl ScriptThread {
                 self.gpu_id_hub.clone(),
                 incomplete.inherited_secure_context,
             )
-        } else {
-            let window_proxies = self.window_proxies.borrow();
-            let window_proxy = window_proxies.get(&incomplete.browsing_context_id).unwrap();
-            let old_document = window_proxy.document().unwrap();
-            old_document.window().replace_contents(crate::dom::window::ReplaceData {
-                script_to_constellation_chan,
-                task_manager,
-                layout: self.layout_factory.create(layout_config),
-                pipeline_id: incomplete.pipeline_id,
-                creator_url: final_url.clone(),
-            });
-            old_document.disown_window();
-            DomRoot::from_ref(old_document.window())            
         };
 
         let _realm = enter_realm(&*window);

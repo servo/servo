@@ -264,7 +264,7 @@ impl HTMLIFrameElement {
                 window.upcast::<GlobalScope>().get_referrer(),
                 document.get_referrer_policy(),
                 Some(window.upcast::<GlobalScope>().is_secure_context()),
-                false,
+                None, //XXXjdm
                 false,
             );
             let element = self.upcast::<Element>();
@@ -343,8 +343,8 @@ impl HTMLIFrameElement {
 
         let document = document_from_node(self);
         let pipeline_id = self.pipeline_id();
-        let is_about_blank =
-            pipeline_id.is_some() && pipeline_id == self.about_blank_pipeline_id.get();
+        let is_about_blank = pipeline_id.is_some() && pipeline_id == self.about_blank_pipeline_id.get();
+        let replaced_pipeline = is_about_blank.then(|| self.about_blank_pipeline_id.get().unwrap());
         let load_data = LoadData::new(
             LoadOrigin::Script(document.origin().immutable().clone()),
             url,
@@ -352,7 +352,7 @@ impl HTMLIFrameElement {
             window.upcast::<GlobalScope>().get_referrer(),
             document.get_referrer_policy(),
             Some(window.upcast::<GlobalScope>().is_secure_context()),
-            is_about_blank,
+            replaced_pipeline,
             false,
         );
 
@@ -393,7 +393,7 @@ impl HTMLIFrameElement {
             window.upcast::<GlobalScope>().get_referrer(),
             document.get_referrer_policy(),
             Some(window.upcast::<GlobalScope>().is_secure_context()),
-            false,
+            None,
             true,
         );
         let browsing_context_id = BrowsingContextId::new();

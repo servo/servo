@@ -313,7 +313,7 @@ impl WindowProxy {
                 document.global().get_referrer(),
                 document.get_referrer_policy(),
                 None, // Doesn't inherit secure context
-                false,
+                None,
                 true,
             );
             let load_info = AuxiliaryBrowsingContextLoadInfo {
@@ -524,7 +524,7 @@ impl WindowProxy {
                 referrer,
                 referrer_policy,
                 Some(secure),
-                is_about_blank,
+                is_about_blank.then_some(pipeline_id),
                 false,
             );
             let replacement_flag = if new {

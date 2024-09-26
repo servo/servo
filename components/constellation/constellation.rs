@@ -1431,7 +1431,7 @@ where
                     Referrer::NoReferrer,
                     None,
                     None,
-                    false,
+                    None,
                     false,
                 );
                 let ctx_id = BrowsingContextId::from(top_level_browsing_context_id);
@@ -2999,7 +2999,7 @@ where
             Referrer::NoReferrer,
             None,
             None,
-            false,
+            None,
             false,
         );
         let sandbox = IFrameSandboxState::IFrameUnsandboxed;
