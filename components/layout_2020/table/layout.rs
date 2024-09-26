@@ -371,7 +371,7 @@ impl<'a> TableLayout<'a> {
         self.columns = vec![ColumnLayout::default(); self.table.size.width];
 
         let is_length = |size: &LengthPercentageOrAuto| {
-            size.non_auto().and_then(|size| size.to_length()).is_some()
+            size.non_auto().is_some_and(|size| !size.has_percentage())
         };
 
         for column_index in 0..self.table.size.width {
