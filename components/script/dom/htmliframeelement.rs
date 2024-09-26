@@ -265,7 +265,7 @@ impl HTMLIFrameElement {
                 document.get_referrer_policy(),
                 Some(window.upcast::<GlobalScope>().is_secure_context()),
                 false,
-                true,
+                false,
             );
             let element = self.upcast::<Element>();
             load_data.srcdoc = String::from(element.get_string_attribute(&local_name!("srcdoc")));
