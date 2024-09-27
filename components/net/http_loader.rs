@@ -25,7 +25,8 @@ use headers::{
     IfModifiedSince, LastModified, Origin as HyperOrigin, Pragma, Referer, UserAgent,
 };
 use http::header::{
-    self, HeaderValue, ACCEPT, CONTENT_ENCODING, CONTENT_LANGUAGE, CONTENT_LOCATION, CONTENT_TYPE,
+    self, HeaderValue, ACCEPT, AUTHORIZATION, CONTENT_ENCODING, CONTENT_LANGUAGE, CONTENT_LOCATION,
+    CONTENT_TYPE,
 };
 use http::{HeaderMap, Method, Request as HyperRequest, StatusCode};
 use hyper::header::{HeaderName, TRANSFER_ENCODING};
@@ -1030,15 +1031,27 @@ pub async fn http_redirect_fetch(
         }
     }
 
-    // Step 12
+    // Step 13: If request’s current URL’s origin is not same origin with locationURL’s origin, then
+    // for each headerName of CORS non-wildcard request-header name, delete headerName from
+    // request’s header list.
+    if location_url.origin() != request.current_url().origin() {
+        // This list currently only contains the AUTHORIZATION header
+        // https://fetch.spec.whatwg.org/#cors-non-wildcard-request-header-name
+        request.headers.remove(AUTHORIZATION);
+    }
+
+    // Step 14: If request’s body is non-null, then set request’s body to the body of the result of
+    // safely extracting request’s body’s source.
     if let Some(body) = request.body.as_mut() {
         body.extract_source();
     }
 
-    // Step 13
+    // Steps 15-17 relate to timing, which is not implemented 1:1 with the spec.
+
+    // Step 18: Append locationURL to request’s URL list.
     request.url_list.push(location_url);
 
-    // Step 14
+    // Step 19: Invoke set request’s referrer policy on redirect on request and internalResponse.
     if let Some(referrer_policy) = response
         .actual_response()
         .headers
@@ -1047,9 +1060,11 @@ pub async fn http_redirect_fetch(
         request.referrer_policy = Some(referrer_policy.into());
     }
 
-    // Step 15
+    // Step 20: Let recursive be true.
+    // Step 21: If request’s redirect mode is "manual", then...
     let recursive_flag = request.redirect_mode != RedirectMode::Manual;
 
+    // Step 22: Return the result of running main fetch given fetchParams and recursive.
     let fetch_response = main_fetch(
         request,
         cache,

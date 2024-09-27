@@ -267,7 +267,7 @@ impl Response {
             ResponseType::Cors => {
                 let headers = old_headers.iter().filter(|(name, _)| {
                     match &*name.as_str().to_ascii_lowercase() {
-                        "cache-control" | "content-language" | "content-type" |
+                        "cache-control" | "content-language" | "content-length" | "content-type" |
                         "expires" | "last-modified" | "pragma" => true,
                         "set-cookie" | "set-cookie2" => false,
                         header => {
