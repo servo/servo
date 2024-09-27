@@ -8,13 +8,13 @@ use http::{HeaderName, HeaderValue};
 use net_traits::fetch::headers::get_decode_and_split_header_name;
 use net_traits::request::RequestMode;
 
-static SEC_FETCH_DEST: HeaderName = HeaderName::from_static("Sec-Fetch-Dest");
+static SEC_FETCH_DEST: HeaderName = HeaderName::from_static("sec-fetch-dest");
 
-static SEC_FETCH_MODE: HeaderName = HeaderName::from_static("Sec-Fetch-Mode");
+static SEC_FETCH_MODE: HeaderName = HeaderName::from_static("sec-fetch-mode");
 
-static SEC_FETCH_SITE: HeaderName = HeaderName::from_static("Sec-Fetch-Site");
+static SEC_FETCH_SITE: HeaderName = HeaderName::from_static("sec-fetch-site");
 
-static SEC_FETCH_USER: HeaderName = HeaderName::from_static("Sec-Fetch-User");
+static SEC_FETCH_USER: HeaderName = HeaderName::from_static("sec-fetch-user");
 
 /// <https://fetch.spec.whatwg.org/#determine-nosniff>
 pub fn determine_nosniff(headers: &HeaderMap) -> bool {
