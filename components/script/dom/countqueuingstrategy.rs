@@ -115,7 +115,7 @@ pub fn extract_size_algorithm(strategy: &QueuingStrategy) -> Rc<QueuingStrategyS
         let fun_obj = native_raw_obj_fn!(cx, count_queuing_strategy_size, c"size", 0, 0);
         #[allow(unsafe_code)]
         unsafe {
-            QueuingStrategySize::new(cx, fun_obj).clone()
+            return QueuingStrategySize::new(cx, fun_obj);
         };
     }
     strategy.size.as_ref().unwrap().clone()
