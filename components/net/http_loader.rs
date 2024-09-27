@@ -1035,9 +1035,9 @@ pub async fn http_redirect_fetch(
     // for each headerName of CORS non-wildcard request-header name, delete headerName from
     // request’s header list.
     if location_url.origin() != request.current_url().origin() {
-        for name in &[AUTHORIZATION] {
-            request.headers.remove(name);
-        }
+        // This list currently only contains the AUTHORIZATION header
+        // https://fetch.spec.whatwg.org/#cors-non-wildcard-request-header-name
+        request.headers.remove(AUTHORIZATION);
     }
 
     // Step 14: If request’s body is non-null, then set request’s body to the body of the result of
