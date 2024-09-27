@@ -197,6 +197,15 @@ pub fn detect_image_format(buffer: &[u8]) -> Result<ImageFormat, &str> {
     }
 }
 
+pub fn unmultiply_inplace(pixels: &mut [u8]) {
+    for rgba in pixels.chunks_mut(4) {
+        let a = (rgba[3] as f32) / 255.0;
+        rgba[0] = (rgba[0] as f32 / a) as u8;
+        rgba[1] = (rgba[1] as f32 / a) as u8;
+        rgba[2] = (rgba[2] as f32 / a) as u8;
+    }
+}
+
 fn is_gif(buffer: &[u8]) -> bool {
     buffer.starts_with(b"GIF87a") || buffer.starts_with(b"GIF89a")
 }
