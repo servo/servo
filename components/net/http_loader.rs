@@ -67,7 +67,7 @@ use crate::cookie::ServoCookie;
 use crate::cookie_storage::CookieStorage;
 use crate::decoder::Decoder;
 use crate::fetch::cors_cache::CorsCache;
-use crate::fetch::headers::SecFetchDest;
+use crate::fetch::headers::{SecFetchDest, SecFetchMode, SecFetchSite, SecFetchUser};
 use crate::fetch::methods::{main_fetch, Data, DoneChannel, FetchContext, Target};
 use crate::hsts::HstsList;
 use crate::http_cache::{CacheKey, HttpCache};
@@ -2422,10 +2422,76 @@ fn set_the_sec_fetch_dest_header(r: &mut Request) {
 }
 
 /// <https://w3c.github.io/webappsec-fetch-metadata/#abstract-opdef-set-mode>
-fn set_the_sec_fetch_mode_header(r: &mut Request) {}
+fn set_the_sec_fetch_mode_header(r: &mut Request) {
+    // Step 1. Assert: r’s url is a potentially trustworthy URL.
+    debug_assert!(r.url().is_potentially_trustworthy());
+
+    // Step 2. Let header be a Structured Header whose value is a token.
+    // Step 3. Set header’s value to r’s mode.
+    let header = &r.mode;
+
+    // Step 4. Set a structured field value `Sec-Fetch-Mode`/header in r’s header list.
+    r.headers.typed_insert(SecFetchMode::from(header));
+}
 
 /// <https://w3c.github.io/webappsec-fetch-metadata/#abstract-opdef-set-site>
-fn set_the_sec_fetch_site_header(r: &mut Request) {}
+fn set_the_sec_fetch_site_header(r: &mut Request) {
+    // The webappsec spec seems to have a similar issue as
+    // https://github.com/whatwg/fetch/issues/1773
+    let Origin::Origin(request_origin) = &r.origin else {
+        panic!("request origin cannot be \"client\" at this point")
+    };
+
+    // Step 1. Assert: r’s url is a potentially trustworthy URL.
+    debug_assert!(r.url().is_potentially_trustworthy());
+
+    // Step 2. Let header be a Structured Header whose value is a token.
+    // Step 3. Set header’s value to same-origin.
+    let mut header = SecFetchSite::SameOrigin;
+
+    // TODO: Step 3. If r is a navigation request that was explicitly caused by a
+    // user’s interaction with the user agent, then set header’s value to none.
+
+    // Step 5. If header’s value is not none, then for each url in r’s url list:
+    if header != SecFetchSite::None {
+        for url in &r.url_list {
+            // Step 5.1 If url is same origin with r’s origin, continue.
+            if url.origin() == *request_origin {
+                continue;
+            }
+
+            // Step 5.2 Set header’s value to cross-site.
+            header = SecFetchSite::CrossSite;
+
+            // Step 5.3 If r’s origin is not same site with url’s origin, then break.
+            if is_same_site(request_origin, &url.origin()) {
+                break;
+            }
+
+            // Step 5.4 Set header’s value to same-site.
+            header = SecFetchSite::SameSite;
+        }
+    }
+
+    // Step 6. Set a structured field value `Sec-Fetch-Site`/header in r’s header list.
+    r.headers.typed_insert(header);
+}
 
 /// <https://w3c.github.io/webappsec-fetch-metadata/#abstract-opdef-set-user>
-fn set_the_sec_fetch_user_header(r: &mut Request) {}
+fn set_the_sec_fetch_user_header(r: &mut Request) {
+    // Step 1. Assert: r’s url is a potentially trustworthy URL.
+    debug_assert!(r.url().is_potentially_trustworthy());
+
+    // Step 2. If r is not a navigation request, or if r’s user-activation is false, return.
+    // TODO user activation
+    if !r.is_navigation_request() {
+        return;
+    }
+
+    // Step 3. Let header be a Structured Header whose value is a token.
+    // Step 4. Set header’s value to true.
+    let header = SecFetchUser;
+
+    // Step 5. Set a structured field value `Sec-Fetch-User`/header in r’s header list.
+    r.headers.typed_insert(header);
+}
