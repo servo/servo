@@ -1850,6 +1850,7 @@ impl ScriptThread {
                         Some(pipeline_id),
                         || {
                             if new_layout_info.load_data.synchronously_loaded {
+                                assert_eq!(new_layout_info.load_data.url.as_str(), "about:blank");
                                 return;
                             }
 

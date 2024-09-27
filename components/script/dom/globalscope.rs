@@ -3410,6 +3410,7 @@ impl GlobalScope {
         self.pipeline_id.set(pipeline_id);
         *self.script_to_constellation_chan.borrow_mut() = script_to_constellation_chan;
         *self.creation_url.borrow_mut() = Some(creator_url);
+        self.timers.reset();
     }
 }
 
