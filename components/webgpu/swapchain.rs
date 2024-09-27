@@ -87,7 +87,7 @@ impl WebrenderExternalImageApi for WGPUExternalImages {
         let id = WebGPUContextId(id);
         let webgpu_contexts = self.images.lock().unwrap();
         let context_data = webgpu_contexts.get(&id).unwrap();
-        let size = context_data.image_desc.size.cast_unit();
+        let size = context_data.image_desc.size().cast_unit();
         let data = if let Some(present_buffer) = context_data
             .swap_chain
             .as_ref()
@@ -132,17 +132,63 @@ struct SwapChain {
     data: Option<GPUPresentationBuffer>,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct WebGPUImageDescriptor(pub ImageDescriptor);
+
+impl WebGPUImageDescriptor {
+    fn new(format: ImageFormat, size: DeviceIntSize, is_opaque: bool) -> Self {
+        let stride = (((size.width * format.bytes_per_pixel()) |
+            (wgt::COPY_BYTES_PER_ROW_ALIGNMENT as i32 - 1)) +
+            1) as i32;
+        Self(ImageDescriptor {
+            format,
+            size,
+            stride: Some(stride),
+            offset: 0,
+            flags: if is_opaque {
+                ImageDescriptorFlags::IS_OPAQUE
+            } else {
+                ImageDescriptorFlags::empty()
+            },
+        })
+    }
+
+    fn default(size: DeviceIntSize) -> Self {
+        Self::new(DEFAULT_IMAGE_FORMAT, size, false)
+    }
+
+    /// Returns true if needs image update (if it's changed)
+    fn update(&mut self, new: Self) -> bool {
+        if self.0 != new.0 {
+            self.0 = new.0;
+            true
+        } else {
+            false
+        }
+    }
+
+    fn buffer_stride(&self) -> i32 {
+        self.0
+            .stride
+            .expect("Stride should be set by WebGPUImageDescriptor")
+    }
+
+    fn buffer_size(&self) -> wgt::BufferAddress {
+        (self.buffer_stride() * self.0.size.height) as wgt::BufferAddress
+    }
+
+    fn size(&self) -> DeviceIntSize {
+        self.0.size
+    }
+}
+
 pub struct ContextData {
     image_key: ImageKey,
-    image_desc: ImageDescriptor,
+    image_desc: WebGPUImageDescriptor,
     image_data: ImageData,
     buffer_ids: ArrayVec<(id::BufferId, PresentationBufferState), PRESENTATION_BUFFER_COUNT>,
     /// If there is no associated swapchain the context is dummy (transparent black)
     swap_chain: Option<SwapChain>,
-}
-
-fn stride(size: DeviceIntSize) -> i32 {
-    (((size.width as u32 * 4) | (wgt::COPY_BYTES_PER_ROW_ALIGNMENT - 1)) + 1) as i32
 }
 
 impl ContextData {
@@ -153,14 +199,6 @@ impl ContextData {
         size: DeviceIntSize,
         buffer_ids: ArrayVec<id::BufferId, PRESENTATION_BUFFER_COUNT>,
     ) -> Self {
-        let image_desc = ImageDescriptor {
-            format: DEFAULT_IMAGE_FORMAT,
-            size,
-            stride: Some(stride(size)),
-            offset: 0,
-            flags: ImageDescriptorFlags::empty(),
-        };
-
         let image_data = ImageData::External(ExternalImageData {
             id: ExternalImageId(context_id.0),
             channel_index: 0,
@@ -169,7 +207,7 @@ impl ContextData {
 
         Self {
             image_key,
-            image_desc,
+            image_desc: WebGPUImageDescriptor::default(size),
             image_data,
             swap_chain: None,
             buffer_ids: buffer_ids
@@ -179,47 +217,8 @@ impl ContextData {
         }
     }
 
-    /// Returns true if needs image reload
-    fn update_image_desc(
-        &mut self,
-        size: DeviceIntSize,
-        format: ImageFormat,
-        is_opaque: bool,
-    ) -> bool {
-        let flags = if is_opaque {
-            ImageDescriptorFlags::IS_OPAQUE
-        } else {
-            ImageDescriptorFlags::empty()
-        };
-
-        /// Returns true if property changed
-        fn set<T: std::cmp::PartialEq>(t: &mut T, new: T) -> bool {
-            if *t != new {
-                *t = new;
-                true
-            } else {
-                false
-            }
-        }
-
-        set(&mut self.image_desc.size, size) ||
-            set(&mut self.image_desc.stride, Some(stride(size))) ||
-            set(&mut self.image_desc.format, format) ||
-            set(&mut self.image_desc.flags, flags)
-    }
-
     fn dummy_data(&self) -> Vec<u8> {
-        vec![0; self.buffer_size() as usize]
-    }
-
-    fn buffer_stride(&self) -> i32 {
-        self.image_desc
-            .stride
-            .expect("Stride should be set when creating swapchain")
-    }
-
-    fn buffer_size(&self) -> wgt::BufferAddress {
-        (self.buffer_stride() * self.image_desc.size.height) as wgt::BufferAddress
+        vec![0; self.image_desc.buffer_size() as usize]
     }
 
     /// Returns id of available buffer
@@ -242,7 +241,7 @@ impl ContextData {
             let buffer_id = *buffer_id;
             let buffer_desc = wgt::BufferDescriptor {
                 label: None,
-                size: self.buffer_size(),
+                size: self.image_desc.buffer_size(),
                 usage: wgt::BufferUsages::MAP_READ | wgt::BufferUsages::COPY_DST,
                 mapped_at_creation: false,
             };
@@ -274,8 +273,7 @@ impl ContextData {
         drop(presentation_buffer);
     }
 
-    /// Returns true if needs image update
-    fn destroy_swapchain(&mut self, global: &Arc<Global>) -> bool {
+    fn destroy_swapchain(&mut self, global: &Arc<Global>) {
         drop(self.swap_chain.take());
         // free all buffers
         for (buffer_id, buffer_state) in &mut self.buffer_ids {
@@ -289,8 +287,6 @@ impl ContextData {
             }
             *buffer_state = PresentationBufferState::Unassigned;
         }
-        // set defaults back
-        self.update_image_desc(self.image_desc.size, DEFAULT_IMAGE_FORMAT, false)
     }
 
     fn destroy(
@@ -327,7 +323,7 @@ impl crate::WGPU {
         let mut txn = Transaction::new();
         txn.add_image(
             image_key,
-            context_data.image_desc,
+            context_data.image_desc.0,
             context_data.image_data.clone(),
             None,
         );
@@ -367,31 +363,30 @@ impl crate::WGPU {
 
         let needs_image_update = if let Some(format) = format {
             let config = config.expect("Config should exist when valid format is available");
-            let needs_rebuild = context_data.swap_chain.is_none() ||
-                context_data.image_desc.size != size ||
-                context_data.image_desc.is_opaque() != config.is_opaque ||
-                context_data.image_desc.format != format;
-            if needs_rebuild {
+            let new_image_desc = WebGPUImageDescriptor::new(format, size, config.is_opaque);
+            let needs_swapchain_rebuild = context_data.swap_chain.is_none() ||
+                new_image_desc.buffer_size() != context_data.image_desc.buffer_size();
+            if needs_swapchain_rebuild {
                 context_data.destroy_swapchain(&self.global);
-                context_data.update_image_desc(size, format, config.is_opaque);
                 context_data.swap_chain = Some(SwapChain {
                     device_id: config.device_id,
                     queue_id: config.queue_id,
                     data: None,
                 });
-                true
-            } else {
-                false
             }
+            context_data.image_desc.update(new_image_desc)
         } else {
-            context_data.destroy_swapchain(&self.global)
+            context_data.destroy_swapchain(&self.global);
+            context_data
+                .image_desc
+                .update(WebGPUImageDescriptor::default(size))
         };
 
         if needs_image_update {
             let mut txn = Transaction::new();
             txn.update_image(
                 context_data.image_key,
-                context_data.image_desc,
+                context_data.image_desc.0,
                 context_data.image_data.clone(),
                 &DirtyRect::All,
             );
@@ -420,23 +415,17 @@ impl crate::WGPU {
         let global = &self.global;
         let device_id;
         let queue_id;
-        let size;
         let buffer_id;
-        let buffer_stride;
-        let buffer_size;
         let image_desc;
         {
             if let Some(context_data) = self.wgpu_image_map.lock().unwrap().get_mut(&context_id) {
                 let Some(swap_chain) = context_data.swap_chain.as_ref() else {
                     return Ok(());
                 };
-                size = context_data.image_desc.size;
                 device_id = swap_chain.device_id;
                 queue_id = swap_chain.queue_id;
-                buffer_stride = context_data.buffer_stride();
-                buffer_size = context_data.buffer_size();
                 buffer_id = context_data.get_available_buffer(global).unwrap();
-                image_desc = context_data.image_desc.clone();
+                image_desc = context_data.image_desc;
             } else {
                 return Ok(());
             }
@@ -449,7 +438,7 @@ impl crate::WGPU {
             buffer: buffer_id,
             layout: wgt::ImageDataLayout {
                 offset: 0,
-                bytes_per_row: Some(buffer_stride as u32),
+                bytes_per_row: Some(image_desc.buffer_stride() as u32),
                 rows_per_image: None,
             },
         };
@@ -460,8 +449,8 @@ impl crate::WGPU {
             aspect: wgt::TextureAspect::All,
         };
         let copy_size = wgt::Extent3d {
-            width: size.width as u32,
-            height: size.height as u32,
+            width: image_desc.size().width as u32,
+            height: image_desc.size().height as u32,
             depth_or_array_layers: 1,
         };
         global.command_encoder_copy_texture_to_buffer(
@@ -491,7 +480,6 @@ impl crate::WGPU {
                     result,
                     global,
                     buffer_id,
-                    buffer_size,
                     wgpu_image_map,
                     context_id,
                     webrender_api,
@@ -504,7 +492,7 @@ impl crate::WGPU {
             host: HostMap::Read,
             callback: Some(callback),
         };
-        global.buffer_map_async(buffer_id, 0, Some(buffer_size), map_op)?;
+        global.buffer_map_async(buffer_id, 0, Some(image_desc.buffer_size()), map_op)?;
         self.poller.wake();
         Ok(())
     }
@@ -528,12 +516,11 @@ fn update_wr_image(
     result: Result<(), BufferAccessError>,
     global: Arc<Global>,
     buffer_id: id::BufferId,
-    buffer_size: u64,
     wgpu_image_map: WGPUImageMap,
     context_id: WebGPUContextId,
     webrender_api: Arc<Mutex<RenderApi>>,
     webrender_document: webrender_api::DocumentId,
-    image_desc: ImageDescriptor,
+    image_desc: WebGPUImageDescriptor,
 ) {
     match result {
         Ok(()) => {
@@ -573,7 +560,7 @@ fn update_wr_image(
                 }
                 *buffer_state = PresentationBufferState::Mapped;
                 let presentation_buffer =
-                    GPUPresentationBuffer::new(global, buffer_id, buffer_size);
+                    GPUPresentationBuffer::new(global, buffer_id, image_desc.buffer_size());
                 let Some(swap_chain) = context_data.swap_chain.as_mut() else {
                     return;
                 };
@@ -581,7 +568,7 @@ fn update_wr_image(
                 let mut txn = Transaction::new();
                 txn.update_image(
                     context_data.image_key,
-                    context_data.image_desc,
+                    context_data.image_desc.0,
                     context_data.image_data.clone(),
                     &DirtyRect::All,
                 );
