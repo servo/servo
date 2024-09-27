@@ -110,6 +110,7 @@
   "network.http-cache.disabled": false,
   "network.local_directory_listing.enabled": false,
   "network.mime.sniff": false,
+  "network.tls.ignore_unexpected_eof": false,
   "session-history.max-length": 20,
   "shell.background-color.rgba": [1.0, 1.0, 1.0, 1.0],
   "shell.crash_reporter.enabled": false,
