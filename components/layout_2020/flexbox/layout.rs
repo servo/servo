@@ -936,10 +936,10 @@ impl FlexContainer {
             .padding_border_margin(containing_block_for_container);
         let max_box_size = self
             .style
-            .content_max_box_size(containing_block_for_container, &pbm);
+            .content_max_box_size_deprecated(containing_block_for_container, &pbm);
         let min_box_size = self
             .style
-            .content_min_box_size(containing_block_for_container, &pbm)
+            .content_min_box_size_deprecated(containing_block_for_container, &pbm)
             .auto_is(Au::zero);
 
         let max_box_size = self.config.flex_axis.vec2_to_flex_relative(max_box_size);
@@ -1012,15 +1012,15 @@ impl<'a> FlexItem<'a> {
         let pbm = box_.style().padding_border_margin(containing_block);
         let content_box_size = box_
             .style()
-            .content_box_size(containing_block, &pbm)
+            .content_box_size_deprecated(containing_block, &pbm)
             .map(|v| v.map(Au::from));
         let max_size = box_
             .style()
-            .content_max_box_size(containing_block, &pbm)
+            .content_max_box_size_deprecated(containing_block, &pbm)
             .map(|v| v.map(Au::from));
         let min_size = box_
             .style()
-            .content_min_box_size(containing_block, &pbm)
+            .content_min_box_size_deprecated(containing_block, &pbm)
             .map(|v| v.map(Au::from));
 
         let margin_auto_is_zero = flex_context.sides_to_flex_relative(pbm.margin.auto_is(Au::zero));
@@ -2005,7 +2005,7 @@ impl FlexItemBox {
             cross_axis_is_item_block_axis(container_is_horizontal, item_is_horizontal, flex_axis);
 
         let (content_box_size, content_min_size, content_max_size, pbm) =
-            style.content_box_sizes_and_padding_border_margin(containing_block);
+            style.content_box_sizes_and_padding_border_margin_deprecated(containing_block);
         let padding = main_start_cross_start.sides_to_flex_relative(pbm.padding);
         let border = main_start_cross_start.sides_to_flex_relative(pbm.border);
         let margin = main_start_cross_start.sides_to_flex_relative(pbm.margin);

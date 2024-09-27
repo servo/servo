@@ -1929,15 +1929,15 @@ impl IndependentFormattingContext {
             IndependentFormattingContext::NonReplaced(non_replaced) => {
                 let box_size = non_replaced
                     .style
-                    .content_box_size(layout.containing_block, &pbm)
+                    .content_box_size_deprecated(layout.containing_block, &pbm)
                     .map(|v| v.map(Au::from));
                 let max_box_size = non_replaced
                     .style
-                    .content_max_box_size(layout.containing_block, &pbm)
+                    .content_max_box_size_deprecated(layout.containing_block, &pbm)
                     .map(|v| v.map(Au::from));
                 let min_box_size = non_replaced
                     .style
-                    .content_min_box_size(layout.containing_block, &pbm)
+                    .content_min_box_size_deprecated(layout.containing_block, &pbm)
                     .map(|v| v.map(Au::from))
                     .auto_is(Au::zero);
                 let block_size = box_size

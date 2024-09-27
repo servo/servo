@@ -16,11 +16,8 @@ use style::properties::ComputedValues;
 use style::servo::selector_parser::PseudoElement;
 use style::values::computed::basic_shape::ClipPath;
 use style::values::computed::image::Image as ComputedImageLayer;
-use style::values::computed::{
-    AlignItems, BorderStyle, LengthPercentage, NonNegativeLengthPercentage, Size,
-};
+use style::values::computed::{AlignItems, BorderStyle, LengthPercentage};
 use style::values::generics::box_::Perspective;
-use style::values::generics::length::MaxSize;
 use style::values::generics::position::{GenericAspectRatio, PreferredRatio};
 use style::values::specified::align::AlignFlags;
 use style::values::specified::{box_ as stylo, Overflow};
@@ -32,7 +29,7 @@ use crate::dom_traversal::Contents;
 use crate::fragment_tree::FragmentFlags;
 use crate::geom::{
     AuOrAuto, LengthPercentageOrAuto, LogicalSides, LogicalVec2, PhysicalSides, PhysicalSize,
-    PhysicalVec,
+    PhysicalVec, Size,
 };
 use crate::{ContainingBlock, IndefiniteContainingBlock};
 
@@ -190,46 +187,70 @@ pub(crate) trait ComputedValuesExt {
     fn box_size(
         &self,
         containing_block_writing_mode: WritingMode,
-    ) -> LogicalVec2<LengthPercentageOrAuto<'_>>;
+    ) -> LogicalVec2<Size<LengthPercentage>>;
     fn min_box_size(
         &self,
         containing_block_writing_mode: WritingMode,
-    ) -> LogicalVec2<LengthPercentageOrAuto<'_>>;
+    ) -> LogicalVec2<Size<LengthPercentage>>;
     fn max_box_size(
         &self,
         containing_block_writing_mode: WritingMode,
-    ) -> LogicalVec2<Option<&LengthPercentage>>;
+    ) -> LogicalVec2<Size<LengthPercentage>>;
     fn content_box_size(
+        &self,
+        containing_block: &ContainingBlock,
+        pbm: &PaddingBorderMargin,
+    ) -> LogicalVec2<Size<Au>>;
+    fn content_box_size_deprecated(
         &self,
         containing_block: &ContainingBlock,
         pbm: &PaddingBorderMargin,
     ) -> LogicalVec2<AuOrAuto>;
     fn content_box_size_for_box_size(
         &self,
-        box_size: LogicalVec2<AuOrAuto>,
+        box_size: LogicalVec2<Size<Au>>,
         pbm: &PaddingBorderMargin,
-    ) -> LogicalVec2<AuOrAuto>;
+    ) -> LogicalVec2<Size<Au>>;
     fn content_min_box_size(
+        &self,
+        containing_block: &ContainingBlock,
+        pbm: &PaddingBorderMargin,
+    ) -> LogicalVec2<Size<Au>>;
+    fn content_min_box_size_deprecated(
         &self,
         containing_block: &ContainingBlock,
         pbm: &PaddingBorderMargin,
     ) -> LogicalVec2<AuOrAuto>;
     fn content_min_box_size_for_min_size(
         &self,
-        box_size: LogicalVec2<AuOrAuto>,
+        box_size: LogicalVec2<Size<Au>>,
         pbm: &PaddingBorderMargin,
-    ) -> LogicalVec2<AuOrAuto>;
+    ) -> LogicalVec2<Size<Au>>;
     fn content_max_box_size(
+        &self,
+        containing_block: &ContainingBlock,
+        pbm: &PaddingBorderMargin,
+    ) -> LogicalVec2<Size<Au>>;
+    fn content_max_box_size_deprecated(
         &self,
         containing_block: &ContainingBlock,
         pbm: &PaddingBorderMargin,
     ) -> LogicalVec2<Option<Au>>;
     fn content_max_box_size_for_max_size(
         &self,
-        box_size: LogicalVec2<Option<Au>>,
+        box_size: LogicalVec2<Size<Au>>,
         pbm: &PaddingBorderMargin,
-    ) -> LogicalVec2<Option<Au>>;
+    ) -> LogicalVec2<Size<Au>>;
     fn content_box_sizes_and_padding_border_margin(
+        &self,
+        containing_block: &IndefiniteContainingBlock,
+    ) -> (
+        LogicalVec2<Size<Au>>,
+        LogicalVec2<Size<Au>>,
+        LogicalVec2<Size<Au>>,
+        PaddingBorderMargin,
+    );
+    fn content_box_sizes_and_padding_border_margin_deprecated(
         &self,
         containing_block: &IndefiniteContainingBlock,
     ) -> (
@@ -309,12 +330,12 @@ impl ComputedValuesExt for ComputedValues {
     fn box_size(
         &self,
         containing_block_writing_mode: WritingMode,
-    ) -> LogicalVec2<LengthPercentageOrAuto<'_>> {
+    ) -> LogicalVec2<Size<LengthPercentage>> {
         let position = self.get_position();
         LogicalVec2::from_physical_size(
             &PhysicalSize::new(
-                size_to_length(&position.width),
-                size_to_length(&position.height),
+                position.clone_width().into(),
+                position.clone_height().into(),
             ),
             containing_block_writing_mode,
         )
@@ -323,12 +344,12 @@ impl ComputedValuesExt for ComputedValues {
     fn min_box_size(
         &self,
         containing_block_writing_mode: WritingMode,
-    ) -> LogicalVec2<LengthPercentageOrAuto<'_>> {
+    ) -> LogicalVec2<Size<LengthPercentage>> {
         let position = self.get_position();
         LogicalVec2::from_physical_size(
             &PhysicalSize::new(
-                size_to_length(&position.min_width),
-                size_to_length(&position.min_height),
+                position.clone_min_width().into(),
+                position.clone_min_height().into(),
             ),
             containing_block_writing_mode,
         )
@@ -337,20 +358,13 @@ impl ComputedValuesExt for ComputedValues {
     fn max_box_size(
         &self,
         containing_block_writing_mode: WritingMode,
-    ) -> LogicalVec2<Option<&LengthPercentage>> {
-        fn unwrap(max_size: &MaxSize<NonNegativeLengthPercentage>) -> Option<&LengthPercentage> {
-            match max_size {
-                MaxSize::LengthPercentage(length) => Some(&length.0),
-                MaxSize::None |
-                MaxSize::MinContent |
-                MaxSize::MaxContent |
-                MaxSize::FitContent |
-                MaxSize::Stretch => None,
-            }
-        }
+    ) -> LogicalVec2<Size<LengthPercentage>> {
         let position = self.get_position();
         LogicalVec2::from_physical_size(
-            &PhysicalSize::new(unwrap(&position.max_width), unwrap(&position.max_height)),
+            &PhysicalSize::new(
+                position.clone_max_width().into(),
+                position.clone_max_height().into(),
+            ),
             containing_block_writing_mode,
         )
     }
@@ -359,18 +373,27 @@ impl ComputedValuesExt for ComputedValues {
         &self,
         containing_block: &ContainingBlock,
         pbm: &PaddingBorderMargin,
-    ) -> LogicalVec2<AuOrAuto> {
+    ) -> LogicalVec2<Size<Au>> {
         let box_size = self
             .box_size(containing_block.style.writing_mode)
             .percentages_relative_to(containing_block);
         self.content_box_size_for_box_size(box_size, pbm)
     }
 
-    fn content_box_size_for_box_size(
+    fn content_box_size_deprecated(
         &self,
-        box_size: LogicalVec2<AuOrAuto>,
+        containing_block: &ContainingBlock,
         pbm: &PaddingBorderMargin,
     ) -> LogicalVec2<AuOrAuto> {
+        self.content_box_size(containing_block, pbm)
+            .map(Size::to_auto_or)
+    }
+
+    fn content_box_size_for_box_size(
+        &self,
+        box_size: LogicalVec2<Size<Au>>,
+        pbm: &PaddingBorderMargin,
+    ) -> LogicalVec2<Size<Au>> {
         match self.get_position().box_sizing {
             BoxSizing::ContentBox => box_size,
             BoxSizing::BorderBox => LogicalVec2 {
@@ -390,18 +413,27 @@ impl ComputedValuesExt for ComputedValues {
         &self,
         containing_block: &ContainingBlock,
         pbm: &PaddingBorderMargin,
-    ) -> LogicalVec2<AuOrAuto> {
+    ) -> LogicalVec2<Size<Au>> {
         let box_size = self
             .min_box_size(containing_block.style.writing_mode)
             .percentages_relative_to(containing_block);
         self.content_min_box_size_for_min_size(box_size, pbm)
     }
 
-    fn content_min_box_size_for_min_size(
+    fn content_min_box_size_deprecated(
         &self,
-        min_box_size: LogicalVec2<AuOrAuto>,
+        containing_block: &ContainingBlock,
         pbm: &PaddingBorderMargin,
     ) -> LogicalVec2<AuOrAuto> {
+        self.content_min_box_size(containing_block, pbm)
+            .map(Size::to_auto_or)
+    }
+
+    fn content_min_box_size_for_min_size(
+        &self,
+        min_box_size: LogicalVec2<Size<Au>>,
+        pbm: &PaddingBorderMargin,
+    ) -> LogicalVec2<Size<Au>> {
         match self.get_position().box_sizing {
             BoxSizing::ContentBox => min_box_size,
             BoxSizing::BorderBox => LogicalVec2 {
@@ -420,7 +452,7 @@ impl ComputedValuesExt for ComputedValues {
         &self,
         containing_block: &ContainingBlock,
         pbm: &PaddingBorderMargin,
-    ) -> LogicalVec2<Option<Au>> {
+    ) -> LogicalVec2<Size<Au>> {
         let max_box_size = self
             .max_box_size(containing_block.style.writing_mode)
             .percentages_relative_to(containing_block);
@@ -428,11 +460,20 @@ impl ComputedValuesExt for ComputedValues {
         self.content_max_box_size_for_max_size(max_box_size, pbm)
     }
 
-    fn content_max_box_size_for_max_size(
+    fn content_max_box_size_deprecated(
         &self,
-        max_box_size: LogicalVec2<Option<Au>>,
+        containing_block: &ContainingBlock,
         pbm: &PaddingBorderMargin,
     ) -> LogicalVec2<Option<Au>> {
+        self.content_max_box_size(containing_block, pbm)
+            .map(Size::to_numeric)
+    }
+
+    fn content_max_box_size_for_max_size(
+        &self,
+        max_box_size: LogicalVec2<Size<Au>>,
+        pbm: &PaddingBorderMargin,
+    ) -> LogicalVec2<Size<Au>> {
         match self.get_position().box_sizing {
             BoxSizing::ContentBox => max_box_size,
             BoxSizing::BorderBox => {
@@ -454,9 +495,9 @@ impl ComputedValuesExt for ComputedValues {
         &self,
         containing_block: &IndefiniteContainingBlock,
     ) -> (
-        LogicalVec2<AuOrAuto>,
-        LogicalVec2<AuOrAuto>,
-        LogicalVec2<Option<Au>>,
+        LogicalVec2<Size<Au>>,
+        LogicalVec2<Size<Au>>,
+        LogicalVec2<Size<Au>>,
         PaddingBorderMargin,
     ) {
         // <https://drafts.csswg.org/css-sizing-3/#cyclic-percentage-contribution>
@@ -491,6 +532,25 @@ impl ComputedValuesExt for ComputedValues {
             .content_max_box_size_for_max_size(max_size, &pbm)
             .map(|v| v.map(Au::from));
         (content_box_size, content_min_size, content_max_size, pbm)
+    }
+
+    fn content_box_sizes_and_padding_border_margin_deprecated(
+        &self,
+        containing_block: &IndefiniteContainingBlock,
+    ) -> (
+        LogicalVec2<AuOrAuto>,
+        LogicalVec2<AuOrAuto>,
+        LogicalVec2<Option<Au>>,
+        PaddingBorderMargin,
+    ) {
+        let (content_box_size, content_min_size, content_max_size, pbm) =
+            self.content_box_sizes_and_padding_border_margin(containing_block);
+        (
+            content_box_size.map(Size::to_auto_or),
+            content_min_size.map(Size::to_auto_or),
+            content_max_size.map(Size::to_numeric),
+            pbm,
+        )
     }
 
     fn padding_border_margin(&self, containing_block: &ContainingBlock) -> PaddingBorderMargin {
@@ -995,15 +1055,6 @@ impl From<stylo::Display> for Display {
             stylo::DisplayInside::TableCell => unreachable!("Internal DisplayInside found"),
         };
         Display::GeneratingBox(DisplayGeneratingBox::OutsideInside { outside, inside })
-    }
-}
-
-fn size_to_length(size: &Size) -> LengthPercentageOrAuto {
-    match size {
-        Size::LengthPercentage(length) => LengthPercentageOrAuto::LengthPercentage(&length.0),
-        Size::Auto | Size::MinContent | Size::MaxContent | Size::FitContent | Size::Stretch => {
-            LengthPercentageOrAuto::Auto
-        },
     }
 }
 

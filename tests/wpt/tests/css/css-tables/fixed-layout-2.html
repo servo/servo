@@ -1,84 +1,116 @@
-<!doctype html>
-<script src='/resources/testharness.js'></script>
-<script src='/resources/testharnessreport.js'></script>
-<link rel='stylesheet' href='./support/base.css' />
+<!DOCTYPE html>
+<title>table-layout:fixed with various widths</title>
+<link rel="author" title="Oriol Brufau" href="obrufau@igalia.com">
 <link rel="help" href="https://drafts.csswg.org/css-tables-3/#in-fixed-mode">
-<main>
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/10937">
+<link rel="stylesheet" href="./support/base.css">
 
-    <h1>Fixed Layout</h1>
-    <p>Checks whether fixed layout is implemented properly (width is not definite)</p>
+<style>
+.wrapper {
+  width: 0;
+}
+x-table {
+  table-layout: fixed;
+  border-spacing: 0px;
+}
+x-td:first-child {
+  padding: 0;
+  background: cyan;
+  width: 50px;
+  height: 50px;
+}
+x-td + x-td {
+  padding: 0;
+  height: 50px;
+}
+x-td > div {
+  width: 100px;
+}
+</style>
 
-    <hr/>
-    <p>This should be a 100px-wide blue square:</p>
-    <p>Table-layout:fixed does not apply to width:auto tables</p>
-    <x-table style="table-layout: fixed; border-spacing: 0px">
-        <x-tr>
-            <x-td style="padding: 0; background: blue; height: 100px;"><div style="width: 100px"></div></x-td>
-            <x-td style="padding: 0"></x-td>
-        </x-tr>
-    </x-table>
-
-    <hr/>
-    <p>This should be a 100px-wide blue square:</p>
-    <p>Table-layout:fixed does not apply to width:max-content tables</p>
-    <x-table style="table-layout: fixed; width: max-content; border-spacing: 0px">
-        <x-tr>
-            <x-td style="padding: 0; background: blue; height: 100px;"><div style="width: 100px"></div></x-td>
-            <x-td style="padding: 0"></x-td>
-        </x-tr>
-    </x-table>
-
-    <hr/>
-    <p>This should be a 100px-wide blue square:</p>
-    <p>Table-layout:fixed does apply to width:min-content/fit-content tables</p>
-    <x-table style="table-layout: fixed; width: fit-content; border-spacing: 0px">
-        <x-tr>
-            <x-td style="padding: 0; background: blue; height: 50px;"><div style="width: 100px"></div></x-td>
-            <x-td style="padding: 0"></x-td>
-        </x-tr>
-    </x-table>
-    <x-table style="table-layout: fixed; width: min-content; border-spacing: 0px">
-        <x-tr>
-            <x-td style="padding: 0; background: blue; height: 50px;width:100px;"><div style="width: 100px"></div></x-td>
-            <x-td style="padding: 0;height:50px"><div style="width: 100px"></div></x-td>
-        </x-tr>
-    </x-table>
-
+<main id="main">
+  <h1>Fixed Layout</h1>
+  <p>Checks whether fixed layout is implemented properly</p>
 </main>
 
+<template id="template">
+  <hr>
+  <p></p>
+  <p></p>
+  <div class="wrapper">
+    <x-table>
+      <x-tr>
+        <x-td>
+          <div></div>
+        </x-td>
+        <x-td></x-td>
+      </x-tr>
+    </x-table>
+  </div>
+</template>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
 <script>
-    while(true) {
-        var xtd = document.querySelector('x-td[rowspan], x-td[colspan]'); if(!xtd) break;
-        var td = document.createElement('td'); for(var i = xtd.attributes.length; i--;) { td.setAttribute(xtd.attributes[i].name,xtd.attributes[i].value) }
-        xtd.parentNode.replaceChild(td,xtd);
+let sizeData = {
+  "10px": true,
+  "100%": true,
+  "calc(10px + 100%)": true,
+  "auto": false,
+  "min-content": true,
+  "max-content": false,
+  "fit-content": true,
+  "calc-size(any, 10px + 100%)": true,
+
+  // These expectations are tentative, see https://github.com/w3c/csswg-drafts/issues/10937
+  "fit-content(0)": true,
+  "stretch": true,
+
+  // These are non-standard, expect the most popular behavior among the supporting implementations.
+  "-moz-available": true,
+  "-webkit-fill-available": true,
+  "intrinsic": false,
+  "min-intrinsic": false,
+};
+
+function checkSize(size, allowsFixed) {
+  let fragment = template.content.cloneNode(true);
+  if (allowsFixed) {
+    fragment.querySelector("p").textContent = "This should be a 50x50 cyan square:";
+    fragment.querySelector("p + p").textContent = "Table-layout:fixed does apply to width:" + size + " tables";
+  } else {
+    fragment.querySelector("p").textContent = "This should be a 100x50 cyan rectangle:";
+    fragment.querySelector("p + p").textContent = "Table-layout:fixed does NOT apply to width:" + size + " tables";
+  }
+  let table = fragment.querySelector("x-table");
+  table.style.width = size;
+  table.querySelector("div").textContent = size;
+  main.appendChild(fragment);
+
+  test(() => {
+    assert_equals(
+      getComputedStyle(table).tableLayout,
+      "fixed",
+      "The computed value is 'fixed' regardless of whether it applies"
+    );
+    if (allowsFixed) {
+      assert_equals(table.offsetWidth, 50, "Table is in fixed mode");
+    } else {
+      assert_equals(table.offsetWidth, 100, "Table is NOT in fixed mode");
     }
+  }, size);
+}
 
-    generate_tests(assert_equals, [
-        [
-            "Table-layout:fixed is not applied when width is auto",
-            document.querySelector("x-table:nth-of-type(1) > x-tr:first-child > x-td:first-child").offsetWidth,
-            100
-        ],
-        [
-            "Table-layout:fixed reports fixed when width is auto",
-            getComputedStyle(document.querySelector("x-table:nth-of-type(1)")).tableLayout,
-            'fixed'
-        ],
-        [
-            "Table-layout:fixed is not applied when width is max-content",
-            document.querySelector("x-table:nth-of-type(2) > x-tr:first-child > x-td:first-child").offsetWidth,
-            100
-        ],
-        [
-            "Table-layout:fixed reports fixed when width is max-content",
-            getComputedStyle(document.querySelector("x-table:nth-of-type(2)")).tableLayout,
-            'fixed'
-        ],
-        [
-            "Table-layout:fixed is applied when width is min-content",
-            document.querySelector("x-table:nth-of-type(3) > x-tr:first-child > x-td:first-child").offsetWidth,
-            document.querySelector("x-table:nth-of-type(4) > x-tr:first-child > x-td:first-child").offsetWidth
-        ]
-    ])
+for (let [size, allowsFixed] of Object.entries(sizeData)) {
+  if (CSS.supports("width", size)) {
+    checkSize(size, allowsFixed);
 
+    // calc-size() should have the same behavior as its basis.
+    // https://drafts.csswg.org/css-values-5/#calc-size
+    let calcSize = "calc-size(" + size + ", size)";
+    if (CSS.supports("width", calcSize)) {
+      checkSize(calcSize, allowsFixed);
+    }
+  }
+}
 </script>

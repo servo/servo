@@ -121,7 +121,7 @@ pub(crate) fn outer_inline(
     get_content_size: impl FnOnce(&IndefiniteContainingBlock) -> ContentSizes,
 ) -> ContentSizes {
     let (content_box_size, content_min_size, content_max_size, pbm) =
-        style.content_box_sizes_and_padding_border_margin(containing_block);
+        style.content_box_sizes_and_padding_border_margin_deprecated(containing_block);
     let content_min_size = LogicalVec2 {
         inline: content_min_size.inline.auto_is(|| auto_minimum.inline),
         block: content_min_size.block.auto_is(|| auto_minimum.block),
