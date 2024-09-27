@@ -57,7 +57,7 @@ class MachCommands(CommandBase):
                      help='Print very verbose output')
     @CommandArgument('params', nargs='...',
                      help="Command-line arguments to be passed through to Cargo")
-    @CommandBase.common_command_arguments(build_configuration=True, build_type=True)
+    @CommandBase.common_command_arguments(build_configuration=True, build_type=True, package_configuration=True)
     def build(self, build_type: BuildType, jobs=None, params=None, no_package=False,
               verbose=False, very_verbose=False, with_asan=False, flavor=None, **kwargs):
         opts = params or []
