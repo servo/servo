@@ -14,7 +14,7 @@ use keyboard_types::{CompositionEvent, KeyboardEvent};
 use libc::c_void;
 use net::protocols::ProtocolRegistry;
 use script_traits::{
-    GamepadEvent, MediaSessionActionType, MouseButton, Theme, TouchEventType, TouchId,
+    ClipboardEventType, GamepadEvent, MediaSessionActionType, MouseButton, Theme, TouchEventType, TouchId,
     TraversalDirection, WheelDelta,
 };
 use servo_geometry::{DeviceIndependentIntRect, DeviceIndependentIntSize, DeviceIndependentPixel};
@@ -134,6 +134,8 @@ pub enum EmbedderEvent {
     Gamepad(GamepadEvent),
     /// Vertical Synchronization tick
     Vsync,
+    /// Sent when access to clipboard is required
+    ClipboardAction(ClipboardEventType),
 }
 
 impl Debug for EmbedderEvent {
@@ -196,6 +198,7 @@ impl Debug for EmbedderEvent {
             EmbedderEvent::ReplaceNativeSurface(..) => write!(f, "ReplaceNativeSurface"),
             EmbedderEvent::Gamepad(..) => write!(f, "Gamepad"),
             EmbedderEvent::Vsync => write!(f, "Vsync"),
+            EmbedderEvent::ClipboardAction(_) => write!(f, "ClipboardAction"),
         }
     }
 }

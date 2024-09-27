@@ -26,8 +26,8 @@ use servo::embedder_traits::{
 };
 use servo::ipc_channel::ipc::IpcSender;
 use servo::script_traits::{
-    GamepadEvent, GamepadIndex, GamepadInputBounds, GamepadSupportedHapticEffects,
-    GamepadUpdateType, TouchEventType, TraversalDirection,
+    ClipboardEventType, GamepadEvent, GamepadIndex, GamepadInputBounds,
+    GamepadSupportedHapticEffects, GamepadUpdateType, TouchEventType, TraversalDirection,
 };
 use servo::servo_config::opts;
 use servo::servo_url::ServoUrl;
@@ -483,6 +483,25 @@ where
                     Duration::from_secs(duration),
                 ))
             })
+            .shortcut(CMD_OR_CONTROL, 'X', || {
+                Some(EmbedderEvent::ClipboardAction(ClipboardEventType::Cut))
+            })
+            .shortcut(CMD_OR_CONTROL, 'C', || {
+                Some(EmbedderEvent::ClipboardAction(ClipboardEventType::Copy))
+            })
+            .shortcut(CMD_OR_CONTROL, 'V', || {
+                let contents = self
+                    .clipboard
+                    .as_mut()
+                    .and_then(|clipboard| clipboard.get_text().ok())
+                    .unwrap_or_else(|| {
+                        warn!("Error getting clipboard text. Returning empty string.");
+                        String::new()
+                    });
+                Some(EmbedderEvent::ClipboardAction(ClipboardEventType::Paste(
+                    contents,
+                )))
+            })
             .shortcut(Modifiers::CONTROL, Key::F9, || {
                 Some(EmbedderEvent::CaptureWebRender)
             })
@@ -848,6 +867,11 @@ where
                 },
                 EmbedderMsg::Keyboard(key_event) => {
                     self.handle_key_from_servo(webview_id, key_event);
+                },
+                EmbedderMsg::ClearClipboardContents => {
+                    self.clipboard
+                        .as_mut()
+                        .and_then(|clipboard| clipboard.clear().ok());
                 },
                 EmbedderMsg::GetClipboardContents(sender) => {
                     let contents = self
