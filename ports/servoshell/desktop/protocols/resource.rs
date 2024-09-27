@@ -23,9 +23,9 @@ use net_traits::ResourceFetchTiming;
 use tokio::sync::mpsc::unbounded_channel;
 
 #[derive(Default)]
-pub struct ResourceProtocolHander {}
+pub struct ResourceProtocolHandler {}
 
-impl ResourceProtocolHander {
+impl ResourceProtocolHandler {
     pub fn response_for_path(
         request: &mut Request,
         done_chan: &mut DoneChannel,
@@ -91,7 +91,7 @@ impl ResourceProtocolHander {
     }
 }
 
-impl ProtocolHandler for ResourceProtocolHander {
+impl ProtocolHandler for ResourceProtocolHandler {
     fn load(
         &self,
         request: &mut Request,
