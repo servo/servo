@@ -535,6 +535,31 @@ pub struct WheelDelta {
     pub mode: WheelMode,
 }
 
+/// The types of clipboard events
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum ClipboardEventType {
+    /// Contents of the system clipboard are changed
+    Change,
+    /// Copy
+    Copy,
+    /// Cut
+    Cut,
+    /// Paste
+    Paste(String),
+}
+
+impl ClipboardEventType {
+    /// Convert to event name
+    pub fn as_str(&self) -> &str {
+        match *self {
+            ClipboardEventType::Change => "clipboardchange",
+            ClipboardEventType::Copy => "copy",
+            ClipboardEventType::Cut => "cut",
+            ClipboardEventType::Paste(..) => "paste",
+        }
+    }
+}
+
 /// Events from the compositor that the script thread needs to know about
 #[derive(Debug, Deserialize, Serialize)]
 pub enum CompositorEvent {
@@ -574,6 +599,8 @@ pub enum CompositorEvent {
     IMEDismissedEvent,
     /// Connected gamepad state updated
     GamepadEvent(GamepadEvent),
+    /// A clipboard action was requested
+    ClipboardEvent(ClipboardEventType),
 }
 
 impl From<&CompositorEvent> for CompositorEventVariant {
@@ -588,6 +615,7 @@ impl From<&CompositorEvent> for CompositorEventVariant {
             CompositorEvent::CompositionEvent(..) => CompositorEventVariant::CompositionEvent,
             CompositorEvent::IMEDismissedEvent => CompositorEventVariant::IMEDismissedEvent,
             CompositorEvent::GamepadEvent(..) => CompositorEventVariant::GamepadEvent,
+            CompositorEvent::ClipboardEvent(..) => todo!(),
         }
     }
 }

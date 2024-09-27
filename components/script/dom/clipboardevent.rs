@@ -74,6 +74,14 @@ impl ClipboardEvent {
             can_gc,
         )
     }
+
+    pub fn set_clipboard_data(&self, clipboard_data: Option<&DataTransfer>) {
+        self.clipboard_data.set(clipboard_data);
+    }
+
+    pub fn get_clipboard_data(&self) -> Option<DomRoot<DataTransfer>> {
+        self.clipboard_data.get()
+    }
 }
 
 impl ClipboardEventMethods for ClipboardEvent {

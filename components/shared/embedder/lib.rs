@@ -192,6 +192,8 @@ pub enum EmbedderMsg {
     AllowUnload(IpcSender<bool>),
     /// Sends an unconsumed key event back to the embedder.
     Keyboard(KeyboardEvent),
+    /// Inform embedder to clear the clipboard
+    ClearClipboardContents,
     /// Gets system clipboard contents
     GetClipboardContents(IpcSender<String>),
     /// Sets system clipboard contents
@@ -269,6 +271,7 @@ impl Debug for EmbedderMsg {
             EmbedderMsg::AllowUnload(..) => write!(f, "AllowUnload"),
             EmbedderMsg::AllowNavigationRequest(..) => write!(f, "AllowNavigationRequest"),
             EmbedderMsg::Keyboard(..) => write!(f, "Keyboard"),
+            EmbedderMsg::ClearClipboardContents => write!(f, "ClearClipboardContents"),
             EmbedderMsg::GetClipboardContents(..) => write!(f, "GetClipboardContents"),
             EmbedderMsg::SetClipboardContents(..) => write!(f, "SetClipboardContents"),
             EmbedderMsg::SetCursor(..) => write!(f, "SetCursor"),
