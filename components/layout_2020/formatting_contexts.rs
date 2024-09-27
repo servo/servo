@@ -201,14 +201,11 @@ impl IndependentFormattingContext {
         auto_block_size_stretches_to_containing_block: bool,
     ) -> ContentSizes {
         match self {
-            Self::NonReplaced(non_replaced) => sizing::outer_inline(
-                &non_replaced.style.clone(),
+            Self::NonReplaced(non_replaced) => non_replaced.outer_inline_content_sizes(
+                layout_context,
                 containing_block,
                 auto_minimum,
                 auto_block_size_stretches_to_containing_block,
-                |containing_block_for_children| {
-                    non_replaced.inline_content_sizes(layout_context, containing_block_for_children)
-                },
             ),
             Self::Replaced(replaced) => sizing::outer_inline(
                 &replaced.style,
@@ -290,6 +287,24 @@ impl NonReplacedFormattingContext {
                     .inline_content_sizes(layout_context, containing_block_for_children),
             ))
             .1
+    }
+
+    pub(crate) fn outer_inline_content_sizes(
+        &mut self,
+        layout_context: &LayoutContext,
+        containing_block: &IndefiniteContainingBlock,
+        auto_minimum: &LogicalVec2<Au>,
+        auto_block_size_stretches_to_containing_block: bool,
+    ) -> ContentSizes {
+        sizing::outer_inline(
+            &self.style.clone(),
+            containing_block,
+            auto_minimum,
+            auto_block_size_stretches_to_containing_block,
+            |containing_block_for_children| {
+                self.inline_content_sizes(layout_context, containing_block_for_children)
+            },
+        )
     }
 }
 
