@@ -9,12 +9,13 @@ use std::ops::Range;
 use dom_struct::dom_struct;
 use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
 use js::rust::HandleObject;
-use script_traits::ScriptToConstellationChan;
+use script_traits::{ClipboardEventType, ScriptToConstellationChan};
 use style::attr::AttrValue;
 use style_dom::ElementState;
 
 use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::DataTransferBinding::DataTransfer_Binding::DataTransferMethods;
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLFormElementBinding::SelectionMode;
 use crate::dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding::HTMLTextAreaElementMethods;
@@ -23,6 +24,7 @@ use crate::dom::bindings::error::ErrorResult;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
+use crate::dom::clipboardevent::ClipboardEvent;
 use crate::dom::compositionevent::CompositionEvent;
 use crate::dom::document::Document;
 use crate::dom::element::{AttributeMutation, Element, LayoutElementHelpers};
@@ -456,6 +458,74 @@ impl HTMLTextAreaElement {
     fn selection(&self) -> TextControlSelection<Self> {
         TextControlSelection::new(self, &self.textinput)
     }
+
+    // TODO mirrored in htmlinputelement.rs
+    // https://www.w3.org/TR/clipboard-apis/#clipboard-actions
+    fn handle_clipboard_action(&self, event: &ClipboardEvent) -> bool {
+        // TODO true if invoked by a script
+        let script_triggered = false;
+        // TODO true if invoked from user interface or from a scripting thread which is allowed to show a popup.
+        let script_may_access_clipboard = false;
+
+        // Step 1
+        if script_triggered && !script_may_access_clipboard {
+            return false;
+        }
+        // Step 2
+        let e = event.upcast::<Event>();
+
+        // Step 3
+        if !e.DefaultPrevented() {
+            match e.Type().str() {
+                "copy" => {
+                    // Step 3.1
+                    self.textinput.borrow_mut().copy_contents();
+                    // Step 3.2
+                    document_from_node(self).fire_clipboard_event(ClipboardEventType::Change);
+                },
+                "cut" => {
+                    // Step 3.1
+                    let result = self.textinput.borrow_mut().cut_contents();
+                    // Step 3.1.3
+                    document_from_node(self).fire_clipboard_event(ClipboardEventType::Change);
+                    // Step 3.1.4 Queue tasks to fire any events that should fire due to the modification.
+                    // Step 3.2
+                    return result;
+                },
+                "paste" => {
+                    // Step 3.1 If there is a selection or cursor in an editable context where pasting is enabled, then
+                    self.textinput.borrow_mut().paste_contents();
+                    // Step 3.1.2 Queue tasks to fire any events that should fire due to the modification.
+                    // Step 3.2 Else return false.
+                },
+                _ => (),
+            }
+        } else {
+            // Step 4
+            match e.Type().str() {
+                "copy" => {
+                    // Step 4.1
+                    if let Some(clipboard_data) = event.get_clipboard_data() {
+                        document_from_node(self)
+                            .write_content_to_the_clipboard(clipboard_data.Items(), false);
+                    }
+                },
+                "cut" => {
+                    // Step 4.1
+                    if let Some(clipboard_data) = event.get_clipboard_data() {
+                        document_from_node(self)
+                            .write_content_to_the_clipboard(clipboard_data.Items(), false);
+                    }
+                    // Step 4.2
+                    document_from_node(self).fire_clipboard_event(ClipboardEventType::Change);
+                },
+                "paste" => return false,
+                _ => (),
+            }
+        }
+        //Step 5
+        true
+    }
 }
 
 impl VirtualMethods for HTMLTextAreaElement {
@@ -675,6 +745,10 @@ impl VirtualMethods for HTMLTextAreaElement {
                 }
                 event.mark_as_handled();
             }
+        }
+
+        if let Some(clipboard_event) = event.downcast::<ClipboardEvent>() {
+            self.handle_clipboard_action(clipboard_event);
         }
 
         self.validity_state()
