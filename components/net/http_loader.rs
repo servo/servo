@@ -67,6 +67,7 @@ use crate::cookie::ServoCookie;
 use crate::cookie_storage::CookieStorage;
 use crate::decoder::Decoder;
 use crate::fetch::cors_cache::CorsCache;
+use crate::fetch::headers::SecFetchDest;
 use crate::fetch::methods::{main_fetch, Data, DoneChannel, FetchContext, Target};
 use crate::hsts::HstsList;
 use crate::http_cache::{CacheKey, HttpCache};
@@ -1195,8 +1196,8 @@ async fn http_network_or_cache_fetch(
     // Step 8.12 Append a request `Origin` header for httpRequest.
     append_a_request_origin_header(http_request);
 
-    // Step 8.13 Append the Fetch metadata headers for httpRequest.
-    // TODO(#33616) Implement Sec-Fetch-* headers
+    // Step 8.13: Append the Fetch metadata headers for httpRequest.
+    append_the_fetch_metadata_headers(http_request);
 
     // Step 8.14: If httpRequest’s initiator is "prefetch", then set a structured field value given
     // (`Sec-Purpose`, the token "prefetch") in httpRequest’s header list.
@@ -2356,3 +2357,46 @@ pub fn append_a_request_origin_header(request: &mut Request) {
         request.headers.typed_insert(serialized_origin);
     }
 }
+
+/// <https://w3c.github.io/webappsec-fetch-metadata/#abstract-opdef-append-the-fetch-metadata-headers-for-a-request>
+fn append_the_fetch_metadata_headers(r: &mut Request) {
+    // Step 1. If r’s url is not an potentially trustworthy URL, return.
+    if !r.url().is_potentially_trustworthy() {
+        return;
+    }
+
+    // Step 2. Set the Sec-Fetch-Dest header for r.
+    set_the_sec_fetch_dest_header(r);
+
+    // Step 3. Set the Sec-Fetch-Mode header for r.
+    set_the_sec_fetch_mode_header(r);
+
+    // Step 4. Set the Sec-Fetch-Site header for r.
+    set_the_sec_fetch_site_header(r);
+
+    // Step 5. Set the Sec-Fetch-User header for r.
+    set_the_sec_fetch_user_header(r);
+}
+
+/// <https://w3c.github.io/webappsec-fetch-metadata/#abstract-opdef-set-dest>
+fn set_the_sec_fetch_dest_header(r: &mut Request) {
+    // Step 1. Assert: r’s url is a potentially trustworthy URL.
+    debug_assert!(r.url().is_potentially_trustworthy());
+
+    // Step 2. Let header be a Structured Header whose value is a token.
+    // Step 3. If r’s destination is the empty string, set header’s value to the string "empty".
+    // Otherwise, set header’s value to r’s destination.
+    let header = r.destination;
+
+    // Step 4. Set a structured field value `Sec-Fetch-Dest`/header in r’s header list.
+    r.headers.typed_insert(SecFetchDest(header));
+}
+
+/// <https://w3c.github.io/webappsec-fetch-metadata/#abstract-opdef-set-mode>
+fn set_the_sec_fetch_mode_header(r: &mut Request) {}
+
+/// <https://w3c.github.io/webappsec-fetch-metadata/#abstract-opdef-set-site>
+fn set_the_sec_fetch_site_header(r: &mut Request) {}
+
+/// <https://w3c.github.io/webappsec-fetch-metadata/#abstract-opdef-set-user>
+fn set_the_sec_fetch_user_header(r: &mut Request) {}
