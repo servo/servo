@@ -20,5 +20,5 @@ interface DataTransfer {
   DOMString getData(DOMString format);
   undefined setData(DOMString format, DOMString data);
   undefined clearData(optional DOMString format);
-  //[SameObject] readonly attribute FileList files;
+  [SameObject] readonly attribute FileList files;
 };

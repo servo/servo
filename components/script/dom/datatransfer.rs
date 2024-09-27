@@ -9,11 +9,12 @@ use js::rust::HandleObject;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::DataTransferBinding::DataTransferMethods;
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::datatransferitemlist::DataTransferItemList;
 use crate::dom::element::Element;
+use crate::dom::filelist::FileList;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
@@ -44,7 +45,7 @@ impl DataTransfer {
         }
     }
 
-    pub fn new(
+    pub fn new_with_proto(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -60,13 +61,21 @@ impl DataTransfer {
         data_transfer
     }
 
+    pub fn new(window: &Window) -> DomRoot<DataTransfer> {
+        Self::new_with_proto(window, None, CanGc::note())
+    }
+
     #[allow(non_snake_case)]
     pub fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
     ) -> DomRoot<DataTransfer> {
-        DataTransfer::new(window, proto, can_gc)
+        DataTransfer::new_with_proto(window, proto, can_gc)
+    }
+
+    pub fn set_mode(&self, mode: Mode) {
+        self.mode.set(mode);
     }
 
     pub fn can_write(&self) -> bool {
@@ -131,5 +140,10 @@ impl DataTransferMethods for DataTransfer {
     // https://html.spec.whatwg.org/multipage/#dom-datatransfer-cleardata
     fn ClearData(&self, format: Option<DOMString>) {
         self.items.clear_data(format);
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-datatransfer-files
+    fn Files(&self) -> DomRoot<FileList> {
+        FileList::new(&self.global().as_window(), self.items.files())
     }
 }

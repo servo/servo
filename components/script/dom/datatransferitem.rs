@@ -18,7 +18,7 @@ use crate::dom::datatransfer::DataTransfer;
 use crate::dom::file::File;
 use crate::dom::globalscope::GlobalScope;
 
-#[derive(JSTraceable, MallocSizeOf)]
+#[derive(Clone, JSTraceable, MallocSizeOf)]
 pub enum Kind {
     Text(DOMString),
     File(DomRoot<File>),
@@ -73,8 +73,20 @@ impl DataTransferItem {
         }
     }
 
+    pub fn get_as_file(&self) -> Option<DomRoot<File>> {
+        if let Kind::File(file) = &self.item {
+            Some(file.clone())
+        } else {
+            None
+        }
+    }
+
     pub fn set_data_transfer(&self, data_transfer: Option<&DataTransfer>) {
         self.data_transfer.set(data_transfer);
+    }
+
+    pub fn kind(&self) -> Kind {
+        self.item.clone()
     }
 }
 
@@ -104,11 +116,8 @@ impl DataTransferItemMethods for DataTransferItem {
                 .root()
                 .is_some_and(|data_transfer| data_transfer.can_read())
             {
-                match &self.item {
-                    Kind::Text(data) => {
-                        let _ = callback.Call__(data.clone(), ExceptionHandling::Report);
-                    },
-                    Kind::File(_) => {},
+                if let Kind::Text(data) = &self.item {
+                    let _ = callback.Call__(data.clone(), ExceptionHandling::Report);
                 }
             }
         }
@@ -121,10 +130,7 @@ impl DataTransferItemMethods for DataTransferItem {
             .root()
             .is_some_and(|data_transfer| data_transfer.can_read())
         {
-            return match &self.item {
-                Kind::Text(_) => None,
-                Kind::File(file) => Some(file.clone()),
-            };
+            self.get_as_file();
         }
         None
     }

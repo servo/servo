@@ -49,7 +49,7 @@ impl DataTransferItemList {
 
     pub fn set_data_transfer(&self, data_transfer: Option<&DataTransfer>) {
         self.data_transfer.set(data_transfer);
-        for item in self.items.borrow_mut().iter() {
+        for item in self.items.borrow().iter() {
             item.set_data_transfer(data_transfer);
         }
     }
@@ -78,7 +78,7 @@ impl DataTransferItemList {
             };
 
             for item in self.items.borrow().iter() {
-                if let Some(mut result) = item.get_string_of_type(&type_) {
+                if let Some(result) = item.get_string_of_type(&type_) {
                     if convert_to_url {
                         //TODO parse uri-list as [RFC2483]
                     }
@@ -101,13 +101,7 @@ impl DataTransferItemList {
             self.items
                 .borrow_mut()
                 .retain(|item| !item.type_matches(&type_));
-            let item = DataTransferItem::new(
-                &self.global(),
-                type_,
-                Kind::Text(data),
-                self.data_transfer.root().as_deref(),
-            );
-            self.items.borrow_mut().push(item);
+            self.add_text_item(data, type_);
         }
     }
 
@@ -128,6 +122,42 @@ impl DataTransferItemList {
                 self.items.borrow_mut().retain(|item| item.is_file_kind());
             }
         }
+    }
+
+    pub fn add_text_item(&self, data: DOMString, type_: DOMString) {
+        let item = DataTransferItem::new(
+            &self.global(),
+            type_,
+            Kind::Text(data),
+            self.data_transfer.root().as_deref(),
+        );
+        self.items.borrow_mut().push(item);
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.items.borrow().is_empty()
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = DomRoot<DataTransferItem>> + '_ {
+        let len = self.items.borrow().len() as u32;
+        (0..len).flat_map(move |i| self.IndexedGetter(i))
+    }
+
+    pub fn files(&self) -> Vec<DomRoot<File>> {
+        let mut files = Vec::new();
+
+        if self
+            .data_transfer
+            .root()
+            .is_some_and(|data_transfer| data_transfer.can_read())
+        {
+            for item in self.items.borrow().iter() {
+                if let Some(file) = item.get_as_file() {
+                    files.push(file);
+                }
+            }
+        }
+        files
     }
 }
 
