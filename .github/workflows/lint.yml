@@ -28,7 +28,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 2 # This is necessary for `test-tidy`.
       - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@v0.0.4
+        uses: mozilla-actions/sccache-action@v0.0.6
       - name: Set LIBCLANG_PATH env # needed for bindgen in mozangle
         run: echo "LIBCLANG_PATH=/usr/lib/llvm-14/lib" >> $GITHUB_ENV
       - uses: actions/setup-python@v5

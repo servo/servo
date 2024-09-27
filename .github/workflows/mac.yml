@@ -78,7 +78,7 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }}
       - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@v0.0.4
+        uses: mozilla-actions/sccache-action@v0.0.6
       - name: Install crown
         run: cargo install --path support/crown
       - name: Bootstrap
