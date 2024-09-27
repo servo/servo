@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 //! Loads resources using a mapping from well-known shortcuts to resource: urls.
-//! Recognized shorcuts:
+//! Recognized shortcuts:
 //! - servo:newtab
 
 use std::future::Future;
@@ -14,12 +14,12 @@ use net::protocols::ProtocolHandler;
 use net_traits::request::Request;
 use net_traits::response::Response;
 
-use crate::desktop::protocols::resource::ResourceProtocolHander;
+use crate::desktop::protocols::resource::ResourceProtocolHandler;
 
 #[derive(Default)]
-pub struct ServoProtocolHander {}
+pub struct ServoProtocolHandler {}
 
-impl ProtocolHandler for ServoProtocolHander {
+impl ProtocolHandler for ServoProtocolHandler {
     fn load(
         &self,
         request: &mut Request,
@@ -29,7 +29,7 @@ impl ProtocolHandler for ServoProtocolHander {
         let url = request.current_url();
 
         match url.path() {
-            "newtab" => ResourceProtocolHander::response_for_path(
+            "newtab" => ResourceProtocolHandler::response_for_path(
                 request,
                 done_chan,
                 context,
