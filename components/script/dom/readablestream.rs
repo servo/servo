@@ -29,7 +29,7 @@ use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::bindings::utils::get_dictionary_property;
-use crate::dom::countqueuingstrategy::extract_high_water_mark;
+use crate::dom::countqueuingstrategy::{extract_high_water_mark, extract_size_algorithm};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::readablebytestreamcontroller::ReadableByteStreamController;
@@ -103,9 +103,10 @@ impl ReadableStream {
         underlying_source: Option<*mut JSObject>,
         strategy: &QueuingStrategy,
     ) -> Fallible<DomRoot<Self>> {
-        // Step 1
+        // If underlyingSource is missing, set it to null.
         rooted!(in(*cx) let underlying_source_obj = underlying_source.unwrap_or(ptr::null_mut()));
-        // Step 2
+        // Let underlyingSourceDict be underlyingSource,
+        // converted to an IDL value of type UnderlyingSource.
         let underlying_source_dict = if !underlying_source_obj.is_null() {
             rooted!(in(*cx) let obj_val = ObjectValue(underlying_source_obj.get()));
             match JsUnderlyingSource::new(cx, obj_val.handle()) {
@@ -122,15 +123,27 @@ impl ReadableStream {
         };
 
         let controller = if underlying_source_dict.type_.is_some() {
-            // TODO: byte controller.
+            // TODO: If underlyingSourceDict["type"] is "bytes"
             todo!()
         } else {
+            // Let highWaterMark be ? ExtractHighWaterMark(strategy, 1).
+            let high_water_mark = extract_high_water_mark(strategy, 1.0)?;
+
+            // Let sizeAlgorithm be ! ExtractSizeAlgorithm(strategy).
+            let size_algorithm = extract_size_algorithm(strategy);
+
+            // Perform ? SetUpReadableStreamDefaultControllerFromUnderlyingSource
             ReadableStreamDefaultController::new(
                 global,
                 UnderlyingSourceType::Js(underlying_source_dict),
-                extract_high_water_mark(strategy, 1.0)?,
+                high_water_mark,
+                size_algorithm,
             )
         };
+
+        // Perform ! InitializeReadableStream(this).
+        // Note: in the spec this step is done before
+        // SetUpReadableStreamDefaultControllerFromUnderlyingSource
         Ok(ReadableStream::new(
             global,
             Controller::ReadableStreamDefaultController(controller),
@@ -138,6 +151,7 @@ impl ReadableStream {
     }
 
     #[allow(crown::unrooted_must_root)]
+    /// <https://streams.spec.whatwg.org/#initialize-readable-stream>
     fn new_inherited(controller: Controller) -> ReadableStream {
         let reader = match &controller {
             Controller::ReadableStreamDefaultController(_) => {
@@ -198,7 +212,12 @@ impl ReadableStream {
         source: UnderlyingSourceType,
     ) -> DomRoot<ReadableStream> {
         assert!(source.is_native());
-        let controller = ReadableStreamDefaultController::new(global, source, 1.0);
+        let controller = ReadableStreamDefaultController::new(
+            global,
+            source,
+            1.0,
+            extract_size_algorithm(&QueuingStrategy::empty()),
+        );
         let stream = ReadableStream::new(
             global,
             Controller::ReadableStreamDefaultController(controller.clone()),
