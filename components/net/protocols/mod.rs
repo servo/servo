@@ -29,12 +29,24 @@ use file::FileProtocolHander;
 static FORBIDDEN_SCHEMES: [&str; 4] = ["http", "https", "chrome", "about"];
 
 pub trait ProtocolHandler: Send + Sync {
+    /// Triggers the load of a resource for this protocol and returns a future
+    /// that will produce a Response. Even if the protocol is not backed by a
+    /// http endpoint, it is recommended to a least provide:
+    /// - A relevant status code.
+    /// - A Content Type.
     fn load(
         &self,
         request: &mut Request,
         done_chan: &mut DoneChannel,
         context: &FetchContext,
     ) -> Pin<Box<dyn Future<Output = Response> + Send>>;
+
+    /// Specify if resources served by that protocol can be retrieved
+    /// with `fetch()` without no-cors mode to allow the caller direct
+    /// access to the resource content.
+    fn is_fetchable(&self) -> bool {
+        false
+    }
 }
 
 #[derive(Default)]
@@ -79,6 +91,13 @@ impl ProtocolRegistry {
 
             self.handlers.entry(scheme).or_insert(handler);
         }
+    }
+
+    pub fn is_fetchable(&self, scheme: &str) -> bool {
+        self.handlers
+            .get(scheme)
+            .map(|handler| handler.is_fetchable())
+            .unwrap_or(false)
     }
 }
 

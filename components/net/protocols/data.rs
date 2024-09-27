@@ -54,4 +54,8 @@ impl ProtocolHandler for DataProtocolHander {
 
         Box::pin(std::future::ready(response))
     }
+
+    fn is_fetchable(&self) -> bool {
+        true
+    }
 }

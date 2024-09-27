@@ -43,4 +43,8 @@ impl ProtocolHandler for UrlInfoProtocolHander {
 
         Box::pin(std::future::ready(response))
     }
+
+    fn is_fetchable(&self) -> bool {
+        true
+    }
 }

@@ -274,10 +274,12 @@ pub async fn main_fetch(
 
     // Step 12.
 
+    let current_url = request.current_url();
+    let current_scheme = current_url.scheme();
+
     let mut response = match response {
         Some(res) => res,
         None => {
-            let current_url = request.current_url();
             let same_origin = if let Origin::Origin(ref origin) = request.origin {
                 *origin == current_url.origin()
             } else {
@@ -285,8 +287,8 @@ pub async fn main_fetch(
             };
 
             if (same_origin && !cors_flag) ||
-                current_url.scheme() == "data" ||
-                current_url.scheme() == "chrome" ||
+                current_scheme == "chrome" ||
+                context.protocols.is_fetchable(current_scheme) ||
                 matches!(
                     request.mode,
                     RequestMode::Navigate | RequestMode::WebSocket { .. }
@@ -312,7 +314,7 @@ pub async fn main_fetch(
                     // Substep 3. Return the result of running scheme fetch given fetchParams.
                     scheme_fetch(request, cache, target, done_chan, context).await
                 }
-            } else if !matches!(current_url.scheme(), "http" | "https") {
+            } else if !matches!(current_scheme, "http" | "https") {
                 Response::network_error(NetworkError::Internal("Non-http scheme".into()))
             } else if request.use_cors_preflight ||
                 (request.unsafe_request &&
@@ -494,7 +496,7 @@ pub async fn main_fetch(
     }
 
     // Step 21.
-    if request.body.is_some() && matches!(request.current_url().scheme(), "http" | "https") {
+    if request.body.is_some() && matches!(current_scheme, "http" | "https") {
         // XXXManishearth: We actually should be calling process_request
         // in http_network_fetch. However, we can't yet follow the request
         // upload progress, so I'm keeping it here for now and pretending
