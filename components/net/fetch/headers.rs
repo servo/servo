@@ -169,12 +169,9 @@ impl Header for SecFetchUser {
     }
 }
 
-// FIXME: This functionality is in content-security-policy!
-// (https://github.com/rust-ammonia/rust-content-security-policy/commit/ec258813f4dbacf1b601c99980e04d3dcbfaa6f1)
-// But using it requires upgrading both servo and stylo (because of MallocSizeOf) to a newer version of the csp crate...
 const fn destination_as_str(destination: Destination) -> &'static str {
     match destination {
-        Destination::None => "",
+        Destination::None => "empty",
         Destination::Audio => "audio",
         Destination::AudioWorklet => "audioworklet",
         Destination::Document => "document",
