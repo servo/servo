@@ -210,6 +210,35 @@ fn strict_origin_when_cross_origin(
     strip_url_for_use_as_referrer(referrer_url, true)
 }
 
+/// <https://html.spec.whatwg.org/multipage/#concept-site-same-site>
+fn is_same_site(site_a: &ImmutableOrigin, site_b: &ImmutableOrigin) -> bool {
+    // Step 1. If A and B are the same opaque origin, then return true.
+    if !site_a.is_tuple() && !site_b.is_tuple() && site_a == site_b {
+        return true;
+    }
+
+    // Step 2. If A or B is an opaque origin, then return false.
+    let ImmutableOrigin::Tuple(scheme_a, host_a, _) = site_a else {
+        return false;
+    };
+    let ImmutableOrigin::Tuple(scheme_b, host_b, _) = site_b else {
+        return false;
+    };
+
+    // Step 3. If A's and B's scheme values are different, then return false.
+    if scheme_a != scheme_b {
+        return false;
+    }
+
+    // Step 4. If A's and B's host values are not equal, then return false.
+    if host_a != host_b {
+        return false;
+    }
+
+    // Step 5. Return true.
+    true
+}
+
 /// <https://html.spec.whatwg.org/multipage/#schemelessly-same-site>
 fn is_schemelessy_same_site(site_a: &ImmutableOrigin, site_b: &ImmutableOrigin) -> bool {
     // Step 1
