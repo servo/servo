@@ -515,7 +515,11 @@ class CommandBase(object):
         return env
 
     @staticmethod
-    def common_command_arguments(build_configuration=False, build_type=False, binary_selection=False):
+    def common_command_arguments(build_configuration=False,
+                                 build_type=False,
+                                 binary_selection=False,
+                                 package_configuration=False
+                                 ):
         decorators = []
         if build_type or binary_selection:
             decorators += [
@@ -532,10 +536,6 @@ class CommandBase(object):
                 CommandArgument('--profile', group="Build Type",
                                 help='Build with custom Cargo profile'),
                 CommandArgument('--with-asan', action='store_true', help="Build with AddressSanitizer"),
-                CommandArgument(
-                    '--flavor', default=None, group="Build Type",
-                    help='Product flavor to be used when packaging with Gradle/Hvigor (android/ohos).'
-                ),
             ]
 
         if build_configuration:
@@ -593,6 +593,14 @@ class CommandBase(object):
                     action='store_true',
                     help="Enable Servo's `crown` linter tool"
                 )
+            ]
+        if package_configuration:
+            decorators += [
+                CommandArgumentGroup('Packaging options'),
+                CommandArgument(
+                    '--flavor', default=None, group="Packaging options",
+                    help='Product flavor to be used when packaging with Gradle/Hvigor (android/ohos).'
+                ),
             ]
 
         if binary_selection:

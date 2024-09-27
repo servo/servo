@@ -132,7 +132,7 @@ class PackageCommands(CommandBase):
     @CommandArgument('--target', '-t',
                      default=None,
                      help='Package for given target platform')
-    @CommandBase.common_command_arguments(build_configuration=False, build_type=True)
+    @CommandBase.common_command_arguments(build_configuration=False, build_type=True, package_configuration=True)
     @CommandBase.allow_target_configuration
     def package(self, build_type: BuildType, flavor=None, with_asan=False):
         env = self.build_env()
@@ -420,7 +420,7 @@ class PackageCommands(CommandBase):
     @CommandArgument('--target', '-t',
                      default=None,
                      help='Install the given target platform')
-    @CommandBase.common_command_arguments(build_configuration=False, build_type=True)
+    @CommandBase.common_command_arguments(build_configuration=False, build_type=True, package_configuration=True)
     @CommandBase.allow_target_configuration
     def install(self, build_type: BuildType, emulator=False, usb=False, with_asan=False, flavor=None):
         env = self.build_env()
@@ -429,7 +429,7 @@ class PackageCommands(CommandBase):
         except BuildNotFound:
             print("Servo build not found. Building servo...")
             result = Registrar.dispatch(
-                "build", context=self.context, build_type=build_type
+                "build", context=self.context, build_type=build_type, flavor=flavor
             )
             if result:
                 return result
