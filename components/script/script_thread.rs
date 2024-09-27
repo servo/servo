@@ -3682,7 +3682,11 @@ impl ScriptThread {
 
         // Create the window and document objects.
         let old_document = incomplete.replacing_pipeline.and_then(ScriptThread::find_document);
-        let window = if let Some(old_document) = old_document {
+        let replacement_same_origin = old_document.as_ref().map_or(false, |doc| {
+            let old_origin = doc.origin();
+            final_url.origin().same_origin(old_origin)
+        });
+        let window = if let (Some(old_document), true) = (old_document, replacement_same_origin) {
             old_document.window().replace_contents(crate::dom::window::ReplaceData {
                 script_to_constellation_chan,
                 task_manager,
