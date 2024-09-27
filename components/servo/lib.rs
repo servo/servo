@@ -860,6 +860,13 @@ where
                     warn!("Sending Gamepad event to constellation failed ({:?}).", e);
                 }
             },
+            EmbedderEvent::ClipboardAction(clipboard_event) => {
+                //TODO find the best way
+                let msg = ConstellationMsg::Clipboard(clipboard_event);
+                if let Err(e) = self.constellation_chan.send(msg) {
+                    warn!("Sending Clipboard event to constellation failed ({:?}).", e);
+                }
+            },
         }
         false
     }

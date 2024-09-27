@@ -14,8 +14,8 @@ use keyboard_types::KeyboardEvent;
 use libc::c_void;
 use net::protocols::ProtocolRegistry;
 use script_traits::{
-    GamepadEvent, MediaSessionActionType, MouseButton, TouchEventType, TouchId, TraversalDirection,
-    WheelDelta,
+    ClipboardEventType, GamepadEvent, MediaSessionActionType, MouseButton, TouchEventType, TouchId,
+    TraversalDirection, WheelDelta,
 };
 use servo_geometry::DeviceIndependentPixel;
 use servo_url::ServoUrl;
@@ -128,6 +128,8 @@ pub enum EmbedderEvent {
     ReplaceNativeSurface(*mut c_void, DeviceIntSize),
     /// Sent when new Gamepad information is available.
     Gamepad(GamepadEvent),
+    /// Sent when access to clipboard is required
+    ClipboardAction(ClipboardEventType),
 }
 
 impl Debug for EmbedderEvent {
@@ -187,6 +189,7 @@ impl Debug for EmbedderEvent {
             EmbedderEvent::InvalidateNativeSurface => write!(f, "InvalidateNativeSurface"),
             EmbedderEvent::ReplaceNativeSurface(..) => write!(f, "ReplaceNativeSurface"),
             EmbedderEvent::Gamepad(..) => write!(f, "Gamepad"),
+            EmbedderEvent::ClipboardAction(_) => write!(f, "ClipboardAction"),
         }
     }
 }
