@@ -119,7 +119,7 @@ jobs:
       # Install missing tools in a GitHub-hosted runner.
       - name: Run sccache-cache
         if: ${{ ! fromJSON(needs.runner-select.outputs.is-self-hosted) }}
-        uses: mozilla-actions/sccache-action@v0.0.4
+        uses: mozilla-actions/sccache-action@v0.0.6
       - name: Set LIBCLANG_PATH env # needed for bindgen in mozangle
         if: ${{ ! fromJSON(needs.runner-select.outputs.is-self-hosted) && !inputs.upload }} # not needed on ubuntu 20.04 used for nightly
         run: echo "LIBCLANG_PATH=/usr/lib/llvm-14/lib" >> $GITHUB_ENV
