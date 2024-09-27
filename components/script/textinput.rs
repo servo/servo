@@ -1128,4 +1128,25 @@ impl<T: ClipboardProvider> TextInput<T> {
             .fold(UTF8Bytes::zero(), |acc, x| acc + x.len_utf8());
         self.edit_point.index = byte_offset;
     }
+
+    pub fn copy_contents(&mut self) {
+        if let Some(text) = self.get_selection_text() {
+            self.clipboard_provider.set_clipboard_contents(text);
+        }
+    }
+
+    pub fn cut_contents(&mut self) -> bool {
+        if let Some(text) = self.get_selection_text() {
+            self.clipboard_provider.set_clipboard_contents(text);
+            self.delete_char(Direction::Backward);
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn paste_contents(&mut self) {
+        let contents = self.clipboard_provider.clipboard_contents();
+        self.insert_string(contents);
+    }
 }
