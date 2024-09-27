@@ -2324,8 +2324,10 @@ impl Document {
         if !self.salvageable.get() {
             // Step 1 of clean-up steps.
             global_scope.close_event_sources();
-            let msg = ScriptMsg::DiscardDocument;
-            let _ = global_scope.script_to_constellation_chan().send(msg);
+            if self.is_window_relevant() {
+                let msg = ScriptMsg::DiscardDocument;
+                let _ = global_scope.script_to_constellation_chan().send(msg);
+            }
         }
         // https://w3c.github.io/FileAPI/#lifeTime
         global_scope.clean_up_all_file_resources();
