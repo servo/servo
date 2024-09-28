@@ -769,49 +769,20 @@ impl<'a> TableLayout<'a> {
     }
 
     /// Compute CAPMIN: <https://drafts.csswg.org/css-tables/#capmin>
-    fn compute_caption_minimum_inline_size(
-        &mut self,
-        layout_context: &LayoutContext,
-        writing_mode: WritingMode,
-    ) -> Au {
+    fn compute_caption_minimum_inline_size(&mut self, layout_context: &LayoutContext) -> Au {
         self.table
             .captions
             .iter()
             .map(|caption| {
                 let mut context = caption.context.borrow_mut();
-                let padding = context
-                    .style
-                    .padding(writing_mode)
-                    .percentages_relative_to(Au::zero());
-                let border = context.style.border_width(writing_mode);
-                let margin = context
-                    .style
-                    .margin(writing_mode)
-                    .percentages_relative_to(Au::zero())
-                    .auto_is(Au::zero);
-
-                let padding_border_sums = LogicalVec2 {
-                    inline: padding.inline_sum() + border.inline_sum() + margin.inline_sum(),
-                    block: padding.block_sum() + border.block_sum() + margin.block_sum(),
-                };
-
-                let (size, min_size, max_size, size_is_auto) =
-                    get_outer_sizes_from_style(&context.style, writing_mode, &padding_border_sums);
-
-                // If an inline size is defined it should serve as the upper limit and lower limit
-                // of the caption inline size.
-                if !size_is_auto {
-                    size.inline
-                } else {
-                    let style = context.style.clone();
-                    let inline_content_sizes = context.inline_content_sizes(
+                context
+                    .outer_inline_content_sizes(
                         layout_context,
-                        &IndefiniteContainingBlock::new_for_style(&style),
-                    );
-                    inline_content_sizes.min_content + padding_border_sums.inline
-                }
-                .min(max_size.inline)
-                .max(min_size.inline)
+                        &IndefiniteContainingBlock::new_for_style(&self.table.style),
+                        &LogicalVec2::zero(),
+                        false, /* auto_block_size_stretches_to_containing_block */
+                    )
+                    .min_content
             })
             .max()
             .unwrap_or_default()
@@ -1666,8 +1637,7 @@ impl<'a> TableLayout<'a> {
     ) -> IndependentLayout {
         let table_writing_mode = containing_block_for_children.style.writing_mode;
         let grid_min_max = self.compute_grid_min_max(layout_context, table_writing_mode);
-        let caption_minimum_inline_size =
-            self.compute_caption_minimum_inline_size(layout_context, table_writing_mode);
+        let caption_minimum_inline_size = self.compute_caption_minimum_inline_size(layout_context);
         self.compute_table_width(
             containing_block_for_children,
             containing_block_for_table,
@@ -2638,7 +2608,7 @@ impl Table {
         let mut table_content_sizes = layout.compute_grid_min_max(layout_context, writing_mode);
 
         let mut caption_minimum_inline_size =
-            layout.compute_caption_minimum_inline_size(layout_context, writing_mode);
+            layout.compute_caption_minimum_inline_size(layout_context);
         if caption_minimum_inline_size > table_content_sizes.min_content ||
             caption_minimum_inline_size > table_content_sizes.max_content
         {
