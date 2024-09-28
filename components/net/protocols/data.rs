@@ -7,7 +7,7 @@ use std::pin::Pin;
 
 use data_url::DataUrl;
 use headers::HeaderValue;
-use http::StatusCode;
+use net_traits::http_status::HttpStatus;
 use net_traits::request::Request;
 use net_traits::response::{Response, ResponseBody};
 use net_traits::{NetworkError, ResourceFetchTiming};
@@ -40,8 +40,7 @@ impl ProtocolHandler for DataProtocolHander {
                         http::header::CONTENT_TYPE,
                         HeaderValue::from_str(&mime.to_string()).unwrap(),
                     );
-                    response.status = Some((StatusCode::OK, "OK".to_string()));
-                    response.raw_status = Some((StatusCode::OK.as_u16(), b"OK".to_vec()));
+                    response.status = HttpStatus::default();
                     Some(response)
                 },
                 Err(_) => None,

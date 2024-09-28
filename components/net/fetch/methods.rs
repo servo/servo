@@ -19,6 +19,7 @@ use ipc_channel::ipc::{self, IpcReceiver};
 use log::warn;
 use mime::{self, Mime};
 use net_traits::filemanager_thread::{FileTokenCheck, RelativePos};
+use net_traits::http_status::HttpStatus;
 use net_traits::request::{
     is_cors_safelisted_method, is_cors_safelisted_request_header, BodyChunkRequest,
     BodyChunkResponse, CredentialsMode, Destination, Origin, RedirectMode, Referrer, Request,
@@ -599,8 +600,7 @@ fn create_blank_reply(url: ServoUrl, timing_type: ResourceTimingType) -> Respons
         .headers
         .typed_insert(ContentType::from(mime::TEXT_HTML_UTF_8));
     *response.body.lock().unwrap() = ResponseBody::Done(vec![]);
-    response.status = Some((StatusCode::OK, "OK".to_string()));
-    response.raw_status = Some((StatusCode::OK.as_u16(), b"OK".to_vec()));
+    response.status = HttpStatus::default();
     response
 }
 
@@ -681,13 +681,13 @@ async fn scheme_fetch(
     }
 }
 
-fn is_null_body_status(status: &Option<(StatusCode, String)>) -> bool {
+fn is_null_body_status(status: &HttpStatus) -> bool {
     matches!(
-        status,
-        Some((StatusCode::SWITCHING_PROTOCOLS, ..)) |
-            Some((StatusCode::NO_CONTENT, ..)) |
-            Some((StatusCode::RESET_CONTENT, ..)) |
-            Some((StatusCode::NOT_MODIFIED, ..))
+        status.try_code(),
+        Some(StatusCode::SWITCHING_PROTOCOLS) |
+            Some(StatusCode::NO_CONTENT) |
+            Some(StatusCode::RESET_CONTENT) |
+            Some(StatusCode::NOT_MODIFIED)
     )
 }
 

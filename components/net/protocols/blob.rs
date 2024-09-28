@@ -6,9 +6,10 @@ use std::future::{ready, Future};
 use std::pin::Pin;
 
 use headers::{HeaderMapExt, Range};
-use http::{Method, StatusCode};
+use http::Method;
 use log::debug;
 use net_traits::blob_url_store::{parse_blob_url, BlobURLStoreError};
+use net_traits::http_status::HttpStatus;
 use net_traits::request::Request;
 use net_traits::response::{Response, ResponseBody};
 use net_traits::{NetworkError, ResourceFetchTiming};
@@ -55,8 +56,7 @@ impl ProtocolHandler for BlobProtocolHander {
         };
 
         let mut response = Response::new(url, ResourceFetchTiming::new(request.timing_type()));
-        response.status = Some((StatusCode::OK, "OK".to_string()));
-        response.raw_status = Some((StatusCode::OK.as_u16(), b"OK".to_vec()));
+        response.status = HttpStatus::default();
 
         if is_range_request {
             partial_content(&mut response);

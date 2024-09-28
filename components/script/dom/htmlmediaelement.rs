@@ -16,6 +16,7 @@ use euclid::default::Size2D;
 use headers::{ContentLength, ContentRange, HeaderMapExt};
 use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
 use http::header::{self, HeaderMap, HeaderValue};
+use http::StatusCode;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::jsapi::JSAutoRealm;
@@ -2731,13 +2732,14 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
             }
         }
 
-        let (status_is_ok, is_seekable) = self
-            .metadata
-            .as_ref()
-            .and_then(|m| m.status.as_ref())
-            .map_or((true, false), |s| {
-                (s.0 >= 200 && s.0 < 300, s.0 == 206 || s.0 == 416)
-            });
+        let (status_is_ok, is_seekable) = self.metadata.as_ref().map_or((true, false), |s| {
+            let status = &s.status;
+            (
+                status.is_success(),
+                *status == StatusCode::PARTIAL_CONTENT ||
+                    *status == StatusCode::RANGE_NOT_SATISFIABLE,
+            )
+        });
 
         if is_seekable {
             // The server supports range requests,

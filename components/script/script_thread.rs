@@ -3172,11 +3172,12 @@ impl ScriptThread {
             Some(idx) => {
                 // https://html.spec.whatwg.org/multipage/#process-a-navigate-response
                 // 2. If response's status is 204 or 205, then abort these steps.
-                if let Some(Metadata {
-                    status: Some((204..=205, _)),
-                    ..
-                }) = metadata
-                {
+                let is20x = match metadata {
+                    Some(ref metadata) => metadata.status.in_range(204..=205),
+                    _ => false,
+                };
+
+                if is20x {
                     // If we have an existing window that is being navigated:
                     if let Some(window) = self.documents.borrow().find_window(*id) {
                         let window_proxy = window.window_proxy();
@@ -3767,8 +3768,6 @@ impl ScriptThread {
             .and_then(|h| h.typed_get::<ReferrerPolicyHeader>())
             .map(ReferrerPolicy::from);
 
-        let status_code = metadata.status.map(|status| status.0).unwrap_or(200);
-
         let document = Document::new(
             &window,
             HasBrowsingContext::Yes,
@@ -3782,7 +3781,7 @@ impl ScriptThread {
             loader,
             referrer,
             referrer_policy,
-            Some(status_code),
+            Some(metadata.status.raw_code()),
             incomplete.canceller,
             can_gc,
         );
@@ -4146,7 +4145,7 @@ impl ScriptThread {
         let chunk = match js_eval_result {
             Some(JsEvalResult::Ok(content)) => content,
             Some(JsEvalResult::NoContent) => {
-                meta.status = Some((204, b"No Content".to_vec()));
+                meta.status = http::StatusCode::NO_CONTENT.into();
                 vec![]
             },
             None => vec![],

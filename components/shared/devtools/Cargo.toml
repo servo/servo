@@ -18,6 +18,7 @@ http = { workspace = true }
 ipc-channel = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
+net_traits = { workspace = true }
 serde = { workspace = true }
 servo_url = { path = "../../url" }
 uuid = { workspace = true, features = ["serde"] }

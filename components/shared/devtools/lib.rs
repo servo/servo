@@ -20,6 +20,7 @@ use bitflags::bitflags;
 use http::{HeaderMap, Method};
 use ipc_channel::ipc::IpcSender;
 use malloc_size_of_derive::MallocSizeOf;
+use net_traits::http_status::HttpStatus;
 use serde::{Deserialize, Serialize};
 use servo_url::ServoUrl;
 use uuid::Uuid;
@@ -350,7 +351,7 @@ pub struct HttpRequest {
 #[derive(Debug, PartialEq)]
 pub struct HttpResponse {
     pub headers: Option<HeaderMap>,
-    pub status: Option<(u16, Vec<u8>)>,
+    pub status: HttpStatus,
     pub body: Option<Vec<u8>>,
     pub pipeline_id: PipelineId,
 }

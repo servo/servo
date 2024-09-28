@@ -35,6 +35,7 @@ use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use log::{debug, error, info, log_enabled, warn};
+use net_traits::http_status::HttpStatus;
 use net_traits::pub_domains::reg_suffix;
 use net_traits::request::Origin::Origin as SpecificOrigin;
 use net_traits::request::{
@@ -381,7 +382,7 @@ fn send_response_to_devtools(
     devtools_chan: &Sender<DevtoolsControlMsg>,
     request_id: String,
     headers: Option<HeaderMap>,
-    status: Option<(u16, Vec<u8>)>,
+    status: HttpStatus,
     pipeline_id: PipelineId,
 ) {
     let response = DevtoolsHttpResponse {
@@ -803,16 +804,11 @@ pub async fn http_fetch(
     if response
         .actual_response()
         .status
-        .as_ref()
+        .try_code()
         .is_some_and(is_redirect_status)
     {
         // Substep 1.
-        if response
-            .actual_response()
-            .status
-            .as_ref()
-            .map_or(true, |s| s.0 != StatusCode::SEE_OTHER)
-        {
+        if response.actual_response().status != StatusCode::SEE_OTHER {
             // TODO: send RST_STREAM frame
         }
 
@@ -989,11 +985,7 @@ pub async fn http_redirect_fetch(
     }
 
     // Step 9
-    if response
-        .actual_response()
-        .status
-        .as_ref()
-        .map_or(true, |s| s.0 != StatusCode::SEE_OTHER) &&
+    if response.actual_response().status != StatusCode::SEE_OTHER &&
         request.body.as_ref().is_some_and(|b| b.source_is_null())
     {
         return Response::network_error(NetworkError::Internal("Request body is not done".into()));
@@ -1008,11 +1000,11 @@ pub async fn http_redirect_fetch(
     if response
         .actual_response()
         .status
-        .as_ref()
-        .is_some_and(|(code, _)| {
-            ((*code == StatusCode::MOVED_PERMANENTLY || *code == StatusCode::FOUND) &&
+        .try_code()
+        .is_some_and(|code| {
+            ((code == StatusCode::MOVED_PERMANENTLY || code == StatusCode::FOUND) &&
                 request.method == Method::POST) ||
-                (*code == StatusCode::SEE_OTHER &&
+                (code == StatusCode::SEE_OTHER &&
                     request.method != Method::HEAD &&
                     request.method != Method::GET)
         })
@@ -1500,20 +1492,14 @@ async fn http_network_or_cache_fetch(
         let forward_response =
             http_network_fetch(http_request, include_credentials, done_chan, context).await;
         // Substep 3
-        if let Some((200..=399, _)) = forward_response.raw_status {
-            if !http_request.method.is_safe() {
-                if let Ok(mut http_cache) = context.state.http_cache.write() {
-                    http_cache.invalidate(http_request, &forward_response);
-                }
+        if forward_response.status.in_range(200..=399) && !http_request.method.is_safe() {
+            if let Ok(mut http_cache) = context.state.http_cache.write() {
+                http_cache.invalidate(http_request, &forward_response);
             }
         }
+
         // Substep 4
-        if revalidating_flag &&
-            forward_response
-                .status
-                .as_ref()
-                .is_some_and(|s| s.0 == StatusCode::NOT_MODIFIED)
-        {
+        if revalidating_flag && forward_response.status == StatusCode::NOT_MODIFIED {
             if let Ok(mut http_cache) = context.state.http_cache.write() {
                 // Ensure done_chan is None,
                 // since the network response will be replaced by the revalidated stored one.
@@ -1616,8 +1602,8 @@ async fn http_network_or_cache_fetch(
 
     // Step 10
     // FIXME: Figure out what to do with request window objects
-    if let (Some((StatusCode::UNAUTHORIZED, _)), false, true) =
-        (response.status.as_ref(), cors_flag, include_credentials)
+    if let (Some(StatusCode::UNAUTHORIZED), false, true) =
+        (response.status.try_code(), cors_flag, include_credentials)
     {
         // Substep 1
         // TODO: Spec says requires testing on multiple WWW-Authenticate headers
@@ -1653,7 +1639,7 @@ async fn http_network_or_cache_fetch(
     }
 
     // Step 11
-    if let Some((StatusCode::PROXY_AUTHENTICATION_REQUIRED, _)) = response.status.as_ref() {
+    if response.status == StatusCode::PROXY_AUTHENTICATION_REQUIRED {
         // Step 1
         if request_has_no_window {
             return Response::network_error(NetworkError::Internal(
@@ -1836,15 +1822,15 @@ async fn http_network_fetch(
     let timing = context.timing.lock().unwrap().clone();
     let mut response = Response::new(url.clone(), timing);
 
-    response.status = Some((
+    response.status = HttpStatus::new(
         res.status(),
-        res.status().canonical_reason().unwrap_or("").into(),
-    ));
+        res.status()
+            .canonical_reason()
+            .unwrap_or("")
+            .as_bytes()
+            .to_vec(),
+    );
     info!("got {:?} response for {:?}", res.status(), request.url());
-    response.raw_status = Some((
-        res.status().as_u16(),
-        res.status().canonical_reason().unwrap_or("").into(),
-    ));
     response.headers = res.headers().clone();
     response.referrer = request.referrer.to_url().cloned();
     response.referrer_policy = request.referrer_policy;
@@ -2047,12 +2033,7 @@ async fn cors_preflight_fetch(
     let response =
         http_network_or_cache_fetch(&mut preflight, false, false, &mut None, context).await;
     // Step 7
-    if cors_check(request, &response).is_ok() &&
-        response
-            .status
-            .as_ref()
-            .is_some_and(|(status, _)| status.is_success())
-    {
+    if cors_check(request, &response).is_ok() && response.status.code().is_success() {
         // Substep 1
         let mut methods = if response
             .headers
@@ -2231,9 +2212,9 @@ fn is_no_store_cache(headers: &HeaderMap) -> bool {
 }
 
 /// <https://fetch.spec.whatwg.org/#redirect-status>
-pub fn is_redirect_status(status: &(StatusCode, String)) -> bool {
+pub fn is_redirect_status(status: StatusCode) -> bool {
     matches!(
-        status.0,
+        status,
         StatusCode::MOVED_PERMANENTLY |
             StatusCode::FOUND |
             StatusCode::SEE_OTHER |

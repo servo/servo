@@ -21,6 +21,7 @@ use ipc_channel::router::ROUTER;
 use js::jsapi::JSAutoRealm;
 use js::rust::HandleObject;
 use mime::{self, Mime};
+use net_traits::http_status::HttpStatus;
 use net_traits::image_cache::{
     ImageCache, ImageCacheResult, ImageOrMetadataAvailable, ImageResponse, PendingImageId,
     PendingImageResponse, UsePlaceholder,
@@ -240,20 +241,24 @@ impl FetchResponseListener for ImageContext {
             }
         }
 
-        let status_code = metadata
+        let status = metadata
             .as_ref()
-            .and_then(|m| m.status.as_ref().map(|&(code, _)| code))
-            .unwrap_or(0);
+            .map(|m| m.status.clone())
+            .unwrap_or_else(HttpStatus::new_error);
 
-        self.status = match status_code {
-            0 => Err(NetworkError::Internal(
-                "No http status code received".to_owned(),
-            )),
-            200..=299 => Ok(()), // HTTP ok status codes
-            _ => Err(NetworkError::Internal(format!(
-                "HTTP error code {}",
-                status_code
-            ))),
+        self.status = {
+            if status.is_error() {
+                Err(NetworkError::Internal(
+                    "No http status code received".to_owned(),
+                ))
+            } else if status.is_success() {
+                Ok(())
+            } else {
+                Err(NetworkError::Internal(format!(
+                    "HTTP error code {}",
+                    status.code()
+                )))
+            }
         };
     }
 
