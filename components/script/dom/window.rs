@@ -418,7 +418,7 @@ impl Window {
         self.globalscope.time_profiler_chan()
     }
 
-    pub fn origin(&self) -> &MutableOrigin {
+    pub fn origin(&self) -> Ref<MutableOrigin> {
         self.globalscope.origin()
     }
 
@@ -2304,7 +2304,7 @@ impl Window {
             // TODO: step 11, navigationType.
             // Step 12, 13
             ScriptThread::navigate(
-                window_proxy.browsing_context_id(),
+                &window_proxy,
                 pipeline_id,
                 load_data,
                 replace,
@@ -2684,6 +2684,7 @@ impl Window {
             pipeline_id: data.pipeline_id,
             script_to_constellation_chan: data.script_to_constellation_chan,
             creator_url: data.creator_url,
+            origin: data.origin,
         });
         *self.task_manager.borrow_mut() = data.task_manager;
         *self.layout.borrow_mut() = data.layout;
@@ -2697,6 +2698,7 @@ pub(crate) struct ReplaceData {
     pub layout: Box<dyn Layout>,
     pub pipeline_id: PipelineId,
     pub creator_url: ServoUrl,
+    pub origin: MutableOrigin,
 }
 
 /// An instance of a value associated with a particular snapshot of layout. This stored

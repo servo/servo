@@ -63,6 +63,7 @@ use crate::dom::htmldatalistelement::HTMLDataListElement;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmlfieldsetelement::HTMLFieldSetElement;
 use crate::dom::htmlformcontrolscollection::HTMLFormControlsCollection;
+use crate::dom::htmliframeelement::HTMLIFrameElement;
 use crate::dom::htmlimageelement::HTMLImageElement;
 use crate::dom::htmlinputelement::{HTMLInputElement, InputType};
 use crate::dom::htmllabelelement::HTMLLabelElement;
@@ -989,6 +990,14 @@ impl HTMLFormElement {
         load_data.creator_pipeline_id = Some(pipeline_id);
         load_data.referrer = referrer;
         load_data.referrer_policy = referrer_policy;
+
+        let new_pipeline_id = load_data.new_pipeline_id.clone();
+        let proxy = target.window_proxy();
+        if let Some(frame) = proxy.frame_element() {
+            if let Some(frame) = frame.downcast::<HTMLIFrameElement>() {
+                frame.update_pending_pipeline_id(new_pipeline_id);
+            }
+        }
 
         // Step 4.
         let this = Trusted::new(self);

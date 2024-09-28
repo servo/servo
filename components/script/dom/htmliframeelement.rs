@@ -180,7 +180,7 @@ impl HTMLIFrameElement {
 
         let window = window_from_node(self);
         let old_pipeline_id = self.pipeline_id();
-        let new_pipeline_id = PipelineId::new();
+        let new_pipeline_id = load_data.new_pipeline_id.clone();
         self.pending_pipeline_id.set(Some(new_pipeline_id));
 
         let global_scope = window.upcast::<GlobalScope>();
@@ -188,7 +188,6 @@ impl HTMLIFrameElement {
             parent_pipeline_id: global_scope.pipeline_id(),
             browsing_context_id,
             top_level_browsing_context_id,
-            new_pipeline_id,
             is_private: false, // FIXME
             inherited_secure_context: load_data.inherited_secure_context,
             replace,
@@ -417,6 +416,10 @@ impl HTMLIFrameElement {
         self.about_blank_pipeline_id.set(None);
         self.top_level_browsing_context_id.set(None);
         self.browsing_context_id.set(None);
+    }
+
+    pub(crate) fn update_pending_pipeline_id(&self, pending: PipelineId) {
+        self.pending_pipeline_id.set(Some(pending));
     }
 
     pub fn update_pipeline_id(

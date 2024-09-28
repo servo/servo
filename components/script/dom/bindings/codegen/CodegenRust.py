@@ -3020,7 +3020,7 @@ create_global_object(
     raw.as_ptr() as *const libc::c_void,
     _trace,
     obj.handle_mut(),
-    origin);
+    &origin);
 assert!(!obj.is_null());
 
 let root = raw.reflect_with(obj.get());

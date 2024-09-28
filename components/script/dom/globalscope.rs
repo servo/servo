@@ -266,7 +266,7 @@ pub struct GlobalScope {
 
     /// The origin of the globalscope
     #[no_trace]
-    origin: MutableOrigin,
+    origin: RefCell<MutableOrigin>,
 
     /// <https://html.spec.whatwg.org/multipage/#concept-environment-creation-url>
     #[no_trace]
@@ -793,7 +793,7 @@ impl GlobalScope {
             resource_threads,
             timers: OneshotTimers::new(scheduler_chan),
             init_timers: Default::default(),
-            origin,
+            origin: RefCell::new(origin),
             creation_url: RefCell::new(creation_url),
             permission_state_invocation_results: Default::default(),
             microtask_queue,
@@ -2374,8 +2374,8 @@ impl GlobalScope {
     }
 
     /// Get the origin for this global scope
-    pub fn origin(&self) -> &MutableOrigin {
-        &self.origin
+    pub fn origin(&self) -> Ref<MutableOrigin> {
+        self.origin.borrow()
     }
 
     /// Get the creation_url for this global scope
@@ -3406,10 +3406,12 @@ impl GlobalScope {
             pipeline_id,
             script_to_constellation_chan,
             creator_url,
+            origin,
         } = data;
         self.pipeline_id.set(pipeline_id);
         *self.script_to_constellation_chan.borrow_mut() = script_to_constellation_chan;
         *self.creation_url.borrow_mut() = Some(creator_url);
+        *self.origin.borrow_mut() = origin;
         self.timers.reset();
     }
 }
@@ -3418,6 +3420,7 @@ pub(crate) struct ReplaceData {
     pub pipeline_id: PipelineId,
     pub script_to_constellation_chan: ScriptToConstellationChan,
     pub creator_url: ServoUrl,
+    pub origin: MutableOrigin,
 }
 
 /// Returns the Rust global scope from a JS global object.

@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Ref;
+
 use dom_struct::dom_struct;
 use net_traits::request::Referrer;
 use script_traits::{HistoryEntryReplacement, LoadData, LoadOrigin};
@@ -251,7 +253,7 @@ impl Location {
     }
 
     #[allow(dead_code)]
-    pub fn origin(&self) -> &MutableOrigin {
+    pub fn origin(&self) -> Ref<MutableOrigin> {
         self.window.origin()
     }
 }

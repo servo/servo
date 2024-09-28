@@ -128,6 +128,8 @@ pub enum LoadOrigin {
 /// parameters or headers
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct LoadData {
+    ///
+    pub new_pipeline_id: PipelineId,
     /// The origin where the load started.
     pub load_origin: LoadOrigin,
     /// The URL.
@@ -206,6 +208,7 @@ impl LoadData {
             crash: None,
             replacing_pipeline,
             synchronously_loaded,
+            new_pipeline_id: PipelineId::new(),
         }
     }
 }
@@ -701,8 +704,6 @@ pub struct AuxiliaryBrowsingContextLoadInfo {
     pub new_top_level_browsing_context_id: TopLevelBrowsingContextId,
     /// The new browsing context ID.
     pub new_browsing_context_id: BrowsingContextId,
-    /// The new pipeline ID for the auxiliary.
-    pub new_pipeline_id: PipelineId,
 }
 
 /// Specifies the information required to load an iframe.
@@ -714,8 +715,6 @@ pub struct IFrameLoadInfo {
     pub browsing_context_id: BrowsingContextId,
     /// The ID for the top-level ancestor browsing context of this iframe's nested browsing context.
     pub top_level_browsing_context_id: TopLevelBrowsingContextId,
-    /// The new pipeline ID that the iframe has generated.
-    pub new_pipeline_id: PipelineId,
     ///  Whether this iframe should be considered private
     pub is_private: bool,
     ///  Whether this iframe should be considered secure

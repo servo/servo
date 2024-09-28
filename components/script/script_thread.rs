@@ -1001,7 +1001,8 @@ impl ScriptThread {
 
     /// Step 13 of <https://html.spec.whatwg.org/multipage/#navigate>
     pub fn navigate(
-        browsing_context: BrowsingContextId,
+        //browsing_context: BrowsingContextId,
+        window_proxy: &WindowProxy,
         pipeline_id: PipelineId,
         mut load_data: LoadData,
         replace: HistoryEntryReplacement,
@@ -1013,6 +1014,7 @@ impl ScriptThread {
             };
             let script_thread = unsafe { &*script_thread };
             let is_javascript = load_data.url.scheme() == "javascript";
+            let browsing_context = window_proxy.browsing_context_id();
             // If resource is a request whose url's scheme is "javascript"
             // https://html.spec.whatwg.org/multipage/#javascript-protocol
             if is_javascript {
@@ -1044,6 +1046,14 @@ impl ScriptThread {
                     let _ = sender.send(ScriptToDevtoolsControlMsg::Navigate(
                         browsing_context, NavigationState::Start(load_data.url.clone())
                     ));
+                }
+
+                if let Some(frame) = window_proxy.frame_element() {
+                    if let Some(frame) = frame.downcast::<HTMLIFrameElement>() {
+                        frame.update_pending_pipeline_id(
+                            load_data.new_pipeline_id.clone(),
+                        );
+                    }
                 }
 
                 script_thread
@@ -3694,6 +3704,7 @@ impl ScriptThread {
                 layout: self.layout_factory.create(layout_config),
                 pipeline_id: incomplete.pipeline_id,
                 creator_url: final_url.clone(),
+                origin: origin.clone(),
             });
             old_document.disown_window();
             DomRoot::from_ref(old_document.window())            
@@ -3748,6 +3759,7 @@ impl ScriptThread {
             incomplete.parent_info,
             incomplete.opener,
         );
+        window_proxy.set_currently_active(&window);
         if window_proxy.parent().is_some() {
             // https://html.spec.whatwg.org/multipage/#navigating-across-documents:delaying-load-events-mode-2
             // The user agent must take this nested browsing context

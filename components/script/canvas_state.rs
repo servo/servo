@@ -262,7 +262,7 @@ impl CanvasState {
             CanvasImageSource::HTMLCanvasElement(canvas) => canvas.origin_is_clean(),
             CanvasImageSource::OffscreenCanvas(canvas) => canvas.origin_is_clean(),
             CanvasImageSource::HTMLImageElement(image) => {
-                image.same_origin(GlobalScope::entry().origin())
+                image.same_origin(&GlobalScope::entry().origin())
             },
             CanvasImageSource::CSSStyleValue(_) => true,
         }

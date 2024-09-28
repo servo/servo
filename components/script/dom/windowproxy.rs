@@ -298,7 +298,6 @@ impl WindowProxy {
             let new_top_level_browsing_context_id = TopLevelBrowsingContextId::new();
             let new_browsing_context_id =
                 BrowsingContextId::from(new_top_level_browsing_context_id);
-            let new_pipeline_id = PipelineId::new();
             let document = self
                 .currently_active
                 .get()
@@ -316,12 +315,12 @@ impl WindowProxy {
                 None,
                 true,
             );
+            let new_pipeline_id = load_data.new_pipeline_id.clone();
             let load_info = AuxiliaryBrowsingContextLoadInfo {
                 load_data: load_data.clone(),
                 opener_pipeline_id: self.currently_active.get().unwrap(),
                 new_browsing_context_id,
                 new_top_level_browsing_context_id,
-                new_pipeline_id,
             };
 
             let new_layout_info = NewLayoutInfo {
@@ -502,7 +501,7 @@ impl WindowProxy {
                 .and_then(ScriptThread::find_document)
                 .unwrap();
             // Step 14.1
-            let url = match existing_document.url().join(&url) {
+            let url = match existing_document.base_url().join(&url) {
                 Ok(url) => url,
                 Err(_) => return Err(Error::Syntax),
             };

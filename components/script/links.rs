@@ -20,7 +20,7 @@ use crate::dom::htmlareaelement::HTMLAreaElement;
 use crate::dom::htmlformelement::HTMLFormElement;
 use crate::dom::htmllinkelement::HTMLLinkElement;
 use crate::dom::node::document_from_node;
-use crate::dom::types::{Element, GlobalScope};
+use crate::dom::types::{Element, GlobalScope, HTMLIFrameElement};
 use crate::task_source::TaskSource;
 
 bitflags::bitflags! {
@@ -431,6 +431,14 @@ pub fn follow_hyperlink(
             (document.url().as_str() == "about:blank").then(|| document.window().pipeline_id()),
             false,
         );
+
+        let new_pipeline_id = load_data.new_pipeline_id.clone();
+        if let Some(frame) = chosen.frame_element() {
+            if let Some(frame) = frame.downcast::<HTMLIFrameElement>() {
+                frame.update_pending_pipeline_id(new_pipeline_id);
+            }
+        }
+
         let target = Trusted::new(target_window);
         let task = task!(navigate_follow_hyperlink: move || {
             debug!("following hyperlink to {}", load_data.url);
