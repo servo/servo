@@ -1371,14 +1371,7 @@ impl<'a> TableLayout<'a> {
                 .get_row_measure_for_row_at_index(writing_mode, row_index);
             row_sizes[row_index].max_assign(row_measure.content_sizes.min_content);
 
-            let mut percentage = match self.table.rows.get(row_index) {
-                Some(row) => {
-                    get_size_percentage_contribution_from_style(&row.style, writing_mode)
-                        .block
-                        .0
-                },
-                None => 0.,
-            };
+            let mut percentage = row_measure.percentage.0;
             for column_index in 0..self.table.size.width {
                 let cell_percentage = self.cell_measures[row_index][column_index]
                     .block
