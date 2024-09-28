@@ -281,10 +281,12 @@ impl<'a> TableLayout<'a> {
                     block: padding.block_sum() + border.block_sum(),
                 };
 
-                let (size, min_size, max_size, inline_size_is_auto) =
-                    get_outer_sizes_from_style(&cell.style, writing_mode, &padding_border_sums);
-                let percentage_contribution =
-                    get_size_percentage_contribution_from_style(&cell.style, writing_mode);
+                let (size, min_size, max_size, inline_size_is_auto, percentage_contribution) =
+                    get_outer_sizes_for_measurement(
+                        &cell.style,
+                        writing_mode,
+                        &padding_border_sums,
+                    );
 
                 // <https://drafts.csswg.org/css-tables/#in-fixed-mode>
                 // > When a table-root is laid out in fixed mode, the content of its table-cells is ignored
@@ -2642,10 +2644,8 @@ impl Table {
             None => return CellOrTrackMeasure::zero(),
         };
 
-        let (size, min_size, max_size, _) =
-            get_outer_sizes_from_style(&column.style, writing_mode, &LogicalVec2::zero());
-        let percentage_contribution =
-            get_size_percentage_contribution_from_style(&column.style, writing_mode);
+        let (size, min_size, max_size, _, percentage_contribution) =
+            get_outer_sizes_for_measurement(&column.style, writing_mode, &LogicalVec2::zero());
 
         CellOrTrackMeasure {
             content_sizes: ContentSizes {
@@ -2676,18 +2676,17 @@ impl Table {
         // In the block axis, the min-content and max-content sizes are the same
         // (except for new layout boxes like grid and flex containers). Note that
         // other browsers don't seem to use the min and max sizing properties here.
-        let size = row
-            .style
-            .box_size(writing_mode)
-            .block
-            .to_numeric()
-            .and_then(|size| size.to_length())
-            .map_or_else(Au::zero, Au::from);
-        let percentage_contribution =
-            get_size_percentage_contribution_from_style(&row.style, writing_mode);
+        let size = row.style.box_size(writing_mode);
+        let max_size = row.style.max_box_size(writing_mode);
+        let percentage_contribution = get_size_percentage_contribution(&size, &max_size);
 
         CellOrTrackMeasure {
-            content_sizes: size.into(),
+            content_sizes: size
+                .block
+                .to_numeric()
+                .and_then(|size| size.to_length())
+                .map_or_else(Au::zero, Au::from)
+                .into(),
             percentage: percentage_contribution.block,
         }
     }
@@ -2795,9 +2794,9 @@ impl TableSlotCell {
     }
 }
 
-fn get_size_percentage_contribution_from_style(
-    style: &Arc<ComputedValues>,
-    writing_mode: WritingMode,
+fn get_size_percentage_contribution(
+    size: &LogicalVec2<Size<ComputedLengthPercentage>>,
+    max_size: &LogicalVec2<Size<ComputedLengthPercentage>>,
 ) -> LogicalVec2<Percentage> {
     // From <https://drafts.csswg.org/css-tables/#percentage-contribution>
     // > The percentage contribution of a table cell, column, or column group is defined
@@ -2806,11 +2805,8 @@ fn get_size_percentage_contribution_from_style(
     // >    min(percentage width, percentage max-width).
     // > If the computed values are not percentages, then 0% is used for width, and an
     // > infinite percentage is used for max-width.
-    let size = style.box_size(writing_mode);
-    let max_size = style.max_box_size(writing_mode);
-
     let get_contribution_for_axis =
-        |size: Size<ComputedLengthPercentage>, max_size: Size<ComputedLengthPercentage>| {
+        |size: &Size<ComputedLengthPercentage>, max_size: &Size<ComputedLengthPercentage>| {
             let size_percentage = size
                 .to_numeric()
                 .and_then(|length_percentage| length_percentage.to_percentage())
@@ -2823,16 +2819,22 @@ fn get_size_percentage_contribution_from_style(
         };
 
     LogicalVec2 {
-        inline: get_contribution_for_axis(size.inline, max_size.inline),
-        block: get_contribution_for_axis(size.block, max_size.block),
+        inline: get_contribution_for_axis(&size.inline, &max_size.inline),
+        block: get_contribution_for_axis(&size.block, &max_size.block),
     }
 }
 
-fn get_outer_sizes_from_style(
+fn get_outer_sizes_for_measurement(
     style: &Arc<ComputedValues>,
     writing_mode: WritingMode,
     padding_border_sums: &LogicalVec2<Au>,
-) -> (LogicalVec2<Au>, LogicalVec2<Au>, LogicalVec2<Au>, bool) {
+) -> (
+    LogicalVec2<Au>,
+    LogicalVec2<Au>,
+    LogicalVec2<Au>,
+    bool,
+    LogicalVec2<Percentage>,
+) {
     let box_sizing = style.get_position().box_sizing;
     let outer_size = |size: LogicalVec2<Au>| match box_sizing {
         BoxSizing::ContentBox => size + *padding_border_sums,
@@ -2842,7 +2844,8 @@ fn get_outer_sizes_from_style(
         },
     };
     let get_size_for_axis = |size: &Size<ComputedLengthPercentage>| {
-        // TODO(#32853): This treats all sizing keywords as `auto`.
+        // Note that measures treat all size values other than <length>
+        // as the initial value of the property.
         size.to_numeric()
             .and_then(|length_percentage| length_percentage.to_length())
             .map(Au::from)
@@ -2855,8 +2858,8 @@ fn get_outer_sizes_from_style(
         outer_size(size.map(|v| get_size_for_axis(v).unwrap_or(Au(0)))),
         outer_size(min_size.map(|v| get_size_for_axis(v).unwrap_or(Au(0)))),
         outer_size(max_size.map(|v| get_size_for_axis(v).unwrap_or(MAX_AU))),
-        // TODO(#32853): This treats all sizing keywords as `auto`.
         size.inline.is_keyword(),
+        get_size_percentage_contribution(&size, &max_size),
     )
 }
 
