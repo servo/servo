@@ -64,13 +64,15 @@
       target.addEventListener(ename, logEvent);
     });
   });
+  // Suppress context-menus at right-clicks.
+  parent.addEventListener("contextmenu", e => e.preventDefault());
 
   function dragBetweenChildrenAndClickOnDone(from_child, to_child, test) {
     let actions_promise = new test_driver.Actions();
 
     const button_type = (event_to_test === "click")
         ? actions_promise.ButtonType.LEFT
-        : actions_promise.ButtonType.MIDDLE;
+        : actions_promise.ButtonType.RIGHT;
 
     actions_promise.addPointer(test_pointer, pointer_type)
       .pointerMove(0, 0, {origin:from_child})

@@ -2,13 +2,19 @@
 <link rel=author href="mailto:jarhar@chromium.org">
 <link rel=help href="https://bugs.chromium.org/p/chromium/issues/detail?id=1291169">
 
-<selectlist></selectlist>
+<select></select>
 <div></div>
+
+<style>
+  select, ::picker(select) {
+    appearance: base-select;
+  }
+</style>
 
 <script>
   (async () => {
-    const selectlist = document.querySelector('selectlist');
+    const select = document.querySelector('select');
     await getComputedAccessibleNode(document.querySelector('div'));
-    selectlist.style.setProperty('content-visibility', 'hidden');
+    select.style.setProperty('content-visibility', 'hidden');
   })();
 </script>

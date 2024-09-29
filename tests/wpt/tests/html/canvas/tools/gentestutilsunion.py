@@ -332,6 +332,20 @@ def _preprocess_code(jinja_env: jinja2.Environment, code: str,
     return code
 
 
+def _write_cairo_images(pycairo_code: str, output_files: _OutputPaths,
+                        canvas_types: FrozenSet[_CanvasType]) -> None:
+    """Creates a png from pycairo code, for the specified canvas types."""
+    if _CanvasType.HTML_CANVAS in canvas_types:
+        full_code = (f'{pycairo_code}\n'
+                     f'surface.write_to_png("{output_files.element}")\n')
+        eval(compile(full_code, '<string>', 'exec'), {'cairo': cairo})
+
+    if {_CanvasType.OFFSCREEN_CANVAS, _CanvasType.WORKER} & canvas_types:
+        full_code = (f'{pycairo_code}\n'
+                     f'surface.write_to_png("{output_files.offscreen}")\n')
+        eval(compile(full_code, '<string>', 'exec'), {'cairo': cairo})
+
+
 class _Variant():
 
     def __init__(self, params: _MutableTestParams) -> None:
@@ -473,11 +487,7 @@ class _Variant():
 
     def generate_expected_image(self, output_dirs: _OutputPaths) -> None:
         """Creates a reference image using Cairo and save filename in params."""
-        if 'expected' not in self.params:
-            return
-
         expected = self.params['expected']
-        name = self.params['name']
 
         if expected == 'green':
             self._params['expected_img'] = '/images/green-100x50.png'
@@ -485,30 +495,15 @@ class _Variant():
         if expected == 'clear':
             self._params['expected_img'] = '/images/clear-100x50.png'
             return
-        if ';' in expected:
-            print(f'Found semicolon in {name}')
         expected = re.sub(
             r'^size (\d+) (\d+)',
             r'surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, \1, \2)'
             r'\ncr = cairo.Context(surface)', expected)
 
-        output_paths = output_dirs.sub_path(name)
-        if _CanvasType.HTML_CANVAS in self.params['canvas_types']:
-            expected_canvas = (
-                f'{expected}\n'
-                f'surface.write_to_png("{output_paths.element}.png")\n')
-            eval(compile(expected_canvas, f'<test {name}>', 'exec'), {},
-                 {'cairo': cairo})
-
-        if {_CanvasType.OFFSCREEN_CANVAS, _CanvasType.WORKER
-            } & self.params['canvas_types']:
-            expected_offscreen = (
-                f'{expected}\n'
-                f'surface.write_to_png("{output_paths.offscreen}.png")\n')
-            eval(compile(expected_offscreen, f'<test {name}>', 'exec'), {},
-                 {'cairo': cairo})
-
-        self._params['expected_img'] = f'{name}.png'
+        img_filename = f'{self.params["name"]}.png'
+        _write_cairo_images(expected, output_dirs.sub_path(img_filename),
+                            self.params['canvas_types'])
+        self._params['expected_img'] = img_filename
 
 
 class _VariantGrid:
@@ -717,8 +712,15 @@ class _VariantGrid:
 
     def _generate_cairo_images(self, output_dirs: _OutputPaths) -> None:
         """Generates the pycairo images found in the YAML test definition."""
-        for variant in self.variants:
-            variant.generate_expected_image(output_dirs)
+        if any(v.params.get('expected') for v in self._variants):
+            if len(self.variants) != 1:
+                raise InvalidTestDefinitionError(
+                    'Parameter "expected" is not supported for variant grids.')
+            if self.template_type != _TemplateType.TESTHARNESS:
+                raise InvalidTestDefinitionError(
+                    'Parameter "expected" is not supported in reference '
+                    'tests.')
+            self.variants[0].generate_expected_image(output_dirs)
 
     def generate_test(self, jinja_env: jinja2.Environment,
                       output_dirs: _OutputPaths) -> None:

@@ -32,21 +32,16 @@ promise_test(async t => {
   media.data = media.data.subarray(0, segment0_end);
   // Overwrite timescale to shorten frame durations.
   const media_timescale_start = 0x182;
-  write_big_endian_integer32_at_offset(timescale, media_timescale_start);
+  MediaSourceUtil.WriteBigEndianInteger32ToUint8Array(
+    timescale, media.data.subarray(media_timescale_start));
   const segment_index_timescale_start = 0x353;
-  write_big_endian_integer32_at_offset(timescale,
-                                       segment_index_timescale_start);
+  MediaSourceUtil.WriteBigEndianInteger32ToUint8Array(
+    timescale, media.data.subarray(segment_index_timescale_start));
 }, 'setup');
 
-function write_big_endian_integer32_at_offset(integer32, offset) {
-  media.data[offset + 0] = integer32 >> 24;
-  media.data[offset + 1] = integer32 >> 16;
-  media.data[offset + 2] = integer32 >> 8;
-  media.data[offset + 3] = integer32;
-}
-
 promise_test(async t => {
-  assert_implements_optional(MediaSource.isTypeSupported(media.type));
+  assert_implements_optional(MediaSource.isTypeSupported(media.type),
+                             'type supported');
 
   const v = document.createElement('video');
   const v_watcher = new EventWatcher(t, v, ['error', 'ended']);

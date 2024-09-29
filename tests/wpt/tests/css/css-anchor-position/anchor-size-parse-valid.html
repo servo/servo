@@ -27,6 +27,34 @@ const sizeProperties = [
   'max-inline-size',
 ];
 
+const insetProperties = [
+  'left',
+  'right',
+  'top',
+  'bottom',
+  'inset',
+  'inset-block',
+  'inset-block-start',
+  'inset-block-end',
+  'inset-inline',
+  'inset-inline-start',
+  'inset-inline-end',
+];
+
+const marginProperties = [
+  'margin',
+  'margin-left',
+  'margin-right',
+  'margin-top',
+  'margin-bottom',
+  'margin-block',
+  'margin-block-start',
+  'margin-block-end',
+  'margin-inline',
+  'margin-inline-start',
+  'margin-inline-end',
+];
+
 const anchorSizes = [
   'width',
   'height',
@@ -48,7 +76,7 @@ const fallbacks = [
 
 // Tests basic combinations
 for (let name of anchorNames) {
-  for (let property of sizeProperties) {
+  for (let property of sizeProperties.concat(insetProperties, marginProperties)) {
     for (let size of anchorSizes) {
       for (let fallback of fallbacks) {
         let value = `anchor-size(${name ? name + ' ' : ''}${size}${fallback ? ', ' + fallback : ''})`;

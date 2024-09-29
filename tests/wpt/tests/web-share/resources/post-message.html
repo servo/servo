@@ -3,6 +3,8 @@
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
 <script>
+  test_driver.set_test_context(parent);
+
   window.addEventListener("message", async (event) => {
     const {
       data: { action, data },

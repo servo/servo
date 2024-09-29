@@ -15,12 +15,14 @@ select, select::picker(select) {
 }
 </style>
 
+<label for=custombutton>custom button</label>
 <select id=custombutton>
   <button>button</button>
   <option class=one>one</option>
   <option class=two>two</option>
 </select>
 
+<label for=fallbackbutton>fallback button</label>
 <select id=fallbackbutton>
   <option class=one>one</option>
   <option class=two>two</option>
@@ -31,6 +33,8 @@ for (const id of ['fallbackbutton', 'custombutton']) {
   const select = document.getElementById(id);
   const optionOne = select.querySelector('option.one');
   const optionTwo = select.querySelector('option.two');
+  const label = document.querySelector(`label[for=${id}]`);
+  const button = select.querySelector('button');
 
   promise_test(async () => {
     assert_false(select.matches(':open'),
@@ -61,5 +65,18 @@ for (const id of ['fallbackbutton', 'custombutton']) {
     assert_equals(select.value, 'two',
       'Select.value should be two after clicking the option.');
   }, `${id}: Clicking an option in an appearance:base-select select should choose the option and close the popover.`);
+
+  promise_test(async () => {
+    await test_driver.click(label);
+    if (button) {
+      assert_equals(document.activeElement, button,
+        'select child button should be the active element after clicking the label.');
+    } else {
+      assert_equals(document.activeElement, select,
+        'select should be the active element after clicking the label.');
+    }
+    assert_false(select.matches(':open'),
+      'select picker should be closed after clicking the label.');
+  }, `${id}: Clicking the label should focus the select button without opening the picker.`);
 }
 </script>

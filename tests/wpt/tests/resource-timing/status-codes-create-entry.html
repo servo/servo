@@ -23,18 +23,20 @@ async_test(t => {
       assert_greater_than(entries[0].duration, 0, img.src);
     }
     const scripts = document.getElementsByTagName("script");
-    let noSrcScriptFound = false;
+    let ignoredScripts = 0;
     for (let script of scripts) {
-      if (script.src) {
+      if (!script.src || script.src.match(/testharness(report)?\.js$/)) {
+        // Ignore this script, which has no src value, and the `testharness*.js`
+        // scripts. `testharness*.js` may be cached from a previous test and
+        // served quickly enough for a coarsened `duration` to be zero exactly.
+        ignoredScripts++;
+      } else {
         const entries = performance.getEntriesByName(script.src);
         assert_greater_than(entries.length, 0, script.src);
         assert_greater_than(entries[0].duration, 0, script.src);
-      } else {
-        // Ignore this script, which has no src value. There should only be one such script.
-        assert_false(noSrcScriptFound);
-        noSrcScriptFound = true;
       }
     }
+    assert_equals(ignoredScripts, 3);
   }));
 }, "Make sure all status codes are reported");
 </script>

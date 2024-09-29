@@ -1,0 +1,261 @@
+<!doctype html>
+<link rel="author" href="mailto:jarhar@chromium.org" />
+<link rel=author title="Keith Cirkel" href="mailto:wpt@keithcirkel.co.uk">
+<link rel="help" href="https://github.com/whatwg/html/pull/10091" />
+<link rel="help" href="https://github.com/whatwg/html/issues/9733" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<dialog id="mydialog">dialog</dialog>
+
+<script>
+  ["show", "showModal"].forEach((methodName) => {
+    const waitForTick = () =>  new Promise(resolve => step_timeout(resolve, 0));
+
+    promise_test(async () => {
+      let openingBeforetoggle = null;
+      let openingToggle = null;
+
+      mydialog.addEventListener(
+        "beforetoggle",
+        (event) => {
+          assert_equals(
+            event.oldState,
+            "closed",
+            'Opening beforetoggle should have oldState be "closed".',
+          );
+          assert_equals(
+            event.newState,
+            "open",
+            'Opening beforetoggle should have newState be "open".',
+          );
+          assert_false(
+            mydialog.hasAttribute("open"),
+            "Opening beforetoggle should fire before open attribute is added.",
+          );
+          openingBeforetoggle = event;
+        },
+        { once: true },
+      );
+
+      mydialog.addEventListener(
+        "toggle",
+        (event) => {
+          assert_equals(
+            event.oldState,
+            "closed",
+            'Opening toggle should have oldState be "closed".',
+          );
+          assert_equals(
+            event.newState,
+            "open",
+            'Opening toggle should have newState be "open".',
+          );
+          assert_true(
+            mydialog.hasAttribute("open"),
+            "Opening toggle should fire after open attribute is added.",
+          );
+          openingToggle = event;
+        },
+        { once: true },
+      );
+
+      mydialog[methodName]();
+      assert_true(
+        !!openingBeforetoggle,
+        "Opening beforetoggle should fire synchronously.",
+      );
+      assert_false(
+        !!openingToggle,
+        "Opening toggle should fire asynchronously.",
+      );
+
+      await waitForTick();
+      assert_true(
+        !!openingToggle,
+        "Opening toggle should have fired after tick.",
+      );
+
+      let closingBeforetoggle = null;
+      let closingToggle = null;
+
+      mydialog.addEventListener(
+        "beforetoggle",
+        (event) => {
+          assert_equals(
+            event.oldState,
+            "open",
+            'Closing beforetoggle should have oldState be "open".',
+          );
+          assert_equals(
+            event.newState,
+            "closed",
+            'Closing beforetoggle should have newState be "closed".',
+          );
+          assert_true(
+            mydialog.hasAttribute("open"),
+            "Closing beforetoggle should fire before open attribute is removed.",
+          );
+          closingBeforetoggle = event;
+        },
+        { once: true },
+      );
+      mydialog.addEventListener(
+        "toggle",
+        (event) => {
+          assert_equals(
+            event.oldState,
+            "open",
+            'Closing toggle should have oldState be "open".',
+          );
+          assert_equals(
+            event.newState,
+            "closed",
+            'Closing toggle should have newState be "closed".',
+          );
+          assert_false(
+            mydialog.hasAttribute("open"),
+            "Closing toggle should fire after open attribute is removed.",
+          );
+          closingToggle = event;
+        },
+        { once: true },
+      );
+
+      mydialog.close();
+      assert_true(
+        !!closingBeforetoggle,
+        "Closing beforetoggle should fire synchronously.",
+      );
+      assert_false(
+        !!closingToggle,
+        "Closing toggle should fire asynchronously.",
+      );
+
+      await waitForTick();
+      assert_true(
+        !!closingToggle,
+        "Closing toggle should have fired after tick.",
+      );
+    }, `dialog.${methodName}() should fire beforetoggle and toggle events.`);
+
+    promise_test(async () => {
+      let openingBeforetoggle = null;
+      let openingToggle = null;
+
+      mydialog.addEventListener(
+        "beforetoggle",
+        (event) => {
+          event.preventDefault();
+          openingBeforetoggle = event;
+        },
+        { once: true },
+      );
+
+      mydialog.addEventListener(
+        "toggle",
+        (event) => {
+          openingToggle = event;
+        },
+        { once: true },
+      );
+
+      mydialog[methodName]();
+      assert_true(
+        !!openingBeforetoggle,
+        "Opening beforetoggle should fire synchronously.",
+      );
+      assert_false(
+        !!openingToggle,
+        "Opening toggle should fire.",
+      );
+
+      await waitForTick();
+      assert_false(
+        !!openingToggle,
+        "Opening toggle should still not have fired.",
+      );
+
+      assert_false(mydialog.open, 'dialog should not be open');
+    }, `dialog.${methodName}() should fire cancelable beforetoggle which does not open dialog if canceled`);
+
+    promise_test(async () => {
+      let openCloseToggleEvent = null;
+      mydialog.addEventListener(
+        "toggle",
+        (event) => {
+          assert_equals(
+            event.oldState,
+            "closed",
+            'Opening and closing dialog should result in oldState being "closed".',
+          );
+          assert_equals(
+            event.newState,
+            "closed",
+            'Opening and closing dialog should result in newState being "closed".',
+          );
+          assert_false(
+            mydialog.hasAttribute("open"),
+            "Opening and closing dialog should result in open attribute being removed.",
+          );
+          openCloseToggleEvent = event;
+        },
+        { once: true },
+      );
+
+      mydialog[methodName]();
+      assert_false(
+        !!openCloseToggleEvent,
+        "Toggle event should not fire synchronously.",
+      );
+      mydialog.close();
+      await waitForTick();
+      assert_true(
+        !!openCloseToggleEvent,
+        "Toggle event should have fired after tick.",
+      );
+
+      mydialog[methodName]();
+      await waitForTick();
+
+      let closeOpenToggleEvent = null;
+      mydialog.addEventListener(
+        "toggle",
+        (event) => {
+          assert_equals(
+            event.oldState,
+            "open",
+            'Closing and opening dialog should result in oldState being "open".',
+          );
+          assert_equals(
+            event.newState,
+            "open",
+            'Closing and opening dialog should result in newState being "open".',
+          );
+          assert_true(
+            mydialog.hasAttribute("open"),
+            "Closing and opening dialog should result in open attribute being added.",
+          );
+          closeOpenToggleEvent = event;
+        },
+        { once: true },
+      );
+
+      mydialog.close();
+      assert_false(
+        !!closeOpenToggleEvent,
+        "Toggle event should not fire synchronously.",
+      );
+      mydialog[methodName]();
+      await waitForTick();
+      assert_true(
+        !!closeOpenToggleEvent,
+        "Toggle event should have fired after tick.",
+      );
+
+      // Clean up for the next test.
+      mydialog.close();
+      await waitForTick();
+    }, `dialog.${methodName}() should coalesce asynchronous toggle events.`);
+  });
+</script>

@@ -1,3 +1,12 @@
+import random
+import urllib
+from datetime import datetime, timedelta, timezone
+
+from webdriver.bidi.modules.network import (
+    NetworkStringValue,
+    SetCookieHeader,
+)
+
 from .. import (
     any_bool,
     any_dict,
@@ -12,12 +21,6 @@ from .. import (
     recursive_compare,
 )
 
-from webdriver.bidi.modules.network import (
-    NetworkStringValue,
-    SetCookieHeader,
-)
-
-from datetime import datetime, timedelta, timezone
 
 
 def assert_bytes_value(bytes_value):
@@ -312,6 +315,22 @@ def create_header(overrides=None, value_overrides=None):
     return header
 
 
+def get_cached_url(content_type, response):
+    """
+    Build a URL for a resource which will be fully cached.
+
+    :param content_type: Response content type eg "text/css".
+    :param response: Response body>
+
+    :return: Relative URL as a string, typically should be used with the
+        `url` fixture.
+    """
+    # `nocache` is not used in cached.py, it is here to bypass the browser cache
+    # from previous tests accessing the same URL.
+    query_string = f"status=200&contenttype={content_type}&response={response}&nocache={random.random()}"
+    return f"/webdriver/tests/support/http_handlers/cached.py?{query_string}"
+
+
 # Array of status and status text expected to be available in network events
 HTTP_STATUS_AND_STATUS_TEXT = [
     (101, "Switching Protocols"),
@@ -368,6 +387,9 @@ PAGE_REDIRECT_HTTP_EQUIV = (
 )
 PAGE_REDIRECTED_HTML = "/webdriver/tests/bidi/network/support/redirected.html"
 PAGE_SERVICEWORKER_HTML = "/webdriver/tests/bidi/network/support/serviceworker.html"
+
+STYLESHEET_GREY_BACKGROUND = urllib.parse.quote_plus("html, body { background-color: #ccc; }")
+STYLESHEET_RED_COLOR = urllib.parse.quote_plus("html, body { color: red; }")
 
 AUTH_REQUIRED_EVENT = "network.authRequired"
 BEFORE_REQUEST_SENT_EVENT = "network.beforeRequestSent"

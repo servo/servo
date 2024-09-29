@@ -1,0 +1,69 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+'use strict';
+
+// It is not possible to make `Date.now()` and `performance.timeOrigin +
+// performance.now()` diverge inside of WPTs, so implementers beware that these
+// tests may give FALSE positives if `timestamp` is implemented as Wall Clock.
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+
+  const t0 = performance.timeOrigin + performance.now();
+  const report = await pc.getStats();
+  const t1 = performance.timeOrigin + performance.now();
+
+  // Any locally sourced RTCStats would do for this test but we have to pick one
+  // for consistency between test runs and make no assumption about stats report
+  // iteration order.
+  const peerConnectionStats =
+      report.values().find(stats => stats.type == 'peer-connection');
+
+  assert_less_than_equal(t0, peerConnectionStats.timestamp);
+  assert_less_than_equal(peerConnectionStats.timestamp, t1);
+}, 'RTCStats.timestamp is expressed as Performance time');
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+
+  // Media is needed for RTCP reports.
+  const stream = await getNoiseStream({video: true});
+  const [track] = stream.getTracks();
+  t.add_cleanup(() => track.stop());
+  pc1.addTrack(track);
+
+  // Negotiate and ICE connect.
+  pc1.onicecandidate = e => pc2.addIceCandidate(e.candidate);
+  pc2.onicecandidate = e => pc1.addIceCandidate(e.candidate);
+  await pc1.setLocalDescription();
+  await pc2.setRemoteDescription(pc1.localDescription);
+  await pc2.setLocalDescription();
+  await pc1.setRemoteDescription(pc2.localDescription);
+
+  // The report won't contain RTCP stats objects until the first RTCP report is
+  // received. This can take several seconds so we poll `getStats()` in a loop.
+  const t0 = performance.timeOrigin + performance.now();
+  let remoteInboundRtp = null;
+  while (remoteInboundRtp == null) {
+    // When https://crbug.com/369369568 is fixed consider clearing stats cache
+    // here (e.g. SLD) and then making the interval tighter by updating `t0` to
+    // "now" if `remoteInboundRtp` was missing.
+    const report = await pc1.getStats();
+    remoteInboundRtp =
+        report.values().find(stats => stats.type == 'remote-inbound-rtp');
+  }
+  const t1 = performance.timeOrigin + performance.now();
+
+  assert_less_than_equal(t0, remoteInboundRtp.timestamp);
+  assert_less_than_equal(remoteInboundRtp.timestamp, t1);
+}, 'RTCRemoteInboundRtpStats.timestamp is expressed as Performance time');
+</script>

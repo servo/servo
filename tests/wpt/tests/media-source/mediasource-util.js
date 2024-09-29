@@ -186,6 +186,14 @@
         return mediaData.subarray(start, end);
     }
 
+    MediaSourceUtil.WriteBigEndianInteger32ToUint8Array = function(integer32, array)
+    {
+        array[0] = integer32 >> 24;
+        array[1] = integer32 >> 16;
+        array[2] = integer32 >> 8;
+        array[3] = integer32;
+    }
+
     MediaSourceUtil.getMediaDataForPlaybackTime = function(mediaData, segmentInfo, playbackTimeToAdd)
     {
         assert_less_than_equal(playbackTimeToAdd, segmentInfo.duration);

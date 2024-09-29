@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://github.com/openui/open-ui/issues/547">
+<link rel=help href="https://drafts.csswg.org/selectors/#open-state">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<select id=myselect>
+  <option>one</option>
+  <option>two</option>
+</select>
+
+<style>
+  select, ::picker(select) {
+    appearance: base-select;
+  }
+</style>
+
+<script>
+function clickOn(element) {
+  const actions = new test_driver.Actions();
+  return actions.pointerMove(0, 0, {origin: element})
+    .pointerDown({button: actions.ButtonType.LEFT})
+    .pointerUp({button: actions.ButtonType.LEFT})
+    .send();
+}
+
+promise_test(async () => {
+  assert_false(myselect.matches(':open'),
+    'select should not match :open while it is closed.');
+  assert_true(myselect.matches(':closed'),
+    'select should match :closed while it is closed.');
+  await clickOn(myselect);
+
+  assert_true(myselect.matches(':open'),
+    'select should match :open while it is open.');
+  assert_false(myselect.matches(':closed'),
+    'select should not match :closed while it is open.');
+}, 'select should support :open and :closed pseudo selectors.');
+</script>
+
+<select id=selectinvalidation>
+  <option>one</option>
+  <option>two</option>
+</select>
+<style>
+select:closed {
+  background-color: red;
+}
+select:open {
+  background-color: green;
+}
+</style>
+
+<script>
+promise_test(async () => {
+  const select = document.getElementById('selectinvalidation');
+  const option = select.querySelector('option');
+
+  assert_equals(getComputedStyle(select).backgroundColor, 'rgb(255, 0, 0)',
+    'The style rules from :closed should apply when the select is closed.');
+
+  await clickOn(select);
+  assert_equals(getComputedStyle(select).backgroundColor, 'rgb(0, 128, 0)',
+    'The style rules from :open should apply when the select is open.');
+
+  option.click();
+  assert_equals(getComputedStyle(select).backgroundColor, 'rgb(255, 0, 0)',
+    'The style rules from :closed should apply when the select is opened and closed again.');
+}, 'select :open and :closed should invalidate correctly.');
+</script>

@@ -58,7 +58,7 @@
       const shadowContainer = document.querySelector("#shadow-container");
       shadowContainer.shadowRoot.querySelector("#new-parent").moveBefore(item, null);
       await new Promise(resolve => requestAnimationFrame(() => resolve()));
-      assert_greater_than(item.getBoundingClientRect().x, 399);
-    }, "Moving an element with a transition across shadow boundaries should reset the transition");
+      assert_less_than(item.getBoundingClientRect().x, 400);
+    }, "Moving an element with a transition across shadow boundaries preserves the transition");
   </script>
 </body>

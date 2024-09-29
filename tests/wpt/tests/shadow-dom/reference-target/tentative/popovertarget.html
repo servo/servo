@@ -11,29 +11,42 @@
 </head>
 
 <body>
-  <button id="toggle-button" popovertarget="x-popover-1">Toggle the popover</button>
+  <button id="toggle-button-1" popovertarget="x-popover-1">Toggle the popover</button>
   <x-popover-1 id="x-popover-1">
-    <template shadowrootmode="open" shadowrootreferencetarget="popover-1">
-      <div id="popover-1" popover>Popover content inside shadow root</div>
+    <template shadowrootmode="open" shadowrootreferencetarget="popover">
+      <div id="popover" popover>Popover content inside shadow root</div>
     </template>
   </x-popover-1>
 
+  <button id="toggle-button-2" popovertarget="x-popover-2">Toggle the popover</button>
+  <x-popover-2 id="x-popover-2"></x-popover-2>
+
   <script>
-    test(function () {
-      const xPopover = document.getElementById("x-popover-1");
-      const popover = xPopover.shadowRoot.getElementById("popover-1");
+    const customPopover2 = document.querySelector('x-popover-2');
+    customPopover2.attachShadow({ mode: 'open', referenceTarget: 'popover' });
+    customPopover2.shadowRoot.innerHTML = '<div id="popover" popover>Popover content inside shadow root</div>';
+  </script>
 
-      let showCount = 0;
-      popover.addEventListener('beforetoggle', (e) => {
-        if (e.newState === "open")
-          ++showCount;
-      });
+  <script>
+    function testPopoverTarget(popoverId, buttonId, name) {
+      test(function () {
+        const xPopover = document.getElementById(popoverId);
+        const popover = xPopover.shadowRoot.getElementById("popover");
 
-      const toggleButton = document.getElementById("toggle-button");
-      toggleButton.click();
+        let showCount = 0;
+        popover.addEventListener('beforetoggle', (e) => {
+          if (e.newState === "open")
+            ++showCount;
+        });
 
-      assert_equals(showCount, 1, "showCount");
-    }, "Shadow root reference target works with popovertarget attribute.");
+        const toggleButton = document.getElementById(buttonId);
+        toggleButton.click();
+
+        assert_equals(showCount, 1, "showCount");
+      }, name);
+    }
+    testPopoverTarget('x-popover-1', 'toggle-button-1', "Shadow root reference target works with popovertarget attribute.");
+    testPopoverTarget('x-popover-2', 'toggle-button-2', "Shadow root reference target works with popovertarget attribute via options.");
   </script>
 </body>
 

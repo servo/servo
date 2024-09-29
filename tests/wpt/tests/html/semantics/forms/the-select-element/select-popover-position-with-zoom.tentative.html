@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<title>HTMLselectElement Test: popover position with zoom</title>
+<link rel="author" title="Ionel Popescu" href="mailto:iopopesc@microsoft.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<style>
+  #select0 {
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    zoom: 2;
+  }
+
+  #select1 {
+    position: absolute;
+    bottom: 0px;
+    left: 0px;
+    zoom: 1.5;
+  }
+
+  #select1-popover {
+    zoom: 2;
+  }
+
+  #select2 {
+    position: absolute;
+    top: 0px;
+    right: 0px;
+    zoom: 3;
+  }
+
+  #select3 {
+    position: absolute;
+    bottom: 0px;
+    right: 0px;
+    zoom: 4;
+  }
+
+  #select3-popover {
+    zoom: 1.5;
+  }
+
+  select, ::picker(select) {
+    appearance: base-select;
+    padding:0;
+  }
+</style>
+
+<select id="select0">
+  <div id="select0-popover">
+    <option>bottom left</option>
+    <option>two</option>
+    <option>three</option>
+  </div>
+</select>
+<br>
+
+<select id="select1">
+  <div id="select1-popover">
+    <option>top left</option>
+    <option>two</option>
+    <option>three</option>
+  </div>
+</select>
+
+<select id="select2">
+  <div id="select2-popover">
+    <option>bottom right</option>
+    <option>two</option>
+    <option>three</option>
+  </div>
+</select>
+
+<select id="select3">
+  <div id="select3-popover">
+    <option>top right</option>
+    <option>two</option>
+    <option>three</option>
+  </div>
+</select>
+
+<script>
+  function clickOn(element) {
+    const actions = new test_driver.Actions();
+    return actions.pointerMove(0, 0, {origin: element})
+      .pointerDown({button: actions.ButtonType.LEFT})
+      .pointerUp({button: actions.ButtonType.LEFT})
+      .send();
+  }
+
+  function assertPos(expected, actual) {
+    assert_true(Math.abs(Math.trunc(expected - actual)) == 0,`Expected ${expected} but got ${actual}`);
+  }
+
+  promise_test(async () => {
+    const select0 = document.getElementById("select0");
+    const select0Popover = document.getElementById("select0-popover");
+
+    await clickOn(select0);
+    assertPos(select0.getBoundingClientRect().bottom, select0Popover.getBoundingClientRect().top);
+    assertPos(select0.getBoundingClientRect().left, select0Popover.getBoundingClientRect().left);
+  }, "The popover should be bottom left positioned");
+
+  promise_test(async () => {
+    const select1 = document.getElementById("select1");
+    const select1Popover = document.getElementById("select1-popover");
+
+    await clickOn(select1);
+    assertPos(select1.getBoundingClientRect().top, select1Popover.getBoundingClientRect().bottom * 2);
+    assertPos(select1.getBoundingClientRect().left, select1Popover.getBoundingClientRect().left * 2);
+  }, "The popover should be top left positioned");
+
+  promise_test(async () => {
+    const select2 = document.getElementById("select2");
+    const select2Popover = document.getElementById("select2-popover");
+
+    await clickOn(select2);
+    assertPos(select2.getBoundingClientRect().bottom, select2Popover.getBoundingClientRect().top);
+    assertPos(select2.getBoundingClientRect().right, select2Popover.getBoundingClientRect().right);
+  }, "The popover should be bottom right positioned");
+
+  promise_test(async () => {
+    const select3 = document.getElementById("select3");
+    const select3Popover = document.getElementById("select3-popover");
+
+    await clickOn(select3);
+    assertPos(select3.getBoundingClientRect().top, select3Popover.getBoundingClientRect().bottom * 1.5);
+    assertPos(select3.getBoundingClientRect().right, select3Popover.getBoundingClientRect().right * 1.5);
+  }, "The popover should be top right positioned");
+
+</script>

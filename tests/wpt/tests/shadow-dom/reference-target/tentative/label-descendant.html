@@ -17,22 +17,39 @@
   Input 1
   <div>
     <x-input1 id="x-input1">
-      <template shadowrootmode="open" shadowrootreferencetarget="input1">
-        <input id="input1">
+      <template shadowrootmode="open" shadowrootreferencetarget="input">
+        <input id="input">
       </template>
     </x-input1>
   </div>
 </label>
 
-<script>
-  promise_test(async t => {
-    const x_input = document.getElementById('x-input1');
-    const input = x_input.shadowRoot.getElementById('input1');
+<label>
+  Input 1 via Options
+  <div>
+    <x-input1 id="x-input1-a"></x-input1>
+  </div>
+</label>
 
-    // The label should apply to the input element and not the host.
-    assert_equals(await test_driver.get_computed_label(x_input), "");
-    assert_equals(await test_driver.get_computed_label(input), "Input 1");
-  }, "Label applies to descendant custom element that uses shadowrootreferencetarget");
+<script>
+  const customInput1 = document.querySelector('#x-input1-a');
+  customInput1.attachShadow({ mode: 'open', referenceTarget: 'input' });
+  customInput1.shadowRoot.innerHTML = `<input id="input">`;
+</script>
+
+<script>
+  function testImplicitLabelAssociation(id, label) {
+    promise_test(async t => {
+      const x_input = document.getElementById(id);
+      const input = x_input.shadowRoot.getElementById('input');
+
+      // The label should apply to the input element and not the host.
+      assert_equals(await test_driver.get_computed_label(x_input), "");
+      assert_equals(await test_driver.get_computed_label(input), label);
+    }, "Label applies to descendant custom element that uses shadowrootreferencetarget");
+  }
+  testImplicitLabelAssociation('x-input1', 'Input 1');
+  testImplicitLabelAssociation('x-input1-a', 'Input 1 via Options');
 </script>
 
 <!-- 2. Label applies to multiple layers of descendant custom elements that use shadowrootreferencetarget -->
@@ -42,25 +59,43 @@
   <x-outer2 id="x-outer2">
     <template shadowrootmode="open" shadowrootreferencetarget="x-inner2">
       <x-inner2 id="x-inner2">
-        <template shadowrootmode="open" shadowrootreferencetarget="input2">
-          <input id="input2">
+        <template shadowrootmode="open" shadowrootreferencetarget="input">
+          <input id="input">
         </template>
       </x-inner2>
     </template>
   </x-outer2>
 </label>
 
-<script>
-  promise_test(async t => {
-    const outer = document.getElementById('x-outer2');
-    const inner = outer.shadowRoot.getElementById('x-inner2');
-    const input = inner.shadowRoot.getElementById('input2');
+<label>
+  Input 2 via Options
+  <x-outer2 id="x-outer2-a"></x-outer2>
+</label>
 
-    // The label should apply to the input element and not any of the hosts.
-    assert_equals(await test_driver.get_computed_label(outer), "");
-    assert_equals(await test_driver.get_computed_label(inner), "");
-    assert_equals(await test_driver.get_computed_label(input), "Input 2");
-  }, "Label applies to multiple layers of descendant custom elements that use shadowrootreferencetarget");
+<script>
+  const customOuter2 = document.querySelector('#x-outer2-a');
+  customOuter2.attachShadow({ mode: 'open', referenceTarget: 'x-inner2' });
+  customOuter2.shadowRoot.innerHTML = `<x-inner2 id="x-inner2"></x-inner2>`;
+  const customInner2 = customOuter2.shadowRoot.querySelector('x-inner2');
+  customInner2.attachShadow({ mode: 'open', referenceTarget: 'input' });
+  customInner2.shadowRoot.innerHTML = `<input id="input">`;
+</script>
+
+<script>
+  function testDeepImplicitLabelAssociation(id, label) {
+    promise_test(async t => {
+      const outer = document.getElementById(id);
+      const inner = outer.shadowRoot.getElementById('x-inner2');
+      const input = inner.shadowRoot.getElementById('input');
+
+      // The label should apply to the input element and not any of the hosts.
+      assert_equals(await test_driver.get_computed_label(outer), "");
+      assert_equals(await test_driver.get_computed_label(inner), "");
+      assert_equals(await test_driver.get_computed_label(input), label);
+    }, "Label applies to multiple layers of descendant custom elements that use shadowrootreferencetarget");
+  }
+  testDeepImplicitLabelAssociation('x-outer2', 'Label 2');
+  testDeepImplicitLabelAssociation('x-outer2-a', 'Label 2 via Options');
 </script>
 
 </body>

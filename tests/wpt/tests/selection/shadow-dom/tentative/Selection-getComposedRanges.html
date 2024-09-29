@@ -165,10 +165,10 @@ test(() => {
     getSelection().setBaseAndExtent(container.firstChild, 0, outerShadowRoot, 0);
     const ranges = getSelection().getComposedRanges({ shadowRoots: [innerShadowRoot] });
     assert_equals(ranges.length, 1);
-    assert_equals(ranges[0].startContainer, container.firstChild, "A");
-    assert_equals(ranges[0].startOffset, 0, "B");
-    assert_equals(ranges[0].endContainer, outerShadowRoot, "C");
-    assert_equals(ranges[0].endOffset, 0, "D");
+    assert_equals(ranges[0].startContainer, container.firstChild);
+    assert_equals(ranges[0].startOffset, 0);
+    assert_equals(ranges[0].endContainer, outerShadowRoot);
+    assert_equals(ranges[0].endOffset, 0);
 }, 'getComposedRanges returns a sequence with a static range without rescoping when there is a selection in an outer shadow tree and the inner shadow tree is specified as an argument');
 
 </script>

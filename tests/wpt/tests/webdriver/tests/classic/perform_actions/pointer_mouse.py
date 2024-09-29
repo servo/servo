@@ -1,6 +1,11 @@
 import pytest
 
-from webdriver.error import InvalidArgumentException, NoSuchWindowException, StaleElementReferenceException
+from webdriver.error import (
+    InvalidArgumentException,
+    MoveTargetOutOfBoundsException,
+    NoSuchWindowException,
+    StaleElementReferenceException,
+)
 
 from tests.classic.perform_actions.support.mouse import (
     get_inview_center,
@@ -35,6 +40,15 @@ def test_stale_element_reference(session, stale_element, mouse_chain, as_frame):
 
     with pytest.raises(StaleElementReferenceException):
         mouse_chain.click(element=element).perform()
+
+
+@pytest.mark.parametrize("origin", ["element", "pointer", "viewport"])
+def test_params_actions_origin_outside_viewport(session, test_actions_page, mouse_chain, origin):
+    if origin == "element":
+        origin = session.find.css("#outer", all=False)
+
+    with pytest.raises(MoveTargetOutOfBoundsException):
+        mouse_chain.pointer_move(-100, -100, origin=origin).perform()
 
 
 def test_click_at_coordinates(session, test_actions_page, mouse_chain):

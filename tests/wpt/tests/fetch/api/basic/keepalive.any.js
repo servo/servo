@@ -39,3 +39,39 @@ function keepaliveSimpleRequestTest(method) {
 for (const method of ['GET', 'POST']) {
   keepaliveSimpleRequestTest(method);
 }
+
+// verifies fetch keepalive requests from a worker
+function keepaliveSimpleWorkerTest() {
+    const desc =
+        `simple keepalive test for web workers`;
+    promise_test(async (test) => {
+      const TOKEN = token();
+      const FRAME_ORIGIN = new URL(location.href).origin;
+      const TEST_URL = get_host_info().HTTP_ORIGIN + `/fetch/api/resources/stash-put.py?key=${TOKEN}&value=on`
+    + `&frame_origin=${FRAME_ORIGIN}`;
+      // start a worker which sends keepalive request and immediately terminates
+      const worker = new Worker(`/fetch/api/resources/keepalive-worker.js?param=${TEST_URL}`);
+
+      const keepAliveWorkerPromise = new Promise((resolve, reject) => {
+        worker.onmessage = (event) => {
+          if (event.data === 'started') {
+            resolve();
+          } else {
+            reject(new Error("Unexpected message received from worker"));
+          }
+        };
+        worker.onerror = (error) => {
+          reject(error);
+        };
+      });
+
+      // wait until the worker has been initialized (indicated by the "started" message)
+      await keepAliveWorkerPromise;
+      // verifies if the token sent in fetch request has been updated in the server
+      assertStashedTokenAsync(desc, TOKEN);
+
+    }, `${desc};`);
+
+}
+
+keepaliveSimpleWorkerTest();

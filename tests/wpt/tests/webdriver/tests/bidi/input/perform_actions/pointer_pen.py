@@ -1,5 +1,6 @@
 import pytest
 
+from webdriver.bidi.error import MoveTargetOutOfBoundsException
 from webdriver.bidi.modules.input import Actions, get_element_origin
 
 from .. import get_events
@@ -11,6 +12,36 @@ from . import (
 )
 
 pytestmark = pytest.mark.asyncio
+
+
+@pytest.mark.parametrize("origin", ["element", "pointer", "viewport"])
+async def test_params_actions_origin_outside_viewport(
+    bidi_session, get_actions_origin_page, top_context, get_element, origin
+):
+    if origin == "element":
+        url = get_actions_origin_page(
+            """width: 100px; height: 50px; background: green;
+            position: relative; left: -200px; top: -100px;"""
+        )
+        await bidi_session.browsing_context.navigate(
+            context=top_context["context"],
+            url=url,
+            wait="complete",
+        )
+
+        element = await get_element("#inner")
+        origin = get_element_origin(element)
+
+    actions = Actions()
+    (
+        actions.add_pointer(pointer_type="pen")
+        .pointer_move(x=-100, y=-100, origin=origin)
+    )
+
+    with pytest.raises(MoveTargetOutOfBoundsException):
+        await bidi_session.input.perform_actions(
+            actions=actions, context=top_context["context"]
+        )
 
 
 @pytest.mark.parametrize("mode", ["open", "closed"])

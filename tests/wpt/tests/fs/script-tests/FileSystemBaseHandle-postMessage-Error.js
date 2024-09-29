@@ -33,7 +33,7 @@ async function do_send_message_error_test(
 
   // Send a file to |target|.
   const file = await createFileWithContents(
-    test, 'test-error-file', 'test-error-file-contents', root_dir);
+      'test-error-file', 'test-error-file-contents', root_dir);
   target.postMessage(
     { type: 'receive-file-system-handles', cloned_file_system_handles: [file] },
     { targetOrigin: target_origin });
@@ -51,8 +51,7 @@ async function do_send_message_error_test(
     expected_origin, expected_has_source);
 
   // Send a directory to |target|.
-  const directory = await createDirectory(
-    test, 'test-error-directory', root_dir);
+  const directory = await createDirectory('test-error-directory', root_dir);
 
   target.postMessage(
     {

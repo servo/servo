@@ -20,7 +20,7 @@ directory_test(async (t, root) => {
 
 directory_test(async (t, root) => {
   const dir = await root.getDirectoryHandle('dir-before', {create: true});
-  await createFileWithContents(t, 'file-in-dir', 'abc', dir);
+  await createFileWithContents('file-in-dir', 'abc', dir);
   await dir.move('dir-after');
 
   assert_array_equals(await getSortedDirectoryEntries(root), ['dir-after/']);
@@ -37,7 +37,7 @@ directory_test(async (t, root) => {
 
 directory_test(async (t, root) => {
   const dir = await root.getDirectoryHandle('dir-before', {create: true});
-  await createFileWithContents(t, 'file-in-dir', 'abc', dir);
+  await createFileWithContents('file-in-dir', 'abc', dir);
   await dir.move(root, 'dir-after');
 
   assert_array_equals(await getSortedDirectoryEntries(root), ['dir-after/']);
@@ -79,8 +79,7 @@ directory_test(async (t, root) => {
   const dir_dest = await root.getDirectoryHandle('dir-dest', {create: true});
   const dir_in_dir =
       await dir_src.getDirectoryHandle('dir-in-dir', {create: true});
-  const file =
-      await createFileWithContents(t, 'file-in-dir', 'abc', dir_in_dir);
+  const file = await createFileWithContents('file-in-dir', 'abc', dir_in_dir);
   await dir_in_dir.move(dir_dest);
 
   assert_array_equals(
@@ -99,8 +98,7 @@ directory_test(async (t, root) => {
   const dir_dest = await root.getDirectoryHandle('dir-dest', {create: true});
   const dir_in_dir =
       await dir_src.getDirectoryHandle('dir-in-dir', {create: true});
-  const file =
-      await createFileWithContents(t, 'file-in-dir', 'abc', dir_in_dir);
+  const file = await createFileWithContents('file-in-dir', 'abc', dir_in_dir);
   await dir_in_dir.move(dir_dest, 'dir-in-dir');
 
   assert_array_equals(
@@ -117,7 +115,7 @@ directory_test(async (t, root) => {
 directory_test(async (t, root) => {
   const dir1 = await root.getDirectoryHandle('dir1', {create: true});
   const dir2 = await root.getDirectoryHandle('dir2', {create: true});
-  const handle = await createFileWithContents(t, 'file', 'foo', root);
+  const handle = await createFileWithContents('file', 'foo', root);
 
   await handle.move(dir1);
   assert_array_equals(
@@ -144,7 +142,7 @@ directory_test(async (t, root) => {
 directory_test(async (t, root) => {
   const dir1 = await root.getDirectoryHandle('dir1', {create: true});
   const dir2 = await root.getDirectoryHandle('dir2', {create: true});
-  const handle = await createFileWithContents(t, 'file', 'foo', root);
+  const handle = await createFileWithContents('file', 'foo', root);
 
   await handle.move(dir1, 'file-1');
   assert_array_equals(
@@ -169,7 +167,7 @@ directory_test(async (t, root) => {
 }, 'move(dir, name) can be called multiple times');
 
 directory_test(async (t, root) => {
-  const handle = await createFileWithContents(t, 'file-before', 'foo', root);
+  const handle = await createFileWithContents('file-before', 'foo', root);
   const valid_name = '#$23423@352^*3243';
   await handle.move(root, valid_name);
 
@@ -201,7 +199,7 @@ directory_test(async (t, root) => {
 }, 'move(dir, name) with a name with invalid characters should fail');
 
 directory_test(async (t, root) => {
-    const handle = await createFileWithContents(t, 'file-before', 'foo', root);
+  const handle = await createFileWithContents('file-before', 'foo', root);
   await promise_rejects_js(t, TypeError, handle.move(root, ''));
 
   assert_array_equals(await getSortedDirectoryEntries(root), ['file-before']);

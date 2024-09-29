@@ -1,6 +1,6 @@
 import pytest
 
-from webdriver.error import NoSuchWindowException
+from webdriver.error import MoveTargetOutOfBoundsException, NoSuchWindowException
 
 import time
 from tests.classic.perform_actions.support.refine import get_events
@@ -21,6 +21,17 @@ def test_no_top_browsing_context(session, closed_window, wheel_chain):
 def test_no_browsing_context(session, closed_window, wheel_chain):
     with pytest.raises(NoSuchWindowException):
         wheel_chain.scroll(0, 0, 0, 10).perform()
+
+
+@pytest.mark.parametrize("origin", ["element", "viewport"])
+def test_params_actions_origin_outside_viewport(
+    session, test_actions_scroll_page, wheel_chain, origin
+):
+    if origin == "element":
+        origin = session.find.css("#scrollable", all=False)
+
+    with pytest.raises(MoveTargetOutOfBoundsException):
+        wheel_chain.scroll(-100, -100, 10, 20, origin="viewport").perform()
 
 
 def test_scroll_not_scrollable(session, test_actions_scroll_page, wheel_chain):

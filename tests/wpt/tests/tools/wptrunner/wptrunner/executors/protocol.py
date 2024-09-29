@@ -158,6 +158,14 @@ class BaseProtocolPart(ProtocolPart):
         :returns: True to re-run the test, or False to continue with the next test"""
         pass
 
+    @abstractmethod
+    def create_window(self, type="tab", **kwargs):
+        """Return a handle identifying a freshly created top level browsing context
+
+        :param type: - Type hint, either "tab" or "window"
+        :returns: A protocol-specific handle"""
+        pass
+
     @property
     def current_window(self):
         """Return a handle identifying the current top level browsing context
@@ -207,18 +215,6 @@ class TestharnessProtocolPart(ProtocolPart):
         contains the initial runner page.
 
         :param str url_protocol: "https" or "http" depending on the test metadata.
-        """
-        pass
-
-    @abstractmethod
-    def get_test_window(self, window_id: str, parent: str) -> str:
-        """Get the window handle dorresponding to the window containing the
-        currently active test.
-
-        :param window_id: A string containing the DOM name of the Window that
-        contains the test, or None.
-        :param parent: The handle of the runner window.
-        :returns: A protocol-specific window handle.
         """
         pass
 

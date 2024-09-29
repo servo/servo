@@ -213,6 +213,7 @@
     let a_rule = rules[0].cssRules[1];
     assert_equals(a_rule.selectorText, '& .a1');
     a_rule.selectorText = '.a2';
+    assert_equals(a_rule.selectorText, '& .a2');
 
     assert_equals(getComputedStyle(a1).color, 'rgb(255, 0, 0)');
     assert_equals(getComputedStyle(a2).color, 'rgb(0, 128, 0)');

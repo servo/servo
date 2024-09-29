@@ -5,8 +5,6 @@
 const detachedArrayBuffer = new ArrayBuffer(4);
 var b = detachedArrayBuffer.transferToFixedLength();
 
-const emptyArrayBuffer = new ArrayBuffer(0);
-
 const invalidConfigs = [
   {
     comment: 'Missing codec',
@@ -167,6 +165,24 @@ var supportedButErrorOnConfiguration = [
       description: new Uint8Array(9), // at least 10 bytes are required for multichannel
     },
   },
+  {
+    comment: 'vorbis requires a description',
+    config: {
+      codec: 'vorbis',
+      sampleRate: '48000',
+      numberOfChannels: 2
+    },
+  },
+  {
+    comment: 'flac requires a description',
+    config: {
+      codec: 'flac',
+      sampleRate: '48000',
+      numberOfChannels: 2
+    },
+  },
+];
+
 validButUnsupportedConfigs.forEach(entry => {
   promise_test(
       t => {

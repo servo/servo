@@ -99,3 +99,4 @@ If possible:
 * reporting timeout being 0.
 * Test input with invalid https origin in web platform tests for both trusted bidding
   and scoring signals coordinators.
+* Test selectable buyer and seller reporting ids with k-anonymity enforcement.

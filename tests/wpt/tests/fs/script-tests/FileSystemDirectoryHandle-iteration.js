@@ -3,8 +3,8 @@
 directory_test(async (t, root) => {
   const file_name1 = 'foo1.txt';
   const file_name2 = 'foo2.txt';
-  await createFileWithContents(t, file_name1, 'contents', /*parent=*/ root);
-  await createFileWithContents(t, file_name2, 'contents', /*parent=*/ root);
+  await createFileWithContents(file_name1, 'contents', /*parent=*/ root);
+  await createFileWithContents(file_name2, 'contents', /*parent=*/ root);
 
   for await (let entry of root) {
     break;
@@ -15,8 +15,8 @@ directory_test(async (t, root) => {
 directory_test(async (t, root) => {
   const file_name1 = 'foo1.txt';
   const file_name2 = 'foo2.txt';
-  await createFileWithContents(t, file_name1, 'contents', /*parent=*/ root);
-  await createFileWithContents(t, file_name2, 'contents', /*parent=*/ root);
+  await createFileWithContents(file_name1, 'contents', /*parent=*/ root);
+  await createFileWithContents(file_name2, 'contents', /*parent=*/ root);
 
   let names = [];
   for await (let entry of root) {
@@ -35,8 +35,8 @@ directory_test(async (t, root) => {
 directory_test(async (t, root) => {
   const file_name1 = 'foo1.txt';
   const file_name2 = 'foo2.txt';
-  await createFileWithContents(t, file_name1, 'contents', /*parent=*/ root);
-  await createFileWithContents(t, file_name2, 'contents', /*parent=*/ root);
+  await createFileWithContents(file_name1, 'contents', /*parent=*/ root);
+  await createFileWithContents(file_name2, 'contents', /*parent=*/ root);
 
   let names = [];
   for await (let entry of root.entries()) {
@@ -54,8 +54,8 @@ directory_test(async (t, root) => {
 directory_test(async (t, root) => {
   const file_name1 = 'foo1.txt';
   const file_name2 = 'foo2.txt';
-  await createFileWithContents(t, file_name1, 'contents', /*parent=*/ root);
-  await createFileWithContents(t, file_name2, 'contents', /*parent=*/ root);
+  await createFileWithContents(file_name1, 'contents', /*parent=*/ root);
+  await createFileWithContents(file_name2, 'contents', /*parent=*/ root);
 
   let names = [];
   for await (let entry of root.values()) {
@@ -69,8 +69,8 @@ directory_test(async (t, root) => {
 directory_test(async (t, root) => {
   const file_name1 = 'foo1.txt';
   const file_name2 = 'foo2.txt';
-  await createFileWithContents(t, file_name1, 'contents', /*parent=*/ root);
-  await createFileWithContents(t, file_name2, 'contents', /*parent=*/ root);
+  await createFileWithContents(file_name1, 'contents', /*parent=*/ root);
+  await createFileWithContents(file_name2, 'contents', /*parent=*/ root);
 
   let names = [];
   for await (let entry of root.keys()) {
@@ -83,7 +83,7 @@ directory_test(async (t, root) => {
 
 directory_test(async (t, root) => {
   const file_name1 = 'foo1.txt';
-  await createFileWithContents(t, file_name1, 'contents', /*parent=*/ root);
+  await createFileWithContents(file_name1, 'contents', /*parent=*/ root);
 
   const next = (() => {
     const iterator = root.entries();

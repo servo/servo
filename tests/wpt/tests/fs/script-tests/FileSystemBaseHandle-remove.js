@@ -1,9 +1,8 @@
 'use strict';
 
 directory_test(async (t, root) => {
-  const handle =
-      await createFileWithContents(t, 'file-to-remove', '12345', root);
-  await createFileWithContents(t, 'file-to-keep', 'abc', root);
+  const handle = await createFileWithContents('file-to-remove', '12345', root);
+  await createFileWithContents('file-to-keep', 'abc', root);
   await handle.remove();
 
   assert_array_equals(await getSortedDirectoryEntries(root), ['file-to-keep']);
@@ -11,8 +10,7 @@ directory_test(async (t, root) => {
 }, 'remove() to remove a file');
 
 directory_test(async (t, root) => {
-  const handle =
-      await createFileWithContents(t, 'file-to-remove', '12345', root);
+  const handle = await createFileWithContents('file-to-remove', '12345', root);
   await handle.remove();
 
   await promise_rejects_dom(t, 'NotFoundError', handle.remove());
@@ -20,7 +18,7 @@ directory_test(async (t, root) => {
 
 directory_test(async (t, root) => {
   const dir = await root.getDirectoryHandle('dir-to-remove', {create: true});
-  await createFileWithContents(t, 'file-to-keep', 'abc', root);
+  await createFileWithContents('file-to-keep', 'abc', root);
   await dir.remove();
 
   assert_array_equals(await getSortedDirectoryEntries(root), ['file-to-keep']);
@@ -36,8 +34,7 @@ directory_test(async (t, root) => {
 
 directory_test(async (t, root) => {
   const dir = await root.getDirectoryHandle('dir-to-remove', {create: true});
-  t.add_cleanup(() => root.removeEntry('dir-to-remove', {recursive: true}));
-  await createEmptyFile(t, 'file-in-dir', dir);
+  await createEmptyFile('file-in-dir', dir);
 
   await promise_rejects_dom(t, 'InvalidModificationError', dir.remove());
   assert_array_equals(
@@ -54,20 +51,19 @@ directory_test(async (t, root) => {
   //    │   └── file1
   //    └── dir2
   const dir = await root.getDirectoryHandle('dir-to-remove', {create: true});
-  await createFileWithContents(t, 'file-to-keep', 'abc', root);
-  await createEmptyFile(t, 'file0', dir);
-  const dir1_in_dir = await createDirectory(t, 'dir1-in-dir', dir);
-  await createEmptyFile(t, 'file1', dir1_in_dir);
-  await createDirectory(t, 'dir2-in-dir', dir);
+  await createFileWithContents('file-to-keep', 'abc', root);
+  await createEmptyFile('file0', dir);
+  const dir1_in_dir = await createDirectory('dir1-in-dir', dir);
+  await createEmptyFile('file1', dir1_in_dir);
+  await createDirectory('dir2-in-dir', dir);
 
   await dir.remove({recursive: true});
   assert_array_equals(await getSortedDirectoryEntries(root), ['file-to-keep']);
 }, 'remove() on a directory recursively should delete all sub-items');
 
 directory_test(async (t, root) => {
-  const handle =
-      await createFileWithContents(t, 'file-to-remove', '12345', root);
-  await createFileWithContents(t, 'file-to-keep', 'abc', root);
+  const handle = await createFileWithContents('file-to-remove', '12345', root);
+  await createFileWithContents('file-to-keep', 'abc', root);
   await handle.remove({recursive: true});
 
   assert_array_equals(await getSortedDirectoryEntries(root), ['file-to-keep']);
@@ -75,9 +71,8 @@ directory_test(async (t, root) => {
 }, 'remove() on a file should ignore the recursive option');
 
 directory_test(async (t, root) => {
-  const handle =
-      await createFileWithContents(t, 'file-to-remove', '12345', root);
-  await createFileWithContents(t, 'file-to-keep', 'abc', root);
+  const handle = await createFileWithContents('file-to-remove', '12345', root);
+  await createFileWithContents('file-to-keep', 'abc', root);
 
   const writable = await cleanup_writable(t, await handle.createWritable());
   await promise_rejects_dom(t, 'NoModificationAllowedError', handle.remove());
