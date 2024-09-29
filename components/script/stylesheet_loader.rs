@@ -201,7 +201,7 @@ impl FetchResponseListener for StylesheetContext {
 
             // FIXME: Revisit once consensus is reached at:
             // https://github.com/whatwg/html/issues/1142
-            successful = metadata.status.is_some_and(|(code, _)| code == 200);
+            successful = metadata.status == http::StatusCode::OK;
         }
 
         let owner = elem

@@ -35,6 +35,7 @@ use net::cookie_storage::CookieStorage;
 use net::http_loader::determine_requests_referrer;
 use net::resource_thread::AuthCacheEntry;
 use net::test::replace_host_table;
+use net_traits::http_status::HttpStatus;
 use net_traits::request::{
     BodyChunkRequest, BodyChunkResponse, BodySource, CredentialsMode, Destination, Referrer,
     RequestBody, RequestBuilder,
@@ -161,8 +162,7 @@ fn test_check_default_headers_loaded_in_every_request() {
         .internal_response
         .unwrap()
         .status
-        .unwrap()
-        .0
+        .code()
         .is_success());
 
     // Testing for method.POST
@@ -188,8 +188,7 @@ fn test_check_default_headers_loaded_in_every_request() {
         .internal_response
         .unwrap()
         .status
-        .unwrap()
-        .0
+        .code()
         .is_success());
 
     let _ = server.close();
@@ -219,8 +218,7 @@ fn test_load_when_request_is_not_get_or_head_and_there_is_no_body_content_length
         .internal_response
         .unwrap()
         .status
-        .unwrap()
-        .0
+        .code()
         .is_success());
 
     let _ = server.close();
@@ -253,8 +251,7 @@ fn test_request_and_response_data_with_network_messages() {
         .internal_response
         .unwrap()
         .status
-        .unwrap()
-        .0
+        .code()
         .is_success());
 
     let _ = server.close();
@@ -312,7 +309,7 @@ fn test_request_and_response_data_with_network_messages() {
 
     let httpresponse = DevtoolsHttpResponse {
         headers: Some(response_headers),
-        status: Some((200, b"OK".to_vec())),
+        status: HttpStatus::default(),
         body: None,
         pipeline_id: TEST_PIPELINE_ID,
     };
@@ -341,13 +338,7 @@ fn test_request_and_response_message_from_devtool_without_pipeline_id() {
 
     let (devtools_chan, devtools_port) = unbounded();
     let response = fetch(&mut request, Some(devtools_chan));
-    assert!(response
-        .actual_response()
-        .status
-        .as_ref()
-        .unwrap()
-        .0
-        .is_success());
+    assert!(response.actual_response().status.code().is_success());
 
     let _ = server.close();
 
@@ -393,7 +384,7 @@ fn test_redirected_request_to_devtools() {
     assert_eq!(devhttprequest.url, pre_url);
     assert_eq!(
         devhttpresponse.status,
-        Some((301, b"Moved Permanently".to_vec()))
+        HttpStatus::from(StatusCode::MOVED_PERMANENTLY)
     );
 
     let devhttprequest = expect_devtools_http_request(&devtools_port);
@@ -401,7 +392,7 @@ fn test_redirected_request_to_devtools() {
 
     assert_eq!(devhttprequest.method, Method::GET);
     assert_eq!(devhttprequest.url, post_url);
-    assert_eq!(devhttpresponse.status, Some((200, b"OK".to_vec())));
+    assert_eq!(devhttpresponse.status, HttpStatus::default());
 }
 
 #[test]
@@ -435,7 +426,7 @@ fn test_load_when_redirecting_from_a_post_should_rewrite_next_request_as_get() {
     let _ = pre_server.close();
     let _ = post_server.close();
 
-    assert!(response.to_actual().status.unwrap().0.is_success());
+    assert!(response.to_actual().status.code().is_success());
 }
 
 #[test]
@@ -466,7 +457,7 @@ fn test_load_should_decode_the_response_as_deflate_when_response_headers_have_co
     let _ = server.close();
 
     let internal_response = response.internal_response.unwrap();
-    assert!(internal_response.status.clone().unwrap().0.is_success());
+    assert!(internal_response.status.clone().code().is_success());
     assert_eq!(
         *internal_response.body.lock().unwrap(),
         ResponseBody::Done(b"Yay!".to_vec())
@@ -499,7 +490,7 @@ fn test_load_should_decode_the_response_as_gzip_when_response_headers_have_conte
     let _ = server.close();
 
     let internal_response = response.internal_response.unwrap();
-    assert!(internal_response.status.clone().unwrap().0.is_success());
+    assert!(internal_response.status.clone().code().is_success());
     assert_eq!(
         *internal_response.body.lock().unwrap(),
         ResponseBody::Done(b"Yay!".to_vec())
@@ -544,7 +535,7 @@ fn test_load_doesnt_send_request_body_on_any_redirect() {
     let _ = pre_server.close();
     let _ = post_server.close();
 
-    assert!(response.to_actual().status.unwrap().0.is_success());
+    assert!(response.to_actual().status.code().is_success());
 }
 
 #[test]
@@ -576,8 +567,7 @@ fn test_load_doesnt_add_host_to_hsts_list_when_url_is_http_even_if_hsts_headers_
         .internal_response
         .unwrap()
         .status
-        .unwrap()
-        .0
+        .code()
         .is_success());
     assert_eq!(
         context
@@ -622,8 +612,7 @@ fn test_load_sets_cookies_in_the_resource_manager_when_it_get_set_cookie_header_
         .internal_response
         .unwrap()
         .status
-        .unwrap()
-        .0
+        .code()
         .is_success());
 
     assert_cookie_for_domain(
@@ -674,8 +663,7 @@ fn test_load_sets_requests_cookies_header_for_url_by_getting_cookies_from_the_re
         .internal_response
         .unwrap()
         .status
-        .unwrap()
-        .0
+        .code()
         .is_success());
 }
 
@@ -720,8 +708,7 @@ fn test_load_sends_cookie_if_nonhttp() {
         .internal_response
         .unwrap()
         .status
-        .unwrap()
-        .0
+        .code()
         .is_success());
 }
 
@@ -758,8 +745,7 @@ fn test_cookie_set_with_httponly_should_not_be_available_using_getcookiesforurl(
         .internal_response
         .unwrap()
         .status
-        .unwrap()
-        .0
+        .code()
         .is_success());
 
     assert_cookie_for_domain(
@@ -802,13 +788,7 @@ fn test_when_cookie_received_marked_secure_is_ignored_for_http() {
 
     let _ = server.close();
 
-    assert!(response
-        .actual_response()
-        .status
-        .as_ref()
-        .unwrap()
-        .0
-        .is_success());
+    assert!(response.actual_response().status.code().is_success());
 
     assert_cookie_for_domain(&context.state.cookie_jar, url.as_str(), None);
 }
@@ -844,8 +824,7 @@ fn test_load_sets_content_length_to_length_of_request_body() {
         .internal_response
         .unwrap()
         .status
-        .unwrap()
-        .0
+        .code()
         .is_success());
 }
 
@@ -883,8 +862,7 @@ fn test_load_uses_explicit_accept_from_headers_in_load_data() {
         .internal_response
         .unwrap()
         .status
-        .unwrap()
-        .0
+        .code()
         .is_success());
 }
 
@@ -919,8 +897,7 @@ fn test_load_sets_default_accept_to_html_xhtml_xml_and_then_anything_else() {
         .internal_response
         .unwrap()
         .status
-        .unwrap()
-        .0
+        .code()
         .is_success());
 }
 
@@ -958,8 +935,7 @@ fn test_load_uses_explicit_accept_encoding_from_load_data_headers() {
         .internal_response
         .unwrap()
         .status
-        .unwrap()
-        .0
+        .code()
         .is_success());
 }
 
@@ -994,8 +970,7 @@ fn test_load_sets_default_accept_encoding_to_gzip_and_deflate() {
         .internal_response
         .unwrap()
         .status
-        .unwrap()
-        .0
+        .code()
         .is_success());
 }
 
@@ -1140,7 +1115,7 @@ fn test_load_follows_a_redirect() {
     let _ = post_server.close();
 
     let internal_response = response.internal_response.unwrap();
-    assert!(internal_response.status.clone().unwrap().0.is_success());
+    assert!(internal_response.status.clone().code().is_success());
     assert_eq!(
         *internal_response.body.lock().unwrap(),
         ResponseBody::Done(b"Yay!".to_vec())
@@ -1223,7 +1198,7 @@ fn test_redirect_from_x_to_y_provides_y_cookies_from_y() {
     let _ = server.close();
 
     let internal_response = response.internal_response.unwrap();
-    assert!(internal_response.status.clone().unwrap().0.is_success());
+    assert!(internal_response.status.clone().code().is_success());
     assert_eq!(
         *internal_response.body.lock().unwrap(),
         ResponseBody::Done(b"Yay!".to_vec())
@@ -1272,7 +1247,7 @@ fn test_redirect_from_x_to_x_provides_x_with_cookie_from_first_response() {
     let _ = server.close();
 
     let internal_response = response.internal_response.unwrap();
-    assert!(internal_response.status.clone().unwrap().0.is_success());
+    assert!(internal_response.status.clone().code().is_success());
     assert_eq!(
         *internal_response.body.lock().unwrap(),
         ResponseBody::Done(b"Yay!".to_vec())
@@ -1322,8 +1297,7 @@ fn test_if_auth_creds_not_in_url_but_in_cache_it_sets_it() {
         .internal_response
         .unwrap()
         .status
-        .unwrap()
-        .0
+        .code()
         .is_success());
 }
 
@@ -1348,7 +1322,7 @@ fn test_auth_ui_needs_www_auth() {
     let _ = server.close();
 
     assert_eq!(
-        response.internal_response.unwrap().status.unwrap().0,
+        response.internal_response.unwrap().status,
         StatusCode::UNAUTHORIZED
     );
 }

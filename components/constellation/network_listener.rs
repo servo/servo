@@ -146,8 +146,8 @@ impl NetworkListener {
                             referrer: metadata.referrer.clone(),
                             status_code: metadata
                                 .status
-                                .as_ref()
-                                .map(|&(code, _)| code)
+                                .try_code()
+                                .map(|code| code.as_u16())
                                 .unwrap_or(200),
                         });
 

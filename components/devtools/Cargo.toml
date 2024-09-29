@@ -24,6 +24,7 @@ headers = { workspace = true }
 http = { workspace = true }
 ipc-channel = { workspace = true }
 log = { workspace = true }
+net_traits = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 servo_config = { path = "../config" }

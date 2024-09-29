@@ -11,7 +11,8 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use chrono::{Local, LocalResult, TimeZone};
 use devtools_traits::{HttpRequest as DevtoolsHttpRequest, HttpResponse as DevtoolsHttpResponse};
 use headers::{ContentType, Cookie, HeaderMapExt};
-use http::{header, HeaderMap, Method, StatusCode};
+use http::{header, HeaderMap, Method};
+use net_traits::http_status::HttpStatus;
 use serde::Serialize;
 use serde_json::{Map, Value};
 
@@ -32,7 +33,7 @@ struct HttpRequest {
 
 struct HttpResponse {
     headers: Option<HeaderMap>,
-    status: Option<(StatusCode, String)>,
+    status: HttpStatus,
     body: Option<Vec<u8>>,
 }
 
@@ -350,7 +351,7 @@ impl NetworkEventActor {
             },
             response: HttpResponse {
                 headers: None,
-                status: None,
+                status: HttpStatus::default(),
                 body: None,
             },
             is_xhr: false,
@@ -372,10 +373,7 @@ impl NetworkEventActor {
 
     pub fn add_response(&mut self, response: DevtoolsHttpResponse) {
         self.response.headers.clone_from(&response.headers);
-        self.response.status = response.status.as_ref().map(|&(s, ref st)| {
-            let status_text = String::from_utf8_lossy(st).into_owned();
-            (StatusCode::from_u16(s).unwrap(), status_text)
-        });
+        self.response.status = response.status;
         self.response.body = response.body;
     }
 
@@ -409,20 +407,14 @@ impl NetworkEventActor {
         // TODO: Send the correct values for all these fields.
         let h_size_option = self.response.headers.as_ref().map(|headers| headers.len());
         let h_size = h_size_option.unwrap_or(0);
-        let (status_code, status_message) = self
-            .response
-            .status
-            .as_ref()
-            .map_or((0, "".to_owned()), |(code, text)| {
-                (code.as_u16(), text.clone())
-            });
+        let status = &self.response.status;
         // TODO: Send the correct values for remoteAddress and remotePort and http_version.
         ResponseStartMsg {
             http_version: "HTTP/1.1".to_owned(),
             remote_address: "63.245.217.43".to_owned(),
             remote_port: 443,
-            status: status_code.to_string(),
-            status_text: status_message,
+            status: status.code().to_string(),
+            status_text: String::from_utf8_lossy(status.message()).to_string(),
             headers_size: h_size,
             discard_response_body: false,
         }

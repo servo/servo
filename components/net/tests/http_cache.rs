@@ -39,7 +39,7 @@ fn test_refreshing_resource_sets_done_chan_the_appropriate_value() {
         // First, store the 'normal' response.
         cache.store(&request, &response);
         // Second, mutate the response into a 304 response, and refresh the stored one.
-        response.status = Some((StatusCode::NOT_MODIFIED, String::from("304")));
+        response.status = StatusCode::NOT_MODIFIED.into();
         let (send, recv) = unbounded();
         let mut done_chan = Some((send, recv));
         let refreshed_response = cache.refresh(&request, response.clone(), &mut done_chan);

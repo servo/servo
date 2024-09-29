@@ -24,6 +24,7 @@ use malloc_size_of::{
     Measurable,
 };
 use malloc_size_of_derive::MallocSizeOf;
+use net_traits::http_status::HttpStatus;
 use net_traits::request::Request;
 use net_traits::response::{HttpsState, Response, ResponseBody};
 use net_traits::{FetchMetadata, Metadata, ResourceFetchTiming};
@@ -70,8 +71,7 @@ struct MeasurableCachedResource {
     metadata: CachedMetadata,
     location_url: Option<Result<ServoUrl, String>>,
     https_state: HttpsState,
-    status: Option<(StatusCode, String)>,
-    raw_status: Option<(u16, Vec<u8>)>,
+    status: HttpStatus,
     url_list: Vec<ServoUrl>,
     expires: Duration,
     last_validated: Instant,
@@ -105,7 +105,7 @@ struct MeasurableCachedMetadata {
     /// Character set.
     pub charset: Option<String>,
     /// HTTP Status
-    pub status: Option<(u16, Vec<u8>)>,
+    pub status: HttpStatus,
 }
 
 impl MallocSizeOf for CachedMetadata {
@@ -132,9 +132,9 @@ pub struct HttpCache {
 }
 
 /// Determine if a response is cacheable by default <https://tools.ietf.org/html/rfc7231#section-6.1>
-fn is_cacheable_by_default(status_code: u16) -> bool {
+fn is_cacheable_by_default(status_code: StatusCode) -> bool {
     matches!(
-        status_code,
+        status_code.as_u16(),
         200 | 203 | 204 | 206 | 300 | 301 | 404 | 405 | 410 | 414 | 501
     )
 }
@@ -214,7 +214,7 @@ fn get_response_expiry(response: &Response) -> Duration {
     }
     // Calculating Heuristic Freshness
     // <https://tools.ietf.org/html/rfc7234#section-4.2.2>
-    if let Some((ref code, _)) = response.raw_status {
+    if let Some(ref code) = response.status.try_code() {
         // <https://tools.ietf.org/html/rfc7234#section-5.5.4>
         // Since presently we do not generate a Warning header field with a 113 warn-code,
         // 24 hours minus response age is the max for heuristic calculation.
@@ -318,9 +318,6 @@ fn create_cached_response(
         .location_url
         .clone_from(&cached_resource.data.location_url);
     response.status.clone_from(&cached_resource.data.status);
-    response
-        .raw_status
-        .clone_from(&cached_resource.data.raw_status);
     response.url_list.clone_from(&cached_resource.data.url_list);
     response.https_state = cached_resource.data.https_state;
     response.referrer = request.referrer.to_url().cloned();
@@ -357,8 +354,7 @@ fn create_resource_with_bytes_from_resource(
             metadata: resource.data.metadata.clone(),
             location_url: resource.data.location_url.clone(),
             https_state: resource.data.https_state,
-            status: Some((StatusCode::PARTIAL_CONTENT, "Partial Content".into())),
-            raw_status: Some((206, b"Partial Content".to_vec())),
+            status: StatusCode::PARTIAL_CONTENT.into(),
             url_list: resource.data.url_list.clone(),
             expires: resource.data.expires,
             last_validated: resource.data.last_validated,
@@ -373,20 +369,12 @@ fn handle_range_request(
     range_spec: Vec<(Bound<u64>, Bound<u64>)>,
     done_chan: &mut DoneChannel,
 ) -> Option<CachedResponse> {
-    let mut complete_cached_resources =
-        candidates
-            .iter()
-            .filter(|resource| match resource.data.raw_status {
-                Some((ref code, _)) => *code == 200,
-                None => false,
-            });
-    let partial_cached_resources =
-        candidates
-            .iter()
-            .filter(|resource| match resource.data.raw_status {
-                Some((ref code, _)) => *code == 206,
-                None => false,
-            });
+    let mut complete_cached_resources = candidates
+        .iter()
+        .filter(|resource| resource.data.status == StatusCode::OK);
+    let partial_cached_resources = candidates
+        .iter()
+        .filter(|resource| resource.data.status == StatusCode::PARTIAL_CONTENT);
     match (
         range_spec.first().unwrap(),
         complete_cached_resources.next(),
@@ -659,9 +647,9 @@ impl HttpCache {
             //
             // TODO: Combining partial content to fulfill a non-Range request
             // see https://tools.ietf.org/html/rfc7234#section-3.3
-            match cached_resource.data.raw_status {
-                Some((ref code, _)) => {
-                    if *code == 206 {
+            match cached_resource.data.status.try_code() {
+                Some(ref code) => {
+                    if *code == StatusCode::PARTIAL_CONTENT {
                         continue;
                     }
                 },
@@ -699,7 +687,7 @@ impl HttpCache {
             if response.actual_response().is_network_error() {
                 return *resource.body.lock().unwrap() == ResponseBody::Empty;
             }
-            resource.data.raw_status == response.raw_status
+            resource.data.status == response.status
         });
 
         for cached_resource in relevant_cached_resources {
@@ -735,7 +723,7 @@ impl HttpCache {
         response: Response,
         done_chan: &mut DoneChannel,
     ) -> Option<Response> {
-        assert_eq!(response.status.map(|s| s.0), Some(StatusCode::NOT_MODIFIED));
+        assert_eq!(response.status, StatusCode::NOT_MODIFIED);
         let entry_key = CacheKey::new(request);
         if let Some(cached_resources) = self.entries.get_mut(&entry_key) {
             if let Some(cached_resource) = cached_resources.iter_mut().next() {
@@ -774,8 +762,8 @@ impl HttpCache {
                 constructed_response.referrer = request.referrer.to_url().cloned();
                 constructed_response.referrer_policy = request.referrer_policy;
                 constructed_response
-                    .raw_status
-                    .clone_from(&cached_resource.data.raw_status);
+                    .status
+                    .clone_from(&cached_resource.data.status);
                 constructed_response
                     .url_list
                     .clone_from(&cached_resource.data.url_list);
@@ -874,7 +862,6 @@ impl HttpCache {
                 location_url: response.location_url.clone(),
                 https_state: response.https_state,
                 status: response.status.clone(),
-                raw_status: response.raw_status.clone(),
                 url_list: response.url_list.clone(),
                 expires: expiry,
                 last_validated: Instant::now(),

@@ -310,7 +310,7 @@ impl ResourceTimingListener for FetchContext {
 
 fn fill_headers_with_metadata(r: DomRoot<Response>, m: Metadata) {
     r.set_headers(m.headers);
-    r.set_raw_status(m.status);
+    r.set_status(&m.status);
     r.set_final_url(m.final_url);
     r.set_redirected(m.redirected);
 }

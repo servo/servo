@@ -26,6 +26,7 @@ use js::rust::wrappers::JS_ParseJSON;
 use js::rust::HandleObject;
 use js::typedarray::{ArrayBuffer, ArrayBufferU8};
 use mime::{self, Mime, Name};
+use net_traits::http_status::HttpStatus;
 use net_traits::request::{CredentialsMode, Destination, Referrer, RequestBuilder, RequestMode};
 use net_traits::CoreResourceMsg::Fetch;
 use net_traits::{
@@ -101,7 +102,7 @@ struct XHRContext {
 #[derive(Clone)]
 pub enum XHRProgress {
     /// Notify that headers have been received
-    HeadersReceived(GenerationId, Option<HeaderMap>, Option<(u16, Vec<u8>)>),
+    HeadersReceived(GenerationId, Option<HeaderMap>, HttpStatus),
     /// Partial progress (after receiving headers), containing portion of the response
     Loading(GenerationId, Vec<u8>),
     /// Loading is done
@@ -129,8 +130,8 @@ pub struct XMLHttpRequest {
     with_credentials: Cell<bool>,
     upload: Dom<XMLHttpRequestUpload>,
     response_url: DomRefCell<String>,
-    status: Cell<u16>,
-    status_text: DomRefCell<ByteString>,
+    #[no_trace]
+    status: DomRefCell<HttpStatus>,
     response: DomRefCell<Vec<u8>>,
     response_type: Cell<XMLHttpRequestResponseType>,
     response_xml: MutNullableDom<Document>,
@@ -189,8 +190,7 @@ impl XMLHttpRequest {
             with_credentials: Cell::new(false),
             upload: Dom::from_ref(&*XMLHttpRequestUpload::new(global)),
             response_url: DomRefCell::new(String::new()),
-            status: Cell::new(0),
-            status_text: DomRefCell::new(ByteString::new(vec![])),
+            status: DomRefCell::new(HttpStatus::new_error()),
             response: DomRefCell::new(vec![]),
             response_type: Cell::new(XMLHttpRequestResponseType::_empty),
             response_xml: Default::default(),
@@ -442,8 +442,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                 *self.request_headers.borrow_mut() = HeaderMap::new();
                 self.send_flag.set(false);
                 self.upload_listener.set(false);
-                *self.status_text.borrow_mut() = ByteString::new(vec![]);
-                self.status.set(0);
+                *self.status.borrow_mut() = HttpStatus::new_error();
 
                 // Step 13
                 if self.ready_state.get() != XMLHttpRequestState::Opened {
@@ -835,12 +834,12 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
 
     /// <https://xhr.spec.whatwg.org/#the-status-attribute>
     fn Status(&self) -> u16 {
-        self.status.get()
+        self.status.borrow().raw_code()
     }
 
     /// <https://xhr.spec.whatwg.org/#the-statustext-attribute>
     fn StatusText(&self) -> ByteString {
-        self.status_text.borrow().clone()
+        ByteString::new(self.status.borrow().message().to_vec())
     }
 
     /// <https://xhr.spec.whatwg.org/#the-getresponseheader()-method>
@@ -1132,9 +1131,8 @@ impl XMLHttpRequest {
                 // Part of step 13, send() (processing response)
                 // XXXManishearth handle errors, if any (substep 1)
                 // Substep 2
-                if let Some((code, reason)) = status {
-                    self.status.set(code);
-                    *self.status_text.borrow_mut() = ByteString::new(reason);
+                if !status.is_error() {
+                    *self.status.borrow_mut() = status.clone();
                 }
                 if let Some(h) = headers.as_ref() {
                     *self.response_headers.borrow_mut() = h.clone();

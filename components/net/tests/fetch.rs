@@ -31,6 +31,7 @@ use net::protocols::ProtocolRegistry;
 use net::resource_thread::CoreResourceThreadPool;
 use net::test::HttpState;
 use net_traits::filemanager_thread::FileTokenCheck;
+use net_traits::http_status::HttpStatus;
 use net_traits::request::{
     Destination, Origin, RedirectMode, Referrer, Request, RequestBuilder, RequestMode,
 };
@@ -642,7 +643,7 @@ fn test_fetch_response_is_opaque_filtered() {
     assert!(fetch_response.url().is_none());
     assert!(fetch_response.url_list.is_empty());
     // this also asserts that status message is "the empty byte sequence"
-    assert!(fetch_response.status.is_none());
+    assert!(fetch_response.status.is_error());
     assert_eq!(fetch_response.headers, HeaderMap::new());
     match *fetch_response.body.lock().unwrap() {
         ResponseBody::Empty => {},
@@ -694,7 +695,7 @@ fn test_fetch_response_is_opaque_redirect_filtered() {
     assert_eq!(fetch_response.response_type, ResponseType::OpaqueRedirect);
 
     // this also asserts that status message is "the empty byte sequence"
-    assert!(fetch_response.status.is_none());
+    assert!(fetch_response.status.is_error());
     assert_eq!(fetch_response.headers, HeaderMap::new());
     match *fetch_response.body.lock().unwrap() {
         ResponseBody::Empty => {},
@@ -855,8 +856,7 @@ fn test_load_adds_host_to_hsts_list_when_url_is_https() {
         .internal_response
         .unwrap()
         .status
-        .unwrap()
-        .0
+        .code()
         .is_success());
     assert!(context
         .state
@@ -922,7 +922,7 @@ fn test_fetch_self_signed() {
 
     let response = fetch_with_context(&mut request, &mut context);
 
-    assert!(response.status.unwrap().0.is_success());
+    assert!(response.status.code().is_success());
 
     let _ = server.close();
 }
@@ -1392,7 +1392,7 @@ fn test_fetch_with_devtools() {
 
     let httpresponse = DevtoolsHttpResponse {
         headers: Some(response_headers),
-        status: Some((200, b"OK".to_vec())),
+        status: HttpStatus::default(),
         body: None,
         pipeline_id: TEST_PIPELINE_ID,
     };

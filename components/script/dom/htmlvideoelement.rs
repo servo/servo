@@ -340,8 +340,7 @@ impl FetchResponseListener for PosterFrameFetchContext {
 
         let status_is_ok = metadata
             .as_ref()
-            .and_then(|m| m.status.as_ref())
-            .map_or(true, |s| s.0 >= 200 && s.0 < 300);
+            .map_or(true, |m| m.status.in_range(200..300));
 
         if !status_is_ok {
             self.cancelled = true;

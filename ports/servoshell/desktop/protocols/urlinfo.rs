@@ -6,9 +6,9 @@ use std::future::Future;
 use std::pin::Pin;
 
 use headers::{ContentType, HeaderMapExt};
-use http::StatusCode;
 use net::fetch::methods::{DoneChannel, FetchContext};
 use net::protocols::ProtocolHandler;
+use net_traits::http_status::HttpStatus;
 use net_traits::request::Request;
 use net_traits::response::{Response, ResponseBody};
 use net_traits::ResourceFetchTiming;
@@ -38,8 +38,7 @@ impl ProtocolHandler for UrlInfoProtocolHander {
         let mut response = Response::new(url, ResourceFetchTiming::new(request.timing_type()));
         *response.body.lock().unwrap() = ResponseBody::Done(content.as_bytes().to_vec());
         response.headers.typed_insert(ContentType::text());
-        response.status = Some((StatusCode::OK, "OK".to_string()));
-        response.raw_status = Some((StatusCode::OK.as_u16(), b"OK".to_vec()));
+        response.status = HttpStatus::default();
 
         Box::pin(std::future::ready(response))
     }

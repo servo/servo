@@ -26,12 +26,14 @@ use servo_rand::RngCore;
 use servo_url::{ImmutableOrigin, ServoUrl};
 
 use crate::filemanager_thread::FileManagerThreadMsg;
+use crate::http_status::HttpStatus;
 use crate::request::{Request, RequestBuilder};
 use crate::response::{HttpsState, Response, ResponseInit};
 use crate::storage_thread::StorageThreadMsg;
 
 pub mod blob_url_store;
 pub mod filemanager_thread;
+pub mod http_status;
 pub mod image_cache;
 pub mod pub_domains;
 pub mod quality;
@@ -658,7 +660,7 @@ pub struct Metadata {
     pub headers: Option<Serde<HeaderMap>>,
 
     /// HTTP Status
-    pub status: Option<(u16, Vec<u8>)>,
+    pub status: HttpStatus,
 
     /// Is successful HTTPS connection
     pub https_state: HttpsState,
@@ -683,8 +685,7 @@ impl Metadata {
             content_type: None,
             charset: None,
             headers: None,
-            // https://fetch.spec.whatwg.org/#concept-response-status-message
-            status: Some((200, b"".to_vec())),
+            status: HttpStatus::default(),
             https_state: HttpsState::None,
             referrer: None,
             referrer_policy: None,

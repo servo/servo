@@ -102,9 +102,7 @@ impl ProtocolRegistry {
 }
 
 pub fn range_not_satisfiable_error(response: &mut Response) {
-    let reason = "Range Not Satisfiable".to_owned();
-    response.status = Some((StatusCode::RANGE_NOT_SATISFIABLE, reason.clone()));
-    response.raw_status = Some((StatusCode::RANGE_NOT_SATISFIABLE.as_u16(), reason.into()));
+    response.status = StatusCode::RANGE_NOT_SATISFIABLE.into();
 }
 
 /// Get the range bounds if the `Range` header is present.
@@ -132,7 +130,5 @@ pub fn get_range_request_bounds(range: Option<Range>) -> RangeRequestBounds {
 }
 
 pub fn partial_content(response: &mut Response) {
-    let reason = "Partial Content".to_owned();
-    response.status = Some((StatusCode::PARTIAL_CONTENT, reason.clone()));
-    response.raw_status = Some((StatusCode::PARTIAL_CONTENT.as_u16(), reason.into()));
+    response.status = StatusCode::PARTIAL_CONTENT.into();
 }
