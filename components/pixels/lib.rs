@@ -199,10 +199,20 @@ pub fn detect_image_format(buffer: &[u8]) -> Result<ImageFormat, &str> {
 
 pub fn unmultiply_inplace(pixels: &mut [u8]) {
     for rgba in pixels.chunks_mut(4) {
-        let a = (rgba[3] as f32) / 255.0;
-        rgba[0] = (rgba[0] as f32 / a) as u8;
-        rgba[1] = (rgba[1] as f32 / a) as u8;
-        rgba[2] = (rgba[2] as f32 / a) as u8;
+        let a = rgba[3] as u32;
+        let mut b = rgba[2] as u32;
+        let mut g = rgba[1] as u32;
+        let mut r = rgba[0] as u32;
+
+        if a > 0 {
+            r = r * 255 / a;
+            g = g * 255 / a;
+            b = b * 255 / a;
+
+            rgba[2] = b as u8;
+            rgba[1] = g as u8;
+            rgba[0] = r as u8;
+        }
     }
 }
 
