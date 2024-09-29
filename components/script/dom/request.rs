@@ -22,6 +22,7 @@ use net_traits::request::{
 use net_traits::ReferrerPolicy as MsgReferrerPolicy;
 use servo_url::ServoUrl;
 
+use super::abortsignal::AbortSignal;
 use crate::body::{consume_body, BodyMixin, BodyType, Extractable};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::HeadersBinding::{HeadersInit, HeadersMethods};
@@ -47,6 +48,7 @@ pub struct Request {
     request: DomRefCell<NetTraitsRequest>,
     body_stream: MutNullableDom<ReadableStream>,
     headers: MutNullableDom<Headers>,
+    signal: MutNullableDom<AbortSignal>,
 }
 
 impl Request {
@@ -56,6 +58,7 @@ impl Request {
             request: DomRefCell::new(net_request_from_global(global, url)),
             body_stream: MutNullableDom::new(None),
             headers: Default::default(),
+            signal: Default::default(),
         }
     }
 
@@ -279,14 +282,18 @@ impl Request {
             request.method = method;
         }
 
-        // Step 26 TODO: "If init["signal"] exists..."
         // Step 27 TODO: "If init["priority"] exists..."
 
         // Step 28
         let r = Request::from_net_request(global, proto, request);
 
-        // Step 29 TODO: "Set this's signal to new AbortSignal object..."
-        // Step 30 TODO: "If signal is not null..."
+        // Step 26, 29
+        if let Some(Some(signal)) = &init.signal {
+            r.signal.set(Some(&*AbortSignal::create_dependent_signal(
+                global,
+                vec![signal.clone()],
+            )));
+        }
 
         // Step 31
         // "or_init" looks unclear here, but it always enters the block since r
@@ -640,6 +647,12 @@ impl RequestMethods for Request {
     // https://fetch.spec.whatwg.org/#dom-body-arraybuffer
     fn ArrayBuffer(&self) -> Rc<Promise> {
         consume_body(self, BodyType::ArrayBuffer)
+    }
+
+    // https://fetch.spec.whatwg.org/#dom-request-signal
+    fn Signal(&self) -> DomRoot<AbortSignal> {
+        self.signal
+            .or_init(|| AbortSignal::new(&self.global(), false))
     }
 }
 

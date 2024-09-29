@@ -7,6 +7,8 @@ use std::sync::{Arc, Mutex};
 
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
+use js::jsval::JSVal;
+use js::jsapi::{Handle, Heap, ReadableStreamCancel, ReadableStreamError};
 use net_traits::request::{
     CorsSettings, CredentialsMode, Destination, Referrer, Request as NetTraitsRequest,
     RequestBuilder, RequestMode, ServiceWorkersMode,
@@ -19,9 +21,11 @@ use net_traits::{
 };
 use servo_url::ServoUrl;
 
-use crate::dom::bindings::codegen::Bindings::RequestBinding::{RequestInfo, RequestInit};
+use crate::body::BodyMixin;
+use crate::dom::bindings::codegen::Bindings::RequestBinding::{RequestInfo, RequestInit, RequestMethods};
 use crate::dom::bindings::codegen::Bindings::ResponseBinding::ResponseType as DOMResponseType;
 use crate::dom::bindings::codegen::Bindings::ResponseBinding::Response_Binding::ResponseMethods;
+use crate::dom::bindings::codegen::Bindings::AbortSignalBinding::AbortSignal_Binding::AbortSignalMethods;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
@@ -35,6 +39,7 @@ use crate::dom::promise::Promise;
 use crate::dom::request::Request;
 use crate::dom::response::Response;
 use crate::dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
+use crate::js::rust::IntoHandle;
 use crate::network_listener::{
     self, submit_timing_data, NetworkListener, PreInvoke, ResourceTimingListener,
 };
@@ -135,6 +140,31 @@ fn request_init_from_request(request: NetTraitsRequest) -> RequestBuilder {
     }
 }
 
+// https://fetch.spec.whatwg.org/#abort-fetch
+#[allow(unsafe_code)]
+fn abort_fetch_call(promise: &Promise, request: DomRoot<Request>, response_object: Option<Response>, error: JSVal) {
+    let cx = GlobalScope::get_cx();
+    rooted!(in(*cx) let mut rooted_error = error);
+
+    // 1
+    promise.reject(cx, rooted_error.handle());
+    // 2
+    if let Some(body) = request.body() {
+        unsafe {
+            ReadableStreamCancel(*cx, Handle::from_marked_location(body.get_js_stream().as_ptr() as *const _), rooted_error.handle().into_handle());
+        }
+    }
+    // 3, 4
+    if let Some(response) = response_object {
+        // 5
+        if let Some(body) = response.body() {
+            unsafe {
+                ReadableStreamError(*cx, Handle::from_marked_location(body.get_js_stream().as_ptr() as *const _), rooted_error.handle().into_handle());
+            }
+        }
+    }
+}
+
 // https://fetch.spec.whatwg.org/#fetch-method
 #[allow(crown::unrooted_must_root, non_snake_case)]
 pub fn Fetch(
@@ -143,6 +173,7 @@ pub fn Fetch(
     init: RootedTraceableBox<RequestInit>,
     comp: InRealm,
 ) -> Rc<Promise> {
+    let cx = GlobalScope::get_cx();
     let core_resource_thread = global.core_resource_thread();
 
     // Step 1
@@ -150,28 +181,35 @@ pub fn Fetch(
     let response = Response::new(global);
 
     // Step 2
-    let request = match Request::Constructor(global, None, input, init) {
+    let (net_request, dom_request) = match Request::Constructor(global, None, input, init) {
         Err(e) => {
             response.error_stream(e.clone());
             promise.reject_error(e);
             return promise;
         },
-        Ok(r) => r.get_request(),
+        Ok(r) => (r.get_request(), r),
     };
-    let timing_type = request.timing_type();
+    let timing_type = net_request.timing_type();
 
-    let mut request_init = request_init_from_request(request);
+    let mut request_init = request_init_from_request(net_request);
     request_init.csp_list.clone_from(&global.get_csp_list());
 
-    // Step 3
+    // Step 4
+    let signal = dom_request.Signal();
+    if signal.Aborted() {
+        abort_fetch_call(&promise, dom_request, None, signal.Reason(cx));
+        return promise;
+    }
+
+    // Step 6
     if global.downcast::<ServiceWorkerGlobalScope>().is_some() {
         request_init.service_workers_mode = ServiceWorkersMode::None;
     }
 
-    // Step 4
+    // Step ?
     response.Headers().set_guard(Guard::Immutable);
 
-    // Step 5
+    // Step ?
     let (action_sender, action_receiver) = ipc::channel().unwrap();
     let fetch_context = Arc::new(Mutex::new(FetchContext {
         fetch_promise: Some(TrustedPromise::new(promise.clone())),

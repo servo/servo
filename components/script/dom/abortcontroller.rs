@@ -32,7 +32,9 @@ impl AbortController {
         proto: Option<HandleObject>,
     ) -> DomRoot<AbortController> {
         reflect_dom_object_with_proto(
-            Box::new(AbortController::new_inherited(&AbortSignal::new(global))),
+            Box::new(AbortController::new_inherited(&AbortSignal::new(
+                global, false,
+            ))),
             global,
             proto,
         )
