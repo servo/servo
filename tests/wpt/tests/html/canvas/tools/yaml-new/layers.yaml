@@ -203,6 +203,7 @@
   variants:
   - source-over:
     source-in:
+    source-out:
     source-atop:
     destination-over:
     destination-in:

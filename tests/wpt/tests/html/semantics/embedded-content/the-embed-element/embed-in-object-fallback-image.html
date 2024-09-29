@@ -1,0 +1,22 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Ensure that embed elements inside object elements load when the objects
+  fallback</title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="author" title="Peng Zhou" href="mailto:zhoupeng.1996@bytedance.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#the-embed-element">
+<link rel="match" href="embed-in-object-fallback-image-ref.html">
+<meta name="assert" content="Check if the embed element represents an image when it has a object ancestor that is showing its fallback content">
+<style>
+  embed {
+    background-color: red;
+    height: 100px;
+    width: 100px;
+  }
+</style>
+<body>
+  <p>Test passes if there is <strong> red</strong>.</p>
+  <object type="application/x-shockwave-flash">
+    <embed src="/images/red-16x16.png" type="image/png"></embed>
+  </object>
+</body>

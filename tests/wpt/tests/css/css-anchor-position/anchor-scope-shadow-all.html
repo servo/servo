@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<title>CSS Anchor Positioning: anchor-scope:all is tree-scoped</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#anchor-scope">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/10525">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #host::part(scope) {
+    /* This should have no effect, because 'all' is tree-scoped,
+       and specified in a different tree-scope than the anchor names
+       in the shadow. */
+    anchor-scope: all;
+  }
+</style>
+<div id=host>
+  <template shadowrootmode=open>
+    <style>
+      .anchored {
+        background: coral;
+        position: absolute;
+        top: anchor(bottom, 1px);
+        position-anchor: --a;
+        width: 5px;
+        height: 5px;
+      }
+      .anchor {
+        background: skyblue;
+        height: 10px;
+        anchor-name: --a;
+      }
+      .cb {
+        position: relative;
+        width: 200px;
+        height: 200px;
+        border: 1px solid black;
+      }
+      .scope {
+        anchor-scope: --a;
+      }
+    </style>
+    <div class=cb>
+      <div class=anchor></div>
+      <div part=scope>
+        <div class=anchored></div>
+      </div>
+    </div>
+  </template>
+</div>
+<script>
+  test((t) => {
+    let e = host.shadowRoot.querySelector('.anchored');
+    assert_equals(getComputedStyle(e).top, '10px');
+  }, 'anchor-scope:all is tree-scoped');
+</script>
+

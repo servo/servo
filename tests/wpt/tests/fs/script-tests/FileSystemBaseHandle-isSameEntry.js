@@ -3,19 +3,19 @@
 directory_test(async (t, root_dir) => {
   assert_true(await root_dir.isSameEntry(root_dir));
 
-  const subdir = await createDirectory(t, 'subdir-name', root_dir);
+  const subdir = await createDirectory('subdir-name', root_dir);
   assert_true(await subdir.isSameEntry(subdir));
 }, 'isSameEntry for identical directory handles returns true');
 
 directory_test(async (t, root_dir) => {
-  const subdir = await createDirectory(t, 'subdir-name', root_dir);
+  const subdir = await createDirectory('subdir-name', root_dir);
 
   assert_false(await root_dir.isSameEntry(subdir));
   assert_false(await subdir.isSameEntry(root_dir));
 }, 'isSameEntry for different directories returns false');
 
 directory_test(async (t, root_dir) => {
-  const subdir = await createDirectory(t, 'subdir-name', root_dir);
+  const subdir = await createDirectory('subdir-name', root_dir);
   const subdir2 = await root_dir.getDirectoryHandle('subdir-name');
 
   assert_true(await subdir.isSameEntry(subdir2));
@@ -23,21 +23,21 @@ directory_test(async (t, root_dir) => {
 }, 'isSameEntry for different handles for the same directory');
 
 directory_test(async (t, root_dir) => {
-  const handle = await createEmptyFile(t, 'mtime.txt', root_dir);
+  const handle = await createEmptyFile('mtime.txt', root_dir);
 
   assert_true(await handle.isSameEntry(handle));
 }, 'isSameEntry for identical file handles returns true');
 
 directory_test(async (t, root_dir) => {
-  const handle1 = await createEmptyFile(t, 'mtime.txt', root_dir);
-  const handle2 = await createEmptyFile(t, 'foo.txt', root_dir);
+  const handle1 = await createEmptyFile('mtime.txt', root_dir);
+  const handle2 = await createEmptyFile('foo.txt', root_dir);
 
   assert_false(await handle1.isSameEntry(handle2));
   assert_false(await handle2.isSameEntry(handle1));
 }, 'isSameEntry for different files returns false');
 
 directory_test(async (t, root_dir) => {
-  const handle1 = await createEmptyFile(t, 'mtime.txt', root_dir);
+  const handle1 = await createEmptyFile('mtime.txt', root_dir);
   const handle2 = await root_dir.getFileHandle('mtime.txt');
 
   assert_true(await handle1.isSameEntry(handle2));
@@ -45,17 +45,17 @@ directory_test(async (t, root_dir) => {
 }, 'isSameEntry for different handles for the same file');
 
 directory_test(async (t, root_dir) => {
-  const handle1 = await createEmptyFile(t, 'mtime.txt', root_dir);
-  const subdir = await createDirectory(t, 'subdir-name', root_dir);
-  const handle2 = await createEmptyFile(t, 'mtime.txt', subdir);
+  const handle1 = await createEmptyFile('mtime.txt', root_dir);
+  const subdir = await createDirectory('subdir-name', root_dir);
+  const handle2 = await createEmptyFile('mtime.txt', subdir);
 
   assert_false(await handle1.isSameEntry(handle2));
   assert_false(await handle2.isSameEntry(handle1));
 }, 'isSameEntry comparing a file to a file in a different directory returns false');
 
 directory_test(async (t, root_dir) => {
-  const handle1 = await createEmptyFile(t, 'mtime.txt', root_dir);
-  const handle2 = await createDirectory(t, 'subdir-name', root_dir);
+  const handle1 = await createEmptyFile('mtime.txt', root_dir);
+  const handle2 = await createDirectory('subdir-name', root_dir);
 
   assert_false(await handle1.isSameEntry(handle2));
   assert_false(await handle2.isSameEntry(handle1));
@@ -63,10 +63,10 @@ directory_test(async (t, root_dir) => {
 
 directory_test(async (t, root_dir) => {
   const filename = 'foo';
-  const handle1 = await createEmptyFile(t, filename, root_dir);
+  const handle1 = await createEmptyFile(filename, root_dir);
   // Remove the file and create a new file of the same path.
   await root_dir.removeEntry(filename);
-  const handle2 = await createEmptyFile(t, filename, root_dir);
+  const handle2 = await createEmptyFile(filename, root_dir);
 
   assert_true(
       await handle1.isSameEntry(handle2),
@@ -78,10 +78,10 @@ directory_test(async (t, root_dir) => {
 
 directory_test(async (t, root_dir) => {
   const filename = 'foo';
-  const handle1 = await createDirectory(t, filename, root_dir);
+  const handle1 = await createDirectory(filename, root_dir);
   // Remove the directory and create a new directory of the same path.
   await root_dir.removeEntry(filename);
-  const handle2 = await createDirectory(t, filename, root_dir);
+  const handle2 = await createDirectory(filename, root_dir);
 
   assert_true(
       await handle1.isSameEntry(handle2),
@@ -93,10 +93,10 @@ directory_test(async (t, root_dir) => {
 
 directory_test(async (t, root_dir) => {
   const filename = 'foo';
-  const dir_handle = await createDirectory(t, filename, root_dir);
+  const dir_handle = await createDirectory(filename, root_dir);
   // Remove the directory and create a file of the same path.
   await root_dir.removeEntry(filename);
-  const file_handle = await createEmptyFile(t, filename, root_dir);
+  const file_handle = await createEmptyFile(filename, root_dir);
 
   assert_false(
       await dir_handle.isSameEntry(file_handle),

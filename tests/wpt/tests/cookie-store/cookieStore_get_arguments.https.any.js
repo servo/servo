@@ -87,12 +87,20 @@ promise_test(async testCase => {
   assert_equals(cookie.value, 'cookie-value');
 }, 'cookieStore.get with relative url in options');
 
-promise_test(async testCase => {
-  const invalid_url =
-      `${self.location.protocol}//${self.location.host}/different/path`;
-  await promise_rejects_js(testCase, TypeError, cookieStore.get(
-      { url: invalid_url }));
-}, 'cookieStore.get with invalid url path in options');
+if (!self.GLOBAL.isWorker()) {
+  promise_test(async testCase => {
+    const invalid_url =
+        `${self.location.protocol}//${self.location.host}/different/path`;
+    await promise_rejects_js(testCase, TypeError, cookieStore.get(
+        { url: invalid_url }));
+  }, 'cookieStore.get with invalid url path in options');
+} else {
+  promise_test(async testCase => {
+    const sameorigin_url =
+        `${self.location.protocol}//${self.location.host}/different/path`;
+    assert_true(await cookieStore.get({ url: sameorigin_url }) === null);
+  }, 'cookieStore.get with same-origin url path in options');
+}
 
 promise_test(async testCase => {
   const invalid_url =

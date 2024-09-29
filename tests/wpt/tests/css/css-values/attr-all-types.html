@@ -5,12 +5,21 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 
-<html>
-  <body>
-    <div id="attr"></div>
-    <div id="expected"></div>
-  </body>
-</html>
+<style>
+    @property --string {
+        syntax: "<string>";
+        inherits: false;
+        initial-value: "none";
+    }
+    @property --string-list {
+        syntax: "<string>+";
+        inherits: false;
+        initial-value: "none";
+    }
+</style>
+
+<div id="attr"></div>
+<div id="expected"></div>
 
 <script>
     const dimensionTypeToUnits = {
@@ -123,6 +132,9 @@
     test_valid_attr('--x', 'attr(data-foo px) 11px', '10', '10px 11px');
     test_valid_attr('grid-template-columns', 'attr(data-foo fr)', '10', '10fr');
     test_valid_attr('grid-template-columns', 'attr(data-foo fr, 3fr)', '10fr', '3fr');
+
+    test_valid_attr('--string', 'attr(data-foo string)', 'hello', '"hello"');
+    test_valid_attr('--string-list', 'attr(data-foo string)', 'hello', '"hello"');
 
     test_dimension_types_and_units();
 

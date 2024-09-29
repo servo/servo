@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<title>CSS Syntax: invalid rule errors when nested</title>
+<link rel="help" href="https://drafts.csswg.org/css-syntax/#invalid-rule-error">
+<link rel="help" href="https://drafts.csswg.org/css-syntax/#consume-qualified-rule">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style id=style>
+  .a {
+    .b <::::invalid::::> {}
+    & .c {}
+  }
+</style>
+<script>
+  test(() => {
+    let rules = style.sheet.rules;
+    assert_equals(rules.length, 1);
+    let childRules = rules[0].cssRules;
+    assert_equals(childRules.length, 1);
+    assert_equals(childRules[0].selectorText, '& .c');
+  }, 'Continues parsing after block on invalid rule error');
+</script>

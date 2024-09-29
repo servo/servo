@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:h="http://www.w3.org/1999/xhtml">
+  <title>External file reference for marker</title>
+  <h:link rel="help" href="https://svgwg.org/svg2-draft/painting.html#VertexMarkerProperties"/>
+  <h:link rel="help" href="https://svgwg.org/svg2-draft/linking.html#URLReference"/>
+  <h:link rel="match" href="../../pservers/reftests/reference/green-100x100.svg"/>
+
+  <path d="M25,25h50v50h-50" fill="none" stroke="red" stroke-width="5"
+        marker-start="url(support/resources.svg#greenMarkerOrient0)"
+        marker-mid="url(support/resources.svg#greenMarkerOrient0)"
+        marker-end="url(support/resources.svg#greenMarkerOrient0)"/>
+</svg>

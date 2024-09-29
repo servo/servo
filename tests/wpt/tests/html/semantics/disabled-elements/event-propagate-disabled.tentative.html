@@ -153,7 +153,11 @@
       await new Promise(resolve => t.step_timeout(resolve, 0));
 
       const expected = isDisabledFormControl(element) ? expectedEvents : nonDisabledExpectedEvents;
-      assert_array_equals(observedEvents.map(e => e.type), expected, "Observed events");
+
+      t.step_wait_func_done(() => observedEvents.length > 0,
+        () => assert_array_equals(observedEvents.map(e => e.type), expected, "Observed events"),
+        undefined, 1000, 10);
+      ;
 
       for (const observed of observedEvents) {
         assert_equals(observed.target, target, `${observed.type}.target`)

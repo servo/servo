@@ -1,6 +1,6 @@
 <!doctype html>
 <meta charset="utf-8">
-<title>cookieStore on DOMWindow of detached iframe (crbug.com/774626)</title>
+<title>cookieStore on DOMWindow of detached iframe</title>
 <link rel="help" href="https://github.com/WICG/cookie-store">
 <link rel="author" href="pwnall@chromium.org" title="Victor Costan">
 <script src="/resources/testharness.js"></script>
@@ -14,6 +14,8 @@ test(() => {
   const frameWindow = iframe.contentWindow;
 
   iframe.parentNode.removeChild(iframe);
-  assert_equals(null, frameWindow.cookieStore);
+
+  // By spec, window.cookieStore isn't nullable.
+  assert_true(frameWindow.cookieStore != null);
 });
 </script>

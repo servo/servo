@@ -1,3 +1,6 @@
+// META: script=/resources/testdriver.js
+// META: script=/resources/testdriver-vendor.js
+
 'use strict';
 
 promise_test(async (t) => {
@@ -12,6 +15,10 @@ promise_test(async (t) => {
 
   await new Promise(resolve => {
     window.addEventListener('message', t.step_func(messageEvent => {
+      // Ignore internal testdriver.js messages (web-platform-tests/wpt#48326)
+      if ((messageEvent.data.type || '').startsWith('testdriver-')) {
+        return;
+      }
       // The failure message of no device chosen is expected. The point here is
       // to validate not failing because of a sandboxed iframe.
       assert_true(messageEvent.data.includes('NotFoundError'));

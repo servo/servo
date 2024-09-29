@@ -7,9 +7,7 @@
 <script src="/css/support/parsing-testcommon.js"></script>
 
 <script>
-// anchor-size() can only be used in sizing properties
-test_invalid_value('margin-top', 'anchor-size(--foo width)');
-test_invalid_value('top', 'anchor-size(--foo width)');
+// anchor-size() can only be used in properties accepted in `@position-try`.
 test_invalid_value('font-size', 'anchor-size(--foo width)');
 
 // Invalid parameter format

@@ -25,19 +25,21 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script>
-  test(()=> {
+  promise_setup(() => document.fonts.ready);
+
+  promise_test(async () => {
     assert_equals(document.elementFromPoint(10, 10).id, "span");
   }, "First x");
 
-  test(()=> {
+  promise_test(async () => {
     assert_equals(document.elementFromPoint(30, 10).id, "firstchild");
   }, "First child");
 
-  test(()=> {
+  promise_test(async () => {
     assert_equals(document.elementFromPoint(310, 10).id, "secondchild");
   }, "Second child");
 
-  test(()=> {
+  promise_test(async () => {
     assert_equals(document.elementFromPoint(330, 10).id, "span");
   }, "Last x");
 </script>

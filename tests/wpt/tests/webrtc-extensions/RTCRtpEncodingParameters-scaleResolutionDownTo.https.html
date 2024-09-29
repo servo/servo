@@ -4,6 +4,8 @@
 <meta name="timeout" content="long">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="../webrtc/simulcast/simulcast.js"></script>
+<script src="../webrtc/third_party/sdp/sdp.js"></script>
 <script>
 'use strict';
 
@@ -32,10 +34,13 @@ function createResizableTrack(width, height) {
   return track;
 }
 
-async function getLastEncodedResolution(pc) {
+async function getLastEncodedResolution(pc, rid = null) {
   const report = await pc.getStats();
   for (const stats of report.values()) {
     if (stats.type != 'outbound-rtp') {
+      continue;
+    }
+    if (rid && stats.rid != rid) {
       continue;
     }
     if (!stats.frameWidth || !stats.frameWidth) {
@@ -47,13 +52,43 @@ async function getLastEncodedResolution(pc) {
   return { width: null, height: null };
 }
 
-async function waitForFrameWithResolution(t, pc, width, height) {
+async function waitForFrameWithResolution(t, pc, width, height, rid = null) {
   let resolution;
   do {
-    resolution = await getLastEncodedResolution(pc);
+    resolution = await getLastEncodedResolution(pc, rid);
     await new Promise(r => t.step_timeout(r, 50));
   } while (resolution.width != width || resolution.height != height);
 }
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+
+  const track = createResizableTrack(120, 60);
+  t.add_cleanup(() => track.stop());
+  assert_throws_dom('OperationError', () => {
+    pc.addTransceiver(track, {
+          sendEncodings:[{
+              scaleResolutionDownTo: { maxWidth: 0, maxHeight: 0 }
+          }]
+        });
+  });
+}, `addTransceiver: Invalid scaling throws`);
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+
+  const track = createResizableTrack(120, 60);
+  t.add_cleanup(() => track.stop());
+  const {sender} = pc.addTransceiver(track, {sendEncodings:[{}]});
+
+  const params = sender.getParameters();
+  params.encodings[0].scaleResolutionDownTo = { maxWidth: 0, maxHeight: 0 };
+  const p = sender.setParameters(params);
+
+  promise_rejects_dom(t, 'InvalidModificationError', p);
+}, `setParameters: Invalid scaling throws`);
 
 promise_test(async t => {
   const pc = new RTCPeerConnection();
@@ -209,7 +244,7 @@ promise_test(async t => {
   pc1.onicecandidate = e => pc2.addIceCandidate(e.candidate);
   pc2.onicecandidate = e => pc1.addIceCandidate(e.candidate);
 
-  const track = createResizableTrack(60, 30);
+  const track = createResizableTrack(80, 40);
   t.add_cleanup(() => track.stop());
   const {sender} = pc1.addTransceiver(track);
 
@@ -221,21 +256,21 @@ promise_test(async t => {
   // scaleTo is portrait, track is landscape, but no scaling should happen due
   // to orientation agnosticism.
   let params = sender.getParameters();
-  params.encodings[0].scaleResolutionDownTo = { maxWidth: 30, maxHeight: 60 };
+  params.encodings[0].scaleResolutionDownTo = { maxWidth: 40, maxHeight: 80 };
   await sender.setParameters(params);
-  await waitForFrameWithResolution(t, pc1, 60, 30);
+  await waitForFrameWithResolution(t, pc1, 80, 40);
 
   // Change orientation of the track: still no downscale, but encoder begins to
   // produce the new orientation.
-  track.resize(30, 60);
-  await waitForFrameWithResolution(t, pc1, 30, 60);
+  track.resize(40, 80);
+  await waitForFrameWithResolution(t, pc1, 40, 80);
 
   // scaleTo in landscape, reducing to half size. Verify track, which is
   // portrait, is scaled down by 2.
   params = sender.getParameters();
-  params.encodings[0].scaleResolutionDownTo = { maxWidth: 30, maxHeight: 15 };
+  params.encodings[0].scaleResolutionDownTo = { maxWidth: 40, maxHeight: 20 };
   await sender.setParameters(params);
-  await waitForFrameWithResolution(t, pc1, 15, 30);
+  await waitForFrameWithResolution(t, pc1, 20, 40);
 }, `scaleResolutionDownTo is orientation agnostic`);
 
 promise_test(async t => {
@@ -261,4 +296,35 @@ promise_test(async t => {
   await sender.setParameters(params);
   await waitForFrameWithResolution(t, pc1, 60, 30);
 }, `scaleResolutionDownTo does not change aspect ratio`);
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+  pc1.onicecandidate = e => pc2.addIceCandidate(e.candidate);
+  pc2.onicecandidate = e => pc1.addIceCandidate(e.candidate);
+
+  const track = createResizableTrack(160, 80);
+  t.add_cleanup(() => track.stop());
+  const {sender} = pc1.addTransceiver(track, {
+      sendEncodings: [{
+          rid: '0',
+          scaleResolutionDownTo: { maxWidth: 40, maxHeight: 20 }
+      }, {
+          rid: '1',
+          scaleResolutionDownTo: { maxWidth: 80, maxHeight: 40 }
+      }, {
+          rid: '2',
+          scaleResolutionDownTo: { maxWidth: 160, maxHeight: 80 }
+      }]
+  });
+
+  // Negotiate with simulcast tweaks.
+  await doOfferToSendSimulcastAndAnswer(pc1, pc2, ['0', '1', '2']);
+
+  await waitForFrameWithResolution(t, pc1, 40, 20, '0');
+  await waitForFrameWithResolution(t, pc1, 80, 40, '1');
+  await waitForFrameWithResolution(t, pc1, 160, 80, '2');
+}, `scaleResolutionDownTo with simulcast`);
 </script>

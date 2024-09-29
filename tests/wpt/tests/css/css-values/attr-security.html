@@ -10,8 +10,14 @@
     inherits: false;
     initial-value: "empty";
   }
+  @property --some-url-list {
+    syntax: "<string>+";
+    inherits: false;
+    initial-value: "empty";
+  }
   div {
     --some-url: attr(data-foo);
+    --some-url-list: attr(data-foo);
     --some-other-url: attr(data-foo);
   }
 </style>
@@ -116,6 +122,16 @@
               'none');
 
     // Test via a registered custom property.
+    test_attr('--x',
+              'image-set(var(--some-url))',
+              'https://does-not-exist.test/404.png',
+              'image-set("https://does-not-exist.test/404.png")');
+    test_attr('background-image',
+              'image-set(var(--some-url))',
+              'https://does-not-exist.test/404.png',
+              'none');
+
+    // Test via a registered custom property (list).
     test_attr('--x',
               'image-set(var(--some-url))',
               'https://does-not-exist.test/404.png',

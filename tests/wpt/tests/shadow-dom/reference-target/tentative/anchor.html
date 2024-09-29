@@ -44,13 +44,42 @@
     <div id="popover-1" popover anchor="x-anchor-1">Popover content</div>
   </div>
 
+  <div>
+    <x-anchor-2 id="x-anchor-2"></x-anchor-2>
+    <div id="popover-2" popover anchor="x-anchor-2">Popover content</div>
+  </div>
+
   <script>
-    test(function () {
-      const popover = document.getElementById("popover-1");
-      popover.showPopover();
-      assert_equals(popover.offsetLeft, 100, "popover.offsetLeft");
-      assert_equals(popover.offsetTop, 100, "popover.offsetTop");
-    }, "ShadowRoot ReferenceTarget works with anchor attribute.");
+    const customAnchor = document.querySelector('x-anchor-2');
+    customAnchor.attachShadow({ mode: 'open', referenceTarget: 'anchor' });
+    customAnchor.shadowRoot.innerHTML =`
+<style>
+div {
+width: 100px;
+height: 100px;
+}
+
+#anchor {
+background-color: yellow;
+}
+</style>
+
+<div></div>
+<div id="anchor"></div>`;
+  </script>
+  <script>
+    function testPopoverAnchor(id, name) {
+      test(function () {
+        const popover = document.getElementById(id);
+        popover.showPopover();
+        assert_equals(popover.offsetLeft, 100, "popover.offsetLeft");
+        assert_equals(popover.offsetTop, 100, "popover.offsetTop");
+        // Clean up the test context for future tests.
+        popover.parentElement.remove();
+      }, name);
+    }
+    testPopoverAnchor('popover-1', "ShadowRoot ReferenceTarget works with anchor attribute.");
+    testPopoverAnchor('popover-2', "ShadowRoot ReferenceTarget works with anchor attribute via options.");
   </script>
 </body>
 

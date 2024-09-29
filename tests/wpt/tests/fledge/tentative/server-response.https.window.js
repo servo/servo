@@ -17,6 +17,7 @@
 // META: variant=?37-40
 // META: variant=?41-44
 // META: variant=?45-48
+// META: variant=?49-52
 
 // These tests focus on the serverResponse field in AuctionConfig, e.g.
 // auctions involving bidding and auction services.
@@ -78,6 +79,9 @@ subsetTest(promise_test, async test => {
 
   const trackSeller = createSellerReportURL(uuid);
   const trackBuyer = createBidderReportURL(uuid);
+  // This one should still work since the server may have run an auction with
+  // components on its own.
+  const trackComponentSeller = createSellerReportURL(uuid, 'component');
   let serverResponseMsg = {
     'biddingGroups': {},
     'adRenderURL': adsArray[1].renderURL,
@@ -85,7 +89,8 @@ subsetTest(promise_test, async test => {
     'interestGroupOwner': window.location.origin,
     'winReportingURLs': {
       'buyerReportingURLs': {'reportingURL': trackBuyer},
-      'topLevelSellerReportingURLs': {'reportingURL': trackSeller}
+      'topLevelSellerReportingURLs': {'reportingURL': trackSeller},
+      'componentSellerReportingURLs': {'reportingURL': trackComponentSeller}
     }
   };
   serverResponseMsg.biddingGroups[window.location.origin] = [0];
@@ -104,7 +109,8 @@ subsetTest(promise_test, async test => {
   });
   expectSuccess(auctionResult);
   createAndNavigateFencedFrame(test, auctionResult);
-  await waitForObservedRequests(uuid, [adB, trackBuyer, trackSeller]);
+  await waitForObservedRequests(
+      uuid, [adB, trackBuyer, trackSeller, trackComponentSeller]);
 }, 'Basic B&A auction with reporting URLs');
 
 subsetTest(promise_test, async test => {
@@ -190,6 +196,8 @@ subsetTest(promise_test, async test => {
   // win over the client-side component auctions bid of 9.
   const trackServerSeller = createSellerReportURL(uuid);
   const trackBuyer = createBidderReportURL(uuid);
+  // This one shouldn't show up.
+  const trackTopLevelServerSeller = createSellerReportURL(uuid, 'top');
   let serverResponseMsg = {
     'biddingGroups': {},
     'adRenderURL': adsArray[1].renderURL,
@@ -199,7 +207,8 @@ subsetTest(promise_test, async test => {
     'bid': 10,
     'winReportingURLs': {
       'buyerReportingURLs': {'reportingURL': trackBuyer},
-      'componentSellerReportingURLs': {'reportingURL': trackServerSeller}
+      'componentSellerReportingURLs': {'reportingURL': trackServerSeller},
+      'topLevelSellerReportingURLs': {'reportingURL': trackTopLevelServerSeller}
     }
   };
   serverResponseMsg.biddingGroups[window.location.origin] = [0];
@@ -423,7 +432,7 @@ async function testWithMutatedServerResponse(test, expectWin, responseMutator,
       [{renderURL: adA, adRenderId: 'a'}, {renderURL: adB, adRenderId: 'b'}];
   let ig = {ads: adsArray};
   if (igMutator) {
-    igMutator(ig);
+    igMutator(ig, uuid);
   }
   await joinInterestGroup(test, uuid, ig);
 
@@ -436,12 +445,12 @@ async function testWithMutatedServerResponse(test, expectWin, responseMutator,
 
   let serverResponseMsg = {
     'biddingGroups': {},
-    'adRenderURL': adsArray[0].renderURL,
+    'adRenderURL': ig.ads[0].renderURL,
     'interestGroupName': DEFAULT_INTEREST_GROUP_NAME,
     'interestGroupOwner': window.location.origin,
   };
   serverResponseMsg.biddingGroups[window.location.origin] = [0];
-  await responseMutator(serverResponseMsg);
+  await responseMutator(serverResponseMsg, uuid);
 
   let serverResponse =
       await BA.encodeServerResponse(serverResponseMsg, decoded);
@@ -645,6 +654,92 @@ subsetTest(promise_test, async test => {
 }, 'Basic B&A auction - ad component URL in ad');
 
 subsetTest(promise_test, async test => {
+  let savedUuid;
+  let savedExpectUrls;
+  let result = await testWithMutatedServerResponse(
+      test, /*expectSuccess=*/ true,
+      (msg, uuid) => {
+        savedUuid = uuid;
+        msg.components = [
+          createTrackerURL(window.location.origin, uuid, 'track_get', 'c_a'),
+          createTrackerURL(window.location.origin, uuid, 'track_get', 'c_c')
+        ];
+        savedExpectUrls = msg.components;
+      },
+      (ig, uuid) => {
+        ig.ads[0].renderURL = createRenderURL(uuid, `
+          const componentAds = window.fence.getNestedConfigs();
+          for (let config of componentAds) {
+            let fencedFrame = document.createElement("fencedframe");
+            fencedFrame.mode = "opaque-ads";
+            fencedFrame.config = config;
+            document.body.appendChild(fencedFrame);
+          }`);
+        ig.adComponents = [
+          {
+            renderURL: createTrackerURL(
+                window.location.origin, uuid, 'track_get', 'c_a')
+          },
+          {
+            renderURL: createTrackerURL(
+                window.location.origin, uuid, 'track_get', 'c_c')
+          },
+          {
+            renderURL: createTrackerURL(
+                window.location.origin, uuid, 'track_get', 'c_c')
+          }
+        ];
+      });
+  createAndNavigateFencedFrame(test, result);
+  await waitForObservedRequests(savedUuid, savedExpectUrls);
+}, 'Basic B&A auction - loading winning component ads');
+
+
+subsetTest(promise_test, async test => {
+  let savedUuid;
+  let result = await testWithMutatedServerResponse(
+      test, /*expectWin=*/ true,
+      (msg, uuid) => {
+        savedUuid = uuid;
+        msg.winReportingURLs = {
+          'buyerReportingURLs': {
+            'interactionReportingURLs': {
+              'click': createBidderBeaconURL(uuid, 'i'),
+              'cluck': createBidderBeaconURL(uuid, 'u')
+            }
+          },
+          'topLevelSellerReportingURLs': {
+            'interactionReportingURLs': {
+              'click': createSellerBeaconURL(uuid, 'i'),
+              'cluck': createSellerBeaconURL(uuid, 'u')
+            }
+          }
+        };
+      },
+      (ig, uuid) => {
+        ig.ads[0].renderURL = createRenderURL(uuid, `window.fence.reportEvent({
+              eventType: 'click',
+              eventData: 'click_body',
+              destination: ['seller', 'buyer']
+            });
+            window.fence.reportEvent({
+              eventType: 'cluck',
+              eventData: 'cluck_body',
+              destination: ['direct-seller']
+            });`);
+      });
+
+  createAndNavigateFencedFrame(test, result);
+  // The script triggers seller and buyer 'click', and seller 'cluck'.
+  // No tracker for page itself.
+  await waitForObservedRequests(savedUuid, [
+    createBidderBeaconURL(savedUuid, 'i') + ', body: click_body',
+    createSellerBeaconURL(savedUuid, 'i') + ', body: click_body',
+    createSellerBeaconURL(savedUuid, 'u') + ', body: cluck_body'
+  ]);
+}, 'Basic B&A auction --- beacon reporting');
+
+subsetTest(promise_test, async test => {
   await testWithMutatedServerResponse(test, /*expectSuccess=*/ false, msg => {
     msg.bidCurrency = 'cents';
   });
@@ -692,7 +787,7 @@ async function testHybridAuctionWithMutatedServerResponse(
   // mutators did made the server response unacceptable).
   let serverResponseMsg = {
     'biddingGroups': {},
-    'adRenderURL': adsArray[1].renderURL,
+    'adRenderURL': interestGroup.ads[1].renderURL,
     'interestGroupName': DEFAULT_INTEREST_GROUP_NAME,
     'interestGroupOwner': window.location.origin,
     'topLevelSeller': window.location.origin,
@@ -883,20 +978,56 @@ subsetTest(promise_test, async test => {
       });
 }, 'Hybrid B&A auction --- bid info passed to top-level reporting');
 
+subsetTest(promise_test, async test => {
+  await testHybridAuctionWithMutatedServerResponse(
+      test, /*expectBaWin=*/ true, {
+        igMutator: (ig, uuid) => {
+          ig.ads[1].renderURL =
+              createRenderURL(uuid, `window.fence.reportEvent({
+                eventType: 'click',
+                eventData: 'click_body',
+                destination: ['component-seller', 'buyer']
+              });
+              window.fence.reportEvent({
+                eventType: 'clack',
+                eventData: 'clack_body',
+                destination: ['direct-seller']
+              });`);
+        },
+        responseMutator: (response, uuid) => {
+          response.winReportingURLs = {
+            'buyerReportingURLs': {
+              'interactionReportingURLs': {
+                'click': createBidderBeaconURL(uuid, 'i'),
+                'clack': createBidderBeaconURL(uuid, 'a')
+              }
+            },
+            'componentSellerReportingURLs': {
+              'interactionReportingURLs': {
+                'click': createSellerBeaconURL(uuid, 'i'),
+                'clack': createSellerBeaconURL(uuid, 'a')
+              }
+            }
+          };
+        },
+        expectUrlsMutator: (expectUrls, uuid) => {
+          // The script triggers seller and buyer 'click', and seller 'clack'.
+          // No tracker for page itself.
+          expectUrls.pop();
+          expectUrls.push(
+              createBidderBeaconURL(uuid, 'i') + ', body: click_body',
+              createSellerBeaconURL(uuid, 'i') + ', body: click_body',
+              createSellerBeaconURL(uuid, 'a') + ', body: clack_body');
+        }
+      });
+}, 'Hybrid B&A auction --- beacon reporting');
+
 /* Some things that are not currently tested that probably should be; this is
    not exhaustive, merely to keep track of things that come to mind as tests are
    written:
 
-   - Reporting event/beacon operation.
-
-   - Actually loading component ad --- see stuff in components-ads.https...
-     for examples.
-
-   - Check that topLevelSellerReportingURLs doesn't do anything in a component
-     auction? The code is actually a little suspect; need to check the spec
-     at any rate.
-
-   - forDebugOnly diff between server_filtered or not (and also componentWin)?
-     forDebugOnly in general may be too hard to test given sampling. I should
-     probably ask Qingxin for his opinion.
+   - forDebugOnly --- it will be straightforward now, but will break.
+   - privateAggregation --- currently no away to test it, may be doable with
+     proper key config.
+   - Some of the parsing details that need to match the spec language exactly.
 */

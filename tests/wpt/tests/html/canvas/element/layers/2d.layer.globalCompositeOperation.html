@@ -78,12 +78,46 @@
 </span>
 
 <span>
-  <div>source-atop</div>
+  <div>source-out</div>
   <canvas id="canvas2" width="90" height="90" style="outline: 1px solid">
     <p class="fallback">FAIL (fallback content)</p>
   </canvas>
   <script type="module">
     const canvas = document.getElementById("canvas2");
+    const ctx = canvas.getContext('2d');
+
+    ctx.translate(50, 50);
+    ctx.scale(2, 2);
+    ctx.rotate(Math.PI);
+    ctx.translate(-25, -25);
+
+    ctx.fillStyle = 'rgba(0, 0, 255, 0.8)';
+    ctx.fillRect(15, 15, 25, 25);
+
+    ctx.globalAlpha = 0.75;
+    ctx.globalCompositeOperation = 'source-out';
+    ctx.shadowOffsetX = 7;
+    ctx.shadowOffsetY = 7;
+    ctx.shadowColor = 'rgba(255, 165, 0, 0.5)';
+
+    ctx.beginLayer();
+
+    ctx.fillStyle = 'rgba(204, 0, 0, 1)';
+    ctx.fillRect(10, 25, 25, 20);
+    ctx.fillStyle = 'rgba(0, 204, 0, 1)';
+    ctx.fillRect(25, 10, 20, 25);
+
+    ctx.endLayer();
+  </script>
+</span>
+
+<span>
+  <div>source-atop</div>
+  <canvas id="canvas3" width="90" height="90" style="outline: 1px solid">
+    <p class="fallback">FAIL (fallback content)</p>
+  </canvas>
+  <script type="module">
+    const canvas = document.getElementById("canvas3");
     const ctx = canvas.getContext('2d');
 
     ctx.translate(50, 50);
@@ -113,11 +147,11 @@
 
 <span>
   <div>destination-over</div>
-  <canvas id="canvas3" width="90" height="90" style="outline: 1px solid">
+  <canvas id="canvas4" width="90" height="90" style="outline: 1px solid">
     <p class="fallback">FAIL (fallback content)</p>
   </canvas>
   <script type="module">
-    const canvas = document.getElementById("canvas3");
+    const canvas = document.getElementById("canvas4");
     const ctx = canvas.getContext('2d');
 
     ctx.translate(50, 50);
@@ -147,11 +181,11 @@
 
 <span>
   <div>destination-in</div>
-  <canvas id="canvas4" width="90" height="90" style="outline: 1px solid">
+  <canvas id="canvas5" width="90" height="90" style="outline: 1px solid">
     <p class="fallback">FAIL (fallback content)</p>
   </canvas>
   <script type="module">
-    const canvas = document.getElementById("canvas4");
+    const canvas = document.getElementById("canvas5");
     const ctx = canvas.getContext('2d');
 
     ctx.translate(50, 50);
@@ -181,11 +215,11 @@
 
 <span>
   <div>destination-out</div>
-  <canvas id="canvas5" width="90" height="90" style="outline: 1px solid">
+  <canvas id="canvas6" width="90" height="90" style="outline: 1px solid">
     <p class="fallback">FAIL (fallback content)</p>
   </canvas>
   <script type="module">
-    const canvas = document.getElementById("canvas5");
+    const canvas = document.getElementById("canvas6");
     const ctx = canvas.getContext('2d');
 
     ctx.translate(50, 50);
@@ -215,11 +249,11 @@
 
 <span>
   <div>destination-atop</div>
-  <canvas id="canvas6" width="90" height="90" style="outline: 1px solid">
+  <canvas id="canvas7" width="90" height="90" style="outline: 1px solid">
     <p class="fallback">FAIL (fallback content)</p>
   </canvas>
   <script type="module">
-    const canvas = document.getElementById("canvas6");
+    const canvas = document.getElementById("canvas7");
     const ctx = canvas.getContext('2d');
 
     ctx.translate(50, 50);
@@ -249,11 +283,11 @@
 
 <span>
   <div>lighter</div>
-  <canvas id="canvas7" width="90" height="90" style="outline: 1px solid">
+  <canvas id="canvas8" width="90" height="90" style="outline: 1px solid">
     <p class="fallback">FAIL (fallback content)</p>
   </canvas>
   <script type="module">
-    const canvas = document.getElementById("canvas7");
+    const canvas = document.getElementById("canvas8");
     const ctx = canvas.getContext('2d');
 
     ctx.translate(50, 50);
@@ -283,11 +317,11 @@
 
 <span>
   <div>copy</div>
-  <canvas id="canvas8" width="90" height="90" style="outline: 1px solid">
+  <canvas id="canvas9" width="90" height="90" style="outline: 1px solid">
     <p class="fallback">FAIL (fallback content)</p>
   </canvas>
   <script type="module">
-    const canvas = document.getElementById("canvas8");
+    const canvas = document.getElementById("canvas9");
     const ctx = canvas.getContext('2d');
 
     ctx.translate(50, 50);
@@ -317,11 +351,11 @@
 
 <span>
   <div>xor</div>
-  <canvas id="canvas9" width="90" height="90" style="outline: 1px solid">
+  <canvas id="canvas10" width="90" height="90" style="outline: 1px solid">
     <p class="fallback">FAIL (fallback content)</p>
   </canvas>
   <script type="module">
-    const canvas = document.getElementById("canvas9");
+    const canvas = document.getElementById("canvas10");
     const ctx = canvas.getContext('2d');
 
     ctx.translate(50, 50);
@@ -351,11 +385,11 @@
 
 <span>
   <div>multiply</div>
-  <canvas id="canvas10" width="90" height="90" style="outline: 1px solid">
+  <canvas id="canvas11" width="90" height="90" style="outline: 1px solid">
     <p class="fallback">FAIL (fallback content)</p>
   </canvas>
   <script type="module">
-    const canvas = document.getElementById("canvas10");
+    const canvas = document.getElementById("canvas11");
     const ctx = canvas.getContext('2d');
 
     ctx.translate(50, 50);
@@ -385,11 +419,11 @@
 
 <span>
   <div>screen</div>
-  <canvas id="canvas11" width="90" height="90" style="outline: 1px solid">
+  <canvas id="canvas12" width="90" height="90" style="outline: 1px solid">
     <p class="fallback">FAIL (fallback content)</p>
   </canvas>
   <script type="module">
-    const canvas = document.getElementById("canvas11");
+    const canvas = document.getElementById("canvas12");
     const ctx = canvas.getContext('2d');
 
     ctx.translate(50, 50);
@@ -419,11 +453,11 @@
 
 <span>
   <div>overlay</div>
-  <canvas id="canvas12" width="90" height="90" style="outline: 1px solid">
+  <canvas id="canvas13" width="90" height="90" style="outline: 1px solid">
     <p class="fallback">FAIL (fallback content)</p>
   </canvas>
   <script type="module">
-    const canvas = document.getElementById("canvas12");
+    const canvas = document.getElementById("canvas13");
     const ctx = canvas.getContext('2d');
 
     ctx.translate(50, 50);
@@ -453,11 +487,11 @@
 
 <span>
   <div>darken</div>
-  <canvas id="canvas13" width="90" height="90" style="outline: 1px solid">
+  <canvas id="canvas14" width="90" height="90" style="outline: 1px solid">
     <p class="fallback">FAIL (fallback content)</p>
   </canvas>
   <script type="module">
-    const canvas = document.getElementById("canvas13");
+    const canvas = document.getElementById("canvas14");
     const ctx = canvas.getContext('2d');
 
     ctx.translate(50, 50);
@@ -487,11 +521,11 @@
 
 <span>
   <div>lighten</div>
-  <canvas id="canvas14" width="90" height="90" style="outline: 1px solid">
+  <canvas id="canvas15" width="90" height="90" style="outline: 1px solid">
     <p class="fallback">FAIL (fallback content)</p>
   </canvas>
   <script type="module">
-    const canvas = document.getElementById("canvas14");
+    const canvas = document.getElementById("canvas15");
     const ctx = canvas.getContext('2d');
 
     ctx.translate(50, 50);
@@ -521,11 +555,11 @@
 
 <span>
   <div>color-dodge</div>
-  <canvas id="canvas15" width="90" height="90" style="outline: 1px solid">
+  <canvas id="canvas16" width="90" height="90" style="outline: 1px solid">
     <p class="fallback">FAIL (fallback content)</p>
   </canvas>
   <script type="module">
-    const canvas = document.getElementById("canvas15");
+    const canvas = document.getElementById("canvas16");
     const ctx = canvas.getContext('2d');
 
     ctx.translate(50, 50);
@@ -555,11 +589,11 @@
 
 <span>
   <div>color-burn</div>
-  <canvas id="canvas16" width="90" height="90" style="outline: 1px solid">
+  <canvas id="canvas17" width="90" height="90" style="outline: 1px solid">
     <p class="fallback">FAIL (fallback content)</p>
   </canvas>
   <script type="module">
-    const canvas = document.getElementById("canvas16");
+    const canvas = document.getElementById("canvas17");
     const ctx = canvas.getContext('2d');
 
     ctx.translate(50, 50);
@@ -589,11 +623,11 @@
 
 <span>
   <div>hard-light</div>
-  <canvas id="canvas17" width="90" height="90" style="outline: 1px solid">
+  <canvas id="canvas18" width="90" height="90" style="outline: 1px solid">
     <p class="fallback">FAIL (fallback content)</p>
   </canvas>
   <script type="module">
-    const canvas = document.getElementById("canvas17");
+    const canvas = document.getElementById("canvas18");
     const ctx = canvas.getContext('2d');
 
     ctx.translate(50, 50);
@@ -623,11 +657,11 @@
 
 <span>
   <div>soft-light</div>
-  <canvas id="canvas18" width="90" height="90" style="outline: 1px solid">
+  <canvas id="canvas19" width="90" height="90" style="outline: 1px solid">
     <p class="fallback">FAIL (fallback content)</p>
   </canvas>
   <script type="module">
-    const canvas = document.getElementById("canvas18");
+    const canvas = document.getElementById("canvas19");
     const ctx = canvas.getContext('2d');
 
     ctx.translate(50, 50);
@@ -657,11 +691,11 @@
 
 <span>
   <div>difference</div>
-  <canvas id="canvas19" width="90" height="90" style="outline: 1px solid">
+  <canvas id="canvas20" width="90" height="90" style="outline: 1px solid">
     <p class="fallback">FAIL (fallback content)</p>
   </canvas>
   <script type="module">
-    const canvas = document.getElementById("canvas19");
+    const canvas = document.getElementById("canvas20");
     const ctx = canvas.getContext('2d');
 
     ctx.translate(50, 50);
@@ -691,11 +725,11 @@
 
 <span>
   <div>exclusion</div>
-  <canvas id="canvas20" width="90" height="90" style="outline: 1px solid">
+  <canvas id="canvas21" width="90" height="90" style="outline: 1px solid">
     <p class="fallback">FAIL (fallback content)</p>
   </canvas>
   <script type="module">
-    const canvas = document.getElementById("canvas20");
+    const canvas = document.getElementById("canvas21");
     const ctx = canvas.getContext('2d');
 
     ctx.translate(50, 50);
@@ -725,11 +759,11 @@
 
 <span>
   <div>hue</div>
-  <canvas id="canvas21" width="90" height="90" style="outline: 1px solid">
+  <canvas id="canvas22" width="90" height="90" style="outline: 1px solid">
     <p class="fallback">FAIL (fallback content)</p>
   </canvas>
   <script type="module">
-    const canvas = document.getElementById("canvas21");
+    const canvas = document.getElementById("canvas22");
     const ctx = canvas.getContext('2d');
 
     ctx.translate(50, 50);
@@ -759,11 +793,11 @@
 
 <span>
   <div>saturation</div>
-  <canvas id="canvas22" width="90" height="90" style="outline: 1px solid">
+  <canvas id="canvas23" width="90" height="90" style="outline: 1px solid">
     <p class="fallback">FAIL (fallback content)</p>
   </canvas>
   <script type="module">
-    const canvas = document.getElementById("canvas22");
+    const canvas = document.getElementById("canvas23");
     const ctx = canvas.getContext('2d');
 
     ctx.translate(50, 50);
@@ -793,11 +827,11 @@
 
 <span>
   <div>color</div>
-  <canvas id="canvas23" width="90" height="90" style="outline: 1px solid">
+  <canvas id="canvas24" width="90" height="90" style="outline: 1px solid">
     <p class="fallback">FAIL (fallback content)</p>
   </canvas>
   <script type="module">
-    const canvas = document.getElementById("canvas23");
+    const canvas = document.getElementById("canvas24");
     const ctx = canvas.getContext('2d');
 
     ctx.translate(50, 50);
@@ -827,11 +861,11 @@
 
 <span>
   <div>luminosity</div>
-  <canvas id="canvas24" width="90" height="90" style="outline: 1px solid">
+  <canvas id="canvas25" width="90" height="90" style="outline: 1px solid">
     <p class="fallback">FAIL (fallback content)</p>
   </canvas>
   <script type="module">
-    const canvas = document.getElementById("canvas24");
+    const canvas = document.getElementById("canvas25");
     const ctx = canvas.getContext('2d');
 
     ctx.translate(50, 50);

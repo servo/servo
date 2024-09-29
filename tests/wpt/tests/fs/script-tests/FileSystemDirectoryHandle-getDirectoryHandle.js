@@ -8,7 +8,6 @@ directory_test(async (t, root) => {
 directory_test(async (t, root) => {
   const handle =
       await root.getDirectoryHandle('non-existing-dir', {create: true});
-  t.add_cleanup(() => root.removeEntry('non-existing-dir', {recursive: true}));
 
   assert_equals(handle.kind, 'directory');
   assert_equals(handle.name, 'non-existing-dir');
@@ -20,8 +19,7 @@ directory_test(async (t, root) => {
 directory_test(async (t, root) => {
   const existing_handle =
       await root.getDirectoryHandle('dir-with-contents', {create: true});
-  t.add_cleanup(() => root.removeEntry('dir-with-contents', {recursive: true}));
-  const file_handle = await createEmptyFile(t, 'test-file', existing_handle);
+  const file_handle = await createEmptyFile('test-file', existing_handle);
 
   const handle =
       await root.getDirectoryHandle('dir-with-contents', {create: false});
@@ -34,7 +32,6 @@ directory_test(async (t, root) => {
 directory_test(async (t, root) => {
   const existing_handle =
       await root.getDirectoryHandle('dir-with-contents', {create: true});
-  t.add_cleanup(() => root.removeEntry('dir-with-contents', {recursive: true}));
   const file_handle =
       await existing_handle.getFileHandle('test-file', {create: true});
 
@@ -47,7 +44,7 @@ directory_test(async (t, root) => {
 }, 'getDirectoryHandle(create=true) returns existing directories without erasing');
 
 directory_test(async (t, root) => {
-  await createEmptyFile(t, 'file-name', root);
+  await createEmptyFile('file-name', root);
 
   await promise_rejects_dom(
       t, 'TypeMismatchError', root.getDirectoryHandle('file-name'));
@@ -74,7 +71,7 @@ directory_test(async (t, dir) => {
 }, `getDirectoryHandle() with "${kCurrentDirectory}" name`);
 
 directory_test(async (t, dir) => {
-  const subdir = await createDirectory(t, 'subdir-name', /*parent=*/ dir);
+  const subdir = await createDirectory('subdir-name', /*parent=*/ dir);
 
   await promise_rejects_js(
       t, TypeError, subdir.getDirectoryHandle(kParentDirectory));
@@ -86,11 +83,11 @@ directory_test(async (t, dir) => {
 directory_test(async (t, dir) => {
   const first_subdir_name = 'first-subdir-name';
   const first_subdir =
-      await createDirectory(t, first_subdir_name, /*parent=*/ dir);
+      await createDirectory(first_subdir_name, /*parent=*/ dir);
 
   const second_subdir_name = 'second-subdir-name';
   const second_subdir =
-      await createDirectory(t, second_subdir_name, /*parent=*/ first_subdir);
+      await createDirectory(second_subdir_name, /*parent=*/ first_subdir);
 
   for (let i = 0; i < kPathSeparators.length; ++i) {
     const path_with_separator =
@@ -104,7 +101,7 @@ directory_test(async (t, dir) => {
 
 directory_test(async (t, dir) => {
   const subdir_name = 'subdir-name';
-  const subdir = await createDirectory(t, subdir_name, /*parent=*/ dir);
+  const subdir = await createDirectory(subdir_name, /*parent=*/ dir);
 
   for (let i = 0; i < kPathSeparators.length; ++i) {
     const path_with_separator = `${subdir_name}${kPathSeparators[i]}file_name`;

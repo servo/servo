@@ -124,17 +124,28 @@ promise_test(async testCase => {
   assert_equals(cookies[0].value, 'cookie-value');
 }, 'cookieStore.getAll with relative url in options');
 
-promise_test(async testCase => {
-  await cookieStore.set('cookie-name', 'cookie-value');
-  testCase.add_cleanup(async () => {
-    await cookieStore.delete('cookie-name');
-  });
+if (!self.GLOBAL.isWorker()) {
+  promise_test(async testCase => {
+    const invalid_url =
+        `${self.location.protocol}//${self.location.host}/different/path`;
+    await promise_rejects_js(testCase, TypeError, cookieStore.getAll(
+        { url: invalid_url }));
+  }, 'cookieStore.getAll with invalid url path in options');
+} else {
+  promise_test(async testCase => {
+    await cookieStore.set('cookie-name', 'cookie-value');
+    testCase.add_cleanup(async () => {
+      await cookieStore.delete('cookie-name');
+    });
 
-  const invalid_url =
-      `${self.location.protocol}//${self.location.host}/different/path`;
-  await promise_rejects_js(testCase, TypeError, cookieStore.getAll(
-      { url: invalid_url }));
-}, 'cookieStore.getAll with invalid url path in options');
+    const sameorigin_url =
+        `${self.location.protocol}//${self.location.host}/different/path`;
+    const cookies = await cookieStore.getAll({ url: sameorigin_url });
+    assert_equals(cookies.length, 1);
+    assert_equals(cookies[0].name, 'cookie-name');
+    assert_equals(cookies[0].value, 'cookie-value');
+  }, 'cookieStore.getAll with same-origin url path in options');
+}
 
 promise_test(async testCase => {
   await cookieStore.set('cookie-name', 'cookie-value');

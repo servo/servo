@@ -352,7 +352,7 @@ preferable if the entire test is optional.
 ### Consolidating tests from other documents ###
 
 ```eval_rst
-.. js::autofunction fetch_tests_from_window
+.. js:autofunction:: fetch_tests_from_window
 ```
 
 **Note:** By default any markup file referencing `testharness.js` will
@@ -408,7 +408,7 @@ Here's an example that uses `window.open`.
 ### Web Workers ###
 
 ```eval_rst
-.. js:autofunction fetch_tests_from_worker
+.. js:autofunction:: fetch_tests_from_worker
 ```
 
 The `testharness.js` script can be used from within [dedicated workers, shared

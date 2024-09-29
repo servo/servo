@@ -23,10 +23,9 @@ async_test(t => {
     `), 4);
     window.clearThisInterval = () => { frames[0].clearInterval(id); };
 
-    t.step_timeout(() => {
-      assert_array_equals(onerrorCalls, ["frame1"]);
-      t.done();
-    }, 8);
+    t.step_wait_func_done(() => onerrorCalls.length > 0,
+                          () => assert_array_equals(onerrorCalls, ["frame1"]),
+                          undefined, 1000, 10);
   });
 });
 </script>

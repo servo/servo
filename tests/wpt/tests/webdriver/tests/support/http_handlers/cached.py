@@ -18,4 +18,8 @@ def main(request, response):
 
     response.headers.set(b"Expires", "Thu, 01 Dec 2100 20:00:00 GMT")
     response.headers.set(b"Cache-Control", "max-age=3600")
-    return "Cached HTTP Response"
+
+    if b"response" in request.GET:
+        return request.GET.first(b"response")
+    else:
+        return "Cached HTTP Response"

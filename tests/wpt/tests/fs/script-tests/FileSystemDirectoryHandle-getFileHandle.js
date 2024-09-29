@@ -7,7 +7,6 @@ directory_test(async (t, dir) => {
 
 directory_test(async (t, dir) => {
   const handle = await dir.getFileHandle('non-existing-file', {create: true});
-  t.add_cleanup(() => dir.removeEntry('non-existing-file'));
 
   assert_equals(handle.kind, 'file');
   assert_equals(handle.name, 'non-existing-file');
@@ -35,7 +34,6 @@ directory_test(async (t, dir) => {
     name += String.fromCharCode(i);
   }
   const handle = await dir.getFileHandle(name, {create: true});
-  t.add_cleanup(() => dir.removeEntry(name));
 
   assert_equals(handle.kind, 'file');
   assert_equals(handle.name, name);
@@ -48,7 +46,6 @@ directory_test(async (t, dir) => {
   // A non-ASCII name
   name = 'Funny cat \u{1F639}'
   const handle = await dir.getFileHandle(name, {create: true});
-  t.add_cleanup(() => dir.removeEntry(name));
 
   assert_equals(handle.kind, 'file');
   assert_equals(handle.name, name);
@@ -58,7 +55,7 @@ directory_test(async (t, dir) => {
 
 directory_test(async (t, dir) => {
   const existing_handle = await createFileWithContents(
-      t, 'existing-file', '1234567890', /*parent=*/ dir);
+      'existing-file', '1234567890', /*parent=*/ dir);
   const handle = await dir.getFileHandle('existing-file');
 
   assert_equals(handle.kind, 'file');
@@ -69,7 +66,7 @@ directory_test(async (t, dir) => {
 
 directory_test(async (t, dir) => {
   const existing_handle = await createFileWithContents(
-      t, 'file-with-contents', '1234567890', /*parent=*/ dir);
+      'file-with-contents', '1234567890', /*parent=*/ dir);
   const handle = await dir.getFileHandle('file-with-contents', {create: true});
 
   assert_equals(handle.kind, 'file');
@@ -80,7 +77,6 @@ directory_test(async (t, dir) => {
 
 directory_test(async (t, dir) => {
   const dir_handle = await dir.getDirectoryHandle('dir-name', {create: true});
-  t.add_cleanup(() => dir.removeEntry('dir-name', {recursive: true}));
 
   await promise_rejects_dom(
       t, 'TypeMismatchError', dir.getFileHandle('dir-name'));
@@ -88,7 +84,6 @@ directory_test(async (t, dir) => {
 
 directory_test(async (t, dir) => {
   const dir_handle = await dir.getDirectoryHandle('dir-name', {create: true});
-  t.add_cleanup(() => dir.removeEntry('dir-name', {recursive: true}));
 
   await promise_rejects_dom(
       t, 'TypeMismatchError', dir.getFileHandle('dir-name', {create: true}));
@@ -107,7 +102,7 @@ directory_test(async (t, dir) => {
 }, `getFileHandle() with "${kCurrentDirectory}" name`);
 
 directory_test(async (t, dir) => {
-  const subdir = await createDirectory(t, 'subdir-name', /*parent=*/ dir);
+  const subdir = await createDirectory('subdir-name', /*parent=*/ dir);
 
   await promise_rejects_js(
       t, TypeError, subdir.getFileHandle(kParentDirectory));
@@ -117,10 +112,10 @@ directory_test(async (t, dir) => {
 
 directory_test(async (t, dir) => {
   const subdir_name = 'subdir-name';
-  const subdir = await createDirectory(t, subdir_name, /*parent=*/ dir);
+  const subdir = await createDirectory(subdir_name, /*parent=*/ dir);
 
   const file_name = 'file-name';
-  await createEmptyFile(t, file_name, /*parent=*/ subdir);
+  await createEmptyFile(file_name, /*parent=*/ subdir);
 
   for (let i = 0; i < kPathSeparators.length; ++i) {
     const path_with_separator =
@@ -133,7 +128,7 @@ directory_test(async (t, dir) => {
 
 directory_test(async (t, dir) => {
   const subdir_name = 'subdir-name';
-  const subdir = await createDirectory(t, subdir_name, /*parent=*/ dir);
+  const subdir = await createDirectory(subdir_name, /*parent=*/ dir);
 
   for (let i = 0; i < kPathSeparators.length; ++i) {
     const path_with_separator = `${subdir_name}${kPathSeparators[i]}file_name`;

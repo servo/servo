@@ -2121,3 +2121,44 @@
     @assert pixel 25,25 ==~ 212,81,61,255 +/- 3;
     @assert pixel 50,25 ==~ 167,106,88,255 +/- 3;
     @assert pixel 75,25 ==~ 113,120,109,255 +/- 3;
+
+- name: 2d.fillStyle.relativecolor
+  desc: Relative color works as color input
+  canvas_types: ['HtmlCanvas', 'OffscreenCanvas', 'Worker']
+  code: |
+    ctx.fillStyle = "rgb(from red g r b)";
+    @assert ctx.fillStyle === 'color(srgb 0 1 0)';
+    ctx.fillStyle = "color(from color(srgb 0.25 0.5 0.75 / 0.5) srgb r g b / alpha)";
+    @assert ctx.fillStyle === 'color(srgb 0.25 0.5 0.75 / 0.5)';
+
+- name: 2d.fillStyle.relativecolor.currentcolor
+  desc: Relative color works as color input with currentcolor
+  canvas_types: ['HtmlCanvas']
+  code: |
+    canvas.setAttribute('style', 'color: magenta');
+    ctx.fillStyle = "rgb(from currentcolor g r b)";
+    @assert ctx.fillStyle === 'color(srgb 0 1 1)';
+    ctx.strokeStyle = "rgb(from currentcolor g r b)";
+    @assert ctx.strokeStyle === 'color(srgb 0 1 1)';
+
+- name: 2d.strokeStyle.relativecolor
+  desc: Relative color works as color input
+  canvas_types: ['HtmlCanvas', 'OffscreenCanvas', 'Worker']
+  code: |
+    ctx.strokeStyle = "rgb(from red g r b)";
+    @assert ctx.strokeStyle === 'color(srgb 0 1 0)';
+    ctx.strokeStyle = "color(from color(srgb 0.25 0.5 0.75 / 0.5) srgb r g b / alpha)";
+    @assert ctx.strokeStyle === 'color(srgb 0.25 0.5 0.75 / 0.5)';
+
+- name: 2d.gradient.relativecolor
+  desc: Relative color works as CanvasGradient color input
+  canvas_types: ['HtmlCanvas', 'OffscreenCanvas', 'Worker']
+  code: |
+    var g = ctx.createLinearGradient(0, 0, 100, 0);
+    g.addColorStop(0, '#f00');
+    g.addColorStop(1, 'rgb(from red g r b)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 25,25 ==~ 236,116,0,255 +/- 3;
+    @assert pixel 50,25 ==~ 208,170,0,255 +/- 3;
+    @assert pixel 75,25 ==~ 159,214,0,255 +/- 3;

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<title>CSS Anchor Positioning: anchor-scope scopes to the flat tree</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#anchor-scope">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/10325">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=host>
+  <template shadowrootmode=open>
+    <style>
+      ::slotted(.outer_anchored), .inner_anchored {
+        background: coral;
+        position: absolute;
+        top: anchor(bottom, 1px);
+        position-anchor: --a;
+        width: 5px;
+        height: 5px;
+      }
+      .anchor {
+        background: skyblue;
+        height: 10px;
+        anchor-name: --a;
+      }
+      .cb {
+        position: relative;
+        width: 200px;
+        height: 200px;
+        border: 1px solid black;
+      }
+      .scope {
+        anchor-scope: --a;
+      }
+    </style>
+    <div class=cb>
+      <div class=anchor></div>
+      <div class=scope>
+        <div class=anchor></div>
+        <slot></slot><!-- .outer_anchored appears here in the flat tree-->
+      </div>
+      <div class=inner_anchored></div>
+    </div>
+  </template>
+  <div class=outer_anchored></div>
+</div>
+<script>
+  test((t) => {
+    // The outer_anchored element is slotted into the <slot> in
+    // the shadow tree. It should be in the same anchor-scope
+    // as the second .anchor element.
+    let outer_anchored = document.querySelector('.outer_anchored');
+    assert_equals(getComputedStyle(outer_anchored).top, '20px');
+
+    // The inner_anchored element exists directly in the shadow tree,
+    // and can not see the second .anchor since it's hidden behind
+    // an anchor-scope.
+    let inner_anchored = host.shadowRoot.querySelector('.inner_anchored');
+    assert_equals(getComputedStyle(inner_anchored).top, '10px');
+  }, 'anchor-scope scopes to the flat tree');
+</script>
+

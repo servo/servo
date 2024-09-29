@@ -10,6 +10,7 @@
     <script src="/resources/testdriver-actions.js"></script>
     <script src="/resources/testdriver-vendor.js"></script>
     <script src="/dom/events/scrolling/scroll_support.js"></script>
+    <script src="/css/css-animations/support/testcommon.js"></script>
   </head>
   <body>
     <style>
@@ -78,27 +79,6 @@
         });
       }
 
-      async function waitForCSSProperty(element, property, value) {
-        return new Promise((resolve) => {
-          if (getComputedStyle(element)[property] == value) {
-            resolve();
-          } else {
-            requestAnimationFrame(async () => {
-              await waitForCSSProperty(element, property, value);
-              resolve();
-            })
-          }
-        });
-      }
-
-      async function waitForDisplay(element, value) {
-        return waitForCSSProperty(element, "display", value);
-      }
-
-      async function waitForOverflow(element, value) {
-        return waitForCSSProperty(element, "overflow", value);
-      }
-
       let initial_expected_scroll_top = space_filler_height +
           inner_scroller_top_offset + inner_content_height -
           outer_container.clientHeight;
@@ -108,14 +88,14 @@
           "outer-container is scrolled to scroll-start-target");
 
         inner_container.style.display = "none";
-        await waitForDisplay(inner_container, "none");
+        await waitForAnimationFrames(2);
 
         assert_equals(outer_container.scrollTop,
             space_filler_height - outer_container.clientHeight,
             "outer-container has no content to scroll");
 
         inner_container.style.display = "block";
-        await waitForDisplay(inner_container, "block");
+        await waitForAnimationFrames(2);
 
         assert_equals(outer_container.scrollTop, initial_expected_scroll_top,
             "outer-scroller is updated as scroll-start-target reappears");
@@ -128,7 +108,7 @@
             "outer-container is scrolled to scroll-start-target");
 
         inner_container.style.overflow = "scroll";
-        await waitForOverflow(inner_container, "scroll");
+        await waitForAnimationFrames(2);
 
         // inner-container has become a scroller and should be scrolled to
         // scroll-start-target.
@@ -145,7 +125,7 @@
             "children");
 
         inner_container.style.overflow = "visible";
-        await waitForOverflow(inner_container, "visible");
+        await waitForAnimationFrames(2);
 
         assert_equals(inner_container.scrollTop, 0,
             "inner-container is no longer a scroll container");
@@ -163,14 +143,14 @@
         await resetDisplay();
         t.add_cleanup(async () => {
           target.style.scrollStartTarget = "auto auto";
-          await waitForCSSProperty(target, "scroll-start-target", "auto");
+          await waitForAnimationFrames(2);
         });
 
         assert_equals(outer_container.scrollTop, initial_expected_scroll_top,
             "outer-container is scrolled to scroll-start-target");
         // Make the inner container a scroll-start-target.
         inner_container.style.scrollStartTarget = "auto auto";
-        await waitForCSSProperty(inner_container, "scroll-start-target", "auto");
+        await waitForAnimationFrames(2);
 
         // The inner container has overflow: visible, so it's not the scroll
         // container of target.
@@ -180,7 +160,7 @@
         // Make target no longer a scroll-start-target. The outer container's
         // scroll-start-target should now be the inner container.
         target.style.scrollStartTarget = "none none";
-        await waitForCSSProperty(target, "scroll-start-target", "none");
+        await waitForAnimationFrames(2);
         assert_equals(outer_container.scrollTop,
             space_filler_height + inner_scroller_top_offset,
             "outer-container is scrolled to inner-container");
@@ -196,10 +176,7 @@
         t.add_cleanup(async () => {
           inner_container.style.overflow = "visible";
           inner_container.style.scrollStartTarget = "none none";
-          await waitForCSSProperty(inner_container, "overflow",
-              "visible");
-          await waitForCSSProperty(inner_container, "scroll-start-target",
-              "none");
+          await waitForAnimationFrames(2);
         });
 
         assert_equals(outer_container.scrollTop, initial_expected_scroll_top,
@@ -207,14 +184,14 @@
 
         // Make the inner container a scroll-start-target.
         inner_container.style.scrollStartTarget = "auto auto";
-        await waitForCSSProperty(inner_container, "scroll-start-target", "auto");
+        await waitForAnimationFrames(2);
 
         assert_equals(outer_container.scrollTop, initial_expected_scroll_top,
             "outer-container is still scrolled to inner scroll-start-target");
 
         // Make the inner container a scroller.
         inner_container.style.overflow = "scroll";
-        await waitForOverflow(inner_container, "scroll");
+        await waitForAnimationFrames(2);
 
         assert_equals(outer_container.scrollTop,
             space_filler_height + inner_scroller_top_offset +

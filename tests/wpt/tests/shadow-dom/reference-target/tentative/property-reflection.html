@@ -20,7 +20,7 @@
       ReflectsHostIDInDOMTokenList: 'ReflectsHostIDInDOMTokenList',
     });
 
-    function test_property_reflection(referencing_element_type, referenced_element_type, attribute, reflected_property, expected_behavior) {
+    function test_property_reflection(element_creation_method, referencing_element_type, referenced_element_type, attribute, reflected_property, expected_behavior) {
       // There's nothing to test if the referencing element type doesn't have the reflecting
       // property.
       if (!(reflected_property in document.createElement(referencing_element_type))) {
@@ -32,13 +32,7 @@
         document.body.appendChild(referencing_element);
         referencing_element.setAttribute(attribute, "host-id");
         const host_container = document.querySelector("#host-container");
-        host_container.setHTMLUnsafe(`
-        <div id="host-id">
-          <template shadowrootmode="open" shadowrootreferencetarget="target">
-            <${referenced_element_type} id="target"></${referenced_element_type}>
-          </template>
-        </div>`);
-        const host = host_container.firstElementChild;
+        const host = element_creation_method(host_container, referenced_element_type);
         if (expected_behavior === Behavior.ReflectsHost) {
           assert_equals(referencing_element[reflected_property], host);
         } else if (expected_behavior === Behavior.ReflectsHostInArray) {
@@ -53,9 +47,30 @@
         }
         referencing_element.remove();
         host_container.setHTMLUnsafe("");
-      }, `${referencing_element_type}.${reflected_property} has reflection behavior ${expected_behavior} when pointing to ${referenced_element_type} with reference target`);
+      }, `${referencing_element_type}.${reflected_property} has reflection behavior ${expected_behavior} when pointing to ${referenced_element_type} with reference target${element_creation_method.name}`);
     }
 
+    const element_creation_methods = [
+      function appendTestDeclaratively(host_container, referenced_element_type) {
+        host_container.setHTMLUnsafe(`
+        <div id="host-id">
+          <template shadowrootmode="open" shadowrootreferencetarget="target">
+            <${referenced_element_type} id="target"></${referenced_element_type}>
+          </template>
+        </div>`);
+        const host = host_container.firstElementChild;
+        return host;
+      },
+      function appendTestWithOptions(host_container, referenced_element_type) {
+        host_container.setHTMLUnsafe('<div id="host-id"></div>');
+        const host = host_container.firstElementChild;
+        host.attachShadow({ mode: 'open', referenceTarget: 'target' });
+        host.shadowRoot.innerHTML = `<${referenced_element_type} id="target"></${referenced_element_type}>`;
+        return host;
+      }
+    ];
+    element_creation_methods[0].name = '';
+    element_creation_methods[1].name = ' via options';
     // We want to test types of elements that are associated with properties that can reflect other
     // elements and can therefore interact with reference target in interesting ways.
     // The HTML5_LABELABLE_ELEMENTS are defined in https://html.spec.whatwg.org/#category-label,
@@ -67,35 +82,37 @@
     const non_labelable_element_types = ["div", "object", "label", "fieldset", "legend", "option", "datalist", "form"];
     const element_types = HTML5_LABELABLE_ELEMENTS.concat(non_labelable_element_types);
 
-    for(let referencing_element_type of element_types) {
-      for(let referenced_element_type of element_types) {
-        test_property_reflection(referencing_element_type, referenced_element_type, "aria-controls", "ariaControlsElements", Behavior.ReflectsHostInArray);
-        test_property_reflection(referencing_element_type, referenced_element_type, "aria-activedescendant", "ariaActiveDescendantElement", Behavior.ReflectsHost);
-        test_property_reflection(referencing_element_type, referenced_element_type, "aria-describedby", "ariaDescribedByElements", Behavior.ReflectsHostInArray);
-        test_property_reflection(referencing_element_type, referenced_element_type, "aria-details", "ariaDetailsElements", Behavior.ReflectsHostInArray);
-        test_property_reflection(referencing_element_type, referenced_element_type, "aria-errormessage", "ariaErrorMessageElements", Behavior.ReflectsHostInArray);
-        test_property_reflection(referencing_element_type, referenced_element_type, "aria-flowto", "ariaFlowToElements", Behavior.ReflectsHostInArray);
-        test_property_reflection(referencing_element_type, referenced_element_type, "aria-labelledby", "ariaLabelledByElements", Behavior.ReflectsHostInArray);
-        test_property_reflection(referencing_element_type, referenced_element_type, "aria-owns", "ariaOwnsElements", Behavior.ReflectsHostInArray);
+    for(let element_creation_method of element_creation_methods) {
+      for(let referencing_element_type of element_types) {
+        for(let referenced_element_type of element_types) {
+          test_property_reflection(element_creation_method, referencing_element_type, referenced_element_type, "aria-controls", "ariaControlsElements", Behavior.ReflectsHostInArray);
+          test_property_reflection(element_creation_method, referencing_element_type, referenced_element_type, "aria-activedescendant", "ariaActiveDescendantElement", Behavior.ReflectsHost);
+          test_property_reflection(element_creation_method, referencing_element_type, referenced_element_type, "aria-describedby", "ariaDescribedByElements", Behavior.ReflectsHostInArray);
+          test_property_reflection(element_creation_method, referencing_element_type, referenced_element_type, "aria-details", "ariaDetailsElements", Behavior.ReflectsHostInArray);
+          test_property_reflection(element_creation_method, referencing_element_type, referenced_element_type, "aria-errormessage", "ariaErrorMessageElements", Behavior.ReflectsHostInArray);
+          test_property_reflection(element_creation_method, referencing_element_type, referenced_element_type, "aria-flowto", "ariaFlowToElements", Behavior.ReflectsHostInArray);
+          test_property_reflection(element_creation_method, referencing_element_type, referenced_element_type, "aria-labeledby", "ariaLabelledByElements", Behavior.ReflectsHostInArray);
+          test_property_reflection(element_creation_method, referencing_element_type, referenced_element_type, "aria-owns", "ariaOwnsElements", Behavior.ReflectsHostInArray);
 
-        test_property_reflection(referencing_element_type, referenced_element_type, "anchor", "anchorElement", Behavior.ReflectsHost);
-        test_property_reflection(referencing_element_type, referenced_element_type, "commandfor", "commandForElement", Behavior.ReflectsHost);
-        test_property_reflection(referencing_element_type, referenced_element_type, "popovertarget", "popoverTargetElement", Behavior.ReflectsHost);
-        test_property_reflection(referencing_element_type, referenced_element_type, "interesttarget", "interestTargetElement", Behavior.ReflectsHost);
+          test_property_reflection(element_creation_method, referencing_element_type, referenced_element_type, "anchor", "anchorElement", Behavior.ReflectsHost);
+          test_property_reflection(element_creation_method, referencing_element_type, referenced_element_type, "commandfor", "commandForElement", Behavior.ReflectsHost);
+          test_property_reflection(element_creation_method, referencing_element_type, referenced_element_type, "popovertarget", "popoverTargetElement", Behavior.ReflectsHost);
+          test_property_reflection(element_creation_method, referencing_element_type, referenced_element_type, "interesttarget", "interestTargetElement", Behavior.ReflectsHost);
 
-        const expected_htmlFor_property_behavior = (referencing_element_type == "output") ? Behavior.ReflectsHostIDInDOMTokenList : Behavior.ReflectsHostID;
-        test_property_reflection(referencing_element_type, referenced_element_type, "for", "htmlFor", expected_htmlFor_property_behavior);
+          const expected_htmlFor_property_behavior = (referencing_element_type == "output") ? Behavior.ReflectsHostIDInDOMTokenList : Behavior.ReflectsHostID;
+          test_property_reflection(element_creation_method, referencing_element_type, referenced_element_type, "for", "htmlFor", expected_htmlFor_property_behavior);
 
-        // It's unclear whether `form` and `list` should return null or should return the
-        // shadow host. See https://github.com/WICG/webcomponents/issues/1072.
-        test_property_reflection(referencing_element_type, referenced_element_type, "form", "form", Behavior.IsNull);
-        test_property_reflection(referencing_element_type, referenced_element_type, "list", "list", Behavior.IsNull);
+          // It's unclear whether `form` and `list` should return null or should return the
+          // shadow host. See https://github.com/WICG/webcomponents/issues/1072.
+          test_property_reflection(element_creation_method, referencing_element_type, referenced_element_type, "form", "form", Behavior.IsNull);
+          test_property_reflection(element_creation_method, referencing_element_type, referenced_element_type, "list", "list", Behavior.IsNull);
 
-        // It's unclear whether this should always reflect the host even if the underlying
-        // referenced element isn't labelable. See
-        // https://github.com/WICG/webcomponents/issues/1072#issuecomment-2305875929
-        const expected_control_property_behavior = HTML5_LABELABLE_ELEMENTS.includes(referenced_element_type) ? Behavior.ReflectsHost : Behavior.IsNull;
-        test_property_reflection(referencing_element_type, referenced_element_type, "for", "control", expected_control_property_behavior);
+          // It's unclear whether this should always reflect the host even if the underlying
+          // referenced element isn't labelable. See
+          // https://github.com/WICG/webcomponents/issues/1072#issuecomment-2305875929
+          const expected_control_property_behavior = HTML5_LABELABLE_ELEMENTS.includes(referenced_element_type) ? Behavior.ReflectsHost : Behavior.IsNull;
+          test_property_reflection(element_creation_method, referencing_element_type, referenced_element_type, "for", "control", expected_control_property_behavior);
+        }
       }
     }
   </script>

@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<title>CSS Scoping: Shadow host is featureless</title>
+<link rel="help" href="https://drafts.csswg.org/css-scoping/#host-element-in-tree">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="host">
+  <template shadowrootmode="open">
+    <style>
+      div {
+        --x:FAIL;
+      }
+    </style>
+  </template>
+</div>
+<script>
+  test(() => {
+    assert_equals(getComputedStyle(host).getPropertyValue('--x'), '');
+  });
+</script>
