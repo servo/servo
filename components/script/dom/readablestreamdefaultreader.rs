@@ -9,7 +9,7 @@ use std::{mem, ptr};
 use dom_struct::dom_struct;
 use js::conversions::ToJSValConvertible;
 use js::jsapi::Heap;
-use js::jsval::UndefinedValue;
+use js::jsval::{JSVal, UndefinedValue};
 use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue};
 
 use crate::dom::bindings::cell::DomRefCell;
@@ -39,19 +39,12 @@ pub enum ReadRequest {
 impl ReadRequest {
     /// <https://streams.spec.whatwg.org/#read-request-chunk-steps>
     #[allow(unsafe_code)]
-    pub fn chunk_steps(&self, chunk: Vec<u8>) {
+    pub fn chunk_steps(&self, chunk: RootedTraceableBox<Heap<JSVal>>) {
         match self {
             ReadRequest::Read(promise) => {
-                let cx = GlobalScope::get_cx();
-                rooted!(in(*cx) let mut rval = UndefinedValue());
-                let result = RootedTraceableBox::new(Heap::default());
-                unsafe {
-                    chunk.to_jsval(*cx, rval.handle_mut());
-                    result.set(*rval);
-                }
                 promise.resolve_native(&ReadableStreamReadResult {
                     done: Some(false),
-                    value: result,
+                    value: chunk,
                 });
             },
         }
@@ -74,10 +67,10 @@ impl ReadRequest {
     }
 
     /// <https://streams.spec.whatwg.org/#ref-for-read-request-close-step>
-    pub fn error_steps(&self) {
+    pub fn error_steps(&self, e: SafeHandleValue) {
         match self {
             // TODO: pass error type.
-            ReadRequest::Read(promise) => promise.reject_native(&()),
+            ReadRequest::Read(promise) => promise.reject_native(&e),
         }
     }
 }
@@ -161,11 +154,11 @@ impl ReadableStreamDefaultReader {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-error>
-    pub fn error(&self, _error: Error) {
-        self.closed_promise.reject_native(&());
+    pub fn error(&self, e: SafeHandleValue) {
+        self.closed_promise.reject_native(&e);
         let pending_requests = mem::take(&mut *self.read_requests.borrow_mut());
         for request in pending_requests {
-            request.error_steps();
+            request.error_steps(e);
         }
     }
 
@@ -197,10 +190,12 @@ impl ReadableStreamDefaultReaderMethods for ReadableStreamDefaultReader {
 
         // TODO: https://streams.spec.whatwg.org/#readable-stream-reader-generic-release
 
-        // TODO: use TypeError.
         // <https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaultreadererrorreadrequests>
         for request in self.read_requests.borrow_mut().drain(0..) {
-            request.error_steps();
+            // TODO: use TypeError.
+            let cx = GlobalScope::get_cx();
+            rooted!(in(*cx) let mut rval = UndefinedValue());
+            request.error_steps(rval.handle());
         }
     }
 

@@ -9,7 +9,7 @@ use dom_struct::dom_struct;
 use js::conversions::ToJSValConvertible;
 use js::gc::CustomAutoRooterGuard;
 use js::jsapi::Heap;
-use js::jsval::UndefinedValue;
+use js::jsval::{JSVal, UndefinedValue};
 use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue};
 use js::typedarray::ArrayBufferView;
 
@@ -36,12 +36,12 @@ pub enum ReadIntoRequest {
 
 impl ReadIntoRequest {
     /// <https://streams.spec.whatwg.org/#read-into-request-chunk-steps>
-    pub fn chunk_steps(&self, chunk: Vec<u8>) {
+    pub fn chunk_steps(&self, chunk: RootedTraceableBox<Heap<JSVal>>) {
         self.resolve_request_promise(Some(chunk), false);
     }
 
     /// <https://streams.spec.whatwg.org/#read-into-request-close-steps>
-    pub fn close_steps(&self, chunk: Option<Vec<u8>>) {
+    pub fn close_steps(&self, chunk: Option<RootedTraceableBox<Heap<JSVal>>>) {
         self.resolve_request_promise(chunk, true);
     }
 
@@ -54,7 +54,7 @@ impl ReadIntoRequest {
     }
 
     #[allow(unsafe_code)]
-    fn resolve_request_promise(&self, chunk: Option<Vec<u8>>, done: bool) {
+    fn resolve_request_promise(&self, chunk: Option<RootedTraceableBox<Heap<JSVal>>>, done: bool) {
         match self {
             ReadIntoRequest::Read(promise) => {
                 let cx = GlobalScope::get_cx();

@@ -7,8 +7,8 @@ use std::ptr::{self, NonNull};
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
-use js::jsapi::JSObject;
-use js::jsval::{ObjectValue, UndefinedValue};
+use js::jsapi::{Heap, JSObject};
+use js::jsval::{JSVal, ObjectValue, UndefinedValue};
 use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue};
 
 use crate::dom::bindings::cell::DomRefCell;
@@ -27,7 +27,9 @@ use crate::dom::bindings::import::module::UnionTypes::{
 };
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
+use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::bindings::utils::get_dictionary_property;
+use crate::dom::countqueuingstrategy::{extract_high_water_mark, extract_size_algorithm};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::readablebytestreamcontroller::ReadableByteStreamController;
@@ -77,7 +79,9 @@ pub struct ReadableStream {
     controller: ControllerType,
 
     /// <https://streams.spec.whatwg.org/#readablestream-storederror>
-    stored_error: DomRefCell<Option<Error>>,
+    /// TODO: check correctness of this.
+    #[ignore_malloc_size_of = "mozjs"]
+    stored_error: Heap<*mut JSObject>,
 
     /// <https://streams.spec.whatwg.org/#readablestream-disturbed>
     disturbed: Cell<bool>,
@@ -97,11 +101,12 @@ impl ReadableStream {
         global: &GlobalScope,
         _proto: Option<SafeHandleObject>,
         underlying_source: Option<*mut JSObject>,
-        _strategy: &QueuingStrategy,
+        strategy: &QueuingStrategy,
     ) -> Fallible<DomRoot<Self>> {
-        // Step 1
+        // If underlyingSource is missing, set it to null.
         rooted!(in(*cx) let underlying_source_obj = underlying_source.unwrap_or(ptr::null_mut()));
-        // Step 2
+        // Let underlyingSourceDict be underlyingSource,
+        // converted to an IDL value of type UnderlyingSource.
         let underlying_source_dict = if !underlying_source_obj.is_null() {
             rooted!(in(*cx) let obj_val = ObjectValue(underlying_source_obj.get()));
             match JsUnderlyingSource::new(cx, obj_val.handle()) {
@@ -117,22 +122,49 @@ impl ReadableStream {
             JsUnderlyingSource::empty()
         };
 
-        if underlying_source_dict.type_.is_some() &&
-            underlying_source_dict.type_.unwrap() == ReadableStreamType::Bytes
-        {
+        if underlying_source_dict.type_.is_some() {
+            // If strategy["size"] exists, throw a RangeError exception
+            if strategy.size.is_some() {
+                return Err(Error::Range(
+                    "Size is not allowed for byte streams.".to_string(),
+                ));
+            }
+
+            // Let highWaterMark be ? ExtractHighWaterMark(strategy, 0).
+            let high_water_mark = extract_high_water_mark(strategy, 0.0)?;
+
+            // Perform ? SetUpReadableByteStreamControllerFromUnderlyingSource
             let controller = ReadableByteStreamController::new(
                 global,
                 UnderlyingSourceType::Js(underlying_source_dict),
+                high_water_mark,
             );
+
+            // Perform ! InitializeReadableStream(this).
+            // Note: in the spec this step is done before
+            // SetUpReadableStreamDefaultControllerFromUnderlyingSource
             Ok(ReadableStream::new(
                 global,
                 Controller::ReadableByteStreamController(controller),
             ))
         } else {
+            // Let highWaterMark be ? ExtractHighWaterMark(strategy, 1).
+            let high_water_mark = extract_high_water_mark(strategy, 1.0)?;
+
+            // Let sizeAlgorithm be ! ExtractSizeAlgorithm(strategy).
+            let size_algorithm = extract_size_algorithm(strategy);
+
+            // Perform ? SetUpReadableStreamDefaultControllerFromUnderlyingSource
             let controller = ReadableStreamDefaultController::new(
                 global,
                 UnderlyingSourceType::Js(underlying_source_dict),
+                high_water_mark,
+                size_algorithm,
             );
+
+            // Perform ! InitializeReadableStream(this).
+            // Note: in the spec this step is done before
+            // SetUpReadableStreamDefaultControllerFromUnderlyingSource
             Ok(ReadableStream::new(
                 global,
                 Controller::ReadableStreamDefaultController(controller),
@@ -141,6 +173,7 @@ impl ReadableStream {
     }
 
     #[allow(crown::unrooted_must_root)]
+    /// <https://streams.spec.whatwg.org/#initialize-readable-stream>
     fn new_inherited(controller: Controller) -> ReadableStream {
         let reader = match &controller {
             Controller::ReadableStreamDefaultController(_) => {
@@ -160,7 +193,7 @@ impl ReadableStream {
                     ControllerType::Byte(Dom::from_ref(&*root))
                 },
             },
-            stored_error: DomRefCell::new(None),
+            stored_error: Heap::default(),
             disturbed: Default::default(),
             reader: reader,
             state: Cell::new(ReadableStreamState::Readable),
@@ -201,7 +234,12 @@ impl ReadableStream {
         source: UnderlyingSourceType,
     ) -> DomRoot<ReadableStream> {
         assert!(source.is_native());
-        let controller = ReadableStreamDefaultController::new(global, source);
+        let controller = ReadableStreamDefaultController::new(
+            global,
+            source,
+            1.0,
+            extract_size_algorithm(&QueuingStrategy::empty()),
+        );
         let stream = ReadableStream::new(
             global,
             Controller::ReadableStreamDefaultController(controller.clone()),
@@ -267,11 +305,41 @@ impl ReadableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-error>
-    /// Note: in other use cases this call happens via the controller.
-    pub fn error_native(&self, _error: Error) {
+    pub fn error(&self, e: SafeHandleValue) {
+        // Set stream.[[state]] to "errored".
         self.state.set(ReadableStreamState::Errored);
+
+        // Set stream.[[storedError]] to e.
+        {
+            let cx = GlobalScope::get_cx();
+            rooted!(in(*cx) let object = e.to_object());
+            self.stored_error.set(*object);
+        }
+
+        match self.reader {
+            ReaderType::Default(ref reader) => {
+                let Some(reader) = reader.get() else {
+                    // If reader is undefined, return.
+                    return;
+                };
+
+                // Perform ! ReadableStreamDefaultReaderErrorReadRequests(reader, e).
+                reader.error(e);
+            },
+            _ => todo!(),
+        }
+    }
+
+    /// <https://streams.spec.whatwg.org/#readable-stream-error>
+    /// Note: in other use cases this call happens via the controller.
+    pub fn error_native(&self, error: Error) {
         match self.controller {
-            ControllerType::Default(ref controller) => controller.error(),
+            ControllerType::Default(ref controller) => {
+                // TODO: use Error.
+                let cx = GlobalScope::get_cx();
+                rooted!(in(*cx) let mut rval = UndefinedValue());
+                controller.error(rval.handle());
+            },
             _ => unreachable!("Native closing a stream with a non-default controller"),
         }
     }
@@ -408,7 +476,8 @@ impl ReadableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-fulfill-read-request>
-    pub fn fulfill_read_request(&self, chunk: Vec<u8>, done: bool) {
+    #[allow(unsafe_code)]
+    pub fn fulfill_read_request(&self, chunk: SafeHandleValue, done: bool) {
         assert!(self.has_default_reader());
         match self.reader {
             ReaderType::Default(ref reader) => {
@@ -417,7 +486,11 @@ impl ReadableStream {
                     .expect("Stream must have a reader when a read request is fulfilled.");
                 let request: ReadRequest = reader.remove_read_request();
                 if !done {
-                    request.chunk_steps(chunk);
+                    let cx = GlobalScope::get_cx();
+                    rooted!(in(*cx) let mut rval = UndefinedValue());
+                    let result = RootedTraceableBox::new(Heap::default());
+                    result.set(*chunk);
+                    request.chunk_steps(result);
                 } else {
                     request.close_steps();
                 }
@@ -429,7 +502,7 @@ impl ReadableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-fulfill-read-into-request>
-    pub fn fulfill_read_into_request(&self, chunk: Vec<u8>, done: bool) {
+    pub fn fulfill_read_into_request(&self, chunk: SafeHandleValue, done: bool) {
         assert!(self.has_default_reader());
         match self.reader {
             ReaderType::BYOB(ref reader) => {
@@ -437,10 +510,14 @@ impl ReadableStream {
                     .get()
                     .expect("Stream must have a reader when a read into request is fulfilled.");
                 let request: ReadIntoRequest = reader.remove_read_into_request();
+
+                let result = RootedTraceableBox::new(Heap::default());
+                result.set(*chunk);
+
                 if !done {
-                    request.chunk_steps(chunk);
+                    request.chunk_steps(result);
                 } else {
-                    request.close_steps(Some(chunk));
+                    request.close_steps(Some(result));
                 }
             },
             _ => unreachable!(

@@ -6,7 +6,9 @@ use std::cell::RefCell;
 use std::collections::VecDeque;
 
 use dom_struct::dom_struct;
-use js::jsapi::JSObject;
+use js::conversions::ToJSValConvertible;
+use js::jsapi::{Heap, JSObject};
+use js::jsval::UndefinedValue;
 use js::rust::{HandleValue as SafeHandleValue, HandleValue};
 use js::typedarray::{ArrayBufferU8, TypedArray, Uint8};
 
@@ -23,6 +25,7 @@ use crate::dom::bindings::codegen::Bindings::ReadableByteStreamControllerBinding
 use crate::dom::bindings::import::module::{Error, Fallible};
 use crate::dom::bindings::reflector::Reflector;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
+use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::readablestream::ReadableStream;
 use crate::dom::underlyingsourcecontainer::{UnderlyingSourceContainer, UnderlyingSourceType};
 use crate::realms::{enter_realm, InRealm};
@@ -153,12 +156,16 @@ pub struct ReadableByteStreamController {
     pending_pull_intos: RefCell<Vec<PullIntoDescriptor>>,
 
     closed_requested: bool,
+
+    /// <https://streams.spec.whatwg.org/#readablebytestreamcontroller-strategyhwm>
+    strategy_hwm: f64,
 }
 
 impl ReadableByteStreamController {
     pub fn new_inherited(
         global: &GlobalScope,
         underlying_source_type: UnderlyingSourceType,
+        strategy_hwm: f64,
     ) -> ReadableByteStreamController {
         ReadableByteStreamController {
             reflector_: Reflector::new(),
@@ -171,17 +178,20 @@ impl ReadableByteStreamController {
             auto_allocate_chunk_size: None,
             pending_pull_intos: RefCell::new(Vec::new()),
             closed_requested: false,
+            strategy_hwm,
         }
     }
 
     pub fn new(
         global: &GlobalScope,
         underlying_source: UnderlyingSourceType,
+        strategy_hwm: f64,
     ) -> DomRoot<ReadableByteStreamController> {
         reflect_dom_object(
             Box::new(ReadableByteStreamController::new_inherited(
                 global,
                 underlying_source,
+                strategy_hwm,
             )),
             global,
         )
@@ -335,8 +345,13 @@ impl ReadableByteStreamController {
             create_buffer_source(cx, data, array.handle_mut())
                 .expect("Converting to Uint8Array should never fail");
 
+        rooted!(in(*cx) let mut view_jsval = UndefinedValue());
+        unsafe { view.to_jsval(*cx, view_jsval.handle_mut()) }
+        let chunk = RootedTraceableBox::new(Heap::default());
+        chunk.set(*view_jsval);
+
         // step 7
-        read_request.chunk_steps(view.to_vec());
+        read_request.chunk_steps(chunk);
     }
 
     /// <https://streams.spec.whatwg.org/#readable-byte-stream-controller-handle-queue-drain>
