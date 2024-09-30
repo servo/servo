@@ -62,6 +62,38 @@ impl Callback for PullAlgorithmRejectionHandler {
     }
 }
 
+/// The fulfillment handler for
+/// <https://streams.spec.whatwg.org/#dom-underlyingsource-start>
+#[derive(Clone, JSTraceable, MallocSizeOf)]
+#[allow(crown::unrooted_must_root)]
+struct StartAlgorithmFulfillmentHandler {
+    // TODO: check the validity of using Dom here.
+    controller: Dom<ReadableStreamDefaultController>,
+}
+
+impl Callback for StartAlgorithmFulfillmentHandler {
+    /// Handle fufillment of pull algo promise.
+    fn callback(&self, _cx: JSContext, _v: HandleValue, _realm: InRealm) {
+        todo!();
+    }
+}
+
+/// The rejection handler for
+/// <https://streams.spec.whatwg.org/#dom-underlyingsource-start>
+#[derive(Clone, JSTraceable, MallocSizeOf)]
+#[allow(crown::unrooted_must_root)]
+struct StartAlgorithmRejectionHandler {
+    // TODO: check the validity of using Dom here.
+    controller: Dom<ReadableStreamDefaultController>,
+}
+
+impl Callback for StartAlgorithmRejectionHandler {
+    /// Handle rejection of pull algo promise.
+    fn callback(&self, _cx: JSContext, _v: HandleValue, _realm: InRealm) {
+        todo!();
+    }
+}
+
 /// <https://streams.spec.whatwg.org/#value-with-size>
 #[derive(JSTraceable)]
 pub struct ValueWithSize {
@@ -206,7 +238,7 @@ impl ReadableStreamDefaultController {
         strategy_hwm: f64,
         strategy_size: Rc<QueuingStrategySize>,
     ) -> DomRoot<ReadableStreamDefaultController> {
-        reflect_dom_object(
+        let rooted_default_controller = reflect_dom_object(
             Box::new(ReadableStreamDefaultController::new_inherited(
                 global,
                 underlying_source,
@@ -214,7 +246,30 @@ impl ReadableStreamDefaultController {
                 strategy_size,
             )),
             global,
-        )
+        );
+
+        if let Some(underlying_source) = rooted_default_controller.underlying_source.get() {
+            let promise = underlying_source.call_start_algorithm(
+                Controller::ReadableStreamDefaultController(rooted_default_controller.clone()),
+            );
+            let fulfillment_handler = Box::new(StartAlgorithmFulfillmentHandler {
+                controller: Dom::from_ref(&*rooted_default_controller),
+            });
+            let rejection_handler = Box::new(StartAlgorithmRejectionHandler {
+                controller: Dom::from_ref(&*rooted_default_controller),
+            });
+            let handler = PromiseNativeHandler::new(
+                &global,
+                Some(fulfillment_handler),
+                Some(rejection_handler),
+            );
+
+            let realm = enter_realm(&*global);
+            let comp = InRealm::Entered(&realm);
+            promise.append_native_handler(&handler, comp);
+        };
+
+        rooted_default_controller
     }
 
     pub fn set_stream(&self, stream: &ReadableStream) {

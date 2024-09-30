@@ -6,8 +6,9 @@ use std::ptr;
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
-use js::jsapi::JSObject;
+use js::jsapi::{IsPromiseObject, JSObject};
 use js::jsval::UndefinedValue;
+use js::rust::IntoHandle;
 
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::codegen::Bindings::UnderlyingSourceBinding::UnderlyingSource as JsUnderlyingSource;
@@ -109,6 +110,56 @@ impl UnderlyingSourceContainer {
         }
         // Note: other source type have no pull steps for now.
         None
+    }
+
+    /// <https://streams.spec.whatwg.org/#dom-underlyingsource-start>
+    ///
+    /// Note: The algorithm can return any value, including a promise,
+    /// we always transform the result into a promise for convenience,
+    /// and it is also how to spec deals with the situation.
+    /// see "Let startPromise be a promise resolved with startResult."
+    /// at <https://streams.spec.whatwg.org/#set-up-readable-stream-default-controller>
+    #[allow(unsafe_code)]
+    pub fn call_start_algorithm(&self, controller: Controller) -> Rc<Promise> {
+        if let UnderlyingSourceType::Js(source) = &self.underlying_source_type {
+            let global = self.global();
+            let promise = if let Some(start) = &source.start {
+                let cx = GlobalScope::get_cx();
+                rooted!(in(*cx) let mut this_object = ptr::null_mut::<JSObject>());
+                unsafe {
+                    source.to_jsobject(*cx, this_object.handle_mut());
+                }
+                let this_handle = this_object.handle();
+                rooted!(in(*cx) let mut result_object = ptr::null_mut::<JSObject>());
+                let result = start
+                    .Call_(&this_handle, controller, ExceptionHandling::Report)
+                    .expect("Start algorithm call failed");
+                let is_promise = unsafe {
+                    result_object.set(result.to_object());
+                    IsPromiseObject(result_object.handle().into_handle())
+                };
+                // Let startPromise be a promise resolved with startResult.
+                if is_promise {
+                    let promise = Promise::new_with_js_promise(result_object.handle(), cx);
+                    promise
+                } else {
+                    let promise = Promise::new(&*global);
+                    promise.resolve_native(&result);
+                    promise
+                }
+            } else {
+                let promise = Promise::new(&*global);
+                promise.resolve_native(&());
+                promise
+            };
+            promise
+        } else {
+            // Native sources start immediately.
+            let global = self.global();
+            let promise = Promise::new(&*global);
+            promise.resolve_native(&());
+            promise
+        }
     }
 
     /// Does the source have all data in memory?
