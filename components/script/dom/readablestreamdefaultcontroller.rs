@@ -172,9 +172,13 @@ pub struct ReadableStreamDefaultController {
 
     /// <https://streams.spec.whatwg.org/#readablestreamdefaultcontroller-closerequested>
     close_requested: Cell<bool>,
+
+    /// <https://streams.spec.whatwg.org/#readablestreamdefaultcontroller-started>
+    started: Cell<bool>,
 }
 
 impl ReadableStreamDefaultController {
+    /// <https://streams.spec.whatwg.org/#set-up-readable-stream-default-controller>
     fn new_inherited(
         global: &GlobalScope,
         underlying_source_type: UnderlyingSourceType,
@@ -192,6 +196,8 @@ impl ReadableStreamDefaultController {
             strategy_hwm,
             strategy_size: RefCell::new(Some(strategy_size)),
             close_requested: Default::default(),
+            // TODO: set to true when start algo promise resolves.
+            started: Default::default(),
         }
     }
     pub fn new(
@@ -223,8 +229,36 @@ impl ReadableStreamDefaultController {
 
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-should-call-pull>
     fn should_pull(&self) -> bool {
-        // TODO: implement the algo.
-        true
+        let stream = self
+            .stream
+            .get()
+            .expect("Controller must have a stream when the should pull algo is called into.");
+
+        // If ! ReadableStreamDefaultControllerCanCloseOrEnqueue(controller) is false, return.
+        if !self.can_close_or_enqueue() {
+            return false;
+        }
+
+        // If controller.[[started]] is false, return false.
+        if !self.started.get() {
+            return false;
+        }
+
+        // If ! IsReadableStreamLocked(stream) is true
+        // and ! ReadableStreamGetNumReadRequests(stream) > 0, return true.
+        if stream.is_locked() && stream.get_num_read_requests() > 0 {
+            return true;
+        }
+
+        // Let desiredSize be ! ReadableStreamDefaultControllerGetDesiredSize(controller).
+        // Assert: desiredSize is not null.
+        let desired_size = self.get_desired_size().expect("desiredSize is not null.");
+
+        if desired_size > 0. {
+            return true;
+        }
+
+        false
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-call-pull-if-needed>
