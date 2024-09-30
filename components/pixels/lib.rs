@@ -198,11 +198,16 @@ pub fn detect_image_format(buffer: &[u8]) -> Result<ImageFormat, &str> {
 }
 
 pub fn unmultiply_inplace(pixels: &mut [u8]) {
-    for rgba in pixels.chunks_mut(4) {
-        let a = (rgba[3] as f32) / 255.0;
-        rgba[0] = (rgba[0] as f32 / a) as u8;
-        rgba[1] = (rgba[1] as f32 / a) as u8;
-        rgba[2] = (rgba[2] as f32 / a) as u8;
+    let mut iter = pixels.iter_mut();
+    while let Some(r) = iter.next() {
+        let g = iter.next().unwrap();
+        let b = iter.next().unwrap();
+        let a = iter.next().unwrap();
+        if *a > 0 {
+            *r = ((*r / *a) as u16 * 255) as u8;
+            *g = ((*g / *a) as u16 * 255) as u8;
+            *b = ((*b / *a) as u16 * 255) as u8;
+        }
     }
 }
 
