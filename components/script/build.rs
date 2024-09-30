@@ -23,7 +23,7 @@ fn main() {
     println!("cargo::rerun-if-changed=dom/bindings/codegen");
     println!("cargo::rerun-if-changed={}", css_properties_json.display());
     println!("cargo::rerun-if-changed=../../third_party/WebIDL/WebIDL.py");
-    // we assume no changes in third_party/ply
+    // NB: We aren't handling changes in `third_party/ply` here.
 
     let status = Command::new(find_python())
         .arg("dom/bindings/codegen/run.py")
