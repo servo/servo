@@ -5,12 +5,13 @@
 use criterion::*;
 
 fn create_data(pixels: usize) -> Vec<u8> {
-    let mut v = vec![];
-    for i in 0..=pixels {
-        let i = (i % 255) as u8;
-        v.extend_from_slice(&[i, i, i, i]);
-    }
-    v
+    (0..=pixels)
+        .map(|i| {
+            let i = (i % 255) as u8;
+            [i, i, i, i]
+        })
+        .flatten()
+        .collect()
 }
 
 fn bench(c: &mut Criterion) {
