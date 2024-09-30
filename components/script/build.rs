@@ -22,7 +22,8 @@ fn main() {
     println!("cargo::rerun-if-changed=dom/webidls");
     println!("cargo::rerun-if-changed=dom/bindings/codegen");
     println!("cargo::rerun-if-changed={}", css_properties_json.display());
-    // FIXME: rerun-if-changed third_party/{ply, WebIDL}
+    println!("cargo::rerun-if-changed=../../third_party/WebIDL/WebIDL.py");
+    // we assume no changes in third_party/ply
 
     let status = Command::new(find_python())
         .arg("dom/bindings/codegen/run.py")
