@@ -4,8 +4,8 @@
 
 use criterion::*;
 
-fn create_data(pixels: usize) -> Vec<u8> {
-    (0..=pixels)
+fn create_data(number_of_pixels: usize) -> Vec<u8> {
+    (0..=number_of_pixels)
         .map(|i| {
             let i = (i % 255) as u8;
             [i, i, i, i]
@@ -15,7 +15,7 @@ fn create_data(pixels: usize) -> Vec<u8> {
 }
 
 fn bench(c: &mut Criterion) {
-    let data = create_data(1000 * 1000);
+    let data = create_data(1_000_000);
 
     c.bench_function("unmultiply_inplace", move |b| {
         b.iter_batched(
