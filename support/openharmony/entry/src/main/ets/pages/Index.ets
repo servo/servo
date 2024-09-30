@@ -16,6 +16,7 @@ interface InitOpts {
   osFullName: string,
   resourceDir: string,
   displayDensity: number,
+  commandlineArgs: string,
 }
 
 function get_density(): number {
@@ -39,7 +40,10 @@ function get_device_type(): string {
   return device_type;
 }
 
-@Entry
+// Use the getShared API to obtain the LocalStorage instance shared by stage.
+let storage = LocalStorage.getShared()
+
+@Entry(storage)
 @Component
 struct Index {
   xComponentContext: ServoXComponentInterface | undefined = undefined;
@@ -48,8 +52,11 @@ struct Index {
     type: XComponentType.SURFACE,
     libraryname: 'servoshell',
   }
-  @State urlToLoad: string =  'https://servo.org'
+
   private context = getContext(this) as common.UIAbilityContext;
+  @LocalStorageProp('InitialURI') InitialURI: string = "unused"
+  @LocalStorageProp('CommandlineArgs') CommandlineArgs: string = ""
+  @State urlToLoad: string = this.InitialURI
 
   build() {
     Column() {
@@ -86,13 +93,14 @@ struct Index {
         .onLoad((xComponentContext) => {
           this.xComponentContext = xComponentContext as ServoXComponentInterface;
           let resource_dir: string = this.context.resourceDir;
-          console.debug("Resources are located at %s", resource_dir);
+          console.debug("Resources are located at %{public}s", resource_dir);
           let init_options: InitOpts = {
             url: this.urlToLoad,
             deviceType: get_device_type(),
             osFullName: deviceInfo.osFullName,
             displayDensity: get_density(),
             resourceDir: resource_dir,
+            commandlineArgs: this.CommandlineArgs
           }
           this.xComponentContext.initServo(init_options)
           this.xComponentContext.registerURLcallback((new_url) => {
