@@ -1155,6 +1155,7 @@ async fn http_network_or_cache_fetch(
 
     // Step 8.8 If contentLength is non-null, then set contentLengthHeaderValue to contentLength,
     // serialized and isomorphic encoded.
+    // NOTE: The header will later be serialized using HeaderMap::typed_insert
     if let Some(content_length) = content_length {
         content_length_header_value = Some(content_length);
     };
