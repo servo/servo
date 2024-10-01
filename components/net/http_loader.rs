@@ -1104,7 +1104,7 @@ async fn http_network_or_cache_fetch(
 
     // TODO: Step 8. Run these steps, but abort when fetchParams is canceled:
     // Step 8.1: If request’s window is "no-window" and request’s redirect mode is "error", then set
-    //           httpFetchParams to fetchParams and httpRequest to request.
+    // httpFetchParams to fetchParams and httpRequest to request.
     let request_has_no_window = request.window == RequestWindow::NoWindow;
 
     let http_request = if request_has_no_window && request.redirect_mode == RedirectMode::Error {
@@ -1133,11 +1133,11 @@ async fn http_network_or_cache_fetch(
     };
 
     // Step 8.4: If Cross-Origin-Embedder-Policy allows credentials with request returns false, then
-    //           set includeCredentials to false.
+    // set includeCredentials to false.
     // TODO: Requires request's client object
 
     // Step 8.5 Let contentLength be httpRequest’s body’s length, if httpRequest’s body is non-null;
-    //          otherwise null.
+    // otherwise null.
     let content_length = http_request
         .body
         .as_ref()
@@ -1148,19 +1148,19 @@ async fn http_network_or_cache_fetch(
     let mut content_length_header_value = None;
 
     // Step 8.7 If httpRequest’s body is null and httpRequest’s method is `POST` or `PUT`,
-    //          then set contentLengthHeaderValue to `0`.
+    // then set contentLengthHeaderValue to `0`.
     if http_request.body.is_none() && matches!(http_request.method, Method::POST | Method::PUT) {
         content_length_header_value = Some(0);
     }
 
     // Step 8.8 If contentLength is non-null, then set contentLengthHeaderValue to contentLength,
-    //          serialized and isomorphic encoded.
+    // serialized and isomorphic encoded.
     if let Some(content_length) = content_length {
         content_length_header_value = Some(content_length);
     };
 
     // Step 8.9 If contentLengthHeaderValue is non-null, then append (`Content-Length`, contentLengthHeaderValue)
-    //          to httpRequest’s header list.
+    // to httpRequest’s header list.
     if let Some(content_length_header_value) = content_length_header_value {
         http_request
             .headers
@@ -1198,7 +1198,7 @@ async fn http_network_or_cache_fetch(
     // TODO Implement Sec-Fetch-* headers
 
     // Step 8.14: If httpRequest’s initiator is "prefetch", then set a structured field value given
-    //            (`Sec-Purpose`, the token "prefetch") in httpRequest’s header list.
+    // (`Sec-Purpose`, the token "prefetch") in httpRequest’s header list.
     if http_request.initiator == Initiator::Prefetch {
         if let Ok(value) = HeaderValue::from_str("prefetch") {
             http_request.headers.insert("Sec-Purpose", value);
@@ -1206,7 +1206,7 @@ async fn http_network_or_cache_fetch(
     }
 
     // Step 8.15: If httpRequest’s header list does not contain `User-Agent`, then user agents
-    //            should append (`User-Agent`, default `User-Agent` value) to httpRequest’s header list.
+    // should append (`User-Agent`, default `User-Agent` value) to httpRequest’s header list.
     if !http_request.headers.contains_key(header::USER_AGENT) {
         let user_agent = context.user_agent.clone().into_owned();
         http_request
@@ -1490,13 +1490,13 @@ async fn http_network_or_cache_fetch(
         }
 
         // Step 10.2 Let forwardResponse be the result of running HTTP-network fetch given httpFetchParams,
-        //           includeCredentials, and isNewConnectionFetch.
+        // includeCredentials, and isNewConnectionFetch.
         let forward_response =
             http_network_fetch(http_request, include_credentials, done_chan, context).await;
 
         // Step 10.3 If httpRequest’s method is unsafe and forwardResponse’s status is in the range 200 to 399,
-        //           inclusive, invalidate appropriate stored responses in httpCache, as per the
-        //           "Invalidating Stored Responses" chapter of HTTP Caching, and set storedResponse to null.
+        // inclusive, invalidate appropriate stored responses in httpCache, as per the
+        // "Invalidating Stored Responses" chapter of HTTP Caching, and set storedResponse to null.
         if forward_response.status.in_range(200..=399) && !http_request.method.is_safe() {
             if let Ok(mut http_cache) = context.state.http_cache.write() {
                 http_cache.invalidate(http_request, &forward_response);
@@ -1551,8 +1551,7 @@ async fn http_network_or_cache_fetch(
     // TODO: Step 13 Set response’s request-includes-credentials to includeCredentials.
 
     // Step 14. If response’s status is 401, httpRequest’s response tainting is not "cors",
-    //          includeCredentials is true, and request’s window is an environment settings object, then:
-
+    // includeCredentials is true, and request’s window is an environment settings object, then:
     // TODO: Figure out what to do with request window objects
     if let (Some(StatusCode::UNAUTHORIZED), false, true) =
         (response.status.try_code(), cors_flag, include_credentials)
@@ -1603,7 +1602,7 @@ async fn http_network_or_cache_fetch(
 
         // FIXME: Step 15.3 If fetchParams is canceled, then return the appropriate network error for fetchParams.
         // FIXME: Step 15.4 Prompt the end user as appropriate in request’s window and store the
-        //                  result as a proxy-authentication entry.
+        // result as a proxy-authentication entry.
 
         // Step 15.5 Set response to the result of running HTTP-network-or-cache fetch given fetchParams.
 
@@ -1614,11 +1613,10 @@ async fn http_network_or_cache_fetch(
     }
 
     // TODO: Step 16. If all of the following are true:
-    //                 * response’s status is 421
-    //                 * isNewConnectionFetch is false
-    //                 * request’s body is null, or request’s body is non-null and request’s body’s
-    //                   source is non-null
-    //                 then: [..]
+    // * response’s status is 421
+    // * isNewConnectionFetch is false
+    // * request’s body is null, or request’s body is non-null and request’s body’s source is non-null
+    // then: [..]
 
     // Step 17. If isAuthenticationFetch is true, then create an authentication entry for request and the given realm.
     if authentication_fetch_flag {
