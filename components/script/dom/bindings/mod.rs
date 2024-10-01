@@ -138,6 +138,7 @@ pub mod buffer_source;
 pub mod callback;
 pub mod cell;
 pub mod constant;
+pub mod constructor_hook;
 pub mod conversions;
 pub mod error;
 pub mod finalize;

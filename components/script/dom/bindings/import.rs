@@ -103,6 +103,9 @@ pub mod module {
     pub use crate::dom::bindings::codegen::Bindings::EventTargetBinding::EventTarget_Binding;
     pub use crate::dom::bindings::codegen::{InterfaceObjectMap, PrototypeList, RegisterBindings};
     pub use crate::dom::bindings::constant::{ConstantSpec, ConstantVal};
+    pub use crate::dom::bindings::constructor_hook::{
+        hook_default_constructor, hook_html_constructor,
+    };
     pub use crate::dom::bindings::conversions::{
         is_array_like, jsid_to_string, native_from_handlevalue, native_from_object_static,
         IDLInterface, StringificationBehavior, ToJSValConvertible, DOM_OBJECT_SLOT,
