@@ -150,8 +150,9 @@ pub fn Fetch(
     let promise = Promise::new_in_current_realm(comp);
 
     // Step 7. Let responseObject be null.
-    // NOTE: We do step 7 earlier so we can use it to track errors
+    // NOTE: We do initialize the object earlier earlier so we can use it to track errors
     let response = Response::new(global);
+    response.Headers().set_guard(Guard::Immutable);
 
     // Step 2. Let requestObject be the result of invoking the initial value of Request as constructor
     //         with input and init as arguments. If this throws an exception, reject p with it and return p.
@@ -274,6 +275,7 @@ impl FetchResponseListener for FetchContext {
                 },
             },
         }
+
         // Step 4.3
         promise.resolve_native(&self.response_object.root());
         self.fetch_promise = Some(TrustedPromise::new(promise));

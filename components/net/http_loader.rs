@@ -22,7 +22,7 @@ use headers::{
     AccessControlAllowCredentials, AccessControlAllowHeaders, AccessControlAllowMethods,
     AccessControlAllowOrigin, AccessControlMaxAge, AccessControlRequestHeaders,
     AccessControlRequestMethod, Authorization, CacheControl, ContentLength, HeaderMapExt,
-    IfModifiedSince, LastModified, Origin as HyperOrigin, Pragma, Referer, UserAgent,
+    IfModifiedSince, LastModified, Pragma, Referer, UserAgent,
 };
 use http::header::{
     self, HeaderValue, ACCEPT, AUTHORIZATION, CONTENT_ENCODING, CONTENT_LANGUAGE, CONTENT_LOCATION,
@@ -1081,19 +1081,6 @@ pub async fn http_redirect_fetch(
     fetch_response
 }
 
-fn try_immutable_origin_to_hyper_origin(url_origin: &ImmutableOrigin) -> Option<HyperOrigin> {
-    match *url_origin {
-        ImmutableOrigin::Opaque(_) => Some(HyperOrigin::NULL),
-        ImmutableOrigin::Tuple(ref scheme, ref host, ref port) => {
-            let port = match (scheme.as_ref(), port) {
-                ("http", 80) | ("https", 443) => None,
-                _ => Some(*port),
-            };
-            HyperOrigin::try_from_parts(scheme, &host.to_string(), port).ok()
-        },
-    }
-}
-
 /// [HTTP network or cache fetch](https://fetch.spec.whatwg.org#http-network-or-cache-fetch)
 #[async_recursion]
 async fn http_network_or_cache_fetch(
@@ -1103,25 +1090,32 @@ async fn http_network_or_cache_fetch(
     done_chan: &mut DoneChannel,
     context: &FetchContext,
 ) -> Response {
-    // Step 3: Let httpRequest be null.
+    // Step 1. Let request be fetchParams’s request.
+    // NOTE: We get request as an argument
+
+    // Step 3. Let httpRequest be null.
     let mut http_request;
 
-    // Step 4: Let response be null.
+    // Step 4. Let response be null.
     let mut response: Option<Response> = None;
 
-    // Step 7: Let the revalidatingFlag be unset.
+    // Step 7. Let the revalidatingFlag be unset.
     let mut revalidating_flag = false;
 
+    // Step 8. Run these steps, but abort when fetchParams is canceled:
     // Step 8.1: If request’s window is "no-window" and request’s redirect mode is "error", then set
-    // httpFetchParams to fetchParams and httpRequest to request.
+    //           httpFetchParams to fetchParams and httpRequest to request.
     let request_has_no_window = request.window == RequestWindow::NoWindow;
 
     let http_request = if request_has_no_window && request.redirect_mode == RedirectMode::Error {
         request
-    } else {
+    }
+    // Step 8.2 Otherwise:
+    else {
         // Step 8.2.1: Set httpRequest to a clone of request.
         http_request = request.clone();
 
+        // FIXME: Step 8.2.2-8.2.3
         &mut http_request
     };
 
@@ -1139,35 +1133,43 @@ async fn http_network_or_cache_fetch(
     };
 
     // Step 8.4: If Cross-Origin-Embedder-Policy allows credentials with request returns false, then
-    // set includeCredentials to false.
+    //           set includeCredentials to false.
     // TODO: Requires request's client object
 
-    // Step 8.5: Let contentLength be httpRequest’s body’s length, if httpRequest’s body is
-    // non-null; otherwise null.
-    let content_length_value = match http_request.body {
-        Some(ref http_request_body) => http_request_body.len().map(|size| size as u64),
-        // Step 8.7: If httpRequest’s body is null and httpRequest’s method is `POST` or `PUT`, then
-        // set contentLengthHeaderValue to `0`.
-        None => match http_request.method {
-            Method::POST | Method::PUT => Some(0),
-            _ => None,
-        },
-    };
+    // Step 8.5 Let contentLength be httpRequest’s body’s length, if httpRequest’s body is non-null; otherwise null.
+    let content_length = http_request
+        .body
+        .as_ref()
+        .map(|body| body.len().map(|size| size as u64))
+        .flatten();
 
-    // Step 8.9: If contentLengthHeaderValue is non-null, then append (`Content-Length`,
-    // contentLengthHeaderValue) to httpRequest’s header list.
-    if let Some(content_length_value) = content_length_value {
-        http_request
-            .headers
-            .typed_insert(ContentLength(content_length_value));
+    // Step 8.6 Let contentLengthHeaderValue be null.
+    let mut content_length_header_value = None;
+
+    // Step 8.7 If httpRequest’s body is null and httpRequest’s method is `POST` or `PUT`, then set contentLengthHeaderValue to `0`.
+    if http_request.body.is_none() && matches!(http_request.method, Method::POST | Method::PUT) {
+        content_length_header_value = Some(0);
     }
 
-    // Step 8.10: If contentLength is non-null and httpRequest’s keepalive is true, then:
-    // TODO Keepalive requires request's client object's fetch group
+    // Step 8.8 If contentLength is non-null, then set contentLengthHeaderValue to contentLength, serialized and isomorphic encoded.
+    if let Some(content_length) = content_length {
+        content_length_header_value = Some(content_length);
+    };
+
+    // Step 8.9 If contentLengthHeaderValue is non-null, then append (`Content-Length`, contentLengthHeaderValue) to httpRequest’s header list.
+    if let Some(content_length_header_value) = content_length_header_value {
+        http_request
+            .headers
+            .typed_insert(ContentLength(content_length_header_value));
+    }
+
+    // Step 8.10 If contentLength is non-null and httpRequest’s keepalive is true, then:
+    if content_length.is_some() && http_request.keep_alive {
+        // TODO Keepalive requires request's client object's fetch group
+    }
 
     // Step 8.11: If httpRequest’s referrer is a URL, then:
     match http_request.referrer {
-        Referrer::NoReferrer => (),
         Referrer::ReferrerUrl(ref http_request_referrer) |
         Referrer::Client(ref http_request_referrer) => {
             // Step 8.11.1: Let referrerValue be httpRequest’s referrer, serialized and isomorphic
@@ -1179,26 +1181,20 @@ async fn http_network_or_cache_fetch(
                 // This error should only happen in cases where hyper and rust-url disagree
                 // about how to parse a referer.
                 // https://github.com/servo/servo/issues/24175
-                error!("Failed to parse {} as referer", http_request_referrer);
+                error!("Failed to parse {} as referrer", http_request_referrer);
             }
         },
+        _ => {},
     };
 
-    // Step 8.12: Append a request `Origin` header for httpRequest.
-    if cors_flag || (http_request.method != Method::GET && http_request.method != Method::HEAD) {
-        debug_assert_ne!(http_request.origin, Origin::Client);
-        if let Origin::Origin(ref url_origin) = http_request.origin {
-            if let Some(hyper_origin) = try_immutable_origin_to_hyper_origin(url_origin) {
-                http_request.headers.typed_insert(hyper_origin)
-            }
-        }
-    }
+    // Step 8.12 Append a request `Origin` header for httpRequest.
+    http_request.append_a_request_origin_header();
 
-    // Step 8.13: Append the Fetch metadata headers for httpRequest.
+    // Step 8.13 Append the Fetch metadata headers for httpRequest.
     // TODO Implement Sec-Fetch-* headers
 
     // Step 8.14: If httpRequest’s initiator is "prefetch", then set a structured field value given
-    // (`Sec-Purpose`, the token "prefetch") in httpRequest’s header list.
+    //            (`Sec-Purpose`, the token "prefetch") in httpRequest’s header list.
     if http_request.initiator == Initiator::Prefetch {
         if let Ok(value) = HeaderValue::from_str("prefetch") {
             http_request.headers.insert("Sec-Purpose", value);
@@ -1206,7 +1202,7 @@ async fn http_network_or_cache_fetch(
     }
 
     // Step 8.15: If httpRequest’s header list does not contain `User-Agent`, then user agents
-    // should append (`User-Agent`, default `User-Agent` value) to httpRequest’s header list.
+    //            should append (`User-Agent`, default `User-Agent` value) to httpRequest’s header list.
     if !http_request.headers.contains_key(header::USER_AGENT) {
         let user_agent = context.user_agent.clone().into_owned();
         http_request
@@ -1316,8 +1312,7 @@ async fn http_network_or_cache_fetch(
         }
     }
 
-    // Step 5.18
-    // TODO If there’s a proxy-authentication entry, use it as appropriate.
+    // FIXME Step 8.22 If there’s a proxy-authentication entry, use it as appropriate.
 
     // If the cache is not ready to construct a response, wait.
     //
@@ -1354,11 +1349,15 @@ async fn http_network_or_cache_fetch(
             }
         }
 
-        // Step 5.19
+        // Step 8.23 Set httpCache to the result of determining the HTTP cache partition, given httpRequest.
         if let Ok(http_cache) = context.state.http_cache.read() {
-            if let Some(response_from_cache) =
-                http_cache.construct_response(http_request, done_chan)
-            {
+            // Step 8.25.1 Set storedResponse to the result of selecting a response from the httpCache,
+            //              possibly needing validation, as per the "Constructing Responses from Caches"
+            //              chapter of HTTP Caching, if any.
+            let stored_response = http_cache.construct_response(http_request, done_chan);
+
+            // Step 8.25.2 If storedResponse is non-null, then:
+            if let Some(response_from_cache) = stored_response {
                 let response_headers = response_from_cache.response.headers.clone();
                 // Substep 1, 2, 3, 4
                 let (cached_response, needs_revalidation) =
@@ -1375,6 +1374,7 @@ async fn http_network_or_cache_fetch(
                             response_from_cache.needs_validation,
                         ),
                     };
+
                 if needs_revalidation {
                     revalidating_flag = true;
                     // Substep 5
@@ -1471,12 +1471,11 @@ async fn http_network_or_cache_fetch(
 
     wait_for_cached_response(done_chan, &mut response).await;
 
-    // Step 6
-    // TODO: https://infra.spec.whatwg.org/#if-aborted
+    // Step 9 If aborted, then return the appropriate network error for fetchParams.
 
-    // Step 7
+    // Step 10 If response is null, then:
     if response.is_none() {
-        // Substep 1
+        // Step 10.1 If httpRequest’s cache mode is "only-if-cached", then return a network error.
         if http_request.cache_mode == CacheMode::OnlyIfCached {
             // The cache will not be updated,
             // set its state to ready to construct.
@@ -1485,20 +1484,22 @@ async fn http_network_or_cache_fetch(
                 "Couldn't find response in cache".into(),
             ));
         }
-    }
-    // More Step 7
-    if response.is_none() {
-        // Substep 2
+
+        // Step 10.2 Let forwardResponse be the result of running HTTP-network fetch given httpFetchParams,
+        //           includeCredentials, and isNewConnectionFetch.
         let forward_response =
             http_network_fetch(http_request, include_credentials, done_chan, context).await;
-        // Substep 3
+
+        // Step 10.3 If httpRequest’s method is unsafe and forwardResponse’s status is in the range 200 to 399,
+        //           inclusive, invalidate appropriate stored responses in httpCache, as per the
+        //           "Invalidating Stored Responses" chapter of HTTP Caching, and set storedResponse to null.
         if forward_response.status.in_range(200..=399) && !http_request.method.is_safe() {
             if let Ok(mut http_cache) = context.state.http_cache.write() {
                 http_cache.invalidate(http_request, &forward_response);
             }
         }
 
-        // Substep 4
+        // Step 10.4 If the revalidatingFlag is set and forwardResponse’s status is 304, then:
         if revalidating_flag && forward_response.status == StatusCode::NOT_MODIFIED {
             if let Ok(mut http_cache) = context.state.http_cache.write() {
                 // Ensure done_chan is None,
@@ -1509,88 +1510,29 @@ async fn http_network_or_cache_fetch(
             wait_for_cached_response(done_chan, &mut response).await;
         }
 
-        // Substep 5
+        // Step 10.5 If response is null, then:
         if response.is_none() {
+            // Step 10.5.1 Set response to forwardResponse.
+            let forward_response = response.insert(forward_response);
+
             if http_request.cache_mode != CacheMode::NoStore {
-                // Subsubstep 2, doing it first to avoid a clone of forward_response.
+                // Step 10.5.2 Store httpRequest and forwardResponse in httpCache, as per the
+                //             "Storing Responses in Caches" chapter of HTTP Caching.
+                // TODO: The spec doesn't explicitly tell us to check for CacheMode::NoStore.
+                //       Is this correct?
                 if let Ok(mut http_cache) = context.state.http_cache.write() {
-                    http_cache.store(http_request, &forward_response);
+                    http_cache.store(http_request, forward_response);
                 }
             }
-            // Subsubstep 1
-            response = Some(forward_response);
         }
     }
-
-    let mut response = response.unwrap();
-
     // The cache has been updated, set its state to ready to construct.
     update_http_cache_state(context, http_request);
 
-    // Step 8
-    // TODO: if necessary set response's range-requested flag
+    let mut response = response.unwrap();
 
-    // Step 9
-    // https://fetch.spec.whatwg.org/#cross-origin-resource-policy-check
-    #[derive(PartialEq)]
-    enum CrossOriginResourcePolicy {
-        Allowed,
-        Blocked,
-    }
-
-    fn cross_origin_resource_policy_check(
-        request: &Request,
-        response: &Response,
-    ) -> CrossOriginResourcePolicy {
-        // Step 1
-        if request.mode != RequestMode::NoCors {
-            return CrossOriginResourcePolicy::Allowed;
-        }
-
-        // Step 2
-        let current_url_origin = request.current_url().origin();
-        let same_origin = if let Origin::Origin(ref origin) = request.origin {
-            *origin == request.current_url().origin()
-        } else {
-            false
-        };
-
-        if same_origin {
-            return CrossOriginResourcePolicy::Allowed;
-        }
-
-        // Step 3
-        let policy = response
-            .headers
-            .get(HeaderName::from_static("cross-origin-resource-policy"))
-            .map(|h| h.to_str().unwrap_or(""))
-            .unwrap_or("");
-
-        // Step 4
-        if policy == "same-origin" {
-            return CrossOriginResourcePolicy::Blocked;
-        }
-
-        // Step 5
-        if let Origin::Origin(ref request_origin) = request.origin {
-            let schemeless_same_origin =
-                is_schemelessy_same_site(request_origin, &current_url_origin);
-            if schemeless_same_origin &&
-                (request_origin.scheme() == Some("https") ||
-                    response.https_state == HttpsState::None)
-            {
-                return CrossOriginResourcePolicy::Allowed;
-            }
-        };
-
-        // Step 6
-        if policy == "same-site" {
-            return CrossOriginResourcePolicy::Blocked;
-        }
-
-        CrossOriginResourcePolicy::Allowed
-    }
-
+    // FIXME: The spec doesn't tell us to do this *here*, but if we don't do it then
+    //        tests fail. Where should we do it instead?
     if http_request.response_tainting != ResponseTainting::CorsTainting &&
         cross_origin_resource_policy_check(http_request, &response) ==
             CrossOriginResourcePolicy::Blocked
@@ -1600,20 +1542,24 @@ async fn http_network_or_cache_fetch(
         ));
     }
 
-    // Step 10
+    // FIXME: Step 11. Set response’s URL list to a clone of httpRequest’s URL list.
+    // FIXME: Step 12. If httpRequest’s header list contains `Range`, then set response’s range-requested flag.
+    // FIXME: Step 13 Set response’s request-includes-credentials to includeCredentials.
+
+    // Step 14. If response’s status is 401, httpRequest’s response tainting is not "cors", includeCredentials is true,
+    //          and request’s window is an environment settings object, then:
     // FIXME: Figure out what to do with request window objects
     if let (Some(StatusCode::UNAUTHORIZED), false, true) =
         (response.status.try_code(), cors_flag, include_credentials)
     {
-        // Substep 1
-        // TODO: Spec says requires testing on multiple WWW-Authenticate headers
+        // TODO: Step 14.1 Spec says requires testing on multiple WWW-Authenticate headers
 
-        // Substep 2
+        // Step 14.2 If request’s body is non-null, then:
         if http_request.body.is_some() {
             // TODO Implement body source
         }
 
-        // Substep 3
+        // Step 14.3 If request’s use-URL-credentials flag is unset or isAuthenticationFetch is true, then:
         if !http_request.use_url_credentials || authentication_fetch_flag {
             // FIXME: Prompt the user for username and password from the window
 
@@ -1627,7 +1573,7 @@ async fn http_network_or_cache_fetch(
         // since we're about to start a new `http_network_or_cache_fetch`.
         *done_chan = None;
 
-        // Substep 4
+        // Step 14.4 Set response to the result of running HTTP-network-or-cache fetch given fetchParams and true.
         response = http_network_or_cache_fetch(
             http_request,
             true, /* authentication flag */
@@ -1638,38 +1584,106 @@ async fn http_network_or_cache_fetch(
         .await;
     }
 
-    // Step 11
+    // Step 15. If response’s status is 407, then:
     if response.status == StatusCode::PROXY_AUTHENTICATION_REQUIRED {
-        // Step 1
+        // Step 15.1 If request’s window is "no-window", then return a network error.
+
         if request_has_no_window {
             return Response::network_error(NetworkError::Internal(
                 "Can't find Window object".into(),
             ));
         }
 
-        // Step 2
-        // TODO: Spec says requires testing on Proxy-Authenticate headers
+        // (Step 15.2 does not exist, requires testing on Proxy-Authenticate headers)
 
-        // Step 3
-        // FIXME: Prompt the user for proxy authentication credentials
+        // FIXME: Step 15.3 If fetchParams is canceled, then return the appropriate network error for fetchParams.
+        // FIXME: Step 15.4 Prompt the end user as appropriate in request’s window and store the
+        //                  result as a proxy-authentication entry.
+
+        // Step 15.5 Set response to the result of running HTTP-network-or-cache fetch given fetchParams.
 
         // Wrong, but will have to do until we are able to prompt the user
         // otherwise this creates an infinite loop
         // We basically pretend that the user declined to enter credentials
         return response;
-
-        // Step 4
-        // return http_network_or_cache_fetch(request, authentication_fetch_flag,
-        //                                    cors_flag, done_chan, context);
     }
 
-    // Step 12
+    // FIXME: Step 16. If all of the following are true:
+    //                 * response’s status is 421
+    //                 * isNewConnectionFetch is false
+    //                 * request’s body is null, or request’s body is non-null and request’s body’s source is non-null
+    //                 then: [..]
+
+    // Step 17. If isAuthenticationFetch is true, then create an authentication entry for request and the given realm.
     if authentication_fetch_flag {
-        // TODO Create the authentication entry for request and the given realm
+        // TODO
     }
 
-    // Step 13
+    // Step 18. Return response.
     response
+}
+
+/// <https://fetch.spec.whatwg.org/#cross-origin-resource-policy-check>
+///
+/// This is obtained from [cross_origin_resource_policy_check]
+#[derive(PartialEq)]
+enum CrossOriginResourcePolicy {
+    Allowed,
+    Blocked,
+}
+
+// TODO: Judging from the name, this appears to be https://fetch.spec.whatwg.org/#cross-origin-resource-policy-check,
+//       but the steps aren't even close to the spec. Perhaps this needs to be rewritten?
+fn cross_origin_resource_policy_check(
+    request: &Request,
+    response: &Response,
+) -> CrossOriginResourcePolicy {
+    // Step 1
+    if request.mode != RequestMode::NoCors {
+        return CrossOriginResourcePolicy::Allowed;
+    }
+
+    // Step 2
+    let current_url_origin = request.current_url().origin();
+    let same_origin = if let Origin::Origin(ref origin) = request.origin {
+        *origin == request.current_url().origin()
+    } else {
+        false
+    };
+
+    if same_origin {
+        return CrossOriginResourcePolicy::Allowed;
+    }
+
+    // Step 3
+    let policy = response
+        .headers
+        .get(HeaderName::from_static("cross-origin-resource-policy"))
+        .map(|h| h.to_str().unwrap_or(""))
+        .unwrap_or("");
+
+    // Step 4
+    if policy == "same-origin" {
+        return CrossOriginResourcePolicy::Blocked;
+    }
+
+    // Step 5
+    if let Origin::Origin(ref request_origin) = request.origin {
+        let schemeless_same_origin = is_schemelessy_same_site(request_origin, &current_url_origin);
+        if schemeless_same_origin &&
+            (request_origin.scheme() == Some("https") ||
+                response.https_state == HttpsState::None)
+        {
+            return CrossOriginResourcePolicy::Allowed;
+        }
+    };
+
+    // Step 6
+    if policy == "same-site" {
+        return CrossOriginResourcePolicy::Blocked;
+    }
+
+    CrossOriginResourcePolicy::Allowed
 }
 
 // Convenience struct that implements Done, for setting responseEnd on function return
