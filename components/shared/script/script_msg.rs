@@ -24,7 +24,6 @@ use serde::{Deserialize, Serialize};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style_traits::CSSPixel;
 use webgpu::{wgc, WebGPU, WebGPUResponse};
-use webrender_api::units::{DeviceIntPoint, DeviceIntSize};
 
 use crate::{
     AnimationState, AuxiliaryBrowsingContextLoadInfo, BroadcastMsg, DocumentState,
@@ -245,12 +244,6 @@ pub enum ScriptMsg {
     ForwardDOMMessage(DOMMessage, ServoUrl),
     /// <https://w3c.github.io/ServiceWorker/#schedule-job-algorithm>
     ScheduleJob(Job),
-    /// Get Window Informations size and position
-    GetClientWindow(IpcSender<(DeviceIntSize, DeviceIntPoint)>),
-    /// Get the screen size (pixel)
-    GetScreenSize(IpcSender<DeviceIntSize>),
-    /// Get the available screen size (pixel)
-    GetScreenAvailSize(IpcSender<DeviceIntSize>),
     /// Notifies the constellation about media session events
     /// (i.e. when there is metadata for the active media session, playback state changes...).
     MediaSessionEvent(PipelineId, MediaSessionEvent),
@@ -318,9 +311,6 @@ impl fmt::Debug for ScriptMsg {
             PipelineExited => "PipelineExited",
             ForwardDOMMessage(..) => "ForwardDOMMessage",
             ScheduleJob(..) => "ScheduleJob",
-            GetClientWindow(..) => "GetClientWindow",
-            GetScreenSize(..) => "GetScreenSize",
-            GetScreenAvailSize(..) => "GetScreenAvailSize",
             MediaSessionEvent(..) => "MediaSessionEvent",
             RequestAdapter(..) => "RequestAdapter",
             GetWebGPUChan(..) => "GetWebGPUChan",

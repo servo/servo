@@ -53,7 +53,7 @@ use style::stylesheets::Stylesheet;
 use style::Atom;
 use style_traits::CSSPixel;
 use webrender_api::ImageKey;
-use webrender_traits::WebRenderScriptApi;
+use webrender_traits::CrossProcessCompositorApi;
 
 pub type GenericLayoutData = dyn Any + Send + Sync;
 
@@ -177,7 +177,7 @@ pub struct LayoutConfig {
     pub resource_threads: ResourceThreads,
     pub system_font_service: Arc<SystemFontServiceProxy>,
     pub time_profiler_chan: time::ProfilerChan,
-    pub webrender_api_sender: WebRenderScriptApi,
+    pub compositor_api: CrossProcessCompositorApi,
     pub paint_time_metrics: PaintTimeMetrics,
     pub window_size: WindowSizeData,
 }
