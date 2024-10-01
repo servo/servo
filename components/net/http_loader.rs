@@ -1102,7 +1102,7 @@ async fn http_network_or_cache_fetch(
     // Step 7. Let the revalidatingFlag be unset.
     let mut revalidating_flag = false;
 
-    // Step 8. Run these steps, but abort when fetchParams is canceled:
+    // TODO: Step 8. Run these steps, but abort when fetchParams is canceled:
     // Step 8.1: If request’s window is "no-window" and request’s redirect mode is "error", then set
     //           httpFetchParams to fetchParams and httpRequest to request.
     let request_has_no_window = request.window == RequestWindow::NoWindow;
@@ -1115,7 +1115,7 @@ async fn http_network_or_cache_fetch(
         // Step 8.2.1: Set httpRequest to a clone of request.
         http_request = request.clone();
 
-        // FIXME: Step 8.2.2-8.2.3
+        // TODO: Step 8.2.2-8.2.3
         &mut http_request
     };
 
@@ -1475,9 +1475,9 @@ async fn http_network_or_cache_fetch(
 
     wait_for_cached_response(done_chan, &mut response).await;
 
-    // Step 9 If aborted, then return the appropriate network error for fetchParams.
+    // TODO: Step 9. If aborted, then return the appropriate network error for fetchParams.
 
-    // Step 10 If response is null, then:
+    // Step 10. If response is null, then:
     if response.is_none() {
         // Step 10.1 If httpRequest’s cache mode is "only-if-cached", then return a network error.
         if http_request.cache_mode == CacheMode::OnlyIfCached {
@@ -1546,13 +1546,14 @@ async fn http_network_or_cache_fetch(
         ));
     }
 
-    // FIXME: Step 11. Set response’s URL list to a clone of httpRequest’s URL list.
-    // FIXME: Step 12. If httpRequest’s header list contains `Range`, then set response’s range-requested flag.
-    // FIXME: Step 13 Set response’s request-includes-credentials to includeCredentials.
+    // TODO: Step 11. Set response’s URL list to a clone of httpRequest’s URL list.
+    // TODO: Step 12. If httpRequest’s header list contains `Range`, then set response’s range-requested flag.
+    // TODO: Step 13 Set response’s request-includes-credentials to includeCredentials.
 
     // Step 14. If response’s status is 401, httpRequest’s response tainting is not "cors",
     //          includeCredentials is true, and request’s window is an environment settings object, then:
-    // FIXME: Figure out what to do with request window objects
+
+    // TODO: Figure out what to do with request window objects
     if let (Some(StatusCode::UNAUTHORIZED), false, true) =
         (response.status.try_code(), cors_flag, include_credentials)
     {
@@ -1612,7 +1613,7 @@ async fn http_network_or_cache_fetch(
         return response;
     }
 
-    // FIXME: Step 16. If all of the following are true:
+    // TODO: Step 16. If all of the following are true:
     //                 * response’s status is 421
     //                 * isNewConnectionFetch is false
     //                 * request’s body is null, or request’s body is non-null and request’s body’s
