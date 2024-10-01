@@ -18,7 +18,7 @@ use devtools_traits::{
     ChromeToDevtoolsControlMsg, DevtoolsControlMsg, HttpRequest as DevtoolsHttpRequest,
     HttpResponse as DevtoolsHttpResponse, NetworkEvent,
 };
-use flate2::write::{DeflateEncoder, GzEncoder};
+use flate2::write::{GzEncoder, ZlibEncoder};
 use flate2::Compression;
 use headers::authorization::Basic;
 use headers::{
@@ -437,7 +437,7 @@ fn test_load_should_decode_the_response_as_deflate_when_response_headers_have_co
             header::CONTENT_ENCODING,
             HeaderValue::from_static("deflate"),
         );
-        let mut e = DeflateEncoder::new(Vec::new(), Compression::default());
+        let mut e = ZlibEncoder::new(Vec::new(), Compression::default());
         e.write(b"Yay!").unwrap();
         let encoded_content = e.finish().unwrap();
         *response.body_mut() = encoded_content.into();
