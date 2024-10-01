@@ -160,6 +160,7 @@ impl<'a> TextRun {
     /// Constructs a new text run. Also returns if there is a line break at the beginning
     pub fn new(
         font: FontRef,
+        font_key: FontInstanceKey,
         text: String,
         options: &ShapingOptions,
         bidi_level: bidi::Level,
@@ -171,7 +172,7 @@ impl<'a> TextRun {
             TextRun {
                 text: Arc::new(text),
                 font_metrics: font.metrics.clone(),
-                font_key: font.font_key,
+                font_key,
                 pt_size: font.descriptor.pt_size,
                 glyphs: Arc::new(glyphs),
                 bidi_level,
