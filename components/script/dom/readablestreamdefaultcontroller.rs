@@ -62,6 +62,38 @@ impl Callback for PullAlgorithmRejectionHandler {
     }
 }
 
+/// The fulfillment handler for
+/// <https://streams.spec.whatwg.org/#dom-underlyingsource-start>
+#[derive(Clone, JSTraceable, MallocSizeOf)]
+#[allow(crown::unrooted_must_root)]
+struct StartAlgorithmFulfillmentHandler {
+    // TODO: check the validity of using Dom here.
+    controller: Dom<ReadableStreamDefaultController>,
+}
+
+impl Callback for StartAlgorithmFulfillmentHandler {
+    /// Handle fufillment of pull algo promise.
+    fn callback(&self, _cx: JSContext, _v: HandleValue, _realm: InRealm) {
+        todo!();
+    }
+}
+
+/// The rejection handler for
+/// <https://streams.spec.whatwg.org/#dom-underlyingsource-start>
+#[derive(Clone, JSTraceable, MallocSizeOf)]
+#[allow(crown::unrooted_must_root)]
+struct StartAlgorithmRejectionHandler {
+    // TODO: check the validity of using Dom here.
+    controller: Dom<ReadableStreamDefaultController>,
+}
+
+impl Callback for StartAlgorithmRejectionHandler {
+    /// Handle rejection of pull algo promise.
+    fn callback(&self, _cx: JSContext, _v: HandleValue, _realm: InRealm) {
+        todo!();
+    }
+}
+
 /// <https://streams.spec.whatwg.org/#value-with-size>
 #[derive(JSTraceable)]
 pub struct ValueWithSize {
@@ -172,9 +204,13 @@ pub struct ReadableStreamDefaultController {
 
     /// <https://streams.spec.whatwg.org/#readablestreamdefaultcontroller-closerequested>
     close_requested: Cell<bool>,
+
+    /// <https://streams.spec.whatwg.org/#readablestreamdefaultcontroller-started>
+    started: Cell<bool>,
 }
 
 impl ReadableStreamDefaultController {
+    /// <https://streams.spec.whatwg.org/#set-up-readable-stream-default-controller>
     fn new_inherited(
         global: &GlobalScope,
         underlying_source_type: UnderlyingSourceType,
@@ -192,6 +228,8 @@ impl ReadableStreamDefaultController {
             strategy_hwm,
             strategy_size: RefCell::new(Some(strategy_size)),
             close_requested: Default::default(),
+            // TODO: set to true when start algo promise resolves.
+            started: Default::default(),
         }
     }
     pub fn new(
@@ -200,7 +238,7 @@ impl ReadableStreamDefaultController {
         strategy_hwm: f64,
         strategy_size: Rc<QueuingStrategySize>,
     ) -> DomRoot<ReadableStreamDefaultController> {
-        reflect_dom_object(
+        let rooted_default_controller = reflect_dom_object(
             Box::new(ReadableStreamDefaultController::new_inherited(
                 global,
                 underlying_source,
@@ -208,7 +246,30 @@ impl ReadableStreamDefaultController {
                 strategy_size,
             )),
             global,
-        )
+        );
+
+        if let Some(underlying_source) = rooted_default_controller.underlying_source.get() {
+            let promise = underlying_source.call_start_algorithm(
+                Controller::ReadableStreamDefaultController(rooted_default_controller.clone()),
+            );
+            let fulfillment_handler = Box::new(StartAlgorithmFulfillmentHandler {
+                controller: Dom::from_ref(&*rooted_default_controller),
+            });
+            let rejection_handler = Box::new(StartAlgorithmRejectionHandler {
+                controller: Dom::from_ref(&*rooted_default_controller),
+            });
+            let handler = PromiseNativeHandler::new(
+                &global,
+                Some(fulfillment_handler),
+                Some(rejection_handler),
+            );
+
+            let realm = enter_realm(&*global);
+            let comp = InRealm::Entered(&realm);
+            promise.append_native_handler(&handler, comp);
+        };
+
+        rooted_default_controller
     }
 
     pub fn set_stream(&self, stream: &ReadableStream) {
@@ -223,8 +284,36 @@ impl ReadableStreamDefaultController {
 
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-should-call-pull>
     fn should_pull(&self) -> bool {
-        // TODO: implement the algo.
-        true
+        let stream = self
+            .stream
+            .get()
+            .expect("Controller must have a stream when the should pull algo is called into.");
+
+        // If ! ReadableStreamDefaultControllerCanCloseOrEnqueue(controller) is false, return.
+        if !self.can_close_or_enqueue() {
+            return false;
+        }
+
+        // If controller.[[started]] is false, return false.
+        if !self.started.get() {
+            return false;
+        }
+
+        // If ! IsReadableStreamLocked(stream) is true
+        // and ! ReadableStreamGetNumReadRequests(stream) > 0, return true.
+        if stream.is_locked() && stream.get_num_read_requests() > 0 {
+            return true;
+        }
+
+        // Let desiredSize be ! ReadableStreamDefaultControllerGetDesiredSize(controller).
+        // Assert: desiredSize is not null.
+        let desired_size = self.get_desired_size().expect("desiredSize is not null.");
+
+        if desired_size > 0. {
+            return true;
+        }
+
+        false
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-call-pull-if-needed>
