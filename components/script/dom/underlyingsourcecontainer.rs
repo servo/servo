@@ -91,22 +91,18 @@ impl UnderlyingSourceContainer {
     #[allow(unsafe_code)]
     pub fn call_pull_algorithm(&self, controller: Controller) -> Option<Rc<Promise>> {
         if let UnderlyingSourceType::Js(source) = &self.underlying_source_type {
-            let global = self.global();
-            let promise = if let Some(pull) = &source.pull {
+            if let Some(pull) = &source.pull {
                 let cx = GlobalScope::get_cx();
                 rooted!(in(*cx) let mut this_object = ptr::null_mut::<JSObject>());
                 unsafe {
                     source.to_jsobject(*cx, this_object.handle_mut());
                 }
                 let this_handle = this_object.handle();
-                pull.Call_(&this_handle, controller, ExceptionHandling::Report)
-                    .expect("Pull algorithm call failed")
-            } else {
-                let promise = Promise::new(&*global);
-                promise.resolve_native(&());
-                promise
-            };
-            return Some(promise);
+                let promise = pull
+                    .Call_(&this_handle, controller, ExceptionHandling::Report)
+                    .expect("Pull algorithm call failed");
+                return Some(promise);
+            }
         }
         // Note: other source type have no pull steps for now.
         None
@@ -120,10 +116,9 @@ impl UnderlyingSourceContainer {
     /// see "Let startPromise be a promise resolved with startResult."
     /// at <https://streams.spec.whatwg.org/#set-up-readable-stream-default-controller>
     #[allow(unsafe_code)]
-    pub fn call_start_algorithm(&self, controller: Controller) -> Rc<Promise> {
+    pub fn call_start_algorithm(&self, controller: Controller) -> Option<Rc<Promise>> {
         if let UnderlyingSourceType::Js(source) = &self.underlying_source_type {
-            let global = self.global();
-            let promise = if let Some(start) = &source.start {
+            if let Some(start) = &source.start {
                 let cx = GlobalScope::get_cx();
                 rooted!(in(*cx) let mut this_object = ptr::null_mut::<JSObject>());
                 unsafe {
@@ -139,27 +134,20 @@ impl UnderlyingSourceContainer {
                     IsPromiseObject(result_object.handle().into_handle())
                 };
                 // Let startPromise be a promise resolved with startResult.
-                if is_promise {
+                // from #set-up-readable-stream-default-controller.
+                let promise = if is_promise {
                     let promise = Promise::new_with_js_promise(result_object.handle(), cx);
                     promise
                 } else {
+                    let global = self.global();
                     let promise = Promise::new(&*global);
                     promise.resolve_native(&result);
                     promise
-                }
-            } else {
-                let promise = Promise::new(&*global);
-                promise.resolve_native(&());
-                promise
-            };
-            promise
-        } else {
-            // Native sources start immediately.
-            let global = self.global();
-            let promise = Promise::new(&*global);
-            promise.resolve_native(&());
-            promise
+                };
+                return Some(promise);
+            }
         }
+        None
     }
 
     /// Does the source have all data in memory?
