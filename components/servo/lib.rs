@@ -213,8 +213,8 @@ impl webrender_api::RenderNotifier for RenderNotifier {
     ) {
         self.compositor_proxy
             .send(CompositorMsg::NewWebRenderFrameReady(
-                composite_needed,
                 document_id,
+                composite_needed,
             ));
     }
 }
