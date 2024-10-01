@@ -2951,7 +2951,7 @@ impl Document {
         self.dirty_webgpu_contexts
             .borrow_mut()
             .drain()
-            .for_each(|(_, context)| context.send_swap_chain_present());
+            .for_each(|(_, context)| context.update_rendering_of_webgpu_canvas());
     }
 
     pub fn id_map(&self) -> Ref<HashMapTracedValues<Atom, Vec<Dom<Element>>>> {

@@ -6,7 +6,6 @@
 
 use std::borrow::Cow;
 use std::collections::HashMap;
-use std::ops::ControlFlow;
 use std::slice;
 use std::sync::{Arc, Mutex};
 
@@ -15,7 +14,7 @@ use ipc_channel::ipc::{IpcReceiver, IpcSender, IpcSharedMemory};
 use log::{info, warn};
 use servo_config::pref;
 use webrender::{RenderApi, RenderApiSender};
-use webrender_api::DocumentId;
+use webrender_api::{DocumentId, ExternalImageId};
 use webrender_traits::{WebrenderExternalImageRegistry, WebrenderImageHandlerType};
 use wgc::command::{ComputePass, ComputePassDescriptor, RenderPass};
 use wgc::device::queue::SubmittedWorkDoneClosure;
@@ -404,17 +403,6 @@ impl WGPU {
                             self.maybe_dispatch_wgpu_error(device_id, error);
                         }
                     },
-                    WebGPURequest::CreateContext(sender) => {
-                        let id = self
-                            .external_images
-                            .lock()
-                            .expect("Lock poisoned?")
-                            .next_id(WebrenderImageHandlerType::WebGPU);
-                        let image_key = self.webrender_api.lock().unwrap().generate_image_key();
-                        if let Err(e) = sender.send((WebGPUContextId(id.0), image_key)) {
-                            warn!("Failed to send ExternalImageId to new context ({})", e);
-                        };
-                    },
                     WebGPURequest::CreatePipelineLayout {
                         device_id,
                         pipeline_layout_id,
@@ -513,17 +501,79 @@ impl WGPU {
                         }
                         self.maybe_dispatch_wgpu_error(device_id, error);
                     },
-                    WebGPURequest::CreateSwapChain {
-                        device_id,
-                        queue_id,
+                    WebGPURequest::CreateContext {
                         buffer_ids,
-                        context_id,
-                        image_key,
                         size,
-                        format,
-                    } => self.create_swapchain(
-                        device_id, queue_id, buffer_ids, context_id, format, size, image_key,
-                    ),
+                        sender,
+                    } => {
+                        let id = self
+                            .external_images
+                            .lock()
+                            .expect("Lock poisoned?")
+                            .next_id(WebrenderImageHandlerType::WebGPU);
+                        let image_key = self.webrender_api.lock().unwrap().generate_image_key();
+                        let context_id = WebGPUContextId(id.0);
+                        if let Err(e) = sender.send((context_id, image_key)) {
+                            warn!("Failed to send ExternalImageId to new context ({})", e);
+                        };
+                        self.create_context(context_id, image_key, size, buffer_ids);
+                    },
+                    WebGPURequest::UpdateContext {
+                        context_id,
+                        size,
+                        configuration,
+                    } => {
+                        self.update_context(context_id, size, configuration);
+                    },
+                    WebGPURequest::SwapChainPresent {
+                        context_id,
+                        texture_id,
+                        encoder_id,
+                    } => {
+                        let result = self.swapchain_present(context_id, encoder_id, texture_id);
+                        if let Err(e) = result {
+                            log::error!("Error occured in SwapChainPresent: {e:?}");
+                        }
+                    },
+                    WebGPURequest::ValidateTextureDescriptor {
+                        device_id,
+                        texture_id,
+                        descriptor,
+                    } => {
+                        // https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-configure
+                        // validating TextureDescriptor by creating dummy texture
+                        let global = &self.global;
+                        let (_, error) =
+                            global.device_create_texture(device_id, &descriptor, Some(texture_id));
+                        global.texture_drop(texture_id);
+                        self.poller.wake();
+                        if let Err(e) = self.script_sender.send(WebGPUMsg::FreeTexture(texture_id))
+                        {
+                            warn!("Unable to send FreeTexture({:?}) ({:?})", texture_id, e);
+                        };
+                        if let Some(error) = error {
+                            self.dispatch_error(device_id, Error::from_error(error));
+                            continue;
+                        }
+                        // Supported context formats
+                        // TODO: wgt::TextureFormat::Rgba16Float, when wr supports HDR
+                        if !matches!(
+                            descriptor.format,
+                            wgt::TextureFormat::Bgra8Unorm | wgt::TextureFormat::Rgba8Unorm
+                        ) {
+                            self.dispatch_error(
+                                device_id,
+                                Error::Validation("Unsupported context format".to_string()),
+                            );
+                        }
+                    },
+                    WebGPURequest::DestroyContext { context_id } => {
+                        self.destroy_context(context_id);
+                        self.external_images
+                            .lock()
+                            .expect("Lock poisoned?")
+                            .remove(&ExternalImageId(context_id.0));
+                    },
                     WebGPURequest::CreateTexture {
                         device_id,
                         texture_id,
@@ -560,12 +610,6 @@ impl WGPU {
                         global.device_destroy(device);
                         // Wake poller thread to trigger DeviceLostClosure
                         self.poller.wake();
-                    },
-                    WebGPURequest::DestroySwapChain {
-                        context_id,
-                        image_key,
-                    } => {
-                        self.destroy_swapchain(context_id, image_key);
                     },
                     WebGPURequest::DestroyTexture(texture_id) => {
                         let global = &self.global;
@@ -964,17 +1008,6 @@ impl WGPU {
                                 .map_err(Error::from_error)
                         };
                         self.maybe_dispatch_error(device_id, result.err());
-                    },
-                    WebGPURequest::SwapChainPresent {
-                        context_id,
-                        texture_id,
-                        encoder_id,
-                    } => {
-                        if let ControlFlow::Break(_) =
-                            self.swapchain_present(context_id, encoder_id, texture_id)
-                        {
-                            continue;
-                        }
                     },
                     WebGPURequest::UnmapBuffer {
                         buffer_id,
