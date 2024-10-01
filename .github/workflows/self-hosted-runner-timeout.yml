@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Wait a bit
-        run: sleep 30
+        run: sleep 120
 
       - name: Cancel if workload job is still queued
         run: |
