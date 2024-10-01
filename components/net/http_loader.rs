@@ -1354,7 +1354,7 @@ async fn http_network_or_cache_fetch(
             }
         }
 
-        // Step 8.23 Set httpCache to the result of determining the HTTP cache partition, given httpRequest.
+        // TODO: Step 8.23 Set httpCache to the result of determining the HTTP cache partition, given httpRequest.
         if let Ok(http_cache) = context.state.http_cache.read() {
             // Step 8.25.1 Set storedResponse to the result of selecting a response from the httpCache,
             //              possibly needing validation, as per the "Constructing Responses from Caches"
