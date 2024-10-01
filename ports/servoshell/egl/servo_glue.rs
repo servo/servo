@@ -175,13 +175,19 @@ impl ServoGlue {
     /// Load an URL.
     pub fn load_uri(&mut self, url: &str) -> Result<(), &'static str> {
         info!("load_uri: {}", url);
-        crate::parser::location_bar_input_to_url(url)
-            .ok_or("Can't parse URL")
-            .and_then(|url| {
-                let browser_id = self.get_browser_id()?;
-                let event = EmbedderEvent::LoadUrl(browser_id, url);
-                self.process_event(event)
-            })
+        let url = if let Some(rel_path) = url.strip_prefix("resource://") {
+            if let Some(resource_dir) = &self.resource_dir {
+                let file_path = format!("file://{}/{}", resource_dir, rel_path);
+                ServoUrl::parse(&file_path).map_err(|_e| "Can't parse URL")
+            } else {
+                Err("resource:// url provided, but could not find resource root dir")
+            }
+        } else {
+            crate::parser::location_bar_input_to_url(url).ok_or("Can't parse URL")
+        }?;
+        let browser_id = self.get_browser_id()?;
+        let event = EmbedderEvent::LoadUrl(browser_id, url);
+        self.process_event(event)
     }
 
     /// Reload the page.
