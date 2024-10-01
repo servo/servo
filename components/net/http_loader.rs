@@ -2243,49 +2243,49 @@ pub fn is_redirect_status(status: StatusCode) -> bool {
 
 /// <https://fetch.spec.whatwg.org/#concept-request-tainted-origin>
 fn request_has_redirect_tainted_origin(request: &Request) -> bool {
-    // https://github.com/whatwg/fetch/issues/1773
+    // Step 1. Assert: request’s origin is not "client".
     let Origin::Origin(request_origin) = &request.origin else {
         panic!("origin cannot be \"client\" at this point in time");
     };
 
-    // Step 1. Let lastURL be null.
+    // Step 2. Let lastURL be null.
     let mut last_url = None;
 
-    // Step 2. For each url of request’s URL list:
+    // Step 3. For each url of request’s URL list:
     for url in &request.url_list {
-        // Step 2.1 If lastURL is null, then set lastURL to url and continue.
+        // Step 3.1 If lastURL is null, then set lastURL to url and continue.
         let Some(last_url) = &mut last_url else {
             last_url = Some(url);
             continue;
         };
 
-        // Step 2.2 If url’s origin is not same origin with lastURL’s origin and
+        // Step 3.2 If url’s origin is not same origin with lastURL’s origin and
         //          request’s origin is not same origin with lastURL’s origin, then return true.
         if url.origin() != last_url.origin() && *request_origin != last_url.origin() {
             return true;
         }
 
-        // Step 2.3 Set lastURL to url.
+        // Step 3.3 Set lastURL to url.
         *last_url = url;
     }
 
-    // Step 3. Return false.
+    // Step 4. Return false.
     false
 }
 
 /// <https://fetch.spec.whatwg.org/#serializing-a-request-origin>
 fn serialize_request_origin(request: &Request) -> headers::Origin {
-    // 1. If request has a redirect-tainted origin, then return "null".
-    if request_has_redirect_tainted_origin(request) {
-        return headers::Origin::NULL;
-    }
-
-    // 2. Return request’s origin, serialized.
-    // NOTE: https://github.com/whatwg/fetch/issues/1773
+    // Step 1. Assert: request’s origin is not "client".
     let Origin::Origin(origin) = &request.origin else {
         panic!("origin cannot be \"client\" at this point in time");
     };
 
+    // Step 2. If request has a redirect-tainted origin, then return "null".
+    if request_has_redirect_tainted_origin(request) {
+        return headers::Origin::NULL;
+    }
+
+    // Step 3. Return request’s origin, serialized.
     match origin {
         ImmutableOrigin::Opaque(_) => headers::Origin::NULL,
         ImmutableOrigin::Tuple(scheme, host, port) => {
@@ -2298,24 +2298,24 @@ fn serialize_request_origin(request: &Request) -> headers::Origin {
 
 /// <https://fetch.spec.whatwg.org/#append-a-request-origin-header>
 pub fn append_a_request_origin_header(request: &mut Request) {
-    // https://github.com/whatwg/fetch/issues/1773
+    // Step 1. Assert: request’s origin is not "client".
     let Origin::Origin(request_origin) = &request.origin else {
         panic!("origin cannot be \"client\" at this point in time");
     };
 
-    // Step 1. Let serializedOrigin be the result of byte-serializing a request origin with request.
+    // Step 2. Let serializedOrigin be the result of byte-serializing a request origin with request.
     let mut serialized_origin = serialize_request_origin(request);
 
-    // Step 2. If request’s response tainting is "cors" or request’s mode is "websocket",
+    // Step 3. If request’s response tainting is "cors" or request’s mode is "websocket",
     //         then append (`Origin`, serializedOrigin) to request’s header list.
     if request.response_tainting == ResponseTainting::CorsTainting ||
         matches!(request.mode, RequestMode::WebSocket { .. })
     {
         request.headers.typed_insert(serialized_origin);
     }
-    // Step 3. Otherwise, if request’s method is neither `GET` nor `HEAD`, then:
+    // Step 4. Otherwise, if request’s method is neither `GET` nor `HEAD`, then:
     else if !matches!(request.method, Method::GET | Method::HEAD) {
-        // Step 3.1 If request’s mode is not "cors", then switch on request’s referrer policy:
+        // Step 4.1 If request’s mode is not "cors", then switch on request’s referrer policy:
         if request.mode != RequestMode::CorsMode {
             match request.referrer_policy {
                 Some(ReferrerPolicy::NoReferrer) => {
@@ -2348,7 +2348,7 @@ pub fn append_a_request_origin_header(request: &mut Request) {
             };
         }
 
-        // Step 3.2. Append (`Origin`, serializedOrigin) to request’s header list.
+        // Step 4.2. Append (`Origin`, serializedOrigin) to request’s header list.
         request.headers.typed_insert(serialized_origin);
     }
 }
