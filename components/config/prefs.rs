@@ -579,10 +579,10 @@ mod gen {
                     sniff: bool,
                 },
                 tls: {
-                    /// Ignore `std::io::Error` with `ErrorKind::UnexpectedEof` received if the connection
+                    /// Ignore `std::io::Error` with `ErrorKind::UnexpectedEof` received when a TLS connection
                     /// is closed without a close_notify.
                     ///
-                    /// Used for tests because WPT server doesn't propely close the TLS connection.
+                    /// Used for tests because WPT server doesn't properly close the TLS connection.
                     ignore_unexpected_eof: bool,
                 },
             },
