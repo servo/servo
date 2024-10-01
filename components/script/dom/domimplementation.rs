@@ -160,6 +160,7 @@ impl DOMImplementationMethods for DOMImplementation {
             None,
             Default::default(),
             can_gc,
+            false,
         );
 
         {

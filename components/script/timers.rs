@@ -136,6 +136,13 @@ impl OneshotTimers {
         }
     }
 
+    pub(crate) fn reset(&self) {
+        self.js_timers.reset();
+        self.next_timer_handle.set(OneshotTimerHandle(1));
+        self.timers.borrow_mut().clear();
+        self.expected_event_id.set(TimerEventId(0));
+    }
+
     pub fn setup_scheduling(&self, timer_event_chan: IpcSender<TimerEvent>) {
         let mut chan = self.timer_event_chan.borrow_mut();
         assert!(chan.is_none());
@@ -415,6 +422,11 @@ impl Default for JsTimers {
 }
 
 impl JsTimers {
+    pub(crate) fn reset(&self) {
+        self.next_timer_handle.set(JsTimerHandle(1));
+        self.active_timers.borrow_mut().clear();
+    }
+    
     // see https://html.spec.whatwg.org/multipage/#timer-initialisation-steps
     pub fn set_timeout_or_interval(
         &self,

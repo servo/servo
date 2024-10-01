@@ -2299,6 +2299,7 @@ impl Node {
                     document.status_code(),
                     Default::default(),
                     CanGc::note(),
+                    false,
                 );
                 DomRoot::upcast::<Node>(document)
             },

@@ -221,6 +221,9 @@ struct InProgressLoad {
     canceller: FetchCanceller,
     /// If inheriting the security context
     inherited_secure_context: Option<bool>,
+    ///
+    #[no_trace]
+    replacing_pipeline: Option<PipelineId>,
 }
 
 impl InProgressLoad {
@@ -236,6 +239,7 @@ impl InProgressLoad {
         url: ServoUrl,
         origin: MutableOrigin,
         inherited_secure_context: Option<bool>,
+        replacing_pipeline: Option<PipelineId>,
     ) -> InProgressLoad {
         let navigation_start = CrossProcessInstant::now();
         InProgressLoad {
@@ -252,6 +256,7 @@ impl InProgressLoad {
             navigation_start,
             canceller: Default::default(),
             inherited_secure_context,
+            replacing_pipeline,
         }
     }
 }
@@ -834,6 +839,7 @@ impl ScriptThreadFactory for ScriptThread {
                     load_data.url.clone(),
                     origin,
                     secure,
+                    None,
                 );
                 script_thread.pre_page_load(new_load, load_data);
 
@@ -995,7 +1001,8 @@ impl ScriptThread {
 
     /// Step 13 of <https://html.spec.whatwg.org/multipage/#navigate>
     pub fn navigate(
-        browsing_context: BrowsingContextId,
+        //browsing_context: BrowsingContextId,
+        window_proxy: &WindowProxy,
         pipeline_id: PipelineId,
         mut load_data: LoadData,
         replace: HistoryEntryReplacement,
@@ -1007,6 +1014,7 @@ impl ScriptThread {
             };
             let script_thread = unsafe { &*script_thread };
             let is_javascript = load_data.url.scheme() == "javascript";
+            let browsing_context = window_proxy.browsing_context_id();
             // If resource is a request whose url's scheme is "javascript"
             // https://html.spec.whatwg.org/multipage/#javascript-protocol
             if is_javascript {
@@ -1038,6 +1046,14 @@ impl ScriptThread {
                     let _ = sender.send(ScriptToDevtoolsControlMsg::Navigate(
                         browsing_context, NavigationState::Start(load_data.url.clone())
                     ));
+                }
+
+                if let Some(frame) = window_proxy.frame_element() {
+                    if let Some(frame) = frame.downcast::<HTMLIFrameElement>() {
+                        frame.update_pending_pipeline_id(
+                            load_data.new_pipeline_id.clone(),
+                        );
+                    }
                 }
 
                 script_thread
@@ -1843,6 +1859,11 @@ impl ScriptThread {
                         ScriptThreadEventCategory::AttachLayout,
                         Some(pipeline_id),
                         || {
+                            if new_layout_info.load_data.synchronously_loaded {
+                                assert_eq!(new_layout_info.load_data.url.as_str(), "about:blank");
+                                return;
+                            }
+
                             // If this is an about:blank or about:srcdoc load, it must share the
                             // creator's origin. This must match the logic in the constellation
                             // when creating a new pipeline
@@ -2919,6 +2940,7 @@ impl ScriptThread {
             load_data.url.clone(),
             origin,
             load_data.inherited_secure_context,
+            load_data.replacing_pipeline,
         );
         if load_data.url.as_str() == "about:blank" {
             self.start_page_load_about_blank(new_load, load_data.js_eval_result);
@@ -3307,8 +3329,10 @@ impl ScriptThread {
                 parser.abort(can_gc);
             }
 
-            debug!("{id}: Shutting down layout");
-            document.window().layout_mut().exit_now();
+            if document.is_window_relevant() {
+                debug!("{id}: Shutting down layout");
+                document.window().layout_mut().exit_now();
+            }
 
             debug!("{id}: Sending PipelineExited message to constellation");
             self.script_sender
@@ -3326,15 +3350,17 @@ impl ScriptThread {
                 }
             }
 
-            // We discard the browsing context after requesting layout shut down,
-            // to avoid running layout on detached iframes.
-            let window = document.window();
-            if discard_bc == DiscardBrowsingContext::Yes {
-                window.discard_browsing_context();
-            }
+            if document.is_window_relevant() {
+                // We discard the browsing context after requesting layout shut down,
+                // to avoid running layout on detached iframes.
+                let window = document.window();
+                if discard_bc == DiscardBrowsingContext::Yes {
+                    window.discard_browsing_context();
+                }
 
-            debug!("{id}: Clearing JavaScript runtime");
-            window.clear_js_runtime();
+                debug!("{id}: Clearing JavaScript runtime");
+                window.clear_js_runtime();
+            }
         }
 
         debug!("{id}: Finished pipeline exit");
@@ -3449,7 +3475,7 @@ impl ScriptThread {
             .borrow()
             .find_iframe(parent_id, browsing_context_id);
         match iframe {
-            Some(iframe) => iframe.iframe_load_event_steps(child_id, can_gc),
+            Some(iframe) => iframe.iframe_load_event_steps(child_id, can_gc, false),
             None => warn!("Message sent to closed pipeline {}.", parent_id),
         }
     }
@@ -3667,44 +3693,62 @@ impl ScriptThread {
         };
 
         // Create the window and document objects.
-        let window = Window::new(
-            self.js_runtime.clone(),
-            MainThreadScriptChan(sender.clone()),
-            task_manager,
-            self.layout_factory.create(layout_config),
-            self.image_cache_channel.clone(),
-            self.image_cache.clone(),
-            self.resource_threads.clone(),
-            self.bluetooth_thread.clone(),
-            self.mem_profiler_chan.clone(),
-            self.time_profiler_chan.clone(),
-            self.devtools_chan.clone(),
-            script_to_constellation_chan,
-            self.control_chan.clone(),
-            self.scheduler_chan.clone(),
-            incomplete.pipeline_id,
-            incomplete.parent_info,
-            incomplete.window_size,
-            origin.clone(),
-            final_url.clone(),
-            incomplete.navigation_start,
-            self.webgl_chan.as_ref().map(|chan| chan.channel()),
-            self.webxr_registry.clone(),
-            self.microtask_queue.clone(),
-            self.webrender_document,
-            self.webrender_api_sender.clone(),
-            self.relayout_event,
-            self.prepare_for_screenshot,
-            self.unminify_js,
-            self.local_script_source.clone(),
-            self.userscripts_path.clone(),
-            self.headless,
-            self.replace_surrogates,
-            self.user_agent.clone(),
-            self.player_context.clone(),
-            self.gpu_id_hub.clone(),
-            incomplete.inherited_secure_context,
-        );
+        let old_document = incomplete.replacing_pipeline.and_then(ScriptThread::find_document);
+        let replacement_same_origin = old_document.as_ref().map_or(false, |doc| {
+            let old_origin = doc.origin();
+            final_url.origin().same_origin(old_origin)
+        });
+        let window = if let (Some(old_document), true) = (old_document, replacement_same_origin) {
+            old_document.window().replace_contents(crate::dom::window::ReplaceData {
+                script_to_constellation_chan,
+                task_manager,
+                layout: self.layout_factory.create(layout_config),
+                pipeline_id: incomplete.pipeline_id,
+                creator_url: final_url.clone(),
+                origin: origin.clone(),
+            });
+            old_document.disown_window();
+            DomRoot::from_ref(old_document.window())            
+        } else {
+            Window::new(
+                self.js_runtime.clone(),
+                MainThreadScriptChan(sender.clone()),
+                task_manager,
+                self.layout_factory.create(layout_config),
+                self.image_cache_channel.clone(),
+                self.image_cache.clone(),
+                self.resource_threads.clone(),
+                self.bluetooth_thread.clone(),
+                self.mem_profiler_chan.clone(),
+                self.time_profiler_chan.clone(),
+                self.devtools_chan.clone(),
+                script_to_constellation_chan,
+                self.control_chan.clone(),
+                self.scheduler_chan.clone(),
+                incomplete.pipeline_id,
+                incomplete.parent_info,
+                incomplete.window_size,
+                origin.clone(),
+                final_url.clone(),
+                incomplete.navigation_start,
+                self.webgl_chan.as_ref().map(|chan| chan.channel()),
+                self.webxr_registry.clone(),
+                self.microtask_queue.clone(),
+                self.webrender_document,
+                self.webrender_api_sender.clone(),
+                self.relayout_event,
+                self.prepare_for_screenshot,
+                self.unminify_js,
+                self.local_script_source.clone(),
+                self.userscripts_path.clone(),
+                self.headless,
+                self.replace_surrogates,
+                self.user_agent.clone(),
+                self.player_context.clone(),
+                self.gpu_id_hub.clone(),
+                incomplete.inherited_secure_context,
+            )
+        };
 
         let _realm = enter_realm(&*window);
 
@@ -3716,6 +3760,7 @@ impl ScriptThread {
             incomplete.parent_info,
             incomplete.opener,
         );
+        window_proxy.set_currently_active(&window);
         if window_proxy.parent().is_some() {
             // https://html.spec.whatwg.org/multipage/#navigating-across-documents:delaying-load-events-mode-2
             // The user agent must take this nested browsing context
@@ -3784,6 +3829,7 @@ impl ScriptThread {
             Some(metadata.status.raw_code()),
             incomplete.canceller,
             can_gc,
+            final_url.as_str() == "about:blank",
         );
         document.set_ready_state(DocumentReadyState::Loading);
 

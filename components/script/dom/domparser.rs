@@ -89,6 +89,7 @@ impl DOMParserMethods for DOMParser {
                     None,
                     Default::default(),
                     can_gc,
+                    false,
                 );
                 ServoParser::parse_html_document(&document, Some(s), url, CanGc::note());
                 document.set_ready_state(DocumentReadyState::Complete);
@@ -111,6 +112,7 @@ impl DOMParserMethods for DOMParser {
                     None,
                     Default::default(),
                     can_gc,
+                    false,
                 );
                 ServoParser::parse_xml_document(&document, Some(s), url, CanGc::note());
                 document.set_ready_state(DocumentReadyState::Complete);

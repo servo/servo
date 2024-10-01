@@ -229,10 +229,12 @@ impl Pipeline {
                     window_size: state.window_size,
                 };
 
-                if let Err(e) =
-                    script_chan.send(ConstellationControlMsg::AttachLayout(new_layout_info))
-                {
-                    warn!("Sending to script during pipeline creation failed ({})", e);
+                if !state.load_data.synchronously_loaded {
+                    if let Err(e) =
+                        script_chan.send(ConstellationControlMsg::AttachLayout(new_layout_info))
+                    {
+                        warn!("Sending to script during pipeline creation failed ({})", e);
+                    }
                 }
                 (script_chan, None)
             },

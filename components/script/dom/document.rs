@@ -178,7 +178,7 @@ use crate::dom::wheelevent::WheelEvent;
 use crate::dom::window::{ReflowReason, Window};
 use crate::dom::windowproxy::WindowProxy;
 use crate::fetch::FetchCanceller;
-use crate::realms::{AlreadyInRealm, InRealm};
+use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
 use crate::script_runtime::{CanGc, CommonScriptMsg, ScriptThreadEventCategory};
 use crate::script_thread::{MainThreadScriptMsg, ScriptThread};
 use crate::stylesheet_set::StylesheetSetRef;
@@ -486,6 +486,8 @@ pub struct Document {
     visibility_state: Cell<DocumentVisibilityState>,
     /// <https://www.iana.org/assignments/http-status-codes/http-status-codes.xhtml>
     status_code: Option<u16>,
+    inhibit_load_and_pageshow: bool,
+    window_replaced: Cell<bool>,
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -708,7 +710,9 @@ impl Document {
             ClientContextId::build(pipeline_id.namespace_id.0, pipeline_id.index.0.get());
 
         if activity != DocumentActivity::FullyActive {
-            self.window().suspend();
+            if self.is_window_relevant() {
+                self.window().suspend();
+            }
             media.suspend(&client_context_id);
             return;
         }
@@ -2320,8 +2324,10 @@ impl Document {
         if !self.salvageable.get() {
             // Step 1 of clean-up steps.
             global_scope.close_event_sources();
-            let msg = ScriptMsg::DiscardDocument;
-            let _ = global_scope.script_to_constellation_chan().send(msg);
+            if self.is_window_relevant() {
+                let msg = ScriptMsg::DiscardDocument;
+                let _ = global_scope.script_to_constellation_chan().send(msg);
+            }
         }
         // https://w3c.github.io/FileAPI/#lifeTime
         global_scope.clean_up_all_file_resources();
@@ -2387,11 +2393,13 @@ impl Document {
                     // http://w3c.github.io/navigation-timing/#widl-PerformanceNavigationTiming-loadEventStart
                     update_with_current_instant(&document.load_event_start);
 
-                    debug!("About to dispatch load for {:?}", document.url());
-                    // FIXME(nox): Why are errors silenced here?
-                    let _ = window.dispatch_event_with_target_override(
-                        &event,
-                    );
+                    if !document.inhibit_load_and_pageshow {
+                        debug!("About to dispatch load for {:?}", document.url());
+                        // FIXME(nox): Why are errors silenced here?
+                        let _ = window.dispatch_event_with_target_override(
+                            &event,
+                        );
+                    }
 
                     // http://w3c.github.io/navigation-timing/#widl-PerformanceNavigationTiming-loadEventEnd
                     update_with_current_instant(&document.load_event_end);
@@ -2406,7 +2414,7 @@ impl Document {
 
         // Step 8.
         let document = Trusted::new(self);
-        if document.root().browsing_context().is_some() {
+        if document.root().browsing_context().is_some() && !self.inhibit_load_and_pageshow {
             self.window
                 .task_manager()
                 .dom_manipulation_task_source()
@@ -2641,9 +2649,10 @@ impl Document {
             .dom_manipulation_task_source()
             .queue(
                 task!(fire_dom_content_loaded_event: move || {
-                let document = document.root();
-                document.upcast::<EventTarget>().fire_bubbling_event(atom!("DOMContentLoaded"));
-                update_with_current_instant(&document.dom_content_loaded_event_end);
+                    let document = document.root();
+                    let _realm = enter_realm(&*document);
+                    document.upcast::<EventTarget>().fire_bubbling_event(atom!("DOMContentLoaded"));
+                    update_with_current_instant(&document.dom_content_loaded_event_end);
                 }),
                 window.upcast(),
             )
@@ -3180,6 +3189,7 @@ impl Document {
         referrer_policy: Option<ReferrerPolicy>,
         status_code: Option<u16>,
         canceller: FetchCanceller,
+        inhibit_load_and_pageshow: bool,
     ) -> Document {
         let url = url.unwrap_or_else(|| ServoUrl::parse("about:blank").unwrap());
 
@@ -3327,7 +3337,17 @@ impl Document {
             fonts: Default::default(),
             visibility_state: Cell::new(DocumentVisibilityState::Hidden),
             status_code,
+            inhibit_load_and_pageshow,
+            window_replaced: Cell::new(false),
         }
+    }
+
+    pub(crate) fn disown_window(&self) {
+        self.window_replaced.set(true);
+    }
+
+    pub(crate) fn is_window_relevant(&self) -> bool {
+        !self.window_replaced.get()
     }
 
     /// Note a pending animation tick, to be processed at the next `update_the_rendering` task.
@@ -3475,6 +3495,7 @@ impl Document {
             None,
             Default::default(),
             can_gc,
+            false,
         ))
     }
 
@@ -3495,6 +3516,7 @@ impl Document {
         status_code: Option<u16>,
         canceller: FetchCanceller,
         can_gc: CanGc,
+        inhibit_load_and_pageshow: bool,
     ) -> DomRoot<Document> {
         Self::new_with_proto(
             window,
@@ -3513,6 +3535,7 @@ impl Document {
             status_code,
             canceller,
             can_gc,
+            inhibit_load_and_pageshow,
         )
     }
 
@@ -3534,6 +3557,7 @@ impl Document {
         status_code: Option<u16>,
         canceller: FetchCanceller,
         can_gc: CanGc,
+        inhibit_load_and_pageshow: bool,
     ) -> DomRoot<Document> {
         let document = reflect_dom_object_with_proto(
             Box::new(Document::new_inherited(
@@ -3551,6 +3575,7 @@ impl Document {
                 referrer_policy,
                 status_code,
                 canceller,
+                inhibit_load_and_pageshow,
             )),
             window,
             proto,
@@ -3676,6 +3701,7 @@ impl Document {
                     None,
                     Default::default(),
                     can_gc,
+                    false,
                 );
                 new_doc
                     .appropriate_template_contents_owner_document

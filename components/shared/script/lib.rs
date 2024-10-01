@@ -128,6 +128,8 @@ pub enum LoadOrigin {
 /// parameters or headers
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct LoadData {
+    ///
+    pub new_pipeline_id: PipelineId,
     /// The origin where the load started.
     pub load_origin: LoadOrigin,
     /// The URL.
@@ -162,6 +164,11 @@ pub struct LoadData {
 
     /// Servo internal: if crash details are present, trigger a crash error page with these details.
     pub crash: Option<String>,
+
+    ///
+    pub replacing_pipeline: Option<PipelineId>,
+    ///
+    pub synchronously_loaded: bool,
 }
 
 /// The result of evaluating a javascript scheme url.
@@ -183,6 +190,8 @@ impl LoadData {
         referrer: Referrer,
         referrer_policy: Option<ReferrerPolicy>,
         inherited_secure_context: Option<bool>,
+        replacing_pipeline: Option<PipelineId>,
+        synchronously_loaded: bool,
     ) -> LoadData {
         LoadData {
             load_origin,
@@ -197,6 +206,9 @@ impl LoadData {
             srcdoc: "".to_string(),
             inherited_secure_context,
             crash: None,
+            replacing_pipeline,
+            synchronously_loaded,
+            new_pipeline_id: PipelineId::new(),
         }
     }
 }
@@ -692,8 +704,6 @@ pub struct AuxiliaryBrowsingContextLoadInfo {
     pub new_top_level_browsing_context_id: TopLevelBrowsingContextId,
     /// The new browsing context ID.
     pub new_browsing_context_id: BrowsingContextId,
-    /// The new pipeline ID for the auxiliary.
-    pub new_pipeline_id: PipelineId,
 }
 
 /// Specifies the information required to load an iframe.
@@ -705,8 +715,6 @@ pub struct IFrameLoadInfo {
     pub browsing_context_id: BrowsingContextId,
     /// The ID for the top-level ancestor browsing context of this iframe's nested browsing context.
     pub top_level_browsing_context_id: TopLevelBrowsingContextId,
-    /// The new pipeline ID that the iframe has generated.
-    pub new_pipeline_id: PipelineId,
     ///  Whether this iframe should be considered private
     pub is_private: bool,
     ///  Whether this iframe should be considered secure

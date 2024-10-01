@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Ref;
+
 use dom_struct::dom_struct;
 use net_traits::request::Referrer;
 use script_traits::{HistoryEntryReplacement, LoadData, LoadOrigin};
@@ -123,6 +125,8 @@ impl Location {
             referrer,
             referrer_policy,
             None, // Top navigation doesn't inherit secure context
+            (self.window.Document().url().as_str() == "about:blank").then(|| self.window.pipeline_id()),
+            false,
         );
         self.window
             .load_url(replacement_flag, reload_triggered, load_data);
@@ -249,7 +253,7 @@ impl Location {
     }
 
     #[allow(dead_code)]
-    pub fn origin(&self) -> &MutableOrigin {
+    pub fn origin(&self) -> Ref<MutableOrigin> {
         self.window.origin()
     }
 }
@@ -389,11 +393,14 @@ impl LocationMethods for Location {
         if self.has_document() {
             // Note: no call to self.check_same_origin_domain()
             // Step 2: Parse the given value relative to the entry settings object.
-            // If that failed, throw a TypeError exception.
+            // If that failed, throw a SyntaxError exception.
             let base_url = self.entry_settings_object().api_base_url();
             let url = match base_url.join(&value.0) {
                 Ok(url) => url,
-                Err(e) => return Err(Error::Type(format!("Couldn't parse URL: {}", e))),
+                Err(e) => {
+                    info!("Couldn't parse URL: {}", e);
+                    return Err(Error::Syntax);
+                }
             };
             // Step 3: Location-object navigate to the resulting URL record.
             self.navigate(

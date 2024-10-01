@@ -8,6 +8,7 @@ use base::id::{BrowsingContextId, PipelineId, TopLevelBrowsingContextId};
 use bitflags::bitflags;
 use dom_struct::dom_struct;
 use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
+use js::jsapi::JSAutoRealm;
 use js::rust::HandleObject;
 use profile_traits::ipc as ProfiledIpc;
 use script_traits::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
@@ -40,6 +41,8 @@ use crate::dom::node::{
 };
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::windowproxy::WindowProxy;
+use crate::microtask::{Microtask, MicrotaskRunnable};
+use crate::realms::enter_realm;
 use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 
@@ -177,7 +180,7 @@ impl HTMLIFrameElement {
 
         let window = window_from_node(self);
         let old_pipeline_id = self.pipeline_id();
-        let new_pipeline_id = PipelineId::new();
+        let new_pipeline_id = load_data.new_pipeline_id.clone();
         self.pending_pipeline_id.set(Some(new_pipeline_id));
 
         let global_scope = window.upcast::<GlobalScope>();
@@ -185,7 +188,6 @@ impl HTMLIFrameElement {
             parent_pipeline_id: global_scope.pipeline_id(),
             browsing_context_id,
             top_level_browsing_context_id,
-            new_pipeline_id,
             is_private: false, // FIXME
             inherited_secure_context: load_data.inherited_secure_context,
             replace,
@@ -261,6 +263,8 @@ impl HTMLIFrameElement {
                 window.upcast::<GlobalScope>().get_referrer(),
                 document.get_referrer_policy(),
                 Some(window.upcast::<GlobalScope>().is_secure_context()),
+                None, //XXXjdm
+                false,
             );
             let element = self.upcast::<Element>();
             load_data.srcdoc = String::from(element.get_string_attribute(&local_name!("srcdoc")));
@@ -288,9 +292,14 @@ impl HTMLIFrameElement {
             }
         }
 
-        if mode == ProcessingMode::FirstTime &&
-            !self.upcast::<Element>().has_attribute(&local_name!("src"))
-        {
+        let element = self.upcast::<Element>();
+        let src = element.get_string_attribute(&local_name!("src"));
+        if mode == ProcessingMode::FirstTime && (src.is_empty() || src == "about:blank") {
+            let task = IframeElementMicrotask {
+                elem: DomRoot::from_ref(self),
+                about_blank_pipeline: self.about_blank_pipeline_id.get().unwrap(),
+            };
+            ScriptThread::await_stable_state(Microtask::IframeElement(task));
             return;
         }
 
@@ -332,6 +341,9 @@ impl HTMLIFrameElement {
         };
 
         let document = document_from_node(self);
+        let pipeline_id = self.pipeline_id();
+        let is_about_blank = pipeline_id.is_some() && pipeline_id == self.about_blank_pipeline_id.get();
+        let replaced_pipeline = is_about_blank.then(|| self.about_blank_pipeline_id.get().unwrap());
         let load_data = LoadData::new(
             LoadOrigin::Script(document.origin().immutable().clone()),
             url,
@@ -339,13 +351,12 @@ impl HTMLIFrameElement {
             window.upcast::<GlobalScope>().get_referrer(),
             document.get_referrer_policy(),
             Some(window.upcast::<GlobalScope>().is_secure_context()),
+            replaced_pipeline,
+            false,
         );
 
-        let pipeline_id = self.pipeline_id();
         // If the initial `about:blank` page is the current page, load with replacement enabled,
         // see https://html.spec.whatwg.org/multipage/#the-iframe-element:about:blank-3
-        let is_about_blank =
-            pipeline_id.is_some() && pipeline_id == self.about_blank_pipeline_id.get();
         let replace = if is_about_blank {
             HistoryEntryReplacement::Enabled
         } else {
@@ -381,6 +392,8 @@ impl HTMLIFrameElement {
             window.upcast::<GlobalScope>().get_referrer(),
             document.get_referrer_policy(),
             Some(window.upcast::<GlobalScope>().is_secure_context()),
+            None,
+            true,
         );
         let browsing_context_id = BrowsingContextId::new();
         let top_level_browsing_context_id = window.window_proxy().top_level_browsing_context_id();
@@ -403,6 +416,10 @@ impl HTMLIFrameElement {
         self.about_blank_pipeline_id.set(None);
         self.top_level_browsing_context_id.set(None);
         self.browsing_context_id.set(None);
+    }
+
+    pub(crate) fn update_pending_pipeline_id(&self, pending: PipelineId) {
+        self.pending_pipeline_id.set(Some(pending));
     }
 
     pub fn update_pipeline_id(
@@ -488,10 +505,21 @@ impl HTMLIFrameElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#iframe-load-event-steps> steps 1-4
-    pub fn iframe_load_event_steps(&self, loaded_pipeline: PipelineId, can_gc: CanGc) {
+    pub fn iframe_load_event_steps(
+        &self,
+        loaded_pipeline: PipelineId,
+        can_gc: CanGc,
+        dispatch_load_for_about_blank: bool,
+    ) {
         // TODO(#9592): assert that the load blocker is present at all times when we
         //              can guarantee that it's created for the case of iframe.reload().
         if Some(loaded_pipeline) != self.pending_pipeline_id.get() {
+            return;
+        }
+
+        if Some(loaded_pipeline) == self.about_blank_pipeline_id.get() &&
+            !dispatch_load_for_about_blank
+        {
             return;
         }
 
@@ -786,5 +814,23 @@ impl VirtualMethods for HTMLIFrameElement {
         // a new iframe. Without this, the constellation gets very
         // confused.
         self.destroy_nested_browsing_context();
+    }
+}
+
+#[derive(JSTraceable, MallocSizeOf)]
+pub struct IframeElementMicrotask {
+    elem: DomRoot<HTMLIFrameElement>,
+    #[no_trace]
+    about_blank_pipeline: PipelineId,
+}
+
+impl MicrotaskRunnable for IframeElementMicrotask {
+    fn handler(&self, can_gc: CanGc) {
+        self.elem
+            .iframe_load_event_steps(self.about_blank_pipeline, can_gc, true);
+    }
+
+    fn enter_realm(&self) -> JSAutoRealm {
+        enter_realm(&*self.elem)
     }
 }

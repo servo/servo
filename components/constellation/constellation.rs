@@ -944,7 +944,6 @@ where
     #[allow(clippy::too_many_arguments)]
     fn new_pipeline(
         &mut self,
-        pipeline_id: PipelineId,
         browsing_context_id: BrowsingContextId,
         top_level_browsing_context_id: TopLevelBrowsingContextId,
         parent_pipeline_id: Option<PipelineId>,
@@ -962,6 +961,7 @@ where
         if self.shutting_down {
             return;
         }
+        let pipeline_id = load_data.new_pipeline_id.clone();
         debug!(
             "{}: Creating new pipeline in {}",
             pipeline_id, browsing_context_id
@@ -1431,6 +1431,8 @@ where
                     Referrer::NoReferrer,
                     None,
                     None,
+                    None,
+                    false,
                 );
                 let ctx_id = BrowsingContextId::from(top_level_browsing_context_id);
                 let pipeline_id = match self.browsing_contexts.get(&ctx_id) {
@@ -2867,6 +2869,7 @@ where
 
         let new_pipeline_id = PipelineId::new();
         let new_load_data = LoadData {
+            new_pipeline_id,
             crash: Some(
                 backtrace
                     .map(|b| format!("{}\n{}", reason, b))
@@ -2878,7 +2881,6 @@ where
         let sandbox = IFrameSandboxState::IFrameSandboxed;
         let is_private = false;
         self.new_pipeline(
-            new_pipeline_id,
             browsing_context_id,
             top_level_browsing_context_id,
             None,
@@ -2988,7 +2990,6 @@ where
         top_level_browsing_context_id: TopLevelBrowsingContextId,
     ) {
         let window_size = self.window_size.initial_viewport;
-        let pipeline_id = PipelineId::new();
         let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
         let load_data = LoadData::new(
             LoadOrigin::Constellation,
@@ -2997,7 +2998,10 @@ where
             Referrer::NoReferrer,
             None,
             None,
+            None,
+            false,
         );
+        let pipeline_id = load_data.new_pipeline_id.clone();
         let sandbox = IFrameSandboxState::IFrameUnsandboxed;
         let is_private = false;
         let throttled = false;
@@ -3022,7 +3026,6 @@ where
             .insert(new_bc_group_id, new_bc_group);
 
         self.new_pipeline(
-            pipeline_id,
             browsing_context_id,
             top_level_browsing_context_id,
             None,
@@ -3180,7 +3183,6 @@ where
             parent_pipeline_id,
             browsing_context_id,
             top_level_browsing_context_id,
-            new_pipeline_id,
             is_private,
             mut replace,
             ..
@@ -3190,6 +3192,8 @@ where
         let old_pipeline = load_info
             .old_pipeline_id
             .and_then(|id| self.pipelines.get(&id));
+
+        let new_pipeline_id = load_info.load_data.new_pipeline_id.clone();
 
         // Replacement enabled also takes into account whether the document is "completely loaded",
         // see https://html.spec.whatwg.org/multipage/#the-iframe-element:completely-loaded
@@ -3259,7 +3263,6 @@ where
 
         // Create the new pipeline, attached to the parent and push to pending changes
         self.new_pipeline(
-            new_pipeline_id,
             browsing_context_id,
             top_level_browsing_context_id,
             Some(parent_pipeline_id),
@@ -3285,12 +3288,13 @@ where
     fn handle_script_new_iframe(&mut self, load_info: IFrameLoadInfoWithData) {
         let IFrameLoadInfo {
             parent_pipeline_id,
-            new_pipeline_id,
             browsing_context_id,
             top_level_browsing_context_id,
             is_private,
             ..
         } = load_info.info;
+
+        let new_pipeline_id = load_info.load_data.new_pipeline_id.clone();
 
         let (script_sender, parent_browsing_context_id) =
             match self.pipelines.get(&parent_pipeline_id) {
@@ -3349,10 +3353,11 @@ where
             opener_pipeline_id,
             new_top_level_browsing_context_id,
             new_browsing_context_id,
-            new_pipeline_id,
         } = load_info;
 
-        let (script_sender, opener_browsing_context_id) =
+        let new_pipeline_id = load_data.new_pipeline_id.clone();
+
+        let (_script_sender, opener_browsing_context_id) =
             match self.pipelines.get(&opener_pipeline_id) {
                 Some(pipeline) => (pipeline.event_loop.clone(), pipeline.browsing_context_id),
                 None => {
@@ -3372,7 +3377,18 @@ where
                     );
                 },
             };
-        let pipeline = Pipeline::new(
+        self.new_pipeline(
+            new_browsing_context_id,
+            new_top_level_browsing_context_id,
+            Some(opener_pipeline_id),
+            Some(opener_browsing_context_id),
+            self.window_size.initial_viewport,
+            load_data,
+            IFrameSandboxState::IFrameUnsandboxed, //XXXjdm
+            is_opener_private,
+            is_opener_throttled,
+        );
+        /*let pipeline = Pipeline::new(
             new_pipeline_id,
             new_browsing_context_id,
             new_top_level_browsing_context_id,
@@ -3384,7 +3400,7 @@ where
         );
 
         assert!(!self.pipelines.contains_key(&new_pipeline_id));
-        self.pipelines.insert(new_pipeline_id, pipeline);
+        self.pipelines.insert(new_pipeline_id, pipeline);*/
         self.webviews.add(
             new_top_level_browsing_context_id,
             WebView {
@@ -3490,7 +3506,7 @@ where
                 );
             },
             Entry::Vacant(entry) => {
-                let _ = entry.insert((load_data.clone(), replace));
+                let _ = entry.insert((load_data.clone(), if load_data.replacing_pipeline.is_some() { HistoryEntryReplacement::Enabled } else { replace }));
             },
         };
         // Allow the embedder to handle the url itself
@@ -3531,6 +3547,7 @@ where
                 return None;
             },
         };
+        let new_pipeline_id = load_data.new_pipeline_id.clone();
         let (window_size, pipeline_id, parent_pipeline_id, is_private, is_throttled) =
             match self.browsing_contexts.get(&browsing_context_id) {
                 Some(ctx) => (
@@ -3602,10 +3619,8 @@ where
                     HistoryEntryReplacement::Disabled => None,
                 };
 
-                let new_pipeline_id = PipelineId::new();
                 let sandbox = IFrameSandboxState::IFrameUnsandboxed;
                 self.new_pipeline(
-                    new_pipeline_id,
                     browsing_context_id,
                     top_level_browsing_context_id,
                     None,
@@ -3909,9 +3924,8 @@ where
                     Some(pipeline) => pipeline.opener,
                     None => None,
                 };
-                let new_pipeline_id = PipelineId::new();
+                let new_pipeline_id = load_data.new_pipeline_id.clone();
                 self.new_pipeline(
-                    new_pipeline_id,
                     browsing_context_id,
                     top_level_id,
                     parent_pipeline_id,
