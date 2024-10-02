@@ -16,6 +16,7 @@ Bytes are just passed along.
 If the response is gzip, deflate or brotli then the bytes are decompressed.
 */
 
+use std::error::Error;
 use std::fmt;
 use std::io::{self};
 use std::pin::Pin;
@@ -272,18 +273,14 @@ impl Stream for BodyStream {
                 if self.is_secure_scheme &&
                     (all_content_read || pref!(network.tls.ignore_unexpected_eof))
                 {
-                    let error_message = err.to_string();
-                    let is_unexpected_eof = err
-                        .into_cause()
-                        .and_then(|e| e.downcast::<io::Error>().ok())
+                    let source = err.source();
+                    let is_unexpected_eof = source
+                        .and_then(|e| e.downcast_ref::<io::Error>())
                         .map_or(false, |e| e.kind() == io::ErrorKind::UnexpectedEof);
                     if is_unexpected_eof {
                         Poll::Ready(None)
                     } else {
-                        Poll::Ready(Some(Err(io::Error::new(
-                            io::ErrorKind::Other,
-                            error_message,
-                        ))))
+                        Poll::Ready(Some(Err(io::Error::new(io::ErrorKind::Other, err))))
                     }
                 } else {
                     Poll::Ready(Some(Err(io::Error::new(io::ErrorKind::Other, err))))
