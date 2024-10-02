@@ -5563,6 +5563,22 @@ class CGProxyNamedDeleter(CGProxyNamedOperation):
     def __init__(self, descriptor):
         CGProxySpecialOperation.__init__(self, descriptor, 'NamedDeleter')
 
+    def define(self):
+        # Our first argument is the id we're getting.
+        argName = self.arguments[0].identifier.name
+        return ("if !id.is_symbol() {\n"
+                f'    let {argName} = match jsid_to_string(*cx, Handle::from_raw(id)) {{\n'
+                "        Some(val) => val,\n"
+                "        None => {\n"
+                "            throw_type_error(*cx, \"Not a string-convertible JSID\");\n"
+                "            return false;\n"
+                "        }\n"
+                "    };\n"
+                "    let this = UnwrapProxy(proxy);\n"
+                "    let this = &*this;\n"
+                f"    {CGProxySpecialOperation.define(self)}"
+                "}\n")
+
 
 class CGProxyUnwrap(CGAbstractMethod):
     def __init__(self, descriptor):
