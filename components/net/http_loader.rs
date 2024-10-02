@@ -648,6 +648,7 @@ async fn obtain_response(
         let host = request.uri().host().unwrap_or("").to_owned();
         let override_manager = context.state.override_manager.clone();
         let headers = headers.clone();
+        let is_secure_scheme = url.is_secure_scheme();
 
         client
             .request(request)
@@ -681,7 +682,7 @@ async fn obtain_response(
                     debug!("Not notifying devtools (no request_id)");
                     None
                 };
-                future::ready(Ok((Decoder::detect(res), msg)))
+                future::ready(Ok((Decoder::detect(res, is_secure_scheme), msg)))
             })
             .map_err(move |error| {
                 NetworkError::from_hyper_error(

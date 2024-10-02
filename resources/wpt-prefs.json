@@ -1,3 +1,4 @@
 {
-  "dom.webxr.test": true
+  "dom.webxr.test": true,
+  "network.tls.ignore_unexpected_eof": true
 }
