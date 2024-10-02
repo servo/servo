@@ -172,7 +172,7 @@ pub fn Fetch(
     let mut request_init = request_init_from_request(request);
     request_init.csp_list.clone_from(&global.get_csp_list());
 
-    // FIXME: Step 4. If requestObject’s signal is aborted, then: [..]
+    // TODO: Step 4. If requestObject’s signal is aborted, then: [..]
 
     // Step 5. Let globalObject be request’s client’s global object.
     // NOTE:   We already get the global object as an argument
@@ -183,7 +183,7 @@ pub fn Fetch(
         request_init.service_workers_mode = ServiceWorkersMode::None;
     }
 
-    // FIXME: Steps 8-11, abortcontroller stuff
+    // TODO: Steps 8-11, abortcontroller stuff
 
     // Step 12. Set controller to the result of calling fetch given request and
     //           processResponse given response being these steps: [..]
