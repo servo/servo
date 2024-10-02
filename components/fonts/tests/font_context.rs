@@ -32,7 +32,7 @@ use style::values::computed::font::{
 use style::values::computed::{FontLanguageOverride, XLang};
 use style::values::generics::font::LineHeight;
 use style::ArcSlice;
-use webrender_api::{FontInstanceKey, IdNamespace};
+use webrender_api::{FontInstanceKey, FontKey, IdNamespace};
 use webrender_traits::WebRenderScriptApi;
 
 struct TestContext {
@@ -125,8 +125,12 @@ impl MockSystemFontService {
                         template_data,
                     });
                 },
+                SystemFontServiceMessage::GetFontInstanceKey(result_sender) |
                 SystemFontServiceMessage::GetFontInstance(_, _, _, result_sender) => {
                     let _ = result_sender.send(FontInstanceKey(IdNamespace(0), 0));
+                },
+                SystemFontServiceMessage::GetFontKey(result_sender) => {
+                    let _ = result_sender.send(FontKey(IdNamespace(0), 0));
                 },
                 SystemFontServiceMessage::Exit(result_sender) => {
                     let _ = result_sender.send(());

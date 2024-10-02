@@ -74,6 +74,8 @@ pub enum SystemFontServiceMessage {
         FontInstanceFlags,
         IpcSender<FontInstanceKey>,
     ),
+    GetFontKey(IpcSender<FontKey>),
+    GetFontInstanceKey(IpcSender<FontInstanceKey>),
     Exit(IpcSender<()>),
     Ping,
 }
@@ -99,6 +101,18 @@ pub struct SystemFontService {
     webrender_fonts: HashMap<FontIdentifier, FontKey>,
     font_instances: HashMap<(FontKey, Au), FontInstanceKey>,
     generic_fonts: ResolvedGenericFontFamilies,
+
+    /// This is an optimization that allows the [`SystemFontService`] to send font data to
+    /// the compositor asynchronously for creating WebRender fonts, while immediately
+    /// returning a font key for that data. Once the free keys are exhausted, the
+    /// [`SystemFontService`] will fetch a new batch.
+    free_font_keys: Vec<FontKey>,
+
+    /// This is an optimization that allows the [`SystemFontService`] to create WebRender font
+    /// instances in the compositor asynchronously, while immediately returning a font
+    /// instance key for the instance. Once the free keys are exhausted, the
+    /// [`SystemFontService`] will fetch a new batch.
+    free_font_instance_keys: Vec<FontInstanceKey>,
 }
 
 #[derive(Clone, Deserialize, Serialize)]
@@ -129,6 +143,8 @@ impl SystemFontService {
                     webrender_fonts: HashMap::new(),
                     font_instances: HashMap::new(),
                     generic_fonts: Default::default(),
+                    free_font_keys: Default::default(),
+                    free_font_instance_keys: Default::default(),
                 };
 
                 cache.refresh_local_families();
@@ -158,6 +174,14 @@ impl SystemFontService {
                 SystemFontServiceMessage::GetFontInstance(identifier, pt_size, flags, result) => {
                     let _ = result.send(self.get_font_instance(identifier, pt_size, flags));
                 },
+                SystemFontServiceMessage::GetFontKey(result_sender) => {
+                    self.fetch_new_keys();
+                    let _ = result_sender.send(self.free_font_keys.pop().unwrap());
+                },
+                SystemFontServiceMessage::GetFontInstanceKey(result_sender) => {
+                    self.fetch_new_keys();
+                    let _ = result_sender.send(self.free_font_instance_keys.pop().unwrap());
+                },
                 SystemFontServiceMessage::Ping => (),
                 SystemFontServiceMessage::Exit(result) => {
                     let _ = result.send(());
@@ -165,6 +189,22 @@ impl SystemFontService {
                 },
             }
         }
+    }
+
+    fn fetch_new_keys(&mut self) {
+        if !self.free_font_keys.is_empty() && !self.free_font_instance_keys.is_empty() {
+            return;
+        }
+
+        const FREE_FONT_KEYS_BATCH_SIZE: usize = 20;
+        const FREE_FONT_INSTANCE_KEYS_BATCH_SIZE: usize = 20;
+        let (mut new_font_keys, mut new_font_instance_keys) = self.webrender_api.fetch_font_keys(
+            FREE_FONT_KEYS_BATCH_SIZE - self.free_font_keys.len(),
+            FREE_FONT_INSTANCE_KEYS_BATCH_SIZE - self.free_font_instance_keys.len(),
+        );
+        self.free_font_keys.append(&mut new_font_keys);
+        self.free_font_instance_keys
+            .append(&mut new_font_instance_keys);
     }
 
     fn get_font_templates(
@@ -239,6 +279,8 @@ impl SystemFontService {
         pt_size: Au,
         flags: FontInstanceFlags,
     ) -> FontInstanceKey {
+        self.fetch_new_keys();
+
         let webrender_font_api = &self.webrender_api;
         let webrender_fonts = &mut self.webrender_fonts;
         let font_data = self.local_families.get_or_initialize_font_data(&identifier);
@@ -246,6 +288,7 @@ impl SystemFontService {
         let font_key = *webrender_fonts
             .entry(identifier.clone())
             .or_insert_with(|| {
+                let font_key = self.free_font_keys.pop().unwrap();
                 // CoreText cannot reliably create CoreTextFonts for system fonts stored
                 // as part of TTC files, so on CoreText platforms, create a system font in
                 // WebRender using the LocalFontIdentifier. This has the downside of
@@ -253,18 +296,31 @@ impl SystemFontService {
                 // this for those platforms.
                 #[cfg(target_os = "macos")]
                 if let FontIdentifier::Local(local_font_identifier) = identifier {
-                    return webrender_font_api
-                        .add_system_font(local_font_identifier.native_font_handle());
+                    webrender_font_api
+                        .add_system_font(font_key, local_font_identifier.native_font_handle());
+                    return font_key;
                 }
 
-                webrender_font_api.add_font(font_data.as_ipc_shared_memory(), identifier.index())
+                webrender_font_api.add_font(
+                    font_key,
+                    font_data.as_ipc_shared_memory(),
+                    identifier.index(),
+                );
+                font_key
             });
 
         *self
             .font_instances
             .entry((font_key, pt_size))
             .or_insert_with(|| {
-                webrender_font_api.add_font_instance(font_key, pt_size.to_f32_px(), flags)
+                let font_instance_key = self.free_font_instance_keys.pop().unwrap();
+                webrender_font_api.add_font_instance(
+                    font_instance_key,
+                    font_key,
+                    pt_size.to_f32_px(),
+                    flags,
+                );
+                font_instance_key
             })
     }
 
@@ -513,6 +569,30 @@ impl SystemFontServiceProxy {
 
     pub(crate) fn get_font_data(&self, identifier: &FontIdentifier) -> Option<Arc<FontData>> {
         self.data_cache.read().get(identifier).cloned()
+    }
+
+    pub(crate) fn generate_font_key(&self) -> FontKey {
+        let (result_sender, result_receiver) =
+            ipc::channel().expect("failed to create IPC channel");
+        self.sender
+            .lock()
+            .send(SystemFontServiceMessage::GetFontKey(result_sender))
+            .expect("failed to send message to system font service");
+        result_receiver
+            .recv()
+            .expect("Failed to communicate with system font service.")
+    }
+
+    pub(crate) fn generate_font_instance_key(&self) -> FontInstanceKey {
+        let (result_sender, result_receiver) =
+            ipc::channel().expect("failed to create IPC channel");
+        self.sender
+            .lock()
+            .send(SystemFontServiceMessage::GetFontInstanceKey(result_sender))
+            .expect("failed to send message to system font service");
+        result_receiver
+            .recv()
+            .expect("Failed to communicate with system font service.")
     }
 }
 

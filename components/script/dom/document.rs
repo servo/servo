@@ -754,10 +754,7 @@ impl Document {
                     );
                     let event = event.upcast::<Event>();
                     event.set_trusted(true);
-                    // FIXME(nox): Why are errors silenced here?
-                    let _ = window.dispatch_event_with_target_override(
-                        event,
-                    );
+                    window.dispatch_event_with_target_override(event);
                 }),
                 self.window.upcast(),
             )
@@ -2388,10 +2385,7 @@ impl Document {
                     update_with_current_instant(&document.load_event_start);
 
                     debug!("About to dispatch load for {:?}", document.url());
-                    // FIXME(nox): Why are errors silenced here?
-                    let _ = window.dispatch_event_with_target_override(
-                        &event,
-                    );
+                    window.dispatch_event_with_target_override(&event);
 
                     // http://w3c.github.io/navigation-timing/#widl-PerformanceNavigationTiming-loadEventEnd
                     update_with_current_instant(&document.load_event_end);
@@ -2430,10 +2424,7 @@ impl Document {
                         let event = event.upcast::<Event>();
                         event.set_trusted(true);
 
-                        // FIXME(nox): Why are errors silenced here?
-                        let _ = window.dispatch_event_with_target_override(
-                            event,
-                        );
+                        window.dispatch_event_with_target_override(event);
                     }),
                     self.window.upcast(),
                 )
@@ -2951,7 +2942,7 @@ impl Document {
         self.dirty_webgpu_contexts
             .borrow_mut()
             .drain()
-            .for_each(|(_, context)| context.send_swap_chain_present());
+            .for_each(|(_, context)| context.update_rendering_of_webgpu_canvas());
     }
 
     pub fn id_map(&self) -> Ref<HashMapTracedValues<Atom, Vec<Dom<Element>>>> {

@@ -17,6 +17,8 @@ use servo::embedder_traits::resources;
 /// and that perform_updates need to be called
 pub use servo::embedder_traits::EventLoopWaker;
 use servo::euclid::Size2D;
+use servo::servo_config::opts;
+use servo::servo_config::opts::ArgumentParsingResult;
 use servo::servo_url::ServoUrl;
 use servo::webrender_traits::RenderingContext;
 use servo::{self, gl, Servo};
@@ -43,6 +45,58 @@ pub fn init(
     crate::init_tracing();
     let resource_dir = PathBuf::from(&options.resource_dir).join("servo");
     resources::set(Box::new(ResourceReaderInstance::new(resource_dir)));
+    let mut args = vec!["servoshell".to_string()];
+    // It would be nice if `from_cmdline_args()` could accept str slices, to avoid allocations here.
+    // Then again, this code could and maybe even should be disabled in production builds.
+    let split_args: Vec<String> = options
+        .commandline_args
+        .split("\u{1f}")
+        .map(|arg| arg.to_string())
+        .collect();
+    args.extend(split_args);
+    debug!("Servo commandline args: {:?}", args);
+
+    let mut opts = getopts::Options::new();
+    opts.optopt(
+        "u",
+        "user-agent",
+        "Set custom user agent string (or ios / android / desktop for platform default)",
+        "NCSA Mosaic/1.0 (X11;SunOS 4.1.4 sun4m)",
+    );
+    opts.optmulti(
+        "",
+        "pref",
+        "A preference to set to enable",
+        "dom.bluetooth.enabled",
+    );
+    opts.optmulti(
+        "",
+        "pref",
+        "A preference to set to disable",
+        "dom.webgpu.enabled=false",
+    );
+    opts.optmulti(
+        "",
+        "prefs-file",
+        "Load in additional prefs from a file.",
+        "--prefs-file /path/to/prefs.json",
+    );
+
+    let opts_matches;
+    let content_process_token;
+    match opts::from_cmdline_args(opts, &args) {
+        ArgumentParsingResult::ContentProcess(matches, token) => {
+            error!("Content Process mode not supported / tested yet on OpenHarmony!");
+            opts_matches = matches;
+            content_process_token = Some(token);
+        },
+        ArgumentParsingResult::ChromeProcess(matches) => {
+            opts_matches = matches;
+            content_process_token = None;
+        },
+    };
+
+    crate::prefs::register_user_prefs(&opts_matches);
 
     gl.clear_color(1.0, 1.0, 1.0, 1.0);
     gl.clear(gl::COLOR_BUFFER_BIT);

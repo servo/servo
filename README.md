@@ -2,13 +2,18 @@
 
 Servo is a prototype web browser engine written in the
 [Rust](https://github.com/rust-lang/rust) language. It is currently developed on
-64-bit macOS, 64-bit Linux, 64-bit Windows, and Android.
+64-bit macOS, 64-bit Linux, 64-bit Windows, 64-bit OpenHarmony, and Android.
 
 Servo welcomes contribution from everyone. Check out [The Servo Book](https://book.servo.org) to get started, or go to [servo.org](https://servo.org/) for news and guides.
 
 ## Getting started
 
-For more detailed build instructions, see the Servo book under [Setting up your environment](https://book.servo.org/hacking/setting-up-your-environment.html), [Building Servo](https://book.servo.org/hacking/building-servo.html), and [Building for Android](https://book.servo.org/hacking/building-for-android.html).
+For more detailed build instructions, see the Servo book under [Setting up your environment], [Building Servo], [Building for Android] and [Building for OpenHarmony].
+
+[Setting up your environment]: https://book.servo.org/hacking/setting-up-your-environment.html
+[Building Servo]: https://book.servo.org/hacking/building-servo.html
+[Building for Android]: https://book.servo.org/hacking/building-for-android.html
+[Building for OpenHarmony]: https://book.servo.org/hacking/building-for-openharmony.html
 
 ### macOS
 
@@ -64,3 +69,15 @@ For more detailed build instructions, see the Servo book under [Setting up your 
    "system-images;android-33;google_apis;x86_64"
   ```
 - Follow the instructions above for the platform you are building on
+
+### OpenHarmony
+
+- Follow the instructions above for the platform you are building on to prepare the environment.
+- Depending on the target distribution (e.g. `HarmonyOS NEXT` vs pure `OpenHarmony`) the build configuration will differ slightly.
+- Ensure that the following environment variables are set
+  - `DEVECO_SDK_HOME` (Required when targeting `HarmonyOS NEXT`)
+  - `OHOS_BASE_SDK_HOME` (Required when targeting `OpenHarmony`)
+  - `OHOS_SDK_NATIVE` (e.g. `${DEVECO_SDK_HOME}/default/openharmony/native` or `${OHOS_BASE_SDK_HOME}/${API_VERSION}/native`)
+  - `SERVO_OHOS_SIGNING_CONFIG`: Path to json file containing a valid signing configuration for the demo app.
+- Review the detailed instructions at [Building for OpenHarmony].
+- The target distribution can be modified by passing `--flavor=<default|harmonyos>` to `mach <build|package|install>.

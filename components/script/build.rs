@@ -16,11 +16,18 @@ fn main() {
     let start = Instant::now();
 
     let style_out_dir = PathBuf::from(env::var_os("DEP_SERVO_STYLE_CRATE_OUT_DIR").unwrap());
+    let css_properties_json = style_out_dir.join("css-properties.json");
     let out_dir = PathBuf::from(env::var_os("OUT_DIR").unwrap());
+
+    println!("cargo::rerun-if-changed=dom/webidls");
+    println!("cargo::rerun-if-changed=dom/bindings/codegen");
+    println!("cargo::rerun-if-changed={}", css_properties_json.display());
+    println!("cargo::rerun-if-changed=../../third_party/WebIDL/WebIDL.py");
+    // NB: We aren't handling changes in `third_party/ply` here.
 
     let status = Command::new(find_python())
         .arg("dom/bindings/codegen/run.py")
-        .arg(style_out_dir.join("css-properties.json"))
+        .arg(&css_properties_json)
         .arg(&out_dir)
         .status()
         .unwrap();

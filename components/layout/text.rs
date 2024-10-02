@@ -378,8 +378,10 @@ impl TextRunScanner {
                     },
                 };
 
+                let font_instance_key = font.key(font_context);
                 let (run, break_at_zero) = TextRun::new(
                     font,
+                    font_instance_key,
                     run_info.text,
                     &options,
                     run_info.bidi_level,

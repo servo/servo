@@ -186,12 +186,18 @@ impl ExternalImageHandler for WebrenderExternalImageHandlers {
 pub trait WebRenderFontApi {
     fn add_font_instance(
         &self,
+        font_instance_key: FontInstanceKey,
         font_key: FontKey,
         size: f32,
         flags: FontInstanceFlags,
-    ) -> FontInstanceKey;
-    fn add_font(&self, data: Arc<IpcSharedMemory>, index: u32) -> FontKey;
-    fn add_system_font(&self, handle: NativeFontHandle) -> FontKey;
+    );
+    fn add_font(&self, font_key: FontKey, data: Arc<IpcSharedMemory>, index: u32);
+    fn add_system_font(&self, font_key: FontKey, handle: NativeFontHandle);
+    fn fetch_font_keys(
+        &self,
+        number_of_font_keys: usize,
+        number_of_font_instance_keys: usize,
+    ) -> (Vec<FontKey>, Vec<FontInstanceKey>);
 }
 
 pub enum CanvasToCompositorMsg {
@@ -200,9 +206,10 @@ pub enum CanvasToCompositorMsg {
 }
 
 pub enum FontToCompositorMsg {
-    AddFontInstance(FontKey, f32, FontInstanceFlags, Sender<FontInstanceKey>),
-    AddFont(Sender<FontKey>, u32, Arc<IpcSharedMemory>),
-    AddSystemFont(Sender<FontKey>, NativeFontHandle),
+    GenerateKeys(usize, usize, Sender<(Vec<FontKey>, Vec<FontInstanceKey>)>),
+    AddFontInstance(FontInstanceKey, FontKey, f32, FontInstanceFlags),
+    AddFont(FontKey, u32, Arc<IpcSharedMemory>),
+    AddSystemFont(FontKey, NativeFontHandle),
 }
 
 #[derive(Deserialize, Serialize)]
@@ -242,8 +249,8 @@ pub enum ScriptToCompositorMsg {
     UpdateImages(Vec<SerializedImageUpdate>),
     /// Remove the given font resources from our WebRender instance.
     RemoveFonts(Vec<FontKey>, Vec<FontInstanceKey>),
-    AddFontInstance(FontKey, f32, FontInstanceFlags, IpcSender<FontInstanceKey>),
-    AddFont(Arc<IpcSharedMemory>, u32, IpcSender<FontKey>),
+    AddFontInstance(FontInstanceKey, FontKey, f32, FontInstanceFlags),
+    AddFont(FontKey, Arc<IpcSharedMemory>, u32),
 }
 
 /// A mechanism to send messages from networking to the WebRender instance.

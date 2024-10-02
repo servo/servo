@@ -153,6 +153,10 @@ impl GPUDevice {
         self.device
     }
 
+    pub fn queue_id(&self) -> webgpu::WebGPUQueue {
+        self.default_queue.id()
+    }
+
     pub fn channel(&self) -> WebGPU {
         self.channel.clone()
     }
