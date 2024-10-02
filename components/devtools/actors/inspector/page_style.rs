@@ -104,10 +104,10 @@ impl Actor for PageStyleActor {
     /// The page style actor can handle the following messages:
     ///
     /// - `getApplied`: Returns the applied styles for a node, they represent the explicit css
-    /// rules set for them, both in the style attribute and in stylesheets.
+    ///   rules set for them, both in the style attribute and in stylesheets.
     ///
     /// - `getComputed`: Returns the computed styles for a node, these include all of the supported
-    /// css properties calculated values.
+    ///   css properties calculated values.
     ///
     /// - `getLayout`: Returns the box layout properties for a node.
     ///
