@@ -202,21 +202,21 @@ impl Future for Pending {
             None => return Poll::Ready(Ok(Inner::PlainText(BodyStream::empty()))),
         };
 
-        let _body = std::mem::replace(&mut self.body, BodyStream::empty().peekable());
+        let body = std::mem::replace(&mut self.body, BodyStream::empty().peekable());
 
         match self.type_ {
             DecoderType::Brotli => Poll::Ready(Ok(Inner::Brotli(FramedRead::with_capacity(
-                BrotliDecoder::new(StreamReader::new(_body)),
+                BrotliDecoder::new(StreamReader::new(body)),
                 BytesCodec::new(),
                 DECODER_BUFFER_SIZE,
             )))),
             DecoderType::Gzip => Poll::Ready(Ok(Inner::Gzip(FramedRead::with_capacity(
-                GzipDecoder::new(StreamReader::new(_body)),
+                GzipDecoder::new(StreamReader::new(body)),
                 BytesCodec::new(),
                 DECODER_BUFFER_SIZE,
             )))),
             DecoderType::Deflate => Poll::Ready(Ok(Inner::Deflate(FramedRead::with_capacity(
-                ZlibDecoder::new(StreamReader::new(_body)),
+                ZlibDecoder::new(StreamReader::new(body)),
                 BytesCodec::new(),
                 DECODER_BUFFER_SIZE,
             )))),
