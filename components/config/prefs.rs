@@ -583,6 +583,7 @@ mod gen {
                     /// is closed without a close_notify.
                     ///
                     /// Used for tests because WPT server doesn't properly close the TLS connection.
+                    // TODO: remove this when WPT server is updated to use a proper TLS implementation.
                     ignore_unexpected_eof: bool,
                 },
             },
