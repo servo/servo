@@ -459,8 +459,8 @@ impl HTMLTextAreaElement {
         TextControlSelection::new(self, &self.textinput)
     }
 
-    // TODO mirrored in htmlinputelement.rs
-    // https://www.w3.org/TR/clipboard-apis/#clipboard-actions
+    /// TODO mirrored in htmlinputelement.rs
+    /// <https://www.w3.org/TR/clipboard-apis/#clipboard-actions>
     fn handle_clipboard_action(&self, event: &ClipboardEvent) -> bool {
         // TODO true if invoked by a script
         let script_triggered = false;

@@ -1449,7 +1449,7 @@ impl Document {
         event.fire(target, can_gc);
     }
 
-    // https://www.w3.org/TR/clipboard-apis/#fire-a-clipboard-event
+    /// <https://www.w3.org/TR/clipboard-apis/#fire-a-clipboard-event>
     pub fn fire_clipboard_event(&self, event_name: ClipboardEventType) {
         // Step 1
         let _clear_was_called = false;
@@ -1520,7 +1520,7 @@ impl Document {
         event.dispatch(target, false);
     }
 
-    // https://www.w3.org/TR/clipboard-apis/#write-content-to-the-clipboard
+    /// <https://www.w3.org/TR/clipboard-apis/#write-content-to-the-clipboard>
     pub fn write_content_to_the_clipboard(
         &self,
         items: DomRoot<DataTransferItemList>,
