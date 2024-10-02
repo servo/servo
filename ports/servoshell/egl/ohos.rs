@@ -103,6 +103,7 @@ enum ServoAction {
 // Todo: Need to check if OnceLock is suitable, or if the TS function can be destroyed, e.g.
 // if the activity gets suspended.
 static SET_URL_BAR_CB: OnceLock<ThreadsafeFunction<String, ErrorStrategy::Fatal>> = OnceLock::new();
+static PROMPT_TOAST: OnceLock<ThreadsafeFunction<String, ErrorStrategy::Fatal>> = OnceLock::new();
 
 impl ServoAction {
     fn dispatch_touch_event(
@@ -448,6 +449,24 @@ pub fn register_url_callback(cb: JsFunction) -> napi_ohos::Result<()> {
 }
 
 #[napi]
+pub fn register_prompt_toast_callback(cb: JsFunction) -> napi_ohos::Result<()> {
+    debug!("register_prompt_toast_callback called!");
+    let tsfn: ThreadsafeFunction<String, ErrorStrategy::Fatal> =
+        cb.create_threadsafe_function(4, |ctx| {
+            let s = ctx
+                .env
+                .create_string_from_std(ctx.value)
+                .inspect_err(|e| error!("Failed to create JsString: {e:?}"))?;
+            Ok(vec![s])
+        })?;
+    // We ignore any error for now - but probably we should propagate it back to the TS layer.
+    let _ = PROMPT_TOAST
+        .set(tsfn)
+        .inspect_err(|_| error!("Failed to set prompt toast callback."));
+    Ok(())
+}
+
+#[napi]
 pub fn init_servo(init_opts: InitOpts) -> napi_ohos::Result<()> {
     info!("Servo is being initialised with the following Options: ");
     info!(
@@ -513,8 +532,13 @@ impl HostCallbacks {
 
 #[allow(unused)]
 impl HostTrait for HostCallbacks {
-    fn prompt_alert(&self, msg: String, trusted: bool) {
-        warn!("prompt_alert not implemented. Cancelled. {}", msg);
+    fn prompt_alert(&self, msg: String, _trusted: bool) {
+        debug!("prompt_alert: {}", &msg);
+        if let Some(prompt_fn) = PROMPT_TOAST.get() {
+            prompt_fn.call(msg, ThreadsafeFunctionCallMode::Blocking);
+        } else {
+            error!("PROMPT_TOAST not set. Dropping msg {msg}");
+        }
     }
 
     fn prompt_yes_no(&self, msg: String, trusted: bool) -> PromptResult {
@@ -621,5 +645,7 @@ impl HostTrait for HostCallbacks {
         if let Some(bt) = backtrace {
             error!("Backtrace: {bt:?}")
         }
+        self.prompt_alert("Servo crashed!".to_string(), true);
+        self.prompt_alert(reason, true);
     }
 }

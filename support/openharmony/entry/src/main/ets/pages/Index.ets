@@ -1,12 +1,14 @@
 import { common } from '@kit.AbilityKit';
 import display from '@ohos.display';
 import deviceInfo from '@ohos.deviceInfo';
+import promptAction from '@ohos.promptAction';
 
 interface ServoXComponentInterface {
   loadURL(url: string): void;
   goBack(): void;
   goForward(): void;
   registerURLcallback(callback: (url: string) => void): void;
+  registerPromptToastCallback(callback: (msg: string) => void): void
   initServo(options: InitOpts): void;
 }
 
@@ -38,6 +40,13 @@ function get_device_type(): string {
     console.info("Device type is " + device_type)
   }
   return device_type;
+}
+
+function prompt_toast(msg: string) {
+    promptAction.showToast({
+      message: msg,
+      duration: 2000
+    });
 }
 
 // Use the getShared API to obtain the LocalStorage instance shared by stage.
@@ -107,6 +116,7 @@ struct Index {
             console.info('New URL from native: ', new_url)
             this.urlToLoad = new_url
           })
+          this.xComponentContext.registerPromptToastCallback(prompt_toast)
         })
     }
     .width('100%')
