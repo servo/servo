@@ -14,7 +14,7 @@ use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue}
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStrategy;
 use crate::dom::bindings::codegen::Bindings::ReadableStreamBinding::{
-    ReadableStreamGetReaderOptions, ReadableStreamMethods,
+    ReadableStreamGetReaderOptions, ReadableStreamMethods, ReadableStreamType,
 };
 use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultReaderBinding::ReadableStreamDefaultReaderMethods;
 use crate::dom::bindings::codegen::Bindings::UnderlyingSourceBinding::UnderlyingSource as JsUnderlyingSource;
@@ -33,7 +33,7 @@ use crate::dom::countqueuingstrategy::{extract_high_water_mark, extract_size_alg
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::readablebytestreamcontroller::ReadableByteStreamController;
-use crate::dom::readablestreambyobreader::ReadableStreamBYOBReader;
+use crate::dom::readablestreambyobreader::{ReadIntoRequest, ReadableStreamBYOBReader};
 use crate::dom::readablestreamdefaultcontroller::ReadableStreamDefaultController;
 use crate::dom::readablestreamdefaultreader::{ReadRequest, ReadableStreamDefaultReader};
 use crate::dom::underlyingsourcecontainer::UnderlyingSourceType;
@@ -122,9 +122,31 @@ impl ReadableStream {
             JsUnderlyingSource::empty()
         };
 
-        let controller = if underlying_source_dict.type_.is_some() {
-            // TODO: If underlyingSourceDict["type"] is "bytes"
-            todo!()
+        if underlying_source_dict.type_.is_some() {
+            // If strategy["size"] exists, throw a RangeError exception
+            if strategy.size.is_some() {
+                return Err(Error::Range(
+                    "Size is not allowed for byte streams.".to_string(),
+                ));
+            }
+
+            // Let highWaterMark be ? ExtractHighWaterMark(strategy, 0).
+            let high_water_mark = extract_high_water_mark(strategy, 0.0)?;
+
+            // Perform ? SetUpReadableByteStreamControllerFromUnderlyingSource
+            let controller = ReadableByteStreamController::new(
+                global,
+                UnderlyingSourceType::Js(underlying_source_dict),
+                high_water_mark,
+            );
+
+            // Perform ! InitializeReadableStream(this).
+            // Note: in the spec this step is done before
+            // SetUpReadableStreamDefaultControllerFromUnderlyingSource
+            Ok(ReadableStream::new(
+                global,
+                Controller::ReadableByteStreamController(controller),
+            ))
         } else {
             // Let highWaterMark be ? ExtractHighWaterMark(strategy, 1).
             let high_water_mark = extract_high_water_mark(strategy, 1.0)?;
@@ -133,21 +155,21 @@ impl ReadableStream {
             let size_algorithm = extract_size_algorithm(strategy);
 
             // Perform ? SetUpReadableStreamDefaultControllerFromUnderlyingSource
-            ReadableStreamDefaultController::new(
+            let controller = ReadableStreamDefaultController::new(
                 global,
                 UnderlyingSourceType::Js(underlying_source_dict),
                 high_water_mark,
                 size_algorithm,
-            )
-        };
+            );
 
-        // Perform ! InitializeReadableStream(this).
-        // Note: in the spec this step is done before
-        // SetUpReadableStreamDefaultControllerFromUnderlyingSource
-        Ok(ReadableStream::new(
-            global,
-            Controller::ReadableStreamDefaultController(controller),
-        ))
+            // Perform ! InitializeReadableStream(this).
+            // Note: in the spec this step is done before
+            // SetUpReadableStreamDefaultControllerFromUnderlyingSource
+            Ok(ReadableStream::new(
+                global,
+                Controller::ReadableStreamDefaultController(controller),
+            ))
+        }
     }
 
     #[allow(crown::unrooted_must_root)]
@@ -247,6 +269,19 @@ impl ReadableStream {
                 reader.add_read_request(read_request);
             },
             _ => unreachable!("Adding a read request can only be done on a default reader."),
+        }
+    }
+
+    /// <https://streams.spec.whatwg.org/#readable-stream-add-read-into-request>
+    pub fn add_read_into_request(&self, read_into_request: ReadIntoRequest) {
+        match self.reader {
+            ReaderType::BYOB(ref reader) => {
+                let Some(reader) = reader.get() else {
+                    panic!("Attempt to add a read into request without having first acquired a reader.");
+                };
+                reader.add_read_into_request(read_into_request);
+            },
+            _ => unreachable!("Adding a read into request can only be done on a BYOB reader."),
         }
     }
 
@@ -424,6 +459,22 @@ impl ReadableStream {
         }
     }
 
+    /// <https://streams.spec.whatwg.org/#readable-stream-get-num-read-into-requests>
+    pub fn get_num_read_into_requests(&self) -> usize {
+        assert!(self.has_default_reader());
+        match self.reader {
+            ReaderType::BYOB(ref reader) => {
+                let reader = reader.get().expect(
+                    "Stream must have a reader when get num read into requests is called into.",
+                );
+                reader.get_num_read_into_requests()
+            },
+            _ => unreachable!(
+                "Stream must have a BYOB reader when get num read into requests is called into."
+            ),
+        }
+    }
+
     /// <https://streams.spec.whatwg.org/#readable-stream-fulfill-read-request>
     #[allow(unsafe_code)]
     pub fn fulfill_read_request(&self, chunk: SafeHandleValue, done: bool) {
@@ -433,7 +484,7 @@ impl ReadableStream {
                 let reader = reader
                     .get()
                     .expect("Stream must have a reader when a read request is fulfilled.");
-                let request = reader.remove_read_request();
+                let request: ReadRequest = reader.remove_read_request();
                 if !done {
                     let cx = GlobalScope::get_cx();
                     rooted!(in(*cx) let mut rval = UndefinedValue());
@@ -450,16 +501,51 @@ impl ReadableStream {
         }
     }
 
+    /// <https://streams.spec.whatwg.org/#readable-stream-fulfill-read-into-request>
+    pub fn fulfill_read_into_request(&self, chunk: SafeHandleValue, done: bool) {
+        assert!(self.has_default_reader());
+        match self.reader {
+            ReaderType::BYOB(ref reader) => {
+                let reader = reader
+                    .get()
+                    .expect("Stream must have a reader when a read into request is fulfilled.");
+                let request: ReadIntoRequest = reader.remove_read_into_request();
+
+                let result = RootedTraceableBox::new(Heap::default());
+                result.set(*chunk);
+
+                if !done {
+                    request.chunk_steps(result);
+                } else {
+                    request.close_steps(Some(result));
+                }
+            },
+            _ => unreachable!(
+                "Stream must have a BYOB reader when fulfill read into requests is called into."
+            ),
+        }
+    }
+
     /// <https://streams.spec.whatwg.org/#readable-stream-close>
     pub fn close(&self) {
+        // step 1
+        assert!(self.is_readable());
+
+        // step 2
         self.state.set(ReadableStreamState::Closed);
+
         match self.reader {
             ReaderType::Default(ref reader) => {
                 if let Some(reader) = reader.get() {
                     reader.close();
                 }
             },
-            ReaderType::BYOB(ref reader) => todo!(),
+            ReaderType::BYOB(ref reader) => {
+                if let Some(reader) = reader.get() {
+                    // step 5
+                    reader.close();
+                }
+            },
         }
     }
 
@@ -520,7 +606,12 @@ impl ReadableStreamMethods for ReadableStream {
                     reader.get().unwrap(),
                 ));
             },
-            _ => todo!(),
+            ReaderType::BYOB(ref reader) => {
+                reader.set(Some(&*ReadableStreamBYOBReader::new(&*self.global(), self)));
+                return Ok(ReadableStreamReader::ReadableStreamBYOBReader(
+                    reader.get().unwrap(),
+                ));
+            },
         }
     }
 }
