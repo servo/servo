@@ -93,9 +93,9 @@ impl Actor for StyleRuleActor {
     /// The style rule configuration actor can handle the following messages:
     ///
     /// - `setRuleText`: Applies a set of modifications to the css rules that this actor manages.
-    /// There is also `modifyProperties`, which has a slightly different API to do the same, but
-    /// this is preferred. Which one the devtools client sends is decided by the `traits` defined
-    /// when returning the list of rules.
+    ///   There is also `modifyProperties`, which has a slightly different API to do the same, but
+    ///   this is preferred. Which one the devtools client sends is decided by the `traits` defined
+    ///   when returning the list of rules.
     fn handle_message(
         &self,
         registry: &ActorRegistry,
