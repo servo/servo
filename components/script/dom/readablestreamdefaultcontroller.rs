@@ -18,10 +18,12 @@ use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultControllerBinding::ReadableStreamDefaultControllerMethods;
 use crate::dom::bindings::import::module::UnionTypes::ReadableStreamDefaultControllerOrReadableByteStreamController as Controller;
 use crate::dom::bindings::import::module::{Error, Fallible};
+use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::readablestream::{ReadableStream, ReadableStreamState};
 use crate::dom::readablestreamdefaultreader::ReadRequest;
@@ -35,14 +37,27 @@ use crate::script_runtime::{JSContext, JSContext as SafeJSContext};
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 #[allow(crown::unrooted_must_root)]
 struct PullAlgorithmFulfillmentHandler {
-    // TODO: check the validity of using Dom here.
-    controller: Dom<ReadableStreamDefaultController>,
+    #[ignore_malloc_size_of = "Trusted are hard"]
+    controller: Trusted<ReadableStreamDefaultController>,
 }
 
 impl Callback for PullAlgorithmFulfillmentHandler {
-    /// Handle fufillment of pull algo promise.
+    /// Continuation of <https://streams.spec.whatwg.org/#readable-stream-default-controller-call-pull-if-needed>
+    /// Upon fulfillment of pullPromise
     fn callback(&self, _cx: JSContext, _v: HandleValue, _realm: InRealm) {
-        todo!();
+        let controller = self.controller.root();
+
+        // Set controller.[[pulling]] to false.
+        controller.pulling.set(false);
+
+        // If controller.[[pullAgain]] is true,
+        if controller.pull_again.get() {
+            // Set controller.[[pullAgain]] to false.
+            controller.pull_again.set(false);
+
+            // Perform ! ReadableStreamDefaultControllerCallPullIfNeeded(controller).
+            controller.call_pull_if_needed();
+        }
     }
 }
 
@@ -51,14 +66,18 @@ impl Callback for PullAlgorithmFulfillmentHandler {
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 #[allow(crown::unrooted_must_root)]
 struct PullAlgorithmRejectionHandler {
-    // TODO: check the validity of using Dom here.
-    controller: Dom<ReadableStreamDefaultController>,
+    #[ignore_malloc_size_of = "Trusted are hard"]
+    controller: Trusted<ReadableStreamDefaultController>,
 }
 
 impl Callback for PullAlgorithmRejectionHandler {
-    /// Handle rejection of pull algo promise.
-    fn callback(&self, _cx: JSContext, _v: HandleValue, _realm: InRealm) {
-        todo!();
+    /// Continuation of <https://streams.spec.whatwg.org/#readable-stream-default-controller-call-pull-if-needed>
+    /// Upon rejection of pullPromise with reason e.
+    fn callback(&self, _cx: JSContext, v: HandleValue, _realm: InRealm) {
+        let controller = self.controller.root();
+
+        // Perform ! ReadableStreamDefaultControllerError(controller, e).
+        controller.error(v);
     }
 }
 
@@ -67,14 +86,21 @@ impl Callback for PullAlgorithmRejectionHandler {
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 #[allow(crown::unrooted_must_root)]
 struct StartAlgorithmFulfillmentHandler {
-    // TODO: check the validity of using Dom here.
-    controller: Dom<ReadableStreamDefaultController>,
+    #[ignore_malloc_size_of = "Trusted are hard"]
+    controller: Trusted<ReadableStreamDefaultController>,
 }
 
 impl Callback for StartAlgorithmFulfillmentHandler {
-    /// Handle fufillment of pull algo promise.
+    /// Continuation of <https://streams.spec.whatwg.org/#set-up-readable-stream-default-controller>
+    /// Upon fulfillment of startPromise,
     fn callback(&self, _cx: JSContext, _v: HandleValue, _realm: InRealm) {
-        todo!();
+        let controller = self.controller.root();
+
+        // Set controller.[[started]] to true.
+        controller.started.set(true);
+
+        // Perform ! ReadableStreamDefaultControllerCallPullIfNeeded(controller).
+        controller.call_pull_if_needed();
     }
 }
 
@@ -83,14 +109,18 @@ impl Callback for StartAlgorithmFulfillmentHandler {
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 #[allow(crown::unrooted_must_root)]
 struct StartAlgorithmRejectionHandler {
-    // TODO: check the validity of using Dom here.
-    controller: Dom<ReadableStreamDefaultController>,
+    #[ignore_malloc_size_of = "Trusted are hard"]
+    controller: Trusted<ReadableStreamDefaultController>,
 }
 
 impl Callback for StartAlgorithmRejectionHandler {
-    /// Handle rejection of pull algo promise.
-    fn callback(&self, _cx: JSContext, _v: HandleValue, _realm: InRealm) {
-        todo!();
+    /// Continuation of <https://streams.spec.whatwg.org/#set-up-readable-stream-default-controller>
+    /// Upon rejection of startPromise with reason r,
+    fn callback(&self, _cx: JSContext, v: HandleValue, _realm: InRealm) {
+        let controller = self.controller.root();
+
+        // Perform ! ReadableStreamDefaultControllerError(controller, r).
+        controller.error(v);
     }
 }
 
@@ -207,6 +237,12 @@ pub struct ReadableStreamDefaultController {
 
     /// <https://streams.spec.whatwg.org/#readablestreamdefaultcontroller-started>
     started: Cell<bool>,
+
+    /// <https://streams.spec.whatwg.org/#readablestreamdefaultcontroller-pulling>
+    pulling: Cell<bool>,
+
+    /// <https://streams.spec.whatwg.org/#readablestreamdefaultcontroller-pullagain>
+    pull_again: Cell<bool>,
 }
 
 impl ReadableStreamDefaultController {
@@ -228,8 +264,9 @@ impl ReadableStreamDefaultController {
             strategy_hwm,
             strategy_size: RefCell::new(Some(strategy_size)),
             close_requested: Default::default(),
-            // TODO: set to true when start algo promise resolves.
             started: Default::default(),
+            pulling: Default::default(),
+            pull_again: Default::default(),
         }
     }
     pub fn new(
@@ -249,14 +286,11 @@ impl ReadableStreamDefaultController {
         );
 
         if let Some(underlying_source) = rooted_default_controller.underlying_source.get() {
-            let promise = underlying_source.call_start_algorithm(
-                Controller::ReadableStreamDefaultController(rooted_default_controller.clone()),
-            );
             let fulfillment_handler = Box::new(StartAlgorithmFulfillmentHandler {
-                controller: Dom::from_ref(&*rooted_default_controller),
+                controller: Trusted::new(&*rooted_default_controller),
             });
             let rejection_handler = Box::new(StartAlgorithmRejectionHandler {
-                controller: Dom::from_ref(&*rooted_default_controller),
+                controller: Trusted::new(&*rooted_default_controller),
             });
             let handler = PromiseNativeHandler::new(
                 &global,
@@ -266,7 +300,15 @@ impl ReadableStreamDefaultController {
 
             let realm = enter_realm(&*global);
             let comp = InRealm::Entered(&realm);
-            promise.append_native_handler(&handler, comp);
+            if let Some(promise) = underlying_source.call_start_algorithm(
+                Controller::ReadableStreamDefaultController(rooted_default_controller.clone()),
+            ) {
+                promise.append_native_handler(&handler, comp);
+            } else {
+                let promise = Promise::new(&*global);
+                promise.append_native_handler(&handler, comp);
+                promise.resolve_native(&());
+            }
         };
 
         rooted_default_controller
@@ -322,6 +364,19 @@ impl ReadableStreamDefaultController {
             return;
         }
 
+        // If controller.[[pulling]] is true,
+        if self.pulling.get() {
+            // Set controller.[[pullAgain]] to true.
+            self.pull_again.set(true);
+
+            return;
+        }
+
+        // Set controller.[[pulling]] to true.
+        self.pulling.set(true);
+
+        // Let pullPromise be the result of performing controller.[[pullAlgorithm]].
+        // Continues into the resolve and reject handling of the native handler.
         let global = self.global();
         let rooted_default_controller = DomRoot::from_ref(self);
         let controller =
@@ -331,22 +386,23 @@ impl ReadableStreamDefaultController {
             return;
         };
 
-        if let Some(promise) = underlying_source.call_pull_algorithm(controller) {
-            let fulfillment_handler = Box::new(PullAlgorithmFulfillmentHandler {
-                controller: Dom::from_ref(&*rooted_default_controller),
-            });
-            let rejection_handler = Box::new(PullAlgorithmRejectionHandler {
-                controller: Dom::from_ref(&*rooted_default_controller),
-            });
-            let handler = PromiseNativeHandler::new(
-                &global,
-                Some(fulfillment_handler),
-                Some(rejection_handler),
-            );
+        let fulfillment_handler = Box::new(PullAlgorithmFulfillmentHandler {
+            controller: Trusted::new(&*rooted_default_controller),
+        });
+        let rejection_handler = Box::new(PullAlgorithmRejectionHandler {
+            controller: Trusted::new(&*rooted_default_controller),
+        });
+        let handler =
+            PromiseNativeHandler::new(&global, Some(fulfillment_handler), Some(rejection_handler));
 
-            let realm = enter_realm(&*global);
-            let comp = InRealm::Entered(&realm);
+        let realm = enter_realm(&*global);
+        let comp = InRealm::Entered(&realm);
+        if let Some(promise) = underlying_source.call_pull_algorithm(controller) {
             promise.append_native_handler(&handler, comp);
+        } else {
+            let promise = Promise::new(&*global);
+            promise.append_native_handler(&handler, comp);
+            promise.resolve_native(&());
         }
     }
 
