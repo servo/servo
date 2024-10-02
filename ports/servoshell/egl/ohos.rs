@@ -565,7 +565,7 @@ impl HostTrait for HostCallbacks {
     }
 
     fn on_load_ended(&self) {
-        warn!("on_load_ended not implemented")
+        self.prompt_alert("Page finished loading!".to_string(), true);
     }
 
     fn on_title_changed(&self, title: Option<String>) {
