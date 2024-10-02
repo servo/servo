@@ -51,6 +51,7 @@ pub struct InitOpts {
     /// Path to application data bundled with the servo app, e.g. web-pages.
     pub resource_dir: String,
     pub display_density: f64,
+    pub commandline_args: String,
 }
 
 #[derive(Debug)]

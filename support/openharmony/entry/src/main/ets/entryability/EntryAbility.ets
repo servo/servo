@@ -5,8 +5,29 @@ import Want from '@ohos.app.ability.Want';
 import window from '@ohos.window';
 
 export default class EntryAbility extends UIAbility {
+  init_params: LocalStorage = new LocalStorage();
   onCreate(want: Want, launchParam: AbilityConstant.LaunchParam) {
-    hilog.info(0x0000, 'testTag', '%{public}s', 'Ability onCreate');
+    let uri: string = want.uri || "https://servo.org"
+    let params: string[] = []
+    if (typeof want.parameters !== "undefined") {
+      Object.entries(want.parameters).forEach((entry) => {
+        let key = entry[0]
+        // Skip some default parameters, since servo is not interested in those
+        if (key.startsWith("ohos.")
+          || key.startsWith("component.")
+          || key === "isCallBySCB"
+          || key === "moduleName"
+        ) {
+          return
+        }
+        let value = entry[1]
+        params.push("--" + key + "=" + value.toString())
+      })
+    }
+    let servoshell_params = params.join("\u{001f}")
+    hilog.debug(0x0000, 'Servo EntryAbility', 'Servoshell parameters: %{public}s', servoshell_params);
+    this.init_params.setOrCreate('InitialURI', uri)
+    this.init_params.setOrCreate('CommandlineArgs', servoshell_params)
   }
 
   onDestroy() {
@@ -17,7 +38,7 @@ export default class EntryAbility extends UIAbility {
     // Main window is created, set main page for this ability
     hilog.info(0x0000, 'testTag', '%{public}s', 'Ability onWindowStageCreate');
 
-    windowStage.loadContent('pages/Index', (err, data) => {
+    windowStage.loadContent('pages/Index', this.init_params, (err, data) => {
       if (err.code) {
         hilog.error(0x0000, 'testTag', 'Failed to load the content. Cause: %{public}s', JSON.stringify(err) ?? '');
         return;
