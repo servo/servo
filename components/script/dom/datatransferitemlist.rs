@@ -162,14 +162,14 @@ impl DataTransferItemList {
 }
 
 impl DataTransferItemListMethods for DataTransferItemList {
-    // https://html.spec.whatwg.org/multipage/#dom-datatransferitemlist-length
+    /// <https://html.spec.whatwg.org/multipage/#dom-datatransferitemlist-length>
     fn Length(&self) -> u32 {
         self.data_transfer
             .root()
             .map_or(0, |_| self.items.borrow().len() as u32)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-datatransferitemlist-add
+    /// <https://html.spec.whatwg.org/multipage/#dom-datatransferitemlist-add>
     fn Add(
         &self,
         data: DOMString,
@@ -197,7 +197,7 @@ impl DataTransferItemListMethods for DataTransferItemList {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-datatransferitemlist-add
+    /// <https://html.spec.whatwg.org/multipage/#dom-datatransferitemlist-add>
     fn Add_(&self, data: &File) -> Fallible<Option<DomRoot<DataTransferItem>>> {
         if self.has_write_permission() {
             let mut type_ = data.file_type();
@@ -217,7 +217,7 @@ impl DataTransferItemListMethods for DataTransferItemList {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-datatransferitemlist-remove
+    /// <https://html.spec.whatwg.org/multipage/#dom-datatransferitemlist-remove>
     fn Remove(&self, index: u32) -> Fallible<()> {
         if self.has_write_permission() {
             if (index as usize) < self.items.borrow().len() {
@@ -229,14 +229,14 @@ impl DataTransferItemListMethods for DataTransferItemList {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-datatransferitemlist-clear
+    /// <https://html.spec.whatwg.org/multipage/#dom-datatransferitemlist-clear>
     fn Clear(&self) {
         if self.has_write_permission() {
             self.items.borrow_mut().clear();
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-datatransferitemlist-item
+    /// <https://html.spec.whatwg.org/multipage/#dom-datatransferitemlist-item>
     fn IndexedGetter(&self, index: u32) -> Option<DomRoot<DataTransferItem>> {
         self.data_transfer
             .root()

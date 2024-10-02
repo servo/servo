@@ -88,12 +88,12 @@ impl DataTransfer {
 }
 
 impl DataTransferMethods for DataTransfer {
-    // https://html.spec.whatwg.org/multipage/#dom-datatransfer-dropeffect
+    /// <https://html.spec.whatwg.org/multipage/#dom-datatransfer-dropeffect>
     fn DropEffect(&self) -> DOMString {
         self.drop_effect.borrow().clone()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-datatransfer-dropeffect
+    /// <https://html.spec.whatwg.org/multipage/#dom-datatransfer-dropeffect>
     fn SetDropEffect(&self, value: DOMString) {
         match value.as_ref() {
             "none" | "copy" | "link" | "move" => *self.drop_effect.borrow_mut() = value,
@@ -101,12 +101,12 @@ impl DataTransferMethods for DataTransfer {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-datatransfer-effectallowed
+    /// <https://html.spec.whatwg.org/multipage/#dom-datatransfer-effectallowed>
     fn EffectAllowed(&self) -> DOMString {
         self.effect_allowed.borrow().clone()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-datatransfer-effectallowed
+    /// <https://html.spec.whatwg.org/multipage/#dom-datatransfer-effectallowed>
     fn SetEffectAllowed(&self, value: DOMString) {
         if self.can_write() {
             match value.as_ref() {
@@ -117,32 +117,32 @@ impl DataTransferMethods for DataTransfer {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-datatransfer-items
+    /// <https://html.spec.whatwg.org/multipage/#dom-datatransfer-items>
     fn Items(&self) -> DomRoot<DataTransferItemList> {
         DomRoot::from_ref(&self.items)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-datatransfer-setdragimage
+    /// <https://html.spec.whatwg.org/multipage/#dom-datatransfer-setdragimage>
     fn SetDragImage(&self, image: &Element, x: i32, y: i32) {
         todo!()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-datatransfer-getdata
+    /// <https://html.spec.whatwg.org/multipage/#dom-datatransfer-getdata>
     fn GetData(&self, format: DOMString) -> DOMString {
         self.items.get_data(format)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-datatransfer-setdata
+    /// <https://html.spec.whatwg.org/multipage/#dom-datatransfer-setdata>
     fn SetData(&self, format: DOMString, data: DOMString) {
         self.items.set_data(format, data);
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-datatransfer-cleardata
+    /// <https://html.spec.whatwg.org/multipage/#dom-datatransfer-cleardata>
     fn ClearData(&self, format: Option<DOMString>) {
         self.items.clear_data(format);
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-datatransfer-files
+    /// <https://html.spec.whatwg.org/multipage/#dom-datatransfer-files>
     fn Files(&self) -> DomRoot<FileList> {
         FileList::new(&self.global().as_window(), self.items.files())
     }
