@@ -91,7 +91,7 @@ impl DataTransferItem {
 }
 
 impl DataTransferItemMethods for DataTransferItem {
-    // https://html.spec.whatwg.org/multipage/#dom-datatransferitem-kind
+    /// <https://html.spec.whatwg.org/multipage/#dom-datatransferitem-kind>
     fn Kind(&self) -> DOMString {
         self.data_transfer
             .root()
@@ -101,14 +101,14 @@ impl DataTransferItemMethods for DataTransferItem {
             })
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-datatransferitem-type
+    /// <https://html.spec.whatwg.org/multipage/#dom-datatransferitem-type>
     fn Type(&self) -> DOMString {
         self.data_transfer
             .root()
             .map_or(DOMString::from(""), |_| self.type_.borrow().clone())
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-datatransferitem-getasstring
+    /// <https://html.spec.whatwg.org/multipage/#dom-datatransferitem-getasstring>
     fn GetAsString(&self, callback: Option<Rc<FunctionStringCallback>>) {
         if let Some(callback) = callback {
             if self
@@ -123,7 +123,7 @@ impl DataTransferItemMethods for DataTransferItem {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-datatransferitem-getasfile
+    /// <https://html.spec.whatwg.org/multipage/#dom-datatransferitem-getasfile>
     fn GetAsFile(&self) -> Option<DomRoot<File>> {
         if self
             .data_transfer
