@@ -278,13 +278,10 @@ impl Stream for BodyStream {
                         .and_then(|e| e.downcast_ref::<io::Error>())
                         .map_or(false, |e| e.kind() == io::ErrorKind::UnexpectedEof);
                     if is_unexpected_eof {
-                        Poll::Ready(None)
-                    } else {
-                        Poll::Ready(Some(Err(io::Error::new(io::ErrorKind::Other, err))))
+                        return Poll::Ready(None);
                     }
-                } else {
-                    Poll::Ready(Some(Err(io::Error::new(io::ErrorKind::Other, err))))
                 }
+                Poll::Ready(Some(Err(io::Error::new(io::ErrorKind::Other, err))))
             },
             None => Poll::Ready(None),
         }
