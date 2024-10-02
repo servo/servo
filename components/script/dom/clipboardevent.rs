@@ -85,12 +85,12 @@ impl ClipboardEvent {
 }
 
 impl ClipboardEventMethods for ClipboardEvent {
-    // https://www.w3.org/TR/clipboard-apis/#dom-clipboardevent-clipboarddata
+    /// <https://www.w3.org/TR/clipboard-apis/#dom-clipboardevent-clipboarddata>
     fn GetClipboardData(&self) -> Option<DomRoot<DataTransfer>> {
         self.clipboard_data.get()
     }
 
-    // https://dom.spec.whatwg.org/#dom-event-istrusted
+    /// <https://dom.spec.whatwg.org/#dom-event-istrusted>
     fn IsTrusted(&self) -> bool {
         self.event.IsTrusted()
     }
