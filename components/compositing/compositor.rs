@@ -610,7 +610,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 let _ = sender.send(());
             },
 
-            CompositorMsg::NewWebRenderFrameReady(recomposite_needed) => {
+            CompositorMsg::NewWebRenderFrameReady(_document_id, recomposite_needed) => {
                 self.pending_frames -= 1;
 
                 if recomposite_needed {
@@ -991,7 +991,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     );
                 }
             },
-            CompositorMsg::NewWebRenderFrameReady(_) => {
+            CompositorMsg::NewWebRenderFrameReady(..) => {
                 // Subtract from the number of pending frames, but do not do any compositing.
                 self.pending_frames -= 1;
             },
@@ -2378,12 +2378,12 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         let mut found_recomposite_msg = false;
         while let Some(msg) = self.port.try_recv_compositor_msg() {
             match msg {
-                CompositorMsg::NewWebRenderFrameReady(_) if found_recomposite_msg => {
+                CompositorMsg::NewWebRenderFrameReady(..) if found_recomposite_msg => {
                     // Only take one of duplicate NewWebRendeFrameReady messages, but do subtract
                     // one frame from the pending frames.
                     self.pending_frames -= 1;
                 },
-                CompositorMsg::NewWebRenderFrameReady(_) => {
+                CompositorMsg::NewWebRenderFrameReady(..) => {
                     found_recomposite_msg = true;
                     compositor_messages.push(msg)
                 },
@@ -2437,7 +2437,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     pub fn repaint_synchronously(&mut self) {
         while self.shutdown_state != ShutdownState::ShuttingDown {
             let msg = self.port.recv_compositor_msg();
-            let need_recomposite = matches!(msg, CompositorMsg::NewWebRenderFrameReady(_));
+            let need_recomposite = matches!(msg, CompositorMsg::NewWebRenderFrameReady(..));
             let keep_going = self.handle_browser_message(msg);
             if need_recomposite {
                 self.composite();
