@@ -305,7 +305,7 @@ impl FontContext {
                 font.descriptor.pt_size,
                 font.webrender_font_instance_flags(),
             ),
-        };
+        }
     }
 
     pub(crate) fn create_web_font_instance(
