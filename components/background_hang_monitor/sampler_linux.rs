@@ -207,12 +207,7 @@ impl Sampler for LinuxSampler {
         let result;
         {
             let shared_state = unsafe { &*SHARED_STATE.0.get() };
-            shared_state
-                .msg2
-                .as_ref()
-                .unwrap()
-                .wait_through_intr()
-                .expect("msg2 failed");
+            wait_semaphore(&shared_state.msg2, "msg2")?;
 
             let context = CONTEXT.load(Ordering::SeqCst);
             let mut cursor = mem::MaybeUninit::uninit();
@@ -243,20 +238,10 @@ impl Sampler for LinuxSampler {
             };
 
             // signal the thread to continue.
-            shared_state
-                .msg3
-                .as_ref()
-                .unwrap()
-                .post()
-                .expect("msg3 failed");
+            post_semaphore(&shared_state.msg3, "msg3")?;
 
             // wait for thread to continue.
-            shared_state
-                .msg4
-                .as_ref()
-                .unwrap()
-                .wait_through_intr()
-                .expect("msg4 failed");
+            wait_semaphore(&shared_state.msg4, "msg4")?;
         }
 
         clear_shared_state();
@@ -307,4 +292,12 @@ fn send_sigprof(to: libc::pid_t) {
     unsafe {
         libc::syscall(libc::SYS_tgkill, process::id(), to, libc::SIGPROF);
     }
+}
+
+fn post_semaphore(semaphore: &Option<PosixSemaphore>, name: &str) -> io::Result<()> {
+    semaphore.as_ref().expect(&format!("{} semaphore missing", name)).post()
+}
+
+fn wait_semaphore(semaphore: &Option<PosixSemaphore>, name: &str) -> io::Result<()> {
+    semaphore.as_ref().expect(&format!("{} semaphore missing", name)).wait_through_intr()
 }
