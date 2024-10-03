@@ -2694,7 +2694,7 @@ class CGAbstractMethod(CGThing):
     """
     def __init__(self, descriptor, name, returnType, args, inline=False,
                  alwaysInline=False, extern=False, unsafe=False, pub=False,
-                 templateArgs=None, docs=None, doesNotPanic=False):
+                 templateArgs=None, docs=None, doesNotPanic=False, extra_decorators=[]):
         CGThing.__init__(self)
         self.descriptor = descriptor
         self.name = name
@@ -2707,6 +2707,7 @@ class CGAbstractMethod(CGThing):
         self.pub = pub
         self.docs = docs
         self.catchPanic = self.extern and not doesNotPanic
+        self.extra_decorators = extra_decorators
 
     def _argstring(self):
         return ', '.join([a.declare() for a in self.args])
@@ -2727,6 +2728,8 @@ class CGAbstractMethod(CGThing):
         decorators = []
         if self.alwaysInline:
             decorators.append('#[inline]')
+
+        decorators.extend(self.extra_decorators)
 
         if self.pub:
             decorators.append('pub')
@@ -2904,7 +2907,7 @@ class CGWrapMethod(CGAbstractMethod):
                 Argument('CanGc', '_can_gc')]
         retval = f'DomRoot<{descriptor.concreteType}>'
         CGAbstractMethod.__init__(self, descriptor, 'Wrap', retval, args,
-                                  pub=True, unsafe=True)
+                                  pub=True, unsafe=True, extra_decorators=['#[allow(crown::unrooted_must_root)]'])
 
     def definition_body(self):
         unforgeable = CopyLegacyUnforgeablePropertiesToInstance(self.descriptor)
@@ -2996,7 +2999,7 @@ class CGWrapGlobalMethod(CGAbstractMethod):
                 Argument(f"Box<{descriptor.concreteType}>", 'object')]
         retval = f'DomRoot<{descriptor.concreteType}>'
         CGAbstractMethod.__init__(self, descriptor, 'Wrap', retval, args,
-                                  pub=True, unsafe=True)
+                                  pub=True, unsafe=True, extra_decorators=['#[allow(crown::unrooted_must_root)]'])
         self.properties = properties
 
     def definition_body(self):
@@ -7249,6 +7252,7 @@ class CGCallback(CGClass):
                          constructors=self.getConstructors(),
                          methods=realMethods,
                          decorators="#[derive(JSTraceable, PartialEq)]\n"
+                                    "#[allow(crown::unrooted_must_root)]\n"
                                     "#[crown::unrooted_must_root_lint::allow_unrooted_interior]")
 
     def getConstructors(self):
