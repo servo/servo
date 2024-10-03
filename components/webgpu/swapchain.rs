@@ -91,8 +91,7 @@ impl WebrenderExternalImageApi for WGPUExternalImages {
         let data = if let Some(present_buffer) = context_data
             .swap_chain
             .as_ref()
-            .map(|swap_chain| swap_chain.data.as_ref())
-            .flatten()
+            .and_then(|swap_chain| swap_chain.data.as_ref())
         {
             present_buffer.slice().to_vec()
         } else {
