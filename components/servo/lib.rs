@@ -28,15 +28,13 @@ pub use base::id::TopLevelBrowsingContextId;
 use base::id::{PipelineNamespace, PipelineNamespaceId};
 use bluetooth::BluetoothThreadFactory;
 use bluetooth_traits::BluetoothRequest;
-use canvas::canvas_paint_thread::{self, CanvasPaintThread};
+use canvas::canvas_paint_thread::CanvasPaintThread;
 use canvas::WebGLComm;
 use canvas_traits::webgl::WebGLThreads;
 use compositing::webview::UnknownWebView;
 use compositing::windowing::{EmbedderEvent, EmbedderMethods, WindowMethods};
 use compositing::{CompositeTarget, IOCompositor, InitialCompositorState, ShutdownState};
-use compositing_traits::{
-    CompositorMsg, CompositorProxy, CompositorReceiver, ConstellationMsg, ForwardedToCompositorMsg,
-};
+use compositing_traits::{CompositorMsg, CompositorProxy, CompositorReceiver, ConstellationMsg};
 #[cfg(all(
     not(target_os = "windows"),
     not(target_os = "ios"),
@@ -66,7 +64,8 @@ use fonts::SystemFontService;
 use gaol::sandbox::{ChildSandbox, ChildSandboxMethods};
 pub use gleam::gl;
 use gleam::gl::RENDERER;
-use ipc_channel::ipc::{self, IpcSender, IpcSharedMemory};
+use ipc_channel::ipc::{self, IpcSender};
+use ipc_channel::router::ROUTER;
 #[cfg(feature = "layout_2013")]
 pub use layout_thread_2013;
 use log::{error, trace, warn, Log, Metadata, Record};
@@ -91,13 +90,10 @@ use surfman::{GLApi, GLVersion};
 use surfman::{NativeConnection, NativeContext};
 use webgpu::swapchain::WGPUImageMap;
 use webrender::{RenderApiSender, ShaderPrecacheFlags, UploadMethod, ONE_TIME_USAGE_HINT};
-use webrender_api::{
-    ColorF, DocumentId, FontInstanceFlags, FontInstanceKey, FontKey, FramePublishId, ImageKey,
-    NativeFontHandle,
-};
+use webrender_api::{ColorF, DocumentId, FramePublishId};
 use webrender_traits::{
-    CanvasToCompositorMsg, FontToCompositorMsg, ImageUpdate, RenderingContext, WebRenderFontApi,
-    WebrenderExternalImageHandlers, WebrenderExternalImageRegistry, WebrenderImageHandlerType,
+    CrossProcessCompositorApi, RenderingContext, WebrenderExternalImageHandlers,
+    WebrenderExternalImageRegistry, WebrenderImageHandlerType,
 };
 pub use {
     background_hang_monitor, base, bluetooth, bluetooth_traits, canvas, canvas_traits, compositing,
@@ -979,9 +975,24 @@ fn create_compositor_channel(
     event_loop_waker: Box<dyn EventLoopWaker>,
 ) -> (CompositorProxy, CompositorReceiver) {
     let (sender, receiver) = unbounded();
+
+    let (compositor_ipc_sender, compositor_ipc_receiver) =
+        ipc::channel().expect("ipc channel failure");
+    let sender_clone = sender.clone();
+    ROUTER.add_route(
+        compositor_ipc_receiver.to_opaque(),
+        Box::new(move |message| {
+            let _ = sender_clone.send(CompositorMsg::CrossProcess(
+                message.to().expect("Could not convert Compositor message"),
+            ));
+        }),
+    );
+    let cross_process_compositor_api = CrossProcessCompositorApi(compositor_ipc_sender);
+
     (
         CompositorProxy {
             sender,
+            cross_process_compositor_api,
             event_loop_waker,
         },
         CompositorReceiver { receiver },
@@ -1043,14 +1054,11 @@ fn create_constellation(
     );
 
     let system_font_service = Arc::new(
-        SystemFontService::spawn(Box::new(WebRenderFontApiCompositorProxy(
-            compositor_proxy.clone(),
-        )))
-        .to_proxy(),
+        SystemFontService::spawn(compositor_proxy.cross_process_compositor_api.clone()).to_proxy(),
     );
 
     let (canvas_create_sender, canvas_ipc_sender) = CanvasPaintThread::start(
-        Box::new(CanvasWebrenderApi(compositor_proxy.clone())),
+        compositor_proxy.cross_process_compositor_api.clone(),
         system_font_service.clone(),
         public_resource_threads.clone(),
     );
@@ -1092,82 +1100,6 @@ fn create_constellation(
         canvas_create_sender,
         canvas_ipc_sender,
     )
-}
-
-struct WebRenderFontApiCompositorProxy(CompositorProxy);
-
-impl WebRenderFontApi for WebRenderFontApiCompositorProxy {
-    fn add_font_instance(
-        &self,
-        font_instance_key: FontInstanceKey,
-        font_key: FontKey,
-        size: f32,
-        flags: FontInstanceFlags,
-    ) {
-        self.0.send(CompositorMsg::Forwarded(
-            ForwardedToCompositorMsg::SystemFontService(FontToCompositorMsg::AddFontInstance(
-                font_instance_key,
-                font_key,
-                size,
-                flags,
-            )),
-        ));
-    }
-
-    fn add_font(&self, font_key: FontKey, data: Arc<IpcSharedMemory>, index: u32) {
-        self.0.send(CompositorMsg::Forwarded(
-            ForwardedToCompositorMsg::SystemFontService(FontToCompositorMsg::AddFont(
-                font_key, index, data,
-            )),
-        ));
-    }
-
-    fn add_system_font(&self, font_key: FontKey, handle: NativeFontHandle) {
-        self.0.send(CompositorMsg::Forwarded(
-            ForwardedToCompositorMsg::SystemFontService(FontToCompositorMsg::AddSystemFont(
-                font_key, handle,
-            )),
-        ));
-    }
-
-    fn fetch_font_keys(
-        &self,
-        number_of_font_keys: usize,
-        number_of_font_instance_keys: usize,
-    ) -> (Vec<FontKey>, Vec<FontInstanceKey>) {
-        let (sender, receiver) = unbounded();
-        self.0.send(CompositorMsg::Forwarded(
-            ForwardedToCompositorMsg::SystemFontService(FontToCompositorMsg::GenerateKeys(
-                number_of_font_keys,
-                number_of_font_instance_keys,
-                sender,
-            )),
-        ));
-        receiver.recv().unwrap()
-    }
-}
-
-#[derive(Clone)]
-struct CanvasWebrenderApi(CompositorProxy);
-
-impl canvas_paint_thread::WebrenderApi for CanvasWebrenderApi {
-    fn generate_key(&self) -> Option<ImageKey> {
-        let (sender, receiver) = unbounded();
-        self.0
-            .send(CompositorMsg::Forwarded(ForwardedToCompositorMsg::Canvas(
-                CanvasToCompositorMsg::GenerateKey(sender),
-            )));
-        receiver.recv().ok()
-    }
-    fn update_images(&self, updates: Vec<ImageUpdate>) {
-        self.0
-            .send(CompositorMsg::Forwarded(ForwardedToCompositorMsg::Canvas(
-                CanvasToCompositorMsg::UpdateImages(updates),
-            )));
-    }
-    fn clone(&self) -> Box<dyn canvas_paint_thread::WebrenderApi> {
-        Box::new(<Self as Clone>::clone(self))
-    }
 }
 
 // A logger that logs to two downstream loggers.

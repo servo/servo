@@ -22,10 +22,10 @@ use style::color::AbsoluteColor;
 use style::properties::style_structs::Font as FontStyleStruct;
 use unicode_script::Script;
 use webrender_api::units::{DeviceIntSize, RectExt as RectExt_};
-use webrender_api::{ImageData, ImageDescriptor, ImageDescriptorFlags, ImageFormat, ImageKey};
-use webrender_traits::ImageUpdate;
+use webrender_api::{ImageDescriptor, ImageDescriptorFlags, ImageFormat, ImageKey};
+use webrender_traits::{CrossProcessCompositorApi, ImageUpdate, SerializableImageData};
 
-use crate::canvas_paint_thread::{AntialiasMode, WebrenderApi};
+use crate::canvas_paint_thread::AntialiasMode;
 use crate::raqote_backend::Repetition;
 
 /// The canvas data stores a state machine for the current status of
@@ -428,7 +428,7 @@ pub struct CanvasData<'a> {
     path_state: Option<PathState>,
     state: CanvasPaintState<'a>,
     saved_states: Vec<CanvasPaintState<'a>>,
-    webrender_api: Box<dyn WebrenderApi>,
+    compositor_api: CrossProcessCompositorApi,
     image_key: Option<ImageKey>,
     /// An old webrender image key that can be deleted when the next epoch ends.
     old_image_key: Option<ImageKey>,
@@ -444,7 +444,7 @@ fn create_backend() -> Box<dyn Backend> {
 impl<'a> CanvasData<'a> {
     pub fn new(
         size: Size2D<u64>,
-        webrender_api: Box<dyn WebrenderApi>,
+        compositor_api: CrossProcessCompositorApi,
         antialias: AntialiasMode,
         font_context: Arc<FontContext>,
     ) -> CanvasData<'a> {
@@ -456,7 +456,7 @@ impl<'a> CanvasData<'a> {
             path_state: None,
             state: CanvasPaintState::new(antialias),
             saved_states: vec![],
-            webrender_api,
+            compositor_api,
             image_key: None,
             old_image_key: None,
             very_old_image_key: None,
@@ -1279,8 +1279,9 @@ impl<'a> CanvasData<'a> {
             offset: 0,
             flags: ImageDescriptorFlags::empty(),
         };
-        let data = self.drawtarget.snapshot_data_owned();
-        let data = ImageData::Raw(Arc::new(data));
+        let data = SerializableImageData::Raw(IpcSharedMemory::from_bytes(
+            &self.drawtarget.snapshot_data_owned(),
+        ));
 
         let mut updates = vec![];
 
@@ -1290,7 +1291,7 @@ impl<'a> CanvasData<'a> {
                 updates.push(ImageUpdate::UpdateImage(image_key, descriptor, data));
             },
             None => {
-                let Some(key) = self.webrender_api.generate_key() else {
+                let Some(key) = self.compositor_api.generate_image_key() else {
                     return;
                 };
                 updates.push(ImageUpdate::AddImage(key, descriptor, data));
@@ -1305,7 +1306,7 @@ impl<'a> CanvasData<'a> {
             updates.push(ImageUpdate::DeleteImage(image_key));
         }
 
-        self.webrender_api.update_images(updates);
+        self.compositor_api.update_images(updates);
 
         let data = CanvasImageData {
             image_key: self.image_key.unwrap(),
@@ -1426,7 +1427,7 @@ impl<'a> Drop for CanvasData<'a> {
             updates.push(ImageUpdate::DeleteImage(image_key));
         }
 
-        self.webrender_api.update_images(updates);
+        self.compositor_api.update_images(updates);
     }
 }
 

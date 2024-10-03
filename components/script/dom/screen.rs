@@ -5,16 +5,14 @@
 use dom_struct::dom_struct;
 use euclid::Size2D;
 use profile_traits::ipc;
-use script_traits::ScriptMsg;
 use style_traits::CSSPixel;
 use webrender_api::units::DeviceIntSize;
+use webrender_traits::CrossProcessCompositorMessage;
 
 use crate::dom::bindings::codegen::Bindings::ScreenBinding::ScreenMethods;
-use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
 
 #[dom_struct]
@@ -39,9 +37,9 @@ impl Screen {
         let (send, recv) =
             ipc::channel::<DeviceIntSize>(self.global().time_profiler_chan().clone()).unwrap();
         self.window
-            .upcast::<GlobalScope>()
-            .script_to_constellation_chan()
-            .send(ScriptMsg::GetScreenSize(send))
+            .compositor_api()
+            .sender()
+            .send(CrossProcessCompositorMessage::GetScreenSize(send))
             .unwrap();
         let dpr = self.window.device_pixel_ratio();
         let screen = recv.recv().unwrap_or(Size2D::zero());
@@ -52,9 +50,9 @@ impl Screen {
         let (send, recv) =
             ipc::channel::<DeviceIntSize>(self.global().time_profiler_chan().clone()).unwrap();
         self.window
-            .upcast::<GlobalScope>()
-            .script_to_constellation_chan()
-            .send(ScriptMsg::GetScreenAvailSize(send))
+            .compositor_api()
+            .sender()
+            .send(CrossProcessCompositorMessage::GetAvailableScreenSize(send))
             .unwrap();
         let dpr = self.window.device_pixel_ratio();
         let screen = recv.recv().unwrap_or(Size2D::zero());

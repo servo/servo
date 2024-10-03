@@ -241,11 +241,11 @@ pub struct EmbedderCoordinates {
     /// The pixel density of the display.
     pub hidpi_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
     /// Size of the screen.
-    pub screen: DeviceIntSize,
+    pub screen_size: DeviceIntSize,
     /// Size of the available screen space (screen without toolbars and docks).
-    pub screen_avail: DeviceIntSize,
-    /// Size of the native window.
-    pub window: (DeviceIntSize, DeviceIntPoint),
+    pub available_screen_size: DeviceIntSize,
+    /// Position and size of the native window.
+    pub window_rect: DeviceIntRect,
     /// Size of the GL buffer in the window.
     pub framebuffer: DeviceIntSize,
     /// Coordinates of the document within the framebuffer.
@@ -290,9 +290,9 @@ mod test {
         let screen = Size2D::new(1080, 720);
         let coordinates = EmbedderCoordinates {
             hidpi_factor: Scale::new(1.),
-            screen,
-            screen_avail: screen,
-            window: (viewport, pos),
+            screen_size: screen,
+            available_screen_size: screen,
+            window_rect: DeviceIntRect::from_origin_and_size(pos, viewport),
             framebuffer: viewport,
             viewport: DeviceIntRect::from_origin_and_size(pos, viewport),
         };
