@@ -139,7 +139,7 @@ impl WebGPUImageDescriptor {
     fn new(format: ImageFormat, size: DeviceIntSize, is_opaque: bool) -> Self {
         let stride = (((size.width * format.bytes_per_pixel()) |
             (wgt::COPY_BYTES_PER_ROW_ALIGNMENT as i32 - 1)) +
-            1) as i32;
+            1);
         Self(ImageDescriptor {
             format,
             size,

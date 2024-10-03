@@ -4,6 +4,7 @@
 
 use std::default::Default;
 
+#[allow(clippy::upper_case_acronyms)]
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
 use net_traits::blob_url_store::{get_blob_origin, parse_blob_url};
