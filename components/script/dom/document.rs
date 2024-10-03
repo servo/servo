@@ -486,8 +486,9 @@ pub struct Document {
     visibility_state: Cell<DocumentVisibilityState>,
     /// <https://www.iana.org/assignments/http-status-codes/http-status-codes.xhtml>
     status_code: Option<u16>,
-    inhibit_load_and_pageshow: bool,
+    inhibit_load_and_pageshow: Cell<bool>,
     window_replaced: Cell<bool>,
+    is_initial_about_blank: Cell<bool>,
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -541,6 +542,10 @@ impl CollectionFilter for AnchorsFilter {
 
 #[allow(non_snake_case)]
 impl Document {
+    pub(crate) fn is_initial_about_blank(&self) -> bool {
+        self.is_initial_about_blank.get()
+    }
+
     pub fn note_node_with_dirty_descendants(&self, node: &Node) {
         debug_assert!(*node.owner_doc() == *self);
         if !node.is_connected() {
@@ -2364,16 +2369,19 @@ impl Document {
         // Step 7.
         debug!("Document loads are complete.");
         let document = Trusted::new(self);
+        let was_initial_about_blank = self.is_initial_about_blank.get();
         self.window
             .task_manager()
             .dom_manipulation_task_source()
             .queue(
-                task!(fire_load_event: move || {
+                task!(prepare_for_post_load_tasks: move || {
                     let document = document.root();
                     let window = document.window();
                     if !window.is_alive() {
                         return;
                     }
+
+                    notify_constellation_load(&window, was_initial_about_blank);
 
                     // Step 7.1.
                     document.set_ready_state(DocumentReadyState::Complete);
@@ -2393,7 +2401,7 @@ impl Document {
                     // http://w3c.github.io/navigation-timing/#widl-PerformanceNavigationTiming-loadEventStart
                     update_with_current_instant(&document.load_event_start);
 
-                    if !document.inhibit_load_and_pageshow {
+                    if !document.inhibit_load_and_pageshow.get() {
                         debug!("About to dispatch load for {:?}", document.url());
                         // FIXME(nox): Why are errors silenced here?
                         let _ = window.dispatch_event_with_target_override(
@@ -2404,28 +2412,8 @@ impl Document {
                     // http://w3c.github.io/navigation-timing/#widl-PerformanceNavigationTiming-loadEventEnd
                     update_with_current_instant(&document.load_event_end);
 
-                    if let Some(fragment) = document.url().fragment() {
-                        document.check_and_scroll_fragment(fragment);
-                    }
-                }),
-                self.window.upcast(),
-            )
-            .unwrap();
-
-        // Step 8.
-        let document = Trusted::new(self);
-        if document.root().browsing_context().is_some() && !self.inhibit_load_and_pageshow {
-            self.window
-                .task_manager()
-                .dom_manipulation_task_source()
-                .queue(
-                    task!(fire_pageshow_event: move || {
-                        let document = document.root();
-                        let window = document.window();
-                        if document.page_showing.get() || !window.is_alive() {
-                            return;
-                        }
-
+                    //assert!(!document.page_showing.get());
+                    if !document.page_showing.get() {
                         document.page_showing.set(true);
 
                         let event = PageTransitionEvent::new(
@@ -2442,11 +2430,15 @@ impl Document {
                         let _ = window.dispatch_event_with_target_override(
                             event,
                         );
-                    }),
-                    self.window.upcast(),
-                )
-                .unwrap();
-        }
+                    }
+
+                    if let Some(fragment) = document.url().fragment() {
+                        document.check_and_scroll_fragment(fragment);
+                    }
+                }),
+                self.window.upcast(),
+            )
+            .unwrap();
 
         // Step 9.
         // TODO: pending application cache download process tasks.
@@ -2490,10 +2482,10 @@ impl Document {
                                 }),
                                 Duration::from_secs(*time),
                             );
-                        }
+                        };
                         // Note: this will, among others, result in the "iframe-load-event-steps" being run.
                         // https://html.spec.whatwg.org/multipage/#iframe-load-event-steps
-                        document.notify_constellation_load();
+                        //document.notify_constellation_load();
                     }),
                     self.window.upcast(),
                 )
@@ -2708,10 +2700,6 @@ impl Document {
             parser.abort(can_gc);
             self.salvageable.set(false);
         }
-    }
-
-    pub fn notify_constellation_load(&self) {
-        self.window().send_to_constellation(ScriptMsg::LoadComplete);
     }
 
     pub fn set_current_parser(&self, script: Option<&ServoParser>) {
@@ -3216,6 +3204,7 @@ impl Document {
             .and_then(|charset| Encoding::for_label(charset.as_str().as_bytes()))
             .unwrap_or(UTF_8);
 
+        let is_initial_about_blank = url.as_str() == "about:blank";
         let has_browsing_context = has_browsing_context == HasBrowsingContext::Yes;
         Document {
             node: Node::new_document_node(),
@@ -3337,8 +3326,9 @@ impl Document {
             fonts: Default::default(),
             visibility_state: Cell::new(DocumentVisibilityState::Hidden),
             status_code,
-            inhibit_load_and_pageshow,
+            inhibit_load_and_pageshow: Cell::new(inhibit_load_and_pageshow),
             window_replaced: Cell::new(false),
+            is_initial_about_blank: Cell::new(is_initial_about_blank),
         }
     }
 
@@ -5303,11 +5293,15 @@ impl DocumentMethods for Document {
             self.set_url(new_url);
         }
 
+        self.inhibit_load_and_pageshow.set(false);
+
         // Step 13
         // TODO: https://github.com/servo/servo/issues/21938
 
         // Step 14
         self.set_quirks_mode(QuirksMode::NoQuirks);
+
+        self.is_initial_about_blank.set(false);
 
         // Step 15
         let resource_threads = self
@@ -5678,3 +5672,8 @@ fn is_named_element_with_id_attribute(elem: &Element) -> bool {
     // behaviour is actually implemented
     elem.is::<HTMLImageElement>() && elem.get_name().is_some_and(|name| !name.is_empty())
 }
+
+fn notify_constellation_load(window: &Window, is_initial_about_blank: bool) {
+    window.send_to_constellation(ScriptMsg::LoadComplete(is_initial_about_blank));
+}
+

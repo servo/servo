@@ -1,3 +1,4 @@
+
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
@@ -156,7 +157,7 @@ mod from_script {
                 Self::GetTopForBrowsingContext(..) => target!("GetTopForBrowsingContext"),
                 Self::GetBrowsingContextInfo(..) => target!("GetBrowsingContextInfo"),
                 Self::GetChildBrowsingContextId(..) => target!("GetChildBrowsingContextId"),
-                Self::LoadComplete => target!("LoadComplete"),
+                Self::LoadComplete(..) => target!("LoadComplete"),
                 Self::LoadUrl(..) => target!("LoadUrl"),
                 Self::AbortLoadUrl => target!("AbortLoadUrl"),
                 Self::PostMessage { .. } => target!("PostMessage"),

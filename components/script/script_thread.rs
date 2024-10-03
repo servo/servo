@@ -2194,9 +2194,8 @@ impl ScriptThread {
                 TickAllAnimations(id, ..) => Some(id),
                 WebFontLoaded(id, ..) => Some(id),
                 DispatchIFrameLoadEvent {
-                    target: _,
                     parent: id,
-                    child: _,
+                    ..
                 } => Some(id),
                 DispatchStorageEvent(id, ..) => Some(id),
                 ReportCSSError(id, ..) => Some(id),
@@ -2401,7 +2400,8 @@ impl ScriptThread {
                 target: browsing_context_id,
                 parent: parent_id,
                 child: child_id,
-            } => self.handle_iframe_load_event(parent_id, browsing_context_id, child_id, can_gc),
+                is_initial_about_blank,
+            } => self.handle_iframe_load_event(parent_id, browsing_context_id, child_id, is_initial_about_blank, can_gc),
             ConstellationControlMsg::DispatchStorageEvent(
                 pipeline_id,
                 storage,
@@ -3467,6 +3467,7 @@ impl ScriptThread {
         parent_id: PipelineId,
         browsing_context_id: BrowsingContextId,
         child_id: PipelineId,
+        is_initial_about_blank: bool,
         can_gc: CanGc,
     ) {
         let iframe = self
@@ -3474,7 +3475,7 @@ impl ScriptThread {
             .borrow()
             .find_iframe(parent_id, browsing_context_id);
         match iframe {
-            Some(iframe) => iframe.iframe_load_event_steps(child_id, can_gc, false),
+            Some(iframe) => iframe.iframe_load_event_steps(child_id, can_gc, !is_initial_about_blank),
             None => warn!("Message sent to closed pipeline {}.", parent_id),
         }
     }

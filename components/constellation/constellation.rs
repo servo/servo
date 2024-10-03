@@ -1678,8 +1678,8 @@ where
                 self.handle_abort_load_url_msg(source_pipeline_id);
             },
             // A page loaded has completed all parsing, script, and reflow messages have been sent.
-            FromScriptMsg::LoadComplete => {
-                self.handle_load_complete_msg(source_top_ctx_id, source_pipeline_id)
+            FromScriptMsg::LoadComplete(is_initial_about_blank) => {
+                self.handle_load_complete_msg(source_top_ctx_id, source_pipeline_id, is_initial_about_blank)
             },
             // Handle navigating to a fragment
             FromScriptMsg::NavigatedToFragment(new_url, replacement_enabled) => {
@@ -3116,7 +3116,7 @@ where
     }
 
     #[tracing::instrument(skip(self), fields(servo_profiling = true))]
-    fn handle_subframe_loaded(&mut self, pipeline_id: PipelineId) {
+    fn handle_subframe_loaded(&mut self, pipeline_id: PipelineId, is_initial_about_blank: bool) {
         let browsing_context_id = match self.pipelines.get(&pipeline_id) {
             Some(pipeline) => pipeline.browsing_context_id,
             None => return warn!("{}: Subframe loaded after closure", pipeline_id),
@@ -3141,6 +3141,7 @@ where
             target: browsing_context_id,
             parent: parent_pipeline_id,
             child: pipeline_id,
+            is_initial_about_blank,
         };
         let result = match self.pipelines.get(&parent_pipeline_id) {
             Some(parent) => parent.event_loop.send(msg),
@@ -3668,6 +3669,7 @@ where
         &mut self,
         top_level_browsing_context_id: TopLevelBrowsingContextId,
         pipeline_id: PipelineId,
+        is_initial_about_blank: bool,
     ) {
         let mut webdriver_reset = false;
         if let Some((expected_pipeline_id, ref reply_chan)) = self.webdriver.load_channel {
@@ -3708,7 +3710,7 @@ where
                     .send(CompositorMsg::LoadComplete(top_level_browsing_context_id));
             }
         } else {
-            self.handle_subframe_loaded(pipeline_id);
+            self.handle_subframe_loaded(pipeline_id, is_initial_about_blank);
         }
     }
 

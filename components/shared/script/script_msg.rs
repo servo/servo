@@ -181,7 +181,7 @@ pub enum ScriptMsg {
     ),
     /// All pending loads are complete, and the `load` event for this pipeline
     /// has been dispatched.
-    LoadComplete,
+    LoadComplete(bool),
     /// A new load has been requested, with an option to replace the current entry once loaded
     /// instead of adding a new entry.
     LoadUrl(LoadData, HistoryEntryReplacement),
@@ -293,7 +293,7 @@ impl fmt::Debug for ScriptMsg {
             GetBrowsingContextInfo(..) => "GetBrowsingContextInfo",
             GetTopForBrowsingContext(..) => "GetParentBrowsingContext",
             GetChildBrowsingContextId(..) => "GetChildBrowsingContextId",
-            LoadComplete => "LoadComplete",
+            LoadComplete(..) => "LoadComplete",
             LoadUrl(..) => "LoadUrl",
             AbortLoadUrl => "AbortLoadUrl",
             PostMessage { .. } => "PostMessage",
