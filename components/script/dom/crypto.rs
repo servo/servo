@@ -12,10 +12,11 @@ use uuid::Uuid;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::CryptoBinding::CryptoMethods;
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::subtlecrypto::SubtleCrypto;
 use crate::script_runtime::JSContext;
 
 // https://developer.mozilla.org/en-US/docs/Web/API/Crypto
@@ -25,6 +26,7 @@ pub struct Crypto {
     #[ignore_malloc_size_of = "Defined in rand"]
     #[no_trace]
     rng: DomRefCell<ServoRng>,
+    subtle: MutNullableDom<SubtleCrypto>,
 }
 
 impl Crypto {
@@ -32,6 +34,7 @@ impl Crypto {
         Crypto {
             reflector_: Reflector::new(),
             rng: DomRefCell::new(ServoRng::default()),
+            subtle: MutNullableDom::default(),
         }
     }
 
@@ -41,6 +44,11 @@ impl Crypto {
 }
 
 impl CryptoMethods for Crypto {
+    /// <https://w3c.github.io/webcrypto/#dfn-Crypto-attribute-subtle>
+    fn Subtle(&self) -> DomRoot<SubtleCrypto> {
+        self.subtle.or_init(|| SubtleCrypto::new(&self.global()))
+    }
+
     #[allow(unsafe_code)]
     // https://w3c.github.io/webcrypto/#Crypto-method-getRandomValues
     fn GetRandomValues(
