@@ -103,6 +103,7 @@ enum ServoAction {
 // Todo: Need to check if OnceLock is suitable, or if the TS function can be destroyed, e.g.
 // if the activity gets suspended.
 static SET_URL_BAR_CB: OnceLock<ThreadsafeFunction<String, ErrorStrategy::Fatal>> = OnceLock::new();
+static PROMPT_TOAST: OnceLock<ThreadsafeFunction<String, ErrorStrategy::Fatal>> = OnceLock::new();
 
 impl ServoAction {
     fn dispatch_touch_event(
@@ -426,24 +427,45 @@ pub fn go_forward() {
 }
 
 #[napi(js_name = "registerURLcallback")]
-pub fn register_url_callback(cb: JsFunction) -> napi_ohos::Result<()> {
-    info!("register_url_callback called!");
-    let tsfn: ThreadsafeFunction<String, ErrorStrategy::Fatal> =
-        cb.create_threadsafe_function(1, |ctx| {
-            debug!(
-                "url callback argument transformer called with arg {}",
-                ctx.value
-            );
-            let s = ctx
-                .env
-                .create_string_from_std(ctx.value)
-                .inspect_err(|e| error!("Failed to create JsString: {e:?}"))?;
-            Ok(vec![s])
-        })?;
+pub fn register_url_callback(callback: JsFunction) -> napi_ohos::Result<()> {
+    // Currently we call the callback in a blocking fashion, always from the embedder thread,
+    // so a queue size of 1 is sufficient.
+    const UPDATE_URL_QUEUE_SIZE: usize = 1;
+    debug!("register_url_callback called!");
+    let function = callback.create_threadsafe_function(UPDATE_URL_QUEUE_SIZE, |ctx| {
+        Ok(vec![ctx
+            .env
+            .create_string_from_std(ctx.value)
+            .inspect_err(|e| {
+                error!("Failed to create JsString: {e:?}")
+            })?])
+    })?;
     // We ignore any error for now - but probably we should propagate it back to the TS layer.
     let _ = SET_URL_BAR_CB
-        .set(tsfn)
+        .set(function)
         .inspect_err(|_| warn!("Failed to set URL callback - register_url_callback called twice?"));
+    Ok(())
+}
+
+#[napi]
+pub fn register_prompt_toast_callback(callback: JsFunction) -> napi_ohos::Result<()> {
+    // We can submit alerts in a non-blocking fashion, but alerts will always come from the
+    // embedder thread. Specifying 4 as a max queue size seems reasonable for now, and can
+    // be adjusted later.
+    const PROMPT_QUEUE_SIZE: usize = 4;
+    debug!("register_prompt_toast_callback called!");
+    let function = callback.create_threadsafe_function(PROMPT_QUEUE_SIZE, |ctx| {
+        Ok(vec![ctx
+            .env
+            .create_string_from_std(ctx.value)
+            .inspect_err(|e| {
+                error!("Failed to create JsString: {e:?}")
+            })?])
+    })?;
+    // We ignore any error for now - but probably we should propagate it back to the TS layer.
+    let _ = PROMPT_TOAST
+        .set(function)
+        .inspect_err(|_| error!("Failed to set prompt toast callback."));
     Ok(())
 }
 
@@ -513,8 +535,18 @@ impl HostCallbacks {
 
 #[allow(unused)]
 impl HostTrait for HostCallbacks {
-    fn prompt_alert(&self, msg: String, trusted: bool) {
-        warn!("prompt_alert not implemented. Cancelled. {}", msg);
+    fn prompt_alert(&self, msg: String, _trusted: bool) {
+        debug!("prompt_alert: {msg}");
+        match PROMPT_TOAST.get() {
+            Some(prompt_fn) => {
+                let status = prompt_fn.call(msg, ThreadsafeFunctionCallMode::NonBlocking);
+                if status != napi_ohos::Status::Ok {
+                    // Queue could be full.
+                    error!("prompt_alert failed with {status}");
+                }
+            },
+            None => error!("PROMPT_TOAST not set. Dropping msg {msg}"),
+        }
     }
 
     fn prompt_yes_no(&self, msg: String, trusted: bool) -> PromptResult {
@@ -541,7 +573,7 @@ impl HostTrait for HostCallbacks {
     }
 
     fn on_load_ended(&self) {
-        warn!("on_load_ended not implemented")
+        self.prompt_alert("Page finished loading!".to_string(), true);
     }
 
     fn on_title_changed(&self, title: Option<String>) {
@@ -554,10 +586,14 @@ impl HostTrait for HostCallbacks {
 
     fn on_url_changed(&self, url: String) {
         debug!("Hosttrait `on_url_changed` called with new url: {url}");
-        if let Some(cb) = SET_URL_BAR_CB.get() {
-            cb.call(url, ThreadsafeFunctionCallMode::Blocking);
-        } else {
-            warn!("`on_url_changed` called without a registered callback")
+        match SET_URL_BAR_CB.get() {
+            Some(update_url_fn) => {
+                let status = update_url_fn.call(url, ThreadsafeFunctionCallMode::Blocking);
+                if status != napi_ohos::Status::Ok {
+                    error!("on_url_changed failed with {status}");
+                }
+            },
+            None => error!("`on_url_changed` called without a registered callback"),
         }
     }
 
@@ -621,5 +657,7 @@ impl HostTrait for HostCallbacks {
         if let Some(bt) = backtrace {
             error!("Backtrace: {bt:?}")
         }
+        self.prompt_alert("Servo crashed!".to_string(), true);
+        self.prompt_alert(reason, true);
     }
 }
