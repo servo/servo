@@ -112,6 +112,7 @@ impl MessageEvent {
         )
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn new_initialized(
         global: &GlobalScope,
         proto: Option<HandleObject>,
