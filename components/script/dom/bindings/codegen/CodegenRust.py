@@ -6237,9 +6237,8 @@ let global = GlobalScope::from_object(JS_CALLEE(*cx, vp).to_object());
             nativeName = MakeNativeName(self.descriptor.binaryNameFor(name))
 
             if len(self.exposureSet) == 1:
-                target = f"dom::types::{list(self.exposureSet)[0]}"
                 args = [
-                    f"&(DomRoot::downcast::<{target}>(DomRoot::from_ref(global)).unwrap())",
+                    f"global.downcast::<dom::types::{list(self.exposureSet)[0]}>().unwrap()",
                     "Some(desired_proto.handle())",
                     "CanGc::note()"
                 ]
