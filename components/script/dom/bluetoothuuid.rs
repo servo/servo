@@ -12,7 +12,6 @@ use crate::dom::bindings::reflector::Reflector;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::window::Window;
 
-#[allow(clippy::upper_case_acronyms)]
 pub type UUID = DOMString;
 pub type BluetoothServiceUUID = StringOrUnsignedLong;
 pub type BluetoothCharacteristicUUID = StringOrUnsignedLong;
@@ -20,6 +19,7 @@ pub type BluetoothDescriptorUUID = StringOrUnsignedLong;
 
 // https://webbluetoothcg.github.io/web-bluetooth/#bluetoothuuid
 #[dom_struct]
+#[allow(clippy::upper_case_acronyms)]
 pub struct BluetoothUUID {
     reflector_: Reflector,
 }

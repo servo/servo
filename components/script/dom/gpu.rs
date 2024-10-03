@@ -4,7 +4,6 @@
 
 use std::rc::Rc;
 
-#[allow(clippy::upper_case_acronyms)]
 use dom_struct::dom_struct;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
@@ -29,6 +28,7 @@ use crate::realms::InRealm;
 use crate::task_source::{TaskSource, TaskSourceName};
 
 #[dom_struct]
+#[allow(clippy::upper_case_acronyms)]
 pub struct GPU {
     reflector_: Reflector,
 }
