@@ -43,6 +43,7 @@ use servo_config::prefs;
 use servo_config::prefs::PrefValue;
 use servo_url::ServoUrl;
 use webrender_api::DocumentId;
+use webrender_traits::CrossProcessCompositorApi;
 
 use crate::event_loop::EventLoop;
 use crate::sandboxing::{spawn_multiprocess, UnprivilegedContent};
@@ -183,12 +184,6 @@ pub struct InitialPipelineState {
     /// compositor threads after spawning a pipeline.
     pub prev_throttled: bool,
 
-    /// Webrender api.
-    pub webrender_image_api_sender: webrender_traits::WebRenderNetApi,
-
-    /// Webrender api.
-    pub webrender_api_sender: webrender_traits::WebRenderScriptApi,
-
     /// The ID of the document processed by this script thread.
     pub webrender_document: DocumentId,
 
@@ -293,9 +288,11 @@ impl Pipeline {
                     opts: (*opts::get()).clone(),
                     prefs: prefs::pref_map().iter().collect(),
                     pipeline_namespace_id: state.pipeline_namespace_id,
-                    webrender_api_sender: state.webrender_api_sender,
-                    webrender_image_api_sender: state.webrender_image_api_sender,
                     webrender_document: state.webrender_document,
+                    cross_process_compositor_api: state
+                        .compositor_proxy
+                        .cross_process_compositor_api
+                        .clone(),
                     webgl_chan: state.webgl_chan,
                     webxr_registry: state.webxr_registry,
                     player_context: state.player_context,
@@ -498,8 +495,7 @@ pub struct UnprivilegedPipelineContent {
     opts: Opts,
     prefs: HashMap<String, PrefValue>,
     pipeline_namespace_id: PipelineNamespaceId,
-    webrender_api_sender: webrender_traits::WebRenderScriptApi,
-    webrender_image_api_sender: webrender_traits::WebRenderNetApi,
+    cross_process_compositor_api: CrossProcessCompositorApi,
     webrender_document: DocumentId,
     webgl_chan: Option<WebGLPipeline>,
     webxr_registry: webxr_api::Registry,
@@ -518,7 +514,9 @@ impl UnprivilegedPipelineContent {
         // Idempotent in single-process mode.
         PipelineNamespace::set_installer_sender(self.namespace_request_sender);
 
-        let image_cache = Arc::new(ImageCacheImpl::new(self.webrender_image_api_sender.clone()));
+        let image_cache = Arc::new(ImageCacheImpl::new(
+            self.cross_process_compositor_api.clone(),
+        ));
         let (content_process_shutdown_chan, content_process_shutdown_port) = unbounded();
         STF::create(
             InitialScriptState {
@@ -545,7 +543,7 @@ impl UnprivilegedPipelineContent {
                 webgl_chan: self.webgl_chan,
                 webxr_registry: self.webxr_registry,
                 webrender_document: self.webrender_document,
-                webrender_api_sender: self.webrender_api_sender.clone(),
+                compositor_api: self.cross_process_compositor_api.clone(),
                 player_context: self.player_context.clone(),
                 inherited_secure_context: self.load_data.inherited_secure_context,
             },
