@@ -398,7 +398,7 @@ impl GPUCanvasContextMethods for GPUCanvasContext {
         } else {
             // Step 3&4
             self.replace_drawing_buffer();
-            let current_texture = configuration.device.CreateTexture(&texture_descriptor)?;
+            let current_texture = configuration.device.CreateTexture(texture_descriptor)?;
             self.current_texture.set(Some(&current_texture));
             current_texture
         };
