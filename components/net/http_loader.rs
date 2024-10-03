@@ -1091,7 +1091,7 @@ async fn http_network_or_cache_fetch(
     context: &FetchContext,
 ) -> Response {
     // Step 1. Let request be fetchParams’s request.
-    // NOTE: We get request as an argument
+    // NOTE: We get request as an argument (Fetchparams are not implemented, see #33616)
 
     // Step 3. Let httpRequest be null.
     let mut http_request;
@@ -1102,7 +1102,7 @@ async fn http_network_or_cache_fetch(
     // Step 7. Let the revalidatingFlag be unset.
     let mut revalidating_flag = false;
 
-    // TODO: Step 8. Run these steps, but abort when fetchParams is canceled:
+    // TODO(#33616): Step 8. Run these steps, but abort when fetchParams is canceled:
     // Step 8.1: If request’s window is "no-window" and request’s redirect mode is "error", then set
     // httpFetchParams to fetchParams and httpRequest to request.
     let request_has_no_window = request.window == RequestWindow::NoWindow;
@@ -1115,7 +1115,7 @@ async fn http_network_or_cache_fetch(
         // Step 8.2.1: Set httpRequest to a clone of request.
         http_request = request.clone();
 
-        // TODO: Step 8.2.2-8.2.3
+        // TODO(#33616): Step 8.2.2-8.2.3
         &mut http_request
     };
 
@@ -1134,7 +1134,7 @@ async fn http_network_or_cache_fetch(
 
     // Step 8.4: If Cross-Origin-Embedder-Policy allows credentials with request returns false, then
     // set includeCredentials to false.
-    // TODO: Requires request's client object
+    // TODO(#33616): Requires request's client object
 
     // Step 8.5 Let contentLength be httpRequest’s body’s length, if httpRequest’s body is non-null;
     // otherwise null.
@@ -1170,7 +1170,7 @@ async fn http_network_or_cache_fetch(
 
     // Step 8.10 If contentLength is non-null and httpRequest’s keepalive is true, then:
     if content_length.is_some() && http_request.keep_alive {
-        // TODO Keepalive requires request's client object's fetch group
+        // TODO(#33616) Keepalive requires request's client object's fetch group
     }
 
     // Step 8.11: If httpRequest’s referrer is a URL, then:
@@ -1196,7 +1196,7 @@ async fn http_network_or_cache_fetch(
     append_a_request_origin_header(http_request);
 
     // Step 8.13 Append the Fetch metadata headers for httpRequest.
-    // TODO Implement Sec-Fetch-* headers
+    // TODO(#33616) Implement Sec-Fetch-* headers
 
     // Step 8.14: If httpRequest’s initiator is "prefetch", then set a structured field value given
     // (`Sec-Purpose`, the token "prefetch") in httpRequest’s header list.
@@ -1317,7 +1317,7 @@ async fn http_network_or_cache_fetch(
         }
     }
 
-    // FIXME Step 8.22 If there’s a proxy-authentication entry, use it as appropriate.
+    // TODO(#33616) Step 8.22 If there’s a proxy-authentication entry, use it as appropriate.
 
     // If the cache is not ready to construct a response, wait.
     //
@@ -1354,7 +1354,8 @@ async fn http_network_or_cache_fetch(
             }
         }
 
-        // TODO: Step 8.23 Set httpCache to the result of determining the HTTP cache partition, given httpRequest.
+        // TODO(#33616): Step 8.23 Set httpCache to the result of determining the
+        // HTTP cache partition, given httpRequest.
         if let Ok(http_cache) = context.state.http_cache.read() {
             // Step 8.25.1 Set storedResponse to the result of selecting a response from the httpCache,
             //              possibly needing validation, as per the "Constructing Responses from Caches"
@@ -1476,7 +1477,7 @@ async fn http_network_or_cache_fetch(
 
     wait_for_cached_response(done_chan, &mut response).await;
 
-    // TODO: Step 9. If aborted, then return the appropriate network error for fetchParams.
+    // TODO(#33616): Step 9. If aborted, then return the appropriate network error for fetchParams.
 
     // Step 10. If response is null, then:
     if response.is_none() {
@@ -1537,7 +1538,7 @@ async fn http_network_or_cache_fetch(
     let mut response = response.unwrap();
 
     // FIXME: The spec doesn't tell us to do this *here*, but if we don't do it then
-    //        tests fail. Where should we do it instead?
+    // tests fail. Where should we do it instead? See also #33615
     if http_request.response_tainting != ResponseTainting::CorsTainting &&
         cross_origin_resource_policy_check(http_request, &response) ==
             CrossOriginResourcePolicy::Blocked
@@ -1547,13 +1548,14 @@ async fn http_network_or_cache_fetch(
         ));
     }
 
-    // TODO: Step 11. Set response’s URL list to a clone of httpRequest’s URL list.
-    // TODO: Step 12. If httpRequest’s header list contains `Range`, then set response’s range-requested flag.
-    // TODO: Step 13 Set response’s request-includes-credentials to includeCredentials.
+    // TODO(#33616): Step 11. Set response’s URL list to a clone of httpRequest’s URL list.
+    // TODO(#33616): Step 12. If httpRequest’s header list contains `Range`,
+    // then set response’s range-requested flag.
+    // TODO(#33616): Step 13 Set response’s request-includes-credentials to includeCredentials.
 
     // Step 14. If response’s status is 401, httpRequest’s response tainting is not "cors",
     // includeCredentials is true, and request’s window is an environment settings object, then:
-    // TODO: Figure out what to do with request window objects
+    // TODO(#33616): Figure out what to do with request window objects
     if let (Some(StatusCode::UNAUTHORIZED), false, true) =
         (response.status.try_code(), cors_flag, include_credentials)
     {
@@ -1566,11 +1568,11 @@ async fn http_network_or_cache_fetch(
 
         // Step 14.3 If request’s use-URL-credentials flag is unset or isAuthenticationFetch is true, then:
         if !http_request.use_url_credentials || authentication_fetch_flag {
-            // FIXME: Prompt the user for username and password from the window
+            // TODO(#33616, #27439): Prompt the user for username and password from the window
 
             // Wrong, but will have to do until we are able to prompt the user
             // otherwise this creates an infinite loop
-            // We basically pretend that the user declined to enter credentials
+            // We basically pretend that the user declined to enter credentials (#33616)
             return response;
         }
 
@@ -1601,19 +1603,20 @@ async fn http_network_or_cache_fetch(
 
         // (Step 15.2 does not exist, requires testing on Proxy-Authenticate headers)
 
-        // FIXME: Step 15.3 If fetchParams is canceled, then return the appropriate network error for fetchParams.
-        // FIXME: Step 15.4 Prompt the end user as appropriate in request’s window and store the
+        // TODO(#33616): Step 15.3 If fetchParams is canceled, then return
+        // the appropriate network error for fetchParams.
+        // TODO(#33616): Step 15.4 Prompt the end user as appropriate in request’s window and store the
         // result as a proxy-authentication entry.
 
         // Step 15.5 Set response to the result of running HTTP-network-or-cache fetch given fetchParams.
 
         // Wrong, but will have to do until we are able to prompt the user
         // otherwise this creates an infinite loop
-        // We basically pretend that the user declined to enter credentials
+        // We basically pretend that the user declined to enter credentials (#33616)
         return response;
     }
 
-    // TODO: Step 16. If all of the following are true:
+    // TODO(#33616): Step 16. If all of the following are true:
     // * response’s status is 421
     // * isNewConnectionFetch is false
     // * request’s body is null, or request’s body is non-null and request’s body’s source is non-null
@@ -1621,7 +1624,7 @@ async fn http_network_or_cache_fetch(
 
     // Step 17. If isAuthenticationFetch is true, then create an authentication entry for request and the given realm.
     if authentication_fetch_flag {
-        // TODO
+        // TODO(#33616)
     }
 
     // Step 18. Return response.
@@ -1637,7 +1640,7 @@ enum CrossOriginResourcePolicy {
     Blocked,
 }
 
-// TODO: Judging from the name, this appears to be https://fetch.spec.whatwg.org/#cross-origin-resource-policy-check,
+// TODO(#33615): Judging from the name, this appears to be https://fetch.spec.whatwg.org/#cross-origin-resource-policy-check,
 //       but the steps aren't even close to the spec. Perhaps this needs to be rewritten?
 fn cross_origin_resource_policy_check(
     request: &Request,
