@@ -6222,17 +6222,15 @@ let global = GlobalScope::from_object(JS_CALLEE(*cx, vp).to_object());
         if self.constructor.isHTMLConstructor():
             signatures = self.constructor.signatures()
             assert len(signatures) == 1
-            constructorCall = CGGeneric(
-                f"""
-                hook_html_constructor::<dom::types::{self.descriptor.name}>(
+            constructorCall = f"""
+                call_html_constructor::<dom::types::{self.descriptor.name}>(
                     cx,
                     &args,
-                    global,
+                    &global,
                     PrototypeList::ID::{MakeNativeName(self.descriptor.name)},
                     CreateInterfaceObjects,
                 )
                 """
-            )
         else:
             ctorName = GetConstructorNameForReporting(self.descriptor, self.constructor)
             name = self.constructor.identifier.name
@@ -6253,9 +6251,8 @@ let global = GlobalScope::from_object(JS_CALLEE(*cx, vp).to_object());
                 ]
 
             constructor = CGMethodCall(args, nativeName, True, self.descriptor, self.constructor)
-            constructorCall = CGGeneric(
-                f"""
-            hook_default_constructor(
+            constructorCall = f"""
+            call_default_constructor(
                 cx,
                 &args,
                 global,
@@ -6267,8 +6264,7 @@ let global = GlobalScope::from_object(JS_CALLEE(*cx, vp).to_object());
                 }}
             )
                 """
-            )
-        return CGList([CGGeneric(preamble), constructorCall])
+        return CGList([CGGeneric(preamble), CGGeneric(constructorCall)])
 
 
 class CGClassFinalizeHook(CGAbstractClassHook):

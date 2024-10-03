@@ -57,14 +57,14 @@ use crate::script_thread::ScriptThread;
 // https://html.spec.whatwg.org/multipage/#htmlconstructor
 unsafe fn html_constructor(
     cx: JSContext,
-    window: &Window,
+    global: &GlobalScope,
     call_args: &CallArgs,
     check_type: fn(&Element) -> bool,
     proto_id: PrototypeList::ID,
     creator: unsafe fn(SafeJSContext, HandleObject, *mut ProtoOrIfaceArray),
 ) -> Result<(), ()> {
+    let window = global.downcast::<Window>().unwrap();
     let document = window.Document();
-    let global = window.upcast::<GlobalScope>();
 
     // Step 1
     let registry = window.CustomElements();
@@ -377,10 +377,10 @@ pub fn push_new_element_queue() {
     ScriptThread::push_new_element_queue();
 }
 
-pub(crate) unsafe fn call_html_constructor<T: DerivedFrom<Element> + DomObject>(
+pub unsafe fn call_html_constructor<T: DerivedFrom<Element> + DomObject>(
     cx: JSContext,
     args: &CallArgs,
-    global: &Window,
+    global: &GlobalScope,
     proto_id: PrototypeList::ID,
     creator: unsafe fn(SafeJSContext, HandleObject, *mut ProtoOrIfaceArray),
 ) -> bool {

@@ -9,30 +9,14 @@ use js::jsapi::{CallArgs, JSObject};
 use js::rust::HandleObject;
 
 use crate::dom::bindings::codegen::PrototypeList;
-use crate::dom::bindings::conversions::DerivedFrom;
 use crate::dom::bindings::error::throw_constructor_without_new;
-use crate::dom::bindings::htmlconstructor::call_html_constructor;
 use crate::dom::bindings::interface::get_desired_proto;
-use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::utils::ProtoOrIfaceArray;
-use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::window::Window;
 use crate::script_runtime::JSContext;
 
-pub unsafe fn hook_html_constructor<T: DerivedFrom<Element> + DomObject>(
-    cx: JSContext,
-    args: &CallArgs,
-    global: DomRoot<GlobalScope>,
-    proto_id: PrototypeList::ID,
-    creator: unsafe fn(JSContext, HandleObject, *mut ProtoOrIfaceArray),
-) -> bool {
-    let global = DomRoot::downcast::<Window>(global).unwrap();
-    call_html_constructor::<T>(cx, args, &global, proto_id, creator)
-}
-
-pub unsafe fn hook_default_constructor(
+pub unsafe fn call_default_constructor(
     cx: JSContext,
     args: &CallArgs,
     global: DomRoot<GlobalScope>,
