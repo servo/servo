@@ -11,29 +11,35 @@ use crate::dom::bindings::codegen::Bindings::DataTransferItemBinding::{
 };
 use crate::dom::bindings::import::module::Rc;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::weakref::MutableWeakRef;
 use crate::dom::datatransfer::DataTransfer;
 use crate::dom::file::File;
 use crate::dom::globalscope::GlobalScope;
 
-#[derive(Clone, JSTraceable, MallocSizeOf)]
-pub enum Kind {
+pub enum Kind<'a> {
     Text(DOMString),
-    File(DomRoot<File>),
+    File(&'a File),
+}
+
+#[derive(Clone, JSTraceable, MallocSizeOf)]
+#[crown::unrooted_must_root_lint::must_root]
+enum KindStorage {
+    Text(DOMString),
+    File(Dom<File>),
 }
 
 #[dom_struct]
 pub struct DataTransferItem {
     reflector_: Reflector,
     type_: DomRefCell<DOMString>,
-    item: Kind,
+    item: KindStorage,
     data_transfer: MutableWeakRef<DataTransfer>,
 }
 
 impl DataTransferItem {
-    pub fn new_inherited(
+    fn new_inherited(
         type_: DOMString,
         item: Kind,
         data_transfer: Option<&DataTransfer>,
@@ -41,7 +47,10 @@ impl DataTransferItem {
         DataTransferItem {
             reflector_: Reflector::new(),
             type_: DomRefCell::new(type_),
-            item,
+            item: match item {
+                Kind::Text(text) => KindStorage::Text(text),
+                Kind::File(file) => KindStorage::File(Dom::from_ref(file)),
+            },
             data_transfer: MutableWeakRef::new(data_transfer),
         }
     }
@@ -59,23 +68,23 @@ impl DataTransferItem {
     }
 
     pub fn type_matches(&self, type_: &DOMString) -> bool {
-        matches!(self.item, Kind::Text(_) if self.type_.borrow().eq(type_))
+        matches!(self.item, KindStorage::Text(_) if self.type_.borrow().eq(type_))
     }
 
     pub fn is_file_kind(&self) -> bool {
-        matches!(self.item, Kind::File(_))
+        matches!(self.item, KindStorage::File(_))
     }
 
     pub fn get_string_of_type(&self, type_: &DOMString) -> Option<DOMString> {
         match self.item {
-            Kind::Text(ref data) if self.type_.borrow().eq(type_) => Some(data.clone()),
+            KindStorage::Text(ref data) if self.type_.borrow().eq(type_) => Some(data.clone()),
             _ => None,
         }
     }
 
     pub fn get_as_file(&self) -> Option<DomRoot<File>> {
-        if let Kind::File(file) = &self.item {
-            Some(file.clone())
+        if let KindStorage::File(file) = &self.item {
+            Some(DomRoot::from_ref(file))
         } else {
             None
         }
@@ -86,7 +95,10 @@ impl DataTransferItem {
     }
 
     pub fn kind(&self) -> Kind {
-        self.item.clone()
+        match &self.item {
+            KindStorage::Text(text) => Kind::Text(text.clone()),
+            KindStorage::File(file) => Kind::File(file),
+        }
     }
 }
 
@@ -96,8 +108,8 @@ impl DataTransferItemMethods for DataTransferItem {
         self.data_transfer
             .root()
             .map_or(DOMString::from(""), |_| match self.item {
-                Kind::Text(_) => DOMString::from("string"),
-                Kind::File(_) => DOMString::from("file"),
+                KindStorage::Text(_) => DOMString::from("string"),
+                KindStorage::File(_) => DOMString::from("file"),
             })
     }
 
@@ -116,7 +128,7 @@ impl DataTransferItemMethods for DataTransferItem {
                 .root()
                 .is_some_and(|data_transfer| data_transfer.can_read())
             {
-                if let Kind::Text(data) = &self.item {
+                if let KindStorage::Text(data) = &self.item {
                     let _ = callback.Call__(data.clone(), ExceptionHandling::Report);
                 }
             }
@@ -125,13 +137,9 @@ impl DataTransferItemMethods for DataTransferItem {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-datatransferitem-getasfile>
     fn GetAsFile(&self) -> Option<DomRoot<File>> {
-        if self
-            .data_transfer
+        self.data_transfer
             .root()
-            .is_some_and(|data_transfer| data_transfer.can_read())
-        {
-            self.get_as_file();
-        }
-        None
+            .filter(|data_transfer| data_transfer.can_read())
+            .and_then(|_| self.get_as_file())
     }
 }

@@ -3,26 +3,24 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use js::rust::HandleObject;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::DataTransferItemListBinding::DataTransferItemListMethods;
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, Reflector};
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::weakref::MutableWeakRef;
 use crate::dom::datatransfer::DataTransfer;
 use crate::dom::datatransferitem::{DataTransferItem, Kind};
 use crate::dom::file::File;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct DataTransferItemList {
     reflector_: Reflector,
     data_transfer: MutableWeakRef<DataTransfer>,
-    items: DomRefCell<Vec<DomRoot<DataTransferItem>>>,
+    items: DomRefCell<Vec<Dom<DataTransferItem>>>,
 }
 
 impl DataTransferItemList {
@@ -34,17 +32,8 @@ impl DataTransferItemList {
         }
     }
 
-    pub fn new(
-        window: &Window,
-        proto: Option<HandleObject>,
-        can_gc: CanGc,
-    ) -> DomRoot<DataTransferItemList> {
-        reflect_dom_object_with_proto(
-            Box::new(DataTransferItemList::new_inherited()),
-            window,
-            proto,
-            can_gc,
-        )
+    pub fn new(window: &Window) -> DomRoot<DataTransferItemList> {
+        reflect_dom_object(Box::new(DataTransferItemList::new_inherited()), window)
     }
 
     pub fn set_data_transfer(&self, data_transfer: Option<&DataTransfer>) {
@@ -131,7 +120,7 @@ impl DataTransferItemList {
             Kind::Text(data),
             self.data_transfer.root().as_deref(),
         );
-        self.items.borrow_mut().push(item);
+        self.items.borrow_mut().push(Dom::from_ref(&item));
     }
 
     pub fn is_empty(&self) -> bool {
@@ -189,7 +178,7 @@ impl DataTransferItemListMethods for DataTransferItemList {
                 Kind::Text(data),
                 self.data_transfer.root().as_deref(),
             );
-            self.items.borrow_mut().push(item.clone());
+            self.items.borrow_mut().push(Dom::from_ref(&item));
 
             Ok(Some(item))
         } else {
@@ -206,10 +195,10 @@ impl DataTransferItemListMethods for DataTransferItemList {
             let item = DataTransferItem::new(
                 &self.global(),
                 DOMString::from(type_),
-                Kind::File(DomRoot::from_ref(data)),
+                Kind::File(data),
                 self.data_transfer.root().as_deref(),
             );
-            self.items.borrow_mut().push(item.clone());
+            self.items.borrow_mut().push(Dom::from_ref(&item));
 
             Ok(Some(item))
         } else {
@@ -238,8 +227,11 @@ impl DataTransferItemListMethods for DataTransferItemList {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-datatransferitemlist-item>
     fn IndexedGetter(&self, index: u32) -> Option<DomRoot<DataTransferItem>> {
-        self.data_transfer
-            .root()
-            .and_then(|_| self.items.borrow().get(index as usize).cloned())
+        self.data_transfer.root().and_then(|_| {
+            self.items
+                .borrow()
+                .get(index as usize)
+                .map(|item| DomRoot::from_ref(&**item))
+        })
     }
 }
