@@ -108,8 +108,7 @@ use canvas_traits::canvas::{CanvasId, CanvasMsg};
 use canvas_traits::webgl::WebGLThreads;
 use canvas_traits::ConstellationCanvasMsg;
 use compositing_traits::{
-    CompositorMsg, CompositorProxy, ConstellationMsg as FromCompositorMsg,
-    ForwardedToCompositorMsg, SendableFrameTree,
+    CompositorMsg, CompositorProxy, ConstellationMsg as FromCompositorMsg, SendableFrameTree,
 };
 use crossbeam_channel::{after, never, select, unbounded, Receiver, Sender};
 use devtools_traits::{
@@ -157,7 +156,7 @@ use webgpu::swapchain::WGPUImageMap;
 use webgpu::{self, WebGPU, WebGPURequest, WebGPUResponse};
 use webrender::{RenderApi, RenderApiSender};
 use webrender_api::DocumentId;
-use webrender_traits::{WebRenderNetApi, WebRenderScriptApi, WebrenderExternalImageRegistry};
+use webrender_traits::WebrenderExternalImageRegistry;
 
 use crate::browsingcontext::{
     AllBrowsingContextsIterator, BrowsingContext, FullyActiveBrowsingContextsIterator,
@@ -392,14 +391,6 @@ pub struct Constellation<STF, SWF> {
     /// Webrender related objects required by WebGPU threads
     webrender_wgpu: WebrenderWGPU,
 
-    /// A channel for content processes to send messages that will
-    /// be relayed to the WebRender thread.
-    webrender_api_ipc_sender: WebRenderScriptApi,
-
-    /// A channel for content process image caches to send messages
-    /// that will be relayed to the WebRender thread.
-    webrender_image_api_sender: WebRenderNetApi,
-
     /// A map of message-port Id to info.
     message_ports: HashMap<MessagePortId, MessagePortInfo>,
 
@@ -506,7 +497,7 @@ pub struct InitialConstellationState {
     /// A channel through which messages can be sent to the embedder.
     pub embedder_proxy: EmbedderProxy,
 
-    /// A channel through which messages can be sent to the compositor.
+    /// A channel through which messages can be sent to the compositor in-process.
     pub compositor_proxy: CompositorProxy,
 
     /// A channel to the developer tools, if applicable.
@@ -705,35 +696,6 @@ where
                 // Zero is reserved for the embedder.
                 PipelineNamespace::install(PipelineNamespaceId(1));
 
-                let (webrender_ipc_sender, webrender_ipc_receiver) =
-                    ipc::channel().expect("ipc channel failure");
-                let (webrender_image_ipc_sender, webrender_image_ipc_receiver) =
-                    ipc::channel().expect("ipc channel failure");
-
-                let compositor_proxy = state.compositor_proxy.clone();
-                ROUTER.add_route(
-                    webrender_ipc_receiver.to_opaque(),
-                    Box::new(move |message| {
-                        compositor_proxy.send(CompositorMsg::Forwarded(
-                            ForwardedToCompositorMsg::Layout(
-                                message.to().expect("conversion failure"),
-                            ),
-                        ));
-                    }),
-                );
-
-                let compositor_proxy = state.compositor_proxy.clone();
-                ROUTER.add_route(
-                    webrender_image_ipc_receiver.to_opaque(),
-                    Box::new(move |message| {
-                        compositor_proxy.send(CompositorMsg::Forwarded(
-                            ForwardedToCompositorMsg::Net(
-                                message.to().expect("conversion failure"),
-                            ),
-                        ));
-                    }),
-                );
-
                 let webrender_wgpu = WebrenderWGPU {
                     webrender_api: state.webrender_api_sender.create_api(),
                     webrender_external_images: state.webrender_external_images,
@@ -788,8 +750,6 @@ where
                     scheduler_receiver,
                     document_states: HashMap::new(),
                     webrender_document: state.webrender_document,
-                    webrender_api_ipc_sender: WebRenderScriptApi::new(webrender_ipc_sender),
-                    webrender_image_api_sender: WebRenderNetApi::new(webrender_image_ipc_sender),
                     webrender_wgpu,
                     shutting_down: false,
                     handled_warnings: VecDeque::new(),
@@ -1053,8 +1013,6 @@ where
             event_loop,
             load_data,
             prev_throttled: throttled,
-            webrender_api_sender: self.webrender_api_ipc_sender.clone(),
-            webrender_image_api_sender: self.webrender_image_api_sender.clone(),
             webrender_document: self.webrender_document,
             webgl_chan: self
                 .webgl_threads
@@ -1750,18 +1708,6 @@ where
                 }
 
                 response_sender.send(true).unwrap_or_default();
-            },
-            FromScriptMsg::GetClientWindow(response_sender) => {
-                self.compositor_proxy
-                    .send(CompositorMsg::GetClientWindow(response_sender));
-            },
-            FromScriptMsg::GetScreenSize(response_sender) => {
-                self.compositor_proxy
-                    .send(CompositorMsg::GetScreenSize(response_sender));
-            },
-            FromScriptMsg::GetScreenAvailSize(response_sender) => {
-                self.compositor_proxy
-                    .send(CompositorMsg::GetScreenAvailSize(response_sender));
             },
             FromScriptMsg::LogEntry(thread_name, entry) => {
                 self.handle_log_entry(Some(source_top_ctx_id), thread_name, entry);

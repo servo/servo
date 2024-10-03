@@ -30,7 +30,7 @@ use style::values::computed::font::{FamilyName, FontFamilyNameSyntax, SingleFont
 use style::Atom;
 use url::Url;
 use webrender_api::{FontInstanceFlags, FontInstanceKey, FontKey};
-use webrender_traits::{ScriptToCompositorMsg, WebRenderScriptApi};
+use webrender_traits::CrossProcessCompositorApi;
 
 use crate::font::{
     Font, FontDescriptor, FontFamilyDescriptor, FontGroup, FontRef, FontSearchScope,
@@ -52,7 +52,7 @@ pub struct FontContext {
     resource_threads: ReentrantMutex<CoreResourceThread>,
 
     /// A sender that can send messages and receive replies from the compositor.
-    webrender_api: ReentrantMutex<WebRenderScriptApi>,
+    compositor_api: ReentrantMutex<CrossProcessCompositorApi>,
 
     /// The actual instances of fonts ie a [`FontTemplate`] combined with a size and
     /// other font properties, along with the font data and a platform font instance.
@@ -100,14 +100,14 @@ impl MallocSizeOf for FontContext {
 impl FontContext {
     pub fn new(
         system_font_service_proxy: Arc<SystemFontServiceProxy>,
-        webrender_api: WebRenderScriptApi,
+        compositor_api: CrossProcessCompositorApi,
         resource_threads: ResourceThreads,
     ) -> Self {
         #[allow(clippy::default_constructed_unit_structs)]
         Self {
             system_font_service_proxy,
             resource_threads: ReentrantMutex::new(resource_threads.core_thread),
-            webrender_api: ReentrantMutex::new(webrender_api),
+            compositor_api: ReentrantMutex::new(compositor_api),
             fonts: Default::default(),
             resolved_font_groups: Default::default(),
             web_fonts: Arc::new(RwLock::default()),
@@ -323,15 +323,11 @@ impl FontContext {
             .entry(identifier.clone())
             .or_insert_with(|| {
                 let font_key = self.system_font_service_proxy.generate_font_key();
-                let _ = self
-                    .webrender_api
-                    .lock()
-                    .sender()
-                    .send(ScriptToCompositorMsg::AddFont(
-                        font_key,
-                        font_data.as_ipc_shared_memory(),
-                        identifier.index(),
-                    ));
+                self.compositor_api.lock().add_font(
+                    font_key,
+                    font_data.as_ipc_shared_memory(),
+                    identifier.index(),
+                );
                 font_key
             });
 
@@ -341,13 +337,11 @@ impl FontContext {
             .entry((font_key, pt_size))
             .or_insert_with(|| {
                 let font_instance_key = self.system_font_service_proxy.generate_font_instance_key();
-                let _ = self.webrender_api.lock().sender().send(
-                    ScriptToCompositorMsg::AddFontInstance(
-                        font_instance_key,
-                        font_key,
-                        pt_size.to_f32_px(),
-                        flags,
-                    ),
+                self.compositor_api.lock().add_font_instance(
+                    font_instance_key,
+                    font_key,
+                    pt_size.to_f32_px(),
+                    flags,
                 );
                 font_instance_key
             });

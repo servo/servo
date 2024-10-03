@@ -21,15 +21,18 @@ use script_traits::{
     AnimationState, ConstellationControlMsg, EventResult, MouseButton, MouseEventType,
 };
 use style_traits::CSSPixel;
-use webrender_api::units::{DeviceIntPoint, DeviceIntSize, DeviceRect};
+use webrender_api::units::DeviceRect;
 use webrender_api::DocumentId;
-use webrender_traits::{
-    CanvasToCompositorMsg, FontToCompositorMsg, NetToCompositorMsg, ScriptToCompositorMsg,
-};
+use webrender_traits::{CrossProcessCompositorApi, CrossProcessCompositorMessage};
 
 /// Sends messages to the compositor.
+#[derive(Clone)]
 pub struct CompositorProxy {
     pub sender: Sender<CompositorMsg>,
+    /// Access to [`Self::sender`] that is possible to send across an IPC
+    /// channel. These messages are routed via the router thread to
+    /// [`Self::sender`].
+    pub cross_process_compositor_api: CrossProcessCompositorApi,
     pub event_loop_waker: Box<dyn EventLoopWaker>,
 }
 
@@ -39,15 +42,6 @@ impl CompositorProxy {
             warn!("Failed to send response ({:?}).", err);
         }
         self.event_loop_waker.wake();
-    }
-}
-
-impl Clone for CompositorProxy {
-    fn clone(&self) -> CompositorProxy {
-        CompositorProxy {
-            sender: self.sender.clone(),
-            event_loop_waker: self.event_loop_waker.clone(),
-        }
     }
 }
 
@@ -114,16 +108,9 @@ pub enum CompositorMsg {
     /// WebDriver mouse move event
     WebDriverMouseMoveEvent(f32, f32),
 
-    /// Get Window Informations size and position.
-    GetClientWindow(IpcSender<(DeviceIntSize, DeviceIntPoint)>),
-    /// Get screen size.
-    GetScreenSize(IpcSender<DeviceIntSize>),
-    /// Get screen available size.
-    GetScreenAvailSize(IpcSender<DeviceIntSize>),
-
     /// Messages forwarded to the compositor by the constellation from other crates. These
     /// messages are mainly passed on from the compositor to WebRender.
-    Forwarded(ForwardedToCompositorMsg),
+    CrossProcess(CrossProcessCompositorMessage),
 }
 
 pub struct SendableFrameTree {
@@ -137,27 +124,6 @@ pub struct CompositionPipeline {
     pub id: PipelineId,
     pub top_level_browsing_context_id: TopLevelBrowsingContextId,
     pub script_chan: IpcSender<ConstellationControlMsg>,
-}
-
-/// Messages forwarded by the Constellation to the Compositor.
-pub enum ForwardedToCompositorMsg {
-    Layout(ScriptToCompositorMsg),
-    Net(NetToCompositorMsg),
-    SystemFontService(FontToCompositorMsg),
-    Canvas(CanvasToCompositorMsg),
-}
-
-impl Debug for ForwardedToCompositorMsg {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
-        match self {
-            ForwardedToCompositorMsg::Layout(_) => write!(f, "Layout(ScriptToCompositorMsg)"),
-            ForwardedToCompositorMsg::Net(_) => write!(f, "Net(NetToCompositorMsg)"),
-            ForwardedToCompositorMsg::SystemFontService(_) => {
-                write!(f, "SystemFontService(FontToCompositorMsg)")
-            },
-            ForwardedToCompositorMsg::Canvas(_) => write!(f, "Canvas(CanvasToCompositorMsg)"),
-        }
-    }
 }
 
 impl Debug for CompositorMsg {
@@ -183,10 +149,7 @@ impl Debug for CompositorMsg {
             CompositorMsg::LoadComplete(..) => write!(f, "LoadComplete"),
             CompositorMsg::WebDriverMouseButtonEvent(..) => write!(f, "WebDriverMouseButtonEvent"),
             CompositorMsg::WebDriverMouseMoveEvent(..) => write!(f, "WebDriverMouseMoveEvent"),
-            CompositorMsg::GetClientWindow(..) => write!(f, "GetClientWindow"),
-            CompositorMsg::GetScreenSize(..) => write!(f, "GetScreenSize"),
-            CompositorMsg::GetScreenAvailSize(..) => write!(f, "GetScreenAvailSize"),
-            CompositorMsg::Forwarded(..) => write!(f, "Webrender"),
+            CompositorMsg::CrossProcess(..) => write!(f, "CrossProcess"),
         }
     }
 }

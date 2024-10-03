@@ -25,6 +25,7 @@ use servo::script_traits::{
 };
 use servo::servo_url::ServoUrl;
 use servo::style_traits::DevicePixel;
+use servo::webrender_api::units::DeviceIntRect;
 use servo::webrender_api::ScrollLocation;
 use servo::webrender_traits::RenderingContext;
 use servo::{gl, Servo, TopLevelBrowsingContextId};
@@ -693,9 +694,9 @@ impl WindowMethods for ServoWindowCallbacks {
         EmbedderCoordinates {
             viewport: coords.viewport.to_box2d(),
             framebuffer: coords.framebuffer,
-            window: (coords.viewport.size, Point2D::new(0, 0)),
-            screen: coords.viewport.size,
-            screen_avail: coords.viewport.size,
+            window_rect: DeviceIntRect::from_origin_and_size(Point2D::zero(), coords.viewport.size),
+            screen_size: coords.viewport.size,
+            available_screen_size: coords.viewport.size,
             hidpi_factor: Scale::new(self.density),
         }
     }

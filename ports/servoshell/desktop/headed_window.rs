@@ -536,10 +536,10 @@ impl WindowMethods for Window {
         EmbedderCoordinates {
             viewport,
             framebuffer: viewport.size(),
-            window: (window_size, window_origin),
-            screen,
+            window_rect: DeviceIntRect::from_origin_and_size(window_origin, window_size),
+            screen_size: screen,
             // FIXME: Winit doesn't have API for available size. Fallback to screen size
-            screen_avail: screen,
+            available_screen_size: screen,
             hidpi_factor: self.hidpi_factor(),
         }
     }

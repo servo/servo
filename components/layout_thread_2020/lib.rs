@@ -92,7 +92,7 @@ use tracing::{instrument, span, Level};
 use url::Url;
 use webrender_api::units::LayoutPixel;
 use webrender_api::{units, ExternalScrollId, HitTestFlags};
-use webrender_traits::WebRenderScriptApi;
+use webrender_traits::CrossProcessCompositorApi;
 
 /// Information needed by layout.
 pub struct LayoutThread {
@@ -151,8 +151,8 @@ pub struct LayoutThread {
     /// The executors for paint worklets.
     registered_painters: RegisteredPaintersImpl,
 
-    /// Webrender interface.
-    webrender_api: WebRenderScriptApi,
+    /// Cross-process access to the Compositor API.
+    compositor_api: CrossProcessCompositorApi,
 
     /// Paint time metrics.
     paint_time_metrics: PaintTimeMetrics,
@@ -179,7 +179,7 @@ impl LayoutFactory for LayoutFactoryImpl {
             config.resource_threads,
             config.system_font_service,
             config.time_profiler_chan,
-            config.webrender_api_sender,
+            config.compositor_api,
             config.paint_time_metrics,
             config.window_size,
         ))
@@ -228,7 +228,7 @@ impl Drop for LayoutThread {
         let (keys, instance_keys) = self
             .font_context
             .collect_unused_webrender_resources(true /* all */);
-        self.webrender_api
+        self.compositor_api
             .remove_unused_font_resources(keys, instance_keys)
     }
 }
@@ -333,7 +333,7 @@ impl Layout for LayoutThread {
 
         let client_point = units::DevicePoint::from_untyped(point);
         let results = self
-            .webrender_api
+            .compositor_api
             .hit_test(Some(self.id.into()), client_point, flags);
 
         results.iter().map(|result| result.node.into()).collect()
@@ -506,12 +506,12 @@ impl LayoutThread {
         resource_threads: ResourceThreads,
         system_font_service: Arc<SystemFontServiceProxy>,
         time_profiler_chan: profile_time::ProfilerChan,
-        webrender_api_sender: WebRenderScriptApi,
+        compositor_api: CrossProcessCompositorApi,
         paint_time_metrics: PaintTimeMetrics,
         window_size: WindowSizeData,
     ) -> LayoutThread {
         // Let webrender know about this pipeline by sending an empty display list.
-        webrender_api_sender.send_initial_transaction(id.into());
+        compositor_api.send_initial_transaction(id.into());
 
         let mut font = Font::initial_values();
         let default_font_size = pref!(fonts.default_size);
@@ -525,7 +525,7 @@ impl LayoutThread {
         // but it will be set correctly when the initial reflow takes place.
         let font_context = Arc::new(FontContext::new(
             system_font_service,
-            webrender_api_sender.clone(),
+            compositor_api.clone(),
             resource_threads,
         ));
         let device = Device::new(
@@ -557,7 +557,7 @@ impl LayoutThread {
                 Au::from_f32_px(window_size.initial_viewport.width),
                 Au::from_f32_px(window_size.initial_viewport.height),
             ),
-            webrender_api: webrender_api_sender,
+            compositor_api,
             scroll_offsets: Default::default(),
             stylist: Stylist::new(device, QuirksMode::NoQuirks),
             webrender_image_cache: Default::default(),
@@ -868,7 +868,7 @@ impl LayoutThread {
             .borrow_mut()
             .insert(state.scroll_id, state.scroll_offset);
         let point = Point2D::new(-state.scroll_offset.x, -state.scroll_offset.y);
-        self.webrender_api.send_scroll_node(
+        self.compositor_api.send_scroll_node(
             self.id.into(),
             units::LayoutPoint::from_untyped(point),
             state.scroll_id,
@@ -958,13 +958,13 @@ impl LayoutThread {
             .maybe_observe_paint_time(self, epoch, is_contentful);
 
         if reflow_goal.needs_display() {
-            self.webrender_api
+            self.compositor_api
                 .send_display_list(display_list.compositor_info, display_list.wr.end().1);
 
             let (keys, instance_keys) = self
                 .font_context
                 .collect_unused_webrender_resources(false /* all */);
-            self.webrender_api
+            self.compositor_api
                 .remove_unused_font_resources(keys, instance_keys)
         }
 
