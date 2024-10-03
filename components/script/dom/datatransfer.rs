@@ -50,7 +50,7 @@ impl DataTransfer {
         proto: Option<HandleObject>,
         can_gc: CanGc,
     ) -> DomRoot<DataTransfer> {
-        let item_list = DataTransferItemList::new(window, proto, can_gc);
+        let item_list = DataTransferItemList::new(window);
         let data_transfer = reflect_dom_object_with_proto(
             Box::new(DataTransfer::new_inherited(&item_list)),
             window,
@@ -144,6 +144,6 @@ impl DataTransferMethods for DataTransfer {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-datatransfer-files>
     fn Files(&self) -> DomRoot<FileList> {
-        FileList::new(&self.global().as_window(), self.items.files())
+        FileList::new(self.global().as_window(), self.items.files())
     }
 }
