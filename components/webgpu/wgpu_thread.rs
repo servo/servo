@@ -1005,7 +1005,7 @@ impl WGPU {
                             let _guard = self.poller.lock();
                             global
                                 .queue_submit(queue_id, &command_buffers)
-                                .map_err(|(_, err)| Error::from_error(err))
+                                .map_err(|(_, error)| Error::from_error(error))
                         };
                         self.maybe_dispatch_error(device_id, result.err());
                     },
