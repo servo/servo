@@ -8,7 +8,8 @@ use std::os::raw::c_void;
 use std::rc::Rc;
 
 use ipc_channel::ipc::IpcSender;
-use log::{debug, info, warn};
+use keyboard_types::{CompositionEvent, CompositionState};
+use log::{debug, error, info, warn};
 use servo::base::id::WebViewId;
 use servo::compositing::windowing::{
     AnimationState, EmbedderCoordinates, EmbedderEvent, EmbedderMethods, MouseWindowEvent,
@@ -374,6 +375,13 @@ impl ServoGlue {
         self.process_event(EmbedderEvent::Keyboard(key_event))
     }
 
+    pub fn ime_insert_text(&mut self, text: String) -> Result<(), &'static str> {
+        self.process_event(EmbedderEvent::IMEComposition(CompositionEvent {
+            state: CompositionState::End,
+            data: text,
+        }))
+    }
+
     pub fn pause_compositor(&mut self) -> Result<(), &'static str> {
         self.process_event(EmbedderEvent::InvalidateNativeSurface)
     }
@@ -619,11 +627,13 @@ impl ServoGlue {
                 EmbedderMsg::ReadyToPresent(_webview_ids) => {
                     self.need_present = true;
                 },
+                EmbedderMsg::Keyboard(..) => {
+                    error!("Received unexpected keyboard event");
+                },
                 EmbedderMsg::Status(..) |
                 EmbedderMsg::SelectFiles(..) |
                 EmbedderMsg::MoveTo(..) |
                 EmbedderMsg::ResizeTo(..) |
-                EmbedderMsg::Keyboard(..) |
                 EmbedderMsg::SetCursor(..) |
                 EmbedderMsg::NewFavicon(..) |
                 EmbedderMsg::HeadParsed |

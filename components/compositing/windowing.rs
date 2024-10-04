@@ -10,7 +10,7 @@ use std::time::Duration;
 use base::id::{PipelineId, TopLevelBrowsingContextId};
 use embedder_traits::EventLoopWaker;
 use euclid::Scale;
-use keyboard_types::KeyboardEvent;
+use keyboard_types::{CompositionEvent, KeyboardEvent};
 use libc::c_void;
 use net::protocols::ProtocolRegistry;
 use script_traits::{
@@ -83,6 +83,8 @@ pub enum EmbedderEvent {
     ExitFullScreen(TopLevelBrowsingContextId),
     /// Sent when a key input state changes
     Keyboard(KeyboardEvent),
+    /// Sent for IME composition updates
+    IMEComposition(CompositionEvent),
     /// Sent when Ctr+R/Apple+R is called to reload the current page.
     Reload(TopLevelBrowsingContextId),
     /// Create a new top-level browsing context.
@@ -139,6 +141,7 @@ impl Debug for EmbedderEvent {
             EmbedderEvent::Refresh => write!(f, "Refresh"),
             EmbedderEvent::WindowResize => write!(f, "Resize"),
             EmbedderEvent::Keyboard(..) => write!(f, "Keyboard"),
+            EmbedderEvent::IMEComposition(..) => write!(f, "IMEComposition"),
             EmbedderEvent::AllowNavigationResponse(..) => write!(f, "AllowNavigationResponse"),
             EmbedderEvent::LoadUrl(..) => write!(f, "LoadUrl"),
             EmbedderEvent::MouseWindowEventClass(..) => write!(f, "Mouse"),
