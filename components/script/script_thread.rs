@@ -95,7 +95,7 @@ use style::thread_state::{self, ThreadState};
 use url::Position;
 use webgpu::{WebGPUDevice, WebGPUMsg};
 use webrender_api::DocumentId;
-use webrender_traits::CrossProcessCompositorApi;
+use webrender_traits::WebRenderScriptApi;
 
 use crate::document_loader::DocumentLoader;
 use crate::dom::bindings::cell::DomRefCell;
@@ -669,9 +669,9 @@ pub struct ScriptThread {
     #[no_trace]
     webrender_document: DocumentId,
 
-    /// Cross-process access to the compositor's API.
+    /// Webrender API sender.
     #[no_trace]
-    compositor_api: CrossProcessCompositorApi,
+    webrender_api_sender: WebRenderScriptApi,
 
     /// Periodically print out on which events script threads spend their processing time.
     profile_script_events: bool,
@@ -1399,7 +1399,7 @@ impl ScriptThread {
             custom_element_reaction_stack: CustomElementReactionStack::new(),
 
             webrender_document: state.webrender_document,
-            compositor_api: state.compositor_api,
+            webrender_api_sender: state.webrender_api_sender,
 
             profile_script_events: opts.debug.profile_script_events,
             print_pwm: opts.print_pwm,
@@ -3661,7 +3661,7 @@ impl ScriptThread {
             system_font_service: self.system_font_service.clone(),
             resource_threads: self.resource_threads.clone(),
             time_profiler_chan: self.time_profiler_chan.clone(),
-            compositor_api: self.compositor_api.clone(),
+            webrender_api_sender: self.webrender_api_sender.clone(),
             paint_time_metrics,
             window_size: incomplete.window_size,
         };
@@ -3692,7 +3692,7 @@ impl ScriptThread {
             self.webxr_registry.clone(),
             self.microtask_queue.clone(),
             self.webrender_document,
-            self.compositor_api.clone(),
+            self.webrender_api_sender.clone(),
             self.relayout_event,
             self.prepare_for_screenshot,
             self.unminify_js,

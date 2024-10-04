@@ -27,7 +27,7 @@ use style::values::specified::FontStretch as SpecifiedFontStretch;
 use style::Atom;
 use tracing::{span, Level};
 use webrender_api::{FontInstanceFlags, FontInstanceKey, FontKey};
-use webrender_traits::CrossProcessCompositorApi;
+use webrender_traits::WebRenderFontApi;
 
 use crate::font::FontDescriptor;
 use crate::font_store::FontStore;
@@ -97,7 +97,7 @@ struct ResolvedGenericFontFamilies {
 pub struct SystemFontService {
     port: IpcReceiver<SystemFontServiceMessage>,
     local_families: FontStore,
-    compositor_api: CrossProcessCompositorApi,
+    webrender_api: Box<dyn WebRenderFontApi>,
     webrender_fonts: HashMap<FontIdentifier, FontKey>,
     font_instances: HashMap<(FontKey, Au), FontInstanceKey>,
     generic_fonts: ResolvedGenericFontFamilies,
@@ -129,7 +129,7 @@ impl SystemFontServiceProxySender {
 }
 
 impl SystemFontService {
-    pub fn spawn(compositor_api: CrossProcessCompositorApi) -> SystemFontServiceProxySender {
+    pub fn spawn(webrender_api: Box<dyn WebRenderFontApi + Send>) -> SystemFontServiceProxySender {
         let (sender, receiver) = ipc::channel().unwrap();
 
         thread::Builder::new()
@@ -139,7 +139,7 @@ impl SystemFontService {
                 let mut cache = SystemFontService {
                     port: receiver,
                     local_families: Default::default(),
-                    compositor_api,
+                    webrender_api,
                     webrender_fonts: HashMap::new(),
                     font_instances: HashMap::new(),
                     generic_fonts: Default::default(),
@@ -198,7 +198,7 @@ impl SystemFontService {
 
         const FREE_FONT_KEYS_BATCH_SIZE: usize = 20;
         const FREE_FONT_INSTANCE_KEYS_BATCH_SIZE: usize = 20;
-        let (mut new_font_keys, mut new_font_instance_keys) = self.compositor_api.fetch_font_keys(
+        let (mut new_font_keys, mut new_font_instance_keys) = self.webrender_api.fetch_font_keys(
             FREE_FONT_KEYS_BATCH_SIZE - self.free_font_keys.len(),
             FREE_FONT_INSTANCE_KEYS_BATCH_SIZE - self.free_font_instance_keys.len(),
         );
@@ -281,7 +281,7 @@ impl SystemFontService {
     ) -> FontInstanceKey {
         self.fetch_new_keys();
 
-        let compositor_api = &self.compositor_api;
+        let webrender_font_api = &self.webrender_api;
         let webrender_fonts = &mut self.webrender_fonts;
         let font_data = self.local_families.get_or_initialize_font_data(&identifier);
 
@@ -296,12 +296,12 @@ impl SystemFontService {
                 // this for those platforms.
                 #[cfg(target_os = "macos")]
                 if let FontIdentifier::Local(local_font_identifier) = identifier {
-                    compositor_api
+                    webrender_font_api
                         .add_system_font(font_key, local_font_identifier.native_font_handle());
                     return font_key;
                 }
 
-                compositor_api.add_font(
+                webrender_font_api.add_font(
                     font_key,
                     font_data.as_ipc_shared_memory(),
                     identifier.index(),
@@ -314,7 +314,7 @@ impl SystemFontService {
             .entry((font_key, pt_size))
             .or_insert_with(|| {
                 let font_instance_key = self.free_font_instance_keys.pop().unwrap();
-                compositor_api.add_font_instance(
+                webrender_font_api.add_font_instance(
                     font_instance_key,
                     font_key,
                     pt_size.to_f32_px(),
