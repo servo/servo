@@ -7,6 +7,7 @@ use std::ptr;
 use html5ever::interface::QualName;
 use html5ever::{local_name, namespace_url, ns, LocalName};
 use js::conversions::ToJSValConvertible;
+use js::gc::RootedGuard;
 use js::glue::{UnwrapObjectDynamic, UnwrapObjectStatic};
 use js::jsapi::{CallArgs, CurrentGlobalOrNull, JSAutoRealm, JSObject};
 use js::rust::wrappers::{JS_SetPrototype, JS_WrapObject};
@@ -40,7 +41,7 @@ use crate::dom::bindings::codegen::Bindings::{
 };
 use crate::dom::bindings::codegen::PrototypeList;
 use crate::dom::bindings::conversions::DerivedFrom;
-use crate::dom::bindings::error::{throw_dom_exception, Error};
+use crate::dom::bindings::error::{throw_constructor_without_new, throw_dom_exception, Error};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::interface::get_desired_proto;
 use crate::dom::bindings::reflector::DomObject;
@@ -397,4 +398,27 @@ pub unsafe fn call_html_constructor<T: DerivedFrom<Element> + DomObject>(
         creator,
     )
     .is_ok()
+}
+
+pub unsafe fn call_default_constructor(
+    cx: JSContext,
+    args: &CallArgs,
+    global: DomRoot<GlobalScope>,
+    proto_id: PrototypeList::ID,
+    ctor_name: &str,
+    creator: unsafe fn(JSContext, HandleObject, *mut ProtoOrIfaceArray),
+    constructor: impl FnOnce(JSContext, &CallArgs, &GlobalScope, RootedGuard<*mut JSObject>) -> bool,
+) -> bool {
+    if !args.is_constructing() {
+        throw_constructor_without_new(*cx, ctor_name);
+        return false;
+    }
+
+    rooted!(in(*cx) let mut desired_proto = ptr::null_mut::<JSObject>());
+    let proto_result = get_desired_proto(cx, args, proto_id, creator, desired_proto.handle_mut());
+    if proto_result.is_err() {
+        return false;
+    }
+
+    constructor(cx, args, &global, desired_proto)
 }
