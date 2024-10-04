@@ -142,27 +142,39 @@ impl SubtleCryptoMethods for SubtleCrypto {
 #[derive(Clone)]
 pub enum NormalizedAlgorithm {
     #[allow(dead_code)]
-    Algorithm(Algorithm),
-    AesKeyGenParams(AesKeyGenParams),
+    Algorithm(SubtleAlgorithm),
+    AesKeyGenParams(SubtleAesKeyGenParams),
 }
 
-#[allow(unsafe_code)]
-/// The spec states to run operation steps in parallel, but DOMString does not impl Send.
-unsafe impl Send for NormalizedAlgorithm {}
+// These "subtle" structs are proxies for the codegen'd dicts which don't hold a DOMString
+// so they can be sent safely when running steps in parallel.
 
-impl Clone for Algorithm {
-    fn clone(&self) -> Self {
-        Algorithm {
-            name: self.name.clone(),
+#[derive(Clone)]
+pub struct SubtleAlgorithm {
+    #[allow(dead_code)]
+    pub name: String,
+}
+
+impl From<DOMString> for SubtleAlgorithm {
+    fn from(name: DOMString) -> Self {
+        SubtleAlgorithm {
+            name: name.to_string(),
         }
     }
 }
 
-impl Clone for AesKeyGenParams {
-    fn clone(&self) -> Self {
-        AesKeyGenParams {
-            length: self.length.clone(),
-            parent: self.parent.clone(),
+#[derive(Clone)]
+pub struct SubtleAesKeyGenParams {
+    #[allow(dead_code)]
+    pub name: String,
+    pub length: u16,
+}
+
+impl From<AesKeyGenParams> for SubtleAesKeyGenParams {
+    fn from(params: AesKeyGenParams) -> Self {
+        SubtleAesKeyGenParams {
+            name: params.parent.name.to_string(),
+            length: params.length,
         }
     }
 }
@@ -175,7 +187,7 @@ fn normalize_algorithm(
     operation: &str,
 ) -> Result<NormalizedAlgorithm, Error> {
     match algorithm {
-        AlgorithmIdentifier::String(name) => Ok(NormalizedAlgorithm::Algorithm(Algorithm { name })),
+        AlgorithmIdentifier::String(name) => Ok(NormalizedAlgorithm::Algorithm(name.into())),
         AlgorithmIdentifier::Object(obj) => {
             rooted!(in(*cx) let value = ObjectValue(unsafe { *obj.get_unsafe() }));
             let Ok(ConversionResult::Success(algorithm)) = Algorithm::new(cx, value.handle())
@@ -184,12 +196,12 @@ fn normalize_algorithm(
             };
             match (algorithm.name.str(), operation) {
                 (ALG_AES_CBC, "generateKey") => {
-                    let params =
+                    let params_result =
                         AesKeyGenParams::new(cx, value.handle()).map_err(|_| Error::Operation)?;
-                    match params {
-                        ConversionResult::Success(a) => Ok(NormalizedAlgorithm::AesKeyGenParams(a)),
-                        _ => return Err(Error::Syntax),
-                    }
+                    let ConversionResult::Success(params) = params_result else {
+                        return Err(Error::Syntax);
+                    };
+                    Ok(NormalizedAlgorithm::AesKeyGenParams(params.into()))
                 },
                 _ => return Err(Error::NotSupported),
             }
@@ -202,7 +214,7 @@ impl SubtleCrypto {
     fn generate_key_aes_cbc(
         &self,
         usages: Vec<KeyUsage>,
-        key_gen_params: AesKeyGenParams,
+        key_gen_params: SubtleAesKeyGenParams,
         extractable: bool,
     ) -> Result<DomRoot<CryptoKey>, Error> {
         if !matches!(key_gen_params.length, 128 | 192 | 256) {
