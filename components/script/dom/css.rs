@@ -19,6 +19,7 @@ use crate::dom::window::Window;
 use crate::dom::worklet::Worklet;
 
 #[dom_struct]
+#[allow(clippy::upper_case_acronyms)]
 pub struct CSS {
     reflector_: Reflector,
 }

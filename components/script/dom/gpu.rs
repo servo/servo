@@ -28,6 +28,7 @@ use crate::realms::InRealm;
 use crate::task_source::{TaskSource, TaskSourceName};
 
 #[dom_struct]
+#[allow(clippy::upper_case_acronyms)]
 pub struct GPU {
     reflector_: Reflector,
 }
