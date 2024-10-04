@@ -86,7 +86,7 @@ impl ServoRng {
     pub fn new_manually_reseeded(seed: u64) -> ServoRng {
         trace!("Creating a new manually-reseeded ServoRng.");
         let isaac_rng = IsaacCore::seed_from_u64(seed);
-        let reseeding_rng = ReseedingRng::new(isaac_rng, u64::MAX, ServoReseeder);
+        let reseeding_rng = ReseedingRng::new(isaac_rng, 0, ServoReseeder);
         ServoRng { rng: reseeding_rng }
     }
 }
