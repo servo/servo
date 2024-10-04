@@ -2043,6 +2043,7 @@ impl<'a> TableLayout<'a> {
         col_group.style.get_inherited_box().visibility == Visibility::Collapse
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn do_final_cell_layout(
         &mut self,
         row_index: usize,

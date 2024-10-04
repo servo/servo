@@ -494,6 +494,7 @@ impl Layout for LayoutThread {
 }
 
 impl LayoutThread {
+    #[allow(clippy::too_many_arguments)]
     fn new(
         id: PipelineId,
         url: ServoUrl,
@@ -587,6 +588,7 @@ impl LayoutThread {
     }
 
     // Create a layout context for use in building display lists, hit testing, &c.
+    #[allow(clippy::too_many_arguments)]
     fn build_layout_context<'a>(
         &'a self,
         guards: StylesheetGuards<'a>,

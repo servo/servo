@@ -102,6 +102,7 @@ impl FlexItemLayoutResult {
             .unwrap_or_else(|| item.synthesized_baseline_relative_to_margin_box(cross_size))
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn collect_fragment(
         mut self,
         initial_flex_layout: &InitialFlexLineLayout,
@@ -2201,6 +2202,7 @@ impl FlexItemBox {
     }
 
     /// This is an implementation of <https://drafts.csswg.org/css-flexbox/#min-size-auto>.
+    #[allow(clippy::too_many_arguments)]
     fn automatic_min_size(
         &mut self,
         layout_context: &LayoutContext,
@@ -2307,6 +2309,7 @@ impl FlexItemBox {
     }
 
     /// <https://drafts.csswg.org/css-flexbox/#algo-main-item>
+    #[allow(clippy::too_many_arguments)]
     fn flex_base_size(
         &mut self,
         layout_context: &LayoutContext,
@@ -2457,6 +2460,7 @@ impl FlexItemBox {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn layout_for_block_content_size(
         &mut self,
         flex_context: &FlexContext,
