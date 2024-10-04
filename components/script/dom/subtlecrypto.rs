@@ -172,17 +172,17 @@ impl Clone for AesKeyGenParams {
 fn normalize_algorithm(
     cx: JSContext,
     algorithm: AlgorithmIdentifier,
-    op: &str,
+    operation: &str,
 ) -> Result<NormalizedAlgorithm, Error> {
     match algorithm {
         AlgorithmIdentifier::String(name) => Ok(NormalizedAlgorithm::Algorithm(Algorithm { name })),
         AlgorithmIdentifier::Object(obj) => {
             rooted!(in(*cx) let value = ObjectValue(unsafe { *obj.get_unsafe() }));
-            let algorithm = match Algorithm::new(cx, value.handle()) {
-                Ok(ConversionResult::Success(a)) => a,
-                _ => return Err(Error::Syntax),
+            let Ok(ConversionResult::Success(algorithm)) = Algorithm::new(cx, value.handle())
+            else {
+                return Err(Error::Syntax);
             };
-            match (algorithm.name.str(), op) {
+            match (algorithm.name.str(), operation) {
                 (ALG_AES_CBC, "generateKey") => {
                     let params =
                         AesKeyGenParams::new(cx, value.handle()).map_err(|_| Error::Operation)?;
@@ -214,7 +214,7 @@ impl SubtleCrypto {
                 usage,
                 KeyUsage::Encrypt | KeyUsage::Decrypt | KeyUsage::WrapKey | KeyUsage::UnwrapKey
             )
-        }) || usages.len() == 0
+        }) || usages.is_empty()
         {
             return Err(Error::Syntax);
         }
