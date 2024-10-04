@@ -147,6 +147,7 @@ impl SystemFontService {
                     free_font_instance_keys: Default::default(),
                 };
 
+                cache.fetch_new_keys();
                 cache.refresh_local_families();
                 cache.run();
             })
@@ -160,14 +161,18 @@ impl SystemFontService {
         loop {
             let msg = self.port.recv().unwrap();
 
+            let span = span!(
+                Level::TRACE,
+                "SystemFontServiceMessage",
+                servo_profiling = true
+            );
+            let _enter = span.enter();
             match msg {
                 SystemFontServiceMessage::GetFontTemplates(
                     font_descriptor,
                     font_family,
                     result_sender,
                 ) => {
-                    let span = span!(Level::TRACE, "GetFontTemplates", servo_profiling = true);
-                    let _span = span.enter();
                     let _ =
                         result_sender.send(self.get_font_templates(font_descriptor, font_family));
                 },
@@ -191,13 +196,14 @@ impl SystemFontService {
         }
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn fetch_new_keys(&mut self) {
         if !self.free_font_keys.is_empty() && !self.free_font_instance_keys.is_empty() {
             return;
         }
 
-        const FREE_FONT_KEYS_BATCH_SIZE: usize = 20;
-        const FREE_FONT_INSTANCE_KEYS_BATCH_SIZE: usize = 20;
+        const FREE_FONT_KEYS_BATCH_SIZE: usize = 40;
+        const FREE_FONT_INSTANCE_KEYS_BATCH_SIZE: usize = 40;
         let (mut new_font_keys, mut new_font_instance_keys) = self.webrender_api.fetch_font_keys(
             FREE_FONT_KEYS_BATCH_SIZE - self.free_font_keys.len(),
             FREE_FONT_INSTANCE_KEYS_BATCH_SIZE - self.free_font_instance_keys.len(),
@@ -207,6 +213,7 @@ impl SystemFontService {
             .append(&mut new_font_instance_keys);
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn get_font_templates(
         &mut self,
         font_descriptor: Option<FontDescriptor>,
@@ -239,6 +246,7 @@ impl SystemFontService {
         }
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn refresh_local_families(&mut self) {
         self.local_families.clear();
         for_each_available_family(|family_name| {
@@ -273,6 +281,7 @@ impl SystemFontService {
             .unwrap_or_default()
     }
 
+    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
     fn get_font_instance(
         &mut self,
         identifier: FontIdentifier,
