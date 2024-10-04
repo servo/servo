@@ -100,8 +100,7 @@ impl App {
             windows: HashMap::new(),
             minibrowser: None,
         };
-
-        if opts::get().minibrowser && window.winit_window().is_some() {
+        if window.winit_window().is_some() {
             // Make sure the gl context is made current.
             let rendering_context = window.rendering_context();
             let webrender_gl = match rendering_context.connection().gl_api() {
@@ -114,11 +113,14 @@ impl App {
             };
             rendering_context.make_gl_context_current().unwrap();
             debug_assert_eq!(webrender_gl.get_error(), gleam::gl::NO_ERROR);
+        }
+        
 
             app.minibrowser = Some(
                 Minibrowser::new(&rendering_context, &events_loop, initial_url.clone()).into(),
             );
         }
+}
 
         if let Some(mut minibrowser) = app.minibrowser() {
             // Servo is not yet initialised, so there is no `servo_framebuffer_id`.
@@ -374,7 +376,7 @@ impl App {
                 },
             }
         });
-    }
+
 
     fn is_animating(&self) -> bool {
         self.windows.iter().any(|(_, window)| window.is_animating())
@@ -496,4 +498,4 @@ impl App {
     fn minibrowser(&self) -> Option<RefMut<Minibrowser>> {
         self.minibrowser.as_ref().map(|x| x.borrow_mut())
     }
-}
+
