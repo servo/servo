@@ -23,7 +23,6 @@ use crate::script_runtime::JSContext;
 #[dom_struct]
 pub struct Crypto {
     reflector_: Reflector,
-    #[ignore_malloc_size_of = "Defined in rand"]
     #[no_trace]
     rng: DomRefCell<ServoRng>,
     subtle: MutNullableDom<SubtleCrypto>,

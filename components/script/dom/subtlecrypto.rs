@@ -74,7 +74,6 @@ static SUPPORTED_CURVES: &[&str] = &[NAMED_CURVE_P256, NAMED_CURVE_P384, NAMED_C
 #[dom_struct]
 pub struct SubtleCrypto {
     reflector_: Reflector,
-    #[ignore_malloc_size_of = "Defined in rand"]
     #[no_trace]
     rng: DomRefCell<ServoRng>,
 }
