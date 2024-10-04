@@ -12,11 +12,13 @@ use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
     CryptoKeyMethods, KeyType, KeyUsage,
 };
 use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::KeyAlgorithm;
-use crate::dom::bindings::reflector::Reflector;
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::globalscope::GlobalScope;
 use crate::js::conversions::ToJSValConvertible;
 use crate::script_runtime::JSContext;
 
-// The underlying cryptographic data this key represents
+/// The underlying cryptographic data this key represents
 #[allow(dead_code)]
 pub enum Handle {
     Aes128(Aes128),
@@ -38,7 +40,7 @@ pub struct CryptoKey {
 }
 
 impl CryptoKey {
-    pub fn new_inherited(
+    fn new_inherited(
         key_type: KeyType,
         extractable: bool,
         algorithm: KeyAlgorithm,
@@ -53,6 +55,26 @@ impl CryptoKey {
             usages,
             handle,
         }
+    }
+
+    pub fn new(
+        global: &GlobalScope,
+        key_type: KeyType,
+        extractable: bool,
+        algorithm: KeyAlgorithm,
+        usages: Vec<KeyUsage>,
+        handle: Handle,
+    ) -> DomRoot<CryptoKey> {
+        reflect_dom_object(
+            Box::new(CryptoKey::new_inherited(
+                key_type,
+                extractable,
+                algorithm,
+                usages,
+                handle,
+            )),
+            global,
+        )
     }
 }
 

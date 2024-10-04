@@ -204,7 +204,7 @@ impl SubtleCrypto {
         usages: Vec<KeyUsage>,
         key_gen_params: AesKeyGenParams,
         extractable: bool,
-    ) -> Result<CryptoKey, Error> {
+    ) -> Result<DomRoot<CryptoKey>, Error> {
         if !matches!(key_gen_params.length, 128 | 192 | 256) {
             return Err(Error::Operation);
         }
@@ -238,7 +238,8 @@ impl SubtleCrypto {
             _ => return Err(Error::Operation),
         };
 
-        Ok(CryptoKey::new_inherited(
+        Ok(CryptoKey::new(
+            &self.global(),
             KeyType::Secret,
             extractable,
             KeyAlgorithm {
