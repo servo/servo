@@ -501,7 +501,7 @@ impl crate::WGPU {
             let _guard = self.poller.lock();
             global
                 .queue_submit(queue_id, &[command_buffer_id])
-                .map_err(Error::from_error)?;
+                .map_err(|(_, error)| Error::from_error(error))?;
         }
         let callback = {
             let global = Arc::clone(&self.global);
