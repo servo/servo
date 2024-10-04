@@ -548,6 +548,7 @@ impl crate::WGPU {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn update_wr_image(
     result: Result<(), BufferAccessError>,
     global: Arc<Global>,

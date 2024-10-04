@@ -88,6 +88,7 @@ impl Gamepad {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         global: &GlobalScope,
         gamepad_id: u32,
@@ -115,6 +116,7 @@ impl Gamepad {
     /// The spec says UAs *may* do this for fingerprint mitigation, and it also
     /// happens to simplify implementation
     /// <https://www.w3.org/TR/gamepad/#fingerprinting-mitigation>
+    #[allow(clippy::too_many_arguments)]
     fn new_with_proto(
         global: &GlobalScope,
         gamepad_id: u32,
