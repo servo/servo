@@ -12,7 +12,7 @@ use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
     CryptoKeyMethods, KeyType, KeyUsage,
 };
 use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::KeyAlgorithm;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use crate::js::conversions::ToJSValConvertible;
@@ -26,6 +26,7 @@ pub enum Handle {
     Aes256(Aes256),
 }
 
+/// <https://w3c.github.io/webcrypto/#cryptokey-interface>
 #[dom_struct]
 pub struct CryptoKey {
     reflector_: Reflector,
