@@ -105,7 +105,7 @@ use style_traits::{CSSPixel, DevicePixel, SpeculativePainter};
 use time_03::Duration;
 use url::Url;
 use webrender_api::{units, ColorF, HitTestFlags};
-use webrender_traits::CrossProcessCompositorApi;
+use webrender_traits::WebRenderScriptApi;
 
 /// Information needed by layout.
 pub struct LayoutThread {
@@ -170,8 +170,8 @@ pub struct LayoutThread {
     /// The executors for paint worklets.
     registered_painters: RegisteredPaintersImpl,
 
-    /// Cross-process access to the compositor API.
-    compositor_api: CrossProcessCompositorApi,
+    /// Webrender interface.
+    webrender_api: WebRenderScriptApi,
 
     /// Paint time metrics.
     paint_time_metrics: PaintTimeMetrics,
@@ -201,7 +201,7 @@ impl LayoutFactory for LayoutFactoryImpl {
             config.resource_threads,
             config.system_font_service,
             config.time_profiler_chan,
-            config.compositor_api,
+            config.webrender_api_sender,
             config.paint_time_metrics,
             config.window_size,
         ))
@@ -249,7 +249,7 @@ impl Drop for LayoutThread {
         let (keys, instance_keys) = self
             .font_context
             .collect_unused_webrender_resources(true /* all */);
-        self.compositor_api
+        self.webrender_api
             .remove_unused_font_resources(keys, instance_keys)
     }
 }
@@ -359,7 +359,7 @@ impl Layout for LayoutThread {
 
         let client_point = units::DevicePoint::from_untyped(point);
         let results = self
-            .compositor_api
+            .webrender_api
             .hit_test(Some(self.id.into()), client_point, flags);
 
         results.iter().map(|result| result.node.into()).collect()
@@ -562,12 +562,12 @@ impl LayoutThread {
         resource_threads: ResourceThreads,
         system_font_service: Arc<SystemFontServiceProxy>,
         time_profiler_chan: profile_time::ProfilerChan,
-        compositor_api: CrossProcessCompositorApi,
+        webrender_api: WebRenderScriptApi,
         paint_time_metrics: PaintTimeMetrics,
         window_size: WindowSizeData,
     ) -> LayoutThread {
         // Let webrender know about this pipeline by sending an empty display list.
-        compositor_api.send_initial_transaction(id.into());
+        webrender_api.send_initial_transaction(id.into());
 
         let mut font = Font::initial_values();
         let default_font_size = pref!(fonts.default_size);
@@ -579,7 +579,7 @@ impl LayoutThread {
 
         let font_context = Arc::new(FontContext::new(
             system_font_service,
-            compositor_api.clone(),
+            webrender_api.clone(),
             resource_threads,
         ));
         let device = Device::new(
@@ -611,7 +611,7 @@ impl LayoutThread {
                 Au::from_f32_px(window_size.initial_viewport.width),
                 Au::from_f32_px(window_size.initial_viewport.height),
             ),
-            compositor_api,
+            webrender_api,
             stylist: Stylist::new(device, QuirksMode::NoQuirks),
             display_list: Default::default(),
             indexable_text: Default::default(),
@@ -936,13 +936,13 @@ impl LayoutThread {
                 self.paint_time_metrics
                     .maybe_observe_paint_time(self, epoch, is_contentful.0);
 
-                self.compositor_api
+                self.webrender_api
                     .send_display_list(compositor_info, builder.end().1);
 
                 let (keys, instance_keys) = self
                     .font_context
                     .collect_unused_webrender_resources(false /* all */);
-                self.compositor_api
+                self.webrender_api
                     .remove_unused_font_resources(keys, instance_keys)
             },
         );
@@ -1185,7 +1185,7 @@ impl LayoutThread {
             .insert(state.scroll_id, state.scroll_offset);
 
         let point = Point2D::new(-state.scroll_offset.x, -state.scroll_offset.y);
-        self.compositor_api.send_scroll_node(
+        self.webrender_api.send_scroll_node(
             self.id.into(),
             units::LayoutPoint::from_untyped(point),
             state.scroll_id,
