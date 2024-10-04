@@ -426,6 +426,7 @@ where
     }
 
     /// Handle key events before sending them to Servo.
+    
     fn handle_key_from_window(&mut self, key_event: KeyboardEvent) {
         let embedder_event = ShortcutMatcher::from_event(key_event.clone())
             .shortcut(CMD_OR_CONTROL, 'R', || {
