@@ -255,7 +255,7 @@ impl GPUCanvasContext {
             .send(WebGPURequest::UpdateContext {
                 context_id: self.context_id,
                 size: drawing_buffer.size,
-                configuration: drawing_buffer.config.clone(),
+                configuration: drawing_buffer.config,
             })
             .expect("Failed to update webgpu context");
     }
