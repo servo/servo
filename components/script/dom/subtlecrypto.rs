@@ -28,6 +28,49 @@ use crate::realms::InRealm;
 use crate::script_runtime::JSContext;
 use crate::task_source::TaskSource;
 
+// String constants for algorithms/curves
+const ALG_AES_CBC: &str = "AES-CBC";
+const ALG_AES_CTR: &str = "AES-CTR";
+const ALG_AES_GCM: &str = "AES-GCM";
+const ALG_AES_KW: &str = "AES-KW";
+const ALG_SHA1: &str = "SHA1";
+const ALG_SHA256: &str = "SHA256";
+const ALG_SHA384: &str = "SHA384";
+const ALG_SHA512: &str = "SHA512";
+const ALG_HMAC: &str = "HMAC";
+const ALG_HKDF: &str = "HKDF";
+const ALG_PBKDF2: &str = "PBKDF2";
+const ALG_RSASSA_PKCS1: &str = "RSASSA-PKCS1-v1_5";
+const ALG_RSA_OAEP: &str = "RSA-OAEP";
+const ALG_RSA_PSS: &str = "RSA-PSS";
+const ALG_ECDH: &str = "ECDH";
+const ALG_ECDSA: &str = "ECDSA";
+#[allow(dead_code)]
+static SUPPORTED_ALGORITHMS: &[&str] = &[
+    ALG_AES_CBC,
+    ALG_AES_CTR,
+    ALG_AES_GCM,
+    ALG_AES_KW,
+    ALG_SHA1,
+    ALG_SHA256,
+    ALG_SHA384,
+    ALG_SHA512,
+    ALG_HMAC,
+    ALG_HKDF,
+    ALG_PBKDF2,
+    ALG_RSASSA_PKCS1,
+    ALG_RSA_OAEP,
+    ALG_RSA_PSS,
+    ALG_ECDH,
+    ALG_ECDSA,
+];
+
+const NAMED_CURVE_P256: &str = "P-256";
+const NAMED_CURVE_P384: &str = "P-384";
+const NAMED_CURVE_P521: &str = "P-521";
+#[allow(dead_code)]
+static SUPPORTED_CURVES: &[&str] = &[NAMED_CURVE_P256, NAMED_CURVE_P384, NAMED_CURVE_P521];
+
 #[dom_struct]
 pub struct SubtleCrypto {
     reflector_: Reflector,
@@ -95,48 +138,6 @@ impl SubtleCryptoMethods for SubtleCrypto {
         promise
     }
 }
-
-const ALG_AES_CBC: &str = "AES-CBC";
-const ALG_AES_CTR: &str = "AES-CTR";
-const ALG_AES_GCM: &str = "AES-GCM";
-const ALG_AES_KW: &str = "AES-KW";
-const ALG_SHA1: &str = "SHA1";
-const ALG_SHA256: &str = "SHA256";
-const ALG_SHA384: &str = "SHA384";
-const ALG_SHA512: &str = "SHA512";
-const ALG_HMAC: &str = "HMAC";
-const ALG_HKDF: &str = "HKDF";
-const ALG_PBKDF2: &str = "PBKDF2";
-const ALG_RSASSA_PKCS1: &str = "RSASSA-PKCS1-v1_5";
-const ALG_RSA_OAEP: &str = "RSA-OAEP";
-const ALG_RSA_PSS: &str = "RSA-PSS";
-const ALG_ECDH: &str = "ECDH";
-const ALG_ECDSA: &str = "ECDSA";
-#[allow(dead_code)]
-static SUPPORTED_ALGORITHMS: &[&str] = &[
-    ALG_AES_CBC,
-    ALG_AES_CTR,
-    ALG_AES_GCM,
-    ALG_AES_KW,
-    ALG_SHA1,
-    ALG_SHA256,
-    ALG_SHA384,
-    ALG_SHA512,
-    ALG_HMAC,
-    ALG_HKDF,
-    ALG_PBKDF2,
-    ALG_RSASSA_PKCS1,
-    ALG_RSA_OAEP,
-    ALG_RSA_PSS,
-    ALG_ECDH,
-    ALG_ECDSA,
-];
-
-const NAMED_CURVE_P256: &str = "P-256";
-const NAMED_CURVE_P384: &str = "P-384";
-const NAMED_CURVE_P521: &str = "P-521";
-#[allow(dead_code)]
-static SUPPORTED_CURVES: &[&str] = &[NAMED_CURVE_P256, NAMED_CURVE_P384, NAMED_CURVE_P521];
 
 #[derive(Clone)]
 pub enum NormalizedAlgorithm {
