@@ -58,9 +58,7 @@ use style_traits::{CSSPixel, SpeculativePainter};
 use webgpu::WebGPUMsg;
 use webrender_api::units::{DeviceIntSize, DevicePixel, LayoutPixel};
 use webrender_api::{DocumentId, ExternalScrollId, ImageKey};
-use webrender_traits::{
-    CrossProcessCompositorApi, UntrustedNodeAddress as WebRenderUntrustedNodeAddress,
-};
+use webrender_traits::{UntrustedNodeAddress as WebRenderUntrustedNodeAddress, WebRenderScriptApi};
 
 pub use crate::script_msg::{
     DOMMessage, EventResult, HistoryEntryReplacement, IFrameSizeMsg, Job, JobError, JobResult,
@@ -661,8 +659,8 @@ pub struct InitialScriptState {
     pub webxr_registry: webxr_api::Registry,
     /// The Webrender document ID associated with this thread.
     pub webrender_document: DocumentId,
-    /// Access to the compositor across a process boundary.
-    pub compositor_api: CrossProcessCompositorApi,
+    /// FIXME(victor): The Webrender API sender in this constellation's pipeline
+    pub webrender_api_sender: WebRenderScriptApi,
     /// Application window's GL Context for Media player
     pub player_context: WindowGLContext,
 }

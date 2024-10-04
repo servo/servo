@@ -48,7 +48,10 @@ mod from_constellation {
                 Self::LoadComplete(..) => target!("LoadComplete"),
                 Self::WebDriverMouseButtonEvent(..) => target!("WebDriverMouseButtonEvent"),
                 Self::WebDriverMouseMoveEvent(..) => target!("WebDriverMouseMoveEvent"),
-                Self::CrossProcess(_) => target!("CrossProcess"),
+                Self::GetClientWindow(..) => target!("GetClientWindow"),
+                Self::GetScreenSize(..) => target!("GetScreenSize"),
+                Self::GetScreenAvailSize(..) => target!("GetScreenAvailSize"),
+                Self::Forwarded(..) => target!("Forwarded"),
             }
         }
     }

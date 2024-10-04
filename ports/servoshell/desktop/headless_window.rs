@@ -167,9 +167,9 @@ impl WindowMethods for Window {
         EmbedderCoordinates {
             viewport,
             framebuffer: size,
-            window_rect: DeviceIntRect::from_origin_and_size(Point2D::zero(), size),
-            screen_size: size,
-            available_screen_size: size,
+            window: (size, Point2D::zero()),
+            screen: size,
+            screen_avail: size,
             hidpi_factor: dpr,
         }
     }
