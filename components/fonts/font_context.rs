@@ -291,7 +291,7 @@ impl FontContext {
     }
 
     pub(crate) fn create_font_instance_key(&self, font: &Font) -> FontInstanceKey {
-        let result = match font.template.identifier() {
+        match font.template.identifier() {
             FontIdentifier::Local(_) | FontIdentifier::Mock(_) => {
                 self.system_font_service_proxy.get_system_font_instance(
                     font.template.identifier(),
@@ -305,8 +305,7 @@ impl FontContext {
                 font.descriptor.pt_size,
                 font.webrender_font_instance_flags(),
             ),
-        };
-        result
+        }
     }
 
     pub(crate) fn create_web_font_instance(
