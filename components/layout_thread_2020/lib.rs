@@ -492,7 +492,7 @@ impl Layout for LayoutThread {
         self.paint_time_metrics.maybe_set_metric(epoch, paint_time);
     }
 }
-
+#[allow(clippy::too_many_arguments)]
 impl LayoutThread {
     fn new(
         id: PipelineId,
@@ -585,7 +585,7 @@ impl LayoutThread {
             snapshot_map,
         }
     }
-
+    #[allow(clippy::too_many_arguments)]
     // Create a layout context for use in building display lists, hit testing, &c.
     fn build_layout_context<'a>(
         &'a self,
