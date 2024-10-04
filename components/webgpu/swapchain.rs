@@ -382,7 +382,7 @@ impl crate::WGPU {
         let context_data = webgpu_contexts.get_mut(&context_id).unwrap();
 
         let presentation_id = context_data.next_presentation_id();
-        assert!(context_data.check_and_update_presentation_id(presentation_id));
+        context_data.check_and_update_presentation_id(presentation_id);
 
         // If configuration is not provided or presentation format is not valid
         // the context will be dummy until recreation
