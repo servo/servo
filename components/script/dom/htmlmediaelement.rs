@@ -1075,14 +1075,12 @@ impl HTMLMediaElement {
         self.error.get().is_some()
     }
 
-    // https://html.spec.whatwg.org/multipage/#potentially-playing
+    /// <https://html.spec.whatwg.org/multipage/#potentially-playing>
     fn is_potentially_playing(&self) -> bool {
         !self.paused.get() &&
-        // FIXME: We need https://github.com/servo/servo/pull/22348
-        //              to know whether playback has ended or not
-        // !self.Ended() &&
-        self.error.get().is_none() &&
-        !self.is_blocked_media_element()
+            !self.Ended() &&
+            self.error.get().is_none() &&
+            !self.is_blocked_media_element()
     }
 
     // https://html.spec.whatwg.org/multipage/#blocked-media-element
