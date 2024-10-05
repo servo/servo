@@ -1861,7 +1861,6 @@ impl Window {
         // If this reflow is for display, ensure webgl canvases are composited with
         // up-to-date contents.
         if for_display {
-            document.flush_dirty_webgpu_canvases();
             document.flush_dirty_webgl_canvases();
         }
 

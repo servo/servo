@@ -8,6 +8,7 @@ use std::sync::Arc;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::task::TaskCanceller;
+use crate::task_source::automatic_expiry::WebGPUAutomaticExpiryTaskSource;
 use crate::task_source::dom_manipulation::DOMManipulationTaskSource;
 use crate::task_source::file_reading::FileReadingTaskSource;
 use crate::task_source::gamepad::GamepadTaskSource;
@@ -65,6 +66,8 @@ pub struct TaskManager {
     timer_task_source: TimerTaskSource,
     #[ignore_malloc_size_of = "task sources are hard"]
     websocket_task_source: WebsocketTaskSource,
+    #[ignore_malloc_size_of = "task sources are hard"]
+    webgpu_automatic_expiry_task_source: WebGPUAutomaticExpiryTaskSource,
 }
 
 impl TaskManager {
@@ -83,6 +86,7 @@ impl TaskManager {
         rendering_task_source: RenderingTaskSource,
         timer_task_source: TimerTaskSource,
         websocket_task_source: WebsocketTaskSource,
+        webgpu_automatic_expiry_task_source: WebGPUAutomaticExpiryTaskSource,
     ) -> Self {
         TaskManager {
             dom_manipulation_task_source,
@@ -98,6 +102,7 @@ impl TaskManager {
             rendering_task_source,
             timer_task_source,
             websocket_task_source,
+            webgpu_automatic_expiry_task_source,
             task_cancellers: Default::default(),
         }
     }
@@ -204,6 +209,14 @@ impl TaskManager {
         websocket_task_source,
         WebsocketTaskSource,
         Websocket
+    );
+
+    task_source_functions!(
+        self,
+        webgpu_automatic_expiry_task_source_with_canceller,
+        webgpu_automatic_expiry_task_source,
+        WebGPUAutomaticExpiryTaskSource,
+        WebGPUAutomaticExpiry
     );
 
     pub fn task_canceller(&self, name: TaskSourceName) -> TaskCanceller {

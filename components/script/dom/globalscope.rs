@@ -126,6 +126,7 @@ use crate::script_runtime::{
 use crate::script_thread::{MainThreadScriptChan, ScriptThread};
 use crate::security_manager::CSPViolationReporter;
 use crate::task::TaskCanceller;
+use crate::task_source::automatic_expiry::WebGPUAutomaticExpiryTaskSource;
 use crate::task_source::dom_manipulation::DOMManipulationTaskSource;
 use crate::task_source::file_reading::FileReadingTaskSource;
 use crate::task_source::gamepad::GamepadTaskSource;
@@ -2565,6 +2566,16 @@ impl GlobalScope {
     pub fn gamepad_task_source(&self) -> GamepadTaskSource {
         if let Some(window) = self.downcast::<Window>() {
             return window.task_manager().gamepad_task_source();
+        }
+        unreachable!();
+    }
+
+    /// `TaskSource` to send messages to the gamepad task source of
+    /// this global scope.
+    /// <https://www.w3.org/TR/webgpu/#automatic-expiry-task-source>
+    pub fn webgpu_automatic_expiry_task_source(&self) -> WebGPUAutomaticExpiryTaskSource {
+        if let Some(window) = self.downcast::<Window>() {
+            return window.task_manager().webgpu_automatic_expiry_task_source();
         }
         unreachable!();
     }
