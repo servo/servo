@@ -286,7 +286,7 @@ impl VirtualMethods for HTMLVideoElement {
             &local_name!("poster") => match mutation {
                 AttributeMutation::Set(_) => {
                     if let Some(new_value) = mutation.new_value(attr) {
-                        self.fetch_poster_frame(&new_value)
+                        self.fetch_poster_frame(&new_value, CanGc::note())
                     }
                 },
                 AttributeMutation::Removed => self.htmlmediaelement.clear_current_frame(),
@@ -465,8 +465,7 @@ impl LayoutHTMLVideoElementHelpers for LayoutDom<'_, HTMLVideoElement> {
     }
 
     fn data(self) -> HTMLMediaData {
-        #[allow(unsafe_code)]
-        let video = unsafe { &*self.unsafe_get() };
+        let video =&*self.unsafe_get();
         let current_frame = video.htmlmediaelement.get_current_frame_data();
         let current_frame = current_frame.as_ref();
 

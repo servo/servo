@@ -27,8 +27,6 @@ use net_traits::{
     ResourceFetchTiming, ResourceTimingType,
 };
 use pixels::Image;
-use script_layout_interface::HTMLMediaData;
-use script_traits::{ImageUpdate, WebrenderIpcSender};
 use servo_config::pref;
 use servo_media::player::audio::AudioRenderer;
 use servo_media::player::video::{VideoFrame, VideoFrameRenderer};

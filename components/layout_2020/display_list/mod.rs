@@ -291,13 +291,13 @@ impl Fragment {
                         .to_webrender();
                     let common = builder.common_properties(clip, &image.style);
 
-                    if let Some(image_key) = i.image_key {
+                    if let Some(image_key) = image.image_key {
                         builder.wr().push_image(
                             &common,
                             rect,
                             image_rendering,
                             wr::AlphaType::PremultipliedAlpha,
-                            image.image_key,
+                            image_key,
                             wr::ColorF::WHITE,
                         );
                     } else {
