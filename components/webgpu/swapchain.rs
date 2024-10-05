@@ -385,14 +385,11 @@ impl crate::WGPU {
 
         // If configuration is not provided or presentation format is not valid
         // the context will be dummy until recreation
-        let format = config
-            .as_ref()
-            .map(|config| match config.format {
-                wgt::TextureFormat::Rgba8Unorm => Some(ImageFormat::RGBA8),
-                wgt::TextureFormat::Bgra8Unorm => Some(ImageFormat::BGRA8),
-                _ => None,
-            })
-            .flatten();
+        let format = config.as_ref().and_then(|config| match config.format {
+            wgt::TextureFormat::Rgba8Unorm => Some(ImageFormat::RGBA8),
+            wgt::TextureFormat::Bgra8Unorm => Some(ImageFormat::BGRA8),
+            _ => None,
+        });
 
         let needs_image_update = if let Some(format) = format {
             let config = config.expect("Config should exist when valid format is available");
