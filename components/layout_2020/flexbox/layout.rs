@@ -721,12 +721,14 @@ impl FlexContainer {
         };
 
         // Implement "unsafe" alignment. "safe" alignment is handled by the fallback process above.
-        let resolved_align_content = self.config.resolve_reversable_flex_alignment(
-            resolved_align_content,
-            flex_context.config.flex_wrap_is_reversed,
-        );
+        let flex_wrap_is_reversed = flex_context.config.flex_wrap_is_reversed;
+        let resolved_align_content = self
+            .config
+            .resolve_reversable_flex_alignment(resolved_align_content, flex_wrap_is_reversed);
         let mut cross_start_position_cursor = match resolved_align_content {
+            AlignFlags::START if flex_wrap_is_reversed => remaining_free_cross_space,
             AlignFlags::START => Au::zero(),
+            AlignFlags::END if flex_wrap_is_reversed => Au::zero(),
             AlignFlags::END => remaining_free_cross_space,
             AlignFlags::CENTER => remaining_free_cross_space / 2,
             AlignFlags::STRETCH => Au::zero(),
@@ -771,7 +773,7 @@ impl FlexContainer {
                     cross_gap;
 
                 let flow_relative_line_position =
-                    match (self.config.flex_axis, self.config.flex_wrap_is_reversed) {
+                    match (self.config.flex_axis, flex_wrap_is_reversed) {
                         (FlexAxis::Row, false) => LogicalVec2 {
                             block: line_cross_start_position,
                             inline: Au::zero(),
