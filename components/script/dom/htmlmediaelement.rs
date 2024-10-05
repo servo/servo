@@ -1982,7 +1982,7 @@ impl HTMLMediaElement {
     }
 
     pub fn get_current_frame_data(&self) -> Option<(ImageKey, i32, i32)> {
-        self.video_renderer.lock().unwrap().current_frame.clone()
+        self.video_renderer.lock().unwrap().current_frame
     }
 
     pub fn clear_current_frame(&self) {

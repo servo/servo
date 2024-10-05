@@ -282,8 +282,8 @@ impl VirtualMethods for HTMLVideoElement {
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
 
-        match attr.local_name() {
-            &local_name!("poster") => match mutation {
+        match *attr.local_name() {
+            local_name!("poster") => match mutation {
                 AttributeMutation::Set(_) => {
                     if let Some(new_value) = mutation.new_value(attr) {
                         self.fetch_poster_frame(&new_value, CanGc::note())
@@ -291,7 +291,7 @@ impl VirtualMethods for HTMLVideoElement {
                 },
                 AttributeMutation::Removed => self.htmlmediaelement.clear_current_frame(),
             },
-            &local_name!("src") => {
+            local_name!("src") => {
                 if matches!(mutation, AttributeMutation::Removed) {
                     self.set_video_width(DEFAULT_WIDTH);
                     self.set_video_height(DEFAULT_HEIGHT);
@@ -444,7 +444,7 @@ impl LayoutHTMLVideoElementHelpers for LayoutDom<'_, HTMLVideoElement> {
             .upcast::<Element>()
             .get_attr_for_layout(&ns!(), &local_name!("width"))
         {
-            Some(x) => match parse_length(&x) {
+            Some(x) => match parse_length(x) {
                 LengthOrPercentageOrAuto::Length(x) => Some(x.to_px() as u32),
                 _ => None,
             },
@@ -457,7 +457,7 @@ impl LayoutHTMLVideoElementHelpers for LayoutDom<'_, HTMLVideoElement> {
             .upcast::<Element>()
             .get_attr_for_layout(&ns!(), &local_name!("height"))
         {
-            Some(x) => match parse_length(&x) {
+            Some(x) => match parse_length(x) {
                 LengthOrPercentageOrAuto::Length(x) => Some(x.to_px() as u32),
                 _ => None,
             },
@@ -466,7 +466,7 @@ impl LayoutHTMLVideoElementHelpers for LayoutDom<'_, HTMLVideoElement> {
     }
 
     fn data(self) -> HTMLMediaData {
-        let video = &*self.unsafe_get();
+        let video = self.unsafe_get();
         let current_frame = video.htmlmediaelement.get_current_frame_data();
         let current_frame = current_frame.as_ref();
 
