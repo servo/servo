@@ -3901,6 +3901,7 @@ dependencies = [
  "servo_url",
  "style",
  "style_traits",
+ "tracing",
  "unicode-bidi",
  "unicode-script",
  "url",

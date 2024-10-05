@@ -45,6 +45,7 @@ servo_config = { path = "../config" }
 servo_geometry = { path = "../geometry" }
 servo_url = { path = "../url" }
 style = { workspace = true }
+tracing = { workspace = true }
 style_traits = { workspace = true }
 unicode-bidi = { workspace = true }
 unicode-script = { workspace = true }
