@@ -35,7 +35,7 @@ use script_traits::{
 };
 use servo_geometry::{DeviceIndependentPixel, FramebufferUintLength};
 use style_traits::{CSSPixel, DevicePixel, PinchZoomFactor};
-use tracing::{span, Level};
+use tracing::{instrument, span, Level};
 use webrender::{CaptureBits, RenderApi, Transaction};
 use webrender_api::units::{
     DeviceIntPoint, DeviceIntSize, DevicePoint, DeviceRect, LayoutPoint, LayoutRect, LayoutSize,
@@ -695,7 +695,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
     /// Accept messages from content processes that need to be relayed to the WebRender
     /// instance in the parent process.
-    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
+    #[instrument(skip_all, fields(servo_profiling = true))]
     fn handle_webrender_message(&mut self, msg: ForwardedToCompositorMsg) {
         match msg {
             ForwardedToCompositorMsg::Layout(ScriptToCompositorMsg::SendInitialTransaction(
@@ -2075,7 +2075,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     /// Returns Ok if composition was performed or Err if it was not possible to composite for some
     /// reason. When the target is [CompositeTarget::SharedMemory], the image is read back from the
     /// GPU and returned as Ok(Some(png::Image)), otherwise we return Ok(None).
-    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
+    #[instrument(skip_all, fields(servo_profiling = true))]
     fn composite_specific_target(
         &mut self,
         target: CompositeTarget,
@@ -2318,7 +2318,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             .map(|info| info.framebuffer_id())
     }
 
-    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
+    #[instrument(skip_all, fields(servo_profiling = true))]
     pub fn present(&mut self) {
         let span = span!(
             Level::TRACE,
@@ -2387,7 +2387,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         );
     }
 
-    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
+    #[instrument(skip_all, fields(servo_profiling = true))]
     pub fn receive_messages(&mut self) -> bool {
         // Check for new messages coming from the other threads in the system.
         let mut compositor_messages = vec![];
@@ -2414,7 +2414,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         true
     }
 
-    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
+    #[instrument(skip_all, fields(servo_profiling = true))]
     pub fn perform_updates(&mut self) -> bool {
         if self.shutdown_state == ShutdownState::FinishedShuttingDown {
             return false;

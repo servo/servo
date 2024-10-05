@@ -3778,6 +3778,7 @@ dependencies = [
  "servo_url",
  "style",
  "style_traits",
+ "tracing",
  "unicode-script",
  "unicode-segmentation",
  "url",
