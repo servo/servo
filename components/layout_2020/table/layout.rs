@@ -24,6 +24,7 @@ use style::values::computed::{
 use style::values::generics::box_::{GenericVerticalAlign as VerticalAlign, VerticalAlignKeyword};
 use style::values::generics::length::GenericLengthPercentageOrAuto::{Auto, LengthPercentage};
 use style::Zero;
+use tracing::instrument;
 
 use super::{Table, TableCaption, TableSlot, TableSlotCell, TableTrack, TableTrackGroup};
 use crate::context::LayoutContext;
@@ -1630,6 +1631,7 @@ impl<'a> TableLayout<'a> {
 
     /// Lay out the table (grid and captions) of this [`TableLayout`] into fragments. This should
     /// only be be called after calling [`TableLayout.compute_measures`].
+    #[instrument(name = "Table::layout", skip_all, fields(servo_profiling = true))]
     fn layout(
         mut self,
         layout_context: &LayoutContext,
@@ -2601,6 +2603,11 @@ impl Table {
         }
     }
 
+    #[instrument(
+        name = "Table::inline_content_sizes",
+        skip_all,
+        fields(servo_profiling = true)
+    )]
     pub(crate) fn inline_content_sizes(
         &mut self,
         layout_context: &LayoutContext,

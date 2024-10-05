@@ -19,6 +19,7 @@ use style::values::generics::flex::GenericFlexBasis as FlexBasis;
 use style::values::generics::length::{GenericLengthPercentageOrAuto, LengthPercentageOrNormal};
 use style::values::specified::align::AlignFlags;
 use style::Zero;
+use tracing::instrument;
 
 use super::geom::{FlexAxis, FlexRelativeRect, FlexRelativeSides, FlexRelativeVec2};
 use super::{FlexContainer, FlexContainerConfig, FlexItemBox, FlexLevelBox};
@@ -338,6 +339,11 @@ struct FlexItemBoxInlineContentSizesInfo {
 }
 
 impl FlexContainer {
+    #[instrument(
+        name = "FlexContainer::inline_content_sizes",
+        skip_all,
+        fields(servo_profiling = true)
+    )]
     pub fn inline_content_sizes(
         &mut self,
         layout_context: &LayoutContext,
@@ -531,6 +537,11 @@ impl FlexContainer {
     }
 
     /// <https://drafts.csswg.org/css-flexbox/#layout-algorithm>
+    #[instrument(
+        name = "FlexContainer::layout",
+        skip_all,
+        fields(servo_profiling = true)
+    )]
     pub(crate) fn layout(
         &self,
         layout_context: &LayoutContext,
@@ -2461,6 +2472,11 @@ impl FlexItemBox {
     }
 
     #[allow(clippy::too_many_arguments)]
+    #[instrument(
+        name = "FlexContainer::layout_for_block_content_size",
+        skip_all,
+        fields(servo_profiling = true)
+    )]
     fn layout_for_block_content_size(
         &mut self,
         flex_context: &FlexContext,

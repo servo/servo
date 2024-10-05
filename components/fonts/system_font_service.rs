@@ -25,7 +25,7 @@ use style::values::computed::font::{
 use style::values::computed::{FontStretch, FontWeight};
 use style::values::specified::FontStretch as SpecifiedFontStretch;
 use style::Atom;
-use tracing::{span, Level};
+use tracing::{instrument, span, Level};
 use webrender_api::{FontInstanceFlags, FontInstanceKey, FontKey};
 use webrender_traits::WebRenderFontApi;
 
@@ -156,7 +156,7 @@ impl SystemFontService {
         SystemFontServiceProxySender(sender)
     }
 
-    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
+    #[instrument(skip_all, fields(servo_profiling = true))]
     fn run(&mut self) {
         loop {
             let msg = self.port.recv().unwrap();
@@ -196,7 +196,7 @@ impl SystemFontService {
         }
     }
 
-    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
+    #[instrument(skip_all, fields(servo_profiling = true))]
     fn fetch_new_keys(&mut self) {
         if !self.free_font_keys.is_empty() && !self.free_font_instance_keys.is_empty() {
             return;
@@ -213,7 +213,7 @@ impl SystemFontService {
             .append(&mut new_font_instance_keys);
     }
 
-    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
+    #[instrument(skip_all, fields(servo_profiling = true))]
     fn get_font_templates(
         &mut self,
         font_descriptor: Option<FontDescriptor>,
@@ -246,7 +246,7 @@ impl SystemFontService {
         }
     }
 
-    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
+    #[instrument(skip_all, fields(servo_profiling = true))]
     fn refresh_local_families(&mut self) {
         self.local_families.clear();
         for_each_available_family(|family_name| {
@@ -257,7 +257,7 @@ impl SystemFontService {
         });
     }
 
-    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
+    #[instrument(skip_all, fields(servo_profiling = true))]
     fn find_font_templates(
         &mut self,
         descriptor_to_match: Option<&FontDescriptor>,
@@ -281,7 +281,7 @@ impl SystemFontService {
             .unwrap_or_default()
     }
 
-    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
+    #[instrument(skip_all, fields(servo_profiling = true))]
     fn get_font_instance(
         &mut self,
         identifier: FontIdentifier,
