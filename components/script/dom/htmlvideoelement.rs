@@ -282,7 +282,7 @@ impl VirtualMethods for HTMLVideoElement {
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
 
-         match attr.local_name() { 
+        match attr.local_name() {
             &local_name!("poster") => match mutation {
                 AttributeMutation::Set(_) => {
                     if let Some(new_value) = mutation.new_value(attr) {
@@ -295,6 +295,7 @@ impl VirtualMethods for HTMLVideoElement {
                 if matches!(mutation, AttributeMutation::Removed) {
                     self.set_video_width(DEFAULT_WIDTH);
                     self.set_video_height(DEFAULT_HEIGHT);
+                    self.htmlmediaelement.clear_current_frame();
                 }
             },
             _ => (),
@@ -465,7 +466,7 @@ impl LayoutHTMLVideoElementHelpers for LayoutDom<'_, HTMLVideoElement> {
     }
 
     fn data(self) -> HTMLMediaData {
-        let video =&*self.unsafe_get();
+        let video = &*self.unsafe_get();
         let current_frame = video.htmlmediaelement.get_current_frame_data();
         let current_frame = current_frame.as_ref();
 

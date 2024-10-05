@@ -301,9 +301,7 @@ impl Fragment {
                             wr::ColorF::WHITE,
                         );
                     } else {
-                        builder
-                            .wr()
-                            .push_rect(&common, rect, wr::ColorF::WHITE);
+                        builder.wr().push_rect(&common, rect, wr::ColorF::WHITE);
                     }
                 },
                 Visibility::Hidden => (),
