@@ -119,6 +119,12 @@ struct SetPreferencesReply {
     updated: Vec<String>,
 }
 
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct PageErrorWrapper {
+    page_error: PageError,
+}
+
 pub(crate) enum Root {
     BrowsingContext(String),
     DedicatedWorker(String),
@@ -255,7 +261,7 @@ impl ConsoleActor {
             if let Root::BrowsingContext(bc) = &self.root {
                 registry
                     .find::<BrowsingContextActor>(bc)
-                    .page_error(page_error)
+                    .resource_available(PageErrorWrapper { page_error }, "error-message".into())
             };
         }
     }
@@ -297,7 +303,7 @@ impl ConsoleActor {
             if let Root::BrowsingContext(bc) = &self.root {
                 registry
                     .find::<BrowsingContextActor>(bc)
-                    .console_message(console_api)
+                    .resource_available(console_api, "console-message".into())
             };
         }
     }
