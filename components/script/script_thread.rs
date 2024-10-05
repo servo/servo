@@ -150,6 +150,7 @@ use crate::script_runtime::{
 };
 use crate::task_manager::TaskManager;
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
+use crate::task_source::automatic_expiry::WebGPUAutomaticExpiryTaskSource;
 use crate::task_source::dom_manipulation::DOMManipulationTaskSource;
 use crate::task_source::file_reading::FileReadingTaskSource;
 use crate::task_source::gamepad::GamepadTaskSource;
@@ -1744,6 +1745,8 @@ impl ScriptThread {
 
             // TODO(#31871): Update the rendering: consolidate all reflow calls into one here?
 
+            document.update_rendering_of_webgpu_canvases();
+
             // TODO: Process top layer removals according to
             // https://drafts.csswg.org/css-position-4/#process-top-layer-removals.
         }
@@ -3292,6 +3295,13 @@ impl ScriptThread {
         WebsocketTaskSource(self.remote_event_task_sender.clone(), pipeline_id)
     }
 
+    pub fn webgpu_automatic_expiry_task_source(
+        &self,
+        pipeline_id: PipelineId,
+    ) -> WebGPUAutomaticExpiryTaskSource {
+        WebGPUAutomaticExpiryTaskSource(self.remote_event_task_sender.clone(), pipeline_id)
+    }
+
     /// Handles a request for the window title.
     fn handle_get_title_msg(&self, pipeline_id: PipelineId) {
         let document = match self.documents.borrow().find_document(pipeline_id) {
@@ -3660,6 +3670,7 @@ impl ScriptThread {
             self.rendering_task_source(incomplete.pipeline_id),
             self.timer_task_source(incomplete.pipeline_id),
             self.websocket_task_source(incomplete.pipeline_id),
+            self.webgpu_automatic_expiry_task_source(incomplete.pipeline_id),
         );
 
         let paint_time_metrics = PaintTimeMetrics::new(

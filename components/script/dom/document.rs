@@ -69,6 +69,7 @@ use uuid::Uuid;
 use webgpu::swapchain::WebGPUContextId;
 use webrender_api::units::DeviceIntRect;
 
+use super::bindings::weakref::WeakRef;
 use crate::animation_timeline::AnimationTimeline;
 use crate::animations::Animations;
 use crate::document_loader::{DocumentLoader, LoadType};
@@ -443,8 +444,8 @@ pub struct Document {
     /// List of all WebGL context IDs that need flushing.
     dirty_webgl_contexts:
         DomRefCell<HashMapTracedValues<WebGLContextId, Dom<WebGLRenderingContext>>>,
-    /// List of all WebGPU context IDs that need flushing.
-    dirty_webgpu_contexts: DomRefCell<HashMapTracedValues<WebGPUContextId, Dom<GPUCanvasContext>>>,
+    /// List of all WebGPU contexts.
+    webgpu_contexts: DomRefCell<HashMapTracedValues<WebGPUContextId, WeakRef<GPUCanvasContext>>>,
     /// <https://html.spec.whatwg.org/multipage/#concept-document-csp-list>
     #[ignore_malloc_size_of = "Defined in rust-content-security-policy"]
     #[no_trace]
@@ -2937,19 +2938,27 @@ impl Document {
         receiver.recv().unwrap();
     }
 
-    pub fn add_dirty_webgpu_canvas(&self, context: &GPUCanvasContext) {
-        self.dirty_webgpu_contexts
+    pub fn add_webgpu_canvas(&self, context: &GPUCanvasContext) {
+        self.webgpu_contexts
             .borrow_mut()
             .entry(context.context_id())
-            .or_insert_with(|| Dom::from_ref(context));
+            .or_insert_with(|| WeakRef::new(context));
     }
 
     #[allow(crown::unrooted_must_root)]
-    pub fn flush_dirty_webgpu_canvases(&self) {
-        self.dirty_webgpu_contexts
+    pub fn update_rendering_of_webgpu_canvases(&self) {
+        self.webgpu_contexts
             .borrow_mut()
-            .drain()
-            .for_each(|(_, context)| context.update_rendering_of_webgpu_canvas());
+            .iter()
+            .filter_map(|(_, context)| context.root())
+            .filter(|context| context.onscreen())
+            .for_each(|context| context.update_rendering_of_webgpu_canvas());
+    }
+
+    pub fn remove_webgpu_context(&self, context: &GPUCanvasContext) {
+        self.webgpu_contexts
+            .borrow_mut()
+            .remove(&context.context_id());
     }
 
     pub fn id_map(&self) -> Ref<HashMapTracedValues<Atom, Vec<Dom<Element>>>> {
@@ -3334,7 +3343,7 @@ impl Document {
             shadow_roots_styles_changed: Cell::new(false),
             media_controls: DomRefCell::new(HashMap::new()),
             dirty_webgl_contexts: DomRefCell::new(HashMapTracedValues::new()),
-            dirty_webgpu_contexts: DomRefCell::new(HashMapTracedValues::new()),
+            webgpu_contexts: DomRefCell::new(HashMapTracedValues::new()),
             csp_list: DomRefCell::new(None),
             selection: MutNullableDom::new(None),
             animation_timeline: if pref!(layout.animations.test.enabled) {

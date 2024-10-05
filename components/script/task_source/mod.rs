@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+pub mod automatic_expiry;
 pub mod dom_manipulation;
 pub mod file_reading;
 pub mod gamepad;
@@ -44,6 +45,8 @@ pub enum TaskSourceName {
     Timer,
     /// <https://www.w3.org/TR/gamepad/#dfn-gamepad-task-source>
     Gamepad,
+    /// <https://www.w3.org/TR/webgpu/#automatic-expiry-task-source>
+    WebGPUAutomaticExpiry,
 }
 
 impl TaskSourceName {
@@ -62,6 +65,7 @@ impl TaskSourceName {
             TaskSourceName::Websocket,
             TaskSourceName::Timer,
             TaskSourceName::Gamepad,
+            TaskSourceName::WebGPUAutomaticExpiry,
         ]
     }
 }
