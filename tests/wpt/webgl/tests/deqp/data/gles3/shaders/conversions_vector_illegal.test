@@ -1,0 +1,1064 @@
+# WARNING: This file is auto-generated. Do NOT modify it manually, but rather
+# modify the generating script file. Otherwise changes will be lost!
+# See split-conversions.js
+
+group vector_illegal "Illegal Vector Conversions"
+
+	case vec2_to_vec3
+		version 300 es
+		expect compile_fail
+		values {}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				vec2 in0 = vec2(0.0, 0.5);
+				vec3 out0 = vec3(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case vec2_to_ivec3
+		version 300 es
+		expect compile_fail
+		values {}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				vec2 in0 = vec2(0.0, 0.5);
+				ivec3 out0 = ivec3(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case vec2_to_uvec3
+		version 300 es
+		expect compile_fail
+		values {}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				vec2 in0 = vec2(0.0, 0.5);
+				uvec3 out0 = uvec3(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case vec2_to_bvec3
+		version 300 es
+		expect compile_fail
+		values {}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				vec2 in0 = vec2(0.0, 0.5);
+				bvec3 out0 = bvec3(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case vec2_to_vec4
+		version 300 es
+		expect compile_fail
+		values {}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				vec2 in0 = vec2(0.0, 0.5);
+				vec4 out0 = vec4(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case vec2_to_ivec4
+		version 300 es
+		expect compile_fail
+		values {}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				vec2 in0 = vec2(0.0, 0.5);
+				ivec4 out0 = ivec4(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case vec2_to_uvec4
+		version 300 es
+		expect compile_fail
+		values {}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				vec2 in0 = vec2(0.0, 0.5);
+				uvec4 out0 = uvec4(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case vec2_to_bvec4
+		version 300 es
+		expect compile_fail
+		values {}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				vec2 in0 = vec2(0.0, 0.5);
+				bvec4 out0 = bvec4(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case ivec2_to_vec3
+		version 300 es
+		expect compile_fail
+		values {}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				ivec2 in0 = ivec2(0, 0);
+				vec3 out0 = vec3(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case ivec2_to_ivec3
+		version 300 es
+		expect compile_fail
+		values {}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				ivec2 in0 = ivec2(0, 0);
+				ivec3 out0 = ivec3(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case ivec2_to_uvec3
+		version 300 es
+		expect compile_fail
+		values {}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				ivec2 in0 = ivec2(0, 0);
+				uvec3 out0 = uvec3(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case ivec2_to_bvec3
+		version 300 es
+		expect compile_fail
+		values {}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				ivec2 in0 = ivec2(0, 0);
+				bvec3 out0 = bvec3(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case ivec2_to_vec4
+		version 300 es
+		expect compile_fail
+		values {}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				ivec2 in0 = ivec2(0, 0);
+				vec4 out0 = vec4(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case ivec2_to_ivec4
+		version 300 es
+		expect compile_fail
+		values {}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				ivec2 in0 = ivec2(0, 0);
+				ivec4 out0 = ivec4(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case ivec2_to_uvec4
+		version 300 es
+		expect compile_fail
+		values {}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				ivec2 in0 = ivec2(0, 0);
+				uvec4 out0 = uvec4(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case ivec2_to_bvec4
+		version 300 es
+		expect compile_fail
+		values {}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				ivec2 in0 = ivec2(0, 0);
+				bvec4 out0 = bvec4(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case uvec2_to_vec3
+		version 300 es
+		expect compile_fail
+		values {}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				uvec2 in0 = uvec2(0, 0);
+				vec3 out0 = vec3(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case uvec2_to_ivec3
+		version 300 es
+		expect compile_fail
+		values {}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				uvec2 in0 = uvec2(0, 0);
+				ivec3 out0 = ivec3(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case uvec2_to_uvec3
+		version 300 es
+		expect compile_fail
+		values {}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				uvec2 in0 = uvec2(0, 0);
+				uvec3 out0 = uvec3(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case uvec2_to_bvec3
+		version 300 es
+		expect compile_fail
+		values {}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				uvec2 in0 = uvec2(0, 0);
+				bvec3 out0 = bvec3(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case uvec2_to_vec4
+		version 300 es
+		expect compile_fail
+		values {}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				uvec2 in0 = uvec2(0, 0);
+				vec4 out0 = vec4(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case uvec2_to_ivec4
+		version 300 es
+		expect compile_fail
+		values {}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				uvec2 in0 = uvec2(0, 0);
+				ivec4 out0 = ivec4(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case uvec2_to_uvec4
+		version 300 es
+		expect compile_fail
+		values {}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				uvec2 in0 = uvec2(0, 0);
+				uvec4 out0 = uvec4(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case uvec2_to_bvec4
+		version 300 es
+		expect compile_fail
+		values {}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				uvec2 in0 = uvec2(0, 0);
+				bvec4 out0 = bvec4(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bvec2_to_vec3
+		version 300 es
+		expect compile_fail
+		values {}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				bvec2 in0 = bvec2(true, false);
+				vec3 out0 = vec3(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bvec2_to_ivec3
+		version 300 es
+		expect compile_fail
+		values {}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				bvec2 in0 = bvec2(true, false);
+				ivec3 out0 = ivec3(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bvec2_to_uvec3
+		version 300 es
+		expect compile_fail
+		values {}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				bvec2 in0 = bvec2(true, false);
+				uvec3 out0 = uvec3(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bvec2_to_bvec3
+		version 300 es
+		expect compile_fail
+		values {}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				bvec2 in0 = bvec2(true, false);
+				bvec3 out0 = bvec3(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bvec2_to_vec4
+		version 300 es
+		expect compile_fail
+		values {}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				bvec2 in0 = bvec2(true, false);
+				vec4 out0 = vec4(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bvec2_to_ivec4
+		version 300 es
+		expect compile_fail
+		values {}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				bvec2 in0 = bvec2(true, false);
+				ivec4 out0 = ivec4(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bvec2_to_uvec4
+		version 300 es
+		expect compile_fail
+		values {}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				bvec2 in0 = bvec2(true, false);
+				uvec4 out0 = uvec4(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bvec2_to_bvec4
+		version 300 es
+		expect compile_fail
+		values {}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				bvec2 in0 = bvec2(true, false);
+				bvec4 out0 = bvec4(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case vec3_to_vec4
+		version 300 es
+		expect compile_fail
+		values {}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				vec3 in0 = vec3(0.0, 0.5, 0.75);
+				vec4 out0 = vec4(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case vec3_to_ivec4
+		version 300 es
+		expect compile_fail
+		values {}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				vec3 in0 = vec3(0.0, 0.5, 0.75);
+				ivec4 out0 = ivec4(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case vec3_to_uvec4
+		version 300 es
+		expect compile_fail
+		values {}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				vec3 in0 = vec3(0.0, 0.5, 0.75);
+				uvec4 out0 = uvec4(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case vec3_to_bvec4
+		version 300 es
+		expect compile_fail
+		values {}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				vec3 in0 = vec3(0.0, 0.5, 0.75);
+				bvec4 out0 = bvec4(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case ivec3_to_vec4
+		version 300 es
+		expect compile_fail
+		values {}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				ivec3 in0 = ivec3(0, 0, 0);
+				vec4 out0 = vec4(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case ivec3_to_ivec4
+		version 300 es
+		expect compile_fail
+		values {}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				ivec3 in0 = ivec3(0, 0, 0);
+				ivec4 out0 = ivec4(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case ivec3_to_uvec4
+		version 300 es
+		expect compile_fail
+		values {}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				ivec3 in0 = ivec3(0, 0, 0);
+				uvec4 out0 = uvec4(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case ivec3_to_bvec4
+		version 300 es
+		expect compile_fail
+		values {}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				ivec3 in0 = ivec3(0, 0, 0);
+				bvec4 out0 = bvec4(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case uvec3_to_vec4
+		version 300 es
+		expect compile_fail
+		values {}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				uvec3 in0 = uvec3(0, 0, 0);
+				vec4 out0 = vec4(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case uvec3_to_ivec4
+		version 300 es
+		expect compile_fail
+		values {}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				uvec3 in0 = uvec3(0, 0, 0);
+				ivec4 out0 = ivec4(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case uvec3_to_uvec4
+		version 300 es
+		expect compile_fail
+		values {}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				uvec3 in0 = uvec3(0, 0, 0);
+				uvec4 out0 = uvec4(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case uvec3_to_bvec4
+		version 300 es
+		expect compile_fail
+		values {}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				uvec3 in0 = uvec3(0, 0, 0);
+				bvec4 out0 = bvec4(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bvec3_to_vec4
+		version 300 es
+		expect compile_fail
+		values {}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				bvec3 in0 = bvec3(true, false, false);
+				vec4 out0 = vec4(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bvec3_to_ivec4
+		version 300 es
+		expect compile_fail
+		values {}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				bvec3 in0 = bvec3(true, false, false);
+				ivec4 out0 = ivec4(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bvec3_to_uvec4
+		version 300 es
+		expect compile_fail
+		values {}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				bvec3 in0 = bvec3(true, false, false);
+				uvec4 out0 = uvec4(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+	case bvec3_to_bvec4
+		version 300 es
+		expect compile_fail
+		values {}
+
+		both ""
+			#version 300 es
+			precision mediump float;
+			precision mediump int;
+
+			${DECLARATIONS}
+
+			void main()
+			{
+				${SETUP}
+				bvec3 in0 = bvec3(true, false, false);
+				bvec4 out0 = bvec4(in0);
+				${OUTPUT}
+			}
+		""
+	end
+
+
+end # vector_illegal

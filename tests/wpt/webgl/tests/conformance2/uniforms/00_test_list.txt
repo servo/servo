@@ -5,4 +5,5 @@
 --min-version 2.0.1 simple-buffer-change.html
 --min-version 2.0.1 dependent-buffer-change.html
 --min-version 2.0.1 incompatible-texture-type-for-sampler.html
+--min-version 2.0.1 large-uniform-buffers.html
 

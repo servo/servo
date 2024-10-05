@@ -1,7 +1,15 @@
 conditionals.html
 constants.html
 constant_expressions.html
-conversions.html
+--min-version 1.0.4 conversions_matrix_combine.html
+--min-version 1.0.4 conversions_matrix_to_matrix.html
+--min-version 1.0.4 conversions_scalar_to_matrix.html
+--min-version 1.0.4 conversions_scalar_to_scalar.html
+--min-version 1.0.4 conversions_scalar_to_vector.html
+--min-version 1.0.4 conversions_vector_combine.html
+--min-version 1.0.4 conversions_vector_illegal.html
+--min-version 1.0.4 conversions_vector_to_scalar.html
+--min-version 1.0.4 conversions_vector_to_vector.html
 declarations.html
 fragdata.html
 functions.html
@@ -12,4 +20,12 @@ preprocessor.html
 qualification_order.html
 reserved_operators.html
 scoping.html
-swizzles.html
+--min-version 1.0.4 swizzles_bvec2.html
+--min-version 1.0.4 swizzles_bvec3.html
+--min-version 1.0.4 swizzles_bvec4.html
+--min-version 1.0.4 swizzles_ivec2.html
+--min-version 1.0.4 swizzles_ivec3.html
+--min-version 1.0.4 swizzles_ivec4.html
+--min-version 1.0.4 swizzles_vec2.html
+--min-version 1.0.4 swizzles_vec3.html
+--min-version 1.0.4 swizzles_vec4.html

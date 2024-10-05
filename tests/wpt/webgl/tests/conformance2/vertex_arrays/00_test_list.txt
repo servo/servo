@@ -1,1 +1,2 @@
 vertex-array-object.html
+--min-version 2.0.1 vertex-array-object-and-disabled-attributes.html

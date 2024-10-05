@@ -1,0 +1,469 @@
+# WARNING: This file is auto-generated. Do NOT modify it manually, but rather
+# modify the generating script file. Otherwise changes will be lost!
+# See split-swizzles.js
+
+group vec2_swizzles "vec2 swizzles"
+
+ case mediump_vec2_x
+  	values
+  	{
+  		input vec2 in0 = [ vec2(0.0, 0.5) | vec2(1.0, 1.25) | vec2(-0.5, -2.25) | vec2(-32.0, 64.0) | vec2(-0.75, -0.0322580645161) ];
+  		output float out0 = [ 0.0 | 1.0 | -0.5 | -32.0 | -0.75 ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.x;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+
+ case mediump_vec2_xx
+  	values
+  	{
+  		input vec2 in0 = [ vec2(0.0, 0.5) | vec2(1.0, 1.25) | vec2(-0.5, -2.25) | vec2(-32.0, 64.0) | vec2(-0.75, -0.0322580645161) ];
+  		output vec2 out0 = [ vec2(0.0, 0.0) | vec2(1.0, 1.0) | vec2(-0.5, -0.5) | vec2(-32.0, -32.0) | vec2(-0.75, -0.75) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.xx;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+
+ case mediump_vec2_xy
+  	values
+  	{
+  		input vec2 in0 = [ vec2(0.0, 0.5) | vec2(1.0, 1.25) | vec2(-0.5, -2.25) | vec2(-32.0, 64.0) | vec2(-0.75, -0.0322580645161) ];
+  		output vec2 out0 = [ vec2(0.0, 0.5) | vec2(1.0, 1.25) | vec2(-0.5, -2.25) | vec2(-32.0, 64.0) | vec2(-0.75, -0.0322580645161) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.xy;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+
+ case mediump_vec2_yx
+  	values
+  	{
+  		input vec2 in0 = [ vec2(0.0, 0.5) | vec2(1.0, 1.25) | vec2(-0.5, -2.25) | vec2(-32.0, 64.0) | vec2(-0.75, -0.0322580645161) ];
+  		output vec2 out0 = [ vec2(0.5, 0.0) | vec2(1.25, 1.0) | vec2(-2.25, -0.5) | vec2(64.0, -32.0) | vec2(-0.0322580645161, -0.75) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.yx;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+
+ case mediump_vec2_yxy
+  	values
+  	{
+  		input vec2 in0 = [ vec2(0.0, 0.5) | vec2(1.0, 1.25) | vec2(-0.5, -2.25) | vec2(-32.0, 64.0) | vec2(-0.75, -0.0322580645161) ];
+  		output vec3 out0 = [ vec3(0.5, 0.0, 0.5) | vec3(1.25, 1.0, 1.25) | vec3(-2.25, -0.5, -2.25) | vec3(64.0, -32.0, 64.0) | vec3(-0.0322580645161, -0.75, -0.0322580645161) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.yxy;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+
+ case mediump_vec2_xyxx
+  	values
+  	{
+  		input vec2 in0 = [ vec2(0.0, 0.5) | vec2(1.0, 1.25) | vec2(-0.5, -2.25) | vec2(-32.0, 64.0) | vec2(-0.75, -0.0322580645161) ];
+  		output vec4 out0 = [ vec4(0.0, 0.5, 0.0, 0.0) | vec4(1.0, 1.25, 1.0, 1.0) | vec4(-0.5, -2.25, -0.5, -0.5) | vec4(-32.0, 64.0, -32.0, -32.0) | vec4(-0.75, -0.0322580645161, -0.75, -0.75) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.xyxx;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+
+ case mediump_vec2_yyyy
+  	values
+  	{
+  		input vec2 in0 = [ vec2(0.0, 0.5) | vec2(1.0, 1.25) | vec2(-0.5, -2.25) | vec2(-32.0, 64.0) | vec2(-0.75, -0.0322580645161) ];
+  		output vec4 out0 = [ vec4(0.5, 0.5, 0.5, 0.5) | vec4(1.25, 1.25, 1.25, 1.25) | vec4(-2.25, -2.25, -2.25, -2.25) | vec4(64.0, 64.0, 64.0, 64.0) | vec4(-0.0322580645161, -0.0322580645161, -0.0322580645161, -0.0322580645161) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.yyyy;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+
+ case mediump_vec2_s
+  	values
+  	{
+  		input vec2 in0 = [ vec2(0.0, 0.5) | vec2(1.0, 1.25) | vec2(-0.5, -2.25) | vec2(-32.0, 64.0) | vec2(-0.75, -0.0322580645161) ];
+  		output float out0 = [ 0.0 | 1.0 | -0.5 | -32.0 | -0.75 ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.s;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+
+ case mediump_vec2_ss
+  	values
+  	{
+  		input vec2 in0 = [ vec2(0.0, 0.5) | vec2(1.0, 1.25) | vec2(-0.5, -2.25) | vec2(-32.0, 64.0) | vec2(-0.75, -0.0322580645161) ];
+  		output vec2 out0 = [ vec2(0.0, 0.0) | vec2(1.0, 1.0) | vec2(-0.5, -0.5) | vec2(-32.0, -32.0) | vec2(-0.75, -0.75) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.ss;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+
+ case mediump_vec2_st
+  	values
+  	{
+  		input vec2 in0 = [ vec2(0.0, 0.5) | vec2(1.0, 1.25) | vec2(-0.5, -2.25) | vec2(-32.0, 64.0) | vec2(-0.75, -0.0322580645161) ];
+  		output vec2 out0 = [ vec2(0.0, 0.5) | vec2(1.0, 1.25) | vec2(-0.5, -2.25) | vec2(-32.0, 64.0) | vec2(-0.75, -0.0322580645161) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.st;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+
+ case mediump_vec2_ts
+  	values
+  	{
+  		input vec2 in0 = [ vec2(0.0, 0.5) | vec2(1.0, 1.25) | vec2(-0.5, -2.25) | vec2(-32.0, 64.0) | vec2(-0.75, -0.0322580645161) ];
+  		output vec2 out0 = [ vec2(0.5, 0.0) | vec2(1.25, 1.0) | vec2(-2.25, -0.5) | vec2(64.0, -32.0) | vec2(-0.0322580645161, -0.75) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.ts;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+
+ case mediump_vec2_tst
+  	values
+  	{
+  		input vec2 in0 = [ vec2(0.0, 0.5) | vec2(1.0, 1.25) | vec2(-0.5, -2.25) | vec2(-32.0, 64.0) | vec2(-0.75, -0.0322580645161) ];
+  		output vec3 out0 = [ vec3(0.5, 0.0, 0.5) | vec3(1.25, 1.0, 1.25) | vec3(-2.25, -0.5, -2.25) | vec3(64.0, -32.0, 64.0) | vec3(-0.0322580645161, -0.75, -0.0322580645161) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.tst;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+
+ case mediump_vec2_stss
+  	values
+  	{
+  		input vec2 in0 = [ vec2(0.0, 0.5) | vec2(1.0, 1.25) | vec2(-0.5, -2.25) | vec2(-32.0, 64.0) | vec2(-0.75, -0.0322580645161) ];
+  		output vec4 out0 = [ vec4(0.0, 0.5, 0.0, 0.0) | vec4(1.0, 1.25, 1.0, 1.0) | vec4(-0.5, -2.25, -0.5, -0.5) | vec4(-32.0, 64.0, -32.0, -32.0) | vec4(-0.75, -0.0322580645161, -0.75, -0.75) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.stss;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+
+ case mediump_vec2_tttt
+  	values
+  	{
+  		input vec2 in0 = [ vec2(0.0, 0.5) | vec2(1.0, 1.25) | vec2(-0.5, -2.25) | vec2(-32.0, 64.0) | vec2(-0.75, -0.0322580645161) ];
+  		output vec4 out0 = [ vec4(0.5, 0.5, 0.5, 0.5) | vec4(1.25, 1.25, 1.25, 1.25) | vec4(-2.25, -2.25, -2.25, -2.25) | vec4(64.0, 64.0, 64.0, 64.0) | vec4(-0.0322580645161, -0.0322580645161, -0.0322580645161, -0.0322580645161) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.tttt;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+
+ case mediump_vec2_r
+  	values
+  	{
+  		input vec2 in0 = [ vec2(0.0, 0.5) | vec2(1.0, 1.25) | vec2(-0.5, -2.25) | vec2(-32.0, 64.0) | vec2(-0.75, -0.0322580645161) ];
+  		output float out0 = [ 0.0 | 1.0 | -0.5 | -32.0 | -0.75 ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.r;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+
+ case mediump_vec2_rr
+  	values
+  	{
+  		input vec2 in0 = [ vec2(0.0, 0.5) | vec2(1.0, 1.25) | vec2(-0.5, -2.25) | vec2(-32.0, 64.0) | vec2(-0.75, -0.0322580645161) ];
+  		output vec2 out0 = [ vec2(0.0, 0.0) | vec2(1.0, 1.0) | vec2(-0.5, -0.5) | vec2(-32.0, -32.0) | vec2(-0.75, -0.75) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.rr;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+
+ case mediump_vec2_rg
+  	values
+  	{
+  		input vec2 in0 = [ vec2(0.0, 0.5) | vec2(1.0, 1.25) | vec2(-0.5, -2.25) | vec2(-32.0, 64.0) | vec2(-0.75, -0.0322580645161) ];
+  		output vec2 out0 = [ vec2(0.0, 0.5) | vec2(1.0, 1.25) | vec2(-0.5, -2.25) | vec2(-32.0, 64.0) | vec2(-0.75, -0.0322580645161) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.rg;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+
+ case mediump_vec2_gr
+  	values
+  	{
+  		input vec2 in0 = [ vec2(0.0, 0.5) | vec2(1.0, 1.25) | vec2(-0.5, -2.25) | vec2(-32.0, 64.0) | vec2(-0.75, -0.0322580645161) ];
+  		output vec2 out0 = [ vec2(0.5, 0.0) | vec2(1.25, 1.0) | vec2(-2.25, -0.5) | vec2(64.0, -32.0) | vec2(-0.0322580645161, -0.75) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.gr;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+
+ case mediump_vec2_grg
+  	values
+  	{
+  		input vec2 in0 = [ vec2(0.0, 0.5) | vec2(1.0, 1.25) | vec2(-0.5, -2.25) | vec2(-32.0, 64.0) | vec2(-0.75, -0.0322580645161) ];
+  		output vec3 out0 = [ vec3(0.5, 0.0, 0.5) | vec3(1.25, 1.0, 1.25) | vec3(-2.25, -0.5, -2.25) | vec3(64.0, -32.0, 64.0) | vec3(-0.0322580645161, -0.75, -0.0322580645161) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.grg;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+
+ case mediump_vec2_rgrr
+  	values
+  	{
+  		input vec2 in0 = [ vec2(0.0, 0.5) | vec2(1.0, 1.25) | vec2(-0.5, -2.25) | vec2(-32.0, 64.0) | vec2(-0.75, -0.0322580645161) ];
+  		output vec4 out0 = [ vec4(0.0, 0.5, 0.0, 0.0) | vec4(1.0, 1.25, 1.0, 1.0) | vec4(-0.5, -2.25, -0.5, -0.5) | vec4(-32.0, 64.0, -32.0, -32.0) | vec4(-0.75, -0.0322580645161, -0.75, -0.75) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.rgrr;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+
+ case mediump_vec2_gggg
+  	values
+  	{
+  		input vec2 in0 = [ vec2(0.0, 0.5) | vec2(1.0, 1.25) | vec2(-0.5, -2.25) | vec2(-32.0, 64.0) | vec2(-0.75, -0.0322580645161) ];
+  		output vec4 out0 = [ vec4(0.5, 0.5, 0.5, 0.5) | vec4(1.25, 1.25, 1.25, 1.25) | vec4(-2.25, -2.25, -2.25, -2.25) | vec4(64.0, 64.0, 64.0, 64.0) | vec4(-0.0322580645161, -0.0322580645161, -0.0322580645161, -0.0322580645161) ];
+  	}
+
+  	both ""
+  		precision mediump float;
+
+  		${DECLARATIONS}
+
+  		void main()
+  		{
+  			${SETUP}
+  			out0 = in0.gggg;
+  			${OUTPUT}
+  		}
+  	""
+  end
+
+
+end # vec2_swizzles

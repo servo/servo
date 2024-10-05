@@ -82,6 +82,8 @@ index c1542f4fa9..b3ee786e0b 100644
  <link rel="stylesheet" href="../../resources/js-test-style.css"/>
  <script src=/resources/testharness.js></script>
  <script src=/resources/testharnessreport.js></script>
+diff --git i/conformance/glsl/misc/shader-uniform-packing-restrictions.html w/conformance/glsl/misc/shader-uniform-packing-restrictions.html
+index c1542f4fa9..b3ee786e0b 100644
 --- i/conformance/glsl/misc/shader-uniform-packing-restrictions.html
 +++ w/conformance/glsl/misc/shader-uniform-packing-restrictions.html
 @@ -29,6 +29,7 @@
@@ -92,10 +94,10 @@ index c1542f4fa9..b3ee786e0b 100644
  <title>WebGL uniform packing restrctions Conformance Test</title>
  <link rel="stylesheet" href="../../../resources/js-test-style.css"/>
  <link rel="stylesheet" href="../../../resources/glsl-feature-tests.css"/>
-diff --git i/conformance/extensions/webgl-compressed-texture-s3tc.html w/conformance/extensions/webgl-compressed-texture-s3tc.html
+diff --git i/conformance/extensions/s3tc-and-rgtc.html w/conformance/extensions/s3tc-and-rgtc.html
 index 28e3cfc562..308e8577a8 100644
---- i/conformance/extensions/webgl-compressed-texture-s3tc.html
-+++ w/conformance/extensions/webgl-compressed-texture-s3tc.html
+--- i/conformance/extensions/s3tc-and-rgtc.html
++++ w/conformance/extensions/s3tc-and-rgtc.html
 @@ -29,6 +29,7 @@
  <html>
  <head>
@@ -140,18 +142,6 @@ index 535739ff7b..30a734c642 100644
  <title>Driver Bug - temp experssions should not crash</title>
  <link rel="stylesheet" href="../../../resources/js-test-style.css"/>
  <script src=/resources/testharness.js></script>
-diff --git a/conformance/glsl/misc/shader-with-non-reserved-words.html b/conformance/glsl/misc/shader-with-non-reserved-words.html
-index 6aee7c6eba..29d891e0d1 100644
---- a/conformance/glsl/misc/shader-with-non-reserved-words.html
-+++ b/conformance/glsl/misc/shader-with-non-reserved-words.html
-@@ -29,6 +29,7 @@
- <html>
- <head>
- <meta charset="utf-8">
-+<meta name="timeout" content="long">
- <title>WebGL GLSL Conformance Tests - Non Reserved Words</title>
- <link rel="stylesheet" href="../../../resources/js-test-style.css"/>
- <link rel="stylesheet" href="../../../resources/glsl-feature-tests.css"/>
 diff --git a/conformance/ogles/GL/atan/atan_001_to_008.html b/conformance/ogles/GL/atan/atan_001_to_008.html
 index 96811c9a93..207db792c3 100644
 --- a/conformance/ogles/GL/atan/atan_001_to_008.html
@@ -1808,10 +1798,10 @@ index a2166e9df7..fb9067f6c2 100644
  <title>WebGL GLSL Conformance Tests - Reserved Words</title>
  <link rel="stylesheet" href="../../../resources/js-test-style.css"/>
  <link rel="stylesheet" href="../../../resources/glsl-feature-tests.css"/>
-diff --git a/tests/wpt/webgl/tests/conformance/rendering/preservedrawingbuffer-leak.html b/tests/wpt/webgl/tests/conformance/rendering/preservedrawingbuffer-leak.html
+diff --git a/conformance/rendering/preservedrawingbuffer-leak.html b/conformance/rendering/preservedrawingbuffer-leak.html
 index 3df5355..80571f5 100644
---- a/tests/wpt/webgl/tests/conformance/rendering/preservedrawingbuffer-leak.html
-+++ b/tests/wpt/webgl/tests/conformance/rendering/preservedrawingbuffer-leak.html
+--- a/conformance/rendering/preservedrawingbuffer-leak.html
++++ b/conformance/rendering/preservedrawingbuffer-leak.html
 @@ -29,6 +29,7 @@
  <html>
  <head>

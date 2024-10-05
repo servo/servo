@@ -1,28 +1,7 @@
 ﻿<!--
-
-/*
-** Copyright (c) 2013 The Khronos Group Inc.
-**
-** Permission is hereby granted, free of charge, to any person obtaining a
-** copy of this software and/or associated documentation files (the
-** "Materials"), to deal in the Materials without restriction, including
-** without limitation the rights to use, copy, modify, merge, publish,
-** distribute, sublicense, and/or sell copies of the Materials, and to
-** permit persons to whom the Materials are furnished to do so, subject to
-** the following conditions:
-**
-** The above copyright notice and this permission notice shall be included
-** in all copies or substantial portions of the Materials.
-**
-** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
-*/
-
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
 -->
 
 <!DOCTYPE html>
@@ -146,6 +125,9 @@ function runOutputTests() {
         0.0, 1.0, 0.0, 1.0, // Green
         0.0, 0.0, 1.0, 1.0, // Blue
         1.0, 1.0, 0.0, 1.0, // Yellow
+        // extra data when colorLoc divisor is set back to 0
+        1.0, 1.0, 0.0, 1.0, // Yellow
+        1.0, 1.0, 0.0, 1.0, // Yellow
     ]);
     var colorBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
@@ -196,6 +178,45 @@ function runOutputTests() {
     wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "drawArraysInstanced with QUADS should return INVALID_ENUM");
     gl.drawArraysInstanced(desktopGL['POLYGON'], 0, 6, instanceCount);
     wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "drawArraysInstanced with POLYGON should return INVALID_ENUM");
+
+    debug("Testing drawArraysInstanced with param 'first' > 0");
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    wtu.setupQuad(gl, {
+        positionLocation: 0,
+        scale: 0.5
+    });
+    var offsetsHalf = new Float32Array([
+        -0.5,  0.5,
+         0.5,  0.5,
+        -0.5, -0.5,
+         0.5, -0.5
+    ]);
+    gl.bindBuffer(gl.ARRAY_BUFFER, offsetBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, offsetsHalf, gl.STATIC_DRAW);
+
+    gl.drawArraysInstanced(gl.TRIANGLES, 3, 3, instanceCount);
+    var w = Math.floor(0.25*canvas.width),
+        h = Math.floor(0.25*canvas.height);
+    wtu.checkCanvasRect(gl, Math.ceil(0.25*canvas.width), 0.5*canvas.height, w, h, [255, 0, 0, 255]);
+    wtu.checkCanvasRect(gl, Math.ceil(0.75*canvas.width), 0.5*canvas.height, w, h, [0, 255, 0, 255]);
+    wtu.checkCanvasRect(gl, Math.ceil(0.25*canvas.width), 0, w, h, [0, 0, 255, 255]);
+    wtu.checkCanvasRect(gl, Math.ceil(0.75*canvas.width), 0, w, h, [255, 255, 0, 255]);
+
+    debug("Testing drawArraysInstanced with attributes 'divisor' reset to 0");
+    debug("Correct rendering output: 4 yellow triangles");
+    debug("Possible incorrect rendering output: missing triangles, or triangles with different color at each vertex");
+    gl.vertexAttribDivisor(colorLoc, 0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.drawArraysInstanced(gl.TRIANGLES, 3, 3, instanceCount);
+    wtu.checkCanvasRect(gl, Math.ceil(0.25*canvas.width), 0.5*canvas.height, w, h, [255, 255, 0, 255]);
+    wtu.checkCanvasRect(gl, Math.ceil(0.75*canvas.width), 0.5*canvas.height, w, h, [255, 255, 0, 255]);
+    wtu.checkCanvasRect(gl, Math.ceil(0.25*canvas.width), 0, w, h, [255, 255, 0, 255]);
+    wtu.checkCanvasRect(gl, Math.ceil(0.75*canvas.width), 0, w, h, [255, 255, 0, 255]);
+    gl.vertexAttribDivisor(colorLoc, 1);
+
+    wtu.setupUnitQuad(gl, 0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, offsetBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, offsets, gl.STATIC_DRAW);
 
     // Draw 2: Draw indexed instances
     debug("Testing drawElementsInstanced");

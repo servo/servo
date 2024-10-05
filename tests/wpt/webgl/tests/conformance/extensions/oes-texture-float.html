@@ -1,40 +1,20 @@
 <!--
-
-/*
-** Copyright (c) 2012 The Khronos Group Inc.
-**
-** Permission is hereby granted, free of charge, to any person obtaining a
-** copy of this software and/or associated documentation files (the
-** "Materials"), to deal in the Materials without restriction, including
-** without limitation the rights to use, copy, modify, merge, publish,
-** distribute, sublicense, and/or sell copies of the Materials, and to
-** permit persons to whom the Materials are furnished to do so, subject to
-** the following conditions:
-**
-** The above copyright notice and this permission notice shall be included
-** in all copies or substantial portions of the Materials.
-**
-** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
-*/
-
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
 -->
 
 <!DOCTYPE html>
 <html>
 <head>
 <meta charset="utf-8">
-<title>WebGL OES_texture_float Conformance Tests</title>
+<title>OES_texture_float/WEBGL_color_buffer_float</title>
 <link rel="stylesheet" href="../../resources/js-test-style.css"/>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
 <script src="../../js/js-test-pre.js"></script>
 <script src="../../js/webgl-test-utils.js"></script>
+<script src="../../js/tests/ext-float-blend.js"></script>
 </head>
 <body>
 <div id="description"></div>
@@ -75,13 +55,14 @@ void main()
 </script>
 <script>
 "use strict";
-description("This test verifies the functionality of the OES_texture_float extension, if it is available.");
+description("This test verifies the functionality of the OES_texture_float and WEBGL_color_buffer_float extensions, if available.");
 
 debug("");
 
 var wtu = WebGLTestUtils;
 var canvas = document.getElementById("canvas");
 var gl = wtu.create3DContext(canvas);
+var ext = null;
 
 if (!gl) {
     testFailed("WebGL context does not exist");
@@ -102,6 +83,33 @@ if (!gl) {
     // First verify that allocation of floating-point textures fails if
     // the extension has not been enabled yet.
     runTextureCreationTest(testProgram, false);
+
+    {
+        debug("");
+        debug("Testing that component type framebuffer attachment queries are rejected with the extension disabled");
+        const fbo = gl.createFramebuffer();
+        gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+
+        const rbo = gl.createRenderbuffer();
+        gl.bindRenderbuffer(gl.RENDERBUFFER, rbo);
+        gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0,gl.RENDERBUFFER, rbo);
+        gl.renderbufferStorage(gl.RENDERBUFFER, gl.RGB565, 8, 8);
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Setup renderbuffer should succeed.");
+        shouldBeNull('gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, 0x8211 /* FRAMEBUFFER_ATTACHMENT_COMPONENT_TYPE_EXT */)');
+        wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "Query must fail.");
+        gl.deleteRenderbuffer(rbo);
+
+        const tex = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, tex);
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 8, 8, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Setup texture should succeed.");
+        shouldBeNull('gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, 0x8211 /* FRAMEBUFFER_ATTACHMENT_COMPONENT_TYPE_EXT */)');
+        wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "Query must fail.");
+        gl.deleteTexture(tex);
+
+        gl.deleteFramebuffer(fbo);
+    }
 
     if (!gl.getExtension("OES_texture_float")) {
         testPassed("No OES_texture_float support -- this is legal");
@@ -129,6 +137,56 @@ if (!gl) {
                 runRenderTargetAndReadbackTest(testProgram, gl.RGB, 3, [10000, 10000, 10000, 1], 0, false);
                 runRenderTargetAndReadbackTest(testProgram, gl.RGBA, 4, [10000, 10000, 10000, 10000], 1, true);
                 runRenderTargetAndReadbackTest(testProgram, gl.RGBA, 4, [10000, 10000, 10000, 10000], 0.5, true);
+                runFramebufferTest();
+
+                {
+                    debug("");
+                    debug("Testing that component type framebuffer attachment queries are accepted with the extension enabled");
+                    ext = gl.getExtension("WEBGL_color_buffer_float");
+                    shouldBeNonNull('ext');
+                    const fbo = gl.createFramebuffer();
+                    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+
+                    const rbo = gl.createRenderbuffer();
+                    gl.bindRenderbuffer(gl.RENDERBUFFER, rbo);
+                    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0,gl.RENDERBUFFER, rbo);
+                    gl.renderbufferStorage(gl.RENDERBUFFER, gl.RGB565, 8, 8);
+                    shouldBe('gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, ext.FRAMEBUFFER_ATTACHMENT_COMPONENT_TYPE_EXT)', 'ext.UNSIGNED_NORMALIZED_EXT');
+                    gl.renderbufferStorage(gl.RENDERBUFFER, ext.RGBA32F_EXT, 8, 8);
+                    shouldBe('gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, ext.FRAMEBUFFER_ATTACHMENT_COMPONENT_TYPE_EXT)', 'gl.FLOAT');
+                    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "No errors after valid renderbuffer attachment queries.");
+
+                    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT,gl.RENDERBUFFER, rbo);
+                    gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_STENCIL, 8, 8);
+                    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "No errors after depth-stencil renderbuffer setup.");
+                    shouldBeNull('gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, ext.FRAMEBUFFER_ATTACHMENT_COMPONENT_TYPE_EXT)');
+                    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "Component type query is not allowed for combined depth-stencil attachments.");
+                    gl.deleteRenderbuffer(rbo);
+
+                    const tex = gl.createTexture();
+                    gl.bindTexture(gl.TEXTURE_2D, tex);
+                    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+                    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 8, 8, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+                    shouldBe('gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, ext.FRAMEBUFFER_ATTACHMENT_COMPONENT_TYPE_EXT)', 'ext.UNSIGNED_NORMALIZED_EXT');
+                    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 8, 8, 0, gl.RGBA, gl.FLOAT, null);
+                    shouldBe('gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, ext.FRAMEBUFFER_ATTACHMENT_COMPONENT_TYPE_EXT)', 'gl.FLOAT');
+                    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "No errors after valid texture attachment queries.");
+                    gl.deleteTexture(tex);
+
+                    gl.deleteFramebuffer(fbo);
+                }
+
+                debug("");
+                debug("Test float32 blending without EXT_float_blend.");
+                testExtFloatBlend(gl.RGBA);
+
+                debug("");
+                debug("Testing that float32 blending succeeds with EXT_float_blend.");
+                if (!gl.getExtension("EXT_float_blend")) {
+                    testPassed("No EXT_float_blend support -- this is legal");
+                    return;
+                }
+                testExtFloatBlend(gl.RGBA);
             }
         })();
 
@@ -317,6 +375,114 @@ function runUniqueObjectTest()
     shouldBe('gl.getExtension("OES_texture_float").myProperty', '2');
 }
 
+// Make sure we can call readPixels with the passed in arrayBufferConstructor and that the color
+// channels are the ones we expect. If there is a mismatch between the glType and arrayBuffer type,
+// fail the test.
+function verifyReadPixelsColors(red, green, blue, alpha, alphaRGB, glFormat, glType, arrayBufferConstructor) {
+    var typeName = wtu.glEnumToString(gl, glType);
+
+    debug(wtu.glEnumToString(gl, glFormat) + " framebuffer with " + typeName + " readback.");
+
+    var arrayBuffer = new arrayBufferConstructor(4);
+    gl.readPixels(0, 0, 1, 1, gl.RGBA, glType, arrayBuffer);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "readPixels should return NO_ERROR when reading " + typeName + " data.");
+
+    assertMsg(arrayBuffer[0] === red, "Red channel should be " + red + " for " + typeName + " readPixels. Received: " + arrayBuffer[0]);
+    assertMsg(arrayBuffer[1] === green, "Green channel should be " + green + " for " + typeName + " readPixels. Received: " + arrayBuffer[1]);
+    assertMsg(arrayBuffer[2] === blue, "Blue channel should be " + blue + " for " + typeName + " readPixels. Received: " + arrayBuffer[2]);
+    if (glFormat === gl.RGBA) {
+        assertMsg(arrayBuffer[3] === alpha, "Alpha channel should be " + alpha + " for " + typeName + " readPixels. Received: " + arrayBuffer[3]);
+    } else if (glFormat === gl.RGB) {
+        assertMsg(arrayBuffer[3] === alphaRGB, "Alpha channel should be " + alphaRGB + " for " + typeName + " readPixels. Received: " + arrayBuffer[3]);
+    }
+
+    // Make sure any arrayBuffer types that are not equal to arrayBufferConstructor fail readPixels.
+    if (arrayBufferConstructor !== Uint8Array) {
+        arrayBuffer = new Uint8Array(4);
+        gl.readPixels(0, 0, 1, 1, gl.RGBA, glType, arrayBuffer);
+        wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "readPixels should return INVALID_OPERATION when reading mismatched types. " + Uint8Array.toString());
+    }
+    if (arrayBufferConstructor !== Float32Array) {
+        arrayBuffer = new Float32Array(4);
+        gl.readPixels(0, 0, 1, 1, gl.RGBA, glType, arrayBuffer);
+        wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "readPixels should return INVALID_OPERATION when reading mismatched types. " + Float32Array.toString());
+    }
+    if (arrayBufferConstructor !== Uint16Array) {
+        arrayBuffer = new Uint16Array(4);
+        gl.readPixels(0, 0, 1, 1, gl.RGBA, glType, arrayBuffer);
+        wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "readPixels should return INVALID_OPERATION when reading mismatched types. " + Uint16Array.toString());
+    }
+}
+
+// Verify that float textures attached to frame buffers function correctly with regard to framebuffer
+// completness, IMPLEMENTATION_COLOR_READ_FORMAT/TYPE and readPixels
+function runFramebufferTest() {
+    debug("");
+    debug("Framebuffer Tests");
+
+    var texture = allocateTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+
+    var fbo = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
+
+    debug("Ensure non-color-renderable formats [LUMINANCE, LUMINANCE_ALPHA, ALPHA] fail.");
+    var arrayBufferFloatOutput = new Float32Array(4); // 4 color channels
+    [gl.LUMINANCE, gl.LUMINANCE_ALPHA, gl.ALPHA].forEach(function(badFormat) {
+        debug(wtu.glEnumToString(gl, badFormat) + " framebuffer");
+
+        gl.texImage2D(gl.TEXTURE_2D, 0, badFormat, 1, 1, 0, badFormat, gl.FLOAT, null);
+        shouldBe("gl.checkFramebufferStatus(gl.FRAMEBUFFER)", "gl.FRAMEBUFFER_INCOMPLETE_ATTACHMENT");
+
+        shouldBeNull("gl.getParameter(gl.IMPLEMENTATION_COLOR_READ_FORMAT)");
+        wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "IMPLEMENTATION_COLOR_READ_FORMAT should fail for incomplete framebuffers.");
+
+        shouldBeNull("gl.getParameter(gl.IMPLEMENTATION_COLOR_READ_TYPE)");
+        wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "IMPLEMENTATION_COLOR_READ_TYPE should fail for incomplete framebuffers.");
+
+        gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.FLOAT, arrayBufferFloatOutput);
+        wtu.glErrorShouldBe(gl, gl.INVALID_FRAMEBUFFER_OPERATION , "readPixels should fail on incomplete framebuffers.");
+        debug("");
+    });
+
+    debug("Ensure color renderable formats [RGBA, RGB] succeed.");
+    var arrayBufferFloatInput = new Float32Array(4); // 4 color channels
+    arrayBufferFloatInput[0] = 0;
+    arrayBufferFloatInput[1] = .25;
+    arrayBufferFloatInput[2] = .50;
+    arrayBufferFloatInput[3] = .75;
+
+    [gl.RGBA, gl.RGB].forEach(function(goodFormat) {
+        debug("");
+        debug(wtu.glEnumToString(gl, goodFormat) + " framebuffer tests");
+
+        gl.texImage2D(gl.TEXTURE_2D, 0, goodFormat, 1, 1, 0, goodFormat, gl.FLOAT, arrayBufferFloatInput);
+        if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) != gl.FRAMEBUFFER_COMPLETE) {
+            testPassed("Format is not renderable. This is allowed.");
+            return;
+        }
+        verifyReadPixelsColors(
+            0.00, // red
+            0.25, // green
+            0.50, // blue
+            0.75, // alpha
+            1.0,  // alphaRGB
+            goodFormat,
+            gl.FLOAT,
+            Float32Array);
+
+        var implementationColorReadFormat = gl.getParameter(gl.IMPLEMENTATION_COLOR_READ_FORMAT);
+        assertMsg(implementationColorReadFormat === gl.RGBA || implementationColorReadFormat === gl.RGB,
+            "IMPLEMENTATION_COLOR_READ_FORMAT should be color renderable: RGBA or RGB. Received: " + wtu.glEnumToString(gl, implementationColorReadFormat));
+
+        var implementationColorReadType = gl.getParameter(gl.IMPLEMENTATION_COLOR_READ_TYPE);
+        assertMsg(implementationColorReadType === gl.UNSIGNED_BYTE ||
+                  implementationColorReadType === gl.FLOAT ||
+                  "IMPLEMENTATION_COLOR_READ_TYPE must be one of UNSIGNED_BYTE or FLOAT " +
+                  "Received: " + wtu.glEnumToString(gl, implementationColorReadType));
+    });
+}
 
 debug("");
 var successfullyParsed = true;

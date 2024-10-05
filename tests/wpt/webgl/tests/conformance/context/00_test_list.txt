@@ -1,5 +1,6 @@
 --max-version 1.9.9 constants-and-properties.html
 --min-version 1.0.2 context-attribute-preserve-drawing-buffer.html
+--min-version 1.0.4 context-attribute-preserve-drawing-buffer-antialias.html
 context-attributes-alpha-depth-stencil-antialias.html
 --min-version 1.0.4 context-size-change.html
 --min-version 1.0.4 context-no-alpha-fbo-with-alpha.html
@@ -12,7 +13,9 @@ context-attributes-alpha-depth-stencil-antialias.html
 context-lost-restored.html
 context-lost.html
 --max-version 1.9.9 context-type-test.html
+--min-version 1.0.4 deleted-object-behavior.html
 incorrect-context-object-behaviour.html
 --max-version 1.9.9 methods.html
 premultiplyalpha-test.html
 --min-version 1.0.4 user-defined-properties-on-context.html
+--min-version 1.0.4 zero-sized-canvas.html

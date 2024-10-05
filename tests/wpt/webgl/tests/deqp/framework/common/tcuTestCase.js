@@ -31,20 +31,24 @@ goog.scope(function() {
     var tcuTestCase = framework.common.tcuTestCase;
     var tcuSkipList = framework.common.tcuSkipList;
 
+    tcuTestCase.getQueryVal = function(key) {
+        const queryVars = window.location.search.substring(1).split('&');
+        for (let kv of queryVars) {
+            kv = kv.split('=');
+            if (decodeURIComponent(kv[0]) === key)
+                return decodeURIComponent(kv[1]);
+        }
+        return null;
+    };
+
+    tcuTestCase.isQuickMode = () => tcuTestCase.getQueryVal('quick') === '1';
+    tcuTestCase.isQuietMode = () => tcuTestCase.getQueryVal('quiet') === '1';
+
     /**
      * Reads the filter parameter from the URL to filter tests.
      * @return {?string }
      */
-    tcuTestCase.getFilter = function() {
-        var queryVars = window.location.search.substring(1).split('&');
-
-        for (var i = 0; i < queryVars.length; i++) {
-            var value = queryVars[i].split('=');
-            if (decodeURIComponent(value[0]) === 'filter')
-                return decodeURIComponent(value[1]);
-        }
-        return null;
-    };
+    tcuTestCase.getFilter = () => tcuTestCase.getQueryVal('filter');
 
     /**
      * Indicates the state of an iteration operation.
@@ -128,6 +132,9 @@ goog.scope(function() {
     */
     tcuTestCase.Runner.prototype.terminate = function() {
         finishTest();
+        if (!tcuTestCase.isQuietMode()) {
+            console.log('finishTest() after (in ms):', performance.now());
+        }
     };
 
     tcuTestCase.runner = new tcuTestCase.Runner();
@@ -446,7 +453,32 @@ goog.scope(function() {
 
                 if (inited) {
                     // Run the test, save the result.
+
+                    const debug = tcuTestCase._debug = tcuTestCase._debug || (() => {
+                        function LapStopwatch() {
+                            this.lap = function() {
+                                const now = performance.now();
+                                const ret = now - this.last;
+                                this.last = now;
+                                return ret;
+                            };
+                            this.lap();
+                        }
+                        return {
+                            stopwatch: new LapStopwatch(),
+                            testDoneCount: 0,
+                        };
+                    })();
+                    const overheadDur = debug.stopwatch.lap();
+
                     tcuTestCase.lastResult = state.currentTest.iterate();
+
+                    const testDur = debug.stopwatch.lap();
+                    debug.testDoneCount += 1;
+                    console.log(
+                        `[test ${debug.testDoneCount}] Ran in ${testDur}ms`,
+                        `(+ ${overheadDur}ms overhead)`,
+                    );
                 } else {
                     // Skip uninitialized test.
                     tcuTestCase.lastResult = tcuTestCase.IterateResult.STOP;
@@ -477,8 +509,8 @@ goog.scope(function() {
             }
 
             tcuTestCase.runner.runCallback(tcuTestCase.runTestCases);
-        } else
+        } else {
             tcuTestCase.runner.terminate();
+        }
     };
-
 });

@@ -1,0 +1,118 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Alpha blending bug on WebGL canvas</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<canvas id="canvas" width="128" height="128"> </canvas>
+
+<script id="vshader" type="x-shader/x-vertex">
+attribute vec2 a_position;
+varying vec2 v_uv;
+void main()
+{
+    v_uv = a_position.xy * vec2(0.5, 0.5) + vec2(0.5, 0.5);
+    gl_Position = vec4(a_position.xy, 0.0, 1.0);
+}
+</script>
+
+<script id="fshader" type="x-shader/x-fragment">
+precision mediump float;
+varying vec2 v_uv;
+uniform sampler2D u_texture;
+uniform vec4 u_color;
+void main()
+{
+    vec4 tex = texture2D(u_texture, v_uv);
+    gl_FragColor = tex * u_color;
+}
+</script>
+
+<script>
+"use strict";
+// This test exposes an Intel driver issue on macOS.
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext("canvas");
+
+var program;
+var offscreen_tex;
+var fbo;
+
+function init()
+{
+    // Init program
+    program = wtu.setupProgram(gl, ["vshader", "fshader"], ["a_position"]);
+
+    // Init offscreen render targets and specify the format of offscreen texture to be RGB.
+    offscreen_tex = gl.createTexture();
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, offscreen_tex);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, canvas.width, canvas.height, 0, gl.RGB, gl.UNSIGNED_BYTE, null);
+
+    fbo = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, offscreen_tex, 0);
+
+    // Init blend state
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+}
+
+function draw_rect()
+{
+    gl.useProgram(program);
+
+    gl.bindTexture(gl.TEXTURE_2D, offscreen_tex);
+    var u_tex_loc = gl.getUniformLocation(program, 'u_texture');
+    gl.uniform1i(u_tex_loc, 0);
+
+    wtu.setupUnitQuad(gl);
+    wtu.drawFloatColorQuad(gl, [1.0, 1.0, 1.0, 1.0]);
+}
+
+function test_canvas_alpha() {
+    init();
+
+    // Clear offscreen texture to Green
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    gl.clearColor(0.0, 1.0, 0.0, 1.0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    // Clear default framebuffer
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    gl.clearColor(1.0, 0.0, 0.0, 1.0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    // Enable alpha blending and render to default framebuffer
+    gl.enable(gl.BLEND);
+    draw_rect();
+    wtu.checkCanvasRect(gl, 0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight, [0, 255, 0, 255]);
+}
+
+test_canvas_alpha();
+
+description("Exposes alpha blending bug in Intel drivers on macOS - see https://crbug.com/886970");
+var successfullyParsed = true;
+
+</script>
+<script src="../../js/js-test-post.js"></script>
+
+</body>
+</html>

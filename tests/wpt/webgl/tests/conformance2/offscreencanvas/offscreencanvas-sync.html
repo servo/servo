@@ -1,0 +1,78 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Test for Sync objects with OffscreenCanvas</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+  <div id="description"></div>
+  <div id="console"></div>
+  <script id='myWorker' type='text/worker'>
+  function tick(callback) {
+      function tickImpl() {
+          const res = callback();
+          if (res) {
+              if (requestAnimationFrame) {
+                  requestAnimationFrame(tickImpl);
+              } else {
+                  setTimeout(tickImpl, 10);
+              }
+          }
+      }
+
+      tickImpl();
+  }
+
+  self.onmessage = function(e) {
+      let canvas = new OffscreenCanvas(128, 128);
+      let gl = canvas.getContext("webgl2");
+      let sync = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0);
+      gl.flush();
+      tick(function() {
+          const status = gl.getSyncParameter(sync, gl.SYNC_STATUS);
+          if (status == gl.SIGNALED) {
+              self.postMessage("PASSED - Sync object signaled successfully from worker");
+              return false;
+          } else {
+              const err = gl.getError();
+              if (err != 0) {
+                  self.postMessage("FAILED - GL error " + err);
+                  return false;
+              }
+          }
+          return true;
+      });
+  };
+  </script>
+  <script>
+    "use strict";
+    description("This test ensures that sync objects work with the WebGL 2.0 context created via OffscreenCanvas.");
+    if (!window.OffscreenCanvas) {
+        testPassed("No OffscreenCanvas support");
+        finishTest();
+    } else {
+      var blob = new Blob([document.getElementById("myWorker").textContent]);
+      var worker = new Worker(URL.createObjectURL(blob));
+      worker.onmessage = function(msg) {
+          if (msg.data.startsWith("PASSED")) {
+              testPassed(msg.data);
+          } else {
+              testFailed(msg.data);
+          }
+          finishTest();
+      }
+      worker.postMessage("Start Worker");
+    }
+  </script>
+</body>
+</html>

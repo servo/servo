@@ -1,0 +1,167 @@
+<!--
+Copyright (c) 2020 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Verifies EXIF orientation is respected when uploading images to WebGL textures</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+<script src="../../../js/tests/tex-image-and-sub-image-utils.js"></script>
+</head>
+<body onload="run()">
+<canvas id="c" width="256" height="256"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+description();
+let wtu = WebGLTestUtils;
+let tiu = TexImageUtils;
+let canvas = document.getElementById("c");
+let gl = wtu.create3DContext(canvas);
+let program = tiu.setupTexturedQuad(gl, gl.RGBA);
+const resourcePath = "../../../resources/";
+const tolerance = 5;
+
+// The locations are written assuming flipY = false. For flipY = true, y = 1.0-y.
+const expectedColors = {
+    top:    { location: [ 0.5, 0.25 ], color: [ 255,   0,   0 ] },
+    left:   { location: [ 0.4, 0.5  ], color: [   0,   0, 255 ] },
+    right:  { location: [ 0.6, 0.5  ], color: [ 255, 255,   0 ] },
+    bottom: { location: [ 0.5, 0.75 ], color: [   0, 255,   0 ] },
+}
+
+function output(str)
+{
+    debug(str);
+    bufferedLogToConsole(str);
+}
+
+function checkPixels(flipY)
+{
+    for (let place in expectedColors) {
+        let color = expectedColors[place];
+        let loc = color.location;
+        let x = loc[0];
+        let y = (flipY ? 1.0 - loc[1] : loc[1]);
+        output("  Checking " + place);
+        wtu.checkCanvasRect(gl, Math.floor(canvas.width * x), Math.floor(canvas.height * y), 1, 1,
+                            color.color, "shouldBe " + color.color + " +/-" + tolerance, tolerance);
+    }
+}
+
+async function testImageBitmapWithFlipY(source, flipY)
+{
+    const bitmap = await createImageBitmap(source, flipY ? {imageOrientation: flipY} : undefined);
+
+    output("  Testing texImage2D, flipY = " + flipY);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, bitmap);
+    wtu.clearAndDrawUnitQuad(gl, [0, 0, 0, 255]);
+    checkPixels(flipY == "flipY");
+
+    output("  Testing texSubImage2D, flipY = " + flipY);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, bitmap.width, bitmap.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, bitmap);
+    wtu.clearAndDrawUnitQuad(gl, [0, 0, 0, 255]);
+    checkPixels(flipY == "flipY");
+}
+
+async function testImageBitmapFromBlob(filename)
+{
+    let response = await fetch(resourcePath + filename);
+    let blob = await response.blob();
+    output("----------------------------------------------------------------");
+    output("Testing " + filename + " via ImageBitmap from Blob");
+    await testImageBitmapWithFlipY(blob, "flipY");
+    await testImageBitmapWithFlipY(blob, "none");
+    await testImageBitmapWithFlipY(blob, undefined);
+}
+
+async function testImageBitmapFromImage(image)
+{
+    await testImageBitmapWithFlipY(image, "flipY");
+    await testImageBitmapWithFlipY(image, "none");
+    await testImageBitmapWithFlipY(image, undefined);
+}
+
+async function testImageElementWithFlipY(image, flipY)
+{
+    output("  Testing texImage2D, flipY = " + flipY);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, flipY);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+    wtu.clearAndDrawUnitQuad(gl, [0, 0, 0, 255]);
+    checkPixels(flipY);
+
+    output("  Testing texSubImage2D, flipY = " + flipY);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, flipY);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, image.width, image.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, image);
+    wtu.clearAndDrawUnitQuad(gl, [0, 0, 0, 255]);
+    checkPixels(flipY);
+}
+
+async function testImageElement(filename)
+{
+    let image = new Image();
+    image.src = resourcePath + filename;
+    await image.decode();
+
+    output("----------------------------------------------------------------");
+    output("Testing " + filename + " via HTMLImageElement");
+
+    await testImageElementWithFlipY(image, true);
+    await testImageElementWithFlipY(image, false);
+
+    output("----------------------------------------------------------------");
+    output("Testing " + filename + " via ImageBitmap from HTMLImageElement");
+
+    await testImageBitmapFromImage(image);
+}
+
+async function testSingleImage(filename)
+{
+    await testImageBitmapFromBlob(filename);
+    await testImageElement(filename);
+}
+
+async function run()
+{
+    let tex = gl.createTexture();
+    // Bind the texture to the default texture unit 0
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    // Set up texture parameters
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+    const filenames = [
+        "exif-orientation-test-1-normal.jpg",
+        "exif-orientation-test-2-mirror-horizontal.jpg",
+        "exif-orientation-test-3-rotate-180.jpg",
+        "exif-orientation-test-4-mirror-vertical.jpg",
+        "exif-orientation-test-5-mirror-horizontal-90-ccw.jpg",
+        "exif-orientation-test-6-90-cw.jpg",
+        "exif-orientation-test-7-mirror-horizontal-90-cw.jpg",
+        "exif-orientation-test-8-90-ccw.jpg",
+    ];
+
+    for (let fn of filenames) {
+        await testSingleImage(fn);
+    }
+
+    finishTest();
+}
+
+var successfullyParsed = true;
+</script>
+</body>
+</html>

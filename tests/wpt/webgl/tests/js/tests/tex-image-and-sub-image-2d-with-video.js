@@ -1,24 +1,7 @@
 /*
-** Copyright (c) 2012 The Khronos Group Inc.
-**
-** Permission is hereby granted, free of charge, to any person obtaining a
-** copy of this software and/or associated documentation files (the
-** "Materials"), to deal in the Materials without restriction, including
-** without limitation the rights to use, copy, modify, merge, publish,
-** distribute, sublicense, and/or sell copies of the Materials, and to
-** permit persons to whom the Materials are furnished to do so, subject to
-** the following conditions:
-**
-** The above copyright notice and this permission notice shall be included
-** in all copies or substantial portions of the Materials.
-**
-** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
 */
 
 // This block needs to be outside the onload handler in order for this
@@ -37,8 +20,6 @@ function generateTest(internalFormat, pixelFormat, pixelType, prologue, resource
     var tiu = TexImageUtils;
     var gl = null;
     var successfullyParsed = false;
-    var redColor = [255, 0, 0];
-    var greenColor = [0, 255, 0];
 
     // Test each format separately because many browsers implement each
     // differently. Some might be GPU accelerated, some might not. Etc...
@@ -46,7 +27,6 @@ function generateTest(internalFormat, pixelFormat, pixelType, prologue, resource
       { src: resourcePath + "red-green.mp4"           , type: 'video/mp4; codecs="avc1.42E01E, mp4a.40.2"', },
       { src: resourcePath + "red-green.webmvp8.webm"  , type: 'video/webm; codecs="vp8, vorbis"',           },
       { src: resourcePath + "red-green.bt601.vp9.webm", type: 'video/webm; codecs="vp9"',                   },
-      { src: resourcePath + "red-green.theora.ogv"    , type: 'video/ogg; codecs="theora, vorbis"',         },
     ];
 
     function init()
@@ -62,40 +42,26 @@ function generateTest(internalFormat, pixelFormat, pixelType, prologue, resource
             return;
         }
 
-        switch (gl[pixelFormat]) {
-          case gl.RED:
-          case gl.RED_INTEGER:
-            greenColor = [0, 0, 0];
-            break;
-          case gl.LUMINANCE:
-          case gl.LUMINANCE_ALPHA:
-            redColor = [255, 255, 255];
-            greenColor = [0, 0, 0];
-            break;
-          case gl.ALPHA:
-            redColor = [0, 0, 0];
-            greenColor = [0, 0, 0];
-            break;
-          default:
-            break;
-        }
-
         gl.clearColor(0,0,0,1);
         gl.clearDepth(1);
 
         runTest();
     }
 
-    function runOneIteration(videoElement, useTexSubImage2D, flipY, topColor, bottomColor, sourceSubRectangle, program, bindingTarget)
+    function runOneIteration(videoElement, unpackColorSpace, useTexSubImage2D, flipY, topColorName, bottomColorName, sourceSubRectangle, program, bindingTarget)
     {
         sourceSubRectangleString = '';
         if (sourceSubRectangle) {
             sourceSubRectangleString = ' sourceSubRectangle=' + sourceSubRectangle;
         }
+        unpackColorSpaceString = '';
+        if (unpackColorSpace) {
+            unpackColorSpaceString = ' unpackColorSpace=' + unpackColorSpace;
+        }
         debug('Testing ' + (useTexSubImage2D ? 'texSubImage2D' : 'texImage2D') +
               ' with flipY=' + flipY + ' bindingTarget=' +
               (bindingTarget == gl.TEXTURE_2D ? 'TEXTURE_2D' : 'TEXTURE_CUBE_MAP') +
-              sourceSubRectangleString);
+              sourceSubRectangleString + unpackColorSpaceString);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
         // Disable any writes to the alpha channel
         gl.colorMask(1, 1, 1, 0);
@@ -118,6 +84,10 @@ function generateTest(internalFormat, pixelFormat, pixelType, prologue, resource
                        gl.TEXTURE_CUBE_MAP_NEGATIVE_Y,
                        gl.TEXTURE_CUBE_MAP_POSITIVE_Z,
                        gl.TEXTURE_CUBE_MAP_NEGATIVE_Z];
+        }
+        // Handle target color space.
+        if (unpackColorSpace) {
+          gl.unpackColorSpace = unpackColorSpace;
         }
         // Handle the source sub-rectangle if specified (WebGL 2.0 only)
         if (sourceSubRectangle) {
@@ -182,6 +152,13 @@ function generateTest(internalFormat, pixelFormat, pixelType, prologue, resource
             loc = gl.getUniformLocation(program, "face");
         }
 
+        // Compute the test colors. This test only tests RGB (not A).
+        const topColor = wtu.colorAsSampledWithInternalFormat(
+            wtu.namedColorInColorSpace(topColorName, unpackColorSpace),
+            internalFormat).slice(0, 3);
+        const bottomColor = wtu.colorAsSampledWithInternalFormat(
+            wtu.namedColorInColorSpace(bottomColorName, unpackColorSpace),
+            internalFormat).slice(0, 3);
         for (var tt = 0; tt < targets.length; ++tt) {
             if (bindingTarget == gl.TEXTURE_CUBE_MAP) {
                 gl.uniform1i(loc, targets[tt]);
@@ -190,7 +167,7 @@ function generateTest(internalFormat, pixelFormat, pixelType, prologue, resource
             wtu.clearAndDrawUnitQuad(gl, [0, 0, 0, 255]);
             // Check a few pixels near the top and bottom and make sure they have
             // the right color.
-            var tolerance = 5;
+            const tolerance = Math.max(6, tiu.tolerance(internalFormat, pixelFormat, pixelType));
             debug("Checking lower left corner");
             wtu.checkCanvasRect(gl, 4, 4, 2, 2, bottomColor,
                                 "shouldBe " + bottomColor, tolerance);
@@ -203,32 +180,35 @@ function generateTest(internalFormat, pixelFormat, pixelType, prologue, resource
     function runTest(videoElement)
     {
         var cases = [
-            { sub: false, flipY: true, topColor: redColor, bottomColor: greenColor },
-            { sub: false, flipY: false, topColor: greenColor, bottomColor: redColor },
-            { sub: true, flipY: true, topColor: redColor, bottomColor: greenColor },
-            { sub: true, flipY: false, topColor: greenColor, bottomColor: redColor },
+            { sub: false, flipY: true, topColor: 'Red', bottomColor: 'Green' },
+            { sub: false, flipY: false, topColor: 'Green', bottomColor: 'Red' },
+            { sub: true, flipY: true, topColor: 'Red', bottomColor: 'Green' },
+            { sub: true, flipY: false, topColor: 'Green', bottomColor: 'Red' },
         ];
 
         if (wtu.getDefault3DContextVersion() > 1) {
             cases = cases.concat([
-                { sub: false, flipY: false, topColor: redColor, bottomColor: redColor,
+                { sub: false, flipY: false, topColor: 'Red', bottomColor: 'Red',
                   sourceSubRectangle: [20, 16, 40, 32] },
-                { sub: false, flipY: true, topColor: greenColor, bottomColor: greenColor,
+                { sub: false, flipY: true, topColor: 'Green', bottomColor: 'Green',
                   sourceSubRectangle: [20, 16, 40, 32] },
-                { sub: false, flipY: false, topColor: greenColor, bottomColor: greenColor,
+                { sub: false, flipY: false, topColor: 'Green', bottomColor: 'Green',
                   sourceSubRectangle: [20, 80, 40, 32] },
-                { sub: false, flipY: true, topColor: redColor, bottomColor: redColor,
+                { sub: false, flipY: true, topColor: 'Red', bottomColor: 'Red',
                   sourceSubRectangle: [20, 80, 40, 32] },
-                { sub: true, flipY: false, topColor: redColor, bottomColor: redColor,
+                { sub: true, flipY: false, topColor: 'Red', bottomColor: 'Red',
                   sourceSubRectangle: [20, 16, 40, 32] },
-                { sub: true, flipY: true, topColor: greenColor, bottomColor: greenColor,
+                { sub: true, flipY: true, topColor: 'Green', bottomColor: 'Green',
                   sourceSubRectangle: [20, 16, 40, 32] },
-                { sub: true, flipY: false, topColor: greenColor, bottomColor: greenColor,
+                { sub: true, flipY: false, topColor: 'Green', bottomColor: 'Green',
                   sourceSubRectangle: [20, 80, 40, 32] },
-                { sub: true, flipY: true, topColor: redColor, bottomColor: redColor,
+                { sub: true, flipY: true, topColor: 'Red', bottomColor: 'Red',
                   sourceSubRectangle: [20, 80, 40, 32] },
             ]);
         }
+
+        cases = tiu.crossProductTestCasesWithUnpackColorSpaces(
+            cases, tiu.unpackColorSpacesToTest(gl));
 
         function runTexImageTest(bindingTarget) {
             var program;
@@ -255,6 +235,7 @@ function generateTest(internalFormat, pixelFormat, pixelType, prologue, resource
                     debug("");
                     debug("testing: " + info.type);
                     video = document.createElement("video");
+                    video.muted = true;
                     var canPlay = true;
                     if (!video.canPlayType) {
                       testFailed("video.canPlayType required method missing");
@@ -285,8 +266,9 @@ function generateTest(internalFormat, pixelFormat, pixelType, prologue, resource
                                 break;
                             }
                         }
-                        runOneIteration(video, cases[i].sub, cases[i].flipY,
-                                        cases[i].topColor, cases[i].bottomColor,
+                        runOneIteration(video, cases[i].unpackColorSpace, cases[i].sub, cases[i].flipY,
+                                        cases[i].topColor,
+                                        cases[i].bottomColor,
                                         cases[i].sourceSubRectangle,
                                         program, bindingTarget);
                     }

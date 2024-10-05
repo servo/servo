@@ -1,0 +1,53 @@
+<!--
+Copyright (c) 2021 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL toDataURL after composite test</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"> </script>
+</head>
+<body>
+<canvas width="20" height="20" style="border: 1px solid black; width: 128px; height: 128px" id="c3d"></canvas>
+<canvas width="20" height="20" style="border: 1px solid black; width: 128px; height: 128px" id="c2d"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script type="application/javascript">
+const wtu = WebGLTestUtils;
+let gl;
+let ctx;
+
+function main() {
+  description();
+  const c2d = document.getElementById("c2d");
+  ctx = c2d.getContext("2d");
+  gl = wtu.create3DContext("c3d", { preserveDrawingBuffer: true });
+
+  // Clear to green
+  gl.clearColor(0.0, 1.0, 0.0, 1.0);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+
+  wtu.waitForComposite(() => {
+    // Performs gl.canvas.toDataURL() internally
+    let img = wtu.makeImageFromCanvas(gl.canvas, function() {
+      ctx.drawImage(img, 0, 0);
+      wtu.checkCanvas(ctx, [0, 255, 0], "toDataURL loaded into image, drawn into 2D context, should be green", 5);
+      finishTest();
+    });
+  });
+
+};
+
+main();
+var successfullyParsed = true;
+</script>
+</body>
+</html>
+

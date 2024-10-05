@@ -1,28 +1,7 @@
 <!--
-
-/*
-** Copyright (c) 2018 The Khronos Group Inc.
-**
-** Permission is hereby granted, free of charge, to any person obtaining a
-** copy of this software and/or associated documentation files (the
-** "Materials"), to deal in the Materials without restriction, including
-** without limitation the rights to use, copy, modify, merge, publish,
-** distribute, sublicense, and/or sell copies of the Materials, and to
-** permit persons to whom the Materials are furnished to do so, subject to
-** the following conditions:
-**
-** The above copyright notice and this permission notice shall be included
-** in all copies or substantial portions of the Materials.
-**
-** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
-*/
-
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
 -->
 
 <!DOCTYPE html>
@@ -91,23 +70,22 @@ function resolvable() {
     return promise;
 }
 
-function fence() {
-    const promise = resolvable();
+function wait() {
+    return new Promise(res => {
+        setTimeout(res, 0);
+    });
+}
 
+async function fence() {
     const sync = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0);
     gl.flush();
-    function check() {
-        const status = gl.clientWaitSync(sync, 0, 0);
-        if (status == gl.ALREADY_SIGNALED || status == gl.CONDITION_SATISFIED) {
-            gl.deleteSync(sync);
-            promise.resolve();
-        } else {
-            setTimeout(check, 0);
-        }
-    }
-    setTimeout(check, 0);
 
-    return promise;
+    let status;
+    do {
+        await wait();
+        status = gl.clientWaitSync(sync, 0, 0);
+    } while (status != gl.ALREADY_SIGNALED && status != gl.CONDITION_SATISFIED);
+    gl.deleteSync(sync);
 }
 
 function checkGetBufferSubData(err, data) {
@@ -133,6 +111,8 @@ function copyBufferUsingTransformFeedback(src, dst) {
     gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, tf);
     gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, dst);
 
+    gl.drawBuffers([gl.NONE]);
+
     gl.enable(gl.RASTERIZER_DISCARD);
     gl.beginTransformFeedback(gl.POINTS);
     // treats the input and output data as two uint32s
@@ -145,120 +125,126 @@ function copyBufferUsingTransformFeedback(src, dst) {
     gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, null);
 }
 
-Promise.resolve()
-    .then(() => {
-        debug("");
-        debug("write-read");
-        gl.copyBufferSubData(gl.COPY_READ_BUFFER, gl.COPY_WRITE_BUFFER, 0, 0, 8);
-        checkGetBufferSubData(gl.NO_ERROR, "srcData");
-    })
-    .then(() => {
-        debug("");
-        debug("fence-wait-write-read");
-        return fence().then(() => {
-            gl.copyBufferSubData(gl.COPY_READ_BUFFER, gl.COPY_WRITE_BUFFER, 0, 0, 8);
-            checkGetBufferSubData(gl.NO_ERROR, "srcData");
-        });
-    })
-    .then(() => {
-        debug("");
-        debug("write-read-fence-wait");
-        gl.copyBufferSubData(gl.COPY_READ_BUFFER, gl.COPY_WRITE_BUFFER, 0, 0, 8);
-        checkGetBufferSubData(gl.NO_ERROR, "srcData");
-        return fence();
-    })
-    .then(() => {
-        debug("");
-        debug("write-fence-fence-wait-read");
-        gl.copyBufferSubData(gl.COPY_READ_BUFFER, gl.COPY_WRITE_BUFFER, 0, 0, 8);
-        fence();
-        return fence().then(() => {
-            checkGetBufferSubData(gl.NO_ERROR, "srcData");
-        });
-    })
-    .then(() => {
-        debug("");
-        debug("write-fence-wait-read");
-        gl.copyBufferSubData(gl.COPY_READ_BUFFER, gl.COPY_WRITE_BUFFER, 0, 0, 8);
-        return fence().then(() => {
-            checkGetBufferSubData(gl.NO_ERROR, "srcData");
-        });
-    })
-    .then(() => {
-        debug("");
-        debug("write-fence-wait-write-read");
-        gl.copyBufferSubData(gl.ARRAY_BUFFER, gl.COPY_WRITE_BUFFER, 0, 0, 8);
-        return fence().then(() => {
-            gl.copyBufferSubData(gl.COPY_READ_BUFFER, gl.COPY_WRITE_BUFFER, 0, 0, 8);
-            checkGetBufferSubData(gl.NO_ERROR, "srcData");
-        });
-    })
-    .then(() => {
-        debug("");
-        debug("write-fence-write-wait-read");
-        gl.copyBufferSubData(gl.ARRAY_BUFFER, gl.COPY_WRITE_BUFFER, 0, 0, 8);
+(async () => {
+    debug("");
+    debug("write-read");
+    gl.copyBufferSubData(gl.COPY_READ_BUFFER, gl.COPY_WRITE_BUFFER, 0, 0, 8);
+    checkGetBufferSubData(gl.NO_ERROR, "srcData");
+
+    debug("");
+    debug("fence-wait-write-read");
+    await fence();
+    gl.copyBufferSubData(gl.COPY_READ_BUFFER, gl.COPY_WRITE_BUFFER, 0, 0, 8);
+    checkGetBufferSubData(gl.NO_ERROR, "srcData");
+
+    debug("");
+    debug("write-read-fence-wait");
+    gl.copyBufferSubData(gl.COPY_READ_BUFFER, gl.COPY_WRITE_BUFFER, 0, 0, 8);
+    checkGetBufferSubData(gl.NO_ERROR, "srcData");
+    await fence();
+
+    debug("");
+    debug("write-fence-fence-wait-read");
+    gl.copyBufferSubData(gl.COPY_READ_BUFFER, gl.COPY_WRITE_BUFFER, 0, 0, 8);
+    fence(); // no await
+    await fence();
+    checkGetBufferSubData(gl.NO_ERROR, "srcData");
+
+    debug("");
+    debug("write-fence-wait-read");
+    gl.copyBufferSubData(gl.COPY_READ_BUFFER, gl.COPY_WRITE_BUFFER, 0, 0, 8);
+    await fence();
+    checkGetBufferSubData(gl.NO_ERROR, "srcData");
+
+    debug("");
+    debug("write-fence-wait-write-read");
+    gl.copyBufferSubData(gl.ARRAY_BUFFER, gl.COPY_WRITE_BUFFER, 0, 0, 8);
+    await fence();
+    gl.copyBufferSubData(gl.COPY_READ_BUFFER, gl.COPY_WRITE_BUFFER, 0, 0, 8);
+    checkGetBufferSubData(gl.NO_ERROR, "srcData");
+
+    debug("");
+    debug("write-fence-write-wait-read");
+    gl.copyBufferSubData(gl.ARRAY_BUFFER, gl.COPY_WRITE_BUFFER, 0, 0, 8);
+    {
         const p = fence();
         gl.copyBufferSubData(gl.COPY_READ_BUFFER, gl.COPY_WRITE_BUFFER, 0, 0, 8);
-        return p.then(() => {
-            checkGetBufferSubData(gl.NO_ERROR, "srcData");
-        });
-    })
-    .then(() => {
-        debug("");
-        debug("write-fence-transformfeedback-wait-read");
-        gl.copyBufferSubData(gl.ARRAY_BUFFER, gl.COPY_WRITE_BUFFER, 0, 0, 8);
+        await p;
+    }
+    checkGetBufferSubData(gl.NO_ERROR, "srcData");
+
+    debug("");
+    debug("write-fence-transformfeedback-wait-read");
+    gl.copyBufferSubData(gl.ARRAY_BUFFER, gl.COPY_WRITE_BUFFER, 0, 0, 8);
+    {
         const p = fence();
         gl.bindBuffer(gl.COPY_WRITE_BUFFER, null);
         copyBufferUsingTransformFeedback(srcBuffer, readbackBuffer);
         gl.bindBuffer(gl.COPY_WRITE_BUFFER, readbackBuffer);
-        return p.then(() => {
-            checkGetBufferSubData(gl.NO_ERROR, "srcData");
-        });
-    })
-    .then(() => {
-        debug("");
-        debug("write-unbind-fence-wait-bind-read");
-        gl.bindBuffer(gl.COPY_WRITE_BUFFER, null);
-        gl.bindBuffer(gl.ARRAY_BUFFER, readbackBuffer);
-        gl.copyBufferSubData(gl.COPY_READ_BUFFER, gl.ARRAY_BUFFER, 0, 0, 8);
-        gl.bindBuffer(gl.ARRAY_BUFFER, badBuffer);
-        return fence().then(() => {
-            gl.bindBuffer(gl.COPY_WRITE_BUFFER, readbackBuffer);
-            checkGetBufferSubData(gl.NO_ERROR, "srcData");
-        });
-    })
-    .then(() => {
-        debug("");
-        debug("write-fence-wait-delete-read");
-        gl.copyBufferSubData(gl.ARRAY_BUFFER, gl.COPY_WRITE_BUFFER, 0, 0, 8);
-        return fence().then(() => {
-            deleteReadbackBuffer();
-            checkGetBufferSubData(gl.INVALID_OPERATION, "noData");
-            recreateReadbackBuffer();
-        });
-    })
-    .then(() => {
-        debug("");
-        debug("write-fence-delete-wait-read");
-        gl.copyBufferSubData(gl.ARRAY_BUFFER, gl.COPY_WRITE_BUFFER, 0, 0, 8);
+        await p;
+    }
+    checkGetBufferSubData(gl.NO_ERROR, "srcData");
+
+    debug("");
+    debug("write-unbind-fence-wait-bind-read");
+    gl.bindBuffer(gl.COPY_WRITE_BUFFER, null);
+    gl.bindBuffer(gl.ARRAY_BUFFER, readbackBuffer);
+    gl.copyBufferSubData(gl.COPY_READ_BUFFER, gl.ARRAY_BUFFER, 0, 0, 8);
+    gl.bindBuffer(gl.ARRAY_BUFFER, badBuffer);
+    await fence();
+    gl.bindBuffer(gl.COPY_WRITE_BUFFER, readbackBuffer);
+    checkGetBufferSubData(gl.NO_ERROR, "srcData");
+
+    debug("");
+    debug("write-fence-wait-delete-read");
+    gl.copyBufferSubData(gl.ARRAY_BUFFER, gl.COPY_WRITE_BUFFER, 0, 0, 8);
+    await fence();
+    deleteReadbackBuffer();
+    checkGetBufferSubData(gl.INVALID_OPERATION, "noData");
+    recreateReadbackBuffer();
+
+    debug("");
+    debug("write-fence-delete-wait-read");
+    gl.copyBufferSubData(gl.ARRAY_BUFFER, gl.COPY_WRITE_BUFFER, 0, 0, 8);
+    {
         const p = fence();
         deleteReadbackBuffer();
-        return p.then(() => {
-            checkGetBufferSubData(gl.INVALID_OPERATION, "noData");
-            recreateReadbackBuffer();
-        });
-    })
-    .then(() => {
+        await p;
+    }
+    checkGetBufferSubData(gl.INVALID_OPERATION, "noData");
+    recreateReadbackBuffer();
+
+    debug("");
+    debug("write-fence-delete-wait-read");
+    gl.copyBufferSubData(gl.ARRAY_BUFFER, gl.COPY_WRITE_BUFFER, 0, 0, 8);
+    deleteReadbackBuffer();
+    await fence();
+    checkGetBufferSubData(gl.INVALID_OPERATION, "noData");
+    recreateReadbackBuffer();
+
+    // crbug.com/941930
+    {
         debug("");
-        debug("write-fence-delete-wait-read");
-        gl.copyBufferSubData(gl.ARRAY_BUFFER, gl.COPY_WRITE_BUFFER, 0, 0, 8);
+        debug("write-delete-recreate-fence-wait-read");
+        gl.copyBufferSubData(gl.COPY_READ_BUFFER, gl.COPY_WRITE_BUFFER, 0, 0, 8);
         deleteReadbackBuffer();
-        return fence().then(() => {
-            checkGetBufferSubData(gl.INVALID_OPERATION, "noData");
-            recreateReadbackBuffer();
-        });
-    })
-    .then(finishTest);
+        recreateReadbackBuffer();
+        await fence();
+        checkGetBufferSubData(gl.NO_ERROR, "noData");
+
+        debug("");
+        debug("write-delete-fence-wait-read");
+        gl.copyBufferSubData(gl.COPY_READ_BUFFER, gl.COPY_WRITE_BUFFER, 0, 0, 8);
+        {
+            const p = fence();
+            deleteReadbackBuffer();
+            await p;
+        }
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+    }
+
+    finishTest();
+})();
 
 var successfullyParsed = true;
 </script>

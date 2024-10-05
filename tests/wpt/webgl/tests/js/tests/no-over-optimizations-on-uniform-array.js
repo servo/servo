@@ -1,24 +1,7 @@
 /*
-** Copyright (c) 2012 The Khronos Group Inc.
-**
-** Permission is hereby granted, free of charge, to any person obtaining a
-** copy of this software and/or associated documentation files (the
-** "Materials"), to deal in the Materials without restriction, including
-** without limitation the rights to use, copy, modify, merge, publish,
-** distribute, sublicense, and/or sell copies of the Materials, and to
-** permit persons to whom the Materials are furnished to do so, subject to
-** the following conditions:
-**
-** The above copyright notice and this permission notice shall be included
-** in all copies or substantial portions of the Materials.
-**
-** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
 */
 NoOverOptimizeOnUniformArrayTester = (function(){
 
@@ -92,10 +75,10 @@ function setupTests(gl) {
     // does not get passed down to glUniform so when setting the uniform 'big[3]' they
     // overwrite memory.
     //
-    // If the driver crashes, yea. We found a bug. We can blacklist the driver.
+    // If the driver crashes, yea. We found a bug. We can block the driver.
     // Otherwise we try various combinations so that setting 'little[0]' first
     // and then setting all elements of 'big' we hope it will overwrite 'little[0]'
-    // which will show the bug and again we can blacklist the driver.
+    // which will show the bug and again we can block the driver.
     //
     // We don't know how the driver will order, in memory, the various uniforms
     // or for that matter we don't even know if they will be contiguous in memory

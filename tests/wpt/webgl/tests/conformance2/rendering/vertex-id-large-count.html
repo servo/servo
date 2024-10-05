@@ -1,0 +1,129 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL 2 gl_VertexID Large Count Tests</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/desktop-gl-constants.js"></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<!-- Shaders for testing instanced draws -->
+<script id="vs" type="text/plain">
+#version 300 es
+
+uniform ivec2 resolution;
+void main() {
+    ivec2 pixel = ivec2(
+        gl_VertexID % resolution.x,
+        gl_VertexID / resolution.x);
+    vec2 xy = (vec2(pixel) + 0.5) / vec2(resolution) * 2.0 - 1.0;
+
+    gl_Position = vec4(xy, 0, 1);
+    gl_PointSize = 1.0;
+}
+</script>
+<script id="fs" type="text/plain">
+#version 300 es
+precision mediump float;
+uniform vec4 color;
+out vec4 fragColor;
+void main() {
+    fragColor = color;
+}
+</script>
+
+<script>
+"use strict";
+description("Test gl_VertexID");
+
+debug("");
+
+const wtu = WebGLTestUtils;
+const canvas = document.createElement("canvas");
+const size = 2048;
+canvas.width = size;
+canvas.height = size;
+const gl = wtu.create3DContext(canvas, null, 2);
+
+// document.body.appendChild(gl.canvas);
+// gl.canvas.style.background = 'yellow';
+// gl.canvas.style.margin = '20px';
+// const ext = gl.getExtension('WEBGL_debug_renderer_info');
+// if (ext) {
+//   debug(gl.getParameter(ext.UNMASKED_RENDERER_WEBGL));
+// }
+
+(function() {
+    if (!gl) {
+        testFailed("WebGL context does not exist");
+        return;
+    }
+    testPassed("WebGL context exists");
+
+    const vs = document.getElementById("vs").innerHTML.trim();
+    const fs = document.getElementById("fs").innerHTML.trim();
+    const prog = wtu.loadProgram(gl, vs, fs);
+    gl.useProgram(prog);
+    const resolutionLoc = gl.getUniformLocation(prog, 'resolution');
+    const colorLoc = gl.getUniformLocation(prog, 'color');
+
+    // -
+
+    debug("");
+    debug("----------------");
+    debug("drawArrays");
+
+    const u8Color = c => c.map(v => v * 255 | 0);
+    const transparentBlack = [0, 0, 0, 0];
+    const red = [1, 0, 0, 1];
+    const green = [0, 1, 0, 1];
+    const blue = [0, 0, 1, 1];
+
+    const test = function(first, count, color) {
+        debug("");
+        debug(`drawArrays(first: ${first}, count: ${count})`);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        gl.uniform4fv(colorLoc, color);
+        gl.uniform2i(resolutionLoc, size, size);
+        gl.drawArrays(gl.POINTS, first, count);
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+        const y = first / size;
+        const height = count / size;
+
+        // The shader draws 1 pixel points by looking at gl_VertexID
+        // as a 1D index into a 2D array. In other words
+        //   row = gl_VertexID / width;
+        //   col = gl_VertexID % width;
+        // Setting first to a value of rows * width (ie, y * size)
+        // lets us skip y rows when drawing so we then check that
+        // from y to height rows are the expected color and everything
+        // else is the cleared color.
+        wtu.checkCanvasRect(gl, 0, y, size, height, u8Color(color));
+        wtu.checkCanvasRect(gl, 0, 0, size, size - height, transparentBlack);
+    };
+
+    test(0, size * size, red);
+    test(size * size / 2, size * size / 2, green);
+    test(size * size / 4, size * size / 4 * 3, blue);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "There should be no remaining errors");
+})();
+
+debug("");
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+
+</body>
+</html>
+
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->

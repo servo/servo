@@ -1,0 +1,58 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Test if GenerateMipmap on immutable texture with large BASE_LEVEL triggers a crash</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<canvas id="example" width="24" height="24"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+description("This is a regression test for crbug.com/913301");
+debug("");
+
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext("example", null, 2);
+gl.clearColor(0, 1, 0, 1);
+
+var targets = [gl.TEXTURE_2D, gl.TEXTURE_3D];
+for (var ii = 0; ii < targets.length; ++ii) {
+  gl.clear(gl.COLOR_BUFFER_BIT);
+  var target = targets[ii];
+  var tex = gl.createTexture();
+  gl.bindTexture(target, tex);
+  gl.texParameteri(target, gl.TEXTURE_BASE_LEVEL, 1416354905);
+  gl.texParameteri(target, gl.TEXTURE_MAX_LEVEL, 5);
+  gl.texParameteri(target, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+  gl.texParameteri(target, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  if (target == gl.TEXTURE_2D)
+    gl.texStorage2D(target, 5, gl.R8, 32, 32);
+  else
+    gl.texStorage3D(target, 5, gl.R8, 32, 32, 32);
+  // Should not crash calling generateMipmap.
+  gl.generateMipmap(target);
+  gl.deleteTexture(tex);
+  // If crashed, readPixels() won't be able to work correctly.
+  wtu.checkCanvas(gl, [0, 255, 0, 255], "should be green", 5);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+}
+
+var successfullyParsed = true;
+</script>
+<script src="../../../js/js-test-post.js"></script>
+</body>
+</html>
+
