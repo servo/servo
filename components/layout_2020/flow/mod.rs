@@ -13,6 +13,7 @@ use servo_arc::Arc;
 use style::computed_values::clear::T as Clear;
 use style::computed_values::float::T as Float;
 use style::properties::ComputedValues;
+use style::servo::selector_parser::PseudoElement;
 use style::values::computed::Size;
 use style::values::specified::align::AlignFlags;
 use style::values::specified::{Display, TextAlignKeyword};
@@ -758,6 +759,7 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
     let ContainingBlockPaddingAndBorder {
         containing_block: containing_block_for_children,
         pbm,
+        box_size,
         min_box_size,
         max_box_size,
     } = solve_containing_block_padding_and_border_for_in_flow_box(containing_block, style);
@@ -893,9 +895,10 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
         content_block_size += collapsible_margins_in_children.end.solve();
     }
 
-    let block_size = containing_block_for_children.block_size.auto_is(|| {
-        content_block_size.clamp_between_extremums(min_box_size.block, max_box_size.block)
-    });
+    let block_size = box_size
+        .block
+        .auto_is(|| content_block_size)
+        .clamp_between_extremums(min_box_size.block, max_box_size.block);
 
     if let Some(ref mut sequential_layout_state) = sequential_layout_state {
         // Now that we're done laying out our children, we can restore the
@@ -977,6 +980,7 @@ impl NonReplacedFormattingContext {
         let ContainingBlockPaddingAndBorder {
             containing_block: containing_block_for_children,
             pbm,
+            box_size,
             min_box_size,
             max_box_size,
         } = solve_containing_block_padding_and_border_for_in_flow_box(
@@ -994,11 +998,10 @@ impl NonReplacedFormattingContext {
         let (block_size, inline_size) = match layout.content_inline_size_for_table {
             Some(inline_size) => (layout.content_block_size, inline_size),
             None => (
-                containing_block_for_children.block_size.auto_is(|| {
-                    layout
-                        .content_block_size
-                        .clamp_between_extremums(min_box_size.block, max_box_size.block)
-                }),
+                box_size
+                    .block
+                    .auto_is(|| layout.content_block_size)
+                    .clamp_between_extremums(min_box_size.block, max_box_size.block),
                 containing_block_for_children.inline_size,
             ),
         };
@@ -1401,6 +1404,7 @@ fn layout_in_flow_replaced_block_level(
 struct ContainingBlockPaddingAndBorder<'a> {
     containing_block: ContainingBlock<'a>,
     pbm: PaddingBorderMargin,
+    box_size: LogicalVec2<AuOrAuto>,
     min_box_size: LogicalVec2<Au>,
     max_box_size: LogicalVec2<Option<Au>>,
 }
@@ -1427,6 +1431,29 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
     containing_block: &ContainingBlock<'_>,
     style: &'a Arc<ComputedValues>,
 ) -> ContainingBlockPaddingAndBorder<'a> {
+    if matches!(style.pseudo(), Some(PseudoElement::ServoAnonymousBox)) {
+        // <https://drafts.csswg.org/css2/#anonymous-block-level>
+        // > Anonymous block boxes are ignored when resolving percentage values that would
+        // > refer to it: the closest non-anonymous ancestor box is used instead.
+        let containing_block_for_children = ContainingBlock {
+            inline_size: containing_block.inline_size,
+            block_size: containing_block.block_size,
+            style,
+        };
+        // <https://drafts.csswg.org/css2/#anonymous-block-level>
+        // > Non-inherited properties have their initial value.
+        return ContainingBlockPaddingAndBorder {
+            containing_block: containing_block_for_children,
+            pbm: PaddingBorderMargin::zero(),
+            box_size: LogicalVec2 {
+                inline: AuOrAuto::Auto,
+                block: AuOrAuto::Auto,
+            },
+            min_box_size: LogicalVec2::default(),
+            max_box_size: LogicalVec2::default(),
+        };
+    }
+
     let pbm = style.padding_border_margin(containing_block);
     let box_size = style.content_box_size_deprecated(containing_block, &pbm);
     let max_box_size = style.content_max_box_size_deprecated(containing_block, &pbm);
@@ -1472,6 +1499,7 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
     ContainingBlockPaddingAndBorder {
         containing_block: containing_block_for_children,
         pbm,
+        box_size,
         min_box_size,
         max_box_size,
     }
