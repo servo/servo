@@ -16,6 +16,7 @@ use style::values::generics::length::GenericLengthPercentageOrAuto as AutoOr;
 use style::Zero;
 use style_traits::CSSPixel;
 
+use crate::sizing::ContentSizes;
 use crate::ContainingBlock;
 
 pub type PhysicalPoint<U> = euclid::Point2D<U, CSSPixel>;
@@ -656,12 +657,24 @@ impl<T> Default for Size<T> {
     }
 }
 
-impl<T: Clone> Size<T> {
+impl<T> Size<T> {
+    #[inline]
+    pub(crate) fn fit_content() -> Self {
+        Self::Keyword(SizeKeyword::FitContent)
+    }
+
     #[inline]
     pub(crate) fn is_keyword(&self) -> bool {
         matches!(self, Self::Keyword(_))
     }
 
+    #[inline]
+    pub(crate) fn is_initial(&self) -> bool {
+        matches!(self, Self::Keyword(SizeKeyword::Initial))
+    }
+}
+
+impl<T: Clone> Size<T> {
     #[inline]
     pub(crate) fn to_numeric(&self) -> Option<T> {
         match self {
@@ -758,6 +771,69 @@ impl LogicalVec2<Size<LengthPercentage>> {
         LogicalVec2 {
             inline: self.inline.map(|value| value.to_used_value(basis.inline)),
             block: self.block.map(|value| value.to_used_value(basis.block)),
+        }
+    }
+}
+
+impl Size<Au> {
+    /// Resolves any size into a numerical value.
+    #[inline]
+    pub(crate) fn resolve(
+        &self,
+        get_initial_behavior: impl Fn() -> Self,
+        stretch_size: Au,
+        get_content_size: &mut impl FnMut() -> ContentSizes,
+    ) -> Au {
+        if self.is_initial() {
+            let initial_behavior = get_initial_behavior();
+            assert!(!initial_behavior.is_initial());
+            initial_behavior.resolve_non_initial(stretch_size, get_content_size)
+        } else {
+            self.resolve_non_initial(stretch_size, get_content_size)
+        }
+        .unwrap()
+    }
+
+    /// Resolves a non-initial size into a numerical value.
+    /// Returns `None` if the size is the initial one.
+    #[inline]
+    pub(crate) fn resolve_non_initial(
+        &self,
+        stretch_size: Au,
+        get_content_size: &mut impl FnMut() -> ContentSizes,
+    ) -> Option<Au> {
+        match self {
+            Self::Keyword(SizeKeyword::Initial) => None,
+            Self::Keyword(SizeKeyword::MinContent) => Some(get_content_size().min_content),
+            Self::Keyword(SizeKeyword::MaxContent) => Some(get_content_size().max_content),
+            Self::Keyword(SizeKeyword::FitContent) => {
+                Some(get_content_size().shrink_to_fit(stretch_size))
+            },
+            Self::Keyword(SizeKeyword::Stretch) => Some(stretch_size),
+            Self::Numeric(numeric) => Some(*numeric),
+        }
+    }
+
+    /// Tries to resolve an extrinsic size into a numerical value.
+    /// Extrinsic sizes are those based on the context of an element, without regard for its contents.
+    /// <https://drafts.csswg.org/css-sizing-3/#extrinsic>
+    ///
+    /// Returns `None` if either:
+    /// - The size is intrinsic.
+    /// - The size is the initial one.
+    ///   TODO: should we allow it to behave as `stretch` instead of assuming it's intrinsic?
+    /// - The provided `stretch_size` is `None` but we need its value.
+    #[inline]
+    pub(crate) fn maybe_resolve_extrinsic(&self, stretch_size: Option<Au>) -> Option<Au> {
+        match self {
+            Self::Keyword(keyword) => match keyword {
+                SizeKeyword::Initial |
+                SizeKeyword::MinContent |
+                SizeKeyword::MaxContent |
+                SizeKeyword::FitContent => None,
+                SizeKeyword::Stretch => stretch_size,
+            },
+            Self::Numeric(numeric) => Some(*numeric),
         }
     }
 }
