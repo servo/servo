@@ -232,16 +232,6 @@ impl XMLHttpRequest {
         )
     }
 
-    #[allow(non_snake_case)]
-    /// <https://xhr.spec.whatwg.org/#constructors>
-    pub fn Constructor(
-        global: &GlobalScope,
-        proto: Option<HandleObject>,
-        can_gc: CanGc,
-    ) -> Fallible<DomRoot<XMLHttpRequest>> {
-        Ok(XMLHttpRequest::new(global, proto, can_gc))
-    }
-
     fn sync_in_window(&self) -> bool {
         self.sync.get() && self.global().is::<Window>()
     }
@@ -338,6 +328,15 @@ impl XMLHttpRequest {
 }
 
 impl XMLHttpRequestMethods for XMLHttpRequest {
+    /// <https://xhr.spec.whatwg.org/#constructors>
+    fn Constructor(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        can_gc: CanGc,
+    ) -> Fallible<DomRoot<XMLHttpRequest>> {
+        Ok(XMLHttpRequest::new(global, proto, can_gc))
+    }
+
     // https://xhr.spec.whatwg.org/#handler-xhr-onreadystatechange
     event_handler!(
         readystatechange,

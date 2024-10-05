@@ -83,9 +83,10 @@ impl PageTransitionEvent {
         }
         ev
     }
+}
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+impl PageTransitionEventMethods for PageTransitionEvent {
+    fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -102,9 +103,7 @@ impl PageTransitionEvent {
             can_gc,
         ))
     }
-}
 
-impl PageTransitionEventMethods for PageTransitionEvent {
     // https://html.spec.whatwg.org/multipage/#dom-pagetransitionevent-persisted
     fn Persisted(&self) -> bool {
         self.persisted.get()

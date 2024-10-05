@@ -69,29 +69,6 @@ impl Blob {
         }
     }
 
-    // https://w3c.github.io/FileAPI/#constructorBlob
-    #[allow(non_snake_case)]
-    pub fn Constructor(
-        global: &GlobalScope,
-        proto: Option<HandleObject>,
-        can_gc: CanGc,
-        blobParts: Option<Vec<ArrayBufferOrArrayBufferViewOrBlobOrString>>,
-        blobPropertyBag: &BlobBinding::BlobPropertyBag,
-    ) -> Fallible<DomRoot<Blob>> {
-        let bytes: Vec<u8> = match blobParts {
-            None => Vec::new(),
-            Some(blobparts) => match blob_parts_to_bytes(blobparts) {
-                Ok(bytes) => bytes,
-                Err(_) => return Err(Error::InvalidCharacter),
-            },
-        };
-
-        let type_string = normalize_type_string(blobPropertyBag.type_.as_ref());
-        let blob_impl = BlobImpl::new_from_bytes(bytes, type_string);
-
-        Ok(Blob::new_with_proto(global, proto, blob_impl, can_gc))
-    }
-
     /// Get a slice to inner data, this might incur synchronous read and caching
     pub fn get_bytes(&self) -> Result<Vec<u8>, ()> {
         self.global().get_blob_bytes(&self.blob_id)
@@ -225,6 +202,29 @@ pub fn blob_parts_to_bytes(
 }
 
 impl BlobMethods for Blob {
+    // https://w3c.github.io/FileAPI/#constructorBlob
+    #[allow(non_snake_case)]
+    fn Constructor(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        can_gc: CanGc,
+        blobParts: Option<Vec<ArrayBufferOrArrayBufferViewOrBlobOrString>>,
+        blobPropertyBag: &BlobBinding::BlobPropertyBag,
+    ) -> Fallible<DomRoot<Blob>> {
+        let bytes: Vec<u8> = match blobParts {
+            None => Vec::new(),
+            Some(blobparts) => match blob_parts_to_bytes(blobparts) {
+                Ok(bytes) => bytes,
+                Err(_) => return Err(Error::InvalidCharacter),
+            },
+        };
+
+        let type_string = normalize_type_string(blobPropertyBag.type_.as_ref());
+        let blob_impl = BlobImpl::new_from_bytes(bytes, type_string);
+
+        Ok(Blob::new_with_proto(global, proto, blob_impl, can_gc))
+    }
+
     // https://w3c.github.io/FileAPI/#dfn-size
     fn Size(&self) -> u64 {
         self.global().get_blob_size(&self.blob_id)

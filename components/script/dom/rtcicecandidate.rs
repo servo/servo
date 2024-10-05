@@ -80,9 +80,10 @@ impl RTCIceCandidate {
             can_gc,
         )
     }
+}
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+impl RTCIceCandidateMethods for RTCIceCandidate {
+    fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -103,9 +104,7 @@ impl RTCIceCandidate {
             can_gc,
         ))
     }
-}
 
-impl RTCIceCandidateMethods for RTCIceCandidate {
     /// <https://w3c.github.io/webrtc-pc/#dom-rtcicecandidate-candidate>
     fn Candidate(&self) -> DOMString {
         self.candidate.clone()

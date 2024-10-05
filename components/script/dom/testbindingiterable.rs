@@ -38,18 +38,17 @@ impl TestBindingIterable {
             can_gc,
         )
     }
+}
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+impl TestBindingIterableMethods for TestBindingIterable {
+    fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<TestBindingIterable>> {
         Ok(TestBindingIterable::new(global, proto, can_gc))
     }
-}
 
-impl TestBindingIterableMethods for TestBindingIterable {
     fn Add(&self, v: DOMString) {
         self.vals.borrow_mut().push(v);
     }

@@ -109,26 +109,6 @@ impl Event {
         event
     }
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
-        global: &GlobalScope,
-        proto: Option<HandleObject>,
-        can_gc: CanGc,
-        type_: DOMString,
-        init: &EventBinding::EventInit,
-    ) -> Fallible<DomRoot<Event>> {
-        let bubbles = EventBubbles::from(init.bubbles);
-        let cancelable = EventCancelable::from(init.cancelable);
-        Ok(Event::new_with_proto(
-            global,
-            proto,
-            Atom::from(type_),
-            bubbles,
-            cancelable,
-            can_gc,
-        ))
-    }
-
     pub fn init_event(&self, type_: Atom, bubbles: bool, cancelable: bool) {
         if self.dispatching.get() {
             return;
@@ -404,6 +384,25 @@ impl Event {
 }
 
 impl EventMethods for Event {
+    fn Constructor(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        can_gc: CanGc,
+        type_: DOMString,
+        init: &EventBinding::EventInit,
+    ) -> Fallible<DomRoot<Event>> {
+        let bubbles = EventBubbles::from(init.bubbles);
+        let cancelable = EventCancelable::from(init.cancelable);
+        Ok(Event::new_with_proto(
+            global,
+            proto,
+            Atom::from(type_),
+            bubbles,
+            cancelable,
+            can_gc,
+        ))
+    }
+
     /// <https://dom.spec.whatwg.org/#dom-event-eventphase>
     fn EventPhase(&self) -> u16 {
         self.phase.get() as u16

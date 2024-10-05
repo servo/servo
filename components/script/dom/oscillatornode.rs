@@ -111,9 +111,10 @@ impl OscillatorNode {
             can_gc,
         ))
     }
+}
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+impl OscillatorNodeMethods for OscillatorNode {
+    fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -122,9 +123,7 @@ impl OscillatorNode {
     ) -> Fallible<DomRoot<OscillatorNode>> {
         OscillatorNode::new_with_proto(window, proto, context, options, can_gc)
     }
-}
 
-impl OscillatorNodeMethods for OscillatorNode {
     // https://webaudio.github.io/web-audio-api/#dom-oscillatornode-frequency
     fn Frequency(&self) -> DomRoot<AudioParam> {
         DomRoot::from_ref(&self.frequency)

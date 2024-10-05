@@ -70,9 +70,10 @@ impl FormDataEvent {
         }
         ev
     }
+}
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+impl FormDataEventMethods for FormDataEvent {
+    fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -94,9 +95,7 @@ impl FormDataEvent {
 
         Ok(event)
     }
-}
 
-impl FormDataEventMethods for FormDataEvent {
     // https://html.spec.whatwg.org/multipage/#dom-formdataevent-formdata
     fn FormData(&self) -> DomRoot<FormData> {
         DomRoot::from_ref(&*self.form_data)

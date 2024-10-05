@@ -92,9 +92,10 @@ impl FocusEvent {
         ev.related_target.set(related_target);
         ev
     }
+}
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+impl FocusEventMethods for FocusEvent {
+    fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -116,9 +117,7 @@ impl FocusEvent {
         );
         Ok(event)
     }
-}
 
-impl FocusEventMethods for FocusEvent {
     // https://w3c.github.io/uievents/#widl-FocusEvent-relatedTarget
     fn GetRelatedTarget(&self) -> Option<DomRoot<EventTarget>> {
         self.related_target.get()

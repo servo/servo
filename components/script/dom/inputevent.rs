@@ -50,9 +50,10 @@ impl InputEvent {
             .InitUIEvent(type_, can_bubble, cancelable, view, detail);
         ev
     }
+}
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+impl InputEventMethods for InputEvent {
+    fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -73,9 +74,7 @@ impl InputEvent {
         );
         Ok(event)
     }
-}
 
-impl InputEventMethods for InputEvent {
     // https://w3c.github.io/uievents/#dom-inputevent-data
     fn GetData(&self) -> Option<DOMString> {
         self.data.clone()

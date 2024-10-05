@@ -78,9 +78,10 @@ impl MediaElementAudioSourceNode {
             can_gc,
         ))
     }
+}
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+impl MediaElementAudioSourceNodeMethods for MediaElementAudioSourceNode {
+    fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -95,9 +96,7 @@ impl MediaElementAudioSourceNode {
             can_gc,
         )
     }
-}
 
-impl MediaElementAudioSourceNodeMethods for MediaElementAudioSourceNode {
     /// <https://webaudio.github.io/web-audio-api/#dom-mediaelementaudiosourcenode-mediaelement>
     fn MediaElement(&self) -> DomRoot<HTMLMediaElement> {
         DomRoot::from_ref(&*self.media_element)

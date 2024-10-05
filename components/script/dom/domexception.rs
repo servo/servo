@@ -147,8 +147,14 @@ impl DOMException {
         reflect_dom_object(Box::new(DOMException::new_inherited(message, name)), global)
     }
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+    // not an IDL stringifier, used internally
+    pub fn stringifier(&self) -> DOMString {
+        DOMString::from(format!("{}: {}", self.name, self.message))
+    }
+}
+
+impl DOMExceptionMethods for DOMException {
+    fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -163,13 +169,6 @@ impl DOMException {
         ))
     }
 
-    // not an IDL stringifier, used internally
-    pub fn stringifier(&self) -> DOMString {
-        DOMString::from(format!("{}: {}", self.name, self.message))
-    }
-}
-
-impl DOMExceptionMethods for DOMException {
     // https://heycam.github.io/webidl/#dom-domexception-code
     fn Code(&self) -> u16 {
         match DOMErrorName::from(&self.name) {

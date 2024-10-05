@@ -148,8 +148,17 @@ impl KeyboardEvent {
         ev
     }
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+    pub fn key(&self) -> Key {
+        self.typed_key.borrow().clone()
+    }
+
+    pub fn modifiers(&self) -> Modifiers {
+        self.modifiers.get()
+    }
+}
+
+impl KeyboardEventMethods for KeyboardEvent {
+    fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -182,19 +191,7 @@ impl KeyboardEvent {
         *event.key.borrow_mut() = init.key.clone();
         Ok(event)
     }
-}
 
-impl KeyboardEvent {
-    pub fn key(&self) -> Key {
-        self.typed_key.borrow().clone()
-    }
-
-    pub fn modifiers(&self) -> Modifiers {
-        self.modifiers.get()
-    }
-}
-
-impl KeyboardEventMethods for KeyboardEvent {
     // https://w3c.github.io/uievents/#widl-KeyboardEvent-initKeyboardEvent
     fn InitKeyboardEvent(
         &self,

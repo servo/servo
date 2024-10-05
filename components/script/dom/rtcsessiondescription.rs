@@ -46,9 +46,10 @@ impl RTCSessionDescription {
             can_gc,
         )
     }
+}
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+impl RTCSessionDescriptionMethods for RTCSessionDescription {
+    fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -62,9 +63,7 @@ impl RTCSessionDescription {
             can_gc,
         ))
     }
-}
 
-impl RTCSessionDescriptionMethods for RTCSessionDescription {
     /// <https://w3c.github.io/webrtc-pc/#dom-rtcsessiondescription-type>
     fn Type(&self) -> RTCSdpType {
         self.ty

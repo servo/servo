@@ -108,9 +108,10 @@ impl WheelEvent {
 
         ev
     }
+}
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+impl WheelEventMethods for WheelEvent {
+    fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -134,9 +135,7 @@ impl WheelEvent {
 
         Ok(event)
     }
-}
 
-impl WheelEventMethods for WheelEvent {
     // https://w3c.github.io/uievents/#widl-WheelEvent-deltaX
     fn DeltaX(&self) -> Finite<f64> {
         self.delta_x.get()

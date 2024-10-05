@@ -73,9 +73,10 @@ impl SubmitEvent {
         }
         ev
     }
+}
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+impl SubmitEventMethods for SubmitEvent {
+    fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -92,9 +93,7 @@ impl SubmitEvent {
             can_gc,
         )
     }
-}
 
-impl SubmitEventMethods for SubmitEvent {
     /// <https://dom.spec.whatwg.org/#dom-event-istrusted>
     fn IsTrusted(&self) -> bool {
         self.event.IsTrusted()

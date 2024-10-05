@@ -48,9 +48,14 @@ impl XRRay {
         reflect_dom_object_with_proto(Box::new(XRRay::new_inherited(ray)), global, proto, can_gc)
     }
 
-    #[allow(non_snake_case)]
+    pub fn ray(&self) -> Ray<ApiSpace> {
+        self.ray
+    }
+}
+
+impl XRRayMethods for XRRay {
     /// <https://immersive-web.github.io/hit-test/#dom-xrray-xrray>
-    pub fn Constructor(
+    fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -85,9 +90,8 @@ impl XRRay {
         ))
     }
 
-    #[allow(non_snake_case)]
     /// <https://immersive-web.github.io/hit-test/#dom-xrray-xrray-transform>
-    pub fn Constructor_(
+    fn Constructor_(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -107,12 +111,6 @@ impl XRRay {
         ))
     }
 
-    pub fn ray(&self) -> Ray<ApiSpace> {
-        self.ray
-    }
-}
-
-impl XRRayMethods for XRRay {
     /// <https://immersive-web.github.io/hit-test/#dom-xrray-origin>
     fn Origin(&self) -> DomRoot<DOMPointReadOnly> {
         DOMPointReadOnly::new(

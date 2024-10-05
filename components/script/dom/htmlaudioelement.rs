@@ -7,6 +7,7 @@ use html5ever::{local_name, namespace_url, ns, LocalName, Prefix, QualName};
 use js::rust::HandleObject;
 
 use crate::dom::bindings::codegen::Bindings::ElementBinding::Element_Binding::ElementMethods;
+use crate::dom::bindings::codegen::Bindings::HTMLAudioElementBinding::HTMLAudioElementMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
@@ -50,10 +51,11 @@ impl HTMLAudioElement {
             proto,
         )
     }
+}
 
+impl HTMLAudioElementMethods for HTMLAudioElement {
     // https://html.spec.whatwg.org/multipage/#dom-audio
-    #[allow(non_snake_case)]
-    pub fn Audio(
+    fn Audio(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,

@@ -79,8 +79,10 @@ impl CloseEvent {
         }
         ev
     }
+}
 
-    pub fn Constructor(
+impl CloseEventMethods for CloseEvent {
+    fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -101,9 +103,7 @@ impl CloseEvent {
             can_gc,
         ))
     }
-}
 
-impl CloseEventMethods for CloseEvent {
     // https://html.spec.whatwg.org/multipage/#dom-closeevent-wasclean
     fn WasClean(&self) -> bool {
         self.was_clean

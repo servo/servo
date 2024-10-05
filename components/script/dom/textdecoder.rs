@@ -75,9 +75,11 @@ impl TextDecoder {
             can_gc,
         )
     }
+}
 
+impl TextDecoderMethods for TextDecoder {
     /// <https://encoding.spec.whatwg.org/#dom-textdecoder>
-    pub fn Constructor(
+    fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -97,9 +99,7 @@ impl TextDecoder {
             can_gc,
         ))
     }
-}
 
-impl TextDecoderMethods for TextDecoder {
     // https://encoding.spec.whatwg.org/#dom-textdecoder-encoding
     fn Encoding(&self) -> DOMString {
         DOMString::from(self.encoding.name().to_ascii_lowercase())

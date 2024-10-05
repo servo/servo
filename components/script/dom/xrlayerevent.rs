@@ -46,9 +46,10 @@ impl XRLayerEvent {
             can_gc,
         )
     }
+}
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+impl XRLayerEventMethods for XRLayerEvent {
+    fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -62,9 +63,7 @@ impl XRLayerEvent {
         event.event.init_event(type_, bubbles, cancelable);
         event
     }
-}
 
-impl XRLayerEventMethods for XRLayerEvent {
     // https://immersive-web.github.io/layers/#dom-xrlayerevent-layer
     fn Layer(&self) -> DomRoot<XRLayer> {
         DomRoot::from_ref(&self.layer)

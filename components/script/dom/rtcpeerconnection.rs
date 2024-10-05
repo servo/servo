@@ -26,7 +26,7 @@ use crate::dom::bindings::codegen::Bindings::RTCPeerConnectionBinding::{
     RTCSignalingState,
 };
 use crate::dom::bindings::codegen::Bindings::RTCSessionDescriptionBinding::{
-    RTCSdpType, RTCSessionDescriptionInit,
+    RTCSdpType, RTCSessionDescriptionInit, RTCSessionDescriptionMethods,
 };
 use crate::dom::bindings::codegen::UnionTypes::{MediaStreamTrackOrString, StringOrStringSequence};
 use crate::dom::bindings::error::{Error, Fallible};
@@ -229,21 +229,6 @@ impl RTCPeerConnection {
             }
         }
         this
-    }
-
-    #[allow(non_snake_case)]
-    pub fn Constructor(
-        window: &Window,
-        proto: Option<HandleObject>,
-        can_gc: CanGc,
-        config: &RTCConfiguration,
-    ) -> Fallible<DomRoot<RTCPeerConnection>> {
-        Ok(RTCPeerConnection::new(
-            &window.global(),
-            proto,
-            config,
-            can_gc,
-        ))
     }
 
     pub fn get_webrtc_controller(&self) -> &DomRefCell<Option<WebRtcController>> {
@@ -525,6 +510,20 @@ impl RTCPeerConnection {
 }
 
 impl RTCPeerConnectionMethods for RTCPeerConnection {
+    fn Constructor(
+        window: &Window,
+        proto: Option<HandleObject>,
+        can_gc: CanGc,
+        config: &RTCConfiguration,
+    ) -> Fallible<DomRoot<RTCPeerConnection>> {
+        Ok(RTCPeerConnection::new(
+            &window.global(),
+            proto,
+            config,
+            can_gc,
+        ))
+    }
+
     // https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-icecandidate
     event_handler!(icecandidate, GetOnicecandidate, SetOnicecandidate);
 

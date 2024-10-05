@@ -41,18 +41,17 @@ impl XMLSerializer {
             can_gc,
         )
     }
+}
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+impl XMLSerializerMethods for XMLSerializer {
+    fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<XMLSerializer>> {
         Ok(XMLSerializer::new(window, proto, can_gc))
     }
-}
 
-impl XMLSerializerMethods for XMLSerializer {
     // https://w3c.github.io/DOM-Parsing/#the-xmlserializer-interface
     fn SerializeToString(&self, root: &Node) -> Fallible<DOMString> {
         let mut writer = vec![];

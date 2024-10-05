@@ -98,9 +98,10 @@ impl StereoPannerNode {
             can_gc,
         ))
     }
+}
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+impl StereoPannerNodeMethods for StereoPannerNode {
+    fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -109,9 +110,7 @@ impl StereoPannerNode {
     ) -> Fallible<DomRoot<StereoPannerNode>> {
         StereoPannerNode::new_with_proto(window, proto, context, options, can_gc)
     }
-}
 
-impl StereoPannerNodeMethods for StereoPannerNode {
     // https://webaudio.github.io/web-audio-api/#dom-stereopannernode-pan
     fn Pan(&self) -> DomRoot<AudioParam> {
         DomRoot::from_ref(&self.pan)

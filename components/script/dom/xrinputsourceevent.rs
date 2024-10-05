@@ -82,9 +82,10 @@ impl XRInputSourceEvent {
         }
         trackevent
     }
+}
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+impl XRInputSourceEventMethods for XRInputSourceEvent {
+    fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -102,9 +103,7 @@ impl XRInputSourceEvent {
             can_gc,
         ))
     }
-}
 
-impl XRInputSourceEventMethods for XRInputSourceEvent {
     // https://immersive-web.github.io/webxr/#dom-xrinputsourceeventinit-frame
     fn Frame(&self) -> DomRoot<XRFrame> {
         DomRoot::from_ref(&*self.frame)

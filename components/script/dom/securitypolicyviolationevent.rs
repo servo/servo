@@ -104,9 +104,11 @@ impl SecurityPolicyViolationEvent {
             CanGc::note(),
         )
     }
+}
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+#[allow(non_snake_case)]
+impl SecurityPolicyViolationEventMethods for SecurityPolicyViolationEvent {
+    fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -123,10 +125,7 @@ impl SecurityPolicyViolationEvent {
             can_gc,
         )
     }
-}
 
-#[allow(non_snake_case)]
-impl SecurityPolicyViolationEventMethods for SecurityPolicyViolationEvent {
     /// <https://w3c.github.io/webappsec-csp/#dom-securitypolicyviolationevent-documenturi>
     fn DocumentURI(&self) -> USVString {
         self.document_uri.clone()

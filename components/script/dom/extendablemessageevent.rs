@@ -9,6 +9,7 @@ use js::rust::{HandleObject, HandleValue};
 use servo_atoms::Atom;
 
 use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::ExtendableEventBinding::ExtendableEvent_Binding::ExtendableEventMethods;
 use crate::dom::bindings::codegen::Bindings::ExtendableMessageEventBinding;
 use crate::dom::bindings::codegen::Bindings::ExtendableMessageEventBinding::ExtendableMessageEventMethods;
 use crate::dom::bindings::error::Fallible;
@@ -116,29 +117,6 @@ impl ExtendableMessageEvent {
 
         ev
     }
-
-    pub fn Constructor(
-        worker: &ServiceWorkerGlobalScope,
-        proto: Option<HandleObject>,
-        can_gc: CanGc,
-        type_: DOMString,
-        init: RootedTraceableBox<ExtendableMessageEventBinding::ExtendableMessageEventInit>,
-    ) -> Fallible<DomRoot<ExtendableMessageEvent>> {
-        let global = worker.upcast::<GlobalScope>();
-        let ev = ExtendableMessageEvent::new_with_proto(
-            global,
-            proto,
-            Atom::from(type_),
-            init.parent.parent.bubbles,
-            init.parent.parent.cancelable,
-            init.data.handle(),
-            init.origin.clone(),
-            init.lastEventId.clone(),
-            vec![],
-            can_gc,
-        );
-        Ok(ev)
-    }
 }
 
 #[allow(non_snake_case)]
@@ -179,6 +157,29 @@ impl ExtendableMessageEvent {
 }
 
 impl ExtendableMessageEventMethods for ExtendableMessageEvent {
+    fn Constructor(
+        worker: &ServiceWorkerGlobalScope,
+        proto: Option<HandleObject>,
+        can_gc: CanGc,
+        type_: DOMString,
+        init: RootedTraceableBox<ExtendableMessageEventBinding::ExtendableMessageEventInit>,
+    ) -> Fallible<DomRoot<ExtendableMessageEvent>> {
+        let global = worker.upcast::<GlobalScope>();
+        let ev = ExtendableMessageEvent::new_with_proto(
+            global,
+            proto,
+            Atom::from(type_),
+            init.parent.parent.bubbles,
+            init.parent.parent.cancelable,
+            init.data.handle(),
+            init.origin.clone(),
+            init.lastEventId.clone(),
+            vec![],
+            can_gc,
+        );
+        Ok(ev)
+    }
+
     // https://w3c.github.io/ServiceWorker/#extendablemessage-event-data-attribute
     fn Data(&self, _cx: JSContext) -> JSVal {
         self.data.get()

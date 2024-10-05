@@ -69,9 +69,10 @@ impl OfflineAudioCompletionEvent {
         }
         ev
     }
+}
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+impl OfflineAudioCompletionEventMethods for OfflineAudioCompletionEvent {
+    fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -90,9 +91,7 @@ impl OfflineAudioCompletionEvent {
             can_gc,
         ))
     }
-}
 
-impl OfflineAudioCompletionEventMethods for OfflineAudioCompletionEvent {
     // https://webaudio.github.io/web-audio-api/#dom-offlineaudiocompletionevent-renderedbuffer
     fn RenderedBuffer(&self) -> DomRoot<AudioBuffer> {
         DomRoot::from_ref(&*self.rendered_buffer)

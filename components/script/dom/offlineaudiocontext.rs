@@ -44,7 +44,6 @@ pub struct OfflineAudioContext {
     pending_rendering_promise: DomRefCell<Option<Rc<Promise>>>,
 }
 
-#[allow(non_snake_case)]
 impl OfflineAudioContext {
     #[allow(crown::unrooted_must_root)]
     fn new_inherited(
@@ -97,8 +96,10 @@ impl OfflineAudioContext {
             can_gc,
         ))
     }
+}
 
-    pub fn Constructor(
+impl OfflineAudioContextMethods for OfflineAudioContext {
+    fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -114,7 +115,7 @@ impl OfflineAudioContext {
         )
     }
 
-    pub fn Constructor_(
+    fn Constructor_(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -131,9 +132,7 @@ impl OfflineAudioContext {
             can_gc,
         )
     }
-}
 
-impl OfflineAudioContextMethods for OfflineAudioContext {
     // https://webaudio.github.io/web-audio-api/#dom-offlineaudiocontext-oncomplete
     event_handler!(complete, GetOncomplete, SetOncomplete);
 
