@@ -431,29 +431,7 @@ where
             .shortcut(CMD_OR_CONTROL, 'R', || {
                 self.focused_webview_id.map(EmbedderEvent::Reload)
             })
-            .shortcut(CMD_OR_CONTROL, 'L', || {
-                if !opts::get().minibrowser {
-                    let url = match self.focused_webview() {
-                        Some(webview) => webview
-                            .url
-                            .as_ref()
-                            .map(|url| url.to_string())
-                            .unwrap_or_else(String::default),
-                        None => String::default(),
-                    };
-
-                    let title = "URL or search query";
-                    let input = tinyfiledialogs::input_box(title, title, &tiny_dialog_escape(&url));
-                    input.and_then(|input| {
-                        location_bar_input_to_url(&input).and_then(|url| {
-                            self.focused_webview_id
-                                .map(|id| EmbedderEvent::LoadUrl(id, url))
-                        })
-                    })
-                } else {
-                    None
-                }
-            })
+            .shortcut(CMD_OR_CONTROL, 'L', || None)
             // Select the first 8 tabs via shortcuts
             .shortcut(CMD_OR_CONTROL, '1', || self.focus_webview_by_index(0))
             .shortcut(CMD_OR_CONTROL, '2', || self.focus_webview_by_index(1))
