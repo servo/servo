@@ -837,6 +837,9 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                                 Err(e) => warn!("error when sending image data: {:?}", e),
                             }
                         },
+                        SerializedImageUpdate::AddBlobImage(key, desc, v, data) => {
+                            txn.add_blob_image(key, desc, data, v, None);
+                        },
                     }
                 }
                 self.webrender_api
@@ -940,6 +943,9 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                             txn.update_image(key, descriptor, data, &DirtyRect::All)
                         },
                         ImageUpdate::DeleteImage(key) => txn.delete_image(key),
+                        ImageUpdate::AddBlobImage(key, desc, v, data) => {
+                            txn.add_blob_image(key, desc, data, v, None)
+                        },
                     }
                 }
                 self.webrender_api

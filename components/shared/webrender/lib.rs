@@ -19,9 +19,9 @@ use ipc_channel::ipc::{self, IpcSender, IpcSharedMemory};
 use libc::c_void;
 use log::warn;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use webrender_api::units::{DevicePoint, LayoutPoint, TexelRect};
+use webrender_api::units::{DeviceIntRect, DevicePoint, LayoutPoint, TexelRect};
 use webrender_api::{
-    BuiltDisplayList, BuiltDisplayListDescriptor, ExternalImage, ExternalImageData,
+    BlobImageKey, BuiltDisplayList, BuiltDisplayListDescriptor, ExternalImage, ExternalImageData,
     ExternalImageHandler, ExternalImageId, ExternalImageSource, ExternalScrollId,
     FontInstanceFlags, FontInstanceKey, FontKey, HitTestFlags, ImageData, ImageDescriptor,
     ImageKey, NativeFontHandle, PipelineId as WebRenderPipelineId,
@@ -413,6 +413,9 @@ impl WebRenderScriptApi {
                     };
                     SerializedImageUpdate::UpdateImage(k, d, data)
                 },
+                ImageUpdate::AddBlobImage(k, d, v, data) => {
+                    SerializedImageUpdate::AddBlobImage(k, d, v, data)
+                },
             })
             .collect();
 
@@ -446,6 +449,8 @@ impl WebRenderScriptApi {
 pub enum ImageUpdate {
     /// Register a new image.
     AddImage(ImageKey, ImageDescriptor, ImageData),
+    /// Register a new blob image.
+    AddBlobImage(BlobImageKey, ImageDescriptor, DeviceIntRect, Arc<Vec<u8>>),
     /// Delete a previously registered image registration.
     DeleteImage(ImageKey),
     /// Update an existing image registration.
@@ -457,6 +462,8 @@ pub enum ImageUpdate {
 pub enum SerializedImageUpdate {
     /// Register a new image.
     AddImage(ImageKey, ImageDescriptor, SerializedImageData),
+    /// Register a new blob image.
+    AddBlobImage(BlobImageKey, ImageDescriptor, DeviceIntRect, Arc<Vec<u8>>),
     /// Delete a previously registered image registration.
     DeleteImage(ImageKey),
     /// Update an existing image registration.
