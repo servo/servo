@@ -140,6 +140,7 @@ impl SubtleCryptoMethods for SubtleCrypto {
         promise
     }
 
+    /// <https://w3c.github.io/webcrypto/#SubtleCrypto-method-exportKey>
     #[allow(unsafe_code)]
     fn ExportKey(&self, format: KeyFormat, key: &CryptoKey, comp: InRealm) -> Rc<Promise> {
         let promise = Promise::new_in_current_realm(comp);
