@@ -34,8 +34,8 @@ use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::realms::InRealm;
 use crate::script_runtime::JSContext;
 use crate::task::TaskCanceller;
-use crate::task_source::TaskSource;
 use crate::task_source::dom_manipulation::DOMManipulationTaskSource;
+use crate::task_source::TaskSource;
 
 // String constants for algorithms/curves
 const ALG_AES_CBC: &str = "AES-CBC";
