@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>Test document picture-in-picture copies Document mode</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<body>
+<script>
+promise_test(async (t) => {
+  assert_equals(document.compatMode, "CSS1Compat", "The opener document should not be on quirks mode");
+  await test_driver.bless('request PiP window');
+  const pipWindow = await documentPictureInPicture.requestWindow();
+  assert_equals(pipWindow.document.compatMode, "CSS1Compat", "The picture-in-picture document should not be on quirks mode");
+});
+</script>
+</body>

@@ -81,7 +81,7 @@ interface Observable {
   Observable drop(unsigned long long amount);
   Observable flatMap(Mapper mapper);
   Observable switchMap(Mapper mapper);
-  Observable inspect(optional ObservableInspectorUnion inspect_observer = {});
+  Observable inspect(optional ObservableInspectorUnion inspectorUnion = {});
   Observable catch(CatchCallback callback);
   Observable finally(VoidFunction callback);
 

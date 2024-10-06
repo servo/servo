@@ -1766,6 +1766,8 @@
       'UNAVAILABLE',
       '🏁🎶🏁',
       '）（あ）（',
+      '）（ああ）（',
+      'ああ）（ああ',
       '--abcd__'
     ]
 
@@ -1788,7 +1790,15 @@
                     doc_position,
                     "for " + text + " offset " + offset);
 
-      offset = text_width / 2;
+      offset = text_width / 2 - 10;
+      adjusted_offset = alignOffset(offset, text_width);
+      tm_position = tm.caretPositionFromPoint(adjusted_offset);
+      doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
+      assert_equals(tm_position,
+                    doc_position,
+                    "for " + text + " offset " + offset);
+
+      offset = text_width / 2 + 10;
       adjusted_offset = alignOffset(offset, text_width);
       tm_position = tm.caretPositionFromPoint(adjusted_offset);
       doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
@@ -1950,6 +1960,65 @@
     @assert tm.caretPositionFromPoint(a_width + b_width + c_width) == 3;
   variants:
   - *load-font-variant-definition
+
+- name: 2d.text.measure.text-clusters-split.tentative
+  desc: >-
+    Test that getTextClusters() splits the input correctly into the
+    minimal clusters, keeping emojis together.
+  size: [400, 200]
+  code: |
+    ctx.font = '50px serif';
+    const text = 'ABC ☺️❤️';
+    ctx.fillText(text, 20, 100);
+    const tm = ctx.measureText(text);
+    const clusters = tm.getTextClusters();
+    // Should return 6 clusters(A|B|C| |☺️|❤️).
+    @assert clusters.length === 6;
+    // A from position 0 to 1.
+    @assert clusters[0].begin === 0;
+    @assert clusters[0].end === 1;
+    // B from position 1 to 2.
+    @assert clusters[1].begin === 1;
+    @assert clusters[1].end === 2;
+    // C from position 2 to 3.
+    @assert clusters[2].begin === 2;
+    @assert clusters[2].end === 3;
+    // space from position 3 to 4.
+    @assert clusters[3].begin === 3;
+    @assert clusters[3].end === 4;
+    // ☺️ from position 4 to 6.
+    @assert clusters[4].begin === 4;
+    @assert clusters[4].end === 6;
+    // ❤️ from position 6 to 8.
+    @assert clusters[5].begin === 6;
+    @assert clusters[5].end === 8;
+
+- name: 2d.text.measure.text-clusters-exceptions.tentative
+  desc: >-
+    Check that TextMetrics::getTextClusters() throws when using invalid
+    indexes.
+  code: |
+    const kTexts = [
+      'UNAVAILABLE',
+      '🏁🎶🏁',
+      '）（あ）（',
+      '-abcd_'
+    ]
+
+    for (const text of kTexts) {
+      const tm = ctx.measureText(text);
+      // Handled by the IDL binding.
+      assert_throws_js(TypeError, () => tm.getTextClusters(-1, 0) );
+      assert_throws_js(TypeError, () => tm.getTextClusters(0, -1) );
+      assert_throws_js(TypeError, () => tm.getTextClusters(-1, -1) );
+      // Thrown in TextMetrics.
+      assert_throws_dom("IndexSizeError",
+              () => tm.getTextClusters(text.length, 0) );
+      assert_throws_dom("IndexSizeError",
+              () => tm.getTextClusters(0, text.length + 1) );
+      assert_throws_dom("IndexSizeError",
+              () => tm.getTextClusters(text.length, text.length + 1) );
+    }
 
 - name: 2d.text.drawing.style.absolute.spacing
   desc: Testing letter spacing and word spacing with absolute length

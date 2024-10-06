@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<title>Moving triggers relevant mutations</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+
+<div></div>
+
+<script>
+promise_test(async t => {
+  const div = document.querySelector('div');
+  div.innerHTML = `
+  <picture>
+    <source srcset="/images/green.png" media="(min-width: 10px)">
+    <img src="/images/red.png">
+  </picture>`;
+
+  const picture = document.querySelector('picture');
+  const source = document.querySelector('source');
+  const img = document.querySelector('img');
+
+  t.add_cleanup(() => {
+    picture.remove();
+    source.remove();
+    img.remove();
+  });
+
+  await new Promise(resolve => img.addEventListener('load', e => resolve(), {once: true}));
+
+  // Moving <source> out of <picture> triggers a relevant mutation on <img>.
+  document.body.moveBefore(source, null);
+
+  await new Promise(resolve => img.addEventListener('load', e => resolve(), {once: true}));
+}, "Moving <source> out of <picture> triggers a relevant mutation on sibling <img>");
+
+promise_test(async t => {
+  const div = document.querySelector('div');
+  div.innerHTML = `
+  <picture>
+    <source srcset="/images/green.png" media="(min-width: 10px)">
+  </picture>`;
+
+  const picture = document.querySelector('picture');
+  const source = document.querySelector('source');
+  const img = document.createElement('img');
+  img.src = '/images/red.png';
+
+  t.add_cleanup(() => {
+    picture.remove();
+    source.remove();
+    img.remove();
+  });
+
+  // The <img> will first load outside of the picture.
+  await new Promise(resolve => img.addEventListener('load', e => resolve(), {once: true}));
+
+  // Moving the <img> element to the <picture> (as the last child), triggers a
+  // relevant mutation and loads the <source> picture — which still fires a
+  // load event at the <img>.
+  picture.moveBefore(img, null);
+
+  await new Promise(resolve => img.addEventListener('load', e => resolve(), {once: true}));
+}, "Moving <img> into a <picture> triggers a relevant mutation on the <img>, " +
+   "loading <source>");
+</script>

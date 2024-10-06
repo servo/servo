@@ -1,0 +1,89 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>Changing content targetting :has-slotted through multiple shadow roots</title>
+  <link rel="help" href="https://github.com/w3c/csswg-drafts/pull/10586">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+</head>
+
+<body>
+
+  <my-element id="test">Test</my-element>
+  <template id="myTemplate">
+    <slot></slot>
+    <p id="target">This text will be styled.</p>
+    <style>
+    p {
+      color: rgb(0 255 0);
+    }
+    slot:not(:has-slotted) + p {
+      color: rgb(0 0 255);
+    }
+    </style>
+  </template>
+
+  <script>
+    customElements.define('my-element', class extends HTMLElement {
+      constructor() {
+        super();
+        this.attachShadow({
+          mode: 'open',
+          slotAssignment: 'manual',
+        });
+        this.shadowRoot.append(myTemplate.content.cloneNode(true));
+      }
+
+      get slot() {
+        return this.shadowRoot.querySelector('slot');
+      }
+    });
+
+    const blue = 'rgb(0, 0, 255)';
+    const green = 'rgb(0, 255, 0)';
+    test(function (t) {
+      const test = document.getElementById('test');
+      const target = test.shadowRoot.getElementById('target');
+      t.add_cleanup(() => { test.innerHTML = 'Test' });
+      let styles = getComputedStyle(target);
+      assert_equals(styles.getPropertyValue('color'), blue);
+    }, "empty node is blue");
+
+    test(function (t) {
+      const test = document.getElementById('test');
+      const target = test.shadowRoot.getElementById('target');
+      t.add_cleanup(() => { test.innerHTML = 'Test' });
+      test.slot.assign(test.childNodes[0])
+      styles = getComputedStyle(target);
+      assert_equals(test.slot.assignedNodes().length, 1);
+      assert_equals(styles.getPropertyValue('color'), green);
+      test.slot.assign()
+      styles = getComputedStyle(target);
+      assert_equals(styles.getPropertyValue('color'), blue);
+    }, "manually assigning a text node is green, emptying assignment is blue");
+
+    test(function (t) {
+      const test = document.getElementById('test');
+      const target = test.shadowRoot.getElementById('target');
+      t.add_cleanup(() => { test.innerHTML = 'Test' });
+
+      test.innerHTML = '<div></div>';
+      assert_equals(styles.getPropertyValue('color'), blue);
+
+      test.slot.assign(...test.children)
+      styles = getComputedStyle(target);
+      assert_equals(test.slot.assignedNodes().length, 1);
+      assert_equals(styles.getPropertyValue('color'), green);
+      test.slot.assign()
+      styles = getComputedStyle(target);
+      assert_equals(styles.getPropertyValue('color'), blue);
+    }, "manually assigning a Element is green, emptying assignment is blue");
+  </script>
+</body>
+
+</html>

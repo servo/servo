@@ -116,11 +116,15 @@
                             );
                         });
                         const { name, message } = data;
-                        assert_equals(
-                            name,
-                            expectIsAllowed ? "TypeError" : "NotAllowedError",
-                            `${iframe.outerHTML} - ${message}`
-                        );
+                        if (expectIsAllowed) {
+                          assert_true(name == "TypeError" ||
+                                          (name == "NotAllowedError" && message.includes("transient activation")),
+                                      `${iframe.outerHTML} - ${message}`);
+                        } else {
+                          assert_equals(name, "NotAllowedError", `${iframe.outerHTML} - ${message}`);
+                          assert_false(message.includes("transient activation"),
+                                       `${iframe.outerHTML} - ${message}`);
+                        }
                         iframe.remove();
                     }, `Policy to use: ${details.policy}, is cross-origin: ${details.crossOrigin}, is allowed by policy: ${details.expectIsAllowed}`);
                 }

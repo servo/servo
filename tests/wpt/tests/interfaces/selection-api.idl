@@ -18,7 +18,7 @@ interface Selection {
   undefined removeRange(Range range);
   undefined removeAllRanges();
   undefined empty();
-  sequence<StaticRange> getComposedRanges(ShadowRoot... shadowRoots);
+  sequence<StaticRange> getComposedRanges(optional GetComposedRangesOptions options = {});
   undefined collapse(Node? node, optional unsigned long offset = 0);
   undefined setPosition(Node? node, optional unsigned long offset = 0);
   undefined collapseToStart();
@@ -30,6 +30,10 @@ interface Selection {
   [CEReactions] undefined deleteFromDocument();
   boolean containsNode(Node node, optional boolean allowPartialContainment = false);
   stringifier;
+};
+
+dictionary GetComposedRangesOptions {
+  sequence<ShadowRoot> shadowRoots = [];
 };
 
 partial interface Document {

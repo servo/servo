@@ -18,6 +18,7 @@ promise_test(async function(t) {
     const promise = new Promise(resolve => done = resolve);
 
     let video = document.createElement('video');
+    video.muted = true;
 
     video.requestVideoFrameCallback(done);
     video.src = testVideo.url;
@@ -32,6 +33,7 @@ function rvfcStyleTest(applyStyle, description) {
       const promise = new Promise(resolve => done = resolve);
 
       let video = document.createElement('video');
+      video.muted = true;
       document.body.appendChild(video);
       applyStyle(video);
 

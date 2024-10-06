@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<link rel="help" href="https://github.com/WICG/PEPC/blob/main/explainer.md#locking-the-pepc-style">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<body>
+
+<permission id="permission_element" type="camera">
+
+<script>
+  promise_test(async() => {
+
+    // Set the initial camera state to denied.
+    await test_driver.set_permission({name: "camera"}, "denied");
+    await navigator.permissions.query({name: "camera"});
+
+    assert_false(permission_element.matches(":granted"));
+
+    // Set the camera state to allowed.
+    await test_driver.set_permission({name: "camera"}, "granted");
+    await navigator.permissions.query({name: "camera"});
+
+    // The granted selector should now be applied.
+    assert_true(permission_element.matches(":granted"));
+
+    // Set the camera state to denied.
+    await test_driver.set_permission({name: "camera"}, "denied");
+    await navigator.permissions.query({name: "camera"});
+
+    // The granted selector should now be removed.
+    assert_false(permission_element.matches(":granted"));
+
+  }, "Permission element should not have the granted selector when the \
+      permission is not granted.")
+</script>
