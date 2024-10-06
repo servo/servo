@@ -1210,6 +1210,34 @@
     @assert pixel 90,45 == 0,255,0,255;
   expected: green
 
+- name: 2d.path.closed.arc
+  desc: line caps should not be drawn on closed arcs
+  size: [300, 300]
+  code: |
+    ctx.beginPath();
+    ctx.strokeStyle = 'red';
+    ctx.lineWidth = 20;
+    ctx.lineCap = 'square';
+    ctx.arc(150, 150, 50, 0, 2 * Math.PI);
+    ctx.closePath();
+    ctx.stroke();
+    // The pixel (209, 148) is part of the line cap, but not part of the circle.
+    // Linecap is not drawn if the circle is closed, so the pixel is not red.
+    assert_not_equals(ctx.getImageData(209, 148, 1, 1).data, [255, 0, 0, 255])
+
+- name: 2d.path.open.arc
+  desc: line caps should be drawn on open arcs
+  size: [300, 300]
+  code: |
+    ctx.beginPath();
+    ctx.strokeStyle = 'red';
+    ctx.lineWidth = 20;
+    ctx.lineCap = 'square';
+    ctx.arc(150, 150, 50, 0, 2 * Math.PI);
+    ctx.stroke();
+    // The pixel (209, 148) is part of the line cap, but not part of the circle.
+    // Linecap is drawn with 360 degree arc, so the pixel is red.
+    @assert pixel 209,148 ==~ 255,0,0,255 +/- 1;
 
 - name: 2d.path.rect.basic
   code: |

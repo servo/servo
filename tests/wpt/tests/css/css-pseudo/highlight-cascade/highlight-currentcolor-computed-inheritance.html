@@ -18,6 +18,14 @@
     color: currentcolor;
     background-color: currentcolor;
   }
+  #target::search-text {
+    color: currentcolor;
+    background-color: currentcolor;
+  }
+  #target::search-text:current {
+    color: red;
+    background-color: red;
+  }
   #target::spelling-error {
     color: currentcolor;
     background-color: currentcolor;
@@ -33,7 +41,7 @@
 </style>
 <div id="target"><span id="child"></span></div>
 <script>
-  for (const pseudo of ["::selection", "::target-text", "::spelling-error", "::grammar-error", "::highlight(foo)"]) {
+  for (const pseudo of ["::selection", "::target-text", "::search-text", "::spelling-error", "::grammar-error", "::highlight(foo)"]) {
     test(() => {
       let style = getComputedStyle(child, pseudo);
       assert_equals(style.backgroundColor, "rgb(0, 255, 0)", "Background color is lime.");

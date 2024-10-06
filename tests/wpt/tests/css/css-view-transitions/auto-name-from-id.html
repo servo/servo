@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>View transitions: auto name generated from ID</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="match" href="auto-name-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<style>
+div {
+  width: 100px;
+  height: 100px;
+}
+
+main {
+  display: flex;
+  flex-direction: column;
+}
+
+.item {
+  view-transition-name: auto;
+}
+
+main.switch #item1 {
+  order: 2;
+}
+
+#item1 {
+  background: green;
+}
+
+#item2 {
+  background: yellow;
+  position: relative;
+  left: 100px;
+}
+
+html::view-transition {
+  background: rebeccapurple;
+}
+
+:root { view-transition-name: none; }
+html::view-transition-group(item1),
+html::view-transition-group(item2) {
+  animation-timing-function: steps(2, start);
+  animation-play-state: paused;
+}
+html::view-transition-old(*),
+html::view-transition-new(*)
+ { animation-play-state: paused; }
+html::view-transition-old(*) { animation: unset; opacity: 0 }
+html::view-transition-new(*) { animation: unset; opacity: 1 }
+
+</style>
+
+<main>
+  <div class="item" id="item1"></div>
+  <div class="item" id="item2"></div>
+</main>
+
+<script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
+function runTest() {
+  document.startViewTransition(() => {
+    document.querySelector("main").classList.toggle("switch");
+  }).ready.then(takeScreenshot);
+}
+onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+</script>
+
+</body>

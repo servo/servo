@@ -128,14 +128,20 @@ partial interface Navigator {
   Promise<AdAuctionData> getInterestGroupAdAuctionData(AdAuctionDataConfig config);
 };
 
-dictionary AdAuctionDataConfig {
-  required USVString seller;
-  required USVString coordinatorOrigin;
-};
-
 dictionary AdAuctionData {
   required Uint8Array request;
   required USVString requestId;
+};
+
+dictionary AdAuctionDataConfig {
+  required USVString seller;
+  required USVString coordinatorOrigin;
+  unsigned long requestSize;
+  record<USVString, AdAuctionDataBuyerConfig> perBuyerConfig;
+};
+
+dictionary AdAuctionDataBuyerConfig {
+  unsigned long targetSize;
 };
 
 [SecureContext]

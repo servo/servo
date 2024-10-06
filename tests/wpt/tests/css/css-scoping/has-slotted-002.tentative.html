@@ -1,6 +1,6 @@
 <!doctype html>
 <meta charset="utf-8">
-<title>:has-slotted(...) negative test: no children or white space</title>
+<title>:has-slotted negative test: no children or white space</title>
 <link rel="help" href="https://github.com/w3c/csswg-drafts/pull/10586">
 <link rel="match" href="/css/reference/ref-filled-green-100px-square-only.html">
 <p>Test passes if there is a filled green square.</p>
@@ -12,7 +12,6 @@
         height: 100px;
         background-color: green;
     }
-    :has-slotted(*),
     :has-slotted {
         background-color: red;
     }

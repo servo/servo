@@ -21,10 +21,10 @@
     width: 100px;
   }
   .animate {
-    animation: fade 1s linear 2 alternate;
+    animation: fade 10s linear 2 alternate;
   }
   .transition {
-    transition: opacity 1s linear;
+    transition: opacity 10s linear;
   }
 </style>
 <body>
@@ -67,7 +67,7 @@ promise_test(async t => {
   await animation.ready;
   await waitForAnimationFrames(1);
   container.style.contentVisibility = 'hidden';
-  animation.currentTime = 1500;
+  animation.currentTime = 15000;
   assert_approx_equals(
       parseFloat(getComputedStyle(target).opacity), 0.5, 1e-6,
       'Computed style is updated even when the animation is running in a ' +
@@ -97,9 +97,9 @@ promise_test(async t => {
   await waitForAnimationFrames(1);
   container.style.contentVisibility = 'hidden';
   // Advance to just shy of the effect end.
-  animation.currentTime = 1999;
+  animation.currentTime = 19999;
   assert_approx_equals(
-      parseFloat(getComputedStyle(target).opacity), 0.999, 1e-6,
+      parseFloat(getComputedStyle(target).opacity), 0.9999, 1e-6,
                 'Computed style is updated even when the animation is ' +
                 'running in a display locked subtree');
   // Advancing frames should not resolve the finished promise.
@@ -127,9 +127,9 @@ promise_test(async t => {
   await waitForAnimationFrames(1);
   container.style.contentVisibility = 'hidden';
   // Advance to just shy of the effect end.
-  animation.currentTime = 999;
+  animation.currentTime = 9999;
   assert_approx_equals(
-      parseFloat(getComputedStyle(target).opacity), 0.001, 1e-6,
+      parseFloat(getComputedStyle(target).opacity), 0.0001, 1e-6,
                 'Computed style is updated even when the animation is ' +
                 'running in a display locked subtree');
   // Advancing frames should not resolve the finished promise.
@@ -173,7 +173,7 @@ promise_test(async t => {
   animation.play();
   assert_equals(target.getAnimations().length, 1);
 
-  animation.currentTime = 1999;
+  animation.currentTime = 19999;
   await animation.ready;
   await waitForAnimationFrames(2);
 
