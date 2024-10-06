@@ -32,7 +32,6 @@ webgl_backtrace = [
 ]
 
 [dependencies]
-aes = { workspace = true }
 background_hang_monitor = { path = "../background_hang_monitor" }
 base = { workspace = true }
 bluetooth = { path = "../bluetooth" }

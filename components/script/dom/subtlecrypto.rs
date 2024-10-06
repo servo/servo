@@ -9,9 +9,10 @@ use dom_struct::dom_struct;
 use js::conversions::ConversionResult;
 use js::jsapi::JSObject;
 use js::jsval::ObjectValue;
-use js::typedarray::{ArrayBuffer, CreateWith};
+use js::typedarray::ArrayBufferU8;
 use servo_rand::{RngCore, ServoRng};
 
+use crate::dom::bindings::buffer_source::create_buffer_source;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
     CryptoKeyMethods, KeyType, KeyUsage,
@@ -177,13 +178,8 @@ impl SubtleCryptoMethods for SubtleCrypto {
                     Ok(k) => {
                         let cx = GlobalScope::get_cx();
                         rooted!(in(*cx) let mut array_buffer_ptr = ptr::null_mut::<JSObject>());
-                        let _ = unsafe {
-                            ArrayBuffer::create(
-                                *cx,
-                                CreateWith::Slice(&k),
-                                array_buffer_ptr.handle_mut(),
-                            )
-                        };
+                        create_buffer_source::<ArrayBufferU8>(cx, &k, array_buffer_ptr.handle_mut())
+                            .expect("failed to create buffer source for exported key.");
                         promise.resolve_native(&array_buffer_ptr.get())
                     },
                     Err(e) => promise.reject_error(e),
