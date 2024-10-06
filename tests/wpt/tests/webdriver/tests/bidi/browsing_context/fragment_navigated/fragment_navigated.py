@@ -260,7 +260,8 @@ async def test_new_context(bidi_session, subscribe_events, type_hint):
     remove_listener()
 
 
-async def test_document_write(bidi_session, subscribe_events, top_context):
+@pytest.mark.parametrize("sandbox", [None, "sandbox_1"])
+async def test_document_write(bidi_session, subscribe_events, new_tab, sandbox):
     await subscribe_events(events=[FRAGMENT_NAVIGATED_EVENT])
 
     events = []
@@ -272,7 +273,7 @@ async def test_document_write(bidi_session, subscribe_events, top_context):
 
     await bidi_session.script.evaluate(
         expression="""document.open(); document.write("<h1>Replaced</h1>"); document.close();""",
-        target=ContextTarget(top_context["context"]),
+        target=ContextTarget(new_tab["context"], sandbox),
         await_promise=False
     )
 

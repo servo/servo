@@ -9,7 +9,7 @@
 <script src="/storage-access-api/helpers.js"></script>
 
 <script type="module">
-import {request_options_with_mediation_optional,
+import {request_options_with_mediation_required,
         fedcm_test,
         select_manifest,
         fedcm_get_and_select_first_account} from './support/fedcm-helper.sub.js';
@@ -19,7 +19,7 @@ const responder_html_load_ack = "/storage-access-api/resources/script-with-cooki
 
 fedcm_test(async t => {
   await MaybeSetStorageAccess("*", "*", "blocked");
-  let test_options = request_options_with_mediation_optional("manifest_with_auto_selected_flag.json");
+  let test_options = request_options_with_mediation_required();
   await select_manifest(t, test_options);
 
   await fedcm_get_and_select_first_account(t, test_options);
@@ -44,7 +44,7 @@ fedcm_test(async t => {
 
 fedcm_test(async t => {
   await MaybeSetStorageAccess("*", "*", "blocked");
-  let test_options = request_options_with_mediation_optional("manifest_with_auto_selected_flag.json");
+  let test_options = request_options_with_mediation_required();
   await select_manifest(t, test_options);
 
   await fedcm_get_and_select_first_account(t, test_options);
@@ -68,7 +68,7 @@ fedcm_test(async t => {
 
 fedcm_test(async t => {
   await MaybeSetStorageAccess("*", "*", "blocked");
-  let test_options = request_options_with_mediation_optional("manifest_with_auto_selected_flag.json");
+  let test_options = request_options_with_mediation_required();
   await select_manifest(t, test_options);
 
   await fedcm_get_and_select_first_account(t, test_options);

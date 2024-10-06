@@ -624,7 +624,6 @@ MISSING DEPENDENCY: resources/chromium/mock-facedetection.js
 MISSING DEPENDENCY: resources/chromium/mock-idle-detection.js
 MISSING DEPENDENCY: resources/chromium/mock-imagecapture.js
 MISSING DEPENDENCY: resources/chromium/mock-managed-config.js
-MISSING DEPENDENCY: resources/chromium/mock-pressure-service.js
 MISSING DEPENDENCY: resources/chromium/mock-subapps.js
 MISSING DEPENDENCY: resources/chromium/mock-textdetection.js
 MISSING DEPENDENCY: resources/chromium/nfc-mock.js

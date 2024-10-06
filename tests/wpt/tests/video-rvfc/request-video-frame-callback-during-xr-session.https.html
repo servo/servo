@@ -18,6 +18,7 @@ let testFunction = async function(session, fakeDeviceController, t) {
 
     // Start the video.rVFC callbacks while we are in the the XR Session.
     let video = document.createElement('video');
+    video.muted = true;
     video.src = getVideoURI('/media/movie_5');
 
     var numberVFCs = 0;

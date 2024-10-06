@@ -388,6 +388,9 @@ PAGE_REDIRECT_HTTP_EQUIV = (
 PAGE_REDIRECTED_HTML = "/webdriver/tests/bidi/network/support/redirected.html"
 PAGE_SERVICEWORKER_HTML = "/webdriver/tests/bidi/network/support/serviceworker.html"
 
+SCRIPT_CONSOLE_LOG = urllib.parse.quote_plus("console.log('test')")
+SCRIPT_CONSOLE_LOG_IN_MODULE = urllib.parse.quote_plus("export default function foo() { console.log('from module') }")
+
 STYLESHEET_GREY_BACKGROUND = urllib.parse.quote_plus("html, body { background-color: #ccc; }")
 STYLESHEET_RED_COLOR = urllib.parse.quote_plus("html, body { color: red; }")
 

@@ -503,7 +503,7 @@ enum RTCSctpTransportState {
   "closed"
 };
 
-[Exposed=Window]
+[Exposed=(Window,DedicatedWorker), Transferable]
 interface RTCDataChannel : EventTarget {
   readonly attribute USVString label;
   readonly attribute boolean ordered;
