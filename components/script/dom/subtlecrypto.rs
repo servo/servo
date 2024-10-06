@@ -21,6 +21,7 @@ use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{
     AesKeyGenParams, Algorithm, AlgorithmIdentifier, KeyAlgorithm, KeyFormat, SubtleCryptoMethods,
 };
 use crate::dom::bindings::error::Error;
+use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
@@ -28,9 +29,13 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
+use crate::dom::window::Window;
+use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::realms::InRealm;
 use crate::script_runtime::JSContext;
+use crate::task::TaskCanceller;
 use crate::task_source::TaskSource;
+use crate::task_source::dom_manipulation::DOMManipulationTaskSource;
 
 // String constants for algorithms/curves
 const ALG_AES_CBC: &str = "AES-CBC";
@@ -93,6 +98,20 @@ impl SubtleCrypto {
     pub(crate) fn new(global: &GlobalScope) -> DomRoot<SubtleCrypto> {
         reflect_dom_object(Box::new(SubtleCrypto::new_inherited()), global)
     }
+
+    fn task_source_with_canceller(&self) -> (DOMManipulationTaskSource, TaskCanceller) {
+        if let Some(window) = self.global().downcast::<Window>() {
+            window
+                .task_manager()
+                .dom_manipulation_task_source_with_canceller()
+        } else if let Some(worker_global) = self.global().downcast::<WorkerGlobalScope>() {
+            let task_source = worker_global.dom_manipulation_task_source();
+            let canceller = worker_global.task_canceller();
+            (task_source, canceller)
+        } else {
+            unreachable!("Couldn't downcast to Window or WorkerGlobalScope!");
+        }
+    }
 }
 
 impl SubtleCryptoMethods for SubtleCrypto {
@@ -112,11 +131,7 @@ impl SubtleCryptoMethods for SubtleCrypto {
             return promise;
         }
 
-        let (task_source, canceller) = self
-            .global()
-            .as_window()
-            .task_manager()
-            .dom_manipulation_task_source_with_canceller();
+        let (task_source, canceller) = self.task_source_with_canceller();
         let this = Trusted::new(self);
         let trusted_promise = TrustedPromise::new(promise.clone());
         let alg = normalized_algorithm.clone();
@@ -146,11 +161,7 @@ impl SubtleCryptoMethods for SubtleCrypto {
     fn ExportKey(&self, format: KeyFormat, key: &CryptoKey, comp: InRealm) -> Rc<Promise> {
         let promise = Promise::new_in_current_realm(comp);
 
-        let (task_source, canceller) = self
-            .global()
-            .as_window()
-            .task_manager()
-            .dom_manipulation_task_source_with_canceller();
+        let (task_source, canceller) = self.task_source_with_canceller();
         let this = Trusted::new(self);
         let trusted_key = Trusted::new(key);
         let trusted_promise = TrustedPromise::new(promise.clone());
