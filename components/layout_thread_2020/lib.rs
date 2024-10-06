@@ -27,6 +27,7 @@ use fonts::{FontContext, FontContextWebFontMethods, SystemFontServiceProxy};
 use fonts_traits::WebFontLoadFinishedCallback;
 use fxhash::FxHashMap;
 use ipc_channel::ipc::IpcSender;
+pub use layout::blob_rasterizer::ServoBlobImageHandler;
 use layout::context::LayoutContext;
 use layout::display_list::{DisplayList, WebRenderImageInfo};
 use layout::query::{
@@ -922,6 +923,7 @@ impl LayoutThread {
             self.id.into(),
             epoch.into(),
             fragment_tree.root_scroll_sensitivity,
+            self.compositor_api.clone(),
         );
         display_list.wr.begin();
 

@@ -19,7 +19,6 @@
 
 use std::borrow::{BorrowMut, Cow};
 use std::cmp::max;
-use std::path::PathBuf;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::vec::Drain;
@@ -52,7 +51,7 @@ use crossbeam_channel::{unbounded, Sender};
 use embedder_traits::{EmbedderMsg, EmbedderProxy, EmbedderReceiver, EventLoopWaker};
 use env_logger::Builder as EnvLoggerBuilder;
 use euclid::Scale;
-use fonts::SystemFontService;
+use fonts::{SystemFontService, SystemFontServiceProxy};
 #[cfg(all(
     not(target_os = "windows"),
     not(target_os = "ios"),
@@ -247,7 +246,7 @@ where
             media_platform::init();
         }
 
-        let user_agent = match user_agent {
+        let user_agent: Cow<'static, str> = match user_agent {
             Some(ref ua) if ua == "ios" => default_user_agent_string_for(UserAgent::iOS).into(),
             Some(ref ua) if ua == "android" => {
                 default_user_agent_string_for(UserAgent::Android).into()
@@ -315,6 +314,31 @@ where
             None
         };
 
+        let mut protocols = ProtocolRegistry::with_internal_protocols();
+        protocols.merge(embedder.get_protocol_handlers());
+
+        let (public_resource_threads, private_resource_threads) = new_resource_threads(
+            user_agent.clone(),
+            devtools_sender.clone(),
+            time_profiler_chan.clone(),
+            mem_profiler_chan.clone(),
+            embedder_proxy.clone(),
+            opts.config_dir.clone(),
+            opts.certificate_path.clone(),
+            opts.ignore_certificate_errors,
+            Arc::new(protocols),
+        );
+
+        let system_font_service = Arc::new(
+            SystemFontService::spawn(compositor_proxy.cross_process_compositor_api.clone())
+                .to_proxy(),
+        );
+
+        let blob_image_handler = layout_thread_2020::ServoBlobImageHandler::new(
+            system_font_service.clone(),
+            public_resource_threads.clone(),
+        );
+
         let coordinates: compositing::windowing::EmbedderCoordinates = window.get_coordinates();
         let device_pixel_ratio = coordinates.hidpi_factor.get();
         let viewport_size = coordinates.viewport.size().to_f32() / device_pixel_ratio;
@@ -361,6 +385,7 @@ where
                     enable_subpixel_aa: pref!(gfx.subpixel_text_antialiasing.enabled) &&
                         !opts.debug.disable_subpixel_text_antialiasing,
                     allow_texture_swizzling: pref!(gfx.texture_swizzling.enabled),
+                    blob_image_handler: Some(Box::new(blob_image_handler)),
                     clear_color,
                     upload_method,
                     ..Default::default()
@@ -437,17 +462,16 @@ where
 
         // Create the constellation, which maintains the engine pipelines, including script and
         // layout, as well as the navigation context.
-        let mut protocols = ProtocolRegistry::with_internal_protocols();
-        protocols.merge(embedder.get_protocol_handlers());
-
         let constellation_chan = create_constellation(
             user_agent,
-            opts.config_dir.clone(),
             embedder_proxy,
             compositor_proxy.clone(),
             time_profiler_chan.clone(),
             mem_profiler_chan.clone(),
             devtools_sender,
+            public_resource_threads,
+            private_resource_threads,
+            system_font_service,
             webrender_document,
             webrender_api_sender,
             webxr_main_thread.registry(),
@@ -457,7 +481,6 @@ where
             window_size,
             external_images,
             wgpu_image_map,
-            protocols,
         );
 
         if cfg!(feature = "webdriver") {
@@ -1018,12 +1041,14 @@ fn get_layout_factory(legacy_layout: bool) -> Arc<dyn LayoutFactory> {
 #[allow(clippy::too_many_arguments)]
 fn create_constellation(
     user_agent: Cow<'static, str>,
-    config_dir: Option<PathBuf>,
     embedder_proxy: EmbedderProxy,
     compositor_proxy: CompositorProxy,
     time_profiler_chan: time::ProfilerChan,
     mem_profiler_chan: mem::ProfilerChan,
     devtools_sender: Option<Sender<devtools_traits::DevtoolsControlMsg>>,
+    public_resource_threads: net_traits::ResourceThreads,
+    private_resource_threads: net_traits::ResourceThreads,
+    system_font_service: Arc<SystemFontServiceProxy>,
     webrender_document: DocumentId,
     webrender_api_sender: RenderApiSender,
     webxr_registry: webxr_api::Registry,
@@ -1033,29 +1058,12 @@ fn create_constellation(
     initial_window_size: WindowSizeData,
     external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
     wgpu_image_map: WGPUImageMap,
-    protocols: ProtocolRegistry,
 ) -> Sender<ConstellationMsg> {
     // Global configuration options, parsed from the command line.
     let opts = opts::get();
 
     let bluetooth_thread: IpcSender<BluetoothRequest> =
         BluetoothThreadFactory::new(embedder_proxy.clone());
-
-    let (public_resource_threads, private_resource_threads) = new_resource_threads(
-        user_agent.clone(),
-        devtools_sender.clone(),
-        time_profiler_chan.clone(),
-        mem_profiler_chan.clone(),
-        embedder_proxy.clone(),
-        config_dir,
-        opts.certificate_path.clone(),
-        opts.ignore_certificate_errors,
-        Arc::new(protocols),
-    );
-
-    let system_font_service = Arc::new(
-        SystemFontService::spawn(compositor_proxy.cross_process_compositor_api.clone()).to_proxy(),
-    );
 
     let (canvas_create_sender, canvas_ipc_sender) = CanvasPaintThread::start(
         compositor_proxy.cross_process_compositor_api.clone(),

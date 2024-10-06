@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::mem;
+use std::ops::{Deref, DerefMut};
 use std::sync::Arc;
 
 use app_units::Au;
@@ -371,6 +372,7 @@ pub trait GenericDrawTarget {
     );
     fn snapshot_data(&self, f: &dyn Fn(&[u8]) -> Vec<u8>) -> Vec<u8>;
     fn snapshot_data_owned(&self) -> Vec<u8>;
+    fn save_png(&self, path: &std::path::Path);
 }
 
 pub enum GradientStop {
@@ -428,12 +430,6 @@ pub struct CanvasData<'a> {
     path_state: Option<PathState>,
     state: CanvasPaintState<'a>,
     saved_states: Vec<CanvasPaintState<'a>>,
-    compositor_api: CrossProcessCompositorApi,
-    image_key: Option<ImageKey>,
-    /// An old webrender image key that can be deleted when the next epoch ends.
-    old_image_key: Option<ImageKey>,
-    /// An old webrender image key that can be deleted when the current epoch ends.
-    very_old_image_key: Option<ImageKey>,
     font_context: Arc<FontContext>,
 }
 
@@ -444,7 +440,6 @@ fn create_backend() -> Box<dyn Backend> {
 impl<'a> CanvasData<'a> {
     pub fn new(
         size: Size2D<u64>,
-        compositor_api: CrossProcessCompositorApi,
         antialias: AntialiasMode,
         font_context: Arc<FontContext>,
     ) -> CanvasData<'a> {
@@ -456,10 +451,6 @@ impl<'a> CanvasData<'a> {
             path_state: None,
             state: CanvasPaintState::new(antialias),
             saved_states: vec![],
-            compositor_api,
-            image_key: None,
-            old_image_key: None,
-            very_old_image_key: None,
             font_context,
         }
     }
@@ -1241,77 +1232,12 @@ impl<'a> CanvasData<'a> {
         self.backend.set_global_composition(op, &mut self.state);
     }
 
-    pub fn recreate(&mut self, size: Option<Size2D<u64>>) {
-        let size = size.unwrap_or_else(|| self.drawtarget.get_size().to_u64());
-        self.drawtarget = self
-            .backend
-            .create_drawtarget(Size2D::new(size.width, size.height));
-        self.state = self.backend.recreate_paint_state(&self.state);
-        self.saved_states.clear();
-        // Webrender doesn't let images change size, so we clear the webrender image key.
-        // TODO: there is an annying race condition here: the display list builder
-        // might still be using the old image key. Really, we should be scheduling the image
-        // for later deletion, not deleting it immediately.
-        // https://github.com/servo/servo/issues/17534
-        if let Some(image_key) = self.image_key.take() {
-            // If this executes, then we are in a new epoch since we last recreated the canvas,
-            // so `old_image_key` must be `None`.
-            debug_assert!(self.old_image_key.is_none());
-            self.old_image_key = Some(image_key);
-        }
-    }
-
     pub fn send_pixels(&mut self, chan: IpcSender<IpcSharedMemory>) {
         self.drawtarget.snapshot_data(&|bytes| {
             let data = IpcSharedMemory::from_bytes(bytes);
             chan.send(data).unwrap();
             vec![]
         });
-    }
-
-    pub fn send_data(&mut self, chan: IpcSender<CanvasImageData>) {
-        let size = self.drawtarget.get_size();
-
-        let descriptor = ImageDescriptor {
-            size: DeviceIntSize::new(size.width, size.height),
-            stride: None,
-            format: ImageFormat::BGRA8,
-            offset: 0,
-            flags: ImageDescriptorFlags::empty(),
-        };
-        let data = SerializableImageData::Raw(IpcSharedMemory::from_bytes(
-            &self.drawtarget.snapshot_data_owned(),
-        ));
-
-        let mut updates = vec![];
-
-        match self.image_key {
-            Some(image_key) => {
-                debug!("Updating image {:?}.", image_key);
-                updates.push(ImageUpdate::UpdateImage(image_key, descriptor, data));
-            },
-            None => {
-                let Some(key) = self.compositor_api.generate_image_key() else {
-                    return;
-                };
-                updates.push(ImageUpdate::AddImage(key, descriptor, data));
-                self.image_key = Some(key);
-                debug!("New image {:?}.", self.image_key);
-            },
-        }
-
-        if let Some(image_key) =
-            mem::replace(&mut self.very_old_image_key, self.old_image_key.take())
-        {
-            updates.push(ImageUpdate::DeleteImage(image_key));
-        }
-
-        self.compositor_api.update_images(updates);
-
-        let data = CanvasImageData {
-            image_key: self.image_key.unwrap(),
-        };
-        chan.send(data).unwrap();
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
@@ -1415,9 +1341,113 @@ impl<'a> CanvasData<'a> {
             pixels::rgba8_get_rect(bytes, canvas_size, read_rect).into_owned()
         })
     }
+
+    pub fn save_png(&self, path: &std::path::Path) {
+        self.drawtarget.save_png(&path);
+    }
 }
 
-impl<'a> Drop for CanvasData<'a> {
+pub struct CanvasDataToWrBridge<'a> {
+    canvas_data: CanvasData<'a>,
+    image_key: Option<ImageKey>,
+    /// An old webrender image key that can be deleted when the next epoch ends.
+    old_image_key: Option<ImageKey>,
+    /// An old webrender image key that can be deleted when the current epoch ends.
+    very_old_image_key: Option<ImageKey>,
+    compositor_api: CrossProcessCompositorApi,
+}
+
+impl<'a> CanvasDataToWrBridge<'a> {
+    pub fn new(canvas_data: CanvasData<'a>, compositor_api: CrossProcessCompositorApi) -> Self {
+        Self {
+            canvas_data,
+            compositor_api,
+            image_key: None,
+            old_image_key: None,
+            very_old_image_key: None,
+        }
+    }
+
+    pub fn send_data(&mut self, chan: IpcSender<CanvasImageData>) {
+        let size = self.drawtarget.get_size();
+
+        let descriptor = ImageDescriptor {
+            size: DeviceIntSize::new(size.width, size.height),
+            stride: None,
+            format: ImageFormat::BGRA8,
+            offset: 0,
+            flags: ImageDescriptorFlags::empty(),
+        };
+        let data = SerializableImageData::Raw(IpcSharedMemory::from_bytes(
+            &self.drawtarget.snapshot_data_owned(),
+        ));
+
+        let mut updates = vec![];
+
+        match self.image_key {
+            Some(image_key) => {
+                debug!("Updating image {:?}.", image_key);
+                updates.push(ImageUpdate::UpdateImage(image_key, descriptor, data));
+            },
+            None => {
+                let Some(key) = self.compositor_api.generate_image_key() else {
+                    return;
+                };
+                updates.push(ImageUpdate::AddImage(key, descriptor, data));
+                self.image_key = Some(key);
+                debug!("New image {:?}.", self.image_key);
+            },
+        }
+
+        if let Some(image_key) =
+            mem::replace(&mut self.very_old_image_key, self.old_image_key.take())
+        {
+            updates.push(ImageUpdate::DeleteImage(image_key));
+        }
+
+        self.compositor_api.update_images(updates);
+
+        let data = CanvasImageData {
+            image_key: self.image_key.unwrap(),
+        };
+        chan.send(data).unwrap();
+    }
+
+    pub fn recreate(&mut self, size: Option<Size2D<u64>>) {
+        let size = size.unwrap_or_else(|| self.drawtarget.get_size().to_u64());
+        self.drawtarget = self
+            .backend
+            .create_drawtarget(Size2D::new(size.width, size.height));
+        self.state = self.backend.recreate_paint_state(&self.state);
+        self.saved_states.clear();
+        // Webrender doesn't let images change size, so we clear the webrender image key.
+        // TODO: there is an annying race condition here: the display list builder
+        // might still be using the old image key. Really, we should be scheduling the image
+        // for later deletion, not deleting it immediately.
+        // https://github.com/servo/servo/issues/17534
+        if let Some(image_key) = self.image_key.take() {
+            // If this executes, then we are in a new epoch since we last recreated the canvas,
+            // so `old_image_key` must be `None`.
+            debug_assert!(self.old_image_key.is_none());
+            self.old_image_key = Some(image_key);
+        }
+    }
+}
+
+impl<'a> Deref for CanvasDataToWrBridge<'a> {
+    type Target = CanvasData<'a>;
+    fn deref(&self) -> &Self::Target {
+        &self.canvas_data
+    }
+}
+
+impl<'a> DerefMut for CanvasDataToWrBridge<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.canvas_data
+    }
+}
+
+impl<'a> Drop for CanvasDataToWrBridge<'a> {
     fn drop(&mut self) {
         let mut updates = vec![];
         if let Some(image_key) = self.old_image_key.take() {
