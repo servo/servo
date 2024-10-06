@@ -2,19 +2,22 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::ptr;
 use std::rc::Rc;
 
-use aes::cipher::KeyInit;
-use aes::{Aes128, Aes192, Aes256};
 use dom_struct::dom_struct;
 use js::conversions::ConversionResult;
+use js::jsapi::JSObject;
 use js::jsval::ObjectValue;
+use js::typedarray::{ArrayBuffer, CreateWith};
 use servo_rand::{RngCore, ServoRng};
 
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{KeyType, KeyUsage};
+use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
+    CryptoKeyMethods, KeyType, KeyUsage,
+};
 use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{
-    AesKeyGenParams, Algorithm, AlgorithmIdentifier, KeyAlgorithm, SubtleCryptoMethods,
+    AesKeyGenParams, Algorithm, AlgorithmIdentifier, KeyAlgorithm, KeyFormat, SubtleCryptoMethods,
 };
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
@@ -136,6 +139,60 @@ impl SubtleCryptoMethods for SubtleCrypto {
 
         promise
     }
+
+    #[allow(unsafe_code)]
+    fn ExportKey(&self, format: KeyFormat, key: &CryptoKey, comp: InRealm) -> Rc<Promise> {
+        let promise = Promise::new_in_current_realm(comp);
+
+        let (task_source, canceller) = self
+            .global()
+            .as_window()
+            .task_manager()
+            .dom_manipulation_task_source_with_canceller();
+        let this = Trusted::new(self);
+        let trusted_key = Trusted::new(key);
+        let trusted_promise = TrustedPromise::new(promise.clone());
+        let _ = task_source.queue_with_canceller(
+            task!(export_key: move || {
+                let subtle = this.root();
+                let promise = trusted_promise.root();
+                let key = trusted_key.root();
+                let alg_name = key.algorithm();
+                if matches!(
+                    alg_name.as_str(), ALG_SHA1 | ALG_SHA256 | ALG_SHA384 | ALG_SHA512 | ALG_HKDF | ALG_PBKDF2
+                ) {
+                    promise.reject_error(Error::NotSupported);
+                    return;
+                }
+                if !key.Extractable() {
+                    promise.reject_error(Error::InvalidAccess);
+                    return;
+                }
+                let exported_key = match alg_name.as_str() {
+                    ALG_AES_CBC => subtle.export_key_aes_cbc(format, &*key),
+                    _ => Err(Error::NotSupported),
+                };
+                match exported_key {
+                    Ok(k) => {
+                        let cx = GlobalScope::get_cx();
+                        rooted!(in(*cx) let mut array_buffer_ptr = ptr::null_mut::<JSObject>());
+                        let _ = unsafe {
+                            ArrayBuffer::create(
+                                *cx,
+                                CreateWith::Slice(&k),
+                                array_buffer_ptr.handle_mut(),
+                            )
+                        };
+                        promise.resolve_native(&array_buffer_ptr.get())
+                    },
+                    Err(e) => promise.reject_error(e),
+                }
+            }),
+            &canceller,
+        );
+
+        promise
+    }
 }
 
 #[derive(Clone)]
@@ -193,7 +250,7 @@ fn normalize_algorithm(
             else {
                 return Err(Error::Syntax);
             };
-            match (algorithm.name.str(), operation) {
+            match (algorithm.name.str().to_uppercase().as_str(), operation) {
                 (ALG_AES_CBC, "generateKey") => {
                     let params_result =
                         AesKeyGenParams::new(cx, value.handle()).map_err(|_| Error::Operation)?;
@@ -234,18 +291,9 @@ impl SubtleCrypto {
         rand.resize(key_gen_params.length as usize, 0);
         self.rng.borrow_mut().fill_bytes(&mut rand);
         let handle = match key_gen_params.length {
-            128 => {
-                let key = Aes128::new_from_slice(&rand).map_err(|_| Error::Operation)?;
-                Handle::Aes128(key)
-            },
-            192 => {
-                let key = Aes192::new_from_slice(&rand).map_err(|_| Error::Operation)?;
-                Handle::Aes192(key)
-            },
-            256 => {
-                let key = Aes256::new_from_slice(&rand).map_err(|_| Error::Operation)?;
-                Handle::Aes256(key)
-            },
+            128 => Handle::Aes128(rand),
+            192 => Handle::Aes192(rand),
+            256 => Handle::Aes256(rand),
             _ => return Err(Error::Operation),
         };
 
@@ -259,5 +307,21 @@ impl SubtleCrypto {
             usages,
             handle,
         ))
+    }
+
+    /// <https://w3c.github.io/webcrypto/#aes-cbc-operations>
+    fn export_key_aes_cbc(&self, format: KeyFormat, key: &CryptoKey) -> Result<Vec<u8>, Error> {
+        match format {
+            KeyFormat::Raw => match key.handle() {
+                Handle::Aes128(key) => Ok(key.as_slice().to_vec()),
+                Handle::Aes192(key) => Ok(key.as_slice().to_vec()),
+                Handle::Aes256(key) => Ok(key.as_slice().to_vec()),
+            },
+            KeyFormat::Jwk => {
+                // TODO: Support jwk
+                Err(Error::NotSupported)
+            },
+            _ => Err(Error::NotSupported),
+        }
     }
 }

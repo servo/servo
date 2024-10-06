@@ -2,18 +2,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
 use std::ptr::NonNull;
 
-use aes::{Aes128, Aes192, Aes256};
 use dom_struct::dom_struct;
 use js::jsapi::{JSObject, Value};
 
+use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
     CryptoKeyMethods, KeyType, KeyUsage,
 };
-use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::KeyAlgorithm;
+use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{AesKeyAlgorithm, KeyAlgorithm};
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::js::conversions::ToJSValConvertible;
 use crate::script_runtime::JSContext;
@@ -21,9 +23,9 @@ use crate::script_runtime::JSContext;
 /// The underlying cryptographic data this key represents
 #[allow(dead_code)]
 pub enum Handle {
-    Aes128(Aes128),
-    Aes192(Aes192),
-    Aes256(Aes256),
+    Aes128(Vec<u8>),
+    Aes192(Vec<u8>),
+    Aes256(Vec<u8>),
 }
 
 /// <https://w3c.github.io/webcrypto/#cryptokey-interface>
@@ -31,9 +33,10 @@ pub enum Handle {
 pub struct CryptoKey {
     reflector_: Reflector,
     key_type: KeyType,
-    extractable: bool,
-    #[ignore_malloc_size_of = ""]
-    algorithm: KeyAlgorithm,
+    extractable: Cell<bool>,
+    // This would normally be KeyAlgorithm but we cannot Send DOMString, which
+    // is a member of Algorithm
+    algorithm: DomRefCell<String>,
     usages: Vec<KeyUsage>,
     #[ignore_malloc_size_of = "Defined in external cryptography crates"]
     #[no_trace]
@@ -51,8 +54,8 @@ impl CryptoKey {
         CryptoKey {
             reflector_: Reflector::new(),
             key_type,
-            extractable,
-            algorithm,
+            extractable: Cell::new(extractable),
+            algorithm: DomRefCell::new(algorithm.name.to_string()),
             usages,
             handle,
         }
@@ -77,6 +80,14 @@ impl CryptoKey {
             global,
         )
     }
+
+    pub fn algorithm(&self) -> String {
+        self.algorithm.borrow().to_string()
+    }
+
+    pub fn handle(&self) -> &Handle {
+        &self.handle
+    }
 }
 
 impl CryptoKeyMethods for CryptoKey {
@@ -87,16 +98,33 @@ impl CryptoKeyMethods for CryptoKey {
 
     /// <https://w3c.github.io/webcrypto/#cryptokey-interface-members>
     fn Extractable(&self) -> bool {
-        self.extractable
+        self.extractable.get()
     }
 
     #[allow(unsafe_code)]
     /// <https://w3c.github.io/webcrypto/#cryptokey-interface-members>
     fn Algorithm(&self, cx: JSContext) -> NonNull<JSObject> {
+        let parent = KeyAlgorithm {
+            name: DOMString::from_string(self.algorithm()),
+        };
+        let algorithm = match self.handle() {
+            Handle::Aes128(_) => AesKeyAlgorithm {
+                parent,
+                length: 128,
+            },
+            Handle::Aes192(_) => AesKeyAlgorithm {
+                parent,
+                length: 192,
+            },
+            Handle::Aes256(_) => AesKeyAlgorithm {
+                parent,
+                length: 256,
+            },
+        };
         unsafe {
-            rooted!(in(*cx) let mut algorithm: Value);
-            self.algorithm.to_jsval(*cx, algorithm.handle_mut());
-            NonNull::new(algorithm.to_object()).unwrap()
+            rooted!(in(*cx) let mut alg: Value);
+            algorithm.to_jsval(*cx, alg.handle_mut());
+            NonNull::new(alg.to_object()).unwrap()
         }
     }
 

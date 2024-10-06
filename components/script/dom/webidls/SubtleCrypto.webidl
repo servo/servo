@@ -53,7 +53,7 @@ interface SubtleCrypto {
   //                        AlgorithmIdentifier algorithm,
   //                        boolean extractable,
   //                        sequence<KeyUsage> keyUsages );
-  // Promise<any> exportKey(KeyFormat format, CryptoKey key);
+  Promise<any> exportKey(KeyFormat format, CryptoKey key);
 
   // Promise<any> wrapKey(KeyFormat format,
   //                      CryptoKey key,
@@ -68,9 +68,9 @@ interface SubtleCrypto {
   //                        sequence<KeyUsage> keyUsages );
 };
 
-// AES_CBC
-dictionary AesCbcParams : Algorithm {
-  required BufferSource iv;
+// AES shared
+dictionary AesKeyAlgorithm : KeyAlgorithm {
+  required unsigned short length;
 };
 
 dictionary AesKeyGenParams : Algorithm {
@@ -79,4 +79,9 @@ dictionary AesKeyGenParams : Algorithm {
 
 dictionary AesDerivedKeyParams : Algorithm {
   required [EnforceRange] unsigned short length;
+};
+
+// AES_CBC
+dictionary AesCbcParams : Algorithm {
+  required BufferSource iv;
 };
