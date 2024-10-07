@@ -1,0 +1,90 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<meta name="variant" content="?styleWithCSS=true">
+<meta name="variant" content="?styleWithCSS=false">
+<title>Styling with document.execCommand() should not work in plaintext-only editing host</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../include/editor-test-utils.js"></script>
+<script>
+"use strict";
+
+const searchParams = new URLSearchParams(document.location.search);
+const defaultStyleWithCSS = searchParams.get("styleWithCSS");
+const oppositeStyleWithCSS = defaultStyleWithCSS == "true" ? "false" : "true";
+
+addEventListener("load", () => {
+  document.querySelector("div[contenteditable=true]").focus();
+  document.execCommand("styleWithCSS", false, defaultStyleWithCSS);
+
+  const editingHost = document.querySelector("div[contenteditable=plaintext-only]");
+  const utils = new EditorTestUtils(editingHost);
+  for (const testing of [
+      { command: "backColor",           param: "red",                innerHTML: "a[b]c" },
+      { command: "bold",                param: undefined,            innerHTML: "a[b]c" },
+      { command: "createLink",          param: "http://example.com", innerHTML: "a[b]c" },
+      { command: "decreaseFontSize",    param: undefined,            innerHTML: "a[b]c" },
+      { command: "fontName",            param: "Arial",              innerHTML: "a[b]c" },
+      { command: "fontSize",            param: "7",                  innerHTML: "a[b]c" },
+      { command: "formatBlock",         param: "blockquote",         innerHTML: "a[b]c" },
+      { command: "formatBlock",         param: "div",                innerHTML: "a[b]c" },
+      { command: "formatBlock",         param: "p",                  innerHTML: "a[b]c" },
+      { command: "formatBlock",         param: "pre",                innerHTML: "a[b]c" },
+      { command: "heading",             param: "h1",                 innerHTML: "a[b]c" },
+      { command: "hiliteColor",         param: "red",                innerHTML: "a[b]c" },
+      { command: "increaseFontSize",    param: undefined,            innerHTML: "a[b]c" },
+      { command: "indent",              param: undefined,            innerHTML: "<ul><li>[abc]</li></ul>" },
+      { command: "indent",              param: undefined,            innerHTML: "<blockquote>[abc]</blockquote>" },
+      { command: "insertOrderedList",   param: undefined,            innerHTML: "a[b]c" },
+      { command: "insertUnorderedList", param: undefined,            innerHTML: "a[b]c" },
+      { command: "italic",              param: undefined,            innerHTML: "a[b]c" },
+      { command: "justifyCenter",       param: undefined,            innerHTML: "<div>[abc]</div>" },
+      { command: "justifyFull",         param: undefined,            innerHTML: "<div>[abc]</div>" },
+      { command: "justifyLeft",         param: undefined,            innerHTML: "<div>[abc]</div>" },
+      { command: "justifyRight",        param: undefined,            innerHTML: "<div>[abc]</div>" },
+      { command: "outdent",             param: undefined,            innerHTML: "<ul><li>[abc]</li></ul>" },
+      { command: "outdent",             param: undefined,            innerHTML: "<blockquote>[abc]</blockquote>" },
+      { command: "removeFormat",        param: undefined,            innerHTML: "a<b>[b]</b>c" },
+      { command: "strikeThrough",       param: undefined,            innerHTML: "a[b]c" },
+      { command: "subscript",           param: undefined,            innerHTML: "a[b]c" },
+      { command: "superscript",         param: undefined,            innerHTML: "a[b]c" },
+      { command: "underline",           param: undefined,            innerHTML: "a[b]c" },
+      { command: "unlink",              param: undefined,            innerHTML: "a<a href=\"http://example.com\">[b]</a>c" },
+    ]) {
+    test(t => {
+      utils.setupEditingHost(testing.innerHTML);
+      const editingHostBefore = editingHost.outerHTML;
+      let inputEvent;
+      function onInput(event) {
+        inputEvent = `input={inputType="${event.inputType}"}`;
+      }
+      let ret;
+      try {
+        editingHost.addEventListener("input", onInput);
+        ret = document.execCommand(testing.command, false, testing.param);
+      } finally {
+        editingHost.removeEventListener("input", onInput);
+      }
+      test(() => {
+        assert_false(ret);
+      }, `${t.name} should return false`);
+      test(() => {
+        assert_equals(editingHostBefore, editingHost.outerHTML);
+      }, `${t.name} should not update the DOM`);
+      test(() => {
+        assert_equals(inputEvent, undefined);
+      }, `${t.name} should not cause input event`);
+    }, `execCommand("${testing.command}", false, ${
+      testing.param === undefined ? "undefined" : `"${testing.param}"`
+    }) when ${testing.innerHTML}`);
+  }
+}, {once: true});
+</script>
+</head>
+<body>
+<div contenteditable="true"></div>
+<div contenteditable="plaintext-only"></div>
+</html>

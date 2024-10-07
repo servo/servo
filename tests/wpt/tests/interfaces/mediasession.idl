@@ -98,17 +98,8 @@ dictionary MediaPositionState {
 
 dictionary MediaSessionActionDetails {
   required MediaSessionAction action;
-};
-
-dictionary MediaSessionSeekActionDetails : MediaSessionActionDetails {
   double seekOffset;
-};
-
-dictionary MediaSessionSeekToActionDetails : MediaSessionActionDetails {
-  required double seekTime;
+  double seekTime;
   boolean fastSeek;
-};
-
-dictionary MediaSessionCaptureActionDetails : MediaSessionActionDetails {
   boolean isActivating;
 };

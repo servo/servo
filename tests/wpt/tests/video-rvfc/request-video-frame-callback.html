@@ -23,6 +23,7 @@ promise_test(async function(t) {
     const promise = new Promise(resolve => done = resolve);
 
     let video = document.createElement('video');
+    video.muted = true;
     document.body.appendChild(video);
 
     let id = video.requestVideoFrameCallback(
@@ -47,6 +48,7 @@ promise_test(async function(t) {
     const promise = new Promise(resolve => done = resolve);
 
     let video = document.createElement('video');
+    video.muted = true;
     document.body.appendChild(video);
 
     video.requestVideoFrameCallback(
@@ -72,6 +74,7 @@ promise_test(async function(t) {
     const promise = new Promise(resolve => done = resolve);
 
     let video = document.createElement('video');
+    video.muted = true;
     document.body.appendChild(video);
 
     let id = video.requestVideoFrameCallback(
@@ -99,6 +102,7 @@ promise_test(async function(t) {
 
 test(function(t) {
     let video = document.createElement('video');
+    video.muted = true;
     document.body.appendChild(video);
 
     // requestVideoFrameCallback() expects 1 function as a parameter.
@@ -120,6 +124,7 @@ test(function(t) {
 
 promise_test(async function(t) {
     let video = document.createElement('video');
+    video.muted = true;
     video.autoplay = true;
     document.body.appendChild(video);
 

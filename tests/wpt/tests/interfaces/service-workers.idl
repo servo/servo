@@ -167,6 +167,7 @@ dictionary ExtendableEventInit : EventInit {
 
 [Exposed=ServiceWorker]
 interface InstallEvent : ExtendableEvent {
+  constructor(DOMString type, optional ExtendableEventInit eventInitDict = {});
   Promise<undefined> addRoutes((RouterRule or sequence<RouterRule>) rules);
 };
 

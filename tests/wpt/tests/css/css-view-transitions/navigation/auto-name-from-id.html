@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>View transitions: cross-document navigation with auto name</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="match" href="auto-name-from-id-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<style>
+@view-transition { navigation: auto; }
+body {
+  background: blue;
+  margin: 0;
+}
+#green {
+  width: 100px;
+  height: 100px;
+  view-transition-name: auto;
+  background: green;
+  contain: layout;
+}
+</style>
+<div id="green"></div>
+<script>
+onload = async() => {
+  await new Promise(resolve => requestAnimationFrame(() => resolve()));
+  location.href = "resources/auto-name-from-id.html";
+};
+</script>
+</html>

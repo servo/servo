@@ -100,6 +100,24 @@ class EditorTestUtils {
     );
   }
 
+  sendCopyShortcutKey() {
+    return this.sendKey(
+      "c",
+      this.window.navigator.platform.includes("Mac")
+        ? this.kMeta
+        : this.kControl
+    );
+  }
+
+  sendPasteShortcutKey() {
+    return this.sendKey(
+      "v",
+      this.window.navigator.platform.includes("Mac")
+        ? this.kMeta
+        : this.kControl
+    );
+  }
+
   // Similar to `setupDiv` in editing/include/tests.js, this method sets
   // innerHTML value of this.editingHost, and sets multiple selection ranges
   // specified with the markers.

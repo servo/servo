@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+
+<meta name="timeout" content="long">
+
+<link rel="help" href="http://crbug.com/362922565">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<style>
+  select, select::picker(select) {
+    appearance: base-select;
+  }
+</style>
+
+<select id="target">
+  <option></option>
+  <option>alpha</option>
+  <option id="bravo">bravo</option>
+  <option>charlie</option>
+</select>
+
+<script>
+  const Enter = '\uE007';
+  const Space = ' ';
+
+  promise_test(async (t) => {
+    assert_false(
+      target.matches(':open'),
+      'The select should initially be closed.'
+    );
+
+    assert_equals(
+      target.value,
+      '',
+      'Initial select value should be empty.'
+    );
+
+    target.focus();
+    assert_equals(
+      document.activeElement,
+      target,
+      'The select should be focused.'
+    );
+
+    await test_driver.send_keys(document.activeElement, Space);
+    assert_true(
+      target.matches(':open'),
+      'The select should be open after pressing space.'
+    );
+
+    await test_driver.send_keys(document.activeElement, 'b');
+    assert_equals(
+      document.activeElement,
+      bravo,
+      'The `bravo` option should be focused after pressing `b`.'
+    );
+    assert_equals(
+      target.value,
+      '',
+      'The select value should still be empty since the option was not explicitly selected.'
+    );
+
+    await test_driver.send_keys(document.activeElement, Enter);
+    assert_equals(
+      target.value,
+      'bravo',
+      'The select value should be `bravo` after explicit selection.'
+    );
+  }, 'Type to search should focus but not select an option until selection is confirmed.');
+</script>

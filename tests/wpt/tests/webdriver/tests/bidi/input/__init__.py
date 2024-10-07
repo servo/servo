@@ -2,6 +2,39 @@ import json
 
 from webdriver.bidi.modules.script import ContextTarget
 
+
+async def add_mouse_listeners(bidi_session, context, include_mousemove=True):
+    result = await bidi_session.script.call_function(
+        function_declaration="""(include_mousemove) => {
+            window.allEvents = { events: []};
+
+            const events = ["auxclick", "click", "mousedown", "mouseup"];
+            if (include_mousemove) {
+              events.push("mousemove");
+            }
+
+            function handleEvent(event) {
+                window.allEvents.events.push({
+                    type: event.type,
+                    detail: event.detail,
+                    clientX: event.clientX,
+                    clientY: event.clientY,
+                    isTrusted: event.isTrusted,
+                    button: event.button,
+                    buttons: event.buttons,
+                });
+            };
+
+            for (const event of events) {
+                document.addEventListener(event, handleEvent);
+            }
+            }""",
+        arguments=[{"type": "boolean", "value": include_mousemove}],
+        await_promise=False,
+        target=ContextTarget(context["context"]),
+    )
+
+
 async def get_object_from_context(bidi_session, context, object_path):
     """Return a plain JS object from a given context, accessible at the given object_path"""
     events_str = await bidi_session.script.evaluate(
@@ -29,6 +62,7 @@ async def get_events(bidi_session, context):
         # tests expect ''.
         if "code" in e and e["code"] == "Unidentified":
             e["code"] = ""
+
     return events
 
 

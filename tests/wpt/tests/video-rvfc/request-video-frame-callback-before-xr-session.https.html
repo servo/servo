@@ -12,6 +12,7 @@
 
 // Start the video.rVFC callbacks before starting the XR Session.
 let video = document.createElement('video');
+video.muted = true;
 video.src = getVideoURI('/media/movie_5');
 
 var numberVFCs = 0;

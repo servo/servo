@@ -13,10 +13,6 @@
   test_driver.set_test_context(parent);
 
   window.onmessage = messageEvent => {
-    // Ignore internal testdriver.js messages (web-platform-tests/wpt#48326)
-    if ((messageEvent.data.type || '').startsWith('testdriver-')) {
-      return;
-    }
     switch (messageEvent.data.type) {
       case 'GetPorts':
         navigator.serial.getPorts()

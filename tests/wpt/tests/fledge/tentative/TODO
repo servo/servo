@@ -100,3 +100,6 @@ If possible:
 * Test input with invalid https origin in web platform tests for both trusted bidding
   and scoring signals coordinators.
 * Test selectable buyer and seller reporting ids with k-anonymity enforcement.
+* Test that service workers cannot see update urls.
+    * This was attempted in [here](https://chromium-review.googlesource.com/c/chromium/src/+/5512083),
+      but needed to be reverted because it kept timing out, [see here](https://g-issues.chromium.org/issues/339048485)

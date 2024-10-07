@@ -78,7 +78,7 @@ interface GPU {
 };
 
 dictionary GPURequestAdapterOptions {
-    any featureLevel;
+    DOMString featureLevel;
     GPUPowerPreference powerPreference;
     boolean forceFallbackAdapter = false;
 };
@@ -1183,6 +1183,7 @@ interface GPUCanvasContext {
     undefined configure(GPUCanvasConfiguration configuration);
     undefined unconfigure();
 
+    GPUCanvasConfiguration? getConfiguration();
     GPUTexture getCurrentTexture();
 };
 

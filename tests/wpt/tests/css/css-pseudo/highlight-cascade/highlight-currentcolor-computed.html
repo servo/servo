@@ -38,6 +38,14 @@
     color: currentcolor;
     background-color: currentcolor;
   }
+  .target::search-text {
+    color: currentcolor;
+    background-color: currentcolor;
+  }
+  .target::search-text:current {
+    color: red;
+    background-color: red;
+  }
   .target::spelling-error {
     color: currentcolor;
     background-color: currentcolor;
@@ -56,7 +64,7 @@
   <span id="target2" class="target"></span>
 </div>
 <script>
-  for (const pseudo of ["::selection", "::target-text", "::spelling-error", "::grammar-error", "::highlight(foo)"]) {
+  for (const pseudo of ["::selection", "::target-text", "::search-text", "::spelling-error", "::grammar-error", "::highlight(foo)"]) {
     for (const target of [target1, target2]) {
       test(() => {
         let style = getComputedStyle(target, pseudo);

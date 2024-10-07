@@ -43,10 +43,19 @@
         } else if (data.type === "testdriver-event") {
             const event_data = JSON.parse(data.message);
             const event_name = event_data.method;
-            const event = new Event(event_name);
-            event.payload = event_data.params;
-            event_target.dispatchEvent(event);
+            const testdriver_event = new Event(event_name);
+            testdriver_event.payload = event_data.params;
+            event_target.dispatchEvent(testdriver_event);
+        } else {
+            return;
         }
+
+        // Don't expose testdriver.js-internal messages to tests. Because
+        // `testdriver.js` precedes test scripts in the markup, this "message"
+        // listener should be registered and run first [0].
+        //
+        // [0]: https://html.spec.whatwg.org/multipage/webappapis.html#event-handler-attributes
+        event.stopImmediatePropagation();
     });
 
     function is_test_context() {
