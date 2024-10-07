@@ -228,7 +228,7 @@ pub enum ScriptToCompositorMsg {
     /// Inform WebRender of a new display list for the given pipeline.
     SendDisplayList {
         /// The [CompositorDisplayListInfo] that describes the display list being sent.
-        display_list_info: CompositorDisplayListInfo,
+        display_list_info: Box<CompositorDisplayListInfo>,
         /// A descriptor of this display list used to construct this display list from raw data.
         display_list_descriptor: BuiltDisplayListDescriptor,
         /// An [ipc::IpcBytesReceiver] used to send the raw data of the display list.
@@ -337,13 +337,12 @@ impl WebRenderScriptApi {
         let (display_list_data, display_list_descriptor) = list.into_data();
         let (display_list_sender, display_list_receiver) = ipc::bytes_channel().unwrap();
         if let Err(e) = self.0.send(ScriptToCompositorMsg::SendDisplayList {
-            display_list_info,
+            display_list_info: Box::new(display_list_info),
             display_list_descriptor,
             display_list_receiver,
         }) {
             warn!("Error sending display list: {}", e);
         }
-
         if let Err(error) = display_list_sender.send(&display_list_data.items_data) {
             warn!("Error sending display list items: {}", error);
         }
