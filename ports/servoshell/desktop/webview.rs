@@ -38,7 +38,6 @@ use tinyfiledialogs::{self, MessageBoxIcon, OkCancel, YesNo};
 use super::keyutils::{CMD_OR_ALT, CMD_OR_CONTROL};
 use super::window_trait::{WindowPortsMethods, LINE_HEIGHT};
 use crate::desktop::tracing::{trace_embedder_event, trace_embedder_msg};
-use crate::parser::location_bar_input_to_url;
 
 pub struct WebViewManager<Window: WindowPortsMethods + ?Sized> {
     status_text: Option<String>,
@@ -431,7 +430,6 @@ where
             .shortcut(CMD_OR_CONTROL, 'R', || {
                 self.focused_webview_id.map(EmbedderEvent::Reload)
             })
-            .shortcut(CMD_OR_CONTROL, 'L', || None)
             // Select the first 8 tabs via shortcuts
             .shortcut(CMD_OR_CONTROL, '1', || self.focus_webview_by_index(0))
             .shortcut(CMD_OR_CONTROL, '2', || self.focus_webview_by_index(1))
