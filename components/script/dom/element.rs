@@ -2353,6 +2353,7 @@ impl ElementMethods for Element {
                     rect.origin.y.to_f64_px(),
                     rect.size.width.to_f64_px(),
                     rect.size.height.to_f64_px(),
+                    CanGc::note(),
                 )
             })
             .collect()
@@ -2368,6 +2369,7 @@ impl ElementMethods for Element {
             rect.origin.y.to_f64_px(),
             rect.size.width.to_f64_px(),
             rect.size.height.to_f64_px(),
+            CanGc::note(),
         )
     }
 

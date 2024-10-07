@@ -162,6 +162,13 @@ impl DOMQuadMethods for DOMQuad {
             .max(self.p3.Y())
             .max(self.p4.Y());
 
-        DOMRect::new(&self.global(), left, top, right - left, bottom - top)
+        DOMRect::new(
+            &self.global(),
+            left,
+            top,
+            right - left,
+            bottom - top,
+            CanGc::note(),
+        )
     }
 }
