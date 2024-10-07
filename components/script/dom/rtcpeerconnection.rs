@@ -165,7 +165,7 @@ impl WebRtcSignaller for RTCSignaller {
                 let this = this.root();
                 let global = this.global();
                 let _ac = enter_realm(&*global);
-                this.on_data_channel_event(channel, event);
+                this.on_data_channel_event(channel, event, CanGc::note());
             }),
             &self.canceller,
         );
@@ -307,7 +307,12 @@ impl RTCPeerConnection {
         event.upcast::<Event>().fire(self.upcast());
     }
 
-    fn on_data_channel_event(&self, channel_id: DataChannelId, event: DataChannelEvent) {
+    fn on_data_channel_event(
+        &self,
+        channel_id: DataChannelId,
+        event: DataChannelEvent,
+        can_gc: CanGc,
+    ) {
         if self.closed.get() {
             return;
         }
@@ -346,7 +351,7 @@ impl RTCPeerConnection {
                     DataChannelEvent::Open => channel.on_open(),
                     DataChannelEvent::Close => channel.on_close(),
                     DataChannelEvent::Error(error) => channel.on_error(error),
-                    DataChannelEvent::OnMessage(message) => channel.on_message(message),
+                    DataChannelEvent::OnMessage(message) => channel.on_message(message, can_gc),
                     DataChannelEvent::StateChange(state) => channel.on_state_change(state),
                     DataChannelEvent::NewChannel => unreachable!(),
                 }

@@ -41,8 +41,8 @@ pub struct Blob {
 }
 
 impl Blob {
-    pub fn new(global: &GlobalScope, blob_impl: BlobImpl) -> DomRoot<Blob> {
-        Self::new_with_proto(global, None, blob_impl, CanGc::note())
+    pub fn new(global: &GlobalScope, blob_impl: BlobImpl, can_gc: CanGc) -> DomRoot<Blob> {
+        Self::new_with_proto(global, None, blob_impl, can_gc)
     }
 
     fn new_with_proto(
@@ -185,7 +185,7 @@ impl Serializable for Blob {
             *blob_impls = None;
         }
 
-        let deserialized_blob = Blob::new(owner, blob_impl);
+        let deserialized_blob = Blob::new(owner, blob_impl, CanGc::note());
 
         let blobs = blobs.get_or_insert_with(HashMap::new);
         blobs.insert(storage_key, deserialized_blob);
@@ -251,7 +251,7 @@ impl BlobMethods for Blob {
             normalize_type_string(content_type.unwrap_or(DOMString::from("")).as_ref());
         let rel_pos = RelativePos::from_opts(start, end);
         let blob_impl = BlobImpl::new_sliced(rel_pos, self.blob_id, type_string);
-        Blob::new(&self.global(), blob_impl)
+        Blob::new(&self.global(), blob_impl, CanGc::note())
     }
 
     // https://w3c.github.io/FileAPI/#text-method-algo

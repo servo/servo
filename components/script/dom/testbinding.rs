@@ -182,6 +182,7 @@ impl TestBindingMethods for TestBinding {
         Blob::new(
             &self.global(),
             BlobImpl::new_from_bytes(vec![], "".to_owned()),
+            CanGc::note(),
         )
     }
     fn SetInterfaceAttribute(&self, _: &Blob) {}
@@ -327,6 +328,7 @@ impl TestBindingMethods for TestBinding {
         Some(Blob::new(
             &self.global(),
             BlobImpl::new_from_bytes(vec![], "".to_owned()),
+            CanGc::note(),
         ))
     }
     fn SetInterfaceAttributeNullable(&self, _: Option<&Blob>) {}
@@ -421,6 +423,7 @@ impl TestBindingMethods for TestBinding {
         Blob::new(
             &self.global(),
             BlobImpl::new_from_bytes(vec![], "".to_owned()),
+            CanGc::note(),
         )
     }
     fn ReceiveAny(&self, _: SafeJSContext) -> JSVal {
@@ -469,6 +472,7 @@ impl TestBindingMethods for TestBinding {
         vec![Blob::new(
             &self.global(),
             BlobImpl::new_from_bytes(vec![], "".to_owned()),
+            CanGc::note(),
         )]
     }
     fn ReceiveUnionIdentity(
@@ -534,6 +538,7 @@ impl TestBindingMethods for TestBinding {
         Some(Blob::new(
             &self.global(),
             BlobImpl::new_from_bytes(vec![], "".to_owned()),
+            CanGc::note(),
         ))
     }
     fn ReceiveNullableObject(&self, cx: SafeJSContext) -> Option<NonNull<JSObject>> {
@@ -1030,7 +1035,7 @@ impl TestBindingMethods for TestBinding {
             }
         }
         impl Callback for SimpleHandler {
-            fn callback(&self, cx: SafeJSContext, v: HandleValue, realm: InRealm) {
+            fn callback(&self, cx: SafeJSContext, v: HandleValue, realm: InRealm, _can_gc: CanGc) {
                 let global = GlobalScope::from_safe_context(cx, realm);
                 let _ = self.handler.Call_(&*global, v, ExceptionHandling::Report);
             }

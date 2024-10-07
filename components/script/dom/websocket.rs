@@ -576,8 +576,11 @@ impl TaskOnce for MessageReceivedTask {
                 MessageData::Text(text) => text.to_jsval(*cx, message.handle_mut()),
                 MessageData::Binary(data) => match ws.binary_type.get() {
                     BinaryType::Blob => {
-                        let blob =
-                            Blob::new(&global, BlobImpl::new_from_bytes(data, "".to_owned()));
+                        let blob = Blob::new(
+                            &global,
+                            BlobImpl::new_from_bytes(data, "".to_owned()),
+                            CanGc::note(),
+                        );
                         blob.to_jsval(*cx, message.handle_mut());
                     },
                     BinaryType::Arraybuffer => {
