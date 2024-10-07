@@ -67,6 +67,8 @@ pub struct HTMLVideoElement {
     #[ignore_malloc_size_of = "VideoFrame"]
     #[no_trace]
     last_frame: DomRefCell<Option<VideoFrame>>,
+    /// Indicates if it has already sent a resize event for a given size
+    sent_resize: Cell<Option<(u32, u32)>>,
 }
 
 impl HTMLVideoElement {
@@ -83,6 +85,7 @@ impl HTMLVideoElement {
             poster_frame_canceller: DomRefCell::new(Default::default()),
             load_blocker: Default::default(),
             last_frame: Default::default(),
+            sent_resize: Cell::new(None),
         }
     }
 
@@ -103,16 +106,23 @@ impl HTMLVideoElement {
     }
 
     pub fn resize(&self, width: u32, height: u32) {
-        if self.video_width.get() == width && self.video_height.get() == height {
+        if self.video_width.get() == width &&
+            self.video_height.get() == height &&
+            self.sent_resize.get().is_some()
+        {
             return;
         }
 
         self.video_width.set(width);
         self.video_height.set(height);
+        self.sent_resize.set(None);
 
-        let window = window_from_node(self);
-        let task_source = window.task_manager().media_element_task_source();
-        task_source.queue_simple_event(self.upcast(), atom!("resize"), &window);
+        if self.htmlmediaelement.get_ready_state() != ReadyState::HaveNothing {
+            let window = window_from_node(self);
+            let task_source = window.task_manager().media_element_task_source();
+            task_source.queue_simple_event(self.upcast(), atom!("resize"), &window);
+            self.sent_resize.set(Some((width, height)));
+        }
     }
 
     fn get_length(&self, name: &LocalName) -> Option<u32> {
