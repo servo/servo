@@ -56,7 +56,7 @@ impl EguiGlow {
         gl: std::sync::Arc<glow::Context>,
         shader_version: Option<ShaderVersion>,
     ) -> Self {
-        let painter = egui_glow::Painter::new(gl, "", shader_version)
+        let painter = egui_glow::Painter::new(gl, "", shader_version, false)
             .map_err(|err| {
                 log::error!("error occurred in initializing painter:\n{err}");
             })
@@ -68,6 +68,7 @@ impl EguiGlow {
                 egui_ctx.clone(),
                 ViewportId::ROOT,
                 event_loop,
+                None,
                 None,
                 None,
             ),
