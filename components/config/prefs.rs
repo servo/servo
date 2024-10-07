@@ -376,6 +376,7 @@ mod gen {
                 webvtt: {
                     enabled: bool,
                 },
+                #[cfg(feature = "webxr")]
                 webxr: {
                     #[serde(default)]
                     enabled: bool,

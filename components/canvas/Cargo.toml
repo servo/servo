@@ -13,6 +13,7 @@ path = "lib.rs"
 
 [features]
 webgl_backtrace = ["canvas_traits/webgl_backtrace"]
+webxr = ["dep:webxr", "dep:webxr-api"]
 
 [dependencies]
 app_units = { workspace = true }
@@ -45,5 +46,5 @@ unicode-script = { workspace = true }
 webrender = { workspace = true }
 webrender_api = { workspace = true }
 webrender_traits = { workspace = true }
-webxr = { git = "https://github.com/servo/webxr", features = ["ipc"] }
-webxr-api = { git = "https://github.com/servo/webxr", features = ["ipc"] }
+webxr = { git = "https://github.com/servo/webxr", features = ["ipc"], optional = true }
+webxr-api = { git = "https://github.com/servo/webxr", features = ["ipc"], optional = true }

@@ -51,7 +51,9 @@ use constellation::{
     UnprivilegedContent,
 };
 use crossbeam_channel::{unbounded, Sender};
-use embedder_traits::{EmbedderMsg, EmbedderProxy, EmbedderReceiver, EventLoopWaker};
+#[cfg(feature = "webxr")]
+use embedder_traits::EventLoopWaker;
+use embedder_traits::{EmbedderMsg, EmbedderProxy, EmbedderReceiver};
 use env_logger::Builder as EnvLoggerBuilder;
 use euclid::Scale;
 use fonts::SystemFontService;
@@ -300,6 +302,7 @@ where
         // the client window and the compositor. This channel is unique because
         // messages to client may need to pump a platform-specific event loop
         // to deliver the message.
+        #[cfg(feature = "webxr")]
         let event_loop_waker = embedder.create_event_loop_waker();
         let (compositor_proxy, compositor_receiver) =
             create_compositor_channel(event_loop_waker.clone());
@@ -396,6 +399,7 @@ where
 
         let WebGLComm {
             webgl_threads,
+            #[cfg(feature = "webxr")]
             webxr_layer_grand_manager,
             image_handler,
         } = WebGLComm::new(
@@ -410,6 +414,7 @@ where
         external_image_handlers.set_handler(image_handler, WebrenderImageHandlerType::WebGL);
 
         // Create the WebXR main thread
+        #[cfg(feature = "webxr")]
         let mut webxr_main_thread =
             webxr::MainThreadRegistry::new(event_loop_waker, webxr_layer_grand_manager)
                 .expect("Failed to create WebXR device registry");
@@ -454,6 +459,7 @@ where
             devtools_sender,
             webrender_document,
             webrender_api_sender,
+            #[cfg(feature = "webxr")]
             webxr_main_thread.registry(),
             player_context,
             Some(webgl_threads),
@@ -491,6 +497,7 @@ where
                 webrender_api,
                 rendering_context,
                 webrender_gl,
+                #[cfg(feature = "webxr")]
                 webxr_main_thread,
             },
             composite_target,
@@ -963,12 +970,13 @@ where
 }
 
 fn create_embedder_channel(
-    event_loop_waker: Box<dyn EventLoopWaker>,
+    #[cfg(feature = "webxr")] event_loop_waker: Box<dyn EventLoopWaker>,
 ) -> (EmbedderProxy, EmbedderReceiver) {
     let (sender, receiver) = unbounded();
     (
         EmbedderProxy {
             sender,
+            #[cfg(feature = "webxr")]
             event_loop_waker,
         },
         EmbedderReceiver { receiver },
@@ -976,12 +984,13 @@ fn create_embedder_channel(
 }
 
 fn create_compositor_channel(
-    event_loop_waker: Box<dyn EventLoopWaker>,
+    #[cfg(feature = "webxr")] event_loop_waker: Box<dyn EventLoopWaker>,
 ) -> (CompositorProxy, CompositorReceiver) {
     let (sender, receiver) = unbounded();
     (
         CompositorProxy {
             sender,
+            #[cfg(feature = "webxr")]
             event_loop_waker,
         },
         CompositorReceiver { receiver },
@@ -1015,7 +1024,7 @@ fn create_constellation(
     devtools_sender: Option<Sender<devtools_traits::DevtoolsControlMsg>>,
     webrender_document: DocumentId,
     webrender_api_sender: RenderApiSender,
-    webxr_registry: webxr_api::Registry,
+    #[cfg(feature = "webxr")] webxr_registry: webxr_api::Registry,
     player_context: WindowGLContext,
     webgl_threads: Option<WebGLThreads>,
     glplayer_threads: Option<GLPlayerThreads>,
@@ -1067,6 +1076,7 @@ fn create_constellation(
         mem_profiler_chan,
         webrender_document,
         webrender_api_sender,
+        #[cfg(feature = "webxr")]
         webxr_registry,
         webgl_threads,
         glplayer_threads,
