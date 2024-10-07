@@ -96,15 +96,6 @@ impl BoxFragment {
         clearance: Option<Au>,
         block_margins_collapsed_with_children: CollapsedBlockMargins,
     ) -> BoxFragment {
-        let position = style.get_box().position;
-        let insets = style.get_position();
-        let width_overconstrained = position == ComputedPosition::Relative &&
-            !insets.left.is_auto() &&
-            !insets.right.is_auto();
-        let height_overconstrained = position == ComputedPosition::Relative &&
-            !insets.left.is_auto() &&
-            !insets.bottom.is_auto();
-
         Self::new_with_overconstrained(
             base_fragment_info,
             style,
@@ -115,7 +106,7 @@ impl BoxFragment {
             margin,
             clearance,
             block_margins_collapsed_with_children,
-            PhysicalSize::new(width_overconstrained, height_overconstrained),
+            PhysicalSize::default(),
         )
     }
 
