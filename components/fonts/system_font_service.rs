@@ -24,7 +24,6 @@ use style::values::computed::font::{
 };
 use style::values::computed::{FontStretch, FontWeight};
 use style::values::specified::FontStretch as SpecifiedFontStretch;
-use style::Atom;
 use tracing::{instrument, span, Level};
 use webrender_api::{FontInstanceFlags, FontInstanceKey, FontKey};
 use webrender_traits::CrossProcessCompositorApi;
@@ -34,30 +33,22 @@ use crate::font_store::FontStore;
 use crate::font_template::{FontTemplate, FontTemplateRef};
 use crate::platform::font_list::{
     default_system_generic_font_family, for_each_available_family, for_each_variation,
-    LocalFontIdentifier,
 };
-use crate::FontData;
+use crate::platform::LocalFontIdentifier;
 
 #[derive(Clone, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
 pub enum FontIdentifier {
     Local(LocalFontIdentifier),
     Web(ServoUrl),
-    Mock(Atom),
 }
 
 impl FontIdentifier {
     pub fn index(&self) -> u32 {
         match *self {
             Self::Local(ref local_font_identifier) => local_font_identifier.index(),
-            Self::Web(_) | Self::Mock(_) => 0,
+            Self::Web(_) => 0,
         }
     }
-}
-
-#[derive(Debug, Default, Deserialize, Serialize)]
-pub struct FontTemplateRequestResult {
-    pub templates: Vec<FontTemplate>,
-    pub template_data: Vec<(FontIdentifier, Arc<FontData>)>,
 }
 
 /// Commands that the `FontContext` sends to the `SystemFontService`.
@@ -66,7 +57,7 @@ pub enum SystemFontServiceMessage {
     GetFontTemplates(
         Option<FontDescriptor>,
         SingleFontFamily,
-        IpcSender<FontTemplateRequestResult>,
+        IpcSender<Vec<FontTemplate>>,
     ),
     GetFontInstance(
         FontIdentifier,
@@ -123,7 +114,6 @@ impl SystemFontServiceProxySender {
         SystemFontServiceProxy {
             sender: ReentrantMutex::new(self.0.clone()),
             templates: Default::default(),
-            data_cache: Default::default(),
         }
     }
 }
@@ -218,32 +208,12 @@ impl SystemFontService {
         &mut self,
         font_descriptor: Option<FontDescriptor>,
         font_family: SingleFontFamily,
-    ) -> FontTemplateRequestResult {
+    ) -> Vec<FontTemplate> {
         let templates = self.find_font_templates(font_descriptor.as_ref(), &font_family);
-        let templates: Vec<_> = templates
+        templates
             .into_iter()
             .map(|template| template.borrow().clone())
-            .collect();
-
-        // The `FontData` for all templates is also sent along with the `FontTemplate`s. This is to ensure that
-        // the data is not read from disk in each content process. The data is loaded once here in the system
-        // font service and each process gets another handle to the `IpcSharedMemory` view of that data.
-        let template_data = templates
-            .iter()
-            .map(|template| {
-                let identifier = template.identifier.clone();
-                let data = self
-                    .local_families
-                    .get_or_initialize_font_data(&identifier)
-                    .clone();
-                (identifier, data)
-            })
-            .collect();
-
-        FontTemplateRequestResult {
-            templates,
-            template_data,
-        }
+            .collect()
     }
 
     #[instrument(skip_all, fields(servo_profiling = true))]
@@ -292,29 +262,16 @@ impl SystemFontService {
 
         let compositor_api = &self.compositor_api;
         let webrender_fonts = &mut self.webrender_fonts;
-        let font_data = self.local_families.get_or_initialize_font_data(&identifier);
 
         let font_key = *webrender_fonts
             .entry(identifier.clone())
             .or_insert_with(|| {
                 let font_key = self.free_font_keys.pop().unwrap();
-                // CoreText cannot reliably create CoreTextFonts for system fonts stored
-                // as part of TTC files, so on CoreText platforms, create a system font in
-                // WebRender using the LocalFontIdentifier. This has the downside of
-                // causing the font to be loaded into memory again (bummer!), so only do
-                // this for those platforms.
-                #[cfg(target_os = "macos")]
-                if let FontIdentifier::Local(local_font_identifier) = identifier {
-                    compositor_api
-                        .add_system_font(font_key, local_font_identifier.native_font_handle());
-                    return font_key;
-                }
-
-                compositor_api.add_font(
-                    font_key,
-                    font_data.as_ipc_shared_memory(),
-                    identifier.index(),
-                );
+                let FontIdentifier::Local(local_font_identifier) = identifier else {
+                    unreachable!("Should never have a web font in the system font service");
+                };
+                compositor_api
+                    .add_system_font(font_key, local_font_identifier.native_font_handle());
                 font_key
             });
 
@@ -386,7 +343,6 @@ struct FontTemplateCacheKey {
 pub struct SystemFontServiceProxy {
     sender: ReentrantMutex<IpcSender<SystemFontServiceMessage>>,
     templates: RwLock<HashMap<FontTemplateCacheKey, Vec<FontTemplateRef>>>,
-    data_cache: RwLock<HashMap<FontIdentifier, Arc<FontData>>>,
 }
 
 /// A version of `FontStyle` from Stylo that is serializable. Normally this is not
@@ -551,8 +507,7 @@ impl SystemFontServiceProxy {
             ))
             .expect("failed to send message to system font service");
 
-        let reply = response_port.recv();
-        let Ok(reply) = reply else {
+        let Ok(templates) = response_port.recv() else {
             let font_thread_has_closed = self
                 .sender
                 .lock()
@@ -564,20 +519,11 @@ impl SystemFontServiceProxy {
             );
             panic!("SystemFontService has already exited.");
         };
-
-        let templates: Vec<_> = reply
-            .templates
+        templates
             .into_iter()
             .map(AtomicRefCell::new)
             .map(Arc::new)
-            .collect();
-        self.data_cache.write().extend(reply.template_data);
-
-        templates
-    }
-
-    pub(crate) fn get_font_data(&self, identifier: &FontIdentifier) -> Option<Arc<FontData>> {
-        self.data_cache.read().get(identifier).cloned()
+            .collect()
     }
 
     pub(crate) fn generate_font_key(&self) -> FontKey {

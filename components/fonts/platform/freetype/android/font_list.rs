@@ -20,32 +20,10 @@ use style::Atom;
 use super::xml::{Attribute, Node};
 use crate::{
     FallbackFontSelectionOptions, FontIdentifier, FontTemplate, FontTemplateDescriptor,
-    LowercaseFontFamilyName,
+    LocalFontIdentifier, LowercaseFontFamilyName,
 };
 
 static FONT_LIST: LazyLock<FontList> = LazyLock::new(|| FontList::new());
-
-/// An identifier for a local font on Android systems.
-#[derive(Clone, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
-pub struct LocalFontIdentifier {
-    /// The path to the font.
-    pub path: Atom,
-}
-
-impl LocalFontIdentifier {
-    pub(crate) fn index(&self) -> u32 {
-        0
-    }
-
-    pub(crate) fn read_data_from_file(&self) -> Vec<u8> {
-        let mut bytes = Vec::new();
-        File::open(Path::new(&*self.path))
-            .expect("Couldn't open font file!")
-            .read_to_end(&mut bytes)
-            .unwrap();
-        bytes
-    }
-}
 
 // Android doesn't provide an API to query system fonts until Android O:
 // https://developer.android.com/reference/android/text/FontConfig.html
@@ -473,6 +451,7 @@ where
     let mut produce_font = |font: &Font| {
         let local_font_identifier = LocalFontIdentifier {
             path: Atom::from(FontList::font_absolute_path(&font.filename)),
+            variation_index: 0,
         };
         let stretch = StyleFontStretch::NORMAL;
         let weight = font
