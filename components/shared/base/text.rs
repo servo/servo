@@ -12,37 +12,68 @@ pub fn unicode_plane(codepoint: char) -> u32 {
     (codepoint as u32) >> 16
 }
 
+// pub fn is_cjk(codepoint: char) -> bool {
+//     if let Some(block) = codepoint.block() {
+//         match block {
+//             UnicodeBlock::CJKRadicalsSupplement |
+//             UnicodeBlock::KangxiRadicals |
+//             UnicodeBlock::IdeographicDescriptionCharacters |
+//             UnicodeBlock::CJKSymbolsandPunctuation |
+//             UnicodeBlock::Hiragana |
+//             UnicodeBlock::Katakana |
+//             UnicodeBlock::Bopomofo |
+//             UnicodeBlock::HangulCompatibilityJamo |
+//             UnicodeBlock::Kanbun |
+//             UnicodeBlock::BopomofoExtended |
+//             UnicodeBlock::CJKStrokes |
+//             UnicodeBlock::KatakanaPhoneticExtensions |
+//             UnicodeBlock::EnclosedCJKLettersandMonths |
+//             UnicodeBlock::CJKCompatibility |
+//             UnicodeBlock::CJKUnifiedIdeographsExtensionA |
+//             UnicodeBlock::YijingHexagramSymbols |
+//             UnicodeBlock::CJKUnifiedIdeographs |
+//             UnicodeBlock::CJKCompatibilityIdeographs |
+//             UnicodeBlock::CJKCompatibilityForms |
+//             UnicodeBlock::HalfwidthandFullwidthForms => return true,
+//             _ => {},
+//         }
+//     }
+
+//     // https://en.wikipedia.org/wiki/Plane_(Unicode)#Supplementary_Ideographic_Plane
+//     // https://en.wikipedia.org/wiki/Plane_(Unicode)#Tertiary_Ideographic_Plane
+//     unicode_plane(codepoint) == 2 || unicode_plane(codepoint) == 3
+// }
+
 pub fn is_cjk(codepoint: char) -> bool {
-    if let Some(block) = codepoint.block() {
-        match block {
-            UnicodeBlock::CJKRadicalsSupplement |
-            UnicodeBlock::KangxiRadicals |
-            UnicodeBlock::IdeographicDescriptionCharacters |
-            UnicodeBlock::CJKSymbolsandPunctuation |
-            UnicodeBlock::Hiragana |
-            UnicodeBlock::Katakana |
-            UnicodeBlock::Bopomofo |
-            UnicodeBlock::HangulCompatibilityJamo |
-            UnicodeBlock::Kanbun |
-            UnicodeBlock::BopomofoExtended |
-            UnicodeBlock::CJKStrokes |
-            UnicodeBlock::KatakanaPhoneticExtensions |
-            UnicodeBlock::EnclosedCJKLettersandMonths |
-            UnicodeBlock::CJKCompatibility |
-            UnicodeBlock::CJKUnifiedIdeographsExtensionA |
-            UnicodeBlock::YijingHexagramSymbols |
-            UnicodeBlock::CJKUnifiedIdeographs |
-            UnicodeBlock::CJKCompatibilityIdeographs |
-            UnicodeBlock::CJKCompatibilityForms |
-            UnicodeBlock::HalfwidthandFullwidthForms => return true,
-            _ => {},
-        }
+    if let Some(block @
+        UnicodeBlock::CJKRadicalsSupplement |
+        UnicodeBlock::KangxiRadicals |
+        UnicodeBlock::IdeographicDescriptionCharacters |
+        UnicodeBlock::CJKSymbolsandPunctuation |
+        UnicodeBlock::Hiragana |
+        UnicodeBlock::Katakana |
+        UnicodeBlock::Bopomofo |
+        UnicodeBlock::HangulCompatibilityJamo |
+        UnicodeBlock::Kanbun |
+        UnicodeBlock::BopomofoExtended |
+        UnicodeBlock::CJKStrokes |
+        UnicodeBlock::KatakanaPhoneticExtensions |
+        UnicodeBlock::EnclosedCJKLettersandMonths |
+        UnicodeBlock::CJKCompatibility |
+        UnicodeBlock::CJKUnifiedIdeographsExtensionA |
+        UnicodeBlock::YijingHexagramSymbols |
+        UnicodeBlock::CJKUnifiedIdeographs |
+        UnicodeBlock::CJKCompatibilityIdeographs |
+        UnicodeBlock::CJKCompatibilityForms |
+        UnicodeBlock::HalfwidthandFullwidthForms
+    ) = codepoint.block() {
+        return true;
     }
 
-    // https://en.wikipedia.org/wiki/Plane_(Unicode)#Supplementary_Ideographic_Plane
-    // https://en.wikipedia.org/wiki/Plane_(Unicode)#Tertiary_Ideographic_Plane
+    // Check the Unicode planes for additional CJK characters.
     unicode_plane(codepoint) == 2 || unicode_plane(codepoint) == 3
 }
+
 
 #[test]
 fn test_is_cjk() {
