@@ -153,10 +153,18 @@ impl FrameHolder {
     }
 }
 
+#[derive(Clone)]
+pub struct MediaCurrentFrame {
+    pub image_key: ImageKey,
+    pub width: i32,
+    pub height: i32,
+    pub resized: Cell<bool>,
+}
+
 pub struct MediaFrameRenderer {
     player_id: Option<u64>,
     api: WebRenderScriptApi,
-    current_frame: Option<(ImageKey, i32, i32)>,
+    current_frame: Option<MediaCurrentFrame>,
     old_frame: Option<ImageKey>,
     very_old_frame: Option<ImageKey>,
     current_frame_holder: Option<FrameHolder>,
@@ -177,8 +185,13 @@ impl MediaFrameRenderer {
     }
 
     fn render_poster_frame(&mut self, image: Arc<Image>) {
-        if let Some(image_id) = image.id {
-            self.current_frame = Some((image_id, image.width as i32, image.height as i32));
+        if let Some(image_key) = image.id {
+            self.current_frame = Some(MediaCurrentFrame {
+                image_key,
+                width: image.width as i32,
+                height: image.height as i32,
+                resized: Cell::new(true),
+            });
             self.show_poster = true;
         }
     }
@@ -204,13 +217,14 @@ impl VideoFrameRenderer for MediaFrameRenderer {
             ImageDescriptorFlags::empty(),
         );
 
-        match self.current_frame {
-            Some((ref image_key, ref mut width, ref mut height))
-                if *width == frame.get_width() && *height == frame.get_height() =>
+        match &mut self.current_frame {
+            Some(ref mut current_frame)
+                if current_frame.width == frame.get_width() &&
+                    current_frame.height == frame.get_height() =>
             {
                 if !frame.is_gl_texture() {
                     updates.push(ImageUpdate::UpdateImage(
-                        *image_key,
+                        current_frame.image_key,
                         descriptor,
                         ImageData::Raw(frame.get_data()),
                     ));
@@ -224,17 +238,18 @@ impl VideoFrameRenderer for MediaFrameRenderer {
                     updates.push(ImageUpdate::DeleteImage(old_image_key));
                 }
             },
-            Some((ref mut image_key, ref mut width, ref mut height)) => {
-                self.old_frame = Some(*image_key);
+            Some(ref mut current_frame) => {
+                self.old_frame = Some(current_frame.image_key);
 
                 let Some(new_image_key) = self.api.generate_image_key() else {
                     return;
                 };
 
-                /* update current_frame */
-                *image_key = new_image_key;
-                *width = frame.get_width();
-                *height = frame.get_height();
+                // Update current_frame
+                current_frame.image_key = new_image_key;
+                current_frame.width = frame.get_width();
+                current_frame.height = frame.get_height();
+                current_frame.resized.set(true);
 
                 let image_data = if frame.is_gl_texture() && self.player_id.is_some() {
                     let texture_target = if frame.is_external_oes() {
@@ -262,7 +277,13 @@ impl VideoFrameRenderer for MediaFrameRenderer {
                 let Some(image_key) = self.api.generate_image_key() else {
                     return;
                 };
-                self.current_frame = Some((image_key, frame.get_width(), frame.get_height()));
+
+                self.current_frame = Some(MediaCurrentFrame {
+                    image_key,
+                    width: frame.get_width(),
+                    height: frame.get_height(),
+                    resized: Cell::new(true),
+                });
 
                 let image_data = if frame.is_gl_texture() && self.player_id.is_some() {
                     let texture_target = if frame.is_external_oes() {
@@ -1602,6 +1623,14 @@ impl HTMLMediaElement {
             },
             PlayerEvent::VideoFrameUpdated => {
                 self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+
+                // Check if there is a pending onresize event
+                if let Some(ref frame) = self.video_renderer.lock().unwrap().current_frame {
+                    if self.is::<HTMLVideoElement>() && frame.resized.replace(false) {
+                        let video_elem = self.downcast::<HTMLVideoElement>().unwrap();
+                        video_elem.resize(frame.width as u32, frame.height as u32);
+                    }
+                }
             },
             PlayerEvent::MetadataUpdated(ref metadata) => {
                 // https://html.spec.whatwg.org/multipage/#media-data-processing-steps-list
@@ -1741,15 +1770,7 @@ impl HTMLMediaElement {
                 // Step 5.
                 if self.is::<HTMLVideoElement>() {
                     let video_elem = self.downcast::<HTMLVideoElement>().unwrap();
-                    if video_elem.get_video_width() != metadata.width ||
-                        video_elem.get_video_height() != metadata.height
-                    {
-                        video_elem.set_video_width(metadata.width);
-                        video_elem.set_video_height(metadata.height);
-                        let window = window_from_node(self);
-                        let task_source = window.task_manager().media_element_task_source();
-                        task_source.queue_simple_event(self.upcast(), atom!("resize"), &window);
-                    }
+                    video_elem.resize(metadata.width, metadata.height);
                 }
 
                 // Step 6.
@@ -1981,8 +2002,8 @@ impl HTMLMediaElement {
             .map(|holder| holder.get_frame())
     }
 
-    pub fn get_current_frame_data(&self) -> Option<(ImageKey, i32, i32)> {
-        self.video_renderer.lock().unwrap().current_frame
+    pub fn get_current_frame_data(&self) -> Option<MediaCurrentFrame> {
+        self.video_renderer.lock().unwrap().current_frame.clone()
     }
 
     pub fn clear_current_frame(&self) {

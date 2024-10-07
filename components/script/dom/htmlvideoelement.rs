@@ -35,7 +35,7 @@ use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{DomRoot, LayoutDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
-use crate::dom::element::{AttributeMutation, Element, LayoutElementHelpers};
+use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlmediaelement::{HTMLMediaElement, ReadyState};
 use crate::dom::node::{document_from_node, window_from_node, Node};
@@ -102,20 +102,54 @@ impl HTMLVideoElement {
         )
     }
 
-    pub fn get_video_width(&self) -> u32 {
-        self.video_width.get()
-    }
+    pub fn resize(&self, width: u32, height: u32) {
+        if self.video_width.get() == width && self.video_height.get() == height {
+            return;
+        }
 
-    pub fn set_video_width(&self, width: u32) {
         self.video_width.set(width);
-    }
-
-    pub fn get_video_height(&self) -> u32 {
-        self.video_height.get()
-    }
-
-    pub fn set_video_height(&self, height: u32) {
         self.video_height.set(height);
+
+        let window = window_from_node(self);
+        let task_source = window.task_manager().media_element_task_source();
+        task_source.queue_simple_event(self.upcast(), atom!("resize"), &window);
+    }
+
+    fn get_length(&self, name: &LocalName) -> Option<u32> {
+        self.upcast::<Element>()
+            .get_attribute(&ns!(), name)
+            .and_then(|attr| {
+                let LengthOrPercentageOrAuto::Length(len) = parse_length(&attr.value()) else {
+                    return None;
+                };
+                Some(len.to_px() as u32)
+            })
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#concept-video-intrinsic-width>
+    fn set_intrinsic_size(&self) {
+        let named_width = self.get_length(&local_name!("width"));
+        let named_height = self.get_length(&local_name!("height"));
+
+        // Default width is twice the height
+        let width = if let Some(x) = named_width {
+            x
+        } else if let Some(x) = named_height {
+            x * 2
+        } else {
+            DEFAULT_WIDTH
+        };
+
+        // Default height is half the width
+        let height = if let Some(x) = named_height {
+            x
+        } else if let Some(x) = named_width {
+            x / 2
+        } else {
+            DEFAULT_HEIGHT
+        };
+
+        self.resize(width, height);
     }
 
     pub fn get_current_frame_data(&self) -> Option<(Option<ipc::IpcSharedMemory>, Size2D<u32>)> {
@@ -289,14 +323,22 @@ impl VirtualMethods for HTMLVideoElement {
                         self.fetch_poster_frame(&new_value, CanGc::note())
                     }
                 },
-                AttributeMutation::Removed => self.htmlmediaelement.clear_current_frame(),
+                AttributeMutation::Removed => {
+                    self.set_intrinsic_size();
+                    self.htmlmediaelement.clear_current_frame();
+                },
             },
             local_name!("src") => {
                 if matches!(mutation, AttributeMutation::Removed) {
-                    self.set_video_width(DEFAULT_WIDTH);
-                    self.set_video_height(DEFAULT_HEIGHT);
+                    self.set_intrinsic_size();
                     self.htmlmediaelement.clear_current_frame();
                 }
+            },
+            local_name!("width") => {
+                self.set_intrinsic_size();
+            },
+            local_name!("height") => {
+                self.set_intrinsic_size();
             },
             _ => (),
         };
@@ -434,64 +476,24 @@ impl PosterFrameFetchContext {
 
 pub trait LayoutHTMLVideoElementHelpers {
     fn data(self) -> HTMLMediaData;
-    fn get_width(self) -> Option<u32>;
-    fn get_height(self) -> Option<u32>;
 }
 
 impl LayoutHTMLVideoElementHelpers for LayoutDom<'_, HTMLVideoElement> {
-    fn get_width(self) -> Option<u32> {
-        match self
-            .upcast::<Element>()
-            .get_attr_for_layout(&ns!(), &local_name!("width"))
-        {
-            Some(x) => match parse_length(x) {
-                LengthOrPercentageOrAuto::Length(x) => Some(x.to_px() as u32),
-                _ => None,
-            },
-            None => None,
-        }
-    }
-
-    fn get_height(self) -> Option<u32> {
-        match self
-            .upcast::<Element>()
-            .get_attr_for_layout(&ns!(), &local_name!("height"))
-        {
-            Some(x) => match parse_length(x) {
-                LengthOrPercentageOrAuto::Length(x) => Some(x.to_px() as u32),
-                _ => None,
-            },
-            None => None,
-        }
-    }
-
     fn data(self) -> HTMLMediaData {
         let video = self.unsafe_get();
-        let current_frame = video.htmlmediaelement.get_current_frame_data();
-        let current_frame = current_frame.as_ref();
 
-        // Default size is 300x150
-        let named_width = self.get_width();
-        let named_height = self.get_height();
-
-        // Default height is half the width
-        if let Some(x) = named_height {
-            video.set_video_height(x);
-        } else if let Some(x) = named_width {
-            video.set_video_height(x / 2);
-        };
-
-        // Default width is twice the height
-        if let Some(x) = named_width {
-            video.set_video_width(x);
-        } else if let Some(x) = named_height {
-            video.set_video_width(x * 2);
-        };
+        if let Some(frame) = video.htmlmediaelement.get_current_frame_data() {
+            return HTMLMediaData {
+                current_frame: Some(frame.image_key),
+                width: frame.width,
+                height: frame.height,
+            };
+        }
 
         HTMLMediaData {
-            current_frame: current_frame.map(|frame| frame.0),
-            width: current_frame.map_or(video.get_video_width() as i32, |frame| frame.1),
-            height: current_frame.map_or(video.get_video_height() as i32, |frame| frame.2),
+            current_frame: None,
+            width: video.video_width.get() as i32,
+            height: video.video_height.get() as i32,
         }
     }
 }
