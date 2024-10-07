@@ -185,18 +185,16 @@ impl StyleRuleActor {
             css_text: "".into(), // TODO: Specify the css text
             declarations: style
                 .into_iter()
-                .filter_map(|decl| {
-                    Some(AppliedDeclaration {
-                        colon_offsets: vec![],
-                        is_name_valid: true,
-                        is_used: IsUsed { used: true },
-                        is_valid: true,
-                        name: decl.name,
-                        offsets: vec![], // TODO: Get the source of the declaration
-                        priority: decl.priority,
-                        terminator: "".into(),
-                        value: decl.value,
-                    })
+                .map(|decl| AppliedDeclaration {
+                    colon_offsets: vec![],
+                    is_name_valid: true,
+                    is_used: IsUsed { used: true },
+                    is_valid: true,
+                    name: decl.name,
+                    offsets: vec![],
+                    priority: decl.priority,
+                    terminator: "".into(),
+                    value: decl.value,
                 })
                 .collect(),
             href: node.base_uri.clone(),
