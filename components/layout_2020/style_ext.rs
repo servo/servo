@@ -245,9 +245,11 @@ pub(crate) trait ComputedValuesExt {
         &self,
         containing_block: &IndefiniteContainingBlock,
     ) -> (
-        LogicalVec2<Size<Au>>,
-        LogicalVec2<Size<Au>>,
-        LogicalVec2<Size<Au>>,
+            (
+            LogicalVec2<Size<Au>>,
+            LogicalVec2<Size<Au>>,
+            LogicalVec2<Size<Au>>,
+            ),
         PaddingBorderMargin,
     );
     fn content_box_sizes_and_padding_border_margin_deprecated(
@@ -495,10 +497,12 @@ impl ComputedValuesExt for ComputedValues {
         &self,
         containing_block: &IndefiniteContainingBlock,
     ) -> (
-        LogicalVec2<Size<Au>>,
-        LogicalVec2<Size<Au>>,
-        LogicalVec2<Size<Au>>,
-        PaddingBorderMargin,
+            (
+                LogicalVec2<Size<Au>>,
+                LogicalVec2<Size<Au>>,
+                LogicalVec2<Size<Au>>
+            ),
+            PaddingBorderMargin,
     ) {
         // <https://drafts.csswg.org/css-sizing-3/#cyclic-percentage-contribution>
         // If max size properties or preferred size properties are set to a value containing
@@ -531,7 +535,7 @@ impl ComputedValuesExt for ComputedValues {
         let content_max_size = self
             .content_max_box_size_for_max_size(max_size, &pbm)
             .map(|v| v.map(Au::from));
-        (content_box_size, content_min_size, content_max_size, pbm)
+        ((content_box_size, content_min_size, content_max_size), pbm)
     }
 
     fn content_box_sizes_and_padding_border_margin_deprecated(
