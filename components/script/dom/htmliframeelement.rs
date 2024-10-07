@@ -351,7 +351,7 @@ impl HTMLIFrameElement {
         } else {
             HistoryEntryReplacement::Disabled
         };
-        self.navigate_or_reload_child_browsing_context(load_data, replace, CanGc::note());
+        self.navigate_or_reload_child_browsing_context(load_data, replace, can_gc);
     }
 
     fn create_nested_browsing_context(&self, can_gc: CanGc) {
