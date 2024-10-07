@@ -414,6 +414,22 @@ class MachCommands(CommandBase):
     def test_speedometer(self, servo_binary: str, bmf_output: str | None = None):
         return self.speedometer_runner(servo_binary, bmf_output)
 
+    @Command('test-size', description="Prints servo's size", category='testing')
+    @CommandArgument('--bmf-output', default=None, help="Specify BMF JSON output file")
+    @CommandBase.common_command_arguments(binary_selection=True)
+    def test_size(self, servo_binary: str, bmf_output: str | None = None):
+        size = os.path.getsize(servo_binary)
+        print(size)
+        if bmf_output:
+            with open(bmf_output, 'w', encoding='utf-8') as f:
+                json.dump({
+                    'servo': {
+                        'file-size': {
+                            'value': float(size),
+                        }
+                    }
+                }, f, indent=4)
+
     @Command('update-jquery',
              description='Update the jQuery test suite expected results',
              category='testing')
@@ -538,13 +554,25 @@ class MachCommands(CommandBase):
             output = dict()
 
             def parse_speedometer_result(result):
-                output[f"Speedometer/{result['name']}"] = {
-                    'latency': {  # speedometer has ms we need to convert to ns
-                        'value': float(result['mean']) * 1000.0,
-                        'lower_value': float(result['min']) * 1000.0,
-                        'upper_value': float(result['max']) * 1000.0,
+                if result['unit'] == "ms":
+                    output[f"Speedometer/{result['name']}"] = {
+                        'latency': {  # speedometer has ms we need to convert to ns
+                            'value': float(result['mean']) * 1000.0,
+                            'lower_value': float(result['min']) * 1000.0,
+                            'upper_value': float(result['max']) * 1000.0,
+                        }
                     }
-                }
+                elif result['unit'] == "score":
+                    output[f"Speedometer/{result['name']}"] = {
+                        'score': {
+                            'value': float(result['mean']),
+                            'lower_value': float(result['min']),
+                            'upper_value': float(result['max']),
+                        }
+                    }
+                else:
+                    raise "Unknown unit!"
+
                 for child in result['children']:
                     parse_speedometer_result(child)
 

@@ -14,6 +14,7 @@ import subprocess
 import sys
 import tempfile
 import urllib
+import json
 
 from mach.decorators import (
     CommandArgument,
@@ -270,3 +271,18 @@ class MachCommands(CommandBase):
             "--verbose",
         ], env=env)
         return p.wait()
+
+    @Command('merge-bencher-reports', description='Merges BMF JSONs', category='devenv')
+    @CommandArgument('inputs', default=[], nargs="...", help="BMF JSON files to merge")
+    @CommandArgument('--bmf-output', help="Specify BMF JSON output file")
+    def merge_bencher_reports(self, inputs: list[str], bmf_output: str):
+        output: dict[str, object] = dict()
+        for input_file in inputs:
+            with open(input_file, 'r', encoding='utf-8') as f:
+                output = json.load(f) | output
+
+        if bmf_output:
+            with open(bmf_output, 'w', encoding='utf-8') as f:
+                json.dump(output, f, indent=4)
+        else:
+            print(json.dumps(output, indent=4))

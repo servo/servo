@@ -17,6 +17,9 @@ on:
       unit-tests:
         required: true
         type: boolean
+      bencher:
+        required: true
+        type: boolean
 
 jobs:
   win:
@@ -49,6 +52,7 @@ jobs:
       wpt-layout: ${{ inputs.wpt-layout }}
       unit-tests: ${{ inputs.unit-tests }}
       wpt-args: ${{ inputs.wpt-args }}
+      bencher: ${{ inputs.bencher }}
 
   lint:
     if: ${{ inputs.workflow == 'lint' }}

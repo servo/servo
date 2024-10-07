@@ -28,6 +28,10 @@ on:
       github-release-id:
         required: false
         type: string
+      bencher:
+        required: false
+        default: false
+        type: boolean
   workflow_dispatch:
     inputs:
       profile:
@@ -52,6 +56,10 @@ on:
         default: false
         type: boolean
       upload:
+        required: false
+        default: false
+        type: boolean
+      bencher:
         required: false
         default: false
         type: boolean
@@ -210,4 +218,11 @@ jobs:
       profile: ${{ inputs.profile }}
       wpt-sync-from-upstream: ${{ inputs.wpt-sync-from-upstream }}
       wpt-layout: "layout-2013"
+    secrets: inherit
+
+  bencher:
+    needs: ["build"]
+    # benches must be release (we will do benches for production profile in servo/servo-nightly-builds)
+    if: ${{ inputs.bencher && inputs.profile == 'release' && github.event_name != 'workflow_dispatch' && github.event_name != 'merge_queue' }}
+    uses: ./.github/workflows/linux-bencher.yml
     secrets: inherit
