@@ -1801,7 +1801,7 @@ dependencies = [
  "bytemuck",
  "egui",
  "egui-winit",
- "glow 0.14.1",
+ "glow",
  "log",
  "memoffset",
  "wasm-bindgen",
@@ -2549,18 +2549,6 @@ name = "glob"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d2fabcfbdc87f4758337ca535fb41a6d701b65693ce38287d856d1674551ec9b"
-
-[[package]]
-name = "glow"
-version = "0.13.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bd348e04c43b32574f2de31c8bb397d96c9fcfa1371bd4ca6d8bdc464ab121b1"
-dependencies = [
- "js-sys",
- "slotmap",
- "wasm-bindgen",
- "web-sys",
-]
 
 [[package]]
 name = "glow"
@@ -6760,7 +6748,7 @@ dependencies = [
  "gilrs",
  "gl_generator",
  "gleam",
- "glow 0.13.1",
+ "glow",
  "headers",
  "hilog",
  "hitrace",
@@ -8576,7 +8564,7 @@ dependencies = [
  "block",
  "cfg_aliases 0.1.1",
  "core-graphics-types",
- "glow 0.14.1",
+ "glow",
  "glutin_wgl_sys",
  "gpu-alloc",
  "gpu-allocator",
