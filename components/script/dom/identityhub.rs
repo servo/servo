@@ -38,12 +38,6 @@ pub struct IdentityHub {
 
 impl Default for IdentityHub {
     fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl IdentityHub {
-    pub fn new() -> Self {
         IdentityHub {
             adapters: IdentityManager::new(),
             devices: IdentityManager::new(),
