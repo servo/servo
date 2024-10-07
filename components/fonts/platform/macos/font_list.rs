@@ -3,12 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::fs::File;
-use std::io::Read;
 use std::path::Path;
 
 use base::text::{unicode_plane, UnicodeBlock, UnicodeBlockMethod};
 use log::debug;
 use malloc_size_of_derive::MallocSizeOf;
+use memmap2::Mmap;
 use serde::{Deserialize, Serialize};
 use style::values::computed::font::GenericFontFamily;
 use style::Atom;
@@ -43,13 +43,16 @@ impl LocalFontIdentifier {
         0
     }
 
-    pub(crate) fn read_data_from_file(&self) -> Vec<u8> {
-        let mut bytes = Vec::new();
-        File::open(Path::new(&*self.path))
-            .expect("Couldn't open font file!")
-            .read_to_end(&mut bytes)
-            .unwrap();
-        bytes
+    pub(crate) fn read_data_from_file(&self) -> Option<Vec<u8>> {
+        // TODO: This is incorrect, if the font file is a TTC (collection) with more than
+        // one font. In that case we either need to reconstruct the pertinent tables into
+        // a bundle of font data (expensive) or make sure that the value returned by
+        // `index()` above is correct. The latter is potentially tricky as macOS might not
+        // do an accurate mapping between the PostScript name that it gives us and what is
+        // listed in the font.
+        let file = File::open(Path::new(&*self.path)).ok()?;
+        let mmap = unsafe { Mmap::map(&file).ok()? };
+        Some((&mmap[..]).to_vec())
     }
 }
 

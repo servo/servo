@@ -20,13 +20,15 @@ use style::values::computed::{FontStretch, FontStyle, FontWeight};
 use unicode_script::Script;
 
 fn make_font(path: PathBuf) -> Font {
-    let identifier = FontIdentifier::Web(ServoUrl::from_file_path(path.clone()).unwrap());
-    let file = File::open(path).unwrap();
-    let data = Arc::new(FontData::from_bytes(
-        file.bytes().map(Result::unwrap).collect(),
-    ));
-    let platform_font =
-        PlatformFont::new_from_data(identifier.clone(), data.as_arc().clone(), 0, None).unwrap();
+    let mut bytes = Vec::new();
+    File::open(path.clone())
+        .expect("Couldn't open font file!")
+        .read_to_end(&mut bytes)
+        .unwrap();
+    let data = FontData::from_bytes(&bytes);
+
+    let identifier = FontIdentifier::Web(ServoUrl::from_file_path(path).unwrap());
+    let platform_font = PlatformFont::new_from_data(identifier.clone(), &data, None).unwrap();
 
     let template = FontTemplate {
         identifier,
@@ -43,7 +45,7 @@ fn make_font(path: PathBuf) -> Font {
     Font::new(
         Arc::new(atomic_refcell::AtomicRefCell::new(template)),
         descriptor,
-        data,
+        Some(data),
         None,
     )
     .unwrap()

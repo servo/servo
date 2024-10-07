@@ -2,14 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::collections::{HashMap, HashSet};
-use std::sync::{Arc, OnceLock};
+use std::collections::HashMap;
+use std::sync::Arc;
 
 use atomic_refcell::AtomicRefCell;
-use ipc_channel::ipc::IpcSharedMemory;
 use log::warn;
 use parking_lot::RwLock;
-use serde::{Deserialize, Serialize};
 use style::stylesheets::DocumentStyleSheet;
 use style::values::computed::{FontStyle, FontWeight};
 
@@ -18,52 +16,10 @@ use crate::font_context::WebFontDownloadState;
 use crate::font_template::{FontTemplate, FontTemplateRef, FontTemplateRefMethods, IsOblique};
 use crate::system_font_service::{FontIdentifier, LowercaseFontFamilyName};
 
-/// A data structure to store data for fonts. If sent across IPC channels and only a
-/// [`IpcSharedMemory`] handle is sent, avoiding the overhead of serialization and
-/// deserialization. In addition, if a shared handle to data is requested
-/// (`Arc<Vec<u8>>`), the data is lazily copied out of shared memory once per
-/// [`FontData`].
-#[derive(Debug, Deserialize, Serialize)]
-pub struct FontData {
-    /// The data of this font in shared memory. Suitable for sending across IPC channels.
-    shared_memory: Arc<IpcSharedMemory>,
-    /// A lazily-initialized copy of the data behind an [`Arc`] which can be used when
-    /// passing it to various APIs.
-    #[serde(skip)]
-    arc: OnceLock<Arc<Vec<u8>>>,
-}
-
-impl FontData {
-    pub fn from_bytes(data: Vec<u8>) -> FontData {
-        FontData {
-            shared_memory: Arc::new(IpcSharedMemory::from_bytes(&data)),
-            arc: Arc::new(data).into(),
-        }
-    }
-
-    /// Return a non-shared memory `Arc` view of this data. This may copy the data once
-    /// per [`FontData`], but subsequent calls will return the same shared view.
-    pub fn as_arc(&self) -> &Arc<Vec<u8>> {
-        self.arc
-            .get_or_init(|| Arc::new((**self.shared_memory).into()))
-    }
-
-    /// Return a the [`IpcSharedMemory`] view of this data suitable for sending directly across
-    /// an IPC channel if necessary. An `Arc` is returned to avoid the overhead of copying the
-    /// platform-specific shared memory handle.
-    pub(crate) fn as_ipc_shared_memory(&self) -> Arc<IpcSharedMemory> {
-        self.shared_memory.clone()
-    }
-}
-
 #[derive(Default)]
 pub struct FontStore {
     pub(crate) families: HashMap<LowercaseFontFamilyName, FontTemplates>,
     web_fonts_loading: Vec<(DocumentStyleSheet, usize)>,
-    /// The data for each [`FontIdentifier`]. This data might be used by
-    /// more than one [`FontTemplate`] as each identifier refers to a URL
-    /// or font that can contain more than a single font.
-    font_data: HashMap<FontIdentifier, Arc<FontData>>,
 }
 pub(crate) type CrossThreadFontStore = Arc<RwLock<FontStore>>;
 
@@ -120,66 +76,26 @@ impl FontStore {
     /// Handle a web font load finishing, adding the new font to the [`FontStore`]. If the web font
     /// load was canceled (for instance, if the stylesheet was removed), then do nothing and return
     /// false.
-    ///
-    /// In addition pass newly loaded data for this font. Add this data the cached [`FontData`] store
-    /// inside this [`FontStore`].
     pub(crate) fn handle_web_font_loaded(
         &mut self,
         state: &WebFontDownloadState,
         new_template: FontTemplate,
-        data: Arc<FontData>,
     ) -> bool {
         // Abort processing this web font if the originating stylesheet was removed.
         if self.font_load_cancelled_for_stylesheet(&state.stylesheet) {
             return false;
         }
         let family_name = state.css_font_face_descriptors.family_name.clone();
-        self.add_template_and_data(family_name, new_template, data);
-        self.remove_one_web_font_loading_for_stylesheet(&state.stylesheet);
-        true
-    }
-
-    pub(crate) fn add_template_and_data(
-        &mut self,
-        family_name: LowercaseFontFamilyName,
-        new_template: FontTemplate,
-        data: Arc<FontData>,
-    ) {
-        self.font_data.insert(new_template.identifier.clone(), data);
         self.families
             .entry(family_name)
             .or_default()
             .add_template(new_template);
+        self.remove_one_web_font_loading_for_stylesheet(&state.stylesheet);
+        true
     }
 
     pub(crate) fn number_of_fonts_still_loading(&self) -> usize {
         self.web_fonts_loading.iter().map(|(_, count)| count).sum()
-    }
-
-    pub(crate) fn get_or_initialize_font_data(
-        &mut self,
-        identifier: &FontIdentifier,
-    ) -> &Arc<FontData> {
-        self.font_data
-            .entry(identifier.clone())
-            .or_insert_with(|| match identifier {
-                FontIdentifier::Local(local_identifier) => {
-                    Arc::new(FontData::from_bytes(local_identifier.read_data_from_file()))
-                },
-                _ => unreachable!("Web and mock fonts should always have data."),
-            })
-    }
-
-    pub(crate) fn get_font_data(&self, identifier: &FontIdentifier) -> Option<Arc<FontData>> {
-        self.font_data.get(identifier).cloned()
-    }
-
-    pub(crate) fn remove_all_font_data_for_identifiers(
-        &mut self,
-        identifiers: &HashSet<FontIdentifier>,
-    ) {
-        self.font_data
-            .retain(|font_identifier, _| identifiers.contains(font_identifier));
     }
 }
 
