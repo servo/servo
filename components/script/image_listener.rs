@@ -23,7 +23,6 @@ pub fn generate_cache_listener_for_element<
     T: ImageCacheListener + DerivedFrom<Node> + DomObject,
 >(
     elem: &T,
-    can_gc: CanGc,
 ) -> IpcSender<PendingImageResponse> {
     let trusted_node = Trusted::new(elem);
     let (responder_sender, responder_receiver) = ipc::channel().unwrap();
@@ -44,7 +43,7 @@ pub fn generate_cache_listener_for_element<
                     let element = element.root();
                     // Ignore any image response for a previous request that has been discarded.
                     if generation == element.generation_id() {
-                        element.process_image_response(image, can_gc);
+                        element.process_image_response(image, CanGc::note());
                     }
                 }),
                 &canceller,

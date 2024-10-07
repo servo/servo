@@ -159,7 +159,7 @@ impl HTMLVideoElement {
         // network activity as possible.
         let window = window_from_node(self);
         let image_cache = window.image_cache();
-        let sender = generate_cache_listener_for_element(self, can_gc);
+        let sender = generate_cache_listener_for_element(self);
         let cache_result = image_cache.track_image(
             poster_url.clone(),
             window.origin().immutable().clone(),
