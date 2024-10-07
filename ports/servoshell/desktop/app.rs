@@ -101,7 +101,7 @@ impl App {
             minibrowser: None,
         };
 
-        if opts::get().minibrowser && window.winit_window().is_some() {
+        if window.winit_window().is_some() {
             // Make sure the gl context is made current.
             let rendering_context = window.rendering_context();
             let webrender_gl = match rendering_context.connection().gl_api() {
