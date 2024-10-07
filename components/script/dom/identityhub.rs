@@ -36,12 +36,6 @@ pub struct IdentityHub {
     render_passes: IdentityManager<RenderPass>,
 }
 
-impl Default for IdentityHub {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl IdentityHub {
     pub fn new() -> Self {
         IdentityHub {
