@@ -191,7 +191,7 @@ impl StyleRuleActor {
                     is_used: IsUsed { used: true },
                     is_valid: true,
                     name: decl.name,
-                    offsets: vec![],
+                    offsets: vec![], // TODO: Get the source of the declaration
                     priority: decl.priority,
                     terminator: "".into(),
                     value: decl.value,
