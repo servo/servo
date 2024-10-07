@@ -33,7 +33,7 @@ use crate::script_runtime::{CanGc, ContextForRequestInterrupt};
 
 enum Message {
     FromResource(CustomResponseMediator),
-    FromConstellation(ServiceWorkerMsg),
+    FromConstellation(Box<ServiceWorkerMsg>),
 }
 
 /// <https://w3c.github.io/ServiceWorker/#dfn-service-worker>
@@ -254,7 +254,7 @@ impl ServiceWorkerManager {
         while let Ok(message) = self.receive_message() {
             let should_continue = match message {
                 Message::FromConstellation(msg) => {
-                    self.handle_message_from_constellation(msg, can_gc)
+                    self.handle_message_from_constellation(*msg, can_gc)
                 },
                 Message::FromResource(msg) => self.handle_message_from_resource(msg),
             };
@@ -285,7 +285,7 @@ impl ServiceWorkerManager {
 
     fn receive_message(&mut self) -> Result<Message, RecvError> {
         select! {
-            recv(self.own_port) -> msg => msg.map(Message::FromConstellation),
+            recv(self.own_port) -> msg => msg.map(|m| Message::FromConstellation(Box::new(m))),
             recv(self.resource_receiver) -> msg => msg.map(Message::FromResource),
         }
     }
