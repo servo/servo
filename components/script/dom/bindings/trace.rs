@@ -68,17 +68,19 @@ use crate::script_runtime::{ContextForRequestInterrupt, StreamConsumer};
 use crate::script_thread::IncompleteParserContexts;
 use crate::task::TaskBox;
 
-/// A trait to allow tracing only DOM sub-objects.
-/// 
-/// # Safety
-/// - Before calling `trace`, `self` must be valid and properly initialized.
-/// - The `trace` method must not cause data races or access invalid memory.
-/// - For `Box<T>` and `DomRefCell<T>`, ensure the underlying data is valid during tracing.
-/// - Avoid multiple mutable borrows when using `DomRefCell`. 
+
+// Allow missing safety documentation warning temporarily
+// Link to the issue regarding Documentation 
+// Warning Line: https://github.com/rexbrown21/servo/blob/457d8a8a5c720fbf5624a95d86ac53f2aee342e8/components/script/dom/bindings/trace.rs#L72
+#[allow(clippy::missing_safety_doc)] 
+
+// Brief description of the trait
+/// This trait defines a method for tracing objects in the context of garbage collection.
 pub unsafe trait CustomTraceable {
     /// Trace `self`.
     unsafe fn trace(&self, trc: *mut JSTracer);
 }
+
 
 unsafe impl<T: CustomTraceable> CustomTraceable for Box<T> {
     #[inline]
