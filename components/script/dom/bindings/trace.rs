@@ -69,6 +69,12 @@ use crate::script_thread::IncompleteParserContexts;
 use crate::task::TaskBox;
 
 /// A trait to allow tracing only DOM sub-objects.
+/// 
+/// # Safety
+/// - Before calling `trace`, `self` must be valid and properly initialized.
+/// - The `trace` method must not cause data races or access invalid memory.
+/// - For `Box<T>` and `DomRefCell<T>`, ensure the underlying data is valid during tracing.
+/// - Avoid multiple mutable borrows when using `DomRefCell`. 
 pub unsafe trait CustomTraceable {
     /// Trace `self`.
     unsafe fn trace(&self, trc: *mut JSTracer);
