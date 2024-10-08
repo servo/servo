@@ -53,6 +53,7 @@ impl InputEvent {
 }
 
 impl InputEventMethods for InputEvent {
+    // https://w3c.github.io/uievents/#dom-inputevent-inputevent
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,

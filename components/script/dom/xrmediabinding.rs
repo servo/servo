@@ -48,6 +48,7 @@ impl XRMediaBinding {
 }
 
 impl XRMediaBindingMethods for XRMediaBinding {
+    /// <https://immersive-web.github.io/layers/#dom-xrmediabinding-xrmediabinding>
     fn Constructor(
         global: &Window,
         proto: Option<HandleObject>,

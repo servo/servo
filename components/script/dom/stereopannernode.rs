@@ -101,6 +101,7 @@ impl StereoPannerNode {
 }
 
 impl StereoPannerNodeMethods for StereoPannerNode {
+    // https://webaudio.github.io/web-audio-api/#dom-stereopannernode-stereopannernode
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,

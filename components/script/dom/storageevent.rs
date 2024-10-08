@@ -130,6 +130,7 @@ impl StorageEvent {
 
 #[allow(non_snake_case)]
 impl StorageEventMethods for StorageEvent {
+    // https://html.spec.whatwg.org/multipage/#storageevent
     fn Constructor(
         global: &Window,
         proto: Option<HandleObject>,

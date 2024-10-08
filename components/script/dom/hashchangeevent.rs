@@ -97,6 +97,7 @@ impl HashChangeEvent {
 }
 
 impl HashChangeEventMethods for HashChangeEvent {
+    // https://html.spec.whatwg.org/multipage/#hashchangeevent
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,

@@ -84,6 +84,7 @@ impl ChannelMergerNode {
 }
 
 impl ChannelMergerNodeMethods for ChannelMergerNode {
+    /// <https://webaudio.github.io/web-audio-api/#dom-channelmergernode-channelmergernode>
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,

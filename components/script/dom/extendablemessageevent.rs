@@ -157,6 +157,7 @@ impl ExtendableMessageEvent {
 }
 
 impl ExtendableMessageEventMethods for ExtendableMessageEvent {
+    /// <https://w3c.github.io/ServiceWorker/#dom-extendablemessageevent-extendablemessageevent>
     fn Constructor(
         worker: &ServiceWorkerGlobalScope,
         proto: Option<HandleObject>,
@@ -180,22 +181,22 @@ impl ExtendableMessageEventMethods for ExtendableMessageEvent {
         Ok(ev)
     }
 
-    // https://w3c.github.io/ServiceWorker/#extendablemessage-event-data-attribute
+    /// <https://w3c.github.io/ServiceWorker/#dom-extendablemessageevent-data>
     fn Data(&self, _cx: JSContext) -> JSVal {
         self.data.get()
     }
 
-    // https://w3c.github.io/ServiceWorker/#extendablemessage-event-origin-attribute
+    /// <https://w3c.github.io/ServiceWorker/#dom-extendablemessageevent-origin>
     fn Origin(&self) -> DOMString {
         self.origin.clone()
     }
 
-    // https://w3c.github.io/ServiceWorker/#extendablemessage-event-lasteventid-attribute
+    /// <https://w3c.github.io/ServiceWorker/#dom-extendablemessageevent-lasteventid>
     fn LastEventId(&self) -> DOMString {
         self.lastEventId.clone()
     }
 
-    // https://dom.spec.whatwg.org/#dom-event-istrusted
+    /// <https://dom.spec.whatwg.org/#dom-event-istrusted>
     fn IsTrusted(&self) -> bool {
         self.event.IsTrusted()
     }

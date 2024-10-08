@@ -154,6 +154,7 @@ impl DOMException {
 }
 
 impl DOMExceptionMethods for DOMException {
+    // https://webidl.spec.whatwg.org/#dom-domexception-domexception
     fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
@@ -169,7 +170,7 @@ impl DOMExceptionMethods for DOMException {
         ))
     }
 
-    // https://heycam.github.io/webidl/#dom-domexception-code
+    // https://webidl.spec.whatwg.org/#dom-domexception-code
     fn Code(&self) -> u16 {
         match DOMErrorName::from(&self.name) {
             Some(code) if code <= DOMErrorName::DataCloneError => code as u16,
@@ -177,12 +178,12 @@ impl DOMExceptionMethods for DOMException {
         }
     }
 
-    // https://heycam.github.io/webidl/#idl-DOMException-error-names
+    // https://webidl.spec.whatwg.org/#dom-domexception-name
     fn Name(&self) -> DOMString {
         self.name.clone()
     }
 
-    // https://heycam.github.io/webidl/#error-names
+    // https://webidl.spec.whatwg.org/#dom-domexception-message
     fn Message(&self) -> DOMString {
         self.message.clone()
     }

@@ -52,6 +52,7 @@ impl VTTRegion {
 }
 
 impl VTTRegionMethods for VTTRegion {
+    // https://w3c.github.io/webvtt/#dom-vttregion-vttregion
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,

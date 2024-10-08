@@ -99,6 +99,7 @@ impl OfflineAudioContext {
 }
 
 impl OfflineAudioContextMethods for OfflineAudioContext {
+    // https://webaudio.github.io/web-audio-api/#dom-offlineaudiocontext-offlineaudiocontext
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
@@ -115,6 +116,7 @@ impl OfflineAudioContextMethods for OfflineAudioContext {
         )
     }
 
+    // https://webaudio.github.io/web-audio-api/#dom-offlineaudiocontext-offlineaudiocontext-numberofchannels-length-samplerate
     fn Constructor_(
         window: &Window,
         proto: Option<HandleObject>,

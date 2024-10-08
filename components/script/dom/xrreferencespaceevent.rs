@@ -88,6 +88,7 @@ impl XRReferenceSpaceEvent {
 }
 
 impl XRReferenceSpaceEventMethods for XRReferenceSpaceEvent {
+    /// <https://www.w3.org/TR/webxr/#dom-xrreferencespaceevent-xrreferencespaceevent>
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,

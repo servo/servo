@@ -95,6 +95,7 @@ impl PromiseRejectionEvent {
 }
 
 impl PromiseRejectionEventMethods for PromiseRejectionEvent {
+    // https://html.spec.whatwg.org/multipage/#promiserejectionevent
     fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,

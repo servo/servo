@@ -95,6 +95,7 @@ impl FocusEvent {
 }
 
 impl FocusEventMethods for FocusEvent {
+    // https://w3c.github.io/uievents/#dom-focusevent-focusevent
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,

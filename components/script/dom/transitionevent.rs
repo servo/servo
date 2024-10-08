@@ -69,6 +69,7 @@ impl TransitionEvent {
 }
 
 impl TransitionEventMethods for TransitionEvent {
+    // https://drafts.csswg.org/css-transitions/#dom-transitionevent-transitionevent
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,

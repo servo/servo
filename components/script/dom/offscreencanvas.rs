@@ -139,6 +139,7 @@ impl OffscreenCanvas {
 }
 
 impl OffscreenCanvasMethods for OffscreenCanvas {
+    // https://html.spec.whatwg.org/multipage/#dom-offscreencanvas
     fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,

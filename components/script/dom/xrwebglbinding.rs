@@ -62,6 +62,7 @@ impl XRWebGLBinding {
 }
 
 impl XRWebGLBindingMethods for XRWebGLBinding {
+    /// <https://immersive-web.github.io/layers/#dom-xrwebglbinding-xrwebglbinding>
     fn Constructor(
         global: &Window,
         proto: Option<HandleObject>,

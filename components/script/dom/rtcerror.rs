@@ -64,6 +64,7 @@ impl RTCError {
 }
 
 impl RTCErrorMethods for RTCError {
+    // https://www.w3.org/TR/webrtc/#dom-rtcerror-constructor
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,

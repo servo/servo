@@ -123,6 +123,7 @@ impl AudioBufferSourceNode {
 }
 
 impl AudioBufferSourceNodeMethods for AudioBufferSourceNode {
+    // https://webaudio.github.io/web-audio-api/#dom-audiobuffersourcenode-audiobuffersourcenode
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,

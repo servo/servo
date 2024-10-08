@@ -101,6 +101,7 @@ impl TrackEvent {
 }
 
 impl TrackEventMethods for TrackEvent {
+    // https://html.spec.whatwg.org/multipage/#trackevent
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,

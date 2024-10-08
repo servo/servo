@@ -79,6 +79,7 @@ impl VTTCue {
 }
 
 impl VTTCueMethods for VTTCue {
+    // https://w3c.github.io/webvtt/#dom-vttcue-vttcue
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,

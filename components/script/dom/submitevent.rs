@@ -76,6 +76,7 @@ impl SubmitEvent {
 }
 
 impl SubmitEventMethods for SubmitEvent {
+    /// <https://html.spec.whatwg.org/multipage/#submitevent>
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,

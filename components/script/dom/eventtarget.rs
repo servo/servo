@@ -748,6 +748,7 @@ impl EventTarget {
 }
 
 impl EventTargetMethods for EventTarget {
+    // https://dom.spec.whatwg.org/#dom-eventtarget-eventtarget
     fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,

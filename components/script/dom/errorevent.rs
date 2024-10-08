@@ -111,6 +111,7 @@ impl ErrorEvent {
 }
 
 impl ErrorEventMethods for ErrorEvent {
+    // https://html.spec.whatwg.org/multipage/#errorevent
     fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,

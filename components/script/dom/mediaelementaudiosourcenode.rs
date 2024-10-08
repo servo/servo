@@ -81,6 +81,7 @@ impl MediaElementAudioSourceNode {
 }
 
 impl MediaElementAudioSourceNodeMethods for MediaElementAudioSourceNode {
+    /// <https://webaudio.github.io/web-audio-api/#dom-mediaelementaudiosourcenode-mediaelementaudiosourcenode>
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,

@@ -51,6 +51,7 @@ impl Text {
 }
 
 impl TextMethods for Text {
+    // https://dom.spec.whatwg.org/#dom-text-text
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,

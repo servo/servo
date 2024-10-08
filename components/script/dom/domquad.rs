@@ -66,6 +66,7 @@ impl DOMQuad {
 }
 
 impl DOMQuadMethods for DOMQuad {
+    // https://drafts.fxtf.org/geometry/#dom-domquad-domquad
     fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,

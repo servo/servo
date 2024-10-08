@@ -43,6 +43,7 @@ impl Comment {
 }
 
 impl CommentMethods for Comment {
+    /// <https://dom.spec.whatwg.org/#dom-comment-comment>
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,

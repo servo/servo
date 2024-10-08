@@ -49,6 +49,7 @@ impl RTCSessionDescription {
 }
 
 impl RTCSessionDescriptionMethods for RTCSessionDescription {
+    /// <https://w3c.github.io/webrtc-pc/#dom-sessiondescription>
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,

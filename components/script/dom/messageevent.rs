@@ -237,6 +237,7 @@ impl MessageEvent {
 }
 
 impl MessageEventMethods for MessageEvent {
+    /// <https://html.spec.whatwg.org/multipage/#messageevent>
     fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,

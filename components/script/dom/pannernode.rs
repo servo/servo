@@ -207,6 +207,7 @@ impl PannerNode {
 }
 
 impl PannerNodeMethods for PannerNode {
+    // https://webaudio.github.io/web-audio-api/#dom-pannernode-pannernode
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,

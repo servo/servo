@@ -71,6 +71,7 @@ impl MediaStream {
 }
 
 impl MediaStreamMethods for MediaStream {
+    /// <https://w3c.github.io/mediacapture-main/#dom-mediastream-constructor>
     fn Constructor(
         global: &Window,
         proto: Option<HandleObject>,
@@ -79,6 +80,7 @@ impl MediaStreamMethods for MediaStream {
         Ok(MediaStream::new_with_proto(&global.global(), proto, can_gc))
     }
 
+    /// <https://w3c.github.io/mediacapture-main/#dom-mediastream-constructor>
     fn Constructor_(
         _: &Window,
         proto: Option<HandleObject>,
@@ -88,6 +90,7 @@ impl MediaStreamMethods for MediaStream {
         Ok(stream.clone_with_proto(proto, can_gc))
     }
 
+    /// <https://w3c.github.io/mediacapture-main/#dom-mediastream-constructor>
     fn Constructor__(
         global: &Window,
         proto: Option<HandleObject>,

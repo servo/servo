@@ -158,6 +158,7 @@ impl KeyboardEvent {
 }
 
 impl KeyboardEventMethods for KeyboardEvent {
+    /// <https://w3c.github.io/uievents/#dom-keyboardevent-keyboardevent>
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
@@ -216,52 +217,52 @@ impl KeyboardEventMethods for KeyboardEvent {
         self.repeat.set(repeat);
     }
 
-    // https://w3c.github.io/uievents/#widl-KeyboardEvent-key
+    /// <https://w3c.github.io/uievents/#dom-keyboardevent-initkeyboardevent>
     fn Key(&self) -> DOMString {
         self.key.borrow().clone()
     }
 
-    // https://w3c.github.io/uievents/#widl-KeyboardEvent-code
+    /// <https://w3c.github.io/uievents/#dom-keyboardevent-code>
     fn Code(&self) -> DOMString {
         self.code.borrow().clone()
     }
 
-    // https://w3c.github.io/uievents/#widl-KeyboardEvent-location
+    /// <https://w3c.github.io/uievents/#dom-keyboardevent-location>
     fn Location(&self) -> u32 {
         self.location.get()
     }
 
-    // https://w3c.github.io/uievents/#widl-KeyboardEvent-ctrlKey
+    /// <https://w3c.github.io/uievents/#dom-keyboardevent-ctrlkey>
     fn CtrlKey(&self) -> bool {
         self.modifiers.get().contains(Modifiers::CONTROL)
     }
 
-    // https://w3c.github.io/uievents/#widl-KeyboardEvent-shiftKey
+    /// <https://w3c.github.io/uievents/#dom-keyboardevent-shiftkey>
     fn ShiftKey(&self) -> bool {
         self.modifiers.get().contains(Modifiers::SHIFT)
     }
 
-    // https://w3c.github.io/uievents/#widl-KeyboardEvent-altKey
+    /// <https://w3c.github.io/uievents/#dom-keyboardevent-altkey>
     fn AltKey(&self) -> bool {
         self.modifiers.get().contains(Modifiers::ALT)
     }
 
-    // https://w3c.github.io/uievents/#widl-KeyboardEvent-metaKey
+    /// <https://w3c.github.io/uievents/#dom-keyboardevent-metakey>
     fn MetaKey(&self) -> bool {
         self.modifiers.get().contains(Modifiers::META)
     }
 
-    // https://w3c.github.io/uievents/#widl-KeyboardEvent-repeat
+    /// <https://w3c.github.io/uievents/#dom-keyboardevent-repeat>
     fn Repeat(&self) -> bool {
         self.repeat.get()
     }
 
-    // https://w3c.github.io/uievents/#widl-KeyboardEvent-isComposing
+    /// <https://w3c.github.io/uievents/#dom-keyboardevent-iscomposing>
     fn IsComposing(&self) -> bool {
         self.is_composing.get()
     }
 
-    // https://w3c.github.io/uievents/#dom-keyboardevent-getmodifierstate
+    /// <https://w3c.github.io/uievents/#dom-keyboardevent-getmodifierstate>
     fn GetModifierState(&self, key_arg: DOMString) -> bool {
         self.modifiers.get().contains(match &*key_arg {
             "Alt" => Modifiers::ALT,
@@ -280,17 +281,17 @@ impl KeyboardEventMethods for KeyboardEvent {
         })
     }
 
-    // https://w3c.github.io/uievents/#widl-KeyboardEvent-charCode
+    /// <https://w3c.github.io/uievents/#dom-keyboardevent-charcode>
     fn CharCode(&self) -> u32 {
         self.char_code.get()
     }
 
-    // https://w3c.github.io/uievents/#widl-KeyboardEvent-keyCode
+    /// <https://w3c.github.io/uievents/#dom-keyboardevent-keycode>
     fn KeyCode(&self) -> u32 {
         self.key_code.get()
     }
 
-    // https://w3c.github.io/uievents/#widl-KeyboardEvent-which
+    /// <https://w3c.github.io/uievents/#dom-uievent-which>
     fn Which(&self) -> u32 {
         if self.char_code.get() != 0 {
             self.char_code.get()
@@ -299,7 +300,7 @@ impl KeyboardEventMethods for KeyboardEvent {
         }
     }
 
-    // https://dom.spec.whatwg.org/#dom-event-istrusted
+    /// <https://dom.spec.whatwg.org/#dom-event-istrusted>
     fn IsTrusted(&self) -> bool {
         self.uievent.IsTrusted()
     }

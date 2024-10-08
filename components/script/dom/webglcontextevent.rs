@@ -26,6 +26,7 @@ pub struct WebGLContextEvent {
 }
 
 impl WebGLContextEventMethods for WebGLContextEvent {
+    // https://registry.khronos.org/webgl/specs/latest/1.0/#5.15
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,

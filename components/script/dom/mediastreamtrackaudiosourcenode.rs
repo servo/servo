@@ -71,6 +71,7 @@ impl MediaStreamTrackAudioSourceNode {
 }
 
 impl MediaStreamTrackAudioSourceNodeMethods for MediaStreamTrackAudioSourceNode {
+    /// <https://webaudio.github.io/web-audio-api/#dom-mediastreamtrackaudiosourcenode-mediastreamtrackaudiosourcenode>
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,

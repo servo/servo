@@ -73,6 +73,7 @@ impl RTCPeerConnectionIceEvent {
 }
 
 impl RTCPeerConnectionIceEventMethods for RTCPeerConnectionIceEvent {
+    /// <https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnectioniceevent-constructor>
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,

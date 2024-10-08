@@ -108,6 +108,7 @@ impl SecurityPolicyViolationEvent {
 
 #[allow(non_snake_case)]
 impl SecurityPolicyViolationEventMethods for SecurityPolicyViolationEvent {
+    /// <https://w3c.github.io/webappsec-csp/#dom-securitypolicyviolationevent-securitypolicyviolationevent>
     fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,

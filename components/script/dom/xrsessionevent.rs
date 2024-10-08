@@ -76,6 +76,7 @@ impl XRSessionEvent {
 }
 
 impl XRSessionEventMethods for XRSessionEvent {
+    // https://immersive-web.github.io/webxr/#dom-xrsessionevent-xrsessionevent
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,

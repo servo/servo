@@ -72,6 +72,7 @@ impl OfflineAudioCompletionEvent {
 }
 
 impl OfflineAudioCompletionEventMethods for OfflineAudioCompletionEvent {
+    // https://webaudio.github.io/web-audio-api/#dom-offlineaudiocompletionevent-offlineaudiocompletionevent
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,

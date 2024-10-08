@@ -187,6 +187,7 @@ impl MouseEvent {
 }
 
 impl MouseEventMethods for MouseEvent {
+    // https://w3c.github.io/uievents/#dom-mouseevent-mouseevent
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,

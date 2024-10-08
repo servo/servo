@@ -76,6 +76,7 @@ impl RTCTrackEvent {
 }
 
 impl RTCTrackEventMethods for RTCTrackEvent {
+    // https://w3c.github.io/webrtc-pc/#dom-rtctrackevent-constructor
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,

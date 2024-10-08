@@ -90,6 +90,7 @@ impl ConstantSourceNode {
 }
 
 impl ConstantSourceNodeMethods for ConstantSourceNode {
+    // https://webaudio.github.io/web-audio-api/#dom-constantsourcenode-constantsourcenode
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,

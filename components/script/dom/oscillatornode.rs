@@ -114,6 +114,7 @@ impl OscillatorNode {
 }
 
 impl OscillatorNodeMethods for OscillatorNode {
+    // https://webaudio.github.io/web-audio-api/#dom-oscillatornode-oscillatornode
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,

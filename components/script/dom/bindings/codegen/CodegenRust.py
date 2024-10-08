@@ -2176,7 +2176,7 @@ class CGImports(CGWrapper):
                 types += componentTypes(returnType)
                 for arg in arguments:
                     types += componentTypes(arg.type)
-                
+
             return types
 
         def getIdentifier(t):
@@ -2219,7 +2219,10 @@ class CGImports(CGWrapper):
                 if m.isMethod():
                     types += relatedTypesForSignatures(m)
                     if m.isStatic():
-                        types += [descriptorProvider.getDescriptor(iface).interface for iface in d.interface.exposureSet]
+                        types += [
+                            descriptorProvider.getDescriptor(iface).interface
+                            for iface in d.interface.exposureSet
+                        ]
                 elif m.isAttr():
                     types += componentTypes(m.type)
 
@@ -6414,19 +6417,29 @@ class CGInterfaceTrait(CGThing):
                 arguments = [arguments[0]] + extra + arguments[1:]
             else:
                 arguments = extra + arguments
-            methods.append(CGGeneric(f"{unsafe}fn {name}({selfArg}{fmt(arguments, leadingComma=not isStatic)}){returnType};\n"))
+            methods.append(CGGeneric(
+                f"{unsafe}fn {name}({selfArg}"
+                f"{fmt(arguments, leadingComma=not isStatic)}){returnType};\n"
+            ))
 
         def ctorMethod(ctor, baseName=None):
             infallible = 'infallible' in descriptor.getExtendedAttributes(ctor)
             for (i, (rettype, arguments)) in enumerate(ctor.signatures()):
                 name = (baseName or ctor.identifier.name) + ('_' * i)
                 args = list(method_arguments(descriptor, rettype, arguments))
-                extra = [("global", f"&{exposedGlobal}"), ("proto", "Option<HandleObject>"), ("can_gc", "CanGc")]
+                extra = [
+                    ("global", f"&{exposedGlobal}"),
+                    ("proto", "Option<HandleObject>"),
+                    ("can_gc", "CanGc"),
+                ]
                 if args and args[0][0] == "cx":
                     args = [args[0]] + extra + args[1:]
                 else:
                     args = extra + args
-                yield CGGeneric(f"fn {name}({fmt(args, leadingComma=False)}) -> {return_type(descriptorProvider, rettype, infallible)};\n")
+                yield CGGeneric(
+                    f"fn {name}({fmt(args, leadingComma=False)}) -> "
+                    f"{return_type(descriptorProvider, rettype, infallible)};\n"
+                )
 
         ctor = descriptor.interface.ctor()
         if ctor and not ctor.isHTMLConstructor():
@@ -6611,7 +6624,6 @@ class CGDescriptor(CGThing):
                             CGGeneric("];\n")], "\n"))
             if descriptor.concrete or descriptor.hasDescendants():
                 cgThings.append(CGIDLInterface(descriptor))
-
 
             if descriptor.weakReferenceable:
                 cgThings.append(CGWeakReferenceableTrait(descriptor))

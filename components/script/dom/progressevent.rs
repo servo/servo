@@ -89,6 +89,7 @@ impl ProgressEvent {
 }
 
 impl ProgressEventMethods for ProgressEvent {
+    // https://xhr.spec.whatwg.org/#dom-progressevent-progressevent
     fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,

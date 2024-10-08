@@ -84,6 +84,7 @@ impl PopStateEvent {
 }
 
 impl PopStateEventMethods for PopStateEvent {
+    // https://html.spec.whatwg.org/multipage/#popstateevent
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,

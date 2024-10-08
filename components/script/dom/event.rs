@@ -384,6 +384,7 @@ impl Event {
 }
 
 impl EventMethods for Event {
+    /// <https://dom.spec.whatwg.org/#dom-event-event>
     fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,

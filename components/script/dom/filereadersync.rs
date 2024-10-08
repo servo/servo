@@ -52,6 +52,7 @@ impl FileReaderSync {
 }
 
 impl FileReaderSyncMethods for FileReaderSync {
+    /// <https://w3c.github.io/FileAPI/#filereadersyncConstrctr>
     fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,

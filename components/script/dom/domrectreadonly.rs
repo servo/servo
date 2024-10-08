@@ -69,6 +69,7 @@ impl DOMRectReadOnly {
 }
 
 impl DOMRectReadOnlyMethods for DOMRectReadOnly {
+    // https://drafts.fxtf.org/geometry/#dom-domrectreadonly-domrectreadonly
     fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,

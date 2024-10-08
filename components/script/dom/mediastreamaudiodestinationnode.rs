@@ -82,6 +82,7 @@ impl MediaStreamAudioDestinationNode {
 }
 
 impl MediaStreamAudioDestinationNodeMethods for MediaStreamAudioDestinationNode {
+    /// <https://webaudio.github.io/web-audio-api/#dom-mediastreamaudiodestinationnode-mediastreamaudiodestinationnode>
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,

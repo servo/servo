@@ -44,6 +44,7 @@ impl XMLSerializer {
 }
 
 impl XMLSerializerMethods for XMLSerializer {
+    // https://w3c.github.io/DOM-Parsing/#dom-xmlserializer
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,

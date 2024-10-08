@@ -83,6 +83,7 @@ impl RTCIceCandidate {
 }
 
 impl RTCIceCandidateMethods for RTCIceCandidate {
+    /// <https://w3c.github.io/webrtc-pc/#dom-rtcicecandidate-constructor>
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,

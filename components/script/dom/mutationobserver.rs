@@ -248,6 +248,7 @@ impl MutationObserver {
 }
 
 impl MutationObserverMethods for MutationObserver {
+    /// <https://dom.spec.whatwg.org/#dom-mutationobserver-mutationobserver>
     fn Constructor(
         global: &Window,
         proto: Option<HandleObject>,

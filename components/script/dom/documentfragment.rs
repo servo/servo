@@ -61,6 +61,7 @@ impl DocumentFragment {
 }
 
 impl DocumentFragmentMethods for DocumentFragment {
+    // https://dom.spec.whatwg.org/#dom-documentfragment-documentfragment
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,

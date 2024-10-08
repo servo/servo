@@ -61,6 +61,7 @@ impl DOMPointReadOnly {
 
 #[allow(non_snake_case)]
 impl DOMPointReadOnlyMethods for DOMPointReadOnly {
+    // https://drafts.fxtf.org/geometry/#dom-dompoint-dompoint
     fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,

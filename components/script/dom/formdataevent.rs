@@ -73,6 +73,7 @@ impl FormDataEvent {
 }
 
 impl FormDataEventMethods for FormDataEvent {
+    // https://html.spec.whatwg.org/multipage/#formdataevent
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,

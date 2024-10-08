@@ -107,6 +107,7 @@ impl XRInputSourcesChangeEvent {
 }
 
 impl XRInputSourcesChangeEventMethods for XRInputSourcesChangeEvent {
+    // https://immersive-web.github.io/webxr/#dom-xrinputsourceschangeevent-xrinputsourceschangeevent
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,

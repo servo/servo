@@ -92,6 +92,7 @@ impl GainNode {
 }
 
 impl GainNodeMethods for GainNode {
+    // https://webaudio.github.io/web-audio-api/#dom-gainnode-gainnode
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,

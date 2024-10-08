@@ -76,6 +76,7 @@ impl RTCDataChannelEvent {
 }
 
 impl RTCDataChannelEventMethods for RTCDataChannelEvent {
+    // https://www.w3.org/TR/webrtc/#dom-rtcdatachannelevent-constructor
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,

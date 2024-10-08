@@ -86,6 +86,7 @@ impl ChannelSplitterNode {
 }
 
 impl ChannelSplitterNodeMethods for ChannelSplitterNode {
+    /// <https://webaudio.github.io/web-audio-api/#dom-channelsplitternode-channelsplitternode>
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,

@@ -325,6 +325,7 @@ impl FileReader {
 }
 
 impl FileReaderMethods for FileReader {
+    // https://w3c.github.io/FileAPI/#filereaderConstrctr
     fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,

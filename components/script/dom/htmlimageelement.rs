@@ -1537,6 +1537,7 @@ fn get_correct_referrerpolicy_from_raw_token(token: &DOMString) -> DOMString {
 }
 
 impl HTMLImageElementMethods for HTMLImageElement {
+    // https://html.spec.whatwg.org/multipage/#dom-image
     fn Image(
         window: &Window,
         proto: Option<HandleObject>,

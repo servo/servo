@@ -510,6 +510,7 @@ impl RTCPeerConnection {
 }
 
 impl RTCPeerConnectionMethods for RTCPeerConnection {
+    // https://w3c.github.io/webrtc-pc/#dom-peerconnection
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,

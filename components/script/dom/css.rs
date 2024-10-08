@@ -25,7 +25,7 @@ pub struct CSS {
 }
 
 impl CSSMethods for CSS {
-    /// <http://dev.w3.org/csswg/cssom/#serialize-an-identifier>
+    /// <https://drafts.csswg.org/cssom/#the-css.escape()-method>
     fn Escape(_: &Window, ident: DOMString) -> Fallible<DOMString> {
         let mut escaped = String::new();
         serialize_identifier(&ident, &mut escaped).unwrap();

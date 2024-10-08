@@ -89,6 +89,7 @@ impl CompositionEvent {
 }
 
 impl CompositionEventMethods for CompositionEvent {
+    // https://w3c.github.io/uievents/#dom-compositionevent-compositionevent
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,

@@ -85,6 +85,7 @@ impl CustomEvent {
 }
 
 impl CustomEventMethods for CustomEvent {
+    // https://dom.spec.whatwg.org/#dom-customevent-customevent
     fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,

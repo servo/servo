@@ -76,6 +76,7 @@ impl RTCErrorEvent {
 }
 
 impl RTCErrorEventMethods for RTCErrorEvent {
+    // https://www.w3.org/TR/webrtc/#dom-rtcerrorevent-constructor
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,

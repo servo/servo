@@ -94,6 +94,7 @@ impl UIEvent {
 }
 
 impl UIEventMethods for UIEvent {
+    /// <https://w3c.github.io/uievents/#dom-uievent-uievent>
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,

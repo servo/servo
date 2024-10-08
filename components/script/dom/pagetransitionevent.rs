@@ -86,6 +86,7 @@ impl PageTransitionEvent {
 }
 
 impl PageTransitionEventMethods for PageTransitionEvent {
+    // https://html.spec.whatwg.org/multipage/#pagetransitionevent
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,

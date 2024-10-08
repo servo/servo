@@ -85,6 +85,7 @@ impl XRInputSourceEvent {
 }
 
 impl XRInputSourceEventMethods for XRInputSourceEvent {
+    // https://immersive-web.github.io/webxr/#dom-xrinputsourceevent-xrinputsourceevent
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
