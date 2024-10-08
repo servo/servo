@@ -5,7 +5,7 @@
 // https://immersive-web.github.io/layers/#XRWebGLBindingtype
 [SecureContext, Exposed=Window, Pref="dom.webxr.layers.enabled"]
 interface XRWebGLBinding {
-  constructor(XRSession session, XRWebGLRenderingContext context);
+  [Throws] constructor(XRSession session, XRWebGLRenderingContext context);
 
 //  readonly attribute double nativeProjectionScaleFactor;
 
