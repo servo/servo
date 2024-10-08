@@ -915,11 +915,19 @@ unsafe fn set_gc_zeal_options(_: *mut RawJSContext) {}
 /// enabling an interrupt to be requested
 /// from a thread other than the one running JS using that context.
 #[derive(Clone)]
-pub struct ContextForRequestInterrupt(Arc<Mutex<Option<*mut RawJSContext>>>);
+pub struct ContextForRequestInterrupt(Arc<Mutex<Option<ThreadSafeContext>>>);
+
+#[derive(Debug)]
+struct ThreadSafeContext(*mut RawJSContext);
+
+#[allow(unsafe_code)]
+unsafe impl Send for ThreadSafeContext {}
+#[allow(unsafe_code)]
+unsafe impl Sync for ThreadSafeContext {}
 
 impl ContextForRequestInterrupt {
     pub fn new(context: *mut RawJSContext) -> ContextForRequestInterrupt {
-        ContextForRequestInterrupt(Arc::new(Mutex::new(Some(context))))
+        ContextForRequestInterrupt(Arc::new(Mutex::new(Some(ThreadSafeContext(context)))))
     }
 
     pub fn revoke(&self) {
@@ -935,9 +943,9 @@ impl ContextForRequestInterrupt {
     /// on the other thread in the case of Worker shutdown
     pub fn request_interrupt(&self) {
         let maybe_cx = self.0.lock().unwrap();
-        if let Some(cx) = *maybe_cx {
+        if let Some(cx) = &*maybe_cx {
             unsafe {
-                JS_RequestInterruptCallback(cx);
+                JS_RequestInterruptCallback(cx.0);
             }
         }
     }
