@@ -151,7 +151,7 @@ impl PageStyleActor {
         )
         .unwrap_or_default()
         .into_iter()
-        .map(|node| {
+        .flat_map(|node| {
             let inherited = (node.actor != target).then(|| node.actor.clone());
             let node_actor = registry.find::<NodeActor>(&node.actor);
 
@@ -209,7 +209,6 @@ impl PageStyleActor {
                     });
             entries
         })
-        .flatten()
         .collect();
         let msg = GetAppliedReply {
             entries,
