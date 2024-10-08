@@ -52,6 +52,12 @@ pub struct Range {
     associated_selections: DomRefCell<Vec<Dom<Selection>>>,
 }
 
+pub struct ContainedChildren {
+    first_partially_contained_child: Option<DomRoot<Node>>,
+    last_partially_contained_child: Option<DomRoot<Node>>,
+    contained_children: Vec<DomRoot<Node>>,
+}
+
 impl Range {
     fn new_inherited(
         start_container: &Node,
@@ -149,13 +155,7 @@ impl Range {
     }
 
     /// <https://dom.spec.whatwg.org/#concept-range-clone>
-    fn contained_children(
-        &self,
-    ) -> Fallible<(
-        Option<DomRoot<Node>>,
-        Option<DomRoot<Node>>,
-        Vec<DomRoot<Node>>,
-    )> {
+    fn contained_children(&self) -> Fallible<ContainedChildren> {
         let start_node = self.start_container();
         let end_node = self.end_container();
         // Steps 5-6.
@@ -192,11 +192,11 @@ impl Range {
             return Err(Error::HierarchyRequest);
         }
 
-        Ok((
-            first_contained_child,
-            last_contained_child,
+        Ok(ContainedChildren {
+            first_partially_contained_child: first_contained_child,
+            last_partially_contained_child: last_contained_child,
             contained_children,
-        ))
+        })
     }
 
     /// <https://dom.spec.whatwg.org/#concept-range-bp-set>
@@ -583,8 +583,11 @@ impl RangeMethods for Range {
         }
 
         // Steps 5-12.
-        let (first_contained_child, last_contained_child, contained_children) =
-            self.contained_children()?;
+        let ContainedChildren {
+            first_partially_contained_child: first_contained_child,
+            last_partially_contained_child: last_contained_child,
+            contained_children,
+        } = self.contained_children()?;
 
         if let Some(child) = first_contained_child {
             // Step 13.
@@ -697,8 +700,11 @@ impl RangeMethods for Range {
         }
 
         // Steps 5-12.
-        let (first_contained_child, last_contained_child, contained_children) =
-            self.contained_children()?;
+        let ContainedChildren {
+            first_partially_contained_child: first_contained_child,
+            last_partially_contained_child: last_contained_child,
+            contained_children,
+        } = self.contained_children()?;
 
         let (new_node, new_offset) = if start_node.is_inclusive_ancestor_of(&end_node) {
             // Step 13.
