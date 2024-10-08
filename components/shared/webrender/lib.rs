@@ -343,7 +343,6 @@ impl WebRenderScriptApi {
         }) {
             warn!("Error sending display list: {}", e);
         }
-        
         if let Err(error) = display_list_sender.send(&display_list_data.items_data) {
             warn!("Error sending display list items: {}", error);
         }
