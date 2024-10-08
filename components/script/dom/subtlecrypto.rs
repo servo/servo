@@ -295,8 +295,7 @@ impl SubtleCrypto {
             return Err(Error::Syntax);
         }
 
-        let mut rand = Vec::new();
-        rand.resize(key_gen_params.length as usize, 0);
+        let mut rand = vec![0; key_gen_params.length as usize];
         self.rng.borrow_mut().fill_bytes(&mut rand);
         let handle = match key_gen_params.length {
             128 => Handle::Aes128(rand),
