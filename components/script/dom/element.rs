@@ -2341,7 +2341,7 @@ impl ElementMethods for Element {
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-getclientrects
-    fn GetClientRects(&self) -> Vec<DomRoot<DOMRect>> {
+    fn GetClientRects(&self, can_gc: CanGc) -> Vec<DomRoot<DOMRect>> {
         let win = window_from_node(self);
         let raw_rects = self.upcast::<Node>().content_boxes();
         raw_rects
@@ -2353,13 +2353,14 @@ impl ElementMethods for Element {
                     rect.origin.y.to_f64_px(),
                     rect.size.width.to_f64_px(),
                     rect.size.height.to_f64_px(),
+                    can_gc,
                 )
             })
             .collect()
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-getboundingclientrect
-    fn GetBoundingClientRect(&self) -> DomRoot<DOMRect> {
+    fn GetBoundingClientRect(&self, can_gc: CanGc) -> DomRoot<DOMRect> {
         let win = window_from_node(self);
         let rect = self.upcast::<Node>().bounding_content_box_or_zero();
         DOMRect::new(
@@ -2368,6 +2369,7 @@ impl ElementMethods for Element {
             rect.origin.y.to_f64_px(),
             rect.size.width.to_f64_px(),
             rect.size.height.to_f64_px(),
+            can_gc,
         )
     }
 

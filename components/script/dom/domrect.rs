@@ -26,8 +26,15 @@ impl DOMRect {
         }
     }
 
-    pub fn new(global: &GlobalScope, x: f64, y: f64, width: f64, height: f64) -> DomRoot<DOMRect> {
-        Self::new_with_proto(global, None, x, y, width, height, CanGc::note())
+    pub fn new(
+        global: &GlobalScope,
+        x: f64,
+        y: f64,
+        width: f64,
+        height: f64,
+        can_gc: CanGc,
+    ) -> DomRoot<DOMRect> {
+        Self::new_with_proto(global, None, x, y, width, height, can_gc)
     }
 
     fn new_with_proto(
