@@ -29,7 +29,7 @@ use crate::context::LayoutContext;
 use crate::dom::NodeExt;
 use crate::fragment_tree::{BaseFragmentInfo, Fragment, IFrameFragment, ImageFragment};
 use crate::geom::{LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSize};
-use crate::sizing::ContentSizes;
+use crate::sizing::InlineContentSizesResult;
 use crate::style_ext::{AspectRatio, Clamp, ComputedValuesExt, PaddingBorderMargin};
 use crate::{AuOrAuto, ContainingBlock, IndefiniteContainingBlock};
 
@@ -263,21 +263,27 @@ impl ReplacedContent {
         _: &LayoutContext,
         containing_block_for_children: &IndefiniteContainingBlock,
         preferred_aspect_ratio: Option<AspectRatio>,
-    ) -> ContentSizes {
+    ) -> InlineContentSizesResult {
         // FIXME: min/max-content of replaced elements is not defined in
         // https://dbaron.org/css/intrinsic/
         // This seems sensible?
         let block_size = containing_block_for_children.size.block;
-        let inline_size = match (block_size, preferred_aspect_ratio) {
-            (AuOrAuto::LengthPercentage(block_size), Some(ratio)) => {
-                ratio.compute_dependent_size(Direction::Inline, block_size)
+        match (block_size, preferred_aspect_ratio) {
+            (AuOrAuto::LengthPercentage(block_size), Some(ratio)) => InlineContentSizesResult {
+                sizes: ratio
+                    .compute_dependent_size(Direction::Inline, block_size)
+                    .into(),
+                depends_on_block_constraints: true,
             },
-            _ => self
-                .flow_relative_intrinsic_size(containing_block_for_children.style)
-                .inline
-                .unwrap_or_else(Au::zero),
-        };
-        inline_size.into()
+            _ => InlineContentSizesResult {
+                sizes: self
+                    .flow_relative_intrinsic_size(containing_block_for_children.style)
+                    .inline
+                    .unwrap_or_else(Au::zero)
+                    .into(),
+                depends_on_block_constraints: false,
+            },
+        }
     }
 
     pub fn make_fragments(

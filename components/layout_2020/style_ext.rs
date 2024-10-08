@@ -29,7 +29,7 @@ use crate::dom_traversal::Contents;
 use crate::fragment_tree::FragmentFlags;
 use crate::geom::{
     AuOrAuto, LengthPercentageOrAuto, LogicalSides, LogicalVec2, PhysicalSides, PhysicalSize,
-    PhysicalVec, Size,
+    PhysicalVec, Size, SizeKeyword,
 };
 use crate::{ContainingBlock, IndefiniteContainingBlock};
 
@@ -249,6 +249,7 @@ pub(crate) trait ComputedValuesExt {
         LogicalVec2<Size<Au>>,
         LogicalVec2<Size<Au>>,
         PaddingBorderMargin,
+        bool, /* depends_on_block_constraints */
     );
     fn content_box_sizes_and_padding_border_margin_deprecated(
         &self,
@@ -258,6 +259,7 @@ pub(crate) trait ComputedValuesExt {
         LogicalVec2<AuOrAuto>,
         LogicalVec2<Option<Au>>,
         PaddingBorderMargin,
+        bool, /* depends_on_block_constraints */
     );
     fn padding_border_margin(&self, containing_block: &ContainingBlock) -> PaddingBorderMargin;
     fn padding_border_margin_for_intrinsic_size(
@@ -499,6 +501,7 @@ impl ComputedValuesExt for ComputedValues {
         LogicalVec2<Size<Au>>,
         LogicalVec2<Size<Au>>,
         PaddingBorderMargin,
+        bool, /* depends_on_block_constraints */
     ) {
         // <https://drafts.csswg.org/css-sizing-3/#cyclic-percentage-contribution>
         // If max size properties or preferred size properties are set to a value containing
@@ -513,25 +516,45 @@ impl ComputedValuesExt for ComputedValues {
             writing_mode,
             containing_block.size.inline.auto_is(Au::zero),
         );
-        let box_size = self
-            .box_size(writing_mode)
-            .maybe_percentages_relative_to_basis(&containing_block_size);
+        let box_size = self.box_size(writing_mode);
+        let min_size = self.min_box_size(writing_mode);
+        let max_size = self.max_box_size(writing_mode);
+        let depends_on_block_constraints = |size: &Size<LengthPercentage>| {
+            match size {
+                // fit-content is like clamp(min-content, stretch, max-content), but currently
+                // min-content and max-content have the same behavior in the block axis,
+                // so there is no dependency on block constraints.
+                // TODO: for flex and grid layout, min-content and max-content should be different.
+                // TODO: We are assuming that Size::Initial doesn't stretch. However, it may actually
+                // stretch flex and grid items depending on the CSS Align properties, in that case
+                // the caller needs to take care of it.
+                Size::Keyword(SizeKeyword::Stretch) => true,
+                Size::Numeric(length_percentage) => length_percentage.has_percentage(),
+                _ => false,
+            }
+        };
+        let depends_on_block_constraints = depends_on_block_constraints(&box_size.block) ||
+            depends_on_block_constraints(&min_size.block) ||
+            depends_on_block_constraints(&max_size.block);
+        let box_size = box_size.maybe_percentages_relative_to_basis(&containing_block_size);
         let content_box_size = self
             .content_box_size_for_box_size(box_size, &pbm)
             .map(|v| v.map(Au::from));
-        let min_size = self
-            .min_box_size(writing_mode)
-            .percentages_relative_to_basis(&containing_block_size_auto_is_zero);
+        let min_size = min_size.percentages_relative_to_basis(&containing_block_size_auto_is_zero);
         let content_min_size = self
             .content_min_box_size_for_min_size(min_size, &pbm)
             .map(|v| v.map(Au::from));
-        let max_size = self
-            .max_box_size(writing_mode)
-            .maybe_percentages_relative_to_basis(&containing_block_size);
+        let max_size = max_size.maybe_percentages_relative_to_basis(&containing_block_size);
         let content_max_size = self
             .content_max_box_size_for_max_size(max_size, &pbm)
             .map(|v| v.map(Au::from));
-        (content_box_size, content_min_size, content_max_size, pbm)
+        (
+            content_box_size,
+            content_min_size,
+            content_max_size,
+            pbm,
+            depends_on_block_constraints,
+        )
     }
 
     fn content_box_sizes_and_padding_border_margin_deprecated(
@@ -542,14 +565,21 @@ impl ComputedValuesExt for ComputedValues {
         LogicalVec2<AuOrAuto>,
         LogicalVec2<Option<Au>>,
         PaddingBorderMargin,
+        bool, /* depends_on_block_constraints */
     ) {
-        let (content_box_size, content_min_size, content_max_size, pbm) =
-            self.content_box_sizes_and_padding_border_margin(containing_block);
+        let (
+            content_box_size,
+            content_min_size,
+            content_max_size,
+            pbm,
+            depends_on_block_constraints,
+        ) = self.content_box_sizes_and_padding_border_margin(containing_block);
         (
             content_box_size.map(Size::to_auto_or),
             content_min_size.map(Size::to_auto_or),
             content_max_size.map(Size::to_numeric),
             pbm,
+            depends_on_block_constraints,
         )
     }
 

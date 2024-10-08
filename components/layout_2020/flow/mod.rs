@@ -37,7 +37,7 @@ use crate::geom::{
 };
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext, PositioningContextLength};
 use crate::replaced::ReplacedContent;
-use crate::sizing::{self, ContentSizes};
+use crate::sizing::{self, ContentSizes, InlineContentSizesResult};
 use crate::style_ext::{Clamp, ComputedValuesExt, PaddingBorderMargin};
 use crate::{ContainingBlock, IndefiniteContainingBlock};
 
@@ -234,7 +234,7 @@ impl OutsideMarker {
             &IndefiniteContainingBlock::new_for_style(&self.marker_style),
         );
         let containing_block_for_children = ContainingBlock {
-            inline_size: content_sizes.max_content,
+            inline_size: content_sizes.sizes.max_content,
             block_size: AuOrAuto::auto(),
             style: &self.marker_style,
         };
@@ -361,28 +361,29 @@ fn calculate_inline_content_size_for_block_level_boxes(
     boxes: &[ArcRefCell<BlockLevelBox>],
     layout_context: &LayoutContext,
     containing_block: &IndefiniteContainingBlock,
-) -> ContentSizes {
+) -> InlineContentSizesResult {
     let get_box_info = |box_: &ArcRefCell<BlockLevelBox>| {
         match &mut *box_.borrow_mut() {
             BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(_) |
             BlockLevelBox::OutsideMarker { .. } => None,
             BlockLevelBox::OutOfFlowFloatBox(ref mut float_box) => {
-                let size = float_box
-                    .contents
-                    .outer_inline_content_sizes(
-                        layout_context,
-                        containing_block,
-                        &LogicalVec2::zero(),
-                        false, /* auto_block_size_stretches_to_containing_block */
-                    )
-                    .max(ContentSizes::zero());
+                let inline_content_sizes_result = float_box.contents.outer_inline_content_sizes(
+                    layout_context,
+                    containing_block,
+                    &LogicalVec2::zero(),
+                    false, /* auto_block_size_stretches_to_containing_block */
+                );
                 let style_box = &float_box.contents.style().get_box();
-                Some((size, style_box.float, style_box.clear))
+                Some((
+                    inline_content_sizes_result,
+                    style_box.float,
+                    style_box.clear,
+                ))
             },
             BlockLevelBox::SameFormattingContextBlock {
                 style, contents, ..
             } => {
-                let size = sizing::outer_inline(
+                let inline_content_sizes_result = sizing::outer_inline(
                     style,
                     containing_block,
                     &LogicalVec2::zero(),
@@ -390,30 +391,34 @@ fn calculate_inline_content_size_for_block_level_boxes(
                     |containing_block_for_children| {
                         contents.inline_content_sizes(layout_context, containing_block_for_children)
                     },
-                )
-                .max(ContentSizes::zero());
+                );
                 // A block in the same BFC can overlap floats, it's not moved next to them,
                 // so we shouldn't add its size to the size of the floats.
                 // Instead, we treat it like an independent block with 'clear: both'.
-                Some((size, Float::None, Clear::Both))
+                Some((inline_content_sizes_result, Float::None, Clear::Both))
             },
             BlockLevelBox::Independent(ref mut independent) => {
-                let size = independent
-                    .outer_inline_content_sizes(
-                        layout_context,
-                        containing_block,
-                        &LogicalVec2::zero(),
-                        false, /* auto_block_size_stretches_to_containing_block */
-                    )
-                    .max(ContentSizes::zero());
-                Some((size, Float::None, independent.style().get_box().clear))
+                let inline_content_sizes_result = independent.outer_inline_content_sizes(
+                    layout_context,
+                    containing_block,
+                    &LogicalVec2::zero(),
+                    false, /* auto_block_size_stretches_to_containing_block */
+                );
+                Some((
+                    inline_content_sizes_result,
+                    Float::None,
+                    independent.style().get_box().clear,
+                ))
             },
         }
     };
 
     /// When iterating the block-level boxes to compute the inline content sizes,
     /// this struct contains the data accumulated up to the current box.
+    #[derive(Default)]
     struct AccumulatedData {
+        /// Whether the inline size depends on the block one.
+        depends_on_block_constraints: bool,
         /// The maximum size seen so far, not including trailing uncleared floats.
         max_size: ContentSizes,
         /// The size of the trailing uncleared floats with 'float: left'.
@@ -447,37 +452,44 @@ fn calculate_inline_content_size_for_block_level_boxes(
         }
     }
 
-    let accumulate = |mut data: AccumulatedData, (size, float, clear)| {
-        data.clear_floats(clear);
-        match float {
-            Float::Left => data.left_floats = data.left_floats.union(&size),
-            Float::Right => data.right_floats = data.right_floats.union(&size),
-            Float::None => {
-                data.max_size = data
-                    .max_size
-                    .max(data.left_floats.union(&data.right_floats).union(&size));
-                data.left_floats = ContentSizes::zero();
-                data.right_floats = ContentSizes::zero();
-            },
-        }
-        data
-    };
-    let zero = AccumulatedData {
-        max_size: ContentSizes::zero(),
-        left_floats: ContentSizes::zero(),
-        right_floats: ContentSizes::zero(),
-    };
+    let accumulate =
+        |mut data: AccumulatedData,
+         (inline_content_sizes_result, float, clear): (InlineContentSizesResult, _, _)| {
+            let size = inline_content_sizes_result.sizes.max(ContentSizes::zero());
+            let depends_on_block_constraints =
+                inline_content_sizes_result.depends_on_block_constraints;
+            data.depends_on_block_constraints |= depends_on_block_constraints;
+            data.clear_floats(clear);
+            match float {
+                Float::Left => data.left_floats = data.left_floats.union(&size),
+                Float::Right => data.right_floats = data.right_floats.union(&size),
+                Float::None => {
+                    data.max_size = data
+                        .max_size
+                        .max(data.left_floats.union(&data.right_floats).union(&size));
+                    data.left_floats = ContentSizes::zero();
+                    data.right_floats = ContentSizes::zero();
+                },
+            }
+            data
+        };
     let data = if layout_context.use_rayon {
         boxes
             .par_iter()
             .filter_map(get_box_info)
             .collect::<Vec<_>>()
             .into_iter()
-            .fold(zero, accumulate)
+            .fold(AccumulatedData::default(), accumulate)
     } else {
-        boxes.iter().filter_map(get_box_info).fold(zero, accumulate)
+        boxes
+            .iter()
+            .filter_map(get_box_info)
+            .fold(AccumulatedData::default(), accumulate)
     };
-    data.max_size_including_uncleared_floats()
+    InlineContentSizesResult {
+        depends_on_block_constraints: data.depends_on_block_constraints,
+        sizes: data.max_size_including_uncleared_floats(),
+    }
 }
 
 impl BlockContainer {
@@ -512,7 +524,7 @@ impl BlockContainer {
         &self,
         layout_context: &LayoutContext,
         containing_block_for_children: &IndefiniteContainingBlock,
-    ) -> ContentSizes {
+    ) -> InlineContentSizesResult {
         match &self {
             Self::BlockLevelBoxes(boxes) => calculate_inline_content_size_for_block_level_boxes(
                 boxes,
@@ -1984,6 +1996,7 @@ impl IndependentFormattingContext {
                         );
                     non_replaced
                         .inline_content_sizes(layout_context, &containing_block_for_children)
+                        .sizes
                 };
 
                 // https://drafts.csswg.org/css2/visudet.html#float-width

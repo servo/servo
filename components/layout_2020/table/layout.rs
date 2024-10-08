@@ -38,7 +38,7 @@ use crate::geom::{
     Size, SizeKeyword, ToLogical, ToLogicalWithContainingBlock,
 };
 use crate::positioned::{relative_adjustement, PositioningContext, PositioningContextLength};
-use crate::sizing::ContentSizes;
+use crate::sizing::{ContentSizes, InlineContentSizesResult};
 use crate::style_ext::{Clamp, ComputedValuesExt, PaddingBorderMargin};
 use crate::table::TableSlotCoordinates;
 use crate::{ContainingBlock, IndefiniteContainingBlock};
@@ -298,10 +298,13 @@ impl<'a> TableLayout<'a> {
                     let mut inline_content_sizes = if is_in_fixed_mode {
                         ContentSizes::zero()
                     } else {
-                        cell.contents.contents.inline_content_sizes(
-                            layout_context,
-                            &IndefiniteContainingBlock::new_for_style(&cell.style),
-                        )
+                        cell.contents
+                            .contents
+                            .inline_content_sizes(
+                                layout_context,
+                                &IndefiniteContainingBlock::new_for_style(&cell.style),
+                            )
+                            .sizes
                     };
                     inline_content_sizes.min_content += padding_border_sums.inline;
                     inline_content_sizes.max_content += padding_border_sums.inline;
@@ -784,6 +787,7 @@ impl<'a> TableLayout<'a> {
                         &LogicalVec2::zero(),
                         false, /* auto_block_size_stretches_to_containing_block */
                     )
+                    .sizes
                     .min_content
             })
             .max()
@@ -2611,7 +2615,7 @@ impl Table {
         &mut self,
         layout_context: &LayoutContext,
         containing_block_for_children: &IndefiniteContainingBlock,
-    ) -> ContentSizes {
+    ) -> InlineContentSizesResult {
         let writing_mode = containing_block_for_children.style.writing_mode;
         let mut layout = TableLayout::new(self);
         let mut table_content_sizes = layout.compute_grid_min_max(layout_context, writing_mode);
@@ -2638,7 +2642,10 @@ impl Table {
                 .max_assign(caption_minimum_inline_size);
         }
 
-        table_content_sizes
+        InlineContentSizesResult {
+            sizes: table_content_sizes,
+            depends_on_block_constraints: false,
+        }
     }
 
     fn get_column_measure_for_column_at_index(

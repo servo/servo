@@ -118,10 +118,15 @@ pub(crate) fn outer_inline(
     containing_block: &IndefiniteContainingBlock,
     auto_minimum: &LogicalVec2<Au>,
     auto_block_size_stretches_to_containing_block: bool,
-    get_content_size: impl FnOnce(&IndefiniteContainingBlock) -> ContentSizes,
-) -> ContentSizes {
-    let (content_box_size, content_min_size, content_max_size, pbm) =
-        style.content_box_sizes_and_padding_border_margin_deprecated(containing_block);
+    get_content_size: impl FnOnce(&IndefiniteContainingBlock) -> InlineContentSizesResult,
+) -> InlineContentSizesResult {
+    let (
+        content_box_size,
+        content_min_size,
+        content_max_size,
+        pbm,
+        mut depends_on_block_constraints,
+    ) = style.content_box_sizes_and_padding_border_margin_deprecated(containing_block);
     let content_min_size = LogicalVec2 {
         inline: content_min_size.inline.auto_is(|| auto_minimum.inline),
         block: content_min_size.block.auto_is(|| auto_minimum.block),
@@ -132,11 +137,15 @@ pub(crate) fn outer_inline(
         v.clamp_between_extremums(content_min_size.inline, content_max_size.inline) + pbm_inline_sum
     };
     match content_box_size.inline {
-        AuOrAuto::LengthPercentage(inline_size) => adjust(inline_size).into(),
+        AuOrAuto::LengthPercentage(inline_size) => InlineContentSizesResult {
+            sizes: adjust(inline_size).into(),
+            depends_on_block_constraints: false,
+        },
         AuOrAuto::Auto => {
             let block_size = if content_box_size.block.is_auto() &&
                 auto_block_size_stretches_to_containing_block
             {
+                depends_on_block_constraints = true;
                 let outer_block_size = containing_block.size.block;
                 outer_block_size.map(|v| v - pbm.padding_border_sums.block - margin.block_sum())
             } else {
@@ -145,7 +154,18 @@ pub(crate) fn outer_inline(
             .map(|v| v.clamp_between_extremums(content_min_size.block, content_max_size.block));
             let containing_block_for_children =
                 IndefiniteContainingBlock::new_for_style_and_block_size(style, block_size);
-            get_content_size(&containing_block_for_children).map(adjust)
+            let content_result = get_content_size(&containing_block_for_children);
+            InlineContentSizesResult {
+                sizes: content_result.sizes.map(adjust),
+                depends_on_block_constraints: content_result.depends_on_block_constraints &&
+                    depends_on_block_constraints,
+            }
         },
     }
+}
+
+#[derive(Clone, Copy, Debug, Serialize)]
+pub(crate) struct InlineContentSizesResult {
+    pub sizes: ContentSizes,
+    pub depends_on_block_constraints: bool,
 }

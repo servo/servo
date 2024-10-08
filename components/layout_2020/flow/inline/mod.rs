@@ -126,7 +126,7 @@ use crate::fragment_tree::{
 };
 use crate::geom::{LogicalRect, LogicalVec2, ToLogical};
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
-use crate::sizing::ContentSizes;
+use crate::sizing::{ContentSizes, InlineContentSizesResult};
 use crate::style_ext::{ComputedValuesExt, PaddingBorderMargin};
 use crate::{ContainingBlock, IndefiniteContainingBlock};
 
@@ -1565,7 +1565,7 @@ impl InlineFormattingContext {
         &self,
         layout_context: &LayoutContext,
         containing_block_for_children: &IndefiniteContainingBlock,
-    ) -> ContentSizes {
+    ) -> InlineContentSizesResult {
         ContentSizesComputation::compute(self, layout_context, containing_block_for_children)
     }
 
@@ -2184,16 +2184,23 @@ struct ContentSizesComputation<'layout_data> {
     /// Stack of ending padding, margin, and border to add to the length
     /// when an inline box finishes.
     ending_inline_pbm_stack: Vec<Au>,
+    depends_on_block_constraints: bool,
 }
 
 impl<'layout_data> ContentSizesComputation<'layout_data> {
-    fn traverse(mut self, inline_formatting_context: &InlineFormattingContext) -> ContentSizes {
+    fn traverse(
+        mut self,
+        inline_formatting_context: &InlineFormattingContext,
+    ) -> InlineContentSizesResult {
         for inline_item in inline_formatting_context.inline_items.iter() {
             self.process_item(&mut inline_item.borrow_mut(), inline_formatting_context);
         }
 
         self.forced_line_break();
-        self.paragraph
+        InlineContentSizesResult {
+            sizes: self.paragraph,
+            depends_on_block_constraints: self.depends_on_block_constraints,
+        }
     }
 
     fn process_item(
@@ -2299,12 +2306,16 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
                     self.line_break_opportunity();
                 }
 
-                let outer = atomic.outer_inline_content_sizes(
+                let InlineContentSizesResult {
+                    sizes: outer,
+                    depends_on_block_constraints,
+                } = atomic.outer_inline_content_sizes(
                     self.layout_context,
                     self.containing_block,
                     &LogicalVec2::zero(),
                     false, /* auto_block_size_stretches_to_containing_block */
                 );
+                self.depends_on_block_constraints |= depends_on_block_constraints;
 
                 if !inline_formatting_context
                     .next_character_prevents_soft_wrap_opportunity(*offset_in_text)
@@ -2356,7 +2367,7 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
         inline_formatting_context: &InlineFormattingContext,
         layout_context: &'layout_data LayoutContext,
         containing_block: &'layout_data IndefiniteContainingBlock,
-    ) -> ContentSizes {
+    ) -> InlineContentSizesResult {
         Self {
             layout_context,
             containing_block,
@@ -2366,6 +2377,7 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
             had_content_yet_for_min_content: false,
             had_content_yet_for_max_content: false,
             ending_inline_pbm_stack: Vec::new(),
+            depends_on_block_constraints: false,
         }
         .traverse(inline_formatting_context)
     }
