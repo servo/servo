@@ -85,6 +85,8 @@ pub enum Error {
     InvalidModification,
     /// NotReadableError DOMException
     NotReadable,
+    /// DataError DOMException
+    Data,
     /// OperationError DOMException
     Operation,
 
@@ -139,6 +141,7 @@ pub fn throw_dom_exception(cx: SafeJSContext, global: &GlobalScope, result: Erro
         Error::TypeMismatch => DOMErrorName::TypeMismatchError,
         Error::InvalidModification => DOMErrorName::InvalidModificationError,
         Error::NotReadable => DOMErrorName::NotReadableError,
+        Error::Data => DOMErrorName::DataError,
         Error::Operation => DOMErrorName::OperationError,
         Error::Type(message) => unsafe {
             assert!(!JS_IsExceptionPending(*cx));

@@ -45,6 +45,7 @@ pub enum DOMErrorName {
     DataCloneError = DOMExceptionConstants::DATA_CLONE_ERR,
     EncodingError,
     NotReadableError,
+    DataError,
     OperationError,
 }
 
@@ -75,6 +76,7 @@ impl DOMErrorName {
             "DataCloneError" => Some(DOMErrorName::DataCloneError),
             "EncodingError" => Some(DOMErrorName::EncodingError),
             "NotReadableError" => Some(DOMErrorName::NotReadableError),
+            "DataError" => Some(DOMErrorName::DataError),
             "OperationError" => Some(DOMErrorName::OperationError),
             _ => None,
         }
@@ -123,6 +125,7 @@ impl DOMException {
                 "The encoding operation (either encoded or decoding) failed."
             },
             DOMErrorName::NotReadableError => "The I/O read operation failed.",
+            DOMErrorName::DataError => "Provided data is inadequate.",
             DOMErrorName::OperationError => {
                 "The operation failed for an operation-specific reason."
             },
