@@ -45,8 +45,8 @@ use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::fetch::load_whole_resource;
 use crate::realms::{enter_realm, AlreadyInRealm, InRealm};
 use crate::script_runtime::{
-    new_rt_and_cx, CanGc, CommonScriptMsg, ContextForRequestInterrupt, JSContext as SafeJSContext,
-    Runtime, ScriptChan,
+    CanGc, CommonScriptMsg, ContextForRequestInterrupt, JSContext as SafeJSContext, Runtime,
+    ScriptChan,
 };
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
 use crate::task_source::TaskSourceName;
@@ -310,7 +310,7 @@ impl ServiceWorkerGlobalScope {
             .name(format!("SW:{}", script_url.debug_compact()))
             .spawn(move || {
                 thread_state::initialize(ThreadState::SCRIPT | ThreadState::IN_WORKER);
-                let runtime = new_rt_and_cx(None);
+                let runtime = Runtime::new(None);
                 let context_for_interrupt = ContextForRequestInterrupt::new(runtime.cx());
                 let _ = context_sender.send(context_for_interrupt.clone());
 

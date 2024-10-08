@@ -48,6 +48,12 @@ impl<'dom> ServoShadowRoot<'dom> {
         ServoShadowRoot { shadow_root }
     }
 
+    /// Flush the stylesheets for the underlying shadow root.
+    ///
+    /// # Safety
+    ///
+    /// This modifies a DOM object, so should care should be taken that only one
+    /// thread has a reference to this object.
     pub unsafe fn flush_stylesheets(
         &self,
         stylist: &mut Stylist,

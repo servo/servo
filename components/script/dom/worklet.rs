@@ -49,7 +49,7 @@ use crate::dom::workletglobalscope::{
 };
 use crate::fetch::load_whole_resource;
 use crate::realms::InRealm;
-use crate::script_runtime::{new_rt_and_cx, CommonScriptMsg, Runtime, ScriptThreadEventCategory};
+use crate::script_runtime::{CommonScriptMsg, Runtime, ScriptThreadEventCategory};
 use crate::script_thread::{MainThreadScriptMsg, ScriptThread};
 use crate::task::TaskBox;
 use crate::task_source::TaskSourceName;
@@ -490,7 +490,7 @@ impl WorkletThread {
                     global_init: init.global_init,
                     global_scopes: HashMap::new(),
                     control_buffer: None,
-                    runtime: new_rt_and_cx(None),
+                    runtime: Runtime::new(None),
                     should_gc: false,
                     gc_threshold: MIN_GC_THRESHOLD,
                 });
