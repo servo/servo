@@ -583,9 +583,11 @@ impl RangeMethods for Range {
         }
 
         // Steps 5-12.
-        let first_contained_child = self.contained_children()?.first_partially_contained_child;
-        let last_contained_child = self.contained_children()?.last_partially_contained_child;
-        let contained_children = self.contained_children()?.contained_children;
+        let ContainedChildren {
+            first_partially_contained_child: first_contained_child,
+            last_partially_contained_child: last_contained_child,
+            contained_children,
+        } = self.contained_children()?;
 
         if let Some(child) = first_contained_child {
             // Step 13.
@@ -698,9 +700,11 @@ impl RangeMethods for Range {
         }
 
         // Steps 5-12.
-        let first_contained_child = self.contained_children()?.first_partially_contained_child;
-        let last_contained_child = self.contained_children()?.last_partially_contained_child;
-        let contained_children = self.contained_children()?.contained_children;
+        let ContainedChildren {
+            first_partially_contained_child: first_contained_child,
+            last_partially_contained_child: last_contained_child,
+            contained_children,
+        } = self.contained_children()?;
 
         let (new_node, new_offset) = if start_node.is_inclusive_ancestor_of(&end_node) {
             // Step 13.
