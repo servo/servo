@@ -146,30 +146,18 @@ impl ImageData {
             imagedata, global, proto, can_gc,
         ))
     }
-    /// <https://html.spec.whatwg.org/multipage/#pixel-manipulation:dom-imagedata-3>
-    #[allow(non_snake_case)]
-    pub fn Constructor(
-        global: &GlobalScope,
-        proto: Option<HandleObject>,
-        can_gc: CanGc,
-        width: u32,
-        height: u32,
-    ) -> Fallible<DomRoot<Self>> {
-        Self::new_without_jsobject(global, proto, width, height, can_gc)
+    #[allow(unsafe_code)]
+    pub fn to_shared_memory(&self) -> IpcSharedMemory {
+        IpcSharedMemory::from_bytes(unsafe { self.as_slice() })
     }
 
-    /// <https://html.spec.whatwg.org/multipage/#pixel-manipulation:dom-imagedata-4>
-    #[allow(unused_variables, non_snake_case)]
-    pub fn Constructor_(
-        cx: JSContext,
-        global: &GlobalScope,
-        proto: Option<HandleObject>,
-        can_gc: CanGc,
-        jsobject: *mut JSObject,
-        width: u32,
-        opt_height: Option<u32>,
-    ) -> Fallible<DomRoot<Self>> {
-        Self::new_with_jsobject(global, proto, width, opt_height, jsobject, can_gc)
+    #[allow(unsafe_code)]
+    pub unsafe fn get_rect(&self, rect: Rect<u64>) -> Cow<[u8]> {
+        pixels::rgba8_get_rect(self.as_slice(), self.get_size().to_u64(), rect)
+    }
+
+    pub fn get_size(&self) -> Size2D<u32> {
+        Size2D::new(self.Width(), self.Height())
     }
 
     /// Nothing must change the array on the JS side while the slice is live.
@@ -188,23 +176,33 @@ impl ImageData {
         let ptr: *const [u8] = internal_data.as_slice() as *const _;
         &*ptr
     }
-
-    #[allow(unsafe_code)]
-    pub fn to_shared_memory(&self) -> IpcSharedMemory {
-        IpcSharedMemory::from_bytes(unsafe { self.as_slice() })
-    }
-
-    #[allow(unsafe_code)]
-    pub unsafe fn get_rect(&self, rect: Rect<u64>) -> Cow<[u8]> {
-        pixels::rgba8_get_rect(self.as_slice(), self.get_size().to_u64(), rect)
-    }
-
-    pub fn get_size(&self) -> Size2D<u32> {
-        Size2D::new(self.Width(), self.Height())
-    }
 }
 
 impl ImageDataMethods for ImageData {
+    /// <https://html.spec.whatwg.org/multipage/#pixel-manipulation:dom-imagedata-3>
+    fn Constructor(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        can_gc: CanGc,
+        width: u32,
+        height: u32,
+    ) -> Fallible<DomRoot<Self>> {
+        Self::new_without_jsobject(global, proto, width, height, can_gc)
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#pixel-manipulation:dom-imagedata-4>
+    fn Constructor_(
+        _cx: JSContext,
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        can_gc: CanGc,
+        jsobject: *mut JSObject,
+        width: u32,
+        opt_height: Option<u32>,
+    ) -> Fallible<DomRoot<Self>> {
+        Self::new_with_jsobject(global, proto, width, opt_height, jsobject, can_gc)
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#dom-imagedata-width>
     fn Width(&self) -> u32 {
         self.width

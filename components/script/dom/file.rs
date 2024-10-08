@@ -91,9 +91,15 @@ impl File {
         )
     }
 
+    pub fn name(&self) -> &DOMString {
+        &self.name
+    }
+}
+
+impl FileMethods for File {
     // https://w3c.github.io/FileAPI/#file-constructor
     #[allow(non_snake_case)]
-    pub fn Constructor(
+    fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -126,12 +132,6 @@ impl File {
         ))
     }
 
-    pub fn name(&self) -> &DOMString {
-        &self.name
-    }
-}
-
-impl FileMethods for File {
     // https://w3c.github.io/FileAPI/#dfn-name
     fn Name(&self) -> DOMString {
         self.name.clone()

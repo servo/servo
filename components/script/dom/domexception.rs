@@ -147,8 +147,15 @@ impl DOMException {
         reflect_dom_object(Box::new(DOMException::new_inherited(message, name)), global)
     }
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+    // not an IDL stringifier, used internally
+    pub fn stringifier(&self) -> DOMString {
+        DOMString::from(format!("{}: {}", self.name, self.message))
+    }
+}
+
+impl DOMExceptionMethods for DOMException {
+    // https://webidl.spec.whatwg.org/#dom-domexception-domexception
+    fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -163,14 +170,7 @@ impl DOMException {
         ))
     }
 
-    // not an IDL stringifier, used internally
-    pub fn stringifier(&self) -> DOMString {
-        DOMString::from(format!("{}: {}", self.name, self.message))
-    }
-}
-
-impl DOMExceptionMethods for DOMException {
-    // https://heycam.github.io/webidl/#dom-domexception-code
+    // https://webidl.spec.whatwg.org/#dom-domexception-code
     fn Code(&self) -> u16 {
         match DOMErrorName::from(&self.name) {
             Some(code) if code <= DOMErrorName::DataCloneError => code as u16,
@@ -178,12 +178,12 @@ impl DOMExceptionMethods for DOMException {
         }
     }
 
-    // https://heycam.github.io/webidl/#idl-DOMException-error-names
+    // https://webidl.spec.whatwg.org/#dom-domexception-name
     fn Name(&self) -> DOMString {
         self.name.clone()
     }
 
-    // https://heycam.github.io/webidl/#error-names
+    // https://webidl.spec.whatwg.org/#dom-domexception-message
     fn Message(&self) -> DOMString {
         self.message.clone()
     }

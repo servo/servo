@@ -94,9 +94,11 @@ impl HashChangeEvent {
         }
         ev
     }
+}
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+impl HashChangeEventMethods for HashChangeEvent {
+    // https://html.spec.whatwg.org/multipage/#hashchangeevent
+    fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -114,9 +116,7 @@ impl HashChangeEvent {
             can_gc,
         ))
     }
-}
 
-impl HashChangeEventMethods for HashChangeEvent {
     // https://html.spec.whatwg.org/multipage/#dom-hashchangeevent-oldurl
     fn OldURL(&self) -> USVString {
         USVString(self.old_url.clone())

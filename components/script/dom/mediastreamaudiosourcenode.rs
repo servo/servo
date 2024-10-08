@@ -75,9 +75,11 @@ impl MediaStreamAudioSourceNode {
             can_gc,
         ))
     }
+}
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+impl MediaStreamAudioSourceNodeMethods for MediaStreamAudioSourceNode {
+    /// <https://webaudio.github.io/web-audio-api/#dom-mediastreamaudiosourcenode-mediastreamaudiosourcenode>
+    fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -92,9 +94,7 @@ impl MediaStreamAudioSourceNode {
             can_gc,
         )
     }
-}
 
-impl MediaStreamAudioSourceNodeMethods for MediaStreamAudioSourceNode {
     /// <https://webaudio.github.io/web-audio-api/#dom-MediaStreamAudioSourceNode-stream>
     fn MediaStream(&self) -> DomRoot<MediaStream> {
         DomRoot::from_ref(&self.stream)

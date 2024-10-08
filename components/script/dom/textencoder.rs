@@ -46,19 +46,18 @@ impl TextEncoder {
             can_gc,
         )
     }
+}
 
+impl TextEncoderMethods for TextEncoder {
     /// <https://encoding.spec.whatwg.org/#dom-textencoder>
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+    fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<TextEncoder>> {
         Ok(TextEncoder::new(global, proto, can_gc))
     }
-}
 
-impl TextEncoderMethods for TextEncoder {
     /// <https://encoding.spec.whatwg.org/#dom-textencoder-encoding>
     fn Encoding(&self) -> DOMString {
         DOMString::from("utf-8")

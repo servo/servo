@@ -85,9 +85,11 @@ impl XRReferenceSpaceEvent {
         }
         trackevent
     }
+}
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+impl XRReferenceSpaceEventMethods for XRReferenceSpaceEvent {
+    /// <https://www.w3.org/TR/webxr/#dom-xrreferencespaceevent-xrreferencespaceevent>
+    fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -105,9 +107,7 @@ impl XRReferenceSpaceEvent {
             can_gc,
         ))
     }
-}
 
-impl XRReferenceSpaceEventMethods for XRReferenceSpaceEvent {
     /// <https://www.w3.org/TR/webxr/#dom-xrreferencespaceeventinit-session>
     fn ReferenceSpace(&self) -> DomRoot<XRReferenceSpace> {
         DomRoot::from_ref(&*self.space)

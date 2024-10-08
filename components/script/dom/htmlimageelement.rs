@@ -1356,37 +1356,6 @@ impl HTMLImageElement {
         )
     }
 
-    pub fn Image(
-        window: &Window,
-        proto: Option<HandleObject>,
-        can_gc: CanGc,
-        width: Option<u32>,
-        height: Option<u32>,
-    ) -> Fallible<DomRoot<HTMLImageElement>> {
-        let element = Element::create(
-            QualName::new(None, ns!(html), local_name!("img")),
-            None,
-            &window.Document(),
-            ElementCreator::ScriptCreated,
-            CustomElementCreationMode::Synchronous,
-            proto,
-            can_gc,
-        );
-
-        let image = DomRoot::downcast::<HTMLImageElement>(element).unwrap();
-        if let Some(w) = width {
-            image.SetWidth(w);
-        }
-        if let Some(h) = height {
-            image.SetHeight(h);
-        }
-
-        // run update_the_image_data when the element is created.
-        // https://html.spec.whatwg.org/multipage/#when-to-obtain-images
-        image.update_the_image_data(can_gc);
-
-        Ok(image)
-    }
     pub fn areas(&self) -> Option<Vec<DomRoot<HTMLAreaElement>>> {
         let elem = self.upcast::<Element>();
         let usemap_attr = elem.get_attribute(&ns!(), &local_name!("usemap"))?;
@@ -1568,6 +1537,39 @@ fn get_correct_referrerpolicy_from_raw_token(token: &DOMString) -> DOMString {
 }
 
 impl HTMLImageElementMethods for HTMLImageElement {
+    // https://html.spec.whatwg.org/multipage/#dom-image
+    fn Image(
+        window: &Window,
+        proto: Option<HandleObject>,
+        can_gc: CanGc,
+        width: Option<u32>,
+        height: Option<u32>,
+    ) -> Fallible<DomRoot<HTMLImageElement>> {
+        let element = Element::create(
+            QualName::new(None, ns!(html), local_name!("img")),
+            None,
+            &window.Document(),
+            ElementCreator::ScriptCreated,
+            CustomElementCreationMode::Synchronous,
+            proto,
+            can_gc,
+        );
+
+        let image = DomRoot::downcast::<HTMLImageElement>(element).unwrap();
+        if let Some(w) = width {
+            image.SetWidth(w);
+        }
+        if let Some(h) = height {
+            image.SetHeight(h);
+        }
+
+        // run update_the_image_data when the element is created.
+        // https://html.spec.whatwg.org/multipage/#when-to-obtain-images
+        image.update_the_image_data(can_gc);
+
+        Ok(image)
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-img-alt
     make_getter!(Alt, "alt");
     // https://html.spec.whatwg.org/multipage/#dom-img-alt

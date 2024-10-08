@@ -59,9 +59,11 @@ impl XRWebGLBinding {
             can_gc,
         )
     }
+}
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+impl XRWebGLBindingMethods for XRWebGLBinding {
+    /// <https://immersive-web.github.io/layers/#dom-xrwebglbinding-xrwebglbinding>
+    fn Constructor(
         global: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -76,9 +78,7 @@ impl XRWebGLBinding {
         };
         XRWebGLBinding::new(global, proto, session, &context, can_gc)
     }
-}
 
-impl XRWebGLBindingMethods for XRWebGLBinding {
     /// <https://immersive-web.github.io/layers/#dom-xrwebglbinding-createprojectionlayer>
     fn CreateProjectionLayer(
         &self,

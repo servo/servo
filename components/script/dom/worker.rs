@@ -84,9 +84,69 @@ impl Worker {
         )
     }
 
+    pub fn is_terminated(&self) -> bool {
+        self.terminated.get()
+    }
+
+    pub fn set_context_for_interrupt(&self, cx: ContextForRequestInterrupt) {
+        assert!(
+            self.context_for_interrupt.borrow().is_none(),
+            "Context for interrupt must be set only once"
+        );
+        *self.context_for_interrupt.borrow_mut() = Some(cx);
+    }
+
+    pub fn handle_message(address: TrustedWorkerAddress, data: StructuredSerializedData) {
+        let worker = address.root();
+
+        if worker.is_terminated() {
+            return;
+        }
+
+        let global = worker.global();
+        let target = worker.upcast();
+        let _ac = enter_realm(target);
+        rooted!(in(*GlobalScope::get_cx()) let mut message = UndefinedValue());
+        if let Ok(ports) = structuredclone::read(&global, data, message.handle_mut()) {
+            MessageEvent::dispatch_jsval(target, &global, message.handle(), None, None, ports);
+        } else {
+            // Step 4 of the "port post message steps" of the implicit messageport, fire messageerror.
+            MessageEvent::dispatch_error(target, &global);
+        }
+    }
+
+    pub fn dispatch_simple_error(address: TrustedWorkerAddress) {
+        let worker = address.root();
+        worker.upcast().fire_event(atom!("error"));
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-dedicatedworkerglobalscope-postmessage>
+    fn post_message_impl(
+        &self,
+        cx: JSContext,
+        message: HandleValue,
+        transfer: CustomAutoRooterGuard<Vec<*mut JSObject>>,
+    ) -> ErrorResult {
+        let data = structuredclone::write(cx, message, Some(transfer))?;
+        let address = Trusted::new(self);
+
+        // NOTE: step 9 of https://html.spec.whatwg.org/multipage/#dom-messageport-postmessage
+        // indicates that a nonexistent communication channel should result in a silent error.
+        let _ = self.sender.send(DedicatedWorkerScriptMsg::CommonWorker(
+            address,
+            WorkerScriptMsg::DOMMessage {
+                origin: self.global().origin().immutable().clone(),
+                data,
+            },
+        ));
+        Ok(())
+    }
+}
+
+impl WorkerMethods for Worker {
     // https://html.spec.whatwg.org/multipage/#dom-worker
-    #[allow(unsafe_code, non_snake_case)]
-    pub fn Constructor(
+    #[allow(unsafe_code)]
+    fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -172,66 +232,6 @@ impl Worker {
         Ok(worker)
     }
 
-    pub fn is_terminated(&self) -> bool {
-        self.terminated.get()
-    }
-
-    pub fn set_context_for_interrupt(&self, cx: ContextForRequestInterrupt) {
-        assert!(
-            self.context_for_interrupt.borrow().is_none(),
-            "Context for interrupt must be set only once"
-        );
-        *self.context_for_interrupt.borrow_mut() = Some(cx);
-    }
-
-    pub fn handle_message(address: TrustedWorkerAddress, data: StructuredSerializedData) {
-        let worker = address.root();
-
-        if worker.is_terminated() {
-            return;
-        }
-
-        let global = worker.global();
-        let target = worker.upcast();
-        let _ac = enter_realm(target);
-        rooted!(in(*GlobalScope::get_cx()) let mut message = UndefinedValue());
-        if let Ok(ports) = structuredclone::read(&global, data, message.handle_mut()) {
-            MessageEvent::dispatch_jsval(target, &global, message.handle(), None, None, ports);
-        } else {
-            // Step 4 of the "port post message steps" of the implicit messageport, fire messageerror.
-            MessageEvent::dispatch_error(target, &global);
-        }
-    }
-
-    pub fn dispatch_simple_error(address: TrustedWorkerAddress) {
-        let worker = address.root();
-        worker.upcast().fire_event(atom!("error"));
-    }
-
-    /// <https://html.spec.whatwg.org/multipage/#dom-dedicatedworkerglobalscope-postmessage>
-    fn post_message_impl(
-        &self,
-        cx: JSContext,
-        message: HandleValue,
-        transfer: CustomAutoRooterGuard<Vec<*mut JSObject>>,
-    ) -> ErrorResult {
-        let data = structuredclone::write(cx, message, Some(transfer))?;
-        let address = Trusted::new(self);
-
-        // NOTE: step 9 of https://html.spec.whatwg.org/multipage/#dom-messageport-postmessage
-        // indicates that a nonexistent communication channel should result in a silent error.
-        let _ = self.sender.send(DedicatedWorkerScriptMsg::CommonWorker(
-            address,
-            WorkerScriptMsg::DOMMessage {
-                origin: self.global().origin().immutable().clone(),
-                data,
-            },
-        ));
-        Ok(())
-    }
-}
-
-impl WorkerMethods for Worker {
     /// <https://html.spec.whatwg.org/multipage/#dom-worker-postmessage>
     fn PostMessage(
         &self,

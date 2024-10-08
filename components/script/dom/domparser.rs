@@ -45,19 +45,19 @@ impl DOMParser {
             can_gc,
         )
     }
+}
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+impl DOMParserMethods for DOMParser {
+    /// <https://html.spec.whatwg.org/multipage/#dom-domparser-constructor>
+    fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<DOMParser>> {
         Ok(DOMParser::new(window, proto, can_gc))
     }
-}
 
-impl DOMParserMethods for DOMParser {
-    // https://w3c.github.io/DOM-Parsing/#the-domparser-interface
+    /// <https://html.spec.whatwg.org/multipage/#dom-domparser-parsefromstring>
     fn ParseFromString(
         &self,
         s: DOMString,
