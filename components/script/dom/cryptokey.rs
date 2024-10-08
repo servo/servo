@@ -93,7 +93,7 @@ impl CryptoKey {
 impl CryptoKeyMethods for CryptoKey {
     /// <https://w3c.github.io/webcrypto/#cryptokey-interface-members>
     fn Type(&self) -> KeyType {
-        self.key_type.clone()
+        self.key_type
     }
 
     /// <https://w3c.github.io/webcrypto/#cryptokey-interface-members>
