@@ -195,7 +195,7 @@ impl ServoCookie {
         // abort these steps and ignore the cookie entirely unless the cookie meets all the following criteria:
         if has_case_insensitive_prefix(cookie.name(), "__Host-") {
             // 1. The cookie's secure-only-flag is true.
-            if !cookie.secure().unwrap_or(false) {
+            if !secure_only {
                 return None;
             }
 
@@ -206,7 +206,7 @@ impl ServoCookie {
 
             // 3. The cookie-attribute-list contains an attribute with an attribute-name of "Path",
             // and the cookie's path is /.
-            if !cookie.path().is_some_and(|path| path == "/") {
+            if !has_path_specified || !cookie.path().is_some_and(|path| path == "/") {
                 return None;
             }
         }
