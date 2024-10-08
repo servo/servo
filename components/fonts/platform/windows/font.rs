@@ -167,7 +167,7 @@ impl PlatformFontMethods for PlatformFont {
         };
 
         let weight = StyleFontWeight::from_float(weight_val as f32);
-        let stretch = match min(9, max(1, width_val)) {
+        let stretch = match width_val.clamp(1, 9) {
             1 => StyleFontStretch::ULTRA_CONDENSED,
             2 => StyleFontStretch::EXTRA_CONDENSED,
             3 => StyleFontStretch::CONDENSED,
