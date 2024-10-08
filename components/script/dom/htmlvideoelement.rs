@@ -327,16 +327,13 @@ impl VirtualMethods for HTMLVideoElement {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
 
         match *attr.local_name() {
-            local_name!("poster") => match mutation {
-                AttributeMutation::Set(_) => {
-                    if let Some(new_value) = mutation.new_value(attr) {
-                        self.fetch_poster_frame(&new_value, CanGc::note())
-                    }
-                },
-                AttributeMutation::Removed => {
+            local_name!("poster") => {
+                if let Some(new_value) = mutation.new_value(attr) {
+                    self.fetch_poster_frame(&new_value, CanGc::note())
+                } else {
                     self.set_intrinsic_size();
                     self.htmlmediaelement.clear_current_frame();
-                },
+                }
             },
             local_name!("src") => {
                 if matches!(mutation, AttributeMutation::Removed) {
