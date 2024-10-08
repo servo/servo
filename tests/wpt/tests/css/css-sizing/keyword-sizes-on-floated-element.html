@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<title>Keyword sizes on floated element</title>
+<link rel="author" title="Oriol Brufau" href="obrufau@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#sizing-values">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#sizing-values">
+<link rel="help" href="https://drafts.csswg.org/css2/#floats">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/11006">
+<meta assert="The various keyword sizes work as expected on floats.">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+
+<style>
+.test {
+  float: left;
+  margin: 5px;
+  border: 3px solid;
+  padding: 2px;
+  font: 20px/1 Ahem;
+}
+
+/* Set the preferred size to small amount, to test that the min size works */
+.test.min-width  { width:  0px }
+.test.min-height { height: 0px }
+
+/* Set the preferred size to big amount, to test that the max size works */
+.test.max-width  { width:  500px }
+.test.max-height { height: 500px }
+
+/* stretch isn't widely supported, fall back to vendor-prefixed alternatives */
+.width.stretch      {      width: -moz-available;      width: -webkit-fill-available;      width: stretch }
+.min-width.stretch  {  min-width: -moz-available;  min-width: -webkit-fill-available;  min-width: stretch }
+.max-width.stretch  {  max-width: -moz-available;  max-width: -webkit-fill-available;  max-width: stretch }
+.height.stretch     {     height: -moz-available;     height: -webkit-fill-available;     height: stretch }
+.min-height.stretch { min-height: -moz-available; min-height: -webkit-fill-available; min-height: stretch }
+.max-height.stretch { max-height: -moz-available; max-height: -webkit-fill-available; max-height: stretch }
+</style>
+<div id="log"></div>
+
+<!-- Intrinsic keywords -->
+<div style="width: 100px; height: 100px">
+  <div class="test width" style="width: min-content" data-expected-width="30">X X</div>
+  <div class="test width" style="width: fit-content" data-expected-width="70">X X</div>
+  <div class="test width" style="width: max-content" data-expected-width="70">X X</div>
+
+  <div class="test width" style="width: min-content" data-expected-width="70">XXX XXX</div>
+  <div class="test width" style="width: fit-content" data-expected-width="90">XXX XXX</div>
+  <div class="test width" style="width: max-content" data-expected-width="150">XXX XXX</div>
+
+  <div class="test width" style="width: min-content" data-expected-width="110">XXXXX XXXXX</div>
+  <div class="test width" style="width: fit-content" data-expected-width="110">XXXXX XXXXX</div>
+  <div class="test width" style="width: max-content" data-expected-width="230">XXXXX XXXXX</div>
+
+  <br>
+
+  <div class="test min-width" style="min-width: min-content" data-expected-width="30">X X</div>
+  <div class="test min-width" style="min-width: fit-content" data-expected-width="70">X X</div>
+  <div class="test min-width" style="min-width: max-content" data-expected-width="70">X X</div>
+
+  <div class="test min-width" style="min-width: min-content" data-expected-width="70">XXX XXX</div>
+  <div class="test min-width" style="min-width: fit-content" data-expected-width="90">XXX XXX</div>
+  <div class="test min-width" style="min-width: max-content" data-expected-width="150">XXX XXX</div>
+
+  <div class="test min-width" style="min-width: min-content" data-expected-width="110">XXXXX XXXXX</div>
+  <div class="test min-width" style="min-width: fit-content" data-expected-width="110">XXXXX XXXXX</div>
+  <div class="test min-width" style="min-width: max-content" data-expected-width="230">XXXXX XXXXX</div>
+
+  <br>
+
+  <div class="test max-width" style="max-width: min-content" data-expected-width="30">X X</div>
+  <div class="test max-width" style="max-width: fit-content" data-expected-width="70">X X</div>
+  <div class="test max-width" style="max-width: max-content" data-expected-width="70">X X</div>
+
+  <div class="test max-width" style="max-width: min-content" data-expected-width="70">XXX XXX</div>
+  <div class="test max-width" style="max-width: fit-content" data-expected-width="90">XXX XXX</div>
+  <div class="test max-width" style="max-width: max-content" data-expected-width="150">XXX XXX</div>
+
+  <div class="test max-width" style="max-width: min-content" data-expected-width="110">XXXXX XXXXX</div>
+  <div class="test max-width" style="max-width: fit-content" data-expected-width="110">XXXXX XXXXX</div>
+  <div class="test max-width" style="max-width: max-content" data-expected-width="230">XXXXX XXXXX</div>
+
+  <br>
+
+  <div class="test height" style="height: min-content" data-expected-height="30">X X</div>
+  <div class="test height" style="height: fit-content" data-expected-height="30">X X</div>
+  <div class="test height" style="height: max-content" data-expected-height="30">X X</div>
+
+  <div class="test min-height" style="min-height: min-content" data-expected-height="30">X X</div>
+  <div class="test min-height" style="min-height: fit-content" data-expected-height="30">X X</div>
+  <div class="test min-height" style="min-height: max-content" data-expected-height="30">X X</div>
+
+  <div class="test max-height" style="max-height: min-content" data-expected-height="30">X X</div>
+  <div class="test max-height" style="max-height: fit-content" data-expected-height="30">X X</div>
+  <div class="test max-height" style="max-height: max-content" data-expected-height="30">X X</div>
+</div>
+
+<!-- Definite stretch -->
+<div style="width: 100px; height: 100px">
+  <div class="test width stretch" data-expected-width="90">X X</div>
+  <div class="test width stretch" data-expected-width="90">XXX XXX</div>
+  <div class="test width stretch" data-expected-width="90">XXXXX XXXXX</div>
+
+  <div class="test min-width stretch" data-expected-width="90">X X</div>
+  <div class="test min-width stretch" data-expected-width="90">XXX XXX</div>
+  <div class="test min-width stretch" data-expected-width="90">XXXXX XXXXX</div>
+
+  <div class="test max-width stretch" data-expected-width="90">X X</div>
+  <div class="test max-width stretch" data-expected-width="90">XXX XXX</div>
+  <div class="test max-width stretch" data-expected-width="90">XXXXX XXXXX</div>
+
+  <div class="test height stretch" data-expected-height="90">X X</div>
+  <div class="test height stretch" data-expected-height="90">XXX XXX<</div>
+  <div class="test height stretch" data-expected-height="90">XXXXX XXXXX</div>
+
+  <div class="test min-height stretch" data-expected-height="90">X X</div>
+  <div class="test min-height stretch" data-expected-height="90">XXX XXX</div>
+  <div class="test min-height stretch" data-expected-height="90">XXXXX XXXXX</div>
+
+  <div class="test max-height stretch" data-expected-height="90">X X</div>
+  <div class="test max-height stretch" data-expected-height="90">XXX XXX</div>
+  <div class="test max-height stretch" data-expected-height="90">XXXXX XXXXX</div>
+</div>
+
+<!-- Indefinite stretch -->
+<div style="width: 100px; max-height: 100px">
+  <div class="test height stretch indefinite" data-expected-height="30">X X</div>
+  <div class="test height stretch indefinite" data-expected-height="50">XXX XXX</div>
+  <div class="test height stretch indefinite" data-expected-height="50">XXXXX XXXXX</div>
+
+  <div class="test min-height stretch indefinite" data-expected-height="30">X X</div>
+  <div class="test min-height stretch indefinite" data-expected-height="50">XXX XXX</div>
+  <div class="test min-height stretch indefinite" data-expected-height="50">XXXXX XXXXX</div>
+
+  <div class="test max-height stretch indefinite" data-expected-height="30">X X</div>
+  <div class="test max-height stretch indefinite" data-expected-height="50">XXX XXX</div>
+  <div class="test max-height stretch indefinite" data-expected-height="50">XXXXX XXXXX</div>
+</div>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script>
+checkLayout(".test");
+</script>
