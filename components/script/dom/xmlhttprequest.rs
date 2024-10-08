@@ -972,7 +972,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                 self.json_response(cx).to_jsval(*cx, rval.handle_mut());
             },
             XMLHttpRequestResponseType::Blob => unsafe {
-                self.blob_response().to_jsval(*cx, rval.handle_mut());
+                self.blob_response(can_gc).to_jsval(*cx, rval.handle_mut());
             },
             XMLHttpRequestResponseType::Arraybuffer => match self.arraybuffer_response(cx) {
                 Some(array_buffer) => unsafe { array_buffer.to_jsval(*cx, rval.handle_mut()) },
@@ -1326,7 +1326,7 @@ impl XMLHttpRequest {
     }
 
     /// <https://xhr.spec.whatwg.org/#blob-response>
-    fn blob_response(&self) -> DomRoot<Blob> {
+    fn blob_response(&self, can_gc: CanGc) -> DomRoot<Blob> {
         // Step 1
         if let Some(response) = self.response_blob.get() {
             return response;
@@ -1340,7 +1340,11 @@ impl XMLHttpRequest {
 
         // Step 3, 4
         let bytes = self.response.borrow().to_vec();
-        let blob = Blob::new(&self.global(), BlobImpl::new_from_bytes(bytes, mime));
+        let blob = Blob::new(
+            &self.global(),
+            BlobImpl::new_from_bytes(bytes, mime),
+            can_gc,
+        );
         self.response_blob.set(Some(&blob));
         blob
     }

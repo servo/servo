@@ -1894,8 +1894,8 @@ impl ImageCacheListener for HTMLImageElement {
         self.generation.get()
     }
 
-    fn process_image_response(&self, response: ImageResponse) {
-        self.process_image_response(response, CanGc::note());
+    fn process_image_response(&self, response: ImageResponse, can_gc: CanGc) {
+        self.process_image_response(response, can_gc);
     }
 }
 
