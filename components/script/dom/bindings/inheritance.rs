@@ -37,7 +37,7 @@ pub trait Castable: IDLInterface + DomObject + Sized {
         T: Castable,
         Self: DerivedFrom<T>,
     {
-        unsafe { mem::transmute(self) }
+        unsafe { mem::transmute::<&Self, &T>(self) }
     }
 
     /// Cast a DOM object downwards to one of the interfaces it might implement.
