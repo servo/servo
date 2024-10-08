@@ -76,6 +76,10 @@ impl Reflector {
     }
 
     /// Initialize the reflector. (May be called only once.)
+    ///
+    /// # Safety
+    ///
+    /// The provided [`JSObject`] pointer must point to a valid [`JSObject`].
     pub unsafe fn set_jsobject(&self, object: *mut JSObject) {
         assert!(self.object.get().is_null());
         assert!(!object.is_null());
@@ -123,6 +127,10 @@ impl DomObject for Reflector {
 /// A trait to initialize the `Reflector` for a DOM object.
 pub trait MutDomObject: DomObject {
     /// Initializes the Reflector
+    ///
+    /// # Safety
+    ///
+    /// The provided [`JSObject`] pointer must point to a valid [`JSObject`].
     unsafe fn init_reflector(&self, obj: *mut JSObject);
 }
 

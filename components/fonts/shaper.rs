@@ -619,39 +619,41 @@ impl Shaper {
         advance
     }
 
-    pub unsafe fn get_baseline(&self) -> Option<FontBaseline> {
-        (*self.font).table_for_tag(BASE)?;
+    pub fn baseline(&self) -> Option<FontBaseline> {
+        unsafe { (*self.font).table_for_tag(BASE)? };
 
         let mut hanging_baseline = 0;
         let mut alphabetic_baseline = 0;
         let mut ideographic_baseline = 0;
 
-        hb_ot_layout_get_baseline(
-            self.hb_font,
-            HB_OT_LAYOUT_BASELINE_TAG_ROMAN,
-            HB_DIRECTION_LTR,
-            HB_OT_TAG_DEFAULT_SCRIPT,
-            HB_OT_TAG_DEFAULT_LANGUAGE,
-            &mut alphabetic_baseline as *mut _,
-        );
+        unsafe {
+            hb_ot_layout_get_baseline(
+                self.hb_font,
+                HB_OT_LAYOUT_BASELINE_TAG_ROMAN,
+                HB_DIRECTION_LTR,
+                HB_OT_TAG_DEFAULT_SCRIPT,
+                HB_OT_TAG_DEFAULT_LANGUAGE,
+                &mut alphabetic_baseline as *mut _,
+            );
 
-        hb_ot_layout_get_baseline(
-            self.hb_font,
-            HB_OT_LAYOUT_BASELINE_TAG_HANGING,
-            HB_DIRECTION_LTR,
-            HB_OT_TAG_DEFAULT_SCRIPT,
-            HB_OT_TAG_DEFAULT_LANGUAGE,
-            &mut hanging_baseline as *mut _,
-        );
+            hb_ot_layout_get_baseline(
+                self.hb_font,
+                HB_OT_LAYOUT_BASELINE_TAG_HANGING,
+                HB_DIRECTION_LTR,
+                HB_OT_TAG_DEFAULT_SCRIPT,
+                HB_OT_TAG_DEFAULT_LANGUAGE,
+                &mut hanging_baseline as *mut _,
+            );
 
-        hb_ot_layout_get_baseline(
-            self.hb_font,
-            HB_OT_LAYOUT_BASELINE_TAG_IDEO_EMBOX_BOTTOM_OR_LEFT,
-            HB_DIRECTION_LTR,
-            HB_OT_TAG_DEFAULT_SCRIPT,
-            HB_OT_TAG_DEFAULT_LANGUAGE,
-            &mut ideographic_baseline as *mut _,
-        );
+            hb_ot_layout_get_baseline(
+                self.hb_font,
+                HB_OT_LAYOUT_BASELINE_TAG_IDEO_EMBOX_BOTTOM_OR_LEFT,
+                HB_DIRECTION_LTR,
+                HB_OT_TAG_DEFAULT_SCRIPT,
+                HB_OT_TAG_DEFAULT_LANGUAGE,
+                &mut ideographic_baseline as *mut _,
+            );
+        }
 
         Some(FontBaseline {
             ideographic_baseline: Shaper::fixed_to_float(ideographic_baseline) as f32,

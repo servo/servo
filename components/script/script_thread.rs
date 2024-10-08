@@ -145,8 +145,8 @@ use crate::microtask::{Microtask, MicrotaskQueue};
 use crate::realms::enter_realm;
 use crate::script_module::ScriptFetchOptions;
 use crate::script_runtime::{
-    get_reports, new_rt_and_cx, CanGc, CommonScriptMsg, JSContext, Runtime, ScriptChan, ScriptPort,
-    ScriptThreadEventCategory, ThreadSafeJSContext,
+    CanGc, CommonScriptMsg, JSContext, Runtime, ScriptChan, ScriptPort, ScriptThreadEventCategory,
+    ThreadSafeJSContext,
 };
 use crate::task_manager::TaskManager;
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
@@ -170,6 +170,11 @@ pub type ImageCacheMsg = (PipelineId, PendingImageResponse);
 
 thread_local!(static SCRIPT_THREAD_ROOT: Cell<Option<*const ScriptThread>> = const { Cell::new(None) });
 
+/// # Safety
+///
+/// The `JSTracer` argument must point to a valid `JSTracer` in memory. In addition,
+/// implementors of this method must ensure that all active objects are properly traced
+/// or else the garbage collector may end up collecting objects that are still reachable.
 pub unsafe fn trace_thread(tr: *mut JSTracer) {
     SCRIPT_THREAD_ROOT.with(|root| {
         if let Some(script_thread) = root.get() {
@@ -1291,7 +1296,7 @@ impl ScriptThread {
 
         let boxed_script_sender = Box::new(MainThreadScriptChan(chan.clone()));
 
-        let runtime = new_rt_and_cx(Some(NetworkingTaskSource(
+        let runtime = Runtime::new(Some(NetworkingTaskSource(
             boxed_script_sender.clone(),
             state.id,
         )));
@@ -2944,11 +2949,8 @@ impl ScriptThread {
     fn collect_reports(&self, reports_chan: ReportsChan) {
         let documents = self.documents.borrow();
         let urls = itertools::join(documents.iter().map(|(_, d)| d.url().to_string()), ", ");
-        let path_seg = format!("url({})", urls);
 
-        let mut reports = vec![];
-        reports.extend(unsafe { get_reports(*self.get_cx(), path_seg) });
-
+        let mut reports = self.get_cx().get_reports(format!("url({})", urls));
         for (_, document) in documents.iter() {
             document.window().layout().collect_reports(&mut reports);
         }

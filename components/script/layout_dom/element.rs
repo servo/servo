@@ -89,12 +89,24 @@ impl<'dom> ServoLayoutElement<'dom> {
         self.as_node().style_data()
     }
 
+    /// Unset the snapshot flags on the underlying DOM object for this element.
+    ///
+    /// # Safety
+    ///
+    /// This function accesses and modifies the underlying DOM object and should
+    /// not be used by more than a single thread at once.
     pub unsafe fn unset_snapshot_flags(&self) {
         self.as_node()
             .node
             .set_flag(NodeFlags::HAS_SNAPSHOT | NodeFlags::HANDLED_SNAPSHOT, false);
     }
 
+    /// Unset the snapshot flags on the underlying DOM object for this element.
+    ///
+    /// # Safety
+    ///
+    /// This function accesses and modifies the underlying DOM object and should
+    /// not be used by more than a single thread at once.
     pub unsafe fn set_has_snapshot(&self) {
         self.as_node().node.set_flag(NodeFlags::HAS_SNAPSHOT, true);
     }

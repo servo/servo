@@ -55,8 +55,8 @@ use crate::fetch::load_whole_resource;
 use crate::realms::{enter_realm, AlreadyInRealm, InRealm};
 use crate::script_runtime::ScriptThreadEventCategory::WorkerEvent;
 use crate::script_runtime::{
-    new_child_runtime, CanGc, CommonScriptMsg, JSContext as SafeJSContext, Runtime, ScriptChan,
-    ScriptPort, ThreadSafeJSContext,
+    CanGc, CommonScriptMsg, JSContext as SafeJSContext, Runtime, ScriptChan, ScriptPort,
+    ThreadSafeJSContext,
 };
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
 use crate::task_source::networking::NetworkingTaskSource;
@@ -381,7 +381,7 @@ impl DedicatedWorkerGlobalScope {
                         }),
                         pipeline_id,
                     );
-                    new_child_runtime(parent, Some(task_source))
+                    Runtime::new_with_parent(Some(parent), Some(task_source))
                 };
 
                 let context_for_interrupt = runtime.thread_safe_js_context();

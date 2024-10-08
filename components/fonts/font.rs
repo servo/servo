@@ -543,10 +543,10 @@ impl Font {
         self.handle.typographic_bounds(glyph_id)
     }
 
-    #[allow(unsafe_code)]
-    pub fn get_baseline(&self) -> Option<FontBaseline> {
+    /// Get the [`FontBaseline`] for this font.
+    pub fn baseline(&self) -> Option<FontBaseline> {
         let this = self as *const Font;
-        unsafe { self.shaper.get_or_init(|| Shaper::new(this)).get_baseline() }
+        self.shaper.get_or_init(|| Shaper::new(this)).baseline()
     }
 }
 

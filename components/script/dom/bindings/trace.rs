@@ -69,8 +69,19 @@ use crate::script_thread::IncompleteParserContexts;
 use crate::task::TaskBox;
 
 /// A trait to allow tracing only DOM sub-objects.
+///
+/// # Safety
+///
+/// This trait is unsafe; if it is implemented incorrectly, the GC may end up collecting objects
+/// that are still reachable.
 pub unsafe trait CustomTraceable {
     /// Trace `self`.
+    ///
+    /// # Safety
+    ///
+    /// The `JSTracer` argument must point to a valid `JSTracer` in memory. In addition,
+    /// implementors of this method must ensure that all active objects are properly traced
+    /// or else the garbage collector may end up collecting objects that are still reachable.
     unsafe fn trace(&self, trc: *mut JSTracer);
 }
 
