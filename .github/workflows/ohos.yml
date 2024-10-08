@@ -52,7 +52,11 @@ jobs:
         run: sudo apt update && python3 ./mach bootstrap --skip-lints
       - name: Setup OpenHarmony SDK
         id: setup_sdk
-        uses: openharmony-rs/setup-ohos-sdk@v0.1
+        # FIXME: We pin the exact patch version to the LKG version of the
+        # action to address bugs in the most recent 0.1.2 release. Once that
+        # has been addresssed upstream, we can revert to specifying only the
+        # major.minor tag.
+        uses: openharmony-rs/setup-ohos-sdk@v0.1.2
         with:
           version: "4.1"
           components: "native;toolchains;ets;js;previewer"
