@@ -18,6 +18,7 @@ rust-version = "1.80.1"
 
 [workspace.dependencies]
 accountable-refcell = "0.2.0"
+aes = { version = "0.8.4" }
 app_units = "0.7"
 arrayvec = "0.7"
 async-tungstenite = { version = "0.23", features = ["tokio-rustls-webpki-roots"] }

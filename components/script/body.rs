@@ -39,7 +39,7 @@ use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::readablestream::{get_read_promise_bytes, get_read_promise_done, ReadableStream};
 use crate::dom::urlsearchparams::URLSearchParams;
 use crate::realms::{enter_realm, AlreadyInRealm, InRealm};
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{CanGc, JSContext};
 use crate::task::TaskCanceller;
 use crate::task_source::networking::NetworkingTaskSource;
 use crate::task_source::{TaskSource, TaskSourceName};
@@ -286,7 +286,7 @@ struct TransmitBodyPromiseHandler {
 
 impl Callback for TransmitBodyPromiseHandler {
     /// Step 5 of <https://fetch.spec.whatwg.org/#concept-request-transmit-body>
-    fn callback(&self, cx: JSContext, v: HandleValue, _realm: InRealm) {
+    fn callback(&self, cx: JSContext, v: HandleValue, _realm: InRealm, _can_gc: CanGc) {
         let is_done = match get_read_promise_done(cx, &v) {
             Ok(is_done) => is_done,
             Err(_) => {
@@ -335,7 +335,7 @@ struct TransmitBodyPromiseRejectionHandler {
 
 impl Callback for TransmitBodyPromiseRejectionHandler {
     /// <https://fetch.spec.whatwg.org/#concept-request-transmit-body>
-    fn callback(&self, _cx: JSContext, _v: HandleValue, _realm: InRealm) {
+    fn callback(&self, _cx: JSContext, _v: HandleValue, _realm: InRealm, _can_gc: CanGc) {
         // Step 5.4, the "rejection" steps.
         let _ = self.control_sender.send(BodyChunkRequest::Error);
         self.stream.stop_reading();
@@ -605,7 +605,7 @@ impl Callback for ConsumeBodyPromiseRejectionHandler {
     /// Continuing Step 4 of <https://fetch.spec.whatwg.org/#concept-body-consume-body>
     /// Step 3 of <https://fetch.spec.whatwg.org/#concept-read-all-bytes-from-readablestream>,
     // the rejection steps.
-    fn callback(&self, cx: JSContext, v: HandleValue, _realm: InRealm) {
+    fn callback(&self, cx: JSContext, v: HandleValue, _realm: InRealm, _can_gc: CanGc) {
         self.result_promise.reject(cx, v);
     }
 }
@@ -624,12 +624,12 @@ struct ConsumeBodyPromiseHandler {
 
 impl ConsumeBodyPromiseHandler {
     /// Step 5 of <https://fetch.spec.whatwg.org/#concept-body-consume-body>
-    fn resolve_result_promise(&self, cx: JSContext) {
+    fn resolve_result_promise(&self, cx: JSContext, can_gc: CanGc) {
         let body_type = self.body_type.borrow_mut().take().unwrap();
         let mime_type = self.mime_type.borrow_mut().take().unwrap();
         let body = self.bytes.borrow_mut().take().unwrap();
 
-        let pkg_data_results = run_package_data_algorithm(cx, body, body_type, mime_type);
+        let pkg_data_results = run_package_data_algorithm(cx, body, body_type, mime_type, can_gc);
 
         match pkg_data_results {
             Ok(results) => {
@@ -650,7 +650,7 @@ impl ConsumeBodyPromiseHandler {
 impl Callback for ConsumeBodyPromiseHandler {
     /// Continuing Step 4 of <https://fetch.spec.whatwg.org/#concept-body-consume-body>
     /// Step 3 of <https://fetch.spec.whatwg.org/#concept-read-all-bytes-from-readablestream>.
-    fn callback(&self, cx: JSContext, v: HandleValue, _realm: InRealm) {
+    fn callback(&self, cx: JSContext, v: HandleValue, _realm: InRealm, can_gc: CanGc) {
         let stream = self
             .stream
             .as_ref()
@@ -667,7 +667,7 @@ impl Callback for ConsumeBodyPromiseHandler {
 
         if is_done {
             // When read is fulfilled with an object whose done property is true.
-            self.resolve_result_promise(cx);
+            self.resolve_result_promise(cx, can_gc);
         } else {
             let chunk = match get_read_promise_bytes(cx, &v) {
                 Ok(chunk) => chunk,
@@ -796,6 +796,7 @@ fn run_package_data_algorithm(
     bytes: Vec<u8>,
     body_type: BodyType,
     mime_type: Vec<u8>,
+    can_gc: CanGc,
 ) -> Fallible<FetchedData> {
     let mime = &*mime_type;
     let in_realm_proof = AlreadyInRealm::assert_for_cx(cx);
@@ -803,7 +804,7 @@ fn run_package_data_algorithm(
     match body_type {
         BodyType::Text => run_text_data_algorithm(bytes),
         BodyType::Json => run_json_data_algorithm(cx, bytes),
-        BodyType::Blob => run_blob_data_algorithm(&global, bytes, mime),
+        BodyType::Blob => run_blob_data_algorithm(&global, bytes, mime, can_gc),
         BodyType::FormData => run_form_data_algorithm(&global, bytes, mime),
         BodyType::ArrayBuffer => run_array_buffer_data_algorithm(cx, bytes),
     }
@@ -843,6 +844,7 @@ fn run_blob_data_algorithm(
     root: &GlobalScope,
     bytes: Vec<u8>,
     mime: &[u8],
+    can_gc: CanGc,
 ) -> Fallible<FetchedData> {
     let mime_string = if let Ok(s) = String::from_utf8(mime.to_vec()) {
         s
@@ -852,6 +854,7 @@ fn run_blob_data_algorithm(
     let blob = Blob::new(
         root,
         BlobImpl::new_from_bytes(bytes, normalize_type_string(&mime_string)),
+        can_gc,
     );
     Ok(FetchedData::BlobData(blob))
 }

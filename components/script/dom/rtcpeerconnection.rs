@@ -26,7 +26,7 @@ use crate::dom::bindings::codegen::Bindings::RTCPeerConnectionBinding::{
     RTCSignalingState,
 };
 use crate::dom::bindings::codegen::Bindings::RTCSessionDescriptionBinding::{
-    RTCSdpType, RTCSessionDescriptionInit,
+    RTCSdpType, RTCSessionDescriptionInit, RTCSessionDescriptionMethods,
 };
 use crate::dom::bindings::codegen::UnionTypes::{MediaStreamTrackOrString, StringOrStringSequence};
 use crate::dom::bindings::error::{Error, Fallible};
@@ -165,7 +165,7 @@ impl WebRtcSignaller for RTCSignaller {
                 let this = this.root();
                 let global = this.global();
                 let _ac = enter_realm(&*global);
-                this.on_data_channel_event(channel, event);
+                this.on_data_channel_event(channel, event, CanGc::note());
             }),
             &self.canceller,
         );
@@ -231,21 +231,6 @@ impl RTCPeerConnection {
         this
     }
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
-        window: &Window,
-        proto: Option<HandleObject>,
-        can_gc: CanGc,
-        config: &RTCConfiguration,
-    ) -> Fallible<DomRoot<RTCPeerConnection>> {
-        Ok(RTCPeerConnection::new(
-            &window.global(),
-            proto,
-            config,
-            can_gc,
-        ))
-    }
-
     pub fn get_webrtc_controller(&self) -> &DomRefCell<Option<WebRtcController>> {
         &self.controller
     }
@@ -307,7 +292,12 @@ impl RTCPeerConnection {
         event.upcast::<Event>().fire(self.upcast());
     }
 
-    fn on_data_channel_event(&self, channel_id: DataChannelId, event: DataChannelEvent) {
+    fn on_data_channel_event(
+        &self,
+        channel_id: DataChannelId,
+        event: DataChannelEvent,
+        can_gc: CanGc,
+    ) {
         if self.closed.get() {
             return;
         }
@@ -346,7 +336,7 @@ impl RTCPeerConnection {
                     DataChannelEvent::Open => channel.on_open(),
                     DataChannelEvent::Close => channel.on_close(),
                     DataChannelEvent::Error(error) => channel.on_error(error),
-                    DataChannelEvent::OnMessage(message) => channel.on_message(message),
+                    DataChannelEvent::OnMessage(message) => channel.on_message(message, can_gc),
                     DataChannelEvent::StateChange(state) => channel.on_state_change(state),
                     DataChannelEvent::NewChannel => unreachable!(),
                 }
@@ -525,6 +515,21 @@ impl RTCPeerConnection {
 }
 
 impl RTCPeerConnectionMethods for RTCPeerConnection {
+    // https://w3c.github.io/webrtc-pc/#dom-peerconnection
+    fn Constructor(
+        window: &Window,
+        proto: Option<HandleObject>,
+        can_gc: CanGc,
+        config: &RTCConfiguration,
+    ) -> Fallible<DomRoot<RTCPeerConnection>> {
+        Ok(RTCPeerConnection::new(
+            &window.global(),
+            proto,
+            config,
+            can_gc,
+        ))
+    }
+
     // https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-icecandidate
     event_handler!(icecandidate, GetOnicecandidate, SetOnicecandidate);
 

@@ -92,9 +92,11 @@ impl IIRFilterNode {
             can_gc,
         ))
     }
+}
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+impl IIRFilterNodeMethods for IIRFilterNode {
+    /// <https://webaudio.github.io/web-audio-api/#dom-iirfilternode-iirfilternode>
+    fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -103,9 +105,7 @@ impl IIRFilterNode {
     ) -> Fallible<DomRoot<IIRFilterNode>> {
         IIRFilterNode::new_with_proto(window, proto, context, options, can_gc)
     }
-}
 
-impl IIRFilterNodeMethods for IIRFilterNode {
     #[allow(unsafe_code)]
     /// <https://webaudio.github.io/web-audio-api/#dom-iirfilternode-getfrequencyresponse>
     fn GetFrequencyResponse(

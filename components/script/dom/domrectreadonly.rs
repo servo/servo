@@ -51,21 +51,6 @@ impl DOMRectReadOnly {
         )
     }
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
-        global: &GlobalScope,
-        proto: Option<HandleObject>,
-        can_gc: CanGc,
-        x: f64,
-        y: f64,
-        width: f64,
-        height: f64,
-    ) -> Fallible<DomRoot<DOMRectReadOnly>> {
-        Ok(DOMRectReadOnly::new(
-            global, proto, x, y, width, height, can_gc,
-        ))
-    }
-
     pub fn set_x(&self, value: f64) {
         self.x.set(value);
     }
@@ -84,6 +69,21 @@ impl DOMRectReadOnly {
 }
 
 impl DOMRectReadOnlyMethods for DOMRectReadOnly {
+    // https://drafts.fxtf.org/geometry/#dom-domrectreadonly-domrectreadonly
+    fn Constructor(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        can_gc: CanGc,
+        x: f64,
+        y: f64,
+        width: f64,
+        height: f64,
+    ) -> Fallible<DomRoot<DOMRectReadOnly>> {
+        Ok(DOMRectReadOnly::new(
+            global, proto, x, y, width, height, can_gc,
+        ))
+    }
+
     // https://drafts.fxtf.org/geometry/#dom-domrectreadonly-x
     fn X(&self) -> f64 {
         self.x.get()

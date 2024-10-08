@@ -79,9 +79,12 @@ impl BluetoothAdvertisingEvent {
         }
         ev
     }
+}
 
+impl BluetoothAdvertisingEventMethods for BluetoothAdvertisingEvent {
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothadvertisingevent-bluetoothadvertisingevent
-    pub fn Constructor(
+    #[allow(non_snake_case)]
+    fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -109,9 +112,7 @@ impl BluetoothAdvertisingEvent {
             can_gc,
         ))
     }
-}
 
-impl BluetoothAdvertisingEventMethods for BluetoothAdvertisingEvent {
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothadvertisingevent-device
     fn Device(&self) -> DomRoot<BluetoothDevice> {
         DomRoot::from_ref(&*self.device)

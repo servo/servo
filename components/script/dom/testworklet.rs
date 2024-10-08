@@ -46,18 +46,17 @@ impl TestWorklet {
             can_gc,
         )
     }
+}
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+impl TestWorkletMethods for TestWorklet {
+    fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<TestWorklet>> {
         Ok(TestWorklet::new(window, proto, can_gc))
     }
-}
 
-impl TestWorkletMethods for TestWorklet {
     #[allow(non_snake_case)]
     fn AddModule(
         &self,

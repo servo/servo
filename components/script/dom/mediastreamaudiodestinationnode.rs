@@ -79,9 +79,11 @@ impl MediaStreamAudioDestinationNode {
             can_gc,
         ))
     }
+}
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+impl MediaStreamAudioDestinationNodeMethods for MediaStreamAudioDestinationNode {
+    /// <https://webaudio.github.io/web-audio-api/#dom-mediastreamaudiodestinationnode-mediastreamaudiodestinationnode>
+    fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -90,9 +92,7 @@ impl MediaStreamAudioDestinationNode {
     ) -> Fallible<DomRoot<MediaStreamAudioDestinationNode>> {
         MediaStreamAudioDestinationNode::new_with_proto(window, proto, context, options, can_gc)
     }
-}
 
-impl MediaStreamAudioDestinationNodeMethods for MediaStreamAudioDestinationNode {
     /// <https://webaudio.github.io/web-audio-api/#dom-mediastreamaudiodestinationnode-stream>
     fn Stream(&self) -> DomRoot<MediaStream> {
         DomRoot::from_ref(&self.stream)

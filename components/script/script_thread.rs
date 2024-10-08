@@ -1417,7 +1417,7 @@ impl ScriptThread {
 
             node_ids: Default::default(),
             is_user_interacting: Cell::new(false),
-            gpu_id_hub: Arc::new(IdentityHub::new()),
+            gpu_id_hub: Arc::new(IdentityHub::default()),
             webgpu_port: RefCell::new(None),
             inherited_secure_context: state.inherited_secure_context,
             layout_factory,

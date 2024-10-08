@@ -126,8 +126,12 @@ impl StorageEvent {
         }
         ev
     }
+}
 
-    pub fn Constructor(
+#[allow(non_snake_case)]
+impl StorageEventMethods for StorageEvent {
+    // https://html.spec.whatwg.org/multipage/#storageevent
+    fn Constructor(
         global: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -156,10 +160,7 @@ impl StorageEvent {
         );
         Ok(event)
     }
-}
 
-#[allow(non_snake_case)]
-impl StorageEventMethods for StorageEvent {
     // https://html.spec.whatwg.org/multipage/#dom-storageevent-key
     fn GetKey(&self) -> Option<DOMString> {
         self.key.borrow().clone()

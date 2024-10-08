@@ -34,6 +34,7 @@ use crate::dom::messageevent::MessageEvent;
 use crate::dom::rtcerror::RTCError;
 use crate::dom::rtcerrorevent::RTCErrorEvent;
 use crate::dom::rtcpeerconnection::RTCPeerConnection;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct RTCDataChannel {
@@ -154,7 +155,7 @@ impl RTCDataChannel {
     }
 
     #[allow(unsafe_code)]
-    pub fn on_message(&self, channel_message: DataChannelMessage) {
+    pub fn on_message(&self, channel_message: DataChannelMessage, can_gc: CanGc) {
         unsafe {
             let global = self.global();
             let cx = GlobalScope::get_cx();
@@ -167,8 +168,11 @@ impl RTCDataChannel {
                 },
                 DataChannelMessage::Binary(data) => match &**self.binary_type.borrow() {
                     "blob" => {
-                        let blob =
-                            Blob::new(&global, BlobImpl::new_from_bytes(data, "".to_owned()));
+                        let blob = Blob::new(
+                            &global,
+                            BlobImpl::new_from_bytes(data, "".to_owned()),
+                            can_gc,
+                        );
                         blob.to_jsval(*cx, message.handle_mut());
                     },
                     "arraybuffer" => {

@@ -45,9 +45,11 @@ impl XRMediaBinding {
             can_gc,
         )
     }
+}
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+impl XRMediaBindingMethods for XRMediaBinding {
+    /// <https://immersive-web.github.io/layers/#dom-xrmediabinding-xrmediabinding>
+    fn Constructor(
         global: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -66,9 +68,7 @@ impl XRMediaBinding {
         // Steps 3-5.
         Ok(XRMediaBinding::new(global, proto, session, can_gc))
     }
-}
 
-impl XRMediaBindingMethods for XRMediaBinding {
     /// <https://immersive-web.github.io/layers/#dom-xrmediabinding-createquadlayer>
     fn CreateQuadLayer(
         &self,

@@ -50,16 +50,16 @@ impl HTMLFormControlsCollection {
             window,
         )
     }
-
-    // FIXME: This shouldn't need to be implemented here since HTMLCollection (the parent of
-    // HTMLFormControlsCollection) implements Length
-    #[allow(non_snake_case)]
-    pub fn Length(&self) -> u32 {
-        self.collection.Length()
-    }
 }
 
 impl HTMLFormControlsCollectionMethods for HTMLFormControlsCollection {
+    // FIXME: This shouldn't need to be implemented here since HTMLCollection (the parent of
+    // HTMLFormControlsCollection) implements Length
+    // https://dom.spec.whatwg.org/#dom-htmlcollection-length
+    fn Length(&self) -> u32 {
+        self.collection.Length()
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-htmlformcontrolscollection-nameditem
     fn NamedItem(&self, name: DOMString) -> Option<RadioNodeListOrElement> {
         // Step 1
