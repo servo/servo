@@ -27,8 +27,7 @@ use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::hash_map::HashMap;
 use std::hash::Hash;
 use std::marker::PhantomData;
-use std::rc::Rc;
-use std::sync::{Arc, Weak};
+use std::rc::{Rc, Weak};
 
 use js::jsapi::JSTracer;
 
@@ -161,7 +160,7 @@ impl TrustedPromise {
 pub struct Trusted<T: DomObject> {
     /// A pointer to the Rust DOM object of type T, but void to allow
     /// sending `Trusted<T>` between threads, regardless of T's sendability.
-    refcount: Arc<TrustedReference>,
+    refcount: Rc<TrustedReference>,
     owner_thread: *const LiveDOMReferences,
     phantom: PhantomData<T>,
 }
@@ -175,7 +174,7 @@ impl<T: DomObject> Trusted<T> {
     pub fn new(ptr: &T) -> Trusted<T> {
         fn add_live_reference(
             ptr: *const libc::c_void,
-        ) -> (Arc<TrustedReference>, *const LiveDOMReferences) {
+        ) -> (Rc<TrustedReference>, *const LiveDOMReferences) {
             LIVE_REFERENCES.with(|r| {
                 let r = r.borrow();
                 let live_references = r.as_ref().unwrap();
@@ -253,7 +252,7 @@ impl LiveDOMReferences {
     /// ptr must be a pointer to a type that implements DOMObject.
     /// This is not enforced by the type system to reduce duplicated generic code,
     /// which is acceptable since this method is internal to this module.
-    unsafe fn addref(&self, ptr: *const libc::c_void) -> Arc<TrustedReference> {
+    unsafe fn addref(&self, ptr: *const libc::c_void) -> Rc<TrustedReference> {
         let mut table = self.reflectable_table.borrow_mut();
         let capacity = table.capacity();
         let len = table.len();
@@ -266,14 +265,14 @@ impl LiveDOMReferences {
             Occupied(mut entry) => match entry.get().upgrade() {
                 Some(refcount) => refcount,
                 None => {
-                    let refcount = Arc::new(TrustedReference::new(ptr));
-                    entry.insert(Arc::downgrade(&refcount));
+                    let refcount = Rc::new(TrustedReference::new(ptr));
+                    entry.insert(Rc::downgrade(&refcount));
                     refcount
                 },
             },
             Vacant(entry) => {
-                let refcount = Arc::new(TrustedReference::new(ptr));
-                entry.insert(Arc::downgrade(&refcount));
+                let refcount = Rc::new(TrustedReference::new(ptr));
+                entry.insert(Rc::downgrade(&refcount));
                 refcount
             },
         }
