@@ -169,7 +169,7 @@ impl<T: Castable> DomRoot<T> {
         U: Castable,
         T: DerivedFrom<U>,
     {
-        unsafe { mem::transmute(root) }
+        unsafe { mem::transmute::<DomRoot<T>, DomRoot<U>>(root) }
     }
 
     /// Cast a DOM object root downwards to one of the interfaces it might implement.
@@ -178,7 +178,7 @@ impl<T: Castable> DomRoot<T> {
         U: DerivedFrom<T>,
     {
         if root.is::<U>() {
-            Some(unsafe { mem::transmute(root) })
+            Some(unsafe { mem::transmute::<DomRoot<T>, DomRoot<U>>(root) })
         } else {
             None
         }
