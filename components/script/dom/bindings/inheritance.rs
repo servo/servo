@@ -46,7 +46,7 @@ pub trait Castable: IDLInterface + DomObject + Sized {
         T: DerivedFrom<Self>,
     {
         if self.is::<T>() {
-            Some(unsafe { mem::transmute(self) })
+            Some(unsafe { mem::transmute::<&Self, &T>(self) })
         } else {
             None
         }

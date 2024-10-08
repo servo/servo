@@ -9,6 +9,7 @@ use js::rust::{HandleObject, HandleValue};
 use servo_atoms::Atom;
 
 use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::ExtendableEventBinding::ExtendableEvent_Binding::ExtendableEventMethods;
 use crate::dom::bindings::codegen::Bindings::ExtendableMessageEventBinding;
 use crate::dom::bindings::codegen::Bindings::ExtendableMessageEventBinding::ExtendableMessageEventMethods;
 use crate::dom::bindings::error::Fallible;
@@ -116,29 +117,6 @@ impl ExtendableMessageEvent {
 
         ev
     }
-
-    pub fn Constructor(
-        worker: &ServiceWorkerGlobalScope,
-        proto: Option<HandleObject>,
-        can_gc: CanGc,
-        type_: DOMString,
-        init: RootedTraceableBox<ExtendableMessageEventBinding::ExtendableMessageEventInit>,
-    ) -> Fallible<DomRoot<ExtendableMessageEvent>> {
-        let global = worker.upcast::<GlobalScope>();
-        let ev = ExtendableMessageEvent::new_with_proto(
-            global,
-            proto,
-            Atom::from(type_),
-            init.parent.parent.bubbles,
-            init.parent.parent.cancelable,
-            init.data.handle(),
-            init.origin.clone(),
-            init.lastEventId.clone(),
-            vec![],
-            can_gc,
-        );
-        Ok(ev)
-    }
 }
 
 #[allow(non_snake_case)]
@@ -179,22 +157,46 @@ impl ExtendableMessageEvent {
 }
 
 impl ExtendableMessageEventMethods for ExtendableMessageEvent {
-    // https://w3c.github.io/ServiceWorker/#extendablemessage-event-data-attribute
+    /// <https://w3c.github.io/ServiceWorker/#dom-extendablemessageevent-extendablemessageevent>
+    fn Constructor(
+        worker: &ServiceWorkerGlobalScope,
+        proto: Option<HandleObject>,
+        can_gc: CanGc,
+        type_: DOMString,
+        init: RootedTraceableBox<ExtendableMessageEventBinding::ExtendableMessageEventInit>,
+    ) -> Fallible<DomRoot<ExtendableMessageEvent>> {
+        let global = worker.upcast::<GlobalScope>();
+        let ev = ExtendableMessageEvent::new_with_proto(
+            global,
+            proto,
+            Atom::from(type_),
+            init.parent.parent.bubbles,
+            init.parent.parent.cancelable,
+            init.data.handle(),
+            init.origin.clone(),
+            init.lastEventId.clone(),
+            vec![],
+            can_gc,
+        );
+        Ok(ev)
+    }
+
+    /// <https://w3c.github.io/ServiceWorker/#dom-extendablemessageevent-data>
     fn Data(&self, _cx: JSContext) -> JSVal {
         self.data.get()
     }
 
-    // https://w3c.github.io/ServiceWorker/#extendablemessage-event-origin-attribute
+    /// <https://w3c.github.io/ServiceWorker/#dom-extendablemessageevent-origin>
     fn Origin(&self) -> DOMString {
         self.origin.clone()
     }
 
-    // https://w3c.github.io/ServiceWorker/#extendablemessage-event-lasteventid-attribute
+    /// <https://w3c.github.io/ServiceWorker/#dom-extendablemessageevent-lasteventid>
     fn LastEventId(&self) -> DOMString {
         self.lastEventId.clone()
     }
 
-    // https://dom.spec.whatwg.org/#dom-event-istrusted
+    /// <https://dom.spec.whatwg.org/#dom-event-istrusted>
     fn IsTrusted(&self) -> bool {
         self.event.IsTrusted()
     }

@@ -46,9 +46,11 @@ impl DOMRect {
             can_gc,
         )
     }
+}
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+impl DOMRectMethods for DOMRect {
+    // https://drafts.fxtf.org/geometry/#dom-domrect-domrect
+    fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -61,9 +63,7 @@ impl DOMRect {
             global, proto, x, y, width, height, can_gc,
         ))
     }
-}
 
-impl DOMRectMethods for DOMRect {
     // https://drafts.fxtf.org/geometry/#dom-domrect-x
     fn X(&self) -> f64 {
         self.rect.X()

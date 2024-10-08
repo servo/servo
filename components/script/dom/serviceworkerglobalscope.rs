@@ -241,7 +241,7 @@ impl ServiceWorkerGlobalScope {
                 runtime,
                 from_devtools_receiver,
                 closing,
-                Arc::new(IdentityHub::new()),
+                Arc::new(IdentityHub::default()),
             ),
             task_queue: TaskQueue::new(receiver, own_sender.clone()),
             own_sender,

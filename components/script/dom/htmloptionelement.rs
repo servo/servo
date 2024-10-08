@@ -82,43 +82,6 @@ impl HTMLOptionElement {
         )
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-option
-    #[allow(non_snake_case)]
-    pub fn Option(
-        window: &Window,
-        proto: Option<HandleObject>,
-        can_gc: CanGc,
-        text: DOMString,
-        value: Option<DOMString>,
-        default_selected: bool,
-        selected: bool,
-    ) -> Fallible<DomRoot<HTMLOptionElement>> {
-        let element = Element::create(
-            QualName::new(None, ns!(html), local_name!("option")),
-            None,
-            &window.Document(),
-            ElementCreator::ScriptCreated,
-            CustomElementCreationMode::Synchronous,
-            proto,
-            can_gc,
-        );
-
-        let option = DomRoot::downcast::<HTMLOptionElement>(element).unwrap();
-
-        if !text.is_empty() {
-            option.upcast::<Node>().SetTextContent(Some(text))
-        }
-
-        if let Some(val) = value {
-            option.SetValue(val)
-        }
-
-        option.SetDefaultSelected(default_selected);
-        option.set_selectedness(selected);
-        option.update_select_validity();
-        Ok(option)
-    }
-
     pub fn set_selectedness(&self, selected: bool) {
         self.selectedness.set(selected);
     }
@@ -210,6 +173,42 @@ fn collect_text(element: &Element, value: &mut String) {
 }
 
 impl HTMLOptionElementMethods for HTMLOptionElement {
+    // https://html.spec.whatwg.org/multipage/#dom-option
+    fn Option(
+        window: &Window,
+        proto: Option<HandleObject>,
+        can_gc: CanGc,
+        text: DOMString,
+        value: Option<DOMString>,
+        default_selected: bool,
+        selected: bool,
+    ) -> Fallible<DomRoot<HTMLOptionElement>> {
+        let element = Element::create(
+            QualName::new(None, ns!(html), local_name!("option")),
+            None,
+            &window.Document(),
+            ElementCreator::ScriptCreated,
+            CustomElementCreationMode::Synchronous,
+            proto,
+            can_gc,
+        );
+
+        let option = DomRoot::downcast::<HTMLOptionElement>(element).unwrap();
+
+        if !text.is_empty() {
+            option.upcast::<Node>().SetTextContent(Some(text))
+        }
+
+        if let Some(val) = value {
+            option.SetValue(val)
+        }
+
+        option.SetDefaultSelected(default_selected);
+        option.set_selectedness(selected);
+        option.update_select_validity();
+        Ok(option)
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-option-disabled
     make_bool_getter!(Disabled, "disabled");
 

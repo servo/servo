@@ -204,9 +204,11 @@ impl PannerNode {
             can_gc,
         ))
     }
+}
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+impl PannerNodeMethods for PannerNode {
+    // https://webaudio.github.io/web-audio-api/#dom-pannernode-pannernode
+    fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -215,9 +217,7 @@ impl PannerNode {
     ) -> Fallible<DomRoot<PannerNode>> {
         PannerNode::new_with_proto(window, proto, context, options, can_gc)
     }
-}
 
-impl PannerNodeMethods for PannerNode {
     // https://webaudio.github.io/web-audio-api/#dom-pannernode-positionx
     fn PositionX(&self) -> DomRoot<AudioParam> {
         DomRoot::from_ref(&self.position_x)

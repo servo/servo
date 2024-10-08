@@ -109,33 +109,6 @@ impl AudioBuffer {
         buffer
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-audiobuffer-audiobuffer
-    #[allow(non_snake_case)]
-    pub fn Constructor(
-        window: &Window,
-        proto: Option<HandleObject>,
-        can_gc: CanGc,
-        options: &AudioBufferOptions,
-    ) -> Fallible<DomRoot<AudioBuffer>> {
-        if options.length == 0 ||
-            options.numberOfChannels == 0 ||
-            options.numberOfChannels > MAX_CHANNEL_COUNT ||
-            *options.sampleRate < MIN_SAMPLE_RATE ||
-            *options.sampleRate > MAX_SAMPLE_RATE
-        {
-            return Err(Error::NotSupported);
-        }
-        Ok(AudioBuffer::new_with_proto(
-            window,
-            proto,
-            options.numberOfChannels,
-            options.length,
-            *options.sampleRate,
-            None,
-            can_gc,
-        ))
-    }
-
     // Initialize the underlying channels data with initial data provided by
     // the user or silence otherwise.
     fn set_initial_data(&self, initial_data: Option<&[Vec<f32>]>) {
@@ -210,6 +183,32 @@ impl AudioBuffer {
 }
 
 impl AudioBufferMethods for AudioBuffer {
+    // https://webaudio.github.io/web-audio-api/#dom-audiobuffer-audiobuffer
+    fn Constructor(
+        window: &Window,
+        proto: Option<HandleObject>,
+        can_gc: CanGc,
+        options: &AudioBufferOptions,
+    ) -> Fallible<DomRoot<AudioBuffer>> {
+        if options.length == 0 ||
+            options.numberOfChannels == 0 ||
+            options.numberOfChannels > MAX_CHANNEL_COUNT ||
+            *options.sampleRate < MIN_SAMPLE_RATE ||
+            *options.sampleRate > MAX_SAMPLE_RATE
+        {
+            return Err(Error::NotSupported);
+        }
+        Ok(AudioBuffer::new_with_proto(
+            window,
+            proto,
+            options.numberOfChannels,
+            options.length,
+            *options.sampleRate,
+            None,
+            can_gc,
+        ))
+    }
+
     // https://webaudio.github.io/web-audio-api/#dom-audiobuffer-samplerate
     fn SampleRate(&self) -> Finite<f32> {
         Finite::wrap(self.sample_rate)

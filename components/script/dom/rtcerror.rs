@@ -61,9 +61,11 @@ impl RTCError {
             can_gc,
         )
     }
+}
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+impl RTCErrorMethods for RTCError {
+    // https://www.w3.org/TR/webrtc/#dom-rtcerror-constructor
+    fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -72,9 +74,7 @@ impl RTCError {
     ) -> DomRoot<RTCError> {
         RTCError::new_with_proto(&window.global(), proto, init, message, can_gc)
     }
-}
 
-impl RTCErrorMethods for RTCError {
     // https://www.w3.org/TR/webrtc/#dom-rtcerror-errordetail
     fn ErrorDetail(&self) -> RTCErrorDetailType {
         self.error_detail

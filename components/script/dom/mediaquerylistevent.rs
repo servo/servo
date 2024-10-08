@@ -84,9 +84,11 @@ impl MediaQueryListEvent {
         }
         ev
     }
+}
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+impl MediaQueryListEventMethods for MediaQueryListEvent {
+    // https://drafts.csswg.org/cssom-view/#dom-mediaquerylistevent-mediaquerylistevent
+    fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -105,9 +107,7 @@ impl MediaQueryListEvent {
             can_gc,
         ))
     }
-}
 
-impl MediaQueryListEventMethods for MediaQueryListEvent {
     // https://drafts.csswg.org/cssom-view/#dom-mediaquerylistevent-media
     fn Media(&self) -> DOMString {
         self.media.clone()
