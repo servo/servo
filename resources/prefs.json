@@ -7,6 +7,7 @@
   "dom.canvas_capture.enabled": false,
   "dom.canvas_text.enabled": true,
   "dom.compositionevent.enabled": false,
+  "dom.crypto.subtle.enabled": false,
   "dom.customelements.enabled": true,
   "dom.document.dblclick_dist": 1,
   "dom.document.dblclick_timeout": 300,

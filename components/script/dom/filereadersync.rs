@@ -46,8 +46,14 @@ impl FileReaderSync {
         )
     }
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+    fn get_blob_bytes(blob: &Blob) -> Result<Vec<u8>, Error> {
+        blob.get_bytes().map_err(|_| Error::NotReadable)
+    }
+}
+
+impl FileReaderSyncMethods for FileReaderSync {
+    /// <https://w3c.github.io/FileAPI/#filereadersyncConstrctr>
+    fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -55,12 +61,6 @@ impl FileReaderSync {
         Ok(FileReaderSync::new(global, proto, can_gc))
     }
 
-    fn get_blob_bytes(blob: &Blob) -> Result<Vec<u8>, Error> {
-        blob.get_bytes().map_err(|_| Error::NotReadable)
-    }
-}
-
-impl FileReaderSyncMethods for FileReaderSync {
     /// <https://w3c.github.io/FileAPI/#readAsBinaryStringSyncSection>
     fn ReadAsBinaryString(&self, blob: &Blob) -> Fallible<DOMString> {
         // step 1

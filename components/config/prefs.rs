@@ -249,6 +249,11 @@ mod gen {
                     #[serde(rename = "dom.compositionevent.enabled")]
                     enabled: bool,
                 },
+                crypto: {
+                    subtle: {
+                        enabled: bool,
+                    }
+                },
                 custom_elements: {
                     #[serde(rename = "dom.customelements.enabled")]
                     enabled: bool,

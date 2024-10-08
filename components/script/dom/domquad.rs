@@ -26,7 +26,6 @@ pub struct DOMQuad {
     p4: Dom<DOMPoint>,
 }
 
-#[allow(non_snake_case)]
 impl DOMQuad {
     fn new_inherited(p1: &DOMPoint, p2: &DOMPoint, p3: &DOMPoint, p4: &DOMPoint) -> DOMQuad {
         DOMQuad {
@@ -64,8 +63,11 @@ impl DOMQuad {
             can_gc,
         )
     }
+}
 
-    pub fn Constructor(
+impl DOMQuadMethods for DOMQuad {
+    // https://drafts.fxtf.org/geometry/#dom-domquad-domquad
+    fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -86,7 +88,7 @@ impl DOMQuad {
     }
 
     // https://drafts.fxtf.org/geometry/#dom-domquad-fromrect
-    pub fn FromRect(global: &GlobalScope, other: &DOMRectInit) -> DomRoot<DOMQuad> {
+    fn FromRect(global: &GlobalScope, other: &DOMRectInit) -> DomRoot<DOMQuad> {
         DOMQuad::new(
             global,
             &DOMPoint::new(global, other.x, other.y, 0f64, 1f64),
@@ -103,7 +105,7 @@ impl DOMQuad {
     }
 
     // https://drafts.fxtf.org/geometry/#dom-domquad-fromquad
-    pub fn FromQuad(global: &GlobalScope, other: &DOMQuadInit) -> DomRoot<DOMQuad> {
+    fn FromQuad(global: &GlobalScope, other: &DOMQuadInit) -> DomRoot<DOMQuad> {
         DOMQuad::new(
             global,
             &DOMPoint::new_from_init(global, &other.p1),
@@ -112,9 +114,7 @@ impl DOMQuad {
             &DOMPoint::new_from_init(global, &other.p4),
         )
     }
-}
 
-impl DOMQuadMethods for DOMQuad {
     // https://drafts.fxtf.org/geometry/#dom-domquad-p1
     fn P1(&self) -> DomRoot<DOMPoint> {
         DomRoot::from_ref(&self.p1)

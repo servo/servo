@@ -88,19 +88,6 @@ impl MutationObserver {
         }
     }
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
-        global: &Window,
-        proto: Option<HandleObject>,
-        can_gc: CanGc,
-        callback: Rc<MutationCallback>,
-    ) -> Fallible<DomRoot<MutationObserver>> {
-        global.set_exists_mut_observer();
-        let observer = MutationObserver::new_with_proto(global, proto, callback, can_gc);
-        ScriptThread::add_mutation_observer(&observer);
-        Ok(observer)
-    }
-
     /// <https://dom.spec.whatwg.org/#queue-a-mutation-observer-compound-microtask>
     pub fn queue_mutation_observer_microtask() {
         // Step 1
@@ -261,6 +248,19 @@ impl MutationObserver {
 }
 
 impl MutationObserverMethods for MutationObserver {
+    /// <https://dom.spec.whatwg.org/#dom-mutationobserver-mutationobserver>
+    fn Constructor(
+        global: &Window,
+        proto: Option<HandleObject>,
+        can_gc: CanGc,
+        callback: Rc<MutationCallback>,
+    ) -> Fallible<DomRoot<MutationObserver>> {
+        global.set_exists_mut_observer();
+        let observer = MutationObserver::new_with_proto(global, proto, callback, can_gc);
+        ScriptThread::add_mutation_observer(&observer);
+        Ok(observer)
+    }
+
     /// <https://dom.spec.whatwg.org/#dom-mutationobserver-observe>
     fn Observe(&self, target: &Node, options: &MutationObserverInit) -> Fallible<()> {
         let attribute_filter = options.attributeFilter.clone().unwrap_or_default();

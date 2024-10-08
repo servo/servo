@@ -48,9 +48,11 @@ impl Text {
             proto,
         )
     }
+}
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+impl TextMethods for Text {
+    // https://dom.spec.whatwg.org/#dom-text-text
+    fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
         _can_gc: CanGc,
@@ -59,9 +61,7 @@ impl Text {
         let document = window.Document();
         Ok(Text::new_with_proto(text, &document, proto))
     }
-}
 
-impl TextMethods for Text {
     // https://dom.spec.whatwg.org/#dom-text-splittext
     // https://dom.spec.whatwg.org/#concept-text-split
     fn SplitText(&self, offset: u32) -> Fallible<DomRoot<Text>> {

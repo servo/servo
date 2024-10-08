@@ -374,15 +374,6 @@ impl EventTarget {
         )
     }
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
-        global: &GlobalScope,
-        proto: Option<HandleObject>,
-        can_gc: CanGc,
-    ) -> Fallible<DomRoot<EventTarget>> {
-        Ok(EventTarget::new(global, proto, can_gc))
-    }
-
     /// Determine if there are any listeners for a given event type.
     /// See <https://github.com/whatwg/dom/issues/453>.
     pub fn has_listeners_for(&self, type_: &Atom) -> bool {
@@ -757,6 +748,15 @@ impl EventTarget {
 }
 
 impl EventTargetMethods for EventTarget {
+    // https://dom.spec.whatwg.org/#dom-eventtarget-eventtarget
+    fn Constructor(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        can_gc: CanGc,
+    ) -> Fallible<DomRoot<EventTarget>> {
+        Ok(EventTarget::new(global, proto, can_gc))
+    }
+
     // https://dom.spec.whatwg.org/#dom-eventtarget-addeventlistener
     fn AddEventListener(
         &self,

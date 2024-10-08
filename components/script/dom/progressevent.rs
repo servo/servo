@@ -86,9 +86,11 @@ impl ProgressEvent {
         }
         ev
     }
+}
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+impl ProgressEventMethods for ProgressEvent {
+    // https://xhr.spec.whatwg.org/#dom-progressevent-progressevent
+    fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -110,9 +112,7 @@ impl ProgressEvent {
         );
         Ok(ev)
     }
-}
 
-impl ProgressEventMethods for ProgressEvent {
     // https://xhr.spec.whatwg.org/#dom-progressevent-lengthcomputable
     fn LengthComputable(&self) -> bool {
         self.length_computable

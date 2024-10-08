@@ -6,6 +6,7 @@ use dom_struct::dom_struct;
 use js::rust::HandleObject;
 
 use super::types::GPUError;
+use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUInternalError_Binding::GPUInternalErrorMethods;
 use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
@@ -37,10 +38,11 @@ impl GPUInternalError {
             can_gc,
         )
     }
+}
 
+impl GPUInternalErrorMethods for GPUInternalError {
     /// <https://gpuweb.github.io/gpuweb/#dom-GPUInternalError-GPUInternalError>
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+    fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         can_gc: CanGc,

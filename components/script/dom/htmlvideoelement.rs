@@ -174,7 +174,7 @@ impl HTMLVideoElement {
                 url,
                 ..
             }) => {
-                self.process_image_response(ImageResponse::Loaded(image, url));
+                self.process_image_response(ImageResponse::Loaded(image, url), can_gc);
             },
             ImageCacheResult::ReadyForRequest(id) => {
                 self.do_fetch_poster_frame(poster_url, id, cancel_receiver, can_gc)
@@ -293,18 +293,18 @@ impl ImageCacheListener for HTMLVideoElement {
         self.generation_id.get()
     }
 
-    fn process_image_response(&self, response: ImageResponse) {
+    fn process_image_response(&self, response: ImageResponse, can_gc: CanGc) {
         match response {
             ImageResponse::Loaded(image, url) => {
                 debug!("Loaded poster image for video element: {:?}", url);
                 self.htmlmediaelement.process_poster_image_loaded(image);
-                LoadBlocker::terminate(&mut self.load_blocker.borrow_mut(), CanGc::note());
+                LoadBlocker::terminate(&mut self.load_blocker.borrow_mut(), can_gc);
             },
             ImageResponse::MetadataLoaded(..) => {},
             // The image cache may have loaded a placeholder for an invalid poster url
             ImageResponse::PlaceholderLoaded(..) | ImageResponse::None => {
                 // A failed load should unblock the document load.
-                LoadBlocker::terminate(&mut self.load_blocker.borrow_mut(), CanGc::note());
+                LoadBlocker::terminate(&mut self.load_blocker.borrow_mut(), can_gc);
             },
         }
     }

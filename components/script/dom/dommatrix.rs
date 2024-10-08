@@ -51,8 +51,15 @@ impl DOMMatrix {
         }
     }
 
+    pub fn from_readonly(global: &GlobalScope, ro: &DOMMatrixReadOnly) -> DomRoot<Self> {
+        Self::new(global, ro.is2D(), *ro.matrix())
+    }
+}
+
+#[allow(non_snake_case)]
+impl DOMMatrixMethods for DOMMatrix {
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-dommatrixreadonly
-    pub fn Constructor(
+    fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -88,16 +95,12 @@ impl DOMMatrix {
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-frommatrix
-    pub fn FromMatrix(global: &GlobalScope, other: &DOMMatrixInit) -> Fallible<DomRoot<Self>> {
+    fn FromMatrix(global: &GlobalScope, other: &DOMMatrixInit) -> Fallible<DomRoot<Self>> {
         dommatrixinit_to_matrix(other).map(|(is2D, matrix)| Self::new(global, is2D, matrix))
     }
 
-    pub fn from_readonly(global: &GlobalScope, ro: &DOMMatrixReadOnly) -> DomRoot<Self> {
-        Self::new(global, ro.is2D(), *ro.matrix())
-    }
-
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-fromfloat32array
-    pub fn FromFloat32Array(
+    fn FromFloat32Array(
         global: &GlobalScope,
         array: CustomAutoRooterGuard<Float32Array>,
     ) -> Fallible<DomRoot<DOMMatrix>> {
@@ -111,7 +114,7 @@ impl DOMMatrix {
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-fromfloat64array
-    pub fn FromFloat64Array(
+    fn FromFloat64Array(
         global: &GlobalScope,
         array: CustomAutoRooterGuard<Float64Array>,
     ) -> Fallible<DomRoot<DOMMatrix>> {
@@ -123,10 +126,7 @@ impl DOMMatrix {
             Some(StringOrUnrestrictedDoubleSequence::UnrestrictedDoubleSequence(vec)),
         )
     }
-}
 
-#[allow(non_snake_case)]
-impl DOMMatrixMethods for DOMMatrix {
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m11
     fn M11(&self) -> f64 {
         self.upcast::<DOMMatrixReadOnly>().M11()

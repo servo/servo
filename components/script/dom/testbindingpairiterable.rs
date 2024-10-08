@@ -58,18 +58,17 @@ impl TestBindingPairIterable {
             can_gc,
         )
     }
+}
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+impl TestBindingPairIterableMethods for TestBindingPairIterable {
+    fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<TestBindingPairIterable>> {
         Ok(TestBindingPairIterable::new(global, proto, can_gc))
     }
-}
 
-impl TestBindingPairIterableMethods for TestBindingPairIterable {
     fn Add(&self, key: DOMString, value: u32) {
         self.map.borrow_mut().push((key, value));
     }

@@ -25,7 +25,6 @@ pub struct MediaStream {
     tracks: DomRefCell<Vec<Dom<MediaStreamTrack>>>,
 }
 
-#[allow(non_snake_case)]
 impl MediaStream {
     pub fn new_inherited() -> MediaStream {
         MediaStream {
@@ -62,7 +61,18 @@ impl MediaStream {
         this
     }
 
-    pub fn Constructor(
+    pub fn get_tracks(&self) -> Ref<[Dom<MediaStreamTrack>]> {
+        Ref::map(self.tracks.borrow(), |tracks| &**tracks)
+    }
+
+    pub fn add_track(&self, track: &MediaStreamTrack) {
+        self.tracks.borrow_mut().push(Dom::from_ref(track))
+    }
+}
+
+impl MediaStreamMethods for MediaStream {
+    /// <https://w3c.github.io/mediacapture-main/#dom-mediastream-constructor>
+    fn Constructor(
         global: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -70,7 +80,8 @@ impl MediaStream {
         Ok(MediaStream::new_with_proto(&global.global(), proto, can_gc))
     }
 
-    pub fn Constructor_(
+    /// <https://w3c.github.io/mediacapture-main/#dom-mediastream-constructor>
+    fn Constructor_(
         _: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -79,7 +90,8 @@ impl MediaStream {
         Ok(stream.clone_with_proto(proto, can_gc))
     }
 
-    pub fn Constructor__(
+    /// <https://w3c.github.io/mediacapture-main/#dom-mediastream-constructor>
+    fn Constructor__(
         global: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -94,16 +106,6 @@ impl MediaStream {
         Ok(new)
     }
 
-    pub fn get_tracks(&self) -> Ref<[Dom<MediaStreamTrack>]> {
-        Ref::map(self.tracks.borrow(), |tracks| &**tracks)
-    }
-
-    pub fn add_track(&self, track: &MediaStreamTrack) {
-        self.tracks.borrow_mut().push(Dom::from_ref(track))
-    }
-}
-
-impl MediaStreamMethods for MediaStream {
     /// <https://w3c.github.io/mediacapture-main/#dom-mediastream-gettracks>
     fn GetTracks(&self) -> Vec<DomRoot<MediaStreamTrack>> {
         self.tracks
