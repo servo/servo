@@ -59,7 +59,7 @@ jobs:
         run: sudo apt update && python3 ./mach bootstrap --skip-lints
       - name: Setup OpenHarmony SDK
         id: setup_sdk
-        uses: openharmony-rs/setup-ohos-sdk@v0.1.4
+        uses: openharmony-rs/setup-ohos-sdk@v0.1
         with:
           version: "4.1"
           fixup-path: true
