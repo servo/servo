@@ -40,6 +40,7 @@ use crate::dom::node::{stylesheets_owner_from_node, window_from_node, Node, Shad
 use crate::dom::types::HTMLElement;
 use crate::realms::enter_realm;
 use crate::script_module::ScriptFetchOptions;
+use crate::script_runtime::CanGc;
 use crate::script_thread::Documents;
 
 #[allow(unsafe_code)]
@@ -336,7 +337,7 @@ pub fn handle_get_layout(
     let elem = node
         .downcast::<Element>()
         .expect("should be getting layout of element");
-    let rect = elem.GetBoundingClientRect();
+    let rect = elem.GetBoundingClientRect(CanGc::note());
     let width = rect.Width() as f32;
     let height = rect.Height() as f32;
 

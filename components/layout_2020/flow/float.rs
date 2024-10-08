@@ -27,10 +27,10 @@ use crate::dom::NodeExt;
 use crate::dom_traversal::{Contents, NodeAndStyleInfo};
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragment_tree::{BoxFragment, CollapsedBlockMargins, CollapsedMargin};
-use crate::geom::{LogicalRect, LogicalVec2, PhysicalPoint, PhysicalRect, ToLogical};
+use crate::geom::{LogicalRect, LogicalVec2, PhysicalPoint, PhysicalRect, Size, ToLogical};
 use crate::positioned::{relative_adjustement, PositioningContext};
 use crate::style_ext::{Clamp, ComputedValuesExt, DisplayInside, PaddingBorderMargin};
-use crate::{ContainingBlock, IndefiniteContainingBlock};
+use crate::{AuOrAuto, ContainingBlock, IndefiniteContainingBlock};
 
 /// A floating box.
 #[derive(Debug, Serialize)]
@@ -914,43 +914,61 @@ impl FloatBox {
                         // Calculate inline size.
                         // https://drafts.csswg.org/css2/#float-width
                         let style = non_replaced.style.clone();
-                        let box_size = style
-                            .content_box_size_deprecated(containing_block, &pbm)
-                            .map(|v| v.map(Au::from));
-                        let max_box_size = style
-                            .content_max_box_size_deprecated(containing_block, &pbm)
-                            .map(|v| v.map(Au::from));
-                        let min_box_size = style
-                            .content_min_box_size_deprecated(containing_block, &pbm)
-                            .map(|v| v.map(Au::from))
-                            .auto_is(Au::zero);
-
-                        let block_size = box_size.block.map(|size| {
-                            size.clamp_between_extremums(min_box_size.block, max_box_size.block)
-                        });
-                        let tentative_inline_size = box_size.inline.auto_is(|| {
-                            let available_size =
-                                containing_block.inline_size - pbm_sums.inline_sum();
+                        let box_size = style.content_box_size(containing_block, &pbm);
+                        let max_box_size = style.content_max_box_size(containing_block, &pbm);
+                        let min_box_size = style.content_min_box_size(containing_block, &pbm);
+                        let available_inline_size =
+                            containing_block.inline_size - pbm_sums.inline_sum();
+                        let available_block_size = containing_block
+                            .block_size
+                            .non_auto()
+                            .map(|block_size| block_size - pbm_sums.block_sum());
+                        let tentative_block_size = box_size
+                            .block
+                            .maybe_resolve_extrinsic(available_block_size)
+                            .map(|size| {
+                                let min_block_size = min_box_size
+                                    .block
+                                    .maybe_resolve_extrinsic(available_block_size)
+                                    .unwrap_or_default();
+                                let max_block_size = max_box_size
+                                    .block
+                                    .maybe_resolve_extrinsic(available_block_size);
+                                size.clamp_between_extremums(min_block_size, max_block_size)
+                            })
+                            .map_or(AuOrAuto::Auto, AuOrAuto::LengthPercentage);
+                        let mut get_content_size = || {
                             let containing_block_for_children =
                                 IndefiniteContainingBlock::new_for_style_and_block_size(
-                                    &style, block_size,
+                                    &style,
+                                    tentative_block_size,
                                 );
-                            non_replaced
-                                .inline_content_sizes(
-                                    layout_context,
-                                    &containing_block_for_children,
-                                )
-                                .shrink_to_fit(available_size)
-                        });
+                            non_replaced.inline_content_sizes(
+                                layout_context,
+                                &containing_block_for_children,
+                            )
+                        };
+                        let tentative_inline_size = box_size.inline.resolve(
+                            Size::fit_content,
+                            available_inline_size,
+                            &mut get_content_size,
+                        );
+                        let min_inline_size = min_box_size
+                            .inline
+                            .resolve_non_initial(available_inline_size, &mut get_content_size)
+                            .unwrap_or_default();
+                        let max_inline_size = max_box_size
+                            .inline
+                            .resolve_non_initial(available_inline_size, &mut get_content_size);
                         let inline_size = tentative_inline_size
-                            .clamp_between_extremums(min_box_size.inline, max_box_size.inline);
+                            .clamp_between_extremums(min_inline_size, max_inline_size);
 
                         // Calculate block size.
                         // https://drafts.csswg.org/css2/#block-root-margin
                         // FIXME(pcwalton): Is a tree rank of zero correct here?
                         let containing_block_for_children = ContainingBlock {
                             inline_size,
-                            block_size,
+                            block_size: tentative_block_size,
                             style: &non_replaced.style,
                         };
                         let independent_layout = non_replaced.layout(
@@ -964,17 +982,23 @@ impl FloatBox {
                                 Some(inline_size) => {
                                     (independent_layout.content_block_size, inline_size)
                                 },
-                                None => (
-                                    block_size.auto_is(|| {
-                                        independent_layout
-                                            .content_block_size
-                                            .clamp_between_extremums(
-                                                min_box_size.block,
-                                                max_box_size.block,
-                                            )
-                                    }),
-                                    inline_size,
-                                ),
+                                None => {
+                                    let stretch_size = available_block_size
+                                        .unwrap_or(independent_layout.content_block_size);
+                                    let mut get_content_size =
+                                        || independent_layout.content_block_size.into();
+                                    let min_block_size = min_box_size
+                                        .block
+                                        .resolve_non_initial(stretch_size, &mut get_content_size)
+                                        .unwrap_or_default();
+                                    let max_block_size = max_box_size
+                                        .block
+                                        .resolve_non_initial(stretch_size, &mut get_content_size);
+                                    let block_size = tentative_block_size
+                                        .auto_is(|| independent_layout.content_block_size)
+                                        .clamp_between_extremums(min_block_size, max_block_size);
+                                    (block_size, inline_size)
+                                },
                             };
                         content_size = LogicalVec2 {
                             inline: inline_size,
