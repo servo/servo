@@ -7,7 +7,7 @@
 
 use std::borrow::ToOwned;
 use std::net::{Ipv4Addr, Ipv6Addr};
-use std::time::{Duration, SystemTime};
+use std::time::SystemTime;
 
 use cookie::Cookie;
 use net_traits::pub_domains::is_pub_domain;
