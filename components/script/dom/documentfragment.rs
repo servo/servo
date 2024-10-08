@@ -55,8 +55,14 @@ impl DocumentFragment {
         )
     }
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+    pub fn id_map(&self) -> &DomRefCell<HashMapTracedValues<Atom, Vec<Dom<Element>>>> {
+        &self.id_map
+    }
+}
+
+impl DocumentFragmentMethods for DocumentFragment {
+    // https://dom.spec.whatwg.org/#dom-documentfragment-documentfragment
+    fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
         _can_gc: CanGc,
@@ -66,12 +72,6 @@ impl DocumentFragment {
         Ok(DocumentFragment::new_with_proto(&document, proto))
     }
 
-    pub fn id_map(&self) -> &DomRefCell<HashMapTracedValues<Atom, Vec<Dom<Element>>>> {
-        &self.id_map
-    }
-}
-
-impl DocumentFragmentMethods for DocumentFragment {
     // https://dom.spec.whatwg.org/#dom-parentnode-children
     fn Children(&self) -> DomRoot<HTMLCollection> {
         let window = window_from_node(self);

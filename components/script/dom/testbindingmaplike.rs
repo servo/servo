@@ -44,18 +44,17 @@ impl TestBindingMaplike {
             can_gc,
         )
     }
+}
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+impl TestBindingMaplikeMethods for TestBindingMaplike {
+    fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<TestBindingMaplike>> {
         Ok(TestBindingMaplike::new(global, proto, can_gc))
     }
-}
 
-impl TestBindingMaplikeMethods for TestBindingMaplike {
     fn SetInternal(&self, key: DOMString, value: i32) {
         self.internal.set(key, value)
     }

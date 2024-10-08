@@ -76,9 +76,11 @@ impl VTTCue {
             can_gc,
         )
     }
+}
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+impl VTTCueMethods for VTTCue {
+    // https://w3c.github.io/webvtt/#dom-vttcue-vttcue
+    fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -95,9 +97,7 @@ impl VTTCue {
             can_gc,
         )
     }
-}
 
-impl VTTCueMethods for VTTCue {
     // https://w3c.github.io/webvtt/#dom-vttcue-region
     fn GetRegion(&self) -> Option<DomRoot<VTTRegion>> {
         self.region

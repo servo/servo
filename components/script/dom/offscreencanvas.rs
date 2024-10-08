@@ -73,18 +73,6 @@ impl OffscreenCanvas {
         )
     }
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
-        global: &GlobalScope,
-        proto: Option<HandleObject>,
-        can_gc: CanGc,
-        width: u64,
-        height: u64,
-    ) -> Fallible<DomRoot<OffscreenCanvas>> {
-        let offscreencanvas = OffscreenCanvas::new(global, proto, width, height, None, can_gc);
-        Ok(offscreencanvas)
-    }
-
     pub fn get_size(&self) -> Size2D<u64> {
         Size2D::new(self.Width(), self.Height())
     }
@@ -151,6 +139,18 @@ impl OffscreenCanvas {
 }
 
 impl OffscreenCanvasMethods for OffscreenCanvas {
+    // https://html.spec.whatwg.org/multipage/#dom-offscreencanvas
+    fn Constructor(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        can_gc: CanGc,
+        width: u64,
+        height: u64,
+    ) -> Fallible<DomRoot<OffscreenCanvas>> {
+        let offscreencanvas = OffscreenCanvas::new(global, proto, width, height, None, can_gc);
+        Ok(offscreencanvas)
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-offscreencanvas-getcontext
     fn GetContext(
         &self,

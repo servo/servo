@@ -62,10 +62,11 @@ impl FormData {
             can_gc,
         )
     }
+}
 
+impl FormDataMethods for FormData {
     // https://xhr.spec.whatwg.org/#dom-formdata
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+    fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -85,9 +86,7 @@ impl FormData {
 
         Ok(FormData::new_with_proto(None, global, proto, can_gc))
     }
-}
 
-impl FormDataMethods for FormData {
     // https://xhr.spec.whatwg.org/#dom-formdata-append
     fn Append(&self, name: USVString, str_value: USVString) {
         let datum = FormDatum {

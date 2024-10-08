@@ -66,9 +66,11 @@ impl TransitionEvent {
         }
         ev
     }
+}
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+impl TransitionEventMethods for TransitionEvent {
+    // https://drafts.csswg.org/css-transitions/#dom-transitionevent-transitionevent
+    fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -83,9 +85,7 @@ impl TransitionEvent {
             can_gc,
         ))
     }
-}
 
-impl TransitionEventMethods for TransitionEvent {
     // https://drafts.csswg.org/css-transitions/#Events-TransitionEvent-propertyName
     fn PropertyName(&self) -> DOMString {
         DOMString::from(&*self.property_name)

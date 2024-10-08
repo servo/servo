@@ -17,7 +17,7 @@ WorkerGlobalScope includes GlobalCrypto;
 
 [Exposed=(Window,Worker)]
 interface Crypto {
-  //readonly attribute SubtleCrypto subtle;
+  [SecureContext] readonly attribute SubtleCrypto subtle;
   [Throws]
   ArrayBufferView getRandomValues(ArrayBufferView array);
 

@@ -131,9 +131,14 @@ impl AnalyserNode {
         Ok(object)
     }
 
+    pub fn push_block(&self, block: Block) {
+        self.engine.borrow_mut().push(block)
+    }
+}
+
+impl AnalyserNodeMethods for AnalyserNode {
     /// <https://webaudio.github.io/web-audio-api/#dom-analysernode-analysernode>
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+    fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -143,12 +148,6 @@ impl AnalyserNode {
         AnalyserNode::new_with_proto(window, proto, context, options, can_gc)
     }
 
-    pub fn push_block(&self, block: Block) {
-        self.engine.borrow_mut().push(block)
-    }
-}
-
-impl AnalyserNodeMethods for AnalyserNode {
     #[allow(unsafe_code)]
     /// <https://webaudio.github.io/web-audio-api/#dom-analysernode-getfloatfrequencydata>
     fn GetFloatFrequencyData(&self, mut array: CustomAutoRooterGuard<Float32Array>) {
