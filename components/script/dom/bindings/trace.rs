@@ -69,9 +69,8 @@ use crate::script_thread::IncompleteParserContexts;
 use crate::task::TaskBox;
 
 
-// Allow missing safety documentation warning temporarily
-// Link to the issue regarding Documentation 
-// Warning Line: https://github.com/rexbrown21/servo/blob/457d8a8a5c720fbf5624a95d86ac53f2aee342e8/components/script/dom/bindings/trace.rs#L72
+// FIXME: Add safety documentation.
+// See Github Issue Number: #33722
 #[allow(clippy::missing_safety_doc)] 
 
 // Brief description of the trait

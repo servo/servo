@@ -120,15 +120,16 @@ impl DomObject for Reflector {
     }
 }
 
-/// A trait to initialize the `Reflector` for a DOM object.
+
+// FIXME: Add safety documentation.
+// See Github Issue Number:#33725
+#[allow(clippy::missing_safety_doc)]
+
+// Brief description of the trait
+/// A trait to initialize the `Reflector` for a DOM object. 
 pub trait MutDomObject: DomObject {
-    /// Initializes the Reflector
-    /// 
-    /// # Safety 
-    /// This Function is 'unsafe' because it takes a raw pointer to a 'JSObject'
-    /// The caller must ensure that the pointer is valid and properly aligned.
-    /// Undefined behavior may occur if the pointer is null or if it points to
-    /// an invalid memory location.
+    /// Initializes the `Reflector` for the DOM object.
+    #[allow(clippy::missing_safety_doc)]
     unsafe fn init_reflector(&self, obj: *mut JSObject);
 }
 
