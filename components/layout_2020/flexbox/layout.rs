@@ -1012,6 +1012,8 @@ fn allocate_free_cross_space_for_flex_line(
 impl<'a> FlexItem<'a> {
     fn new(flex_context: &FlexContext, box_: &'a mut FlexItemBox) -> Self {
         let containing_block = flex_context.containing_block;
+        let indefinite_containing_block: IndefiniteContainingBlock =
+            IndefiniteContainingBlock::from(containing_block);
         let parent_writing_mode = containing_block.style.writing_mode;
         let item_writing_mode = box_.style().writing_mode;
 
@@ -1024,18 +1026,9 @@ impl<'a> FlexItem<'a> {
         );
 
         let pbm = box_.style().padding_border_margin(containing_block);
-        let content_box_size = box_
+        let (content_box_size, min_size, max_size, pbm) = box_
             .style()
-            .content_box_size_deprecated(containing_block, &pbm)
-            .map(|v| v.map(Au::from));
-        let max_size = box_
-            .style()
-            .content_max_box_size_deprecated(containing_block, &pbm)
-            .map(|v| v.map(Au::from));
-        let min_size = box_
-            .style()
-            .content_min_box_size_deprecated(containing_block, &pbm)
-            .map(|v| v.map(Au::from));
+            .content_box_sizes_and_padding_border_margin_deprecated(&indefinite_containing_block);
 
         let margin_auto_is_zero = flex_context.sides_to_flex_relative(pbm.margin.auto_is(Au::zero));
         let padding = flex_context.sides_to_flex_relative(pbm.padding);
