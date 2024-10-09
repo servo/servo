@@ -48,7 +48,7 @@ static SMALL_CAPS_SCALE_FACTOR: f32 = 0.8; // Matches FireFox (see gfxFont.h)
 /// paint code. It talks directly to the system font service where
 /// required.
 pub struct FontContext {
-    pub(crate) system_font_service_proxy: Arc<SystemFontServiceProxy>,
+    system_font_service_proxy: Arc<SystemFontServiceProxy>,
     resource_threads: ReentrantMutex<CoreResourceThread>,
 
     /// A sender that can send messages and receive replies from the compositor.
@@ -121,7 +121,7 @@ impl FontContext {
         self.web_fonts.read().number_of_fonts_still_loading()
     }
 
-    pub(crate) fn get_font_data(&self, identifier: &FontIdentifier) -> Arc<FontData> {
+    fn get_font_data(&self, identifier: &FontIdentifier) -> Arc<FontData> {
         match identifier {
             FontIdentifier::Web(_) => self.web_fonts.read().get_font_data(identifier),
             FontIdentifier::Local(_) | FontIdentifier::Mock(_) => {
@@ -358,13 +358,13 @@ impl FontContext {
 }
 
 #[derive(Clone)]
-pub struct WebFontDownloadState {
-    pub css_font_face_descriptors: Arc<CSSFontFaceDescriptors>,
+pub(crate) struct WebFontDownloadState {
+    pub(crate) css_font_face_descriptors: Arc<CSSFontFaceDescriptors>,
     remaining_sources: Vec<Source>,
     finished_callback: WebFontLoadFinishedCallback,
     core_resource_thread: CoreResourceThread,
     local_fonts: Arc<HashMap<Atom, Option<FontTemplateRef>>>,
-    pub stylesheet: DocumentStyleSheet,
+    pub(crate) stylesheet: DocumentStyleSheet,
 }
 
 pub trait FontContextWebFontMethods {
@@ -376,7 +376,6 @@ pub trait FontContextWebFontMethods {
         finished_callback: WebFontLoadFinishedCallback,
         synchronous: bool,
     ) -> usize;
-    fn process_next_web_font_source(&self, web_font_download_state: WebFontDownloadState);
     fn remove_all_web_fonts_from_stylesheet(&self, stylesheet: &DocumentStyleSheet);
     fn collect_unused_webrender_resources(&self, all: bool)
         -> (Vec<FontKey>, Vec<FontInstanceKey>);
@@ -475,51 +474,6 @@ impl FontContextWebFontMethods for Arc<FontContext> {
         number_loading
     }
 
-    fn process_next_web_font_source(&self, mut state: WebFontDownloadState) {
-        let Some(source) = state.remaining_sources.pop() else {
-            self.web_fonts
-                .write()
-                .handle_web_font_failed_to_load(&state);
-            self.handle_web_font_load_finished(&state.finished_callback, false);
-            return;
-        };
-
-        let this = self.clone();
-        let web_font_family_name = state.css_font_face_descriptors.family_name.clone();
-        match source {
-            Source::Url(url_source) => {
-                RemoteWebFontDownloader::download(url_source, this, web_font_family_name, state)
-            },
-            Source::Local(ref local_family_name) => {
-                if let Some((new_template, font_data)) = state
-                    .local_fonts
-                    .get(&local_family_name.name)
-                    .cloned()
-                    .flatten()
-                    .and_then(|local_template| {
-                        let template = FontTemplate::new_for_local_web_font(
-                            local_template.clone(),
-                            &state.css_font_face_descriptors,
-                            state.stylesheet.clone(),
-                        )
-                        .ok()?;
-                        let font_data = self.get_font_data(&local_template.identifier());
-                        Some((template, font_data))
-                    })
-                {
-                    let not_cancelled = self.web_fonts.write().handle_web_font_loaded(
-                        &state,
-                        new_template,
-                        font_data,
-                    );
-                    self.handle_web_font_load_finished(&state.finished_callback, not_cancelled);
-                } else {
-                    this.process_next_web_font_source(state);
-                }
-            },
-        }
-    }
-
     fn remove_all_web_fonts_from_stylesheet(&self, stylesheet: &DocumentStyleSheet) {
         let mut web_fonts = self.web_fonts.write();
         let mut fonts = self.fonts.write();
@@ -613,6 +567,53 @@ impl FontContextWebFontMethods for Arc<FontContext> {
             removed_keys.into_iter().collect(),
             removed_instance_keys.into_iter().collect(),
         )
+    }
+}
+
+impl FontContext {
+    fn process_next_web_font_source(self: &Arc<FontContext>, mut state: WebFontDownloadState) {
+        let Some(source) = state.remaining_sources.pop() else {
+            self.web_fonts
+                .write()
+                .handle_web_font_failed_to_load(&state);
+            self.handle_web_font_load_finished(&state.finished_callback, false);
+            return;
+        };
+
+        let this = self.clone();
+        let web_font_family_name = state.css_font_face_descriptors.family_name.clone();
+        match source {
+            Source::Url(url_source) => {
+                RemoteWebFontDownloader::download(url_source, this, web_font_family_name, state)
+            },
+            Source::Local(ref local_family_name) => {
+                if let Some((new_template, font_data)) = state
+                    .local_fonts
+                    .get(&local_family_name.name)
+                    .cloned()
+                    .flatten()
+                    .and_then(|local_template| {
+                        let template = FontTemplate::new_for_local_web_font(
+                            local_template.clone(),
+                            &state.css_font_face_descriptors,
+                            state.stylesheet.clone(),
+                        )
+                        .ok()?;
+                        let font_data = self.get_font_data(&local_template.identifier());
+                        Some((template, font_data))
+                    })
+                {
+                    let not_cancelled = self.web_fonts.write().handle_web_font_loaded(
+                        &state,
+                        new_template,
+                        font_data,
+                    );
+                    self.handle_web_font_load_finished(&state.finished_callback, not_cancelled);
+                } else {
+                    this.process_next_web_font_source(state);
+                }
+            },
+        }
     }
 }
 
