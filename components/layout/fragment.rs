@@ -26,7 +26,9 @@ use range::*;
 use script_layout_interface::wrapper_traits::{
     PseudoElementType, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
 };
-use script_layout_interface::{HTMLCanvasData, HTMLCanvasDataSource, HTMLMediaData, SVGSVGData};
+use script_layout_interface::{
+    HTMLCanvasData, HTMLCanvasDataSource, HTMLMediaData, MediaFrame, SVGSVGData,
+};
 use serde::ser::{Serialize, SerializeStruct, Serializer};
 use servo_url::ServoUrl;
 use size_of_test::size_of_test;
@@ -389,17 +391,13 @@ impl CanvasFragmentInfo {
 
 #[derive(Clone)]
 pub struct MediaFragmentInfo {
-    pub current_frame: Option<webrender_api::ImageKey>,
-    pub width: i32,
-    pub height: i32,
+    pub current_frame: Option<MediaFrame>,
 }
 
 impl MediaFragmentInfo {
     pub fn new(data: HTMLMediaData) -> MediaFragmentInfo {
         MediaFragmentInfo {
             current_frame: data.current_frame,
-            width: data.width,
-            height: data.height,
         }
     }
 }
@@ -1048,7 +1046,9 @@ impl Fragment {
                     Au(0)
                 }
             },
-            SpecificFragmentInfo::Media(ref info) => Au::from_px(info.width),
+            SpecificFragmentInfo::Media(ref info) => info
+                .current_frame
+                .map_or(Au(0), |frame| Au::from_px(frame.width)),
             SpecificFragmentInfo::Canvas(ref info) => info.dom_width,
             SpecificFragmentInfo::Svg(ref info) => info.dom_width,
             // Note: Currently for replaced element with no intrinsic size,
@@ -1072,7 +1072,9 @@ impl Fragment {
                     Au(0)
                 }
             },
-            SpecificFragmentInfo::Media(ref info) => Au::from_px(info.height),
+            SpecificFragmentInfo::Media(ref info) => info
+                .current_frame
+                .map_or(Au(0), |frame| Au::from_px(frame.height)),
             SpecificFragmentInfo::Canvas(ref info) => info.dom_height,
             SpecificFragmentInfo::Svg(ref info) => info.dom_height,
             SpecificFragmentInfo::Iframe(_) => Au::from_px(DEFAULT_REPLACED_HEIGHT),

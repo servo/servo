@@ -15,7 +15,7 @@ use pixels::Image;
 use serde::Serialize;
 use servo_arc::Arc as ServoArc;
 use style::computed_values::object_fit::T as ObjectFit;
-use style::logical_geometry::Direction;
+use style::logical_geometry::{Direction, WritingMode};
 use style::properties::ComputedValues;
 use style::servo::url::ComputedUrl;
 use style::values::computed::image::Image as ComputedImage;
@@ -89,6 +89,14 @@ impl NaturalSizes {
             ratio: None,
         }
     }
+
+    pub(crate) fn with_fallback(self, ratio: Option<f32>) -> Self {
+        Self {
+            width: self.width,
+            height: self.height,
+            ratio,
+        }
+    }
 }
 
 #[derive(Serialize)]
@@ -152,16 +160,18 @@ impl ReplacedContent {
             }
         }
 
-        let (kind, natural_size_in_dots) = {
+        let (kind, natural_size_in_dots, ratio_fallback) = {
             if let Some((image, natural_size_in_dots)) = element.as_image() {
                 (
                     ReplacedContentKind::Image(image),
                     Some(natural_size_in_dots),
+                    None,
                 )
             } else if let Some((canvas_info, natural_size_in_dots)) = element.as_canvas() {
                 (
                     ReplacedContentKind::Canvas(canvas_info),
                     Some(natural_size_in_dots),
+                    None,
                 )
             } else if let Some((pipeline_id, browsing_context_id)) = element.as_iframe() {
                 (
@@ -170,19 +180,24 @@ impl ReplacedContent {
                         browsing_context_id,
                     }),
                     None,
+                    None,
                 )
-            } else if let Some((image_key, natural_size_in_dots)) = element.as_video() {
+            } else if let Some((image_key, natural_size_in_dots, ratio_fallback)) =
+                element.as_video()
+            {
                 (
                     ReplacedContentKind::Video(image_key.map(|key| VideoInfo { image_key: key })),
-                    Some(natural_size_in_dots),
+                    natural_size_in_dots,
+                    ratio_fallback,
                 )
             } else {
                 return None;
             }
         };
 
-        let natural_size =
-            natural_size_in_dots.map_or_else(NaturalSizes::empty, |naturalc_size_in_dots| {
+        let natural_size = natural_size_in_dots.map_or_else(
+            || NaturalSizes::empty().with_fallback(ratio_fallback),
+            |naturalc_size_in_dots| {
                 // FIXME: should 'image-resolution' (when implemented) be used *instead* of
                 // `script::dom::htmlimageelement::ImageRequest::current_pixel_density`?
                 // https://drafts.csswg.org/css-images-4/#the-image-resolution
@@ -190,7 +205,8 @@ impl ReplacedContent {
                 let width = (naturalc_size_in_dots.width as CSSFloat) / dppx;
                 let height = (naturalc_size_in_dots.height as CSSFloat) / dppx;
                 NaturalSizes::from_width_and_height(width, height)
-            });
+            },
+        );
 
         let base_fragment_info = BaseFragmentInfo::new_for_node(element.opaque());
         Some(Self {
@@ -445,6 +461,19 @@ impl ReplacedContent {
         )
     }
 
+    pub(crate) fn default_object_size(mode: WritingMode) -> LogicalVec2<Au> {
+        // FIXME:
+        // https://drafts.csswg.org/css-images/#default-object-size
+        // “If 300px is too wide to fit the device, UAs should use the width of
+        //  the largest rectangle that has a 2:1 ratio and fits the device instead.”
+        // “height of the largest rectangle that has a 2:1 ratio, has a height not greater
+        //  than 150px, and has a width not greater than the device width.”
+        LogicalVec2::from_physical_size(
+            &PhysicalSize::new(Au::from_px(300), Au::from_px(150)),
+            mode,
+        )
+    }
+
     /// <https://drafts.csswg.org/css2/visudet.html#inline-replaced-width>
     /// <https://drafts.csswg.org/css2/visudet.html#inline-replaced-height>
     ///
@@ -462,19 +491,6 @@ impl ReplacedContent {
         let intrinsic_size = self.flow_relative_intrinsic_size(style);
         let intrinsic_ratio = self.preferred_aspect_ratio(&containing_block.into(), style);
 
-        let default_object_size = || {
-            // FIXME:
-            // https://drafts.csswg.org/css-images/#default-object-size
-            // “If 300px is too wide to fit the device, UAs should use the width of
-            //  the largest rectangle that has a 2:1 ratio and fits the device instead.”
-            // “height of the largest rectangle that has a 2:1 ratio, has a height not greater
-            //  than 150px, and has a width not greater than the device width.”
-            LogicalVec2::from_physical_size(
-                &PhysicalSize::new(Au::from_px(300), Au::from_px(150)),
-                mode,
-            )
-        };
-
         let get_tentative_size = |LogicalVec2 { inline, block }| -> LogicalVec2<Au> {
             match (inline, block) {
                 (AuOrAuto::LengthPercentage(inline), AuOrAuto::LengthPercentage(block)) => {
@@ -486,7 +502,7 @@ impl ReplacedContent {
                     } else if let Some(block) = intrinsic_size.block {
                         block
                     } else {
-                        default_object_size().block
+                        Self::default_object_size(mode).block
                     };
                     LogicalVec2 { inline, block }
                 },
@@ -496,7 +512,7 @@ impl ReplacedContent {
                     } else if let Some(inline) = intrinsic_size.inline {
                         inline
                     } else {
-                        default_object_size().inline
+                        Self::default_object_size(mode).inline
                     };
                     LogicalVec2 { inline, block }
                 },
@@ -526,7 +542,7 @@ impl ReplacedContent {
                             // does not itself depend on the replaced element's width,
                             // then the used value of 'width' is calculated from the constraint
                             // equation used for block-level, non-replaced elements in normal flow.”
-                            _ => default_object_size().inline,
+                            _ => Self::default_object_size(mode).inline,
                         };
                     let block_size = if let Some(block) = intrinsic_size.block {
                         block
@@ -534,7 +550,7 @@ impl ReplacedContent {
                         // “used width” in CSS 2 is what we just computed above
                         ratio.compute_dependent_size(Direction::Block, inline_size)
                     } else {
-                        default_object_size().block
+                        Self::default_object_size(mode).block
                     };
                     LogicalVec2 {
                         inline: inline_size,

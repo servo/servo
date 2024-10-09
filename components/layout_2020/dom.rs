@@ -16,6 +16,7 @@ use script_layout_interface::{
     HTMLCanvasDataSource, LayoutElementType, LayoutNodeType as ScriptLayoutNodeType,
 };
 use servo_arc::Arc as ServoArc;
+use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
 
 use crate::cell::ArcRefCell;
@@ -26,7 +27,7 @@ use crate::flow::inline::inline_box::InlineBox;
 use crate::flow::inline::InlineItem;
 use crate::flow::BlockLevelBox;
 use crate::geom::PhysicalSize;
-use crate::replaced::{CanvasInfo, CanvasSource};
+use crate::replaced::{CanvasInfo, CanvasSource, ReplacedContent};
 
 /// The data that is stored in each DOM node that is used by layout.
 #[derive(Default)]
@@ -102,7 +103,13 @@ pub(crate) trait NodeExt<'dom>: 'dom + LayoutNode<'dom> {
     fn as_image(self) -> Option<(Option<Arc<Image>>, PhysicalSize<f64>)>;
     fn as_canvas(self) -> Option<(CanvasInfo, PhysicalSize<f64>)>;
     fn as_iframe(self) -> Option<(PipelineId, BrowsingContextId)>;
-    fn as_video(self) -> Option<(Option<webrender_api::ImageKey>, PhysicalSize<f64>)>;
+    fn as_video(
+        self,
+    ) -> Option<(
+        Option<webrender_api::ImageKey>,
+        Option<PhysicalSize<f64>>,
+        Option<f32>,
+    )>;
     fn as_typeless_object_with_data_attribute(self) -> Option<String>;
     fn style(self, context: &LayoutContext) -> ServoArc<ComputedValues>;
 
@@ -136,11 +143,32 @@ where
         Some((resource, PhysicalSize::new(width, height)))
     }
 
-    fn as_video(self) -> Option<(Option<webrender_api::ImageKey>, PhysicalSize<f64>)> {
+    fn as_video(
+        self,
+    ) -> Option<(
+        Option<webrender_api::ImageKey>,
+        Option<PhysicalSize<f64>>,
+        Option<f32>,
+    )> {
         let node = self.to_threadsafe();
-        let media_data = node.media_data()?;
-        let (width, height) = (media_data.width as f64, media_data.height as f64);
-        Some((media_data.current_frame, PhysicalSize::new(width, height)))
+        let data = node.media_data()?;
+        let natural_size = data
+            .current_frame
+            .as_ref()
+            .map(|frame| (frame.width.into(), frame.height.into()))
+            .or(data
+                .metadata
+                .map(|meta| (meta.width.into(), meta.height.into())))
+            .map(|(width, height)| PhysicalSize::new(width, height));
+        let intrinsic_ratio = data.has_default_size.then(|| {
+            let size = ReplacedContent::default_object_size(WritingMode::empty());
+            size.inline.to_f32_px() / size.block.to_f32_px()
+        });
+        Some((
+            data.current_frame.map(|frame| frame.image_key),
+            natural_size,
+            intrinsic_ratio,
+        ))
     }
 
     fn as_canvas(self) -> Option<(CanvasInfo, PhysicalSize<f64>)> {

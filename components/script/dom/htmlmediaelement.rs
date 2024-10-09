@@ -27,6 +27,7 @@ use net_traits::{
     ResourceFetchTiming, ResourceTimingType,
 };
 use pixels::Image;
+use script_layout_interface::MediaFrame;
 use servo_config::pref;
 use servo_media::player::audio::AudioRenderer;
 use servo_media::player::video::{VideoFrame, VideoFrameRenderer};
@@ -153,18 +154,10 @@ impl FrameHolder {
     }
 }
 
-#[derive(Clone)]
-pub struct MediaCurrentFrame {
-    pub image_key: ImageKey,
-    pub width: i32,
-    pub height: i32,
-    pub resized: Cell<bool>,
-}
-
 pub struct MediaFrameRenderer {
     player_id: Option<u64>,
     api: WebRenderScriptApi,
-    current_frame: Option<MediaCurrentFrame>,
+    current_frame: Option<MediaFrame>,
     old_frame: Option<ImageKey>,
     very_old_frame: Option<ImageKey>,
     current_frame_holder: Option<FrameHolder>,
@@ -186,11 +179,10 @@ impl MediaFrameRenderer {
 
     fn render_poster_frame(&mut self, image: Arc<Image>) {
         if let Some(image_key) = image.id {
-            self.current_frame = Some(MediaCurrentFrame {
+            self.current_frame = Some(MediaFrame {
                 image_key,
                 width: image.width as i32,
                 height: image.height as i32,
-                resized: Cell::new(true),
             });
             self.show_poster = true;
         }
@@ -245,11 +237,10 @@ impl VideoFrameRenderer for MediaFrameRenderer {
                     return;
                 };
 
-                // Update current_frame
+                /* update current_frame */
                 current_frame.image_key = new_image_key;
                 current_frame.width = frame.get_width();
                 current_frame.height = frame.get_height();
-                current_frame.resized.set(true);
 
                 let image_data = if frame.is_gl_texture() && self.player_id.is_some() {
                     let texture_target = if frame.is_external_oes() {
@@ -278,11 +269,10 @@ impl VideoFrameRenderer for MediaFrameRenderer {
                     return;
                 };
 
-                self.current_frame = Some(MediaCurrentFrame {
+                self.current_frame = Some(MediaFrame {
                     image_key,
                     width: frame.get_width(),
                     height: frame.get_height(),
-                    resized: Cell::new(true),
                 });
 
                 let image_data = if frame.is_gl_texture() && self.player_id.is_some() {
@@ -1360,6 +1350,7 @@ impl HTMLMediaElement {
         }
 
         // Step 6.
+        self.handle_resize(Some(image.width), Some(image.height));
         self.video_renderer
             .lock()
             .unwrap()
@@ -1623,13 +1614,9 @@ impl HTMLMediaElement {
             },
             PlayerEvent::VideoFrameUpdated => {
                 self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
-
-                // Check if there is a pending onresize event
-                if let Some(ref frame) = self.video_renderer.lock().unwrap().current_frame {
-                    if self.is::<HTMLVideoElement>() && frame.resized.replace(false) {
-                        let video_elem = self.downcast::<HTMLVideoElement>().unwrap();
-                        video_elem.resize(frame.width as u32, frame.height as u32);
-                    }
+                // Check if the frame was resized
+                if let Some(frame) = self.video_renderer.lock().unwrap().current_frame {
+                    self.handle_resize(Some(frame.width as u32), Some(frame.height as u32));
                 }
             },
             PlayerEvent::MetadataUpdated(ref metadata) => {
@@ -1768,10 +1755,7 @@ impl HTMLMediaElement {
                 }
 
                 // Step 5.
-                if self.is::<HTMLVideoElement>() {
-                    let video_elem = self.downcast::<HTMLVideoElement>().unwrap();
-                    video_elem.resize(metadata.width, metadata.height);
-                }
+                self.handle_resize(Some(metadata.width), Some(metadata.height));
 
                 // Step 6.
                 self.change_ready_state(ReadyState::HaveMetadata, can_gc);
@@ -2002,12 +1986,15 @@ impl HTMLMediaElement {
             .map(|holder| holder.get_frame())
     }
 
-    pub fn get_current_frame_data(&self) -> Option<MediaCurrentFrame> {
-        self.video_renderer.lock().unwrap().current_frame.clone()
+    pub fn get_current_frame_data(&self) -> Option<MediaFrame> {
+        self.video_renderer.lock().unwrap().current_frame
     }
 
-    pub fn clear_current_frame(&self) {
-        self.video_renderer.lock().unwrap().current_frame = None;
+    fn handle_resize(&self, width: Option<u32>, height: Option<u32>) {
+        if self.is::<HTMLVideoElement>() {
+            let video_elem = self.downcast::<HTMLVideoElement>().unwrap();
+            video_elem.resize(width, height);
+        }
     }
 
     /// By default the audio is rendered through the audio sink automatically
@@ -2039,10 +2026,15 @@ impl HTMLMediaElement {
 
     /// Sets a new value for the show_poster propperty. If the poster is being hidden
     /// because new frames should render, updates video_renderer to allow it.
-    fn set_show_poster(&self, show_poster: bool) {
+    pub fn set_show_poster(&self, show_poster: bool) {
         self.show_poster.set(show_poster);
         if !show_poster {
-            self.video_renderer.lock().unwrap().show_poster = false;
+            let video_renderer = &mut self.video_renderer.lock().unwrap();
+            if video_renderer.show_poster {
+                video_renderer.current_frame = None;
+                video_renderer.show_poster = false;
+                self.handle_resize(None, None);
+            }
         }
     }
 
@@ -2517,6 +2509,11 @@ impl VirtualMethods for HTMLMediaElement {
             },
             local_name!("src") => {
                 if mutation.new_value(attr).is_none() {
+                    let video_renderer = &mut self.video_renderer.lock().unwrap();
+                    if !video_renderer.show_poster {
+                        video_renderer.current_frame = None;
+                        self.handle_resize(None, None);
+                    }
                     return;
                 }
                 self.media_element_load_algorithm(CanGc::note());

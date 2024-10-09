@@ -1919,14 +1919,14 @@ impl Fragment {
                 }
             },
             SpecificFragmentInfo::Media(ref fragment_info) => {
-                if let Some(ref image_key) = fragment_info.current_frame {
+                if let Some(ref media_frame) = fragment_info.current_frame {
                     let base = create_base_display_item(state);
                     state.add_image_item(
                         base,
                         webrender_api::ImageDisplayItem {
                             bounds: stacking_relative_content_box.to_layout(),
                             common: items::empty_common_item_properties(),
-                            image_key: *image_key,
+                            image_key: media_frame.image_key,
                             image_rendering: ImageRendering::Auto,
                             alpha_type: webrender_api::AlphaType::PremultipliedAlpha,
                             color: webrender_api::ColorF::WHITE,
