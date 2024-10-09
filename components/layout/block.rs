@@ -1408,8 +1408,8 @@ impl BlockFlow {
                 let (block_start, block_end) = {
                     let position = self.fragment.style().logical_position();
                     (
-                        MaybeAuto::from_style(position.block_start, container_size),
-                        MaybeAuto::from_style(position.block_end, container_size),
+                        MaybeAuto::from_inset(position.block_start, container_size),
+                        MaybeAuto::from_inset(position.block_end, container_size),
                     )
                 };
 
@@ -1469,8 +1469,8 @@ impl BlockFlow {
             {
                 let position = self.fragment.style().logical_position();
                 block_start =
-                    MaybeAuto::from_style(position.block_start, containing_block_block_size);
-                block_end = MaybeAuto::from_style(position.block_end, containing_block_block_size);
+                    MaybeAuto::from_inset(position.block_start, containing_block_block_size);
+                block_end = MaybeAuto::from_inset(position.block_end, containing_block_block_size);
             }
 
             let available_block_size =
@@ -2117,10 +2117,10 @@ impl BlockFlow {
         let offsets = self.fragment.style().logical_position();
         let as_margins = LogicalMargin::new(
             writing_mode,
-            MaybeAuto::from_style(offsets.block_start, containing_block_size.inline),
-            MaybeAuto::from_style(offsets.inline_end, containing_block_size.inline),
-            MaybeAuto::from_style(offsets.block_end, containing_block_size.inline),
-            MaybeAuto::from_style(offsets.inline_start, containing_block_size.inline),
+            MaybeAuto::from_inset(offsets.block_start, containing_block_size.inline),
+            MaybeAuto::from_inset(offsets.inline_end, containing_block_size.inline),
+            MaybeAuto::from_inset(offsets.block_end, containing_block_size.inline),
+            MaybeAuto::from_inset(offsets.inline_start, containing_block_size.inline),
         );
         as_margins.to_physical(writing_mode)
     }
@@ -2791,8 +2791,8 @@ pub trait ISizeAndMarginsComputer {
             computed_inline_size,
             MaybeAuto::from_style(margin.inline_start, containing_block_inline_size),
             MaybeAuto::from_style(margin.inline_end, containing_block_inline_size),
-            MaybeAuto::from_style(position.inline_start, containing_block_inline_size),
-            MaybeAuto::from_style(position.inline_end, containing_block_inline_size),
+            MaybeAuto::from_inset(position.inline_start, containing_block_inline_size),
+            MaybeAuto::from_inset(position.inline_end, containing_block_inline_size),
             available_inline_size,
         )
     }

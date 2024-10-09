@@ -1484,16 +1484,16 @@ impl Fragment {
         fn from_style(style: &ComputedValues, container_size: &LogicalSize<Au>) -> LogicalSize<Au> {
             let offsets = style.logical_position();
             let offset_i = if !offsets.inline_start.is_auto() {
-                MaybeAuto::from_style(offsets.inline_start, container_size.inline)
+                MaybeAuto::from_inset(offsets.inline_start, container_size.inline)
                     .specified_or_zero()
             } else {
-                -MaybeAuto::from_style(offsets.inline_end, container_size.inline)
+                -MaybeAuto::from_inset(offsets.inline_end, container_size.inline)
                     .specified_or_zero()
             };
-            let offset_b = if !offsets.block_start.is_auto() {
-                MaybeAuto::from_style(offsets.block_start, container_size.block).specified_or_zero()
+            let offset_b = if offsets.block_start.is_auto() {
+                MaybeAuto::from_inset(offsets.block_start, container_size.block).specified_or_zero()
             } else {
-                -MaybeAuto::from_style(offsets.block_end, container_size.block).specified_or_zero()
+                -MaybeAuto::from_inset(offsets.block_end, container_size.block).specified_or_zero()
             };
             LogicalSize::new(style.writing_mode, offset_i, offset_b)
         }

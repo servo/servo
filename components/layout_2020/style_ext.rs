@@ -16,7 +16,7 @@ use style::properties::ComputedValues;
 use style::servo::selector_parser::PseudoElement;
 use style::values::computed::basic_shape::ClipPath;
 use style::values::computed::image::Image as ComputedImageLayer;
-use style::values::computed::{AlignItems, BorderStyle, LengthPercentage};
+use style::values::computed::{AlignItems, BorderStyle, Inset, LengthPercentage};
 use style::values::generics::box_::Perspective;
 use style::values::generics::position::{GenericAspectRatio, PreferredRatio};
 use style::values::specified::align::AlignFlags;
@@ -180,6 +180,7 @@ impl AspectRatio {
 }
 
 pub(crate) trait ComputedValuesExt {
+    fn physical_box_offsets(&self) -> PhysicalSides<LengthPercentageOrAuto<'_>>;
     fn box_offsets(
         &self,
         containing_block: &ContainingBlock,
@@ -314,18 +315,29 @@ pub(crate) trait ComputedValuesExt {
 }
 
 impl ComputedValuesExt for ComputedValues {
+    fn physical_box_offsets(&self) -> PhysicalSides<LengthPercentageOrAuto<'_>> {
+        fn convert<'a>(inset: &'a Inset) -> LengthPercentageOrAuto<'a> {
+            match inset {
+                Inset::LengthPercentage(ref v) => LengthPercentageOrAuto::LengthPercentage(v),
+                Inset::Auto => LengthPercentageOrAuto::Auto,
+                Inset::AnchorFunction(_) => unreachable!("anchor() should be disabled"),
+            }
+        }
+        let position = self.get_position();
+        PhysicalSides::new(
+            convert(&position.top),
+            convert(&position.right),
+            convert(&position.bottom),
+            convert(&position.left),
+        )
+    }
+
     fn box_offsets(
         &self,
         containing_block: &ContainingBlock,
     ) -> LogicalSides<LengthPercentageOrAuto<'_>> {
-        let position = self.get_position();
         LogicalSides::from_physical(
-            &PhysicalSides::new(
-                position.top.as_ref(),
-                position.right.as_ref(),
-                position.bottom.as_ref(),
-                position.left.as_ref(),
-            ),
+            &self.physical_box_offsets(),
             containing_block.style.writing_mode,
         )
     }
