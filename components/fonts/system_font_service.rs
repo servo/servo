@@ -14,7 +14,7 @@ use atomic_refcell::AtomicRefCell;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use log::debug;
 use malloc_size_of_derive::MallocSizeOf;
-use parking_lot::{ReentrantMutex, RwLock};
+use parking_lot::{Mutex, RwLock};
 use serde::{Deserialize, Serialize};
 use servo_config::pref;
 use servo_url::ServoUrl;
@@ -121,7 +121,7 @@ pub struct SystemFontServiceProxySender(pub IpcSender<SystemFontServiceMessage>)
 impl SystemFontServiceProxySender {
     pub fn to_proxy(&self) -> SystemFontServiceProxy {
         SystemFontServiceProxy {
-            sender: ReentrantMutex::new(self.0.clone()),
+            sender: Mutex::new(self.0.clone()),
             templates: Default::default(),
             data_cache: Default::default(),
         }
@@ -384,7 +384,7 @@ struct FontTemplateCacheKey {
 /// `FontContext` instances.
 #[derive(Debug)]
 pub struct SystemFontServiceProxy {
-    sender: ReentrantMutex<IpcSender<SystemFontServiceMessage>>,
+    sender: Mutex<IpcSender<SystemFontServiceMessage>>,
     templates: RwLock<HashMap<FontTemplateCacheKey, Vec<FontTemplateRef>>>,
     data_cache: RwLock<HashMap<FontIdentifier, Arc<FontData>>>,
 }
