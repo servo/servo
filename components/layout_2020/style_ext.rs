@@ -321,6 +321,7 @@ impl ComputedValuesExt for ComputedValues {
                 Inset::LengthPercentage(ref v) => LengthPercentageOrAuto::LengthPercentage(v),
                 Inset::Auto => LengthPercentageOrAuto::Auto,
                 Inset::AnchorFunction(_) => unreachable!("anchor() should be disabled"),
+                Inset::AnchorSizeFunction(_) => unreachable!("anchor-size() should be disabled"),
             }
         }
         let position = self.get_position();
