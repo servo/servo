@@ -52,7 +52,7 @@ pub struct Range {
     associated_selections: DomRefCell<Vec<Dom<Selection>>>,
 }
 
-pub struct ContainedChildren {
+struct ContainedChildren {
     first_partially_contained_child: Option<DomRoot<Node>>,
     last_partially_contained_child: Option<DomRoot<Node>>,
     contained_children: Vec<DomRoot<Node>>,
@@ -161,7 +161,7 @@ impl Range {
         // Steps 5-6.
         let common_ancestor = self.CommonAncestorContainer();
 
-        let first_contained_child = if start_node.is_inclusive_ancestor_of(&end_node) {
+        let first_partially_contained_child = if start_node.is_inclusive_ancestor_of(&end_node) {
             // Step 7.
             None
         } else {
@@ -171,7 +171,7 @@ impl Range {
                 .find(|node| Range::partially_contains(self, node))
         };
 
-        let last_contained_child = if end_node.is_inclusive_ancestor_of(&start_node) {
+        let last_partially_contained_child = if end_node.is_inclusive_ancestor_of(&start_node) {
             // Step 9.
             None
         } else {
@@ -193,8 +193,8 @@ impl Range {
         }
 
         Ok(ContainedChildren {
-            first_partially_contained_child: first_contained_child,
-            last_partially_contained_child: last_contained_child,
+            first_partially_contained_child,
+            last_partially_contained_child,
             contained_children,
         })
     }
@@ -584,12 +584,12 @@ impl RangeMethods for Range {
 
         // Steps 5-12.
         let ContainedChildren {
-            first_partially_contained_child: first_contained_child,
-            last_partially_contained_child: last_contained_child,
+            first_partially_contained_child,
+            last_partially_contained_child,
             contained_children,
         } = self.contained_children()?;
 
-        if let Some(child) = first_contained_child {
+        if let Some(child) = first_partially_contained_child {
             // Step 13.
             if let Some(cdata) = child.downcast::<CharacterData>() {
                 assert!(child == start_node);
@@ -629,7 +629,7 @@ impl RangeMethods for Range {
             fragment.upcast::<Node>().AppendChild(&clone)?;
         }
 
-        if let Some(child) = last_contained_child {
+        if let Some(child) = last_partially_contained_child {
             // Step 16.
             if let Some(cdata) = child.downcast::<CharacterData>() {
                 assert!(child == end_node);
@@ -701,8 +701,8 @@ impl RangeMethods for Range {
 
         // Steps 5-12.
         let ContainedChildren {
-            first_partially_contained_child: first_contained_child,
-            last_partially_contained_child: last_contained_child,
+            first_partially_contained_child,
+            last_partially_contained_child,
             contained_children,
         } = self.contained_children()?;
 
@@ -723,7 +723,7 @@ impl RangeMethods for Range {
             )
         };
 
-        if let Some(child) = first_contained_child {
+        if let Some(child) = first_partially_contained_child {
             if let Some(start_data) = child.downcast::<CharacterData>() {
                 assert!(child == start_node);
                 // Step 15.1.
@@ -768,7 +768,7 @@ impl RangeMethods for Range {
             fragment.upcast::<Node>().AppendChild(&child)?;
         }
 
-        if let Some(child) = last_contained_child {
+        if let Some(child) = last_partially_contained_child {
             if let Some(end_data) = child.downcast::<CharacterData>() {
                 assert!(child == end_node);
                 // Step 18.1.
