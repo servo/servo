@@ -182,7 +182,7 @@ impl SubtleCryptoMethods for SubtleCrypto {
                     return;
                 }
                 let exported_key = match alg_name.as_str() {
-                    ALG_AES_CBC => subtle.export_key_aes_cbc(format, &*key),
+                    ALG_AES_CBC => subtle.export_key_aes_cbc(format, &key),
                     _ => Err(Error::NotSupported),
                 };
                 match exported_key {
@@ -267,7 +267,7 @@ fn normalize_algorithm(
                     };
                     Ok(NormalizedAlgorithm::AesKeyGenParams(params.into()))
                 },
-                _ => return Err(Error::NotSupported),
+                _ => Err(Error::NotSupported),
             }
         },
     }
