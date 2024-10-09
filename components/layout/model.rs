@@ -12,7 +12,7 @@ use euclid::SideOffsets2D;
 use serde::Serialize;
 use style::logical_geometry::{LogicalMargin, WritingMode};
 use style::properties::ComputedValues;
-use style::values::computed::{LengthPercentageOrAuto, MaxSize, Size};
+use style::values::computed::{Inset, LengthPercentageOrAuto, MaxSize, Size};
 
 use crate::fragment::Fragment;
 
@@ -464,6 +464,17 @@ impl MaybeAuto {
             LengthPercentageOrAuto::LengthPercentage(ref lp) => {
                 MaybeAuto::Specified(lp.to_used_value(containing_length))
             },
+        }
+    }
+
+    #[inline]
+    pub fn from_inset(length: &Inset, containing_length: Au) -> MaybeAuto {
+        match length {
+            Inset::Auto => MaybeAuto::Auto,
+            Inset::LengthPercentage(ref lp) => {
+                MaybeAuto::Specified(lp.to_used_value(containing_length))
+            },
+            Inset::AnchorFunction(_) => unreachable!("anchor() should be disabled"),
         }
     }
 
