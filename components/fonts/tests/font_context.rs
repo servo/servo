@@ -33,7 +33,7 @@ use style::values::computed::{FontLanguageOverride, XLang};
 use style::values::generics::font::LineHeight;
 use style::ArcSlice;
 use webrender_api::{FontInstanceKey, FontKey, IdNamespace};
-use webrender_traits::WebRenderScriptApi;
+use webrender_traits::CrossProcessCompositorApi;
 
 struct TestContext {
     context: FontContext,
@@ -47,11 +47,11 @@ impl TestContext {
         let (core_sender, _) = ipc::channel().unwrap();
         let (storage_sender, _) = ipc::channel().unwrap();
         let mock_resource_threads = ResourceThreads::new(core_sender, storage_sender);
-        let mock_webrender_api = WebRenderScriptApi::dummy();
+        let mock_compositor_api = CrossProcessCompositorApi::dummy();
 
         let proxy_clone = Arc::new(system_font_service_proxy.to_sender().to_proxy());
         Self {
-            context: FontContext::new(proxy_clone, mock_webrender_api, mock_resource_threads),
+            context: FontContext::new(proxy_clone, mock_compositor_api, mock_resource_threads),
             system_font_service,
             system_font_service_proxy,
         }

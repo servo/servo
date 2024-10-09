@@ -76,9 +76,9 @@ use style::str::HTML_SPACE_CHARACTERS;
 use style::stylesheets::{CssRuleType, Origin, UrlExtraData};
 use style_traits::{CSSPixel, DevicePixel, ParsingMode};
 use url::Position;
-use webrender_api::units::{DeviceIntPoint, DeviceIntSize, LayoutPixel};
+use webrender_api::units::{DeviceIntRect, LayoutPixel};
 use webrender_api::{DocumentId, ExternalScrollId};
-use webrender_traits::WebRenderScriptApi;
+use webrender_traits::CrossProcessCompositorApi;
 
 use super::bindings::codegen::Bindings::MessagePortBinding::StructuredSerializeOptions;
 use super::bindings::trace::HashMapTracedValues;
@@ -312,10 +312,10 @@ pub struct Window {
     /// Flag to identify whether mutation observers are present(true)/absent(false)
     exists_mut_observer: Cell<bool>,
 
-    /// Webrender API Sender
+    /// Cross-process access to the compositor.
     #[ignore_malloc_size_of = "Wraps an IpcSender"]
     #[no_trace]
-    webrender_api_sender: WebRenderScriptApi,
+    compositor_api: CrossProcessCompositorApi,
 
     /// Indicate whether a SetDocumentStatus message has been sent after a reflow is complete.
     /// It is used to avoid sending idle message more than once, which is unneccessary.
@@ -526,8 +526,8 @@ impl Window {
         self.add_pending_reflow();
     }
 
-    pub fn get_webrender_api_sender(&self) -> WebRenderScriptApi {
-        self.webrender_api_sender.clone()
+    pub fn compositor_api(&self) -> &CrossProcessCompositorApi {
+        &self.compositor_api
     }
 
     pub fn get_userscripts_path(&self) -> Option<String> {
@@ -1773,14 +1773,16 @@ impl Window {
 
     fn client_window(&self) -> (Size2D<u32, CSSPixel>, Point2D<i32, CSSPixel>) {
         let timer_profile_chan = self.global().time_profiler_chan().clone();
-        let (send, recv) =
-            ProfiledIpc::channel::<(DeviceIntSize, DeviceIntPoint)>(timer_profile_chan).unwrap();
-        self.send_to_constellation(ScriptMsg::GetClientWindow(send));
-        let (size, point) = recv.recv().unwrap_or((Size2D::zero(), Point2D::zero()));
+        let (send, recv) = ProfiledIpc::channel::<DeviceIntRect>(timer_profile_chan).unwrap();
+        let _ = self
+            .compositor_api
+            .sender()
+            .send(webrender_traits::CrossProcessCompositorMessage::GetClientWindowRect(send));
+        let rect = recv.recv().unwrap_or_default();
         let dpr = self.device_pixel_ratio();
         (
-            (size.to_f32() / dpr).to_u32(),
-            (point.to_f32() / dpr).to_i32(),
+            (rect.size().to_f32() / dpr).to_u32(),
+            (rect.min.to_f32() / dpr).to_i32(),
         )
     }
 
@@ -2548,7 +2550,7 @@ impl Window {
         webxr_registry: webxr_api::Registry,
         microtask_queue: Rc<MicrotaskQueue>,
         webrender_document: DocumentId,
-        webrender_api_sender: WebRenderScriptApi,
+        compositor_api: CrossProcessCompositorApi,
         relayout_event: bool,
         prepare_for_screenshot: bool,
         unminify_js: bool,
@@ -2633,7 +2635,7 @@ impl Window {
             paint_worklet: Default::default(),
             webrender_document,
             exists_mut_observer: Cell::new(false),
-            webrender_api_sender,
+            compositor_api,
             has_sent_idle_message: Cell::new(false),
             relayout_event,
             prepare_for_screenshot,
