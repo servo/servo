@@ -300,7 +300,6 @@ impl FontContext {
                 )
             },
             FontIdentifier::Web(_) => self.create_web_font_instance(
-                self,
                 font.template.clone(),
                 font.descriptor.pt_size,
                 font.webrender_font_instance_flags(),
@@ -308,15 +307,14 @@ impl FontContext {
         }
     }
 
-    pub(crate) fn create_web_font_instance(
+    fn create_web_font_instance(
         &self,
-        font_context: &FontContext,
         font_template: FontTemplateRef,
         pt_size: Au,
         flags: FontInstanceFlags,
     ) -> FontInstanceKey {
         let identifier = font_template.identifier().clone();
-        let font_data = font_context.get_font_data(&identifier);
+        let font_data = self.get_font_data(&identifier);
         let font_key = *self
             .webrender_font_keys
             .write()
