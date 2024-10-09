@@ -115,15 +115,14 @@ pub struct WorkerGlobalScope {
 
     #[ignore_malloc_size_of = "Defined in ipc-channel"]
     #[no_trace]
-    /// Optional `IpcSender` for sending the `DevtoolScriptControlMsg`
-    /// to the server from within the worker
-    from_devtools_sender: Option<IpcSender<DevtoolScriptControlMsg>>,
+    /// A `Sender` for sending messages to devtools. This is unused but is stored here to
+    /// keep the channel alive.
+    _devtools_sender: Option<IpcSender<DevtoolScriptControlMsg>>,
 
-    #[ignore_malloc_size_of = "Defined in std"]
+    #[ignore_malloc_size_of = "Defined in crossbeam"]
     #[no_trace]
-    /// This `Receiver` will be ignored later if the corresponding
-    /// `IpcSender` doesn't exist
-    from_devtools_receiver: Receiver<DevtoolScriptControlMsg>,
+    /// A `Receiver` for receiving messages from devtools.
+    devtools_receiver: Option<Receiver<DevtoolScriptControlMsg>>,
 
     #[no_trace]
     navigation_start: CrossProcessInstant,
@@ -138,12 +137,18 @@ impl WorkerGlobalScope {
         worker_type: WorkerType,
         worker_url: ServoUrl,
         runtime: Runtime,
-        from_devtools_receiver: Receiver<DevtoolScriptControlMsg>,
+        devtools_receiver: Receiver<DevtoolScriptControlMsg>,
         closing: Arc<AtomicBool>,
         gpu_id_hub: Arc<IdentityHub>,
     ) -> Self {
         // Install a pipeline-namespace in the current thread.
         PipelineNamespace::auto_install();
+
+        let devtools_receiver = match init.from_devtools_sender {
+            Some(..) => Some(devtools_receiver),
+            None => None,
+        };
+
         Self {
             globalscope: GlobalScope::new_inherited(
                 init.pipeline_id,
@@ -169,8 +174,8 @@ impl WorkerGlobalScope {
             runtime: DomRefCell::new(Some(runtime)),
             location: Default::default(),
             navigator: Default::default(),
-            from_devtools_sender: init.from_devtools_sender,
-            from_devtools_receiver,
+            devtools_receiver,
+            _devtools_sender: init.from_devtools_sender,
             navigation_start: CrossProcessInstant::now(),
             performance: Default::default(),
         }
@@ -197,12 +202,8 @@ impl WorkerGlobalScope {
             .prepare_for_new_child()
     }
 
-    pub fn from_devtools_sender(&self) -> Option<IpcSender<DevtoolScriptControlMsg>> {
-        self.from_devtools_sender.clone()
-    }
-
-    pub fn from_devtools_receiver(&self) -> &Receiver<DevtoolScriptControlMsg> {
-        &self.from_devtools_receiver
+    pub fn devtools_receiver(&self) -> Option<&Receiver<DevtoolScriptControlMsg>> {
+        self.devtools_receiver.as_ref()
     }
 
     #[allow(unsafe_code)]

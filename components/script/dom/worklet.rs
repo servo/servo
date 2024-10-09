@@ -611,7 +611,8 @@ impl WorkletThread {
             hash_map::Entry::Vacant(entry) => {
                 debug!("Creating new worklet global scope.");
                 let executor = WorkletExecutor::new(worklet_id, self.primary_sender.clone());
-                let result = global_type.new(
+                let result = WorkletGlobalScope::new(
+                    global_type,
                     &self.runtime,
                     pipeline_id,
                     base_url,
