@@ -12,7 +12,7 @@ use euclid::SideOffsets2D;
 use serde::Serialize;
 use style::logical_geometry::{LogicalMargin, WritingMode};
 use style::properties::ComputedValues;
-use style::values::computed::{Inset, LengthPercentageOrAuto, MaxSize, Size};
+use style::values::computed::{Inset, LengthPercentageOrAuto, Margin, MaxSize, Size};
 
 use crate::fragment::Fragment;
 
@@ -480,6 +480,17 @@ impl MaybeAuto {
     }
 
     #[inline]
+    pub fn from_margin(length: &Margin, containing_length: Au) -> MaybeAuto {
+        match length {
+            Margin::Auto => MaybeAuto::Auto,
+            Margin::LengthPercentage(ref lp) => {
+                MaybeAuto::Specified(lp.to_used_value(containing_length))
+            },
+            Margin::AnchorSizeFunction(_) => unreachable!("anchor-size() should be disabled"),
+        }
+    }
+
+    #[inline]
     pub fn from_option(au: Option<Au>) -> MaybeAuto {
         match au {
             Some(l) => MaybeAuto::Specified(l),
@@ -574,10 +585,10 @@ pub fn specified_margin_from_style(
     LogicalMargin::from_physical(
         writing_mode,
         SideOffsets2D::new(
-            MaybeAuto::from_style(&margin_style.margin_top, Au(0)).specified_or_zero(),
-            MaybeAuto::from_style(&margin_style.margin_right, Au(0)).specified_or_zero(),
-            MaybeAuto::from_style(&margin_style.margin_bottom, Au(0)).specified_or_zero(),
-            MaybeAuto::from_style(&margin_style.margin_left, Au(0)).specified_or_zero(),
+            MaybeAuto::from_margin(&margin_style.margin_top, Au(0)).specified_or_zero(),
+            MaybeAuto::from_margin(&margin_style.margin_right, Au(0)).specified_or_zero(),
+            MaybeAuto::from_margin(&margin_style.margin_bottom, Au(0)).specified_or_zero(),
+            MaybeAuto::from_margin(&margin_style.margin_left, Au(0)).specified_or_zero(),
         ),
     )
 }
