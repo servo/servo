@@ -57,7 +57,7 @@ fn cascade(
             let mut input = ParserInput::new(value);
             let mut parser = Parser::new(&mut input);
             let name = Name::from(name);
-            let value = CustomDeclarationValue::Value(Arc::new(
+            let value = CustomDeclarationValue::Unparsed(Arc::new(
                 SpecifiedValue::parse(&mut parser, &dummy_url_data).unwrap(),
             ));
             CustomDeclaration { name, value }
