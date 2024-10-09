@@ -5,6 +5,7 @@
 use std::ptr;
 use std::rc::Rc;
 
+use base64::prelude::*;
 use dom_struct::dom_struct;
 use js::conversions::ConversionResult;
 use js::jsapi::JSObject;
@@ -18,7 +19,8 @@ use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
     CryptoKeyMethods, KeyType, KeyUsage,
 };
 use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{
-    AesKeyGenParams, Algorithm, AlgorithmIdentifier, KeyAlgorithm, KeyFormat, SubtleCryptoMethods,
+    AesKeyGenParams, Algorithm, AlgorithmIdentifier, JsonWebKey, KeyAlgorithm, KeyFormat,
+    SubtleCryptoMethods,
 };
 use crate::dom::bindings::codegen::UnionTypes::ArrayBufferViewOrArrayBufferOrJsonWebKey;
 use crate::dom::bindings::error::Error;
@@ -175,11 +177,21 @@ impl SubtleCryptoMethods for SubtleCrypto {
             return promise;
         }
 
+        // TODO: Figure out a way to Send this data so per-algorithm JWK checks can happen
         let data = match key_data {
             ArrayBufferViewOrArrayBufferOrJsonWebKey::ArrayBufferView(view) => view.to_vec(),
             ArrayBufferViewOrArrayBufferOrJsonWebKey::JsonWebKey(json_web_key) => {
-                if let Some(data_string) = json_web_key.k {
-                    data_string.to_string().as_bytes().to_vec()
+                if let Some(mut data_string) = json_web_key.k {
+                    while data_string.len() % 4 != 0 {
+                        data_string.push_str("=");
+                    }
+                    match BASE64_STANDARD.decode(data_string.to_string()) {
+                        Ok(data) => data,
+                        Err(_) => {
+                            promise.reject_error(Error::Syntax);
+                            return promise;
+                        },
+                    }
                 } else {
                     promise.reject_error(Error::Syntax);
                     return promise;
@@ -250,11 +262,18 @@ impl SubtleCryptoMethods for SubtleCrypto {
                 };
                 match exported_key {
                     Ok(k) => {
-                        let cx = GlobalScope::get_cx();
-                        rooted!(in(*cx) let mut array_buffer_ptr = ptr::null_mut::<JSObject>());
-                        create_buffer_source::<ArrayBufferU8>(cx, &k, array_buffer_ptr.handle_mut())
-                            .expect("failed to create buffer source for exported key.");
-                        promise.resolve_native(&array_buffer_ptr.get())
+                        match k {
+                            AesExportedKey::Raw(k) => {
+                                let cx = GlobalScope::get_cx();
+                                rooted!(in(*cx) let mut array_buffer_ptr = ptr::null_mut::<JSObject>());
+                                create_buffer_source::<ArrayBufferU8>(cx, &k, array_buffer_ptr.handle_mut())
+                                    .expect("failed to create buffer source for exported key.");
+                                promise.resolve_native(&array_buffer_ptr.get())
+                            },
+                            AesExportedKey::Jwk(k) => {
+                                promise.resolve_native(&k)
+                            },
+                        }
                     },
                     Err(e) => promise.reject_error(e),
                 }
@@ -395,13 +414,13 @@ impl SubtleCrypto {
                 usage,
                 KeyUsage::Encrypt | KeyUsage::Decrypt | KeyUsage::WrapKey | KeyUsage::UnwrapKey
             )
-        }) {
+        }) || usages.is_empty()
+        {
             return Err(Error::Syntax);
         }
         match format {
             KeyFormat::Raw => {
                 if !matches!(data.len() * 8, 128 | 192 | 256) {
-                    println!("{}", data.len());
                     return Err(Error::Data);
                 }
                 let handle = match data.len() * 8 {
@@ -422,26 +441,82 @@ impl SubtleCrypto {
                 ))
             },
             KeyFormat::Jwk => {
-                // TODO: Support jwk
-                Err(Error::NotSupported)
+                if !matches!(data.len() * 8, 128 | 192 | 256) {
+                    return Err(Error::Data);
+                }
+                let handle = match data.len() * 8 {
+                    128 => Handle::Aes128(data.to_vec()),
+                    192 => Handle::Aes192(data.to_vec()),
+                    256 => Handle::Aes256(data.to_vec()),
+                    _ => unreachable!(),
+                };
+                Ok(CryptoKey::new(
+                    &self.global(),
+                    KeyType::Secret,
+                    extractable,
+                    KeyAlgorithm {
+                        name: DOMString::from(ALG_AES_CBC),
+                    },
+                    usages,
+                    handle,
+                ))
             },
             _ => Err(Error::NotSupported),
         }
     }
 
     /// <https://w3c.github.io/webcrypto/#aes-cbc-operations>
-    fn export_key_aes_cbc(&self, format: KeyFormat, key: &CryptoKey) -> Result<Vec<u8>, Error> {
+    fn export_key_aes_cbc(
+        &self,
+        format: KeyFormat,
+        key: &CryptoKey,
+    ) -> Result<AesExportedKey, Error> {
         match format {
             KeyFormat::Raw => match key.handle() {
-                Handle::Aes128(key) => Ok(key.as_slice().to_vec()),
-                Handle::Aes192(key) => Ok(key.as_slice().to_vec()),
-                Handle::Aes256(key) => Ok(key.as_slice().to_vec()),
+                Handle::Aes128(key) => Ok(AesExportedKey::Raw(key.as_slice().to_vec())),
+                Handle::Aes192(key) => Ok(AesExportedKey::Raw(key.as_slice().to_vec())),
+                Handle::Aes256(key) => Ok(AesExportedKey::Raw(key.as_slice().to_vec())),
             },
             KeyFormat::Jwk => {
-                // TODO: Support jwk
-                Err(Error::NotSupported)
+                let (alg, k) = match key.handle() {
+                    Handle::Aes128(key) => data_to_jwk_params("A128CBC", key.as_slice()),
+                    Handle::Aes192(key) => data_to_jwk_params("A192CBC", key.as_slice()),
+                    Handle::Aes256(key) => data_to_jwk_params("A256CBC", key.as_slice()),
+                };
+                let jwk = JsonWebKey {
+                    alg: Some(alg),
+                    crv: None,
+                    d: None,
+                    dp: None,
+                    dq: None,
+                    e: None,
+                    ext: Some(key.Extractable()),
+                    k: Some(k),
+                    key_ops: None,
+                    kty: Some(DOMString::from("oct")),
+                    n: None,
+                    oth: None,
+                    p: None,
+                    q: None,
+                    qi: None,
+                    use_: None,
+                    x: None,
+                    y: None,
+                };
+                Ok(AesExportedKey::Jwk(jwk))
             },
             _ => Err(Error::NotSupported),
         }
     }
+}
+
+pub enum AesExportedKey {
+    Raw(Vec<u8>),
+    Jwk(JsonWebKey),
+}
+
+fn data_to_jwk_params(alg: &str, key: &[u8]) -> (DOMString, DOMString) {
+    let mut data = BASE64_STANDARD.encode(key);
+    data.retain(|c| c != '=');
+    (DOMString::from(alg), DOMString::from(data))
 }
