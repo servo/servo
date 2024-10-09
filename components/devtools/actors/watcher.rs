@@ -12,6 +12,7 @@
 
 use std::collections::HashMap;
 use std::net::TcpStream;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use log::warn;
 use serde::Serialize;
@@ -133,6 +134,19 @@ struct GetThreadConfigurationActorReply {
 }
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct DocumentEvent {
+    #[serde(rename = "hasNativeConsoleAPI")]
+    has_native_console_api: Option<bool>,
+    name: String,
+    #[serde(rename = "newURI")]
+    new_uri: Option<String>,
+    time: u64,
+    title: Option<String>,
+    url: Option<String>,
+}
+
+#[derive(Serialize)]
 struct WatcherTraits {
     resources: HashMap<&'static str, bool>,
     #[serde(flatten)]
@@ -166,7 +180,7 @@ impl Actor for WatcherActor {
     ///   `target-available-form` event.
     ///
     /// - `watchResources`: Start watching certain resource types. This sends
-    ///   `resource-available-form` events.
+    ///   `resources-available-array` events.
     ///
     /// - `getNetworkParentActor`: Returns the network parent actor. It doesn't seem to do much at
     ///   the moment.
@@ -217,7 +231,23 @@ impl Actor for WatcherActor {
                     };
                     match resource {
                         "document-event" => {
-                            target.document_event(stream);
+                            // TODO: This is a hacky way of sending the 3 messages
+                            //       Figure out if there needs work to be done here, ensure the page is loaded
+                            for &name in ["dom-loading", "dom-interactive", "dom-complete"].iter() {
+                                let event = DocumentEvent {
+                                    has_native_console_api: Some(true),
+                                    name: name.into(),
+                                    new_uri: None,
+                                    time: SystemTime::now()
+                                        .duration_since(UNIX_EPOCH)
+                                        .unwrap_or_default()
+                                        .as_millis()
+                                        as u64,
+                                    title: Some(target.title.borrow().clone()),
+                                    url: Some(target.url.borrow().clone()),
+                                };
+                                target.resource_available(event, "document-event".into());
+                            }
                         },
                         "console-message" | "error-message" => {},
                         _ => warn!("resource {} not handled yet", resource),
