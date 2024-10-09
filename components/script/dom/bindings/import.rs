@@ -103,6 +103,10 @@ pub mod module {
     pub use crate::dom::bindings::codegen::Bindings::EventTargetBinding::EventTarget_Binding;
     pub use crate::dom::bindings::codegen::{InterfaceObjectMap, PrototypeList, RegisterBindings};
     pub use crate::dom::bindings::constant::{ConstantSpec, ConstantVal};
+    pub use crate::dom::bindings::constructor::{
+        call_default_constructor, call_html_constructor, pop_current_element_queue,
+        push_new_element_queue,
+    };
     pub use crate::dom::bindings::conversions::{
         is_array_like, jsid_to_string, native_from_handlevalue, native_from_object_static,
         IDLInterface, StringificationBehavior, ToJSValConvertible, DOM_OBJECT_SLOT,
@@ -112,9 +116,6 @@ pub mod module {
         finalize_common, finalize_global, finalize_weak_referenceable,
     };
     pub use crate::dom::bindings::guard::{Condition, Guard};
-    pub use crate::dom::bindings::htmlconstructor::{
-        pop_current_element_queue, push_new_element_queue,
-    };
     pub use crate::dom::bindings::inheritance::Castable;
     pub use crate::dom::bindings::interface::{
         create_callback_interface_object, create_global_object, create_interface_prototype_object,

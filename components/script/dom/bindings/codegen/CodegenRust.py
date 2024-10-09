@@ -6229,16 +6229,11 @@ class CGClassConstructHook(CGAbstractExternMethod):
 let args = CallArgs::from_vp(vp, argc);
 let global = GlobalScope::from_object(JS_CALLEE(*cx, vp).to_object());
 """
-        if len(self.exposureSet) == 1:
-            preamble += f"""
-let global = DomRoot::downcast::<dom::types::{list(self.exposureSet)[0]}>(global).unwrap();
-"""
         if self.constructor.isHTMLConstructor():
             signatures = self.constructor.signatures()
             assert len(signatures) == 1
-            constructorCall = CGGeneric(
-                f"""
-                dom::bindings::htmlconstructor::call_html_constructor::<dom::types::{self.descriptor.name}>(
+            constructorCall = f"""
+                call_html_constructor::<dom::types::{self.descriptor.name}>(
                     cx,
                     &args,
                     &global,
@@ -6246,34 +6241,39 @@ let global = DomRoot::downcast::<dom::types::{list(self.exposureSet)[0]}>(global
                     CreateInterfaceObjects,
                 )
                 """
-            )
         else:
             ctorName = GetConstructorNameForReporting(self.descriptor, self.constructor)
-            preamble += f"""
-if !args.is_constructing() {{
-  throw_constructor_without_new(*cx, "{ctorName}");
-  return false;
-}}
-
-rooted!(in(*cx) let mut desired_proto = ptr::null_mut::<JSObject>());
-let proto_result = get_desired_proto(
-  cx,
-  &args,
-  PrototypeList::ID::{MakeNativeName(self.descriptor.name)},
-  CreateInterfaceObjects,
-  desired_proto.handle_mut(),
-);
-assert!(proto_result.is_ok());
-if proto_result.is_err() {{
-  return false;
-}}
-"""
             name = self.constructor.identifier.name
             nativeName = MakeNativeName(self.descriptor.binaryNameFor(name))
-            args = ["&global", "Some(desired_proto.handle())", "CanGc::note()"]
-            constructorCall = CGMethodCall(args, nativeName, True,
-                                           self.descriptor, self.constructor)
-        return CGList([CGGeneric(preamble), constructorCall])
+
+            if len(self.exposureSet) == 1:
+                args = [
+                    f"global.downcast::<dom::types::{list(self.exposureSet)[0]}>().unwrap()",
+                    "Some(desired_proto.handle())",
+                    "CanGc::note()"
+                ]
+            else:
+                args = [
+                    "&global",
+                    "Some(desired_proto.handle())",
+                    "CanGc::note()"
+                ]
+
+            constructor = CGMethodCall(args, nativeName, True, self.descriptor, self.constructor)
+            constructorCall = f"""
+            call_default_constructor(
+                cx,
+                &args,
+                global,
+                PrototypeList::ID::{MakeNativeName(self.descriptor.name)},
+                \"{ctorName}\",
+                CreateInterfaceObjects,
+                |cx, args, global, desired_proto| {{
+                    {constructor.define()}
+                }}
+            )
+                """
+        return CGList([CGGeneric(preamble), CGGeneric(constructorCall)])
 
 
 class CGClassFinalizeHook(CGAbstractClassHook):
