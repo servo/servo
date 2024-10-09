@@ -1678,9 +1678,9 @@ dependencies = [
 
 [[package]]
 name = "dwrote"
-version = "0.11.1"
+version = "0.11.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2da3498378ed373237bdef1eddcc64e7be2d3ba4841f4c22a998e81cadeea83c"
+checksum = "70182709525a3632b2ba96b6569225467b18ecb4a77f46d255f713a6bebf05fd"
 dependencies = [
  "lazy_static",
  "libc",
