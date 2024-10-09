@@ -73,13 +73,11 @@ use crate::task::TaskBox;
 // See Github Issue Number: #33722
 #[allow(clippy::missing_safety_doc)] 
 
-// Brief description of the trait
-/// This trait defines a method for tracing objects in the context of garbage collection.
+/// A trait to allow tracing only DOM sub-objects.
 pub unsafe trait CustomTraceable {
     /// Trace `self`.
     unsafe fn trace(&self, trc: *mut JSTracer);
 }
-
 
 unsafe impl<T: CustomTraceable> CustomTraceable for Box<T> {
     #[inline]

@@ -121,15 +121,12 @@ impl DomObject for Reflector {
 }
 
 
-// FIXME: Add safety documentation.
-// See Github Issue Number:#33725
-#[allow(clippy::missing_safety_doc)]
-
-// Brief description of the trait
 /// A trait to initialize the `Reflector` for a DOM object. 
 pub trait MutDomObject: DomObject {
-    /// Initializes the `Reflector` for the DOM object.
+    // FIXME: Add Safety Documentation
+    // See Github Issue #33725.
     #[allow(clippy::missing_safety_doc)]
+    /// Initializes the `Reflector` for the DOM object.
     unsafe fn init_reflector(&self, obj: *mut JSObject);
 }
 
