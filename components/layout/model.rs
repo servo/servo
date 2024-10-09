@@ -475,6 +475,7 @@ impl MaybeAuto {
                 MaybeAuto::Specified(lp.to_used_value(containing_length))
             },
             Inset::AnchorFunction(_) => unreachable!("anchor() should be disabled"),
+            Inset::AnchorSizeFunction(_) => unreachable!("anchor-size() should be disabled"),
         }
     }
 
