@@ -172,7 +172,7 @@ impl PageStyleActor {
 
             // For each selector (plus an empty one that represents the style attribute)
             // get all of the rules associated with it.
-            let entries =
+            let entries: Vec<AppliedEntry> =
                 once(("".into(), usize::MAX))
                     .chain(selectors)
                     .filter_map(move |selector| {
@@ -206,7 +206,8 @@ impl PageStyleActor {
                             is_system: false,
                             inherited: inherited.clone(),
                         })
-                    });
+                    })
+                    .collect();
             Some(entries)
         })
         .flatten()
