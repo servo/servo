@@ -9,6 +9,7 @@ use std::time;
 
 use log::warn;
 use servo::embedder_traits::EventLoopWaker;
+use winit::event_loop::ActiveEventLoop;
 #[cfg(target_os = "macos")]
 use winit::platform::macos::{ActivationPolicy, EventLoopBuilderExtMacOS};
 
@@ -38,7 +39,7 @@ impl EventsLoop {
         _has_output_file: bool,
     ) -> Result<EventsLoop, winit::error::EventLoopError> {
         Ok(EventsLoop(EventLoop::Winit(Some(
-            winit::event_loop::EventLoopBuilder::with_user_event().build()?,
+            winit::event_loop::EventLoop::with_user_event().build()?,
         ))))
     }
     #[cfg(target_os = "linux")]
@@ -50,7 +51,7 @@ impl EventsLoop {
             EventLoop::Headless(Arc::new((Mutex::new(false), Condvar::new())))
         } else {
             EventLoop::Winit(Some(
-                winit::event_loop::EventLoopBuilder::with_user_event().build()?,
+                winit::event_loop::EventLoop::with_user_event().build()?,
             ))
         }))
     }
@@ -62,7 +63,7 @@ impl EventsLoop {
         Ok(EventsLoop(if headless {
             EventLoop::Headless(Arc::new((Mutex::new(false), Condvar::new())))
         } else {
-            let mut event_loop_builder = winit::event_loop::EventLoopBuilder::with_user_event();
+            let mut event_loop_builder = winit::event_loop::EventLoop::with_user_event();
             if _has_output_file {
                 // Prevent the window from showing in Dock.app, stealing focus,
                 // when generating an output file.
@@ -97,11 +98,7 @@ impl EventsLoop {
     pub fn run_forever<F>(self, mut callback: F)
     where
         F: 'static
-            + FnMut(
-                winit::event::Event<WakerEvent>,
-                Option<&winit::event_loop::EventLoopWindowTarget<WakerEvent>>,
-                &mut ControlFlow,
-            ),
+            + FnMut(winit::event::Event<WakerEvent>, Option<&ActiveEventLoop>, &mut ControlFlow),
     {
         match self.0 {
             EventLoop::Winit(events_loop) => {
@@ -164,7 +161,7 @@ pub enum ControlFlow {
 }
 
 impl ControlFlow {
-    fn apply_to(self, window_target: &winit::event_loop::EventLoopWindowTarget<WakerEvent>) {
+    fn apply_to(self, window_target: &ActiveEventLoop) {
         match self {
             ControlFlow::Poll => {
                 window_target.set_control_flow(winit::event_loop::ControlFlow::Poll)

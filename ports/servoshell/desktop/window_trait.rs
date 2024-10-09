@@ -13,8 +13,6 @@ use servo::servo_geometry::DeviceIndependentPixel;
 use servo::style_traits::DevicePixel;
 use servo::webrender_api::units::{DeviceIntPoint, DeviceIntSize};
 
-use super::events_loop::WakerEvent;
-
 // This should vary by zoom level and maybe actual text size (focused or under cursor)
 pub const LINE_HEIGHT: f32 = 38.0;
 
@@ -43,7 +41,7 @@ pub trait WindowPortsMethods: WindowMethods {
     fn set_cursor(&self, _cursor: Cursor) {}
     fn new_glwindow(
         &self,
-        events_loop: &winit::event_loop::EventLoopWindowTarget<WakerEvent>,
+        event_loop: &winit::event_loop::ActiveEventLoop,
     ) -> Box<dyn webxr::glwindow::GlWindow>;
     fn winit_window(&self) -> Option<&winit::window::Window>;
     fn toolbar_height(&self) -> Length<f32, DeviceIndependentPixel>;

@@ -30,7 +30,7 @@ use servo::TopLevelBrowsingContextId;
 use winit::event::{ElementState, MouseButton};
 
 use super::egui_glue::EguiGlow;
-use super::events_loop::EventsLoop;
+use super::events_loop::WakerEvent;
 use super::geometry::winit_position_to_euclid_point;
 use super::webview::{LoadStatus, WebViewManager};
 use super::window_trait::WindowPortsMethods;
@@ -78,7 +78,7 @@ fn truncate_with_ellipsis(input: &str, max_length: usize) -> String {
 impl Minibrowser {
     pub fn new(
         rendering_context: &RenderingContext,
-        events_loop: &EventsLoop,
+        event_loop: &winit::event_loop::EventLoop<WakerEvent>,
         initial_url: ServoUrl,
     ) -> Self {
         let gl = unsafe {
@@ -87,7 +87,7 @@ impl Minibrowser {
 
         // Adapted from https://github.com/emilk/egui/blob/9478e50d012c5138551c38cbee16b07bc1fcf283/crates/egui_glow/examples/pure_glow.rs
         #[allow(clippy::arc_with_non_send_sync)]
-        let context = EguiGlow::new(events_loop.as_winit(), Arc::new(gl), None);
+        let context = EguiGlow::new(event_loop, Arc::new(gl), None);
 
         // Disable the builtin egui handlers for the Ctrl+Plus, Ctrl+Minus and Ctrl+0
         // shortcuts as they don't work well with servoshell's `device-pixel-ratio` CLI argument.

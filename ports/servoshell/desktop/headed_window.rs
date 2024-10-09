@@ -30,7 +30,7 @@ use winit::keyboard::{Key as LogicalKey, ModifiersState, NamedKey};
 #[cfg(any(target_os = "linux", target_os = "windows"))]
 use winit::window::Icon;
 
-use super::events_loop::{EventsLoop, WakerEvent};
+use super::events_loop::WakerEvent;
 use super::geometry::{winit_position_to_euclid_point, winit_size_to_euclid_size};
 use super::keyutils::keyboard_event_from_winit;
 use super::window_trait::{WindowPortsMethods, LINE_HEIGHT};
@@ -60,7 +60,7 @@ pub struct Window {
 impl Window {
     pub fn new(
         win_size: Size2D<u32, DeviceIndependentPixel>,
-        events_loop: &EventsLoop,
+        event_loop: &winit::event_loop::EventLoop<WakerEvent>,
         no_native_titlebar: bool,
         device_pixel_ratio_override: Option<f32>,
     ) -> Window {
@@ -72,15 +72,15 @@ impl Window {
         // #9996.
         let visible = opts.output_file.is_none() && !no_native_titlebar;
 
-        let window_builder = winit::window::WindowBuilder::new()
+        let window_attr = winit::window::Window::default_attributes()
             .with_title("Servo".to_string())
             .with_decorations(!no_native_titlebar)
             .with_transparent(no_native_titlebar)
             .with_inner_size(LogicalSize::new(win_size.width, win_size.height))
             .with_visible(visible);
 
-        let winit_window = window_builder
-            .build(events_loop.as_winit())
+        let winit_window = event_loop
+            .create_window(window_attr)
             .expect("Failed to create window.");
 
         #[cfg(any(target_os = "linux", target_os = "windows"))]
@@ -89,8 +89,7 @@ impl Window {
             winit_window.set_window_icon(Some(load_icon(icon_bytes)));
         }
 
-        let primary_monitor = events_loop
-            .as_winit()
+        let primary_monitor = winit_window
             .available_monitors()
             .nth(0)
             .expect("No monitor detected");
@@ -377,7 +376,7 @@ impl WindowPortsMethods for Window {
                 return;
             },
         };
-        self.winit_window.set_cursor_icon(winit_cursor);
+        self.winit_window.set_cursor(winit_cursor);
         self.winit_window.set_cursor_visible(true);
     }
 
@@ -460,7 +459,7 @@ impl WindowPortsMethods for Window {
                     .borrow_mut()
                     .push(EmbedderEvent::Touch(phase, id, point));
             },
-            winit::event::WindowEvent::TouchpadMagnify { delta, .. } => {
+            winit::event::WindowEvent::PinchGesture { delta, .. } => {
                 let magnification = delta as f32 + 1.0;
                 self.event_queue
                     .borrow_mut()
@@ -489,17 +488,17 @@ impl WindowPortsMethods for Window {
 
     fn new_glwindow(
         &self,
-        event_loop: &winit::event_loop::EventLoopWindowTarget<WakerEvent>,
+        event_loop: &winit::event_loop::ActiveEventLoop,
     ) -> Box<dyn webxr::glwindow::GlWindow> {
         let size = self.winit_window.outer_size();
 
-        let window_builder = winit::window::WindowBuilder::new()
+        let window_attr = winit::window::Window::default_attributes()
             .with_title("Servo XR".to_string())
             .with_inner_size(size)
             .with_visible(true);
 
-        let winit_window = window_builder
-            .build(event_loop)
+        let winit_window = event_loop
+            .create_window(window_attr)
             .expect("Failed to create window.");
 
         let pose = Rc::new(XRWindowPose {
