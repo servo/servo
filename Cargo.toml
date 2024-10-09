@@ -184,7 +184,6 @@ codegen-units = 1
 # Or for Stylo:
 #
 # [patch."https://github.com/servo/stylo"]
-# derive_common = { path = "../stylo/derive_common" }
 # dom = { path = "../stylo/dom" }
 # malloc_size_of = { path = "../stylo/malloc_size_of" }
 # selectors = { path = "../stylo/selectors" }
