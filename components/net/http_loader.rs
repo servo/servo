@@ -1142,8 +1142,7 @@ async fn http_network_or_cache_fetch(
     let content_length = http_request
         .body
         .as_ref()
-        .map(|body| body.len().map(|size| size as u64))
-        .flatten();
+        .and_then(|body| body.len().map(|size| size as u64));
 
     // Step 8.6 Let contentLengthHeaderValue be null.
     let mut content_length_header_value = None;
