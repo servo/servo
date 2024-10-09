@@ -58,20 +58,21 @@ use crate::realms::{enter_realm, InRealm};
 use crate::script_runtime::CanGc;
 
 #[derive(Clone, JSTraceable, MallocSizeOf, PartialEq)]
+#[allow(clippy::enum_variant_names)]
 pub enum CommonEventHandler {
     EventHandler(#[ignore_malloc_size_of = "Rc"] Rc<EventHandlerNonNull>),
 
-    ErrorEvent(#[ignore_malloc_size_of = "Rc"] Rc<OnErrorEventHandlerNonNull>),
+    ErrorEventHandler(#[ignore_malloc_size_of = "Rc"] Rc<OnErrorEventHandlerNonNull>),
 
-    BeforeUnloadEvent(#[ignore_malloc_size_of = "Rc"] Rc<OnBeforeUnloadEventHandlerNonNull>),
+    BeforeUnloadEventHandler(#[ignore_malloc_size_of = "Rc"] Rc<OnBeforeUnloadEventHandlerNonNull>),
 }
 
 impl CommonEventHandler {
     fn parent(&self) -> &CallbackFunction {
         match *self {
             CommonEventHandler::EventHandler(ref handler) => &handler.parent,
-            CommonEventHandler::ErrorEvent(ref handler) => &handler.parent,
-            CommonEventHandler::BeforeUnloadEvent(ref handler) => &handler.parent,
+            CommonEventHandler::ErrorEventHandler(ref handler) => &handler.parent,
+            CommonEventHandler::BeforeUnloadEventHandler(ref handler) => &handler.parent,
         }
     }
 }
@@ -163,12 +164,12 @@ impl CompiledEventListener {
             CompiledEventListener::Handler(CommonEventHandler::EventHandler(handler)) => {
                 handler.callback()
             },
-            CompiledEventListener::Handler(CommonEventHandler::ErrorEvent(handler)) => {
+            CompiledEventListener::Handler(CommonEventHandler::ErrorEventHandler(handler)) => {
                 handler.callback()
             },
-            CompiledEventListener::Handler(CommonEventHandler::BeforeUnloadEvent(handler)) => {
-                handler.callback()
-            },
+            CompiledEventListener::Handler(CommonEventHandler::BeforeUnloadEventHandler(
+                handler,
+            )) => handler.callback(),
         };
         unsafe { GlobalScope::from_object(obj) }
     }
@@ -187,7 +188,7 @@ impl CompiledEventListener {
             },
             CompiledEventListener::Handler(ref handler) => {
                 match *handler {
-                    CommonEventHandler::ErrorEvent(ref handler) => {
+                    CommonEventHandler::ErrorEventHandler(ref handler) => {
                         if let Some(event) = event.downcast::<ErrorEvent>() {
                             if object.is::<Window>() || object.is::<WorkerGlobalScope>() {
                                 let cx = GlobalScope::get_cx();
@@ -225,7 +226,7 @@ impl CompiledEventListener {
                         );
                     },
 
-                    CommonEventHandler::BeforeUnloadEvent(ref handler) => {
+                    CommonEventHandler::BeforeUnloadEventHandler(ref handler) => {
                         if let Some(event) = event.downcast::<BeforeUnloadEvent>() {
                             // Step 5
                             if let Ok(value) =
@@ -573,11 +574,11 @@ impl EventTarget {
         assert!(!funobj.is_null());
         // Step 1.14
         if is_error {
-            Some(CommonEventHandler::ErrorEvent(unsafe {
+            Some(CommonEventHandler::ErrorEventHandler(unsafe {
                 OnErrorEventHandlerNonNull::new(cx, funobj)
             }))
         } else if ty == &atom!("beforeunload") {
-            Some(CommonEventHandler::BeforeUnloadEvent(unsafe {
+            Some(CommonEventHandler::BeforeUnloadEventHandler(unsafe {
                 OnBeforeUnloadEventHandlerNonNull::new(cx, funobj)
             }))
         } else {
@@ -608,7 +609,7 @@ impl EventTarget {
         let cx = GlobalScope::get_cx();
 
         let event_listener = listener.map(|listener| {
-            InlineEventListener::Compiled(CommonEventHandler::ErrorEvent(unsafe {
+            InlineEventListener::Compiled(CommonEventHandler::ErrorEventHandler(unsafe {
                 OnErrorEventHandlerNonNull::new(cx, listener.callback())
             }))
         });
@@ -624,7 +625,7 @@ impl EventTarget {
         let cx = GlobalScope::get_cx();
 
         let event_listener = listener.map(|listener| {
-            InlineEventListener::Compiled(CommonEventHandler::BeforeUnloadEvent(unsafe {
+            InlineEventListener::Compiled(CommonEventHandler::BeforeUnloadEventHandler(unsafe {
                 OnBeforeUnloadEventHandlerNonNull::new(cx, listener.callback())
             }))
         });
