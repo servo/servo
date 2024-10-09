@@ -150,7 +150,6 @@ impl PlatformFontMethods for PlatformFont {
             FontStyle::NORMAL
         };
 
-        let face = self.face.lock();
         let os2_table = face.os2_table();
         let weight = os2_table
             .as_ref()
