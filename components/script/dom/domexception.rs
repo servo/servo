@@ -18,6 +18,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::CanGc;
 
 #[repr(u16)]
+#[allow(clippy::enum_variant_names)]
 #[derive(Clone, Copy, Debug, Eq, JSTraceable, MallocSizeOf, Ord, PartialEq, PartialOrd)]
 pub enum DOMErrorName {
     IndexSizeError = DOMExceptionConstants::INDEX_SIZE_ERR,
