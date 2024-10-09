@@ -55,8 +55,8 @@ use crate::fetch::load_whole_resource;
 use crate::realms::{enter_realm, AlreadyInRealm, InRealm};
 use crate::script_runtime::ScriptThreadEventCategory::WorkerEvent;
 use crate::script_runtime::{
-    new_child_runtime, CanGc, CommonScriptMsg, ContextForRequestInterrupt,
-    JSContext as SafeJSContext, Runtime, ScriptChan, ScriptPort,
+    new_child_runtime, CanGc, CommonScriptMsg, JSContext as SafeJSContext, Runtime, ScriptChan,
+    ScriptPort, ThreadSafeJSContext,
 };
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
 use crate::task_source::networking::NetworkingTaskSource;
@@ -332,7 +332,7 @@ impl DedicatedWorkerGlobalScope {
         browsing_context: Option<BrowsingContextId>,
         gpu_id_hub: Arc<IdentityHub>,
         control_receiver: Receiver<DedicatedWorkerControlMsg>,
-        context_sender: Sender<ContextForRequestInterrupt>,
+        context_sender: Sender<ThreadSafeJSContext>,
         can_gc: CanGc,
     ) -> JoinHandle<()> {
         let serialized_worker_url = worker_url.to_string();
@@ -384,8 +384,8 @@ impl DedicatedWorkerGlobalScope {
                     new_child_runtime(parent, Some(task_source))
                 };
 
-                let context_for_interrupt = ContextForRequestInterrupt::new(runtime.cx());
-                let _ = context_sender.send(context_for_interrupt.clone());
+                let context_for_interrupt = runtime.thread_safe_js_context();
+                let _ = context_sender.send(context_for_interrupt);
 
                 let (devtools_mpsc_chan, devtools_mpsc_port) = unbounded();
                 ROUTER.route_ipc_receiver_to_crossbeam_sender(
@@ -442,7 +442,7 @@ impl DedicatedWorkerGlobalScope {
                                 TaskSourceName::DOMManipulation,
                             ))
                             .unwrap();
-                        scope.clear_js_runtime(context_for_interrupt);
+                        scope.clear_js_runtime();
                         return;
                     },
                     Ok((metadata, bytes)) => (metadata, bytes),
@@ -457,7 +457,7 @@ impl DedicatedWorkerGlobalScope {
                 }
 
                 if scope.is_closing() {
-                    scope.clear_js_runtime(context_for_interrupt);
+                    scope.clear_js_runtime();
                     return;
                 }
 
@@ -487,7 +487,7 @@ impl DedicatedWorkerGlobalScope {
                         CommonScriptMsg::CollectReports,
                     );
 
-                scope.clear_js_runtime(context_for_interrupt);
+                scope.clear_js_runtime();
             })
             .expect("Thread spawning failed")
     }
