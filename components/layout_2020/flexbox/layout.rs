@@ -1023,7 +1023,6 @@ impl<'a> FlexItem<'a> {
             flex_context.config.flex_axis,
         );
 
-        let pbm = box_.style().padding_border_margin(containing_block);
         let (content_box_size, min_size, max_size, pbm) = box_
             .style()
             .content_box_sizes_and_padding_border_margin_deprecated(&containing_block.into());
