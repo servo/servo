@@ -17,7 +17,7 @@ use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::request::{Destination, Referrer, RequestBuilder};
 use net_traits::{fetch_async, CoreResourceThread, FetchResponseMsg, ResourceThreads};
-use parking_lot::{Mutex, ReentrantMutex, RwLock};
+use parking_lot::{Mutex, RwLock};
 use servo_arc::Arc as ServoArc;
 use servo_url::ServoUrl;
 use style::computed_values::font_variant_caps::T as FontVariantCaps;
@@ -49,10 +49,10 @@ static SMALL_CAPS_SCALE_FACTOR: f32 = 0.8; // Matches FireFox (see gfxFont.h)
 /// required.
 pub struct FontContext {
     system_font_service_proxy: Arc<SystemFontServiceProxy>,
-    resource_threads: ReentrantMutex<CoreResourceThread>,
+    resource_threads: Mutex<CoreResourceThread>,
 
     /// A sender that can send messages and receive replies from the compositor.
-    compositor_api: ReentrantMutex<CrossProcessCompositorApi>,
+    compositor_api: Mutex<CrossProcessCompositorApi>,
 
     /// The actual instances of fonts ie a [`FontTemplate`] combined with a size and
     /// other font properties, along with the font data and a platform font instance.
@@ -106,8 +106,8 @@ impl FontContext {
         #[allow(clippy::default_constructed_unit_structs)]
         Self {
             system_font_service_proxy,
-            resource_threads: ReentrantMutex::new(resource_threads.core_thread),
-            compositor_api: ReentrantMutex::new(compositor_api),
+            resource_threads: Mutex::new(resource_threads.core_thread),
+            compositor_api: Mutex::new(compositor_api),
             fonts: Default::default(),
             resolved_font_groups: Default::default(),
             web_fonts: Arc::new(RwLock::default()),
