@@ -99,10 +99,10 @@ impl PipelineLayout {
         }
     }
 
-    pub fn implicit(&self) -> Option<(PipelineLayoutId, Vec<BindGroupLayoutId>)> {
+    pub fn implicit(self) -> Option<(PipelineLayoutId, Vec<BindGroupLayoutId>)> {
         match self {
             PipelineLayout::Implicit((layout_id, bind_group_layout_ids)) => {
-                Some((*layout_id, bind_group_layout_ids.clone()))
+                Some((layout_id, bind_group_layout_ids))
             },
             _ => None,
         }
@@ -257,16 +257,11 @@ impl GPUDevice {
         &self,
         descriptor: &GPURenderPipelineDescriptor,
     ) -> Fallible<(PipelineLayout, RenderPipelineDescriptor<'a>)> {
-        let layout = self
-            .get_pipeline_layout_data(&descriptor.parent.layout)
-            .explicit();
-        let implicit_ids = self
-            .get_pipeline_layout_data(&descriptor.parent.layout)
-            .implicit();
+        let pipeline_layout = self.get_pipeline_layout_data(&descriptor.parent.layout);
 
         let desc = wgpu_pipe::RenderPipelineDescriptor {
             label: (&descriptor.parent.parent).into(),
-            layout,
+            layout: pipeline_layout.explicit(),
             cache: None,
             vertex: wgpu_pipe::VertexState {
                 stage: (&descriptor.vertex.parent).into(),
@@ -370,7 +365,10 @@ impl GPUDevice {
             },
             multiview: None,
         };
-        Ok((PipelineLayout::Implicit(implicit_ids.unwrap()), desc))
+        Ok((
+            PipelineLayout::Implicit(pipeline_layout.implicit().unwrap()),
+            desc,
+        ))
     }
 
     /// <https://gpuweb.github.io/gpuweb/#lose-the-device>
