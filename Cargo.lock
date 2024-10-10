@@ -4147,6 +4147,7 @@ dependencies = [
  "mozangle",
  "net",
  "net_traits",
+ "process_path",
  "profile",
  "profile_traits",
  "script",
@@ -5405,6 +5406,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b3e4daa0dcf6feba26f985457cdf104d4b4256fc5a09547140f3631bb076b19a"
 dependencies = [
  "unicode-ident",
+]
+
+[[package]]
+name = "process_path"
+version = "0.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f676f11eb0b3e2ea0fbaee218fa6b806689e2297b8c8adc5bf73df465c4f6171"
+dependencies = [
+ "libc",
+ "winapi",
 ]
 
 [[package]]
