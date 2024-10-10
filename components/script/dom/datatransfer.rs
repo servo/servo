@@ -65,15 +65,6 @@ impl DataTransfer {
         Self::new_with_proto(window, None, CanGc::note())
     }
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
-        window: &Window,
-        proto: Option<HandleObject>,
-        can_gc: CanGc,
-    ) -> DomRoot<DataTransfer> {
-        DataTransfer::new_with_proto(window, proto, can_gc)
-    }
-
     pub fn set_mode(&self, mode: Mode) {
         self.mode.set(mode);
     }
@@ -88,6 +79,15 @@ impl DataTransfer {
 }
 
 impl DataTransferMethods for DataTransfer {
+    /// <https://html.spec.whatwg.org/multipage/#dom-datatransfer>
+    fn Constructor(
+        window: &Window,
+        proto: Option<HandleObject>,
+        can_gc: CanGc,
+    ) -> DomRoot<DataTransfer> {
+        DataTransfer::new_with_proto(window, proto, can_gc)
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#dom-datatransfer-dropeffect>
     fn DropEffect(&self) -> DOMString {
         self.drop_effect.borrow().clone()
