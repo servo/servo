@@ -2512,7 +2512,9 @@ impl FlexItemBox {
                     .auto_is(|| {
                         let containing_block_inline_size_minus_pbm =
                             flex_context.containing_block.inline_size -
-                                padding_border_margin.padding_border_sums.inline;
+                                padding_border_margin.padding_border_sums.inline -
+                                padding_border_margin.margin.inline_start.auto_is(Au::zero) -
+                                padding_border_margin.margin.inline_end.auto_is(Au::zero);
 
                         if item_with_auto_cross_size_stretches_to_container_size {
                             containing_block_inline_size_minus_pbm
