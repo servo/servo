@@ -207,3 +207,7 @@ surfman = { git = "https://github.com/sagudev/surfman", branch = "bye-sparkle" }
 #
 # [patch."https://github.com/servo/<repository>"]
 # <crate> = { path = "/path/to/local/checkout" }
+
+[patch."https://github.com/servo/webxr"]
+webxr = { git = "https://github.com/sagudev/webxr", branch = "bye-sparkle" }
+webxr-api = { git = "https://github.com/sagudev/webxr", branch = "bye-sparkle" }
