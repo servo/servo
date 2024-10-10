@@ -676,7 +676,7 @@ dependencies = [
  "fnv",
  "font-kit",
  "fonts",
- "glow 0.14.1",
+ "glow 0.14.2",
  "half",
  "ipc-channel",
  "log",
@@ -2496,9 +2496,9 @@ dependencies = [
 
 [[package]]
 name = "glow"
-version = "0.14.1"
+version = "0.14.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2f4a888dbe8181a7535853469c21c67ca9a1cea9460b16808fc018ea9e55d248"
+checksum = "d51fa363f025f5c111e03f13eda21162faeacb6911fe8caa0c0349f9cf0c4483"
 dependencies = [
  "js-sys",
  "slotmap",
@@ -6925,7 +6925,7 @@ dependencies = [
  "euclid",
  "fnv",
  "gl_generator",
- "glow 0.14.1",
+ "glow 0.14.2",
  "io-surface",
  "libc",
  "log",
@@ -8212,7 +8212,7 @@ dependencies = [
  "block",
  "cfg_aliases 0.1.1",
  "core-graphics-types",
- "glow 0.14.1",
+ "glow 0.14.2",
  "glutin_wgl_sys",
  "gpu-alloc",
  "gpu-allocator",
