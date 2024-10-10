@@ -58,6 +58,7 @@ use crate::realms::{enter_realm, InRealm};
 use crate::script_runtime::CanGc;
 
 #[derive(Clone, JSTraceable, MallocSizeOf, PartialEq)]
+#[allow(clippy::enum_variant_names)]
 pub enum CommonEventHandler {
     EventHandler(#[ignore_malloc_size_of = "Rc"] Rc<EventHandlerNonNull>),
 
