@@ -76,16 +76,11 @@ impl GPUComputePipeline {
     ) -> WebGPUComputePipeline {
         let compute_pipeline_id = device.global().wgpu_id_hub().create_compute_pipeline_id();
 
-        let layout = device
-            .get_pipeline_layout_data(&descriptor.parent.layout)
-            .explicit();
-        let implicit_ids = device
-            .get_pipeline_layout_data(&descriptor.parent.layout)
-            .implicit();
+        let pipeline_layout = device.get_pipeline_layout_data(&descriptor.parent.layout);
 
         let desc = ComputePipelineDescriptor {
             label: (&descriptor.parent.parent).into(),
-            layout,
+            layout: pipeline_layout.explicit(),
             stage: (&descriptor.compute).into(),
             cache: None,
         };
@@ -97,7 +92,7 @@ impl GPUComputePipeline {
                 device_id: device.id().0,
                 compute_pipeline_id,
                 descriptor: desc,
-                implicit_ids,
+                implicit_ids: pipeline_layout.implicit(),
                 async_sender,
             })
             .expect("Failed to create WebGPU ComputePipeline");
