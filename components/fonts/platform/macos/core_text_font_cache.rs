@@ -17,6 +17,7 @@ use core_text::font_descriptor::kCTFontURLAttribute;
 use parking_lot::RwLock;
 
 use crate::system_font_service::FontIdentifier;
+use crate::FontData;
 
 /// A cache of `CTFont` to avoid having to create `CTFont` instances over and over. It is
 /// always possible to create a `CTFont` using a `FontTemplate` even if it isn't in this
@@ -33,7 +34,7 @@ type CachedCTFont = HashMap<Au, CTFont>;
 impl CoreTextFontCache {
     pub(crate) fn core_text_font(
         font_identifier: FontIdentifier,
-        data: Arc<Vec<u8>>,
+        data: Option<&FontData>,
         pt_size: f64,
     ) -> Option<CTFont> {
         //// If you pass a zero font size to one of the Core Text APIs, it'll replace it with
@@ -86,8 +87,11 @@ impl CoreTextFontCache {
 
                 core_text::font::new_from_descriptor(&descriptor, clamped_pt_size)
             },
-            FontIdentifier::Web(_) | FontIdentifier::Mock(_) => {
-                let provider = CGDataProvider::from_buffer(data);
+            FontIdentifier::Web(_) => {
+                let data = data
+                    .expect("Should always have FontData for web fonts")
+                    .clone();
+                let provider = CGDataProvider::from_buffer(Arc::new(data));
                 let cgfont = CGFont::from_data_provider(provider).ok()?;
                 core_text::font::new_from_CGFont(&cgfont, clamped_pt_size)
             },

@@ -12,6 +12,7 @@ use serde::{Deserialize, Serialize};
 use style::values::computed::font::GenericFontFamily;
 use style::values::computed::{FontStyle as StyleFontStyle, FontWeight as StyleFontWeight};
 use style::values::specified::font::FontStretchKeyword;
+use webrender_api::NativeFontHandle;
 
 use crate::{
     EmojiPresentationPreference, FallbackFontSelectionOptions, FontIdentifier, FontTemplate,
@@ -43,14 +44,29 @@ impl LocalFontIdentifier {
             .map_or(0, |font| font.create_font_face().get_index())
     }
 
-    pub(crate) fn read_data_from_file(&self) -> Vec<u8> {
-        let font = FontCollection::system()
+    pub(crate) fn native_font_handle(&self) -> NativeFontHandle {
+        let face = FontCollection::system()
             .get_font_from_descriptor(&self.font_descriptor)
-            .unwrap();
+            .expect("Could not create Font from FontDescriptor")
+            .create_font_face();
+        let path = face
+            .get_files()
+            .first()
+            .expect("Could not get FontFace files")
+            .get_font_file_path()
+            .expect("Could not get FontFace files path");
+        NativeFontHandle {
+            path,
+            index: face.get_index(),
+        }
+    }
+
+    pub(crate) fn read_data_from_file(&self) -> Option<Vec<u8>> {
+        let font = FontCollection::system().get_font_from_descriptor(&self.font_descriptor)?;
         let face = font.create_font_face();
         let files = face.get_files();
         assert!(!files.is_empty());
-        files[0].get_font_file_bytes()
+        Some(files[0].get_font_file_bytes())
     }
 }
 
