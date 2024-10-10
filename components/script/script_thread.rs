@@ -2005,7 +2005,9 @@ impl ScriptThread {
                     FromScript(inner_msg) => self.handle_msg_from_script(inner_msg),
                     FromDevtools(inner_msg) => self.handle_msg_from_devtools(inner_msg),
                     FromImageCache(inner_msg) => self.handle_msg_from_image_cache(inner_msg),
-                    FromWebGPUServer(inner_msg) => self.handle_msg_from_webgpu_server(inner_msg),
+                    FromWebGPUServer(inner_msg) => {
+                        self.handle_msg_from_webgpu_server(inner_msg, can_gc)
+                    },
                 }
 
                 None
@@ -2025,7 +2027,7 @@ impl ScriptThread {
             let mut docs = self.docs_with_no_blocking_loads.borrow_mut();
             for document in docs.iter() {
                 let _realm = enter_realm(&**document);
-                document.maybe_queue_document_completion();
+                document.maybe_queue_document_completion(can_gc);
 
                 // Document load is a rendering opportunity.
                 ScriptThread::note_rendering_opportunity(document.window().pipeline_id());
@@ -2473,7 +2475,7 @@ impl ScriptThread {
         window.layout_mut().set_epoch_paint_time(epoch, time);
     }
 
-    fn handle_msg_from_webgpu_server(&self, msg: WebGPUMsg) {
+    fn handle_msg_from_webgpu_server(&self, msg: WebGPUMsg, can_gc: CanGc) {
         match msg {
             WebGPUMsg::FreeAdapter(id) => self.gpu_id_hub.free_adapter_id(id),
             WebGPUMsg::FreeDevice {
@@ -2518,7 +2520,7 @@ impl ScriptThread {
             } => {
                 let global = self.documents.borrow().find_global(pipeline_id).unwrap();
                 let _ac = enter_realm(&*global);
-                global.handle_uncaptured_gpu_error(device, error);
+                global.handle_uncaptured_gpu_error(device, error, can_gc);
             },
             _ => {},
         }

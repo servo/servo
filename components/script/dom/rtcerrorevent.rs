@@ -40,16 +40,9 @@ impl RTCErrorEvent {
         bubbles: bool,
         cancelable: bool,
         error: &RTCError,
+        can_gc: CanGc,
     ) -> DomRoot<RTCErrorEvent> {
-        Self::new_with_proto(
-            global,
-            None,
-            type_,
-            bubbles,
-            cancelable,
-            error,
-            CanGc::note(),
-        )
+        Self::new_with_proto(global, None, type_, bubbles, cancelable, error, can_gc)
     }
 
     fn new_with_proto(

@@ -1030,6 +1030,7 @@ impl XMLHttpRequest {
                 atom!("readystatechange"),
                 EventBubbles::DoesNotBubble,
                 EventCancelable::Cancelable,
+                CanGc::note(),
             );
             event.fire(self.upcast());
         }
@@ -1173,6 +1174,7 @@ impl XMLHttpRequest {
                         atom!("readystatechange"),
                         EventBubbles::DoesNotBubble,
                         EventCancelable::Cancelable,
+                        CanGc::note(),
                     );
                     event.fire(self.upcast());
                     return_if_fetch_was_terminated!();

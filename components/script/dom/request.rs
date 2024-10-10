@@ -383,7 +383,8 @@ impl RequestMethods for Request {
         // Step 31
         // "or_init" looks unclear here, but it always enters the block since r
         // hasn't had any other way to initialize its headers
-        r.headers.or_init(|| Headers::for_request(&r.global()));
+        r.headers
+            .or_init(|| Headers::for_request(&r.global(), CanGc::note()));
 
         // Step 33 - but spec says this should only be when non-empty init?
         let headers_copy = init
@@ -536,7 +537,8 @@ impl RequestMethods for Request {
 
     // https://fetch.spec.whatwg.org/#dom-request-headers
     fn Headers(&self) -> DomRoot<Headers> {
-        self.headers.or_init(|| Headers::new(&self.global()))
+        self.headers
+            .or_init(|| Headers::new(&self.global(), CanGc::note()))
     }
 
     // https://fetch.spec.whatwg.org/#dom-request-destination

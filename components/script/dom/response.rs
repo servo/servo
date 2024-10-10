@@ -302,7 +302,7 @@ impl ResponseMethods for Response {
     // https://fetch.spec.whatwg.org/#dom-response-headers
     fn Headers(&self) -> DomRoot<Headers> {
         self.headers_reflector
-            .or_init(|| Headers::for_response(&self.global()))
+            .or_init(|| Headers::for_response(&self.global(), CanGc::note()))
     }
 
     // https://fetch.spec.whatwg.org/#dom-response-clone
