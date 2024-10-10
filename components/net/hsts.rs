@@ -88,7 +88,7 @@ impl HstsList {
 
     pub fn from_servo_preload() -> HstsList {
         let list = resources::read_string(Resource::HstsPreloadList);
-        HstsList::from_preload(&list).expect("Servo HSTS preload file is invalid")
+        HstsList::from_preload(&list).unwrap_or_default()
     }
 
     pub fn is_host_secure(&self, host: &str) -> bool {
