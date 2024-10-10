@@ -1017,8 +1017,8 @@ impl TestBindingMethods for TestBinding {
         let global = self.global();
         let handler = PromiseNativeHandler::new(
             &global,
-            resolve.map(SimpleHandler::new),
-            reject.map(SimpleHandler::new),
+            resolve.map(SimpleHandler::new_boxed),
+            reject.map(SimpleHandler::new_boxed),
         );
         let p = Promise::new_in_current_realm(comp);
         p.append_native_handler(&handler, comp);
@@ -1030,7 +1030,7 @@ impl TestBindingMethods for TestBinding {
             handler: Rc<SimpleCallback>,
         }
         impl SimpleHandler {
-            fn new(callback: Rc<SimpleCallback>) -> Box<dyn Callback> {
+            fn new_boxed(callback: Rc<SimpleCallback>) -> Box<dyn Callback> {
                 Box::new(SimpleHandler { handler: callback })
             }
         }

@@ -47,6 +47,33 @@ pub struct WorkletGlobalScope {
 }
 
 impl WorkletGlobalScope {
+    /// Create a new heap-allocated `WorkletGlobalScope`.
+    pub fn new(
+        scope_type: WorkletGlobalScopeType,
+        runtime: &Runtime,
+        pipeline_id: PipelineId,
+        base_url: ServoUrl,
+        executor: WorkletExecutor,
+        init: &WorkletGlobalScopeInit,
+    ) -> DomRoot<WorkletGlobalScope> {
+        match scope_type {
+            WorkletGlobalScopeType::Test => DomRoot::upcast(TestWorkletGlobalScope::new(
+                runtime,
+                pipeline_id,
+                base_url,
+                executor,
+                init,
+            )),
+            WorkletGlobalScopeType::Paint => DomRoot::upcast(PaintWorkletGlobalScope::new(
+                runtime,
+                pipeline_id,
+                base_url,
+                executor,
+                init,
+            )),
+        }
+    }
+
     /// Create a new stack-allocated `WorkletGlobalScope`.
     pub fn new_inherited(
         pipeline_id: PipelineId,
@@ -176,35 +203,6 @@ pub enum WorkletGlobalScopeType {
     Test,
     /// A paint worklet
     Paint,
-}
-
-impl WorkletGlobalScopeType {
-    /// Create a new heap-allocated `WorkletGlobalScope`.
-    pub fn new(
-        &self,
-        runtime: &Runtime,
-        pipeline_id: PipelineId,
-        base_url: ServoUrl,
-        executor: WorkletExecutor,
-        init: &WorkletGlobalScopeInit,
-    ) -> DomRoot<WorkletGlobalScope> {
-        match *self {
-            WorkletGlobalScopeType::Test => DomRoot::upcast(TestWorkletGlobalScope::new(
-                runtime,
-                pipeline_id,
-                base_url,
-                executor,
-                init,
-            )),
-            WorkletGlobalScopeType::Paint => DomRoot::upcast(PaintWorkletGlobalScope::new(
-                runtime,
-                pipeline_id,
-                base_url,
-                executor,
-                init,
-            )),
-        }
-    }
 }
 
 /// A task which can be performed in the context of a worklet global.
