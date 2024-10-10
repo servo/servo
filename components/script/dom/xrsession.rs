@@ -680,9 +680,7 @@ impl XRSessionMethods for XRSession {
             }
             // https://github.com/immersive-web/layers/issues/189
             if init.layers.is_some() {
-                return Err(Error::Type(String::from(
-                    "Cannot set WebXR layers and baseLayer",
-                )));
+                return Err(Error::NotSupported);
             }
         }
 
