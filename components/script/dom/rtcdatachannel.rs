@@ -136,7 +136,7 @@ impl RTCDataChannel {
             .unregister_data_channel(&self.servo_media_id);
     }
 
-    pub fn on_error(&self, error: WebRtcError) {
+    pub fn on_error(&self, error: WebRtcError, can_gc: CanGc) {
         let global = self.global();
         let cx = GlobalScope::get_cx();
         let _ac = JSAutoRealm::new(*cx, self.reflector().get_jsobject().get());
@@ -152,7 +152,7 @@ impl RTCDataChannel {
             WebRtcError::Backend(message) => DOMString::from(message),
         };
         let error = RTCError::new(&global, &init, message);
-        let event = RTCErrorEvent::new(&global, atom!("error"), false, false, &error);
+        let event = RTCErrorEvent::new(&global, atom!("error"), false, false, &error, can_gc);
         event.upcast::<Event>().fire(self.upcast());
     }
 

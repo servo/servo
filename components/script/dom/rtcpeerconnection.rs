@@ -336,7 +336,7 @@ impl RTCPeerConnection {
                 match event {
                     DataChannelEvent::Open => channel.on_open(),
                     DataChannelEvent::Close => channel.on_close(),
-                    DataChannelEvent::Error(error) => channel.on_error(error),
+                    DataChannelEvent::Error(error) => channel.on_error(error, can_gc),
                     DataChannelEvent::OnMessage(message) => channel.on_message(message, can_gc),
                     DataChannelEvent::StateChange(state) => channel.on_state_change(state, can_gc),
                     DataChannelEvent::NewChannel => unreachable!(),
