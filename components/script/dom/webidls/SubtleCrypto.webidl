@@ -20,12 +20,12 @@ enum KeyFormat { "raw", "spki", "pkcs8", "jwk" };
 
 [SecureContext,Exposed=(Window,Worker),Pref="dom.crypto.subtle.enabled"]
 interface SubtleCrypto {
-  // Promise<any> encrypt(AlgorithmIdentifier algorithm,
-  //                      CryptoKey key,
-  //                      BufferSource data);
-  // Promise<any> decrypt(AlgorithmIdentifier algorithm,
-  //                      CryptoKey key,
-  //                      BufferSource data);
+  Promise<any> encrypt(AlgorithmIdentifier algorithm,
+                       CryptoKey key,
+                       BufferSource data);
+  Promise<any> decrypt(AlgorithmIdentifier algorithm,
+                       CryptoKey key,
+                       BufferSource data);
   // Promise<any> sign(AlgorithmIdentifier algorithm,
   //                   CryptoKey key,
   //                   BufferSource data);

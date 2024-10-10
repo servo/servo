@@ -39,6 +39,8 @@ bincode = { workspace = true }
 bitflags = { workspace = true }
 bluetooth_traits = { workspace = true }
 canvas_traits = { workspace = true }
+cbc = { workspace = true }
+cipher = { workspace = true }
 chrono = { workspace = true }
 content-security-policy = { workspace = true }
 cookie = { workspace = true }
