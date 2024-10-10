@@ -10,6 +10,7 @@ use std::{fmt, mem};
 
 use app_units::Au;
 use euclid::default::Point2D;
+use euclid::num::Zero;
 pub use fonts_traits::ByteIndex;
 use itertools::Either;
 use log::debug;
@@ -97,7 +98,7 @@ fn is_simple_glyph_id(id: GlyphId) -> bool {
 }
 
 fn is_simple_advance(advance: Au) -> bool {
-    advance >= Au(0) && {
+    advance >= Au::zero() && {
         let unsigned_au = advance.0 as u32;
         (unsigned_au & (GLYPH_ADVANCE_MASK >> GLYPH_ADVANCE_SHIFT)) == unsigned_au
     }
@@ -474,7 +475,7 @@ impl GlyphStore {
         GlyphStore {
             entry_buffer: vec![GlyphEntry::initial(); length],
             detail_store: DetailedGlyphStore::new(),
-            total_advance: Au(0),
+            total_advance: Au::zero(),
             total_word_separators: 0,
             has_detailed_glyphs: false,
             is_whitespace,
@@ -516,7 +517,7 @@ impl GlyphStore {
 
     #[inline(never)]
     fn cache_total_advance_and_word_separators(&mut self) {
-        let mut total_advance = Au(0);
+        let mut total_advance = Au::zero();
         let mut total_word_separators = 0;
         for glyph in self.iter_glyphs_for_byte_range(&Range::new(ByteIndex(0), self.len())) {
             total_advance += glyph.advance();
@@ -651,7 +652,7 @@ impl GlyphStore {
         extra_word_spacing: Au,
     ) -> (usize, Au) {
         let mut index = 0;
-        let mut current_advance = Au(0);
+        let mut current_advance = Au::zero();
         for glyph in self.iter_glyphs_for_byte_range(range) {
             if glyph.char_is_word_separator() {
                 current_advance += glyph.advance() + extra_word_spacing
@@ -682,7 +683,7 @@ impl GlyphStore {
         extra_word_spacing: Au,
     ) -> Au {
         self.iter_glyphs_for_byte_range(range)
-            .fold(Au(0), |advance, glyph| {
+            .fold(Au::zero(), |advance, glyph| {
                 if glyph.char_is_word_separator() {
                     advance + glyph.advance() + extra_word_spacing
                 } else {

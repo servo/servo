@@ -441,7 +441,7 @@ impl Font {
             let offset = prev_glyph_id.map(|prev| {
                 let h_kerning = Au::from_f64_px(self.glyph_h_kerning(prev, glyph_id));
                 advance += h_kerning;
-                Point2D::new(h_kerning, Au(0))
+                Point2D::new(h_kerning, Au::zero())
             });
 
             let glyph = GlyphData::new(glyph_id, advance, offset, true, true);
@@ -818,7 +818,7 @@ pub struct RunMetrics {
 impl RunMetrics {
     pub fn new(advance: Au, ascent: Au, descent: Au) -> RunMetrics {
         let bounds = Rect::new(
-            Point2D::new(Au(0), -ascent),
+            Point2D::new(Au::zero(), -ascent),
             Size2D::new(advance, ascent + descent),
         );
 
