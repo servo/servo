@@ -715,6 +715,7 @@ impl From<StyleSize> for Size<LengthPercentage> {
             StyleSize::MaxContent => Size::Keyword(SizeKeyword::MaxContent),
             StyleSize::FitContent => Size::Keyword(SizeKeyword::FitContent),
             StyleSize::Stretch => Size::Keyword(SizeKeyword::Stretch),
+            StyleSize::AnchorSizeFunction(_) => unreachable!("anchor-size() should be disabled"),
         }
     }
 }
@@ -728,6 +729,7 @@ impl From<StyleMaxSize> for Size<LengthPercentage> {
             StyleMaxSize::MaxContent => Size::Keyword(SizeKeyword::MaxContent),
             StyleMaxSize::FitContent => Size::Keyword(SizeKeyword::FitContent),
             StyleMaxSize::Stretch => Size::Keyword(SizeKeyword::Stretch),
+            StyleMaxSize::AnchorSizeFunction(_) => unreachable!("anchor-size() should be disabled"),
         }
     }
 }
