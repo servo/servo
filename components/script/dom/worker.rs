@@ -37,7 +37,7 @@ use crate::dom::messageevent::MessageEvent;
 use crate::dom::window::Window;
 use crate::dom::workerglobalscope::prepare_workerscope_init;
 use crate::realms::enter_realm;
-use crate::script_runtime::{CanGc, ContextForRequestInterrupt, JSContext};
+use crate::script_runtime::{CanGc, JSContext, ThreadSafeJSContext};
 use crate::task::TaskOnce;
 
 pub type TrustedWorkerAddress = Trusted<Worker>;
@@ -55,7 +55,8 @@ pub struct Worker {
     closing: Arc<AtomicBool>,
     terminated: Cell<bool>,
     #[ignore_malloc_size_of = "Arc"]
-    context_for_interrupt: DomRefCell<Option<ContextForRequestInterrupt>>,
+    #[no_trace]
+    context_for_interrupt: DomRefCell<Option<ThreadSafeJSContext>>,
 }
 
 impl Worker {
@@ -88,7 +89,7 @@ impl Worker {
         self.terminated.get()
     }
 
-    pub fn set_context_for_interrupt(&self, cx: ContextForRequestInterrupt) {
+    pub fn set_context_for_interrupt(&self, cx: ThreadSafeJSContext) {
         assert!(
             self.context_for_interrupt.borrow().is_none(),
             "Context for interrupt must be set only once"
@@ -272,7 +273,7 @@ impl WorkerMethods for Worker {
 
         // Step 3
         if let Some(cx) = self.context_for_interrupt.borrow().as_ref() {
-            cx.request_interrupt()
+            cx.request_interrupt_callback()
         }
     }
 

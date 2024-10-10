@@ -145,8 +145,8 @@ use crate::microtask::{Microtask, MicrotaskQueue};
 use crate::realms::enter_realm;
 use crate::script_module::ScriptFetchOptions;
 use crate::script_runtime::{
-    get_reports, new_rt_and_cx, CanGc, CommonScriptMsg, ContextForRequestInterrupt, JSContext,
-    Runtime, ScriptChan, ScriptPort, ScriptThreadEventCategory,
+    get_reports, new_rt_and_cx, CanGc, CommonScriptMsg, JSContext, Runtime, ScriptChan, ScriptPort,
+    ScriptThreadEventCategory, ThreadSafeJSContext,
 };
 use crate::task_manager::TaskManager;
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
@@ -734,13 +734,13 @@ pub struct ScriptThread {
 
 struct BHMExitSignal {
     closing: Arc<AtomicBool>,
-    js_context: ContextForRequestInterrupt,
+    js_context: ThreadSafeJSContext,
 }
 
 impl BackgroundHangMonitorExitSignal for BHMExitSignal {
     fn signal_to_exit(&self) {
         self.closing.store(true, Ordering::SeqCst);
-        self.js_context.request_interrupt();
+        self.js_context.request_interrupt_callback();
     }
 }
 
@@ -1314,7 +1314,7 @@ impl ScriptThread {
         let closing = Arc::new(AtomicBool::new(false));
         let background_hang_monitor_exit_signal = BHMExitSignal {
             closing: closing.clone(),
-            js_context: ContextForRequestInterrupt::new(cx),
+            js_context: runtime.thread_safe_js_context(),
         };
 
         let background_hang_monitor = state.background_hang_monitor_register.register_component(
