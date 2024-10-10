@@ -676,6 +676,7 @@ dependencies = [
  "fnv",
  "font-kit",
  "fonts",
+ "glow 0.14.2",
  "half",
  "ipc-channel",
  "log",
@@ -2495,9 +2496,9 @@ dependencies = [
 
 [[package]]
 name = "glow"
-version = "0.14.1"
+version = "0.14.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2f4a888dbe8181a7535853469c21c67ca9a1cea9460b16808fc018ea9e55d248"
+checksum = "d51fa363f025f5c111e03f13eda21162faeacb6911fe8caa0c0349f9cf0c4483"
 dependencies = [
  "js-sys",
  "slotmap",
@@ -6913,8 +6914,7 @@ dependencies = [
 [[package]]
 name = "surfman"
 version = "0.9.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bb5f2d85c044920e1f2aaf5ad3795ae3b935025297271f2eadb021931571b4c3"
+source = "git+https://github.com/sagudev/surfman?branch=bye-sparkle#948f76d748fc00df7b88c9350ea9935dd3c68db0"
 dependencies = [
  "bitflags 2.6.0",
  "cfg_aliases 0.2.1",
@@ -6925,8 +6925,8 @@ dependencies = [
  "euclid",
  "fnv",
  "gl_generator",
+ "glow 0.14.2",
  "io-surface",
- "lazy_static",
  "libc",
  "log",
  "mach2",
@@ -6934,7 +6934,6 @@ dependencies = [
  "objc",
  "raw-window-handle",
  "servo-display-link",
- "sparkle",
  "wayland-sys 0.30.1",
  "winapi",
  "wio",
@@ -8144,14 +8143,14 @@ dependencies = [
 [[package]]
 name = "webxr"
 version = "0.0.1"
-source = "git+https://github.com/servo/webxr#845ae9c22c3eeb7b2ac3fcf9ed791879628256b3"
+source = "git+https://github.com/sagudev/webxr?branch=bye-sparkle#04268feb78a58bfaded3b60f39add804b1ee42a2"
 dependencies = [
  "crossbeam-channel",
  "euclid",
+ "glow 0.14.2",
  "log",
  "openxr",
  "serde",
- "sparkle",
  "surfman",
  "webxr-api",
  "winapi",
@@ -8161,7 +8160,7 @@ dependencies = [
 [[package]]
 name = "webxr-api"
 version = "0.0.1"
-source = "git+https://github.com/servo/webxr#845ae9c22c3eeb7b2ac3fcf9ed791879628256b3"
+source = "git+https://github.com/sagudev/webxr?branch=bye-sparkle#04268feb78a58bfaded3b60f39add804b1ee42a2"
 dependencies = [
  "euclid",
  "ipc-channel",
@@ -8213,7 +8212,7 @@ dependencies = [
  "block",
  "cfg_aliases 0.1.1",
  "core-graphics-types",
- "glow 0.14.1",
+ "glow 0.14.2",
  "glutin_wgl_sys",
  "gpu-alloc",
  "gpu-allocator",
