@@ -74,6 +74,7 @@ impl DOMRectMethods for DOMRect {
     }
 
     // https://drafts.fxtf.org/geometry/#dom-domrect-fromrect
+    #[allow(crown::unrooted_must_root)]
     fn FromRect(global: &GlobalScope, other: &DOMRectInit) -> DomRoot<DOMRect> {
         let rect = create_a_domrectreadonly_from_the_dictionary(other);
 
