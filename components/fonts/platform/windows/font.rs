@@ -13,7 +13,7 @@ use std::ops::Deref;
 use std::sync::Arc;
 
 use app_units::Au;
-use dwrote::{FontFace, FontFile};
+use dwrote::{FontCollection, FontFace, FontFile};
 use euclid::default::{Point2D, Rect, Size2D};
 use log::{debug, warn};
 use style::computed_values::font_stretch::T as StyleFontStretch;
@@ -24,9 +24,10 @@ use truetype::tables::WindowsMetrics;
 use truetype::value::Read;
 use webrender_api::FontInstanceFlags;
 
+use super::font_list::LocalFontIdentifier;
 use crate::{
-    ot_tag, FontIdentifier, FontMetrics, FontTableMethods, FontTableTag, FontTemplateDescriptor,
-    FractionalPixel, GlyphId, PlatformFontMethods,
+    ot_tag, FontData, FontIdentifier, FontMetrics, FontTableMethods, FontTableTag,
+    FontTemplateDescriptor, FractionalPixel, GlyphId, PlatformFontMethods,
 };
 
 // 1em = 12pt = 16px, assuming 72 points per inch and 96 px per inch
@@ -64,9 +65,6 @@ impl FontTableMethods for FontTable {
 #[derive(Debug)]
 pub struct PlatformFont {
     face: Nondebug<FontFace>,
-    /// A reference to this data used to create this [`PlatformFont`], ensuring the
-    /// data stays alive of the lifetime of this struct.
-    _data: Arc<Vec<u8>>,
     em_size: f32,
     du_to_px: f32,
     scaled_du_to_px: f32,
@@ -94,20 +92,10 @@ impl<T> Deref for Nondebug<T> {
     }
 }
 
-impl PlatformFontMethods for PlatformFont {
-    fn new_from_data(
-        _font_identifier: FontIdentifier,
-        data: Arc<Vec<u8>>,
-        face_index: u32,
-        pt_size: Option<Au>,
-    ) -> Result<Self, &'static str> {
-        let font_file = FontFile::new_from_data(data.clone()).ok_or("Could not create FontFile")?;
-        let face = font_file
-            .create_face(face_index, dwrote::DWRITE_FONT_SIMULATIONS_NONE)
-            .map_err(|_| "Could not create FontFace")?;
-
+impl PlatformFont {
+    fn new(font_face: FontFace, pt_size: Option<Au>) -> Result<Self, &'static str> {
         let pt_size = pt_size.unwrap_or(au_from_pt(12.));
-        let du_per_em = face.metrics().metrics0().designUnitsPerEm as f32;
+        let du_per_em = font_face.metrics().metrics0().designUnitsPerEm as f32;
 
         let em_size = pt_size.to_f32_px() / 16.;
         let design_units_per_pixel = du_per_em / 16.;
@@ -116,12 +104,39 @@ impl PlatformFontMethods for PlatformFont {
         let scaled_design_units_to_pixels = em_size / design_units_per_pixel;
 
         Ok(PlatformFont {
-            face: Nondebug(face),
-            _data: data,
+            face: Nondebug(font_face),
             em_size,
             du_to_px: design_units_to_pixels,
             scaled_du_to_px: scaled_design_units_to_pixels,
         })
+    }
+}
+
+impl PlatformFontMethods for PlatformFont {
+    fn new_from_data(
+        _font_identifier: FontIdentifier,
+        data: &FontData,
+        pt_size: Option<Au>,
+    ) -> Result<Self, &'static str> {
+        let font_face = FontFile::new_from_buffer(Arc::new(data.clone()))
+            .ok_or("Could not create FontFile")?
+            .create_face(
+                0, /* face_index */
+                dwrote::DWRITE_FONT_SIMULATIONS_NONE,
+            )
+            .map_err(|_| "Could not create FontFace")?;
+        Self::new(font_face, pt_size)
+    }
+
+    fn new_from_local_font_identifier(
+        font_identifier: LocalFontIdentifier,
+        pt_size: Option<Au>,
+    ) -> Result<PlatformFont, &'static str> {
+        let font_face = FontCollection::system()
+            .get_font_from_descriptor(&font_identifier.font_descriptor)
+            .ok_or("Could not create Font from descriptor")?
+            .create_font_face();
+        Self::new(font_face, pt_size)
     }
 
     fn descriptor(&self) -> FontTemplateDescriptor {

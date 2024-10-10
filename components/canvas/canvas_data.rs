@@ -231,7 +231,7 @@ impl<'a> PathBuilderRef<'a> {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Default)]
 struct UnshapedTextRun<'a> {
     font: Option<FontRef>,
     script: Script,

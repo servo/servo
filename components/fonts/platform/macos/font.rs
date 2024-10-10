@@ -4,7 +4,6 @@
 
 use std::cmp::Ordering;
 use std::ops::Range;
-use std::sync::Arc;
 use std::{fmt, ptr};
 
 /// Implementation of Quartz (CoreGraphics) fonts.
@@ -23,8 +22,9 @@ use style::values::computed::font::{FontStretch, FontStyle, FontWeight};
 use webrender_api::FontInstanceFlags;
 
 use super::core_text_font_cache::CoreTextFontCache;
+use super::font_list::LocalFontIdentifier;
 use crate::{
-    map_platform_values_to_style_values, FontIdentifier, FontMetrics, FontTableMethods,
+    map_platform_values_to_style_values, FontData, FontIdentifier, FontMetrics, FontTableMethods,
     FontTableTag, FontTemplateDescriptor, FractionalPixel, GlyphId, PlatformFontMethods, CBDT,
     COLR, KERN, SBIX,
 };
@@ -55,9 +55,6 @@ impl FontTableMethods for FontTable {
 #[derive(Debug)]
 pub struct PlatformFont {
     ctfont: CTFont,
-    /// A reference to this data used to create this [`PlatformFont`], ensuring the
-    /// data stays alive of the lifetime of this struct.
-    _data: Arc<Vec<u8>>,
     h_kern_subtable: Option<CachedKernTable>,
 }
 
@@ -167,30 +164,44 @@ impl fmt::Debug for CachedKernTable {
     }
 }
 
-impl PlatformFontMethods for PlatformFont {
-    fn new_from_data(
+impl PlatformFont {
+    fn new(
         font_identifier: FontIdentifier,
-        data: Arc<Vec<u8>>,
-        _face_index: u32,
-        pt_size: Option<Au>,
+        data: Option<&FontData>,
+        requested_size: Option<Au>,
     ) -> Result<PlatformFont, &'static str> {
-        let size = match pt_size {
+        let size = match requested_size {
             Some(s) => s.to_f64_px(),
             None => 0.0,
         };
-        let Some(core_text_font) =
-            CoreTextFontCache::core_text_font(font_identifier, data.clone(), size)
+        let Some(core_text_font) = CoreTextFontCache::core_text_font(font_identifier, data, size)
         else {
             return Err("Could not generate CTFont for FontTemplateData");
         };
 
         let mut handle = PlatformFont {
-            _data: data,
             ctfont: core_text_font.clone_with_font_size(size),
             h_kern_subtable: None,
         };
         handle.h_kern_subtable = handle.find_h_kern_subtable();
         Ok(handle)
+    }
+}
+
+impl PlatformFontMethods for PlatformFont {
+    fn new_from_data(
+        font_identifier: FontIdentifier,
+        data: &FontData,
+        requested_size: Option<Au>,
+    ) -> Result<PlatformFont, &'static str> {
+        Self::new(font_identifier, Some(data), requested_size)
+    }
+
+    fn new_from_local_font_identifier(
+        font_identifier: LocalFontIdentifier,
+        requested_size: Option<Au>,
+    ) -> Result<PlatformFont, &'static str> {
+        Self::new(FontIdentifier::Local(font_identifier), None, requested_size)
     }
 
     fn descriptor(&self) -> FontTemplateDescriptor {

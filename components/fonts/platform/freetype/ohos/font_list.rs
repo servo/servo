@@ -23,7 +23,7 @@ use unicode_script::Script;
 
 use crate::{
     EmojiPresentationPreference, FallbackFontSelectionOptions, FontIdentifier, FontTemplate,
-    FontTemplateDescriptor, LowercaseFontFamilyName,
+    FontTemplateDescriptor, LocalFontIdentifier, LowercaseFontFamilyName,
 };
 
 static FONT_LIST: LazyLock<FontList> = LazyLock::new(|| FontList::new());
@@ -36,28 +36,6 @@ static OHOS_FONTS_DIR: &'static str = env!("OHOS_SDK_FONTS_DIR");
 /// On OpenHarmony devices the fonts are always located here.
 #[cfg(not(ohos_mock))]
 static OHOS_FONTS_DIR: &'static str = "/system/fonts";
-
-/// An identifier for a local font on OpenHarmony systems.
-#[derive(Clone, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
-pub struct LocalFontIdentifier {
-    /// The path to the font.
-    pub path: Atom,
-}
-
-impl LocalFontIdentifier {
-    pub(crate) fn index(&self) -> u32 {
-        0
-    }
-
-    pub(crate) fn read_data_from_file(&self) -> Vec<u8> {
-        let mut bytes = Vec::new();
-        File::open(Path::new(&*self.path))
-            .expect("Couldn't open font file!")
-            .read_to_end(&mut bytes)
-            .unwrap();
-        bytes
-    }
-}
 
 #[allow(unused)]
 #[derive(Clone, Copy, Debug, Default)]
@@ -473,6 +451,7 @@ where
     let mut produce_font = |font: &Font| {
         let local_font_identifier = LocalFontIdentifier {
             path: Atom::from(font.filepath.clone()),
+            variation_index: 0,
         };
         let stretch = font.width.into();
         let weight = font
