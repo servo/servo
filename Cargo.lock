@@ -8143,14 +8143,14 @@ dependencies = [
 [[package]]
 name = "webxr"
 version = "0.0.1"
-source = "git+https://github.com/servo/webxr#845ae9c22c3eeb7b2ac3fcf9ed791879628256b3"
+source = "git+https://github.com/sagudev/webxr?branch=bye-sparkle#04268feb78a58bfaded3b60f39add804b1ee42a2"
 dependencies = [
  "crossbeam-channel",
  "euclid",
+ "glow 0.14.2",
  "log",
  "openxr",
  "serde",
- "sparkle",
  "surfman",
  "webxr-api",
  "winapi",
@@ -8160,7 +8160,7 @@ dependencies = [
 [[package]]
 name = "webxr-api"
 version = "0.0.1"
-source = "git+https://github.com/servo/webxr#845ae9c22c3eeb7b2ac3fcf9ed791879628256b3"
+source = "git+https://github.com/sagudev/webxr?branch=bye-sparkle#04268feb78a58bfaded3b60f39add804b1ee42a2"
 dependencies = [
  "euclid",
  "ipc-channel",
