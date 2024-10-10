@@ -374,6 +374,8 @@ struct TimerListener {
     context: Trusted<GlobalScope>,
 }
 
+type FileListenerCallback = Box<dyn Fn(Rc<Promise>, Fallible<Vec<u8>>) + Send>;
+
 /// A wrapper for the handling of file data received by the ipc router
 struct FileListener {
     /// State should progress as either of:
@@ -384,19 +386,14 @@ struct FileListener {
     task_canceller: TaskCanceller,
 }
 
-enum FileListenerCallback {
-    Promise(Box<dyn Fn(Rc<Promise>, Result<Vec<u8>, Error>) + Send>),
-    Stream,
-}
-
 enum FileListenerTarget {
-    Promise(TrustedPromise),
+    Promise(TrustedPromise, FileListenerCallback),
     Stream(Trusted<ReadableStream>),
 }
 
 enum FileListenerState {
-    Empty(FileListenerCallback, FileListenerTarget),
-    Receiving(Vec<u8>, FileListenerCallback, FileListenerTarget),
+    Empty(FileListenerTarget),
+    Receiving(Vec<u8>, FileListenerTarget),
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -616,7 +613,7 @@ impl MessageListener {
 }
 
 /// Callback used to enqueue file chunks to streams as part of FileListener.
-fn stream_handle_incoming(stream: &ReadableStream, bytes: Result<Vec<u8>, Error>) {
+fn stream_handle_incoming(stream: &ReadableStream, bytes: Fallible<Vec<u8>>) {
     match bytes {
         Ok(b) => {
             stream.enqueue_native(b);
@@ -636,7 +633,7 @@ impl FileListener {
     fn handle(&mut self, msg: FileManagerResult<ReadFileProgress>) {
         match msg {
             Ok(ReadFileProgress::Meta(blob_buf)) => match self.state.take() {
-                Some(FileListenerState::Empty(callback, target)) => {
+                Some(FileListenerState::Empty(target)) => {
                     let bytes = if let FileListenerTarget::Stream(ref trusted_stream) = target {
                         let trusted = trusted_stream.clone();
 
@@ -653,14 +650,14 @@ impl FileListener {
                         blob_buf.bytes
                     };
 
-                    self.state = Some(FileListenerState::Receiving(bytes, callback, target));
+                    self.state = Some(FileListenerState::Receiving(bytes, target));
                 },
                 _ => panic!(
                     "Unexpected FileListenerState when receiving ReadFileProgress::Meta msg."
                 ),
             },
             Ok(ReadFileProgress::Partial(mut bytes_in)) => match self.state.take() {
-                Some(FileListenerState::Receiving(mut bytes, callback, target)) => {
+                Some(FileListenerState::Receiving(mut bytes, target)) => {
                     if let FileListenerTarget::Stream(ref trusted_stream) = target {
                         let trusted = trusted_stream.clone();
 
@@ -676,19 +673,15 @@ impl FileListener {
                         bytes.append(&mut bytes_in);
                     };
 
-                    self.state = Some(FileListenerState::Receiving(bytes, callback, target));
+                    self.state = Some(FileListenerState::Receiving(bytes, target));
                 },
                 _ => panic!(
                     "Unexpected FileListenerState when receiving ReadFileProgress::Partial msg."
                 ),
             },
             Ok(ReadFileProgress::EOF) => match self.state.take() {
-                Some(FileListenerState::Receiving(bytes, callback, target)) => match target {
-                    FileListenerTarget::Promise(trusted_promise) => {
-                        let callback = match callback {
-                            FileListenerCallback::Promise(callback) => callback,
-                            _ => panic!("Expected promise callback."),
-                        };
+                Some(FileListenerState::Receiving(bytes, target)) => match target {
+                    FileListenerTarget::Promise(trusted_promise, callback) => {
                         let task = task!(resolve_promise: move || {
                             let promise = trusted_promise.root();
                             let _ac = enter_realm(&*promise.global());
@@ -717,16 +710,12 @@ impl FileListener {
                 },
             },
             Err(_) => match self.state.take() {
-                Some(FileListenerState::Receiving(_, callback, target)) |
-                Some(FileListenerState::Empty(callback, target)) => {
+                Some(FileListenerState::Receiving(_, target)) |
+                Some(FileListenerState::Empty(target)) => {
                     let error = Err(Error::Network);
 
                     match target {
-                        FileListenerTarget::Promise(trusted_promise) => {
-                            let callback = match callback {
-                                FileListenerCallback::Promise(callback) => callback,
-                                _ => panic!("Expected promise callback."),
-                            };
+                        FileListenerTarget::Promise(trusted_promise, callback) => {
                             let _ = self.task_source.queue_with_canceller(
                                 task!(reject_promise: move || {
                                     let promise = trusted_promise.root();
@@ -2021,10 +2010,9 @@ impl GlobalScope {
         let task_source = self.file_reading_task_source();
 
         let mut file_listener = FileListener {
-            state: Some(FileListenerState::Empty(
-                FileListenerCallback::Stream,
-                FileListenerTarget::Stream(trusted_stream),
-            )),
+            state: Some(FileListenerState::Empty(FileListenerTarget::Stream(
+                trusted_stream,
+            ))),
             task_source,
             task_canceller,
         };
@@ -2042,12 +2030,7 @@ impl GlobalScope {
         stream
     }
 
-    pub fn read_file_async(
-        &self,
-        id: Uuid,
-        promise: Rc<Promise>,
-        callback: Box<dyn Fn(Rc<Promise>, Result<Vec<u8>, Error>) + Send>,
-    ) {
+    pub fn read_file_async(&self, id: Uuid, promise: Rc<Promise>, callback: FileListenerCallback) {
         let recv = self.send_msg(id);
 
         let trusted_promise = TrustedPromise::new(promise);
@@ -2055,10 +2038,10 @@ impl GlobalScope {
         let task_source = self.file_reading_task_source();
 
         let mut file_listener = FileListener {
-            state: Some(FileListenerState::Empty(
-                FileListenerCallback::Promise(callback),
-                FileListenerTarget::Promise(trusted_promise),
-            )),
+            state: Some(FileListenerState::Empty(FileListenerTarget::Promise(
+                trusted_promise,
+                callback,
+            ))),
             task_source,
             task_canceller,
         };
