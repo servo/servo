@@ -681,7 +681,7 @@ impl EventTarget {
         bubbles: EventBubbles,
         cancelable: EventCancelable,
     ) -> DomRoot<Event> {
-        let event = Event::new(&self.global(), name, bubbles, cancelable);
+        let event = Event::new(&self.global(), name, bubbles, cancelable, CanGc::note());
         event.fire(self);
         event
     }

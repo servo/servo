@@ -117,6 +117,7 @@ impl RTCDataChannel {
             atom!("open"),
             EventBubbles::DoesNotBubble,
             EventCancelable::NotCancelable,
+            CanGc::note(),
         );
         event.upcast::<Event>().fire(self.upcast());
     }
@@ -127,6 +128,7 @@ impl RTCDataChannel {
             atom!("close"),
             EventBubbles::DoesNotBubble,
             EventCancelable::NotCancelable,
+            CanGc::note(),
         );
         event.upcast::<Event>().fire(self.upcast());
 
@@ -201,13 +203,14 @@ impl RTCDataChannel {
         }
     }
 
-    pub fn on_state_change(&self, state: DataChannelState) {
+    pub fn on_state_change(&self, state: DataChannelState, can_gc: CanGc) {
         if let DataChannelState::Closing = state {
             let event = Event::new(
                 &self.global(),
                 atom!("closing"),
                 EventBubbles::DoesNotBubble,
                 EventCancelable::NotCancelable,
+                can_gc,
             );
             event.upcast::<Event>().fire(self.upcast());
         };

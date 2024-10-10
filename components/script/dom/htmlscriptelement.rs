@@ -994,7 +994,7 @@ impl HTMLScriptElement {
             // Step 2.
             Err(e) => {
                 warn!("error loading script {:?}", e);
-                self.dispatch_error_event();
+                self.dispatch_error_event(CanGc::note());
                 return;
             },
 
@@ -1043,7 +1043,7 @@ impl HTMLScriptElement {
 
         // Step 6.
         if script.external {
-            self.dispatch_load_event();
+            self.dispatch_load_event(CanGc::note());
         }
     }
 
@@ -1138,19 +1138,21 @@ impl HTMLScriptElement {
             .queue_simple_event(self.upcast(), atom!("error"), &window);
     }
 
-    pub fn dispatch_load_event(&self) {
+    pub fn dispatch_load_event(&self, can_gc: CanGc) {
         self.dispatch_event(
             atom!("load"),
             EventBubbles::DoesNotBubble,
             EventCancelable::NotCancelable,
+            can_gc,
         );
     }
 
-    pub fn dispatch_error_event(&self) {
+    pub fn dispatch_error_event(&self, can_gc: CanGc) {
         self.dispatch_event(
             atom!("error"),
             EventBubbles::DoesNotBubble,
             EventCancelable::NotCancelable,
+            can_gc,
         );
     }
 
@@ -1229,9 +1231,10 @@ impl HTMLScriptElement {
         type_: Atom,
         bubbles: EventBubbles,
         cancelable: EventCancelable,
+        can_gc: CanGc,
     ) -> EventStatus {
         let window = window_from_node(self);
-        let event = Event::new(window.upcast(), type_, bubbles, cancelable);
+        let event = Event::new(window.upcast(), type_, bubbles, cancelable, can_gc);
         event.fire(self.upcast())
     }
 }
