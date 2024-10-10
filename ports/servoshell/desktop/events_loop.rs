@@ -9,6 +9,9 @@ use std::time;
 
 use log::warn;
 use servo::embedder_traits::EventLoopWaker;
+use winit::error::EventLoopError;
+use winit::event::{Event, StartCause};
+use winit::event_loop::{ActiveEventLoop, EventLoop as WinitEventLoop};
 #[cfg(target_os = "macos")]
 use winit::platform::macos::{ActivationPolicy, EventLoopBuilderExtMacOS};
 
@@ -33,36 +36,25 @@ impl EventsLoop {
     // Ideally, we could use the winit event loop in both modes,
     // but on Linux, the event loop requires a X11 server.
     #[cfg(not(any(target_os = "linux", target_os = "macos")))]
-    pub fn new(
-        _headless: bool,
-        _has_output_file: bool,
-    ) -> Result<EventsLoop, winit::error::EventLoopError> {
+    pub fn new(_headless: bool, _has_output_file: bool) -> Result<EventsLoop, EventLoopError> {
         Ok(EventsLoop(EventLoop::Winit(Some(
-            winit::event_loop::EventLoopBuilder::with_user_event().build()?,
+            WinitEventLoop::with_user_event().build()?,
         ))))
     }
     #[cfg(target_os = "linux")]
-    pub fn new(
-        headless: bool,
-        _has_output_file: bool,
-    ) -> Result<EventsLoop, winit::error::EventLoopError> {
+    pub fn new(headless: bool, _has_output_file: bool) -> Result<EventsLoop, EventLoopError> {
         Ok(EventsLoop(if headless {
             EventLoop::Headless(Arc::new((Mutex::new(false), Condvar::new())))
         } else {
-            EventLoop::Winit(Some(
-                winit::event_loop::EventLoopBuilder::with_user_event().build()?,
-            ))
+            EventLoop::Winit(Some(WinitEventLoop::with_user_event().build()?))
         }))
     }
     #[cfg(target_os = "macos")]
-    pub fn new(
-        headless: bool,
-        _has_output_file: bool,
-    ) -> Result<EventsLoop, winit::error::EventLoopError> {
+    pub fn new(headless: bool, _has_output_file: bool) -> Result<EventsLoop, EventLoopError> {
         Ok(EventsLoop(if headless {
             EventLoop::Headless(Arc::new((Mutex::new(false), Condvar::new())))
         } else {
-            let mut event_loop_builder = winit::event_loop::EventLoopBuilder::with_user_event();
+            let mut event_loop_builder = WinitEventLoop::with_user_event();
             if _has_output_file {
                 // Prevent the window from showing in Dock.app, stealing focus,
                 // when generating an output file.
@@ -85,7 +77,7 @@ impl EventsLoop {
             EventLoop::Headless(ref data) => Box::new(HeadlessEventLoopWaker(data.clone())),
         }
     }
-    pub fn as_winit(&self) -> &winit::event_loop::EventLoop<WakerEvent> {
+    pub fn as_winit(&self) -> &WinitEventLoop<WakerEvent> {
         match self.0 {
             EventLoop::Winit(Some(ref event_loop)) => event_loop,
             EventLoop::Winit(None) | EventLoop::Headless(..) => {
@@ -96,16 +88,12 @@ impl EventsLoop {
 
     pub fn run_forever<F>(self, mut callback: F)
     where
-        F: 'static
-            + FnMut(
-                winit::event::Event<WakerEvent>,
-                Option<&winit::event_loop::EventLoopWindowTarget<WakerEvent>>,
-                &mut ControlFlow,
-            ),
+        F: 'static + FnMut(Event<WakerEvent>, Option<&ActiveEventLoop>, &mut ControlFlow),
     {
         match self.0 {
             EventLoop::Winit(events_loop) => {
                 let events_loop = events_loop.expect("Can't run an unavailable event loop.");
+                #[allow(deprecated)]
                 events_loop
                     .run(move |e, window_target| {
                         let mut control_flow = ControlFlow::default();
@@ -116,12 +104,12 @@ impl EventsLoop {
             },
             EventLoop::Headless(ref data) => {
                 let (flag, condvar) = &**data;
-                let mut event = winit::event::Event::NewEvents(winit::event::StartCause::Init);
+                let mut event = Event::NewEvents(StartCause::Init);
                 loop {
                     self.sleep(flag, condvar);
                     let mut control_flow = ControlFlow::Poll;
                     callback(event, None, &mut control_flow);
-                    event = winit::event::Event::<WakerEvent>::UserEvent(WakerEvent);
+                    event = Event::<WakerEvent>::UserEvent(WakerEvent);
 
                     if control_flow != ControlFlow::Poll {
                         *flag.lock().unwrap() = false;
@@ -164,7 +152,7 @@ pub enum ControlFlow {
 }
 
 impl ControlFlow {
-    fn apply_to(self, window_target: &winit::event_loop::EventLoopWindowTarget<WakerEvent>) {
+    fn apply_to(self, window_target: &ActiveEventLoop) {
         match self {
             ControlFlow::Poll => {
                 window_target.set_control_flow(winit::event_loop::ControlFlow::Poll)

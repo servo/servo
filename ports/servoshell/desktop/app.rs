@@ -22,7 +22,7 @@ use webxr::glwindow::GlWindowDiscovery;
 #[cfg(target_os = "windows")]
 use webxr::openxr::{AppInfo, OpenXrDiscovery};
 use winit::event::WindowEvent;
-use winit::event_loop::EventLoopWindowTarget;
+use winit::event_loop::ActiveEventLoop;
 use winit::window::WindowId;
 
 use super::events_loop::{EventsLoop, WakerEvent};
@@ -80,7 +80,7 @@ impl App {
         } else {
             Rc::new(headed_window::Window::new(
                 opts::get().initial_window_size,
-                &events_loop,
+                &events_loop.as_winit(),
                 no_native_titlebar,
                 device_pixel_ratio_override,
             ))
@@ -116,7 +116,12 @@ impl App {
             debug_assert_eq!(webrender_gl.get_error(), gleam::gl::NO_ERROR);
 
             app.minibrowser = Some(
-                Minibrowser::new(&rendering_context, &events_loop, initial_url.clone()).into(),
+                Minibrowser::new(
+                    &rendering_context,
+                    &events_loop.as_winit(),
+                    initial_url.clone(),
+                )
+                .into(),
             );
         }
 
@@ -164,10 +169,9 @@ impl App {
                         // ever try to make use of it once shutdown begins and
                         // it stops being valid.
                         let w = unsafe {
-                            std::mem::transmute::<
-                                &EventLoopWindowTarget<WakerEvent>,
-                                &'static EventLoopWindowTarget<WakerEvent>,
-                            >(w.unwrap())
+                            std::mem::transmute::<&ActiveEventLoop, &'static ActiveEventLoop>(
+                                w.unwrap(),
+                            )
                         };
                         let factory = Box::new(move || Ok(window.new_glwindow(w)));
                         Some(XrDiscovery::GlWindow(GlWindowDiscovery::new(
