@@ -2761,7 +2761,7 @@ class CGAbstractMethod(CGThing):
             if self.returnType == "void":
                 pre = "wrap_panic(&mut || {\n"
                 post = "\n})"
-            elif "return" not in body.define():
+            elif "return" not in body.define() or self.name.startswith("_constructor"):
                 pre = (
                     "let mut result = false;\n"
                     "wrap_panic(&mut || result = {\n"
@@ -6254,7 +6254,7 @@ let global = GlobalScope::from_object(JS_CALLEE(*cx, vp).to_object());
                 ]
             else:
                 args = [
-                    "&global",
+                    "global",
                     "Some(desired_proto.handle())",
                     "CanGc::note()"
                 ]
