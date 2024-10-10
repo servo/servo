@@ -16,8 +16,11 @@ use crate::pref_util::Preferences;
 pub use crate::pref_util::{PrefError, PrefValue};
 
 static PREFS: LazyLock<Preferences<'static, Prefs>> = LazyLock::new(|| {
-    let def_prefs: Prefs =
-        serde_json::from_str(&resources::read_string(Resource::Preferences)).unwrap_or_default();
+    let def_prefs: Prefs = serde_json::from_str(&resources::read_string(Resource::Preferences))
+        .unwrap_or_else(|_| {
+            warn!("Preference json file is invalid. Setting Preference to default values");
+            Prefs::default()
+        });
     let result = Preferences::new(def_prefs, &gen::PREF_ACCESSORS);
     for (key, value) in result.iter() {
         set_stylo_pref_ref(&key, &value);
