@@ -9,7 +9,7 @@ use std::sync::LazyLock;
 
 use embedder_traits::resources::{self, Resource};
 use gen::Prefs;
-use log::warn;
+use log::{error, warn};
 use serde_json::{self, Value};
 
 use crate::pref_util::Preferences;
@@ -18,7 +18,7 @@ pub use crate::pref_util::{PrefError, PrefValue};
 static PREFS: LazyLock<Preferences<'static, Prefs>> = LazyLock::new(|| {
     let def_prefs: Prefs = serde_json::from_str(&resources::read_string(Resource::Preferences))
         .unwrap_or_else(|_| {
-            warn!("Preference json file is invalid. Setting Preference to default values");
+            error!("Preference json file is invalid. Setting Preference to default values");
             Prefs::default()
         });
     let result = Preferences::new(def_prefs, &gen::PREF_ACCESSORS);
