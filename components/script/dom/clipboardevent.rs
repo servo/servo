@@ -53,8 +53,18 @@ impl ClipboardEvent {
         ev
     }
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+    pub fn set_clipboard_data(&self, clipboard_data: Option<&DataTransfer>) {
+        self.clipboard_data.set(clipboard_data);
+    }
+
+    pub fn get_clipboard_data(&self) -> Option<DomRoot<DataTransfer>> {
+        self.clipboard_data.get()
+    }
+}
+
+impl ClipboardEventMethods for ClipboardEvent {
+    /// <https://www.w3.org/TR/clipboard-apis/#dom-clipboardevent-clipboardevent>
+    fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -75,16 +85,6 @@ impl ClipboardEvent {
         )
     }
 
-    pub fn set_clipboard_data(&self, clipboard_data: Option<&DataTransfer>) {
-        self.clipboard_data.set(clipboard_data);
-    }
-
-    pub fn get_clipboard_data(&self) -> Option<DomRoot<DataTransfer>> {
-        self.clipboard_data.get()
-    }
-}
-
-impl ClipboardEventMethods for ClipboardEvent {
     /// <https://www.w3.org/TR/clipboard-apis/#dom-clipboardevent-clipboarddata>
     fn GetClipboardData(&self) -> Option<DomRoot<DataTransfer>> {
         self.clipboard_data.get()
