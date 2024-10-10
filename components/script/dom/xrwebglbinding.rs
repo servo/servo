@@ -7,6 +7,7 @@ use js::rust::HandleObject;
 
 use crate::dom::bindings::codegen::Bindings::XRViewBinding::XREye;
 use crate::dom::bindings::codegen::Bindings::XRWebGLBindingBinding::XRWebGLBinding_Binding::XRWebGLBindingMethods;
+use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContext_Binding::WebGLRenderingContextMethods;
 use crate::dom::bindings::codegen::Bindings::XRWebGLBindingBinding::{
     XRCubeLayerInit, XRCylinderLayerInit, XREquirectLayerInit, XRProjectionLayerInit,
     XRQuadLayerInit, XRTextureType,
@@ -69,14 +70,33 @@ impl XRWebGLBindingMethods for XRWebGLBinding {
         can_gc: CanGc,
         session: &XRSession,
         context: WebGLRenderingContextOrWebGL2RenderingContext,
-    ) -> DomRoot<XRWebGLBinding> {
+    ) -> Fallible<DomRoot<XRWebGLBinding>> {
         let context = match context {
             WebGLRenderingContextOrWebGL2RenderingContext::WebGLRenderingContext(ctx) => ctx,
             WebGLRenderingContextOrWebGL2RenderingContext::WebGL2RenderingContext(ctx) => {
                 ctx.base_context()
             },
         };
-        XRWebGLBinding::new(global, proto, session, &context, can_gc)
+        // Step 2
+        if session.is_ended() {
+            return Err(Error::InvalidState);
+        }
+
+        // step 3
+        if context.IsContextLost() {
+            return Err(Error::InvalidState);
+        }
+
+        // Step 4
+        if !session.is_immersive() {
+            return Err(Error::InvalidState);
+        };
+
+        // Step 5 throw an InvalidStateError If context’s XR compatible boolean is false.
+
+        Ok(XRWebGLBinding::new(
+            global, proto, session, &context, can_gc,
+        ))
     }
 
     /// <https://immersive-web.github.io/layers/#dom-xrwebglbinding-createprojectionlayer>
