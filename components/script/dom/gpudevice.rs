@@ -63,6 +63,7 @@ use crate::dom::gputexture::GPUTexture;
 use crate::dom::gpuuncapturederrorevent::GPUUncapturedErrorEvent;
 use crate::dom::promise::Promise;
 use crate::realms::InRealm;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct GPUDevice {
@@ -170,8 +171,8 @@ impl GPUDevice {
         }
     }
 
-    pub fn fire_uncaptured_error(&self, error: webgpu::Error) {
-        let error = GPUError::from_error(&self.global(), error);
+    pub fn fire_uncaptured_error(&self, error: webgpu::Error, can_gc: CanGc) {
+        let error = GPUError::from_error(&self.global(), error, can_gc);
         let ev = GPUUncapturedErrorEvent::new(
             &self.global(),
             DOMString::from("uncapturederror"),
@@ -566,7 +567,7 @@ impl AsyncWGPUListener for GPUDevice {
                 Ok(None) | Err(PopError::Lost) => promise.resolve_native(&None::<Option<GPUError>>),
                 Err(PopError::Empty) => promise.reject_error(Error::Operation),
                 Ok(Some(error)) => {
-                    let error = GPUError::from_error(&self.global(), error);
+                    let error = GPUError::from_error(&self.global(), error, CanGc::note());
                     promise.resolve_native(&error);
                 },
             },

@@ -29,8 +29,8 @@ impl GPUError {
     }
 
     #[allow(dead_code)]
-    pub fn new(global: &GlobalScope, message: DOMString) -> DomRoot<Self> {
-        Self::new_with_proto(global, None, message)
+    pub fn new(global: &GlobalScope, message: DOMString, can_gc: CanGc) -> DomRoot<Self> {
+        Self::new_with_proto(global, None, message, can_gc)
     }
 
     #[allow(dead_code)]
@@ -38,34 +38,35 @@ impl GPUError {
         global: &GlobalScope,
         proto: Option<HandleObject>,
         message: DOMString,
+        can_gc: CanGc,
     ) -> DomRoot<Self> {
         reflect_dom_object_with_proto(
             Box::new(GPUError::new_inherited(message)),
             global,
             proto,
-            CanGc::note(),
+            can_gc,
         )
     }
 
-    pub fn from_error(global: &GlobalScope, error: Error) -> DomRoot<Self> {
+    pub fn from_error(global: &GlobalScope, error: Error, can_gc: CanGc) -> DomRoot<Self> {
         match error {
             Error::Validation(msg) => DomRoot::upcast(GPUValidationError::new_with_proto(
                 global,
                 None,
                 DOMString::from_string(msg),
-                CanGc::note(),
+                can_gc,
             )),
             Error::OutOfMemory(msg) => DomRoot::upcast(GPUOutOfMemoryError::new_with_proto(
                 global,
                 None,
                 DOMString::from_string(msg),
-                CanGc::note(),
+                can_gc,
             )),
             Error::Internal(msg) => DomRoot::upcast(GPUInternalError::new_with_proto(
                 global,
                 None,
                 DOMString::from_string(msg),
-                CanGc::note(),
+                can_gc,
             )),
         }
     }
