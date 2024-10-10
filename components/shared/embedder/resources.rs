@@ -60,7 +60,7 @@ pub enum Resource {
     Preferences,
     BluetoothBlocklist,
     DomainList,
-    /// A preload list of HTTP Strict Transport Security. It can be an empty list and
+    /// A preloaded list of HTTP Strict Transport Security. It can be an empty list and
     /// [`HstsList::default()`](net::hsts::HstsList) will be called.
     HstsPreloadList,
     BadCertHTML,
@@ -69,7 +69,7 @@ pub enum Resource {
     ServoCSS,
     PresentationalHintsCSS,
     QuirksModeCSS,
-    /// A place holder image to display if we couldn't get the requested image.
+    /// A placeholder image to display if we couldn't get the requested image.
     ///
     /// ## Safety
     ///
