@@ -80,7 +80,7 @@ pub fn view<Eye>(view: &FakeXRViewInit) -> Fallible<MockViewInit<Eye>> {
     let size = Size2D::new(view.resolution.width, view.resolution.height);
     let origin = match view.eye {
         XREye::Right => Point2D::new(size.width, 0),
-        _ => Point2D::new(0, 0),
+        _ => Point2D::zero(),
     };
     let viewport = Rect::new(origin, size);
 
