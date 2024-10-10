@@ -123,11 +123,11 @@ use crate::fragment_tree::{
     BoxFragment, CollapsedBlockMargins, CollapsedMargin, Fragment, FragmentFlags,
     PositioningFragment,
 };
-use crate::geom::{LogicalRect, LogicalVec2, PhysicalPoint, PhysicalRect, ToLogical};
+use crate::geom::{LogicalRect, LogicalVec2, PhysicalPoint, PhysicalRect, Size, ToLogical};
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
 use crate::sizing::ContentSizes;
 use crate::style_ext::{Clamp, ComputedValuesExt, PaddingBorderMargin};
-use crate::{ContainingBlock, IndefiniteContainingBlock};
+use crate::{AuOrAuto, ContainingBlock, IndefiniteContainingBlock};
 
 // From gfxFontConstants.h in Firefox.
 static FONT_SUBSCRIPT_OFFSET_RATIO: f32 = 0.20;
@@ -1932,42 +1932,70 @@ impl IndependentFormattingContext {
             IndependentFormattingContext::NonReplaced(non_replaced) => {
                 let box_size = non_replaced
                     .style
-                    .content_box_size_deprecated(layout.containing_block, &pbm)
-                    .map(|v| v.map(Au::from));
+                    .content_box_size(layout.containing_block, &pbm);
                 let max_box_size = non_replaced
                     .style
-                    .content_max_box_size_deprecated(layout.containing_block, &pbm)
-                    .map(|v| v.map(Au::from));
+                    .content_max_box_size(layout.containing_block, &pbm);
                 let min_box_size = non_replaced
                     .style
-                    .content_min_box_size_deprecated(layout.containing_block, &pbm)
-                    .map(|v| v.map(Au::from))
-                    .auto_is(Au::zero);
-                let block_size = box_size
-                    .block
-                    .map(|v| v.clamp_between_extremums(min_box_size.block, max_box_size.block));
+                    .content_min_box_size(layout.containing_block, &pbm);
 
-                // https://drafts.csswg.org/css2/visudet.html#inlineblock-width
-                let tentative_inline_size = box_size.inline.auto_is(|| {
-                    let style = non_replaced.style.clone();
+                let available_inline_size =
+                    layout.containing_block.inline_size - pbm_sums.inline_sum();
+                let available_block_size = layout
+                    .containing_block
+                    .block_size
+                    .non_auto()
+                    .map(|block_size| block_size - pbm_sums.block_sum());
+                let tentative_block_size = box_size
+                    .block
+                    .maybe_resolve_extrinsic(available_block_size)
+                    .map(|v| {
+                        let min_block_size = min_box_size
+                            .block
+                            .maybe_resolve_extrinsic(available_block_size)
+                            .unwrap_or_default();
+                        let max_block_size = max_box_size
+                            .block
+                            .maybe_resolve_extrinsic(available_block_size);
+                        v.clamp_between_extremums(min_block_size, max_block_size)
+                    })
+                    .map_or(AuOrAuto::Auto, AuOrAuto::LengthPercentage);
+
+                let style = non_replaced.style.clone();
+                let mut get_content_size = || {
                     let containing_block_for_children =
-                        IndefiniteContainingBlock::new_for_style_and_block_size(&style, block_size);
-                    let available_size =
-                        layout.containing_block.inline_size - pbm_sums.inline_sum();
+                        IndefiniteContainingBlock::new_for_style_and_block_size(
+                            &style,
+                            tentative_block_size,
+                        );
                     non_replaced
                         .inline_content_sizes(layout.layout_context, &containing_block_for_children)
-                        .shrink_to_fit(available_size)
-                });
+                };
+
+                // https://drafts.csswg.org/css2/visudet.html#inlineblock-width
+                let tentative_inline_size = box_size.inline.resolve(
+                    Size::fit_content,
+                    available_inline_size,
+                    &mut get_content_size,
+                );
 
                 // https://drafts.csswg.org/css2/visudet.html#min-max-widths
                 // In this case “applying the rules above again” with a non-auto inline-size
                 // always results in that size.
-                let inline_size = tentative_inline_size
-                    .clamp_between_extremums(min_box_size.inline, max_box_size.inline);
+                let min_inline_size = min_box_size
+                    .inline
+                    .resolve_non_initial(available_inline_size, &mut get_content_size)
+                    .unwrap_or_default();
+                let max_inline_size = max_box_size
+                    .inline
+                    .resolve_non_initial(available_inline_size, &mut get_content_size);
+                let inline_size =
+                    tentative_inline_size.clamp_between_extremums(min_inline_size, max_inline_size);
 
                 let containing_block_for_children = ContainingBlock {
                     inline_size,
-                    block_size,
+                    block_size: tentative_block_size,
                     style: &non_replaced.style,
                 };
                 assert_eq!(
@@ -1988,22 +2016,28 @@ impl IndependentFormattingContext {
                     &containing_block_for_children,
                     layout.containing_block,
                 );
-                let (inline_size, block_size) =
-                    match independent_layout.content_inline_size_for_table {
-                        Some(inline) => (inline, independent_layout.content_block_size),
-                        None => {
-                            // https://drafts.csswg.org/css2/visudet.html#block-root-margin
-                            let block_size = block_size.auto_is(|| {
-                                // https://drafts.csswg.org/css2/visudet.html#min-max-heights
-                                // In this case “applying the rules above again” with a non-auto block-size
-                                // always results in that size.
-                                independent_layout
-                                    .content_block_size
-                                    .clamp_between_extremums(min_box_size.block, max_box_size.block)
-                            });
-                            (inline_size, block_size)
-                        },
-                    };
+                let (inline_size, block_size) = match independent_layout
+                    .content_inline_size_for_table
+                {
+                    Some(inline) => (inline, independent_layout.content_block_size),
+                    None => {
+                        // https://drafts.csswg.org/css2/visudet.html#block-root-margin
+                        let stretch_size =
+                            available_block_size.unwrap_or(independent_layout.content_block_size);
+                        let mut get_content_size = || independent_layout.content_block_size.into();
+                        let min_block_size = min_box_size
+                            .block
+                            .resolve_non_initial(stretch_size, &mut get_content_size)
+                            .unwrap_or_default();
+                        let max_block_size = max_box_size
+                            .block
+                            .resolve_non_initial(stretch_size, &mut get_content_size);
+                        let block_size = tentative_block_size
+                            .auto_is(|| independent_layout.content_block_size)
+                            .clamp_between_extremums(min_block_size, max_block_size);
+                        (inline_size, block_size)
+                    },
+                };
 
                 let content_rect = PhysicalRect::new(
                     PhysicalPoint::zero(),
