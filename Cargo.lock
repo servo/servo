@@ -240,9 +240,9 @@ dependencies = [
 
 [[package]]
 name = "async-compression"
-version = "0.4.13"
+version = "0.4.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7e614738943d3f68c628ae3dbce7c3daffb196665f82f8c8ea6b65de73c79429"
+checksum = "998282f8f49ccd6116b0ed8a4de0fbd3151697920e7c7533416d6e25e76434a7"
 dependencies = [
  "brotli",
  "flate2",
