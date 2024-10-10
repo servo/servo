@@ -55,9 +55,13 @@ pub fn sandbox_access_files_dirs() -> Vec<PathBuf> {
 }
 
 pub enum Resource {
+    /// A json file of [`Preferences`](servo_config::pref_util::Preferences) configuration.
+    /// It can be empty but lots of features will be disabled.
     Preferences,
     BluetoothBlocklist,
     DomainList,
+    /// A preloaded list of HTTP Strict Transport Security. It can be an empty list and
+    /// [`HstsList::default()`](net::hsts::HstsList) will be called.
     HstsPreloadList,
     BadCertHTML,
     NetErrorHTML,
@@ -65,6 +69,12 @@ pub enum Resource {
     ServoCSS,
     PresentationalHintsCSS,
     QuirksModeCSS,
+    /// A placeholder image to display if we couldn't get the requested image.
+    ///
+    /// ## Safety
+    ///
+    /// Servo will crash if this is an invalid image. Check `resources/rippy.png` in Servo codebase to see what
+    /// a default rippy png should look like.
     RippyPNG,
     MediaControlsCSS,
     MediaControlsJS,
