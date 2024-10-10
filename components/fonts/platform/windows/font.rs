@@ -101,7 +101,7 @@ impl PlatformFontMethods for PlatformFont {
         face_index: u32,
         pt_size: Option<Au>,
     ) -> Result<Self, &'static str> {
-        let font_file = FontFile::new_from_data(data.clone()).ok_or("Could not create FontFile")?;
+        let font_file = FontFile::new_from_buffer(data.clone()).ok_or("Could not create FontFile")?;
         let face = font_file
             .create_face(face_index, dwrote::DWRITE_FONT_SIMULATIONS_NONE)
             .map_err(|_| "Could not create FontFace")?;
