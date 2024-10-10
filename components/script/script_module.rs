@@ -347,7 +347,7 @@ impl ModuleTree {
 
         let handler = PromiseNativeHandler::new(
             &owner.global(),
-            Some(ModuleHandler::new(Box::new(
+            Some(ModuleHandler::new_boxed(Box::new(
                 task!(fetched_resolve: move || {
                     this.notify_owner_to_finish(identity, options);
                 }),
@@ -383,7 +383,7 @@ impl ModuleTree {
 
         let handler = PromiseNativeHandler::new(
             &owner.global(),
-            Some(ModuleHandler::new(Box::new(
+            Some(ModuleHandler::new_boxed(Box::new(
                 task!(fetched_resolve: move || {
                     this.finish_dynamic_module(identity, module_id);
                 }),
@@ -858,7 +858,7 @@ struct ModuleHandler {
 }
 
 impl ModuleHandler {
-    pub fn new(task: Box<dyn TaskBox>) -> Box<dyn Callback> {
+    pub fn new_boxed(task: Box<dyn TaskBox>) -> Box<dyn Callback> {
         Box::new(Self {
             task: DomRefCell::new(Some(task)),
         })

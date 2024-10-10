@@ -29,7 +29,7 @@ use crate::dom::serviceworkerglobalscope::{
     ServiceWorkerControlMsg, ServiceWorkerGlobalScope, ServiceWorkerScriptMsg,
 };
 use crate::dom::serviceworkerregistration::longest_prefix_match;
-use crate::script_runtime::{CanGc, ContextForRequestInterrupt};
+use crate::script_runtime::{CanGc, ThreadSafeJSContext};
 
 enum Message {
     FromResource(CustomResponseMediator),
@@ -103,7 +103,7 @@ impl Drop for ServiceWorkerRegistration {
         self.context
             .take()
             .expect("No context to request interrupt.")
-            .request_interrupt();
+            .request_interrupt_callback();
 
         // TODO: Step 1, 2 and 3.
         if self
@@ -134,7 +134,7 @@ struct ServiceWorkerRegistration {
     /// A handle to join on the worker thread.
     join_handle: Option<JoinHandle<()>>,
     /// A context to request an interrupt.
-    context: Option<ContextForRequestInterrupt>,
+    context: Option<ThreadSafeJSContext>,
     /// The closing flag for the worker.
     closing: Option<Arc<AtomicBool>>,
 }
@@ -157,7 +157,7 @@ impl ServiceWorkerRegistration {
         &mut self,
         join_handle: JoinHandle<()>,
         control_sender: Sender<ServiceWorkerControlMsg>,
-        context: ContextForRequestInterrupt,
+        context: ThreadSafeJSContext,
         closing: Arc<AtomicBool>,
     ) {
         assert!(self.join_handle.is_none());
@@ -454,7 +454,7 @@ fn update_serviceworker(
     ServiceWorker,
     JoinHandle<()>,
     Sender<ServiceWorkerControlMsg>,
-    ContextForRequestInterrupt,
+    ThreadSafeJSContext,
     Arc<AtomicBool>,
 ) {
     let (sender, receiver) = unbounded();

@@ -241,7 +241,7 @@ impl ServoParser {
             )),
             ParserKind::Normal,
         );
-        parser.parse_complete_string_chunk(String::from(input), CanGc::note());
+        parser.parse_complete_string_chunk(String::from(input), can_gc);
 
         // Step 14.
         let root_element = document.GetDocumentElement().expect("no document element");
@@ -637,8 +637,7 @@ impl ServoParser {
 
         // Steps 3-12 are in another castle, namely finish_load.
         let url = self.tokenizer.url().clone();
-        self.document
-            .finish_load(LoadType::PageSource(url), CanGc::note());
+        self.document.finish_load(LoadType::PageSource(url), can_gc);
     }
 }
 

@@ -508,7 +508,7 @@ impl ComputedValuesExt for ComputedValues {
         let containing_block_size = containing_block.size.map(|value| value.non_auto());
         let containing_block_size_auto_is_zero =
             containing_block_size.map(|value| value.unwrap_or_else(Au::zero));
-        let writing_mode = self.writing_mode;
+        let writing_mode = containing_block.style.writing_mode;
         let pbm = self.padding_border_margin_with_writing_mode_and_containing_block_inline_size(
             writing_mode,
             containing_block.size.inline.auto_is(Au::zero),

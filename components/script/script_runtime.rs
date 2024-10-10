@@ -14,7 +14,7 @@ use std::io::{stdout, Write};
 use std::ops::Deref;
 use std::os::raw::c_void;
 use std::rc::Rc;
-use std::sync::{Arc, Mutex};
+use std::sync::Mutex;
 use std::time::{Duration, Instant};
 use std::{fmt, os, ptr, thread};
 
@@ -33,16 +33,16 @@ use js::jsapi::{
     InitConsumeStreamCallback, InitDispatchToEventLoop, JSContext as RawJSContext, JSGCParamKey,
     JSGCStatus, JSJitCompilerOption, JSObject, JSSecurityCallbacks, JSTracer,
     JS_AddExtraGCRootsTracer, JS_InitDestroyPrincipalsCallback, JS_InitReadPrincipalsCallback,
-    JS_RequestInterruptCallback, JS_SetGCCallback, JS_SetGCParameter,
-    JS_SetGlobalJitCompilerOption, JS_SetOffthreadIonCompilationEnabled,
-    JS_SetParallelParsingEnabled, JS_SetSecurityCallbacks, JobQueue, MimeType,
-    PromiseRejectionHandlingState, PromiseUserInputEventHandlingState, RuntimeCode,
-    SetDOMCallbacks, SetGCSliceCallback, SetJobQueue, SetPreserveWrapperCallbacks,
+    JS_SetGCCallback, JS_SetGCParameter, JS_SetGlobalJitCompilerOption,
+    JS_SetOffthreadIonCompilationEnabled, JS_SetParallelParsingEnabled, JS_SetSecurityCallbacks,
+    JobQueue, MimeType, PromiseRejectionHandlingState, PromiseUserInputEventHandlingState,
+    RuntimeCode, SetDOMCallbacks, SetGCSliceCallback, SetJobQueue, SetPreserveWrapperCallbacks,
     SetProcessBuildIdOp, SetPromiseRejectionTrackerCallback, StreamConsumer as JSStreamConsumer,
 };
 use js::jsval::UndefinedValue;
 use js::panic::wrap_panic;
 use js::rust::wrappers::{GetPromiseIsHandled, JS_GetPromiseResult};
+pub use js::rust::ThreadSafeJSContext;
 use js::rust::{
     describe_scripted_caller, Handle, HandleObject as RustHandleObject, IntoHandle, JSEngine,
     JSEngineHandle, ParentRuntime, Runtime as RustRuntime,
@@ -445,6 +445,12 @@ pub struct Runtime {
     pub microtask_queue: Rc<MicrotaskQueue>,
     job_queue: *mut JobQueue,
     networking_task_src: Option<Box<NetworkingTaskSource>>,
+}
+
+impl Runtime {
+    pub(crate) fn thread_safe_js_context(&self) -> ThreadSafeJSContext {
+        self.rt.thread_safe_js_context()
+    }
 }
 
 impl Drop for Runtime {
@@ -910,44 +916,6 @@ unsafe fn set_gc_zeal_options(cx: *mut RawJSContext) {
 #[allow(unsafe_code)]
 #[cfg(not(feature = "debugmozjs"))]
 unsafe fn set_gc_zeal_options(_: *mut RawJSContext) {}
-
-/// A wrapper around a JSContext that is Send,
-/// enabling an interrupt to be requested
-/// from a thread other than the one running JS using that context.
-#[derive(Clone)]
-pub struct ContextForRequestInterrupt(Arc<Mutex<Option<*mut RawJSContext>>>);
-
-impl ContextForRequestInterrupt {
-    pub fn new(context: *mut RawJSContext) -> ContextForRequestInterrupt {
-        ContextForRequestInterrupt(Arc::new(Mutex::new(Some(context))))
-    }
-
-    pub fn revoke(&self) {
-        self.0.lock().unwrap().take();
-    }
-
-    #[allow(unsafe_code)]
-    /// Can be called from any thread, to request the callback set by
-    /// JS_AddInterruptCallback to be called on the thread
-    /// where that context is running.
-    /// The lock is held when calling JS_RequestInterruptCallback
-    /// because it is possible for the JSContext to be destroyed
-    /// on the other thread in the case of Worker shutdown
-    pub fn request_interrupt(&self) {
-        let maybe_cx = self.0.lock().unwrap();
-        if let Some(cx) = *maybe_cx {
-            unsafe {
-                JS_RequestInterruptCallback(cx);
-            }
-        }
-    }
-}
-
-#[allow(unsafe_code)]
-/// It is safe to call `JS_RequestInterruptCallback(cx)` from any thread.
-/// See the docs for the corresponding `requestInterrupt` method,
-/// at `mozjs/js/src/vm/JSContext.h`.
-unsafe impl Send for ContextForRequestInterrupt {}
 
 #[derive(Clone, Copy)]
 #[repr(transparent)]

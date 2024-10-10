@@ -52,8 +52,8 @@ impl Headers {
         }
     }
 
-    pub fn new(global: &GlobalScope) -> DomRoot<Headers> {
-        Self::new_with_proto(global, None, CanGc::note())
+    pub fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<Headers> {
+        Self::new_with_proto(global, None, can_gc)
     }
 
     fn new_with_proto(
@@ -287,14 +287,14 @@ impl Headers {
         }
     }
 
-    pub fn for_request(global: &GlobalScope) -> DomRoot<Headers> {
-        let headers_for_request = Headers::new(global);
+    pub fn for_request(global: &GlobalScope, can_gc: CanGc) -> DomRoot<Headers> {
+        let headers_for_request = Headers::new(global, can_gc);
         headers_for_request.guard.set(Guard::Request);
         headers_for_request
     }
 
-    pub fn for_response(global: &GlobalScope) -> DomRoot<Headers> {
-        let headers_for_response = Headers::new(global);
+    pub fn for_response(global: &GlobalScope, can_gc: CanGc) -> DomRoot<Headers> {
+        let headers_for_response = Headers::new(global, can_gc);
         headers_for_response.guard.set(Guard::Response);
         headers_for_response
     }

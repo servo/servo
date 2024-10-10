@@ -75,8 +75,8 @@ impl Event {
         }
     }
 
-    pub fn new_uninitialized(global: &GlobalScope) -> DomRoot<Event> {
-        Self::new_uninitialized_with_proto(global, None, CanGc::note())
+    pub fn new_uninitialized(global: &GlobalScope, can_gc: CanGc) -> DomRoot<Event> {
+        Self::new_uninitialized_with_proto(global, None, can_gc)
     }
 
     pub fn new_uninitialized_with_proto(
@@ -92,8 +92,9 @@ impl Event {
         type_: Atom,
         bubbles: EventBubbles,
         cancelable: EventCancelable,
+        can_gc: CanGc,
     ) -> DomRoot<Event> {
-        Self::new_with_proto(global, None, type_, bubbles, cancelable, CanGc::note())
+        Self::new_with_proto(global, None, type_, bubbles, cancelable, can_gc)
     }
 
     fn new_with_proto(

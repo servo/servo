@@ -45,8 +45,8 @@ use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::fetch::load_whole_resource;
 use crate::realms::{enter_realm, AlreadyInRealm, InRealm};
 use crate::script_runtime::{
-    new_rt_and_cx, CanGc, CommonScriptMsg, ContextForRequestInterrupt, JSContext as SafeJSContext,
-    Runtime, ScriptChan,
+    new_rt_and_cx, CanGc, CommonScriptMsg, JSContext as SafeJSContext, Runtime, ScriptChan,
+    ThreadSafeJSContext,
 };
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
 use crate::task_source::TaskSourceName;
@@ -293,7 +293,7 @@ impl ServiceWorkerGlobalScope {
         swmanager_sender: IpcSender<ServiceWorkerMsg>,
         scope_url: ServoUrl,
         control_receiver: Receiver<ServiceWorkerControlMsg>,
-        context_sender: Sender<ContextForRequestInterrupt>,
+        context_sender: Sender<ThreadSafeJSContext>,
         closing: Arc<AtomicBool>,
         can_gc: CanGc,
     ) -> JoinHandle<()> {
@@ -311,8 +311,8 @@ impl ServiceWorkerGlobalScope {
             .spawn(move || {
                 thread_state::initialize(ThreadState::SCRIPT | ThreadState::IN_WORKER);
                 let runtime = new_rt_and_cx(None);
-                let context_for_interrupt = ContextForRequestInterrupt::new(runtime.cx());
-                let _ = context_sender.send(context_for_interrupt.clone());
+                let context_for_interrupt = runtime.thread_safe_js_context();
+                let _ = context_sender.send(context_for_interrupt);
 
                 let roots = RootCollection::new();
                 let _stack_roots = ThreadLocalStackRoots::new(&roots);
@@ -366,7 +366,7 @@ impl ServiceWorkerGlobalScope {
                     match load_whole_resource(request, &resource_threads_sender, global.upcast()) {
                         Err(_) => {
                             println!("error loading script {}", serialized_worker_url);
-                            scope.clear_js_runtime(context_for_interrupt);
+                            scope.clear_js_runtime();
                             return;
                         },
                         Ok((metadata, bytes)) => {
@@ -407,7 +407,7 @@ impl ServiceWorkerGlobalScope {
                         CommonScriptMsg::CollectReports,
                     );
 
-                scope.clear_js_runtime(context_for_interrupt);
+                scope.clear_js_runtime();
             })
             .expect("Thread spawning failed")
     }

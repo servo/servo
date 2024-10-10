@@ -110,9 +110,7 @@ pub fn run_worker_event_loop<T, WorkerMsg, Event>(
         + DomObject,
 {
     let scope = worker_scope.upcast::<WorkerGlobalScope>();
-    let devtools_port = scope
-        .from_devtools_sender()
-        .map(|_| scope.from_devtools_receiver());
+    let devtools_receiver = scope.devtools_receiver();
     let task_queue = worker_scope.task_queue();
     let event = select! {
         recv(worker_scope.control_receiver()) -> msg => T::from_control_msg(msg.unwrap()),
@@ -120,7 +118,7 @@ pub fn run_worker_event_loop<T, WorkerMsg, Event>(
             task_queue.take_tasks(msg.unwrap());
             T::from_worker_msg(task_queue.recv().unwrap())
         },
-        recv(devtools_port.unwrap_or(&crossbeam_channel::never())) -> msg =>
+        recv(devtools_receiver.unwrap_or(&crossbeam_channel::never())) -> msg =>
             T::from_devtools_msg(msg.unwrap()),
     };
     let mut sequential = vec![];
@@ -134,7 +132,7 @@ pub fn run_worker_event_loop<T, WorkerMsg, Event>(
         // Batch all events that are ready.
         // The task queue will throttle non-priority tasks if necessary.
         match task_queue.take_tasks_and_recv() {
-            Err(_) => match devtools_port.map(|port| port.try_recv()) {
+            Err(_) => match devtools_receiver.map(|port| port.try_recv()) {
                 None => {},
                 Some(Err(_)) => break,
                 Some(Ok(ev)) => sequential.push(T::from_devtools_msg(ev)),
