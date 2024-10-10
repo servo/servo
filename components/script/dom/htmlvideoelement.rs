@@ -300,6 +300,7 @@ impl VirtualMethods for HTMLVideoElement {
             if let Some(new_value) = mutation.new_value(attr) {
                 self.fetch_poster_frame(&new_value, CanGc::note())
             } else {
+                self.htmlmediaelement.clear_current_frame_data();
                 self.htmlmediaelement.set_show_poster(false);
             }
         };

@@ -1990,6 +1990,11 @@ impl HTMLMediaElement {
         self.video_renderer.lock().unwrap().current_frame
     }
 
+    pub fn clear_current_frame_data(&self) {
+        self.handle_resize(None, None);
+        self.video_renderer.lock().unwrap().current_frame = None
+    }
+
     fn handle_resize(&self, width: Option<u32>, height: Option<u32>) {
         if self.is::<HTMLVideoElement>() {
             let video_elem = self.downcast::<HTMLVideoElement>().unwrap();
@@ -2024,18 +2029,11 @@ impl HTMLMediaElement {
         self.duration.set(duration);
     }
 
-    /// Sets a new value for the show_poster propperty. If the poster is being hidden
-    /// because new frames should render, updates video_renderer to allow it.
+    /// Sets a new value for the show_poster propperty. Updates video_rederer
+    /// with the new value.
     pub fn set_show_poster(&self, show_poster: bool) {
         self.show_poster.set(show_poster);
-        if !show_poster {
-            let video_renderer = &mut self.video_renderer.lock().unwrap();
-            if video_renderer.show_poster {
-                video_renderer.current_frame = None;
-                video_renderer.show_poster = false;
-                self.handle_resize(None, None);
-            }
-        }
+        self.video_renderer.lock().unwrap().show_poster = show_poster;
     }
 
     pub fn reset(&self) {
@@ -2509,11 +2507,7 @@ impl VirtualMethods for HTMLMediaElement {
             },
             local_name!("src") => {
                 if mutation.new_value(attr).is_none() {
-                    let video_renderer = &mut self.video_renderer.lock().unwrap();
-                    if !video_renderer.show_poster {
-                        video_renderer.current_frame = None;
-                        self.handle_resize(None, None);
-                    }
+                    self.clear_current_frame_data();
                     return;
                 }
                 self.media_element_load_algorithm(CanGc::note());
