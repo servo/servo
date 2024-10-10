@@ -1480,8 +1480,7 @@ impl Document {
                 clipboard_event_data.set_mode(Mode::ReadWrite);
             },
             ClipboardEventType::Paste(ref text) => {
-                let mut contents: Vec<String> = Vec::new();
-                contents.push(text.to_string());
+                let contents: Vec<String> = vec![text.to_string()];
                 // Step 7.1.1
                 clipboard_event_data.set_mode(Mode::ReadOnly);
                 // Step 7.1.2 If trusted or the implementation gives script-generated events access to the clipboard
@@ -1517,7 +1516,7 @@ impl Document {
         event.set_trusted(trusted);
         // Step 10 Set event’s composed to true.
         // Step 11
-        event.dispatch(target, false);
+        event.dispatch(target, false, CanGc::note());
     }
 
     /// <https://www.w3.org/TR/clipboard-apis/#write-content-to-the-clipboard>
