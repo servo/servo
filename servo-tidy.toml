@@ -54,7 +54,7 @@ packages = [
     "metal",
     "windows-core",
 
-    # wgpu-hal depends on 0.5.0
+    # wgpu-hal depends on 0.5.0.
     "ndk-sys",
 
     # quickcheck (required by layout_2020 for tests) is

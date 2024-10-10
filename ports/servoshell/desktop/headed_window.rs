@@ -79,6 +79,7 @@ impl Window {
             .with_inner_size(LogicalSize::new(win_size.width, win_size.height))
             .with_visible(visible);
 
+        #[allow(deprecated)]
         let winit_window = event_loop
             .create_window(window_attr)
             .expect("Failed to create window.");
@@ -530,15 +531,15 @@ impl WindowMethods for Window {
         let viewport_origin = DeviceIntPoint::zero(); // bottom left
         let viewport_size = winit_size_to_euclid_size(self.winit_window.inner_size()).to_f32();
         let viewport = DeviceIntRect::from_origin_and_size(viewport_origin, viewport_size.to_i32());
-        let screen = self.screen_size.to_i32();
+        let screen_size = self.screen_size.to_i32();
 
         EmbedderCoordinates {
             viewport,
             framebuffer: viewport.size(),
             window_rect: DeviceIntRect::from_origin_and_size(window_origin, window_size),
-            screen_size: screen,
+            screen_size,
             // FIXME: Winit doesn't have API for available size. Fallback to screen size
-            available_screen_size: screen,
+            available_screen_size: screen_size,
             hidpi_factor: self.hidpi_factor(),
         }
     }
