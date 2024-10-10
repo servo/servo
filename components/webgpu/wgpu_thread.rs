@@ -551,21 +551,7 @@ impl WGPU {
                         {
                             warn!("Unable to send FreeTexture({:?}) ({:?})", texture_id, e);
                         };
-                        if let Some(error) = error {
-                            self.dispatch_error(device_id, Error::from_error(error));
-                            continue;
-                        }
-                        // Supported context formats
-                        // TODO: wgt::TextureFormat::Rgba16Float, when wr supports HDR
-                        if !matches!(
-                            descriptor.format,
-                            wgt::TextureFormat::Bgra8Unorm | wgt::TextureFormat::Rgba8Unorm
-                        ) {
-                            self.dispatch_error(
-                                device_id,
-                                Error::Validation("Unsupported context format".to_string()),
-                            );
-                        }
+                        self.maybe_dispatch_wgpu_error(device_id, error);
                     },
                     WebGPURequest::DestroyContext { context_id } => {
                         self.destroy_context(context_id);
