@@ -70,17 +70,8 @@ unsafe fn read_blob(
         &mut index as *mut u32
     ));
     let storage_key = StorageKey { index, name_space };
-    if <Blob as Serializable>::deserialize(owner, sc_holder, storage_key).is_ok() {
-        let blobs = match sc_holder {
-            StructuredDataHolder::Read { blobs, .. } => blobs,
-            _ => panic!("Unexpected variant of StructuredDataHolder"),
-        };
-        if let Some(blobs) = blobs {
-            let blob = blobs
-                .get(&storage_key)
-                .expect("No blob found at storage key.");
-            return blob.reflector().get_jsobject().get();
-        }
+    if let Ok(blob) = <Blob as Serializable>::deserialize(owner, sc_holder, storage_key) {
+        return blob.reflector().get_jsobject().get();
     }
     warn!(
         "Reading structured data for a blob failed in {:?}.",
@@ -273,8 +264,6 @@ static STRUCTURED_CLONE_CALLBACKS: JSStructuredCloneCallbacks = JSStructuredClon
 /// <https://html.spec.whatwg.org/multipage/#safe-passing-of-structured-data>
 pub enum StructuredDataHolder {
     Read {
-        /// A map of deserialized blobs, stored temporarily here to keep them rooted.
-        blobs: Option<HashMap<StorageKey, DomRoot<Blob>>>,
         /// A vec of transfer-received DOM ports,
         /// to be made available to script through a message event.
         message_ports: Option<Vec<DomRoot<MessagePort>>>,
@@ -369,7 +358,6 @@ pub fn read(
     let cx = GlobalScope::get_cx();
     let _ac = enter_realm(global);
     let mut sc_holder = StructuredDataHolder::Read {
-        blobs: None,
         message_ports: None,
         port_impls: data.ports.take(),
         blob_impls: data.blobs.take(),

@@ -6,6 +6,7 @@
 //! (<https://html.spec.whatwg.org/multipage/#serializable-objects>).
 
 use crate::dom::bindings::reflector::DomObject;
+use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::structuredclone::{CloneableObject, StructuredDataHolder};
 use crate::dom::globalscope::GlobalScope;
 
@@ -33,7 +34,7 @@ pub enum SerializeOperation {
 
 /// Interface for serializable platform objects.
 /// <https://html.spec.whatwg.org/multipage/#serializable>
-pub trait Serializable: DomObject {
+pub trait Serializable: DomObject + Sized {
     type Data: ToSerializeOperations;
     const TAG: CloneableObject;
 
@@ -44,5 +45,5 @@ pub trait Serializable: DomObject {
         owner: &GlobalScope,
         sc_holder: &mut StructuredDataHolder,
         extra_data: Self::Data,
-    ) -> Result<(), ()>;
+    ) -> Result<DomRoot<Self>, ()>;
 }

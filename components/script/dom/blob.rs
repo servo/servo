@@ -158,7 +158,7 @@ impl Serializable for Blob {
         owner: &GlobalScope,
         sc_holder: &mut StructuredDataHolder,
         storage_key: StorageKey,
-    ) -> Result<(), ()> {
+    ) -> Result<DomRoot<Blob>, ()> {
         // 1. Re-build the key for the storage location
         // of the serialized object.
         let namespace_id = PipelineNamespaceId(storage_key.name_space);
@@ -170,10 +170,10 @@ impl Serializable for Blob {
             index,
         };
 
-        let (blobs, blob_impls) = match sc_holder {
+        let blob_impls = match sc_holder {
             StructuredDataHolder::Read {
-                blobs, blob_impls, ..
-            } => (blobs, blob_impls),
+                blob_impls, ..
+            } => blob_impls,
             _ => panic!("Unexpected variant of StructuredDataHolder"),
         };
 
@@ -190,10 +190,7 @@ impl Serializable for Blob {
 
         let deserialized_blob = Blob::new(owner, blob_impl);
 
-        let blobs = blobs.get_or_insert_with(HashMap::new);
-        blobs.insert(storage_key, deserialized_blob);
-
-        Ok(())
+        Ok(deserialized_blob)
     }
 }
 
