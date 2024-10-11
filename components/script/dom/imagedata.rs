@@ -39,6 +39,7 @@ impl ImageData {
         width: u32,
         height: u32,
         mut data: Option<Vec<u8>>,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<ImageData>> {
         let len = width * height * 4;
         unsafe {
@@ -48,16 +49,9 @@ impl ImageData {
                 d.resize(len as usize, 0);
                 let data = CreateWith::Slice(&d[..]);
                 Uint8ClampedArray::create(*cx, data, js_object.handle_mut()).unwrap();
-                Self::new_with_jsobject(
-                    global,
-                    None,
-                    width,
-                    Some(height),
-                    js_object.get(),
-                    CanGc::note(),
-                )
+                Self::new_with_jsobject(global, None, width, Some(height), js_object.get(), can_gc)
             } else {
-                Self::new_without_jsobject(global, None, width, height, CanGc::note())
+                Self::new_without_jsobject(global, None, width, height, can_gc)
             }
         }
     }

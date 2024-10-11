@@ -57,6 +57,7 @@ use crate::dom::node::{window_from_node, Node, NodeDamage};
 use crate::dom::offscreencanvas::{OffscreenCanvas, OffscreenCanvasContext};
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
 use crate::dom::textmetrics::TextMetrics;
+use crate::script_runtime::CanGc;
 use crate::unpremultiplytable::UNPREMULTIPLY_TABLE;
 
 #[crown::unrooted_must_root_lint::must_root]
@@ -1232,11 +1233,12 @@ impl CanvasState {
         global: &GlobalScope,
         sw: i32,
         sh: i32,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<ImageData>> {
         if sw == 0 || sh == 0 {
             return Err(Error::IndexSize);
         }
-        ImageData::new(global, sw.unsigned_abs(), sh.unsigned_abs(), None)
+        ImageData::new(global, sw.unsigned_abs(), sh.unsigned_abs(), None, can_gc)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-createimagedata
@@ -1244,8 +1246,9 @@ impl CanvasState {
         &self,
         global: &GlobalScope,
         imagedata: &ImageData,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<ImageData>> {
-        ImageData::new(global, imagedata.Width(), imagedata.Height(), None)
+        ImageData::new(global, imagedata.Width(), imagedata.Height(), None, can_gc)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-getimagedata
@@ -1257,6 +1260,7 @@ impl CanvasState {
         sy: i32,
         sw: i32,
         sh: i32,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<ImageData>> {
         // FIXME(nox): There are many arithmetic operations here that can
         // overflow or underflow, this should probably be audited.
@@ -1274,7 +1278,7 @@ impl CanvasState {
             Some(rect) => rect,
             None => {
                 // All the pixels are outside the canvas surface.
-                return ImageData::new(global, size.width, size.height, None);
+                return ImageData::new(global, size.width, size.height, None, can_gc);
             },
         };
 
@@ -1283,6 +1287,7 @@ impl CanvasState {
             size.width,
             size.height,
             Some(self.get_rect(canvas_size, read_rect)),
+            can_gc,
         )
     }
 
