@@ -14,7 +14,8 @@ use crate::dom::NodeExt;
 use crate::dom_traversal::{Contents, NodeAndStyleInfo};
 use crate::flexbox::FlexContainer;
 use crate::flow::BlockFormattingContext;
-use crate::fragment_tree::{BaseFragmentInfo, Fragment, FragmentFlags};
+use crate::fragment_tree::{BaseFragmentInfo, BoxFragment, Fragment, FragmentFlags};
+use crate::geom::LogicalSides;
 use crate::positioned::PositioningContext;
 use crate::replaced::ReplacedContent;
 use crate::sizing::{self, ContentSizes};
@@ -89,6 +90,12 @@ pub(crate) struct IndependentLayout {
     /// there was one. This is used to propagate baselines to the ancestors of `display:
     /// inline-block`.
     pub baselines: Baselines,
+}
+
+pub(crate) struct IndependentLayoutResult {
+    pub fragment: BoxFragment,
+    pub baselines: Option<Baselines>,
+    pub pbm_sums: LogicalSides<Au>,
 }
 
 impl IndependentFormattingContext {
