@@ -145,6 +145,7 @@ pub fn Fetch(
     input: RequestInfo,
     init: RootedTraceableBox<RequestInit>,
     comp: InRealm,
+    can_gc: CanGc,
 ) -> Rc<Promise> {
     let core_resource_thread = global.core_resource_thread();
 
@@ -158,7 +159,7 @@ pub fn Fetch(
 
     // Step 2. Let requestObject be the result of invoking the initial value of Request as constructor
     //         with input and init as arguments. If this throws an exception, reject p with it and return p.
-    let request = match Request::Constructor(global, None, CanGc::note(), input, init) {
+    let request = match Request::Constructor(global, None, can_gc, input, init) {
         Err(e) => {
             response.error_stream(e.clone());
             promise.reject_error(e);
