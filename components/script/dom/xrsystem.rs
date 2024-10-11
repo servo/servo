@@ -32,6 +32,7 @@ use crate::dom::window::Window;
 use crate::dom::xrsession::XRSession;
 use crate::dom::xrtest::XRTest;
 use crate::realms::InRealm;
+use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 use crate::task_source::TaskSource;
 
@@ -257,7 +258,7 @@ impl XRSystemMethods for XRSystem {
                 };
                 let _ = task_source.queue_with_canceller(
                     task!(request_session: move || {
-                        this.root().session_obtained(message, trusted.root(), mode, frame_receiver);
+                        this.root().session_obtained(message, trusted.root(), mode, frame_receiver, CanGc::note());
                     }),
                     &canceller,
                 );
@@ -282,6 +283,7 @@ impl XRSystem {
         promise: Rc<Promise>,
         mode: XRSessionMode,
         frame_receiver: IpcReceiver<Frame>,
+        can_gc: CanGc,
     ) {
         let session = match response {
             Ok(session) => session,
@@ -305,7 +307,7 @@ impl XRSystem {
         promise.resolve_native(&session);
         // https://github.com/immersive-web/webxr/issues/961
         // This must be called _after_ the promise is resolved
-        session.setup_initial_inputs();
+        session.setup_initial_inputs(can_gc);
     }
 
     // https://github.com/immersive-web/navigation/issues/10

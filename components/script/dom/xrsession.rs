@@ -68,6 +68,7 @@ use crate::dom::xrspace::XRSpace;
 use crate::realms::InRealm;
 use crate::script_runtime::JSContext;
 use crate::task_source::TaskSource;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct XRSession {
@@ -240,7 +241,7 @@ impl XRSession {
                 let this = this.clone();
                 let _ = task_source.queue_with_canceller(
                     task!(xr_event_callback: move || {
-                        this.root().event_callback(message.to().unwrap());
+                        this.root().event_callback(message.to().unwrap(), CanGc::note());
                     }),
                     &canceller,
                 );
@@ -256,7 +257,7 @@ impl XRSession {
     //
     // This enables content that assumes all input sources are accompanied
     // by an inputsourceschange event to work properly. Without
-    pub fn setup_initial_inputs(&self) {
+    pub fn setup_initial_inputs(&self, can_gc: CanGc) {
         let initial_inputs = self.session.borrow().initial_inputs().to_owned();
 
         if initial_inputs.is_empty() {
@@ -275,13 +276,13 @@ impl XRSession {
         let _ = task_source.queue_with_canceller(
             task!(session_initial_inputs: move || {
                 let this = this.root();
-                this.input_sources.add_input_sources(&this, &initial_inputs);
+                this.input_sources.add_input_sources(&this, &initial_inputs, can_gc);
             }),
             &canceller,
         );
     }
 
-    fn event_callback(&self, event: XREvent) {
+    fn event_callback(&self, event: XREvent, can_gc: CanGc) {
         match event {
             XREvent::SessionEnd => {
                 // https://immersive-web.github.io/webxr/#shut-down-the-session
@@ -366,13 +367,14 @@ impl XRSession {
                 self.dirty_layers();
             },
             XREvent::AddInput(info) => {
-                self.input_sources.add_input_sources(self, &[info]);
+                self.input_sources.add_input_sources(self, &[info], can_gc);
             },
             XREvent::RemoveInput(id) => {
                 self.input_sources.remove_input_source(self, id);
             },
             XREvent::UpdateInput(id, source) => {
-                self.input_sources.add_remove_input_source(self, id, source);
+                self.input_sources
+                    .add_remove_input_source(self, id, source, can_gc);
             },
             XREvent::InputChanged(id, frame) => {
                 self.input_frames.borrow_mut().insert(id, frame);

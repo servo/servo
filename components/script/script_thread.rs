@@ -1538,7 +1538,7 @@ impl ScriptThread {
     }
 
     /// Process compositor events as part of a "update the rendering task".
-    fn process_pending_compositor_events(&self, pipeline_id: PipelineId) {
+    fn process_pending_compositor_events(&self, pipeline_id: PipelineId, can_gc: CanGc) {
         let Some(document) = self.documents.borrow().find_document(pipeline_id) else {
             warn!("Processing pending compositor events for closed pipeline {pipeline_id}.");
             return;
@@ -1630,7 +1630,7 @@ impl ScriptThread {
 
                 CompositorEvent::GamepadEvent(gamepad_event) => {
                     let global = window.upcast::<GlobalScope>();
-                    global.handle_gamepad_event(gamepad_event);
+                    global.handle_gamepad_event(gamepad_event, can_gc);
                 },
             }
         }
@@ -1638,7 +1638,7 @@ impl ScriptThread {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#update-the-rendering>
-    fn update_the_rendering(&self) {
+    fn update_the_rendering(&self, can_gc: CanGc) {
         self.update_the_rendering_task_queued_for_pipeline
             .borrow_mut()
             .clear();
@@ -1687,7 +1687,7 @@ impl ScriptThread {
 
             // TODO: Should this be broken and to match the specification more closely? For instance see
             // https://html.spec.whatwg.org/multipage/#flush-autofocus-candidates.
-            self.process_pending_compositor_events(pipeline_id);
+            self.process_pending_compositor_events(pipeline_id, can_gc);
 
             // TODO(#31665): Implement the "run the scroll steps" from
             // https://drafts.csswg.org/cssom-view/#document-run-the-scroll-steps.
@@ -1781,7 +1781,7 @@ impl ScriptThread {
                 SCRIPT_THREAD_ROOT.with(|root| {
                     if let Some(script_thread) = root.get() {
                         let script_thread = unsafe {&*script_thread};
-                        script_thread.update_the_rendering();
+                        script_thread.update_the_rendering(CanGc::note());
                     }
                 })
             }),
