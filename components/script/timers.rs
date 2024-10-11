@@ -29,6 +29,7 @@ use crate::dom::htmlmetaelement::RefreshRedirectDue;
 use crate::dom::testbinding::TestBindingCallback;
 use crate::dom::xmlhttprequest::XHRTimeoutCallback;
 use crate::script_module::ScriptFetchOptions;
+use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, JSTraceable, MallocSizeOf, Ord, PartialEq, PartialOrd)]
@@ -88,9 +89,9 @@ pub enum OneshotTimerCallback {
 }
 
 impl OneshotTimerCallback {
-    fn invoke<T: DomObject>(self, this: &T, js_timers: &JsTimers) {
+    fn invoke<T: DomObject>(self, this: &T, js_timers: &JsTimers, can_gc: CanGc) {
         match self {
-            OneshotTimerCallback::XhrTimeout(callback) => callback.invoke(),
+            OneshotTimerCallback::XhrTimeout(callback) => callback.invoke(can_gc),
             OneshotTimerCallback::EventSourceTimeout(callback) => callback.invoke(),
             OneshotTimerCallback::JsTimer(task) => task.invoke(this, js_timers),
             OneshotTimerCallback::TestBindingCallback(callback) => callback.invoke(),
@@ -190,7 +191,7 @@ impl OneshotTimers {
         }
     }
 
-    pub fn fire_timer(&self, id: TimerEventId, global: &GlobalScope) {
+    pub fn fire_timer(&self, id: TimerEventId, global: &GlobalScope, can_gc: CanGc) {
         let expected_id = self.expected_event_id.get();
         if expected_id != id {
             debug!(
@@ -233,7 +234,7 @@ impl OneshotTimers {
                 return;
             }
             let callback = timer.callback;
-            callback.invoke(global, &self.js_timers);
+            callback.invoke(global, &self.js_timers, can_gc);
         }
 
         self.schedule_timer_call();

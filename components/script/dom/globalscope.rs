@@ -532,7 +532,7 @@ impl TimerListener {
                     },
                 };
                 // Step 7, substeps run in a task.
-                global.fire_timer(id);
+                global.fire_timer(id, CanGc::note());
             }),
             &self.canceller,
         );
@@ -2893,8 +2893,8 @@ impl GlobalScope {
         }
     }
 
-    pub fn fire_timer(&self, handle: TimerEventId) {
-        self.timers.fire_timer(handle, self);
+    pub fn fire_timer(&self, handle: TimerEventId, can_gc: CanGc) {
+        self.timers.fire_timer(handle, self, can_gc);
     }
 
     pub fn resume(&self) {
