@@ -783,7 +783,7 @@ impl WindowMethods for Window {
                     // but we pass false here, which suggests we are not doing that. Why?
                     if document.prompt_to_unload(false) {
                         // Step 4, unload.
-                        document.unload(false);
+                        document.unload(false, CanGc::note());
 
                         // https://html.spec.whatwg.org/multipage/#a-browsing-context-is-discarded
                         // which calls into https://html.spec.whatwg.org/multipage/#discard-a-document.

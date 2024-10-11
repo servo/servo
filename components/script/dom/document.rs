@@ -693,7 +693,7 @@ impl Document {
         self.activity.get() != DocumentActivity::Inactive
     }
 
-    pub fn set_activity(&self, activity: DocumentActivity) {
+    pub fn set_activity(&self, activity: DocumentActivity, can_gc: CanGc) {
         // This function should only be called on documents with a browsing context
         assert!(self.has_browsing_context);
         if activity == self.activity.get() {
@@ -751,6 +751,7 @@ impl Document {
                         false, // bubbles
                         false, // cancelable
                         true, // persisted
+                        can_gc,
                     );
                     let event = event.upcast::<Event>();
                     event.set_trusted(true);
@@ -2256,7 +2257,7 @@ impl Document {
     }
 
     // https://html.spec.whatwg.org/multipage/#unload-a-document
-    pub fn unload(&self, recursive_flag: bool) {
+    pub fn unload(&self, recursive_flag: bool, can_gc: CanGc) {
         // TODO: Step 1, increase the event loop's termination nesting level by 1.
         // Step 2
         self.incr_ignore_opens_during_unload_counter();
@@ -2272,6 +2273,7 @@ impl Document {
                 false,                  // bubbles
                 false,                  // cancelable
                 self.salvageable.get(), // persisted
+                can_gc,
             );
             let event = event.upcast::<Event>();
             event.set_trusted(true);
@@ -2286,7 +2288,7 @@ impl Document {
                 atom!("unload"),
                 EventBubbles::Bubbles,
                 EventCancelable::Cancelable,
-                CanGc::note(),
+                can_gc,
             );
             event.set_trusted(true);
             let event_target = self.window.upcast::<EventTarget>();
@@ -2305,7 +2307,7 @@ impl Document {
             for iframe in self.iter_iframes() {
                 // TODO: handle the case of cross origin iframes.
                 let document = document_from_node(&*iframe);
-                document.unload(true);
+                document.unload(true, can_gc);
                 if !document.salvageable() {
                     self.salvageable.set(false);
                 }
@@ -2422,6 +2424,7 @@ impl Document {
                             false, // bubbles
                             false, // cancelable
                             false, // persisted
+                            can_gc,
                         );
                         let event = event.upcast::<Event>();
                         event.set_trusted(true);

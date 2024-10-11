@@ -2311,7 +2311,7 @@ impl ScriptThread {
                 can_gc,
             ),
             ConstellationControlMsg::UnloadDocument(pipeline_id) => {
-                self.handle_unload_document(pipeline_id)
+                self.handle_unload_document(pipeline_id, can_gc)
             },
             ConstellationControlMsg::ResizeInactive(id, new_size) => {
                 self.handle_resize_inactive_msg(id, new_size)
@@ -2320,7 +2320,7 @@ impl ScriptThread {
                 self.handle_get_title_msg(pipeline_id)
             },
             ConstellationControlMsg::SetDocumentActivity(pipeline_id, activity) => {
-                self.handle_set_document_activity_msg(pipeline_id, activity)
+                self.handle_set_document_activity_msg(pipeline_id, activity, can_gc)
             },
             ConstellationControlMsg::SetThrottled(pipeline_id, throttled) => {
                 self.handle_set_throttled_msg(pipeline_id, throttled)
@@ -2988,7 +2988,12 @@ impl ScriptThread {
     }
 
     /// Handles activity change message
-    fn handle_set_document_activity_msg(&self, id: PipelineId, activity: DocumentActivity) {
+    fn handle_set_document_activity_msg(
+        &self,
+        id: PipelineId,
+        activity: DocumentActivity,
+        can_gc: CanGc,
+    ) {
         debug!(
             "Setting activity of {} to be {:?} in {:?}.",
             id,
@@ -2997,7 +3002,7 @@ impl ScriptThread {
         );
         let document = self.documents.borrow().find_document(id);
         if let Some(document) = document {
-            document.set_activity(activity);
+            document.set_activity(activity, can_gc);
             return;
         }
         let mut loads = self.incomplete_loads.borrow_mut();
@@ -3073,10 +3078,10 @@ impl ScriptThread {
         }
     }
 
-    fn handle_unload_document(&self, pipeline_id: PipelineId) {
+    fn handle_unload_document(&self, pipeline_id: PipelineId, can_gc: CanGc) {
         let document = self.documents.borrow().find_document(pipeline_id);
         if let Some(document) = document {
-            document.unload(false);
+            document.unload(false, can_gc);
         }
     }
 
