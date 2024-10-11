@@ -1102,10 +1102,7 @@ impl HTMLFormElement {
             let child = child.upcast::<Node>();
 
             // Step 5.1: The field element has a datalist element ancestor.
-            if child
-                .ancestors()
-                .any(|a| DomRoot::downcast::<HTMLDataListElement>(a).is_some())
-            {
+            if child.ancestors().any(|a| a.is::<HTMLDataListElement>()) {
                 continue;
             }
             if let NodeTypeId::Element(ElementTypeId::HTMLElement(element)) = child.type_id() {

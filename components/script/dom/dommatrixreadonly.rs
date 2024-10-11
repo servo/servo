@@ -447,7 +447,7 @@ impl DOMMatrixReadOnlyMethods for DOMMatrixReadOnly {
         }
         match init.unwrap() {
             StringOrUnrestrictedDoubleSequence::String(ref s) => {
-                if global.downcast::<Window>().is_none() {
+                if !global.is::<Window>() {
                     return Err(error::Error::Type(
                         "String constructor is only supported in the main thread.".to_owned(),
                     ));
