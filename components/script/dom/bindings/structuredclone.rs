@@ -34,7 +34,7 @@ use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::serializable::{
-    Serializable, SerializeOperation, StorageKey, ToSerializeOperations,
+    FromStructuredClone, Serializable, SerializeOperation, StorageKey, ToSerializeOperations,
 };
 use crate::dom::bindings::transferable::Transferable;
 use crate::dom::blob::Blob;
@@ -57,26 +57,15 @@ pub(super) enum StructuredCloneTags {
     Max = 0xFFFFFFFF,
 }
 
-unsafe fn read_blob(
+unsafe fn deserialize_interface<T: Serializable>(
     owner: &GlobalScope,
     r: *mut JSStructuredCloneReader,
     sc_holder: &mut StructuredDataHolder,
 ) -> *mut JSObject {
-    let mut name_space: u32 = 0;
-    let mut index: u32 = 0;
-    assert!(JS_ReadUint32Pair(
-        r,
-        &mut name_space as *mut u32,
-        &mut index as *mut u32
-    ));
-    let storage_key = StorageKey { index, name_space };
-    if let Ok(blob) = <Blob as Serializable>::deserialize(owner, sc_holder, storage_key) {
-        return blob.reflector().get_jsobject().get();
+    let data = <<T as Serializable>::Data as FromStructuredClone>::from_structured_clone(r);
+    if let Ok(obj) = <T as Serializable>::deserialize(owner, sc_holder, data) {
+        return obj.reflector().get_jsobject().get();
     }
-    warn!(
-        "Reading structured data for a blob failed in {:?}.",
-        owner.get_url()
-    );
     ptr::null_mut()
 }
 
@@ -122,7 +111,7 @@ pub enum CloneableObject {
 impl CloneableObject {
     fn callback(&self) -> DomObjectReadCallback {
         match self {
-            CloneableObject::Blob => read_blob,
+            CloneableObject::Blob => deserialize_interface::<Blob>,
         }
     }
 }
