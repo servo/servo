@@ -10,7 +10,7 @@ use std::rc::Rc;
 use base::id::{BlobId, BlobIndex, PipelineNamespaceId};
 use dom_struct::dom_struct;
 use encoding_rs::UTF_8;
-use js::jsapi::JSObject;
+use js::jsapi::{JSObject, JSStructuredCloneReader, JS_ReadUint32Pair};
 use js::rust::HandleObject;
 use net_traits::filemanager_thread::RelativePos;
 use script_traits::serializable::BlobImpl;
@@ -23,7 +23,9 @@ use crate::dom::bindings::codegen::UnionTypes::ArrayBufferOrArrayBufferViewOrBlo
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::serializable::{Serializable, StorageKey};
+use crate::dom::bindings::serializable::{
+    FromStructuredClone, Serializable, SerializeOperation, ToSerializeOperations,
+};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::structuredclone::{CloneableObject, StructuredReadDataHolder, StructuredWriteDataHolder};
 use crate::dom::globalscope::GlobalScope;
@@ -112,6 +114,34 @@ impl Blob {
     pub fn get_stream(&self) -> DomRoot<ReadableStream> {
         self.global().get_blob_stream(&self.blob_id)
     }
+}
+
+/// The data required to initialize a new blob object from a serialized form.
+pub struct StorageKey {
+    pub index: u32,
+    pub name_space: u32,
+}
+
+impl ToSerializeOperations for StorageKey {
+    fn to_serialize_operations(&self) -> Vec<SerializeOperation> {
+        vec![SerializeOperation::Uint32Pair(self.name_space, self.index)]
+    }
+}
+
+#[allow(unsafe_code)]
+impl FromStructuredClone for StorageKey {
+    unsafe fn from_structured_clone(r: *mut JSStructuredCloneReader) -> StorageKey {
+        let mut key = StorageKey {
+            name_space: 0,
+            index: 0,
+        };
+        assert!(JS_ReadUint32Pair(
+            r,
+            &mut key.name_space,
+            &mut key.index,
+        ));
+        key
+     }
 }
 
 impl Serializable for Blob {
