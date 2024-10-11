@@ -4,7 +4,6 @@
 
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
-use webgpu::wgc::id::{BindGroupLayoutId, PipelineLayoutId};
 use webgpu::wgc::pipeline::RenderPipelineDescriptor;
 use webgpu::{WebGPU, WebGPUBindGroupLayout, WebGPURenderPipeline, WebGPURequest, WebGPUResponse};
 
@@ -16,7 +15,7 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::gpubindgrouplayout::GPUBindGroupLayout;
-use crate::dom::gpudevice::GPUDevice;
+use crate::dom::gpudevice::{GPUDevice, PipelineLayout};
 
 #[dom_struct]
 pub struct GPURenderPipeline {
@@ -70,7 +69,7 @@ impl GPURenderPipeline {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createrenderpipeline>
     pub fn create(
         device: &GPUDevice,
-        implicit_ids: Option<(PipelineLayoutId, Vec<BindGroupLayoutId>)>,
+        pipeline_layout: PipelineLayout,
         descriptor: RenderPipelineDescriptor<'static>,
         async_sender: Option<IpcSender<WebGPUResponse>>,
     ) -> Fallible<WebGPURenderPipeline> {
@@ -83,7 +82,7 @@ impl GPURenderPipeline {
                 device_id: device.id().0,
                 render_pipeline_id,
                 descriptor,
-                implicit_ids,
+                implicit_ids: pipeline_layout.implicit(),
                 async_sender,
             })
             .expect("Failed to create WebGPU render pipeline");
