@@ -87,7 +87,7 @@ pub struct GPUDevice {
 }
 
 pub enum PipelineLayout {
-    Implicit((PipelineLayoutId, Vec<BindGroupLayoutId>)),
+    Implicit(PipelineLayoutId, Vec<BindGroupLayoutId>),
     Explicit(PipelineLayoutId),
 }
 
@@ -101,7 +101,7 @@ impl PipelineLayout {
 
     pub fn implicit(self) -> Option<(PipelineLayoutId, Vec<BindGroupLayoutId>)> {
         match self {
-            PipelineLayout::Implicit((layout_id, bind_group_layout_ids)) => {
+            PipelineLayout::Implicit(layout_id, bind_group_layout_ids) => {
                 Some((layout_id, bind_group_layout_ids))
             },
             _ => None,
@@ -249,7 +249,7 @@ impl GPUDevice {
                 bgls.push(webgpu::WebGPUBindGroupLayout(bgl));
                 bgl_ids.push(bgl);
             }
-            PipelineLayout::Implicit((layout_id, bgl_ids))
+            PipelineLayout::Implicit(layout_id, bgl_ids)
         }
     }
 
@@ -365,10 +365,7 @@ impl GPUDevice {
             },
             multiview: None,
         };
-        Ok((
-            PipelineLayout::Implicit(pipeline_layout.implicit().unwrap()),
-            desc,
-        ))
+        Ok((pipeline_layout, desc))
     }
 
     /// <https://gpuweb.github.io/gpuweb/#lose-the-device>
@@ -496,13 +493,8 @@ impl GPUDeviceMethods for GPUDevice {
         &self,
         descriptor: &GPURenderPipelineDescriptor,
     ) -> Fallible<DomRoot<GPURenderPipeline>> {
-        let (implicit_ids, desc) = self.parse_render_pipeline(descriptor)?;
-        let render_pipeline = GPURenderPipeline::create(
-            self,
-            PipelineLayout::Implicit(implicit_ids.implicit().unwrap()),
-            desc,
-            None,
-        )?;
+        let (pipeline_layout, desc) = self.parse_render_pipeline(descriptor)?;
+        let render_pipeline = GPURenderPipeline::create(self, pipeline_layout, desc, None)?;
         Ok(GPURenderPipeline::new(
             &self.global(),
             render_pipeline,

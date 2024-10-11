@@ -69,7 +69,7 @@ impl GPURenderPipeline {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createrenderpipeline>
     pub fn create(
         device: &GPUDevice,
-        implicit_ids: PipelineLayout,
+        pipeline_layout: PipelineLayout,
         descriptor: RenderPipelineDescriptor<'static>,
         async_sender: Option<IpcSender<WebGPUResponse>>,
     ) -> Fallible<WebGPURenderPipeline> {
@@ -82,7 +82,7 @@ impl GPURenderPipeline {
                 device_id: device.id().0,
                 render_pipeline_id,
                 descriptor,
-                implicit_ids: implicit_ids.implicit(),
+                implicit_ids: pipeline_layout.implicit(),
                 async_sender,
             })
             .expect("Failed to create WebGPU render pipeline");
