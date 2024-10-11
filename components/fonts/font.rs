@@ -27,14 +27,12 @@ use style::values::computed::{FontStretch, FontStyle, FontWeight};
 use unicode_script::Script;
 use webrender_api::{FontInstanceFlags, FontInstanceKey};
 
-use crate::font_context::FontContext;
-use crate::font_template::{FontTemplateDescriptor, FontTemplateRef, FontTemplateRefMethods};
 use crate::platform::font::{FontTable, PlatformFont};
 pub use crate::platform::font_list::fallback_font_families;
-use crate::system_font_service::FontIdentifier;
 use crate::{
-    ByteIndex, EmojiPresentationPreference, FallbackFontSelectionOptions, FontData, GlyphData,
-    GlyphId, GlyphStore, Shaper,
+    ByteIndex, EmojiPresentationPreference, FallbackFontSelectionOptions, FontContext, FontData,
+    FontIdentifier, FontTemplateDescriptor, FontTemplateRef, FontTemplateRefMethods, GlyphData,
+    GlyphId, GlyphStore, LocalFontIdentifier, Shaper,
 };
 
 #[macro_export]
@@ -66,19 +64,32 @@ pub trait PlatformFontMethods: Sized {
     fn new_from_template(
         template: FontTemplateRef,
         pt_size: Option<Au>,
-        data: &Arc<Vec<u8>>,
+        data: &Option<FontData>,
     ) -> Result<PlatformFont, &'static str> {
         let template = template.borrow();
-
-        let face_index = template.identifier().index();
         let font_identifier = template.identifier.clone();
-        Self::new_from_data(font_identifier, data.clone(), face_index, pt_size)
+
+        match font_identifier {
+            FontIdentifier::Local(font_identifier) => {
+                Self::new_from_local_font_identifier(font_identifier, pt_size)
+            },
+            FontIdentifier::Web(_) => Self::new_from_data(
+                font_identifier,
+                data.as_ref()
+                    .expect("Should never create a web font without data."),
+                pt_size,
+            ),
+        }
     }
+
+    fn new_from_local_font_identifier(
+        font_identifier: LocalFontIdentifier,
+        pt_size: Option<Au>,
+    ) -> Result<PlatformFont, &'static str>;
 
     fn new_from_data(
         font_identifier: FontIdentifier,
-        data: Arc<Vec<u8>>,
-        face_index: u32,
+        data: &FontData,
         pt_size: Option<Au>,
     ) -> Result<PlatformFont, &'static str>;
 
@@ -215,13 +226,15 @@ impl malloc_size_of::MallocSizeOf for CachedShapeData {
     }
 }
 
-#[derive(Debug)]
 pub struct Font {
     pub handle: PlatformFont,
-    pub data: Arc<FontData>,
     pub template: FontTemplateRef,
     pub metrics: FontMetrics,
     pub descriptor: FontDescriptor,
+
+    /// The data for this font. This might be uninitialized for system fonts.
+    data: OnceLock<FontData>,
+
     shaper: OnceLock<Shaper>,
     cached_shape_data: RwLock<CachedShapeData>,
     pub font_instance_key: OnceLock<FontInstanceKey>,
@@ -262,23 +275,20 @@ impl Font {
     pub fn new(
         template: FontTemplateRef,
         descriptor: FontDescriptor,
-        data: Arc<FontData>,
+        data: Option<FontData>,
         synthesized_small_caps: Option<FontRef>,
     ) -> Result<Font, &'static str> {
-        let handle = PlatformFont::new_from_template(
-            template.clone(),
-            Some(descriptor.pt_size),
-            data.as_arc(),
-        )?;
+        let handle =
+            PlatformFont::new_from_template(template.clone(), Some(descriptor.pt_size), &data)?;
         let metrics = handle.metrics();
 
         Ok(Font {
             handle,
-            data,
             template,
-            shaper: OnceLock::new(),
-            descriptor,
             metrics,
+            descriptor,
+            data: data.map(OnceLock::from).unwrap_or_default(),
+            shaper: OnceLock::new(),
             cached_shape_data: Default::default(),
             font_instance_key: Default::default(),
             synthesized_small_caps,
@@ -308,6 +318,21 @@ impl Font {
         *self
             .font_instance_key
             .get_or_init(|| font_context.create_font_instance_key(self))
+    }
+
+    /// Return the data for this `Font`. Note that this is currently highly inefficient for system
+    /// fonts and should not be used except in legacy canvas code.
+    pub fn data(&self) -> &FontData {
+        self.data.get_or_init(|| {
+            let FontIdentifier::Local(local_font_identifier) = self.identifier() else {
+                unreachable!("All web fonts should already have initialized data");
+            };
+            FontData::from_bytes(
+                &local_font_identifier
+                    .read_data_from_file()
+                    .unwrap_or_default(),
+            )
+        })
     }
 }
 
@@ -441,7 +466,7 @@ impl Font {
             let offset = prev_glyph_id.map(|prev| {
                 let h_kerning = Au::from_f64_px(self.glyph_h_kerning(prev, glyph_id));
                 advance += h_kerning;
-                Point2D::new(h_kerning, Au(0))
+                Point2D::new(h_kerning, Au::zero())
             });
 
             let glyph = GlyphData::new(glyph_id, advance, offset, true, true);
@@ -530,7 +555,7 @@ pub type FontRef = Arc<Font>;
 /// A `FontGroup` is a prioritised list of fonts for a given set of font styles. It is used by
 /// `TextRun` to decide which font to render a character with. If none of the fonts listed in the
 /// styles are suitable, a fallback font may be used.
-#[derive(Debug, MallocSizeOf)]
+#[derive(MallocSizeOf)]
 pub struct FontGroup {
     descriptor: FontDescriptor,
     families: SmallVec<[FontGroupFamily; 8]>,
@@ -726,7 +751,7 @@ impl FontGroup {
 /// `unicode-range` descriptors. In this case, font selection will select a single member
 /// that contains the necessary unicode character. Unicode ranges are specified by the
 /// [`FontGroupFamilyMember::template`] member.
-#[derive(Debug, MallocSizeOf)]
+#[derive(MallocSizeOf)]
 struct FontGroupFamilyMember {
     #[ignore_malloc_size_of = "This measured in the FontContext template cache."]
     template: FontTemplateRef,
@@ -739,7 +764,7 @@ struct FontGroupFamilyMember {
 /// families listed in the `font-family` CSS property. The corresponding font data is lazy-loaded,
 /// only if actually needed. A single `FontGroupFamily` can have multiple fonts, in the case that
 /// individual fonts only cover part of the Unicode range.
-#[derive(Debug, MallocSizeOf)]
+#[derive(MallocSizeOf)]
 struct FontGroupFamily {
     family_descriptor: FontFamilyDescriptor,
     members: Option<Vec<FontGroupFamilyMember>>,
@@ -818,7 +843,7 @@ pub struct RunMetrics {
 impl RunMetrics {
     pub fn new(advance: Au, ascent: Au, descent: Au) -> RunMetrics {
         let bounds = Rect::new(
-            Point2D::new(Au(0), -ascent),
+            Point2D::new(Au::zero(), -ascent),
             Size2D::new(advance, ascent + descent),
         );
 

@@ -26,6 +26,7 @@ use harfbuzz_sys::{
     HB_OT_LAYOUT_BASELINE_TAG_ROMAN,
 };
 use log::debug;
+use num_traits::Zero;
 
 use crate::platform::font::FontTable;
 use crate::{
@@ -107,11 +108,11 @@ impl ShapedGlyphData {
             let x_advance = Au::from_f64_px(x_advance);
             let y_advance = Au::from_f64_px(y_advance);
 
-            let offset = if x_offset == Au(0) && y_offset == Au(0) && y_advance == Au(0) {
+            let offset = if x_offset.is_zero() && y_offset.is_zero() && y_advance.is_zero() {
                 None
             } else {
                 // adjust the pen..
-                if y_advance > Au(0) {
+                if y_advance > Au::zero() {
                     *y_pos -= y_advance;
                 }
 
@@ -466,7 +467,7 @@ impl Shaper {
         let mut glyph_span = 0..0;
         let mut byte_range = 0..0;
 
-        let mut y_pos = Au(0);
+        let mut y_pos = Au::zero();
 
         // main loop over each glyph. each iteration usually processes 1 glyph and 1+ chars.
         // in cases with complex glyph-character associations, 2+ glyphs and 1+ chars can be

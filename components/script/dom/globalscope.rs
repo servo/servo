@@ -532,7 +532,7 @@ impl TimerListener {
                     },
                 };
                 // Step 7, substeps run in a task.
-                global.fire_timer(id);
+                global.fire_timer(id, CanGc::note());
             }),
             &self.canceller,
         );
@@ -2893,8 +2893,8 @@ impl GlobalScope {
         }
     }
 
-    pub fn fire_timer(&self, handle: TimerEventId) {
-        self.timers.fire_timer(handle, self);
+    pub fn fire_timer(&self, handle: TimerEventId, can_gc: CanGc) {
+        self.timers.fire_timer(handle, self, can_gc);
     }
 
     pub fn resume(&self) {
@@ -3190,20 +3190,25 @@ impl GlobalScope {
         }
     }
 
-    pub fn handle_uncaptured_gpu_error(&self, device: WebGPUDevice, error: webgpu::Error) {
+    pub fn handle_uncaptured_gpu_error(
+        &self,
+        device: WebGPUDevice,
+        error: webgpu::Error,
+        can_gc: CanGc,
+    ) {
         if let Some(gpu_device) = self
             .gpu_devices
             .borrow()
             .get(&device)
             .and_then(|device| device.root())
         {
-            gpu_device.fire_uncaptured_error(error);
+            gpu_device.fire_uncaptured_error(error, can_gc);
         } else {
             warn!("Recived error for lost GPUDevice!")
         }
     }
 
-    pub fn handle_gamepad_event(&self, gamepad_event: GamepadEvent) {
+    pub fn handle_gamepad_event(&self, gamepad_event: GamepadEvent, can_gc: CanGc) {
         match gamepad_event {
             GamepadEvent::Connected(index, name, bounds, supported_haptic_effects) => {
                 self.handle_gamepad_connect(
@@ -3212,6 +3217,7 @@ impl GlobalScope {
                     bounds.axis_bounds,
                     bounds.button_bounds,
                     supported_haptic_effects,
+                    can_gc,
                 );
             },
             GamepadEvent::Disconnected(index) => {
@@ -3234,6 +3240,7 @@ impl GlobalScope {
         axis_bounds: (f64, f64),
         button_bounds: (f64, f64),
         supported_haptic_effects: GamepadSupportedHapticEffects,
+        can_gc: CanGc,
     ) {
         // TODO: 2. If document is not null and is not allowed to use the "gamepad" permission,
         //          then abort these steps.
@@ -3254,7 +3261,8 @@ impl GlobalScope {
                             axis_bounds,
                             button_bounds,
                             supported_haptic_effects,
-                            false
+                            false,
+                            can_gc,
                         );
                         navigator.set_gamepad(selected_index as usize, &gamepad);
                     }

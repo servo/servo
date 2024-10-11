@@ -15,6 +15,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::xrinputsource::XRInputSource;
 use crate::dom::xrinputsourceschangeevent::XRInputSourcesChangeEvent;
 use crate::dom::xrsession::XRSession;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct XRInputSourceArray {
@@ -34,7 +35,7 @@ impl XRInputSourceArray {
         reflect_dom_object(Box::new(XRInputSourceArray::new_inherited()), global)
     }
 
-    pub fn add_input_sources(&self, session: &XRSession, inputs: &[InputSource]) {
+    pub fn add_input_sources(&self, session: &XRSession, inputs: &[InputSource], can_gc: CanGc) {
         let mut input_sources = self.input_sources.borrow_mut();
         let global = self.global();
 
@@ -46,7 +47,7 @@ impl XRInputSourceArray {
                 !input_sources.iter().any(|i| i.id() == info.id),
                 "Should never add a duplicate input id!"
             );
-            let input = XRInputSource::new(&global, session, info.clone());
+            let input = XRInputSource::new(&global, session, info.clone(), can_gc);
             input_sources.push(Dom::from_ref(&input));
             added.push(input);
         }
@@ -90,7 +91,13 @@ impl XRInputSourceArray {
         event.upcast::<Event>().fire(session.upcast());
     }
 
-    pub fn add_remove_input_source(&self, session: &XRSession, id: InputId, info: InputSource) {
+    pub fn add_remove_input_source(
+        &self,
+        session: &XRSession,
+        id: InputId,
+        info: InputSource,
+        can_gc: CanGc,
+    ) {
         let mut input_sources = self.input_sources.borrow_mut();
         let global = self.global();
         let root;
@@ -103,7 +110,7 @@ impl XRInputSourceArray {
             &[]
         };
         input_sources.retain(|i| i.id() != id);
-        let input = XRInputSource::new(&global, session, info);
+        let input = XRInputSource::new(&global, session, info, can_gc);
         input_sources.push(Dom::from_ref(&input));
 
         let added = [input];

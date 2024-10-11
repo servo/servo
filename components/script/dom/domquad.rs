@@ -16,7 +16,7 @@ use crate::dom::domrect::DOMRect;
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::CanGc;
 
-// https://drafts.fxtf.org/geometry/#DOMQuad
+/// <https://drafts.fxtf.org/geometry/#DOMQuad>
 #[dom_struct]
 pub struct DOMQuad {
     reflector_: Reflector,
@@ -137,31 +137,58 @@ impl DOMQuadMethods for DOMQuad {
 
     // https://drafts.fxtf.org/geometry/#dom-domquad-getbounds
     fn GetBounds(&self) -> DomRoot<DOMRect> {
-        let left = self
-            .p1
-            .X()
-            .min(self.p2.X())
-            .min(self.p3.X())
-            .min(self.p4.X());
-        let top = self
-            .p1
-            .Y()
-            .min(self.p2.Y())
-            .min(self.p3.Y())
-            .min(self.p4.Y());
-        let right = self
-            .p1
-            .X()
-            .max(self.p2.X())
-            .max(self.p3.X())
-            .max(self.p4.X());
-        let bottom = self
-            .p1
-            .Y()
-            .max(self.p2.Y())
-            .max(self.p3.Y())
-            .max(self.p4.Y());
+        // https://drafts.fxtf.org/geometry/#nan-safe-minimum
+        let nan_safe_minimum = |a: f64, b: f64| {
+            if a.is_nan() || b.is_nan() {
+                f64::NAN
+            } else {
+                a.min(b)
+            }
+        };
 
+        // https://drafts.fxtf.org/geometry/#nan-safe-maximum
+        let nan_safe_maximum = |a: f64, b: f64| {
+            if a.is_nan() || b.is_nan() {
+                f64::NAN
+            } else {
+                a.max(b)
+            }
+        };
+
+        // Step 1. Let bounds be a DOMRect object.
+        // NOTE: We construct the object at the end
+
+        // Step 2. Let left be the NaN-safe minimum of point 1’s x coordinate,
+        // point 2’s x coordinate, point 3’s x coordinate and point 4’s x coordinate.
+        let left = nan_safe_minimum(
+            nan_safe_minimum(self.p1.X(), self.p2.X()),
+            nan_safe_minimum(self.p3.X(), self.p4.X()),
+        );
+
+        // Step 3. Let top be the NaN-safe minimum of point 1’s y coordinate,
+        // point 2’s y coordinate, point 3’s y coordinate and point 4’s y coordinate.
+        let top = nan_safe_minimum(
+            nan_safe_minimum(self.p1.Y(), self.p2.Y()),
+            nan_safe_minimum(self.p3.Y(), self.p4.Y()),
+        );
+
+        // Step 4. Let right be the NaN-safe maximum of point 1’s x coordinate,
+        // point 2’s x coordinate, point 3’s x coordinate and point 4’s x coordinate.
+        let right = nan_safe_maximum(
+            nan_safe_maximum(self.p1.X(), self.p2.X()),
+            nan_safe_maximum(self.p3.X(), self.p4.X()),
+        );
+
+        // Step 5. Let bottom be the NaN-safe maximum of point 1’s y coordinate,
+        // point 2’s y coordinate, point 3’s y coordinate and point 4’s y coordinate.
+        let bottom = nan_safe_maximum(
+            nan_safe_maximum(self.p1.Y(), self.p2.Y()),
+            nan_safe_maximum(self.p3.Y(), self.p4.Y()),
+        );
+
+        // Step 6. Set x coordinate of bounds to left, y coordinate of bounds to top,
+        // width dimension of bounds to right - left and height dimension of bounds to bottom - top.
+        // NOTE: Combined with Step 1.
         DOMRect::new(
             &self.global(),
             left,

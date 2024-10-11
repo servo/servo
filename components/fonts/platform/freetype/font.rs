@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::ffi::CString;
 use std::os::raw::c_long;
-use std::sync::Arc;
 use std::{mem, ptr};
 
 use app_units::Au;
@@ -11,10 +11,10 @@ use euclid::default::{Point2D, Rect, Size2D};
 use freetype_sys::{
     ft_sfnt_head, ft_sfnt_os2, FT_Byte, FT_Done_Face, FT_Error, FT_F26Dot6, FT_Face, FT_Fixed,
     FT_Get_Char_Index, FT_Get_Kerning, FT_Get_Sfnt_Table, FT_GlyphSlot, FT_Int32, FT_Load_Glyph,
-    FT_Long, FT_MulFix, FT_New_Memory_Face, FT_Pos, FT_Select_Size, FT_Set_Char_Size, FT_Short,
-    FT_SizeRec, FT_Size_Metrics, FT_UInt, FT_ULong, FT_UShort, FT_Vector, FT_FACE_FLAG_COLOR,
-    FT_FACE_FLAG_FIXED_SIZES, FT_FACE_FLAG_SCALABLE, FT_KERNING_DEFAULT, FT_LOAD_COLOR,
-    FT_LOAD_DEFAULT, FT_LOAD_NO_HINTING, FT_STYLE_FLAG_ITALIC, TT_OS2,
+    FT_Long, FT_MulFix, FT_New_Face, FT_New_Memory_Face, FT_Pos, FT_Select_Size, FT_Set_Char_Size,
+    FT_Short, FT_SizeRec, FT_Size_Metrics, FT_UInt, FT_ULong, FT_UShort, FT_Vector,
+    FT_FACE_FLAG_COLOR, FT_FACE_FLAG_FIXED_SIZES, FT_FACE_FLAG_SCALABLE, FT_KERNING_DEFAULT,
+    FT_LOAD_COLOR, FT_LOAD_DEFAULT, FT_LOAD_NO_HINTING, FT_STYLE_FLAG_ITALIC, TT_OS2,
 };
 use log::debug;
 use parking_lot::ReentrantMutex;
@@ -25,12 +25,14 @@ use style::Zero;
 use webrender_api::FontInstanceFlags;
 
 use super::library_handle::FreeTypeLibraryHandle;
+use super::LocalFontIdentifier;
 use crate::font::{
     FontMetrics, FontTableMethods, FontTableTag, FractionalPixel, PlatformFontMethods,
 };
 use crate::font_template::FontTemplateDescriptor;
 use crate::glyph::GlyphId;
 use crate::system_font_service::FontIdentifier;
+use crate::FontData;
 
 // This constant is not present in the freetype
 // bindings due to bindgen not handling the way
@@ -68,9 +70,6 @@ struct OS2Table {
 #[derive(Debug)]
 #[allow(unused)]
 pub struct PlatformFont {
-    /// The font data itself, which must stay valid for the lifetime of the
-    /// platform [`FT_Face`].
-    font_data: Arc<Vec<u8>>,
     face: ReentrantMutex<FT_Face>,
     requested_face_size: Au,
     actual_face_size: Au,
@@ -98,36 +97,28 @@ impl Drop for PlatformFont {
     }
 }
 
-fn create_face(data: Arc<Vec<u8>>, face_index: u32) -> Result<FT_Face, &'static str> {
-    unsafe {
-        let mut face: FT_Face = ptr::null_mut();
+impl PlatformFontMethods for PlatformFont {
+    fn new_from_data(
+        _font_identifier: FontIdentifier,
+        font_data: &FontData,
+        requested_size: Option<Au>,
+    ) -> Result<PlatformFont, &'static str> {
         let library = FreeTypeLibraryHandle::get().lock();
-
-        // This is to support 32bit Android where FT_Long is defined as i32.
-        let result = FT_New_Memory_Face(
-            library.freetype_library,
-            data.as_ptr(),
-            data.len() as FT_Long,
-            face_index as FT_Long,
-            &mut face,
-        );
+        let data: &[u8] = font_data.as_ref();
+        let mut face: FT_Face = ptr::null_mut();
+        let result = unsafe {
+            FT_New_Memory_Face(
+                library.freetype_library,
+                data.as_ptr(),
+                data.len() as FT_Long,
+                0, /* face_index */
+                &mut face,
+            )
+        };
 
         if 0 != result || face.is_null() {
             return Err("Could not create FreeType face");
         }
-
-        Ok(face)
-    }
-}
-
-impl PlatformFontMethods for PlatformFont {
-    fn new_from_data(
-        _font_identifier: FontIdentifier,
-        data: Arc<Vec<u8>>,
-        face_index: u32,
-        requested_size: Option<Au>,
-    ) -> Result<PlatformFont, &'static str> {
-        let face = create_face(data.clone(), face_index)?;
 
         let (requested_face_size, actual_face_size) = match requested_size {
             Some(requested_size) => (requested_size, face.set_size(requested_size)?),
@@ -136,7 +127,39 @@ impl PlatformFontMethods for PlatformFont {
 
         Ok(PlatformFont {
             face: ReentrantMutex::new(face),
-            font_data: data,
+            requested_face_size,
+            actual_face_size,
+        })
+    }
+
+    fn new_from_local_font_identifier(
+        font_identifier: LocalFontIdentifier,
+        requested_size: Option<Au>,
+    ) -> Result<PlatformFont, &'static str> {
+        let mut face: FT_Face = ptr::null_mut();
+        let library = FreeTypeLibraryHandle::get().lock();
+        let filename = CString::new(&*font_identifier.path).expect("filename contains NUL byte!");
+
+        let result = unsafe {
+            FT_New_Face(
+                library.freetype_library,
+                filename.as_ptr(),
+                font_identifier.index() as FT_Long,
+                &mut face,
+            )
+        };
+
+        if 0 != result || face.is_null() {
+            return Err("Could not create FreeType face");
+        }
+
+        let (requested_face_size, actual_face_size) = match requested_size {
+            Some(requested_size) => (requested_size, face.set_size(requested_size)?),
+            None => (Au::zero(), Au::zero()),
+        };
+
+        Ok(PlatformFont {
+            face: ReentrantMutex::new(face),
             requested_face_size,
             actual_face_size,
         })
@@ -150,7 +173,6 @@ impl PlatformFontMethods for PlatformFont {
             FontStyle::NORMAL
         };
 
-        let face = self.face.lock();
         let os2_table = face.os2_table();
         let weight = os2_table
             .as_ref()

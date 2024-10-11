@@ -875,7 +875,7 @@ impl LayoutThread {
                         root_flow.overflow.scroll.size
                     };
 
-                    let origin = Rect::new(Point2D::new(Au(0), Au(0)), root_size).to_layout();
+                    let origin = Rect::new(Point2D::zero(), root_size).to_layout();
                     build_state.root_stacking_context.bounds = origin;
                     build_state.root_stacking_context.overflow = origin;
 

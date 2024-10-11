@@ -27,6 +27,7 @@ use crate::dom::gpudevice::GPUDevice;
 use crate::dom::gpusupportedfeatures::gpu_to_wgt_feature;
 use crate::dom::promise::Promise;
 use crate::realms::InRealm;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct GPUAdapter {
@@ -194,7 +195,7 @@ impl GPUAdapterMethods for GPUAdapter {
 }
 
 impl AsyncWGPUListener for GPUAdapter {
-    fn handle_response(&self, response: WebGPUResponse, promise: &Rc<Promise>) {
+    fn handle_response(&self, response: WebGPUResponse, promise: &Rc<Promise>, _can_gc: CanGc) {
         match response {
             WebGPUResponse::Device((device_id, queue_id, Ok(descriptor))) => {
                 let device = GPUDevice::new(

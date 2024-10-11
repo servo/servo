@@ -102,13 +102,13 @@ webxr = { git = "https://github.com/servo/webxr" }
 # For optional feature servo_allocator/use-system-allocator
 servo_allocator = { path = "../../components/allocator" }
 arboard = { version = "3" }
-egui = { version = "0.28.1" }
-egui_glow = { version = "0.28.1", features = ["winit"] }
-egui-winit = { version = "0.28.1", default-features = false, features = ["clipboard", "wayland"] }
+egui = { version = "0.29.1" }
+egui_glow = { version = "0.29.1", features = ["winit"] }
+egui-winit = { version = "0.29.1", default-features = false, features = ["clipboard", "wayland"] }
 euclid = { workspace = true }
 gilrs = "0.11.0"
 gleam = { workspace = true }
-glow = "0.13.1"
+glow = "0.14.1"
 headers = { workspace = true }
 http = { workspace = true }
 keyboard-types = { workspace = true }
@@ -119,7 +119,7 @@ shellwords = "1.0.0"
 surfman = { workspace = true, features = ["sm-x11", "sm-raw-window-handle-06"] }
 tinyfiledialogs = "3.0"
 webxr = { git = "https://github.com/servo/webxr", features = ["ipc", "glwindow", "headless"] }
-winit = "0.29.10"
+winit = "0.30.5"
 
 [target.'cfg(any(all(target_os = "linux", not(target_env = "ohos")), target_os = "windows"))'.dependencies]
 image = { workspace = true }

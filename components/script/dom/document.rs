@@ -693,7 +693,7 @@ impl Document {
         self.activity.get() != DocumentActivity::Inactive
     }
 
-    pub fn set_activity(&self, activity: DocumentActivity) {
+    pub fn set_activity(&self, activity: DocumentActivity, can_gc: CanGc) {
         // This function should only be called on documents with a browsing context
         assert!(self.has_browsing_context);
         if activity == self.activity.get() {
@@ -751,6 +751,7 @@ impl Document {
                         false, // bubbles
                         false, // cancelable
                         true, // persisted
+                        can_gc,
                     );
                     let event = event.upcast::<Event>();
                     event.set_trusted(true);
@@ -2256,7 +2257,7 @@ impl Document {
     }
 
     // https://html.spec.whatwg.org/multipage/#unload-a-document
-    pub fn unload(&self, recursive_flag: bool) {
+    pub fn unload(&self, recursive_flag: bool, can_gc: CanGc) {
         // TODO: Step 1, increase the event loop's termination nesting level by 1.
         // Step 2
         self.incr_ignore_opens_during_unload_counter();
@@ -2272,6 +2273,7 @@ impl Document {
                 false,                  // bubbles
                 false,                  // cancelable
                 self.salvageable.get(), // persisted
+                can_gc,
             );
             let event = event.upcast::<Event>();
             event.set_trusted(true);
@@ -2286,6 +2288,7 @@ impl Document {
                 atom!("unload"),
                 EventBubbles::Bubbles,
                 EventCancelable::Cancelable,
+                can_gc,
             );
             event.set_trusted(true);
             let event_target = self.window.upcast::<EventTarget>();
@@ -2304,7 +2307,7 @@ impl Document {
             for iframe in self.iter_iframes() {
                 // TODO: handle the case of cross origin iframes.
                 let document = document_from_node(&*iframe);
-                document.unload(true);
+                document.unload(true, can_gc);
                 if !document.salvageable() {
                     self.salvageable.set(false);
                 }
@@ -2328,7 +2331,7 @@ impl Document {
     }
 
     // https://html.spec.whatwg.org/multipage/#the-end
-    pub fn maybe_queue_document_completion(&self) {
+    pub fn maybe_queue_document_completion(&self, can_gc: CanGc) {
         // https://html.spec.whatwg.org/multipage/#delaying-load-events-mode
         let is_in_delaying_load_events_mode = match self.window.undiscarded_window_proxy() {
             Some(window_proxy) => window_proxy.is_delaying_load_events_mode(),
@@ -2378,6 +2381,7 @@ impl Document {
                         atom!("load"),
                         EventBubbles::DoesNotBubble,
                         EventCancelable::NotCancelable,
+                        can_gc,
                     );
                     event.set_trusted(true);
 
@@ -2420,6 +2424,7 @@ impl Document {
                             false, // bubbles
                             false, // cancelable
                             false, // persisted
+                            can_gc,
                         );
                         let event = event.upcast::<Event>();
                         event.set_trusted(true);
@@ -2658,7 +2663,7 @@ impl Document {
         for iframe in self.iter_iframes() {
             if let Some(document) = iframe.GetContentDocument() {
                 // TODO: abort the active documents of every child browsing context.
-                document.abort(CanGc::note());
+                document.abort(can_gc);
                 // TODO: salvageable flag.
             }
         }
@@ -4590,9 +4595,10 @@ impl DocumentMethods for Document {
             ))),
             // FIXME(#25136): devicemotionevent, deviceorientationevent
             // FIXME(#7529): dragevent
-            "events" | "event" | "htmlevents" | "svgevents" => {
-                Ok(Event::new_uninitialized(self.window.upcast()))
-            },
+            "events" | "event" | "htmlevents" | "svgevents" => Ok(Event::new_uninitialized(
+                self.window.upcast(),
+                CanGc::note(),
+            )),
             "focusevent" => Ok(DomRoot::upcast(FocusEvent::new_uninitialized(&self.window))),
             "hashchangeevent" => Ok(DomRoot::upcast(HashChangeEvent::new_uninitialized(
                 &self.window,

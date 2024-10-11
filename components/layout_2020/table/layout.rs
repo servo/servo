@@ -1041,10 +1041,10 @@ impl<'a> TableLayout<'a> {
             |column_index: &usize| self.column_measures[*column_index].percentage.0 > 0.;
         let has_percent_zero = |column_index: &usize| !has_percent_greater_than_zero(column_index);
         let has_max_content = |column_index: &usize| {
-            self.column_measures[*column_index]
+            !self.column_measures[*column_index]
                 .content_sizes
-                .max_content !=
-                Au(0)
+                .max_content
+                .is_zero()
         };
 
         let max_content_sum =
@@ -2862,8 +2862,8 @@ fn get_outer_sizes_for_measurement(
     let min_size = style.min_box_size(writing_mode);
     let max_size = style.max_box_size(writing_mode);
     (
-        outer_size(size.map(|v| get_size_for_axis(v).unwrap_or(Au(0)))),
-        outer_size(min_size.map(|v| get_size_for_axis(v).unwrap_or(Au(0)))),
+        outer_size(size.map(|v| get_size_for_axis(v).unwrap_or_else(Au::zero))),
+        outer_size(min_size.map(|v| get_size_for_axis(v).unwrap_or_else(Au::zero))),
         outer_size(max_size.map(|v| get_size_for_axis(v).unwrap_or(MAX_AU))),
         size.inline.is_keyword(),
         get_size_percentage_contribution(&size, &max_size),

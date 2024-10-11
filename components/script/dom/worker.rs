@@ -220,7 +220,7 @@ impl WorkerMethods for Worker {
             global.wgpu_id_hub(),
             control_receiver,
             context_sender,
-            CanGc::note(),
+            can_gc,
         );
 
         let context = context_receiver

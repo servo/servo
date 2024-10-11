@@ -43,8 +43,13 @@ impl RTCError {
         }
     }
 
-    pub fn new(global: &GlobalScope, init: &RTCErrorInit, message: DOMString) -> DomRoot<RTCError> {
-        Self::new_with_proto(global, None, init, message, CanGc::note())
+    pub fn new(
+        global: &GlobalScope,
+        init: &RTCErrorInit,
+        message: DOMString,
+        can_gc: CanGc,
+    ) -> DomRoot<RTCError> {
+        Self::new_with_proto(global, None, init, message, can_gc)
     }
 
     fn new_with_proto(

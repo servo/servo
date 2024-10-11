@@ -285,7 +285,7 @@ mod test {
 
     #[test]
     fn test() {
-        let pos = Point2D::new(0, 0);
+        let pos = Point2D::zero();
         let viewport = Size2D::new(800, 600);
         let screen = Size2D::new(1080, 720);
         let coordinates = EmbedderCoordinates {

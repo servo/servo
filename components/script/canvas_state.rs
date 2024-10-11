@@ -612,7 +612,7 @@ impl CanvasState {
         dh: f64,
     ) -> (Rect<f64>, Rect<f64>) {
         let image_rect = Rect::new(
-            Point2D::new(0f64, 0f64),
+            Point2D::zero(),
             Size2D::new(image_size.width, image_size.height),
         );
 

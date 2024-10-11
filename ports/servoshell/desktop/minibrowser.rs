@@ -27,10 +27,12 @@ use servo::servo_url::ServoUrl;
 use servo::style_traits::DevicePixel;
 use servo::webrender_traits::RenderingContext;
 use servo::TopLevelBrowsingContextId;
-use winit::event::{ElementState, MouseButton};
+use winit::event::{ElementState, MouseButton, WindowEvent};
+use winit::event_loop::EventLoop;
+use winit::window::Window;
 
 use super::egui_glue::EguiGlow;
-use super::events_loop::EventsLoop;
+use super::events_loop::WakerEvent;
 use super::geometry::winit_position_to_euclid_point;
 use super::webview::{LoadStatus, WebViewManager};
 use super::window_trait::WindowPortsMethods;
@@ -78,7 +80,7 @@ fn truncate_with_ellipsis(input: &str, max_length: usize) -> String {
 impl Minibrowser {
     pub fn new(
         rendering_context: &RenderingContext,
-        events_loop: &EventsLoop,
+        event_loop: &EventLoop<WakerEvent>,
         initial_url: ServoUrl,
     ) -> Self {
         let gl = unsafe {
@@ -87,7 +89,7 @@ impl Minibrowser {
 
         // Adapted from https://github.com/emilk/egui/blob/9478e50d012c5138551c38cbee16b07bc1fcf283/crates/egui_glow/examples/pure_glow.rs
         #[allow(clippy::arc_with_non_send_sync)]
-        let context = EguiGlow::new(events_loop.as_winit(), Arc::new(gl), None);
+        let context = EguiGlow::new(event_loop, Arc::new(gl), None);
 
         // Disable the builtin egui handlers for the Ctrl+Plus, Ctrl+Minus and Ctrl+0
         // shortcuts as they don't work well with servoshell's `device-pixel-ratio` CLI argument.
@@ -118,14 +120,10 @@ impl Minibrowser {
     /// Preprocess the given [winit::event::WindowEvent], returning unconsumed for mouse events in
     /// the Servo browser rect. This is needed because the CentralPanel we create for our webview
     /// would otherwise make egui report events in that area as consumed.
-    pub fn on_window_event(
-        &mut self,
-        window: &winit::window::Window,
-        event: &winit::event::WindowEvent,
-    ) -> EventResponse {
+    pub fn on_window_event(&mut self, window: &Window, event: &WindowEvent) -> EventResponse {
         let mut result = self.context.on_window_event(window, event);
         result.consumed &= match event {
-            winit::event::WindowEvent::CursorMoved { position, .. } => {
+            WindowEvent::CursorMoved { position, .. } => {
                 let scale = Scale::<_, DeviceIndependentPixel, _>::new(
                     self.context.egui_ctx.pixels_per_point(),
                 );
@@ -134,7 +132,7 @@ impl Minibrowser {
                 self.last_mouse_position
                     .map_or(false, |p| self.is_in_browser_rect(p))
             },
-            winit::event::WindowEvent::MouseInput {
+            WindowEvent::MouseInput {
                 state: ElementState::Pressed,
                 button: MouseButton::Forward,
                 ..
@@ -144,7 +142,7 @@ impl Minibrowser {
                     .push(MinibrowserEvent::Forward);
                 true
             },
-            winit::event::WindowEvent::MouseInput {
+            WindowEvent::MouseInput {
                 state: ElementState::Pressed,
                 button: MouseButton::Back,
                 ..
@@ -152,8 +150,7 @@ impl Minibrowser {
                 self.event_queue.borrow_mut().push(MinibrowserEvent::Back);
                 true
             },
-            winit::event::WindowEvent::MouseWheel { .. } |
-            winit::event::WindowEvent::MouseInput { .. } => self
+            WindowEvent::MouseWheel { .. } | WindowEvent::MouseInput { .. } => self
                 .last_mouse_position
                 .map_or(false, |p| self.is_in_browser_rect(p)),
             _ => true,
@@ -259,7 +256,7 @@ impl Minibrowser {
     /// CentralPanel when [`Minibrowser::paint`] is called.
     pub fn update(
         &mut self,
-        window: &winit::window::Window,
+        window: &Window,
         webviews: &mut WebViewManager<dyn WindowPortsMethods>,
         servo_framebuffer_id: Option<gl::GLuint>,
         reason: &'static str,
@@ -484,7 +481,7 @@ impl Minibrowser {
     }
 
     /// Paint the minibrowser, as of the last update.
-    pub fn paint(&mut self, window: &winit::window::Window) {
+    pub fn paint(&mut self, window: &Window) {
         unsafe {
             use glow::HasContext as _;
             self.context

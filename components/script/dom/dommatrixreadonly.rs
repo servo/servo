@@ -10,7 +10,8 @@ use dom_struct::dom_struct;
 use euclid::default::Transform3D;
 use euclid::Angle;
 use js::jsapi::JSObject;
-use js::rust::{CustomAutoRooterGuard, HandleObject};
+use js::jsval;
+use js::rust::{CustomAutoRooterGuard, HandleObject, ToString};
 use js::typedarray::{Float32Array, Float64Array};
 use style::parser::ParserContext;
 use url::Url;
@@ -21,11 +22,13 @@ use crate::dom::bindings::codegen::Bindings::DOMMatrixBinding::{DOMMatrixInit, D
 use crate::dom::bindings::codegen::Bindings::DOMMatrixReadOnlyBinding::DOMMatrixReadOnlyMethods;
 use crate::dom::bindings::codegen::Bindings::DOMPointBinding::DOMPointInit;
 use crate::dom::bindings::codegen::UnionTypes::StringOrUnrestrictedDoubleSequence;
+use crate::dom::bindings::conversions::jsstring_to_str;
 use crate::dom::bindings::error;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::str::DOMString;
 use crate::dom::dommatrix::DOMMatrix;
 use crate::dom::dompoint::DOMPoint;
 use crate::dom::globalscope::GlobalScope;
@@ -87,12 +90,24 @@ impl DOMMatrixReadOnly {
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m13
     pub fn set_m13(&self, value: f64) {
+        // For the DOMMatrix interface, setting the m13 attribute must set the
+        // m13 element to the new value and, if the new value is not 0 or -0, set is 2D to false.
+
         self.matrix.borrow_mut().m13 = value;
+        if value.abs() != 0. {
+            self.is2D.set(false);
+        }
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m14
     pub fn set_m14(&self, value: f64) {
+        // For the DOMMatrix interface, setting the m14 attribute must set the
+        // m14 element to the new value and, if the new value is not 0 or -0, set is 2D to false.
         self.matrix.borrow_mut().m14 = value;
+
+        if value.abs() != 0. {
+            self.is2D.set(false);
+        }
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m21
@@ -107,32 +122,68 @@ impl DOMMatrixReadOnly {
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m23
     pub fn set_m23(&self, value: f64) {
+        // For the DOMMatrix interface, setting the m23 attribute must set the
+        // m23 element to the new value and, if the new value is not 0 or -0, set is 2D to false.
         self.matrix.borrow_mut().m23 = value;
+
+        if value.abs() != 0. {
+            self.is2D.set(false);
+        }
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m24
     pub fn set_m24(&self, value: f64) {
+        // For the DOMMatrix interface, setting the m24 attribute must set the
+        // m24 element to the new value and, if the new value is not 0 or -0, set is 2D to false.
         self.matrix.borrow_mut().m24 = value;
+
+        if value.abs() != 0. {
+            self.is2D.set(false);
+        }
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m31
     pub fn set_m31(&self, value: f64) {
+        // For the DOMMatrix interface, setting the m31 attribute must set the
+        // m31 element to the new value and, if the new value is not 0 or -0, set is 2D to false.
         self.matrix.borrow_mut().m31 = value;
+
+        if value.abs() != 0. {
+            self.is2D.set(false);
+        }
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m32
     pub fn set_m32(&self, value: f64) {
+        // For the DOMMatrix interface, setting the m32 attribute must set the
+        // m32 element to the new value and, if the new value is not 0 or -0, set is 2D to false.
         self.matrix.borrow_mut().m32 = value;
+
+        if value.abs() != 0. {
+            self.is2D.set(false);
+        }
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m33
     pub fn set_m33(&self, value: f64) {
+        // For the DOMMatrix interface, setting the m33 attribute must set the
+        // m33 element to the new value and, if the new value is not 1, set is 2D to false.
         self.matrix.borrow_mut().m33 = value;
+
+        if value != 1. {
+            self.is2D.set(false);
+        }
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m34
     pub fn set_m34(&self, value: f64) {
+        // For the DOMMatrix interface, setting the m34 attribute must set the
+        // m34 element to the new value and, if the new value is not 0 or -0, set is 2D to false.
         self.matrix.borrow_mut().m34 = value;
+
+        if value.abs() != 0. {
+            self.is2D.set(false);
+        }
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m41
@@ -147,12 +198,24 @@ impl DOMMatrixReadOnly {
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m43
     pub fn set_m43(&self, value: f64) {
+        // For the DOMMatrix interface, setting the m43 attribute must set the
+        // m43 element to the new value and, if the new value is not 0 or -0, set is 2D to false.
         self.matrix.borrow_mut().m43 = value;
+
+        if value.abs() != 0. {
+            self.is2D.set(false);
+        }
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m44
     pub fn set_m44(&self, value: f64) {
+        // For the DOMMatrix interface, setting the m44 attribute must set the
+        // m44 element to the new value and, if the new value is not 1, set is 2D to false.
         self.matrix.borrow_mut().m44 = value;
+
+        if value != 1. {
+            self.is2D.set(false);
+        }
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-multiplyself
@@ -698,6 +761,129 @@ impl DOMMatrixReadOnlyMethods for DOMMatrixReadOnly {
         rooted!(in (*cx) let mut array = ptr::null_mut::<JSObject>());
         create_buffer_source(cx, &self.matrix.borrow().to_array(), array.handle_mut())
             .expect("Converting matrix to float64 array should never fail")
+    }
+
+    // https://drafts.fxtf.org/geometry/#dommatrixreadonly-stringification-behavior
+    #[allow(unsafe_code)]
+    fn Stringifier(&self) -> Fallible<DOMString> {
+        // Step 1. If one or more of m11 element through m44 element are a non-finite value,
+        // then throw an "InvalidStateError" DOMException.
+        let mat = self.matrix.borrow();
+        if !mat.m11.is_finite() ||
+            !mat.m12.is_finite() ||
+            !mat.m13.is_finite() ||
+            !mat.m14.is_finite() ||
+            !mat.m21.is_finite() ||
+            !mat.m22.is_finite() ||
+            !mat.m23.is_finite() ||
+            !mat.m24.is_finite() ||
+            !mat.m31.is_finite() ||
+            !mat.m32.is_finite() ||
+            !mat.m33.is_finite() ||
+            !mat.m34.is_finite() ||
+            !mat.m41.is_finite() ||
+            !mat.m42.is_finite() ||
+            !mat.m43.is_finite() ||
+            !mat.m44.is_finite()
+        {
+            return Err(error::Error::InvalidState);
+        }
+
+        // Step 2. Let string be the empty string.
+        let string;
+
+        // Step 3. If is 2D is true, then:
+        let cx = GlobalScope::get_cx();
+        let to_string = |f: f64| {
+            let value = jsval::DoubleValue(f);
+
+            unsafe {
+                rooted!(in(*cx) let mut rooted_value = value);
+                let serialization = ToString(*cx, rooted_value.handle());
+                jsstring_to_str(
+                    *cx,
+                    ptr::NonNull::new(serialization).expect("Pointer cannot be null"),
+                )
+            }
+        };
+        if self.is2D() {
+            // Step 3.1 Append "matrix(" to string.
+            // Step 3.2 Append ! ToString(m11 element) to string.
+            // Step 3.3 Append ", " to string.
+            // Step 3.4 Append ! ToString(m12 element) to string.
+            // Step 3.5 Append ", " to string.
+            // Step 3.6 Append ! ToString(m21 element) to string.
+            // Step 3.7 Append ", " to string.
+            // Step 3.8 Append ! ToString(m22 element) to string.
+            // Step 3.9 Append ", " to string.
+            // Step 3.10 Append ! ToString(m41 element) to string.
+            // Step 3.11 Append ", " to string.
+            // Step 3.12 Append ! ToString(m42 element) to string.
+            // Step 3.13 Append ")" to string.
+            string = format!(
+                "matrix({}, {}, {}, {}, {}, {})",
+                to_string(mat.m11),
+                to_string(mat.m12),
+                to_string(mat.m21),
+                to_string(mat.m22),
+                to_string(mat.m41),
+                to_string(mat.m42)
+            )
+            .into();
+        }
+        // Step 4. Otherwise:
+        else {
+            // Step 4.1 Append "matrix3d(" to string.
+            // Step 4.2 Append ! ToString(m11 element) to string.
+            // Step 4.3 Append ", " to string.
+            // Step 4.4 Append ! ToString(m12 element) to string.
+            // Step 4.5 Append ", " to string.
+            // Step 4.6 Append ! ToString(m13 element) to string.
+            // Step 4.7 Append ", " to string.
+            // Step 4.8 Append ! ToString(m14 element) to string.
+            // Step 4.9 Append ", " to string.
+            // Step 4.10 Append ! ToString(m21 element) to string.
+            // Step 4.11 Append ", " to string.
+            // Step 4.12 Append ! ToString(m22 element) to string.
+            // Step 4.13 Append ", " to string.
+            // Step 4.14 Append ! ToString(m23 element) to string.
+            // Step 4.15 Append ", " to string.
+            // Step 4.16 Append ! ToString(m24 element) to string.
+            // Step 4.17 Append ", " to string.
+            // Step 4.18 Append ! ToString(m41 element) to string.
+            // Step 4.19 Append ", " to string.
+            // Step 4.20 Append ! ToString(m42 element) to string.
+            // Step 4.21 Append ", " to string.
+            // Step 4.22 Append ! ToString(m43 element) to string.
+            // Step 4.23 Append ", " to string.
+            // Step 4.24 Append ! ToString(m44 element) to string.
+            // Step 4.25 Append ")" to string.
+
+            // NOTE: The spec is wrong and missing the m3* elements.
+            // (https://github.com/w3c/fxtf-drafts/issues/574)
+            string = format!(
+                "matrix3d({}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {})",
+                to_string(mat.m11),
+                to_string(mat.m12),
+                to_string(mat.m13),
+                to_string(mat.m14),
+                to_string(mat.m21),
+                to_string(mat.m22),
+                to_string(mat.m23),
+                to_string(mat.m24),
+                to_string(mat.m31),
+                to_string(mat.m32),
+                to_string(mat.m33),
+                to_string(mat.m34),
+                to_string(mat.m41),
+                to_string(mat.m42),
+                to_string(mat.m43),
+                to_string(mat.m44)
+            )
+            .into();
+        }
+
+        Ok(string)
     }
 }
 

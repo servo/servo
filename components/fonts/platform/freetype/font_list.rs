@@ -2,11 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::convert::TryInto;
 use std::ffi::CString;
-use std::fs::File;
-use std::io::Read;
-use std::path::Path;
 use std::ptr;
 
 use base::text::{UnicodeBlock, UnicodeBlockMethod};
@@ -25,14 +21,12 @@ use fontconfig_sys::{
 };
 use libc::{c_char, c_int};
 use log::debug;
-use malloc_size_of_derive::MallocSizeOf;
-use serde::{Deserialize, Serialize};
 use style::values::computed::font::GenericFontFamily;
 use style::values::computed::{FontStretch, FontStyle, FontWeight};
 use style::Atom;
 use unicode_script::Script;
 
-use super::c_str_to_string;
+use super::{c_str_to_string, LocalFontIdentifier};
 use crate::font::map_platform_values_to_style_values;
 use crate::font_template::{FontTemplate, FontTemplateDescriptor};
 use crate::platform::add_noto_fallback_families;
@@ -40,30 +34,6 @@ use crate::{
     EmojiPresentationPreference, FallbackFontSelectionOptions, FontIdentifier,
     LowercaseFontFamilyName,
 };
-
-/// An identifier for a local font on systems using Freetype.
-#[derive(Clone, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
-pub struct LocalFontIdentifier {
-    /// The path to the font.
-    pub path: Atom,
-    /// The variation index within the font.
-    pub variation_index: i32,
-}
-
-impl LocalFontIdentifier {
-    pub(crate) fn index(&self) -> u32 {
-        self.variation_index.try_into().unwrap()
-    }
-
-    pub(crate) fn read_data_from_file(&self) -> Vec<u8> {
-        let mut bytes = Vec::new();
-        File::open(Path::new(&*self.path))
-            .expect("Couldn't open font file!")
-            .read_to_end(&mut bytes)
-            .unwrap();
-        bytes
-    }
-}
 
 pub fn for_each_available_family<F>(mut callback: F)
 where

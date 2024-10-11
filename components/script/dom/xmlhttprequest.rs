@@ -254,24 +254,27 @@ impl XMLHttpRequest {
 
             fn process_response(&mut self, metadata: Result<FetchMetadata, NetworkError>) {
                 let xhr = self.xhr.root();
-                let rv = xhr.process_headers_available(self.gen_id, metadata);
+                let rv = xhr.process_headers_available(self.gen_id, metadata, CanGc::note());
                 if rv.is_err() {
                     *self.sync_status.borrow_mut() = Some(rv);
                 }
             }
 
             fn process_response_chunk(&mut self, chunk: Vec<u8>) {
-                self.xhr.root().process_data_available(self.gen_id, chunk);
+                self.xhr
+                    .root()
+                    .process_data_available(self.gen_id, chunk, CanGc::note());
             }
 
             fn process_response_eof(
                 &mut self,
                 response: Result<ResourceFetchTiming, NetworkError>,
             ) {
-                let rv = self
-                    .xhr
-                    .root()
-                    .process_response_complete(self.gen_id, response.map(|_| ()));
+                let rv = self.xhr.root().process_response_complete(
+                    self.gen_id,
+                    response.map(|_| ()),
+                    CanGc::note(),
+                );
                 *self.sync_status.borrow_mut() = Some(rv);
             }
 
@@ -445,7 +448,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
 
                 // Step 13
                 if self.ready_state.get() != XMLHttpRequestState::Opened {
-                    self.change_ready_state(XMLHttpRequestState::Opened);
+                    self.change_ready_state(XMLHttpRequestState::Opened, CanGc::note());
                 }
                 Ok(())
             },
@@ -810,7 +813,10 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             state == XMLHttpRequestState::Loading
         {
             let gen_id = self.generation_id.get();
-            self.process_partial_response(XHRProgress::Errored(gen_id, Error::Abort));
+            self.process_partial_response(
+                XHRProgress::Errored(gen_id, Error::Abort),
+                CanGc::note(),
+            );
             // If open was called in one of the handlers invoked by the
             // above call then we should terminate the abort sequence
             if self.generation_id.get() != gen_id {
@@ -819,7 +825,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
         }
         // Step 3
         if self.ready_state.get() == XMLHttpRequestState::Done {
-            self.change_ready_state(XMLHttpRequestState::Unsent);
+            self.change_ready_state(XMLHttpRequestState::Unsent, CanGc::note());
             self.response_status.set(Err(()));
             self.response.borrow_mut().clear();
             self.response_headers.borrow_mut().clear();
@@ -1021,7 +1027,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
 pub type TrustedXHRAddress = Trusted<XMLHttpRequest>;
 
 impl XMLHttpRequest {
-    fn change_ready_state(&self, rs: XMLHttpRequestState) {
+    fn change_ready_state(&self, rs: XMLHttpRequestState, can_gc: CanGc) {
         assert_ne!(self.ready_state.get(), rs);
         self.ready_state.set(rs);
         if rs != XMLHttpRequestState::Unsent {
@@ -1030,6 +1036,7 @@ impl XMLHttpRequest {
                 atom!("readystatechange"),
                 EventBubbles::DoesNotBubble,
                 EventCancelable::Cancelable,
+                can_gc,
             );
             event.fire(self.upcast());
         }
@@ -1039,6 +1046,7 @@ impl XMLHttpRequest {
         &self,
         gen_id: GenerationId,
         metadata: Result<FetchMetadata, NetworkError>,
+        can_gc: CanGc,
     ) -> Result<(), Error> {
         let metadata = match metadata {
             Ok(meta) => match meta {
@@ -1051,7 +1059,7 @@ impl XMLHttpRequest {
                 },
             },
             Err(_) => {
-                self.process_partial_response(XHRProgress::Errored(gen_id, Error::Network));
+                self.process_partial_response(XHRProgress::Errored(gen_id, Error::Network), can_gc);
                 return Err(Error::Network);
             },
         };
@@ -1059,36 +1067,40 @@ impl XMLHttpRequest {
         metadata.final_url[..Position::AfterQuery].clone_into(&mut self.response_url.borrow_mut());
 
         // XXXManishearth Clear cache entries in case of a network error
-        self.process_partial_response(XHRProgress::HeadersReceived(
-            gen_id,
-            metadata.headers.map(Serde::into_inner),
-            metadata.status,
-        ));
+        self.process_partial_response(
+            XHRProgress::HeadersReceived(
+                gen_id,
+                metadata.headers.map(Serde::into_inner),
+                metadata.status,
+            ),
+            can_gc,
+        );
         Ok(())
     }
 
-    fn process_data_available(&self, gen_id: GenerationId, payload: Vec<u8>) {
-        self.process_partial_response(XHRProgress::Loading(gen_id, payload));
+    fn process_data_available(&self, gen_id: GenerationId, payload: Vec<u8>, can_gc: CanGc) {
+        self.process_partial_response(XHRProgress::Loading(gen_id, payload), can_gc);
     }
 
     fn process_response_complete(
         &self,
         gen_id: GenerationId,
         status: Result<(), NetworkError>,
+        can_gc: CanGc,
     ) -> ErrorResult {
         match status {
             Ok(()) => {
-                self.process_partial_response(XHRProgress::Done(gen_id));
+                self.process_partial_response(XHRProgress::Done(gen_id), can_gc);
                 Ok(())
             },
             Err(_) => {
-                self.process_partial_response(XHRProgress::Errored(gen_id, Error::Network));
+                self.process_partial_response(XHRProgress::Errored(gen_id, Error::Network), can_gc);
                 Err(Error::Network)
             },
         }
     }
 
-    fn process_partial_response(&self, progress: XHRProgress) {
+    fn process_partial_response(&self, progress: XHRProgress, can_gc: CanGc) {
         let msg_id = progress.generation_id();
 
         // Aborts processing if abort() or open() was called
@@ -1155,7 +1167,7 @@ impl XMLHttpRequest {
                 }
                 // Substep 3
                 if !self.sync.get() {
-                    self.change_ready_state(XMLHttpRequestState::HeadersReceived);
+                    self.change_ready_state(XMLHttpRequestState::HeadersReceived, can_gc);
                 }
             },
             XHRProgress::Loading(_, mut partial_response) => {
@@ -1173,6 +1185,7 @@ impl XMLHttpRequest {
                         atom!("readystatechange"),
                         EventBubbles::DoesNotBubble,
                         EventCancelable::Cancelable,
+                        can_gc,
                     );
                     event.fire(self.upcast());
                     return_if_fetch_was_terminated!();
@@ -1195,7 +1208,7 @@ impl XMLHttpRequest {
                 // Subsubsteps 6-8
                 self.send_flag.set(false);
 
-                self.change_ready_state(XMLHttpRequestState::Done);
+                self.change_ready_state(XMLHttpRequestState::Done, can_gc);
                 return_if_fetch_was_terminated!();
                 // Subsubsteps 11-12
                 self.dispatch_response_progress_event(atom!("load"));
@@ -1209,7 +1222,7 @@ impl XMLHttpRequest {
                 self.discard_subsequent_responses();
                 self.send_flag.set(false);
                 // XXXManishearth set response to NetworkError
-                self.change_ready_state(XMLHttpRequestState::Done);
+                self.change_ready_state(XMLHttpRequestState::Done, can_gc);
                 return_if_fetch_was_terminated!();
 
                 let errormsg = match e {
@@ -1497,7 +1510,7 @@ impl XMLHttpRequest {
             &document,
             Some(DOMString::from(decoded)),
             wr.get_url(),
-            CanGc::note(),
+            can_gc,
         );
         document
     }
@@ -1513,7 +1526,7 @@ impl XMLHttpRequest {
             &document,
             Some(DOMString::from(decoded)),
             wr.get_url(),
-            CanGc::note(),
+            can_gc,
         );
         document
     }
@@ -1660,10 +1673,13 @@ pub struct XHRTimeoutCallback {
 }
 
 impl XHRTimeoutCallback {
-    pub fn invoke(self) {
+    pub fn invoke(self, can_gc: CanGc) {
         let xhr = self.xhr.root();
         if xhr.ready_state.get() != XMLHttpRequestState::Done {
-            xhr.process_partial_response(XHRProgress::Errored(self.generation_id, Error::Timeout));
+            xhr.process_partial_response(
+                XHRProgress::Errored(self.generation_id, Error::Timeout),
+                can_gc,
+            );
         }
     }
 }

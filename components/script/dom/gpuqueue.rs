@@ -24,6 +24,7 @@ use crate::dom::gpubuffer::GPUBuffer;
 use crate::dom::gpucommandbuffer::GPUCommandBuffer;
 use crate::dom::gpudevice::GPUDevice;
 use crate::dom::promise::Promise;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct GPUQueue {
@@ -206,7 +207,12 @@ impl GPUQueueMethods for GPUQueue {
 }
 
 impl AsyncWGPUListener for GPUQueue {
-    fn handle_response(&self, response: webgpu::WebGPUResponse, promise: &Rc<Promise>) {
+    fn handle_response(
+        &self,
+        response: webgpu::WebGPUResponse,
+        promise: &Rc<Promise>,
+        _can_gc: CanGc,
+    ) {
         match response {
             WebGPUResponse::SubmittedWorkDone => {
                 promise.resolve_native(&());

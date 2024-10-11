@@ -80,6 +80,7 @@ log = "0.4"
 mach2 = "0.4"
 malloc_size_of = { git = "https://github.com/servo/stylo", branch = "2024-09-02", features = ["servo"] }
 malloc_size_of_derive = "0.1"
+memmap2 = "0.9.5"
 mime = "0.3.13"
 mime_guess = "2.0.5"
 mozangle = "0.5.1"

@@ -279,6 +279,7 @@ impl RTCPeerConnection {
             atom!("negotiationneeded"),
             EventBubbles::DoesNotBubble,
             EventCancelable::NotCancelable,
+            CanGc::note(),
         );
         event.upcast::<Event>().fire(self.upcast());
     }
@@ -333,11 +334,11 @@ impl RTCPeerConnection {
                 };
 
                 match event {
-                    DataChannelEvent::Open => channel.on_open(),
-                    DataChannelEvent::Close => channel.on_close(),
-                    DataChannelEvent::Error(error) => channel.on_error(error),
+                    DataChannelEvent::Open => channel.on_open(can_gc),
+                    DataChannelEvent::Close => channel.on_close(can_gc),
+                    DataChannelEvent::Error(error) => channel.on_error(error, can_gc),
                     DataChannelEvent::OnMessage(message) => channel.on_message(message, can_gc),
-                    DataChannelEvent::StateChange(state) => channel.on_state_change(state),
+                    DataChannelEvent::StateChange(state) => channel.on_state_change(state, can_gc),
                     DataChannelEvent::NewChannel => unreachable!(),
                 }
             },
@@ -383,6 +384,7 @@ impl RTCPeerConnection {
             atom!("icegatheringstatechange"),
             EventBubbles::DoesNotBubble,
             EventCancelable::NotCancelable,
+            CanGc::note(),
         );
         event.upcast::<Event>().fire(self.upcast());
 
@@ -423,6 +425,7 @@ impl RTCPeerConnection {
             atom!("iceconnectionstatechange"),
             EventBubbles::DoesNotBubble,
             EventCancelable::NotCancelable,
+            CanGc::note(),
         );
         event.upcast::<Event>().fire(self.upcast());
     }
@@ -445,6 +448,7 @@ impl RTCPeerConnection {
             atom!("signalingstatechange"),
             EventBubbles::DoesNotBubble,
             EventCancelable::NotCancelable,
+            CanGc::note(),
         );
         event.upcast::<Event>().fire(self.upcast());
     }
@@ -761,7 +765,7 @@ impl RTCPeerConnectionMethods for RTCPeerConnection {
 
         // Step 6
         for (_, val) in self.data_channels.borrow().iter() {
-            val.on_state_change(DataChannelState::Closed);
+            val.on_state_change(DataChannelState::Closed, CanGc::note());
         }
 
         // Step 7-10
