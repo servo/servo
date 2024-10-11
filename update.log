@@ -1,0 +1,5 @@
+{"action": "log", "time": 1728636225985, "thread": "MainThread", "pid": 25068, "source": "web-platform-tests", "component": "vcs", "message": "git rev-parse --show-toplevel", "level": "DEBUG"}
+{"action": "log", "time": 1728636226023, "thread": "MainThread", "pid": 25068, "source": "web-platform-tests", "component": "vcs", "message": "git rev-parse --show-cdup", "level": "DEBUG"}
+{"action": "log", "time": 1728636226054, "thread": "MainThread", "pid": 25068, "source": "web-platform-tests", "component": "vcs", "message": "git rev-parse HEAD", "level": "DEBUG"}
+{"action": "log", "time": 1728636268025, "thread": "MainThread", "pid": 25068, "source": "web-platform-tests", "message": "Closing logging queue", "level": "INFO"}
+{"action": "log", "time": 1728636268026, "thread": "MainThread", "pid": 25068, "source": "web-platform-tests", "message": "queue closed", "level": "INFO"}
