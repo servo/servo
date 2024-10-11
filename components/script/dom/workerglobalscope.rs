@@ -55,8 +55,7 @@ use crate::dom::workernavigator::WorkerNavigator;
 use crate::fetch;
 use crate::realms::{enter_realm, InRealm};
 use crate::script_runtime::{
-    get_reports, CanGc, CommonScriptMsg, ContextForRequestInterrupt, JSContext, Runtime,
-    ScriptChan, ScriptPort,
+    get_reports, CanGc, CommonScriptMsg, JSContext, Runtime, ScriptChan, ScriptPort,
 };
 use crate::task::TaskCanceller;
 use crate::task_source::dom_manipulation::DOMManipulationTaskSource;
