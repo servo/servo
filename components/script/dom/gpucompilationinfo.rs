@@ -31,16 +31,19 @@ impl GPUCompilationInfo {
     }
 
     #[allow(dead_code)]
-    pub fn new(global: &GlobalScope, msg: Vec<DomRoot<GPUCompilationMessage>>) -> DomRoot<Self> {
-        reflect_dom_object_with_proto(
-            Box::new(Self::new_inherited(msg)),
-            global,
-            None,
-            CanGc::note(),
-        )
+    pub fn new(
+        global: &GlobalScope,
+        msg: Vec<DomRoot<GPUCompilationMessage>>,
+        can_gc: CanGc,
+    ) -> DomRoot<Self> {
+        reflect_dom_object_with_proto(Box::new(Self::new_inherited(msg)), global, None, can_gc)
     }
 
-    pub fn from(global: &GlobalScope, error: Option<ShaderCompilationInfo>) -> DomRoot<Self> {
+    pub fn from(
+        global: &GlobalScope,
+        error: Option<ShaderCompilationInfo>,
+        can_gc: CanGc,
+    ) -> DomRoot<Self> {
         Self::new(
             global,
             if let Some(error) = error {
@@ -48,6 +51,7 @@ impl GPUCompilationInfo {
             } else {
                 Vec::new()
             },
+            can_gc,
         )
     }
 }
