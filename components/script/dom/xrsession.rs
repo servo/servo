@@ -257,7 +257,7 @@ impl XRSession {
     //
     // This enables content that assumes all input sources are accompanied
     // by an inputsourceschange event to work properly. Without
-    pub fn setup_initial_inputs(&self, can_gc: CanGc) {
+    pub fn setup_initial_inputs(&self) {
         let initial_inputs = self.session.borrow().initial_inputs().to_owned();
 
         if initial_inputs.is_empty() {
@@ -276,7 +276,7 @@ impl XRSession {
         let _ = task_source.queue_with_canceller(
             task!(session_initial_inputs: move || {
                 let this = this.root();
-                this.input_sources.add_input_sources(&this, &initial_inputs, can_gc);
+                this.input_sources.add_input_sources(&this, &initial_inputs, CanGc::note());
             }),
             &canceller,
         );
