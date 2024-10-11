@@ -6,7 +6,7 @@
 //! (<https://html.spec.whatwg.org/multipage/#serializable-objects>).
 
 use crate::dom::bindings::reflector::DomObject;
-use crate::dom::bindings::structuredclone::StructuredDataHolder;
+use crate::dom::bindings::structuredclone::{CloneableObject, StructuredDataHolder};
 use crate::dom::globalscope::GlobalScope;
 
 /// The key corresponding to the storage location
@@ -17,15 +17,32 @@ pub struct StorageKey {
     pub name_space: u32,
 }
 
+impl ToSerializeOperations for StorageKey {
+    fn to_serialize_operations(&self) -> Vec<SerializeOperation> {
+        vec![SerializeOperation::Uint32Pair(self.name_space, self.index)]
+    }
+}
+
+pub trait ToSerializeOperations {
+    fn to_serialize_operations(&self) -> Vec<SerializeOperation>;
+}
+
+pub enum SerializeOperation {
+    Uint32Pair(u32, u32),
+}
+
 /// Interface for serializable platform objects.
 /// <https://html.spec.whatwg.org/multipage/#serializable>
 pub trait Serializable: DomObject {
+    type Data: ToSerializeOperations;
+    const TAG: CloneableObject;
+
     /// <https://html.spec.whatwg.org/multipage/#serialization-steps>
-    fn serialize(&self, sc_holder: &mut StructuredDataHolder) -> Result<StorageKey, ()>;
+    fn serialize(&self, sc_holder: &mut StructuredDataHolder) -> Result<Self::Data, ()>;
     /// <https://html.spec.whatwg.org/multipage/#deserialization-steps>
     fn deserialize(
         owner: &GlobalScope,
         sc_holder: &mut StructuredDataHolder,
-        extra_data: StorageKey,
+        extra_data: Self::Data,
     ) -> Result<(), ()>;
 }

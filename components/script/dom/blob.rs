@@ -25,7 +25,7 @@ use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, 
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::serializable::{Serializable, StorageKey};
 use crate::dom::bindings::str::DOMString;
-use crate::dom::bindings::structuredclone::StructuredDataHolder;
+use crate::dom::bindings::structuredclone::{CloneableObject, StructuredDataHolder};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::readablestream::ReadableStream;
@@ -115,6 +115,9 @@ impl Blob {
 }
 
 impl Serializable for Blob {
+    type Data = StorageKey;
+    const TAG: CloneableObject = CloneableObject::Blob;
+
     /// <https://w3c.github.io/FileAPI/#ref-for-serialization-steps>
     fn serialize(&self, sc_holder: &mut StructuredDataHolder) -> Result<StorageKey, ()> {
         let blob_impls = match sc_holder {

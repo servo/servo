@@ -76,6 +76,7 @@ mime = { workspace = true }
 mime_guess = { workspace = true }
 net_traits = { workspace = true }
 num_cpus = { workspace = true }
+num-derive = { workspace = true }
 num-traits = { workspace = true }
 parking_lot = { workspace = true }
 percent-encoding = { workspace = true }

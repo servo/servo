@@ -23,15 +23,19 @@ use js::jsapi::{
 use js::jsval::UndefinedValue;
 use js::rust::wrappers::{JS_ReadStructuredClone, JS_WriteStructuredClone};
 use js::rust::{CustomAutoRooterGuard, HandleValue, MutableHandleValue};
+use num_derive::FromPrimitive;
+use num_traits::FromPrimitive;
 use script_traits::serializable::BlobImpl;
 use script_traits::transferable::MessagePortImpl;
 use script_traits::StructuredSerializedData;
 
-use crate::dom::bindings::conversions::{root_from_object, ToJSValConvertible};
+use crate::dom::bindings::conversions::{root_from_object, ToJSValConvertible, IDLInterface};
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::serializable::{Serializable, StorageKey};
+use crate::dom::bindings::serializable::{
+    Serializable, SerializeOperation, StorageKey, ToSerializeOperations,
+};
 use crate::dom::bindings::transferable::Transferable;
 use crate::dom::blob::Blob;
 use crate::dom::globalscope::GlobalScope;
@@ -85,30 +89,51 @@ unsafe fn read_blob(
     ptr::null_mut()
 }
 
-unsafe fn write_blob(
-    owner: &GlobalScope,
-    blob: DomRoot<Blob>,
+unsafe fn attempt_serialization<T: Serializable + IDLInterface>(
+    cx: *mut JSContext,
+    obj: RawHandleObject,
     w: *mut JSStructuredCloneWriter,
-    sc_holder: &mut StructuredDataHolder,
-) -> bool {
-    if let Ok(storage_key) = blob.serialize(sc_holder) {
-        assert!(JS_WriteUint32Pair(
-            w,
-            StructuredCloneTags::DomBlob as u32,
-            0
-        ));
-        assert!(JS_WriteUint32Pair(
-            w,
-            storage_key.name_space,
-            storage_key.index
-        ));
-        return true;
+    holder: &mut StructuredDataHolder,
+) -> Result<bool, ()> {
+    root_from_object::<T>(*obj, cx)
+        .map(|obj| {
+            let Ok(data) = obj.serialize(holder) else {
+                return false;
+            };
+            SerializeOperation::Uint32Pair(<T as Serializable>::TAG as u32, 0)
+                .invoke(w);
+            for operation in data.to_serialize_operations() {
+                operation.invoke(w);
+            }
+            true
+        })
+}
+
+impl SerializeOperation {
+    fn invoke(&self, w: *mut JSStructuredCloneWriter) {
+        unsafe {
+            match self {
+                SerializeOperation::Uint32Pair(a, b) => {
+                    assert!(JS_WriteUint32Pair(w, *a, *b));
+                }
+            }
+        }
     }
-    warn!(
-        "Writing structured data for a blob failed in {:?}.",
-        owner.get_url()
-    );
-    false
+}
+
+type DomObjectReadCallback = unsafe fn(&GlobalScope, *mut JSStructuredCloneReader, &mut StructuredDataHolder) -> *mut JSObject;
+
+#[derive(FromPrimitive)]
+pub enum CloneableObject {
+    Blob = StructuredCloneTags::DomBlob as isize,
+}
+
+impl CloneableObject {
+    fn callback(&self) -> DomObjectReadCallback {
+        match self {
+            CloneableObject::Blob => read_blob,
+        }
+    }
 }
 
 unsafe extern "C" fn read_callback(
@@ -127,15 +152,11 @@ unsafe extern "C" fn read_callback(
         tag > StructuredCloneTags::Min as u32,
         "tag should be higher than StructuredCloneTags::Min"
     );
-    if tag == StructuredCloneTags::DomBlob as u32 {
-        let in_realm_proof = AlreadyInRealm::assert_for_cx(SafeJSContext::from_ptr(cx));
-        return read_blob(
-            &GlobalScope::from_context(cx, InRealm::Already(&in_realm_proof)),
-            r,
-            &mut *(closure as *mut StructuredDataHolder),
-        );
-    }
-    ptr::null_mut()
+    let Some(cloneable): Option<CloneableObject> = FromPrimitive::from_u32(tag) else { return ptr::null_mut() };
+
+    let in_realm_proof = AlreadyInRealm::assert_for_cx(SafeJSContext::from_ptr(cx));
+    let global = GlobalScope::from_context(cx, InRealm::Already(&in_realm_proof));
+    (cloneable.callback())(&global, r, &mut *(closure as *mut StructuredDataHolder))
 }
 
 unsafe extern "C" fn write_callback(
@@ -145,16 +166,9 @@ unsafe extern "C" fn write_callback(
     _same_process_scope_required: *mut bool,
     closure: *mut raw::c_void,
 ) -> bool {
-    if let Ok(blob) = root_from_object::<Blob>(*obj, cx) {
-        let in_realm_proof = AlreadyInRealm::assert_for_cx(SafeJSContext::from_ptr(cx));
-        return write_blob(
-            &GlobalScope::from_context(cx, InRealm::Already(&in_realm_proof)),
-            blob,
-            w,
-            &mut *(closure as *mut StructuredDataHolder),
-        );
-    }
-    false
+    let holder = &mut *(closure as *mut StructuredDataHolder);
+    attempt_serialization::<Blob>(cx, obj, w, holder)
+        .unwrap_or_default()
 }
 
 unsafe extern "C" fn read_transfer_callback(
