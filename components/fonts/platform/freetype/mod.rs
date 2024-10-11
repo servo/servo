@@ -69,6 +69,6 @@ impl LocalFontIdentifier {
     pub(crate) fn read_data_from_file(&self) -> Option<Vec<u8>> {
         let file = File::open(Path::new(&*self.path)).ok()?;
         let mmap = unsafe { Mmap::map(&file).ok()? };
-        Some((mmap[..]).to_vec())
+        Some(mmap[..].to_vec())
     }
 }
