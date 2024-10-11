@@ -87,12 +87,24 @@ impl DOMMatrixReadOnly {
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m13
     pub fn set_m13(&self, value: f64) {
+        // For the DOMMatrix interface, setting the m13 attribute must set the
+        // m13 element to the new value and, if the new value is not 0 or -0, set is 2D to false.
+
         self.matrix.borrow_mut().m13 = value;
+        if value.abs() != 0. {
+            self.is2D.set(false);
+        }
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m14
     pub fn set_m14(&self, value: f64) {
+        // For the DOMMatrix interface, setting the m14 attribute must set the
+        // m14 element to the new value and, if the new value is not 0 or -0, set is 2D to false.
         self.matrix.borrow_mut().m14 = value;
+
+        if value.abs() != 0. {
+            self.is2D.set(false);
+        }
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m21
@@ -107,32 +119,68 @@ impl DOMMatrixReadOnly {
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m23
     pub fn set_m23(&self, value: f64) {
+        // For the DOMMatrix interface, setting the m23 attribute must set the
+        // m23 element to the new value and, if the new value is not 0 or -0, set is 2D to false.
         self.matrix.borrow_mut().m23 = value;
+
+        if value.abs() != 0. {
+            self.is2D.set(false);
+        }
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m24
     pub fn set_m24(&self, value: f64) {
+        // For the DOMMatrix interface, setting the m24 attribute must set the
+        // m24 element to the new value and, if the new value is not 0 or -0, set is 2D to false.
         self.matrix.borrow_mut().m24 = value;
+
+        if value.abs() != 0. {
+            self.is2D.set(false);
+        }
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m31
     pub fn set_m31(&self, value: f64) {
+        // For the DOMMatrix interface, setting the m31 attribute must set the
+        // m31 element to the new value and, if the new value is not 0 or -0, set is 2D to false.
         self.matrix.borrow_mut().m31 = value;
+
+        if value.abs() != 0. {
+            self.is2D.set(false);
+        }
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m32
     pub fn set_m32(&self, value: f64) {
+        // For the DOMMatrix interface, setting the m32 attribute must set the
+        // m32 element to the new value and, if the new value is not 0 or -0, set is 2D to false.
         self.matrix.borrow_mut().m32 = value;
+
+        if value.abs() != 0. {
+            self.is2D.set(false);
+        }
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m33
     pub fn set_m33(&self, value: f64) {
+        // For the DOMMatrix interface, setting the m33 attribute must set the
+        // m33 element to the new value and, if the new value is not 1, set is 2D to false.
         self.matrix.borrow_mut().m33 = value;
+
+        if value != 1. {
+            self.is2D.set(false);
+        }
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m34
     pub fn set_m34(&self, value: f64) {
+        // For the DOMMatrix interface, setting the m34 attribute must set the
+        // m34 element to the new value and, if the new value is not 0 or -0, set is 2D to false.
         self.matrix.borrow_mut().m34 = value;
+
+        if value.abs() != 0. {
+            self.is2D.set(false);
+        }
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m41
@@ -147,12 +195,24 @@ impl DOMMatrixReadOnly {
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m43
     pub fn set_m43(&self, value: f64) {
+        // For the DOMMatrix interface, setting the m43 attribute must set the
+        // m43 element to the new value and, if the new value is not 0 or -0, set is 2D to false.
         self.matrix.borrow_mut().m43 = value;
+
+        if value.abs() != 0. {
+            self.is2D.set(false);
+        }
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m44
     pub fn set_m44(&self, value: f64) {
+        // For the DOMMatrix interface, setting the m44 attribute must set the
+        // m44 element to the new value and, if the new value is not 1, set is 2D to false.
         self.matrix.borrow_mut().m44 = value;
+
+        if value != 1. {
+            self.is2D.set(false);
+        }
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-multiplyself
