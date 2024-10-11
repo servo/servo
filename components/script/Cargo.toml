@@ -50,6 +50,7 @@ dom_struct = { path = "../dom_struct" }
 domobject_derive = { path = "../domobject_derive" }
 embedder_traits = { workspace = true }
 encoding_rs = { workspace = true }
+enum-iterator = { workspace = true }
 euclid = { workspace = true }
 fnv = { workspace = true }
 fxhash = { workspace = true }

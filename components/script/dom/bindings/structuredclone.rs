@@ -101,16 +101,23 @@ impl SerializeOperation {
 }
 
 type DomObjectReadCallback = unsafe fn(&GlobalScope, *mut JSStructuredCloneReader, &mut StructuredReadDataHolder) -> *mut JSObject;
+type DomObjectWriteCallback = unsafe fn(*mut JSContext, obj: RawHandleObject, w: *mut JSStructuredCloneWriter, holder: &mut StructuredWriteDataHolder) -> Result<bool, ()>;
 
-#[derive(FromPrimitive)]
+#[derive(FromPrimitive, enum_iterator::Sequence)]
 pub enum CloneableObject {
     Blob = StructuredCloneTags::DomBlob as isize,
 }
 
 impl CloneableObject {
-    fn callback(&self) -> DomObjectReadCallback {
+    fn read_callback(&self) -> DomObjectReadCallback {
         match self {
             CloneableObject::Blob => deserialize_interface::<Blob>,
+        }
+    }
+
+    fn write_callback(&self) -> DomObjectWriteCallback {
+        match self {
+            CloneableObject::Blob => attempt_serialization::<Blob>,
         }
     }
 }
@@ -135,7 +142,7 @@ unsafe extern "C" fn read_callback(
 
     let in_realm_proof = AlreadyInRealm::assert_for_cx(SafeJSContext::from_ptr(cx));
     let global = GlobalScope::from_context(cx, InRealm::Already(&in_realm_proof));
-    (cloneable.callback())(&global, r, &mut *(closure as *mut StructuredReadDataHolder))
+    (cloneable.read_callback())(&global, r, &mut *(closure as *mut StructuredReadDataHolder))
 }
 
 unsafe extern "C" fn write_callback(
@@ -146,7 +153,10 @@ unsafe extern "C" fn write_callback(
     closure: *mut raw::c_void,
 ) -> bool {
     let holder = &mut *(closure as *mut StructuredWriteDataHolder);
-    attempt_serialization::<Blob>(cx, obj, w, holder)
+    enum_iterator::all::<CloneableObject>()
+        .map(|interface| (interface.write_callback())(cx, obj, w, holder))
+        .filter_map(|result| result.ok())
+        .next()
         .unwrap_or_default()
 }
 
