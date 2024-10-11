@@ -26,11 +26,11 @@ use crate::context::LayoutContext;
 use crate::dom::NodeExt;
 use crate::dom_traversal::{Contents, NodeAndStyleInfo};
 use crate::formatting_contexts::IndependentFormattingContext;
-use crate::fragment_tree::{BoxFragment, CollapsedBlockMargins, CollapsedMargin};
-use crate::geom::{LogicalRect, LogicalVec2, PhysicalPoint, PhysicalRect, Size, ToLogical};
+use crate::fragment_tree::{BoxFragment, CollapsedMargin};
+use crate::geom::{LogicalRect, LogicalVec2, ToLogical};
 use crate::positioned::{relative_adjustement, PositioningContext};
-use crate::style_ext::{Clamp, ComputedValuesExt, DisplayInside, PaddingBorderMargin};
-use crate::{AuOrAuto, ContainingBlock, IndefiniteContainingBlock};
+use crate::style_ext::{DisplayInside, PaddingBorderMargin};
+use crate::ContainingBlock;
 
 /// A floating box.
 #[derive(Debug, Serialize)]
@@ -902,145 +902,13 @@ impl FloatBox {
             containing_block,
             &style,
             |positioning_context| {
-                // Margin is computed this way regardless of whether the element is replaced
-                // or non-replaced.
-                let pbm = style.padding_border_margin(containing_block);
-                let margin = pbm.margin.auto_is(Au::zero);
-                let pbm_sums = pbm.padding + pbm.border + margin;
-
-                let (content_size, children);
-                match self.contents {
-                    IndependentFormattingContext::NonReplaced(ref mut non_replaced) => {
-                        // Calculate inline size.
-                        // https://drafts.csswg.org/css2/#float-width
-                        let style = non_replaced.style.clone();
-                        let box_size = style.content_box_size(containing_block, &pbm);
-                        let max_box_size = style.content_max_box_size(containing_block, &pbm);
-                        let min_box_size = style.content_min_box_size(containing_block, &pbm);
-                        let available_inline_size =
-                            containing_block.inline_size - pbm_sums.inline_sum();
-                        let available_block_size = containing_block
-                            .block_size
-                            .non_auto()
-                            .map(|block_size| block_size - pbm_sums.block_sum());
-                        let tentative_block_size = box_size
-                            .block
-                            .maybe_resolve_extrinsic(available_block_size)
-                            .map(|size| {
-                                let min_block_size = min_box_size
-                                    .block
-                                    .maybe_resolve_extrinsic(available_block_size)
-                                    .unwrap_or_default();
-                                let max_block_size = max_box_size
-                                    .block
-                                    .maybe_resolve_extrinsic(available_block_size);
-                                size.clamp_between_extremums(min_block_size, max_block_size)
-                            })
-                            .map_or(AuOrAuto::Auto, AuOrAuto::LengthPercentage);
-                        let mut get_content_size = || {
-                            let containing_block_for_children =
-                                IndefiniteContainingBlock::new_for_style_and_block_size(
-                                    &style,
-                                    tentative_block_size,
-                                );
-                            non_replaced.inline_content_sizes(
-                                layout_context,
-                                &containing_block_for_children,
-                            )
-                        };
-                        let tentative_inline_size = box_size.inline.resolve(
-                            Size::fit_content,
-                            available_inline_size,
-                            &mut get_content_size,
-                        );
-                        let min_inline_size = min_box_size
-                            .inline
-                            .resolve_non_initial(available_inline_size, &mut get_content_size)
-                            .unwrap_or_default();
-                        let max_inline_size = max_box_size
-                            .inline
-                            .resolve_non_initial(available_inline_size, &mut get_content_size);
-                        let inline_size = tentative_inline_size
-                            .clamp_between_extremums(min_inline_size, max_inline_size);
-
-                        // Calculate block size.
-                        // https://drafts.csswg.org/css2/#block-root-margin
-                        // FIXME(pcwalton): Is a tree rank of zero correct here?
-                        let containing_block_for_children = ContainingBlock {
-                            inline_size,
-                            block_size: tentative_block_size,
-                            style: &non_replaced.style,
-                        };
-                        let independent_layout = non_replaced.layout(
-                            layout_context,
-                            positioning_context,
-                            &containing_block_for_children,
-                            containing_block,
-                        );
-                        let (block_size, inline_size) =
-                            match independent_layout.content_inline_size_for_table {
-                                Some(inline_size) => {
-                                    (independent_layout.content_block_size, inline_size)
-                                },
-                                None => {
-                                    let stretch_size = available_block_size
-                                        .unwrap_or(independent_layout.content_block_size);
-                                    let mut get_content_size =
-                                        || independent_layout.content_block_size.into();
-                                    let min_block_size = min_box_size
-                                        .block
-                                        .resolve_non_initial(stretch_size, &mut get_content_size)
-                                        .unwrap_or_default();
-                                    let max_block_size = max_box_size
-                                        .block
-                                        .resolve_non_initial(stretch_size, &mut get_content_size);
-                                    let block_size = tentative_block_size
-                                        .auto_is(|| independent_layout.content_block_size)
-                                        .clamp_between_extremums(min_block_size, max_block_size);
-                                    (block_size, inline_size)
-                                },
-                            };
-                        content_size = LogicalVec2 {
-                            inline: inline_size,
-                            block: block_size,
-                        };
-                        children = independent_layout.fragments;
-                    },
-                    IndependentFormattingContext::Replaced(ref replaced) => {
-                        // https://drafts.csswg.org/css2/#float-replaced-width
-                        // https://drafts.csswg.org/css2/#inline-replaced-height
-                        content_size = replaced.contents.used_size_as_if_inline_element(
-                            containing_block,
-                            &replaced.style,
-                            &pbm,
-                        );
-                        children = replaced.contents.make_fragments(
-                            &replaced.style,
-                            containing_block,
-                            content_size.to_physical_size(containing_block.style.writing_mode),
-                        )
-                    },
-                };
-
-                let containing_block_writing_mode = containing_block.style.writing_mode;
-                let content_rect = PhysicalRect::new(
-                    PhysicalPoint::zero(),
-                    content_size.to_physical_size(containing_block_writing_mode),
-                );
-
-                BoxFragment::new(
-                    self.contents.base_fragment_info(),
-                    style.clone(),
-                    children,
-                    content_rect,
-                    pbm.padding.to_physical(containing_block_writing_mode),
-                    pbm.border.to_physical(containing_block_writing_mode),
-                    margin.to_physical(containing_block_writing_mode),
-                    // Clearance is handled internally by the float placement logic, so there's no need
-                    // to store it explicitly in the fragment.
-                    None, // clearance
-                    CollapsedBlockMargins::zero(),
-                )
+                self.contents
+                    .layout_float_or_atomic_inline(
+                        layout_context,
+                        positioning_context,
+                        containing_block,
+                    )
+                    .fragment
             },
         )
     }

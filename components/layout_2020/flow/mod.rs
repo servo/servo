@@ -14,7 +14,7 @@ use style::computed_values::clear::T as Clear;
 use style::computed_values::float::T as Float;
 use style::properties::ComputedValues;
 use style::servo::selector_parser::PseudoElement;
-use style::values::computed::Size;
+use style::values::computed::Size as StyleSize;
 use style::values::specified::align::AlignFlags;
 use style::values::specified::{Display, TextAlignKeyword};
 use style::Zero;
@@ -25,14 +25,15 @@ use crate::flow::float::{
     ContainingBlockPositionInfo, FloatBox, PlacementAmongFloats, SequentialLayoutState,
 };
 use crate::formatting_contexts::{
-    Baselines, IndependentFormattingContext, IndependentLayout, NonReplacedFormattingContext,
+    Baselines, IndependentFormattingContext, IndependentLayout, IndependentLayoutResult,
+    NonReplacedFormattingContext,
 };
 use crate::fragment_tree::{
     BaseFragmentInfo, BoxFragment, CollapsedBlockMargins, CollapsedMargin, Fragment, FragmentFlags,
 };
 use crate::geom::{
-    AuOrAuto, LogicalRect, LogicalSides, LogicalVec2, PhysicalRect, PhysicalSides, ToLogical,
-    ToLogicalWithContainingBlock,
+    AuOrAuto, LogicalRect, LogicalSides, LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSides,
+    Size, ToLogical, ToLogicalWithContainingBlock,
 };
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext, PositioningContextLength};
 use crate::replaced::ReplacedContent;
@@ -1904,13 +1905,182 @@ impl<'container> PlacementState<'container> {
     }
 }
 
-fn block_size_is_zero_or_intrinsic(size: &Size, containing_block: &ContainingBlock) -> bool {
+fn block_size_is_zero_or_intrinsic(size: &StyleSize, containing_block: &ContainingBlock) -> bool {
     match size {
-        Size::Auto | Size::MinContent | Size::MaxContent | Size::FitContent | Size::Stretch => true,
-        Size::LengthPercentage(ref lp) => {
+        StyleSize::Auto |
+        StyleSize::MinContent |
+        StyleSize::MaxContent |
+        StyleSize::FitContent |
+        StyleSize::Stretch => true,
+        StyleSize::LengthPercentage(ref lp) => {
             // TODO: Should this resolve definite percentages? Blink does it, Gecko and WebKit don't.
             lp.is_definitely_zero() ||
                 (lp.0.has_percentage() && containing_block.block_size.is_auto())
         },
+    }
+}
+
+impl IndependentFormattingContext {
+    pub(crate) fn layout_float_or_atomic_inline(
+        &mut self,
+        layout_context: &LayoutContext,
+        child_positioning_context: &mut PositioningContext,
+        containing_block: &ContainingBlock,
+    ) -> IndependentLayoutResult {
+        let style = self.style();
+        let container_writing_mode = containing_block.style.writing_mode;
+        let pbm = style.padding_border_margin(containing_block);
+        let margin = pbm.margin.auto_is(Au::zero);
+        let pbm_sums = pbm.padding + pbm.border + margin;
+
+        let (fragments, content_rect, baselines) = match self {
+            IndependentFormattingContext::Replaced(replaced) => {
+                // https://drafts.csswg.org/css2/visudet.html#float-replaced-width
+                // https://drafts.csswg.org/css2/visudet.html#inline-replaced-height
+                let content_size = replaced
+                    .contents
+                    .used_size_as_if_inline_element(containing_block, &replaced.style, &pbm)
+                    .to_physical_size(container_writing_mode);
+                let fragments = replaced.contents.make_fragments(
+                    &replaced.style,
+                    containing_block,
+                    content_size,
+                );
+
+                let content_rect = PhysicalRect::new(PhysicalPoint::zero(), content_size);
+                (fragments, content_rect, None)
+            },
+            IndependentFormattingContext::NonReplaced(non_replaced) => {
+                let style = non_replaced.style.clone();
+                let box_size = style.content_box_size(containing_block, &pbm);
+                let max_box_size = style.content_max_box_size(containing_block, &pbm);
+                let min_box_size = style.content_min_box_size(containing_block, &pbm);
+
+                let available_inline_size = containing_block.inline_size - pbm_sums.inline_sum();
+                let available_block_size = containing_block
+                    .block_size
+                    .non_auto()
+                    .map(|block_size| block_size - pbm_sums.block_sum());
+                let tentative_block_size = box_size
+                    .block
+                    .maybe_resolve_extrinsic(available_block_size)
+                    .map(|size| {
+                        let min_block_size = min_box_size
+                            .block
+                            .maybe_resolve_extrinsic(available_block_size)
+                            .unwrap_or_default();
+                        let max_block_size = max_box_size
+                            .block
+                            .maybe_resolve_extrinsic(available_block_size);
+                        size.clamp_between_extremums(min_block_size, max_block_size)
+                    })
+                    .map_or(AuOrAuto::Auto, AuOrAuto::LengthPercentage);
+
+                let mut get_content_size = || {
+                    let containing_block_for_children =
+                        IndefiniteContainingBlock::new_for_style_and_block_size(
+                            &style,
+                            tentative_block_size,
+                        );
+                    non_replaced
+                        .inline_content_sizes(layout_context, &containing_block_for_children)
+                };
+
+                // https://drafts.csswg.org/css2/visudet.html#float-width
+                // https://drafts.csswg.org/css2/visudet.html#inlineblock-width
+                let tentative_inline_size = box_size.inline.resolve(
+                    Size::fit_content,
+                    available_inline_size,
+                    &mut get_content_size,
+                );
+
+                // https://drafts.csswg.org/css2/visudet.html#min-max-widths
+                // In this case “applying the rules above again” with a non-auto inline-size
+                // always results in that size.
+                let min_inline_size = min_box_size
+                    .inline
+                    .resolve_non_initial(available_inline_size, &mut get_content_size)
+                    .unwrap_or_default();
+                let max_inline_size = max_box_size
+                    .inline
+                    .resolve_non_initial(available_inline_size, &mut get_content_size);
+                let inline_size =
+                    tentative_inline_size.clamp_between_extremums(min_inline_size, max_inline_size);
+
+                let containing_block_for_children = ContainingBlock {
+                    inline_size,
+                    block_size: tentative_block_size,
+                    style: &style,
+                };
+                assert_eq!(
+                    container_writing_mode.is_horizontal(),
+                    style.writing_mode.is_horizontal(),
+                    "Mixed horizontal and vertical writing modes are not supported yet"
+                );
+
+                let independent_layout = non_replaced.layout(
+                    layout_context,
+                    child_positioning_context,
+                    &containing_block_for_children,
+                    containing_block,
+                );
+                let (inline_size, block_size) = match independent_layout
+                    .content_inline_size_for_table
+                {
+                    Some(inline) => (inline, independent_layout.content_block_size),
+                    None => {
+                        // https://drafts.csswg.org/css2/visudet.html#block-root-margin
+                        let stretch_size =
+                            available_block_size.unwrap_or(independent_layout.content_block_size);
+                        let mut get_content_size = || independent_layout.content_block_size.into();
+                        let min_block_size = min_box_size
+                            .block
+                            .resolve_non_initial(stretch_size, &mut get_content_size)
+                            .unwrap_or_default();
+                        let max_block_size = max_box_size
+                            .block
+                            .resolve_non_initial(stretch_size, &mut get_content_size);
+                        let block_size = tentative_block_size
+                            .auto_is(|| independent_layout.content_block_size)
+                            .clamp_between_extremums(min_block_size, max_block_size);
+                        (inline_size, block_size)
+                    },
+                };
+
+                let content_size = LogicalVec2 {
+                    block: block_size,
+                    inline: inline_size,
+                }
+                .to_physical_size(container_writing_mode);
+                let content_rect = PhysicalRect::new(PhysicalPoint::zero(), content_size);
+
+                (
+                    independent_layout.fragments,
+                    content_rect,
+                    Some(independent_layout.baselines),
+                )
+            },
+        };
+
+        let fragment = BoxFragment::new(
+            self.base_fragment_info(),
+            self.style().clone(),
+            fragments,
+            content_rect,
+            pbm.padding.to_physical(container_writing_mode),
+            pbm.border.to_physical(container_writing_mode),
+            margin.to_physical(container_writing_mode),
+            // Floats can have clearance, but it's handled internally by the float placement logic,
+            // so there's no need to store it explicitly in the fragment.
+            // And atomic inlines don't have clearance.
+            None, /* clearance */
+            CollapsedBlockMargins::zero(),
+        );
+
+        IndependentLayoutResult {
+            fragment,
+            baselines,
+            pbm_sums,
+        }
     }
 }
