@@ -2909,7 +2909,7 @@ impl GlobalScope {
     /// Returns a boolean indicating whether the event-loop
     /// where this global is running on can continue running JS.
     pub fn can_continue_running(&self) -> bool {
-        if self.downcast::<Window>().is_some() {
+        if !self.is::<Window>() {
             return ScriptThread::can_continue_running();
         }
         if let Some(worker) = self.downcast::<WorkerGlobalScope>() {

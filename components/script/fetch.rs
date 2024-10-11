@@ -181,7 +181,7 @@ pub fn Fetch(
 
     // Step 6. If globalObject is a ServiceWorkerGlobalScope object, then set request’s
     //         service-workers mode to "none".
-    if global.downcast::<ServiceWorkerGlobalScope>().is_some() {
+    if !global.is::<ServiceWorkerGlobalScope>() {
         request_init.service_workers_mode = ServiceWorkersMode::None;
     }
 
