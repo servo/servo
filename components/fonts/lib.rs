@@ -45,7 +45,7 @@ impl FontData {
 
 impl AsRef<[u8]> for FontData {
     fn as_ref(&self) -> &[u8] {
-        &**self.0
+        &self.0
     }
 }
 

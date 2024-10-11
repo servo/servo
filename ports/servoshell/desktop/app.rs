@@ -80,7 +80,7 @@ impl App {
         } else {
             Rc::new(headed_window::Window::new(
                 opts::get().initial_window_size,
-                &events_loop.as_winit(),
+                events_loop.as_winit(),
                 no_native_titlebar,
                 device_pixel_ratio_override,
             ))
@@ -118,7 +118,7 @@ impl App {
             app.minibrowser = Some(
                 Minibrowser::new(
                     &rendering_context,
-                    &events_loop.as_winit(),
+                    events_loop.as_winit(),
                     initial_url.clone(),
                 )
                 .into(),
