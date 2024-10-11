@@ -679,7 +679,9 @@ impl XRSessionMethods for XRSession {
                 return Err(Error::NotSupported);
             }
             // https://github.com/immersive-web/layers/issues/189
-            if init.layers.is_some() {
+      if self.has_layers_feature() || init.layers.is_some() {
+          return Err(Error::NotSupported);
+      }
                 return Err(Error::NotSupported);
             }
         }
