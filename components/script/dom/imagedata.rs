@@ -39,6 +39,7 @@ impl ImageData {
         width: u32,
         height: u32,
         mut data: Option<Vec<u8>>,
+        can_gc:CanGc,
     ) -> Fallible<DomRoot<ImageData>> {
         let len = width * height * 4;
         unsafe {
@@ -54,10 +55,10 @@ impl ImageData {
                     width,
                     Some(height),
                     js_object.get(),
-                    CanGc::note(),
+                    can_gc
                 )
             } else {
-                Self::new_without_jsobject(global, None, width, height, CanGc::note())
+                Self::new_without_jsobject(global, None, width, height, can_gc)
             }
         }
     }

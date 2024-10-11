@@ -26,6 +26,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlcanvaselement::HTMLCanvasElement;
 use crate::dom::imagedata::ImageData;
 use crate::dom::textmetrics::TextMetrics;
+use crate::script_runtime::CanGc;
 
 // https://html.spec.whatwg.org/multipage/#canvasrenderingcontext2d
 #[dom_struct]
@@ -467,18 +468,18 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-createimagedata
-    fn CreateImageData(&self, sw: i32, sh: i32) -> Fallible<DomRoot<ImageData>> {
-        self.canvas_state.create_image_data(&self.global(), sw, sh)
+    fn CreateImageData(&self, sw: i32, sh: i32, can_gc: CanGc) -> Fallible<DomRoot<ImageData>> {
+        self.canvas_state.create_image_data(&self.global(), sw, sh, can_gc)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-createimagedata
-    fn CreateImageData_(&self, imagedata: &ImageData) -> Fallible<DomRoot<ImageData>> {
+    fn CreateImageData_(&self, imagedata: &ImageData, can_gc: CanGc) -> Fallible<DomRoot<ImageData>> {
         self.canvas_state
-            .create_image_data_(&self.global(), imagedata)
+            .create_image_data_(&self.global(), imagedata, can_gc)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-getimagedata
-    fn GetImageData(&self, sx: i32, sy: i32, sw: i32, sh: i32) -> Fallible<DomRoot<ImageData>> {
+    fn GetImageData(&self, sx: i32, sy: i32, sw: i32, sh: i32, can_gc: CanGc) -> Fallible<DomRoot<ImageData>> {
         self.canvas_state.get_image_data(
             self.canvas
                 .as_ref()
@@ -488,6 +489,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
             sy,
             sw,
             sh,
+            can_gc
         )
     }
 
