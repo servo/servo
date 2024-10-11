@@ -56,6 +56,10 @@ PACKAGES = {
         r'production\msi\Servo.exe',
         r'production\msi\Servo.zip',
     ],
+    'ohos': [
+        ('openharmony/aarch64-unknown-linux-ohos/release/entry/build/'
+            'default/outputs/default/servoshell-default-signed.hap')
+    ],
 }
 
 
