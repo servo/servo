@@ -1342,7 +1342,7 @@ impl WindowMethods for Window {
         init: RootedTraceableBox<RequestInit>,
         comp: InRealm,
     ) -> Rc<Promise> {
-        fetch::Fetch(self.upcast(), input, init, comp)
+        fetch::Fetch(self.upcast(), input, init, comp, CanGc::note())
     }
 
     fn TestRunner(&self) -> DomRoot<TestRunner> {

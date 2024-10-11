@@ -55,7 +55,7 @@ use crate::dom::workernavigator::WorkerNavigator;
 use crate::fetch;
 use crate::realms::{enter_realm, InRealm};
 use crate::script_runtime::{
-    get_reports, CommonScriptMsg, JSContext, Runtime, ScriptChan, ScriptPort,
+    get_reports, CanGc, CommonScriptMsg, JSContext, Runtime, ScriptChan, ScriptPort,
 };
 use crate::task::TaskCanceller;
 use crate::task_source::dom_manipulation::DOMManipulationTaskSource;
@@ -406,7 +406,7 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
         init: RootedTraceableBox<RequestInit>,
         comp: InRealm,
     ) -> Rc<Promise> {
-        fetch::Fetch(self.upcast(), input, init, comp)
+        fetch::Fetch(self.upcast(), input, init, comp, CanGc::note())
     }
 
     // https://w3c.github.io/hr-time/#the-performance-attribute
