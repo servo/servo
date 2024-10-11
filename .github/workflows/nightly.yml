@@ -73,6 +73,7 @@ jobs:
       - upload-win
       - upload-mac
       - upload-android
+      - upload-ohos
 
   upload-win:
     # This job is only useful when run on upstream servo.
@@ -123,6 +124,22 @@ jobs:
       id-token: write
       attestations: write
     uses: ./.github/workflows/android.yml
+    with:
+      profile: "release"
+      upload: true
+      github-release-id: ${{ needs.create-draft-release.outputs.release-id }}
+    secrets: inherit
+
+  upload-ohos:
+    # This job is only useful when run on upstream servo.
+    if: github.repository == 'servo/servo' || github.event_name == 'workflow_dispatch'
+    name: Upload nightly (OpenHarmony)
+    needs:
+      - create-draft-release
+    permissions:
+      id-token: write
+      attestations: write
+    uses: ./.github/workflows/ohos.yml
     with:
       profile: "release"
       upload: true
