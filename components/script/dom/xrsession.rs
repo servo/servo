@@ -676,16 +676,8 @@ impl XRSessionMethods for XRSession {
 
         // https://immersive-web.github.io/layers/#updaterenderstatechanges
         // Step 1.
-        if init.baseLayer.is_some() {
-            if self.has_layers_feature() {
-                return Err(Error::NotSupported);
-            }
-            // https://github.com/immersive-web/layers/issues/189
-            if init.layers.is_some() {
-                return Err(Error::Type(String::from(
-                    "Cannot set WebXR layers and baseLayer",
-                )));
-            }
+        if init.baseLayer.is_some() && (self.has_layers_feature() || init.layers.is_some()) {
+            return Err(Error::NotSupported);
         }
 
         if let Some(Some(ref layers)) = init.layers {
