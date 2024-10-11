@@ -4064,7 +4064,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4979f22fdb869068da03c9f7528f8297c6fd2606bc3a4affe42e6a823fdb8da4"
 dependencies = [
  "cfg-if",
- "windows-targets 0.48.5",
+ "windows-targets 0.52.6",
 ]
 
 [[package]]
@@ -8307,7 +8307,7 @@ dependencies = [
 [[package]]
 name = "webxr"
 version = "0.0.1"
-source = "git+https://github.com/servo/webxr#845ae9c22c3eeb7b2ac3fcf9ed791879628256b3"
+source = "git+https://github.com/servo/webxr#e3249c3df967f16fab9928d053708bfb43487af3"
 dependencies = [
  "crossbeam-channel",
  "euclid",
@@ -8324,7 +8324,7 @@ dependencies = [
 [[package]]
 name = "webxr-api"
 version = "0.0.1"
-source = "git+https://github.com/servo/webxr#845ae9c22c3eeb7b2ac3fcf9ed791879628256b3"
+source = "git+https://github.com/servo/webxr#e3249c3df967f16fab9928d053708bfb43487af3"
 dependencies = [
  "euclid",
  "ipc-channel",
@@ -8450,7 +8450,7 @@ version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf221c93e13a30d793f7645a0e7762c55d169dbb0a49671918a2319d289b10bb"
 dependencies = [
- "windows-sys 0.59.0",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]
