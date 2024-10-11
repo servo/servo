@@ -5,7 +5,7 @@
 use std::cell::Cell;
 
 use dom_struct::dom_struct;
-use js::jsapi::{JS_ReadDouble, JSStructuredCloneReader};
+use js::jsapi::{JSStructuredCloneReader, JS_ReadDouble};
 use js::rust::HandleObject;
 
 use crate::dom::bindings::codegen::Bindings::DOMPointBinding::DOMPointInit;
@@ -13,8 +13,12 @@ use crate::dom::bindings::codegen::Bindings::DOMPointReadOnlyBinding::DOMPointRe
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::serializable::{Serializable, SerializeOperation, ToSerializeOperations, FromStructuredClone};
-use crate::dom::bindings::structuredclone::{CloneableObject, StructuredReadDataHolder, StructuredWriteDataHolder};
+use crate::dom::bindings::serializable::{
+    FromStructuredClone, Serializable, SerializeOperation, ToSerializeOperations,
+};
+use crate::dom::bindings::structuredclone::{
+    CloneableObject, StructuredReadDataHolder, StructuredWriteDataHolder,
+};
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::CanGc;
 
@@ -185,6 +189,12 @@ impl Serializable for DOMPointReadOnly {
         _sc_holder: &mut StructuredReadDataHolder,
         coordinates: Coordinates,
     ) -> Result<DomRoot<DOMPointReadOnly>, ()> {
-        Ok(Self::new(owner, coordinates.x, coordinates.y, coordinates.z, coordinates.w))
+        Ok(Self::new(
+            owner,
+            coordinates.x,
+            coordinates.y,
+            coordinates.z,
+            coordinates.w,
+        ))
     }
 }

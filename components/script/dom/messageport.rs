@@ -23,7 +23,9 @@ use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::structuredclone::{self, StructuredReadDataHolder, StructuredWriteDataHolder};
+use crate::dom::bindings::structuredclone::{
+    self, StructuredReadDataHolder, StructuredWriteDataHolder,
+};
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::bindings::transferable::Transferable;
 use crate::dom::eventtarget::EventTarget;

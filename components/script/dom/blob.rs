@@ -27,7 +27,9 @@ use crate::dom::bindings::serializable::{
     FromStructuredClone, Serializable, SerializeOperation, ToSerializeOperations,
 };
 use crate::dom::bindings::str::DOMString;
-use crate::dom::bindings::structuredclone::{CloneableObject, StructuredReadDataHolder, StructuredWriteDataHolder};
+use crate::dom::bindings::structuredclone::{
+    CloneableObject, StructuredReadDataHolder, StructuredWriteDataHolder,
+};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::readablestream::ReadableStream;
@@ -135,13 +137,9 @@ impl FromStructuredClone for StorageKey {
             name_space: 0,
             index: 0,
         };
-        assert!(JS_ReadUint32Pair(
-            r,
-            &mut key.name_space,
-            &mut key.index,
-        ));
+        assert!(JS_ReadUint32Pair(r, &mut key.name_space, &mut key.index,));
         key
-     }
+    }
 }
 
 impl Serializable for Blob {

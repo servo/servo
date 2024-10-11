@@ -9,9 +9,10 @@ use js::jsapi::JSStructuredCloneReader;
 
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::structuredclone::{CloneableObject, StructuredWriteDataHolder, StructuredReadDataHolder};
+use crate::dom::bindings::structuredclone::{
+    CloneableObject, StructuredReadDataHolder, StructuredWriteDataHolder,
+};
 use crate::dom::globalscope::GlobalScope;
-
 
 /// An interface to construct a stream of serialization operations that will be
 /// evaluated as part of serializing a DOM object.

@@ -16,7 +16,7 @@ use js::glue::{
 use js::jsapi::{
     CloneDataPolicy, HandleObject as RawHandleObject, JSContext, JSObject,
     JSStructuredCloneCallbacks, JSStructuredCloneReader, JSStructuredCloneWriter,
-    JS_ClearPendingException, JS_WriteUint32Pair, JS_WriteDouble,
+    JS_ClearPendingException, JS_WriteDouble, JS_WriteUint32Pair,
     MutableHandleObject as RawMutableHandleObject, StructuredCloneScope, TransferableOwnership,
     JS_STRUCTURED_CLONE_VERSION,
 };
@@ -29,7 +29,7 @@ use script_traits::serializable::BlobImpl;
 use script_traits::transferable::MessagePortImpl;
 use script_traits::StructuredSerializedData;
 
-use crate::dom::bindings::conversions::{root_from_object, ToJSValConvertible, IDLInterface};
+use crate::dom::bindings::conversions::{root_from_object, IDLInterface, ToJSValConvertible};
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::serializable::{
@@ -76,35 +76,40 @@ unsafe fn attempt_serialization<T: Serializable + IDLInterface>(
     w: *mut JSStructuredCloneWriter,
     holder: &mut StructuredWriteDataHolder,
 ) -> Result<bool, ()> {
-    root_from_object::<T>(*obj, cx)
-        .map(|obj| {
-            let Ok(data) = obj.serialize(holder) else {
-                return false;
-            };
-            SerializeOperation::Uint32Pair(<T as Serializable>::TAG as u32, 0)
-                .invoke(w);
-            for operation in data.to_serialize_operations() {
-                operation.invoke(w);
-            }
-            true
-        })
+    root_from_object::<T>(*obj, cx).map(|obj| {
+        let Ok(data) = obj.serialize(holder) else {
+            return false;
+        };
+        SerializeOperation::Uint32Pair(<T as Serializable>::TAG as u32, 0).invoke(w);
+        for operation in data.to_serialize_operations() {
+            operation.invoke(w);
+        }
+        true
+    })
 }
 
 impl SerializeOperation {
     fn invoke(&self, w: *mut JSStructuredCloneWriter) {
         unsafe {
             match self {
-                SerializeOperation::Uint32Pair(a, b) =>
-                    assert!(JS_WriteUint32Pair(w, *a, *b)),
-                SerializeOperation::Double(f) =>
-                    assert!(JS_WriteDouble(w, *f)),
+                SerializeOperation::Uint32Pair(a, b) => assert!(JS_WriteUint32Pair(w, *a, *b)),
+                SerializeOperation::Double(f) => assert!(JS_WriteDouble(w, *f)),
             }
         }
     }
 }
 
-type DomObjectReadCallback = unsafe fn(&GlobalScope, *mut JSStructuredCloneReader, &mut StructuredReadDataHolder) -> *mut JSObject;
-type DomObjectWriteCallback = unsafe fn(*mut JSContext, obj: RawHandleObject, w: *mut JSStructuredCloneWriter, holder: &mut StructuredWriteDataHolder) -> Result<bool, ()>;
+type DomObjectReadCallback = unsafe fn(
+    &GlobalScope,
+    *mut JSStructuredCloneReader,
+    &mut StructuredReadDataHolder,
+) -> *mut JSObject;
+type DomObjectWriteCallback = unsafe fn(
+    *mut JSContext,
+    obj: RawHandleObject,
+    w: *mut JSStructuredCloneWriter,
+    holder: &mut StructuredWriteDataHolder,
+) -> Result<bool, ()>;
 
 #[derive(FromPrimitive, enum_iterator::Sequence)]
 pub enum CloneableObject {
@@ -144,7 +149,9 @@ unsafe extern "C" fn read_callback(
         tag > StructuredCloneTags::Min as u32,
         "tag should be higher than StructuredCloneTags::Min"
     );
-    let Some(cloneable): Option<CloneableObject> = FromPrimitive::from_u32(tag) else { return ptr::null_mut() };
+    let Some(cloneable): Option<CloneableObject> = FromPrimitive::from_u32(tag) else {
+        return ptr::null_mut();
+    };
 
     let in_realm_proof = AlreadyInRealm::assert_for_cx(SafeJSContext::from_ptr(cx));
     let global = GlobalScope::from_context(cx, InRealm::Already(&in_realm_proof));
@@ -336,7 +343,10 @@ pub fn write(
 
         DeleteJSAutoStructuredCloneBuffer(scbuf);
 
-        let StructuredWriteDataHolder { blobs: mut blob_impls, ports: mut port_impls } = sc_holder;
+        let StructuredWriteDataHolder {
+            blobs: mut blob_impls,
+            ports: mut port_impls,
+        } = sc_holder;
 
         let data = StructuredSerializedData {
             serialized: data,
