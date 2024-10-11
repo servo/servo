@@ -16,7 +16,7 @@ use js::glue::{
 use js::jsapi::{
     CloneDataPolicy, HandleObject as RawHandleObject, JSContext, JSObject,
     JSStructuredCloneCallbacks, JSStructuredCloneReader, JSStructuredCloneWriter,
-    JS_ClearPendingException, JS_WriteUint32Pair,
+    JS_ClearPendingException, JS_WriteUint32Pair, JS_WriteDouble,
     MutableHandleObject as RawMutableHandleObject, StructuredCloneScope, TransferableOwnership,
     JS_STRUCTURED_CLONE_VERSION,
 };
@@ -37,6 +37,7 @@ use crate::dom::bindings::serializable::{
 };
 use crate::dom::bindings::transferable::Transferable;
 use crate::dom::blob::Blob;
+use crate::dom::dompointreadonly::DOMPointReadOnly;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageport::MessagePort;
 use crate::realms::{enter_realm, AlreadyInRealm, InRealm};
@@ -53,6 +54,7 @@ pub(super) enum StructuredCloneTags {
     DomBlob = 0xFFFF8001,
     MessagePort = 0xFFFF8002,
     Principals = 0xFFFF8003,
+    DomPointReadonly = 0xFFFF8004,
     Max = 0xFFFFFFFF,
 }
 
@@ -92,9 +94,10 @@ impl SerializeOperation {
     fn invoke(&self, w: *mut JSStructuredCloneWriter) {
         unsafe {
             match self {
-                SerializeOperation::Uint32Pair(a, b) => {
-                    assert!(JS_WriteUint32Pair(w, *a, *b));
-                }
+                SerializeOperation::Uint32Pair(a, b) =>
+                    assert!(JS_WriteUint32Pair(w, *a, *b)),
+                SerializeOperation::Double(f) =>
+                    assert!(JS_WriteDouble(w, *f)),
             }
         }
     }
@@ -106,18 +109,21 @@ type DomObjectWriteCallback = unsafe fn(*mut JSContext, obj: RawHandleObject, w:
 #[derive(FromPrimitive, enum_iterator::Sequence)]
 pub enum CloneableObject {
     Blob = StructuredCloneTags::DomBlob as isize,
+    DomPointReadonly = StructuredCloneTags::DomPointReadonly as isize,
 }
 
 impl CloneableObject {
     fn read_callback(&self) -> DomObjectReadCallback {
         match self {
             CloneableObject::Blob => deserialize_interface::<Blob>,
+            CloneableObject::DomPointReadonly => deserialize_interface::<DOMPointReadOnly>,
         }
     }
 
     fn write_callback(&self) -> DomObjectWriteCallback {
         match self {
             CloneableObject::Blob => attempt_serialization::<Blob>,
+            CloneableObject::DomPointReadonly => attempt_serialization::<DOMPointReadOnly>,
         }
     }
 }

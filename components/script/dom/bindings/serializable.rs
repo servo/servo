@@ -60,6 +60,7 @@ pub trait FromStructuredClone: Sized {
 /// during serialization of DOM objects.
 pub enum SerializeOperation {
     Uint32Pair(u32, u32),
+    Double(f64),
 }
 
 /// Interface for serializable platform objects.
