@@ -23,7 +23,7 @@ use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::structuredclone::{self, StructuredDataHolder};
+use crate::dom::bindings::structuredclone::{self, StructuredReadDataHolder, StructuredWriteDataHolder};
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::bindings::transferable::Transferable;
 use crate::dom::eventtarget::EventTarget;
@@ -158,15 +158,12 @@ impl MessagePort {
 
 impl Transferable for MessagePort {
     /// <https://html.spec.whatwg.org/multipage/#message-ports:transfer-steps>
-    fn transfer(&self, sc_holder: &mut StructuredDataHolder) -> Result<u64, ()> {
+    fn transfer(&self, sc_holder: &mut StructuredWriteDataHolder) -> Result<u64, ()> {
         if self.detached.get() {
             return Err(());
         }
 
-        let port_impls = match sc_holder {
-            StructuredDataHolder::Write { ports, .. } => ports,
-            _ => panic!("Unexpected variant of StructuredDataHolder"),
-        };
+        let port_impls = &mut sc_holder.ports;
 
         self.detached.set(true);
         let id = self.message_port_id();
@@ -202,18 +199,11 @@ impl Transferable for MessagePort {
     /// <https://html.spec.whatwg.org/multipage/#message-ports:transfer-receiving-steps>
     fn transfer_receive(
         owner: &GlobalScope,
-        sc_holder: &mut StructuredDataHolder,
+        sc_holder: &mut StructuredReadDataHolder,
         extra_data: u64,
         return_object: MutableHandleObject,
     ) -> Result<(), ()> {
-        let (message_ports, port_impls) = match sc_holder {
-            StructuredDataHolder::Read {
-                message_ports,
-                port_impls,
-                ..
-            } => (message_ports, port_impls),
-            _ => panic!("Unexpected variant of StructuredDataHolder"),
-        };
+        let (message_ports, port_impls) = (&mut sc_holder.message_ports, &mut sc_holder.port_impls);
 
         // 1. Re-build the key for the storage location
         // of the transferred object.

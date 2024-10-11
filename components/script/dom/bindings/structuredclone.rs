@@ -16,7 +16,7 @@ use js::glue::{
 use js::jsapi::{
     CloneDataPolicy, HandleObject as RawHandleObject, JSContext, JSObject,
     JSStructuredCloneCallbacks, JSStructuredCloneReader, JSStructuredCloneWriter,
-    JS_ClearPendingException, JS_ReadUint32Pair, JS_WriteUint32Pair,
+    JS_ClearPendingException, JS_WriteUint32Pair,
     MutableHandleObject as RawMutableHandleObject, StructuredCloneScope, TransferableOwnership,
     JS_STRUCTURED_CLONE_VERSION,
 };
@@ -31,10 +31,9 @@ use script_traits::StructuredSerializedData;
 
 use crate::dom::bindings::conversions::{root_from_object, ToJSValConvertible, IDLInterface};
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::serializable::{
-    FromStructuredClone, Serializable, SerializeOperation, StorageKey, ToSerializeOperations,
+    FromStructuredClone, Serializable, SerializeOperation, ToSerializeOperations,
 };
 use crate::dom::bindings::transferable::Transferable;
 use crate::dom::blob::Blob;
@@ -60,7 +59,7 @@ pub(super) enum StructuredCloneTags {
 unsafe fn deserialize_interface<T: Serializable>(
     owner: &GlobalScope,
     r: *mut JSStructuredCloneReader,
-    sc_holder: &mut StructuredDataHolder,
+    sc_holder: &mut StructuredReadDataHolder,
 ) -> *mut JSObject {
     let data = <<T as Serializable>::Data as FromStructuredClone>::from_structured_clone(r);
     if let Ok(obj) = <T as Serializable>::deserialize(owner, sc_holder, data) {
@@ -73,7 +72,7 @@ unsafe fn attempt_serialization<T: Serializable + IDLInterface>(
     cx: *mut JSContext,
     obj: RawHandleObject,
     w: *mut JSStructuredCloneWriter,
-    holder: &mut StructuredDataHolder,
+    holder: &mut StructuredWriteDataHolder,
 ) -> Result<bool, ()> {
     root_from_object::<T>(*obj, cx)
         .map(|obj| {
@@ -101,7 +100,7 @@ impl SerializeOperation {
     }
 }
 
-type DomObjectReadCallback = unsafe fn(&GlobalScope, *mut JSStructuredCloneReader, &mut StructuredDataHolder) -> *mut JSObject;
+type DomObjectReadCallback = unsafe fn(&GlobalScope, *mut JSStructuredCloneReader, &mut StructuredReadDataHolder) -> *mut JSObject;
 
 #[derive(FromPrimitive)]
 pub enum CloneableObject {
@@ -136,7 +135,7 @@ unsafe extern "C" fn read_callback(
 
     let in_realm_proof = AlreadyInRealm::assert_for_cx(SafeJSContext::from_ptr(cx));
     let global = GlobalScope::from_context(cx, InRealm::Already(&in_realm_proof));
-    (cloneable.callback())(&global, r, &mut *(closure as *mut StructuredDataHolder))
+    (cloneable.callback())(&global, r, &mut *(closure as *mut StructuredReadDataHolder))
 }
 
 unsafe extern "C" fn write_callback(
@@ -146,7 +145,7 @@ unsafe extern "C" fn write_callback(
     _same_process_scope_required: *mut bool,
     closure: *mut raw::c_void,
 ) -> bool {
-    let holder = &mut *(closure as *mut StructuredDataHolder);
+    let holder = &mut *(closure as *mut StructuredWriteDataHolder);
     attempt_serialization::<Blob>(cx, obj, w, holder)
         .unwrap_or_default()
 }
@@ -162,7 +161,7 @@ unsafe extern "C" fn read_transfer_callback(
     return_object: RawMutableHandleObject,
 ) -> bool {
     if tag == StructuredCloneTags::MessagePort as u32 {
-        let sc_holder = &mut *(closure as *mut StructuredDataHolder);
+        let sc_holder = &mut *(closure as *mut StructuredReadDataHolder);
         let in_realm_proof = AlreadyInRealm::assert_for_cx(SafeJSContext::from_ptr(cx));
         let owner = GlobalScope::from_context(cx, InRealm::Already(&in_realm_proof));
         if <MessagePort as Transferable>::transfer_receive(
@@ -192,7 +191,7 @@ unsafe extern "C" fn write_transfer_callback(
     if let Ok(port) = root_from_object::<MessagePort>(*obj, cx) {
         *tag = StructuredCloneTags::MessagePort as u32;
         *ownership = TransferableOwnership::SCTAG_TMO_CUSTOM;
-        let sc_holder = &mut *(closure as *mut StructuredDataHolder);
+        let sc_holder = &mut *(closure as *mut StructuredWriteDataHolder);
         if let Ok(data) = port.transfer(sc_holder) {
             *extra_data = data;
             return true;
@@ -251,27 +250,26 @@ static STRUCTURED_CLONE_CALLBACKS: JSStructuredCloneCallbacks = JSStructuredClon
 
 /// A data holder for results from, and inputs to, structured-data read/write operations.
 /// <https://html.spec.whatwg.org/multipage/#safe-passing-of-structured-data>
-pub enum StructuredDataHolder {
-    Read {
-        /// A vec of transfer-received DOM ports,
-        /// to be made available to script through a message event.
-        message_ports: Option<Vec<DomRoot<MessagePort>>>,
-        /// A map of port implementations,
-        /// used as part of the "transfer-receiving" steps of ports,
-        /// to produce the DOM ports stored in `message_ports` above.
-        port_impls: Option<HashMap<MessagePortId, MessagePortImpl>>,
-        /// A map of blob implementations,
-        /// used as part of the "deserialize" steps of blobs,
-        /// to produce the DOM blobs stored in `blobs` above.
-        blob_impls: Option<HashMap<BlobId, BlobImpl>>,
-    },
-    /// A data holder for transferred and serialized objects.
-    Write {
-        /// Transferred ports.
-        ports: Option<HashMap<MessagePortId, MessagePortImpl>>,
-        /// Serialized blobs.
-        blobs: Option<HashMap<BlobId, BlobImpl>>,
-    },
+pub struct StructuredReadDataHolder {
+    /// A vec of transfer-received DOM ports,
+    /// to be made available to script through a message event.
+    pub message_ports: Option<Vec<DomRoot<MessagePort>>>,
+    /// A map of port implementations,
+    /// used as part of the "transfer-receiving" steps of ports,
+    /// to produce the DOM ports stored in `message_ports` above.
+    pub port_impls: Option<HashMap<MessagePortId, MessagePortImpl>>,
+    /// A map of blob implementations,
+    /// used as part of the "deserialize" steps of blobs,
+    /// to produce the DOM blobs stored in `blobs` above.
+    pub blob_impls: Option<HashMap<BlobId, BlobImpl>>,
+}
+
+/// A data holder for transferred and serialized objects.
+pub struct StructuredWriteDataHolder {
+    /// Transferred ports.
+    pub ports: Option<HashMap<MessagePortId, MessagePortImpl>>,
+    /// Serialized blobs.
+    pub blobs: Option<HashMap<BlobId, BlobImpl>>,
 }
 
 /// Writes a structured clone. Returns a `DataClone` error if that fails.
@@ -285,7 +283,7 @@ pub fn write(
         if let Some(transfer) = transfer {
             transfer.to_jsval(*cx, val.handle_mut());
         }
-        let mut sc_holder = StructuredDataHolder::Write {
+        let mut sc_holder = StructuredWriteDataHolder {
             ports: None,
             blobs: None,
         };
@@ -322,10 +320,7 @@ pub fn write(
 
         DeleteJSAutoStructuredCloneBuffer(scbuf);
 
-        let (mut blob_impls, mut port_impls) = match sc_holder {
-            StructuredDataHolder::Write { blobs, ports } => (blobs, ports),
-            _ => panic!("Unexpected variant of StructuredDataHolder"),
-        };
+        let StructuredWriteDataHolder { blobs: mut blob_impls, ports: mut port_impls } = sc_holder;
 
         let data = StructuredSerializedData {
             serialized: data,
@@ -346,7 +341,7 @@ pub fn read(
 ) -> Result<Vec<DomRoot<MessagePort>>, ()> {
     let cx = GlobalScope::get_cx();
     let _ac = enter_realm(global);
-    let mut sc_holder = StructuredDataHolder::Read {
+    let mut sc_holder = StructuredReadDataHolder {
         message_ports: None,
         port_impls: data.ports.take(),
         blob_impls: data.blobs.take(),
@@ -382,14 +377,11 @@ pub fn read(
         DeleteJSAutoStructuredCloneBuffer(scbuf);
 
         if result {
-            let (mut message_ports, port_impls) = match sc_holder {
-                StructuredDataHolder::Read {
-                    message_ports,
-                    port_impls,
-                    ..
-                } => (message_ports, port_impls),
-                _ => panic!("Unexpected variant of StructuredDataHolder"),
-            };
+            let StructuredReadDataHolder {
+                mut message_ports,
+                port_impls,
+                ..
+            } = sc_holder;
 
             // Any transfer-received port-impls should have been taken out.
             assert!(port_impls.is_none());

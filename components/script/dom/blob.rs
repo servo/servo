@@ -25,7 +25,7 @@ use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, 
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::serializable::{Serializable, StorageKey};
 use crate::dom::bindings::str::DOMString;
-use crate::dom::bindings::structuredclone::{CloneableObject, StructuredDataHolder};
+use crate::dom::bindings::structuredclone::{CloneableObject, StructuredReadDataHolder, StructuredWriteDataHolder};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::readablestream::ReadableStream;
@@ -119,11 +119,8 @@ impl Serializable for Blob {
     const TAG: CloneableObject = CloneableObject::Blob;
 
     /// <https://w3c.github.io/FileAPI/#ref-for-serialization-steps>
-    fn serialize(&self, sc_holder: &mut StructuredDataHolder) -> Result<StorageKey, ()> {
-        let blob_impls = match sc_holder {
-            StructuredDataHolder::Write { blobs, .. } => blobs,
-            _ => panic!("Unexpected variant of StructuredDataHolder"),
-        };
+    fn serialize(&self, sc_holder: &mut StructuredWriteDataHolder) -> Result<StorageKey, ()> {
+        let blob_impls = &mut sc_holder.blobs;
 
         let blob_id = self.blob_id;
 
@@ -156,7 +153,7 @@ impl Serializable for Blob {
     /// <https://w3c.github.io/FileAPI/#ref-for-deserialization-steps>
     fn deserialize(
         owner: &GlobalScope,
-        sc_holder: &mut StructuredDataHolder,
+        sc_holder: &mut StructuredReadDataHolder,
         storage_key: StorageKey,
     ) -> Result<DomRoot<Blob>, ()> {
         // 1. Re-build the key for the storage location
@@ -170,12 +167,7 @@ impl Serializable for Blob {
             index,
         };
 
-        let blob_impls = match sc_holder {
-            StructuredDataHolder::Read {
-                blob_impls, ..
-            } => blob_impls,
-            _ => panic!("Unexpected variant of StructuredDataHolder"),
-        };
+        let blob_impls = &mut sc_holder.blob_impls;
 
         // 2. Get the transferred object from its storage, using the key.
         let blob_impls_map = blob_impls

@@ -9,7 +9,7 @@ use js::jsapi::{JSStructuredCloneReader, JS_ReadUint32Pair};
 
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::structuredclone::{CloneableObject, StructuredDataHolder};
+use crate::dom::bindings::structuredclone::{CloneableObject, StructuredWriteDataHolder, StructuredReadDataHolder};
 use crate::dom::globalscope::GlobalScope;
 
 /// The key corresponding to the storage location
@@ -72,11 +72,11 @@ pub trait Serializable: DomObject + Sized {
     const TAG: CloneableObject;
 
     /// <https://html.spec.whatwg.org/multipage/#serialization-steps>
-    fn serialize(&self, sc_holder: &mut StructuredDataHolder) -> Result<Self::Data, ()>;
+    fn serialize(&self, sc_holder: &mut StructuredWriteDataHolder) -> Result<Self::Data, ()>;
     /// <https://html.spec.whatwg.org/multipage/#deserialization-steps>
     fn deserialize(
         owner: &GlobalScope,
-        sc_holder: &mut StructuredDataHolder,
+        sc_holder: &mut StructuredReadDataHolder,
         extra_data: Self::Data,
     ) -> Result<DomRoot<Self>, ()>;
 }
