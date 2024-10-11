@@ -717,7 +717,7 @@ impl HTMLMediaElement {
         // changed, which is why we need to pass the base URL in the task
         // right here.
         let doc = document_from_node(self);
-        let task = MediaElementMicrotask::ResourceSelectionTask {
+        let task = MediaElementMicrotask::ResourceSelection {
             elem: DomRoot::from_ref(self),
             generation_id: self.generation_id.get(),
             base_url: doc.base_url(),
@@ -1865,7 +1865,7 @@ impl HTMLMediaElement {
                 // https://html.spec.whatwg.org/multipage/#dom-media-seek
 
                 // Step 13.
-                let task = MediaElementMicrotask::SeekedTask {
+                let task = MediaElementMicrotask::Seeked {
                     elem: DomRoot::from_ref(self),
                     generation_id: self.generation_id.get(),
                 };
@@ -2512,7 +2512,7 @@ impl VirtualMethods for HTMLMediaElement {
         self.remove_controls();
 
         if context.tree_connected {
-            let task = MediaElementMicrotask::PauseIfNotInDocumentTask {
+            let task = MediaElementMicrotask::PauseIfNotInDocument {
                 elem: DomRoot::from_ref(self),
             };
             ScriptThread::await_stable_state(Microtask::MediaElement(task));
@@ -2539,16 +2539,16 @@ impl LayoutHTMLMediaElementHelpers for LayoutDom<'_, HTMLMediaElement> {
 
 #[derive(JSTraceable, MallocSizeOf)]
 pub enum MediaElementMicrotask {
-    ResourceSelectionTask {
+    ResourceSelection {
         elem: DomRoot<HTMLMediaElement>,
         generation_id: u32,
         #[no_trace]
         base_url: ServoUrl,
     },
-    PauseIfNotInDocumentTask {
+    PauseIfNotInDocument {
         elem: DomRoot<HTMLMediaElement>,
     },
-    SeekedTask {
+    Seeked {
         elem: DomRoot<HTMLMediaElement>,
         generation_id: u32,
     },
@@ -2557,7 +2557,7 @@ pub enum MediaElementMicrotask {
 impl MicrotaskRunnable for MediaElementMicrotask {
     fn handler(&self, can_gc: CanGc) {
         match self {
-            &MediaElementMicrotask::ResourceSelectionTask {
+            &MediaElementMicrotask::ResourceSelection {
                 ref elem,
                 generation_id,
                 ref base_url,
@@ -2566,12 +2566,12 @@ impl MicrotaskRunnable for MediaElementMicrotask {
                     elem.resource_selection_algorithm_sync(base_url.clone(), can_gc);
                 }
             },
-            MediaElementMicrotask::PauseIfNotInDocumentTask { elem } => {
+            MediaElementMicrotask::PauseIfNotInDocument { elem } => {
                 if !elem.upcast::<Node>().is_connected() {
                     elem.internal_pause_steps();
                 }
             },
-            &MediaElementMicrotask::SeekedTask {
+            &MediaElementMicrotask::Seeked {
                 ref elem,
                 generation_id,
             } => {
@@ -2584,9 +2584,9 @@ impl MicrotaskRunnable for MediaElementMicrotask {
 
     fn enter_realm(&self) -> JSAutoRealm {
         match self {
-            &MediaElementMicrotask::ResourceSelectionTask { ref elem, .. } |
-            &MediaElementMicrotask::PauseIfNotInDocumentTask { ref elem } |
-            &MediaElementMicrotask::SeekedTask { ref elem, .. } => enter_realm(&**elem),
+            &MediaElementMicrotask::ResourceSelection { ref elem, .. } |
+            &MediaElementMicrotask::PauseIfNotInDocument { ref elem } |
+            &MediaElementMicrotask::Seeked { ref elem, .. } => enter_realm(&**elem),
         }
     }
 }
