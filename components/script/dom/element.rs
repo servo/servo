@@ -1896,7 +1896,7 @@ impl Element {
         // See https://github.com/w3c/DOM-Parsing/issues/61.
         let context_document = {
             if let Some(template) = self.downcast::<HTMLTemplateElement>() {
-                template.Content(CanGc::note()).upcast::<Node>().owner_doc()
+                template.Content(can_gc).upcast::<Node>().owner_doc()
             } else {
                 document_from_node(self)
             }
@@ -2674,7 +2674,7 @@ impl ElementMethods for Element {
         }
 
         // Step 1.
-        let frag = self.parse_fragment(value, CanGc::note())?;
+        let frag = self.parse_fragment(value, can_gc)?;
 
         Node::replace_all(Some(frag.upcast()), &target);
         Ok(())
@@ -2723,7 +2723,7 @@ impl ElementMethods for Element {
         };
 
         // Step 5.
-        let frag = parent.parse_fragment(value, CanGc::note())?;
+        let frag = parent.parse_fragment(value, can_gc)?;
         // Step 6.
         context_parent.ReplaceChild(frag.upcast(), context_node)?;
         Ok(())

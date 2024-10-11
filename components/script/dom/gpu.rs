@@ -25,6 +25,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::gpuadapter::GPUAdapter;
 use crate::dom::promise::Promise;
 use crate::realms::InRealm;
+use crate::script_runtime::CanGc;
 use crate::task_source::{TaskSource, TaskSourceName};
 
 #[dom_struct]
@@ -46,7 +47,7 @@ impl GPU {
 }
 
 pub trait AsyncWGPUListener {
-    fn handle_response(&self, response: WebGPUResponse, promise: &Rc<Promise>);
+    fn handle_response(&self, response: WebGPUResponse, promise: &Rc<Promise>, can_gc: CanGc);
 }
 
 struct WGPUResponse<T: AsyncWGPUListener + DomObject> {
@@ -56,9 +57,11 @@ struct WGPUResponse<T: AsyncWGPUListener + DomObject> {
 
 impl<T: AsyncWGPUListener + DomObject> WGPUResponse<T> {
     #[allow(crown::unrooted_must_root)]
-    fn response(self, response: WebGPUResponse) {
+    fn response(self, response: WebGPUResponse, can_gc: CanGc) {
         let promise = self.trusted.root();
-        self.receiver.root().handle_response(response, &promise);
+        self.receiver
+            .root()
+            .handle_response(response, &promise, can_gc);
     }
 }
 
@@ -89,7 +92,7 @@ pub fn response_async<T: AsyncWGPUListener + DomObject + 'static>(
             };
             let result = task_source.queue_with_canceller(
                 task!(process_webgpu_task: move|| {
-                    context.response(message.to().unwrap());
+                    context.response(message.to().unwrap(), CanGc::note());
                 }),
                 &canceller,
             );
@@ -140,7 +143,7 @@ impl GPUMethods for GPU {
 }
 
 impl AsyncWGPUListener for GPU {
-    fn handle_response(&self, response: WebGPUResponse, promise: &Rc<Promise>) {
+    fn handle_response(&self, response: WebGPUResponse, promise: &Rc<Promise>, _can_gc: CanGc) {
         match response {
             WebGPUResponse::Adapter(Ok(adapter)) => {
                 let adapter = GPUAdapter::new(

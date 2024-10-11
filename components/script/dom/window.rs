@@ -56,8 +56,8 @@ use script_layout_interface::{
 use script_traits::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use script_traits::{
     ConstellationControlMsg, DocumentState, HistoryEntryReplacement, LoadData, ScriptMsg,
-    ScriptToConstellationChan, ScrollState, StructuredSerializedData, TimerEventId,
-    TimerSchedulerMsg, WindowSizeData, WindowSizeType,
+    ScriptToConstellationChan, ScrollState, StructuredSerializedData, TimerSchedulerMsg,
+    WindowSizeData, WindowSizeType,
 };
 use selectors::attr::CaseSensitivity;
 use servo_arc::Arc as ServoArc;
@@ -783,7 +783,7 @@ impl WindowMethods for Window {
                     // but we pass false here, which suggests we are not doing that. Why?
                     if document.prompt_to_unload(false) {
                         // Step 4, unload.
-                        document.unload(false);
+                        document.unload(false, CanGc::note());
 
                         // https://html.spec.whatwg.org/multipage/#a-browsing-context-is-discarded
                         // which calls into https://html.spec.whatwg.org/multipage/#discard-a-document.
@@ -2308,10 +2308,6 @@ impl Window {
                 replace,
             );
         };
-    }
-
-    pub fn handle_fire_timer(&self, timer_id: TimerEventId) {
-        self.upcast::<GlobalScope>().fire_timer(timer_id);
     }
 
     pub fn set_window_size(&self, size: WindowSizeData) {

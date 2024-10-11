@@ -2298,7 +2298,7 @@ impl Node {
                     None,
                     document.status_code(),
                     Default::default(),
-                    CanGc::note(),
+                    can_gc,
                 );
                 DomRoot::upcast::<Node>(document)
             },
@@ -2360,8 +2360,7 @@ impl Node {
         // Step 6.
         if clone_children == CloneChildrenFlag::CloneChildren {
             for child in node.children() {
-                let child_copy =
-                    Node::clone(&child, Some(&document), clone_children, CanGc::note());
+                let child_copy = Node::clone(&child, Some(&document), clone_children, can_gc);
                 let _inserted_node = Node::pre_insert(&child_copy, &copy, None);
             }
         }

@@ -111,24 +111,24 @@ impl RTCDataChannel {
         rtc_data_channel
     }
 
-    pub fn on_open(&self) {
+    pub fn on_open(&self, can_gc: CanGc) {
         let event = Event::new(
             &self.global(),
             atom!("open"),
             EventBubbles::DoesNotBubble,
             EventCancelable::NotCancelable,
-            CanGc::note(),
+            can_gc,
         );
         event.upcast::<Event>().fire(self.upcast());
     }
 
-    pub fn on_close(&self) {
+    pub fn on_close(&self, can_gc: CanGc) {
         let event = Event::new(
             &self.global(),
             atom!("close"),
             EventBubbles::DoesNotBubble,
             EventCancelable::NotCancelable,
-            CanGc::note(),
+            can_gc,
         );
         event.upcast::<Event>().fire(self.upcast());
 
@@ -151,7 +151,7 @@ impl RTCDataChannel {
         let message = match error {
             WebRtcError::Backend(message) => DOMString::from(message),
         };
-        let error = RTCError::new(&global, &init, message);
+        let error = RTCError::new(&global, &init, message, can_gc);
         let event = RTCErrorEvent::new(&global, atom!("error"), false, false, &error, can_gc);
         event.upcast::<Event>().fire(self.upcast());
     }

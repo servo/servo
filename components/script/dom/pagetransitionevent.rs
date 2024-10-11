@@ -54,16 +54,9 @@ impl PageTransitionEvent {
         bubbles: bool,
         cancelable: bool,
         persisted: bool,
+        can_gc: CanGc,
     ) -> DomRoot<PageTransitionEvent> {
-        Self::new_with_proto(
-            window,
-            None,
-            type_,
-            bubbles,
-            cancelable,
-            persisted,
-            CanGc::note(),
-        )
+        Self::new_with_proto(window, None, type_, bubbles, cancelable, persisted, can_gc)
     }
 
     fn new_with_proto(
