@@ -6,11 +6,13 @@ use dom_struct::dom_struct;
 use js::rust::HandleObject;
 
 use crate::dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
-use crate::dom::bindings::codegen::Bindings::DOMRectReadOnlyBinding::DOMRectReadOnlyMethods;
+use crate::dom::bindings::codegen::Bindings::DOMRectReadOnlyBinding::{
+    DOMRectInit, DOMRectReadOnlyMethods,
+};
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
+use crate::dom::bindings::reflector::{reflect_dom_object, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::domrectreadonly::DOMRectReadOnly;
+use crate::dom::domrectreadonly::{create_a_domrectreadonly_from_the_dictionary, DOMRectReadOnly};
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::CanGc;
 
@@ -69,6 +71,14 @@ impl DOMRectMethods for DOMRect {
         Ok(DOMRect::new_with_proto(
             global, proto, x, y, width, height, can_gc,
         ))
+    }
+
+    // https://drafts.fxtf.org/geometry/#dom-domrect-fromrect
+    #[allow(crown::unrooted_must_root)]
+    fn FromRect(global: &GlobalScope, other: &DOMRectInit) -> DomRoot<DOMRect> {
+        let rect = create_a_domrectreadonly_from_the_dictionary(other);
+
+        reflect_dom_object(Box::new(Self { rect }), global)
     }
 
     // https://drafts.fxtf.org/geometry/#dom-domrect-x
