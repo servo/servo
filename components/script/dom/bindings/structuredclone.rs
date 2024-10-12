@@ -112,9 +112,10 @@ type DomObjectWriteCallback = unsafe fn(
 ) -> Result<bool, ()>;
 
 #[derive(FromPrimitive, enum_iterator::Sequence)]
+#[repr(u32)]
 pub enum CloneableObject {
-    Blob = StructuredCloneTags::DomBlob as isize,
-    DomPointReadonly = StructuredCloneTags::DomPointReadonly as isize,
+    Blob = StructuredCloneTags::DomBlob as u32,
+    DomPointReadonly = StructuredCloneTags::DomPointReadonly as u32,
 }
 
 impl CloneableObject {
