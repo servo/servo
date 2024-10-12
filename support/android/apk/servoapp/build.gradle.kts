@@ -1,4 +1,3 @@
-import groovy.lang.Closure
 import java.util.regex.Pattern
 
 plugins {
@@ -50,7 +49,7 @@ android {
         }
     }
 
-    val getSigningKeyInfo: Closure<Map<String, Any>?> by rootProject.extra;
+    val getSigningKeyInfo: () -> Map<String, Any> by rootProject.extra
     val signingKeyInfo = getSigningKeyInfo()
 
     if (signingKeyInfo != null) {
@@ -80,7 +79,7 @@ android {
         val debug = getByName("debug")
         val release = getByName("release")
 
-        val getNDKAbi: Closure<String?> by rootProject.extra
+        val getNDKAbi: (String)->String by rootProject.extra
 
         register("armv7Debug") {
             initWith(debug)
@@ -142,7 +141,7 @@ android {
     }
 
     project.afterEvaluate {
-        val getTargetDir: Closure<String?> by rootProject.extra;
+        val getTargetDir: (Boolean, String)->String  by rootProject.extra;
         android.applicationVariants.forEach { variant ->
             val pattern = Pattern.compile("^[\\w\\d]+([A-Z][\\w\\d]+)(Debug|Release)")
             val matcher = pattern.matcher(variant.name)

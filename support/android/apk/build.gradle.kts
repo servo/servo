@@ -11,40 +11,25 @@ plugins {
 
 
 // Utility methods
-val getTargetDir = { debug: Boolean, arch: String ->
+val getTargetDir by ext { debug: Boolean, arch: String ->
     val basePath = project.rootDir.parentFile.parentFile.parentFile.absolutePath
     basePath + "/target/android/" + getSubTargetDir(debug, arch)
 }
-ext.set(
-    "getTargetDir",
-    KotlinClosure2(getTargetDir)
-)
 
-ext.set(
-    "getNativeTargetDir",
-    KotlinClosure2({ debug: Boolean, arch: String ->
-        val basePath = project.rootDir.parentFile.parentFile.parentFile.absolutePath
-        basePath + "/target/" + getSubTargetDir(debug, arch)
-    })
-)
+val getNativeTargetDir by ext { debug: Boolean, arch: String ->
+    val basePath = project.rootDir.parentFile.parentFile.parentFile.absolutePath
+    basePath + "/target/" + getSubTargetDir(debug, arch)
+}
 
-val getSubTargetDir = { debug: Boolean, arch: String ->
+val getSubTargetDir by ext { debug: Boolean, arch: String ->
     getRustTarget(arch) + "/" + if (debug) "debug" else "release"
 }
 
-ext.set(
-    "getSubTargetDir",
-    KotlinClosure2(getSubTargetDir)
-)
+val getJniLibsPath by ext { debug: Boolean, arch: String ->
+    getTargetDir(debug, arch) + "/jniLibs"
+}
 
-ext.set(
-    "getJniLibsPath",
-    KotlinClosure2({ debug: Boolean, arch: String ->
-        getTargetDir(debug, arch) + "/jniLibs"
-    })
-)
-
-val getRustTarget = { arch: String ->
+val getRustTarget by ext { arch: String ->
     when (arch.lowercase(Locale.getDefault())) {
         "armv7" -> "armv7-linux-androideabi"
         "arm64" -> "aarch64-linux-android"
@@ -54,28 +39,19 @@ val getRustTarget = { arch: String ->
     }
 }
 
-ext.set(
-    "getRustTarget",
-    KotlinClosure1(getRustTarget)
-)
+val getNDKAbi by ext { arch: String ->
+    when (arch.lowercase(Locale.getDefault())) {
+        "armv7" -> "armeabi-v7a"
+        "arm64" -> "arm64-v8a"
+        "x86" -> "x86"
+        "x64" -> "x86_64"
+        else -> throw GradleException("Invalid target architecture $arch")
+    }
+}
 
-ext.set(
-    "getNDKAbi",
-    KotlinClosure1<String, String>({
-        when (this.lowercase(Locale.getDefault())) {
-            "armv7" -> "armeabi-v7a"
-            "arm64" -> "arm64-v8a"
-            "x86" -> "x86"
-            "x64" -> "x86_64"
-            else -> throw GradleException("Invalid target architecture $this")
-        }
-
-    })
-)
-
-ext.set(
-    "getNdkDir",
-    KotlinClosure0({
+val getNdkDir: () -> String by extra {
+    // no args lambdas conflicts with the "initializer" argument of ext, thus sub blocking
+    {
         // Read environment variable used in rust build system
         var ndkRoot = System.getenv("ANDROID_NDK_ROOT")
         if (ndkRoot == null) {
@@ -98,12 +74,12 @@ ext.set(
             )
         }
         ndkDir.absolutePath
-    })
-)
+    }
+}
 
-ext.set(
-    "getSigningKeyInfo",
-    KotlinClosure0<Map<String, Any>>({
+val getSigningKeyInfo by extra {
+    // no args lambdas conflicts with the "initializer" argument of ext, thus sub blocking
+    {
         val storeFilePath = System.getenv("APK_SIGNING_KEY_STORE_PATH")
         if (storeFilePath != null) {
             mapOf(
@@ -115,8 +91,8 @@ ext.set(
         } else {
             null
         }
-    })
-)
+    }
+}
 
 // Generate unique version code based on the build date and time to support nightly
 // builds.
