@@ -33,8 +33,8 @@ impl MediaStream {
         }
     }
 
-    pub fn new(global: &GlobalScope) -> DomRoot<MediaStream> {
-        Self::new_with_proto(global, None, CanGc::note())
+    pub fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<MediaStream> {
+        Self::new_with_proto(global, None, can_gc)
     }
 
     fn new_with_proto(
@@ -54,8 +54,9 @@ impl MediaStream {
         global: &GlobalScope,
         id: MediaStreamId,
         ty: MediaStreamType,
+        can_gc: CanGc,
     ) -> DomRoot<MediaStream> {
-        let this = Self::new(global);
+        let this = Self::new(global, can_gc);
         let track = MediaStreamTrack::new(global, id, ty);
         this.AddTrack(&track);
         this
@@ -160,8 +161,8 @@ impl MediaStreamMethods for MediaStream {
     }
 
     /// <https://w3c.github.io/mediacapture-main/#dom-mediastream-clone>
-    fn Clone(&self) -> DomRoot<MediaStream> {
-        self.clone_with_proto(None, CanGc::note())
+    fn Clone(&self, can_gc: CanGc) -> DomRoot<MediaStream> {
+        self.clone_with_proto(None, can_gc)
     }
 }
 

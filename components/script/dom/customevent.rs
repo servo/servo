@@ -36,8 +36,8 @@ impl CustomEvent {
         }
     }
 
-    pub fn new_uninitialized(global: &GlobalScope) -> DomRoot<CustomEvent> {
-        Self::new_uninitialized_with_proto(global, None, CanGc::note())
+    pub fn new_uninitialized(global: &GlobalScope, can_gc: CanGc) -> DomRoot<CustomEvent> {
+        Self::new_uninitialized_with_proto(global, None, can_gc)
     }
 
     fn new_uninitialized_with_proto(

@@ -48,7 +48,7 @@ use crate::dom::node::{window_from_node, Node};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::webgl2renderingcontext::WebGL2RenderingContext;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{CanGc, JSContext};
 
 const DEFAULT_WIDTH: u32 = 300;
 const DEFAULT_HEIGHT: u32 = 150;
@@ -424,9 +424,13 @@ impl HTMLCanvasElementMethods for HTMLCanvasElement {
     }
 
     /// <https://w3c.github.io/mediacapture-fromelement/#dom-htmlcanvaselement-capturestream>
-    fn CaptureStream(&self, _frame_request_rate: Option<Finite<f64>>) -> DomRoot<MediaStream> {
+    fn CaptureStream(
+        &self,
+        _frame_request_rate: Option<Finite<f64>>,
+        can_gc: CanGc,
+    ) -> DomRoot<MediaStream> {
         let global = self.global();
-        let stream = MediaStream::new(&global);
+        let stream = MediaStream::new(&global, can_gc);
         let track = MediaStreamTrack::new(&global, MediaStreamId::new(), MediaStreamType::Video);
         stream.AddTrack(&track);
         stream
