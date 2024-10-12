@@ -1260,11 +1260,7 @@ impl CanvasState {
         sy: i32,
         sw: i32,
         sh: i32,
-<<<<<<< HEAD
-        can_gc: CanGc,
-=======
         _can_gc: CanGc,
->>>>>>> f2c4249e94 (CanGc fixes starting from dommatrix.rs)
     ) -> Fallible<DomRoot<ImageData>> {
         // FIXME(nox): There are many arithmetic operations here that can
         // overflow or underflow, this should probably be audited.
