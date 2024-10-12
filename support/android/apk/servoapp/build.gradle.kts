@@ -12,7 +12,6 @@ android {
 
     layout.buildDirectory = File(rootDir.absolutePath, "/../../../target/android/gradle/servoapp")
 
-    val generatedVersionCode: Int by rootProject.extra
     defaultConfig {
         applicationId = "org.servo.servoshell"
         minSdk = 30
@@ -49,7 +48,6 @@ android {
         }
     }
 
-    val getSigningKeyInfo: () -> Map<String, Any> by rootProject.extra
     val signingKeyInfo = getSigningKeyInfo()
 
     if (signingKeyInfo != null) {
@@ -79,54 +77,53 @@ android {
         val debug = getByName("debug")
         val release = getByName("release")
 
-        val getNDKAbi: (String)->String by rootProject.extra
 
         register("armv7Debug") {
             initWith(debug)
             ndk {
-                abiFilters.add(getNDKAbi("armv7")!!)
+                abiFilters.add(getNDKAbi("armv7"))
             }
         }
         register("armv7Release") {
             initWith(release)
             ndk {
-                abiFilters.add(getNDKAbi("armv7")!!)
+                abiFilters.add(getNDKAbi("armv7"))
             }
         }
         register("arm64Debug") {
             initWith(debug)
             ndk {
-                abiFilters.add(getNDKAbi("arm64")!!)
+                abiFilters.add(getNDKAbi("arm64"))
             }
         }
         register("arm64Release") {
             initWith(release)
             ndk {
-                abiFilters.add(getNDKAbi("arm64")!!)
+                abiFilters.add(getNDKAbi("arm64"))
             }
         }
         register("x86Debug") {
             initWith(debug)
             ndk {
-                abiFilters.add(getNDKAbi("x86")!!)
+                abiFilters.add(getNDKAbi("x86"))
             }
         }
         register("x86Release") {
             initWith(release)
             ndk {
-                abiFilters.add(getNDKAbi("x86")!!)
+                abiFilters.add(getNDKAbi("x86"))
             }
         }
         register("x64Debug") {
             initWith(debug)
             ndk {
-                abiFilters.add(getNDKAbi("x64")!!)
+                abiFilters.add(getNDKAbi("x64"))
             }
         }
         register("x64Release") {
             initWith(release)
             ndk {
-                abiFilters.add(getNDKAbi("x64")!!)
+                abiFilters.add(getNDKAbi("x64"))
             }
         }
     }
@@ -141,7 +138,6 @@ android {
     }
 
     project.afterEvaluate {
-        val getTargetDir: (Boolean, String)->String  by rootProject.extra;
         android.applicationVariants.forEach { variant ->
             val pattern = Pattern.compile("^[\\w\\d]+([A-Z][\\w\\d]+)(Debug|Release)")
             val matcher = pattern.matcher(variant.name)
@@ -150,7 +146,7 @@ android {
             }
             val arch = matcher.group(1)
             val debug = variant.name.contains("Debug")
-            val finalFolder = getTargetDir(debug, arch)!!
+            val finalFolder = getTargetDir(debug, arch)
             val finalFile = File(finalFolder, "servoapp.apk")
             variant.outputs.forEach { output ->
                 val copyAndRenameAPKTask =
