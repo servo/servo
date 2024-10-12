@@ -5306,6 +5306,7 @@ impl DocumentMethods for Document {
         url: USVString,
         target: DOMString,
         features: DOMString,
+        _can_gc: CanGc,
     ) -> Fallible<Option<DomRoot<WindowProxy>>> {
         self.browsing_context()
             .ok_or(Error::InvalidAccess)?
