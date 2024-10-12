@@ -1260,7 +1260,11 @@ impl CanvasState {
         sy: i32,
         sw: i32,
         sh: i32,
+<<<<<<< HEAD
         can_gc: CanGc,
+=======
+        _can_gc: CanGc,
+>>>>>>> f2c4249e94 (CanGc fixes starting from dommatrix.rs)
     ) -> Fallible<DomRoot<ImageData>> {
         // FIXME(nox): There are many arithmetic operations here that can
         // overflow or underflow, this should probably be audited.
@@ -1551,12 +1555,12 @@ impl CanvasState {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-gettransform
-    pub fn get_transform(&self, global: &GlobalScope) -> DomRoot<DOMMatrix> {
+    pub fn get_transform(&self, global: &GlobalScope, can_gc: CanGc) -> DomRoot<DOMMatrix> {
         let (sender, receiver) = ipc::channel::<Transform2D<f32>>().unwrap();
         self.send_canvas_2d_msg(Canvas2dMsg::GetTransform(sender));
         let transform = receiver.recv().unwrap();
 
-        DOMMatrix::new(global, true, transform.cast::<f64>().to_3d())
+        DOMMatrix::new(global, true, transform.cast::<f64>().to_3d(), can_gc)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-settransform

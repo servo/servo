@@ -199,8 +199,8 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-gettransform
-    fn GetTransform(&self) -> DomRoot<DOMMatrix> {
-        self.canvas_state.get_transform(&self.global())
+    fn GetTransform(&self, can_gc: CanGc) -> DomRoot<DOMMatrix> {
+        self.canvas_state.get_transform(&self.global(), can_gc)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-settransform
