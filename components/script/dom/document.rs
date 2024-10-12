@@ -4581,7 +4581,7 @@ impl DocumentMethods for Document {
     }
 
     // https://dom.spec.whatwg.org/#dom-document-createevent
-    fn CreateEvent(&self, mut interface: DOMString) -> Fallible<DomRoot<Event>> {
+    fn CreateEvent(&self, mut interface: DOMString, can_gc: CanGc) -> Fallible<DomRoot<Event>> {
         interface.make_ascii_lowercase();
         match &*interface {
             "beforeunloadevent" => Ok(DomRoot::upcast(BeforeUnloadEvent::new_uninitialized(
@@ -4592,13 +4592,13 @@ impl DocumentMethods for Document {
             )),
             "customevent" => Ok(DomRoot::upcast(CustomEvent::new_uninitialized(
                 self.window.upcast(),
+                can_gc,
             ))),
             // FIXME(#25136): devicemotionevent, deviceorientationevent
             // FIXME(#7529): dragevent
-            "events" | "event" | "htmlevents" | "svgevents" => Ok(Event::new_uninitialized(
-                self.window.upcast(),
-                CanGc::note(),
-            )),
+            "events" | "event" | "htmlevents" | "svgevents" => {
+                Ok(Event::new_uninitialized(self.window.upcast(), can_gc))
+            },
             "focusevent" => Ok(DomRoot::upcast(FocusEvent::new_uninitialized(&self.window))),
             "hashchangeevent" => Ok(DomRoot::upcast(HashChangeEvent::new_uninitialized(
                 &self.window,
@@ -4640,8 +4640,8 @@ impl DocumentMethods for Document {
     }
 
     // https://dom.spec.whatwg.org/#dom-document-createrange
-    fn CreateRange(&self) -> DomRoot<Range> {
-        Range::new_with_doc(self, None, CanGc::note())
+    fn CreateRange(&self, can_gc: CanGc) -> DomRoot<Range> {
+        Range::new_with_doc(self, None, can_gc)
     }
 
     // https://dom.spec.whatwg.org/#dom-document-createnodeiteratorroot-whattoshow-filter
@@ -5188,6 +5188,7 @@ impl DocumentMethods for Document {
         &self,
         _unused1: Option<DOMString>,
         _unused2: Option<DOMString>,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<Document>> {
         // Step 1
         if !self.is_html_document() {
@@ -5238,7 +5239,7 @@ impl DocumentMethods for Document {
         if self.has_browsing_context() {
             // spec says "stop document loading",
             // which is a process that does more than just abort
-            self.abort(CanGc::note());
+            self.abort(can_gc);
         }
 
         // Step 9
@@ -5305,6 +5306,7 @@ impl DocumentMethods for Document {
         url: USVString,
         target: DOMString,
         features: DOMString,
+        can_gc: CanGc,
     ) -> Fallible<Option<DomRoot<WindowProxy>>> {
         self.browsing_context()
             .ok_or(Error::InvalidAccess)?
@@ -5341,7 +5343,7 @@ impl DocumentMethods for Document {
                     return Ok(());
                 }
                 // Step 5.
-                self.Open(None, None)?;
+                self.Open(None, None, can_gc)?;
                 self.get_current_parser().unwrap()
             },
         };

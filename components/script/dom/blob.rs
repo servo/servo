@@ -246,12 +246,13 @@ impl BlobMethods for Blob {
         start: Option<i64>,
         end: Option<i64>,
         content_type: Option<DOMString>,
+        can_gc: CanGc,
     ) -> DomRoot<Blob> {
         let type_string =
             normalize_type_string(content_type.unwrap_or(DOMString::from("")).as_ref());
         let rel_pos = RelativePos::from_opts(start, end);
         let blob_impl = BlobImpl::new_sliced(rel_pos, self.blob_id, type_string);
-        Blob::new(&self.global(), blob_impl, CanGc::note())
+        Blob::new(&self.global(), blob_impl, can_gc)
     }
 
     // https://w3c.github.io/FileAPI/#text-method-algo
