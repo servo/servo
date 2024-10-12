@@ -1252,6 +1252,7 @@ impl CanvasState {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-getimagedata
+    #[allow(clippy::too_many_arguments)]
     pub fn get_image_data(
         &self,
         canvas_size: Size2D<u64>,
