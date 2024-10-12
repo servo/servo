@@ -5,8 +5,6 @@ plugins {
     id("com.android.library")
 }
 
-val getTargetDir: (Boolean, String) -> String by rootProject.extra
-
 android {
     compileSdk = 33
     buildToolsVersion = "34.0.0"
@@ -15,10 +13,8 @@ android {
 
     layout.buildDirectory = File(rootDir.absolutePath, "/../../../target/android/gradle/servoview")
 
-    val getNdkDir: () -> String by rootProject.extra
     ndkPath = getNdkDir()
 
-    val generatedVersionCode: Int by rootProject.extra
     defaultConfig {
         minSdk = 30
         lint.targetSdk = 30
@@ -92,7 +88,6 @@ android {
         }
     }
 
-    val getJniLibsPath: (Boolean, String) -> String by rootProject.extra
     sourceSets {
         named("main") {
         }
@@ -148,8 +143,6 @@ android {
     // relying on task names used by the plugin system to hook into
     // the build process, but instead we should use officially supported
     // extension points such as `androidComponents.beforeVariants`
-    val getNDKAbi: (String) -> String by rootProject.extra
-    val getNativeTargetDir: (Boolean, String) -> String by rootProject.extra
     tasks.forEach { compileTask ->
         // This matches the task `mergeBasicArmv7DebugJniLibFolders`.
         val pattern = Pattern.compile("^merge[A-Z]\\w+([A-Z]\\w+)(Debug|Release)JniLibFolders")
