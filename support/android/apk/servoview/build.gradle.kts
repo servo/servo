@@ -1,6 +1,4 @@
 import groovy.lang.Closure
-import groovy.io.FileType
-import org.codehaus.groovy.runtime.ResourceGroovyMethods
 import java.io.FileFilter
 import java.util.regex.Pattern
 
@@ -248,11 +246,12 @@ fun findDependencyPath(basePath: String, filename: String, folderFilter: String?
 
     var result = ""
 
-    ResourceGroovyMethods.eachFileRecurse(path, FileType.FILES, closureOf<File> {
-        if (this.name == filename) {
-            result = this.absolutePath
+    for (file in path.walkTopDown()) {
+        if (file.isFile && file.name == filename) {
+            result = file.absolutePath
+            break // no more walking
         }
-    })
+    }
 
     return result
 }
