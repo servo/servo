@@ -20,16 +20,16 @@
     const slot = shadow.appendChild(document.createElement("slot"));
     let childEvent = null;
     let childEventTarget = null;
-    let childEventInvoker = null;
+    let childEventSource = null;
     let hostEvent = null;
     let hostEventTarget = null;
-    let hostEventInvoker = null;
+    let hostEventSource = null;
     slot.addEventListener(
       "command",
       (e) => {
         childEvent = e;
         childEventTarget = e.target;
-        childEventInvoker = e.invoker;
+        childEventSource = e.source;
       },
       { once: true },
     );
@@ -38,13 +38,13 @@
       (e) => {
         hostEvent = e;
         hostEventTarget = e.target;
-        hostEventInvoker = e.invoker;
+        hostEventSource = e.source;
       },
       { once: true },
     );
     const event = new CommandEvent("command", {
       bubbles: true,
-      invoker: slot,
+      source: slot,
       composed: true,
     });
     slot.dispatchEvent(event);
@@ -55,9 +55,9 @@
       "target is child inside shadow boundary",
     );
     assert_equals(
-      childEventInvoker,
+      childEventSource,
       slot,
-      "invoker is child inside shadow boundary",
+      "source is child inside shadow boundary",
     );
     assert_equals(
       hostEvent,
@@ -70,11 +70,11 @@
       "target is retargeted to shadowroot host",
     );
     assert_equals(
-      hostEventInvoker,
+      hostEventSource,
       host,
-      "invoker is retargeted to shadowroot host",
+      "source is retargeted to shadowroot host",
     );
-  }, "CommandEvent propagates across shadow boundaries retargeting invoker");
+  }, "CommandEvent propagates across shadow boundaries retargeting source");
 
   test(function (t) {
     const host = document.createElement("div");
@@ -84,22 +84,22 @@
     const button = shadow.appendChild(document.createElement("button"));
     const invokee = host.appendChild(document.createElement("div"));
     button.commandForElement = invokee;
-    button.command = 'test-command';
+    button.command = '--test-command';
     let event = null;
     let eventTarget = null;
-    let eventInvoker = null;
+    let eventSource = null;
     invokee.addEventListener(
       "command",
       (e) => {
         event = e;
         eventTarget = e.target;
-        eventInvoker = e.invoker;
+        eventSource = e.source;
       },
       { once: true },
     );
     button.click();
     assert_true(event instanceof CommandEvent);
     assert_equals(eventTarget, invokee, "target is invokee");
-    assert_equals(eventInvoker, host, "invoker is host");
-  }, "cross shadow CommandEvent retargets invoker to host element");
+    assert_equals(eventSource, host, "source is host");
+  }, "cross shadow CommandEvent retargets source to host element");
 </script>

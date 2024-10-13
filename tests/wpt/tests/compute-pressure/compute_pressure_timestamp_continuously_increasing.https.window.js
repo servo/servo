@@ -6,6 +6,7 @@
 // META: script=/common/utils.js
 // META: script=/common/dispatcher/dispatcher.js
 // META: script=./resources/common.js
+// META: script=./resources/sync-pressure-observer.js
 
 'use strict';
 
@@ -17,23 +18,17 @@ pressure_test(async t => {
 
   const readings = ['nominal', 'fair', 'serious', 'critical'];
 
-  const pressureChanges = [];
-  const observer = new PressureObserver(changes => {
-    pressureChanges.push(changes);
-  });
-  await observer.observe('cpu', {sampleInterval: 250});
+  const syncObserver = new SyncPressureObserver(t);
+  await syncObserver.observer().observe('cpu', {sampleInterval: 250});
 
-  let i = 0;
-  while (pressureChanges.length < 4) {
-    await update_virtual_pressure_source(
-        'cpu', readings[i++ % readings.length]);
-    await t.step_wait(
-        () => pressureChanges.length >= i,
-        `At least ${i} readings have been delivered`);
+  for (let i = 0; i < readings.length; ++i) {
+    await update_virtual_pressure_source('cpu', readings[i]);
+    await syncObserver.waitForUpdate();
   }
-  observer.disconnect();
 
-  assert_equals(pressureChanges.length, 4);
+  const pressureChanges = syncObserver.changes();
+  assert_equals(pressureChanges.length, readings.length);
+
   assert_greater_than(pressureChanges[1][0].time, pressureChanges[0][0].time);
   assert_greater_than(pressureChanges[2][0].time, pressureChanges[1][0].time);
   assert_greater_than(pressureChanges[3][0].time, pressureChanges[2][0].time);

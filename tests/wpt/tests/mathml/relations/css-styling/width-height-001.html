@@ -75,8 +75,18 @@
             assert_true(MathMLFeatureDetection[`has_${tag}`](), `${tag} is supported`);
             var style = `width: 300px;`;
             element.setAttribute("style", style);
+            let refPreferredWidth = 300;
+
+            // In the case of mo, spacing is added around the element so that it is included
+            // in the preferred width calculation, which should be the sum of lspace, rspace and width.
+            if (tag === "mo") {
+              element.setAttribute("lspace", "50px");
+              element.setAttribute("rspace", "30px");
+              refPreferredWidth = 380;
+            }
+
             let box = shrinkWrapDiv.getBoundingClientRect();
-            assert_approx_equals(box.width, 300, epsilon);
+            assert_approx_equals(box.width, refPreferredWidth, epsilon);
         }, `width property on ${tag} (preferred width)`);
 
         div.style = "display: none;"; // Hide the div after measurement.

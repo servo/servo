@@ -17,8 +17,10 @@
 
 test_noopener_opening_popup("noopener-allow-popups",
                             "restrict-properties",
+                            SAME_ORIGIN,
                             /*opener_expectation=*/true);
 test_noopener_opening_popup("restrict-properties",
                             "noopener-allow-popups",
+                            SAME_ORIGIN,
                             /*opener_expectation=*/false);
  </script>

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
-<script src="/common/dispatcher/dispatcher.js"></script>
-<script src="utils.sub.js"></script>
-<script>
+<script src="/common/dispatcher/dispatcher.js" nonce="abc"></script>
+<script src="utils.sub.js" nonce="abc"></script>
+<script nonce="abc">
 window.requestHeaders = {
   purpose: "{{header_or_default(Purpose, )}}",
   sec_purpose: "{{header_or_default(Sec-Purpose, )}}",

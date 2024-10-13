@@ -17,27 +17,27 @@
 
 <script>
   async function resetState() {
-    invokerbutton.setAttribute("command", "toggleFullscreen");
+    invokerbutton.setAttribute("command", "toggle-fullscreen");
     if (document.fullscreenElement) await document.exitFullscreen();
   }
 
-  // toggleFullscreen
+  // toggle-fullscreen
 
   promise_test(async function (t) {
     t.add_cleanup(resetState);
     assert_false(invokee.matches(":fullscreen"));
-    invokerbutton.setAttribute("command", "toggleFullscreen");
+    invokerbutton.setAttribute("command", "toggle-fullscreen");
     await clickOn(invokerbutton);
     assert_true(invokee.matches(":fullscreen"));
-  }, "invoking div with toggleFullscreen action makes div fullscreen");
+  }, "invoking div with toggle-fullscreen action makes div fullscreen");
 
   promise_test(async function (t) {
     t.add_cleanup(resetState);
     assert_false(invokee.matches(":fullscreen"));
-    invokerbutton.setAttribute("command", "toggleFullscreen");
+    invokerbutton.setAttribute("command", "toggle-fullscreen");
     invokerbutton.click();
     assert_false(invokee.matches(":fullscreen"));
-  }, "invoking div with toggleFullscreen action (without user activation) is a no-op");
+  }, "invoking div with toggle-fullscreen action (without user activation) is a no-op");
 
   promise_test(async function (t) {
     t.add_cleanup(resetState);
@@ -45,40 +45,40 @@
       once: true,
     });
     assert_false(invokee.matches(":fullscreen"));
-    invokerbutton.setAttribute("command", "toggleFullscreen");
+    invokerbutton.setAttribute("command", "toggle-fullscreen");
     await clickOn(invokerbutton);
     assert_false(invokee.matches(":fullscreen"));
-  }, "invoking div with toggleFullscreen action and preventDefault is a no-op");
+  }, "invoking div with toggle-fullscreen action and preventDefault is a no-op");
 
   promise_test(async function (t) {
     t.add_cleanup(resetState);
-    invokerbutton.setAttribute("command", "toggleFullscreen");
+    invokerbutton.setAttribute("command", "toggle-fullscreen");
     await test_driver.bless('go fullscreen');
     await invokee.requestFullscreen();
     assert_true(invokee.matches(":fullscreen"));
     await clickOn(invokerbutton);
     assert_false(invokee.matches(":fullscreen"));
-  }, "invoking fullscreen div with toggleFullscreen action exits fullscreen");
+  }, "invoking fullscreen div with toggle-fullscreen action exits fullscreen");
 
   promise_test(async function (t) {
     t.add_cleanup(resetState);
-    invokerbutton.setAttribute("command", "tOgGlEFullscreen");
+    invokerbutton.setAttribute("command", "tOgGlE-Fullscreen");
     await test_driver.bless('go fullscreen');
     await invokee.requestFullscreen();
     assert_true(invokee.matches(":fullscreen"));
     await clickOn(invokerbutton);
     assert_false(invokee.matches(":fullscreen"));
-  }, "invoking fullscreen div with toggleFullscreen (case-insensitive) action exits fullscreen");
+  }, "invoking fullscreen div with toggle-fullscreen (case-insensitive) action exits fullscreen");
 
-  // requestFullscreen
+  // request-fullscreen
 
   promise_test(async function (t) {
     t.add_cleanup(resetState);
     assert_false(invokee.matches(":fullscreen"));
-    invokerbutton.setAttribute("command", "requestFullscreen");
+    invokerbutton.setAttribute("command", "request-fullscreen");
     await clickOn(invokerbutton);
     assert_true(invokee.matches(":fullscreen"));
-  }, "invoking div with requestFullscreen action makes div fullscreen");
+  }, "invoking div with request-fullscreen action makes div fullscreen");
 
   promise_test(async function (t) {
     t.add_cleanup(resetState);
@@ -86,52 +86,52 @@
       once: true,
     });
     assert_false(invokee.matches(":fullscreen"));
-    invokerbutton.setAttribute("command", "requestFullscreen");
+    invokerbutton.setAttribute("command", "request-fullscreen");
     await clickOn(invokerbutton);
     assert_false(invokee.matches(":fullscreen"));
-  }, "invoking div with requestFullscreen action and preventDefault is a no-op");
+  }, "invoking div with request-fullscreen action and preventDefault is a no-op");
 
   promise_test(async function (t) {
     t.add_cleanup(resetState);
-    invokerbutton.setAttribute("command", "requestFullscreen");
+    invokerbutton.setAttribute("command", "request-fullscreen");
     await test_driver.bless('go fullscreen');
     await invokee.requestFullscreen();
     assert_true(invokee.matches(":fullscreen"));
     await clickOn(invokerbutton);
     assert_true(invokee.matches(":fullscreen"));
-  }, "invoking fullscreen div with requestFullscreen action is a no-op");
+  }, "invoking fullscreen div with request-fullscreen action is a no-op");
 
   // exitFullscreen
 
   promise_test(async function (t) {
     t.add_cleanup(resetState);
     assert_false(invokee.matches(":fullscreen"));
-    invokerbutton.setAttribute("command", "exitFullscreen");
+    invokerbutton.setAttribute("command", "exit-fullscreen");
     await clickOn(invokerbutton);
     assert_false(invokee.matches(":fullscreen"));
-  }, "invoking div with exitFullscreen action is a no-op");
+  }, "invoking div with exit-fullscreen action is a no-op");
 
   promise_test(async function (t) {
     t.add_cleanup(resetState);
-    invokerbutton.setAttribute("command", "exitFullscreen");
+    invokerbutton.setAttribute("command", "exit-fullscreen");
     await test_driver.bless('go fullscreen');
     await invokee.requestFullscreen();
     assert_true(invokee.matches(":fullscreen"));
     await clickOn(invokerbutton);
     assert_false(invokee.matches(":fullscreen"));
-  }, "invoking fullscreen div with exitFullscreen action exits fullscreen");
+  }, "invoking fullscreen div with exit-fullscreen action exits fullscreen");
 
   promise_test(async function (t) {
     t.add_cleanup(resetState);
     invokee.addEventListener("command", (e) => e.preventDefault(), {
       once: true,
     });
-    invokerbutton.setAttribute("command", "exitFullscreen");
+    invokerbutton.setAttribute("command", "exit-fullscreen");
     await test_driver.bless('go fullscreen');
     await invokee.requestFullscreen();
     assert_true(invokee.matches(":fullscreen"));
     await clickOn(invokerbutton);
     assert_true(invokee.matches(":fullscreen"));
-  }, "invoking fullscreen div with exitFullscreen action and preventDefault is a no-op");
+  }, "invoking fullscreen div with exit-fullscreen action and preventDefault is a no-op");
 
 </script>

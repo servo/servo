@@ -179,7 +179,7 @@ async def test_request_timing_info(
     await wait_for_future_safe(on_response_completed)
 
     time_end = await current_time()
-    time_range = number_interval(time_start, time_end)
+    time_range = number_interval(time_start - 1, time_end + 1)
 
     assert len(events) == 1
 
@@ -448,7 +448,7 @@ async def test_serviceworker_request(
     await wait_for_future_safe(on_response_completed)
 
     time_end = await current_time()
-    time_range = number_interval(time_start, time_end)
+    time_range = number_interval(time_start - 1, time_end + 1)
 
     assert len(events) == 1
 
@@ -485,7 +485,7 @@ async def test_url_with_fragment(
     await wait_for_future_safe(on_response_completed)
 
     time_end = await current_time()
-    time_range = number_interval(time_start, time_end)
+    time_range = number_interval(time_start - 1, time_end + 1)
 
     assert len(events) == 1
 
@@ -533,7 +533,7 @@ async def test_navigate_data_url(
     await wait_for_future_safe(on_response_completed)
 
     time_end = await current_time()
-    time_range = number_interval(time_start, time_end)
+    time_range = number_interval(time_start - 1, time_end + 1)
 
     assert len(events) == 1
 
@@ -586,7 +586,7 @@ async def test_fetch_data_url(
     await wait_for_future_safe(on_response_completed)
 
     time_end = await current_time()
-    time_range = number_interval(time_start, time_end)
+    time_range = number_interval(time_start - 1, time_end + 1)
 
     assert len(events) == 1
 

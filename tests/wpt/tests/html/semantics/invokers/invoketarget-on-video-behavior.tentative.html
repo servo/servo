@@ -14,7 +14,7 @@
 <button id="invokerbutton" commandfor="invokee"></button>
 
 <script>
-  // playpause
+  // play-pause
 
   promise_test(async function (t) {
     t.add_cleanup(async () => {
@@ -24,13 +24,13 @@
       invokee.muted = false;
     });
     assert_true(invokee.paused);
-    invokerbutton.setAttribute("command", "playpause");
+    invokerbutton.setAttribute("command", "play-pause");
     await clickOn(invokerbutton);
     await new Promise((resolve) => {
       requestAnimationFrame(resolve);
     });
     assert_false(invokee.paused);
-  }, "invoking video with playpause action makes video play");
+  }, "invoking video with play-pause action makes video play");
 
   promise_test(async function (t) {
     t.add_cleanup(async () => {
@@ -43,13 +43,13 @@
       once: true,
     });
     assert_true(invokee.paused);
-    invokerbutton.setAttribute("command", "playpause");
+    invokerbutton.setAttribute("command", "play-pause");
     await clickOn(invokerbutton);
     await new Promise((resolve) => {
       requestAnimationFrame(resolve);
     });
     assert_true(invokee.paused);
-  }, "invoking video with playpause action and preventDefault is a no-op");
+  }, "invoking video with play-pause action and preventDefault is a no-op");
 
   promise_test(async function (t) {
     t.add_cleanup(async () => {
@@ -61,13 +61,13 @@
     await test_driver.bless("play video");
     invokee.play();
     assert_false(invokee.paused);
-    invokerbutton.setAttribute("command", "playpause");
+    invokerbutton.setAttribute("command", "play-pause");
     await clickOn(invokerbutton);
     await new Promise((resolve) => {
       requestAnimationFrame(resolve);
     });
     assert_true(invokee.paused);
-  }, "invoking playing video with playpause action pauses it");
+  }, "invoking playing video with play-pause action pauses it");
 
   // play
 
@@ -189,13 +189,13 @@
       invokee.muted = false;
     });
     assert_false(invokee.muted);
-    invokerbutton.setAttribute("command", "toggleMuted");
+    invokerbutton.setAttribute("command", "toggle-muted");
     await clickOn(invokerbutton);
     await new Promise((resolve) => {
       requestAnimationFrame(resolve);
     });
     assert_true(invokee.muted);
-  }, "invoking video with toggleMuted action mutes it");
+  }, "invoking video with toggle-muted action mutes it");
 
   promise_test(async function (t) {
     t.add_cleanup(async () => {
@@ -208,13 +208,13 @@
       once: true,
     });
     assert_false(invokee.muted);
-    invokerbutton.setAttribute("command", "toggleMuted");
+    invokerbutton.setAttribute("command", "toggle-muted");
     await clickOn(invokerbutton);
     await new Promise((resolve) => {
       requestAnimationFrame(resolve);
     });
     assert_false(invokee.muted);
-  }, "invoking video with toggleMuted action and preventDefault is a no-op");
+  }, "invoking video with toggle-muted action and preventDefault is a no-op");
 
   promise_test(async function (t) {
     t.add_cleanup(async () => {
@@ -225,11 +225,11 @@
     });
     invokee.muted = true;
     assert_true(invokee.muted);
-    invokerbutton.setAttribute("command", "toggleMuted");
+    invokerbutton.setAttribute("command", "toggle-muted");
     await clickOn(invokerbutton);
     await new Promise((resolve) => {
       requestAnimationFrame(resolve);
     });
     assert_false(invokee.muted);
-  }, "invoking muted video with toggleMuted action unmutes it");
+  }, "invoking muted video with toggle-muted action unmutes it");
 </script>

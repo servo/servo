@@ -26,7 +26,7 @@ fedcm_test(async t => {
 
   let test_options =
     request_options_with_mediation_required("manifest_with_variable_accounts.json");
-  test_options.identity.mode = "button";
+  test_options.identity.mode = "active";
   await select_manifest(t, test_options);
 
   // Trigger FedCM and wait for the initial dialog.
@@ -50,7 +50,7 @@ fedcm_test(async t => {
   await window.test_driver.select_fedcm_account(0);
   const cred = await cred_promise;
   assert_equals(cred.token, "account_id=jane_doe");
-}, 'Test that the "Use Other Account" button works correctly.');
+}, 'Test that the "Use Other Account" active works correctly.');
 
 
 fedcm_test(async t => {
@@ -58,7 +58,7 @@ fedcm_test(async t => {
 
   let test_options =
     request_options_with_mediation_required("manifest_with_variable_accounts.json");
-  test_options.identity.mode = "button";
+  test_options.identity.mode = "active";
   await select_manifest(t, test_options);
 
   // Trigger FedCM and wait for the initial dialog.
@@ -80,6 +80,6 @@ fedcm_test(async t => {
   await window.test_driver.select_fedcm_account(0);
   const cred = await cred_promise;
   assert_equals(cred.token, "account_id=1234");
-}, 'Test that the "Use Other Account" button works correctly when accounts do not change.');
+}, 'Test that the "Use Other Account" active works correctly when accounts do not change.');
 
 </script>

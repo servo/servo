@@ -26,30 +26,51 @@ const modulePath = '/webaudio/the-audio-api/' +
     'the-audioworklet-interface/processors/port-processor.js';
 
 promise_test(async () => {
+  let construct1;
+  async function run_test() {
+    const timeBeforeResume = realtime.currentTime;
+    // Get the currentTime at the same time with AudioContext.currentTime.
+    const {node: node1} = await construct1;
+    const constructReply1 = await ping_for_reply(node1);
+
+    // Two AudioWorkletNodes are constructed.
+    // node1 is constructed before and node2 after the resume() call.
+    await realtime.resume();
+    const construct2 = get_node_and_reply(realtime);
+
+    assert_equals(constructReply1.timeStamp, timeBeforeResume,
+                  'construct time before resume');
+    const {node: node2, reply: constructReply2} = await construct2;
+
+    assert_greater_than_equal(constructReply2.timeStamp, timeBeforeResume,
+                  'construct time after resume');
+
+    // Suspend the context to freeze time and check that the processing for each
+    // node matches the elapsed time.
+    await realtime.suspend();
+    const timeAfterSuspend = realtime.currentTime;
+    const pong1 = await ping_for_reply(node1);
+    const pong2 = await ping_for_reply(node2);
+    assert_consistent(constructReply1, pong1, timeAfterSuspend, 'node1');
+    assert_consistent(constructReply2, pong2, timeAfterSuspend, 'node2');
+    assert_equals(pong1.currentFrame, pong2.currentFrame,
+                  'currentFrame matches');
+  };
+
   const realtime = new AudioContext();
   await realtime.audioWorklet.addModule(modulePath);
-  await realtime.suspend();
-  const timeBeforeResume = realtime.currentTime;
-  // Two AudioWorkletNodes are constructed.
-  // node1 is constructed before and node2 after the resume() call.
-  const construct1 = get_node_and_reply(realtime);
-  const resume = realtime.resume();
-  const construct2 = get_node_and_reply(realtime);
-  const {node: node1, reply: constructReply1} = await construct1;
-  assert_equals(constructReply1.timeStamp, timeBeforeResume,
-                'construct time before resume');
-  const {node: node2, reply: constructReply2} = await construct2;
-  assert_greater_than_equal(constructReply2.timeStamp, timeBeforeResume,
-                'construct time after resume');
-  await resume;
-  // Suspend the context to freeze time and check that the processing for each
-  // node matches the elapsed time.
-  await realtime.suspend();
-  const timeAfterSuspend = realtime.currentTime;
-  const pong1 = await ping_for_reply(node1);
-  const pong2 = await ping_for_reply(node2);
-  assert_consistent(constructReply1, pong1, timeAfterSuspend, 'node1');
-  assert_consistent(constructReply2, pong2, timeAfterSuspend, 'node2');
-  assert_equals(pong1.currentFrame, pong2.currentFrame, 'currentFrame matches');
+  construct1 = get_node_and_reply(realtime);
+
+  if (realtime.state === 'running') {
+    realtime.suspend();
+    realtime.onstatechange = async (e) => {
+      if (e.target.state === 'suspended') {
+        e.target.onstatechange = null;
+        await run_test();
+      }
+    };
+  } else {
+    await run_test();
+  }
 });
 </script>

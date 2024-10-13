@@ -18,61 +18,61 @@
     invokerbutton.removeAttribute('command');
   }
 
-  // stepUp
+  // step-up
 
   promise_test(async function (t) {
     t.add_cleanup(reset);
     assert_equals(invokee.valueAsNumber, 0);
-    invokerbutton.setAttribute("command", "stepup");
+    invokerbutton.setAttribute("command", "step-up");
     await clickOn(invokerbutton);
     assert_equals(invokee.valueAsNumber, 1);
-  }, "invoking number input with stepup action increments value");
+  }, "invoking number input with step-up action increments value");
 
   promise_test(async function (t) {
     t.add_cleanup(reset);
     assert_equals(invokee.valueAsNumber, 0);
-    invokerbutton.setAttribute("command", "sTePuP");
+    invokerbutton.setAttribute("command", "sTeP-uP");
     await clickOn(invokerbutton);
     assert_equals(invokee.valueAsNumber, 1);
-  }, "invoking number input with stepup action (case-insensitive) increments value");
+  }, "invoking number input with step-up action (case-insensitive) increments value");
 
   promise_test(async function (t) {
     t.add_cleanup(reset);
     assert_equals(invokee.valueAsNumber, 0);
-    invokerbutton.setAttribute("command", "stepup");
+    invokerbutton.setAttribute("command", "step-up");
     invokee.addEventListener("command", (e) => e.preventDefault(), {
       once: true,
     });
     await clickOn(invokerbutton);
     assert_equals(invokee.valueAsNumber, 0);
-  }, "invoking number input with stepup action and preventDefault does not increment value");
+  }, "invoking number input with step-up action and preventDefault does not increment value");
 
-  // stepDown
+  // step-down
 
   promise_test(async function (t) {
     t.add_cleanup(reset);
     assert_equals(invokee.valueAsNumber, 0);
-    invokerbutton.setAttribute("command", "stepdown");
+    invokerbutton.setAttribute("command", "step-down");
     await clickOn(invokerbutton);
     assert_equals(invokee.valueAsNumber, -1);
-  }, "invoking number input with stepdown action decrements value");
+  }, "invoking number input with step-down action decrements value");
 
   promise_test(async function (t) {
     t.add_cleanup(reset);
     assert_equals(invokee.valueAsNumber, 0);
-    invokerbutton.setAttribute("command", "sTePdOwN");
+    invokerbutton.setAttribute("command", "sTeP-dOwN");
     await clickOn(invokerbutton);
     assert_equals(invokee.valueAsNumber, -1);
-  }, "invoking number input with stepdown action (case-insensitive) decrements value");
+  }, "invoking number input with step-down action (case-insensitive) decrements value");
 
   promise_test(async function (t) {
     t.add_cleanup(reset);
     assert_equals(invokee.valueAsNumber, 0);
-    invokerbutton.setAttribute("command", "stepdown");
+    invokerbutton.setAttribute("command", "step-down");
     invokee.addEventListener("command", (e) => e.preventDefault(), {
       once: true,
     });
     await clickOn(invokerbutton);
     assert_equals(invokee.valueAsNumber, 0);
-  }, "invoking number input with stepdown action and preventDefault does not decrement value");
+  }, "invoking number input with step-down action and preventDefault does not decrement value");
 </script>

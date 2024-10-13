@@ -178,6 +178,38 @@ async def test_document_write(
     assert event["navigation"] is not None
 
 
+async def test_early_same_document_navigation(
+    bidi_session,
+    subscribe_events,
+    inline,
+    new_tab,
+    wait_for_event,
+    wait_for_future_safe,
+):
+    await subscribe_events(events=[DOM_CONTENT_LOADED_EVENT])
+
+    on_entry = wait_for_event(DOM_CONTENT_LOADED_EVENT)
+
+    url = inline(
+        """
+        <script type="text/javascript">
+            history.replaceState(null, 'initial', window.location.href);
+        </script>
+    """
+    )
+
+    result = await bidi_session.browsing_context.navigate(
+        context=new_tab["context"], url=url
+    )
+
+    event = await wait_for_future_safe(on_entry)
+
+    assert_navigation_info(
+        event,
+        {"context": new_tab["context"], "navigation": result["navigation"], "url": url},
+    )
+
+
 async def test_page_with_base_tag(
     bidi_session, subscribe_events, inline, new_tab, wait_for_event, wait_for_future_safe
 ):

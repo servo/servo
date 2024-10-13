@@ -21,7 +21,7 @@ const useBR = whiteSpace == "normal";
 addEventListener("load", () => {
   const editingHost = document.createElement("div");
   editingHost.style.whiteSpace = whiteSpace;
-  editingHost.contentEditable = "plaintext-only";
+  editingHost.setAttribute("contenteditable", "plaintext-only");
   document.body.appendChild(editingHost);
   editingHost.focus();
   editingHost.getBoundingClientRect();

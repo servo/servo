@@ -65,7 +65,8 @@
       displayName: "Marisa Kirisame",
     });
     const credential = (await window.test_driver.get_credentials(authenticator))[0];
-    // TODO(nsatragno): add assertions once https://github.com/w3c/webauthn/issues/2143 is resolved.
+    assert_equals(credential.userName, "reimu");
+    assert_equals(credential.userDisplayName, "Reimu Hakurei");
   }, authenticatorOptions, "signalCurrentUserDetails does not update a different user id");
 
   virtualAuthenticatorPromiseTest(async (t, authenticator) => {
@@ -77,6 +78,7 @@
       displayName: "Marisa Kirisame",
     });
     const credential = (await window.test_driver.get_credentials(authenticator))[0];
-    // TODO(nsatragno): add assertions once https://github.com/w3c/webauthn/issues/2143 is resolved.
+    assert_equals(credential.userName, "marisa");
+    assert_equals(credential.userDisplayName, "Marisa Kirisame");
   }, authenticatorOptions, "signalCurrentUserDetails updates a matching user id");
 </script>

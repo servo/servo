@@ -6,6 +6,7 @@
 // META: script=/common/utils.js
 // META: script=/common/dispatcher/dispatcher.js
 // META: script=./resources/common.js
+// META: script=./resources/sync-pressure-observer.js
 
 'use strict';
 
@@ -31,28 +32,23 @@ pressure_test(async (t) => {
     await remove_virtual_pressure_source('cpu');
   });
 
-  let pressureChanges = [];
-  const observer = new PressureObserver((changes) => {
-    pressureChanges = pressureChanges.concat(changes);
-  });
-  t.add_cleanup(() => {
-    observer.disconnect();
-  });
+  const readings = ['critical', 'critical'];
+  const syncObserver = new SyncPressureObserver(t);
 
   // When disconnect() is called, PressureRecord in [[LastRecordMap]] for cpu
   // should be cleared. The effect we observe in this test is the "has change
   // in data" algorithm passing with the same state twice.
-  const states = ['critical', 'critical'];
-  for (let i = 0; i < states.length; ++i) {
-    await observer.observe('cpu', {sampleInterval: 500});
-    await update_virtual_pressure_source('cpu', states[i]);
-    await t.step_wait(() => pressureChanges.length == i + 1, 'foo');
-    observer.disconnect();
+  for (let i = 0; i < readings.length; ++i) {
+    await syncObserver.observer().observe('cpu', {sampleInterval: 500});
+    await update_virtual_pressure_source('cpu', readings[i]);
+    await syncObserver.waitForUpdate();
+    syncObserver.observer().disconnect();
   }
 
-  assert_equals(pressureChanges.length, 2);
-  assert_equals(pressureChanges[0].state, 'critical');
-  assert_equals(pressureChanges[1].state, 'critical');
+  const pressureChanges = syncObserver.changes();
+  assert_equals(pressureChanges.length, readings.length);
+  assert_equals(pressureChanges[0][0].state, 'critical');
+  assert_equals(pressureChanges[1][0].state, 'critical');
 }, 'disconnect() should update [[LastRecordMap]]');
 
 mark_as_done();

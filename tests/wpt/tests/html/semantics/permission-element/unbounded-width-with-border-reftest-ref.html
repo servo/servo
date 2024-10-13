@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<meta charset=utf-8>
+<body>
+  <div>
+    The permission element width is allowed to be unbounded if there is a border which makes the
+    bounds of the permission element sufficiently clear.
+    The border should have enough width, enough contrast with the background-color and no transparency.
+  </div>
+
+  <style>
+    #unlimited-width {
+      font-size: 10px;
+
+      background-color: white;
+      border: solid 1px black;
+      width: 500px;
+    }
+    #no-border-width {
+      font-size: 10px;
+      background-color: white;
+      border: 0px;
+
+      /* Used to compute width which will then be set in JS */
+      width: fit-content;
+    }
+    #no-contrast {
+      font-size: 10px;
+      background-color: white;
+      border: solid 1px yellow;
+
+      /* Used to compute width which will then be set in JS */
+      width: fit-content;
+    }
+    #transparent {
+      font-size: 10px;
+      background-color: white;
+      border: solid 1px #000000ee;
+
+      /* Used to compute width which will then be set in JS */
+      width: fit-content;
+    }
+    #top-no-contrast {
+      font-size: 10px;
+      background-color: white;
+      border: solid 1px black;
+      border-top-color: white;
+
+/* Used to compute width which will then be set in JS */
+width: fit-content;
+    }
+  </style>
+
+<div><permission id="unlimited-width" type="geolocation"></div>
+<div><permission id="no-border-width" type="camera"></div>
+<div><permission id="no-contrast" type="microphone"></div>
+<div><permission id="transparent" type="microphone camera"></div>
+<div><permission id="top-no-contrast" type="geolocation"></div>
+
+<script>
+  function setWidthToMax(el) {
+    let w = getComputedStyle(el).width;
+    el.style.width = `calc(${w} * 3)`;
+  }
+
+  setWidthToMax(document.getElementById("no-border-width"));
+  setWidthToMax(document.getElementById("no-contrast"));
+  setWidthToMax(document.getElementById("transparent"));
+  setWidthToMax(document.getElementById("top-no-contrast"));
+</script>
+</body>
+</html>

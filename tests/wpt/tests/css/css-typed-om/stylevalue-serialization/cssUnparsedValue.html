@@ -36,6 +36,13 @@ test(() => {
    'serializes to its tokenized contents');
 
 test(() => {
+  let fallback = new CSSUnparsedValue([new CSSVariableReferenceValue('--B')]);
+  let var_ref = new CSSVariableReferenceValue('--A',fallback);
+  assert_equals(new CSSUnparsedValue([var_ref, var_ref]).toString(),
+    'var(--A,var(--B))var(--A,var(--B))');
+}, 'CSSUnparsedValue can hold same object in multiple places');
+
+test(() => {
   assert_equals(
       elem.attributeStyleMap.get("color-scheme").toString(),
       'bar/**/var(--foo)');

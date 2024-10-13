@@ -13,6 +13,9 @@ const kElementwiseLogicalBinaryOperators = [
   'greaterOrEqual',
   'lesser',
   'lesserOrEqual',
+  'logicalAnd',
+  'logicalOr',
+  'logicalXor',
 ];
 
 const label = 'elementwise_logic_op';

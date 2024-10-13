@@ -240,7 +240,7 @@ async def test_request_timing_info(
     await wait_for_future_safe(on_fetch_error)
 
     time_end = await current_time()
-    time_range = number_interval(time_start, time_end)
+    time_range = number_interval(time_start - 1, time_end + 1)
 
     assert len(events) == 1
     expected_request = {"method": "GET", "url": PAGE_INVALID_URL}

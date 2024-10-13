@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<html class="reftest-wait">
 <link rel="help" href="https://drafts.csswg.org/css-shapes-2/#shapes-from-image"/>
 <link rel="help" href="https://drafts.csswg.org/css-shapes-2/#shape-outside-property"/>
 <meta name="flags" content="ahem"/>
@@ -42,3 +43,20 @@ XXXXXX
 XXXXXX
 XXXXXX
 </div>
+
+<script>
+// A workaround of an issue of Chromium content_shell.  It finishes a test
+// without waiting images linked from url().  crbug.com/372756068
+const image = new Image();
+image.src = 'support/left-half-rectangle.png';
+image.addEventListener('load', () => {
+  image.remove();
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      document.documentElement.classList.remove('reftest-wait');
+    });
+  });
+});
+document.body.appendChild(image);
+</script>
+</html>

@@ -14,7 +14,7 @@
    div { font: 30px/1 Ahem; width: 15em; background: yellow; color: aqua; margin: 0 0 0 2em; }
    .eight {letter-spacing: 60px;}
    .nine {letter-spacing: normal;}
-   .ten {letter-spacing: 300%;}
+   .ten {letter-spacing: 200%;} /* percentages are now valid per CSS-Text */
    .eleven {letter-spacing: -0.5em;}
    .fill { color: yellow; }
   ]]></style>
@@ -26,7 +26,7 @@
   <div class="test">x&#xA0;&#xA0;x&#xA0;&#xA0;&#xA0;&#xA0; x&#xA0; x </div>
   <div class="test"><span class="eight"> xx xx </span></div>
   <div class="eight"><span class="nine">x&#xA0;&#xA0;x&#xA0;&#xA0;&#xA0;&#xA0;&#xA0;x&#xA0;&#xA0;x </span></div>
-  <div class="ten">x &#xA0;x&#xA0;&#xA0; &#xA0; x &#xA0;x </div>
+  <div class="ten"> xx xx </div>
   <div class="eleven">x&#xA0; &#xA0;&#xA0; x&#xA0;&#xA0;&#xA0;&#xA0;&#xA0;&#xA0;&#xA0;&#xA0;&#xA0;<span class="fill">x</span>&#xA0;x&#xA0;&#xA0;&#xA0;<span class="fill">x</span> x </div>
  </body>
 </html>
