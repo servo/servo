@@ -180,6 +180,7 @@ pub enum WorkletGlobalScopeType {
 
 impl WorkletGlobalScopeType {
     /// Create a new heap-allocated `WorkletGlobalScope`.
+    #[allow(clippy::new_ret_no_self)]
     pub fn new(
         &self,
         runtime: &Runtime,
