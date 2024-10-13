@@ -370,7 +370,7 @@ impl XRSession {
                 self.input_sources.add_input_sources(self, &[info], can_gc);
             },
             XREvent::RemoveInput(id) => {
-                self.input_sources.remove_input_source(self, id);
+                self.input_sources.remove_input_source(self, id, can_gc);
             },
             XREvent::UpdateInput(id, source) => {
                 self.input_sources
@@ -878,7 +878,7 @@ impl XRSessionMethods for XRSession {
     }
 
     /// <https://immersive-web.github.io/webxr/#dom-xrsession-end>
-    fn End(&self) -> Rc<Promise> {
+    fn End(&self, can_gc: CanGc) -> Rc<Promise> {
         let global = self.global();
         let p = Promise::new(&global);
         if self.ended.get() && self.end_promises.borrow().is_empty() {
@@ -904,7 +904,7 @@ impl XRSessionMethods for XRSession {
         // Disconnect any still-attached XRInputSources
         for source in 0..self.input_sources.Length() {
             self.input_sources
-                .remove_input_source(self, InputId(source));
+                .remove_input_source(self, InputId(source), can_gc);
         }
         p
     }

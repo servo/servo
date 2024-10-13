@@ -66,11 +66,11 @@ impl XRInputSourceArray {
         event.upcast::<Event>().fire(session.upcast());
     }
 
-    pub fn remove_input_source(&self, session: &XRSession, id: InputId) {
+    pub fn remove_input_source(&self, session: &XRSession, id: InputId, can_gc: CanGc) {
         let mut input_sources = self.input_sources.borrow_mut();
         let global = self.global();
         let removed = if let Some(i) = input_sources.iter().find(|i| i.id() == id) {
-            i.gamepad().update_connected(false, false);
+            i.gamepad().update_connected(false, false, can_gc);
             [DomRoot::from_ref(&**i)]
         } else {
             return;
@@ -102,7 +102,7 @@ impl XRInputSourceArray {
         let global = self.global();
         let root;
         let removed = if let Some(i) = input_sources.iter().find(|i| i.id() == id) {
-            i.gamepad().update_connected(false, false);
+            i.gamepad().update_connected(false, false, can_gc);
             root = [DomRoot::from_ref(&**i)];
             &root as &[_]
         } else {

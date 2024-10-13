@@ -3204,10 +3204,10 @@ impl GlobalScope {
                 );
             },
             GamepadEvent::Disconnected(index) => {
-                self.handle_gamepad_disconnect(index.0);
+                self.handle_gamepad_disconnect(index.0, can_gc);
             },
             GamepadEvent::Updated(index, update_type) => {
-                self.receive_new_gamepad_button_or_axis(index.0, update_type);
+                self.receive_new_gamepad_button_or_axis(index.0, update_type, can_gc);
             },
         };
     }
@@ -3247,7 +3247,7 @@ impl GlobalScope {
                             false,
                             can_gc,
                         );
-                        navigator.set_gamepad(selected_index as usize, &gamepad);
+                        navigator.set_gamepad(selected_index as usize, &gamepad, can_gc);
                     }
                 }),
                 &self.task_canceller(TaskSourceName::Gamepad),
@@ -3256,7 +3256,7 @@ impl GlobalScope {
     }
 
     /// <https://www.w3.org/TR/gamepad/#dfn-gamepaddisconnected>
-    pub fn handle_gamepad_disconnect(&self, index: usize) {
+    pub fn handle_gamepad_disconnect(&self, index: usize, can_gc: CanGc) {
         let this = Trusted::new(self);
         self.gamepad_task_source()
             .queue_with_canceller(
@@ -3266,7 +3266,7 @@ impl GlobalScope {
                         let navigator = window.Navigator();
                         if let Some(gamepad) = navigator.get_gamepad(index) {
                             if window.Document().is_fully_active() {
-                                gamepad.update_connected(false, gamepad.exposed());
+                                gamepad.update_connected(false, gamepad.exposed(), can_gc);
                                 navigator.remove_gamepad(index);
                             }
                         }
@@ -3278,7 +3278,12 @@ impl GlobalScope {
     }
 
     /// <https://www.w3.org/TR/gamepad/#receiving-inputs>
-    pub fn receive_new_gamepad_button_or_axis(&self, index: usize, update_type: GamepadUpdateType) {
+    pub fn receive_new_gamepad_button_or_axis(
+        &self,
+        index: usize,
+        update_type: GamepadUpdateType,
+        can_gc: CanGc,
+    ) {
         let this = Trusted::new(self);
 
         // <https://w3c.github.io/gamepad/#dfn-update-gamepad-state>
@@ -3312,7 +3317,7 @@ impl GlobalScope {
                                             window.task_manager().gamepad_task_source().queue_with_canceller(
                                                 task!(update_gamepad_connect: move || {
                                                     let gamepad = new_gamepad.root();
-                                                    gamepad.notify_event(GamepadEventType::Connected);
+                                                    gamepad.notify_event(GamepadEventType::Connected, can_gc);
                                                 }),
                                                 &window.upcast::<GlobalScope>()
                                                     .task_canceller(TaskSourceName::Gamepad),
