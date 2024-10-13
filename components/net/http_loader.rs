@@ -1225,7 +1225,7 @@ async fn http_network_or_cache_fetch(
     // Step 8.12 Append a request `Origin` header for httpRequest.
     append_a_request_origin_header(http_request);
 
-    // Step 8.13: Append the Fetch metadata headers for httpRequest.
+    // Step 8.13 Append the Fetch metadata headers for httpRequest.
     append_the_fetch_metadata_headers(http_request);
 
     // Step 8.14: If httpRequest’s initiator is "prefetch", then set a structured field value given
