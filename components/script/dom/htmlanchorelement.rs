@@ -76,15 +76,29 @@ impl HTMLAnchorElement {
         )
     }
 
-    // https://html.spec.whatwg.org/multipage/#concept-hyperlink-url-set
+    /// <https://html.spec.whatwg.org/multipage/#concept-hyperlink-url-set>
     fn set_url(&self) {
+        // Step 1. Set this element's url to null.
+        *self.url.borrow_mut() = None;
+
+        // Step 2. If this element's href content attribute is absent, then return.
         let attribute = self
             .upcast::<Element>()
             .get_attribute(&ns!(), &local_name!("href"));
-        *self.url.borrow_mut() = attribute.and_then(|attribute| {
-            let document = document_from_node(self);
-            document.base_url().join(&attribute.value()).ok()
-        });
+
+        let Some(attribute) = attribute else {
+            return;
+        };
+
+        // Step 3. Let url be the result of encoding-parsing a URL given this element's
+        // href content attribute's value, relative to this element's node document.
+        let document = document_from_node(self);
+        let url = document.encoding_parse_a_url(&attribute.value());
+
+        // Step 4. If url is not failure, then set this element's url to url.
+        if let Ok(url) = url {
+            *self.url.borrow_mut() = Some(url);
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#reinitialise-url
