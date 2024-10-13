@@ -33,6 +33,7 @@ use crate::dom::event::Event;
 use crate::dom::node::{from_untrusted_node_address, window_from_node, Node, NodeDamage};
 use crate::dom::transitionevent::TransitionEvent;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 /// The set of animations for a document.
 #[derive(Default, JSTraceable, MallocSizeOf)]
@@ -456,7 +457,7 @@ impl Animations {
             });
     }
 
-    pub(crate) fn send_pending_events(&self, window: &Window) {
+    pub(crate) fn send_pending_events(&self, window: &Window, can_gc: CanGc) {
         // Take all of the events here, in case sending one of these events
         // triggers adding new events by forcing a layout.
         let events = std::mem::take(&mut *self.pending_events.borrow_mut());
@@ -517,7 +518,7 @@ impl Animations {
                     elapsedTime: elapsed_time,
                     pseudoElement: pseudo_element,
                 };
-                AnimationEvent::new(&window, event_atom, &event_init)
+                AnimationEvent::new(&window, event_atom, &event_init, can_gc)
                     .upcast::<Event>()
                     .fire(node.upcast());
             }

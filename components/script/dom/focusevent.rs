@@ -35,8 +35,8 @@ impl FocusEvent {
         }
     }
 
-    pub fn new_uninitialized(window: &Window) -> DomRoot<FocusEvent> {
-        Self::new_uninitialized_with_proto(window, None, CanGc::note())
+    pub fn new_uninitialized(window: &Window, can_gc: CanGc) -> DomRoot<FocusEvent> {
+        Self::new_uninitialized_with_proto(window, None, can_gc)
     }
 
     pub fn new_uninitialized_with_proto(

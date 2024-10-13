@@ -72,8 +72,8 @@ impl Response {
     }
 
     // https://fetch.spec.whatwg.org/#dom-response
-    pub fn new(global: &GlobalScope) -> DomRoot<Response> {
-        Self::new_with_proto(global, None, CanGc::note())
+    pub fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<Response> {
+        Self::new_with_proto(global, None, can_gc)
     }
 
     fn new_with_proto(
@@ -218,8 +218,8 @@ impl ResponseMethods for Response {
     }
 
     // https://fetch.spec.whatwg.org/#dom-response-error
-    fn Error(global: &GlobalScope) -> DomRoot<Response> {
-        let r = Response::new(global);
+    fn Error(global: &GlobalScope, can_gc: CanGc) -> DomRoot<Response> {
+        let r = Response::new(global, can_gc);
         *r.response_type.borrow_mut() = DOMResponseType::Error;
         r.Headers().set_guard(Guard::Immutable);
         *r.status.borrow_mut() = HttpStatus::new_error();
@@ -227,7 +227,12 @@ impl ResponseMethods for Response {
     }
 
     // https://fetch.spec.whatwg.org/#dom-response-redirect
-    fn Redirect(global: &GlobalScope, url: USVString, status: u16) -> Fallible<DomRoot<Response>> {
+    fn Redirect(
+        global: &GlobalScope,
+        url: USVString,
+        status: u16,
+        can_gc: CanGc,
+    ) -> Fallible<DomRoot<Response>> {
         // Step 1
         let base_url = global.api_base_url();
         let parsed_url = base_url.join(&url.0);
@@ -245,7 +250,7 @@ impl ResponseMethods for Response {
 
         // Step 4
         // see Step 4 continued
-        let r = Response::new(global);
+        let r = Response::new(global, can_gc);
 
         // Step 5
         *r.status.borrow_mut() = HttpStatus::new_raw(status, vec![]);
@@ -306,14 +311,14 @@ impl ResponseMethods for Response {
     }
 
     // https://fetch.spec.whatwg.org/#dom-response-clone
-    fn Clone(&self) -> Fallible<DomRoot<Response>> {
+    fn Clone(&self, can_gc: CanGc) -> Fallible<DomRoot<Response>> {
         // Step 1
         if self.is_locked() || self.is_disturbed() {
             return Err(Error::Type("cannot clone a disturbed response".to_string()));
         }
 
         // Step 2
-        let new_response = Response::new(&self.global());
+        let new_response = Response::new(&self.global(), can_gc);
         new_response.Headers().copy_from_headers(self.Headers())?;
         new_response.Headers().set_guard(self.Headers().get_guard());
 

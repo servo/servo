@@ -1707,7 +1707,7 @@ impl ScriptThread {
             }
 
             // Update animations and send events.
-            self.update_animations_and_send_events();
+            self.update_animations_and_send_events(can_gc);
 
             // TODO(#31866): Implement "run the fullscreen steps" from
             // https://fullscreen.spec.whatwg.org/multipage/#run-the-fullscreen-steps.
@@ -1723,7 +1723,7 @@ impl ScriptThread {
             let mut depth = Default::default();
             while document.gather_active_resize_observations_at_depth(&depth) {
                 // Note: this will reflow the doc.
-                depth = document.broadcast_active_resize_observations();
+                depth = document.broadcast_active_resize_observations(can_gc);
             }
 
             if document.has_skipped_resize_observations() {
@@ -2071,7 +2071,7 @@ impl ScriptThread {
 
     // Perform step 7.10 from https://html.spec.whatwg.org/multipage/#event-loop-processing-model.
     // Described at: https://drafts.csswg.org/web-animations-1/#update-animations-and-send-events
-    fn update_animations_and_send_events(&self) {
+    fn update_animations_and_send_events(&self, can_gc: CanGc) {
         for (_, document) in self.documents.borrow().iter() {
             document.update_animation_timeline();
             document.maybe_mark_animating_nodes_as_dirty();
@@ -2079,7 +2079,9 @@ impl ScriptThread {
 
         for (_, document) in self.documents.borrow().iter() {
             let _realm = enter_realm(&*document);
-            document.animations().send_pending_events(document.window());
+            document
+                .animations()
+                .send_pending_events(document.window(), can_gc);
         }
     }
 

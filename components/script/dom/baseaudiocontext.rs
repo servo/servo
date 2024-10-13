@@ -66,6 +66,7 @@ use crate::dom::promise::Promise;
 use crate::dom::stereopannernode::StereoPannerNode;
 use crate::dom::window::Window;
 use crate::realms::InRealm;
+use crate::script_runtime::CanGc;
 use crate::task_source::TaskSource;
 
 #[allow(dead_code)]
@@ -346,8 +347,13 @@ impl BaseAudioContextMethods for BaseAudioContext {
     event_handler!(statechange, GetOnstatechange, SetOnstatechange);
 
     /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createoscillator>
-    fn CreateOscillator(&self) -> Fallible<DomRoot<OscillatorNode>> {
-        OscillatorNode::new(self.global().as_window(), self, &OscillatorOptions::empty())
+    fn CreateOscillator(&self, can_gc: CanGc) -> Fallible<DomRoot<OscillatorNode>> {
+        OscillatorNode::new(
+            self.global().as_window(),
+            self,
+            &OscillatorOptions::empty(),
+            can_gc,
+        )
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-creategain>
