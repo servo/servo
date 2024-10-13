@@ -178,11 +178,11 @@ impl TestBindingMethods for TestBinding {
         TestEnum::_empty
     }
     fn SetEnumAttribute(&self, _: TestEnum) {}
-    fn InterfaceAttribute(&self) -> DomRoot<Blob> {
+    fn InterfaceAttribute(&self, can_gc: CanGc) -> DomRoot<Blob> {
         Blob::new(
             &self.global(),
             BlobImpl::new_from_bytes(vec![], "".to_owned()),
-            CanGc::note(),
+            can_gc,
         )
     }
     fn SetInterfaceAttribute(&self, _: &Blob) {}
@@ -324,11 +324,11 @@ impl TestBindingMethods for TestBinding {
     fn GetEnumAttributeNullable(&self) -> Option<TestEnum> {
         Some(TestEnum::_empty)
     }
-    fn GetInterfaceAttributeNullable(&self) -> Option<DomRoot<Blob>> {
+    fn GetInterfaceAttributeNullable(&self, can_gc: CanGc) -> Option<DomRoot<Blob>> {
         Some(Blob::new(
             &self.global(),
             BlobImpl::new_from_bytes(vec![], "".to_owned()),
-            CanGc::note(),
+            can_gc,
         ))
     }
     fn SetInterfaceAttributeNullable(&self, _: Option<&Blob>) {}
@@ -419,11 +419,11 @@ impl TestBindingMethods for TestBinding {
     fn ReceiveEnum(&self) -> TestEnum {
         TestEnum::_empty
     }
-    fn ReceiveInterface(&self) -> DomRoot<Blob> {
+    fn ReceiveInterface(&self, can_gc: CanGc) -> DomRoot<Blob> {
         Blob::new(
             &self.global(),
             BlobImpl::new_from_bytes(vec![], "".to_owned()),
-            CanGc::note(),
+            can_gc,
         )
     }
     fn ReceiveAny(&self, _: SafeJSContext) -> JSVal {
@@ -468,11 +468,11 @@ impl TestBindingMethods for TestBinding {
     fn ReceiveSequence(&self) -> Vec<i32> {
         vec![1]
     }
-    fn ReceiveInterfaceSequence(&self) -> Vec<DomRoot<Blob>> {
+    fn ReceiveInterfaceSequence(&self, can_gc: CanGc) -> Vec<DomRoot<Blob>> {
         vec![Blob::new(
             &self.global(),
             BlobImpl::new_from_bytes(vec![], "".to_owned()),
-            CanGc::note(),
+            can_gc,
         )]
     }
     fn ReceiveUnionIdentity(
@@ -534,11 +534,11 @@ impl TestBindingMethods for TestBinding {
     fn ReceiveNullableEnum(&self) -> Option<TestEnum> {
         Some(TestEnum::_empty)
     }
-    fn ReceiveNullableInterface(&self) -> Option<DomRoot<Blob>> {
+    fn ReceiveNullableInterface(&self, can_gc: CanGc) -> Option<DomRoot<Blob>> {
         Some(Blob::new(
             &self.global(),
             BlobImpl::new_from_bytes(vec![], "".to_owned()),
-            CanGc::note(),
+            can_gc,
         ))
     }
     fn ReceiveNullableObject(&self, cx: SafeJSContext) -> Option<NonNull<JSObject>> {

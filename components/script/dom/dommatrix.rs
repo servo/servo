@@ -29,8 +29,13 @@ pub struct DOMMatrix {
 
 #[allow(non_snake_case)]
 impl DOMMatrix {
-    pub fn new(global: &GlobalScope, is2D: bool, matrix: Transform3D<f64>) -> DomRoot<Self> {
-        Self::new_with_proto(global, None, is2D, matrix, CanGc::note())
+    pub fn new(
+        global: &GlobalScope,
+        is2D: bool,
+        matrix: Transform3D<f64>,
+        can_gc: CanGc,
+    ) -> DomRoot<Self> {
+        Self::new_with_proto(global, None, is2D, matrix, can_gc)
     }
 
     #[allow(crown::unrooted_must_root)]
@@ -51,8 +56,12 @@ impl DOMMatrix {
         }
     }
 
-    pub fn from_readonly(global: &GlobalScope, ro: &DOMMatrixReadOnly) -> DomRoot<Self> {
-        Self::new(global, ro.is2D(), *ro.matrix())
+    pub fn from_readonly(
+        global: &GlobalScope,
+        ro: &DOMMatrixReadOnly,
+        can_gc: CanGc,
+    ) -> DomRoot<Self> {
+        Self::new(global, ro.is2D(), *ro.matrix(), can_gc)
     }
 }
 
@@ -82,7 +91,7 @@ impl DOMMatrixMethods for DOMMatrix {
                     ));
                 }
                 if s.is_empty() {
-                    return Ok(Self::new(global, true, Transform3D::identity()));
+                    return Ok(Self::new(global, true, Transform3D::identity(), can_gc));
                 }
                 transform_to_matrix(s.to_string())
                     .map(|(is2D, matrix)| Self::new_with_proto(global, proto, is2D, matrix, can_gc))
@@ -95,20 +104,25 @@ impl DOMMatrixMethods for DOMMatrix {
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-frommatrix
-    fn FromMatrix(global: &GlobalScope, other: &DOMMatrixInit) -> Fallible<DomRoot<Self>> {
-        dommatrixinit_to_matrix(other).map(|(is2D, matrix)| Self::new(global, is2D, matrix))
+    fn FromMatrix(
+        global: &GlobalScope,
+        other: &DOMMatrixInit,
+        can_gc: CanGc,
+    ) -> Fallible<DomRoot<Self>> {
+        dommatrixinit_to_matrix(other).map(|(is2D, matrix)| Self::new(global, is2D, matrix, can_gc))
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-fromfloat32array
     fn FromFloat32Array(
         global: &GlobalScope,
         array: CustomAutoRooterGuard<Float32Array>,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<DOMMatrix>> {
         let vec: Vec<f64> = array.to_vec().iter().map(|&x| x as f64).collect();
         DOMMatrix::Constructor(
             global,
             None,
-            CanGc::note(),
+            can_gc,
             Some(StringOrUnrestrictedDoubleSequence::UnrestrictedDoubleSequence(vec)),
         )
     }
@@ -117,12 +131,13 @@ impl DOMMatrixMethods for DOMMatrix {
     fn FromFloat64Array(
         global: &GlobalScope,
         array: CustomAutoRooterGuard<Float64Array>,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<DOMMatrix>> {
         let vec: Vec<f64> = array.to_vec();
         DOMMatrix::Constructor(
             global,
             None,
-            CanGc::note(),
+            can_gc,
             Some(StringOrUnrestrictedDoubleSequence::UnrestrictedDoubleSequence(vec)),
         )
     }
