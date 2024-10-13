@@ -49,9 +49,13 @@ impl ResizeObserverSize {
         }
     }
 
-    pub fn new(window: &Window, size_impl: ResizeObserverSizeImpl) -> DomRoot<ResizeObserverSize> {
+    pub fn new(
+        window: &Window,
+        size_impl: ResizeObserverSizeImpl,
+        can_gc: CanGc,
+    ) -> DomRoot<ResizeObserverSize> {
         let observer_size = Box::new(ResizeObserverSize::new_inherited(size_impl));
-        reflect_dom_object_with_proto(observer_size, window, None, CanGc::note())
+        reflect_dom_object_with_proto(observer_size, window, None, can_gc)
     }
 }
 

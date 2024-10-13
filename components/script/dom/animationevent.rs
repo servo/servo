@@ -38,8 +38,13 @@ impl AnimationEvent {
         }
     }
 
-    pub fn new(window: &Window, type_: Atom, init: &AnimationEventInit) -> DomRoot<AnimationEvent> {
-        Self::new_with_proto(window, None, type_, init, CanGc::note())
+    pub fn new(
+        window: &Window,
+        type_: Atom,
+        init: &AnimationEventInit,
+        can_gc: CanGc,
+    ) -> DomRoot<AnimationEvent> {
+        Self::new_with_proto(window, None, type_, init, can_gc)
     }
 
     fn new_with_proto(

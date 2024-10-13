@@ -93,6 +93,7 @@ impl ResizeObserver {
     pub fn broadcast_active_resize_observations(
         &self,
         shallowest_target_depth: &mut ResizeObservationDepth,
+        can_gc: CanGc,
     ) {
         let mut entries: Vec<DomRoot<ResizeObserverEntry>> = Default::default();
         for (observation, target) in self.observation_targets.borrow_mut().iter_mut() {
@@ -107,7 +108,7 @@ impl ResizeObserver {
             let height = box_size.height().to_f64_px();
             let size_impl = ResizeObserverSizeImpl::new(width, height);
             let window = window_from_node(&**target);
-            let observer_size = ResizeObserverSize::new(&window, size_impl);
+            let observer_size = ResizeObserverSize::new(&window, size_impl, can_gc);
 
             // Note: content rect is built from content box size.
             let content_rect = DOMRectReadOnly::new(

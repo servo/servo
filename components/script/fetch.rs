@@ -154,7 +154,7 @@ pub fn Fetch(
 
     // Step 7. Let responseObject be null.
     // NOTE: We do initialize the object earlier earlier so we can use it to track errors
-    let response = Response::new(global);
+    let response = Response::new(global, can_gc);
     response.Headers().set_guard(Guard::Immutable);
 
     // Step 2. Let requestObject be the result of invoking the initial value of Request as constructor

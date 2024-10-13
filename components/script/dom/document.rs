@@ -2982,7 +2982,10 @@ impl Document {
     }
 
     /// <https://drafts.csswg.org/resize-observer/#broadcast-active-resize-observations>
-    pub(crate) fn broadcast_active_resize_observations(&self) -> ResizeObservationDepth {
+    pub(crate) fn broadcast_active_resize_observations(
+        &self,
+        can_gc: CanGc,
+    ) -> ResizeObservationDepth {
         let mut shallowest = ResizeObservationDepth::max();
         // Breaking potential re-borrow cycle on `resize_observers`:
         // broadcasting resize observations calls into a JS callback,
@@ -2993,7 +2996,7 @@ impl Document {
             .iter()
             .map(|obs| DomRoot::from_ref(&**obs))
         {
-            observer.broadcast_active_resize_observations(&mut shallowest);
+            observer.broadcast_active_resize_observations(&mut shallowest, can_gc);
         }
         shallowest
     }
@@ -4599,7 +4602,10 @@ impl DocumentMethods for Document {
             "events" | "event" | "htmlevents" | "svgevents" => {
                 Ok(Event::new_uninitialized(self.window.upcast(), can_gc))
             },
-            "focusevent" => Ok(DomRoot::upcast(FocusEvent::new_uninitialized(&self.window))),
+            "focusevent" => Ok(DomRoot::upcast(FocusEvent::new_uninitialized(
+                &self.window,
+                can_gc,
+            ))),
             "hashchangeevent" => Ok(DomRoot::upcast(HashChangeEvent::new_uninitialized(
                 &self.window,
             ))),
