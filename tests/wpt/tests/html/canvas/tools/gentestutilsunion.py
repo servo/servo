@@ -365,14 +365,23 @@ class _Variant():
             'desc': '',
             'size': (100, 50),
             # Test name, which ultimately is used as filename. File variant
-            # dimension names are appended to this to produce unique filenames.
+            # dimension names (i.e. the 'file_variant_names' property below) are
+            # appended to this to produce unique filenames.
             'name': '',
+            # List holding the the file variant dimension names.
+            'file_variant_names': [],
             # List of this variant grid dimension names. This uniquely
             # identifies a single variant in a variant grid file.
             'grid_variant_names': [],
             # List of this variant dimension names, including both file and grid
             # dimensions.
             'variant_names': [],
+            # Same as `file_variant_names`, but concatenated into a single
+            # string. This is a useful to easily identify a variant file.
+            'file_variant_name': '',
+            # Same as `grid_variant_names`, but concatenated into a single
+            # string. This is a useful to easily identify a variant in a grid.
+            'grid_variant_name': '',
             # Same as `variant_names`, but concatenated into a single string.
             # This is a useful shorthand for tests having a single variant
             # dimension.
@@ -398,12 +407,17 @@ class _Variant():
     def with_grid_variant_name(self, name: str) -> '_Variant':
         """Addend a variant name to include in the grid element label."""
         self._add_variant_name(name)
+        self._params['grid_variant_name'] += (
+            ('.' if self.params['grid_variant_name'] else '') + name)
         self._params['grid_variant_names'] += [name]
         return self
 
     def with_file_variant_name(self, name: str) -> '_Variant':
         """Addend a variant name to include in the generated file name."""
         self._add_variant_name(name)
+        self._params['file_variant_name'] += (
+            ('.' if self.params['file_variant_name'] else '') + name)
+        self._params['file_variant_names'] += [name]
         if self.params.get('append_variants_to_name', True):
             self._params['name'] += '.' + name
         return self

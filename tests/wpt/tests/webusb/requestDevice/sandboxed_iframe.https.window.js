@@ -1,3 +1,6 @@
+// META: script=/resources/testdriver.js
+// META: script=/resources/testdriver-vendor.js
+
 'use strict';
 
 promise_test(async (t) => {

@@ -32,6 +32,12 @@
     .no-descent .fake-initial-letter {
         height: calc(var(--size) * var(--cap));
     }
+    .rtl {
+        direction: rtl;
+        .fake-initial-letter {
+            float: right;
+        }
+    }
 </style>
 </head>
 <body>
@@ -39,6 +45,3 @@
 <div class="fake-initial-letter"></div><br><br>
 bc<br>def<br>ghi<br>jkl<br>mno<br>
 </div>
-<script>
-setupInitialLetterTestVariants();
-</script>

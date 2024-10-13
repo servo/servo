@@ -43,6 +43,7 @@ dictionary IdentityProviderRequestOptions : IdentityProviderConfig {
   USVString nonce;
   DOMString loginHint;
   DOMString domainHint;
+  any params;
 };
 
 dictionary IdentityProviderWellKnown {

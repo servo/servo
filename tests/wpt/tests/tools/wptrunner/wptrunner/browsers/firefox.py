@@ -194,17 +194,23 @@ def env_options():
             "supports_debugger": True}
 
 
-def run_info_extras(logger, **kwargs):
+def get_bool_pref(default_prefs, extra_prefs, pref):
+    pref_value = False
 
-    def get_bool_pref_if_exists(pref):
-        for key, value in kwargs.get('extra_prefs', []):
-            if pref == key:
-                return value.lower() in ('true', '1')
-        return None
+    for key, value in extra_prefs + default_prefs:
+        if pref == key:
+            pref_value = value.lower() in ('true', '1')
+            break
 
-    def get_bool_pref(pref):
-        pref_value = get_bool_pref_if_exists(pref)
-        return pref_value if pref_value is not None else False
+    return pref_value
+
+
+def run_info_extras(logger, default_prefs=None, **kwargs):
+    extra_prefs = kwargs.get("extra_prefs", [])
+    default_prefs = list(default_prefs.items()) if default_prefs is not None else []
+
+    def bool_pref(pref):
+        return get_bool_pref(default_prefs, extra_prefs, pref)
 
     # Default fission to on, unless we get --disable-fission
     rv = {"e10s": kwargs["gecko_e10s"],
@@ -213,8 +219,8 @@ def run_info_extras(logger, **kwargs):
           "headless": kwargs.get("headless", False) or "MOZ_HEADLESS" in os.environ,
           "fission": not kwargs.get("disable_fission"),
           "sessionHistoryInParent": (not kwargs.get("disable_fission") or
-                                     not get_bool_pref("fission.disableSessionHistoryInParent")),
-          "swgl": get_bool_pref("gfx.webrender.software"),
+                                     not bool_pref("fission.disableSessionHistoryInParent")),
+          "swgl": bool_pref("gfx.webrender.software"),
           "privateBrowsing": (kwargs["tags"] is not None and ("privatebrowsing" in kwargs["tags"]))}
 
     rv.update(run_info_browser_version(**kwargs))

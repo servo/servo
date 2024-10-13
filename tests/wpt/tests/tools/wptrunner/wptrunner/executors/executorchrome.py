@@ -2,6 +2,7 @@
 
 import collections
 import os
+import re
 import time
 from typing import Mapping, MutableMapping, Type
 
@@ -243,6 +244,18 @@ class ChromeDriverTestharnessExecutor(WebDriverTestharnessExecutor, _SanitizerMi
             "setting": "granted",
         }
         self.protocol.cdp.execute_cdp_command("Browser.setPermission", params)
+
+    def _get_next_message_classic(self, protocol, url, test_window):
+        try:
+            return super()._get_next_message_classic(protocol, url, test_window)
+        except error.JavascriptErrorException as js_error:
+            # TODO(crbug.com/340662810): Cycle testdriver event loop to work
+            # around `testharnessreport.js` flakily not loaded.
+            if re.search(r'window\.__wptrunner_process_next_event is not a function',
+                         js_error.message):
+                time.sleep(0.05)
+                return None
+            raise
 
 
 @_evaluate_leaks

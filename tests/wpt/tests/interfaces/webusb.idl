@@ -40,7 +40,7 @@ dictionary USBConnectionEventInit : EventInit {
 };
 
 [
-  Exposed=(DedicatedWorker,SharedWorker,Window),
+  Exposed=(Worker,Window),
   SecureContext
 ]
 interface USBConnectionEvent : Event {
@@ -55,7 +55,7 @@ enum USBTransferStatus {
 };
 
 [
-  Exposed=(DedicatedWorker,SharedWorker,Window),
+  Exposed=(Worker,Window),
   SecureContext
 ]
 interface USBInTransferResult {
@@ -65,7 +65,7 @@ interface USBInTransferResult {
 };
 
 [
-  Exposed=(DedicatedWorker,SharedWorker,Window),
+  Exposed=(Worker,Window),
   SecureContext
 ]
 interface USBOutTransferResult {
@@ -75,7 +75,7 @@ interface USBOutTransferResult {
 };
 
 [
-  Exposed=(DedicatedWorker,SharedWorker,Window),
+  Exposed=(Worker,Window),
   SecureContext
 ]
 interface USBIsochronousInTransferPacket {
@@ -85,7 +85,7 @@ interface USBIsochronousInTransferPacket {
 };
 
 [
-  Exposed=(DedicatedWorker,SharedWorker,Window),
+  Exposed=(Worker,Window),
   SecureContext
 ]
 interface USBIsochronousInTransferResult {
@@ -95,7 +95,7 @@ interface USBIsochronousInTransferResult {
 };
 
 [
-  Exposed=(DedicatedWorker,SharedWorker,Window),
+  Exposed=(Worker,Window),
   SecureContext
 ]
 interface USBIsochronousOutTransferPacket {
@@ -105,7 +105,7 @@ interface USBIsochronousOutTransferPacket {
 };
 
 [
-  Exposed=(DedicatedWorker,SharedWorker,Window),
+  Exposed=(Worker,Window),
   SecureContext
 ]
 interface USBIsochronousOutTransferResult {
@@ -113,7 +113,7 @@ interface USBIsochronousOutTransferResult {
   readonly attribute FrozenArray<USBIsochronousOutTransferPacket> packets;
 };
 
-[Exposed=(DedicatedWorker,SharedWorker,Window), SecureContext]
+[Exposed=(Worker,Window), SecureContext]
 interface USBDevice {
   readonly attribute octet usbVersionMajor;
   readonly attribute octet usbVersionMinor;
@@ -171,7 +171,7 @@ dictionary USBControlTransferParameters {
 };
 
 [
-  Exposed=(DedicatedWorker,SharedWorker,Window),
+  Exposed=(Worker,Window),
   SecureContext
 ]
 interface USBConfiguration {
@@ -182,7 +182,7 @@ interface USBConfiguration {
 };
 
 [
-  Exposed=(DedicatedWorker,SharedWorker,Window),
+  Exposed=(Worker,Window),
   SecureContext
 ]
 interface USBInterface {
@@ -194,7 +194,7 @@ interface USBInterface {
 };
 
 [
-  Exposed=(DedicatedWorker,SharedWorker,Window),
+  Exposed=(Worker,Window),
   SecureContext
 ]
 interface USBAlternateInterface {
@@ -219,7 +219,7 @@ enum USBEndpointType {
 };
 
 [
-  Exposed=(DedicatedWorker,SharedWorker,Window),
+  Exposed=(Worker,Window),
   SecureContext
 ]
 interface USBEndpoint {
@@ -252,7 +252,7 @@ dictionary USBPermissionStorage {
   sequence<AllowedUSBDevice> allowedDevices = [];
 };
 
-[Exposed=(DedicatedWorker,SharedWorker,Window)]
+[Exposed=(Worker,Window)]
 interface USBPermissionResult : PermissionStatus {
   attribute FrozenArray<USBDevice> devices;
 };

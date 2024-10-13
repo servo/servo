@@ -37,8 +37,10 @@ def main(request, response):
         content = ""
     elif valid_json != "true":
         content = "invalid json"
-    elif sec_fetch_dest is None or sec_fetch_dest != "script":
-        content = "normal document"
+    elif sec_fetch_dest is None:
+        content = "Missing Sec-Fetch-Dest"
+    elif sec_fetch_dest != "speculationrules":
+        content = "Unexpected Sec-Fetch-Dest " + sec_fetch_dest
 
     headers = [(b"Content-Type", content_type)]
     if fail_cors != "true":

@@ -6,6 +6,7 @@
 // META: script=/common/utils.js
 // META: script=/common/dispatcher/dispatcher.js
 // META: script=./resources/common.js
+// META: script=./resources/sync-pressure-observer.js
 
 'use strict';
 
@@ -15,31 +16,26 @@ pressure_test(async (t) => {
     await remove_virtual_pressure_source('cpu');
   });
 
+  const sampleInterval = 250;
   const readings = ['nominal', 'fair', 'serious', 'critical'];
 
-  const sampleInterval = 250;
-  let pressureChanges = [];
-  const observer = new PressureObserver((changes) => {
-    pressureChanges = pressureChanges.concat(changes);
-  });
-  t.add_cleanup(() => observer.disconnect());
-  observer.observe('cpu', {sampleInterval});
+  const syncObserver = new SyncPressureObserver(t);
+  await syncObserver.observer().observe('cpu', {sampleInterval});
 
-  for (let i = 0; i < 4;) {
-    await update_virtual_pressure_source(
-        'cpu', readings[i++ % readings.length]);
-    await t.step_wait(
-        () => pressureChanges.length === i,
-        `At least ${i} readings have been delivered`);
+  for (let i = 0; i < readings.length; ++i) {
+    await update_virtual_pressure_source('cpu', readings[i]);
+    await syncObserver.waitForUpdate();
   }
 
-  assert_equals(pressureChanges.length, 4);
+  const pressureChanges = syncObserver.changes();
+  assert_equals(pressureChanges.length, readings.length);
+
   assert_greater_than_equal(
-      pressureChanges[1].time - pressureChanges[0].time, sampleInterval);
+      pressureChanges[1][0].time - pressureChanges[0][0].time, sampleInterval);
   assert_greater_than_equal(
-      pressureChanges[2].time - pressureChanges[1].time, sampleInterval);
+      pressureChanges[2][0].time - pressureChanges[1][0].time, sampleInterval);
   assert_greater_than_equal(
-      pressureChanges[3].time - pressureChanges[2].time, sampleInterval);
+      pressureChanges[3][0].time - pressureChanges[2][0].time, sampleInterval);
 }, 'Faster collector: Timestamp difference between two changes should be higher or equal to the observer sample rate');
 
 mark_as_done();

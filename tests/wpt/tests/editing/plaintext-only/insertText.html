@@ -1,0 +1,271 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<meta name="variant" content="?white-space=normal">
+<meta name="variant" content="?white-space=pre">
+<meta name="variant" content="?white-space=pre-line">
+<meta name="variant" content="?white-space=pre-wrap">
+<title>Inserting text in plaintext-only</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../include/editor-test-utils.js"></script>
+<script>
+"use strict";
+
+const searchParams = new URLSearchParams(document.location.search);
+const whiteSpace = searchParams.get("white-space");
+const useBR = whiteSpace == "normal";
+const collapseWhiteSpaces = whiteSpace == "normal" || whiteSpace == "pre-line";
+const isSafari = navigator.platform.includes("Mac") &&
+    navigator.userAgent.includes("Safari") &&
+    !navigator.userAgent.includes("Chrome");
+
+addEventListener("load", () => {
+  const editingHost = document.createElement("div");
+  editingHost.style.whiteSpace = whiteSpace;
+  editingHost.setAttribute("contenteditable", "plaintext-only");
+  document.body.appendChild(editingHost);
+  editingHost.focus();
+  editingHost.getBoundingClientRect();
+  const utils = new EditorTestUtils(editingHost);
+
+  for (const data of [
+    {
+      initialInnerHTML: "A[]B",
+      insertText: "a",
+      expected: "AaB",
+    },
+    {
+      initialInnerHTML: "<b>A[]B</b>",
+      insertText: "a",
+      expected: "<b>AaB</b>",
+    },
+    {
+      initialInnerHTML: "A[]B",
+      insertText: " ",
+      expected: "A B",
+    },
+    {
+      initialInnerHTML: "<b>A[]B</b>",
+      insertText: " ",
+      expected: "<b>A B</b>",
+    },
+    {
+      initialInnerHTML: "<b>A[]B</b>",
+      insertText: "  ",
+      expected: collapseWhiteSpaces
+        ? ["<b>A &nbsp;B</b>",  "<b>A&nbsp; B</b>"]
+        : "<b>A  B</b>",
+    },
+    {
+      initialInnerHTML: `<p style="white-space:normal">A[]B</p>`,
+      insertText: "  ",
+      expected: [`<p style="white-space:normal">A &nbsp;B</p>`, `<p style="white-space:normal">A&nbsp; B</p>`],
+    },
+    {
+      initialInnerHTML: `<p style="white-space:pre">A[]B</p>`,
+      insertText: "  ",
+      expected: `<p style="white-space:pre">A  B</p>`,
+    },
+    {
+      initialInnerHTML: `<p style="white-space:pre-line">A[]B</p>`,
+      insertText: "  ",
+      expected: [`<p style="white-space:pre-line">A &nbsp;B</p>`, `<p style="white-space:pre-line">A&nbsp; B</p>`],
+    },
+    {
+      initialInnerHTML: `<p style="white-space:pre-wrap">A[]B</p>`,
+      insertText: "  ",
+      expected: `<p style="white-space:pre-wrap">A  B</p>`,
+    },
+    {
+      initialInnerHTML: "<p><b>[]AB</b></p>",
+      prepareDescription: "execCommand(\"insertParagraph\")",
+      prepare: () => document.execCommand("insertParagraph"),
+      insertText: "a",
+      // To keep the style of next typing even after lost focus, the placeholder line break in
+      // the empty paragraph should be wrapped in the <b>.
+      expected: useBR
+        ? "<p><b><br></b></p><p><b>aAB</b></p>"
+        : ["<p><b><br></b></p><p><b>aAB</b></p>", "<p><b>\n</b></p><p><b>aAB</b></p>"],
+    },
+    {
+      initialInnerHTML: "<p><b>A[]B</b></p>",
+      prepareDescription: "execCommand(\"insertParagraph\")",
+      prepare: () => document.execCommand("insertParagraph"),
+      insertText: "a",
+      expected: useBR
+        ? ["<p><b>A</b></p><p><b>aB</b></p>", "<p><b>A</b></p><p><b>aB<br></b></p>"]
+        : ["<p><b>A</b></p><p><b>aB</b></p>", "<p><b>A</b></p><p><b>aB<br></b></p>", "<p><b>A</b></p><p><b>aB\n</b></p>"],
+    },
+    {
+      initialInnerHTML: "<p><b>AB[]</b></p>",
+      prepareDescription: "execCommand(\"insertParagraph\")",
+      prepare: () => document.execCommand("insertParagraph"),
+      insertText: "a",
+      // To keep the style of next typing even after lost focus, the placeholder line break in
+      // the empty paragraph after "insertParagraph" should be wrapped in the <b>.
+      expected: useBR
+        ? ["<p><b>AB</b></p><p><b>a</b></p>", "<p><b>AB</b></p><p><b>a<br></b></p>"]
+        : ["<p><b>AB</b></p><p><b>a</b></p>", "<p><b>AB</b></p><p><b>a<br></b></p>", "<p><b>AB</b></p><p><b>a\n</b></p>"],
+    },
+    {
+      initialInnerHTML: "<p><b>[AB]</b></p>",
+      prepareDescription: "execCommand(\"insertParagraph\")",
+      prepare: () => document.execCommand("insertParagraph"),
+      insertText: "a",
+      expected: useBR
+        ? ["<p><b><br></b></p><p><b>a</b></p>", "<p><b><br></b></p><p><b>a<br></b></p>"]
+        : ["<p><b><br></b></p><p><b>a</b></p>", "<p><b>\n</b></p><p><b>a</b></p>",
+           "<p><b><br></b></p><p><b>a<br></b></p>", "<p><b>\n</b></p><p><b>a\n</b></p>"],
+    },
+    {
+      initialInnerHTML: "<p><b>[]AB</b></p>",
+      prepareDescription: "execCommand(\"insertLineBreak\")",
+      prepare: () => document.execCommand("insertLineBreak"),
+      insertText: "a",
+      expected: useBR
+        ? "<p><b><br>aAB</b></p>"
+        : ["<p><b><br>aAB</b></p>", "<p><b>\naAB</b></p>"],
+    },
+    {
+      initialInnerHTML: "<p><b>A[]B</b></p>",
+      prepareDescription: "execCommand(\"insertLineBreak\")",
+      prepare: () => document.execCommand("insertLineBreak"),
+      insertText: "a",
+      expected: useBR
+        ? "<p><b>A<br>aB</b></p>"
+        : ["<p><b>A<br>aB</b></p>", "<p><b>A\naB</b></p>"],
+    },
+    {
+      initialInnerHTML: "<p><b>AB[]</b></p>",
+      prepareDescription: "execCommand(\"insertLineBreak\")",
+      prepare: () => document.execCommand("insertLineBreak"),
+      insertText: "a",
+      // To keep the style of next typing even after once the paragraph becomes empty,
+      // the placeholder line break (if there is) should be in <b>.
+      expected: useBR
+        ? ["<p><b>AB<br>a</b></p>", "<p><b>AB<br>a<br></b></p>"]
+        : ["<p><b>AB<br>a</b></p>", "<p><b>AB<br>a<br></b></p>", "<p><b>AB\na</b></p>",
+           "<p><b>AB\na\n</b></p>", "<p><b>AB\na<br></b></p>", "<p><b>AB<br>a\n</b></p>"],
+    },
+    {
+      initialInnerHTML: "<p><b>[AB]</b></p>",
+      prepareDescription: "execCommand(\"insertLineBreak\")",
+      prepare: () => document.execCommand("insertLineBreak"),
+      insertText: "a",
+      // To keep the style of next typing even after once the paragraph becomes empty,
+      // the placeholder line break (if there is) should be in <b>.
+      expected: useBR
+        ? ["<p><b><br>a</b></p>", "<p><b><br>a<br></b></p>"]
+        : ["<p><b><br>a</b></p>", "<p><b><br>a<br></b></p>", "<p><b>\na</b></p>", "<p><b>\na\n</b></p>",
+           "<p><b><br>a\n</b></p>", "<p><b>\na<br></b></p>"],
+    },
+    {
+      initialInnerHTML: "<p><b>[AB]</b></p>",
+      prepareDescription: "execCommand(\"delete\")",
+      prepare: () => document.execCommand("delete"),
+      insertText: "a",
+      // To keep the style of next typing even after blur, the placeholder line break
+      // (if there is) should be in <b>.
+      expected: useBR
+        ? ["<p><b>a</b></p>", "<p><b>a<br></b></p>"]
+        : ["<p><b>a</b></p>", "<p><b>a<br></b></p>", "<p><b>a\n</b></p>"],
+    },
+    {
+      initialInnerHTML: "<p><b>A[]</b></p><p>B</p>",
+      prepareDescription: "execCommand(\"delete\") and move caret to the following paragraph temporarily",
+      prepare: () => {
+        document.execCommand("delete");
+        getSelection().modify("move", "forward", "Line");
+        getSelection().modify("move", "backward", "Line");
+      },
+      insertText: "a",
+      // Moving caret shouldn't cause loosing the style.
+      expected: useBR
+        ? ["<p><b>a</b></p><p>B</p>", "<p><b>a<br></b></p><p>B</p>"]
+        : ["<p><b>a</b></p><p>B</p>", "<p><b>a<br></b></p><p>B</p>", "<p><b>a\n</b></p><p>B</p>"],
+    },
+    {
+      initialInnerHTML: "<p><b>[]A</b></p><p>B</p>",
+      prepareDescription: "execCommand(\"forwardDelete\") and move caret to the following paragraph temporarily",
+      prepare: () => {
+        document.execCommand("forwardDelete");
+        getSelection().modify("move", "forward", "Line");
+        getSelection().modify("move", "backward", "Line");
+      },
+      insertText: "a",
+      // Moving caret shouldn't cause loosing the style.
+      expected: useBR
+        ? ["<p><b>a</b></p><p>B</p>", "<p><b>a<br></b></p><p>B</p>"]
+        : ["<p><b>a</b></p><p>B</p>", "<p><b>a<br></b></p><p>B</p>", "<p><b>a\n</b></p><p>B</p>"],
+    },
+    {
+      initialInnerHTML: "<p><b>[A]</b></p><p>B</p>",
+      prepareDescription: "execCommand(\"delete\") and move caret to the following paragraph temporarily",
+      prepare: () => {
+        document.execCommand("delete");
+        getSelection().modify("move", "forward", "Line");
+        getSelection().modify("move", "backward", "Line");
+      },
+      insertText: "a",
+      // Moving caret shouldn't cause loosing the style.
+      expected: useBR
+        ? ["<p><b>a</b></p><p>B</p>", "<p><b>a<br></b></p><p>B</p>"]
+        : ["<p><b>a</b></p><p>B</p>", "<p><b>a<br></b></p><p>B</p>", "<p><b>a\n</b></p><p>B</p>"],
+    },
+    {
+      initialInnerHTML: "<p><b>A[]</b></b>",
+      prepareDescription: "execCommand(\"insertParagraph\") and move caret to the preceding paragraph temporarily",
+      prepare: () => {
+        document.execCommand("insertParagraph");
+        getSelection().modify("move", "backward", "Line");
+        getSelection().modify("move", "forward", "Line");
+      },
+      insertText: "a",
+      // Moving caret shouldn't cause loosing the style.
+      expected: useBR
+        ? ["<p><b>A</b></p><p><b>a</b></p>", "<p><b>A</b></p><p><b>a<br></b></p>"]
+        : ["<p><b>A</b></p><p><b>a</b></p>", "<p><b>A</b></p><p><b>a<br></b></p>", "<p><b>A</b></p><p><b>a\n</b></p>"],
+    },
+  ]) {
+    test(() => {
+      utils.setupEditingHost(data.initialInnerHTML);
+      if (data.prepare) {
+        data.prepare();
+      }
+      document.execCommand("insertText", false, data.insertText);
+      if (Array.isArray(data.expected)) {
+        assert_in_array(editingHost.innerHTML, data.expected);
+      } else {
+        assert_equals(editingHost.innerHTML, data.expected);
+      }
+    }, `execCommand("insertText", false, "${data.insertText}") when ${data.initialInnerHTML}${
+      data.prepareDescription ? ` and ${data.prepareDescription}`  : ""
+    }`);
+    promise_test(async t => {
+      utils.setupEditingHost(data.initialInnerHTML);
+      if (data.prepare) {
+        data.prepare();
+      }
+      for (const char of data.insertText) {
+        await utils.sendKey(char);
+      }
+      if (Array.isArray(data.expected)) {
+        assert_in_array(editingHost.innerHTML, data.expected);
+      } else {
+        assert_equals(editingHost.innerHTML, data.expected);
+      }
+    }, `Typing "${data.insertText}" when ${data.initialInnerHTML}${
+      data.prepareDescription ? ` and ${data.prepareDescription}`  : ""
+    }`);
+  }
+}, {once: true});
+</script>
+</head>
+<body></body>
+</html>

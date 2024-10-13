@@ -4,6 +4,9 @@ importScripts('/resources/testharness.js');
 importScripts('/common/utils.js');
 importScripts('/common/dispatcher/dispatcher.js');
 
+// Only used by some tests.
+importScripts('/compute-pressure/resources/sync-pressure-observer.js');
+
 function send_message(message) {
   return new Promise((resolve, reject) => {
     const id = token();

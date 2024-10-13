@@ -82,7 +82,8 @@
         ctx.translate(-45, -45);
 
 
-- name: 2d.layer.global-states.filter
+- name: >-
+    2d.layer.global-states.filter.{{ file_variant_name }}.tentative
   desc: Checks that layers with filters correctly use global render states.
   size: [90, 90]
   code: |
@@ -142,6 +143,7 @@
       ctx.drawImage(img, 0, 0);
     };
     img.src = 'data:image/svg+xml;base64,' + btoa(svg);
+  append_variants_to_name: false
   variants_layout:
     [single_file, single_file, single_file, multi_files, multi_files]
   grid_width: 8
@@ -294,7 +296,9 @@
     ctx.fillStyle = 'blue';
     ctx.fillRect(30, 30, 50, 50);
 
-- name: 2d.layer.non-invertible-matrix.with-render-states-and-filter
+- name: >-
+   2d.layer.non-invertible-matrix.with-render-states.{{ file_variant_name }}{{
+   tentative }}
   desc: Test drawing layers when the transform is not invertible.
   size: [200, 200]
   code: |
@@ -309,12 +313,11 @@
     ctx.shadowOffsetX = 0;
     ctx.shadowOffsetY = 20;
     ctx.shadowColor = 'rgba(255, 165, 0, 0.6)';
+    ctx.filter = 'blur(10px)';
 
     // Open the layer with a non-invertible matrix. The whole layer will be
     // non-rasterizable.
-    ctx.beginLayer({filter:
-                    {name: 'dropShadow', dx: 10, dy: 0, stdDeviation: 0,
-                    floodColor: 'rgba(128, 128, 255, 0.7)'}});
+    {{ begin_layer }}
 
     // Because the transform is global, the matrix is still non-invertible.
     ctx.fillStyle = 'rgba(225, 0, 0, 1)';
@@ -332,6 +335,16 @@
   reference: |
     ctx.fillStyle = 'blue';
     ctx.fillRect(30, 30, 50, 50);
+  append_variants_to_name: false
+  variants:
+  - plain-layer:
+      begin_layer: ctx.beginLayer();
+    filtered-layer:
+      begin_layer: |-
+        ctx.beginLayer({filter:
+                        {name: 'dropShadow', dx: 10, dy: 0, stdDeviation: 0,
+                        floodColor: 'rgba(128, 128, 255, 0.7)'}});
+      tentative: .tentative
 
 - name: 2d.layer.nested
   desc: Tests nested canvas layers.
@@ -454,7 +467,7 @@
     @assert ctx.shadowBlur === 30;
     @assert ctx.filter === 'blur(5px)';
 
-- name: 2d.layer.clip-outside
+- name: 2d.layer.clip-outside.{{ file_variant_name }}{{ tentative }}
   desc: Check clipping set outside the layer
   size: [100, 100]
   code: |
@@ -462,7 +475,7 @@
     ctx.rect(15, 15, 70, 70);
     ctx.clip();
 
-    ctx.beginLayer({filter: {name: "gaussianBlur", stdDeviation: 12}});
+    {{ filtered_layer }}
     ctx.fillStyle = 'blue';
     ctx.fillRect(10, 10, 80, 80);
     ctx.endLayer();
@@ -470,7 +483,8 @@
     const canvas2 = new OffscreenCanvas(200, 200);
     const ctx2 = canvas2.getContext('2d');
 
-    ctx2.beginLayer({filter: {name: "gaussianBlur", stdDeviation: 12}});
+    ctx2.filter = 'blur(12px)';
+    ctx2.beginLayer();
     ctx2.fillStyle = 'blue';
     ctx2.fillRect(10, 10, 80, 80);
     ctx2.endLayer();
@@ -480,12 +494,22 @@
     ctx.clip();
 
     ctx.drawImage(canvas2, 0, 0);
+  append_variants_to_name: false
+  variants:
+  - ctx-filter:
+      filtered_layer: |-
+        ctx.filter = 'blur(12px)';
+        ctx.beginLayer();
+    layer-filter:
+      filtered_layer: |-
+        ctx.beginLayer({filter: {name: "gaussianBlur", stdDeviation: 12}});
+      tentative: .tentative
 
-- name: 2d.layer.clip-inside
+- name: 2d.layer.clip-inside.{{ file_variant_name }}{{ tentative }}
   desc: Check clipping set inside the layer
   size: [100, 100]
   code: |
-    ctx.beginLayer({filter: {name: "gaussianBlur", stdDeviation: 12}});
+    {{ filtered_layer }}
 
     ctx.beginPath();
     ctx.rect(15, 15, 70, 70);
@@ -505,11 +529,22 @@
     ctx2.fillStyle = 'blue';
     ctx2.fillRect(10, 10, 80, 80);
 
-    ctx.beginLayer({filter: {name: "gaussianBlur", stdDeviation: 12}});
+    ctx.filter = 'blur(12px)';
+    ctx.beginLayer();
     ctx.drawImage(canvas2, 0, 0);
     ctx.endLayer();
+  append_variants_to_name: false
+  variants:
+  - ctx-filter:
+      filtered_layer: |-
+        ctx.filter = 'blur(12px)';
+        ctx.beginLayer();
+    layer-filter:
+      filtered_layer: |-
+        ctx.beginLayer({filter: {name: "gaussianBlur", stdDeviation: 12}});
+      tentative: .tentative
 
-- name: 2d.layer.clip-inside-and-outside
+- name: 2d.layer.clip-inside-and-outside.{{ file_variant_name }}{{ tentative }}
   desc: Check clipping set inside and outside the layer
   size: [100, 100]
   code: |
@@ -517,7 +552,7 @@
     ctx.rect(15, 15, 70, 70);
     ctx.clip();
 
-    ctx.beginLayer({filter: {name: "gaussianBlur", stdDeviation: 12}});
+    {{ filtered_layer }}
 
     ctx.beginPath();
     ctx.rect(15, 15, 70, 70);
@@ -540,7 +575,8 @@
     const canvas3 = new OffscreenCanvas(200, 200);
     const ctx3 = canvas3.getContext('2d');
 
-    ctx3.beginLayer({filter: {name: "gaussianBlur", stdDeviation: 12}});
+    ctx3.filter = 'blur(12px)';
+    ctx3.beginLayer();
     ctx3.drawImage(canvas2, 0, 0);
     ctx3.endLayer();
 
@@ -548,8 +584,18 @@
     ctx.rect(15, 15, 70, 70);
     ctx.clip();
     ctx.drawImage(canvas3, 0, 0);
+  append_variants_to_name: false
+  variants:
+  - ctx-filter:
+      filtered_layer: |-
+        ctx.filter = 'blur(12px)';
+        ctx.beginLayer();
+    layer-filter:
+      filtered_layer: |-
+        ctx.beginLayer({filter: {name: "gaussianBlur", stdDeviation: 12}});
+      tentative: .tentative
 
-- name: 2d.layer.ctm.filter
+- name: 2d.layer.ctm.layer-filter.tentative
   desc: Checks that parent transforms affect layer filters.
   size: [200, 200]
   code: |
@@ -732,7 +778,7 @@
     ctx.fillStyle = 'green';
     ctx.fillRect(0, 0, 20, 20);
 
-- name: 2d.layer.flush-on-frame-presentation
+- name: 2d.layer.flush-on-frame-presentation.{{ file_variant_name }}{{ tentative }}
   desc: Check that layers state stack is flushed and rebuilt on frame renders.
   size: [200, 200]
   canvas_types: ['HtmlCanvas']
@@ -741,8 +787,9 @@
     ctx.fillStyle = 'purple';
     ctx.fillRect(60, 60, 75, 50);
     ctx.globalAlpha = 0.5;
+    ctx.filter = 'blur(1px)';
 
-    ctx.beginLayer({filter: {name: 'dropShadow', dx: -2, dy: 2}});
+    {{ begin_layer }}
     ctx.fillRect(40, 40, 75, 50);
     ctx.fillStyle = 'grey';
     ctx.fillRect(50, 50, 75, 50);
@@ -760,8 +807,9 @@
     ctx.fillStyle = 'purple';
     ctx.fillRect(60, 60, 75, 50);
     ctx.globalAlpha = 0.5;
+    ctx.filter = 'blur(1px)';
 
-    ctx.beginLayer({filter: {name: 'dropShadow', dx: -2, dy: 2}});
+    {{ begin_layer }}
     ctx.fillStyle = 'purple';
     ctx.fillRect(40, 40, 75, 50);
     ctx.fillStyle = 'grey';
@@ -774,6 +822,14 @@
     ctx.endLayer();
 
     ctx.fillRect(80, 40, 75, 50);
+  append_variants_to_name: false
+  variants:
+  - plain_layer:
+      begin_layer: ctx.beginLayer();
+    filtered_layer:
+      begin_layer: |-
+        ctx.beginLayer({filter: {name: 'dropShadow', dx: -2, dy: 2}});
+      tentative: .tentative
 
 - name: 2d.layer.malformed-operations
   desc: Throws if {{ variant_name }} is called while layers are open.
@@ -891,7 +947,7 @@
       ctx.drawImage(canvas2[i], i, i);
     }
 
-- name: 2d.layer.reset
+- name: 2d.layer.reset.{{ file_variant_name }}{{ tentative }}
   desc: Checks that reset discards any pending layers.
   code: |
     // Global states:
@@ -903,7 +959,7 @@
     ctx.shadowBlur = 3;
     ctx.filter = 'blur(5px)';
 
-    ctx.beginLayer({filter: {name: 'dropShadow', dx: -3, dy: 3}});
+    {{ begin_layer }}
 
     // Layer states:
     ctx.globalAlpha = 0.6;
@@ -919,6 +975,14 @@
     ctx.fillRect(10, 10, 75, 50);
   reference:
     ctx.fillRect(10, 10, 75, 50);
+  append_variants_to_name: false
+  variants:
+  - plain_layer:
+      begin_layer: ctx.beginLayer();
+    filtered_layer:
+      begin_layer: |-
+        ctx.beginLayer({filter: {name: 'dropShadow', dx: -3, dy: 3}});
+      tentative: .tentative
 
 - name: 2d.layer.clearRect.partial
   desc: clearRect inside a layer can clear a portion of the layer content.
@@ -959,7 +1023,7 @@
     ctx.fillStyle = 'blue';
     ctx.fillRect(10, 10, 80, 50);
 
-- name: 2d.layer.drawImage
+- name: 2d.layer.drawImage.{{ file_variant_name }}{{ tentative }}
   size: [200, 200]
   desc: >-
     Checks that drawImage writes the image to the layer and not the parent
@@ -968,8 +1032,7 @@
     ctx.fillStyle = 'skyblue';
     ctx.fillRect(0, 0, 100, 100);
 
-    ctx.beginLayer({filter: {name: 'dropShadow', dx: -10, dy: -10,
-      stdDeviation: 0, floodColor: 'navy'}});
+    {{ filtered_layer }}
 
     ctx.fillStyle = 'maroon';
     ctx.fillRect(20, 20, 50, 50);
@@ -988,8 +1051,8 @@
     ctx.fillStyle = 'skyblue';
     ctx.fillRect(0, 0, 100, 100);
 
-    ctx.beginLayer({filter: {name: 'dropShadow', dx: -10, dy: -10,
-      stdDeviation: 0, floodColor: 'navy'}});
+    ctx.filter = 'drop-shadow(-10px -10px 0px navy)';
+    ctx.beginLayer();
 
     ctx.fillStyle = 'maroon';
     ctx.fillRect(20, 20, 50, 50);
@@ -1001,6 +1064,17 @@
     ctx.fillRect(40, 40, 50, 50);
 
     ctx.endLayer();
+  append_variants_to_name: false
+  variants:
+  - ctx-filter:
+      filtered_layer: |-
+        ctx.filter = 'drop-shadow(-10px -10px 0px navy)';
+        ctx.beginLayer();
+    layer-filter:
+      filtered_layer: |-
+        ctx.beginLayer({filter: {name: 'dropShadow', dx: -10, dy: -10,
+                                 stdDeviation: 0, floodColor: 'navy'}});
+      tentative: .tentative
 
 - name: 2d.layer.valid-calls
   desc: No exception raised on {{ variant_desc }}.
@@ -1081,7 +1155,7 @@
         ctx.reset();
         ctx.endLayer();
 
-- name: 2d.layer.exceptions-are-no-op
+- name: 2d.layer.exceptions-are-no-op.tentative
   desc: Checks that the context state is left unchanged if beginLayer throws.
   test_type: sync
   code: |
@@ -1106,7 +1180,7 @@
     ctx.lineTo(50, 100);
     ctx.stroke();
 
-- name: 2d.layer.beginLayer-options
+- name: 2d.layer.beginLayer-options.tentative
   desc: Checks beginLayer works for different option parameter values
   test_type: sync
   code: |
@@ -1136,13 +1210,13 @@
     ctx.beginLayer({filter: true}); ctx.endLayer();
     ctx.beginLayer({filter: false}); ctx.endLayer();
 
-- name: 2d.layer.blur-from-outside-canvas
+- name: 2d.layer.blur-from-outside-canvas.{{ file_variant_name }}{{ tentative }}
   desc: Checks blur leaking inside from drawing outside the canvas
   size: [200, 200]
   code: |
     {{ clipping }}
 
-    ctx.beginLayer({filter: [ {name: 'gaussianBlur', stdDeviation: 30} ]});
+    {{ filtered_layer }}
 
     ctx.fillStyle = 'turquoise';
     ctx.fillRect(201, 50, 100, 100);
@@ -1178,6 +1252,7 @@
         ctx.drawImage(img, 0, 0);
     };
     img.src = 'data:image/svg+xml;base64,' + btoa(svg);
+  append_variants_to_name: false
   variants:
   - no-clipping:
       clipping: // No clipping.
@@ -1186,8 +1261,18 @@
         const clipRegion = new Path2D();
         clipRegion.rect(20, 20, 160, 160);
         ctx.clip(clipRegion);
+  - ctx-filter:
+      filtered_layer: |-
+        ctx.filter = 'blur(30px)';
+        ctx.beginLayer();
+    layer-filter:
+      filtered_layer: |-
+        ctx.beginLayer({filter: [ {name: 'gaussianBlur', stdDeviation: 30} ]});
+      tentative: .tentative
 
-- name: 2d.layer.shadow-from-outside-canvas
+
+- name: >-
+    2d.layer.shadow-from-outside-canvas.{{ file_variant_name }}{{ tentative }}
   desc: Checks shadow produced by object drawn outside the canvas
   size: [200, 200]
   code: |
@@ -1195,11 +1280,7 @@
 
     {{ clipping }}
 
-    ctx.beginLayer({filter: [
-        {name: 'dropShadow', dx: -({{ size[0] }} + delta),
-          dy: -({{ size[1] }} + delta), stdDeviation: 0,
-          floodColor: 'green'},
-        ]});
+    {{ filtered_layer }}
 
     ctx.fillStyle = 'red';
     ctx.fillRect({{ size[0] }} + delta, {{ size[1] }} + delta, 100, 100);
@@ -1212,6 +1293,7 @@
 
     ctx.fillStyle = 'green';
     ctx.fillRect(0, 0, 100, 100);
+  append_variants_to_name: false
   variants:
   - short-distance:
       distance: |-
@@ -1235,8 +1317,22 @@
         const clipRegion = new Path2D();
         clipRegion.rect(20, 20, 160, 160);
         ctx.clip(clipRegion);
+  - ctx-filter:
+      filtered_layer: |-
+        const dx = -({{ size[0] }} + delta);
+        const dy = -({{ size[1] }} + delta);
+        ctx.filter = 'drop-shadow(' + dx + 'px ' + dy + 'px 0px green)';
+        ctx.beginLayer();
+    layer-filter:
+      filtered_layer: |-
+        ctx.beginLayer({filter: [
+            {name: 'dropShadow', dx: -({{ size[0] }} + delta),
+              dy: -({{ size[1] }} + delta), stdDeviation: 0,
+              floodColor: 'green'},
+            ]});
+      tentative: .tentative
 
-- name: 2d.layer.opaque-canvas
+- name: 2d.layer.opaque-canvas.{{ file_variant_name }}{{ tentative }}
   desc: Checks that layer blending works inside opaque canvas
   size: [300, 300]
   code: |
@@ -1252,9 +1348,7 @@
     ctx2.fillStyle = 'purple';
     ctx2.fillRect(10, 10, 100, 100);
 
-    ctx2.beginLayer({filter: {name: 'dropShadow', dx: -10, dy: 10,
-                              stdDeviation: 0,
-                              floodColor: 'rgba(200, 100, 50, 0.5)'}});
+    {{ filtered_layer }}
     ctx2.fillStyle = 'green';
     ctx2.fillRect(50, 50, 100, 100);
     ctx2.globalAlpha = 0.8;
@@ -1287,8 +1381,20 @@
     ctx.shadowOffsetX = -10;
     ctx.shadowOffsetY = 10;
     ctx.drawImage(canvas2, 0, 0);
+  append_variants_to_name: false
+  variants:
+  - ctx-filter:
+      filtered_layer: |-
+        ctx2.filter = 'drop-shadow(-10px 10px 0px rgba(200, 100, 50, 0.5))';
+        ctx2.beginLayer();
+    layer-filter:
+      filtered_layer: |-
+        ctx2.beginLayer({filter: {name: 'dropShadow', dx: -10, dy: 10,
+                                  stdDeviation: 0,
+                                  floodColor: 'rgba(200, 100, 50, 0.5)'}});
+      tentative: .tentative
 
-- name: 2d.layer.css-filters
+- name: 2d.layer.css-filters.{{ file_variant_name }}.tentative
   desc: Checks that beginLayer works with a CSS filter string as input.
   size: [200, 200]
   code: &filter-test-code |
@@ -1309,6 +1415,7 @@
         <rect x="50" y="50" width="100" height="100" fill="teal"/>
       </g>
     </svg>
+  append_variants_to_name: false
   variants:
   - blur:
       ctx_filter: |-
@@ -1327,11 +1434,12 @@
         <feGaussianBlur stdDeviation="5" />
         <feDropShadow dx="10" dy="10" stdDeviation="5" flood-color="orange" />
 
-- name: 2d.layer.anisotropic-blur
+- name: 2d.layer.anisotropic-blur.{{ file_variant_name }}.tentative
   desc: Checks that layers allow gaussian blur with separate X and Y components.
   size: [200, 200]
   code: *filter-test-code
   html_reference: *filter-test-reference
+  append_variants_to_name: false
   variants:
   - x-only:
       ctx_filter: |-
@@ -1359,7 +1467,7 @@
       svg_filter: |-
         <feGaussianBlur stdDeviation="0 4" />
 
-- name: 2d.layer.nested-filters
+- name: 2d.layer.nested-filters.tentative
   desc: Checks that nested layers work properly when both apply filters.
   size: [400, 200]
   code: |

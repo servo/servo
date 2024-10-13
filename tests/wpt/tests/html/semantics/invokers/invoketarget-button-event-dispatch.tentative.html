@@ -11,7 +11,8 @@
 <script src="resources/invoker-utils.js"></script>
 
 <div id="invokee"></div>
-<button id="invokerbutton" commandfor="invokee" command="custom-command"></button>
+<button id="invokerbutton" commandfor="invokee" command="--custom-command"></button>
+<input type="button" id="invalidbutton" commandfor="invokee" command="--custom-command">
 <form id="aform"></form>
 
 <script>
@@ -19,7 +20,7 @@
 
   function resetState() {
     invokerbutton.setAttribute("commandfor", "invokee");
-    invokerbutton.setAttribute("command", "custom-command");
+    invokerbutton.setAttribute("command", "--custom-command");
     invokerbutton.removeAttribute("disabled");
     invokerbutton.removeAttribute("form");
     invokerbutton.removeAttribute("type");
@@ -34,13 +35,13 @@
     assert_equals(event.bubbles, false, "bubbles");
     assert_equals(event.composed, true, "composed");
     assert_equals(event.isTrusted, true, "isTrusted");
-    assert_equals(event.command, "custom-command", "command");
+    assert_equals(event.command, "--custom-command", "command");
     assert_equals(event.target, invokee, "target");
-    assert_equals(event.invoker, invokerbutton, "invoker");
+    assert_equals(event.source, invokerbutton, "invoker");
   }, "event dispatches on click");
 
   // valid custom invokeactions
-  ["-foo", "foo-", "cAsE-cArRiEs", "-", "-a-", "a-b", "---", "show-picker"].forEach(
+  ["--foo", "--foo-", "--cAsE-cArRiEs", "--", "--a-", "--a-b", "---", "--show-picker"].forEach(
     (command) => {
       promise_test(async function (t) {
         t.add_cleanup(resetState);
@@ -55,7 +56,7 @@
         assert_equals(event.isTrusted, true, "isTrusted");
         assert_equals(event.command, command, "command");
         assert_equals(event.target, invokee, "target");
-        assert_equals(event.invoker, invokerbutton, "invoker");
+        assert_equals(event.source, invokerbutton, "invoker");
       }, `setting custom command property to ${command} (must include dash) sets event command`);
 
       promise_test(async function (t) {
@@ -71,13 +72,13 @@
         assert_equals(event.isTrusted, true, "isTrusted");
         assert_equals(event.command, command, "command");
         assert_equals(event.target, invokee, "target");
-        assert_equals(event.invoker, invokerbutton, "invoker");
+        assert_equals(event.source, invokerbutton, "invoker");
       }, `setting custom command attribute to ${command} (must include dash) sets event command`);
     },
   );
 
   // invalid custom invokeactions
-  ["foo", "foobar", "foo bar", "em—dash", "hidedocument"].forEach((command) => {
+  ["-foo", "-foo-", "foo-bar", "-foo bar", "—-emdash", "hidedocument"].forEach((command) => {
     promise_test(async function (t) {
       t.add_cleanup(resetState);
       let event = null;
@@ -118,6 +119,13 @@
   }, "event does not dispatch if click:preventDefault is called");
 
   promise_test(async function (t) {
+    let event = null;
+    invokee.addEventListener("command", (e) => (event = e), { once: true });
+    await clickOn(invalidbutton);
+    assert_equals(event, null, "command should not have fired");
+  }, "event does not dispatch on input[type=button]");
+
+  promise_test(async function (t) {
     t.add_cleanup(resetState);
     let called = false;
     invokee.addEventListener("command", (e) => (called = true), { once: true });
@@ -155,12 +163,12 @@
     let event = null;
     svgInvokee.addEventListener("command", (e) => (event = e), { once: true });
     invokerbutton.setAttribute("commandfor", "svg-invokee");
-    invokerbutton.setAttribute("command", "custom-command");
+    invokerbutton.setAttribute("command", "--custom-command");
     assert_equals(invokerbutton.commandForElement, svgInvokee);
     await clickOn(invokerbutton);
     assert_not_equals(event, null, "event was called");
     assert_true(event instanceof CommandEvent, "event is CommandEvent");
-    assert_equals(event.invoker, invokerbutton, "event.invoker is set to right element");
+    assert_equals(event.source, invokerbutton, "event.invoker is set to right element");
     assert_equals(event.target, svgInvokee, "event.target is set to right element");
   }, "event dispatches if invokee is non-HTML Element");
 </script>

@@ -1,3 +1,4 @@
+// META: timeout=long
 // META: variant=?globalScope=window
 // META: script=/resources/testdriver.js
 // META: script=/resources/testdriver-vendor.js
@@ -98,7 +99,7 @@ pressure_test(async t => {
   iframe.remove();
   await updatePromise;
 
-  return new Promise(resolve => t.step_timeout(resolve, 1000));
+  return new Promise(resolve => t.step_timeout(resolve, 3000));
 }, 'PressureObserver on detached frame returns with no callback');
 
 mark_as_done();

@@ -32,6 +32,19 @@
     ctx.filter = 'blur(  5px)';
     assert_equals(ctx.filter, 'blur(  5px)');
 
+- name: 2d.filter.drop-shadow-globalAlpha
+  desc: Tests the context drop-shadow filter with a globalAlpha
+  code: |
+    ctx.filter = 'drop-shadow(10px 5px 0px rgb(255, 165, 0))';
+    ctx.globalAlpha = 0.5
+    ctx.fillStyle = 'rgb(128, 0, 128)';
+    ctx.fillRect(10, 10, 60, 30);
+  reference: |
+    ctx.fillStyle = 'rgba(255, 165, 0, 0.5)';
+    ctx.fillRect(20, 15, 60, 30);
+    ctx.fillStyle = 'rgba(128, 0, 128, 0.5)'
+    ctx.fillRect(10, 10, 60, 30);
+
 - name: 2d.filter.canvasFilterObject.tentative
   desc: Test CanvasFilter() object
   canvas_types: ['HtmlCanvas']

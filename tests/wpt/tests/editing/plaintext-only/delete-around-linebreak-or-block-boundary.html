@@ -1,0 +1,171 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<meta name="variant" content="?white-space=normal">
+<meta name="variant" content="?white-space=pre">
+<meta name="variant" content="?white-space=pre-line">
+<meta name="variant" content="?white-space=pre-wrap">
+<title>Making block empty or joining paragraphs in contenteditable=plaintext-only should work as same as contenteditable=true</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../include/editor-test-utils.js"></script>
+<script>
+"use strict";
+
+const searchParams = new URLSearchParams(document.location.search);
+const whiteSpace = searchParams.get("white-space");
+const useBR = whiteSpace == "normal";
+
+/**
+ * contenteditable=plaintext-only may have any complicated DOM tree.  Therefore,
+ * deletion around line breaks and block boundaries should work same as the
+ * case of contenteditable=true.
+ */
+
+addEventListener("load", () => {
+  const richTextEditingHost = document.querySelector("div[contenteditable=true]");
+  richTextEditingHost.style.whiteSpace = whiteSpace;
+  const plainTextEditingHost = document.querySelector("div[contenteditable=plaintext-only]");
+  plainTextEditingHost.style.whiteSpace = whiteSpace;
+  const utilsForRichText = new EditorTestUtils(richTextEditingHost);
+  const utilsForPlainText = new EditorTestUtils(plainTextEditingHost);
+  for (const data of [
+    {
+      init: `<div>A[]</div>`,
+    },
+    {
+      init: `<div>A<br>[]B</div>`,
+    },
+    {
+      init: `<div>A\n[]B</div>`,
+      skipIf: useBR,
+    },
+    {
+      init: `<div>A</div><div>[]B</div>`,
+    },
+    {
+      init: `<div>A<div>B[]</div></div>`,
+    },
+    {
+      init: `<div>A<div>[]B</div></div>`,
+    },
+    {
+      init: `<div><div>A</div>[]B</div>`,
+    },
+    {
+      init: `<div><div>A</div>B[]</div>`,
+    },
+    {
+      init: `<div>A<ul><li>[]B</li></ul></div>`,
+    },
+    {
+      init: `<div>A<ul><li>[]B</li><li>C</li></ul></div>`,
+    },
+    {
+      init: `<ul><li>A[]</li></ul>`,
+    },
+    {
+      init: `<ul><li>A</li><li>[]B</li></ul>`,
+    },
+    {
+      init: `<ul><li>A</li><li>B[]</li></ul>`,
+    },
+    {
+      init: `<ul><li>A[]</li><li>B</li></ul>`,
+    },
+    {
+      init: `<div>A<ol><li>[]B</li></ol></div>`,
+    },
+    {
+      init: `<div>A<ol><li>[]B</li><li>C</li></ol></div>`,
+    },
+    {
+      init: `<ol><li>A[]</li></ol>`,
+    },
+    {
+      init: `<ol><li>A</li><li>[]B</li></ol>`,
+    },
+    {
+      init: `<ol><li>A</li><li>B[]</li></ol>`,
+    },
+    {
+      init: `<ol><li>A[]</li><li>B</li></ol>`,
+    },
+    {
+      init: `<div>A<dl><dt>[]B</dt></dl></div>`,
+    },
+    {
+      init: `<div>A<dl><dt>[]B</dt><dt>C</dt></dl></div>`,
+    },
+    {
+      init: `<div>A<dl><dt>[]B</dt><dd>C</dd></dl></div>`,
+    },
+    {
+      init: `<div>A<dl><dd>[]B</dd></dl></div>`,
+    },
+    {
+      init: `<div>A<dl><dd>[]B</dd><dt>C</dt></dl></div>`,
+    },
+    {
+      init: `<div>A<dl><dd>[]B</dd><dd>C</dd></dl></div>`,
+    },
+    {
+      init: `<dl><dt>A</dt><dt>[]B</dt></ol>`,
+    },
+    {
+      init: `<dl><dd>A</dd><dt>[]B</dt></ol>`,
+    },
+    {
+      init: `<dl><dt>A</dt><dd>[]B</dd></ol>`,
+    },
+    {
+      init: `<dl><dd>A</dd><dd>[]B</dd></ol>`,
+    },
+    {
+      init: `<table><tr><td>A</td><td>[]B</td></tr></table>`,
+    },
+    {
+      init: `<table><tr><td>A</td></tr><tr><td>[]B</td></tr></table>`,
+    },
+    {
+      init: `<table><tr><th>A</th><td>[]B</td></tr></table>`,
+    },
+    {
+      init: `<table><tr><th>A</th></tr><tr><td>[]B</td></tr></table>`,
+    },
+    {
+      init: `<table><tr><td>A</td><th>[]B</th></tr></table>`,
+    },
+    {
+      init: `<table><tr><td>A</td></tr><tr><th>[]B</th></tr></table>`,
+    },
+    {
+      init: `<table><tr><th>A</th><th>[]B</th></tr></table>`,
+    },
+    {
+      init: `<table><tr><th>A</th></tr><tr><th>[]B</th></tr></table>`,
+    },
+  ]) {
+    if (data.skipIf !== undefined && data.skipIf) {
+      continue;
+    }
+    test(() => {
+      utilsForRichText.setupEditingHost(data.init);
+      document.execCommand("delete");
+      const richTextResult = richTextEditingHost.innerHTML;
+      utilsForPlainText.setupEditingHost(data.init);
+      document.execCommand("delete");
+      const plainTextResult = plainTextEditingHost.innerHTML;
+      assert_equals(plainTextResult, richTextResult);
+    }, `document.execCommand("delete") when ${data.init}`);
+  }
+}, {once: true});
+</script>
+</head>
+<body>
+  <div contenteditable="true"></div>
+  <div contenteditable="plaintext-only"></div>
+</body>
+</html>

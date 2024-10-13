@@ -475,10 +475,7 @@ makeTest({
 makeTest({
   name: 'perBuyerCurrencies not convertible to dictionary',
   expect: EXPECT_PROMISE_ERROR,
-  // Because this is not convertible by IDL to the proper dictionary type, this
-  // will immediately be converted to a rejected promise inside of the
-  // runBasicFledgeAuction() invocation, and that await will handle the
-  // rejection. Therefore, no expectPromiseError.
+  expectPromiseError: EXPECT_EXCEPTION(TypeError),
   auctionConfigOverrides: {perBuyerCurrencies: 123}
 });
 

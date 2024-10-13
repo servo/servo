@@ -89,9 +89,9 @@ function testImageBitmap(source)
         checkCrop(cropLow);
         checkCrop(cropPixelated);
         // Brute-force comparison among all bitmaps is too expensive
-        compareBitmaps(noCropHigh, noCropMedium);
+        compareBitmaps(noCropMedium, noCropPixelated);
         compareBitmaps(noCropLow, noCropPixelated);
-        compareBitmaps(cropHigh, cropMedium);
+        compareBitmaps(cropMedium, noCropPixelated);
         compareBitmaps(cropLow, cropPixelated);
     });
 }

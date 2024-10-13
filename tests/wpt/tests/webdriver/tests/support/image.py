@@ -13,10 +13,6 @@ def cm_to_px(cm: float) -> float:
     return round(cm * inch_in_pixel / inch_in_cm)
 
 
-def px_to_cm(px: float) -> float:
-    return px * inch_in_cm / inch_in_pixel
-
-
 def pt_to_cm(pt: float) -> float:
     return pt * inch_in_cm / inch_in_point
 

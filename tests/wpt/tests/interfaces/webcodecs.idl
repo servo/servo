@@ -340,7 +340,7 @@ dictionary VideoFrameInit {
   AlphaOption alpha = "keep";
 
   // Default matches image. May be used to efficiently crop. Will trigger
-  // new computation of displayWidth and displayHeight using image’s pixel
+  // new computation of displayWidth and displayHeight using image's pixel
   // aspect ratio unless an explicit displayWidth and displayHeight are given.
   DOMRectInit visibleRect;
 
