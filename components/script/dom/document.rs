@@ -766,7 +766,7 @@ impl Document {
         &self.origin
     }
 
-    // https://dom.spec.whatwg.org/#concept-document-url
+    /// <https://dom.spec.whatwg.org/#concept-document-url>
     pub fn url(&self) -> ServoUrl {
         self.url.borrow().clone()
     }
@@ -775,7 +775,7 @@ impl Document {
         *self.url.borrow_mut() = url;
     }
 
-    // https://html.spec.whatwg.org/multipage/#fallback-base-url
+    /// <https://html.spec.whatwg.org/multipage/#fallback-base-url>
     pub fn fallback_base_url(&self) -> ServoUrl {
         let document_url = self.url();
         if let Some(browsing_context) = self.browsing_context() {
@@ -800,7 +800,7 @@ impl Document {
         document_url
     }
 
-    // https://html.spec.whatwg.org/multipage/#document-base-url
+    /// <https://html.spec.whatwg.org/multipage/#document-base-url>
     pub fn base_url(&self) -> ServoUrl {
         match self.base_element() {
             // Step 1.
@@ -3018,6 +3018,30 @@ impl Document {
 
     pub(crate) fn status_code(&self) -> Option<u16> {
         self.status_code
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#encoding-parsing-a-url>
+    pub fn encoding_parse_a_url(&self, url: &str) -> Result<ServoUrl, url::ParseError> {
+        // NOTE: This algorithm is defined for both Document and environment settings objects.
+        // This implementation is only for documents.
+
+        // Step 1. Let encoding be UTF-8.
+        // Step 2. If environment is a Document object, then set encoding to environment's character encoding.
+        let encoding = self.encoding.get();
+
+        // Step 3. Otherwise, if environment's relevant global object is a Window object, set encoding to environment's
+        // relevant global object's associated Document's character encoding.
+
+        // Step 4. Let baseURL be environment's base URL, if environment is a Document object;
+        // otherwise environment's API base URL.
+        let base_url = self.base_url();
+
+        // Step 5. Return the result of applying the URL parser to url, with baseURL and encoding.
+        url::Url::options()
+            .base_url(Some(base_url.as_url()))
+            .encoding_override(Some(&|s| encoding.encode(s).0))
+            .parse(url)
+            .map(ServoUrl::from)
     }
 }
 
