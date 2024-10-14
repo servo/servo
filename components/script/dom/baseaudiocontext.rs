@@ -381,11 +381,12 @@ impl BaseAudioContextMethods for BaseAudioContext {
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createstereopanner>
-    fn CreateStereoPanner(&self) -> Fallible<DomRoot<StereoPannerNode>> {
+    fn CreateStereoPanner(&self, can_gc: CanGc) -> Fallible<DomRoot<StereoPannerNode>> {
         StereoPannerNode::new(
             self.global().as_window(),
             self,
             &StereoPannerOptions::empty(),
+            can_gc,
         )
     }
 
