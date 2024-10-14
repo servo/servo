@@ -34,6 +34,13 @@ use crate::dom::promise::Promise;
 use crate::realms::InRealm;
 
 // https://webbluetoothcg.github.io/web-bluetooth/#bluetoothdevice
+#[derive(JSTraceable, MallocSizeOf)]
+struct AttributeInstanceMap {
+    service_map: DomRefCell<HashMap<String, Dom<BluetoothRemoteGATTService>>>,
+    characteristic_map: DomRefCell<HashMap<String, Dom<BluetoothRemoteGATTCharacteristic>>>,
+    descriptor_map: DomRefCell<HashMap<String, Dom<BluetoothRemoteGATTDescriptor>>>,
+}
+
 #[dom_struct]
 pub struct BluetoothDevice {
     eventtarget: EventTarget,
@@ -41,11 +48,7 @@ pub struct BluetoothDevice {
     name: Option<DOMString>,
     gatt: MutNullableDom<BluetoothRemoteGATTServer>,
     context: Dom<Bluetooth>,
-    attribute_instance_map: (
-        DomRefCell<HashMap<String, Dom<BluetoothRemoteGATTService>>>,
-        DomRefCell<HashMap<String, Dom<BluetoothRemoteGATTCharacteristic>>>,
-        DomRefCell<HashMap<String, Dom<BluetoothRemoteGATTDescriptor>>>,
-    ),
+    attribute_instance_map: AttributeInstanceMap,
     watching_advertisements: Cell<bool>,
 }
 
@@ -61,11 +64,11 @@ impl BluetoothDevice {
             name,
             gatt: Default::default(),
             context: Dom::from_ref(context),
-            attribute_instance_map: (
-                DomRefCell::new(HashMap::new()),
-                DomRefCell::new(HashMap::new()),
-                DomRefCell::new(HashMap::new()),
-            ),
+            attribute_instance_map: AttributeInstanceMap {
+                service_map: DomRefCell::new(HashMap::new()),
+                characteristic_map: DomRefCell::new(HashMap::new()),
+                descriptor_map: DomRefCell::new(HashMap::new()),
+            },
             watching_advertisements: Cell::new(false),
         }
     }
@@ -96,7 +99,7 @@ impl BluetoothDevice {
         service: &BluetoothServiceMsg,
         server: &BluetoothRemoteGATTServer,
     ) -> DomRoot<BluetoothRemoteGATTService> {
-        let (ref service_map_ref, _, _) = self.attribute_instance_map;
+        let ref service_map_ref = self.attribute_instance_map.service_map;
         let mut service_map = service_map_ref.borrow_mut();
         if let Some(existing_service) = service_map.get(&service.instance_id) {
             return DomRoot::from_ref(existing_service);
@@ -117,7 +120,7 @@ impl BluetoothDevice {
         characteristic: &BluetoothCharacteristicMsg,
         service: &BluetoothRemoteGATTService,
     ) -> DomRoot<BluetoothRemoteGATTCharacteristic> {
-        let (_, ref characteristic_map_ref, _) = self.attribute_instance_map;
+        let ref characteristic_map_ref = self.attribute_instance_map.characteristic_map;
         let mut characteristic_map = characteristic_map_ref.borrow_mut();
         if let Some(existing_characteristic) = characteristic_map.get(&characteristic.instance_id) {
             return DomRoot::from_ref(existing_characteristic);
@@ -164,7 +167,7 @@ impl BluetoothDevice {
         descriptor: &BluetoothDescriptorMsg,
         characteristic: &BluetoothRemoteGATTCharacteristic,
     ) -> DomRoot<BluetoothRemoteGATTDescriptor> {
-        let (_, _, ref descriptor_map_ref) = self.attribute_instance_map;
+        let ref descriptor_map_ref = self.attribute_instance_map.descriptor_map;
         let mut descriptor_map = descriptor_map_ref.borrow_mut();
         if let Some(existing_descriptor) = descriptor_map.get(&descriptor.instance_id) {
             return DomRoot::from_ref(existing_descriptor);
@@ -198,13 +201,13 @@ impl BluetoothDevice {
         // https://github.com/WebBluetoothCG/web-bluetooth/issues/330
 
         // Step 4.
-        let mut service_map = self.attribute_instance_map.0.borrow_mut();
+        let mut service_map = self.attribute_instance_map.service_map.borrow_mut();
         let service_ids = service_map.drain().map(|(id, _)| id).collect();
 
-        let mut characteristic_map = self.attribute_instance_map.1.borrow_mut();
+        let mut characteristic_map = self.attribute_instance_map.characteristic_map.borrow_mut();
         let characteristic_ids = characteristic_map.drain().map(|(id, _)| id).collect();
 
-        let mut descriptor_map = self.attribute_instance_map.2.borrow_mut();
+        let mut descriptor_map = self.attribute_instance_map.descriptor_map.borrow_mut();
         let descriptor_ids = descriptor_map.drain().map(|(id, _)| id).collect();
 
         // Step 5, 6.4, 7.
