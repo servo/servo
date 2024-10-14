@@ -9,7 +9,7 @@ use std::collections::{HashMap, VecDeque};
 use std::ops::Index;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use std::{mem, ptr};
@@ -45,9 +45,12 @@ use net_traits::filemanager_thread::{
     FileManagerResult, FileManagerThreadMsg, ReadFileProgress, RelativePos,
 };
 use net_traits::image_cache::ImageCache;
-use net_traits::request::Referrer;
+use net_traits::request::{Referrer, RequestBuilder};
 use net_traits::response::HttpsState;
-use net_traits::{CoreResourceMsg, CoreResourceThread, IpcSend, ResourceThreads};
+use net_traits::{
+    fetch_async, CoreResourceMsg, CoreResourceThread, FetchResponseListener, IpcSend,
+    ResourceThreads,
+};
 use profile_traits::{ipc as profile_ipc, mem as profile_mem, time as profile_time};
 use script_traits::serializable::{BlobData, BlobImpl, FileBlob};
 use script_traits::transferable::MessagePortImpl;
@@ -117,6 +120,7 @@ use crate::dom::window::Window;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::dom::workletglobalscope::WorkletGlobalScope;
 use crate::microtask::{Microtask, MicrotaskQueue, UserMicrotask};
+use crate::network_listener::{NetworkListener, PreInvoke};
 use crate::realms::{enter_realm, AlreadyInRealm, InRealm};
 use crate::script_module::{DynamicModuleList, ModuleScript, ModuleTree, ScriptFetchOptions};
 use crate::script_runtime::{
@@ -3390,6 +3394,38 @@ impl GlobalScope {
             .map_err(|_| Error::DataClone)?;
 
         Ok(message_clone.get())
+    }
+
+    pub(crate) fn fetch<Listener: FetchResponseListener + PreInvoke + Send + 'static>(
+        &self,
+        request_builder: RequestBuilder,
+        context: Arc<Mutex<Listener>>,
+        task_source: NetworkingTaskSource,
+        cancellation_sender: Option<ipc::IpcReceiver<()>>,
+    ) {
+        let canceller = Some(self.task_canceller(TaskSourceName::Networking));
+        let network_listener = NetworkListener {
+            context,
+            task_source,
+            canceller,
+        };
+        self.fetch_with_network_listener(request_builder, network_listener, cancellation_sender);
+    }
+
+    pub(crate) fn fetch_with_network_listener<
+        Listener: FetchResponseListener + PreInvoke + Send + 'static,
+    >(
+        &self,
+        request_builder: RequestBuilder,
+        network_listener: NetworkListener<Listener>,
+        cancellation_receiver: Option<ipc::IpcReceiver<()>>,
+    ) {
+        fetch_async(
+            &self.core_resource_thread(),
+            request_builder,
+            cancellation_receiver,
+            network_listener.to_callback(),
+        );
     }
 }
 

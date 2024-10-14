@@ -581,9 +581,9 @@ impl ImageCache for ImageCacheImpl {
     /// Inform the image cache about a response for a pending request.
     fn notify_pending_response(&self, id: PendingImageId, action: FetchResponseMsg) {
         match (action, id) {
-            (FetchResponseMsg::ProcessRequestBody, _) |
-            (FetchResponseMsg::ProcessRequestEOF, _) => (),
-            (FetchResponseMsg::ProcessResponse(response), _) => {
+            (FetchResponseMsg::ProcessRequestBody(..), _) |
+            (FetchResponseMsg::ProcessRequestEOF(..), _) => (),
+            (FetchResponseMsg::ProcessResponse(_, response), _) => {
                 debug!("Received {:?} for {:?}", response.as_ref().map(|_| ()), id);
                 let mut store = self.store.lock().unwrap();
                 let pending_load = store.pending_loads.get_by_key_mut(&id).unwrap();
@@ -608,7 +608,7 @@ impl ImageCache for ImageCacheImpl {
                 pending_load.final_url = final_url;
                 pending_load.cors_status = cors_status;
             },
-            (FetchResponseMsg::ProcessResponseChunk(data), _) => {
+            (FetchResponseMsg::ProcessResponseChunk(_, data), _) => {
                 debug!("Got some data for {:?}", id);
                 let mut store = self.store.lock().unwrap();
                 let pending_load = store.pending_loads.get_by_key_mut(&id).unwrap();
@@ -627,7 +627,7 @@ impl ImageCache for ImageCacheImpl {
                     pending_load.metadata = Some(img_metadata);
                 }
             },
-            (FetchResponseMsg::ProcessResponseEOF(result), key) => {
+            (FetchResponseMsg::ProcessResponseEOF(_, result), key) => {
                 debug!("Received EOF for {:?}", key);
                 match result {
                     Ok(_) => {

@@ -5,7 +5,8 @@
 use std::sync::{Arc, Mutex};
 
 use net_traits::{
-    Action, FetchResponseListener, FetchResponseMsg, ResourceFetchTiming, ResourceTimingType,
+    Action, BoxedFetchCallback, FetchResponseListener, FetchResponseMsg, ResourceFetchTiming,
+    ResourceTimingType,
 };
 use servo_url::ServoUrl;
 
@@ -88,6 +89,10 @@ impl<Listener: PreInvoke + Send + 'static> NetworkListener<Listener> {
 impl<Listener: FetchResponseListener + PreInvoke + Send + 'static> NetworkListener<Listener> {
     pub fn notify_fetch(&self, action: FetchResponseMsg) {
         self.notify(action);
+    }
+
+    pub fn to_callback(self) -> BoxedFetchCallback {
+        Box::new(move |response_msg| self.notify_fetch(response_msg))
     }
 }
 

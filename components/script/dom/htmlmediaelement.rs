@@ -21,10 +21,10 @@ use ipc_channel::ipc::{self, IpcSharedMemory};
 use ipc_channel::router::ROUTER;
 use js::jsapi::JSAutoRealm;
 use media::{glplayer_channel, GLPlayerMsg, GLPlayerMsgForward, WindowGLContext};
-use net_traits::request::Destination;
+use net_traits::request::{Destination, RequestId};
 use net_traits::{
-    CoreResourceMsg, FetchChannels, FetchMetadata, FetchResponseListener, Metadata, NetworkError,
-    ResourceFetchTiming, ResourceTimingType,
+    FetchMetadata, FetchResponseListener, Metadata, NetworkError, ResourceFetchTiming,
+    ResourceTimingType,
 };
 use pixels::Image;
 use script_layout_interface::HTMLMediaData;
@@ -101,7 +101,7 @@ use crate::dom::videotracklist::VideoTrackList;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::fetch::{create_a_potential_cors_request, FetchCanceller};
 use crate::microtask::{Microtask, MicrotaskRunnable};
-use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
+use crate::network_listener::{self, PreInvoke, ResourceTimingListener};
 use crate::realms::{enter_realm, InRealm};
 use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
@@ -889,36 +889,12 @@ impl HTMLMediaElement {
         }
         let (fetch_context, cancel_receiver) = HTMLMediaElementFetchContext::new();
         *current_fetch_context = Some(fetch_context);
-        let fetch_listener = Arc::new(Mutex::new(HTMLMediaElementFetchListener::new(
-            self,
-            url.clone(),
-            offset.unwrap_or(0),
-            seek_lock,
-        )));
-        let (action_sender, action_receiver) = ipc::channel().unwrap();
-        let window = window_from_node(self);
-        let (task_source, canceller) = window
-            .task_manager()
-            .networking_task_source_with_canceller();
-        let network_listener = NetworkListener {
-            context: fetch_listener,
-            task_source,
-            canceller: Some(canceller),
-        };
-        ROUTER.add_route(
-            action_receiver.to_opaque(),
-            Box::new(move |message| {
-                network_listener.notify_fetch(message.to().unwrap());
-            }),
-        );
-        let global = self.global();
-        global
-            .core_resource_thread()
-            .send(CoreResourceMsg::Fetch(
-                request,
-                FetchChannels::ResponseMsg(action_sender, Some(cancel_receiver)),
-            ))
-            .unwrap();
+        let listener =
+            HTMLMediaElementFetchListener::new(self, url.clone(), offset.unwrap_or(0), seek_lock);
+
+        // TODO: If this is supposed to to be a "fetch" as defined in the specification
+        // this should probably be integrated into the Document's list of cancellable fetches.
+        document_from_node(self).fetch_background(request, listener, Some(cancel_receiver));
     }
 
     // https://html.spec.whatwg.org/multipage/#concept-media-load-resource
@@ -2680,11 +2656,11 @@ struct HTMLMediaElementFetchListener {
 
 // https://html.spec.whatwg.org/multipage/#media-data-processing-steps-list
 impl FetchResponseListener for HTMLMediaElementFetchListener {
-    fn process_request_body(&mut self) {}
+    fn process_request_body(&mut self, _: RequestId) {}
 
-    fn process_request_eof(&mut self) {}
+    fn process_request_eof(&mut self, _: RequestId) {}
 
-    fn process_response(&mut self, metadata: Result<FetchMetadata, NetworkError>) {
+    fn process_response(&mut self, _: RequestId, metadata: Result<FetchMetadata, NetworkError>) {
         let elem = self.elem.root();
 
         if elem.generation_id.get() != self.generation_id || elem.player.borrow().is_none() {
@@ -2758,7 +2734,7 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
         }
     }
 
-    fn process_response_chunk(&mut self, payload: Vec<u8>) {
+    fn process_response_chunk(&mut self, _: RequestId, payload: Vec<u8>) {
         let elem = self.elem.root();
         // If an error was received previously or if we triggered a new fetch request,
         // we skip processing the payload.
@@ -2817,7 +2793,11 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
     }
 
     // https://html.spec.whatwg.org/multipage/#media-data-processing-steps-list
-    fn process_response_eof(&mut self, status: Result<ResourceFetchTiming, NetworkError>) {
+    fn process_response_eof(
+        &mut self,
+        _: RequestId,
+        status: Result<ResourceFetchTiming, NetworkError>,
+    ) {
         trace!("process response eof");
         if let Some(seek_lock) = self.seek_lock.take() {
             seek_lock.unlock(/* successful seek */ false);

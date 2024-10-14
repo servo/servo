@@ -21,15 +21,16 @@ fn assert_parse(
     charset: Option<&str>,
     data: Option<&[u8]>,
 ) {
+    use net_traits::request::RequestBuilder;
+
     let url = ServoUrl::parse(url).unwrap();
     let origin = Origin::Origin(url.origin());
-    let mut request = Request::new(
-        url,
-        Some(origin),
-        Referrer::NoReferrer,
-        None,
-        HttpsState::None,
-    );
+    let mut request = RequestBuilder::new(url, Referrer::NoReferrer)
+        .origin(Some(origin))
+        .referrer(Referrer::NoReferrer)
+        .pipeline_id(None)
+        .https_stat(HttpsState::None)
+        .build();
 
     let response = fetch(&mut request, None);
 

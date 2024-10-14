@@ -6,7 +6,7 @@ use std::cell::Cell;
 use std::collections::HashSet;
 use std::default::Default;
 use std::rc::Rc;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::{char, mem};
 
 use app_units::{Au, AU_PER_PX};
@@ -26,7 +26,9 @@ use net_traits::image_cache::{
     ImageCache, ImageCacheResult, ImageOrMetadataAvailable, ImageResponse, PendingImageId,
     PendingImageResponse, UsePlaceholder,
 };
-use net_traits::request::{CorsSettings, Destination, Initiator, Referrer, RequestBuilder};
+use net_traits::request::{
+    CorsSettings, Destination, Initiator, Referrer, RequestBuilder, RequestId,
+};
 use net_traits::{
     FetchMetadata, FetchResponseListener, FetchResponseMsg, NetworkError, ReferrerPolicy,
     ResourceFetchTiming, ResourceTimingType,
@@ -92,7 +94,7 @@ use crate::dom::window::Window;
 use crate::fetch::create_a_potential_cors_request;
 use crate::image_listener::{generate_cache_listener_for_element, ImageCacheListener};
 use crate::microtask::{Microtask, MicrotaskRunnable};
-use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
+use crate::network_listener::{self, PreInvoke, ResourceTimingListener};
 use crate::realms::enter_realm;
 use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
@@ -218,13 +220,19 @@ struct ImageContext {
 }
 
 impl FetchResponseListener for ImageContext {
-    fn process_request_body(&mut self) {}
-    fn process_request_eof(&mut self) {}
+    fn process_request_body(&mut self, _: RequestId) {}
+    fn process_request_eof(&mut self, _: RequestId) {}
 
-    fn process_response(&mut self, metadata: Result<FetchMetadata, NetworkError>) {
+    fn process_response(
+        &mut self,
+        request_id: RequestId,
+        metadata: Result<FetchMetadata, NetworkError>,
+    ) {
         debug!("got {:?} for {:?}", metadata.as_ref().map(|_| ()), self.url);
-        self.image_cache
-            .notify_pending_response(self.id, FetchResponseMsg::ProcessResponse(metadata.clone()));
+        self.image_cache.notify_pending_response(
+            self.id,
+            FetchResponseMsg::ProcessResponse(request_id, metadata.clone()),
+        );
 
         let metadata = metadata.ok().map(|meta| match meta {
             FetchMetadata::Unfiltered(m) => m,
@@ -262,16 +270,24 @@ impl FetchResponseListener for ImageContext {
         };
     }
 
-    fn process_response_chunk(&mut self, payload: Vec<u8>) {
+    fn process_response_chunk(&mut self, request_id: RequestId, payload: Vec<u8>) {
         if self.status.is_ok() {
-            self.image_cache
-                .notify_pending_response(self.id, FetchResponseMsg::ProcessResponseChunk(payload));
+            self.image_cache.notify_pending_response(
+                self.id,
+                FetchResponseMsg::ProcessResponseChunk(request_id, payload),
+            );
         }
     }
 
-    fn process_response_eof(&mut self, response: Result<ResourceFetchTiming, NetworkError>) {
-        self.image_cache
-            .notify_pending_response(self.id, FetchResponseMsg::ProcessResponseEOF(response));
+    fn process_response_eof(
+        &mut self,
+        request_id: RequestId,
+        response: Result<ResourceFetchTiming, NetworkError>,
+    ) {
+        self.image_cache.notify_pending_response(
+            self.id,
+            FetchResponseMsg::ProcessResponseEOF(request_id, response),
+        );
     }
 
     fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming {
@@ -377,7 +393,7 @@ impl HTMLImageElement {
         let document = document_from_node(self);
         let window = window_from_node(self);
 
-        let context = Arc::new(Mutex::new(ImageContext {
+        let context = ImageContext {
             image_cache: window.image_cache(),
             status: Ok(()),
             id,
@@ -385,24 +401,7 @@ impl HTMLImageElement {
             doc: Trusted::new(&document),
             resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
             url: img_url.clone(),
-        }));
-
-        let (action_sender, action_receiver) = ipc::channel().unwrap();
-        let (task_source, canceller) = document
-            .window()
-            .task_manager()
-            .networking_task_source_with_canceller();
-        let listener = NetworkListener {
-            context,
-            task_source,
-            canceller: Some(canceller),
         };
-        ROUTER.add_route(
-            action_receiver.to_opaque(),
-            Box::new(move |message| {
-                listener.notify_fetch(message.to().unwrap());
-            }),
-        );
 
         let request = image_fetch_request(
             img_url.clone(),
@@ -420,9 +419,7 @@ impl HTMLImageElement {
 
         // This is a background load because the load blocker already fulfills the
         // purpose of delaying the document's load event.
-        document
-            .loader_mut()
-            .fetch_async_background(request, action_sender);
+        document.fetch_background(request, context, None);
     }
 
     // Steps common to when an image has been loaded.

@@ -19,7 +19,6 @@ use http::header::{self, HeaderMap, HeaderName, HeaderValue};
 use http::Method;
 use hyper_serde::Serde;
 use ipc_channel::ipc;
-use ipc_channel::router::ROUTER;
 use js::jsapi::{Heap, JS_ClearPendingException};
 use js::jsval::{JSVal, NullValue, UndefinedValue};
 use js::rust::wrappers::JS_ParseJSON;
@@ -27,11 +26,12 @@ use js::rust::HandleObject;
 use js::typedarray::{ArrayBuffer, ArrayBufferU8};
 use mime::{self, Mime, Name};
 use net_traits::http_status::HttpStatus;
-use net_traits::request::{CredentialsMode, Destination, Referrer, RequestBuilder, RequestMode};
-use net_traits::CoreResourceMsg::Fetch;
+use net_traits::request::{
+    CredentialsMode, Destination, Referrer, RequestBuilder, RequestId, RequestMode,
+};
 use net_traits::{
-    trim_http_whitespace, FetchChannels, FetchMetadata, FetchResponseListener, FilteredMetadata,
-    NetworkError, ReferrerPolicy, ResourceFetchTiming, ResourceTimingType,
+    trim_http_whitespace, FetchMetadata, FetchResponseListener, FilteredMetadata, NetworkError,
+    ReferrerPolicy, ResourceFetchTiming, ResourceTimingType,
 };
 use script_traits::serializable::BlobImpl;
 use script_traits::DocumentActivity;
@@ -71,10 +71,9 @@ use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::dom::xmlhttprequesteventtarget::XMLHttpRequestEventTarget;
 use crate::dom::xmlhttprequestupload::XMLHttpRequestUpload;
 use crate::fetch::FetchCanceller;
-use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
+use crate::network_listener::{self, PreInvoke, ResourceTimingListener};
 use crate::script_runtime::{CanGc, JSContext};
 use crate::task_source::networking::NetworkingTaskSource;
-use crate::task_source::TaskSourceName;
 use crate::timers::{OneshotTimerCallback, OneshotTimerHandle};
 
 #[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq)]
@@ -244,15 +243,19 @@ impl XMLHttpRequest {
         cancellation_chan: ipc::IpcReceiver<()>,
     ) {
         impl FetchResponseListener for XHRContext {
-            fn process_request_body(&mut self) {
+            fn process_request_body(&mut self, _: RequestId) {
                 // todo
             }
 
-            fn process_request_eof(&mut self) {
+            fn process_request_eof(&mut self, _: RequestId) {
                 // todo
             }
 
-            fn process_response(&mut self, metadata: Result<FetchMetadata, NetworkError>) {
+            fn process_response(
+                &mut self,
+                _: RequestId,
+                metadata: Result<FetchMetadata, NetworkError>,
+            ) {
                 let xhr = self.xhr.root();
                 let rv = xhr.process_headers_available(self.gen_id, metadata, CanGc::note());
                 if rv.is_err() {
@@ -260,7 +263,7 @@ impl XMLHttpRequest {
                 }
             }
 
-            fn process_response_chunk(&mut self, chunk: Vec<u8>) {
+            fn process_response_chunk(&mut self, _: RequestId, chunk: Vec<u8>) {
                 self.xhr
                     .root()
                     .process_data_available(self.gen_id, chunk, CanGc::note());
@@ -268,6 +271,7 @@ impl XMLHttpRequest {
 
             fn process_response_eof(
                 &mut self,
+                _: RequestId,
                 response: Result<ResourceFetchTiming, NetworkError>,
             ) {
                 let rv = self.xhr.root().process_response_complete(
@@ -307,26 +311,7 @@ impl XMLHttpRequest {
             }
         }
 
-        let (action_sender, action_receiver) = ipc::channel().unwrap();
-
-        let listener = NetworkListener {
-            context,
-            task_source,
-            canceller: Some(global.task_canceller(TaskSourceName::Networking)),
-        };
-        ROUTER.add_route(
-            action_receiver.to_opaque(),
-            Box::new(move |message| {
-                listener.notify_fetch(message.to().unwrap());
-            }),
-        );
-        global
-            .core_resource_thread()
-            .send(Fetch(
-                init,
-                FetchChannels::ResponseMsg(action_sender, Some(cancellation_chan)),
-            ))
-            .unwrap();
+        global.fetch(init, context, task_source, Some(cancellation_chan));
     }
 }
 

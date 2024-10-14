@@ -18,12 +18,11 @@ use dom_struct::dom_struct;
 use encoding_rs::Encoding;
 use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
 use ipc_channel::ipc;
-use ipc_channel::router::ROUTER;
 use js::jsval::UndefinedValue;
 use js::rust::{transform_str_to_source_text, CompileOptionsWrapper, HandleObject, Stencil};
 use net_traits::http_status::HttpStatus;
 use net_traits::request::{
-    CorsSettings, CredentialsMode, Destination, ParserMetadata, RequestBuilder,
+    CorsSettings, CredentialsMode, Destination, ParserMetadata, RequestBuilder, RequestId,
 };
 use net_traits::{
     FetchMetadata, FetchResponseListener, Metadata, NetworkError, ResourceFetchTiming,
@@ -351,11 +350,13 @@ struct ClassicContext {
 }
 
 impl FetchResponseListener for ClassicContext {
-    fn process_request_body(&mut self) {} // TODO(KiChjang): Perhaps add custom steps to perform fetch here?
+    // TODO(KiChjang): Perhaps add custom steps to perform fetch here?
+    fn process_request_body(&mut self, _: RequestId) {}
 
-    fn process_request_eof(&mut self) {} // TODO(KiChjang): Perhaps add custom steps to perform fetch here?
+    // TODO(KiChjang): Perhaps add custom steps to perform fetch here?
+    fn process_request_eof(&mut self, _: RequestId) {}
 
-    fn process_response(&mut self, metadata: Result<FetchMetadata, NetworkError>) {
+    fn process_response(&mut self, _: RequestId, metadata: Result<FetchMetadata, NetworkError>) {
         self.metadata = metadata.ok().map(|meta| match meta {
             FetchMetadata::Unfiltered(m) => m,
             FetchMetadata::Filtered { unsafe_, .. } => unsafe_,
@@ -383,7 +384,7 @@ impl FetchResponseListener for ClassicContext {
         };
     }
 
-    fn process_response_chunk(&mut self, mut chunk: Vec<u8>) {
+    fn process_response_chunk(&mut self, _: RequestId, mut chunk: Vec<u8>) {
         if self.status.is_ok() {
             self.data.append(&mut chunk);
         }
@@ -392,7 +393,11 @@ impl FetchResponseListener for ClassicContext {
     /// <https://html.spec.whatwg.org/multipage/#fetch-a-classic-script>
     /// step 4-9
     #[allow(unsafe_code)]
-    fn process_response_eof(&mut self, response: Result<ResourceFetchTiming, NetworkError>) {
+    fn process_response_eof(
+        &mut self,
+        _: RequestId,
+        response: Result<ResourceFetchTiming, NetworkError>,
+    ) {
         let (source_text, final_url) = match (response.as_ref(), self.status.as_ref()) {
             (Err(err), _) | (_, Err(err)) => {
                 // Step 6, response is an error.
@@ -538,9 +543,8 @@ fn fetch_a_classic_script(
     options: ScriptFetchOptions,
     character_encoding: &'static Encoding,
 ) {
-    let doc = document_from_node(script);
-
     // Step 1, 2.
+    let doc = document_from_node(script);
     let request = script_fetch_request(
         url.clone(),
         cors_setting,
@@ -548,10 +552,11 @@ fn fetch_a_classic_script(
         script.global().pipeline_id(),
         options.clone(),
     );
+    let request = doc.prepare_request(request);
 
     // TODO: Step 3, Add custom steps to perform fetch
 
-    let context = Arc::new(Mutex::new(ClassicContext {
+    let context = ClassicContext {
         elem: Trusted::new(script),
         kind,
         character_encoding,
@@ -561,26 +566,8 @@ fn fetch_a_classic_script(
         status: Ok(()),
         fetch_options: options,
         resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
-    }));
-
-    let (action_sender, action_receiver) = ipc::channel().unwrap();
-    let (task_source, canceller) = doc
-        .window()
-        .task_manager()
-        .networking_task_source_with_canceller();
-    let listener = NetworkListener {
-        context,
-        task_source,
-        canceller: Some(canceller),
     };
-
-    ROUTER.add_route(
-        action_receiver.to_opaque(),
-        Box::new(move |message| {
-            listener.notify_fetch(message.to().unwrap());
-        }),
-    );
-    doc.fetch_async(LoadType::Script(url), request, action_sender);
+    doc.fetch(LoadType::Script(url), request, context);
 }
 
 impl HTMLScriptElement {

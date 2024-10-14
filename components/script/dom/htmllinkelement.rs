@@ -5,19 +5,18 @@
 use std::borrow::{Borrow, ToOwned};
 use std::cell::Cell;
 use std::default::Default;
-use std::sync;
 
 use cssparser::{Parser as CssParser, ParserInput};
 use dom_struct::dom_struct;
 use embedder_traits::EmbedderMsg;
 use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
-use ipc_channel::ipc;
-use ipc_channel::router::ROUTER;
 use js::rust::HandleObject;
-use net_traits::request::{CorsSettings, Destination, Initiator, Referrer, RequestBuilder};
+use net_traits::request::{
+    CorsSettings, Destination, Initiator, Referrer, RequestBuilder, RequestId,
+};
 use net_traits::{
-    CoreResourceMsg, FetchChannels, FetchMetadata, FetchResponseListener, IpcSend, NetworkError,
-    ReferrerPolicy, ResourceFetchTiming, ResourceTimingType,
+    FetchMetadata, FetchResponseListener, NetworkError, ReferrerPolicy, ResourceFetchTiming,
+    ResourceTimingType,
 };
 use servo_arc::Arc;
 use servo_atoms::Atom;
@@ -56,7 +55,7 @@ use crate::dom::stylesheet::StyleSheet as DOMStyleSheet;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::fetch::create_a_potential_cors_request;
 use crate::links::LinkRelations;
-use crate::network_listener::{submit_timing, NetworkListener, PreInvoke, ResourceTimingListener};
+use crate::network_listener::{submit_timing, PreInvoke, ResourceTimingListener};
 use crate::stylesheet_loader::{StylesheetContextSource, StylesheetLoader, StylesheetOwner};
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
@@ -374,42 +373,14 @@ impl HTMLLinkElement {
         // (Step 7, firing load/error events is handled in the FetchResponseListener impl for PrefetchContext)
 
         // Step 8. The user agent should fetch request, with processResponseConsumeBody set to processPrefetchResponse.
-        let (action_sender, action_receiver) = ipc::channel().unwrap();
         let document = self.upcast::<Node>().owner_doc();
-        let window = document.window();
-
-        let (task_source, canceller) = window
-            .task_manager()
-            .networking_task_source_with_canceller();
-
-        let fetch_context = sync::Arc::new(sync::Mutex::new(PrefetchContext {
+        let fetch_context = PrefetchContext {
             url,
             link: Trusted::new(self),
             resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
-        }));
-
-        let listener = NetworkListener {
-            context: fetch_context,
-            task_source,
-            canceller: Some(canceller),
         };
 
-        ROUTER.add_route(
-            action_receiver.to_opaque(),
-            Box::new(move |message| {
-                listener.notify_fetch(message.to().unwrap());
-            }),
-        );
-
-        window
-            .upcast::<GlobalScope>()
-            .resource_threads()
-            .sender()
-            .send(CoreResourceMsg::Fetch(
-                request,
-                FetchChannels::ResponseMsg(action_sender, None),
-            ))
-            .unwrap();
+        document.fetch_background(request, fetch_context, None);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#concept-link-obtain>
@@ -713,20 +684,28 @@ struct PrefetchContext {
 }
 
 impl FetchResponseListener for PrefetchContext {
-    fn process_request_body(&mut self) {}
+    fn process_request_body(&mut self, _: RequestId) {}
 
-    fn process_request_eof(&mut self) {}
+    fn process_request_eof(&mut self, _: RequestId) {}
 
-    fn process_response(&mut self, fetch_metadata: Result<FetchMetadata, NetworkError>) {
+    fn process_response(
+        &mut self,
+        _: RequestId,
+        fetch_metadata: Result<FetchMetadata, NetworkError>,
+    ) {
         _ = fetch_metadata;
     }
 
-    fn process_response_chunk(&mut self, chunk: Vec<u8>) {
+    fn process_response_chunk(&mut self, _: RequestId, chunk: Vec<u8>) {
         _ = chunk;
     }
 
     // Step 7 of `fetch and process the linked resource` in https://html.spec.whatwg.org/multipage/#link-type-prefetch
-    fn process_response_eof(&mut self, response: Result<ResourceFetchTiming, NetworkError>) {
+    fn process_response_eof(
+        &mut self,
+        _: RequestId,
+        response: Result<ResourceFetchTiming, NetworkError>,
+    ) {
         if response.is_err() {
             // Step 1. If response is a network error, fire an event named error at el.
             self.link

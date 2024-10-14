@@ -17,7 +17,7 @@ use js::conversions::ToJSValConvertible;
 use js::jsval::UndefinedValue;
 use js::rust::HandleObject;
 use mime::{self, Mime};
-use net_traits::request::{CacheMode, CorsSettings, Destination, RequestBuilder};
+use net_traits::request::{CacheMode, CorsSettings, Destination, RequestBuilder, RequestId};
 use net_traits::{
     CoreResourceMsg, FetchChannels, FetchMetadata, FetchResponseListener, FetchResponseMsg,
     FilteredMetadata, NetworkError, ResourceFetchTiming, ResourceTimingType,
@@ -336,15 +336,15 @@ impl EventSourceContext {
 }
 
 impl FetchResponseListener for EventSourceContext {
-    fn process_request_body(&mut self) {
+    fn process_request_body(&mut self, _: RequestId) {
         // TODO
     }
 
-    fn process_request_eof(&mut self) {
+    fn process_request_eof(&mut self, _: RequestId) {
         // TODO
     }
 
-    fn process_response(&mut self, metadata: Result<FetchMetadata, NetworkError>) {
+    fn process_response(&mut self, _: RequestId, metadata: Result<FetchMetadata, NetworkError>) {
         match metadata {
             Ok(fm) => {
                 let meta = match fm {
@@ -378,7 +378,7 @@ impl FetchResponseListener for EventSourceContext {
         }
     }
 
-    fn process_response_chunk(&mut self, chunk: Vec<u8>) {
+    fn process_response_chunk(&mut self, _: RequestId, chunk: Vec<u8>) {
         let mut input = &*chunk;
         if let Some(mut incomplete) = self.incomplete_utf8.take() {
             match incomplete.try_complete(input) {
@@ -417,7 +417,11 @@ impl FetchResponseListener for EventSourceContext {
         }
     }
 
-    fn process_response_eof(&mut self, _response: Result<ResourceFetchTiming, NetworkError>) {
+    fn process_response_eof(
+        &mut self,
+        _: RequestId,
+        _response: Result<ResourceFetchTiming, NetworkError>,
+    ) {
         if self.incomplete_utf8.take().is_some() {
             self.parse("\u{FFFD}".chars());
         }

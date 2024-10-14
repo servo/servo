@@ -6,12 +6,10 @@ use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
 use ipc_channel::ipc;
-use ipc_channel::router::ROUTER;
 use net_traits::request::{
     CorsSettings, CredentialsMode, Destination, Referrer, Request as NetTraitsRequest,
-    RequestBuilder, RequestMode, ServiceWorkersMode,
+    RequestBuilder, RequestId, RequestMode, ServiceWorkersMode,
 };
-use net_traits::CoreResourceMsg::Fetch as NetTraitsFetch;
 use net_traits::{
     CoreResourceMsg, CoreResourceThread, FetchChannels, FetchMetadata, FetchResponseListener,
     FetchResponseMsg, FilteredMetadata, Metadata, NetworkError, ResourceFetchTiming,
@@ -37,12 +35,9 @@ use crate::dom::promise::Promise;
 use crate::dom::request::Request;
 use crate::dom::response::Response;
 use crate::dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
-use crate::network_listener::{
-    self, submit_timing_data, NetworkListener, PreInvoke, ResourceTimingListener,
-};
+use crate::network_listener::{self, submit_timing_data, PreInvoke, ResourceTimingListener};
 use crate::realms::{enter_realm, InRealm};
 use crate::script_runtime::CanGc;
-use crate::task_source::TaskSourceName;
 
 struct FetchContext {
     fetch_promise: Option<TrustedPromise>,
@@ -105,6 +100,7 @@ impl Drop for FetchCanceller {
 
 fn request_init_from_request(request: NetTraitsRequest) -> RequestBuilder {
     RequestBuilder {
+        id: request.id,
         method: request.method.clone(),
         url: request.url(),
         headers: request.headers.clone(),
@@ -147,8 +143,6 @@ pub fn Fetch(
     comp: InRealm,
     can_gc: CanGc,
 ) -> Rc<Promise> {
-    let core_resource_thread = global.core_resource_thread();
-
     // Step 1. Let p be a new promise.
     let promise = Promise::new_in_current_realm(comp);
 
@@ -190,30 +184,18 @@ pub fn Fetch(
 
     // Step 12. Set controller to the result of calling fetch given request and
     //           processResponse given response being these steps: [..]
-    let (action_sender, action_receiver) = ipc::channel().unwrap();
     let fetch_context = Arc::new(Mutex::new(FetchContext {
         fetch_promise: Some(TrustedPromise::new(promise.clone())),
         response_object: Trusted::new(&*response),
         resource_timing: ResourceFetchTiming::new(timing_type),
     }));
-    let listener = NetworkListener {
-        context: fetch_context,
-        task_source: global.networking_task_source(),
-        canceller: Some(global.task_canceller(TaskSourceName::Networking)),
-    };
 
-    ROUTER.add_route(
-        action_receiver.to_opaque(),
-        Box::new(move |message| {
-            listener.notify_fetch(message.to().unwrap());
-        }),
+    global.fetch(
+        request_init,
+        fetch_context,
+        global.networking_task_source(),
+        None,
     );
-    core_resource_thread
-        .send(NetTraitsFetch(
-            request_init,
-            FetchChannels::ResponseMsg(action_sender, None),
-        ))
-        .unwrap();
 
     // Step 13. Return p.
     promise
@@ -222,16 +204,20 @@ pub fn Fetch(
 impl PreInvoke for FetchContext {}
 
 impl FetchResponseListener for FetchContext {
-    fn process_request_body(&mut self) {
+    fn process_request_body(&mut self, _: RequestId) {
         // TODO
     }
 
-    fn process_request_eof(&mut self) {
+    fn process_request_eof(&mut self, _: RequestId) {
         // TODO
     }
 
     #[allow(crown::unrooted_must_root)]
-    fn process_response(&mut self, fetch_metadata: Result<FetchMetadata, NetworkError>) {
+    fn process_response(
+        &mut self,
+        _: RequestId,
+        fetch_metadata: Result<FetchMetadata, NetworkError>,
+    ) {
         let promise = self
             .fetch_promise
             .take()
@@ -285,12 +271,16 @@ impl FetchResponseListener for FetchContext {
         self.fetch_promise = Some(TrustedPromise::new(promise));
     }
 
-    fn process_response_chunk(&mut self, chunk: Vec<u8>) {
+    fn process_response_chunk(&mut self, _: RequestId, chunk: Vec<u8>) {
         let response = self.response_object.root();
         response.stream_chunk(chunk);
     }
 
-    fn process_response_eof(&mut self, _response: Result<ResourceFetchTiming, NetworkError>) {
+    fn process_response_eof(
+        &mut self,
+        _: RequestId,
+        _response: Result<ResourceFetchTiming, NetworkError>,
+    ) {
         let response = self.response_object.root();
         let _ac = enter_realm(&*response);
         response.finish();
@@ -354,23 +344,25 @@ pub fn load_whole_resource(
     let mut metadata = None;
     loop {
         match action_receiver.recv().unwrap() {
-            FetchResponseMsg::ProcessRequestBody | FetchResponseMsg::ProcessRequestEOF => (),
-            FetchResponseMsg::ProcessResponse(Ok(m)) => {
+            FetchResponseMsg::ProcessRequestBody(..) | FetchResponseMsg::ProcessRequestEOF(..) => {
+                ()
+            },
+            FetchResponseMsg::ProcessResponse(_, Ok(m)) => {
                 metadata = Some(match m {
                     FetchMetadata::Unfiltered(m) => m,
                     FetchMetadata::Filtered { unsafe_, .. } => unsafe_,
                 })
             },
-            FetchResponseMsg::ProcessResponseChunk(data) => buf.extend_from_slice(&data),
-            FetchResponseMsg::ProcessResponseEOF(Ok(_)) => {
+            FetchResponseMsg::ProcessResponseChunk(_, data) => buf.extend_from_slice(&data),
+            FetchResponseMsg::ProcessResponseEOF(_, Ok(_)) => {
                 let metadata = metadata.unwrap();
                 if let Some(timing) = &metadata.timing {
                     submit_timing_data(global, url, InitiatorType::Other, timing);
                 }
                 return Ok((metadata, buf));
             },
-            FetchResponseMsg::ProcessResponse(Err(e)) |
-            FetchResponseMsg::ProcessResponseEOF(Err(e)) => return Err(e),
+            FetchResponseMsg::ProcessResponse(_, Err(e)) |
+            FetchResponseMsg::ProcessResponseEOF(_, Err(e)) => return Err(e),
         }
     }
 }

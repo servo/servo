@@ -21,6 +21,7 @@ use html5ever::tree_builder::{ElementFlags, NextParserState, NodeOrText, QuirksM
 use html5ever::{local_name, namespace_url, ns, Attribute, ExpandedName, LocalName, QualName};
 use hyper_serde::Serde;
 use mime::{self, Mime};
+use net_traits::request::RequestId;
 use net_traits::{
     FetchMetadata, FetchResponseListener, Metadata, NetworkError, ResourceFetchTiming,
     ResourceTimingType,
@@ -756,11 +757,11 @@ impl ParserContext {
 }
 
 impl FetchResponseListener for ParserContext {
-    fn process_request_body(&mut self) {}
+    fn process_request_body(&mut self, _: RequestId) {}
 
-    fn process_request_eof(&mut self) {}
+    fn process_request_eof(&mut self, _: RequestId) {}
 
-    fn process_response(&mut self, meta_result: Result<FetchMetadata, NetworkError>) {
+    fn process_response(&mut self, _: RequestId, meta_result: Result<FetchMetadata, NetworkError>) {
         let (metadata, error) = match meta_result {
             Ok(meta) => (
                 Some(match meta {
@@ -911,7 +912,7 @@ impl FetchResponseListener for ParserContext {
         }
     }
 
-    fn process_response_chunk(&mut self, payload: Vec<u8>) {
+    fn process_response_chunk(&mut self, _: RequestId, payload: Vec<u8>) {
         if self.is_synthesized_document {
             return;
         }
@@ -929,7 +930,11 @@ impl FetchResponseListener for ParserContext {
     // This method is called via script_thread::handle_fetch_eof, so we must call
     // submit_resource_timing in this function
     // Resource listeners are called via net_traits::Action::process, which handles submission for them
-    fn process_response_eof(&mut self, status: Result<ResourceFetchTiming, NetworkError>) {
+    fn process_response_eof(
+        &mut self,
+        _: RequestId,
+        status: Result<ResourceFetchTiming, NetworkError>,
+    ) {
         let parser = match self.parser.as_ref() {
             Some(parser) => parser.root(),
             None => return,

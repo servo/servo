@@ -15,8 +15,6 @@ use encoding_rs::UTF_8;
 use html5ever::local_name;
 use hyper_serde::Serde;
 use indexmap::IndexSet;
-use ipc_channel::ipc;
-use ipc_channel::router::ROUTER;
 use js::jsapi::{
     CompileModule1, ExceptionStackBehavior, FinishDynamicModuleImport, GetModuleRequestSpecifier,
     GetModuleResolveHook, GetRequestedModuleSpecifier, GetRequestedModulesCount,
@@ -36,11 +34,11 @@ use js::rust::{
 use mime::Mime;
 use net_traits::http_status::HttpStatus;
 use net_traits::request::{
-    CredentialsMode, Destination, ParserMetadata, Referrer, RequestBuilder, RequestMode,
+    CredentialsMode, Destination, ParserMetadata, Referrer, RequestBuilder, RequestId, RequestMode,
 };
 use net_traits::{
-    CoreResourceMsg, FetchChannels, FetchMetadata, FetchResponseListener, IpcSend, Metadata,
-    NetworkError, ReferrerPolicy, ResourceFetchTiming, ResourceTimingType,
+    FetchMetadata, FetchResponseListener, Metadata, NetworkError, ReferrerPolicy,
+    ResourceFetchTiming, ResourceTimingType,
 };
 use servo_url::ServoUrl;
 use url::ParseError as UrlParseError;
@@ -1046,11 +1044,13 @@ struct ModuleContext {
 }
 
 impl FetchResponseListener for ModuleContext {
-    fn process_request_body(&mut self) {} // TODO(cybai): Perhaps add custom steps to perform fetch here?
+    // TODO(cybai): Perhaps add custom steps to perform fetch here?
+    fn process_request_body(&mut self, _: RequestId) {}
 
-    fn process_request_eof(&mut self) {} // TODO(cybai): Perhaps add custom steps to perform fetch here?
+    // TODO(cybai): Perhaps add custom steps to perform fetch here?
+    fn process_request_eof(&mut self, _: RequestId) {}
 
-    fn process_response(&mut self, metadata: Result<FetchMetadata, NetworkError>) {
+    fn process_response(&mut self, _: RequestId, metadata: Result<FetchMetadata, NetworkError>) {
         self.metadata = metadata.ok().map(|meta| match meta {
             FetchMetadata::Unfiltered(m) => m,
             FetchMetadata::Filtered { unsafe_, .. } => unsafe_,
@@ -1078,7 +1078,7 @@ impl FetchResponseListener for ModuleContext {
         };
     }
 
-    fn process_response_chunk(&mut self, mut chunk: Vec<u8>) {
+    fn process_response_chunk(&mut self, _: RequestId, mut chunk: Vec<u8>) {
         if self.status.is_ok() {
             self.data.append(&mut chunk);
         }
@@ -1087,7 +1087,11 @@ impl FetchResponseListener for ModuleContext {
     /// <https://html.spec.whatwg.org/multipage/#fetch-a-single-module-script>
     /// Step 9-12
     #[allow(unsafe_code)]
-    fn process_response_eof(&mut self, response: Result<ResourceFetchTiming, NetworkError>) {
+    fn process_response_eof(
+        &mut self,
+        _: RequestId,
+        response: Result<ResourceFetchTiming, NetworkError>,
+    ) {
         let global = self.owner.global();
 
         if let Some(window) = global.downcast::<Window>() {
@@ -1669,35 +1673,24 @@ fn fetch_single_module_script(
         resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
     }));
 
-    let (action_sender, action_receiver) = ipc::channel().unwrap();
     let task_source = global.networking_task_source();
     let canceller = global.task_canceller(TaskSourceName::Networking);
 
-    let listener = NetworkListener {
+    let network_listener = NetworkListener {
         context,
         task_source,
         canceller: Some(canceller),
     };
-
-    ROUTER.add_route(
-        action_receiver.to_opaque(),
-        Box::new(move |message| {
-            listener.notify_fetch(message.to().unwrap());
-        }),
-    );
-
     match document {
-        Some(doc) => doc.fetch_async(LoadType::Script(url), request, action_sender),
-        None => {
-            global
-                .resource_threads()
-                .sender()
-                .send(CoreResourceMsg::Fetch(
-                    request,
-                    FetchChannels::ResponseMsg(action_sender, None),
-                ))
-                .unwrap();
+        Some(document) => {
+            let request = document.prepare_request(request);
+            document.loader_mut().fetch_async_with_callback(
+                LoadType::Script(url),
+                request,
+                network_listener.to_callback(),
+            );
         },
+        None => global.fetch_with_network_listener(request, network_listener, None),
     }
 }
 
