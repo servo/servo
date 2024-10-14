@@ -246,7 +246,7 @@ impl Gamepad {
     }
 
     pub fn notify_event(&self, event_type: GamepadEventType) {
-        let event = GamepadEvent::new_with_type(&self.global(), event_type, self);
+        let event = GamepadEvent::new_with_type(&self.global(), event_type, self, CanGc::note());
         event
             .upcast::<Event>()
             .fire(self.global().as_window().upcast::<EventTarget>());
