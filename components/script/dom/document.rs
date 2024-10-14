@@ -4645,6 +4645,7 @@ impl DocumentMethods for Document {
             "storageevent" => Ok(DomRoot::upcast(StorageEvent::new_uninitialized(
                 &self.window,
                 "".into(),
+                can_gc,
             ))),
             "touchevent" => Ok(DomRoot::upcast(TouchEvent::new_uninitialized(
                 &self.window,
