@@ -171,7 +171,7 @@ where
                     let non_replaced = NonReplacedFormattingContext {
                         base_fragment_info: info.into(),
                         style: info.style.clone(),
-                        content_sizes: None,
+                        content_sizes_result: None,
                         contents: NonReplacedFormattingContextContents::Flow(
                             block_formatting_context,
                         ),

@@ -587,6 +587,7 @@ impl HoistedAbsolutelyPositionedBox {
                                 );
                         non_replaced
                             .inline_content_sizes(layout_context, &containing_block_for_children)
+                            .sizes
                             .shrink_to_fit(available_size)
                     });
 

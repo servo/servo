@@ -137,7 +137,7 @@ impl Table {
         IndependentFormattingContext::NonReplaced(NonReplacedFormattingContext {
             base_fragment_info: (&anonymous_info).into(),
             style: grid_and_wrapper_style,
-            content_sizes: None,
+            content_sizes_result: None,
             contents: NonReplacedFormattingContextContents::Table(table),
         })
     }
@@ -858,7 +858,7 @@ where
                         context: ArcRefCell::new(NonReplacedFormattingContext {
                             style: info.style.clone(),
                             base_fragment_info: info.into(),
-                            content_sizes: None,
+                            content_sizes_result: None,
                             contents,
                         }),
                     };

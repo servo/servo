@@ -18,7 +18,7 @@ use crate::fragment_tree::{BaseFragmentInfo, BoxFragment, Fragment, FragmentFlag
 use crate::geom::LogicalSides;
 use crate::positioned::PositioningContext;
 use crate::replaced::ReplacedContent;
-use crate::sizing::{self, ContentSizes};
+use crate::sizing::{self, InlineContentSizesResult};
 use crate::style_ext::{AspectRatio, DisplayInside};
 use crate::table::Table;
 use crate::{AuOrAuto, ContainingBlock, IndefiniteContainingBlock, LogicalVec2};
@@ -36,7 +36,7 @@ pub(crate) struct NonReplacedFormattingContext {
     #[serde(skip_serializing)]
     pub style: Arc<ComputedValues>,
     /// If it was requested during construction
-    pub content_sizes: Option<(AuOrAuto, ContentSizes)>,
+    pub content_sizes_result: Option<(AuOrAuto, InlineContentSizesResult)>,
     pub contents: NonReplacedFormattingContextContents,
 }
 
@@ -152,7 +152,7 @@ impl IndependentFormattingContext {
                 Self::NonReplaced(NonReplacedFormattingContext {
                     style: Arc::clone(&node_and_style_info.style),
                     base_fragment_info,
-                    content_sizes: None,
+                    content_sizes_result: None,
                     contents,
                 })
             },
@@ -187,7 +187,7 @@ impl IndependentFormattingContext {
         layout_context: &LayoutContext,
         containing_block_for_children: &IndefiniteContainingBlock,
         containing_block: &IndefiniteContainingBlock,
-    ) -> ContentSizes {
+    ) -> InlineContentSizesResult {
         match self {
             Self::NonReplaced(inner) => {
                 inner.inline_content_sizes(layout_context, containing_block_for_children)
@@ -206,7 +206,7 @@ impl IndependentFormattingContext {
         containing_block: &IndefiniteContainingBlock,
         auto_minimum: &LogicalVec2<Au>,
         auto_block_size_stretches_to_containing_block: bool,
-    ) -> ContentSizes {
+    ) -> InlineContentSizesResult {
         match self {
             Self::NonReplaced(non_replaced) => non_replaced.outer_inline_content_sizes(
                 layout_context,
@@ -274,20 +274,22 @@ impl NonReplacedFormattingContext {
         &mut self,
         layout_context: &LayoutContext,
         containing_block_for_children: &IndefiniteContainingBlock,
-    ) -> ContentSizes {
+    ) -> InlineContentSizesResult {
         assert_eq!(
             containing_block_for_children.size.inline,
             AuOrAuto::Auto,
             "inline_content_sizes() got non-auto containing block inline-size",
         );
-        if let Some((previous_cb_block_size, result)) = self.content_sizes {
-            if previous_cb_block_size == containing_block_for_children.size.block {
+        if let Some((previous_cb_block_size, result)) = self.content_sizes_result {
+            if !result.depends_on_block_constraints ||
+                previous_cb_block_size == containing_block_for_children.size.block
+            {
                 return result;
             }
             // TODO: Should we keep multiple caches for various block sizes?
         }
 
-        self.content_sizes
+        self.content_sizes_result
             .insert((
                 containing_block_for_children.size.block,
                 self.contents
@@ -302,7 +304,7 @@ impl NonReplacedFormattingContext {
         containing_block: &IndefiniteContainingBlock,
         auto_minimum: &LogicalVec2<Au>,
         auto_block_size_stretches_to_containing_block: bool,
-    ) -> ContentSizes {
+    ) -> InlineContentSizesResult {
         sizing::outer_inline(
             &self.style.clone(),
             containing_block,
@@ -320,7 +322,7 @@ impl NonReplacedFormattingContextContents {
         &mut self,
         layout_context: &LayoutContext,
         containing_block_for_children: &IndefiniteContainingBlock,
-    ) -> ContentSizes {
+    ) -> InlineContentSizesResult {
         match self {
             Self::Flow(inner) => inner
                 .contents
