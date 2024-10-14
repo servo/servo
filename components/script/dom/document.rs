@@ -4652,7 +4652,10 @@ impl DocumentMethods for Document {
                 &TouchList::new(&self.window, &[]),
                 &TouchList::new(&self.window, &[]),
             ))),
-            "uievent" | "uievents" => Ok(DomRoot::upcast(UIEvent::new_uninitialized(&self.window))),
+            "uievent" | "uievents" => Ok(DomRoot::upcast(UIEvent::new_uninitialized(
+                &self.window,
+                can_gc,
+            ))),
             _ => Err(Error::NotSupported),
         }
     }

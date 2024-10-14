@@ -749,7 +749,7 @@ impl RTCPeerConnectionMethods for RTCPeerConnection {
     }
 
     /// <https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-close>
-    fn Close(&self) {
+    fn Close(&self, can_gc: CanGc) {
         // Step 1
         if self.closed.get() {
             return;
@@ -765,7 +765,7 @@ impl RTCPeerConnectionMethods for RTCPeerConnection {
 
         // Step 6
         for (_, val) in self.data_channels.borrow().iter() {
-            val.on_state_change(DataChannelState::Closed, CanGc::note());
+            val.on_state_change(DataChannelState::Closed, can_gc);
         }
 
         // Step 7-10

@@ -31,7 +31,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::hashchangeevent::HashChangeEvent;
 use crate::dom::popstateevent::PopStateEvent;
 use crate::dom::window::Window;
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{CanGc, JSContext};
 
 enum PushOrReplace {
     Push,
@@ -83,7 +83,7 @@ impl History {
     /// <https://html.spec.whatwg.org/multipage/#history-traversal>
     /// Steps 5-16
     #[allow(unsafe_code)]
-    pub fn activate_state(&self, state_id: Option<HistoryStateId>, url: ServoUrl) {
+    pub fn activate_state(&self, state_id: Option<HistoryStateId>, url: ServoUrl, can_gc: CanGc) {
         // Steps 5
         let document = self.window.Document();
         let old_url = document.url().clone();
@@ -139,6 +139,7 @@ impl History {
                 self.window.upcast::<EventTarget>(),
                 &self.window,
                 unsafe { HandleValue::from_raw(self.state.handle()) },
+                can_gc,
             );
         }
 
