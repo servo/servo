@@ -65,7 +65,7 @@ use metrics::{PaintTimeMetrics, MAX_TASK_NS};
 use mime::{self, Mime};
 use net_traits::image_cache::{ImageCache, PendingImageResponse};
 use net_traits::request::{
-    CredentialsMode, Destination, RedirectMode, RequestBuilder, RequestMode,
+    CredentialsMode, Destination, RedirectMode, RequestBuilder, RequestId, RequestMode,
 };
 use net_traits::storage_thread::StorageType;
 use net_traits::{
@@ -2288,15 +2288,17 @@ impl ScriptThread {
             ConstellationControlMsg::StopDelayingLoadEventsMode(pipeline_id) => {
                 self.handle_stop_delaying_load_events_mode(pipeline_id)
             },
-            ConstellationControlMsg::NavigationResponse(id, fetch_data) => {
+            ConstellationControlMsg::NavigationResponse(pipeline_id, fetch_data) => {
                 match fetch_data {
-                    FetchResponseMsg::ProcessResponse(metadata) => {
-                        self.handle_fetch_metadata(id, metadata)
+                    FetchResponseMsg::ProcessResponse(request_id, metadata) => {
+                        self.handle_fetch_metadata(pipeline_id, request_id, metadata)
                     },
-                    FetchResponseMsg::ProcessResponseChunk(chunk) => {
-                        self.handle_fetch_chunk(id, chunk)
+                    FetchResponseMsg::ProcessResponseChunk(request_id, chunk) => {
+                        self.handle_fetch_chunk(pipeline_id, request_id, chunk)
                     },
-                    FetchResponseMsg::ProcessResponseEOF(eof) => self.handle_fetch_eof(id, eof),
+                    FetchResponseMsg::ProcessResponseEOF(request_id, eof) => {
+                        self.handle_fetch_eof(pipeline_id, request_id, eof)
+                    },
                     _ => unreachable!(),
                 };
             },
@@ -4089,6 +4091,7 @@ impl ScriptThread {
     fn handle_fetch_metadata(
         &self,
         id: PipelineId,
+        request_id: RequestId,
         fetch_metadata: Result<FetchMetadata, NetworkError>,
     ) {
         match fetch_metadata {
@@ -4104,21 +4107,26 @@ impl ScriptThread {
             .iter_mut()
             .find(|&&mut (pipeline_id, _)| pipeline_id == id);
         if let Some(&mut (_, ref mut ctxt)) = parser {
-            ctxt.process_response(fetch_metadata);
+            ctxt.process_response(request_id, fetch_metadata);
         }
     }
 
-    fn handle_fetch_chunk(&self, id: PipelineId, chunk: Vec<u8>) {
+    fn handle_fetch_chunk(&self, pipeline_id: PipelineId, request_id: RequestId, chunk: Vec<u8>) {
         let mut incomplete_parser_contexts = self.incomplete_parser_contexts.0.borrow_mut();
         let parser = incomplete_parser_contexts
             .iter_mut()
-            .find(|&&mut (pipeline_id, _)| pipeline_id == id);
+            .find(|&&mut (parser_pipeline_id, _)| parser_pipeline_id == pipeline_id);
         if let Some(&mut (_, ref mut ctxt)) = parser {
-            ctxt.process_response_chunk(chunk);
+            ctxt.process_response_chunk(request_id, chunk);
         }
     }
 
-    fn handle_fetch_eof(&self, id: PipelineId, eof: Result<ResourceFetchTiming, NetworkError>) {
+    fn handle_fetch_eof(
+        &self,
+        id: PipelineId,
+        request_id: RequestId,
+        eof: Result<ResourceFetchTiming, NetworkError>,
+    ) {
         let idx = self
             .incomplete_parser_contexts
             .0
@@ -4128,7 +4136,7 @@ impl ScriptThread {
 
         if let Some(idx) = idx {
             let (_, mut ctxt) = self.incomplete_parser_contexts.0.borrow_mut().remove(idx);
-            ctxt.process_response_eof(eof);
+            ctxt.process_response_eof(request_id, eof);
         }
     }
 
@@ -4160,9 +4168,13 @@ impl ScriptThread {
             None => vec![],
         };
 
-        context.process_response(Ok(FetchMetadata::Unfiltered(meta)));
-        context.process_response_chunk(chunk);
-        context.process_response_eof(Ok(ResourceFetchTiming::new(ResourceTimingType::None)));
+        let dummy_request_id = RequestId::new();
+        context.process_response(dummy_request_id, Ok(FetchMetadata::Unfiltered(meta)));
+        context.process_response_chunk(dummy_request_id, chunk);
+        context.process_response_eof(
+            dummy_request_id,
+            Ok(ResourceFetchTiming::new(ResourceTimingType::None)),
+        );
     }
 
     /// Synchronously parse a srcdoc document from a giving HTML string.
@@ -4180,9 +4192,13 @@ impl ScriptThread {
 
         let chunk = load_data.srcdoc.into_bytes();
 
-        context.process_response(Ok(FetchMetadata::Unfiltered(meta)));
-        context.process_response_chunk(chunk);
-        context.process_response_eof(Ok(ResourceFetchTiming::new(ResourceTimingType::None)));
+        let dummy_request_id = RequestId::new();
+        context.process_response(dummy_request_id, Ok(FetchMetadata::Unfiltered(meta)));
+        context.process_response_chunk(dummy_request_id, chunk);
+        context.process_response_eof(
+            dummy_request_id,
+            Ok(ResourceFetchTiming::new(ResourceTimingType::None)),
+        );
     }
 
     fn handle_css_error_reporting(

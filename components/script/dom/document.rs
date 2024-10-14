@@ -11,7 +11,7 @@ use std::default::Default;
 use std::mem;
 use std::rc::Rc;
 use std::slice::from_ref;
-use std::sync::LazyLock;
+use std::sync::{LazyLock, Mutex};
 use std::time::{Duration, Instant};
 
 use base::cross_process_instant::CrossProcessInstant;
@@ -28,7 +28,7 @@ use encoding_rs::{Encoding, UTF_8};
 use euclid::default::{Point2D, Rect, Size2D};
 use html5ever::{local_name, namespace_url, ns, LocalName, Namespace, QualName};
 use hyper_serde::Serde;
-use ipc_channel::ipc::{self, IpcSender};
+use ipc_channel::ipc;
 use js::rust::{HandleObject, HandleValue};
 use keyboard_types::{Code, Key, KeyState};
 use metrics::{
@@ -41,7 +41,7 @@ use net_traits::request::RequestBuilder;
 use net_traits::response::HttpsState;
 use net_traits::CookieSource::NonHTTP;
 use net_traits::CoreResourceMsg::{GetCookiesForUrl, SetCookiesForUrl};
-use net_traits::{FetchResponseMsg, IpcSend, ReferrerPolicy};
+use net_traits::{FetchResponseListener, IpcSend, ReferrerPolicy};
 use num_traits::ToPrimitive;
 use percent_encoding::percent_decode;
 use profile_traits::ipc as profile_ipc;
@@ -178,6 +178,7 @@ use crate::dom::wheelevent::WheelEvent;
 use crate::dom::window::{ReflowReason, Window};
 use crate::dom::windowproxy::WindowProxy;
 use crate::fetch::FetchCanceller;
+use crate::network_listener::{NetworkListener, PreInvoke};
 use crate::realms::{AlreadyInRealm, InRealm};
 use crate::script_runtime::{CanGc, CommonScriptMsg, ScriptThreadEventCategory};
 use crate::script_thread::{MainThreadScriptMsg, ScriptThread};
@@ -2130,16 +2131,53 @@ impl Document {
         }
     }
 
-    pub fn fetch_async(
+    /// Add the CSP list and HTTPS state to a given request.
+    ///
+    /// TODO: Can this hapen for all requests that go through the document?
+    pub(crate) fn prepare_request(&self, request: RequestBuilder) -> RequestBuilder {
+        request
+            .csp_list(self.get_csp_list().map(|list| list.clone()))
+            .https_state(self.https_state.get())
+    }
+
+    pub(crate) fn fetch<Listener: FetchResponseListener + PreInvoke + Send + 'static>(
         &self,
         load: LoadType,
-        mut request: RequestBuilder,
-        fetch_target: IpcSender<FetchResponseMsg>,
+        request: RequestBuilder,
+        listener: Listener,
     ) {
-        request.csp_list = self.get_csp_list().map(|x| x.clone());
-        request.https_state = self.https_state.get();
-        let mut loader = self.loader.borrow_mut();
-        loader.fetch_async(load, request, fetch_target);
+        let (task_source, canceller) = self
+            .window()
+            .task_manager()
+            .networking_task_source_with_canceller();
+        let callback = NetworkListener {
+            context: std::sync::Arc::new(Mutex::new(listener)),
+            task_source,
+            canceller: Some(canceller),
+        }
+        .to_callback();
+        self.loader_mut()
+            .fetch_async_with_callback(load, request, callback);
+    }
+
+    pub(crate) fn fetch_background<Listener: FetchResponseListener + PreInvoke + Send + 'static>(
+        &self,
+        request: RequestBuilder,
+        listener: Listener,
+        cancel_override: Option<ipc::IpcReceiver<()>>,
+    ) {
+        let (task_source, canceller) = self
+            .window()
+            .task_manager()
+            .networking_task_source_with_canceller();
+        let callback = NetworkListener {
+            context: std::sync::Arc::new(Mutex::new(listener)),
+            task_source,
+            canceller: Some(canceller),
+        }
+        .to_callback();
+        self.loader_mut()
+            .fetch_async_background(request, callback, cancel_override);
     }
 
     // https://html.spec.whatwg.org/multipage/#the-end

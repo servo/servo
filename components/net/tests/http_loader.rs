@@ -1390,12 +1390,12 @@ fn test_fetch_compressed_response_update_count() {
     impl FetchTaskTarget for FetchResponseCollector {
         fn process_request_body(&mut self, _: &Request) {}
         fn process_request_eof(&mut self, _: &Request) {}
-        fn process_response(&mut self, _: &Response) {}
-        fn process_response_chunk(&mut self, _: Vec<u8>) {
+        fn process_response(&mut self, _: &Request, _: &Response) {}
+        fn process_response_chunk(&mut self, _: &Request, _: Vec<u8>) {
             self.update_count += 1;
         }
         /// Fired when the response is fully fetched
-        fn process_response_eof(&mut self, _: &Response) {
+        fn process_response_eof(&mut self, _: &Request, _: &Response) {
             let _ = self.sender.send(self.update_count);
         }
     }

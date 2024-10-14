@@ -6,12 +6,10 @@
 //! to be responsible for them because there's no guarantee that the responsible nodes will still
 //! exist in the future if layout holds on to them during asynchronous operations.
 
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
-use ipc_channel::ipc;
-use ipc_channel::router::ROUTER;
 use net_traits::image_cache::{ImageCache, PendingImageId};
-use net_traits::request::{Destination, RequestBuilder as FetchRequestInit};
+use net_traits::request::{Destination, RequestBuilder as FetchRequestInit, RequestId};
 use net_traits::{
     FetchMetadata, FetchResponseListener, FetchResponseMsg, NetworkError, ResourceFetchTiming,
     ResourceTimingType,
@@ -25,7 +23,7 @@ use crate::dom::document::Document;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::node::{document_from_node, Node};
 use crate::dom::performanceresourcetiming::InitiatorType;
-use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
+use crate::network_listener::{self, PreInvoke, ResourceTimingListener};
 
 struct LayoutImageContext {
     id: PendingImageId,
@@ -36,21 +34,35 @@ struct LayoutImageContext {
 }
 
 impl FetchResponseListener for LayoutImageContext {
-    fn process_request_body(&mut self) {}
-    fn process_request_eof(&mut self) {}
-    fn process_response(&mut self, metadata: Result<FetchMetadata, NetworkError>) {
-        self.cache
-            .notify_pending_response(self.id, FetchResponseMsg::ProcessResponse(metadata));
+    fn process_request_body(&mut self, _: RequestId) {}
+    fn process_request_eof(&mut self, _: RequestId) {}
+    fn process_response(
+        &mut self,
+        request_id: RequestId,
+        metadata: Result<FetchMetadata, NetworkError>,
+    ) {
+        self.cache.notify_pending_response(
+            self.id,
+            FetchResponseMsg::ProcessResponse(request_id, metadata),
+        );
     }
 
-    fn process_response_chunk(&mut self, payload: Vec<u8>) {
-        self.cache
-            .notify_pending_response(self.id, FetchResponseMsg::ProcessResponseChunk(payload));
+    fn process_response_chunk(&mut self, request_id: RequestId, payload: Vec<u8>) {
+        self.cache.notify_pending_response(
+            self.id,
+            FetchResponseMsg::ProcessResponseChunk(request_id, payload),
+        );
     }
 
-    fn process_response_eof(&mut self, response: Result<ResourceFetchTiming, NetworkError>) {
-        self.cache
-            .notify_pending_response(self.id, FetchResponseMsg::ProcessResponseEOF(response));
+    fn process_response_eof(
+        &mut self,
+        request_id: RequestId,
+        response: Result<ResourceFetchTiming, NetworkError>,
+    ) {
+        self.cache.notify_pending_response(
+            self.id,
+            FetchResponseMsg::ProcessResponseEOF(request_id, response),
+        );
     }
 
     fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming {
@@ -85,33 +97,13 @@ pub fn fetch_image_for_layout(
     cache: Arc<dyn ImageCache>,
 ) {
     let document = document_from_node(node);
-
-    let context = Arc::new(Mutex::new(LayoutImageContext {
+    let context = LayoutImageContext {
         id,
         cache,
         resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
         doc: Trusted::new(&document),
         url: url.clone(),
-    }));
-
-    let document = document_from_node(node);
-
-    let (action_sender, action_receiver) = ipc::channel().unwrap();
-    let (task_source, canceller) = document
-        .window()
-        .task_manager()
-        .networking_task_source_with_canceller();
-    let listener = NetworkListener {
-        context,
-        task_source,
-        canceller: Some(canceller),
     };
-    ROUTER.add_route(
-        action_receiver.to_opaque(),
-        Box::new(move |message| {
-            listener.notify_fetch(message.to().unwrap());
-        }),
-    );
 
     let request = FetchRequestInit::new(url, document.global().get_referrer())
         .origin(document.origin().immutable().clone())
@@ -119,7 +111,5 @@ pub fn fetch_image_for_layout(
         .pipeline_id(Some(document.global().pipeline_id()));
 
     // Layout image loads do not delay the document load event.
-    document
-        .loader_mut()
-        .fetch_async_background(request, action_sender);
+    document.fetch_background(request, context, None);
 }

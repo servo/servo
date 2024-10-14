@@ -6,8 +6,8 @@ use base::id::TEST_PIPELINE_ID;
 use http::header::{HeaderValue, EXPIRES};
 use http::StatusCode;
 use net::http_cache::HttpCache;
-use net_traits::request::{Origin, Referrer, Request};
-use net_traits::response::{HttpsState, Response, ResponseBody};
+use net_traits::request::{Referrer, RequestBuilder};
+use net_traits::response::{Response, ResponseBody};
 use net_traits::{ResourceFetchTiming, ResourceTimingType};
 use servo_url::ServoUrl;
 use tokio::sync::mpsc::unbounded_channel as unbounded;
@@ -20,13 +20,10 @@ fn test_refreshing_resource_sets_done_chan_the_appropriate_value() {
         ResponseBody::Done(vec![]),
     ];
     let url = ServoUrl::parse("https://servo.org").unwrap();
-    let request = Request::new(
-        url.clone(),
-        Some(Origin::Origin(url.clone().origin())),
-        Referrer::NoReferrer,
-        Some(TEST_PIPELINE_ID),
-        HttpsState::None,
-    );
+    let request = RequestBuilder::new(url.clone(), Referrer::NoReferrer)
+        .pipeline_id(Some(TEST_PIPELINE_ID))
+        .origin(url.origin())
+        .build();
     let timing = ResourceFetchTiming::new(ResourceTimingType::Navigation);
     let mut response = Response::new(url.clone(), timing);
     // Expires header makes the response cacheable.

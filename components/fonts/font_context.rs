@@ -656,22 +656,24 @@ impl RemoteWebFontDownloader {
 
         let core_resource_thread_clone = state.core_resource_thread.clone();
         fetch_async(
-            request,
             &core_resource_thread_clone,
-            move |response_message| match downloader.handle_web_font_fetch_message(response_message)
-            {
-                DownloaderResponseResult::InProcess => {},
-                DownloaderResponseResult::Finished => {
-                    if !downloader.process_downloaded_font_and_signal_completion(&state) {
-                        downloader
-                            .font_context
-                            .process_next_web_font_source(state.clone())
-                    }
-                },
-                DownloaderResponseResult::Failure => downloader
-                    .font_context
-                    .process_next_web_font_source(state.clone()),
-            },
+            request,
+            None,
+            Box::new(move |response_message| {
+                match downloader.handle_web_font_fetch_message(response_message) {
+                    DownloaderResponseResult::InProcess => {},
+                    DownloaderResponseResult::Finished => {
+                        if !downloader.process_downloaded_font_and_signal_completion(&state) {
+                            downloader
+                                .font_context
+                                .process_next_web_font_source(state.clone())
+                        }
+                    },
+                    DownloaderResponseResult::Failure => downloader
+                        .font_context
+                        .process_next_web_font_source(state.clone()),
+                }
+            }),
         )
     }
 
@@ -745,10 +747,10 @@ impl RemoteWebFontDownloader {
         response_message: FetchResponseMsg,
     ) -> DownloaderResponseResult {
         match response_message {
-            FetchResponseMsg::ProcessRequestBody | FetchResponseMsg::ProcessRequestEOF => {
+            FetchResponseMsg::ProcessRequestBody(..) | FetchResponseMsg::ProcessRequestEOF(..) => {
                 DownloaderResponseResult::InProcess
             },
-            FetchResponseMsg::ProcessResponse(meta_result) => {
+            FetchResponseMsg::ProcessResponse(_, meta_result) => {
                 trace!(
                     "@font-face {} metadata ok={:?}",
                     self.web_font_family_name,
@@ -757,7 +759,7 @@ impl RemoteWebFontDownloader {
                 *self.response_valid.lock() = meta_result.is_ok();
                 DownloaderResponseResult::InProcess
             },
-            FetchResponseMsg::ProcessResponseChunk(new_bytes) => {
+            FetchResponseMsg::ProcessResponseChunk(_, new_bytes) => {
                 trace!(
                     "@font-face {} chunk={:?}",
                     self.web_font_family_name,
@@ -768,7 +770,7 @@ impl RemoteWebFontDownloader {
                 }
                 DownloaderResponseResult::InProcess
             },
-            FetchResponseMsg::ProcessResponseEOF(response) => {
+            FetchResponseMsg::ProcessResponseEOF(_, response) => {
                 trace!(
                     "@font-face {} EOF={:?}",
                     self.web_font_family_name,
