@@ -30,7 +30,7 @@ use crate::dom::NodeExt;
 use crate::fragment_tree::{BaseFragmentInfo, Fragment, IFrameFragment, ImageFragment};
 use crate::geom::{LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSize};
 use crate::sizing::InlineContentSizesResult;
-use crate::style_ext::{AspectRatio, Clamp, ComputedValuesExt, PaddingBorderMargin};
+use crate::style_ext::{AspectRatio, Clamp, ComputedValuesExt, ContentBoxSizesAndPBMDeprecated};
 use crate::{AuOrAuto, ContainingBlock, IndefiniteContainingBlock};
 
 #[derive(Debug, Serialize)]
@@ -430,24 +430,22 @@ impl ReplacedContent {
         &self,
         containing_block: &ContainingBlock,
         style: &ComputedValues,
-        pbm: &PaddingBorderMargin,
+        content_box_sizes_and_pbm: &ContentBoxSizesAndPBMDeprecated,
     ) -> LogicalVec2<Au> {
-        let box_size = style
-            .content_box_size_deprecated(containing_block, pbm)
-            // We need to clamp to zero here to obtain the proper aspect
-            // ratio when box-sizing is border-box and the inner box size
-            // would otherwise be negative.
+        // We need to clamp to zero here to obtain the proper aspect ratio when box-sizing
+        // is border-box and the inner box size would otherwise be negative.
+        let content_box_size = content_box_sizes_and_pbm
+            .content_box_size
             .map(|value| value.map(|value| value.max(Au::zero())));
-        let min_box_size = style
-            .content_min_box_size_deprecated(containing_block, pbm)
+        let content_min_box_size = content_box_sizes_and_pbm
+            .content_min_box_size
             .auto_is(Au::zero);
-        let max_box_size = style.content_max_box_size_deprecated(containing_block, pbm);
         self.used_size_as_if_inline_element_from_content_box_sizes(
             containing_block,
             style,
-            box_size,
-            min_box_size,
-            max_box_size,
+            content_box_size,
+            content_min_box_size,
+            content_box_sizes_and_pbm.content_max_box_size,
         )
     }
 

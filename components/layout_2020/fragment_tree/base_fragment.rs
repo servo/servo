@@ -104,6 +104,10 @@ bitflags! {
         /// for empty table cells when 'empty-cells' is 'hide' and also table wrappers.  This flag
         /// doesn't avoid hit-testing nor does it prevent the painting outlines.
         const DO_NOT_PAINT = 1 << 6;
+        /// Whether or not the size of this fragment depends on the block size of its container
+        /// and the fragment can be a flex item. This flag is used to cache items during flex
+        /// layout.
+        const SIZE_DEPENDS_ON_BLOCK_CONSTRAINTS_AND_CAN_BE_CHILD_OF_FLEX_ITEM = 1 << 7;
     }
 }
 

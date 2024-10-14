@@ -459,9 +459,15 @@ impl HoistedAbsolutelyPositionedBox {
             IndependentFormattingContext::Replaced(replaced) => {
                 // https://drafts.csswg.org/css2/visudet.html#abs-replaced-width
                 // https://drafts.csswg.org/css2/visudet.html#abs-replaced-height
+                let content_box_sizes_and_pbm =
+                    style.content_box_sizes_and_padding_border_margin(&containing_block.into());
                 let used_size = replaced
                     .contents
-                    .used_size_as_if_inline_element(containing_block, &style, &pbm)
+                    .used_size_as_if_inline_element(
+                        containing_block,
+                        &style,
+                        &content_box_sizes_and_pbm.into(),
+                    )
                     .map(|size| Size::Numeric(*size));
                 (used_size, Default::default(), Default::default())
             },
@@ -477,7 +483,7 @@ impl HoistedAbsolutelyPositionedBox {
             .static_position_rect
             .to_logical(containing_block);
 
-        let box_offset = style.box_offsets(containing_block);
+        let box_offset = style.box_offsets(containing_block.style.writing_mode);
 
         // When the "static-position rect" doesn't come into play, we do not do any alignment
         // in the inline axis.
@@ -982,7 +988,7 @@ pub(crate) fn relative_adjustement(
     let cbis = containing_block.inline_size;
     let cbbs = containing_block.block_size;
     let box_offsets = style
-        .box_offsets(containing_block)
+        .box_offsets(containing_block.style.writing_mode)
         .map_inline_and_block_axes(
             |value| value.map(|value| value.to_used_value(cbis)),
             |value| match cbbs.non_auto() {

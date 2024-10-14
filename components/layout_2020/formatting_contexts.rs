@@ -90,6 +90,9 @@ pub(crate) struct IndependentLayout {
     /// there was one. This is used to propagate baselines to the ancestors of `display:
     /// inline-block`.
     pub baselines: Baselines,
+
+    /// Whether or not this layout depends on the containing block size.
+    pub depends_on_block_constraints: bool,
 }
 
 pub(crate) struct IndependentLayoutResult {

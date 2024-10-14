@@ -11,7 +11,7 @@ use serde::Serialize;
 use style::properties::ComputedValues;
 use style::Zero;
 
-use crate::style_ext::{Clamp, ComputedValuesExt};
+use crate::style_ext::{Clamp, ComputedValuesExt, ContentBoxSizesAndPBMDeprecated};
 use crate::{AuOrAuto, IndefiniteContainingBlock, LogicalVec2};
 
 #[derive(PartialEq)]
@@ -120,21 +120,24 @@ pub(crate) fn outer_inline(
     auto_block_size_stretches_to_containing_block: bool,
     get_content_size: impl FnOnce(&IndefiniteContainingBlock) -> InlineContentSizesResult,
 ) -> InlineContentSizesResult {
-    let (
+    let ContentBoxSizesAndPBMDeprecated {
         content_box_size,
-        content_min_size,
-        content_max_size,
+        content_min_box_size,
+        content_max_box_size,
         pbm,
         mut depends_on_block_constraints,
-    ) = style.content_box_sizes_and_padding_border_margin_deprecated(containing_block);
-    let content_min_size = LogicalVec2 {
-        inline: content_min_size.inline.auto_is(|| auto_minimum.inline),
-        block: content_min_size.block.auto_is(|| auto_minimum.block),
+    } = style
+        .content_box_sizes_and_padding_border_margin(containing_block)
+        .into();
+    let content_box_min_size = LogicalVec2 {
+        inline: content_min_box_size.inline.auto_is(|| auto_minimum.inline),
+        block: content_min_box_size.block.auto_is(|| auto_minimum.block),
     };
     let margin = pbm.margin.map(|v| v.auto_is(Au::zero));
     let pbm_inline_sum = pbm.padding_border_sums.inline + margin.inline_sum();
     let adjust = |v: Au| {
-        v.clamp_between_extremums(content_min_size.inline, content_max_size.inline) + pbm_inline_sum
+        v.clamp_between_extremums(content_box_min_size.inline, content_max_box_size.inline) +
+            pbm_inline_sum
     };
     match content_box_size.inline {
         AuOrAuto::LengthPercentage(inline_size) => InlineContentSizesResult {
@@ -151,7 +154,9 @@ pub(crate) fn outer_inline(
             } else {
                 content_box_size.block
             }
-            .map(|v| v.clamp_between_extremums(content_min_size.block, content_max_size.block));
+            .map(|v| {
+                v.clamp_between_extremums(content_box_min_size.block, content_max_box_size.block)
+            });
             let containing_block_for_children =
                 IndefiniteContainingBlock::new_for_style_and_block_size(style, block_size);
             let content_result = get_content_size(&containing_block_for_children);
