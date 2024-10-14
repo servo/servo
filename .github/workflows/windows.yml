@@ -18,6 +18,10 @@ on:
       github-release-id:
         required: false
         type: string
+      force-github-hosted-runner:
+        required: false
+        type: boolean
+        default: false
   workflow_dispatch:
     inputs:
       profile:
@@ -33,6 +37,10 @@ on:
         required: false
         default: false
         type: boolean
+      force-github-hosted-runner:
+        required: false
+        type: boolean
+        default: false
 
 env:
   RUST_BACKTRACE: 1
@@ -54,6 +62,7 @@ jobs:
     with:
       github-hosted-runner-label: windows-2022
       self-hosted-image-name: servo-windows10
+      force-github-hosted-runner: ${{ inputs.force-github-hosted-runner }}
   runner-timeout:
     needs:
       - runner-select

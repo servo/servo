@@ -86,6 +86,7 @@ jobs:
       profile: "production"
       upload: true
       github-release-id: ${{ needs.create-draft-release.outputs.release-id }}
+      force-github-hosted-runner: true  # <https://github.com/servo/servo/issues/33296>
     secrets: inherit
 
   upload-mac:
@@ -112,6 +113,7 @@ jobs:
       profile: "production"
       upload: true
       github-release-id: ${{ needs.create-draft-release.outputs.release-id }}
+      force-github-hosted-runner: true  # <https://github.com/servo/servo/issues/33296>
     secrets: inherit
 
   upload-android:

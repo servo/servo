@@ -28,6 +28,10 @@ on:
       github-release-id:
         required: false
         type: string
+      force-github-hosted-runner:
+        required: false
+        type: boolean
+        default: false
   workflow_dispatch:
     inputs:
       profile:
@@ -55,6 +59,10 @@ on:
         required: false
         default: false
         type: boolean
+      force-github-hosted-runner:
+        required: false
+        type: boolean
+        default: false
 
 env:
   RUST_BACKTRACE: 1
@@ -72,7 +80,7 @@ jobs:
       # runners which still use 20.04.
       github-hosted-runner-label: ubuntu-${{ inputs.upload && '20.04' || '22.04' }}
       self-hosted-image-name: servo-ubuntu2204
-      force-github-hosted-runner: ${{ inputs.upload }}
+      force-github-hosted-runner: ${{ inputs.upload || inputs.force-github-hosted-runner }}
   runner-timeout:
     needs:
       - runner-select
