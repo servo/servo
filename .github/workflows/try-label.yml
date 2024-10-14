@@ -137,6 +137,7 @@ jobs:
       profile: ${{ matrix.profile }}
       unit-tests: ${{ matrix.unit_tests }}
       wpt-args: ${{ matrix.wpt_args }}
+      bencher: ${{ matrix.bencher }}
 
   results:
     name: Results
