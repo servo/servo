@@ -1045,7 +1045,7 @@ impl HTMLImageElement {
         }
         // step 7, await a stable state.
         self.generation.set(self.generation.get() + 1);
-        let task = ImageElementMicrotask::StableStateUpdateImageDataTask {
+        let task = ImageElementMicrotask::StableStateUpdateImageData {
             elem: DomRoot::from_ref(self),
             generation: self.generation.get(),
         };
@@ -1055,7 +1055,7 @@ impl HTMLImageElement {
     /// <https://html.spec.whatwg.org/multipage/#img-environment-changes>
     pub fn react_to_environment_changes(&self) {
         // Step 1
-        let task = ImageElementMicrotask::EnvironmentChangesTask {
+        let task = ImageElementMicrotask::EnvironmentChanges {
             elem: DomRoot::from_ref(self),
             generation: self.generation.get(),
         };
@@ -1400,15 +1400,15 @@ impl HTMLImageElement {
 
 #[derive(JSTraceable, MallocSizeOf)]
 pub enum ImageElementMicrotask {
-    StableStateUpdateImageDataTask {
+    StableStateUpdateImageData {
         elem: DomRoot<HTMLImageElement>,
         generation: u32,
     },
-    EnvironmentChangesTask {
+    EnvironmentChanges {
         elem: DomRoot<HTMLImageElement>,
         generation: u32,
     },
-    DecodeTask {
+    Decode {
         elem: DomRoot<HTMLImageElement>,
         #[ignore_malloc_size_of = "promises are hard"]
         promise: Rc<Promise>,
@@ -1418,7 +1418,7 @@ pub enum ImageElementMicrotask {
 impl MicrotaskRunnable for ImageElementMicrotask {
     fn handler(&self, can_gc: CanGc) {
         match *self {
-            ImageElementMicrotask::StableStateUpdateImageDataTask {
+            ImageElementMicrotask::StableStateUpdateImageData {
                 ref elem,
                 ref generation,
             } => {
@@ -1428,13 +1428,13 @@ impl MicrotaskRunnable for ImageElementMicrotask {
                     elem.update_the_image_data_sync_steps(can_gc);
                 }
             },
-            ImageElementMicrotask::EnvironmentChangesTask {
+            ImageElementMicrotask::EnvironmentChanges {
                 ref elem,
                 ref generation,
             } => {
                 elem.react_to_environment_changes_sync_steps(*generation, can_gc);
             },
-            ImageElementMicrotask::DecodeTask {
+            ImageElementMicrotask::Decode {
                 ref elem,
                 ref promise,
             } => {
@@ -1445,9 +1445,9 @@ impl MicrotaskRunnable for ImageElementMicrotask {
 
     fn enter_realm(&self) -> JSAutoRealm {
         match self {
-            &ImageElementMicrotask::StableStateUpdateImageDataTask { ref elem, .. } |
-            &ImageElementMicrotask::EnvironmentChangesTask { ref elem, .. } |
-            &ImageElementMicrotask::DecodeTask { ref elem, .. } => enter_realm(&**elem),
+            &ImageElementMicrotask::StableStateUpdateImageData { ref elem, .. } |
+            &ImageElementMicrotask::EnvironmentChanges { ref elem, .. } |
+            &ImageElementMicrotask::Decode { ref elem, .. } => enter_realm(&**elem),
         }
     }
 }
@@ -1719,7 +1719,7 @@ impl HTMLImageElementMethods for HTMLImageElement {
         let promise = Promise::new(&self.global());
 
         // Step 2
-        let task = ImageElementMicrotask::DecodeTask {
+        let task = ImageElementMicrotask::Decode {
             elem: DomRoot::from_ref(self),
             promise: promise.clone(),
         };
