@@ -597,6 +597,7 @@ impl AsyncWGPUListener for GPUDevice {
                         &self.global(),
                         msg.into(),
                         GPUPipelineErrorReason::Validation,
+                        can_gc,
                     ))
                 },
                 Err(webgpu::Error::OutOfMemory(msg) | webgpu::Error::Internal(msg)) => promise
@@ -604,6 +605,7 @@ impl AsyncWGPUListener for GPUDevice {
                         &self.global(),
                         msg.into(),
                         GPUPipelineErrorReason::Internal,
+                        can_gc,
                     )),
             },
             WebGPUResponse::RenderPipeline(result) => match result {
@@ -618,6 +620,7 @@ impl AsyncWGPUListener for GPUDevice {
                         &self.global(),
                         msg.into(),
                         GPUPipelineErrorReason::Validation,
+                        can_gc,
                     ))
                 },
                 Err(webgpu::Error::OutOfMemory(msg) | webgpu::Error::Internal(msg)) => promise
@@ -625,6 +628,7 @@ impl AsyncWGPUListener for GPUDevice {
                         &self.global(),
                         msg.into(),
                         GPUPipelineErrorReason::Internal,
+                        can_gc,
                     )),
             },
             _ => unreachable!("Wrong response received on AsyncWGPUListener for GPUDevice"),

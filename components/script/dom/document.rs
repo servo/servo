@@ -1666,6 +1666,7 @@ impl Document {
         delta: WheelDelta,
         client_point: Point2D<f32>,
         node_address: Option<UntrustedNodeAddress>,
+        can_gc: CanGc,
     ) {
         let wheel_event_type_string = "wheel".to_owned();
         debug!("{}: at {:?}", wheel_event_type_string, client_point);
@@ -1697,6 +1698,7 @@ impl Document {
             Finite::wrap(delta.y),
             Finite::wrap(delta.z),
             delta.mode as u32,
+            can_gc,
         );
 
         let event = event.upcast::<Event>();

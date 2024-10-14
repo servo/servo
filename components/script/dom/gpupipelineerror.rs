@@ -49,8 +49,9 @@ impl GPUPipelineError {
         global: &GlobalScope,
         message: DOMString,
         reason: GPUPipelineErrorReason,
+        can_gc: CanGc,
     ) -> DomRoot<Self> {
-        Self::new_with_proto(global, None, message, reason, CanGc::note())
+        Self::new_with_proto(global, None, message, reason, can_gc)
     }
 }
 

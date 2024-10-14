@@ -1613,7 +1613,7 @@ impl ScriptThread {
                 },
 
                 CompositorEvent::WheelEvent(delta, point, node_address) => {
-                    self.handle_wheel_event(pipeline_id, delta, point, node_address);
+                    self.handle_wheel_event(pipeline_id, delta, point, node_address, can_gc);
                 },
 
                 CompositorEvent::KeyboardEvent(key_event) => {
@@ -3944,12 +3944,13 @@ impl ScriptThread {
         wheel_delta: WheelDelta,
         point: Point2D<f32>,
         node_address: Option<UntrustedNodeAddress>,
+        can_gc: CanGc,
     ) {
         let Some(document) = self.documents.borrow().find_document(pipeline_id) else {
             warn!("Message sent to closed pipeline {pipeline_id}.");
             return;
         };
-        unsafe { document.handle_wheel_event(wheel_delta, point, node_address) };
+        unsafe { document.handle_wheel_event(wheel_delta, point, node_address, can_gc) };
     }
 
     /// Handle a "navigate an iframe" message from the constellation.
