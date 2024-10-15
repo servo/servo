@@ -160,7 +160,7 @@ fn test_check_default_headers_loaded_in_every_request() {
     );
     headers.insert(
         HeaderName::from_static("sec-fetch-site"),
-        HeaderValue::from_static("same-site"),
+        HeaderValue::from_static("same-origin"),
     );
     headers.insert(
         HeaderName::from_static("sec-fetch-user"),
@@ -177,7 +177,7 @@ fn test_check_default_headers_loaded_in_every_request() {
         .pipeline_id(Some(TEST_PIPELINE_ID))
         .build();
 
-    let response = fetch(&mut request, None);
+    let response = dbg!(fetch(&mut request, None));
     assert!(response
         .internal_response
         .unwrap()

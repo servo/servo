@@ -1371,7 +1371,7 @@ fn test_fetch_with_devtools() {
     // Append fetch metadata headers
     headers.insert(
         HeaderName::from_static("sec-fetch-dest"),
-        HeaderValue::from_static("document"),
+        HeaderValue::from_static("empty"),
     );
     headers.insert(
         HeaderName::from_static("sec-fetch-mode"),
@@ -1379,11 +1379,7 @@ fn test_fetch_with_devtools() {
     );
     headers.insert(
         HeaderName::from_static("sec-fetch-site"),
-        HeaderValue::from_static("same-site"),
-    );
-    headers.insert(
-        HeaderName::from_static("sec-fetch-user"),
-        HeaderValue::from_static("?1"),
+        HeaderValue::from_static("same-origin"),
     );
 
     let httprequest = DevtoolsHttpRequest {
