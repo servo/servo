@@ -33,7 +33,6 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::realms::InRealm;
 
-// https://webbluetoothcg.github.io/web-bluetooth/#bluetoothdevice
 #[derive(JSTraceable, MallocSizeOf)]
 struct AttributeInstanceMap {
     service_map: DomRefCell<HashMap<String, Dom<BluetoothRemoteGATTService>>>,
@@ -41,6 +40,7 @@ struct AttributeInstanceMap {
     descriptor_map: DomRefCell<HashMap<String, Dom<BluetoothRemoteGATTDescriptor>>>,
 }
 
+// https://webbluetoothcg.github.io/web-bluetooth/#bluetoothdevice
 #[dom_struct]
 pub struct BluetoothDevice {
     eventtarget: EventTarget,
