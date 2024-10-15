@@ -622,10 +622,10 @@ impl ToLogicalWithContainingBlock<LogicalRect<Au>> for PhysicalRect<Au> {
     }
 }
 
-/// The possible keywords accepted by the sizing properties.
+/// The possible values accepted by the sizing properties.
 /// <https://drafts.csswg.org/css-sizing/#sizing-properties>
 #[derive(Clone)]
-pub(crate) enum SizeKeyword {
+pub(crate) enum Size<T> {
     /// Represents an `auto` value for the preferred and minimum size properties,
     /// or `none` for the maximum size properties.
     /// <https://drafts.csswg.org/css-sizing/#valdef-width-auto>
@@ -639,38 +639,32 @@ pub(crate) enum SizeKeyword {
     FitContent,
     /// <https://drafts.csswg.org/css-sizing-4/#valdef-width-stretch>
     Stretch,
-}
-
-/// The possible values accepted by the sizing properties,
-/// with numeric `<length-percentage>` resolved as a `T`.
-/// <https://drafts.csswg.org/css-sizing/#sizing-properties>
-#[derive(Clone)]
-pub(crate) enum Size<T> {
-    Keyword(SizeKeyword),
+    /// Represents a numeric `<length-percentage>`, but resolved as a `T`.
+    /// <https://drafts.csswg.org/css-sizing/#valdef-width-length-percentage-0>
     Numeric(T),
 }
 
 impl<T> Default for Size<T> {
     #[inline]
     fn default() -> Self {
-        Self::Keyword(SizeKeyword::Initial)
+        Self::Initial
     }
 }
 
 impl<T> Size<T> {
     #[inline]
     pub(crate) fn fit_content() -> Self {
-        Self::Keyword(SizeKeyword::FitContent)
+        Self::FitContent
     }
 
     #[inline]
     pub(crate) fn is_keyword(&self) -> bool {
-        matches!(self, Self::Keyword(_))
+        !matches!(self, Self::Numeric(_))
     }
 
     #[inline]
     pub(crate) fn is_initial(&self) -> bool {
-        matches!(self, Self::Keyword(SizeKeyword::Initial))
+        matches!(self, Self::Initial)
     }
 }
 
@@ -678,8 +672,8 @@ impl<T: Clone> Size<T> {
     #[inline]
     pub(crate) fn to_numeric(&self) -> Option<T> {
         match self {
-            Self::Keyword(_) => None,
             Self::Numeric(numeric) => Some(numeric).cloned(),
+            _ => None,
         }
     }
 
@@ -692,7 +686,11 @@ impl<T: Clone> Size<T> {
     #[inline]
     pub fn map<U>(&self, f: impl FnOnce(T) -> U) -> Size<U> {
         match self {
-            Size::Keyword(keyword) => Size::Keyword(keyword.clone()),
+            Size::Initial => Size::Initial,
+            Size::MinContent => Size::MinContent,
+            Size::MaxContent => Size::MaxContent,
+            Size::FitContent => Size::FitContent,
+            Size::Stretch => Size::Stretch,
             Size::Numeric(numeric) => Size::Numeric(f(numeric.clone())),
         }
     }
@@ -700,8 +698,8 @@ impl<T: Clone> Size<T> {
     #[inline]
     pub fn maybe_map<U>(&self, f: impl FnOnce(T) -> Option<U>) -> Option<Size<U>> {
         Some(match self {
-            Size::Keyword(keyword) => Size::Keyword(keyword.clone()),
             Size::Numeric(numeric) => Size::Numeric(f(numeric.clone())?),
+            _ => self.map(|_| unreachable!("This shouldn't be called for keywords")),
         })
     }
 }
@@ -710,11 +708,11 @@ impl From<StyleSize> for Size<LengthPercentage> {
     fn from(size: StyleSize) -> Self {
         match size {
             StyleSize::LengthPercentage(length) => Size::Numeric(length.0),
-            StyleSize::Auto => Size::Keyword(SizeKeyword::Initial),
-            StyleSize::MinContent => Size::Keyword(SizeKeyword::MinContent),
-            StyleSize::MaxContent => Size::Keyword(SizeKeyword::MaxContent),
-            StyleSize::FitContent => Size::Keyword(SizeKeyword::FitContent),
-            StyleSize::Stretch => Size::Keyword(SizeKeyword::Stretch),
+            StyleSize::Auto => Size::Initial,
+            StyleSize::MinContent => Size::MinContent,
+            StyleSize::MaxContent => Size::MaxContent,
+            StyleSize::FitContent => Size::FitContent,
+            StyleSize::Stretch => Size::Stretch,
         }
     }
 }
@@ -723,11 +721,11 @@ impl From<StyleMaxSize> for Size<LengthPercentage> {
     fn from(max_size: StyleMaxSize) -> Self {
         match max_size {
             StyleMaxSize::LengthPercentage(length) => Size::Numeric(length.0),
-            StyleMaxSize::None => Size::Keyword(SizeKeyword::Initial),
-            StyleMaxSize::MinContent => Size::Keyword(SizeKeyword::MinContent),
-            StyleMaxSize::MaxContent => Size::Keyword(SizeKeyword::MaxContent),
-            StyleMaxSize::FitContent => Size::Keyword(SizeKeyword::FitContent),
-            StyleMaxSize::Stretch => Size::Keyword(SizeKeyword::Stretch),
+            StyleMaxSize::None => Size::Initial,
+            StyleMaxSize::MinContent => Size::MinContent,
+            StyleMaxSize::MaxContent => Size::MaxContent,
+            StyleMaxSize::FitContent => Size::FitContent,
+            StyleMaxSize::Stretch => Size::Stretch,
         }
     }
 }
@@ -803,13 +801,11 @@ impl Size<Au> {
         get_content_size: &mut impl FnMut() -> ContentSizes,
     ) -> Option<Au> {
         match self {
-            Self::Keyword(SizeKeyword::Initial) => None,
-            Self::Keyword(SizeKeyword::MinContent) => Some(get_content_size().min_content),
-            Self::Keyword(SizeKeyword::MaxContent) => Some(get_content_size().max_content),
-            Self::Keyword(SizeKeyword::FitContent) => {
-                Some(get_content_size().shrink_to_fit(stretch_size))
-            },
-            Self::Keyword(SizeKeyword::Stretch) => Some(stretch_size),
+            Self::Initial => None,
+            Self::MinContent => Some(get_content_size().min_content),
+            Self::MaxContent => Some(get_content_size().max_content),
+            Self::FitContent => Some(get_content_size().shrink_to_fit(stretch_size)),
+            Self::Stretch => Some(stretch_size),
             Self::Numeric(numeric) => Some(*numeric),
         }
     }
@@ -826,13 +822,8 @@ impl Size<Au> {
     #[inline]
     pub(crate) fn maybe_resolve_extrinsic(&self, stretch_size: Option<Au>) -> Option<Au> {
         match self {
-            Self::Keyword(keyword) => match keyword {
-                SizeKeyword::Initial |
-                SizeKeyword::MinContent |
-                SizeKeyword::MaxContent |
-                SizeKeyword::FitContent => None,
-                SizeKeyword::Stretch => stretch_size,
-            },
+            Self::Initial | Self::MinContent | Self::MaxContent | Self::FitContent => None,
+            Self::Stretch => stretch_size,
             Self::Numeric(numeric) => Some(*numeric),
         }
     }

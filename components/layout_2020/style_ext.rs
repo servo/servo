@@ -29,7 +29,7 @@ use crate::dom_traversal::Contents;
 use crate::fragment_tree::FragmentFlags;
 use crate::geom::{
     AuOrAuto, LengthPercentageOrAuto, LogicalSides, LogicalVec2, PhysicalSides, PhysicalSize,
-    PhysicalVec, Size, SizeKeyword,
+    PhysicalVec, Size,
 };
 use crate::{ContainingBlock, IndefiniteContainingBlock};
 
@@ -528,7 +528,7 @@ impl ComputedValuesExt for ComputedValues {
                 // TODO: We are assuming that Size::Initial doesn't stretch. However, it may actually
                 // stretch flex and grid items depending on the CSS Align properties, in that case
                 // the caller needs to take care of it.
-                Size::Keyword(SizeKeyword::Stretch) => true,
+                Size::Stretch => true,
                 Size::Numeric(length_percentage) => length_percentage.has_percentage(),
                 _ => false,
             }
