@@ -83,8 +83,8 @@ webgpu = { path = "../webgpu" }
 webrender = { workspace = true }
 webrender_api = { workspace = true }
 webrender_traits = { workspace = true }
-webxr = { git = "https://github.com/servo/webxr" }
-webxr-api = { git = "https://github.com/servo/webxr" }
+webxr = { workspace = true }
+webxr-api = { workspace = true }
 
 [target.'cfg(all(not(target_os = "windows"), not(target_os = "ios"), not(target_os = "android"), not(target_arch = "arm"), not(target_arch = "aarch64")))'.dependencies]
 gaol = "0.2.1"

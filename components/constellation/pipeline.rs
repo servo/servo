@@ -240,21 +240,19 @@ impl Pipeline {
                         let (script_to_devtools_ipc_sender, script_to_devtools_ipc_receiver) =
                             ipc::channel().expect("Pipeline script to devtools chan");
                         let devtools_sender = (*devtools_sender).clone();
-                        ROUTER.add_route(
-                            script_to_devtools_ipc_receiver.to_opaque(),
-                            Box::new(move |message| {
-                                match message.to::<ScriptToDevtoolsControlMsg>() {
-                                    Err(e) => {
-                                        error!("Cast to ScriptToDevtoolsControlMsg failed ({}).", e)
-                                    },
-                                    Ok(message) => {
-                                        if let Err(e) = devtools_sender
-                                            .send(DevtoolsControlMsg::FromScript(message))
-                                        {
-                                            warn!("Sending to devtools failed ({:?})", e)
-                                        }
-                                    },
-                                }
+                        ROUTER.add_typed_route(
+                            script_to_devtools_ipc_receiver,
+                            Box::new(move |message| match message {
+                                Err(e) => {
+                                    error!("Cast to ScriptToDevtoolsControlMsg failed ({}).", e)
+                                },
+                                Ok(message) => {
+                                    if let Err(e) = devtools_sender
+                                        .send(DevtoolsControlMsg::FromScript(message))
+                                    {
+                                        warn!("Sending to devtools failed ({:?})", e)
+                                    }
+                                },
                             }),
                         );
                         script_to_devtools_ipc_sender

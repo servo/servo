@@ -1077,14 +1077,15 @@ impl HTMLImageElement {
                 .task_manager()
                 .networking_task_source_with_canceller();
             let generation = elem.generation.get();
-            ROUTER.add_route(
-                responder_receiver.to_opaque(),
+
+            ROUTER.add_typed_route(
+                responder_receiver,
                 Box::new(move |message| {
                     debug!("Got image {:?}", message);
                     // Return the image via a message to the script thread, which marks
                     // the element as dirty and triggers a reflow.
                     let element = trusted_node.clone();
-                    let image: PendingImageResponse = message.to().unwrap();
+                    let image: PendingImageResponse = message.unwrap();
                     let selected_source_clone = selected_source.clone();
                     let _ = task_source.queue_with_canceller(
                         task!(process_image_response_for_environment_change: move || {

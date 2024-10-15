@@ -607,10 +607,10 @@ impl EventSourceMethods for EventSource {
             task_source: global.networking_task_source(),
             canceller: Some(global.task_canceller(TaskSourceName::Networking)),
         };
-        ROUTER.add_route(
-            action_receiver.to_opaque(),
+        ROUTER.add_typed_route(
+            action_receiver,
             Box::new(move |message| {
-                listener.notify_fetch(message.to().unwrap());
+                listener.notify_fetch(message.unwrap());
             }),
         );
         let cancel_receiver = ev.canceller.borrow_mut().initialize();

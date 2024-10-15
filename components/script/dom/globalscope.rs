@@ -847,10 +847,10 @@ impl GlobalScope {
             task_source,
             canceller,
         };
-        ROUTER.add_route(
-            timer_ipc_port.to_opaque(),
+        ROUTER.add_typed_route(
+            timer_ipc_port,
             Box::new(move |message| {
-                let event = message.to().unwrap();
+                let event = message.unwrap();
                 timer_listener.handle(event);
             }),
         );
@@ -1435,14 +1435,11 @@ impl GlobalScope {
                 task_source,
                 context,
             };
-            ROUTER.add_route(
-                broadcast_control_receiver.to_opaque(),
-                Box::new(move |message| {
-                    let msg = message.to();
-                    match msg {
-                        Ok(msg) => listener.handle(msg),
-                        Err(err) => warn!("Error receiving a BroadcastMsg: {:?}", err),
-                    }
+            ROUTER.add_typed_route(
+                broadcast_control_receiver,
+                Box::new(move |message| match message {
+                    Ok(msg) => listener.handle(msg),
+                    Err(err) => warn!("Error receiving a BroadcastMsg: {:?}", err),
                 }),
             );
             let router_id = BroadcastChannelRouterId::new();
@@ -1491,14 +1488,11 @@ impl GlobalScope {
                 task_source,
                 context,
             };
-            ROUTER.add_route(
-                port_control_receiver.to_opaque(),
-                Box::new(move |message| {
-                    let msg = message.to();
-                    match msg {
-                        Ok(msg) => listener.notify(msg),
-                        Err(err) => warn!("Error receiving a MessagePortMsg: {:?}", err),
-                    }
+            ROUTER.add_typed_route(
+                port_control_receiver,
+                Box::new(move |message| match message {
+                    Ok(msg) => listener.notify(msg),
+                    Err(err) => warn!("Error receiving a MessagePortMsg: {:?}", err),
                 }),
             );
             let router_id = MessagePortRouterId::new();
@@ -2021,13 +2015,10 @@ impl GlobalScope {
             task_canceller,
         };
 
-        ROUTER.add_route(
-            recv.to_opaque(),
+        ROUTER.add_typed_route(
+            recv.to_ipc_receiver(),
             Box::new(move |msg| {
-                file_listener.handle(
-                    msg.to()
-                        .expect("Deserialization of file listener msg failed."),
-                );
+                file_listener.handle(msg.expect("Deserialization of file listener msg failed."));
             }),
         );
 
@@ -2050,13 +2041,10 @@ impl GlobalScope {
             task_canceller,
         };
 
-        ROUTER.add_route(
-            recv.to_opaque(),
+        ROUTER.add_typed_route(
+            recv.to_ipc_receiver(),
             Box::new(move |msg| {
-                file_listener.handle(
-                    msg.to()
-                        .expect("Deserialization of file listener msg failed."),
-                );
+                file_listener.handle(msg.expect("Deserialization of file listener msg failed."));
             }),
         );
     }

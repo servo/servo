@@ -32,11 +32,12 @@ pub fn generate_cache_listener_for_element<
         .task_manager()
         .networking_task_source_with_canceller();
     let generation = elem.generation_id();
-    ROUTER.add_route(
-        responder_receiver.to_opaque(),
+
+    ROUTER.add_typed_route(
+        responder_receiver,
         Box::new(move |message| {
             let element = trusted_node.clone();
-            let image: PendingImageResponse = message.to().unwrap();
+            let image: PendingImageResponse = message.unwrap();
             debug!("Got image {:?}", image);
             let _ = task_source.queue_with_canceller(
                 task!(process_image_response: move || {
