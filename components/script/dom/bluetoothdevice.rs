@@ -33,6 +33,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::realms::InRealm;
 
+#[crown::unrooted_must_root_lint::must_root]
 #[derive(JSTraceable, MallocSizeOf)]
 struct AttributeInstanceMap {
     service_map: DomRefCell<HashMap<String, Dom<BluetoothRemoteGATTService>>>,
