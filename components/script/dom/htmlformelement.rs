@@ -88,6 +88,7 @@ use crate::task_source::TaskSource;
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
 pub struct GenerationId(u32);
 
+#[allow(clippy::type_complexity)]
 #[dom_struct]
 pub struct HTMLFormElement {
     htmlelement: HTMLElement,
