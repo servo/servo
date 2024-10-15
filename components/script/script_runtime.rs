@@ -757,7 +757,22 @@ unsafe extern "C" fn get_size(obj: *mut JSObject) -> usize {
         Err(_e) => 0,
     }
 }
-
+/// Retrieves memory reports from the given JavaScript context.
+///
+/// # Safety
+/// This function is unsafe because it takes a raw pointer to a `RawJSContext`.
+/// The caller must ensure that:
+/// - `cx` is a valid, non-null pointer to a `RawJSContext`.
+/// - The memory pointed to by `cx` remains valid for the duration of the function call.
+/// - The function should not be called from multiple threads simultaneously unless
+///   appropriate synchronization is used.
+///
+/// # Arguments
+/// * `cx` - A mutable pointer to a `RawJSContext`.
+/// * `path_seg` - A string segment to append to the report paths.
+///
+/// # Returns
+/// A vector of `Report` containing the collected memory statistics.
 #[allow(unsafe_code)]
 pub unsafe fn get_reports(cx: *mut RawJSContext, path_seg: String) -> Vec<Report> {
     let mut reports = vec![];
