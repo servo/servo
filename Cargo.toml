@@ -70,7 +70,7 @@ icu_segmenter = "1.5.0"
 image = "0.24"
 imsz = "0.2"
 indexmap = { version = "2.5.0", features = ["std"] }
-ipc-channel = "0.18"
+ipc-channel = "0.19"
 itertools = "0.13"
 tikv-jemalloc-sys = "0.6.0"
 tikv-jemallocator = "0.6.0"
@@ -145,6 +145,8 @@ webpki-roots = "0.25"
 webrender = { git = "https://github.com/servo/webrender", branch = "0.65", features = ["capture"] }
 webrender_api = { git = "https://github.com/servo/webrender", branch = "0.65" }
 webrender_traits = { path = "components/shared/webrender" }
+webxr = { git = "https://github.com/servo/webxr" }
+webxr-api = { git = "https://github.com/servo/webxr" }
 wgpu-core = { git = "https://github.com/gfx-rs/wgpu", rev = "2b15a2b24b69e105ebdbb5e8a859e2df75e441c1" }
 wgpu-types = { git = "https://github.com/gfx-rs/wgpu", rev = "2b15a2b24b69e105ebdbb5e8a859e2df75e441c1" }
 windows-sys = "0.59"

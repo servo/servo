@@ -95,7 +95,7 @@ ohos-vsync = "0.1"
 nix = { workspace = true, features = ["fs"] }
 surfman = { workspace = true, features = ["sm-angle-default"] }
 serde_json = { workspace = true }
-webxr = { git = "https://github.com/servo/webxr" }
+webxr = { workspace = true }
 
 
 [target.'cfg(not(any(target_os = "android", target_env = "ohos")))'.dependencies]
@@ -118,7 +118,7 @@ raw-window-handle = "0.6"
 shellwords = "1.0.0"
 surfman = { workspace = true, features = ["sm-x11", "sm-raw-window-handle-06"] }
 tinyfiledialogs = "3.0"
-webxr = { git = "https://github.com/servo/webxr", features = ["ipc", "glwindow", "headless"] }
+webxr = { workspace = true, features = ["ipc", "glwindow", "headless"] }
 winit = "0.30.5"
 
 [target.'cfg(any(all(target_os = "linux", not(target_env = "ohos")), target_os = "windows"))'.dependencies]
@@ -128,6 +128,6 @@ image = { workspace = true }
 sig = "1.0"
 
 [target.'cfg(target_os = "windows")'.dependencies]
-webxr = { git = "https://github.com/servo/webxr", features = ["ipc", "glwindow", "headless", "openxr-api"] }
+webxr = { workspace = true, features = ["ipc", "glwindow", "headless", "openxr-api"] }
 windows-sys = { workspace = true, features = ["Win32_Graphics_Gdi"] }
 libservo = { path = "../../components/servo", features = ["no-wgl"] }

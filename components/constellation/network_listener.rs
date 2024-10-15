@@ -86,11 +86,10 @@ impl NetworkListener {
             },
         };
 
-        ROUTER.add_route(
-            ipc_receiver.to_opaque(),
+        ROUTER.add_typed_route(
+            ipc_receiver,
             Box::new(move |message| {
-                let msg = message.to();
-                match msg {
+                match message {
                     Ok(FetchResponseMsg::ProcessResponse(request_id, res)) => {
                         listener.check_redirect(request_id, res)
                     },

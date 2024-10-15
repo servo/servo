@@ -306,8 +306,9 @@ impl FakeXRDeviceMethods for FakeXRDevice {
             .task_manager()
             .dom_manipulation_task_source_with_canceller();
         let (sender, receiver) = ipc::channel(global.time_profiler_chan().clone()).unwrap();
-        ROUTER.add_route(
-            receiver.to_opaque(),
+
+        ROUTER.add_typed_route(
+            receiver.to_ipc_receiver(),
             Box::new(move |_| {
                 let trusted = trusted
                     .take()

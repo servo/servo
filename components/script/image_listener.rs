@@ -32,6 +32,12 @@ pub fn generate_cache_listener_for_element<
         .task_manager()
         .networking_task_source_with_canceller();
     let generation = elem.generation_id();
+
+    // FIXME (#23818)
+    // We want to use Router::add_typed_route here, but because the
+    // receiver type (PendingImageResponse) and message type (ImageResponse)
+    // do not match we can't. This is very bad!
+    #[allow(deprecated)]
     ROUTER.add_route(
         responder_receiver.to_opaque(),
         Box::new(move |message| {

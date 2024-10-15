@@ -98,10 +98,10 @@ fn create_request_body_with_content(content: Vec<u8>) -> RequestBody {
     let content_len = content.len();
 
     let (chunk_request_sender, chunk_request_receiver) = ipc::channel().unwrap();
-    ROUTER.add_route(
-        chunk_request_receiver.to_opaque(),
+    ROUTER.add_typed_route(
+        chunk_request_receiver,
         Box::new(move |message| {
-            let request = message.to().unwrap();
+            let request = message.unwrap();
             if let BodyChunkRequest::Connect(sender) = request {
                 let _ = sender.send(BodyChunkResponse::Chunk(content.clone()));
                 let _ = sender.send(BodyChunkResponse::Done);

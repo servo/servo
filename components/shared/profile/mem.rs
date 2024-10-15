@@ -75,11 +75,11 @@ impl ProfilerChan {
     {
         // Register the memory reporter.
         let (reporter_sender, reporter_receiver) = ipc::channel().unwrap();
-        ROUTER.add_route(
-            reporter_receiver.to_opaque(),
+        ROUTER.add_typed_route(
+            reporter_receiver,
             Box::new(move |message| {
                 // Just injects an appropriate event into the paint thread's queue.
-                let request: ReporterRequest = message.to().unwrap();
+                let request: ReporterRequest = message.unwrap();
                 channel_for_reporter.send(msg(request.reports_channel));
             }),
         );

@@ -35,8 +35,8 @@ where
         self.ipc_receiver.try_recv()
     }
 
-    pub fn to_opaque(self) -> ipc::OpaqueIpcReceiver {
-        self.ipc_receiver.to_opaque()
+    pub fn to_ipc_receiver(self) -> ipc::IpcReceiver<T> {
+        self.ipc_receiver
     }
 }
 

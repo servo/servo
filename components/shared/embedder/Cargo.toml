@@ -23,4 +23,4 @@ num-traits = { workspace = true }
 serde = { workspace = true }
 servo_url = { path = "../../url" }
 webrender_api = { workspace = true }
-webxr-api = { git = "https://github.com/servo/webxr", features = ["ipc"] }
+webxr-api = { workspace = true, features = ["ipc"] }

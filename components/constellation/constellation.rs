@@ -594,9 +594,11 @@ where
     T: for<'de> Deserialize<'de> + Serialize + Send + 'static,
 {
     let (crossbeam_sender, crossbeam_receiver) = unbounded();
-    ROUTER.add_route(
-        ipc_receiver.to_opaque(),
-        Box::new(move |message| drop(crossbeam_sender.send(message.to::<T>()))),
+    ROUTER.add_typed_route(
+        ipc_receiver,
+        Box::new(move |message| {
+            let _ = crossbeam_sender.send(message);
+        }),
     );
     crossbeam_receiver
 }

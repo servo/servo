@@ -114,10 +114,10 @@ impl TransmitBodyConnectHandler {
         let mut body_handler = self.clone();
         body_handler.reset_in_memory_done();
 
-        ROUTER.add_route(
-            chunk_request_receiver.to_opaque(),
+        ROUTER.add_typed_route(
+            chunk_request_receiver,
             Box::new(move |message| {
-                let request = message.to().unwrap();
+                let request = message.unwrap();
                 match request {
                     BodyChunkRequest::Connect(sender) => {
                         body_handler.start_reading(sender);
@@ -397,11 +397,10 @@ impl ExtractedBody {
             source,
         );
 
-        ROUTER.add_route(
-            chunk_request_receiver.to_opaque(),
+        ROUTER.add_typed_route(
+            chunk_request_receiver,
             Box::new(move |message| {
-                let request = message.to().unwrap();
-                match request {
+                match message.unwrap() {
                     BodyChunkRequest::Connect(sender) => {
                         body_handler.start_reading(sender);
                     },
