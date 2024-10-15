@@ -79,39 +79,40 @@ impl DOMQuadMethods for DOMQuad {
         Ok(DOMQuad::new_with_proto(
             global,
             proto,
-            &DOMPoint::new_from_init(global, p1),
-            &DOMPoint::new_from_init(global, p2),
-            &DOMPoint::new_from_init(global, p3),
-            &DOMPoint::new_from_init(global, p4),
+            &DOMPoint::new_from_init(global, p1, can_gc),
+            &DOMPoint::new_from_init(global, p2, can_gc),
+            &DOMPoint::new_from_init(global, p3, can_gc),
+            &DOMPoint::new_from_init(global, p4, can_gc),
             can_gc,
         ))
     }
 
     // https://drafts.fxtf.org/geometry/#dom-domquad-fromrect
-    fn FromRect(global: &GlobalScope, other: &DOMRectInit) -> DomRoot<DOMQuad> {
+    fn FromRect(global: &GlobalScope, other: &DOMRectInit, can_gc: CanGc) -> DomRoot<DOMQuad> {
         DOMQuad::new(
             global,
-            &DOMPoint::new(global, other.x, other.y, 0f64, 1f64),
-            &DOMPoint::new(global, other.x + other.width, other.y, 0f64, 1f64),
+            &DOMPoint::new(global, other.x, other.y, 0f64, 1f64, can_gc),
+            &DOMPoint::new(global, other.x + other.width, other.y, 0f64, 1f64, can_gc),
             &DOMPoint::new(
                 global,
                 other.x + other.width,
                 other.y + other.height,
                 0f64,
                 1f64,
+                can_gc,
             ),
-            &DOMPoint::new(global, other.x, other.y + other.height, 0f64, 1f64),
+            &DOMPoint::new(global, other.x, other.y + other.height, 0f64, 1f64, can_gc),
         )
     }
 
     // https://drafts.fxtf.org/geometry/#dom-domquad-fromquad
-    fn FromQuad(global: &GlobalScope, other: &DOMQuadInit) -> DomRoot<DOMQuad> {
+    fn FromQuad(global: &GlobalScope, other: &DOMQuadInit, can_gc: CanGc) -> DomRoot<DOMQuad> {
         DOMQuad::new(
             global,
-            &DOMPoint::new_from_init(global, &other.p1),
-            &DOMPoint::new_from_init(global, &other.p2),
-            &DOMPoint::new_from_init(global, &other.p3),
-            &DOMPoint::new_from_init(global, &other.p4),
+            &DOMPoint::new_from_init(global, &other.p1, can_gc),
+            &DOMPoint::new_from_init(global, &other.p2, can_gc),
+            &DOMPoint::new_from_init(global, &other.p3, can_gc),
+            &DOMPoint::new_from_init(global, &other.p4, can_gc),
         )
     }
 

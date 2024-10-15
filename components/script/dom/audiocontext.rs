@@ -265,10 +265,11 @@ impl AudioContextMethods for AudioContext {
     fn CreateMediaElementSource(
         &self,
         media_element: &HTMLMediaElement,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<MediaElementAudioSourceNode>> {
         let global = self.global();
         let window = global.as_window();
-        MediaElementAudioSourceNode::new(window, self, media_element)
+        MediaElementAudioSourceNode::new(window, self, media_element, can_gc)
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-audiocontext-createmediastreamsource>

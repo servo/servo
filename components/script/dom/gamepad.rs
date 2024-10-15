@@ -132,7 +132,7 @@ impl Gamepad {
     ) -> DomRoot<Gamepad> {
         let button_list = GamepadButtonList::init_buttons(global);
         let vibration_actuator =
-            GamepadHapticActuator::new(global, gamepad_id, supported_haptic_effects);
+            GamepadHapticActuator::new(global, gamepad_id, supported_haptic_effects, can_gc);
         let index = if xr { -1 } else { 0 };
         let gamepad = reflect_dom_object_with_proto(
             Box::new(Gamepad::new_inherited(

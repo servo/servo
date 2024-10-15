@@ -1700,7 +1700,7 @@ impl ScriptThread {
                 // Evaluate media queries and report changes.
                 document
                     .window()
-                    .evaluate_media_queries_and_report_changes();
+                    .evaluate_media_queries_and_report_changes(can_gc);
 
                 // https://html.spec.whatwg.org/multipage/#img-environment-changes
                 // As per the spec, this can be run at any time.

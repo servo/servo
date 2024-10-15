@@ -28,8 +28,15 @@ impl DOMPoint {
         }
     }
 
-    pub fn new(global: &GlobalScope, x: f64, y: f64, z: f64, w: f64) -> DomRoot<DOMPoint> {
-        Self::new_with_proto(global, None, x, y, z, w, CanGc::note())
+    pub fn new(
+        global: &GlobalScope,
+        x: f64,
+        y: f64,
+        z: f64,
+        w: f64,
+        can_gc: CanGc,
+    ) -> DomRoot<DOMPoint> {
+        Self::new_with_proto(global, None, x, y, z, w, can_gc)
     }
 
     fn new_with_proto(
@@ -49,8 +56,12 @@ impl DOMPoint {
         )
     }
 
-    pub fn new_from_init(global: &GlobalScope, p: &DOMPointInit) -> DomRoot<DOMPoint> {
-        DOMPoint::new(global, p.x, p.y, p.z, p.w)
+    pub fn new_from_init(
+        global: &GlobalScope,
+        p: &DOMPointInit,
+        can_gc: CanGc,
+    ) -> DomRoot<DOMPoint> {
+        DOMPoint::new(global, p.x, p.y, p.z, p.w, can_gc)
     }
 }
 
@@ -69,8 +80,8 @@ impl DOMPointMethods for DOMPoint {
     }
 
     // https://drafts.fxtf.org/geometry/#dom-dompoint-frompoint
-    fn FromPoint(global: &GlobalScope, init: &DOMPointInit) -> DomRoot<Self> {
-        Self::new_from_init(global, init)
+    fn FromPoint(global: &GlobalScope, init: &DOMPointInit, can_gc: CanGc) -> DomRoot<Self> {
+        Self::new_from_init(global, init, can_gc)
     }
 
     // https://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-x

@@ -37,8 +37,8 @@ impl MediaMetadata {
         }
     }
 
-    pub fn new(global: &Window, init: &MediaMetadataInit) -> DomRoot<MediaMetadata> {
-        Self::new_with_proto(global, None, init, CanGc::note())
+    pub fn new(global: &Window, init: &MediaMetadataInit, can_gc: CanGc) -> DomRoot<MediaMetadata> {
+        Self::new_with_proto(global, None, init, can_gc)
     }
 
     fn new_with_proto(

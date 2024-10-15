@@ -75,8 +75,8 @@ impl MouseEvent {
         }
     }
 
-    pub fn new_uninitialized(window: &Window) -> DomRoot<MouseEvent> {
-        Self::new_uninitialized_with_proto(window, None, CanGc::note())
+    pub fn new_uninitialized(window: &Window, can_gc: CanGc) -> DomRoot<MouseEvent> {
+        Self::new_uninitialized_with_proto(window, None, can_gc)
     }
 
     fn new_uninitialized_with_proto(

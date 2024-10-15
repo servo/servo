@@ -357,8 +357,13 @@ impl BaseAudioContextMethods for BaseAudioContext {
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-creategain>
-    fn CreateGain(&self) -> Fallible<DomRoot<GainNode>> {
-        GainNode::new(self.global().as_window(), self, &GainOptions::empty())
+    fn CreateGain(&self, can_gc: CanGc) -> Fallible<DomRoot<GainNode>> {
+        GainNode::new(
+            self.global().as_window(),
+            self,
+            &GainOptions::empty(),
+            can_gc,
+        )
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createpanner>

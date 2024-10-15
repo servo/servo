@@ -60,13 +60,14 @@ impl XRInputSourceArray {
             session,
             &added,
             &[],
+            can_gc,
         );
         // Release the refcell guard
         drop(input_sources);
         event.upcast::<Event>().fire(session.upcast());
     }
 
-    pub fn remove_input_source(&self, session: &XRSession, id: InputId) {
+    pub fn remove_input_source(&self, session: &XRSession, id: InputId, can_gc: CanGc) {
         let mut input_sources = self.input_sources.borrow_mut();
         let global = self.global();
         let removed = if let Some(i) = input_sources.iter().find(|i| i.id() == id) {
@@ -84,6 +85,7 @@ impl XRInputSourceArray {
             session,
             &[],
             &removed,
+            can_gc,
         );
         input_sources.retain(|i| i.id() != id);
         // release the refcell guard
@@ -123,6 +125,7 @@ impl XRInputSourceArray {
             session,
             &added,
             removed,
+            can_gc,
         );
         // release the refcell guard
         drop(input_sources);
