@@ -822,10 +822,6 @@ impl DOMMatrixReadOnlyMethods for DOMMatrixReadOnly {
             return Err(error::Error::InvalidState);
         }
 
-        // Step 2. Let string be the empty string.
-        let string;
-
-        // Step 3. If is 2D is true, then:
         let cx = GlobalScope::get_cx();
         let to_string = |f: f64| {
             let value = jsval::DoubleValue(f);
@@ -839,7 +835,10 @@ impl DOMMatrixReadOnlyMethods for DOMMatrixReadOnly {
                 )
             }
         };
-        if self.is2D() {
+
+        // Step 2. Let string be the empty string.
+        // Step 3. If is 2D is true, then:
+        let string = if self.is2D() {
             // Step 3.1 Append "matrix(" to string.
             // Step 3.2 Append ! ToString(m11 element) to string.
             // Step 3.3 Append ", " to string.
@@ -853,7 +852,7 @@ impl DOMMatrixReadOnlyMethods for DOMMatrixReadOnly {
             // Step 3.11 Append ", " to string.
             // Step 3.12 Append ! ToString(m42 element) to string.
             // Step 3.13 Append ")" to string.
-            string = format!(
+            format!(
                 "matrix({}, {}, {}, {}, {}, {})",
                 to_string(mat.m11),
                 to_string(mat.m12),
@@ -862,7 +861,7 @@ impl DOMMatrixReadOnlyMethods for DOMMatrixReadOnly {
                 to_string(mat.m41),
                 to_string(mat.m42)
             )
-            .into();
+            .into()
         }
         // Step 4. Otherwise:
         else {
@@ -894,7 +893,7 @@ impl DOMMatrixReadOnlyMethods for DOMMatrixReadOnly {
 
             // NOTE: The spec is wrong and missing the m3* elements.
             // (https://github.com/w3c/fxtf-drafts/issues/574)
-            string = format!(
+            format!(
                 "matrix3d({}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {})",
                 to_string(mat.m11),
                 to_string(mat.m12),
@@ -913,8 +912,8 @@ impl DOMMatrixReadOnlyMethods for DOMMatrixReadOnly {
                 to_string(mat.m43),
                 to_string(mat.m44)
             )
-            .into();
-        }
+            .into()
+        };
 
         Ok(string)
     }
