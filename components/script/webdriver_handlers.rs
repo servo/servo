@@ -374,7 +374,7 @@ pub fn handle_get_browsing_context_id(
 }
 
 // https://w3c.github.io/webdriver/#dfn-center-point
-fn get_element_in_view_center_point(element: &Element) -> Option<Point2D<i64>> {
+fn get_element_in_view_center_point(element: &Element, can_gc: CanGc) -> Option<Point2D<i64>> {
     window_from_node(element.upcast::<Node>())
         .Document()
         .GetBody()
@@ -382,31 +382,28 @@ fn get_element_in_view_center_point(element: &Element) -> Option<Point2D<i64>> {
         .and_then(|body| {
             // Step 1: Let rectangle be the first element of the DOMRect sequence
             // returned by calling getClientRects() on element.
-            element
-                .GetClientRects(CanGc::note())
-                .first()
-                .map(|rectangle| {
-                    let x = rectangle.X().round() as i64;
-                    let y = rectangle.Y().round() as i64;
-                    let width = rectangle.Width().round() as i64;
-                    let height = rectangle.Height().round() as i64;
+            element.GetClientRects(can_gc).first().map(|rectangle| {
+                let x = rectangle.X().round() as i64;
+                let y = rectangle.Y().round() as i64;
+                let width = rectangle.Width().round() as i64;
+                let height = rectangle.Height().round() as i64;
 
-                    let client_width = body.ClientWidth() as i64;
-                    let client_height = body.ClientHeight() as i64;
+                let client_width = body.ClientWidth() as i64;
+                let client_height = body.ClientHeight() as i64;
 
-                    // Steps 2 - 5
-                    let left = cmp::max(0, cmp::min(x, x + width));
-                    let right = cmp::min(client_width, cmp::max(x, x + width));
-                    let top = cmp::max(0, cmp::min(y, y + height));
-                    let bottom = cmp::min(client_height, cmp::max(y, y + height));
+                // Steps 2 - 5
+                let left = cmp::max(0, cmp::min(x, x + width));
+                let right = cmp::min(client_width, cmp::max(x, x + width));
+                let top = cmp::max(0, cmp::min(y, y + height));
+                let bottom = cmp::min(client_height, cmp::max(y, y + height));
 
-                    // Steps 6 - 7
-                    let x = (left + right) / 2;
-                    let y = (top + bottom) / 2;
+                // Steps 6 - 7
+                let x = (left + right) / 2;
+                let y = (top + bottom) / 2;
 
-                    // Step 8
-                    Point2D::new(x, y)
-                })
+                // Step 8
+                Point2D::new(x, y)
+            })
         })
 }
 
@@ -415,11 +412,12 @@ pub fn handle_get_element_in_view_center_point(
     pipeline: PipelineId,
     element_id: String,
     reply: IpcSender<Result<Option<(i64, i64)>, ErrorStatus>>,
+    can_gc: CanGc,
 ) {
     reply
         .send(
             find_node_by_unique_id(documents, pipeline, element_id).map(|node| {
-                get_element_in_view_center_point(node.downcast::<Element>().unwrap())
+                get_element_in_view_center_point(node.downcast::<Element>().unwrap(), can_gc)
                     .map(|point| (point.x, point.y))
             }),
         )
@@ -715,6 +713,7 @@ pub fn handle_get_page_source(
     documents: &Documents,
     pipeline: PipelineId,
     reply: IpcSender<Result<String, ErrorStatus>>,
+    can_gc: CanGc,
 ) {
     reply
         .send(
@@ -725,7 +724,7 @@ pub fn handle_get_page_source(
                     Some(element) => match element.GetOuterHTML() {
                         Ok(source) => Ok(source.to_string()),
                         Err(_) => {
-                            match XMLSerializer::new(document.window(), None, CanGc::note())
+                            match XMLSerializer::new(document.window(), None, can_gc)
                                 .SerializeToString(element.upcast::<Node>())
                             {
                                 Ok(source) => Ok(source.to_string()),
@@ -926,6 +925,7 @@ pub fn handle_get_bounding_client_rect(
     pipeline: PipelineId,
     element_id: String,
     reply: IpcSender<Result<Rect<f32>, ErrorStatus>>,
+    can_gc: CanGc,
 ) {
     reply
         .send(
@@ -933,7 +933,7 @@ pub fn handle_get_bounding_client_rect(
                 .downcast::<Element>(
             ) {
                 Some(element) => {
-                    let rect = element.GetBoundingClientRect(CanGc::note());
+                    let rect = element.GetBoundingClientRect(can_gc);
                     Ok(Rect::new(
                         Point2D::new(rect.X() as f32, rect.Y() as f32),
                         Size2D::new(rect.Width() as f32, rect.Height() as f32),

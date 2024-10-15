@@ -1463,9 +1463,10 @@ impl ScriptThread {
         id: PipelineId,
         size: WindowSizeData,
         size_type: WindowSizeType,
+        can_gc: CanGc,
     ) {
         self.profile_event(ScriptThreadEventCategory::Resize, Some(id), || {
-            self.handle_resize_event(id, size, size_type);
+            self.handle_resize_event(id, size, size_type, can_gc);
         });
     }
 
@@ -1694,7 +1695,7 @@ impl ScriptThread {
 
             if let Some((size, size_type)) = document.window().take_unhandled_resize_event() {
                 // Resize steps.
-                self.run_the_resize_steps(pipeline_id, size, size_type);
+                self.run_the_resize_steps(pipeline_id, size, size_type, can_gc);
 
                 // Evaluate media queries and report changes.
                 document
@@ -2366,7 +2367,7 @@ impl ScriptThread {
                 can_gc,
             ),
             ConstellationControlMsg::UpdateHistoryState(pipeline_id, history_state_id, url) => {
-                self.handle_update_history_state_msg(pipeline_id, history_state_id, url)
+                self.handle_update_history_state_msg(pipeline_id, history_state_id, url, can_gc)
             },
             ConstellationControlMsg::RemoveHistoryStates(pipeline_id, history_states) => {
                 self.handle_remove_history_states(pipeline_id, history_states)
@@ -2375,7 +2376,7 @@ impl ScriptThread {
                 self.handle_focus_iframe_msg(parent_pipeline_id, frame_id)
             },
             ConstellationControlMsg::WebDriverScriptCommand(pipeline_id, msg) => {
-                self.handle_webdriver_msg(pipeline_id, msg)
+                self.handle_webdriver_msg(pipeline_id, msg, can_gc)
             },
             ConstellationControlMsg::WebFontLoaded(pipeline_id, success) => {
                 self.handle_web_font_loaded(pipeline_id, success)
@@ -2630,7 +2631,12 @@ impl ScriptThread {
         }
     }
 
-    fn handle_webdriver_msg(&self, pipeline_id: PipelineId, msg: WebDriverScriptCommand) {
+    fn handle_webdriver_msg(
+        &self,
+        pipeline_id: PipelineId,
+        msg: WebDriverScriptCommand,
+        can_gc: CanGc,
+    ) {
         // https://github.com/servo/servo/issues/23535
         // These two messages need different treatment since the JS script might mutate
         // `self.documents`, which would conflict with the immutable borrow of it that
@@ -2777,7 +2783,7 @@ impl ScriptThread {
                 webdriver_handlers::handle_get_active_element(&documents, pipeline_id, reply)
             },
             WebDriverScriptCommand::GetPageSource(reply) => {
-                webdriver_handlers::handle_get_page_source(&documents, pipeline_id, reply)
+                webdriver_handlers::handle_get_page_source(&documents, pipeline_id, reply, can_gc)
             },
             WebDriverScriptCommand::GetCookies(reply) => {
                 webdriver_handlers::handle_get_cookies(&documents, pipeline_id, reply)
@@ -2818,6 +2824,7 @@ impl ScriptThread {
                     pipeline_id,
                     node_id,
                     reply,
+                    can_gc,
                 )
             },
             WebDriverScriptCommand::GetElementText(node_id, reply) => {
@@ -2829,6 +2836,7 @@ impl ScriptThread {
                     pipeline_id,
                     node_id,
                     reply,
+                    can_gc,
                 )
             },
             WebDriverScriptCommand::GetBrowsingContextId(webdriver_frame_id, reply) => {
@@ -3125,6 +3133,7 @@ impl ScriptThread {
         pipeline_id: PipelineId,
         history_state_id: Option<HistoryStateId>,
         url: ServoUrl,
+        can_gc: CanGc,
     ) {
         let window = self.documents.borrow().find_window(pipeline_id);
         match window {
@@ -3134,7 +3143,9 @@ impl ScriptThread {
                     pipeline_id
                 );
             },
-            Some(window) => window.History().activate_state(history_state_id, url),
+            Some(window) => window
+                .History()
+                .activate_state(history_state_id, url, can_gc),
         }
     }
 
@@ -4018,6 +4029,7 @@ impl ScriptThread {
         pipeline_id: PipelineId,
         new_size: WindowSizeData,
         size_type: WindowSizeType,
+        can_gc: CanGc,
     ) {
         let document = match self.documents.borrow().find_document(pipeline_id) {
             Some(document) => document,
@@ -4046,6 +4058,7 @@ impl ScriptThread {
                 EventCancelable::NotCancelable,
                 Some(window),
                 0i32,
+                can_gc,
             );
             uievent.upcast::<Event>().fire(window.upcast());
         }

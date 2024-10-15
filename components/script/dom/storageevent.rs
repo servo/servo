@@ -49,8 +49,12 @@ impl StorageEvent {
         }
     }
 
-    pub fn new_uninitialized(window: &Window, url: DOMString) -> DomRoot<StorageEvent> {
-        Self::new_uninitialized_with_proto(window, None, url, CanGc::note())
+    pub fn new_uninitialized(
+        window: &Window,
+        url: DOMString,
+        can_gc: CanGc,
+    ) -> DomRoot<StorageEvent> {
+        Self::new_uninitialized_with_proto(window, None, url, can_gc)
     }
 
     fn new_uninitialized_with_proto(
