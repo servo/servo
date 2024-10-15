@@ -257,6 +257,7 @@ impl InProgressLoad {
 }
 
 #[derive(Debug)]
+#[allow(clippy::enum_variant_names)]
 enum MixedMessage {
     FromConstellation(ConstellationControlMsg),
     FromScript(MainThreadScriptMsg),
