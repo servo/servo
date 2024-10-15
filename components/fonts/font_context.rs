@@ -28,7 +28,6 @@ use style::shared_lock::SharedRwLockReadGuard;
 use style::stylesheets::{CssRule, DocumentStyleSheet, FontFaceRule, StylesheetInDocument};
 use style::values::computed::font::{FamilyName, FontFamilyNameSyntax, SingleFontFamily};
 use style::Atom;
-use tracing::instrument;
 use url::Url;
 use webrender_api::{FontInstanceFlags, FontInstanceKey, FontKey};
 use webrender_traits::CrossProcessCompositorApi;
@@ -279,7 +278,10 @@ impl FontContext {
 
     /// Create a `Font` for use in layout calculations, from a `FontTemplateData` returned by the
     /// cache thread and a `FontDescriptor` which contains the styling parameters.
-    #[instrument(skip_all, fields(servo_profiling = true))]
+    #[cfg_attr(
+        feature = "tracing",
+        tracing::instrument(skip_all, fields(servo_profiling = true))
+    )]
     fn create_font(
         &self,
         font_template: FontTemplateRef,

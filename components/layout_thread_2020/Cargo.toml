@@ -11,6 +11,9 @@ rust-version.workspace = true
 name = "layout_thread_2020"
 path = "lib.rs"
 
+[features]
+tracing = ["dep:tracing", "layout/tracing"]
+
 [dependencies]
 app_units = { workspace = true }
 base = { workspace = true }
@@ -38,7 +41,7 @@ servo_config = { path = "../config" }
 servo_url = { path = "../url" }
 style = { workspace = true }
 style_traits = { workspace = true }
-tracing = { workspace = true }
+tracing = { workspace = true, optional = true }
 url = { workspace = true }
 webrender_api = { workspace = true }
 webrender_traits = { workspace = true }
