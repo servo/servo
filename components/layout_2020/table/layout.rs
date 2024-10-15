@@ -35,7 +35,7 @@ use crate::fragment_tree::{
 };
 use crate::geom::{
     AuOrAuto, LogicalRect, LogicalSides, LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSides,
-    Size, SizeKeyword, ToLogical, ToLogicalWithContainingBlock,
+    Size, ToLogical, ToLogicalWithContainingBlock,
 };
 use crate::positioned::{relative_adjustement, PositioningContext, PositioningContextLength};
 use crate::sizing::{ContentSizes, InlineContentSizesResult};
@@ -252,7 +252,7 @@ impl<'a> TableLayout<'a> {
             TableLayoutMode::Fixed &&
             !matches!(
                 self.table.style.box_size(writing_mode).inline,
-                Size::Keyword(SizeKeyword::Initial | SizeKeyword::MaxContent)
+                Size::Initial | Size::MaxContent
             );
         let row_measures = vec![LogicalVec2::zero(); self.table.size.width];
         self.cell_measures = vec![row_measures; self.table.size.height];
