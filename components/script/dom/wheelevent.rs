@@ -61,20 +61,11 @@ impl WheelEvent {
         delta_y: Finite<f64>,
         delta_z: Finite<f64>,
         delta_mode: u32,
+        can_gc: CanGc,
     ) -> DomRoot<WheelEvent> {
         Self::new_with_proto(
-            window,
-            None,
-            type_,
-            can_bubble,
-            cancelable,
-            view,
-            detail,
-            delta_x,
-            delta_y,
-            delta_z,
-            delta_mode,
-            CanGc::note(),
+            window, None, type_, can_bubble, cancelable, view, detail, delta_x, delta_y, delta_z,
+            delta_mode, can_gc,
         )
     }
 

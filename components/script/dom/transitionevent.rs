@@ -43,8 +43,9 @@ impl TransitionEvent {
         window: &Window,
         type_: Atom,
         init: &TransitionEventInit,
+        can_gc: CanGc,
     ) -> DomRoot<TransitionEvent> {
-        Self::new_with_proto(window, None, type_, init, CanGc::note())
+        Self::new_with_proto(window, None, type_, init, can_gc)
     }
 
     fn new_with_proto(

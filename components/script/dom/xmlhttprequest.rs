@@ -803,7 +803,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
     }
 
     /// <https://xhr.spec.whatwg.org/#the-abort()-method>
-    fn Abort(&self) {
+    fn Abort(&self, can_gc: CanGc) {
         // Step 1
         self.terminate_ongoing_fetch();
         // Step 2
@@ -813,10 +813,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             state == XMLHttpRequestState::Loading
         {
             let gen_id = self.generation_id.get();
-            self.process_partial_response(
-                XHRProgress::Errored(gen_id, Error::Abort),
-                CanGc::note(),
-            );
+            self.process_partial_response(XHRProgress::Errored(gen_id, Error::Abort), can_gc);
             // If open was called in one of the handlers invoked by the
             // above call then we should terminate the abort sequence
             if self.generation_id.get() != gen_id {
@@ -825,7 +822,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
         }
         // Step 3
         if self.ready_state.get() == XMLHttpRequestState::Done {
-            self.change_ready_state(XMLHttpRequestState::Unsent, CanGc::note());
+            self.change_ready_state(XMLHttpRequestState::Unsent, can_gc);
             self.response_status.set(Err(()));
             self.response.borrow_mut().clear();
             self.response_headers.borrow_mut().clear();

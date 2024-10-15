@@ -508,7 +508,7 @@ impl Animations {
                     elapsedTime: elapsed_time,
                     pseudoElement: pseudo_element,
                 };
-                TransitionEvent::new(&window, event_atom, &event_init)
+                TransitionEvent::new(&window, event_atom, &event_init, can_gc)
                     .upcast::<Event>()
                     .fire(node.upcast());
             } else {
