@@ -993,7 +993,7 @@ fn create_compositor_channel(
     ROUTER.add_route(
         compositor_ipc_receiver.to_opaque(),
         Box::new(move |message| {
-            let _ = compositor_proxy_clone.send(CompositorMsg::CrossProcess(
+            compositor_proxy_clone.send(CompositorMsg::CrossProcess(
                 message.to().expect("Could not convert Compositor message"),
             ));
         }),
