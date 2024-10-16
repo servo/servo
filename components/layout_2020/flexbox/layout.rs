@@ -23,7 +23,6 @@ use style::values::generics::flex::GenericFlexBasis as FlexBasis;
 use style::values::generics::length::{GenericLengthPercentageOrAuto, LengthPercentageOrNormal};
 use style::values::specified::align::AlignFlags;
 use style::Zero;
-use tracing::instrument;
 
 use super::geom::{
     FlexAxis, FlexRelativeRect, FlexRelativeSides, FlexRelativeVec2, MainStartCrossStart,
@@ -201,10 +200,13 @@ struct FlexItemBoxInlineContentSizesInfo {
 }
 
 impl FlexContainer {
-    #[instrument(
-        name = "FlexContainer::inline_content_sizes",
-        skip_all,
-        fields(servo_profiling = true)
+    #[cfg_attr(
+        feature = "tracing",
+        tracing::instrument(
+            name = "FlexContainer::inline_content_sizes",
+            skip_all,
+            fields(servo_profiling = true)
+        )
     )]
     pub fn inline_content_sizes(
         &mut self,
@@ -351,10 +353,13 @@ impl FlexContainer {
     }
 
     /// <https://drafts.csswg.org/css-flexbox/#layout-algorithm>
-    #[instrument(
-        name = "FlexContainer::layout",
-        skip_all,
-        fields(servo_profiling = true)
+    #[cfg_attr(
+        feature = "tracing",
+        tracing::instrument(
+            name = "FlexContainer::layout",
+            skip_all,
+            fields(servo_profiling = true)
+        )
     )]
     pub(crate) fn layout(
         &self,
