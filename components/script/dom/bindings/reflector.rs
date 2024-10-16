@@ -141,6 +141,7 @@ impl MutDomObject for Reflector {
 }
 
 /// A trait to provide a function pointer to wrap function for DOM objects.
+#[allow(clippy::type_complexity)]
 pub trait DomObjectWrap: Sized + DomObject {
     /// Function pointer to the general wrap function type
     const WRAP: unsafe fn(
@@ -154,6 +155,7 @@ pub trait DomObjectWrap: Sized + DomObject {
 
 /// A trait to provide a function pointer to wrap function for
 /// DOM iterator interfaces.
+#[allow(clippy::type_complexity)]
 pub trait DomObjectIteratorWrap: DomObjectWrap + JSTraceable + Iterable {
     /// Function pointer to the wrap function for `IterableIterator<T>`
     const ITER_WRAP: unsafe fn(
