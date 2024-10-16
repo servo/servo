@@ -41,6 +41,11 @@ impl MallocSizeOf for WebGPUContextId {
 
 pub type WGPUImageMap = Arc<Mutex<HashMap<WebGPUContextId, ContextData>>>;
 
+/// Presentation id encodes current configuration and current image
+/// so that async presentation does not update context with older data
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+struct PresentationId(u64);
+
 struct GPUPresentationBuffer {
     global: Arc<Global>,
     buffer_id: id::BufferId,
@@ -91,8 +96,7 @@ impl WebrenderExternalImageApi for WGPUExternalImages {
         let data = if let Some(present_buffer) = context_data
             .swap_chain
             .as_ref()
-            .map(|swap_chain| swap_chain.data.as_ref())
-            .flatten()
+            .and_then(|swap_chain| swap_chain.data.as_ref())
         {
             present_buffer.slice().to_vec()
         } else {
@@ -137,9 +141,9 @@ pub struct WebGPUImageDescriptor(pub ImageDescriptor);
 
 impl WebGPUImageDescriptor {
     fn new(format: ImageFormat, size: DeviceIntSize, is_opaque: bool) -> Self {
-        let stride = (((size.width * format.bytes_per_pixel()) |
+        let stride = ((size.width * format.bytes_per_pixel()) |
             (wgt::COPY_BYTES_PER_ROW_ALIGNMENT as i32 - 1)) +
-            1) as i32;
+            1;
         Self(ImageDescriptor {
             format,
             size,
@@ -189,6 +193,12 @@ pub struct ContextData {
     buffer_ids: ArrayVec<(id::BufferId, PresentationBufferState), PRESENTATION_BUFFER_COUNT>,
     /// If there is no associated swapchain the context is dummy (transparent black)
     swap_chain: Option<SwapChain>,
+    /// Next presentation id to be returned
+    next_presentation_id: PresentationId,
+    /// Current id that is presented/configured
+    ///
+    /// This value only grows
+    current_presentation_id: PresentationId,
 }
 
 impl ContextData {
@@ -214,6 +224,8 @@ impl ContextData {
                 .iter()
                 .map(|&buffer_id| (buffer_id, PresentationBufferState::Unassigned))
                 .collect(),
+            current_presentation_id: PresentationId(0),
+            next_presentation_id: PresentationId(1),
         }
     }
 
@@ -252,6 +264,7 @@ impl ContextData {
             );
             Some(buffer_id)
         } else {
+            error!("No available presentation buffer: {:?}", self.buffer_ids);
             None
         }
     }
@@ -309,6 +322,23 @@ impl ContextData {
             .unwrap()
             .send_transaction(webrender_document, txn);
     }
+
+    /// Returns true if presentation id was updated (was newer)
+    fn check_and_update_presentation_id(&mut self, presentation_id: PresentationId) -> bool {
+        if presentation_id > self.current_presentation_id {
+            self.current_presentation_id = presentation_id;
+            true
+        } else {
+            false
+        }
+    }
+
+    /// Returns new presentation id
+    fn next_presentation_id(&mut self) -> PresentationId {
+        let res = PresentationId(self.next_presentation_id.0);
+        self.next_presentation_id.0 += 1;
+        res
+    }
 }
 
 impl crate::WGPU {
@@ -350,16 +380,16 @@ impl crate::WGPU {
         let mut webgpu_contexts = self.wgpu_image_map.lock().unwrap();
         let context_data = webgpu_contexts.get_mut(&context_id).unwrap();
 
+        let presentation_id = context_data.next_presentation_id();
+        context_data.check_and_update_presentation_id(presentation_id);
+
         // If configuration is not provided or presentation format is not valid
         // the context will be dummy until recreation
-        let format = config
-            .as_ref()
-            .map(|config| match config.format {
-                wgt::TextureFormat::Rgba8Unorm => Some(ImageFormat::RGBA8),
-                wgt::TextureFormat::Bgra8Unorm => Some(ImageFormat::BGRA8),
-                _ => None,
-            })
-            .flatten();
+        let format = config.as_ref().and_then(|config| match config.format {
+            wgt::TextureFormat::Rgba8Unorm => Some(ImageFormat::RGBA8),
+            wgt::TextureFormat::Bgra8Unorm => Some(ImageFormat::BGRA8),
+            _ => None,
+        });
 
         let needs_image_update = if let Some(format) = format {
             let config = config.expect("Config should exist when valid format is available");
@@ -417,6 +447,7 @@ impl crate::WGPU {
         let queue_id;
         let buffer_id;
         let image_desc;
+        let presentation_id;
         {
             if let Some(context_data) = self.wgpu_image_map.lock().unwrap().get_mut(&context_id) {
                 let Some(swap_chain) = context_data.swap_chain.as_ref() else {
@@ -426,6 +457,7 @@ impl crate::WGPU {
                 queue_id = swap_chain.queue_id;
                 buffer_id = context_data.get_available_buffer(global).unwrap();
                 image_desc = context_data.image_desc;
+                presentation_id = context_data.next_presentation_id();
             } else {
                 return Ok(());
             }
@@ -466,7 +498,7 @@ impl crate::WGPU {
             let _guard = self.poller.lock();
             global
                 .queue_submit(queue_id, &[command_buffer_id])
-                .map_err(Error::from_error)?;
+                .map_err(|(_, error)| Error::from_error(error))?;
         }
         let callback = {
             let global = Arc::clone(&self.global);
@@ -485,6 +517,7 @@ impl crate::WGPU {
                     webrender_api,
                     webrender_document,
                     image_desc,
+                    presentation_id,
                 );
             }))
         };
@@ -512,6 +545,7 @@ impl crate::WGPU {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn update_wr_image(
     result: Result<(), BufferAccessError>,
     global: Arc<Global>,
@@ -521,43 +555,23 @@ fn update_wr_image(
     webrender_api: Arc<Mutex<RenderApi>>,
     webrender_document: webrender_api::DocumentId,
     image_desc: WebGPUImageDescriptor,
+    presentation_id: PresentationId,
 ) {
     match result {
         Ok(()) => {
             if let Some(context_data) = wgpu_image_map.lock().unwrap().get_mut(&context_id) {
-                let config_changed = image_desc != context_data.image_desc;
-                let buffer_state = context_data.get_buffer_state(buffer_id);
-                match buffer_state {
-                    PresentationBufferState::Unassigned => {
-                        // throw away all work, because we are from old swapchain
-                        return;
-                    },
-                    PresentationBufferState::Mapping => {},
-                    _ => panic!("Unexpected presentation buffer state"),
-                }
-                if config_changed {
-                    /*
-                    This means that while mapasync was running, context got recreated
-                    so we need to throw all out work away.
-
-                    It is also possible that we got recreated with same config,
-                    so canvas should be cleared, but we handle such case in gpucanvascontext
-                    with drawing_buffer.cleared
-
-                    One more case is that we already have newer map async done,
-                    so we can replace new image with old image but that should happen very rarely
-
-                    One possible solution to all problems is blocking device timeline
-                    (wgpu thread or introduce new timeline/thread for presentation)
-                    something like this is also mentioned in spec:
-
-                    2. Ensure that all submitted work items (e.g. queue submissions) have completed writing to the image
-                    https://gpuweb.github.io/gpuweb/#abstract-opdef-get-a-copy-of-the-image-contents-of-a-context
-                    */
-                    let _ = global.buffer_unmap(buffer_id);
-                    *buffer_state = PresentationBufferState::Available;
+                if !context_data.check_and_update_presentation_id(presentation_id) {
+                    let buffer_state = context_data.get_buffer_state(buffer_id);
+                    if *buffer_state == PresentationBufferState::Mapping {
+                        let _ = global.buffer_unmap(buffer_id);
+                        *buffer_state = PresentationBufferState::Available;
+                    }
+                    // throw away all work, because we are too old
                     return;
                 }
+                assert_eq!(image_desc, context_data.image_desc);
+                let buffer_state = context_data.get_buffer_state(buffer_id);
+                assert_eq!(*buffer_state, PresentationBufferState::Mapping);
                 *buffer_state = PresentationBufferState::Mapped;
                 let presentation_buffer =
                     GPUPresentationBuffer::new(global, buffer_id, image_desc.buffer_size());

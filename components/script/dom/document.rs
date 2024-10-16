@@ -754,10 +754,7 @@ impl Document {
                     );
                     let event = event.upcast::<Event>();
                     event.set_trusted(true);
-                    // FIXME(nox): Why are errors silenced here?
-                    let _ = window.dispatch_event_with_target_override(
-                        event,
-                    );
+                    window.dispatch_event_with_target_override(event);
                 }),
                 self.window.upcast(),
             )
@@ -2388,10 +2385,7 @@ impl Document {
                     update_with_current_instant(&document.load_event_start);
 
                     debug!("About to dispatch load for {:?}", document.url());
-                    // FIXME(nox): Why are errors silenced here?
-                    let _ = window.dispatch_event_with_target_override(
-                        &event,
-                    );
+                    window.dispatch_event_with_target_override(&event);
 
                     // http://w3c.github.io/navigation-timing/#widl-PerformanceNavigationTiming-loadEventEnd
                     update_with_current_instant(&document.load_event_end);
@@ -2430,10 +2424,7 @@ impl Document {
                         let event = event.upcast::<Event>();
                         event.set_trusted(true);
 
-                        // FIXME(nox): Why are errors silenced here?
-                        let _ = window.dispatch_event_with_target_override(
-                            event,
-                        );
+                        window.dispatch_event_with_target_override(event);
                     }),
                     self.window.upcast(),
                 )
@@ -3449,35 +3440,6 @@ impl Document {
         );
     }
 
-    // https://dom.spec.whatwg.org/#dom-document-document
-    #[allow(non_snake_case)]
-    pub fn Constructor(
-        window: &Window,
-        proto: Option<HandleObject>,
-        can_gc: CanGc,
-    ) -> Fallible<DomRoot<Document>> {
-        let doc = window.Document();
-        let docloader = DocumentLoader::new(&doc.loader());
-        Ok(Document::new_with_proto(
-            window,
-            proto,
-            HasBrowsingContext::No,
-            None,
-            doc.origin().clone(),
-            IsHTMLDocument::NonHTMLDocument,
-            None,
-            None,
-            DocumentActivity::Inactive,
-            DocumentSource::NotFromParser,
-            docloader,
-            None,
-            None,
-            None,
-            Default::default(),
-            can_gc,
-        ))
-    }
-
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         window: &Window,
@@ -4189,6 +4151,34 @@ impl ProfilerMetadataFactory for Document {
 }
 
 impl DocumentMethods for Document {
+    // https://dom.spec.whatwg.org/#dom-document-document
+    fn Constructor(
+        window: &Window,
+        proto: Option<HandleObject>,
+        can_gc: CanGc,
+    ) -> Fallible<DomRoot<Document>> {
+        let doc = window.Document();
+        let docloader = DocumentLoader::new(&doc.loader());
+        Ok(Document::new_with_proto(
+            window,
+            proto,
+            HasBrowsingContext::No,
+            None,
+            doc.origin().clone(),
+            IsHTMLDocument::NonHTMLDocument,
+            None,
+            None,
+            DocumentActivity::Inactive,
+            DocumentSource::NotFromParser,
+            docloader,
+            None,
+            None,
+            None,
+            Default::default(),
+            can_gc,
+        ))
+    }
+
     // https://w3c.github.io/editing/ActiveDocuments/execCommand.html#querycommandsupported()
     fn QueryCommandSupported(&self, _command: DOMString) -> bool {
         false

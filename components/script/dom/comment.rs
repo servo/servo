@@ -5,6 +5,7 @@
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
 
+use crate::dom::bindings::codegen::Bindings::CommentBinding::CommentMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::root::DomRoot;
@@ -39,9 +40,11 @@ impl Comment {
             proto,
         )
     }
+}
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+impl CommentMethods for Comment {
+    /// <https://dom.spec.whatwg.org/#dom-comment-comment>
+    fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
         _can_gc: CanGc,

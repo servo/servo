@@ -24,6 +24,7 @@ use style::values::computed::{
 use style::values::generics::box_::{GenericVerticalAlign as VerticalAlign, VerticalAlignKeyword};
 use style::values::generics::length::GenericLengthPercentageOrAuto::{Auto, LengthPercentage};
 use style::Zero;
+use tracing::instrument;
 
 use super::{Table, TableCaption, TableSlot, TableSlotCell, TableTrack, TableTrackGroup};
 use crate::context::LayoutContext;
@@ -73,11 +74,10 @@ impl CellLayout {
 
     /// Whether the cell is considered empty for the purpose of the 'empty-cells' property.
     fn is_empty_for_empty_cells(&self) -> bool {
-        !self
-            .layout
+        self.layout
             .fragments
             .iter()
-            .any(|fragment| !matches!(fragment, Fragment::AbsoluteOrFixedPositioned(_)))
+            .all(|fragment| matches!(fragment, Fragment::AbsoluteOrFixedPositioned(_)))
     }
 }
 
@@ -1630,6 +1630,7 @@ impl<'a> TableLayout<'a> {
 
     /// Lay out the table (grid and captions) of this [`TableLayout`] into fragments. This should
     /// only be be called after calling [`TableLayout.compute_measures`].
+    #[instrument(name = "Table::layout", skip_all, fields(servo_profiling = true))]
     fn layout(
         mut self,
         layout_context: &LayoutContext,
@@ -2043,6 +2044,7 @@ impl<'a> TableLayout<'a> {
         col_group.style.get_inherited_box().visibility == Visibility::Collapse
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn do_final_cell_layout(
         &mut self,
         row_index: usize,
@@ -2600,6 +2602,11 @@ impl Table {
         }
     }
 
+    #[instrument(
+        name = "Table::inline_content_sizes",
+        skip_all,
+        fields(servo_profiling = true)
+    )]
     pub(crate) fn inline_content_sizes(
         &mut self,
         layout_context: &LayoutContext,

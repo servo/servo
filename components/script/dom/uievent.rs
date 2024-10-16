@@ -70,6 +70,7 @@ impl UIEvent {
         )
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn new_with_proto(
         window: &Window,
         proto: Option<HandleObject>,
@@ -90,9 +91,11 @@ impl UIEvent {
         );
         ev
     }
+}
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+impl UIEventMethods for UIEvent {
+    /// <https://w3c.github.io/uievents/#dom-uievent-uievent>
+    fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -113,9 +116,7 @@ impl UIEvent {
         );
         Ok(event)
     }
-}
 
-impl UIEventMethods for UIEvent {
     // https://w3c.github.io/uievents/#widl-UIEvent-view
     fn GetView(&self) -> Option<DomRoot<Window>> {
         self.view.get()

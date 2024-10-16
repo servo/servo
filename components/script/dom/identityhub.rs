@@ -36,8 +36,8 @@ pub struct IdentityHub {
     render_passes: IdentityManager<RenderPass>,
 }
 
-impl IdentityHub {
-    pub fn new() -> Self {
+impl Default for IdentityHub {
+    fn default() -> Self {
         IdentityHub {
             adapters: IdentityManager::new(),
             devices: IdentityManager::new(),

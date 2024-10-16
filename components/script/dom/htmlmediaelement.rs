@@ -55,6 +55,7 @@ use crate::dom::bindings::codegen::Bindings::MediaErrorBinding::MediaErrorMethod
 use crate::dom::bindings::codegen::Bindings::NavigatorBinding::Navigator_Binding::NavigatorMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::Node_Binding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::TextTrackBinding::{TextTrackKind, TextTrackMode};
+use crate::dom::bindings::codegen::Bindings::URLBinding::URLMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
 use crate::dom::bindings::codegen::InheritTypes::{
     ElementTypeId, HTMLElementTypeId, HTMLMediaElementTypeId, NodeTypeId,
@@ -922,9 +923,9 @@ impl HTMLMediaElement {
 
     // https://html.spec.whatwg.org/multipage/#concept-media-load-resource
     fn resource_fetch_algorithm(&self, resource: Resource, can_gc: CanGc) {
-        if let Err(e) = self.setup_media_player(&resource, CanGc::note()) {
+        if let Err(e) = self.setup_media_player(&resource, can_gc) {
             eprintln!("Setup media player error {:?}", e);
-            self.queue_dedicated_media_source_failure_steps(CanGc::note());
+            self.queue_dedicated_media_source_failure_steps(can_gc);
             return;
         }
 
@@ -1000,7 +1001,7 @@ impl HTMLMediaElement {
                                     .set_stream(&track.id(), pos == tracks.len() - 1)
                                     .is_err()
                                 {
-                                    self.queue_dedicated_media_source_failure_steps(CanGc::note());
+                                    self.queue_dedicated_media_source_failure_steps(can_gc);
                                 }
                             }
                         },
@@ -1187,7 +1188,7 @@ impl HTMLMediaElement {
         self.autoplaying.set(true);
 
         // Step 9.
-        self.invoke_resource_selection_algorithm(CanGc::note());
+        self.invoke_resource_selection_algorithm(can_gc);
 
         // Step 10.
         // FIXME(nox): Stop playback of any previously running media resource.

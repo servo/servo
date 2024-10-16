@@ -36,7 +36,7 @@ use script_traits::{
 };
 use servo_geometry::{DeviceIndependentPixel, FramebufferUintLength};
 use style_traits::{CSSPixel, DevicePixel, PinchZoomFactor};
-use tracing::{span, Level};
+use tracing::{instrument, span, Level};
 use webrender::{CaptureBits, RenderApi, Transaction};
 use webrender_api::units::{
     DeviceIntPoint, DeviceIntSize, DevicePoint, DeviceRect, LayoutPoint, LayoutRect, LayoutSize,
@@ -610,7 +610,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 let _ = sender.send(());
             },
 
-            CompositorMsg::NewWebRenderFrameReady(recomposite_needed) => {
+            CompositorMsg::NewWebRenderFrameReady(_document_id, recomposite_needed) => {
                 self.pending_frames -= 1;
 
                 if recomposite_needed {
@@ -684,7 +684,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
     /// Accept messages from content processes that need to be relayed to the WebRender
     /// instance in the parent process.
-    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
+    #[instrument(skip_all, fields(servo_profiling = true))]
     fn handle_webrender_message(&mut self, msg: ForwardedToCompositorMsg) {
         match msg {
             ForwardedToCompositorMsg::Layout(ScriptToCompositorMsg::SendInitialTransaction(
@@ -991,7 +991,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     );
                 }
             },
-            CompositorMsg::NewWebRenderFrameReady(_) => {
+            CompositorMsg::NewWebRenderFrameReady(..) => {
                 // Subtract from the number of pending frames, but do not do any compositing.
                 self.pending_frames -= 1;
             },
@@ -1914,11 +1914,8 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             return;
         }
 
-        self.page_zoom = Scale::new(
-            (self.page_zoom.get() * magnification)
-                .max(MIN_ZOOM)
-                .min(MAX_ZOOM),
-        );
+        self.page_zoom =
+            Scale::new((self.page_zoom.get() * magnification).clamp(MIN_ZOOM, MAX_ZOOM));
         self.update_after_zoom_or_hidpi_change();
     }
 
@@ -2059,7 +2056,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     /// Returns Ok if composition was performed or Err if it was not possible to composite for some
     /// reason. When the target is [CompositeTarget::SharedMemory], the image is read back from the
     /// GPU and returned as Ok(Some(png::Image)), otherwise we return Ok(None).
-    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
+    #[instrument(skip_all, fields(servo_profiling = true))]
     fn composite_specific_target(
         &mut self,
         target: CompositeTarget,
@@ -2302,7 +2299,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             .map(|info| info.framebuffer_id())
     }
 
-    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
+    #[instrument(skip_all, fields(servo_profiling = true))]
     pub fn present(&mut self) {
         let span = span!(
             Level::TRACE,
@@ -2371,19 +2368,19 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         );
     }
 
-    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
+    #[instrument(skip_all, fields(servo_profiling = true))]
     pub fn receive_messages(&mut self) -> bool {
         // Check for new messages coming from the other threads in the system.
         let mut compositor_messages = vec![];
         let mut found_recomposite_msg = false;
         while let Some(msg) = self.port.try_recv_compositor_msg() {
             match msg {
-                CompositorMsg::NewWebRenderFrameReady(_) if found_recomposite_msg => {
+                CompositorMsg::NewWebRenderFrameReady(..) if found_recomposite_msg => {
                     // Only take one of duplicate NewWebRendeFrameReady messages, but do subtract
                     // one frame from the pending frames.
                     self.pending_frames -= 1;
                 },
-                CompositorMsg::NewWebRenderFrameReady(_) => {
+                CompositorMsg::NewWebRenderFrameReady(..) => {
                     found_recomposite_msg = true;
                     compositor_messages.push(msg)
                 },
@@ -2398,7 +2395,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         true
     }
 
-    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
+    #[instrument(skip_all, fields(servo_profiling = true))]
     pub fn perform_updates(&mut self) -> bool {
         if self.shutdown_state == ShutdownState::FinishedShuttingDown {
             return false;
@@ -2437,7 +2434,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     pub fn repaint_synchronously(&mut self) {
         while self.shutdown_state != ShutdownState::ShuttingDown {
             let msg = self.port.recv_compositor_msg();
-            let need_recomposite = matches!(msg, CompositorMsg::NewWebRenderFrameReady(_));
+            let need_recomposite = matches!(msg, CompositorMsg::NewWebRenderFrameReady(..));
             let keep_going = self.handle_browser_message(msg);
             if need_recomposite {
                 self.composite();

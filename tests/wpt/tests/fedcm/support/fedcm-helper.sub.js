@@ -124,8 +124,6 @@ export function request_options_with_two_idps(mediation = 'required') {
 // Test wrapper which does FedCM-specific setup.
 export function fedcm_test(test_func, test_name) {
   promise_test(async t => {
-    // Ensure we start from a clean slate.
-    await test_driver.delete_all_cookies();
     // Turn off delays that are not useful in tests.
     try {
       await test_driver.set_fedcm_delay_enabled(false);

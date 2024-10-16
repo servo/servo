@@ -65,6 +65,7 @@ impl PromiseRejectionEvent {
     }
 
     #[allow(crown::unrooted_must_root)]
+    #[allow(clippy::too_many_arguments)]
     fn new_with_proto(
         global: &GlobalScope,
         proto: Option<HandleObject>,
@@ -91,9 +92,11 @@ impl PromiseRejectionEvent {
         }
         ev
     }
+}
 
-    #[allow(crown::unrooted_must_root, non_snake_case)]
-    pub fn Constructor(
+impl PromiseRejectionEventMethods for PromiseRejectionEvent {
+    // https://html.spec.whatwg.org/multipage/#promiserejectionevent
+    fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -116,9 +119,7 @@ impl PromiseRejectionEvent {
         );
         Ok(event)
     }
-}
 
-impl PromiseRejectionEventMethods for PromiseRejectionEvent {
     // https://html.spec.whatwg.org/multipage/#dom-promiserejectionevent-promise
     fn Promise(&self, _cx: JSContext) -> NonNull<JSObject> {
         NonNull::new(self.promise.get()).unwrap()

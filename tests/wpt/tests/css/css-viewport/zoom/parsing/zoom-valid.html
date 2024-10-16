@@ -20,6 +20,8 @@ test_valid_value("zoom", "75%");
 test_valid_value("zoom", "0.5");
 
 test_invalid_value("zoom", "auto");
+test_invalid_value("zoom", "reset");
+test_invalid_value("zoom", "document");
 test_invalid_value("zoom", "-100%");
 test_invalid_value("zoom", "-200%");
 test_invalid_value("zoom", "-1");

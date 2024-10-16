@@ -18,6 +18,8 @@ test_invalid_value('top', 'anchor(--foo top,)');
 test_invalid_value('top', 'anchor(--foo top bottom)');
 test_invalid_value('top', 'anchor(--foo top, 10px 20%)');
 test_invalid_value('top', 'anchor(--foo top, 10px, 20%)');
+test_invalid_value('top', 'anchor(2 * 20%)');
+test_invalid_value('top', 'anchor((2 * 20%))');
 
 // Anchor name must be a dashed ident
 test_invalid_value('top', 'anchor(foo top)');

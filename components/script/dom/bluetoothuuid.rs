@@ -5,6 +5,7 @@
 use dom_struct::dom_struct;
 use regex::Regex;
 
+use crate::dom::bindings::codegen::Bindings::BluetoothUUIDBinding::BluetoothUUIDMethods;
 use crate::dom::bindings::codegen::UnionTypes::StringOrUnsignedLong;
 use crate::dom::bindings::error::Error::Type;
 use crate::dom::bindings::error::Fallible;
@@ -12,6 +13,7 @@ use crate::dom::bindings::reflector::Reflector;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::window::Window;
 
+#[allow(clippy::upper_case_acronyms)]
 pub type UUID = DOMString;
 pub type BluetoothServiceUUID = StringOrUnsignedLong;
 pub type BluetoothCharacteristicUUID = StringOrUnsignedLong;
@@ -582,25 +584,24 @@ const CHARACTERISTIC_ERROR_MESSAGE: &str =
 const DESCRIPTOR_ERROR_MESSAGE: &str = "https://developer.bluetooth.org/gatt/descriptors/Pages/\
      DescriptorsHomePage.aspx\ne.g. 'gatt.characteristic_presentation_format'.";
 
-#[allow(non_snake_case)]
-impl BluetoothUUID {
+impl BluetoothUUIDMethods for BluetoothUUID {
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothuuid-canonicaluuid
-    pub fn CanonicalUUID(_: &Window, alias: u32) -> UUID {
+    fn CanonicalUUID(_: &Window, alias: u32) -> UUID {
         canonical_uuid(alias)
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothuuid-getservice
-    pub fn GetService(_: &Window, name: BluetoothServiceUUID) -> Fallible<UUID> {
+    fn GetService(_: &Window, name: BluetoothServiceUUID) -> Fallible<UUID> {
         Self::service(name)
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothuuid-getcharacteristic
-    pub fn GetCharacteristic(_: &Window, name: BluetoothCharacteristicUUID) -> Fallible<UUID> {
+    fn GetCharacteristic(_: &Window, name: BluetoothCharacteristicUUID) -> Fallible<UUID> {
         Self::characteristic(name)
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothuuid-getdescriptor
-    pub fn GetDescriptor(_: &Window, name: BluetoothDescriptorUUID) -> Fallible<UUID> {
+    fn GetDescriptor(_: &Window, name: BluetoothDescriptorUUID) -> Fallible<UUID> {
         Self::descriptor(name)
     }
 }

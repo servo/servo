@@ -534,7 +534,9 @@ impl HTMLElementMethods for HTMLElement {
         }
 
         // Step 8: If previous is a Text node, then merge with the next text node given previous.
-        previous.map(Self::merge_with_the_next_text_node);
+        if let Some(previous) = previous {
+            Self::merge_with_the_next_text_node(previous)
+        }
 
         Ok(())
     }

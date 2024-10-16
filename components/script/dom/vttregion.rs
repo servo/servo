@@ -49,18 +49,18 @@ impl VTTRegion {
     fn new(global: &GlobalScope, proto: Option<HandleObject>, can_gc: CanGc) -> DomRoot<Self> {
         reflect_dom_object_with_proto(Box::new(Self::new_inherited()), global, proto, can_gc)
     }
+}
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+impl VTTRegionMethods for VTTRegion {
+    // https://w3c.github.io/webvtt/#dom-vttregion-vttregion
+    fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<Self>> {
         Ok(VTTRegion::new(&window.global(), proto, can_gc))
     }
-}
 
-impl VTTRegionMethods for VTTRegion {
     // https://w3c.github.io/webvtt/#dom-vttregion-id
     fn Id(&self) -> DOMString {
         self.id.borrow().clone()

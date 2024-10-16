@@ -57,8 +57,12 @@ impl DOMPointReadOnly {
             can_gc,
         )
     }
+}
 
-    pub fn Constructor(
+#[allow(non_snake_case)]
+impl DOMPointReadOnlyMethods for DOMPointReadOnly {
+    // https://drafts.fxtf.org/geometry/#dom-dompoint-dompoint
+    fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -73,13 +77,10 @@ impl DOMPointReadOnly {
     }
 
     // https://drafts.fxtf.org/geometry/#dom-dompointreadonly-frompoint
-    pub fn FromPoint(global: &GlobalScope, init: &DOMPointInit) -> DomRoot<Self> {
+    fn FromPoint(global: &GlobalScope, init: &DOMPointInit) -> DomRoot<Self> {
         Self::new(global, init.x, init.y, init.z, init.w)
     }
-}
 
-#[allow(non_snake_case)]
-impl DOMPointReadOnlyMethods for DOMPointReadOnly {
     // https://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-x
     fn X(&self) -> f64 {
         self.x.get()

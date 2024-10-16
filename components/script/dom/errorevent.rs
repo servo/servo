@@ -108,9 +108,11 @@ impl ErrorEvent {
         ev.error.set(error.get());
         ev
     }
+}
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+impl ErrorEventMethods for ErrorEvent {
+    // https://html.spec.whatwg.org/multipage/#errorevent
+    fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -150,9 +152,7 @@ impl ErrorEvent {
         );
         Ok(event)
     }
-}
 
-impl ErrorEventMethods for ErrorEvent {
     // https://html.spec.whatwg.org/multipage/#dom-errorevent-lineno
     fn Lineno(&self) -> u32 {
         self.lineno.get()

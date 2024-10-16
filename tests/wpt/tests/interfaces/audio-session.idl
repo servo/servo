@@ -3,10 +3,12 @@
 // (https://github.com/w3c/webref)
 // Source: Audio Session (https://w3c.github.io/audio-session/)
 
-enum AudioSessionState {
-  "inactive",
-  "active",
-  "interrupted"
+[Exposed=Window]
+interface AudioSession : EventTarget {
+  attribute AudioSessionType type;
+
+  readonly attribute AudioSessionState state;
+  attribute EventHandler onstatechange;
 };
 
 enum AudioSessionType {
@@ -18,16 +20,14 @@ enum AudioSessionType {
   "play-and-record"
 };
 
+enum AudioSessionState {
+  "inactive",
+  "active",
+  "interrupted"
+};
+
 [Exposed=Window]
 partial interface Navigator {
   // The default audio session that the user agent will use when media elements start/stop playing.
   readonly attribute AudioSession audioSession;
-};
-
-[Exposed=Window]
-interface AudioSession : EventTarget {
-  attribute AudioSessionType type;
-
-  readonly attribute AudioSessionState state;
-  attribute EventHandler onstatechange;
 };

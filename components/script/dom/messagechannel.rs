@@ -21,16 +21,6 @@ pub struct MessageChannel {
 
 impl MessageChannel {
     /// <https://html.spec.whatwg.org/multipage/#dom-messagechannel>
-    #[allow(non_snake_case)]
-    pub fn Constructor(
-        global: &GlobalScope,
-        proto: Option<HandleObject>,
-        can_gc: CanGc,
-    ) -> DomRoot<MessageChannel> {
-        MessageChannel::new(global, proto, can_gc)
-    }
-
-    /// <https://html.spec.whatwg.org/multipage/#dom-messagechannel>
     fn new(
         incumbent: &GlobalScope,
         proto: Option<HandleObject>,
@@ -67,6 +57,15 @@ impl MessageChannel {
 }
 
 impl MessageChannelMethods for MessageChannel {
+    /// <https://html.spec.whatwg.org/multipage/#dom-messagechannel>
+    fn Constructor(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        can_gc: CanGc,
+    ) -> DomRoot<MessageChannel> {
+        MessageChannel::new(global, proto, can_gc)
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#dom-messagechannel-port1>
     fn Port1(&self) -> DomRoot<MessagePort> {
         DomRoot::from_ref(&*self.port1)

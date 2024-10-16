@@ -68,20 +68,6 @@ impl ResizeObserver {
         reflect_dom_object_with_proto(observer, window, proto, can_gc)
     }
 
-    /// <https://drafts.csswg.org/resize-observer/#dom-resizeobserver-resizeobserver>
-    #[allow(non_snake_case)]
-    pub fn Constructor(
-        window: &Window,
-        proto: Option<HandleObject>,
-        can_gc: CanGc,
-        callback: Rc<ResizeObserverCallback>,
-    ) -> DomRoot<ResizeObserver> {
-        let rooted_observer = ResizeObserver::new(window, proto, callback, can_gc);
-        let document = window.Document();
-        document.add_resize_observer(&rooted_observer);
-        rooted_observer
-    }
-
     /// <https://drafts.csswg.org/resize-observer/#gather-active-observations-h>
     /// <https://drafts.csswg.org/resize-observer/#has-active-resize-observations>
     pub fn gather_active_resize_observations_at_depth(
@@ -169,6 +155,19 @@ impl ResizeObserver {
 }
 
 impl ResizeObserverMethods for ResizeObserver {
+    /// <https://drafts.csswg.org/resize-observer/#dom-resizeobserver-resizeobserver>
+    fn Constructor(
+        window: &Window,
+        proto: Option<HandleObject>,
+        can_gc: CanGc,
+        callback: Rc<ResizeObserverCallback>,
+    ) -> DomRoot<ResizeObserver> {
+        let rooted_observer = ResizeObserver::new(window, proto, callback, can_gc);
+        let document = window.Document();
+        document.add_resize_observer(&rooted_observer);
+        rooted_observer
+    }
+
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobserver-observe>
     fn Observe(&self, target: &Element, options: &ResizeObserverOptions) {
         let is_present = self

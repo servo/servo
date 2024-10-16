@@ -10,6 +10,7 @@ use style::stylesheets::supports_rule::{parse_condition_or_declaration, Declarat
 use style::stylesheets::{CssRuleType, Origin, UrlExtraData};
 use style_traits::ParsingMode;
 
+use crate::dom::bindings::codegen::Bindings::CSSBinding::CSSMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::Reflector;
@@ -19,21 +20,21 @@ use crate::dom::window::Window;
 use crate::dom::worklet::Worklet;
 
 #[dom_struct]
+#[allow(clippy::upper_case_acronyms)]
 pub struct CSS {
     reflector_: Reflector,
 }
 
-#[allow(non_snake_case)]
-impl CSS {
-    /// <http://dev.w3.org/csswg/cssom/#serialize-an-identifier>
-    pub fn Escape(_: &Window, ident: DOMString) -> Fallible<DOMString> {
+impl CSSMethods for CSS {
+    /// <https://drafts.csswg.org/cssom/#the-css.escape()-method>
+    fn Escape(_: &Window, ident: DOMString) -> Fallible<DOMString> {
         let mut escaped = String::new();
         serialize_identifier(&ident, &mut escaped).unwrap();
         Ok(DOMString::from(escaped))
     }
 
     /// <https://drafts.csswg.org/css-conditional/#dom-css-supports>
-    pub fn Supports(win: &Window, property: DOMString, value: DOMString) -> bool {
+    fn Supports(win: &Window, property: DOMString, value: DOMString) -> bool {
         let mut decl = String::new();
         serialize_identifier(&property, &mut decl).unwrap();
         decl.push_str(": ");
@@ -54,7 +55,7 @@ impl CSS {
     }
 
     /// <https://drafts.csswg.org/css-conditional/#dom-css-supports>
-    pub fn Supports_(win: &Window, condition: DOMString) -> bool {
+    fn Supports_(win: &Window, condition: DOMString) -> bool {
         let mut input = ParserInput::new(&condition);
         let mut input = Parser::new(&mut input);
         let cond = match parse_condition_or_declaration(&mut input) {
@@ -77,7 +78,7 @@ impl CSS {
     }
 
     /// <https://drafts.css-houdini.org/css-paint-api-1/#paint-worklet>
-    pub fn PaintWorklet(win: &Window) -> DomRoot<Worklet> {
+    fn PaintWorklet(win: &Window) -> DomRoot<Worklet> {
         win.paint_worklet()
     }
 }

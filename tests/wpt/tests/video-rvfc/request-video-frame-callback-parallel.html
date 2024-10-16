@@ -12,6 +12,7 @@ promise_test(async function(t) {
     const promise = new Promise(resolve => done = resolve);
 
     let video = document.createElement('video');
+    video.muted = true;
     document.body.appendChild(video);
 
     let firstTime;
@@ -39,6 +40,7 @@ promise_test(async function(t) {
     const promise = new Promise(resolve => done = resolve);
 
     let video = document.createElement('video');
+    video.muted = true;
     document.body.appendChild(video);
 
     let secondCallbackId;

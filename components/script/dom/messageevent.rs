@@ -112,6 +112,7 @@ impl MessageEvent {
         )
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn new_initialized(
         global: &GlobalScope,
         proto: Option<HandleObject>,
@@ -192,31 +193,6 @@ impl MessageEvent {
         ev
     }
 
-    pub fn Constructor(
-        global: &GlobalScope,
-        proto: Option<HandleObject>,
-        can_gc: CanGc,
-        type_: DOMString,
-        init: RootedTraceableBox<MessageEventBinding::MessageEventInit>,
-    ) -> Fallible<DomRoot<MessageEvent>> {
-        let ev = MessageEvent::new_with_proto(
-            global,
-            proto,
-            Atom::from(type_),
-            init.parent.bubbles,
-            init.parent.cancelable,
-            init.data.handle(),
-            init.origin.clone(),
-            init.source.as_ref(),
-            init.lastEventId.clone(),
-            init.ports.clone(),
-            can_gc,
-        );
-        Ok(ev)
-    }
-}
-
-impl MessageEvent {
     pub fn dispatch_jsval(
         target: &EventTarget,
         scope: &GlobalScope,
@@ -261,6 +237,30 @@ impl MessageEvent {
 }
 
 impl MessageEventMethods for MessageEvent {
+    /// <https://html.spec.whatwg.org/multipage/#messageevent>
+    fn Constructor(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        can_gc: CanGc,
+        type_: DOMString,
+        init: RootedTraceableBox<MessageEventBinding::MessageEventInit>,
+    ) -> Fallible<DomRoot<MessageEvent>> {
+        let ev = MessageEvent::new_with_proto(
+            global,
+            proto,
+            Atom::from(type_),
+            init.parent.bubbles,
+            init.parent.cancelable,
+            init.data.handle(),
+            init.origin.clone(),
+            init.source.as_ref(),
+            init.lastEventId.clone(),
+            init.ports.clone(),
+            can_gc,
+        );
+        Ok(ev)
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#dom-messageevent-data>
     fn Data(&self, _cx: JSContext) -> JSVal {
         self.data.get()

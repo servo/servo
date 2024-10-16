@@ -1,0 +1,116 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Selection.modify() shouldn't move caret into non-editable nodes</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../editing/include/editor-test-utils.js"></script>
+<script>
+"use strict";
+
+addEventListener("load", () => {
+  const editingHost = document.querySelector("div[contenteditable]");
+  editingHost.focus();
+  const precedingWhiteSpaces = editingHost.firstChild;
+  const middleText = editingHost.querySelector("span").nextSibling;
+  const trailingWhiteSpaces = editingHost.lastChild;
+  for (const callSelectAllChildren of [false, true]) {
+    for (const direction of ["forward", "right"]) {
+      test(() => {
+        if (callSelectAllChildren) {
+          getSelection().selectAllChildren(editingHost);
+        }
+        getSelection().collapse(precedingWhiteSpaces, precedingWhiteSpaces.length);
+        getSelection().modify("move", direction, "character");
+        assert_in_array(
+          EditorTestUtils.getRangeDescription(getSelection().getRangeAt(0)),
+          [
+            // start of editable region at middle of the line
+            EditorTestUtils.getRangeDescription(
+              { startContainer: editingHost, startOffset: 2, endContainer: editingHost, endOffset: 2 }),
+            EditorTestUtils.getRangeDescription(
+              { startContainer: middleText, startOffset: 0, endContainer: middleText, endOffset: 0 }),
+          ]
+        );
+      }, `getSelection().modify("move", "${direction}", "character") ${
+        callSelectAllChildren ? "after getSelection().selectAllChildren(editingHost) " : ""
+      }when " []<span contenteditable=false>"`);
+      test(() => {
+        if (callSelectAllChildren) {
+          getSelection().selectAllChildren(editingHost);
+        }
+        getSelection().collapse(middleText, middleText.length);
+        getSelection().modify("move", direction, "character");
+        assert_in_array(
+          EditorTestUtils.getRangeDescription(getSelection().getRangeAt(0)),
+          [
+            // At start of trailing invisible white spaces
+            EditorTestUtils.getRangeDescription(
+              { startContainer: editingHost, startOffset: 4, endContainer: editingHost, endOffset: 4 }),
+            EditorTestUtils.getRangeDescription(
+              { startContainer: trailingWhiteSpaces, startOffset: 0, endContainer: trailingWhiteSpaces, endOffset: 0 }),
+            // or at end of trailing invisible white spaces
+            EditorTestUtils.getRangeDescription(
+              { startContainer: editingHost, startOffset: 5, endContainer: editingHost, endOffset: 5 }),
+            EditorTestUtils.getRangeDescription(
+              { startContainer: trailingWhiteSpaces, startOffset: trailingWhiteSpaces.length, endContainer: trailingWhiteSpaces, endOffset: trailingWhiteSpaces.length }),
+          ]
+        );
+      }, `getSelection().modify("move", "${direction}", "character") ${
+        callSelectAllChildren ? "after getSelection().selectAllChildren(editingHost) " : ""
+      }when "editable[]<span contenteditable=false>"`);
+    }
+    for (const direction of ["backward", "left"]) {
+      test(() => {
+        if (callSelectAllChildren) {
+          getSelection().selectAllChildren(editingHost);
+        }
+        getSelection().collapse(middleText, 0);
+        getSelection().modify("move", direction, "character");
+        assert_in_array(
+          EditorTestUtils.getRangeDescription(getSelection().getRangeAt(0)),
+          [
+            // At end of preceding invisible white spaces
+            EditorTestUtils.getRangeDescription(
+              { startContainer: editingHost, startOffset: 1, endContainer: editingHost, endOffset: 1 }),
+            EditorTestUtils.getRangeDescription(
+              { startContainer: precedingWhiteSpaces, startOffset: 1, endContainer: precedingWhiteSpaces, endOffset: 1 }),
+            // or start of preceding invisible whites spaces
+            EditorTestUtils.getRangeDescription(
+              { startContainer: editingHost, startOffset: 0, endContainer: editingHost, endOffset: 0 }),
+            EditorTestUtils.getRangeDescription(
+              { startContainer: precedingWhiteSpaces, startOffset: 0, endContainer: precedingWhiteSpaces, endOffset: 0 }),
+          ]
+        );
+      }, `getSelection().modify("move", "${direction}", "character") ${
+        callSelectAllChildren ? "after getSelection().selectAllChildren(editingHost) " : ""
+      }when " <span contenteditable=false>...</span>[]editable"`);
+      test(() => {
+        if (callSelectAllChildren) {
+          getSelection().selectAllChildren(editingHost);
+        }
+        getSelection().collapse(trailingWhiteSpaces, 0);
+        getSelection().modify("move", direction, "character");
+        assert_in_array(
+          EditorTestUtils.getRangeDescription(getSelection().getRangeAt(0)),
+          [
+            // end of editable region at middle of the line
+            EditorTestUtils.getRangeDescription(
+              { startContainer: editingHost, startOffset: 3, endContainer: editingHost, endOffset: 3 }),
+            EditorTestUtils.getRangeDescription(
+              { startContainer: middleText, startOffset: middleText.length, endContainer: middleText, endOffset: middleText.length }),
+          ]
+        );
+      }, `getSelection().modify("move", "${direction}", "character") ${
+        callSelectAllChildren ? "after getSelection().selectAllChildren(editingHost) " : ""
+      }when "editable<span contenteditable=false>...</span>[] "`);
+    }
+  }
+}, {once: true});
+</script>
+</head>
+<body>
+<div contenteditable> <span contenteditable="false">non-editable</span>editable<span contenteditable="false">non-editable</span> </div>
+</body>
+</html>

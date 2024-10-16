@@ -56,9 +56,14 @@ impl URLSearchParams {
         )
     }
 
+    pub fn set_list(&self, list: Vec<(String, String)>) {
+        *self.list.borrow_mut() = list;
+    }
+}
+
+impl URLSearchParamsMethods for URLSearchParams {
     /// <https://url.spec.whatwg.org/#dom-urlsearchparams-urlsearchparams>
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+    fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -104,12 +109,6 @@ impl URLSearchParams {
         Ok(query)
     }
 
-    pub fn set_list(&self, list: Vec<(String, String)>) {
-        *self.list.borrow_mut() = list;
-    }
-}
-
-impl URLSearchParamsMethods for URLSearchParams {
     /// <https://url.spec.whatwg.org/#dom-urlsearchparams-size>
     fn Size(&self) -> u32 {
         self.list.borrow().len() as u32

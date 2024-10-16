@@ -281,7 +281,7 @@ def _validate_test(test: _TestParams):
             r'@assert pixel .* 0,0,0,0;', test['code']):
         print(f'Probable incorrect pixel test in {test["name"]}')
 
-    if 'size' in test and (not isinstance(test['size'], list)
+    if 'size' in test and (not isinstance(test['size'], tuple)
                            or len(test['size']) != 2):
         raise InvalidTestDefinitionError(
             f'Invalid canvas size "{test["size"]}" in test {test["name"]}. '
@@ -363,7 +363,7 @@ class _Variant():
         Default values are added for certain parameters, if missing."""
         params = {
             'desc': '',
-            'size': [100, 50],
+            'size': (100, 50),
             # Test name, which ultimately is used as filename. File variant
             # dimension names are appended to this to produce unique filenames.
             'name': '',
@@ -458,6 +458,9 @@ class _Variant():
         self._params['file_name'] = self._get_file_name()
         self._params['canvas_types'] = self._get_canvas_types()
         self._params['template_type'] = self._get_template_type()
+
+        if isinstance(self._params['size'], list):
+            self._params['size'] = tuple(self._params['size'])
 
         if 'reference' in self._params:
             self._params['reference'] = _preprocess_code(

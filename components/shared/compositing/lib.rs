@@ -22,6 +22,7 @@ use script_traits::{
 };
 use style_traits::CSSPixel;
 use webrender_api::units::{DeviceIntPoint, DeviceIntSize, DeviceRect};
+use webrender_api::DocumentId;
 use webrender_traits::{
     CanvasToCompositorMsg, FontToCompositorMsg, NetToCompositorMsg, ScriptToCompositorMsg,
 };
@@ -93,8 +94,9 @@ pub enum CompositorMsg {
     /// Set whether to use less resources by stopping animations.
     SetThrottled(PipelineId, bool),
     /// WebRender has produced a new frame. This message informs the compositor that
-    /// the frame is ready, so that it may trigger a recomposite.
-    NewWebRenderFrameReady(bool /* composite_needed */),
+    /// the frame is ready. It contains a bool to indicate if it needs to composite and the
+    /// `DocumentId` of the new frame.
+    NewWebRenderFrameReady(DocumentId, bool),
     /// A pipeline was shut down.
     // This message acts as a synchronization point between the constellation,
     // when it shuts down a pipeline, to the compositor; when the compositor

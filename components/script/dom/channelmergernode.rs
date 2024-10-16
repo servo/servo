@@ -12,7 +12,9 @@ use crate::dom::baseaudiocontext::BaseAudioContext;
 use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
     ChannelCountMode, ChannelInterpretation,
 };
-use crate::dom::bindings::codegen::Bindings::ChannelMergerNodeBinding::ChannelMergerOptions;
+use crate::dom::bindings::codegen::Bindings::ChannelMergerNodeBinding::{
+    ChannelMergerNodeMethods, ChannelMergerOptions,
+};
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::DomRoot;
@@ -79,9 +81,11 @@ impl ChannelMergerNode {
             can_gc,
         ))
     }
+}
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+impl ChannelMergerNodeMethods for ChannelMergerNode {
+    /// <https://webaudio.github.io/web-audio-api/#dom-channelmergernode-channelmergernode>
+    fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,

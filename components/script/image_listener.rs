@@ -11,11 +11,12 @@ use crate::dom::bindings::conversions::DerivedFrom;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::node::{window_from_node, Node};
+use crate::script_runtime::CanGc;
 use crate::task_source::TaskSource;
 
 pub trait ImageCacheListener {
     fn generation_id(&self) -> u32;
-    fn process_image_response(&self, response: ImageResponse);
+    fn process_image_response(&self, response: ImageResponse, can_gc: CanGc);
 }
 
 pub fn generate_cache_listener_for_element<
@@ -42,7 +43,7 @@ pub fn generate_cache_listener_for_element<
                     let element = element.root();
                     // Ignore any image response for a previous request that has been discarded.
                     if generation == element.generation_id() {
-                        element.process_image_response(image);
+                        element.process_image_response(image, CanGc::note());
                     }
                 }),
                 &canceller,

@@ -107,6 +107,7 @@ impl GPUBuffer {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         global: &GlobalScope,
         channel: WebGPU,

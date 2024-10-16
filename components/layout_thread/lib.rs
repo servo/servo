@@ -552,6 +552,7 @@ impl LayoutThread {
         self.root_flow.borrow().clone()
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn new(
         id: PipelineId,
         url: ServoUrl,

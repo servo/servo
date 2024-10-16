@@ -13,12 +13,12 @@ use std::time::Duration;
 
 use base::id::TEST_PIPELINE_ID;
 use cookie::Cookie as CookiePair;
-use crossbeam_channel::{unbounded, Receiver};
+use crossbeam_channel::{unbounded, Receiver, Sender};
 use devtools_traits::{
     ChromeToDevtoolsControlMsg, DevtoolsControlMsg, HttpRequest as DevtoolsHttpRequest,
     HttpResponse as DevtoolsHttpResponse, NetworkEvent,
 };
-use flate2::write::{DeflateEncoder, GzEncoder};
+use flate2::write::{GzEncoder, ZlibEncoder};
 use flate2::Compression;
 use headers::authorization::Basic;
 use headers::{
@@ -32,17 +32,19 @@ use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use net::cookie::ServoCookie;
 use net::cookie_storage::CookieStorage;
+use net::fetch::methods::{self};
 use net::http_loader::determine_requests_referrer;
 use net::resource_thread::AuthCacheEntry;
-use net::test::replace_host_table;
+use net::test::{replace_host_table, DECODER_BUFFER_SIZE};
 use net_traits::http_status::HttpStatus;
 use net_traits::request::{
     BodyChunkRequest, BodyChunkResponse, BodySource, CredentialsMode, Destination, Referrer,
-    RequestBody, RequestBuilder,
+    Request, RequestBody, RequestBuilder,
 };
-use net_traits::response::ResponseBody;
-use net_traits::{CookieSource, NetworkError, ReferrerPolicy};
+use net_traits::response::{Response, ResponseBody};
+use net_traits::{CookieSource, FetchTaskTarget, NetworkError, ReferrerPolicy};
 use servo_url::{ImmutableOrigin, ServoUrl};
+use tokio_test::block_on;
 
 use crate::{fetch, fetch_with_context, make_server, new_fetch_context};
 
@@ -437,7 +439,7 @@ fn test_load_should_decode_the_response_as_deflate_when_response_headers_have_co
             header::CONTENT_ENCODING,
             HeaderValue::from_static("deflate"),
         );
-        let mut e = DeflateEncoder::new(Vec::new(), Compression::default());
+        let mut e = ZlibEncoder::new(Vec::new(), Compression::default());
         e.write(b"Yay!").unwrap();
         let encoded_content = e.finish().unwrap();
         *response.body_mut() = encoded_content.into();
@@ -1355,4 +1357,67 @@ fn test_determine_requests_referrer_longer_than_4k() {
     let referer = determine_requests_referrer(referrer_policy, referrer_source, current_url);
 
     assert_eq!(referer.unwrap().as_str(), "http://example.com/");
+}
+
+#[test]
+fn test_fetch_compressed_response_update_count() {
+    // contents of ../../tests/wpt/tests/fetch/content-encoding/br/resources/foo.text.br
+    const DATA_BROTLI_COMPRESSED: [u8; 15] = [
+        0xe1, 0x18, 0x48, 0xc1, 0x2f, 0x65, 0xf6, 0x16, 0x9f, 0x05, 0x01, 0xbb, 0x20, 0x00, 0x06,
+    ];
+    const DATA_DECOMPRESSED_LEN: usize = 10500;
+
+    let handler = move |_: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
+        response
+            .headers_mut()
+            .insert(header::CONTENT_ENCODING, HeaderValue::from_static("br"));
+        *response.body_mut() = DATA_BROTLI_COMPRESSED.to_vec().into();
+    };
+    let (server, url) = make_server(handler);
+
+    let mut request = RequestBuilder::new(url.clone(), Referrer::NoReferrer)
+        .method(Method::GET)
+        .body(None)
+        .destination(Destination::Document)
+        .origin(mock_origin())
+        .pipeline_id(Some(TEST_PIPELINE_ID))
+        .build();
+
+    struct FetchResponseCollector {
+        sender: Sender<usize>,
+        update_count: usize,
+    }
+    impl FetchTaskTarget for FetchResponseCollector {
+        fn process_request_body(&mut self, _: &Request) {}
+        fn process_request_eof(&mut self, _: &Request) {}
+        fn process_response(&mut self, _: &Response) {}
+        fn process_response_chunk(&mut self, _: Vec<u8>) {
+            self.update_count += 1;
+        }
+        /// Fired when the response is fully fetched
+        fn process_response_eof(&mut self, _: &Response) {
+            let _ = self.sender.send(self.update_count);
+        }
+    }
+
+    let (sender, receiver) = unbounded();
+    let mut target = FetchResponseCollector {
+        sender: sender,
+        update_count: 0,
+    };
+    let response_update_count = block_on(async move {
+        methods::fetch(
+            &mut request,
+            &mut target,
+            &mut new_fetch_context(None, None, None),
+        )
+        .await;
+        receiver.recv().unwrap()
+    });
+
+    server.close();
+
+    const EXPECTED_UPDATE_COUNT: usize =
+        (DATA_DECOMPRESSED_LEN + DECODER_BUFFER_SIZE - 1) / DECODER_BUFFER_SIZE;
+    assert_eq!(response_update_count, EXPECTED_UPDATE_COUNT);
 }

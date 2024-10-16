@@ -1,0 +1,64 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>Changing content targetting :has-slotted(...) and :has-slotted through multiple shadow roots</title>
+  <link rel="help" href="https://github.com/w3c/csswg-drafts/pull/10586">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+</head>
+
+<body>
+
+  <div id="test"><template shadowrootmode="open"><div id="inner"><template shadowrootmode="open">
+    <slot></slot>
+    <p id="target">This text will be styled.</p>
+    <style>
+      p {
+        color: rgb(0 255 0);
+      }
+      slot:not(:has-slotted) + p {
+        color: rgb(0 0 255);
+      }
+      slot:not(:has-slotted(div)) + p {
+        color: rgb(255 0 255);
+      }
+    </style>
+  </template><slot></slot></div></template></div>
+
+
+  <script>
+    const blue = 'rgb(0, 0,  255)';
+    const green = 'rgb(0, 255, 0)';
+    const fuchsia = 'rgb(255, 0, 255)';
+    test(function () {
+      const test = document.getElementById('test');
+      const inner = test.shadowRoot.getElementById('inner');
+      const target = inner.shadowRoot.getElementById('target');
+      let styles = getComputedStyle(target);
+      assert_equals(styles.getPropertyValue('color'), green);
+      const node = document.createTextNode(' ');
+      test.replaceChildren(node);
+      styles = getComputedStyle(target);
+      assert_equals(styles.getPropertyValue('color'), blue);
+      node.remove();
+      styles = getComputedStyle(target);
+      assert_equals(styles.getPropertyValue('color'), green);
+      test.innerHTML = '<div></div>';
+      styles = getComputedStyle(target);
+      assert_equals(styles.getPropertyValue('color'), fuchsia);
+      test.appendChild(node);
+      styles = getComputedStyle(target);
+      assert_equals(styles.getPropertyValue('color'), blue);
+      test.textContent = '';
+      styles = getComputedStyle(target);
+      assert_equals(styles.getPropertyValue('color'), green);
+    }, name);
+  </script>
+</body>
+
+</html>

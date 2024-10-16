@@ -115,6 +115,10 @@ def main(request, response):
         "adSlot": "adSlot/0",
       },
       {
+        "adSlot": "null",
+        "sellerSignals": "sellerSignals/null",
+      },
+      {
         "adSlot": "adSlot/1",
         "sellerSignals": "sellerSignals/1",
       },

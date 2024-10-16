@@ -19,7 +19,9 @@ use net_traits::{
 };
 use servo_url::ServoUrl;
 
-use crate::dom::bindings::codegen::Bindings::RequestBinding::{RequestInfo, RequestInit};
+use crate::dom::bindings::codegen::Bindings::RequestBinding::{
+    RequestInfo, RequestInit, RequestMethods,
+};
 use crate::dom::bindings::codegen::Bindings::ResponseBinding::ResponseType as DOMResponseType;
 use crate::dom::bindings::codegen::Bindings::ResponseBinding::Response_Binding::ResponseMethods;
 use crate::dom::bindings::error::Error;
@@ -136,7 +138,7 @@ fn request_init_from_request(request: NetTraitsRequest) -> RequestBuilder {
     }
 }
 
-// https://fetch.spec.whatwg.org/#fetch-method
+/// <https://fetch.spec.whatwg.org/#fetch-method>
 #[allow(crown::unrooted_must_root, non_snake_case)]
 pub fn Fetch(
     global: &GlobalScope,
@@ -146,33 +148,47 @@ pub fn Fetch(
 ) -> Rc<Promise> {
     let core_resource_thread = global.core_resource_thread();
 
-    // Step 1
+    // Step 1. Let p be a new promise.
     let promise = Promise::new_in_current_realm(comp);
-    let response = Response::new(global);
 
-    // Step 2
+    // Step 7. Let responseObject be null.
+    // NOTE: We do initialize the object earlier earlier so we can use it to track errors
+    let response = Response::new(global);
+    response.Headers().set_guard(Guard::Immutable);
+
+    // Step 2. Let requestObject be the result of invoking the initial value of Request as constructor
+    //         with input and init as arguments. If this throws an exception, reject p with it and return p.
     let request = match Request::Constructor(global, None, CanGc::note(), input, init) {
         Err(e) => {
             response.error_stream(e.clone());
             promise.reject_error(e);
             return promise;
         },
-        Ok(r) => r.get_request(),
+        Ok(r) => {
+            // Step 3. Let request be requestObject’s request.
+            r.get_request()
+        },
     };
     let timing_type = request.timing_type();
 
     let mut request_init = request_init_from_request(request);
     request_init.csp_list.clone_from(&global.get_csp_list());
 
-    // Step 3
+    // TODO: Step 4. If requestObject’s signal is aborted, then: [..]
+
+    // Step 5. Let globalObject be request’s client’s global object.
+    // NOTE:   We already get the global object as an argument
+
+    // Step 6. If globalObject is a ServiceWorkerGlobalScope object, then set request’s
+    //         service-workers mode to "none".
     if global.downcast::<ServiceWorkerGlobalScope>().is_some() {
         request_init.service_workers_mode = ServiceWorkersMode::None;
     }
 
-    // Step 4
-    response.Headers().set_guard(Guard::Immutable);
+    // TODO: Steps 8-11, abortcontroller stuff
 
-    // Step 5
+    // Step 12. Set controller to the result of calling fetch given request and
+    //           processResponse given response being these steps: [..]
     let (action_sender, action_receiver) = ipc::channel().unwrap();
     let fetch_context = Arc::new(Mutex::new(FetchContext {
         fetch_promise: Some(TrustedPromise::new(promise.clone())),
@@ -198,6 +214,7 @@ pub fn Fetch(
         ))
         .unwrap();
 
+    // Step 13. Return p.
     promise
 }
 
@@ -261,6 +278,7 @@ impl FetchResponseListener for FetchContext {
                 },
             },
         }
+
         // Step 4.3
         promise.resolve_native(&self.response_object.root());
         self.fetch_promise = Some(TrustedPromise::new(promise));

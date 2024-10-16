@@ -19,6 +19,7 @@ use style::values::generics::flex::GenericFlexBasis as FlexBasis;
 use style::values::generics::length::{GenericLengthPercentageOrAuto, LengthPercentageOrNormal};
 use style::values::specified::align::AlignFlags;
 use style::Zero;
+use tracing::instrument;
 
 use super::geom::{FlexAxis, FlexRelativeRect, FlexRelativeSides, FlexRelativeVec2};
 use super::{FlexContainer, FlexContainerConfig, FlexItemBox, FlexLevelBox};
@@ -102,6 +103,7 @@ impl FlexItemLayoutResult {
             .unwrap_or_else(|| item.synthesized_baseline_relative_to_margin_box(cross_size))
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn collect_fragment(
         mut self,
         initial_flex_layout: &InitialFlexLineLayout,
@@ -337,6 +339,11 @@ struct FlexItemBoxInlineContentSizesInfo {
 }
 
 impl FlexContainer {
+    #[instrument(
+        name = "FlexContainer::inline_content_sizes",
+        skip_all,
+        fields(servo_profiling = true)
+    )]
     pub fn inline_content_sizes(
         &mut self,
         layout_context: &LayoutContext,
@@ -530,6 +537,11 @@ impl FlexContainer {
     }
 
     /// <https://drafts.csswg.org/css-flexbox/#layout-algorithm>
+    #[instrument(
+        name = "FlexContainer::layout",
+        skip_all,
+        fields(servo_profiling = true)
+    )]
     pub(crate) fn layout(
         &self,
         layout_context: &LayoutContext,
@@ -709,12 +721,14 @@ impl FlexContainer {
         };
 
         // Implement "unsafe" alignment. "safe" alignment is handled by the fallback process above.
-        let resolved_align_content = self.config.resolve_reversable_flex_alignment(
-            resolved_align_content,
-            flex_context.config.flex_wrap_is_reversed,
-        );
+        let flex_wrap_is_reversed = flex_context.config.flex_wrap_is_reversed;
+        let resolved_align_content = self
+            .config
+            .resolve_reversable_flex_alignment(resolved_align_content, flex_wrap_is_reversed);
         let mut cross_start_position_cursor = match resolved_align_content {
+            AlignFlags::START if flex_wrap_is_reversed => remaining_free_cross_space,
             AlignFlags::START => Au::zero(),
+            AlignFlags::END if flex_wrap_is_reversed => Au::zero(),
             AlignFlags::END => remaining_free_cross_space,
             AlignFlags::CENTER => remaining_free_cross_space / 2,
             AlignFlags::STRETCH => Au::zero(),
@@ -759,7 +773,7 @@ impl FlexContainer {
                     cross_gap;
 
                 let flow_relative_line_position =
-                    match (self.config.flex_axis, self.config.flex_wrap_is_reversed) {
+                    match (self.config.flex_axis, flex_wrap_is_reversed) {
                         (FlexAxis::Row, false) => LogicalVec2 {
                             block: line_cross_start_position,
                             inline: Au::zero(),
@@ -2201,6 +2215,7 @@ impl FlexItemBox {
     }
 
     /// This is an implementation of <https://drafts.csswg.org/css-flexbox/#min-size-auto>.
+    #[allow(clippy::too_many_arguments)]
     fn automatic_min_size(
         &mut self,
         layout_context: &LayoutContext,
@@ -2307,6 +2322,7 @@ impl FlexItemBox {
     }
 
     /// <https://drafts.csswg.org/css-flexbox/#algo-main-item>
+    #[allow(clippy::too_many_arguments)]
     fn flex_base_size(
         &mut self,
         layout_context: &LayoutContext,
@@ -2457,6 +2473,12 @@ impl FlexItemBox {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
+    #[instrument(
+        name = "FlexContainer::layout_for_block_content_size",
+        skip_all,
+        fields(servo_profiling = true)
+    )]
     fn layout_for_block_content_size(
         &mut self,
         flex_context: &FlexContext,
