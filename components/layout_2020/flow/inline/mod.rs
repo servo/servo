@@ -2245,17 +2245,17 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
             },
             InlineItem::TextRun(text_run) => {
                 for segment in text_run.shaped_text.iter() {
+                    let style_text = text_run.parent_style.get_inherited_text();
+                    let can_wrap = style_text.text_wrap_mode == TextWrapMode::Wrap;
+
                     // TODO: This should take account whether or not the first and last character prevent
                     // linebreaks after atomics as in layout.
-                    if segment.break_at_start {
+                    if can_wrap && segment.break_at_start {
                         self.line_break_opportunity()
                     }
 
                     for run in segment.runs.iter() {
                         let advance = run.glyph_store.total_advance();
-                        let style_text = text_run.parent_style.get_inherited_text();
-                        let can_wrap = style_text.text_wrap_mode == TextWrapMode::Wrap;
-
                         if run.glyph_store.is_whitespace() {
                             // If this run is a forced line break, we *must* break the line
                             // and start measuring from the inline origin once more.
