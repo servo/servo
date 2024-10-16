@@ -6,9 +6,9 @@
 //!
 //! <https://html.spec.whatwg.org/multipage/#the-end>
 
-use ipc_channel::ipc::IpcSender;
+use ipc_channel::ipc;
 use net_traits::request::RequestBuilder;
-use net_traits::{CoreResourceMsg, FetchChannels, FetchResponseMsg, IpcSend, ResourceThreads};
+use net_traits::{fetch_async, BoxedFetchCallback, ResourceThreads};
 use servo_url::ServoUrl;
 
 use crate::dom::bindings::root::Dom;
@@ -111,33 +111,37 @@ impl DocumentLoader {
         self.blocking_loads.push(load);
     }
 
-    /// Initiate a new fetch.
-    pub fn fetch_async(
+    /// Initiate a new fetch given a response callback.
+    pub fn fetch_async_with_callback(
         &mut self,
         load: LoadType,
         request: RequestBuilder,
-        fetch_target: IpcSender<FetchResponseMsg>,
+        callback: BoxedFetchCallback,
     ) {
         self.add_blocking_load(load);
-        self.fetch_async_background(request, fetch_target);
+        self.fetch_async_background(request, callback, None);
     }
 
     /// Initiate a new fetch that does not block the document load event.
     pub fn fetch_async_background(
         &mut self,
         request: RequestBuilder,
-        fetch_target: IpcSender<FetchResponseMsg>,
+        callback: BoxedFetchCallback,
+        cancel_override: Option<ipc::IpcReceiver<()>>,
     ) {
-        let mut canceller = FetchCanceller::new();
-        let cancel_receiver = canceller.initialize();
-        self.cancellers.push(canceller);
-        self.resource_threads
-            .sender()
-            .send(CoreResourceMsg::Fetch(
-                request,
-                FetchChannels::ResponseMsg(fetch_target, Some(cancel_receiver)),
-            ))
-            .unwrap();
+        let canceller = cancel_override.unwrap_or_else(|| {
+            let mut canceller = FetchCanceller::new();
+            let cancel_receiver = canceller.initialize();
+            self.cancellers.push(canceller);
+            cancel_receiver
+        });
+
+        fetch_async(
+            &self.resource_threads.core_thread,
+            request,
+            Some(canceller),
+            callback,
+        );
     }
 
     /// Mark an in-progress network request complete.

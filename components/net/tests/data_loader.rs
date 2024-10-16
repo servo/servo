@@ -7,8 +7,8 @@ use std::ops::Deref;
 use headers::{ContentType, HeaderMapExt};
 use hyper_serde::Serde;
 use mime::{self, Mime};
-use net_traits::request::{Origin, Referrer, Request};
-use net_traits::response::{HttpsState, ResponseBody};
+use net_traits::request::Referrer;
+use net_traits::response::ResponseBody;
 use net_traits::{FetchMetadata, FilteredMetadata, NetworkError};
 use servo_url::ServoUrl;
 
@@ -21,15 +21,13 @@ fn assert_parse(
     charset: Option<&str>,
     data: Option<&[u8]>,
 ) {
+    use net_traits::request::RequestBuilder;
+
     let url = ServoUrl::parse(url).unwrap();
-    let origin = Origin::Origin(url.origin());
-    let mut request = Request::new(
-        url,
-        Some(origin),
-        Referrer::NoReferrer,
-        None,
-        HttpsState::None,
-    );
+    let mut request = RequestBuilder::new(url.clone(), Referrer::NoReferrer)
+        .origin(url.origin())
+        .pipeline_id(None)
+        .build();
 
     let response = fetch(&mut request, None);
 

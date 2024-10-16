@@ -4718,6 +4718,7 @@ dependencies = [
  "base",
  "content-security-policy",
  "cookie 0.18.1",
+ "crossbeam-channel",
  "embedder_traits",
  "headers",
  "http",

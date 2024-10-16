@@ -17,7 +17,7 @@ use net_traits::fetch::headers::is_forbidden_method;
 use net_traits::request::{
     CacheMode as NetTraitsRequestCache, CredentialsMode as NetTraitsRequestCredentials,
     Destination as NetTraitsRequestDestination, Origin, RedirectMode as NetTraitsRequestRedirect,
-    Referrer as NetTraitsRequestReferrer, Request as NetTraitsRequest,
+    Referrer as NetTraitsRequestReferrer, Request as NetTraitsRequest, RequestBuilder,
     RequestMode as NetTraitsRequestMode, Window,
 };
 use net_traits::ReferrerPolicy as MsgReferrerPolicy;
@@ -107,11 +107,11 @@ impl Request {
 }
 
 fn net_request_from_global(global: &GlobalScope, url: ServoUrl) -> NetTraitsRequest {
-    let origin = Origin::Origin(global.get_url().origin());
-    let https_state = global.get_https_state();
-    let pipeline_id = global.pipeline_id();
-    let referrer = global.get_referrer();
-    NetTraitsRequest::new(url, Some(origin), referrer, Some(pipeline_id), https_state)
+    RequestBuilder::new(url, global.get_referrer())
+        .origin(global.get_url().origin())
+        .pipeline_id(Some(global.pipeline_id()))
+        .https_state(global.get_https_state())
+        .build()
 }
 
 // https://fetch.spec.whatwg.org/#concept-method-normalize

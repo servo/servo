@@ -13,7 +13,7 @@ use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use log::warn;
 use net::http_loader::{set_default_accept_language, DOCUMENT_ACCEPT_HEADER_VALUE};
-use net_traits::request::{Referrer, RequestBuilder};
+use net_traits::request::{Referrer, RequestBuilder, RequestId};
 use net_traits::response::ResponseInit;
 use net_traits::{
     CoreResourceMsg, FetchChannels, FetchMetadata, FetchResponseMsg, IpcSend, NetworkError,
@@ -91,7 +91,9 @@ impl NetworkListener {
             Box::new(move |message| {
                 let msg = message.to();
                 match msg {
-                    Ok(FetchResponseMsg::ProcessResponse(res)) => listener.check_redirect(res),
+                    Ok(FetchResponseMsg::ProcessResponse(request_id, res)) => {
+                        listener.check_redirect(request_id, res)
+                    },
                     Ok(msg_) => listener.send(msg_),
                     Err(e) => warn!("Error while receiving network listener message: {}", e),
                 };
@@ -103,7 +105,11 @@ impl NetworkListener {
         }
     }
 
-    fn check_redirect(&mut self, message: Result<FetchMetadata, NetworkError>) {
+    fn check_redirect(
+        &mut self,
+        request_id: RequestId,
+        message: Result<FetchMetadata, NetworkError>,
+    ) {
         match message {
             Ok(res_metadata) => {
                 let metadata = match res_metadata {
@@ -160,13 +166,16 @@ impl NetworkListener {
                     _ => {
                         // Response should be processed by script thread.
                         self.should_send = true;
-                        self.send(FetchResponseMsg::ProcessResponse(Ok(res_metadata)));
+                        self.send(FetchResponseMsg::ProcessResponse(
+                            request_id,
+                            Ok(res_metadata),
+                        ));
                     },
                 };
             },
             Err(e) => {
                 self.should_send = true;
-                self.send(FetchResponseMsg::ProcessResponse(Err(e)))
+                self.send(FetchResponseMsg::ProcessResponse(request_id, Err(e)))
             },
         };
     }
