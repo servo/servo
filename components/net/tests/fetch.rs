@@ -1368,6 +1368,20 @@ fn test_fetch_with_devtools() {
         HeaderValue::from_static("gzip, deflate, br"),
     );
 
+    // Append fetch metadata headers
+    headers.insert(
+        HeaderName::from_static("sec-fetch-dest"),
+        HeaderValue::from_static("empty"),
+    );
+    headers.insert(
+        HeaderName::from_static("sec-fetch-mode"),
+        HeaderValue::from_static("no-cors"),
+    );
+    headers.insert(
+        HeaderName::from_static("sec-fetch-site"),
+        HeaderValue::from_static("same-origin"),
+    );
+
     let httprequest = DevtoolsHttpRequest {
         url: url,
         method: Method::GET,

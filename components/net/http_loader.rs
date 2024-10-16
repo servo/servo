@@ -67,6 +67,7 @@ use crate::cookie::ServoCookie;
 use crate::cookie_storage::CookieStorage;
 use crate::decoder::Decoder;
 use crate::fetch::cors_cache::CorsCache;
+use crate::fetch::headers::{SecFetchDest, SecFetchMode, SecFetchSite, SecFetchUser};
 use crate::fetch::methods::{main_fetch, Data, DoneChannel, FetchContext, Target};
 use crate::hsts::HstsList;
 use crate::http_cache::{CacheKey, HttpCache};
@@ -207,6 +208,35 @@ fn strict_origin_when_cross_origin(
     }
     // Step 3
     strip_url_for_use_as_referrer(referrer_url, true)
+}
+
+/// <https://html.spec.whatwg.org/multipage/#concept-site-same-site>
+fn is_same_site(site_a: &ImmutableOrigin, site_b: &ImmutableOrigin) -> bool {
+    // Step 1. If A and B are the same opaque origin, then return true.
+    if !site_a.is_tuple() && !site_b.is_tuple() && site_a == site_b {
+        return true;
+    }
+
+    // Step 2. If A or B is an opaque origin, then return false.
+    let ImmutableOrigin::Tuple(scheme_a, host_a, _) = site_a else {
+        return false;
+    };
+    let ImmutableOrigin::Tuple(scheme_b, host_b, _) = site_b else {
+        return false;
+    };
+
+    // Step 3. If A's and B's scheme values are different, then return false.
+    if scheme_a != scheme_b {
+        return false;
+    }
+
+    // Step 4. If A's and B's host values are not equal, then return false.
+    if host_a != host_b {
+        return false;
+    }
+
+    // Step 5. Return true.
+    true
 }
 
 /// <https://html.spec.whatwg.org/multipage/#schemelessly-same-site>
@@ -1196,7 +1226,7 @@ async fn http_network_or_cache_fetch(
     append_a_request_origin_header(http_request);
 
     // Step 8.13 Append the Fetch metadata headers for httpRequest.
-    // TODO(#33616) Implement Sec-Fetch-* headers
+    append_the_fetch_metadata_headers(http_request);
 
     // Step 8.14: If httpRequest’s initiator is "prefetch", then set a structured field value given
     // (`Sec-Purpose`, the token "prefetch") in httpRequest’s header list.
@@ -2355,4 +2385,113 @@ pub fn append_a_request_origin_header(request: &mut Request) {
         // Step 4.2. Append (`Origin`, serializedOrigin) to request’s header list.
         request.headers.typed_insert(serialized_origin);
     }
+}
+
+/// <https://w3c.github.io/webappsec-fetch-metadata/#abstract-opdef-append-the-fetch-metadata-headers-for-a-request>
+fn append_the_fetch_metadata_headers(r: &mut Request) {
+    // Step 1. If r’s url is not an potentially trustworthy URL, return.
+    if !r.url().is_potentially_trustworthy() {
+        return;
+    }
+
+    // Step 2. Set the Sec-Fetch-Dest header for r.
+    set_the_sec_fetch_dest_header(r);
+
+    // Step 3. Set the Sec-Fetch-Mode header for r.
+    set_the_sec_fetch_mode_header(r);
+
+    // Step 4. Set the Sec-Fetch-Site header for r.
+    set_the_sec_fetch_site_header(r);
+
+    // Step 5. Set the Sec-Fetch-User header for r.
+    set_the_sec_fetch_user_header(r);
+}
+
+/// <https://w3c.github.io/webappsec-fetch-metadata/#abstract-opdef-set-dest>
+fn set_the_sec_fetch_dest_header(r: &mut Request) {
+    // Step 1. Assert: r’s url is a potentially trustworthy URL.
+    debug_assert!(r.url().is_potentially_trustworthy());
+
+    // Step 2. Let header be a Structured Header whose value is a token.
+    // Step 3. If r’s destination is the empty string, set header’s value to the string "empty".
+    // Otherwise, set header’s value to r’s destination.
+    let header = r.destination;
+
+    // Step 4. Set a structured field value `Sec-Fetch-Dest`/header in r’s header list.
+    r.headers.typed_insert(SecFetchDest(header));
+}
+
+/// <https://w3c.github.io/webappsec-fetch-metadata/#abstract-opdef-set-mode>
+fn set_the_sec_fetch_mode_header(r: &mut Request) {
+    // Step 1. Assert: r’s url is a potentially trustworthy URL.
+    debug_assert!(r.url().is_potentially_trustworthy());
+
+    // Step 2. Let header be a Structured Header whose value is a token.
+    // Step 3. Set header’s value to r’s mode.
+    let header = &r.mode;
+
+    // Step 4. Set a structured field value `Sec-Fetch-Mode`/header in r’s header list.
+    r.headers.typed_insert(SecFetchMode::from(header));
+}
+
+/// <https://w3c.github.io/webappsec-fetch-metadata/#abstract-opdef-set-site>
+fn set_the_sec_fetch_site_header(r: &mut Request) {
+    // The webappsec spec seems to have a similar issue as
+    // https://github.com/whatwg/fetch/issues/1773
+    let Origin::Origin(request_origin) = &r.origin else {
+        panic!("request origin cannot be \"client\" at this point")
+    };
+
+    // Step 1. Assert: r’s url is a potentially trustworthy URL.
+    debug_assert!(r.url().is_potentially_trustworthy());
+
+    // Step 2. Let header be a Structured Header whose value is a token.
+    // Step 3. Set header’s value to same-origin.
+    let mut header = SecFetchSite::SameOrigin;
+
+    // TODO: Step 3. If r is a navigation request that was explicitly caused by a
+    // user’s interaction with the user agent, then set header’s value to none.
+
+    // Step 5. If header’s value is not none, then for each url in r’s url list:
+    if header != SecFetchSite::None {
+        for url in &r.url_list {
+            // Step 5.1 If url is same origin with r’s origin, continue.
+            if url.origin() == *request_origin {
+                continue;
+            }
+
+            // Step 5.2 Set header’s value to cross-site.
+            header = SecFetchSite::CrossSite;
+
+            // Step 5.3 If r’s origin is not same site with url’s origin, then break.
+            if is_same_site(request_origin, &url.origin()) {
+                break;
+            }
+
+            // Step 5.4 Set header’s value to same-site.
+            header = SecFetchSite::SameSite;
+        }
+    }
+
+    // Step 6. Set a structured field value `Sec-Fetch-Site`/header in r’s header list.
+    r.headers.typed_insert(header);
+}
+
+/// <https://w3c.github.io/webappsec-fetch-metadata/#abstract-opdef-set-user>
+fn set_the_sec_fetch_user_header(r: &mut Request) {
+    // Step 1. Assert: r’s url is a potentially trustworthy URL.
+    debug_assert!(r.url().is_potentially_trustworthy());
+
+    // Step 2. If r is not a navigation request, or if r’s user-activation is false, return.
+    // TODO user activation
+    if !r.is_navigation_request() {
+        return;
+    }
+
+    // Step 3. Let header be a Structured Header whose value is a token.
+    // Step 4. Set header’s value to true.
+    let header = SecFetchUser;
+
+    // Step 5. Set a structured field value `Sec-Fetch-User`/header in r’s header list.
+    r.headers.typed_insert(header);
 }

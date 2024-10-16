@@ -26,7 +26,7 @@ use headers::{
 };
 use http::header::{self, HeaderMap, HeaderValue};
 use http::uri::Authority;
-use http::{Method, StatusCode};
+use http::{HeaderName, Method, StatusCode};
 use hyper::{Body, Request as HyperRequest, Response as HyperResponse};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
@@ -149,6 +149,24 @@ fn test_check_default_headers_loaded_in_every_request() {
 
     headers.typed_insert::<UserAgent>(crate::DEFAULT_USER_AGENT.parse().unwrap());
 
+    // Append fetch metadata headers
+    headers.insert(
+        HeaderName::from_static("sec-fetch-dest"),
+        HeaderValue::from_static("document"),
+    );
+    headers.insert(
+        HeaderName::from_static("sec-fetch-mode"),
+        HeaderValue::from_static("no-cors"),
+    );
+    headers.insert(
+        HeaderName::from_static("sec-fetch-site"),
+        HeaderValue::from_static("same-origin"),
+    );
+    headers.insert(
+        HeaderName::from_static("sec-fetch-user"),
+        HeaderValue::from_static("?1"),
+    );
+
     *expected_headers.lock().unwrap() = Some(headers.clone());
 
     // Testing for method.GET
@@ -159,7 +177,7 @@ fn test_check_default_headers_loaded_in_every_request() {
         .pipeline_id(Some(TEST_PIPELINE_ID))
         .build();
 
-    let response = fetch(&mut request, None);
+    let response = dbg!(fetch(&mut request, None));
     assert!(response
         .internal_response
         .unwrap()
@@ -280,6 +298,24 @@ fn test_request_and_response_data_with_network_messages() {
     headers.insert(
         header::ACCEPT_ENCODING,
         HeaderValue::from_static("gzip, deflate, br"),
+    );
+
+    // Append fetch metadata headers
+    headers.insert(
+        HeaderName::from_static("sec-fetch-dest"),
+        HeaderValue::from_static("document"),
+    );
+    headers.insert(
+        HeaderName::from_static("sec-fetch-mode"),
+        HeaderValue::from_static("no-cors"),
+    );
+    headers.insert(
+        HeaderName::from_static("sec-fetch-site"),
+        HeaderValue::from_static("same-site"),
+    );
+    headers.insert(
+        HeaderName::from_static("sec-fetch-user"),
+        HeaderValue::from_static("?1"),
     );
 
     let httprequest = DevtoolsHttpRequest {
