@@ -666,7 +666,7 @@ dependencies = [
  "fnv",
  "font-kit",
  "fonts",
- "glow 0.14.1",
+ "glow 0.15.0",
  "half",
  "ipc-channel",
  "log",
@@ -1736,7 +1736,7 @@ dependencies = [
  "bytemuck",
  "egui",
  "egui-winit",
- "glow",
+ "glow 0.14.2",
  "log",
  "memoffset",
  "wasm-bindgen",
@@ -2490,7 +2490,20 @@ checksum = "d2fabcfbdc87f4758337ca535fb41a6d701b65693ce38287d856d1674551ec9b"
 [[package]]
 name = "glow"
 version = "0.14.2"
-source = "git+https://github.com/sagudev/glow?branch=depth-auto-type#7f7b5104ed9d6b0613486bab148c7ffd3a46d031"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d51fa363f025f5c111e03f13eda21162faeacb6911fe8caa0c0349f9cf0c4483"
+dependencies = [
+ "js-sys",
+ "slotmap",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
+name = "glow"
+version = "0.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e33cd8ff5e02c1a5463ec10a846c8f3166a3ae0382ec33de6a327ea6dd61c41d"
 dependencies = [
  "js-sys",
  "slotmap",
@@ -4064,7 +4077,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4979f22fdb869068da03c9f7528f8297c6fd2606bc3a4affe42e6a823fdb8da4"
 dependencies = [
  "cfg-if",
- "windows-targets 0.48.5",
+ "windows-targets 0.52.6",
 ]
 
 [[package]]
@@ -6633,7 +6646,7 @@ dependencies = [
  "gilrs",
  "gl_generator",
  "gleam",
- "glow",
+ "glow 0.14.2",
  "headers",
  "hilog",
  "hitrace",
@@ -7076,7 +7089,7 @@ dependencies = [
 [[package]]
 name = "surfman"
 version = "0.9.8"
-source = "git+https://github.com/sagudev/surfman?branch=fix-glow-depth#6843f788dfcf3e32a720171e29bca849bc0d629c"
+source = "git+https://github.com/sagudev/surfman?branch=fix-glow-depth#f1db87d5d203847df04020d652e612ae2fa9005e"
 dependencies = [
  "bitflags 2.6.0",
  "cfg_aliases 0.2.1",
@@ -7087,7 +7100,7 @@ dependencies = [
  "euclid",
  "fnv",
  "gl_generator",
- "glow 0.14.1",
+ "glow 0.15.0",
  "io-surface",
  "libc",
  "log",
@@ -8305,14 +8318,14 @@ dependencies = [
 [[package]]
 name = "webxr"
 version = "0.0.1"
-source = "git+https://github.com/servo/webxr#e3249c3df967f16fab9928d053708bfb43487af3"
+source = "git+https://github.com/sagudev/webxr?branch=bye-sparkle#e289e4ee6c82837cbc93ce1397f49dd9f3b69c2a"
 dependencies = [
  "crossbeam-channel",
  "euclid",
+ "glow 0.15.0",
  "log",
  "openxr",
  "serde",
- "sparkle",
  "surfman",
  "webxr-api",
  "winapi",
@@ -8322,7 +8335,7 @@ dependencies = [
 [[package]]
 name = "webxr-api"
 version = "0.0.1"
-source = "git+https://github.com/servo/webxr#e3249c3df967f16fab9928d053708bfb43487af3"
+source = "git+https://github.com/sagudev/webxr?branch=bye-sparkle#e289e4ee6c82837cbc93ce1397f49dd9f3b69c2a"
 dependencies = [
  "euclid",
  "ipc-channel",
@@ -8375,7 +8388,7 @@ dependencies = [
  "bytemuck",
  "cfg_aliases 0.1.1",
  "core-graphics-types",
- "glow",
+ "glow 0.14.2",
  "glutin_wgl_sys",
  "gpu-alloc",
  "gpu-allocator",
