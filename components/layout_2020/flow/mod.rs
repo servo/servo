@@ -2002,7 +2002,7 @@ impl IndependentFormattingContext {
                 // https://drafts.csswg.org/css2/visudet.html#float-width
                 // https://drafts.csswg.org/css2/visudet.html#inlineblock-width
                 let tentative_inline_size = box_size.inline.resolve(
-                    Size::fit_content,
+                    Size::FitContent,
                     available_inline_size,
                     &mut get_content_size,
                 );
