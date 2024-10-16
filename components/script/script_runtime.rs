@@ -124,6 +124,7 @@ impl fmt::Debug for CommonScriptMsg {
 /// A cloneable interface for communicating with an event loop.
 pub trait ScriptChan: JSTraceable {
     /// Send a message to the associated event loop.
+    #[allow(clippy::result_unit_err)]
     fn send(&self, msg: CommonScriptMsg) -> Result<(), ()>;
     /// Clone this handle.
     fn clone(&self) -> Box<dyn ScriptChan + Send>;
@@ -164,6 +165,7 @@ pub enum ScriptThreadEventCategory {
 /// APIs that need to abstract over multiple kinds of event loops (worker/main thread) with
 /// different Receiver interfaces.
 pub trait ScriptPort {
+    #[allow(clippy::result_unit_err)]
     fn recv(&self) -> Result<CommonScriptMsg, ()>;
 }
 
