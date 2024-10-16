@@ -4064,7 +4064,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4979f22fdb869068da03c9f7528f8297c6fd2606bc3a4affe42e6a823fdb8da4"
 dependencies = [
  "cfg-if",
- "windows-targets 0.48.5",
+ "windows-targets 0.52.6",
 ]
 
 [[package]]
@@ -4563,9 +4563,9 @@ dependencies = [
 
 [[package]]
 name = "napi-derive-backend-ohos"
-version = "0.0.7"
+version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f6b18d697bedddd2d4c9f8f76b49fe65bd81ed1c55a7eec21ba40c176c236ddc"
+checksum = "0a8862382a40919d8bfdba9e1063546f5af16a06b31d866ebdb4029d9f743dcb"
 dependencies = [
  "convert_case",
  "once_cell",
@@ -4577,11 +4577,10 @@ dependencies = [
 
 [[package]]
 name = "napi-derive-ohos"
-version = "0.0.9"
+version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8462d74a2d6c7a671bd610f99f9ba34c739aadd2da4d8dd9f109a7e666cc2ad2"
+checksum = "3b230ea3458c3da6031b584cdb4d293b1e940a70cf1861e1f88d1fcab7fd1d43"
 dependencies = [
- "cfg-if",
  "convert_case",
  "napi-derive-backend-ohos",
  "proc-macro2",
