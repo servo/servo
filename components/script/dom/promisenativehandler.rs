@@ -47,18 +47,31 @@ impl PromiseNativeHandler {
         cx: *mut JSContext,
         v: HandleValue,
         realm: InRealm,
+        can_gc: CanGc,
     ) {
         let cx = unsafe { SafeJSContext::from_ptr(cx) };
         if let Some(ref callback) = *callback {
-            callback.callback(cx, v, realm, CanGc::note())
+            callback.callback(cx, v, realm, can_gc)
         }
     }
 
-    pub fn resolved_callback(&self, cx: *mut JSContext, v: HandleValue, realm: InRealm) {
-        PromiseNativeHandler::callback(&self.resolve, cx, v, realm)
+    pub fn resolved_callback(
+        &self,
+        cx: *mut JSContext,
+        v: HandleValue,
+        realm: InRealm,
+        can_gc: CanGc,
+    ) {
+        PromiseNativeHandler::callback(&self.resolve, cx, v, realm, can_gc)
     }
 
-    pub fn rejected_callback(&self, cx: *mut JSContext, v: HandleValue, realm: InRealm) {
-        PromiseNativeHandler::callback(&self.reject, cx, v, realm)
+    pub fn rejected_callback(
+        &self,
+        cx: *mut JSContext,
+        v: HandleValue,
+        realm: InRealm,
+        can_gc: CanGc,
+    ) {
+        PromiseNativeHandler::callback(&self.reject, cx, v, realm, can_gc)
     }
 }

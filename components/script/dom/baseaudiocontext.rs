@@ -577,13 +577,14 @@ impl BaseAudioContextMethods for BaseAudioContext {
         &self,
         feedforward: Vec<Finite<f64>>,
         feedback: Vec<Finite<f64>>,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<IIRFilterNode>> {
         let opts = IIRFilterOptions {
             parent: AudioNodeOptions::empty(),
             feedback,
             feedforward,
         };
-        IIRFilterNode::new(self.global().as_window(), self, &opts)
+        IIRFilterNode::new(self.global().as_window(), self, &opts, can_gc)
     }
 }
 

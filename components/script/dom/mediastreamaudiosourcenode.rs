@@ -55,8 +55,9 @@ impl MediaStreamAudioSourceNode {
         window: &Window,
         context: &AudioContext,
         stream: &MediaStream,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<MediaStreamAudioSourceNode>> {
-        Self::new_with_proto(window, None, context, stream, CanGc::note())
+        Self::new_with_proto(window, None, context, stream, can_gc)
     }
 
     #[allow(crown::unrooted_must_root)]

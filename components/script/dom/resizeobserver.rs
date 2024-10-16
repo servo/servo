@@ -118,7 +118,7 @@ impl ResizeObserver {
                 box_size.origin.y.to_f64_px(),
                 width,
                 height,
-                CanGc::note(),
+                can_gc,
             );
             let entry = ResizeObserverEntry::new(
                 &window,
