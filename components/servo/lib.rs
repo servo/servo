@@ -224,7 +224,10 @@ impl<Window> Servo<Window>
 where
     Window: WindowMethods + 'static + ?Sized,
 {
-    #[tracing::instrument(skip(embedder, window), fields(servo_profiling = true))]
+    #[cfg_attr(
+        feature = "tracing",
+        tracing::instrument(skip(embedder, window), fields(servo_profiling = true))
+    )]
     pub fn new(
         mut embedder: Box<dyn EmbedderMethods>,
         window: Rc<Window>,

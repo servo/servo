@@ -24,6 +24,7 @@ no-wgl = ["mozangle/egl", "mozangle/build_dlls", "surfman/sm-angle-default"]
 dynamic_freetype = ["webrender/dynamic_freetype"]
 profilemozjs = ["script/profilemozjs"]
 refcell_backtrace = ["script/refcell_backtrace"]
+tracing = ["dep:tracing", "compositing/tracing", "constellation/tracing", "fonts/tracing", "layout_thread_2020/tracing"]
 webdriver = ["webdriver_server"]
 webgl_backtrace = [
     "script/webgl_backtrace",
@@ -76,12 +77,12 @@ sparkle = { workspace = true }
 style = { workspace = true }
 style_traits = { workspace = true }
 surfman = { workspace = true }
+tracing = { workspace = true, optional = true }
 webdriver_server = { path = "../webdriver_server", optional = true }
 webgpu = { path = "../webgpu" }
 webrender = { workspace = true }
 webrender_api = { workspace = true }
 webrender_traits = { workspace = true }
-tracing = { workspace = true }
 webxr = { git = "https://github.com/servo/webxr" }
 webxr-api = { git = "https://github.com/servo/webxr" }
 

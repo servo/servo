@@ -13,6 +13,9 @@ path = "lib.rs"
 test = true
 doctest = false
 
+[features]
+tracing = ["dep:tracing"]
+
 [dependencies]
 app_units = { workspace = true }
 atomic_refcell = { workspace = true }
@@ -44,7 +47,7 @@ servo_url = { path = "../url" }
 smallvec = { workspace = true, features = ["union"] }
 surfman = { workspace = true }
 style = { workspace = true }
-tracing = { workspace = true }
+tracing = { workspace = true, optional = true }
 unicode-bidi = { workspace = true, features = ["with_serde"] }
 unicode-properties = { workspace = true }
 unicode-script = { workspace = true }

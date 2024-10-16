@@ -24,7 +24,6 @@ use style::values::computed::font::{
 };
 use style::values::computed::{FontStretch, FontWeight};
 use style::values::specified::FontStretch as SpecifiedFontStretch;
-use tracing::{instrument, span, Level};
 use webrender_api::{FontInstanceFlags, FontInstanceKey, FontKey};
 use webrender_traits::CrossProcessCompositorApi;
 
@@ -146,16 +145,21 @@ impl SystemFontService {
         SystemFontServiceProxySender(sender)
     }
 
-    #[instrument(skip_all, fields(servo_profiling = true))]
+    #[cfg_attr(
+        feature = "tracing",
+        tracing::instrument(skip_all, fields(servo_profiling = true))
+    )]
     fn run(&mut self) {
         loop {
             let msg = self.port.recv().unwrap();
 
-            let span = span!(
-                Level::TRACE,
+            #[cfg(feature = "tracing")]
+            let span = tracing::span!(
+                tracing::Level::TRACE,
                 "SystemFontServiceMessage",
                 servo_profiling = true
             );
+            #[cfg(feature = "tracing")]
             let _enter = span.enter();
             match msg {
                 SystemFontServiceMessage::GetFontTemplates(
@@ -186,7 +190,10 @@ impl SystemFontService {
         }
     }
 
-    #[instrument(skip_all, fields(servo_profiling = true))]
+    #[cfg_attr(
+        feature = "tracing",
+        tracing::instrument(skip_all, fields(servo_profiling = true))
+    )]
     fn fetch_new_keys(&mut self) {
         if !self.free_font_keys.is_empty() && !self.free_font_instance_keys.is_empty() {
             return;
@@ -203,7 +210,10 @@ impl SystemFontService {
             .append(&mut new_font_instance_keys);
     }
 
-    #[instrument(skip_all, fields(servo_profiling = true))]
+    #[cfg_attr(
+        feature = "tracing",
+        tracing::instrument(skip_all, fields(servo_profiling = true))
+    )]
     fn get_font_templates(
         &mut self,
         font_descriptor: Option<FontDescriptor>,
@@ -216,7 +226,10 @@ impl SystemFontService {
             .collect()
     }
 
-    #[instrument(skip_all, fields(servo_profiling = true))]
+    #[cfg_attr(
+        feature = "tracing",
+        tracing::instrument(skip_all, fields(servo_profiling = true))
+    )]
     fn refresh_local_families(&mut self) {
         self.local_families.clear();
         for_each_available_family(|family_name| {
@@ -227,7 +240,10 @@ impl SystemFontService {
         });
     }
 
-    #[instrument(skip_all, fields(servo_profiling = true))]
+    #[cfg_attr(
+        feature = "tracing",
+        tracing::instrument(skip_all, fields(servo_profiling = true))
+    )]
     fn find_font_templates(
         &mut self,
         descriptor_to_match: Option<&FontDescriptor>,
@@ -251,7 +267,10 @@ impl SystemFontService {
             .unwrap_or_default()
     }
 
-    #[instrument(skip_all, fields(servo_profiling = true))]
+    #[cfg_attr(
+        feature = "tracing",
+        tracing::instrument(skip_all, fields(servo_profiling = true))
+    )]
     fn get_font_instance(
         &mut self,
         identifier: FontIdentifier,
