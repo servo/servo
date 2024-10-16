@@ -97,8 +97,10 @@ pub struct HTMLFormElement {
     elements: DomOnceCell<HTMLFormControlsCollection>,
     generation_id: Cell<GenerationId>,
     controls: DomRefCell<Vec<Dom<Element>>>,
+
     #[allow(clippy::type_complexity)]
     past_names_map: DomRefCell<HashMapTracedValues<Atom, (Dom<Element>, NoTrace<Instant>)>>,
+    
     firing_submission_events: Cell<bool>,
     rel_list: MutNullableDom<DOMTokenList>,
 
