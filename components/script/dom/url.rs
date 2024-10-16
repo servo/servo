@@ -162,6 +162,7 @@ impl URLMethods for URL {
         global: &GlobalScope,
         url: USVString,
         base: Option<USVString>,
+        can_gc: CanGc,
     ) -> Option<DomRoot<URL>> {
         // Step 1: Let parsedURL be the result of running the API URL parser on url with base,
         // if given.
@@ -176,7 +177,7 @@ impl URLMethods for URL {
         // These steps are all handled while mapping the Result to an Option<ServoUrl>.
         // Regarding initialization, the same condition should apply here as stated in the comments
         // in Self::Constructor above - construct it on-demand inside `URL::SearchParams`.
-        Some(URL::new(global, None, parsed_url.ok()?, CanGc::note()))
+        Some(URL::new(global, None, parsed_url.ok()?, can_gc))
     }
 
     /// <https://w3c.github.io/FileAPI/#dfn-createObjectURL>
