@@ -126,14 +126,14 @@ impl MediaSession {
 
 impl MediaSessionMethods for MediaSession {
     /// <https://w3c.github.io/mediasession/#dom-mediasession-metadata>
-    fn GetMetadata(&self) -> Option<DomRoot<MediaMetadata>> {
+    fn GetMetadata(&self, can_gc: CanGc) -> Option<DomRoot<MediaMetadata>> {
         if let Some(ref metadata) = *self.metadata.borrow() {
             let mut init = MediaMetadataInit::empty();
             init.title = DOMString::from_string(metadata.title.clone());
             init.artist = DOMString::from_string(metadata.artist.clone());
             init.album = DOMString::from_string(metadata.album.clone());
             let global = self.global();
-            Some(MediaMetadata::new(global.as_window(), &init))
+            Some(MediaMetadata::new(global.as_window(), &init, can_gc))
         } else {
             None
         }

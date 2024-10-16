@@ -53,16 +53,10 @@ impl MediaQueryListEvent {
         cancelable: bool,
         media: DOMString,
         matches: bool,
+        can_gc: CanGc,
     ) -> DomRoot<MediaQueryListEvent> {
         Self::new_with_proto(
-            global,
-            None,
-            type_,
-            bubbles,
-            cancelable,
-            media,
-            matches,
-            CanGc::note(),
+            global, None, type_, bubbles, cancelable, media, matches, can_gc,
         )
     }
 

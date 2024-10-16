@@ -109,14 +109,16 @@ impl GamepadHapticActuator {
         global: &GlobalScope,
         gamepad_index: u32,
         supported_haptic_effects: GamepadSupportedHapticEffects,
+        can_gc: CanGc,
     ) -> DomRoot<GamepadHapticActuator> {
-        Self::new_with_proto(global, gamepad_index, supported_haptic_effects)
+        Self::new_with_proto(global, gamepad_index, supported_haptic_effects, can_gc)
     }
 
     fn new_with_proto(
         global: &GlobalScope,
         gamepad_index: u32,
         supported_haptic_effects: GamepadSupportedHapticEffects,
+        can_gc: CanGc,
     ) -> DomRoot<GamepadHapticActuator> {
         reflect_dom_object_with_proto(
             Box::new(GamepadHapticActuator::new_inherited(
@@ -125,7 +127,7 @@ impl GamepadHapticActuator {
             )),
             global,
             None,
-            CanGc::note(),
+            can_gc,
         )
     }
 }

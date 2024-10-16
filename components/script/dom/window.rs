@@ -2446,7 +2446,7 @@ impl Window {
 
     /// Evaluate media query lists and report changes
     /// <https://drafts.csswg.org/cssom-view/#evaluate-media-queries-and-report-changes>
-    pub fn evaluate_media_queries_and_report_changes(&self) {
+    pub fn evaluate_media_queries_and_report_changes(&self, can_gc: CanGc) {
         rooted_vec!(let mut mql_list);
         self.media_query_lists.for_each(|mql| {
             if let MediaQueryListMatchState::Changed = mql.evaluate_changes() {
@@ -2463,6 +2463,7 @@ impl Window {
                 false,
                 mql.Media(),
                 mql.Matches(),
+                can_gc,
             );
             event.upcast::<Event>().fire(mql.upcast::<EventTarget>());
         }
