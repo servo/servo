@@ -263,21 +263,21 @@ impl GPUCanvasContext {
                 configuration: drawing_buffer.config,
             })
             .expect("Failed to update webgpu context");
-        self.mark_as_dirty();
     }
 }
 
 // Internal helper methods
 impl GPUCanvasContext {
     fn layout_handle(&self) -> HTMLCanvasDataSource {
-        if self.drawing_buffer.borrow().cleared {
-            HTMLCanvasDataSource::Empty
-        } else {
-            HTMLCanvasDataSource::WebGPU(self.webrender_image)
-        }
+        //if self.drawing_buffer.borrow().cleared {
+        //    HTMLCanvasDataSource::Empty
+        //} else {
+        HTMLCanvasDataSource::WebGPU(self.webrender_image)
+        //}
     }
 
     fn send_swap_chain_present(&self, texture_id: WebGPUTexture) {
+        println!("send_swap_chain_present");
         self.drawing_buffer.borrow_mut().cleared = false;
         let encoder_id = self.global().wgpu_id_hub().create_command_encoder_id();
         if let Err(e) = self.channel.0.send(WebGPURequest::SwapChainPresent {
@@ -307,6 +307,9 @@ impl GPUCanvasContext {
     pub(crate) fn mark_as_dirty(&self) {
         if let HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(canvas) = &self.canvas {
             canvas.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+            crate::script_thread::ScriptThread::note_rendering_opportunity(
+                crate::dom::node::window_from_node(canvas.upcast::<Node>()).pipeline_id(),
+            );
         }
     }
 
@@ -321,6 +324,7 @@ impl GPUCanvasContext {
 
     /// <https://gpuweb.github.io/gpuweb/#abstract-opdef-updating-the-rendering-of-a-webgpu-canvas>
     pub(crate) fn update_rendering_of_webgpu_canvas(&self) {
+        println!("update_rendering_of_webgpu_canvas");
         // Step 1
         self.expire_current_texture();
     }
@@ -341,6 +345,7 @@ impl GPUCanvasContext {
 
 impl LayoutCanvasRenderingContextHelpers for LayoutDom<'_, GPUCanvasContext> {
     fn canvas_data_source(self) -> HTMLCanvasDataSource {
+        println!("canvas_data_source");
         (*self.unsafe_get()).layout_handle()
     }
 }
@@ -397,6 +402,7 @@ impl GPUCanvasContextMethods for GPUCanvasContext {
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-getcurrenttexture>
     fn GetCurrentTexture(&self) -> Fallible<DomRoot<GPUTexture>> {
+        println!("GetCurrentTexture");
         // Step 1
         let configuration = self.configuration.borrow();
         let Some(configuration) = configuration.as_ref() else {
@@ -411,6 +417,7 @@ impl GPUCanvasContextMethods for GPUCanvasContext {
         } else {
             // Step 3&4
             self.replace_drawing_buffer();
+            self.mark_as_dirty();
             let current_texture = configuration.device.CreateTexture(texture_descriptor)?;
             self.current_texture.set(Some(&current_texture));
             current_texture
