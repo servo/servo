@@ -2872,7 +2872,7 @@ fn get_outer_sizes_for_measurement(
         outer_size(size.map(|v| get_size_for_axis(v).unwrap_or_else(Au::zero))),
         outer_size(min_size.map(|v| get_size_for_axis(v).unwrap_or_else(Au::zero))),
         outer_size(max_size.map(|v| get_size_for_axis(v).unwrap_or(MAX_AU))),
-        size.inline.is_keyword(),
+        !size.inline.is_numeric(),
         get_size_percentage_contribution(&size, &max_size),
     )
 }

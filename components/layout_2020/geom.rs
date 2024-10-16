@@ -653,13 +653,8 @@ impl<T> Default for Size<T> {
 
 impl<T> Size<T> {
     #[inline]
-    pub(crate) fn fit_content() -> Self {
-        Self::FitContent
-    }
-
-    #[inline]
-    pub(crate) fn is_keyword(&self) -> bool {
-        !matches!(self, Self::Numeric(_))
+    pub(crate) fn is_numeric(&self) -> bool {
+        matches!(self, Self::Numeric(_))
     }
 
     #[inline]
@@ -778,12 +773,11 @@ impl Size<Au> {
     #[inline]
     pub(crate) fn resolve(
         &self,
-        get_initial_behavior: impl Fn() -> Self,
+        initial_behavior: Self,
         stretch_size: Au,
         get_content_size: &mut impl FnMut() -> ContentSizes,
     ) -> Au {
         if self.is_initial() {
-            let initial_behavior = get_initial_behavior();
             assert!(!initial_behavior.is_initial());
             initial_behavior.resolve_non_initial(stretch_size, get_content_size)
         } else {
