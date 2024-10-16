@@ -361,7 +361,7 @@ impl ServoParser {
             input.push_back(String::from(chunk).into());
         }
 
-        self.tokenize(|tokenizer| tokenizer.feed(&input, can_gc));
+        self.tokenize(|tokenizer| tokenizer.feed(&input, can_gc), can_gc);
 
         if self.suspended.get() {
             // Parser got suspended, insert remaining input at end of
@@ -546,7 +546,10 @@ impl ServoParser {
                 }
             }
         }
-        self.tokenize(|tokenizer| tokenizer.feed(&self.network_input, can_gc));
+        self.tokenize(
+            |tokenizer| tokenizer.feed(&self.network_input, can_gc),
+            can_gc,
+        );
 
         if self.suspended.get() {
             return;
@@ -576,7 +579,7 @@ impl ServoParser {
         }
     }
 
-    fn tokenize<F>(&self, feed: F)
+    fn tokenize<F>(&self, feed: F, can_gc: CanGc)
     where
         F: Fn(&Tokenizer) -> TokenizerResult<DomRoot<HTMLScriptElement>>,
     {
@@ -600,7 +603,7 @@ impl ServoParser {
                 self.document
                     .window()
                     .upcast::<GlobalScope>()
-                    .perform_a_microtask_checkpoint(CanGc::note());
+                    .perform_a_microtask_checkpoint(can_gc);
             }
 
             let script_nesting_level = self.script_nesting_level.get();

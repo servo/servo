@@ -37,7 +37,7 @@ use crate::dom::bindings::settings_stack::AutoEntryScript;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promisenativehandler::PromiseNativeHandler;
 use crate::realms::{enter_realm, AlreadyInRealm, InRealm};
-use crate::script_runtime::JSContext as SafeJSContext;
+use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::script_thread::ScriptThread;
 
 #[dom_struct]
@@ -320,11 +320,13 @@ unsafe extern "C" fn native_handler_callback(
             *cx,
             HandleValue::from_raw(args.get(0)),
             InRealm::Already(&in_realm_proof),
+            CanGc::note(),
         ),
         v if v == NativeHandlerTask::Reject as i32 => handler.rejected_callback(
             *cx,
             HandleValue::from_raw(args.get(0)),
             InRealm::Already(&in_realm_proof),
+            CanGc::note(),
         ),
         _ => panic!("unexpected native handler task value"),
     };

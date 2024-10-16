@@ -276,20 +276,22 @@ impl AudioContextMethods for AudioContext {
     fn CreateMediaStreamSource(
         &self,
         stream: &MediaStream,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<MediaStreamAudioSourceNode>> {
         let global = self.global();
         let window = global.as_window();
-        MediaStreamAudioSourceNode::new(window, self, stream)
+        MediaStreamAudioSourceNode::new(window, self, stream, can_gc)
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-audiocontext-createmediastreamtracksource>
     fn CreateMediaStreamTrackSource(
         &self,
         track: &MediaStreamTrack,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<MediaStreamTrackAudioSourceNode>> {
         let global = self.global();
         let window = global.as_window();
-        MediaStreamTrackAudioSourceNode::new(window, self, track)
+        MediaStreamTrackAudioSourceNode::new(window, self, track, can_gc)
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-audiocontext-createmediastreamdestination>

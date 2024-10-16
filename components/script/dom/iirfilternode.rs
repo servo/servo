@@ -72,8 +72,9 @@ impl IIRFilterNode {
         window: &Window,
         context: &BaseAudioContext,
         options: &IIRFilterOptions,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<IIRFilterNode>> {
-        Self::new_with_proto(window, None, context, options, CanGc::note())
+        Self::new_with_proto(window, None, context, options, can_gc)
     }
 
     #[allow(crown::unrooted_must_root)]
