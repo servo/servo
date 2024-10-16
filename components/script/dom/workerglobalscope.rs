@@ -54,9 +54,7 @@ use crate::dom::workerlocation::WorkerLocation;
 use crate::dom::workernavigator::WorkerNavigator;
 use crate::fetch;
 use crate::realms::{enter_realm, InRealm};
-use crate::script_runtime::{
-    get_reports, CanGc, CommonScriptMsg, JSContext, Runtime, ScriptChan, ScriptPort,
-};
+use crate::script_runtime::{CanGc, CommonScriptMsg, JSContext, Runtime, ScriptChan, ScriptPort};
 use crate::task::TaskCanceller;
 use crate::task_source::dom_manipulation::DOMManipulationTaskSource;
 use crate::task_source::file_reading::FileReadingTaskSource;
@@ -539,8 +537,7 @@ impl WorkerGlobalScope {
             CommonScriptMsg::Task(_, task, _, _) => task.run_box(),
             CommonScriptMsg::CollectReports(reports_chan) => {
                 let cx = self.get_cx();
-                let path_seg = format!("url({})", self.get_url());
-                let reports = unsafe { get_reports(*cx, path_seg) };
+                let reports = cx.get_reports(format!("url({})", self.get_url()));
                 reports_chan.send(reports);
             },
         }

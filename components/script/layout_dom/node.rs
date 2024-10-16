@@ -76,6 +76,11 @@ impl<'dom> ServoLayoutNode<'dom> {
         ServoLayoutNode { node: n }
     }
 
+    /// Create a new [`ServoLayoutNode`] for this given [`TrustedNodeAddress`].
+    ///
+    /// # Safety
+    ///
+    /// The address pointed to by `address` should point to a valid node in memory.
     pub unsafe fn new(address: &TrustedNodeAddress) -> Self {
         ServoLayoutNode::from_layout_js(LayoutDom::from_trusted_node_address(*address))
     }

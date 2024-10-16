@@ -656,7 +656,7 @@ impl<'a> CanvasData<'a> {
             ideographic_baseline,
             alphabetic_baseline,
             hanging_baseline,
-        } = match font.get_baseline() {
+        } = match font.baseline() {
             Some(baseline) => baseline,
             None => FontBaseline {
                 hanging_baseline: ascent * HANGING_BASELINE_DEFAULT,
