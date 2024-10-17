@@ -708,6 +708,7 @@ impl From<StyleSize> for Size<LengthPercentage> {
             StyleSize::MaxContent => Size::MaxContent,
             StyleSize::FitContent => Size::FitContent,
             StyleSize::Stretch => Size::Stretch,
+            StyleSize::AnchorSizeFunction(_) => unreachable!("anchor-size() should be disabled"),
         }
     }
 }
@@ -721,6 +722,7 @@ impl From<StyleMaxSize> for Size<LengthPercentage> {
             StyleMaxSize::MaxContent => Size::MaxContent,
             StyleMaxSize::FitContent => Size::FitContent,
             StyleMaxSize::Stretch => Size::Stretch,
+            StyleMaxSize::AnchorSizeFunction(_) => unreachable!("anchor-size() should be disabled"),
         }
     }
 }

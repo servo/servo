@@ -1364,16 +1364,14 @@ impl BoxFragment {
         // Percentages sticky positions offsets are resovled against the size of the
         // nearest scroll frame instead of the containing block like for other types
         // of positioning.
-        let position = self.style.get_position();
         let scroll_frame_height = Au::from_f32_px(scroll_frame_size_for_resolve.height);
         let scroll_frame_width = Au::from_f32_px(scroll_frame_size_for_resolve.width);
+        let offsets = self.style.physical_box_offsets();
         let offsets = PhysicalSides::<AuOrAuto>::new(
-            position.top.map(|v| v.to_used_value(scroll_frame_height)),
-            position.right.map(|v| v.to_used_value(scroll_frame_width)),
-            position
-                .bottom
-                .map(|v| v.to_used_value(scroll_frame_height)),
-            position.left.map(|v| v.to_used_value(scroll_frame_width)),
+            offsets.top.map(|v| v.to_used_value(scroll_frame_height)),
+            offsets.right.map(|v| v.to_used_value(scroll_frame_width)),
+            offsets.bottom.map(|v| v.to_used_value(scroll_frame_height)),
+            offsets.left.map(|v| v.to_used_value(scroll_frame_width)),
         );
         self.resolved_sticky_insets = Some(offsets);
 
