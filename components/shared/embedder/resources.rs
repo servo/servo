@@ -75,7 +75,7 @@ pub enum Resource {
     /// The page contains placeholder `${reason}` for the error code and `${bytes}` for the certificate bytes, and also `${secret}` for the privileged secret.
     /// It can be empty but then nothing will be displayed when a certificate error occurs.
     BadCertHTML,
-    /// A HTML page to display when [`Internal`](net_traits::NetworkError::Internal) network error is reported.
+    /// A HTML page to display when any network error occurs that is not related to SSL validation.
     /// The message can contain a placeholder `${reason}` for the error code.
     /// It can be empty but then nothing will be displayed when an internal error occurs.
     NetErrorHTML,
