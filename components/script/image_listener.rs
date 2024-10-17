@@ -36,14 +36,14 @@ pub fn generate_cache_listener_for_element<
         responder_receiver.to_opaque(),
         Box::new(move |message| {
             let element = trusted_node.clone();
-            let image = message.to().unwrap();
+            let image: PendingImageResponse = message.to().unwrap();
             debug!("Got image {:?}", image);
             let _ = task_source.queue_with_canceller(
                 task!(process_image_response: move || {
                     let element = element.root();
                     // Ignore any image response for a previous request that has been discarded.
                     if generation == element.generation_id() {
-                        element.process_image_response(image, CanGc::note());
+                        element.process_image_response(image.response, CanGc::note());
                     }
                 }),
                 &canceller,
