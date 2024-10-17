@@ -40,8 +40,9 @@ impl ExtendableEvent {
         type_: Atom,
         bubbles: bool,
         cancelable: bool,
+        can_gc: CanGc,
     ) -> DomRoot<ExtendableEvent> {
-        Self::new_with_proto(worker, None, type_, bubbles, cancelable, CanGc::note())
+        Self::new_with_proto(worker, None, type_, bubbles, cancelable, can_gc)
     }
 
     fn new_with_proto(

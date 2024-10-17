@@ -90,7 +90,7 @@ impl WebRtcSignaller for RTCSignaller {
         let _ = self.task_source.queue_with_canceller(
             task!(on_ice_candidate: move || {
                 let this = this.root();
-                this.on_ice_candidate(candidate);
+                this.on_ice_candidate(candidate, CanGc::note());
             }),
             &self.canceller,
         );
@@ -112,7 +112,7 @@ impl WebRtcSignaller for RTCSignaller {
         let _ = self.task_source.queue_with_canceller(
             task!(update_gathering_state: move || {
                 let this = this.root();
-                this.update_gathering_state(state);
+                this.update_gathering_state(state, CanGc::note());
             }),
             &self.canceller,
         );
@@ -249,7 +249,7 @@ impl RTCPeerConnection {
         })
     }
 
-    fn on_ice_candidate(&self, candidate: IceCandidate) {
+    fn on_ice_candidate(&self, candidate: IceCandidate, can_gc: CanGc) {
         if self.closed.get() {
             return;
         }
@@ -266,6 +266,7 @@ impl RTCPeerConnection {
             Some(&candidate),
             None,
             true,
+            can_gc,
         );
         event.upcast::<Event>().fire(self.upcast());
     }
@@ -361,7 +362,7 @@ impl RTCPeerConnection {
     }
 
     /// <https://www.w3.org/TR/webrtc/#update-ice-gathering-state>
-    fn update_gathering_state(&self, state: GatheringState) {
+    fn update_gathering_state(&self, state: GatheringState, can_gc: CanGc) {
         // step 1
         if self.closed.get() {
             return;
@@ -396,6 +397,7 @@ impl RTCPeerConnection {
                 None,
                 None,
                 true,
+                can_gc,
             );
             event.upcast::<Event>().fire(self.upcast());
         }

@@ -40,16 +40,9 @@ impl XRSessionEvent {
         bubbles: bool,
         cancelable: bool,
         session: &XRSession,
+        can_gc: CanGc,
     ) -> DomRoot<XRSessionEvent> {
-        Self::new_with_proto(
-            global,
-            None,
-            type_,
-            bubbles,
-            cancelable,
-            session,
-            CanGc::note(),
-        )
+        Self::new_with_proto(global, None, type_, bubbles, cancelable, session, can_gc)
     }
 
     fn new_with_proto(
