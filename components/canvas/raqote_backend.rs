@@ -700,6 +700,9 @@ impl GenericDrawTarget for raqote::DrawTarget {
             std::slice::from_raw_parts(v.as_ptr() as *const u8, std::mem::size_of_val(v)).into()
         }
     }
+    fn save_png(&self, path: &std::path::Path) {
+        self.write_png(path).unwrap();
+    }
 }
 
 impl Filter {

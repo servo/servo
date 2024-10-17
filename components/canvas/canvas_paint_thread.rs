@@ -26,7 +26,7 @@ pub enum AntialiasMode {
 }
 
 pub struct CanvasPaintThread<'a> {
-    canvases: HashMap<CanvasId, CanvasData<'a>>,
+    canvases: HashMap<CanvasId, CanvasDataToWrBridge<'a>>,
     next_canvas_id: CanvasId,
     compositor_api: CrossProcessCompositorApi,
     font_context: Arc<FontContext>,
@@ -128,11 +128,9 @@ impl<'a> CanvasPaintThread<'a> {
         let canvas_id = self.next_canvas_id;
         self.next_canvas_id.0 += 1;
 
-        let canvas_data = CanvasData::new(
-            size,
+        let canvas_data = CanvasDataToWrBridge::new(
+            CanvasData::new(size, antialias, self.font_context.clone()),
             self.compositor_api.clone(),
-            antialias,
-            self.font_context.clone(),
         );
         self.canvases.insert(canvas_id, canvas_data);
 
@@ -275,7 +273,7 @@ impl<'a> CanvasPaintThread<'a> {
         }
     }
 
-    fn canvas(&mut self, canvas_id: CanvasId) -> &mut CanvasData<'a> {
+    fn canvas(&mut self, canvas_id: CanvasId) -> &mut CanvasDataToWrBridge<'a> {
         self.canvases.get_mut(&canvas_id).expect("Bogus canvas id")
     }
 }
