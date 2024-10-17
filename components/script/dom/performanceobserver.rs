@@ -70,8 +70,9 @@ impl PerformanceObserver {
         global: &GlobalScope,
         callback: Rc<PerformanceObserverCallback>,
         entries: DOMPerformanceEntryList,
+        can_gc: CanGc,
     ) -> DomRoot<PerformanceObserver> {
-        Self::new_with_proto(global, None, callback, entries, CanGc::note())
+        Self::new_with_proto(global, None, callback, entries, can_gc)
     }
 
     #[allow(crown::unrooted_must_root)]

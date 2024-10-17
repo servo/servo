@@ -212,7 +212,7 @@ impl WorkerEventLoopMethods for DedicatedWorkerGlobalScope {
         &self.task_queue
     }
 
-    fn handle_event(&self, event: MixedMessage) -> bool {
+    fn handle_event(&self, event: MixedMessage, _can_gc: CanGc) -> bool {
         self.handle_mixed_message(event)
     }
 

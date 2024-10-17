@@ -191,8 +191,8 @@ impl WorkerEventLoopMethods for ServiceWorkerGlobalScope {
         &self.task_queue
     }
 
-    fn handle_event(&self, event: MixedMessage) -> bool {
-        self.handle_mixed_message(event)
+    fn handle_event(&self, event: MixedMessage, can_gc: CanGc) -> bool {
+        self.handle_mixed_message(event, can_gc)
     }
 
     fn handle_worker_post_event(&self, _worker: &TrustedWorkerAddress) -> Option<AutoWorkerReset> {
@@ -411,7 +411,7 @@ impl ServiceWorkerGlobalScope {
             .expect("Thread spawning failed")
     }
 
-    fn handle_mixed_message(&self, msg: MixedMessage) -> bool {
+    fn handle_mixed_message(&self, msg: MixedMessage, can_gc: CanGc) -> bool {
         match msg {
             MixedMessage::Devtools(msg) => match msg {
                 DevtoolScriptControlMsg::EvaluateJS(_pipe_id, string, sender) => {
@@ -423,7 +423,7 @@ impl ServiceWorkerGlobalScope {
                 _ => debug!("got an unusable devtools control message inside the worker!"),
             },
             MixedMessage::ServiceWorker(msg) => {
-                self.handle_script_event(msg);
+                self.handle_script_event(msg, can_gc);
             },
             MixedMessage::Control(ServiceWorkerControlMsg::Exit) => {
                 return false;
@@ -437,7 +437,7 @@ impl ServiceWorkerGlobalScope {
         false
     }
 
-    fn handle_script_event(&self, msg: ServiceWorkerScriptMsg) {
+    fn handle_script_event(&self, msg: ServiceWorkerScriptMsg, can_gc: CanGc) {
         use self::ServiceWorkerScriptMsg::*;
 
         match msg {
@@ -453,9 +453,10 @@ impl ServiceWorkerGlobalScope {
                         scope.upcast(),
                         message.handle(),
                         ports,
+                        can_gc,
                     );
                 } else {
-                    ExtendableMessageEvent::dispatch_error(target, scope.upcast());
+                    ExtendableMessageEvent::dispatch_error(target, scope.upcast(), can_gc);
                 }
             },
             CommonWorker(WorkerScriptMsg::Common(msg)) => {
