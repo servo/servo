@@ -8,14 +8,14 @@
 use js::jsapi::MutableHandleObject;
 
 use crate::dom::bindings::reflector::DomObject;
-use crate::dom::bindings::structuredclone::StructuredDataHolder;
+use crate::dom::bindings::structuredclone::{StructuredReadDataHolder, StructuredWriteDataHolder};
 use crate::dom::globalscope::GlobalScope;
 
 pub trait Transferable: DomObject {
-    fn transfer(&self, sc_holder: &mut StructuredDataHolder) -> Result<u64, ()>;
+    fn transfer(&self, sc_holder: &mut StructuredWriteDataHolder) -> Result<u64, ()>;
     fn transfer_receive(
         owner: &GlobalScope,
-        sc_holder: &mut StructuredDataHolder,
+        sc_holder: &mut StructuredReadDataHolder,
         extra_data: u64,
         return_object: MutableHandleObject,
     ) -> Result<(), ()>;

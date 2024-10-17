@@ -10,7 +10,7 @@ use std::rc::Rc;
 use base::id::{BlobId, BlobIndex, PipelineNamespaceId};
 use dom_struct::dom_struct;
 use encoding_rs::UTF_8;
-use js::jsapi::JSObject;
+use js::jsapi::{JSObject, JSStructuredCloneReader, JS_ReadUint32Pair};
 use js::rust::HandleObject;
 use net_traits::filemanager_thread::RelativePos;
 use script_traits::serializable::BlobImpl;
@@ -23,9 +23,13 @@ use crate::dom::bindings::codegen::UnionTypes::ArrayBufferOrArrayBufferViewOrBlo
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::serializable::{Serializable, StorageKey};
+use crate::dom::bindings::serializable::{
+    FromStructuredClone, Serializable, SerializeOperation, ToSerializeOperations,
+};
 use crate::dom::bindings::str::DOMString;
-use crate::dom::bindings::structuredclone::StructuredDataHolder;
+use crate::dom::bindings::structuredclone::{
+    CloneableObject, StructuredReadDataHolder, StructuredWriteDataHolder,
+};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::readablestream::ReadableStream;
@@ -91,13 +95,37 @@ impl Blob {
     }
 }
 
-impl Serializable for Blob {
-    /// <https://w3c.github.io/FileAPI/#ref-for-serialization-steps>
-    fn serialize(&self, sc_holder: &mut StructuredDataHolder) -> Result<StorageKey, ()> {
-        let blob_impls = match sc_holder {
-            StructuredDataHolder::Write { blobs, .. } => blobs,
-            _ => panic!("Unexpected variant of StructuredDataHolder"),
+/// The data required to initialize a new blob object from a serialized form.
+pub struct StorageKey {
+    pub index: u32,
+    pub name_space: u32,
+}
+
+impl ToSerializeOperations for StorageKey {
+    fn to_serialize_operations(&self) -> Vec<SerializeOperation> {
+        vec![SerializeOperation::Uint32Pair(self.name_space, self.index)]
+    }
+}
+
+#[allow(unsafe_code)]
+impl FromStructuredClone for StorageKey {
+    unsafe fn from_structured_clone(r: *mut JSStructuredCloneReader) -> StorageKey {
+        let mut key = StorageKey {
+            name_space: 0,
+            index: 0,
         };
+        assert!(JS_ReadUint32Pair(r, &mut key.name_space, &mut key.index,));
+        key
+    }
+}
+
+impl Serializable for Blob {
+    type Data = StorageKey;
+    const TAG: CloneableObject = CloneableObject::Blob;
+
+    /// <https://w3c.github.io/FileAPI/#ref-for-serialization-steps>
+    fn serialize(&self, sc_holder: &mut StructuredWriteDataHolder) -> Result<StorageKey, ()> {
+        let blob_impls = &mut sc_holder.blobs;
 
         let blob_id = self.blob_id;
 
@@ -130,9 +158,9 @@ impl Serializable for Blob {
     /// <https://w3c.github.io/FileAPI/#ref-for-deserialization-steps>
     fn deserialize(
         owner: &GlobalScope,
-        sc_holder: &mut StructuredDataHolder,
+        sc_holder: &mut StructuredReadDataHolder,
         storage_key: StorageKey,
-    ) -> Result<(), ()> {
+    ) -> Result<DomRoot<Blob>, ()> {
         // 1. Re-build the key for the storage location
         // of the serialized object.
         let namespace_id = PipelineNamespaceId(storage_key.name_space);
@@ -144,12 +172,7 @@ impl Serializable for Blob {
             index,
         };
 
-        let (blobs, blob_impls) = match sc_holder {
-            StructuredDataHolder::Read {
-                blobs, blob_impls, ..
-            } => (blobs, blob_impls),
-            _ => panic!("Unexpected variant of StructuredDataHolder"),
-        };
+        let blob_impls = &mut sc_holder.blob_impls;
 
         // 2. Get the transferred object from its storage, using the key.
         let blob_impls_map = blob_impls
@@ -164,10 +187,7 @@ impl Serializable for Blob {
 
         let deserialized_blob = Blob::new(owner, blob_impl, CanGc::note());
 
-        let blobs = blobs.get_or_insert_with(HashMap::new);
-        blobs.insert(storage_key, deserialized_blob);
-
-        Ok(())
+        Ok(deserialized_blob)
     }
 }
 
