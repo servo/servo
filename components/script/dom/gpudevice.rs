@@ -203,6 +203,7 @@ impl GPUDevice {
                 error,
                 parent: EventInit::empty(),
             },
+            can_gc,
         );
         let _ = self.eventtarget.DispatchEvent(ev.event());
     }

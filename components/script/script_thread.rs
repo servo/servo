@@ -1632,7 +1632,7 @@ impl ScriptThread {
                 },
 
                 CompositorEvent::CompositionEvent(composition_event) => {
-                    document.dispatch_composition_event(composition_event);
+                    document.dispatch_composition_event(composition_event, can_gc);
                 },
 
                 CompositorEvent::GamepadEvent(gamepad_event) => {

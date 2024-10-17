@@ -15,7 +15,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::xrreferencespace::XRReferenceSpace;
 use crate::dom::xrrigidtransform::XRRigidTransform;
 use crate::dom::xrsession::XRSession;
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{CanGc, JSContext};
 
 #[dom_struct]
 pub struct XRBoundedReferenceSpace {
@@ -63,12 +63,19 @@ impl XRBoundedReferenceSpace {
 
 impl XRBoundedReferenceSpaceMethods for XRBoundedReferenceSpace {
     /// <https://www.w3.org/TR/webxr/#dom-xrboundedreferencespace-boundsgeometry>
-    fn BoundsGeometry(&self, cx: JSContext) -> JSVal {
+    fn BoundsGeometry(&self, cx: JSContext, can_gc: CanGc) -> JSVal {
         if let Some(bounds) = self.reference_space.get_bounds() {
             let points: Vec<DomRoot<DOMPointReadOnly>> = bounds
                 .into_iter()
                 .map(|point| {
-                    DOMPointReadOnly::new(&self.global(), point.x.into(), 0.0, point.y.into(), 1.0)
+                    DOMPointReadOnly::new(
+                        &self.global(),
+                        point.x.into(),
+                        0.0,
+                        point.y.into(),
+                        1.0,
+                        can_gc,
+                    )
                 })
                 .collect();
 

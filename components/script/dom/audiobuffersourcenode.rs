@@ -100,8 +100,9 @@ impl AudioBufferSourceNode {
         window: &Window,
         context: &BaseAudioContext,
         options: &AudioBufferSourceOptions,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<AudioBufferSourceNode>> {
-        Self::new_with_proto(window, None, context, options, CanGc::note())
+        Self::new_with_proto(window, None, context, options, can_gc)
     }
 
     #[allow(crown::unrooted_must_root)]

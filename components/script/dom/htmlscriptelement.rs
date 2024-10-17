@@ -321,7 +321,7 @@ fn finish_fetching_a_classic_script(
         },
     }
 
-    document.finish_load(LoadType::Script(url), CanGc::note());
+    document.finish_load(LoadType::Script(url), can_gc);
 }
 
 pub type ScriptResult = Result<ScriptOrigin, NoTrace<NetworkError>>;

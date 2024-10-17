@@ -40,6 +40,7 @@ impl OfflineAudioCompletionEvent {
         bubbles: EventBubbles,
         cancelable: EventCancelable,
         rendered_buffer: &AudioBuffer,
+        can_gc: CanGc,
     ) -> DomRoot<OfflineAudioCompletionEvent> {
         Self::new_with_proto(
             window,
@@ -48,7 +49,7 @@ impl OfflineAudioCompletionEvent {
             bubbles,
             cancelable,
             rendered_buffer,
-            CanGc::note(),
+            can_gc,
         )
     }
 

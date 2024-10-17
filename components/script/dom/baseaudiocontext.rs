@@ -372,16 +372,22 @@ impl BaseAudioContextMethods for BaseAudioContext {
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createanalyser>
-    fn CreateAnalyser(&self) -> Fallible<DomRoot<AnalyserNode>> {
-        AnalyserNode::new(self.global().as_window(), self, &AnalyserOptions::empty())
+    fn CreateAnalyser(&self, can_gc: CanGc) -> Fallible<DomRoot<AnalyserNode>> {
+        AnalyserNode::new(
+            self.global().as_window(),
+            self,
+            &AnalyserOptions::empty(),
+            can_gc,
+        )
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createbiquadfilter>
-    fn CreateBiquadFilter(&self) -> Fallible<DomRoot<BiquadFilterNode>> {
+    fn CreateBiquadFilter(&self, can_gc: CanGc) -> Fallible<DomRoot<BiquadFilterNode>> {
         BiquadFilterNode::new(
             self.global().as_window(),
             self,
             &BiquadFilterOptions::empty(),
+            can_gc,
         )
     }
 
@@ -442,11 +448,12 @@ impl BaseAudioContextMethods for BaseAudioContext {
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createbuffersource
-    fn CreateBufferSource(&self) -> Fallible<DomRoot<AudioBufferSourceNode>> {
+    fn CreateBufferSource(&self, can_gc: CanGc) -> Fallible<DomRoot<AudioBufferSourceNode>> {
         AudioBufferSourceNode::new(
             self.global().as_window(),
             self,
             &AudioBufferSourceOptions::empty(),
+            can_gc,
         )
     }
 
