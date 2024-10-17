@@ -108,7 +108,7 @@ egui-winit = { version = "0.29.1", default-features = false, features = ["clipbo
 euclid = { workspace = true }
 gilrs = "0.11.0"
 gleam = { workspace = true }
-glow = "0.14.2"
+glow = "0.15.0"
 headers = { workspace = true }
 http = { workspace = true }
 keyboard-types = { workspace = true }
