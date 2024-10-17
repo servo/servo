@@ -1687,7 +1687,7 @@ fn fetch_single_module_script(
             document.loader_mut().fetch_async_with_callback(
                 LoadType::Script(url),
                 request,
-                network_listener.to_callback(),
+                network_listener.into_callback(),
             );
         },
         None => global.fetch_with_network_listener(request, network_listener, None),
