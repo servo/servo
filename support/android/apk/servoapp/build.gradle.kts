@@ -15,7 +15,7 @@ android {
     defaultConfig {
         applicationId = "org.servo.servoshell"
         minSdk = 30
-        targetSdk = 30
+        targetSdk = 33
         versionCode = generatedVersionCode
         versionName = "0.0.1" // TODO: Parse Servo"s TOML and add git SHA.
     }

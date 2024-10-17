@@ -17,7 +17,7 @@ android {
 
     defaultConfig {
         minSdk = 30
-        lint.targetSdk = 30
+        lint.targetSdk = 33
         defaultConfig.versionCode = generatedVersionCode
         defaultConfig.versionName = "0.0.1" // TODO: Parse Servo"s TOML and add git SHA.
     }
