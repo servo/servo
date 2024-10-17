@@ -75,7 +75,7 @@ use crate::dom::validation::{is_barred_by_datalist_ancestor, Validatable};
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::realms::enter_realm;
-use crate::script_runtime::JSContext as SafeJSContext;
+use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::textinput::KeyReaction::{
     DispatchInput, Nothing, RedrawSelection, TriggerDefaultAction,
 };
@@ -2048,7 +2048,7 @@ impl HTMLInputElement {
 
     // https://html.spec.whatwg.org/multipage/#implicit-submission
     #[allow(unsafe_code)]
-    fn implicit_submission(&self) {
+    fn implicit_submission(&self, can_gc: CanGc) {
         let doc = document_from_node(self);
         let node = doc.upcast::<Node>();
         let owner = self.form_owner();
@@ -2103,7 +2103,11 @@ impl HTMLInputElement {
                     // lazily test for > 1 submission-blocking inputs
                     return;
                 }
-                form.submit(SubmittedFrom::NotFromForm, FormSubmitterElement::Form(form));
+                form.submit(
+                    SubmittedFrom::NotFromForm,
+                    FormSubmitterElement::Form(form),
+                    can_gc,
+                );
             },
         }
     }
@@ -2533,7 +2537,7 @@ impl VirtualMethods for HTMLInputElement {
                 let action = self.textinput.borrow_mut().handle_keydown(keyevent);
                 match action {
                     TriggerDefaultAction => {
-                        self.implicit_submission();
+                        self.implicit_submission(CanGc::note());
                     },
                     DispatchInput => {
                         self.value_dirty.set(true);
@@ -2808,6 +2812,7 @@ impl Activatable for HTMLInputElement {
                     o.submit(
                         SubmittedFrom::NotFromForm,
                         FormSubmitterElement::Input(self),
+                        CanGc::note(),
                     )
                 }
             },

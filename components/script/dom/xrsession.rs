@@ -297,7 +297,8 @@ impl XRSession {
                     promise.resolve_native(&());
                 }
                 // Step 7
-                let event = XRSessionEvent::new(&self.global(), atom!("end"), false, false, self);
+                let event =
+                    XRSessionEvent::new(&self.global(), atom!("end"), false, false, self, can_gc);
                 event.upcast::<Event>().fire(self.upcast());
             },
             XREvent::Select(input, kind, ty, frame) => {
@@ -360,6 +361,7 @@ impl XRSession {
                     false,
                     false,
                     self,
+                    can_gc,
                 );
                 event.upcast::<Event>().fire(self.upcast());
                 // The page may be visible again, dirty the layers
@@ -607,6 +609,7 @@ impl XRSession {
             false,
             false,
             self,
+            CanGc::note(),
         );
         event.upcast::<Event>().fire(self.upcast());
     }

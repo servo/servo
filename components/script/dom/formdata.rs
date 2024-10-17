@@ -45,8 +45,12 @@ impl FormData {
         }
     }
 
-    pub fn new(form_datums: Option<Vec<FormDatum>>, global: &GlobalScope) -> DomRoot<FormData> {
-        Self::new_with_proto(form_datums, global, None, CanGc::note())
+    pub fn new(
+        form_datums: Option<Vec<FormDatum>>,
+        global: &GlobalScope,
+        can_gc: CanGc,
+    ) -> DomRoot<FormData> {
+        Self::new_with_proto(form_datums, global, None, can_gc)
     }
 
     fn new_with_proto(
@@ -73,7 +77,7 @@ impl FormDataMethods for FormData {
         form: Option<&HTMLFormElement>,
     ) -> Fallible<DomRoot<FormData>> {
         if let Some(opt_form) = form {
-            return match opt_form.get_form_dataset(None, None) {
+            return match opt_form.get_form_dataset(None, None, can_gc) {
                 Some(form_datums) => Ok(FormData::new_with_proto(
                     Some(form_datums),
                     global,

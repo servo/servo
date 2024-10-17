@@ -82,6 +82,7 @@ use crate::dom::submitevent::SubmitEvent;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
 use crate::links::{get_element_target, LinkRelations};
+use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 use crate::task_source::TaskSource;
 
@@ -269,11 +270,15 @@ impl HTMLFormElementMethods for HTMLFormElement {
 
     // https://html.spec.whatwg.org/multipage/#the-form-element:concept-form-submit
     fn Submit(&self) {
-        self.submit(SubmittedFrom::FromForm, FormSubmitterElement::Form(self));
+        self.submit(
+            SubmittedFrom::FromForm,
+            FormSubmitterElement::Form(self),
+            CanGc::note(),
+        );
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-form-requestsubmit
-    fn RequestSubmit(&self, submitter: Option<&HTMLElement>) -> Fallible<()> {
+    fn RequestSubmit(&self, submitter: Option<&HTMLElement>, can_gc: CanGc) -> Fallible<()> {
         let submitter: FormSubmitterElement = match submitter {
             Some(submitter_element) => {
                 // Step 1.1
@@ -329,7 +334,7 @@ impl HTMLFormElementMethods for HTMLFormElement {
             },
         };
         // Step 3
-        self.submit(SubmittedFrom::NotFromForm, submitter);
+        self.submit(SubmittedFrom::NotFromForm, submitter, can_gc);
         Ok(())
     }
 
@@ -700,7 +705,12 @@ impl HTMLFormElement {
     }
 
     /// [Form submission](https://html.spec.whatwg.org/multipage/#concept-form-submit)
-    pub fn submit(&self, submit_method_flag: SubmittedFrom, submitter: FormSubmitterElement) {
+    pub fn submit(
+        &self,
+        submit_method_flag: SubmittedFrom,
+        submitter: FormSubmitterElement,
+        can_gc: CanGc,
+    ) {
         // Step 1
         if self.upcast::<Element>().cannot_navigate() {
             return;
@@ -769,7 +779,7 @@ impl HTMLFormElement {
         let encoding = self.pick_encoding();
 
         // Step 8
-        let mut form_data = match self.get_form_dataset(Some(submitter), Some(encoding)) {
+        let mut form_data = match self.get_form_dataset(Some(submitter), Some(encoding), can_gc) {
             Some(form_data) => form_data,
             None => return,
         };
@@ -1179,6 +1189,7 @@ impl HTMLFormElement {
         &self,
         submitter: Option<FormSubmitterElement>,
         encoding: Option<&'static Encoding>,
+        can_gc: CanGc,
     ) -> Option<Vec<FormDatum>> {
         // Step 1
         if self.constructing_entry_list.get() {
@@ -1194,7 +1205,7 @@ impl HTMLFormElement {
         let window = window_from_node(self);
 
         // Step 6
-        let form_data = FormData::new(Some(ret), &window.global());
+        let form_data = FormData::new(Some(ret), &window.global(), can_gc);
 
         // Step 7
         let event = FormDataEvent::new(

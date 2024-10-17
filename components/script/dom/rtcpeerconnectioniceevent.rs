@@ -46,8 +46,9 @@ impl RTCPeerConnectionIceEvent {
         candidate: Option<&RTCIceCandidate>,
         url: Option<DOMString>,
         trusted: bool,
+        can_gc: CanGc,
     ) -> DomRoot<RTCPeerConnectionIceEvent> {
-        Self::new_with_proto(global, None, ty, candidate, url, trusted, CanGc::note())
+        Self::new_with_proto(global, None, ty, candidate, url, trusted, can_gc)
     }
 
     fn new_with_proto(

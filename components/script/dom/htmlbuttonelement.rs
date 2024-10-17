@@ -31,6 +31,7 @@ use crate::dom::nodelist::NodeList;
 use crate::dom::validation::{is_barred_by_datalist_ancestor, Validatable};
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
 use crate::dom::virtualmethods::VirtualMethods;
+use crate::script_runtime::CanGc;
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
 enum ButtonType {
@@ -352,6 +353,7 @@ impl Activatable for HTMLButtonElement {
                     owner.submit(
                         SubmittedFrom::NotFromForm,
                         FormSubmitterElement::Button(self),
+                        CanGc::note(),
                     );
                 }
             },

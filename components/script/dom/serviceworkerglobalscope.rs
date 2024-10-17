@@ -384,7 +384,7 @@ impl ServiceWorkerGlobalScope {
                     scope.execute_script(DOMString::from(source));
                 }
 
-                global.dispatch_activate();
+                global.dispatch_activate(can_gc);
                 let reporter_name = format!("service-worker-reporter-{}", random::<u64>());
                 scope
                     .upcast::<GlobalScope>()
@@ -478,8 +478,8 @@ impl ServiceWorkerGlobalScope {
         })
     }
 
-    fn dispatch_activate(&self) {
-        let event = ExtendableEvent::new(self, atom!("activate"), false, false);
+    fn dispatch_activate(&self, can_gc: CanGc) {
+        let event = ExtendableEvent::new(self, atom!("activate"), false, false, can_gc);
         let event = (*event).upcast::<Event>();
         self.upcast::<EventTarget>().dispatch_event(event);
     }
