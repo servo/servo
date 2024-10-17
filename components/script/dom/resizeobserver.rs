@@ -99,7 +99,7 @@ impl ResizeObserver {
         let mut entries: Vec<DomRoot<ResizeObserverEntry>> = Default::default();
         let observation_targets = self.observation_targets.borrow();
         for (observation, target) in observation_targets.iter() {
-            let mut observation_state = observation.state.borrow_mut();
+            let observation_state = observation.state.borrow();
             let ObservationState::Active(box_size) = &*observation_state else {
                 continue;
             };
@@ -139,7 +139,7 @@ impl ResizeObserver {
             // The spec plans to store multiple reported sizes,
             // but for now there can be only one.
             observation.last_reported_sizes.borrow_mut()[0] = size_impl;
-            *observation_state = ObservationState::Done;
+            *observation.state.borrow_mut() = ObservationState::Done;
             let target_depth = calculate_depth_for_node(target);
             if target_depth < *shallowest_target_depth {
                 *shallowest_target_depth = target_depth;
@@ -155,7 +155,7 @@ impl ResizeObserver {
         self.observation_targets
             .borrow()
             .iter()
-            .any(|(observation, _)| observation.state == ObservationState::Skipped.into())
+            .any(|(observation, _)| *observation.state.borrow() == ObservationState::Skipped)
     }
 }
 
