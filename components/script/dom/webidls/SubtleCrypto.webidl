@@ -20,12 +20,12 @@ enum KeyFormat { "raw", "spki", "pkcs8", "jwk" };
 
 [SecureContext,Exposed=(Window,Worker),Pref="dom.crypto.subtle.enabled"]
 interface SubtleCrypto {
-  // Promise<any> encrypt(AlgorithmIdentifier algorithm,
-  //                      CryptoKey key,
-  //                      BufferSource data);
-  // Promise<any> decrypt(AlgorithmIdentifier algorithm,
-  //                      CryptoKey key,
-  //                      BufferSource data);
+  Promise<any> encrypt(AlgorithmIdentifier algorithm,
+                       CryptoKey key,
+                       BufferSource data);
+  Promise<any> decrypt(AlgorithmIdentifier algorithm,
+                       CryptoKey key,
+                       BufferSource data);
   // Promise<any> sign(AlgorithmIdentifier algorithm,
   //                   CryptoKey key,
   //                   BufferSource data);
@@ -48,11 +48,11 @@ interface SubtleCrypto {
   //                         CryptoKey baseKey,
   //                         optional unsigned long? length = null);
 
-  // Promise<CryptoKey> importKey(KeyFormat format,
-  //                        (BufferSource or JsonWebKey) keyData,
-  //                        AlgorithmIdentifier algorithm,
-  //                        boolean extractable,
-  //                        sequence<KeyUsage> keyUsages );
+  Promise<CryptoKey> importKey(KeyFormat format,
+                         (BufferSource or JsonWebKey) keyData,
+                         AlgorithmIdentifier algorithm,
+                         boolean extractable,
+                         sequence<KeyUsage> keyUsages );
   Promise<any> exportKey(KeyFormat format, CryptoKey key);
 
   // Promise<any> wrapKey(KeyFormat format,
@@ -84,4 +84,38 @@ dictionary AesDerivedKeyParams : Algorithm {
 // AES_CBC
 dictionary AesCbcParams : Algorithm {
   required BufferSource iv;
+};
+
+// JWK
+dictionary RsaOtherPrimesInfo {
+  // The following fields are defined in Section 6.3.2.7 of JSON Web Algorithms
+  DOMString r;
+  DOMString d;
+  DOMString t;
+};
+
+dictionary JsonWebKey {
+  // The following fields are defined in Section 3.1 of JSON Web Key
+  DOMString kty;
+  DOMString use;
+  sequence<DOMString> key_ops;
+  DOMString alg;
+
+  // The following fields are defined in JSON Web Key Parameters Registration
+  boolean ext;
+
+  // The following fields are defined in Section 6 of JSON Web Algorithms
+  DOMString crv;
+  DOMString x;
+  DOMString y;
+  DOMString d;
+  DOMString n;
+  DOMString e;
+  DOMString p;
+  DOMString q;
+  DOMString dp;
+  DOMString dq;
+  DOMString qi;
+  sequence<RsaOtherPrimesInfo> oth;
+  DOMString k;
 };

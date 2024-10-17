@@ -85,6 +85,10 @@ impl CryptoKey {
         self.algorithm.borrow().to_string()
     }
 
+    pub fn usages(&self) -> &[KeyUsage] {
+        &self.usages
+    }
+
     pub fn handle(&self) -> &Handle {
         &self.handle
     }
