@@ -43,8 +43,9 @@ impl DOMQuad {
         p2: &DOMPoint,
         p3: &DOMPoint,
         p4: &DOMPoint,
+        can_gc: CanGc,
     ) -> DomRoot<DOMQuad> {
-        Self::new_with_proto(global, None, p1, p2, p3, p4, CanGc::note())
+        Self::new_with_proto(global, None, p1, p2, p3, p4, can_gc)
     }
 
     fn new_with_proto(
@@ -102,6 +103,7 @@ impl DOMQuadMethods for DOMQuad {
                 can_gc,
             ),
             &DOMPoint::new(global, other.x, other.y + other.height, 0f64, 1f64, can_gc),
+            can_gc,
         )
     }
 
@@ -113,6 +115,7 @@ impl DOMQuadMethods for DOMQuad {
             &DOMPoint::new_from_init(global, &other.p2, can_gc),
             &DOMPoint::new_from_init(global, &other.p3, can_gc),
             &DOMPoint::new_from_init(global, &other.p4, can_gc),
+            can_gc,
         )
     }
 
@@ -137,7 +140,7 @@ impl DOMQuadMethods for DOMQuad {
     }
 
     // https://drafts.fxtf.org/geometry/#dom-domquad-getbounds
-    fn GetBounds(&self) -> DomRoot<DOMRect> {
+    fn GetBounds(&self, can_gc: CanGc) -> DomRoot<DOMRect> {
         // https://drafts.fxtf.org/geometry/#nan-safe-minimum
         let nan_safe_minimum = |a: f64, b: f64| {
             if a.is_nan() || b.is_nan() {
@@ -196,7 +199,7 @@ impl DOMQuadMethods for DOMQuad {
             top,
             right - left,
             bottom - top,
-            CanGc::note(),
+            can_gc,
         )
     }
 }

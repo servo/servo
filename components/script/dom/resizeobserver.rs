@@ -127,6 +127,7 @@ impl ResizeObserver {
                 &[],
                 &[&*observer_size],
                 &[],
+                can_gc,
             );
             entries.push(entry);
 

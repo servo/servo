@@ -65,6 +65,7 @@ impl ResizeObserverEntry {
         border_box_size: &[&ResizeObserverSize],
         content_box_size: &[&ResizeObserverSize],
         device_pixel_content_box_size: &[&ResizeObserverSize],
+        can_gc: CanGc,
     ) -> DomRoot<ResizeObserverEntry> {
         let entry = Box::new(ResizeObserverEntry::new_inherited(
             target,
@@ -73,7 +74,7 @@ impl ResizeObserverEntry {
             content_box_size,
             device_pixel_content_box_size,
         ));
-        reflect_dom_object_with_proto(entry, window, None, CanGc::note())
+        reflect_dom_object_with_proto(entry, window, None, can_gc)
     }
 }
 

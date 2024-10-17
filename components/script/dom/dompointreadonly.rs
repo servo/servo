@@ -37,8 +37,15 @@ impl DOMPointReadOnly {
         }
     }
 
-    pub fn new(global: &GlobalScope, x: f64, y: f64, z: f64, w: f64) -> DomRoot<DOMPointReadOnly> {
-        Self::new_with_proto(global, None, x, y, z, w, CanGc::note())
+    pub fn new(
+        global: &GlobalScope,
+        x: f64,
+        y: f64,
+        z: f64,
+        w: f64,
+        can_gc: CanGc,
+    ) -> DomRoot<DOMPointReadOnly> {
+        Self::new_with_proto(global, None, x, y, z, w, can_gc)
     }
 
     fn new_with_proto(
@@ -77,8 +84,8 @@ impl DOMPointReadOnlyMethods for DOMPointReadOnly {
     }
 
     // https://drafts.fxtf.org/geometry/#dom-dompointreadonly-frompoint
-    fn FromPoint(global: &GlobalScope, init: &DOMPointInit) -> DomRoot<Self> {
-        Self::new(global, init.x, init.y, init.z, init.w)
+    fn FromPoint(global: &GlobalScope, init: &DOMPointInit, can_gc: CanGc) -> DomRoot<Self> {
+        Self::new(global, init.x, init.y, init.z, init.w, can_gc)
     }
 
     // https://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-x
