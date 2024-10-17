@@ -91,7 +91,7 @@ impl<Listener: FetchResponseListener + PreInvoke + Send + 'static> NetworkListen
         self.notify(action);
     }
 
-    pub fn to_callback(self) -> BoxedFetchCallback {
+    pub fn into_callback(self) -> BoxedFetchCallback {
         Box::new(move |response_msg| self.notify_fetch(response_msg))
     }
 }

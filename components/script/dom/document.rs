@@ -2157,7 +2157,7 @@ impl Document {
             task_source,
             canceller: Some(canceller),
         }
-        .to_callback();
+        .into_callback();
         self.loader_mut()
             .fetch_async_with_callback(load, request, callback);
     }
@@ -2177,7 +2177,7 @@ impl Document {
             task_source,
             canceller: Some(canceller),
         }
-        .to_callback();
+        .into_callback();
         self.loader_mut()
             .fetch_async_background(request, callback, cancel_override);
     }

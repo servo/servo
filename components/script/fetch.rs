@@ -345,7 +345,6 @@ pub fn load_whole_resource(
     loop {
         match action_receiver.recv().unwrap() {
             FetchResponseMsg::ProcessRequestBody(..) | FetchResponseMsg::ProcessRequestEOF(..) => {
-                ()
             },
             FetchResponseMsg::ProcessResponse(_, Ok(m)) => {
                 metadata = Some(match m {

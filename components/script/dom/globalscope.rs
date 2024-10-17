@@ -3424,7 +3424,7 @@ impl GlobalScope {
             &self.core_resource_thread(),
             request_builder,
             cancellation_receiver,
-            network_listener.to_callback(),
+            network_listener.into_callback(),
         );
     }
 }
