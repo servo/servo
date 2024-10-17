@@ -1,10 +1,9 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 import os
 import subprocess
 import re
 import sys
 import fnmatch
-import commands
 
 from collections import defaultdict
 from optparse import OptionParser
@@ -19,7 +18,7 @@ def git(command, *args):
     command_line = ["git", command] + args
 
     try:
-        return subprocess.check_output(command_line, **proc_kwargs)
+        return subprocess.check_output(command_line, universal_newlines=True, **proc_kwargs)
     except subprocess.CalledProcessError:
         raise
 
@@ -62,7 +61,7 @@ def check_permission(path):
     return []
 
 
-def parse_whitelist_file(filename):
+def parse_allowlist_file(filename):
     data = defaultdict(lambda:defaultdict(set))
 
     with open(filename) as f:
@@ -80,29 +79,29 @@ def parse_whitelist_file(filename):
             data[file_match][error_type].add(line_number)
 
     def inner(path, errors):
-        whitelisted = [False for item in xrange(len(errors))]
+        allowlisted = [False for item in range(len(errors))]
 
-        for file_match, whitelist_errors in data.iteritems():
+        for file_match, allowlist_errors in data.items():
             if fnmatch.fnmatch(path, file_match):
                 for i, (error_type, msg, line) in enumerate(errors):
-                    if "*" in whitelist_errors:
-                        whitelisted[i] = True
-                    elif error_type in whitelist_errors:
-                        allowed_lines = whitelist_errors[error_type]
+                    if "*" in allowlist_errors:
+                        allowlisted[i] = True
+                    elif error_type in allowlist_errors:
+                        allowed_lines = allowlist_errors[error_type]
                         if None in allowed_lines or line in allowed_lines:
-                            whitelisted[i] = True
+                            allowlisted[i] = True
 
-        return [item for i, item in enumerate(errors) if not whitelisted[i]]
+        return [item for i, item in enumerate(errors) if not allowlisted[i]]
     return inner
 
 
-_whitelist_fn = None
-def whitelist_errors(path, errors):
-    global _whitelist_fn
+_allowlist_fn = None
+def allowlist_errors(path, errors):
+    global _allowlist_fn
 
-    if _whitelist_fn is None:
-        _whitelist_fn = parse_whitelist_file(os.path.join(lint_root, "lint.whitelist"))
-    return _whitelist_fn(path, errors)
+    if _allowlist_fn is None:
+        _allowlist_fn = parse_allowlist_file(os.path.join(lint_root, "lint.allowlist"))
+    return _allowlist_fn(path, errors)
 
 
 class Regexp(object):
@@ -147,29 +146,32 @@ def check_regexp_line(path, f):
 
     applicable_regexps = [regexp for regexp in regexps if regexp.applies(path)]
 
-    for i, line in enumerate(f):
-        for regexp in applicable_regexps:
-            if regexp.search(line):
-                errors.append((regexp.error, "%s line %i" % (path, i+1), i+1))
+    try:
+        for i, line in enumerate(f):
+            for regexp in applicable_regexps:
+                if regexp.search(line):
+                    errors.append((regexp.error, "%s line %i" % (path, i+1), i+1))
+    except UnicodeDecodeError as e:
+        return [("INVALID UNICODE", "File %s contains non-UTF-8 Unicode characters" % path, None)]
 
     return errors
 
 
 def output_errors(errors):
     for error_type, error, line_number in errors:
-        print "%s: %s" % (error_type, error)
+        print("%s: %s" % (error_type, error))
 
 
 def output_error_count(error_count):
     if not error_count:
         return
 
-    by_type = " ".join("%s: %d" % item for item in error_count.iteritems())
+    by_type = " ".join("%s: %d" % item for item in error_count.items())
     count = sum(error_count.values())
     if count == 1:
-        print "There was 1 error (%s)" % (by_type,)
+        print("There was 1 error (%s)" % (by_type,))
     else:
-        print "There were %d errors (%s)" % (count, by_type)
+        print("There were %d errors (%s)" % (count, by_type))
 
 
 def main():
@@ -189,7 +191,7 @@ def main():
     repo_root = repo_root.replace("WebGL/sdk/tests", options.repo)
 
     def run_lint(path, fn, *args):
-        errors = whitelist_errors(path, fn(path, *args))
+        errors = allowlist_errors(path, fn(path, *args))
         output_errors(errors)
         for error_type, error, line in errors:
             error_count[error_type] += 1
@@ -211,7 +213,7 @@ def main():
                         f.seek(0)
 
     output_error_count(error_count)
-    return sum(error_count.itervalues())
+    return sum(error_count.values())
 
 file_path_lints = [check_filename_space]
 file_content_lints = [check_regexp_line]

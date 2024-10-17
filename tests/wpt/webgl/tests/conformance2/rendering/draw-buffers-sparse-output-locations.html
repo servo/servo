@@ -1,0 +1,110 @@
+﻿<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL Conformance Tests: Verify drawBuffers sparse output locations</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<canvas id="canvas" width="1" height="1" style="width: 4px; height: 4px;"> </canvas>
+<div id="console"></div>
+
+<script id="vs" type="x-shader/x-vertex">#version 300 es
+void main() {
+  gl_PointSize = 100.0;
+  gl_Position = vec4(0, 0, 0, 1);
+}
+</script>
+
+<script id="fs" type="x-shader/x-fragment">#version 300 es
+// fragment shader only outputs to attachments 1 and 3
+precision highp float;
+layout(location = 1) out vec4 output1;
+layout(location = 3) out vec4 output2;
+void main()
+{
+    output1 = vec4(0.0, 1.0, 0.0, 1.0);
+    output2 = vec4(0.0, 0.0, 1.0, 1.0);
+}
+
+</script>
+<script>
+"use strict";
+description("This test verifies sparse output locations of fragment shaders render correctly");
+
+debug("");
+
+var wtu = WebGLTestUtils;
+var canvas = document.getElementById("canvas");
+var gl = wtu.create3DContext(canvas, null, 2);
+
+if (!gl) {
+  testFailed("WebGL context does not exist");
+} else {
+  testPassed("WebGL context exists");
+  runTests();
+}
+
+function testAttachment(attachment, expected) {
+  gl.readBuffer(gl.COLOR_ATTACHMENT0 + attachment);
+  wtu.checkCanvas(gl, expected, `check COLOR_ATTACHMENT${attachment}`, 1);
+}
+
+function runTests() {
+  var program = wtu.setupProgram(gl, ["vs", "fs"]);
+  if (!program) {
+    testFailed("Set up program failed");
+    return;
+  }
+  gl.useProgram(program);
+
+  // create a framebuffer with 4 1x1 pixel color attachments
+  const fb = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+
+  for (let i = 0; i < 4; ++i) {
+    const tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0 + i, gl.TEXTURE_2D, tex, 0);
+  }
+
+  // draw only to the 1st and 3rd attachments
+  gl.drawBuffers([
+    gl.NONE,
+    gl.COLOR_ATTACHMENT1,
+    gl.NONE,
+    gl.COLOR_ATTACHMENT3,
+  ]);
+
+  // draw
+  gl.drawArrays(gl.POINTS, 0, 1);
+
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "No GL error from set up");
+
+  // check we got the correct values
+  testAttachment(0, [0, 0, 0, 0]);
+  testAttachment(1, [0, 255, 0, 255]);
+  testAttachment(2, [0, 0, 0, 0]);
+  testAttachment(3, [0, 0, 255, 255]);
+
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "No GL error from testing");
+}
+
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+
+</body>
+</html>

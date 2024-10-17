@@ -1,0 +1,63 @@
+<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+
+<script>
+"use strict";
+var wtu = WebGLTestUtils;
+description("Tests calling WebGL 2 APIs without providing the necessary objects");
+
+var gl = wtu.create3DContext(undefined, undefined, 2);
+var shouldGenerateGLError = wtu.shouldGenerateGLError;
+
+
+for (let nullOrUndefined of [null, undefined]) {
+    shouldGenerateGLError(gl, gl.NO_ERROR, `gl.deleteQuery(${nullOrUndefined})`);
+    shouldGenerateGLError(gl, gl.NO_ERROR, `gl.isQuery(${nullOrUndefined})`);
+    shouldGenerateGLError(gl, gl.NO_ERROR, `gl.deleteSync(${nullOrUndefined})`);
+    shouldGenerateGLError(gl, gl.NO_ERROR, `gl.isSync(${nullOrUndefined})`);
+    shouldGenerateGLError(gl, gl.NO_ERROR, `gl.deleteTransformFeedback(${nullOrUndefined})`);
+    shouldGenerateGLError(gl, gl.NO_ERROR, `gl.isTransformFeedback(${nullOrUndefined})`);
+    shouldGenerateGLError(gl, gl.NO_ERROR, `gl.deleteSampler(${nullOrUndefined})`);
+    shouldGenerateGLError(gl, gl.NO_ERROR, `gl.isSampler(${nullOrUndefined})`);
+    shouldGenerateGLError(gl, gl.NO_ERROR, `gl.deleteVertexArray(${nullOrUndefined})`);
+    shouldGenerateGLError(gl, gl.NO_ERROR, `gl.isVertexArray(${nullOrUndefined})`);
+
+    shouldGenerateGLError(gl, gl.NO_ERROR, `gl.bindSampler(0, ${nullOrUndefined})`);
+    shouldThrow(`gl.samplerParameteri(${nullOrUndefined}, gl.TEXTURE_MAG_FILTER, gl.NEAREST)`);
+    shouldThrow(`gl.samplerParameterf(${nullOrUndefined}, gl.TEXTURE_MAX_LOD, 1)`);
+    shouldThrow(`gl.getSamplerParameter(${nullOrUndefined}, gl.TEXTURE_MAX_LOD)`);
+
+    shouldThrow(`gl.waitSync(${nullOrUndefined}, 0, 0)`);
+    shouldThrow(`gl.clientWaitSync(${nullOrUndefined}, 0, 0)`);
+    shouldThrow(`gl.getSyncParameter(${nullOrUndefined}, gl.OBJECT_TYPE)`);
+
+    shouldGenerateGLError(gl, gl.NO_ERROR, `gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, ${nullOrUndefined})`);
+    shouldThrow(`gl.transformFeedbackVaryings(${nullOrUndefined}, [], gl.SEPARATE_ATTRIBS)`);
+
+    shouldGenerateGLError(gl, gl.NO_ERROR, `gl.bindVertexArray(${nullOrUndefined})`);
+}
+
+
+var successfullyParsed = true;
+</script>
+
+<script src="../../js/js-test-post.js"></script>
+</body>
+</html>

@@ -169,7 +169,7 @@ goog.scope(function() {
     es3fShaderDerivateTests.computeFloatingPointError = function(value, numAccurateBits) {
         /** @type {number} */ var numGarbageBits = 23 - numAccurateBits;
         /** @type {number} */ var mask = (1 << numGarbageBits) - 1 ;
-        /** @type {number} */ var exp = tcuFloat.newFloat32(value).exponent();
+        /** @type {number} */ var exp = (tcuFloat.newFloat32(value).exponent() < -3) ? -3 : tcuFloat.newFloat32(value).exponent();
 
         return (new tcuFloat.deFloat()).construct(1, exp, (1 << 23) | mask).getValue() - (new tcuFloat.deFloat()).construct(1, exp, 1 << 23).getValue();
     };
@@ -236,7 +236,7 @@ goog.scope(function() {
      * @param {number} numAccurateBits
      * @return {number}
      */
-    es3fShaderDerivateTests.convertFloorFlushToZero = function(value, minExponent, numAccurateBits) {
+    es3fShaderDerivateTests.convertFloatFlushToZeroRtn = function(value, minExponent, numAccurateBits) {
         if (value === 0.0) {
             return 0.0;
         } else {
@@ -270,8 +270,8 @@ goog.scope(function() {
      * @param {number} numAccurateBits
      * @return {number}
      */
-    es3fShaderDerivateTests.convertCeilFlushToZero = function(value, minExponent, numAccurateBits) {
-        return -es3fShaderDerivateTests.convertFloorFlushToZero(-value, minExponent, numAccurateBits);
+    es3fShaderDerivateTests.convertFloatFlushToZeroRtp = function(value, minExponent, numAccurateBits) {
+        return -es3fShaderDerivateTests.convertFloatFlushToZeroRtn(-value, minExponent, numAccurateBits);
     };
 
     /**
@@ -283,6 +283,22 @@ goog.scope(function() {
     es3fShaderDerivateTests.addErrorUlp = function(value, numUlps, numMantissaBits) {
         return value + numUlps * es3fShaderDerivateTests.getSingleULPForValue(value, numMantissaBits);
     };
+
+    /**
+     * @param {?gluShaderUtil.precision} precision
+     * @return {number}
+     */
+    es3fShaderDerivateTests.getInterpolationLostBitsWarning = function(precision) {
+        // number mantissa of bits allowed to be lost in varying interpolation
+        switch (precision)
+        {
+            case gluShaderUtil.precision.PRECISION_HIGHP: return 9;
+            case gluShaderUtil.precision.PRECISION_MEDIUMP: return 3;
+            case gluShaderUtil.precision.PRECISION_LOWP: return 3;
+            default:
+                throw new Error('Precision not supported: ' + precision);
+        }
+    }
 
     /**
      * @param {?gluShaderUtil.precision} precision
@@ -310,6 +326,33 @@ goog.scope(function() {
                 es3fShaderDerivateTests.computeFloatingPointError(expectedDerivate[2], numAccurateBits[2]),
                 es3fShaderDerivateTests.computeFloatingPointError(expectedDerivate[3], numAccurateBits[3])];
     };
+
+    /**
+     * @param {?gluShaderUtil.precision} precision
+     * @param {Array<number>} valueMin
+     * @param {Array<number>} valueMax
+     * @param {Array<number>} expectedDerivate
+     * @return {Array<number>}
+     */
+    es3fShaderDerivateTests.getDerivateThresholdWarning = function (precision, valueMin, valueMax, expectedDerivate) {
+        /** @type {number} */ var baseBits = es3fShaderDerivateTests.getNumMantissaBits(precision);
+        /** @type {Array<number>} */ var derivExp = es3fShaderDerivateTests.getCompExpBits(expectedDerivate);
+        /** @type {Array<number>} */ var maxValueExp = deMath.max(es3fShaderDerivateTests.getCompExpBits(valueMin), es3fShaderDerivateTests.getCompExpBits(valueMax));
+        /** @type {Array<number>} */ var numBitsLost = deMath.subtract(maxValueExp, deMath.min(maxValueExp, derivExp));
+        /** @type {Array<number>} */
+        var numAccurateBits = deMath.max(
+            deMath.addScalar(
+                deMath.subtract(
+                    [baseBits, baseBits, baseBits, baseBits],
+                    numBitsLost),
+                -es3fShaderDerivateTests.getInterpolationLostBitsWarning(precision)),
+            [0, 0, 0, 0]);
+
+        return [es3fShaderDerivateTests.computeFloatingPointError(expectedDerivate[0], numAccurateBits[0]),
+                es3fShaderDerivateTests.computeFloatingPointError(expectedDerivate[1], numAccurateBits[1]),
+                es3fShaderDerivateTests.computeFloatingPointError(expectedDerivate[2], numAccurateBits[2]),
+                es3fShaderDerivateTests.computeFloatingPointError(expectedDerivate[3], numAccurateBits[3])];
+    }
 
     /**
      * @param {tcuTexture.ConstPixelBufferAccess} result
@@ -417,7 +460,7 @@ goog.scope(function() {
             /** @type {Array<number>} */ var resultDerivative = es3fShaderDerivateTests.readDerivate(result, derivScale, derivBias, x, y);
 
             // sample at the front of the back pixel and the back of the front pixel to cover the whole area of
-            // legal sample positions. In general case this is NOT OK, but we know that the target funtion is
+            // legal sample positions. In general case this is NOT OK, but we know that the target function is
             // (mostly*) linear which allows us to take the sample points at arbitrary points. This gets us the
             // maximum difference possible in exponents which are used in error bound calculations.
             // * non-linearity may happen around zero or with very high function values due to subnorms not
@@ -433,18 +476,18 @@ goog.scope(function() {
 
             // check components separately
             for (var c = 0; c < numComponents; ++c) {
-                // interpolation value range
+                // Simulate interpolation. Add allowed interpolation error and round to target precision. Allow one half ULP (i.e. correct rounding)
                 /** @type {tcuInterval.Interval} */ var forwardComponent = tcuInterval.withIntervals(
-                    new tcuInterval.Interval(es3fShaderDerivateTests.convertFloorFlushToZero(
+                    new tcuInterval.Interval(es3fShaderDerivateTests.convertFloatFlushToZeroRtn(
                         es3fShaderDerivateTests.addErrorUlp(functionValueForward[c], -0.5, numVaryingSampleBits), minExponent, numBits)),
-                    new tcuInterval.Interval(es3fShaderDerivateTests.convertCeilFlushToZero(
+                    new tcuInterval.Interval(es3fShaderDerivateTests.convertFloatFlushToZeroRtp(
                         es3fShaderDerivateTests.addErrorUlp(functionValueForward[c], +0.5, numVaryingSampleBits), minExponent, numBits))
                 );
 
                 /** @type {tcuInterval.Interval} */ var backwardComponent = tcuInterval.withIntervals(
-                    new tcuInterval.Interval(es3fShaderDerivateTests.convertFloorFlushToZero(
+                    new tcuInterval.Interval(es3fShaderDerivateTests.convertFloatFlushToZeroRtn(
                         es3fShaderDerivateTests.addErrorUlp(functionValueBackward[c], -0.5, numVaryingSampleBits), minExponent, numBits)),
-                    new tcuInterval.Interval(es3fShaderDerivateTests.convertCeilFlushToZero(
+                    new tcuInterval.Interval(es3fShaderDerivateTests.convertFloatFlushToZeroRtp(
                         es3fShaderDerivateTests.addErrorUlp(functionValueBackward[c], +0.5, numVaryingSampleBits), minExponent, numBits))
                 );
 
@@ -455,24 +498,24 @@ goog.scope(function() {
                         (new tcuFloat.deFloat().deFloatNumber(backwardComponent.lo())).exponent(),
                         (new tcuFloat.deFloat().deFloatNumber(backwardComponent.hi())).exponent());
 
-                // subtraction in nominator will likely cause a cancellation of the most
+                // subtraction in numerator will likely cause a cancellation of the most
                 // significant bits. Apply error bounds.
-                /** @type {tcuInterval.Interval} */ var nominator = tcuInterval.Interval.operatorSub(forwardComponent, backwardComponent);
-                /** @type {number} */ var nominatorLoExp = (new tcuFloat.deFloat().deFloatNumber(nominator.lo())).exponent();
-                /** @type {number} */ var nominatorHiExp = (new tcuFloat.deFloat().deFloatNumber(nominator.hi())).exponent();
-                /** @type {number} */ var nominatorLoBitsLost = maxValueExp - nominatorLoExp;
-                /** @type {number} */ var nominatorHiBitsLost = maxValueExp - nominatorHiExp;
-                /** @type {number} */ var nominatorLoBits = Math.max(0, numBits - nominatorLoBitsLost);
-                /** @type {number} */ var nominatorHiBits = Math.max(0, numBits - nominatorHiBitsLost);
+                /** @type {tcuInterval.Interval} */ var numerator = tcuInterval.Interval.operatorSub(forwardComponent, backwardComponent);
+                /** @type {number} */ var numeratorLoExp = (new tcuFloat.deFloat().deFloatNumber(numerator.lo())).exponent();
+                /** @type {number} */ var numeratorHiExp = (new tcuFloat.deFloat().deFloatNumber(numerator.hi())).exponent();
+                /** @type {number} */ var numeratorLoBitsLost = deMath.max(0, maxValueExp - numeratorLoExp); //!< must clamp to zero since if forward and backward components have different
+                /** @type {number} */ var numeratorHiBitsLost = deMath.max(0, maxValueExp - numeratorHiExp); //!< sign, numerator might have larger exponent than its operands.
+                /** @type {number} */ var numeratorLoBits = deMath.max(0, numBits - numeratorLoBitsLost);
+                /** @type {number} */ var numeratorHiBits = deMath.max(0, numBits - numeratorHiBitsLost);
 
-                /** @type {tcuInterval.Interval} */ var nominatorRange = tcuInterval.withIntervals(
-                    new tcuInterval.Interval(es3fShaderDerivateTests.convertFloorFlushToZero(nominator.lo(), minExponent, nominatorLoBits)),
-                    new tcuInterval.Interval(es3fShaderDerivateTests.convertCeilFlushToZero(nominator.hi(), minExponent, nominatorHiBits)));
+                /** @type {tcuInterval.Interval} */ var numeratorRange = tcuInterval.withIntervals(
+                    new tcuInterval.Interval(es3fShaderDerivateTests.convertFloatFlushToZeroRtn(numerator.lo(), minExponent, numeratorLoBits)),
+                    new tcuInterval.Interval(es3fShaderDerivateTests.convertFloatFlushToZeroRtp(numerator.hi(), minExponent, numeratorHiBits)));
                 //
-                /** @type {tcuInterval.Interval} */ var divisionRange = tcuInterval.Interval.operatorDiv(nominatorRange, new tcuInterval.Interval(3.0)); // legal sample area is anywhere within this and neighboring pixels (i.e. size = 3)
+                /** @type {tcuInterval.Interval} */ var divisionRange = tcuInterval.Interval.operatorDiv(numeratorRange, new tcuInterval.Interval(3.0)); // legal sample area is anywhere within this and neighboring pixels (i.e. size = 3)
                 /** @type {tcuInterval.Interval} */ var divisionResultRange = tcuInterval.withIntervals(
-                    new tcuInterval.Interval(es3fShaderDerivateTests.convertFloorFlushToZero(es3fShaderDerivateTests.addErrorUlp(divisionRange.lo(), -divisionErrorUlps, numBits), minExponent, numBits)),
-                    new tcuInterval.Interval(es3fShaderDerivateTests.convertCeilFlushToZero(es3fShaderDerivateTests.addErrorUlp(divisionRange.hi(), divisionErrorUlps, numBits), minExponent, numBits)));
+                    new tcuInterval.Interval(es3fShaderDerivateTests.convertFloatFlushToZeroRtn(es3fShaderDerivateTests.addErrorUlp(divisionRange.lo(), -divisionErrorUlps, numBits), minExponent, numBits)),
+                    new tcuInterval.Interval(es3fShaderDerivateTests.convertFloatFlushToZeroRtp(es3fShaderDerivateTests.addErrorUlp(divisionRange.hi(), +divisionErrorUlps, numBits), minExponent, numBits)));
                 /** @type {tcuInterval.Interval} */ var finalResultRange = tcuInterval.withIntervals(
                     new tcuInterval.Interval(divisionResultRange.lo() - surfaceThreshold[c]),
                     new tcuInterval.Interval(divisionResultRange.hi() + surfaceThreshold[c]));
@@ -534,6 +577,8 @@ goog.scope(function() {
         /** @type {es3fShaderDerivateTests.SurfaceType} */ this.m_surfaceType = es3fShaderDerivateTests.SurfaceType.DEFAULT_FRAMEBUFFER;
         /** @type {number} */ this.m_numSamples = 0;
         /** @type {number} */ this.m_hint = gl.DONT_CARE;
+
+        /** @type {boolean} */ this.m_useAsymmetricCoords = false;
 
         assertMsgOptions(this.m_surfaceType !== es3fShaderDerivateTests.SurfaceType.DEFAULT_FRAMEBUFFER || this.m_numSamples === 0, 'Did not expect surfaceType = DEFAULT_FRAMEBUFFER or numSamples = 0', false, true);
     };
@@ -623,8 +668,8 @@ goog.scope(function() {
         }
 
         bufferedLogToConsole('in: ' + this.m_coordMin + ' ' + this.m_coordMax + '\n' +
-            'v_coord.x = in.x * x\n' +
-            'v_coord.y = in.y * y\n' +
+            (this.m_useAsymmetricCoords ? 'v_coord.x = in.x * (x+y)/2\n' : 'v_coord.x = in.x * x\n') +
+            (this.m_useAsymmetricCoords ? 'v_coord.y = in.y * (x+y)/2\n' : 'v_coord.y = in.y * y\n') +
             'v_coord.z = in.z * (x+y)/2\n' +
             'v_coord.w = in.w * (1 - (x+y)/2)\n' +
             '\n' +
@@ -645,6 +690,16 @@ goog.scope(function() {
             this.m_coordMax[0], this.m_coordMin[1], (this.m_coordMin[2] + this.m_coordMax[2]) * 0.5, (this.m_coordMin[3]+this.m_coordMax[3]) * 0.5,
             this.m_coordMax[0], this.m_coordMax[1], this.m_coordMax[2], this.m_coordMin[3]
         ];
+
+        // For linear tests we want varying data x and y to vary along both axes
+        // to get nonzero x for dfdy and nonzero y for dfdx. To make the gradient
+        // the same for both triangles we set vertices 2 and 3 to middle values.
+        // This way the values go from min -> (max+min) / 2 or (max+min) / 2 -> max
+        // depending on the triangle, but the derivative is the same for both.
+        if (this.m_useAsymmetricCoords) {
+            coords[4] = coords[8] = (this.m_coordMin[0] + this.m_coordMax[0]) * 0.5;
+            coords[5] = coords[9] = (this.m_coordMin[1] + this.m_coordMax[1]) * 0.5;
+        }
 
         /** @type {Array<gluDrawUtil.VertexArrayBinding>} */ var vertexArrays = [
             gluDrawUtil.newFloatVertexArrayBinding('a_position', 4, 4, 0, positions),
@@ -886,6 +941,7 @@ goog.scope(function() {
         this.m_hint = hint;
         this.m_surfaceType = surfaceType;
         this.m_numSamples = numSamples;
+        this.m_useAsymmetricCoords = true;
     };
 
     es3fShaderDerivateTests.LinearDerivateCase.prototype = Object.create(es3fShaderDerivateTests.TriangleDerivateCase.prototype);
@@ -974,22 +1030,29 @@ goog.scope(function() {
      * @return {boolean}
      */
     es3fShaderDerivateTests.LinearDerivateCase.prototype.verify = function(result, errorMask) {
-        /** @type {Array<number>} */ var xScale = [1.0, 0.0, 0.5, -0.5];
-        /** @type {Array<number>} */ var yScale = [0.0, 1.0, 0.5, -0.5];
+        /** @type {Array<number>} */ var xScale = [0.5, 0.5, 0.5, -0.5];
+        /** @type {Array<number>} */ var yScale = [0.5, 0.5, 0.5, -0.5];
         /** @type {Array<number>} */ var surfaceThreshold = deMath.divide(this.getSurfaceThreshold(), deMath.abs(this.m_derivScale));
 
         /** @type {number} */ var w;
         /** @type {number} */ var h;
         /** @type {Array<number>} */ var reference;
         /** @type {Array<number>} */ var threshold;
+        /** @type {Array<number>} */ var thresholdW;
 
         if (this.m_func === es3fShaderDerivateTests.DerivateFunc.DFDX || this.m_func === es3fShaderDerivateTests.DerivateFunc.DFDY) {
             /** @type {boolean} */ var isX = this.m_func === es3fShaderDerivateTests.DerivateFunc.DFDX;
             /** @type {number} */ var div = isX ? result.getWidth() : result.getHeight();
             /** @type {Array<number>} */ var scale = isX ? xScale : yScale;
-            reference = deMath.multiply(deMath.scale(deMath.subtract(this.m_coordMax, this.m_coordMin), 1/div), scale);
-            /** @type {Array<number>} */ var opThreshold = es3fShaderDerivateTests.getDerivateThreshold(this.m_precision, deMath.multiply(this.m_coordMin, scale), deMath.multiply(this.m_coordMax, scale), reference);
+            reference = deMath.scale(deMath.subtract(this.m_coordMax, this.m_coordMin), 1/div);
+            /** @type {Array<number>} */ var opThreshold = es3fShaderDerivateTests.getDerivateThreshold(this.m_precision, this.m_coordMin, this.m_coordMax, reference);
+            /** @type {Array<number>} */ var opThresholdW = es3fShaderDerivateTests.getDerivateThresholdWarning(this.m_precision, this.m_coordMin, this.m_coordMax, reference);
             threshold = deMath.max(surfaceThreshold, opThreshold);
+            thresholdW = deMath.max(surfaceThreshold, opThresholdW);
+
+            /* adjust the reference value for the correct dfdx or dfdy sample adjacency */
+            reference = deMath.multiply(reference, scale);
+
             bufferedLogToConsole('Verifying result image.\n' +
                 '\tValid derivative is ' + reference + ' with threshold ' + threshold);
 
@@ -999,6 +1062,17 @@ goog.scope(function() {
                 this.m_dataType, reference, threshold, this.m_derivScale,
                 this.m_derivBias, es3fShaderDerivateTests.VerificationLogging.LOG_NOTHING)) {
                 bufferedLogToConsole('No incorrect derivatives found, result valid.');
+                return true;
+            }
+
+            bufferedLogToConsole('Verifying result image.\n'+
+                '\tValid derivative is ' + reference + ' with Warning threshold ' + thresholdW);
+
+            // Check with relaxed threshold value
+            if (es3fShaderDerivateTests.verifyConstantDerivate(result, errorMask,
+                this.m_dataType, reference, thresholdW, this.m_derivScale,
+                this.m_derivBias, es3fShaderDerivateTests.VerificationLogging.LOG_NOTHING)) {
+                bufferedLogToConsole('No incorrect derivatives found, result valid with quality warning.');
                 return true;
             }
 
@@ -1014,8 +1088,8 @@ goog.scope(function() {
             w = viewportSize[0];
             h = viewportSize[1];
 
-            function_.matrix.setRow(0, [valueRamp[0] / w, 0.0, this.m_coordMin[0]]);
-            function_.matrix.setRow(1, [0.0, valueRamp[1] / h, this.m_coordMin[1]]);
+            function_.matrix.setRow(0, [(valueRamp[0] / w) / 2.0, (valueRamp[0] / h) / 2.0, this.m_coordMin[0]]);
+            function_.matrix.setRow(1, [(valueRamp[1] / w) / 2.0, (valueRamp[1] / h) / 2.0, this.m_coordMin[1]]);
             function_.matrix.setRow(2, deMath.scale([valueRamp[2] / w, valueRamp[2] / h, this.m_coordMin[2] + this.m_coordMin[2]], 1 / 2.0));
             function_.matrix.setRow(3, deMath.scale([-valueRamp[3] / w, -valueRamp[3] / h, this.m_coordMax[3] + this.m_coordMax[3]], 1 / 2.0));
 
@@ -1032,10 +1106,31 @@ goog.scope(function() {
             reference = deMath.add(deMath.abs(dx), deMath.abs(dy));
             /** @type {Array<number>} */ var dxThreshold = es3fShaderDerivateTests.getDerivateThreshold(this.m_precision, deMath.multiply(this.m_coordMin, xScale), deMath.multiply(this.m_coordMax, xScale), dx);
             /** @type {Array<number>} */ var dyThreshold = es3fShaderDerivateTests.getDerivateThreshold(this.m_precision, deMath.multiply(this.m_coordMin, yScale), deMath.multiply(this.m_coordMax, yScale), dy);
+            /** @type {Array<number>} */ var dxThresholdW = es3fShaderDerivateTests.getDerivateThresholdWarning(this.m_precision, deMath.multiply(this.m_coordMin, xScale), deMath.multiply(this.m_coordMax, xScale), dx);
+            /** @type {Array<number>} */ var dyThresholdW = es3fShaderDerivateTests.getDerivateThresholdWarning(this.m_precision, deMath.multiply(this.m_coordMin, yScale), deMath.multiply(this.m_coordMax, yScale), dy);
             threshold = deMath.max(surfaceThreshold, deMath.max(dxThreshold, dyThreshold));
+            thresholdW = deMath.max(surfaceThreshold, deMath.max(dxThresholdW, dyThresholdW));
+            /** @type {boolean} */ var testResult = false;
 
-            return es3fShaderDerivateTests.verifyConstantDerivate(result, errorMask, this.m_dataType,
-                                          reference, threshold, this.m_derivScale, this.m_derivBias);
+            testResult = es3fShaderDerivateTests.verifyConstantDerivate(result, errorMask,
+                this.m_dataType, reference, threshold, this.m_derivScale, this.m_derivBias);
+
+            // return if result is pass
+            if (testResult) {
+                bufferedLogToConsole('No incorrect derivatives found, result valid.');
+                return testResult;
+            }
+
+            // re-check with relaxed threshold
+            testResult = es3fShaderDerivateTests.verifyConstantDerivate(result, errorMask,
+                this.m_dataType, reference, thresholdW, this.m_derivScale, this.m_derivBias);
+
+            // if with relaxed threshold test is passing then mark the result with quality warning.
+            if (testResult) {
+                bufferedLogToConsole('No incorrect derivatives found, result valid with quality warning.');
+            }
+
+            return testResult;
         }
     };
 
@@ -1157,7 +1252,8 @@ goog.scope(function() {
             for (var x = 0; x < level0.getWidth(); x++) {
                 /** @type {number} */ var xf = (x + 0.5) / level0.getWidth();
                 /** @type {number} */ var yf = (y + 0.5) / level0.getHeight();
-                /** @type {Array<number>} */ var s = [xf, yf, (xf + yf) / 2.0, 1.0 - (xf + yf) / 2.0];
+                // Make x and y data to have dependency to both axes so that dfdx(tex).y and dfdy(tex).x are nonzero.
+                /** @type {Array<number>} */ var s = [xf + yf / 2.0, yf + xf / 2.0, (xf + yf) / 2.0, 1.0 - (xf + yf) / 2.0];
 
                 level0.setPixel(deMath.add(this.m_texValueMin, deMath.multiply(deMath.subtract(this.m_texValueMax, this.m_texValueMin), s)), x, y);
             }
@@ -1226,21 +1322,27 @@ goog.scope(function() {
 
         /** @type {tcuTexture.PixelBufferAccess} */ var compareArea = tcuTextureUtil.getSubregion(result, 1, 1, 0, result.getWidth() - 2, result.getHeight() - 2, 1);
         /** @type {tcuTexture.PixelBufferAccess} */ var maskArea = tcuTextureUtil.getSubregion(errorMask, 1, 1, 0, errorMask.getWidth() - 2, errorMask.getHeight() - 2, 1);
-        /** @type {Array<number>} */ var xScale = [1.0, 0.0, 0.5, -0.5];
-        /** @type {Array<number>} */ var yScale = [0.0, 1.0, 0.5, -0.5];
+        /** @type {Array<number>} */ var xScale = [1.0, 0.5, 0.5, -0.5];
+        /** @type {Array<number>} */ var yScale = [0.5, 1.0, 0.5, -0.5];
         /** @type {number} */ var w = result.getWidth();
         /** @type {number} */ var h = result.getHeight();
 
         /** @type {Array<number>} */ var surfaceThreshold = deMath.divide(this.getSurfaceThreshold(), deMath.abs(this.m_derivScale));
         /** @type {Array<number>} */ var reference;
         /** @type {Array<number>} */ var threshold;
+        /** @type {Array<number>} */ var thresholdW;
         if (this.m_func == es3fShaderDerivateTests.DerivateFunc.DFDX || this.m_func == es3fShaderDerivateTests.DerivateFunc.DFDY) {
             /** @type {boolean} */ var isX = this.m_func == es3fShaderDerivateTests.DerivateFunc.DFDX;
             /** @type {number} */ var div = isX ? w : h;
             /** @type {Array<number>} */ var scale = isX ? xScale : yScale;
-            reference = deMath.multiply(deMath.scale(deMath.subtract(this.m_texValueMax, this.m_texValueMin), 1 / div), scale);
-            /** @type {Array<number>} */ var opThreshold = es3fShaderDerivateTests.getDerivateThreshold(this.m_precision, deMath.multiply(this.m_texValueMin, scale), deMath.multiply(this.m_texValueMax, scale), reference);
+            reference = deMath.scale(deMath.subtract(this.m_texValueMax, this.m_texValueMin), 1 / div);
+            /** @type {Array<number>} */ var opThreshold = es3fShaderDerivateTests.getDerivateThreshold(this.m_precision, this.m_texValueMin, this.m_texValueMax, reference);
+            /** @type {Array<number>} */ var opThresholdW = es3fShaderDerivateTests.getDerivateThresholdWarning(this.m_precision, this.m_texValueMin, this.m_texValueMax, reference);
             threshold = deMath.max(surfaceThreshold, opThreshold);
+            thresholdW = deMath.max(surfaceThreshold, opThresholdW);
+
+            /* adjust the reference value for the correct dfdx or dfdy sample adjacency */
+            reference = deMath.multiply(reference, scale);
 
             bufferedLogToConsole('Verifying result image.\n'+
                 '\tValid derivative is ' + reference + ' with threshold ' + threshold);
@@ -1253,6 +1355,18 @@ goog.scope(function() {
                     bufferedLogToConsole('No incorrect derivatives found, result valid.');
                     return true;
             }
+
+            bufferedLogToConsole('Verifying result image.\n'+
+                '\tValid derivative is ' + reference + ' with Warning threshold ' + thresholdW);
+
+            // Re-check with relaxed threshold
+            if (es3fShaderDerivateTests.verifyConstantDerivate(compareArea, maskArea, this.m_dataType,
+                reference, thresholdW, this.m_derivScale, this.m_derivBias,
+                es3fShaderDerivateTests.VerificationLogging.LOG_NOTHING)) {
+                    bufferedLogToConsole('No incorrect derivatives found, result valid with quality warning.');
+                    return true;
+            }
+
             // some pixels exceed error bounds calculated for normal values. Verify that these
             // potentially invalid pixels are in fact valid due to (for example) subnorm flushing.
 
@@ -1262,8 +1376,8 @@ goog.scope(function() {
             /** @type {Array<number>} */ var valueRamp = deMath.subtract(this.m_texValueMax, this.m_texValueMin);
             /** @type {es3fShaderDerivateTests.Linear2DFunctionEvaluator} */ var function_ = new es3fShaderDerivateTests.Linear2DFunctionEvaluator();
 
-            function_.matrix.setRow(0, [valueRamp[0] / w, 0.0, this.m_texValueMin[0]]);
-            function_.matrix.setRow(1, [0.0, valueRamp[1] / h, this.m_texValueMin[1]]);
+            function_.matrix.setRow(0, [valueRamp[0] / w, (valueRamp[0] / h) / 2.0, this.m_texValueMin[0]]);
+            function_.matrix.setRow(1, [(valueRamp[1] / w) / 2.0, valueRamp[1] / h, this.m_texValueMin[1]]);
             function_.matrix.setRow(2, deMath.scale([valueRamp[2] / w, valueRamp[2] / h, this.m_texValueMin[2] + this.m_texValueMin[2]], 1 / 2.0));
             function_.matrix.setRow(3, deMath.scale([-valueRamp[3] / w, -valueRamp[3] / h, this.m_texValueMax[3] + this.m_texValueMax[3]], 1 / 2.0));
 
@@ -1276,10 +1390,30 @@ goog.scope(function() {
             reference = deMath.add(deMath.abs(dx), deMath.abs(dy));
             /** @type {Array<number>} */ var dxThreshold = es3fShaderDerivateTests.getDerivateThreshold(this.m_precision, deMath.multiply(this.m_texValueMin, xScale), deMath.multiply(this.m_texValueMax, xScale), dx);
             /** @type {Array<number>} */ var dyThreshold = es3fShaderDerivateTests.getDerivateThreshold(this.m_precision, deMath.multiply(this.m_texValueMin, yScale), deMath.multiply(this.m_texValueMax, yScale), dy);
+            /** @type {Array<number>} */ var dxThresholdW = es3fShaderDerivateTests.getDerivateThresholdWarning(this.m_precision, deMath.multiply(this.m_texValueMin, xScale), deMath.multiply(this.m_texValueMax, xScale), dx);
+            /** @type {Array<number>} */ var dyThresholdW = es3fShaderDerivateTests.getDerivateThresholdWarning(this.m_precision, deMath.multiply(this.m_texValueMin, yScale), deMath.multiply(this.m_texValueMax, yScale), dy);
             threshold = deMath.max(surfaceThreshold, deMath.max(dxThreshold, dyThreshold));
+            thresholdW = deMath.max(surfaceThreshold, deMath.max(dxThresholdW, dyThresholdW));
+            /** @type {boolean} */ var testResult = false;
 
-            return es3fShaderDerivateTests.verifyConstantDerivate(compareArea, maskArea, this.m_dataType,
-                reference, threshold, this.m_derivScale, this.m_derivBias);
+            testResult = es3fShaderDerivateTests.verifyConstantDerivate(compareArea, maskArea,
+                this.m_dataType, reference, threshold, this.m_derivScale, this.m_derivBias);
+
+            if (testResult) {
+                bufferedLogToConsole('No incorrect derivatives found, result valid.');
+                return testResult;
+            }
+
+            // Re-Check with relaxed threshold
+            testResult = es3fShaderDerivateTests.verifyConstantDerivate(compareArea, maskArea,
+                this.m_dataType, reference, thresholdW, this.m_derivScale, this.m_derivBias);
+
+            // If test is passing with relaxed threshold then mark quality warning
+            if (testResult) {
+                bufferedLogToConsole('No incorrect derivatives found, result valid with quality warning.');
+            }
+
+            return testResult;
         };
     };
 

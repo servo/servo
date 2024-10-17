@@ -1,28 +1,7 @@
 ﻿<!--
-
-/*
-** Copyright (c) 2012 The Khronos Group Inc.
-**
-** Permission is hereby granted, free of charge, to any person obtaining a
-** copy of this software and/or associated documentation files (the
-** "Materials"), to deal in the Materials without restriction, including
-** without limitation the rights to use, copy, modify, merge, publish,
-** distribute, sublicense, and/or sell copies of the Materials, and to
-** permit persons to whom the Materials are furnished to do so, subject to
-** the following conditions:
-**
-** The above copyright notice and this permission notice shall be included
-** in all copies or substantial portions of the Materials.
-**
-** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
-*/
-
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
 -->
 
 <!DOCTYPE html>
@@ -73,6 +52,18 @@ void main() {
 precision mediump float;
 varying vec2 texCoord;
 void main() {
+    float dx = dFdx(texCoord.x);
+    float dy = dFdy(texCoord.y);
+    float w = fwidth(texCoord.x);
+    gl_FragColor = vec4(dx, dy, w, 1.0);
+}
+</script>
+<!-- Shader with #extension after other code -->
+<script id="testFragmentShaderWithExtensionNotAtTop" type="x-shader/x-fragment">
+precision mediump float;
+varying vec2 texCoord;
+void main() {
+#extension GL_OES_standard_derivatives : enable
     float dx = dFdx(texCoord.x);
     float dy = dFdy(texCoord.y);
     float w = fwidth(texCoord.x);
@@ -233,43 +224,75 @@ function runShaderTests(extensionEnabled) {
     debug("Testing various shader compiles with extension " + (extensionEnabled ? "enabled" : "disabled"));
 
     // Expect the macro shader to succeed ONLY if enabled
-    var macroFragmentProgram = wtu.loadProgramFromScriptExpectError(gl, "goodVertexShader", "macroFragmentShader");
-    if (extensionEnabled) {
-        if (macroFragmentProgram) {
-            // Expected result
-            testPassed("GL_OES_standard_derivatives defined in shaders when extension is enabled");
+    {
+        const macroFragmentProgram = wtu.loadProgramFromScriptExpectError(gl, "goodVertexShader", "macroFragmentShader");
+        if (extensionEnabled) {
+            if (macroFragmentProgram) {
+                // Expected result
+                testPassed("GL_OES_standard_derivatives defined in shaders when extension is enabled");
+            } else {
+                testFailed("GL_OES_standard_derivatives not defined in shaders when extension is enabled");
+            }
         } else {
-            testFailed("GL_OES_standard_derivatives not defined in shaders when extension is enabled");
-        }
-    } else {
-        if (macroFragmentProgram) {
-            testFailed("GL_OES_standard_derivatives defined in shaders when extension is disabled");
-        } else {
-            testPassed("GL_OES_standard_derivatives not defined in shaders when extension disabled");
+            if (macroFragmentProgram) {
+                testFailed("GL_OES_standard_derivatives defined in shaders when extension is disabled");
+            } else {
+                testPassed("GL_OES_standard_derivatives not defined in shaders when extension disabled");
+            }
         }
     }
 
     // Always expect the shader missing the #pragma to fail (whether enabled or not)
-    var missingPragmaFragmentProgram = wtu.loadProgramFromScriptExpectError(gl, "goodVertexShader", "missingPragmaFragmentShader");
-    if (missingPragmaFragmentProgram) {
-        testFailed("Shader built-ins allowed without #extension pragma");
-    } else {
-        testPassed("Shader built-ins disallowed without #extension pragma");
+    {
+        const missingPragmaFragmentProgram = wtu.loadProgramFromScriptExpectError(gl, "goodVertexShader", "missingPragmaFragmentShader");
+        if (missingPragmaFragmentProgram) {
+            testFailed("Shader built-ins allowed without #extension pragma");
+        } else {
+            testPassed("Shader built-ins disallowed without #extension pragma");
+        }
     }
 
     // Try to compile a shader using the built-ins that should only succeed if enabled
-    var testFragmentProgram = wtu.loadProgramFromScriptExpectError(gl, "goodVertexShader", "testFragmentShader");
-    if (extensionEnabled) {
-        if (testFragmentProgram) {
-            testPassed("Shader built-ins compiled successfully when extension enabled");
+    {
+        const testFragmentProgram = wtu.loadProgramFromScriptExpectError(gl, "goodVertexShader", "testFragmentShader");
+        if (extensionEnabled) {
+            if (testFragmentProgram) {
+                testPassed("Shader built-ins compiled successfully when extension enabled");
+            } else {
+                testFailed("Shader built-ins failed to compile when extension enabled");
+            }
         } else {
-            testFailed("Shader built-ins failed to compile when extension enabled");
+            if (testFragmentProgram) {
+                testFailed("Shader built-ins compiled successfully when extension disabled");
+            } else {
+                testPassed("Shader built-ins failed to compile when extension disabled");
+            }
         }
-    } else {
-        if (testFragmentProgram) {
-            testFailed("Shader built-ins compiled successfully when extension disabled");
-        } else {
-            testPassed("Shader built-ins failed to compile when extension disabled");
+    }
+
+    // This tests specifically that #extension directives after other code are
+    // valid, per spec (6.35 GLSL ES #extension directive location).
+    //
+    // This test actually has nothing to do with OES_standard_derivatives, but
+    // is inserted here because this extension is ubiquitous.
+    //
+    // This test is not as strict as the spec - it doesn't require that "the
+    // scope ... is always the whole shader", because implementations (ANGLE
+    // shader translator) do not actually implement this correctly. The test
+    // coverage is intentionally left incomplete - in practice, all WebGL
+    // shaders already work with the current implementation, so there's no
+    // practical reason to update them to match the spec. Conversely, the
+    // currently implemented rules are too complex to formalize in spec.
+    //
+    // Regression test for https://crbug.com/971660 .
+    {
+        const testFragmentProgramWithExtensionNotAtTop = wtu.loadProgramFromScriptExpectError(gl, "goodVertexShader", "testFragmentShaderWithExtensionNotAtTop");
+        if (extensionEnabled) {
+            if (testFragmentProgramWithExtensionNotAtTop) {
+                testPassed("Shader with #extension after non-preprocessor code: compiled successfully when extension enabled");
+            } else {
+                testFailed("Shader with #extension after non-preprocessor code: failed to compile when extension enabled");
+            }
         }
     }
 }

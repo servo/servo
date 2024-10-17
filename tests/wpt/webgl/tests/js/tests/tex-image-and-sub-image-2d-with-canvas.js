@@ -1,24 +1,7 @@
 /*
-** Copyright (c) 2012 The Khronos Group Inc.
-**
-** Permission is hereby granted, free of charge, to any person obtaining a
-** copy of this software and/or associated documentation files (the
-** "Materials"), to deal in the Materials without restriction, including
-** without limitation the rights to use, copy, modify, merge, publish,
-** distribute, sublicense, and/or sell copies of the Materials, and to
-** permit persons to whom the Materials are furnished to do so, subject to
-** the following conditions:
-**
-** The above copyright notice and this permission notice shall be included
-** in all copies or substantial portions of the Materials.
-**
-** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
 */
 
 function generateTest(internalFormat, pixelFormat, pixelType, prologue, resourcePath, defaultContextVersion) {
@@ -291,18 +274,8 @@ function generateTest(internalFormat, pixelFormat, pixelType, prologue, resource
         var bottom = flipY ? (height - halfHeight) : 0;
 
         var loc;
-        var skipCorner = false;
         if (bindingTarget == gl.TEXTURE_CUBE_MAP) {
             loc = gl.getUniformLocation(program, "face");
-            switch (gl[pixelFormat]) {
-              case gl.RED_INTEGER:
-              case gl.RG_INTEGER:
-              case gl.RGB_INTEGER:
-              case gl.RGBA_INTEGER:
-                // https://github.com/KhronosGroup/WebGL/issues/1819
-                skipCorner = true;
-                break;
-            }
         }
 
         for (var tt = 0; tt < targets.length; ++tt) {
@@ -359,10 +332,10 @@ function generateTest(internalFormat, pixelFormat, pixelType, prologue, resource
 
                 // Check the top and bottom halves and make sure they have the right color.
                 debug("Checking " + (flipY ? "top" : "bottom"));
-                wtu.checkCanvasRect(gl, 0, bottom, (skipCorner && flipY) ? halfWidth : width, halfHeight, localRed,
+                wtu.checkCanvasRect(gl, 0, bottom, width, halfHeight, localRed,
                                     "shouldBe " + localRed, tolerance);
                 debug("Checking " + (flipY ? "bottom" : "top"));
-                wtu.checkCanvasRect(gl, 0, top, (skipCorner && !flipY) ? halfWidth : width, halfHeight, localGreen,
+                wtu.checkCanvasRect(gl, 0, top, width, halfHeight, localGreen,
                                     "shouldBe " + localGreen, tolerance);
             }
 
@@ -475,9 +448,9 @@ function generateTest(internalFormat, pixelFormat, pixelType, prologue, resource
                     }
                     // While we are working with Canvases, it's really unlikely that
                     // waiting for composition will change anything here, and it's much
-                    // slower, so just dispatchTask. If we want to test with composites,
+                    // slower, so just dispatchPromise. If we want to test with composites,
                     // we should test a more narrow subset of tests.
-                    wtu.dispatchTask(runNextTest);
+                    wtu.dispatchPromise(runNextTest);
                 }
                 runNextTest();
             });

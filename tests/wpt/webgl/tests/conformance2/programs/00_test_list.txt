@@ -1,3 +1,4 @@
 active-built-in-attribs.html
+--min-version 2.0.1 get-uniform-indices.html
 gl-get-frag-data-location.html
 --min-version 2.0.1 sampler-uniforms.html

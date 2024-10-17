@@ -1,0 +1,80 @@
+﻿<!--
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL canvas to 2D canvas test</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"> </script>
+<style>
+canvas {
+    border: 1px solid black;
+    margin: 3px;
+    display: block;
+}
+</style>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script type="application/javascript">
+var wtu = WebGLTestUtils;
+var diff;
+var consoleElem = document.querySelector('#console');
+
+var main = function() {
+  description();
+
+  test({ premultipliedAlpha: true, }, [171, 234, 172, 191], [128, 255, 177, 128]);
+  test({ premultipliedAlpha: false, }, [170, 234, 171, 191], [128, 255, 177, 128]);
+  test({ alpha: false, }, [127, 255, 178, 255], [128, 255, 178, 255]);
+  test({ premultipliedAlpha: false, alpha: false, }, [127, 255, 178, 255], [128, 255, 178, 255]);
+
+  function test(attrs, expected, expected2) {
+    debug(`test: ${JSON.stringify(attrs)}`);
+
+    const canvas = document.createElement('canvas');
+    canvas.width = 64;
+    canvas.height = 64;
+
+    const gl = wtu.create3DContext(canvas, attrs);
+    if (!gl) {
+      testFailed("can't create 3d context");
+      return;
+    }
+    const alpha = 0.5;
+    const effectiveAlpha = attrs.premultipliedAlpha ? alpha : 1.0;
+    const color = [0.5, 1.0, 0.7].map(v => v * effectiveAlpha);
+    color.push(0.5);
+    debug(`clearColor: ${color.join(', ')}`);
+    gl.clearColor(...color);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    consoleElem.appendChild(canvas);
+
+    const ctx = document.createElement('canvas').getContext('2d');
+    ctx.canvas.width = 128;
+    ctx.canvas.height = 128;
+    ctx.fillStyle = 'rgba(255, 190, 160, 0.5)';
+    ctx.fillRect(0, 0, 64, 64);
+    ctx.drawImage(canvas, 32, 32);
+    consoleElem.appendChild(ctx.canvas);
+
+    wtu.checkCanvasRect(ctx, 33, 33, 1, 1, expected, 'canvas 2d is correct color', 3);
+    wtu.checkCanvasRect(ctx, 65, 65, 1, 1, expected2, 'canvas 2d is correct color', 3);
+    debug('----------------------------------');
+  }
+  finishTest();
+};
+main();
+var successfullyParsed = true;
+</script>
+</body>
+</html>
+

@@ -1,28 +1,7 @@
 <!--
-
-/*
-** Copyright (c) 2013 The Khronos Group Inc.
-**
-** Permission is hereby granted, free of charge, to any person obtaining a
-** copy of this software and/or associated documentation files (the
-** "Materials"), to deal in the Materials without restriction, including
-** without limitation the rights to use, copy, modify, merge, publish,
-** distribute, sublicense, and/or sell copies of the Materials, and to
-** permit persons to whom the Materials are furnished to do so, subject to
-** the following conditions:
-**
-** The above copyright notice and this permission notice shall be included
-** in all copies or substantial portions of the Materials.
-**
-** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
-*/
-
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
 -->
 
 <!DOCTYPE html>
@@ -39,8 +18,8 @@
 <body>
 <div id="description"></div>
 <div id="console"></div>
-<canvas id="canvas" style="width: 50px; height: 50px;"> </canvas>
-<canvas id="canvas2d" width="40" height="40"> </canvas>
+<canvas id="canvas1" style="width: 50px; height: 50px;"> </canvas>
+<canvas id="canvas2" style="width: 50px; height: 50px;"> </canvas>
 <script>
 "use strict";
 description("This test ensures WebGL2 implementations interact correctly with the canvas tag.");
@@ -48,24 +27,53 @@ description("This test ensures WebGL2 implementations interact correctly with th
 debug("");
 debug("Canvas.getContext");
 
-assertMsg(window.WebGLRenderingContext,
-          "WebGL2RenderingContext should be a member of window");
-assertMsg('WebGL2RenderingContext' in window,
-          "WebGL2RenderingContext should be 'in' window");
+function runTest() {
+  assertMsg(window.WebGL2RenderingContext,
+            "WebGL2RenderingContext should be a member of window");
+  assertMsg('WebGL2RenderingContext' in window,
+            "WebGL2RenderingContext should be 'in' window");
 
-var wtu = WebGLTestUtils;
-var canvas = document.getElementById("canvas");
-var gl = wtu.create3DContext(canvas, null, 2);
-if (!gl) {
-  testFailed("context does not exist");
-} else {
-  testPassed("context exists");
+  const wtu = WebGLTestUtils;
+  let canvas2 = document.getElementById("canvas2");
+  let gl2 = wtu.create3DContext(canvas2, null, 2);
+  if (!gl2) {
+    testFailed("Could not fetch WebGL 2.0 context");
+    return;
+  }
+  testPassed("Fetched WebGL2 context successfully");
 
-  debug("Checking context type");
-  assertMsg(gl instanceof WebGL2RenderingContext,
+  debug("Checking WebGL2 context type");
+  assertMsg(gl2 instanceof WebGL2RenderingContext,
             "context type should be WebGL2RenderingContext");
+
+  // WebGL1 contexts do not respond to the WebGL2 context type, and vice versa.
+  let canvas1 = document.getElementById("canvas1");
+  let gl1 = wtu.create3DContext(canvas1, null, 1);
+  if (!gl1) {
+    testFailed("Could not fetch WebGL 1.0 context");
+    return;
+  }
+
+  debug("Checking WebGL1 context type");
+  assertMsg(gl1 instanceof WebGLRenderingContext,
+            "context type should be WebGLRenderingContext");
+
+  let msg1 = "A canvas which has created a WebGL 1.0 context should not return it for a 'webgl2' context request";
+  if (canvas1.getContext("webgl2"))
+    testFailed(msg1);
+  else
+    testPassed(msg1);
+
+  let msg2 = "A canvas which has created a WebGL 2.0 context should not return it for a 'webgl' context request";
+  if (canvas2.getContext("webgl"))
+    testFailed(msg2);
+  else
+    testPassed(msg2);
 }
+
+runTest();
 debug("");
+
 var successfullyParsed = true;
 </script>
 <script src="../../js/js-test-post.js"></script>

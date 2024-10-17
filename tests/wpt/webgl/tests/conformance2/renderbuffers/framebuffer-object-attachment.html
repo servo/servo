@@ -1,28 +1,7 @@
 <!--
-
-/*
-** Copyright (c) 2015 The Khronos Group Inc.
-**
-** Permission is hereby granted, free of charge, to any person obtaining a
-** copy of this software and/or associated documentation files (the
-** "Materials"), to deal in the Materials without restriction, including
-** without limitation the rights to use, copy, modify, merge, publish,
-** distribute, sublicense, and/or sell copies of the Materials, and to
-** permit persons to whom the Materials are furnished to do so, subject to
-** the following conditions:
-**
-** The above copyright notice and this permission notice shall be included
-** in all copies or substantial portions of the Materials.
-**
-** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
-*/
-
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
 -->
 
 <!DOCTYPE html>
@@ -134,9 +113,10 @@ function testFramebufferWebGL1RequiredCombinations() {
     gl.deleteFramebuffer(fbo);
 }
 
-function testDepthStencilAttachmentBehaviors() {
+function testDepthStencilAttachmentBehaviors(testOrphanedRenderbuffers) {
+    let suffix = testOrphanedRenderbuffers ? " with deleted renderbuffer" : "";
     debug("");
-    debug("Checking ES3 DEPTH_STENCIL_ATTACHMENT behaviors are implemented for WebGL 2");
+    debug("Checking ES3 DEPTH_STENCIL_ATTACHMENT behaviors are implemented for WebGL 2" + suffix);
     // DEPTH_STENCIL_ATTACHMENT is treated as an independent attachment point in WebGL 1;
     // however, in WebGL 2, it is treated as an alias for DEPTH_ATTACHMENT + STENCIL_ATTACHMENT.
     var size = 16;
@@ -150,75 +130,211 @@ function testDepthStencilAttachmentBehaviors() {
     gl.renderbufferStorage(gl.RENDERBUFFER, gl.RGBA8, size, size);
     checkFramebuffer([gl.FRAMEBUFFER_COMPLETE]);
 
-    var depthBuffer = gl.createRenderbuffer();
-    gl.bindRenderbuffer(gl.RENDERBUFFER, depthBuffer);
-    gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, size, size);
+    function createDepthBuffer() {
+        let buffer = gl.createRenderbuffer();
+        gl.bindRenderbuffer(gl.RENDERBUFFER, buffer);
+        gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, size, size);
+        gl.bindRenderbuffer(gl.RENDERBUFFER, null);
+        return buffer;
+    }
 
-    var stencilBuffer = gl.createRenderbuffer();
-    gl.bindRenderbuffer(gl.RENDERBUFFER, stencilBuffer);
-    gl.renderbufferStorage(gl.RENDERBUFFER, gl.STENCIL_INDEX8, size, size);
+    function createStencilBuffer() {
+        let buffer = gl.createRenderbuffer();
+        gl.bindRenderbuffer(gl.RENDERBUFFER, buffer);
+        gl.renderbufferStorage(gl.RENDERBUFFER, gl.STENCIL_INDEX8, size, size);
+        gl.bindRenderbuffer(gl.RENDERBUFFER, null);
+        return buffer;
+    }
 
-    var depthStencilBuffer = gl.createRenderbuffer();
-    gl.bindRenderbuffer(gl.RENDERBUFFER, depthStencilBuffer);
-    gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_STENCIL, size, size);
+    function createDepthStencilBuffer() {
+        let buffer = gl.createRenderbuffer();
+        gl.bindRenderbuffer(gl.RENDERBUFFER, buffer);
+        gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_STENCIL, size, size);
+        gl.bindRenderbuffer(gl.RENDERBUFFER, null);
+        return buffer;
+    }
+
+    function orphan(renderbuffer) {
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        gl.deleteRenderbuffer(renderbuffer);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+    }
 
     wtu.glErrorShouldBe(gl, gl.NO_ERROR);
 
-    debug("color + depth");
+    debug("");
+    debug("color + depth" + suffix);
+    var depthBuffer = createDepthBuffer();
     gl.framebufferRenderbuffer(
         gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, depthBuffer);
+    if (testOrphanedRenderbuffers)
+        orphan(depthBuffer);
+    shouldEvaluateTo("gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME)", depthBuffer);
+    shouldEvaluateTo("gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.STENCIL_ATTACHMENT, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME)", null);
+    shouldEvaluateTo("gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME)", null);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION);
     checkFramebuffer([gl.FRAMEBUFFER_COMPLETE]);
     checkBufferBits(gl.DEPTH_ATTACHMENT);
 
-    debug("color + depth + stencil: depth != stencil");
+    debug("");
+    debug("color + depth + stencil: depth != stencil" + suffix);
+    var stencilBuffer = createStencilBuffer();
     gl.framebufferRenderbuffer(
         gl.FRAMEBUFFER, gl.STENCIL_ATTACHMENT, gl.RENDERBUFFER, stencilBuffer);
+    if (testOrphanedRenderbuffers)
+        orphan(stencilBuffer);
+    shouldEvaluateTo("gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME)", depthBuffer);
+    shouldEvaluateTo("gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.STENCIL_ATTACHMENT, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME)", stencilBuffer);
+    shouldEvaluateTo("gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME)", null);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION);
     checkFramebuffer([gl.FRAMEBUFFER_UNSUPPORTED]);
+
     gl.framebufferRenderbuffer(
         gl.FRAMEBUFFER, gl.STENCIL_ATTACHMENT, gl.RENDERBUFFER, null);
+    shouldEvaluateTo("gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME)", depthBuffer);
+    shouldEvaluateTo("gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.STENCIL_ATTACHMENT, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME)", null);
+    shouldEvaluateTo("gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME)", null);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION);
 
-    debug("color + depth: DEPTH_STENCIL for DEPTH_ATTACHMENT");
+    debug("");
+    debug("color + depth: DEPTH_STENCIL for DEPTH_ATTACHMENT" + suffix);
+    var depthStencilBuffer = createDepthStencilBuffer();
     gl.framebufferRenderbuffer(
         gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, depthStencilBuffer);
+    if (testOrphanedRenderbuffers)
+        orphan(depthStencilBuffer);
+    shouldEvaluateTo("gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME)", depthStencilBuffer);
+    shouldEvaluateTo("gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.STENCIL_ATTACHMENT, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME)", null);
+    shouldEvaluateTo("gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME)", null);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION);
     checkFramebuffer([gl.FRAMEBUFFER_COMPLETE]);
     checkBufferBits(gl.DEPTH_ATTACHMENT);
 
-    debug("color + depth + stencil: DEPTH_STENCIL for DEPTH_ATTACHMENT and STENCIL_ATTACHMENT");
+    debug("");
+    debug("color + depth + stencil: DEPTH_STENCIL for DEPTH_ATTACHMENT and STENCIL_ATTACHMENT" + suffix);
+    if (testOrphanedRenderbuffers) {
+        depthStencilBuffer = createDepthStencilBuffer();
+        gl.framebufferRenderbuffer(
+            gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, depthStencilBuffer);
+    }
     gl.framebufferRenderbuffer(
         gl.FRAMEBUFFER, gl.STENCIL_ATTACHMENT, gl.RENDERBUFFER, depthStencilBuffer);
+    if (testOrphanedRenderbuffers)
+        orphan(depthStencilBuffer);
+    shouldEvaluateTo("gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME)", depthStencilBuffer);
+    shouldEvaluateTo("gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.STENCIL_ATTACHMENT, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME)", depthStencilBuffer);
+    shouldEvaluateTo("gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME)", depthStencilBuffer);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR);
     checkFramebuffer([gl.FRAMEBUFFER_COMPLETE]);
     checkBufferBits(gl.DEPTH_STENCIL_ATTACHMENT);
 
-    debug("color + depth_stencil");
+    debug("");
+    debug("color + depth_stencil" + suffix);
     var texture = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, texture);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.DEPTH24_STENCIL8, size, size, 0, gl.DEPTH_STENCIL, gl.UNSIGNED_INT_24_8, null);
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.TEXTURE_2D, texture, 0);
+    shouldEvaluateTo("gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME)", texture);
+    shouldEvaluateTo("gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.STENCIL_ATTACHMENT, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME)", texture);
+    shouldEvaluateTo("gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME)", texture);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR);
     checkFramebuffer([gl.FRAMEBUFFER_COMPLETE]);
-    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.TEXTURE_2D, null, 0);
 
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.TEXTURE_2D, null, 0);
+    shouldEvaluateTo("gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME)", null);
+    shouldEvaluateTo("gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.STENCIL_ATTACHMENT, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME)", null);
+    shouldEvaluateTo("gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME)", null);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+
+    if (testOrphanedRenderbuffers)
+        depthStencilBuffer = createDepthStencilBuffer();
     gl.framebufferRenderbuffer(
         gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.RENDERBUFFER, depthStencilBuffer);
+    if (testOrphanedRenderbuffers)
+        orphan(depthStencilBuffer);
+    shouldEvaluateTo("gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME)", depthStencilBuffer);
+    shouldEvaluateTo("gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.STENCIL_ATTACHMENT, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME)", depthStencilBuffer);
+    shouldEvaluateTo("gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME)", depthStencilBuffer);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR);
     checkFramebuffer([gl.FRAMEBUFFER_COMPLETE]);
     checkBufferBits(gl.DEPTH_STENCIL_ATTACHMENT);
 
-    debug("DEPTH_STENCIL_ATTACHMENT overwrites DEPTH_ATTACHMENT/STENCIL_ATTACHMENT")
+    debug("");
+    debug("DEPTH_STENCIL_ATTACHMENT overwrites DEPTH_ATTACHMENT/STENCIL_ATTACHMENT" + suffix);
+    if (testOrphanedRenderbuffers)
+        depthBuffer = createDepthBuffer();
     gl.framebufferRenderbuffer(
         gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, depthBuffer);
+    if (testOrphanedRenderbuffers)
+        orphan(depthBuffer);
+    shouldEvaluateTo("gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME)", depthBuffer);
+    shouldEvaluateTo("gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.STENCIL_ATTACHMENT, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME)", depthStencilBuffer);
+    shouldEvaluateTo("gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME)", null);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION);
+
+    if (testOrphanedRenderbuffers)
+        depthStencilBuffer = createDepthStencilBuffer();
     gl.framebufferRenderbuffer(
         gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.RENDERBUFFER, depthStencilBuffer);
+    if (testOrphanedRenderbuffers)
+        orphan(depthStencilBuffer);
+    shouldEvaluateTo("gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME)", depthStencilBuffer);
+    shouldEvaluateTo("gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.STENCIL_ATTACHMENT, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME)", depthStencilBuffer);
+    shouldEvaluateTo("gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME)", depthStencilBuffer);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+
     gl.framebufferRenderbuffer(
         gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.RENDERBUFFER, null);
+    shouldEvaluateTo("gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME)", null);
+    shouldEvaluateTo("gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.STENCIL_ATTACHMENT, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME)", null);
+    shouldEvaluateTo("gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME)", null);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR);
     checkFramebuffer([gl.FRAMEBUFFER_COMPLETE]);
     checkBufferBits();
 
-    debug("STENCIL_ATTACHMENT overwrites stencil set by DEPTH_STENCIL_ATTACHMENT")
+    debug("");
+    debug("STENCIL_ATTACHMENT overwrites stencil set by DEPTH_STENCIL_ATTACHMENT" + suffix);
+    if (testOrphanedRenderbuffers)
+        depthStencilBuffer = createDepthStencilBuffer();
     gl.framebufferRenderbuffer(
         gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.RENDERBUFFER, depthStencilBuffer);
+    if (testOrphanedRenderbuffers)
+        orphan(depthStencilBuffer);
+    shouldEvaluateTo("gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME)", depthStencilBuffer);
+    shouldEvaluateTo("gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.STENCIL_ATTACHMENT, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME)", depthStencilBuffer);
+    shouldEvaluateTo("gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME)", depthStencilBuffer);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+
     gl.framebufferRenderbuffer(
         gl.FRAMEBUFFER, gl.STENCIL_ATTACHMENT, gl.RENDERBUFFER, null);
+    shouldEvaluateTo("gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME)", depthStencilBuffer);
+    shouldEvaluateTo("gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.STENCIL_ATTACHMENT, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME)", null);
+    shouldEvaluateTo("gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME)", null);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION);
     checkFramebuffer([gl.FRAMEBUFFER_COMPLETE]);
     checkBufferBits(gl.DEPTH_ATTACHMENT);
+
+    debug("");
+    debug("DEPTH_ATTACHMENT overwrites depth set by DEPTH_STENCIL_ATTACHMENT" + suffix);
+    if (testOrphanedRenderbuffers)
+        depthStencilBuffer = createDepthStencilBuffer();
+    gl.framebufferRenderbuffer(
+        gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.RENDERBUFFER, depthStencilBuffer);
+    if (testOrphanedRenderbuffers)
+        orphan(depthStencilBuffer);
+    shouldEvaluateTo("gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME)", depthStencilBuffer);
+    shouldEvaluateTo("gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.STENCIL_ATTACHMENT, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME)", depthStencilBuffer);
+    shouldEvaluateTo("gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME)", depthStencilBuffer);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+
+    gl.framebufferRenderbuffer(
+        gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, null);
+    shouldEvaluateTo("gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME)", null);
+    shouldEvaluateTo("gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.STENCIL_ATTACHMENT, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME)", depthStencilBuffer);
+    shouldEvaluateTo("gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME)", null);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION);
+    checkFramebuffer([gl.FRAMEBUFFER_COMPLETE]);
+    checkBufferBits(gl.STENCIL_ATTACHMENT);
 }
 
 function testFramebufferIncompleteAttachment() {
@@ -428,12 +544,36 @@ description("Test framebuffer object attachment behaviors");
 shouldBeNonNull("gl = wtu.create3DContext(undefined, undefined, 2)");
 
 testFramebufferWebGL1RequiredCombinations();
-testDepthStencilAttachmentBehaviors();
+testDepthStencilAttachmentBehaviors(false);
+testDepthStencilAttachmentBehaviors(true);
 testFramebufferIncompleteAttachment();
 testFramebufferIncompleteMissingAttachment();
 testFramebufferWithImagesOfDifferentSizes();
 testUsingIncompleteFramebuffer();
 testReadingFromMissingAttachment();
+
+// -
+
+debug("");
+debug("Test calling framebufferTexture2D with impossible mip levels.");
+
+const fb = gl.createFramebuffer();
+gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+
+const tex = gl.createTexture();
+gl.bindTexture(gl.TEXTURE_2D, tex);
+
+gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 1000);
+wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "Mip level attachment impossibly high.");
+gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 10);
+wtu.glErrorShouldBe(gl, 0, "Mip level attachment within acceptable range.");
+
+// Firefox bug: https://bugzilla.mozilla.org/show_bug.cgi?id=1636517 :
+gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, null, 1000);
+wtu.glErrorShouldBe(gl, 0, "Mip level detachment can be impossibly high.");
+shouldBe("gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE)", "0");
+
+// -
 
 debug("")
 var successfullyParsed = true;

@@ -1,28 +1,7 @@
 <!--
-
-/*
-** Copyright (c) 2014 The Khronos Group Inc.
-**
-** Permission is hereby granted, free of charge, to any person obtaining a
-** copy of this software and/or associated documentation files (the
-** "Materials"), to deal in the Materials without restriction, including
-** without limitation the rights to use, copy, modify, merge, publish,
-** distribute, sublicense, and/or sell copies of the Materials, and to
-** permit persons to whom the Materials are furnished to do so, subject to
-** the following conditions:
-**
-** The above copyright notice and this permission notice shall be included
-** in all copies or substantial portions of the Materials.
-**
-** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
-*/
-
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
 -->
 
 <!DOCTYPE html>
@@ -60,6 +39,7 @@ if (!gl) {
     testPassed("WebGL context exists");
 
     runTexFormatsTest();
+    runDepthStencilFormatTest();
 
     wtu.glErrorShouldBe(gl, gl.NO_ERROR, "there should be no errors");
 }
@@ -577,6 +557,35 @@ function runTexFormatsTest()
             }
         }
     });
+}
+
+function runDepthStencilFormatTest() {
+    debug("");
+    debug("Testing FLOAT_32_UNSIGNED_INT_24_8_REV with data");
+    const fb = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+
+    const tex2D = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex2D);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.DEPTH32F_STENCIL8, 1, 1, 0, gl.DEPTH_STENCIL, gl.FLOAT_32_UNSIGNED_INT_24_8_REV, new Uint8Array(8));
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.TEXTURE_2D, tex2D, 0);
+    if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) == gl.FRAMEBUFFER_COMPLETE) {
+        testFailed("2D texture with invalid type was created");
+    } else {
+        testPassed("2D texture with invalid type was not created")
+    }
+
+    const tex3D = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D_ARRAY, tex3D);
+    gl.texImage3D(gl.TEXTURE_2D_ARRAY, 0, gl.DEPTH32F_STENCIL8, 1, 1, 1, 0, gl.DEPTH_STENCIL, gl.FLOAT_32_UNSIGNED_INT_24_8_REV, new Uint8Array(8));
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION);
+    gl.framebufferTextureLayer(gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, tex3D, 0, 0);
+    if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) == gl.FRAMEBUFFER_COMPLETE) {
+        testFailed("2D array texture with invalid type was created");
+    } else {
+        testPassed("2D array texture with invalid type was not created")
+    }
 }
 
 debug("");

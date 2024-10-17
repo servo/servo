@@ -1,28 +1,7 @@
 <!--
-
-/*
-** Copyright (c) 2012 The Khronos Group Inc.
-**
-** Permission is hereby granted, free of charge, to any person obtaining a
-** copy of this software and/or associated documentation files (the
-** "Materials"), to deal in the Materials without restriction, including
-** without limitation the rights to use, copy, modify, merge, publish,
-** distribute, sublicense, and/or sell copies of the Materials, and to
-** permit persons to whom the Materials are furnished to do so, subject to
-** the following conditions:
-**
-** The above copyright notice and this permission notice shall be included
-** in all copies or substantial portions of the Materials.
-**
-** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
-*/
-
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
 -->
 
 <!DOCTYPE html>
@@ -38,6 +17,7 @@
 </head>
 <body>
 <canvas id="canvas" width="16" height="16" style="width: 40px; height: 40px;"> </canvas>
+<canvas id="canvas2" width="16" height="16" style="width: 40px; height: 40px;"> </canvas>
 <div id="description"></div>
 <div id="console"></div>
 <script>
@@ -45,6 +25,7 @@
 description("Checks the scissor does not change when switching framebuffers.");
 
 var wtu = WebGLTestUtils;
+var gl;
 
 function makeFramebuffer(width, height) {
   var tex = gl.createTexture();
@@ -67,10 +48,16 @@ function checkCanvasRect(x, y, width, height, color, msg) {
   wtu.checkCanvasRect(gl, x, y, width, height, color, msg);
 }
 
-var gl = wtu.create3DContext("canvas", {antialias: false});
-if (!gl) {
-  testFailed("context does not exist");
-} else {
+function runEntireTest(canvasName, antialias) {
+  debug("");
+  debug("== Running scissor fbo test with antialias:" + antialias + " ==");
+  debug("");
+
+  gl = wtu.create3DContext(canvasName, {antialias: antialias});
+  if (!gl) {
+    testFailed("context does not exist");
+    return;
+  }
   testPassed("context exists");
 
   var fb8x8 = makeFramebuffer(8, 8);
@@ -123,6 +110,9 @@ if (!gl) {
 
   wtu.glErrorShouldBe(gl, gl.NO_ERROR, "there should be no errors");
 }
+
+runEntireTest("canvas", false);
+runEntireTest("canvas2", true);
 
 debug("");
 var successfullyParsed = true;

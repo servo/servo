@@ -1,28 +1,7 @@
 <!--
-
-/*
-** Copyright (c) 2017 The Khronos Group Inc.
-**
-** Permission is hereby granted, free of charge, to any person obtaining a
-** copy of this software and/or associated documentation files (the
-** "Materials"), to deal in the Materials without restriction, including
-** without limitation the rights to use, copy, modify, merge, publish,
-** distribute, sublicense, and/or sell copies of the Materials, and to
-** permit persons to whom the Materials are furnished to do so, subject to
-** the following conditions:
-**
-** The above copyright notice and this permission notice shall be included
-** in all copies or substantial portions of the Materials.
-**
-** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
-*/
-
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
 -->
 
 <!DOCTYPE html>
@@ -42,7 +21,7 @@
 <script>
 "use strict";
 var wtu = WebGLTestUtils;
-description('Verify multisampled depth renderbuffers are initialized to 0 before being read in WebGL');
+description('Verify multisampled depth renderbuffers are initialized to 1.0 before being read in WebGL');
 
 var gl = wtu.create3DContext("testbed", null, 2);
 
@@ -51,6 +30,19 @@ if (!gl) {
 } else {
     // Set the clear color to green. It should never show up.
     gl.clearColor(0, 1, 0, 1);
+
+    debug("Test renderbufferStorageMultisample with webgl1's DEPTH_STENCIL.");
+    {
+        const rb = gl.createRenderbuffer();
+        gl.bindRenderbuffer(gl.RENDERBUFFER, rb);
+        wtu.shouldGenerateGLError(gl, 0,
+            "gl.renderbufferStorageMultisample(gl.RENDERBUFFER, 0, gl.DEPTH_STENCIL, 1, 1)");
+        wtu.shouldGenerateGLError(gl, gl.INVALID_OPERATION,
+            "gl.renderbufferStorageMultisample(gl.RENDERBUFFER, 1, gl.DEPTH_STENCIL, 1, 1)");
+        wtu.shouldGenerateGLError(gl, gl.INVALID_OPERATION,
+            "gl.renderbufferStorageMultisample(gl.RENDERBUFFER, 2, gl.DEPTH_STENCIL, 1, 1)");
+        gl.deleteRenderbuffer(rb);
+    }
 
     let c = gl.canvas;
     var maxSamples = gl.getInternalformatParameter(
@@ -75,6 +67,7 @@ if (!gl) {
 }
 
 function runTest(gl, params) {
+    debug("");
     debug("Test for depth buffer: " + JSON.stringify(params));
     let resolve = params.alloc2 ? params.alloc2 : params.alloc1;
     gl.viewport(0, 0, resolve.w, resolve.h);

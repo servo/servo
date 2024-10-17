@@ -1,28 +1,7 @@
 <!--
-
-/*
-** Copyright (c) 2015 The Khronos Group Inc.
-**
-** Permission is hereby granted, free of charge, to any person obtaining a
-** copy of this software and/or associated documentation files (the
-** "Materials"), to deal in the Materials without restriction, including
-** without limitation the rights to use, copy, modify, merge, publish,
-** distribute, sublicense, and/or sell copies of the Materials, and to
-** permit persons to whom the Materials are furnished to do so, subject to
-** the following conditions:
-**
-** The above copyright notice and this permission notice shall be included
-** in all copies or substantial portions of the Materials.
-**
-** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
-*/
-
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
 -->
 
 <!DOCTYPE html>
@@ -125,6 +104,9 @@ if (!gl) {
   gl.deleteRenderbuffer(rb);
   gl.deleteFramebuffer(fb);
   gl.deleteRenderbuffer(buffer);
+
+  testInvalidateRGBThenDraw();
+  testInvalidateWithBlend();
 }
 
 function invalidation(target, valid_attachment, invalid_attachment) {
@@ -163,6 +145,81 @@ function invalidateIncompleteAttachment(target, incomplete_attachment) {
   gl.invalidateFramebuffer(target, [incomplete_attachment]);
   wtu.glErrorShouldBe(gl, gl.NO_ERROR,
       "calling invalidateFramebuffer to invalidate an incomplete attachment will be ignored. There should be no errors.");
+}
+
+function testInvalidateRGBThenDraw() {
+    const program = wtu.setupColorQuad(gl);
+
+    const texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, 1, 1, 0, gl.RGB, gl.UNSIGNED_BYTE, null);
+
+    const fbo = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
+    wtu.framebufferStatusShouldBe(gl, gl.FRAMEBUFFER, gl.FRAMEBUFFER_COMPLETE);
+
+    gl.clearColor(0, 0, 0, 0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    // Verify that clearing alpha is ineffective on an RGB format.
+    const black = [0, 0, 0, 255];
+    wtu.checkCanvasRect(gl, 0, 0, 1, 1, black, `should be black`);
+
+    // Invalidate the framebuffer contents.
+    gl.invalidateFramebuffer(gl.FRAMEBUFFER, [gl.COLOR_ATTACHMENT0]);
+
+    // Without an explicit clear, draw blue and make sure alpha is unaffected.  If RGB is emulated
+    // with RGBA, the previous invalidate shouldn't affect the alpha value.
+    wtu.drawFloatColorQuad(gl, [0, 0, 1, 1]);
+    const blue = [0, 0, 255, 255];
+    wtu.checkCanvasRect(gl, 0, 0, 1, 1, blue, `should be blue`);
+
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+
+    gl.deleteTexture(texture);
+    gl.deleteFramebuffer(fbo);
+    gl.deleteProgram(program);
+}
+
+function testInvalidateWithBlend() {
+    // Create the framebuffer that will be invalidated
+    const renderTarget = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, renderTarget);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+
+    const drawFBO = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, drawFBO);
+    gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, renderTarget, 0);
+
+    // Clear the framebuffer and invalidate it.
+    gl.clearColor(1, 1, 1, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    gl.invalidateFramebuffer(gl.DRAW_FRAMEBUFFER, [gl.COLOR_ATTACHMENT0]);
+
+    // Upload data to it
+    const cyan = new Uint8Array([0, 255, 255, 255]);
+    gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, cyan);
+
+    // Blend into the framebuffer, then verify that the framebuffer should have had cyan.
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, drawFBO);
+
+    const program = wtu.setupColorQuad(gl);
+
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+    wtu.drawFloatColorQuad(gl, [1, 0, 0, 0.5]);
+    const expected = [127, 127, 127, 191];
+    wtu.checkCanvasRect(gl, 0, 0, 1, 1, expected, `should be ${expected}`, 1);
+
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+        "calling invalidateFramebuffer and then uploading data to texture in framebuffer. There should be no errors");
+
+    gl.deleteTexture(renderTarget);
+    gl.deleteFramebuffer(drawFBO);
+    gl.deleteProgram(program);
+    gl.disable(gl.BLEND);
 }
 
 debug("");

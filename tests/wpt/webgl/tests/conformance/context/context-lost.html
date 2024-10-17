@@ -3,30 +3,9 @@
 <head>
 <meta charset="utf-8">
 <!--
-
-/*
-** Copyright (c) 2012 The Khronos Group Inc.
-**
-** Permission is hereby granted, free of charge, to any person obtaining a
-** copy of this software and/or associated documentation files (the
-** "Materials"), to deal in the Materials without restriction, including
-** without limitation the rights to use, copy, modify, merge, publish,
-** distribute, sublicense, and/or sell copies of the Materials, and to
-** permit persons to whom the Materials are furnished to do so, subject to
-** the following conditions:
-**
-** The above copyright notice and this permission notice shall be included
-** in all copies or substantial portions of the Materials.
-**
-** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
-*/
-
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
 -->
 <link rel="stylesheet" href="../../resources/js-test-style.css"/>
 <script src=/resources/testharness.js></script>
@@ -61,11 +40,16 @@ var int32array;
 var OES_vertex_array_object;
 var vertexArrayObject;
 
+var secondCanvas;
+var secondGL;
+
 function init()
 {
     wtu = WebGLTestUtils;
     canvas = document.getElementById("canvas");
     gl = wtu.create3DContext(canvas);
+    secondCanvas = document.getElementById("canvas2");
+    secondGL = wtu.create3DContext(secondCanvas);
     shouldGenerateGLError = wtu.shouldGenerateGLError;
 
     description("Tests behavior under a lost context");
@@ -155,6 +139,15 @@ function testFunctionsThatReturnNULL(tests) {
   });
 }
 
+function testUploadingLostContextToTexture() {
+  debug("Testing uploading a canvas with a lost WebGL context to a texture");
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Should be no errors at beginning");
+  let texture = secondGL.createTexture();
+  secondGL.bindTexture(secondGL.TEXTURE_2D, texture);
+  secondGL.texImage2D(secondGL.TEXTURE_2D, 0, secondGL.RGBA, secondGL.RGBA, secondGL.UNSIGNED_BYTE, canvas);
+  wtu.glErrorShouldBe(secondGL, [secondGL.INVALID_OPERATION, secondGL.NO_ERROR], "Should not crash when uploading canvas with lost WebGL context to a texture");
+}
+
 function testLostContext()
 {
     debug("Test lost context");
@@ -166,6 +159,15 @@ function testLostContext()
     shouldBe("gl.checkFramebufferStatus(gl.FRAMEBUFFER)", "gl.FRAMEBUFFER_UNSUPPORTED");
     shouldBe("gl.getAttribLocation(program, 'u_modelViewProjMatrix')", "-1");
     shouldBe("gl.getVertexAttribOffset(0, gl.VERTEX_ATTRIB_ARRAY_POINTER)", "0");
+
+    // Attempt resize of lost context should succeed, still lost.
+    gl.canvas.width = gl.canvas.width; // Try to hit any same-size resize path.
+    shouldBeTrue("gl.isContextLost()");
+
+    const newSize = gl.canvas.width + 1;
+    gl.canvas.width = newSize;
+    shouldBe("gl.canvas.width", newSize);
+    shouldBeTrue("gl.isContextLost()");
 
     // Test the extension itself.
     shouldGenerateGLError(gl, gl.INVALID_OPERATION, "extension.loseContext()");
@@ -308,12 +310,6 @@ function testLostContext()
 
     // Functions return nullable values should all return null.
     var nullTests = [
-        "gl.createBuffer()",
-        "gl.createFramebuffer()",
-        "gl.createProgram()",
-        "gl.createRenderbuffer()",
-        "gl.createShader(gl.GL_VERTEX_SHADER)",
-        "gl.createTexture()",
         "gl.getActiveAttrib(program, 0)",
         "gl.getActiveUniform(program, 0)",
         "gl.getAttachedShaders(program)",
@@ -336,14 +332,35 @@ function testLostContext()
     ];
     testFunctionsThatReturnNULL(nullTests);
 
+
+    const nonNullTests = [
+      [() => gl.createBuffer(), x => gl.bindBuffer(gl.ARRAY_BUFFER, x), x => gl.isBuffer(x)],
+      [() => gl.createFramebuffer(), x => gl.bindFramebuffer(gl.FRAMEBUFFER, x), x => gl.isFramebuffer(x)],
+      [() => gl.createProgram(), x => undefined, x => gl.isProgram(x)],
+      [() => gl.createRenderbuffer(), x => gl.bindRenderbuffer(gl.RENDERBUFFER, x), x => gl.isRenderbuffer(x)],
+      [() => gl.createShader(gl.VERTEX_SHADER), x => undefined, x => gl.isShader(x)],
+      [() => gl.createTexture(), x => gl.bindTexture(gl.TEXTURE_2D, x), x => gl.isTexture(x)],
+    ];
+    if (gl.createVertexArray) { // webgl2
+      nonNullTests.push(
+        // Translate bind(T?) to T ? begin(T) : end(T) for Queries:
+        [() => gl.createQuery(), x => x ? gl.beginQuery(gl.ANY_SAMPLES_PASSED, x) : gl.endQuery(gl.ANY_SAMPLES_PASSED), x => gl.isQuery(x)],
+        [() => gl.createSampler(), x => gl.bindSampler(0, x), x => gl.isSampler(x)],
+        [() => gl.createTransformFeedback(), x => gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, x), x => gl.isTransformFeedback(x)],
+        [() => gl.createVertexArray(), x => gl.bindVertexArray(x), x => gl.isVertexArray(x)],
+      );
+    }
+    nonNullTests.forEach(([fn_create, fn_bind, fn_is]) => {
+      const x = fn_create();
+      assertMsg(x, `${fn_create.toString()} -> non-null`);
+      assertMsg(fn_is(x) === false, `[before bind] ${fn_is.toString()} -> false`);
+      fn_bind(x);
+      fn_bind(null);
+      assertMsg(fn_is(x) === false, `[after bind] ${fn_is.toString()} -> false`);
+    });
+
     // "Is" queries should all return false.
-    shouldBeFalse("gl.isBuffer(buffer)");
     shouldBeFalse("gl.isEnabled(gl.BLEND)");
-    shouldBeFalse("gl.isFramebuffer(framebuffer)");
-    shouldBeFalse("gl.isProgram(program)");
-    shouldBeFalse("gl.isRenderbuffer(renderbuffer)");
-    shouldBeFalse("gl.isShader(shader)");
-    shouldBeFalse("gl.isTexture(texture)");
 
     shouldBe("gl.getError()", "gl.NO_ERROR");
 
@@ -355,11 +372,20 @@ function testLostContext()
           "OES_vertex_array_object.isVertexArrayOES(vertexArrayObject)",
           "OES_vertex_array_object.deleteVertexArrayOES(vertexArrayObject)",
         ]);
-      testFunctionsThatReturnNULL(
-        [
-          "OES_vertex_array_object.createVertexArrayOES()",
-        ]);
+
+      [
+        [() => OES_vertex_array_object.createVertexArrayOES(), x => OES_vertex_array_object.isVertexArrayOES(x), x => OES_vertex_array_object.isVertexArrayOES(x)],
+      ].forEach(([fn_create, fn_bind, fn_is]) => {
+        const x = fn_create();
+        assertMsg(x, `${fn_create.toString()} -> non-null`);
+        assertMsg(fn_is(x) === false, `[before bind] ${fn_is.toString()} -> false`);
+        fn_bind(x);
+        fn_bind(null);
+        assertMsg(fn_is(x) === false, `[after bind] ${fn_is.toString()} -> false`);
+      });
     }
+
+    testUploadingLostContextToTexture();
 
     debug("");
 
@@ -372,5 +398,6 @@ function testLostContext()
 <div id="description"></div>
 <div id="console"></div>
 <canvas id="canvas">
+<canvas id="canvas2">
 </body>
 </html>

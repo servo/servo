@@ -1,28 +1,7 @@
 <!--
-
-/*
-** Copyright (c) 2012 The Khronos Group Inc.
-**
-** Permission is hereby granted, free of charge, to any person obtaining a
-** copy of this software and/or associated documentation files (the
-** "Materials"), to deal in the Materials without restriction, including
-** without limitation the rights to use, copy, modify, merge, publish,
-** distribute, sublicense, and/or sell copies of the Materials, and to
-** permit persons to whom the Materials are furnished to do so, subject to
-** the following conditions:
-**
-** The above copyright notice and this permission notice shall be included
-** in all copies or substantial portions of the Materials.
-**
-** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
-*/
-
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
 -->
 <!DOCTYPE html>
 <html>
@@ -197,6 +176,75 @@ gl.clear(gl.COLOR_BUFFER_BIT);
 wtu.glErrorShouldBe(gl, gl.NO_ERROR);
 gl.copyTexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 0, 0, width, height, 0);
 checkNonZeroPixels(tex, width, height, 0, 0, gl.canvas.width, gl.canvas.height, 0, 255, 0, 0);
+gl.deleteTexture(tex);
+gl.finish();
+wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+
+debug("");
+debug("Reading an uninitialized portion of a texture (copyTexSubImage2D) should succeed with all bytes set to 0.");
+
+var tex = gl.createTexture();
+gl.bindTexture(gl.TEXTURE_2D, tex);
+gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+var fbo = gl.createFramebuffer();
+gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+var rbo = gl.createRenderbuffer();
+gl.bindRenderbuffer(gl.RENDERBUFFER, rbo);
+var fboWidth = 16;
+var fboHeight = 16;
+gl.renderbufferStorage(gl.RENDERBUFFER, gl.RGBA4, fboWidth, fboHeight);
+gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, rbo);
+shouldBe("gl.checkFramebufferStatus(gl.FRAMEBUFFER)", "gl.FRAMEBUFFER_COMPLETE");
+gl.clearColor(1.0, 0.0, 0.0, 1.0);
+gl.clear(gl.COLOR_BUFFER_BIT);
+wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+gl.copyTexSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 0, 0, width, height);
+checkNonZeroPixels(tex, width, height, 0, 0, fboWidth, fboHeight, 255, 0, 0, 255);
+gl.deleteTexture(tex);
+gl.finish();
+wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+
+debug("");
+debug("Reading an uninitialized portion of a texture (copyTexSubImage2D with negative x and y) should succeed with all bytes set to 0.");
+
+var tex = gl.createTexture();
+gl.bindTexture(gl.TEXTURE_2D, tex);
+gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+var fbo = gl.createFramebuffer();
+gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+var rbo = gl.createRenderbuffer();
+gl.bindRenderbuffer(gl.RENDERBUFFER, rbo);
+var fboWidth = 16;
+var fboHeight = 16;
+gl.renderbufferStorage(gl.RENDERBUFFER, gl.RGBA4, fboWidth, fboHeight);
+gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, rbo);
+shouldBe("gl.checkFramebufferStatus(gl.FRAMEBUFFER)", "gl.FRAMEBUFFER_COMPLETE");
+gl.clearColor(1.0, 0.0, 0.0, 1.0);
+gl.clear(gl.COLOR_BUFFER_BIT);
+wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+var x = -8;
+var y = -8;
+gl.copyTexSubImage2D(gl.TEXTURE_2D, 0, 0, 0, x, y, width, height);
+checkNonZeroPixels(tex, width, height, -x, -y, fboWidth, fboHeight, 255, 0, 0, 255);
+gl.deleteTexture(tex);
+gl.finish();
+wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+
+debug("");
+debug("Reading an uninitialized portion of a texture (copyTexSubImage2D from WebGL internal fbo) should succeed with all bytes set to 0.");
+
+var tex = gl.createTexture();
+gl.bindTexture(gl.TEXTURE_2D, tex);
+gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+gl.clearColor(0.0, 1.0, 0.0, 0.0);
+gl.clear(gl.COLOR_BUFFER_BIT);
+wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+gl.copyTexSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 0, 0, width, height);
+checkNonZeroPixels(tex, width, height, 0, 0, canvas.width, canvas.height, 0, 255, 0, 0);
 gl.deleteTexture(tex);
 gl.finish();
 wtu.glErrorShouldBe(gl, gl.NO_ERROR);

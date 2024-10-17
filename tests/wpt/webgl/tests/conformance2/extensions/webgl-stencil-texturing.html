@@ -1,0 +1,281 @@
+<!--
+Copyright (c) 2023 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL WEBGL_stencil_texturing Conformance Tests</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+description("This test verifies the functionality of the WEBGL_stencil_texturing extension, if it is available.");
+
+debug("");
+
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext(null, null, 2);
+var ext;
+
+function runTestNoExtension() {
+    debug("");
+    debug("Check the texture parameter without the extension");
+
+    const tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+
+    shouldBeNull("gl.getTexParameter(gl.TEXTURE_2D, 0x90EA /* DEPTH_STENCIL_TEXTURE_MODE_WEBGL */)");
+    wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "parameter unknown without enabling the extension");
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no more errors");
+
+    gl.texParameteri(gl.TEXTURE_2D, 0x90EA /* DEPTH_STENCIL_TEXTURE_MODE_WEBGL */, gl.DEPTH_COMPONENT);
+    wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "parameter unknown for texParameteri without enabling the extension");
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no more errors");
+
+    gl.texParameterf(gl.TEXTURE_2D, 0x90EA /* DEPTH_STENCIL_TEXTURE_MODE_WEBGL */, gl.DEPTH_COMPONENT);
+    wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "parameter unknown for texParameterf without enabling the extension");
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no more errors");
+
+    const sampler = gl.createSampler();
+    gl.samplerParameteri(sampler, 0x90EA /* DEPTH_STENCIL_TEXTURE_MODE_WEBGL */, gl.DEPTH_COMPONENT);
+    wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "parameter unknown for samplerParameteri");
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no more errors");
+    gl.samplerParameterf(sampler, 0x90EA /* DEPTH_STENCIL_TEXTURE_MODE_WEBGL */, gl.DEPTH_COMPONENT);
+    wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "parameter unknown for samplerParameterf");
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no more errors");
+}
+
+function checkEnums() {
+    debug("");
+    debug("Check enums");
+    shouldBe("ext.DEPTH_STENCIL_TEXTURE_MODE_WEBGL", "0x90EA");
+    shouldBe("ext.STENCIL_INDEX_WEBGL",              "0x1901");
+}
+
+function checkQueries() {
+    const tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+
+    debug("");
+    debug("Check default texture state");
+    shouldBe('gl.getTexParameter(gl.TEXTURE_2D, ext.DEPTH_STENCIL_TEXTURE_MODE_WEBGL)', 'gl.DEPTH_COMPONENT');
+    debug("");
+    debug("Check texture state updates using texParameteri");
+    gl.texParameteri(gl.TEXTURE_2D, ext.DEPTH_STENCIL_TEXTURE_MODE_WEBGL, ext.STENCIL_INDEX_WEBGL);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors");
+    shouldBe('gl.getTexParameter(gl.TEXTURE_2D, ext.DEPTH_STENCIL_TEXTURE_MODE_WEBGL)', 'ext.STENCIL_INDEX_WEBGL');
+    gl.texParameteri(gl.TEXTURE_2D, ext.DEPTH_STENCIL_TEXTURE_MODE_WEBGL, gl.DEPTH_COMPONENT);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors");
+    shouldBe('gl.getTexParameter(gl.TEXTURE_2D, ext.DEPTH_STENCIL_TEXTURE_MODE_WEBGL)', 'gl.DEPTH_COMPONENT');
+    gl.texParameteri(gl.TEXTURE_2D, ext.DEPTH_STENCIL_TEXTURE_MODE_WEBGL, 0);
+    wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "invalid depth stencil mode value rejected by texParameteri");
+    shouldBe('gl.getTexParameter(gl.TEXTURE_2D, ext.DEPTH_STENCIL_TEXTURE_MODE_WEBGL)', 'gl.DEPTH_COMPONENT');
+    debug("");
+    debug("Check texture state updates using texParameterf");
+    gl.texParameterf(gl.TEXTURE_2D, ext.DEPTH_STENCIL_TEXTURE_MODE_WEBGL, ext.STENCIL_INDEX_WEBGL);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors");
+    shouldBe('gl.getTexParameter(gl.TEXTURE_2D, ext.DEPTH_STENCIL_TEXTURE_MODE_WEBGL)', 'ext.STENCIL_INDEX_WEBGL');
+    gl.texParameterf(gl.TEXTURE_2D, ext.DEPTH_STENCIL_TEXTURE_MODE_WEBGL, gl.DEPTH_COMPONENT);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors");
+    shouldBe('gl.getTexParameter(gl.TEXTURE_2D, ext.DEPTH_STENCIL_TEXTURE_MODE_WEBGL)', 'gl.DEPTH_COMPONENT');
+    gl.texParameterf(gl.TEXTURE_2D, ext.DEPTH_STENCIL_TEXTURE_MODE_WEBGL, 0);
+    wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "invalid depth stencil mode value rejected by texParameterf");
+    shouldBe('gl.getTexParameter(gl.TEXTURE_2D, ext.DEPTH_STENCIL_TEXTURE_MODE_WEBGL)', 'gl.DEPTH_COMPONENT');
+
+    debug("");
+    debug("Check that depth stencil texture mode is not accepted as a sampler state");
+    const sampler = gl.createSampler();
+    gl.samplerParameteri(sampler, ext.DEPTH_STENCIL_TEXTURE_MODE_WEBGL, gl.DEPTH_COMPONENT);
+    wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "parameter unknown for samplerParameteri");
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no more errors");
+    gl.samplerParameterf(sampler, ext.DEPTH_STENCIL_TEXTURE_MODE_WEBGL, gl.DEPTH_COMPONENT);
+    wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "parameter unknown for samplerParameterf");
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no more errors");
+}
+
+function checkSampling() {
+    const formats = [
+        {name: "DEPTH_COMPONENT16", internalFormat: gl.DEPTH_COMPONENT16,
+         format: gl.DEPTH_COMPONENT, type: gl.UNSIGNED_SHORT},
+        {name: "DEPTH_COMPONENT24", internalFormat: gl.DEPTH_COMPONENT24,
+         format: gl.DEPTH_COMPONENT, type: gl.UNSIGNED_INT},
+        {name: "DEPTH_COMPONENT32F", internalFormat: gl.DEPTH_COMPONENT32F,
+         format: gl.DEPTH_COMPONENT, type: gl.FLOAT},
+        {name: "DEPTH24_STENCIL8", internalFormat: gl.DEPTH24_STENCIL8,
+         format: gl.DEPTH_STENCIL, type: gl.UNSIGNED_INT_24_8},
+        {name: "DEPTH32F_STENCIL8", internalFormat: gl.DEPTH32F_STENCIL8,
+         format: gl.DEPTH_STENCIL, type: gl.FLOAT_32_UNSIGNED_INT_24_8_REV}
+    ];
+
+    gl.enable(gl.DEPTH_TEST);
+    gl.enable(gl.STENCIL_TEST);
+    gl.stencilFunc(gl.ALWAYS, 170, 0xFF);
+    gl.stencilOp(gl.REPLACE, gl.REPLACE, gl.REPLACE);
+
+    wtu.setupUnitQuad(gl);
+
+    const drawProgram = wtu.setupProgram(gl, [wtu.simpleVertexShader,
+                                              wtu.simpleColorFragmentShader]);
+
+    const readDepthProgram = wtu.setupProgram(gl, [wtu.simpleTextureVertexShaderESSL300,
+                                                   wtu.simpleTextureFragmentShaderESSL300]);
+
+    const readStencilShader = `#version 300 es
+        precision highp float;
+        uniform highp usampler2D tex;
+        in vec2 texCoord;
+        out vec4 out_color;
+        void main() {
+            out_color = vec4(texture(tex, texCoord)) / 255.0;
+        }`;
+    const readStencilProgram = wtu.setupProgram(gl, [wtu.simpleTextureVertexShaderESSL300,
+                                                     readStencilShader]);
+
+    for (const format of formats) {
+        debug("");
+        debug(`Testing depth stencil texture modes with ${format.name}`);
+        const fbo = gl.createFramebuffer();
+        gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+
+        const rbo = gl.createRenderbuffer();
+        gl.bindRenderbuffer(gl.RENDERBUFFER, rbo);
+        gl.renderbufferStorage(gl.RENDERBUFFER, gl.RGBA8, 1, 1);
+        gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, rbo);
+
+        const tex = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, tex);
+        gl.texImage2D(gl.TEXTURE_2D, 0, format.internalFormat, 1, 1, 0, format.format, format.type, null);
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR, "texture created");
+
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, tex, 0);
+        if (format.format == gl.DEPTH_STENCIL) {
+            gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.STENCIL_ATTACHMENT, gl.TEXTURE_2D, tex, 0);
+        }
+        wtu.framebufferStatusShouldBe(gl, gl.FRAMEBUFFER, gl.FRAMEBUFFER_COMPLETE);
+
+        gl.clear(gl.DEPTH_BUFFER_BIT | gl.STENCIL_BUFFER_BIT);
+        gl.useProgram(drawProgram);
+        wtu.drawUnitQuad(gl);
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR, "no errors after drawing to the depth or depth stencil texture");
+
+        // Detach the depth or depth stencil texture to avoid feedback loop
+        gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.RENDERBUFFER, null);
+        wtu.framebufferStatusShouldBe(gl, gl.FRAMEBUFFER, gl.FRAMEBUFFER_COMPLETE);
+
+        const magFilters = ['NEAREST', 'LINEAR'];
+
+        const minFilters = [
+            'NEAREST',
+            'LINEAR',
+            'NEAREST_MIPMAP_NEAREST',
+            'LINEAR_MIPMAP_NEAREST',
+            'NEAREST_MIPMAP_LINEAR',
+            'LINEAR_MIPMAP_LINEAR'
+        ];
+
+        const modes = [
+            [gl.DEPTH_COMPONENT, 'DEPTH_COMPONENT'],
+            [ext.STENCIL_INDEX_WEBGL, 'STENCIL_INDEX_WEBGL']
+        ];
+
+        const programs = [
+            [readDepthProgram, 'depth'],
+            [readStencilProgram, 'stencil']
+        ];
+
+        function validFilters(magFilter, minFilter) {
+            return magFilter == gl.NEAREST &&
+                   (minFilter == gl.NEAREST || minFilter == gl.NEAREST_MIPMAP_NEAREST);
+        }
+
+        for (const program of programs) {
+            gl.useProgram(program[0]);
+            for (const mode of modes) {
+                gl.texParameteri(gl.TEXTURE_2D, ext.DEPTH_STENCIL_TEXTURE_MODE_WEBGL, mode[0]);
+                for (const magFilter of magFilters) {
+                    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl[magFilter]);
+                    for (const minFilter of minFilters) {
+                        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl[minFilter]);
+                        debug(`Program: ${program[1]}, mode: ${mode[1]}, mag: ${magFilter}, min: ${minFilter}`);
+
+                        gl.clear(gl.COLOR_BUFFER_BIT);
+                        wtu.drawUnitQuad(gl);
+
+                        if (format.format == gl.DEPTH_COMPONENT || mode[0] == gl.DEPTH_COMPONENT) {
+                            if (program[1] == 'depth') {
+                                wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors");
+                                if (validFilters(gl[magFilter], gl[minFilter])) {
+                                    wtu.checkCanvasRect(gl, 0, 0, 1, 1, [128, 0, 0, 255], "sampling depth from complete texture", 1);
+                                } else {
+                                    wtu.checkCanvasRect(gl, 0, 0, 1, 1, [0, 0, 0, 255], "sampling depth from incomplete texture", 1);
+                                }
+                            } else {
+                                wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "sampling depth using incompatible program");
+                            }
+                        } else {
+                            if (program[1] == 'stencil') {
+                                wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors");
+                                if (validFilters(gl[magFilter], gl[minFilter])) {
+                                    wtu.checkCanvasRect(gl, 0, 0, 1, 1, [170, 0, 0, 1], "sampling stencil from complete texture", 1);
+                                } else {
+                                    // Incomplete textures may produce [0, 0, 0, 1] or [0, 0, 0, 255].
+                                    const value = new Uint8Array(4);
+                                    gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, value);
+                                    wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+                                    const msg = "sampling stencil from incomplete texture";
+                                    if (value[0] == 0 && value[1] == 0 && value[2] == 0 && (value[3] == 1 || value[3] == 255)) {
+                                        testPassed(msg);
+                                    } else {
+                                        testFailed(`${msg}: ${value}`);
+                                    }
+                                }
+                            } else {
+                                wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "sampling stencil using incompatible program");
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+function runTest() {
+    if (!gl) {
+        testFailed("context does not exist");
+        return;
+    }
+    testPassed("context exists");
+
+    runTestNoExtension();
+
+    ext = gl.getExtension("WEBGL_stencil_texturing");
+    wtu.runExtensionSupportedTest(gl, "WEBGL_stencil_texturing", ext !== null);
+
+    if (ext !== null) {
+        checkEnums();
+        checkQueries();
+        checkSampling();
+    } else {
+        testPassed("No WEBGL_stencil_texturing support -- this is legal");
+    }
+}
+
+runTest();
+
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+</body>
+</html>

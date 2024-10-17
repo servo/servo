@@ -1,0 +1,148 @@
+<!--
+Copyright (c) 2022 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>GLSL texture bias test</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<script src="../../js/glsl-conformance-test.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+description("Texture bias should both function and respect limits.");
+
+function runTest(gl) {
+  // no if idea any drivers have a giant limit like 2^32 so just in case.
+  const kMaxMaxTextureSize = 256 * 1024 * 1024;
+  const maxTextureSize = Math.min(kMaxMaxTextureSize, gl.getParameter(gl.MAX_TEXTURE_SIZE));
+  const maxLODs = (Math.log2(maxTextureSize) | 0) + 1;
+  const maxTextureLODBias = gl.getParameter(gl.MAX_TEXTURE_LOD_BIAS);
+
+  debug(`maxTextureSize: ${maxTextureSize}`);
+  debug(`maxLODs: ${maxLODs}`);
+  debug(`maxTextureLODBias: ${maxTextureLODBias}`);
+
+  const vs = `#version 300 es
+  uniform float uvMult;
+  out vec2 v_uv;
+  void main() {
+    vec2 xy = vec2(
+      gl_VertexID % 2,
+      (gl_VertexID / 2 + gl_VertexID / 3) % 2);
+
+    gl_Position = vec4(xy * 2. - 1.0, 0, 1);
+    v_uv = xy * uvMult;
+  }
+  `;
+  const fs = `#version 300 es
+  precision highp float;
+  uniform sampler2D tex;
+  uniform float biasMult;
+  in vec2 v_uv;
+  out vec4 fragColor;
+  void main() {
+    vec4 texColor = texture(tex, v_uv, (gl_FragCoord.x - 0.5) * biasMult);  // the color we care about
+    vec4 texelColor = texelFetch(tex, ivec2(0), int(gl_FragCoord));         // just a sanity check
+    vec4 coordColor = vec4((100.0 + gl_FragCoord.x - 0.5) / 255.0);         // another sanity check
+    fragColor = mix(texColor, coordColor, step(1.0, gl_FragCoord.y));       // line < 1 = texColor, line >= 1 = coordColor
+    fragColor = mix(fragColor, texelColor, step(2.0, gl_FragCoord.y));      // line < 2 = fragColor, line >= 2 = texelColor
+  }
+  `;
+  const program = wtu.setupProgram(gl, [vs, fs]);
+  const uvMultLoc = gl.getUniformLocation(program, 'uvMult');
+  const biasLoc = gl.getUniformLocation(program, 'biasMult');
+
+  gl.canvas.width = maxLODs;
+  gl.canvas.height = 3;
+  gl.viewport(0, 0, maxLODs, 3);
+
+  // create a texture where each mip is a different color (1, 2, 3, ...)
+  const tex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST_MIPMAP_NEAREST);
+  gl.texStorage2D(gl.TEXTURE_2D, maxLODs, gl.RGBA8, maxTextureSize, 1);
+  {
+    let level = 0;
+    for (let width = maxTextureSize; width > 0; width = width / 2 | 0) {
+      const pixels = new Uint8Array(width * 1 * 4);
+      pixels.fill(level + 1);
+      debug(`fill mip level: ${level}, width: ${width}`);
+      gl.texSubImage2D(gl.TEXTURE_2D, level, 0, 0, width, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+      wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+      ++level;
+    }
+  }
+
+  // Draw each mip. Result should be [mip0, mip1, mip2, ...]
+  debug("");
+  debug("check positive bias");
+  // set the UVs so we'd get mip level 0 for every pixel
+  gl.uniform1f(uvMultLoc, maxLODs / maxTextureSize);
+  gl.uniform1f(biasLoc, 1);
+  gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+
+  const clampPlusMinus = (v, limit) => Math.min(limit, Math.max(-limit, v));
+
+  const checkResults = (gl, biasMult) => {
+    const base = biasMult > 0 ? 1 : maxLODs;
+    for (let i = 0; i < maxLODs; ++i) {
+      {
+        const expected = new Array(4).fill(clampPlusMinus(i * biasMult, maxTextureLODBias) + base);
+        wtu.checkCanvasRect(gl, i, 0, 1, 1, expected, `should be: ${expected}`);
+      }
+      {
+        const expected = new Array(4).fill(100 + i);
+        wtu.checkCanvasRect(gl, i, 1, 1, 1, expected, `should be: ${expected}`);
+      }
+      {
+        const expected = new Array(4).fill(i + 1);
+        wtu.checkCanvasRect(gl, i, 2, 1, 1, expected, `should be: ${expected}`);
+      }
+    }
+  }
+
+  checkResults(gl, 1);
+
+  // Draw each mip. Result should be [mipMax, mipMax - 1, mipMax - 2, ...]
+  debug("");
+  debug("check negative bias");
+  // set the UVs so we'd get highest mip level (the 1x1 level mip) for every pixel
+  gl.uniform1f(uvMultLoc, maxLODs);
+  gl.uniform1f(biasLoc, -1);
+  gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+  checkResults(gl, -1);
+
+  finishTest();
+}
+
+const wtu = WebGLTestUtils;
+
+const gl = wtu.create3DContext(undefined, undefined, 2);
+
+var successfullyParsed = true;
+
+if (!gl) {
+  testFailed("Unable to initialize WebGL 2.0 context.");
+} else {
+  runTest(gl);
+}
+
+</script>
+</body>
+</html>

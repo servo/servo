@@ -1,28 +1,7 @@
 <!--
-
-/*
-** Copyright (c) 2013 The Khronos Group Inc.
-**
-** Permission is hereby granted, free of charge, to any person obtaining a
-** copy of this software and/or associated documentation files (the
-** "Materials"), to deal in the Materials without restriction, including
-** without limitation the rights to use, copy, modify, merge, publish,
-** distribute, sublicense, and/or sell copies of the Materials, and to
-** permit persons to whom the Materials are furnished to do so, subject to
-** the following conditions:
-**
-** The above copyright notice and this permission notice shall be included
-** in all copies or substantial portions of the Materials.
-**
-** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
-*/
-
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
 -->
 
 <!DOCTYPE html>
@@ -62,7 +41,13 @@ void main()
 "use strict";
 
 /*
-GLSL 1.017 section 4.2.6
+This test previously concluded that an attribute in a vertex shader
+would conflict across shaders with a uniform of the same name in the
+fragment shader, based on the following sections of the GLSL ES 1.0.17
+specification:
+
+---
+Section 4.2.6
 
 ...
 
@@ -79,16 +64,15 @@ Attribute variables are required to have global scope
 Section 4.3.4
 
 The uniform qualifier is used to declare global variables
+---
 
-QED: If both uniforms and attributes are in the global namespace they
-conflict across shaders
+GLSL ES 3.00 later confirmed that pipeline stages have distinct
+namespaces. The OpenGL ES working group confirmed in discussions
+https://github.com/KhronosGroup/WebGL/issues/3201 that this was the
+intended behavior for GLSL ES 1.00.
 
-Note: This was brought up on the OpenGL ES working group and confirmed
-that the spec required these conflicts to fail to link.
-
-Though most drivers allow this to work, some drivers to do no therefore
-WebGL implementation must enforce this restriction to provide consistent
-behavior.
+For this reason, this test asserts that such usage does not generate a
+conflict.
 */
 
 GLSLConformanceTester.runTests([
@@ -96,8 +80,8 @@ GLSLConformanceTester.runTests([
       vShaderSuccess: true,
       fShaderId: 'fragmentShader',
       fShaderSuccess: true,
-      linkSuccess: false,
-      passMsg: 'shaders with conflicting uniform/attribute names should fail'
+      linkSuccess: true,
+      passMsg: 'using the same name for a vertex shader attribute and fragment shader uniform should succeed'
     },
 ]);
 var successfullyParsed = true;
