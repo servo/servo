@@ -1084,14 +1084,14 @@ impl HTMLImageElement {
                     // Return the image via a message to the script thread, which marks
                     // the element as dirty and triggers a reflow.
                     let element = trusted_node.clone();
-                    let image = message.to().unwrap();
+                    let image: PendingImageResponse = message.to().unwrap();
                     let selected_source_clone = selected_source.clone();
                     let _ = task_source.queue_with_canceller(
                         task!(process_image_response_for_environment_change: move || {
                             let element = element.root();
                             // Ignore any image response for a previous request that has been discarded.
                             if generation == element.generation.get() {
-                                element.process_image_response_for_environment_change(image,
+                                element.process_image_response_for_environment_change(image.response,
                                     USVString::from(selected_source_clone), generation,
                                     selected_pixel_density, can_gc);
                             }
