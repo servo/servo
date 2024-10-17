@@ -89,14 +89,6 @@ impl NaturalSizes {
             ratio: None,
         }
     }
-
-    pub(crate) fn from_ratio(ratio: Option<f32>) -> Self {
-        Self {
-            width: None,
-            height: None,
-            ratio,
-        }
-    }
 }
 
 #[derive(Serialize)]
@@ -160,18 +152,16 @@ impl ReplacedContent {
             }
         }
 
-        let (kind, natural_size_in_dots, needs_ratio_fallback) = {
+        let (kind, natural_size_in_dots) = {
             if let Some((image, natural_size_in_dots)) = element.as_image() {
                 (
                     ReplacedContentKind::Image(image),
                     Some(natural_size_in_dots),
-                    false,
                 )
             } else if let Some((canvas_info, natural_size_in_dots)) = element.as_canvas() {
                 (
                     ReplacedContentKind::Canvas(canvas_info),
                     Some(natural_size_in_dots),
-                    false,
                 )
             } else if let Some((pipeline_id, browsing_context_id)) = element.as_iframe() {
                 (
@@ -180,15 +170,11 @@ impl ReplacedContent {
                         browsing_context_id,
                     }),
                     None,
-                    false,
                 )
-            } else if let Some((image_key, natural_size_in_dots, needs_ratio_fallback)) =
-                element.as_video()
-            {
+            } else if let Some((image_key, natural_size_in_dots)) = element.as_video() {
                 (
                     ReplacedContentKind::Video(image_key.map(|key| VideoInfo { image_key: key })),
                     natural_size_in_dots,
-                    needs_ratio_fallback,
                 )
             } else {
                 return None;
@@ -203,10 +189,6 @@ impl ReplacedContent {
             let width = (naturalc_size_in_dots.width as CSSFloat) / dppx;
             let height = (naturalc_size_in_dots.height as CSSFloat) / dppx;
             NaturalSizes::from_width_and_height(width, height)
-        } else if needs_ratio_fallback {
-            let size = ReplacedContent::default_object_size();
-            let ratio_fallback = size.width.to_f32_px() / size.height.to_f32_px();
-            NaturalSizes::from_ratio(Some(ratio_fallback))
         } else {
             NaturalSizes::empty()
         };
@@ -493,7 +475,16 @@ impl ReplacedContent {
     ) -> LogicalVec2<Au> {
         let mode = style.writing_mode;
         let intrinsic_size = self.flow_relative_intrinsic_size(style);
-        let intrinsic_ratio = self.preferred_aspect_ratio(&containing_block.into(), style);
+        let intrinsic_ratio = self
+            .preferred_aspect_ratio(&containing_block.into(), style)
+            .or_else(|| {
+                matches!(self.kind, ReplacedContentKind::Video(_)).then(|| {
+                    let size = Self::default_object_size();
+                    AspectRatio::from_content_ratio(
+                        size.width.to_f32_px() / size.height.to_f32_px(),
+                    )
+                })
+            });
 
         let default_object_size =
             || LogicalVec2::from_physical_size(&Self::default_object_size(), mode);

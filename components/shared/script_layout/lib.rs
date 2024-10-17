@@ -178,7 +178,6 @@ pub struct MediaMetadata {
 pub struct HTMLMediaData {
     pub current_frame: Option<MediaFrame>,
     pub metadata: Option<MediaMetadata>,
-    pub has_default_size: bool,
 }
 
 pub struct LayoutConfig {

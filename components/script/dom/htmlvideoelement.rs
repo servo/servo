@@ -482,7 +482,6 @@ impl LayoutHTMLVideoElementHelpers for LayoutDom<'_, HTMLVideoElement> {
         HTMLMediaData {
             current_frame,
             metadata,
-            has_default_size: self.width_attr().is_none() || self.height_attr().is_none(),
         }
     }
 

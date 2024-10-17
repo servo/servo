@@ -102,13 +102,7 @@ pub(crate) trait NodeExt<'dom>: 'dom + LayoutNode<'dom> {
     fn as_image(self) -> Option<(Option<Arc<Image>>, PhysicalSize<f64>)>;
     fn as_canvas(self) -> Option<(CanvasInfo, PhysicalSize<f64>)>;
     fn as_iframe(self) -> Option<(PipelineId, BrowsingContextId)>;
-    fn as_video(
-        self,
-    ) -> Option<(
-        Option<webrender_api::ImageKey>,
-        Option<PhysicalSize<f64>>,
-        bool,
-    )>;
+    fn as_video(self) -> Option<(Option<webrender_api::ImageKey>, Option<PhysicalSize<f64>>)>;
     fn as_typeless_object_with_data_attribute(self) -> Option<String>;
     fn style(self, context: &LayoutContext) -> ServoArc<ComputedValues>;
 
@@ -142,13 +136,7 @@ where
         Some((resource, PhysicalSize::new(width, height)))
     }
 
-    fn as_video(
-        self,
-    ) -> Option<(
-        Option<webrender_api::ImageKey>,
-        Option<PhysicalSize<f64>>,
-        bool,
-    )> {
+    fn as_video(self) -> Option<(Option<webrender_api::ImageKey>, Option<PhysicalSize<f64>>)> {
         let node = self.to_threadsafe();
         let data = node.media_data()?;
         let natural_size = if let Some(frame) = data.current_frame {
@@ -160,7 +148,6 @@ where
         Some((
             data.current_frame.map(|frame| frame.image_key),
             natural_size,
-            data.has_default_size,
         ))
     }
 
