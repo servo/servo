@@ -204,10 +204,10 @@ impl XRSession {
         let (task_source, canceller) = window
             .task_manager()
             .dom_manipulation_task_source_with_canceller();
-        ROUTER.add_route(
-            frame_receiver.to_opaque(),
+        ROUTER.add_typed_route(
+            frame_receiver,
             Box::new(move |message| {
-                let frame: Frame = message.to().unwrap();
+                let frame: Frame = message.unwrap();
                 let time = CrossProcessInstant::now();
                 let this = this.clone();
                 let _ = task_source.queue_with_canceller(
@@ -235,13 +235,13 @@ impl XRSession {
             .dom_manipulation_task_source_with_canceller();
         let (sender, receiver) = ipc::channel(global.time_profiler_chan().clone()).unwrap();
 
-        ROUTER.add_route(
-            receiver.to_opaque(),
+        ROUTER.add_typed_route(
+            receiver.to_ipc_receiver(),
             Box::new(move |message| {
                 let this = this.clone();
                 let _ = task_source.queue_with_canceller(
                     task!(xr_event_callback: move || {
-                        this.root().event_callback(message.to().unwrap(), CanGc::note());
+                        this.root().event_callback(message.unwrap(), CanGc::note());
                     }),
                     &canceller,
                 );
@@ -1047,14 +1047,14 @@ impl XRSessionMethods for XRSession {
             .dom_manipulation_task_source_with_canceller();
         let (sender, receiver) = ipc::channel(global.time_profiler_chan().clone()).unwrap();
 
-        ROUTER.add_route(
-            receiver.to_opaque(),
+        ROUTER.add_typed_route(
+            receiver.to_ipc_receiver(),
             Box::new(move |message| {
                 let this = this.clone();
                 let _ = task_source.queue_with_canceller(
                     task!(update_session_framerate: move || {
                         let session = this.root();
-                        session.apply_nominal_framerate(message.to().unwrap());
+                        session.apply_nominal_framerate(message.unwrap());
                         if let Some(promise) = session.update_framerate_promise.borrow_mut().take() {
                             promise.resolve_native(&());
                         };

@@ -1372,10 +1372,10 @@ impl HTMLMediaElement {
         let (task_source, canceller) = window
             .task_manager()
             .media_element_task_source_with_canceller();
-        ROUTER.add_route(
-            action_receiver.to_opaque(),
+        ROUTER.add_typed_route(
+            action_receiver,
             Box::new(move |message| {
-                let event = message.to().unwrap();
+                let event = message.unwrap();
                 trace!("Player event {:?}", event);
                 let this = trusted_node.clone();
                 if let Err(err) = task_source.queue_with_canceller(
@@ -1415,10 +1415,10 @@ impl HTMLMediaElement {
             let (task_source, canceller) = window
                 .task_manager()
                 .media_element_task_source_with_canceller();
-            ROUTER.add_route(
-                image_receiver.to_opaque(),
+            ROUTER.add_typed_route(
+                image_receiver.to_ipc_receiver(),
                 Box::new(move |message| {
-                    let msg = message.to().unwrap();
+                    let msg = message.unwrap();
                     let this = trusted_node.clone();
                     if let Err(err) = task_source.queue_with_canceller(
                         task!(handle_glplayer_message: move || {

@@ -1934,10 +1934,10 @@ impl Window {
                 let (responder, responder_listener) =
                     ProfiledIpc::channel(self.global().time_profiler_chan().clone()).unwrap();
                 let image_cache_chan = self.image_cache_chan.clone();
-                ROUTER.add_route(
-                    responder_listener.to_opaque(),
+                ROUTER.add_typed_route(
+                    responder_listener.to_ipc_receiver(),
                     Box::new(move |message| {
-                        let _ = image_cache_chan.send((pipeline_id, message.to().unwrap()));
+                        let _ = image_cache_chan.send((pipeline_id, message.unwrap()));
                     }),
                 );
                 self.image_cache

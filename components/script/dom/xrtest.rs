@@ -154,16 +154,16 @@ impl XRTestMethods for XRTest {
             .task_manager()
             .dom_manipulation_task_source_with_canceller();
         let (sender, receiver) = ipc::channel(global.time_profiler_chan().clone()).unwrap();
-        ROUTER.add_route(
-            receiver.to_opaque(),
+
+        ROUTER.add_typed_route(
+            receiver.to_ipc_receiver(),
             Box::new(move |message| {
                 let trusted = trusted
                     .take()
                     .expect("SimulateDeviceConnection callback called twice");
                 let this = this.clone();
-                let message = message
-                    .to()
-                    .expect("SimulateDeviceConnection callback given incorrect payload");
+                let message =
+                    message.expect("SimulateDeviceConnection callback given incorrect payload");
 
                 let _ = task_source.queue_with_canceller(
                     task!(request_session: move || {
@@ -209,8 +209,8 @@ impl XRTestMethods for XRTest {
                 .task_manager()
                 .dom_manipulation_task_source_with_canceller();
 
-            ROUTER.add_route(
-                receiver.to_opaque(),
+            ROUTER.add_typed_route(
+                receiver.to_ipc_receiver(),
                 Box::new(move |_| {
                     len -= 1;
                     if len == 0 {

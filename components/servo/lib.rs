@@ -990,11 +990,11 @@ fn create_compositor_channel(
     };
 
     let compositor_proxy_clone = compositor_proxy.clone();
-    ROUTER.add_route(
-        compositor_ipc_receiver.to_opaque(),
+    ROUTER.add_typed_route(
+        compositor_ipc_receiver,
         Box::new(move |message| {
             compositor_proxy_clone.send(CompositorMsg::CrossProcess(
-                message.to().expect("Could not convert Compositor message"),
+                message.expect("Could not convert Compositor message"),
             ));
         }),
     );

@@ -116,14 +116,14 @@ impl AnalyserNode {
             .dom_manipulation_task_source_with_canceller();
         let this = Trusted::new(&*object);
 
-        ROUTER.add_route(
-            recv.to_opaque(),
+        ROUTER.add_typed_route(
+            recv,
             Box::new(move |block| {
                 let this = this.clone();
                 let _ = source.queue_with_canceller(
                     task!(append_analysis_block: move || {
                         let this = this.root();
-                        this.push_block(block.to().unwrap())
+                        this.push_block(block.unwrap())
                     }),
                     &canceller,
                 );

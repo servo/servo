@@ -76,8 +76,8 @@ pub fn response_async<T: AsyncWGPUListener + DomObject + 'static>(
         .task_canceller(TaskSourceName::DOMManipulation);
     let mut trusted: Option<TrustedPromise> = Some(TrustedPromise::new(promise.clone()));
     let trusted_receiver = Trusted::new(receiver);
-    ROUTER.add_route(
-        action_receiver.to_opaque(),
+    ROUTER.add_typed_route(
+        action_receiver,
         Box::new(move |message| {
             let trusted = if let Some(trusted) = trusted.take() {
                 trusted
@@ -92,7 +92,7 @@ pub fn response_async<T: AsyncWGPUListener + DomObject + 'static>(
             };
             let result = task_source.queue_with_canceller(
                 task!(process_webgpu_task: move|| {
-                    context.response(message.to().unwrap(), CanGc::note());
+                    context.response(message.unwrap(), CanGc::note());
                 }),
                 &canceller,
             );

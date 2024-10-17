@@ -268,9 +268,9 @@ impl WebSocketMethods for WebSocket {
 
         let task_source = global.websocket_task_source();
         let canceller = global.task_canceller(WebsocketTaskSource::NAME);
-        ROUTER.add_route(
-            dom_event_receiver.to_opaque(),
-            Box::new(move |message| match message.to().unwrap() {
+        ROUTER.add_typed_route(
+            dom_event_receiver.to_ipc_receiver(),
+            Box::new(move |message| match message.unwrap() {
                 WebSocketNetworkEvent::ConnectionEstablished { protocol_in_use } => {
                     let open_thread = ConnectionEstablishedTask {
                         address: address.clone(),

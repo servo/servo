@@ -157,10 +157,10 @@ fn setup_dom_listener(
 ) -> UnboundedReceiver<DomMsg> {
     let (sender, receiver) = unbounded_channel();
 
-    ROUTER.add_route(
-        dom_action_receiver.to_opaque(),
+    ROUTER.add_typed_route(
+        dom_action_receiver,
         Box::new(move |message| {
-            let dom_action = message.to().expect("Ws dom_action message to deserialize");
+            let dom_action = message.expect("Ws dom_action message to deserialize");
             trace!("handling WS DOM action: {:?}", dom_action);
             match dom_action {
                 WebSocketDomAction::SendMessage(MessageData::Text(data)) => {

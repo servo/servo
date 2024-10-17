@@ -153,14 +153,11 @@ impl ServiceWorkerContainerMethods for ServiceWorkerContainer {
 
         let (job_result_sender, job_result_receiver) = ipc::channel().expect("ipc channel failure");
 
-        ROUTER.add_route(
-            job_result_receiver.to_opaque(),
-            Box::new(move |message| {
-                let msg = message.to();
-                match msg {
-                    Ok(msg) => handler.handle(msg),
-                    Err(err) => warn!("Error receiving a JobResult: {:?}", err),
-                }
+        ROUTER.add_typed_route(
+            job_result_receiver,
+            Box::new(move |message| match message {
+                Ok(msg) => handler.handle(msg),
+                Err(err) => warn!("Error receiving a JobResult: {:?}", err),
             }),
         );
 
