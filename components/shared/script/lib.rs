@@ -23,8 +23,8 @@ use std::time::Duration;
 use background_hang_monitor_api::BackgroundHangMonitorRegister;
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::{
-    BlobId, BrowsingContextId, HistoryStateId, MessagePortId, PipelineId, PipelineNamespaceId,
-    TopLevelBrowsingContextId,
+    BlobId, BrowsingContextId, CoordinatesId, HistoryStateId, MessagePortId, PipelineId,
+    PipelineNamespaceId, TopLevelBrowsingContextId,
 };
 use base::Epoch;
 use bitflags::bitflags;
@@ -67,7 +67,7 @@ pub use crate::script_msg::{
     JobResultValue, JobType, LayoutMsg, LogEntry, SWManagerMsg, SWManagerSenders, ScopeThings,
     ScriptMsg, ServiceWorkerMsg, TraversalDirection,
 };
-use crate::serializable::{BlobData, BlobImpl};
+use crate::serializable::{BlobData, BlobImpl, Coordinates};
 use crate::transferable::MessagePortImpl;
 use crate::webdriver_msg::{LoadStatus, WebDriverScriptCommand};
 
@@ -929,6 +929,8 @@ pub struct StructuredSerializedData {
     pub blobs: Option<HashMap<BlobId, BlobImpl>>,
     /// Transferred objects.
     pub ports: Option<HashMap<MessagePortId, MessagePortImpl>>,
+    /// Points.
+    pub coordinates: Option<HashMap<CoordinatesId, Coordinates>>,
 }
 
 impl StructuredSerializedData {
@@ -969,6 +971,7 @@ impl StructuredSerializedData {
             blobs,
             // Ports cannot be broadcast.
             ports: None,
+            coordinates: self.coordinates.clone(),
         }
     }
 }

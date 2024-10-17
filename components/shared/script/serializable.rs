@@ -11,11 +11,31 @@
 use std::cell::RefCell;
 use std::path::PathBuf;
 
-use base::id::BlobId;
+use base::id::{BlobId, CoordinatesId};
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::filemanager_thread::RelativePos;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+
+/// DOMPointReadOnly.
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+pub struct Coordinates {
+    /// ..
+    pub x: f64,
+    /// ..
+    pub y: f64,
+    /// ..
+    pub z: f64,
+    /// ..
+    pub w: f64,
+}
+
+impl Coordinates {
+    /// ...
+    pub fn new_from_points(x: f64, y: f64, z: f64, w: f64) -> (Coordinates, CoordinatesId) {
+        (Coordinates { x, y, z, w }, CoordinatesId::new())
+    }
+}
 
 /// File-based blob
 #[derive(Debug, Deserialize, MallocSizeOf, Serialize)]

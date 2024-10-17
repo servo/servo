@@ -3,15 +3,21 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
+use std::collections::HashMap;
+use std::num::NonZeroU32;
 
+use base::id::{CoordinatesId, CoordinatesIndex, PipelineNamespaceId};
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
+use script_traits::serializable::Coordinates;
 
 use crate::dom::bindings::codegen::Bindings::DOMPointBinding::DOMPointInit;
 use crate::dom::bindings::codegen::Bindings::DOMPointReadOnlyBinding::DOMPointReadOnlyMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
 use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::serializable::{Serializable, StorageKey};
+use crate::dom::bindings::structuredclone::StructuredDataHolder;
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::CanGc;
 
@@ -125,5 +131,90 @@ impl DOMPointWriteMethods for DOMPointReadOnly {
 
     fn SetW(&self, value: f64) {
         self.w.set(value);
+    }
+}
+
+impl Serializable for DOMPointReadOnly {
+    /// <https://w3c.github.io/FileAPI/#ref-for-serialization-steps>
+    fn serialize(&self, sc_holder: &mut StructuredDataHolder) -> Result<StorageKey, ()> {
+        let coordinates_impl = match sc_holder {
+            StructuredDataHolder::Write { coordinates, .. } => coordinates,
+            _ => panic!("Unexpected variant of StructuredDataHolder"),
+        };
+
+        // We clone the data, but the clone gets its own Id.
+        let (coordinates, id) =
+            Coordinates::new_from_points(self.X(), self.Y(), self.Z(), self.W());
+
+        // 2. Store the object at a given key.
+        let store = coordinates_impl.get_or_insert_with(HashMap::new);
+        store.insert(id, coordinates);
+
+        let PipelineNamespaceId(name_space) = id.namespace_id;
+        let CoordinatesIndex(index) = id.index;
+        let index = index.get();
+
+        let name_space = name_space.to_ne_bytes();
+        let index = index.to_ne_bytes();
+
+        let storage_key = StorageKey {
+            index: u32::from_ne_bytes(index),
+            name_space: u32::from_ne_bytes(name_space),
+        };
+
+        // 3. Return the storage key.
+        Ok(storage_key)
+    }
+
+    /// <https://w3c.github.io/FileAPI/#ref-for-deserialization-steps>
+    fn deserialize(
+        owner: &GlobalScope,
+        sc_holder: &mut StructuredDataHolder,
+        storage_key: StorageKey,
+    ) -> Result<(), ()> {
+        // 1. Re-build the key for the storage location
+        // of the serialized object.
+        let namespace_id = PipelineNamespaceId(storage_key.name_space);
+        let index = CoordinatesIndex(
+            NonZeroU32::new(storage_key.index).expect("Deserialized index is zero"),
+        );
+
+        let id = CoordinatesId {
+            namespace_id,
+            index,
+        };
+
+        let (dom_point_read_only, coordinates) = match sc_holder {
+            StructuredDataHolder::Read {
+                dom_point_read_only,
+                coordinates,
+                ..
+            } => (dom_point_read_only, coordinates),
+            _ => panic!("Unexpected variant of StructuredDataHolder"),
+        };
+
+        // 2. Get the transferred object from its storage, using the key.
+        let coordinates_map = coordinates
+            .as_mut()
+            .expect("The SC holder does not have any coordinates");
+        let coordinates_impl = coordinates_map
+            .remove(&id)
+            .expect("No coordinates to be deserialized found.");
+        if coordinates_map.is_empty() {
+            *coordinates = None;
+        }
+
+        let deserialized = DOMPointReadOnly::new(
+            owner,
+            coordinates_impl.x,
+            coordinates_impl.y,
+            coordinates_impl.z,
+            coordinates_impl.w,
+        );
+
+        let points = dom_point_read_only.get_or_insert_with(HashMap::new);
+        points.insert(storage_key, deserialized);
+
+        Ok(())
     }
 }
