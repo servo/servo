@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Servo
+Comment=Rust based browser engine
+Exec=servo
+Icon=org.servo.Servo
+Terminal=false
+Categories=Network;WebBrowser;
