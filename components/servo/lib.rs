@@ -228,6 +228,7 @@ where
         feature = "tracing",
         tracing::instrument(skip(embedder, window), fields(servo_profiling = true))
     )]
+    #[allow(clippy::new_ret_no_self)]
     pub fn new(
         mut embedder: Box<dyn EmbedderMethods>,
         window: Rc<Window>,
