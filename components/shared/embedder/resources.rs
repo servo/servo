@@ -62,7 +62,7 @@ pub enum Resource {
     /// The format of the file is a list of UUIDs, one per line, with an optional second word to specify the type of blocklist.
     /// It can be empty but then all GATT services will be allowed.
     BluetoothBlocklist,
-    /// A list of domain names that are considered public suffixes.
+    /// A list of domain names that are considered public suffixes, typically obtained from https://publicsuffix.org/list/.
     /// The Public Suffix List is a cross-vendor initiative to provide an accurate list of domain name suffixes
     /// that are under the control of a registry. This is used to prevent cookies from being set for top-level
     /// domains that are not controlled by the same entity as the website.
