@@ -2011,8 +2011,8 @@ pub fn parse_a_srcset_attribute(input: &str) -> Vec<ImageSource> {
         // > that position is past the end of input.
         let mut characters = descriptors_string.chars();
         let mut character = characters.next();
-        if character.is_some() {
-            current_index += 1;
+        if let Some(character) = character {
+            current_index += character.len_utf8();
         }
 
         loop {
@@ -2086,8 +2086,8 @@ pub fn parse_a_srcset_attribute(input: &str) -> Vec<ImageSource> {
             }
 
             character = characters.next();
-            if character.is_some() {
-                current_index += 1;
+            if let Some(character) = character {
+                current_index += character.len_utf8();
             }
         }
 
