@@ -367,8 +367,13 @@ impl BaseAudioContextMethods for BaseAudioContext {
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createpanner>
-    fn CreatePanner(&self) -> Fallible<DomRoot<PannerNode>> {
-        PannerNode::new(self.global().as_window(), self, &PannerOptions::empty())
+    fn CreatePanner(&self, can_gc: CanGc) -> Fallible<DomRoot<PannerNode>> {
+        PannerNode::new(
+            self.global().as_window(),
+            self,
+            &PannerOptions::empty(),
+            can_gc,
+        )
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createanalyser>
@@ -411,10 +416,14 @@ impl BaseAudioContextMethods for BaseAudioContext {
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createchannelmerger>
-    fn CreateChannelMerger(&self, count: u32) -> Fallible<DomRoot<ChannelMergerNode>> {
+    fn CreateChannelMerger(
+        &self,
+        count: u32,
+        can_gc: CanGc,
+    ) -> Fallible<DomRoot<ChannelMergerNode>> {
         let mut opts = ChannelMergerOptions::empty();
         opts.numberOfInputs = count;
-        ChannelMergerNode::new(self.global().as_window(), self, &opts)
+        ChannelMergerNode::new(self.global().as_window(), self, &opts, can_gc)
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createchannelsplitter>

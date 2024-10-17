@@ -75,6 +75,7 @@ impl ExtendableMessageEvent {
         origin: DOMString,
         lastEventId: DOMString,
         ports: Vec<DomRoot<MessagePort>>,
+        can_gc: CanGc,
     ) -> DomRoot<ExtendableMessageEvent> {
         Self::new_with_proto(
             global,
@@ -86,7 +87,7 @@ impl ExtendableMessageEvent {
             origin,
             lastEventId,
             ports,
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -126,6 +127,7 @@ impl ExtendableMessageEvent {
         scope: &GlobalScope,
         message: HandleValue,
         ports: Vec<DomRoot<MessagePort>>,
+        can_gc: CanGc,
     ) {
         let Extendablemessageevent = ExtendableMessageEvent::new(
             scope,
@@ -136,11 +138,12 @@ impl ExtendableMessageEvent {
             DOMString::new(),
             DOMString::new(),
             ports,
+            can_gc,
         );
         Extendablemessageevent.upcast::<Event>().fire(target);
     }
 
-    pub fn dispatch_error(target: &EventTarget, scope: &GlobalScope) {
+    pub fn dispatch_error(target: &EventTarget, scope: &GlobalScope, can_gc: CanGc) {
         let init = ExtendableMessageEventBinding::ExtendableMessageEventInit::empty();
         let ExtendableMsgEvent = ExtendableMessageEvent::new(
             scope,
@@ -151,6 +154,7 @@ impl ExtendableMessageEvent {
             init.origin.clone(),
             init.lastEventId.clone(),
             init.ports.clone(),
+            can_gc,
         );
         ExtendableMsgEvent.upcast::<Event>().fire(target);
     }

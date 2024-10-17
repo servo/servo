@@ -77,8 +77,9 @@ impl GPUAdapter {
         limits: wgt::Limits,
         info: wgt::AdapterInfo,
         adapter: WebGPUAdapter,
+        can_gc: CanGc,
     ) -> DomRoot<Self> {
-        let features = GPUSupportedFeatures::Constructor(global, None, features).unwrap();
+        let features = GPUSupportedFeatures::Constructor(global, None, features, can_gc).unwrap();
         let limits = GPUSupportedLimits::new(global, limits);
         let info = GPUAdapterInfo::new(global, info);
         reflect_dom_object(
@@ -195,7 +196,7 @@ impl GPUAdapterMethods for GPUAdapter {
 }
 
 impl AsyncWGPUListener for GPUAdapter {
-    fn handle_response(&self, response: WebGPUResponse, promise: &Rc<Promise>, _can_gc: CanGc) {
+    fn handle_response(&self, response: WebGPUResponse, promise: &Rc<Promise>, can_gc: CanGc) {
         match response {
             WebGPUResponse::Device((device_id, queue_id, Ok(descriptor))) => {
                 let device = GPUDevice::new(
@@ -208,6 +209,7 @@ impl AsyncWGPUListener for GPUAdapter {
                     device_id,
                     queue_id,
                     descriptor.label.unwrap_or_default(),
+                    can_gc,
                 );
                 self.global().add_gpu_device(&device);
                 promise.resolve_native(&device);
@@ -231,6 +233,7 @@ impl AsyncWGPUListener for GPUAdapter {
                     device_id,
                     queue_id,
                     String::new(),
+                    can_gc,
                 );
                 device.lose(GPUDeviceLostReason::Unknown, e.to_string());
                 promise.resolve_native(&device);
