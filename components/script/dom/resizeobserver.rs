@@ -97,10 +97,8 @@ impl ResizeObserver {
         can_gc: CanGc,
     ) {
         let mut entries: Vec<DomRoot<ResizeObserverEntry>> = Default::default();
-        let observation_targets = self.observation_targets.borrow();
-        for (observation, target) in observation_targets.iter() {
-            let observation_state = observation.state.borrow();
-            let ObservationState::Active(box_size) = &*observation_state else {
+        for (observation, target) in self.observation_targets.borrow().iter() {
+            let ObservationState::Active(box_size) = &*observation.state.borrow() else {
                 continue;
             };
 
