@@ -54,6 +54,7 @@ use crate::webgl_limits::GLLimitsDetect;
 struct GLContextData {
     ctx: Context,
     gl: Rc<Gl>,
+    glow: glow::Context,
     state: GLState,
     attributes: GLContextAttributes,
 }
@@ -560,6 +561,17 @@ impl WebGLThread {
             })),
         };
 
+        let glow = unsafe {
+            match self.api_type {
+                gl::GlType::Gl => glow::Context::from_loader_function(|symbol_name| {
+                    self.device.get_proc_address(&ctx, symbol_name)
+                }),
+                gl::GlType::Gles => glow::Context::from_loader_function(|symbol_name| {
+                    self.device.get_proc_address(&ctx, symbol_name)
+                }),
+            }
+        };
+
         let limits = GLLimits::detect(&gl, webgl_version);
 
         let size = clamp_viewport(&gl, requested_size);
@@ -622,6 +634,7 @@ impl WebGLThread {
             GLContextData {
                 ctx,
                 gl,
+                glow,
                 state,
                 attributes,
             },
@@ -674,7 +687,7 @@ impl WebGLThread {
                 .resize(&mut self.device, &mut data.ctx, size.to_i32())
                 .map_err(|err| format!("Failed to resize swap chain: {:?}", err))?;
             swap_chain
-                .clear_surface(&mut self.device, &mut data.ctx, &data.gl, clear_color)
+                .clear_surface(&mut self.device, &mut data.ctx, &data.glow, clear_color)
                 .map_err(|err| format!("Failed to clear resized swap chain: {:?}", err))?;
         } else {
             error!("Failed to find swap chain");
@@ -777,7 +790,7 @@ impl WebGLThread {
                     &mut self.device,
                     &mut data.ctx,
                     if data.attributes.preserve_drawing_buffer {
-                        PreserveBuffer::Yes(&data.gl)
+                        PreserveBuffer::Yes(&data.glow)
                     } else {
                         PreserveBuffer::No
                     },
@@ -793,7 +806,7 @@ impl WebGLThread {
                     .contains(ContextAttributeFlags::ALPHA);
                 let clear_color = [0.0, 0.0, 0.0, !alpha as i32 as f32];
                 swap_chain
-                    .clear_surface(&mut self.device, &mut data.ctx, &data.gl, clear_color)
+                    .clear_surface(&mut self.device, &mut data.ctx, &data.glow, clear_color)
                     .unwrap();
                 debug_assert_eq!(data.gl.get_error(), gl::NO_ERROR);
             }
@@ -3303,13 +3316,13 @@ impl<'a> WebXRContexts<WebXRSurfman> for WebXRBridgeContexts<'a> {
         )?;
         Some(&mut data.ctx)
     }
-    fn bindings(&mut self, device: &Device, context_id: WebXRContextId) -> Option<&Gl> {
+    fn bindings(&mut self, device: &Device, context_id: WebXRContextId) -> Option<&glow::Context> {
         let data = WebGLThread::make_current_if_needed(
             device,
             WebGLContextId::from(context_id),
             self.contexts,
             self.bound_context_id,
         )?;
-        Some(&data.gl)
+        Some(&data.glow)
     }
 }
