@@ -53,7 +53,7 @@ goog.scope(function() {
 
     /** @typedef {function(glsShaderRenderCase.ShaderEvalContext)} */ glsShaderRenderCase.ShaderEvalFunc;
 
-    /** @const {number} */ glsShaderRenderCase.GRID_SIZE = 64;
+    /** @const {number} */ glsShaderRenderCase.GRID_SIZE = 92;
     /** @const {number} */ glsShaderRenderCase.MAX_RENDER_WIDTH = 128;
     /** @const {number} */ glsShaderRenderCase.MAX_RENDER_HEIGHT = 112;
     /** @const {Array<number>} */ glsShaderRenderCase.DEFAULT_CLEAR_COLOR = [0.125, 0.25, 0.5, 1.0];
@@ -473,6 +473,7 @@ goog.scope(function() {
         /** @type {Array<tcuMatrix.Matrix>} */ this.m_userAttribTransforms = [];
         /** @type {Array<glsShaderRenderCase.TextureBinding>} */ this.m_textures = [];
         /** @type {?gluShaderProgram.ShaderProgram} */ this.m_program = null;
+        /** @type {number} */ this.m_gridSize = 0;
     };
 
     /**
@@ -519,6 +520,8 @@ goog.scope(function() {
             this.deinit();
             throw exception;
         }
+
+        this.m_gridSize = glsShaderRenderCase.GRID_SIZE;
     };
 
     /**
@@ -537,7 +540,7 @@ goog.scope(function() {
         // \todo [petri] Better handling of constCoords (render in multiple chunks, vary coords).
         /** @type {glsShaderRenderCase.QuadGrid} */
         var quadGrid = new glsShaderRenderCase.QuadGrid(
-            this.m_isVertexCase ? glsShaderRenderCase.GRID_SIZE : 4, width, height,
+            this.m_isVertexCase ? this.m_gridSize : 4, width, height,
             [0.125, 0.25, 0.5, 1.0], this.m_userAttribTransforms, this.m_textures);
 
         // Render result.
@@ -552,7 +555,7 @@ goog.scope(function() {
             this.computeFragmentReference(refImage, quadGrid);
 
         // Compare.
-        /** @type {boolean} */ var testOk = this.compareImages(resImage, refImage, 0.05);
+        /** @type {boolean} */ var testOk = this.compareImages(resImage, refImage, 0.07);
 
         // De-initialize.
         gl.useProgram(null);

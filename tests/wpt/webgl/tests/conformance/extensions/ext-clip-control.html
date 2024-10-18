@@ -1,0 +1,187 @@
+<!--
+Copyright (c) 2023 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL EXT_clip_control Conformance Tests</title>
+<LINK rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<canvas width="32" height="32" id="c"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+description("This test verifies the functionality of the EXT_clip_control extension, if it is available.");
+
+debug("");
+
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext("c");
+var ext;
+const w = gl.drawingBufferWidth;
+const h = gl.drawingBufferHeight;
+
+function runTestNoExtension() {
+    debug("");
+    debug("Check the parameters without the extension");
+    shouldBeNull("gl.getParameter(0x935C /* CLIP_ORIGIN_EXT */)");
+    wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "parameter unknown without enabling the extension");
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors");
+    shouldBeNull("gl.getParameter(0x935D /* CLIP_DEPTH_MODE_EXT */)");
+    wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "parameter unknown without enabling the extension");
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors");
+}
+
+function checkEnums() {
+    debug("");
+    debug("Check enums");
+    shouldBe("ext.LOWER_LEFT_EXT", "0x8CA1");
+    shouldBe("ext.UPPER_LEFT_EXT", "0x8CA2");
+
+    shouldBe("ext.NEGATIVE_ONE_TO_ONE_EXT", "0x935E");
+    shouldBe("ext.ZERO_TO_ONE_EXT",         "0x935F");
+
+    shouldBe("ext.CLIP_ORIGIN_EXT",     "0x935C");
+    shouldBe("ext.CLIP_DEPTH_MODE_EXT", "0x935D");
+}
+
+function checkQueries() {
+    debug("");
+    debug("Check default state");
+    shouldBe('gl.getParameter(ext.CLIP_ORIGIN_EXT)', 'ext.LOWER_LEFT_EXT');
+    shouldBe('gl.getParameter(ext.CLIP_DEPTH_MODE_EXT)', 'ext.NEGATIVE_ONE_TO_ONE_EXT');
+    debug("");
+    debug("Check state updates using the new function");
+    ext.clipControlEXT(ext.UPPER_LEFT_EXT, ext.ZERO_TO_ONE_EXT);
+    shouldBe('gl.getParameter(ext.CLIP_ORIGIN_EXT)', 'ext.UPPER_LEFT_EXT');
+    shouldBe('gl.getParameter(ext.CLIP_DEPTH_MODE_EXT)', 'ext.ZERO_TO_ONE_EXT');
+    ext.clipControlEXT(ext.LOWER_LEFT_EXT, ext.ZERO_TO_ONE_EXT);
+    shouldBe('gl.getParameter(ext.CLIP_ORIGIN_EXT)', 'ext.LOWER_LEFT_EXT');
+    shouldBe('gl.getParameter(ext.CLIP_DEPTH_MODE_EXT)', 'ext.ZERO_TO_ONE_EXT');
+    ext.clipControlEXT(ext.UPPER_LEFT_EXT, ext.NEGATIVE_ONE_TO_ONE_EXT);
+    shouldBe('gl.getParameter(ext.CLIP_ORIGIN_EXT)', 'ext.UPPER_LEFT_EXT');
+    shouldBe('gl.getParameter(ext.CLIP_DEPTH_MODE_EXT)', 'ext.NEGATIVE_ONE_TO_ONE_EXT');
+    ext.clipControlEXT(ext.LOWER_LEFT_EXT, ext.NEGATIVE_ONE_TO_ONE_EXT);
+    shouldBe('gl.getParameter(ext.CLIP_ORIGIN_EXT)', 'ext.LOWER_LEFT_EXT');
+    shouldBe('gl.getParameter(ext.CLIP_DEPTH_MODE_EXT)', 'ext.NEGATIVE_ONE_TO_ONE_EXT');
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors");
+}
+
+function checkDepthMode() {
+    debug("");
+    debug("Check depth mode toggling");
+
+    gl.enable(gl.DEPTH_TEST);
+    gl.clear(gl.DEPTH_BUFFER_BIT);
+
+    const program = wtu.setupProgram(gl, [wtu.simpleVertexShader,
+                                          wtu.simpleColorFragmentShader]);
+    gl.useProgram(program);
+    const colorLoc = gl.getUniformLocation(program, "u_color");
+    wtu.setupUnitQuad(gl);
+
+    // Draw red at 0 with the default depth mode
+    gl.uniform4f(colorLoc, 1, 0, 0, 1);
+    ext.clipControlEXT(ext.LOWER_LEFT_EXT, ext.NEGATIVE_ONE_TO_ONE_EXT);
+    wtu.drawUnitQuad(gl);
+    wtu.checkCanvasRect(gl, 0, 0, w, h, [255, 0, 0, 255]);
+
+    // Draw green at 0, depth test must fail
+    gl.uniform4f(colorLoc, 0, 1, 0, 1);
+    wtu.drawUnitQuad(gl);
+    wtu.checkCanvasRect(gl, 0, 0, w, h, [255, 0, 0, 255]);
+
+    // Draw green at 0 after switching the depth mode
+    ext.clipControlEXT(ext.LOWER_LEFT_EXT, ext.ZERO_TO_ONE_EXT);
+    wtu.drawUnitQuad(gl);
+    wtu.checkCanvasRect(gl, 0, 0, w, h, [0, 255, 0, 255]);
+
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors");
+}
+
+function checkClipOrigin() {
+    debug("");
+    debug("Check clip origin toggling");
+
+    gl.disable(gl.DEPTH_TEST);
+
+    const vertexShader = `
+        attribute vec4 vPosition;
+        varying float y;
+        void main() {
+            gl_Position = vPosition;
+            y = vPosition.y;
+        }`;
+    const fragmentShader = `
+        precision mediump float;
+        varying float y;
+        void main() {
+            if (y > 0.0) {
+                gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+            } else {
+                gl_FragColor = vec4(0.0, 1.0, 0.0, 1.0);
+            }
+        }`;
+
+    const program = wtu.setupProgram(gl, [vertexShader, fragmentShader]);
+    gl.useProgram(program);
+
+    wtu.setupUnitQuad(gl);
+
+    ext.clipControlEXT(ext.LOWER_LEFT_EXT, ext.NEGATIVE_ONE_TO_ONE_EXT);
+    wtu.drawUnitQuad(gl);
+    wtu.checkCanvasRect(gl, 0, 0, w, h / 2 - 2, [0, 255, 0, 255]);
+    wtu.checkCanvasRect(gl, 0, h / 2 + 2, w, h / 2 - 2, [255, 0, 0, 255]);
+
+    ext.clipControlEXT(ext.UPPER_LEFT_EXT, ext.NEGATIVE_ONE_TO_ONE_EXT);
+    wtu.drawUnitQuad(gl);
+    wtu.checkCanvasRect(gl, 0, 0, w, h / 2 - 2, [255, 0, 0, 255]);
+    wtu.checkCanvasRect(gl, 0, h / 2 + 2, w, h / 2 - 2, [0, 255, 0, 255]);
+
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors");
+}
+
+function runTestExtension() {
+    checkEnums();
+    checkQueries();
+    checkDepthMode();
+    checkClipOrigin();
+}
+
+function runTest() {
+    if (!gl) {
+        testFailed("WebGL context does not exist");
+        return;
+    }
+    testPassed("WebGL context exists");
+
+    runTestNoExtension();
+
+    ext = gl.getExtension("EXT_clip_control");
+
+    wtu.runExtensionSupportedTest(gl, "EXT_clip_control", ext !== null);
+
+    if (ext !== null) {
+        runTestExtension();
+    } else {
+        testPassed("No EXT_clip_control support -- this is legal");
+    }
+}
+
+runTest();
+
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+</body>
+</html>

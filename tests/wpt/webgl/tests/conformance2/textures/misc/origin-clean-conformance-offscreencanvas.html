@@ -1,28 +1,7 @@
 <!--
-
-/*
-** Copyright (c) 2017 The Khronos Group Inc.
-**
-** Permission is hereby granted, free of charge, to any person obtaining a
-** copy of this software and/or associated documentation files (the
-** "Materials"), to deal in the Materials without restriction, including
-** without limitation the rights to use, copy, modify, merge, publish,
-** distribute, sublicense, and/or sell copies of the Materials, and to
-** permit persons to whom the Materials are furnished to do so, subject to
-** the following conditions:
-**
-** The above copyright notice and this permission notice shall be included
-** in all copies or substantial portions of the Materials.
-**
-** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
-*/
-
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
 -->
 
 <!DOCTYPE html>
@@ -35,6 +14,12 @@
 <script src=/resources/testharnessreport.js></script>
 <script src="../../../js/js-test-pre.js"></script>
 <script src="../../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<canvas id="canvas"></canvas>
+<img id="img" style="display:none;">
 <script>
 "use strict";
 var wtu = WebGLTestUtils;
@@ -56,7 +41,7 @@ var localImgUrl = "../../../resources/opengl_logo.jpg";
 var imgDomain;
 var pageDomain;
 
-function imageLoaded() {
+function imageLoaded(img) {
   description("This test ensures WebGL2 implementations for OffscreenCanvas follow proper same-origin restrictions.");
 
   if (!window.OffscreenCanvas) {
@@ -64,8 +49,6 @@ function imageLoaded() {
     finishTest();
     return;
   }
-
-  var img = this;
 
   assertMsg(img.width > 0 && img.height > 0, "img was loaded");
   imgDomain = wtu.getBaseDomain(wtu.getHost(img.src));
@@ -149,13 +132,17 @@ function imageLoaded() {
   finishTest();
 }
 
-wtu.setupImageForCrossOriginTest("#img", defaultImgUrl, localImgUrl, imageLoaded);
+(async function() {
+  const img = document.getElementById('img');
+  try {
+    await wtu.awaitOrTimeout(wtu.loadCrossOriginImage(img, defaultImgUrl, localImgUrl), 1000);
+  } catch (e) {
+    testFailed(`Image setup failed (${e}).`);
+    finishTest();
+    return;
+  }
+  imageLoaded(img);
+})();
 </script>
-</head>
-<body>
-<div id="description"></div>
-<div id="console"></div>
-<canvas id="canvas"></canvas>
-<img id="img" style="display:none;">
 </body>
 </html>

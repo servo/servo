@@ -1,28 +1,7 @@
 <!--
-
-/*
-** Copyright (c) 2012 The Khronos Group Inc.
-**
-** Permission is hereby granted, free of charge, to any person obtaining a
-** copy of this software and/or associated documentation files (the
-** "Materials"), to deal in the Materials without restriction, including
-** without limitation the rights to use, copy, modify, merge, publish,
-** distribute, sublicense, and/or sell copies of the Materials, and to
-** permit persons to whom the Materials are furnished to do so, subject to
-** the following conditions:
-**
-** The above copyright notice and this permission notice shall be included
-** in all copies or substantial portions of the Materials.
-**
-** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
-*/
-
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
 -->
 <!DOCTYPE html>
 <html>
@@ -69,13 +48,14 @@
 <canvas id="canvas" width="2" height="2"> </canvas>
 <script type="application/javascript">
 var wtu = WebGLTestUtils;
+let gl;
 function go() {
     description("Tests that program compiling/linking/using works correctly.");
 
     debug("");
     debug("Canvas.getContext");
 
-    var gl = wtu.create3DContext("canvas");
+    gl = wtu.create3DContext("canvas");
     if (!gl) {
         testFailed("context does not exist");
         return;
@@ -213,7 +193,7 @@ function go() {
 /////// Check getAttachedShaders() /////////////////////////////
 
     function checkGetAttachedShaders(shaders_to_attach, shaders_to_detach, expected_shaders, errmsg) {
-        var prog = gl.createProgram();
+        prog = gl.createProgram();
         for (var i = 0; i < shaders_to_attach.length; ++i)
             gl.attachShader(prog, shaders_to_attach[i]);
         if(gl.getError() != gl.NO_ERROR)
@@ -223,6 +203,7 @@ function go() {
         if(gl.getError() != gl.NO_ERROR)
             assertMsg(false, "unexpected error in detachShader()");
         assertMsg(doArraysHaveSameContents(gl.getAttachedShaders(prog), expected_shaders), errmsg);
+        shouldBe('gl.getProgramParameter(prog, gl.ATTACHED_SHADERS)', `${expected_shaders.length}`);
     }
     checkGetAttachedShaders([], [], [], "getAttachedShaders should return an empty list by default");
     checkGetAttachedShaders([fs], [], [fs], "attaching a single shader should give the expected list");
@@ -333,9 +314,9 @@ function go() {
     assertMsg(gl.getProgramParameter(progGood2, gl.LINK_STATUS) == false,
               "linking should fail with in-use formerly good program, with new bad shader attached");
 
-    // Invalid link leaves previous valid program intact.
+    // In WebGL, an unsuccessful link immediately invalidates the previous valid program.
     gl.drawArrays(gl.TRIANGLES, 0, 3);
-    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "drawing with a valid program shouldn't generate a GL error");
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "drawing with a newly-invalidated program should generate INVALID_OPERATION");
 
     gl.useProgram(progGood1);
     gl.drawArrays(gl.TRIANGLES, 0, 4);

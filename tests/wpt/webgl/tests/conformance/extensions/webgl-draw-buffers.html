@@ -1,28 +1,7 @@
 ﻿<!--
-
-/*
-** Copyright (c) 2013 The Khronos Group Inc.
-**
-** Permission is hereby granted, free of charge, to any person obtaining a
-** copy of this software and/or associated documentation files (the
-** "Materials"), to deal in the Materials without restriction, including
-** without limitation the rights to use, copy, modify, merge, publish,
-** distribute, sublicense, and/or sell copies of the Materials, and to
-** permit persons to whom the Materials are furnished to do so, subject to
-** the following conditions:
-**
-** The above copyright notice and this permission notice shall be included
-** in all copies or substantial portions of the Materials.
-**
-** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
-*/
-
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
 -->
 
 <!DOCTYPE html>
@@ -112,6 +91,7 @@ var gl = wtu.create3DContext(canvas);
 var ext = null;
 var programWithMaxDrawBuffersEqualOne = null;
 var drawBuffersUtils;
+let fb;
 
 var extensionConstants = [
   { name: "MAX_COLOR_ATTACHMENTS_WEBGL", enum: 0x8CDF, expectedFn: function(v) { return v >= 4; }, passMsg: " should be >= 4"},
@@ -214,7 +194,7 @@ function runEnumTestDisabled() {
   // Use the constant directly as we don't have the extension
   extensionConstants.forEach(function(c) {
     if (c.expectedFn) {
-      gl.getParameter(c.enum);
+      shouldBeNull(`gl.getParameter(${c.enum})`);
       wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, c.name + " should not be queryable if extension is disabled");
     }
   });
@@ -248,6 +228,28 @@ function runEnumTestEnabled() {
   wtu.shouldGenerateGLError(gl, gl.NO_ERROR, "ext.drawBuffersWEBGL([gl.BACK])");
   shouldBe("gl.getParameter(ext.DRAW_BUFFER0_WEBGL)", "gl.BACK");
   wtu.glErrorShouldBe(gl, gl.NO_ERROR, "there should be no errors");
+
+  debug("Testing drawBuffers and getParameter with bindFramebuffer, without drawing.");
+  fb = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+  shouldBe("gl.getParameter(ext.DRAW_BUFFER0_WEBGL)", "gl.COLOR_ATTACHMENT0");
+  shouldBe("gl.getParameter(ext.DRAW_BUFFER0_WEBGL+1)", "gl.NONE");
+  wtu.shouldGenerateGLError(gl, gl.NO_ERROR, "ext.drawBuffersWEBGL([gl.NONE])");
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  shouldBe("gl.getParameter(ext.DRAW_BUFFER0_WEBGL)", "gl.BACK");
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+  shouldBe("gl.getParameter(ext.DRAW_BUFFER0_WEBGL)", "gl.NONE");
+
+  wtu.shouldGenerateGLError(gl, gl.NO_ERROR, "ext.drawBuffersWEBGL([gl.NONE,gl.COLOR_ATTACHMENT0+1])");
+  shouldBe("gl.getParameter(ext.DRAW_BUFFER0_WEBGL)", "gl.NONE");
+  shouldBe("gl.getParameter(ext.DRAW_BUFFER0_WEBGL+1)", "gl.COLOR_ATTACHMENT0+1");
+
+  wtu.shouldGenerateGLError(gl, gl.NO_ERROR, "ext.drawBuffersWEBGL([gl.COLOR_ATTACHMENT0,gl.COLOR_ATTACHMENT0+1])");
+  shouldBe("gl.getParameter(ext.DRAW_BUFFER0_WEBGL)", "gl.COLOR_ATTACHMENT0");
+  shouldBe("gl.getParameter(ext.DRAW_BUFFER0_WEBGL+1)", "gl.COLOR_ATTACHMENT0+1");
+
+  wtu.shouldGenerateGLError(gl, gl.NO_ERROR, "gl.deleteFramebuffer(fb)");
+  shouldBe("gl.getParameter(ext.DRAW_BUFFER0_WEBGL)", "gl.BACK");
 }
 
 function testShaders(tests, sub) {
@@ -533,7 +535,7 @@ function runDrawTests() {
   } else {
     gl.useProgram(noWriteProgram);
     wtu.drawUnitQuad(gl);
-
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "Active draw buffers with missing frag outputs.");
     drawBuffersUtils.checkAttachmentsForColor(attachments, [0, 255, 0, 255]);
     gl.deleteProgram(noWriteProgram);
   }
@@ -550,11 +552,16 @@ function runDrawTests() {
   gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
   ext.drawBuffersWEBGL(bufs);
   gl.useProgram(redProgram);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "there should be no errors");
   wtu.drawUnitQuad(gl);
-
-  drawBuffersUtils.checkAttachmentsForColorFn(attachments, function(attachment, index) {
-    return (index == 0) ? [255, 0, 0, 255] : [0, 255, 0, 255];
-  });
+  wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "Active draw buffers with missing frag outputs.");
+  gl.colorMask(false, false, false, false);
+  wtu.drawUnitQuad(gl);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "there should be no errors when all 4 channels of color mask are disabled.");
+  gl.colorMask(false, true, false, false);
+  wtu.drawUnitQuad(gl);
+  wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "partially diabled color mask shall have no impact.");
+  gl.colorMask(true, true, true, true);
 
   debug("test that gl_FragColor broadcasts if extension is enabled in fragment shader");
   gl.clear(gl.COLOR_BUFFER_BIT);

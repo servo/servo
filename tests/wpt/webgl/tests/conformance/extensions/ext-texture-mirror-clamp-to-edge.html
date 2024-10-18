@@ -1,0 +1,219 @@
+<!--
+Copyright (c) 2023 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL EXT_texture_mirror_clamp_to_edge Conformance Tests</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<canvas width="32" height="32" id="c"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+description("This test verifies the functionality of the EXT_texture_mirror_clamp_to_edge extension, if it is available.");
+
+debug("");
+
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext("c");
+const w = gl.drawingBufferWidth;
+const h = gl.drawingBufferHeight;
+var ext;
+var sampler;
+
+const pnames = ['TEXTURE_WRAP_S', 'TEXTURE_WRAP_T'];
+if (gl.TEXTURE_WRAP_R) {
+    pnames.push('TEXTURE_WRAP_R');
+}
+
+function runTestNoExtension() {
+    debug("");
+    debug("Check the texture parameter without the extension");
+
+    const tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+
+    const MIRROR_CLAMP_TO_EDGE_EXT = 0x8743;
+
+    for (const pname of pnames) {
+        gl.texParameteri(gl.TEXTURE_2D, gl[pname], MIRROR_CLAMP_TO_EDGE_EXT);
+        wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, `value unknown for ${pname} via texParameteri without enabling the extension`);
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no more errors");
+        gl.texParameterf(gl.TEXTURE_2D, gl[pname], MIRROR_CLAMP_TO_EDGE_EXT);
+        wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, `value unknown for ${pname} via texParameterf without enabling the extension`);
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no more errors");
+    }
+
+    if (!gl.createSampler) return;
+
+    const sampler = gl.createSampler();
+    for (const pname of pnames) {
+        gl.samplerParameteri(sampler, gl[pname], MIRROR_CLAMP_TO_EDGE_EXT);
+        wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, `value unknown for ${pname} via samplerParameteri without enabling the extension`);
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no more errors");
+        gl.samplerParameterf(sampler, gl[pname], MIRROR_CLAMP_TO_EDGE_EXT);
+        wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, `value unknown for ${pname} via samplerParameterf without enabling the extension`);
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no more errors");
+    }
+}
+
+function checkEnums() {
+    debug("");
+    debug("Check enums");
+    shouldBe("ext.MIRROR_CLAMP_TO_EDGE_EXT", "0x8743");
+}
+
+function checkQueries() {
+    debug("");
+    debug("Check texture and sampler state updates");
+
+    const tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+
+    for (const pname of pnames) {
+        gl.texParameteri(gl.TEXTURE_2D, gl[pname], ext.MIRROR_CLAMP_TO_EDGE_EXT);
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors from texParameteri");
+        shouldBe(`gl.getTexParameter(gl.TEXTURE_2D, gl.${pname})`, "ext.MIRROR_CLAMP_TO_EDGE_EXT");
+        gl.texParameteri(gl.TEXTURE_2D, gl[pname], gl.REPEAT);
+
+        gl.texParameterf(gl.TEXTURE_2D, gl[pname], ext.MIRROR_CLAMP_TO_EDGE_EXT);
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors from texParameterf");
+        shouldBe(`gl.getTexParameter(gl.TEXTURE_2D, gl.${pname})`, "ext.MIRROR_CLAMP_TO_EDGE_EXT");
+        gl.texParameterf(gl.TEXTURE_2D, gl[pname], gl.REPEAT);
+    }
+
+    if (!gl.createSampler) return;
+
+    sampler = gl.createSampler();
+    for (const pname of pnames) {
+        gl.samplerParameteri(sampler, gl[pname], ext.MIRROR_CLAMP_TO_EDGE_EXT);
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors from samplerParameteri");
+        shouldBe(`gl.getSamplerParameter(sampler, gl.${pname})`, "ext.MIRROR_CLAMP_TO_EDGE_EXT");
+        gl.samplerParameteri(sampler, gl[pname], gl.REPEAT);
+
+        gl.samplerParameterf(sampler, gl[pname], ext.MIRROR_CLAMP_TO_EDGE_EXT);
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors from samplerParameterf");
+        shouldBe(`gl.getSamplerParameter(sampler, gl.${pname})`, "ext.MIRROR_CLAMP_TO_EDGE_EXT");
+        gl.samplerParameterf(sampler, gl[pname], gl.REPEAT);
+    }
+}
+
+function checkSampling() {
+    debug("");
+    debug(`Check texture sampling with mirror-clamp-to-edge mode`);
+
+    wtu.setupUnitQuad(gl);
+    const vs = `precision highp float;
+        attribute vec4 vPosition;
+        varying vec2 texCoord;
+        void main() {
+            gl_Position = vec4(vPosition.xy, 0.0, 1.0);
+            texCoord = vPosition.xy * 2.0;
+        }`;
+    const program = wtu.setupProgram(gl, [vs, wtu.simpleTextureFragmentShader]);
+    gl.useProgram(program);
+
+    const black = [  0,   0,   0, 255];
+    const red   = [255,   0,   0, 255];
+    const green = [  0, 255,   0, 255];
+    const blue  = [  0,   0, 255, 255];
+    const data = new Uint8Array([...black, ...red, ...green, ...blue]);
+
+    function checkPixels() {
+        function checkPixel(x, y, color) {
+            const screen = (s, t) => s * (t * 0.5 + 0.5);
+            wtu.checkCanvasRect(gl, screen(w, x), screen(h, y), 1, 1, color,
+                                `(${x.toFixed(3)}, ${y.toFixed(3)}): ${color} `);
+        }
+        for (const signX of [+1, -1]) {
+            for (const signY of [+1, -1]) {
+                // This function expects screen-space coordinates
+                // normalized to [-1, +1]. The region from [0, 0]
+                // to [+1, +1] behaves like regular clamp-to-edge.
+                // Other three quadrants should be mirrored.
+                checkPixel(signX * 0.125, signY * 0.125, black);
+                checkPixel(signX * 0.375, signY * 0.125, red);
+                checkPixel(signX * 0.750, signY * 0.125, red);
+                checkPixel(signX * 0.125, signY * 0.375, green);
+                checkPixel(signX * 0.125, signY * 0.750, green);
+                checkPixel(signX * 0.375, signY * 0.375, blue);
+                checkPixel(signX * 0.750, signY * 0.375, blue);
+                checkPixel(signX * 0.375, signY * 0.750, blue);
+                checkPixel(signX * 0.750, signY * 0.750, blue);
+            }
+        }
+    }
+
+    const tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 2, 2, 0, gl.RGBA, gl.UNSIGNED_BYTE, data);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, ext.MIRROR_CLAMP_TO_EDGE_EXT);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, ext.MIRROR_CLAMP_TO_EDGE_EXT);
+
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "texture created and configured");
+
+    wtu.drawUnitQuad(gl);
+    checkPixels();
+
+    if (!gl.createSampler) return;
+
+    debug("");
+    debug(`Check texture sampling with mirror-clamp-to-edge mode using a sampler object`);
+
+    const texWithSampler = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texWithSampler);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 2, 2, 0, gl.RGBA, gl.UNSIGNED_BYTE, data);
+
+    sampler = gl.createSampler();
+    gl.bindSampler(0, sampler);
+    gl.samplerParameteri(sampler, gl.TEXTURE_WRAP_S, ext.MIRROR_CLAMP_TO_EDGE_EXT);
+    gl.samplerParameteri(sampler, gl.TEXTURE_WRAP_T, ext.MIRROR_CLAMP_TO_EDGE_EXT);
+    gl.samplerParameteri(sampler, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.samplerParameteri(sampler, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "texture created and sampler configured");
+
+    wtu.drawUnitQuad(gl);
+    checkPixels();
+}
+
+function runTest() {
+    if (!gl) {
+        testFailed("context does not exist");
+        return;
+    }
+    testPassed("context exists");
+
+    runTestNoExtension();
+
+    ext = gl.getExtension("EXT_texture_mirror_clamp_to_edge");
+    wtu.runExtensionSupportedTest(gl, "EXT_texture_mirror_clamp_to_edge", ext !== null);
+
+    if (ext !== null) {
+        checkEnums();
+        checkQueries();
+        checkSampling();
+    } else {
+        testPassed("No EXT_texture_mirror_clamp_to_edge support -- this is legal");
+    }
+}
+
+runTest();
+
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+</body>
+</html>

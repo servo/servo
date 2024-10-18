@@ -1,24 +1,7 @@
 /*
-** Copyright (c) 2014 The Khronos Group Inc.
-**
-** Permission is hereby granted, free of charge, to any person obtaining a
-** copy of this software and/or associated documentation files (the
-** "Materials"), to deal in the Materials without restriction, including
-** without limitation the rights to use, copy, modify, merge, publish,
-** distribute, sublicense, and/or sell copies of the Materials, and to
-** permit persons to whom the Materials are furnished to do so, subject to
-** the following conditions:
-**
-** The above copyright notice and this permission notice shall be included
-** in all copies or substantial portions of the Materials.
-**
-** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
 */
 
 'use strict';
@@ -72,9 +55,8 @@ var runDrawArraysTest = function(callTemplate, gl, wtu, ext) {
     debug("Test empty buffer")
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([  ]), gl.STATIC_DRAW);
     gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
-    wtu.shouldGenerateGLError(gl, gl.INVALID_OPERATION, wtu.replaceParams(callTemplate, {offset: 0, count: 1}));
-    wtu.shouldGenerateGLError(gl, gl.INVALID_OPERATION, wtu.replaceParams(callTemplate, {offset: 0, count: 10000}));
-    wtu.shouldGenerateGLError(gl, gl.INVALID_OPERATION, wtu.replaceParams(callTemplate, {offset: 0, count: 10000000000000}));
+    wtu.shouldGenerateGLError(gl, [gl.NO_ERROR, gl.INVALID_OPERATION], wtu.replaceParams(callTemplate, {offset: 0, count: 1}));
+    wtu.shouldGenerateGLError(gl, [gl.NO_ERROR, gl.INVALID_OPERATION], wtu.replaceParams(callTemplate, {offset: 0, count: 10000}));
     wtu.shouldGenerateGLError(gl, gl.NO_ERROR, wtu.replaceParams(callTemplate, {offset: 1, count: 0}));
     wtu.shouldGenerateGLError(gl, gl.NO_ERROR, wtu.replaceParams(callTemplate, {offset: 0, count: 0}));
     wtu.shouldGenerateGLError(gl, gl.NO_ERROR, wtu.replaceParams(callTemplate, {offset: 100, count: 0}));
@@ -85,9 +67,8 @@ var runDrawArraysTest = function(callTemplate, gl, wtu, ext) {
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([ 0,0.5,0, -0.5,-0.5,0, 0.5,-0.5,0 ]), gl.STATIC_DRAW);
     gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
     wtu.shouldGenerateGLError(gl, gl.NO_ERROR, wtu.replaceParams(callTemplate, {offset: 0, count: 3}));
-    wtu.shouldGenerateGLError(gl, gl.INVALID_OPERATION, wtu.replaceParams(callTemplate, {offset: 3, count: 2}));
-    wtu.shouldGenerateGLError(gl, gl.INVALID_OPERATION, wtu.replaceParams(callTemplate, {offset: 0, count: 10000}));
-    wtu.shouldGenerateGLError(gl, gl.INVALID_OPERATION, wtu.replaceParams(callTemplate, {offset: 0, count: 10000000000000}));
+    wtu.shouldGenerateGLError(gl, [gl.NO_ERROR, gl.INVALID_OPERATION], wtu.replaceParams(callTemplate, {offset: 3, count: 2}));
+    wtu.shouldGenerateGLError(gl, [gl.NO_ERROR, gl.INVALID_OPERATION], wtu.replaceParams(callTemplate, {offset: 0, count: 10000}));
     wtu.shouldGenerateGLError(gl, gl.NO_ERROR, wtu.replaceParams(callTemplate, {offset: 0, count: 0}));
     wtu.shouldGenerateGLError(gl, gl.NO_ERROR, wtu.replaceParams(callTemplate, {offset: 100, count: 0}));
     runCommonInvalidValueTests(callTemplate, gl, wtu, ext);
@@ -125,8 +106,8 @@ var runDrawArraysTest = function(callTemplate, gl, wtu, ext) {
 
     // values that could otherwise be valid but aren't due to bindings generate
     // INVALID_OPERATION
-    wtu.shouldGenerateGLError(gl, gl.INVALID_OPERATION, wtu.replaceParams(callTemplate, {offset: 0, count: 10000}));
-    wtu.shouldGenerateGLError(gl, gl.INVALID_OPERATION, wtu.replaceParams(callTemplate, {offset: '0x7fffffff', count: 1}));
+    wtu.shouldGenerateGLError(gl, [gl.NO_ERROR, gl.INVALID_OPERATION], wtu.replaceParams(callTemplate, {offset: 0, count: 10000}));
+    wtu.shouldGenerateGLError(gl, [gl.NO_ERROR, gl.INVALID_OPERATION], wtu.replaceParams(callTemplate, {offset: '0x7fffffff', count: 1}));
 };
 
 var runDrawElementsTest = function(callTemplate, gl, wtu, ext) {

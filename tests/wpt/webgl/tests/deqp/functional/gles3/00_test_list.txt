@@ -1,10 +1,15 @@
---min-version 2.0.1 builtinprecision/00_test_list.txt
+# The builtinprecision tests are not correct. Errors were introduced when
+# porting the tests from C++ to JavaScript. Tests that fail here pass in
+# the C++ version of dEQP ported to WASM. The tests are disabled here until
+# they can be fixed.
+# --min-version 2.0.1 builtinprecision/00_test_list.txt
 draw/00_test_list.txt
 fbocolorbuffer/00_test_list.txt
 fboinvalidate/00_test_list.txt
 fborender/00_test_list.txt
 fragmentoutput/00_test_list.txt
 framebufferblit/00_test_list.txt
+multisample/00_test_list.txt
 primitiverestart/00_test_list.txt
 shaderindexing/00_test_list.txt
 shadermatrix/00_test_list.txt
@@ -39,7 +44,6 @@ instancedrendering.html
 integerstatequery.html
 internalformatquery.html
 lifetime.html
-multisample.html
 negativebufferapi.html
 negativefragmentapi.html
 negativeshaderapi.html

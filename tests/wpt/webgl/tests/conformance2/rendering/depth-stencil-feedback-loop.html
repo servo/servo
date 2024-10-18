@@ -1,28 +1,7 @@
 <!--
-
-/*
-** Copyright (c) 2016 The Khronos Group Inc.
-**
-** Permission is hereby granted, free of charge, to any person obtaining a
-** copy of this software and/or associated documentation files (the
-** "Materials"), to deal in the Materials without restriction, including
-** without limitation the rights to use, copy, modify, merge, publish,
-** distribute, sublicense, and/or sell copies of the Materials, and to
-** permit persons to whom the Materials are furnished to do so, subject to
-** the following conditions:
-**
-** The above copyright notice and this permission notice shall be included
-** in all copies or substantial portions of the Materials.
-**
-** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
-*/
-
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
 -->
 
 <!DOCTYPE html>
@@ -111,8 +90,15 @@ function init() {
     tex1 = gl.createTexture();
     tex2 = gl.createTexture();
     wtu.fillTexture(gl, tex0, width, height, [0x0, 0xff, 0x0, 0xff], 0, gl.RGBA, gl.UNSIGNED_BYTE, gl.RGBA);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
     wtu.fillTexture(gl, tex1, width, height, [0x80], 0, gl.DEPTH_COMPONENT, gl.UNSIGNED_INT, gl.DEPTH_COMPONENT16);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_COMPARE_MODE, gl.COMPARE_REF_TO_TEXTURE);
     wtu.fillTexture(gl, tex2, width, height, [0x40], 0, gl.DEPTH_STENCIL, gl.UNSIGNED_INT_24_8, gl.DEPTH24_STENCIL8);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_COMPARE_MODE, gl.COMPARE_REF_TO_TEXTURE);
     wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Succeed to create textures.");
 
     fbo = gl.createFramebuffer();
@@ -128,19 +114,18 @@ function detect_depth_stencil_feedback_loop() {
         testFailed("Framebuffer incomplete.");
         return;
     }
-
     gl.enable(gl.DEPTH_TEST);
     wtu.clearAndDrawUnitQuad(gl);
     wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "The test samples from a image. The same image is used as depth buffer during rendering.");
 
     gl.depthMask(gl.FALSE);
     wtu.clearAndDrawUnitQuad(gl);
-    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "The test sampls from a image. The same image is used as depth buffer. But depth mask is false.");
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "The test samples from a image. The same image is used as depth buffer. A feedback loop is formed regardless of the status of depth mask.");
 
     gl.depthMask(gl.TRUE);
     gl.disable(gl.DEPTH_TEST);
     wtu.clearAndDrawUnitQuad(gl);
-    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "The test samples from a image. The same image is used as depth buffer. But depth test is not enabled during rendering.");
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "The test samples from a image. The same image is used as depth buffer. A feedback loop is formed regardless of whether the depth test is enabled.");
 
     // Test rendering and sampling feedback loop for stencil buffer
     gl.bindTexture(gl.TEXTURE_2D, tex2);
@@ -157,12 +142,12 @@ function detect_depth_stencil_feedback_loop() {
 
     gl.stencilMask(0x0);
     wtu.clearAndDrawUnitQuad(gl);
-    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "The test sampls from a image. The same image is used as stencil buffer. But stencil mask is zero.");
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "The test sampls from a image. The same image is used as stencil buffer. A feedback loop is formed regardless of the status of stencil mask.");
 
     gl.stencilMask(0xffff);
     gl.disable(gl.STENCIL_TEST);
     wtu.clearAndDrawUnitQuad(gl);
-    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "The test samples from a image. The same image is used as stencil buffer. But stencil test is not enabled during rendering.");
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "The test samples from a image. The same image is used as stencil buffer. A feedback loop is formed regardless of whether the stencil test is enabled.");
 }
 
 function deinit() {

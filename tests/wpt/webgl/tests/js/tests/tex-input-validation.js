@@ -1,24 +1,7 @@
 /*
-** Copyright (c) 2015 The Khronos Group Inc.
-**
-** Permission is hereby granted, free of charge, to any person obtaining a
-** copy of this software and/or associated documentation files (the
-** "Materials"), to deal in the Materials without restriction, including
-** without limitation the rights to use, copy, modify, merge, publish,
-** distribute, sublicense, and/or sell copies of the Materials, and to
-** permit persons to whom the Materials are furnished to do so, subject to
-** the following conditions:
-**
-** The above copyright notice and this permission notice shall be included
-** in all copies or substantial portions of the Materials.
-**
-** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
 */
 
 // This test relies on the surrounding web page defining a variable
@@ -292,7 +275,7 @@ var testCases = [
     border: 0,
     format: 0x1903, // GL_RED
     type: gl.UNSIGNED_BYTE,
-    expectedError: [gl.INVALID_ENUM, gl.INVALID_VALUE] },
+    expectedError: [gl.INVALID_ENUM, gl.INVALID_VALUE, gl.INVALID_OPERATION] },
   { target: gl.TEXTURE_2D,
     internalFormat: gl.RGBA,
     border: 1,
@@ -534,7 +517,7 @@ var testCases = [
     border: 0,
     format: gl.RGBA,
     type: gl.UNSIGNED_BYTE,
-    expectedError: gl.INVALID_VALUE},
+    expectedError: [gl.INVALID_VALUE, gl.INVALID_OPERATION]},
   { target: gl.TEXTURE_3D,
     internalFormat: gl.RGBA,
     border: 0,

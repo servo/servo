@@ -1,24 +1,7 @@
 /*
-** Copyright (c) 2012 The Khronos Group Inc.
-**
-** Permission is hereby granted, free of charge, to any person obtaining a
-** copy of this software and/or associated documentation files (the
-** "Materials"), to deal in the Materials without restriction, including
-** without limitation the rights to use, copy, modify, merge, publish,
-** distribute, sublicense, and/or sell copies of the Materials, and to
-** permit persons to whom the Materials are furnished to do so, subject to
-** the following conditions:
-**
-** The above copyright notice and this permission notice shall be included
-** in all copies or substantial portions of the Materials.
-**
-** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
 */
 GLSLConformanceTester = (function(){
 
@@ -149,28 +132,40 @@ function runOneTest(gl, info) {
   var vSource = info.vShaderPrep ? info.vShaderPrep(info.vShaderSource) :
     info.vShaderSource;
 
-  if (!quietMode())
+  if (!quietMode()) {
     wtu.addShaderSource(consoleDiv, vLabel, vSource);
+  }
 
   // Reuse identical shaders so we test shared shader.
   var vShader = vShaderDB[vSource];
   if (!vShader) {
-    vShader = wtu.loadShader(gl, vSource, gl.VERTEX_SHADER);
+    // loadShader, with opt_skipCompileStatus: true.
+    vShader = wtu.loadShader(gl, vSource, gl.VERTEX_SHADER, null, null, null, null, true);
+    let compiledVShader = vShader;
+    if (vShader && !gl.getShaderParameter(vShader, gl.COMPILE_STATUS)) {
+      compiledVShader = null;
+    }
     if (info.vShaderTest) {
-      if (!info.vShaderTest(vShader)) {
+      if (!info.vShaderTest(compiledVShader)) {
         testFailed("[vertex shader test] " + passMsg);
         return;
       }
     }
     // As per GLSL 1.0.17 10.27 we can only check for success on
     // compileShader, not failure.
-    if (!info.ignoreResults && info.vShaderSuccess && !vShader) {
+    if (!info.ignoreResults && info.vShaderSuccess && !compiledVShader) {
       testFailed("[unexpected vertex shader compile status] (expected: " +
                  info.vShaderSuccess + ") " + passMsg);
+      if (!quietMode() && vShader) {
+        const info = gl.getShaderInfoLog(vShader);
+        wtu.addShaderSource(consoleDiv, vLabel + " info log", info);
+      }
     }
     // Save the shaders so we test shared shader.
-    if (vShader) {
-      vShaderDB[vSource] = vShader;
+    if (compiledVShader) {
+      vShaderDB[vSource] = compiledVShader;
+    } else {
+      vShader = null;
     }
   }
 
@@ -183,15 +178,21 @@ function runOneTest(gl, info) {
   var fSource = info.fShaderPrep ? info.fShaderPrep(info.fShaderSource) :
     info.fShaderSource;
 
-  if (!quietMode())
+  if (!quietMode()) {
     wtu.addShaderSource(consoleDiv, fLabel, fSource);
+  }
 
   // Reuse identical shaders so we test shared shader.
   var fShader = fShaderDB[fSource];
   if (!fShader) {
-    fShader = wtu.loadShader(gl, fSource, gl.FRAGMENT_SHADER);
+    // loadShader, with opt_skipCompileStatus: true.
+    fShader = wtu.loadShader(gl, fSource, gl.FRAGMENT_SHADER, null, null, null, null, true);
+    let compiledFShader = fShader;
+    if (fShader && !gl.getShaderParameter(fShader, gl.COMPILE_STATUS)) {
+      compiledFShader = null;
+    }
     if (info.fShaderTest) {
-      if (!info.fShaderTest(fShader)) {
+      if (!info.fShaderTest(compiledFShader)) {
         testFailed("[fragment shader test] " + passMsg);
         return;
       }
@@ -199,15 +200,21 @@ function runOneTest(gl, info) {
     //debug(fShader == null ? "fail" : "succeed");
     // As per GLSL 1.0.17 10.27 we can only check for success on
     // compileShader, not failure.
-    if (!info.ignoreResults && info.fShaderSuccess && !fShader) {
+    if (!info.ignoreResults && info.fShaderSuccess && !compiledFShader) {
       testFailed("[unexpected fragment shader compile status] (expected: " +
                 info.fShaderSuccess + ") " + passMsg);
+      if (!quietMode() && fShader) {
+        const info = gl.getShaderInfoLog(fShader);
+        wtu.addShaderSource(consoleDiv, fLabel + " info log", info);
+      }
       return;
     }
 
     // Safe the shaders so we test shared shader.
-    if (fShader) {
-      fShaderDB[fSource] = fShader;
+    if (compiledFShader) {
+      fShaderDB[fSource] = compiledFShader;
+    } else {
+      fShader = null;
     }
   }
 
@@ -234,7 +241,8 @@ function runOneTest(gl, info) {
       log("*** Error linking program '"+program+"':"+error);
     }
     if (!info.ignoreResults && linked != info.linkSuccess) {
-      testFailed("[unexpected link status] " + passMsg);
+      testFailed("[unexpected link status] (expected: " +
+                info.linkSuccess + ") " + passMsg);
       return;
     }
   } else {
@@ -269,12 +277,33 @@ function runOneTest(gl, info) {
 
   if (info.uniforms !== undefined) {
     for (var i = 0; i < info.uniforms.length; ++i) {
-      var uniformLocation = gl.getUniformLocation(program, info.uniforms[i].name);
+      var uniform = info.uniforms[i];
+      var uniformLocation = gl.getUniformLocation(program, uniform.name);
       if (uniformLocation !== null) {
-        gl[info.uniforms[i].functionName](uniformLocation, info.uniforms[i].value);
-        debug(info.uniforms[i].name + ' set to ' + info.uniforms[i].value);
+        if (uniform.functionName.includes("Matrix")) {
+          gl[uniform.functionName](uniformLocation, false, uniform.value);
+        } else {
+          gl[uniform.functionName](uniformLocation, uniform.value);
+        }
+        debug(uniform.name + ' set to ' + uniform.value);
       } else {
-        debug('uniform ' + info.uniforms[i].name + ' had null location and was not set');
+        debug('uniform ' + uniform.name + ' had null location and was not set');
+      }
+    }
+  }
+
+  if (info.uniformBlocks !== undefined) {
+    for (var i = 0; i < info.uniformBlocks.length; ++i) {
+      var uniformBlockIndex = gl.getUniformBlockIndex(program, info.uniformBlocks[i].name);
+      if (uniformBlockIndex !== null) {
+        gl.uniformBlockBinding(program, uniformBlockIndex, i);
+        debug(info.uniformBlocks[i].name + ' (index ' + uniformBlockIndex + ') bound to slot ' + i);
+
+        var uboValueBuffer = gl.createBuffer();
+        gl.bindBufferBase(gl.UNIFORM_BUFFER, i, uboValueBuffer);
+        gl.bufferData(gl.UNIFORM_BUFFER, info.uniformBlocks[i].value, info.uniformBlocks[i].usage || gl.STATIC_DRAW);
+      } else {
+        debug('uniform block' + info.uniformBlocks[i].name + ' had null block index and was not set');
       }
     }
   }
