@@ -79,6 +79,9 @@ packages = [
 
     # gilrs is on 0.10.0, but Servo is still on 0.9.4
     "core-foundation",
+
+    # some non-servo crates still use 0.14
+    "glow",
 ]
 # Files that are ignored for all tidy and lint checks.
 files = [
