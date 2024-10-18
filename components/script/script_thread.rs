@@ -2010,7 +2010,7 @@ impl ScriptThread {
                         self.handle_msg_from_constellation(inner_msg, can_gc)
                     },
                     FromScript(inner_msg) => self.handle_msg_from_script(inner_msg),
-                    FromDevtools(inner_msg) => self.handle_msg_from_devtools(inner_msg),
+                    FromDevtools(inner_msg) => self.handle_msg_from_devtools(inner_msg, can_gc),
                     FromImageCache(inner_msg) => self.handle_msg_from_image_cache(inner_msg),
                     FromWebGPUServer(inner_msg) => {
                         self.handle_msg_from_webgpu_server(inner_msg, can_gc)
@@ -2563,7 +2563,7 @@ impl ScriptThread {
         }
     }
 
-    fn handle_msg_from_devtools(&self, msg: DevtoolScriptControlMsg) {
+    fn handle_msg_from_devtools(&self, msg: DevtoolScriptControlMsg, can_gc:CanGc) {
         let documents = self.documents.borrow();
         match msg {
             DevtoolScriptControlMsg::EvaluateJS(id, s, reply) => match documents.find_window(id) {
@@ -2602,7 +2602,7 @@ impl ScriptThread {
                 devtools::handle_get_computed_style(&documents, id, node_id, reply)
             },
             DevtoolScriptControlMsg::GetLayout(id, node_id, reply) => {
-                devtools::handle_get_layout(&documents, id, node_id, reply)
+                devtools::handle_get_layout(&documents, id, node_id, reply, can_gc)
             },
             DevtoolScriptControlMsg::ModifyAttribute(id, node_id, modifications) => {
                 devtools::handle_modify_attribute(&documents, id, node_id, modifications)

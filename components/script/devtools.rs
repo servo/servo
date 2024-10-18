@@ -328,6 +328,7 @@ pub fn handle_get_layout(
     pipeline: PipelineId,
     node_id: String,
     reply: IpcSender<Option<ComputedNodeLayout>>,
+    can_gc:CanGc
 ) {
     let node = match find_node_by_unique_id(documents, pipeline, &node_id) {
         None => return reply.send(None).unwrap(),
@@ -337,7 +338,7 @@ pub fn handle_get_layout(
     let elem = node
         .downcast::<Element>()
         .expect("should be getting layout of element");
-    let rect = elem.GetBoundingClientRect(CanGc::note());
+    let rect = elem.GetBoundingClientRect(can_gc);
     let width = rect.Width() as f32;
     let height = rect.Height() as f32;
 

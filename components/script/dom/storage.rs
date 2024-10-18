@@ -21,6 +21,7 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::storageevent::StorageEvent;
 use crate::dom::window::Window;
 use crate::task_source::TaskSource;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct Storage {
@@ -222,6 +223,7 @@ impl Storage {
                         new_value.map(DOMString::from),
                         DOMString::from(url.into_string()),
                         Some(&this),
+                        CanGc::note()
                     );
                     event.upcast::<Event>().fire(global.upcast());
                 }),

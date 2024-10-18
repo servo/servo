@@ -403,8 +403,9 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
         input: RequestOrUSVString,
         init: RootedTraceableBox<RequestInit>,
         comp: InRealm,
+        can_gc:CanGc
     ) -> Rc<Promise> {
-        fetch::Fetch(self.upcast(), input, init, comp, CanGc::note())
+        fetch::Fetch(self.upcast(), input, init, comp, can_gc)
     }
 
     // https://w3c.github.io/hr-time/#the-performance-attribute

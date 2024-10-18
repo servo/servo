@@ -1214,6 +1214,7 @@ impl HTMLFormElement {
             EventBubbles::Bubbles,
             EventCancelable::NotCancelable,
             &form_data,
+            can_gc
         );
 
         event.upcast::<Event>().fire(self.upcast::<EventTarget>());
