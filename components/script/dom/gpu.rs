@@ -143,7 +143,7 @@ impl GPUMethods for GPU {
 }
 
 impl AsyncWGPUListener for GPU {
-    fn handle_response(&self, response: WebGPUResponse, promise: &Rc<Promise>, _can_gc: CanGc) {
+    fn handle_response(&self, response: WebGPUResponse, promise: &Rc<Promise>, can_gc: CanGc) {
         match response {
             WebGPUResponse::Adapter(Ok(adapter)) => {
                 let adapter = GPUAdapter::new(
@@ -158,6 +158,7 @@ impl AsyncWGPUListener for GPU {
                     adapter.limits,
                     adapter.adapter_info,
                     adapter.adapter_id,
+                    can_gc,
                 );
                 promise.resolve_native(&adapter);
             },

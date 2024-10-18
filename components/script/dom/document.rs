@@ -1905,6 +1905,7 @@ impl Document {
     pub fn dispatch_composition_event(
         &self,
         composition_event: ::keyboard_types::CompositionEvent,
+        can_gc: CanGc,
     ) {
         // spec: https://w3c.github.io/uievents/#compositionstart
         // spec: https://w3c.github.io/uievents/#compositionupdate
@@ -1928,6 +1929,7 @@ impl Document {
             Some(&self.window),
             0,
             DOMString::from(composition_event.data),
+            can_gc,
         );
         let event = compositionevent.upcast::<Event>();
         event.fire(target);

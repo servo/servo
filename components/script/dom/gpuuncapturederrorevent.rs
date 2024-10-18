@@ -37,8 +37,9 @@ impl GPUUncapturedErrorEvent {
         global: &GlobalScope,
         type_: DOMString,
         init: &GPUUncapturedErrorEventInit,
+        can_gc: CanGc,
     ) -> DomRoot<Self> {
-        Self::new_with_proto(global, None, type_, init, CanGc::note())
+        Self::new_with_proto(global, None, type_, init, can_gc)
     }
 
     fn new_with_proto(

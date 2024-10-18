@@ -43,17 +43,10 @@ impl CompositionEvent {
         view: Option<&Window>,
         detail: i32,
         data: DOMString,
+        can_gc: CanGc,
     ) -> DomRoot<CompositionEvent> {
         Self::new_with_proto(
-            window,
-            None,
-            type_,
-            can_bubble,
-            cancelable,
-            view,
-            detail,
-            data,
-            CanGc::note(),
+            window, None, type_, can_bubble, cancelable, view, detail, data, can_gc,
         )
     }
 

@@ -45,17 +45,10 @@ impl CloseEvent {
         wasClean: bool,
         code: u16,
         reason: DOMString,
+        can_gc: CanGc,
     ) -> DomRoot<CloseEvent> {
         Self::new_with_proto(
-            global,
-            None,
-            type_,
-            bubbles,
-            cancelable,
-            wasClean,
-            code,
-            reason,
-            CanGc::note(),
+            global, None, type_, bubbles, cancelable, wasClean, code, reason, can_gc,
         )
     }
 

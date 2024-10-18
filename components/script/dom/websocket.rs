@@ -539,6 +539,7 @@ impl TaskOnce for CloseTask {
             clean_close,
             code,
             reason,
+            CanGc::note(),
         );
         close_event.upcast::<Event>().fire(ws.upcast());
     }

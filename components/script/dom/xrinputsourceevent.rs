@@ -46,16 +46,10 @@ impl XRInputSourceEvent {
         cancelable: bool,
         frame: &XRFrame,
         source: &XRInputSource,
+        can_gc: CanGc,
     ) -> DomRoot<XRInputSourceEvent> {
         Self::new_with_proto(
-            global,
-            None,
-            type_,
-            bubbles,
-            cancelable,
-            frame,
-            source,
-            CanGc::note(),
+            global, None, type_, bubbles, cancelable, frame, source, can_gc,
         )
     }
 

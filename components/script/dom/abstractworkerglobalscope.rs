@@ -89,7 +89,7 @@ pub trait WorkerEventLoopMethods {
     type ControlMsg;
     type Event;
     fn task_queue(&self) -> &TaskQueue<Self::WorkerMsg>;
-    fn handle_event(&self, event: Self::Event) -> bool;
+    fn handle_event(&self, event: Self::Event, can_gc: CanGc) -> bool;
     fn handle_worker_post_event(&self, worker: &TrustedWorkerAddress) -> Option<AutoWorkerReset>;
     fn from_control_msg(msg: Self::ControlMsg) -> Self::Event;
     fn from_worker_msg(msg: Self::WorkerMsg) -> Self::Event;
@@ -143,7 +143,7 @@ pub fn run_worker_event_loop<T, WorkerMsg, Event>(
     // Step 3
     for event in sequential {
         let _realm = enter_realm(worker_scope);
-        if !worker_scope.handle_event(event) {
+        if !worker_scope.handle_event(event, can_gc) {
             // Shutdown
             return;
         }

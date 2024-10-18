@@ -148,10 +148,11 @@ impl GPUDevice {
         device: webgpu::WebGPUDevice,
         queue: webgpu::WebGPUQueue,
         label: String,
+        can_gc: CanGc,
     ) -> DomRoot<Self> {
         let queue = GPUQueue::new(global, channel.clone(), queue);
         let limits = GPUSupportedLimits::new(global, limits);
-        let features = GPUSupportedFeatures::Constructor(global, None, features).unwrap();
+        let features = GPUSupportedFeatures::Constructor(global, None, features, can_gc).unwrap();
         let lost_promise = Promise::new(global);
         let device = reflect_dom_object(
             Box::new(GPUDevice::new_inherited(
@@ -203,6 +204,7 @@ impl GPUDevice {
                 error,
                 parent: EventInit::empty(),
             },
+            can_gc,
         );
         let _ = self.eventtarget.DispatchEvent(ev.event());
     }

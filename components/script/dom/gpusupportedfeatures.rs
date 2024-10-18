@@ -50,6 +50,7 @@ impl GPUSupportedFeatures {
         global: &GlobalScope,
         proto: Option<HandleObject>,
         features: Features,
+        can_gc: CanGc,
     ) -> DomRoot<GPUSupportedFeatures> {
         let mut set = IndexSet::new();
         if features.contains(Features::DEPTH_CLIP_CONTROL) {
@@ -103,7 +104,7 @@ impl GPUSupportedFeatures {
             }),
             global,
             proto,
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -112,8 +113,9 @@ impl GPUSupportedFeatures {
         global: &GlobalScope,
         proto: Option<HandleObject>,
         features: Features,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<GPUSupportedFeatures>> {
-        Ok(GPUSupportedFeatures::new(global, proto, features))
+        Ok(GPUSupportedFeatures::new(global, proto, features, can_gc))
     }
 }
 

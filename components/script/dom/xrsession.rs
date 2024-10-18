@@ -321,6 +321,7 @@ impl XRSession {
                             false,
                             &frame,
                             &source,
+                            can_gc,
                         );
                         event.upcast::<Event>().fire(self.upcast());
                     } else {
@@ -332,6 +333,7 @@ impl XRSession {
                                 false,
                                 &frame,
                                 &source,
+                                can_gc,
                             );
                             event.upcast::<Event>().fire(self.upcast());
                         }
@@ -342,6 +344,7 @@ impl XRSession {
                             false,
                             &frame,
                             &source,
+                            can_gc,
                         );
                         event.upcast::<Event>().fire(self.upcast());
                     }
