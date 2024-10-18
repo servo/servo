@@ -212,8 +212,8 @@ impl WorkerEventLoopMethods for DedicatedWorkerGlobalScope {
         &self.task_queue
     }
 
-    fn handle_event(&self, event: MixedMessage, _can_gc: CanGc) -> bool {
-        self.handle_mixed_message(event)
+    fn handle_event(&self, event: MixedMessage, can_gc: CanGc) -> bool {
+        self.handle_mixed_message(event, can_gc)
     }
 
     fn handle_worker_post_event(&self, worker: &TrustedWorkerAddress) -> Option<AutoWorkerReset> {
@@ -512,7 +512,7 @@ impl DedicatedWorkerGlobalScope {
         (chan, Box::new(rx))
     }
 
-    fn handle_script_event(&self, msg: WorkerScriptMsg) {
+    fn handle_script_event(&self, msg: WorkerScriptMsg, can_gc: CanGc) {
         match msg {
             WorkerScriptMsg::DOMMessage { origin, data } => {
                 let scope = self.upcast::<WorkerGlobalScope>();
@@ -528,9 +528,10 @@ impl DedicatedWorkerGlobalScope {
                         Some(&origin.ascii_serialization()),
                         None,
                         ports,
+                        can_gc,
                     );
                 } else {
-                    MessageEvent::dispatch_error(target, scope.upcast());
+                    MessageEvent::dispatch_error(target, scope.upcast(), can_gc);
                 }
             },
             WorkerScriptMsg::Common(msg) => {
@@ -539,7 +540,7 @@ impl DedicatedWorkerGlobalScope {
         }
     }
 
-    fn handle_mixed_message(&self, msg: MixedMessage) -> bool {
+    fn handle_mixed_message(&self, msg: MixedMessage, can_gc: CanGc) -> bool {
         // FIXME(#26324): `self.worker` is None in devtools messages.
         match msg {
             MixedMessage::Devtools(msg) => match msg {
@@ -553,7 +554,7 @@ impl DedicatedWorkerGlobalScope {
             },
             MixedMessage::Worker(DedicatedWorkerScriptMsg::CommonWorker(linked_worker, msg)) => {
                 let _ar = AutoWorkerReset::new(self, linked_worker);
-                self.handle_script_event(msg);
+                self.handle_script_event(msg, can_gc);
             },
             MixedMessage::Worker(DedicatedWorkerScriptMsg::WakeUp) => {},
             MixedMessage::Control(DedicatedWorkerControlMsg::Exit) => {
@@ -608,13 +609,14 @@ impl DedicatedWorkerGlobalScope {
         cx: SafeJSContext,
         message: HandleValue,
         transfer: CustomAutoRooterGuard<Vec<*mut JSObject>>,
+        can_gc: CanGc,
     ) -> ErrorResult {
         let data = structuredclone::write(cx, message, Some(transfer))?;
         let worker = self.worker.borrow().as_ref().unwrap().clone();
         let global_scope = self.upcast::<GlobalScope>();
         let pipeline_id = global_scope.pipeline_id();
         let task = Box::new(task!(post_worker_message: move || {
-            Worker::handle_message(worker, data);
+            Worker::handle_message(worker, data, can_gc);
         }));
         self.parent_sender
             .send(CommonScriptMsg::Task(
@@ -651,8 +653,9 @@ impl DedicatedWorkerGlobalScopeMethods for DedicatedWorkerGlobalScope {
         cx: SafeJSContext,
         message: HandleValue,
         transfer: CustomAutoRooterGuard<Vec<*mut JSObject>>,
+        can_gc: CanGc,
     ) -> ErrorResult {
-        self.post_message_impl(cx, message, transfer)
+        self.post_message_impl(cx, message, transfer, can_gc)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-dedicatedworkerglobalscope-postmessage>
@@ -661,6 +664,7 @@ impl DedicatedWorkerGlobalScopeMethods for DedicatedWorkerGlobalScope {
         cx: SafeJSContext,
         message: HandleValue,
         options: RootedTraceableBox<StructuredSerializeOptions>,
+        can_gc: CanGc,
     ) -> ErrorResult {
         let mut rooted = CustomAutoRooter::new(
             options
@@ -670,7 +674,7 @@ impl DedicatedWorkerGlobalScopeMethods for DedicatedWorkerGlobalScope {
                 .collect(),
         );
         let guard = CustomAutoRooterGuard::new(*cx, &mut rooted);
-        self.post_message_impl(cx, message, guard)
+        self.post_message_impl(cx, message, guard, can_gc)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-dedicatedworkerglobalscope-close

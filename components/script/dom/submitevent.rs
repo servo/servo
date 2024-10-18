@@ -40,16 +40,9 @@ impl SubmitEvent {
         bubbles: bool,
         cancelable: bool,
         submitter: Option<DomRoot<HTMLElement>>,
+        can_gc: CanGc,
     ) -> DomRoot<SubmitEvent> {
-        Self::new_with_proto(
-            global,
-            None,
-            type_,
-            bubbles,
-            cancelable,
-            submitter,
-            CanGc::note(),
-        )
+        Self::new_with_proto(global, None, type_, bubbles, cancelable, submitter, can_gc)
     }
 
     fn new_with_proto(

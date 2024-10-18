@@ -91,8 +91,8 @@ impl MessageEvent {
         }
     }
 
-    pub fn new_uninitialized(global: &GlobalScope) -> DomRoot<MessageEvent> {
-        Self::new_uninitialized_with_proto(global, None, CanGc::note())
+    pub fn new_uninitialized(global: &GlobalScope, can_gc: CanGc) -> DomRoot<MessageEvent> {
+        Self::new_uninitialized_with_proto(global, None, can_gc)
     }
 
     fn new_uninitialized_with_proto(
@@ -146,6 +146,7 @@ impl MessageEvent {
         source: Option<&WindowProxyOrMessagePortOrServiceWorker>,
         lastEventId: DOMString,
         ports: Vec<DomRoot<MessagePort>>,
+        can_gc: CanGc,
     ) -> DomRoot<MessageEvent> {
         Self::new_with_proto(
             global,
@@ -158,7 +159,7 @@ impl MessageEvent {
             source,
             lastEventId,
             ports,
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -200,6 +201,7 @@ impl MessageEvent {
         origin: Option<&str>,
         source: Option<&WindowProxy>,
         ports: Vec<DomRoot<MessagePort>>,
+        can_gc: CanGc,
     ) {
         let messageevent = MessageEvent::new(
             scope,
@@ -215,11 +217,12 @@ impl MessageEvent {
                 .as_ref(),
             DOMString::new(),
             ports,
+            can_gc,
         );
         messageevent.upcast::<Event>().fire(target);
     }
 
-    pub fn dispatch_error(target: &EventTarget, scope: &GlobalScope) {
+    pub fn dispatch_error(target: &EventTarget, scope: &GlobalScope, can_gc: CanGc) {
         let init = MessageEventBinding::MessageEventInit::empty();
         let messageevent = MessageEvent::new(
             scope,
@@ -231,6 +234,7 @@ impl MessageEvent {
             init.source.as_ref(),
             init.lastEventId.clone(),
             init.ports.clone(),
+            can_gc,
         );
         messageevent.upcast::<Event>().fire(target);
     }

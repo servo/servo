@@ -603,6 +603,7 @@ impl TaskOnce for MessageReceivedTask {
                 Some(&ws.origin().ascii_serialization()),
                 None,
                 vec![],
+                CanGc::note(),
             );
         }
     }

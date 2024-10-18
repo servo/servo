@@ -401,7 +401,7 @@ impl XRSession {
                         base == base_space
                     })
                     .for_each(|space| {
-                        let offset = XRRigidTransform::new(&self.global(), transform);
+                        let offset = XRRigidTransform::new(&self.global(), transform, can_gc);
                         let event = XRReferenceSpaceEvent::new(
                             &self.global(),
                             atom!("reset"),
@@ -824,7 +824,12 @@ impl XRSessionMethods for XRSession {
     }
 
     /// <https://immersive-web.github.io/webxr/#dom-xrsession-requestreferencespace>
-    fn RequestReferenceSpace(&self, ty: XRReferenceSpaceType, comp: InRealm) -> Rc<Promise> {
+    fn RequestReferenceSpace(
+        &self,
+        ty: XRReferenceSpaceType,
+        comp: InRealm,
+        can_gc: CanGc,
+    ) -> Rc<Promise> {
         let p = Promise::new_in_current_realm(comp);
 
         // https://immersive-web.github.io/webxr/#create-a-reference-space
@@ -861,13 +866,13 @@ impl XRSessionMethods for XRSession {
                     }
                 }
                 if ty == XRReferenceSpaceType::Bounded_floor {
-                    let space = XRBoundedReferenceSpace::new(&self.global(), self);
+                    let space = XRBoundedReferenceSpace::new(&self.global(), self, can_gc);
                     self.reference_spaces
                         .borrow_mut()
                         .push(Dom::from_ref(space.reference_space()));
                     p.resolve_native(&space);
                 } else {
-                    let space = XRReferenceSpace::new(&self.global(), self, ty);
+                    let space = XRReferenceSpace::new(&self.global(), self, ty, can_gc);
                     self.reference_spaces
                         .borrow_mut()
                         .push(Dom::from_ref(&*space));

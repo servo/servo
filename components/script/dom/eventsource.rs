@@ -207,7 +207,7 @@ impl EventSourceContext {
 
     // https://html.spec.whatwg.org/multipage/#dispatchMessage
     #[allow(unsafe_code)]
-    fn dispatch_event(&mut self) {
+    fn dispatch_event(&mut self, can_gc: CanGc) {
         let event_source = self.event_source.root();
         // Step 1
         *event_source.last_event_id.borrow_mut() = DOMString::from(self.last_event_id.clone());
@@ -247,6 +247,7 @@ impl EventSourceContext {
                 None,
                 event_source.last_event_id.borrow().clone(),
                 Vec::with_capacity(0),
+                can_gc,
             )
         };
         // Step 7
@@ -270,7 +271,7 @@ impl EventSourceContext {
     }
 
     // https://html.spec.whatwg.org/multipage/#event-stream-interpretation
-    fn parse(&mut self, stream: Chars) {
+    fn parse(&mut self, stream: Chars, can_gc: CanGc) {
         let mut stream = stream.peekable();
 
         while let Some(ch) = stream.next() {
@@ -307,12 +308,12 @@ impl EventSourceContext {
                     self.process_field();
                 },
 
-                ('\n', &ParserState::Eol) => self.dispatch_event(),
+                ('\n', &ParserState::Eol) => self.dispatch_event(can_gc),
                 ('\r', &ParserState::Eol) => {
                     if let Some(&'\n') = stream.peek() {
                         continue;
                     }
-                    self.dispatch_event();
+                    self.dispatch_event(can_gc);
                 },
 
                 ('\n', &ParserState::Comment) => self.parser_state = ParserState::Eol,
@@ -384,7 +385,7 @@ impl FetchResponseListener for EventSourceContext {
             match incomplete.try_complete(input) {
                 None => return,
                 Some((result, remaining_input)) => {
-                    self.parse(result.unwrap_or("\u{FFFD}").chars());
+                    self.parse(result.unwrap_or("\u{FFFD}").chars(), CanGc::note());
                     input = remaining_input;
                 },
             }
@@ -393,7 +394,7 @@ impl FetchResponseListener for EventSourceContext {
         while !input.is_empty() {
             match utf8::decode(input) {
                 Ok(s) => {
-                    self.parse(s.chars());
+                    self.parse(s.chars(), CanGc::note());
                     return;
                 },
                 Err(utf8::DecodeError::Invalid {
@@ -401,15 +402,15 @@ impl FetchResponseListener for EventSourceContext {
                     remaining_input,
                     ..
                 }) => {
-                    self.parse(valid_prefix.chars());
-                    self.parse("\u{FFFD}".chars());
+                    self.parse(valid_prefix.chars(), CanGc::note());
+                    self.parse("\u{FFFD}".chars(), CanGc::note());
                     input = remaining_input;
                 },
                 Err(utf8::DecodeError::Incomplete {
                     valid_prefix,
                     incomplete_suffix,
                 }) => {
-                    self.parse(valid_prefix.chars());
+                    self.parse(valid_prefix.chars(), CanGc::note());
                     self.incomplete_utf8 = Some(incomplete_suffix);
                     return;
                 },
@@ -423,7 +424,7 @@ impl FetchResponseListener for EventSourceContext {
         _response: Result<ResourceFetchTiming, NetworkError>,
     ) {
         if self.incomplete_utf8.take().is_some() {
-            self.parse("\u{FFFD}".chars());
+            self.parse("\u{FFFD}".chars(), CanGc::note());
         }
         self.reestablish_the_connection();
     }

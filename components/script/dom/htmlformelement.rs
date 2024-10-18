@@ -759,6 +759,7 @@ impl HTMLFormElement {
                 true,
                 true,
                 submitter_button.map(DomRoot::from_ref),
+                can_gc,
             );
             let event = event.upcast::<Event>();
             event.fire(self.upcast::<EventTarget>());

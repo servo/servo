@@ -38,8 +38,8 @@ impl URLSearchParams {
         }
     }
 
-    pub fn new(global: &GlobalScope, url: Option<&URL>) -> DomRoot<URLSearchParams> {
-        Self::new_with_proto(global, None, url, CanGc::note())
+    pub fn new(global: &GlobalScope, url: Option<&URL>, can_gc: CanGc) -> DomRoot<URLSearchParams> {
+        Self::new_with_proto(global, None, url, can_gc)
     }
 
     pub fn new_with_proto(

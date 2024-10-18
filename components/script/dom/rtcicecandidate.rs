@@ -47,6 +47,7 @@ impl RTCIceCandidate {
         sdp_m_id: Option<DOMString>,
         sdp_m_line_index: Option<u16>,
         username_fragment: Option<DOMString>,
+        can_gc: CanGc,
     ) -> DomRoot<RTCIceCandidate> {
         Self::new_with_proto(
             global,
@@ -55,7 +56,7 @@ impl RTCIceCandidate {
             sdp_m_id,
             sdp_m_line_index,
             username_fragment,
-            CanGc::note(),
+            can_gc,
         )
     }
 

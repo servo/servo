@@ -97,7 +97,11 @@ impl Worker {
         *self.context_for_interrupt.borrow_mut() = Some(cx);
     }
 
-    pub fn handle_message(address: TrustedWorkerAddress, data: StructuredSerializedData) {
+    pub fn handle_message(
+        address: TrustedWorkerAddress,
+        data: StructuredSerializedData,
+        can_gc: CanGc,
+    ) {
         let worker = address.root();
 
         if worker.is_terminated() {
@@ -109,10 +113,18 @@ impl Worker {
         let _ac = enter_realm(target);
         rooted!(in(*GlobalScope::get_cx()) let mut message = UndefinedValue());
         if let Ok(ports) = structuredclone::read(&global, data, message.handle_mut()) {
-            MessageEvent::dispatch_jsval(target, &global, message.handle(), None, None, ports);
+            MessageEvent::dispatch_jsval(
+                target,
+                &global,
+                message.handle(),
+                None,
+                None,
+                ports,
+                can_gc,
+            );
         } else {
             // Step 4 of the "port post message steps" of the implicit messageport, fire messageerror.
-            MessageEvent::dispatch_error(target, &global);
+            MessageEvent::dispatch_error(target, &global, can_gc);
         }
     }
 

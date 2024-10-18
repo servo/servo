@@ -199,6 +199,7 @@ impl RTCDataChannel {
                 Some(&global.origin().immutable().ascii_serialization()),
                 None,
                 vec![],
+                can_gc,
             );
         }
     }

@@ -79,6 +79,7 @@ impl WebGLContextEvent {
         bubbles: EventBubbles,
         cancelable: EventCancelable,
         status_message: DOMString,
+        can_gc: CanGc,
     ) -> DomRoot<WebGLContextEvent> {
         Self::new_with_proto(
             window,
@@ -87,7 +88,7 @@ impl WebGLContextEvent {
             bubbles,
             cancelable,
             status_message,
-            CanGc::note(),
+            can_gc,
         )
     }
 
