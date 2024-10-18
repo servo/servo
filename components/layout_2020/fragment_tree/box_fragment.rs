@@ -10,13 +10,13 @@ use style::computed_values::overflow_x::T as ComputedOverflow;
 use style::computed_values::position::T as ComputedPosition;
 use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
-use style::values::computed::{LengthPercentage, LengthPercentageOrAuto};
+use style::values::computed::LengthPercentageOrAuto;
 use style::Zero;
 
 use super::{BaseFragment, BaseFragmentInfo, CollapsedBlockMargins, Fragment};
 use crate::cell::ArcRefCell;
 use crate::formatting_contexts::Baselines;
-use crate::geom::{AuOrAuto, PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize, ToLogical};
+use crate::geom::{AuOrAuto, PhysicalPoint, PhysicalRect, PhysicalSides, ToLogical};
 use crate::style_ext::ComputedValuesExt;
 
 /// Describes how a [`BoxFragment`] paints its background.
@@ -71,9 +71,6 @@ pub(crate) struct BoxFragment {
     /// The scrollable overflow of this box fragment.
     pub scrollable_overflow_from_children: PhysicalRect<Au>,
 
-    /// Whether or not this box was overconstrained in the given dimension.
-    overconstrained: PhysicalSize<bool>,
-
     /// The resolved box insets if this box is `position: sticky`. These are calculated
     /// during stacking context tree construction because they rely on the size of the
     /// scroll container.
@@ -96,33 +93,6 @@ impl BoxFragment {
         clearance: Option<Au>,
         block_margins_collapsed_with_children: CollapsedBlockMargins,
     ) -> BoxFragment {
-        Self::new_with_overconstrained(
-            base_fragment_info,
-            style,
-            children,
-            content_rect,
-            padding,
-            border,
-            margin,
-            clearance,
-            block_margins_collapsed_with_children,
-            PhysicalSize::default(),
-        )
-    }
-
-    #[allow(clippy::too_many_arguments)]
-    pub fn new_with_overconstrained(
-        base_fragment_info: BaseFragmentInfo,
-        style: ServoArc<ComputedValues>,
-        children: Vec<Fragment>,
-        content_rect: PhysicalRect<Au>,
-        padding: PhysicalSides<Au>,
-        border: PhysicalSides<Au>,
-        margin: PhysicalSides<Au>,
-        clearance: Option<Au>,
-        block_margins_collapsed_with_children: CollapsedBlockMargins,
-        overconstrained: PhysicalSize<bool>,
-    ) -> BoxFragment {
         let scrollable_overflow_from_children =
             children.iter().fold(PhysicalRect::zero(), |acc, child| {
                 acc.union(&child.scrollable_overflow())
@@ -140,7 +110,6 @@ impl BoxFragment {
             baselines: Baselines::default(),
             block_margins_collapsed_with_children,
             scrollable_overflow_from_children,
-            overconstrained,
             resolved_sticky_insets: None,
             background_mode: BackgroundMode::Normal,
         }
@@ -335,27 +304,22 @@ impl BoxFragment {
         );
 
         let margin_rect = self.margin_rect();
-        let resolve = |value: &LengthPercentageOrAuto, container_length: Au| -> Au {
-            value
-                .auto_is(LengthPercentage::zero)
-                .to_used_value(container_length)
-        };
-
-        let (top, bottom) = if self.overconstrained.height {
+        let (top, bottom) = match (&insets.top, &insets.bottom) {
             (
-                resolve(&insets.top, cb_height),
-                resolve(&insets.bottom, cb_height),
-            )
-        } else {
-            (margin_rect.origin.y, cb_height - margin_rect.max_y())
+                LengthPercentageOrAuto::LengthPercentage(top),
+                LengthPercentageOrAuto::LengthPercentage(bottom),
+            ) => (
+                top.to_used_value(cb_height),
+                bottom.to_used_value(cb_height),
+            ),
+            _ => (margin_rect.origin.y, cb_height - margin_rect.max_y()),
         };
-        let (left, right) = if self.overconstrained.width {
+        let (left, right) = match (&insets.left, &insets.right) {
             (
-                resolve(&insets.left, cb_width),
-                resolve(&insets.right, cb_width),
-            )
-        } else {
-            (margin_rect.origin.x, cb_width - margin_rect.max_x())
+                LengthPercentageOrAuto::LengthPercentage(left),
+                LengthPercentageOrAuto::LengthPercentage(right),
+            ) => (left.to_used_value(cb_width), right.to_used_value(cb_width)),
+            _ => (margin_rect.origin.x, cb_width - margin_rect.max_x()),
         };
 
         convert_to_au_or_auto(PhysicalSides::new(top, right, bottom, left))
