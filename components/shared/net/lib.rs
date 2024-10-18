@@ -532,10 +532,10 @@ impl FetchThread {
         let (to_fetch_sender, from_fetch_sender) = ipc::channel().unwrap();
 
         let sender_clone = sender.clone();
-        ROUTER.add_route(
-            from_fetch_sender.to_opaque(),
+        ROUTER.add_typed_route(
+            from_fetch_sender,
             Box::new(move |message| {
-                let message: FetchResponseMsg = message.to().unwrap();
+                let message: FetchResponseMsg = message.unwrap();
                 let _ = sender_clone.send(ToFetchThreadMessage::FetchResponse(message));
             }),
         );

@@ -229,14 +229,11 @@ impl GamepadHapticActuatorMethods for GamepadHapticActuator {
             context,
         };
 
-        ROUTER.add_route(
-            effect_complete_receiver.to_opaque(),
-            Box::new(move |message| {
-                let msg = message.to::<bool>();
-                match msg {
-                    Ok(msg) => listener.handle_completed(msg),
-                    Err(err) => warn!("Error receiving a GamepadMsg: {:?}", err),
-                }
+        ROUTER.add_typed_route(
+            effect_complete_receiver,
+            Box::new(move |message| match message {
+                Ok(msg) => listener.handle_completed(msg),
+                Err(err) => warn!("Error receiving a GamepadMsg: {:?}", err),
             }),
         );
 
@@ -301,14 +298,11 @@ impl GamepadHapticActuatorMethods for GamepadHapticActuator {
             context,
         };
 
-        ROUTER.add_route(
-            effect_stop_receiver.to_opaque(),
-            Box::new(move |message| {
-                let msg = message.to::<bool>();
-                match msg {
-                    Ok(msg) => listener.handle_stopped(msg),
-                    Err(err) => warn!("Error receiving a GamepadMsg: {:?}", err),
-                }
+        ROUTER.add_typed_route(
+            effect_stop_receiver,
+            Box::new(move |message| match message {
+                Ok(msg) => listener.handle_stopped(msg),
+                Err(err) => warn!("Error receiving a GamepadMsg: {:?}", err),
             }),
         );
 

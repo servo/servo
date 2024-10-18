@@ -46,7 +46,7 @@ tracing = { workspace = true, optional = true }
 webrender = { workspace = true }
 webrender_api = { workspace = true }
 webrender_traits = { workspace = true }
-webxr = { git = "https://github.com/servo/webxr" }
+webxr = { workspace = true }
 
 [dev-dependencies]
 surfman = { workspace = true }

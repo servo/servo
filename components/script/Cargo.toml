@@ -116,7 +116,7 @@ webdriver = { workspace = true }
 webgpu = { path = "../webgpu" }
 webrender_api = { workspace = true }
 webrender_traits = { workspace = true }
-webxr-api = { git = "https://github.com/servo/webxr", features = ["ipc"] }
+webxr-api = { workspace = true, features = ["ipc"] }
 xml5ever = { workspace = true }
 
 [target.'cfg(not(target_os = "ios"))'.dependencies]

@@ -245,8 +245,8 @@ pub fn response_async<T: AsyncBluetoothListener + DomObject + 'static>(
         promise: Some(TrustedPromise::new(promise.clone())),
         receiver: Trusted::new(receiver),
     }));
-    ROUTER.add_route(
-        action_receiver.to_opaque(),
+    ROUTER.add_typed_route(
+        action_receiver,
         Box::new(move |message| {
             struct ListenerTask<T: AsyncBluetoothListener + DomObject> {
                 context: Arc<Mutex<BluetoothContext<T>>>,
@@ -265,7 +265,7 @@ pub fn response_async<T: AsyncBluetoothListener + DomObject + 'static>(
 
             let task = ListenerTask {
                 context: context.clone(),
-                action: message.to().unwrap(),
+                action: message.unwrap(),
             };
 
             let result = task_source.queue_unconditionally(task);

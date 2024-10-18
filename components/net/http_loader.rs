@@ -560,11 +560,11 @@ async fn obtain_response(
             let devtools_bytes = devtools_bytes.clone();
             let chunk_requester2 = chunk_requester.clone();
 
-            ROUTER.add_route(
-                body_port.to_opaque(),
+            ROUTER.add_typed_route(
+                body_port,
                 Box::new(move |message| {
                     info!("Received message");
-                    let bytes: Vec<u8> = match message.to().unwrap() {
+                    let bytes: Vec<u8> = match message.unwrap() {
                         BodyChunkResponse::Chunk(bytes) => bytes,
                         BodyChunkResponse::Done => {
                             // Step 3, abort these parallel steps.
