@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use std::os::raw;
 use std::ptr;
 
-use base::id::{BlobId, MessagePortId};
+use base::id::{BlobId, CoordinatesId, MessagePortId};
 use js::glue::{
     CopyJSStructuredCloneData, DeleteJSAutoStructuredCloneBuffer, GetLengthOfJSStructuredCloneData,
     NewJSAutoStructuredCloneBuffer, WriteBytesToJSStructuredCloneData,
@@ -23,7 +23,7 @@ use js::jsapi::{
 use js::jsval::UndefinedValue;
 use js::rust::wrappers::{JS_ReadStructuredClone, JS_WriteStructuredClone};
 use js::rust::{CustomAutoRooterGuard, HandleValue, MutableHandleValue};
-use script_traits::serializable::BlobImpl;
+use script_traits::serializable::{BlobImpl, Coordinates};
 use script_traits::transferable::MessagePortImpl;
 use script_traits::StructuredSerializedData;
 
@@ -34,6 +34,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::serializable::{Serializable, StorageKey};
 use crate::dom::bindings::transferable::Transferable;
 use crate::dom::blob::Blob;
+use crate::dom::dompointreadonly::DOMPointReadOnly;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageport::MessagePort;
 use crate::realms::{enter_realm, AlreadyInRealm, InRealm};
@@ -259,6 +260,8 @@ static STRUCTURED_CLONE_CALLBACKS: JSStructuredCloneCallbacks = JSStructuredClon
 /// <https://html.spec.whatwg.org/multipage/#safe-passing-of-structured-data>
 pub enum StructuredDataHolder {
     Read {
+        /// A map of points, stored temporarily here to keep them rooted.
+        dom_point_read_only: Option<HashMap<StorageKey, DomRoot<DOMPointReadOnly>>>,
         /// A map of deserialized blobs, stored temporarily here to keep them rooted.
         blobs: Option<HashMap<StorageKey, DomRoot<Blob>>>,
         /// A vec of transfer-received DOM ports,
@@ -272,6 +275,8 @@ pub enum StructuredDataHolder {
         /// used as part of the "deserialize" steps of blobs,
         /// to produce the DOM blobs stored in `blobs` above.
         blob_impls: Option<HashMap<BlobId, BlobImpl>>,
+        /// points.
+        coordinates: Option<HashMap<CoordinatesId, Coordinates>>,
     },
     /// A data holder for transferred and serialized objects.
     Write {
@@ -279,6 +284,8 @@ pub enum StructuredDataHolder {
         ports: Option<HashMap<MessagePortId, MessagePortImpl>>,
         /// Serialized blobs.
         blobs: Option<HashMap<BlobId, BlobImpl>>,
+        /// points
+        coordinates: Option<HashMap<CoordinatesId, Coordinates>>,
     },
 }
 
@@ -296,6 +303,7 @@ pub fn write(
         let mut sc_holder = StructuredDataHolder::Write {
             ports: None,
             blobs: None,
+            coordinates: None,
         };
         let sc_holder_ptr = &mut sc_holder as *mut _;
 
@@ -330,8 +338,12 @@ pub fn write(
 
         DeleteJSAutoStructuredCloneBuffer(scbuf);
 
-        let (mut blob_impls, mut port_impls) = match sc_holder {
-            StructuredDataHolder::Write { blobs, ports } => (blobs, ports),
+        let (mut blob_impls, mut port_impls, mut coordinates) = match sc_holder {
+            StructuredDataHolder::Write {
+                blobs,
+                ports,
+                coordinates,
+            } => (blobs, ports, coordinates),
             _ => panic!("Unexpected variant of StructuredDataHolder"),
         };
 
@@ -339,6 +351,7 @@ pub fn write(
             serialized: data,
             ports: port_impls.take(),
             blobs: blob_impls.take(),
+            coordinates: coordinates.take(),
         };
 
         Ok(data)
@@ -359,6 +372,8 @@ pub fn read(
         message_ports: None,
         port_impls: data.ports.take(),
         blob_impls: data.blobs.take(),
+        coordinates: data.coordinates.take(),
+        dom_point_read_only: None,
     };
     let sc_holder_ptr = &mut sc_holder as *mut _;
     unsafe {
