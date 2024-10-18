@@ -232,7 +232,6 @@ impl WorkerMethods for Worker {
             global.wgpu_id_hub(),
             control_receiver,
             context_sender,
-            can_gc,
         );
 
         let context = context_receiver
