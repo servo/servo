@@ -533,10 +533,6 @@ impl HoistedAbsolutelyPositionedBox {
             alignment: block_alignment,
             flip_anchor: false,
         };
-        let overconstrained = LogicalVec2 {
-            inline: inline_axis_solver.is_overconstrained_for_size(computed_size.inline),
-            block: block_axis_solver.is_overconstrained_for_size(computed_size.block),
-        };
 
         let mut inline_axis = inline_axis_solver.solve_for_size(computed_size.inline);
         let mut block_axis = block_axis_solver.solve_for_size(computed_size.block);
@@ -739,10 +735,7 @@ impl HoistedAbsolutelyPositionedBox {
             block_axis_solver.solve_alignment(margin_box_rect, &mut content_rect);
             inline_axis_solver.solve_alignment(margin_box_rect, &mut content_rect);
 
-            let physical_overconstrained =
-                overconstrained.to_physical_size(containing_block.style.writing_mode);
-
-            BoxFragment::new_with_overconstrained(
+            BoxFragment::new(
                 absolutely_positioned_box.context.base_fragment_info(),
                 style,
                 fragments,
@@ -754,7 +747,6 @@ impl HoistedAbsolutelyPositionedBox {
                 // We do not set the baseline offset, because absolutely positioned
                 // elements are not inflow.
                 CollapsedBlockMargins::zero(),
-                physical_overconstrained,
             )
         };
         positioning_context.layout_collected_children(layout_context, &mut new_fragment);
@@ -804,10 +796,6 @@ struct AbsoluteBoxOffsets<'a> {
 }
 
 impl AbsoluteBoxOffsets<'_> {
-    pub(crate) fn both_specified(&self) -> bool {
-        !self.start.is_auto() && !self.end.is_auto()
-    }
-
     pub(crate) fn either_specified(&self) -> bool {
         !self.start.is_auto() || !self.end.is_auto()
     }
@@ -929,13 +917,6 @@ impl<'a> AbsoluteAxisSolver<'a> {
                 }
             },
         }
-    }
-
-    fn is_overconstrained_for_size(&self, computed_size: AuOrAuto) -> bool {
-        !computed_size.is_auto() &&
-            self.box_offsets.both_specified() &&
-            !self.computed_margin_start.is_auto() &&
-            !self.computed_margin_end.is_auto()
     }
 
     fn origin_for_alignment_or_justification(&self, margin_box_axis: RectAxis) -> Option<Au> {
