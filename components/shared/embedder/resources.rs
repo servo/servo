@@ -107,8 +107,8 @@ pub enum Resource {
     /// A JS file to control the media controls.
     /// It can be empty but then media controls will not work.
     MediaControlsJS,
-    /// A placeholder HTML page to display when the code responsible for rendering a page panics and the
-    /// original page can no longer be displayed.
+    /// A placeholder HTML page to display when the code responsible for rendering a page panics and the original
+    /// page can no longer be displayed.
     /// The message can contain a placeholder `${details}` for the error details.
     /// It can be empty but then nothing will be displayed when a crash occurs.
     CrashHTML,
