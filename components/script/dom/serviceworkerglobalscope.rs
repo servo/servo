@@ -294,7 +294,6 @@ impl ServiceWorkerGlobalScope {
         control_receiver: Receiver<ServiceWorkerControlMsg>,
         context_sender: Sender<ThreadSafeJSContext>,
         closing: Arc<AtomicBool>,
-        can_gc: CanGc,
     ) -> JoinHandle<()> {
         let ScopeThings {
             script_url,
@@ -384,7 +383,7 @@ impl ServiceWorkerGlobalScope {
                     scope.execute_script(DOMString::from(source));
                 }
 
-                global.dispatch_activate(can_gc);
+                global.dispatch_activate(CanGc::note());
                 let reporter_name = format!("service-worker-reporter-{}", random::<u64>());
                 scope
                     .upcast::<GlobalScope>()
@@ -398,7 +397,7 @@ impl ServiceWorkerGlobalScope {
                             // which happens after the closing flag is set to true,
                             // or until the worker has run beyond its allocated time.
                             while !scope.is_closing() && !global.has_timed_out() {
-                                run_worker_event_loop(&*global, None, can_gc);
+                                run_worker_event_loop(&*global, None, CanGc::note());
                             }
                         },
                         reporter_name,

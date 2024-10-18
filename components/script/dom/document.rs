@@ -694,7 +694,7 @@ impl Document {
         self.activity.get() != DocumentActivity::Inactive
     }
 
-    pub fn set_activity(&self, activity: DocumentActivity, can_gc: CanGc) {
+    pub fn set_activity(&self, activity: DocumentActivity) {
         // This function should only be called on documents with a browsing context
         assert!(self.has_browsing_context);
         if activity == self.activity.get() {
@@ -752,7 +752,7 @@ impl Document {
                         false, // bubbles
                         false, // cancelable
                         true, // persisted
-                        can_gc,
+                        CanGc::note(),
                     );
                     let event = event.upcast::<Event>();
                     event.set_trusted(true);
@@ -2379,7 +2379,7 @@ impl Document {
     }
 
     // https://html.spec.whatwg.org/multipage/#the-end
-    pub fn maybe_queue_document_completion(&self, can_gc: CanGc) {
+    pub fn maybe_queue_document_completion(&self) {
         // https://html.spec.whatwg.org/multipage/#delaying-load-events-mode
         let is_in_delaying_load_events_mode = match self.window.undiscarded_window_proxy() {
             Some(window_proxy) => window_proxy.is_delaying_load_events_mode(),
@@ -2429,7 +2429,7 @@ impl Document {
                         atom!("load"),
                         EventBubbles::DoesNotBubble,
                         EventCancelable::NotCancelable,
-                        can_gc,
+                        CanGc::note(),
                     );
                     event.set_trusted(true);
 
@@ -2472,7 +2472,7 @@ impl Document {
                             false, // bubbles
                             false, // cancelable
                             false, // persisted
-                            can_gc,
+                            CanGc::note(),
                         );
                         let event = event.upcast::<Event>();
                         event.set_trusted(true);

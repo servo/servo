@@ -1637,7 +1637,7 @@ impl ScriptThread {
 
                 CompositorEvent::GamepadEvent(gamepad_event) => {
                     let global = window.upcast::<GlobalScope>();
-                    global.handle_gamepad_event(gamepad_event, can_gc);
+                    global.handle_gamepad_event(gamepad_event);
                 },
             }
         }
@@ -2034,7 +2034,7 @@ impl ScriptThread {
             let mut docs = self.docs_with_no_blocking_loads.borrow_mut();
             for document in docs.iter() {
                 let _realm = enter_realm(&**document);
-                document.maybe_queue_document_completion(can_gc);
+                document.maybe_queue_document_completion();
 
                 // Document load is a rendering opportunity.
                 ScriptThread::note_rendering_opportunity(document.window().pipeline_id());
@@ -2331,7 +2331,7 @@ impl ScriptThread {
                 self.handle_get_title_msg(pipeline_id)
             },
             ConstellationControlMsg::SetDocumentActivity(pipeline_id, activity) => {
-                self.handle_set_document_activity_msg(pipeline_id, activity, can_gc)
+                self.handle_set_document_activity_msg(pipeline_id, activity)
             },
             ConstellationControlMsg::SetThrottled(pipeline_id, throttled) => {
                 self.handle_set_throttled_msg(pipeline_id, throttled)
@@ -3003,12 +3003,7 @@ impl ScriptThread {
     }
 
     /// Handles activity change message
-    fn handle_set_document_activity_msg(
-        &self,
-        id: PipelineId,
-        activity: DocumentActivity,
-        can_gc: CanGc,
-    ) {
+    fn handle_set_document_activity_msg(&self, id: PipelineId, activity: DocumentActivity) {
         debug!(
             "Setting activity of {} to be {:?} in {:?}.",
             id,
@@ -3017,7 +3012,7 @@ impl ScriptThread {
         );
         let document = self.documents.borrow().find_document(id);
         if let Some(document) = document {
-            document.set_activity(activity, can_gc);
+            document.set_activity(activity);
             return;
         }
         let mut loads = self.incomplete_loads.borrow_mut();

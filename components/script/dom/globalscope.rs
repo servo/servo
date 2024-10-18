@@ -3185,7 +3185,7 @@ impl GlobalScope {
         }
     }
 
-    pub fn handle_gamepad_event(&self, gamepad_event: GamepadEvent, can_gc: CanGc) {
+    pub fn handle_gamepad_event(&self, gamepad_event: GamepadEvent) {
         match gamepad_event {
             GamepadEvent::Connected(index, name, bounds, supported_haptic_effects) => {
                 self.handle_gamepad_connect(
@@ -3194,7 +3194,6 @@ impl GlobalScope {
                     bounds.axis_bounds,
                     bounds.button_bounds,
                     supported_haptic_effects,
-                    can_gc,
                 );
             },
             GamepadEvent::Disconnected(index) => {
@@ -3207,7 +3206,7 @@ impl GlobalScope {
     }
 
     /// <https://www.w3.org/TR/gamepad/#dfn-gamepadconnected>
-    pub fn handle_gamepad_connect(
+    fn handle_gamepad_connect(
         &self,
         // As the spec actually defines how to set the gamepad index, the GilRs index
         // is currently unused, though in practice it will almost always be the same.
@@ -3217,7 +3216,6 @@ impl GlobalScope {
         axis_bounds: (f64, f64),
         button_bounds: (f64, f64),
         supported_haptic_effects: GamepadSupportedHapticEffects,
-        can_gc: CanGc,
     ) {
         // TODO: 2. If document is not null and is not allowed to use the "gamepad" permission,
         //          then abort these steps.
@@ -3239,7 +3237,7 @@ impl GlobalScope {
                             button_bounds,
                             supported_haptic_effects,
                             false,
-                            can_gc,
+                            CanGc::note(),
                         );
                         navigator.set_gamepad(selected_index as usize, &gamepad);
                     }
