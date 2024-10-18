@@ -403,7 +403,7 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
         input: RequestOrUSVString,
         init: RootedTraceableBox<RequestInit>,
         comp: InRealm,
-        can_gc:CanGc
+        can_gc: CanGc,
     ) -> Rc<Promise> {
         fetch::Fetch(self.upcast(), input, init, comp, can_gc)
     }

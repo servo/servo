@@ -113,7 +113,7 @@ impl BodyMixin for Response {
         self.body_stream.get()
     }
 
-    fn get_mime_type(&self, _can_gc:CanGc) -> Vec<u8> {
+    fn get_mime_type(&self, _can_gc: CanGc) -> Vec<u8> {
         let headers = self.Headers();
         headers.extract_mime_type()
     }
@@ -358,27 +358,27 @@ impl ResponseMethods for Response {
     }
 
     // https://fetch.spec.whatwg.org/#dom-body-text
-    fn Text(&self, can_gc:CanGc) -> Rc<Promise> {
+    fn Text(&self, can_gc: CanGc) -> Rc<Promise> {
         consume_body(self, BodyType::Text, can_gc)
     }
 
     // https://fetch.spec.whatwg.org/#dom-body-blob
-    fn Blob(&self, can_gc:CanGc) -> Rc<Promise> {
+    fn Blob(&self, can_gc: CanGc) -> Rc<Promise> {
         consume_body(self, BodyType::Blob, can_gc)
     }
 
     // https://fetch.spec.whatwg.org/#dom-body-formdata
-    fn FormData(&self, can_gc:CanGc) -> Rc<Promise> {
+    fn FormData(&self, can_gc: CanGc) -> Rc<Promise> {
         consume_body(self, BodyType::FormData, can_gc)
     }
 
     // https://fetch.spec.whatwg.org/#dom-body-json
-    fn Json(&self, can_gc:CanGc) -> Rc<Promise> {
+    fn Json(&self, can_gc: CanGc) -> Rc<Promise> {
         consume_body(self, BodyType::Json, can_gc)
     }
 
     // https://fetch.spec.whatwg.org/#dom-body-arraybuffer
-    fn ArrayBuffer(&self, can_gc:CanGc) -> Rc<Promise> {
+    fn ArrayBuffer(&self, can_gc: CanGc) -> Rc<Promise> {
         consume_body(self, BodyType::ArrayBuffer, can_gc)
     }
 }

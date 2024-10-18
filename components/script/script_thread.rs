@@ -2563,7 +2563,7 @@ impl ScriptThread {
         }
     }
 
-    fn handle_msg_from_devtools(&self, msg: DevtoolScriptControlMsg, can_gc:CanGc) {
+    fn handle_msg_from_devtools(&self, msg: DevtoolScriptControlMsg, can_gc: CanGc) {
         let documents = self.documents.borrow();
         match msg {
             DevtoolScriptControlMsg::EvaluateJS(id, s, reply) => match documents.find_window(id) {

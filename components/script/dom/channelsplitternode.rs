@@ -63,7 +63,7 @@ impl ChannelSplitterNode {
         window: &Window,
         context: &BaseAudioContext,
         options: &ChannelSplitterOptions,
-        can_gc:CanGc
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<ChannelSplitterNode>> {
         Self::new_with_proto(window, None, context, options, can_gc)
     }

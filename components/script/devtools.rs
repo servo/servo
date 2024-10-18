@@ -328,7 +328,7 @@ pub fn handle_get_layout(
     pipeline: PipelineId,
     node_id: String,
     reply: IpcSender<Option<ComputedNodeLayout>>,
-    can_gc:CanGc
+    can_gc: CanGc,
 ) {
     let node = match find_node_by_unique_id(documents, pipeline, &node_id) {
         None => return reply.send(None).unwrap(),

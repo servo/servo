@@ -96,7 +96,9 @@ impl Request {
             borrowed_r_request.origin = req.origin.clone();
         }
         *r_clone.request.borrow_mut() = req.clone();
-        r_clone.Headers(can_gc).copy_from_headers(r.Headers(can_gc))?;
+        r_clone
+            .Headers(can_gc)
+            .copy_from_headers(r.Headers(can_gc))?;
         r_clone.Headers(can_gc).set_guard(headers_guard);
         Ok(r_clone)
     }
@@ -430,7 +432,8 @@ impl RequestMethods for Request {
                 // but an input with headers is given, set request's
                 // headers as the input's Headers.
                 if let RequestInfo::Request(ref input_request) = input {
-                    r.Headers(can_gc).copy_from_headers(input_request.Headers(can_gc))?;
+                    r.Headers(can_gc)
+                        .copy_from_headers(input_request.Headers(can_gc))?;
                 }
             },
             Some(headers_copy) => r.Headers(can_gc).fill(Some(headers_copy))?,
@@ -536,7 +539,7 @@ impl RequestMethods for Request {
     }
 
     // https://fetch.spec.whatwg.org/#dom-request-headers
-    fn Headers(&self, can_gc:CanGc) -> DomRoot<Headers> {
+    fn Headers(&self, can_gc: CanGc) -> DomRoot<Headers> {
         self.headers
             .or_init(|| Headers::new(&self.global(), can_gc))
     }
@@ -608,7 +611,7 @@ impl RequestMethods for Request {
     }
 
     // https://fetch.spec.whatwg.org/#dom-request-clone
-    fn Clone(&self, can_gc:CanGc) -> Fallible<DomRoot<Request>> {
+    fn Clone(&self, can_gc: CanGc) -> Fallible<DomRoot<Request>> {
         // Step 1
         if request_is_locked(self) {
             return Err(Error::Type("Request is locked".to_string()));
@@ -622,27 +625,27 @@ impl RequestMethods for Request {
     }
 
     // https://fetch.spec.whatwg.org/#dom-body-text
-    fn Text(&self, can_gc:CanGc) -> Rc<Promise> {
+    fn Text(&self, can_gc: CanGc) -> Rc<Promise> {
         consume_body(self, BodyType::Text, can_gc)
     }
 
     // https://fetch.spec.whatwg.org/#dom-body-blob
-    fn Blob(&self, can_gc:CanGc) -> Rc<Promise> {
+    fn Blob(&self, can_gc: CanGc) -> Rc<Promise> {
         consume_body(self, BodyType::Blob, can_gc)
     }
 
     // https://fetch.spec.whatwg.org/#dom-body-formdata
-    fn FormData(&self, can_gc:CanGc) -> Rc<Promise> {
+    fn FormData(&self, can_gc: CanGc) -> Rc<Promise> {
         consume_body(self, BodyType::FormData, can_gc)
     }
 
     // https://fetch.spec.whatwg.org/#dom-body-json
-    fn Json(&self, can_gc:CanGc) -> Rc<Promise> {
+    fn Json(&self, can_gc: CanGc) -> Rc<Promise> {
         consume_body(self, BodyType::Json, can_gc)
     }
 
     // https://fetch.spec.whatwg.org/#dom-body-arraybuffer
-    fn ArrayBuffer(&self, can_gc:CanGc) -> Rc<Promise> {
+    fn ArrayBuffer(&self, can_gc: CanGc) -> Rc<Promise> {
         consume_body(self, BodyType::ArrayBuffer, can_gc)
     }
 }
@@ -664,7 +667,7 @@ impl BodyMixin for Request {
         self.body_stream.get()
     }
 
-    fn get_mime_type(&self, can_gc:CanGc) -> Vec<u8> {
+    fn get_mime_type(&self, can_gc: CanGc) -> Vec<u8> {
         let headers = self.Headers(can_gc);
         headers.extract_mime_type()
     }

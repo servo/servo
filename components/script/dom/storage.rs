@@ -20,8 +20,8 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::storageevent::StorageEvent;
 use crate::dom::window::Window;
-use crate::task_source::TaskSource;
 use crate::script_runtime::CanGc;
+use crate::task_source::TaskSource;
 
 #[dom_struct]
 pub struct Storage {

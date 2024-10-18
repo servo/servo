@@ -716,7 +716,11 @@ impl Callback for ConsumeBodyPromiseHandler {
 
 // https://fetch.spec.whatwg.org/#concept-body-consume-body
 #[allow(crown::unrooted_must_root)]
-pub fn consume_body<T: BodyMixin + DomObject>(object: &T, body_type: BodyType, can_gc:CanGc) -> Rc<Promise> {
+pub fn consume_body<T: BodyMixin + DomObject>(
+    object: &T,
+    body_type: BodyType,
+    can_gc: CanGc,
+) -> Rc<Promise> {
     let in_realm_proof = AlreadyInRealm::assert();
     let promise = Promise::new_in_current_realm(InRealm::Already(&in_realm_proof));
 
@@ -733,7 +737,7 @@ pub fn consume_body<T: BodyMixin + DomObject>(object: &T, body_type: BodyType, c
         body_type,
         promise.clone(),
         InRealm::Already(&in_realm_proof),
-        can_gc
+        can_gc,
     );
 
     promise
@@ -746,7 +750,7 @@ fn consume_body_with_promise<T: BodyMixin + DomObject>(
     body_type: BodyType,
     promise: Rc<Promise>,
     comp: InRealm,
-    can_gc:CanGc
+    can_gc: CanGc,
 ) {
     let global = object.global();
 
@@ -916,5 +920,5 @@ pub trait BodyMixin {
     /// <https://fetch.spec.whatwg.org/#concept-body-locked>
     fn is_locked(&self) -> bool;
     /// <https://fetch.spec.whatwg.org/#concept-body-mime-type>
-    fn get_mime_type(&self, can_gc:CanGc) -> Vec<u8>;
+    fn get_mime_type(&self, can_gc: CanGc) -> Vec<u8>;
 }

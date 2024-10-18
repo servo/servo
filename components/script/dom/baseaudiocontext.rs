@@ -427,7 +427,11 @@ impl BaseAudioContextMethods for BaseAudioContext {
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createchannelsplitter>
-    fn CreateChannelSplitter(&self, count: u32, can_gc:CanGc) -> Fallible<DomRoot<ChannelSplitterNode>> {
+    fn CreateChannelSplitter(
+        &self,
+        count: u32,
+        can_gc: CanGc,
+    ) -> Fallible<DomRoot<ChannelSplitterNode>> {
         let mut opts = ChannelSplitterOptions::empty();
         opts.numberOfOutputs = count;
         ChannelSplitterNode::new(self.global().as_window(), self, &opts, can_gc)
