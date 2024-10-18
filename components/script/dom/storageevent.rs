@@ -82,6 +82,7 @@ impl StorageEvent {
         newValue: Option<DOMString>,
         url: DOMString,
         storageArea: Option<&Storage>,
+        can_gc: CanGc,
     ) -> DomRoot<StorageEvent> {
         Self::new_with_proto(
             global,
@@ -94,7 +95,7 @@ impl StorageEvent {
             newValue,
             url,
             storageArea,
-            CanGc::note(),
+            can_gc,
         )
     }
 

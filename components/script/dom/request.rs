@@ -88,7 +88,7 @@ impl Request {
     fn clone_from(r: &Request, can_gc: CanGc) -> Fallible<DomRoot<Request>> {
         let req = r.request.borrow();
         let url = req.url();
-        let headers_guard = r.Headers().get_guard();
+        let headers_guard = r.Headers(can_gc).get_guard();
         let r_clone = Request::new(&r.global(), None, url, can_gc);
         r_clone.request.borrow_mut().pipeline_id = req.pipeline_id;
         {
@@ -96,8 +96,10 @@ impl Request {
             borrowed_r_request.origin = req.origin.clone();
         }
         *r_clone.request.borrow_mut() = req.clone();
-        r_clone.Headers().copy_from_headers(r.Headers())?;
-        r_clone.Headers().set_guard(headers_guard);
+        r_clone
+            .Headers(can_gc)
+            .copy_from_headers(r.Headers(can_gc))?;
+        r_clone.Headers(can_gc).set_guard(headers_guard);
         Ok(r_clone)
     }
 
@@ -384,7 +386,7 @@ impl RequestMethods for Request {
         // "or_init" looks unclear here, but it always enters the block since r
         // hasn't had any other way to initialize its headers
         r.headers
-            .or_init(|| Headers::for_request(&r.global(), CanGc::note()));
+            .or_init(|| Headers::for_request(&r.global(), can_gc));
 
         // Step 33 - but spec says this should only be when non-empty init?
         let headers_copy = init
@@ -419,7 +421,7 @@ impl RequestMethods for Request {
                 ));
             }
             // Step 32.2
-            r.Headers().set_guard(Guard::RequestNoCors);
+            r.Headers(can_gc).set_guard(Guard::RequestNoCors);
         }
 
         // Step 33.5
@@ -430,15 +432,16 @@ impl RequestMethods for Request {
                 // but an input with headers is given, set request's
                 // headers as the input's Headers.
                 if let RequestInfo::Request(ref input_request) = input {
-                    r.Headers().copy_from_headers(input_request.Headers())?;
+                    r.Headers(can_gc)
+                        .copy_from_headers(input_request.Headers(can_gc))?;
                 }
             },
-            Some(headers_copy) => r.Headers().fill(Some(headers_copy))?,
+            Some(headers_copy) => r.Headers(can_gc).fill(Some(headers_copy))?,
         }
 
         // Step 33.5 depending on how we got here
         // Copy the headers list onto the headers of net_traits::Request
-        r.request.borrow_mut().headers = r.Headers().get_headers_list();
+        r.request.borrow_mut().headers = r.Headers(can_gc).get_headers_list();
 
         // Step 34
         let mut input_body = if let RequestInfo::Request(ref mut input_request) = input {
@@ -480,12 +483,12 @@ impl RequestMethods for Request {
             if let Some(contents) = extracted_body.content_type.take() {
                 let ct_header_name = b"Content-Type";
                 if !r
-                    .Headers()
+                    .Headers(can_gc)
                     .Has(ByteString::new(ct_header_name.to_vec()))
                     .unwrap()
                 {
                     let ct_header_val = contents.as_bytes();
-                    r.Headers().Append(
+                    r.Headers(can_gc).Append(
                         ByteString::new(ct_header_name.to_vec()),
                         ByteString::new(ct_header_val.to_vec()),
                     )?;
@@ -536,9 +539,9 @@ impl RequestMethods for Request {
     }
 
     // https://fetch.spec.whatwg.org/#dom-request-headers
-    fn Headers(&self) -> DomRoot<Headers> {
+    fn Headers(&self, can_gc: CanGc) -> DomRoot<Headers> {
         self.headers
-            .or_init(|| Headers::new(&self.global(), CanGc::note()))
+            .or_init(|| Headers::new(&self.global(), can_gc))
     }
 
     // https://fetch.spec.whatwg.org/#dom-request-destination
@@ -608,7 +611,7 @@ impl RequestMethods for Request {
     }
 
     // https://fetch.spec.whatwg.org/#dom-request-clone
-    fn Clone(&self) -> Fallible<DomRoot<Request>> {
+    fn Clone(&self, can_gc: CanGc) -> Fallible<DomRoot<Request>> {
         // Step 1
         if request_is_locked(self) {
             return Err(Error::Type("Request is locked".to_string()));
@@ -618,32 +621,32 @@ impl RequestMethods for Request {
         }
 
         // Step 2
-        Request::clone_from(self, CanGc::note())
+        Request::clone_from(self, can_gc)
     }
 
     // https://fetch.spec.whatwg.org/#dom-body-text
-    fn Text(&self) -> Rc<Promise> {
-        consume_body(self, BodyType::Text)
+    fn Text(&self, can_gc: CanGc) -> Rc<Promise> {
+        consume_body(self, BodyType::Text, can_gc)
     }
 
     // https://fetch.spec.whatwg.org/#dom-body-blob
-    fn Blob(&self) -> Rc<Promise> {
-        consume_body(self, BodyType::Blob)
+    fn Blob(&self, can_gc: CanGc) -> Rc<Promise> {
+        consume_body(self, BodyType::Blob, can_gc)
     }
 
     // https://fetch.spec.whatwg.org/#dom-body-formdata
-    fn FormData(&self) -> Rc<Promise> {
-        consume_body(self, BodyType::FormData)
+    fn FormData(&self, can_gc: CanGc) -> Rc<Promise> {
+        consume_body(self, BodyType::FormData, can_gc)
     }
 
     // https://fetch.spec.whatwg.org/#dom-body-json
-    fn Json(&self) -> Rc<Promise> {
-        consume_body(self, BodyType::Json)
+    fn Json(&self, can_gc: CanGc) -> Rc<Promise> {
+        consume_body(self, BodyType::Json, can_gc)
     }
 
     // https://fetch.spec.whatwg.org/#dom-body-arraybuffer
-    fn ArrayBuffer(&self) -> Rc<Promise> {
-        consume_body(self, BodyType::ArrayBuffer)
+    fn ArrayBuffer(&self, can_gc: CanGc) -> Rc<Promise> {
+        consume_body(self, BodyType::ArrayBuffer, can_gc)
     }
 }
 
@@ -664,8 +667,8 @@ impl BodyMixin for Request {
         self.body_stream.get()
     }
 
-    fn get_mime_type(&self) -> Vec<u8> {
-        let headers = self.Headers();
+    fn get_mime_type(&self, can_gc: CanGc) -> Vec<u8> {
+        let headers = self.Headers(can_gc);
         headers.extract_mime_type()
     }
 }

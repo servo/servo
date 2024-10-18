@@ -20,6 +20,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::storageevent::StorageEvent;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 use crate::task_source::TaskSource;
 
 #[dom_struct]
@@ -222,6 +223,7 @@ impl Storage {
                         new_value.map(DOMString::from),
                         DOMString::from(url.into_string()),
                         Some(&this),
+                        CanGc::note()
                     );
                     event.upcast::<Event>().fire(global.upcast());
                 }),
