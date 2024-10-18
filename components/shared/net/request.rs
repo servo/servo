@@ -22,8 +22,8 @@ use crate::{ReferrerPolicy, ResourceTimingType};
 /// An id to differeniate one network request from another.
 pub struct RequestId(usize);
 
-impl Default for RequestId {
-    fn default() -> Self {
+impl RequestId {
+    pub fn next() -> Self {
         static NEXT_REQUEST_ID: AtomicUsize = AtomicUsize::new(0);
         Self(NEXT_REQUEST_ID.fetch_add(1, Ordering::Relaxed))
     }
@@ -285,7 +285,7 @@ pub struct RequestBuilder {
 impl RequestBuilder {
     pub fn new(url: ServoUrl, referrer: Referrer) -> RequestBuilder {
         RequestBuilder {
-            id: RequestId::default(),
+            id: RequestId::next(),
             method: Method::GET,
             url,
             headers: HeaderMap::new(),
