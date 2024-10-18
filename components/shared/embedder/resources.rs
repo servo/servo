@@ -59,10 +59,11 @@ pub enum Resource {
     /// It can be empty but lots of features will be disabled.
     Preferences,
     /// A list of GATT services that are blocked from being used by web bluetooth.
-    /// The format of the file is a list of UUIDs, one per line, with an optional second word to specify the type of blocklist.
+    /// The format of the file is a list of UUIDs, one per line, with an optional second word to specify the
+    /// type of blocklist.
     /// It can be empty but then all GATT services will be allowed.
     BluetoothBlocklist,
-    /// A list of domain names that are considered public suffixes, typically obtained from https://publicsuffix.org/list/.
+    /// A list of domain names that are considered public suffixes, typically obtained from <https://publicsuffix.org/list/>.
     /// The Public Suffix List is a cross-vendor initiative to provide an accurate list of domain name suffixes
     /// that are under the control of a registry. This is used to prevent cookies from being set for top-level
     /// domains that are not controlled by the same entity as the website.
@@ -71,8 +72,10 @@ pub enum Resource {
     /// A preloaded list of HTTP Strict Transport Security. It can be an empty list and
     /// [`HstsList::default()`](net::hsts::HstsList) will be called.
     HstsPreloadList,
-    /// A HTML page to display when [`SslValidation`](net_traits::NetworkError::SslValidation) network error is reported.
-    /// The page contains placeholder `${reason}` for the error code and `${bytes}` for the certificate bytes, and also `${secret}` for the privileged secret.
+    /// A HTML page to display when [`SslValidation`](net_traits::NetworkError::SslValidation) network error is
+    /// reported.
+    /// The page contains placeholder `${reason}` for the error code and `${bytes}` for the certificate bytes,
+    /// and also `${secret}` for the privileged secret.
     /// It can be empty but then nothing will be displayed when a certificate error occurs.
     BadCertHTML,
     /// A HTML page to display when any network error occurs that is not related to SSL validation.
@@ -104,7 +107,8 @@ pub enum Resource {
     /// A JS file to control the media controls.
     /// It can be empty but then media controls will not work.
     MediaControlsJS,
-    /// A placeholder HTML page to display when the code responsible for rendering a page panics and the original page can no longer be displayed.
+    /// A placeholder HTML page to display when the code responsible for rendering a page panics and the
+    /// original page can no longer be displayed.
     /// The message can contain a placeholder `${details}` for the error details.
     /// It can be empty but then nothing will be displayed when a crash occurs.
     CrashHTML,
