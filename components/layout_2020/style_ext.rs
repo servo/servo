@@ -16,7 +16,7 @@ use style::properties::ComputedValues;
 use style::servo::selector_parser::PseudoElement;
 use style::values::computed::basic_shape::ClipPath;
 use style::values::computed::image::Image as ComputedImageLayer;
-use style::values::computed::{AlignItems, BorderStyle, LengthPercentage};
+use style::values::computed::{AlignItems, BorderStyle, Inset, LengthPercentage, Margin};
 use style::values::generics::box_::Perspective;
 use style::values::generics::position::{GenericAspectRatio, PreferredRatio};
 use style::values::specified::align::AlignFlags;
@@ -180,6 +180,7 @@ impl AspectRatio {
 }
 
 pub(crate) trait ComputedValuesExt {
+    fn physical_box_offsets(&self) -> PhysicalSides<LengthPercentageOrAuto<'_>>;
     fn box_offsets(
         &self,
         containing_block: &ContainingBlock,
@@ -279,6 +280,7 @@ pub(crate) trait ComputedValuesExt {
     fn border_style(&self, containing_block_writing_mode: WritingMode)
         -> LogicalSides<BorderStyle>;
     fn border_width(&self, containing_block_writing_mode: WritingMode) -> LogicalSides<Au>;
+    fn physical_margin(&self) -> PhysicalSides<LengthPercentageOrAuto<'_>>;
     fn margin(
         &self,
         containing_block_writing_mode: WritingMode,
@@ -314,18 +316,30 @@ pub(crate) trait ComputedValuesExt {
 }
 
 impl ComputedValuesExt for ComputedValues {
+    fn physical_box_offsets(&self) -> PhysicalSides<LengthPercentageOrAuto<'_>> {
+        fn convert<'a>(inset: &'a Inset) -> LengthPercentageOrAuto<'a> {
+            match inset {
+                Inset::LengthPercentage(ref v) => LengthPercentageOrAuto::LengthPercentage(v),
+                Inset::Auto => LengthPercentageOrAuto::Auto,
+                Inset::AnchorFunction(_) => unreachable!("anchor() should be disabled"),
+                Inset::AnchorSizeFunction(_) => unreachable!("anchor-size() should be disabled"),
+            }
+        }
+        let position = self.get_position();
+        PhysicalSides::new(
+            convert(&position.top),
+            convert(&position.right),
+            convert(&position.bottom),
+            convert(&position.left),
+        )
+    }
+
     fn box_offsets(
         &self,
         containing_block: &ContainingBlock,
     ) -> LogicalSides<LengthPercentageOrAuto<'_>> {
-        let position = self.get_position();
         LogicalSides::from_physical(
-            &PhysicalSides::new(
-                position.top.as_ref(),
-                position.right.as_ref(),
-                position.bottom.as_ref(),
-                position.left.as_ref(),
-            ),
+            &self.physical_box_offsets(),
             containing_block.style.writing_mode,
         )
     }
@@ -681,20 +695,28 @@ impl ComputedValuesExt for ComputedValues {
         )
     }
 
+    fn physical_margin(&self) -> PhysicalSides<LengthPercentageOrAuto<'_>> {
+        fn convert<'a>(inset: &'a Margin) -> LengthPercentageOrAuto<'a> {
+            match inset {
+                Margin::LengthPercentage(ref v) => LengthPercentageOrAuto::LengthPercentage(v),
+                Margin::Auto => LengthPercentageOrAuto::Auto,
+                Margin::AnchorSizeFunction(_) => unreachable!("anchor-size() should be disabled"),
+            }
+        }
+        let margin = self.get_margin();
+        PhysicalSides::new(
+            convert(&margin.margin_top),
+            convert(&margin.margin_right),
+            convert(&margin.margin_bottom),
+            convert(&margin.margin_left),
+        )
+    }
+
     fn margin(
         &self,
         containing_block_writing_mode: WritingMode,
     ) -> LogicalSides<LengthPercentageOrAuto<'_>> {
-        let margin = self.get_margin();
-        LogicalSides::from_physical(
-            &PhysicalSides::new(
-                margin.margin_top.as_ref(),
-                margin.margin_right.as_ref(),
-                margin.margin_bottom.as_ref(),
-                margin.margin_left.as_ref(),
-            ),
-            containing_block_writing_mode,
-        )
+        LogicalSides::from_physical(&self.physical_margin(), containing_block_writing_mode)
     }
 
     /// Returns true if this style has a transform, or perspective property set and

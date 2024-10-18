@@ -10,13 +10,16 @@ use style::computed_values::overflow_x::T as ComputedOverflow;
 use style::computed_values::position::T as ComputedPosition;
 use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
-use style::values::computed::{LengthPercentage, LengthPercentageOrAuto};
+use style::values::computed::LengthPercentage;
 use style::Zero;
 
 use super::{BaseFragment, BaseFragmentInfo, CollapsedBlockMargins, Fragment};
 use crate::cell::ArcRefCell;
 use crate::formatting_contexts::Baselines;
-use crate::geom::{AuOrAuto, PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize, ToLogical};
+use crate::geom::{
+    AuOrAuto, LengthPercentageOrAuto, PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize,
+    ToLogical,
+};
 use crate::style_ext::ComputedValuesExt;
 
 /// Describes how a [`BoxFragment`] paints its background.
@@ -311,7 +314,7 @@ impl BoxFragment {
         // the property is not over-constrained, then the resolved value is the
         // used value. Otherwise the resolved value is the computed value."
         // https://drafts.csswg.org/cssom/#resolved-values
-        let insets = self.style.get_position();
+        let insets = self.style.physical_box_offsets();
         if position == ComputedPosition::Relative {
             let get_resolved_axis = |start: &LengthPercentageOrAuto,
                                      end: &LengthPercentageOrAuto,
@@ -337,9 +340,8 @@ impl BoxFragment {
         );
 
         let resolve = |value: &LengthPercentageOrAuto, container_length: Au| -> Au {
-            value
-                .auto_is(LengthPercentage::zero)
-                .to_used_value(container_length)
+            let zero = LengthPercentage::zero();
+            value.auto_is(|| &zero).to_used_value(container_length)
         };
 
         let (top, bottom) = if self.overconstrained.height {
