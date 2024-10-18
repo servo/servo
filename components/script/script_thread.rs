@@ -4185,7 +4185,7 @@ impl ScriptThread {
             None => vec![],
         };
 
-        let dummy_request_id = RequestId::new();
+        let dummy_request_id = RequestId::next();
         context.process_response(dummy_request_id, Ok(FetchMetadata::Unfiltered(meta)));
         context.process_response_chunk(dummy_request_id, chunk);
         context.process_response_eof(
@@ -4209,7 +4209,7 @@ impl ScriptThread {
 
         let chunk = load_data.srcdoc.into_bytes();
 
-        let dummy_request_id = RequestId::new();
+        let dummy_request_id = RequestId::next();
         context.process_response(dummy_request_id, Ok(FetchMetadata::Unfiltered(meta)));
         context.process_response_chunk(dummy_request_id, chunk);
         context.process_response_eof(

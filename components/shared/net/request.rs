@@ -23,7 +23,7 @@ use crate::{ReferrerPolicy, ResourceTimingType};
 pub struct RequestId(usize);
 
 impl RequestId {
-    pub fn new() -> Self {
+    pub fn next() -> Self {
         static NEXT_REQUEST_ID: AtomicUsize = AtomicUsize::new(0);
         Self(NEXT_REQUEST_ID.fetch_add(1, Ordering::Relaxed))
     }
@@ -285,7 +285,7 @@ pub struct RequestBuilder {
 impl RequestBuilder {
     pub fn new(url: ServoUrl, referrer: Referrer) -> RequestBuilder {
         RequestBuilder {
-            id: RequestId::new(),
+            id: RequestId::next(),
             method: Method::GET,
             url,
             headers: HeaderMap::new(),
