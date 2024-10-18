@@ -63,7 +63,7 @@ impl BluetoothBlocklist {
     }
 }
 
-// https://webbluetoothcg.github.io/web-bluetooth/#parsing-the-blocklist
+// https://webbluetoothcg.github.io/web-bluetooth/#the-blocklist
 fn parse_blocklist() -> Option<HashMap<String, Blocklist>> {
     // Step 1 missing, currently we parse ./resources/gatt_blocklist.txt.
     let valid_uuid_regex = Regex::new(VALID_UUID_REGEX).unwrap();
