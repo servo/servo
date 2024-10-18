@@ -1624,7 +1624,7 @@ impl ScriptThread {
                 },
 
                 CompositorEvent::KeyboardEvent(key_event) => {
-                    document.dispatch_key_event(key_event);
+                    document.dispatch_key_event(key_event, can_gc);
                 },
 
                 CompositorEvent::IMEDismissedEvent => {

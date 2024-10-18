@@ -1817,7 +1817,11 @@ impl Document {
     }
 
     /// The entry point for all key processing for web content
-    pub fn dispatch_key_event(&self, keyboard_event: ::keyboard_types::KeyboardEvent) {
+    pub fn dispatch_key_event(
+        &self,
+        keyboard_event: ::keyboard_types::KeyboardEvent,
+        can_gc: CanGc,
+    ) {
         let focused = self.get_focused_element();
         let body = self.GetBody();
 
@@ -1842,6 +1846,7 @@ impl Document {
             keyboard_event.modifiers,
             0,
             keyboard_event.key.legacy_keycode(),
+            can_gc,
         );
         let event = keyevent.upcast::<Event>();
         event.fire(target);
@@ -1869,6 +1874,7 @@ impl Document {
                 keyboard_event.modifiers,
                 keyboard_event.key.legacy_charcode(),
                 0,
+                can_gc,
             );
             let ev = event.upcast::<Event>();
             ev.fire(target);
@@ -4677,6 +4683,7 @@ impl DocumentMethods for Document {
             ))),
             "keyboardevent" => Ok(DomRoot::upcast(KeyboardEvent::new_uninitialized(
                 &self.window,
+                can_gc,
             ))),
             "messageevent" => Ok(DomRoot::upcast(MessageEvent::new_uninitialized(
                 self.window.upcast(),

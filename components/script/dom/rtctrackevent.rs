@@ -40,16 +40,9 @@ impl RTCTrackEvent {
         bubbles: bool,
         cancelable: bool,
         track: &MediaStreamTrack,
+        can_gc: CanGc,
     ) -> DomRoot<RTCTrackEvent> {
-        Self::new_with_proto(
-            global,
-            None,
-            type_,
-            bubbles,
-            cancelable,
-            track,
-            CanGc::note(),
-        )
+        Self::new_with_proto(global, None, type_, bubbles, cancelable, track, can_gc)
     }
 
     fn new_with_proto(
