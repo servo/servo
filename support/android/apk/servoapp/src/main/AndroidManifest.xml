@@ -27,6 +27,7 @@
               <category android:name="android.intent.category.DEFAULT" />
               <category android:name="android.intent.category.BROWSABLE" />
               <data android:scheme="http" />
+              <data android:host="*"/>
               <data android:scheme="https" />
               <data android:scheme="data" />
               <data android:scheme="javascript" />
@@ -36,6 +37,7 @@
               <category android:name="android.intent.category.DEFAULT" />
               <category android:name="android.intent.category.BROWSABLE" />
               <data android:scheme="file" />
+              <data android:host="*"/>
               <data android:scheme="http" />
               <data android:scheme="https" />
               <data android:mimeType="text/html"/>
