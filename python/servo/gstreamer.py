@@ -182,7 +182,7 @@ def write_plugin_list(target):
         plugins = windows_plugins()
     print('''/* This is a generated file. Do not modify. */
 
-pub(crate) static GSTREAMER_PLUGINS: &[&'static str] = &[
+pub(crate) static GSTREAMER_PLUGINS: &[&str] = &[
 %s
 ];
 ''' % ',\n'.join(map(lambda x: '"' + x + '"', plugins)))

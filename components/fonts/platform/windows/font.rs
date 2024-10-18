@@ -6,7 +6,6 @@
 // information for an approach that we'll likely need to take when the
 // renderer moves to a sandboxed process.
 
-use std::cmp::{max, min};
 use std::fmt;
 use std::io::Cursor;
 use std::ops::Deref;
