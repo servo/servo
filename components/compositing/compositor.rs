@@ -804,6 +804,9 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                         ImageUpdate::UpdateImage(key, desc, data) => {
                             txn.update_image(key, desc, data.into(), &DirtyRect::All)
                         },
+                        ImageUpdate::AddBlobImage(key, desc, v, data) => {
+                            txn.add_blob_image(key, desc, data, v, None);
+                        },
                     }
                 }
                 self.webrender_api
