@@ -597,7 +597,7 @@ impl MessageListener {
                 let _ = self.task_source.queue_with_canceller(
                     task!(process_new_task: move || {
                         let global = context.root();
-                        global.route_task_to_port(port_id, task);
+                        global.route_task_to_port(port_id, task, CanGc::note());
                     }),
                     &self.canceller,
                 );
@@ -1087,7 +1087,7 @@ impl GlobalScope {
                     let _ = self.port_message_queue().queue(
                         task!(process_pending_port_messages: move || {
                             let target_global = this.root();
-                            target_global.route_task_to_port(port_id, task);
+                            target_global.route_task_to_port(port_id, task, CanGc::note());
                         }),
                         self,
                     );
@@ -1143,7 +1143,7 @@ impl GlobalScope {
                         let global = this.root();
                         // Note: we do this in a task, as this will ensure the global and constellation
                         // are aware of any transfer that might still take place in the current task.
-                        global.route_task_to_port(entangled_id, task);
+                        global.route_task_to_port(entangled_id, task, CanGc::note());
                     }),
                     self,
                 );
@@ -1257,10 +1257,11 @@ impl GlobalScope {
                                         Some(&origin.ascii_serialization()),
                                         None,
                                         ports,
+                                        CanGc::note()
                                     );
                                 } else {
                                     // Step 10.3, fire an event named messageerror at destination.
-                                    MessageEvent::dispatch_error(destination.upcast(), &global);
+                                    MessageEvent::dispatch_error(destination.upcast(), &global, CanGc::note());
                                 }
                             }),
                             self,
@@ -1271,7 +1272,7 @@ impl GlobalScope {
     }
 
     /// Route the task to be handled by the relevant port.
-    pub fn route_task_to_port(&self, port_id: MessagePortId, task: PortMessageTask) {
+    pub fn route_task_to_port(&self, port_id: MessagePortId, task: PortMessageTask, can_gc: CanGc) {
         let should_dispatch = if let MessagePortState::Managed(_id, message_ports) =
             &mut *self.message_port_state.borrow_mut()
         {
@@ -1310,10 +1311,11 @@ impl GlobalScope {
                     Some(&origin.ascii_serialization()),
                     None,
                     ports,
+                    can_gc,
                 );
             } else {
                 // Step 4, fire messageerror event.
-                MessageEvent::dispatch_error(dom_port.upcast(), self);
+                MessageEvent::dispatch_error(dom_port.upcast(), self, can_gc);
             }
         }
     }

@@ -40,16 +40,9 @@ impl RTCDataChannelEvent {
         bubbles: bool,
         cancelable: bool,
         channel: &RTCDataChannel,
+        can_gc: CanGc,
     ) -> DomRoot<RTCDataChannelEvent> {
-        Self::new_with_proto(
-            global,
-            None,
-            type_,
-            bubbles,
-            cancelable,
-            channel,
-            CanGc::note(),
-        )
+        Self::new_with_proto(global, None, type_, bubbles, cancelable, channel, can_gc)
     }
 
     fn new_with_proto(

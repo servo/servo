@@ -87,7 +87,7 @@ use crate::dom::webgluniformlocation::WebGLUniformLocation;
 use crate::dom::webglvertexarrayobject::WebGLVertexArrayObject;
 use crate::dom::webglvertexarrayobjectoes::WebGLVertexArrayObjectOES;
 use crate::dom::window::Window;
-use crate::script_runtime::JSContext as SafeJSContext;
+use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 // From the GLES 2.0.25 spec, page 85:
 //
@@ -288,6 +288,7 @@ impl WebGLRenderingContext {
         webgl_version: WebGLVersion,
         size: Size2D<u32>,
         attrs: GLContextAttributes,
+        can_gc: CanGc,
     ) -> Option<DomRoot<WebGLRenderingContext>> {
         match WebGLRenderingContext::new_inherited(window, canvas, webgl_version, size, attrs) {
             Ok(ctx) => Some(reflect_dom_object(Box::new(ctx), window)),
@@ -299,6 +300,7 @@ impl WebGLRenderingContext {
                     EventBubbles::DoesNotBubble,
                     EventCancelable::Cancelable,
                     DOMString::from(msg),
+                    can_gc,
                 );
                 match canvas {
                     HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(canvas) => {

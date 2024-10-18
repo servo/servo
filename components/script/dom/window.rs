@@ -2782,12 +2782,14 @@ impl Window {
                     Some(&source_origin.ascii_serialization()),
                     Some(&*source),
                     ports,
+                    CanGc::note()
                 );
             } else {
                 // Step 4, fire messageerror.
                 MessageEvent::dispatch_error(
                     this.upcast(),
                     this.upcast(),
+                    CanGc::note()
                 );
             }
         });

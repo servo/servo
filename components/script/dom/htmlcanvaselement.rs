@@ -197,6 +197,7 @@ impl HTMLCanvasElement {
         &self,
         cx: JSContext,
         options: HandleValue,
+        can_gc: CanGc,
     ) -> Option<DomRoot<WebGLRenderingContext>> {
         if let Some(ctx) = self.context() {
             return match *ctx {
@@ -208,8 +209,14 @@ impl HTMLCanvasElement {
         let size = self.get_size();
         let attrs = Self::get_gl_attributes(cx, options)?;
         let canvas = HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(DomRoot::from_ref(self));
-        let context =
-            WebGLRenderingContext::new(&window, &canvas, WebGLVersion::WebGL1, size, attrs)?;
+        let context = WebGLRenderingContext::new(
+            &window,
+            &canvas,
+            WebGLVersion::WebGL1,
+            size,
+            attrs,
+            can_gc,
+        )?;
         *self.context.borrow_mut() = Some(CanvasContext::WebGL(Dom::from_ref(&*context)));
         Some(context)
     }
@@ -218,6 +225,7 @@ impl HTMLCanvasElement {
         &self,
         cx: JSContext,
         options: HandleValue,
+        can_gc: CanGc,
     ) -> Option<DomRoot<WebGL2RenderingContext>> {
         if !WebGL2RenderingContext::is_webgl2_enabled(cx, self.global().reflector().get_jsobject())
         {
@@ -233,7 +241,7 @@ impl HTMLCanvasElement {
         let size = self.get_size();
         let attrs = Self::get_gl_attributes(cx, options)?;
         let canvas = HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(DomRoot::from_ref(self));
-        let context = WebGL2RenderingContext::new(&window, &canvas, size, attrs)?;
+        let context = WebGL2RenderingContext::new(&window, &canvas, size, attrs, can_gc)?;
         *self.context.borrow_mut() = Some(CanvasContext::WebGL2(Dom::from_ref(&*context)));
         Some(context)
     }
@@ -348,16 +356,17 @@ impl HTMLCanvasElementMethods for HTMLCanvasElement {
         cx: JSContext,
         id: DOMString,
         options: HandleValue,
+        can_gc: CanGc,
     ) -> Option<RenderingContext> {
         match &*id {
             "2d" => self
                 .get_or_init_2d_context()
                 .map(RenderingContext::CanvasRenderingContext2D),
             "webgl" | "experimental-webgl" => self
-                .get_or_init_webgl_context(cx, options)
+                .get_or_init_webgl_context(cx, options, can_gc)
                 .map(RenderingContext::WebGLRenderingContext),
             "webgl2" | "experimental-webgl2" => self
-                .get_or_init_webgl2_context(cx, options)
+                .get_or_init_webgl2_context(cx, options, can_gc)
                 .map(RenderingContext::WebGL2RenderingContext),
             "webgpu" => self
                 .get_or_init_webgpu_context()

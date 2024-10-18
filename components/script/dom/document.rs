@@ -4687,6 +4687,7 @@ impl DocumentMethods for Document {
             ))),
             "messageevent" => Ok(DomRoot::upcast(MessageEvent::new_uninitialized(
                 self.window.upcast(),
+                can_gc,
             ))),
             "mouseevent" | "mouseevents" => Ok(DomRoot::upcast(MouseEvent::new_uninitialized(
                 &self.window,

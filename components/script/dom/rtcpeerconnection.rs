@@ -259,6 +259,7 @@ impl RTCPeerConnection {
             None,
             Some(candidate.sdp_mline_index as u16),
             None,
+            can_gc,
         );
         let event = RTCPeerConnectionIceEvent::new(
             &self.global(),
@@ -327,6 +328,7 @@ impl RTCPeerConnection {
                     false,
                     false,
                     &channel,
+                    can_gc,
                 );
                 event.upcast::<Event>().fire(self.upcast());
             },

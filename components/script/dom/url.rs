@@ -318,9 +318,9 @@ impl URLMethods for URL {
     }
 
     /// <https://url.spec.whatwg.org/#dom-url-searchparams>
-    fn SearchParams(&self) -> DomRoot<URLSearchParams> {
+    fn SearchParams(&self, can_gc: CanGc) -> DomRoot<URLSearchParams> {
         self.search_params
-            .or_init(|| URLSearchParams::new(&self.global(), Some(self)))
+            .or_init(|| URLSearchParams::new(&self.global(), Some(self), can_gc))
     }
 
     /// <https://url.spec.whatwg.org/#dom-url-username>

@@ -39,8 +39,12 @@ impl XRBoundedReferenceSpace {
     }
 
     #[allow(unused)]
-    pub fn new(global: &GlobalScope, session: &XRSession) -> DomRoot<XRBoundedReferenceSpace> {
-        let offset = XRRigidTransform::identity(global);
+    pub fn new(
+        global: &GlobalScope,
+        session: &XRSession,
+        can_gc: CanGc,
+    ) -> DomRoot<XRBoundedReferenceSpace> {
+        let offset = XRRigidTransform::identity(global, can_gc);
         Self::new_offset(global, session, &offset)
     }
 
