@@ -609,14 +609,13 @@ impl DedicatedWorkerGlobalScope {
         cx: SafeJSContext,
         message: HandleValue,
         transfer: CustomAutoRooterGuard<Vec<*mut JSObject>>,
-        can_gc: CanGc,
     ) -> ErrorResult {
         let data = structuredclone::write(cx, message, Some(transfer))?;
         let worker = self.worker.borrow().as_ref().unwrap().clone();
         let global_scope = self.upcast::<GlobalScope>();
         let pipeline_id = global_scope.pipeline_id();
         let task = Box::new(task!(post_worker_message: move || {
-            Worker::handle_message(worker, data, can_gc);
+            Worker::handle_message(worker, data, CanGc::note());
         }));
         self.parent_sender
             .send(CommonScriptMsg::Task(
@@ -653,9 +652,8 @@ impl DedicatedWorkerGlobalScopeMethods for DedicatedWorkerGlobalScope {
         cx: SafeJSContext,
         message: HandleValue,
         transfer: CustomAutoRooterGuard<Vec<*mut JSObject>>,
-        can_gc: CanGc,
     ) -> ErrorResult {
-        self.post_message_impl(cx, message, transfer, can_gc)
+        self.post_message_impl(cx, message, transfer)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-dedicatedworkerglobalscope-postmessage>
@@ -664,7 +662,6 @@ impl DedicatedWorkerGlobalScopeMethods for DedicatedWorkerGlobalScope {
         cx: SafeJSContext,
         message: HandleValue,
         options: RootedTraceableBox<StructuredSerializeOptions>,
-        can_gc: CanGc,
     ) -> ErrorResult {
         let mut rooted = CustomAutoRooter::new(
             options
@@ -674,7 +671,7 @@ impl DedicatedWorkerGlobalScopeMethods for DedicatedWorkerGlobalScope {
                 .collect(),
         );
         let guard = CustomAutoRooterGuard::new(*cx, &mut rooted);
-        self.post_message_impl(cx, message, guard, can_gc)
+        self.post_message_impl(cx, message, guard)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-dedicatedworkerglobalscope-close
