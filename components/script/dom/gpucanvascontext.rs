@@ -23,6 +23,7 @@ use super::bindings::codegen::Bindings::WebGPUBinding::{
 };
 use super::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanvas;
 use super::bindings::error::{Error, Fallible};
+use super::bindings::refcounted::Trusted;
 use super::bindings::root::MutNullableDom;
 use super::bindings::str::USVString;
 use super::gpuconvert::convert_texture_descriptor;
@@ -38,6 +39,7 @@ use crate::dom::bindings::root::{DomRoot, LayoutDom};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlcanvaselement::{HTMLCanvasElement, LayoutCanvasRenderingContextHelpers};
 use crate::dom::node::{document_from_node, Node, NodeDamage};
+use crate::task_source::TaskSource;
 
 // TODO: make all this derivables available via new Bindings.conf option
 impl Clone for GPUCanvasConfiguration {
@@ -179,14 +181,17 @@ impl GPUCanvasContext {
     }
 
     pub fn new(global: &GlobalScope, canvas: &HTMLCanvasElement, channel: WebGPU) -> DomRoot<Self> {
-        reflect_dom_object(
+        let this = reflect_dom_object(
             Box::new(GPUCanvasContext::new_inherited(
                 global,
                 HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(DomRoot::from_ref(canvas)),
                 channel,
             )),
             global,
-        )
+        );
+        let document = document_from_node(&*canvas);
+        document.add_webgpu_canvas(&this);
+        this
     }
 }
 
@@ -264,14 +269,15 @@ impl GPUCanvasContext {
 // Internal helper methods
 impl GPUCanvasContext {
     fn layout_handle(&self) -> HTMLCanvasDataSource {
-        if self.drawing_buffer.borrow().cleared {
-            HTMLCanvasDataSource::Empty
-        } else {
-            HTMLCanvasDataSource::WebGPU(self.webrender_image)
-        }
+        //if self.drawing_buffer.borrow().cleared {
+        //    HTMLCanvasDataSource::Empty
+        //} else {
+        HTMLCanvasDataSource::WebGPU(self.webrender_image)
+        //}
     }
 
     fn send_swap_chain_present(&self, texture_id: WebGPUTexture) {
+        println!("send_swap_chain_present");
         self.drawing_buffer.borrow_mut().cleared = false;
         let encoder_id = self.global().wgpu_id_hub().create_command_encoder_id();
         if let Err(e) = self.channel.0.send(WebGPURequest::SwapChainPresent {
@@ -301,13 +307,24 @@ impl GPUCanvasContext {
     pub(crate) fn mark_as_dirty(&self) {
         if let HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(canvas) = &self.canvas {
             canvas.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
-            let document = document_from_node(&**canvas);
-            document.add_dirty_webgpu_canvas(self);
+            crate::script_thread::ScriptThread::note_rendering_opportunity(
+                crate::dom::node::window_from_node(canvas.upcast::<Node>()).pipeline_id(),
+            );
+        }
+    }
+
+    pub(crate) fn onscreen(&self) -> bool {
+        match self.canvas {
+            HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(ref canvas) => {
+                canvas.upcast::<Node>().is_connected()
+            },
+            HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(_) => false,
         }
     }
 
     /// <https://gpuweb.github.io/gpuweb/#abstract-opdef-updating-the-rendering-of-a-webgpu-canvas>
     pub(crate) fn update_rendering_of_webgpu_canvas(&self) {
+        println!("update_rendering_of_webgpu_canvas");
         // Step 1
         self.expire_current_texture();
     }
@@ -328,6 +345,7 @@ impl GPUCanvasContext {
 
 impl LayoutCanvasRenderingContextHelpers for LayoutDom<'_, GPUCanvasContext> {
     fn canvas_data_source(self) -> HTMLCanvasDataSource {
+        println!("canvas_data_source");
         (*self.unsafe_get()).layout_handle()
     }
 }
@@ -384,6 +402,7 @@ impl GPUCanvasContextMethods for GPUCanvasContext {
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-getcurrenttexture>
     fn GetCurrentTexture(&self) -> Fallible<DomRoot<GPUTexture>> {
+        println!("GetCurrentTexture");
         // Step 1
         let configuration = self.configuration.borrow();
         let Some(configuration) = configuration.as_ref() else {
@@ -398,12 +417,21 @@ impl GPUCanvasContextMethods for GPUCanvasContext {
         } else {
             // Step 3&4
             self.replace_drawing_buffer();
+            self.mark_as_dirty();
             let current_texture = configuration.device.CreateTexture(texture_descriptor)?;
             self.current_texture.set(Some(&current_texture));
             current_texture
         };
         // Step 5
-        self.mark_as_dirty();
+        let global = self.global();
+        let texture = Trusted::new(&*self);
+        let task_source = global.webgpu_automatic_expiry_task_source();
+        let _ = task_source.queue(
+            task!(expire: move || {
+                texture.root().expire_current_texture();
+            }),
+            &self.global(),
+        );
         // Step 6
         Ok(current_texture)
     }
@@ -411,6 +439,13 @@ impl GPUCanvasContextMethods for GPUCanvasContext {
 
 impl Drop for GPUCanvasContext {
     fn drop(&mut self) {
+        match self.canvas {
+            HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(ref canvas) => {
+                let document = document_from_node(&**canvas);
+                document.remove_webgpu_context(self);
+            },
+            _ => {},
+        }
         if let Err(e) = self.channel.0.send(WebGPURequest::DestroyContext {
             context_id: self.context_id,
         }) {
