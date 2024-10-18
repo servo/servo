@@ -290,7 +290,14 @@ impl RTCPeerConnection {
             return;
         }
         let track = MediaStreamTrack::new(&self.global(), id, ty);
-        let event = RTCTrackEvent::new(&self.global(), atom!("track"), false, false, &track);
+        let event = RTCTrackEvent::new(
+            &self.global(),
+            atom!("track"),
+            false,
+            false,
+            &track,
+            CanGc::note(),
+        );
         event.upcast::<Event>().fire(self.upcast());
     }
 

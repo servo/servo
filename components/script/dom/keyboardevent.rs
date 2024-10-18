@@ -54,8 +54,8 @@ impl KeyboardEvent {
         }
     }
 
-    pub fn new_uninitialized(window: &Window) -> DomRoot<KeyboardEvent> {
-        Self::new_uninitialized_with_proto(window, None, CanGc::note())
+    pub fn new_uninitialized(window: &Window, can_gc: CanGc) -> DomRoot<KeyboardEvent> {
+        Self::new_uninitialized_with_proto(window, None, can_gc)
     }
 
     fn new_uninitialized_with_proto(
@@ -87,6 +87,7 @@ impl KeyboardEvent {
         modifiers: Modifiers,
         char_code: u32,
         key_code: u32,
+        can_gc: CanGc,
     ) -> DomRoot<KeyboardEvent> {
         Self::new_with_proto(
             window,
@@ -104,7 +105,7 @@ impl KeyboardEvent {
             modifiers,
             char_code,
             key_code,
-            CanGc::note(),
+            can_gc,
         )
     }
 
