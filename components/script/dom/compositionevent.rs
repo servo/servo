@@ -34,7 +34,7 @@ impl CompositionEvent {
     pub fn new_uninitialized(window: &Window) -> DomRoot<CompositionEvent> {
         reflect_dom_object(Box::new(CompositionEvent::new_inherited()), window)
     }
-
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         window: &Window,
         type_: DOMString,

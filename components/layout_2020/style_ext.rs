@@ -241,6 +241,7 @@ pub(crate) trait ComputedValuesExt {
         box_size: LogicalVec2<Size<Au>>,
         pbm: &PaddingBorderMargin,
     ) -> LogicalVec2<Size<Au>>;
+    #[allow(clippy::type_complexity)]
     fn content_box_sizes_and_padding_border_margin(
         &self,
         containing_block: &IndefiniteContainingBlock,
