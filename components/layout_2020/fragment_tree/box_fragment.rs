@@ -289,9 +289,6 @@ impl BoxFragment {
             "Should not call this method on statically positioned box."
         );
 
-        let (cb_width, cb_height) = (containing_block.width(), containing_block.height());
-        let content_rect = self.content_rect;
-
         if let Some(resolved_sticky_insets) = self.resolved_sticky_insets {
             return resolved_sticky_insets;
         }
@@ -312,6 +309,7 @@ impl BoxFragment {
         // used value. Otherwise the resolved value is the computed value."
         // https://drafts.csswg.org/cssom/#resolved-values
         let insets = self.style.get_position();
+        let (cb_width, cb_height) = (containing_block.width(), containing_block.height());
         if position == ComputedPosition::Relative {
             let get_resolved_axis = |start: &LengthPercentageOrAuto,
                                      end: &LengthPercentageOrAuto,
@@ -336,6 +334,7 @@ impl BoxFragment {
             position == ComputedPosition::Fixed || position == ComputedPosition::Absolute
         );
 
+        let margin_rect = self.margin_rect();
         let resolve = |value: &LengthPercentageOrAuto, container_length: Au| -> Au {
             value
                 .auto_is(LengthPercentage::zero)
@@ -348,7 +347,7 @@ impl BoxFragment {
                 resolve(&insets.bottom, cb_height),
             )
         } else {
-            (content_rect.origin.y, cb_height - content_rect.max_y())
+            (margin_rect.origin.y, cb_height - margin_rect.max_y())
         };
         let (left, right) = if self.overconstrained.width {
             (
@@ -356,7 +355,7 @@ impl BoxFragment {
                 resolve(&insets.right, cb_width),
             )
         } else {
-            (content_rect.origin.x, cb_width - content_rect.max_x())
+            (margin_rect.origin.x, cb_width - margin_rect.max_x())
         };
 
         convert_to_au_or_auto(PhysicalSides::new(top, right, bottom, left))
