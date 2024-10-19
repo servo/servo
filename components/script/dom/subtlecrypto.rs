@@ -14,6 +14,7 @@ use dom_struct::dom_struct;
 use js::conversions::ConversionResult;
 use js::jsapi::JSObject;
 use js::jsval::ObjectValue;
+use js::rust::MutableHandleObject;
 use js::typedarray::ArrayBufferU8;
 use servo_rand::{RngCore, ServoRng};
 
@@ -165,7 +166,14 @@ impl SubtleCryptoMethods for SubtleCrypto {
                         if !valid_usage || key_gen_params.name != key_alg {
                             Err(Error::InvalidAccess)
                         } else {
-                            subtle.encrypt_aes_cbc(key_gen_params, &key, &data)
+                            let cx = GlobalScope::get_cx();
+                            rooted!(in(*cx) let mut array_buffer_ptr = ptr::null_mut::<JSObject>());
+                            match subtle.encrypt_aes_cbc(
+                                key_gen_params, &key, &data, cx, array_buffer_ptr.handle_mut()
+                            ) {
+                                Ok(_) => Ok(array_buffer_ptr.get()),
+                                Err(e) => Err(e),
+                            }
                         }
                     },
                     _ => Err(Error::NotSupported),
@@ -214,7 +222,14 @@ impl SubtleCryptoMethods for SubtleCrypto {
                         if !valid_usage || key_gen_params.name != key_alg {
                             Err(Error::InvalidAccess)
                         } else {
-                            subtle.decrypt_aes_cbc(key_gen_params, &key, &data)
+                            let cx = GlobalScope::get_cx();
+                            rooted!(in(*cx) let mut array_buffer_ptr = ptr::null_mut::<JSObject>());
+                            match subtle.decrypt_aes_cbc(
+                                key_gen_params, &key, &data, cx, array_buffer_ptr.handle_mut()
+                            ) {
+                                Ok(_) => Ok(array_buffer_ptr.get()),
+                                Err(e) => Err(e),
+                            }
                         }
                     },
                     _ => Err(Error::NotSupported),
@@ -506,7 +521,9 @@ impl SubtleCrypto {
         params: SubtleAesCbcParams,
         key: &CryptoKey,
         data: &[u8],
-    ) -> Result<*mut JSObject, Error> {
+        cx: JSContext,
+        handle: MutableHandleObject,
+    ) -> Result<(), Error> {
         if params.iv.len() != 16 {
             return Err(Error::Operation);
         }
@@ -529,12 +546,10 @@ impl SubtleCrypto {
             },
         };
 
-        let cx = GlobalScope::get_cx();
-        rooted!(in(*cx) let mut array_buffer_ptr = ptr::null_mut::<JSObject>());
-        create_buffer_source::<ArrayBufferU8>(cx, &ct, array_buffer_ptr.handle_mut())
+        create_buffer_source::<ArrayBufferU8>(cx, &ct, handle)
             .expect("failed to create buffer source for exported key.");
 
-        Ok(array_buffer_ptr.get())
+        Ok(())
     }
 
     /// <https://w3c.github.io/webcrypto/#aes-cbc-operations>
@@ -543,7 +558,9 @@ impl SubtleCrypto {
         params: SubtleAesCbcParams,
         key: &CryptoKey,
         data: &[u8],
-    ) -> Result<*mut JSObject, Error> {
+        cx: JSContext,
+        handle: MutableHandleObject,
+    ) -> Result<(), Error> {
         if params.iv.len() != 16 {
             return Err(Error::Operation);
         }
@@ -572,12 +589,10 @@ impl SubtleCrypto {
             },
         };
 
-        let cx = GlobalScope::get_cx();
-        rooted!(in(*cx) let mut array_buffer_ptr = ptr::null_mut::<JSObject>());
-        create_buffer_source::<ArrayBufferU8>(cx, plaintext, array_buffer_ptr.handle_mut())
+        create_buffer_source::<ArrayBufferU8>(cx, plaintext, handle)
             .expect("failed to create buffer source for exported key.");
 
-        Ok(array_buffer_ptr.get())
+        Ok(())
     }
 
     /// <https://w3c.github.io/webcrypto/#aes-cbc-operations>
@@ -587,10 +602,6 @@ impl SubtleCrypto {
         key_gen_params: SubtleAesKeyGenParams,
         extractable: bool,
     ) -> Result<DomRoot<CryptoKey>, Error> {
-        if !matches!(key_gen_params.length, 128 | 192 | 256) {
-            return Err(Error::Operation);
-        }
-
         if usages.iter().any(|usage| {
             !matches!(
                 usage,
