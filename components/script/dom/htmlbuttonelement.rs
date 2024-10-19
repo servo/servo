@@ -176,7 +176,7 @@ impl HTMLButtonElementMethods for HTMLButtonElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-cva-reportvalidity
     fn ReportValidity(&self) -> bool {
-        self.report_validity()
+        self.report_validity(CanGc::note())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-cva-validationmessage
@@ -245,7 +245,7 @@ impl VirtualMethods for HTMLButtonElement {
                         el.check_ancestors_disabled_state_for_form_control();
                     },
                 }
-                el.update_sequentially_focusable_status();
+                el.update_sequentially_focusable_status(CanGc::note());
                 self.validity_state()
                     .perform_validation_and_update(ValidationFlags::all());
             },

@@ -1195,46 +1195,46 @@ impl WindowMethods for Window {
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-scroll
-    fn Scroll(&self, options: &ScrollToOptions) {
+    fn Scroll(&self, options: &ScrollToOptions, can_gc: CanGc) {
         // Step 1
         let left = options.left.unwrap_or(0.0f64);
         let top = options.top.unwrap_or(0.0f64);
-        self.scroll(left, top, options.parent.behavior);
+        self.scroll(left, top, options.parent.behavior, can_gc);
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-scroll
-    fn Scroll_(&self, x: f64, y: f64) {
-        self.scroll(x, y, ScrollBehavior::Auto);
+    fn Scroll_(&self, x: f64, y: f64, can_gc: CanGc) {
+        self.scroll(x, y, ScrollBehavior::Auto, can_gc);
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-scrollto
     fn ScrollTo(&self, options: &ScrollToOptions) {
-        self.Scroll(options);
+        self.Scroll(options, CanGc::note());
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-scrollto
     fn ScrollTo_(&self, x: f64, y: f64) {
-        self.scroll(x, y, ScrollBehavior::Auto);
+        self.scroll(x, y, ScrollBehavior::Auto, CanGc::note());
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-scrollby
-    fn ScrollBy(&self, options: &ScrollToOptions) {
+    fn ScrollBy(&self, options: &ScrollToOptions, can_gc: CanGc) {
         // Step 1
         let x = options.left.unwrap_or(0.0f64);
         let y = options.top.unwrap_or(0.0f64);
-        self.ScrollBy_(x, y);
-        self.scroll(x, y, options.parent.behavior);
+        self.ScrollBy_(x, y, can_gc);
+        self.scroll(x, y, options.parent.behavior, can_gc);
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-scrollby
-    fn ScrollBy_(&self, x: f64, y: f64) {
+    fn ScrollBy_(&self, x: f64, y: f64, can_gc: CanGc) {
         // Step 3
         let left = x + self.ScrollX() as f64;
         // Step 4
         let top = y + self.ScrollY() as f64;
 
         // Step 5
-        self.scroll(left, top, ScrollBehavior::Auto);
+        self.scroll(left, top, ScrollBehavior::Auto, can_gc);
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-resizeto
@@ -1699,7 +1699,7 @@ impl Window {
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-window-scroll>
-    pub fn scroll(&self, x_: f64, y_: f64, behavior: ScrollBehavior) {
+    pub fn scroll(&self, x_: f64, y_: f64, behavior: ScrollBehavior, can_gc: CanGc) {
         // Step 3
         let xfinite = if x_.is_finite() { x_ } else { 0.0f64 };
         let yfinite = if y_.is_finite() { y_ } else { 0.0f64 };
@@ -1712,7 +1712,7 @@ impl Window {
 
         // Step 7 & 8
         // TODO: Consider `block-end` and `inline-end` overflow direction.
-        let scrolling_area = self.scrolling_area_query(None);
+        let scrolling_area = self.scrolling_area_query(None, can_gc);
         let x = xfinite
             .min(scrolling_area.width() as f64 - viewport.width as f64)
             .max(0.0f64);
@@ -1738,6 +1738,7 @@ impl Window {
             self.upcast::<GlobalScope>().pipeline_id().root_scroll_id(),
             behavior,
             None,
+            can_gc,
         );
     }
 
@@ -1749,6 +1750,7 @@ impl Window {
         scroll_id: ExternalScrollId,
         _behavior: ScrollBehavior,
         _element: Option<&Element>,
+        can_gc: CanGc,
     ) {
         // TODO Step 1
         // TODO(mrobinson, #18709): Add smooth scrolling support to WebRender so that we can
@@ -1759,6 +1761,7 @@ impl Window {
                 scroll_offset: Vector2D::new(-x, -y),
             }),
             ReflowReason::ScrollFromScript,
+            can_gc,
         );
     }
 
@@ -1959,7 +1962,7 @@ impl Window {
     /// that layout might hold if the first layout hasn't happened yet (which
     /// may happen in the only case a query reflow may bail out, that is, if the
     /// viewport size is not present). See #11223 for an example of that.
-    pub fn reflow(&self, reflow_goal: ReflowGoal, reason: ReflowReason) -> bool {
+    pub fn reflow(&self, reflow_goal: ReflowGoal, reason: ReflowReason, can_gc: CanGc) -> bool {
         // Fetch the pending web fonts before layout, in case a font loads during
         // the layout.
         let pending_web_fonts = self.layout.borrow().waiting_for_web_fonts_to_load();
@@ -1993,7 +1996,7 @@ impl Window {
         }
 
         let document = self.Document();
-        let font_face_set = document.Fonts();
+        let font_face_set = document.Fonts(can_gc);
         let is_ready_state_complete = document.ReadyState() == DocumentReadyState::Complete;
 
         // From https://drafts.csswg.org/css-font-loading/#font-face-set-ready:
@@ -2068,12 +2071,21 @@ impl Window {
         receiver.recv().unwrap();
     }
 
-    pub fn layout_reflow(&self, query_msg: QueryMsg) -> bool {
-        self.reflow(ReflowGoal::LayoutQuery(query_msg), ReflowReason::Query)
+    pub fn layout_reflow(&self, query_msg: QueryMsg, can_gc: CanGc) -> bool {
+        self.reflow(
+            ReflowGoal::LayoutQuery(query_msg),
+            ReflowReason::Query,
+            can_gc,
+        )
     }
 
-    pub fn resolved_font_style_query(&self, node: &Node, value: String) -> Option<ServoArc<Font>> {
-        if !self.layout_reflow(QueryMsg::ResolvedFontStyleQuery) {
+    pub fn resolved_font_style_query(
+        &self,
+        node: &Node,
+        value: String,
+        can_gc: CanGc,
+    ) -> Option<ServoArc<Font>> {
+        if !self.layout_reflow(QueryMsg::ResolvedFontStyleQuery, can_gc) {
             return None;
         }
 
@@ -2087,22 +2099,22 @@ impl Window {
         )
     }
 
-    pub fn content_box_query(&self, node: &Node) -> Option<UntypedRect<Au>> {
-        if !self.layout_reflow(QueryMsg::ContentBox) {
+    pub fn content_box_query(&self, node: &Node, can_gc: CanGc) -> Option<UntypedRect<Au>> {
+        if !self.layout_reflow(QueryMsg::ContentBox, can_gc) {
             return None;
         }
         self.layout.borrow().query_content_box(node.to_opaque())
     }
 
-    pub fn content_boxes_query(&self, node: &Node) -> Vec<UntypedRect<Au>> {
-        if !self.layout_reflow(QueryMsg::ContentBoxes) {
+    pub fn content_boxes_query(&self, node: &Node, can_gc: CanGc) -> Vec<UntypedRect<Au>> {
+        if !self.layout_reflow(QueryMsg::ContentBoxes, can_gc) {
             return vec![];
         }
         self.layout.borrow().query_content_boxes(node.to_opaque())
     }
 
-    pub fn client_rect_query(&self, node: &Node) -> UntypedRect<i32> {
-        if !self.layout_reflow(QueryMsg::ClientRectQuery) {
+    pub fn client_rect_query(&self, node: &Node, can_gc: CanGc) -> UntypedRect<i32> {
+        if !self.layout_reflow(QueryMsg::ClientRectQuery, can_gc) {
             return Rect::zero();
         }
         self.layout.borrow().query_client_rect(node.to_opaque())
@@ -2110,9 +2122,9 @@ impl Window {
 
     /// Find the scroll area of the given node, if it is not None. If the node
     /// is None, find the scroll area of the viewport.
-    pub fn scrolling_area_query(&self, node: Option<&Node>) -> UntypedRect<i32> {
+    pub fn scrolling_area_query(&self, node: Option<&Node>, can_gc: CanGc) -> UntypedRect<i32> {
         let opaque = node.map(|node| node.to_opaque());
-        if !self.layout_reflow(QueryMsg::ScrollingAreaQuery) {
+        if !self.layout_reflow(QueryMsg::ScrollingAreaQuery, can_gc) {
             return Rect::zero();
         }
         self.layout.borrow().query_scrolling_area(opaque)
@@ -2126,7 +2138,14 @@ impl Window {
     }
 
     // https://drafts.csswg.org/cssom-view/#element-scrolling-members
-    pub fn scroll_node(&self, node: &Node, x_: f64, y_: f64, behavior: ScrollBehavior) {
+    pub fn scroll_node(
+        &self,
+        node: &Node,
+        x_: f64,
+        y_: f64,
+        behavior: ScrollBehavior,
+        can_gc: CanGc,
+    ) {
         // The scroll offsets are immediatly updated since later calls
         // to topScroll and others may access the properties before
         // webrender has a chance to update the offsets.
@@ -2145,6 +2164,7 @@ impl Window {
             scroll_id,
             behavior,
             None,
+            can_gc,
         );
     }
 
@@ -2153,8 +2173,9 @@ impl Window {
         element: TrustedNodeAddress,
         pseudo: Option<PseudoElement>,
         property: PropertyId,
+        can_gc: CanGc,
     ) -> DOMString {
-        if !self.layout_reflow(QueryMsg::ResolvedStyleQuery) {
+        if !self.layout_reflow(QueryMsg::ResolvedStyleQuery, can_gc) {
             return DOMString::new();
         }
 
@@ -2172,8 +2193,9 @@ impl Window {
     pub fn inner_window_dimensions_query(
         &self,
         browsing_context: BrowsingContextId,
+        can_gc: CanGc,
     ) -> Option<Size2D<f32, CSSPixel>> {
-        if !self.layout_reflow(QueryMsg::InnerWindowDimensionsQuery) {
+        if !self.layout_reflow(QueryMsg::InnerWindowDimensionsQuery, can_gc) {
             return None;
         }
         self.layout
@@ -2182,8 +2204,12 @@ impl Window {
     }
 
     #[allow(unsafe_code)]
-    pub fn offset_parent_query(&self, node: &Node) -> (Option<DomRoot<Element>>, UntypedRect<Au>) {
-        if !self.layout_reflow(QueryMsg::OffsetParentQuery) {
+    pub fn offset_parent_query(
+        &self,
+        node: &Node,
+        can_gc: CanGc,
+    ) -> (Option<DomRoot<Element>>, UntypedRect<Au>) {
+        if !self.layout_reflow(QueryMsg::OffsetParentQuery, can_gc) {
             return (None, Rect::zero());
         }
 
@@ -2199,8 +2225,9 @@ impl Window {
         &self,
         node: &Node,
         point_in_node: UntypedPoint2D<f32>,
+        can_gc: CanGc,
     ) -> Option<usize> {
-        if !self.layout_reflow(QueryMsg::TextIndexQuery) {
+        if !self.layout_reflow(QueryMsg::TextIndexQuery, can_gc) {
             return None;
         }
         self.layout
@@ -2250,7 +2277,7 @@ impl Window {
                     load_data.url.clone(),
                     replace,
                 ));
-                doc.check_and_scroll_fragment(fragment);
+                doc.check_and_scroll_fragment(fragment, CanGc::note());
                 let this = Trusted::new(self);
                 let old_url = doc.url().into_string();
                 let new_url = load_data.url.clone().into_string();

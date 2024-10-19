@@ -39,6 +39,7 @@ use crate::dom::nodelist::NodeList;
 use crate::dom::validation::{is_barred_by_datalist_ancestor, Validatable};
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
 use crate::dom::virtualmethods::VirtualMethods;
+use crate::script_runtime::CanGc;
 
 #[derive(JSTraceable, MallocSizeOf)]
 struct OptionsFilter;
@@ -396,7 +397,7 @@ impl HTMLSelectElementMethods for HTMLSelectElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-cva-reportvalidity
     fn ReportValidity(&self) -> bool {
-        self.report_validity()
+        self.report_validity(CanGc::note())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-cva-validationmessage

@@ -1592,7 +1592,7 @@ impl HTMLInputElementMethods for HTMLInputElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-cva-reportvalidity
     fn ReportValidity(&self) -> bool {
-        self.report_validity()
+        self.report_validity(CanGc::note())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-cva-validationmessage
@@ -2267,7 +2267,7 @@ impl VirtualMethods for HTMLInputElement {
                     el.set_read_write_state(read_write);
                 }
 
-                el.update_sequentially_focusable_status();
+                el.update_sequentially_focusable_status(CanGc::note());
             },
             local_name!("checked") if !self.checked_changed.get() => {
                 let checked_state = match mutation {
@@ -2517,7 +2517,11 @@ impl VirtualMethods for HTMLInputElement {
                     // now.
                     if let Some(point_in_target) = mouse_event.point_in_target() {
                         let window = window_from_node(self);
-                        let index = window.text_index_query(self.upcast::<Node>(), point_in_target);
+                        let index = window.text_index_query(
+                            self.upcast::<Node>(),
+                            point_in_target,
+                            CanGc::note(),
+                        );
                         if let Some(i) = index {
                             self.textinput.borrow_mut().set_edit_point_index(i);
                             // trigger redraw

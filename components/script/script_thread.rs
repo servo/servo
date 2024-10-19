@@ -1581,6 +1581,7 @@ impl ScriptThread {
                         node_address,
                         point_in_node,
                         pressed_mouse_buttons,
+                        can_gc,
                     );
                 },
 
@@ -1628,7 +1629,7 @@ impl ScriptThread {
                 },
 
                 CompositorEvent::IMEDismissedEvent => {
-                    document.ime_dismissed();
+                    document.ime_dismissed(can_gc);
                 },
 
                 CompositorEvent::CompositionEvent(composition_event) => {
@@ -1723,12 +1724,12 @@ impl ScriptThread {
             // https://html.spec.whatwg.org/multipage/#context-lost-steps.
 
             // Run the animation frame callbacks.
-            document.tick_all_animations(should_run_rafs);
+            document.tick_all_animations(should_run_rafs, can_gc);
 
             // Run the resize observer steps.
             let _realm = enter_realm(&*document);
             let mut depth = Default::default();
-            while document.gather_active_resize_observations_at_depth(&depth) {
+            while document.gather_active_resize_observations_at_depth(&depth, can_gc) {
                 // Note: this will reflow the doc.
                 depth = document.broadcast_active_resize_observations(can_gc);
             }
@@ -1885,7 +1886,7 @@ impl ScriptThread {
                 },
                 FromConstellation(ConstellationControlMsg::Viewport(id, rect)) => self
                     .profile_event(ScriptThreadEventCategory::SetViewport, Some(id), || {
-                        self.handle_viewport(id, rect);
+                        self.handle_viewport(id, rect, can_gc);
                     }),
                 FromConstellation(ConstellationControlMsg::TickAllAnimations(
                     pipeline_id,
@@ -2063,13 +2064,17 @@ impl ScriptThread {
 
             let pending_reflows = window.get_pending_reflow_count();
             if pending_reflows > 0 {
-                window.reflow(ReflowGoal::Full, ReflowReason::PendingReflow);
+                window.reflow(ReflowGoal::Full, ReflowReason::PendingReflow, can_gc);
             } else {
                 // Reflow currently happens when explicitly invoked by code that
                 // knows the document could have been modified. This should really
                 // be driven by the compositor on an as-needed basis instead, to
                 // minimize unnecessary work.
-                window.reflow(ReflowGoal::Full, ReflowReason::MissingExplicitReflow);
+                window.reflow(
+                    ReflowGoal::Full,
+                    ReflowReason::MissingExplicitReflow,
+                    can_gc,
+                );
             }
         }
 
@@ -2381,7 +2386,7 @@ impl ScriptThread {
                 self.handle_remove_history_states(pipeline_id, history_states)
             },
             ConstellationControlMsg::FocusIFrame(parent_pipeline_id, frame_id) => {
-                self.handle_focus_iframe_msg(parent_pipeline_id, frame_id)
+                self.handle_focus_iframe_msg(parent_pipeline_id, frame_id, can_gc)
             },
             ConstellationControlMsg::WebDriverScriptCommand(pipeline_id, msg) => {
                 self.handle_webdriver_msg(pipeline_id, msg, can_gc)
@@ -2550,7 +2555,7 @@ impl ScriptThread {
                 self.collect_reports(chan)
             },
             MainThreadScriptMsg::WorkletLoaded(pipeline_id) => {
-                self.handle_worklet_loaded(pipeline_id)
+                self.handle_worklet_loaded(pipeline_id, CanGc::note())
             },
             MainThreadScriptMsg::RegisterPaintWorklet {
                 pipeline_id,
@@ -2782,10 +2787,22 @@ impl ScriptThread {
                 )
             },
             WebDriverScriptCommand::FocusElement(element_id, reply) => {
-                webdriver_handlers::handle_focus_element(&documents, pipeline_id, element_id, reply)
+                webdriver_handlers::handle_focus_element(
+                    &documents,
+                    pipeline_id,
+                    element_id,
+                    reply,
+                    can_gc,
+                )
             },
             WebDriverScriptCommand::ElementClick(element_id, reply) => {
-                webdriver_handlers::handle_element_click(&documents, pipeline_id, element_id, reply)
+                webdriver_handlers::handle_element_click(
+                    &documents,
+                    pipeline_id,
+                    element_id,
+                    reply,
+                    can_gc,
+                )
             },
             WebDriverScriptCommand::GetActiveElement(reply) => {
                 webdriver_handlers::handle_get_active_element(&documents, pipeline_id, reply)
@@ -2824,7 +2841,7 @@ impl ScriptThread {
                 webdriver_handlers::handle_get_css(&documents, pipeline_id, node_id, name, reply)
             },
             WebDriverScriptCommand::GetElementRect(node_id, reply) => {
-                webdriver_handlers::handle_get_rect(&documents, pipeline_id, node_id, reply)
+                webdriver_handlers::handle_get_rect(&documents, pipeline_id, node_id, reply, can_gc)
             },
             WebDriverScriptCommand::GetBoundingClientRect(node_id, reply) => {
                 webdriver_handlers::handle_get_bounding_client_rect(
@@ -2902,11 +2919,11 @@ impl ScriptThread {
         }
     }
 
-    fn handle_viewport(&self, id: PipelineId, rect: Rect<f32>) {
+    fn handle_viewport(&self, id: PipelineId, rect: Rect<f32>, can_gc: CanGc) {
         let document = self.documents.borrow().find_document(id);
         if let Some(document) = document {
             if document.window().set_page_clip_rect_with_new_viewport(rect) {
-                self.rebuild_and_force_reflow(&document, ReflowReason::Viewport);
+                self.rebuild_and_force_reflow(&document, ReflowReason::Viewport, can_gc);
             }
             return;
         }
@@ -3012,7 +3029,7 @@ impl ScriptThread {
         );
         let document = self.documents.borrow().find_document(id);
         if let Some(document) = document {
-            document.set_activity(activity);
+            document.set_activity(activity, CanGc::note());
             return;
         }
         let mut loads = self.incomplete_loads.borrow_mut();
@@ -3027,6 +3044,7 @@ impl ScriptThread {
         &self,
         parent_pipeline_id: PipelineId,
         browsing_context_id: BrowsingContextId,
+        can_gc: CanGc,
     ) {
         let doc = self
             .documents
@@ -3036,7 +3054,7 @@ impl ScriptThread {
         let frame_element = doc.find_iframe(browsing_context_id);
 
         if let Some(ref frame_element) = frame_element {
-            doc.request_focus(Some(frame_element.upcast()), FocusType::Parent);
+            doc.request_focus(Some(frame_element.upcast()), FocusType::Parent, can_gc);
         }
     }
 
@@ -3426,10 +3444,10 @@ impl ScriptThread {
     }
 
     /// Handles a worklet being loaded. Does nothing if the page no longer exists.
-    fn handle_worklet_loaded(&self, pipeline_id: PipelineId) {
+    fn handle_worklet_loaded(&self, pipeline_id: PipelineId, can_gc: CanGc) {
         let document = self.documents.borrow().find_document(pipeline_id);
         if let Some(document) = document {
-            self.rebuild_and_force_reflow(&document, ReflowReason::WorkletLoaded);
+            self.rebuild_and_force_reflow(&document, ReflowReason::WorkletLoaded, can_gc);
         }
     }
 
@@ -3887,10 +3905,10 @@ impl ScriptThread {
     }
 
     /// Reflows non-incrementally, rebuilding the entire layout tree in the process.
-    fn rebuild_and_force_reflow(&self, document: &Document, reason: ReflowReason) {
+    fn rebuild_and_force_reflow(&self, document: &Document, reason: ReflowReason, can_gc: CanGc) {
         let window = window_from_node(document);
         document.dirty_all_nodes();
-        window.reflow(ReflowGoal::Full, reason);
+        window.reflow(ReflowGoal::Full, reason, can_gc);
     }
 
     /// Queue compositor events for later dispatching as part of a
@@ -3914,6 +3932,7 @@ impl ScriptThread {
         node_address: Option<UntrustedNodeAddress>,
         point_in_node: Option<Point2D<f32>>,
         pressed_mouse_buttons: u16,
+        can_gc: CanGc,
     ) {
         let Some(document) = self.documents.borrow().find_document(pipeline_id) else {
             warn!("Message sent to closed pipeline {pipeline_id}.");
@@ -3927,6 +3946,7 @@ impl ScriptThread {
                 node_address,
                 point_in_node,
                 pressed_mouse_buttons,
+                can_gc,
             )
         }
     }

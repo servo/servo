@@ -354,7 +354,7 @@ pub fn handle_get_layout(
             position: String::from(computed_style.Position()),
             z_index: String::from(computed_style.ZIndex()),
             box_sizing: String::from(computed_style.BoxSizing()),
-            auto_margins: determine_auto_margins(&node),
+            auto_margins: determine_auto_margins(&node, can_gc),
             margin_top: String::from(computed_style.MarginTop()),
             margin_right: String::from(computed_style.MarginRight()),
             margin_bottom: String::from(computed_style.MarginBottom()),
@@ -373,8 +373,8 @@ pub fn handle_get_layout(
         .unwrap();
 }
 
-fn determine_auto_margins(node: &Node) -> AutoMargins {
-    let style = node.style().unwrap();
+fn determine_auto_margins(node: &Node, can_gc: CanGc) -> AutoMargins {
+    let style = node.style(can_gc).unwrap();
     let margin = style.get_margin();
     AutoMargins {
         top: margin.margin_top.is_auto(),

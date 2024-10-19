@@ -275,13 +275,13 @@ impl MouseEventMethods for MouseEvent {
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-mouseevent-offsetx
-    fn OffsetX(&self) -> i32 {
+    fn OffsetX(&self, can_gc: CanGc) -> i32 {
         let event = self.upcast::<Event>();
         if event.dispatching() {
             match event.GetTarget() {
                 Some(target) => {
                     if let Some(node) = target.downcast::<Node>() {
-                        let rect = node.client_rect();
+                        let rect = node.client_rect(can_gc);
                         self.client_x.get() - rect.origin.x
                     } else {
                         self.offset_x.get()
@@ -295,13 +295,13 @@ impl MouseEventMethods for MouseEvent {
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-mouseevent-offsety
-    fn OffsetY(&self) -> i32 {
+    fn OffsetY(&self, can_gc: CanGc) -> i32 {
         let event = self.upcast::<Event>();
         if event.dispatching() {
             match event.GetTarget() {
                 Some(target) => {
                     if let Some(node) = target.downcast::<Node>() {
-                        let rect = node.client_rect();
+                        let rect = node.client_rect(can_gc);
                         self.client_y.get() - rect.origin.y
                     } else {
                         self.offset_y.get()

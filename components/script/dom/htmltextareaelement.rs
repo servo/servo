@@ -42,6 +42,7 @@ use crate::dom::textcontrol::{TextControlElement, TextControlSelection};
 use crate::dom::validation::{is_barred_by_datalist_ancestor, Validatable};
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
 use crate::dom::virtualmethods::VirtualMethods;
+use crate::script_runtime::CanGc;
 use crate::textinput::{
     Direction, KeyReaction, Lines, SelectionDirection, TextInput, UTF16CodeUnits, UTF8Bytes,
 };
@@ -429,7 +430,7 @@ impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-cva-reportvalidity
     fn ReportValidity(&self) -> bool {
-        self.report_validity()
+        self.report_validity(CanGc::note())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-cva-validationmessage
@@ -484,7 +485,7 @@ impl VirtualMethods for HTMLTextAreaElement {
                         }
                     },
                 }
-                el.update_sequentially_focusable_status();
+                el.update_sequentially_focusable_status(CanGc::note());
             },
             local_name!("maxlength") => match *attr.value() {
                 AttrValue::Int(_, value) => {

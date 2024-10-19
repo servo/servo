@@ -16,6 +16,7 @@ use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
+use crate::script_runtime::CanGc;
 
 // https://html.spec.whatwg.org/multipage/#canvasgradient
 #[dom_struct]
@@ -48,12 +49,12 @@ impl CanvasGradient {
 
 impl CanvasGradientMethods for CanvasGradient {
     // https://html.spec.whatwg.org/multipage/#dom-canvasgradient-addcolorstop
-    fn AddColorStop(&self, offset: Finite<f64>, color: DOMString) -> ErrorResult {
+    fn AddColorStop(&self, offset: Finite<f64>, color: DOMString, can_gc: CanGc) -> ErrorResult {
         if *offset < 0f64 || *offset > 1f64 {
             return Err(Error::IndexSize);
         }
 
-        let color = match parse_color(None, &color) {
+        let color = match parse_color(None, &color, can_gc) {
             Ok(color) => color,
             Err(_) => return Err(Error::Syntax),
         };
