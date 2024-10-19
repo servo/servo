@@ -211,7 +211,7 @@ pub(crate) struct WebGLThread {
     /// The swap chains used by webrender
     webrender_swap_chains: SwapChains<WebGLContextId, Device>,
     /// Whether this context is a GL or GLES context.
-    api_type: gl::GlType,
+    api_type: GlType,
     /// The bridge to WebXR
     pub webxr_bridge: WebXRBridge,
 }
@@ -226,7 +226,7 @@ pub(crate) struct WebGLThreadInit {
     pub webrender_swap_chains: SwapChains<WebGLContextId, Device>,
     pub connection: Connection,
     pub adapter: Adapter,
-    pub api_type: gl::GlType,
+    pub api_type: GlType,
     pub webxr_init: WebXRBridgeInit,
 }
 
@@ -553,20 +553,20 @@ impl WebGLThread {
         );
 
         let gl = match self.api_type {
-            gl::GlType::Gl => Gl::gl_fns(gl::ffi_gl::Gl::load_with(|symbol_name| {
+            GlType::Gl => Gl::gl_fns(gl::ffi_gl::Gl::load_with(|symbol_name| {
                 self.device.get_proc_address(&ctx, symbol_name)
             })),
-            gl::GlType::Gles => Gl::gles_fns(gl::ffi_gles::Gles2::load_with(|symbol_name| {
+            GlType::Gles => Gl::gles_fns(gl::ffi_gles::Gles2::load_with(|symbol_name| {
                 self.device.get_proc_address(&ctx, symbol_name)
             })),
         };
 
         let glow = unsafe {
             match self.api_type {
-                gl::GlType::Gl => glow::Context::from_loader_function(|symbol_name| {
+                GlType::Gl => glow::Context::from_loader_function(|symbol_name| {
                     self.device.get_proc_address(&ctx, symbol_name)
                 }),
-                gl::GlType::Gles => glow::Context::from_loader_function(|symbol_name| {
+                GlType::Gles => glow::Context::from_loader_function(|symbol_name| {
                     self.device.get_proc_address(&ctx, symbol_name)
                 }),
             }
@@ -2901,12 +2901,12 @@ fn clamp_viewport(gl: &Gl, size: Size2D<u32>) -> Size2D<u32> {
 }
 
 trait ToSurfmanVersion {
-    fn to_surfman_version(self, api_type: gl::GlType) -> GLVersion;
+    fn to_surfman_version(self, api_type: GlType) -> GLVersion;
 }
 
 impl ToSurfmanVersion for WebGLVersion {
-    fn to_surfman_version(self, api_type: gl::GlType) -> GLVersion {
-        if api_type == gl::GlType::Gles {
+    fn to_surfman_version(self, api_type: GlType) -> GLVersion {
+        if api_type == GlType::Gles {
             return GLVersion::new(3, 0);
         }
         match self {
@@ -2923,7 +2923,7 @@ trait SurfmanContextAttributeFlagsConvert {
     fn to_surfman_context_attribute_flags(
         &self,
         webgl_version: WebGLVersion,
-        api_type: gl::GlType,
+        api_type: GlType,
     ) -> ContextAttributeFlags;
 }
 
@@ -2931,13 +2931,13 @@ impl SurfmanContextAttributeFlagsConvert for GLContextAttributes {
     fn to_surfman_context_attribute_flags(
         &self,
         webgl_version: WebGLVersion,
-        api_type: gl::GlType,
+        api_type: GlType,
     ) -> ContextAttributeFlags {
         let mut flags = ContextAttributeFlags::empty();
         flags.set(ContextAttributeFlags::ALPHA, self.alpha);
         flags.set(ContextAttributeFlags::DEPTH, self.depth);
         flags.set(ContextAttributeFlags::STENCIL, self.stencil);
-        if (webgl_version == WebGLVersion::WebGL1) && (api_type == gl::GlType::Gl) {
+        if (webgl_version == WebGLVersion::WebGL1) && (api_type == GlType::Gl) {
             flags.set(ContextAttributeFlags::COMPATIBILITY_PROFILE, true);
         }
         flags
