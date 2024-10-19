@@ -4142,7 +4142,6 @@ dependencies = [
  "servo_config",
  "servo_geometry",
  "servo_url",
- "sparkle",
  "style",
  "style_traits",
  "surfman",
