@@ -15,7 +15,6 @@ updates:
          - "glib*"
          - "gobject*"
          - "gstreamer*"
-  groups:
     egui-related:
        patterns:
          - "ecolor"
