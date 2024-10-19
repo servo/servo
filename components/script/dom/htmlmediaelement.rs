@@ -611,7 +611,7 @@ impl HTMLMediaElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#ready-states
-    fn change_ready_state(&self, ready_state: ReadyState, can_gc: CanGc) {
+    fn change_ready_state(&self, ready_state: ReadyState) {
         let old_ready_state = self.ready_state.get();
         self.ready_state.set(ready_state);
 
@@ -642,7 +642,7 @@ impl HTMLMediaElement {
                         task!(media_reached_current_data: move || {
                             let this = this.root();
                             this.upcast::<EventTarget>().fire_event(atom!("loadeddata"));
-                            this.delay_load_event(false, can_gc);
+                            this.delay_load_event(false, CanGc::note());
                         }),
                         window.upcast(),
                     );
@@ -796,12 +796,12 @@ impl HTMLMediaElement {
                 // Step 9.obj.3.
                 // Note that the resource fetch algorithm itself takes care
                 // of the cleanup in case of failure itself.
-                self.resource_fetch_algorithm(Resource::Object, can_gc);
+                self.resource_fetch_algorithm(Resource::Object);
             },
             Mode::Attribute(src) => {
                 // Step 9.attr.1.
                 if src.is_empty() {
-                    self.queue_dedicated_media_source_failure_steps(can_gc);
+                    self.queue_dedicated_media_source_failure_steps();
                     return;
                 }
 
@@ -809,7 +809,7 @@ impl HTMLMediaElement {
                 let url_record = match base_url.join(&src) {
                     Ok(url) => url,
                     Err(_) => {
-                        self.queue_dedicated_media_source_failure_steps(can_gc);
+                        self.queue_dedicated_media_source_failure_steps();
                         return;
                     },
                 };
@@ -820,7 +820,7 @@ impl HTMLMediaElement {
                 // Step 9.attr.4.
                 // Note that the resource fetch algorithm itself takes care
                 // of the cleanup in case of failure itself.
-                self.resource_fetch_algorithm(Resource::Url(url_record), can_gc);
+                self.resource_fetch_algorithm(Resource::Url(url_record));
             },
             // Step 9.children.
             Mode::Children(source) => {
@@ -830,7 +830,7 @@ impl HTMLMediaElement {
                 // Step 9.attr.2.
                 if src.is_empty() {
                     source.upcast::<EventTarget>().fire_event(atom!("error"));
-                    self.queue_dedicated_media_source_failure_steps(can_gc);
+                    self.queue_dedicated_media_source_failure_steps();
                     return;
                 }
                 // Step 9.attr.3.
@@ -838,20 +838,20 @@ impl HTMLMediaElement {
                     Ok(url) => url,
                     Err(_) => {
                         source.upcast::<EventTarget>().fire_event(atom!("error"));
-                        self.queue_dedicated_media_source_failure_steps(can_gc);
+                        self.queue_dedicated_media_source_failure_steps();
                         return;
                     },
                 };
                 // Step 9.attr.8.
-                self.resource_fetch_algorithm(Resource::Url(url_record), can_gc);
+                self.resource_fetch_algorithm(Resource::Url(url_record));
             },
         }
     }
 
-    fn fetch_request(&self, offset: Option<u64>, seek_lock: Option<SeekLock>, can_gc: CanGc) {
+    fn fetch_request(&self, offset: Option<u64>, seek_lock: Option<SeekLock>) {
         if self.resource_url.borrow().is_none() && self.blob_url.borrow().is_none() {
             eprintln!("Missing request url");
-            self.queue_dedicated_media_source_failure_steps(can_gc);
+            self.queue_dedicated_media_source_failure_steps();
             return;
         }
 
@@ -899,10 +899,10 @@ impl HTMLMediaElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#concept-media-load-resource
-    fn resource_fetch_algorithm(&self, resource: Resource, can_gc: CanGc) {
-        if let Err(e) = self.setup_media_player(&resource, can_gc) {
+    fn resource_fetch_algorithm(&self, resource: Resource) {
+        if let Err(e) = self.setup_media_player(&resource) {
             eprintln!("Setup media player error {:?}", e);
-            self.queue_dedicated_media_source_failure_steps(can_gc);
+            self.queue_dedicated_media_source_failure_steps();
             return;
         }
 
@@ -935,7 +935,7 @@ impl HTMLMediaElement {
                         .media_element_task_source()
                         .queue(
                             task!(set_media_delay_load_event_flag_to_false: move || {
-                                this.root().delay_load_event(false, can_gc);
+                                this.root().delay_load_event(false, CanGc::note());
                             }),
                             window.upcast(),
                         )
@@ -954,7 +954,7 @@ impl HTMLMediaElement {
 
                 // Step 4.remote.2.
                 *self.resource_url.borrow_mut() = Some(url);
-                self.fetch_request(None, None, can_gc);
+                self.fetch_request(None, None);
             },
             Resource::Object => {
                 if let Some(ref src_object) = *self.src_object.borrow() {
@@ -963,7 +963,7 @@ impl HTMLMediaElement {
                             let blob_url = URL::CreateObjectURL(&self.global(), blob);
                             *self.blob_url.borrow_mut() =
                                 Some(ServoUrl::parse(&blob_url).expect("infallible"));
-                            self.fetch_request(None, None, can_gc);
+                            self.fetch_request(None, None);
                         },
                         SrcObject::MediaStream(ref stream) => {
                             let tracks = &*stream.get_tracks();
@@ -978,7 +978,7 @@ impl HTMLMediaElement {
                                     .set_stream(&track.id(), pos == tracks.len() - 1)
                                     .is_err()
                                 {
-                                    self.queue_dedicated_media_source_failure_steps(can_gc);
+                                    self.queue_dedicated_media_source_failure_steps();
                                 }
                             }
                         },
@@ -991,7 +991,7 @@ impl HTMLMediaElement {
     /// Queues a task to run the [dedicated media source failure steps][steps].
     ///
     /// [steps]: https://html.spec.whatwg.org/multipage/#dedicated-media-source-failure-steps
-    fn queue_dedicated_media_source_failure_steps(&self, can_gc: CanGc) {
+    fn queue_dedicated_media_source_failure_steps(&self) {
         let window = window_from_node(self);
         let this = Trusted::new(self);
         let generation_id = self.generation_id.get();
@@ -1036,7 +1036,7 @@ impl HTMLMediaElement {
                 });
 
                 // Step 7.
-                this.delay_load_event(false, can_gc);
+                this.delay_load_event(false, CanGc::note());
             }),
             window.upcast(),
         );
@@ -1123,7 +1123,7 @@ impl HTMLMediaElement {
 
             // Step 6.5.
             if self.ready_state.get() != ReadyState::HaveNothing {
-                self.change_ready_state(ReadyState::HaveNothing, can_gc);
+                self.change_ready_state(ReadyState::HaveNothing);
             }
 
             // Step 6.6.
@@ -1329,7 +1329,7 @@ impl HTMLMediaElement {
         }
     }
 
-    fn setup_media_player(&self, resource: &Resource, can_gc: CanGc) -> Result<(), ()> {
+    fn setup_media_player(&self, resource: &Resource) -> Result<(), ()> {
         let stream_type = match *resource {
             Resource::Object => {
                 if let Some(ref src_object) = *self.src_object.borrow() {
@@ -1380,7 +1380,7 @@ impl HTMLMediaElement {
                 let this = trusted_node.clone();
                 if let Err(err) = task_source.queue_with_canceller(
                     task!(handle_player_event: move || {
-                        this.root().handle_player_event(&event, can_gc);
+                        this.root().handle_player_event(&event, CanGc::note());
                     }),
                     &canceller,
                 ) {
@@ -1480,7 +1480,7 @@ impl HTMLMediaElement {
                 // => "If the media data can be fetched but is found by inspection to be in
                 //    an unsupported format, or can otherwise not be rendered at all"
                 if self.ready_state.get() < ReadyState::HaveMetadata {
-                    self.queue_dedicated_media_source_failure_steps(can_gc);
+                    self.queue_dedicated_media_source_failure_steps();
                 } else {
                     // https://html.spec.whatwg.org/multipage/#reaches-the-end
                     match self.direction_of_playback() {
@@ -1526,7 +1526,7 @@ impl HTMLMediaElement {
                                 );
 
                                 // https://html.spec.whatwg.org/multipage/#dom-media-have_current_data
-                                self.change_ready_state(ReadyState::HaveCurrentData, can_gc);
+                                self.change_ready_state(ReadyState::HaveCurrentData);
                             }
                         },
 
@@ -1730,7 +1730,7 @@ impl HTMLMediaElement {
                 }
 
                 // Step 6.
-                self.change_ready_state(ReadyState::HaveMetadata, can_gc);
+                self.change_ready_state(ReadyState::HaveMetadata);
 
                 // Step 7.
                 let mut jumped = false;
@@ -1800,7 +1800,7 @@ impl HTMLMediaElement {
                 }
             },
             PlayerEvent::EnoughData => {
-                self.change_ready_state(ReadyState::HaveEnoughData, can_gc);
+                self.change_ready_state(ReadyState::HaveEnoughData);
 
                 // The player has enough data and it is asking us to stop pushing
                 // bytes, so we cancel the ongoing fetch request iff we are able
@@ -1833,7 +1833,7 @@ impl HTMLMediaElement {
                 ));
             },
             PlayerEvent::SeekData(p, ref seek_lock) => {
-                self.fetch_request(Some(p), Some(seek_lock.clone()), can_gc);
+                self.fetch_request(Some(p), Some(seek_lock.clone()));
             },
             PlayerEvent::SeekDone(_) => {
                 // Continuation of
@@ -1852,7 +1852,7 @@ impl HTMLMediaElement {
                     PlaybackState::Paused => {
                         media_session_playback_state = MediaSessionPlaybackState::Paused;
                         if self.ready_state.get() == ReadyState::HaveMetadata {
-                            self.change_ready_state(ReadyState::HaveEnoughData, can_gc);
+                            self.change_ready_state(ReadyState::HaveEnoughData);
                         }
                     },
                     PlaybackState::Playing => {
@@ -2731,7 +2731,7 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
             if let Some(ref mut current_fetch_context) = *elem.current_fetch_context.borrow_mut() {
                 current_fetch_context.cancel(CancelReason::Error);
             }
-            elem.queue_dedicated_media_source_failure_steps(CanGc::note());
+            elem.queue_dedicated_media_source_failure_steps();
         }
     }
 
@@ -2867,7 +2867,7 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
             elem.upcast::<EventTarget>().fire_event(atom!("error"));
         } else {
             // => "If the media data cannot be fetched at all..."
-            elem.queue_dedicated_media_source_failure_steps(CanGc::note());
+            elem.queue_dedicated_media_source_failure_steps();
         }
     }
 

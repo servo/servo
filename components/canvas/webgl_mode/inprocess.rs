@@ -5,11 +5,10 @@
 use std::default::Default;
 use std::sync::{Arc, Mutex};
 
-use canvas_traits::webgl::{webgl_channel, WebGLContextId, WebGLMsg, WebGLThreads};
+use canvas_traits::webgl::{webgl_channel, GlType, WebGLContextId, WebGLMsg, WebGLThreads};
 use euclid::default::Size2D;
 use fnv::FnvHashMap;
 use log::debug;
-use sparkle::gl::GlType;
 use surfman::chains::{SwapChainAPI, SwapChains, SwapChainsAPI};
 use surfman::{Device, SurfaceInfo, SurfaceTexture};
 use webrender::RenderApiSender;

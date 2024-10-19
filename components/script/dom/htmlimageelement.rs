@@ -516,12 +516,7 @@ impl HTMLImageElement {
                 });
                 self.pending_request.borrow_mut().final_url = Some(url);
                 self.pending_request.borrow_mut().image = Some(image);
-                self.finish_reacting_to_environment_change(
-                    src,
-                    generation,
-                    selected_pixel_density,
-                    can_gc,
-                );
+                self.finish_reacting_to_environment_change(src, generation, selected_pixel_density);
             },
             ImageResponse::MetadataLoaded(meta) => {
                 self.pending_request.borrow_mut().metadata = Some(meta);
@@ -1067,7 +1062,6 @@ impl HTMLImageElement {
             elem: &HTMLImageElement,
             selected_source: String,
             selected_pixel_density: f64,
-            can_gc: CanGc,
         ) -> IpcSender<PendingImageResponse> {
             let trusted_node = Trusted::new(elem);
             let (responder_sender, responder_receiver) = ipc::channel().unwrap();
@@ -1094,7 +1088,7 @@ impl HTMLImageElement {
                             if generation == element.generation.get() {
                                 element.process_image_response_for_environment_change(image.response,
                                     USVString::from(selected_source_clone), generation,
-                                    selected_pixel_density, can_gc);
+                                    selected_pixel_density, CanGc::note());
                             }
                         }),
                         &canceller,
@@ -1160,7 +1154,6 @@ impl HTMLImageElement {
             self,
             selected_source.0.clone(),
             selected_pixel_density,
-            can_gc,
         );
         let cache_result = image_cache.track_image(
             img_url.clone(),
@@ -1177,7 +1170,6 @@ impl HTMLImageElement {
                     selected_source,
                     generation,
                     selected_pixel_density,
-                    can_gc,
                 )
             },
             ImageCacheResult::Available(ImageOrMetadataAvailable::MetadataAvailable(m)) => {
@@ -1251,7 +1243,6 @@ impl HTMLImageElement {
         src: USVString,
         generation: u32,
         selected_pixel_density: f64,
-        can_gc: CanGc,
     ) {
         let this = Trusted::new(self);
         let window = window_from_node(self);
@@ -1262,7 +1253,7 @@ impl HTMLImageElement {
                 let relevant_mutation = this.generation.get() != generation;
                 // Step 15.1
                 if relevant_mutation {
-                    this.abort_request(State::Unavailable, ImageRequestPhase::Pending, can_gc);
+                    this.abort_request(State::Unavailable, ImageRequestPhase::Pending, CanGc::note());
                     return;
                 }
                 // Step 15.2

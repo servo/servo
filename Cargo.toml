@@ -53,6 +53,7 @@ getopts = "0.2.11"
 fonts_traits = { path = "components/shared/fonts" }
 gleam = "0.15"
 glib = "0.19"
+glow = "0.15"
 gstreamer = { version = "0.22", features = ["v1_18"] }
 gstreamer-base = "0.22"
 gstreamer-gl = "0.22"
@@ -121,7 +122,7 @@ style = { git = "https://github.com/servo/stylo", branch = "2024-09-02", feature
 style_config = { git = "https://github.com/servo/stylo", branch = "2024-09-02" }
 style_dom = { git = "https://github.com/servo/stylo", package = "dom", branch = "2024-09-02" }
 style_traits = { git = "https://github.com/servo/stylo", branch = "2024-09-02", features = ["servo"] }
-surfman = { version = "0.9.8", features = ["chains"] }
+surfman = { git = "https://github.com/servo/surfman", rev = "e0c34af64f2860bc56bc8a56e1c169a915b16aa3", features = ["chains"] }
 syn = { version = "2", default-features = false, features = ["clone-impls", "derive", "parsing"] }
 synstructure = "0.13"
 thin-vec = "0.2.13"

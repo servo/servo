@@ -139,9 +139,9 @@ impl XRWebGLLayer {
 
     fn texture_target(&self) -> u32 {
         if cfg!(target_os = "macos") {
-            sparkle::gl::TEXTURE_RECTANGLE
+            glow::TEXTURE_RECTANGLE
         } else {
-            sparkle::gl::TEXTURE_2D
+            glow::TEXTURE_2D
         }
     }
 

@@ -30,7 +30,7 @@ use bluetooth::BluetoothThreadFactory;
 use bluetooth_traits::BluetoothRequest;
 use canvas::canvas_paint_thread::CanvasPaintThread;
 use canvas::WebGLComm;
-use canvas_traits::webgl::WebGLThreads;
+use canvas_traits::webgl::{GlType, WebGLThreads};
 use compositing::webview::UnknownWebView;
 use compositing::windowing::{EmbedderEvent, EmbedderMethods, WindowMethods};
 use compositing::{CompositeTarget, IOCompositor, InitialCompositorState, ShutdownState};
@@ -387,8 +387,8 @@ where
 
         // Create the webgl thread
         let gl_type = match webrender_gl.get_type() {
-            gleam::gl::GlType::Gl => sparkle::gl::GlType::Gl,
-            gleam::gl::GlType::Gles => sparkle::gl::GlType::Gles,
+            gleam::gl::GlType::Gl => GlType::Gl,
+            gleam::gl::GlType::Gles => GlType::Gles,
         };
 
         let (external_image_handlers, external_images) = WebrenderExternalImageHandlers::new();
