@@ -92,10 +92,10 @@ impl Promise {
         Promise::new_in_current_realm(comp)
     }
 
-    pub fn new_in_current_realm(_comp: InRealm) -> Rc<Promise> {
+    pub fn new_in_current_realm(_comp: InRealm, can_gc: CanGc) -> Rc<Promise> {
         let cx = GlobalScope::get_cx();
         rooted!(in(*cx) let mut obj = ptr::null_mut::<JSObject>());
-        Promise::create_js_promise(cx, obj.handle_mut());
+        Promise::create_js_promise(cx, obj.handle_mut(), can_gc);
         Promise::new_with_js_promise(obj.handle(), cx)
     }
 
@@ -121,7 +121,9 @@ impl Promise {
     }
 
     #[allow(unsafe_code)]
-    fn create_js_promise(cx: SafeJSContext, mut obj: MutableHandleObject) {
+    // The apparently-unused CanGc parameter reflects the fact that the JS API calls
+    // like JS_NewFunction can trigger a GC.
+    fn create_js_promise(cx: SafeJSContext, mut obj: MutableHandleObject, _can_gc: CanGc) {
         unsafe {
             let do_nothing_func = JS_NewFunction(
                 *cx,
@@ -253,18 +255,20 @@ impl Promise {
     }
 
     #[allow(unsafe_code)]
-    pub fn append_native_handler(&self, handler: &PromiseNativeHandler, _comp: InRealm) {
+    pub fn append_native_handler(&self, handler: &PromiseNativeHandler, _comp: InRealm, can_gc: CanGc) {
         let _ais = AutoEntryScript::new(&handler.global());
         let cx = GlobalScope::get_cx();
         rooted!(in(*cx) let resolve_func =
                 create_native_handler_function(*cx,
                                                handler.reflector().get_jsobject(),
-                                               NativeHandlerTask::Resolve));
+                                               NativeHandlerTask::Resolve,
+                                               can_gc));
 
         rooted!(in(*cx) let reject_func =
                 create_native_handler_function(*cx,
                                                handler.reflector().get_jsobject(),
-                                               NativeHandlerTask::Reject));
+                                               NativeHandlerTask::Reject,
+                                               can_gc));
 
         unsafe {
             let ok = AddPromiseReactions(
@@ -335,10 +339,13 @@ unsafe extern "C" fn native_handler_callback(
 }
 
 #[allow(unsafe_code)]
+// The apparently-unused CanGc argument reflects the fact that the JS API calls
+// like NewFunctionWithReserved can trigger a GC.
 fn create_native_handler_function(
     cx: *mut JSContext,
     holder: HandleObject,
     task: NativeHandlerTask,
+    _can_gc: CanGc,
 ) -> *mut JSObject {
     unsafe {
         let func = NewFunctionWithReserved(cx, Some(native_handler_callback), 1, 0, ptr::null());
