@@ -99,7 +99,7 @@ servo_geometry = { path = "../geometry" }
 servo_rand = { path = "../rand" }
 servo_url = { path = "../url" }
 smallvec = { workspace = true, features = ["union"] }
-sparkle = { workspace = true }
+glow = { workspace = true }
 style = { workspace = true }
 style_dom = { workspace = true }
 style_traits = { workspace = true }
