@@ -12,6 +12,7 @@ use crate::dom::htmldatalistelement::HTMLDataListElement;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::Node;
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
+use crate::script_runtime::CanGc;
 
 /// Trait for elements with constraint validation support
 pub trait Validatable {
@@ -46,7 +47,7 @@ pub trait Validatable {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#report-validity-steps>
-    fn report_validity(&self) -> bool {
+    fn report_validity(&self, can_gc: CanGc) -> bool {
         // Step 1.
         if !self.is_instance_validatable() {
             return true;
@@ -70,7 +71,7 @@ pub trait Validatable {
                 validation_message_for_flags(&self.validity_state(), flags)
             );
             if let Some(html_elem) = self.as_element().downcast::<HTMLElement>() {
-                html_elem.Focus();
+                html_elem.Focus(can_gc);
             }
         }
 

@@ -677,6 +677,7 @@ pub fn handle_focus_element(
     pipeline: PipelineId,
     element_id: String,
     reply: IpcSender<Result<(), ErrorStatus>>,
+    can_gc: CanGc,
 ) {
     reply
         .send(
@@ -684,7 +685,7 @@ pub fn handle_focus_element(
                 match node.downcast::<HTMLElement>() {
                     Some(element) => {
                         // Need a way to find if this actually succeeded
-                        element.Focus();
+                        element.Focus(can_gc);
                         Ok(())
                     },
                     None => Err(ErrorStatus::UnknownError),
@@ -1072,6 +1073,7 @@ pub fn handle_element_click(
     pipeline: PipelineId,
     element_id: String,
     reply: IpcSender<Result<Option<String>, ErrorStatus>>,
+    can_gc: CanGc,
 ) {
     reply
         .send(
@@ -1122,7 +1124,7 @@ pub fn handle_element_click(
 
                         // Step 8.5
                         match parent_node.downcast::<HTMLElement>() {
-                            Some(html_element) => html_element.Focus(),
+                            Some(html_element) => html_element.Focus(can_gc),
                             None => return Err(ErrorStatus::UnknownError),
                         }
 

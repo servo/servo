@@ -2262,7 +2262,8 @@ impl Window {
                         false,
                         false,
                         old_url,
-                        new_url);
+                        new_url,
+                        CanGc::note());
                     event.upcast::<Event>().fire(this.upcast::<EventTarget>());
                 });
                 // FIXME(nox): Why are errors silenced here?

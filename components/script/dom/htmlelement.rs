@@ -51,6 +51,7 @@ use crate::dom::node::{
 };
 use crate::dom::text::Text;
 use crate::dom::virtualmethods::VirtualMethods;
+use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 
 #[dom_struct]
@@ -399,22 +400,22 @@ impl HTMLElementMethods for HTMLElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-focus
-    fn Focus(&self) {
+    fn Focus(&self, can_gc: CanGc) {
         // TODO: Mark the element as locked for focus and run the focusing steps.
         // https://html.spec.whatwg.org/multipage/#focusing-steps
         let document = document_from_node(self);
-        document.request_focus(Some(self.upcast()), FocusType::Element);
+        document.request_focus(Some(self.upcast()), FocusType::Element, can_gc);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-blur
-    fn Blur(&self) {
+    fn Blur(&self, can_gc: CanGc) {
         // TODO: Run the unfocusing steps.
         if !self.as_element().focus_state() {
             return;
         }
         // https://html.spec.whatwg.org/multipage/#unfocusing-steps
         let document = document_from_node(self);
-        document.request_focus(None, FocusType::Element);
+        document.request_focus(None, FocusType::Element, can_gc);
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-htmlelement-offsetparent
@@ -1077,7 +1078,7 @@ impl VirtualMethods for HTMLElement {
             super_type.bind_to_tree(context);
         }
         let element = self.as_element();
-        element.update_sequentially_focusable_status();
+        element.update_sequentially_focusable_status(CanGc::note());
 
         // Binding to a tree can disable a form control if one of the new
         // ancestors is a fieldset.

@@ -1581,6 +1581,7 @@ impl ScriptThread {
                         node_address,
                         point_in_node,
                         pressed_mouse_buttons,
+                        can_gc,
                     );
                 },
 
@@ -1628,7 +1629,7 @@ impl ScriptThread {
                 },
 
                 CompositorEvent::IMEDismissedEvent => {
-                    document.ime_dismissed();
+                    document.ime_dismissed(can_gc);
                 },
 
                 CompositorEvent::CompositionEvent(composition_event) => {
@@ -2381,7 +2382,7 @@ impl ScriptThread {
                 self.handle_remove_history_states(pipeline_id, history_states)
             },
             ConstellationControlMsg::FocusIFrame(parent_pipeline_id, frame_id) => {
-                self.handle_focus_iframe_msg(parent_pipeline_id, frame_id)
+                self.handle_focus_iframe_msg(parent_pipeline_id, frame_id, can_gc)
             },
             ConstellationControlMsg::WebDriverScriptCommand(pipeline_id, msg) => {
                 self.handle_webdriver_msg(pipeline_id, msg, can_gc)
@@ -2782,10 +2783,22 @@ impl ScriptThread {
                 )
             },
             WebDriverScriptCommand::FocusElement(element_id, reply) => {
-                webdriver_handlers::handle_focus_element(&documents, pipeline_id, element_id, reply)
+                webdriver_handlers::handle_focus_element(
+                    &documents,
+                    pipeline_id,
+                    element_id,
+                    reply,
+                    can_gc,
+                )
             },
             WebDriverScriptCommand::ElementClick(element_id, reply) => {
-                webdriver_handlers::handle_element_click(&documents, pipeline_id, element_id, reply)
+                webdriver_handlers::handle_element_click(
+                    &documents,
+                    pipeline_id,
+                    element_id,
+                    reply,
+                    can_gc,
+                )
             },
             WebDriverScriptCommand::GetActiveElement(reply) => {
                 webdriver_handlers::handle_get_active_element(&documents, pipeline_id, reply)
@@ -3027,6 +3040,7 @@ impl ScriptThread {
         &self,
         parent_pipeline_id: PipelineId,
         browsing_context_id: BrowsingContextId,
+        can_gc: CanGc,
     ) {
         let doc = self
             .documents
@@ -3036,7 +3050,7 @@ impl ScriptThread {
         let frame_element = doc.find_iframe(browsing_context_id);
 
         if let Some(ref frame_element) = frame_element {
-            doc.request_focus(Some(frame_element.upcast()), FocusType::Parent);
+            doc.request_focus(Some(frame_element.upcast()), FocusType::Parent, can_gc);
         }
     }
 
@@ -3914,6 +3928,7 @@ impl ScriptThread {
         node_address: Option<UntrustedNodeAddress>,
         point_in_node: Option<Point2D<f32>>,
         pressed_mouse_buttons: u16,
+        can_gc: CanGc,
     ) {
         let Some(document) = self.documents.borrow().find_document(pipeline_id) else {
             warn!("Message sent to closed pipeline {pipeline_id}.");
@@ -3927,6 +3942,7 @@ impl ScriptThread {
                 node_address,
                 point_in_node,
                 pressed_mouse_buttons,
+                can_gc,
             )
         }
     }

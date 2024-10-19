@@ -2002,7 +2002,7 @@ impl Element {
         }
     }
 
-    pub(crate) fn update_sequentially_focusable_status(&self) {
+    pub(crate) fn update_sequentially_focusable_status(&self, can_gc: CanGc) {
         let node = self.upcast::<Node>();
         let is_sequentially_focusable = self.is_sequentially_focusable();
         node.set_flag(NodeFlags::SEQUENTIALLY_FOCUSABLE, is_sequentially_focusable);
@@ -2010,7 +2010,7 @@ impl Element {
         // https://html.spec.whatwg.org/multipage/#focus-fixup-rule
         if !is_sequentially_focusable {
             let document = document_from_node(self);
-            document.perform_focus_fixup_rule(self);
+            document.perform_focus_fixup_rule(self, can_gc);
         }
     }
 
@@ -3327,7 +3327,7 @@ impl VirtualMethods for Element {
         let doc = node.owner_doc();
         match attr.local_name() {
             &local_name!("tabindex") | &local_name!("draggable") | &local_name!("hidden") => {
-                self.update_sequentially_focusable_status()
+                self.update_sequentially_focusable_status(CanGc::note())
             },
             &local_name!("style") => {
                 // Modifying the `style` attribute might change style.
@@ -3493,7 +3493,7 @@ impl VirtualMethods for Element {
             return;
         }
 
-        self.update_sequentially_focusable_status();
+        self.update_sequentially_focusable_status(CanGc::note());
 
         if let Some(ref id) = *self.id_attribute.borrow() {
             if let Some(shadow_root) = self.upcast::<Node>().containing_shadow_root() {
@@ -3526,7 +3526,7 @@ impl VirtualMethods for Element {
             return;
         }
 
-        self.update_sequentially_focusable_status();
+        self.update_sequentially_focusable_status(CanGc::note());
 
         let doc = document_from_node(self);
 

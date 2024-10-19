@@ -152,6 +152,7 @@ impl History {
                 false,
                 old_url.into_string(),
                 url.into_string(),
+                can_gc,
             );
             event
                 .upcast::<Event>()
