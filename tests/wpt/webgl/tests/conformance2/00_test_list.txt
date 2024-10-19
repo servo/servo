@@ -18,3 +18,4 @@ textures/00_test_list.txt
 transform_feedback/00_test_list.txt
 uniforms/00_test_list.txt
 vertex_arrays/00_test_list.txt
+--min-version 2.0.1 wasm/00_test_list.txt

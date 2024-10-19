@@ -1,28 +1,7 @@
 <!--
-
-/*
-** Copyright (c) 2012 The Khronos Group Inc.
-**
-** Permission is hereby granted, free of charge, to any person obtaining a
-** copy of this software and/or associated documentation files (the
-** "Materials"), to deal in the Materials without restriction, including
-** without limitation the rights to use, copy, modify, merge, publish,
-** distribute, sublicense, and/or sell copies of the Materials, and to
-** permit persons to whom the Materials are furnished to do so, subject to
-** the following conditions:
-**
-** The above copyright notice and this permission notice shall be included
-** in all copies or substantial portions of the Materials.
-**
-** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
-*/
-
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
 -->
 <!DOCTYPE html>
 <html>
@@ -42,9 +21,25 @@ var successfullyParsed = false;
 
 initTestingHarness();
 
+function logVisibility(isOnload)
+{
+    let prefix = '';
+    if (isOnload)
+        prefix = 'Upon load: ';
+    if (document.hidden) {
+        console.log(prefix + '*** Tab was backgrounded (if running in automated test harness, why?) ***');
+    } else {
+        console.log(prefix + 'Tab was foregrounded');
+    }
+}
+
 function init()
 {
     description('Verify npot video');
+
+    document.addEventListener("visibilitychange", visibilityChanged, false);
+
+    logVisibility(true);
 
     var canvas = document.getElementById("example");
     gl = wtu.create3DContext(canvas);
@@ -60,6 +55,10 @@ function init()
 
     var video = document.getElementById("vid");
     wtu.startPlayingAndWaitForVideo(video, runTest);
+}
+
+function visibilityChanged() {
+    logVisibility(false);
 }
 
 function runOneIteration(videoElement, useTexSubImage2D, flipY, topColor, bottomColor, badMinFilter, badClamp, genMips)
@@ -154,10 +153,9 @@ function runTest(videoElement)
 <canvas id="example" width="64" height="48"></canvas>
 <div id="description"></div>
 <div id="console"></div>
-<video id="vid" style="display:none;">
+<video id="vid" style="display:none;" muted>
   <source src="../../../resources/npot-video.mp4"  type='video/mp4; codecs="avc1.42E01E"' />
   <source src="../../../resources/npot-video.webmvp8.webm" type='video/webm; codecs="vp8"' />
-  <source src="../../../resources/npot-video.theora.ogv"  type='video/ogg; codecs="theora"' />
 </video>
 </body>
 </html>

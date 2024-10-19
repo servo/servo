@@ -1,28 +1,7 @@
 <!--
-
-/*
-** Copyright (c) 2012 The Khronos Group Inc.
-**
-** Permission is hereby granted, free of charge, to any person obtaining a
-** copy of this software and/or associated documentation files (the
-** "Materials"), to deal in the Materials without restriction, including
-** without limitation the rights to use, copy, modify, merge, publish,
-** distribute, sublicense, and/or sell copies of the Materials, and to
-** permit persons to whom the Materials are furnished to do so, subject to
-** the following conditions:
-**
-** The above copyright notice and this permission notice shall be included
-** in all copies or substantial portions of the Materials.
-**
-** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
-*/
-
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
 -->
 <!DOCTYPE html>
 <html>
@@ -150,6 +129,209 @@ var shaderPrecisionFormat2 = gl.getShaderPrecisionFormat(gl.VERTEX_SHADER, gl.LO
 shouldBeTrue('shaderPrecisionFormat.rangeMin == shaderPrecisionFormat2.rangeMin');
 shouldBeTrue('shaderPrecisionFormat.rangeMax == shaderPrecisionFormat2.rangeMax');
 shouldBeTrue('shaderPrecisionFormat.precision == shaderPrecisionFormat2.precision');
+
+debug("");
+debug("Test that specified precision matches rendering results");
+debug("");
+
+function testRenderPrecisionSetup(gl, shaderPair) {
+  const program = wtu.setupProgram(gl, shaderPair);
+
+  // Create a buffer and setup an attribute.
+  // We wouldn't need this except for a bug in Safari and arguably
+  // this should be removed from the test but we can't test the test itself
+  // without until the bug is fixed.
+  // see https://bugs.webkit.org/show_bug.cgi?id=197592
+  {
+    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+    gl.bufferData(gl.ARRAY_BUFFER, 1, gl.STATIC_DRAW);
+    const loc = gl.getAttribLocation(program, 'position');
+    gl.enableVertexAttribArray(loc);
+    gl.vertexAttribPointer(loc, 1, gl.UNSIGNED_BYTE, false, 0, 0);
+  }
+
+  gl.useProgram(program);
+
+  return program;
+}
+
+function testRenderPrecision(gl, shaderType, type, precision, expected, msg) {
+  gl.clear(gl.COLOR_BUFFER_BIT);
+  gl.drawArrays(gl.POINTS, 0, 1);
+
+  const pixel = new Uint8Array(4);
+  gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
+
+  wtu.checkCanvasRect(gl, 0, 0, 1, 1, expected, msg, 5);
+}
+
+function testRenderPrecisionFloat(gl, precisionEnum, precision) {
+  function test(gl, shaderPair, shaderType) {
+    const format = gl.getShaderPrecisionFormat(shaderType, precisionEnum);
+    const value = 2 ** format.precision - 1;
+
+    const length = v => Math.sqrt(v.reduce((sum, v) => sum + v * v, 0));
+    const normalize = (v) => {
+      const l = length(v);
+      return v.map(v => v / l);
+    };
+
+    const input = [Math.sqrt(value), Math.sqrt(value), Math.sqrt(value)];
+    const expected = [...normalize(input).map(v => (v * 0.5 + 0.5) * 255 | 0), 255];
+
+    const msg = `${wtu.glEnumToString(gl, shaderType)}: ${precision} float precision: ${format.precision}, rangeMin: ${format.rangeMin}, rangeMax: ${format.rangeMax}`;
+    const program = testRenderPrecisionSetup(gl, shaderPair);
+    const vLocation = gl.getUniformLocation(program, 'v');
+    gl.uniform3fv(vLocation, input);
+    testRenderPrecision(gl, shaderType, 'float', precision, expected, msg);
+  }
+
+  {
+    const vs = `
+    attribute vec4 position;
+    uniform ${precision} vec3 v;
+    varying ${precision} vec4 v_result;
+    void main() {
+      gl_Position = position;
+      gl_PointSize = 1.0;
+      v_result = vec4(normalize(v) * 0.5 + 0.5, 1);
+    }
+    `;
+
+    const fs = `
+    precision ${precision} float;
+    varying ${precision} vec4 v_result;
+    void main() {
+      gl_FragColor = v_result;
+    }
+    `;
+
+    test(gl, [vs, fs], gl.VERTEX_SHADER);
+  }
+
+  {
+    const vs = `
+    attribute vec4 position;
+    void main() {
+      gl_Position = position;
+      gl_PointSize = 1.0;
+    }
+    `;
+
+    const fs = `
+    precision ${precision} float;
+    uniform ${precision} vec3 v;
+    void main() {
+      gl_FragColor = vec4(normalize(v) * 0.5 + 0.5, 1);
+    }
+    `;
+
+    test(gl, [vs, fs], gl.FRAGMENT_SHADER);
+  }
+}
+
+function testRenderPrecisionInt(gl, precisionEnum, precision) {
+  function test(gl, shaderPair, shaderType) {
+    const format = gl.getShaderPrecisionFormat(shaderType, precisionEnum);
+    const value = 1 << (format.rangeMax - 1);
+
+    const input = [value, value, value, value];
+    const expected = [255, 255, 255, 255];
+
+    const msg = `${wtu.glEnumToString(gl, shaderType)}: ${precision} int precision: ${format.precision}, rangeMin: ${format.rangeMin}, rangeMax: ${format.rangeMax}`;
+    const program = testRenderPrecisionSetup(gl, shaderPair);
+    gl.uniform1i(gl.getUniformLocation(program, 'v'), value);
+    gl.uniform1f(gl.getUniformLocation(program, 'f'), value);
+    testRenderPrecision(gl, shaderType, 'int', precision, expected, msg);
+  }
+
+  {
+    const vs = `
+    attribute vec4 position;
+    uniform ${precision} int v;
+    uniform highp float f;
+    varying vec4 v_result;
+
+    void main() {
+      gl_Position = position;
+      gl_PointSize = 1.0;
+      float diff = abs(float(v) - f);
+      bool pass = diff < 1.0;
+      v_result = vec4(pass);
+    }
+    `;
+
+    const fs = `
+    precision mediump float;
+    varying vec4 v_result;
+    void main() {
+      gl_FragColor = v_result;
+    }
+    `;
+    test(gl, [vs, fs], gl.VERTEX_SHADER);
+  }
+
+  {
+    const vs = `
+    attribute vec4 position;
+    void main() {
+      gl_Position = position;
+      gl_PointSize = 1.0;
+    }
+    `;
+
+    const fs = `
+    precision ${precision} float;
+    uniform ${precision} int v;
+    uniform mediump float f;
+
+    void main() {
+      mediump float diff = abs(float(v) - f);
+      bool pass = diff < 1.0;
+      gl_FragColor = vec4(pass);
+    }
+    `;
+
+    test(gl, [vs, fs], gl.FRAGMENT_SHADER);
+  }
+}
+
+// because the canvas can be 16 bit IIRC
+const fb = gl.createFramebuffer(gl.FRAMEBUFFER);
+gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+
+const tex = gl.createTexture();
+gl.bindTexture(gl.TEXTURE_2D, tex);
+gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+
+gl.framebufferTexture2D(
+    gl.FRAMEBUFFER,
+    gl.COLOR_ATTACHMENT0,
+    gl.TEXTURE_2D,
+    tex,
+    0);
+
+gl.viewport(0, 0, 1, 1);
+
+{
+  testRenderPrecisionFloat(gl, gl.LOW_FLOAT, 'lowp');
+  testRenderPrecisionFloat(gl, gl.MEDIUM_FLOAT, 'mediump');
+
+  const format = gl.getShaderPrecisionFormat(gl.FRAGMENT_SHADER, gl.HIGH_FLOAT);
+  if (format.precision !== 0) {
+    testRenderPrecisionFloat(gl, gl.HIGH_FLOAT, 'highp');
+  }
+}
+
+{
+  testRenderPrecisionInt(gl, gl.LOW_INT, 'lowp');
+  testRenderPrecisionInt(gl, gl.MEDIUM_INT, 'mediump');
+
+  const format = gl.getShaderPrecisionFormat(gl.FRAGMENT_SHADER, gl.HIGH_INT);
+  if (format.rangeMax !== 0) {
+    testRenderPrecisionInt(gl, gl.HIGH_INT, 'highp');
+  }
+}
 
 finishTest();
 </script>

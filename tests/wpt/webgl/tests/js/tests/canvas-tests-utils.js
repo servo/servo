@@ -1,24 +1,7 @@
 /*
-** Copyright (c) 2016 The Khronos Group Inc.
-**
-** Permission is hereby granted, free of charge, to any person obtaining a
-** copy of this software and/or associated documentation files (the
-** "Materials"), to deal in the Materials without restriction, including
-** without limitation the rights to use, copy, modify, merge, publish,
-** distribute, sublicense, and/or sell copies of the Materials, and to
-** permit persons to whom the Materials are furnished to do so, subject to
-** the following conditions:
-**
-** The above copyright notice and this permission notice shall be included
-** in all copies or substantial portions of the Materials.
-**
-** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
 */
 
 // Some variables that will be used in this file
@@ -26,7 +9,7 @@ var canvas;
 var gl;
 var OES_vertex_array_object;
 var uniformLocation;
-var extension;
+var WEBGL_lose_context;
 var buffer;
 var framebuffer;
 var program;
@@ -238,7 +221,6 @@ var webgl1Methods = [
   "vertexAttrib4fv",
   "vertexAttribPointer",
   "viewport",
-  "commit"
 ];
 
 var webgl2Methods = [
@@ -358,6 +340,7 @@ function testAPIs(contextType) {
       passed = passed && r;
     }
 
+    methods.push(...["makeXRCompatible", "drawingBufferStorage"]);
     var extended = false;
     for (var i in gl) {
       if (typeof gl[i] == "function" && methods.indexOf(i) == -1) {
@@ -456,7 +439,7 @@ function testLostContextWithoutRestore()
         return false;
 
     // Test the extension itself.
-    if (!compareGLError(gl.INVALID_OPERATION, "extension.loseContext()"))
+    if (!compareGLError(gl.INVALID_OPERATION, "WEBGL_lose_context.loseContext()"))
         return false;
 
     imageData = new ImageData(1, 1);
@@ -584,13 +567,7 @@ function testLostContextWithoutRestore()
         return false;
 
     // Functions return nullable values should all return null.
-    if (gl.createBuffer() != null ||
-        gl.createFramebuffer() != null ||
-        gl.createProgram() != null ||
-        gl.createRenderbuffer() != null ||
-        gl.createShader(gl.GL_VERTEX_SHADER) != null ||
-        gl.createTexture() != null ||
-        gl.getActiveAttrib(program, 0) != null ||
+    if (gl.getActiveAttrib(program, 0) != null ||
         gl.getActiveUniform(program, 0) != null ||
         gl.getAttachedShaders(program) != null ||
         gl.getBufferParameter(gl.ARRAY_BUFFER, gl.BUFFER_SIZE) != null ||
@@ -611,6 +588,22 @@ function testLostContextWithoutRestore()
         gl.getExtension("WEBGL_lose_context") != null)
         return false;
 
+    const failedTests = [
+        "gl.createBuffer()",
+        "gl.createFramebuffer()",
+        "gl.createProgram()",
+        "gl.createRenderbuffer()",
+        "gl.createShader(gl.VERTEX_SHADER)",
+        "gl.createTexture()",
+    ].reduce(s => {
+        const v = eval(s);
+        return !v;
+    });
+    if (failedTests.length) {
+        console.log({failedTests});
+        return false;
+    }
+
     // "Is" queries should all return false.
     if (gl.isBuffer(buffer) || gl.isEnabled(gl.BLEND) || gl.isFramebuffer(framebuffer) ||
         gl.isProgram(program) || gl.isRenderbuffer(renderbuffer) || gl.isShader(shader) ||
@@ -626,7 +619,7 @@ function testLostContextWithoutRestore()
             !compareGLError(gl.NO_ERROR, "OES_vertex_array_object.isVertexArrayOES(vertexArrayObject)") ||
             !compareGLError(gl.NO_ERROR, "OES_vertex_array_object.deleteVertexArrayOES(vertexArrayObject)"))
             return false;
-        if (OES_vertex_array_object.createVertexArrayOES() != null)
+        if (!OES_vertex_array_object.createVertexArrayOES())
             return false;
     }
     return true;
@@ -735,7 +728,7 @@ function testLosingAndRestoringContext()
         });
         canvas.addEventListener("webglcontextrestored", function() {
             if (!testRestoredContext())
-                reject("Test failed");
+                reject("Test failed: !testRestoredContext()");
             else
                 resolve("Test passed");
         });
@@ -805,16 +798,22 @@ function testOESTextureFloat() {
 function testOESVertexArrayObject() {
   if (OES_vertex_array_object) {
     // Extension must still be lost.
-    if (OES_vertex_array_object.createVertexArrayOES() != null)
+    if (!OES_vertex_array_object.createVertexArrayOES()) {
+        console.error("!OES_vertex_array_object.createVertexArrayOES()");
         return false;
+    }
     // Try re-enabling extension
 
     var old_OES_vertex_array_object = OES_vertex_array_object;
     OES_vertex_array_object = reGetExtensionAndTestForProperty(gl, "OES_vertex_array_object", false);
-    if (OES_vertex_array_object.createVertexArrayOES() == null)
+    if (!OES_vertex_array_object.createVertexArrayOES()) {
+        console.error("!OES_vertex_array_object.createVertexArrayOES() 2");
         return false;
-    if (old_OES_vertex_array_object.createVertexArrayOES() != null)
+    }
+    if (!old_OES_vertex_array_object.createVertexArrayOES()) {
+        console.error("!old_OES_vertex_array_object.createVertexArrayOES()");
         return false;
+    }
     return true;
   }
 }

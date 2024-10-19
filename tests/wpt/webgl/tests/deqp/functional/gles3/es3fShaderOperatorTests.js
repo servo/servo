@@ -38,6 +38,11 @@ var tcuMatrix = framework.common.tcuMatrix;
 
 /** @const */ es3fShaderOperatorTests.MAX_INPUTS = 3;
 
+let canvasWH = 256;
+if (tcuTestCase.isQuickMode()) {
+    canvasWH = 32;
+}
+
 es3fShaderOperatorTests.stringJoin = function(elems, delim) {
     var result = '';
     for (var i = 0; i < elems.length; i++)
@@ -2653,6 +2658,7 @@ es3fShaderOperatorTests.ShaderOperatorTests.prototype.init = function() {
 
     // 8.3 Common Functions.
     var comm = new es3fShaderOperatorTests.BuiltinFuncGroup("common_functions", "Common function tests.");
+    funcInfoGroups.push(comm);
     comm.push(op("abs", "abs", GT, [v(GT, -2.0, 2.0)], f(0.5), f(0.5),
         all, es3fShaderOperatorTests.unaryGenTypeFuncs(Math.abs)));
     comm.push(op("sign", "sign", GT, [v(GT, -1.5, 1.5)], f(0.3), f(0.5),
@@ -2663,6 +2669,10 @@ es3fShaderOperatorTests.ShaderOperatorTests.prototype.init = function() {
         all, es3fShaderOperatorTests.unaryGenTypeFuncs(Math.trunc)));
     comm.push(op("round", "round", GT, [v(GT, 2.5, 2.5)], f(0.2), f(0.7),
         all, es3fShaderOperatorTests.unaryGenTypeFuncs(roundToEven)));
+
+    comm = new es3fShaderOperatorTests.BuiltinFuncGroup("common_functions", "Common function tests.");
+    funcInfoGroups.push(comm);
+
     comm.push(op("roundEven", "roundEven", GT, [v(GT, 2.5, 2.5)], f(0.2), f(0.7),
         all, es3fShaderOperatorTests.unaryGenTypeFuncs(roundToEven)));
     comm.push(op("ceil", "ceil", GT, [v(GT, 2.5, 2.5)], f(0.2), f(0.5),
@@ -2673,6 +2683,10 @@ es3fShaderOperatorTests.ShaderOperatorTests.prototype.init = function() {
         mediumhighp, es3fShaderOperatorTests.binaryGenTypeFuncs(deMath.mod)));
     comm.push(op("mod", "mod", GT, [v(FV, -2.0, 2.0), v(F, 0.9, 6.0)], f(0.5), f(0.5),
         mediumhighp, es3fShaderOperatorTests.binaryVecScalarFuncs(deMath.modScale)));
+
+    comm = new es3fShaderOperatorTests.BuiltinFuncGroup("common_functions", "Common function tests.");
+    funcInfoGroups.push(comm);
+
     comm.push(op("min", "min", GT, [v(GT, -1.0, 1.0), v(GT, -1.0, 1.0)], f(0.5), f(0.5),
         all, es3fShaderOperatorTests.binaryGenTypeFuncs(Math.min)));
     comm.push(op("min", "min", GT, [v(FV, -1.0, 1.0), v(F, -1.0, 1.0)], f(0.5), f(0.5),
@@ -2686,6 +2700,10 @@ es3fShaderOperatorTests.ShaderOperatorTests.prototype.init = function() {
     comm.push(op("min", "min", UGT, [v(UGT, 0.0, 8.0), v(UGT, 0.0, 8.0)], f(0.125), f(0.0),
         all, es3fShaderOperatorTests.binaryGenTypeFuncs(Math.min, gluShaderUtil.DataType.INT,
         gluShaderUtil.DataType.INT)));
+
+    comm = new es3fShaderOperatorTests.BuiltinFuncGroup("common_functions", "Common function tests.");
+    funcInfoGroups.push(comm);
+
     comm.push(op("min", "min", UGT, [v(UV, 0.0, 8.0), v(U, 0.0, 8.0)], f(0.125), f(0.0),
         all, es3fShaderOperatorTests.binaryVecScalarFuncs(minVecScalar, gluShaderUtil.DataType.UINT,
         gluShaderUtil.DataType.UINT)));
@@ -2699,6 +2717,10 @@ es3fShaderOperatorTests.ShaderOperatorTests.prototype.init = function() {
     comm.push(op("max", "max", IGT, [v(IV, -4.0, 4.0), v(I, -4.0, 4.0)], f(0.125), f(0.5),
         all, es3fShaderOperatorTests.binaryVecScalarFuncs(maxVecScalar, gluShaderUtil.DataType.INT,
         gluShaderUtil.DataType.INT)));
+
+    comm = new es3fShaderOperatorTests.BuiltinFuncGroup("common_functions", "Common function tests.");
+    funcInfoGroups.push(comm);
+
     comm.push(op("max", "max", UGT, [v(UGT, 0.0, 8.0), v(UGT, 0.0, 8.0)], f(0.125), f(0.0),
         all, es3fShaderOperatorTests.binaryGenTypeFuncs(Math.max, gluShaderUtil.DataType.INT,
         gluShaderUtil.DataType.INT)));
@@ -2712,6 +2734,10 @@ es3fShaderOperatorTests.ShaderOperatorTests.prototype.init = function() {
     comm.push(op("clamp", "clamp", IGT, [v(IGT, -4.0, 4.0), v(IGT, -2.0, 2.0), v(IGT, 2.0, 4.0)], f(0.125), f(0.5),
         all, es3fShaderOperatorTests.ternaryGenTypeFuncs(deMath.clamp, gluShaderUtil.DataType.INT,
         gluShaderUtil.DataType.INT)));
+
+    comm = new es3fShaderOperatorTests.BuiltinFuncGroup("common_functions", "Common function tests.");
+    funcInfoGroups.push(comm);
+
     comm.push(op("clamp", "clamp", IGT, [v(IGT, -4.0, 4.0), v(I, -2.0, 2.0), v(I, 2.0, 4.0)], f(0.125), f(0.5),
         all, es3fShaderOperatorTests.ternaryVecScalarScalarFuncs(clampVecScalarScalar, gluShaderUtil.DataType.INT,
         gluShaderUtil.DataType.INT)));
@@ -2725,6 +2751,10 @@ es3fShaderOperatorTests.ShaderOperatorTests.prototype.init = function() {
         all, es3fShaderOperatorTests.ternaryGenTypeFuncs(mix)));
     comm.push(op("mix", "mix", GT, [v(FV, -1.0, 1.0), v(FV, -1.0, 1.0), v(F, 0.0, 1.0)], f(0.5), f(0.5),
         all, es3fShaderOperatorTests.ternaryVecVecScalarFuncs(mixVecVecScalar)));
+
+    comm = new es3fShaderOperatorTests.BuiltinFuncGroup("common_functions", "Common function tests.");
+    funcInfoGroups.push(comm);
+
     comm.push(op("step", "step", GT, [v(GT, -1.0, 1.0), v(GT, -1.0, 0.0)], f(0.5), f(0.25),
         all, es3fShaderOperatorTests.binaryGenTypeFuncs(step)));
     comm.push(op("step", "step", GT, [v(F, -1.0, 1.0), v(FV, -1.0, 0.0)], f(0.5), f(0.25),
@@ -2733,8 +2763,6 @@ es3fShaderOperatorTests.ShaderOperatorTests.prototype.init = function() {
         all, es3fShaderOperatorTests.ternaryGenTypeFuncs(smoothStep)));
     comm.push(op("smoothstep", "smoothstep", GT, [v(F, -0.5, 0.0), v(F, 0.1, 1.0), v(FV, -1.0, 1.0)], f(0.5), f(0.5),
         all, es3fShaderOperatorTests.ternaryScalarScalarVecFuncs(smoothStepScalarScalarVec)));
-
-    funcInfoGroups.push(comm);
 
     // 8.4 Geometric Functions.
     var geom = new es3fShaderOperatorTests.BuiltinFuncGroup("geometric", "Geometric function tests.");
@@ -3196,6 +3224,11 @@ es3fShaderOperatorTests.ShaderOperatorTests.prototype.init = function() {
 */
 es3fShaderOperatorTests.run = function(context, range) {
     gl = context;
+
+    const canvas = gl.canvas;
+    canvas.width = canvasWH;
+    canvas.height = canvasWH;
+
     //Set up Test Root parameters
     var state = tcuTestCase.runner;
     state.setRoot(new es3fShaderOperatorTests.ShaderOperatorTests());

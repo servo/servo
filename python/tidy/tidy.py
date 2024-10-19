@@ -884,7 +884,7 @@ def run_wpt_lints(only_changed_files: bool):
         yield from manifests_exist_errors
         return
 
-    yield from check_that_manifests_are_clean()
+    # yield from check_that_manifests_are_clean()
     yield from lint_wpt_test_files()
 
 

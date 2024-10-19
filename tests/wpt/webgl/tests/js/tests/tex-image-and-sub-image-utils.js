@@ -1,24 +1,7 @@
 /*
-** Copyright (c) 2015 The Khronos Group Inc.
-**
-** Permission is hereby granted, free of charge, to any person obtaining a
-** copy of this software and/or associated documentation files (the
-** "Materials"), to deal in the Materials without restriction, including
-** without limitation the rights to use, copy, modify, merge, publish,
-** distribute, sublicense, and/or sell copies of the Materials, and to
-** permit persons to whom the Materials are furnished to do so, subject to
-** the following conditions:
-**
-** The above copyright notice and this permission notice shall be included
-** in all copies or substantial portions of the Materials.
-**
-** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
 */
 var TexImageUtils = (function() {
 
@@ -808,11 +791,75 @@ var TexImageUtils = (function() {
     return program;
   };
 
+  /**
+   * Return a list of unpack color spaces to test, supported by the specified
+   * WebGLRenderingContext.
+   */
+  var unpackColorSpacesToTest = function(gl)
+  {
+    if ('unpackColorSpace' in gl)
+      return ['srgb', 'display-p3'];
+    else
+      return [undefined];
+  }
+
+  /**
+   * For each entry in unpackColorSpaces, duplicate all of cases, adding an
+   * unpackColorSpace key with its value set to that entry to each case.
+   */
+  var crossProductTestCasesWithUnpackColorSpaces = function(testCaseList, unpackColorSpaces)
+  {
+    var testCaseWithUnpackColorSpace = function(testCase, colorSpace)
+    {
+      return {...testCase, ...{unpackColorSpace:colorSpace}};
+    }
+    var listOfTestCaseLists = unpackColorSpaces.map(colorSpace =>
+        testCaseList.map(testCase => testCaseWithUnpackColorSpace(testCase, colorSpace)));
+    return listOfTestCaseLists.flat();
+  }
+
+  /**
+   * Given given an internalformat, format, and type, return the tolerance
+   * that should be used when comparing an input 8-bit value to one that has
+   * been truncated through the specified formats.
+   */
+  var tolerance = function(internalformat, format, type) {
+    function typeTolerance(type) {
+      switch(type) {
+        case 'UNSIGNED_SHORT_5_6_5':
+        case 'UNSIGNED_SHORT_5_5_5_1':
+          return 255 / 31;
+        case 'UNSIGNED_SHORT_4_4_4_4':
+          return 255 / 15;
+          break;
+        default:
+          return 1;
+      }
+    };
+    function formatTolerance(format) {
+      switch(format) {
+        case 'RGB565':
+        case 'RGB5_A1':
+          return 255/31;
+        case 'RGBA4':
+          return 255/15;
+        default:
+          return 1;
+      }
+    };
+    return Math.max(formatTolerance(internalformat),
+                    formatTolerance(format),
+                    typeTolerance(type));
+  }
+
   return {
     setupTexturedQuad: setupTexturedQuad,
     setupTexturedQuadWithCubeMap: setupTexturedQuadWithCubeMap,
     setupTexturedQuadWith3D: setupTexturedQuadWith3D,
-    setupTexturedQuadWith2DArray: setupTexturedQuadWith2DArray
+    setupTexturedQuadWith2DArray: setupTexturedQuadWith2DArray,
+    unpackColorSpacesToTest: unpackColorSpacesToTest,
+    crossProductTestCasesWithUnpackColorSpaces: crossProductTestCasesWithUnpackColorSpaces,
+    tolerance: tolerance
   };
 
 }());

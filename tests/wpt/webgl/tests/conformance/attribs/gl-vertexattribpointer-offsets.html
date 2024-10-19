@@ -1,28 +1,7 @@
 <!--
-
-/*
-** Copyright (c) 2012 The Khronos Group Inc.
-**
-** Permission is hereby granted, free of charge, to any person obtaining a
-** copy of this software and/or associated documentation files (the
-** "Materials"), to deal in the Materials without restriction, including
-** without limitation the rights to use, copy, modify, merge, publish,
-** distribute, sublicense, and/or sell copies of the Materials, and to
-** permit persons to whom the Materials are furnished to do so, subject to
-** the following conditions:
-**
-** The above copyright notice and this permission notice shall be included
-** in all copies or substantial portions of the Materials.
-**
-** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
-*/
-
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
 -->
 
 <!DOCTYPE html>
@@ -75,12 +54,7 @@ There is supposed to be an example drawing here, but it's not important.
                 componentSize: 4,
                 normalize: false,
               },
-              { data: new Float32Array([ 0, 1, 0, 1, 0, 0, 0, 0, 0 ]),
-                type: gl.FLOAT,
-                componentSize: 4,
-                normalize: false,
-              },
-              { data: new Uint16Array([ 0, 32767, 0, 32767, 0, 0, 0, 0, 0 ]),
+              { data: new Uint16Array([ 0, 32767, 0, 32767, 0, 0, 0, 0, 0]),
                 type: gl.SHORT,
                 componentSize: 2,
                 normalize: true,
@@ -121,6 +95,41 @@ There is supposed to be an example drawing here, but it's not important.
                 normalize: false,
               }
             ];
+
+            if (wtu.getDefault3DContextVersion() >= 2) {
+              tests.push(...[
+                  { data: new Int32Array([ 0, 1, 0, 1, 0, 0, 0, 0, 0]),
+                    type: gl.INT,
+                    componentSize: 4,
+                    normalize: false,
+                  },
+                  { data: new Int32Array([ 0, 2147483647, 0, 2147483647, 0, 0, 0, 0, 0]),
+                    type: gl.INT,
+                    componentSize: 4,
+                    normalize: true,
+                  },
+                  { data: new Uint32Array([ 0, 1, 0, 1, 0, 0, 0, 0, 0]),
+                    type: gl.UNSIGNED_INT,
+                    componentSize: 4,
+                    normalize: false,
+                  },
+                  { data: new Uint32Array([ 0, 4294967295, 0, 4294967295, 0, 0, 0, 0, 0]),
+                    type: gl.UNSIGNED_INT,
+                    componentSize: 4,
+                    normalize: true,
+                  },
+                  { data: new Uint16Array([ 0, 0b11110000000000, 0, 0b11110000000000, 0, 0, 0, 0, 0]),
+                    type: gl.HALF_FLOAT,
+                    componentSize: 2,
+                    normalize: false,
+                  },
+                  { data: new Uint16Array([ 0, 0b11110000000000, 0, 0b11110000000000, 0, 0, 0, 0, 0]),
+                    type: gl.HALF_FLOAT,
+                    componentSize: 2,
+                    normalize: false,
+                  }
+                ]);
+            }
 
             var vertexObject = gl.createBuffer();
             gl.bindBuffer(gl.ARRAY_BUFFER, vertexObject);

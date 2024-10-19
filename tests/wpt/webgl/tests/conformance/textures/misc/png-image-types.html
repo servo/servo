@@ -1,0 +1,166 @@
+<!--
+Copyright (c) 2021 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="../../../resources/js-test-style.css" />
+    <script src=/resources/testharness.js></script>
+    <script src=/resources/testharnessreport.js></script>
+    <script src="../../../js/js-test-pre.js"></script>
+    <script src="../../../js/webgl-test-utils.js"></script>
+</head>
+
+<body>
+    <div id="description"></div>
+    <div id="console"></div>
+    <script>
+"use strict";
+description("This test verifies correct channel mapping of different PNG image types.");
+
+const testData = {
+    "Grayscale": {
+        src: [
+            // [0x40]
+            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAAAAAA6fptVAAAACklEQVQI12NwAAAAQgBBg7nsrQAAAABJRU5ErkJggg==",
+            // [0x4040]
+            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABEAAAAABq7kcWAAAAC0lEQVQI12NwcAAAAMMAgUenLEIAAAAASUVORK5CYII="
+        ],
+        expectations: [
+            { color: [0x00, 0x00, 0x00, 0xFF], format: "ALPHA" },
+            { color: [0x40, 0x40, 0x40, 0xFF], format: "RGB" },
+            { color: [0x40, 0x40, 0x40, 0xFF], format: "RGBA" },
+            { color: [0x40, 0x40, 0x40, 0xFF], format: "LUMINANCE" },
+            { color: [0x40, 0x40, 0x40, 0xFF], format: "LUMINANCE_ALPHA" },
+            { color: [0x40, 0x00, 0x00, 0xFF], format: "RED", internalformat: "R8" },
+            { color: [0x40, 0x40, 0x00, 0xFF], format: "RG", internalformat: "RG8" }
+        ]
+    },
+    "Grayscale Alpha": {
+        src: [
+            // [0x40, 0x80]
+            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVQI12NwaAAAAQMAwUxZTl4AAAAASUVORK5CYII=",
+            // [0x4040, 0x8080]
+            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABEAQAAADljNBBAAAADUlEQVQI12NwcGhoAAADRQGBoxssPgAAAABJRU5ErkJggg=="
+        ],
+        expectations: [
+            { color: [0x00, 0x00, 0x00, 0x80], format: "ALPHA" },
+            { color: [0x40, 0x40, 0x40, 0xFF], format: "RGB" },
+            { color: [0x40, 0x40, 0x40, 0x80], format: "RGBA" },
+            { color: [0x40, 0x40, 0x40, 0xFF], format: "LUMINANCE" },
+            { color: [0x40, 0x40, 0x40, 0x80], format: "LUMINANCE_ALPHA" },
+            { color: [0x40, 0x00, 0x00, 0xFF], format: "RED", internalformat: "R8" },
+            { color: [0x40, 0x40, 0x00, 0xFF], format: "RG", internalformat: "RG8" }
+        ]
+    },
+    "Color": {
+        src: [
+            // [0xBF, 0x7F, 0xFF]
+            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVQI12PYX/8fAAQ+Aj5BqwprAAAAAElFTkSuQmCC",
+            // [0xBFBF, 0x7F7F, 0xFFFF]
+            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABEAIAAADA54+dAAAAD0lEQVQI12PYv7++/v9/AA6yBHvtbgBNAAAAAElFTkSuQmCC"
+        ],
+        expectations: [
+            { color: [0x00, 0x00, 0x00, 0xFF], format: "ALPHA" },
+            { color: [0xBF, 0x7F, 0xFF, 0xFF], format: "RGB" },
+            { color: [0xBF, 0x7F, 0xFF, 0xFF], format: "RGBA" },
+            { color: [0xBF, 0xBF, 0xBF, 0xFF], format: "LUMINANCE" },
+            { color: [0xBF, 0xBF, 0xBF, 0xFF], format: "LUMINANCE_ALPHA" },
+            { color: [0xBF, 0x00, 0x00, 0xFF], format: "RED", internalformat: "R8" },
+            { color: [0xBF, 0x7F, 0x00, 0xFF], format: "RG", internalformat: "RG8" }
+        ]
+
+    },
+    "Color Alpha": {
+        src: [
+            // [0xBF, 0x7F, 0xFF, 0x40]
+            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQI12PYX//fAQAGvAJ+xPMwKQAAAABJRU5ErkJggg==",
+            // [0xBFBF, 0x7F7F, 0xFFFF, 0x4040]
+            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABEAYAAABPhRjKAAAAEUlEQVQI12PYv7++/v9/BwcAGGgE+8YN4XUAAAAASUVORK5CYII="
+        ],
+        expectations: [
+            { color: [0x00, 0x00, 0x00, 0x40], format: "ALPHA" },
+            { color: [0xBF, 0x7F, 0xFF, 0xFF], format: "RGB" },
+            { color: [0xBF, 0x7F, 0xFF, 0x40], format: "RGBA" },
+            { color: [0xBF, 0xBF, 0xBF, 0xFF], format: "LUMINANCE" },
+            { color: [0xBF, 0xBF, 0xBF, 0x40], format: "LUMINANCE_ALPHA" },
+            { color: [0xBF, 0x00, 0x00, 0xFF], format: "RED", internalformat: "R8" },
+            { color: [0xBF, 0x7F, 0x00, 0xFF], format: "RG", internalformat: "RG8" }
+        ]
+    }
+};
+
+const wtu = WebGLTestUtils;
+const gl = wtu.create3DContext();
+
+wtu.setupTexturedQuad(gl);
+gl.bindTexture(gl.TEXTURE_2D, gl.createTexture());
+
+(async () => {
+    for (const [type, testCase] of Object.entries(testData)) {
+        if (testCase.src.length != 2) throw new Error('testCase.src.length != 2');
+        let images = testCase.src.map(src => loadImage(src));
+        images = await Promise.all(images);
+        debug("");
+        debug("");
+        debug(`PNG image type ${type} with RGBA values of ${testCase.expectations[2].color}`);
+        let formats = testCase.expectations;
+        if (!wtu.isWebGL2(gl)) {
+            formats = formats.filter((f) => !f.internalformat);
+        }
+        for (const f of formats) {
+            debug("");
+            debug(`GL format: ${f.format}`);
+
+            function check(data, description) {
+                debug(`Upload ${description}`);
+                gl.texImage2D(
+                    gl.TEXTURE_2D,
+                    0,
+                    gl[f.internalformat || f.format],
+                    gl[f.format],
+                    gl.UNSIGNED_BYTE,
+                    data
+                );
+                wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+                wtu.clearAndDrawUnitQuad(gl);
+                wtu.checkCanvas(gl, f.color, undefined, 1);
+            }
+
+            check(images[0].image, "8-bit PNG from Image");
+            check(images[1].image, "16-bit PNG from Image");
+
+            if (images[0].bitmap) {
+                check(images[0].bitmap, "8-bit PNG from ImageBitmap");
+                check(images[1].bitmap, "16-bit PNG from ImageBitmap");
+            }
+        }
+    }
+    finishTest();
+})();
+
+async function loadImage(src) {
+    const img = new Image();
+    img.src = src;
+    await img.decode();
+    const ret = { image: img };
+    if (self.createImageBitmap) {
+        try {
+            ret.bitmap = await createImageBitmap(img, {
+                premultiplyAlpha: "none",
+            });
+        } catch {}
+    }
+    return ret;
+}
+
+var successfullyParsed = true;
+    </script>
+</body>
+
+</html>

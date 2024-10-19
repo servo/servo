@@ -1,28 +1,7 @@
 <!--
-
-/*
-** Copyright (c) 2017 The Khronos Group Inc.
-**
-** Permission is hereby granted, free of charge, to any person obtaining a
-** copy of this software and/or associated documentation files (the
-** "Materials"), to deal in the Materials without restriction, including
-** without limitation the rights to use, copy, modify, merge, publish,
-** distribute, sublicense, and/or sell copies of the Materials, and to
-** permit persons to whom the Materials are furnished to do so, subject to
-** the following conditions:
-**
-** The above copyright notice and this permission notice shall be included
-** in all copies or substantial portions of the Materials.
-**
-** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
-*/
-
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
 -->
 
 <!DOCTYPE html>
@@ -53,6 +32,59 @@ void main()
     switch (u_zero)
     {
         case 0:
+            ivec2 i;
+            i = ivec2(1, 0);
+            my_FragColor = vec4(0, i[0], 0, 1);
+    }
+}
+</script>
+<script id="fshaderDeclarationInsideSwitchDefault" type="x-shader/x-fragment">#version 300 es
+
+precision highp float;
+out vec4 my_FragColor;
+
+uniform int u_zero;
+
+void main()
+{
+    my_FragColor = vec4(1, 0, 0, 1);
+    switch (u_zero)
+    {
+        default:
+            ivec2 i;
+            i = ivec2(1, 0);
+            my_FragColor = vec4(0, i[0], 0, 1);
+    }
+}
+</script>
+<script id="fshaderDeclarationInsideSwitchLiteral" type="x-shader/x-fragment">#version 300 es
+
+precision highp float;
+out vec4 my_FragColor;
+
+void main()
+{
+    my_FragColor = vec4(1, 0, 0, 1);
+    switch (0)
+    {
+        case 0:
+            ivec2 i;
+            i = ivec2(1, 0);
+            my_FragColor = vec4(0, i[0], 0, 1);
+    }
+}
+</script>
+<script id="fshaderDeclarationInsideSwitchLiteralDefault" type="x-shader/x-fragment">#version 300 es
+
+precision highp float;
+out vec4 my_FragColor;
+
+void main()
+{
+    my_FragColor = vec4(1, 0, 0, 1);
+    switch (0)
+    {
+        default:
             ivec2 i;
             i = ivec2(1, 0);
             my_FragColor = vec4(0, i[0], 0, 1);
@@ -242,6 +274,27 @@ GLSLConformanceTester.runTests([
   fShaderSuccess: true,
   linkSuccess: true,
   passMsg: 'Declaration inside switch should work.',
+  render: true
+},
+{
+  fShaderId: 'fshaderDeclarationInsideSwitchDefault',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: 'Declaration inside switch default case should work.',
+  render: true
+},
+{
+  fShaderId: 'fshaderDeclarationInsideSwitchLiteral',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: 'Declaration inside switch with literal value should work.',
+  render: true
+},
+{
+  fShaderId: 'fshaderDeclarationInsideSwitchLiteralDefault',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: 'Declaration inside switch with literal value and default case should work.',
   render: true
 },
 {

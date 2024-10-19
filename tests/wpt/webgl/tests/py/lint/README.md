@@ -22,7 +22,7 @@ WebGL/sdk/tests working directory like this:
 You can use the lint tool to check submitted pull request and fix the errors reported by the tool.
 Reviewers will not merge branches with tests that have lint errors, so you must either
 [fix all lint errors](#fixing-lint-errors) or update
-[white-list test files] (#updating-the-whitelist) to suppress the errors.
+[allow-list test files] (#updating-the-allowlist) to suppress the errors.
 
 ## Usage of lint tool
 
@@ -46,7 +46,7 @@ WebGL/sdk/tests:</br>
 You must fix any errors the lint tool reports, unless an error is for
 something essential to a certain test or that for some other exceptional
 reason shouldn't prevent the test from being merged. In those cases you can
-update [white-list test files](#updating-the-whiteslist) to suppress the errors.
+update [allow-list test files](#updating-the-allowlist) to suppress the errors.
 Otherwise, use the details in this section to fix all errors reported.
 
 * **CR AT EOL**: Test-file line ends with CR (U+000D) character; **fix**:
@@ -65,32 +65,32 @@ Otherwise, use the details in this section to fix all errors reported.
 * **FILENAME WHITESPACE**: Test file name contains white space; **fix**:
   remove white space from test file name.
 
-## Updating the whitelist
+## Updating the allowlist
 
 Normally you must [fix all lint errors](#fixing-lint-errors). But in the
 unusual case of error reports for things essential to certain tests or that
 for other exceptional reasons shouldn't prevent a merge of a test, you can
-update and commit the `lint.whitelist` file in the WebGL/sdk/tests/py/lint/
+update and commit the `lint.allowlist` file in the WebGL/sdk/tests/py/lint/
 directory to suppress errors the lint tool would report for a test file.
 
-To add a test file or directory to the whitelist, use the following format:
+To add a test file or directory to the allowlist, use the following format:
 
 ```
 ERROR TYPE:file/name/pattern
 ```
 
-For example, to whitelist the file `example/file.html` such that all
+For example, to allowlist the file `example/file.html` such that all
 `TRAILING WHITESPACE` errors the lint tool would report for it are
-suppressed, add the following line to the `lint.whitelist` file.
+suppressed, add the following line to the `lint.allowlist` file.
 
 ```
 TRAILING WHITESPACE:example/file.html
 ```
 
-To whitelist an entire directory rather than just one file, use the `*`
-wildcard. For example, to whitelist the `example` directory such that all
+To allowlist an entire directory rather than just one file, use the `*`
+wildcard. For example, to allowlist the `example` directory such that all
 `TRAILING WHITESPACE` errors the lint tool would report for any files in it
-are suppressed, add the following line to the `lint.whitelist` file.
+are suppressed, add the following line to the `lint.allowlist` file.
 
 ```
 TRAILING WHITESPACE:example/*
@@ -100,15 +100,15 @@ If needed, you can also use the `*` wildcard to express other filename
 patterns or directory-name patterns (just as you would when, e.g.,
 executing shell commands from the command line).
 
-Finally, to whitelist just one line in a file, use the following format:
+Finally, to allowlist just one line in a file, use the following format:
 
 ```
 ERROR TYPE:file/name/pattern:line_number
 ```
 
-For example, to whitelist just line 128 of the file `example/file.html`
+For example, to allowlist just line 128 of the file `example/file.html`
 such that any `TRAILING WHITESPACE` error the lint tool would report for
-that line is suppressed, add the following to the `lint.whitelist` file.
+that line is suppressed, add the following to the `lint.allowlist` file.
 
 ```
 TRAILING WHITESPACE:example/file.html:128

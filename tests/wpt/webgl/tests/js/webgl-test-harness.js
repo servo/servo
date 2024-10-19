@@ -1,24 +1,7 @@
 /*
-** Copyright (c) 2012 The Khronos Group Inc.
-**
-** Permission is hereby granted, free of charge, to any person obtaining a
-** copy of this software and/or associated documentation files (the
-** "Materials"), to deal in the Materials without restriction, including
-** without limitation the rights to use, copy, modify, merge, publish,
-** distribute, sublicense, and/or sell copies of the Materials, and to
-** permit persons to whom the Materials are furnished to do so, subject to
-** the following conditions:
-**
-** The above copyright notice and this permission notice shall be included
-** in all copies or substantial portions of the Materials.
-**
-** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
 */
 
 // This is a test harness for running javascript tests in the browser.
@@ -555,15 +538,36 @@ TestHarness.prototype.runTests = function(opt_options) {
   this.startNextTest();
 };
 
-TestHarness.prototype.setTimeout = function(test) {
-  var that = this;
-  test.timeoutId = this.window.setTimeout(function() {
-      that.timeout(test);
-    }, this.timeoutDelay);
+TestHarness.prototype._bumpTimeout = function(test) {
+  const newTimeoutAt = performance.now() + this.timeoutDelay;
+  if (test.timeoutAt) {
+    test.timeoutAt = newTimeoutAt;
+    return;
+  }
+  test.timeoutAt = newTimeoutAt;
+
+  const harness = this;
+
+  function enqueueWatchdog() {
+    const remaining = test.timeoutAt - performance.now();
+    //console.log(`watchdog started at ${performance.now()}, ${test.timeoutAt} requested`);
+    this.window.setTimeout(() => {
+      if (!test.timeoutAt) return; // Timeout was cleared.
+      const remainingAtCheckTime = test.timeoutAt - performance.now();
+      if (performance.now() >= test.timeoutAt) {
+        //console.log(`watchdog won at ${performance.now()}, ${test.timeoutAt} requested`);
+        harness.timeout(test);
+        return;
+      }
+      //console.log(`watchdog lost at ${performance.now()}, as ${test.timeoutAt} is now requested`);
+      enqueueWatchdog();
+    }, remaining);
+  }
+  enqueueWatchdog();
 };
 
 TestHarness.prototype.clearTimeout = function(test) {
-  this.window.clearTimeout(test.timeoutId);
+  test.timeoutAt = null;
 };
 
 TestHarness.prototype.startNextTest = function() {
@@ -594,7 +598,7 @@ TestHarness.prototype.startTest = function(iframe, testFile, webglVersion) {
       "dumpShaders": this.dumpShaders,
       "quiet": this.quiet
     });
-    this.setTimeout(test);
+    this._bumpTimeout(test);
   } else {
     this.reportResults(url, !!this.allowSkip, "skipped", true);
     this.notifyFinished(url);
@@ -612,11 +616,15 @@ TestHarness.prototype.getTest = function(url) {
 TestHarness.prototype.reportResults = function(url, success, msg, skipped) {
   url = FilterURL(url);
   var test = this.getTest(url);
-  this.clearTimeout(test);
-  log((success ? "PASS" : "FAIL") + ": " + msg);
+  if (0) {
+    // This is too slow to leave on for tests like
+    // deqp/functional/gles3/vertexarrays/multiple_attributes.output.html
+    // which has 33013505 calls to reportResults.
+    log((success ? "PASS" : "FAIL") + ": " + msg);
+  }
   this.reportFunc(TestHarness.reportType.TEST_RESULT, url, msg, success, skipped);
   // For each result we get, reset the timeout
-  this.setTimeout(test);
+  this._bumpTimeout(test);
 };
 
 TestHarness.prototype.dequeTest = function(test) {

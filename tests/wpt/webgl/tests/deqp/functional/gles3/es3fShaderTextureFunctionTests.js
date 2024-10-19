@@ -46,6 +46,11 @@ goog.scope(function() {
     var gluShaderUtil = framework.opengl.gluShaderUtil;
     var glsShaderRenderCase = modules.shared.glsShaderRenderCase;
 
+    let canvasWH = 256;
+    if (tcuTestCase.isQuickMode()) {
+        canvasWH = 32;
+    }
+
     /**
      * @enum
      */
@@ -1248,11 +1253,13 @@ goog.scope(function() {
         /** @type {tcuTexture.TextureFormat} */ var texFmt = gluTextureUtil.mapGLInternalFormat(this.m_textureSpec.format);
         /** @type {tcuTextureUtil.TextureFormatInfo} */ var fmtInfo = tcuTextureUtil.getTextureFormatInfo(texFmt);
         /** @type {Array<number>} */ var viewportSize = this.getViewportSize();
-        /** @type {boolean} */ var isProj = es3fShaderTextureFunctionTests.functionHasProj(this.m_lookupSpec.func);
+        /** @type {boolean} */ var useProj = es3fShaderTextureFunctionTests.functionHasProj(this.m_lookupSpec.func) &&
+                                             !es3fShaderTextureFunctionTests.functionHasGrad(this.m_lookupSpec.func) &&
+                                             !es3fShaderTextureFunctionTests.functionHasLod(this.m_lookupSpec.func);
         /** @type {boolean} */ var isAutoLod = es3fShaderTextureFunctionTests.functionHasAutoLod(
             this.m_isVertexCase ? gluShaderProgram.shaderType.VERTEX : gluShaderProgram.shaderType.FRAGMENT,
             this.m_lookupSpec.func); // LOD can vary significantly
-        /** @type {number} */ var proj = isProj ?
+        /** @type {number} */ var proj = useProj ?
             1.0 / this.m_lookupSpec.minCoord[this.m_lookupSpec.func === es3fShaderTextureFunctionTests.TexFunction.TEXTUREPROJ3 ? 2 : 3] :
             1.0;
 
@@ -1810,6 +1817,7 @@ goog.scope(function() {
         gl.texParameteri(textureTarget, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
         gl.texParameteri(textureTarget, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
         gl.texParameteri(textureTarget, gl.TEXTURE_BASE_LEVEL, testSize.lodBase);
+        gl.texParameteri(textureTarget, gl.TEXTURE_COMPARE_MODE, gl.COMPARE_REF_TO_TEXTURE);
 
         // set up texture
 
@@ -2675,6 +2683,11 @@ goog.scope(function() {
     */
     es3fShaderTextureFunctionTests.run = function(context, range) {
         gl = context;
+
+        const canvas = gl.canvas;
+        canvas.width = canvasWH;
+        canvas.height = canvasWH;
+
         //Set up Test Root parameters
         var state = tcuTestCase.runner;
         state.setRoot(new es3fShaderTextureFunctionTests.ShaderTextureFunctionTests());

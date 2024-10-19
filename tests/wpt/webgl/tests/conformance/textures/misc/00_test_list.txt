@@ -4,13 +4,17 @@ copy-tex-image-and-sub-image-2d.html
 --min-version 1.0.2 copy-tex-image-2d-formats.html
 --min-version 1.0.4 copy-tex-image-crash.html
 --min-version 1.0.4 copytexsubimage2d-large-partial-copy-corruption.html
---min-version 1.0.4 copytexsubimage2d-subrects.html 
+--min-version 1.0.4 copytexsubimage2d-subrects.html
 --min-version 1.0.4 cube-incomplete-fbo.html
 --min-version 1.0.4 cube-map-uploads-out-of-order.html
 --min-version 1.0.3 default-texture.html
+--min-version 1.0.4 exif-orientation.html
+--min-version 1.0.4 format-filterable-renderable.html
 --min-version 1.0.2 --max-version 1.9.9 gl-get-tex-parameter.html
 gl-pixelstorei.html
 gl-teximage.html
+--min-version 1.0.4 image-decoder-to-texture.html
+--min-version 1.0.2 mipmap-fbo.html
 origin-clean-conformance.html
 --min-version 1.0.4 origin-clean-conformance-offscreencanvas.html
 tex-image-and-sub-image-2d-with-array-buffer-view.html
@@ -29,22 +33,27 @@ texture-active-bind.html
 --min-version 1.0.2 texture-attachment-formats.html
 --min-version 1.0.2 texture-clear.html
 texture-complete.html
+--min-version 1.0.4 texture-copying-and-deletion.html
 --min-version 1.0.3 texture-copying-feedback-loops.html
 --min-version 1.0.4 texture-corner-case-videos.html
 --min-version 1.0.4 texture-cube-as-fbo-attachment.html
---min-version 1.0.2 texture-hd-dpi.html
+--min-version 1.0.3 texture-draw-with-2d-and-cube.html
+--min-version 1.0.3 --max-version 1.9.9 texture-fakeblack.html
 --min-version 1.0.2 --max-version 1.9.9 texture-formats-test.html
+--min-version 1.0.2 texture-hd-dpi.html
 texture-mips.html
 --max-version 1.9.9 texture-npot-video.html
 --max-version 1.9.9 texture-npot.html
 texture-size.html
 texture-size-cube-maps.html
 --min-version 1.0.2 texture-size-limit.html
+--min-version 1.0.4 texture-srgb-upload.html
 --min-version 1.0.2 texture-sub-image-cube-maps.html
 texture-transparent-pixels-initialized.html
 --min-version 1.0.2 texture-upload-cube-maps.html
 --min-version 1.0.3 texture-upload-size.html
---min-version 1.0.2 mipmap-fbo.html
---min-version 1.0.3 --max-version 1.9.9 texture-fakeblack.html
---min-version 1.0.3 texture-draw-with-2d-and-cube.html
+--min-version 1.0.4 texture-video-transparent.html
 --min-version 1.0.4 texture-with-flip-y-and-premultiply-alpha.html
+--min-version 1.0.4 upload-from-srcset-with-empty-data.html
+--min-version 1.0.4 video-rotation.html
+--min-version 1.0.4 png-image-types.html

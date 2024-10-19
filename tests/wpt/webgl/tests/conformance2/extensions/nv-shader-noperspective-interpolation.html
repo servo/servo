@@ -1,0 +1,253 @@
+<!--
+Copyright (c) 2023 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL NV_shader_noperspective_interpolation Conformance Tests</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<canvas width="128" height="128" id="c"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+description("This test verifies the functionality of the NV_shader_noperspective_interpolation extension, if it is available.");
+
+debug("");
+
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext("c", null, 2);
+var ext;
+
+function runShaderTests(extensionEnabled) {
+    debug("");
+    debug("Testing various shader compiles with extension " + (extensionEnabled ? "enabled" : "disabled"));
+
+    const macroVertex = `#version 300 es
+        in vec4 vPosition;
+        void main() {
+        #ifdef GL_NV_shader_noperspective_interpolation
+            gl_Position = vPosition;
+        #else
+            #error no GL_NV_shader_noperspective_interpolation;
+        #endif
+        }`;
+
+    const macroFragment = `#version 300 es
+        precision highp float;
+        out vec4 my_FragColor;
+        void main() {
+        #ifdef GL_NV_shader_noperspective_interpolation
+            my_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+        #else
+            #error no GL_NV_shader_noperspective_interpolation;
+        #endif
+        }`;
+
+    for (const shaders of [[wtu.simpleVertexShaderESSL300, macroFragment],
+                           [macroVertex, wtu.simpleColorFragmentShaderESSL300]]) {
+        // Expect the macro shader to succeed ONLY if enabled
+        if (wtu.setupProgram(gl, shaders)) {
+            if (extensionEnabled) {
+                testPassed("Macro defined in shaders when extension is enabled");
+            } else {
+                testFailed("Macro defined in shaders when extension is disabled");
+            }
+        } else {
+            if (extensionEnabled) {
+                testFailed("Macro not defined in shaders when extension is enabled");
+            } else {
+                testPassed("Macro not defined in shaders when extension is disabled");
+            }
+        }
+    }
+
+    const missingVertex = `#version 300 es
+        noperspective out float interpolant;
+        in vec4 vPosition;
+        void main() {
+            gl_Position = vPosition;
+        }`;
+
+    const missingFragment = `#version 300 es
+        precision highp float;
+        noperspective in float interpolant;
+        out vec4 my_FragColor;
+        void main() {
+            my_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+        }`;
+
+    // Always expect the shader missing the #extension pragma to fail (whether enabled or not)
+    for (const shaders of [[missingVertex, wtu.simpleColorFragmentShaderESSL300],
+                           [wtu.simpleVertexShaderESSL300, missingFragment],
+                           [missingVertex, missingFragment]]) {
+        if (wtu.setupProgram(gl, shaders)) {
+            testFailed("Noperspective interpolation qualifier allowed without #extension pragma");
+        } else {
+            testPassed("Noperspective interpolation qualifier disallowed without #extension pragma");
+        }
+    }
+
+    const validVertex = `#version 300 es
+        #extension GL_NV_shader_noperspective_interpolation : enable
+        noperspective out float interpolant;
+        in vec4 vPosition;
+        void main() {
+            gl_Position = vPosition;
+        }`;
+
+    const validFragment = `#version 300 es
+        #extension GL_NV_shader_noperspective_interpolation : enable
+        precision highp float;
+        noperspective in float interpolant;
+        out vec4 my_FragColor;
+        void main() {
+            my_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+        }`;
+
+    // Try to compile a shader using a noperspective qualifier that should only succeed if enabled
+    if (wtu.setupProgram(gl, [validVertex, validFragment])) {
+        if (extensionEnabled) {
+            testPassed("Noperspective interpolation qualifier compiled successfully when extension enabled");
+        } else {
+            testFailed("Noperspective interpolation qualifier compiled successfully when extension disabled");
+        }
+    } else {
+        if (extensionEnabled) {
+            testFailed("Noperspective interpolation qualifier failed to compile when extension enabled");
+        } else {
+            testPassed("Noperspective interpolation qualifier failed to compile when extension disabled");
+        }
+    }
+
+    debug("");
+}
+
+function runInterpolationTest() {
+    function draw(program, skew) {
+        gl.useProgram(program);
+
+        const posLoc = gl.getAttribLocation(program, "position");
+        const colLoc = gl.getAttribLocation(program, "color");
+
+        const buf = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+        gl.bufferData(
+            gl.ARRAY_BUFFER,
+            new Float32Array([
+                -1.0, -1.0,        0.0, 1.0,
+                +1.0, -1.0,        0.0, 1.0,
+                 0.0, +1.0 * skew, 0.0, skew,
+
+                 1.0, 0.0, 0.0, 1.0,
+                 0.0, 1.0, 0.0, 1.0,
+                 0.0, 0.0, 1.0, 1.0]),
+            gl.STATIC_DRAW);
+
+        gl.vertexAttribPointer(posLoc, 4, gl.FLOAT, false, 0, 0);
+        gl.vertexAttribPointer(colLoc, 4, gl.FLOAT, false, 0, 48);
+        gl.enableVertexAttribArray(posLoc);
+        gl.enableVertexAttribArray(colLoc);
+        gl.drawArrays(gl.TRIANGLES, 0, 3);
+    }
+
+    const vertexSmooth = `#version 300 es
+        in vec4 position;
+        in vec4 color;
+        smooth out vec4 interp_color;
+        void main() {
+            gl_Position = position;
+            interp_color = color;
+        }`;
+
+    const fragmentSmooth = `#version 300 es
+        precision highp float;
+        smooth in vec4 interp_color;
+        out vec4 fragColor;
+        void main() {
+            fragColor = interp_color;
+        }`;
+    const programSmooth = wtu.setupProgram(gl, [vertexSmooth, fragmentSmooth]);
+
+    debug("Get non-skewed value with smooth interpolation");
+    gl.clearColor(0.0, 0.0, 0.0, 1.0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    draw(programSmooth, 1.0);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors");
+
+    const smoothColor = new Uint8Array(4);
+    gl.readPixels(64, 64, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, smoothColor);
+
+    const vertexNoperspective = `#version 300 es
+        #extension GL_NV_shader_noperspective_interpolation : require
+        in vec4 position;
+        in vec4 color;
+        noperspective out vec4 interp_color;
+        void main() {
+            gl_Position = position;
+            interp_color = color;
+        }`;
+
+    const fragmentNoperspective = `#version 300 es
+        #extension GL_NV_shader_noperspective_interpolation : require
+        precision highp float;
+        noperspective in vec4 interp_color;
+        out vec4 fragColor;
+        void main() {
+            fragColor = interp_color;
+        }`;
+    const programNoperspective = wtu.setupProgram(gl, [vertexNoperspective, fragmentNoperspective]);
+
+    debug("");
+    debug("Check non-skewed value with noperspective interpolation");
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    draw(programNoperspective, 1.0);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors");
+    wtu.checkCanvasRect(gl, 64, 64, 1, 1, smoothColor, "Non-skewed noperspective should match smooth");
+
+    debug("");
+    debug("Check skewed value with noperspective interpolation");
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    draw(programNoperspective, 2.0);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors");
+    wtu.checkCanvasRect(gl, 64, 64, 1, 1, smoothColor, "Skewed noperspective should match smooth");
+}
+
+function runTest() {
+    if (!gl) {
+        testFailed("WebGL context does not exist");
+        return;
+    }
+    testPassed("WebGL context exists");
+
+    runShaderTests(false);
+
+    ext = gl.getExtension("NV_shader_noperspective_interpolation");
+    wtu.runExtensionSupportedTest(gl, "NV_shader_noperspective_interpolation", ext !== null);
+
+    if (!ext) {
+        testPassed("No NV_shader_noperspective_interpolation support -- this is legal");
+    } else {
+        testPassed("Successfully enabled NV_shader_noperspective_interpolation extension");
+        runShaderTests(true);
+        runInterpolationTest();
+    }
+}
+
+runTest();
+
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+</body>
+</html>

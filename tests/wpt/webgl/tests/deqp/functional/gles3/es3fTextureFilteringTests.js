@@ -64,15 +64,23 @@ goog.scope(function() {
     es3fTextureFilteringTests.version =
         gluShaderUtil.getGLSLVersionString(gluShaderUtil.GLSLVersion.V300_ES);
 
-    var TEX2D_VIEWPORT_WIDTH = 64;
-    var TEX2D_VIEWPORT_HEIGHT = 64;
-    var TEX2D_MIN_VIEWPORT_WIDTH = 64;
-    var TEX2D_MIN_VIEWPORT_HEIGHT = 64;
+    let canvasWH = 256;
+    let viewportWH = 64;
 
-    var TEX3D_VIEWPORT_WIDTH = 64;
-    var TEX3D_VIEWPORT_HEIGHT = 64;
-    var TEX3D_MIN_VIEWPORT_WIDTH = 64;
-    var TEX3D_MIN_VIEWPORT_HEIGHT = 64;
+    if (tcuTestCase.isQuickMode()) {
+        canvasWH = 64;
+        viewportWH = 32;
+    }
+
+    const TEX2D_VIEWPORT_WIDTH = viewportWH;
+    const TEX2D_VIEWPORT_HEIGHT = viewportWH;
+    const TEX2D_MIN_VIEWPORT_WIDTH = viewportWH;
+    const TEX2D_MIN_VIEWPORT_HEIGHT = viewportWH;
+
+    const TEX3D_VIEWPORT_WIDTH = viewportWH;
+    const TEX3D_VIEWPORT_HEIGHT = viewportWH;
+    const TEX3D_MIN_VIEWPORT_WIDTH = viewportWH;
+    const TEX3D_MIN_VIEWPORT_HEIGHT = viewportWH;
 
     /**
      * @constructor
@@ -2246,6 +2254,11 @@ goog.scope(function() {
      */
     es3fTextureFilteringTests.run = function(context, range) {
         gl = context;
+
+        const canvas = gl.canvas;
+        canvas.width = canvasWH;
+        canvas.height = canvasWH;
+
         //Set up Test Root parameters
         var state = tcuTestCase.runner;
 

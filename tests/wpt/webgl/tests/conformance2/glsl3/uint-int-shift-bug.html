@@ -1,0 +1,108 @@
+<!--
+Copyright (c) 2020 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Verify (uint(int) >> 31) works correctly (Adreno driver bug)</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<canvas id="canvas" width="2" height="2"> </canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script id="vshader-uint-1" type="x-shader/x-vertex">#version 300 es
+in vec3 aPosition;
+flat out highp uint uvalue;
+uniform highp int ivalue;
+
+void main() {
+    gl_Position = vec4(aPosition, 1);
+    uvalue = uint(ivalue) >> 31u;
+}
+</script>
+<script id="fshader-uint-1" type="x-shader/x-fragment">#version 300 es
+flat in highp uint uvalue;
+out highp vec4 myFragColor;
+
+void main() {
+    if (uvalue == 1u)
+        myFragColor = vec4(1.0, 0.0, 0.0, 1.0);
+    else
+        myFragColor = vec4(0.0, 0.0, 0.0, 1.0);
+}
+</script>
+
+<script id="vshader-simple" type="x-shader/x-vertex">#version 300 es
+in vec3 aPosition;
+
+void main() {
+    gl_Position = vec4(aPosition, 1);
+}
+</script>
+<script id="fshader-uint-2" type="x-shader/x-fragment">#version 300 es
+uniform highp int ivalue;
+out highp vec4 myFragColor;
+
+void main() {
+    uint uvalue = uint(ivalue) >> 31u;
+
+    if (uvalue == 1u)
+        myFragColor = vec4(1.0, 0.0, 0.0, 1.0);
+    else
+        myFragColor = vec4(0.0, 0.0, 0.0, 1.0);
+}
+</script>
+
+<script type="application/javascript">
+"use strict";
+description("Verify (uint(int) >> 31) works correctly");
+debug("");
+var wtu = WebGLTestUtils;
+function test() {
+    var gl = wtu.create3DContext("canvas", undefined, 2);
+    if (!gl) {
+        testFailed("context does not exist");
+        return;
+    }
+    wtu.setupUnitQuad(gl);
+
+    var testCases = [
+        { vshader: "vshader-uint-1", fshader: "fshader-uint-1", desc: "vertex shader uint" },
+        { vshader: "vshader-simple", fshader: "fshader-uint-2", desc: "fragment shader uint" },
+    ];
+
+    for (var idx = 0; idx < testCases.length; ++idx) {
+        var test = testCases[idx];
+
+        debug("");
+        var program = wtu.setupProgram(gl, [test.vshader, test.fshader], ["aPosition"]);
+        if (!program) {
+            testFailed("Fail to set up program");
+        } else {
+            var uniformLoc = gl.getUniformLocation(program, 'ivalue');
+            gl.uniform1i(uniformLoc, -1);
+            wtu.drawUnitQuad(gl);
+            wtu.checkCanvas(gl, [255, 0, 0, 255]);
+            gl.deleteProgram(program);
+            wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Should be no errors from testing");
+        }
+    }
+};
+
+test();
+
+debug("");
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+</body>
+</html>

@@ -1,24 +1,7 @@
 /*
-** Copyright (c) 2012 The Khronos Group Inc.
-**
-** Permission is hereby granted, free of charge, to any person obtaining a
-** copy of this software and/or associated documentation files (the
-** "Materials"), to deal in the Materials without restriction, including
-** without limitation the rights to use, copy, modify, merge, publish,
-** distribute, sublicense, and/or sell copies of the Materials, and to
-** permit persons to whom the Materials are furnished to do so, subject to
-** the following conditions:
-**
-** The above copyright notice and this permission notice shall be included
-** in all copies or substantial portions of the Materials.
-**
-** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
 */
 
 shouldBeTrue("successfullyParsed");
@@ -26,4 +9,30 @@ _addSpan('<br /><span class="pass">TEST COMPLETE</span>');
 if (_jsTestPreVerboseLogging) {
     _bufferedLogToConsole('TEST COMPLETE');
 }
+
+{
+    const e_results = document.createElement('div');
+    let fails_class = 'pass';
+    if (RESULTS.fail) {
+        fails_class = 'fail';
+    } else {
+        const parseBoolean = v => v.toLowerCase().startsWith('t') || parseFloat(v) > 0;
+        const params = new URLSearchParams(window.location.search);
+        if (parseBoolean(params.get('runUntilFail') || '')) {
+          setTimeout(() => {
+            params.set('runCount', parseInt(params.get('runCount') || '0') + 1);
+            const url = new URL(window.location.href);
+            url.search = params.toString();
+            window.location.href = url.toString();
+          }, 100);
+        }
+    }
+    e_results.classList.add('pass');
+    e_results.innerHTML = `<p>TEST COMPLETE: ${RESULTS.pass} PASS, ` +
+      `<span class="${fails_class}">${RESULTS.fail} FAIL</span></p>`;
+
+    const e_desc = document.getElementById("description");
+    e_desc.appendChild(e_results);
+}
+
 notifyFinishedToHarness()
