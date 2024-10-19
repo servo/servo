@@ -1271,8 +1271,8 @@ impl HTMLImageElement {
 
                     // Step 15.5
                     mem::swap(&mut this.current_request.borrow_mut(), &mut pending_request);
-                    this.abort_request(State::Unavailable, ImageRequestPhase::Pending, CanGc::note());
                 }
+                this.abort_request(State::Unavailable, ImageRequestPhase::Pending, CanGc::note());
 
                 // Step 15.6
                 this.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
