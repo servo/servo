@@ -126,6 +126,9 @@ pub struct Opts {
     /// Directory path that was created with "unminify-js"
     pub local_script_source: Option<String>,
 
+    /// Unminify Css.
+    pub unminify_css: bool,
+
     /// Print Progressive Web Metrics to console.
     pub print_pwm: bool,
 }
@@ -421,6 +424,7 @@ pub fn default_opts() -> Opts {
         ignore_certificate_errors: false,
         unminify_js: false,
         local_script_source: None,
+        unminify_css: false,
         print_pwm: false,
     }
 }
@@ -560,6 +564,7 @@ pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingR
         "Directory root with unminified scripts",
         "",
     );
+    opts.optflag("", "unminify-css", "Unminify Css");
 
     let opt_match = match opts.parse(args) {
         Ok(m) => m,
@@ -761,6 +766,7 @@ pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingR
         ignore_certificate_errors: opt_match.opt_present("ignore-certificate-errors"),
         unminify_js: opt_match.opt_present("unminify-js"),
         local_script_source: opt_match.opt_str("local-script-source"),
+        unminify_css: opt_match.opt_present("unminify-css"),
         print_pwm: opt_match.opt_present("print-pwm"),
     };
 

@@ -297,6 +297,10 @@ pub struct Window {
     /// opt is enabled.
     unminified_js_dir: DomRefCell<Option<String>>,
 
+    /// Directory to store unminified css for this window if unminify-css
+    /// opt is enabled.
+    unminified_css_dir: DomRefCell<Option<String>>,
+
     /// Directory with stored unminified scripts
     local_script_source: Option<String>,
 
@@ -329,6 +333,9 @@ pub struct Window {
 
     /// Unminify Javascript.
     unminify_js: bool,
+
+    /// Unminify Css.
+    unminify_css: bool,
 
     /// Where to load userscripts from, if any. An empty string will load from
     /// the resources/user-agent-js directory, and if the option isn't passed userscripts
@@ -540,6 +547,10 @@ impl Window {
 
     pub fn unminify_js(&self) -> bool {
         self.unminify_js
+    }
+
+    pub fn unminify_css(&self) -> bool {
+        self.unminify_css
     }
 
     pub fn get_player_context(&self) -> WindowGLContext {
@@ -2218,13 +2229,19 @@ impl Window {
         assert!(self.document.get().is_none());
         assert!(document.window() == self);
         self.document.set(Some(document));
-        if !self.unminify_js {
-            return;
+        if self.unminify_js {
+            // Set a path for the document host to store unminified scripts.
+            let mut path = env::current_dir().unwrap();
+            path.push("unminified-js");
+            *self.unminified_js_dir.borrow_mut() =
+                Some(path.into_os_string().into_string().unwrap());
+        } else if self.unminify_css {
+            // Set a path for the document host to store unminified stylesheets.
+            let mut path = env::current_dir().unwrap();
+            path.push("unminified-css");
+            *self.unminified_css_dir.borrow_mut() =
+                Some(path.into_os_string().into_string().unwrap());
         }
-        // Set a path for the document host to store unminified scripts.
-        let mut path = env::current_dir().unwrap();
-        path.push("unminified-js");
-        *self.unminified_js_dir.borrow_mut() = Some(path.into_os_string().into_string().unwrap());
     }
 
     /// Commence a new URL load which will either replace this window or scroll to a fragment.
@@ -2487,6 +2504,10 @@ impl Window {
         self.unminified_js_dir.borrow().clone()
     }
 
+    pub fn unminified_css_dir(&self) -> Option<String> {
+        self.unminified_css_dir.borrow().clone()
+    }
+
     pub fn local_script_source(&self) -> &Option<String> {
         &self.local_script_source
     }
@@ -2551,6 +2572,7 @@ impl Window {
         relayout_event: bool,
         prepare_for_screenshot: bool,
         unminify_js: bool,
+        unminify_css: bool,
         local_script_source: Option<String>,
         userscripts_path: Option<String>,
         is_headless: bool,
@@ -2627,6 +2649,7 @@ impl Window {
             webxr_registry,
             pending_layout_images: Default::default(),
             unminified_js_dir: Default::default(),
+            unminified_css_dir: Default::default(),
             local_script_source,
             test_worklet: Default::default(),
             paint_worklet: Default::default(),
@@ -2637,6 +2660,7 @@ impl Window {
             relayout_event,
             prepare_for_screenshot,
             unminify_js,
+            unminify_css,
             userscripts_path,
             replace_surrogates,
             player_context,
