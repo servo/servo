@@ -10,7 +10,7 @@ use canvas_traits::webgl::{GlType, TexFormat, WebGLSLVersion, WebGLVersion};
 use fnv::{FnvHashMap, FnvHashSet};
 use js::jsapi::JSObject;
 use malloc_size_of::MallocSizeOf;
-use sparkle::gl::{self, GLenum};
+type GLenum = u32;
 
 use super::wrapper::{TypedWebGLExtensionWrapper, WebGLExtensionWrapper};
 use super::{ext, WebGLExtension, WebGLExtensionSpec};
@@ -461,7 +461,7 @@ impl WebGLExtensions {
         if type_ == OESTextureHalfFloatConstants::HALF_FLOAT_OES &&
             !self.supports_gl_extension("GL_OES_texture_half_float")
         {
-            return gl::HALF_FLOAT;
+            return glow::HALF_FLOAT;
         }
         type_
     }
