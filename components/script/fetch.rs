@@ -144,7 +144,7 @@ pub fn Fetch(
     can_gc: CanGc,
 ) -> Rc<Promise> {
     // Step 1. Let p be a new promise.
-    let promise = Promise::new_in_current_realm(comp);
+    let promise = Promise::new_in_current_realm(comp, can_gc);
 
     // Step 7. Let responseObject be null.
     // NOTE: We do initialize the object earlier earlier so we can use it to track errors

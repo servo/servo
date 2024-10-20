@@ -583,8 +583,13 @@ impl RTCPeerConnectionMethods for RTCPeerConnection {
     event_handler!(datachannel, GetOndatachannel, SetOndatachannel);
 
     /// <https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-addicecandidate>
-    fn AddIceCandidate(&self, candidate: &RTCIceCandidateInit, comp: InRealm) -> Rc<Promise> {
-        let p = Promise::new_in_current_realm(comp);
+    fn AddIceCandidate(
+        &self,
+        candidate: &RTCIceCandidateInit,
+        comp: InRealm,
+        can_gc: CanGc,
+    ) -> Rc<Promise> {
+        let p = Promise::new_in_current_realm(comp, can_gc);
         if candidate.sdpMid.is_none() && candidate.sdpMLineIndex.is_none() {
             p.reject_error(Error::Type(
                 "one of sdpMid and sdpMLineIndex must be set".to_string(),
@@ -618,8 +623,8 @@ impl RTCPeerConnectionMethods for RTCPeerConnection {
     }
 
     /// <https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-createoffer>
-    fn CreateOffer(&self, _options: &RTCOfferOptions, comp: InRealm) -> Rc<Promise> {
-        let p = Promise::new_in_current_realm(comp);
+    fn CreateOffer(&self, _options: &RTCOfferOptions, comp: InRealm, can_gc: CanGc) -> Rc<Promise> {
+        let p = Promise::new_in_current_realm(comp, can_gc);
         if self.closed.get() {
             p.reject_error(Error::InvalidState);
             return p;
@@ -630,8 +635,13 @@ impl RTCPeerConnectionMethods for RTCPeerConnection {
     }
 
     /// <https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-createoffer>
-    fn CreateAnswer(&self, _options: &RTCAnswerOptions, comp: InRealm) -> Rc<Promise> {
-        let p = Promise::new_in_current_realm(comp);
+    fn CreateAnswer(
+        &self,
+        _options: &RTCAnswerOptions,
+        comp: InRealm,
+        can_gc: CanGc,
+    ) -> Rc<Promise> {
+        let p = Promise::new_in_current_realm(comp, can_gc);
         if self.closed.get() {
             p.reject_error(Error::InvalidState);
             return p;
@@ -652,9 +662,14 @@ impl RTCPeerConnectionMethods for RTCPeerConnection {
     }
 
     /// <https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-setlocaldescription>
-    fn SetLocalDescription(&self, desc: &RTCSessionDescriptionInit, comp: InRealm) -> Rc<Promise> {
+    fn SetLocalDescription(
+        &self,
+        desc: &RTCSessionDescriptionInit,
+        comp: InRealm,
+        can_gc: CanGc,
+    ) -> Rc<Promise> {
         // XXXManishearth validate the current state
-        let p = Promise::new_in_current_realm(comp);
+        let p = Promise::new_in_current_realm(comp, can_gc);
         let this = Trusted::new(self);
         let desc: SessionDescription = desc.into();
         let trusted_promise = TrustedPromise::new(p.clone());
@@ -693,9 +708,14 @@ impl RTCPeerConnectionMethods for RTCPeerConnection {
     }
 
     /// <https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-setremotedescription>
-    fn SetRemoteDescription(&self, desc: &RTCSessionDescriptionInit, comp: InRealm) -> Rc<Promise> {
+    fn SetRemoteDescription(
+        &self,
+        desc: &RTCSessionDescriptionInit,
+        comp: InRealm,
+        can_gc: CanGc,
+    ) -> Rc<Promise> {
         // XXXManishearth validate the current state
-        let p = Promise::new_in_current_realm(comp);
+        let p = Promise::new_in_current_realm(comp, can_gc);
         let this = Trusted::new(self);
         let desc: SessionDescription = desc.into();
         let trusted_promise = TrustedPromise::new(p.clone());

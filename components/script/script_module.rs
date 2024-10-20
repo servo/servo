@@ -338,6 +338,7 @@ impl ModuleTree {
         owner: ModuleOwner,
         module_identity: ModuleIdentity,
         fetch_options: ScriptFetchOptions,
+        can_gc: CanGc,
     ) {
         let this = owner.clone();
         let identity = module_identity.clone();
@@ -359,10 +360,10 @@ impl ModuleTree {
 
         let mut promise = self.promise.borrow_mut();
         match promise.as_ref() {
-            Some(promise) => promise.append_native_handler(&handler, comp),
+            Some(promise) => promise.append_native_handler(&handler, comp, can_gc),
             None => {
-                let new_promise = Promise::new_in_current_realm(comp);
-                new_promise.append_native_handler(&handler, comp);
+                let new_promise = Promise::new_in_current_realm(comp, can_gc);
+                new_promise.append_native_handler(&handler, comp, can_gc);
                 *promise = Some(new_promise);
             },
         }
@@ -373,6 +374,7 @@ impl ModuleTree {
         owner: ModuleOwner,
         module_identity: ModuleIdentity,
         dynamic_module: RootedTraceableBox<DynamicModule>,
+        can_gc: CanGc,
     ) {
         let this = owner.clone();
         let identity = module_identity.clone();
@@ -395,10 +397,10 @@ impl ModuleTree {
 
         let mut promise = self.promise.borrow_mut();
         match promise.as_ref() {
-            Some(promise) => promise.append_native_handler(&handler, comp),
+            Some(promise) => promise.append_native_handler(&handler, comp, can_gc),
             None => {
-                let new_promise = Promise::new_in_current_realm(comp);
-                new_promise.append_native_handler(&handler, comp);
+                let new_promise = Promise::new_in_current_realm(comp, can_gc);
+                new_promise.append_native_handler(&handler, comp, can_gc);
                 *promise = Some(new_promise);
             },
         }
@@ -692,6 +694,7 @@ impl ModuleTree {
         destination: Destination,
         options: &ScriptFetchOptions,
         parent_identity: ModuleIdentity,
+        can_gc: CanGc,
     ) {
         debug!("Start to load dependencies of {}", self.url);
 
@@ -775,6 +778,7 @@ impl ModuleTree {
                         Some(parent_identity.clone()),
                         false,
                         None,
+                        can_gc,
                     );
                 }
             },
@@ -1173,6 +1177,7 @@ impl FetchResponseListener for ModuleContext {
                             self.destination,
                             &self.options,
                             ModuleIdentity::ModuleUrl(self.url.clone()),
+                            CanGc::note(),
                         );
                     },
                 }
@@ -1272,6 +1277,7 @@ pub unsafe extern "C" fn host_import_module_dynamically(
         base_url,
         options,
         promise,
+        CanGc::note(),
     ) {
         JS_SetPendingException(*cx, e.handle(), ExceptionStackBehavior::Capture);
         return false;
@@ -1340,6 +1346,7 @@ fn fetch_an_import_module_script_graph(
     base_url: ServoUrl,
     options: ScriptFetchOptions,
     promise: Rc<Promise>,
+    can_gc: CanGc,
 ) -> Result<(), RethrowError> {
     // Step 1.
     let cx = GlobalScope::get_cx();
@@ -1390,6 +1397,7 @@ fn fetch_an_import_module_script_graph(
         None,
         true,
         Some(dynamic_module),
+        can_gc,
     );
     Ok(())
 }
@@ -1487,6 +1495,7 @@ pub(crate) fn fetch_external_module_script(
     url: ServoUrl,
     destination: Destination,
     options: ScriptFetchOptions,
+    can_gc: CanGc,
 ) {
     let mut visited_urls = HashSet::new();
     visited_urls.insert(url.clone());
@@ -1501,6 +1510,7 @@ pub(crate) fn fetch_external_module_script(
         None,
         true,
         None,
+        can_gc,
     )
 }
 
@@ -1563,6 +1573,7 @@ fn fetch_single_module_script(
     parent_identity: Option<ModuleIdentity>,
     top_level_module_fetch: bool,
     dynamic_module: Option<RootedTraceableBox<DynamicModule>>,
+    can_gc: CanGc,
 ) {
     {
         // Step 1.
@@ -1581,11 +1592,13 @@ fn fetch_single_module_script(
                     owner.clone(),
                     ModuleIdentity::ModuleUrl(url.clone()),
                     module,
+                    can_gc,
                 ),
                 None if top_level_module_fetch => module_tree.append_handler(
                     owner.clone(),
                     ModuleIdentity::ModuleUrl(url.clone()),
                     options,
+                    can_gc,
                 ),
                 // do nothing if it's neither a dynamic module nor a top level module
                 None => {},
@@ -1621,11 +1634,13 @@ fn fetch_single_module_script(
             owner.clone(),
             ModuleIdentity::ModuleUrl(url.clone()),
             module,
+            can_gc,
         ),
         None if top_level_module_fetch => module_tree.append_handler(
             owner.clone(),
             ModuleIdentity::ModuleUrl(url.clone()),
             options.clone(),
+            can_gc,
         ),
         // do nothing if it's neither a dynamic module nor a top level module
         None => {},
@@ -1702,6 +1717,7 @@ pub(crate) fn fetch_inline_module_script(
     url: ServoUrl,
     script_id: ScriptId,
     options: ScriptFetchOptions,
+    can_gc: CanGc,
 ) {
     let global = owner.global();
     let is_external = false;
@@ -1721,6 +1737,7 @@ pub(crate) fn fetch_inline_module_script(
                 owner.clone(),
                 ModuleIdentity::ScriptId(script_id),
                 options.clone(),
+                can_gc,
             );
             module_tree.set_record(record);
 
@@ -1740,6 +1757,7 @@ pub(crate) fn fetch_inline_module_script(
                 Destination::Script,
                 &options,
                 ModuleIdentity::ScriptId(script_id),
+                can_gc,
             );
         },
         Err(exception) => {

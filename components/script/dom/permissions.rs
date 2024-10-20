@@ -25,7 +25,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::permissionstatus::PermissionStatus;
 use crate::dom::promise::Promise;
 use crate::realms::{AlreadyInRealm, InRealm};
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{CanGc, JSContext};
 
 pub trait PermissionAlgorithm {
     type Descriptor;
@@ -82,13 +82,14 @@ impl Permissions {
         cx: JSContext,
         permissionDesc: *mut JSObject,
         promise: Option<Rc<Promise>>,
+        can_gc: CanGc,
     ) -> Rc<Promise> {
         // (Query, Request) Step 3.
         let p = match promise {
             Some(promise) => promise,
             None => {
                 let in_realm_proof = AlreadyInRealm::assert();
-                Promise::new_in_current_realm(InRealm::Already(&in_realm_proof))
+                Promise::new_in_current_realm(InRealm::Already(&in_realm_proof), can_gc)
             },
         };
 
@@ -177,7 +178,9 @@ impl Permissions {
         };
         match op {
             // (Revoke) Step 5.
-            Operation::Revoke => self.manipulate(Operation::Query, cx, permissionDesc, Some(p)),
+            Operation::Revoke => {
+                self.manipulate(Operation::Query, cx, permissionDesc, Some(p), can_gc)
+            },
 
             // (Query, Request) Step 4.
             _ => p,
@@ -188,18 +191,18 @@ impl Permissions {
 #[allow(non_snake_case)]
 impl PermissionsMethods for Permissions {
     // https://w3c.github.io/permissions/#dom-permissions-query
-    fn Query(&self, cx: JSContext, permissionDesc: *mut JSObject) -> Rc<Promise> {
-        self.manipulate(Operation::Query, cx, permissionDesc, None)
+    fn Query(&self, cx: JSContext, permissionDesc: *mut JSObject, can_gc: CanGc) -> Rc<Promise> {
+        self.manipulate(Operation::Query, cx, permissionDesc, None, can_gc)
     }
 
     // https://w3c.github.io/permissions/#dom-permissions-request
-    fn Request(&self, cx: JSContext, permissionDesc: *mut JSObject) -> Rc<Promise> {
-        self.manipulate(Operation::Request, cx, permissionDesc, None)
+    fn Request(&self, cx: JSContext, permissionDesc: *mut JSObject, can_gc: CanGc) -> Rc<Promise> {
+        self.manipulate(Operation::Request, cx, permissionDesc, None, can_gc)
     }
 
     // https://w3c.github.io/permissions/#dom-permissions-revoke
-    fn Revoke(&self, cx: JSContext, permissionDesc: *mut JSObject) -> Rc<Promise> {
-        self.manipulate(Operation::Revoke, cx, permissionDesc, None)
+    fn Revoke(&self, cx: JSContext, permissionDesc: *mut JSObject, can_gc: CanGc) -> Rc<Promise> {
+        self.manipulate(Operation::Revoke, cx, permissionDesc, None, can_gc)
     }
 }
 

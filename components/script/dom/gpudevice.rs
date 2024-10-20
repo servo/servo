@@ -440,8 +440,9 @@ impl GPUDeviceMethods for GPUDevice {
         &self,
         descriptor: RootedTraceableBox<GPUShaderModuleDescriptor>,
         comp: InRealm,
+        can_gc: CanGc,
     ) -> DomRoot<GPUShaderModule> {
-        GPUShaderModule::create(self, descriptor, comp)
+        GPUShaderModule::create(self, descriptor, comp, can_gc)
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createcomputepipeline>
@@ -463,8 +464,9 @@ impl GPUDeviceMethods for GPUDevice {
         &self,
         descriptor: &GPUComputePipelineDescriptor,
         comp: InRealm,
+        can_gc: CanGc,
     ) -> Rc<Promise> {
-        let promise = Promise::new_in_current_realm(comp);
+        let promise = Promise::new_in_current_realm(comp, can_gc);
         let sender = response_async(&promise, self);
         GPUComputePipeline::create(self, descriptor, Some(sender));
         promise
@@ -508,9 +510,10 @@ impl GPUDeviceMethods for GPUDevice {
         &self,
         descriptor: &GPURenderPipelineDescriptor,
         comp: InRealm,
+        can_gc: CanGc,
     ) -> Fallible<Rc<Promise>> {
         let (implicit_ids, desc) = self.parse_render_pipeline(descriptor)?;
-        let promise = Promise::new_in_current_realm(comp);
+        let promise = Promise::new_in_current_realm(comp, can_gc);
         let sender = response_async(&promise, self);
         GPURenderPipeline::create(self, implicit_ids, desc, Some(sender))?;
         Ok(promise)
@@ -540,8 +543,8 @@ impl GPUDeviceMethods for GPUDevice {
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-poperrorscope>
-    fn PopErrorScope(&self, comp: InRealm) -> Rc<Promise> {
-        let promise = Promise::new_in_current_realm(comp);
+    fn PopErrorScope(&self, comp: InRealm, can_gc: CanGc) -> Rc<Promise> {
+        let promise = Promise::new_in_current_realm(comp, can_gc);
         let sender = response_async(&promise, self);
         if self
             .channel

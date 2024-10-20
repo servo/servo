@@ -831,7 +831,7 @@ impl XRSessionMethods for XRSession {
         comp: InRealm,
         can_gc: CanGc,
     ) -> Rc<Promise> {
-        let p = Promise::new_in_current_realm(comp);
+        let p = Promise::new_in_current_realm(comp, can_gc);
 
         // https://immersive-web.github.io/webxr/#create-a-reference-space
 
@@ -1025,10 +1025,15 @@ impl XRSessionMethods for XRSession {
     }
 
     /// <https://www.w3.org/TR/webxr/#dom-xrsession-updatetargetframerate>
-    fn UpdateTargetFrameRate(&self, rate: Finite<f32>, comp: InRealm) -> Rc<Promise> {
+    fn UpdateTargetFrameRate(
+        &self,
+        rate: Finite<f32>,
+        comp: InRealm,
+        can_gc: CanGc,
+    ) -> Rc<Promise> {
         let mut session = self.session.borrow_mut();
         let supported_frame_rates = session.supported_frame_rates();
-        let promise = Promise::new_in_current_realm(comp);
+        let promise = Promise::new_in_current_realm(comp, can_gc);
 
         if self.mode == XRSessionMode::Inline ||
             supported_frame_rates.is_empty() ||

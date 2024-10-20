@@ -89,7 +89,7 @@ impl Promise {
     pub fn new(global: &GlobalScope) -> Rc<Promise> {
         let realm = enter_realm(global);
         let comp = InRealm::Entered(&realm);
-        Promise::new_in_current_realm(comp)
+        Promise::new_in_current_realm(comp, CanGc::note())
     }
 
     pub fn new_in_current_realm(_comp: InRealm, can_gc: CanGc) -> Rc<Promise> {
@@ -255,7 +255,12 @@ impl Promise {
     }
 
     #[allow(unsafe_code)]
-    pub fn append_native_handler(&self, handler: &PromiseNativeHandler, _comp: InRealm, can_gc: CanGc) {
+    pub fn append_native_handler(
+        &self,
+        handler: &PromiseNativeHandler,
+        _comp: InRealm,
+        can_gc: CanGc,
+    ) {
         let _ais = AutoEntryScript::new(&handler.global());
         let cx = GlobalScope::get_cx();
         rooted!(in(*cx) let resolve_func =

@@ -43,7 +43,7 @@ use crate::dom::promise::Promise;
 use crate::dom::window::Window;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::realms::InRealm;
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{CanGc, JSContext};
 use crate::task::TaskCanceller;
 use crate::task_source::dom_manipulation::DOMManipulationTaskSource;
 use crate::task_source::TaskSource;
@@ -141,9 +141,10 @@ impl SubtleCryptoMethods for SubtleCrypto {
         key: &CryptoKey,
         data: ArrayBufferViewOrArrayBuffer,
         comp: InRealm,
+        can_gc: CanGc,
     ) -> Rc<Promise> {
         let normalized_algorithm = normalize_algorithm(cx, algorithm, "encrypt");
-        let promise = Promise::new_in_current_realm(comp);
+        let promise = Promise::new_in_current_realm(comp, can_gc);
         let data = match data {
             ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
             ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
@@ -197,9 +198,10 @@ impl SubtleCryptoMethods for SubtleCrypto {
         key: &CryptoKey,
         data: ArrayBufferViewOrArrayBuffer,
         comp: InRealm,
+        can_gc: CanGc,
     ) -> Rc<Promise> {
         let normalized_algorithm = normalize_algorithm(cx, algorithm, "decrypt");
-        let promise = Promise::new_in_current_realm(comp);
+        let promise = Promise::new_in_current_realm(comp, can_gc);
         let data = match data {
             ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
             ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
@@ -253,9 +255,10 @@ impl SubtleCryptoMethods for SubtleCrypto {
         extractable: bool,
         key_usages: Vec<KeyUsage>,
         comp: InRealm,
+        can_gc: CanGc,
     ) -> Rc<Promise> {
         let normalized_algorithm = normalize_algorithm(cx, algorithm, "generateKey");
-        let promise = Promise::new_in_current_realm(comp);
+        let promise = Promise::new_in_current_realm(comp, can_gc);
         if let Err(e) = normalized_algorithm {
             promise.reject_error(e);
             return promise;
@@ -296,9 +299,10 @@ impl SubtleCryptoMethods for SubtleCrypto {
         extractable: bool,
         key_usages: Vec<KeyUsage>,
         comp: InRealm,
+        can_gc: CanGc,
     ) -> Rc<Promise> {
         let normalized_algorithm = normalize_algorithm(cx, algorithm, "importKey");
-        let promise = Promise::new_in_current_realm(comp);
+        let promise = Promise::new_in_current_realm(comp, can_gc);
         if let Err(e) = normalized_algorithm {
             promise.reject_error(e);
             return promise;
@@ -360,8 +364,8 @@ impl SubtleCryptoMethods for SubtleCrypto {
     }
 
     /// <https://w3c.github.io/webcrypto/#SubtleCrypto-method-exportKey>
-    fn ExportKey(&self, format: KeyFormat, key: &CryptoKey, comp: InRealm) -> Rc<Promise> {
-        let promise = Promise::new_in_current_realm(comp);
+    fn ExportKey(&self, format: KeyFormat, key: &CryptoKey, comp: InRealm, can_gc: CanGc) -> Rc<Promise> {
+        let promise = Promise::new_in_current_realm(comp, can_gc);
 
         let (task_source, canceller) = self.task_source_with_canceller();
         let this = Trusted::new(self);

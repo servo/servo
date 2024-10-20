@@ -18,6 +18,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::serviceworkerregistration::ServiceWorkerRegistration;
 use crate::realms::InRealm;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct NavigationPreloadManager {
@@ -45,8 +46,8 @@ impl NavigationPreloadManager {
 
 impl NavigationPreloadManagerMethods for NavigationPreloadManager {
     // https://w3c.github.io/ServiceWorker/#navigation-preload-manager-enable
-    fn Enable(&self, comp: InRealm) -> Rc<Promise> {
-        let promise = Promise::new_in_current_realm(comp);
+    fn Enable(&self, comp: InRealm, can_gc: CanGc) -> Rc<Promise> {
+        let promise = Promise::new_in_current_realm(comp, can_gc);
 
         // 2.
         if self.serviceworker_registration.is_active() {
@@ -67,8 +68,8 @@ impl NavigationPreloadManagerMethods for NavigationPreloadManager {
     }
 
     // https://w3c.github.io/ServiceWorker/#navigation-preload-manager-disable
-    fn Disable(&self, comp: InRealm) -> Rc<Promise> {
-        let promise = Promise::new_in_current_realm(comp);
+    fn Disable(&self, comp: InRealm, can_gc: CanGc) -> Rc<Promise> {
+        let promise = Promise::new_in_current_realm(comp, can_gc);
 
         // 2.
         if self.serviceworker_registration.is_active() {
@@ -89,8 +90,8 @@ impl NavigationPreloadManagerMethods for NavigationPreloadManager {
     }
 
     // https://w3c.github.io/ServiceWorker/#navigation-preload-manager-setheadervalue
-    fn SetHeaderValue(&self, value: ByteString, comp: InRealm) -> Rc<Promise> {
-        let promise = Promise::new_in_current_realm(comp);
+    fn SetHeaderValue(&self, value: ByteString, comp: InRealm, can_gc: CanGc) -> Rc<Promise> {
+        let promise = Promise::new_in_current_realm(comp, can_gc);
 
         // 2.
         if self.serviceworker_registration.is_active() {
@@ -111,8 +112,8 @@ impl NavigationPreloadManagerMethods for NavigationPreloadManager {
     }
 
     // https://w3c.github.io/ServiceWorker/#navigation-preload-manager-getstate
-    fn GetState(&self, comp: InRealm) -> Rc<Promise> {
-        let promise = Promise::new_in_current_realm(comp);
+    fn GetState(&self, comp: InRealm, can_gc: CanGc) -> Rc<Promise> {
+        let promise = Promise::new_in_current_realm(comp, can_gc);
         // 2.
         let mut state = NavigationPreloadState::empty();
 
