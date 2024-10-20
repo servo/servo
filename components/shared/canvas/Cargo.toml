@@ -25,7 +25,7 @@ pixels = { path = "../../pixels" }
 serde = { workspace = true }
 serde_bytes = { workspace = true }
 servo_config = { path = "../../config" }
-sparkle = { workspace = true }
+glow = { workspace = true }
 style = { workspace = true }
 webrender_api = { workspace = true }
 webxr-api = { workspace = true, features = ["ipc"] }
