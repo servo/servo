@@ -96,7 +96,7 @@ impl OneshotTimerCallback {
             OneshotTimerCallback::JsTimer(task) => task.invoke(this, js_timers),
             OneshotTimerCallback::TestBindingCallback(callback) => callback.invoke(),
             OneshotTimerCallback::FakeRequestAnimationFrame(callback) => callback.invoke(),
-            OneshotTimerCallback::RefreshRedirectDue(callback) => callback.invoke(),
+            OneshotTimerCallback::RefreshRedirectDue(callback) => callback.invoke(can_gc),
         }
     }
 }

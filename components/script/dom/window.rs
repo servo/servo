@@ -547,8 +547,8 @@ impl Window {
     }
 
     // see note at https://dom.spec.whatwg.org/#concept-event-dispatch step 2
-    pub fn dispatch_event_with_target_override(&self, event: &Event) -> EventStatus {
-        event.dispatch(self.upcast(), true, CanGc::note())
+    pub fn dispatch_event_with_target_override(&self, event: &Event, can_gc: CanGc) -> EventStatus {
+        event.dispatch(self.upcast(), true, can_gc)
     }
 }
 
@@ -688,8 +688,9 @@ impl WindowMethods for Window {
         url: USVString,
         target: DOMString,
         features: DOMString,
+        can_gc: CanGc,
     ) -> Fallible<Option<DomRoot<WindowProxy>>> {
-        self.window_proxy().open(url, target, features)
+        self.window_proxy().open(url, target, features, can_gc)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-opener
@@ -781,7 +782,7 @@ impl WindowMethods for Window {
                     // Steps 2 and 3, prompt to unload for all inclusive descendant navigables.
                     // TODO: We should be prompting for all inclusive descendant navigables,
                     // but we pass false here, which suggests we are not doing that. Why?
-                    if document.prompt_to_unload(false) {
+                    if document.prompt_to_unload(false, CanGc::note()) {
                         // Step 4, unload.
                         document.unload(false, CanGc::note());
 
@@ -2236,6 +2237,7 @@ impl Window {
         replace: HistoryEntryReplacement,
         force_reload: bool,
         load_data: LoadData,
+        can_gc: CanGc,
     ) {
         let doc = self.Document();
         // TODO: Important re security. See https://github.com/servo/servo/issues/23373
@@ -2293,7 +2295,7 @@ impl Window {
         }
 
         // Step 8
-        if doc.prompt_to_unload(false) {
+        if doc.prompt_to_unload(false, can_gc) {
             let window_proxy = self.window_proxy();
             if window_proxy.parent().is_some() {
                 // Step 10

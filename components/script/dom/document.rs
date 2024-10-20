@@ -756,7 +756,7 @@ impl Document {
                     );
                     let event = event.upcast::<Event>();
                     event.set_trusted(true);
-                    window.dispatch_event_with_target_override(event);
+                    window.dispatch_event_with_target_override(event, CanGc::note());
                 }),
                 self.window.upcast(),
             )
@@ -1297,6 +1297,7 @@ impl Document {
     }
 
     #[allow(unsafe_code)]
+    #[allow(clippy::too_many_arguments)]
     pub unsafe fn handle_mouse_button_event(
         &self,
         button: MouseButton,
@@ -1465,6 +1466,7 @@ impl Document {
         *self.last_click_info.borrow_mut() = Some((now, click_pos));
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn fire_mouse_event(
         &self,
         client_point: Point2D<f32>,
@@ -2271,7 +2273,7 @@ impl Document {
     }
 
     // https://html.spec.whatwg.org/multipage/#prompt-to-unload-a-document
-    pub fn prompt_to_unload(&self, recursive_flag: bool) -> bool {
+    pub fn prompt_to_unload(&self, recursive_flag: bool, can_gc: CanGc) -> bool {
         // TODO: Step 1, increase the event loop's termination nesting level by 1.
         // Step 2
         self.incr_ignore_opens_during_unload_counter();
@@ -2286,7 +2288,8 @@ impl Document {
         event.set_trusted(true);
         let event_target = self.window.upcast::<EventTarget>();
         let has_listeners = event_target.has_listeners_for(&atom!("beforeunload"));
-        self.window.dispatch_event_with_target_override(event);
+        self.window
+            .dispatch_event_with_target_override(event, can_gc);
         // TODO: Step 6, decrease the event loop's termination nesting level by 1.
         // Step 7
         if has_listeners {
@@ -2311,7 +2314,7 @@ impl Document {
             for iframe in self.iter_iframes() {
                 // TODO: handle the case of cross origin iframes.
                 let document = document_from_node(&*iframe);
-                can_unload = document.prompt_to_unload(true);
+                can_unload = document.prompt_to_unload(true, can_gc);
                 if !document.salvageable() {
                     self.salvageable.set(false);
                 }
@@ -2346,7 +2349,9 @@ impl Document {
             );
             let event = event.upcast::<Event>();
             event.set_trusted(true);
-            let _ = self.window.dispatch_event_with_target_override(event);
+            let _ = self
+                .window
+                .dispatch_event_with_target_override(event, can_gc);
             // Step 6 Update the visibility state of oldDocument to "hidden".
             self.update_visibility_state(DocumentVisibilityState::Hidden);
         }
@@ -2362,7 +2367,9 @@ impl Document {
             event.set_trusted(true);
             let event_target = self.window.upcast::<EventTarget>();
             let has_listeners = event_target.has_listeners_for(&atom!("unload"));
-            let _ = self.window.dispatch_event_with_target_override(&event);
+            let _ = self
+                .window
+                .dispatch_event_with_target_override(&event, can_gc);
             self.fired_unload.set(true);
             // Step 9
             if has_listeners {
@@ -2458,7 +2465,7 @@ impl Document {
                     update_with_current_instant(&document.load_event_start);
 
                     debug!("About to dispatch load for {:?}", document.url());
-                    window.dispatch_event_with_target_override(&event);
+                    window.dispatch_event_with_target_override(&event, CanGc::note());
 
                     // http://w3c.github.io/navigation-timing/#widl-PerformanceNavigationTiming-loadEventEnd
                     update_with_current_instant(&document.load_event_end);
@@ -2498,7 +2505,7 @@ impl Document {
                         let event = event.upcast::<Event>();
                         event.set_trusted(true);
 
-                        window.dispatch_event_with_target_override(event);
+                        window.dispatch_event_with_target_override(event, CanGc::note());
                     }),
                     self.window.upcast(),
                 )
@@ -5415,11 +5422,11 @@ impl DocumentMethods for Document {
         url: USVString,
         target: DOMString,
         features: DOMString,
-        _can_gc: CanGc,
+        can_gc: CanGc,
     ) -> Fallible<Option<DomRoot<WindowProxy>>> {
         self.browsing_context()
             .ok_or(Error::InvalidAccess)?
-            .open(url, target, features)
+            .open(url, target, features, can_gc)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-write

@@ -17,6 +17,7 @@ use crate::dom::document::Document;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::urlhelper::UrlHelper;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[derive(PartialEq)]
 pub enum NavigationType {
@@ -66,6 +67,7 @@ impl Location {
         url: ServoUrl,
         replacement_flag: HistoryEntryReplacement,
         navigation_type: NavigationType,
+        can_gc: CanGc,
     ) {
         fn incumbent_window() -> DomRoot<Window> {
             let incumbent_global = GlobalScope::incumbent().expect("no incumbent global object");
@@ -125,7 +127,7 @@ impl Location {
             None, // Top navigation doesn't inherit secure context
         );
         self.window
-            .load_url(replacement_flag, reload_triggered, load_data);
+            .load_url(replacement_flag, reload_triggered, load_data, can_gc);
     }
 
     /// Get if this `Location`'s [relevant `Document`][1] is non-null.
@@ -210,7 +212,11 @@ impl Location {
 
     /// The common algorithm for `Location`'s setters and `Location::Assign`.
     #[inline]
-    fn setter_common(&self, f: impl FnOnce(ServoUrl) -> Fallible<Option<ServoUrl>>) -> ErrorResult {
+    fn setter_common(
+        &self,
+        f: impl FnOnce(ServoUrl) -> Fallible<Option<ServoUrl>>,
+        can_gc: CanGc,
+    ) -> ErrorResult {
         // Step 1: If this Location object's relevant Document is null, then return.
         // Step 2: If this Location object's relevant Document's origin is not
         // same origin-domain with the entry settings object's origin, then
@@ -225,6 +231,7 @@ impl Location {
                     copy_url,
                     HistoryEntryReplacement::Disabled,
                     NavigationType::Normal,
+                    can_gc,
                 );
             }
         }
@@ -235,7 +242,7 @@ impl Location {
     /// [`reload()`][1]).
     ///
     /// [1]: https://html.spec.whatwg.org/multipage/#dom-location-reload
-    pub fn reload_without_origin_check(&self) {
+    pub fn reload_without_origin_check(&self, can_gc: CanGc) {
         // > When a user requests that the active document of a browsing context
         // > be reloaded through a user interface element, the user agent should
         // > navigate the browsing context to the same resource as that
@@ -245,6 +252,7 @@ impl Location {
             url,
             HistoryEntryReplacement::Enabled,
             NavigationType::ReloadByConstellation,
+            can_gc,
         );
     }
 
@@ -256,33 +264,37 @@ impl Location {
 
 impl LocationMethods for Location {
     // https://html.spec.whatwg.org/multipage/#dom-location-assign
-    fn Assign(&self, url: USVString) -> ErrorResult {
-        self.setter_common(|_copy_url| {
-            // Step 3: Parse url relative to the entry settings object. If that failed,
-            // throw a "SyntaxError" DOMException.
-            let base_url = self.entry_settings_object().api_base_url();
-            let url = match base_url.join(&url.0) {
-                Ok(url) => url,
-                Err(_) => return Err(Error::Syntax),
-            };
+    fn Assign(&self, url: USVString, can_gc: CanGc) -> ErrorResult {
+        self.setter_common(
+            |_copy_url| {
+                // Step 3: Parse url relative to the entry settings object. If that failed,
+                // throw a "SyntaxError" DOMException.
+                let base_url = self.entry_settings_object().api_base_url();
+                let url = match base_url.join(&url.0) {
+                    Ok(url) => url,
+                    Err(_) => return Err(Error::Syntax),
+                };
 
-            Ok(Some(url))
-        })
+                Ok(Some(url))
+            },
+            can_gc,
+        )
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location-reload
-    fn Reload(&self) -> ErrorResult {
+    fn Reload(&self, can_gc: CanGc) -> ErrorResult {
         let url = self.get_url_if_same_origin()?;
         self.navigate(
             url,
             HistoryEntryReplacement::Enabled,
             NavigationType::ReloadByScript,
+            can_gc,
         );
         Ok(())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location-replace
-    fn Replace(&self, url: USVString) -> ErrorResult {
+    fn Replace(&self, url: USVString, can_gc: CanGc) -> ErrorResult {
         // Step 1: If this Location object's relevant Document is null, then return.
         if self.has_document() {
             // Step 2: Parse url relative to the entry settings object. If that failed,
@@ -298,6 +310,7 @@ impl LocationMethods for Location {
                 url,
                 HistoryEntryReplacement::Enabled,
                 NavigationType::Normal,
+                can_gc,
             );
         }
         Ok(())
@@ -309,26 +322,29 @@ impl LocationMethods for Location {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location-hash
-    fn SetHash(&self, value: USVString) -> ErrorResult {
-        self.setter_common(|mut copy_url| {
-            // Step 4: Let input be the given value with a single leading "#" removed, if any.
-            // Step 5: Set copyURL's fragment to the empty string.
-            // Step 6: Basic URL parse input, with copyURL as url and fragment state as
-            // state override.
-            let new_fragment = if value.0.starts_with('#') {
-                Some(&value.0[1..])
-            } else {
-                Some(value.0.as_str())
-            };
-            // Step 7: If copyURL's fragment is this's url's fragment, then return.
-            if copy_url.fragment() == new_fragment {
-                Ok(None)
-            } else {
-                copy_url.as_mut_url().set_fragment(new_fragment);
+    fn SetHash(&self, value: USVString, can_gc: CanGc) -> ErrorResult {
+        self.setter_common(
+            |mut copy_url| {
+                // Step 4: Let input be the given value with a single leading "#" removed, if any.
+                // Step 5: Set copyURL's fragment to the empty string.
+                // Step 6: Basic URL parse input, with copyURL as url and fragment state as
+                // state override.
+                let new_fragment = if value.0.starts_with('#') {
+                    Some(&value.0[1..])
+                } else {
+                    Some(value.0.as_str())
+                };
+                // Step 7: If copyURL's fragment is this's url's fragment, then return.
+                if copy_url.fragment() == new_fragment {
+                    Ok(None)
+                } else {
+                    copy_url.as_mut_url().set_fragment(new_fragment);
 
-                Ok(Some(copy_url))
-            }
-        })
+                    Ok(Some(copy_url))
+                }
+            },
+            can_gc,
+        )
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location-host
@@ -337,19 +353,22 @@ impl LocationMethods for Location {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location-host
-    fn SetHost(&self, value: USVString) -> ErrorResult {
-        self.setter_common(|mut copy_url| {
-            // Step 4: If copyURL's cannot-be-a-base-URL flag is set, terminate these steps.
-            if copy_url.cannot_be_a_base() {
-                return Ok(None);
-            }
+    fn SetHost(&self, value: USVString, can_gc: CanGc) -> ErrorResult {
+        self.setter_common(
+            |mut copy_url| {
+                // Step 4: If copyURL's cannot-be-a-base-URL flag is set, terminate these steps.
+                if copy_url.cannot_be_a_base() {
+                    return Ok(None);
+                }
 
-            // Step 5: Basic URL parse the given value, with copyURL as url and host state
-            // as state override.
-            let _ = copy_url.as_mut_url().set_host(Some(&value.0));
+                // Step 5: Basic URL parse the given value, with copyURL as url and host state
+                // as state override.
+                let _ = copy_url.as_mut_url().set_host(Some(&value.0));
 
-            Ok(Some(copy_url))
-        })
+                Ok(Some(copy_url))
+            },
+            can_gc,
+        )
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location-origin
@@ -363,19 +382,22 @@ impl LocationMethods for Location {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location-hostname
-    fn SetHostname(&self, value: USVString) -> ErrorResult {
-        self.setter_common(|mut copy_url| {
-            // Step 4: If copyURL's cannot-be-a-base-URL flag is set, terminate these steps.
-            if copy_url.cannot_be_a_base() {
-                return Ok(None);
-            }
+    fn SetHostname(&self, value: USVString, can_gc: CanGc) -> ErrorResult {
+        self.setter_common(
+            |mut copy_url| {
+                // Step 4: If copyURL's cannot-be-a-base-URL flag is set, terminate these steps.
+                if copy_url.cannot_be_a_base() {
+                    return Ok(None);
+                }
 
-            // Step 5: Basic URL parse the given value, with copyURL as url and hostname
-            // state as state override.
-            let _ = copy_url.as_mut_url().set_host(Some(&value.0));
+                // Step 5: Basic URL parse the given value, with copyURL as url and hostname
+                // state as state override.
+                let _ = copy_url.as_mut_url().set_host(Some(&value.0));
 
-            Ok(Some(copy_url))
-        })
+                Ok(Some(copy_url))
+            },
+            can_gc,
+        )
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location-href
@@ -384,7 +406,7 @@ impl LocationMethods for Location {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location-href
-    fn SetHref(&self, value: USVString) -> ErrorResult {
+    fn SetHref(&self, value: USVString, can_gc: CanGc) -> ErrorResult {
         // Step 1: If this Location object's relevant Document is null, then return.
         if self.has_document() {
             // Note: no call to self.check_same_origin_domain()
@@ -400,6 +422,7 @@ impl LocationMethods for Location {
                 url,
                 HistoryEntryReplacement::Disabled,
                 NavigationType::Normal,
+                can_gc,
             );
         }
         Ok(())
@@ -411,20 +434,23 @@ impl LocationMethods for Location {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location-pathname
-    fn SetPathname(&self, value: USVString) -> ErrorResult {
-        self.setter_common(|mut copy_url| {
-            // Step 4: If copyURL's cannot-be-a-base-URL flag is set, terminate these steps.
-            if copy_url.cannot_be_a_base() {
-                return Ok(None);
-            }
+    fn SetPathname(&self, value: USVString, can_gc: CanGc) -> ErrorResult {
+        self.setter_common(
+            |mut copy_url| {
+                // Step 4: If copyURL's cannot-be-a-base-URL flag is set, terminate these steps.
+                if copy_url.cannot_be_a_base() {
+                    return Ok(None);
+                }
 
-            // Step 5: Set copyURL's path to the empty list.
-            // Step 6: Basic URL parse the given value, with copyURL as url and path
-            // start state as state override.
-            copy_url.as_mut_url().set_path(&value.0);
+                // Step 5: Set copyURL's path to the empty list.
+                // Step 6: Basic URL parse the given value, with copyURL as url and path
+                // start state as state override.
+                copy_url.as_mut_url().set_path(&value.0);
 
-            Ok(Some(copy_url))
-        })
+                Ok(Some(copy_url))
+            },
+            can_gc,
+        )
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location-port
@@ -433,25 +459,28 @@ impl LocationMethods for Location {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location-port
-    fn SetPort(&self, value: USVString) -> ErrorResult {
-        self.setter_common(|mut copy_url| {
-            // Step 4: If copyURL cannot have a username/password/port, then return.
-            // https://url.spec.whatwg.org/#cannot-have-a-username-password-port
-            if copy_url.host().is_none() ||
-                copy_url.cannot_be_a_base() ||
-                copy_url.scheme() == "file"
-            {
-                return Ok(None);
-            }
+    fn SetPort(&self, value: USVString, can_gc: CanGc) -> ErrorResult {
+        self.setter_common(
+            |mut copy_url| {
+                // Step 4: If copyURL cannot have a username/password/port, then return.
+                // https://url.spec.whatwg.org/#cannot-have-a-username-password-port
+                if copy_url.host().is_none() ||
+                    copy_url.cannot_be_a_base() ||
+                    copy_url.scheme() == "file"
+                {
+                    return Ok(None);
+                }
 
-            // Step 5: If the given value is the empty string, then set copyURL's
-            // port to null.
-            // Step 6: Otherwise, basic URL parse the given value, with copyURL as url
-            // and port state as state override.
-            let _ = url::quirks::set_port(copy_url.as_mut_url(), &value.0);
+                // Step 5: If the given value is the empty string, then set copyURL's
+                // port to null.
+                // Step 6: Otherwise, basic URL parse the given value, with copyURL as url
+                // and port state as state override.
+                let _ = url::quirks::set_port(copy_url.as_mut_url(), &value.0);
 
-            Ok(Some(copy_url))
-        })
+                Ok(Some(copy_url))
+            },
+            can_gc,
+        )
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location-protocol
@@ -460,30 +489,33 @@ impl LocationMethods for Location {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location-protocol
-    fn SetProtocol(&self, value: USVString) -> ErrorResult {
-        self.setter_common(|mut copy_url| {
-            // Step 4: Let possibleFailure be the result of basic URL parsing the given
-            // value, followed by ":", with copyURL as url and scheme start state as
-            // state override.
-            let scheme = match value.0.find(':') {
-                Some(position) => &value.0[..position],
-                None => &value.0,
-            };
+    fn SetProtocol(&self, value: USVString, can_gc: CanGc) -> ErrorResult {
+        self.setter_common(
+            |mut copy_url| {
+                // Step 4: Let possibleFailure be the result of basic URL parsing the given
+                // value, followed by ":", with copyURL as url and scheme start state as
+                // state override.
+                let scheme = match value.0.find(':') {
+                    Some(position) => &value.0[..position],
+                    None => &value.0,
+                };
 
-            if copy_url.as_mut_url().set_scheme(scheme).is_err() {
-                // Step 5: If possibleFailure is failure, then throw a "SyntaxError" DOMException.
-                return Err(Error::Syntax);
-            }
+                if copy_url.as_mut_url().set_scheme(scheme).is_err() {
+                    // Step 5: If possibleFailure is failure, then throw a "SyntaxError" DOMException.
+                    return Err(Error::Syntax);
+                }
 
-            // Step 6: If copyURL's scheme is not an HTTP(S) scheme, then terminate these steps.
-            if !copy_url.scheme().eq_ignore_ascii_case("http") &&
-                !copy_url.scheme().eq_ignore_ascii_case("https")
-            {
-                return Ok(None);
-            }
+                // Step 6: If copyURL's scheme is not an HTTP(S) scheme, then terminate these steps.
+                if !copy_url.scheme().eq_ignore_ascii_case("http") &&
+                    !copy_url.scheme().eq_ignore_ascii_case("https")
+                {
+                    return Ok(None);
+                }
 
-            Ok(Some(copy_url))
-        })
+                Ok(Some(copy_url))
+            },
+            can_gc,
+        )
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location-search
@@ -492,22 +524,25 @@ impl LocationMethods for Location {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location-search
-    fn SetSearch(&self, value: USVString) -> ErrorResult {
-        self.setter_common(|mut copy_url| {
-            // Step 4: If the given value is the empty string, set copyURL's query to null.
-            // Step 5: Otherwise, run these substeps:
-            //   1. Let input be the given value with a single leading "?" removed, if any.
-            //   2. Set copyURL's query to the empty string.
-            //   3. Basic URL parse input, with copyURL as url and query state as state
-            //      override, and the relevant Document's document's character encoding as
-            //      encoding override.
-            copy_url.as_mut_url().set_query(match value.0.as_str() {
-                "" => None,
-                _ if value.0.starts_with('?') => Some(&value.0[1..]),
-                _ => Some(&value.0),
-            });
+    fn SetSearch(&self, value: USVString, can_gc: CanGc) -> ErrorResult {
+        self.setter_common(
+            |mut copy_url| {
+                // Step 4: If the given value is the empty string, set copyURL's query to null.
+                // Step 5: Otherwise, run these substeps:
+                //   1. Let input be the given value with a single leading "?" removed, if any.
+                //   2. Set copyURL's query to the empty string.
+                //   3. Basic URL parse input, with copyURL as url and query state as state
+                //      override, and the relevant Document's document's character encoding as
+                //      encoding override.
+                copy_url.as_mut_url().set_query(match value.0.as_str() {
+                    "" => None,
+                    _ if value.0.starts_with('?') => Some(&value.0[1..]),
+                    _ => Some(&value.0),
+                });
 
-            Ok(Some(copy_url))
-        })
+                Ok(Some(copy_url))
+            },
+            can_gc,
+        )
     }
 }

@@ -1016,6 +1016,7 @@ impl HTMLFormElement {
                     HistoryEntryReplacement::Disabled,
                     false,
                     load_data,
+                    CanGc::note(),
                 );
         });
 
