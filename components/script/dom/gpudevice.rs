@@ -206,7 +206,7 @@ impl GPUDevice {
             },
             can_gc,
         );
-        let _ = self.eventtarget.DispatchEvent(ev.event());
+        let _ = self.eventtarget.DispatchEvent(ev.event(), can_gc);
     }
 
     /// <https://gpuweb.github.io/gpuweb/#abstract-opdef-validate-texture-format-required-features>

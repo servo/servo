@@ -343,7 +343,7 @@ impl Activatable for HTMLButtonElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#run-post-click-activation-steps
-    fn activation_behavior(&self, _event: &Event, _target: &EventTarget) {
+    fn activation_behavior(&self, _event: &Event, _target: &EventTarget, _can_gc: CanGc) {
         let ty = self.button_type.get();
         match ty {
             //https://html.spec.whatwg.org/multipage/#attr-button-type-submit-state

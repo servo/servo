@@ -390,7 +390,7 @@ impl Node {
     }
 
     /// <https://html.spec.whatg.org/#fire_a_synthetic_mouse_event>
-    pub fn fire_synthetic_mouse_event_not_trusted(&self, name: DOMString) {
+    pub fn fire_synthetic_mouse_event_not_trusted(&self, name: DOMString, can_gc: CanGc) {
         // Spec says the choice of which global to create
         // the mouse event on is not well-defined,
         // and refers to heycam/webidl#135
@@ -415,6 +415,7 @@ impl Node {
             0,     // buttons uninitialized (and therefore none)
             None,  // related_target uninitialized,
             None,  // point_in_target uninitialized,
+            can_gc,
         );
 
         // Step 4: TODO composed flag for shadow root
@@ -426,7 +427,7 @@ impl Node {
 
         mouse_event
             .upcast::<Event>()
-            .dispatch(self.upcast::<EventTarget>(), false);
+            .dispatch(self.upcast::<EventTarget>(), false, can_gc);
     }
 
     pub fn parent_directionality(&self) -> String {

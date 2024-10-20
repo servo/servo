@@ -34,6 +34,7 @@ use crate::dom::node::{document_from_node, BindContext, Node};
 use crate::dom::urlhelper::UrlHelper;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::links::{follow_hyperlink, LinkRelations};
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct HTMLAnchorElement {
@@ -593,7 +594,7 @@ impl Activatable for HTMLAnchorElement {
     }
 
     //https://html.spec.whatwg.org/multipage/#the-a-element:activation-behaviour
-    fn activation_behavior(&self, event: &Event, target: &EventTarget) {
+    fn activation_behavior(&self, event: &Event, target: &EventTarget, _can_gc: CanGc) {
         let element = self.as_element();
         let mouse_event = event.downcast::<MouseEvent>().unwrap();
         let mut ismap_suffix = None;

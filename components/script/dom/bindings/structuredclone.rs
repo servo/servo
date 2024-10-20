@@ -37,7 +37,7 @@ use crate::dom::blob::Blob;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageport::MessagePort;
 use crate::realms::{enter_realm, AlreadyInRealm, InRealm};
-use crate::script_runtime::JSContext as SafeJSContext;
+use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 // TODO: Should we add Min and Max const to https://github.com/servo/rust-mozjs/blob/master/src/consts.rs?
 // TODO: Determine for sure which value Min and Max should have.
@@ -57,6 +57,7 @@ unsafe fn read_blob(
     owner: &GlobalScope,
     r: *mut JSStructuredCloneReader,
     sc_holder: &mut StructuredDataHolder,
+    can_gc: CanGc,
 ) -> *mut JSObject {
     let mut name_space: u32 = 0;
     let mut index: u32 = 0;
@@ -66,7 +67,7 @@ unsafe fn read_blob(
         &mut index as *mut u32
     ));
     let storage_key = StorageKey { index, name_space };
-    if <Blob as Serializable>::deserialize(owner, sc_holder, storage_key).is_ok() {
+    if <Blob as Serializable>::deserialize(owner, sc_holder, storage_key, can_gc).is_ok() {
         let blobs = match sc_holder {
             StructuredDataHolder::Read { blobs, .. } => blobs,
             _ => panic!("Unexpected variant of StructuredDataHolder"),
@@ -133,6 +134,7 @@ unsafe extern "C" fn read_callback(
             &GlobalScope::from_context(cx, InRealm::Already(&in_realm_proof)),
             r,
             &mut *(closure as *mut StructuredDataHolder),
+            CanGc::note(),
         );
     }
     ptr::null_mut()
