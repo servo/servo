@@ -1025,6 +1025,7 @@ impl XRSessionMethods for XRSession {
     }
 
     /// <https://www.w3.org/TR/webxr/#dom-xrsession-updatetargetframerate>
+<<<<<<< HEAD
     fn UpdateTargetFrameRate(
         &self,
         rate: Finite<f32>,
@@ -1032,6 +1033,10 @@ impl XRSessionMethods for XRSession {
         can_gc: CanGc,
     ) -> Rc<Promise> {
         let mut session = self.session.borrow_mut();
+=======
+    fn UpdateTargetFrameRate(&self, rate: Finite<f32>, comp: InRealm) -> Rc<Promise> {
+        let session = self.session.borrow();
+>>>>>>> ebe5ea76a5 (Fix GC borrow hazard in XRSession::UpdateTargetFrameRate)
         let supported_frame_rates = session.supported_frame_rates();
         let promise = Promise::new_in_current_realm(comp, can_gc);
 
@@ -1075,7 +1080,7 @@ impl XRSessionMethods for XRSession {
             }),
         );
 
-        session.update_frame_rate(*rate, sender);
+        self.session.borrow_mut().update_frame_rate(*rate, sender);
 
         promise
     }
