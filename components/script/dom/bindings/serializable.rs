@@ -8,6 +8,7 @@
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::structuredclone::StructuredDataHolder;
 use crate::dom::globalscope::GlobalScope;
+use crate::script_runtime::CanGc;
 
 /// The key corresponding to the storage location
 /// of a serialized platform object stored in a StructuredDataHolder.
@@ -27,5 +28,6 @@ pub trait Serializable: DomObject {
         owner: &GlobalScope,
         sc_holder: &mut StructuredDataHolder,
         extra_data: StorageKey,
+        can_gc: CanGc,
     ) -> Result<(), ()>;
 }

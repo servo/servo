@@ -634,8 +634,8 @@ impl HTMLFormElementMethods for HTMLFormElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-form-reportvalidity>
-    fn ReportValidity(&self) -> bool {
-        self.interactive_validation(CanGc::note()).is_ok()
+    fn ReportValidity(&self, can_gc: CanGc) -> bool {
+        self.interactive_validation(can_gc).is_ok()
     }
 }
 

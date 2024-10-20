@@ -51,6 +51,7 @@ impl PromiseRejectionEvent {
         cancelable: EventCancelable,
         promise: Rc<Promise>,
         reason: HandleValue,
+        can_gc: CanGc,
     ) -> DomRoot<Self> {
         Self::new_with_proto(
             global,
@@ -60,7 +61,7 @@ impl PromiseRejectionEvent {
             cancelable,
             promise.promise_obj(),
             reason,
-            CanGc::note(),
+            can_gc,
         )
     }
 

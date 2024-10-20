@@ -107,6 +107,7 @@ impl MouseEvent {
         buttons: u16,
         related_target: Option<&EventTarget>,
         point_in_target: Option<Point2D<f32>>,
+        can_gc: CanGc,
     ) -> DomRoot<MouseEvent> {
         Self::new_with_proto(
             window,
@@ -128,7 +129,7 @@ impl MouseEvent {
             buttons,
             related_target,
             point_in_target,
-            CanGc::note(),
+            can_gc,
         )
     }
 

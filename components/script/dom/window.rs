@@ -548,7 +548,7 @@ impl Window {
 
     // see note at https://dom.spec.whatwg.org/#concept-event-dispatch step 2
     pub fn dispatch_event_with_target_override(&self, event: &Event) -> EventStatus {
-        event.dispatch(self.upcast(), true)
+        event.dispatch(self.upcast(), true, CanGc::note())
     }
 }
 
@@ -2289,7 +2289,8 @@ impl Window {
                         false,
                         false,
                         old_url,
-                        new_url);
+                        new_url,
+                        CanGc::note());
                     event.upcast::<Event>().fire(this.upcast::<EventTarget>());
                 });
                 // FIXME(nox): Why are errors silenced here?

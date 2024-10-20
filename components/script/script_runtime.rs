@@ -302,7 +302,8 @@ unsafe extern "C" fn promise_rejection_tracker(
                         EventBubbles::DoesNotBubble,
                         EventCancelable::Cancelable,
                         root_promise,
-                        reason.handle()
+                        reason.handle(),
+                        CanGc::note()
                     );
 
                     event.upcast::<Event>().fire(&target);
@@ -419,7 +420,8 @@ pub fn notify_about_rejected_promises(global: &GlobalScope) {
                             EventBubbles::DoesNotBubble,
                             EventCancelable::Cancelable,
                             promise.clone(),
-                            reason.handle()
+                            reason.handle(),
+                            CanGc::note()
                         );
 
                         let event_status = event.upcast::<Event>().fire(&target);

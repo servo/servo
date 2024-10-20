@@ -55,6 +55,7 @@ impl FocusEvent {
         view: Option<&Window>,
         detail: i32,
         related_target: Option<&EventTarget>,
+        can_gc: CanGc,
     ) -> DomRoot<FocusEvent> {
         Self::new_with_proto(
             window,
@@ -65,7 +66,7 @@ impl FocusEvent {
             view,
             detail,
             related_target,
-            CanGc::note(),
+            can_gc,
         )
     }
 
