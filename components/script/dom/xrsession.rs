@@ -409,6 +409,7 @@ impl XRSession {
                             false,
                             space,
                             Some(&*offset),
+                            can_gc,
                         );
                         event.upcast::<Event>().fire(space.upcast());
                     });
