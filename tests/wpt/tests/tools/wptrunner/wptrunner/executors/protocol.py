@@ -215,6 +215,7 @@ class TestharnessProtocolPart(ProtocolPart):
         contains the initial runner page.
 
         :param str url_protocol: "https" or "http" depending on the test metadata.
+        :returns: A browser-specific handle to the runner page.
         """
         pass
 

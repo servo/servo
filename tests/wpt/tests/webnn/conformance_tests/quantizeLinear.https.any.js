@@ -18,7 +18,7 @@
 
 
 const getQuantizeLinearPrecisionTolerance = (graphResources) => {
-  const toleranceValueDict = {int8: 1, uint8: 1};
+  const toleranceValueDict = {int8: 1, uint8: 1, int4: 1, uint4: 1};
   const expectedDataType =
       getExpectedDataTypeOfSingleOutput(graphResources.expectedOutputs);
   return {metricType: 'ULP', value: toleranceValueDict[expectedDataType]};
@@ -141,6 +141,191 @@ const quantizeLinearTests = [
           'data': [119, 111, 126, 127],
           'descriptor': {shape: [1, 1, 2, 2], dataType: 'uint8'}
         }
+      }
+    }
+  },
+  {
+    'name':
+        'quantizeLinear float32 tensor with int4 zeroPoint which has odd size',
+    'graph': {
+      'inputs': {
+        'quantizeLinearInput': {
+          'data': [4.794857501983643],
+          'descriptor': {shape: [], dataType: 'float32'},
+          'constant': true
+        },
+        'quantizeLinearScale': {
+          'data': [1.1202747821807861],
+          'descriptor': {shape: [], dataType: 'float32'},
+          'constant': true
+        },
+        'quantizeLinearZeroPoint': {
+          'data': [-4],
+          'descriptor': {shape: [], dataType: 'int4'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'quantizeLinear',
+        'arguments': [
+          {'input': 'quantizeLinearInput'}, {'scale': 'quantizeLinearScale'},
+          {'zeroPoint': 'quantizeLinearZeroPoint'}
+        ],
+        'outputs': 'quantizeLinearOutput'
+      }],
+      'expectedOutputs': {
+        'quantizeLinearOutput':
+            {'data': [-1], 'descriptor': {shape: [], dataType: 'int4'}}
+      }
+    }
+  },
+  {
+    'name':
+        'quantizeLinear float32 tensor with int4 zeroPoint which has even size',
+    'graph': {
+      'inputs': {
+        'quantizeLinearInput': {
+          'data': [4.794857501983643, 3.23434354545],
+          'descriptor': {shape: [2], dataType: 'float32'},
+          'constant': true
+        },
+        'quantizeLinearScale': {
+          'data': [1.1202747821807861],
+          'descriptor': {shape: [], dataType: 'float32'},
+          'constant': true
+        },
+        'quantizeLinearZeroPoint': {
+          'data': [-6, -5],
+          'descriptor': {shape: [2], dataType: 'int4'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'quantizeLinear',
+        'arguments': [
+          {'input': 'quantizeLinearInput'}, {'scale': 'quantizeLinearScale'},
+          {'zeroPoint': 'quantizeLinearZeroPoint'}
+        ],
+        'outputs': 'quantizeLinearOutput'
+      }],
+      'expectedOutputs': {
+        'quantizeLinearOutput':
+            {'data': [-2, -2], 'descriptor': {shape: [2], dataType: 'int4'}}
+      }
+    }
+  },
+  {
+    'name':
+        'quantizeLinear float32 2D tensor with int4 zeroPoint which has even size',
+    'graph': {
+      'inputs': {
+        'quantizeLinearInput': {
+          'data': [
+            4.794857501983643, 3.23434354545, 2.794857501983643,
+            5.794857501983643, 0, 7.23434354545
+          ],
+          'descriptor': {shape: [3, 2], dataType: 'float32'},
+          'constant': true
+        },
+        'quantizeLinearScale': {
+          'data': [1.1202747821807861, 2.1202747821807861],
+          'descriptor': {shape: [2], dataType: 'float32'},
+          'constant': true
+        },
+        'quantizeLinearZeroPoint': {
+          'data': [-6, -5],
+          'descriptor': {shape: [2], dataType: 'int4'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'quantizeLinear',
+        'arguments': [
+          {'input': 'quantizeLinearInput'}, {'scale': 'quantizeLinearScale'},
+          {'zeroPoint': 'quantizeLinearZeroPoint'}
+        ],
+        'outputs': 'quantizeLinearOutput'
+      }],
+      'expectedOutputs': {
+        'quantizeLinearOutput': {
+          'data': [-2, -3, -4, -3, -5, -2],
+          'descriptor': {shape: [3, 2], dataType: 'int4'}
+        }
+      }
+    }
+  },
+  {
+    'name':
+        'quantizeLinear float32 tensor with uint4 zeroPoint which has odd size',
+    'graph': {
+      'inputs': {
+        'quantizeLinearInput': {
+          'data': [
+            4.794857501983643, 2.794857501983643, 1.794857501983643, 0,
+            3.794857501983643
+          ],
+          'descriptor': {shape: [5], dataType: 'float32'},
+          'constant': true
+        },
+        'quantizeLinearScale': {
+          'data': [1.1202747821807861],
+          'descriptor': {shape: [], dataType: 'float32'},
+          'constant': true
+        },
+        'quantizeLinearZeroPoint': {
+          'data': [12],
+          'descriptor': {shape: [], dataType: 'uint4'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'quantizeLinear',
+        'arguments': [
+          {'input': 'quantizeLinearInput'}, {'scale': 'quantizeLinearScale'},
+          {'zeroPoint': 'quantizeLinearZeroPoint'}
+        ],
+        'outputs': 'quantizeLinearOutput'
+      }],
+      'expectedOutputs': {
+        'quantizeLinearOutput': {
+          'data': [16, 14, 13, 12, 15],
+          'descriptor': {shape: [5], dataType: 'uint4'}
+        }
+      }
+    }
+  },
+  {
+    'name':
+        'quantizeLinear float32 tensor with uint4 zeroPoint which has even size',
+    'graph': {
+      'inputs': {
+        'quantizeLinearInput': {
+          'data': [4.794857501983643, 3.23434354545],
+          'descriptor': {shape: [2], dataType: 'float32'},
+          'constant': true
+        },
+        'quantizeLinearScale': {
+          'data': [1.1202747821807861],
+          'descriptor': {shape: [], dataType: 'float32'},
+          'constant': true
+        },
+        'quantizeLinearZeroPoint': {
+          'data': [1, 5],
+          'descriptor': {shape: [2], dataType: 'uint4'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'quantizeLinear',
+        'arguments': [
+          {'input': 'quantizeLinearInput'}, {'scale': 'quantizeLinearScale'},
+          {'zeroPoint': 'quantizeLinearZeroPoint'}
+        ],
+        'outputs': 'quantizeLinearOutput'
+      }],
+      'expectedOutputs': {
+        'quantizeLinearOutput':
+            {'data': [5, 8], 'descriptor': {shape: [2], dataType: 'uint4'}}
       }
     }
   }

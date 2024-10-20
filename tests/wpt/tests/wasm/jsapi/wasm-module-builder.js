@@ -81,6 +81,7 @@ let kWasmSubtypeFinalForm = 0x4f;
 let kWasmRecursiveTypeGroupForm = 0x4e;
 
 let kNoSuperType = 0xFFFFFFFF;
+globalThis.kNoSuperType = kNoSuperType;
 
 let kHasMaximumFlag = 1;
 let kSharedHasMaximumFlag = 3;
@@ -146,11 +147,26 @@ function wasmRefType(heap_type) {
   return {opcode: kWasmRef, heap_type: heap_type};
 }
 
+Object.assign(globalThis, {
+  kWasmStmt, kWasmI32, kWasmI64, kWasmF32, kWasmF64, kWasmS128, kWasmI8,
+  kWasmI16, kWasmNullFuncRef, kWasmNullExternRef, kWasmNullRef, kWasmFuncRef,
+  kWasmAnyFunc, kWasmExternRef, kWasmAnyRef, kWasmEqRef, kWasmI31Ref,
+  kWasmStructRef, kWasmArrayRef, kFuncRefCode, kAnyFuncCode, kExternRefCode,
+  kAnyRefCode, kEqRefCode, kI31RefCode, kNullExternRefCode, kNullFuncRefCode,
+  kStructRefCode, kArrayRefCode, kNullRefCode, kWasmRefNull, kWasmRef,
+  wasmRefNullType, wasmRefType
+});
+
 let kExternalFunction = 0;
 let kExternalTable = 1;
 let kExternalMemory = 2;
 let kExternalGlobal = 3;
 let kExternalTag = 4;
+
+Object.assign(globalThis, {
+  kExternalFunction, kExternalTable, kExternalMemory, kExternalGlobal,
+  kExternalTag
+});
 
 let kTableZero = 0;
 let kMemoryZero = 0;
@@ -226,6 +242,17 @@ function makeSig_r_x(r, x) {
 function makeSig_r_xx(r, x) {
   return makeSig([x, x], [r]);
 }
+
+Object.assign(globalThis, {
+  kSig_i_i, kSig_l_l, kSig_i_l, kSig_i_ii, kSig_i_iii, kSig_v_iiii, kSig_f_ff,
+  kSig_d_dd, kSig_l_ll, kSig_i_dd, kSig_v_v, kSig_i_v, kSig_l_v, kSig_f_v,
+  kSig_d_v, kSig_v_i, kSig_v_ii, kSig_v_iii, kSig_v_l, kSig_v_d, kSig_v_dd,
+  kSig_v_ddi, kSig_ii_v, kSig_iii_v, kSig_ii_i, kSig_iii_i, kSig_ii_ii,
+  kSig_iii_ii, kSig_v_f, kSig_f_f, kSig_f_d, kSig_d_d, kSig_r_r, kSig_a_a,
+  kSig_i_r, kSig_v_r, kSig_v_a, kSig_v_rr, kSig_v_aa, kSig_r_v, kSig_a_v,
+  kSig_a_i,
+  makeSig, makeSig_v_x, makeSig_v_xx, makeSig_r_v, makeSig_r_x, makeSig_r_xx
+});
 
 // Opcodes
 let kExprUnreachable = 0x00;
@@ -552,6 +579,89 @@ let kExprI32x4Splat = 0x0c;
 let kExprI32x4Eq = 0x2c;
 let kExprS1x4AllTrue = 0x75;
 let kExprF32x4Min = 0x9e;
+
+Object.assign(globalThis, {
+  kExprUnreachable, kExprNop, kExprBlock, kExprLoop, kExprIf, kExprElse,
+  kExprTry, kExprCatch, kExprCatchAll, kExprThrow, kExprRethrow, kExprBrOnExn,
+  kExprEnd, kExprBr, kExprBrIf, kExprBrTable, kExprReturn, kExprCallFunction,
+  kExprCallIndirect, kExprReturnCall, kExprReturnCallIndirect, kExprDrop,
+  kExprSelect, kExprLocalGet, kExprLocalSet, kExprLocalTee, kExprGlobalGet,
+  kExprGlobalSet, kExprTableGet, kExprTableSet, kExprI32LoadMem,
+  kExprI64LoadMem, kExprF32LoadMem, kExprF64LoadMem, kExprI32LoadMem8S,
+  kExprI32LoadMem8U, kExprI32LoadMem16S, kExprI32LoadMem16U, kExprI64LoadMem8S,
+  kExprI64LoadMem8U, kExprI64LoadMem16S, kExprI64LoadMem16U, kExprI64LoadMem32S,
+  kExprI64LoadMem32U, kExprI32StoreMem, kExprI64StoreMem, kExprF32StoreMem,
+  kExprF64StoreMem, kExprI32StoreMem8, kExprI32StoreMem16, kExprI64StoreMem8,
+  kExprI64StoreMem16, kExprI64StoreMem32, kExprMemorySize, kExprMemoryGrow,
+  kExprI32Const, kExprI64Const, kExprF32Const, kExprF64Const, kExprI32Eqz,
+  kExprI32Eq, kExprI32Ne, kExprI32LtS, kExprI32LtU, kExprI32GtS, kExprI32GtU,
+  kExprI32LeS, kExprI32LeU, kExprI32GeS, kExprI32GeU, kExprI64Eqz, kExprI64Eq,
+  kExprI64Ne, kExprI64LtS, kExprI64LtU, kExprI64GtS, kExprI64GtU, kExprI64LeS,
+  kExprI64LeU, kExprI64GeS, kExprI64GeU, kExprF32Eq, kExprF32Ne, kExprF32Lt,
+  kExprF32Gt, kExprF32Le, kExprF32Ge, kExprF64Eq, kExprF64Ne, kExprF64Lt,
+  kExprF64Gt, kExprF64Le, kExprF64Ge, kExprI32Clz, kExprI32Ctz, kExprI32Popcnt,
+  kExprI32Add, kExprI32Sub, kExprI32Mul, kExprI32DivS, kExprI32DivU,
+  kExprI32RemS, kExprI32RemU, kExprI32And, kExprI32Ior, kExprI32Xor,
+  kExprI32Shl, kExprI32ShrS, kExprI32ShrU, kExprI32Rol, kExprI32Ror,
+  kExprI64Clz, kExprI64Ctz, kExprI64Popcnt, kExprI64Add, kExprI64Sub,
+  kExprI64Mul, kExprI64DivS, kExprI64DivU, kExprI64RemS, kExprI64RemU,
+  kExprI64And, kExprI64Ior, kExprI64Xor, kExprI64Shl, kExprI64ShrS,
+  kExprI64ShrU, kExprI64Rol, kExprI64Ror, kExprF32Abs, kExprF32Neg,
+  kExprF32Ceil, kExprF32Floor, kExprF32Trunc, kExprF32NearestInt, kExprF32Sqrt,
+  kExprF32Add, kExprF32Sub, kExprF32Mul, kExprF32Div, kExprF32Min, kExprF32Max,
+  kExprF32CopySign, kExprF64Abs, kExprF64Neg, kExprF64Ceil, kExprF64Floor,
+  kExprF64Trunc, kExprF64NearestInt, kExprF64Sqrt, kExprF64Add, kExprF64Sub,
+  kExprF64Mul, kExprF64Div, kExprF64Min, kExprF64Max, kExprF64CopySign,
+  kExprI32ConvertI64, kExprI32SConvertF32, kExprI32UConvertF32,
+  kExprI32SConvertF64, kExprI32UConvertF64, kExprI64SConvertI32,
+  kExprI64UConvertI32, kExprI64SConvertF32, kExprI64UConvertF32,
+  kExprI64SConvertF64, kExprI64UConvertF64, kExprF32SConvertI32,
+  kExprF32UConvertI32, kExprF32SConvertI64, kExprF32UConvertI64,
+  kExprF32ConvertF64, kExprF64SConvertI32, kExprF64UConvertI32,
+  kExprF64SConvertI64, kExprF64UConvertI64, kExprF64ConvertF32,
+  kExprI32ReinterpretF32, kExprI64ReinterpretF64, kExprF32ReinterpretI32,
+  kExprF64ReinterpretI64, kExprI32SExtendI8, kExprI32SExtendI16,
+  kExprI64SExtendI8, kExprI64SExtendI16, kExprI64SExtendI32, kExprRefNull,
+  kExprRefIsNull, kExprRefFunc,
+  GCInstr,
+  kExprStructNew, kExprStructNewDefault, kExprStructGet, kExprStructGetS,
+  kExprStructGetU, kExprStructSet, kExprArrayNew, kExprArrayNewDefault,
+  kExprArrayNewFixed, kExprArrayNewData, kExprArrayNewElem, kExprArrayGet,
+  kExprArrayGetS, kExprArrayGetU, kExprArraySet, kExprArrayLen, kExprArrayFill,
+  kExprArrayCopy, kExprArrayInitData, kExprArrayInitElem, kExprRefTest,
+  kExprRefTestNull, kExprRefCast, kExprRefCastNull, kExprBrOnCast,
+  kExprBrOnCastFail, kExprExternInternalize, kExprExternExternalize,
+  kExprI31New, kExprI31GetS, kExprI31GetU,
+  kExprMemoryInit, kExprDataDrop, kExprMemoryCopy, kExprMemoryFill,
+  kExprTableInit, kExprElemDrop, kExprTableCopy, kExprTableGrow, kExprTableSize,
+  kExprTableFill,
+  kExprAtomicNotify, kExprI32AtomicWait, kExprI64AtomicWait, kExprI32AtomicLoad,
+  kExprI32AtomicLoad8U, kExprI32AtomicLoad16U, kExprI32AtomicStore,
+  kExprI32AtomicStore8U, kExprI32AtomicStore16U, kExprI32AtomicAdd,
+  kExprI32AtomicAdd8U, kExprI32AtomicAdd16U, kExprI32AtomicSub,
+  kExprI32AtomicSub8U, kExprI32AtomicSub16U, kExprI32AtomicAnd,
+  kExprI32AtomicAnd8U, kExprI32AtomicAnd16U, kExprI32AtomicOr,
+  kExprI32AtomicOr8U, kExprI32AtomicOr16U, kExprI32AtomicXor,
+  kExprI32AtomicXor8U, kExprI32AtomicXor16U, kExprI32AtomicExchange,
+  kExprI32AtomicExchange8U, kExprI32AtomicExchange16U,
+  kExprI32AtomicCompareExchange, kExprI32AtomicCompareExchange8U,
+  kExprI32AtomicCompareExchange16U, kExprI64AtomicLoad, kExprI64AtomicLoad8U,
+  kExprI64AtomicLoad16U, kExprI64AtomicLoad32U, kExprI64AtomicStore,
+  kExprI64AtomicStore8U, kExprI64AtomicStore16U, kExprI64AtomicStore32U,
+  kExprI64AtomicAdd, kExprI64AtomicAdd8U, kExprI64AtomicAdd16U,
+  kExprI64AtomicAdd32U, kExprI64AtomicSub, kExprI64AtomicSub8U,
+  kExprI64AtomicSub16U, kExprI64AtomicSub32U, kExprI64AtomicAnd,
+  kExprI64AtomicAnd8U, kExprI64AtomicAnd16U, kExprI64AtomicAnd32U,
+  kExprI64AtomicOr, kExprI64AtomicOr8U, kExprI64AtomicOr16U,
+  kExprI64AtomicOr32U, kExprI64AtomicXor, kExprI64AtomicXor8U,
+  kExprI64AtomicXor16U, kExprI64AtomicXor32U, kExprI64AtomicExchange,
+  kExprI64AtomicExchange8U, kExprI64AtomicExchange16U,
+  kExprI64AtomicExchange32U, kExprI64AtomicCompareExchange,
+  kExprI64AtomicCompareExchange8U, kExprI64AtomicCompareExchange16U,
+  kExprI64AtomicCompareExchange32U,
+  kExprS128LoadMem, kExprS128StoreMem, kExprI32x4Splat, kExprI32x4Eq,
+  kExprS1x4AllTrue, kExprF32x4Min
+});
 
 class Binary {
   constructor() {

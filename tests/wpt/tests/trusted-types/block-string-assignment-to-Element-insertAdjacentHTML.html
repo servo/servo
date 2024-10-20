@@ -126,9 +126,17 @@
     assert_equals(d.nextSibling, null);
   }, "`insertAdjacentHTML(null)` throws.");
 
+  // Due to a Gecko-specific bug
+  // (https://bugzilla.mozilla.org/show_bug.cgi?id=1270944), adjacent nodes are
+  // merged. Remove the children, to let the test pass on Gecko
+  // too.
+  function removeChildrenBecauseOfGeckoBug(element) {
+    element.innerHTML = null;
+  }
+
   // After default policy creation string assignment implicitly calls createHTML.
   test(t => {
-    let p = window.trustedTypes.createPolicy("default", { createHTML: createHTMLJS }, true);
+    let p = window.trustedTypes.createPolicy("default", { createHTML: createHTMLJS });
 
     var d = document.createElement('div');
     container.appendChild(d);
@@ -140,6 +148,8 @@
     d.insertAdjacentHTML('afterbegin', INPUTS.HTML);
     assert_equals(d.firstChild.nodeType, Node.TEXT_NODE);
     assert_equals(d.firstChild.data, RESULTS.HTML);
+
+    removeChildrenBecauseOfGeckoBug(d);
 
     d.insertAdjacentHTML('beforeend', INPUTS.HTML);
     assert_equals(d.lastChild.nodeType, Node.TEXT_NODE);
@@ -165,6 +175,8 @@
     d.insertAdjacentHTML('afterbegin', null);
     assert_equals(d.firstChild.nodeType, Node.TEXT_NODE);
     assert_equals(d.firstChild.data, "null");
+
+    removeChildrenBecauseOfGeckoBug(d);
 
     d.insertAdjacentHTML('beforeend', null);
     assert_equals(d.lastChild.nodeType, Node.TEXT_NODE);

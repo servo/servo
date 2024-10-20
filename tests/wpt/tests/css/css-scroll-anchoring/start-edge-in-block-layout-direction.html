@@ -17,6 +17,8 @@ html.rtl { direction: rtl; }
 html.horz { writing-mode: horizontal-tb; }
 html.vlr { writing-mode: vertical-lr; }
 html.vrl { writing-mode: vertical-rl; }
+html.slr { writing-mode: sideways-lr; }
+html.srl { writing-mode: sideways-rl; }
 
 .horz.ltr .cx2, .vlr .cx2 { left: 100vw; }
 .horz.rtl .cx2, .vrl .cx2 { right: 100vw; }
@@ -137,5 +139,29 @@ test(() => {
     runCase("vrl rtl", -1, -1, true, 30, 0, corner);
   });
 }, "Vertical-RL RTL.");
+
+test(() => {
+  CORNERS.forEach((corner) => {
+    runCase("slr ltr", 1, -1, true, -30, 0, corner);
+  });
+}, "Sideways-LR LTR.");
+
+test(() => {
+  CORNERS.forEach((corner) => {
+    runCase("slr rtl", 1, 1, true, -30, 0, corner);
+  });
+}, "Sideways-LR RTL.");
+
+test(() => {
+  CORNERS.forEach((corner) => {
+    runCase("srl ltr", -1, 1, true, 30, 0, corner);
+  });
+}, "Sideways-RL LTR.");
+
+test(() => {
+  CORNERS.forEach((corner) => {
+    runCase("srl rtl", -1, -1, true, 30, 0, corner);
+  });
+}, "Sideways-RL RTL.");
 
 </script>

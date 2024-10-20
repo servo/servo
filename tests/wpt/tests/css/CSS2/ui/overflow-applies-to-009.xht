@@ -12,7 +12,7 @@
         <meta name="assert" content="The 'overflow' property applies to elements with 'display' set to 'block'." />
         <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
         <style type="text/css">
-            span
+            #blockoverflow
             {
                 border: 5px solid transparent;
                 color: white;
@@ -30,7 +30,7 @@
     <body>
         <p>Test passes if there is <strong>no red</strong>.</p>
         <div>
-            <span><b>XXXXX</b><b id="test">XXXXX</b></span>
+            <span id="blockoverflow"><span>XXXXX</span><span id="test">XXXXX</span></span>
         </div>
     </body>
 </html>

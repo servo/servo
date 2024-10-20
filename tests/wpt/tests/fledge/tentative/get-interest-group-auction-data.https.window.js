@@ -374,15 +374,16 @@ subsetTest(promise_test, async test => {
   assert_equals(ig.browserSignals.joinCount, 2, 'joinCount');
   assert_equals(ig.browserSignals.bidCount, 1, 'bidCount');
 
-  // Recency is the # of seconds since the join. We can't exactly say what it
-  // is, but it shouldn't be too huge.
-  assert_true(typeof ig.browserSignals.recency === 'number');
+  // RecencyMs is the # of milliseconds since the join. We can't exactly say
+  // what it is, but it shouldn't be too huge.
+  assert_true(typeof ig.browserSignals.recencyMs === 'number');
   assert_between_inclusive(
-      ig.browserSignals.recency, 0, 60, 'Recency is between 0 and 60 seconds');
+      ig.browserSignals.recencyMs, 0, 60000,
+      'RecencyMs is between 0 and 60 seconds');
   // It's also supposed to be an integer.
   assert_equals(
-      ig.browserSignals.recency, Math.round(ig.browserSignals.recency),
-      'Recency is an integer');
+      ig.browserSignals.recencyMs, Math.round(ig.browserSignals.recencyMs),
+      'RecencyMs is an integer');
 
   // One win. The format here depends highly on whether full ads are used or
   // not.
@@ -433,15 +434,16 @@ subsetTest(promise_test, async test => {
   assert_equals(ig.browserSignals.joinCount, 2, 'joinCount');
   assert_equals(ig.browserSignals.bidCount, 1, 'bidCount');
 
-  // Recency is the # of seconds since the join. We can't exactly say what it
-  // is, but it shouldn't be too huge.
-  assert_true(typeof ig.browserSignals.recency === 'number');
+  // RecencyMs is the # of milliseconds since the join. We can't exactly say
+  // what it is, but it shouldn't be too huge.
+  assert_true(typeof ig.browserSignals.recencyMs === 'number');
   assert_between_inclusive(
-      ig.browserSignals.recency, 0, 60, 'Recency is between 0 and 60 seconds');
+      ig.browserSignals.recencyMs, 0, 60000,
+      'RecencyMs is between 0 and 60 seconds');
   // It's also supposed to be an integer.
   assert_equals(
-      ig.browserSignals.recency, Math.round(ig.browserSignals.recency),
-      'Recency is an integer');
+      ig.browserSignals.recencyMs, Math.round(ig.browserSignals.recencyMs),
+      'RecencyMs is an integer');
 
   // One win. The format here depends highly on whether full ads are used or
   // not.

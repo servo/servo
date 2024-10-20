@@ -6,6 +6,7 @@ from tests.support.sync import AsyncPoll
 from .. import (
     assert_response_event,
     get_cached_url,
+    IMAGE_RESPONSE_BODY,
     PAGE_EMPTY_TEXT,
     RESPONSE_COMPLETED_EVENT,
     SCRIPT_CONSOLE_LOG,
@@ -664,4 +665,71 @@ async def test_page_with_cached_javascript_module(
         cached_events[1],
         expected_request={"method": "GET", "url": cached_js_module_url},
         expected_response={"url": cached_js_module_url, "fromCache": True},
+    )
+
+
+@pytest.mark.asyncio
+async def test_page_with_cached_image(
+    bidi_session,
+    url,
+    inline,
+    setup_network_test,
+    top_context,
+):
+    network_events = await setup_network_test(
+        events=[
+            RESPONSE_COMPLETED_EVENT,
+        ]
+    )
+    events = network_events[RESPONSE_COMPLETED_EVENT]
+
+    cached_image_url = url(get_cached_url("img/png", IMAGE_RESPONSE_BODY))
+    page_with_cached_image = inline(
+        f"""
+        <body>
+            test page with cached image
+            <img src="{cached_image_url}">
+        </body>
+        """,
+    )
+
+    await bidi_session.browsing_context.navigate(
+        context=top_context["context"],
+        url=page_with_cached_image,
+        wait="complete",
+    )
+
+    # Expect two events, one for the document and one for the image.
+    wait = AsyncPoll(bidi_session, timeout=2)
+    await wait.until(lambda _: len(events) >= 2)
+    assert len(events) == 2
+
+    assert_response_event(
+        events[0],
+        expected_request={"method": "GET", "url": page_with_cached_image},
+        expected_response={"url": page_with_cached_image, "fromCache": False},
+    )
+    assert_response_event(
+        events[1],
+        expected_request={"method": "GET", "url": cached_image_url},
+        expected_response={"url": cached_image_url, "fromCache": False},
+    )
+
+    # Reload the page.
+    await bidi_session.browsing_context.reload(context=top_context["context"])
+
+    # Expect two events, one for the document and one for the image.
+    wait = AsyncPoll(bidi_session, timeout=2)
+    await wait.until(lambda _: len(events) >= 4)
+    assert len(events) == 4
+
+    assert_response_event(
+        events[2],
+        expected_request={"method": "GET", "url": page_with_cached_image},
+        expected_response={"url": page_with_cached_image, "fromCache": False},
+    )
+    assert_response_event(
+        events[3],
+        expected_request={"method": "GET", "url": cached_image_url},
+        expected_response={"url": cached_image_url, "fromCache": True},
     )

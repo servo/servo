@@ -1,0 +1,106 @@
+<!doctype html>
+<meta name="timeout" content="long">
+<title>AnalyzerNode resumed after suspended</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+
+function areFloat32ArraysEqual(arr1, arr2) {
+  if (arr1.length !== arr2.length) {
+    return false;
+  }
+
+  for (let i = 0; i < arr1.length; i++) {
+    if (arr1[i] !== arr2[i]) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+// This test ensures that calling suspend() does not clear or reset
+// the AnalyserNode, and that after resuming the AudioContext,
+// it continues retrieving valid data without any interruptions.
+promise_test(async () => {
+  function runTest(resolve) {
+    const context = new AudioContext();
+    context.suspend();
+
+    const oscillator = new OscillatorNode(context);
+    oscillator.connect(context.destination);
+    oscillator.start();
+
+    const analyser = new AnalyserNode(context);
+    oscillator.connect(analyser);
+
+    let analyserReadCount = 0;
+    let lastTime = 0;
+    // Time between checks in milliseconds.
+    const interval = 300;
+
+    let previousTimeDomainDataArray =
+        new Float32Array(analyser.frequencyBinCount);
+
+    // The analyser.getFloatTimeDomainData() is called every 300 ms under
+    // suspended or resumed state. If it is a suspended state, the value
+    // from the function should be the same as the previous value. If
+    // it is a resumed state, the value should be different.
+    async function readAnalyserData(timestamp) {
+      if (lastTime === 0) {
+        lastTime = timestamp;
+      }
+
+      const elapsed = timestamp - lastTime;
+
+      // Only run the readAnalyserData every 300ms in order to give enough time
+      // for context to pull the data.
+      if (elapsed >= interval) {
+        analyserReadCount++;
+
+        let shouldSkipAsserts = false;
+        switch (analyserReadCount) {
+          case 1:
+            shouldSkipAsserts = true;
+            break;
+          case 10:
+            await context.suspend();
+            shouldSkipAsserts = true;
+            break;
+          case 5:
+          case 15:
+            await context.resume();
+            shouldSkipAsserts = true;
+            break;
+          case 20:
+            oscillator.stop();
+            resolve();
+            break;
+          default:
+            break;
+        }
+
+        const timeDomainDataArray =
+            new Float32Array(analyser.frequencyBinCount);
+        analyser.getFloatTimeDomainData(timeDomainDataArray);
+
+        if (!shouldSkipAsserts) {
+          let result = areFloat32ArraysEqual(timeDomainDataArray,
+                                  previousTimeDomainDataArray);
+          context.state === 'suspended' ? assert_true(result)
+                                        : assert_false(result);
+        }
+
+        previousTimeDomainDataArray.set(timeDomainDataArray);
+        lastTime = timestamp;
+      }
+
+      requestAnimationFrame(readAnalyserData);
+    }
+
+    requestAnimationFrame(readAnalyserData);
+  }
+
+  return new Promise((resolve) => runTest(resolve));
+}, 'AnalyserNode resume after suspended');
+</script>

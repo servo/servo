@@ -131,7 +131,7 @@ html.no-parent-height .parent {
       { at: 0, expect: `${expected}px` },
       { at: 0.75, expect: `${expected * 0.25 + 50 * 0.75}px` },
       { at: 1, expect: `50px` },
-      { at: 1.25, expect: `${50 * 1.25 - expected * 0.25}px` },
+      { at: 1.1, expect: `${50 * 1.1 - expected * 0.1}px` },
     ]);
 
     test_interpolation({
@@ -139,7 +139,7 @@ html.no-parent-height .parent {
       from: 'calc-size(any, 50px)',
       to: `calc-size(${keyword}, size * 2)`,
     }, [
-      { at: -0.1, expect: `${50 * 1.1 - expected * 0.2}px` },
+      { at: -0.05, expect: `${50 * 1.05 - expected * 0.1}px` },
       { at: 0, expect: "50px" },
       { at: 0.75, expect: `${50 * 0.25 + expected * 1.5}px` },
       { at: 1, expect: `${expected * 2}px` },

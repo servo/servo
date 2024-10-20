@@ -30,10 +30,6 @@ class EdgeDriverRefTestExecutor(WebDriverRefTestExecutor, _SanitizerMixin):  # t
 class EdgeDriverTestharnessExecutor(WebDriverTestharnessExecutor, _SanitizerMixin):  # type: ignore
     protocol_cls = EdgeDriverProtocol
 
-    def __init__(self, *args, reuse_window=False, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.protocol.reuse_window = reuse_window
-
 
 class EdgeDriverPrintRefTestExecutor(EdgeDriverRefTestExecutor):
     protocol_cls = EdgeDriverProtocol
