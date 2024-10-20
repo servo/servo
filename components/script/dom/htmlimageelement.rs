@@ -1825,7 +1825,7 @@ impl VirtualMethods for HTMLImageElement {
                 None => return,
             };
             if shp.hit_test(&point) {
-                element.activation_behavior(event, self.upcast());
+                element.activation_behavior(event, self.upcast(), CanGc::note());
                 return;
             }
         }

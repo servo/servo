@@ -481,7 +481,7 @@ impl ServiceWorkerGlobalScope {
     fn dispatch_activate(&self, can_gc: CanGc) {
         let event = ExtendableEvent::new(self, atom!("activate"), false, false, can_gc);
         let event = (*event).upcast::<Event>();
-        self.upcast::<EventTarget>().dispatch_event(event);
+        self.upcast::<EventTarget>().dispatch_event(event, can_gc);
     }
 }
 

@@ -197,7 +197,8 @@ impl OfflineAudioContextMethods for OfflineAudioContext {
                             this.channel_count,
                             this.length,
                             *this.context.SampleRate(),
-                            Some(processed_audio.as_slice()));
+                            Some(processed_audio.as_slice()),
+                            CanGc::note());
                         (*this.pending_rendering_promise.borrow_mut()).take().unwrap().resolve_native(&buffer);
                         let global = &this.global();
                         let window = global.as_window();

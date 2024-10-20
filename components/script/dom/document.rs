@@ -1365,6 +1365,7 @@ impl Document {
             pressed_mouse_buttons,
             None,
             point_in_node,
+            can_gc,
         );
         let event = event.upcast::<Event>();
 
@@ -1398,7 +1399,7 @@ impl Document {
 
         if let MouseEventType::Click = mouse_event_type {
             self.commit_focus_transaction(FocusType::Element, can_gc);
-            self.maybe_fire_dblclick(client_point, node, pressed_mouse_buttons);
+            self.maybe_fire_dblclick(client_point, node, pressed_mouse_buttons, can_gc);
         }
     }
 
@@ -1407,6 +1408,7 @@ impl Document {
         click_pos: Point2D<f32>,
         target: &Node,
         pressed_mouse_buttons: u16,
+        can_gc: CanGc,
     ) {
         // https://w3c.github.io/uievents/#event-type-dblclick
         let now = Instant::now();
@@ -1449,6 +1451,7 @@ impl Document {
                     pressed_mouse_buttons,
                     None,
                     None,
+                    can_gc,
                 );
                 event.upcast::<Event>().fire(target.upcast());
 
@@ -1470,6 +1473,7 @@ impl Document {
         can_bubble: EventBubbles,
         cancelable: EventCancelable,
         pressed_mouse_buttons: u16,
+        can_gc: CanGc,
     ) {
         let client_x = client_point.x.to_i32().unwrap_or(0);
         let client_y = client_point.y.to_i32().unwrap_or(0);
@@ -1493,6 +1497,7 @@ impl Document {
             pressed_mouse_buttons,
             None,
             None,
+            can_gc,
         );
         let event = mouse_event.upcast::<Event>();
         event.fire(target);
@@ -1505,6 +1510,7 @@ impl Document {
         prev_mouse_over_target: &MutNullableDom<Element>,
         node_address: Option<UntrustedNodeAddress>,
         pressed_mouse_buttons: u16,
+        can_gc: CanGc,
     ) {
         let maybe_new_target = node_address.and_then(|address| {
             let node = node::from_untrusted_node_address(address);
@@ -1552,6 +1558,7 @@ impl Document {
                     EventBubbles::Bubbles,
                     EventCancelable::Cancelable,
                     pressed_mouse_buttons,
+                    can_gc,
                 );
 
                 if !old_target_is_ancestor_of_new_target {
@@ -1563,6 +1570,7 @@ impl Document {
                         moving_into,
                         event_target,
                         pressed_mouse_buttons,
+                        can_gc,
                     );
                 }
             }
@@ -1586,6 +1594,7 @@ impl Document {
                 EventBubbles::Bubbles,
                 EventCancelable::Cancelable,
                 pressed_mouse_buttons,
+                can_gc,
             );
 
             let moving_from = prev_mouse_over_target
@@ -1598,6 +1607,7 @@ impl Document {
                 moving_from,
                 event_target,
                 pressed_mouse_buttons,
+                can_gc,
             );
         }
 
@@ -1610,6 +1620,7 @@ impl Document {
             EventBubbles::Bubbles,
             EventCancelable::Cancelable,
             pressed_mouse_buttons,
+            can_gc,
         );
 
         // If the target has changed then store the current mouse over target for next frame.
@@ -1625,6 +1636,7 @@ impl Document {
         related_target: Option<DomRoot<Node>>,
         event_target: DomRoot<Node>,
         pressed_mouse_buttons: u16,
+        can_gc: CanGc,
     ) {
         assert!(matches!(
             event_type,
@@ -1664,6 +1676,7 @@ impl Document {
                 EventBubbles::DoesNotBubble,
                 EventCancelable::NotCancelable,
                 pressed_mouse_buttons,
+                can_gc,
             );
         }
     }
@@ -1902,7 +1915,7 @@ impl Document {
             {
                 if let Some(elem) = target.downcast::<Element>() {
                     elem.upcast::<Node>()
-                        .fire_synthetic_mouse_event_not_trusted(DOMString::from("click"));
+                        .fire_synthetic_mouse_event_not_trusted(DOMString::from("click"), can_gc);
                 }
             }
         }

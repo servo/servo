@@ -397,8 +397,8 @@ impl EventTarget {
             })
     }
 
-    pub fn dispatch_event(&self, event: &Event) -> EventStatus {
-        event.dispatch(self, false)
+    pub fn dispatch_event(&self, event: &Event, can_gc: CanGc) -> EventStatus {
+        event.dispatch(self, false, can_gc)
     }
 
     pub fn remove_all_listeners(&self) {
@@ -779,12 +779,12 @@ impl EventTargetMethods for EventTarget {
     }
 
     // https://dom.spec.whatwg.org/#dom-eventtarget-dispatchevent
-    fn DispatchEvent(&self, event: &Event) -> Fallible<bool> {
+    fn DispatchEvent(&self, event: &Event, can_gc: CanGc) -> Fallible<bool> {
         if event.dispatching() || !event.initialized() {
             return Err(Error::InvalidState);
         }
         event.set_trusted(false);
-        Ok(match self.dispatch_event(event) {
+        Ok(match self.dispatch_event(event, can_gc) {
             EventStatus::Canceled => false,
             EventStatus::NotCanceled => true,
         })
