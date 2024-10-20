@@ -67,8 +67,9 @@ impl ConstantSourceNode {
         window: &Window,
         context: &BaseAudioContext,
         options: &ConstantSourceOptions,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<ConstantSourceNode>> {
-        Self::new_with_proto(window, None, context, options, CanGc::note())
+        Self::new_with_proto(window, None, context, options, can_gc)
     }
 
     #[allow(crown::unrooted_must_root)]

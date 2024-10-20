@@ -2409,7 +2409,7 @@ impl ScriptThread {
             ConstellationControlMsg::ReportCSSError(pipeline_id, filename, line, column, msg) => {
                 self.handle_css_error_reporting(pipeline_id, filename, line, column, msg)
             },
-            ConstellationControlMsg::Reload(pipeline_id) => self.handle_reload(pipeline_id),
+            ConstellationControlMsg::Reload(pipeline_id) => self.handle_reload(pipeline_id, can_gc),
             ConstellationControlMsg::ExitPipeline(pipeline_id, discard_browsing_context) => {
                 self.handle_exit_pipeline_msg(pipeline_id, discard_browsing_context, can_gc)
             },
@@ -2629,7 +2629,7 @@ impl ScriptThread {
             DevtoolScriptControlMsg::RequestAnimationFrame(id, name) => {
                 devtools::handle_request_animation_frame(&documents, id, name)
             },
-            DevtoolScriptControlMsg::Reload(id) => devtools::handle_reload(&documents, id),
+            DevtoolScriptControlMsg::Reload(id) => devtools::handle_reload(&documents, id, can_gc),
             DevtoolScriptControlMsg::GetCssDatabase(reply) => {
                 devtools::handle_get_css_database(reply)
             },
@@ -4259,10 +4259,10 @@ impl ScriptThread {
         }
     }
 
-    fn handle_reload(&self, pipeline_id: PipelineId) {
+    fn handle_reload(&self, pipeline_id: PipelineId, can_gc: CanGc) {
         let window = self.documents.borrow().find_window(pipeline_id);
         if let Some(window) = window {
-            window.Location().reload_without_origin_check();
+            window.Location().reload_without_origin_check(can_gc);
         }
     }
 
