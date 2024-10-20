@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=author href="mailto:wpt@keithcirkel.co.uk">
+<link rel=help href="https://github.com/whatwg/html/pull/9462">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../resources/helpers.js"></script>
+
+<button id=b0>b0</button>
+
+<dialog id=d1>
+  <button id=b1>b1</button>
+
+  <dialog id=d2>d2</dialog>
+</dialog>
+
+<script>
+promise_test(async () => {
+  const d1 = document.getElementById('d1');
+  const d2 = document.getElementById('d2');
+  await test_driver.click(b0);
+  d1.showModal();
+  await test_driver.click(b1);
+  d2.showModal();
+
+  assert_true(d1.matches(':modal'), 'd1 should be open.');
+  assert_true(d2.matches(':modal'), 'd2 should be open.');
+
+  d2.remove()
+
+  assert_false(d2.matches(':modal'), 'd2 should now be closed.');
+  await sendCloseRequest();
+  assert_false(d2.matches(':modal'), 'd2 still now be closed.');
+  assert_false(d1.matches(':modal'), 'd1 should now be closed.');
+
+  await sendCloseRequest();
+  assert_false(d2.matches(':modal'), 'd2 still now be closed.');
+  assert_false(d1.matches(':modal'), 'd1 still now be closed.');
+}, 'Disconnect dialog with close request');
+</script>

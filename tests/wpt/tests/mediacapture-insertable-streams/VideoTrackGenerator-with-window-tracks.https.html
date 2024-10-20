@@ -64,11 +64,15 @@
       const blob = new Blob([script], { type: 'text/javascript' });
       const url = URL.createObjectURL(blob);
       const worker = new Worker(url);
-      await new Promise(resolve => worker.onmessage = () => {
-          resolve();
-      });
-      URL.revokeObjectURL(url);
-      return worker;
+      try {
+        await new Promise((resolve, reject) => {
+          worker.onmessage = resolve;
+          worker.onerror = (err) => reject(err.message);
+        });
+        return worker;
+      } finally {
+        URL.revokeObjectURL(url);
+      }
     }
 
    promise_test(async t => {

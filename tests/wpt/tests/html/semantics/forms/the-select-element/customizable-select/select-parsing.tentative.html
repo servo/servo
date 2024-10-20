@@ -42,6 +42,10 @@
   </div>
 </select>
 
+<select id=s7>
+  <input>
+</select>
+
 <div id=afterlast>
   keep this div after the last test case
 </div>
@@ -99,6 +103,13 @@ test(() => {
   </div>
 `);
 }, 'Divs and imgs should be allowed as direct children of select and within options without a datalist.');
+
+test(() => {
+  assert_equals(document.getElementById('s7').parentNode, document.body);
+  assert_equals(document.getElementById('s7').innerHTML, `
+  <input>
+`);
+}, 'Input tags should parse inside select instead of closing the select.');
 
 test(() => {
   assert_equals(document.getElementById('afterlast').parentNode, document.body);

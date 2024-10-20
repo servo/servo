@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>Test navigate fenced frame to http://localhost URL</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="resources/utils.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+
+<body>
+<script>
+promise_test(async (t) => {
+  const key = token();
+  const url = generateURL("http://localhost:" + get_host_info().HTTP_PORT +
+      "/fenced-frame/resources/embeddee.html", [key]);
+  attachFencedFrame(url);
+
+  const result = await nextValueFromServer(key);
+  assert_equals(result, "PASS",
+      "The fenced frame should load a http://localhost URL.");
+}, 'http://localhost URLs can load');
+
+</script>
+</body>
+</html>

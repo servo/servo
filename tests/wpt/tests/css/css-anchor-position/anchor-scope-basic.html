@@ -37,15 +37,39 @@
 </style>
 <script>
   function inflate(t, template_element) {
-    if (!template_element.hasAttribute('debug')) {
-      t.add_cleanup(() => main.replaceChildren());
-    }
+    t.add_cleanup(() => main.replaceChildren());
     main.append(template_element.content.cloneNode(true));
   }
 </script>
 
 <main id=main>
 </main>
+
+<template id=test_inclusive_subtree>
+  <div class="scope-a anchor-a"> <!--A-->
+    <div class=anchored-a></div>
+  </div>
+</template>
+<script>
+  test((t) => {
+    inflate(t, test_inclusive_subtree);
+    assert_equals(getComputedStyle(main.querySelector('.anchored-a')).top, '10px');
+  }, 'Can anchor to a name both defined and scoped by the same element');
+</script>
+
+<template id=test_skips_named_anchor_with_scope>
+  <div class="anchor-a"></div>
+  <div class="anchor-a"></div>
+  <div class="anchor-a"></div> <!--A-->
+  <div class="scope-a anchor-a"></div>
+  <div class=anchored-a></div>
+</template>
+<script>
+  test((t) => {
+    inflate(t, test_skips_named_anchor_with_scope);
+    assert_equals(getComputedStyle(main.querySelector('.anchored-a')).top, '30px');
+  }, 'Sibling can not anchor into anchor-scope, even when anchor-name present');
+</script>
 
 <template id=test_scope_all_common_ancestor>
   <div class=scope-all>

@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<link rel="help" href="https://drafts.csswg.org/css-align-3/#justify-abspos">
+<link rel="help" href="https://drafts.csswg.org/css-align/#justify-self-property">
+<link rel="help" href="https://crbug.com/374034249">
 <meta name="assert"
   content="block-in-inline width is stretched to its parent width, not sized as 'fit-content'" />
 
@@ -22,6 +23,15 @@
     block-in-inline
   </div>
   <span class="inline-block" style="width: 100px;">inline-block</span>
+</div>
+
+<div style="width: 100px; justify-self: left;">
+  <span>
+    <div class="block-in-inline"
+      style="height: 100px; background: green;"
+      data-expected-width="100">
+    </div>
+  </span>
 </div>
 
 <script>checkLayout('.block-in-inline')</script>

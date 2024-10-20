@@ -42,13 +42,13 @@ promise_test(async t => {
 
 promise_test(async t => {
   const animation = createScrollLinkedAnimation(t);
-  assert_throws_dom('NotSupportedError', () => {
+  assert_throws_js(TypeError, () => {
     animation.currentTime = CSSNumericValue.parse("300");
   });
-  assert_throws_dom('NotSupportedError', () => {
+  assert_throws_js(TypeError, () => {
     animation.currentTime = CSSNumericValue.parse("300ms");
   });
-  assert_throws_dom('NotSupportedError', () => {
+  assert_throws_js(TypeError, () => {
     animation.currentTime = CSSNumericValue.parse("0.3s");
   });
 }, 'Setting the current time to an absolute time value throws exception');

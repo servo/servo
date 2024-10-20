@@ -246,4 +246,9 @@ test_minus_infinity("round(down, -1, infinity)");
 test_minus_zero("round(down, -1 * 0, infinity)");
 test_plus_zero("round(down, 0, infinity)");
 test_plus_zero("round(down, 1, infinity)");
+
+// In this test if the multiplication is factored into the sum first, the
+// result of the round will be incorrect, because of floating point inprecision.
+// round(down, 2.3333333 - 0.33333334, 1) = round(down, 1.99999996, 1) = 1
+test_math_used('round(down, (7 - 1) / 3, 1)', '2', {type:'number'});
 </script>

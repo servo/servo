@@ -33,7 +33,13 @@ const sizeOfDescriptor = (descriptor) => {
 };
 
 const getDescriptorFromTensor = (tensor) => {
-  return {dataType: tensor.dataType, shape: tensor.shape, usage: tensor.usage};
+  return {
+    dataType: tensor.dataType,
+    shape: tensor.shape,
+    readable: tensor.readable,
+    writable: tensor.writable,
+    importableToWebGPU: tensor.importableToWebGPU,
+  };
 };
 
 
@@ -162,7 +168,7 @@ const testWriteTensor = (testName) => {
     const tensorDescriptor = {
       dataType: 'int32',
       shape: [1],
-      usage: MLTensorUsage.WRITE,
+      writable: true,
     };
     let mlTensor = await mlContext.createTensor(tensorDescriptor);
 
@@ -211,7 +217,7 @@ const testWriteTensor = (testName) => {
     const tensorDescriptor = {
       dataType: 'int32',
       shape: [2, 2],
-      usage: MLTensorUsage.WRITE,
+      writable: true,
     };
     let mlTensor = await mlContext.createTensor(tensorDescriptor);
 
@@ -228,7 +234,7 @@ const testWriteTensor = (testName) => {
     const tensorDescriptor = {
       dataType: 'int32',
       shape: [2, 3],
-      usage: MLTensorUsage.WRITE,
+      writable: true,
     };
     let mlTensor = await mlContext.createTensor(tensorDescriptor);
 
@@ -247,7 +253,8 @@ const testWriteTensor = (testName) => {
     let mlTensor = await mlContext.createTensor({
       dataType: 'int32',
       shape: [1],
-      usage: MLTensorUsage.WRITE | MLTensorUsage.READ,
+      readable: true,
+      writable: true,
     });
 
     // Initialize the tensor.
@@ -270,7 +277,8 @@ const testWriteTensor = (testName) => {
     const tensorDescriptor = {
       dataType: 'int32',
       shape: [2, 2],
-      usage: MLTensorUsage.WRITE | MLTensorUsage.READ,
+      readable: true,
+      writable: true,
     };
     let mlTensor = await mlContext.createTensor(tensorDescriptor);
 
@@ -321,7 +329,7 @@ const testReadTensor = (testName) => {
     let mlTensor = await mlContext.createTensor({
       dataType: 'int32',
       shape: [2, 2],
-      usage: MLTensorUsage.READ,
+      readable: true,
     });
 
     // Reading a destroyed MLTensor should reject.
@@ -335,7 +343,7 @@ const testReadTensor = (testName) => {
     let mlTensor = await mlContext.createTensor({
       dataType: 'int32',
       shape: [2, 3],
-      usage: MLTensorUsage.READ,
+      readable: true,
     });
 
     let promise = mlContext.readTensor(mlTensor);
@@ -351,7 +359,7 @@ const testReadTensor = (testName) => {
     let mlTensor = await mlContext.createTensor({
       dataType: 'int32',
       shape: [1024],
-      usage: MLTensorUsage.READ,
+      readable: true,
     });
 
     await assert_tensor_data_equals(mlContext, mlTensor, new Uint32Array(1024));
@@ -361,7 +369,8 @@ const testReadTensor = (testName) => {
     let mlTensor = await mlContext.createTensor({
       dataType: 'int32',
       shape: [1],
-      usage: MLTensorUsage.READ | MLTensorUsage.WRITE,
+      readable: true,
+      writable: true,
     });
 
     // Initialize the tensor.
@@ -377,7 +386,8 @@ const testReadTensor = (testName) => {
     let mlTensor = await mlContext.createTensor({
       dataType: 'int32',
       shape: [1],
-      usage: MLTensorUsage.WRITE | MLTensorUsage.READ,
+      readable: true,
+      writable: true,
     });
 
     // Initialize the tensor.
@@ -395,7 +405,8 @@ const testReadTensor = (testName) => {
     let mlTensor = await mlContext.createTensor({
       dataType: 'int32',
       shape: [1],
-      usage: MLTensorUsage.WRITE | MLTensorUsage.READ,
+      readable: true,
+      writable: true,
     });
 
     // Initialize the tensor.
@@ -413,7 +424,8 @@ const testReadTensor = (testName) => {
     let mlTensor = await mlContext.createTensor({
       dataType: 'int32',
       shape: [1],
-      usage: MLTensorUsage.WRITE | MLTensorUsage.READ,
+      readable: true,
+      writable: true,
     });
 
     // Initialize the tensor.
@@ -431,7 +443,8 @@ const testReadTensor = (testName) => {
     let mlTensor = await mlContext.createTensor({
       dataType: 'int32',
       shape: [1],
-      usage: MLTensorUsage.WRITE | MLTensorUsage.READ,
+      readable: true,
+      writable: true,
     });
 
     const inputData = [0xAA, 0xAA, 0xAA, 0xAA];
@@ -448,7 +461,7 @@ const testReadTensor = (testName) => {
     const tensorDescriptor = {
       dataType: 'int32',
       shape: [2, 3],
-      usage: MLTensorUsage.READ,
+      readable: true,
     };
     let mlTensor = await mlContext.createTensor(tensorDescriptor);
 
@@ -484,7 +497,8 @@ const testDispatchTensor = (testName) => {
     const tensorDescriptor = {
       dataType: 'float32',
       shape: shape,
-      usage: MLTensorUsage.WRITE | MLTensorUsage.READ,
+      readable: true,
+      writable: true,
     };
     const lhsOperand = builder.input('lhs', tensorDescriptor);
     const rhsOperand = builder.input('rhs', tensorDescriptor);

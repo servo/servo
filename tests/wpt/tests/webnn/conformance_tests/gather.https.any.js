@@ -67,6 +67,43 @@ const gatherTests = [
   },
   {
     'name':
+        'gather float32 1D tensor and int64 0D scalar indices default options',
+    'graph': {
+      'inputs': {
+        'gatherInput': {
+          'data': [
+            -66.05901336669922,  -68.9197006225586,   -77.02045440673828,
+            -26.158037185668945, 89.0337142944336,    -45.89653396606445,
+            43.84803771972656,   48.81806945800781,   51.79948425292969,
+            41.94132614135742,   -1.1303654909133911, -50.42131042480469,
+            90.2870101928711,    55.620765686035156,  44.92119598388672,
+            56.828636169433594,  10.829925537109375,  -19.693084716796875,
+            -37.696800231933594, 43.11057662963867,   0.9129875898361206,
+            -7.699817180633545,  25.76774024963379,   73.60064697265625
+          ],
+          'descriptor': {shape: [24], dataType: 'float32'}
+        },
+        'gatherIndices': {
+          'data': [4],
+          'descriptor': {shape: [], dataType: 'int64'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'gather',
+        'arguments': [{'input': 'gatherInput'}, {'indices': 'gatherIndices'}],
+        'outputs': 'gatherOutput'
+      }],
+      'expectedOutputs': {
+        'gatherOutput': {
+          'data': [89.0337142944336],
+          'descriptor': {shape: [], dataType: 'float32'}
+        }
+      }
+    }
+  },
+  {
+    'name':
         'gather float32 1D tensor and int32 0D scalar indices default options',
     'graph': {
       'inputs': {
@@ -103,44 +140,7 @@ const gatherTests = [
     }
   },
   {
-    'name':
-        'gather float32 1D tensor and int64 0D scalar indices default options',
-    'graph': {
-      'inputs': {
-        'gatherInput': {
-          'data': [
-            -66.05901336669922,  -68.9197006225586,   -77.02045440673828,
-            -26.158037185668945, 89.0337142944336,    -45.89653396606445,
-            43.84803771972656,   48.81806945800781,   51.79948425292969,
-            41.94132614135742,   -1.1303654909133911, -50.42131042480469,
-            90.2870101928711,    55.620765686035156,  44.92119598388672,
-            56.828636169433594,  10.829925537109375,  -19.693084716796875,
-            -37.696800231933594, 43.11057662963867,   0.9129875898361206,
-            -7.699817180633545,  25.76774024963379,   73.60064697265625
-          ],
-          'descriptor': {shape: [24], dataType: 'float32'}
-        },
-        'gatherIndices': {
-          'data': [0],
-          'descriptor': {shape: [], dataType: 'int64'},
-          'constant': true
-        }
-      },
-      'operators': [{
-        'name': 'gather',
-        'arguments': [{'input': 'gatherInput'}, {'indices': 'gatherIndices'}],
-        'outputs': 'gatherOutput'
-      }],
-      'expectedOutputs': {
-        'gatherOutput': {
-          'data': [-66.05901336669922],
-          'descriptor': {shape: [], dataType: 'float32'}
-        }
-      }
-    }
-  },
-  {
-    'name': 'gather float32 1D tensor and int64 1D indices default options',
+    'name': 'gather float32 1D tensor and int32 1D indices default options',
     'graph': {
       'inputs': {
         'gatherInput': {
@@ -158,7 +158,7 @@ const gatherTests = [
         },
         'gatherIndices': {
           'data': [16, 20, 6, 11, 17, 19, 13, 17],
-          'descriptor': {shape: [8], dataType: 'int64'},
+          'descriptor': {shape: [8], dataType: 'int32'},
           'constant': true
         }
       },
@@ -180,7 +180,7 @@ const gatherTests = [
     }
   },
   {
-    'name': 'gather float32 1D tensor and int64 2D indices default options',
+    'name': 'gather float32 1D tensor and int32 2D indices default options',
     'graph': {
       'inputs': {
         'gatherInput': {
@@ -198,7 +198,7 @@ const gatherTests = [
         },
         'gatherIndices': {
           'data': [14, 9, 21, 17],
-          'descriptor': {shape: [2, 2], dataType: 'int64'},
+          'descriptor': {shape: [2, 2], dataType: 'int32'},
           'constant': true
         }
       },
@@ -219,7 +219,7 @@ const gatherTests = [
     }
   },
   {
-    'name': 'gather float32 1D tensor and int64 3D indices default options',
+    'name': 'gather float32 1D tensor and int32 3D indices default options',
     'graph': {
       'inputs': {
         'gatherInput': {
@@ -238,7 +238,7 @@ const gatherTests = [
         'gatherIndices': {
           'data':
               [17, 19, 14, 16, 13, 0, 5, 15, 18, 18, 6, 20, 7, 22, 5, 1, 4, 19],
-          'descriptor': {shape: [2, 3, 3], dataType: 'int64'},
+          'descriptor': {shape: [2, 3, 3], dataType: 'int32'},
           'constant': true
         }
       },
@@ -263,7 +263,7 @@ const gatherTests = [
     }
   },
   {
-    'name': 'gather float32 1D tensor and int64 4D indices default options',
+    'name': 'gather float32 1D tensor and int32 4D indices default options',
     'graph': {
       'inputs': {
         'gatherInput': {
@@ -281,7 +281,7 @@ const gatherTests = [
         },
         'gatherIndices': {
           'data': [18, 18, 22, 11, 8, 15, 12, 11, 7, 13, 7, 7],
-          'descriptor': {shape: [1, 2, 2, 3], dataType: 'int64'},
+          'descriptor': {shape: [1, 2, 2, 3], dataType: 'int32'},
           'constant': true
         }
       },
@@ -322,7 +322,7 @@ const gatherTests = [
         },
         'gatherIndices': {
           'data': [11],
-          'descriptor': {shape: [], dataType: 'int64'},
+          'descriptor': {shape: [], dataType: 'int32'},
           'constant': true
         }
       },
@@ -358,7 +358,7 @@ const gatherTests = [
         },
         'gatherIndices': {
           'data': [1, 10, 9, 0, 3, 5, 3, 8],
-          'descriptor': {shape: [8], dataType: 'int64'},
+          'descriptor': {shape: [8], dataType: 'int32'},
           'constant': true
         }
       },
@@ -401,7 +401,7 @@ const gatherTests = [
         },
         'gatherIndices': {
           'data': [4, 8, 9, 10],
-          'descriptor': {shape: [2, 2], dataType: 'int64'},
+          'descriptor': {shape: [2, 2], dataType: 'int32'},
           'constant': true
         }
       },
@@ -441,7 +441,7 @@ const gatherTests = [
         },
         'gatherIndices': {
           'data': [8, 2, 2, 3, 4, 1, 2, 2, 7, 11, 4, 11, 6, 6, 7, 3, 11, 10],
-          'descriptor': {shape: [2, 3, 3], dataType: 'int64'},
+          'descriptor': {shape: [2, 3, 3], dataType: 'int32'},
           'constant': true
         }
       },
@@ -490,7 +490,7 @@ const gatherTests = [
         },
         'gatherIndices': {
           'data': [6, 9, 7, 3, 4, 7, 4, 3, 7, 7, 6, 0],
-          'descriptor': {shape: [1, 2, 2, 3], dataType: 'int64'},
+          'descriptor': {shape: [1, 2, 2, 3], dataType: 'int32'},
           'constant': true
         }
       },
@@ -535,7 +535,7 @@ const gatherTests = [
         },
         'gatherIndices': {
           'data': [2, 1, 1, 1],
-          'descriptor': {shape: [2, 2], dataType: 'int64'},
+          'descriptor': {shape: [2, 2], dataType: 'int32'},
           'constant': true
         }
       },
@@ -583,7 +583,7 @@ const gatherTests = [
         },
         'gatherIndices': {
           'data': [0, 0, 7, 4],
-          'descriptor': {shape: [2, 2], dataType: 'int64'},
+          'descriptor': {shape: [2, 2], dataType: 'int32'},
           'constant': true
         }
       },
@@ -624,7 +624,7 @@ const gatherTests = [
         },
         'gatherIndices': {
           'data': [3, 2, 2],
-          'descriptor': {shape: [3], dataType: 'int64'},
+          'descriptor': {shape: [3], dataType: 'int32'},
           'constant': true
         }
       },
@@ -667,7 +667,7 @@ const gatherTests = [
         },
         'gatherIndices': {
           'data': [1, 1, 2],
-          'descriptor': {shape: [3], dataType: 'int64'},
+          'descriptor': {shape: [3], dataType: 'int32'},
           'constant': true
         }
       },
@@ -713,7 +713,7 @@ const gatherTests = [
         },
         'gatherIndices': {
           'data': [0, 0, 0, 1],
-          'descriptor': {shape: [2, 2], dataType: 'int64'},
+          'descriptor': {shape: [2, 2], dataType: 'int32'},
           'constant': true
         }
       },
@@ -769,7 +769,7 @@ const gatherTests = [
         },
         'gatherIndices': {
           'data': [0, 0, 7, 4],
-          'descriptor': {shape: [2, 2], dataType: 'int64'},
+          'descriptor': {shape: [2, 2], dataType: 'int32'},
           'constant': true
         }
       },
@@ -813,7 +813,7 @@ const gatherTests = [
         },
         'gatherIndices': {
           'data': [1],
-          'descriptor': {shape: [], dataType: 'int64'},
+          'descriptor': {shape: [], dataType: 'int32'},
           'constant': true
         }
       },
