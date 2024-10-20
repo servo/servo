@@ -4,6 +4,13 @@
 
 var globalVar = 0;
 
+async function busyWaitMs(time_to_wait) {
+  const startTime = Date.now();
+  while (Date.now() - startTime < time_to_wait) {
+
+  }
+}
+
 class TestURLSelectionOperation {
   async run(urls, data) {
     if (data && data.hasOwnProperty('setKey') && data.hasOwnProperty('setValue')) {
@@ -50,8 +57,54 @@ class VerifyKeyNotFound {
   }
 }
 
+class VerifyInterestGroups {
+  async run(urls, data) {
+    if (data &&
+        data.hasOwnProperty('expectedOwner') &&
+        data.hasOwnProperty('expectedName')) {
+
+      const groups = await interestGroups();
+
+      if (groups.length !== 1) {
+        return -1;
+      }
+
+      if (groups[0]["owner"] !== data['expectedOwner']) {
+        return -1;
+      }
+
+      if (groups[0]["name"] !== data['expectedName']) {
+        return -1;
+      }
+
+      return 1;
+    }
+    return -1;
+  }
+}
+
+class GetWaitIncrementWithinLockOperation {
+  async run(urls, data) {
+    if (data && data.hasOwnProperty('key')) {
+      await navigator.locks.request("lock0", async (lock) => {
+        let value_read = await sharedStorage.get(data['key']);
+        value_read = value_read ? Number(value_read) : 0;
+
+        await busyWaitMs(100);
+
+        await sharedStorage.set(data['key'], value_read + 1);
+      });
+
+      return 1;
+    }
+    return -1;
+  }
+}
+
 register('test-url-selection-operation', TestURLSelectionOperation);
 register('increment-global-variable-and-return-original-value-operation',
          IncrementGlobalVariableAndReturnOriginalValueOperation);
 register('verify-key-value', VerifyKeyValue);
 register('verify-key-not-found', VerifyKeyNotFound);
+register('verify-interest-groups', VerifyInterestGroups);
+register('get-wait-increment-within-lock', GetWaitIncrementWithinLockOperation);

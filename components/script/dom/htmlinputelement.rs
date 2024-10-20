@@ -1591,8 +1591,8 @@ impl HTMLInputElementMethods for HTMLInputElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-cva-reportvalidity
-    fn ReportValidity(&self) -> bool {
-        self.report_validity(CanGc::note())
+    fn ReportValidity(&self, can_gc: CanGc) -> bool {
+        self.report_validity(can_gc)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-cva-validationmessage
@@ -2072,7 +2072,7 @@ impl HTMLInputElement {
                     // but we can get here from synthetic keydown events
                     button
                         .upcast::<Node>()
-                        .fire_synthetic_mouse_event_not_trusted(DOMString::from("click"));
+                        .fire_synthetic_mouse_event_not_trusted(DOMString::from("click"), can_gc);
                 }
             },
             None => {
@@ -2805,7 +2805,7 @@ impl Activatable for HTMLInputElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#run-post-click-activation-steps
-    fn activation_behavior(&self, _event: &Event, _target: &EventTarget) {
+    fn activation_behavior(&self, _event: &Event, _target: &EventTarget, _can_gc: CanGc) {
         let ty = self.input_type();
         match ty {
             InputType::Submit => {

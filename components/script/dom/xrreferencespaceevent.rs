@@ -49,16 +49,10 @@ impl XRReferenceSpaceEvent {
         cancelable: bool,
         space: &XRReferenceSpace,
         transform: Option<&XRRigidTransform>,
+        can_gc: CanGc,
     ) -> DomRoot<XRReferenceSpaceEvent> {
         Self::new_with_proto(
-            global,
-            None,
-            type_,
-            bubbles,
-            cancelable,
-            space,
-            transform,
-            CanGc::note(),
+            global, None, type_, bubbles, cancelable, space, transform, can_gc,
         )
     }
 

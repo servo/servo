@@ -168,6 +168,7 @@ impl Event {
         &self,
         target: &EventTarget,
         legacy_target_override: bool,
+        can_gc: CanGc,
         // TODO legacy_did_output_listeners_throw_flag for indexeddb
     ) -> EventStatus {
         // Step 1.
@@ -333,7 +334,7 @@ impl Event {
             if self.DefaultPrevented() {
                 activation_target.legacy_canceled_activation_behavior(pre_activation_result);
             } else {
-                activation_target.activation_behavior(self, target);
+                activation_target.activation_behavior(self, target, can_gc);
             }
         }
 
@@ -380,7 +381,7 @@ impl Event {
     /// <https://html.spec.whatwg.org/multipage/#fire-a-simple-event>
     pub fn fire(&self, target: &EventTarget) -> EventStatus {
         self.set_trusted(true);
-        target.dispatch_event(self)
+        target.dispatch_event(self, CanGc::note())
     }
 }
 

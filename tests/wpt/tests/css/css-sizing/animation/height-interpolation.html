@@ -121,4 +121,19 @@ test_no_interpolation({
   to: 'fit-content',
 });
 
+let new_style_text = `
+  .target {
+    height: auto;
+  }
+`;
+let new_style = document.createElement("style");
+new_style.append(new_style_text);
+document.head.append(new_style);
+test_no_interpolation({
+  property: 'height',
+  from: neutralKeyframe,
+  to: '100px',
+});
+new_style.remove();
+
 </script>

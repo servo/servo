@@ -132,6 +132,7 @@ impl Serializable for Blob {
         owner: &GlobalScope,
         sc_holder: &mut StructuredDataHolder,
         storage_key: StorageKey,
+        can_gc: CanGc,
     ) -> Result<(), ()> {
         // 1. Re-build the key for the storage location
         // of the serialized object.
@@ -162,7 +163,7 @@ impl Serializable for Blob {
             *blob_impls = None;
         }
 
-        let deserialized_blob = Blob::new(owner, blob_impl, CanGc::note());
+        let deserialized_blob = Blob::new(owner, blob_impl, can_gc);
 
         let blobs = blobs.get_or_insert_with(HashMap::new);
         blobs.insert(storage_key, deserialized_blob);

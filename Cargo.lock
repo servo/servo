@@ -2845,9 +2845,9 @@ dependencies = [
 
 [[package]]
 name = "gstreamer-video"
-version = "0.22.6"
+version = "0.22.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "25acba301f86b02584a642de0f224317be2bd0ceec3acda49a0ef111cbced98c"
+checksum = "7256dfa16eff9b1ddcae1a906c1a14bb96898523a512755587803433de6774ab"
 dependencies = [
  "cfg-if",
  "futures-channel",

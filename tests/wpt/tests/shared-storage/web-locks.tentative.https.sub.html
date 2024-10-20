@@ -1,0 +1,62 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/shared-storage/resources/util.js"></script>
+<script src="/fenced-frame/resources/utils.js"></script>
+
+<body>
+<script>
+'use strict';
+
+promise_test(async t => {
+  let worklet1 = await sharedStorage.createWorklet('resources/simple-module.js');
+  let worklet2 = await sharedStorage.createWorklet('resources/simple-module.js');
+
+  const ancestor_key1 = token();
+  let url1_0 = generateURL("/shared-storage/resources/frame0.html",
+                         [ancestor_key1]);
+  let url1_1 = generateURL("/shared-storage/resources/frame1.html",
+                         [ancestor_key1]);
+
+  const ancestor_key2 = token();
+  let url2_0 = generateURL("/shared-storage/resources/frame0.html",
+                         [ancestor_key2]);
+  let url2_1 = generateURL("/shared-storage/resources/frame1.html",
+                         [ancestor_key2]);
+
+  // Two `selectURL()`s run in parallel. Each performs the following steps:
+  // 1. Acquires the lock.
+  // 2. Reads the current value of the given key.
+  // 3. Waits for 100ms.
+  // 4. Increments the value.
+  // 5. Releases the lock.
+  //
+  // Expected behavior: After both operations finish, the value of the given key
+  // should be 2.
+  //
+  // This demonstrates that the lock is effective, preventing the
+  // "get and increment" operations from interleaving. If the lock were not
+  // used, both worklets would likely read 0 and set the value to 1.
+
+  let select_url_result1 = await worklet1.selectURL(
+      "get-wait-increment-within-lock", [{url: url1_0}, {url: url1_1}],
+      {data: {'key': 'key'}, resolveToConfig: true});
+
+  let select_url_result2 = await worklet2.selectURL(
+      "get-wait-increment-within-lock", [{url: url2_0}, {url: url2_1}],
+      {data: {'key': 'key'}, resolveToConfig: true});
+
+  attachFencedFrame(select_url_result1, 'opaque-ads');
+  const result1 = await nextValueFromServer(ancestor_key1);
+  assert_equals(result1, "frame1_loaded");
+
+  attachFencedFrame(select_url_result2, 'opaque-ads');
+  const result2 = await nextValueFromServer(ancestor_key2);
+  assert_equals(result2, "frame1_loaded");
+
+  await verifyKeyValueForOrigin('key', '2', location.origin);
+}, 'Basic test for Web Locks API in the shared storage worklet');
+
+</script>
+</body>

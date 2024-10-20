@@ -55,7 +55,7 @@
 </span>
 <br>
 
-<span id="host3" class="test-case" data-expect="host3/o2,host3/o4,o1,o3,o5"
+<span id="host3" class="test-case" data-expect="o1,o3,o5,host3/o2,host3/o4"
       data-description="Slot is inside a grid container with reading-flow.">
   <template shadowrootmode="open">
     <style>
@@ -77,7 +77,7 @@
 <br>
 
 <span id="host4" class="test-case"
-      data-expect="host4/after,host4/before,b4,a4,d42,d41,d43,c4"
+      data-expect="b4,a4,d42,d41,d43,c4,host4/after,host4/before"
       data-description="Slot is a grid with reading-flow inside a grid container with reading-flow.">
   <template shadowrootmode="open">
     <style>
@@ -120,7 +120,7 @@
 </span>
 <br>
 
-<span id="host6" class="test-case" data-expect="host6/after,host6/before,b6,a6"
+<span id="host6" class="test-case" data-expect="b6,a6,host6/after,host6/before"
       data-description="Slot is a display contents inside a grid container.">
   <template shadowrootmode="open">
     <style>
@@ -140,7 +140,7 @@
 </span>
 <br>
 
-<span id="host7" class="test-case" data-expect="a7,b7,host7/after,host7/before"
+<span id="host7" class="test-case" data-expect="host7/after,a7,b7,host7/before"
       data-description="Slot is a display block inside a grid container.">
   <template shadowrootmode="open">
     <style>
@@ -150,8 +150,8 @@
     }
     </style>
     <div class="wrapper">
-      <button style="order: 4" id="before">Before</button>
-      <slot style="display: block" style="order: 4"></slot>
+      <button style="order: 5" id="before">Before</button>
+      <slot style="display: block; order: 4"></slot>
       <button style="order: 3" id="after">After</button>
     </div>
   </template>

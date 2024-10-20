@@ -2020,6 +2020,200 @@
               () => tm.getTextClusters(text.length, text.length + 1) );
     }
 
+- name: 2d.text.measure.text-clusters-position.tentative
+  desc: >-
+    Test that TextMetrics::getTextClusters() returns clusters that are
+    positioned according to the target align and baseline passed as options.
+  size: [500, 500]
+  test_type: promise
+  fonts:
+  - CanvasTest
+  code: |
+    {{ load_font }}
+    ctx.font = '40px CanvasTest';
+    const text = 'E';
+
+    // Origin for all the measurements is placed at the top left corner.
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    let tm = ctx.measureText(text);
+
+    // X position.
+    @assert Math.abs(tm.getTextClusters({align: 'left'})[0].x) === 0;
+    @assert tm.getTextClusters({align: 'center'})[0].x === 20;
+    @assert tm.getTextClusters({align: 'right'})[0].x === 40;
+
+    // Y position.
+    @assert Math.abs(tm.getTextClusters({baseline: 'top'})[0].y) === 0;
+    @assert tm.getTextClusters({baseline: 'middle'})[0].y === 20;
+    @assert tm.getTextClusters({baseline: 'bottom'})[0].y === 40;
+    @assert tm.getTextClusters({baseline: 'alphabetic'})[0].y === 30;
+  variants:
+  - *load-font-variant-definition
+
+- name: 2d.text.measure.text-clusters-rendering-align.tentative
+  desc: >-
+    Test that fillTextCluster() correctly positions the text, taking into
+    account the textAlign from the context at the time the text was measured.
+  size: [250, 43]
+  code: |
+    ctx.font = '20px serif';
+    const text = 'Test ☺️ א';
+    const x = canvas.width / 2;
+    const y = canvas.height / 2;
+
+    ctx.textAlign = '{{ ctx_align }}';
+    let tm = ctx.measureText(text);
+    const clusters = tm.getTextClusters();
+
+    // Rendering all clusters with the same (x, y) parameters must be
+    // equivalent to a fillText() call at (x, y).
+    for (const cluster of clusters) {
+        ctx.fillTextCluster(cluster, x, y);
+    }
+  reference: |
+    ctx.font = '20px serif';
+    const text = 'Test ☺️ א';
+    const x = canvas.width / 2;
+    const y = canvas.height / 2;
+
+    ctx.textAlign = '{{ ctx_align }}';
+
+    // Rendering all clusters with the same (x, y) parameters must be
+    // equivalent to a fillText() call at (x, y).
+    ctx.fillText(text, x, y);
+  variants_layout:
+      [single_file]
+  variants:
+  - ctx_align_left:
+      ctx_align: left
+    ctx_align_center:
+      ctx_align: center
+    ctx_align_right:
+      ctx_align: right
+
+- name: 2d.text.measure.text-clusters-rendering-baseline.tentative
+  desc: >-
+    Test that fillTextCluster() correctly positions the text, taking into
+    account the textBaseline from the context at the time the text was measured.
+  size: [180, 43]
+  code: |
+    ctx.font = '20px serif';
+    const text = 'Test ☺️ א';
+    const x = 20;
+    const y = canvas.height / 2;
+
+    ctx.textBaseline = '{{ ctx_baseline }}';
+    let tm = ctx.measureText(text);
+    const clusters = tm.getTextClusters();
+
+    // Rendering all clusters with the same (x, y) parameters must be
+    // equivalent to a fillText() call at (x, y).
+    for (const cluster of clusters) {
+        ctx.fillTextCluster(cluster, x, y);
+    }
+  reference: |
+    ctx.font = '20px serif';
+    const text = 'Test ☺️ א';
+    const x = 20;
+    const y = canvas.height / 2;
+
+    ctx.textBaseline = '{{ ctx_baseline }}';
+    ctx.fillText(text, x, y);
+  variants_layout:
+      [single_file]
+  variants:
+  - ctx_baseline_top:
+      ctx_baseline: top
+    ctx_baseline_middle:
+      ctx_baseline: middle
+    ctx_baseline_bottom:
+      ctx_baseline: bottom
+    ctx_baseline_alphabetic:
+      ctx_baseline: alphabetic
+
+- name: 2d.text.measure.text-clusters-rendering-font-change.tentative
+  desc: >-
+    Test that fillTextCluster() renders in the font used originally when the
+    text was measured, even if the font set on the context has changed since.
+  size: [500, 200]
+  code: |
+    ctx.font = '50px sans-serif';
+    const text = 'Hello ♦️ World!';
+    let tm = ctx.measureText(text);
+    const clusters = tm.getTextClusters();
+
+    ctx.font = '80px serif';
+
+    const x = 100;
+    const y = 100;
+    for (const cluster of clusters) {
+        ctx.fillTextCluster(cluster, x, y);
+    }
+  reference: |
+    ctx.font = '50px sans-serif';
+    const text = 'Hello ♦️ World!';
+    let tm = ctx.measureText(text);
+    const clusters = tm.getTextClusters();
+
+    const x = 100;
+    const y = 100;
+    ctx.fillText(text, x, y);
+
+- name: 2d.text.measure.text-clusters-range.tentative
+  desc: >-
+    Test that getTextClusters() and fillTextCluster() correctly render
+    different ranges of the input text.
+  test_type: promise
+  fonts:
+  - CanvasTest
+  size: [400, 300]
+  code: |
+    // Renders all the clusters in the list from position (x, y).
+    function renderClusters(clusters, x, y) {
+      for (const cluster of clusters) {
+        ctx.fillTextCluster(cluster, x, y);
+      }
+    }
+
+    {{ load_font }}
+
+    ctx.font = '50px CanvasTest';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    const text = 'EEEEE';
+    let tm = ctx.measureText(text);
+
+    // Background color.
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = '#0f0';
+
+    // Without the first character.
+    renderClusters(tm.getTextClusters(1, 5), 0, 0);
+    @assert pixel 5,5 ==~ 255,0,0,255;
+    @assert pixel 55,5 ==~ 0,255,0,255;
+    @assert pixel 105,5 ==~ 0,255,0,255;
+    @assert pixel 155,5 ==~ 0,255,0,255;
+    @assert pixel 205,5 ==~ 0,255,0,255;
+    // Without the last character.
+    renderClusters(tm.getTextClusters(0, 4), 0, 100);
+    @assert pixel 5,105 ==~ 0,255,0,255;
+    @assert pixel 55,105 ==~ 0,255,0,255;
+    @assert pixel 105,105 ==~ 0,255,0,255;
+    @assert pixel 155,105 ==~ 0,255,0,255;
+    @assert pixel 205,105 ==~ 255,0,0,255;
+    // Only the middle character.
+    renderClusters(tm.getTextClusters(2, 3), 0, 150);
+    @assert pixel 5,155 ==~ 255,0,0,255;
+    @assert pixel 55,155 ==~ 255,0,0,255;
+    @assert pixel 105,155 ==~ 0,255,0,255;
+    @assert pixel 155,155 ==~ 255,0,0,255;
+    @assert pixel 205,155 ==~ 255,0,0,255;
+  variants:
+  - *load-font-variant-definition
+
 - name: 2d.text.drawing.style.absolute.spacing
   desc: Testing letter spacing and word spacing with absolute length
   code: |

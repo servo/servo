@@ -7,6 +7,7 @@ from .. import (
     assert_before_request_sent_event,
     get_cached_url,
     BEFORE_REQUEST_SENT_EVENT,
+    IMAGE_RESPONSE_BODY,
     SCRIPT_CONSOLE_LOG,
     SCRIPT_CONSOLE_LOG_IN_MODULE,
     STYLESHEET_GREY_BACKGROUND,
@@ -495,4 +496,67 @@ async def tst_page_with_cached_javascript_module(
     assert_before_request_sent_event(
         cached_events[1],
         expected_request={"method": "GET", "url": cached_js_module_url},
+    )
+
+
+@pytest.mark.asyncio
+async def test_page_with_cached_image(
+    bidi_session,
+    url,
+    inline,
+    setup_network_test,
+    top_context,
+):
+    network_events = await setup_network_test(
+        events=[
+            BEFORE_REQUEST_SENT_EVENT,
+        ]
+    )
+    events = network_events[BEFORE_REQUEST_SENT_EVENT]
+
+    cached_image_url = url(get_cached_url("img/png", IMAGE_RESPONSE_BODY))
+    page_with_cached_image = inline(
+        f"""
+        <body>
+            test page with cached image
+            <img src="{cached_image_url}">
+        </body>
+        """,
+    )
+
+    await bidi_session.browsing_context.navigate(
+        context=top_context["context"],
+        url=page_with_cached_image,
+        wait="complete",
+    )
+
+    # Expect two events, one for the document and one for the image.
+    wait = AsyncPoll(bidi_session, timeout=2)
+    await wait.until(lambda _: len(events) >= 2)
+    assert len(events) == 2
+
+    assert_before_request_sent_event(
+        events[0],
+        expected_request={"method": "GET", "url": page_with_cached_image},
+    )
+    assert_before_request_sent_event(
+        events[1],
+        expected_request={"method": "GET", "url": cached_image_url},
+    )
+
+    # Reload the page.
+    await bidi_session.browsing_context.reload(context=top_context["context"])
+
+    # Expect two events, one for the document and one for the image.
+    wait = AsyncPoll(bidi_session, timeout=2)
+    await wait.until(lambda _: len(events) >= 4)
+    assert len(events) == 4
+
+    assert_before_request_sent_event(
+        events[2],
+        expected_request={"method": "GET", "url": page_with_cached_image},
+    )
+    assert_before_request_sent_event(
+        events[3],
+        expected_request={"method": "GET", "url": cached_image_url},
     )

@@ -81,6 +81,7 @@ impl AudioBuffer {
         length: u32,
         sample_rate: f32,
         initial_data: Option<&[Vec<f32>]>,
+        can_gc: CanGc,
     ) -> DomRoot<AudioBuffer> {
         Self::new_with_proto(
             global,
@@ -89,7 +90,7 @@ impl AudioBuffer {
             length,
             sample_rate,
             initial_data,
-            CanGc::note(),
+            can_gc,
         )
     }
 

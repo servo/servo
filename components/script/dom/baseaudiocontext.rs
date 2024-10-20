@@ -443,6 +443,7 @@ impl BaseAudioContextMethods for BaseAudioContext {
         number_of_channels: u32,
         length: u32,
         sample_rate: Finite<f32>,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<AudioBuffer>> {
         if number_of_channels == 0 ||
             number_of_channels > MAX_CHANNEL_COUNT ||
@@ -457,6 +458,7 @@ impl BaseAudioContextMethods for BaseAudioContext {
             length,
             *sample_rate,
             None,
+            can_gc,
         ))
     }
 
@@ -547,7 +549,8 @@ impl BaseAudioContextMethods for BaseAudioContext {
                                 decoded_audio.len() as u32 /* number of channels */,
                                 length as u32,
                                 this.sample_rate,
-                                Some(decoded_audio.as_slice()));
+                                Some(decoded_audio.as_slice()),
+                                CanGc::note());
                             let mut resolvers = this.decode_resolvers.borrow_mut();
                             assert!(resolvers.contains_key(&uuid_));
                             let resolver = resolvers.remove(&uuid_).unwrap();

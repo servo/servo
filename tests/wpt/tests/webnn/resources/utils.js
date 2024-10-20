@@ -85,9 +85,12 @@ const TypedArrayDict = {
   uint32: Uint32Array,
   int8: Int8Array,
   uint8: Uint8Array,
+  int4: Uint8Array,
+  uint4: Uint8Array,
 };
 
-const kIntTypes = ['uint8', 'int8', 'uint32', 'int32', 'uint64', 'int64'];
+const kIntTypes =
+    ['uint4', 'int4', 'uint8', 'int8', 'uint32', 'int32', 'uint64', 'int64'];
 const kFloatTypes = ['float16', 'float32'];
 
 const findCompatibleType = (dataType, supportedTypes) => {
@@ -204,6 +207,27 @@ const getTypedArrayData = (type, size, data) => {
     for (let i = 0; i < data.length; i++) {
       outData[i] = BigInt(data[i]);
     }
+  } else if (type === 'uint4' || type === 'int4') {
+    // The first nybble is stored in the first bits 0-3, and later bits 4-7
+    // store the later nybble. The data is packed, without any padding between
+    // dimensions. For example: an array of uint4:
+    //   size = [2,5]
+    //   values = [1,2,3,4,5,6,7,8,9,10]
+    // Would yield 5 hex bytes:
+    //   Uint8Array.of(0x21, 0x43, 0x65, 0x87, 0xA9);
+    const array = new TypedArrayDict[type](Math.ceil(size / 2));
+    let i = 0;
+    while (i < size - 1) {
+      const packedByte = ((data[i + 1] & 0xF) << 4) | (data[i] & 0xF);
+      array[Math.floor(i / 2)] = packedByte;
+      i = i + 2;
+    }
+    // Handle the odd size.
+    if (i === size - 1) {
+      const packedByte = data[i] & 0xF;
+      array[Math.floor(i / 2)] = packedByte;
+    }
+    return array;
   } else {
     if (typeof (data) === 'number' && size > 1) {
       return new TypedArrayDict[type](size).fill(data);
@@ -282,7 +306,8 @@ const assert_array_approx_equals_ulp = (actual, expected, nulp, dataType, descri
         expectedBitwise = BigUint64Array(expected[i]);
       } else if (
           dataType === 'int8' || dataType === 'uint8' || dataType === 'int32' ||
-          dataType === 'uint32') {
+          dataType === 'uint32' || dataType === 'int4' ||
+          dataType === 'uint4') {
         actualBitwise = actual[i];
         expectedBitwise = expected[i];
       }
@@ -365,6 +390,44 @@ const assertResultsEquals =
               kMaximumIndexToValidate, sizeOfShape(expectedDescriptor.shape));
           expectedData = new Array(size).fill(expectedData);
           outputData = outputData.subarray(0, kMaximumIndexToValidate);
+        } else if (
+            expectedDescriptor.dataType === 'uint4' ||
+            expectedDescriptor.dataType === 'int4') {
+          // The int4/uint4 data were packed in Uint8Array.
+          // The first nybble and later nybble of one int8/uint8 value store two
+          // consecutive 4-bits values separately. After unpacking each 4-bits
+          // value, the unpacked int4 value is stored in an element of
+          // Int8Array, and the unpacked uint4 value is stored in an element of
+          // Uint8Array. For example: an array of uint4:
+          //   size = [1, 5]
+          //   Uint8Array.of(0x21, 0x43, 0x65, 0x87, 0xA9)
+          // Would yield 5 * 2 uint4 data:
+          //   Uint8Array.of(1,2,3,4,5,6,7,8,9,10);
+          // Another example: an array of int4:
+          //   size = [1, 5]
+          //   Uint8Array.of(0xA9, 0xCB, 0xED, 0x0F, 0x21)
+          // Would yield 5 * 2 int4 data:
+          //   Int8Array.of(-7, -6, -5, -4, -3, -2, -1, 0, 1, 2);
+          let newOutputData;
+          if (expectedDescriptor.dataType === 'uint4') {
+            newOutputData =
+                new Uint8Array(sizeOfShape(expectedDescriptor.shape));
+          } else {
+            newOutputData =
+                new Int8Array(sizeOfShape(expectedDescriptor.shape));
+          }
+          const signMask =
+              (expectedDescriptor.dataType === 'int4') ? 0x08 : 0x00;
+          for (let i = 0; i < sizeOfShape(expectedDescriptor.shape); i++) {
+            const byteIndex = Math.floor(i / 2);
+            let value = (outputData[byteIndex] >> ((i & 1) << 2)) & 0xF;
+            // Handle the negative numbers.
+            if (value & signMask) {
+              value |= 0xF0;
+            }
+            newOutputData[i] = value;
+          }
+          outputData = newOutputData;
         }
         doAssert(
             operatorName, outputData, expectedData, metricType, toleranceValue,
@@ -422,8 +485,13 @@ const prepareOutputsForGraph = (outputs, resources) => {
     const descriptor = resources[operandName].descriptor;
     const dataType =
         descriptor.castedType ? descriptor.castedType : descriptor.dataType;
-    outputs[operandName] =
-        new TypedArrayDict[dataType](sizeOfShape(descriptor.shape));
+    if (dataType === 'int4' || dataType === 'uint4') {
+      outputs[operandName] = new TypedArrayDict[dataType](
+          Math.ceil(sizeOfShape(descriptor.shape) / 2));
+    } else {
+      outputs[operandName] =
+          new TypedArrayDict[dataType](sizeOfShape(descriptor.shape));
+    }
   }
 };
 

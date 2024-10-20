@@ -30,7 +30,7 @@ pub trait Activatable {
     // https://dom.spec.whatwg.org/#eventtarget-activation-behavior
     // event and target are used only by HTMLAnchorElement, in the case
     // where the target is an <img ismap> so the href gets coordinates appended
-    fn activation_behavior(&self, event: &Event, target: &EventTarget);
+    fn activation_behavior(&self, event: &Event, target: &EventTarget, can_gc: CanGc);
 
     // https://html.spec.whatwg.org/multipage/#concept-selector-active
     fn enter_formal_activation_state(&self) {

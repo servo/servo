@@ -810,7 +810,7 @@ fn run_package_data_algorithm(
         BodyType::Text => run_text_data_algorithm(bytes),
         BodyType::Json => run_json_data_algorithm(cx, bytes),
         BodyType::Blob => run_blob_data_algorithm(&global, bytes, mime, can_gc),
-        BodyType::FormData => run_form_data_algorithm(&global, bytes, mime),
+        BodyType::FormData => run_form_data_algorithm(&global, bytes, mime, can_gc),
         BodyType::ArrayBuffer => run_array_buffer_data_algorithm(cx, bytes),
     }
 }
@@ -868,6 +868,7 @@ fn run_form_data_algorithm(
     root: &GlobalScope,
     bytes: Vec<u8>,
     mime: &[u8],
+    can_gc: CanGc,
 ) -> Fallible<FetchedData> {
     let mime_str = if let Ok(s) = str::from_utf8(mime) {
         s
@@ -883,7 +884,7 @@ fn run_form_data_algorithm(
     // ... is not fully determined yet.
     if mime.type_() == mime::APPLICATION && mime.subtype() == mime::WWW_FORM_URLENCODED {
         let entries = form_urlencoded::parse(&bytes);
-        let formdata = FormData::new(None, root, CanGc::note());
+        let formdata = FormData::new(None, root, can_gc);
         for (k, e) in entries {
             formdata.Append(USVString(k.into_owned()), USVString(e.into_owned()));
         }

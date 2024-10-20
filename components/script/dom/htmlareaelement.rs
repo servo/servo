@@ -29,6 +29,7 @@ use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::{BindContext, Node};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::links::{follow_hyperlink, LinkRelations};
+use crate::script_runtime::CanGc;
 
 #[derive(Debug, PartialEq)]
 pub enum Area {
@@ -371,7 +372,7 @@ impl Activatable for HTMLAreaElement {
         self.as_element().has_attribute(&local_name!("href"))
     }
 
-    fn activation_behavior(&self, _event: &Event, _target: &EventTarget) {
+    fn activation_behavior(&self, _event: &Event, _target: &EventTarget, _can_gc: CanGc) {
         follow_hyperlink(self.as_element(), self.relations.get(), None);
     }
 }

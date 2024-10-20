@@ -11,6 +11,8 @@
 <div id="log"></div>
 <script>
 
+const moveBefore_supported = ("moveBefore" in Node.prototype);
+
 test(function () {
     assert_true('define' in CustomElementRegistry.prototype, '"define" exists on CustomElementRegistry.prototype');
     assert_true('define' in customElements, '"define" exists on window.customElements');
@@ -273,7 +275,9 @@ test(function () {
         }
     });
     customElements.define('element-with-proxy-prototype', constructor);
-    assert_array_equals(calls, ['connectedCallback', 'disconnectedCallback', 'adoptedCallback', 'attributeChangedCallback']);
+    assert_array_equals(calls,
+        moveBefore_supported ? ['connectedCallback', 'disconnectedCallback', 'connectedMoveCallback', 'adoptedCallback', 'attributeChangedCallback'] :
+        ['connectedCallback', 'disconnectedCallback', 'adoptedCallback', 'attributeChangedCallback']);
 }, 'customElements.define must get callbacks of the constructor prototype');
 
 test(function () {
@@ -305,7 +309,10 @@ test(function () {
         }
     });
     assert_throws_js(TypeError, function () { customElements.define('element-with-throwing-callback', constructor); });
-    assert_array_equals(calls, ['connectedCallback', 'disconnectedCallback', 'adoptedCallback'],
+    assert_array_equals(calls,
+        moveBefore_supported ?
+            ['connectedCallback', 'disconnectedCallback', 'connectedMoveCallback', 'adoptedCallback'] :
+            ['connectedCallback', 'disconnectedCallback', 'adoptedCallback'],
         'customElements.define must not get callbacks after one of the conversion throws');
 }, 'customElements.define must rethrow an exception thrown while converting a callback value to Function callback type');
 
@@ -332,11 +339,14 @@ test(function () {
         }
     });
     customElements.define('element-with-attribute-changed-callback', proxy);
-    assert_array_equals(prototypeCalls, [1, 'connectedCallback', 2, 'disconnectedCallback', 3, 'adoptedCallback', 4, 'attributeChangedCallback']);
+    assert_array_equals(prototypeCalls,
+        moveBefore_supported ?
+            [1, 'connectedCallback', 2, 'disconnectedCallback', 3, 'connectedMoveCallback', 4, 'adoptedCallback', 5, 'attributeChangedCallback'] :
+            [1, 'connectedCallback', 2, 'disconnectedCallback', 3, 'adoptedCallback', 4, 'attributeChangedCallback']);
     assert_array_equals(constructorCalls, [0, 'prototype',
-                                           5, 'observedAttributes',
-                                           6, 'disabledFeatures',
-                                           7, 'formAssociated']);
+                                           6, 'observedAttributes',
+                                           7, 'disabledFeatures',
+                                           8, 'formAssociated']);
 }, 'customElements.define must get "observedAttributes" property on the constructor prototype when "attributeChangedCallback" is present');
 
 test(function () {
@@ -492,6 +502,10 @@ test(function () {
         '"formAssociated" on the constructor');
     assert_array_equals(
         prototypeCalls,
+        moveBefore_supported ? ['connectedCallback', 'disconnectedCallback', 'connectedMoveCallback', 'adoptedCallback',
+         'attributeChangedCallback', 'formAssociatedCallback',
+         'formResetCallback', 'formDisabledCallback',
+         'formStateRestoreCallback'] :
         ['connectedCallback', 'disconnectedCallback', 'adoptedCallback',
          'attributeChangedCallback', 'formAssociatedCallback',
          'formResetCallback', 'formDisabledCallback',
@@ -521,7 +535,10 @@ test(function () {
     });
     assert_throws_exactly(err,
         () => customElements.define('element-with-throwing-callback-2', proxy));
-    assert_array_equals(calls, ['connectedCallback', 'disconnectedCallback',
+    assert_array_equals(calls, moveBefore_supported ? ['connectedCallback', 'disconnectedCallback', 'connectedMoveCallback',
+                                'adoptedCallback', 'attributeChangedCallback',
+                                'formAssociatedCallback', 'formResetCallback',
+                                'formDisabledCallback'] : ['connectedCallback', 'disconnectedCallback',
                                 'adoptedCallback', 'attributeChangedCallback',
                                 'formAssociatedCallback', 'formResetCallback',
                                 'formDisabledCallback'],
@@ -538,7 +555,9 @@ test(function () {
     });
     assert_throws_js(TypeError,
         () => customElements.define('element-with-throwing-callback-3', proxy));
-    assert_array_equals(calls2, ['connectedCallback', 'disconnectedCallback',
+    assert_array_equals(calls2, moveBefore_supported ? ['connectedCallback', 'disconnectedCallback', 'connectedMoveCallback',
+                                 'adoptedCallback', 'attributeChangedCallback',
+                                 'formAssociatedCallback', 'formResetCallback'] : ['connectedCallback', 'disconnectedCallback',
                                  'adoptedCallback', 'attributeChangedCallback',
                                  'formAssociatedCallback', 'formResetCallback'],
         'customElements.define must not get callbacks after one of the get throws');

@@ -11,13 +11,6 @@ const tests = [
   // Tests for constant(descriptor, bufferView)
   {
     name:
-        '[constant] Test building a 0-D scalar constant without presenting dimensions',
-    descriptor: {dataType: 'float32'},
-    bufferView: {type: Float32Array, byteLength: 1 * 4},
-    output: {dataType: 'float32', shape: []}
-  },
-  {
-    name:
         '[constant] Test building a 0-D scalar constant with empty dimensions',
     descriptor: {dataType: 'float32', shape: []},
     bufferView: {type: Float32Array, byteLength: 1 * 4},

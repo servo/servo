@@ -36,6 +36,24 @@ addEventListener("load", () => {
 
   for (const data of [
     {
+      initialInnerHTML: "{}<br>",
+      insertText: " ",
+      expected: collapseWhiteSpaces
+        ? (useBR ? [" <br>", "&nbsp;"] : [" <br>", " \n", "&nbsp;"])
+        : " ",
+    },
+    {
+      initialInnerHTML: "{}<br>",
+      insertText: "a",
+      expected: "a",
+    },
+    {
+      initialInnerHTML: "[]\n",
+      skipIf: () => useBR,
+      insertText: "a",
+      expected: "a",
+    },
+    {
       initialInnerHTML: "A[]B",
       insertText: "a",
       expected: "AaB",
@@ -98,9 +116,7 @@ addEventListener("load", () => {
       prepareDescription: "execCommand(\"insertParagraph\")",
       prepare: () => document.execCommand("insertParagraph"),
       insertText: "a",
-      expected: useBR
-        ? ["<p><b>A</b></p><p><b>aB</b></p>", "<p><b>A</b></p><p><b>aB<br></b></p>"]
-        : ["<p><b>A</b></p><p><b>aB</b></p>", "<p><b>A</b></p><p><b>aB<br></b></p>", "<p><b>A</b></p><p><b>aB\n</b></p>"],
+      expected: "<p><b>A</b></p><p><b>aB</b></p>",
     },
     {
       initialInnerHTML: "<p><b>AB[]</b></p>",
@@ -109,9 +125,7 @@ addEventListener("load", () => {
       insertText: "a",
       // To keep the style of next typing even after lost focus, the placeholder line break in
       // the empty paragraph after "insertParagraph" should be wrapped in the <b>.
-      expected: useBR
-        ? ["<p><b>AB</b></p><p><b>a</b></p>", "<p><b>AB</b></p><p><b>a<br></b></p>"]
-        : ["<p><b>AB</b></p><p><b>a</b></p>", "<p><b>AB</b></p><p><b>a<br></b></p>", "<p><b>AB</b></p><p><b>a\n</b></p>"],
+      expected:  "<p><b>AB</b></p><p><b>a</b></p>",
     },
     {
       initialInnerHTML: "<p><b>[AB]</b></p>",
@@ -119,9 +133,8 @@ addEventListener("load", () => {
       prepare: () => document.execCommand("insertParagraph"),
       insertText: "a",
       expected: useBR
-        ? ["<p><b><br></b></p><p><b>a</b></p>", "<p><b><br></b></p><p><b>a<br></b></p>"]
-        : ["<p><b><br></b></p><p><b>a</b></p>", "<p><b>\n</b></p><p><b>a</b></p>",
-           "<p><b><br></b></p><p><b>a<br></b></p>", "<p><b>\n</b></p><p><b>a\n</b></p>"],
+        ? "<p><b><br></b></p><p><b>a</b></p>"
+        : ["<p><b><br></b></p><p><b>a</b></p>", "<p><b>\n</b></p><p><b>a</b></p>"],
     },
     {
       initialInnerHTML: "<p><b>[]AB</b></p>",
@@ -149,9 +162,8 @@ addEventListener("load", () => {
       // To keep the style of next typing even after once the paragraph becomes empty,
       // the placeholder line break (if there is) should be in <b>.
       expected: useBR
-        ? ["<p><b>AB<br>a</b></p>", "<p><b>AB<br>a<br></b></p>"]
-        : ["<p><b>AB<br>a</b></p>", "<p><b>AB<br>a<br></b></p>", "<p><b>AB\na</b></p>",
-           "<p><b>AB\na\n</b></p>", "<p><b>AB\na<br></b></p>", "<p><b>AB<br>a\n</b></p>"],
+        ? "<p><b>AB<br>a</b></p>"
+        : ["<p><b>AB<br>a</b></p>", "<p><b>AB\na</b></p>"],
     },
     {
       initialInnerHTML: "<p><b>[AB]</b></p>",
@@ -161,9 +173,8 @@ addEventListener("load", () => {
       // To keep the style of next typing even after once the paragraph becomes empty,
       // the placeholder line break (if there is) should be in <b>.
       expected: useBR
-        ? ["<p><b><br>a</b></p>", "<p><b><br>a<br></b></p>"]
-        : ["<p><b><br>a</b></p>", "<p><b><br>a<br></b></p>", "<p><b>\na</b></p>", "<p><b>\na\n</b></p>",
-           "<p><b><br>a\n</b></p>", "<p><b>\na<br></b></p>"],
+        ? "<p><b><br>a</b></p>"
+        : ["<p><b><br>a</b></p>", "<p><b>\na</b></p>"],
     },
     {
       initialInnerHTML: "<p><b>[AB]</b></p>",
@@ -172,9 +183,7 @@ addEventListener("load", () => {
       insertText: "a",
       // To keep the style of next typing even after blur, the placeholder line break
       // (if there is) should be in <b>.
-      expected: useBR
-        ? ["<p><b>a</b></p>", "<p><b>a<br></b></p>"]
-        : ["<p><b>a</b></p>", "<p><b>a<br></b></p>", "<p><b>a\n</b></p>"],
+      expected: "<p><b>a</b></p>",
     },
     {
       initialInnerHTML: "<p><b>A[]</b></p><p>B</p>",
@@ -186,9 +195,7 @@ addEventListener("load", () => {
       },
       insertText: "a",
       // Moving caret shouldn't cause loosing the style.
-      expected: useBR
-        ? ["<p><b>a</b></p><p>B</p>", "<p><b>a<br></b></p><p>B</p>"]
-        : ["<p><b>a</b></p><p>B</p>", "<p><b>a<br></b></p><p>B</p>", "<p><b>a\n</b></p><p>B</p>"],
+      expected: "<p><b>a</b></p><p>B</p>",
     },
     {
       initialInnerHTML: "<p><b>[]A</b></p><p>B</p>",
@@ -200,9 +207,7 @@ addEventListener("load", () => {
       },
       insertText: "a",
       // Moving caret shouldn't cause loosing the style.
-      expected: useBR
-        ? ["<p><b>a</b></p><p>B</p>", "<p><b>a<br></b></p><p>B</p>"]
-        : ["<p><b>a</b></p><p>B</p>", "<p><b>a<br></b></p><p>B</p>", "<p><b>a\n</b></p><p>B</p>"],
+      expected: "<p><b>a</b></p><p>B</p>",
     },
     {
       initialInnerHTML: "<p><b>[A]</b></p><p>B</p>",
@@ -214,9 +219,7 @@ addEventListener("load", () => {
       },
       insertText: "a",
       // Moving caret shouldn't cause loosing the style.
-      expected: useBR
-        ? ["<p><b>a</b></p><p>B</p>", "<p><b>a<br></b></p><p>B</p>"]
-        : ["<p><b>a</b></p><p>B</p>", "<p><b>a<br></b></p><p>B</p>", "<p><b>a\n</b></p><p>B</p>"],
+      expected: "<p><b>a</b></p><p>B</p>",
     },
     {
       initialInnerHTML: "<p><b>A[]</b></b>",
@@ -228,11 +231,12 @@ addEventListener("load", () => {
       },
       insertText: "a",
       // Moving caret shouldn't cause loosing the style.
-      expected: useBR
-        ? ["<p><b>A</b></p><p><b>a</b></p>", "<p><b>A</b></p><p><b>a<br></b></p>"]
-        : ["<p><b>A</b></p><p><b>a</b></p>", "<p><b>A</b></p><p><b>a<br></b></p>", "<p><b>A</b></p><p><b>a\n</b></p>"],
+      expected: "<p><b>A</b></p><p><b>a</b></p>",
     },
   ]) {
+    if (data.skipIf !== undefined && data.skipIf()) {
+      continue;
+    }
     test(() => {
       utils.setupEditingHost(data.initialInnerHTML);
       if (data.prepare) {
@@ -244,8 +248,10 @@ addEventListener("load", () => {
       } else {
         assert_equals(editingHost.innerHTML, data.expected);
       }
-    }, `execCommand("insertText", false, "${data.insertText}") when ${data.initialInnerHTML}${
-      data.prepareDescription ? ` and ${data.prepareDescription}`  : ""
+    }, `execCommand("insertText", false, "${data.insertText.replaceAll("\n", "\\n")}") when ${
+      data.initialInnerHTML.replaceAll("\n", "\\n")
+    }${
+      data.prepareDescription ? ` and ${data.prepareDescription.replaceAll("\n", "\\n")}`  : ""
     }`);
     promise_test(async t => {
       utils.setupEditingHost(data.initialInnerHTML);
@@ -260,8 +266,10 @@ addEventListener("load", () => {
       } else {
         assert_equals(editingHost.innerHTML, data.expected);
       }
-    }, `Typing "${data.insertText}" when ${data.initialInnerHTML}${
-      data.prepareDescription ? ` and ${data.prepareDescription}`  : ""
+    }, `Typing "${data.insertText.replaceAll("\n", "\\n")}" when ${
+      data.initialInnerHTML.replaceAll("\n", "\\n")
+    }${
+      data.prepareDescription ? ` and ${data.prepareDescription.replaceAll("\n", "\\n")}`  : ""
     }`);
   }
 }, {once: true});

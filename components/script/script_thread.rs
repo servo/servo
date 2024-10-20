@@ -1484,6 +1484,7 @@ impl ScriptThread {
         point: Point2D<f32>,
         node_address: Option<UntrustedNodeAddress>,
         pressed_mouse_buttons: u16,
+        can_gc: CanGc,
     ) {
         // Get the previous target temporarily
         let prev_mouse_over_target = self.topmost_mouse_over_target.get();
@@ -1494,6 +1495,7 @@ impl ScriptThread {
                 &self.topmost_mouse_over_target,
                 node_address,
                 pressed_mouse_buttons,
+                can_gc,
             )
         }
 
@@ -1592,6 +1594,7 @@ impl ScriptThread {
                         point,
                         node_address,
                         pressed_mouse_buttons,
+                        can_gc,
                     );
                 },
 

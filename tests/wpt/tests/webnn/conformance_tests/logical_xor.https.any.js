@@ -20,7 +20,7 @@ const logicalXorTests = [
         'descriptor': {shape: [], dataType: 'uint8'}
       },
       'inputB': {
-        'data': [1],
+        'data': [0],
         'descriptor': {shape: [], dataType: 'uint8'}
       }
     },
@@ -370,8 +370,8 @@ const logicalXorTests = [
     'expectedOutputs': {
       'output': {
         'data': [
-          0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0,
-          0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0
+          0, 0, 1, 0, 1, 1, 1, 1, 0, 1, 0, 0,
+          0, 0, 1, 0, 1, 1, 1, 1, 0, 1, 0, 0
         ],
         'descriptor': {shape: [2, 2, 2, 3], dataType: 'uint8'}
       }
