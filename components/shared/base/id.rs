@@ -188,6 +188,7 @@ impl PipelineNamespace {
     namespace_id_method! {next_service_worker_registration_id, ServiceWorkerRegistrationId,
     self, ServiceWorkerRegistrationIndex}
     namespace_id_method! {next_blob_id, BlobId, self, BlobIndex}
+    namespace_id_method! {next_coordinates_id, CoordinatesId, self, CoordinatesIndex}
 }
 
 thread_local!(pub static PIPELINE_NAMESPACE: Cell<Option<PipelineNamespace>> = const { Cell::new(None) });
@@ -401,6 +402,19 @@ impl BlobId {
             let next_blob_id = namespace.next_blob_id();
             tls.set(Some(namespace));
             next_blob_id
+        })
+    }
+}
+
+namespace_id! {CoordinatesId, CoordinatesIndex, "Coordinates"}
+
+impl CoordinatesId {
+    pub fn new() -> CoordinatesId {
+        PIPELINE_NAMESPACE.with(|tls| {
+            let mut namespace = tls.get().expect("No namespace set for this thread!");
+            let next_id = namespace.next_coordinates_id();
+            tls.set(Some(namespace));
+            next_id
         })
     }
 }
