@@ -112,9 +112,9 @@ impl From<XRSessionMode> for SessionMode {
 
 impl XRSystemMethods for XRSystem {
     /// <https://immersive-web.github.io/webxr/#dom-xr-issessionsupported>
-    fn IsSessionSupported(&self, mode: XRSessionMode) -> Rc<Promise> {
+    fn IsSessionSupported(&self, mode: XRSessionMode, can_gc: CanGc) -> Rc<Promise> {
         // XXXManishearth this should select an XR device first
-        let promise = Promise::new(&self.global());
+        let promise = Promise::new(&self.global(), can_gc);
         let mut trusted = Some(TrustedPromise::new(promise.clone()));
         let global = self.global();
         let window = global.as_window();

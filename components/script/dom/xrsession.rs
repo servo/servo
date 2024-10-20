@@ -892,7 +892,7 @@ impl XRSessionMethods for XRSession {
     /// <https://immersive-web.github.io/webxr/#dom-xrsession-end>
     fn End(&self, can_gc: CanGc) -> Rc<Promise> {
         let global = self.global();
-        let p = Promise::new(&global);
+        let p = Promise::new(&global, can_gc);
         if self.ended.get() && self.end_promises.borrow().is_empty() {
             // If the session has completely ended and all end promises have been resolved,
             // don't queue up more end promises
@@ -922,8 +922,8 @@ impl XRSessionMethods for XRSession {
     }
 
     // https://immersive-web.github.io/hit-test/#dom-xrsession-requesthittestsource
-    fn RequestHitTestSource(&self, options: &XRHitTestOptionsInit) -> Rc<Promise> {
-        let p = Promise::new(&self.global());
+    fn RequestHitTestSource(&self, options: &XRHitTestOptionsInit, can_gc: CanGc) -> Rc<Promise> {
+        let p = Promise::new(&self.global(), can_gc);
 
         if !self
             .session

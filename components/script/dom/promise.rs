@@ -86,10 +86,10 @@ impl Drop for Promise {
 }
 
 impl Promise {
-    pub fn new(global: &GlobalScope) -> Rc<Promise> {
+    pub fn new(global: &GlobalScope, can_gc: CanGc) -> Rc<Promise> {
         let realm = enter_realm(global);
         let comp = InRealm::Entered(&realm);
-        Promise::new_in_current_realm(comp, CanGc::note())
+        Promise::new_in_current_realm(comp, can_gc)
     }
 
     pub fn new_in_current_realm(_comp: InRealm, can_gc: CanGc) -> Rc<Promise> {

@@ -153,7 +153,7 @@ impl GPUDevice {
         let queue = GPUQueue::new(global, channel.clone(), queue);
         let limits = GPUSupportedLimits::new(global, limits);
         let features = GPUSupportedFeatures::Constructor(global, None, features, can_gc).unwrap();
-        let lost_promise = Promise::new(global);
+        let lost_promise = Promise::new(global, can_gc);
         let device = reflect_dom_object(
             Box::new(GPUDevice::new_inherited(
                 channel,

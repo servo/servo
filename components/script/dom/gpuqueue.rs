@@ -188,9 +188,9 @@ impl GPUQueueMethods for GPUQueue {
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuqueue-onsubmittedworkdone>
-    fn OnSubmittedWorkDone(&self) -> Rc<Promise> {
+    fn OnSubmittedWorkDone(&self, can_gc: CanGc) -> Rc<Promise> {
         let global = self.global();
-        let promise = Promise::new(&global);
+        let promise = Promise::new(&global, can_gc);
         let sender = response_async(&promise, self);
         if let Err(e) = self
             .channel
