@@ -46,7 +46,7 @@ use style::context::SharedStyleContext;
 use style::logical_geometry::{LogicalMargin, LogicalPoint, LogicalRect, LogicalSize, WritingMode};
 use style::properties::ComputedValues;
 use style::servo::restyle_damage::ServoRestyleDamage;
-use style::values::computed::{LengthPercentageOrAuto, MaxSize, Size};
+use style::values::computed::{Margin, MaxSize, Size};
 
 use crate::context::LayoutContext;
 use crate::display_list::items::DisplayListSection;
@@ -1408,8 +1408,8 @@ impl BlockFlow {
                 let (block_start, block_end) = {
                     let position = self.fragment.style().logical_position();
                     (
-                        MaybeAuto::from_style(position.block_start, container_size),
-                        MaybeAuto::from_style(position.block_end, container_size),
+                        MaybeAuto::from_inset(position.block_start, container_size),
+                        MaybeAuto::from_inset(position.block_end, container_size),
                     )
                 };
 
@@ -1422,11 +1422,11 @@ impl BlockFlow {
                         // calculated during assign-inline-size.
                         let margin = self.fragment.style().logical_margin();
                         let margin_block_start = match margin.block_start {
-                            LengthPercentageOrAuto::Auto => MaybeAuto::Auto,
+                            Margin::Auto => MaybeAuto::Auto,
                             _ => MaybeAuto::Specified(self.fragment.margin.block_start),
                         };
                         let margin_block_end = match margin.block_end {
-                            LengthPercentageOrAuto::Auto => MaybeAuto::Auto,
+                            Margin::Auto => MaybeAuto::Auto,
                             _ => MaybeAuto::Specified(self.fragment.margin.block_end),
                         };
 
@@ -1456,11 +1456,11 @@ impl BlockFlow {
             // calculated during assign-inline-size.
             let margin = self.fragment.style().logical_margin();
             let margin_block_start = match margin.block_start {
-                LengthPercentageOrAuto::Auto => MaybeAuto::Auto,
+                Margin::Auto => MaybeAuto::Auto,
                 _ => MaybeAuto::Specified(self.fragment.margin.block_start),
             };
             let margin_block_end = match margin.block_end {
-                LengthPercentageOrAuto::Auto => MaybeAuto::Auto,
+                Margin::Auto => MaybeAuto::Auto,
                 _ => MaybeAuto::Specified(self.fragment.margin.block_end),
             };
 
@@ -1469,8 +1469,8 @@ impl BlockFlow {
             {
                 let position = self.fragment.style().logical_position();
                 block_start =
-                    MaybeAuto::from_style(position.block_start, containing_block_block_size);
-                block_end = MaybeAuto::from_style(position.block_end, containing_block_block_size);
+                    MaybeAuto::from_inset(position.block_start, containing_block_block_size);
+                block_end = MaybeAuto::from_inset(position.block_end, containing_block_block_size);
             }
 
             let available_block_size =
@@ -2117,10 +2117,10 @@ impl BlockFlow {
         let offsets = self.fragment.style().logical_position();
         let as_margins = LogicalMargin::new(
             writing_mode,
-            MaybeAuto::from_style(offsets.block_start, containing_block_size.inline),
-            MaybeAuto::from_style(offsets.inline_end, containing_block_size.inline),
-            MaybeAuto::from_style(offsets.block_end, containing_block_size.inline),
-            MaybeAuto::from_style(offsets.inline_start, containing_block_size.inline),
+            MaybeAuto::from_inset(offsets.block_start, containing_block_size.inline),
+            MaybeAuto::from_inset(offsets.inline_end, containing_block_size.inline),
+            MaybeAuto::from_inset(offsets.block_end, containing_block_size.inline),
+            MaybeAuto::from_inset(offsets.inline_start, containing_block_size.inline),
         );
         as_margins.to_physical(writing_mode)
     }
@@ -2789,10 +2789,10 @@ pub trait ISizeAndMarginsComputer {
             containing_block_inline_size - block.fragment.border_padding.inline_start_end();
         ISizeConstraintInput::new(
             computed_inline_size,
-            MaybeAuto::from_style(margin.inline_start, containing_block_inline_size),
-            MaybeAuto::from_style(margin.inline_end, containing_block_inline_size),
-            MaybeAuto::from_style(position.inline_start, containing_block_inline_size),
-            MaybeAuto::from_style(position.inline_end, containing_block_inline_size),
+            MaybeAuto::from_margin(margin.inline_start, containing_block_inline_size),
+            MaybeAuto::from_margin(margin.inline_end, containing_block_inline_size),
+            MaybeAuto::from_inset(position.inline_start, containing_block_inline_size),
+            MaybeAuto::from_inset(position.inline_end, containing_block_inline_size),
             available_inline_size,
         )
     }

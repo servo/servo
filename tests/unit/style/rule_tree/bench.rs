@@ -83,7 +83,7 @@ fn parse_rules(lock: &SharedRwLock, css: &str) -> Vec<(StyleSource, CascadeLevel
         .iter()
         .filter_map(|rule| match *rule {
             CssRule::Style(ref style_rule) => Some((
-                StyleSource::from_rule(style_rule.clone()),
+                StyleSource::from_declarations(style_rule.read_with(&guard).block.clone()),
                 CascadeLevel::UserNormal,
             )),
             _ => None,

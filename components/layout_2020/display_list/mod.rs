@@ -25,7 +25,7 @@ use style::properties::ComputedValues;
 use style::values::computed::image::Image;
 use style::values::computed::{
     BorderImageSideWidth, BorderImageWidth, BorderStyle, Color, LengthPercentage,
-    LengthPercentageOrAuto, NonNegativeLengthOrNumber, NumberOrPercentage, OutlineStyle,
+    NonNegativeLengthOrNumber, NumberOrPercentage, OutlineStyle,
 };
 use style::values::generics::rect::Rect;
 use style::values::generics::NonNegative;
@@ -49,7 +49,7 @@ use crate::display_list::stacking_context::StackingContextSection;
 use crate::fragment_tree::{
     BackgroundMode, BoxFragment, Fragment, FragmentFlags, FragmentTree, Tag, TextFragment,
 };
-use crate::geom::{PhysicalPoint, PhysicalRect};
+use crate::geom::{LengthPercentageOrAuto, PhysicalPoint, PhysicalRect};
 use crate::replaced::NaturalSizes;
 use crate::style_ext::ComputedValuesExt;
 
@@ -1332,7 +1332,7 @@ pub(super) fn compute_margin_box_radius(
     layout_rect: LayoutSize,
     fragment: &BoxFragment,
 ) -> wr::BorderRadius {
-    let margin = fragment.style.get_margin();
+    let margin = fragment.style.physical_margin();
     let adjust_radius = |radius: f32, margin: f32| -> f32 {
         if margin <= 0. || (radius / margin) >= 1. {
             (radius + margin).max(0.)
@@ -1344,13 +1344,14 @@ pub(super) fn compute_margin_box_radius(
                                  layout_rect: LayoutSize,
                                  margin: Size2D<LengthPercentageOrAuto, UnknownUnit>|
      -> LayoutSize {
+        let zero = LengthPercentage::zero();
         let width = margin
             .width
-            .auto_is(LengthPercentage::zero)
+            .auto_is(|| &zero)
             .to_used_value(Au::from_f32_px(layout_rect.width));
         let height = margin
             .height
-            .auto_is(LengthPercentage::zero)
+            .auto_is(|| &zero)
             .to_used_value(Au::from_f32_px(layout_rect.height));
         LayoutSize::new(
             adjust_radius(radius.width, width.to_f32_px()),
@@ -1361,22 +1362,22 @@ pub(super) fn compute_margin_box_radius(
         top_left: compute_margin_radius(
             radius.top_left,
             layout_rect,
-            Size2D::new(margin.margin_left.clone(), margin.margin_top.clone()),
+            Size2D::new(margin.left.clone(), margin.top.clone()),
         ),
         top_right: compute_margin_radius(
             radius.top_right,
             layout_rect,
-            Size2D::new(margin.margin_right.clone(), margin.margin_top.clone()),
+            Size2D::new(margin.right.clone(), margin.top.clone()),
         ),
         bottom_left: compute_margin_radius(
             radius.bottom_left,
             layout_rect,
-            Size2D::new(margin.margin_left.clone(), margin.margin_bottom.clone()),
+            Size2D::new(margin.left.clone(), margin.bottom.clone()),
         ),
         bottom_right: compute_margin_radius(
             radius.bottom_right,
             layout_rect,
-            Size2D::new(margin.margin_right.clone(), margin.margin_bottom.clone()),
+            Size2D::new(margin.right.clone(), margin.bottom.clone()),
         ),
     }
 }
