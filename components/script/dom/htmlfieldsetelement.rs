@@ -25,6 +25,7 @@ use crate::dom::node::{window_from_node, Node, ShadowIncluding};
 use crate::dom::validation::Validatable;
 use crate::dom::validitystate::ValidityState;
 use crate::dom::virtualmethods::VirtualMethods;
+use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 
 #[dom_struct]
@@ -131,8 +132,8 @@ impl HTMLFieldSetElementMethods for HTMLFieldSetElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-cva-reportvalidity
-    fn ReportValidity(&self) -> bool {
-        self.report_validity()
+    fn ReportValidity(&self, can_gc: CanGc) -> bool {
+        self.report_validity(can_gc)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-cva-validationmessage
@@ -219,7 +220,7 @@ impl VirtualMethods for HTMLFieldSetElement {
                                 );
                             }
                         }
-                        element.update_sequentially_focusable_status();
+                        element.update_sequentially_focusable_status(CanGc::note());
                     }
                 } else {
                     for field in fields {
@@ -240,10 +241,10 @@ impl VirtualMethods for HTMLFieldSetElement {
                                 );
                             }
                         }
-                        element.update_sequentially_focusable_status();
+                        element.update_sequentially_focusable_status(CanGc::note());
                     }
                 }
-                element.update_sequentially_focusable_status();
+                element.update_sequentially_focusable_status(CanGc::note());
             },
             local_name!("form") => {
                 self.form_attribute_mutated(mutation);

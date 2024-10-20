@@ -634,8 +634,8 @@ impl HTMLFormElementMethods for HTMLFormElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-form-reportvalidity>
-    fn ReportValidity(&self) -> bool {
-        self.interactive_validation().is_ok()
+    fn ReportValidity(&self, can_gc: CanGc) -> bool {
+        self.interactive_validation(can_gc).is_ok()
     }
 }
 
@@ -733,7 +733,7 @@ impl HTMLFormElement {
             // Step 6.2
             self.firing_submission_events.set(true);
             // Step 6.3
-            if !submitter.no_validate(self) && self.interactive_validation().is_err() {
+            if !submitter.no_validate(self) && self.interactive_validation(can_gc).is_err() {
                 self.firing_submission_events.set(false);
                 return;
             }
@@ -1029,7 +1029,7 @@ impl HTMLFormElement {
 
     /// Interactively validate the constraints of form elements
     /// <https://html.spec.whatwg.org/multipage/#interactively-validate-the-constraints>
-    fn interactive_validation(&self) -> Result<(), ()> {
+    fn interactive_validation(&self, can_gc: CanGc) -> Result<(), ()> {
         // Step 1-2
         let unhandled_invalid_controls = match self.static_validation() {
             Ok(()) => return Ok(()),
@@ -1045,7 +1045,7 @@ impl HTMLFormElement {
             }
             if first {
                 if let Some(html_elem) = elem.downcast::<HTMLElement>() {
-                    html_elem.Focus();
+                    html_elem.Focus(can_gc);
                     first = false;
                 }
             }

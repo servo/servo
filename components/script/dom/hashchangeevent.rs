@@ -35,19 +35,20 @@ impl HashChangeEvent {
         }
     }
 
-    pub fn new_uninitialized(window: &Window) -> DomRoot<HashChangeEvent> {
-        Self::new_uninitialized_with_proto(window, None)
+    pub fn new_uninitialized(window: &Window, can_gc: CanGc) -> DomRoot<HashChangeEvent> {
+        Self::new_uninitialized_with_proto(window, None, can_gc)
     }
 
     fn new_uninitialized_with_proto(
         window: &Window,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> DomRoot<HashChangeEvent> {
         reflect_dom_object_with_proto(
             Box::new(HashChangeEvent::new_inherited(String::new(), String::new())),
             window,
             proto,
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -58,16 +59,10 @@ impl HashChangeEvent {
         cancelable: bool,
         old_url: String,
         new_url: String,
+        can_gc: CanGc,
     ) -> DomRoot<HashChangeEvent> {
         Self::new_with_proto(
-            window,
-            None,
-            type_,
-            bubbles,
-            cancelable,
-            old_url,
-            new_url,
-            CanGc::note(),
+            window, None, type_, bubbles, cancelable, old_url, new_url, can_gc,
         )
     }
 

@@ -1112,20 +1112,26 @@ impl Document {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#focus-fixup-rule>
-    pub(crate) fn perform_focus_fixup_rule(&self, not_focusable: &Element) {
+    pub(crate) fn perform_focus_fixup_rule(&self, not_focusable: &Element, can_gc: CanGc) {
         if Some(not_focusable) != self.focused.get().as_deref() {
             return;
         }
         self.request_focus(
             self.GetBody().as_ref().map(|e| e.upcast()),
             FocusType::Element,
+            can_gc,
         )
     }
 
     /// Request that the given element receive focus once the current transaction is complete.
     /// If None is passed, then whatever element is currently focused will no longer be focused
     /// once the transaction is complete.
-    pub(crate) fn request_focus(&self, elem: Option<&Element>, focus_type: FocusType) {
+    pub(crate) fn request_focus(
+        &self,
+        elem: Option<&Element>,
+        focus_type: FocusType,
+        can_gc: CanGc,
+    ) {
         let implicit_transaction = matches!(
             *self.focus_transaction.borrow(),
             FocusTransaction::NotInTransaction
@@ -1138,13 +1144,13 @@ impl Document {
                 FocusTransaction::InTransaction(elem.map(Dom::from_ref));
         }
         if implicit_transaction {
-            self.commit_focus_transaction(focus_type);
+            self.commit_focus_transaction(focus_type, can_gc);
         }
     }
 
     /// Reassign the focus context to the element that last requested focus during this
     /// transaction, or none if no elements requested it.
-    fn commit_focus_transaction(&self, focus_type: FocusType) {
+    fn commit_focus_transaction(&self, focus_type: FocusType, can_gc: CanGc) {
         let possibly_focused = match *self.focus_transaction.borrow() {
             FocusTransaction::NotInTransaction => unreachable!(),
             FocusTransaction::InTransaction(ref elem) => {
@@ -1159,7 +1165,7 @@ impl Document {
             let node = elem.upcast::<Node>();
             elem.set_focus_state(false);
             // FIXME: pass appropriate relatedTarget
-            self.fire_focus_event(FocusEventType::Blur, node, None);
+            self.fire_focus_event(FocusEventType::Blur, node, None, can_gc);
 
             // Notify the embedder to hide the input method.
             if elem.input_method_type().is_some() {
@@ -1173,7 +1179,7 @@ impl Document {
             elem.set_focus_state(true);
             let node = elem.upcast::<Node>();
             // FIXME: pass appropriate relatedTarget
-            self.fire_focus_event(FocusEventType::Focus, node, None);
+            self.fire_focus_event(FocusEventType::Focus, node, None, can_gc);
             // Update the focus state for all elements in the focus chain.
             // https://html.spec.whatwg.org/multipage/#focus-chain
             if focus_type == FocusType::Element {
@@ -1299,6 +1305,7 @@ impl Document {
         node_address: Option<UntrustedNodeAddress>,
         point_in_node: Option<Point2D<f32>>,
         pressed_mouse_buttons: u16,
+        can_gc: CanGc,
     ) {
         let mouse_event_type_string = match mouse_event_type {
             MouseEventType::Click => "click".to_owned(),
@@ -1328,7 +1335,7 @@ impl Document {
             }
 
             self.begin_focus_transaction();
-            self.request_focus(Some(&*el), FocusType::Element);
+            self.request_focus(Some(&*el), FocusType::Element, can_gc);
         }
 
         // https://w3c.github.io/uievents/#event-type-click
@@ -1390,7 +1397,7 @@ impl Document {
         }
 
         if let MouseEventType::Click = mouse_event_type {
-            self.commit_focus_transaction(FocusType::Element);
+            self.commit_focus_transaction(FocusType::Element, can_gc);
             self.maybe_fire_dblclick(client_point, node, pressed_mouse_buttons);
         }
     }
@@ -1901,10 +1908,11 @@ impl Document {
         }
     }
 
-    pub fn ime_dismissed(&self) {
+    pub fn ime_dismissed(&self, can_gc: CanGc) {
         self.request_focus(
             self.GetBody().as_ref().map(|e| e.upcast()),
             FocusType::Element,
+            can_gc,
         )
     }
 
@@ -2850,6 +2858,7 @@ impl Document {
         focus_event_type: FocusEventType,
         node: &Node,
         related_target: Option<&EventTarget>,
+        can_gc: CanGc,
     ) {
         let (event_name, does_bubble) = match focus_event_type {
             FocusEventType::Focus => (DOMString::from("focus"), EventBubbles::DoesNotBubble),
@@ -2863,6 +2872,7 @@ impl Document {
             Some(&self.window),
             0i32,
             related_target,
+            can_gc,
         );
         let event = event.upcast::<Event>();
         event.set_trusted(true);
@@ -4680,6 +4690,7 @@ impl DocumentMethods for Document {
             ))),
             "hashchangeevent" => Ok(DomRoot::upcast(HashChangeEvent::new_uninitialized(
                 &self.window,
+                can_gc,
             ))),
             "keyboardevent" => Ok(DomRoot::upcast(KeyboardEvent::new_uninitialized(
                 &self.window,
