@@ -120,12 +120,12 @@
 
   // Testing with 'none'. Missing components are resolved to zero during color space conversion.
   // https://drafts.csswg.org/css-color-4/#missing
-  fuzzy_test_computed_color(`rgb(from rebeccapurple none none none)`, `color(srgb 0 0 0)`);
-  fuzzy_test_computed_color(`rgb(from rebeccapurple none none none / none)`, `color(srgb 0 0 0 / none)`);
-  fuzzy_test_computed_color(`rgb(from rebeccapurple r g none)`, `color(srgb 0.4 0.2 0)`);
-  fuzzy_test_computed_color(`rgb(from rebeccapurple r g none / alpha)`, `color(srgb 0.4 0.2 0)`);
+  fuzzy_test_computed_color(`rgb(from rebeccapurple none none none)`, `color(srgb none none none)`);
+  fuzzy_test_computed_color(`rgb(from rebeccapurple none none none / none)`, `color(srgb none none none / none)`);
+  fuzzy_test_computed_color(`rgb(from rebeccapurple r g none)`, `color(srgb 0.4 0.2 none)`);
+  fuzzy_test_computed_color(`rgb(from rebeccapurple r g none / alpha)`, `color(srgb 0.4 0.2 none)`);
   fuzzy_test_computed_color(`rgb(from rebeccapurple r g b / none)`, `color(srgb 0.4 0.2 0.6 / none)`);
-  fuzzy_test_computed_color(`rgb(from rgb(20% 40% 60% / 80%) r g none / alpha)`, `color(srgb 0.2 0.4 0 / 0.8)`);
+  fuzzy_test_computed_color(`rgb(from rgb(20% 40% 60% / 80%) r g none / alpha)`, `color(srgb 0.2 0.4 none / 0.8)`);
   fuzzy_test_computed_color(`rgb(from rgb(20% 40% 60% / 80%) r g b / none)`, `color(srgb 0.2 0.4 0.6 / none)`);
   fuzzy_test_computed_color(`rgb(from rgb(none none none) r g b)`, `color(srgb 0 0 0)`);
   fuzzy_test_computed_color(`rgb(from rgb(none none none / none) r g b / alpha)`, `color(srgb 0 0 0 / 0)`);
@@ -144,6 +144,10 @@
 
   // Nesting combined with 'currentColor'
   fuzzy_test_computed_color_using_currentcolor(`rgb(from rgb(from currentColor r g b) r g b)`, `color(srgb 0.4 0.2 0.6)`, `rebeccapurple`);
+
+  // Nesting inside light-dark()
+  fuzzy_test_computed_color(`light-dark(rgb(from rebeccapurple r g b), rgb(from rebeccapurple r g b))`, `color(srgb 0.4 0.2 0.6)`);
+  fuzzy_test_computed_color(`light-dark(color-mix(in srgb, rgb(from rebeccapurple none g b), rebeccapurple), color-mix(in srgb, rgb(from rebeccapurple none g b), rebeccapurple))`, `color(srgb 0.4 0.2 0.6)`);
 
   // hsl(from ...)
 

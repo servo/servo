@@ -5,9 +5,7 @@ import json
 import os
 import socket
 import threading
-import time
 import traceback
-import uuid
 from urllib.parse import urljoin
 
 from .base import (AsyncCallbackHandler,
@@ -81,6 +79,9 @@ class WebDriverBaseProtocolPart(BaseProtocolPart):
             # workaround https://bugs.chromium.org/p/chromedriver/issues/detail?id=2057
             body = {"type": "script", "ms": timeout * 1000}
             self.webdriver.send_session_command("POST", "timeouts", body)
+
+    def create_window(self, type="tab", **kwargs):
+        return self.webdriver.new_window(type_hint=type)
 
     @property
     def current_window(self):
@@ -226,10 +227,9 @@ class WebDriverTestharnessProtocolPart(TestharnessProtocolPart):
     def setup(self):
         self.webdriver = self.parent.webdriver
         self.runner_handle = None
+        self.persistent_test_window = None
         with open(os.path.join(here, "runner.js")) as f:
             self.runner_script = f.read()
-        with open(os.path.join(here, "window-loaded.js")) as f:
-            self.window_loaded_script = f.read()
 
     def load_runner(self, url_protocol):
         if self.runner_handle:
@@ -245,10 +245,11 @@ class WebDriverTestharnessProtocolPart(TestharnessProtocolPart):
 
     def close_old_windows(self):
         self.webdriver.actions.release()
-        handles = [item for item in self.webdriver.handles if item != self.runner_handle]
-        for handle in handles:
-            self._close_window(handle)
+        for handle in self.webdriver.handles:
+            if handle not in {self.runner_handle, self.persistent_test_window}:
+                self._close_window(handle)
         self.webdriver.window_handle = self.runner_handle
+        self.reset_browser_state()
         return self.runner_handle
 
     def _close_window(self, window_handle):
@@ -258,65 +259,8 @@ class WebDriverTestharnessProtocolPart(TestharnessProtocolPart):
         except webdriver_error.NoSuchWindowException:
             pass
 
-    def open_test_window(self, window_id):
-        self.webdriver.execute_script(
-            "window.open('about:blank', '%s', 'noopener')" % window_id)
-
-    def get_test_window(self, window_id, parent, timeout=5):
-        """Find the test window amongst all the open windows.
-        This is assumed to be either the named window or the one after the parent in the list of
-        window handles
-
-        :param window_id: The DOM name of the Window
-        :param parent: The handle of the runner window
-        :param timeout: The time in seconds to wait for the window to appear. This is because in
-                        some implementations there's a race between calling window.open and the
-                        window being added to the list of WebDriver accessible windows."""
-        test_window = None
-        end_time = time.time() + timeout
-        while time.time() < end_time:
-            try:
-                # Try using the JSON serialization of the WindowProxy object,
-                # it's in Level 1 but nothing supports it yet
-                win_s = self.webdriver.execute_script("return window['%s'];" % window_id)
-                win_obj = json.loads(win_s)
-                test_window = win_obj["window-fcc6-11e5-b4f8-330a88ab9d7f"]
-            except Exception:
-                pass
-
-            if test_window is None:
-                test_window = self._poll_handles_for_test_window(parent)
-
-            if test_window is not None:
-                assert test_window != parent
-                return test_window
-
-            time.sleep(0.1)
-
-        raise Exception("unable to find test window")
-
-    def _poll_handles_for_test_window(self, parent):
-        test_window = None
-        after = self.webdriver.handles
-        if len(after) == 2:
-            test_window = next(iter(set(after) - {parent}))
-        elif after[0] == parent and len(after) > 2:
-            # Hope the first one here is the test window
-            test_window = after[1]
-        return test_window
-
-    def test_window_loaded(self):
-        """Wait until the page in the new window has been loaded.
-
-        Hereby ignore Javascript execptions that are thrown when
-        the document has been unloaded due to a process change.
-        """
-        while True:
-            try:
-                self.webdriver.execute_script(self.window_loaded_script, asynchronous=True)
-                break
-            except webdriver_error.JavascriptErrorException:
-                pass
+    def reset_browser_state(self):
+        """Reset browser-wide state that normally persists between tests."""
 
 
 class WebDriverPrintProtocolPart(PrintProtocolPart):
@@ -828,7 +772,6 @@ class WebDriverTestharnessExecutor(TestharnessExecutor):
             self._get_next_message = self._get_next_message_classic
 
         self.close_after_done = close_after_done
-        self.window_id = str(uuid.uuid4())
         self.cleanup_after_test = cleanup_after_test
 
     def is_alive(self):
@@ -857,7 +800,7 @@ class WebDriverTestharnessExecutor(TestharnessExecutor):
     def do_testharness(self, protocol, url, timeout):
         # The previous test may not have closed its old windows (if something
         # went wrong or if cleanup_after_test was False), so clean up here.
-        parent_window = protocol.testharness.close_old_windows()
+        protocol.testharness.close_old_windows()
 
         # If protocol implements `bidi_events`, remove all the existing subscriptions.
         if hasattr(protocol, 'bidi_events'):
@@ -865,12 +808,8 @@ class WebDriverTestharnessExecutor(TestharnessExecutor):
             protocol.loop.run_until_complete(protocol.bidi_events.unsubscribe_all())
 
         # Now start the test harness
-        protocol.testharness.open_test_window(self.window_id)
-        test_window = protocol.testharness.get_test_window(self.window_id,
-                                                           parent_window,
-                                                           timeout=5*self.timeout_multiplier)
+        test_window = self.get_or_create_test_window(protocol)
         self.protocol.base.set_window(test_window)
-
         # Wait until about:blank has been loaded
         protocol.base.execute_script(self.window_loaded_script, asynchronous=True)
 
@@ -974,6 +913,9 @@ class WebDriverTestharnessExecutor(TestharnessExecutor):
             raise unexpected_exceptions[0]
 
         return rv, extra
+
+    def get_or_create_test_window(self, protocol):
+        return protocol.base.create_window()
 
     def _get_next_message_classic(self, protocol, url, _):
         """

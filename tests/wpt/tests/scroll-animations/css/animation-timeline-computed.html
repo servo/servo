@@ -69,5 +69,8 @@ test_computed_value('animation-timeline', 'view(y 1px auto)');
 test_computed_value('animation-timeline', 'view(1px y)', 'view(y 1px)');
 test_computed_value('animation-timeline', 'view(y auto)', 'view(y)');
 test_computed_value('animation-timeline', 'view(y auto auto)', 'view(y)');
+test_computed_value('animation-timeline', 'view(10% 10px)', 'view(10% 10px)');
+test_computed_value('animation-timeline', 'view(auto calc(1% + 1px))');
+test_computed_value('animation-timeline', 'view(2em calc(1% + 1em))', 'view(32px calc(1% + 16px))');
 
 </script>

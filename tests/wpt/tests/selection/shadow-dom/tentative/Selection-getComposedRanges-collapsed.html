@@ -14,7 +14,7 @@
   </div>
   <div id="host2">
     <template shadowrootmode=open>D</template>
-    <div id=b>B - not slotted</div>
+    B - not slotted
   </div>
 </div>
 
@@ -22,20 +22,6 @@
 
 const c = host1.shadowRoot;
 const d = host2.shadowRoot;
-
-test(() => {
-  const sel = getSelection();
-  sel.setBaseAndExtent(b, 0, c, 0);
-  assert_equals(sel.getRangeAt(0).startContainer, b);
-  assert_equals(sel.getRangeAt(0).startOffset, 0);
-  assert_equals(sel.getRangeAt(0).endContainer, b);
-  assert_equals(sel.getRangeAt(0).endOffset, 0);
-
-  assert_equals(sel.getComposedRanges()[0].startContainer, b);
-  assert_equals(sel.getComposedRanges()[0].startOffset, 0);
-  assert_equals(sel.getComposedRanges()[0].endContainer, b);
-  assert_equals(sel.getComposedRanges()[0].endOffset, 0);
-}, 'Setting the range to nodes that aren\'t in the same tree collapses both composed and non-composed ranges.');
 
 test(() => {
   const sel = getSelection();

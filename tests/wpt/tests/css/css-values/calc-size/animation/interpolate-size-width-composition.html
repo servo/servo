@@ -56,15 +56,15 @@ test_composition({
 
 test_composition({
   property: 'width',
-  underlying: 'max-content', /* ignored, not compatible */
-  addFrom: '100px',
-  addTo: 'auto', /* 200px */
+  underlying: 'max-content', /* 100px */
+  addFrom: '200px',
+  addTo: 'auto', /* 200px, max-content underlying is ignored */
 }, [
-  {at: -0.3, expect: '70px'},
-  {at: 0, expect: '100px'},
-  {at: 0.5, expect: '150px'},
+  {at: -0.3, expect: '300px'},
+  {at: 0, expect: '300px'},
+  {at: 0.5, expect: '200px'},
   {at: 1, expect: '200px'},
-  {at: 1.5, expect: '250px'},
+  {at: 1.5, expect: '200px'},
 ]);
 </script>
 </body>

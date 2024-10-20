@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<body>
+<meta name="author" href="mailto:dizhangg@chromium.org">
+<meta name="assert" content="Selection's getComposedRanges should return a sequence of static ranges, selecting from slotted content">
+<link rel="help" href="https://w3c.github.io/selection-api/#dom-selection-getcomposedranges">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="container"></div>
+
+<script>
+
+test(() => {
+  container.innerHTML = '<div id=host>Second</div>';
+  const shadowRoot = host.attachShadow({ mode:"open" });
+  shadowRoot.innerHTML = 'First <slot></slot> Third';
+  const second = host.firstChild;
+  const third = shadowRoot.querySelector('slot').nextSibling;
+
+  const sel = getSelection();
+  // Select from slotted second to shadowed third.
+  sel.setBaseAndExtent(second, 3, third, 4);
+
+  assert_equals(sel.getRangeAt(0).startContainer, second);
+  assert_equals(sel.getRangeAt(0).startOffset, 3);
+  assert_equals(sel.getRangeAt(0).endContainer, second, 'Collapsed because crossing shadow tree is not supported for getRangeAt.');
+  assert_equals(sel.getRangeAt(0).endOffset, 3);
+
+  assert_equals(sel.getComposedRanges()[0].startContainer, container);
+  assert_equals(sel.getComposedRanges()[0].startOffset, 0, 'Rescoped because no shadow roots were provided');
+  assert_equals(sel.getComposedRanges()[0].endContainer, second);
+  assert_equals(sel.getComposedRanges()[0].endOffset, 3);
+
+  assert_equals(sel.getComposedRanges({ shadowRoots: [shadowRoot] })[0].startContainer, third);
+  assert_equals(sel.getComposedRanges({ shadowRoots: [shadowRoot] })[0].startOffset, 4);
+  assert_equals(sel.getComposedRanges({ shadowRoots: [shadowRoot] })[0].endContainer, second);
+  assert_equals(sel.getComposedRanges({ shadowRoots: [shadowRoot] })[0].endOffset, 3);
+
+  // Repeat the test, but reversing base and extent. This should not affect the range's start and end positions.
+  sel.setBaseAndExtent(third, 4, second, 3);
+  assert_equals(sel.getComposedRanges({ shadowRoots: [shadowRoot] })[0].startContainer, third);
+  assert_equals(sel.getComposedRanges({ shadowRoots: [shadowRoot] })[0].startOffset, 4);
+  assert_equals(sel.getComposedRanges({ shadowRoots: [shadowRoot] })[0].endContainer, second);
+  assert_equals(sel.getComposedRanges({ shadowRoots: [shadowRoot] })[0].endOffset, 3);
+}, 'Setting the range to start on slotted content and end in shadow tree, should follow DOM tree order.');
+
+test(() => {
+  container.innerHTML = [
+    '<div id=host>',
+    '<div id=div1 slot=slot2>slotted content 1</div>',
+    '<div id=div2 slot=slot1>slotted content 2</div>',
+    '</div>'
+  ].join('');
+  const shadowRoot = host.attachShadow({mode: 'open'});
+  shadowRoot.innerHTML = [
+    '<span>before</span>',
+    '<slot name=slot1></slot>',
+    '<span>between</span>',
+    '<slot name=slot2></slot>',
+    '<span>after</span>',
+  ].join('');
+
+  const sel = getSelection();
+  // Select from slotted div1 to slotted div2.
+  sel.setBaseAndExtent(div1.firstChild, 2, div2.firstChild, 2);
+
+  assert_equals(sel.getRangeAt(0).startContainer, div1.firstChild);
+  assert_equals(sel.getRangeAt(0).startOffset, 2);
+  assert_equals(sel.getRangeAt(0).endContainer, div2.firstChild, 'Not collapsed because we are not crossing shadow trees.');
+  assert_equals(sel.getRangeAt(0).endOffset, 2);
+
+  assert_equals(sel.getComposedRanges()[0].startContainer, div1.firstChild);
+  assert_equals(sel.getComposedRanges()[0].startOffset, 2);
+  assert_equals(sel.getComposedRanges()[0].endContainer, div2.firstChild, 'Not rescoped because we are not crossing shadow trees.');
+  assert_equals(sel.getComposedRanges()[0].endOffset, 2);
+
+  assert_equals(sel.getComposedRanges({ shadowRoots: [shadowRoot] })[0].startContainer, div1.firstChild);
+  assert_equals(sel.getComposedRanges({ shadowRoots: [shadowRoot] })[0].startOffset, 2);
+  assert_equals(sel.getComposedRanges({ shadowRoots: [shadowRoot] })[0].endContainer, div2.firstChild);
+  assert_equals(sel.getComposedRanges({ shadowRoots: [shadowRoot] })[0].endOffset, 2);
+
+  // Repeat the test, but reversing base and extent. This should not affect the range's start and end positions.
+  sel.setBaseAndExtent(div2.firstChild, 2, div1.firstChild, 2);
+  assert_equals(sel.getComposedRanges({ shadowRoots: [shadowRoot] })[0].startContainer, div1.firstChild);
+  assert_equals(sel.getComposedRanges({ shadowRoots: [shadowRoot] })[0].startOffset, 2);
+  assert_equals(sel.getComposedRanges({ shadowRoots: [shadowRoot] })[0].endContainer, div2.firstChild);
+  assert_equals(sel.getComposedRanges({ shadowRoots: [shadowRoot] })[0].endOffset, 2);
+}, 'Setting the range to start and end on slotted content, should follow DOM tree order.');
+
+test(() => {
+  container.innerHTML = '<div id=host>Second</div>';
+  const shadowRoot = host.attachShadow({ mode:"open" });
+  shadowRoot.innerHTML = '<span id="first">First</span><span id=third>Third</span>';
+  const second = host.firstChild;
+  const third = shadowRoot.getElementById('third').firstChild;
+
+  const sel = getSelection();
+  // Select from unslotted second to shadowed third.
+  sel.setBaseAndExtent(second, 3, third, 4);
+
+  assert_equals(sel.getRangeAt(0).startContainer, second);
+  assert_equals(sel.getRangeAt(0).startOffset, 3);
+  assert_equals(sel.getRangeAt(0).endContainer, second, 'Collapsed because crossing shadow tree is not supported for getRangeAt.');
+  assert_equals(sel.getRangeAt(0).endOffset, 3);
+
+  assert_equals(sel.getComposedRanges()[0].startContainer, container);
+  assert_equals(sel.getComposedRanges()[0].startOffset, 0, 'Rescoped because no shadow roots were provided');
+  assert_equals(sel.getComposedRanges()[0].endContainer, second);
+  assert_equals(sel.getComposedRanges()[0].endOffset, 3);
+
+  assert_equals(sel.getComposedRanges({ shadowRoots: [shadowRoot] })[0].startContainer, third);
+  assert_equals(sel.getComposedRanges({ shadowRoots: [shadowRoot] })[0].startOffset, 4);
+  assert_equals(sel.getComposedRanges({ shadowRoots: [shadowRoot] })[0].endContainer, second);
+  assert_equals(sel.getComposedRanges({ shadowRoots: [shadowRoot] })[0].endOffset, 3);
+
+  // Repeat the test, but reversing base and extent. This should not affect the range's start and end positions.
+  sel.setBaseAndExtent(third, 4, second, 3);
+  assert_equals(sel.getComposedRanges({ shadowRoots: [shadowRoot] })[0].startContainer, third);
+  assert_equals(sel.getComposedRanges({ shadowRoots: [shadowRoot] })[0].startOffset, 4);
+  assert_equals(sel.getComposedRanges({ shadowRoots: [shadowRoot] })[0].endContainer, second);
+  assert_equals(sel.getComposedRanges({ shadowRoots: [shadowRoot] })[0].endOffset, 3);
+}, 'Setting the range to start on unslotted content and end in shadow tree, should follow DOM tree order.');
+</script>
