@@ -51,9 +51,8 @@ jobs:
           sudo apt update
           python3 ./mach bootstrap
       # TODO: Do GitHub anotaions
-      # TODO: Fail on warnings
       - name: Clippy
         run: |
-          python3 ./mach cargo-clippy --use-crown --locked
+          python3 ./mach cargo-clippy --use-crown --locked -- -- --deny warnings
       - name: Tidy
         run: python3 ./mach test-tidy --no-progress --all

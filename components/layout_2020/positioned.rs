@@ -867,7 +867,7 @@ impl<'a> AbsoluteAxisSolver<'a> {
         // Override sizes
         let old_size = mem::replace(&mut self.computed_size, AuOrAuto::LengthPercentage(size));
         let old_min_size = mem::replace(&mut self.computed_min_size, Au::zero());
-        let old_max_size = mem::replace(&mut self.computed_max_size, None);
+        let old_max_size = self.computed_max_size.take();
 
         let result = self.solve_tentatively();
 
