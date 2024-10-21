@@ -25,6 +25,7 @@ use crate::dom::element::Element;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::{self, Node, VecPreOrderInsertionHelper};
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 use crate::stylesheet_set::StylesheetSetRef;
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
@@ -90,8 +91,12 @@ impl DocumentOrShadowRoot {
         &self,
         client_point: &Point2D<f32>,
         query_type: NodesFromPointQueryType,
+        can_gc: CanGc,
     ) -> Vec<UntrustedNodeAddress> {
-        if !self.window.layout_reflow(QueryMsg::NodesFromPointQuery) {
+        if !self
+            .window
+            .layout_reflow(QueryMsg::NodesFromPointQuery, can_gc)
+        {
             return vec![];
         };
 
@@ -108,6 +113,7 @@ impl DocumentOrShadowRoot {
         y: Finite<f64>,
         document_element: Option<DomRoot<Element>>,
         has_browsing_context: bool,
+        can_gc: CanGc,
     ) -> Option<DomRoot<Element>> {
         let x = *x as f32;
         let y = *y as f32;
@@ -123,7 +129,7 @@ impl DocumentOrShadowRoot {
         }
 
         match self
-            .nodes_from_point(point, NodesFromPointQueryType::Topmost)
+            .nodes_from_point(point, NodesFromPointQueryType::Topmost, can_gc)
             .first()
         {
             Some(address) => {
@@ -147,6 +153,7 @@ impl DocumentOrShadowRoot {
         y: Finite<f64>,
         document_element: Option<DomRoot<Element>>,
         has_browsing_context: bool,
+        can_gc: CanGc,
     ) -> Vec<DomRoot<Element>> {
         let x = *x as f32;
         let y = *y as f32;
@@ -163,7 +170,7 @@ impl DocumentOrShadowRoot {
         }
 
         // Step 1 and Step 3
-        let nodes = self.nodes_from_point(point, NodesFromPointQueryType::All);
+        let nodes = self.nodes_from_point(point, NodesFromPointQueryType::All, can_gc);
         let mut elements: Vec<DomRoot<Element>> = nodes
             .iter()
             .flat_map(|&untrusted_node_address| {

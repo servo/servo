@@ -271,6 +271,7 @@ impl Event {
                 object,
                 self,
                 Some(ListenerPhase::Capturing),
+                can_gc,
             );
         }
 
@@ -290,6 +291,7 @@ impl Event {
                     object,
                     self,
                     Some(ListenerPhase::Bubbling),
+                    can_gc,
                 );
             }
         }
@@ -639,6 +641,7 @@ fn invoke(
     object: &EventTarget,
     event: &Event,
     phase: Option<ListenerPhase>,
+    can_gc: CanGc,
     // TODO legacy_output_did_listeners_throw for indexeddb
 ) {
     // Step 1: Until shadow DOM puts the event path in the
@@ -657,7 +660,7 @@ fn invoke(
     event.current_target.set(Some(object));
 
     // Step 6
-    let listeners = object.get_listeners_for(&event.type_(), phase);
+    let listeners = object.get_listeners_for(&event.type_(), phase, can_gc);
 
     // Step 7.
     let found = inner_invoke(timeline_window, object, event, &listeners);

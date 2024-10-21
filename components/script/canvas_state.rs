@@ -737,8 +737,13 @@ impl CanvasState {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-shadowcolor
-    pub fn set_shadow_color(&self, canvas: Option<&HTMLCanvasElement>, value: DOMString) {
-        if let Ok(rgba) = parse_color(canvas, &value) {
+    pub fn set_shadow_color(
+        &self,
+        canvas: Option<&HTMLCanvasElement>,
+        value: DOMString,
+        can_gc: CanGc,
+    ) {
+        if let Ok(rgba) = parse_color(canvas, &value, can_gc) {
             self.state.borrow_mut().shadow_color = rgba;
             self.send_canvas_2d_msg(Canvas2dMsg::SetShadowColor(rgba))
         }
@@ -766,10 +771,11 @@ impl CanvasState {
         &self,
         canvas: Option<&HTMLCanvasElement>,
         value: StringOrCanvasGradientOrCanvasPattern,
+        can_gc: CanGc,
     ) {
         match value {
             StringOrCanvasGradientOrCanvasPattern::String(string) => {
-                if let Ok(rgba) = parse_color(canvas, &string) {
+                if let Ok(rgba) = parse_color(canvas, &string, can_gc) {
                     self.state.borrow_mut().stroke_style = CanvasFillOrStrokeStyle::Color(rgba);
                 }
             },
@@ -809,10 +815,11 @@ impl CanvasState {
         &self,
         canvas: Option<&HTMLCanvasElement>,
         value: StringOrCanvasGradientOrCanvasPattern,
+        can_gc: CanGc,
     ) {
         match value {
             StringOrCanvasGradientOrCanvasPattern::String(string) => {
-                if let Ok(rgba) = parse_color(canvas, &string) {
+                if let Ok(rgba) = parse_color(canvas, &string, can_gc) {
                     self.state.borrow_mut().fill_style = CanvasFillOrStrokeStyle::Color(rgba);
                 }
             },
@@ -1002,6 +1009,7 @@ impl CanvasState {
         x: f64,
         y: f64,
         max_width: Option<f64>,
+        can_gc: CanGc,
     ) {
         if !x.is_finite() || !y.is_finite() {
             return;
@@ -1010,7 +1018,11 @@ impl CanvasState {
             return;
         }
         if self.state.borrow().font_style.is_none() {
-            self.set_font(canvas, CanvasContextState::DEFAULT_FONT_STYLE.into())
+            self.set_font(
+                canvas,
+                CanvasContextState::DEFAULT_FONT_STYLE.into(),
+                can_gc,
+            )
         }
 
         let is_rtl = match self.state.borrow().direction {
@@ -1036,9 +1048,14 @@ impl CanvasState {
         global: &GlobalScope,
         canvas: Option<&HTMLCanvasElement>,
         text: DOMString,
+        can_gc: CanGc,
     ) -> DomRoot<TextMetrics> {
         if self.state.borrow().font_style.is_none() {
-            self.set_font(canvas, CanvasContextState::DEFAULT_FONT_STYLE.into());
+            self.set_font(
+                canvas,
+                CanvasContextState::DEFAULT_FONT_STYLE.into(),
+                can_gc,
+            );
         }
 
         let (sender, receiver) = ipc::channel::<CanvasTextMetrics>().unwrap();
@@ -1063,17 +1080,18 @@ impl CanvasState {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-font
-    pub fn set_font(&self, canvas: Option<&HTMLCanvasElement>, value: DOMString) {
+    pub fn set_font(&self, canvas: Option<&HTMLCanvasElement>, value: DOMString, can_gc: CanGc) {
         let canvas = match canvas {
             Some(element) => element,
             None => return, // offscreen canvas doesn't have a placeholder canvas
         };
         let node = canvas.upcast::<Node>();
         let window = window_from_node(canvas);
-        let resolved_font_style = match window.resolved_font_style_query(node, value.to_string()) {
-            Some(value) => value,
-            None => return, // syntax error
-        };
+        let resolved_font_style =
+            match window.resolved_font_style_query(node, value.to_string(), can_gc) {
+                Some(value) => value,
+                None => return, // syntax error
+            };
         self.state.borrow_mut().font_style = Some((*resolved_font_style).clone());
         self.send_canvas_2d_msg(Canvas2dMsg::SetFont((*resolved_font_style).clone()));
     }
@@ -1717,7 +1735,11 @@ impl CanvasState {
     }
 }
 
-pub fn parse_color(canvas: Option<&HTMLCanvasElement>, string: &str) -> Result<AbsoluteColor, ()> {
+pub fn parse_color(
+    canvas: Option<&HTMLCanvasElement>,
+    string: &str,
+    can_gc: CanGc,
+) -> Result<AbsoluteColor, ()> {
     let mut input = ParserInput::new(string);
     let mut parser = Parser::new(&mut input);
     let url = Url::parse("about:blank").unwrap().into();
@@ -1745,8 +1767,8 @@ pub fn parse_color(canvas: Option<&HTMLCanvasElement>, string: &str) -> Result<A
                 None => AbsoluteColor::BLACK,
                 Some(canvas) => {
                     let canvas_element = canvas.upcast::<Element>();
-                    match canvas_element.style() {
-                        Some(ref s) if canvas_element.has_css_layout_box() => {
+                    match canvas_element.style(can_gc) {
+                        Some(ref s) if canvas_element.has_css_layout_box(can_gc) => {
                             s.get_inherited_text().color
                         },
                         _ => AbsoluteColor::BLACK,

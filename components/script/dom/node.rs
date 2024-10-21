@@ -793,25 +793,25 @@ impl Node {
 
     /// Returns the rendered bounding content box if the element is rendered,
     /// and none otherwise.
-    pub fn bounding_content_box(&self) -> Option<Rect<Au>> {
-        window_from_node(self).content_box_query(self)
+    pub fn bounding_content_box(&self, can_gc: CanGc) -> Option<Rect<Au>> {
+        window_from_node(self).content_box_query(self, can_gc)
     }
 
-    pub fn bounding_content_box_or_zero(&self) -> Rect<Au> {
-        self.bounding_content_box().unwrap_or_else(Rect::zero)
+    pub fn bounding_content_box_or_zero(&self, can_gc: CanGc) -> Rect<Au> {
+        self.bounding_content_box(can_gc).unwrap_or_else(Rect::zero)
     }
 
-    pub fn content_boxes(&self) -> Vec<Rect<Au>> {
-        window_from_node(self).content_boxes_query(self)
+    pub fn content_boxes(&self, can_gc: CanGc) -> Vec<Rect<Au>> {
+        window_from_node(self).content_boxes_query(self, can_gc)
     }
 
-    pub fn client_rect(&self) -> Rect<i32> {
-        window_from_node(self).client_rect_query(self)
+    pub fn client_rect(&self, can_gc: CanGc) -> Rect<i32> {
+        window_from_node(self).client_rect_query(self, can_gc)
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-element-scrollwidth>
     /// <https://drafts.csswg.org/cssom-view/#dom-element-scrollheight>
-    pub fn scroll_area(&self) -> Rect<i32> {
+    pub fn scroll_area(&self, can_gc: CanGc) -> Rect<i32> {
         // "1. Let document be the element’s node document.""
         let document = self.owner_doc();
 
@@ -837,7 +837,7 @@ impl Node {
         // element is not potentially scrollable, return max(viewport scrolling area
         // width, viewport width)."
         if (is_root && !in_quirks_mode) || (is_body_element && in_quirks_mode) {
-            let viewport_scrolling_area = window.scrolling_area_query(None);
+            let viewport_scrolling_area = window.scrolling_area_query(None, can_gc);
             return Rect::new(
                 viewport_scrolling_area.origin,
                 viewport_scrolling_area.size.max(viewport),
@@ -847,7 +847,7 @@ impl Node {
         // "6. If the element does not have any associated box return zero and terminate
         // these steps."
         // "7. Return the width of the element’s scrolling area."
-        window.scrolling_area_query(Some(self))
+        window.scrolling_area_query(Some(self), can_gc)
     }
 
     pub fn scroll_offset(&self) -> Vector2D<f32> {
@@ -1270,8 +1270,8 @@ impl Node {
         })
     }
 
-    pub fn style(&self) -> Option<Arc<ComputedValues>> {
-        if !window_from_node(self).layout_reflow(QueryMsg::StyleQuery) {
+    pub fn style(&self, can_gc: CanGc) -> Option<Arc<ComputedValues>> {
+        if !window_from_node(self).layout_reflow(QueryMsg::StyleQuery, can_gc) {
             return None;
         }
         self.style_data

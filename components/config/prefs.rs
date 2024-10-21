@@ -174,14 +174,6 @@ mod gen {
         13
     }
 
-    fn black() -> i64 {
-        0x000000
-    }
-
-    fn white() -> i64 {
-        0xFFFFFF
-    }
-
     build_structs! {
         // type of the accessors
         accessor_type = crate::pref_util::Accessor::<Prefs, crate::pref_util::PrefValue>,

@@ -108,11 +108,12 @@ impl InlineEventListener {
         &mut self,
         owner: &EventTarget,
         ty: &Atom,
+        can_gc: CanGc,
     ) -> Option<CommonEventHandler> {
         match mem::replace(self, InlineEventListener::Null) {
             InlineEventListener::Null => None,
             InlineEventListener::Uncompiled(handler) => {
-                let result = owner.get_compiled_event_handler(handler, ty);
+                let result = owner.get_compiled_event_handler(handler, ty, can_gc);
                 if let Some(ref compiled) = result {
                     *self = InlineEventListener::Compiled(compiled.clone());
                 }
@@ -137,10 +138,11 @@ impl EventListenerType {
         &mut self,
         owner: &EventTarget,
         ty: &Atom,
+        can_gc: CanGc,
     ) -> Option<CompiledEventListener> {
         match *self {
             EventListenerType::Inline(ref mut inline) => inline
-                .get_compiled_handler(owner, ty)
+                .get_compiled_handler(owner, ty, can_gc)
                 .map(CompiledEventListener::Handler),
             EventListenerType::Additive(ref listener) => {
                 Some(CompiledEventListener::Listener(listener.clone()))
@@ -309,11 +311,12 @@ impl EventListeners {
         &mut self,
         owner: &EventTarget,
         ty: &Atom,
+        can_gc: CanGc,
     ) -> Option<CommonEventHandler> {
         for entry in &mut self.0 {
             if let EventListenerType::Inline(ref mut inline) = entry.listener {
                 // Step 1.1-1.8 and Step 2
-                return inline.get_compiled_handler(owner, ty);
+                return inline.get_compiled_handler(owner, ty, can_gc);
             }
         }
 
@@ -327,13 +330,14 @@ impl EventListeners {
         phase: Option<ListenerPhase>,
         owner: &EventTarget,
         ty: &Atom,
+        can_gc: CanGc,
     ) -> Vec<CompiledEventListener> {
         self.0
             .iter_mut()
             .filter_map(|entry| {
                 if phase.is_none() || Some(entry.phase) == phase {
                     // Step 1.1-1.8, 2
-                    entry.listener.get_compiled_listener(owner, ty)
+                    entry.listener.get_compiled_listener(owner, ty, can_gc)
                 } else {
                     None
                 }
@@ -388,12 +392,13 @@ impl EventTarget {
         &self,
         type_: &Atom,
         specific_phase: Option<ListenerPhase>,
+        can_gc: CanGc,
     ) -> Vec<CompiledEventListener> {
         self.handlers
             .borrow_mut()
             .get_mut(type_)
             .map_or(vec![], |listeners| {
-                listeners.get_listeners(specific_phase, self, type_)
+                listeners.get_listeners(specific_phase, self, type_, can_gc)
             })
     }
 
@@ -449,11 +454,11 @@ impl EventTarget {
         }
     }
 
-    fn get_inline_event_listener(&self, ty: &Atom) -> Option<CommonEventHandler> {
+    fn get_inline_event_listener(&self, ty: &Atom, can_gc: CanGc) -> Option<CommonEventHandler> {
         let mut handlers = self.handlers.borrow_mut();
         handlers
             .get_mut(ty)
-            .and_then(|entry| entry.get_inline_listener(self, ty))
+            .and_then(|entry| entry.get_inline_listener(self, ty, can_gc))
     }
 
     /// Store the raw uncompiled event handler for on-demand compilation later.
@@ -474,11 +479,14 @@ impl EventTarget {
 
     // https://html.spec.whatwg.org/multipage/#getting-the-current-value-of-the-event-handler
     // step 3
+    // While the CanGc argument appears unused, it reflects the fact that the CompileFunction
+    // API call can trigger a GC operation.
     #[allow(unsafe_code)]
     fn get_compiled_event_handler(
         &self,
         handler: InternalRawUncompiledHandler,
         ty: &Atom,
+        _can_gc: CanGc,
     ) -> Option<CommonEventHandler> {
         // Step 3.1
         let element = self.downcast::<Element>();
@@ -633,9 +641,13 @@ impl EventTarget {
     }
 
     #[allow(unsafe_code)]
-    pub fn get_event_handler_common<T: CallbackContainer>(&self, ty: &str) -> Option<Rc<T>> {
+    pub fn get_event_handler_common<T: CallbackContainer>(
+        &self,
+        ty: &str,
+        can_gc: CanGc,
+    ) -> Option<Rc<T>> {
         let cx = GlobalScope::get_cx();
-        let listener = self.get_inline_event_listener(&Atom::from(ty));
+        let listener = self.get_inline_event_listener(&Atom::from(ty), can_gc);
         unsafe {
             listener.map(|listener| {
                 CallbackContainer::new(cx, listener.parent().callback_holder().get())

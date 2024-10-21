@@ -388,8 +388,8 @@ fn get_element_in_view_center_point(element: &Element, can_gc: CanGc) -> Option<
                 let width = rectangle.Width().round() as i64;
                 let height = rectangle.Height().round() as i64;
 
-                let client_width = body.ClientWidth() as i64;
-                let client_height = body.ClientHeight() as i64;
+                let client_width = body.ClientWidth(can_gc) as i64;
+                let client_height = body.ClientHeight(can_gc) as i64;
 
                 // Steps 2 - 5
                 let left = cmp::max(0, cmp::min(x, x + width));
@@ -881,6 +881,7 @@ pub fn handle_get_rect(
     pipeline: PipelineId,
     element_id: String,
     reply: IpcSender<Result<Rect<f64>, ErrorStatus>>,
+    can_gc: CanGc,
 ) {
     reply
         .send(
@@ -892,15 +893,15 @@ pub fn handle_get_rect(
                         let mut x = 0;
                         let mut y = 0;
 
-                        let mut offset_parent = html_element.GetOffsetParent();
+                        let mut offset_parent = html_element.GetOffsetParent(can_gc);
 
                         // Step 2
                         while let Some(element) = offset_parent {
                             offset_parent = match element.downcast::<HTMLElement>() {
                                 Some(elem) => {
-                                    x += elem.OffsetLeft();
-                                    y += elem.OffsetTop();
-                                    elem.GetOffsetParent()
+                                    x += elem.OffsetLeft(can_gc);
+                                    y += elem.OffsetTop(can_gc);
+                                    elem.GetOffsetParent(can_gc)
                                 },
                                 None => None,
                             };
@@ -909,8 +910,8 @@ pub fn handle_get_rect(
                         Ok(Rect::new(
                             Point2D::new(x as f64, y as f64),
                             Size2D::new(
-                                html_element.OffsetWidth() as f64,
-                                html_element.OffsetHeight() as f64,
+                                html_element.OffsetWidth(can_gc) as f64,
+                                html_element.OffsetHeight(can_gc) as f64,
                             ),
                         ))
                     },

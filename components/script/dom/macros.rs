@@ -318,8 +318,9 @@ macro_rules! define_event_handler(
         fn $getter(&self) -> Option<::std::rc::Rc<$handler>> {
             use crate::dom::bindings::inheritance::Castable;
             use crate::dom::eventtarget::EventTarget;
+            use crate::script_runtime::CanGc;
             let eventtarget = self.upcast::<EventTarget>();
-            eventtarget.get_event_handler_common(stringify!($event_type))
+            eventtarget.get_event_handler_common(stringify!($event_type), CanGc::note())
         }
 
         fn $setter(&self, listener: Option<::std::rc::Rc<$handler>>) {

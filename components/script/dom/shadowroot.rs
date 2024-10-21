@@ -26,6 +26,7 @@ use crate::dom::element::Element;
 use crate::dom::node::{Node, NodeDamage, NodeFlags, ShadowIncluding, UnbindContext};
 use crate::dom::stylesheetlist::{StyleSheetList, StyleSheetListOwner};
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 use crate::stylesheet_set::StylesheetSetRef;
 
 /// Whether a shadow root hosts an User Agent widget.
@@ -177,7 +178,12 @@ impl ShadowRootMethods for ShadowRoot {
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-document-elementfrompoint
-    fn ElementFromPoint(&self, x: Finite<f64>, y: Finite<f64>) -> Option<DomRoot<Element>> {
+    fn ElementFromPoint(
+        &self,
+        x: Finite<f64>,
+        y: Finite<f64>,
+        can_gc: CanGc,
+    ) -> Option<DomRoot<Element>> {
         // Return the result of running the retargeting algorithm with context object
         // and the original result as input.
         match self.document_or_shadow_root.element_from_point(
@@ -185,6 +191,7 @@ impl ShadowRootMethods for ShadowRoot {
             y,
             None,
             self.document.has_browsing_context(),
+            can_gc,
         ) {
             Some(e) => {
                 let retargeted_node = self.upcast::<Node>().retarget(e.upcast::<Node>());
@@ -195,13 +202,18 @@ impl ShadowRootMethods for ShadowRoot {
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-document-elementsfrompoint
-    fn ElementsFromPoint(&self, x: Finite<f64>, y: Finite<f64>) -> Vec<DomRoot<Element>> {
+    fn ElementsFromPoint(
+        &self,
+        x: Finite<f64>,
+        y: Finite<f64>,
+        can_gc: CanGc,
+    ) -> Vec<DomRoot<Element>> {
         // Return the result of running the retargeting algorithm with context object
         // and the original result as input
         let mut elements = Vec::new();
         for e in self
             .document_or_shadow_root
-            .elements_from_point(x, y, None, self.document.has_browsing_context())
+            .elements_from_point(x, y, None, self.document.has_browsing_context(), can_gc)
             .iter()
         {
             let retargeted_node = self.upcast::<Node>().retarget(e.upcast::<Node>());

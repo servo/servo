@@ -37,13 +37,21 @@ pub trait Activatable {
         self.as_element().set_active_state(true);
 
         let win = window_from_node(self.as_element());
-        win.reflow(ReflowGoal::Full, ReflowReason::ElementStateChanged);
+        win.reflow(
+            ReflowGoal::Full,
+            ReflowReason::ElementStateChanged,
+            CanGc::note(),
+        );
     }
 
     fn exit_formal_activation_state(&self) {
         self.as_element().set_active_state(false);
 
         let win = window_from_node(self.as_element());
-        win.reflow(ReflowGoal::Full, ReflowReason::ElementStateChanged);
+        win.reflow(
+            ReflowGoal::Full,
+            ReflowReason::ElementStateChanged,
+            CanGc::note(),
+        );
     }
 }

@@ -30,6 +30,7 @@ use crate::dom::cssrule::CSSRule;
 use crate::dom::element::Element;
 use crate::dom::node::{document_from_node, stylesheets_owner_from_node, window_from_node, Node};
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 // http://dev.w3.org/csswg/cssom/#the-cssstyledeclaration-interface
 #[dom_struct]
@@ -245,7 +246,7 @@ impl CSSStyleDeclaration {
         )
     }
 
-    fn get_computed_style(&self, property: PropertyId) -> DOMString {
+    fn get_computed_style(&self, property: PropertyId, can_gc: CanGc) -> DOMString {
         match self.owner {
             CSSStyleOwner::CSSRule(..) => {
                 panic!("get_computed_style called on CSSStyleDeclaration with a CSSRule owner")
@@ -256,7 +257,7 @@ impl CSSStyleDeclaration {
                     return DOMString::new();
                 }
                 let addr = node.to_trusted_node_address();
-                window_from_node(node).resolved_style_query(addr, self.pseudo, property)
+                window_from_node(node).resolved_style_query(addr, self.pseudo, property, can_gc)
             },
         }
     }
@@ -264,7 +265,7 @@ impl CSSStyleDeclaration {
     fn get_property_value(&self, id: PropertyId) -> DOMString {
         if self.readonly {
             // Readonly style declarations are used for getComputedStyle.
-            return self.get_computed_style(id);
+            return self.get_computed_style(id, CanGc::note());
         }
 
         let mut string = String::new();

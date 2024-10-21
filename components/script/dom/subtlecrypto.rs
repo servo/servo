@@ -508,7 +508,7 @@ fn normalize_algorithm(
                 (ALG_AES_CBC, "importKey") => Ok(NormalizedAlgorithm::Algorithm(SubtleAlgorithm {
                     name: ALG_AES_CBC.to_string(),
                 })),
-                _ => return Err(Error::NotSupported),
+                _ => Err(Error::NotSupported),
             }
         },
     }
@@ -528,21 +528,21 @@ impl SubtleCrypto {
             return Err(Error::Operation);
         }
 
-        let mut plaintext = Vec::from(data);
+        let plaintext = Vec::from(data);
         let iv = GenericArray::from_slice(&params.iv);
 
         let ct = match key.handle() {
             Handle::Aes128(data) => {
-                let key_data = GenericArray::from_slice(&data);
-                Aes128CbcEnc::new(key_data, iv).encrypt_padded_vec_mut::<Pkcs7>(&mut plaintext)
+                let key_data = GenericArray::from_slice(data);
+                Aes128CbcEnc::new(key_data, iv).encrypt_padded_vec_mut::<Pkcs7>(&plaintext)
             },
             Handle::Aes192(data) => {
-                let key_data = GenericArray::from_slice(&data);
-                Aes192CbcEnc::new(key_data, iv).encrypt_padded_vec_mut::<Pkcs7>(&mut plaintext)
+                let key_data = GenericArray::from_slice(data);
+                Aes192CbcEnc::new(key_data, iv).encrypt_padded_vec_mut::<Pkcs7>(&plaintext)
             },
             Handle::Aes256(data) => {
-                let key_data = GenericArray::from_slice(&data);
-                Aes256CbcEnc::new(key_data, iv).encrypt_padded_vec_mut::<Pkcs7>(&mut plaintext)
+                let key_data = GenericArray::from_slice(data);
+                Aes256CbcEnc::new(key_data, iv).encrypt_padded_vec_mut::<Pkcs7>(&plaintext)
             },
         };
 
@@ -570,19 +570,19 @@ impl SubtleCrypto {
 
         let plaintext = match key.handle() {
             Handle::Aes128(data) => {
-                let key_data = GenericArray::from_slice(&data);
+                let key_data = GenericArray::from_slice(data);
                 Aes128CbcDec::new(key_data, iv)
                     .decrypt_padded_mut::<Pkcs7>(ciphertext.as_mut_slice())
                     .map_err(|_| Error::Operation)?
             },
             Handle::Aes192(data) => {
-                let key_data = GenericArray::from_slice(&data);
+                let key_data = GenericArray::from_slice(data);
                 Aes192CbcDec::new(key_data, iv)
                     .decrypt_padded_mut::<Pkcs7>(ciphertext.as_mut_slice())
                     .map_err(|_| Error::Operation)?
             },
             Handle::Aes256(data) => {
-                let key_data = GenericArray::from_slice(&data);
+                let key_data = GenericArray::from_slice(data);
                 Aes256CbcDec::new(key_data, iv)
                     .decrypt_padded_mut::<Pkcs7>(ciphertext.as_mut_slice())
                     .map_err(|_| Error::Operation)?
@@ -709,7 +709,7 @@ impl SubtleCrypto {
                     x: None,
                     y: None,
                 };
-                Ok(AesExportedKey::Jwk(jwk))
+                Ok(AesExportedKey::Jwk(Box::new(jwk)))
             },
             _ => Err(Error::NotSupported),
         }
@@ -718,7 +718,7 @@ impl SubtleCrypto {
 
 pub enum AesExportedKey {
     Raw(Vec<u8>),
-    Jwk(JsonWebKey),
+    Jwk(Box<JsonWebKey>),
 }
 
 fn data_to_jwk_params(alg: &str, key: &[u8]) -> (DOMString, DOMString) {

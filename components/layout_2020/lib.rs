@@ -30,7 +30,6 @@ pub use flow::BoxTree;
 pub use fragment_tree::FragmentTree;
 use geom::AuOrAuto;
 use style::properties::ComputedValues;
-use style_ext::{Clamp, ComputedValuesExt};
 
 use crate::geom::LogicalVec2;
 
@@ -58,22 +57,6 @@ impl<'a> IndefiniteContainingBlock<'a> {
             },
             style,
         }
-    }
-
-    fn new_for_intrinsic_inline_size_of_child(
-        &self,
-        style: &'a ComputedValues,
-        auto_minimum: &LogicalVec2<Au>,
-    ) -> Self {
-        let (content_box_size, content_min_size, content_max_size, _, _) =
-            style.content_box_sizes_and_padding_border_margin_deprecated(self);
-        let block_size = content_box_size.block.map(|v| {
-            v.clamp_between_extremums(
-                content_min_size.block.auto_is(|| auto_minimum.block),
-                content_max_size.block,
-            )
-        });
-        IndefiniteContainingBlock::new_for_style_and_block_size(style, block_size)
     }
 }
 
