@@ -357,14 +357,14 @@ impl ModuleTree {
         let comp = InRealm::Entered(&realm);
         let _ais = AutoIncumbentScript::new(&owner.global());
 
+        let new_promise = Promise::new_in_current_realm(comp);
+
         let mut promise = self.promise.borrow_mut();
-        match promise.as_ref() {
-            Some(promise) => promise.append_native_handler(&handler, comp),
-            None => {
-                let new_promise = Promise::new_in_current_realm(comp);
-                new_promise.append_native_handler(&handler, comp);
-                *promise = Some(new_promise);
-            },
+        if let Some(existing_promise) = promise.as_ref() {
+            existing_promise.append_native_handler(&handler, comp);
+        } else {
+            new_promise.append_native_handler(&handler, comp);
+            *promise = Some(new_promise);
         }
     }
 
@@ -393,11 +393,12 @@ impl ModuleTree {
         let comp = InRealm::Entered(&realm);
         let _ais = AutoIncumbentScript::new(&owner.global());
 
+        let new_promise = Promise::new_in_current_realm(comp);
+
         let mut promise = self.promise.borrow_mut();
         match promise.as_ref() {
-            Some(promise) => promise.append_native_handler(&handler, comp),
+            Some(existing_promise) => existing_promise.append_native_handler(&handler, comp),
             None => {
-                let new_promise = Promise::new_in_current_realm(comp);
                 new_promise.append_native_handler(&handler, comp);
                 *promise = Some(new_promise);
             },
@@ -732,17 +733,19 @@ impl ModuleTree {
                     .extend(valid_specifier_urls.clone());
 
                 let mut urls = IndexSet::new();
-                let mut visited_urls = self.visited_urls.borrow_mut();
+                {
+                    let mut visited_urls = self.visited_urls.borrow_mut();
 
-                for parsed_url in valid_specifier_urls {
-                    // Step 5-3.
-                    if !visited_urls.contains(&parsed_url) {
-                        // Step 5-3-1.
-                        urls.insert(parsed_url.clone());
-                        // Step 5-3-2.
-                        visited_urls.insert(parsed_url.clone());
+                    for parsed_url in valid_specifier_urls {
+                        // Step 5-3.
+                        if !visited_urls.contains(&parsed_url) {
+                            // Step 5-3-1.
+                            urls.insert(parsed_url.clone());
+                            // Step 5-3-2.
+                            visited_urls.insert(parsed_url.clone());
 
-                        self.insert_incomplete_fetch_url(&parsed_url);
+                            self.insert_incomplete_fetch_url(&parsed_url);
+                        }
                     }
                 }
 
@@ -761,7 +764,7 @@ impl ModuleTree {
                 for url in urls {
                     // https://html.spec.whatwg.org/multipage/#internal-module-script-graph-fetching-procedure
                     // Step 1.
-                    assert!(visited_urls.get(&url).is_some());
+                    assert!(self.visited_urls.borrow().get(&url).is_some());
 
                     let options = options.descendant_fetch_options();
 
@@ -769,7 +772,7 @@ impl ModuleTree {
                     fetch_single_module_script(
                         owner.clone(),
                         url,
-                        visited_urls.clone(),
+                        self.visited_urls.borrow().clone(),
                         destination,
                         options,
                         Some(parent_identity.clone()),
