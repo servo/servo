@@ -317,7 +317,7 @@ pub(crate) trait ComputedValuesExt {
 
 impl ComputedValuesExt for ComputedValues {
     fn physical_box_offsets(&self) -> PhysicalSides<LengthPercentageOrAuto<'_>> {
-        fn convert<'a>(inset: &'a Inset) -> LengthPercentageOrAuto<'a> {
+        fn convert(inset: &Inset) -> LengthPercentageOrAuto<'_> {
             match inset {
                 Inset::LengthPercentage(ref v) => LengthPercentageOrAuto::LengthPercentage(v),
                 Inset::Auto => LengthPercentageOrAuto::Auto,
@@ -696,7 +696,7 @@ impl ComputedValuesExt for ComputedValues {
     }
 
     fn physical_margin(&self) -> PhysicalSides<LengthPercentageOrAuto<'_>> {
-        fn convert<'a>(inset: &'a Margin) -> LengthPercentageOrAuto<'a> {
+        fn convert(inset: &Margin) -> LengthPercentageOrAuto<'_> {
             match inset {
                 Margin::LengthPercentage(ref v) => LengthPercentageOrAuto::LengthPercentage(v),
                 Margin::Auto => LengthPercentageOrAuto::Auto,
