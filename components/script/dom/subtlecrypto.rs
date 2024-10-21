@@ -508,14 +508,16 @@ fn normalize_algorithm(
                 (ALG_AES_CBC, "importKey") => Ok(NormalizedAlgorithm::Algorithm(SubtleAlgorithm {
                     name: ALG_AES_CBC.to_string(),
                 })),
-                _ => return Err(Error::NotSupported),
+                _ => Err(Error::NotSupported),
             }
         },
     }
 }
 
+#[allow(clippy::needless_borrow)]
 impl SubtleCrypto {
     /// <https://w3c.github.io/webcrypto/#aes-cbc-operations>
+    #[allow(clippy::unnecessary_mut_passed)]
     fn encrypt_aes_cbc(
         &self,
         params: SubtleAesCbcParams,
@@ -716,6 +718,7 @@ impl SubtleCrypto {
     }
 }
 
+#[allow(clippy::large_enum_variant)]
 pub enum AesExportedKey {
     Raw(Vec<u8>),
     Jwk(JsonWebKey),
