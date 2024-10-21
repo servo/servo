@@ -41,6 +41,7 @@ use webrender_api::{
 use webrender_traits::display_list::{
     CompositorDisplayListInfo, ScrollSensitivity, ScrollTreeNodeId,
 };
+use webrender_traits::CrossProcessCompositorApi;
 use wr::units::LayoutVector2D;
 
 use crate::context::LayoutContext;
@@ -91,6 +92,9 @@ pub struct DisplayList {
     /// list. This is merely to ensure that the currently-unused SpatialTreeItemKey
     /// produced for every SpatialTree node is unique.
     pub spatial_tree_count: u64,
+
+    /// Cross-process access to the Compositor API.
+    pub compositor_api: CrossProcessCompositorApi,
 }
 
 impl DisplayList {
@@ -102,6 +106,7 @@ impl DisplayList {
         pipeline_id: wr::PipelineId,
         epoch: wr::Epoch,
         root_scroll_sensitivity: ScrollSensitivity,
+        compositor_api: CrossProcessCompositorApi,
     ) -> Self {
         Self {
             wr: wr::DisplayListBuilder::new(pipeline_id),
@@ -113,6 +118,7 @@ impl DisplayList {
                 root_scroll_sensitivity,
             ),
             spatial_tree_count: 0,
+            compositor_api,
         }
     }
 
