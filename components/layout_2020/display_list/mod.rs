@@ -1362,22 +1362,22 @@ pub(super) fn compute_margin_box_radius(
         top_left: compute_margin_radius(
             radius.top_left,
             layout_rect,
-            Size2D::new(margin.left.clone(), margin.top.clone()),
+            Size2D::new(margin.left, margin.top),
         ),
         top_right: compute_margin_radius(
             radius.top_right,
             layout_rect,
-            Size2D::new(margin.right.clone(), margin.top.clone()),
+            Size2D::new(margin.right, margin.top),
         ),
         bottom_left: compute_margin_radius(
             radius.bottom_left,
             layout_rect,
-            Size2D::new(margin.left.clone(), margin.bottom.clone()),
+            Size2D::new(margin.left, margin.bottom),
         ),
         bottom_right: compute_margin_radius(
             radius.bottom_right,
             layout_rect,
-            Size2D::new(margin.right.clone(), margin.bottom.clone()),
+            Size2D::new(margin.right, margin.bottom),
         ),
     }
 }
