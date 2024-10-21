@@ -158,22 +158,22 @@ struct SerializationIterator {
     stack: Vec<SerializationCommand>,
 }
 
-fn rev_children_iter(n: &Node) -> impl Iterator<Item = DomRoot<Node>> {
+fn rev_children_iter(n: &Node, can_gc: CanGc) -> impl Iterator<Item = DomRoot<Node>> {
     if n.downcast::<Element>().is_some_and(|e| e.is_void()) {
         return Node::new_document_node().rev_children();
     }
 
     match n.downcast::<HTMLTemplateElement>() {
-        Some(t) => t.Content(CanGc::note()).upcast::<Node>().rev_children(),
+        Some(t) => t.Content(can_gc).upcast::<Node>().rev_children(),
         None => n.rev_children(),
     }
 }
 
 impl SerializationIterator {
-    fn new(node: &Node, skip_first: bool) -> SerializationIterator {
+    fn new(node: &Node, skip_first: bool, can_gc: CanGc) -> SerializationIterator {
         let mut ret = SerializationIterator { stack: vec![] };
         if skip_first || node.is::<DocumentFragment>() || node.is::<Document>() {
-            for c in rev_children_iter(node) {
+            for c in rev_children_iter(node, can_gc) {
                 ret.push_node(&c);
             }
         } else {
@@ -203,7 +203,7 @@ impl Iterator for SerializationIterator {
         if let Some(SerializationCommand::OpenElement(ref e)) = res {
             self.stack
                 .push(SerializationCommand::CloseElement(e.clone()));
-            for c in rev_children_iter(e.upcast::<Node>()) {
+            for c in rev_children_iter(e.upcast::<Node>(), CanGc::note()) {
                 self.push_node(&c);
             }
         }
@@ -220,7 +220,7 @@ impl<'a> Serialize for &'a Node {
     ) -> io::Result<()> {
         let node = *self;
 
-        let iter = SerializationIterator::new(node, traversal_scope != IncludeNode);
+        let iter = SerializationIterator::new(node, traversal_scope != IncludeNode, CanGc::note());
 
         for cmd in iter {
             match cmd {
