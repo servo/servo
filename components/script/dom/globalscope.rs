@@ -3239,7 +3239,7 @@ impl GlobalScope {
                             false,
                             CanGc::note(),
                         );
-                        navigator.set_gamepad(selected_index as usize, &gamepad);
+                        navigator.set_gamepad(selected_index as usize, &gamepad, CanGc::note());
                     }
                 }),
                 &self.task_canceller(TaskSourceName::Gamepad),
@@ -3258,7 +3258,7 @@ impl GlobalScope {
                         let navigator = window.Navigator();
                         if let Some(gamepad) = navigator.get_gamepad(index) {
                             if window.Document().is_fully_active() {
-                                gamepad.update_connected(false, gamepad.exposed());
+                                gamepad.update_connected(false, gamepad.exposed(), CanGc::note());
                                 navigator.remove_gamepad(index);
                             }
                         }
@@ -3304,7 +3304,7 @@ impl GlobalScope {
                                             window.task_manager().gamepad_task_source().queue_with_canceller(
                                                 task!(update_gamepad_connect: move || {
                                                     let gamepad = new_gamepad.root();
-                                                    gamepad.notify_event(GamepadEventType::Connected);
+                                                    gamepad.notify_event(GamepadEventType::Connected, CanGc::note());
                                                 }),
                                                 &window.upcast::<GlobalScope>()
                                                     .task_canceller(TaskSourceName::Gamepad),

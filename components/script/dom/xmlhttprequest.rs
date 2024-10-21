@@ -554,7 +554,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
     }
 
     /// <https://xhr.spec.whatwg.org/#the-send()-method>
-    fn Send(&self, data: Option<DocumentOrXMLHttpRequestBodyInit>) -> ErrorResult {
+    fn Send(&self, data: Option<DocumentOrXMLHttpRequestBodyInit>, can_gc: CanGc) -> ErrorResult {
         // Step 1, 2
         if self.ready_state.get() != XMLHttpRequestState::Opened || self.send_flag.get() {
             return Err(Error::InvalidState);
@@ -661,13 +661,13 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             // abort or open we will need the current generation id to detect it.
             // Substep 1
             let gen_id = self.generation_id.get();
-            self.dispatch_response_progress_event(atom!("loadstart"));
+            self.dispatch_response_progress_event(atom!("loadstart"), can_gc);
             if self.generation_id.get() != gen_id {
                 return Ok(());
             }
             // Substep 2
             if !self.upload_complete.get() && self.upload_listener.get() {
-                self.dispatch_upload_progress_event(atom!("loadstart"), Ok(Some(0)));
+                self.dispatch_upload_progress_event(atom!("loadstart"), Ok(Some(0)), can_gc);
                 if self.generation_id.get() != gen_id {
                     return Ok(());
                 }
@@ -1114,11 +1114,11 @@ impl XMLHttpRequest {
                 self.upload_complete.set(true);
                 // Substeps 2-4
                 if !self.sync.get() && self.upload_listener.get() {
-                    self.dispatch_upload_progress_event(atom!("progress"), Ok(None));
+                    self.dispatch_upload_progress_event(atom!("progress"), Ok(None), can_gc);
                     return_if_fetch_was_terminated!();
-                    self.dispatch_upload_progress_event(atom!("load"), Ok(None));
+                    self.dispatch_upload_progress_event(atom!("load"), Ok(None), can_gc);
                     return_if_fetch_was_terminated!();
-                    self.dispatch_upload_progress_event(atom!("loadend"), Ok(None));
+                    self.dispatch_upload_progress_event(atom!("loadend"), Ok(None), can_gc);
                     return_if_fetch_was_terminated!();
                 }
                 // Part of step 13, send() (processing response)
@@ -1171,7 +1171,7 @@ impl XMLHttpRequest {
                     );
                     event.fire(self.upcast());
                     return_if_fetch_was_terminated!();
-                    self.dispatch_response_progress_event(atom!("progress"));
+                    self.dispatch_response_progress_event(atom!("progress"), can_gc);
                 }
             },
             XHRProgress::Done(_) => {
@@ -1193,9 +1193,9 @@ impl XMLHttpRequest {
                 self.change_ready_state(XMLHttpRequestState::Done, can_gc);
                 return_if_fetch_was_terminated!();
                 // Subsubsteps 11-12
-                self.dispatch_response_progress_event(atom!("load"));
+                self.dispatch_response_progress_event(atom!("load"), can_gc);
                 return_if_fetch_was_terminated!();
-                self.dispatch_response_progress_event(atom!("loadend"));
+                self.dispatch_response_progress_event(atom!("loadend"), can_gc);
             },
             XHRProgress::Errored(_, e) => {
                 self.cancel_timeout();
@@ -1217,15 +1217,15 @@ impl XMLHttpRequest {
                 if !upload_complete.get() {
                     upload_complete.set(true);
                     if self.upload_listener.get() {
-                        self.dispatch_upload_progress_event(Atom::from(errormsg), Err(()));
+                        self.dispatch_upload_progress_event(Atom::from(errormsg), Err(()), can_gc);
                         return_if_fetch_was_terminated!();
-                        self.dispatch_upload_progress_event(atom!("loadend"), Err(()));
+                        self.dispatch_upload_progress_event(atom!("loadend"), Err(()), can_gc);
                         return_if_fetch_was_terminated!();
                     }
                 }
-                self.dispatch_response_progress_event(Atom::from(errormsg));
+                self.dispatch_response_progress_event(Atom::from(errormsg), can_gc);
                 return_if_fetch_was_terminated!();
-                self.dispatch_response_progress_event(atom!("loadend"));
+                self.dispatch_response_progress_event(atom!("loadend"), can_gc);
             },
         }
     }
@@ -1237,7 +1237,14 @@ impl XMLHttpRequest {
         self.response_status.set(Ok(()));
     }
 
-    fn dispatch_progress_event(&self, upload: bool, type_: Atom, loaded: u64, total: Option<u64>) {
+    fn dispatch_progress_event(
+        &self,
+        upload: bool,
+        type_: Atom,
+        loaded: u64,
+        total: Option<u64>,
+        can_gc: CanGc,
+    ) {
         let (total_length, length_computable) = if self
             .response_headers
             .borrow()
@@ -1255,6 +1262,7 @@ impl XMLHttpRequest {
             length_computable,
             loaded,
             total_length,
+            can_gc,
         );
         let target = if upload {
             self.upload.upcast()
@@ -1264,7 +1272,12 @@ impl XMLHttpRequest {
         progressevent.upcast::<Event>().fire(target);
     }
 
-    fn dispatch_upload_progress_event(&self, type_: Atom, partial_load: Result<Option<u64>, ()>) {
+    fn dispatch_upload_progress_event(
+        &self,
+        type_: Atom,
+        partial_load: Result<Option<u64>, ()>,
+        can_gc: CanGc,
+    ) {
         // If partial_load is Ok(None), loading has completed and we can just use the value from the request body
         // If an error occured, we pass 0 for both loaded and total
 
@@ -1276,17 +1289,17 @@ impl XMLHttpRequest {
             },
             Err(()) => (0, None),
         };
-        self.dispatch_progress_event(true, type_, loaded, total);
+        self.dispatch_progress_event(true, type_, loaded, total, can_gc);
     }
 
-    fn dispatch_response_progress_event(&self, type_: Atom) {
+    fn dispatch_response_progress_event(&self, type_: Atom, can_gc: CanGc) {
         let len = self.response.borrow().len() as u64;
         let total = self
             .response_headers
             .borrow()
             .typed_get::<ContentLength>()
             .map(|v| v.0);
-        self.dispatch_progress_event(false, type_, len, total);
+        self.dispatch_progress_event(false, type_, len, total, can_gc);
     }
 
     fn set_timeout(&self, duration: Duration) {

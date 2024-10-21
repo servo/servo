@@ -36,6 +36,7 @@ impl ProgressEvent {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         global: &GlobalScope,
         type_: Atom,
@@ -44,6 +45,7 @@ impl ProgressEvent {
         length_computable: bool,
         loaded: u64,
         total: u64,
+        can_gc: CanGc,
     ) -> DomRoot<ProgressEvent> {
         Self::new_with_proto(
             global,
@@ -54,7 +56,7 @@ impl ProgressEvent {
             length_computable,
             loaded,
             total,
-            CanGc::note(),
+            can_gc,
         )
     }
 

@@ -113,8 +113,8 @@ impl BodyMixin for Response {
         self.body_stream.get()
     }
 
-    fn get_mime_type(&self, _can_gc: CanGc) -> Vec<u8> {
-        let headers = self.Headers();
+    fn get_mime_type(&self, can_gc: CanGc) -> Vec<u8> {
+        let headers = self.Headers(can_gc);
         headers.extract_mime_type()
     }
 }
@@ -172,7 +172,7 @@ impl ResponseMethods for Response {
 
         // Step 5
         if let Some(ref headers_member) = init.headers {
-            r.Headers().fill(Some(headers_member.clone()))?;
+            r.Headers(can_gc).fill(Some(headers_member.clone()))?;
         }
 
         // Step 6
@@ -197,11 +197,11 @@ impl ResponseMethods for Response {
             // Step 6.3
             if let Some(content_type_contents) = content_type {
                 if !r
-                    .Headers()
+                    .Headers(can_gc)
                     .Has(ByteString::new(b"Content-Type".to_vec()))
                     .unwrap()
                 {
-                    r.Headers().Append(
+                    r.Headers(can_gc).Append(
                         ByteString::new(b"Content-Type".to_vec()),
                         ByteString::new(content_type_contents.as_bytes().to_vec()),
                     )?;
@@ -221,7 +221,7 @@ impl ResponseMethods for Response {
     fn Error(global: &GlobalScope, can_gc: CanGc) -> DomRoot<Response> {
         let r = Response::new(global, can_gc);
         *r.response_type.borrow_mut() = DOMResponseType::Error;
-        r.Headers().set_guard(Guard::Immutable);
+        r.Headers(can_gc).set_guard(Guard::Immutable);
         *r.status.borrow_mut() = HttpStatus::new_error();
         r
     }
@@ -258,12 +258,12 @@ impl ResponseMethods for Response {
         // Step 6
         let url_bytestring =
             ByteString::from_str(url.as_str()).unwrap_or(ByteString::new(b"".to_vec()));
-        r.Headers()
+        r.Headers(can_gc)
             .Set(ByteString::new(b"Location".to_vec()), url_bytestring)?;
 
         // Step 4 continued
         // Headers Guard is set to Immutable here to prevent error in Step 6
-        r.Headers().set_guard(Guard::Immutable);
+        r.Headers(can_gc).set_guard(Guard::Immutable);
 
         // Step 7
         Ok(r)
@@ -305,9 +305,9 @@ impl ResponseMethods for Response {
     }
 
     // https://fetch.spec.whatwg.org/#dom-response-headers
-    fn Headers(&self) -> DomRoot<Headers> {
+    fn Headers(&self, can_gc: CanGc) -> DomRoot<Headers> {
         self.headers_reflector
-            .or_init(|| Headers::for_response(&self.global(), CanGc::note()))
+            .or_init(|| Headers::for_response(&self.global(), can_gc))
     }
 
     // https://fetch.spec.whatwg.org/#dom-response-clone
@@ -319,8 +319,12 @@ impl ResponseMethods for Response {
 
         // Step 2
         let new_response = Response::new(&self.global(), can_gc);
-        new_response.Headers().copy_from_headers(self.Headers())?;
-        new_response.Headers().set_guard(self.Headers().get_guard());
+        new_response
+            .Headers(can_gc)
+            .copy_from_headers(self.Headers(can_gc))?;
+        new_response
+            .Headers(can_gc)
+            .set_guard(self.Headers(can_gc).get_guard());
 
         // https://fetch.spec.whatwg.org/#concept-response-clone
         // Instead of storing a net_traits::Response internally, we
@@ -388,16 +392,17 @@ fn serialize_without_fragment(url: &ServoUrl) -> &str {
 }
 
 impl Response {
-    pub fn set_type(&self, new_response_type: DOMResponseType) {
+    pub fn set_type(&self, new_response_type: DOMResponseType, can_gc: CanGc) {
         *self.response_type.borrow_mut() = new_response_type;
-        self.set_response_members_by_type(new_response_type);
+        self.set_response_members_by_type(new_response_type, can_gc);
     }
 
-    pub fn set_headers(&self, option_hyper_headers: Option<Serde<HyperHeaders>>) {
-        self.Headers().set_headers(match option_hyper_headers {
-            Some(hyper_headers) => hyper_headers.into_inner(),
-            None => HyperHeaders::new(),
-        });
+    pub fn set_headers(&self, option_hyper_headers: Option<Serde<HyperHeaders>>, can_gc: CanGc) {
+        self.Headers(can_gc)
+            .set_headers(match option_hyper_headers {
+                Some(hyper_headers) => hyper_headers.into_inner(),
+                None => HyperHeaders::new(),
+            });
     }
 
     pub fn set_status(&self, status: &HttpStatus) {
@@ -412,21 +417,21 @@ impl Response {
         *self.redirected.borrow_mut() = is_redirected;
     }
 
-    fn set_response_members_by_type(&self, response_type: DOMResponseType) {
+    fn set_response_members_by_type(&self, response_type: DOMResponseType, can_gc: CanGc) {
         match response_type {
             DOMResponseType::Error => {
                 *self.status.borrow_mut() = HttpStatus::new_error();
-                self.set_headers(None);
+                self.set_headers(None, can_gc);
             },
             DOMResponseType::Opaque => {
                 *self.url_list.borrow_mut() = vec![];
                 *self.status.borrow_mut() = HttpStatus::new_error();
-                self.set_headers(None);
+                self.set_headers(None, can_gc);
                 self.body_stream.set(None);
             },
             DOMResponseType::Opaqueredirect => {
                 *self.status.borrow_mut() = HttpStatus::new_error();
-                self.set_headers(None);
+                self.set_headers(None, can_gc);
                 self.body_stream.set(None);
             },
             DOMResponseType::Default => {},
