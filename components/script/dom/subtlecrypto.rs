@@ -534,15 +534,16 @@ impl SubtleCrypto {
         let ct = match key.handle() {
             Handle::Aes128(data) => {
                 let key_data = GenericArray::from_slice(data);
-                Aes128CbcEnc::new(key_data, iv).encrypt_padded_vec_mut::<Pkcs7>(&plaintext)
+                Aes128CbcEnc::new(key_data, iv).encrypt_padded_vec_mut::<Pkcs7>(&mut plaintext)
             },
             Handle::Aes192(data) => {
                 let key_data = GenericArray::from_slice(data);
-                Aes192CbcEnc::new(key_data, iv).encrypt_padded_vec_mut::<Pkcs7>(&plaintext)
+                Aes192CbcEnc::new(key_data, iv).encrypt_padded_vec_mut::<Pkcs7>(&mut plaintext)
             },
             Handle::Aes256(data) => {
                 let key_data = GenericArray::from_slice(data);
-                Aes256CbcEnc::new(key_data, iv).encrypt_padded_vec_mut::<Pkcs7>(&plaintext)
+                Aes256CbcEnc::new(key_data, iv).encrypt_padded_vec_mut::<Pkcs7>(&mut plaintext)
+
             },
         };
 
