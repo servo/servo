@@ -149,7 +149,7 @@ public class MediaSession {
         Intent playIntent = new Intent(KEY_MEDIA_PLAY);
         Notification.Action playAction =
           new Notification.Action(R.drawable.media_session_play, "Play",
-            PendingIntent.getBroadcast(mContext, 0, playIntent, 0));
+            PendingIntent.getBroadcast(mContext, 0, playIntent, PendingIntent.FLAG_IMMUTABLE));
         builder.addAction(playAction);
       }
 
@@ -157,7 +157,7 @@ public class MediaSession {
         Intent pauseIntent = new Intent(KEY_MEDIA_PAUSE);
         Notification.Action pauseAction =
           new Notification.Action(R.drawable.media_session_pause, "Pause",
-            PendingIntent.getBroadcast(mContext, 0, pauseIntent, 0));
+            PendingIntent.getBroadcast(mContext, 0, pauseIntent, PendingIntent.FLAG_IMMUTABLE));
         builder.addAction(pauseAction);
       }
 
