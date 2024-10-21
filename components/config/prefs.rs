@@ -189,14 +189,6 @@ mod gen {
         gen_accessors = PREF_ACCESSORS,
         // tree of structs to generate
         gen_types = Prefs {
-            browser: {
-                display: {
-                    #[serde(default = "white")]
-                    background_color: i64,
-                    #[serde(default = "black")]
-                    foreground_color: i64,
-                }
-            },
             fonts: {
                 #[serde(default)]
                 default: String,
@@ -610,9 +602,6 @@ mod gen {
                 },
                 /// URL string of the homepage.
                 homepage: String,
-                keep_screen_on: {
-                    enabled: bool,
-                },
                 #[serde(rename = "shell.native-orientation")]
                 native_orientation: String,
                 native_titlebar: {
