@@ -189,7 +189,7 @@ impl HTMLElementMethods for HTMLElement {
             }
         } else {
             self.upcast::<EventTarget>()
-                .get_event_handler_common("error")
+                .get_event_handler_common("error", CanGc::note())
         }
     }
 
@@ -218,7 +218,7 @@ impl HTMLElementMethods for HTMLElement {
             }
         } else {
             self.upcast::<EventTarget>()
-                .get_event_handler_common("load")
+                .get_event_handler_common("load", CanGc::note())
         }
     }
 
@@ -246,7 +246,7 @@ impl HTMLElementMethods for HTMLElement {
             }
         } else {
             self.upcast::<EventTarget>()
-                .get_event_handler_common("blur")
+                .get_event_handler_common("blur", CanGc::note())
         }
     }
 
@@ -274,7 +274,7 @@ impl HTMLElementMethods for HTMLElement {
             }
         } else {
             self.upcast::<EventTarget>()
-                .get_event_handler_common("focus")
+                .get_event_handler_common("focus", CanGc::note())
         }
     }
 
@@ -302,7 +302,7 @@ impl HTMLElementMethods for HTMLElement {
             }
         } else {
             self.upcast::<EventTarget>()
-                .get_event_handler_common("resize")
+                .get_event_handler_common("resize", CanGc::note())
         }
     }
 
@@ -330,7 +330,7 @@ impl HTMLElementMethods for HTMLElement {
             }
         } else {
             self.upcast::<EventTarget>()
-                .get_event_handler_common("scroll")
+                .get_event_handler_common("scroll", CanGc::note())
         }
     }
 
