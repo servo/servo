@@ -5,10 +5,16 @@
 use std::ptr;
 use std::rc::Rc;
 
+use aes::cipher::block_padding::Pkcs7;
+use aes::cipher::generic_array::GenericArray;
+use aes::cipher::{BlockDecryptMut, BlockEncryptMut, KeyIvInit};
+use aes::{Aes128, Aes192, Aes256};
+use base64::prelude::*;
 use dom_struct::dom_struct;
 use js::conversions::ConversionResult;
 use js::jsapi::JSObject;
 use js::jsval::ObjectValue;
+use js::rust::MutableHandleObject;
 use js::typedarray::ArrayBufferU8;
 use servo_rand::{RngCore, ServoRng};
 
@@ -18,7 +24,11 @@ use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
     CryptoKeyMethods, KeyType, KeyUsage,
 };
 use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{
-    AesKeyGenParams, Algorithm, AlgorithmIdentifier, KeyAlgorithm, KeyFormat, SubtleCryptoMethods,
+    AesCbcParams, AesKeyGenParams, Algorithm, AlgorithmIdentifier, JsonWebKey, KeyAlgorithm,
+    KeyFormat, SubtleCryptoMethods,
+};
+use crate::dom::bindings::codegen::UnionTypes::{
+    ArrayBufferViewOrArrayBuffer, ArrayBufferViewOrArrayBufferOrJsonWebKey,
 };
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::inheritance::Castable;
@@ -26,6 +36,7 @@ use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
@@ -80,6 +91,13 @@ const NAMED_CURVE_P521: &str = "P-521";
 #[allow(dead_code)]
 static SUPPORTED_CURVES: &[&str] = &[NAMED_CURVE_P256, NAMED_CURVE_P384, NAMED_CURVE_P521];
 
+type Aes128CbcEnc = cbc::Encryptor<Aes128>;
+type Aes128CbcDec = cbc::Decryptor<Aes128>;
+type Aes192CbcEnc = cbc::Encryptor<Aes192>;
+type Aes192CbcDec = cbc::Decryptor<Aes192>;
+type Aes256CbcEnc = cbc::Encryptor<Aes256>;
+type Aes256CbcDec = cbc::Decryptor<Aes256>;
+
 #[dom_struct]
 pub struct SubtleCrypto {
     reflector_: Reflector,
@@ -115,6 +133,118 @@ impl SubtleCrypto {
 }
 
 impl SubtleCryptoMethods for SubtleCrypto {
+    /// <https://w3c.github.io/webcrypto/#SubtleCrypto-method-encrypt>
+    fn Encrypt(
+        &self,
+        cx: JSContext,
+        algorithm: AlgorithmIdentifier,
+        key: &CryptoKey,
+        data: ArrayBufferViewOrArrayBuffer,
+        comp: InRealm,
+    ) -> Rc<Promise> {
+        let normalized_algorithm = normalize_algorithm(cx, algorithm, "encrypt");
+        let promise = Promise::new_in_current_realm(comp);
+        let data = match data {
+            ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
+            ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
+        };
+
+        let (task_source, canceller) = self.task_source_with_canceller();
+        let this = Trusted::new(self);
+        let trusted_promise = TrustedPromise::new(promise.clone());
+        let trusted_key = Trusted::new(key);
+        let alg = normalized_algorithm.clone();
+        let key_alg = key.algorithm();
+        let valid_usage = key.usages().contains(&KeyUsage::Encrypt);
+        let _ = task_source.queue_with_canceller(
+            task!(encrypt: move || {
+                let subtle = this.root();
+                let promise = trusted_promise.root();
+                let key = trusted_key.root();
+                let cx = GlobalScope::get_cx();
+                rooted!(in(*cx) let mut array_buffer_ptr = ptr::null_mut::<JSObject>());
+                let text = match alg {
+                    Ok(NormalizedAlgorithm::AesCbcParams(key_gen_params)) => {
+                        if !valid_usage || key_gen_params.name != key_alg {
+                            Err(Error::InvalidAccess)
+                        } else {
+                            match subtle.encrypt_aes_cbc(
+                                key_gen_params, &key, &data, cx, array_buffer_ptr.handle_mut()
+                            ) {
+                                Ok(_) => Ok(array_buffer_ptr.handle()),
+                                Err(e) => Err(e),
+                            }
+                        }
+                    },
+                    _ => Err(Error::NotSupported),
+                };
+                match text {
+                    Ok(text) => promise.resolve_native(&*text),
+                    Err(e) => promise.reject_error(e),
+                }
+            }),
+            &canceller,
+        );
+
+        promise
+    }
+
+    /// <https://w3c.github.io/webcrypto/#SubtleCrypto-method-decrypt>
+    fn Decrypt(
+        &self,
+        cx: JSContext,
+        algorithm: AlgorithmIdentifier,
+        key: &CryptoKey,
+        data: ArrayBufferViewOrArrayBuffer,
+        comp: InRealm,
+    ) -> Rc<Promise> {
+        let normalized_algorithm = normalize_algorithm(cx, algorithm, "decrypt");
+        let promise = Promise::new_in_current_realm(comp);
+        let data = match data {
+            ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
+            ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
+        };
+
+        let (task_source, canceller) = self.task_source_with_canceller();
+        let this = Trusted::new(self);
+        let trusted_promise = TrustedPromise::new(promise.clone());
+        let trusted_key = Trusted::new(key);
+        let alg = normalized_algorithm.clone();
+        let key_alg = key.algorithm();
+        let valid_usage = key.usages().contains(&KeyUsage::Decrypt);
+        let _ = task_source.queue_with_canceller(
+            task!(decrypt: move || {
+                let subtle = this.root();
+                let promise = trusted_promise.root();
+                let key = trusted_key.root();
+                let cx = GlobalScope::get_cx();
+                rooted!(in(*cx) let mut array_buffer_ptr = ptr::null_mut::<JSObject>());
+                let text = match alg {
+                    Ok(NormalizedAlgorithm::AesCbcParams(key_gen_params)) => {
+                        if !valid_usage || key_gen_params.name != key_alg {
+                            Err(Error::InvalidAccess)
+                        } else {
+                            match subtle.decrypt_aes_cbc(
+                                key_gen_params, &key, &data, cx, array_buffer_ptr.handle_mut()
+                            ) {
+                                Ok(_) => Ok(array_buffer_ptr.handle()),
+                                Err(e) => Err(e),
+                            }
+                        }
+                    },
+                    _ => Err(Error::NotSupported),
+                };
+                match text {
+                    Ok(text) => promise.resolve_native(&*text),
+                    Err(e) => promise.reject_error(e),
+                }
+            }),
+            &canceller,
+        );
+
+        promise
+    }
+
     /// <https://w3c.github.io/webcrypto/#SubtleCrypto-method-generateKey>
     fn GenerateKey(
         &self,
@@ -156,8 +286,80 @@ impl SubtleCryptoMethods for SubtleCrypto {
         promise
     }
 
+    /// <https://w3c.github.io/webcrypto/#SubtleCrypto-method-importKey>
+    fn ImportKey(
+        &self,
+        cx: JSContext,
+        format: KeyFormat,
+        key_data: ArrayBufferViewOrArrayBufferOrJsonWebKey,
+        algorithm: AlgorithmIdentifier,
+        extractable: bool,
+        key_usages: Vec<KeyUsage>,
+        comp: InRealm,
+    ) -> Rc<Promise> {
+        let normalized_algorithm = normalize_algorithm(cx, algorithm, "importKey");
+        let promise = Promise::new_in_current_realm(comp);
+        if let Err(e) = normalized_algorithm {
+            promise.reject_error(e);
+            return promise;
+        }
+
+        // TODO: Figure out a way to Send this data so per-algorithm JWK checks can happen
+        let data = match key_data {
+            ArrayBufferViewOrArrayBufferOrJsonWebKey::ArrayBufferView(view) => view.to_vec(),
+            ArrayBufferViewOrArrayBufferOrJsonWebKey::JsonWebKey(json_web_key) => {
+                if let Some(mut data_string) = json_web_key.k {
+                    while data_string.len() % 4 != 0 {
+                        data_string.push_str("=");
+                    }
+                    match BASE64_STANDARD.decode(data_string.to_string()) {
+                        Ok(data) => data,
+                        Err(_) => {
+                            promise.reject_error(Error::Syntax);
+                            return promise;
+                        },
+                    }
+                } else {
+                    promise.reject_error(Error::Syntax);
+                    return promise;
+                }
+            },
+            ArrayBufferViewOrArrayBufferOrJsonWebKey::ArrayBuffer(array_buffer) => {
+                array_buffer.to_vec()
+            },
+        };
+
+        let (task_source, canceller) = self.task_source_with_canceller();
+        let this = Trusted::new(self);
+        let trusted_promise = TrustedPromise::new(promise.clone());
+        let _ = task_source.queue_with_canceller(
+            task!(import_key: move || {
+                let subtle = this.root();
+                let promise = trusted_promise.root();
+                let alg = match normalized_algorithm {
+                    Ok(NormalizedAlgorithm::Algorithm(name)) => name,
+                    _ => {
+                        promise.reject_error(Error::NotSupported);
+                        return;
+                    },
+                };
+
+                let imported_key = match alg.name.as_str() {
+                    ALG_AES_CBC => subtle.import_key_aes_cbc(format, &data, extractable, key_usages),
+                    _ => Err(Error::NotSupported),
+                };
+                match imported_key {
+                    Ok(k) => promise.resolve_native(&k),
+                    Err(e) => promise.reject_error(e),
+                };
+            }),
+            &canceller,
+        );
+
+        promise
+    }
+
     /// <https://w3c.github.io/webcrypto/#SubtleCrypto-method-exportKey>
-    #[allow(unsafe_code)]
     fn ExportKey(&self, format: KeyFormat, key: &CryptoKey, comp: InRealm) -> Rc<Promise> {
         let promise = Promise::new_in_current_realm(comp);
 
@@ -187,11 +389,18 @@ impl SubtleCryptoMethods for SubtleCrypto {
                 };
                 match exported_key {
                     Ok(k) => {
-                        let cx = GlobalScope::get_cx();
-                        rooted!(in(*cx) let mut array_buffer_ptr = ptr::null_mut::<JSObject>());
-                        create_buffer_source::<ArrayBufferU8>(cx, &k, array_buffer_ptr.handle_mut())
-                            .expect("failed to create buffer source for exported key.");
-                        promise.resolve_native(&array_buffer_ptr.get())
+                        match k {
+                            AesExportedKey::Raw(k) => {
+                                let cx = GlobalScope::get_cx();
+                                rooted!(in(*cx) let mut array_buffer_ptr = ptr::null_mut::<JSObject>());
+                                create_buffer_source::<ArrayBufferU8>(cx, &k, array_buffer_ptr.handle_mut())
+                                    .expect("failed to create buffer source for exported key.");
+                                promise.resolve_native(&array_buffer_ptr.get())
+                            },
+                            AesExportedKey::Jwk(k) => {
+                                promise.resolve_native(&k)
+                            },
+                        }
                     },
                     Err(e) => promise.reject_error(e),
                 }
@@ -207,6 +416,7 @@ impl SubtleCryptoMethods for SubtleCrypto {
 pub enum NormalizedAlgorithm {
     #[allow(dead_code)]
     Algorithm(SubtleAlgorithm),
+    AesCbcParams(SubtleAesCbcParams),
     AesKeyGenParams(SubtleAesKeyGenParams),
 }
 
@@ -223,6 +433,26 @@ impl From<DOMString> for SubtleAlgorithm {
     fn from(name: DOMString) -> Self {
         SubtleAlgorithm {
             name: name.to_string(),
+        }
+    }
+}
+
+#[derive(Clone)]
+pub struct SubtleAesCbcParams {
+    #[allow(dead_code)]
+    pub name: String,
+    pub iv: Vec<u8>,
+}
+
+impl From<RootedTraceableBox<AesCbcParams>> for SubtleAesCbcParams {
+    fn from(params: RootedTraceableBox<AesCbcParams>) -> Self {
+        let iv = match &params.iv {
+            ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
+            ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
+        };
+        SubtleAesCbcParams {
+            name: params.parent.name.to_string(),
+            iv,
         }
     }
 }
@@ -259,6 +489,14 @@ fn normalize_algorithm(
                 return Err(Error::Syntax);
             };
             match (algorithm.name.str().to_uppercase().as_str(), operation) {
+                (ALG_AES_CBC, "encrypt") | (ALG_AES_CBC, "decrypt") => {
+                    let params_result =
+                        AesCbcParams::new(cx, value.handle()).map_err(|_| Error::Operation)?;
+                    let ConversionResult::Success(params) = params_result else {
+                        return Err(Error::Syntax);
+                    };
+                    Ok(NormalizedAlgorithm::AesCbcParams(params.into()))
+                },
                 (ALG_AES_CBC, "generateKey") => {
                     let params_result =
                         AesKeyGenParams::new(cx, value.handle()).map_err(|_| Error::Operation)?;
@@ -267,7 +505,10 @@ fn normalize_algorithm(
                     };
                     Ok(NormalizedAlgorithm::AesKeyGenParams(params.into()))
                 },
-                _ => Err(Error::NotSupported),
+                (ALG_AES_CBC, "importKey") => Ok(NormalizedAlgorithm::Algorithm(SubtleAlgorithm {
+                    name: ALG_AES_CBC.to_string(),
+                })),
+                _ => return Err(Error::NotSupported),
             }
         },
     }
@@ -275,15 +516,100 @@ fn normalize_algorithm(
 
 impl SubtleCrypto {
     /// <https://w3c.github.io/webcrypto/#aes-cbc-operations>
+    fn encrypt_aes_cbc(
+        &self,
+        params: SubtleAesCbcParams,
+        key: &CryptoKey,
+        data: &[u8],
+        cx: JSContext,
+        handle: MutableHandleObject,
+    ) -> Result<(), Error> {
+        if params.iv.len() != 16 {
+            return Err(Error::Operation);
+        }
+
+        let mut plaintext = Vec::from(data);
+        let iv = GenericArray::from_slice(&params.iv);
+
+        let ct = match key.handle() {
+            Handle::Aes128(data) => {
+                let key_data = GenericArray::from_slice(&data);
+                Aes128CbcEnc::new(key_data, iv).encrypt_padded_vec_mut::<Pkcs7>(&mut plaintext)
+            },
+            Handle::Aes192(data) => {
+                let key_data = GenericArray::from_slice(&data);
+                Aes192CbcEnc::new(key_data, iv).encrypt_padded_vec_mut::<Pkcs7>(&mut plaintext)
+            },
+            Handle::Aes256(data) => {
+                let key_data = GenericArray::from_slice(&data);
+                Aes256CbcEnc::new(key_data, iv).encrypt_padded_vec_mut::<Pkcs7>(&mut plaintext)
+            },
+        };
+
+        create_buffer_source::<ArrayBufferU8>(cx, &ct, handle)
+            .expect("failed to create buffer source for exported key.");
+
+        Ok(())
+    }
+
+    /// <https://w3c.github.io/webcrypto/#aes-cbc-operations>
+    fn decrypt_aes_cbc(
+        &self,
+        params: SubtleAesCbcParams,
+        key: &CryptoKey,
+        data: &[u8],
+        cx: JSContext,
+        handle: MutableHandleObject,
+    ) -> Result<(), Error> {
+        if params.iv.len() != 16 {
+            return Err(Error::Operation);
+        }
+
+        let mut ciphertext = Vec::from(data);
+        let iv = GenericArray::from_slice(&params.iv);
+
+        let plaintext = match key.handle() {
+            Handle::Aes128(data) => {
+                let key_data = GenericArray::from_slice(&data);
+                Aes128CbcDec::new(key_data, iv)
+                    .decrypt_padded_mut::<Pkcs7>(ciphertext.as_mut_slice())
+                    .map_err(|_| Error::Operation)?
+            },
+            Handle::Aes192(data) => {
+                let key_data = GenericArray::from_slice(&data);
+                Aes192CbcDec::new(key_data, iv)
+                    .decrypt_padded_mut::<Pkcs7>(ciphertext.as_mut_slice())
+                    .map_err(|_| Error::Operation)?
+            },
+            Handle::Aes256(data) => {
+                let key_data = GenericArray::from_slice(&data);
+                Aes256CbcDec::new(key_data, iv)
+                    .decrypt_padded_mut::<Pkcs7>(ciphertext.as_mut_slice())
+                    .map_err(|_| Error::Operation)?
+            },
+        };
+
+        create_buffer_source::<ArrayBufferU8>(cx, plaintext, handle)
+            .expect("failed to create buffer source for exported key.");
+
+        Ok(())
+    }
+
+    /// <https://w3c.github.io/webcrypto/#aes-cbc-operations>
     fn generate_key_aes_cbc(
         &self,
         usages: Vec<KeyUsage>,
         key_gen_params: SubtleAesKeyGenParams,
         extractable: bool,
     ) -> Result<DomRoot<CryptoKey>, Error> {
-        if !matches!(key_gen_params.length, 128 | 192 | 256) {
-            return Err(Error::Operation);
-        }
+        let mut rand = vec![0; key_gen_params.length as usize];
+        self.rng.borrow_mut().fill_bytes(&mut rand);
+        let handle = match key_gen_params.length {
+            128 => Handle::Aes128(rand),
+            192 => Handle::Aes192(rand),
+            256 => Handle::Aes256(rand),
+            _ => return Err(Error::Operation),
+        };
 
         if usages.iter().any(|usage| {
             !matches!(
@@ -294,15 +620,6 @@ impl SubtleCrypto {
         {
             return Err(Error::Syntax);
         }
-
-        let mut rand = vec![0; key_gen_params.length as usize];
-        self.rng.borrow_mut().fill_bytes(&mut rand);
-        let handle = match key_gen_params.length {
-            128 => Handle::Aes128(rand),
-            192 => Handle::Aes192(rand),
-            256 => Handle::Aes256(rand),
-            _ => return Err(Error::Operation),
-        };
 
         Ok(CryptoKey::new(
             &self.global(),
@@ -317,18 +634,95 @@ impl SubtleCrypto {
     }
 
     /// <https://w3c.github.io/webcrypto/#aes-cbc-operations>
-    fn export_key_aes_cbc(&self, format: KeyFormat, key: &CryptoKey) -> Result<Vec<u8>, Error> {
+    fn import_key_aes_cbc(
+        &self,
+        format: KeyFormat,
+        data: &[u8],
+        extractable: bool,
+        usages: Vec<KeyUsage>,
+    ) -> Result<DomRoot<CryptoKey>, Error> {
+        if usages.iter().any(|usage| {
+            !matches!(
+                usage,
+                KeyUsage::Encrypt | KeyUsage::Decrypt | KeyUsage::WrapKey | KeyUsage::UnwrapKey
+            )
+        }) || usages.is_empty()
+        {
+            return Err(Error::Syntax);
+        }
+        if !matches!(format, KeyFormat::Raw | KeyFormat::Jwk) {
+            return Err(Error::NotSupported);
+        }
+        let handle = match data.len() * 8 {
+            128 => Handle::Aes128(data.to_vec()),
+            192 => Handle::Aes192(data.to_vec()),
+            256 => Handle::Aes256(data.to_vec()),
+            _ => return Err(Error::Data),
+        };
+        Ok(CryptoKey::new(
+            &self.global(),
+            KeyType::Secret,
+            extractable,
+            KeyAlgorithm {
+                name: DOMString::from(ALG_AES_CBC),
+            },
+            usages,
+            handle,
+        ))
+    }
+
+    /// <https://w3c.github.io/webcrypto/#aes-cbc-operations>
+    fn export_key_aes_cbc(
+        &self,
+        format: KeyFormat,
+        key: &CryptoKey,
+    ) -> Result<AesExportedKey, Error> {
         match format {
             KeyFormat::Raw => match key.handle() {
-                Handle::Aes128(key) => Ok(key.as_slice().to_vec()),
-                Handle::Aes192(key) => Ok(key.as_slice().to_vec()),
-                Handle::Aes256(key) => Ok(key.as_slice().to_vec()),
+                Handle::Aes128(key) => Ok(AesExportedKey::Raw(key.as_slice().to_vec())),
+                Handle::Aes192(key) => Ok(AesExportedKey::Raw(key.as_slice().to_vec())),
+                Handle::Aes256(key) => Ok(AesExportedKey::Raw(key.as_slice().to_vec())),
             },
             KeyFormat::Jwk => {
-                // TODO: Support jwk
-                Err(Error::NotSupported)
+                let (alg, k) = match key.handle() {
+                    Handle::Aes128(key) => data_to_jwk_params("A128CBC", key.as_slice()),
+                    Handle::Aes192(key) => data_to_jwk_params("A192CBC", key.as_slice()),
+                    Handle::Aes256(key) => data_to_jwk_params("A256CBC", key.as_slice()),
+                };
+                let jwk = JsonWebKey {
+                    alg: Some(alg),
+                    crv: None,
+                    d: None,
+                    dp: None,
+                    dq: None,
+                    e: None,
+                    ext: Some(key.Extractable()),
+                    k: Some(k),
+                    key_ops: None,
+                    kty: Some(DOMString::from("oct")),
+                    n: None,
+                    oth: None,
+                    p: None,
+                    q: None,
+                    qi: None,
+                    use_: None,
+                    x: None,
+                    y: None,
+                };
+                Ok(AesExportedKey::Jwk(jwk))
             },
             _ => Err(Error::NotSupported),
         }
     }
+}
+
+pub enum AesExportedKey {
+    Raw(Vec<u8>),
+    Jwk(JsonWebKey),
+}
+
+fn data_to_jwk_params(alg: &str, key: &[u8]) -> (DOMString, DOMString) {
+    let mut data = BASE64_STANDARD.encode(key);
+    data.retain(|c| c != '=');
+    (DOMString::from(alg), DOMString::from(data))
 }

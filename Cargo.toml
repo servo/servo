@@ -32,6 +32,8 @@ bitflags = "2.6"
 bluetooth_traits = { path = "components/shared/bluetooth" }
 byteorder = "1.5"
 canvas_traits = { path = "components/shared/canvas" }
+cbc = "0.1.2"
+cipher = { version = "0.4.4", features = ["alloc"] }
 cfg-if = "1.0.0"
 chrono = { version = "0.4", features = ["serde"] }
 compositing_traits = { path = "components/shared/compositing" }
@@ -79,7 +81,7 @@ keyboard-types = "0.7"
 libc = "0.2"
 log = "0.4"
 mach2 = "0.4"
-malloc_size_of = { git = "https://github.com/servo/stylo", branch = "2024-09-02", features = ["servo"] }
+malloc_size_of = { git = "https://github.com/servo/stylo", branch = "2024-10-04", features = ["servo"] }
 malloc_size_of_derive = "0.1"
 memmap2 = "0.9.5"
 mime = "0.3.13"
@@ -103,31 +105,31 @@ rustls = { version = "0.21.12", features = ["dangerous_configuration"] }
 rustls-pemfile = "1.0.4"
 script_layout_interface = { path = "components/shared/script_layout" }
 script_traits = { path = "components/shared/script" }
-selectors = { git = "https://github.com/servo/stylo", branch = "2024-09-02" }
+selectors = { git = "https://github.com/servo/stylo", branch = "2024-10-04" }
 serde = "1.0.210"
 serde_bytes = "0.11"
 serde_json = "1.0"
 servo-media = { git = "https://github.com/servo/media" }
 servo-media-dummy = { git = "https://github.com/servo/media" }
 servo-media-gstreamer = { git = "https://github.com/servo/media" }
-servo_arc = { git = "https://github.com/servo/stylo", branch = "2024-09-02", features = ["servo"] }
-servo_atoms = { git = "https://github.com/servo/stylo", branch = "2024-09-02" }
-size_of_test = { git = "https://github.com/servo/stylo", branch = "2024-09-02" }
+servo_arc = { git = "https://github.com/servo/stylo", branch = "2024-10-04", features = ["servo"] }
+servo_atoms = { git = "https://github.com/servo/stylo", branch = "2024-10-04" }
+size_of_test = { git = "https://github.com/servo/stylo", branch = "2024-10-04" }
 smallbitvec = "2.5.3"
 smallvec = "1.13"
 sparkle = "0.1.26"
 string_cache = "0.8"
 string_cache_codegen = "0.5"
-style = { git = "https://github.com/servo/stylo", branch = "2024-09-02", features = ["servo"] }
-style_config = { git = "https://github.com/servo/stylo", branch = "2024-09-02" }
-style_dom = { git = "https://github.com/servo/stylo", package = "dom", branch = "2024-09-02" }
-style_traits = { git = "https://github.com/servo/stylo", branch = "2024-09-02", features = ["servo"] }
+style = { git = "https://github.com/servo/stylo", branch = "2024-10-04", features = ["servo"] }
+style_config = { git = "https://github.com/servo/stylo", branch = "2024-10-04" }
+style_dom = { git = "https://github.com/servo/stylo", package = "dom", branch = "2024-10-04" }
+style_traits = { git = "https://github.com/servo/stylo", branch = "2024-10-04", features = ["servo"] }
 surfman = { git = "https://github.com/servo/surfman", rev = "e0c34af64f2860bc56bc8a56e1c169a915b16aa3", features = ["chains"] }
 syn = { version = "2", default-features = false, features = ["clone-impls", "derive", "parsing"] }
 synstructure = "0.13"
 thin-vec = "0.2.13"
 time_03 = { package = "time", version = "0.3", features = ["large-dates", "local-offset", "serde"] }
-to_shmem = { git = "https://github.com/servo/stylo", branch = "2024-09-02" }
+to_shmem = { git = "https://github.com/servo/stylo", branch = "2024-10-04" }
 tokio = "1"
 tokio-rustls = "0.24"
 tungstenite = "0.20"
@@ -184,7 +186,6 @@ codegen-units = 1
 # Or for Stylo:
 #
 # [patch."https://github.com/servo/stylo"]
-# derive_common = { path = "../stylo/derive_common" }
 # dom = { path = "../stylo/dom" }
 # malloc_size_of = { path = "../stylo/malloc_size_of" }
 # selectors = { path = "../stylo/selectors" }

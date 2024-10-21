@@ -671,9 +671,9 @@ impl FlexFlow {
                 } else {
                     line.free_space / line.auto_margin_count
                 };
-                let margin_inline_start = MaybeAuto::from_style(margin.inline_start, inline_size)
+                let margin_inline_start = MaybeAuto::from_margin(margin.inline_start, inline_size)
                     .specified_or_default(auto_len);
-                let margin_inline_end = MaybeAuto::from_style(margin.inline_end, inline_size)
+                let margin_inline_end = MaybeAuto::from_margin(margin.inline_end, inline_size)
                     .specified_or_default(auto_len);
                 let item_inline_size = item.main_size -
                     block.fragment.box_sizing_boundary(self.main_mode) +

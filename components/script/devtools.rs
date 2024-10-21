@@ -486,9 +486,9 @@ pub fn handle_request_animation_frame(documents: &Documents, id: PipelineId, act
     }
 }
 
-pub fn handle_reload(documents: &Documents, id: PipelineId) {
+pub fn handle_reload(documents: &Documents, id: PipelineId, can_gc: CanGc) {
     if let Some(win) = documents.find_window(id) {
-        win.Location().reload_without_origin_check();
+        win.Location().reload_without_origin_check(can_gc);
     }
 }
 

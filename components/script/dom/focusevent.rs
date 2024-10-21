@@ -47,6 +47,7 @@ impl FocusEvent {
         reflect_dom_object_with_proto(Box::new(FocusEvent::new_inherited()), window, proto, can_gc)
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         window: &Window,
         type_: DOMString,

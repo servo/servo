@@ -30,6 +30,7 @@ use crate::dom::location::NavigationType;
 use crate::dom::node::{document_from_node, window_from_node, BindContext, Node, UnbindContext};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 use crate::timers::OneshotTimerCallback;
 
 #[dom_struct]
@@ -45,11 +46,12 @@ pub struct RefreshRedirectDue {
     pub window: DomRoot<Window>,
 }
 impl RefreshRedirectDue {
-    pub fn invoke(self) {
+    pub fn invoke(self, can_gc: CanGc) {
         self.window.Location().navigate(
             self.url.clone(),
             HistoryEntryReplacement::Enabled,
             NavigationType::DeclarativeRefresh,
+            can_gc,
         );
     }
 }

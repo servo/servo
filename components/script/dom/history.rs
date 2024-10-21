@@ -313,11 +313,11 @@ impl HistoryMethods for History {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-history-go>
-    fn Go(&self, delta: i32) -> ErrorResult {
+    fn Go(&self, delta: i32, can_gc: CanGc) -> ErrorResult {
         let direction = match delta.cmp(&0) {
             Ordering::Greater => TraversalDirection::Forward(delta as usize),
             Ordering::Less => TraversalDirection::Back(-delta as usize),
-            Ordering::Equal => return self.window.Location().Reload(),
+            Ordering::Equal => return self.window.Location().Reload(can_gc),
         };
 
         self.traverse_history(direction)

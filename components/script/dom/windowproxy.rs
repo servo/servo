@@ -54,7 +54,7 @@ use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
 use crate::realms::{enter_realm, AlreadyInRealm, InRealm};
-use crate::script_runtime::JSContext as SafeJSContext;
+use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::script_thread::ScriptThread;
 
 #[dom_struct]
@@ -465,6 +465,7 @@ impl WindowProxy {
         url: USVString,
         target: DOMString,
         features: DOMString,
+        can_gc: CanGc,
     ) -> Fallible<Option<DomRoot<WindowProxy>>> {
         // Step 4.
         let non_empty_target = match target.as_ref() {
@@ -527,7 +528,7 @@ impl WindowProxy {
             } else {
                 HistoryEntryReplacement::Disabled
             };
-            target_window.load_url(replacement_flag, false, load_data);
+            target_window.load_url(replacement_flag, false, load_data, can_gc);
         }
         if noopener {
             // Step 15 (Dis-owning has been done in create_auxiliary_browsing_context).

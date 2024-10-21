@@ -10,13 +10,14 @@ use style::computed_values::overflow_x::T as ComputedOverflow;
 use style::computed_values::position::T as ComputedPosition;
 use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
-use style::values::computed::LengthPercentageOrAuto;
 use style::Zero;
 
 use super::{BaseFragment, BaseFragmentInfo, CollapsedBlockMargins, Fragment};
 use crate::cell::ArcRefCell;
 use crate::formatting_contexts::Baselines;
-use crate::geom::{AuOrAuto, PhysicalPoint, PhysicalRect, PhysicalSides, ToLogical};
+use crate::geom::{
+    AuOrAuto, LengthPercentageOrAuto, PhysicalPoint, PhysicalRect, PhysicalSides, ToLogical,
+};
 use crate::style_ext::ComputedValuesExt;
 
 /// Describes how a [`BoxFragment`] paints its background.
@@ -277,7 +278,7 @@ impl BoxFragment {
         // the property is not over-constrained, then the resolved value is the
         // used value. Otherwise the resolved value is the computed value."
         // https://drafts.csswg.org/cssom/#resolved-values
-        let insets = self.style.get_position();
+        let insets = self.style.physical_box_offsets();
         let (cb_width, cb_height) = (containing_block.width(), containing_block.height());
         if position == ComputedPosition::Relative {
             let get_resolved_axis = |start: &LengthPercentageOrAuto,
