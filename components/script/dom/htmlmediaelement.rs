@@ -1632,7 +1632,7 @@ impl HTMLMediaElement {
                             false,
                             false,
                             &Some(VideoTrackOrAudioTrackOrTextTrack::AudioTrack(audio_track)),
-                            can_gc
+                            can_gc,
                         );
 
                         event.upcast::<Event>().fire(self.upcast::<EventTarget>());
@@ -1687,7 +1687,7 @@ impl HTMLMediaElement {
                             false,
                             false,
                             &Some(VideoTrackOrAudioTrackOrTextTrack::VideoTrack(video_track)),
-                            can_gc
+                            can_gc,
                         );
 
                         event.upcast::<Event>().fire(self.upcast::<EventTarget>());

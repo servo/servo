@@ -216,7 +216,7 @@ impl Gamepad {
         self.gamepad_id
     }
 
-    pub fn update_connected(&self, connected: bool, has_gesture: bool, can_gc:CanGc) {
+    pub fn update_connected(&self, connected: bool, has_gesture: bool, can_gc: CanGc) {
         if self.connected.get() == connected {
             return;
         }
@@ -245,7 +245,7 @@ impl Gamepad {
         self.timestamp.set(timestamp);
     }
 
-    pub fn notify_event(&self, event_type: GamepadEventType, can_gc:CanGc) {
+    pub fn notify_event(&self, event_type: GamepadEventType, can_gc: CanGc) {
         let event = GamepadEvent::new_with_type(&self.global(), event_type, self, can_gc);
         event
             .upcast::<Event>()

@@ -19,8 +19,8 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::securitypolicyviolationevent::SecurityPolicyViolationEvent;
 use crate::dom::types::GlobalScope;
-use crate::task::TaskOnce;
 use crate::script_runtime::CanGc;
+use crate::task::TaskOnce;
 
 pub struct CSPViolationReporter {
     sample: Option<String>,
@@ -101,7 +101,7 @@ impl CSPViolationReporter {
         }
     }
 
-    fn fire_violation_event(&self, can_gc:CanGc) {
+    fn fire_violation_event(&self, can_gc: CanGc) {
         let target = self.target.root();
         let global = &target.global();
         let report = self.get_report(global);
@@ -112,7 +112,7 @@ impl CSPViolationReporter {
             EventBubbles::Bubbles,
             EventCancelable::Cancelable,
             &report.into(),
-            can_gc
+            can_gc,
         );
 
         event.upcast::<Event>().fire(&target);

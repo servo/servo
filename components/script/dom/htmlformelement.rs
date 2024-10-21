@@ -269,7 +269,7 @@ impl HTMLFormElementMethods for HTMLFormElement {
     make_getter!(Rel, "rel");
 
     // https://html.spec.whatwg.org/multipage/#the-form-element:concept-form-submit
-    fn Submit(&self, can_gc:CanGc) {
+    fn Submit(&self, can_gc: CanGc) {
         self.submit(
             SubmittedFrom::FromForm,
             FormSubmitterElement::Form(self),

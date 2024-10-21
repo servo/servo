@@ -246,11 +246,15 @@ impl FetchResponseListener for FetchContext {
                 FetchMetadata::Filtered { filtered, .. } => match filtered {
                     FilteredMetadata::Basic(m) => {
                         fill_headers_with_metadata(self.response_object.root(), m, CanGc::note());
-                        self.response_object.root().set_type(DOMResponseType::Basic, CanGc::note());
+                        self.response_object
+                            .root()
+                            .set_type(DOMResponseType::Basic, CanGc::note());
                     },
                     FilteredMetadata::Cors(m) => {
                         fill_headers_with_metadata(self.response_object.root(), m, CanGc::note());
-                        self.response_object.root().set_type(DOMResponseType::Cors, CanGc::note());
+                        self.response_object
+                            .root()
+                            .set_type(DOMResponseType::Cors, CanGc::note());
                     },
                     FilteredMetadata::Opaque => {
                         self.response_object
@@ -317,7 +321,7 @@ impl ResourceTimingListener for FetchContext {
     }
 }
 
-fn fill_headers_with_metadata(r: DomRoot<Response>, m: Metadata, can_gc:CanGc) {
+fn fill_headers_with_metadata(r: DomRoot<Response>, m: Metadata, can_gc: CanGc) {
     r.set_headers(m.headers, can_gc);
     r.set_status(&m.status);
     r.set_final_url(m.final_url);

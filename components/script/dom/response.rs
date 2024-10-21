@@ -305,7 +305,7 @@ impl ResponseMethods for Response {
     }
 
     // https://fetch.spec.whatwg.org/#dom-response-headers
-    fn Headers(&self, can_gc:CanGc) -> DomRoot<Headers> {
+    fn Headers(&self, can_gc: CanGc) -> DomRoot<Headers> {
         self.headers_reflector
             .or_init(|| Headers::for_response(&self.global(), can_gc))
     }
@@ -319,8 +319,12 @@ impl ResponseMethods for Response {
 
         // Step 2
         let new_response = Response::new(&self.global(), can_gc);
-        new_response.Headers(can_gc).copy_from_headers(self.Headers(can_gc))?;
-        new_response.Headers(can_gc).set_guard(self.Headers(can_gc).get_guard());
+        new_response
+            .Headers(can_gc)
+            .copy_from_headers(self.Headers(can_gc))?;
+        new_response
+            .Headers(can_gc)
+            .set_guard(self.Headers(can_gc).get_guard());
 
         // https://fetch.spec.whatwg.org/#concept-response-clone
         // Instead of storing a net_traits::Response internally, we
@@ -388,16 +392,17 @@ fn serialize_without_fragment(url: &ServoUrl) -> &str {
 }
 
 impl Response {
-    pub fn set_type(&self, new_response_type: DOMResponseType, can_gc:CanGc) {
+    pub fn set_type(&self, new_response_type: DOMResponseType, can_gc: CanGc) {
         *self.response_type.borrow_mut() = new_response_type;
         self.set_response_members_by_type(new_response_type, can_gc);
     }
 
-    pub fn set_headers(&self, option_hyper_headers: Option<Serde<HyperHeaders>>, can_gc:CanGc) {
-        self.Headers(can_gc).set_headers(match option_hyper_headers {
-            Some(hyper_headers) => hyper_headers.into_inner(),
-            None => HyperHeaders::new(),
-        });
+    pub fn set_headers(&self, option_hyper_headers: Option<Serde<HyperHeaders>>, can_gc: CanGc) {
+        self.Headers(can_gc)
+            .set_headers(match option_hyper_headers {
+                Some(hyper_headers) => hyper_headers.into_inner(),
+                None => HyperHeaders::new(),
+            });
     }
 
     pub fn set_status(&self, status: &HttpStatus) {
@@ -412,7 +417,7 @@ impl Response {
         *self.redirected.borrow_mut() = is_redirected;
     }
 
-    fn set_response_members_by_type(&self, response_type: DOMResponseType, can_gc:CanGc) {
+    fn set_response_members_by_type(&self, response_type: DOMResponseType, can_gc: CanGc) {
         match response_type {
             DOMResponseType::Error => {
                 *self.status.borrow_mut() = HttpStatus::new_error();

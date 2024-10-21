@@ -45,7 +45,7 @@ impl ProgressEvent {
         length_computable: bool,
         loaded: u64,
         total: u64,
-        can_gc:CanGc
+        can_gc: CanGc,
     ) -> DomRoot<ProgressEvent> {
         Self::new_with_proto(
             global,

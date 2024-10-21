@@ -166,7 +166,7 @@ impl FileReader {
         filereader: TrustedFileReader,
         gen_id: GenerationId,
         error: DOMErrorName,
-        can_gc:CanGc
+        can_gc: CanGc,
     ) {
         let fr = filereader.root();
 
@@ -196,7 +196,7 @@ impl FileReader {
     }
 
     // https://w3c.github.io/FileAPI/#dfn-readAsText
-    pub fn process_read_data(filereader: TrustedFileReader, gen_id: GenerationId, can_gc:CanGc) {
+    pub fn process_read_data(filereader: TrustedFileReader, gen_id: GenerationId, can_gc: CanGc) {
         let fr = filereader.root();
 
         macro_rules! return_on_abort(
@@ -212,7 +212,7 @@ impl FileReader {
     }
 
     // https://w3c.github.io/FileAPI/#dfn-readAsText
-    pub fn process_read(filereader: TrustedFileReader, gen_id: GenerationId, can_gc:CanGc) {
+    pub fn process_read(filereader: TrustedFileReader, gen_id: GenerationId, can_gc: CanGc) {
         let fr = filereader.root();
 
         macro_rules! return_on_abort(
@@ -233,7 +233,7 @@ impl FileReader {
         gen_id: GenerationId,
         data: ReadMetaData,
         blob_contents: Vec<u8>,
-        can_gc:CanGc
+        can_gc: CanGc,
     ) {
         let fr = filereader.root();
 
@@ -370,7 +370,7 @@ impl FileReaderMethods for FileReader {
     }
 
     // https://w3c.github.io/FileAPI/#dfn-abort
-    fn Abort(&self, can_gc:CanGc) {
+    fn Abort(&self, can_gc: CanGc) {
         // Step 2
         if self.ready_state.get() == FileReaderReadyState::Loading {
             self.change_ready_state(FileReaderReadyState::Done);
@@ -414,7 +414,7 @@ impl FileReaderMethods for FileReader {
 }
 
 impl FileReader {
-    fn dispatch_progress_event(&self, type_: Atom, loaded: u64, total: Option<u64>, can_gc:CanGc) {
+    fn dispatch_progress_event(&self, type_: Atom, loaded: u64, total: Option<u64>, can_gc: CanGc) {
         let progressevent = ProgressEvent::new(
             &self.global(),
             type_,
@@ -423,7 +423,7 @@ impl FileReader {
             total.is_some(),
             loaded,
             total.unwrap_or(0),
-            can_gc
+            can_gc,
         );
         progressevent.upcast::<Event>().fire(self.upcast());
     }

@@ -158,7 +158,7 @@ struct SerializationIterator {
     stack: Vec<SerializationCommand>,
 }
 
-fn rev_children_iter(n: &Node, can_gc:CanGc) -> impl Iterator<Item = DomRoot<Node>> {
+fn rev_children_iter(n: &Node, can_gc: CanGc) -> impl Iterator<Item = DomRoot<Node>> {
     if n.downcast::<Element>().is_some_and(|e| e.is_void()) {
         return Node::new_document_node().rev_children();
     }
@@ -170,7 +170,7 @@ fn rev_children_iter(n: &Node, can_gc:CanGc) -> impl Iterator<Item = DomRoot<Nod
 }
 
 impl SerializationIterator {
-    fn new(node: &Node, skip_first: bool, can_gc:CanGc) -> SerializationIterator {
+    fn new(node: &Node, skip_first: bool, can_gc: CanGc) -> SerializationIterator {
         let mut ret = SerializationIterator { stack: vec![] };
         if skip_first || node.is::<DocumentFragment>() || node.is::<Document>() {
             for c in rev_children_iter(node, can_gc) {

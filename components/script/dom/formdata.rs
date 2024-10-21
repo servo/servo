@@ -110,7 +110,11 @@ impl FormDataMethods for FormData {
         let datum = FormDatum {
             ty: DOMString::from("file"),
             name: DOMString::from(name.0.clone()),
-            value: FormDatumValue::File(DomRoot::from_ref(&*self.create_an_entry(blob, filename, CanGc::note()))),
+            value: FormDatumValue::File(DomRoot::from_ref(&*self.create_an_entry(
+                blob,
+                filename,
+                CanGc::note(),
+            ))),
         };
 
         self.data
@@ -207,7 +211,12 @@ impl FormDataMethods for FormData {
 
 impl FormData {
     // https://xhr.spec.whatwg.org/#create-an-entry
-    fn create_an_entry(&self, blob: &Blob, opt_filename: Option<USVString>, can_gc:CanGc) -> DomRoot<File> {
+    fn create_an_entry(
+        &self,
+        blob: &Blob,
+        opt_filename: Option<USVString>,
+        can_gc: CanGc,
+    ) -> DomRoot<File> {
         // Steps 3-4
         let name = match opt_filename {
             Some(filename) => DOMString::from(filename.0),
@@ -229,7 +238,7 @@ impl FormData {
             BlobImpl::new_from_bytes(bytes, blob.type_string()),
             name,
             None,
-            can_gc
+            can_gc,
         )
     }
 

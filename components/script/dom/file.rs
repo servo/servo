@@ -46,7 +46,7 @@ impl File {
         blob_impl: BlobImpl,
         name: DOMString,
         modified: Option<SystemTime>,
-        can_gc:CanGc
+        can_gc: CanGc,
     ) -> DomRoot<File> {
         Self::new_with_proto(global, None, blob_impl, name, modified, can_gc)
     }
@@ -71,7 +71,11 @@ impl File {
     }
 
     // Construct from selected file message from file manager thread
-    pub fn new_from_selected(window: &Window, selected: SelectedFile, can_gc:CanGc) -> DomRoot<File> {
+    pub fn new_from_selected(
+        window: &Window,
+        selected: SelectedFile,
+        can_gc: CanGc,
+    ) -> DomRoot<File> {
         let name = DOMString::from(
             selected
                 .filename
@@ -89,7 +93,7 @@ impl File {
             ),
             name,
             Some(selected.modified),
-            can_gc
+            can_gc,
         )
     }
 
