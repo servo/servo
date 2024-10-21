@@ -602,6 +602,15 @@ impl SubtleCrypto {
         key_gen_params: SubtleAesKeyGenParams,
         extractable: bool,
     ) -> Result<DomRoot<CryptoKey>, Error> {
+        let mut rand = vec![0; key_gen_params.length as usize];
+        self.rng.borrow_mut().fill_bytes(&mut rand);
+        let handle = match key_gen_params.length {
+            128 => Handle::Aes128(rand),
+            192 => Handle::Aes192(rand),
+            256 => Handle::Aes256(rand),
+            _ => return Err(Error::Operation),
+        };
+
         if usages.iter().any(|usage| {
             !matches!(
                 usage,
@@ -611,15 +620,6 @@ impl SubtleCrypto {
         {
             return Err(Error::Syntax);
         }
-
-        let mut rand = vec![0; key_gen_params.length as usize];
-        self.rng.borrow_mut().fill_bytes(&mut rand);
-        let handle = match key_gen_params.length {
-            128 => Handle::Aes128(rand),
-            192 => Handle::Aes192(rand),
-            256 => Handle::Aes256(rand),
-            _ => return Err(Error::Operation),
-        };
 
         Ok(CryptoKey::new(
             &self.global(),
