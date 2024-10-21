@@ -545,14 +545,6 @@ impl Window {
         self.replace_surrogates
     }
 
-    pub fn unminify_js(&self) -> bool {
-        self.unminify_js
-    }
-
-    pub fn unminify_css(&self) -> bool {
-        self.unminify_css
-    }
-
     pub fn get_player_context(&self) -> WindowGLContext {
         self.player_context.clone()
     }
@@ -2229,19 +2221,14 @@ impl Window {
         assert!(self.document.get().is_none());
         assert!(document.window() == self);
         self.document.set(Some(document));
-        if self.unminify_js {
-            // Set a path for the document host to store unminified scripts.
-            let mut path = env::current_dir().unwrap();
-            path.push("unminified-js");
-            *self.unminified_js_dir.borrow_mut() =
-                Some(path.into_os_string().into_string().unwrap());
-        } else if self.unminify_css {
-            // Set a path for the document host to store unminified stylesheets.
-            let mut path = env::current_dir().unwrap();
-            path.push("unminified-css");
-            *self.unminified_css_dir.borrow_mut() =
-                Some(path.into_os_string().into_string().unwrap());
-        }
+
+        set_unminified_path(self.unminify_js, &self.unminified_js_dir, "unminified-js");
+
+        set_unminified_path(
+            self.unminify_css,
+            &self.unminified_css_dir,
+            "unminified-css",
+        );
     }
 
     /// Commence a new URL load which will either replace this window or scroll to a fragment.
@@ -2889,4 +2876,13 @@ fn is_named_element_with_name_attribute(elem: &Element) -> bool {
 
 fn is_named_element_with_id_attribute(elem: &Element) -> bool {
     elem.is_html_element()
+}
+
+fn set_unminified_path(option: bool, dir_ref: &DomRefCell<Option<String>>, folder_name: &str) {
+    if option {
+        // Set a path for the document host to store unminified files.
+        let mut path = env::current_dir().unwrap();
+        path.push(folder_name);
+        *dir_ref.borrow_mut() = Some(path.into_os_string().into_string().unwrap());
+    }
 }

@@ -2,10 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::fs::{create_dir_all, File};
 use std::io::{Read, Seek, Write};
-use std::path::PathBuf;
-use std::process::Command;
 use std::sync::atomic::AtomicBool;
 use std::sync::Mutex;
 
@@ -31,7 +28,6 @@ use style::stylesheets::{
     StylesheetLoader as StyleStylesheetLoader, UrlExtraData,
 };
 use style::values::CssUrl;
-use uuid::Uuid;
 
 use crate::document_loader::LoadType;
 use crate::dom::bindings::inheritance::Castable;
@@ -50,6 +46,9 @@ use crate::dom::shadowroot::ShadowRoot;
 use crate::fetch::create_a_potential_cors_request;
 use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
 use crate::script_runtime::CanGc;
+use crate::unminify::{
+    create_output_file, create_temp_files, execute_js_beautify, BeautifyFileType,
+};
 
 pub trait StylesheetOwner {
     /// Returns whether this element was inserted by the parser (i.e., it should
@@ -98,82 +97,29 @@ pub struct StylesheetContext {
 
 impl StylesheetContext {
     fn unminify_css(&self, data: Vec<u8>, file_url: ServoUrl) -> Vec<u8> {
-        if !self.document.root().window().unminify_css() {
+        if self.document.root().window().unminified_css_dir().is_none() {
             return data;
         }
 
         let mut style_content = data;
 
-        // Write the minified code to a temporary file and pass its path as an argument
-        // to js-beautify --type css to read from. Meanwhile, redirect the process' stdout into
-        // another temporary file and read that into a string. This avoids some hangs
-        // observed on macOS when using direct input/output pipes with very large
-        // unminified content.
-        let (input, output) = (tempfile::NamedTempFile::new(), tempfile::tempfile());
-        if let (Ok(mut input), Ok(mut output)) = (input, output) {
-            input.write_all(&style_content).unwrap();
-            match Command::new("js-beautify")
-                .arg("--type")
-                .arg("css")
-                .arg(input.path())
-                .stdout(output.try_clone().unwrap())
-                .status()
-            {
-                Ok(status) if status.success() => {
-                    output.seek(std::io::SeekFrom::Start(0)).unwrap();
-                    output.read_to_end(&mut style_content).unwrap();
-                },
-                _ => {
-                    log::warn!(
-                        "Failed to execute js-beautify --type css. Will store unmodified css"
-                    );
-                },
+        if let Some((input, mut output)) = create_temp_files() {
+            if execute_js_beautify(
+                input.path(),
+                output.try_clone().unwrap(),
+                BeautifyFileType::Css,
+            ) {
+                output.seek(std::io::SeekFrom::Start(0)).unwrap();
+                output.read_to_end(&mut style_content).unwrap();
             }
-        } else {
-            log::warn!("Error creating input and output files for unminify css");
         }
-
-        let path = match self.document.root().window().unminified_css_dir() {
-            Some(unminified_css_dir) => PathBuf::from(unminified_css_dir),
-            None => {
-                log::warn!("Unminified Css directory not found");
-                return style_content;
-            },
-        };
-
-        let (base, has_name) = match file_url.as_str().ends_with('/') {
-            true => (
-                path.join(&file_url[url::Position::BeforeHost..])
-                    .as_path()
-                    .to_owned(),
-                false,
-            ),
-            false => (
-                path.join(&file_url[url::Position::BeforeHost..])
-                    .parent()
-                    .unwrap()
-                    .to_owned(),
-                true,
-            ),
-        };
-
-        let path = if has_name {
-            // External stylesheet.
-            path.join(&file_url[url::Position::BeforeHost..])
-        } else {
-            // Inline script or url ends with '/'
-            base.join(Uuid::new_v4().to_string())
-        };
-
-        if let Err(e) = create_dir_all(base.clone()) {
-            log::warn!("Failed to create base dir: {:?}, {:?}", base, e);
-            return style_content;
-        }
-
-        match File::create(&path) {
+        match create_output_file(
+            self.document.root().window().unminified_css_dir(),
+            &file_url,
+            None,
+        ) {
             Ok(mut file) => {
                 file.write_all(&style_content).unwrap();
-                log::warn!("Css stored in {:?}", path);
             },
             Err(why) => {
                 log::warn!("Could not store script {:?}", why);
