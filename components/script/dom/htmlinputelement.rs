@@ -1559,9 +1559,9 @@ impl HTMLInputElementMethods for HTMLInputElement {
     // enabled by dom.htmlinputelement.select_files.enabled,
     // used for test purpose.
     // check-tidy: no specs after this line
-    fn SelectFiles(&self, paths: Vec<DOMString>) {
+    fn SelectFiles(&self, paths: Vec<DOMString>, can_gc:CanGc) {
         if self.input_type() == InputType::File {
-            self.select_files(Some(paths));
+            self.select_files(Some(paths), can_gc);
         }
     }
 
@@ -1826,7 +1826,7 @@ impl HTMLInputElement {
 
     // https://html.spec.whatwg.org/multipage/#file-upload-state-(type=file)
     // Select files by invoking UI or by passed in argument
-    fn select_files(&self, opt_test_paths: Option<Vec<DOMString>>) {
+    fn select_files(&self, opt_test_paths: Option<Vec<DOMString>>, can_gc:CanGc) {
         let window = window_from_node(self);
         let origin = get_blob_origin(&window.get_url());
         let resource_threads = window.upcast::<GlobalScope>().resource_threads();
@@ -1851,7 +1851,7 @@ impl HTMLInputElement {
             match recv.recv().expect("IpcSender side error") {
                 Ok(selected_files) => {
                     for selected in selected_files {
-                        files.push(File::new_from_selected(&window, selected));
+                        files.push(File::new_from_selected(&window, selected, can_gc));
                     }
                 },
                 Err(err) => error = Some(err),
@@ -1877,7 +1877,7 @@ impl HTMLInputElement {
 
             match recv.recv().expect("IpcSender side error") {
                 Ok(selected) => {
-                    files.push(File::new_from_selected(&window, selected));
+                    files.push(File::new_from_selected(&window, selected, can_gc));
                 },
                 Err(err) => error = Some(err),
             };
@@ -2839,7 +2839,7 @@ impl Activatable for HTMLInputElement {
                 target.fire_bubbling_event(atom!("input"));
                 target.fire_bubbling_event(atom!("change"));
             },
-            InputType::File => self.select_files(None),
+            InputType::File => self.select_files(None, CanGc::note()),
             _ => (),
         }
     }

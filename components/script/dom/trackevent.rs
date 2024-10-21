@@ -65,6 +65,7 @@ impl TrackEvent {
         bubbles: bool,
         cancelable: bool,
         track: &Option<VideoTrackOrAudioTrackOrTextTrack>,
+        can_gc:CanGc
     ) -> DomRoot<TrackEvent> {
         Self::new_with_proto(
             global,
@@ -73,7 +74,7 @@ impl TrackEvent {
             bubbles,
             cancelable,
             track,
-            CanGc::note(),
+            can_gc,
         )
     }
 

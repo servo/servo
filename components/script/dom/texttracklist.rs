@@ -18,6 +18,7 @@ use crate::dom::texttrack::TextTrack;
 use crate::dom::trackevent::TrackEvent;
 use crate::dom::window::Window;
 use crate::task_source::TaskSource;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct TextTrackList {
@@ -83,6 +84,7 @@ impl TextTrackList {
                             &Some(VideoTrackOrAudioTrackOrTextTrack::TextTrack(
                                 DomRoot::from_ref(&track)
                             )),
+                            CanGc::note()
                         );
 
                         event.upcast::<Event>().fire(this.upcast::<EventTarget>());

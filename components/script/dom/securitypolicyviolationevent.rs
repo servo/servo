@@ -93,6 +93,7 @@ impl SecurityPolicyViolationEvent {
         bubbles: EventBubbles,
         cancelable: EventCancelable,
         init: &SecurityPolicyViolationEventInit,
+        can_gc:CanGc
     ) -> DomRoot<Self> {
         Self::new_with_proto(
             global,
@@ -101,7 +102,7 @@ impl SecurityPolicyViolationEvent {
             bubbles,
             cancelable,
             init,
-            CanGc::note(),
+            can_gc,
         )
     }
 }

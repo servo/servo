@@ -9,6 +9,7 @@ use crate::dom::filereader::{FileReader, GenerationId, ReadMetaData, TrustedFile
 use crate::script_runtime::{CommonScriptMsg, ScriptChan, ScriptThreadEventCategory};
 use crate::task::{TaskCanceller, TaskOnce};
 use crate::task_source::{TaskSource, TaskSourceName};
+use crate::script_runtime::CanGc;
 
 #[derive(JSTraceable)]
 pub struct FileReadingTaskSource(
@@ -40,7 +41,7 @@ impl TaskSource for FileReadingTaskSource {
 
 impl TaskOnce for FileReadingTask {
     fn run_once(self) {
-        self.handle_task();
+        self.handle_task(CanGc::note());
     }
 }
 
@@ -53,17 +54,17 @@ pub enum FileReadingTask {
 }
 
 impl FileReadingTask {
-    pub fn handle_task(self) {
+    pub fn handle_task(self, can_gc:CanGc) {
         use self::FileReadingTask::*;
 
         match self {
-            ProcessRead(reader, gen_id) => FileReader::process_read(reader, gen_id),
-            ProcessReadData(reader, gen_id) => FileReader::process_read_data(reader, gen_id),
+            ProcessRead(reader, gen_id) => FileReader::process_read(reader, gen_id, can_gc),
+            ProcessReadData(reader, gen_id) => FileReader::process_read_data(reader, gen_id, can_gc),
             ProcessReadError(reader, gen_id, error) => {
-                FileReader::process_read_error(reader, gen_id, error)
+                FileReader::process_read_error(reader, gen_id, error, can_gc)
             },
             ProcessReadEOF(reader, gen_id, metadata, blob_contents) => {
-                FileReader::process_read_eof(reader, gen_id, metadata, blob_contents)
+                FileReader::process_read_eof(reader, gen_id, metadata, blob_contents, can_gc)
             },
         }
     }

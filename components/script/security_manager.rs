@@ -20,6 +20,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::securitypolicyviolationevent::SecurityPolicyViolationEvent;
 use crate::dom::types::GlobalScope;
 use crate::task::TaskOnce;
+use crate::script_runtime::CanGc;
 
 pub struct CSPViolationReporter {
     sample: Option<String>,
@@ -100,7 +101,7 @@ impl CSPViolationReporter {
         }
     }
 
-    fn fire_violation_event(&self) {
+    fn fire_violation_event(&self, can_gc:CanGc) {
         let target = self.target.root();
         let global = &target.global();
         let report = self.get_report(global);
@@ -111,6 +112,7 @@ impl CSPViolationReporter {
             EventBubbles::Bubbles,
             EventCancelable::Cancelable,
             &report.into(),
+            can_gc
         );
 
         event.upcast::<Event>().fire(&target);
@@ -142,7 +144,7 @@ impl TaskOnce for CSPViolationReporter {
         // > If target implements EventTarget, fire an event named securitypolicyviolation
         // > that uses the SecurityPolicyViolationEvent interface
         // > at target with its attributes initialized as follows:
-        self.fire_violation_event();
+        self.fire_violation_event(CanGc::note());
         // TODO: Support `report-to` directive that corresponds to 5.5.3.5.
     }
 }

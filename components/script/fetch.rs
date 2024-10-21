@@ -149,7 +149,7 @@ pub fn Fetch(
     // Step 7. Let responseObject be null.
     // NOTE: We do initialize the object earlier earlier so we can use it to track errors
     let response = Response::new(global, can_gc);
-    response.Headers().set_guard(Guard::Immutable);
+    response.Headers(can_gc).set_guard(Guard::Immutable);
 
     // Step 2. Let requestObject be the result of invoking the initial value of Request as constructor
     //         with input and init as arguments. If this throws an exception, reject p with it and return p.
@@ -231,35 +231,35 @@ impl FetchResponseListener for FetchContext {
                 promise.reject_error(Error::Type("Network error occurred".to_string()));
                 self.fetch_promise = Some(TrustedPromise::new(promise));
                 let response = self.response_object.root();
-                response.set_type(DOMResponseType::Error);
+                response.set_type(DOMResponseType::Error, CanGc::note());
                 response.error_stream(Error::Type("Network error occurred".to_string()));
                 return;
             },
             // Step 4.2
             Ok(metadata) => match metadata {
                 FetchMetadata::Unfiltered(m) => {
-                    fill_headers_with_metadata(self.response_object.root(), m);
+                    fill_headers_with_metadata(self.response_object.root(), m, CanGc::note());
                     self.response_object
                         .root()
-                        .set_type(DOMResponseType::Default);
+                        .set_type(DOMResponseType::Default, CanGc::note());
                 },
                 FetchMetadata::Filtered { filtered, .. } => match filtered {
                     FilteredMetadata::Basic(m) => {
-                        fill_headers_with_metadata(self.response_object.root(), m);
-                        self.response_object.root().set_type(DOMResponseType::Basic);
+                        fill_headers_with_metadata(self.response_object.root(), m, CanGc::note());
+                        self.response_object.root().set_type(DOMResponseType::Basic, CanGc::note());
                     },
                     FilteredMetadata::Cors(m) => {
-                        fill_headers_with_metadata(self.response_object.root(), m);
-                        self.response_object.root().set_type(DOMResponseType::Cors);
+                        fill_headers_with_metadata(self.response_object.root(), m, CanGc::note());
+                        self.response_object.root().set_type(DOMResponseType::Cors, CanGc::note());
                     },
                     FilteredMetadata::Opaque => {
                         self.response_object
                             .root()
-                            .set_type(DOMResponseType::Opaque);
+                            .set_type(DOMResponseType::Opaque, CanGc::note());
                     },
                     FilteredMetadata::OpaqueRedirect(url) => {
                         let r = self.response_object.root();
-                        r.set_type(DOMResponseType::Opaqueredirect);
+                        r.set_type(DOMResponseType::Opaqueredirect, CanGc::note());
                         r.set_final_url(url);
                     },
                 },
@@ -317,8 +317,8 @@ impl ResourceTimingListener for FetchContext {
     }
 }
 
-fn fill_headers_with_metadata(r: DomRoot<Response>, m: Metadata) {
-    r.set_headers(m.headers);
+fn fill_headers_with_metadata(r: DomRoot<Response>, m: Metadata, can_gc:CanGc) {
+    r.set_headers(m.headers, can_gc);
     r.set_status(&m.status);
     r.set_final_url(m.final_url);
     r.set_redirected(m.redirected);
