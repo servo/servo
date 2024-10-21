@@ -29,7 +29,8 @@ use js::jsval::{JSVal, PrivateValue, UndefinedValue};
 use js::rust::jsapi_wrapped::JS_GetPendingException;
 use js::rust::wrappers::JS_SetPendingException;
 use js::rust::{
-    transform_str_to_source_text, CompileOptionsWrapper, Handle, HandleValue, IntoHandle,
+    transform_str_to_source_text, CompileOptionsWrapper, Handle, HandleObject as RustHandleObject,
+    HandleValue, IntoHandle, MutableHandleObject as RustMutableHandleObject,
 };
 use mime::Mime;
 use net_traits::http_status::HttpStatus;
@@ -87,6 +88,10 @@ unsafe fn gen_type_error(global: &GlobalScope, string: String) -> RethrowError {
 pub struct ModuleObject(Box<Heap<*mut JSObject>>);
 
 impl ModuleObject {
+    fn new(obj: RustHandleObject) -> ModuleObject {
+        ModuleObject(Heap::boxed(obj.get()))
+    }
+
     #[allow(unsafe_code)]
     pub fn handle(&self) -> HandleObject {
         unsafe { self.0.handle() }
@@ -424,14 +429,15 @@ impl ModuleTree {
         module_script_text: Rc<DOMString>,
         url: &ServoUrl,
         options: ScriptFetchOptions,
-    ) -> Result<ModuleObject, RethrowError> {
+        mut module_script: RustMutableHandleObject,
+    ) -> Result<(), RethrowError> {
         let cx = GlobalScope::get_cx();
         let _ac = JSAutoRealm::new(*cx, *global.reflector().get_jsobject());
 
         let compile_options = unsafe { CompileOptionsWrapper::new(*cx, url.as_str(), 1) };
 
         unsafe {
-            rooted!(in(*cx) let mut module_script = CompileModule1(
+            module_script.set(CompileModule1(
                 *cx,
                 compile_options.ptr,
                 &mut transform_str_to_source_text(&module_script_text),
@@ -463,7 +469,7 @@ impl ModuleTree {
                 module_script.handle().into_handle(),
                 url,
             )
-            .map(|_| ModuleObject(Heap::boxed(*module_script)))
+            .map(|_| ())
         }
     }
 
@@ -1152,21 +1158,24 @@ impl FetchResponseListener for ModuleContext {
             Ok(ref resp_mod_script) => {
                 module_tree.set_text(resp_mod_script.text());
 
-                let compiled_module = module_tree.compile_module_script(
+                let cx = GlobalScope::get_cx();
+                rooted!(in(*cx) let mut compiled_module: *mut JSObject = ptr::null_mut());
+                let compiled_module_result = module_tree.compile_module_script(
                     &global,
                     self.owner.clone(),
                     resp_mod_script.text(),
                     &self.url,
                     self.options.clone(),
+                    compiled_module.handle_mut(),
                 );
 
-                match compiled_module {
+                match compiled_module_result {
                     Err(exception) => {
                         module_tree.set_rethrow_error(exception);
                         module_tree.advance_finished_and_link(&global);
                     },
-                    Ok(record) => {
-                        module_tree.set_record(record);
+                    Ok(_) => {
+                        module_tree.set_record(ModuleObject::new(compiled_module.handle()));
 
                         module_tree.fetch_module_descendants(
                             &self.owner,
@@ -1707,22 +1716,25 @@ pub(crate) fn fetch_inline_module_script(
     let is_external = false;
     let module_tree = ModuleTree::new(url.clone(), is_external, HashSet::new());
 
-    let compiled_module = module_tree.compile_module_script(
+    let cx = GlobalScope::get_cx();
+    rooted!(in(*cx) let mut compiled_module: *mut JSObject = ptr::null_mut());
+    let compiled_module_result = module_tree.compile_module_script(
         &global,
         owner.clone(),
         module_script_text,
         &url,
         options.clone(),
+        compiled_module.handle_mut(),
     );
 
-    match compiled_module {
-        Ok(record) => {
+    match compiled_module_result {
+        Ok(_) => {
             module_tree.append_handler(
                 owner.clone(),
                 ModuleIdentity::ScriptId(script_id),
                 options.clone(),
             );
-            module_tree.set_record(record);
+            module_tree.set_record(ModuleObject::new(compiled_module.handle()));
 
             // We need to set `module_tree` into inline module map in case
             // of that the module descendants finished right after the
