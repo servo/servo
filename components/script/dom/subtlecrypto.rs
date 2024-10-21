@@ -533,15 +533,15 @@ impl SubtleCrypto {
 
         let ct = match key.handle() {
             Handle::Aes128(data) => {
-                let key_data = GenericArray::from_slice(&data);
+                let key_data = GenericArray::from_slice(data);
                 Aes128CbcEnc::new(key_data, iv).encrypt_padded_vec_mut::<Pkcs7>(&mut plaintext)
             },
             Handle::Aes192(data) => {
-                let key_data = GenericArray::from_slice(&data);
+                let key_data = GenericArray::from_slice(data);
                 Aes192CbcEnc::new(key_data, iv).encrypt_padded_vec_mut::<Pkcs7>(&mut plaintext)
             },
             Handle::Aes256(data) => {
-                let key_data = GenericArray::from_slice(&data);
+                let key_data = GenericArray::from_slice(data);
                 Aes256CbcEnc::new(key_data, iv).encrypt_padded_vec_mut::<Pkcs7>(&mut plaintext)
             },
         };
@@ -570,19 +570,19 @@ impl SubtleCrypto {
 
         let plaintext = match key.handle() {
             Handle::Aes128(data) => {
-                let key_data = GenericArray::from_slice(&data);
+                let key_data = GenericArray::from_slice(data);
                 Aes128CbcDec::new(key_data, iv)
                     .decrypt_padded_mut::<Pkcs7>(ciphertext.as_mut_slice())
                     .map_err(|_| Error::Operation)?
             },
             Handle::Aes192(data) => {
-                let key_data = GenericArray::from_slice(&data);
+                let key_data = GenericArray::from_slice(data);
                 Aes192CbcDec::new(key_data, iv)
                     .decrypt_padded_mut::<Pkcs7>(ciphertext.as_mut_slice())
                     .map_err(|_| Error::Operation)?
             },
             Handle::Aes256(data) => {
-                let key_data = GenericArray::from_slice(&data);
+                let key_data = GenericArray::from_slice(data);
                 Aes256CbcDec::new(key_data, iv)
                     .decrypt_padded_mut::<Pkcs7>(ciphertext.as_mut_slice())
                     .map_err(|_| Error::Operation)?
