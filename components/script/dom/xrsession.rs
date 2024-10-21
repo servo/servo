@@ -1026,7 +1026,7 @@ impl XRSessionMethods for XRSession {
 
     /// <https://www.w3.org/TR/webxr/#dom-xrsession-updatetargetframerate>
     fn UpdateTargetFrameRate(&self, rate: Finite<f32>, comp: InRealm) -> Rc<Promise> {
-        let mut session = self.session.borrow_mut();
+        let session = self.session.borrow();
         let supported_frame_rates = session.supported_frame_rates();
         let promise = Promise::new_in_current_realm(comp);
 
@@ -1070,7 +1070,7 @@ impl XRSessionMethods for XRSession {
             }),
         );
 
-        session.update_frame_rate(*rate, sender);
+        self.session.borrow_mut().update_frame_rate(*rate, sender);
 
         promise
     }
