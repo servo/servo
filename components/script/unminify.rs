@@ -1,3 +1,7 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
 use std::fs::{create_dir_all, File};
 use std::io::{Error, ErrorKind};
 use std::path::{Path, PathBuf};
@@ -54,7 +58,7 @@ pub fn create_output_file(
     external: Option<bool>,
 ) -> Result<File, Error> {
     let path = match unminified_dir {
-        Some(unminified_js_dir) => PathBuf::from(unminified_js_dir),
+        Some(unminified_dir) => PathBuf::from(unminified_dir),
         None => {
             warn!("Unminified file directory not found");
             return Err(Error::new(
