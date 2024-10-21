@@ -844,7 +844,7 @@ pub fn upgrade_element(definition: Rc<CustomElementDefinition>, element: &Elemen
         unsafe {
             let ar = enter_realm(&*global);
             throw_dom_exception(cx, &global, error);
-            report_pending_exception(*cx, true, InRealm::Entered(&ar));
+            report_pending_exception(*cx, true, InRealm::Entered(&ar), can_gc);
         }
 
         return;

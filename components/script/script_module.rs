@@ -539,7 +539,7 @@ impl ModuleTree {
     }
 
     #[allow(unsafe_code)]
-    pub fn report_error(&self, global: &GlobalScope) {
+    pub fn report_error(&self, global: &GlobalScope, can_gc: CanGc) {
         let module_error = self.rethrow_error.borrow();
 
         if let Some(exception) = &*module_error {
@@ -550,7 +550,12 @@ impl ModuleTree {
                     exception.handle(),
                     ExceptionStackBehavior::Capture,
                 );
-                report_pending_exception(*GlobalScope::get_cx(), true, InRealm::Entered(&ar));
+                report_pending_exception(
+                    *GlobalScope::get_cx(),
+                    true,
+                    InRealm::Entered(&ar),
+                    can_gc,
+                );
             }
         }
     }

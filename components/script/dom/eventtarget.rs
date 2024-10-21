@@ -486,7 +486,7 @@ impl EventTarget {
         &self,
         handler: InternalRawUncompiledHandler,
         ty: &Atom,
-        _can_gc: CanGc,
+        can_gc: CanGc,
     ) -> Option<CommonEventHandler> {
         // Step 3.1
         let element = self.downcast::<Element>();
@@ -568,7 +568,7 @@ impl EventTarget {
             unsafe {
                 let ar = enter_realm(self);
                 // FIXME(#13152): dispatch error event.
-                report_pending_exception(*cx, false, InRealm::Entered(&ar));
+                report_pending_exception(*cx, false, InRealm::Entered(&ar), can_gc);
             }
             return None;
         }

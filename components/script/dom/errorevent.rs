@@ -66,19 +66,11 @@ impl ErrorEvent {
         lineno: u32,
         colno: u32,
         error: HandleValue,
+        can_gc: CanGc,
     ) -> DomRoot<ErrorEvent> {
         Self::new_with_proto(
-            global,
-            None,
-            type_,
-            bubbles,
-            cancelable,
-            message,
-            filename,
-            lineno,
-            colno,
-            error,
-            CanGc::note(),
+            global, None, type_, bubbles, cancelable, message, filename, lineno, colno, error,
+            can_gc,
         )
     }
 
