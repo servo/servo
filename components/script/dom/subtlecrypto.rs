@@ -161,17 +161,17 @@ impl SubtleCryptoMethods for SubtleCrypto {
                 let subtle = this.root();
                 let promise = trusted_promise.root();
                 let key = trusted_key.root();
+                let cx = GlobalScope::get_cx();
+                rooted!(in(*cx) let mut array_buffer_ptr = ptr::null_mut::<JSObject>());
                 let text = match alg {
                     Ok(NormalizedAlgorithm::AesCbcParams(key_gen_params)) => {
                         if !valid_usage || key_gen_params.name != key_alg {
                             Err(Error::InvalidAccess)
                         } else {
-                            let cx = GlobalScope::get_cx();
-                            rooted!(in(*cx) let mut array_buffer_ptr = ptr::null_mut::<JSObject>());
                             match subtle.encrypt_aes_cbc(
                                 key_gen_params, &key, &data, cx, array_buffer_ptr.handle_mut()
                             ) {
-                                Ok(_) => Ok(array_buffer_ptr.get()),
+                                Ok(_) => Ok(array_buffer_ptr.handle()),
                                 Err(e) => Err(e),
                             }
                         }
@@ -179,7 +179,7 @@ impl SubtleCryptoMethods for SubtleCrypto {
                     _ => Err(Error::NotSupported),
                 };
                 match text {
-                    Ok(text) => promise.resolve_native(&text),
+                    Ok(text) => promise.resolve_native(&*text),
                     Err(e) => promise.reject_error(e),
                 }
             }),
@@ -217,17 +217,17 @@ impl SubtleCryptoMethods for SubtleCrypto {
                 let subtle = this.root();
                 let promise = trusted_promise.root();
                 let key = trusted_key.root();
+                let cx = GlobalScope::get_cx();
+                rooted!(in(*cx) let mut array_buffer_ptr = ptr::null_mut::<JSObject>());
                 let text = match alg {
                     Ok(NormalizedAlgorithm::AesCbcParams(key_gen_params)) => {
                         if !valid_usage || key_gen_params.name != key_alg {
                             Err(Error::InvalidAccess)
                         } else {
-                            let cx = GlobalScope::get_cx();
-                            rooted!(in(*cx) let mut array_buffer_ptr = ptr::null_mut::<JSObject>());
                             match subtle.decrypt_aes_cbc(
                                 key_gen_params, &key, &data, cx, array_buffer_ptr.handle_mut()
                             ) {
-                                Ok(_) => Ok(array_buffer_ptr.get()),
+                                Ok(_) => Ok(array_buffer_ptr.handle()),
                                 Err(e) => Err(e),
                             }
                         }
@@ -235,7 +235,7 @@ impl SubtleCryptoMethods for SubtleCrypto {
                     _ => Err(Error::NotSupported),
                 };
                 match text {
-                    Ok(text) => promise.resolve_native(&text),
+                    Ok(text) => promise.resolve_native(&*text),
                     Err(e) => promise.reject_error(e),
                 }
             }),
