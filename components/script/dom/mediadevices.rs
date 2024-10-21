@@ -53,7 +53,7 @@ impl MediaDevicesMethods for MediaDevices {
         comp: InRealm,
         can_gc: CanGc,
     ) -> Rc<Promise> {
-        let p = Promise::new_in_current_realm(comp);
+        let p = Promise::new_in_current_realm(comp, can_gc);
         let media = ServoMedia::get().unwrap();
         let stream = MediaStream::new(&self.global(), can_gc);
         if let Some(constraints) = convert_constraints(&constraints.audio) {
@@ -74,10 +74,10 @@ impl MediaDevicesMethods for MediaDevices {
     }
 
     /// <https://w3c.github.io/mediacapture-main/#dom-mediadevices-enumeratedevices>
-    fn EnumerateDevices(&self) -> Rc<Promise> {
+    fn EnumerateDevices(&self, can_gc: CanGc) -> Rc<Promise> {
         // Step 1.
         let in_realm_proof = AlreadyInRealm::assert();
-        let p = Promise::new_in_current_realm(InRealm::Already(&in_realm_proof));
+        let p = Promise::new_in_current_realm(InRealm::Already(&in_realm_proof), can_gc);
 
         // Step 2.
         // XXX These steps should be run in parallel.

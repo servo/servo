@@ -1939,7 +1939,7 @@ impl ScriptThread {
                 },
                 FromConstellation(ConstellationControlMsg::ExitFullScreen(id)) => self
                     .profile_event(ScriptThreadEventCategory::ExitFullscreen, Some(id), || {
-                        self.handle_exit_fullscreen(id);
+                        self.handle_exit_fullscreen(id, can_gc);
                     }),
                 _ => {
                     sequential.push(event);
@@ -2914,11 +2914,11 @@ impl ScriptThread {
     }
 
     // exit_fullscreen creates a new JS promise object, so we need to have entered a realm
-    fn handle_exit_fullscreen(&self, id: PipelineId) {
+    fn handle_exit_fullscreen(&self, id: PipelineId, can_gc: CanGc) {
         let document = self.documents.borrow().find_document(id);
         if let Some(document) = document {
             let _ac = enter_realm(&*document);
-            document.exit_fullscreen();
+            document.exit_fullscreen(can_gc);
         }
     }
 

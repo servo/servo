@@ -831,7 +831,7 @@ impl XRSessionMethods for XRSession {
         comp: InRealm,
         can_gc: CanGc,
     ) -> Rc<Promise> {
-        let p = Promise::new_in_current_realm(comp);
+        let p = Promise::new_in_current_realm(comp, can_gc);
 
         // https://immersive-web.github.io/webxr/#create-a-reference-space
 
@@ -892,7 +892,7 @@ impl XRSessionMethods for XRSession {
     /// <https://immersive-web.github.io/webxr/#dom-xrsession-end>
     fn End(&self, can_gc: CanGc) -> Rc<Promise> {
         let global = self.global();
-        let p = Promise::new(&global);
+        let p = Promise::new(&global, can_gc);
         if self.ended.get() && self.end_promises.borrow().is_empty() {
             // If the session has completely ended and all end promises have been resolved,
             // don't queue up more end promises
@@ -922,8 +922,8 @@ impl XRSessionMethods for XRSession {
     }
 
     // https://immersive-web.github.io/hit-test/#dom-xrsession-requesthittestsource
-    fn RequestHitTestSource(&self, options: &XRHitTestOptionsInit) -> Rc<Promise> {
-        let p = Promise::new(&self.global());
+    fn RequestHitTestSource(&self, options: &XRHitTestOptionsInit, can_gc: CanGc) -> Rc<Promise> {
+        let p = Promise::new(&self.global(), can_gc);
 
         if !self
             .session
@@ -1025,10 +1025,15 @@ impl XRSessionMethods for XRSession {
     }
 
     /// <https://www.w3.org/TR/webxr/#dom-xrsession-updatetargetframerate>
-    fn UpdateTargetFrameRate(&self, rate: Finite<f32>, comp: InRealm) -> Rc<Promise> {
+    fn UpdateTargetFrameRate(
+        &self,
+        rate: Finite<f32>,
+        comp: InRealm,
+        can_gc: CanGc,
+    ) -> Rc<Promise> {
         let mut session = self.session.borrow_mut();
         let supported_frame_rates = session.supported_frame_rates();
-        let promise = Promise::new_in_current_realm(comp);
+        let promise = Promise::new_in_current_realm(comp, can_gc);
 
         if self.mode == XRSessionMode::Inline ||
             supported_frame_rates.is_empty() ||

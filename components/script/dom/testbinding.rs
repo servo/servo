@@ -1013,6 +1013,7 @@ impl TestBindingMethods for TestBinding {
         resolve: Option<Rc<SimpleCallback>>,
         reject: Option<Rc<SimpleCallback>>,
         comp: InRealm,
+        can_gc: CanGc,
     ) -> Rc<Promise> {
         let global = self.global();
         let handler = PromiseNativeHandler::new(
@@ -1020,8 +1021,8 @@ impl TestBindingMethods for TestBinding {
             resolve.map(SimpleHandler::new_boxed),
             reject.map(SimpleHandler::new_boxed),
         );
-        let p = Promise::new_in_current_realm(comp);
-        p.append_native_handler(&handler, comp);
+        let p = Promise::new_in_current_realm(comp, can_gc);
+        p.append_native_handler(&handler, comp, can_gc);
         return p;
 
         #[derive(JSTraceable, MallocSizeOf)]
@@ -1042,8 +1043,8 @@ impl TestBindingMethods for TestBinding {
         }
     }
 
-    fn PromiseAttribute(&self, comp: InRealm) -> Rc<Promise> {
-        Promise::new_in_current_realm(comp)
+    fn PromiseAttribute(&self, comp: InRealm, can_gc: CanGc) -> Rc<Promise> {
+        Promise::new_in_current_realm(comp, can_gc)
     }
 
     fn AcceptPromise(&self, _promise: &Promise) {}

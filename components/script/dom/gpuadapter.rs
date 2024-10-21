@@ -108,9 +108,14 @@ impl Drop for GPUAdapter {
 
 impl GPUAdapterMethods for GPUAdapter {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuadapter-requestdevice>
-    fn RequestDevice(&self, descriptor: &GPUDeviceDescriptor, comp: InRealm) -> Rc<Promise> {
+    fn RequestDevice(
+        &self,
+        descriptor: &GPUDeviceDescriptor,
+        comp: InRealm,
+        can_gc: CanGc,
+    ) -> Rc<Promise> {
         // Step 2
-        let promise = Promise::new_in_current_realm(comp);
+        let promise = Promise::new_in_current_realm(comp, can_gc);
         let sender = response_async(&promise, self);
         let mut required_features = wgt::Features::empty();
         for &ext in descriptor.requiredFeatures.iter() {
@@ -171,10 +176,15 @@ impl GPUAdapterMethods for GPUAdapter {
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuadapter-requestadapterinfo>
-    fn RequestAdapterInfo(&self, unmask_hints: Vec<DOMString>, comp: InRealm) -> Rc<Promise> {
+    fn RequestAdapterInfo(
+        &self,
+        unmask_hints: Vec<DOMString>,
+        comp: InRealm,
+        can_gc: CanGc,
+    ) -> Rc<Promise> {
         // XXX: Adapter info should be generated here ...
         // Step 1
-        let promise = Promise::new_in_current_realm(comp);
+        let promise = Promise::new_in_current_realm(comp, can_gc);
         // Step 4
         if !unmask_hints.is_empty() {
             todo!("unmaskHints on RequestAdapterInfo");

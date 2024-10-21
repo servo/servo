@@ -572,7 +572,7 @@ fn fetch_a_classic_script(
 
 impl HTMLScriptElement {
     /// <https://html.spec.whatwg.org/multipage/#prepare-a-script>
-    pub fn prepare(&self) {
+    pub fn prepare(&self, can_gc: CanGc) {
         // Step 1.
         if self.already_started.get() {
             return;
@@ -784,6 +784,7 @@ impl HTMLScriptElement {
                         url.clone(),
                         Destination::Script,
                         options,
+                        can_gc,
                     );
 
                     if !asynch && was_parser_inserted {
@@ -842,6 +843,7 @@ impl HTMLScriptElement {
                         base_url.clone(),
                         self.id,
                         options,
+                        can_gc,
                     );
                 },
             }
@@ -1236,7 +1238,7 @@ impl VirtualMethods for HTMLScriptElement {
         if *attr.local_name() == local_name!("src") {
             if let AttributeMutation::Set(_) = mutation {
                 if !self.parser_inserted.get() && self.upcast::<Node>().is_connected() {
-                    self.prepare();
+                    self.prepare(CanGc::note());
                 }
             }
         }
@@ -1247,7 +1249,7 @@ impl VirtualMethods for HTMLScriptElement {
             s.children_changed(mutation);
         }
         if !self.parser_inserted.get() && self.upcast::<Node>().is_connected() {
-            self.prepare();
+            self.prepare(CanGc::note());
         }
     }
 
@@ -1259,7 +1261,7 @@ impl VirtualMethods for HTMLScriptElement {
         if context.tree_connected && !self.parser_inserted.get() {
             let script = Trusted::new(self);
             document_from_node(self).add_delayed_task(task!(ScriptDelayedInitialize: move || {
-                script.root().prepare();
+                script.root().prepare(CanGc::note());
             }));
         }
     }

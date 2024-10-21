@@ -238,8 +238,9 @@ impl GPUBufferMethods for GPUBuffer {
         offset: GPUSize64,
         size: Option<GPUSize64>,
         comp: InRealm,
+        can_gc: CanGc,
     ) -> Rc<Promise> {
-        let promise = Promise::new_in_current_realm(comp);
+        let promise = Promise::new_in_current_realm(comp, can_gc);
         // Step 2
         if self.pending_map.borrow().is_some() {
             promise.reject_error(Error::Operation);

@@ -27,7 +27,7 @@ impl FontFaceSet {
     pub fn new_inherited(global: &GlobalScope) -> Self {
         FontFaceSet {
             target: EventTarget::new_inherited(),
-            promise: Promise::new(global),
+            promise: Promise::new(global, CanGc::note()),
         }
     }
 

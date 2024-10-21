@@ -49,7 +49,7 @@ use crate::dom::workletglobalscope::{
 };
 use crate::fetch::load_whole_resource;
 use crate::realms::InRealm;
-use crate::script_runtime::{CommonScriptMsg, Runtime, ScriptThreadEventCategory};
+use crate::script_runtime::{CanGc, CommonScriptMsg, Runtime, ScriptThreadEventCategory};
 use crate::script_thread::{MainThreadScriptMsg, ScriptThread};
 use crate::task::TaskBox;
 use crate::task_source::TaskSourceName;
@@ -123,9 +123,10 @@ impl WorkletMethods for Worklet {
         module_url: USVString,
         options: &WorkletOptions,
         comp: InRealm,
+        can_gc: CanGc,
     ) -> Rc<Promise> {
         // Step 1.
-        let promise = Promise::new_in_current_realm(comp);
+        let promise = Promise::new_in_current_realm(comp, can_gc);
 
         // Step 3.
         let module_url_record = match self.window.Document().base_url().join(&module_url.0) {

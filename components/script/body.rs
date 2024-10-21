@@ -264,7 +264,7 @@ impl TransmitBodyConnectHandler {
 
                 let realm = enter_realm(&*global);
                 let comp = InRealm::Entered(&realm);
-                promise.append_native_handler(&handler, comp);
+                promise.append_native_handler(&handler, comp, CanGc::note());
             }),
             &self.canceller,
         );
@@ -708,7 +708,7 @@ impl Callback for ConsumeBodyPromiseHandler {
 
             let realm = enter_realm(&*global);
             let comp = InRealm::Entered(&realm);
-            read_promise.append_native_handler(&handler, comp);
+            read_promise.append_native_handler(&handler, comp, CanGc::note());
         }
     }
 }
@@ -721,7 +721,7 @@ pub fn consume_body<T: BodyMixin + DomObject>(
     can_gc: CanGc,
 ) -> Rc<Promise> {
     let in_realm_proof = AlreadyInRealm::assert();
-    let promise = Promise::new_in_current_realm(InRealm::Already(&in_realm_proof));
+    let promise = Promise::new_in_current_realm(InRealm::Already(&in_realm_proof), can_gc);
 
     // Step 1
     if object.is_disturbed() || object.is_locked() {
@@ -792,7 +792,7 @@ fn consume_body_with_promise<T: BodyMixin + DomObject>(
         Some(rejection_handler),
     );
     // We are already in a realm and a script.
-    read_promise.append_native_handler(&handler, comp);
+    read_promise.append_native_handler(&handler, comp, can_gc);
 }
 
 // https://fetch.spec.whatwg.org/#concept-body-package-data

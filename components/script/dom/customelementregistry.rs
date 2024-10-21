@@ -573,13 +573,13 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-whendefined>
     #[allow(unsafe_code)]
-    fn WhenDefined(&self, name: DOMString, comp: InRealm) -> Rc<Promise> {
+    fn WhenDefined(&self, name: DOMString, comp: InRealm, can_gc: CanGc) -> Rc<Promise> {
         let global_scope = self.window.upcast::<GlobalScope>();
         let name = LocalName::from(&*name);
 
         // Step 1
         if !is_valid_custom_element_name(&name) {
-            let promise = Promise::new_in_current_realm(comp);
+            let promise = Promise::new_in_current_realm(comp, can_gc);
             promise.reject_native(&DOMException::new(global_scope, DOMErrorName::SyntaxError));
             return promise;
         }
@@ -592,7 +592,7 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
                 definition
                     .constructor
                     .to_jsval(*cx, constructor.handle_mut());
-                let promise = Promise::new_in_current_realm(comp);
+                let promise = Promise::new_in_current_realm(comp, can_gc);
                 promise.resolve_native(&constructor.get());
                 return promise;
             }
@@ -603,7 +603,7 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
 
         // Steps 4, 5
         let promise = map.get(&name).cloned().unwrap_or_else(|| {
-            let promise = Promise::new_in_current_realm(comp);
+            let promise = Promise::new_in_current_realm(comp, can_gc);
             map.insert(name, promise.clone());
             promise
         });
