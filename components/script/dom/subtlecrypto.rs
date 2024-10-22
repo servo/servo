@@ -364,7 +364,13 @@ impl SubtleCryptoMethods for SubtleCrypto {
     }
 
     /// <https://w3c.github.io/webcrypto/#SubtleCrypto-method-exportKey>
-    fn ExportKey(&self, format: KeyFormat, key: &CryptoKey, comp: InRealm, can_gc: CanGc) -> Rc<Promise> {
+    fn ExportKey(
+        &self,
+        format: KeyFormat,
+        key: &CryptoKey,
+        comp: InRealm,
+        can_gc: CanGc,
+    ) -> Rc<Promise> {
         let promise = Promise::new_in_current_realm(comp, can_gc);
 
         let (task_source, canceller) = self.task_source_with_canceller();
