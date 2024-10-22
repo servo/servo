@@ -52,7 +52,7 @@ impl LocalFontIdentifier {
         // listed in the font.
         let file = File::open(Path::new(&*self.path)).ok()?;
         let mmap = unsafe { Mmap::map(&file).ok()? };
-        Some((&mmap[..]).to_vec())
+        Some(mmap[..].to_vec())
     }
 }
 
