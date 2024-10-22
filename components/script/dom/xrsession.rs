@@ -1025,32 +1025,29 @@ impl XRSessionMethods for XRSession {
     }
 
     /// <https://www.w3.org/TR/webxr/#dom-xrsession-updatetargetframerate>
-<<<<<<< HEAD
     fn UpdateTargetFrameRate(
         &self,
         rate: Finite<f32>,
         comp: InRealm,
         can_gc: CanGc,
     ) -> Rc<Promise> {
-        let mut session = self.session.borrow_mut();
-=======
-    fn UpdateTargetFrameRate(&self, rate: Finite<f32>, comp: InRealm) -> Rc<Promise> {
-        let session = self.session.borrow();
->>>>>>> ebe5ea76a5 (Fix GC borrow hazard in XRSession::UpdateTargetFrameRate)
-        let supported_frame_rates = session.supported_frame_rates();
         let promise = Promise::new_in_current_realm(comp, can_gc);
-
-        if self.mode == XRSessionMode::Inline ||
-            supported_frame_rates.is_empty() ||
-            self.ended.get()
         {
-            promise.reject_error(Error::InvalidState);
-            return promise;
-        }
+            let session = self.session.borrow();
+            let supported_frame_rates = session.supported_frame_rates();
 
-        if !supported_frame_rates.contains(&*rate) {
-            promise.reject_error(Error::Type("Provided framerate not supported".into()));
-            return promise;
+            if self.mode == XRSessionMode::Inline ||
+                supported_frame_rates.is_empty() ||
+                self.ended.get()
+            {
+                promise.reject_error(Error::InvalidState);
+                return promise;
+            }
+
+            if !supported_frame_rates.contains(&*rate) {
+                promise.reject_error(Error::Type("Provided framerate not supported".into()));
+                return promise;
+            }
         }
 
         *self.update_framerate_promise.borrow_mut() = Some(promise.clone());
