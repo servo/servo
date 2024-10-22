@@ -183,7 +183,7 @@ impl SubtleCryptoMethods for SubtleCrypto {
                         if !valid_usage || key_gen_params.name != key_alg {
                             Err(Error::InvalidAccess)
                         } else {
-                            match subtle.encrypt_aes_ctr(
+                            match subtle.encrypt_decrypt_aes_ctr(
                                 key_gen_params, &key, &data, cx, array_buffer_ptr.handle_mut()
                             ) {
                                 Ok(_) => Ok(array_buffer_ptr.handle()),
@@ -251,7 +251,7 @@ impl SubtleCryptoMethods for SubtleCrypto {
                         if !valid_usage || key_gen_params.name != key_alg {
                             Err(Error::InvalidAccess)
                         } else {
-                            match subtle.decrypt_aes_ctr(
+                            match subtle.encrypt_decrypt_aes_ctr(
                                 key_gen_params, &key, &data, cx, array_buffer_ptr.handle_mut()
                             ) {
                                 Ok(_) => Ok(array_buffer_ptr.handle()),
@@ -612,43 +612,6 @@ impl SubtleCrypto {
         Ok(())
     }
 
-    /// <https://w3c.github.io/webcrypto/#aes-ctr-operations>
-    fn encrypt_aes_ctr(
-        &self,
-        params: SubtleAesCtrParams,
-        key: &CryptoKey,
-        data: &[u8],
-        cx: JSContext,
-        handle: MutableHandleObject,
-    ) -> Result<(), Error> {
-        if params.counter.len() != 16 || params.length == 0 || params.length > 128 {
-            return Err(Error::Operation);
-        }
-
-        let mut plaintext = Vec::from(data);
-        let counter: &GenericArray<_, _> = GenericArray::from_slice(&params.counter);
-
-        match key.handle() {
-            Handle::Aes128(data) => {
-                let key_data = GenericArray::from_slice(data);
-                Aes128Ctr::new(key_data, counter).apply_keystream(&mut plaintext)
-            },
-            Handle::Aes192(data) => {
-                let key_data = GenericArray::from_slice(data);
-                Aes192Ctr::new(key_data, counter).apply_keystream(&mut plaintext)
-            },
-            Handle::Aes256(data) => {
-                let key_data = GenericArray::from_slice(data);
-                Aes256Ctr::new(key_data, counter).apply_keystream(&mut plaintext)
-            },
-        };
-
-        create_buffer_source::<ArrayBufferU8>(cx, &plaintext, handle)
-            .expect("failed to create buffer source for exported key.");
-
-        Ok(())
-    }
-
     /// <https://w3c.github.io/webcrypto/#aes-cbc-operations>
     fn decrypt_aes_cbc(
         &self,
@@ -693,7 +656,7 @@ impl SubtleCrypto {
     }
 
     /// <https://w3c.github.io/webcrypto/#aes-ctr-operations>
-    fn decrypt_aes_ctr(
+    fn encrypt_decrypt_aes_ctr(
         &self,
         params: SubtleAesCtrParams,
         key: &CryptoKey,
