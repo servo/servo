@@ -193,7 +193,7 @@ impl BluetoothDevice {
 
     // https://webbluetoothcg.github.io/web-bluetooth/#clean-up-the-disconnected-device
     #[allow(crown::unrooted_must_root)]
-    pub fn clean_up_disconnected_device(&self) {
+    pub fn clean_up_disconnected_device(&self, can_gc: CanGc) {
         // Step 1.
         self.get_gatt().set_connected(false);
 
@@ -224,7 +224,7 @@ impl BluetoothDevice {
 
         // Step 8.
         self.upcast::<EventTarget>()
-            .fire_bubbling_event(atom!("gattserverdisconnected"));
+            .fire_bubbling_event(atom!("gattserverdisconnected"), can_gc);
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#garbage-collect-the-connection
@@ -317,7 +317,7 @@ impl BluetoothDeviceMethods for BluetoothDevice {
 }
 
 impl AsyncBluetoothListener for BluetoothDevice {
-    fn handle_response(&self, response: BluetoothResponse, promise: &Rc<Promise>) {
+    fn handle_response(&self, response: BluetoothResponse, promise: &Rc<Promise>, _can_gc: CanGc) {
         match response {
             // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothdevice-unwatchadvertisements
             BluetoothResponse::WatchAdvertisements(_result) => {

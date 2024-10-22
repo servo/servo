@@ -317,11 +317,11 @@ impl ElementInternalsMethods for ElementInternals {
     }
 
     /// <https://html.spec.whatwg.org/multipage#dom-elementinternals-checkvalidity>
-    fn CheckValidity(&self) -> Fallible<bool> {
+    fn CheckValidity(&self, can_gc: CanGc) -> Fallible<bool> {
         if !self.is_target_form_associated() {
             return Err(Error::NotSupported);
         }
-        Ok(self.check_validity())
+        Ok(self.check_validity(can_gc))
     }
 
     /// <https://html.spec.whatwg.org/multipage#dom-elementinternals-reportvalidity>

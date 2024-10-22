@@ -324,7 +324,7 @@ impl XRSystem {
                     let xr = xr.root();
                     let interacting = ScriptThread::is_user_interacting();
                     ScriptThread::set_user_interacting(true);
-                    xr.upcast::<EventTarget>().fire_bubbling_event(atom!("sessionavailable"));
+                    xr.upcast::<EventTarget>().fire_bubbling_event(atom!("sessionavailable"), CanGc::note());
                     ScriptThread::set_user_interacting(interacting);
                 }),
                 window.upcast(),
