@@ -1016,12 +1016,12 @@ impl HTMLScriptElement {
 
         match script.type_ {
             ScriptType::Classic => {
-                self.run_a_classic_script(&script);
+                self.run_a_classic_script(&script, CanGc::note());
                 document.set_current_script(old_script.as_deref());
             },
             ScriptType::Module => {
                 assert!(document.GetCurrentScript().is_none());
-                self.run_a_module_script(&script, false);
+                self.run_a_module_script(&script, false, CanGc::note());
             },
         }
 
@@ -1037,7 +1037,7 @@ impl HTMLScriptElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#run-a-classic-script
-    pub fn run_a_classic_script(&self, script: &ScriptOrigin) {
+    pub fn run_a_classic_script(&self, script: &ScriptOrigin, can_gc: CanGc) {
         // TODO use a settings object rather than this element's document/window
         // Step 2
         let document = document_from_node(self);
@@ -1061,12 +1061,13 @@ impl HTMLScriptElement {
             line_number,
             script.fetch_options.clone(),
             script.url.clone(),
+            can_gc,
         );
     }
 
     #[allow(unsafe_code)]
     /// <https://html.spec.whatwg.org/multipage/#run-a-module-script>
-    pub fn run_a_module_script(&self, script: &ScriptOrigin, _rethrow_errors: bool) {
+    pub fn run_a_module_script(&self, script: &ScriptOrigin, _rethrow_errors: bool, can_gc: CanGc) {
         // TODO use a settings object rather than this element's document/window
         // Step 2
         let document = document_from_node(self);
@@ -1095,7 +1096,7 @@ impl HTMLScriptElement {
                 let module_error = module_tree.get_rethrow_error().borrow();
                 let network_error = module_tree.get_network_error().borrow();
                 if module_error.is_some() && network_error.is_none() {
-                    module_tree.report_error(global);
+                    module_tree.report_error(global, can_gc);
                     return;
                 }
             }
@@ -1113,7 +1114,7 @@ impl HTMLScriptElement {
 
                 if let Err(exception) = evaluated {
                     module_tree.set_rethrow_error(exception);
-                    module_tree.report_error(global);
+                    module_tree.report_error(global, can_gc);
                 }
             }
         }

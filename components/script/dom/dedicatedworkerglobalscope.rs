@@ -544,7 +544,7 @@ impl DedicatedWorkerGlobalScope {
         match msg {
             MixedMessage::Devtools(msg) => match msg {
                 DevtoolScriptControlMsg::EvaluateJS(_pipe_id, string, sender) => {
-                    devtools::handle_evaluate_js(self.upcast(), string, sender)
+                    devtools::handle_evaluate_js(self.upcast(), string, sender, can_gc)
                 },
                 DevtoolScriptControlMsg::WantsLiveNotifications(_pipe_id, bool_val) => {
                     devtools::handle_wants_live_notifications(self.upcast(), bool_val)
@@ -583,13 +583,14 @@ impl DedicatedWorkerGlobalScope {
                 error_info.lineno,
                 error_info.column,
                 HandleValue::null(),
+                CanGc::note(),
             );
             let event_status =
                 event.upcast::<Event>().fire(worker.upcast::<EventTarget>());
 
             // Step 2.
             if event_status == EventStatus::NotCanceled {
-                global.report_an_error(error_info, HandleValue::null());
+                global.report_an_error(error_info, HandleValue::null(), CanGc::note());
             }
         }));
         self.parent_sender

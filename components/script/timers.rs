@@ -558,6 +558,7 @@ impl JsTimerTask {
                     rval.handle_mut(),
                     ScriptFetchOptions::default_classic_script(&global),
                     global.api_base_url(),
+                    CanGc::note(),
                 );
             },
             InternalTimerCallback::FunctionTimerCallback(ref function, ref arguments) => {

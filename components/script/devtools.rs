@@ -44,7 +44,12 @@ use crate::script_runtime::CanGc;
 use crate::script_thread::Documents;
 
 #[allow(unsafe_code)]
-pub fn handle_evaluate_js(global: &GlobalScope, eval: String, reply: IpcSender<EvaluateJSReply>) {
+pub fn handle_evaluate_js(
+    global: &GlobalScope,
+    eval: String,
+    reply: IpcSender<EvaluateJSReply>,
+    can_gc: CanGc,
+) {
     // global.get_cx() returns a valid `JSContext` pointer, so this is safe.
     let result = unsafe {
         let cx = GlobalScope::get_cx();
@@ -58,6 +63,7 @@ pub fn handle_evaluate_js(global: &GlobalScope, eval: String, reply: IpcSender<E
             1,
             ScriptFetchOptions::default_classic_script(global),
             global.api_base_url(),
+            can_gc,
         );
 
         if rval.is_undefined() {

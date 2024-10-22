@@ -289,6 +289,7 @@ pub fn handle_execute_script(
     window: Option<DomRoot<Window>>,
     eval: String,
     reply: IpcSender<WebDriverJSResult>,
+    can_gc: CanGc,
 ) {
     match window {
         Some(window) => {
@@ -301,6 +302,7 @@ pub fn handle_execute_script(
                     rval.handle_mut(),
                     ScriptFetchOptions::default_classic_script(global),
                     global.api_base_url(),
+                    can_gc,
                 );
                 jsval_to_webdriver(*cx, window.upcast::<GlobalScope>(), rval.handle())
             };
@@ -319,6 +321,7 @@ pub fn handle_execute_async_script(
     window: Option<DomRoot<Window>>,
     eval: String,
     reply: IpcSender<WebDriverJSResult>,
+    can_gc: CanGc,
 ) {
     match window {
         Some(window) => {
@@ -331,6 +334,7 @@ pub fn handle_execute_async_script(
                 rval.handle_mut(),
                 ScriptFetchOptions::default_classic_script(global),
                 global.api_base_url(),
+                can_gc,
             );
         },
         None => {

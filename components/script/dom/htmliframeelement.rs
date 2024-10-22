@@ -159,7 +159,7 @@ impl HTMLIFrameElement {
                 // TODO: check according to https://w3c.github.io/webappsec-csp/#should-block-navigation-request
                 if ScriptThread::check_load_origin(&load_data.load_origin, &document.url().origin())
                 {
-                    ScriptThread::eval_js_url(&window_proxy.global(), &mut load_data);
+                    ScriptThread::eval_js_url(&window_proxy.global(), &mut load_data, can_gc);
                 }
             }
         }

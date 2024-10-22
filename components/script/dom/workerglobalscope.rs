@@ -467,7 +467,7 @@ impl WorkerGlobalScope {
                     println!("evaluate_script failed");
                     unsafe {
                         let ar = enter_realm(self);
-                        report_pending_exception(cx, true, InRealm::Entered(&ar));
+                        report_pending_exception(cx, true, InRealm::Entered(&ar), CanGc::note());
                     }
                 }
             },

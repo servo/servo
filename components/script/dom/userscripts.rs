@@ -17,6 +17,7 @@ use crate::dom::htmlheadelement::HTMLHeadElement;
 use crate::dom::htmlscriptelement::SourceCode;
 use crate::dom::node::document_from_node;
 use crate::script_module::ScriptFetchOptions;
+use crate::script_runtime::CanGc;
 
 pub fn load_script(head: &HTMLHeadElement) {
     let doc = document_from_node(head);
@@ -54,6 +55,7 @@ pub fn load_script(head: &HTMLHeadElement) {
                 1,
                 ScriptFetchOptions::default_classic_script(global),
                 global.api_base_url(),
+                CanGc::note(),
             );
         }
     }));

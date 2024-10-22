@@ -546,10 +546,10 @@ impl WorkletThread {
             // try to become the cold backup.
             if self.role.is_cold_backup {
                 if let Some(control) = self.control_buffer.take() {
-                    self.process_control(control);
+                    self.process_control(control, CanGc::note());
                 }
                 while let Ok(control) = self.control_receiver.try_recv() {
-                    self.process_control(control);
+                    self.process_control(control, CanGc::note());
                 }
                 self.gc();
             } else if self.control_buffer.is_none() {
@@ -638,6 +638,7 @@ impl WorkletThread {
         credentials: RequestCredentials,
         pending_tasks_struct: PendingTasksStruct,
         promise: TrustedPromise,
+        can_gc: CanGc,
     ) {
         debug!("Fetching from {}.", script_url);
         // Step 1.
@@ -672,7 +673,7 @@ impl WorkletThread {
         // to the main script thread.
         // https://github.com/w3c/css-houdini-drafts/issues/407
         let ok = script
-            .map(|script| global_scope.evaluate_js(&script))
+            .map(|script| global_scope.evaluate_js(&script, can_gc))
             .unwrap_or(false);
 
         if !ok {
@@ -707,7 +708,7 @@ impl WorkletThread {
     }
 
     /// Process a control message.
-    fn process_control(&mut self, control: WorkletControl) {
+    fn process_control(&mut self, control: WorkletControl, can_gc: CanGc) {
         match control {
             WorkletControl::ExitWorklet(worklet_id) => {
                 self.global_scopes.remove(&worklet_id);
@@ -733,6 +734,7 @@ impl WorkletThread {
                     credentials,
                     pending_tasks_struct,
                     promise,
+                    can_gc,
                 )
             },
         }
