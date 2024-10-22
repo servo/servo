@@ -95,7 +95,7 @@ impl BluetoothRemoteGATTServerMethods for BluetoothRemoteGATTServer {
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattserver-disconnect
-    fn Disconnect(&self) -> ErrorResult {
+    fn Disconnect(&self, can_gc: CanGc) -> ErrorResult {
         // TODO: Step 1: Implement activeAlgorithms internal slot for BluetoothRemoteGATTServer.
 
         // Step 2.
@@ -104,7 +104,7 @@ impl BluetoothRemoteGATTServerMethods for BluetoothRemoteGATTServer {
         }
 
         // Step 3.
-        self.Device().clean_up_disconnected_device();
+        self.Device().clean_up_disconnected_device(can_gc);
 
         // Step 4 - 5:
         self.Device().garbage_collect_the_connection()
@@ -146,7 +146,7 @@ impl BluetoothRemoteGATTServerMethods for BluetoothRemoteGATTServer {
 }
 
 impl AsyncBluetoothListener for BluetoothRemoteGATTServer {
-    fn handle_response(&self, response: BluetoothResponse, promise: &Rc<Promise>) {
+    fn handle_response(&self, response: BluetoothResponse, promise: &Rc<Promise>, _can_gc: CanGc) {
         match response {
             // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattserver-connect
             BluetoothResponse::GATTServerConnect(connected) => {

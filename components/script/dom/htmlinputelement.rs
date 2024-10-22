@@ -1586,8 +1586,8 @@ impl HTMLInputElementMethods for HTMLInputElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-cva-checkvalidity
-    fn CheckValidity(&self) -> bool {
-        self.check_validity()
+    fn CheckValidity(&self, can_gc: CanGc) -> bool {
+        self.check_validity(can_gc)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-cva-reportvalidity
@@ -1889,8 +1889,8 @@ impl HTMLInputElement {
             let filelist = FileList::new(&window, files);
             self.filelist.set(Some(&filelist));
 
-            target.fire_bubbling_event(atom!("input"));
-            target.fire_bubbling_event(atom!("change"));
+            target.fire_bubbling_event(atom!("input"), can_gc);
+            target.fire_bubbling_event(atom!("change"), can_gc);
         }
     }
 
@@ -2805,7 +2805,7 @@ impl Activatable for HTMLInputElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#run-post-click-activation-steps
-    fn activation_behavior(&self, _event: &Event, _target: &EventTarget, _can_gc: CanGc) {
+    fn activation_behavior(&self, _event: &Event, _target: &EventTarget, can_gc: CanGc) {
         let ty = self.input_type();
         match ty {
             InputType::Submit => {
@@ -2836,8 +2836,8 @@ impl Activatable for HTMLInputElement {
                     return;
                 }
                 let target = self.upcast::<EventTarget>();
-                target.fire_bubbling_event(atom!("input"));
-                target.fire_bubbling_event(atom!("change"));
+                target.fire_bubbling_event(atom!("input"), can_gc);
+                target.fire_bubbling_event(atom!("change"), can_gc);
             },
             InputType::File => self.select_files(None, CanGc::note()),
             _ => (),

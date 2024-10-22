@@ -746,7 +746,7 @@ impl Document {
                     // Step 4.6.2 Set document's page showing flag to true.
                     document.page_showing.set(true);
                     // Step 4.6.3 Update the visibility state of document to "visible".
-                    document.update_visibility_state(DocumentVisibilityState::Visible);
+                    document.update_visibility_state(DocumentVisibilityState::Visible, CanGc::note());
                     // Step 4.6.4 Fire a page transition event named pageshow at document's relevant
                     // global object with true.
                     let event = PageTransitionEvent::new(
@@ -2360,7 +2360,7 @@ impl Document {
                 .window
                 .dispatch_event_with_target_override(event, can_gc);
             // Step 6 Update the visibility state of oldDocument to "hidden".
-            self.update_visibility_state(DocumentVisibilityState::Hidden);
+            self.update_visibility_state(DocumentVisibilityState::Hidden, can_gc);
         }
         // Step 7
         if !self.fired_unload.get() {
@@ -2721,7 +2721,7 @@ impl Document {
             .queue(
                 task!(fire_dom_content_loaded_event: move || {
                 let document = document.root();
-                document.upcast::<EventTarget>().fire_bubbling_event(atom!("DOMContentLoaded"));
+                document.upcast::<EventTarget>().fire_bubbling_event(atom!("DOMContentLoaded"), CanGc::note());
                 update_with_current_instant(&document.dom_content_loaded_event_end);
                 }),
                 window.upcast(),
@@ -4216,7 +4216,7 @@ impl Document {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#visibility-state>
-    fn update_visibility_state(&self, visibility_state: DocumentVisibilityState) {
+    fn update_visibility_state(&self, visibility_state: DocumentVisibilityState, can_gc: CanGc) {
         // Step 1 If document's visibility state equals visibilityState, then return.
         if self.visibility_state.get() == visibility_state {
             return;
@@ -4255,7 +4255,7 @@ impl Document {
 
         // Step 7 Fire an event named visibilitychange at document, with its bubbles attribute initialized to true.
         self.upcast::<EventTarget>()
-            .fire_bubbling_event(atom!("visibilitychange"));
+            .fire_bubbling_event(atom!("visibilitychange"), can_gc);
     }
 }
 

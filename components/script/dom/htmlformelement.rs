@@ -629,8 +629,8 @@ impl HTMLFormElementMethods for HTMLFormElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-form-checkvalidity>
-    fn CheckValidity(&self) -> bool {
-        self.static_validation().is_ok()
+    fn CheckValidity(&self, can_gc: CanGc) -> bool {
+        self.static_validation(can_gc).is_ok()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-form-reportvalidity>
@@ -1032,7 +1032,7 @@ impl HTMLFormElement {
     /// <https://html.spec.whatwg.org/multipage/#interactively-validate-the-constraints>
     fn interactive_validation(&self, can_gc: CanGc) -> Result<(), ()> {
         // Step 1-2
-        let unhandled_invalid_controls = match self.static_validation() {
+        let unhandled_invalid_controls = match self.static_validation(can_gc) {
             Ok(()) => return Ok(()),
             Err(err) => err,
         };
@@ -1060,7 +1060,7 @@ impl HTMLFormElement {
 
     /// Statitically validate the constraints of form elements
     /// <https://html.spec.whatwg.org/multipage/#statically-validate-the-constraints>
-    fn static_validation(&self) -> Result<(), Vec<DomRoot<Element>>> {
+    fn static_validation(&self, can_gc: CanGc) -> Result<(), Vec<DomRoot<Element>>> {
         let controls = self.controls.borrow();
         // Step 1-3
         let invalid_controls = controls
@@ -1087,7 +1087,7 @@ impl HTMLFormElement {
             .filter_map(|field| {
                 let event = field
                     .upcast::<EventTarget>()
-                    .fire_cancelable_event(atom!("invalid"));
+                    .fire_cancelable_event(atom!("invalid"), can_gc);
                 if !event.DefaultPrevented() {
                     return Some(field);
                 }
@@ -1238,7 +1238,7 @@ impl HTMLFormElement {
 
         let event = self
             .upcast::<EventTarget>()
-            .fire_bubbling_cancelable_event(atom!("reset"));
+            .fire_bubbling_cancelable_event(atom!("reset"), CanGc::note());
         if event.DefaultPrevented() {
             return;
         }

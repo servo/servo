@@ -35,11 +35,11 @@ pub trait Validatable {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#check-validity-steps>
-    fn check_validity(&self) -> bool {
+    fn check_validity(&self, can_gc: CanGc) -> bool {
         if self.is_instance_validatable() && !self.satisfies_constraints() {
             self.as_element()
                 .upcast::<EventTarget>()
-                .fire_cancelable_event(atom!("invalid"));
+                .fire_cancelable_event(atom!("invalid"), can_gc);
             false
         } else {
             true
@@ -61,7 +61,7 @@ pub trait Validatable {
         let event = self
             .as_element()
             .upcast::<EventTarget>()
-            .fire_cancelable_event(atom!("invalid"));
+            .fire_cancelable_event(atom!("invalid"), can_gc);
 
         // Step 1.2.
         if !event.DefaultPrevented() {
