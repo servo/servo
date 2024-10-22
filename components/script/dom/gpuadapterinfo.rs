@@ -11,6 +11,8 @@ use super::bindings::root::DomRoot;
 use crate::dom::bindings::reflector::Reflector;
 use crate::dom::globalscope::GlobalScope;
 use crate::test::DOMString;
+use crate::script_runtime::CanGc;
+
 
 #[dom_struct]
 pub struct GPUAdapterInfo {
@@ -29,7 +31,7 @@ impl GPUAdapterInfo {
     }
 
     pub fn new(global: &GlobalScope, info: AdapterInfo) -> DomRoot<Self> {
-        reflect_dom_object(Box::new(Self::new_inherited(info)), global)
+        reflect_dom_object(Box::new(Self::new_inherited(info)), global, CanGc::note())
     }
 }
 

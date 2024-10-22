@@ -15,7 +15,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::xrreferencespace::XRReferenceSpace;
 use crate::dom::xrrigidtransform::XRRigidTransform;
 use crate::dom::xrsession::XRSession;
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{CanGc, JSContext};
 
 #[dom_struct]
 pub struct XRBoundedReferenceSpace {
@@ -53,6 +53,7 @@ impl XRBoundedReferenceSpace {
         reflect_dom_object(
             Box::new(XRBoundedReferenceSpace::new_inherited(session, offset)),
             global,
+            CanGc::note(),
         )
     }
 

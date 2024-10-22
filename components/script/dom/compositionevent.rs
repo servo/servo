@@ -32,7 +32,7 @@ impl CompositionEvent {
     }
 
     pub fn new_uninitialized(window: &Window) -> DomRoot<CompositionEvent> {
-        reflect_dom_object(Box::new(CompositionEvent::new_inherited()), window)
+        reflect_dom_object(Box::new(CompositionEvent::new_inherited()), window, CanGc::note())
     }
 
     pub fn new(

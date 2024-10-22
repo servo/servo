@@ -12,6 +12,8 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::xrframe::XRFrame;
 use crate::dom::xrpose::XRPose;
 use crate::dom::xrspace::XRSpace;
+use crate::script_runtime::CanGc;
+
 
 #[dom_struct]
 pub struct XRHitTestResult {
@@ -39,6 +41,7 @@ impl XRHitTestResult {
         reflect_dom_object(
             Box::new(XRHitTestResult::new_inherited(result, frame)),
             global,
+            CanGc::note(),
         )
     }
 }

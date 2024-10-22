@@ -15,6 +15,8 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::element::Element;
 use crate::dom::node::window_from_node;
+use crate::script_runtime::CanGc;
+
 
 #[dom_struct]
 pub struct DOMTokenList {
@@ -53,6 +55,7 @@ impl DOMTokenList {
                 supported_tokens,
             )),
             &*window,
+            CanGc::note(),
         )
     }
 

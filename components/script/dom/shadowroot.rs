@@ -27,6 +27,8 @@ use crate::dom::node::{Node, NodeDamage, NodeFlags, ShadowIncluding, UnbindConte
 use crate::dom::stylesheetlist::{StyleSheetList, StyleSheetListOwner};
 use crate::dom::window::Window;
 use crate::stylesheet_set::StylesheetSetRef;
+use crate::script_runtime::CanGc;
+
 
 /// Whether a shadow root hosts an User Agent widget.
 #[derive(JSTraceable, MallocSizeOf, PartialEq)]
@@ -74,6 +76,7 @@ impl ShadowRoot {
         reflect_dom_object(
             Box::new(ShadowRoot::new_inherited(host, document)),
             document.window(),
+            CanGc::note(),
         )
     }
 

@@ -23,6 +23,8 @@ use crate::dom::webglrenderbuffer::WebGLRenderbuffer;
 use crate::dom::webglrenderingcontext::{Operation, WebGLRenderingContext};
 use crate::dom::webgltexture::WebGLTexture;
 use crate::dom::xrsession::XRSession;
+use crate::script_runtime::CanGc;
+
 
 pub enum CompleteForRendering {
     Complete,
@@ -158,6 +160,7 @@ impl WebGLFramebuffer {
         reflect_dom_object(
             Box::new(WebGLFramebuffer::new_inherited(context, id)),
             &*context.global(),
+            CanGc::note(),
         )
     }
 }

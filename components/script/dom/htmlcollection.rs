@@ -20,6 +20,8 @@ use crate::dom::bindings::xmlname::namespace_from_domstring;
 use crate::dom::element::Element;
 use crate::dom::node::{document_from_node, Node};
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
+
 
 pub trait CollectionFilter: JSTraceable {
     fn filter<'a>(&self, elem: &'a Element, root: &'a Node) -> bool;
@@ -107,6 +109,7 @@ impl HTMLCollection {
         reflect_dom_object(
             Box::new(HTMLCollection::new_inherited(root, filter)),
             window,
+            CanGc::note(),
         )
     }
 

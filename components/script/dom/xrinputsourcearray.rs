@@ -15,6 +15,8 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::xrinputsource::XRInputSource;
 use crate::dom::xrinputsourceschangeevent::XRInputSourcesChangeEvent;
 use crate::dom::xrsession::XRSession;
+use crate::script_runtime::CanGc;
+
 
 #[dom_struct]
 pub struct XRInputSourceArray {
@@ -31,7 +33,7 @@ impl XRInputSourceArray {
     }
 
     pub fn new(global: &GlobalScope) -> DomRoot<XRInputSourceArray> {
-        reflect_dom_object(Box::new(XRInputSourceArray::new_inherited()), global)
+        reflect_dom_object(Box::new(XRInputSourceArray::new_inherited()), global, CanGc::note())
     }
 
     pub fn add_input_sources(&self, session: &XRSession, inputs: &[InputSource]) {

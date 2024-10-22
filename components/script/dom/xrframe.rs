@@ -25,6 +25,8 @@ use crate::dom::xrreferencespace::XRReferenceSpace;
 use crate::dom::xrsession::{ApiPose, XRSession};
 use crate::dom::xrspace::XRSpace;
 use crate::dom::xrviewerpose::XRViewerPose;
+use crate::script_runtime::CanGc;
+
 
 #[dom_struct]
 pub struct XRFrame {
@@ -49,7 +51,7 @@ impl XRFrame {
     }
 
     pub fn new(global: &GlobalScope, session: &XRSession, data: Frame) -> DomRoot<XRFrame> {
-        reflect_dom_object(Box::new(XRFrame::new_inherited(session, data)), global)
+        reflect_dom_object(Box::new(XRFrame::new_inherited(session, data)), global, CanGc::note())
     }
 
     /// <https://immersive-web.github.io/webxr/#xrframe-active>

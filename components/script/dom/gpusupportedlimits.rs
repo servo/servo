@@ -12,6 +12,8 @@ use super::bindings::reflector::reflect_dom_object;
 use super::bindings::root::DomRoot;
 use crate::dom::bindings::reflector::Reflector;
 use crate::dom::globalscope::GlobalScope;
+use crate::script_runtime::CanGc;
+
 
 #[dom_struct]
 pub struct GPUSupportedLimits {
@@ -30,7 +32,7 @@ impl GPUSupportedLimits {
     }
 
     pub fn new(global: &GlobalScope, limits: Limits) -> DomRoot<Self> {
-        reflect_dom_object(Box::new(Self::new_inherited(limits)), global)
+        reflect_dom_object(Box::new(Self::new_inherited(limits)), global, CanGc::note())
     }
 }
 

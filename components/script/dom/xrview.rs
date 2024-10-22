@@ -17,7 +17,7 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::xrrigidtransform::XRRigidTransform;
 use crate::dom::xrsession::{cast_transform, BaseSpace, BaseTransform, XRSession};
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{CanGc, JSContext};
 
 #[dom_struct]
 pub struct XRView {
@@ -74,6 +74,7 @@ impl XRView {
                 view.cast_unit(),
             )),
             global,
+            CanGc::note(),
         )
     }
 

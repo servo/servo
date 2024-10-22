@@ -20,7 +20,7 @@ use crate::dom::xrhand::XRHand;
 use crate::dom::xrsession::XRSession;
 use crate::dom::xrspace::XRSpace;
 use crate::realms::enter_realm;
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{CanGc, JSContext};
 
 #[dom_struct]
 pub struct XRInputSource {
@@ -78,6 +78,7 @@ impl XRInputSource {
         let source = reflect_dom_object(
             Box::new(XRInputSource::new_inherited(global, session, info)),
             global,
+            CanGc::note(),
         );
 
         let _ac = enter_realm(global);

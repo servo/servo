@@ -38,6 +38,8 @@ use crate::dom::bindings::root::{DomRoot, LayoutDom};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlcanvaselement::{HTMLCanvasElement, LayoutCanvasRenderingContextHelpers};
 use crate::dom::node::{document_from_node, Node, NodeDamage};
+use crate::script_runtime::CanGc;
+
 
 // TODO: make all this derivables available via new Bindings.conf option
 impl Clone for GPUCanvasConfiguration {
@@ -186,6 +188,7 @@ impl GPUCanvasContext {
                 channel,
             )),
             global,
+            CanGc::note(),
         )
     }
 }

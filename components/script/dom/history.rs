@@ -31,7 +31,8 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::hashchangeevent::HashChangeEvent;
 use crate::dom::popstateevent::PopStateEvent;
 use crate::dom::window::Window;
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{CanGc, JSContext};
+
 
 enum PushOrReplace {
     Push,
@@ -62,7 +63,7 @@ impl History {
     }
 
     pub fn new(window: &Window) -> DomRoot<History> {
-        reflect_dom_object(Box::new(History::new_inherited(window)), window)
+        reflect_dom_object(Box::new(History::new_inherited(window)), window, CanGc::note())
     }
 }
 

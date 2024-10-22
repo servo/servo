@@ -21,6 +21,8 @@ use crate::dom::medialist::MediaList;
 use crate::dom::node::{stylesheets_owner_from_node, Node};
 use crate::dom::stylesheet::StyleSheet;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
+
 
 #[dom_struct]
 pub struct CSSStyleSheet {
@@ -64,6 +66,7 @@ impl CSSStyleSheet {
                 owner, type_, href, title, stylesheet,
             )),
             window,
+            CanGc::note(),
         )
     }
 

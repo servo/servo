@@ -53,6 +53,7 @@ impl Selection {
         reflect_dom_object(
             Box::new(Selection::new_inherited(document)),
             &*document.global(),
+            CanGc::note(),
         )
     }
 

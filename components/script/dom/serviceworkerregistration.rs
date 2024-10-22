@@ -23,6 +23,8 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::navigationpreloadmanager::NavigationPreloadManager;
 use crate::dom::serviceworker::ServiceWorker;
 use crate::dom::workerglobalscope::prepare_workerscope_init;
+use crate::script_runtime::CanGc;
+
 
 #[dom_struct]
 pub struct ServiceWorkerRegistration {
@@ -73,6 +75,7 @@ impl ServiceWorkerRegistration {
                 registration_id,
             )),
             global,
+            CanGc::note(),
         )
     }
 

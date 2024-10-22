@@ -26,6 +26,8 @@ use crate::dom::htmloptionelement::HTMLOptionElement;
 use crate::dom::htmlselectelement::HTMLSelectElement;
 use crate::dom::node::{document_from_node, Node};
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
+
 
 #[dom_struct]
 pub struct HTMLOptionsCollection {
@@ -50,6 +52,7 @@ impl HTMLOptionsCollection {
         reflect_dom_object(
             Box::new(HTMLOptionsCollection::new_inherited(select, filter)),
             window,
+            CanGc::note(),
         )
     }
 

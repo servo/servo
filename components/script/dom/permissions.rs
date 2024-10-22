@@ -25,7 +25,8 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::permissionstatus::PermissionStatus;
 use crate::dom::promise::Promise;
 use crate::realms::{AlreadyInRealm, InRealm};
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{CanGc, JSContext};
+
 
 pub trait PermissionAlgorithm {
     type Descriptor;
@@ -69,7 +70,7 @@ impl Permissions {
     }
 
     pub fn new(global: &GlobalScope) -> DomRoot<Permissions> {
-        reflect_dom_object(Box::new(Permissions::new_inherited()), global)
+        reflect_dom_object(Box::new(Permissions::new_inherited()), global, CanGc::note())
     }
 
     // https://w3c.github.io/permissions/#dom-permissions-query

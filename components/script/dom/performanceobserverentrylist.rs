@@ -12,6 +12,9 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::performance::PerformanceEntryList;
 use crate::dom::performanceentry::PerformanceEntry;
+use crate::script_runtime::CanGc;
+
+
 
 #[dom_struct]
 pub struct PerformanceObserverEntryList {
@@ -33,7 +36,7 @@ impl PerformanceObserverEntryList {
         entries: PerformanceEntryList,
     ) -> DomRoot<PerformanceObserverEntryList> {
         let observer_entry_list = PerformanceObserverEntryList::new_inherited(entries);
-        reflect_dom_object(Box::new(observer_entry_list), global)
+        reflect_dom_object(Box::new(observer_entry_list), global, CanGc::note())
     }
 }
 

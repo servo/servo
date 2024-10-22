@@ -29,6 +29,8 @@ use crate::dom::bindings::transferable::Transferable;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::JSContext as SafeJSContext;
+use crate::script_runtime::CanGc;
+
 
 #[dom_struct]
 /// The MessagePort used in the DOM.
@@ -54,7 +56,7 @@ impl MessagePort {
     /// <https://html.spec.whatwg.org/multipage/#create-a-new-messageport-object>
     pub fn new(owner: &GlobalScope) -> DomRoot<MessagePort> {
         let port_id = MessagePortId::new();
-        reflect_dom_object(Box::new(MessagePort::new_inherited(port_id)), owner)
+        reflect_dom_object(Box::new(MessagePort::new_inherited(port_id)), owner, CanGc::note())
     }
 
     /// Create a new port for an incoming transfer-received one.
@@ -71,6 +73,7 @@ impl MessagePort {
                 entangled_port: RefCell::new(entangled_port),
             }),
             owner,
+            CanGc::note(),
         )
     }
 

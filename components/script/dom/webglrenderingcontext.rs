@@ -88,6 +88,8 @@ use crate::dom::webglvertexarrayobject::WebGLVertexArrayObject;
 use crate::dom::webglvertexarrayobjectoes::WebGLVertexArrayObjectOES;
 use crate::dom::window::Window;
 use crate::script_runtime::JSContext as SafeJSContext;
+use crate::script_runtime::CanGc;
+
 
 // From the GLES 2.0.25 spec, page 85:
 //
@@ -290,7 +292,7 @@ impl WebGLRenderingContext {
         attrs: GLContextAttributes,
     ) -> Option<DomRoot<WebGLRenderingContext>> {
         match WebGLRenderingContext::new_inherited(window, canvas, webgl_version, size, attrs) {
-            Ok(ctx) => Some(reflect_dom_object(Box::new(ctx), window)),
+            Ok(ctx) => Some(reflect_dom_object(Box::new(ctx), window, CanGc::note())),
             Err(msg) => {
                 error!("Couldn't create WebGLRenderingContext: {}", msg);
                 let event = WebGLContextEvent::new(

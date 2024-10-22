@@ -104,6 +104,7 @@ impl RTCDataChannel {
                 servo_media_id,
             )),
             global,
+            CanGc::note(),
         );
 
         peer_connection.register_data_channel(rtc_data_channel.servo_media_id, &rtc_data_channel);

@@ -10,6 +10,8 @@ use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::dissimilaroriginwindow::DissimilarOriginWindow;
+use crate::script_runtime::CanGc;
+
 
 /// Represents a dissimilar-origin `Location` that exists in another script thread.
 ///
@@ -40,6 +42,7 @@ impl DissimilarOriginLocation {
         reflect_dom_object(
             Box::new(DissimilarOriginLocation::new_inherited(window)),
             window,
+            CanGc::note(),
         )
     }
 }

@@ -25,6 +25,9 @@ use crate::dom::node::{window_from_node, Node};
 use crate::dom::nodelist::NodeList;
 use crate::dom::validation::{is_barred_by_datalist_ancestor, Validatable};
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
+use crate::script_runtime::CanGc;
+
+
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 enum SubmissionValue {
@@ -88,7 +91,7 @@ impl ElementInternals {
 
     pub fn new(element: &HTMLElement) -> DomRoot<ElementInternals> {
         let global = window_from_node(element);
-        reflect_dom_object(Box::new(ElementInternals::new_inherited(element)), &*global)
+        reflect_dom_object(Box::new(ElementInternals::new_inherited(element)), &*global, CanGc::note())
     }
 
     fn is_target_form_associated(&self) -> bool {

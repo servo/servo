@@ -11,6 +11,8 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::USVString;
 use crate::dom::urlhelper::UrlHelper;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
+use crate::script_runtime::CanGc;
+
 
 // https://html.spec.whatwg.org/multipage/#worker-locations
 #[dom_struct]
@@ -29,7 +31,7 @@ impl WorkerLocation {
     }
 
     pub fn new(global: &WorkerGlobalScope, url: ServoUrl) -> DomRoot<WorkerLocation> {
-        reflect_dom_object(Box::new(WorkerLocation::new_inherited(url)), global)
+        reflect_dom_object(Box::new(WorkerLocation::new_inherited(url)), global, CanGc::note())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-workerlocation-origin

@@ -13,6 +13,8 @@ use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
+use crate::script_runtime::CanGc;
+
 
 #[dom_struct]
 pub struct PerformanceEntry {
@@ -53,7 +55,7 @@ impl PerformanceEntry {
         duration: Duration,
     ) -> DomRoot<PerformanceEntry> {
         let entry = PerformanceEntry::new_inherited(name, entry_type, Some(start_time), duration);
-        reflect_dom_object(Box::new(entry), global)
+        reflect_dom_object(Box::new(entry), global, CanGc::note())
     }
 
     pub fn entry_type(&self) -> &DOMString {

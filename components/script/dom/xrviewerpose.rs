@@ -19,7 +19,7 @@ use crate::dom::xrrigidtransform::XRRigidTransform;
 use crate::dom::xrsession::{cast_transform, BaseSpace, BaseTransform, XRSession};
 use crate::dom::xrview::XRView;
 use crate::realms::enter_realm;
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{CanGc, JSContext};
 
 #[dom_struct]
 pub struct XRViewerPose {
@@ -120,7 +120,7 @@ impl XRViewerPose {
         let transform: RigidTransform3D<f32, Viewer, BaseSpace> =
             viewer_pose.transform.then(&to_base);
         let transform = XRRigidTransform::new(global, cast_transform(transform));
-        let pose = reflect_dom_object(Box::new(XRViewerPose::new_inherited(&transform)), global);
+        let pose = reflect_dom_object(Box::new(XRViewerPose::new_inherited(&transform)), global, CanGc::note());
 
         let cx = GlobalScope::get_cx();
         unsafe {

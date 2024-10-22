@@ -12,6 +12,8 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::xrinputsource::XRInputSource;
 use crate::dom::xrjointspace::XRJointSpace;
+use crate::script_runtime::CanGc;
+
 
 const JOINT_SPACE_MAP: [(XRHandJoint, Joint); 25] = [
     (XRHandJoint::Wrist, Joint::Wrist),
@@ -130,7 +132,7 @@ impl XRHand {
                 .expect("Invalid joint name");
             field.map(|_| XRJointSpace::new(global, session, id, joint, hand_joint))
         });
-        reflect_dom_object(Box::new(XRHand::new_inherited(source, &spaces)), global)
+        reflect_dom_object(Box::new(XRHand::new_inherited(source, &spaces)), global, CanGc::note())
     }
 }
 

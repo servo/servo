@@ -30,6 +30,9 @@ use crate::dom::cssrule::CSSRule;
 use crate::dom::element::Element;
 use crate::dom::node::{document_from_node, stylesheets_owner_from_node, window_from_node, Node};
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
+
+
 
 // http://dev.w3.org/csswg/cssom/#the-cssstyledeclaration-interface
 #[dom_struct]
@@ -242,6 +245,7 @@ impl CSSStyleDeclaration {
                 modification_access,
             )),
             global,
+            CanGc::note(),
         )
     }
 

@@ -25,6 +25,8 @@ use crate::dom::gpubuffer::GPUBuffer;
 use crate::dom::gpudevice::GPUDevice;
 use crate::dom::gpurenderbundle::GPURenderBundle;
 use crate::dom::gpurenderpipeline::GPURenderPipeline;
+use crate::script_runtime::CanGc;
+
 
 #[dom_struct]
 pub struct GPURenderBundleEncoder {
@@ -70,6 +72,7 @@ impl GPURenderBundleEncoder {
                 label,
             )),
             global,
+            CanGc::note(),
         )
     }
 }

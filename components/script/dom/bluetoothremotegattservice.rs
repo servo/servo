@@ -19,6 +19,8 @@ use crate::dom::bluetoothuuid::{BluetoothCharacteristicUUID, BluetoothServiceUUI
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
+use crate::script_runtime::CanGc;
+
 
 // https://webbluetoothcg.github.io/web-bluetooth/#bluetoothremotegattservice
 #[dom_struct]
@@ -59,6 +61,7 @@ impl BluetoothRemoteGATTService {
                 device, uuid, isPrimary, instanceID,
             )),
             global,
+            CanGc::note(),
         )
     }
 

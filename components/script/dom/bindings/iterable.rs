@@ -72,7 +72,7 @@ impl<T: DomObjectIteratorWrap + JSTraceable + Iterable> IterableIterator<T> {
             iterable: Dom::from_ref(iterable),
             index: Cell::new(0),
         });
-        reflect_dom_object(iterator, &*iterable.global())
+        reflect_dom_object(iterator, &*iterable.global(), CanGc::note())
     }
 
     /// Return the next value from the iterable object.

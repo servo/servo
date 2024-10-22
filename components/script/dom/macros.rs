@@ -587,6 +587,7 @@ macro_rules! impl_performance_entry_struct(
         use crate::dom::bindings::str::DOMString;
         use crate::dom::globalscope::GlobalScope;
         use crate::dom::performanceentry::PerformanceEntry;
+        use crate::script_runtime::CanGc;
         use dom_struct::dom_struct;
 
         #[dom_struct]
@@ -611,7 +612,7 @@ macro_rules! impl_performance_entry_struct(
                        start_time: CrossProcessInstant,
                        duration: Duration) -> DomRoot<$struct> {
                 let entry = $struct::new_inherited(name, start_time, duration);
-                reflect_dom_object(Box::new(entry), global)
+                reflect_dom_object(Box::new(entry), global, CanGc::note())
             }
         }
     );

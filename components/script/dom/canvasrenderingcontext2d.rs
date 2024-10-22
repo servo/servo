@@ -26,6 +26,8 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlcanvaselement::HTMLCanvasElement;
 use crate::dom::imagedata::ImageData;
 use crate::dom::textmetrics::TextMetrics;
+use crate::script_runtime::CanGc;
+
 
 // https://html.spec.whatwg.org/multipage/#canvasrenderingcontext2d
 #[dom_struct]
@@ -63,7 +65,7 @@ impl CanvasRenderingContext2D {
             Some(canvas),
             size,
         ));
-        reflect_dom_object(boxed, global)
+        reflect_dom_object(boxed, global, CanGc::note())
     }
 
     // https://html.spec.whatwg.org/multipage/#concept-canvas-set-bitmap-dimensions

@@ -16,6 +16,8 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::xrrigidtransform::XRRigidTransform;
 use crate::dom::xrsession::{cast_transform, ApiPose, BaseTransform, XRSession};
 use crate::dom::xrspace::XRSpace;
+use crate::script_runtime::CanGc;
+
 
 #[dom_struct]
 pub struct XRReferenceSpace {
@@ -57,6 +59,7 @@ impl XRReferenceSpace {
         reflect_dom_object(
             Box::new(XRReferenceSpace::new_inherited(session, offset, ty)),
             global,
+            CanGc::note(),
         )
     }
 

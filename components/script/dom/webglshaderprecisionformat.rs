@@ -11,6 +11,8 @@ use crate::dom::bindings::codegen::Bindings::WebGLShaderPrecisionFormatBinding::
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
+
 
 #[dom_struct]
 pub struct WebGLShaderPrecisionFormat {
@@ -41,6 +43,7 @@ impl WebGLShaderPrecisionFormat {
                 range_min, range_max, precision,
             )),
             window,
+            CanGc::note(),
         )
     }
 }

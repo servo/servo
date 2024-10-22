@@ -144,7 +144,7 @@ impl DOMException {
     pub fn new(global: &GlobalScope, code: DOMErrorName) -> DomRoot<DOMException> {
         let (message, name) = DOMException::get_error_data_by_code(code);
 
-        reflect_dom_object(Box::new(DOMException::new_inherited(message, name)), global)
+        reflect_dom_object(Box::new(DOMException::new_inherited(message, name)), global, CanGc::note())
     }
 
     // not an IDL stringifier, used internally

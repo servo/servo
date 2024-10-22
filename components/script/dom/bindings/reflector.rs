@@ -19,7 +19,7 @@ use crate::script_runtime::{CanGc, JSContext};
 
 /// Create the reflector for a new DOM object and yield ownership to the
 /// reflector.
-pub fn reflect_dom_object<T, U>(obj: Box<T>, global: &U) -> DomRoot<T>
+pub fn reflect_dom_object<T, U>(obj: Box<T>, global: &U, can_gc: CanGc,) -> DomRoot<T>
 where
     T: DomObject + DomObjectWrap,
     U: DerivedFrom<GlobalScope>,
@@ -31,7 +31,7 @@ where
             global_scope,
             None,
             obj,
-            CanGc::note(),
+            can_gc,
         )
     }
 }

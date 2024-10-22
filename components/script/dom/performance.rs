@@ -29,6 +29,8 @@ use crate::dom::performancenavigation::PerformanceNavigation;
 use crate::dom::performancenavigationtiming::PerformanceNavigationTiming;
 use crate::dom::performanceobserver::PerformanceObserver as DOMPerformanceObserver;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
+
 
 const INVALID_ENTRY_NAMES: &[&str] = &[
     "navigationStart",
@@ -170,6 +172,7 @@ impl Performance {
         reflect_dom_object(
             Box::new(Performance::new_inherited(navigation_start)),
             global,
+            CanGc::note(),
         )
     }
 

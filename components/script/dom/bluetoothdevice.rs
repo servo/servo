@@ -32,6 +32,8 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::realms::InRealm;
+use crate::script_runtime::CanGc;
+
 
 // https://webbluetoothcg.github.io/web-bluetooth/#bluetoothdevice
 #[dom_struct]
@@ -79,6 +81,7 @@ impl BluetoothDevice {
         reflect_dom_object(
             Box::new(BluetoothDevice::new_inherited(id, name, context)),
             global,
+            CanGc::note()
         )
     }
 

@@ -18,6 +18,8 @@ use crate::dom::texttrack::TextTrack;
 use crate::dom::trackevent::TrackEvent;
 use crate::dom::window::Window;
 use crate::task_source::TaskSource;
+use crate::script_runtime::CanGc;
+
 
 #[dom_struct]
 pub struct TextTrackList {
@@ -34,7 +36,7 @@ impl TextTrackList {
     }
 
     pub fn new(window: &Window, tracks: &[&TextTrack]) -> DomRoot<TextTrackList> {
-        reflect_dom_object(Box::new(TextTrackList::new_inherited(tracks)), window)
+        reflect_dom_object(Box::new(TextTrackList::new_inherited(tracks)), window, CanGc::note())
     }
 
     pub fn item(&self, idx: usize) -> Option<DomRoot<TextTrack>> {

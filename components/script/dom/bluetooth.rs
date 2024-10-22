@@ -30,7 +30,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::permissions::{get_descriptor_permission_state, PermissionAlgorithm};
 use crate::dom::promise::Promise;
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{CanGc, JSContext};
 use crate::task::TaskOnce;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::{self, IpcSender};
@@ -148,7 +148,7 @@ impl Bluetooth {
     }
 
     pub fn new(global: &GlobalScope) -> DomRoot<Bluetooth> {
-        reflect_dom_object(Box::new(Bluetooth::new_inherited()), global)
+        reflect_dom_object(Box::new(Bluetooth::new_inherited()), global, CanGc::note())
     }
 
     fn get_bluetooth_thread(&self) -> IpcSender<BluetoothRequest> {

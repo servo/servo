@@ -12,6 +12,8 @@ use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
+use crate::script_runtime::CanGc;
+
 
 #[dom_struct]
 pub struct GPUDeviceLostInfo {
@@ -37,6 +39,7 @@ impl GPUDeviceLostInfo {
         reflect_dom_object(
             Box::new(GPUDeviceLostInfo::new_inherited(message, reason)),
             global,
+            CanGc::note(),
         )
     }
 }

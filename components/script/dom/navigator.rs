@@ -29,7 +29,8 @@ use crate::dom::pluginarray::PluginArray;
 use crate::dom::serviceworkercontainer::ServiceWorkerContainer;
 use crate::dom::window::Window;
 use crate::dom::xrsystem::XRSystem;
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{CanGc, JSContext};
+
 
 pub(super) fn hardware_concurrency() -> u64 {
     static CPUS: LazyLock<u64> = LazyLock::new(|| num_cpus::get().try_into().unwrap_or(1));
@@ -74,7 +75,7 @@ impl Navigator {
     }
 
     pub fn new(window: &Window) -> DomRoot<Navigator> {
-        reflect_dom_object(Box::new(Navigator::new_inherited()), window)
+        reflect_dom_object(Box::new(Navigator::new_inherited()), window, CanGc::note())
     }
 
     pub fn xr(&self) -> Option<DomRoot<XRSystem>> {

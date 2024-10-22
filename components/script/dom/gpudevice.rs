@@ -63,6 +63,8 @@ use crate::dom::gputexture::GPUTexture;
 use crate::dom::gpuuncapturederrorevent::GPUUncapturedErrorEvent;
 use crate::dom::promise::Promise;
 use crate::realms::InRealm;
+use crate::script_runtime::CanGc;
+
 
 #[dom_struct]
 pub struct GPUDevice {
@@ -142,6 +144,7 @@ impl GPUDevice {
                 lost_promise,
             )),
             global,
+            CanGc::note(),
         );
         queue.set_device(&device);
         device

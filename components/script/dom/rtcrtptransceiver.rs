@@ -13,6 +13,8 @@ use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::rtcrtpsender::RTCRtpSender;
+use crate::script_runtime::CanGc;
+
 
 #[dom_struct]
 pub struct RTCRtpTransceiver {
@@ -35,7 +37,7 @@ impl RTCRtpTransceiver {
         global: &GlobalScope,
         direction: RTCRtpTransceiverDirection,
     ) -> DomRoot<Self> {
-        reflect_dom_object(Box::new(Self::new_inherited(global, direction)), global)
+        reflect_dom_object(Box::new(Self::new_inherited(global, direction)), global, CanGc::note())
     }
 }
 

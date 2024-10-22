@@ -16,6 +16,8 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
+
 
 // https://html.spec.whatwg.org/multipage/#beforeunloadevent
 #[dom_struct]
@@ -33,7 +35,7 @@ impl BeforeUnloadEvent {
     }
 
     pub fn new_uninitialized(window: &Window) -> DomRoot<BeforeUnloadEvent> {
-        reflect_dom_object(Box::new(BeforeUnloadEvent::new_inherited()), window)
+        reflect_dom_object(Box::new(BeforeUnloadEvent::new_inherited()), window, CanGc::note())
     }
 
     pub fn new(

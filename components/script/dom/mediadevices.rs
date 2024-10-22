@@ -25,6 +25,8 @@ use crate::dom::mediastream::MediaStream;
 use crate::dom::mediastreamtrack::MediaStreamTrack;
 use crate::dom::promise::Promise;
 use crate::realms::{AlreadyInRealm, InRealm};
+use crate::script_runtime::CanGc;
+
 
 #[dom_struct]
 pub struct MediaDevices {
@@ -39,7 +41,7 @@ impl MediaDevices {
     }
 
     pub fn new(global: &GlobalScope) -> DomRoot<MediaDevices> {
-        reflect_dom_object(Box::new(MediaDevices::new_inherited()), global)
+        reflect_dom_object(Box::new(MediaDevices::new_inherited()), global, CanGc::note())
     }
 }
 

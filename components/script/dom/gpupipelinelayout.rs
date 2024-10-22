@@ -17,6 +17,8 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::gpudevice::GPUDevice;
+use crate::script_runtime::CanGc;
+
 
 #[dom_struct]
 pub struct GPUPipelineLayout {
@@ -62,6 +64,7 @@ impl GPUPipelineLayout {
                 bgls,
             )),
             global,
+            CanGc::note(),
         )
     }
 }

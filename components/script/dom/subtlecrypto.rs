@@ -32,7 +32,7 @@ use crate::dom::promise::Promise;
 use crate::dom::window::Window;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::realms::InRealm;
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{CanGc, JSContext};
 use crate::task::TaskCanceller;
 use crate::task_source::dom_manipulation::DOMManipulationTaskSource;
 use crate::task_source::TaskSource;
@@ -96,7 +96,7 @@ impl SubtleCrypto {
     }
 
     pub(crate) fn new(global: &GlobalScope) -> DomRoot<SubtleCrypto> {
-        reflect_dom_object(Box::new(SubtleCrypto::new_inherited()), global)
+        reflect_dom_object(Box::new(SubtleCrypto::new_inherited()), global, CanGc::note())
     }
 
     fn task_source_with_canceller(&self) -> (DOMManipulationTaskSource, TaskCanceller) {

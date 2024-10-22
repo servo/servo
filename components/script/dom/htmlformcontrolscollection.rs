@@ -19,6 +19,9 @@ use crate::dom::htmlformelement::HTMLFormElement;
 use crate::dom::node::Node;
 use crate::dom::radionodelist::RadioNodeList;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
+
+
 
 #[dom_struct]
 pub struct HTMLFormControlsCollection {
@@ -48,6 +51,7 @@ impl HTMLFormControlsCollection {
         reflect_dom_object(
             Box::new(HTMLFormControlsCollection::new_inherited(form, filter)),
             window,
+            CanGc::note(),
         )
     }
 }

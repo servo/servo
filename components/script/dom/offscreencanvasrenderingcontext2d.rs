@@ -27,6 +27,8 @@ use crate::dom::htmlcanvaselement::HTMLCanvasElement;
 use crate::dom::imagedata::ImageData;
 use crate::dom::offscreencanvas::OffscreenCanvas;
 use crate::dom::textmetrics::TextMetrics;
+use crate::script_runtime::CanGc;
+
 
 #[dom_struct]
 pub struct OffscreenCanvasRenderingContext2D {
@@ -58,7 +60,7 @@ impl OffscreenCanvasRenderingContext2D {
         let boxed = Box::new(OffscreenCanvasRenderingContext2D::new_inherited(
             global, canvas, htmlcanvas,
         ));
-        reflect_dom_object(boxed, global)
+        reflect_dom_object(boxed, global, CanGc::note())
     }
 
     pub fn set_canvas_bitmap_dimensions(&self, size: Size2D<u64>) {

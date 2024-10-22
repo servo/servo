@@ -20,6 +20,8 @@ use crate::dom::bluetoothuuid::{BluetoothServiceUUID, BluetoothUUID};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::realms::InRealm;
+use crate::script_runtime::CanGc;
+
 
 // https://webbluetoothcg.github.io/web-bluetooth/#bluetoothremotegattserver
 #[dom_struct]
@@ -45,6 +47,7 @@ impl BluetoothRemoteGATTServer {
         reflect_dom_object(
             Box::new(BluetoothRemoteGATTServer::new_inherited(device)),
             global,
+            CanGc::note(),
         )
     }
 

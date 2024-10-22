@@ -69,7 +69,7 @@ use crate::dom::webgluniformlocation::WebGLUniformLocation;
 use crate::dom::webglvertexarrayobject::WebGLVertexArrayObject;
 use crate::dom::window::Window;
 use crate::js::conversions::ToJSValConvertible;
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{CanGc, JSContext};
 
 #[crown::unrooted_must_root_lint::must_root]
 #[derive(JSTraceable, MallocSizeOf)]
@@ -192,7 +192,7 @@ impl WebGL2RenderingContext {
         attrs: GLContextAttributes,
     ) -> Option<DomRoot<WebGL2RenderingContext>> {
         WebGL2RenderingContext::new_inherited(window, canvas, size, attrs)
-            .map(|ctx| reflect_dom_object(Box::new(ctx), window))
+            .map(|ctx| reflect_dom_object(Box::new(ctx), window, CanGc::note()))
     }
 
     #[allow(unsafe_code)]

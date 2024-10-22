@@ -18,6 +18,8 @@ use crate::dom::cssrule::{CSSRule, SpecificCSSRule};
 use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::dom::window::Window;
 use crate::script_runtime::JSContext as SafeJSContext;
+use crate::script_runtime::CanGc;
+
 
 #[dom_struct]
 pub struct CSSLayerStatementRule {
@@ -50,6 +52,7 @@ impl CSSLayerStatementRule {
                 layerstatementrule,
             )),
             window,
+            CanGc::note(),
         )
     }
 }

@@ -38,6 +38,7 @@ impl PromiseNativeHandler {
                 reject,
             }),
             global,
+            CanGc::note(),
         )
     }
 

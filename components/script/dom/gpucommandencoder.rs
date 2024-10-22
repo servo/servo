@@ -26,6 +26,8 @@ use crate::dom::gpucomputepassencoder::GPUComputePassEncoder;
 use crate::dom::gpuconvert::{convert_load_op, convert_store_op};
 use crate::dom::gpudevice::GPUDevice;
 use crate::dom::gpurenderpassencoder::GPURenderPassEncoder;
+use crate::script_runtime::CanGc;
+
 
 #[dom_struct]
 pub struct GPUCommandEncoder {
@@ -67,6 +69,7 @@ impl GPUCommandEncoder {
                 channel, device, encoder, label,
             )),
             global,
+            CanGc::note(),
         )
     }
 }

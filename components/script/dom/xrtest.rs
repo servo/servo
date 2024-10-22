@@ -27,6 +27,8 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::script_thread::ScriptThread;
 use crate::task_source::TaskSource;
+use crate::script_runtime::CanGc;
+
 
 #[dom_struct]
 pub struct XRTest {
@@ -43,7 +45,7 @@ impl XRTest {
     }
 
     pub fn new(global: &GlobalScope) -> DomRoot<XRTest> {
-        reflect_dom_object(Box::new(XRTest::new_inherited()), global)
+        reflect_dom_object(Box::new(XRTest::new_inherited()), global, CanGc::note())
     }
 
     fn device_obtained(

@@ -66,7 +66,7 @@ use crate::dom::xrrigidtransform::XRRigidTransform;
 use crate::dom::xrsessionevent::XRSessionEvent;
 use crate::dom::xrspace::XRSpace;
 use crate::realms::InRealm;
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{CanGc, JSContext};
 use crate::task_source::TaskSource;
 
 #[dom_struct]
@@ -170,6 +170,7 @@ impl XRSession {
                 mode,
             )),
             global,
+            CanGc::note(),
         );
         ret.attach_event_handler();
         ret.setup_raf_loop(frame_receiver);

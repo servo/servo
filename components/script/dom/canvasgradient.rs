@@ -16,6 +16,8 @@ use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
+use crate::script_runtime::CanGc;
+
 
 // https://html.spec.whatwg.org/multipage/#canvasgradient
 #[dom_struct]
@@ -42,7 +44,7 @@ impl CanvasGradient {
     }
 
     pub fn new(global: &GlobalScope, style: CanvasGradientStyle) -> DomRoot<CanvasGradient> {
-        reflect_dom_object(Box::new(CanvasGradient::new_inherited(style)), global)
+        reflect_dom_object(Box::new(CanvasGradient::new_inherited(style)), global, CanGc::note())
     }
 }
 

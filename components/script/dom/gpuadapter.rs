@@ -27,6 +27,8 @@ use crate::dom::gpudevice::GPUDevice;
 use crate::dom::gpusupportedfeatures::gpu_to_wgt_feature;
 use crate::dom::promise::Promise;
 use crate::realms::InRealm;
+use crate::script_runtime::CanGc;
+
 
 #[dom_struct]
 pub struct GPUAdapter {
@@ -85,6 +87,7 @@ impl GPUAdapter {
                 channel, name, extensions, &features, &limits, &info, adapter,
             )),
             global,
+            CanGc::note(),
         )
     }
 }

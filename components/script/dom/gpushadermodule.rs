@@ -22,6 +22,8 @@ use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::gpu::response_async;
 use crate::realms::InRealm;
+use crate::script_runtime::CanGc;
+
 
 #[dom_struct]
 pub struct GPUShaderModule {
@@ -67,6 +69,7 @@ impl GPUShaderModule {
                 promise,
             )),
             global,
+            CanGc::note(),
         )
     }
 }

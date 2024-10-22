@@ -14,6 +14,7 @@ use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{DomRoot, MutDom};
 use crate::dom::document::Document;
 use crate::dom::node::{Node, ShadowIncluding};
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct AbstractRange {
@@ -51,6 +52,7 @@ impl AbstractRange {
                 end_offset,
             )),
             document.window(),
+            CanGc::note(),
         );
         abstractrange
     }

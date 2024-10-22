@@ -24,6 +24,8 @@ use crate::dom::webglframebuffer::WebGLFramebuffer;
 use crate::dom::webglobject::WebGLObject;
 use crate::dom::webglrenderingcontext::{Operation, WebGLRenderingContext};
 use crate::dom::xrsession::XRSession;
+use crate::script_runtime::CanGc;
+
 
 pub enum TexParameterValue {
     Float(f32),
@@ -104,6 +106,7 @@ impl WebGLTexture {
         reflect_dom_object(
             Box::new(WebGLTexture::new_inherited(context, id, None)),
             &*context.global(),
+            CanGc::note(),
         )
     }
 
@@ -115,6 +118,7 @@ impl WebGLTexture {
         reflect_dom_object(
             Box::new(WebGLTexture::new_inherited(context, id, Some(session))),
             &*context.global(),
+            CanGc::note(),
         )
     }
 }

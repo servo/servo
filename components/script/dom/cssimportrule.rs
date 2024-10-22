@@ -16,6 +16,8 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::cssrule::{CSSRule, SpecificCSSRule};
 use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
+
 
 #[dom_struct]
 pub struct CSSImportRule {
@@ -45,6 +47,7 @@ impl CSSImportRule {
         reflect_dom_object(
             Box::new(Self::new_inherited(parent_stylesheet, import_rule)),
             window,
+            CanGc::note(),
         )
     }
 }

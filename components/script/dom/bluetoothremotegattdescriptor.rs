@@ -26,6 +26,8 @@ use crate::dom::bluetoothremotegattcharacteristic::{
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::realms::InRealm;
+use crate::script_runtime::CanGc;
+
 
 // http://webbluetoothcg.github.io/web-bluetooth/#bluetoothremotegattdescriptor
 #[dom_struct]
@@ -65,6 +67,7 @@ impl BluetoothRemoteGATTDescriptor {
                 instance_id,
             )),
             global,
+            CanGc::note(),
         )
     }
 

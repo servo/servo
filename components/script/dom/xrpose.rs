@@ -11,6 +11,8 @@ use crate::dom::dompointreadonly::DOMPointReadOnly;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::xrrigidtransform::XRRigidTransform;
 use crate::dom::xrsession::ApiRigidTransform;
+use crate::script_runtime::CanGc;
+
 
 #[dom_struct]
 pub struct XRPose {
@@ -29,7 +31,7 @@ impl XRPose {
     #[allow(unused)]
     pub fn new(global: &GlobalScope, transform: ApiRigidTransform) -> DomRoot<XRPose> {
         let transform = XRRigidTransform::new(global, transform);
-        reflect_dom_object(Box::new(XRPose::new_inherited(&transform)), global)
+        reflect_dom_object(Box::new(XRPose::new_inherited(&transform)), global, CanGc::note())
     }
 }
 

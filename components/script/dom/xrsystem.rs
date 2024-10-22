@@ -34,6 +34,8 @@ use crate::dom::xrtest::XRTest;
 use crate::realms::InRealm;
 use crate::script_thread::ScriptThread;
 use crate::task_source::TaskSource;
+use crate::script_runtime::CanGc;
+
 
 #[dom_struct]
 pub struct XRSystem {
@@ -64,6 +66,7 @@ impl XRSystem {
         reflect_dom_object(
             Box::new(XRSystem::new_inherited(window.pipeline_id())),
             window,
+            CanGc::note(),
         )
     }
 

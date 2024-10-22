@@ -18,6 +18,8 @@ use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::gpubindgrouplayout::GPUBindGroupLayout;
 use crate::dom::gpudevice::GPUDevice;
+use crate::script_runtime::CanGc;
+
 
 #[dom_struct]
 pub struct GPUBindGroup {
@@ -64,6 +66,7 @@ impl GPUBindGroup {
                 channel, bind_group, device, layout, label,
             )),
             global,
+            CanGc::note(),
         )
     }
 }

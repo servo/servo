@@ -22,6 +22,8 @@ use crate::dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration
 use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::dom::node::{stylesheets_owner_from_node, Node};
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
+
 
 #[dom_struct]
 pub struct CSSStyleRule {
@@ -53,6 +55,7 @@ impl CSSStyleRule {
         reflect_dom_object(
             Box::new(CSSStyleRule::new_inherited(parent_stylesheet, stylerule)),
             window,
+            CanGc::note(),
         )
     }
 }

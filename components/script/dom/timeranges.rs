@@ -12,6 +12,8 @@ use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
+
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 struct TimeRange {
@@ -139,7 +141,7 @@ impl TimeRanges {
     }
 
     pub fn new(window: &Window, ranges: TimeRangesContainer) -> DomRoot<TimeRanges> {
-        reflect_dom_object(Box::new(TimeRanges::new_inherited(ranges)), window)
+        reflect_dom_object(Box::new(TimeRanges::new_inherited(ranges)), window, CanGc::note())
     }
 }
 

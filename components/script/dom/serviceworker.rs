@@ -27,8 +27,9 @@ use crate::dom::bindings::structuredclone;
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{CanGc, JSContext};
 use crate::task::TaskOnce;
+
 
 pub type TrustedServiceWorkerAddress = Trusted<ServiceWorker>;
 
@@ -71,6 +72,7 @@ impl ServiceWorker {
                 worker_id,
             )),
             global,
+            CanGc::note(),
         )
     }
 

@@ -28,6 +28,8 @@ use crate::dom::canvaspattern::CanvasPattern;
 use crate::dom::canvasrenderingcontext2d::CanvasRenderingContext2D;
 use crate::dom::dommatrix::DOMMatrix;
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
+use crate::script_runtime::CanGc;
+
 
 #[dom_struct]
 pub struct PaintRenderingContext2D {
@@ -49,6 +51,7 @@ impl PaintRenderingContext2D {
         reflect_dom_object(
             Box::new(PaintRenderingContext2D::new_inherited(global)),
             global,
+            CanGc::note(),
         )
     }
 

@@ -9,6 +9,8 @@ use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::touch::Touch;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
+
 
 #[dom_struct]
 pub struct TouchList {
@@ -25,7 +27,7 @@ impl TouchList {
     }
 
     pub fn new(window: &Window, touches: &[&Touch]) -> DomRoot<TouchList> {
-        reflect_dom_object(Box::new(TouchList::new_inherited(touches)), window)
+        reflect_dom_object(Box::new(TouchList::new_inherited(touches)), window, CanGc::note())
     }
 }
 

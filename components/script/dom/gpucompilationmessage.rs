@@ -14,6 +14,8 @@ use super::bindings::root::DomRoot;
 use super::types::GlobalScope;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::test::DOMString;
+use crate::script_runtime::CanGc;
+
 
 #[dom_struct]
 pub struct GPUCompilationMessage {
@@ -61,6 +63,7 @@ impl GPUCompilationMessage {
                 message, mtype, line_num, line_pos, offset, length,
             )),
             global,
+            CanGc::note(),
         )
     }
 

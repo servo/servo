@@ -16,6 +16,8 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::htmlmediaelement::HTMLMediaElement;
 use crate::dom::window::Window;
 use crate::task_source::TaskSource;
+use crate::script_runtime::CanGc;
+
 
 #[dom_struct]
 pub struct AudioTrackList {
@@ -44,6 +46,7 @@ impl AudioTrackList {
         reflect_dom_object(
             Box::new(AudioTrackList::new_inherited(tracks, media_element)),
             window,
+            CanGc::note(),
         )
     }
 

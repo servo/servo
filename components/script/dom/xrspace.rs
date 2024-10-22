@@ -15,6 +15,8 @@ use crate::dom::xrinputsource::XRInputSource;
 use crate::dom::xrjointspace::XRJointSpace;
 use crate::dom::xrreferencespace::XRReferenceSpace;
 use crate::dom::xrsession::{cast_transform, ApiPose, XRSession};
+use crate::script_runtime::CanGc;
+
 
 #[dom_struct]
 pub struct XRSpace {
@@ -57,6 +59,7 @@ impl XRSpace {
         reflect_dom_object(
             Box::new(XRSpace::new_inputspace_inner(session, input, is_grip_space)),
             global,
+            CanGc::note(),
         )
     }
 

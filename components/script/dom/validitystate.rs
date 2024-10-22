@@ -22,6 +22,8 @@ use crate::dom::htmlfieldsetelement::HTMLFieldSetElement;
 use crate::dom::htmlformelement::FormControlElementHelpers;
 use crate::dom::node::Node;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
+
 
 // https://html.spec.whatwg.org/multipage/#validity-states
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf)]
@@ -91,7 +93,7 @@ impl ValidityState {
     }
 
     pub fn new(window: &Window, element: &Element) -> DomRoot<ValidityState> {
-        reflect_dom_object(Box::new(ValidityState::new_inherited(element)), window)
+        reflect_dom_object(Box::new(ValidityState::new_inherited(element)), window, CanGc::note())
     }
 
     // https://html.spec.whatwg.org/multipage/#custom-validity-error-message

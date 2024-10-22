@@ -28,6 +28,8 @@ use crate::realms::{enter_realm, InRealm};
 use crate::task::TaskCanceller;
 use crate::task_source::dom_manipulation::DOMManipulationTaskSource;
 use crate::task_source::{TaskSource, TaskSourceName};
+use crate::script_runtime::CanGc;
+
 
 #[dom_struct]
 pub struct ServiceWorkerContainer {
@@ -49,7 +51,7 @@ impl ServiceWorkerContainer {
     pub fn new(global: &GlobalScope) -> DomRoot<ServiceWorkerContainer> {
         let client = Client::new(global.as_window());
         let container = ServiceWorkerContainer::new_inherited(&client);
-        reflect_dom_object(Box::new(container), global)
+        reflect_dom_object(Box::new(container), global, CanGc::note())
     }
 }
 

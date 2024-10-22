@@ -23,6 +23,8 @@ use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::window::Window;
 use crate::stylesheet_loader::StylesheetLoader;
+use crate::script_runtime::CanGc;
+
 
 unsafe_no_jsmanaged_fields!(RulesSource);
 
@@ -87,6 +89,7 @@ impl CSSRuleList {
         reflect_dom_object(
             Box::new(CSSRuleList::new_inherited(parent_stylesheet, rules)),
             window,
+            CanGc::note(),
         )
     }
 

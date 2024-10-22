@@ -17,6 +17,8 @@ use crate::dom::document::Document;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::urlhelper::UrlHelper;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
+
 
 #[derive(PartialEq)]
 pub enum NavigationType {
@@ -57,7 +59,7 @@ impl Location {
     }
 
     pub fn new(window: &Window) -> DomRoot<Location> {
-        reflect_dom_object(Box::new(Location::new_inherited(window)), window)
+        reflect_dom_object(Box::new(Location::new_inherited(window)), window, CanGc::note())
     }
 
     /// Navigate the relevant `Document`'s browsing context.

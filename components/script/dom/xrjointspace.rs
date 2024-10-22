@@ -13,6 +13,8 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::xrsession::{ApiPose, XRSession};
 use crate::dom::xrspace::XRSpace;
+use crate::script_runtime::CanGc;
+
 
 #[dom_struct]
 pub struct XRJointSpace {
@@ -52,6 +54,7 @@ impl XRJointSpace {
         reflect_dom_object(
             Box::new(Self::new_inherited(session, input, joint, hand_joint)),
             global,
+            CanGc::note(),
         )
     }
 

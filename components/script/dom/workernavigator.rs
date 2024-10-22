@@ -15,7 +15,7 @@ use crate::dom::navigator::hardware_concurrency;
 use crate::dom::navigatorinfo;
 use crate::dom::permissions::Permissions;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{CanGc, JSContext};
 
 // https://html.spec.whatwg.org/multipage/#workernavigator
 #[dom_struct]
@@ -35,7 +35,7 @@ impl WorkerNavigator {
     }
 
     pub fn new(global: &WorkerGlobalScope) -> DomRoot<WorkerNavigator> {
-        reflect_dom_object(Box::new(WorkerNavigator::new_inherited()), global)
+        reflect_dom_object(Box::new(WorkerNavigator::new_inherited()), global, CanGc::note())
     }
 }
 

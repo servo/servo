@@ -15,6 +15,8 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::texttrack::TextTrack;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
+
 
 #[dom_struct]
 pub struct TextTrackCue {
@@ -54,6 +56,7 @@ impl TextTrackCue {
         reflect_dom_object(
             Box::new(TextTrackCue::new_inherited(id, start_time, end_time, track)),
             window,
+            CanGc::note(),
         )
     }
 

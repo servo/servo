@@ -10,6 +10,8 @@ use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::xrsession::XRSession;
+use crate::script_runtime::CanGc;
+
 
 #[dom_struct]
 pub struct XRHitTestSource {
@@ -37,6 +39,7 @@ impl XRHitTestSource {
         reflect_dom_object(
             Box::new(XRHitTestSource::new_inherited(id, session)),
             global,
+            CanGc::note(),
         )
     }
 

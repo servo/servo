@@ -15,6 +15,8 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::webglobject::WebGLObject;
 use crate::dom::webglrenderingcontext::{Operation, WebGLRenderingContext};
 use crate::task_source::TaskSource;
+use crate::script_runtime::CanGc;
+
 
 #[dom_struct]
 pub struct WebGLSync {
@@ -45,6 +47,7 @@ impl WebGLSync {
         reflect_dom_object(
             Box::new(WebGLSync::new_inherited(context, sync_id)),
             &*context.global(),
+            CanGc::note(),
         )
     }
 }

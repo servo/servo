@@ -53,6 +53,8 @@ use crate::script_runtime::{new_rt_and_cx, CommonScriptMsg, Runtime, ScriptThrea
 use crate::script_thread::{MainThreadScriptMsg, ScriptThread};
 use crate::task::TaskBox;
 use crate::task_source::TaskSourceName;
+use crate::script_runtime::CanGc;
+
 
 // Magic numbers
 const WORKLET_THREAD_POOL_SIZE: u32 = 3;
@@ -103,6 +105,7 @@ impl Worklet {
         reflect_dom_object(
             Box::new(Worklet::new_inherited(window, global_type)),
             window,
+            CanGc::note(),
         )
     }
 

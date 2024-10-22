@@ -12,6 +12,8 @@ use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
+use crate::script_runtime::CanGc;
+
 
 /// An unique id for dynamic module
 #[derive(Clone, Copy, Debug, Eq, Hash, JSTraceable, PartialEq)]
@@ -44,6 +46,7 @@ impl DynamicModuleOwner {
         reflect_dom_object(
             Box::new(DynamicModuleOwner::new_inherited(promise, id)),
             global,
+            CanGc::note(),
         )
     }
 }

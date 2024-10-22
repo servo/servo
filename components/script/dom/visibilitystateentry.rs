@@ -17,6 +17,8 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::performanceentry::PerformanceEntry;
+use crate::script_runtime::CanGc;
+
 
 #[dom_struct]
 pub struct VisibilityStateEntry {
@@ -51,6 +53,7 @@ impl VisibilityStateEntry {
         reflect_dom_object(
             Box::new(VisibilityStateEntry::new_inherited(state, timestamp)),
             global,
+            CanGc::note(),
         )
     }
 }

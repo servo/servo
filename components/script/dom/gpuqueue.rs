@@ -24,6 +24,8 @@ use crate::dom::gpubuffer::GPUBuffer;
 use crate::dom::gpucommandbuffer::GPUCommandBuffer;
 use crate::dom::gpudevice::GPUDevice;
 use crate::dom::promise::Promise;
+use crate::script_runtime::CanGc;
+
 
 #[dom_struct]
 pub struct GPUQueue {
@@ -49,7 +51,7 @@ impl GPUQueue {
     }
 
     pub fn new(global: &GlobalScope, channel: WebGPU, queue: WebGPUQueue) -> DomRoot<Self> {
-        reflect_dom_object(Box::new(GPUQueue::new_inherited(channel, queue)), global)
+        reflect_dom_object(Box::new(GPUQueue::new_inherited(channel, queue)), global, CanGc::note())
     }
 }
 

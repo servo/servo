@@ -26,6 +26,8 @@ use crate::dom::gpuadapter::GPUAdapter;
 use crate::dom::promise::Promise;
 use crate::realms::InRealm;
 use crate::task_source::{TaskSource, TaskSourceName};
+use crate::script_runtime::CanGc;
+
 
 #[dom_struct]
 #[allow(clippy::upper_case_acronyms)]
@@ -41,7 +43,7 @@ impl GPU {
     }
 
     pub fn new(global: &GlobalScope) -> DomRoot<GPU> {
-        reflect_dom_object(Box::new(GPU::new_inherited()), global)
+        reflect_dom_object(Box::new(GPU::new_inherited()), global, CanGc::note())
     }
 }
 

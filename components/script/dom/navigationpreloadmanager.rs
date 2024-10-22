@@ -18,6 +18,8 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::serviceworkerregistration::ServiceWorkerRegistration;
 use crate::realms::InRealm;
+use crate::script_runtime::CanGc;
+
 
 #[dom_struct]
 pub struct NavigationPreloadManager {
@@ -39,7 +41,7 @@ impl NavigationPreloadManager {
         registration: &ServiceWorkerRegistration,
     ) -> DomRoot<NavigationPreloadManager> {
         let manager = NavigationPreloadManager::new_inherited(registration);
-        reflect_dom_object(Box::new(manager), global)
+        reflect_dom_object(Box::new(manager), global, CanGc::note())
     }
 }
 

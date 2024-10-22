@@ -29,7 +29,8 @@ use crate::dom::gpu::{response_async, AsyncWGPUListener};
 use crate::dom::gpudevice::GPUDevice;
 use crate::dom::promise::Promise;
 use crate::realms::InRealm;
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{CanGc, JSContext};
+
 
 #[derive(JSTraceable, MallocSizeOf)]
 pub struct ActiveBufferMapping {
@@ -123,6 +124,7 @@ impl GPUBuffer {
                 channel, buffer, device, size, usage, mapping, label,
             )),
             global,
+            CanGc::note(),
         )
     }
 }

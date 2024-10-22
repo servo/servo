@@ -35,6 +35,8 @@ use crate::dom::promise::Promise;
 use crate::js::conversions::FromJSValConvertible;
 use crate::realms::{enter_realm, InRealm};
 use crate::script_runtime::JSContext as SafeJSContext;
+use crate::script_runtime::CanGc;
+
 
 static UNDERLYING_SOURCE_TRAPS: ReadableStreamUnderlyingSourceTraps =
     ReadableStreamUnderlyingSourceTraps {
@@ -78,6 +80,7 @@ impl ReadableStream {
         reflect_dom_object(
             Box::new(ReadableStream::new_inherited(external_underlying_source)),
             global,
+            CanGc::note(),
         )
     }
 
