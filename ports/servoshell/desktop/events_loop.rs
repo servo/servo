@@ -4,6 +4,7 @@
 
 //! An event loop implementation that works in headless mode.
 
+use std::cell::Cell;
 use std::sync::{Arc, Condvar, Mutex};
 use std::time;
 
@@ -88,7 +89,7 @@ impl EventsLoop {
 
     pub fn run_forever<F>(self, mut callback: F)
     where
-        F: 'static + FnMut(Event<WakerEvent>, Option<&ActiveEventLoop>, &mut ControlFlow),
+        F: 'static + FnMut(Event<WakerEvent>, &mut ControlFlow),
     {
         match self.0 {
             EventLoop::Winit(events_loop) => {
@@ -97,7 +98,8 @@ impl EventsLoop {
                 events_loop
                     .run(move |e, window_target| {
                         let mut control_flow = ControlFlow::default();
-                        callback(e, Some(window_target), &mut control_flow);
+                        let _guard = EventLoopGuard::new(window_target);
+                        callback(e, &mut control_flow);
                         control_flow.apply_to(window_target);
                     })
                     .expect("Failed while running events loop");
@@ -108,7 +110,7 @@ impl EventsLoop {
                 loop {
                     self.sleep(flag, condvar);
                     let mut control_flow = ControlFlow::Poll;
-                    callback(event, None, &mut control_flow);
+                    callback(event, &mut control_flow);
                     event = Event::<WakerEvent>::UserEvent(WakerEvent);
 
                     if control_flow != ControlFlow::Poll {
@@ -233,4 +235,49 @@ impl EventLoopWaker for HeadlessEventLoopWaker {
     fn clone_box(&self) -> Box<dyn EventLoopWaker> {
         Box::new(HeadlessEventLoopWaker(self.0.clone()))
     }
+}
+
+thread_local! {
+    static CURRENT_EVENT_LOOP: Cell<Option<*const ActiveEventLoop>> = const { Cell::new(None) };
+}
+
+struct EventLoopGuard;
+
+impl EventLoopGuard {
+    fn new(event_loop: &ActiveEventLoop) -> Self {
+        CURRENT_EVENT_LOOP.with(|cell| {
+            assert!(
+                cell.get().is_none(),
+                "Attempted to set a new event loop while one is already set"
+            );
+            cell.set(Some(event_loop as *const ActiveEventLoop));
+        });
+        Self
+    }
+}
+
+impl Drop for EventLoopGuard {
+    fn drop(&mut self) {
+        CURRENT_EVENT_LOOP.with(|cell| cell.set(None));
+    }
+}
+
+// Helper function to safely use the current event loop
+#[allow(unsafe_code)]
+pub fn with_current_event_loop<F, R>(f: F) -> Option<R>
+where
+    F: FnOnce(&ActiveEventLoop) -> R,
+{
+    CURRENT_EVENT_LOOP.with(|cell| {
+        cell.get().map(|ptr| {
+            // SAFETY:
+            // 1. The pointer is guaranteed to be valid when it's Some, as the EventLoopGuard that created it
+            //    lives at least as long as the reference, and clears it when it's dropped. Only run_forever creates
+            //    a new EventLoopGuard, and does not leak it.
+            // 2. Since the pointer was created from a borrow which lives at least as long as this pointer there are
+            //    no mutable references to the ActiveEventLoop.
+            let event_loop = unsafe { &*ptr };
+            f(event_loop)
+        })
+    })
 }
