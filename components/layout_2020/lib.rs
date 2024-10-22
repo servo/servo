@@ -16,6 +16,7 @@ mod fragment_tree;
 pub mod geom;
 #[macro_use]
 pub mod layout_debug;
+pub mod blob_rasterizer;
 mod lists;
 mod positioned;
 pub mod query;
