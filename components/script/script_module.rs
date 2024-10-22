@@ -357,15 +357,14 @@ impl ModuleTree {
         let comp = InRealm::Entered(&realm);
         let _ais = AutoIncumbentScript::new(&owner.global());
 
-        let mut promise = self.promise.borrow_mut();
-        match promise.as_ref() {
-            Some(promise) => promise.append_native_handler(&handler, comp),
-            None => {
-                let new_promise = Promise::new_in_current_realm(comp);
-                new_promise.append_native_handler(&handler, comp);
-                *promise = Some(new_promise);
-            },
+        if let Some(promise) = self.promise.borrow().as_ref() {
+            promise.append_native_handler(&handler, comp);
+            return;
         }
+
+        let new_promise = Promise::new_in_current_realm(comp);
+        new_promise.append_native_handler(&handler, comp);
+        *self.promise.borrow_mut() = Some(new_promise);
     }
 
     fn append_dynamic_module_handler(
@@ -393,15 +392,14 @@ impl ModuleTree {
         let comp = InRealm::Entered(&realm);
         let _ais = AutoIncumbentScript::new(&owner.global());
 
-        let mut promise = self.promise.borrow_mut();
-        match promise.as_ref() {
-            Some(promise) => promise.append_native_handler(&handler, comp),
-            None => {
-                let new_promise = Promise::new_in_current_realm(comp);
-                new_promise.append_native_handler(&handler, comp);
-                *promise = Some(new_promise);
-            },
+        if let Some(promise) = self.promise.borrow().as_ref() {
+            promise.append_native_handler(&handler, comp);
+            return;
         }
+
+        let new_promise = Promise::new_in_current_realm(comp);
+        new_promise.append_native_handler(&handler, comp);
+        *self.promise.borrow_mut() = Some(new_promise);
     }
 }
 
@@ -731,23 +729,26 @@ impl ModuleTree {
                     .borrow_mut()
                     .extend(valid_specifier_urls.clone());
 
-                let mut urls = IndexSet::new();
-                let mut visited_urls = self.visited_urls.borrow_mut();
+                let urls_to_fetch = {
+                    let mut urls = IndexSet::new();
+                    let mut visited_urls = self.visited_urls.borrow_mut();
 
-                for parsed_url in valid_specifier_urls {
-                    // Step 5-3.
-                    if !visited_urls.contains(&parsed_url) {
-                        // Step 5-3-1.
-                        urls.insert(parsed_url.clone());
-                        // Step 5-3-2.
-                        visited_urls.insert(parsed_url.clone());
+                    for parsed_url in &valid_specifier_urls {
+                        // Step 5-3.
+                        if !visited_urls.contains(parsed_url) {
+                            // Step 5-3-1.
+                            urls.insert(parsed_url.clone());
+                            // Step 5-3-2.
+                            visited_urls.insert(parsed_url.clone());
 
-                        self.insert_incomplete_fetch_url(&parsed_url);
+                            self.insert_incomplete_fetch_url(parsed_url);
+                        }
                     }
-                }
+                    urls
+                };
 
                 // Step 3.
-                if urls.is_empty() {
+                if urls_to_fetch.is_empty() {
                     debug!(
                         "After checking with visited urls, module {} doesn't have dependencies to load.",
                         &self.url
@@ -758,12 +759,13 @@ impl ModuleTree {
 
                 // Step 8.
 
-                for url in urls {
+                let visited_urls = self.visited_urls.borrow().clone();
+                let options = options.descendant_fetch_options();
+
+                for url in urls_to_fetch {
                     // https://html.spec.whatwg.org/multipage/#internal-module-script-graph-fetching-procedure
                     // Step 1.
-                    assert!(visited_urls.get(&url).is_some());
-
-                    let options = options.descendant_fetch_options();
+                    debug_assert!(self.visited_urls.borrow().contains(&url));
 
                     // Step 2.
                     fetch_single_module_script(
@@ -771,7 +773,7 @@ impl ModuleTree {
                         url,
                         visited_urls.clone(),
                         destination,
-                        options,
+                        options.clone(),
                         Some(parent_identity.clone()),
                         false,
                         None,
