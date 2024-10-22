@@ -21,7 +21,10 @@ use style::values::specified::align::AlignFlags;
 use style::Zero;
 
 use super::geom::{FlexAxis, FlexRelativeRect, FlexRelativeSides, FlexRelativeVec2};
-use super::{FlexContainer, FlexContainerConfig, FlexItemBox, FlexLevelBox};
+use super::{
+    FlexContainer, FlexContainerConfig, FlexItemBox, FlexItemLayoutCache,
+    FlexItemLayoutCacheDescriptor, FlexLevelBox,
+};
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::formatting_contexts::{Baselines, IndependentFormattingContext, IndependentLayout};
@@ -1708,6 +1711,9 @@ impl FlexItem<'_> {
         flex_context: &FlexContext,
         used_cross_size_override: Option<Au>,
     ) -> FlexItemLayoutResult {
+        // Clear any layout cache information so that it doesn't persist until the next layout.
+        self.box_.cached_layout.borrow_mut().take();
+
         let containing_block = flex_context.containing_block;
         let mut positioning_context = PositioningContext::new_for_style(self.box_.style())
             .unwrap_or_else(|| {
@@ -2572,14 +2578,27 @@ impl FlexItemBox {
                     style: &non_replaced.style,
                 };
                 let mut content_block_size = || {
-                    non_replaced
-                        .layout(
-                            flex_context.layout_context,
-                            &mut positioning_context,
-                            &item_as_containing_block,
-                            flex_context.containing_block,
-                        )
-                        .content_block_size
+                    if let Some(cache) = &*self.cached_layout.borrow() {
+                        if cache.descriptor.compatible_with_size(inline_size) {
+                            return cache.descriptor.content_block_size;
+                        }
+                    }
+
+                    let layout = non_replaced.layout(
+                        flex_context.layout_context,
+                        &mut positioning_context,
+                        &item_as_containing_block,
+                        flex_context.containing_block,
+                    );
+
+                    let content_block_size = layout.content_block_size;
+                    *self.cached_layout.borrow_mut() = Some(FlexItemLayoutCache {
+                        descriptor: FlexItemLayoutCacheDescriptor {
+                            containing_block_inline_size: item_as_containing_block.inline_size,
+                            content_block_size: layout.content_block_size,
+                        },
+                    });
+                    content_block_size
                 };
                 match intrinsic_sizing_mode {
                     IntrinsicSizingMode::Contribution => {
