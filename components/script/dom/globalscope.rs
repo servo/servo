@@ -2630,6 +2630,7 @@ impl GlobalScope {
 
     /// Evaluate a JS script on this global scope.
     #[allow(unsafe_code)]
+    #[allow(clippy::too_many_arguments)]
     pub fn evaluate_script_on_global_with_result(
         &self,
         code: &SourceCode,
