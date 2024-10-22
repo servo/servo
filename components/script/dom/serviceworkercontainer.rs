@@ -25,6 +25,7 @@ use crate::dom::promise::Promise;
 use crate::dom::serviceworker::ServiceWorker;
 use crate::dom::serviceworkerregistration::ServiceWorkerRegistration;
 use crate::realms::{enter_realm, InRealm};
+use crate::script_runtime::CanGc;
 use crate::task::TaskCanceller;
 use crate::task_source::dom_manipulation::DOMManipulationTaskSource;
 use crate::task_source::{TaskSource, TaskSourceName};
@@ -66,12 +67,13 @@ impl ServiceWorkerContainerMethods for ServiceWorkerContainer {
         script_url: USVString,
         options: &RegistrationOptions,
         comp: InRealm,
+        can_gc: CanGc,
     ) -> Rc<Promise> {
         // A: Step 2.
         let global = self.client.global();
 
         // A: Step 1
-        let promise = Promise::new_in_current_realm(comp);
+        let promise = Promise::new_in_current_realm(comp, can_gc);
         let USVString(ref script_url) = script_url;
 
         // A: Step 3

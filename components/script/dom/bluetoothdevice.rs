@@ -32,6 +32,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::realms::InRealm;
+use crate::script_runtime::CanGc;
 
 #[crown::unrooted_must_root_lint::must_root]
 #[derive(JSTraceable, MallocSizeOf)]
@@ -280,8 +281,8 @@ impl BluetoothDeviceMethods for BluetoothDevice {
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothdevice-watchadvertisements
-    fn WatchAdvertisements(&self, comp: InRealm) -> Rc<Promise> {
-        let p = Promise::new_in_current_realm(comp);
+    fn WatchAdvertisements(&self, comp: InRealm, can_gc: CanGc) -> Rc<Promise> {
+        let p = Promise::new_in_current_realm(comp, can_gc);
         let sender = response_async(&p, self);
         // TODO: Step 1.
         // Note: Steps 2 - 3 are implemented in components/bluetooth/lib.rs in watch_advertisements function

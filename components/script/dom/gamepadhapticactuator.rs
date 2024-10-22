@@ -144,8 +144,9 @@ impl GamepadHapticActuatorMethods for GamepadHapticActuator {
         type_: GamepadHapticEffectType,
         params: &GamepadEffectParameters,
         comp: InRealm,
+        can_gc: CanGc,
     ) -> Rc<Promise> {
-        let playing_effect_promise = Promise::new_in_current_realm(comp);
+        let playing_effect_promise = Promise::new_in_current_realm(comp, can_gc);
 
         // <https://www.w3.org/TR/gamepad/#dfn-valid-effect>
         match type_ {
@@ -258,8 +259,8 @@ impl GamepadHapticActuatorMethods for GamepadHapticActuator {
     }
 
     /// <https://www.w3.org/TR/gamepad/#dom-gamepadhapticactuator-reset>
-    fn Reset(&self, comp: InRealm) -> Rc<Promise> {
-        let promise = Promise::new_in_current_realm(comp);
+    fn Reset(&self, comp: InRealm, can_gc: CanGc) -> Rc<Promise> {
+        let promise = Promise::new_in_current_realm(comp, can_gc);
 
         let document = self.global().as_window().Document();
         if !document.is_fully_active() {

@@ -32,6 +32,7 @@ use crate::dom::window::Window;
 use crate::dom::xrsession::XRSession;
 use crate::dom::xrtest::XRTest;
 use crate::realms::InRealm;
+use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 use crate::task_source::TaskSource;
 
@@ -111,9 +112,9 @@ impl From<XRSessionMode> for SessionMode {
 
 impl XRSystemMethods for XRSystem {
     /// <https://immersive-web.github.io/webxr/#dom-xr-issessionsupported>
-    fn IsSessionSupported(&self, mode: XRSessionMode) -> Rc<Promise> {
+    fn IsSessionSupported(&self, mode: XRSessionMode, can_gc: CanGc) -> Rc<Promise> {
         // XXXManishearth this should select an XR device first
-        let promise = Promise::new(&self.global());
+        let promise = Promise::new(&self.global(), can_gc);
         let mut trusted = Some(TrustedPromise::new(promise.clone()));
         let global = self.global();
         let window = global.as_window();
@@ -160,10 +161,11 @@ impl XRSystemMethods for XRSystem {
         mode: XRSessionMode,
         init: RootedTraceableBox<XRSessionInit>,
         comp: InRealm,
+        can_gc: CanGc,
     ) -> Rc<Promise> {
         let global = self.global();
         let window = global.as_window();
-        let promise = Promise::new_in_current_realm(comp);
+        let promise = Promise::new_in_current_realm(comp, can_gc);
 
         if mode != XRSessionMode::Inline {
             if !ScriptThread::is_user_interacting() {

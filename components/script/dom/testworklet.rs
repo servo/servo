@@ -63,8 +63,9 @@ impl TestWorkletMethods for TestWorklet {
         moduleURL: USVString,
         options: &WorkletOptions,
         comp: InRealm,
+        can_gc: CanGc,
     ) -> Rc<Promise> {
-        self.worklet.AddModule(moduleURL, options, comp)
+        self.worklet.AddModule(moduleURL, options, comp, can_gc)
     }
 
     fn Lookup(&self, key: DOMString) -> Option<DOMString> {

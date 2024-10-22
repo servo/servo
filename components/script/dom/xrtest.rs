@@ -25,6 +25,7 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::fakexrdevice::{get_origin, get_views, get_world, FakeXRDevice};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
+use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 use crate::task_source::TaskSource;
 
@@ -67,9 +68,9 @@ impl XRTest {
 impl XRTestMethods for XRTest {
     /// <https://github.com/immersive-web/webxr-test-api/blob/master/explainer.md>
     #[allow(unsafe_code)]
-    fn SimulateDeviceConnection(&self, init: &FakeXRDeviceInit) -> Rc<Promise> {
+    fn SimulateDeviceConnection(&self, init: &FakeXRDeviceInit, can_gc: CanGc) -> Rc<Promise> {
         let global = self.global();
-        let p = Promise::new(&global);
+        let p = Promise::new(&global, can_gc);
 
         let origin = if let Some(ref o) = init.viewerOrigin {
             match get_origin(o) {
@@ -188,10 +189,10 @@ impl XRTestMethods for XRTest {
     }
 
     /// <https://github.com/immersive-web/webxr-test-api/blob/master/explainer.md>
-    fn DisconnectAllDevices(&self) -> Rc<Promise> {
+    fn DisconnectAllDevices(&self, can_gc: CanGc) -> Rc<Promise> {
         // XXXManishearth implement device disconnection and session ending
         let global = self.global();
-        let p = Promise::new(&global);
+        let p = Promise::new(&global, can_gc);
         let mut devices = self.devices_connected.borrow_mut();
         if devices.is_empty() {
             p.resolve_native(&());

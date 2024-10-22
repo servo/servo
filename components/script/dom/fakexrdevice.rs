@@ -33,6 +33,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::fakexrinputcontroller::{init_to_mock_buttons, FakeXRInputController};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
+use crate::script_runtime::CanGc;
 use crate::task_source::TaskSource;
 
 #[dom_struct]
@@ -297,9 +298,9 @@ impl FakeXRDeviceMethods for FakeXRDevice {
     }
 
     /// <https://immersive-web.github.io/webxr-test-api/#dom-fakexrdevice-disconnect>
-    fn Disconnect(&self) -> Rc<Promise> {
+    fn Disconnect(&self, can_gc: CanGc) -> Rc<Promise> {
         let global = self.global();
-        let p = Promise::new(&global);
+        let p = Promise::new(&global, can_gc);
         let mut trusted = Some(TrustedPromise::new(p.clone()));
         let (task_source, canceller) = global
             .as_window()
