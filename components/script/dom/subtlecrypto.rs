@@ -630,15 +630,15 @@ impl SubtleCrypto {
 
         match key.handle() {
             Handle::Aes128(data) => {
-                let key_data = GenericArray::from_slice(&data);
+                let key_data = GenericArray::from_slice(data);
                 Aes128Ctr::new(key_data, counter).apply_keystream(&mut plaintext)
             },
             Handle::Aes192(data) => {
-                let key_data = GenericArray::from_slice(&data);
+                let key_data = GenericArray::from_slice(data);
                 Aes192Ctr::new(key_data, counter).apply_keystream(&mut plaintext)
             },
             Handle::Aes256(data) => {
-                let key_data = GenericArray::from_slice(&data);
+                let key_data = GenericArray::from_slice(data);
                 Aes256Ctr::new(key_data, counter).apply_keystream(&mut plaintext)
             },
         };
@@ -710,15 +710,15 @@ impl SubtleCrypto {
 
         match key.handle() {
             Handle::Aes128(data) => {
-                let key_data = GenericArray::from_slice(&data);
+                let key_data = GenericArray::from_slice(data);
                 Aes128Ctr::new(key_data, counter).apply_keystream(&mut ciphertext)
             },
             Handle::Aes192(data) => {
-                let key_data = GenericArray::from_slice(&data);
+                let key_data = GenericArray::from_slice(data);
                 Aes192Ctr::new(key_data, counter).apply_keystream(&mut ciphertext)
             },
             Handle::Aes256(data) => {
-                let key_data = GenericArray::from_slice(&data);
+                let key_data = GenericArray::from_slice(data);
                 Aes256Ctr::new(key_data, counter).apply_keystream(&mut ciphertext)
             },
         };
