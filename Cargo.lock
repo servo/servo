@@ -1363,6 +1363,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "ctr"
+version = "0.9.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0369ee1ad671834580515889b80f2ea915f23b8be8d0daa4bbaf2ac5c7590835"
+dependencies = [
+ "cipher",
+]
+
+[[package]]
 name = "cursor-icon"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6065,6 +6074,7 @@ dependencies = [
  "cookie 0.18.1",
  "crossbeam-channel",
  "cssparser",
+ "ctr",
  "data-url",
  "deny_public_fields",
  "devtools_traits",
