@@ -278,6 +278,7 @@ pub fn response_async<T: AsyncBluetoothListener + DomObject + 'static>(
 }
 
 // https://webbluetoothcg.github.io/web-bluetooth/#getgattchildren
+#[allow(clippy::too_many_arguments)]
 pub fn get_gatt_children<T, F>(
     attribute: &T,
     single: bool,
