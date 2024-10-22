@@ -1969,11 +1969,12 @@ impl IndependentFormattingContext {
                 let max_box_size = style.content_max_box_size(containing_block, &pbm);
                 let min_box_size = style.content_min_box_size(containing_block, &pbm);
 
-                let available_inline_size = containing_block.inline_size - pbm_sums.inline_sum();
+                let available_inline_size =
+                    (containing_block.inline_size - pbm_sums.inline_sum()).max(Au::zero());
                 let available_block_size = containing_block
                     .block_size
                     .non_auto()
-                    .map(|block_size| block_size - pbm_sums.block_sum());
+                    .map(|block_size| (block_size - pbm_sums.block_sum()).max(Au::zero()));
                 let tentative_block_size = box_size
                     .block
                     .maybe_resolve_extrinsic(available_block_size)

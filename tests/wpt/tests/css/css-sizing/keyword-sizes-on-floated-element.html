@@ -119,6 +119,12 @@
   <div class="test max-height stretch" data-expected-height="90">XXXXX XXXXX</div>
 </div>
 
+<!-- Stretch sizes can't result in a negative content size -->
+<div class="wrapper" style="width: 0px; height: 0px">
+  <div class="test width min-width max-width stretch" data-expected-width="10"></div>
+  <div class="test height min-height max-height stretch" data-expected-height="10"></div>
+</div>
+
 <!-- Indefinite stretch -->
 <div style="width: 100px; max-height: 100px">
   <div class="test height stretch indefinite" data-expected-height="30">X X</div>
