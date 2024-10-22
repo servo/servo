@@ -143,34 +143,35 @@ android {
     // relying on task names used by the plugin system to hook into
     // the build process, but instead we should use officially supported
     // extension points such as `androidComponents.beforeVariants`
-    tasks.forEach { compileTask ->
-        // This matches the task `mergeBasicArmv7DebugJniLibFolders`.
-        val pattern = Pattern.compile("^merge[A-Z]\\w+([A-Z]\\w+)(Debug|Release)JniLibFolders")
-        val matcher = pattern.matcher(compileTask.name)
-        if (!matcher.find()) {
-            return@forEach
-        }
-
-        val taskName = "ndkbuild" + compileTask.name
-        tasks.create<Exec>(taskName) {
-            val debug = compileTask.name.contains("Debug")
-            val arch = matcher.group(1)
-            commandLine(
-                getNdkDir() + "/ndk-build",
-                "APP_BUILD_SCRIPT=../jni/Android.mk",
-                "NDK_APPLICATION_MK=../jni/Application.mk",
-                "NDK_LIBS_OUT=" + getJniLibsPath(debug, arch),
-                "NDK_DEBUG=" + if (debug) "1" else "0",
-                "APP_ABI=" + getNDKAbi(arch),
-                "NDK_LOG=1",
-                "SERVO_TARGET_DIR=" + getNativeTargetDir(debug, arch)
-            )
-        }
-
-        compileTask.dependsOn(taskName)
-    }
-
     project.afterEvaluate {
+        // we filter entries first in order to abstract to a new list
+        // as to prevent concurrent modification exceptions due to creating a new task
+        // while iterating
+        tasks.mapNotNull { compileTask -> // mapNotNull acts as our filter, null results are dropped
+            // This matches the task `mergeBasicArmv7DebugJniLibFolders`.
+            val pattern = Pattern.compile("^merge[A-Z]\\w+([A-Z]\\w+)(Debug|Release)JniLibFolders")
+            val matcher = pattern.matcher(compileTask.name)
+            if (matcher.find())
+                compileTask to matcher.group(1)
+            else null
+        }.forEach { (compileTask, arch) ->
+            val ndkBuildTask = tasks.create<Exec>("ndkbuild" + compileTask.name) {
+                val debug = compileTask.name.contains("Debug")
+                commandLine(
+                    getNdkDir() + "/ndk-build",
+                    "APP_BUILD_SCRIPT=../jni/Android.mk",
+                    "NDK_APPLICATION_MK=../jni/Application.mk",
+                    "NDK_LIBS_OUT=" + getJniLibsPath(debug, arch),
+                    "NDK_DEBUG=" + if (debug) "1" else "0",
+                    "APP_ABI=" + getNDKAbi(arch),
+                    "NDK_LOG=1",
+                    "SERVO_TARGET_DIR=" + getNativeTargetDir(debug, arch)
+                )
+            }
+
+            compileTask.dependsOn(ndkBuildTask)
+        }
+
         android.libraryVariants.forEach { variant ->
             val pattern = Pattern.compile("^[\\w\\d]+([A-Z][\\w\\d]+)(Debug|Release)")
             val matcher = pattern.matcher(variant.name)
