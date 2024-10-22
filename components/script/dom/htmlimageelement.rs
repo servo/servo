@@ -1703,9 +1703,9 @@ impl HTMLImageElementMethods for HTMLImageElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-img-decode>
-    fn Decode(&self) -> Rc<Promise> {
+    fn Decode(&self, can_gc: CanGc) -> Rc<Promise> {
         // Step 1
-        let promise = Promise::new(&self.global());
+        let promise = Promise::new(&self.global(), can_gc);
 
         // Step 2
         let task = ImageElementMicrotask::Decode {

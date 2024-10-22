@@ -389,10 +389,11 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
         &self,
         image: ImageBitmapSource,
         options: &ImageBitmapOptions,
+        can_gc: CanGc,
     ) -> Rc<Promise> {
         let p = self
             .upcast::<GlobalScope>()
-            .create_image_bitmap(image, options);
+            .create_image_bitmap(image, options, can_gc);
         p
     }
 
@@ -466,7 +467,7 @@ impl WorkerGlobalScope {
                     println!("evaluate_script failed");
                     unsafe {
                         let ar = enter_realm(self);
-                        report_pending_exception(cx, true, InRealm::Entered(&ar));
+                        report_pending_exception(cx, true, InRealm::Entered(&ar), CanGc::note());
                     }
                 }
             },

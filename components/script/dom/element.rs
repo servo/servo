@@ -2954,9 +2954,9 @@ impl ElementMethods for Element {
     }
 
     // https://fullscreen.spec.whatwg.org/#dom-element-requestfullscreen
-    fn RequestFullscreen(&self) -> Rc<Promise> {
+    fn RequestFullscreen(&self, can_gc: CanGc) -> Rc<Promise> {
         let doc = document_from_node(self);
-        doc.enter_fullscreen(self)
+        doc.enter_fullscreen(self, can_gc)
     }
 
     // XXX Hidden under dom.shadowdom.enabled pref. Only exposed to be able
@@ -3557,7 +3557,7 @@ impl VirtualMethods for Element {
 
         let fullscreen = doc.GetFullscreenElement();
         if fullscreen.as_deref() == Some(self) {
-            doc.exit_fullscreen();
+            doc.exit_fullscreen(CanGc::note());
         }
         if let Some(ref value) = *self.id_attribute.borrow() {
             doc.unregister_element_id(self, value.clone());

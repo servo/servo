@@ -2453,7 +2453,7 @@ impl GlobalScope {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#report-the-error>
-    pub fn report_an_error(&self, error_info: ErrorInfo, value: HandleValue) {
+    pub fn report_an_error(&self, error_info: ErrorInfo, value: HandleValue, can_gc: CanGc) {
         // Step 1.
         if self.in_error_reporting_mode.get() {
             return;
@@ -2474,6 +2474,7 @@ impl GlobalScope {
             error_info.lineno,
             error_info.column,
             value,
+            can_gc,
         );
 
         // Step 7.
@@ -2613,6 +2614,7 @@ impl GlobalScope {
         rval: MutableHandleValue,
         fetch_options: ScriptFetchOptions,
         script_base_url: ServoUrl,
+        can_gc: CanGc,
     ) -> bool {
         let source_code = SourceCode::Text(Rc::new(DOMString::from_string((*code).to_string())));
         self.evaluate_script_on_global_with_result(
@@ -2622,11 +2624,13 @@ impl GlobalScope {
             1,
             fetch_options,
             script_base_url,
+            can_gc,
         )
     }
 
     /// Evaluate a JS script on this global scope.
     #[allow(unsafe_code)]
+    #[allow(clippy::too_many_arguments)]
     pub fn evaluate_script_on_global_with_result(
         &self,
         code: &SourceCode,
@@ -2635,6 +2639,7 @@ impl GlobalScope {
         line_number: u32,
         fetch_options: ScriptFetchOptions,
         script_base_url: ServoUrl,
+        can_gc: CanGc,
     ) -> bool {
         let metadata = profile_time::TimerMetadata {
             url: if filename.is_empty() {
@@ -2671,7 +2676,7 @@ impl GlobalScope {
 
                             if compiled_script.is_null() {
                                 debug!("error compiling Dom string");
-                                report_pending_exception(*cx, true, InRealm::Entered(&ar));
+                                report_pending_exception(*cx, true, InRealm::Entered(&ar), can_gc);
                                 return false;
                             }
                         },
@@ -2720,7 +2725,7 @@ impl GlobalScope {
 
                     if !result {
                         debug!("error evaluating Dom string");
-                        report_pending_exception(*cx, true, InRealm::Entered(&ar));
+                        report_pending_exception(*cx, true, InRealm::Entered(&ar), can_gc);
                     }
 
                     maybe_resume_unwind();
@@ -2810,9 +2815,10 @@ impl GlobalScope {
         &self,
         image: ImageBitmapSource,
         options: &ImageBitmapOptions,
+        can_gc: CanGc,
     ) -> Rc<Promise> {
         let in_realm_proof = AlreadyInRealm::assert();
-        let p = Promise::new_in_current_realm(InRealm::Already(&in_realm_proof));
+        let p = Promise::new_in_current_realm(InRealm::Already(&in_realm_proof), can_gc);
         if options.resizeWidth.is_some_and(|w| w == 0) {
             p.reject_error(Error::InvalidState);
             return p;

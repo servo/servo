@@ -294,9 +294,9 @@ impl BaseAudioContextMethods for BaseAudioContext {
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-resume>
-    fn Resume(&self, comp: InRealm) -> Rc<Promise> {
+    fn Resume(&self, comp: InRealm, can_gc: CanGc) -> Rc<Promise> {
         // Step 1.
-        let promise = Promise::new_in_current_realm(comp);
+        let promise = Promise::new_in_current_realm(comp, can_gc);
 
         // Step 2.
         if self.audio_context_impl.lock().unwrap().state() == ProcessingState::Closed {
@@ -480,9 +480,10 @@ impl BaseAudioContextMethods for BaseAudioContext {
         decode_success_callback: Option<Rc<DecodeSuccessCallback>>,
         decode_error_callback: Option<Rc<DecodeErrorCallback>>,
         comp: InRealm,
+        can_gc: CanGc,
     ) -> Rc<Promise> {
         // Step 1.
-        let promise = Promise::new_in_current_realm(comp);
+        let promise = Promise::new_in_current_realm(comp, can_gc);
         let global = self.global();
         let window = global.as_window();
 

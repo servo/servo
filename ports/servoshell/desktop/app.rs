@@ -22,7 +22,6 @@ use webxr::glwindow::GlWindowDiscovery;
 #[cfg(target_os = "windows")]
 use webxr::openxr::{AppInfo, OpenXrDiscovery};
 use winit::event::WindowEvent;
-use winit::event_loop::ActiveEventLoop;
 use winit::window::WindowId;
 
 use super::events_loop::{EventsLoop, WakerEvent};
@@ -30,6 +29,7 @@ use super::minibrowser::Minibrowser;
 use super::webview::WebViewManager;
 use super::{headed_window, headless_window};
 use crate::desktop::embedder::{EmbedderCallbacks, XrDiscovery};
+use crate::desktop::events_loop::with_current_event_loop;
 use crate::desktop::tracing::trace_winit_event;
 use crate::desktop::window_trait::WindowPortsMethods;
 use crate::parser::get_default_url;
@@ -139,7 +139,7 @@ impl App {
         let t_start = Instant::now();
         let mut t = t_start;
         let ev_waker = events_loop.create_event_loop_waker();
-        events_loop.run_forever(move |event, w, control_flow| {
+        events_loop.run_forever(move |event, control_flow| {
             let now = Instant::now();
             trace_winit_event!(event, "@{:?} (+{:?}) {event:?}", now - t_start, now - t);
             t = now;
@@ -163,17 +163,10 @@ impl App {
                 let glwindow_discovery =
                     if pref!(dom.webxr.glwindow.enabled) && !opts::get().headless {
                         let window = window.clone();
-                        // This should be safe because run_forever does, in fact,
-                        // run forever. The event loop window target doesn't get
-                        // moved, and does outlast this closure, and we won't
-                        // ever try to make use of it once shutdown begins and
-                        // it stops being valid.
-                        let w = unsafe {
-                            std::mem::transmute::<&ActiveEventLoop, &'static ActiveEventLoop>(
-                                w.unwrap(),
-                            )
-                        };
-                        let factory = Box::new(move || Ok(window.new_glwindow(w)));
+                        let factory = Box::new(move || {
+                            with_current_event_loop(|w| Ok(window.new_glwindow(w)))
+                                .expect("An event loop should always be active in headed mode")
+                        });
                         Some(XrDiscovery::GlWindow(GlWindowDiscovery::new(
                             surfman.connection(),
                             surfman.adapter(),

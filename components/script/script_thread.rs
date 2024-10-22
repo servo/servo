@@ -1028,7 +1028,7 @@ impl ScriptThread {
                     // TODO: check according to https://w3c.github.io/webappsec-csp/#should-block-navigation-request
                     if let Some(window) = trusted_global.root().downcast::<Window>() {
                         if ScriptThread::check_load_origin(&load_data.load_origin, &window.get_url().origin()) {
-                            ScriptThread::eval_js_url(&trusted_global.root(), &mut load_data);
+                            ScriptThread::eval_js_url(&trusted_global.root(), &mut load_data, CanGc::note());
                             sender
                                 .send((pipeline_id, ScriptMsg::LoadUrl(load_data, replace)))
                                 .unwrap();
@@ -1738,7 +1738,7 @@ impl ScriptThread {
             }
 
             if document.has_skipped_resize_observations() {
-                document.deliver_resize_loop_error_notification();
+                document.deliver_resize_loop_error_notification(can_gc);
             }
 
             // TODO(#31870): Implement step 17: if the focused area of doc is not a focusable area,
@@ -1939,7 +1939,7 @@ impl ScriptThread {
                 },
                 FromConstellation(ConstellationControlMsg::ExitFullScreen(id)) => self
                     .profile_event(ScriptThreadEventCategory::ExitFullscreen, Some(id), || {
-                        self.handle_exit_fullscreen(id);
+                        self.handle_exit_fullscreen(id, can_gc);
                     }),
                 _ => {
                     sequential.push(event);
@@ -2578,7 +2578,7 @@ impl ScriptThread {
                 Some(window) => {
                     let global = window.upcast::<GlobalScope>();
                     let _aes = AutoEntryScript::new(global);
-                    devtools::handle_evaluate_js(global, s, reply)
+                    devtools::handle_evaluate_js(global, s, reply, can_gc)
                 },
                 None => warn!("Message sent to closed pipeline {}.", id),
             },
@@ -2660,11 +2660,13 @@ impl ScriptThread {
         match msg {
             WebDriverScriptCommand::ExecuteScript(script, reply) => {
                 let window = self.documents.borrow().find_window(pipeline_id);
-                return webdriver_handlers::handle_execute_script(window, script, reply);
+                return webdriver_handlers::handle_execute_script(window, script, reply, can_gc);
             },
             WebDriverScriptCommand::ExecuteAsyncScript(script, reply) => {
                 let window = self.documents.borrow().find_window(pipeline_id);
-                return webdriver_handlers::handle_execute_async_script(window, script, reply);
+                return webdriver_handlers::handle_execute_async_script(
+                    window, script, reply, can_gc,
+                );
             },
             _ => (),
         }
@@ -2914,11 +2916,11 @@ impl ScriptThread {
     }
 
     // exit_fullscreen creates a new JS promise object, so we need to have entered a realm
-    fn handle_exit_fullscreen(&self, id: PipelineId) {
+    fn handle_exit_fullscreen(&self, id: PipelineId, can_gc: CanGc) {
         let document = self.documents.borrow().find_document(id);
         if let Some(document) = document {
             let _ac = enter_realm(&*document);
-            document.exit_fullscreen();
+            document.exit_fullscreen(can_gc);
         }
     }
 
@@ -4007,7 +4009,7 @@ impl ScriptThread {
 
     /// Turn javascript: URL into JS code to eval, according to the steps in
     /// <https://html.spec.whatwg.org/multipage/#javascript-protocol>
-    pub fn eval_js_url(global_scope: &GlobalScope, load_data: &mut LoadData) {
+    pub fn eval_js_url(global_scope: &GlobalScope, load_data: &mut LoadData, can_gc: CanGc) {
         // This slice of the URL’s serialization is equivalent to (5.) to (7.):
         // Start with the scheme data of the parsed URL;
         // append question mark and query component, if any;
@@ -4025,6 +4027,7 @@ impl ScriptThread {
             jsval.handle_mut(),
             ScriptFetchOptions::default_classic_script(global_scope),
             global_scope.api_base_url(),
+            can_gc,
         );
 
         load_data.js_eval_result = if jsval.get().is_string() {

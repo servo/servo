@@ -2158,7 +2158,7 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-media-play
     fn Play(&self, comp: InRealm, can_gc: CanGc) -> Rc<Promise> {
-        let promise = Promise::new_in_current_realm(comp);
+        let promise = Promise::new_in_current_realm(comp, can_gc);
         // Step 1.
         // FIXME(nox): Reject promise if not allowed to play.
 

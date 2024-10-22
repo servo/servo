@@ -3097,13 +3097,13 @@ impl Document {
     }
 
     /// <https://drafts.csswg.org/resize-observer/#deliver-resize-loop-error-notification>
-    pub(crate) fn deliver_resize_loop_error_notification(&self) {
+    pub(crate) fn deliver_resize_loop_error_notification(&self, can_gc: CanGc) {
         let global_scope = self.window.upcast::<GlobalScope>();
         let error_info: ErrorInfo = crate::dom::bindings::error::ErrorInfo {
             message: "ResizeObserver loop completed with undelivered notifications.".to_string(),
             ..Default::default()
         };
-        global_scope.report_an_error(error_info, HandleValue::null());
+        global_scope.report_an_error(error_info, HandleValue::null(), can_gc);
     }
 
     pub(crate) fn status_code(&self) -> Option<u16> {
@@ -3894,10 +3894,10 @@ impl Document {
     }
 
     // https://fullscreen.spec.whatwg.org/#dom-element-requestfullscreen
-    pub fn enter_fullscreen(&self, pending: &Element) -> Rc<Promise> {
+    pub fn enter_fullscreen(&self, pending: &Element, can_gc: CanGc) -> Rc<Promise> {
         // Step 1
         let in_realm_proof = AlreadyInRealm::assert();
-        let promise = Promise::new_in_current_realm(InRealm::Already(&in_realm_proof));
+        let promise = Promise::new_in_current_realm(InRealm::Already(&in_realm_proof), can_gc);
         let mut error = false;
 
         // Step 4
@@ -3961,11 +3961,11 @@ impl Document {
     }
 
     // https://fullscreen.spec.whatwg.org/#exit-fullscreen
-    pub fn exit_fullscreen(&self) -> Rc<Promise> {
+    pub fn exit_fullscreen(&self, can_gc: CanGc) -> Rc<Promise> {
         let global = self.global();
         // Step 1
         let in_realm_proof = AlreadyInRealm::assert();
-        let promise = Promise::new_in_current_realm(InRealm::Already(&in_realm_proof));
+        let promise = Promise::new_in_current_realm(InRealm::Already(&in_realm_proof), can_gc);
         // Step 2
         if self.fullscreen_element.get().is_none() {
             promise.reject_error(Error::Type(String::from("fullscreen is null")));
@@ -5557,8 +5557,8 @@ impl DocumentMethods for Document {
     }
 
     // https://fullscreen.spec.whatwg.org/#dom-document-exitfullscreen
-    fn ExitFullscreen(&self) -> Rc<Promise> {
-        self.exit_fullscreen()
+    fn ExitFullscreen(&self, can_gc: CanGc) -> Rc<Promise> {
+        self.exit_fullscreen(can_gc)
     }
 
     // check-tidy: no specs after this line

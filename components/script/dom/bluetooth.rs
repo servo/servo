@@ -30,7 +30,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::permissions::{get_descriptor_permission_state, PermissionAlgorithm};
 use crate::dom::promise::Promise;
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{CanGc, JSContext};
 use crate::task::TaskOnce;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::{self, IpcSender};
@@ -278,6 +278,7 @@ pub fn response_async<T: AsyncBluetoothListener + DomObject + 'static>(
 }
 
 // https://webbluetoothcg.github.io/web-bluetooth/#getgattchildren
+#[allow(clippy::too_many_arguments)]
 pub fn get_gatt_children<T, F>(
     attribute: &T,
     single: bool,
@@ -286,13 +287,14 @@ pub fn get_gatt_children<T, F>(
     instance_id: String,
     connected: bool,
     child_type: GATTType,
+    can_gc: CanGc,
 ) -> Rc<Promise>
 where
     T: AsyncBluetoothListener + DomObject + 'static,
     F: FnOnce(StringOrUnsignedLong) -> Fallible<UUID>,
 {
     let in_realm_proof = AlreadyInRealm::assert();
-    let p = Promise::new_in_current_realm(InRealm::Already(&in_realm_proof));
+    let p = Promise::new_in_current_realm(InRealm::Already(&in_realm_proof), can_gc);
 
     let result_uuid = if let Some(u) = uuid {
         // Step 1.
@@ -531,8 +533,13 @@ impl From<BluetoothError> for Error {
 
 impl BluetoothMethods for Bluetooth {
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetooth-requestdevice
-    fn RequestDevice(&self, option: &RequestDeviceOptions, comp: InRealm) -> Rc<Promise> {
-        let p = Promise::new_in_current_realm(comp);
+    fn RequestDevice(
+        &self,
+        option: &RequestDeviceOptions,
+        comp: InRealm,
+        can_gc: CanGc,
+    ) -> Rc<Promise> {
+        let p = Promise::new_in_current_realm(comp, can_gc);
         // Step 1.
         if (option.filters.is_some() && option.acceptAllDevices) ||
             (option.filters.is_none() && !option.acceptAllDevices)
@@ -549,8 +556,8 @@ impl BluetoothMethods for Bluetooth {
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetooth-getavailability
-    fn GetAvailability(&self, comp: InRealm) -> Rc<Promise> {
-        let p = Promise::new_in_current_realm(comp);
+    fn GetAvailability(&self, comp: InRealm, can_gc: CanGc) -> Rc<Promise> {
+        let p = Promise::new_in_current_realm(comp, can_gc);
         // Step 1. We did not override the method
         // Step 2 - 3. in handle_response
         let sender = response_async(&p, self);
