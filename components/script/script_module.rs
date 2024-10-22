@@ -765,7 +765,7 @@ impl ModuleTree {
                 for url in urls_to_fetch {
                     // https://html.spec.whatwg.org/multipage/#internal-module-script-graph-fetching-procedure
                     // Step 1.
-                    debug_assert!(self.visited_urls.borrow().contains(&url));
+                    assert!(self.visited_urls.borrow().contains(&url));
 
                     // Step 2.
                     fetch_single_module_script(
