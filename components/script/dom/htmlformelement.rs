@@ -870,6 +870,7 @@ impl HTMLFormElement {
                     enctype,
                     encoding,
                     target_window,
+                    can_gc,
                 );
             },
             // https://html.spec.whatwg.org/multipage/#submit-get-action
@@ -920,6 +921,7 @@ impl HTMLFormElement {
         enctype: FormEncType,
         encoding: &'static Encoding,
         target: &Window,
+        can_gc: CanGc,
     ) {
         let boundary = generate_boundary();
         let bytes = match enctype {
@@ -957,7 +959,7 @@ impl HTMLFormElement {
         let global = self.global();
 
         let request_body = bytes
-            .extract(&global)
+            .extract(&global, can_gc)
             .expect("Couldn't extract body.")
             .into_net_request_body()
             .0;

@@ -617,10 +617,10 @@ impl MessageListener {
 }
 
 /// Callback used to enqueue file chunks to streams as part of FileListener.
-fn stream_handle_incoming(stream: &ReadableStream, bytes: Fallible<Vec<u8>>) {
+fn stream_handle_incoming(stream: &ReadableStream, bytes: Fallible<Vec<u8>>, can_gc: CanGc) {
     match bytes {
         Ok(b) => {
-            stream.enqueue_native(b);
+            stream.enqueue_native(b, can_gc);
         },
         Err(e) => {
             stream.error_native(e);
@@ -643,7 +643,7 @@ impl FileListener {
 
                         let task = task!(enqueue_stream_chunk: move || {
                             let stream = trusted.root();
-                            stream_handle_incoming(&stream, Ok(blob_buf.bytes));
+                            stream_handle_incoming(&stream, Ok(blob_buf.bytes), CanGc::note());
                         });
 
                         let _ = self
@@ -667,7 +667,7 @@ impl FileListener {
 
                         let task = task!(enqueue_stream_chunk: move || {
                             let stream = trusted.root();
-                            stream_handle_incoming(&stream, Ok(bytes_in));
+                            stream_handle_incoming(&stream, Ok(bytes_in), CanGc::note());
                         });
 
                         let _ = self
@@ -733,7 +733,7 @@ impl FileListener {
                             let _ = self.task_source.queue_with_canceller(
                                 task!(error_stream: move || {
                                     let stream = trusted_stream.root();
-                                    stream_handle_incoming(&stream, error);
+                                    stream_handle_incoming(&stream, error, CanGc::note());
                                 }),
                                 &self.task_canceller,
                             );
@@ -1988,11 +1988,11 @@ impl GlobalScope {
     }
 
     /// <https://w3c.github.io/FileAPI/#blob-get-stream>
-    pub fn get_blob_stream(&self, blob_id: &BlobId) -> DomRoot<ReadableStream> {
+    pub fn get_blob_stream(&self, blob_id: &BlobId, can_gc: CanGc) -> DomRoot<ReadableStream> {
         let (file_id, size) = match self.get_blob_bytes_or_file_id(blob_id) {
             BlobResult::Bytes(bytes) => {
                 // If we have all the bytes in memory, queue them and close the stream.
-                let stream = ReadableStream::new_from_bytes(self, bytes);
+                let stream = ReadableStream::new_from_bytes(self, bytes, can_gc);
                 return stream;
             },
             BlobResult::File(id, size) => (id, size),
