@@ -193,6 +193,7 @@ impl HTMLScriptElement {
         document: &Document,
         proto: Option<HandleObject>,
         creator: ElementCreator,
+        can_gc: CanGc,
     ) -> DomRoot<HTMLScriptElement> {
         Node::reflect_node_with_proto(
             Box::new(HTMLScriptElement::new_inherited(
@@ -200,6 +201,7 @@ impl HTMLScriptElement {
             )),
             document,
             proto,
+            can_gc,
         )
     }
 
@@ -1311,10 +1313,10 @@ impl HTMLScriptElementMethods for HTMLScriptElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-script-async
-    fn SetAsync(&self, value: bool) {
+    fn SetAsync(&self, value: bool, can_gc: CanGc) {
         self.non_blocking.set(false);
         self.upcast::<Element>()
-            .set_bool_attribute(&local_name!("async"), value);
+            .set_bool_attribute(&local_name!("async"), value, can_gc);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-script-defer
@@ -1348,8 +1350,8 @@ impl HTMLScriptElementMethods for HTMLScriptElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-script-crossorigin
-    fn SetCrossOrigin(&self, value: Option<DOMString>) {
-        set_cross_origin_attribute(self.upcast::<Element>(), value);
+    fn SetCrossOrigin(&self, value: Option<DOMString>, can_gc: CanGc) {
+        set_cross_origin_attribute(self.upcast::<Element>(), value, can_gc);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-script-referrerpolicy
@@ -1366,8 +1368,8 @@ impl HTMLScriptElementMethods for HTMLScriptElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-script-text
-    fn SetText(&self, value: DOMString) {
-        self.upcast::<Node>().SetTextContent(Some(value))
+    fn SetText(&self, value: DOMString, can_gc: CanGc) {
+        self.upcast::<Node>().SetTextContent(Some(value), can_gc)
     }
 }
 

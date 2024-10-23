@@ -855,7 +855,7 @@ impl FetchResponseListener for ParserContext {
 
                 let doc = &parser.document;
                 let doc_body = DomRoot::upcast::<Node>(doc.GetBody().unwrap());
-                let img = HTMLImageElement::new(local_name!("img"), None, doc, None);
+                let img = HTMLImageElement::new(local_name!("img"), None, doc, None, CanGc::note());
                 img.SetSrc(USVString(self.url.to_string()));
                 doc_body
                     .AppendChild(&DomRoot::upcast::<Node>(img))
@@ -1053,7 +1053,7 @@ fn insert(
             if let Some(text) = text {
                 text.upcast::<CharacterData>().append_data(&t);
             } else {
-                let text = Text::new(String::from(t).into(), &parent.owner_doc());
+                let text = Text::new(String::from(t).into(), &parent.owner_doc(), can_gc);
                 parent.InsertBefore(text.upcast(), reference_child).unwrap();
             }
         },
@@ -1145,7 +1145,12 @@ impl TreeSink for Sink {
 
     #[allow(crown::unrooted_must_root)]
     fn create_comment(&self, text: StrTendril) -> Dom<Node> {
-        let comment = Comment::new(DOMString::from(String::from(text)), &self.document, None);
+        let comment = Comment::new(
+            DOMString::from(String::from(text)),
+            &self.document,
+            None,
+            CanGc::note(),
+        );
         Dom::from_ref(comment.upcast())
     }
 
@@ -1156,6 +1161,7 @@ impl TreeSink for Sink {
             DOMString::from(String::from(target)),
             DOMString::from(String::from(data)),
             doc,
+            CanGc::note(),
         );
         Dom::from_ref(pi.upcast())
     }
@@ -1249,6 +1255,7 @@ impl TreeSink for Sink {
             Some(DOMString::from(String::from(public_id))),
             Some(DOMString::from(String::from(system_id))),
             doc,
+            CanGc::note(),
         );
         doc.upcast::<Node>()
             .AppendChild(doctype.upcast())
@@ -1264,6 +1271,7 @@ impl TreeSink for Sink {
                 attr.name,
                 DOMString::from(String::from(attr.value)),
                 None,
+                CanGc::note(),
             );
         }
     }
@@ -1377,7 +1385,7 @@ fn create_element_for_token(
 
     // Step 8
     for attr in attrs {
-        element.set_attribute_from_parser(attr.name, attr.value, None);
+        element.set_attribute_from_parser(attr.name, attr.value, None, can_gc);
     }
 
     // _now_ we can sanitize (and we sanitize now even if the "value"

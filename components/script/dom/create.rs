@@ -99,17 +99,17 @@ fn create_svg_element(
 
     macro_rules! make(
         ($ctor:ident) => ({
-            let obj = $ctor::new(name.local, prefix, document, proto);
+            let obj = $ctor::new(name.local, prefix, document, proto, CanGc::note());
             DomRoot::upcast(obj)
         });
         ($ctor:ident, $($arg:expr),+) => ({
-            let obj = $ctor::new(name.local, prefix, document, proto, $($arg),+);
+            let obj = $ctor::new(name.local, prefix, document, proto, $($arg),+, CanGc::note());
             DomRoot::upcast(obj)
         })
     );
 
     if !pref!(dom.svg.enabled) {
-        return Element::new(name.local, name.ns, prefix, document, proto);
+        return Element::new(name.local, name.ns, prefix, document, proto, CanGc::note());
     }
 
     match name.local {
@@ -145,6 +145,7 @@ fn create_html_element(
                         prefix.clone(),
                         document,
                         proto,
+                        can_gc,
                     ));
                     result.set_custom_element_state(CustomElementState::Undefined);
                     ScriptThread::enqueue_upgrade_reaction(&result, definition);
@@ -173,7 +174,7 @@ fn create_html_element(
 
                             // Step 6.1.2
                             let element = DomRoot::upcast::<Element>(HTMLUnknownElement::new(
-                                local_name, prefix, document, proto,
+                                local_name, prefix, document, proto, can_gc,
                             ));
                             element.set_custom_element_state(CustomElementState::Failed);
                             element
@@ -231,11 +232,11 @@ pub fn create_native_html_element(
 
     macro_rules! make(
         ($ctor:ident) => ({
-            let obj = $ctor::new(name.local, prefix, document, proto);
+            let obj = $ctor::new(name.local, prefix, document, proto, CanGc::note());
             DomRoot::upcast(obj)
         });
         ($ctor:ident, $($arg:expr),+) => ({
-            let obj = $ctor::new(name.local, prefix, document, proto, $($arg),+);
+            let obj = $ctor::new(name.local, prefix, document, proto, $($arg),+, CanGc::note());
             DomRoot::upcast(obj)
         })
     );
@@ -406,6 +407,6 @@ pub fn create_element(
     match name.ns {
         ns!(html) => create_html_element(name, prefix, is, document, creator, mode, proto, can_gc),
         ns!(svg) => create_svg_element(name, prefix, document, proto),
-        _ => Element::new(name.local, name.ns, prefix, document, proto),
+        _ => Element::new(name.local, name.ns, prefix, document, proto, can_gc),
     }
 }

@@ -72,6 +72,7 @@ impl HTMLOptionElement {
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> DomRoot<HTMLOptionElement> {
         Node::reflect_node_with_proto(
             Box::new(HTMLOptionElement::new_inherited(
@@ -79,6 +80,7 @@ impl HTMLOptionElement {
             )),
             document,
             proto,
+            can_gc,
         )
     }
 
@@ -196,7 +198,7 @@ impl HTMLOptionElementMethods for HTMLOptionElement {
         let option = DomRoot::downcast::<HTMLOptionElement>(element).unwrap();
 
         if !text.is_empty() {
-            option.upcast::<Node>().SetTextContent(Some(text))
+            option.upcast::<Node>().SetTextContent(Some(text), can_gc)
         }
 
         if let Some(val) = value {
@@ -223,8 +225,8 @@ impl HTMLOptionElementMethods for HTMLOptionElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-option-text
-    fn SetText(&self, value: DOMString) {
-        self.upcast::<Node>().SetTextContent(Some(value))
+    fn SetText(&self, value: DOMString, can_gc: CanGc) {
+        self.upcast::<Node>().SetTextContent(Some(value), can_gc)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-option-form

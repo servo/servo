@@ -33,11 +33,13 @@ impl Comment {
         text: DOMString,
         document: &Document,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> DomRoot<Comment> {
         Node::reflect_node_with_proto(
             Box::new(Comment::new_inherited(text, document)),
             document,
             proto,
+            can_gc,
         )
     }
 }
@@ -47,10 +49,10 @@ impl CommentMethods for Comment {
     fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
-        _can_gc: CanGc,
+        can_gc: CanGc,
         data: DOMString,
     ) -> Fallible<DomRoot<Comment>> {
         let document = window.Document();
-        Ok(Comment::new(data, &document, proto))
+        Ok(Comment::new(data, &document, proto, can_gc))
     }
 }

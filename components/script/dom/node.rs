@@ -857,7 +857,7 @@ impl Node {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-childnode-before>
-    pub fn before(&self, nodes: Vec<NodeOrString>) -> ErrorResult {
+    pub fn before(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
         // Step 1.
         let parent = &self.parent_node;
 
@@ -871,7 +871,9 @@ impl Node {
         let viable_previous_sibling = first_node_not_in(self.preceding_siblings(), &nodes);
 
         // Step 4.
-        let node = self.owner_doc().node_from_nodes_and_strings(nodes)?;
+        let node = self
+            .owner_doc()
+            .node_from_nodes_and_strings(nodes, can_gc)?;
 
         // Step 5.
         let viable_previous_sibling = match viable_previous_sibling {
@@ -886,7 +888,7 @@ impl Node {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-childnode-after>
-    pub fn after(&self, nodes: Vec<NodeOrString>) -> ErrorResult {
+    pub fn after(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
         // Step 1.
         let parent = &self.parent_node;
 
@@ -900,7 +902,9 @@ impl Node {
         let viable_next_sibling = first_node_not_in(self.following_siblings(), &nodes);
 
         // Step 4.
-        let node = self.owner_doc().node_from_nodes_and_strings(nodes)?;
+        let node = self
+            .owner_doc()
+            .node_from_nodes_and_strings(nodes, can_gc)?;
 
         // Step 5.
         Node::pre_insert(&node, &parent, viable_next_sibling.as_deref())?;
@@ -909,7 +913,7 @@ impl Node {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-childnode-replacewith>
-    pub fn replace_with(&self, nodes: Vec<NodeOrString>) -> ErrorResult {
+    pub fn replace_with(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
         // Step 1.
         let parent = if let Some(parent) = self.GetParentNode() {
             parent
@@ -920,7 +924,9 @@ impl Node {
         // Step 3.
         let viable_next_sibling = first_node_not_in(self.following_siblings(), &nodes);
         // Step 4.
-        let node = self.owner_doc().node_from_nodes_and_strings(nodes)?;
+        let node = self
+            .owner_doc()
+            .node_from_nodes_and_strings(nodes, can_gc)?;
         if self.parent_node == Some(&*parent) {
             // Step 5.
             parent.ReplaceChild(&node, self)?;
@@ -932,29 +938,29 @@ impl Node {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-prepend>
-    pub fn prepend(&self, nodes: Vec<NodeOrString>) -> ErrorResult {
+    pub fn prepend(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
         // Step 1.
         let doc = self.owner_doc();
-        let node = doc.node_from_nodes_and_strings(nodes)?;
+        let node = doc.node_from_nodes_and_strings(nodes, can_gc)?;
         // Step 2.
         let first_child = self.first_child.get();
         Node::pre_insert(&node, self, first_child.as_deref()).map(|_| ())
     }
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-append>
-    pub fn append(&self, nodes: Vec<NodeOrString>) -> ErrorResult {
+    pub fn append(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
         // Step 1.
         let doc = self.owner_doc();
-        let node = doc.node_from_nodes_and_strings(nodes)?;
+        let node = doc.node_from_nodes_and_strings(nodes, can_gc)?;
         // Step 2.
         self.AppendChild(&node).map(|_| ())
     }
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-replacechildren>
-    pub fn replace_children(&self, nodes: Vec<NodeOrString>) -> ErrorResult {
+    pub fn replace_children(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
         // Step 1.
         let doc = self.owner_doc();
-        let node = doc.node_from_nodes_and_strings(nodes)?;
+        let node = doc.node_from_nodes_and_strings(nodes, can_gc)?;
         // Step 2.
         Node::ensure_pre_insertion_validity(&node, self, None)?;
         // Step 3.
@@ -1767,23 +1773,24 @@ fn as_uintptr<T>(t: &T) -> uintptr_t {
 }
 
 impl Node {
-    pub fn reflect_node<N>(node: Box<N>, document: &Document) -> DomRoot<N>
+    pub fn reflect_node<N>(node: Box<N>, document: &Document, can_gc: CanGc) -> DomRoot<N>
     where
         N: DerivedFrom<Node> + DomObject + DomObjectWrap,
     {
-        Self::reflect_node_with_proto(node, document, None)
+        Self::reflect_node_with_proto(node, document, None, can_gc)
     }
 
     pub fn reflect_node_with_proto<N>(
         node: Box<N>,
         document: &Document,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> DomRoot<N>
     where
         N: DerivedFrom<Node> + DomObject + DomObjectWrap,
     {
         let window = document.window();
-        reflect_dom_object_with_proto(node, window, proto, CanGc::note())
+        reflect_dom_object_with_proto(node, window, proto, can_gc)
     }
 
     pub fn new_inherited(doc: &Document) -> Node {
@@ -2151,11 +2158,11 @@ impl Node {
     }
 
     /// <https://dom.spec.whatwg.org/multipage/#string-replace-all>
-    pub fn string_replace_all(string: DOMString, parent: &Node) {
+    pub fn string_replace_all(string: DOMString, parent: &Node, can_gc: CanGc) {
         if string.len() == 0 {
             Node::replace_all(None, parent);
         } else {
-            let text = Text::new(string, &document_from_node(parent));
+            let text = Text::new(string, &document_from_node(parent), can_gc);
             Node::replace_all(Some(text.upcast::<Node>()), parent);
         };
     }
@@ -2250,6 +2257,7 @@ impl Node {
                     Some(doctype.public_id().clone()),
                     Some(doctype.system_id().clone()),
                     &document,
+                    can_gc,
                 );
                 DomRoot::upcast::<Node>(doctype)
             },
@@ -2263,16 +2271,17 @@ impl Node {
                     attr.namespace().clone(),
                     attr.prefix().cloned(),
                     None,
+                    can_gc,
                 );
                 DomRoot::upcast::<Node>(attr)
             },
             NodeTypeId::DocumentFragment(_) => {
-                let doc_fragment = DocumentFragment::new(&document);
+                let doc_fragment = DocumentFragment::new(&document, can_gc);
                 DomRoot::upcast::<Node>(doc_fragment)
             },
             NodeTypeId::CharacterData(_) => {
                 let cdata = node.downcast::<CharacterData>().unwrap();
-                cdata.clone_with_data(cdata.Data(), &document)
+                cdata.clone_with_data(cdata.Data(), &document, can_gc)
             },
             NodeTypeId::Document(_) => {
                 let document = node.downcast::<Document>().unwrap();
@@ -2349,6 +2358,7 @@ impl Node {
                         attr.name().clone(),
                         attr.namespace().clone(),
                         attr.prefix().cloned(),
+                        can_gc,
                     );
                 }
             },
@@ -2610,7 +2620,7 @@ impl NodeMethods for Node {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-node-textcontent>
-    fn SetTextContent(&self, value: Option<DOMString>) {
+    fn SetTextContent(&self, value: Option<DOMString>, can_gc: CanGc) {
         let value = value.unwrap_or_default();
         match self.type_id() {
             NodeTypeId::DocumentFragment(_) | NodeTypeId::Element(..) => {
@@ -2618,7 +2628,9 @@ impl NodeMethods for Node {
                 let node = if value.is_empty() {
                     None
                 } else {
-                    Some(DomRoot::upcast(self.owner_doc().CreateTextNode(value)))
+                    Some(DomRoot::upcast(
+                        self.owner_doc().CreateTextNode(value, can_gc),
+                    ))
                 };
 
                 // Step 3.

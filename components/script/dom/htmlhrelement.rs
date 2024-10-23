@@ -17,6 +17,7 @@ use crate::dom::element::{Element, LayoutElementHelpers};
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::Node;
 use crate::dom::virtualmethods::VirtualMethods;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct HTMLHRElement {
@@ -40,11 +41,13 @@ impl HTMLHRElement {
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> DomRoot<HTMLHRElement> {
         Node::reflect_node_with_proto(
             Box::new(HTMLHRElement::new_inherited(local_name, prefix, document)),
             document,
             proto,
+            can_gc,
         )
     }
 }

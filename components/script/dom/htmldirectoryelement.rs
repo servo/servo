@@ -10,6 +10,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::document::Document;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::Node;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct HTMLDirectoryElement {
@@ -33,6 +34,7 @@ impl HTMLDirectoryElement {
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> DomRoot<HTMLDirectoryElement> {
         Node::reflect_node_with_proto(
             Box::new(HTMLDirectoryElement::new_inherited(
@@ -40,6 +42,7 @@ impl HTMLDirectoryElement {
             )),
             document,
             proto,
+            can_gc,
         )
     }
 }

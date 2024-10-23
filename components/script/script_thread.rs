@@ -2613,7 +2613,7 @@ impl ScriptThread {
                 devtools::handle_get_layout(&documents, id, node_id, reply, can_gc)
             },
             DevtoolScriptControlMsg::ModifyAttribute(id, node_id, modifications) => {
-                devtools::handle_modify_attribute(&documents, id, node_id, modifications)
+                devtools::handle_modify_attribute(&documents, id, node_id, modifications, can_gc)
             },
             DevtoolScriptControlMsg::ModifyRule(id, node_id, modifications) => {
                 devtools::handle_modify_rule(&documents, id, node_id, modifications)

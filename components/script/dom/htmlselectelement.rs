@@ -98,6 +98,7 @@ impl HTMLSelectElement {
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> DomRoot<HTMLSelectElement> {
         let n = Node::reflect_node_with_proto(
             Box::new(HTMLSelectElement::new_inherited(
@@ -105,6 +106,7 @@ impl HTMLSelectElement {
             )),
             document,
             proto,
+            can_gc,
         );
 
         n.upcast::<Node>().set_weird_parser_insertion_mode();
@@ -288,8 +290,8 @@ impl HTMLSelectElementMethods for HTMLSelectElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-select-length
-    fn SetLength(&self, length: u32) {
-        self.Options().SetLength(length)
+    fn SetLength(&self, length: u32, can_gc: CanGc) {
+        self.Options().SetLength(length, can_gc)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-select-item
@@ -303,8 +305,13 @@ impl HTMLSelectElementMethods for HTMLSelectElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-select-setter
-    fn IndexedSetter(&self, index: u32, value: Option<&HTMLOptionElement>) -> ErrorResult {
-        self.Options().IndexedSetter(index, value)
+    fn IndexedSetter(
+        &self,
+        index: u32,
+        value: Option<&HTMLOptionElement>,
+        can_gc: CanGc,
+    ) -> ErrorResult {
+        self.Options().IndexedSetter(index, value, can_gc)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-select-nameditem

@@ -67,6 +67,7 @@ impl HTMLAnchorElement {
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> DomRoot<HTMLAnchorElement> {
         Node::reflect_node_with_proto(
             Box::new(HTMLAnchorElement::new_inherited(
@@ -74,6 +75,7 @@ impl HTMLAnchorElement {
             )),
             document,
             proto,
+            can_gc,
         )
     }
 
@@ -115,9 +117,9 @@ impl HTMLAnchorElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#update-href
-    fn update_href(&self, url: DOMString) {
+    fn update_href(&self, url: DOMString, can_gc: CanGc) {
         self.upcast::<Element>()
-            .set_string_attribute(&local_name!("href"), url);
+            .set_string_attribute(&local_name!("href"), url, can_gc);
     }
 }
 
@@ -165,17 +167,17 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-a-text
-    fn SetText(&self, value: DOMString) {
-        self.upcast::<Node>().SetTextContent(Some(value))
+    fn SetText(&self, value: DOMString, can_gc: CanGc) {
+        self.upcast::<Node>().SetTextContent(Some(value), can_gc)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-a-rel
     make_getter!(Rel, "rel");
 
     // https://html.spec.whatwg.org/multipage/#dom-a-rel
-    fn SetRel(&self, rel: DOMString) {
+    fn SetRel(&self, rel: DOMString, can_gc: CanGc) {
         self.upcast::<Element>()
-            .set_tokenlist_attribute(&local_name!("rel"), rel);
+            .set_tokenlist_attribute(&local_name!("rel"), rel, can_gc);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-a-rellist
@@ -239,7 +241,7 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-hyperlink-hash
-    fn SetHash(&self, value: USVString) {
+    fn SetHash(&self, value: USVString, can_gc: CanGc) {
         // Step 1.
         self.reinitialize_url();
 
@@ -255,7 +257,7 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
             },
         };
         // Step 6.
-        self.update_href(url);
+        self.update_href(url, can_gc);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-hyperlink-host
@@ -278,7 +280,7 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-hyperlink-host
-    fn SetHost(&self, value: USVString) {
+    fn SetHost(&self, value: USVString, can_gc: CanGc) {
         // Step 1.
         self.reinitialize_url();
 
@@ -294,7 +296,7 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
             },
         };
         // Step 5.
-        self.update_href(url);
+        self.update_href(url, can_gc);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-hyperlink-hostname
@@ -313,7 +315,7 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-hyperlink-hostname
-    fn SetHostname(&self, value: USVString) {
+    fn SetHostname(&self, value: USVString, can_gc: CanGc) {
         // Step 1.
         self.reinitialize_url();
 
@@ -329,7 +331,7 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
             },
         };
         // Step 5.
-        self.update_href(url);
+        self.update_href(url, can_gc);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-hyperlink-href
@@ -355,9 +357,12 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-hyperlink-href
-    fn SetHref(&self, value: USVString) {
-        self.upcast::<Element>()
-            .set_string_attribute(&local_name!("href"), DOMString::from_string(value.0));
+    fn SetHref(&self, value: USVString, can_gc: CanGc) {
+        self.upcast::<Element>().set_string_attribute(
+            &local_name!("href"),
+            DOMString::from_string(value.0),
+            can_gc,
+        );
         self.set_url();
     }
 
@@ -392,7 +397,7 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-hyperlink-password
-    fn SetPassword(&self, value: USVString) {
+    fn SetPassword(&self, value: USVString, can_gc: CanGc) {
         // Step 1.
         self.reinitialize_url();
 
@@ -408,7 +413,7 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
             },
         };
         // Step 5.
-        self.update_href(url);
+        self.update_href(url, can_gc);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-hyperlink-pathname
@@ -425,7 +430,7 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-hyperlink-pathname
-    fn SetPathname(&self, value: USVString) {
+    fn SetPathname(&self, value: USVString, can_gc: CanGc) {
         // Step 1.
         self.reinitialize_url();
 
@@ -441,7 +446,7 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
             },
         };
         // Step 6.
-        self.update_href(url);
+        self.update_href(url, can_gc);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-hyperlink-port
@@ -458,7 +463,7 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-hyperlink-port
-    fn SetPort(&self, value: USVString) {
+    fn SetPort(&self, value: USVString, can_gc: CanGc) {
         // Step 1.
         self.reinitialize_url();
 
@@ -477,7 +482,7 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
             },
         };
         // Step 5.
-        self.update_href(url);
+        self.update_href(url, can_gc);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-hyperlink-protocol
@@ -494,7 +499,7 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-hyperlink-protocol
-    fn SetProtocol(&self, value: USVString) {
+    fn SetProtocol(&self, value: USVString, can_gc: CanGc) {
         // Step 1.
         self.reinitialize_url();
 
@@ -508,7 +513,7 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
             },
         };
         // Step 4.
-        self.update_href(url);
+        self.update_href(url, can_gc);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-hyperlink-search
@@ -525,7 +530,7 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-hyperlink-search
-    fn SetSearch(&self, value: USVString) {
+    fn SetSearch(&self, value: USVString, can_gc: CanGc) {
         // Step 1.
         self.reinitialize_url();
 
@@ -542,7 +547,7 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
             },
         };
         // Step 6.
-        self.update_href(url);
+        self.update_href(url, can_gc);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-hyperlink-username
@@ -559,7 +564,7 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-hyperlink-username
-    fn SetUsername(&self, value: USVString) {
+    fn SetUsername(&self, value: USVString, can_gc: CanGc) {
         // Step 1.
         self.reinitialize_url();
 
@@ -575,7 +580,7 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
             },
         };
         // Step 5.
-        self.update_href(url);
+        self.update_href(url, can_gc);
     }
 }
 

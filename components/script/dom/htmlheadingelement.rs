@@ -10,6 +10,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::document::Document;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::Node;
+use crate::script_runtime::CanGc;
 
 #[derive(JSTraceable, MallocSizeOf)]
 pub enum HeadingLevel {
@@ -47,6 +48,7 @@ impl HTMLHeadingElement {
         document: &Document,
         proto: Option<HandleObject>,
         level: HeadingLevel,
+        can_gc: CanGc,
     ) -> DomRoot<HTMLHeadingElement> {
         Node::reflect_node_with_proto(
             Box::new(HTMLHeadingElement::new_inherited(
@@ -54,6 +56,7 @@ impl HTMLHeadingElement {
             )),
             document,
             proto,
+            can_gc,
         )
     }
 }

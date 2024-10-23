@@ -16,6 +16,7 @@ use crate::dom::element::Element;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::{window_from_node, Node};
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct HTMLDialogElement {
@@ -41,6 +42,7 @@ impl HTMLDialogElement {
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> DomRoot<HTMLDialogElement> {
         Node::reflect_node_with_proto(
             Box::new(HTMLDialogElement::new_inherited(
@@ -48,6 +50,7 @@ impl HTMLDialogElement {
             )),
             document,
             proto,
+            can_gc,
         )
     }
 }
@@ -71,7 +74,7 @@ impl HTMLDialogElementMethods for HTMLDialogElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-dialog-show>
-    fn Show(&self) {
+    fn Show(&self, can_gc: CanGc) {
         let element = self.upcast::<Element>();
 
         // Step 1 TODO: Check is modal flag is false
@@ -82,7 +85,7 @@ impl HTMLDialogElementMethods for HTMLDialogElement {
         // TODO: Step 2 If this has an open attribute, then throw an "InvalidStateError" DOMException.
 
         // Step 3
-        element.set_bool_attribute(&local_name!("open"), true);
+        element.set_bool_attribute(&local_name!("open"), true, can_gc);
 
         // TODO: Step 4 Set this's previously focused element to the focused element.
 

@@ -140,11 +140,13 @@ impl HTMLFormElement {
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> DomRoot<HTMLFormElement> {
         Node::reflect_node_with_proto(
             Box::new(HTMLFormElement::new_inherited(local_name, prefix, document)),
             document,
             proto,
+            can_gc,
         )
     }
 
@@ -339,8 +341,8 @@ impl HTMLFormElementMethods for HTMLFormElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-form-reset
-    fn Reset(&self) {
-        self.reset(ResetFrom::FromForm);
+    fn Reset(&self, can_gc: CanGc) {
+        self.reset(ResetFrom::FromForm, can_gc);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-form-elements
@@ -474,9 +476,9 @@ impl HTMLFormElementMethods for HTMLFormElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-a-rel
-    fn SetRel(&self, rel: DOMString) {
+    fn SetRel(&self, rel: DOMString, can_gc: CanGc) {
         self.upcast::<Element>()
-            .set_tokenlist_attribute(&local_name!("rel"), rel);
+            .set_tokenlist_attribute(&local_name!("rel"), rel, can_gc);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-a-rellist
@@ -1230,7 +1232,7 @@ impl HTMLFormElement {
         Some(form_data.datums())
     }
 
-    pub fn reset(&self, _reset_method_flag: ResetFrom) {
+    pub fn reset(&self, _reset_method_flag: ResetFrom, can_gc: CanGc) {
         // https://html.spec.whatwg.org/multipage/#locked-for-reset
         if self.marked_for_reset.get() {
             return;
@@ -1268,7 +1270,7 @@ impl HTMLFormElement {
                 NodeTypeId::Element(ElementTypeId::HTMLElement(
                     HTMLElementTypeId::HTMLOutputElement,
                 )) => {
-                    child.downcast::<HTMLOutputElement>().unwrap().reset();
+                    child.downcast::<HTMLOutputElement>().unwrap().reset(can_gc);
                 },
                 NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLElement)) => {
                     let html_element = child.downcast::<HTMLElement>().unwrap();

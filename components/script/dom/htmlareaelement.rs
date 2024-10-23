@@ -264,11 +264,13 @@ impl HTMLAreaElement {
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> DomRoot<HTMLAreaElement> {
         Node::reflect_node_with_proto(
             Box::new(HTMLAreaElement::new_inherited(local_name, prefix, document)),
             document,
             proto,
+            can_gc,
         )
     }
 
@@ -341,9 +343,9 @@ impl HTMLAreaElementMethods for HTMLAreaElement {
     make_getter!(Rel, "rel");
 
     // https://html.spec.whatwg.org/multipage/#dom-a-rel
-    fn SetRel(&self, rel: DOMString) {
+    fn SetRel(&self, rel: DOMString, can_gc: CanGc) {
         self.upcast::<Element>()
-            .set_tokenlist_attribute(&local_name!("rel"), rel);
+            .set_tokenlist_attribute(&local_name!("rel"), rel, can_gc);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-area-rellist

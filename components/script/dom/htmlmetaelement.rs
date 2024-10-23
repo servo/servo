@@ -73,11 +73,13 @@ impl HTMLMetaElement {
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> DomRoot<HTMLMetaElement> {
         Node::reflect_node_with_proto(
             Box::new(HTMLMetaElement::new_inherited(local_name, prefix, document)),
             document,
             proto,
+            can_gc,
         )
     }
 

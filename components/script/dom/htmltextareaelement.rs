@@ -176,6 +176,7 @@ impl HTMLTextAreaElement {
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> DomRoot<HTMLTextAreaElement> {
         Node::reflect_node_with_proto(
             Box::new(HTMLTextAreaElement::new_inherited(
@@ -183,6 +184,7 @@ impl HTMLTextAreaElement {
             )),
             document,
             proto,
+            can_gc,
         )
     }
 
@@ -306,8 +308,8 @@ impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea-defaultvalue
-    fn SetDefaultValue(&self, value: DOMString) {
-        self.upcast::<Node>().SetTextContent(Some(value));
+    fn SetDefaultValue(&self, value: DOMString, can_gc: CanGc) {
+        self.upcast::<Node>().SetTextContent(Some(value), can_gc);
 
         // if the element's dirty value flag is false, then the element's
         // raw value must be set to the value of the element's textContent IDL attribute

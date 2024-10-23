@@ -24,6 +24,7 @@ use crate::dom::element::{Element, LayoutElementHelpers};
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::Node;
 use crate::dom::virtualmethods::VirtualMethods;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct HTMLFontElement {
@@ -47,11 +48,13 @@ impl HTMLFontElement {
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> DomRoot<HTMLFontElement> {
         Node::reflect_node_with_proto(
             Box::new(HTMLFontElement::new_inherited(local_name, prefix, document)),
             document,
             proto,
+            can_gc,
         )
     }
 
@@ -104,9 +107,9 @@ impl HTMLFontElementMethods for HTMLFontElement {
     make_getter!(Size, "size");
 
     // https://html.spec.whatwg.org/multipage/#dom-font-size
-    fn SetSize(&self, value: DOMString) {
+    fn SetSize(&self, value: DOMString, can_gc: CanGc) {
         let element = self.upcast::<Element>();
-        element.set_attribute(&local_name!("size"), parse_size(&value));
+        element.set_attribute(&local_name!("size"), parse_size(&value), can_gc);
     }
 }
 

@@ -56,6 +56,7 @@ use crate::dom::virtualmethods::VirtualMethods;
 use crate::fetch::create_a_potential_cors_request;
 use crate::links::LinkRelations;
 use crate::network_listener::{submit_timing, PreInvoke, ResourceTimingListener};
+use crate::script_runtime::CanGc;
 use crate::stylesheet_loader::{StylesheetContextSource, StylesheetLoader, StylesheetOwner};
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
@@ -137,6 +138,7 @@ impl HTMLLinkElement {
         document: &Document,
         proto: Option<HandleObject>,
         creator: ElementCreator,
+        can_gc: CanGc,
     ) -> DomRoot<HTMLLinkElement> {
         Node::reflect_node_with_proto(
             Box::new(HTMLLinkElement::new_inherited(
@@ -144,6 +146,7 @@ impl HTMLLinkElement {
             )),
             document,
             proto,
+            can_gc,
         )
     }
 
@@ -522,9 +525,9 @@ impl HTMLLinkElementMethods for HTMLLinkElement {
     make_getter!(Rel, "rel");
 
     // https://html.spec.whatwg.org/multipage/#dom-link-rel
-    fn SetRel(&self, rel: DOMString) {
+    fn SetRel(&self, rel: DOMString, can_gc: CanGc) {
         self.upcast::<Element>()
-            .set_tokenlist_attribute(&local_name!("rel"), rel);
+            .set_tokenlist_attribute(&local_name!("rel"), rel, can_gc);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-link-media
@@ -602,8 +605,8 @@ impl HTMLLinkElementMethods for HTMLLinkElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-link-crossorigin
-    fn SetCrossOrigin(&self, value: Option<DOMString>) {
-        set_cross_origin_attribute(self.upcast::<Element>(), value);
+    fn SetCrossOrigin(&self, value: Option<DOMString>, can_gc: CanGc) {
+        set_cross_origin_attribute(self.upcast::<Element>(), value, can_gc);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-link-referrerpolicy

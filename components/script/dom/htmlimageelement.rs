@@ -1335,6 +1335,7 @@ impl HTMLImageElement {
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> DomRoot<HTMLImageElement> {
         Node::reflect_node_with_proto(
             Box::new(HTMLImageElement::new_inherited(
@@ -1342,6 +1343,7 @@ impl HTMLImageElement {
             )),
             document,
             proto,
+            can_gc,
         )
     }
 
@@ -1546,10 +1548,10 @@ impl HTMLImageElementMethods for HTMLImageElement {
 
         let image = DomRoot::downcast::<HTMLImageElement>(element).unwrap();
         if let Some(w) = width {
-            image.SetWidth(w);
+            image.SetWidth(w, can_gc);
         }
         if let Some(h) = height {
-            image.SetHeight(h);
+            image.SetHeight(h, can_gc);
         }
 
         // run update_the_image_data when the element is created.
@@ -1581,8 +1583,8 @@ impl HTMLImageElementMethods for HTMLImageElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-img-crossOrigin
-    fn SetCrossOrigin(&self, value: Option<DOMString>) {
-        set_cross_origin_attribute(self.upcast::<Element>(), value);
+    fn SetCrossOrigin(&self, value: Option<DOMString>, can_gc: CanGc) {
+        set_cross_origin_attribute(self.upcast::<Element>(), value, can_gc);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-img-usemap
@@ -1605,8 +1607,8 @@ impl HTMLImageElementMethods for HTMLImageElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-img-width
-    fn SetWidth(&self, value: u32) {
-        image_dimension_setter(self.upcast(), local_name!("width"), value);
+    fn SetWidth(&self, value: u32, can_gc: CanGc) {
+        image_dimension_setter(self.upcast(), local_name!("width"), value, can_gc);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-img-height
@@ -1619,8 +1621,8 @@ impl HTMLImageElementMethods for HTMLImageElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-img-height
-    fn SetHeight(&self, value: u32) {
-        image_dimension_setter(self.upcast(), local_name!("height"), value);
+    fn SetHeight(&self, value: u32, can_gc: CanGc) {
+        image_dimension_setter(self.upcast(), local_name!("height"), value, can_gc);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-img-naturalwidth
@@ -1688,7 +1690,7 @@ impl HTMLImageElementMethods for HTMLImageElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-img-referrerpolicy
-    fn SetReferrerPolicy(&self, value: DOMString) {
+    fn SetReferrerPolicy(&self, value: DOMString, can_gc: CanGc) {
         let referrerpolicy_attr_name = local_name!("referrerpolicy");
         let element = self.upcast::<Element>();
         let previous_correct_attribute_value = get_correct_referrerpolicy_from_raw_token(
@@ -1698,7 +1700,11 @@ impl HTMLImageElementMethods for HTMLImageElement {
         if previous_correct_attribute_value != correct_value_or_empty_string {
             // Setting the attribute to the same value will update the image.
             // We don't want to start an update if referrerpolicy is set to the same value.
-            element.set_string_attribute(&referrerpolicy_attr_name, correct_value_or_empty_string);
+            element.set_string_attribute(
+                &referrerpolicy_attr_name,
+                correct_value_or_empty_string,
+                can_gc,
+            );
         }
     }
 
@@ -1890,7 +1896,7 @@ impl ImageCacheListener for HTMLImageElement {
     }
 }
 
-fn image_dimension_setter(element: &Element, attr: LocalName, value: u32) {
+fn image_dimension_setter(element: &Element, attr: LocalName, value: u32, can_gc: CanGc) {
     // This setter is a bit weird: the IDL type is unsigned long, but it's parsed as
     // a dimension for rendering.
     let value = if value > UNSIGNED_LONG_MAX { 0 } else { value };
@@ -1908,7 +1914,7 @@ fn image_dimension_setter(element: &Element, attr: LocalName, value: u32) {
 
     let dim = LengthOrPercentageOrAuto::Length(Au::from_px(pixel_value as i32));
     let value = AttrValue::Dimension(value.to_string(), dim);
-    element.set_attribute(&attr, value);
+    element.set_attribute(&attr, value, can_gc);
 }
 
 /// Collect sequence of code points

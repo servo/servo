@@ -395,6 +395,7 @@ pub fn handle_modify_attribute(
     pipeline: PipelineId,
     node_id: String,
     modifications: Vec<AttrModification>,
+    can_gc: CanGc,
 ) {
     let Some(document) = documents.find_document(pipeline) else {
         return warn!("document for pipeline id {} is not found", &pipeline);
@@ -421,6 +422,7 @@ pub fn handle_modify_attribute(
                 let _ = elem.SetAttribute(
                     DOMString::from(modification.attribute_name),
                     DOMString::from(string),
+                    can_gc,
                 );
             },
             None => elem.RemoveAttribute(DOMString::from(modification.attribute_name)),

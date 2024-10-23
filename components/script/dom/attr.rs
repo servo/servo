@@ -23,6 +23,7 @@ use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::mutationobserver::{Mutation, MutationObserver};
 use crate::dom::node::Node;
 use crate::dom::virtualmethods::vtable_for;
+use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 
 // https://dom.spec.whatwg.org/#interface-attr
@@ -60,7 +61,7 @@ impl Attr {
             owner: MutNullableDom::new(owner),
         }
     }
-
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         document: &Document,
         local_name: LocalName,
@@ -69,12 +70,14 @@ impl Attr {
         namespace: Namespace,
         prefix: Option<Prefix>,
         owner: Option<&Element>,
+        can_gc: CanGc,
     ) -> DomRoot<Attr> {
         Node::reflect_node(
             Box::new(Attr::new_inherited(
                 document, local_name, value, name, namespace, prefix, owner,
             )),
             document,
+            can_gc,
         )
     }
 

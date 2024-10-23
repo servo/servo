@@ -18,6 +18,7 @@ use crate::dom::element::LayoutElementHelpers;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::Node;
 use crate::dom::virtualmethods::VirtualMethods;
+use crate::script_runtime::CanGc;
 
 const DEFAULT_SPAN: u32 = 1;
 
@@ -43,6 +44,7 @@ impl HTMLTableColElement {
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> DomRoot<HTMLTableColElement> {
         let n = Node::reflect_node_with_proto(
             Box::new(HTMLTableColElement::new_inherited(
@@ -50,6 +52,7 @@ impl HTMLTableColElement {
             )),
             document,
             proto,
+            can_gc,
         );
 
         n.upcast::<Node>().set_weird_parser_insertion_mode();

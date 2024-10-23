@@ -42,6 +42,7 @@ impl HTMLAudioElement {
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> DomRoot<HTMLAudioElement> {
         Node::reflect_node_with_proto(
             Box::new(HTMLAudioElement::new_inherited(
@@ -49,6 +50,7 @@ impl HTMLAudioElement {
             )),
             document,
             proto,
+            can_gc,
         )
     }
 }
@@ -75,12 +77,12 @@ impl HTMLAudioElementMethods for HTMLAudioElement {
 
         audio
             .upcast::<Element>()
-            .SetAttribute(DOMString::from("preload"), DOMString::from("auto"))
+            .SetAttribute(DOMString::from("preload"), DOMString::from("auto"), can_gc)
             .expect("should be infallible");
         if let Some(s) = src {
             audio
                 .upcast::<Element>()
-                .SetAttribute(DOMString::from("src"), s)
+                .SetAttribute(DOMString::from("src"), s, can_gc)
                 .expect("should be infallible");
         }
 
