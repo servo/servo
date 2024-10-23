@@ -360,17 +360,21 @@ impl ServiceWorkerGlobalScope {
                     .referrer_policy(referrer_policy)
                     .origin(origin);
 
-                let (_url, source) =
-                    match load_whole_resource(request, &resource_threads_sender, global.upcast()) {
-                        Err(_) => {
-                            println!("error loading script {}", serialized_worker_url);
-                            scope.clear_js_runtime();
-                            return;
-                        },
-                        Ok((metadata, bytes)) => {
-                            (metadata.final_url, String::from_utf8(bytes).unwrap())
-                        },
-                    };
+                let (_url, source) = match load_whole_resource(
+                    request,
+                    &resource_threads_sender,
+                    global.upcast(),
+                    CanGc::note(),
+                ) {
+                    Err(_) => {
+                        println!("error loading script {}", serialized_worker_url);
+                        scope.clear_js_runtime();
+                        return;
+                    },
+                    Ok((metadata, bytes)) => {
+                        (metadata.final_url, String::from_utf8(bytes).unwrap())
+                    },
+                };
 
                 unsafe {
                     // Handle interrupt requests
@@ -465,7 +469,8 @@ impl ServiceWorkerGlobalScope {
                 // TODO XXXcreativcoder This will eventually use a FetchEvent interface to fire event
                 // when we have the Request and Response dom api's implemented
                 // https://w3c.github.io/ServiceWorker/#fetchevent-interface
-                self.upcast::<EventTarget>().fire_event(atom!("fetch"));
+                self.upcast::<EventTarget>()
+                    .fire_event(atom!("fetch"), can_gc);
                 let _ = mediator.response_chan.send(None);
             },
             WakeUp => {},

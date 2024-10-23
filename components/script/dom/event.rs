@@ -631,7 +631,7 @@ pub struct SimpleEventTask {
 impl TaskOnce for SimpleEventTask {
     fn run_once(self) {
         let target = self.target.root();
-        target.fire_event(self.name);
+        target.fire_event(self.name, CanGc::note());
     }
 }
 

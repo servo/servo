@@ -1123,9 +1123,9 @@ pub fn handle_element_click(
 
                         // Steps 8.2 - 8.4
                         let event_target = parent_node.upcast::<EventTarget>();
-                        event_target.fire_event(atom!("mouseover"));
-                        event_target.fire_event(atom!("mousemove"));
-                        event_target.fire_event(atom!("mousedown"));
+                        event_target.fire_event(atom!("mouseover"), can_gc);
+                        event_target.fire_event(atom!("mousemove"), can_gc);
+                        event_target.fire_event(atom!("mousedown"), can_gc);
 
                         // Step 8.5
                         match parent_node.downcast::<HTMLElement>() {
@@ -1136,7 +1136,7 @@ pub fn handle_element_click(
                         // Step 8.6
                         if !option_element.Disabled() {
                             // Step 8.6.1
-                            event_target.fire_event(atom!("input"));
+                            event_target.fire_event(atom!("input"), can_gc);
 
                             // Steps 8.6.2
                             let previous_selectedness = option_element.Selected();
@@ -1153,13 +1153,13 @@ pub fn handle_element_click(
 
                             // Step 8.6.4
                             if !previous_selectedness {
-                                event_target.fire_event(atom!("change"));
+                                event_target.fire_event(atom!("change"), can_gc);
                             }
                         }
 
                         // Steps 8.7 - 8.8
-                        event_target.fire_event(atom!("mouseup"));
-                        event_target.fire_event(atom!("click"));
+                        event_target.fire_event(atom!("mouseup"), can_gc);
+                        event_target.fire_event(atom!("click"), can_gc);
 
                         Ok(None)
                     },

@@ -90,7 +90,7 @@ impl VirtualMethods for HTMLDetailsElement {
                 task!(details_notification_task_steps: move || {
                     let this = this.root();
                     if counter == this.toggle_counter.get() {
-                        this.upcast::<EventTarget>().fire_event(atom!("toggle"));
+                        this.upcast::<EventTarget>().fire_event(atom!("toggle"), CanGc::note());
                     }
                 }),
                 window.upcast(),

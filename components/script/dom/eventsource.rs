@@ -118,7 +118,7 @@ impl EventSourceContext {
                 let event_source = event_source.root();
                 if event_source.ready_state.get() != ReadyState::Closed {
                     event_source.ready_state.set(ReadyState::Open);
-                    event_source.upcast::<EventTarget>().fire_event(atom!("open"));
+                    event_source.upcast::<EventTarget>().fire_event(atom!("open"), CanGc::note());
                 }
             }),
             &global,
@@ -159,7 +159,7 @@ impl EventSourceContext {
                 event_source.ready_state.set(ReadyState::Connecting);
 
                 // Step 1.3.
-                event_source.upcast::<EventTarget>().fire_event(atom!("error"));
+                event_source.upcast::<EventTarget>().fire_event(atom!("error"), CanGc::note());
 
                 // Step 2.
                 let duration = event_source.reconnection_time.get();
@@ -438,7 +438,7 @@ impl FetchResponseListener for EventSourceContext {
     }
 
     fn submit_resource_timing(&mut self) {
-        network_listener::submit_timing(self)
+        network_listener::submit_timing(self, CanGc::note())
     }
 }
 
@@ -505,7 +505,7 @@ impl EventSource {
                 let event_source = event_source.root();
                 if event_source.ready_state.get() != ReadyState::Closed {
                     event_source.ready_state.set(ReadyState::Closed);
-                    event_source.upcast::<EventTarget>().fire_event(atom!("error"));
+                    event_source.upcast::<EventTarget>().fire_event(atom!("error"), CanGc::note());
                 }
             }),
             &global,

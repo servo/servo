@@ -248,7 +248,7 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
     error_event_handler!(error, GetOnerror, SetOnerror);
 
     // https://html.spec.whatwg.org/multipage/#dom-workerglobalscope-importscripts
-    fn ImportScripts(&self, url_strings: Vec<DOMString>) -> ErrorResult {
+    fn ImportScripts(&self, url_strings: Vec<DOMString>, can_gc: CanGc) -> ErrorResult {
         let mut urls = Vec::with_capacity(url_strings.len());
         for url in url_strings {
             let url = self.worker_url.borrow().join(&url);
@@ -274,6 +274,7 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
                 request,
                 &global_scope.resource_threads().sender(),
                 global_scope,
+                can_gc,
             ) {
                 Err(_) => return Err(Error::Network),
                 Ok((metadata, bytes)) => (metadata.final_url, String::from_utf8(bytes).unwrap()),

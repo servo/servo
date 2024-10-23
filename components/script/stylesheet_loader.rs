@@ -222,7 +222,8 @@ impl FetchResponseListener for StylesheetContext {
             } else {
                 atom!("load")
             };
-            elem.upcast::<EventTarget>().fire_event(event);
+            elem.upcast::<EventTarget>()
+                .fire_event(event, CanGc::note());
         }
     }
 
@@ -235,7 +236,7 @@ impl FetchResponseListener for StylesheetContext {
     }
 
     fn submit_resource_timing(&mut self) {
-        network_listener::submit_timing(self)
+        network_listener::submit_timing(self, CanGc::note())
     }
 }
 

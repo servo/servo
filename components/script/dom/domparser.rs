@@ -91,7 +91,7 @@ impl DOMParserMethods for DOMParser {
                     can_gc,
                 );
                 ServoParser::parse_html_document(&document, Some(s), url, can_gc);
-                document.set_ready_state(DocumentReadyState::Complete);
+                document.set_ready_state(DocumentReadyState::Complete, can_gc);
                 Ok(document)
             },
             Text_xml | Application_xml | Application_xhtml_xml | Image_svg_xml => {
@@ -113,7 +113,7 @@ impl DOMParserMethods for DOMParser {
                     can_gc,
                 );
                 ServoParser::parse_xml_document(&document, Some(s), url, can_gc);
-                document.set_ready_state(DocumentReadyState::Complete);
+                document.set_ready_state(DocumentReadyState::Complete, can_gc);
                 Ok(document)
             },
         }

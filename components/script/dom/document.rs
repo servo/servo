@@ -1076,7 +1076,7 @@ impl Document {
     }
 
     // https://html.spec.whatwg.org/multipage/#current-document-readiness
-    pub fn set_ready_state(&self, state: DocumentReadyState) {
+    pub fn set_ready_state(&self, state: DocumentReadyState, can_gc: CanGc) {
         match state {
             DocumentReadyState::Loading => {
                 if self.window().is_top_level() {
@@ -1096,7 +1096,7 @@ impl Document {
         self.ready_state.set(state);
 
         self.upcast::<EventTarget>()
-            .fire_event(atom!("readystatechange"));
+            .fire_event(atom!("readystatechange"), can_gc);
     }
 
     /// Return whether scripting is enabled or not
@@ -2456,7 +2456,7 @@ impl Document {
                     }
 
                     // Step 7.1.
-                    document.set_ready_state(DocumentReadyState::Complete);
+                    document.set_ready_state(DocumentReadyState::Complete, CanGc::note());
 
                     // Step 7.2.
                     if document.browsing_context().is_none() {
@@ -4232,7 +4232,7 @@ impl Document {
             VisibilityStateEntry::new(&self.global(), visibility_state, CrossProcessInstant::now());
         self.window
             .Performance()
-            .queue_entry(entry.upcast::<PerformanceEntry>());
+            .queue_entry(entry.upcast::<PerformanceEntry>(), can_gc);
 
         // Step 4 Run the screen orientation change steps with document.
         // TODO ScreenOrientation hasn't implemented yet

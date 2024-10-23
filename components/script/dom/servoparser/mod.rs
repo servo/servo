@@ -404,14 +404,15 @@ impl ServoParser {
 
         // Step 2.
         self.document
-            .set_ready_state(DocumentReadyState::Interactive);
+            .set_ready_state(DocumentReadyState::Interactive, can_gc);
 
         // Step 3.
         self.tokenizer.end(can_gc);
         self.document.set_current_parser(None);
 
         // Step 4.
-        self.document.set_ready_state(DocumentReadyState::Complete);
+        self.document
+            .set_ready_state(DocumentReadyState::Complete, can_gc);
     }
 
     // https://html.spec.whatwg.org/multipage/#active-parser
@@ -633,7 +634,7 @@ impl ServoParser {
 
         // Step 1.
         self.document
-            .set_ready_state(DocumentReadyState::Interactive);
+            .set_ready_state(DocumentReadyState::Interactive, can_gc);
 
         // Step 2.
         self.tokenizer.end(can_gc);
@@ -1006,10 +1007,10 @@ impl FetchResponseListener for ParserContext {
             CrossProcessInstant::now(),
             document,
         );
-        self.pushed_entry_index = document
-            .global()
-            .performance()
-            .queue_entry(performance_entry.upcast::<PerformanceEntry>());
+        self.pushed_entry_index = document.global().performance().queue_entry(
+            performance_entry.upcast::<PerformanceEntry>(),
+            CanGc::note(),
+        );
     }
 }
 

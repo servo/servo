@@ -29,6 +29,7 @@ use crate::dom::performancenavigation::PerformanceNavigation;
 use crate::dom::performancenavigationtiming::PerformanceNavigationTiming;
 use crate::dom::performanceobserver::PerformanceObserver as DOMPerformanceObserver;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 const INVALID_ENTRY_NAMES: &[&str] = &[
     "navigationStart",
@@ -276,9 +277,9 @@ impl Performance {
     /// <https://w3c.github.io/performance-timeline/#queue-a-performanceentry>
     /// Also this algorithm has been extented according to :
     /// <https://w3c.github.io/resource-timing/#sec-extensions-performance-interface>
-    pub fn queue_entry(&self, entry: &PerformanceEntry) -> Option<usize> {
+    pub fn queue_entry(&self, entry: &PerformanceEntry, can_gc: CanGc) -> Option<usize> {
         // https://w3c.github.io/performance-timeline/#dfn-determine-eligibility-for-adding-a-performance-entry
-        if entry.entry_type() == "resource" && !self.should_queue_resource_entry(entry) {
+        if entry.entry_type() == "resource" && !self.should_queue_resource_entry(entry, can_gc) {
             return None;
         }
 
@@ -349,14 +350,14 @@ impl Performance {
         self.resource_timing_buffer_current_size.get() <=
             self.resource_timing_buffer_size_limit.get()
     }
-    fn copy_secondary_resource_timing_buffer(&self) {
+    fn copy_secondary_resource_timing_buffer(&self, can_gc: CanGc) {
         while self.can_add_resource_timing_entry() {
             let entry = self
                 .resource_timing_secondary_entries
                 .borrow_mut()
                 .pop_front();
             if let Some(ref entry) = entry {
-                self.queue_entry(entry);
+                self.queue_entry(entry, can_gc);
             } else {
                 break;
             }
@@ -364,15 +365,15 @@ impl Performance {
     }
     // `fire a buffer full event` paragraph of
     // https://w3c.github.io/resource-timing/#sec-extensions-performance-interface
-    fn fire_buffer_full_event(&self) {
+    fn fire_buffer_full_event(&self, can_gc: CanGc) {
         while !self.resource_timing_secondary_entries.borrow().is_empty() {
             let no_of_excess_entries_before = self.resource_timing_secondary_entries.borrow().len();
 
             if !self.can_add_resource_timing_entry() {
                 self.upcast::<EventTarget>()
-                    .fire_event(atom!("resourcetimingbufferfull"));
+                    .fire_event(atom!("resourcetimingbufferfull"), can_gc);
             }
-            self.copy_secondary_resource_timing_buffer();
+            self.copy_secondary_resource_timing_buffer(can_gc);
             let no_of_excess_entries_after = self.resource_timing_secondary_entries.borrow().len();
             if no_of_excess_entries_before <= no_of_excess_entries_after {
                 self.resource_timing_secondary_entries.borrow_mut().clear();
@@ -383,7 +384,7 @@ impl Performance {
     }
     /// `add a PerformanceResourceTiming entry` paragraph of
     /// <https://w3c.github.io/resource-timing/#sec-extensions-performance-interface>
-    fn should_queue_resource_entry(&self, entry: &PerformanceEntry) -> bool {
+    fn should_queue_resource_entry(&self, entry: &PerformanceEntry, can_gc: CanGc) -> bool {
         // Step 1 is done in the args list.
         if !self.resource_timing_buffer_pending_full_event.get() {
             // Step 2.
@@ -397,7 +398,7 @@ impl Performance {
             }
             // Step 3.
             self.resource_timing_buffer_pending_full_event.set(true);
-            self.fire_buffer_full_event();
+            self.fire_buffer_full_event(can_gc);
         }
         // Steps 4 and 5.
         self.resource_timing_secondary_entries
@@ -469,7 +470,7 @@ impl PerformanceMethods for Performance {
     }
 
     // https://w3c.github.io/user-timing/#dom-performance-mark
-    fn Mark(&self, mark_name: DOMString) -> Fallible<()> {
+    fn Mark(&self, mark_name: DOMString, can_gc: CanGc) -> Fallible<()> {
         let global = self.global();
         // Step 1.
         if global.is::<Window>() && INVALID_ENTRY_NAMES.contains(&mark_name.as_ref()) {
@@ -484,7 +485,7 @@ impl PerformanceMethods for Performance {
             Duration::ZERO,
         );
         // Steps 7 and 8.
-        self.queue_entry(entry.upcast::<PerformanceEntry>());
+        self.queue_entry(entry.upcast::<PerformanceEntry>(), can_gc);
 
         // Step 9.
         Ok(())
@@ -503,6 +504,7 @@ impl PerformanceMethods for Performance {
         measure_name: DOMString,
         start_mark: Option<DOMString>,
         end_mark: Option<DOMString>,
+        can_gc: CanGc,
     ) -> Fallible<()> {
         // Steps 1 and 2.
         let end_time = end_mark
@@ -532,7 +534,7 @@ impl PerformanceMethods for Performance {
         );
 
         // Step 9 and 10.
-        self.queue_entry(entry.upcast::<PerformanceEntry>());
+        self.queue_entry(entry.upcast::<PerformanceEntry>(), can_gc);
 
         // Step 11.
         Ok(())

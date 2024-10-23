@@ -714,13 +714,13 @@ impl FetchResponseListener for PrefetchContext {
             self.link
                 .root()
                 .upcast::<EventTarget>()
-                .fire_event(atom!("error"));
+                .fire_event(atom!("error"), CanGc::note());
         } else {
             // Step 2. Otherwise, fire an event named load at el.
             self.link
                 .root()
                 .upcast::<EventTarget>()
-                .fire_event(atom!("load"));
+                .fire_event(atom!("load"), CanGc::note());
         }
     }
 
@@ -733,7 +733,7 @@ impl FetchResponseListener for PrefetchContext {
     }
 
     fn submit_resource_timing(&mut self) {
-        submit_timing(self)
+        submit_timing(self, CanGc::note())
     }
 }
 

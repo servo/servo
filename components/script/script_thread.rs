@@ -2418,7 +2418,7 @@ impl ScriptThread {
                 self.handle_exit_pipeline_msg(pipeline_id, discard_browsing_context, can_gc)
             },
             ConstellationControlMsg::PaintMetric(pipeline_id, metric_type, metric_value) => {
-                self.handle_paint_metric(pipeline_id, metric_type, metric_value)
+                self.handle_paint_metric(pipeline_id, metric_type, metric_value, can_gc)
             },
             ConstellationControlMsg::MediaSessionAction(pipeline_id, action) => {
                 self.handle_media_session_action(pipeline_id, action, can_gc)
@@ -3828,7 +3828,7 @@ impl ScriptThread {
             incomplete.canceller,
             can_gc,
         );
-        document.set_ready_state(DocumentReadyState::Loading);
+        document.set_ready_state(DocumentReadyState::Loading, can_gc);
 
         self.documents
             .borrow_mut()
@@ -4278,6 +4278,7 @@ impl ScriptThread {
         pipeline_id: PipelineId,
         metric_type: ProgressiveWebMetricType,
         metric_value: CrossProcessInstant,
+        can_gc: CanGc,
     ) {
         let window = self.documents.borrow().find_window(pipeline_id);
         if let Some(window) = window {
@@ -4288,7 +4289,7 @@ impl ScriptThread {
             );
             window
                 .Performance()
-                .queue_entry(entry.upcast::<PerformanceEntry>());
+                .queue_entry(entry.upcast::<PerformanceEntry>(), can_gc);
         }
     }
 
