@@ -708,7 +708,7 @@ impl Callback for ConsumeBodyPromiseHandler {
 
             let realm = enter_realm(&*global);
             let comp = InRealm::Entered(&realm);
-            read_promise.append_native_handler(&handler, comp, CanGc::note());
+            read_promise.append_native_handler(&handler, comp, can_gc);
         }
     }
 }

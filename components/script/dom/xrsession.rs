@@ -600,7 +600,7 @@ impl XRSession {
     }
 
     /// <https://www.w3.org/TR/webxr/#apply-the-nominal-frame-rate>
-    fn apply_nominal_framerate(&self, rate: f32) {
+    fn apply_nominal_framerate(&self, rate: f32, can_gc: CanGc) {
         if self.framerate.get() == rate || self.ended.get() {
             return;
         }
@@ -613,7 +613,7 @@ impl XRSession {
             false,
             false,
             self,
-            CanGc::note(),
+            can_gc,
         );
         event.upcast::<Event>().fire(self.upcast());
     }
@@ -1067,7 +1067,7 @@ impl XRSessionMethods for XRSession {
                 let _ = task_source.queue_with_canceller(
                     task!(update_session_framerate: move || {
                         let session = this.root();
-                        session.apply_nominal_framerate(message.unwrap());
+                        session.apply_nominal_framerate(message.unwrap(), CanGc::note());
                         if let Some(promise) = session.update_framerate_promise.borrow_mut().take() {
                             promise.resolve_native(&());
                         };

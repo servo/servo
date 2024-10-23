@@ -2280,7 +2280,7 @@ impl Window {
                     load_data.url.clone(),
                     replace,
                 ));
-                doc.check_and_scroll_fragment(fragment, CanGc::note());
+                doc.check_and_scroll_fragment(fragment, can_gc);
                 let this = Trusted::new(self);
                 let old_url = doc.url().into_string();
                 let new_url = load_data.url.clone().into_string();
