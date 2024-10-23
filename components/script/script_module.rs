@@ -364,12 +364,12 @@ impl ModuleTree {
         let _ais = AutoIncumbentScript::new(&owner.global());
 
         if let Some(promise) = self.promise.borrow().as_ref() {
-            promise.append_native_handler(&handler, comp);
+            promise.append_native_handler(&handler, comp, can_gc);
             return;
         }
 
-        let new_promise = Promise::new_in_current_realm(comp);
-        new_promise.append_native_handler(&handler, comp);
+        let new_promise = Promise::new_in_current_realm(comp, can_gc);
+        new_promise.append_native_handler(&handler, comp, can_gc);
         *self.promise.borrow_mut() = Some(new_promise);
     }
 
@@ -400,12 +400,12 @@ impl ModuleTree {
         let _ais = AutoIncumbentScript::new(&owner.global());
 
         if let Some(promise) = self.promise.borrow().as_ref() {
-            promise.append_native_handler(&handler, comp);
+            promise.append_native_handler(&handler, comp, can_gc);
             return;
         }
 
-        let new_promise = Promise::new_in_current_realm(comp);
-        new_promise.append_native_handler(&handler, comp);
+        let new_promise = Promise::new_in_current_realm(comp, can_gc);
+        new_promise.append_native_handler(&handler, comp, can_gc);
         *self.promise.borrow_mut() = Some(new_promise);
     }
 }
