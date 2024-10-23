@@ -576,7 +576,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                 };
                 let total_bytes = bytes.len();
                 let global = self.global();
-                let stream = ReadableStream::new_from_bytes(&global, bytes);
+                let stream = ReadableStream::new_from_bytes(&global, bytes, can_gc);
                 Some(ExtractedBody {
                     stream,
                     total_bytes: Some(total_bytes),
@@ -585,7 +585,9 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                 })
             },
             Some(DocumentOrXMLHttpRequestBodyInit::Blob(ref b)) => {
-                let extracted_body = b.extract(&self.global()).expect("Couldn't extract body.");
+                let extracted_body = b
+                    .extract(&self.global(), can_gc)
+                    .expect("Couldn't extract body.");
                 if !extracted_body.in_memory() && self.sync.get() {
                     warn!("Sync XHR with not in-memory Blob as body not supported");
                     None
@@ -595,22 +597,23 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             },
             Some(DocumentOrXMLHttpRequestBodyInit::FormData(ref formdata)) => Some(
                 formdata
-                    .extract(&self.global())
+                    .extract(&self.global(), can_gc)
                     .expect("Couldn't extract body."),
             ),
-            Some(DocumentOrXMLHttpRequestBodyInit::String(ref str)) => {
-                Some(str.extract(&self.global()).expect("Couldn't extract body."))
-            },
+            Some(DocumentOrXMLHttpRequestBodyInit::String(ref str)) => Some(
+                str.extract(&self.global(), can_gc)
+                    .expect("Couldn't extract body."),
+            ),
             Some(DocumentOrXMLHttpRequestBodyInit::URLSearchParams(ref urlsp)) => Some(
                 urlsp
-                    .extract(&self.global())
+                    .extract(&self.global(), can_gc)
                     .expect("Couldn't extract body."),
             ),
             Some(DocumentOrXMLHttpRequestBodyInit::ArrayBuffer(ref typedarray)) => {
                 let bytes = typedarray.to_vec();
                 let total_bytes = bytes.len();
                 let global = self.global();
-                let stream = ReadableStream::new_from_bytes(&global, bytes);
+                let stream = ReadableStream::new_from_bytes(&global, bytes, can_gc);
                 Some(ExtractedBody {
                     stream,
                     total_bytes: Some(total_bytes),
@@ -622,7 +625,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                 let bytes = typedarray.to_vec();
                 let total_bytes = bytes.len();
                 let global = self.global();
-                let stream = ReadableStream::new_from_bytes(&global, bytes);
+                let stream = ReadableStream::new_from_bytes(&global, bytes, can_gc);
                 Some(ExtractedBody {
                     stream,
                     total_bytes: Some(total_bytes),

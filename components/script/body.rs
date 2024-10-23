@@ -438,21 +438,21 @@ impl ExtractedBody {
 
 /// <https://fetch.spec.whatwg.org/#concept-bodyinit-extract>
 pub trait Extractable {
-    fn extract(&self, global: &GlobalScope) -> Fallible<ExtractedBody>;
+    fn extract(&self, global: &GlobalScope, can_gc: CanGc) -> Fallible<ExtractedBody>;
 }
 
 impl Extractable for BodyInit {
     // https://fetch.spec.whatwg.org/#concept-bodyinit-extract
-    fn extract(&self, global: &GlobalScope) -> Fallible<ExtractedBody> {
+    fn extract(&self, global: &GlobalScope, can_gc: CanGc) -> Fallible<ExtractedBody> {
         match self {
-            BodyInit::String(ref s) => s.extract(global),
-            BodyInit::URLSearchParams(ref usp) => usp.extract(global),
-            BodyInit::Blob(ref b) => b.extract(global),
-            BodyInit::FormData(ref formdata) => formdata.extract(global),
+            BodyInit::String(ref s) => s.extract(global, can_gc),
+            BodyInit::URLSearchParams(ref usp) => usp.extract(global, can_gc),
+            BodyInit::Blob(ref b) => b.extract(global, can_gc),
+            BodyInit::FormData(ref formdata) => formdata.extract(global, can_gc),
             BodyInit::ArrayBuffer(ref typedarray) => {
                 let bytes = typedarray.to_vec();
                 let total_bytes = bytes.len();
-                let stream = ReadableStream::new_from_bytes(global, bytes);
+                let stream = ReadableStream::new_from_bytes(global, bytes, can_gc);
                 Ok(ExtractedBody {
                     stream,
                     total_bytes: Some(total_bytes),
@@ -463,7 +463,7 @@ impl Extractable for BodyInit {
             BodyInit::ArrayBufferView(ref typedarray) => {
                 let bytes = typedarray.to_vec();
                 let total_bytes = bytes.len();
-                let stream = ReadableStream::new_from_bytes(global, bytes);
+                let stream = ReadableStream::new_from_bytes(global, bytes, can_gc);
                 Ok(ExtractedBody {
                     stream,
                     total_bytes: Some(total_bytes),
@@ -493,10 +493,10 @@ impl Extractable for BodyInit {
 }
 
 impl Extractable for Vec<u8> {
-    fn extract(&self, global: &GlobalScope) -> Fallible<ExtractedBody> {
+    fn extract(&self, global: &GlobalScope, can_gc: CanGc) -> Fallible<ExtractedBody> {
         let bytes = self.clone();
         let total_bytes = self.len();
-        let stream = ReadableStream::new_from_bytes(global, bytes);
+        let stream = ReadableStream::new_from_bytes(global, bytes, can_gc);
         Ok(ExtractedBody {
             stream,
             total_bytes: Some(total_bytes),
@@ -508,7 +508,7 @@ impl Extractable for Vec<u8> {
 }
 
 impl Extractable for Blob {
-    fn extract(&self, _global: &GlobalScope) -> Fallible<ExtractedBody> {
+    fn extract(&self, _global: &GlobalScope, can_gc: CanGc) -> Fallible<ExtractedBody> {
         let blob_type = self.Type();
         let content_type = if blob_type.as_ref().is_empty() {
             None
@@ -517,7 +517,7 @@ impl Extractable for Blob {
         };
         let total_bytes = self.Size() as usize;
         Ok(ExtractedBody {
-            stream: self.get_stream(),
+            stream: self.get_stream(can_gc),
             total_bytes: Some(total_bytes),
             content_type,
             source: BodySource::Object,
@@ -526,11 +526,11 @@ impl Extractable for Blob {
 }
 
 impl Extractable for DOMString {
-    fn extract(&self, global: &GlobalScope) -> Fallible<ExtractedBody> {
+    fn extract(&self, global: &GlobalScope, can_gc: CanGc) -> Fallible<ExtractedBody> {
         let bytes = self.as_bytes().to_owned();
         let total_bytes = bytes.len();
         let content_type = Some(DOMString::from("text/plain;charset=UTF-8"));
-        let stream = ReadableStream::new_from_bytes(global, bytes);
+        let stream = ReadableStream::new_from_bytes(global, bytes, can_gc);
         Ok(ExtractedBody {
             stream,
             total_bytes: Some(total_bytes),
@@ -541,7 +541,7 @@ impl Extractable for DOMString {
 }
 
 impl Extractable for FormData {
-    fn extract(&self, global: &GlobalScope) -> Fallible<ExtractedBody> {
+    fn extract(&self, global: &GlobalScope, can_gc: CanGc) -> Fallible<ExtractedBody> {
         let boundary = generate_boundary();
         let bytes = encode_multipart_form_data(&mut self.datums(), boundary.clone(), UTF_8);
         let total_bytes = bytes.len();
@@ -549,7 +549,7 @@ impl Extractable for FormData {
             "multipart/form-data;boundary={}",
             boundary
         )));
-        let stream = ReadableStream::new_from_bytes(global, bytes);
+        let stream = ReadableStream::new_from_bytes(global, bytes, can_gc);
         Ok(ExtractedBody {
             stream,
             total_bytes: Some(total_bytes),
@@ -560,13 +560,13 @@ impl Extractable for FormData {
 }
 
 impl Extractable for URLSearchParams {
-    fn extract(&self, global: &GlobalScope) -> Fallible<ExtractedBody> {
+    fn extract(&self, global: &GlobalScope, can_gc: CanGc) -> Fallible<ExtractedBody> {
         let bytes = self.serialize_utf8().into_bytes();
         let total_bytes = bytes.len();
         let content_type = Some(DOMString::from(
             "application/x-www-form-urlencoded;charset=UTF-8",
         ));
-        let stream = ReadableStream::new_from_bytes(global, bytes);
+        let stream = ReadableStream::new_from_bytes(global, bytes, can_gc);
         Ok(ExtractedBody {
             stream,
             total_bytes: Some(total_bytes),
@@ -756,7 +756,7 @@ fn consume_body_with_promise<T: BodyMixin + DomObject>(
     // Step 2.
     let stream = match object.body() {
         Some(stream) => stream,
-        None => ReadableStream::new_from_bytes(&global, Vec::with_capacity(0)),
+        None => ReadableStream::new_from_bytes(&global, Vec::with_capacity(0), can_gc),
     };
 
     // Step 3.

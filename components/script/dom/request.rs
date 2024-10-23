@@ -477,7 +477,7 @@ impl RequestMethods for Request {
             // Step 37.1 TODO "If init["keepalive"] exists and is true..."
 
             // Step 37.2
-            let mut extracted_body = init_body.extract(global)?;
+            let mut extracted_body = init_body.extract(global, can_gc)?;
 
             // Step 37.3
             if let Some(contents) = extracted_body.content_type.take() {

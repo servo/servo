@@ -86,8 +86,8 @@ impl Blob {
     }
 
     /// <https://w3c.github.io/FileAPI/#blob-get-stream>
-    pub fn get_stream(&self) -> DomRoot<ReadableStream> {
-        self.global().get_blob_stream(&self.blob_id)
+    pub fn get_stream(&self, can_gc: CanGc) -> DomRoot<ReadableStream> {
+        self.global().get_blob_stream(&self.blob_id, can_gc)
     }
 }
 
@@ -237,8 +237,8 @@ impl BlobMethods for Blob {
     }
 
     // <https://w3c.github.io/FileAPI/#blob-get-stream>
-    fn Stream(&self, _cx: JSContext) -> NonNull<JSObject> {
-        self.get_stream().get_js_stream()
+    fn Stream(&self, _cx: JSContext, can_gc: CanGc) -> NonNull<JSObject> {
+        self.get_stream(can_gc).get_js_stream()
     }
 
     // https://w3c.github.io/FileAPI/#slice-method-algo
