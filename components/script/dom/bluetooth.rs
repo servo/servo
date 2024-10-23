@@ -110,7 +110,7 @@ struct BluetoothContext<T: AsyncBluetoothListener + DomObject> {
 }
 
 pub trait AsyncBluetoothListener {
-    fn handle_response(&self, result: BluetoothResponse, promise: &Rc<Promise>);
+    fn handle_response(&self, result: BluetoothResponse, promise: &Rc<Promise>, can_gc: CanGc);
 }
 
 impl<T> BluetoothContext<T>
@@ -118,13 +118,16 @@ where
     T: AsyncBluetoothListener + DomObject,
 {
     #[allow(crown::unrooted_must_root)]
-    fn response(&mut self, response: BluetoothResponseResult) {
+    fn response(&mut self, response: BluetoothResponseResult, can_gc: CanGc) {
         let promise = self.promise.take().expect("bt promise is missing").root();
 
         // JSAutoRealm needs to be manually made.
         // Otherwise, Servo will crash.
         match response {
-            Ok(response) => self.receiver.root().handle_response(response, &promise),
+            Ok(response) => self
+                .receiver
+                .root()
+                .handle_response(response, &promise, can_gc),
             // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetooth-requestdevice
             // Step 3 - 4.
             Err(error) => promise.reject_error(Error::from(error)),
@@ -259,7 +262,7 @@ pub fn response_async<T: AsyncBluetoothListener + DomObject + 'static>(
             {
                 fn run_once(self) {
                     let mut context = self.context.lock().unwrap();
-                    context.response(self.action);
+                    context.response(self.action, CanGc::note());
                 }
             }
 
@@ -576,7 +579,7 @@ impl BluetoothMethods for Bluetooth {
 }
 
 impl AsyncBluetoothListener for Bluetooth {
-    fn handle_response(&self, response: BluetoothResponse, promise: &Rc<Promise>) {
+    fn handle_response(&self, response: BluetoothResponse, promise: &Rc<Promise>, _can_gc: CanGc) {
         match response {
             // https://webbluetoothcg.github.io/web-bluetooth/#request-bluetooth-devices
             // Step 11, 13 - 14.
@@ -753,6 +756,7 @@ impl PermissionAlgorithm for Bluetooth {
     fn permission_revoke(
         _descriptor: &BluetoothPermissionDescriptor,
         status: &BluetoothPermissionResult,
+        can_gc: CanGc,
     ) {
         // Step 1.
         let global = status.global();
@@ -775,7 +779,7 @@ impl PermissionAlgorithm for Bluetooth {
                 continue;
             }
             // Step 2.2 - 2.4
-            let _ = device.get_gatt().Disconnect();
+            let _ = device.get_gatt().Disconnect(can_gc);
         }
     }
 }

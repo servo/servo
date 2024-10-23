@@ -86,6 +86,12 @@ dictionary AesCbcParams : Algorithm {
   required BufferSource iv;
 };
 
+// AES_CTR
+dictionary AesCtrParams : Algorithm {
+  required BufferSource counter;
+  required [EnforceRange] octet length;
+};
+
 // JWK
 dictionary RsaOtherPrimesInfo {
   // The following fields are defined in Section 6.3.2.7 of JSON Web Algorithms

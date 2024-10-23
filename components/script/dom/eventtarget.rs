@@ -665,26 +665,38 @@ impl EventTarget {
             name,
             EventBubbles::DoesNotBubble,
             EventCancelable::NotCancelable,
+            CanGc::note(),
         )
     }
 
     // https://dom.spec.whatwg.org/#concept-event-fire
-    pub fn fire_bubbling_event(&self, name: Atom) -> DomRoot<Event> {
-        self.fire_event_with_params(name, EventBubbles::Bubbles, EventCancelable::NotCancelable)
+    pub fn fire_bubbling_event(&self, name: Atom, can_gc: CanGc) -> DomRoot<Event> {
+        self.fire_event_with_params(
+            name,
+            EventBubbles::Bubbles,
+            EventCancelable::NotCancelable,
+            can_gc,
+        )
     }
 
     // https://dom.spec.whatwg.org/#concept-event-fire
-    pub fn fire_cancelable_event(&self, name: Atom) -> DomRoot<Event> {
+    pub fn fire_cancelable_event(&self, name: Atom, can_gc: CanGc) -> DomRoot<Event> {
         self.fire_event_with_params(
             name,
             EventBubbles::DoesNotBubble,
             EventCancelable::Cancelable,
+            can_gc,
         )
     }
 
     // https://dom.spec.whatwg.org/#concept-event-fire
-    pub fn fire_bubbling_cancelable_event(&self, name: Atom) -> DomRoot<Event> {
-        self.fire_event_with_params(name, EventBubbles::Bubbles, EventCancelable::Cancelable)
+    pub fn fire_bubbling_cancelable_event(&self, name: Atom, can_gc: CanGc) -> DomRoot<Event> {
+        self.fire_event_with_params(
+            name,
+            EventBubbles::Bubbles,
+            EventCancelable::Cancelable,
+            can_gc,
+        )
     }
 
     // https://dom.spec.whatwg.org/#concept-event-fire
@@ -693,8 +705,9 @@ impl EventTarget {
         name: Atom,
         bubbles: EventBubbles,
         cancelable: EventCancelable,
+        can_gc: CanGc,
     ) -> DomRoot<Event> {
-        let event = Event::new(&self.global(), name, bubbles, cancelable, CanGc::note());
+        let event = Event::new(&self.global(), name, bubbles, cancelable, can_gc);
         event.fire(self);
         event
     }

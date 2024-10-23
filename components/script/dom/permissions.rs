@@ -46,7 +46,7 @@ pub trait PermissionAlgorithm {
         descriptor: &Self::Descriptor,
         status: &Self::Status,
     );
-    fn permission_revoke(descriptor: &Self::Descriptor, status: &Self::Status);
+    fn permission_revoke(descriptor: &Self::Descriptor, status: &Self::Status, can_gc: CanGc);
 }
 
 enum Operation {
@@ -139,7 +139,7 @@ impl Permissions {
                             .remove(&root_desc.name.to_string());
 
                         // (Revoke) Step 4.
-                        Bluetooth::permission_revoke(&bluetooth_desc, &result)
+                        Bluetooth::permission_revoke(&bluetooth_desc, &result, can_gc)
                     },
                 }
             },
@@ -171,7 +171,7 @@ impl Permissions {
                             .remove(&root_desc.name.to_string());
 
                         // (Revoke) Step 4.
-                        Permissions::permission_revoke(&root_desc, &status);
+                        Permissions::permission_revoke(&root_desc, &status, can_gc);
                     },
                 }
             },
@@ -270,7 +270,12 @@ impl PermissionAlgorithm for Permissions {
         Permissions::permission_query(cx, promise, descriptor, status);
     }
 
-    fn permission_revoke(_descriptor: &PermissionDescriptor, _status: &PermissionStatus) {}
+    fn permission_revoke(
+        _descriptor: &PermissionDescriptor,
+        _status: &PermissionStatus,
+        _can_gc: CanGc,
+    ) {
+    }
 }
 
 // https://w3c.github.io/permissions/#permission-state

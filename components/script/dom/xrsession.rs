@@ -1031,21 +1031,23 @@ impl XRSessionMethods for XRSession {
         comp: InRealm,
         can_gc: CanGc,
     ) -> Rc<Promise> {
-        let mut session = self.session.borrow_mut();
-        let supported_frame_rates = session.supported_frame_rates();
         let promise = Promise::new_in_current_realm(comp, can_gc);
-
-        if self.mode == XRSessionMode::Inline ||
-            supported_frame_rates.is_empty() ||
-            self.ended.get()
         {
-            promise.reject_error(Error::InvalidState);
-            return promise;
-        }
+            let session = self.session.borrow();
+            let supported_frame_rates = session.supported_frame_rates();
 
-        if !supported_frame_rates.contains(&*rate) {
-            promise.reject_error(Error::Type("Provided framerate not supported".into()));
-            return promise;
+            if self.mode == XRSessionMode::Inline ||
+                supported_frame_rates.is_empty() ||
+                self.ended.get()
+            {
+                promise.reject_error(Error::InvalidState);
+                return promise;
+            }
+
+            if !supported_frame_rates.contains(&*rate) {
+                promise.reject_error(Error::Type("Provided framerate not supported".into()));
+                return promise;
+            }
         }
 
         *self.update_framerate_promise.borrow_mut() = Some(promise.clone());
@@ -1075,7 +1077,7 @@ impl XRSessionMethods for XRSession {
             }),
         );
 
-        session.update_frame_rate(*rate, sender);
+        self.session.borrow_mut().update_frame_rate(*rate, sender);
 
         promise
     }

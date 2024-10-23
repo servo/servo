@@ -163,7 +163,7 @@ impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
 }
 
 impl AsyncBluetoothListener for BluetoothRemoteGATTService {
-    fn handle_response(&self, response: BluetoothResponse, promise: &Rc<Promise>) {
+    fn handle_response(&self, response: BluetoothResponse, promise: &Rc<Promise>, _can_gc: CanGc) {
         let device = self.Device();
         match response {
             // https://webbluetoothcg.github.io/web-bluetooth/#getgattchildren

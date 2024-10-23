@@ -41,6 +41,7 @@ content-security-policy = { version = "0.5", features = ["serde"] }
 cookie = { package = "cookie", version = "0.18" }
 crossbeam-channel = "0.5"
 cssparser = { version = "0.34", features = ["serde"] }
+ctr = "0.9.2"
 darling = { version = "0.20", default-features = false }
 data-url = "0.3"
 devtools_traits = { path = "components/shared/devtools" }
@@ -106,7 +107,7 @@ rustls-pemfile = "1.0.4"
 script_layout_interface = { path = "components/shared/script_layout" }
 script_traits = { path = "components/shared/script" }
 selectors = { git = "https://github.com/servo/stylo", branch = "2024-10-04" }
-serde = "1.0.210"
+serde = "1.0.212"
 serde_bytes = "0.11"
 serde_json = "1.0"
 servo-media = { git = "https://github.com/servo/media" }

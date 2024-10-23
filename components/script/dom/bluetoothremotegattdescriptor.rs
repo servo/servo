@@ -179,7 +179,7 @@ impl BluetoothRemoteGATTDescriptorMethods for BluetoothRemoteGATTDescriptor {
 }
 
 impl AsyncBluetoothListener for BluetoothRemoteGATTDescriptor {
-    fn handle_response(&self, response: BluetoothResponse, promise: &Rc<Promise>) {
+    fn handle_response(&self, response: BluetoothResponse, promise: &Rc<Promise>, _can_gc: CanGc) {
         match response {
             // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattdescriptor-readvalue
             BluetoothResponse::ReadValue(result) => {

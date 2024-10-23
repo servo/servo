@@ -621,9 +621,9 @@ checksum = "1fd0f2584146f6f2ef48085050886acf353beff7305ebd1ae69500e27c67f64b"
 
 [[package]]
 name = "bytes"
-version = "1.7.2"
+version = "1.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "428d9aa8fbc0670b7b8d6030a7fadd0f86151cae55e4dbbece15f3780a3dfaf3"
+checksum = "9ac0150caa2ae65ca5bd83f25c7de183dea78d4d366469f148435e2acfbad0da"
 
 [[package]]
 name = "calendrical_calculations"
@@ -1360,6 +1360,15 @@ checksum = "edb49164822f3ee45b17acd4a208cfc1251410cf0cad9a833234c9890774dd9f"
 dependencies = [
  "quote",
  "syn",
+]
+
+[[package]]
+name = "ctr"
+version = "0.9.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0369ee1ad671834580515889b80f2ea915f23b8be8d0daa4bbaf2ac5c7590835"
+dependencies = [
+ "cipher",
 ]
 
 [[package]]
@@ -4084,7 +4093,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4979f22fdb869068da03c9f7528f8297c6fd2606bc3a4affe42e6a823fdb8da4"
 dependencies = [
  "cfg-if",
- "windows-targets 0.48.5",
+ "windows-targets 0.52.6",
 ]
 
 [[package]]
@@ -5580,9 +5589,9 @@ dependencies = [
 
 [[package]]
 name = "proc-macro2"
-version = "1.0.88"
+version = "1.0.89"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7c3a7fc5db1e57d5a779a352c8cdb57b29aa4c40cc69c3a68a7fedc815fbf2f9"
+checksum = "f139b0662de085916d1fb67d2b4169d1addddda1919e696f3252b740b629986e"
 dependencies = [
  "unicode-ident",
 ]
@@ -6065,6 +6074,7 @@ dependencies = [
  "cookie 0.18.1",
  "crossbeam-channel",
  "cssparser",
+ "ctr",
  "data-url",
  "deny_public_fields",
  "devtools_traits",
@@ -6280,9 +6290,9 @@ checksum = "61697e0a1c7e512e84a621326239844a24d8207b4669b41bc18b32ea5cbf988b"
 
 [[package]]
 name = "serde"
-version = "1.0.210"
+version = "1.0.212"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c8e3592472072e6e22e0a54d5904d9febf8508f65fb8552499a1abc7d1078c3a"
+checksum = "ccd4055b7e3937a5c2595e974f5bf1715a23919a595a04b5ad959bdbbb61ab04"
 dependencies = [
  "serde_derive",
 ]
@@ -6298,9 +6308,9 @@ dependencies = [
 
 [[package]]
 name = "serde_derive"
-version = "1.0.210"
+version = "1.0.212"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "243902eda00fad750862fc144cea25caca5e20d615af0a81bee94ca738f1df1f"
+checksum = "726adf8349784fb68a42e6466f49362ae039d9c5333cc6eb131f4d6f94bb9126"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -7455,9 +7465,9 @@ dependencies = [
 
 [[package]]
 name = "tokio"
-version = "1.40.0"
+version = "1.41.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e2b070231665d27ad9ec9b8df639893f46727666c6767db40317fbe920a5d998"
+checksum = "145f3413504347a2be84393cc8a7d2fb4d863b375909ea59f2158261aa258bbb"
 dependencies = [
  "backtrace",
  "bytes",

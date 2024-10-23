@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::LazyCell;
 use std::mem;
 
 use app_units::Au;
@@ -25,7 +26,7 @@ use crate::fragment_tree::{
 };
 use crate::geom::{
     AuOrAuto, LengthPercentageOrAuto, LogicalRect, LogicalSides, LogicalVec2, PhysicalPoint,
-    PhysicalRect, PhysicalVec, ToLogical, ToLogicalWithContainingBlock,
+    PhysicalRect, PhysicalVec, Size, ToLogical, ToLogicalWithContainingBlock,
 };
 use crate::sizing::ContentSizes;
 use crate::style_ext::{Clamp, ComputedValuesExt, DisplayInside};
@@ -461,17 +462,13 @@ impl HoistedAbsolutelyPositionedBox {
                 let used_size = replaced
                     .contents
                     .used_size_as_if_inline_element(containing_block, &style, &pbm)
-                    .map(|size| AuOrAuto::LengthPercentage(*size));
+                    .map(|size| Size::Numeric(*size));
                 (used_size, Default::default(), Default::default())
             },
             IndependentFormattingContext::NonReplaced(_) => (
-                style.content_box_size_deprecated(containing_block, &pbm),
-                style
-                    .content_min_box_size_deprecated(containing_block, &pbm)
-                    .map(|value| value.map(Au::from).auto_is(Au::zero)),
-                style
-                    .content_max_box_size_deprecated(containing_block, &pbm)
-                    .map(|value| value.map(Au::from)),
+                style.content_box_size(containing_block, &pbm),
+                style.content_min_box_size(containing_block, &pbm),
+                style.content_max_box_size(containing_block, &pbm),
             ),
         };
 
@@ -536,14 +533,15 @@ impl HoistedAbsolutelyPositionedBox {
             flip_anchor: false,
         };
 
-        // We can solve the inline axis, but the block one can depend on layout results,
-        // so we may have to resolve it properly later on.
+        // The block axis can depend on layout results, so we only solve it tentatively,
+        // we may have to resolve it properly later on.
+        let mut block_axis = block_axis_solver.solve_tentatively();
+
+        // The inline axis can be fully resolved, computing intrinsic sizes using the
+        // tentative block size.
         let mut inline_axis = inline_axis_solver.solve(Some(|| {
-            let block_size = computed_size.block.map(|v| {
-                v.clamp_between_extremums(computed_min_size.block, computed_max_size.block)
-            });
             let containing_block_for_children =
-                IndefiniteContainingBlock::new_for_style_and_block_size(&style, block_size);
+                IndefiniteContainingBlock::new_for_style_and_block_size(&style, block_axis.size);
             context
                 .inline_content_sizes(
                     layout_context,
@@ -552,7 +550,6 @@ impl HoistedAbsolutelyPositionedBox {
                 )
                 .sizes
         }));
-        let mut block_axis = block_axis_solver.solve_tentatively();
 
         let mut positioning_context = PositioningContext::new_for_style(&style).unwrap();
         let mut new_fragment = {
@@ -562,7 +559,7 @@ impl HoistedAbsolutelyPositionedBox {
                 IndependentFormattingContext::Replaced(replaced) => {
                     // https://drafts.csswg.org/css2/visudet.html#abs-replaced-width
                     // https://drafts.csswg.org/css2/visudet.html#abs-replaced-height
-                    content_size = computed_size.auto_is(|| unreachable!());
+                    content_size = computed_size.map(|size| size.to_numeric().unwrap());
                     fragments = replaced.contents.make_fragments(
                         &style,
                         containing_block,
@@ -752,9 +749,9 @@ struct AbsoluteAxisSolver<'a> {
     padding_border_sum: Au,
     computed_margin_start: AuOrAuto,
     computed_margin_end: AuOrAuto,
-    computed_size: AuOrAuto,
-    computed_min_size: Au,
-    computed_max_size: Option<Au>,
+    computed_size: Size<Au>,
+    computed_min_size: Size<Au>,
+    computed_max_size: Size<Au>,
     avoid_negative_margin_start: bool,
     box_offsets: AbsoluteBoxOffsets<'a>,
     static_position_rect_axis: RectAxis,
@@ -775,24 +772,54 @@ impl<'a> AbsoluteAxisSolver<'a> {
     ///
     /// In the replaced case, `size` is never `Auto`.
     fn solve(&self, get_content_size: Option<impl FnOnce() -> ContentSizes>) -> AxisResult {
-        let solve_for_anchor = |anchor: Anchor| {
+        let mut get_content_size = get_content_size.map(|get_content_size| {
+            // The provided `get_content_size` is a FnOnce but we may need its result multiple times.
+            // A LazyCell will only invoke it once if needed, and then reuse the result.
+            let content_size = LazyCell::new(get_content_size);
+            move || *content_size
+        });
+        let mut solve_size = |initial_behavior, stretch_size: Au| {
+            let initial_is_stretch = initial_behavior == Size::Stretch;
+            let stretch_size = stretch_size.max(Au::zero());
+            get_content_size
+                .as_mut()
+                .map(|mut get_content_size| {
+                    let min_size = self
+                        .computed_min_size
+                        .resolve_non_initial(stretch_size, &mut get_content_size)
+                        .unwrap_or_default();
+                    let max_size = self
+                        .computed_max_size
+                        .resolve_non_initial(stretch_size, &mut get_content_size);
+                    self.computed_size
+                        .resolve(initial_behavior, stretch_size, &mut get_content_size)
+                        .clamp_between_extremums(min_size, max_size)
+                })
+                .or_else(|| {
+                    self.computed_size
+                        .maybe_resolve_extrinsic(Some(stretch_size))
+                        .or(initial_is_stretch.then_some(stretch_size))
+                        .map(|size| {
+                            let min_size = self
+                                .computed_min_size
+                                .maybe_resolve_extrinsic(Some(stretch_size))
+                                .unwrap_or_default();
+                            let max_size = self
+                                .computed_max_size
+                                .maybe_resolve_extrinsic(Some(stretch_size));
+                            size.clamp_between_extremums(min_size, max_size)
+                        })
+                })
+        };
+        let mut solve_for_anchor = |anchor: Anchor| {
             let margin_start = self.computed_margin_start.auto_is(Au::zero);
             let margin_end = self.computed_margin_end.auto_is(Au::zero);
-            let size = self
-                .computed_size
-                .non_auto()
-                .or_else(|| {
-                    let content_size = get_content_size?();
-                    let available_size = self.containing_size -
-                        anchor.inset() -
-                        self.padding_border_sum -
-                        margin_start -
-                        margin_end;
-                    Some(content_size.shrink_to_fit(available_size))
-                })
-                .map(|size| {
-                    size.clamp_between_extremums(self.computed_min_size, self.computed_max_size)
-                })
+            let stretch_size = self.containing_size -
+                anchor.inset() -
+                self.padding_border_sum -
+                margin_start -
+                margin_end;
+            let size = solve_size(Size::FitContent, stretch_size)
                 .map_or(AuOrAuto::Auto, AuOrAuto::LengthPercentage);
             AxisResult {
                 anchor,
@@ -820,14 +847,10 @@ impl<'a> AbsoluteAxisSolver<'a> {
                 let start = start.to_used_value(self.containing_size);
                 let end = end.to_used_value(self.containing_size);
                 let mut free_space = self.containing_size - start - end - self.padding_border_sum;
-                let used_size = self
-                    .computed_size
-                    .auto_is(|| {
-                        free_space -
-                            self.computed_margin_start.auto_is(Au::zero) -
-                            self.computed_margin_end.auto_is(Au::zero)
-                    })
-                    .clamp_between_extremums(self.computed_min_size, self.computed_max_size);
+                let stretch_size = free_space -
+                    self.computed_margin_start.auto_is(Au::zero) -
+                    self.computed_margin_end.auto_is(Au::zero);
+                let used_size = solve_size(Size::Stretch, stretch_size).unwrap();
                 free_space -= used_size;
                 let (margin_start, margin_end) =
                     match (self.computed_margin_start, self.computed_margin_end) {
@@ -865,9 +888,9 @@ impl<'a> AbsoluteAxisSolver<'a> {
 
     fn solve_with_size(&mut self, size: Au) -> AxisResult {
         // Override sizes
-        let old_size = mem::replace(&mut self.computed_size, AuOrAuto::LengthPercentage(size));
+        let old_size = mem::replace(&mut self.computed_size, Size::Numeric(size));
         let old_min_size = mem::take(&mut self.computed_min_size);
-        let old_max_size = self.computed_max_size.take();
+        let old_max_size = mem::take(&mut self.computed_max_size);
 
         let result = self.solve_tentatively();
 
