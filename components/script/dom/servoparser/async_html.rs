@@ -447,7 +447,7 @@ impl Tokenizer {
                 self.insert_node(node, Dom::from_ref(element.upcast()));
             },
             ParseOperation::CreateComment { text, node } => {
-                let comment = Comment::new(DOMString::from(text), document, None);
+                let comment = Comment::new(DOMString::from(text), document, None, can_gc);
                 self.insert_node(node, Dom::from_ref(comment.upcast()));
             },
             ParseOperation::AppendBeforeSibling { sibling, node } => {
@@ -477,6 +477,7 @@ impl Tokenizer {
                     Some(DOMString::from(public_id)),
                     Some(DOMString::from(system_id)),
                     document,
+                    can_gc,
                 );
 
                 document
@@ -490,7 +491,12 @@ impl Tokenizer {
                     .downcast::<Element>()
                     .expect("tried to set attrs on non-Element in HTML parsing");
                 for attr in attrs {
-                    elem.set_attribute_from_parser(attr.name, DOMString::from(attr.value), None);
+                    elem.set_attribute_from_parser(
+                        attr.name,
+                        DOMString::from(attr.value),
+                        None,
+                        can_gc,
+                    );
                 }
             },
             ParseOperation::RemoveFromParent { target } => {
@@ -549,6 +555,7 @@ impl Tokenizer {
                     DOMString::from(target),
                     DOMString::from(data),
                     document,
+                    can_gc,
                 );
                 self.insert_node(node, Dom::from_ref(pi.upcast()));
             },

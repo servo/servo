@@ -17,6 +17,7 @@ use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::{document_from_node, BindContext, Node, UnbindContext};
 use crate::dom::virtualmethods::VirtualMethods;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct HTMLBaseElement {
@@ -40,11 +41,13 @@ impl HTMLBaseElement {
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> DomRoot<HTMLBaseElement> {
         Node::reflect_node_with_proto(
             Box::new(HTMLBaseElement::new_inherited(local_name, prefix, document)),
             document,
             proto,
+            can_gc,
         )
     }
 

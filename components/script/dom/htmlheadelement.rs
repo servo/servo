@@ -17,6 +17,7 @@ use crate::dom::htmlmetaelement::HTMLMetaElement;
 use crate::dom::node::{document_from_node, BindContext, Node, ShadowIncluding};
 use crate::dom::userscripts::load_script;
 use crate::dom::virtualmethods::VirtualMethods;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct HTMLHeadElement {
@@ -40,11 +41,13 @@ impl HTMLHeadElement {
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> DomRoot<HTMLHeadElement> {
         let n = Node::reflect_node_with_proto(
             Box::new(HTMLHeadElement::new_inherited(local_name, prefix, document)),
             document,
             proto,
+            can_gc,
         );
 
         n.upcast::<Node>().set_weird_parser_insertion_mode();

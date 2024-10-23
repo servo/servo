@@ -95,11 +95,13 @@ impl HTMLElement {
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> DomRoot<HTMLElement> {
         Node::reflect_node_with_proto(
             Box::new(HTMLElement::new_inherited(local_name, prefix, document)),
             document,
             proto,
+            can_gc,
         )
     }
 
@@ -481,10 +483,10 @@ impl HTMLElementMethods for HTMLElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#set-the-inner-text-steps>
-    fn SetInnerText(&self, input: DOMString) {
+    fn SetInnerText(&self, input: DOMString, can_gc: CanGc) {
         // Step 1: Let fragment be the rendered text fragment for value given element's node
         // document.
-        let fragment = self.rendered_text_fragment(input);
+        let fragment = self.rendered_text_fragment(input, can_gc);
 
         // Step 2: Replace all with fragment within element.
         Node::replace_all(Some(fragment.upcast()), self.upcast::<Node>());
@@ -496,7 +498,7 @@ impl HTMLElementMethods for HTMLElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-innertext-idl-attribute:dom-outertext-2>
-    fn SetOuterText(&self, input: DOMString) -> Fallible<()> {
+    fn SetOuterText(&self, input: DOMString, can_gc: CanGc) -> Fallible<()> {
         // Step 1: If this's parent is null, then throw a "NoModificationAllowedError" DOMException.
         let Some(parent) = self.upcast::<Node>().GetParentNode() else {
             return Err(Error::NoModificationAllowed);
@@ -513,12 +515,12 @@ impl HTMLElementMethods for HTMLElement {
 
         // Step 4: Let fragment be the rendered text fragment for the given value given this's node
         // document.
-        let fragment = self.rendered_text_fragment(input);
+        let fragment = self.rendered_text_fragment(input, can_gc);
 
         // Step 5: If fragment has no children, then append a new Text node whose data is the empty
         // string and node document is this's node document to fragment.
         if fragment.upcast::<Node>().children_count() == 0 {
-            let text_node = Text::new(DOMString::from("".to_owned()), &document);
+            let text_node = Text::new(DOMString::from("".to_owned()), &document, can_gc);
 
             fragment.upcast::<Node>().AppendChild(text_node.upcast())?;
         }
@@ -548,13 +550,14 @@ impl HTMLElementMethods for HTMLElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-translate
-    fn SetTranslate(&self, yesno: bool) {
+    fn SetTranslate(&self, yesno: bool, can_gc: CanGc) {
         self.as_element().set_string_attribute(
             &html5ever::local_name!("translate"),
             match yesno {
                 true => DOMString::from("yes"),
                 false => DOMString::from("no"),
             },
+            can_gc,
         );
     }
 
@@ -625,14 +628,19 @@ impl HTMLElementMethods for HTMLElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-fe-autofocus
-    fn SetAutofocus(&self, autofocus: bool) {
+    fn SetAutofocus(&self, autofocus: bool, can_gc: CanGc) {
         self.element
-            .set_bool_attribute(&local_name!("autofocus"), autofocus);
+            .set_bool_attribute(&local_name!("autofocus"), autofocus, can_gc);
     }
 }
 
-fn append_text_node_to_fragment(document: &Document, fragment: &DocumentFragment, text: String) {
-    let text = Text::new(DOMString::from(text), document);
+fn append_text_node_to_fragment(
+    document: &Document,
+    fragment: &DocumentFragment,
+    text: String,
+    can_gc: CanGc,
+) {
+    let text = Text::new(DOMString::from(text), document, can_gc);
     fragment
         .upcast::<Node>()
         .AppendChild(text.upcast())
@@ -695,7 +703,7 @@ fn to_camel_case(name: &str) -> Option<DOMString> {
 }
 
 impl HTMLElement {
-    pub fn set_custom_attr(&self, name: DOMString, value: DOMString) -> ErrorResult {
+    pub fn set_custom_attr(&self, name: DOMString, value: DOMString, can_gc: CanGc) -> ErrorResult {
         if name
             .chars()
             .skip_while(|&ch| ch != '\u{2d}')
@@ -705,7 +713,7 @@ impl HTMLElement {
             return Err(Error::Syntax);
         }
         self.as_element()
-            .set_custom_attribute(to_snake_case(name), value)
+            .set_custom_attribute(to_snake_case(name), value, can_gc)
     }
 
     pub fn get_custom_attr(&self, local_name: DOMString) -> Option<DOMString> {
@@ -926,10 +934,10 @@ impl HTMLElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#rendered-text-fragment>
-    fn rendered_text_fragment(&self, input: DOMString) -> DomRoot<DocumentFragment> {
+    fn rendered_text_fragment(&self, input: DOMString, can_gc: CanGc) -> DomRoot<DocumentFragment> {
         // Step 1: Let fragment be a new DocumentFragment whose node document is document.
         let document = document_from_node(self);
-        let fragment = DocumentFragment::new(&document);
+        let fragment = DocumentFragment::new(&document, can_gc);
 
         // Step 2: Let position be a position variable for input, initially pointing at the start
         // of input.
@@ -951,11 +959,11 @@ impl HTMLElement {
                     }
 
                     if !text.is_empty() {
-                        append_text_node_to_fragment(&document, &fragment, text);
+                        append_text_node_to_fragment(&document, &fragment, text, can_gc);
                         text = String::new();
                     }
 
-                    let br = HTMLBRElement::new(local_name!("br"), None, &document, None);
+                    let br = HTMLBRElement::new(local_name!("br"), None, &document, None, can_gc);
                     fragment.upcast::<Node>().AppendChild(br.upcast()).unwrap();
                 },
                 _ => {
@@ -969,7 +977,7 @@ impl HTMLElement {
         // If text is not the empty string, then append a new Text node whose data is text and node
         // document is document to fragment.
         if !text.is_empty() {
-            append_text_node_to_fragment(&document, &fragment, text);
+            append_text_node_to_fragment(&document, &fragment, text, can_gc);
         }
 
         fragment

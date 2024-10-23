@@ -89,6 +89,7 @@ impl HTMLVideoElement {
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> DomRoot<HTMLVideoElement> {
         Node::reflect_node_with_proto(
             Box::new(HTMLVideoElement::new_inherited(
@@ -96,6 +97,7 @@ impl HTMLVideoElement {
             )),
             document,
             proto,
+            can_gc,
         )
     }
 

@@ -16,6 +16,7 @@ use crate::dom::element::Element;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::Node;
 use crate::dom::nodelist::NodeList;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct HTMLProgressElement {
@@ -41,6 +42,7 @@ impl HTMLProgressElement {
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> DomRoot<HTMLProgressElement> {
         Node::reflect_node_with_proto(
             Box::new(HTMLProgressElement::new_inherited(
@@ -48,6 +50,7 @@ impl HTMLProgressElement {
             )),
             document,
             proto,
+            can_gc,
         )
     }
 }
@@ -77,14 +80,17 @@ impl HTMLProgressElementMethods for HTMLProgressElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-progress-value>
-    fn SetValue(&self, new_val: Finite<f64>) {
+    fn SetValue(&self, new_val: Finite<f64>, can_gc: CanGc) {
         if *new_val >= 0.0 {
             let mut string_value = DOMString::from_string((*new_val).to_string());
 
             string_value.set_best_representation_of_the_floating_point_number();
 
-            self.upcast::<Element>()
-                .set_string_attribute(&local_name!("value"), string_value);
+            self.upcast::<Element>().set_string_attribute(
+                &local_name!("value"),
+                string_value,
+                can_gc,
+            );
         }
     }
 
@@ -106,14 +112,17 @@ impl HTMLProgressElementMethods for HTMLProgressElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-progress-max>
-    fn SetMax(&self, new_val: Finite<f64>) {
+    fn SetMax(&self, new_val: Finite<f64>, can_gc: CanGc) {
         if *new_val > 0.0 {
             let mut string_value = DOMString::from_string((*new_val).to_string());
 
             string_value.set_best_representation_of_the_floating_point_number();
 
-            self.upcast::<Element>()
-                .set_string_attribute(&local_name!("max"), string_value);
+            self.upcast::<Element>().set_string_attribute(
+                &local_name!("max"),
+                string_value,
+                can_gc,
+            );
         }
     }
 

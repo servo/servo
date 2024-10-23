@@ -15,6 +15,7 @@ use crate::dom::htmlcollection::{CollectionFilter, HTMLCollection};
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmloptionelement::HTMLOptionElement;
 use crate::dom::node::{window_from_node, Node};
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct HTMLDataListElement {
@@ -38,6 +39,7 @@ impl HTMLDataListElement {
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> DomRoot<HTMLDataListElement> {
         Node::reflect_node_with_proto(
             Box::new(HTMLDataListElement::new_inherited(
@@ -45,6 +47,7 @@ impl HTMLDataListElement {
             )),
             document,
             proto,
+            can_gc,
         )
     }
 }

@@ -1973,21 +1973,24 @@ impl Document {
     pub fn node_from_nodes_and_strings(
         &self,
         mut nodes: Vec<NodeOrString>,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<Node>> {
         if nodes.len() == 1 {
             Ok(match nodes.pop().unwrap() {
                 NodeOrString::Node(node) => node,
-                NodeOrString::String(string) => DomRoot::upcast(self.CreateTextNode(string)),
+                NodeOrString::String(string) => {
+                    DomRoot::upcast(self.CreateTextNode(string, can_gc))
+                },
             })
         } else {
-            let fragment = DomRoot::upcast::<Node>(self.CreateDocumentFragment());
+            let fragment = DomRoot::upcast::<Node>(self.CreateDocumentFragment(can_gc));
             for node in nodes {
                 match node {
                     NodeOrString::Node(node) => {
                         fragment.AppendChild(&node)?;
                     },
                     NodeOrString::String(string) => {
-                        let node = DomRoot::upcast::<Node>(self.CreateTextNode(string));
+                        let node = DomRoot::upcast::<Node>(self.CreateTextNode(string, can_gc));
                         // No try!() here because appending a text node
                         // should not fail.
                         fragment.AppendChild(&node).unwrap();
@@ -2008,14 +2011,14 @@ impl Document {
         }
     }
 
-    pub fn set_body_attribute(&self, local_name: &LocalName, value: DOMString) {
+    pub fn set_body_attribute(&self, local_name: &LocalName, value: DOMString, can_gc: CanGc) {
         if let Some(ref body) = self
             .GetBody()
             .and_then(DomRoot::downcast::<HTMLBodyElement>)
         {
             let body = body.upcast::<Element>();
             let value = body.parse_attribute(&ns!(), local_name, value);
-            body.set_attribute(local_name, value);
+            body.set_attribute(local_name, value, can_gc);
         }
     }
 
@@ -4565,7 +4568,7 @@ impl DocumentMethods for Document {
     }
 
     // https://dom.spec.whatwg.org/#dom-document-createattribute
-    fn CreateAttribute(&self, mut local_name: DOMString) -> Fallible<DomRoot<Attr>> {
+    fn CreateAttribute(&self, mut local_name: DOMString, can_gc: CanGc) -> Fallible<DomRoot<Attr>> {
         if xml_name_type(&local_name) == Invalid {
             debug!("Not a valid element name");
             return Err(Error::InvalidCharacter);
@@ -4584,6 +4587,7 @@ impl DocumentMethods for Document {
             ns!(),
             None,
             None,
+            can_gc,
         ))
     }
 
@@ -4592,6 +4596,7 @@ impl DocumentMethods for Document {
         &self,
         namespace: Option<DOMString>,
         qualified_name: DOMString,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<Attr>> {
         let (namespace, prefix, local_name) = validate_and_extract(namespace, &qualified_name)?;
         let value = AttrValue::String("".to_owned());
@@ -4604,21 +4609,26 @@ impl DocumentMethods for Document {
             namespace,
             prefix,
             None,
+            can_gc,
         ))
     }
 
     // https://dom.spec.whatwg.org/#dom-document-createdocumentfragment
-    fn CreateDocumentFragment(&self) -> DomRoot<DocumentFragment> {
-        DocumentFragment::new(self)
+    fn CreateDocumentFragment(&self, can_gc: CanGc) -> DomRoot<DocumentFragment> {
+        DocumentFragment::new(self, can_gc)
     }
 
     // https://dom.spec.whatwg.org/#dom-document-createtextnode
-    fn CreateTextNode(&self, data: DOMString) -> DomRoot<Text> {
-        Text::new(data, self)
+    fn CreateTextNode(&self, data: DOMString, can_gc: CanGc) -> DomRoot<Text> {
+        Text::new(data, self, can_gc)
     }
 
     // https://dom.spec.whatwg.org/#dom-document-createcdatasection
-    fn CreateCDATASection(&self, data: DOMString) -> Fallible<DomRoot<CDATASection>> {
+    fn CreateCDATASection(
+        &self,
+        data: DOMString,
+        can_gc: CanGc,
+    ) -> Fallible<DomRoot<CDATASection>> {
         // Step 1
         if self.is_html_document {
             return Err(Error::NotSupported);
@@ -4630,12 +4640,12 @@ impl DocumentMethods for Document {
         }
 
         // Step 3
-        Ok(CDATASection::new(data, self))
+        Ok(CDATASection::new(data, self, can_gc))
     }
 
     // https://dom.spec.whatwg.org/#dom-document-createcomment
-    fn CreateComment(&self, data: DOMString) -> DomRoot<Comment> {
-        Comment::new(data, self, None)
+    fn CreateComment(&self, data: DOMString, can_gc: CanGc) -> DomRoot<Comment> {
+        Comment::new(data, self, None, can_gc)
     }
 
     // https://dom.spec.whatwg.org/#dom-document-createprocessinginstruction
@@ -4643,6 +4653,7 @@ impl DocumentMethods for Document {
         &self,
         target: DOMString,
         data: DOMString,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<ProcessingInstruction>> {
         // Step 1.
         if xml_name_type(&target) == Invalid {
@@ -4655,7 +4666,7 @@ impl DocumentMethods for Document {
         }
 
         // Step 3.
-        Ok(ProcessingInstruction::new(target, data, self))
+        Ok(ProcessingInstruction::new(target, data, self, can_gc))
     }
 
     // https://dom.spec.whatwg.org/#dom-document-importnode
@@ -4853,7 +4864,7 @@ impl DocumentMethods for Document {
             return;
         };
 
-        elem.SetTextContent(Some(title));
+        elem.SetTextContent(Some(title), can_gc);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-head
@@ -5030,18 +5041,18 @@ impl DocumentMethods for Document {
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-prepend
-    fn Prepend(&self, nodes: Vec<NodeOrString>) -> ErrorResult {
-        self.upcast::<Node>().prepend(nodes)
+    fn Prepend(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
+        self.upcast::<Node>().prepend(nodes, can_gc)
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-append
-    fn Append(&self, nodes: Vec<NodeOrString>) -> ErrorResult {
-        self.upcast::<Node>().append(nodes)
+    fn Append(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
+        self.upcast::<Node>().append(nodes, can_gc)
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-replacechildren
-    fn ReplaceChildren(&self, nodes: Vec<NodeOrString>) -> ErrorResult {
-        self.upcast::<Node>().replace_children(nodes)
+    fn ReplaceChildren(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
+        self.upcast::<Node>().replace_children(nodes, can_gc)
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-queryselector
@@ -5121,8 +5132,8 @@ impl DocumentMethods for Document {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-bgcolor
-    fn SetBgColor(&self, value: DOMString) {
-        self.set_body_attribute(&local_name!("bgcolor"), value)
+    fn SetBgColor(&self, value: DOMString, can_gc: CanGc) {
+        self.set_body_attribute(&local_name!("bgcolor"), value, can_gc)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-fgcolor
@@ -5131,8 +5142,8 @@ impl DocumentMethods for Document {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-fgcolor
-    fn SetFgColor(&self, value: DOMString) {
-        self.set_body_attribute(&local_name!("text"), value)
+    fn SetFgColor(&self, value: DOMString, can_gc: CanGc) {
+        self.set_body_attribute(&local_name!("text"), value, can_gc)
     }
 
     #[allow(unsafe_code)]

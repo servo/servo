@@ -19,6 +19,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::{window_from_node, Node, NodeDamage};
 use crate::dom::virtualmethods::VirtualMethods;
+use crate::script_runtime::CanGc;
 use crate::task_source::TaskSource;
 
 #[dom_struct]
@@ -45,6 +46,7 @@ impl HTMLDetailsElement {
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> DomRoot<HTMLDetailsElement> {
         Node::reflect_node_with_proto(
             Box::new(HTMLDetailsElement::new_inherited(
@@ -52,6 +54,7 @@ impl HTMLDetailsElement {
             )),
             document,
             proto,
+            can_gc,
         )
     }
 

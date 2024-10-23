@@ -1767,7 +1767,7 @@ impl HTMLMediaElement {
                 // We wait until we have metadata to render the controls, so we render them
                 // with the appropriate size.
                 if self.Controls() {
-                    self.render_controls();
+                    self.render_controls(can_gc);
                 }
 
                 let global = self.global();
@@ -1887,7 +1887,7 @@ impl HTMLMediaElement {
             .unwrap_or_else(|_| self.playback_position.get())
     }
 
-    fn render_controls(&self) {
+    fn render_controls(&self, can_gc: CanGc) {
         let element = self.htmlelement.upcast::<Element>();
         if self.ready_state.get() < ReadyState::HaveMetadata || element.is_shadow_host() {
             // Bail out if we have no metadata yet or
@@ -1902,6 +1902,7 @@ impl HTMLMediaElement {
             &document,
             None,
             ElementCreator::ScriptCreated,
+            can_gc,
         );
         let mut media_controls_script = resources::read_string(EmbedderResource::MediaControlsJS);
         // This is our hacky way to temporarily workaround the lack of a privileged
@@ -1914,7 +1915,7 @@ impl HTMLMediaElement {
         *self.media_controls_id.borrow_mut() = Some(id);
         script
             .upcast::<Node>()
-            .SetTextContent(Some(DOMString::from(media_controls_script)));
+            .SetTextContent(Some(DOMString::from(media_controls_script)), can_gc);
         if let Err(e) = shadow_root
             .upcast::<Node>()
             .AppendChild(script.upcast::<Node>())
@@ -1930,10 +1931,11 @@ impl HTMLMediaElement {
             &document,
             None,
             ElementCreator::ScriptCreated,
+            can_gc,
         );
         style
             .upcast::<Node>()
-            .SetTextContent(Some(DOMString::from(media_controls_style)));
+            .SetTextContent(Some(DOMString::from(media_controls_style)), can_gc);
 
         if let Err(e) = shadow_root
             .upcast::<Node>()
@@ -2078,8 +2080,8 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
         reflect_cross_origin_attribute(self.upcast::<Element>())
     }
     // https://html.spec.whatwg.org/multipage/#dom-media-crossOrigin
-    fn SetCrossOrigin(&self, value: Option<DOMString>) {
-        set_cross_origin_attribute(self.upcast::<Element>(), value);
+    fn SetCrossOrigin(&self, value: Option<DOMString>, can_gc: CanGc) {
+        set_cross_origin_attribute(self.upcast::<Element>(), value, can_gc);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-media-muted
@@ -2473,7 +2475,7 @@ impl VirtualMethods for HTMLMediaElement {
             },
             local_name!("controls") => {
                 if mutation.new_value(attr).is_some() {
-                    self.render_controls();
+                    self.render_controls(CanGc::note());
                 } else {
                     self.remove_controls();
                 }

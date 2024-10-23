@@ -75,6 +75,7 @@ impl HTMLButtonElement {
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> DomRoot<HTMLButtonElement> {
         Node::reflect_node_with_proto(
             Box::new(HTMLButtonElement::new_inherited(
@@ -82,6 +83,7 @@ impl HTMLButtonElement {
             )),
             document,
             proto,
+            can_gc,
         )
     }
 
@@ -360,7 +362,7 @@ impl Activatable for HTMLButtonElement {
             ButtonType::Reset => {
                 // TODO: is document owner fully active?
                 if let Some(owner) = self.form_owner() {
-                    owner.reset(ResetFrom::NotFromForm);
+                    owner.reset(ResetFrom::NotFromForm, CanGc::note());
                 }
             },
             _ => (),

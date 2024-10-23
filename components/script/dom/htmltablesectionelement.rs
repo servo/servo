@@ -21,6 +21,7 @@ use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmltablerowelement::HTMLTableRowElement;
 use crate::dom::node::{window_from_node, Node};
 use crate::dom::virtualmethods::VirtualMethods;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct HTMLTableSectionElement {
@@ -44,6 +45,7 @@ impl HTMLTableSectionElement {
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> DomRoot<HTMLTableSectionElement> {
         let n = Node::reflect_node_with_proto(
             Box::new(HTMLTableSectionElement::new_inherited(
@@ -51,6 +53,7 @@ impl HTMLTableSectionElement {
             )),
             document,
             proto,
+            can_gc,
         );
 
         n.upcast::<Node>().set_weird_parser_insertion_mode();
@@ -74,12 +77,12 @@ impl HTMLTableSectionElementMethods for HTMLTableSectionElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-tbody-insertrow
-    fn InsertRow(&self, index: i32) -> Fallible<DomRoot<HTMLElement>> {
+    fn InsertRow(&self, index: i32, can_gc: CanGc) -> Fallible<DomRoot<HTMLElement>> {
         let node = self.upcast::<Node>();
         node.insert_cell_or_row(
             index,
             || self.Rows(),
-            || HTMLTableRowElement::new(local_name!("tr"), None, &node.owner_doc(), None),
+            || HTMLTableRowElement::new(local_name!("tr"), None, &node.owner_doc(), None, can_gc),
         )
     }
 

@@ -326,6 +326,7 @@ impl HTMLInputElement {
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> DomRoot<HTMLInputElement> {
         Node::reflect_node_with_proto(
             Box::new(HTMLInputElement::new_inherited(
@@ -333,6 +334,7 @@ impl HTMLInputElement {
             )),
             document,
             proto,
+            can_gc,
         )
     }
 
@@ -655,7 +657,7 @@ impl HTMLInputElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-input-stepdown
     // https://html.spec.whatwg.org/multipage/#dom-input-stepup
-    fn step_up_or_down(&self, n: i32, dir: StepDirection) -> ErrorResult {
+    fn step_up_or_down(&self, n: i32, dir: StepDirection, can_gc: CanGc) -> ErrorResult {
         // Step 1
         if !self.does_value_as_number_apply() {
             return Err(Error::InvalidState);
@@ -738,7 +740,7 @@ impl HTMLInputElement {
         }
 
         // Step 11
-        self.SetValueAsNumber(value)
+        self.SetValueAsNumber(value, can_gc)
     }
 
     // https://html.spec.whatwg.org/multipage/#concept-input-list
@@ -1242,7 +1244,7 @@ impl HTMLInputElementMethods for HTMLInputElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-value
-    fn SetValue(&self, mut value: DOMString) -> ErrorResult {
+    fn SetValue(&self, mut value: DOMString, can_gc: CanGc) -> ErrorResult {
         match self.value_mode() {
             ValueMode::Value => {
                 // Step 3.
@@ -1264,7 +1266,7 @@ impl HTMLInputElementMethods for HTMLInputElement {
             },
             ValueMode::Default | ValueMode::DefaultOn => {
                 self.upcast::<Element>()
-                    .set_string_attribute(&local_name!("value"), value);
+                    .set_string_attribute(&local_name!("value"), value, can_gc);
             },
             ValueMode::Filename => {
                 if value.is_empty() {
@@ -1314,13 +1316,18 @@ impl HTMLInputElementMethods for HTMLInputElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-input-valueasdate
     #[allow(unsafe_code, non_snake_case)]
-    fn SetValueAsDate(&self, cx: SafeJSContext, value: *mut JSObject) -> ErrorResult {
+    fn SetValueAsDate(
+        &self,
+        cx: SafeJSContext,
+        value: *mut JSObject,
+        can_gc: CanGc,
+    ) -> ErrorResult {
         rooted!(in(*cx) let value = value);
         if !self.does_value_as_date_apply() {
             return Err(Error::InvalidState);
         }
         if value.is_null() {
-            return self.SetValue(DOMString::from(""));
+            return self.SetValue(DOMString::from(""), can_gc);
         }
         let mut msecs: f64 = 0.0;
         // We need to go through unsafe code to interrogate jsapi about a Date.
@@ -1338,14 +1345,14 @@ impl HTMLInputElementMethods for HTMLInputElement {
                 return Err(Error::JSFailed);
             }
             if !msecs.is_finite() {
-                return self.SetValue(DOMString::from(""));
+                return self.SetValue(DOMString::from(""), can_gc);
             }
         }
 
         let Ok(date_time) = OffsetDateTime::from_unix_timestamp_nanos((msecs * 1e6) as i128) else {
-            return self.SetValue(DOMString::from(""));
+            return self.SetValue(DOMString::from(""), can_gc);
         };
-        self.SetValue(self.convert_datetime_to_dom_string(date_time))
+        self.SetValue(self.convert_datetime_to_dom_string(date_time), can_gc)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-valueasnumber
@@ -1355,21 +1362,21 @@ impl HTMLInputElementMethods for HTMLInputElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-valueasnumber
-    fn SetValueAsNumber(&self, value: f64) -> ErrorResult {
+    fn SetValueAsNumber(&self, value: f64, can_gc: CanGc) -> ErrorResult {
         if value.is_infinite() {
             Err(Error::Type("value is not finite".to_string()))
         } else if !self.does_value_as_number_apply() {
             Err(Error::InvalidState)
         } else if value.is_nan() {
-            self.SetValue(DOMString::from(""))
+            self.SetValue(DOMString::from(""), can_gc)
         } else if let Some(converted) = self.convert_number_to_string(value) {
-            self.SetValue(converted)
+            self.SetValue(converted, can_gc)
         } else {
             // The most literal spec-compliant implementation would use bignum types so
             // overflow is impossible, but just setting an overflow to the empty string
             // matches Firefox's behavior. For example, try input.valueAsNumber=1e30 on
             // a type="date" input.
-            self.SetValue(DOMString::from(""))
+            self.SetValue(DOMString::from(""), can_gc)
         }
     }
 
@@ -1566,13 +1573,13 @@ impl HTMLInputElementMethods for HTMLInputElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-stepup
-    fn StepUp(&self, n: i32) -> ErrorResult {
-        self.step_up_or_down(n, StepDirection::Up)
+    fn StepUp(&self, n: i32, can_gc: CanGc) -> ErrorResult {
+        self.step_up_or_down(n, StepDirection::Up, can_gc)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-stepdown
-    fn StepDown(&self, n: i32) -> ErrorResult {
-        self.step_up_or_down(n, StepDirection::Down)
+    fn StepDown(&self, n: i32, can_gc: CanGc) -> ErrorResult {
+        self.step_up_or_down(n, StepDirection::Down, can_gc)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-cva-willvalidate
@@ -2314,7 +2321,7 @@ impl VirtualMethods for HTMLInputElement {
                             // Step 1
                             (&ValueMode::Value, false, ValueMode::Default) |
                             (&ValueMode::Value, false, ValueMode::DefaultOn) => {
-                                self.SetValue(old_idl_value)
+                                self.SetValue(old_idl_value, CanGc::note())
                                     .expect("Failed to set input value on type change to a default ValueMode.");
                             },
 
@@ -2326,6 +2333,7 @@ impl VirtualMethods for HTMLInputElement {
                                         .map_or(DOMString::from(""), |a| {
                                             DOMString::from(a.summarize().value)
                                         }),
+                                    CanGc::note(),
                                 )
                                 .expect(
                                     "Failed to set input value on type change to ValueMode::Value.",
@@ -2337,7 +2345,7 @@ impl VirtualMethods for HTMLInputElement {
                             (_, _, ValueMode::Filename)
                                 if old_value_mode != ValueMode::Filename =>
                             {
-                                self.SetValue(DOMString::from(""))
+                                self.SetValue(DOMString::from(""), CanGc::note())
                                     .expect("Failed to set input value on type change to ValueMode::Filename.");
                             },
                             _ => {},
@@ -2825,7 +2833,7 @@ impl Activatable for HTMLInputElement {
                 // FIXME (Manishearth): support document owners (needs ability to get parent browsing context)
                 // Check if document owner is fully active
                 if let Some(o) = self.form_owner() {
-                    o.reset(ResetFrom::NotFromForm)
+                    o.reset(ResetFrom::NotFromForm, CanGc::note())
                 }
             },
             InputType::Checkbox | InputType::Radio => {

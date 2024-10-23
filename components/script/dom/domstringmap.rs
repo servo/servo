@@ -11,6 +11,7 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::window_from_node;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct DOMStringMap {
@@ -40,8 +41,8 @@ impl DOMStringMapMethods for DOMStringMap {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-domstringmap-setitem
-    fn NamedSetter(&self, name: DOMString, value: DOMString) -> ErrorResult {
-        self.element.set_custom_attr(name, value)
+    fn NamedSetter(&self, name: DOMString, value: DOMString, can_gc: CanGc) -> ErrorResult {
+        self.element.set_custom_attr(name, value, can_gc)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-domstringmap-nameditem

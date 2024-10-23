@@ -56,6 +56,7 @@ impl HTMLObjectElement {
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> DomRoot<HTMLObjectElement> {
         Node::reflect_node_with_proto(
             Box::new(HTMLObjectElement::new_inherited(
@@ -63,6 +64,7 @@ impl HTMLObjectElement {
             )),
             document,
             proto,
+            can_gc,
         )
     }
 }

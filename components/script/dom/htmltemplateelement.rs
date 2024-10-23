@@ -44,6 +44,7 @@ impl HTMLTemplateElement {
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> DomRoot<HTMLTemplateElement> {
         let n = Node::reflect_node_with_proto(
             Box::new(HTMLTemplateElement::new_inherited(
@@ -51,6 +52,7 @@ impl HTMLTemplateElement {
             )),
             document,
             proto,
+            can_gc,
         );
 
         n.upcast::<Node>().set_weird_parser_insertion_mode();
@@ -64,7 +66,7 @@ impl HTMLTemplateElementMethods for HTMLTemplateElement {
         self.contents.or_init(|| {
             let doc = document_from_node(self);
             doc.appropriate_template_contents_owner_document(can_gc)
-                .CreateDocumentFragment()
+                .CreateDocumentFragment(can_gc)
         })
     }
 }

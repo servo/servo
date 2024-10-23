@@ -17,6 +17,7 @@ use crate::dom::document::Document;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::{BindContext, ChildrenMutation, Node};
 use crate::dom::virtualmethods::VirtualMethods;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct HTMLTitleElement {
@@ -42,6 +43,7 @@ impl HTMLTitleElement {
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> DomRoot<HTMLTitleElement> {
         Node::reflect_node_with_proto(
             Box::new(HTMLTitleElement::new_inherited(
@@ -49,6 +51,7 @@ impl HTMLTitleElement {
             )),
             document,
             proto,
+            can_gc,
         )
     }
 
@@ -67,8 +70,8 @@ impl HTMLTitleElementMethods for HTMLTitleElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-title-text
-    fn SetText(&self, value: DOMString) {
-        self.upcast::<Node>().SetTextContent(Some(value))
+    fn SetText(&self, value: DOMString, can_gc: CanGc) {
+        self.upcast::<Node>().SetTextContent(Some(value), can_gc)
     }
 }
 

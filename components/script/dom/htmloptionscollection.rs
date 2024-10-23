@@ -26,6 +26,7 @@ use crate::dom::htmloptionelement::HTMLOptionElement;
 use crate::dom::htmlselectelement::HTMLSelectElement;
 use crate::dom::node::{document_from_node, Node};
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct HTMLOptionsCollection {
@@ -53,12 +54,13 @@ impl HTMLOptionsCollection {
         )
     }
 
-    fn add_new_elements(&self, count: u32) -> ErrorResult {
+    fn add_new_elements(&self, count: u32, can_gc: CanGc) -> ErrorResult {
         let root = self.upcast().root_node();
         let document = document_from_node(&*root);
 
         for _ in 0..count {
-            let element = HTMLOptionElement::new(local_name!("option"), None, &document, None);
+            let element =
+                HTMLOptionElement::new(local_name!("option"), None, &document, None, can_gc);
             let node = element.upcast::<Node>();
             root.AppendChild(node)?;
         }
@@ -91,7 +93,12 @@ impl HTMLOptionsCollectionMethods for HTMLOptionsCollection {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-htmloptionscollection-setter
-    fn IndexedSetter(&self, index: u32, value: Option<&HTMLOptionElement>) -> ErrorResult {
+    fn IndexedSetter(
+        &self,
+        index: u32,
+        value: Option<&HTMLOptionElement>,
+        can_gc: CanGc,
+    ) -> ErrorResult {
         if let Some(value) = value {
             // Step 2
             let length = self.upcast().Length();
@@ -101,7 +108,7 @@ impl HTMLOptionsCollectionMethods for HTMLOptionsCollection {
 
             // Step 4
             if n > 0 {
-                self.add_new_elements(n as u32)?;
+                self.add_new_elements(n as u32, can_gc)?;
             }
 
             // Step 5
@@ -128,7 +135,7 @@ impl HTMLOptionsCollectionMethods for HTMLOptionsCollection {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-htmloptionscollection-length>
-    fn SetLength(&self, length: u32) {
+    fn SetLength(&self, length: u32, can_gc: CanGc) {
         let current_length = self.upcast().Length();
         let delta = length as i32 - current_length as i32;
         match delta.cmp(&0) {
@@ -140,7 +147,7 @@ impl HTMLOptionsCollectionMethods for HTMLOptionsCollection {
             },
             Ordering::Greater => {
                 // new length is higher - adding new option elements
-                self.add_new_elements(delta as u32).unwrap();
+                self.add_new_elements(delta as u32, can_gc).unwrap();
             },
             _ => {},
         }

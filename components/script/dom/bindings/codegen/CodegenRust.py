@@ -6239,6 +6239,7 @@ let global = GlobalScope::from_object(JS_CALLEE(*cx, vp).to_object());
                     &global,
                     PrototypeList::ID::{MakeNativeName(self.descriptor.name)},
                     CreateInterfaceObjects,
+                    CanGc::note()
                 )
                 """
         else:

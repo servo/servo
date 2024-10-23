@@ -63,6 +63,7 @@ unsafe fn html_constructor(
     check_type: fn(&Element) -> bool,
     proto_id: PrototypeList::ID,
     creator: unsafe fn(SafeJSContext, HandleObject, *mut ProtoOrIfaceArray),
+    can_gc: CanGc,
 ) -> Result<(), ()> {
     let window = global.downcast::<Window>().unwrap();
     let document = window.Document();
@@ -157,7 +158,7 @@ unsafe fn html_constructor(
             // Any prototype used to create these elements will be overwritten before returning
             // from this function, so we don't bother overwriting the defaults here.
             let element = if definition.is_autonomous() {
-                DomRoot::upcast(HTMLElement::new(name.local, None, &document, None))
+                DomRoot::upcast(HTMLElement::new(name.local, None, &document, None, can_gc))
             } else {
                 create_native_html_element(
                     name,
@@ -384,6 +385,7 @@ pub unsafe fn call_html_constructor<T: DerivedFrom<Element> + DomObject>(
     global: &GlobalScope,
     proto_id: PrototypeList::ID,
     creator: unsafe fn(SafeJSContext, HandleObject, *mut ProtoOrIfaceArray),
+    can_gc: CanGc,
 ) -> bool {
     fn element_derives_interface<T: DerivedFrom<Element>>(element: &Element) -> bool {
         element.is::<T>()
@@ -396,6 +398,7 @@ pub unsafe fn call_html_constructor<T: DerivedFrom<Element> + DomObject>(
         element_derives_interface::<T>,
         proto_id,
         creator,
+        can_gc,
     )
     .is_ok()
 }
