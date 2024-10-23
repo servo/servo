@@ -3,15 +3,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use std::collections::VecDeque;
+use std::mem;
 use std::rc::Rc;
-use std::{mem, ptr};
 
 use dom_struct::dom_struct;
-use js::conversions::ToJSValConvertible;
 use js::jsapi::Heap;
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue};
 
+use super::bindings::root::MutNullableDom;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultReaderBinding::{
     ReadableStreamDefaultReaderMethods, ReadableStreamReadResult,
@@ -19,13 +19,11 @@ use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultReaderBinding:
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::import::module::Fallible;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
-use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::trace::RootedTraceableBox;
-use crate::dom::bindings::utils::set_dictionary_property;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::readablestream::ReadableStream;
-use crate::dom::readablestreamdefaultcontroller::EnqueuedValue;
 use crate::script_runtime::JSContext as SafeJSContext;
 
 /// <https://streams.spec.whatwg.org/#read-request>
@@ -69,7 +67,6 @@ impl ReadRequest {
     /// <https://streams.spec.whatwg.org/#ref-for-read-request-close-step>
     pub fn error_steps(&self, e: SafeHandleValue) {
         match self {
-            // TODO: pass error type.
             ReadRequest::Read(promise) => promise.reject_native(&e),
         }
     }
@@ -81,8 +78,7 @@ pub struct ReadableStreamDefaultReader {
     reflector_: Reflector,
 
     /// <https://streams.spec.whatwg.org/#readablestreamgenericreader-stream>
-    /// TODO: use MutNullableDom
-    stream: Dom<ReadableStream>,
+    stream: MutNullableDom<ReadableStream>,
 
     #[ignore_malloc_size_of = "Rc is hard"]
     read_requests: DomRefCell<VecDeque<ReadRequest>>,
@@ -110,7 +106,7 @@ impl ReadableStreamDefaultReader {
     ) -> ReadableStreamDefaultReader {
         ReadableStreamDefaultReader {
             reflector_: Reflector::new(),
-            stream: Dom::from_ref(stream),
+            stream: MutNullableDom::new(Some(stream)),
             read_requests: DomRefCell::new(Default::default()),
             closed_promise,
         }
@@ -137,7 +133,7 @@ impl ReadableStreamDefaultReader {
     /// <https://streams.spec.whatwg.org/#readable-stream-close>
     pub fn close(&self) {
         self.closed_promise.resolve_native(&());
-        let pending_requests = mem::take(&mut *self.read_requests.borrow_mut());
+        let pending_requests = self.get_read_requests();
         for request in pending_requests {
             request.close_steps();
         }
@@ -156,7 +152,7 @@ impl ReadableStreamDefaultReader {
     /// <https://streams.spec.whatwg.org/#readable-stream-error>
     pub fn error(&self, e: SafeHandleValue) {
         self.closed_promise.reject_native(&e);
-        let pending_requests = mem::take(&mut *self.read_requests.borrow_mut());
+        let pending_requests = self.get_read_requests();
         for request in pending_requests {
             request.error_steps(e);
         }
@@ -169,6 +165,10 @@ impl ReadableStreamDefaultReader {
             .pop_front()
             .expect("Reader must have read request when remove is called into.")
     }
+
+    fn get_read_requests(&self) -> VecDeque<ReadRequest> {
+        mem::take(&mut *self.read_requests.borrow_mut())
+    }
 }
 
 impl ReadableStreamDefaultReaderMethods for ReadableStreamDefaultReader {
@@ -176,38 +176,70 @@ impl ReadableStreamDefaultReaderMethods for ReadableStreamDefaultReader {
     fn Read(&self) -> Rc<Promise> {
         let promise = Promise::new(&self.reflector_.global());
 
-        self.stream
-            .perform_pull_steps(ReadRequest::Read(promise.clone()));
+        if let Some(stream) = self.stream.get() {
+            stream.perform_pull_steps(ReadRequest::Read(promise.clone()));
+        } else {
+            promise.reject_error(Error::Type("stream is undefined".to_owned()));
+        }
 
         promise
     }
 
     /// <https://streams.spec.whatwg.org/#default-reader-release-lock>
+    #[allow(unsafe_code)]
     fn ReleaseLock(&self) {
-        if self.stream.is_readable() {
-            self.closed_promise.reject_native(&());
-        }
+        // step 2
+        // https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaultreaderrelease
+        if let Some(stream) = self.stream.get() {
+            // step 2.1
+            // https://streams.spec.whatwg.org/#readable-stream-reader-generic-release
+            stream.release_lock(&self.closed_promise);
+            self.stream.set(None);
 
-        // TODO: https://streams.spec.whatwg.org/#readable-stream-reader-generic-release
+            // step 2.2
+            let error =
+                Error::Type("No chunks are available because the stream is errored".to_owned());
 
-        // <https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaultreadererrorreadrequests>
-        for request in self.read_requests.borrow_mut().drain(0..) {
-            // TODO: use TypeError.
-            let cx = GlobalScope::get_cx();
-            rooted!(in(*cx) let mut rval = UndefinedValue());
-            request.error_steps(rval.handle());
+            // step 2.3
+            // <https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaultreadererrorreadrequests>
+
+            // step 2.3.1
+            let mut read_requests = self.get_read_requests();
+            // step 2.3.2 & 2.3.3
+            for request in read_requests.drain(0..) {
+                let cx = GlobalScope::get_cx();
+                rooted!(in(*cx) let mut rval = UndefinedValue());
+                unsafe {
+                    error
+                        .clone()
+                        .to_jsval(*cx, &*self.global(), rval.handle_mut())
+                };
+                request.error_steps(rval.handle());
+            }
+        } else {
+            // step 1
+            return;
         }
     }
 
     /// <https://streams.spec.whatwg.org/#generic-reader-closed>
     fn Closed(&self) -> Rc<Promise> {
-        // TODO
-        Promise::new(&self.reflector_.global())
+        self.closed_promise.clone()
     }
 
     /// <https://streams.spec.whatwg.org/#generic-reader-cancel>
-    fn Cancel(&self, _cx: SafeJSContext, _reason: SafeHandleValue) -> Rc<Promise> {
-        // TODO
-        Promise::new(&self.reflector_.global())
+    fn Cancel(&self, _cx: SafeJSContext, reason: SafeHandleValue) -> Rc<Promise> {
+        let promise = Promise::new(&self.reflector_.global());
+
+        if let Some(stream) = self.stream.get() {
+            // step 2.1 & 2.2
+            assert!(self.stream.get().is_some());
+            // 2.3
+            stream.cancel(&promise, reason);
+        } else {
+            promise.reject_error(Error::Type("stream is undefined".to_owned()));
+        }
+
+        promise
     }
 }

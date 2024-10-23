@@ -451,6 +451,12 @@ impl ReadableStreamDefaultController {
         self.call_pull_if_needed();
     }
 
+    /// <https://streams.spec.whatwg.org/#ref-for-abstract-opdef-readablestreamcontroller-releasesteps>
+    pub fn perform_release_steps(&self) {
+        // step 1
+        return;
+    }
+
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-enqueue>
     #[allow(unsafe_code)]
     pub fn enqueue(&self, cx: SafeJSContext, chunk: SafeHandleValue) -> Result<(), Error> {

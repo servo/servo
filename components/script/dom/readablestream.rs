@@ -8,10 +8,9 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject};
-use js::jsval::{JSVal, ObjectValue, UndefinedValue};
+use js::jsval::{ObjectValue, UndefinedValue};
 use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue};
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStrategy;
 use crate::dom::bindings::codegen::Bindings::ReadableStreamBinding::{
     ReadableStreamGetReaderOptions, ReadableStreamMethods,
@@ -227,6 +226,14 @@ impl ReadableStream {
         stream
     }
 
+    /// Call into the release steps of the controller,
+    pub fn perform_release_steps(&self) {
+        match self.controller {
+            ControllerType::Default(ref controller) => controller.perform_release_steps(),
+            _ => todo!(),
+        }
+    }
+
     /// Call into the pull steps of the controller,
     /// as part of
     /// <https://streams.spec.whatwg.org/#readable-stream-default-reader-read>
@@ -297,7 +304,7 @@ impl ReadableStream {
 
     /// <https://streams.spec.whatwg.org/#readable-stream-error>
     /// Note: in other use cases this call happens via the controller.
-    pub fn error_native(&self, error: Error) {
+    pub fn error_native(&self, _error: Error) {
         match self.controller {
             ControllerType::Default(ref controller) => {
                 // TODO: use Error.
@@ -459,12 +466,12 @@ impl ReadableStream {
                     reader.close();
                 }
             },
-            ReaderType::BYOB(ref reader) => todo!(),
+            ReaderType::BYOB(ref _reader) => todo!(),
         }
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-cancel>
-    fn cancel(&self, promise: &Promise, reason: SafeHandleValue) {
+    pub fn cancel(&self, promise: &Promise, _reason: SafeHandleValue) {
         self.disturbed.set(true);
 
         if self.is_closed() {
@@ -481,6 +488,35 @@ impl ReadableStream {
         // TODO: run the bytes reader steps.
 
         // TODO: react to sourceCancelPromise.
+    }
+
+    /// <https://streams.spec.whatwg.org/#readable-stream-reader-generic-release>
+    pub fn release_lock(&self, closed_promise: &Promise) {
+        // step 1 & 2
+
+        if self.is_readable() {
+            // step 3
+            closed_promise.reject_error(Error::Type("stream state is not readable".to_owned()));
+        } else {
+            // step 4
+            closed_promise.reject_error(Error::Type(
+                "Cannot release lock due to stream state.".to_owned(),
+            ));
+        }
+
+        // step 5
+        closed_promise.set_promise_is_handled();
+
+        // step 6
+        self.perform_release_steps();
+
+        // step 2.1.8 & 2.1.9
+        match self.reader {
+            ReaderType::Default(ref reader) => {
+                reader.set(None);
+            },
+            _ => unreachable!("Releasing lock can only be done with a default reader."),
+        }
     }
 }
 
