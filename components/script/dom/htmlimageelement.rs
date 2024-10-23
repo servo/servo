@@ -299,7 +299,7 @@ impl FetchResponseListener for ImageContext {
     }
 
     fn submit_resource_timing(&mut self) {
-        network_listener::submit_timing(self)
+        network_listener::submit_timing(self, CanGc::note())
     }
 }
 
@@ -485,14 +485,18 @@ impl HTMLImageElement {
         // Fire image.onload and loadend
         if trigger_image_load {
             // TODO: https://html.spec.whatwg.org/multipage/#fire-a-progress-event-or-event
-            self.upcast::<EventTarget>().fire_event(atom!("load"));
-            self.upcast::<EventTarget>().fire_event(atom!("loadend"));
+            self.upcast::<EventTarget>()
+                .fire_event(atom!("load"), can_gc);
+            self.upcast::<EventTarget>()
+                .fire_event(atom!("loadend"), can_gc);
         }
 
         // Fire image.onerror
         if trigger_image_error {
-            self.upcast::<EventTarget>().fire_event(atom!("error"));
-            self.upcast::<EventTarget>().fire_event(atom!("loadend"));
+            self.upcast::<EventTarget>()
+                .fire_event(atom!("error"), can_gc);
+            self.upcast::<EventTarget>()
+                .fire_event(atom!("loadend"), can_gc);
         }
 
         // Trigger reflow
@@ -901,7 +905,7 @@ impl HTMLImageElement {
                         let src_present = elem.has_attribute(&local_name!("src"));
 
                         if src_present || Self::uses_srcset_or_picture(elem) {
-                            this.upcast::<EventTarget>().fire_event(atom!("error"));
+                            this.upcast::<EventTarget>().fire_event(atom!("error"), CanGc::note());
                         }
                     }),
                     window.upcast(),
@@ -932,7 +936,7 @@ impl HTMLImageElement {
                                 this.current_request.borrow_mut();
                             current_request.source_url = Some(USVString(src))
                         }
-                        this.upcast::<EventTarget>().fire_event(atom!("error"));
+                        this.upcast::<EventTarget>().fire_event(atom!("error"), CanGc::note());
 
                     }),
                     window.upcast(),
@@ -1027,7 +1031,7 @@ impl HTMLImageElement {
                                 current_request.source_url = Some(USVString(src));
                             }
                             // TODO: restart animation, if set.
-                            this.upcast::<EventTarget>().fire_event(atom!("load"));
+                            this.upcast::<EventTarget>().fire_event(atom!("load"), CanGc::note());
                         }),
                         window.upcast(),
                     );
@@ -1278,7 +1282,7 @@ impl HTMLImageElement {
                 this.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
 
                 // Step 15.7
-                this.upcast::<EventTarget>().fire_event(atom!("load"));
+                this.upcast::<EventTarget>().fire_event(atom!("load"), CanGc::note());
             }),
             window.upcast(),
         );

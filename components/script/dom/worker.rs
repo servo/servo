@@ -128,9 +128,9 @@ impl Worker {
         }
     }
 
-    pub fn dispatch_simple_error(address: TrustedWorkerAddress) {
+    pub fn dispatch_simple_error(address: TrustedWorkerAddress, can_gc: CanGc) {
         let worker = address.root();
-        worker.upcast().fire_event(atom!("error"));
+        worker.upcast().fire_event(atom!("error"), can_gc);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-dedicatedworkerglobalscope-postmessage>
@@ -301,6 +301,6 @@ impl WorkerMethods for Worker {
 impl TaskOnce for SimpleWorkerErrorHandler<Worker> {
     #[allow(crown::unrooted_must_root)]
     fn run_once(self) {
-        Worker::dispatch_simple_error(self.addr);
+        Worker::dispatch_simple_error(self.addr, CanGc::note());
     }
 }

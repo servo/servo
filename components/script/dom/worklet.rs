@@ -662,6 +662,7 @@ impl WorkletThread {
             request,
             &resource_fetcher,
             global_scope.upcast::<GlobalScope>(),
+            can_gc,
         )
         .ok()
         .and_then(|(_, bytes)| String::from_utf8(bytes).ok());

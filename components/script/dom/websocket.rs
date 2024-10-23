@@ -478,7 +478,7 @@ impl TaskOnce for ConnectionEstablishedTask {
         };
 
         // Step 4.
-        ws.upcast().fire_event(atom!("open"));
+        ws.upcast().fire_event(atom!("open"), CanGc::note());
     }
 }
 
@@ -524,7 +524,7 @@ impl TaskOnce for CloseTask {
 
         // Step 2.
         if self.failed {
-            ws.upcast().fire_event(atom!("error"));
+            ws.upcast().fire_event(atom!("error"), CanGc::note());
         }
 
         // Step 3.

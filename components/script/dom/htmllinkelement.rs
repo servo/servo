@@ -56,6 +56,7 @@ use crate::dom::virtualmethods::VirtualMethods;
 use crate::fetch::create_a_potential_cors_request;
 use crate::links::LinkRelations;
 use crate::network_listener::{submit_timing, PreInvoke, ResourceTimingListener};
+use crate::script_runtime::CanGc;
 use crate::stylesheet_loader::{StylesheetContextSource, StylesheetLoader, StylesheetOwner};
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
@@ -711,13 +712,13 @@ impl FetchResponseListener for PrefetchContext {
             self.link
                 .root()
                 .upcast::<EventTarget>()
-                .fire_event(atom!("error"));
+                .fire_event(atom!("error"), CanGc::note());
         } else {
             // Step 2. Otherwise, fire an event named load at el.
             self.link
                 .root()
                 .upcast::<EventTarget>()
-                .fire_event(atom!("load"));
+                .fire_event(atom!("load"), CanGc::note());
         }
     }
 
@@ -730,7 +731,7 @@ impl FetchResponseListener for PrefetchContext {
     }
 
     fn submit_resource_timing(&mut self) {
-        submit_timing(self)
+        submit_timing(self, CanGc::note())
     }
 }
 

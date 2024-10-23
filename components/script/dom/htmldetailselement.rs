@@ -19,6 +19,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::{window_from_node, Node, NodeDamage};
 use crate::dom::virtualmethods::VirtualMethods;
+use crate::script_runtime::CanGc;
 use crate::task_source::TaskSource;
 
 #[dom_struct]
@@ -87,7 +88,7 @@ impl VirtualMethods for HTMLDetailsElement {
                 task!(details_notification_task_steps: move || {
                     let this = this.root();
                     if counter == this.toggle_counter.get() {
-                        this.upcast::<EventTarget>().fire_event(atom!("toggle"));
+                        this.upcast::<EventTarget>().fire_event(atom!("toggle"), CanGc::note());
                     }
                 }),
                 window.upcast(),

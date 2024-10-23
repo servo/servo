@@ -549,10 +549,10 @@ impl HTMLMediaElement {
 
                     this.fulfill_in_flight_play_promises(|| {
                         // Step 2.3.1.
-                        this.upcast::<EventTarget>().fire_event(atom!("timeupdate"));
+                        this.upcast::<EventTarget>().fire_event(atom!("timeupdate"), CanGc::note());
 
                         // Step 2.3.2.
-                        this.upcast::<EventTarget>().fire_event(atom!("pause"));
+                        this.upcast::<EventTarget>().fire_event(atom!("pause"), CanGc::note());
 
                         if let Some(ref player) = *this.player.borrow() {
                             if let Err(e) = player.lock().unwrap().pause() {
@@ -597,7 +597,7 @@ impl HTMLMediaElement {
 
                 this.fulfill_in_flight_play_promises(|| {
                     // Step 2.1.
-                    this.upcast::<EventTarget>().fire_event(atom!("playing"));
+                    this.upcast::<EventTarget>().fire_event(atom!("playing"), CanGc::note());
                     this.play_media();
 
                     // Step 2.2.
@@ -641,7 +641,7 @@ impl HTMLMediaElement {
                     let _ = task_source.queue(
                         task!(media_reached_current_data: move || {
                             let this = this.root();
-                            this.upcast::<EventTarget>().fire_event(atom!("loadeddata"));
+                            this.upcast::<EventTarget>().fire_event(atom!("loadeddata"), CanGc::note());
                             this.delay_load_event(false, CanGc::note());
                         }),
                         window.upcast(),
@@ -829,7 +829,9 @@ impl HTMLMediaElement {
                 let src = source.Src();
                 // Step 9.attr.2.
                 if src.is_empty() {
-                    source.upcast::<EventTarget>().fire_event(atom!("error"));
+                    source
+                        .upcast::<EventTarget>()
+                        .fire_event(atom!("error"), can_gc);
                     self.queue_dedicated_media_source_failure_steps();
                     return;
                 }
@@ -837,7 +839,9 @@ impl HTMLMediaElement {
                 let url_record = match base_url.join(&src) {
                     Ok(url) => url,
                     Err(_) => {
-                        source.upcast::<EventTarget>().fire_event(atom!("error"));
+                        source
+                            .upcast::<EventTarget>()
+                            .fire_event(atom!("error"), can_gc);
                         self.queue_dedicated_media_source_failure_steps();
                         return;
                     },
@@ -1022,7 +1026,7 @@ impl HTMLMediaElement {
                     this.set_show_poster(true);
 
                     // Step 5.
-                    this.upcast::<EventTarget>().fire_event(atom!("error"));
+                    this.upcast::<EventTarget>().fire_event(atom!("error"), CanGc::note());
 
                     if let Some(ref player) = *this.player.borrow() {
                         if let Err(e) = player.lock().unwrap().stop() {
@@ -1504,7 +1508,7 @@ impl HTMLMediaElement {
                                     task!(reaches_the_end_steps: move || {
                                         let this = this.root();
                                         // Step 3.1.
-                                        this.upcast::<EventTarget>().fire_event(atom!("timeupdate"));
+                                        this.upcast::<EventTarget>().fire_event(atom!("timeupdate"), CanGc::note());
 
                                         // Step 3.2.
                                         if this.Ended() && !this.Paused() {
@@ -1512,7 +1516,7 @@ impl HTMLMediaElement {
                                             this.paused.set(true);
 
                                             // Step 3.2.2.
-                                            this.upcast::<EventTarget>().fire_event(atom!("pause"));
+                                            this.upcast::<EventTarget>().fire_event(atom!("pause"), CanGc::note());
 
                                             // Step 3.2.3.
                                             this.take_pending_play_promises(Err(Error::Abort));
@@ -1520,7 +1524,7 @@ impl HTMLMediaElement {
                                         }
 
                                         // Step 3.3.
-                                        this.upcast::<EventTarget>().fire_event(atom!("ended"));
+                                        this.upcast::<EventTarget>().fire_event(atom!("ended"), CanGc::note());
                                     }),
                                     window.upcast(),
                                 );
@@ -1573,7 +1577,8 @@ impl HTMLMediaElement {
                 self.delay_load_event(false, can_gc);
 
                 // 5. Fire an event named error at the media element.
-                self.upcast::<EventTarget>().fire_event(atom!("error"));
+                self.upcast::<EventTarget>()
+                    .fire_event(atom!("error"), can_gc);
 
                 // TODO: 6. Abort the overall resource selection algorithm.
             },
@@ -2834,11 +2839,13 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
         }
 
         if status.is_ok() && self.latest_fetched_content != 0 {
-            elem.upcast::<EventTarget>().fire_event(atom!("progress"));
+            elem.upcast::<EventTarget>()
+                .fire_event(atom!("progress"), CanGc::note());
 
             elem.network_state.set(NetworkState::Idle);
 
-            elem.upcast::<EventTarget>().fire_event(atom!("suspend"));
+            elem.upcast::<EventTarget>()
+                .fire_event(atom!("suspend"), CanGc::note());
         }
         // => "If the connection is interrupted after some media data has been received..."
         else if elem.ready_state.get() != ReadyState::HaveNothing {
@@ -2866,7 +2873,8 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
             elem.delay_load_event(false, CanGc::note());
 
             // Step 5
-            elem.upcast::<EventTarget>().fire_event(atom!("error"));
+            elem.upcast::<EventTarget>()
+                .fire_event(atom!("error"), CanGc::note());
         } else {
             // => "If the media data cannot be fetched at all..."
             elem.queue_dedicated_media_source_failure_steps();
@@ -2882,7 +2890,7 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
     }
 
     fn submit_resource_timing(&mut self) {
-        network_listener::submit_timing(self)
+        network_listener::submit_timing(self, CanGc::note())
     }
 }
 

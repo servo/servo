@@ -303,7 +303,7 @@ impl FetchResponseListener for FetchContext {
     fn submit_resource_timing(&mut self) {
         // navigation submission is handled in servoparser/mod.rs
         if self.resource_timing.timing_type == ResourceTimingType::Resource {
-            network_listener::submit_timing(self)
+            network_listener::submit_timing(self, CanGc::note())
         }
     }
 }
@@ -333,6 +333,7 @@ pub fn load_whole_resource(
     request: RequestBuilder,
     core_resource_thread: &CoreResourceThread,
     global: &GlobalScope,
+    can_gc: CanGc,
 ) -> Result<(Metadata, Vec<u8>), NetworkError> {
     let request = request.https_state(global.get_https_state());
     let (action_sender, action_receiver) = ipc::channel().unwrap();
@@ -360,7 +361,7 @@ pub fn load_whole_resource(
             FetchResponseMsg::ProcessResponseEOF(_, Ok(_)) => {
                 let metadata = metadata.unwrap();
                 if let Some(timing) = &metadata.timing {
-                    submit_timing_data(global, url, InitiatorType::Other, timing);
+                    submit_timing_data(global, url, InitiatorType::Other, timing, can_gc);
                 }
                 return Ok((metadata, buf));
             },

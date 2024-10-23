@@ -430,6 +430,7 @@ impl DedicatedWorkerGlobalScope {
                     request,
                     &global_scope.resource_threads().sender(),
                     global_scope,
+                    CanGc::note(),
                 ) {
                     Err(_) => {
                         println!("error loading script {}", serialized_worker_url);

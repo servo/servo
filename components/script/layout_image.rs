@@ -24,6 +24,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::node::{document_from_node, Node};
 use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::network_listener::{self, PreInvoke, ResourceTimingListener};
+use crate::script_runtime::CanGc;
 
 struct LayoutImageContext {
     id: PendingImageId,
@@ -74,7 +75,7 @@ impl FetchResponseListener for LayoutImageContext {
     }
 
     fn submit_resource_timing(&mut self) {
-        network_listener::submit_timing(self)
+        network_listener::submit_timing(self, CanGc::note())
     }
 }
 
