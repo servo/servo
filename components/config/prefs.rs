@@ -533,6 +533,12 @@ mod gen {
                 columns: {
                     enabled: bool,
                 },
+                css: {
+                    transition_behavior: {
+                        #[serde(rename = "layout.css.transition-behavior.enabled")]
+                        enabled: bool,
+                    }
+                },
                 flexbox: {
                     enabled: bool,
                 },
