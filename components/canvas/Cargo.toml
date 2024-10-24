@@ -38,7 +38,6 @@ pixels = { path = "../pixels" }
 range = { path = "../range" }
 raqote = "0.8.5"
 servo_arc = { workspace = true }
-sparkle = { workspace = true }
 style = { workspace = true }
 style_traits = { workspace = true }
 surfman = { workspace = true }

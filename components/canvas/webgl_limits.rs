@@ -3,8 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use canvas_traits::webgl::{GLLimits, WebGLVersion};
-use sparkle::gl;
-use sparkle::gl::{GLenum, Gl, GlType};
+use glow::{self as gl, Context as Gl, HasContext};
+type GLenum = u32;
 
 pub trait GLLimitsDetect {
     fn detect(gl: &Gl, webgl_version: WebGLVersion) -> Self;
@@ -32,7 +32,7 @@ impl GLLimitsDetect for GLLimits {
             max_vertex_output_vectors,
             max_fragment_input_vectors,
         );
-        if gl.get_type() == GlType::Gles {
+        if gl.version().is_embedded {
             max_fragment_uniform_vectors = gl.get_integer(gl::MAX_FRAGMENT_UNIFORM_VECTORS);
             max_varying_vectors = gl.get_integer(gl::MAX_VARYING_VECTORS);
             max_vertex_uniform_vectors = gl.get_integer(gl::MAX_VERTEX_UNIFORM_VECTORS);
@@ -220,7 +220,7 @@ macro_rules! create_fun {
             unsafe {
                 self.$glcall(parameter, &mut value);
             }
-            if self.get_error() != gl::NO_ERROR {
+            if unsafe { self.get_error() } != gl::NO_ERROR {
                 None
             } else {
                 Some(value[0] as $rstype)
@@ -234,14 +234,26 @@ macro_rules! create_fun {
 }
 
 impl<'a> GLExt for &'a Gl {
-    create_fun!(try_get_integer, get_integer, i32, get_integer_v, u32);
-    create_fun!(try_get_integer64, get_integer64, i64, get_integer64_v, u64);
+    create_fun!(
+        try_get_integer,
+        get_integer,
+        i32,
+        get_parameter_i32_slice,
+        u32
+    );
+    create_fun!(
+        try_get_integer64,
+        get_integer64,
+        i64,
+        get_parameter_i64_slice,
+        u64
+    );
     create_fun!(
         try_get_signed_integer,
         get_signed_integer,
         i32,
-        get_integer_v,
+        get_parameter_i32_slice,
         i32
     );
-    create_fun!(try_get_float, get_float, f32, get_float_v, f32);
+    create_fun!(try_get_float, get_float, f32, get_parameter_f32_slice, f32);
 }

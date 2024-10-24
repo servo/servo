@@ -219,11 +219,11 @@ impl VertexArrayObject {
         let mut has_active_attrib = false;
         let mut has_divisor_0 = false;
         for active_info in active_attribs {
-            if active_info.location < 0 {
+            let Some(location) = active_info.location else {
                 continue;
-            }
+            };
             has_active_attrib = true;
-            let attrib = &attribs[active_info.location as usize];
+            let attrib = &attribs[location as usize];
             if attrib.divisor == 0 {
                 has_divisor_0 = true;
             }

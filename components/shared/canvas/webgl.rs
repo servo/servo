@@ -14,11 +14,14 @@ pub use base::generic_channel::GenericSender as WebGLSender;
 /// Result type for send()/recv() calls in in WebGLCommands.
 pub use base::generic_channel::SendResult as WebGLSendResult;
 use euclid::default::{Rect, Size2D};
+use glow::{
+    self as gl, NativeBuffer, NativeFence, NativeFramebuffer, NativeProgram, NativeQuery,
+    NativeRenderbuffer, NativeSampler, NativeShader, NativeTexture, NativeVertexArray,
+};
 use ipc_channel::ipc::{IpcBytesReceiver, IpcBytesSender, IpcSender, IpcSharedMemory};
 use malloc_size_of_derive::MallocSizeOf;
 use pixels::PixelFormat;
 use serde::{Deserialize, Serialize};
-use sparkle::gl;
 use webrender_api::ImageKey;
 use webxr_api::{
     ContextId as WebXRContextId, Error as WebXRError, LayerId as WebXRLayerId,
@@ -632,18 +635,43 @@ macro_rules! define_resource_id {
             }
         }
     };
+    ($name:ident, $type:tt, $glow:tt) => {
+        impl $name {
+            #[inline]
+            pub fn glow(self) -> $glow {
+                $glow(self.0)
+            }
+
+            #[inline]
+            pub fn from_glow(glow: $glow) -> Self {
+                Self(glow.0)
+            }
+        }
+        define_resource_id!($name, $type);
+    };
 }
 
-define_resource_id!(WebGLBufferId, u32);
-define_resource_id!(WebGLFramebufferId, u32);
-define_resource_id!(WebGLRenderbufferId, u32);
-define_resource_id!(WebGLTextureId, u32);
-define_resource_id!(WebGLProgramId, u32);
-define_resource_id!(WebGLQueryId, u32);
-define_resource_id!(WebGLSamplerId, u32);
-define_resource_id!(WebGLShaderId, u32);
+define_resource_id!(WebGLBufferId, u32, NativeBuffer);
+define_resource_id!(WebGLFramebufferId, u32, NativeFramebuffer);
+define_resource_id!(WebGLRenderbufferId, u32, NativeRenderbuffer);
+define_resource_id!(WebGLTextureId, u32, NativeTexture);
+define_resource_id!(WebGLProgramId, u32, NativeProgram);
+define_resource_id!(WebGLQueryId, u32, NativeQuery);
+define_resource_id!(WebGLSamplerId, u32, NativeSampler);
+define_resource_id!(WebGLShaderId, u32, NativeShader);
 define_resource_id!(WebGLSyncId, u64);
-define_resource_id!(WebGLVertexArrayId, u32);
+impl WebGLSyncId {
+    #[inline]
+    pub fn glow(&self) -> NativeFence {
+        NativeFence(self.0.get() as _)
+    }
+
+    #[inline]
+    pub fn from_glow(glow: NativeFence) -> Self {
+        Self::maybe_new(glow.0 as _).expect("Glow should have valid fence")
+    }
+}
+define_resource_id!(WebGLVertexArrayId, u32, NativeVertexArray);
 define_resource_id!(WebXRLayerManagerId, u32);
 
 #[derive(
@@ -708,7 +736,7 @@ pub struct ActiveAttribInfo {
     /// The type of the attribute.
     pub type_: u32,
     /// The location of the attribute.
-    pub location: i32,
+    pub location: Option<u32>,
 }
 
 /// Description of a single active uniform.
@@ -936,23 +964,9 @@ macro_rules! gl_enums {
     }
 }
 
-// FIXME: These should come from sparkle
+// TODO(sagudev): These should come from glow
 mod gl_ext_constants {
-    use sparkle::gl::types::GLenum;
-
-    pub const COMPRESSED_RGB_S3TC_DXT1_EXT: GLenum = 0x83F0;
-    pub const COMPRESSED_RGBA_S3TC_DXT1_EXT: GLenum = 0x83F1;
-    pub const COMPRESSED_RGBA_S3TC_DXT3_EXT: GLenum = 0x83F2;
-    pub const COMPRESSED_RGBA_S3TC_DXT5_EXT: GLenum = 0x83F3;
-    pub const COMPRESSED_RGB_ETC1_WEBGL: GLenum = 0x8D64;
-
-    pub static COMPRESSIONS: &[GLenum] = &[
-        COMPRESSED_RGB_S3TC_DXT1_EXT,
-        COMPRESSED_RGBA_S3TC_DXT1_EXT,
-        COMPRESSED_RGBA_S3TC_DXT3_EXT,
-        COMPRESSED_RGBA_S3TC_DXT5_EXT,
-        COMPRESSED_RGB_ETC1_WEBGL,
-    ];
+    pub const COMPRESSED_RGB_ETC1_WEBGL: u32 = 0x8D64;
 
     pub const ALPHA16F_ARB: u32 = 0x881C;
     pub const ALPHA32F_ARB: u32 = 0x8816;
@@ -983,10 +997,10 @@ gl_enums! {
         Luminance16f = gl_ext_constants::LUMINANCE16F_ARB,
         LuminanceAlpha32f = gl_ext_constants::LUMINANCE_ALPHA32F_ARB,
         LuminanceAlpha16f = gl_ext_constants::LUMINANCE_ALPHA16F_ARB,
-        CompressedRgbS3tcDxt1 = gl_ext_constants::COMPRESSED_RGB_S3TC_DXT1_EXT,
-        CompressedRgbaS3tcDxt1 = gl_ext_constants::COMPRESSED_RGBA_S3TC_DXT1_EXT,
-        CompressedRgbaS3tcDxt3 = gl_ext_constants::COMPRESSED_RGBA_S3TC_DXT3_EXT,
-        CompressedRgbaS3tcDxt5 = gl_ext_constants::COMPRESSED_RGBA_S3TC_DXT5_EXT,
+        CompressedRgbS3tcDxt1 = gl::COMPRESSED_RGB_S3TC_DXT1_EXT,
+        CompressedRgbaS3tcDxt1 = gl::COMPRESSED_RGBA_S3TC_DXT1_EXT,
+        CompressedRgbaS3tcDxt3 = gl::COMPRESSED_RGBA_S3TC_DXT3_EXT,
+        CompressedRgbaS3tcDxt5 = gl::COMPRESSED_RGBA_S3TC_DXT5_EXT,
         CompressedRgbEtc1 = gl_ext_constants::COMPRESSED_RGB_ETC1_WEBGL,
         R8 = gl::R8,
         R8SNorm = gl::R8_SNORM,
@@ -1080,7 +1094,15 @@ impl TexFormat {
 
     /// Returns whether this format is a known texture compression format.
     pub fn is_compressed(&self) -> bool {
-        gl_ext_constants::COMPRESSIONS.contains(&self.as_gl_constant())
+        let gl_const = self.as_gl_constant();
+        matches!(
+            gl_const,
+            gl::COMPRESSED_RGB_S3TC_DXT1_EXT |
+                gl::COMPRESSED_RGBA_S3TC_DXT1_EXT |
+                gl::COMPRESSED_RGBA_S3TC_DXT3_EXT |
+                gl::COMPRESSED_RGBA_S3TC_DXT5_EXT |
+                gl_ext_constants::COMPRESSED_RGB_ETC1_WEBGL
+        )
     }
 
     /// Returns whether this format is a known sized or unsized format.
