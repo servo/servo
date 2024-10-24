@@ -20,7 +20,7 @@ use log::warn;
 use mime::{self, Mime};
 use net_traits::filemanager_thread::{FileTokenCheck, RelativePos};
 use net_traits::http_status::HttpStatus;
-use net_traits::policy_container::RequestPolicyContainer;
+use net_traits::policy_container::{PolicyContainer, RequestPolicyContainer};
 use net_traits::request::{
     is_cors_safelisted_method, is_cors_safelisted_request_header, BodyChunkRequest,
     BodyChunkResponse, CredentialsMode, Destination, Origin, RedirectMode, Referrer, Request,
@@ -28,8 +28,8 @@ use net_traits::request::{
 };
 use net_traits::response::{Response, ResponseBody, ResponseType};
 use net_traits::{
-    FetchTaskTarget, NetworkError, ReferrerPolicy, ResourceAttribute, ResourceFetchTiming,
-    ResourceTimeValue, ResourceTimingType,
+    FetchTaskTarget, NetworkError, ResourceAttribute, ResourceFetchTiming, ResourceTimeValue,
+    ResourceTimingType,
 };
 use rustls::Certificate;
 use serde::{Deserialize, Serialize};
@@ -115,75 +115,100 @@ pub async fn fetch(request: &mut Request, target: Target<'_>, context: &FetchCon
     fetch_with_cors_cache(request, &mut CorsCache::default(), target, context).await;
 }
 
+/// Continuation of fetch from step 9.
+///
+/// <https://fetch.spec.whatwg.org#concept-fetch>
 pub async fn fetch_with_cors_cache(
     request: &mut Request,
     cache: &mut CorsCache,
     target: Target<'_>,
     context: &FetchContext,
 ) {
-    // Step 1.
+    // Step 9: If request’s window is "client", then set request’s window to request’s client, if
+    // request’s client’s global object is a Window object; otherwise "no-window".
     if request.window == Window::Client {
         // TODO: Set window to request's client object if client is a Window object
     } else {
         request.window = Window::NoWindow;
     }
 
-    // Step 2.
+    // Step 10: If request’s origin is "client", then set request’s origin to request’s client’s
+    // origin.
     if request.origin == Origin::Client {
         // TODO: set request's origin to request's client's origin
         unimplemented!()
     }
 
-    // Step 3.
-    set_default_accept(request);
+    // Step 11: If all of the following conditions are true:
+    // - request’s URL’s scheme is an HTTP(S) scheme
+    // - request’s mode is "same-origin", "cors", or "no-cors"
+    // - request’s window is an environment settings object
+    // - request’s method is `GET`
+    // - request’s unsafe-request flag is not set or request’s header list is empty
+    // TODO: evaluate these conditions when we have an an environment settings object
 
-    // Step 4.
-    set_default_accept_language(&mut request.headers);
+    // Step 12: If request’s policy container is "client", then:
+    if let RequestPolicyContainer::Client = request.policy_container {
+        // Step 12.1: If request’s client is non-null, then set request’s policy container to a clone
+        // of request’s client’s policy container. [HTML]
+        // TODO: Requires request's client to support PolicyContainer
 
-    // Step 5.
-    // TODO: figure out what a Priority object is.
-
-    // Step 6.
-    // TODO: handle client hints headers.
-
-    // Step 7.
-    if request.is_subresource_request() {
-        // TODO: handle client hints headers.
+        // Step 12.2: Otherwise, set request’s policy container to a new policy container.
+        request.policy_container =
+            RequestPolicyContainer::PolicyContainer(PolicyContainer::default());
     }
 
-    // Step 8.
+    // Step 13: If request’s policy container is "client", then...
+    set_default_accept(request);
+
+    // Step 14: If request’s header list does not contain `Accept-Language`, then user agents should
+    // append (`Accept-Language, an appropriate header value) to request’s header list.
+    set_default_accept_language(&mut request.headers);
+
+    // Step 15. If request’s internal priority is null, then use request’s priority, initiator,
+    // destination, and render-blocking in an implementation-defined manner to set request’s
+    // internal priority to an implementation-defined object.
+    // TODO: figure out what a Priority object is.
+
+    // Step 16: If request is a subresource request, then:
+    if request.is_subresource_request() {
+        // TODO: requires keepalive.
+    }
+
+    // Step 17: Run main fetch given fetchParams.
     main_fetch(request, cache, false, false, target, &mut None, context).await;
+
+    // Step 18: Return fetchParams’s controller.
+    // TODO: We don't implement fetchParams as defined in the spec
 }
 
 /// <https://www.w3.org/TR/CSP/#should-block-request>
-pub fn should_request_be_blocked_by_csp(request: &Request) -> csp::CheckResult {
-    match &request.policy_container {
-        RequestPolicyContainer::Client => csp::CheckResult::Allowed,
-        RequestPolicyContainer::PolicyContainer(container) => {
-            let origin = match &request.origin {
-                Origin::Client => return csp::CheckResult::Allowed,
-                Origin::Origin(origin) => origin,
-            };
+pub fn should_request_be_blocked_by_csp(
+    request: &Request,
+    policy_container: &PolicyContainer,
+) -> csp::CheckResult {
+    let origin = match &request.origin {
+        Origin::Client => return csp::CheckResult::Allowed,
+        Origin::Origin(origin) => origin,
+    };
 
-            let csp_request = csp::Request {
-                url: request.url().into_url(),
-                origin: origin.clone().into_url_origin(),
-                redirect_count: request.redirect_count,
-                destination: request.destination,
-                initiator: csp::Initiator::None,
-                nonce: String::new(),
-                integrity_metadata: request.integrity_metadata.clone(),
-                parser_metadata: csp::ParserMetadata::None,
-            };
+    let csp_request = csp::Request {
+        url: request.url().into_url(),
+        origin: origin.clone().into_url_origin(),
+        redirect_count: request.redirect_count,
+        destination: request.destination,
+        initiator: csp::Initiator::None,
+        nonce: String::new(),
+        integrity_metadata: request.integrity_metadata.clone(),
+        parser_metadata: csp::ParserMetadata::None,
+    };
 
-            // TODO: Instead of ignoring violations, report them.
-            container
-                .csp_list
-                .as_ref()
-                .map(|c| c.should_request_be_blocked(&csp_request).0)
-                .unwrap_or(csp::CheckResult::Allowed)
-        },
-    }
+    // TODO: Instead of ignoring violations, report them.
+    policy_container
+        .csp_list
+        .as_ref()
+        .map(|c| c.should_request_be_blocked(&csp_request).0)
+        .unwrap_or(csp::CheckResult::Allowed)
 }
 
 /// [Main fetch](https://fetch.spec.whatwg.org/#concept-main-fetch)
@@ -221,8 +246,14 @@ pub async fn main_fetch(
     // Step 2.2.
     // TODO: Report violations.
 
+    // The request should have a valid policy_container associated with it.
+    let RequestPolicyContainer::PolicyContainer(policy_container) = &request.policy_container
+    else {
+        panic!("policy container should not be \"client\"");
+    };
+
     // Step 2.4.
-    if should_request_be_blocked_by_csp(request) == csp::CheckResult::Blocked {
+    if should_request_be_blocked_by_csp(request, policy_container) == csp::CheckResult::Blocked {
         warn!("Request blocked by CSP");
         response = Some(Response::network_error(NetworkError::Internal(
             "Blocked by Content-Security-Policy".into(),
@@ -246,12 +277,9 @@ pub async fn main_fetch(
 
     // Step 8: If request’s referrer policy is the empty string, then set request’s referrer policy
     // to request’s policy container’s referrer policy.
-    request.referrer_policy = request.referrer_policy.or(match &request.policy_container {
-        RequestPolicyContainer::Client => Some(ReferrerPolicy::default()),
-        RequestPolicyContainer::PolicyContainer(policy_container) => {
-            Some(policy_container.referrer_policy)
-        },
-    });
+    request.referrer_policy = request
+        .referrer_policy
+        .or(Some(policy_container.referrer_policy));
 
     assert!(request.referrer_policy.is_some());
 
