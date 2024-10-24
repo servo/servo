@@ -1640,7 +1640,9 @@ impl HTMLMediaElement {
                             can_gc,
                         );
 
-                        event.upcast::<Event>().fire(self.upcast::<EventTarget>());
+                        event
+                            .upcast::<Event>()
+                            .fire(self.upcast::<EventTarget>(), can_gc);
                     }
                 }
 
@@ -1695,7 +1697,9 @@ impl HTMLMediaElement {
                             can_gc,
                         );
 
-                        event.upcast::<Event>().fire(self.upcast::<EventTarget>());
+                        event
+                            .upcast::<Event>()
+                            .fire(self.upcast::<EventTarget>(), can_gc);
                     }
                 }
 

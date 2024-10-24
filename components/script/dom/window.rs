@@ -2294,7 +2294,7 @@ impl Window {
                         old_url,
                         new_url,
                         CanGc::note());
-                    event.upcast::<Event>().fire(this.upcast::<EventTarget>());
+                    event.upcast::<Event>().fire(this.upcast::<EventTarget>(), CanGc::note());
                 });
                 // FIXME(nox): Why are errors silenced here?
                 let _ = self.script_chan.send(CommonScriptMsg::Task(
@@ -2497,7 +2497,9 @@ impl Window {
                 mql.Matches(),
                 can_gc,
             );
-            event.upcast::<Event>().fire(mql.upcast::<EventTarget>());
+            event
+                .upcast::<Event>()
+                .fire(mql.upcast::<EventTarget>(), can_gc);
         }
     }
 

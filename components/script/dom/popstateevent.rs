@@ -77,7 +77,7 @@ impl PopStateEvent {
     ) {
         let event =
             PopStateEvent::new(window, None, atom!("popstate"), false, false, state, can_gc);
-        event.upcast::<Event>().fire(target);
+        event.upcast::<Event>().fire(target, can_gc);
     }
 }
 

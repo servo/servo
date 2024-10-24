@@ -219,7 +219,7 @@ impl MessageEvent {
             ports,
             can_gc,
         );
-        messageevent.upcast::<Event>().fire(target);
+        messageevent.upcast::<Event>().fire(target, can_gc);
     }
 
     pub fn dispatch_error(target: &EventTarget, scope: &GlobalScope, can_gc: CanGc) {
@@ -236,7 +236,7 @@ impl MessageEvent {
             init.ports.clone(),
             can_gc,
         );
-        messageevent.upcast::<Event>().fire(target);
+        messageevent.upcast::<Event>().fire(target, can_gc);
     }
 }
 

@@ -425,7 +425,7 @@ impl FileReader {
             total.unwrap_or(0),
             can_gc,
         );
-        progressevent.upcast::<Event>().fire(self.upcast());
+        progressevent.upcast::<Event>().fire(self.upcast(), can_gc);
     }
 
     fn terminate_ongoing_reading(&self) {

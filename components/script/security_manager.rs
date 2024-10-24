@@ -115,7 +115,7 @@ impl CSPViolationReporter {
             can_gc,
         );
 
-        event.upcast::<Event>().fire(&target);
+        event.upcast::<Event>().fire(&target, can_gc);
     }
 
     /// <https://w3c.github.io/webappsec-csp/#strip-url-for-use-in-reports>

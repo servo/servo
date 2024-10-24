@@ -1044,6 +1044,7 @@ pub fn handle_get_css(
     node_id: String,
     name: String,
     reply: IpcSender<Result<String, ErrorStatus>>,
+    can_gc: CanGc,
 ) {
     reply
         .send(
@@ -1053,7 +1054,7 @@ pub fn handle_get_css(
                 String::from(
                     window
                         .GetComputedStyle(element, None)
-                        .GetPropertyValue(DOMString::from(name)),
+                        .GetPropertyValue(DOMString::from(name), can_gc),
                 )
             }),
         )

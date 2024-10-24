@@ -192,14 +192,14 @@ macro_rules! css_properties(
                     $id.enabled_for_all_content(),
                     "Someone forgot a #[Pref] annotation"
                 );
-                self.get_property_value($id)
+                self.get_property_value($id, CanGc::note())
             }
             fn $setter(&self, value: DOMString) -> ErrorResult {
                 debug_assert!(
                     $id.enabled_for_all_content(),
                     "Someone forgot a #[Pref] annotation"
                 );
-                self.set_property($id, value, DOMString::new())
+                self.set_property($id, value, DOMString::new(), CanGc::note())
             }
         )*
     );
@@ -263,10 +263,10 @@ impl CSSStyleDeclaration {
         }
     }
 
-    fn get_property_value(&self, id: PropertyId) -> DOMString {
+    fn get_property_value(&self, id: PropertyId, can_gc: CanGc) -> DOMString {
         if self.readonly {
             // Readonly style declarations are used for getComputedStyle.
-            return self.get_computed_style(id, CanGc::note());
+            return self.get_computed_style(id, can_gc);
         }
 
         let mut string = String::new();
@@ -278,7 +278,13 @@ impl CSSStyleDeclaration {
         DOMString::from(string)
     }
 
-    fn set_property(&self, id: PropertyId, value: DOMString, priority: DOMString) -> ErrorResult {
+    fn set_property(
+        &self,
+        id: PropertyId,
+        value: DOMString,
+        priority: DOMString,
+        can_gc: CanGc,
+    ) -> ErrorResult {
         // Step 1
         if self.readonly {
             return Err(Error::NoModificationAllowed);
@@ -344,7 +350,7 @@ impl CSSStyleDeclaration {
 
                 Ok(())
             },
-            CanGc::note(),
+            can_gc,
         )
     }
 }
@@ -394,12 +400,12 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
     }
 
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertyvalue
-    fn GetPropertyValue(&self, property: DOMString) -> DOMString {
+    fn GetPropertyValue(&self, property: DOMString, can_gc: CanGc) -> DOMString {
         let id = match PropertyId::parse_enabled_for_all_content(&property) {
             Ok(id) => id,
             Err(..) => return DOMString::new(),
         };
-        self.get_property_value(id)
+        self.get_property_value(id, can_gc)
     }
 
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertypriority
@@ -429,13 +435,14 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
         property: DOMString,
         value: DOMString,
         priority: DOMString,
+        can_gc: CanGc,
     ) -> ErrorResult {
         // Step 3
         let id = match PropertyId::parse_enabled_for_all_content(&property) {
             Ok(id) => id,
             Err(..) => return Ok(()),
         };
-        self.set_property(id, value, priority)
+        self.set_property(id, value, priority, can_gc)
     }
 
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-removeproperty
@@ -464,16 +471,17 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
     }
 
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-cssfloat
-    fn CssFloat(&self) -> DOMString {
-        self.get_property_value(PropertyId::NonCustom(LonghandId::Float.into()))
+    fn CssFloat(&self, can_gc: CanGc) -> DOMString {
+        self.get_property_value(PropertyId::NonCustom(LonghandId::Float.into()), can_gc)
     }
 
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-cssfloat
-    fn SetCssFloat(&self, value: DOMString) -> ErrorResult {
+    fn SetCssFloat(&self, value: DOMString, can_gc: CanGc) -> ErrorResult {
         self.set_property(
             PropertyId::NonCustom(LonghandId::Float.into()),
             value,
             DOMString::new(),
+            can_gc,
         )
     }
 

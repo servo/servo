@@ -306,7 +306,7 @@ unsafe extern "C" fn promise_rejection_tracker(
                         CanGc::note()
                     );
 
-                    event.upcast::<Event>().fire(&target);
+                    event.upcast::<Event>().fire(&target, CanGc::note());
                 }),
                 global.upcast(),
             ).unwrap();
@@ -424,7 +424,7 @@ pub fn notify_about_rejected_promises(global: &GlobalScope) {
                             CanGc::note()
                         );
 
-                        let event_status = event.upcast::<Event>().fire(&target);
+                        let event_status = event.upcast::<Event>().fire(&target, CanGc::note());
 
                         // Step 4-3.
                         if event_status == EventStatus::Canceled {

@@ -1382,7 +1382,7 @@ impl Document {
         match mouse_event_type {
             MouseEventType::Click => {
                 el.set_click_in_progress(true);
-                event.fire(node.upcast());
+                event.fire(node.upcast(), can_gc);
                 el.set_click_in_progress(false);
             },
             MouseEventType::MouseDown => {
@@ -1391,7 +1391,7 @@ impl Document {
                 }
 
                 let target = node.upcast();
-                event.fire(target);
+                event.fire(target, can_gc);
             },
             MouseEventType::MouseUp => {
                 if let Some(a) = activatable {
@@ -1399,7 +1399,7 @@ impl Document {
                 }
 
                 let target = node.upcast();
-                event.fire(target);
+                event.fire(target, can_gc);
             },
         }
 
@@ -1459,7 +1459,7 @@ impl Document {
                     None,
                     can_gc,
                 );
-                event.upcast::<Event>().fire(target.upcast());
+                event.upcast::<Event>().fire(target.upcast(), can_gc);
 
                 // When a double click occurs, self.last_click_info is left as None so that a
                 // third sequential click will not cause another double click.
@@ -1507,7 +1507,7 @@ impl Document {
             can_gc,
         );
         let event = mouse_event.upcast::<Event>();
-        event.fire(target);
+        event.fire(target, can_gc);
     }
 
     #[allow(unsafe_code)]
@@ -1733,7 +1733,7 @@ impl Document {
         event.set_trusted(true);
 
         let target = node.upcast();
-        event.fire(target);
+        event.fire(target, can_gc);
     }
 
     #[allow(unsafe_code)]
@@ -1743,6 +1743,7 @@ impl Document {
         touch_id: TouchId,
         point: Point2D<f32>,
         node_address: Option<UntrustedNodeAddress>,
+        can_gc: CanGc,
     ) -> TouchEventResult {
         let TouchId(identifier) = touch_id;
 
@@ -1835,7 +1836,7 @@ impl Document {
             false,
         );
         let event = event.upcast::<Event>();
-        let result = event.fire(&target);
+        let result = event.fire(&target, can_gc);
 
         match result {
             EventStatus::Canceled => TouchEventResult::Processed(false),
@@ -1876,7 +1877,7 @@ impl Document {
             can_gc,
         );
         let event = keyevent.upcast::<Event>();
-        event.fire(target);
+        event.fire(target, can_gc);
         let mut cancel_state = event.get_cancel_state();
 
         // https://w3c.github.io/uievents/#keys-cancelable-keys
@@ -1904,7 +1905,7 @@ impl Document {
                 can_gc,
             );
             let ev = event.upcast::<Event>();
-            ev.fire(target);
+            ev.fire(target, can_gc);
             cancel_state = ev.get_cancel_state();
         }
 
@@ -1966,7 +1967,7 @@ impl Document {
             can_gc,
         );
         let event = compositionevent.upcast::<Event>();
-        event.fire(target);
+        event.fire(target, can_gc);
     }
 
     // https://dom.spec.whatwg.org/#converting-nodes-into-a-node
@@ -2907,7 +2908,7 @@ impl Document {
         let event = event.upcast::<Event>();
         event.set_trusted(true);
         let target = node.upcast();
-        event.fire(target);
+        event.fire(target, can_gc);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#cookie-averse-document-object>

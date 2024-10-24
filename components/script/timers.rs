@@ -93,7 +93,7 @@ impl OneshotTimerCallback {
         match self {
             OneshotTimerCallback::XhrTimeout(callback) => callback.invoke(can_gc),
             OneshotTimerCallback::EventSourceTimeout(callback) => callback.invoke(),
-            OneshotTimerCallback::JsTimer(task) => task.invoke(this, js_timers),
+            OneshotTimerCallback::JsTimer(task) => task.invoke(this, js_timers, can_gc),
             OneshotTimerCallback::TestBindingCallback(callback) => callback.invoke(),
             OneshotTimerCallback::FakeRequestAnimationFrame(callback) => callback.invoke(can_gc),
             OneshotTimerCallback::RefreshRedirectDue(callback) => callback.invoke(can_gc),
@@ -537,7 +537,7 @@ fn clamp_duration(nesting_level: u32, unclamped: Duration) -> Duration {
 
 impl JsTimerTask {
     // see https://html.spec.whatwg.org/multipage/#timer-initialisation-steps
-    pub fn invoke<T: DomObject>(self, this: &T, timers: &JsTimers) {
+    pub fn invoke<T: DomObject>(self, this: &T, timers: &JsTimers, can_gc: CanGc) {
         // step 4.1 can be ignored, because we proactively prevent execution
         // of this task when its scheduled execution is canceled.
 
@@ -558,7 +558,7 @@ impl JsTimerTask {
                     rval.handle_mut(),
                     ScriptFetchOptions::default_classic_script(&global),
                     global.api_base_url(),
-                    CanGc::note(),
+                    can_gc,
                 );
             },
             InternalTimerCallback::FunctionTimerCallback(ref function, ref arguments) => {

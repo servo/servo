@@ -541,7 +541,9 @@ impl TaskOnce for CloseTask {
             reason,
             CanGc::note(),
         );
-        close_event.upcast::<Event>().fire(ws.upcast());
+        close_event
+            .upcast::<Event>()
+            .fire(ws.upcast(), CanGc::note());
     }
 }
 

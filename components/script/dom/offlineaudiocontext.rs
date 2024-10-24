@@ -207,7 +207,7 @@ impl OfflineAudioContextMethods for OfflineAudioContext {
                                                                      EventBubbles::DoesNotBubble,
                                                                      EventCancelable::NotCancelable,
                                                                      &buffer, CanGc::note());
-                        event.upcast::<Event>().fire(this.upcast());
+                        event.upcast::<Event>().fire(this.upcast(), CanGc::note());
                     }),
                     &canceller,
                 );

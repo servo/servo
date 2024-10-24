@@ -119,7 +119,7 @@ impl RTCDataChannel {
             EventCancelable::NotCancelable,
             can_gc,
         );
-        event.upcast::<Event>().fire(self.upcast());
+        event.upcast::<Event>().fire(self.upcast(), can_gc);
     }
 
     pub fn on_close(&self, can_gc: CanGc) {
@@ -130,7 +130,7 @@ impl RTCDataChannel {
             EventCancelable::NotCancelable,
             can_gc,
         );
-        event.upcast::<Event>().fire(self.upcast());
+        event.upcast::<Event>().fire(self.upcast(), can_gc);
 
         self.peer_connection
             .unregister_data_channel(&self.servo_media_id);
@@ -153,7 +153,7 @@ impl RTCDataChannel {
         };
         let error = RTCError::new(&global, &init, message, can_gc);
         let event = RTCErrorEvent::new(&global, atom!("error"), false, false, &error, can_gc);
-        event.upcast::<Event>().fire(self.upcast());
+        event.upcast::<Event>().fire(self.upcast(), can_gc);
     }
 
     #[allow(unsafe_code)]
@@ -213,7 +213,7 @@ impl RTCDataChannel {
                 EventCancelable::NotCancelable,
                 can_gc,
             );
-            event.upcast::<Event>().fire(self.upcast());
+            event.upcast::<Event>().fire(self.upcast(), can_gc);
         };
         self.ready_state.set(state.into());
     }

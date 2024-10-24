@@ -304,10 +304,10 @@ impl WebGLRenderingContext {
                 );
                 match canvas {
                     HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(canvas) => {
-                        event.upcast::<Event>().fire(canvas.upcast());
+                        event.upcast::<Event>().fire(canvas.upcast(), can_gc);
                     },
                     HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(canvas) => {
-                        event.upcast::<Event>().fire(canvas.upcast());
+                        event.upcast::<Event>().fire(canvas.upcast(), can_gc);
                     },
                 }
                 None

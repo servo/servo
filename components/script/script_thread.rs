@@ -1605,6 +1605,7 @@ impl ScriptThread {
                         identifier,
                         point,
                         node_address,
+                        can_gc,
                     );
                     match (event_type, touch_result) {
                         (TouchEventType::Down, TouchEventResult::Processed(handled)) => {
@@ -2592,7 +2593,7 @@ impl ScriptThread {
                 devtools::handle_get_children(&documents, id, node_id, reply)
             },
             DevtoolScriptControlMsg::GetAttributeStyle(id, node_id, reply) => {
-                devtools::handle_get_attribute_style(&documents, id, node_id, reply)
+                devtools::handle_get_attribute_style(&documents, id, node_id, reply, can_gc)
             },
             DevtoolScriptControlMsg::GetStylesheetStyle(
                 id,
@@ -2601,13 +2602,13 @@ impl ScriptThread {
                 stylesheet,
                 reply,
             ) => devtools::handle_get_stylesheet_style(
-                &documents, id, node_id, selector, stylesheet, reply,
+                &documents, id, node_id, selector, stylesheet, reply, can_gc,
             ),
             DevtoolScriptControlMsg::GetSelectors(id, node_id, reply) => {
                 devtools::handle_get_selectors(&documents, id, node_id, reply)
             },
             DevtoolScriptControlMsg::GetComputedStyle(id, node_id, reply) => {
-                devtools::handle_get_computed_style(&documents, id, node_id, reply)
+                devtools::handle_get_computed_style(&documents, id, node_id, reply, can_gc)
             },
             DevtoolScriptControlMsg::GetLayout(id, node_id, reply) => {
                 devtools::handle_get_layout(&documents, id, node_id, reply, can_gc)
@@ -2616,7 +2617,7 @@ impl ScriptThread {
                 devtools::handle_modify_attribute(&documents, id, node_id, modifications, can_gc)
             },
             DevtoolScriptControlMsg::ModifyRule(id, node_id, modifications) => {
-                devtools::handle_modify_rule(&documents, id, node_id, modifications)
+                devtools::handle_modify_rule(&documents, id, node_id, modifications, can_gc)
             },
             DevtoolScriptControlMsg::WantsLiveNotifications(id, to_send) => match documents
                 .find_window(id)
@@ -2843,7 +2844,14 @@ impl ScriptThread {
                 )
             },
             WebDriverScriptCommand::GetElementCSS(node_id, name, reply) => {
-                webdriver_handlers::handle_get_css(&documents, pipeline_id, node_id, name, reply)
+                webdriver_handlers::handle_get_css(
+                    &documents,
+                    pipeline_id,
+                    node_id,
+                    name,
+                    reply,
+                    can_gc,
+                )
             },
             WebDriverScriptCommand::GetElementRect(node_id, reply) => {
                 webdriver_handlers::handle_get_rect(&documents, pipeline_id, node_id, reply, can_gc)
@@ -3963,6 +3971,7 @@ impl ScriptThread {
         identifier: TouchId,
         point: Point2D<f32>,
         node_address: Option<UntrustedNodeAddress>,
+        can_gc: CanGc,
     ) -> TouchEventResult {
         let document = match self.documents.borrow().find_document(pipeline_id) {
             Some(document) => document,
@@ -3971,7 +3980,7 @@ impl ScriptThread {
                 return TouchEventResult::Processed(true);
             },
         };
-        unsafe { document.handle_touch_event(event_type, identifier, point, node_address) }
+        unsafe { document.handle_touch_event(event_type, identifier, point, node_address, can_gc) }
     }
 
     fn handle_wheel_event(
@@ -4087,7 +4096,7 @@ impl ScriptThread {
                 0i32,
                 can_gc,
             );
-            uievent.upcast::<Event>().fire(window.upcast());
+            uievent.upcast::<Event>().fire(window.upcast(), can_gc);
         }
     }
 

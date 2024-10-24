@@ -299,7 +299,7 @@ impl XRSession {
                 // Step 7
                 let event =
                     XRSessionEvent::new(&self.global(), atom!("end"), false, false, self, can_gc);
-                event.upcast::<Event>().fire(self.upcast());
+                event.upcast::<Event>().fire(self.upcast(), can_gc);
             },
             XREvent::Select(input, kind, ty, frame) => {
                 use servo_atoms::Atom;
@@ -323,7 +323,7 @@ impl XRSession {
                             &source,
                             can_gc,
                         );
-                        event.upcast::<Event>().fire(self.upcast());
+                        event.upcast::<Event>().fire(self.upcast(), can_gc);
                     } else {
                         if ty == SelectEvent::Select {
                             let event = XRInputSourceEvent::new(
@@ -335,7 +335,7 @@ impl XRSession {
                                 &source,
                                 can_gc,
                             );
-                            event.upcast::<Event>().fire(self.upcast());
+                            event.upcast::<Event>().fire(self.upcast(), can_gc);
                         }
                         let event = XRInputSourceEvent::new(
                             &self.global(),
@@ -346,7 +346,7 @@ impl XRSession {
                             &source,
                             can_gc,
                         );
-                        event.upcast::<Event>().fire(self.upcast());
+                        event.upcast::<Event>().fire(self.upcast(), can_gc);
                     }
                     frame.set_active(false);
                 }
@@ -366,7 +366,7 @@ impl XRSession {
                     self,
                     can_gc,
                 );
-                event.upcast::<Event>().fire(self.upcast());
+                event.upcast::<Event>().fire(self.upcast(), can_gc);
                 // The page may be visible again, dirty the layers
                 // This also wakes up the event loop if necessary
                 self.dirty_layers();
@@ -411,7 +411,7 @@ impl XRSession {
                             Some(&*offset),
                             can_gc,
                         );
-                        event.upcast::<Event>().fire(space.upcast());
+                        event.upcast::<Event>().fire(space.upcast(), can_gc);
                     });
             },
         }
@@ -615,7 +615,7 @@ impl XRSession {
             self,
             can_gc,
         );
-        event.upcast::<Event>().fire(self.upcast());
+        event.upcast::<Event>().fire(self.upcast(), can_gc);
     }
 }
 

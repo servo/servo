@@ -156,7 +156,7 @@ impl History {
             );
             event
                 .upcast::<Event>()
-                .fire(self.window.upcast::<EventTarget>());
+                .fire(self.window.upcast::<EventTarget>(), can_gc);
         }
     }
 
