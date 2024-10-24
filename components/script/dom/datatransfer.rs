@@ -123,7 +123,7 @@ impl DataTransferMethods for DataTransfer {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-datatransfer-setdragimage>
-    fn SetDragImage(&self, image: &Element, x: i32, y: i32) {
+    fn SetDragImage(&self, _image: &Element, _x: i32, _y: i32) {
         todo!()
     }
 
