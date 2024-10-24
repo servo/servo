@@ -447,7 +447,7 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
 
 impl WorkerGlobalScope {
     #[allow(unsafe_code)]
-    pub fn execute_script(&self, source: DOMString) {
+    pub fn execute_script(&self, source: DOMString, can_gc: CanGc) {
         let _aes = AutoEntryScript::new(self.upcast());
         let cx = self.runtime.borrow().as_ref().unwrap().cx();
         rooted!(in(cx) let mut rval = UndefinedValue());
@@ -468,7 +468,7 @@ impl WorkerGlobalScope {
                     println!("evaluate_script failed");
                     unsafe {
                         let ar = enter_realm(self);
-                        report_pending_exception(cx, true, InRealm::Entered(&ar), CanGc::note());
+                        report_pending_exception(cx, true, InRealm::Entered(&ar), can_gc);
                     }
                 }
             },

@@ -384,7 +384,7 @@ impl ServiceWorkerGlobalScope {
                 {
                     // TODO: use AutoWorkerReset as in dedicated worker?
                     let _ac = enter_realm(scope);
-                    scope.execute_script(DOMString::from(source));
+                    scope.execute_script(DOMString::from(source), CanGc::note());
                 }
 
                 global.dispatch_activate(CanGc::note());
