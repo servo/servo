@@ -190,6 +190,17 @@ impl<T: DomObject> DomRoot<T> {
     pub fn from_ref(unrooted: &T) -> DomRoot<T> {
         unsafe { DomRoot::new(Dom::from_ref(unrooted)) }
     }
+
+    /// Create a traced version of this rooted object.
+    ///
+    /// # Safety
+    ///
+    /// This should never be used to create on-stack values. Instead these values should always
+    /// end up as members of other DOM objects.
+    #[allow(crown::unrooted_must_root)]
+    pub(crate) fn as_traced(&self) -> Dom<T> {
+        Dom::from_ref(self)
+    }
 }
 
 impl<T> MallocSizeOf for DomRoot<T>
@@ -359,6 +370,11 @@ impl<T: DomObject> Dom<T> {
         Dom {
             ptr: ptr::NonNull::from(obj),
         }
+    }
+
+    /// Return a rooted version of this DOM object ([`DomRoot<T>`]) suitable for use on the stack.
+    pub(crate) fn as_rooted(&self) -> DomRoot<T> {
+        DomRoot::from_ref(self)
     }
 }
 

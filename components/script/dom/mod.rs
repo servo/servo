@@ -445,6 +445,8 @@ pub mod iirfilternode;
 pub mod imagebitmap;
 pub mod imagedata;
 pub mod inputevent;
+pub mod intersectionobserver;
+pub mod intersectionobserverentry;
 pub mod keyboardevent;
 pub mod location;
 pub mod mediadeviceinfo;
