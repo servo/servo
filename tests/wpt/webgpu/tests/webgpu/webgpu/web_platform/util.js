@@ -466,7 +466,9 @@ video)
 
   return raceWithRejectOnTimeout(
     new Promise((resolve) => {
-      const videoTrack = video.captureStream().getVideoTracks()[0];
+      const videoTrack = video.
+      captureStream().
+      getVideoTracks()[0];
       const trackProcessor = new MediaStreamTrackProcessor({
         track: videoTrack
       });
@@ -546,4 +548,61 @@ timeoutMessage)
   });
   const promise = raceWithRejectOnTimeout(promiseWithoutTimeout, 2000, timeoutMessage);
   return { promise, callbackAndResolve: callbackAndResolve };
+}
+
+/**
+ * Create VideoFrame from camera captured frame. Check whether browser environment has
+ * camera supported.
+ * Returns a webcodec VideoFrame.
+ *
+ * @param test: GPUTest that requires getting VideoFrame
+ *
+ */
+export async function captureCameraFrame(test) {
+  if (
+  typeof navigator.mediaDevices === 'undefined' ||
+  typeof navigator.mediaDevices.getUserMedia === 'undefined')
+  {
+    test.skip("Browser doesn't support capture frame from camera.");
+  }
+
+  const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+  const track = stream.getVideoTracks()[0];
+
+  if (!track) {
+    test.skip("Doesn't have valid camera captured stream for testing.");
+  }
+
+  // Use MediaStreamTrackProcessor and ReadableStream to generate video frame directly.
+  if (typeof MediaStreamTrackProcessor !== 'undefined') {
+    const trackProcessor = new MediaStreamTrackProcessor({ track });
+    const reader = trackProcessor.readable.getReader();
+    const result = await reader.read();
+    if (result.done) {
+      test.skip('MediaStreamTrackProcessor: Cannot get valid frame from readable stream.');
+    }
+
+    return result.value;
+  }
+
+  // Fallback to ImageCapture if MediaStreamTrackProcessor not supported. Using grabFrame() to
+  // generate imageBitmap and creating video frame from it.
+  if (typeof ImageCapture !== 'undefined') {
+    const imageCapture = new ImageCapture(track);
+    const imageBitmap = await imageCapture.grabFrame();
+    return new VideoFrame(imageBitmap);
+  }
+
+  // Fallback to using HTMLVideoElement to do capture.
+  if (typeof HTMLVideoElement === 'undefined') {
+    test.skip('Try to use HTMLVideoElement do capture but HTMLVideoElement not available.');
+  }
+
+  const video = document.createElement('video');
+  video.srcObject = stream;
+
+  const frame = await getVideoFrameFromVideoElement(test, video);
+  test.trackForCleanup(frame);
+
+  return frame;
 }

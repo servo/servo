@@ -18,7 +18,8 @@
     vertex: {
       module,
       buffers
-    }
+    },
+    depthStencil: { format: 'depth32float', depthWriteEnabled: true, depthCompare: 'always' }
   };
 }
 

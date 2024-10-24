@@ -199,13 +199,6 @@ fn(async (t) => {
   assert(_kTypeInfo !== undefined, 'not an indexable type');
   assert('arrayLength' in _kTypeInfo);
 
-  if (baseType === 'f16' && addressSpace === 'uniform' && containerType === 'array') {
-    // Array elements must be aligned to 16 bytes, but the logic in generateTypes
-    // creates an array of vec4 of the baseType. But for f16 that's only 8 bytes.
-    // We would need to write more complex logic for that.
-    t.skip('Test logic does not handle array of f16 in the uniform address space');
-  }
-
   let usesCanary = false;
   let globalSource = '';
   let testFunctionSource = '';

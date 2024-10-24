@@ -535,11 +535,16 @@ export class LimitTestsImpl extends GPUTestBase {
   limitTest,
   testValueName,
   fn,
-  extraLimits)
+  extraLimits,
+  extraFeatures = [])
   {
     assert(!this._device);
 
-    const deviceAndLimits = await this._getDeviceWithRequestedMaximumLimit(limitTest, extraLimits);
+    const deviceAndLimits = await this._getDeviceWithRequestedMaximumLimit(
+      limitTest,
+      extraLimits,
+      extraFeatures
+    );
     // If we request over the limit requestDevice will throw
     if (!deviceAndLimits) {
       return;

@@ -1785,6 +1785,14 @@ export function isDepthOrStencilTextureFormat(format) {
   return isDepthTextureFormat(format) || isStencilTextureFormat(format);
 }
 
+export function isEncodableTextureFormat(format) {
+  return kEncodableTextureFormats.includes(format);
+}
+
+export function canUseAsRenderTarget(format) {
+  return kTextureFormatInfo[format].colorRender || isDepthOrStencilTextureFormat(format);
+}
+
 export const kCompatModeUnsupportedStorageTextureFormats = [
 'rg32float',
 'rg32sint',
@@ -1813,6 +1821,13 @@ export function isRegularTextureFormat(format) {
  */
 export function isCompressedFloatTextureFormat(format) {
   return isCompressedTextureFormat(format) && format.includes('float');
+}
+
+/**
+ * Returns true of format can be multisampled.
+ */
+export function isMultisampledTextureFormat(format) {
+  return kAllTextureFormatInfo[format].multisample;
 }
 
 export const kFeaturesForFormats = getFeaturesForFormats(kAllTextureFormats);

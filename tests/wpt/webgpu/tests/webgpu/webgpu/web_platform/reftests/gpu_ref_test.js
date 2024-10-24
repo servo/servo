@@ -1,6 +1,6 @@
 /**
 * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
-**/import { assert } from '../../../common/util/util.js';import { takeScreenshotDelayed } from '../../../common/util/wpt_reftest_wait.js';
+**/import { assert } from '../../../common/util/util.js';import { takeScreenshot, takeScreenshotDelayed } from '../../../common/util/wpt_reftest_wait.js';
 
 
 
@@ -22,5 +22,8 @@ export function runRefTest(fn) {
     await fn({ device, queue });
 
     takeScreenshotDelayed(50);
-  })();
+  })().catch(() => {
+    // remove reftest-wait to mark end of test
+    takeScreenshot();
+  });
 }

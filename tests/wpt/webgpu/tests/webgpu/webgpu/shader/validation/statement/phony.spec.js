@@ -170,3 +170,10 @@ fn f() {
 }`;
   t.expectCompileResult(kTests[t.params.test].pass, code);
 });
+
+g.test('module_scope').
+desc(`Phony assignment is not valid at module scope`).
+fn((t) => {
+  const code = `_ = 1; `;
+  t.expectCompileResult(false, code);
+});

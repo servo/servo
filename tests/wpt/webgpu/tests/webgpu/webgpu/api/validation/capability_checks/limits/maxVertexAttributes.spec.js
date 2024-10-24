@@ -18,7 +18,8 @@
         attributes: [{ shaderLocation: lastIndex, offset: 0, format: 'float32x4' }]
       }]
 
-    }
+    },
+    depthStencil: { format: 'depth32float', depthWriteEnabled: true, depthCompare: 'always' }
   };
 }
 

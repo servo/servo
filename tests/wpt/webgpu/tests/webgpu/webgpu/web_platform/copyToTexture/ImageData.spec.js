@@ -4,11 +4,11 @@
 copyExternalImageToTexture from ImageData source.
 `;import { makeTestGroup } from '../../../common/framework/test_group.js';
 import { kTextureFormatInfo, kValidTextureFormatsForCopyE2T } from '../../format_info.js';
-import { CopyToTextureUtils, kCopySubrectInfo } from '../../util/copy_to_texture.js';
+import { TextureUploadingUtils, kCopySubrectInfo } from '../../util/copy_to_texture.js';
 
 import { kTestColorsAll, makeTestColorsTexelView } from './util.js';
 
-export const g = makeTestGroup(CopyToTextureUtils);
+export const g = makeTestGroup(TextureUploadingUtils);
 
 g.test('from_ImageData').
 desc(

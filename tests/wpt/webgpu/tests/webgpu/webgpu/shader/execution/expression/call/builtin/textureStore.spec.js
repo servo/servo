@@ -743,6 +743,18 @@ filter((t) => {
   return true;
 })
 ).
+beforeAllSubcases((t) => {
+  if (t.isCompatibility) {
+    t.skipIf(
+      t.params.baseLevel !== 0,
+      'view base array layer must equal 0 in compatibility mode'
+    );
+    t.skipIf(
+      t.params.arrayLevels !== kArrayLevels,
+      'view array layers must equal texture array layers in compatibility mode'
+    );
+  }
+}).
 fn((t) => {
   const dim = '2d';
   const view_dim = '2d-array';

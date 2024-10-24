@@ -631,7 +631,7 @@ fn((t) => {
   for (let i = 0; i < t.params.c; i++) {
     for (let k = 0; k < t.params.r; k++) {
       lhs += `${t.params.lhs},`;
-      rhs += `1`;
+      rhs += `1,`;
     }
   }
   rhs += ')';

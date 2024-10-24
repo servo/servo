@@ -88,6 +88,7 @@ fn((t) => {
   const texture = t.createTextureTracked({
     format,
     dimension,
+    ...(t.isCompatibility && { textureBindingViewDimension: viewDimension }),
     usage: GPUTextureUsage.TEXTURE_BINDING,
     size: {
       width,
@@ -157,6 +158,7 @@ fn((t) => {
   const texture = t.createTextureTracked({
     format: 'depth32float',
     dimension,
+    ...(t.isCompatibility && { textureBindingViewDimension: viewDimension }),
     usage: GPUTextureUsage.TEXTURE_BINDING,
     size: {
       width,

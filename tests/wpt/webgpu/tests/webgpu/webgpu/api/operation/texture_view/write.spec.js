@@ -36,6 +36,9 @@ const kTextureViewWriteMethods = [
 
 
 
+const kTextureViewUsageMethods = ['inherit', 'minimal'];
+
+
 // Src color values to read from a shader array.
 const kColorsFloat = [
 { R: 1.0, G: 0.0, B: 0.0, A: 0.8 },
@@ -271,6 +274,22 @@ sampleCount)
   return expectedTexelView;
 }
 
+function getTextureViewUsage(
+viewUsageMethod,
+minimalUsageForTest)
+{
+  switch (viewUsageMethod) {
+    case 'inherit':
+      return 0;
+
+    case 'minimal':
+      return minimalUsageForTest;
+
+    default:
+      unreachable();
+  }
+}
+
 g.test('format').
 desc(
   `Views of every allowed format.
@@ -280,6 +299,7 @@ Read values from color array in the shader, and write it to the texture view via
 - x= every texture format
 - x= sampleCount {1, 4} if valid
 - x= every possible view write method (see above)
+- x= inherited or minimal texture view usage
 
 TODO: Test sampleCount > 1 for 'render-pass-store' after extending copySinglePixelTextureToBufferUsingComputePass
       to read multiple pixels from multisampled textures. [1]
@@ -317,7 +337,8 @@ filter(({ format, method, sampleCount }) => {
       return !!info.colorRender?.resolve && sampleCount === 1;
   }
   return true;
-})
+}).
+combine('viewUsageMethod', kTextureViewUsageMethods)
 ).
 beforeAllSubcases((t) => {
   const { format, method } = t.params;
@@ -332,13 +353,12 @@ beforeAllSubcases((t) => {
   }
 }).
 fn((t) => {
-  const { format, method, sampleCount } = t.params;
+  const { format, method, sampleCount, viewUsageMethod } = t.params;
 
-  const usage =
-  GPUTextureUsage.COPY_SRC | (
-  method.includes('storage') ?
+  const textureUsageForMethod = method.includes('storage') ?
   GPUTextureUsage.STORAGE_BINDING :
-  GPUTextureUsage.RENDER_ATTACHMENT);
+  GPUTextureUsage.RENDER_ATTACHMENT;
+  const usage = GPUTextureUsage.COPY_SRC | textureUsageForMethod;
 
   const texture = t.createTextureTracked({
     format,
@@ -347,7 +367,9 @@ fn((t) => {
     sampleCount
   });
 
-  const view = texture.createView();
+  const view = texture.createView({
+    usage: getTextureViewUsage(viewUsageMethod, textureUsageForMethod)
+  });
   const expectedTexelView = writeTextureAndGetExpectedTexelView(
     t,
     method,

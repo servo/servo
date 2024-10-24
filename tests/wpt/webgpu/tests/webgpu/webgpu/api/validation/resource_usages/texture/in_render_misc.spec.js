@@ -4,6 +4,7 @@
 Texture Usages Validation Tests on All Kinds of WebGPU Subresource Usage Scopes.
 `;import { makeTestGroup } from '../../../../../common/framework/test_group.js';
 import { unreachable } from '../../../../../common/util/util.js';
+import { kTextureUsages } from '../../../../capability_info.js';
 import { ValidationTest } from '../../validation_test.js';
 import {
 
@@ -570,4 +571,80 @@ fn((t) => {
   t.expectValidationError(() => {
     encoder.finish();
   }, false);
+});
+
+g.test('subresources,texture_view_usages').
+desc(
+  `
+  Test that the usages of the texture view are used to validate compatibility in command encoding
+  instead of the usages of the base texture.`
+).
+params((u) =>
+u.
+combine('bindingType', ['color-attachment', ...kTextureBindingTypes]).
+combine('viewUsage', [0, ...kTextureUsages])
+).
+fn((t) => {
+  const { bindingType, viewUsage } = t.params;
+
+  const texture = t.createTextureTracked({
+    format: 'r32float',
+    usage:
+    GPUTextureUsage.COPY_SRC |
+    GPUTextureUsage.COPY_DST |
+    GPUTextureUsage.TEXTURE_BINDING |
+    GPUTextureUsage.STORAGE_BINDING |
+    GPUTextureUsage.RENDER_ATTACHMENT,
+    size: [kTextureSize, kTextureSize, 1],
+    ...(t.isCompatibility && {
+      textureBindingViewDimension: '2d-array'
+    })
+  });
+
+  switch (bindingType) {
+    case 'color-attachment':{
+        const encoder = t.device.createCommandEncoder();
+        const renderPassEncoder = encoder.beginRenderPass({
+          colorAttachments: [
+          { view: texture.createView({ usage: viewUsage }), loadOp: 'load', storeOp: 'store' }]
+
+        });
+        renderPassEncoder.end();
+
+        const success = viewUsage === 0 || (viewUsage & GPUTextureUsage.RENDER_ATTACHMENT) !== 0;
+
+        t.expectValidationError(() => {
+          encoder.finish();
+        }, !success);
+        break;
+      }
+    case 'sampled-texture':
+    case 'readonly-storage-texture':
+    case 'writeonly-storage-texture':
+    case 'readwrite-storage-texture':
+      {
+        let success = true;
+        if (viewUsage !== 0) {
+          if (bindingType === 'sampled-texture') {
+            if ((viewUsage & GPUTextureUsage.TEXTURE_BINDING) === 0) success = false;
+          } else {
+            if ((viewUsage & GPUTextureUsage.STORAGE_BINDING) === 0) success = false;
+          }
+        }
+
+        t.expectValidationError(() => {
+          t.createBindGroupForTest(
+            texture.createView({
+              dimension: '2d-array',
+              usage: viewUsage
+            }),
+            bindingType,
+            'unfilterable-float'
+          );
+        }, !success);
+      }
+      break;
+    default:
+      unreachable();
+  }
 });

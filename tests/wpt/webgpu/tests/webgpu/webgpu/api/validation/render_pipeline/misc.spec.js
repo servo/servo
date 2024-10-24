@@ -36,7 +36,7 @@ fn((t) => {
 g.test('vertex_state_only').
 desc(
   `Tests creating vertex-state-only render pipeline. A vertex-only render pipeline has no fragment
-state (and thus has no color state), and can be created with or without depth stencil state.`
+state (and thus has no color state), and must have a depth-stencil state as an attachment is required.`
 ).
 params((u) =>
 u.
@@ -76,7 +76,7 @@ fn((t) => {
     targets: hasColor ? [{ format: 'rgba8unorm' }] : []
   });
 
-  t.doCreateRenderPipelineTest(isAsync, true, descriptor);
+  t.doCreateRenderPipelineTest(isAsync, depthStencilState !== undefined, descriptor);
 });
 
 g.test('pipeline_layout,device_mismatch').

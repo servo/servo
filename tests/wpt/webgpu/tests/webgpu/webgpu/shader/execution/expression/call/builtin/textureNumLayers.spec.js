@@ -51,13 +51,13 @@ Parameters
 params((u) =>
 u.
 combine('texture_type', ['texture_2d_array', 'texture_cube_array']).
+combine('view_type', ['full', 'partial']).
 beginSubcases().
-combine('sampled_type', ['f32', 'i32', 'u32']).
-combine('view_type', ['full', 'partial'])
+combine('sampled_type', ['f32', 'i32', 'u32'])
 ).
 beforeAllSubcases((t) => {
   t.skipIf(
-    t.isCompatibility && t.params.view === 'partial',
+    t.isCompatibility && t.params.view_type === 'partial',
     'compatibility mode does not support partial layer views'
   );
   t.skipIf(
@@ -110,12 +110,11 @@ Parameters
 params((u) =>
 u.
 combine('texture_type', ['texture_depth_2d_array', 'texture_depth_cube_array']).
-beginSubcases().
 combine('view_type', ['full', 'partial'])
 ).
 beforeAllSubcases((t) => {
   t.skipIf(
-    t.isCompatibility && t.params.view === 'partial',
+    t.isCompatibility && t.params.view_type === 'partial',
     'compatibility mode does not support partial layer views'
   );
   t.skipIf(
@@ -184,14 +183,20 @@ Parameters
 params((u) =>
 u.
 combineWithParams(TexelFormats).
+combine('view_type', ['full', 'partial']).
 beginSubcases().
 combine('access_mode', ['read', 'write', 'read_write']).
 filter(
   (t) => t.access_mode !== 'read_write' || kTextureFormatInfo[t.format].color?.readWriteStorage
+)
 ).
-combine('view_type', ['full', 'partial'])
-).
-beforeAllSubcases((t) => t.skipIfTextureFormatNotUsableAsStorageTexture(t.params.format)).
+beforeAllSubcases((t) => {
+  t.skipIf(
+    t.isCompatibility && t.params.view_type === 'partial',
+    'compatibility mode does not support partial layer views'
+  );
+  t.skipIfTextureFormatNotUsableAsStorageTexture(t.params.format);
+}).
 fn((t) => {
   const { format, access_mode, view_type } = t.params;
 

@@ -31,7 +31,8 @@ function getPipelineDescriptor(device, testValue) {
 
       }]
 
-    }
+    },
+    depthStencil: { format: 'depth32float', depthWriteEnabled: true, depthCompare: 'always' }
   };
 }
 

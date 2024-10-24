@@ -658,12 +658,29 @@ export const kBlendFactors = [
 'one-minus-dst-alpha',
 'src-alpha-saturated',
 'constant',
-'one-minus-constant'];
+'one-minus-constant',
+'src1',
+'one-minus-src1',
+'src1-alpha',
+'one-minus-src1-alpha'];
 
+
+/** Check if `blendFactor` belongs to the blend factors in the extension "dual-source-blending". */
+export function IsDualSourceBlendingFactor(blendFactor) {
+  switch (blendFactor) {
+    case 'src1':
+    case 'one-minus-src1':
+    case 'src1-alpha':
+    case 'one-minus-src1-alpha':
+      return true;
+    default:
+      return false;
+  }
+}
 
 /** List of all GPUBlendOperation values. */
 export const kBlendOperations = [
-'add', //
+'add',
 'subtract',
 'reverse-subtract',
 'min',
@@ -713,7 +730,6 @@ const [kLimitInfoKeys, kLimitInfoDefaults, kLimitInfoData] =
   'maxBufferSize': [, 268435456, 268435456, kMaxUnsignedLongLongValue],
   'maxVertexAttributes': [, 16, 16],
   'maxVertexBufferArrayStride': [, 2048, 2048],
-  'maxInterStageShaderComponents': [, 64, 60],
   'maxInterStageShaderVariables': [, 16, 15],
 
   'maxColorAttachments': [, 8, 4],
@@ -805,13 +821,16 @@ export const kFeatureNameInfo =
   'depth-clip-control': {},
   'depth32float-stencil8': {},
   'texture-compression-bc': {},
+  'texture-compression-bc-sliced-3d': {},
   'texture-compression-etc2': {},
   'texture-compression-astc': {},
+  'texture-compression-astc-sliced-3d': {},
   'timestamp-query': {},
   'indirect-first-instance': {},
   'shader-f16': {},
   'rg11b10ufloat-renderable': {},
   'float32-filterable': {},
+  'float32-blendable': {},
   'clip-distances': {},
   'dual-source-blending': {}
 };

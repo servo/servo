@@ -961,6 +961,17 @@ counts =
   counts.neg_norm = counts.neg_norm === undefined ? counts.pos_norm : counts.neg_norm;
   counts.neg_sub = counts.neg_sub === undefined ? counts.pos_sub : counts.neg_sub;
 
+  let special_pos = [];
+  // The first interior point for 'pos_norm' is at 3. Because we have two special values we start allowing these
+  // special values as soon as they will fit as interior values.
+  if (counts.pos_norm >= 4) {
+    special_pos = [
+    // Largest float as signed integer
+    0x4effffff,
+    // Largest float as unsigned integer
+    0x4f7fffff];
+
+  }
   // Generating bit fields first and then converting to f32, so that the spread across the possible f32 values is more
   // even. Generating against the bounds of f32 values directly results in the values being extremely biased towards the
   // extremes, since they are so much larger.
@@ -980,7 +991,14 @@ counts =
     kBit.f32.positive.subnormal.max,
     counts.pos_sub
   ),
-  ...linearRange(kBit.f32.positive.min, kBit.f32.positive.max, counts.pos_norm)].
+  ...[
+  ...linearRange(
+    kBit.f32.positive.min,
+    kBit.f32.positive.max,
+    counts.pos_norm - special_pos.length
+  ),
+  ...special_pos].
+  sort((n1, n2) => n1 - n2)].
   map(Math.trunc);
   return bit_fields.map(reinterpretU32AsF32);
 }

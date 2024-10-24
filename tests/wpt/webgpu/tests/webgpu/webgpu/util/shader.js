@@ -1,6 +1,6 @@
 /**
 * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
-**/import { unreachable } from '../../common/util/util.js';export const kDefaultVertexShaderCode = `
+**/import { assert, unreachable } from '../../common/util/util.js';export const kDefaultVertexShaderCode = `
 @vertex fn main() -> @builtin(position) vec4<f32> {
   return vec4<f32>(0.0, 0.0, 0.0, 1.0);
 }
@@ -109,7 +109,8 @@ outputs,
 
 
 
-fragDepth = null)
+fragDepth = null,
+dualSourceBlending = false)
 {
   if (outputs.length === 0) {
     if (fragDepth) {
@@ -165,10 +166,22 @@ fragDepth = null)
         unreachable();
     }
 
-    outputStructString += `@location(${i}) o${i} : ${outputType},\n`;
+    if (dualSourceBlending) {
+      assert(i === 0 && outputs.length === 1);
+      outputStructString += `
+          @location(0) @blend_src(0) o0 : ${outputType},
+          @location(0) @blend_src(1) o0_blend : ${outputType},
+      `;
+      resultStrings.push(resultStrings[0]);
+      break;
+    } else {
+      outputStructString += `@location(${i}) o${i} : ${outputType},\n`;
+    }
   }
 
   return `
+    ${dualSourceBlending ? 'enable dual_source_blending;' : ''}
+
     struct Outputs {
       ${outputStructString}
     }
