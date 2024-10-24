@@ -261,6 +261,9 @@ mod gen {
                 imagebitmap: {
                     enabled: bool,
                 },
+                intersection_observer: {
+                    enabled: bool,
+                },
                 microdata: {
                     testing: {
                         enabled: bool,
