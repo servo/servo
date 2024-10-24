@@ -84,6 +84,7 @@ impl Build {
             .collect::<Result<Vec<_>>>()?;
         self.output.extend(quote! {
             #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
+            #[allow(non_camel_case_types)]
             pub struct #struct_name {
                 #(#field_defs), *
             }
