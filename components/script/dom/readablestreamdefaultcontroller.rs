@@ -137,7 +137,7 @@ pub struct ValueWithSize {
 #[allow(crown::unrooted_must_root)]
 pub enum EnqueuedValue {
     /// A value enqueued from Rust.
-    Native(Vec<u8>),
+    Native(Rc<Box<[u8]>>),
     /// A Js value.
     Js(ValueWithSize),
 }
@@ -191,12 +191,12 @@ impl QueueWithSizes {
         self.queue
             .iter()
             .flat_map(|value| {
-                let EnqueuedValue::Native(chunk) = value else {
+                let EnqueuedValue::Native(chunks) = value else {
                     unreachable!(
                         "`get_in_memory_bytes` can only be called on a queue with native values."
                     )
                 };
-                chunk.clone()
+                chunks.iter().copied()
             })
             .collect()
     }
@@ -432,7 +432,11 @@ impl ReadableStreamDefaultController {
             let result = RootedTraceableBox::new(Heap::default());
             match chunk {
                 EnqueuedValue::Native(chunk) => unsafe {
-                    chunk.to_jsval(*cx, rval.handle_mut());
+                    chunk
+                        .iter()
+                        .copied()
+                        .collect::<Vec<u8>>()
+                        .to_jsval(*cx, rval.handle_mut());
                 },
                 EnqueuedValue::Js(value_with_size) => unsafe {
                     value_with_size.value.to_jsval(*cx, rval.handle_mut());
