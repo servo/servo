@@ -1683,11 +1683,18 @@ impl<'a> TableLayout<'a> {
         let offset_from_wrapper = -table_pbm.padding - table_pbm.border;
         let mut current_block_offset = offset_from_wrapper.block_start;
 
+        let depends_on_block_constraints = self
+            .table
+            .style
+            .content_box_sizes_and_padding_border_margin(&containing_block_for_table.into())
+            .depends_on_block_constraints;
+
         let mut table_layout = IndependentLayout {
             fragments: Vec::new(),
             content_block_size: Zero::zero(),
             content_inline_size_for_table: None,
             baselines: Baselines::default(),
+            depends_on_block_constraints,
         };
 
         table_layout

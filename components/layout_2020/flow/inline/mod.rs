@@ -627,6 +627,10 @@ pub(super) struct InlineFormattingContextLayout<'layout_data> {
     /// Whether or not this InlineFormattingContext has processed any in flow content at all.
     had_inflow_content: bool,
 
+    /// Whether or not the layout of this InlineFormattingContext depends on the block size
+    /// of its container for the purposes of flexbox layout.
+    depends_on_block_constraints: bool,
+
     /// The currently white-space-collapse setting of this line. This is stored on the
     /// [`InlineFormattingContextLayout`] because when a soft wrap opportunity is defined
     /// by the boundary between two characters, the white-space-collapse property of their
@@ -700,6 +704,12 @@ impl<'layout_dta> InlineFormattingContextLayout<'layout_dta> {
                 .default_font_index
                 .map(|index| &self.ifc.font_metrics[index].metrics),
         );
+
+        self.depends_on_block_constraints |= inline_box
+            .style
+            .depends_on_block_constraints_due_to_relative_positioning(
+                self.containing_block.style.writing_mode,
+            );
 
         // If we are starting a `<br>` element prepare to clear after its deferred linebreak has been
         // processed. Note that a `<br>` is composed of the element itself and the inner pseudo-element
@@ -1631,6 +1641,7 @@ impl InlineFormattingContext {
             deferred_br_clear: Clear::None,
             have_deferred_soft_wrap_opportunity: false,
             had_inflow_content: false,
+            depends_on_block_constraints: false,
             white_space_collapse: style_text.white_space_collapse,
             text_wrap_mode: style_text.text_wrap_mode,
             baselines: Baselines::default(),
@@ -1692,6 +1703,7 @@ impl InlineFormattingContext {
             content_block_size,
             collapsible_margins_in_children,
             baselines: layout.baselines,
+            depends_on_block_constraints: layout.depends_on_block_constraints,
         }
     }
 
@@ -1919,6 +1931,12 @@ impl IndependentFormattingContext {
             layout.layout_context,
             &mut child_positioning_context,
             layout.containing_block,
+        );
+
+        // If this Fragment's layout depends on the block size of the containing block,
+        // then the entire layout of the inline formatting context does as well.
+        layout.depends_on_block_constraints |= fragment.base.flags.contains(
+            FragmentFlags::SIZE_DEPENDS_ON_BLOCK_CONSTRAINTS_AND_CAN_BE_CHILD_OF_FLEX_ITEM,
         );
 
         // Offset the content rectangle by the physical offset of the padding, border, and margin.

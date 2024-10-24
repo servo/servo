@@ -117,7 +117,7 @@ pub(crate) enum FlexLevelBox {
 pub(crate) struct FlexItemBox {
     independent_formatting_context: IndependentFormattingContext,
     #[serde(skip)]
-    cached_layout: ArcRefCell<Option<FlexItemLayoutCache>>,
+    block_content_size_cache: ArcRefCell<Option<CachedBlockSizeContribution>>,
 }
 
 impl std::fmt::Debug for FlexItemBox {
@@ -136,19 +136,7 @@ impl FlexItemBox {
     }
 }
 
-#[derive(Debug)]
-struct FlexItemLayoutCacheDescriptor {
+struct CachedBlockSizeContribution {
     containing_block_inline_size: Au,
     content_block_size: Au,
-}
-
-impl FlexItemLayoutCacheDescriptor {
-    fn compatible_with_size(&self, inline: Au) -> bool {
-        inline == self.containing_block_inline_size
-    }
-}
-
-/// A cache to avoid multiple layouts during flexbox layout.
-struct FlexItemLayoutCache {
-    descriptor: FlexItemLayoutCacheDescriptor,
 }

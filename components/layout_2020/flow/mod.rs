@@ -38,7 +38,9 @@ use crate::geom::{
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext, PositioningContextLength};
 use crate::replaced::ReplacedContent;
 use crate::sizing::{self, ContentSizes, InlineContentSizesResult};
-use crate::style_ext::{Clamp, ComputedValuesExt, PaddingBorderMargin};
+use crate::style_ext::{
+    Clamp, ComputedValuesExt, ContentBoxSizesAndPBMDeprecated, PaddingBorderMargin,
+};
 use crate::{ContainingBlock, IndefiniteContainingBlock};
 
 mod construct;
@@ -204,6 +206,8 @@ pub(crate) struct FlowLayout {
     /// used to propagate inflow baselines to the ancestors of `display: inline-block` elements
     /// and table content.
     pub baselines: Baselines,
+    /// Whether or not this layout depends on the block size of its containing block.
+    pub depends_on_block_constraints: bool,
 }
 
 #[derive(Clone, Copy)]
@@ -348,6 +352,7 @@ impl BlockFormattingContext {
                 clearance.unwrap_or_default(),
             content_inline_size_for_table: None,
             baselines: flow_layout.baselines,
+            depends_on_block_constraints: flow_layout.depends_on_block_constraints,
         }
     }
 }
@@ -567,12 +572,21 @@ fn layout_block_level_children(
         ),
     };
 
+    let depends_on_block_constraints = fragments.iter().any(|fragment| {
+        fragment.base().is_some_and(|base| {
+            base.flags.contains(
+                FragmentFlags::SIZE_DEPENDS_ON_BLOCK_CONSTRAINTS_AND_CAN_BE_CHILD_OF_FLEX_ITEM,
+            )
+        })
+    });
+
     let (content_block_size, collapsible_margins_in_children, baselines) = placement_state.finish();
     FlowLayout {
         fragments,
         content_block_size,
         collapsible_margins_in_children,
         baselines,
+        depends_on_block_constraints,
     }
 }
 
@@ -763,7 +777,7 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
     layout_context: &LayoutContext,
     positioning_context: &mut PositioningContext,
     containing_block: &ContainingBlock,
-    base_fragment_info: BaseFragmentInfo,
+    mut base_fragment_info: BaseFragmentInfo,
     style: &Arc<ComputedValues>,
     contents: &BlockContainer,
     mut sequential_layout_state: Option<&mut SequentialLayoutState>,
@@ -775,6 +789,7 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
         box_size,
         min_box_size,
         max_box_size,
+        depends_on_block_constraints,
     } = solve_containing_block_padding_and_border_for_in_flow_box(containing_block, style);
     let ResolvedMargins {
         margin,
@@ -954,6 +969,12 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
     };
 
     let containing_block_writing_mode = containing_block.style.writing_mode;
+    if depends_on_block_constraints {
+        base_fragment_info
+            .flags
+            .insert(FragmentFlags::SIZE_DEPENDS_ON_BLOCK_CONSTRAINTS_AND_CAN_BE_CHILD_OF_FLEX_ITEM);
+    }
+
     BoxFragment::new(
         base_fragment_info,
         style.clone(),
@@ -996,6 +1017,7 @@ impl NonReplacedFormattingContext {
             box_size,
             min_box_size,
             max_box_size,
+            depends_on_block_constraints,
         } = solve_containing_block_padding_and_border_for_in_flow_box(
             containing_block,
             &self.style,
@@ -1039,8 +1061,15 @@ impl NonReplacedFormattingContext {
 
         let block_margins_collapsed_with_children = CollapsedBlockMargins::from_margin(&margin);
         let containing_block_writing_mode = containing_block.style.writing_mode;
+
+        let mut base_fragment_info = self.base_fragment_info;
+        if depends_on_block_constraints {
+            base_fragment_info.flags.insert(
+                FragmentFlags::SIZE_DEPENDS_ON_BLOCK_CONSTRAINTS_AND_CAN_BE_CHILD_OF_FLEX_ITEM,
+            );
+        }
         BoxFragment::new(
-            self.base_fragment_info,
+            base_fragment_info,
             self.style.clone(),
             layout.fragments,
             content_rect.to_physical(Some(containing_block)),
@@ -1063,19 +1092,21 @@ impl NonReplacedFormattingContext {
         containing_block: &ContainingBlock<'_>,
         sequential_layout_state: &mut SequentialLayoutState,
     ) -> BoxFragment {
-        let pbm = self.style.padding_border_margin(containing_block);
-        let box_size = self
+        let ContentBoxSizesAndPBMDeprecated {
+            content_box_size,
+            content_min_box_size,
+            content_max_box_size,
+            pbm,
+            depends_on_block_constraints,
+        } = self
             .style
-            .content_box_size_deprecated(containing_block, &pbm);
-        let max_box_size = self
-            .style
-            .content_max_box_size_deprecated(containing_block, &pbm);
-        let min_box_size = self
-            .style
-            .content_min_box_size_deprecated(containing_block, &pbm)
-            .auto_is(Au::zero);
-        let block_size = box_size.block.map(|block_size| {
-            block_size.clamp_between_extremums(min_box_size.block, max_box_size.block)
+            .content_box_sizes_and_padding_border_margin(&containing_block.into())
+            .into();
+        let content_min_box_size = content_min_box_size.auto_is(Au::zero);
+
+        let block_size = content_box_size.block.map(|block_size| {
+            block_size
+                .clamp_between_extremums(content_min_box_size.block, content_max_box_size.block)
         });
 
         let margin_inline_start;
@@ -1098,9 +1129,9 @@ impl NonReplacedFormattingContext {
         let clearance;
         let mut content_size;
         let mut layout;
-        if let AuOrAuto::LengthPercentage(ref inline_size) = box_size.inline {
-            let inline_size =
-                inline_size.clamp_between_extremums(min_box_size.inline, max_box_size.inline);
+        if let AuOrAuto::LengthPercentage(ref inline_size) = content_box_size.inline {
+            let inline_size = inline_size
+                .clamp_between_extremums(content_min_box_size.inline, content_max_box_size.inline);
             layout = self.layout(
                 layout_context,
                 positioning_context,
@@ -1120,9 +1151,10 @@ impl NonReplacedFormattingContext {
             } else {
                 content_size = LogicalVec2 {
                     block: block_size.auto_is(|| {
-                        layout
-                            .content_block_size
-                            .clamp_between_extremums(min_box_size.block, max_box_size.block)
+                        layout.content_block_size.clamp_between_extremums(
+                            content_min_box_size.block,
+                            content_max_box_size.block,
+                        )
                     }),
                     inline: inline_size,
                 };
@@ -1154,8 +1186,8 @@ impl NonReplacedFormattingContext {
 
             // Create a PlacementAmongFloats using the minimum size in all dimensions as the object size.
             let minimum_size_of_block = LogicalVec2 {
-                inline: min_box_size.inline,
-                block: block_size.auto_is(|| min_box_size.block),
+                inline: content_min_box_size.inline,
+                block: block_size.auto_is(|| content_min_box_size.block),
             } + pbm.padding_border_sums;
             let mut placement = PlacementAmongFloats::new(
                 &sequential_layout_state.floats,
@@ -1170,7 +1202,10 @@ impl NonReplacedFormattingContext {
                 placement_rect = placement.place();
                 let proposed_inline_size = (placement_rect.size.inline -
                     pbm.padding_border_sums.inline)
-                    .clamp_between_extremums(min_box_size.inline, max_box_size.inline);
+                    .clamp_between_extremums(
+                        content_min_box_size.inline,
+                        content_max_box_size.inline,
+                    );
 
                 // Now lay out the block using the inline size we calculated from the placement.
                 // Later we'll check to see if the resulting block size is compatible with the
@@ -1208,9 +1243,10 @@ impl NonReplacedFormattingContext {
                 } else {
                     content_size = LogicalVec2 {
                         block: block_size.auto_is(|| {
-                            layout
-                                .content_block_size
-                                .clamp_between_extremums(min_box_size.block, max_box_size.block)
+                            layout.content_block_size.clamp_between_extremums(
+                                content_min_box_size.block,
+                                content_max_box_size.block,
+                            )
                         }),
                         inline: proposed_inline_size,
                     };
@@ -1289,11 +1325,17 @@ impl NonReplacedFormattingContext {
             },
             size: content_size,
         };
-        let block_margins_collapsed_with_children = CollapsedBlockMargins::from_margin(&margin);
+
+        let mut base_fragment_info = self.base_fragment_info;
+        if depends_on_block_constraints {
+            base_fragment_info.flags.insert(
+                FragmentFlags::SIZE_DEPENDS_ON_BLOCK_CONSTRAINTS_AND_CAN_BE_CHILD_OF_FLEX_ITEM,
+            );
+        }
 
         let containing_block_writing_mode = containing_block.style.writing_mode;
         BoxFragment::new(
-            self.base_fragment_info,
+            base_fragment_info,
             self.style.clone(),
             layout.fragments,
             content_rect.to_physical(Some(containing_block)),
@@ -1301,7 +1343,7 @@ impl NonReplacedFormattingContext {
             pbm.border.to_physical(containing_block_writing_mode),
             margin.to_physical(containing_block_writing_mode),
             clearance,
-            block_margins_collapsed_with_children,
+            CollapsedBlockMargins::from_margin(&margin),
         )
         .with_baselines(layout.baselines)
     }
@@ -1312,18 +1354,25 @@ impl NonReplacedFormattingContext {
 /// <https://drafts.csswg.org/css2/visudet.html#inline-replaced-height>
 fn layout_in_flow_replaced_block_level(
     containing_block: &ContainingBlock,
-    base_fragment_info: BaseFragmentInfo,
+    mut base_fragment_info: BaseFragmentInfo,
     style: &Arc<ComputedValues>,
     replaced: &ReplacedContent,
     mut sequential_layout_state: Option<&mut SequentialLayoutState>,
 ) -> BoxFragment {
-    let pbm = style.padding_border_margin(containing_block);
-    let content_size = replaced.used_size_as_if_inline_element(containing_block, style, &pbm);
+    let content_box_sizes_and_pbm: ContentBoxSizesAndPBMDeprecated = style
+        .content_box_sizes_and_padding_border_margin(&containing_block.into())
+        .into();
+    let pbm = &content_box_sizes_and_pbm.pbm;
+    let content_size = replaced.used_size_as_if_inline_element(
+        containing_block,
+        style,
+        &content_box_sizes_and_pbm,
+    );
 
     let margin_inline_start;
     let margin_inline_end;
     let effective_margin_inline_start;
-    let (margin_block_start, margin_block_end) = solve_block_margins_for_in_flow_block_level(&pbm);
+    let (margin_block_start, margin_block_end) = solve_block_margins_for_in_flow_block_level(pbm);
 
     let containing_block_writing_mode = containing_block.style.writing_mode;
     let physical_content_size = content_size.to_physical_size(containing_block_writing_mode);
@@ -1351,7 +1400,7 @@ fn layout_in_flow_replaced_block_level(
             sequential_layout_state,
             &collapsed_margin_block_start,
             containing_block,
-            &pbm,
+            pbm,
             size,
             style,
         );
@@ -1375,7 +1424,7 @@ fn layout_in_flow_replaced_block_level(
             effective_margin_inline_start,
         ) = solve_inline_margins_for_in_flow_block_level(
             containing_block,
-            &pbm,
+            pbm,
             content_size.inline,
         );
     };
@@ -1399,7 +1448,11 @@ fn layout_in_flow_replaced_block_level(
     }
     .to_physical(Some(containing_block));
 
-    let block_margins_collapsed_with_children = CollapsedBlockMargins::from_margin(&margin);
+    if content_box_sizes_and_pbm.depends_on_block_constraints {
+        base_fragment_info
+            .flags
+            .insert(FragmentFlags::SIZE_DEPENDS_ON_BLOCK_CONSTRAINTS_AND_CAN_BE_CHILD_OF_FLEX_ITEM);
+    }
 
     BoxFragment::new(
         base_fragment_info,
@@ -1410,7 +1463,7 @@ fn layout_in_flow_replaced_block_level(
         pbm.border.to_physical(containing_block_writing_mode),
         margin.to_physical(containing_block_writing_mode),
         clearance,
-        block_margins_collapsed_with_children,
+        CollapsedBlockMargins::from_margin(&margin),
     )
 }
 
@@ -1420,6 +1473,7 @@ struct ContainingBlockPaddingAndBorder<'a> {
     box_size: LogicalVec2<AuOrAuto>,
     min_box_size: LogicalVec2<Au>,
     max_box_size: LogicalVec2<Option<Au>>,
+    depends_on_block_constraints: bool,
 }
 
 struct ResolvedMargins {
@@ -1464,19 +1518,24 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
             },
             min_box_size: LogicalVec2::default(),
             max_box_size: LogicalVec2::default(),
+            depends_on_block_constraints: false,
         };
     }
 
-    let pbm = style.padding_border_margin(containing_block);
-    let box_size = style.content_box_size_deprecated(containing_block, &pbm);
-    let max_box_size = style.content_max_box_size_deprecated(containing_block, &pbm);
-    let min_box_size = style
-        .content_min_box_size_deprecated(containing_block, &pbm)
-        .auto_is(Au::zero);
+    let ContentBoxSizesAndPBMDeprecated {
+        content_box_size,
+        content_min_box_size,
+        content_max_box_size,
+        pbm,
+        depends_on_block_constraints,
+    } = style
+        .content_box_sizes_and_padding_border_margin(&containing_block.into())
+        .into();
+    let content_min_box_size = content_min_box_size.auto_is(Au::zero);
 
     // https://drafts.csswg.org/css2/#the-width-property
     // https://drafts.csswg.org/css2/visudet.html#min-max-widths
-    let inline_size = box_size
+    let inline_size = content_box_size
         .inline
         .auto_is(|| {
             let margin_inline_start = pbm.margin.inline_start.auto_is(Au::zero);
@@ -1486,13 +1545,14 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
                 margin_inline_start -
                 margin_inline_end
         })
-        .clamp_between_extremums(min_box_size.inline, max_box_size.inline);
+        .clamp_between_extremums(content_min_box_size.inline, content_max_box_size.inline);
 
     // https://drafts.csswg.org/css2/#the-height-property
     // https://drafts.csswg.org/css2/visudet.html#min-max-heights
-    let mut block_size = box_size.block;
+    let mut block_size = content_box_size.block;
     if let AuOrAuto::LengthPercentage(ref mut block_size) = block_size {
-        *block_size = block_size.clamp_between_extremums(min_box_size.block, max_box_size.block);
+        *block_size = block_size
+            .clamp_between_extremums(content_min_box_size.block, content_max_box_size.block);
     }
 
     let containing_block_for_children = ContainingBlock {
@@ -1512,9 +1572,10 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
     ContainingBlockPaddingAndBorder {
         containing_block: containing_block_for_children,
         pbm,
-        box_size,
-        min_box_size,
-        max_box_size,
+        box_size: content_box_size,
+        min_box_size: content_min_box_size,
+        max_box_size: content_max_box_size,
+        depends_on_block_constraints,
     }
 }
 
@@ -1942,7 +2003,9 @@ impl IndependentFormattingContext {
     ) -> IndependentLayoutResult {
         let style = self.style();
         let container_writing_mode = containing_block.style.writing_mode;
-        let pbm = style.padding_border_margin(containing_block);
+        let content_box_sizes_and_pbm =
+            style.content_box_sizes_and_padding_border_margin(&containing_block.into());
+        let pbm = &content_box_sizes_and_pbm.pbm;
         let margin = pbm.margin.auto_is(Au::zero);
         let pbm_sums = pbm.padding + pbm.border + margin;
 
@@ -1952,7 +2015,11 @@ impl IndependentFormattingContext {
                 // https://drafts.csswg.org/css2/visudet.html#inline-replaced-height
                 let content_size = replaced
                     .contents
-                    .used_size_as_if_inline_element(containing_block, &replaced.style, &pbm)
+                    .used_size_as_if_inline_element(
+                        containing_block,
+                        &replaced.style,
+                        &content_box_sizes_and_pbm.clone().into(),
+                    )
                     .to_physical_size(container_writing_mode);
                 let fragments = replaced.contents.make_fragments(
                     &replaced.style,
@@ -1965,25 +2032,24 @@ impl IndependentFormattingContext {
             },
             IndependentFormattingContext::NonReplaced(non_replaced) => {
                 let style = non_replaced.style.clone();
-                let box_size = style.content_box_size(containing_block, &pbm);
-                let max_box_size = style.content_max_box_size(containing_block, &pbm);
-                let min_box_size = style.content_min_box_size(containing_block, &pbm);
-
                 let available_inline_size =
                     (containing_block.inline_size - pbm_sums.inline_sum()).max(Au::zero());
                 let available_block_size = containing_block
                     .block_size
                     .non_auto()
                     .map(|block_size| (block_size - pbm_sums.block_sum()).max(Au::zero()));
-                let tentative_block_size = box_size
+                let tentative_block_size = content_box_sizes_and_pbm
+                    .content_box_size
                     .block
                     .maybe_resolve_extrinsic(available_block_size)
                     .map(|size| {
-                        let min_block_size = min_box_size
+                        let min_block_size = content_box_sizes_and_pbm
+                            .content_min_box_size
                             .block
                             .maybe_resolve_extrinsic(available_block_size)
                             .unwrap_or_default();
-                        let max_block_size = max_box_size
+                        let max_block_size = content_box_sizes_and_pbm
+                            .content_max_box_size
                             .block
                             .maybe_resolve_extrinsic(available_block_size);
                         size.clamp_between_extremums(min_block_size, max_block_size)
@@ -2003,20 +2069,23 @@ impl IndependentFormattingContext {
 
                 // https://drafts.csswg.org/css2/visudet.html#float-width
                 // https://drafts.csswg.org/css2/visudet.html#inlineblock-width
-                let tentative_inline_size = box_size.inline.resolve(
-                    Size::FitContent,
-                    available_inline_size,
-                    &mut get_content_size,
-                );
+                let tentative_inline_size =
+                    content_box_sizes_and_pbm.content_box_size.inline.resolve(
+                        Size::FitContent,
+                        available_inline_size,
+                        &mut get_content_size,
+                    );
 
                 // https://drafts.csswg.org/css2/visudet.html#min-max-widths
                 // In this case “applying the rules above again” with a non-auto inline-size
                 // always results in that size.
-                let min_inline_size = min_box_size
+                let min_inline_size = content_box_sizes_and_pbm
+                    .content_min_box_size
                     .inline
                     .resolve_non_initial(available_inline_size, &mut get_content_size)
                     .unwrap_or_default();
-                let max_inline_size = max_box_size
+                let max_inline_size = content_box_sizes_and_pbm
+                    .content_max_box_size
                     .inline
                     .resolve_non_initial(available_inline_size, &mut get_content_size);
                 let inline_size =
@@ -2048,11 +2117,13 @@ impl IndependentFormattingContext {
                         let stretch_size =
                             available_block_size.unwrap_or(independent_layout.content_block_size);
                         let mut get_content_size = || independent_layout.content_block_size.into();
-                        let min_block_size = min_box_size
+                        let min_block_size = content_box_sizes_and_pbm
+                            .content_min_box_size
                             .block
                             .resolve_non_initial(stretch_size, &mut get_content_size)
                             .unwrap_or_default();
-                        let max_block_size = max_box_size
+                        let max_block_size = content_box_sizes_and_pbm
+                            .content_max_box_size
                             .block
                             .resolve_non_initial(stretch_size, &mut get_content_size);
                         let block_size = tentative_block_size
@@ -2077,8 +2148,15 @@ impl IndependentFormattingContext {
             },
         };
 
+        let mut base_fragment_info = self.base_fragment_info();
+        if content_box_sizes_and_pbm.depends_on_block_constraints {
+            base_fragment_info.flags.insert(
+                FragmentFlags::SIZE_DEPENDS_ON_BLOCK_CONSTRAINTS_AND_CAN_BE_CHILD_OF_FLEX_ITEM,
+            );
+        }
+
         let fragment = BoxFragment::new(
-            self.base_fragment_info(),
+            base_fragment_info,
             self.style().clone(),
             fragments,
             content_rect,
