@@ -1,0 +1,14 @@
+{
+    "name": "python3-pathspec",
+    "buildsystem": "simple",
+    "build-commands": [
+        "pip3 install --verbose --exists-action=i --no-index --find-links=\"file://${PWD}\" --prefix=${FLATPAK_DEST} \"pathspec\" --no-build-isolation"
+    ],
+    "sources": [
+        {
+            "type": "file",
+            "url": "https://files.pythonhosted.org/packages/b4/2a/9b1be29146139ef459188f5e420a66e835dda921208db600b7037093891f/pathspec-0.11.2-py3-none-any.whl",
+            "sha256": "1d6ed233af05e679efb96b1851550ea95bbb64b7c490b0f5aa52996c11e92a20"
+        }
+    ]
+}
