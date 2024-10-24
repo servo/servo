@@ -614,13 +614,13 @@ impl ReplacedContent {
                 },
                 // Rows 6-7.
                 (Violation::Above(max_inline_size), Violation::Above(max_block_size)) => {
-                    if max_inline_size.0 * block_size.0 <= max_block_size.0 * inline_size.0 {
+                    let transferred_block_size =
+                        ratio.compute_dependent_size(Direction::Block, max_inline_size);
+                    if transferred_block_size <= max_block_size {
                         // Row 6.
                         LogicalVec2 {
                             inline: max_inline_size,
-                            block: ratio
-                                .compute_dependent_size(Direction::Block, max_inline_size)
-                                .max(min_box_size.block),
+                            block: transferred_block_size.max(min_box_size.block),
                         }
                     } else {
                         // Row 7.
@@ -634,12 +634,12 @@ impl ReplacedContent {
                 },
                 // Rows 8-9.
                 (Violation::Below(min_inline_size), Violation::Below(min_block_size)) => {
-                    if min_inline_size.0 * block_size.0 <= min_block_size.0 * inline_size.0 {
+                    let transferred_inline_size =
+                        ratio.compute_dependent_size(Direction::Inline, min_block_size);
+                    if min_inline_size <= transferred_inline_size {
                         // Row 8.
                         LogicalVec2 {
-                            inline: ratio
-                                .compute_dependent_size(Direction::Inline, min_block_size)
-                                .clamp_below_max(max_box_size.inline),
+                            inline: transferred_inline_size.clamp_below_max(max_box_size.inline),
                             block: min_block_size,
                         }
                     } else {
