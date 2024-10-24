@@ -67,6 +67,29 @@ impl<T: Default> Default for LogicalVec2<T> {
     }
 }
 
+impl<T> LogicalVec2<T> {
+    pub fn map_inline_and_block_axes<U>(
+        &self,
+        inline_f: impl FnOnce(&T) -> U,
+        block_f: impl FnOnce(&T) -> U,
+    ) -> LogicalVec2<U> {
+        LogicalVec2 {
+            inline: inline_f(&self.inline),
+            block: block_f(&self.block),
+        }
+    }
+}
+
+impl<T: Clone> LogicalVec2<Size<T>> {
+    pub fn map_inline_and_block_sizes<U>(
+        &self,
+        inline_f: impl FnOnce(T) -> U,
+        block_f: impl FnOnce(T) -> U,
+    ) -> LogicalVec2<Size<U>> {
+        self.map_inline_and_block_axes(|size| size.map(inline_f), |size| size.map(block_f))
+    }
+}
+
 impl<T: Clone> LogicalVec2<T> {
     pub fn from_physical_size(physical_size: &PhysicalSize<T>, mode: WritingMode) -> Self {
         // https://drafts.csswg.org/css-writing-modes/#logical-to-physical
@@ -734,15 +757,14 @@ impl LogicalVec2<Size<LengthPercentage>> {
         &self,
         containing_block: &ContainingBlock,
     ) -> LogicalVec2<Size<Au>> {
-        LogicalVec2 {
-            inline: self
-                .inline
-                .map(|lp| lp.to_used_value(containing_block.inline_size)),
-            block: self
-                .block
-                .maybe_map(|lp| lp.maybe_to_used_value(containing_block.block_size.non_auto()))
-                .unwrap_or_default(),
-        }
+        self.map_inline_and_block_axes(
+            |inline_size| inline_size.map(|lp| lp.to_used_value(containing_block.inline_size)),
+            |block_size| {
+                block_size
+                    .maybe_map(|lp| lp.maybe_to_used_value(containing_block.block_size.non_auto()))
+                    .unwrap_or_default()
+            },
+        )
     }
 
     pub(crate) fn maybe_percentages_relative_to_basis(
