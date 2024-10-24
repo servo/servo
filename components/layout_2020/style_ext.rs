@@ -413,16 +413,12 @@ impl ComputedValuesExt for ComputedValues {
     ) -> LogicalVec2<Size<Au>> {
         match self.get_position().box_sizing {
             BoxSizing::ContentBox => box_size,
-            BoxSizing::BorderBox => LogicalVec2 {
-                // These may be negative, but will later be clamped by `min-width`/`min-height`
-                // which is clamped to zero.
-                inline: box_size
-                    .inline
-                    .map(|value| value - pbm.padding_border_sums.inline),
-                block: box_size
-                    .block
-                    .map(|value| value - pbm.padding_border_sums.block),
-            },
+            // These may be negative, but will later be clamped by `min-width`/`min-height`
+            // which is clamped to zero.
+            BoxSizing::BorderBox => box_size.map_inline_and_block_sizes(
+                |value| value - pbm.padding_border_sums.inline,
+                |value| value - pbm.padding_border_sums.block,
+            ),
         }
     }
 
@@ -431,10 +427,13 @@ impl ComputedValuesExt for ComputedValues {
         containing_block: &ContainingBlock,
         pbm: &PaddingBorderMargin,
     ) -> LogicalVec2<Size<Au>> {
-        let box_size = self
+        let min_size = self
             .min_box_size(containing_block.style.writing_mode)
-            .percentages_relative_to(containing_block);
-        self.content_min_box_size_for_min_size(box_size, pbm)
+            .map_inline_and_block_sizes(
+                |lp| lp.to_used_value(containing_block.inline_size),
+                |lp| lp.to_used_value(containing_block.block_size.auto_is(Au::zero)),
+            );
+        self.content_min_box_size_for_min_size(min_size, pbm)
     }
 
     fn content_min_box_size_deprecated(
@@ -453,15 +452,11 @@ impl ComputedValuesExt for ComputedValues {
     ) -> LogicalVec2<Size<Au>> {
         match self.get_position().box_sizing {
             BoxSizing::ContentBox => min_box_size,
-            BoxSizing::BorderBox => LogicalVec2 {
-                // Clamp to zero to make sure the used size components are non-negative
-                inline: min_box_size
-                    .inline
-                    .map(|value| (value - pbm.padding_border_sums.inline).max(Au::zero())),
-                block: min_box_size
-                    .block
-                    .map(|value| (value - pbm.padding_border_sums.block).max(Au::zero())),
-            },
+            // Clamp to zero to make sure the used size components are non-negative
+            BoxSizing::BorderBox => min_box_size.map_inline_and_block_sizes(
+                |value| Au::zero().max(value - pbm.padding_border_sums.inline),
+                |value| Au::zero().max(value - pbm.padding_border_sums.block),
+            ),
         }
     }
 
@@ -493,18 +488,12 @@ impl ComputedValuesExt for ComputedValues {
     ) -> LogicalVec2<Size<Au>> {
         match self.get_position().box_sizing {
             BoxSizing::ContentBox => max_box_size,
-            BoxSizing::BorderBox => {
-                // This may be negative, but will later be clamped by `min-width`
-                // which itself is clamped to zero.
-                LogicalVec2 {
-                    inline: max_box_size
-                        .inline
-                        .map(|value| value - pbm.padding_border_sums.inline),
-                    block: max_box_size
-                        .block
-                        .map(|value| value - pbm.padding_border_sums.block),
-                }
-            },
+            // This may be negative, but will later be clamped by `min-width`
+            // which itself is clamped to zero.
+            BoxSizing::BorderBox => max_box_size.map_inline_and_block_sizes(
+                |value| value - pbm.padding_border_sums.inline,
+                |value| value - pbm.padding_border_sums.block,
+            ),
         }
     }
 
