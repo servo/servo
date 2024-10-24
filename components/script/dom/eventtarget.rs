@@ -708,7 +708,7 @@ impl EventTarget {
         can_gc: CanGc,
     ) -> DomRoot<Event> {
         let event = Event::new(&self.global(), name, bubbles, cancelable, can_gc);
-        event.fire(self);
+        event.fire(self, can_gc);
         event
     }
     // https://dom.spec.whatwg.org/#dom-eventtarget-addeventlistener

@@ -1227,7 +1227,7 @@ impl HTMLScriptElement {
     ) -> EventStatus {
         let window = window_from_node(self);
         let event = Event::new(window.upcast(), type_, bubbles, cancelable, can_gc);
-        event.fire(self.upcast())
+        event.fire(self.upcast(), can_gc)
     }
 }
 

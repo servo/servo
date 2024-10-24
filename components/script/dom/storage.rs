@@ -225,7 +225,7 @@ impl Storage {
                         Some(&this),
                         CanGc::note()
                     );
-                    event.upcast::<Event>().fire(global.upcast());
+                    event.upcast::<Event>().fire(global.upcast(), CanGc::note());
                 }),
                 global.upcast(),
             )

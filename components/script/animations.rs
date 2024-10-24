@@ -510,7 +510,7 @@ impl Animations {
                 };
                 TransitionEvent::new(&window, event_atom, &event_init, can_gc)
                     .upcast::<Event>()
-                    .fire(node.upcast());
+                    .fire(node.upcast(), can_gc);
             } else {
                 let event_init = AnimationEventInit {
                     parent,
@@ -520,7 +520,7 @@ impl Animations {
                 };
                 AnimationEvent::new(&window, event_atom, &event_init, can_gc)
                     .upcast::<Event>()
-                    .fire(node.upcast());
+                    .fire(node.upcast(), can_gc);
             }
         }
 

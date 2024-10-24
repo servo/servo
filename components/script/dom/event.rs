@@ -381,9 +381,9 @@ impl Event {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#fire-a-simple-event>
-    pub fn fire(&self, target: &EventTarget) -> EventStatus {
+    pub fn fire(&self, target: &EventTarget, can_gc: CanGc) -> EventStatus {
         self.set_trusted(true);
-        target.dispatch_event(self, CanGc::note())
+        target.dispatch_event(self, can_gc)
     }
 }
 

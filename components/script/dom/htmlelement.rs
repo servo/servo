@@ -181,7 +181,7 @@ impl HTMLElementMethods for HTMLElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#handler-onerror
-    fn GetOnerror(&self) -> Option<Rc<OnErrorEventHandlerNonNull>> {
+    fn GetOnerror(&self, can_gc: CanGc) -> Option<Rc<OnErrorEventHandlerNonNull>> {
         if self.is_body_or_frameset() {
             let document = document_from_node(self);
             if document.has_browsing_context() {
@@ -191,7 +191,7 @@ impl HTMLElementMethods for HTMLElement {
             }
         } else {
             self.upcast::<EventTarget>()
-                .get_event_handler_common("error", CanGc::note())
+                .get_event_handler_common("error", can_gc)
         }
     }
 
@@ -210,7 +210,7 @@ impl HTMLElementMethods for HTMLElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#handler-onload
-    fn GetOnload(&self) -> Option<Rc<EventHandlerNonNull>> {
+    fn GetOnload(&self, can_gc: CanGc) -> Option<Rc<EventHandlerNonNull>> {
         if self.is_body_or_frameset() {
             let document = document_from_node(self);
             if document.has_browsing_context() {
@@ -220,7 +220,7 @@ impl HTMLElementMethods for HTMLElement {
             }
         } else {
             self.upcast::<EventTarget>()
-                .get_event_handler_common("load", CanGc::note())
+                .get_event_handler_common("load", can_gc)
         }
     }
 
@@ -238,7 +238,7 @@ impl HTMLElementMethods for HTMLElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#handler-onblur
-    fn GetOnblur(&self) -> Option<Rc<EventHandlerNonNull>> {
+    fn GetOnblur(&self, can_gc: CanGc) -> Option<Rc<EventHandlerNonNull>> {
         if self.is_body_or_frameset() {
             let document = document_from_node(self);
             if document.has_browsing_context() {
@@ -248,7 +248,7 @@ impl HTMLElementMethods for HTMLElement {
             }
         } else {
             self.upcast::<EventTarget>()
-                .get_event_handler_common("blur", CanGc::note())
+                .get_event_handler_common("blur", can_gc)
         }
     }
 
@@ -266,7 +266,7 @@ impl HTMLElementMethods for HTMLElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#handler-onfocus
-    fn GetOnfocus(&self) -> Option<Rc<EventHandlerNonNull>> {
+    fn GetOnfocus(&self, can_gc: CanGc) -> Option<Rc<EventHandlerNonNull>> {
         if self.is_body_or_frameset() {
             let document = document_from_node(self);
             if document.has_browsing_context() {
@@ -276,7 +276,7 @@ impl HTMLElementMethods for HTMLElement {
             }
         } else {
             self.upcast::<EventTarget>()
-                .get_event_handler_common("focus", CanGc::note())
+                .get_event_handler_common("focus", can_gc)
         }
     }
 
@@ -294,7 +294,7 @@ impl HTMLElementMethods for HTMLElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#handler-onresize
-    fn GetOnresize(&self) -> Option<Rc<EventHandlerNonNull>> {
+    fn GetOnresize(&self, can_gc: CanGc) -> Option<Rc<EventHandlerNonNull>> {
         if self.is_body_or_frameset() {
             let document = document_from_node(self);
             if document.has_browsing_context() {
@@ -304,7 +304,7 @@ impl HTMLElementMethods for HTMLElement {
             }
         } else {
             self.upcast::<EventTarget>()
-                .get_event_handler_common("resize", CanGc::note())
+                .get_event_handler_common("resize", can_gc)
         }
     }
 
@@ -322,7 +322,7 @@ impl HTMLElementMethods for HTMLElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#handler-onscroll
-    fn GetOnscroll(&self) -> Option<Rc<EventHandlerNonNull>> {
+    fn GetOnscroll(&self, can_gc: CanGc) -> Option<Rc<EventHandlerNonNull>> {
         if self.is_body_or_frameset() {
             let document = document_from_node(self);
             if document.has_browsing_context() {
@@ -332,7 +332,7 @@ impl HTMLElementMethods for HTMLElement {
             }
         } else {
             self.upcast::<EventTarget>()
-                .get_event_handler_common("scroll", CanGc::note())
+                .get_event_handler_common("scroll", can_gc)
         }
     }
 

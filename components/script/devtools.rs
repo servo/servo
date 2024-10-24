@@ -190,6 +190,7 @@ pub fn handle_get_attribute_style(
     pipeline: PipelineId,
     node_id: String,
     reply: IpcSender<Option<Vec<NodeStyle>>>,
+    can_gc: CanGc,
 ) {
     let node = match find_node_by_unique_id(documents, pipeline, &node_id) {
         None => return reply.send(None).unwrap(),
@@ -206,7 +207,7 @@ pub fn handle_get_attribute_style(
             let name = style.Item(i);
             NodeStyle {
                 name: name.to_string(),
-                value: style.GetPropertyValue(name.clone()).to_string(),
+                value: style.GetPropertyValue(name.clone(), can_gc).to_string(),
                 priority: style.GetPropertyPriority(name).to_string(),
             }
         })
@@ -223,6 +224,7 @@ pub fn handle_get_stylesheet_style(
     selector: String,
     stylesheet: usize,
     reply: IpcSender<Option<Vec<NodeStyle>>>,
+    can_gc: CanGc,
 ) {
     let msg = (|| {
         let node = find_node_by_unique_id(documents, pipeline, &node_id)?;
@@ -248,7 +250,7 @@ pub fn handle_get_stylesheet_style(
                     let name = style.Item(i);
                     NodeStyle {
                         name: name.to_string(),
-                        value: style.GetPropertyValue(name.clone()).to_string(),
+                        value: style.GetPropertyValue(name.clone(), can_gc).to_string(),
                         priority: style.GetPropertyPriority(name).to_string(),
                     }
                 })
@@ -303,6 +305,7 @@ pub fn handle_get_computed_style(
     pipeline: PipelineId,
     node_id: String,
     reply: IpcSender<Option<Vec<NodeStyle>>>,
+    can_gc: CanGc,
 ) {
     let node = match find_node_by_unique_id(documents, pipeline, &node_id) {
         None => return reply.send(None).unwrap(),
@@ -320,7 +323,9 @@ pub fn handle_get_computed_style(
             let name = computed_style.Item(i);
             NodeStyle {
                 name: name.to_string(),
-                value: computed_style.GetPropertyValue(name.clone()).to_string(),
+                value: computed_style
+                    .GetPropertyValue(name.clone(), can_gc)
+                    .to_string(),
                 priority: computed_style.GetPropertyPriority(name).to_string(),
             }
         })
@@ -435,6 +440,7 @@ pub fn handle_modify_rule(
     pipeline: PipelineId,
     node_id: String,
     modifications: Vec<RuleModification>,
+    can_gc: CanGc,
 ) {
     let Some(document) = documents.find_document(pipeline) else {
         return warn!("Document for pipeline id {} is not found", &pipeline);
@@ -458,6 +464,7 @@ pub fn handle_modify_rule(
             modification.name.into(),
             modification.value.into(),
             modification.priority.into(),
+            can_gc,
         );
     }
 }

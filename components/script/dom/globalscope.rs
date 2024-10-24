@@ -2478,7 +2478,9 @@ impl GlobalScope {
         );
 
         // Step 7.
-        let event_status = event.upcast::<Event>().fire(self.upcast::<EventTarget>());
+        let event_status = event
+            .upcast::<Event>()
+            .fire(self.upcast::<EventTarget>(), can_gc);
 
         // Step 8.
         self.in_error_reporting_mode.set(false);
