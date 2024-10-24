@@ -490,32 +490,12 @@ impl ReadableStream {
         // TODO: react to sourceCancelPromise.
     }
 
-    /// <https://streams.spec.whatwg.org/#readable-stream-reader-generic-release>
-    pub fn release_lock(&self, closed_promise: &Promise) {
-        // step 1 & 2
-
-        if self.is_readable() {
-            // step 3
-            closed_promise.reject_error(Error::Type("stream state is not readable".to_owned()));
-        } else {
-            // step 4
-            closed_promise.reject_error(Error::Type(
-                "Cannot release lock due to stream state.".to_owned(),
-            ));
-        }
-
-        // step 5
-        closed_promise.set_promise_is_handled();
-
-        // step 6
-        self.perform_release_steps();
-
-        // step 2.1.8 & 2.1.9
+    pub fn set_reader(&self, new_reader: Option<&ReadableStreamDefaultReader>) {
         match self.reader {
             ReaderType::Default(ref reader) => {
-                reader.set(None);
+                reader.set(new_reader);
             },
-            _ => unreachable!("Releasing lock can only be done with a default reader."),
+            _ => unreachable!("Setting a reader can only be done on a default reader."),
         }
     }
 }
