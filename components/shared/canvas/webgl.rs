@@ -736,7 +736,7 @@ pub struct ActiveAttribInfo {
     /// The type of the attribute.
     pub type_: u32,
     /// The location of the attribute.
-    pub location: i32,
+    pub location: Option<u32>,
 }
 
 /// Description of a single active uniform.
