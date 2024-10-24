@@ -94,6 +94,8 @@ mod webdriver_handlers;
 #[warn(deprecated)]
 mod window_named_properties;
 
+mod unminify;
+
 mod links;
 
 pub use init::init;
