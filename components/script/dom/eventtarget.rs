@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::RefCell;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::default::Default;
 use std::ffi::CString;
@@ -100,50 +101,49 @@ enum InlineEventListener {
     Null,
 }
 
-impl InlineEventListener {
-    /// Get a compiled representation of this event handler, compiling it from its
-    /// raw source if necessary.
-    /// <https://html.spec.whatwg.org/multipage/#getting-the-current-value-of-the-event-handler>
-    fn get_compiled_handler(
-        &mut self,
-        owner: &EventTarget,
-        ty: &Atom,
-        can_gc: CanGc,
-    ) -> Option<CommonEventHandler> {
-        match mem::replace(self, InlineEventListener::Null) {
-            InlineEventListener::Null => None,
-            InlineEventListener::Uncompiled(handler) => {
-                let result = owner.get_compiled_event_handler(handler, ty, can_gc);
-                if let Some(ref compiled) = result {
-                    *self = InlineEventListener::Compiled(compiled.clone());
-                }
-                result
-            },
-            InlineEventListener::Compiled(handler) => {
-                *self = InlineEventListener::Compiled(handler.clone());
-                Some(handler)
-            },
-        }
+/// Get a compiled representation of this event handler, compiling it from its
+/// raw source if necessary.
+/// <https://html.spec.whatwg.org/multipage/#getting-the-current-value-of-the-event-handler>
+fn get_compiled_handler(
+    inline_listener: &RefCell<InlineEventListener>,
+    owner: &EventTarget,
+    ty: &Atom,
+    can_gc: CanGc,
+) -> Option<CommonEventHandler> {
+    let listener = mem::replace(
+        &mut *inline_listener.borrow_mut(),
+        InlineEventListener::Null,
+    );
+    let compiled = match listener {
+        InlineEventListener::Null => None,
+        InlineEventListener::Uncompiled(handler) => {
+            owner.get_compiled_event_handler(handler, ty, can_gc)
+        },
+        InlineEventListener::Compiled(handler) => Some(handler),
+    };
+    if let Some(ref compiled) = compiled {
+        *inline_listener.borrow_mut() = InlineEventListener::Compiled(compiled.clone());
     }
+    compiled
 }
 
 #[derive(Clone, JSTraceable, MallocSizeOf, PartialEq)]
 enum EventListenerType {
     Additive(#[ignore_malloc_size_of = "Rc"] Rc<EventListener>),
-    Inline(InlineEventListener),
+    Inline(RefCell<InlineEventListener>),
 }
 
 impl EventListenerType {
     fn get_compiled_listener(
-        &mut self,
+        &self,
         owner: &EventTarget,
         ty: &Atom,
         can_gc: CanGc,
     ) -> Option<CompiledEventListener> {
         match *self {
-            EventListenerType::Inline(ref mut inline) => inline
-                .get_compiled_handler(owner, ty, can_gc)
-                .map(CompiledEventListener::Handler),
+            EventListenerType::Inline(ref inline) => {
+                get_compiled_handler(inline, owner, ty, can_gc).map(CompiledEventListener::Handler)
+            },
             EventListenerType::Additive(ref listener) => {
                 Some(CompiledEventListener::Listener(listener.clone()))
             },
@@ -308,15 +308,15 @@ impl DerefMut for EventListeners {
 impl EventListeners {
     // https://html.spec.whatwg.org/multipage/#getting-the-current-value-of-the-event-handler
     fn get_inline_listener(
-        &mut self,
+        &self,
         owner: &EventTarget,
         ty: &Atom,
         can_gc: CanGc,
     ) -> Option<CommonEventHandler> {
-        for entry in &mut self.0 {
-            if let EventListenerType::Inline(ref mut inline) = entry.listener {
+        for entry in &self.0 {
+            if let EventListenerType::Inline(ref inline) = entry.listener {
                 // Step 1.1-1.8 and Step 2
-                return inline.get_compiled_handler(owner, ty, can_gc);
+                return get_compiled_handler(inline, owner, ty, can_gc);
             }
         }
 
@@ -326,14 +326,14 @@ impl EventListeners {
 
     // https://html.spec.whatwg.org/multipage/#getting-the-current-value-of-the-event-handler
     fn get_listeners(
-        &mut self,
+        &self,
         phase: Option<ListenerPhase>,
         owner: &EventTarget,
         ty: &Atom,
         can_gc: CanGc,
     ) -> Vec<CompiledEventListener> {
         self.0
-            .iter_mut()
+            .iter()
             .filter_map(|entry| {
                 if phase.is_none() || Some(entry.phase) == phase {
                     // Step 1.1-1.8, 2
@@ -395,8 +395,8 @@ impl EventTarget {
         can_gc: CanGc,
     ) -> Vec<CompiledEventListener> {
         self.handlers
-            .borrow_mut()
-            .get_mut(type_)
+            .borrow()
+            .get(type_)
             .map_or(vec![], |listeners| {
                 listeners.get_listeners(specific_phase, self, type_, can_gc)
             })
@@ -427,7 +427,7 @@ impl EventTarget {
                 // Replace if there's something to replace with,
                 // but remove entirely if there isn't.
                 Some(listener) => {
-                    entries[idx].listener = EventListenerType::Inline(listener);
+                    entries[idx].listener = EventListenerType::Inline(listener.into());
                 },
                 None => {
                     entries.remove(idx);
@@ -437,7 +437,7 @@ impl EventTarget {
                 if let Some(listener) = listener {
                     entries.push(EventListenerEntry {
                         phase: ListenerPhase::Bubbling,
-                        listener: EventListenerType::Inline(listener),
+                        listener: EventListenerType::Inline(listener.into()),
                         once: false,
                     });
                 }
@@ -455,9 +455,9 @@ impl EventTarget {
     }
 
     fn get_inline_event_listener(&self, ty: &Atom, can_gc: CanGc) -> Option<CommonEventHandler> {
-        let mut handlers = self.handlers.borrow_mut();
+        let handlers = self.handlers.borrow();
         handlers
-            .get_mut(ty)
+            .get(ty)
             .and_then(|entry| entry.get_inline_listener(self, ty, can_gc))
     }
 
