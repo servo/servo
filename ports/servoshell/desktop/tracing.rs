@@ -156,6 +156,7 @@ mod from_servo {
                 Self::WebViewBlurred => target!("WebViewBlurred"),
                 Self::AllowUnload(..) => target!("AllowUnload"),
                 Self::Keyboard(..) => target!("Keyboard"),
+                Self::ClearClipboardContents => target!("ClearClipboardContents"),
                 Self::GetClipboardContents(..) => target!("GetClipboardContents"),
                 Self::SetClipboardContents(..) => target!("SetClipboardContents"),
                 Self::SetCursor(..) => target!("SetCursor"),
@@ -233,6 +234,7 @@ mod to_servo {
                 Self::InvalidateNativeSurface => target!("InvalidateNativeSurface"),
                 Self::ReplaceNativeSurface(..) => target!("ReplaceNativeSurface"),
                 Self::Gamepad(..) => target!("Gamepad"),
+                Self::ClipboardAction(..) => target!("ClipboardAction"),
             }
         }
     }
