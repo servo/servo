@@ -9,12 +9,14 @@ Tests for external textures from HTMLVideoElement (and other video-type sources?
 TODO: consider whether external_texture and copyToTexture video tests should be in the same file
 TODO(#3193): Test video in BT.2020 color space
 `;import { makeTestGroup } from '../../../common/framework/test_group.js';
-import { GPUTest, TextureTestMixin } from '../../gpu_test.js';
+
+import { TextureUploadingUtils } from '../../util/copy_to_texture.js';
 import { createCanvas } from '../../util/create_elements.js';
 import {
   startPlayingAndWaitForVideo,
   getVideoFrameFromVideoElement,
   getVideoElement,
+  captureCameraFrame,
   convertToUnorm8,
   kPredefinedColorSpace,
   kVideoNames,
@@ -26,7 +28,7 @@ const kHeight = 16;
 const kWidth = 16;
 const kFormat = 'rgba8unorm';
 
-export const g = makeTestGroup(TextureTestMixin(GPUTest));
+export const g = makeTestGroup(TextureUploadingUtils);
 
 function createExternalTextureSamplingTestPipeline(
 t,
@@ -37,16 +39,34 @@ colorAttachmentFormat = kFormat)
     vertex: {
       module: t.device.createShaderModule({
         code: `
-        @vertex fn main(@builtin(vertex_index) VertexIndex : u32) -> @builtin(position) vec4<f32> {
-            var pos = array<vec4<f32>, 6>(
-              vec4<f32>( 1.0,  1.0, 0.0, 1.0),
-              vec4<f32>( 1.0, -1.0, 0.0, 1.0),
-              vec4<f32>(-1.0, -1.0, 0.0, 1.0),
-              vec4<f32>( 1.0,  1.0, 0.0, 1.0),
-              vec4<f32>(-1.0, -1.0, 0.0, 1.0),
-              vec4<f32>(-1.0,  1.0, 0.0, 1.0)
+        struct VertexOutput {
+          @builtin(position) Position : vec4f,
+          @location(0) fragUV : vec2f,
+        }
+
+        @vertex fn main(@builtin(vertex_index) VertexIndex : u32) -> VertexOutput {
+            const pos = array(
+              vec2( 1.0,  1.0),
+              vec2( 1.0, -1.0),
+              vec2(-1.0, -1.0),
+              vec2( 1.0,  1.0),
+              vec2(-1.0, -1.0),
+              vec2(-1.0,  1.0),
             );
-            return pos[VertexIndex];
+
+            const uv = array(
+              vec2(1.0, 0.0),
+              vec2(1.0, 1.0),
+              vec2(0.0, 1.0),
+              vec2(1.0, 0.0),
+              vec2(0.0, 1.0),
+              vec2(0.0, 0.0),
+            );
+
+            var output : VertexOutput;
+            output.Position = vec4(pos[VertexIndex], 0.0, 1.0);
+            output.fragUV = uv[VertexIndex];
+            return output;
         }
         `
       }),
@@ -58,9 +78,9 @@ colorAttachmentFormat = kFormat)
         @group(0) @binding(0) var s : sampler;
         @group(0) @binding(1) var t : texture_external;
 
-        @fragment fn main(@builtin(position) FragCoord : vec4<f32>)
-                                 -> @location(0) vec4<f32> {
-            return textureSampleBaseClampToEdge(t, s, FragCoord.xy / vec2<f32>(16.0, 16.0));
+        @fragment fn main(@location(0) fragUV : vec2f)
+                                 -> @location(0) vec4f {
+            return textureSampleBaseClampToEdge(t, s, fragUV);
         }
         `
       }),
@@ -602,4 +622,100 @@ fn(async (t) => {
     { coord: { x: 1, y: 1 }, exp: convertToUnorm8(presentColors[expect.bottomRightColor]) }]
     );
   });
+});
+
+g.test('importExternalTexture,cameraCapture').
+desc(
+  `
+Tests that we can import an VideoFrame from webcam into a GPUExternalTexture, sample from it and
+compared with 2d canvas rendering result.
+`
+).
+params((u) =>
+u //
+.combineWithParams(checkNonStandardIsZeroCopyIfAvailable()).
+combine('dstColorSpace', kPredefinedColorSpace)
+).
+fn(async (t) => {
+  const { dstColorSpace } = t.params;
+
+  const frame = await captureCameraFrame(t);
+
+  if (frame.displayHeight === 0 || frame.displayWidth === 0) {
+    t.skip('Captured video frame has 0 height or width.');
+  }
+
+  const frameWidth = frame.displayWidth;
+  const frameHeight = frame.displayHeight;
+
+  // Use WebGPU + GPUExternalTexture to render the captured frame.
+  const colorAttachment = t.createTextureTracked({
+    format: kFormat,
+    size: { width: frameWidth, height: frameHeight },
+    usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.RENDER_ATTACHMENT
+  });
+
+  const pipeline = createExternalTextureSamplingTestPipeline(t);
+  const bindGroup = createExternalTextureSamplingTestBindGroup(
+    t,
+    t.params.checkNonStandardIsZeroCopy,
+    frame,
+    pipeline,
+    dstColorSpace
+  );
+
+  const commandEncoder = t.device.createCommandEncoder();
+  const passEncoder = commandEncoder.beginRenderPass({
+    colorAttachments: [
+    {
+      view: colorAttachment.createView(),
+      clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
+      loadOp: 'clear',
+      storeOp: 'store'
+    }]
+
+  });
+  passEncoder.setPipeline(pipeline);
+  passEncoder.setBindGroup(0, bindGroup);
+  passEncoder.draw(6);
+  passEncoder.end();
+  t.device.queue.submit([commandEncoder.finish()]);
+
+  // Use 2d context canvas as expected result.
+  const canvas = createCanvas(t, 'onscreen', frameWidth, frameHeight);
+
+  const canvasContext = canvas.getContext('2d', { colorSpace: dstColorSpace });
+
+  if (canvasContext === null) {
+    t.skip(' onscreen canvas 2d context not available');
+  }
+
+  const ctx = canvasContext;
+  ctx.drawImage(frame, 0, 0, frameWidth, frameHeight);
+
+  const imageData = ctx.getImageData(0, 0, frameWidth, frameHeight, {
+    colorSpace: dstColorSpace
+  });
+
+  const expectedView = t.getExpectedDstPixelsFromSrcPixels({
+    srcPixels: imageData.data,
+    srcOrigin: [0, 0],
+    srcSize: [frameWidth, frameHeight],
+    dstOrigin: [0, 0],
+    dstSize: [frameWidth, frameHeight],
+    subRectSize: [frameWidth, frameHeight],
+    format: 'rgba8unorm',
+    flipSrcBeforeCopy: false,
+    srcDoFlipYDuringCopy: false,
+    conversion: {
+      srcPremultiplied: false,
+      dstPremultiplied: true
+    }
+  });
+
+  t.expectTexelViewComparisonIsOkInTexture({ texture: colorAttachment }, expectedView, [
+  frameWidth,
+  frameHeight,
+  1]
+  );
 });

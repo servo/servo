@@ -35,9 +35,7 @@ NOTE: If your test runtime elides logs when tests pass, you won't see the prints
 in the logs. On non-WPT runtimes, it will also print to the console with console.log.
 WPT disallows console.log and doesn't support logs on passing tests, so this does nothing on WPT.`
 ).
-fn(async (t) => {
-  // MAINTENANCE_TODO: Remove requestAdapterInfo when info is implemented.
-  const adapterInfo = t.adapter.info || (await t.adapter.requestAdapterInfo());
+fn((t) => {
   const isCompatibilityMode = t.adapter.
   isCompatibilityMode;
 
@@ -51,7 +49,7 @@ fn(async (t) => {
       adapter: {
         isFallbackAdapter: t.adapter.isFallbackAdapter,
         isCompatibilityMode,
-        info: adapterInfo,
+        info: t.adapter.info,
         features: Array.from(t.adapter.features),
         limits: t.adapter.limits
       }

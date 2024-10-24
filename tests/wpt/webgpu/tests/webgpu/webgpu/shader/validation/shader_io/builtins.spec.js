@@ -10,7 +10,7 @@ export const g = makeTestGroup(ShaderValidationTest);
 
 // List of all built-in variables and their stage, in|out usage, and type.
 // Taken from table in Section 15:
-// https://www.w3.org/TR/2021/WD-WGSL-20211013/#builtin-variables
+// https://www.w3.org/TR/WGSL/#builtin-inputs-outputs
 export const kBuiltins = [
 { name: 'vertex_index', stage: 'vertex', io: 'in', type: 'u32' },
 { name: 'instance_index', stage: 'vertex', io: 'in', type: 'u32' },
@@ -25,7 +25,19 @@ export const kBuiltins = [
 { name: 'num_workgroups', stage: 'compute', io: 'in', type: 'vec3<u32>' },
 { name: 'sample_index', stage: 'fragment', io: 'in', type: 'u32' },
 { name: 'sample_mask', stage: 'fragment', io: 'in', type: 'u32' },
-{ name: 'sample_mask', stage: 'fragment', io: 'out', type: 'u32' }];
+{ name: 'sample_mask', stage: 'fragment', io: 'out', type: 'u32' },
+{ name: 'subgroup_invocation_id', stage: 'compute', io: 'in', type: 'u32' },
+{ name: 'subgroup_size', stage: 'compute', io: 'in', type: 'u32' },
+{ name: 'subgroup_invocation_id', stage: 'fragment', io: 'in', type: 'u32' },
+{ name: 'subgroup_size', stage: 'fragment', io: 'in', type: 'u32' },
+{ name: 'clip_distances', stage: 'vertex', io: 'out', type: 'array<f32,1>' },
+{ name: 'clip_distances', stage: 'vertex', io: 'out', type: 'array<f32,2>' },
+{ name: 'clip_distances', stage: 'vertex', io: 'out', type: 'array<f32,3>' },
+{ name: 'clip_distances', stage: 'vertex', io: 'out', type: 'array<f32,4>' },
+{ name: 'clip_distances', stage: 'vertex', io: 'out', type: 'array<f32,5>' },
+{ name: 'clip_distances', stage: 'vertex', io: 'out', type: 'array<f32,6>' },
+{ name: 'clip_distances', stage: 'vertex', io: 'out', type: 'array<f32,7>' },
+{ name: 'clip_distances', stage: 'vertex', io: 'out', type: 'array<f32,8>' }];
 
 
 // List of types to test against.
@@ -60,7 +72,15 @@ const kTestTypes = [
 'array<bool,4>',
 'array<u32,4>',
 'array<i32,4>',
+'array<f32,1>',
+'array<f32,2>',
+'array<f32,3>',
 'array<f32,4>',
+'array<f32,5>',
+'array<f32,6>',
+'array<f32,7>',
+'array<f32,8>',
+'array<f32,9>',
 'MyStruct'];
 
 
@@ -80,6 +100,18 @@ beforeAllSubcases((t) => {
   t.skipIf(
     t.isCompatibility && ['sample_index', 'sample_mask'].includes(t.params.name),
     'compatibility mode does not support sample_index or sample_mask'
+  );
+  if (t.params.name.includes('subgroup')) {
+    t.selectDeviceOrSkipTestCase('subgroups');
+  } else if (t.params.name === 'clip_distances') {
+    t.selectDeviceOrSkipTestCase('clip-distances');
+  }
+  t.skipIf(
+    t.params.name !== 'position' &&
+    t.params.target_stage === 'vertex' &&
+    t.params.target_io === 'out' &&
+    !t.params.use_struct,
+    'missing @builtin(position) in the vertex output when the vertex output is not a struct'
   );
 }).
 fn((t) => {
@@ -110,14 +142,26 @@ desc(
 params((u) =>
 u.
 combineWithParams(kBuiltins).
+combine('use_struct', [true, false]).
 beginSubcases().
-combine('target_type', kTestTypes).
-combine('use_struct', [true, false])
+combine('target_type', kTestTypes)
 ).
 beforeAllSubcases((t) => {
   t.skipIf(
     t.isCompatibility && ['sample_index', 'sample_mask'].includes(t.params.name),
     'compatibility mode does not support sample_index or sample_mask'
+  );
+  if (t.params.name.includes('subgroup')) {
+    t.selectDeviceOrSkipTestCase('subgroups');
+  } else if (t.params.name === 'clip_distances') {
+    t.selectDeviceOrSkipTestCase('clip-distances');
+  }
+  t.skipIf(
+    t.params.name !== 'position' &&
+    t.params.stage === 'vertex' &&
+    t.params.io === 'out' &&
+    !t.params.use_struct,
+    'missing @builtin(position) in the vertex output'
   );
 }).
 fn((t) => {
@@ -286,10 +330,31 @@ desc(`Test that a builtin name can be used in different contexts`).
 params((u) =>
 u.
 combineWithParams(kBuiltins).
-combine('use', ['alias', 'struct', 'function', 'module-var', 'function-var'])
+combine('use', ['alias', 'struct', 'function', 'module-var', 'function-var']).
+combine('enable_extension', [true, false]).
+unless(
+  (t) => t.enable_extension && !(t.name.includes('subgroup') || t.name === 'clip_distances')
+)
 ).
+beforeAllSubcases((t) => {
+  if (!t.params.enable_extension) {
+    return;
+  }
+  if (t.params.name.includes('subgroup')) {
+    t.selectDeviceOrSkipTestCase('subgroups');
+  } else if (t.params.name === 'clip_distances') {
+    t.selectDeviceOrSkipTestCase('clip-distances');
+  }
+}).
 fn((t) => {
   let code = '';
+  if (t.params.enable_extension) {
+    if (t.params.name.includes('subgroups')) {
+      code += 'enable subgroup;\n';
+    } else if (t.params.name === 'clip_distances') {
+      code += 'enable clip_distances;\n';
+    }
+  }
   if (t.params.use === 'alias') {
     code += `alias ${t.params.name} = i32;`;
   } else if (t.params.use === `struct`) {

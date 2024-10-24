@@ -5,6 +5,7 @@ Tests for capability checking for features enabling optional texture formats.
 `;import { makeTestGroup } from '../../../../../common/framework/test_group.js';
 import { getGPU } from '../../../../../common/util/navigator_gpu.js';
 import { assert } from '../../../../../common/util/util.js';
+import { kCanvasTextureFormats } from '../../../../capability_info.js';
 import { kAllTextureFormats, kTextureFormatInfo } from '../../../../format_info.js';
 import { kAllCanvasTypes, createCanvas } from '../../../../util/create_elements.js';
 import { ValidationTest } from '../../validation_test.js';
@@ -161,15 +162,15 @@ fn((t) => {
     usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST
   };
 
-  if (enable_required_feature) {
-    t.expectValidationError(() => {
-      ctx.configure(canvasConf);
-    });
-  } else {
-    t.shouldThrow('TypeError', () => {
-      ctx.configure(canvasConf);
-    });
-  }
+  const expectedError =
+  enable_required_feature &&
+  kCanvasTextureFormats.includes(format) ?
+  false :
+  'TypeError';
+
+  t.shouldThrow(expectedError, () => {
+    ctx.configure(canvasConf);
+  });
 });
 
 g.test('canvas_configuration_view_formats').

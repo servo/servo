@@ -12,7 +12,13 @@ import {
   scalarTypeOf } from
 
 '../../../../../util/conversion.js';
-import { quantizeToF16, quantizeToF32 } from '../../../../../util/math.js';
+import {
+
+  quantizeToF16,
+  quantizeToF32,
+  isSubnormalNumberF16,
+  isSubnormalNumberF32 } from
+'../../../../../util/math.js';
 import { ShaderValidationTest } from '../../../shader_validation_test.js';
 
 import {
@@ -34,6 +40,17 @@ function quantizeFunctionForScalarType(type) {
       return quantizeToF16;
     default:
       return (v) => v;
+  }
+}
+
+function isSubnormalFunctionForScalarType(type) {
+  switch (type) {
+    case Type.f32:
+      return isSubnormalNumberF32;
+    case Type.f16:
+      return isSubnormalNumberF16;
+    default:
+      return (v) => false;
   }
 }
 
@@ -72,6 +89,11 @@ fn((t) => {
   if (vv === Infinity || dp === Infinity || len === 0) {
     expectedResult = false;
   }
+
+  // We skip tests with values that would involve subnormal computations in
+  // order to avoid defining a specific behavior (flush to zero).
+  const isSubnormalFn = isSubnormalFunctionForScalarType(scalarType);
+  t.skipIf(isSubnormalFn(vv) || isSubnormalFn(dp) || isSubnormalFn(len));
 
   validateConstOrOverrideBuiltinEval(
     t,
