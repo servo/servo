@@ -7,6 +7,7 @@ use std::cell::Cell;
 use base::id::ServiceWorkerRegistrationId;
 use devtools_traits::WorkerId;
 use dom_struct::dom_struct;
+use net_traits::request::Referrer;
 use script_traits::{ScopeThings, WorkerScriptLoadOrigin};
 use servo_url::ServoUrl;
 use uuid::Uuid;
@@ -112,8 +113,12 @@ impl ServiceWorkerRegistration {
 
     pub fn create_scope_things(global: &GlobalScope, script_url: ServoUrl) -> ScopeThings {
         let worker_load_origin = WorkerScriptLoadOrigin {
-            referrer_url: None,
-            referrer_policy: None,
+            referrer_url: match global.get_referrer() {
+                Referrer::Client(url) => Some(url),
+                Referrer::ReferrerUrl(url) => Some(url),
+                _ => None,
+            },
+            referrer_policy: Some(global.policy_container().referrer_policy),
             pipeline_id: global.pipeline_id(),
         };
 

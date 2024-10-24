@@ -95,7 +95,7 @@ impl HTMLHeadElement {
 
         let mut csp_list: Option<CspList> = None;
         let node = self.upcast::<Node>();
-        let candinates = node
+        let candidates = node
             .traverse_preorder(ShadowIncluding::No)
             .filter_map(DomRoot::downcast::<Element>)
             .filter(|elem| elem.is::<HTMLMetaElement>())
@@ -109,7 +109,7 @@ impl HTMLHeadElement {
                     .is_some()
             });
 
-        for meta in candinates {
+        for meta in candidates {
             if let Some(ref content) = meta.get_attribute(&ns!(), &local_name!("content")) {
                 let content = content.value();
                 let content_val = content.trim();
