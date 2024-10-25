@@ -251,19 +251,55 @@ impl ReadableStreamDefaultReader {
             request.error_steps(rval);
         }
     }
+
+    /// https://streams.spec.whatwg.org/#readable-stream-default-reader-read
+    fn read(&self, read_request: ReadRequest){
+        // step 1 & 2
+        assert!(self.stream.get().is_some());
+
+        if let Some(stream) = self.stream.get(){
+            // step 3
+            stream.set_is_disturbed(true);
+            if stream.is_closed(){
+                // step 4
+                read_request.close_steps();
+            } else if stream.is_errored(){
+                // step 5
+                read_request.error_steps(stream.get_stored_error());
+            }else{
+                // step 6
+                assert!(stream.is_readable());
+                stream.perform_pull_steps(read_request);
+            }
+        }
+    }
 }
 
 impl ReadableStreamDefaultReaderMethods for ReadableStreamDefaultReader {
     /// <https://streams.spec.whatwg.org/#default-reader-read>
+    #[allow(unsafe_code)]
     fn Read(&self) -> Rc<Promise> {
+        // step 1
+        if self.stream.get().is_none() {
+            let cx = GlobalScope::get_cx();
+            rooted!(in(*cx) let mut rval = UndefinedValue());
+            unsafe {
+                Error::Type("stream is undefined".to_owned())
+                    .clone()
+                    .to_jsval(*cx, &*self.global(), rval.handle_mut())
+            };
+            return Promise::new_rejected(&self.global(), cx, rval.handle()).unwrap();
+        }
+        // step 2
         let promise = Promise::new(&self.reflector_.global());
 
-        if let Some(stream) = self.stream.get() {
-            stream.perform_pull_steps(ReadRequest::Read(promise.clone()));
-        } else {
-            promise.reject_error(Error::Type("stream is undefined".to_owned()));
-        }
+        // step 3
+        let read_request = ReadRequest::Read(promise.clone());
 
+        // step 4
+        self.read(read_request);
+        
+        // step 5
         promise
     }
 

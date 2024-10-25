@@ -7,6 +7,7 @@ use std::ptr::{self, NonNull};
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
+use js::conversions::ToJSValConvertible;
 use js::jsapi::{Heap, JSObject};
 use js::jsval::{ObjectValue, UndefinedValue};
 use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue};
@@ -302,6 +303,19 @@ impl ReadableStream {
         }
     }
 
+    /// https://streams.spec.whatwg.org/#readablestream-storederror
+    #[allow(unsafe_code)]
+    pub fn get_stored_error(&self) -> SafeHandleValue{
+        unsafe {
+            // SafeHandleValue::from_raw(self.stored_error.handle())
+
+            // let cx = GlobalScope::get_cx();
+            // rooted!(in(*cx) let mut rval = UndefinedValue());
+            // self.stored_error.to_jsval(*cx, rval.handle_mut());
+            //
+        }
+    }
+
     /// <https://streams.spec.whatwg.org/#readable-stream-error>
     /// Note: in other use cases this call happens via the controller.
     pub fn error_native(&self, _error: Error) {
@@ -394,6 +408,10 @@ impl ReadableStream {
 
     pub fn is_disturbed(&self) -> bool {
         self.disturbed.get()
+    }
+
+    pub fn set_is_disturbed(&self, disturbed: bool){
+        self.disturbed.set(disturbed);
     }
 
     pub fn is_closed(&self) -> bool {
