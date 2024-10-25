@@ -5,7 +5,7 @@
 use std::fmt;
 use std::sync::{Arc, Mutex};
 
-use app_units::Au;
+use app_units::{Au, MAX_AU};
 use base::id::{BrowsingContextId, PipelineId};
 use canvas_traits::canvas::{CanvasId, CanvasMsg, FromLayoutMsg};
 use data_url::DataUrl;
@@ -564,119 +564,36 @@ impl ReplacedContent {
         if let (AuOrAuto::Auto, AuOrAuto::Auto, Some(ratio)) =
             (box_size.inline, box_size.block, intrinsic_ratio)
         {
-            let LogicalVec2 {
-                inline: inline_size,
-                block: block_size,
-            } = get_tentative_size(box_size);
-            enum Violation {
-                None,
-                Below(Au),
-                Above(Au),
-            }
-            let violation = |size: Au, min_size: Au, mut max_size: Option<Au>| {
-                if let Some(max) = max_size.as_mut() {
-                    max.max_assign(min_size);
-                }
-                if size < min_size {
-                    return Violation::Below(min_size);
-                }
-                match max_size {
-                    Some(max_size) if size > max_size => Violation::Above(max_size),
-                    _ => Violation::None,
-                }
-            };
-            return match (
-                violation(inline_size, min_box_size.inline, max_box_size.inline),
-                violation(block_size, min_box_size.block, max_box_size.block),
-            ) {
-                // Row 1.
-                (Violation::None, Violation::None) => LogicalVec2 {
-                    inline: inline_size,
-                    block: block_size,
-                },
-                // Row 2.
-                (Violation::Above(max_inline_size), Violation::None) => LogicalVec2 {
-                    inline: max_inline_size,
-                    block: ratio
-                        .compute_dependent_size(Direction::Block, max_inline_size)
-                        .max(min_box_size.block),
-                },
-                // Row 3.
-                (Violation::Below(min_inline_size), Violation::None) => LogicalVec2 {
-                    inline: min_inline_size,
-                    block: ratio
-                        .compute_dependent_size(Direction::Block, min_inline_size)
-                        .clamp_below_max(max_box_size.block),
-                },
-                // Row 4.
-                (Violation::None, Violation::Above(max_block_size)) => LogicalVec2 {
-                    inline: ratio
-                        .compute_dependent_size(Direction::Inline, max_block_size)
-                        .max(min_box_size.inline),
-                    block: max_block_size,
-                },
-                // Row 5.
-                (Violation::None, Violation::Below(min_block_size)) => LogicalVec2 {
-                    inline: ratio
-                        .compute_dependent_size(Direction::Inline, min_block_size)
-                        .clamp_below_max(max_box_size.inline),
-                    block: min_block_size,
-                },
-                // Rows 6-7.
-                (Violation::Above(max_inline_size), Violation::Above(max_block_size)) => {
-                    let transferred_block_size =
-                        ratio.compute_dependent_size(Direction::Block, max_inline_size);
-                    if transferred_block_size <= max_block_size {
-                        // Row 6.
-                        LogicalVec2 {
-                            inline: max_inline_size,
-                            block: transferred_block_size.max(min_box_size.block),
-                        }
-                    } else {
-                        // Row 7.
-                        LogicalVec2 {
-                            inline: ratio
-                                .compute_dependent_size(Direction::Inline, max_block_size)
-                                .max(min_box_size.inline),
-                            block: max_block_size,
-                        }
-                    }
-                },
-                // Rows 8-9.
-                (Violation::Below(min_inline_size), Violation::Below(min_block_size)) => {
-                    let transferred_inline_size =
-                        ratio.compute_dependent_size(Direction::Inline, min_block_size);
-                    if min_inline_size <= transferred_inline_size {
-                        // Row 8.
-                        LogicalVec2 {
-                            inline: transferred_inline_size.clamp_below_max(max_box_size.inline),
-                            block: min_block_size,
-                        }
-                    } else {
-                        // Row 9.
-                        LogicalVec2 {
-                            inline: min_inline_size,
-                            block: ratio
-                                .compute_dependent_size(Direction::Block, min_inline_size)
-                                .clamp_below_max(max_box_size.block),
-                        }
-                    }
-                },
-                // Row 10.
-                (Violation::Below(min_inline_size), Violation::Above(max_block_size)) => {
-                    LogicalVec2 {
-                        inline: min_inline_size,
-                        block: max_block_size,
-                    }
-                },
-                // Row 11.
-                (Violation::Above(max_inline_size), Violation::Below(min_block_size)) => {
-                    LogicalVec2 {
-                        inline: max_inline_size,
-                        block: min_block_size,
-                    }
-                },
-            };
+            let tentative_size = get_tentative_size(box_size);
+            let max_box_size = max_box_size.map(|max_size| max_size.unwrap_or(MAX_AU));
+            // This is a simplification of the CSS2 algorithm in a way that properly handles `aspect-ratio`.
+            // We transfer min and max constraints from the other axis, and apply them in addition to
+            // non-transferred min and max constraints. In case of conflict,
+            //  - Non-transferred constraints take precedence over transferred ones.
+            //  - Min constraints take precedence over max ones from the same axis.
+            // <https://drafts.csswg.org/css-sizing-4/#aspect-ratio-size-transfers>
+            // <https://github.com/w3c/csswg-drafts/issues/6071#issuecomment-2243986313>
+            let inline = tentative_size.inline.clamp_between_extremums(
+                ratio
+                    .compute_dependent_size(Direction::Inline, min_box_size.block)
+                    .clamp_between_extremums(min_box_size.inline, Some(max_box_size.inline)),
+                Some(
+                    ratio
+                        .compute_dependent_size(Direction::Inline, max_box_size.block)
+                        .min(max_box_size.inline),
+                ),
+            );
+            let block = tentative_size.block.clamp_between_extremums(
+                ratio
+                    .compute_dependent_size(Direction::Block, min_box_size.inline)
+                    .clamp_between_extremums(min_box_size.block, Some(max_box_size.block)),
+                Some(
+                    ratio
+                        .compute_dependent_size(Direction::Block, max_box_size.inline)
+                        .min(max_box_size.block),
+                ),
+            );
+            return LogicalVec2 { inline, block };
         }
 
         // https://drafts.csswg.org/css2/#min-max-widths "The following algorithm describes how the two properties
