@@ -5,6 +5,8 @@
 
 //! Flow layout, also known as block-and-inline layout.
 
+use std::cell::LazyCell;
+
 use app_units::Au;
 use inline::InlineFormattingContext;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
@@ -2053,21 +2055,19 @@ impl IndependentFormattingContext {
                 let tentative_block_size =
                     SizeConstraint::new(preferred_block_size, min_block_size, max_block_size);
 
-                let mut get_content_size = || {
+                let content_size = LazyCell::new(|| {
                     let constraint_space = ConstraintSpace::new(tentative_block_size, writing_mode);
                     non_replaced
                         .inline_content_sizes(layout_context, &constraint_space)
                         .sizes
-                };
+                });
 
                 // https://drafts.csswg.org/css2/visudet.html#float-width
                 // https://drafts.csswg.org/css2/visudet.html#inlineblock-width
-                let tentative_inline_size =
-                    content_box_sizes_and_pbm.content_box_size.inline.resolve(
-                        Size::FitContent,
-                        available_inline_size,
-                        &mut get_content_size,
-                    );
+                let tentative_inline_size = content_box_sizes_and_pbm
+                    .content_box_size
+                    .inline
+                    .resolve(Size::FitContent, available_inline_size, &content_size);
 
                 // https://drafts.csswg.org/css2/visudet.html#min-max-widths
                 // In this case “applying the rules above again” with a non-auto inline-size
@@ -2075,12 +2075,12 @@ impl IndependentFormattingContext {
                 let min_inline_size = content_box_sizes_and_pbm
                     .content_min_box_size
                     .inline
-                    .resolve_non_initial(available_inline_size, &mut get_content_size)
+                    .resolve_non_initial(available_inline_size, &content_size)
                     .unwrap_or_default();
                 let max_inline_size = content_box_sizes_and_pbm
                     .content_max_box_size
                     .inline
-                    .resolve_non_initial(available_inline_size, &mut get_content_size);
+                    .resolve_non_initial(available_inline_size, &content_size);
                 let inline_size =
                     tentative_inline_size.clamp_between_extremums(min_inline_size, max_inline_size);
 
@@ -2101,31 +2101,31 @@ impl IndependentFormattingContext {
                     &containing_block_for_children,
                     containing_block,
                 );
-                let (inline_size, block_size) = match independent_layout
-                    .content_inline_size_for_table
-                {
-                    Some(inline) => (inline, independent_layout.content_block_size),
-                    None => {
-                        // https://drafts.csswg.org/css2/visudet.html#block-root-margin
-                        let stretch_size =
-                            available_block_size.unwrap_or(independent_layout.content_block_size);
-                        let mut get_content_size = || independent_layout.content_block_size.into();
-                        let min_block_size = content_box_sizes_and_pbm
-                            .content_min_box_size
-                            .block
-                            .resolve_non_initial(stretch_size, &mut get_content_size)
-                            .unwrap_or_default();
-                        let max_block_size = content_box_sizes_and_pbm
-                            .content_max_box_size
-                            .block
-                            .resolve_non_initial(stretch_size, &mut get_content_size);
-                        let block_size = tentative_block_size
-                            .to_definite()
-                            .unwrap_or(independent_layout.content_block_size)
-                            .clamp_between_extremums(min_block_size, max_block_size);
-                        (inline_size, block_size)
-                    },
-                };
+                let (inline_size, block_size) =
+                    match independent_layout.content_inline_size_for_table {
+                        Some(inline) => (inline, independent_layout.content_block_size),
+                        None => {
+                            // https://drafts.csswg.org/css2/visudet.html#block-root-margin
+                            let stretch_size = available_block_size
+                                .unwrap_or(independent_layout.content_block_size);
+                            let content_size =
+                                LazyCell::new(|| independent_layout.content_block_size.into());
+                            let min_block_size = content_box_sizes_and_pbm
+                                .content_min_box_size
+                                .block
+                                .resolve_non_initial(stretch_size, &content_size)
+                                .unwrap_or_default();
+                            let max_block_size = content_box_sizes_and_pbm
+                                .content_max_box_size
+                                .block
+                                .resolve_non_initial(stretch_size, &content_size);
+                            let block_size = tentative_block_size
+                                .to_definite()
+                                .unwrap_or(independent_layout.content_block_size)
+                                .clamp_between_extremums(min_block_size, max_block_size);
+                            (inline_size, block_size)
+                        },
+                    };
 
                 let content_size = LogicalVec2 {
                     block: block_size,
