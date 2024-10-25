@@ -15,6 +15,7 @@
   "dom.fullscreen.test": false,
   "dom.gamepad.enabled": true,
   "dom.imagebitmap.enabled": false,
+  "dom.intersection_observer.enabled": false,
   "dom.microdata.enabled": false,
   "dom.microdata.testing.enabled": false,
   "dom.mouseevent.which.enabled": false,
