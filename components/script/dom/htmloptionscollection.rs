@@ -136,18 +136,31 @@ impl HTMLOptionsCollectionMethods for HTMLOptionsCollection {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-htmloptionscollection-length>
     fn SetLength(&self, length: u32, can_gc: CanGc) {
-        let current_length = self.upcast().Length();
-        let delta = length as i32 - current_length as i32;
-        match delta.cmp(&0) {
+        // Step 1. Let current be the number of nodes represented by the collection.
+        let current = self.upcast().Length();
+
+        match length.cmp(&current) {
+            // Step 2. If the given value is greater than current, then:
+            Ordering::Greater => {
+                // Step 2.1 If the given value is greater than 100,000, then return.
+                if length > 100_000 {
+                    return;
+                }
+
+                // Step 2.2 Let n be value − current.
+                let n = length - current;
+
+                // Step 2.3 Append n new option elements with no attributes and no child
+                // nodes to the select element on which this is rooted.
+                self.add_new_elements(n, can_gc).unwrap();
+            },
+            // Step 3. If the given value is less than current, then:
             Ordering::Less => {
-                // new length is lower - deleting last option elements
-                for index in (length..current_length).rev() {
+                // Step 3.1. Let n be current − value.
+                // Step 3.2 Remove the last n nodes in the collection from their parent nodes.
+                for index in (length..current).rev() {
                     self.Remove(index as i32)
                 }
-            },
-            Ordering::Greater => {
-                // new length is higher - adding new option elements
-                self.add_new_elements(delta as u32, can_gc).unwrap();
             },
             _ => {},
         }
