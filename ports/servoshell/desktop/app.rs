@@ -278,7 +278,8 @@ impl App {
                                 "Sync WebView size with Window Resize event",
                             );
                         }
-                        if response.repaint {
+                        if response.repaint && *event != winit::event::WindowEvent::RedrawRequested
+                        {
                             // Request a winit redraw event, so we can recomposite, update and paint
                             // the minibrowser, and present the new frame.
                             window.winit_window().unwrap().request_redraw();
