@@ -253,20 +253,23 @@ impl ReadableStreamDefaultReader {
     }
 
     /// https://streams.spec.whatwg.org/#readable-stream-default-reader-read
-    fn read(&self, read_request: ReadRequest){
+    fn read(&self, read_request: ReadRequest) {
         // step 1 & 2
         assert!(self.stream.get().is_some());
 
-        if let Some(stream) = self.stream.get(){
+        if let Some(stream) = self.stream.get() {
             // step 3
             stream.set_is_disturbed(true);
-            if stream.is_closed(){
+            if stream.is_closed() {
                 // step 4
                 read_request.close_steps();
-            } else if stream.is_errored(){
+            } else if stream.is_errored() {
                 // step 5
-                read_request.error_steps(stream.get_stored_error());
-            }else{
+                let cx = GlobalScope::get_cx();
+                rooted!(in(*cx) let mut rval = UndefinedValue());
+                stream.get_stored_error(rval.handle_mut());
+                read_request.error_steps(rval.handle());
+            } else {
                 // step 6
                 assert!(stream.is_readable());
                 stream.perform_pull_steps(read_request);
@@ -298,7 +301,7 @@ impl ReadableStreamDefaultReaderMethods for ReadableStreamDefaultReader {
 
         // step 4
         self.read(read_request);
-        
+
         // step 5
         promise
     }

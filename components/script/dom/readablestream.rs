@@ -10,7 +10,10 @@ use dom_struct::dom_struct;
 use js::conversions::ToJSValConvertible;
 use js::jsapi::{Heap, JSObject};
 use js::jsval::{ObjectValue, UndefinedValue};
-use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue};
+use js::rust::{
+    HandleObject as SafeHandleObject, HandleValue as SafeHandleValue,
+    MutableHandleValue as SafeMutableHandleValue,
+};
 
 use crate::dom::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStrategy;
 use crate::dom::bindings::codegen::Bindings::ReadableStreamBinding::{
@@ -305,14 +308,10 @@ impl ReadableStream {
 
     /// https://streams.spec.whatwg.org/#readablestream-storederror
     #[allow(unsafe_code)]
-    pub fn get_stored_error(&self) -> SafeHandleValue{
+    pub fn get_stored_error(&self, handle_mut: SafeMutableHandleValue) {
         unsafe {
-            // SafeHandleValue::from_raw(self.stored_error.handle())
-
-            // let cx = GlobalScope::get_cx();
-            // rooted!(in(*cx) let mut rval = UndefinedValue());
-            // self.stored_error.to_jsval(*cx, rval.handle_mut());
-            //
+            let cx = GlobalScope::get_cx();
+            self.stored_error.to_jsval(*cx, handle_mut);
         }
     }
 
@@ -410,7 +409,7 @@ impl ReadableStream {
         self.disturbed.get()
     }
 
-    pub fn set_is_disturbed(&self, disturbed: bool){
+    pub fn set_is_disturbed(&self, disturbed: bool) {
         self.disturbed.set(disturbed);
     }
 
