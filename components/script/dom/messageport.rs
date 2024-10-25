@@ -322,12 +322,12 @@ impl MessagePortMethods for MessagePort {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#handler-messageport-onmessage>
-    fn GetOnmessage(&self) -> Option<Rc<EventHandlerNonNull>> {
+    fn GetOnmessage(&self, can_gc: CanGc) -> Option<Rc<EventHandlerNonNull>> {
         if self.detached.get() {
             return None;
         }
         let eventtarget = self.upcast::<EventTarget>();
-        eventtarget.get_event_handler_common("message", CanGc::note())
+        eventtarget.get_event_handler_common("message", can_gc)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#handler-messageport-onmessage>
