@@ -140,7 +140,9 @@ impl ExtendableMessageEvent {
             ports,
             can_gc,
         );
-        Extendablemessageevent.upcast::<Event>().fire(target);
+        Extendablemessageevent
+            .upcast::<Event>()
+            .fire(target, can_gc);
     }
 
     pub fn dispatch_error(target: &EventTarget, scope: &GlobalScope, can_gc: CanGc) {
@@ -156,7 +158,7 @@ impl ExtendableMessageEvent {
             init.ports.clone(),
             can_gc,
         );
-        ExtendableMsgEvent.upcast::<Event>().fire(target);
+        ExtendableMsgEvent.upcast::<Event>().fire(target, can_gc);
     }
 }
 

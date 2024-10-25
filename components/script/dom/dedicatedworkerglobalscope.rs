@@ -587,7 +587,7 @@ impl DedicatedWorkerGlobalScope {
                 CanGc::note(),
             );
             let event_status =
-                event.upcast::<Event>().fire(worker.upcast::<EventTarget>());
+                event.upcast::<Event>().fire(worker.upcast::<EventTarget>(), CanGc::note());
 
             // Step 2.
             if event_status == EventStatus::NotCanceled {

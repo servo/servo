@@ -87,7 +87,7 @@ impl TextTrackList {
                             CanGc::note()
                         );
 
-                        event.upcast::<Event>().fire(this.upcast::<EventTarget>());
+                        event.upcast::<Event>().fire(this.upcast::<EventTarget>(), CanGc::note());
                     }
                 }),
                 canceller,

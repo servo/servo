@@ -249,7 +249,7 @@ impl Gamepad {
         let event = GamepadEvent::new_with_type(&self.global(), event_type, self, can_gc);
         event
             .upcast::<Event>()
-            .fire(self.global().as_window().upcast::<EventTarget>());
+            .fire(self.global().as_window().upcast::<EventTarget>(), can_gc);
     }
 
     /// Initialize the number of axes in the "standard" gamepad mapping.

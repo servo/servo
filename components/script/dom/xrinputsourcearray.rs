@@ -65,7 +65,7 @@ impl XRInputSourceArray {
             &[],
             can_gc,
         );
-        event.upcast::<Event>().fire(session.upcast());
+        event.upcast::<Event>().fire(session.upcast(), can_gc);
     }
 
     pub fn remove_input_source(&self, session: &XRSession, id: InputId, can_gc: CanGc) {
@@ -88,7 +88,7 @@ impl XRInputSourceArray {
             can_gc,
         );
         self.input_sources.borrow_mut().retain(|i| i.id() != id);
-        event.upcast::<Event>().fire(session.upcast());
+        event.upcast::<Event>().fire(session.upcast(), can_gc);
     }
 
     pub fn add_remove_input_source(
@@ -124,7 +124,7 @@ impl XRInputSourceArray {
             removed,
             can_gc,
         );
-        event.upcast::<Event>().fire(session.upcast());
+        event.upcast::<Event>().fire(session.upcast(), can_gc);
     }
 
     pub fn find(&self, id: InputId) -> Option<DomRoot<XRInputSource>> {

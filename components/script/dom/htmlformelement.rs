@@ -764,7 +764,7 @@ impl HTMLFormElement {
                 can_gc,
             );
             let event = event.upcast::<Event>();
-            event.fire(self.upcast::<EventTarget>());
+            event.fire(self.upcast::<EventTarget>(), can_gc);
 
             // Step 6.6
             self.firing_submission_events.set(false);
@@ -1223,7 +1223,9 @@ impl HTMLFormElement {
             can_gc,
         );
 
-        event.upcast::<Event>().fire(self.upcast::<EventTarget>());
+        event
+            .upcast::<Event>()
+            .fire(self.upcast::<EventTarget>(), can_gc);
 
         // Step 8
         self.constructing_entry_list.set(false);
