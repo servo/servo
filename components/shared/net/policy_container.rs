@@ -45,7 +45,7 @@ impl PolicyContainer {
         }
     }
 
-    pub fn set_csp_list(&mut self, csp_list: CspList) {
-        self.csp_list = Some(csp_list);
+    pub fn set_csp_list(&mut self, csp_list: Option<CspList>) {
+        self.csp_list = csp_list;
     }
 }

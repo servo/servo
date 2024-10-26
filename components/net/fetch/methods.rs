@@ -20,7 +20,7 @@ use log::warn;
 use mime::{self, Mime};
 use net_traits::filemanager_thread::{FileTokenCheck, RelativePos};
 use net_traits::http_status::HttpStatus;
-use net_traits::policy_container::{PolicyContainer, RequestPolicyContainer};
+use net_traits::policy_container::{self, PolicyContainer, RequestPolicyContainer};
 use net_traits::request::{
     is_cors_safelisted_method, is_cors_safelisted_request_header, BodyChunkRequest,
     BodyChunkResponse, CredentialsMode, Destination, Origin, RedirectMode, Referrer, Request,
@@ -247,13 +247,14 @@ pub async fn main_fetch(
     // TODO: Report violations.
 
     // The request should have a valid policy_container associated with it.
-    let RequestPolicyContainer::PolicyContainer(policy_container) = &request.policy_container
-    else {
-        panic!("policy container should not be \"client\"");
+    // TODO fix this
+    let policy_container = match &request.policy_container {
+        RequestPolicyContainer::Client => PolicyContainer::default(),
+        RequestPolicyContainer::PolicyContainer(container) => container.to_owned()
     };
 
     // Step 2.4.
-    if should_request_be_blocked_by_csp(request, policy_container) == csp::CheckResult::Blocked {
+    if should_request_be_blocked_by_csp(request, &policy_container) == csp::CheckResult::Blocked {
         warn!("Request blocked by CSP");
         response = Some(Response::network_error(NetworkError::Internal(
             "Blocked by Content-Security-Policy".into(),

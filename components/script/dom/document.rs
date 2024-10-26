@@ -3499,9 +3499,7 @@ impl Document {
     }
 
     pub fn set_csp_list(&self, csp_list: Option<CspList>) {
-        if let Some(list) = csp_list {
-            self.policy_container.borrow_mut().set_csp_list(list);
-        }
+        self.policy_container.borrow_mut().set_csp_list(csp_list);
     }
 
     pub fn get_csp_list(&self) -> Option<CspList> {
