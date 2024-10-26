@@ -348,8 +348,12 @@ impl TextRun {
         bidi_info: &BidiInfo,
     ) {
         let inherited_text_style = self.parent_style.get_inherited_text().clone();
-        let letter_spacing = if inherited_text_style.letter_spacing.0.px() != 0. {
-            Some(app_units::Au::from(inherited_text_style.letter_spacing.0))
+        let letter_spacing = inherited_text_style
+            .letter_spacing
+            .0
+            .resolve(self.parent_style.clone_font().font_size.computed_size());
+        let letter_spacing = if letter_spacing.px() != 0. {
+            Some(app_units::Au::from(letter_spacing))
         } else {
             None
         };
