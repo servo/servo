@@ -4469,28 +4469,28 @@ impl DocumentMethods for Document {
         let ns = namespace_from_domstring(maybe_ns);
         let local = LocalName::from(tag_name);
         let qname = QualName::new(None, ns, local);
-        match self.tagns_map.borrow_mut().entry(qname.clone()) {
-            Occupied(entry) => DomRoot::from_ref(entry.get()),
-            Vacant(entry) => {
-                let result = HTMLCollection::by_qual_tag_name(&self.window, self.upcast(), qname);
-                entry.insert(Dom::from_ref(&*result));
-                result
-            },
+        if let Some(collection) = self.tagns_map.borrow().get(&qname) {
+            return DomRoot::from_ref(collection);
         }
+        let result = HTMLCollection::by_qual_tag_name(&self.window, self.upcast(), qname.clone());
+        self.tagns_map
+            .borrow_mut()
+            .insert(qname, Dom::from_ref(&*result));
+        result
     }
 
     // https://dom.spec.whatwg.org/#dom-document-getelementsbyclassname
     fn GetElementsByClassName(&self, classes: DOMString) -> DomRoot<HTMLCollection> {
         let class_atoms: Vec<Atom> = split_html_space_chars(&classes).map(Atom::from).collect();
-        match self.classes_map.borrow_mut().entry(class_atoms.clone()) {
-            Occupied(entry) => DomRoot::from_ref(entry.get()),
-            Vacant(entry) => {
-                let result =
-                    HTMLCollection::by_atomic_class_name(&self.window, self.upcast(), class_atoms);
-                entry.insert(Dom::from_ref(&*result));
-                result
-            },
+        if let Some(collection) = self.classes_map.borrow().get(&class_atoms) {
+            return DomRoot::from_ref(collection);
         }
+        let result =
+            HTMLCollection::by_atomic_class_name(&self.window, self.upcast(), class_atoms.clone());
+        self.classes_map
+            .borrow_mut()
+            .insert(class_atoms, Dom::from_ref(&*result));
+        result
     }
 
     // https://dom.spec.whatwg.org/#dom-nonelementparentnode-getelementbyid
