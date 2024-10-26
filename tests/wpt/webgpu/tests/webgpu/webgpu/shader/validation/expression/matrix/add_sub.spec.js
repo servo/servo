@@ -275,7 +275,7 @@ fn((t) => {
   let rhs = `mat${t.params.c}x${t.params.r}h(`;
   for (let i = 0; i < t.params.c; i++) {
     for (let k = 0; k < t.params.r; k++) {
-      lhs += `${kValue.f32.negative.min / 2},`;
+      lhs += `${kValue.f16.negative.min / 2},`;
       rhs += `${t.params.rhs},`;
     }
   }

@@ -409,6 +409,42 @@ fn caller() {
   t.expectCompileResult(shouldPass(t.params.aliased, t.params.a_use, t.params.b_use), code);
 });
 
+g.test('swizzles').
+desc(`Test aliasing of two pointers passed to a function and used with swizzles.`).
+params((u) =>
+u.
+combine('address_space', ['private', 'storage', 'workgroup']).
+combine('aliased', [true, false]).
+beginSubcases().
+combine('a_use', ['no_access', 'compound_assign_lhs']).
+combine('deref', [true, false])
+).
+fn((t) => {
+  if (requiresUnrestrictedPointerParameters(t.params.address_space)) {
+    t.skipIfLanguageFeatureNotSupported('unrestricted_pointer_parameters');
+  }
+  if (t.params.deref === false) {
+    t.skipIfLanguageFeatureNotSupported('pointer_composite_access');
+  }
+
+  const ptr_vec = ptr(t.params.address_space, 'vec4i');
+  const code = `
+${declareModuleScopeVar('x', t.params.address_space, 'vec4i')}
+${declareModuleScopeVar('y', t.params.address_space, 'vec4i')}
+
+fn callee(pa : ${ptr_vec}, pb : ${ptr_vec}) -> i32 {
+  ${kUses[t.params.a_use].gen(`(*pa)`)}
+  let value = ${t.params.deref ? `(*pb)` : `pb`}.wzyx;
+  return 0;
+}
+
+fn caller() {
+  callee(&x, ${t.params.aliased ? `&x` : `&y`});
+}
+`;
+  t.expectCompileResult(shouldPass(t.params.aliased, t.params.a_use, 'let_init'), code);
+});
+
 g.test('same_pointer_read_and_write').
 desc(`Test that we can read from and write to the same pointer.`).
 params((u) =>

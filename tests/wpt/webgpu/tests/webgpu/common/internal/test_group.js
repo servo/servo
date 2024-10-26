@@ -31,6 +31,7 @@ import {
   stringifyPublicParamsUniquely } from
 '../internal/query/stringify_params.js';
 import { validQueryPart } from '../internal/query/validQueryPart.js';
+import { attemptGarbageCollection } from '../util/collect_garbage.js';
 
 import { assert, unreachable } from '../util/util.js';
 
@@ -620,7 +621,7 @@ class RunCaseSpecific {
             const subcasePrefix = 'subcase: ' + stringifyPublicParams(subParams);
             const subRec = new Proxy(rec, {
               get: (target, k) => {
-                const prop = TestCaseRecorder.prototype[k];
+                const prop = rec[k] ?? TestCaseRecorder.prototype[k];
                 if (typeof prop === 'function') {
                   testHeartbeatCallback();
                   return function (...args) {
@@ -696,6 +697,7 @@ class RunCaseSpecific {
                 subRec.threw(ex);
               }
             }).
+            finally(attemptGarbageCollectionIfDue).
             finally(subcaseFinishedCallback);
 
             allPreviousSubcasesFinalizedPromise = allPreviousSubcasesFinalizedPromise.then(
@@ -711,13 +713,17 @@ class RunCaseSpecific {
             rec.skipped(new SkipTestCase('all subcases were skipped'));
           }
         } else {
-          await this.runTest(
-            rec,
-            sharedState,
-            this.params,
-            /* throwSkip */false,
-            getExpectedStatus(selfQuery)
-          );
+          try {
+            await this.runTest(
+              rec,
+              sharedState,
+              this.params,
+              /* throwSkip */false,
+              getExpectedStatus(selfQuery)
+            );
+          } finally {
+            await attemptGarbageCollectionIfDue();
+          }
         }
       } finally {
         testHeartbeatCallback();
@@ -743,3 +749,28 @@ class RunCaseSpecific {
     }
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+/** Every `subcasesBetweenAttemptingGC` calls to this function will `attemptGarbageCollection()`. */
+const attemptGarbageCollectionIfDue = (() => {
+  // This state is global because garbage is global.
+  let subcasesSinceLastGC = 0;
+
+  return async function attemptGarbageCollectionIfDue() {
+    subcasesSinceLastGC++;
+    if (subcasesSinceLastGC >= globalTestConfig.subcasesBetweenAttemptingGC) {
+      subcasesSinceLastGC = 0;
+      return attemptGarbageCollection();
+    }
+  };
+})();

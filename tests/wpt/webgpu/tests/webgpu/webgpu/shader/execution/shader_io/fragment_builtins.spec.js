@@ -20,14 +20,17 @@ is evaluated per-fragment or per-sample. With @interpolate(, sample) or usage of
 `;import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { ErrorWithExtra, assert, range, unreachable } from '../../../../common/util/util.js';
 
-import { GPUTest } from '../../../gpu_test.js';
+import { kTextureFormatInfo } from '../../../format_info.js';
+import { GPUTest, TextureTestMixin } from '../../../gpu_test.js';
 import { getProvokingVertexForFlatInterpolationEitherSampling } from '../../../inter_stage.js';
 import { getMultisampleFragmentOffsets } from '../../../multisample_info.js';
-import { dotProduct, subtractVectors } from '../../../util/math.js';
+import { dotProduct, subtractVectors, align } from '../../../util/math.js';
 import { TexelView } from '../../../util/texture/texel_view.js';
 import { findFailedPixels } from '../../../util/texture/texture_ok.js';
 
-export const g = makeTestGroup(GPUTest);
+class FragmentBuiltinTest extends TextureTestMixin(GPUTest) {}
+
+export const g = makeTestGroup(FragmentBuiltinTest);
 
 const s_deviceToPipelineMap = new WeakMap(
 
@@ -589,7 +592,7 @@ t,
 
       struct FragmentIn {
         @builtin(position) position: vec4f,
-        @location(0) @interpolate(${interpolate}) interpolatedValue: vec4f,
+@location(0) @interpolate(${interpolate}) interpolatedValue: vec4f,
         ${fragInCode}
       };
 
@@ -1421,5 +1424,388 @@ fn(async (t) => {
       expected,
       maxDiffULPsForFloatFormat: 0
     })
+  );
+});
+
+const kSizes = [
+[15, 15],
+[16, 16],
+[17, 17],
+[19, 13],
+[13, 10],
+[111, 2],
+[2, 111],
+[35, 2],
+[2, 35],
+[53, 13],
+[13, 53]];
+
+
+/**
+ * @returns The population count of input.
+ *
+ * @param input Treated as an unsigned 32-bit integer
+ */
+function popcount(input) {
+  let n = input;
+  n = n - (n >> 1 & 0x55555555);
+  n = (n & 0x33333333) + (n >> 2 & 0x33333333);
+  return (n + (n >> 4) & 0xf0f0f0f) * 0x1010101 >> 24;
+}
+
+/**
+ * Checks subgroup_size builtin value consistency.
+ *
+ * The builtin subgroup_size is not assumed to be uniform in fragment shaders.
+ * Therefore, this function checks the value is a power of two within the device
+ * limits and that the ballot size is less than the stated size.
+ * @param data An array of vec4u that contains (per texel):
+ *             * builtin value
+ *             * ballot size
+ *             * comparison to other invocations
+ *             * 0
+ * @param format The texture format for data
+ * @param min The minimum subgroup size from the device
+ * @param max The maximum subgroup size from the device
+ * @param width The width of the framebuffer
+ * @param height The height of the framebuffer
+ */
+function checkSubgroupSizeConsistency(
+data,
+format,
+min,
+max,
+width,
+height)
+{
+  const { blockWidth, blockHeight, bytesPerBlock } = kTextureFormatInfo[format];
+  const blocksPerRow = width / blockWidth;
+  // Image copies require bytesPerRow to be a multiple of 256.
+  const bytesPerRow = align(blocksPerRow * (bytesPerBlock ?? 1), 256);
+  const uintsPerRow = bytesPerRow / 4;
+  const uintsPerTexel = (bytesPerBlock ?? 1) / blockWidth / blockHeight / 4;
+
+  for (let row = 0; row < height; row++) {
+    for (let col = 0; col < width; col++) {
+      const offset = uintsPerRow * row + col * uintsPerTexel;
+      const builtinSize = data[offset];
+      const ballotSize = data[offset + 1];
+      const comparison = data[offset + 2];
+      if (builtinSize === 0) {
+        continue;
+      }
+
+      if (popcount(builtinSize) !== 1) {
+        return new Error(`Subgroup size '${builtinSize}' is not a power of two`);
+      }
+
+      if (builtinSize < min) {
+        return new Error(`Subgroup size '${builtinSize}' is less than minimum '${min}'`);
+      }
+      if (max < builtinSize) {
+        return new Error(`Subgroup size '${builtinSize}' is greater than maximum '${max}'`);
+      }
+
+      if (builtinSize < ballotSize) {
+        return new Error(`Inconsistent subgroup ballot size
+-   icoord: (${row}, ${col})
+- expected: ${builtinSize}
+-      got: ${ballotSize}`);
+      }
+
+      if (comparison !== 1) {
+        return new Error(`Not all invocations in subgroup have same view of the size
+- icoord: (${row}, ${col})`);
+      }
+    }
+  }
+
+  return undefined;
+}
+
+/**
+ * Runs a subgroup builtin test for fragment shaders
+ *
+ * This test draws a full screen in 2 separate draw calls (half screen each).
+ * Results are checked for each draw.
+ * @param t The base test
+ * @param format The framebuffer format
+ * @param fsShader The fragment shader with the following interface:
+ *                 Location 0 output is framebuffer with format
+ *                 Group 0 binding 0 is a u32 sized data
+ * @param width The framebuffer width
+ * @param height The framebuffer height
+ * @param checker A functor to check the framebuffer values
+ */
+async function runSubgroupTest(
+t,
+format,
+fsShader,
+width,
+height,
+checker)
+{
+  const vsShader = `
+@vertex
+fn vsMain(@builtin(vertex_index) index : u32) -> @builtin(position) vec4f {
+  const vertices = array(
+    vec2(-1, -1), vec2(-1,  1), vec2( 1,  1),
+    vec2(-1, -1), vec2( 1, -1), vec2( 1,  1),
+  );
+  return vec4f(vec2f(vertices[index]), 0, 1);
+}`;
+
+  const pipeline = t.device.createRenderPipeline({
+    layout: 'auto',
+    vertex: {
+      module: t.device.createShaderModule({ code: vsShader })
+    },
+    fragment: {
+      module: t.device.createShaderModule({ code: fsShader }),
+      targets: [{ format }]
+    },
+    primitive: {
+      topology: 'triangle-list'
+    }
+  });
+
+  const { blockWidth, blockHeight, bytesPerBlock } = kTextureFormatInfo[format];
+  assert(bytesPerBlock !== undefined);
+
+  const blocksPerRow = width / blockWidth;
+  const blocksPerColumn = height / blockHeight;
+  const bytesPerRow = align(blocksPerRow * (bytesPerBlock ?? 1), 256);
+  const byteLength = bytesPerRow * blocksPerColumn;
+  const uintLength = byteLength / 4;
+
+  const buffer = t.makeBufferWithContents(
+    new Uint32Array([1]),
+    GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
+  );
+
+  const bg = t.device.createBindGroup({
+    layout: pipeline.getBindGroupLayout(0),
+    entries: [
+    {
+      binding: 0,
+      resource: {
+        buffer
+      }
+    }]
+
+  });
+
+  for (let i = 0; i < 2; i++) {
+    const framebuffer = t.createTextureTracked({
+      size: [width, height],
+      usage:
+      GPUTextureUsage.COPY_SRC |
+      GPUTextureUsage.COPY_DST |
+      GPUTextureUsage.RENDER_ATTACHMENT |
+      GPUTextureUsage.TEXTURE_BINDING,
+      format
+    });
+
+    const encoder = t.device.createCommandEncoder();
+    const pass = encoder.beginRenderPass({
+      colorAttachments: [
+      {
+        view: framebuffer.createView(),
+        loadOp: 'clear',
+        storeOp: 'store'
+      }]
+
+    });
+    pass.setPipeline(pipeline);
+    pass.setBindGroup(0, bg);
+    pass.draw(3, 1, i);
+    pass.end();
+    t.queue.submit([encoder.finish()]);
+
+    const buffer = t.copyWholeTextureToNewBufferSimple(framebuffer, 0);
+    const readback = await t.readGPUBufferRangeTyped(buffer, {
+      srcByteOffset: 0,
+      type: Uint32Array,
+      typedLength: uintLength,
+      method: 'copy'
+    });
+    const data = readback.data;
+
+    t.expectOK(checker(data));
+  }
+}
+
+g.test('subgroup_size').
+desc('Tests subgroup_size values').
+params((u) =>
+u.
+combine('size', kSizes).
+beginSubcases().
+combineWithParams([{ format: 'rgba32uint' }])
+).
+beforeAllSubcases((t) => {
+  t.selectDeviceOrSkipTestCase('subgroups');
+}).
+fn(async (t) => {
+
+
+
+
+  const { minSubgroupSize, maxSubgroupSize } = t.device.limits;
+
+  const fsShader = `
+enable subgroups;
+
+const width = ${t.params.size[0]};
+const height = ${t.params.size[1]};
+
+@group(0) @binding(0) var<storage, read_write> for_layout : u32;
+
+@fragment
+fn fsMain(
+  @builtin(position) pos : vec4f,
+  @builtin(subgroup_size) sg_size : u32,
+) -> @location(0) vec4u {
+  _ = for_layout;
+
+  let ballot = countOneBits(subgroupBallot(true));
+  let ballotSize = ballot.x + ballot.y + ballot.z + ballot.w;
+
+  // Do all invocations in the subgroup see the same subgroup size?
+  let firstSize = subgroupBroadcast(sg_size, 0);
+  let compareBallot = countOneBits(subgroupBallot(firstSize == sg_size));
+  let compareSize = compareBallot.x + compareBallot.y + compareBallot.z + compareBallot.w;
+  let sameSize = select(0u, 1u, compareSize == ballotSize);
+
+  return vec4u(sg_size, ballotSize, sameSize, 0);
+}`;
+
+  await runSubgroupTest(
+    t,
+    t.params.format,
+    fsShader,
+    t.params.size[0],
+    t.params.size[1],
+    (data) => {
+      return checkSubgroupSizeConsistency(
+        data,
+        t.params.format,
+        minSubgroupSize,
+        maxSubgroupSize,
+        t.params.size[0],
+        t.params.size[1]
+      );
+    }
+  );
+});
+
+/**
+ * Checks subgroup_invocation_id value consistency
+ *
+ * Very little uniformity is expected for subgroup_invocation_id.
+ * This function checks that all ids are less than the subgroup size
+ * and no id is repeated.
+ * @param data An array of vec4u that contains (per texel):
+ *             * subgroup_invocation_id
+ *             * ballot size
+ *             * non-zero ID unique to each subgroup
+ *             * 0
+ * @param format The texture format of data
+ * @param width The width of the framebuffer
+ * @param height The height of the framebuffer
+ */
+function checkSubgroupInvocationIdConsistency(
+data,
+format,
+width,
+height)
+{
+  const { blockWidth, blockHeight, bytesPerBlock } = kTextureFormatInfo[format];
+  const blocksPerRow = width / blockWidth;
+  const bytesPerRow = align(blocksPerRow * (bytesPerBlock ?? 1), 256);
+  const uintsPerRow = bytesPerRow / 4;
+  const uintsPerTexel = (bytesPerBlock ?? 1) / blockWidth / blockHeight / 4;
+
+  const mappings = new Map();
+  for (let row = 0; row < height; row++) {
+    for (let col = 0; col < width; col++) {
+      const offset = uintsPerRow * row + col * uintsPerTexel;
+      const id = data[offset];
+      const size = data[offset + 1];
+      const repId = data[offset + 2];
+
+      if (repId === 0) {
+        continue;
+      }
+
+      if (size < id) {
+        return new Error(
+          `Invocation id '${id}' is greater than subgroup size '${size}' for (${row}, ${col})`
+        );
+      }
+
+      let v = mappings.get(repId) ?? 0n;
+      const mask = 1n << BigInt(id);
+      if ((mask & v) !== 0n) {
+        return new Error(`Multiple invocations with id '${id}' in subgroup '${repId}'`);
+      }
+      v |= mask;
+      mappings.set(repId, v);
+    }
+  }
+
+  return undefined;
+}
+
+g.test('subgroup_invocation_id').
+desc('Tests subgroup_invocation_id built-in value').
+params((u) =>
+u.
+combine('size', kSizes).
+beginSubcases().
+combineWithParams([{ format: 'rgba32uint' }])
+).
+beforeAllSubcases((t) => {
+  t.selectDeviceOrSkipTestCase('subgroups');
+}).
+fn(async (t) => {
+  const fsShader = `
+enable subgroups;
+
+const width = ${t.params.size[0]};
+const height = ${t.params.size[1]};
+
+@group(0) @binding(0) var<storage, read_write> counter : atomic<u32>;
+
+@fragment
+fn fsMain(
+  @builtin(position) pos : vec4f,
+  @builtin(subgroup_invocation_id) id : u32,
+  @builtin(subgroup_size) sg_size : u32,
+) -> @location(0) vec4u {
+  let ballot = countOneBits(subgroupBallot(true));
+  let ballotSize = ballot.x + ballot.y + ballot.z + ballot.w;
+
+  // Generate representative id for this subgroup.
+  var repId = atomicAdd(&counter, 1);
+  repId = subgroupBroadcast(repId, 0);
+
+  return vec4u(id, ballotSize, repId, 0);
+}`;
+
+  await runSubgroupTest(
+    t,
+    t.params.format,
+    fsShader,
+    t.params.size[0],
+    t.params.size[1],
+    (data) => {
+      return checkSubgroupInvocationIdConsistency(
+        data,
+        t.params.format,
+        t.params.size[0],
+        t.params.size[1]
+      );
+    }
   );
 });

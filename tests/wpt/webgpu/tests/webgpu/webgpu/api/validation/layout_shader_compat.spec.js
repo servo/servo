@@ -252,7 +252,8 @@ fn((t) => {
             module: t.device.createShaderModule({
               code: vertexShader
             })
-          }
+          },
+          depthStencil: { format: 'depth32float', depthWriteEnabled: true, depthCompare: 'always' }
         });
         break;
       }

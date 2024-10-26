@@ -199,6 +199,8 @@ const kInvalidIdentifiers = new Set([
 'noexcept',
 'noinline',
 'nointerpolation',
+'non_coherent',
+'noncoherent',
 'noperspective',
 'null',
 'nullptr',

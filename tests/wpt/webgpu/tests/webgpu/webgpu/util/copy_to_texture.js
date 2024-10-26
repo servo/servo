@@ -55,7 +55,7 @@ export const kCopySubrectInfo = [
 }];
 
 
-export class CopyToTextureUtils extends TextureTestMixin(GPUTest) {
+export class TextureUploadingUtils extends TextureTestMixin(GPUTest) {
   doFlipY(
   sourcePixels,
   width,
