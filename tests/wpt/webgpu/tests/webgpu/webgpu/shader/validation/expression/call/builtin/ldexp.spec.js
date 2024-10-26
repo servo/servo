@@ -143,6 +143,8 @@ expandWithParams((p) => {
   cases.push({ value: bias + 2 });
   return cases;
 })
+// in_shader: Is the functino call statically accessed by the entry point?
+.combine('in_shader', [false, true])
 ).
 beforeAllSubcases((t) => {
   const ty = kValidArgumentTypesA[t.params.typeA];
@@ -179,7 +181,7 @@ fn foo() {
   const bias = biasForType(scalarTypeOf(tyA));
   const error = t.params.value > bias + 1;
   const shader_error = error && t.params.stage === 'constant';
-  const pipeline_error = error && t.params.stage === 'override';
+  const pipeline_error = t.params.in_shader && error && t.params.stage === 'override';
   t.expectCompileResult(!shader_error, wgsl);
   if (!shader_error) {
     const constants = {};
@@ -188,7 +190,8 @@ fn foo() {
       expectedResult: !pipeline_error,
       code: wgsl,
       constants,
-      reference: ['o_b']
+      reference: ['o_b'],
+      statements: t.params.in_shader ? ['foo();'] : []
     });
   }
 });

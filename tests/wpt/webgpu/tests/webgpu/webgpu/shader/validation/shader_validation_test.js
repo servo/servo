@@ -119,9 +119,14 @@ export class ShaderValidationTest extends GPUTest {
 
 
 
+
+
   {
     const phonies = [];
 
+    if (args.statements !== undefined) {
+      phonies.push(...args.statements);
+    }
     if (args.constants !== undefined) {
       phonies.push(...keysOf(args.constants).map((c) => `_ = ${c};`));
     }

@@ -127,7 +127,8 @@ fn((t) => {
     vertex: {
       module: t.device.createShaderModule({ code }),
       entryPoint
-    }
+    },
+    depthStencil: { format: 'depth32float', depthWriteEnabled: true, depthCompare: 'always' }
   };
   let _success = true;
   if (shaderModuleStage !== 'vertex') {
@@ -257,7 +258,8 @@ fn((t) => {
         code
       }),
       entryPoint: undefined
-    }
+    },
+    depthStencil: { format: 'depth32float', depthWriteEnabled: true, depthCompare: 'always' }
   };
 
   const success = extraShaderModuleStage !== 'vertex';

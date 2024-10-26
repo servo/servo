@@ -10,11 +10,11 @@ import {
   kValidTextureFormatsForCopyE2T } from
 
 '../../format_info.js';
-import { CopyToTextureUtils } from '../../util/copy_to_texture.js';
+import { TextureUploadingUtils } from '../../util/copy_to_texture.js';
 import { kAllCanvasTypes, createCanvas } from '../../util/create_elements.js';
 
 
-class F extends CopyToTextureUtils {
+class F extends TextureUploadingUtils {
   init2DCanvasContentWithColorSpace({
     width,
     height,

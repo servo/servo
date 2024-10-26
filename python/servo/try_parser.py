@@ -102,7 +102,7 @@ def handle_preset(s: str) -> Optional[JobConfig]:
     elif s == "webgpu":
         return JobConfig("WebGPU CTS", Workflow.LINUX,
                          wpt_layout=Layout.layout2020,  # reftests are mode for new layout
-                         wpt_args="--processes 1 _webgpu",  # run only webgpu cts
+                         wpt_args="_webgpu",  # run only webgpu cts
                          profile="production",  # WebGPU works to slow with debug assert
                          unit_tests=False)  # production profile does not work with unit-tests
     elif s in ["lint", "tidy"]:
