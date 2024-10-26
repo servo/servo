@@ -3205,7 +3205,7 @@ class CGCollectJSONAttributesMethod(CGAbstractMethod):
         args = [Argument('*mut JSContext', 'cx'),
                 Argument('RawHandleObject', 'obj'),
                 Argument('*mut libc::c_void', 'this'),
-                Argument('&RootedGuard<*mut JSObject>', 'result')]
+                Argument('HandleObject', 'result')]
         CGAbstractMethod.__init__(self, descriptor, 'CollectJSONAttributes',
                                   'bool', args, pub=True, unsafe=True)
         self.toJSONMethod = toJSONMethod
@@ -3232,7 +3232,7 @@ let global = incumbent_global.reflector().get_jsobject();\n"""
                       if !get_${name}(cx, obj, this, JSJitGetterCallArgs { _base: temp.handle_mut().into() }) {
                         return false;
                       }
-                      if !JS_DefineProperty(cx, result.handle(),
+                      if !JS_DefineProperty(cx, result,
                                             ${nameAsArray},
                                             temp.handle(), JSPROP_ENUMERATE as u32) {
                         return false;
@@ -4118,7 +4118,7 @@ class CGDefaultToJSONMethod(CGSpecializedMethod):
 
         parents = len(jsonDescriptors) - 1
         form = """
-             if !${parentclass}CollectJSONAttributes(cx, _obj, this, &result) {
+             if !${parentclass}CollectJSONAttributes(cx, _obj, this, result.handle()) {
                  return false;
              }
              """
@@ -6249,13 +6249,13 @@ let global = GlobalScope::from_object(JS_CALLEE(*cx, vp).to_object());
             if len(self.exposureSet) == 1:
                 args = [
                     f"global.downcast::<dom::types::{list(self.exposureSet)[0]}>().unwrap()",
-                    "Some(desired_proto.handle())",
+                    "Some(desired_proto)",
                     "CanGc::note()"
                 ]
             else:
                 args = [
                     "global",
-                    "Some(desired_proto.handle())",
+                    "Some(desired_proto)",
                     "CanGc::note()"
                 ]
 
@@ -6264,11 +6264,11 @@ let global = GlobalScope::from_object(JS_CALLEE(*cx, vp).to_object());
             call_default_constructor(
                 cx,
                 &args,
-                global,
+                &global,
                 PrototypeList::ID::{MakeNativeName(self.descriptor.name)},
                 \"{ctorName}\",
                 CreateInterfaceObjects,
-                |cx, args, global, desired_proto| {{
+                |cx: SafeJSContext, args: &CallArgs, global: &GlobalScope, desired_proto: HandleObject| {{
                     {constructor.define()}
                 }}
             )

@@ -7,7 +7,6 @@ use std::ptr;
 use html5ever::interface::QualName;
 use html5ever::{local_name, namespace_url, ns, LocalName};
 use js::conversions::ToJSValConvertible;
-use js::gc::RootedGuard;
 use js::glue::{UnwrapObjectDynamic, UnwrapObjectStatic};
 use js::jsapi::{CallArgs, CurrentGlobalOrNull, JSAutoRealm, JSObject};
 use js::rust::wrappers::{JS_SetPrototype, JS_WrapObject};
@@ -403,11 +402,11 @@ pub unsafe fn call_html_constructor<T: DerivedFrom<Element> + DomObject>(
 pub unsafe fn call_default_constructor(
     cx: JSContext,
     args: &CallArgs,
-    global: DomRoot<GlobalScope>,
+    global: &GlobalScope,
     proto_id: PrototypeList::ID,
     ctor_name: &str,
     creator: unsafe fn(JSContext, HandleObject, *mut ProtoOrIfaceArray),
-    constructor: impl FnOnce(JSContext, &CallArgs, &GlobalScope, RootedGuard<*mut JSObject>) -> bool,
+    constructor: impl FnOnce(JSContext, &CallArgs, &GlobalScope, HandleObject) -> bool,
 ) -> bool {
     if !args.is_constructing() {
         throw_constructor_without_new(*cx, ctor_name);
@@ -420,5 +419,5 @@ pub unsafe fn call_default_constructor(
         return false;
     }
 
-    constructor(cx, args, &global, desired_proto)
+    constructor(cx, args, global, desired_proto.handle())
 }
