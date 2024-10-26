@@ -101,6 +101,7 @@ use crate::dom::document::{
 };
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::domrect::DOMRect;
+use crate::dom::domrectlist::DOMRectList;
 use crate::dom::domtokenlist::DOMTokenList;
 use crate::dom::elementinternals::ElementInternals;
 use crate::dom::eventtarget::EventTarget;
@@ -2403,10 +2404,10 @@ impl ElementMethods for Element {
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-getclientrects
-    fn GetClientRects(&self, can_gc: CanGc) -> Vec<DomRoot<DOMRect>> {
+    fn GetClientRects(&self, can_gc: CanGc) -> DomRoot<DOMRectList> {
         let win = window_from_node(self);
         let raw_rects = self.upcast::<Node>().content_boxes(can_gc);
-        raw_rects
+        let rects: Vec<DomRoot<DOMRect>> = raw_rects
             .iter()
             .map(|rect| {
                 DOMRect::new(
@@ -2418,7 +2419,8 @@ impl ElementMethods for Element {
                     can_gc,
                 )
             })
-            .collect()
+            .collect();
+        DOMRectList::new(&win, rects, can_gc)
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-getboundingclientrect
