@@ -598,13 +598,11 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
             }
         }
 
-        // Step 3
-        let mut map = self.when_defined.borrow_mut();
-
-        // Steps 4, 5
-        let promise = map.get(&name).cloned().unwrap_or_else(|| {
+        // Steps 3, 4, 5
+        let existing_promise = self.when_defined.borrow().get(&name).cloned();
+        let promise = existing_promise.unwrap_or_else(|| {
             let promise = Promise::new_in_current_realm(comp, can_gc);
-            map.insert(name, promise.clone());
+            self.when_defined.borrow_mut().insert(name, promise.clone());
             promise
         });
 
