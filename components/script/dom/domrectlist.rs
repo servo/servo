@@ -50,17 +50,17 @@ impl DOMRectList {
 }
 
 impl DOMRectListMethods for DOMRectList {
-    //https://drafts.fxtf.org/geometry/#DOMRectList
+    // https://drafts.fxtf.org/geometry/#DOMRectList
     fn Item(&self, index: u32) -> Option<DomRoot<DOMRect>> {
         self.rects.borrow().get(index as usize).cloned()
     }
 
-    //https://drafts.fxtf.org/geometry/#DOMRectList
+    // https://drafts.fxtf.org/geometry/#DOMRectList
     fn IndexedGetter(&self, index: u32) -> Option<DomRoot<DOMRect>> {
         self.Item(index)
     }
 
-    //https://drafts.fxtf.org/geometry/#DOMRectList
+    // https://drafts.fxtf.org/geometry/#DOMRectList
     fn Length(&self) -> u32 {
         self.rects.borrow().len() as u32
     }
