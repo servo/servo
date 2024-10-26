@@ -599,16 +599,12 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
         }
 
         // Steps 3, 4, 5
-        let promise = self
-            .when_defined
-            .borrow()
-            .get(&name)
-            .cloned()
-            .unwrap_or_else(|| {
-                let promise = Promise::new_in_current_realm(comp, can_gc);
-                self.when_defined.borrow_mut().insert(name, promise.clone());
-                promise
-            });
+        let existing_promise = self.when_defined.borrow().get(&name).cloned();
+        let promise = existing_promise.unwrap_or_else(|| {
+            let promise = Promise::new_in_current_realm(comp, can_gc);
+            self.when_defined.borrow_mut().insert(name, promise.clone());
+            promise
+        });
 
         // Step 6
         promise
