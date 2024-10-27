@@ -1996,8 +1996,7 @@ impl HTMLMediaElement {
     }
 
     fn handle_resize(&self, width: Option<u32>, height: Option<u32>) {
-        if self.is::<HTMLVideoElement>() {
-            let video_elem = self.downcast::<HTMLVideoElement>().unwrap();
+        if let Some(video_elem) = self.downcast::<HTMLVideoElement>() {
             video_elem.resize(width, height);
         }
     }

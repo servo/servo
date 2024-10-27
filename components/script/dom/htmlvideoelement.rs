@@ -117,14 +117,15 @@ impl HTMLVideoElement {
         self.video_width.set(width);
         self.video_height.set(height);
 
-        let Some(width) = width else { return };
-        let Some(height) = height else { return };
+        let width = width?;
+        let height = height?;
         if same_size && self.sent_resize.get() == Some((width, height)) {
             return;
         }
 
-        self.sent_resize.set(None);
-        if self.htmlmediaelement.get_ready_state() != ReadyState::HaveNothing {
+        if self.htmlmediaelement.get_ready_state() == ReadyState::HaveNothing {
+            self.sent_resize.set(None);
+        } else {
             let window = window_from_node(self);
             let task_source = window.task_manager().media_element_task_source();
             task_source.queue_simple_event(self.upcast(), atom!("resize"), &window);

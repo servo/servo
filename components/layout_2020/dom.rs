@@ -152,14 +152,13 @@ where
     )> {
         let node = self.to_threadsafe();
         let data = node.media_data()?;
-        let natural_size = data
-            .current_frame
-            .as_ref()
-            .map(|frame| (frame.width.into(), frame.height.into()))
-            .or(data
-                .metadata
-                .map(|meta| (meta.width.into(), meta.height.into())))
-            .map(|(width, height)| PhysicalSize::new(width, height));
+        let natural_size = if let Some(frame) = data.current_frame {
+            Some(PhysicalSize::new(frame.width.into(), frame.height.into()))
+        } else if let Some(meta) = data.metadata {
+            Some(PhysicalSize::new(meta.width.into(), meta.height.into()))
+        } else {
+            None
+        };
         let intrinsic_ratio = data.has_default_size.then(|| {
             let size = ReplacedContent::default_object_size(WritingMode::empty());
             size.inline.to_f32_px() / size.block.to_f32_px()
