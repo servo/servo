@@ -2,12 +2,15 @@
 <title>Test navigating an ancestor frame from within a fenced frame</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
 <script src="utils.js"></script>
 
 <body>
 <script>
 // This function is called by `window.opener`, which is a same-origin window.
-window.runTest = function(test_type, ancestor_type) {
+window.runTest = async function(test_type, ancestor_type) {
   // Messages by this key are sent from
   // `navigate-ancestor-destination.https.html` to let us know if the "_parent"
   // navigations performed inside fenced frames landed on the right page.
@@ -30,6 +33,7 @@ window.runTest = function(test_type, ancestor_type) {
   });
 
   let test_promise = null;
+  let fenced_frame = null;
   switch (test_type) {
     case 'top-level fenced frame':
       // This fenced frame will attempt to navigate its parent to
@@ -37,16 +41,18 @@ window.runTest = function(test_type, ancestor_type) {
       // *itself* since it is a top-level browsing context. Just in case it
       // accidentally navigates *this* frame, we have an `onbeforeunload`
       // handler that will automatically fail the test before.
-      attachFencedFrame(generateURL(
+      fenced_frame = attachFencedFrame(generateURL(
           `navigate-ancestor-helper.https.html`,
           [navigate_ancestor_key, ancestor_type]));
+      await multiClick(10, 10, fenced_frame);
       test_promise = nextValueFromServer(navigate_ancestor_key);
       break;
     case 'nested fenced frame':
-      attachFencedFrame(generateURL(
+      fenced_frame = attachFencedFrame(generateURL(
         `navigate-ancestor-from-nested-fenced-frame.https.html`,
         [navigate_ancestor_key, navigate_ancestor_from_nested_key,
          ancestor_type]));
+      await multiClick(10, 10, fenced_frame);
       test_promise = nextValueFromServer(navigate_ancestor_from_nested_key)
         .then(message => {
           if (message != "PASS") {
@@ -55,10 +61,11 @@ window.runTest = function(test_type, ancestor_type) {
         });
       break;
     case 'nested iframe':
-      attachFencedFrame(generateURL(
+      fenced_frame = attachFencedFrame(generateURL(
         `navigate-ancestor-from-nested-iframe.https.html`,
         [navigate_ancestor_key, navigate_ancestor_from_nested_key,
          ancestor_type]));
+      await multiClick(10, 10, fenced_frame);
       test_promise = nextValueFromServer(navigate_ancestor_from_nested_key)
         .then(message => {
           if (message != `PASS: [${ancestor_type}] location change failed.`) {

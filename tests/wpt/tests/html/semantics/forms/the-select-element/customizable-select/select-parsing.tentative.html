@@ -55,60 +55,57 @@ test(() => {
   // The document.body check here and in the other tests is to make sure that a
   // previous test case didn't leave the HTML parser open on another element.
   assert_equals(document.getElementById('s1').parentNode, document.body);
-  assert_equals(document.getElementById('s1').innerHTML, `
-  <div>div 1</div>
+  assert_equals(document.getElementById('s1').innerHTML.trim(),
+  `<div>div 1</div>
   <button>button</button>
   <div>div 2</div>
   <datalist>
     <option>option</option>
   </datalist>
-  <div>div 3</div>
-`);
+  <div>div 3</div>`);
 }, '<div>s, <button>s, and <datalist>s should be allowed in <select>.');
 
 test(() => {
   assert_equals(document.getElementById('s2').parentNode, document.body);
-  assert_equals(document.getElementById('s2').innerHTML, `
-  <button>button
+  assert_equals(document.getElementById('s2').innerHTML.trim(),
+  `<button>button
 </button>`);
 }, '</select> should close <button>.');
 
 test(() => {
   assert_equals(document.getElementById('s3').parentNode, document.body);
-  assert_equals(document.getElementById('s3').innerHTML, `
-  <datalist>datalist
+  assert_equals(document.getElementById('s3').innerHTML.trim(),
+  `<datalist>datalist
 </datalist>`);
 }, '</select> should close <datalist>.');
 
 test(() => {
   assert_equals(document.getElementById('s4').parentNode, document.body);
-  assert_equals(document.getElementById('s4').innerHTML, `
-  <button>
+  assert_equals(document.getElementById('s4').innerHTML.trim(),
+  `<button>
     </button>`);
 }, '<select> in <button> in <select> should remove inner <select>.');
 
 test(() => {
   assert_equals(document.getElementById('s5').parentNode, document.body);
-  assert_equals(document.getElementById('s5').innerHTML, `
-  <button>
+  assert_equals(document.getElementById('s5').innerHTML.trim(),
+  `<button>
     <div>
       </div></button>`);
 }, '<select> in <select><button><div> should remove inner <select>.');
 
 test(() => {
   assert_equals(document.getElementById('s6').parentNode, document.body);
-  assert_equals(document.getElementById('s6').innerHTML, `
-  <div>
+  assert_equals(document.getElementById('s6').innerHTML.trim(),
+  `<div>
     <option><img>option</option>
-  </div>
-`);
+  </div>`);
 }, 'Divs and imgs should be allowed as direct children of select and within options without a datalist.');
 
 test(() => {
   assert_equals(document.getElementById('s7').parentNode, document.body);
-  assert_equals(document.getElementById('s7').innerHTML, `
-  <input>
-`);
+  assert_equals(document.getElementById('s7').innerHTML.trim(),
+  `<input>`);
 }, 'Input tags should parse inside select instead of closing the select.');
 
 test(() => {

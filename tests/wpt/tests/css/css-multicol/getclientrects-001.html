@@ -25,6 +25,12 @@
   #verticalRlLtr {
       writing-mode: vertical-rl;
   }
+  #sidewaysLrLtr {
+      writing-mode: sideways-lr;
+  }
+  #sidewaysRlLtr {
+      writing-mode: sideways-rl;
+  }
   #horizontalTbRtl {
       writing-mode: horizontal-tb;
       direction: rtl;
@@ -35,6 +41,14 @@
   }
   #verticalRlRtl {
       writing-mode: vertical-rl;
+      direction: rtl;
+  }
+  #sidewaysLrRtl {
+      writing-mode: sideways-lr;
+      direction: rtl;
+  }
+  #sidewaysRlRtl {
+      writing-mode: sideways-rl;
       direction: rtl;
   }
 </style>
@@ -50,6 +64,14 @@
   <br>
   <span>XXXX XXXX XXXX XXXX</span>
 </div>
+<div class="multicol" id="sidewaysLrLtr">
+  <br>
+  <span>XXXX XXXX XXXX XXXX</span>
+</div>
+<div class="multicol" id="sidewaysRlLtr">
+  <br>
+  <span>XXXX XXXX XXXX XXXX</span>
+</div>
 <div class="multicol" id="horizontalTbRtl" >
   <br>
   <span>XXXX XXXX XXXX XXXX</span>
@@ -62,9 +84,24 @@
   <br>
   <span>XXXX XXXX XXXX XXXX</span>
 </div>
+<div class="multicol" id="sidewaysLrRtl">
+  <br>
+  <span>XXXX XXXX XXXX XXXX</span>
+</div>
+<div class="multicol" id="sidewaysRlRtl">
+  <br>
+  <span>XXXX XXXX XXXX XXXX</span>
+</div>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script>
+  const LEFT = 100;
+  const TOP = 50;
+  const LINE = 20;
+  const COLUMN = 90;
+  const GAP = 10;
+  const TEXT_SIZE = 80;
+
   test(()=> {
       var span = document.querySelector("#horizontalTbLtr span");
       var rects = span.getClientRects();
@@ -106,6 +143,35 @@
       assert_equals(rects[3].left, 120);
       assert_equals(rects[3].top, 250);
   }, "vertical-rl ltr");
+
+  test(()=> {
+      var span = document.querySelector("#sidewaysLrLtr span");
+      var rects = span.getClientRects();
+      assert_equals(rects.length, 4);
+      assert_equals(rects[0].left, LEFT + LINE);
+      assert_equals(rects[0].top, TOP + COLUMN * 3 + GAP * 2 - TEXT_SIZE);
+      assert_equals(rects[1].left, LEFT);
+      assert_equals(rects[1].top, TOP + COLUMN * 2 + GAP - TEXT_SIZE);
+      assert_equals(rects[2].left, LEFT + LINE);
+      assert_equals(rects[2].top, TOP + COLUMN * 2 + GAP - TEXT_SIZE);
+      assert_equals(rects[3].left, LEFT);
+      assert_equals(rects[3].top, TOP + COLUMN - TEXT_SIZE);
+  }, "sideways-lr ltr");
+
+  test(()=> {
+      var span = document.querySelector("#sidewaysRlLtr span");
+      var rects = span.getClientRects();
+      assert_equals(rects.length, 4);
+      assert_equals(rects[0].left, LEFT);
+      assert_equals(rects[0].top, TOP);
+      assert_equals(rects[1].left, LEFT + LINE);
+      assert_equals(rects[1].top, TOP + COLUMN + GAP);
+      assert_equals(rects[2].left, LEFT);
+      assert_equals(rects[2].top, TOP + COLUMN + GAP);
+      assert_equals(rects[3].left, LEFT + LINE);
+      assert_equals(rects[3].top, TOP + COLUMN * 2 + GAP * 2);
+  }, "sideways-rl ltr");
+
   test(()=> {
       var span = document.querySelector("#horizontalTbRtl span");
       var rects = span.getClientRects();
@@ -145,4 +211,32 @@
       assert_equals(rects[3].left, 120);
       assert_equals(rects[3].top, 60);
   }, "vertical-rl rtl");
+
+  test(()=> {
+      var span = document.querySelector("#sidewaysLrRtl span");
+      var rects = span.getClientRects();
+      assert_equals(rects.length, 4);
+      assert_equals(rects[0].left, LEFT + LINE);
+      assert_equals(rects[0].top, TOP);
+      assert_equals(rects[1].left, LEFT);
+      assert_equals(rects[1].top, TOP + COLUMN + GAP);
+      assert_equals(rects[2].left, LEFT + LINE);
+      assert_equals(rects[2].top, TOP + COLUMN + GAP);
+      assert_equals(rects[3].left, LEFT);
+      assert_equals(rects[3].top, TOP + COLUMN + GAP + COLUMN + GAP);
+  }, "sideways-lr rtl");
+
+  test(()=> {
+      var span = document.querySelector("#sidewaysRlRtl span");
+      var rects = span.getClientRects();
+      assert_equals(rects.length, 4);
+      assert_equals(rects[0].left, LEFT);
+      assert_equals(rects[0].top, TOP + COLUMN * 3 + GAP * 2 - TEXT_SIZE);
+      assert_equals(rects[1].left, LEFT + LINE);
+      assert_equals(rects[1].top, TOP + COLUMN * 2 + GAP - TEXT_SIZE);
+      assert_equals(rects[2].left, LEFT);
+      assert_equals(rects[2].top, TOP + COLUMN * 2 + GAP - TEXT_SIZE);
+      assert_equals(rects[3].left, LEFT + LINE);
+      assert_equals(rects[3].top, TOP + COLUMN - TEXT_SIZE);
+  }, "sideways-rl rtl");
 </script>

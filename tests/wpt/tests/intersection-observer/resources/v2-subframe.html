@@ -16,7 +16,7 @@ function waitForNotification(f) {
 
 window.addEventListener("message", event => {
   waitForNotification(() => {
-    window.parent.postMessage(results.map(e => e.isVisible), "*");
+    window.top.postMessage(results.map(e => e.isVisible), "*");
     results = [];
   });
 });
@@ -27,6 +27,6 @@ onload = () => {
     results = entries;
   }, {trackVisibility: true, delay: delay});
   observer.observe(document.getElementById("target"));
-  window.parent.postMessage("", "*");
+  window.top.postMessage("", "*");
 };
 </script>

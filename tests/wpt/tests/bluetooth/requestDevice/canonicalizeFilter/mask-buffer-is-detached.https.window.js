@@ -16,8 +16,10 @@ bluetooth_test(async (t) => {
   const typed_array = Uint8Array.of(1, 2);
   detachBuffer(typed_array.buffer);
 
-  await promise_rejects_dom(
-      t, 'InvalidStateError', requestDeviceWithTrustedClick({
+  // A detached `mask` is treated as empty, which doesn't match the size of
+  // `dataPrefix`.
+  await promise_rejects_js(
+      t, TypeError, requestDeviceWithTrustedClick({
         filters: [{
           manufacturerData: [{companyIdentifier, dataPrefix, mask: typed_array}]
         }]
@@ -26,8 +28,8 @@ bluetooth_test(async (t) => {
   const array_buffer = Uint8Array.of(3, 4).buffer;
   detachBuffer(array_buffer);
 
-  await promise_rejects_dom(
-      t, 'InvalidStateError', requestDeviceWithTrustedClick({
+  await promise_rejects_js(
+      t, TypeError, requestDeviceWithTrustedClick({
         filters: [{
           manufacturerData:
               [{companyIdentifier, dataPrefix, mask: array_buffer}]

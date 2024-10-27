@@ -184,7 +184,7 @@ const gatherNDTests = [
         },
         'gatherNDIndices': {
           'data': [-2, -2, -2],
-          'descriptor': {shape: [3], dataType: 'int64'},
+          'descriptor': {shape: [3], dataType: 'int32'},
           'constant': true
         }
       },
@@ -219,7 +219,7 @@ const gatherNDTests = [
         },
         'gatherNDIndices': {
           'data': [1, 1, 1],
-          'descriptor': {shape: [3], dataType: 'int64'},
+          'descriptor': {shape: [3], dataType: 'int32'},
           'constant': true
         }
       },

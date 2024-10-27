@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<title>Borders should not affect snapshot position</title>
+<meta name=fuzzy content="maxDifference=0-255; totalPixels=0-515">
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<style>
+    * {
+        box-sizing: border-box;
+    }
+    html {
+        view-transition-name: none;
+    }
+    body {
+        margin: 0;
+    }
+
+    div {
+        width: 100px;
+        height: 100px;
+        position: absolute;
+    }
+
+    .parent {
+        view-transition-name: parent;
+        border: 3px solid black;
+        background: green;
+    }
+
+    .child {
+        top: 20px;
+        left: 20px;
+        width: 40px;
+        height: 40px;
+        background: yellow;
+        border: 2px dashed blue;
+    }
+</style>
+<body>
+    <div class="parent">
+        <div class="child"></div>
+    </div>
+</body>

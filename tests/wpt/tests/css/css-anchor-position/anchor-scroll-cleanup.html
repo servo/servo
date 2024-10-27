@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<title>Tests that anchor scrolling state doesn't stick afterwards if the stops being anchor positioned</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#scroll">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/test-common.js"></script>
+
+<style>
+body {
+  margin: 0;
+}
+
+.scroller {
+  width: 100px;
+  height: 100px;
+  overflow-y: scroll;
+}
+
+.nonpos-cb {
+  transform: scale(1);
+}
+
+.abspos-cb {
+  position: absolute;
+}
+
+.anchor {
+  background: orange;
+  anchor-name: --a1;
+  position: absolute;
+  width: 50px;
+  height: 50px;
+  top: 50px;
+}
+
+.spacer {
+  height: 200px;
+}
+
+.target {
+  background: lime;
+  position: absolute;
+  width: 50px;
+  height: 50px;
+  top: anchor(top);
+  left: anchor(right);
+  position-anchor: --a1;
+}
+</style>
+
+<div class="abspos-cb" style="width: 300px; height: 400px">
+  <div class="scroller nonpos-cb" id="scroller1">
+    <div class="anchor" id="anchor1"></div>
+    <div class="spacer"></div>
+  </div>
+  <div class="target" id="target1"></div>
+</div>
+<div class="abspos-cb" style="width: 300px; height: 400px">
+  <div class="scroller nonpos-cb" id="scroller2">
+    <div class="anchor" id="anchor2"></div>
+    <div class="spacer"></div>
+  </div>
+  <div class="target" id="target2"></div>
+</div>
+<div class="abspos-cb" style="width: 300px; height: 400px">
+  <div class="scroller nonpos-cb" id="scroller3">
+    <div class="anchor" id="anchor3"></div>
+    <div class="spacer"></div>
+  </div>
+  <div class="target" id="target3"></div>
+</div>
+
+<script>
+promise_test(async () => {
+  scroller1.scrollTop = 10;
+  await waitUntilNextAnimationFrame();
+  await waitUntilNextAnimationFrame();
+
+  assert_equals(target1.getBoundingClientRect().top, 40);
+
+  anchor1.style.anchorName = "--no-match";
+
+  await waitUntilNextAnimationFrame();
+  await waitUntilNextAnimationFrame();
+
+  assert_equals(target1.getBoundingClientRect().top, 100);
+}, 'Changing to a non-matching anchor-name should restore the box to its normal position.');
+
+promise_test(async () => {
+  scroller2.scrollTop = 10;
+  await waitUntilNextAnimationFrame();
+  await waitUntilNextAnimationFrame();
+
+  assert_equals(target2.getBoundingClientRect().top, 40);
+
+  target2.style.positionAnchor = "--no-match";
+
+  await waitUntilNextAnimationFrame();
+  await waitUntilNextAnimationFrame();
+
+  assert_equals(target2.getBoundingClientRect().top, 100);
+}, 'Changing to a non-matching position-anchor should restore the box to its normal position.');
+
+promise_test(async () => {
+  scroller3.scrollTop = 10;
+  await waitUntilNextAnimationFrame();
+  await waitUntilNextAnimationFrame();
+
+  assert_equals(target3.getBoundingClientRect().top, 40);
+
+  scroller3.classList.remove("scroller");
+
+  await waitUntilNextAnimationFrame();
+  await waitUntilNextAnimationFrame();
+
+  assert_equals(target3.getBoundingClientRect().top, 50);
+}, 'Removing the scroller should restore the box to its normal position.');
+
+</script>

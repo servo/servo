@@ -1,6 +1,7 @@
 <!doctype html>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="../navigation-methods/return-value/resources/helpers.js"></script>
 <body>
 <div style="height: 1000px; width: 1000px;"></div>
 <div id="frag"></div>
@@ -15,7 +16,7 @@ promise_test(async t => {
     e.preventDefault();
     assert_throws_dom("InvalidStateError", () => e.scroll());
   }), { once : true });
-  await promise_rejects_dom(t, "AbortError", navigation.navigate("#frag").finished);
+  assertBothRejectDOM(t, navigation.navigate("#frag"), "AbortError");
 }, "scroll: scroll() should throw after preventDefault");
 </script>
 </body>

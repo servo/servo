@@ -4,6 +4,8 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
 <script src="resources/utils.js"></script>
 <script src="/common/utils.js"></script>
 
@@ -11,15 +13,22 @@
 
 <script>
 promise_test(async t => {
-  const bluetooth_request_device_key = token();
+  const fenced_frame = await attachFencedFrameContext();
 
-  attachFencedFrame(generateURL('resources/web-bluetooth-inner.html',
-      [bluetooth_request_device_key]));
-  const result = await nextValueFromServer(bluetooth_request_device_key);
+  // Make sure the fenced frame is alive, then click on it.
+  await fenced_frame.execute(() => {});
+  await multiClick(10, 10, fenced_frame.element);
 
-  assert_equals(
-      result, 'Web Bluetooth requestDevice() failed',
-      'Web Bluetooth requestDevice() must fail in a fenced frame.');
+  await fenced_frame.execute(async () => {
+    try {
+      await navigator.bluetooth.requestDevice({filters: [{name: 'device'}]});
+      assert_unreached("Web share should not succeed in a fenced frame.");
+    } catch(e) {
+      assert_equals(e.name, 'NotAllowedError');
+      assert_true(e.message.includes(
+          'Web Bluetooth is not allowed in a fenced frame tree.'));
+    }
+  });
 }, 'Web Bluetooth requestDevice() must fail in a fenced frame');
 </script>
 

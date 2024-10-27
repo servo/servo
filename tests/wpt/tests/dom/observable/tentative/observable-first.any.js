@@ -19,41 +19,25 @@ promise_test(async () => {
       "Promise resolves with the first value from the source Observable");
 }, "first(): Promise resolves with the first value from the source Observable");
 
-promise_test(async () => {
+promise_test(async (t) => {
   const error = new Error("error from source");
   const source = new Observable(subscriber => {
     subscriber.error(error);
   });
 
-  let rejection;
-  try {
-    await source.first();
-  } catch (e) {
-    rejection = e;
-  }
-
-  assert_equals(rejection, error, "Promise rejects with source Observable error");
+  return promise_rejects_exactly(t, error, source.first(), "Promise rejects with source Observable error");
 }, "first(): Promise rejects with the error emitted from the source Observable");
 
-promise_test(async () => {
+promise_test(async (t) => {
   const source = new Observable(subscriber => {
     subscriber.complete();
   });
 
-  let rejection;
-  try {
-    await source.first();
-  } catch (e) {
-    rejection = e;
-  }
-
-  assert_true(rejection instanceof RangeError,
-      "Upon complete(), first() Promise rejects with RangeError");
-  assert_equals(rejection.message, "No values in Observable");
+  return promise_rejects_js(t, RangeError, source.first(), "Upon complete(), first() Promise rejects with RangeError");
 }, "first(): Promise rejects with RangeError when source Observable " +
    "completes without emitting any values");
 
-promise_test(async () => {
+promise_test(async (t) => {
   const source = new Observable(subscriber => {});
 
   const controller = new AbortController();
@@ -61,18 +45,7 @@ promise_test(async () => {
 
   controller.abort();
 
-  let rejection;
-  try {
-    await promise;
-  } catch (e) {
-    rejection = e;
-  }
-
-  assert_true(rejection instanceof DOMException,
-      "Promise rejects with a DOMException for abortion");
-  assert_equals(rejection.name, "AbortError",
-      "Rejected with 'AbortError' DOMException");
-  assert_equals(rejection.message, "signal is aborted without reason");
+  return promise_rejects_dom(t, "AbortError", promise, "Promise rejects with a DOMException for abortion");
 }, "first(): Aborting a signal rejects the Promise with an AbortError DOMException");
 
 promise_test(async () => {

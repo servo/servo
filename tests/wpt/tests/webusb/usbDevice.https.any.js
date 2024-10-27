@@ -909,32 +909,28 @@ usb_test(async () => {
       index: 0
   };
 
-  try {
-    const array_buffer = new ArrayBuffer(64 * 8);
-    const result =
-        await device.controlTransferOut(transfer_params, array_buffer);
-    assert_equals(result.status, 'ok');
+  const array_buffer = new ArrayBuffer(64 * 8);
+  let result = await device.controlTransferOut(transfer_params, array_buffer);
+  assert_equals(result.status, 'ok');
+  assert_equals(result.bytesWritten, 64 * 8);
 
-    detachBuffer(array_buffer);
-    await device.controlTransferOut(transfer_params, array_buffer);
-    assert_unreached();
-  } catch (e) {
-    assert_equals(e.code, DOMException.INVALID_STATE_ERR);
-  }
+  detachBuffer(array_buffer);
+  result = await device.controlTransferOut(transfer_params, array_buffer);
+  assert_true(result instanceof USBOutTransferResult);
+  assert_equals(result.status, 'ok');
+  // A detached buffer is treated as if it had zero length.
+  assert_equals(result.bytesWritten, 0);
 
-  try {
-    const typed_array = new Uint8Array(64 * 8);
-    const result =
-        await device.controlTransferOut(transfer_params, typed_array);
-    assert_equals(result.status, 'ok');
+  const typed_array = new Uint8Array(64 * 8);
+  result = await device.controlTransferOut(transfer_params, typed_array);
+  assert_equals(result.status, 'ok');
+  assert_equals(result.bytesWritten, 64 * 8);
 
-    detachBuffer(typed_array.buffer);
-    await device.controlTransferOut(transfer_params, typed_array);
-    assert_unreached();
-  } catch (e) {
-    assert_equals(e.code, DOMException.INVALID_STATE_ERR);
-  }
-}, 'controlTransferOut rejects if called with a detached buffer');
+  detachBuffer(typed_array.buffer);
+  result = await device.controlTransferOut(transfer_params, typed_array);
+  // A detached buffer is treated as if it had zero length.
+  assert_equals(result.bytesWritten, 0);
+}, 'controlTransferOut can safely be called with a detached buffer');
 
 usb_test(() => {
   return getFakeDevice().then(({ device }) => {
@@ -1072,31 +1068,26 @@ usb_test(async () => {
   await device.selectConfiguration(1);
   await device.claimInterface(1);
 
+  const array_buffer = new ArrayBuffer(64 * 8);
+  let result = await device.transferOut(2, array_buffer);
+  assert_equals(result.status, 'ok');
+  assert_equals(result.bytesWritten, 64 * 8);
 
-  try {
-    const array_buffer = new ArrayBuffer(64 * 8);
-    const result = await device.transferOut(2, array_buffer);
-    assert_equals(result.status, 'ok');
+  detachBuffer(array_buffer);
+  result = await device.transferOut(2, array_buffer);
+  // A detached buffer is treated as if it had zero length.
+  assert_equals(result.bytesWritten, 0);
 
-    detachBuffer(array_buffer);
-    await device.transferOut(2, array_buffer);
-    assert_unreached();
-  } catch (e) {
-    assert_equals(e.code, DOMException.INVALID_STATE_ERR);
-  }
+  const typed_array = new Uint8Array(64 * 8);
+  result = await device.transferOut(2, typed_array);
+  assert_equals(result.status, 'ok');
+  assert_equals(result.bytesWritten, 64 * 8);
 
-  try {
-    const typed_array = new Uint8Array(64 * 8);
-    const result = await device.transferOut(2, typed_array);
-    assert_equals(result.status, 'ok');
-
-    detachBuffer(typed_array.buffer);
-    await device.transferOut(2, typed_array);
-    assert_unreached();
-  } catch (e) {
-    assert_equals(e.code, DOMException.INVALID_STATE_ERR);
-  }
-}, 'transferOut rejects if called with a detached buffer');
+  detachBuffer(typed_array.buffer);
+  result = await device.transferOut(2, typed_array);
+  // A detached buffer is treated as if it had zero length.
+  assert_equals(result.bytesWritten, 0);
+}, 'transferOut can safely be called with a detached buffer');
 
 usb_test(() => {
   return getFakeDevice().then(({ device }) => {
@@ -1195,43 +1186,42 @@ usb_test((t) => {
   });
 }, 'isochronousTransferOut rejects when called on a disconnected device');
 
-usb_test(async () => {
+usb_test(async (t) => {
   const { device } = await getFakeDevice();
   await device.open();
   await device.selectConfiguration(2);
   await device.claimInterface(0);
   await device.selectAlternateInterface(0, 1);
 
-
-  try {
-    const array_buffer = new ArrayBuffer(64 * 8);
-    const result = await device.isochronousTransferOut(
-        1, array_buffer, [64, 64, 64, 64, 64, 64, 64, 64]);
-    for (let i = 0; i < result.packets.length; ++i)
-      assert_equals(result.packets[i].status, 'ok');
-
-    detachBuffer(array_buffer);
-    await device.isochronousTransferOut(
-        1, array_buffer, [64, 64, 64, 64, 64, 64, 64, 64]);
-    assert_unreached();
-  } catch (e) {
-    assert_equals(e.code, DOMException.INVALID_STATE_ERR);
+  const array_buffer = new ArrayBuffer(64 * 8);
+  let result = await device.isochronousTransferOut(
+      1, array_buffer, [64, 64, 64, 64, 64, 64, 64, 64]);
+  for (let i = 0; i < result.packets.length; ++i) {
+    assert_equals(result.packets[i].status, 'ok');
+    assert_equals(result.packets[i].bytesWritten, 64);
   }
 
-  try {
-    const typed_array = new Uint8Array(64 * 8);
-    const result = await device.isochronousTransferOut(
-        1, typed_array, [64, 64, 64, 64, 64, 64, 64, 64]);
-    for (let i = 0; i < result.packets.length; ++i)
-      assert_equals(result.packets[i].status, 'ok');
+  detachBuffer(array_buffer);
+  // A detached buffer has zero length, so it doesn't match the packet sizes.
+  await promise_rejects_dom(
+      t, 'DataError',
+      device.isochronousTransferOut(
+          1, array_buffer, [64, 64, 64, 64, 64, 64, 64, 64]));
 
-    detachBuffer(typed_array.buffer);
-    await device.isochronousTransferOut(
-        1, typed_array, [64, 64, 64, 64, 64, 64, 64, 64]);
-    assert_unreached();
-  } catch (e) {
-    assert_equals(e.code, DOMException.INVALID_STATE_ERR);
+  const typed_array = new Uint8Array(64 * 8);
+  result = await device.isochronousTransferOut(
+      1, typed_array, [64, 64, 64, 64, 64, 64, 64, 64]);
+  for (let i = 0; i < result.packets.length; ++i) {
+    assert_equals(result.packets[i].status, 'ok');
+    assert_equals(result.packets[i].bytesWritten, 64);
   }
+
+  detachBuffer(typed_array.buffer);
+  // A detached buffer has zero length, so it doesn't match the packet sizes.
+  await promise_rejects_dom(
+      t, 'DataError',
+      device.isochronousTransferOut(
+          1, typed_array, [64, 64, 64, 64, 64, 64, 64, 64]));
 }, 'isochronousTransferOut rejects when called with a detached buffer');
 
 usb_test(() => {

@@ -35,9 +35,15 @@
       item.style.left = "400px";
       await new Promise(resolve => item.addEventListener("transitionstart", resolve));
       const doc = document.implementation.createHTMLDocument();
-      doc.body.moveBefore(item, null);
+
+      // Calling `moveBefore()` on a cross-document element undergoing a
+      // transition does not move the element, nor alter the transition.
+      assert_throws_dom("HIERARCHY_REQUEST_ERR", () => {
+        doc.body.moveBefore(item, null);
+      });
+
       await new Promise(resolve => requestAnimationFrame(() => resolve()));
-      assert_equals(item.getBoundingClientRect().x, 0);
+      assert_between_inclusive(item.getBoundingClientRect().x, 0, 20);
     }, "Moving an element with a transition to a disconnected document should reset the transitionm state");
   </script>
 </body>

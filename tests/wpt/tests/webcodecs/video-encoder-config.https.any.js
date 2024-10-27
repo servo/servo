@@ -135,8 +135,8 @@ const validButUnsupportedConfigs = [
     config: {
       codec: 'vp8',
       hardwareAcceleration: 'prefer-hardware',
-      width: 20000,
-      height: 20000,
+      width: 30000,
+      height: 30000,
       bitrate: 1,
       framerate: 240,
     }

@@ -32,9 +32,9 @@
               for (var child = firstChild; child; child = child.nextElementSibling) {
                   var style = window.getComputedStyle(child).getPropertyValue("display");
                   if (child == firstChild) {
-                      assert_equals(style, "math", "First child has display: math");
+                      assert_equals(style, "block math", "First child has computed display value 'block math'");
                   } else {
-                      assert_equals(style, "none", "Other children have display: none");
+                      assert_equals(style, "none", "Other children have computed display value 'none'");
                   }
               }
           }, `Computed display of children (id=${id})`);
