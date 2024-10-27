@@ -3866,11 +3866,13 @@ impl ScriptThread {
             .unwrap();
 
         // Notify devtools that a new script global exists.
-        self.notify_devtools(
-            document.Title(),
-            final_url.clone(),
-            (incomplete.browsing_context_id, incomplete.pipeline_id, None),
-        );
+        if incomplete.top_level_browsing_context_id.0 == incomplete.browsing_context_id {
+            self.notify_devtools(
+                document.Title(),
+                final_url.clone(),
+                (incomplete.browsing_context_id, incomplete.pipeline_id, None),
+            );
+        }
 
         document.set_https_state(metadata.https_state);
         document.set_navigation_start(incomplete.navigation_start);
