@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<link rel="help" href="https://w3c.github.io/trusted-types/dist/spec/#dom-trustedtypepolicyfactory-getattributetype">
+<link rel="help" href="https://w3c.github.io/trusted-types/dist/spec/#abstract-opdef-get-trusted-type-data-for-attribute">
+<link rel="help" href="https://github.com/w3c/trusted-types/issues/520">
+<meta name="assert" content="getAttributeType() with empty attributeNs returns 'TrustedScript' for event handler content attributes.">
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/WebIDLParser.js"></script>
+<script src="support/namespaces.js"></script>
+<script>
+promise_setup(async function() {
+  let attributeNames = [];
+  function addOnAttributes(IDL, interfaceName) {
+    // Parsing the whole IDL file is slow, so use a small regexp to extract only
+    // the part that is relevant for this test.
+    let regexp = new RegExp(`^.*\(partial \)?interface \(mixin \)?${interfaceName}[^{]*{[^{}]*};$`, "m");
+    let parsedIDL = WebIDL2.parse(IDL.match(regexp)[0]);
+    parsedIDL.find(idl => idl.name === interfaceName)
+      .members.map(member => member.name)
+      .filter(name => name.length >= 3 && name.startsWith("on") &&
+              !name.startsWith("onwebkit"))
+      .forEach(name => attributeNames.push(name));
+  }
+
+  const htmlIDL = await (await fetch("/interfaces/html.idl")).text();
+  ["GlobalEventHandlers", "WindowEventHandlers"].forEach(interfaceName => {
+    addOnAttributes(htmlIDL, interfaceName);
+  });
+
+  const entrypedMediaIDL = await (await fetch("/interfaces/encrypted-media.idl")).text();
+  addOnAttributes(entrypedMediaIDL, "HTMLMediaElement");
+
+  const svgAnimationsIDL = await (await fetch("/interfaces/svg-animations.idl")).text();
+  addOnAttributes(svgAnimationsIDL, "SVGAnimationElement");
+
+  for (const attributeName of attributeNames) {
+    promise_test(async () => {
+      NSURI_ARRAY.forEach(attrNs => {
+        assert_equals(trustedTypes.getAttributeType(
+          "dummy", attributeName, "dummyNs", attrNs),
+          attrNs === NSURI_EMPTY ? "TrustedScript" : null,
+          `for attrNs='${attrNs}'`);
+      });
+    }, `getAttributeType("dummy", "${attributeName}", "dummyNs", attrNs)`);
+  }
+});
+</script>

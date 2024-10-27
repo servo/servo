@@ -59,11 +59,17 @@ for (const id of ['fallbackbutton', 'custombutton']) {
     assert_true(select.matches(':open'),
       'Select should be open after clicking the button.');
 
+    let firedInput = false;
+    let firedChange = false;
+    select.addEventListener('input', () => firedInput = true);
+    select.addEventListener('change', () => firedChange = true);
     await test_driver.click(optionTwo);
     assert_false(select.matches(':open'),
       'Select should be closed after clicking an option.');
     assert_equals(select.value, 'two',
       'Select.value should be two after clicking the option.');
+    assert_true(firedInput, 'The input event should be fired when choosing an option.');
+    assert_true(firedChange, 'The change event should be fired when choosing an option.');
   }, `${id}: Clicking an option in an appearance:base-select select should choose the option and close the popover.`);
 
   promise_test(async () => {

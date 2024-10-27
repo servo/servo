@@ -1,9 +1,11 @@
 # mypy: allow-untyped-defs
 
 import collections
+import json
 import os
 import re
 import time
+import uuid
 from typing import Mapping, MutableMapping, Type
 
 from webdriver import error
@@ -13,6 +15,7 @@ from .base import (
     TestharnessExecutor,
 )
 from .executorwebdriver import (
+    WebDriverBaseProtocolPart,
     WebDriverCrashtestExecutor,
     WebDriverFedCMProtocolPart,
     WebDriverPrintRefTestExecutor,
@@ -61,6 +64,62 @@ def make_sanitizer_mixin(crashtest_executor_cls: Type[CrashtestExecutor]):  # ty
 _SanitizerMixin = make_sanitizer_mixin(WebDriverCrashtestExecutor)
 
 
+class ChromeDriverBaseProtocolPart(WebDriverBaseProtocolPart):
+    def create_window(self, type="tab", **kwargs):
+        try:
+            return super().create_window(type=type, **kwargs)
+        except error.WebDriverException:
+            # TODO(crbug.com/375275185): This case exists solely as a workaround
+            # for Android WebView not supporting "new window". Once fixed, just
+            # use the standard `WebDriverBaseProtocolPart`.
+            window_id = str(uuid.uuid4())
+            self.webdriver.execute_script(
+                "window.open('about:blank', '%s', 'noopener')" % window_id)
+            return self._get_test_window(window_id, self.current_window)
+
+    def _get_test_window(self, window_id, parent, timeout=5):
+        """Find the test window amongst all the open windows.
+        This is assumed to be either the named window or the one after the parent in the list of
+        window handles
+        :param window_id: The DOM name of the Window
+        :param parent: The handle of the current window
+        :param timeout: The time in seconds to wait for the window to appear. This is because in
+                        some implementations there's a race between calling window.open and the
+                        window being added to the list of WebDriver accessible windows."""
+        test_window = None
+        end_time = time.time() + timeout
+        while time.time() < end_time:
+            try:
+                # Try using the JSON serialization of the WindowProxy object,
+                # it's in Level 1 but nothing supports it yet
+                win_s = self.webdriver.execute_script("return window['%s'];" % window_id)
+                win_obj = json.loads(win_s)
+                test_window = win_obj["window-fcc6-11e5-b4f8-330a88ab9d7f"]
+            except Exception:
+                pass
+
+            if test_window is None:
+                test_window = self._poll_handles_for_test_window(parent)
+
+            if test_window is not None:
+                assert test_window != parent
+                return test_window
+
+            time.sleep(0.1)
+
+        raise Exception("unable to find test window")
+
+    def _poll_handles_for_test_window(self, parent):
+        test_window = None
+        after = self.webdriver.handles
+        if len(after) == 2:
+            test_window = next(iter(set(after) - {parent}))
+        elif after[0] == parent and len(after) > 2:
+            # Hope the first one here is the test window
+            test_window = after[1]
+        return test_window
+
+
 class ChromeDriverLeakProtocolPart(LeakProtocolPart):
     def get_counters(self) -> Mapping[str, int]:
         response = self.parent.cdp.execute_cdp_command("Memory.getDOMCountersForLeakDetection")
@@ -81,27 +140,32 @@ class ChromeDriverTestharnessProtocolPart(WebDriverTestharnessProtocolPart):
     that the test window can be reused between tests for better performance.
     """
     def reset_browser_state(self):
-        # TODO(web-platform-tests/wpt#48078): Find a cross-vendor way to clear
-        # cookies for all domains.
-        self.parent.cdp.execute_cdp_command("Network.clearBrowserCookies")
-        # Reset default permissions that `test_driver.set_permission(...)` may
-        # have altered.
-        self.parent.cdp.execute_cdp_command("Browser.resetPermissions")
-        # Chromium requires the `background-sync` permission for reporting APIs
-        # to work. Not all embedders (notably, `chrome --headless=old`) grant
-        # `background-sync` by default, so this CDP call ensures the permission
-        # is granted for all origins, in line with the background sync spec's
-        # recommendation [0].
-        #
-        # WebDriver's "Set Permission" command can only act on the test's
-        # origin, which may be too limited.
-        #
-        # [0]: https://wicg.github.io/background-sync/spec/#permission
-        params = {
-            "permission": {"name": "background-sync"},
-            "setting": "granted",
-        }
-        self.parent.cdp.execute_cdp_command("Browser.setPermission", params)
+        for command, params in [
+            # TODO(web-platform-tests/wpt#48078): Find a cross-vendor way to
+            # clear cookies for all domains.
+            ("Network.clearBrowserCookies", None),
+            # Reset default permissions that `test_driver.set_permission(...)`
+            # may have altered.
+            ("Browser.resetPermissions", None),
+            # Chromium requires the `background-sync` permission for reporting
+            # APIs to work. Not all embedders (notably, `chrome --headless=old`)
+            # grant `background-sync` by default, so this CDP call ensures the
+            # permission is granted for all origins, in line with the background
+            # sync spec's recommendation [0].
+            #
+            # WebDriver's "Set Permission" command can only act on the test's
+            # origin, which may be too limited.
+            #
+            # [0]: https://wicg.github.io/background-sync/spec/#permission
+            ("Browser.setPermission", {
+                "permission": {"name": "background-sync"},
+                "setting": "granted",
+            }),
+        ]:
+            try:
+                self.parent.cdp.execute_cdp_command(command, params)
+            except error.WebDriverException:
+                pass
 
 
 class ChromeDriverFedCMProtocolPart(WebDriverFedCMProtocolPart):
@@ -131,6 +195,7 @@ class ChromeDriverDevToolsProtocolPart(ProtocolPart):
 
 class ChromeDriverProtocol(WebDriverProtocol):
     implements = [
+        ChromeDriverBaseProtocolPart,
         ChromeDriverDevToolsProtocolPart,
         ChromeDriverFedCMProtocolPart,
         ChromeDriverTestharnessProtocolPart,

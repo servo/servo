@@ -71,30 +71,26 @@
       .send();
   }
 
-  promise_test(async () => {
+  promise_test(async (t) => {
     const select = document.getElementById("select0");
     const selectButton = document.getElementById("select0-button");
     assert_false(select.matches(':open'));
-    const selectButtonPromise = new Promise(async resolve => {
-      selectButton.addEventListener("click", (e) => {
-        assert_false(select.matches(':open'), "Listbox shouldn't have opened yet");
-        // PreventDefaulting the event here should prevent UA controller code
-        // on the button part from opening the listbox.
-        e.preventDefault();
-        resolve();
-      });
+
+    const selectButtonWatcher = new EventWatcher(t, selectButton, ["click"]);
+    const selectButtonPromise = selectButtonWatcher.wait_for("click").then((e) => {
+      assert_false(select.matches(':open'), "Listbox shouldn't have opened yet");
+      // PreventDefaulting the event here should prevent UA controller code
+      // on the button part from opening the listbox.
+      e.preventDefault();
     });
 
-    const selectPromise = new Promise(async resolve => {
-      select.addEventListener("click", (e) => {
-        assert_true(e.defaultPrevented, "Event should have been defaultPrevented by selectButton click handler");
-        assert_false(select.matches(':open'), "Listbox shouldn't have opened, because click event was defaultPrevented.");
-        resolve();
-      });
+    const selectWatcher = new EventWatcher(t, select, ["click"]);
+    const selectPromise = selectWatcher.wait_for("click").then((e) => {
+      assert_true(e.defaultPrevented, "Event should have been defaultPrevented by selectButton click handler");
+      assert_false(select.matches(':open'), "Listbox shouldn't have opened, because click event was defaultPrevented.");
     });
 
-    await clickOn(selectButton);
-    return Promise.all([selectButtonPromise, selectPromise]);
+    return Promise.all([selectButtonPromise, selectPromise, clickOn(selectButton)]);
   }, "Button controller code should not run if the click event is preventDefaulted.");
 
   // See https://w3c.github.io/webdriver/#keyboard-actions
@@ -106,46 +102,42 @@
     'ArrowDown':  '\uE015',
   };
 
-  promise_test(async () => {
+  promise_test(async (t) => {
     const select = document.getElementById("select1");
     const selectButton = document.getElementById("select1-button");
     await clickOn(select);
     assert_true(select.matches(':open'));
-    const selectButtonPromise = new Promise(async resolve => {
-      selectButton.addEventListener("click", (e) => {
-        assert_true(select.matches(':open'), "Listbox shouldn't have closed yet");
-        // PreventDefaulting the event here should prevent UA controller code
-        // on the listbox part from selecting the option and closing the listbox.
-        e.preventDefault();
-        resolve();
-      });
+
+    const selectButtonWatcher = new EventWatcher(t, selectButton, ["click"]);
+    const selectButtonPromise = selectButtonWatcher.wait_for("click").then((e) => {
+      assert_true(select.matches(':open'), "Listbox shouldn't have closed yet");
+      // PreventDefaulting the event here should prevent UA controller code
+      // on the listbox part from selecting the option and closing the listbox.
+      e.preventDefault();
     });
 
-    const selectPromise = new Promise(async resolve => {
-      select.addEventListener("click", (e) => {
-        assert_true(e.defaultPrevented, "Event should have been defaultPrevented by selectButton click handler");
-        assert_true(select.matches(':open'), "Listbox shouldn't have closed, because keydown event was defaultPrevented.");
-        assert_equals(select.value, "one", "<select> shouldn't have changed value, because keydown event was defaultPrevented.");
-        resolve();
-      });
+    const selectWatcher = new EventWatcher(t, select, ["click"]);
+    const selectPromise = selectWatcher.wait_for("click").then((e) => {
+      assert_true(e.defaultPrevented, "Event should have been defaultPrevented by selectButton click handler");
+      assert_true(select.matches(':open'), "Listbox shouldn't have closed, because keydown event was defaultPrevented.");
+      assert_equals(select.value, "one", "<select> shouldn't have changed value, because keydown event was defaultPrevented.");
     });
 
-    await clickOn(selectButton);
-    return Promise.all([selectButtonPromise, selectPromise]);
+    return Promise.all([selectButtonPromise, selectPromise, clickOn(selectButton)]);
   }, "Listbox controller code should not run if the click event is preventDefaulted.");
 
-  promise_test(async () => {
+  promise_test(async (t) => {
     const select = document.getElementById("select2");
     const events = [];
 
-    select.addEventListener("input", (e) => {
+    select.addEventListener("input", t.step_func((e) => {
       assert_true(e.composed, "input event should be composed.");
       events.push('input');
-    });
-    select.addEventListener("change", (e) => {
+    }));
+    select.addEventListener("change", t.step_func((e) => {
       assert_false(e.composed, "change event should not be composed.");
       events.push('change');
-    });
+    }));
 
     await clickOn(select);
     assert_true(select.matches(':open'));
@@ -165,18 +157,18 @@
     assert_array_equals(events, ['input', 'input', 'change'], "input and change should fire after pressing enter.");
   }, "<select> should fire input and change events when new option is selected.");
 
-  promise_test(async () => {
+  promise_test(async (t) => {
     const select = document.getElementById("select3");
     const events = [];
 
-    select.addEventListener("input", (e) => {
+    select.addEventListener("input", t.step_func((e) => {
       assert_true(e.composed, "input event should be composed.");
       events.push('input');
-    });
-    select.addEventListener("change", (e) => {
+    }));
+    select.addEventListener("change", t.step_func((e) => {
       assert_false(e.composed, "change event should not be composed.");
       events.push('change');
-    });
+    }));
 
     await clickOn(select);
     assert_true(select.matches(':open'));
@@ -186,25 +178,25 @@
     assert_array_equals(events, ['input', 'input', 'change'], "input and change should fire after pressing Enter.");
   }, "<select> should fire input and change events even when new selected option has the same value as the old.");
 
-  promise_test(async () => {
+  promise_test(async (t) => {
     const select = document.getElementById("select4");
     const selectOption2 = document.getElementById("select4-option2");
     let input_event_count = 0;
     let change_event_count = 0;
 
-    select.addEventListener("input", (e) => {
+    select.addEventListener("input", t.step_func((e) => {
       assert_true(e.composed, "input event should be composed");
       assert_equals(input_event_count, 0, "input event should not fire twice");
       assert_equals(change_event_count, 0, "input event should not fire before change");
       input_event_count++;
-    });
+    }));
 
-    select.addEventListener("change", (e) => {
+    select.addEventListener("change", t.step_func((e) => {
       assert_false(e.composed, "change event should not be composed");
       assert_equals(input_event_count, 1, "change event should fire after input");
       assert_equals(change_event_count, 0, "change event should not fire twice");
       change_event_count++;
-    });
+    }));
 
     await clickOn(select);
     assert_true(select.matches(':open'));
@@ -246,5 +238,5 @@
 
     await test_driver.send_keys(select, "a");
     assert_equals(keydown_count, 1, "button in shadowroot should have observed keydown");
-}, "Test that <select> button slot receives key events.");
+  }, "Test that <select> button slot receives key events.");
 </script>

@@ -34,6 +34,7 @@ async function runTest(policy_header_in_primary_page,
   await new Promise(resolve => {
     win.onload = resolve;
   });
+  await test_driver.set_permission({name: 'geolocation'}, 'granted');
 
   // Pagehide can be used to detect the document destruction.
   const pagehidePromise = new Promise(resolve => {

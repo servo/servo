@@ -1,33 +1,45 @@
 <!DOCTYPE html>
-<title>Test choosing the innermost for `text-box-trim` for requested trim metric</title>
+<title>Test choosing the correct text-box-edge value for requested trim metric</title>
 <link rel="help" href="https://drafts.csswg.org/css-inline-3/#text-box-edge">
 <link rel="help" href="https://drafts.csswg.org/css-inline-3/#text-box-trim">
 <meta name="assert"
-      content="If multiple ancestors specify trimming on the same line box,
-               the text-box-edge value used is that of the innermost block container
-               that requests trimming on that side of the line box."
-> <!-- https://github.com/w3c/csswg-drafts/issues/5426 -->
-<link rel="match" href="text-box-trim-start-001-ref.html?class=text">
+      content="text-box-edge is an inherited property and trim metric should be used accordingly."
+> <!-- https://github.com/w3c/csswg-drafts/issues/10904 -->
+<link rel="match" href="text-box-trim-accumulation-001-ref.html">
 <style>
-@import "support/MetricsTestFont.css";
+@import "support/TestMetricsFont.css";
 
 .spacer {
   block-size: 100px;
   background: lightgray;
 }
-.target {
+
+.inner {
   font: 100px/2 MetricsTestFont;
 }
-.target, .outer {
+.outer {
   text-box-trim: trim-start;
+  text-box-edge: auto;
 }
-.outer, .inner {
-  text-box-edge: ex; /* ignored */
+
+.middle {
+  text-box-trim: trim-end;
+  text-box-edge: text alphabetic;
+}
+
+.inner:first-child {
+  text-box-edge: ex alphabetic;
+}
+
+.inner:last-child {
+  text-box-edge: text;
 }
 </style>
 <div class="spacer"></div>
 <div class="outer">
-  <div class="target">
+  <div class="middle">
+    <div class="inner">ApÉx</div>
+    <div class="spacer"></div>
     <div class="inner">ApÉx</div>
   </div>
 </div>

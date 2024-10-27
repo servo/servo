@@ -14,8 +14,8 @@
 <script>
 promise_test(async () => {
   const frame = attachFencedFrameContext();
+  await multiClick(10, 10, frame.element);
   const result = await frame.execute(async () => {
-    await simulateGesture();
     try {
       await navigator.hid.getDevices();
       return 'HID getDevice succeeded';

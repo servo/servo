@@ -140,7 +140,8 @@ function testSharedWorkerChild(url) {
   let w = new SharedWorker(url);
   return new Promise((resolve, reject) => {
     w.port.onmessage = m => {
-      if (m.data.includes("Error")) {
+      // (null is a valid value when the SharedWorker is not controlled)
+      if (m.data?.includes("Error")) {
         reject(m.data);
         return;
       }

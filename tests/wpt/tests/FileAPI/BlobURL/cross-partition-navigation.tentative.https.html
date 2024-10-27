@@ -77,8 +77,8 @@ promise_test(t => {
 
       const frame_html = `
         <!doctype html>
-        // dispatcher.js requires the baseURI to be set in order to compute the
-        // server path correctly in the blob URL page.
+        <!-- dispatcher.js requires the baseURI to be set in order to compute
+          the server path correctly in the blob URL page. -->
         <base href="${window.location.href}">
         <script src="/html/cross-origin-embedder-policy/credentialless/resources/common.js"><\/script>
         <script src="/html/anonymous-iframe/resources/common.js"><\/script>
@@ -114,7 +114,7 @@ promise_test(t => {
         reject(`Blob URL wasn't opened in same-top-level-site iframe: ${response_2}`);
       }
       const noopener_response_2 = await receive(noopener_response_queue);
-      if (noopener_response_2 !== opener_non_null_response) {
+      if (noopener_response_2 !== opener_not_null_response) {
         reject(`Blob URL page opener was null in same-top-level-site iframe`);
       }
       resolve();

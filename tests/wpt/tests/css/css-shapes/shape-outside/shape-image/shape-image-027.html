@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html class="reftest-wait">
 <head>
     <title>CSS Test: left float, url(png), real negative offset image + shape-margin (px)</title>
     <link rel="author" title="Brad Werth" href="mailto:bwerth@mozilla.com"/>
@@ -66,5 +66,16 @@
     <div class="blue left-line"></div>
     <div class="blue right-line"></div>
     <div class="failure"></div>
+<script>
+// A workaround of an issue of Chromium content_shell.  It finishes a test
+// without waiting layout with images linked from url().  crbug.com/372756068
+window.addEventListener('load', () => {
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      document.documentElement.classList.remove('reftest-wait');
+    });
+  });
+});
+</script>
 </body>
 </html>

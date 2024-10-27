@@ -42,7 +42,7 @@ promise_test(async t => {
 
   const picture = document.querySelector('picture');
   const source = document.querySelector('source');
-  const img = document.createElement('img');
+  const img = document.body.appendChild(document.createElement('img'));
   img.src = '/images/red.png';
 
   t.add_cleanup(() => {
