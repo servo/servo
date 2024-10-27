@@ -18,6 +18,7 @@ use crate::dom::element::Element;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::Node;
 use crate::dom::nodelist::NodeList;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct HTMLMeterElement {
@@ -44,6 +45,7 @@ impl HTMLMeterElement {
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> DomRoot<HTMLMeterElement> {
         Node::reflect_node_with_proto(
             Box::new(HTMLMeterElement::new_inherited(
@@ -51,6 +53,7 @@ impl HTMLMeterElement {
             )),
             document,
             proto,
+            can_gc,
         )
     }
 }
@@ -75,13 +78,13 @@ impl HTMLMeterElementMethods for HTMLMeterElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-meter-value>
-    fn SetValue(&self, value: Finite<f64>) {
+    fn SetValue(&self, value: Finite<f64>, can_gc: CanGc) {
         let mut string_value = DOMString::from_string((*value).to_string());
 
         string_value.set_best_representation_of_the_floating_point_number();
 
         self.upcast::<Element>()
-            .set_string_attribute(&local_name!("value"), string_value);
+            .set_string_attribute(&local_name!("value"), string_value, can_gc);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#concept-meter-minimum>
@@ -95,13 +98,13 @@ impl HTMLMeterElementMethods for HTMLMeterElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-meter-min>
-    fn SetMin(&self, value: Finite<f64>) {
+    fn SetMin(&self, value: Finite<f64>, can_gc: CanGc) {
         let mut string_value = DOMString::from_string((*value).to_string());
 
         string_value.set_best_representation_of_the_floating_point_number();
 
         self.upcast::<Element>()
-            .set_string_attribute(&local_name!("min"), string_value);
+            .set_string_attribute(&local_name!("min"), string_value, can_gc);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#concept-meter-maximum>
@@ -116,13 +119,13 @@ impl HTMLMeterElementMethods for HTMLMeterElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#concept-meter-maximum>
-    fn SetMax(&self, value: Finite<f64>) {
+    fn SetMax(&self, value: Finite<f64>, can_gc: CanGc) {
         let mut string_value = DOMString::from_string((*value).to_string());
 
         string_value.set_best_representation_of_the_floating_point_number();
 
         self.upcast::<Element>()
-            .set_string_attribute(&local_name!("max"), string_value);
+            .set_string_attribute(&local_name!("max"), string_value, can_gc);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#concept-meter-low>
@@ -141,13 +144,13 @@ impl HTMLMeterElementMethods for HTMLMeterElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-meter-low>
-    fn SetLow(&self, value: Finite<f64>) {
+    fn SetLow(&self, value: Finite<f64>, can_gc: CanGc) {
         let mut string_value = DOMString::from_string((*value).to_string());
 
         string_value.set_best_representation_of_the_floating_point_number();
 
         self.upcast::<Element>()
-            .set_string_attribute(&local_name!("low"), string_value);
+            .set_string_attribute(&local_name!("low"), string_value, can_gc);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#concept-meter-high>
@@ -170,13 +173,13 @@ impl HTMLMeterElementMethods for HTMLMeterElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-meter-high>
-    fn SetHigh(&self, value: Finite<f64>) {
+    fn SetHigh(&self, value: Finite<f64>, can_gc: CanGc) {
         let mut string_value = DOMString::from_string((*value).to_string());
 
         string_value.set_best_representation_of_the_floating_point_number();
 
         self.upcast::<Element>()
-            .set_string_attribute(&local_name!("high"), string_value);
+            .set_string_attribute(&local_name!("high"), string_value, can_gc);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#concept-meter-optimum>
@@ -195,12 +198,15 @@ impl HTMLMeterElementMethods for HTMLMeterElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-meter-optimum>
-    fn SetOptimum(&self, value: Finite<f64>) {
+    fn SetOptimum(&self, value: Finite<f64>, can_gc: CanGc) {
         let mut string_value = DOMString::from_string((*value).to_string());
 
         string_value.set_best_representation_of_the_floating_point_number();
 
-        self.upcast::<Element>()
-            .set_string_attribute(&local_name!("optimum"), string_value);
+        self.upcast::<Element>().set_string_attribute(
+            &local_name!("optimum"),
+            string_value,
+            can_gc,
+        );
     }
 }

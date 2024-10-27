@@ -15,6 +15,7 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::element::Element;
 use crate::dom::node::window_from_node;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct DOMTokenList {
@@ -69,14 +70,14 @@ impl DOMTokenList {
     }
 
     /// <https://dom.spec.whatwg.org/#concept-dtl-update>
-    fn perform_update_steps(&self, atoms: Vec<Atom>) {
+    fn perform_update_steps(&self, atoms: Vec<Atom>, can_gc: CanGc) {
         // Step 1
         if !self.element.has_attribute(&self.local_name) && atoms.is_empty() {
             return;
         }
         // step 2
         self.element
-            .set_atomic_tokenlist_attribute(&self.local_name, atoms)
+            .set_atomic_tokenlist_attribute(&self.local_name, atoms, can_gc)
     }
 
     /// <https://dom.spec.whatwg.org/#concept-domtokenlist-validation>
@@ -130,7 +131,7 @@ impl DOMTokenListMethods for DOMTokenList {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-domtokenlist-add>
-    fn Add(&self, tokens: Vec<DOMString>) -> ErrorResult {
+    fn Add(&self, tokens: Vec<DOMString>, can_gc: CanGc) -> ErrorResult {
         let mut atoms = self.element.get_tokenlist_attribute(&self.local_name);
         for token in &tokens {
             let token = self.check_token_exceptions(token)?;
@@ -138,12 +139,12 @@ impl DOMTokenListMethods for DOMTokenList {
                 atoms.push(token);
             }
         }
-        self.perform_update_steps(atoms);
+        self.perform_update_steps(atoms, can_gc);
         Ok(())
     }
 
     /// <https://dom.spec.whatwg.org/#dom-domtokenlist-remove>
-    fn Remove(&self, tokens: Vec<DOMString>) -> ErrorResult {
+    fn Remove(&self, tokens: Vec<DOMString>, can_gc: CanGc) -> ErrorResult {
         let mut atoms = self.element.get_tokenlist_attribute(&self.local_name);
         for token in &tokens {
             let token = self.check_token_exceptions(token)?;
@@ -152,12 +153,12 @@ impl DOMTokenListMethods for DOMTokenList {
                 .position(|atom| *atom == token)
                 .map(|index| atoms.remove(index));
         }
-        self.perform_update_steps(atoms);
+        self.perform_update_steps(atoms, can_gc);
         Ok(())
     }
 
     /// <https://dom.spec.whatwg.org/#dom-domtokenlist-toggle>
-    fn Toggle(&self, token: DOMString, force: Option<bool>) -> Fallible<bool> {
+    fn Toggle(&self, token: DOMString, force: Option<bool>, can_gc: CanGc) -> Fallible<bool> {
         let mut atoms = self.element.get_tokenlist_attribute(&self.local_name);
         let token = self.check_token_exceptions(&token)?;
         match atoms.iter().position(|atom| *atom == token) {
@@ -165,7 +166,7 @@ impl DOMTokenListMethods for DOMTokenList {
                 Some(true) => Ok(true),
                 _ => {
                     atoms.remove(index);
-                    self.perform_update_steps(atoms);
+                    self.perform_update_steps(atoms, can_gc);
                     Ok(false)
                 },
             },
@@ -173,7 +174,7 @@ impl DOMTokenListMethods for DOMTokenList {
                 Some(false) => Ok(false),
                 _ => {
                     atoms.push(token);
-                    self.perform_update_steps(atoms);
+                    self.perform_update_steps(atoms, can_gc);
                     Ok(true)
                 },
             },
@@ -186,13 +187,13 @@ impl DOMTokenListMethods for DOMTokenList {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-domtokenlist-value>
-    fn SetValue(&self, value: DOMString) {
+    fn SetValue(&self, value: DOMString, can_gc: CanGc) {
         self.element
-            .set_tokenlist_attribute(&self.local_name, value);
+            .set_tokenlist_attribute(&self.local_name, value, can_gc);
     }
 
     /// <https://dom.spec.whatwg.org/#dom-domtokenlist-replace>
-    fn Replace(&self, token: DOMString, new_token: DOMString) -> Fallible<bool> {
+    fn Replace(&self, token: DOMString, new_token: DOMString, can_gc: CanGc) -> Fallible<bool> {
         if token.is_empty() || new_token.is_empty() {
             // Step 1.
             return Err(Error::Syntax);
@@ -231,7 +232,7 @@ impl DOMTokenListMethods for DOMTokenList {
             }
 
             // Step 5.
-            self.perform_update_steps(atoms);
+            self.perform_update_steps(atoms, can_gc);
             result = true;
         }
         Ok(result)

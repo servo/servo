@@ -113,6 +113,7 @@ CONSOLE: common/gc.js
 CONSOLE: resources/check-layout-th.js
 CONSOLE: resources/chromium/*
 CONSOLE: resources/testharness.js
+CONSOLE: content-security-policy/inheritance/blob-inherits-from-meta-http-equiv-with-invalid-characters.html
 CONSOLE: service-workers/service-worker/resources/navigation-redirect-other-origin.html
 CONSOLE: service-workers/service-worker/navigation-redirect.https.html
 CONSOLE: service-workers/service-worker/resources/clients-get-other-origin.html
@@ -624,7 +625,6 @@ MISSING DEPENDENCY: resources/chromium/mock-facedetection.js
 MISSING DEPENDENCY: resources/chromium/mock-idle-detection.js
 MISSING DEPENDENCY: resources/chromium/mock-imagecapture.js
 MISSING DEPENDENCY: resources/chromium/mock-managed-config.js
-MISSING DEPENDENCY: resources/chromium/mock-pressure-service.js
 MISSING DEPENDENCY: resources/chromium/mock-subapps.js
 MISSING DEPENDENCY: resources/chromium/mock-textdetection.js
 MISSING DEPENDENCY: resources/chromium/nfc-mock.js

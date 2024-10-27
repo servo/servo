@@ -17,7 +17,7 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::xrrigidtransform::XRRigidTransform;
 use crate::dom::xrsession::{cast_transform, BaseSpace, BaseTransform, XRSession};
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{CanGc, JSContext};
 
 #[dom_struct]
 pub struct XRView {
@@ -61,9 +61,10 @@ impl XRView {
         eye: XREye,
         viewport_index: usize,
         to_base: &BaseTransform,
+        can_gc: CanGc,
     ) -> DomRoot<XRView> {
         let transform: RigidTransform3D<f32, V, BaseSpace> = view.transform.then(to_base);
-        let transform = XRRigidTransform::new(global, cast_transform(transform));
+        let transform = XRRigidTransform::new(global, cast_transform(transform), can_gc);
 
         reflect_dom_object(
             Box::new(XRView::new_inherited(

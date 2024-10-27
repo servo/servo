@@ -2,8 +2,8 @@
 resolver = "2"
 members = [
     "ports/servoshell",
-    "tests/unit/*",
     "support/crown",
+    "tests/unit/*",
 ]
 default-members = ["ports/servoshell"]
 exclude = [".cargo"]
@@ -18,6 +18,7 @@ rust-version = "1.80.1"
 
 [workspace.dependencies]
 accountable-refcell = "0.2.0"
+aes = "0.8.4"
 app_units = "0.7"
 arrayvec = "0.7"
 async-tungstenite = { version = "0.23", features = ["tokio-rustls-webpki-roots"] }
@@ -31,13 +32,16 @@ bitflags = "2.6"
 bluetooth_traits = { path = "components/shared/bluetooth" }
 byteorder = "1.5"
 canvas_traits = { path = "components/shared/canvas" }
+cbc = "0.1.2"
 cfg-if = "1.0.0"
 chrono = { version = "0.4", features = ["serde"] }
+cipher = { version = "0.4.4", features = ["alloc"] }
 compositing_traits = { path = "components/shared/compositing" }
 content-security-policy = { version = "0.5", features = ["serde"] }
 cookie = { package = "cookie", version = "0.18" }
 crossbeam-channel = "0.5"
 cssparser = { version = "0.34", features = ["serde"] }
+ctr = "0.9.2"
 darling = { version = "0.20", default-features = false }
 data-url = "0.3"
 devtools_traits = { path = "components/shared/devtools" }
@@ -46,12 +50,13 @@ encoding_rs = "0.8"
 env_logger = "0.10"
 euclid = "0.22"
 fnv = "1.0"
+fonts_traits = { path = "components/shared/fonts" }
 freetype-sys = "0.20"
 fxhash = "0.2"
 getopts = "0.2.11"
-fonts_traits = { path = "components/shared/fonts" }
 gleam = "0.15"
 glib = "0.19"
+glow = "0.15"
 gstreamer = { version = "0.22", features = ["v1_18"] }
 gstreamer-base = "0.22"
 gstreamer-gl = "0.22"
@@ -69,16 +74,15 @@ icu_segmenter = "1.5.0"
 image = "0.24"
 imsz = "0.2"
 indexmap = { version = "2.5.0", features = ["std"] }
-ipc-channel = "0.18"
+ipc-channel = "0.19"
 itertools = "0.13"
-tikv-jemalloc-sys = "0.6.0"
-tikv-jemallocator = "0.6.0"
 keyboard-types = "0.7"
 libc = "0.2"
 log = "0.4"
 mach2 = "0.4"
-malloc_size_of = { git = "https://github.com/servo/stylo", branch = "2024-09-02", features = ["servo"] }
+malloc_size_of = { git = "https://github.com/servo/stylo", branch = "2024-10-04", features = ["servo"] }
 malloc_size_of_derive = "0.1"
+memmap2 = "0.9.5"
 mime = "0.3.13"
 mime_guess = "2.0.5"
 mozangle = "0.5.1"
@@ -100,51 +104,55 @@ rustls = { version = "0.21.12", features = ["dangerous_configuration"] }
 rustls-pemfile = "1.0.4"
 script_layout_interface = { path = "components/shared/script_layout" }
 script_traits = { path = "components/shared/script" }
-selectors = { git = "https://github.com/servo/stylo", branch = "2024-09-02" }
-serde = "1.0.210"
+selectors = { git = "https://github.com/servo/stylo", branch = "2024-10-04" }
+serde = "1.0.213"
 serde_bytes = "0.11"
 serde_json = "1.0"
 servo-media = { git = "https://github.com/servo/media" }
 servo-media-dummy = { git = "https://github.com/servo/media" }
 servo-media-gstreamer = { git = "https://github.com/servo/media" }
-servo_arc = { git = "https://github.com/servo/stylo", branch = "2024-09-02", features = ["servo"] }
-servo_atoms = { git = "https://github.com/servo/stylo", branch = "2024-09-02" }
-size_of_test = { git = "https://github.com/servo/stylo", branch = "2024-09-02" }
+servo_arc = { git = "https://github.com/servo/stylo", branch = "2024-10-04", features = ["servo"] }
+servo_atoms = { git = "https://github.com/servo/stylo", branch = "2024-10-04" }
+size_of_test = { git = "https://github.com/servo/stylo", branch = "2024-10-04" }
 smallbitvec = "2.5.3"
 smallvec = "1.13"
 sparkle = "0.1.26"
 string_cache = "0.8"
 string_cache_codegen = "0.5"
-style = { git = "https://github.com/servo/stylo", branch = "2024-09-02", features = ["servo"] }
-style_config = { git = "https://github.com/servo/stylo", branch = "2024-09-02" }
-style_dom = { git = "https://github.com/servo/stylo", package = "dom", branch = "2024-09-02" }
-style_traits = { git = "https://github.com/servo/stylo", branch = "2024-09-02", features = ["servo"] }
-surfman = { version = "0.9.8", features = ["chains"] }
+style = { git = "https://github.com/servo/stylo", branch = "2024-10-04", features = ["servo"] }
+style_config = { git = "https://github.com/servo/stylo", branch = "2024-10-04" }
+style_dom = { git = "https://github.com/servo/stylo", package = "dom", branch = "2024-10-04" }
+style_traits = { git = "https://github.com/servo/stylo", branch = "2024-10-04", features = ["servo"] }
+surfman = { git = "https://github.com/servo/surfman", rev = "e0c34af64f2860bc56bc8a56e1c169a915b16aa3", features = ["chains"] }
 syn = { version = "2", default-features = false, features = ["clone-impls", "derive", "parsing"] }
 synstructure = "0.13"
 thin-vec = "0.2.13"
+tikv-jemalloc-sys = "0.6.0"
+tikv-jemallocator = "0.6.0"
 time_03 = { package = "time", version = "0.3", features = ["large-dates", "local-offset", "serde"] }
-to_shmem = { git = "https://github.com/servo/stylo", branch = "2024-09-02" }
+to_shmem = { git = "https://github.com/servo/stylo", branch = "2024-10-04" }
 tokio = "1"
 tokio-rustls = "0.24"
-tungstenite = "0.20"
 tracing = "0.1.40"
-tracing-subscriber = "0.3.18"
 tracing-perfetto = "0.1.1"
+tracing-subscriber = "0.3.18"
+tungstenite = "0.20"
 uluru = "3.0"
 unicode-bidi = "0.3.17"
 unicode-properties = { version = "0.1.3", features = ["emoji"] }
 unicode-script = "0.5"
 unicode-segmentation = "1.12.0"
 url = "2.5"
-uuid = { version = "1.10.0", features = ["v4"] }
+uuid = { version = "1.11.0", features = ["v4"] }
 webdriver = "0.49.0"
 webpki-roots = "0.25"
 webrender = { git = "https://github.com/servo/webrender", branch = "0.65", features = ["capture"] }
 webrender_api = { git = "https://github.com/servo/webrender", branch = "0.65" }
 webrender_traits = { path = "components/shared/webrender" }
-wgpu-core = { git = "https://github.com/gfx-rs/wgpu", rev = "3d584f99edfc57055000fdc88c3131f5bacf3ee7" }
-wgpu-types = { git = "https://github.com/gfx-rs/wgpu", rev = "3d584f99edfc57055000fdc88c3131f5bacf3ee7" }
+webxr = { git = "https://github.com/servo/webxr" }
+webxr-api = { git = "https://github.com/servo/webxr" }
+wgpu-core = { git = "https://github.com/gfx-rs/wgpu", rev = "2b15a2b24b69e105ebdbb5e8a859e2df75e441c1" }
+wgpu-types = { git = "https://github.com/gfx-rs/wgpu", rev = "2b15a2b24b69e105ebdbb5e8a859e2df75e441c1" }
 windows-sys = "0.59"
 xi-unicode = "0.3.0"
 xml5ever = "0.20"
@@ -179,7 +187,6 @@ codegen-units = 1
 # Or for Stylo:
 #
 # [patch."https://github.com/servo/stylo"]
-# derive_common = { path = "../stylo/derive_common" }
 # dom = { path = "../stylo/dom" }
 # malloc_size_of = { path = "../stylo/malloc_size_of" }
 # selectors = { path = "../stylo/selectors" }

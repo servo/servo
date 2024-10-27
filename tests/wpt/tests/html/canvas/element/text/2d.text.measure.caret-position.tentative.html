@@ -70,6 +70,8 @@ test(t => {
     'UNAVAILABLE',
     '🏁🎶🏁',
     '）（あ）（',
+    '）（ああ）（',
+    'ああ）（ああ',
     '--abcd__'
   ]
 
@@ -89,7 +91,15 @@ test(t => {
                   doc_position,
                   "for " + text + " offset " + offset);
 
-    offset = text_width / 2;
+    offset = text_width / 2 - 10;
+    adjusted_offset = alignOffset(offset, text_width);
+    tm_position = tm.caretPositionFromPoint(adjusted_offset);
+    doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
+    assert_equals(tm_position,
+                  doc_position,
+                  "for " + text + " offset " + offset);
+
+    offset = text_width / 2 + 10;
     adjusted_offset = alignOffset(offset, text_width);
     tm_position = tm.caretPositionFromPoint(adjusted_offset);
     doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
@@ -166,6 +176,8 @@ test(t => {
     'UNAVAILABLE',
     '🏁🎶🏁',
     '）（あ）（',
+    '）（ああ）（',
+    'ああ）（ああ',
     '--abcd__'
   ]
 
@@ -185,7 +197,15 @@ test(t => {
                   doc_position,
                   "for " + text + " offset " + offset);
 
-    offset = text_width / 2;
+    offset = text_width / 2 - 10;
+    adjusted_offset = alignOffset(offset, text_width);
+    tm_position = tm.caretPositionFromPoint(adjusted_offset);
+    doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
+    assert_equals(tm_position,
+                  doc_position,
+                  "for " + text + " offset " + offset);
+
+    offset = text_width / 2 + 10;
     adjusted_offset = alignOffset(offset, text_width);
     tm_position = tm.caretPositionFromPoint(adjusted_offset);
     doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
@@ -262,6 +282,8 @@ test(t => {
     'UNAVAILABLE',
     '🏁🎶🏁',
     '）（あ）（',
+    '）（ああ）（',
+    'ああ）（ああ',
     '--abcd__'
   ]
 
@@ -281,7 +303,15 @@ test(t => {
                   doc_position,
                   "for " + text + " offset " + offset);
 
-    offset = text_width / 2;
+    offset = text_width / 2 - 10;
+    adjusted_offset = alignOffset(offset, text_width);
+    tm_position = tm.caretPositionFromPoint(adjusted_offset);
+    doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
+    assert_equals(tm_position,
+                  doc_position,
+                  "for " + text + " offset " + offset);
+
+    offset = text_width / 2 + 10;
     adjusted_offset = alignOffset(offset, text_width);
     tm_position = tm.caretPositionFromPoint(adjusted_offset);
     doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
@@ -358,6 +388,8 @@ test(t => {
     'UNAVAILABLE',
     '🏁🎶🏁',
     '）（あ）（',
+    '）（ああ）（',
+    'ああ）（ああ',
     '--abcd__'
   ]
 
@@ -377,7 +409,15 @@ test(t => {
                   doc_position,
                   "for " + text + " offset " + offset);
 
-    offset = text_width / 2;
+    offset = text_width / 2 - 10;
+    adjusted_offset = alignOffset(offset, text_width);
+    tm_position = tm.caretPositionFromPoint(adjusted_offset);
+    doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
+    assert_equals(tm_position,
+                  doc_position,
+                  "for " + text + " offset " + offset);
+
+    offset = text_width / 2 + 10;
     adjusted_offset = alignOffset(offset, text_width);
     tm_position = tm.caretPositionFromPoint(adjusted_offset);
     doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
@@ -454,6 +494,8 @@ test(t => {
     'UNAVAILABLE',
     '🏁🎶🏁',
     '）（あ）（',
+    '）（ああ）（',
+    'ああ）（ああ',
     '--abcd__'
   ]
 
@@ -473,7 +515,15 @@ test(t => {
                   doc_position,
                   "for " + text + " offset " + offset);
 
-    offset = text_width / 2;
+    offset = text_width / 2 - 10;
+    adjusted_offset = alignOffset(offset, text_width);
+    tm_position = tm.caretPositionFromPoint(adjusted_offset);
+    doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
+    assert_equals(tm_position,
+                  doc_position,
+                  "for " + text + " offset " + offset);
+
+    offset = text_width / 2 + 10;
     adjusted_offset = alignOffset(offset, text_width);
     tm_position = tm.caretPositionFromPoint(adjusted_offset);
     doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
@@ -550,6 +600,8 @@ test(t => {
     'UNAVAILABLE',
     '🏁🎶🏁',
     '）（あ）（',
+    '）（ああ）（',
+    'ああ）（ああ',
     '--abcd__'
   ]
 
@@ -569,7 +621,15 @@ test(t => {
                   doc_position,
                   "for " + text + " offset " + offset);
 
-    offset = text_width / 2;
+    offset = text_width / 2 - 10;
+    adjusted_offset = alignOffset(offset, text_width);
+    tm_position = tm.caretPositionFromPoint(adjusted_offset);
+    doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
+    assert_equals(tm_position,
+                  doc_position,
+                  "for " + text + " offset " + offset);
+
+    offset = text_width / 2 + 10;
     adjusted_offset = alignOffset(offset, text_width);
     tm_position = tm.caretPositionFromPoint(adjusted_offset);
     doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
@@ -646,6 +706,8 @@ test(t => {
     'UNAVAILABLE',
     '🏁🎶🏁',
     '）（あ）（',
+    '）（ああ）（',
+    'ああ）（ああ',
     '--abcd__'
   ]
 
@@ -665,7 +727,15 @@ test(t => {
                   doc_position,
                   "for " + text + " offset " + offset);
 
-    offset = text_width / 2;
+    offset = text_width / 2 - 10;
+    adjusted_offset = alignOffset(offset, text_width);
+    tm_position = tm.caretPositionFromPoint(adjusted_offset);
+    doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
+    assert_equals(tm_position,
+                  doc_position,
+                  "for " + text + " offset " + offset);
+
+    offset = text_width / 2 + 10;
     adjusted_offset = alignOffset(offset, text_width);
     tm_position = tm.caretPositionFromPoint(adjusted_offset);
     doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
@@ -742,6 +812,8 @@ test(t => {
     'UNAVAILABLE',
     '🏁🎶🏁',
     '）（あ）（',
+    '）（ああ）（',
+    'ああ）（ああ',
     '--abcd__'
   ]
 
@@ -761,7 +833,15 @@ test(t => {
                   doc_position,
                   "for " + text + " offset " + offset);
 
-    offset = text_width / 2;
+    offset = text_width / 2 - 10;
+    adjusted_offset = alignOffset(offset, text_width);
+    tm_position = tm.caretPositionFromPoint(adjusted_offset);
+    doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
+    assert_equals(tm_position,
+                  doc_position,
+                  "for " + text + " offset " + offset);
+
+    offset = text_width / 2 + 10;
     adjusted_offset = alignOffset(offset, text_width);
     tm_position = tm.caretPositionFromPoint(adjusted_offset);
     doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
@@ -838,6 +918,8 @@ test(t => {
     'UNAVAILABLE',
     '🏁🎶🏁',
     '）（あ）（',
+    '）（ああ）（',
+    'ああ）（ああ',
     '--abcd__'
   ]
 
@@ -857,7 +939,15 @@ test(t => {
                   doc_position,
                   "for " + text + " offset " + offset);
 
-    offset = text_width / 2;
+    offset = text_width / 2 - 10;
+    adjusted_offset = alignOffset(offset, text_width);
+    tm_position = tm.caretPositionFromPoint(adjusted_offset);
+    doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
+    assert_equals(tm_position,
+                  doc_position,
+                  "for " + text + " offset " + offset);
+
+    offset = text_width / 2 + 10;
     adjusted_offset = alignOffset(offset, text_width);
     tm_position = tm.caretPositionFromPoint(adjusted_offset);
     doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
@@ -934,6 +1024,8 @@ test(t => {
     'UNAVAILABLE',
     '🏁🎶🏁',
     '）（あ）（',
+    '）（ああ）（',
+    'ああ）（ああ',
     '--abcd__'
   ]
 
@@ -953,7 +1045,15 @@ test(t => {
                   doc_position,
                   "for " + text + " offset " + offset);
 
-    offset = text_width / 2;
+    offset = text_width / 2 - 10;
+    adjusted_offset = alignOffset(offset, text_width);
+    tm_position = tm.caretPositionFromPoint(adjusted_offset);
+    doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
+    assert_equals(tm_position,
+                  doc_position,
+                  "for " + text + " offset " + offset);
+
+    offset = text_width / 2 + 10;
     adjusted_offset = alignOffset(offset, text_width);
     tm_position = tm.caretPositionFromPoint(adjusted_offset);
     doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
@@ -1030,6 +1130,8 @@ test(t => {
     'UNAVAILABLE',
     '🏁🎶🏁',
     '）（あ）（',
+    '）（ああ）（',
+    'ああ）（ああ',
     '--abcd__'
   ]
 
@@ -1049,7 +1151,15 @@ test(t => {
                   doc_position,
                   "for " + text + " offset " + offset);
 
-    offset = text_width / 2;
+    offset = text_width / 2 - 10;
+    adjusted_offset = alignOffset(offset, text_width);
+    tm_position = tm.caretPositionFromPoint(adjusted_offset);
+    doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
+    assert_equals(tm_position,
+                  doc_position,
+                  "for " + text + " offset " + offset);
+
+    offset = text_width / 2 + 10;
     adjusted_offset = alignOffset(offset, text_width);
     tm_position = tm.caretPositionFromPoint(adjusted_offset);
     doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
@@ -1126,6 +1236,8 @@ test(t => {
     'UNAVAILABLE',
     '🏁🎶🏁',
     '）（あ）（',
+    '）（ああ）（',
+    'ああ）（ああ',
     '--abcd__'
   ]
 
@@ -1145,7 +1257,15 @@ test(t => {
                   doc_position,
                   "for " + text + " offset " + offset);
 
-    offset = text_width / 2;
+    offset = text_width / 2 - 10;
+    adjusted_offset = alignOffset(offset, text_width);
+    tm_position = tm.caretPositionFromPoint(adjusted_offset);
+    doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
+    assert_equals(tm_position,
+                  doc_position,
+                  "for " + text + " offset " + offset);
+
+    offset = text_width / 2 + 10;
     adjusted_offset = alignOffset(offset, text_width);
     tm_position = tm.caretPositionFromPoint(adjusted_offset);
     doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
@@ -1222,6 +1342,8 @@ test(t => {
     'UNAVAILABLE',
     '🏁🎶🏁',
     '）（あ）（',
+    '）（ああ）（',
+    'ああ）（ああ',
     '--abcd__'
   ]
 
@@ -1241,7 +1363,15 @@ test(t => {
                   doc_position,
                   "for " + text + " offset " + offset);
 
-    offset = text_width / 2;
+    offset = text_width / 2 - 10;
+    adjusted_offset = alignOffset(offset, text_width);
+    tm_position = tm.caretPositionFromPoint(adjusted_offset);
+    doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
+    assert_equals(tm_position,
+                  doc_position,
+                  "for " + text + " offset " + offset);
+
+    offset = text_width / 2 + 10;
     adjusted_offset = alignOffset(offset, text_width);
     tm_position = tm.caretPositionFromPoint(adjusted_offset);
     doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
@@ -1318,6 +1448,8 @@ test(t => {
     'UNAVAILABLE',
     '🏁🎶🏁',
     '）（あ）（',
+    '）（ああ）（',
+    'ああ）（ああ',
     '--abcd__'
   ]
 
@@ -1337,7 +1469,15 @@ test(t => {
                   doc_position,
                   "for " + text + " offset " + offset);
 
-    offset = text_width / 2;
+    offset = text_width / 2 - 10;
+    adjusted_offset = alignOffset(offset, text_width);
+    tm_position = tm.caretPositionFromPoint(adjusted_offset);
+    doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
+    assert_equals(tm_position,
+                  doc_position,
+                  "for " + text + " offset " + offset);
+
+    offset = text_width / 2 + 10;
     adjusted_offset = alignOffset(offset, text_width);
     tm_position = tm.caretPositionFromPoint(adjusted_offset);
     doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
@@ -1414,6 +1554,8 @@ test(t => {
     'UNAVAILABLE',
     '🏁🎶🏁',
     '）（あ）（',
+    '）（ああ）（',
+    'ああ）（ああ',
     '--abcd__'
   ]
 
@@ -1433,7 +1575,15 @@ test(t => {
                   doc_position,
                   "for " + text + " offset " + offset);
 
-    offset = text_width / 2;
+    offset = text_width / 2 - 10;
+    adjusted_offset = alignOffset(offset, text_width);
+    tm_position = tm.caretPositionFromPoint(adjusted_offset);
+    doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
+    assert_equals(tm_position,
+                  doc_position,
+                  "for " + text + " offset " + offset);
+
+    offset = text_width / 2 + 10;
     adjusted_offset = alignOffset(offset, text_width);
     tm_position = tm.caretPositionFromPoint(adjusted_offset);
     doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
@@ -1510,6 +1660,8 @@ test(t => {
     'UNAVAILABLE',
     '🏁🎶🏁',
     '）（あ）（',
+    '）（ああ）（',
+    'ああ）（ああ',
     '--abcd__'
   ]
 
@@ -1529,7 +1681,15 @@ test(t => {
                   doc_position,
                   "for " + text + " offset " + offset);
 
-    offset = text_width / 2;
+    offset = text_width / 2 - 10;
+    adjusted_offset = alignOffset(offset, text_width);
+    tm_position = tm.caretPositionFromPoint(adjusted_offset);
+    doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
+    assert_equals(tm_position,
+                  doc_position,
+                  "for " + text + " offset " + offset);
+
+    offset = text_width / 2 + 10;
     adjusted_offset = alignOffset(offset, text_width);
     tm_position = tm.caretPositionFromPoint(adjusted_offset);
     doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
@@ -1606,6 +1766,8 @@ test(t => {
     'UNAVAILABLE',
     '🏁🎶🏁',
     '）（あ）（',
+    '）（ああ）（',
+    'ああ）（ああ',
     '--abcd__'
   ]
 
@@ -1625,7 +1787,15 @@ test(t => {
                   doc_position,
                   "for " + text + " offset " + offset);
 
-    offset = text_width / 2;
+    offset = text_width / 2 - 10;
+    adjusted_offset = alignOffset(offset, text_width);
+    tm_position = tm.caretPositionFromPoint(adjusted_offset);
+    doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
+    assert_equals(tm_position,
+                  doc_position,
+                  "for " + text + " offset " + offset);
+
+    offset = text_width / 2 + 10;
     adjusted_offset = alignOffset(offset, text_width);
     tm_position = tm.caretPositionFromPoint(adjusted_offset);
     doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
@@ -1702,6 +1872,8 @@ test(t => {
     'UNAVAILABLE',
     '🏁🎶🏁',
     '）（あ）（',
+    '）（ああ）（',
+    'ああ）（ああ',
     '--abcd__'
   ]
 
@@ -1721,7 +1893,15 @@ test(t => {
                   doc_position,
                   "for " + text + " offset " + offset);
 
-    offset = text_width / 2;
+    offset = text_width / 2 - 10;
+    adjusted_offset = alignOffset(offset, text_width);
+    tm_position = tm.caretPositionFromPoint(adjusted_offset);
+    doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
+    assert_equals(tm_position,
+                  doc_position,
+                  "for " + text + " offset " + offset);
+
+    offset = text_width / 2 + 10;
     adjusted_offset = alignOffset(offset, text_width);
     tm_position = tm.caretPositionFromPoint(adjusted_offset);
     doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
@@ -1798,6 +1978,8 @@ test(t => {
     'UNAVAILABLE',
     '🏁🎶🏁',
     '）（あ）（',
+    '）（ああ）（',
+    'ああ）（ああ',
     '--abcd__'
   ]
 
@@ -1817,7 +1999,15 @@ test(t => {
                   doc_position,
                   "for " + text + " offset " + offset);
 
-    offset = text_width / 2;
+    offset = text_width / 2 - 10;
+    adjusted_offset = alignOffset(offset, text_width);
+    tm_position = tm.caretPositionFromPoint(adjusted_offset);
+    doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
+    assert_equals(tm_position,
+                  doc_position,
+                  "for " + text + " offset " + offset);
+
+    offset = text_width / 2 + 10;
     adjusted_offset = alignOffset(offset, text_width);
     tm_position = tm.caretPositionFromPoint(adjusted_offset);
     doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
@@ -1894,6 +2084,8 @@ test(t => {
     'UNAVAILABLE',
     '🏁🎶🏁',
     '）（あ）（',
+    '）（ああ）（',
+    'ああ）（ああ',
     '--abcd__'
   ]
 
@@ -1913,7 +2105,15 @@ test(t => {
                   doc_position,
                   "for " + text + " offset " + offset);
 
-    offset = text_width / 2;
+    offset = text_width / 2 - 10;
+    adjusted_offset = alignOffset(offset, text_width);
+    tm_position = tm.caretPositionFromPoint(adjusted_offset);
+    doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
+    assert_equals(tm_position,
+                  doc_position,
+                  "for " + text + " offset " + offset);
+
+    offset = text_width / 2 + 10;
     adjusted_offset = alignOffset(offset, text_width);
     tm_position = tm.caretPositionFromPoint(adjusted_offset);
     doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
@@ -2000,6 +2200,8 @@ test(t => {
     'UNAVAILABLE',
     '🏁🎶🏁',
     '）（あ）（',
+    '）（ああ）（',
+    'ああ）（ああ',
     '--abcd__'
   ]
 
@@ -2020,7 +2222,15 @@ test(t => {
                   doc_position,
                   "for " + text + " offset " + offset);
 
-    offset = text_width / 2;
+    offset = text_width / 2 - 10;
+    adjusted_offset = alignOffset(offset, text_width);
+    tm_position = tm.caretPositionFromPoint(adjusted_offset);
+    doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
+    assert_equals(tm_position,
+                  doc_position,
+                  "for " + text + " offset " + offset);
+
+    offset = text_width / 2 + 10;
     adjusted_offset = alignOffset(offset, text_width);
     tm_position = tm.caretPositionFromPoint(adjusted_offset);
     doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
@@ -2107,6 +2317,8 @@ test(t => {
     'UNAVAILABLE',
     '🏁🎶🏁',
     '）（あ）（',
+    '）（ああ）（',
+    'ああ）（ああ',
     '--abcd__'
   ]
 
@@ -2127,7 +2339,15 @@ test(t => {
                   doc_position,
                   "for " + text + " offset " + offset);
 
-    offset = text_width / 2;
+    offset = text_width / 2 - 10;
+    adjusted_offset = alignOffset(offset, text_width);
+    tm_position = tm.caretPositionFromPoint(adjusted_offset);
+    doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
+    assert_equals(tm_position,
+                  doc_position,
+                  "for " + text + " offset " + offset);
+
+    offset = text_width / 2 + 10;
     adjusted_offset = alignOffset(offset, text_width);
     tm_position = tm.caretPositionFromPoint(adjusted_offset);
     doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
@@ -2214,6 +2434,8 @@ test(t => {
     'UNAVAILABLE',
     '🏁🎶🏁',
     '）（あ）（',
+    '）（ああ）（',
+    'ああ）（ああ',
     '--abcd__'
   ]
 
@@ -2234,7 +2456,15 @@ test(t => {
                   doc_position,
                   "for " + text + " offset " + offset);
 
-    offset = text_width / 2;
+    offset = text_width / 2 - 10;
+    adjusted_offset = alignOffset(offset, text_width);
+    tm_position = tm.caretPositionFromPoint(adjusted_offset);
+    doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
+    assert_equals(tm_position,
+                  doc_position,
+                  "for " + text + " offset " + offset);
+
+    offset = text_width / 2 + 10;
     adjusted_offset = alignOffset(offset, text_width);
     tm_position = tm.caretPositionFromPoint(adjusted_offset);
     doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
@@ -2321,6 +2551,8 @@ test(t => {
     'UNAVAILABLE',
     '🏁🎶🏁',
     '）（あ）（',
+    '）（ああ）（',
+    'ああ）（ああ',
     '--abcd__'
   ]
 
@@ -2341,7 +2573,15 @@ test(t => {
                   doc_position,
                   "for " + text + " offset " + offset);
 
-    offset = text_width / 2;
+    offset = text_width / 2 - 10;
+    adjusted_offset = alignOffset(offset, text_width);
+    tm_position = tm.caretPositionFromPoint(adjusted_offset);
+    doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
+    assert_equals(tm_position,
+                  doc_position,
+                  "for " + text + " offset " + offset);
+
+    offset = text_width / 2 + 10;
     adjusted_offset = alignOffset(offset, text_width);
     tm_position = tm.caretPositionFromPoint(adjusted_offset);
     doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
@@ -2428,6 +2668,8 @@ test(t => {
     'UNAVAILABLE',
     '🏁🎶🏁',
     '）（あ）（',
+    '）（ああ）（',
+    'ああ）（ああ',
     '--abcd__'
   ]
 
@@ -2448,7 +2690,15 @@ test(t => {
                   doc_position,
                   "for " + text + " offset " + offset);
 
-    offset = text_width / 2;
+    offset = text_width / 2 - 10;
+    adjusted_offset = alignOffset(offset, text_width);
+    tm_position = tm.caretPositionFromPoint(adjusted_offset);
+    doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
+    assert_equals(tm_position,
+                  doc_position,
+                  "for " + text + " offset " + offset);
+
+    offset = text_width / 2 + 10;
     adjusted_offset = alignOffset(offset, text_width);
     tm_position = tm.caretPositionFromPoint(adjusted_offset);
     doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
@@ -2535,6 +2785,8 @@ test(t => {
     'UNAVAILABLE',
     '🏁🎶🏁',
     '）（あ）（',
+    '）（ああ）（',
+    'ああ）（ああ',
     '--abcd__'
   ]
 
@@ -2555,7 +2807,15 @@ test(t => {
                   doc_position,
                   "for " + text + " offset " + offset);
 
-    offset = text_width / 2;
+    offset = text_width / 2 - 10;
+    adjusted_offset = alignOffset(offset, text_width);
+    tm_position = tm.caretPositionFromPoint(adjusted_offset);
+    doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
+    assert_equals(tm_position,
+                  doc_position,
+                  "for " + text + " offset " + offset);
+
+    offset = text_width / 2 + 10;
     adjusted_offset = alignOffset(offset, text_width);
     tm_position = tm.caretPositionFromPoint(adjusted_offset);
     doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
@@ -2642,6 +2902,8 @@ test(t => {
     'UNAVAILABLE',
     '🏁🎶🏁',
     '）（あ）（',
+    '）（ああ）（',
+    'ああ）（ああ',
     '--abcd__'
   ]
 
@@ -2662,7 +2924,15 @@ test(t => {
                   doc_position,
                   "for " + text + " offset " + offset);
 
-    offset = text_width / 2;
+    offset = text_width / 2 - 10;
+    adjusted_offset = alignOffset(offset, text_width);
+    tm_position = tm.caretPositionFromPoint(adjusted_offset);
+    doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
+    assert_equals(tm_position,
+                  doc_position,
+                  "for " + text + " offset " + offset);
+
+    offset = text_width / 2 + 10;
     adjusted_offset = alignOffset(offset, text_width);
     tm_position = tm.caretPositionFromPoint(adjusted_offset);
     doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
@@ -2749,6 +3019,8 @@ test(t => {
     'UNAVAILABLE',
     '🏁🎶🏁',
     '）（あ）（',
+    '）（ああ）（',
+    'ああ）（ああ',
     '--abcd__'
   ]
 
@@ -2769,7 +3041,15 @@ test(t => {
                   doc_position,
                   "for " + text + " offset " + offset);
 
-    offset = text_width / 2;
+    offset = text_width / 2 - 10;
+    adjusted_offset = alignOffset(offset, text_width);
+    tm_position = tm.caretPositionFromPoint(adjusted_offset);
+    doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
+    assert_equals(tm_position,
+                  doc_position,
+                  "for " + text + " offset " + offset);
+
+    offset = text_width / 2 + 10;
     adjusted_offset = alignOffset(offset, text_width);
     tm_position = tm.caretPositionFromPoint(adjusted_offset);
     doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
@@ -2856,6 +3136,8 @@ test(t => {
     'UNAVAILABLE',
     '🏁🎶🏁',
     '）（あ）（',
+    '）（ああ）（',
+    'ああ）（ああ',
     '--abcd__'
   ]
 
@@ -2876,7 +3158,15 @@ test(t => {
                   doc_position,
                   "for " + text + " offset " + offset);
 
-    offset = text_width / 2;
+    offset = text_width / 2 - 10;
+    adjusted_offset = alignOffset(offset, text_width);
+    tm_position = tm.caretPositionFromPoint(adjusted_offset);
+    doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
+    assert_equals(tm_position,
+                  doc_position,
+                  "for " + text + " offset " + offset);
+
+    offset = text_width / 2 + 10;
     adjusted_offset = alignOffset(offset, text_width);
     tm_position = tm.caretPositionFromPoint(adjusted_offset);
     doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
@@ -2963,6 +3253,8 @@ test(t => {
     'UNAVAILABLE',
     '🏁🎶🏁',
     '）（あ）（',
+    '）（ああ）（',
+    'ああ）（ああ',
     '--abcd__'
   ]
 
@@ -2983,7 +3275,15 @@ test(t => {
                   doc_position,
                   "for " + text + " offset " + offset);
 
-    offset = text_width / 2;
+    offset = text_width / 2 - 10;
+    adjusted_offset = alignOffset(offset, text_width);
+    tm_position = tm.caretPositionFromPoint(adjusted_offset);
+    doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
+    assert_equals(tm_position,
+                  doc_position,
+                  "for " + text + " offset " + offset);
+
+    offset = text_width / 2 + 10;
     adjusted_offset = alignOffset(offset, text_width);
     tm_position = tm.caretPositionFromPoint(adjusted_offset);
     doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
@@ -3070,6 +3370,8 @@ test(t => {
     'UNAVAILABLE',
     '🏁🎶🏁',
     '）（あ）（',
+    '）（ああ）（',
+    'ああ）（ああ',
     '--abcd__'
   ]
 
@@ -3090,7 +3392,15 @@ test(t => {
                   doc_position,
                   "for " + text + " offset " + offset);
 
-    offset = text_width / 2;
+    offset = text_width / 2 - 10;
+    adjusted_offset = alignOffset(offset, text_width);
+    tm_position = tm.caretPositionFromPoint(adjusted_offset);
+    doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
+    assert_equals(tm_position,
+                  doc_position,
+                  "for " + text + " offset " + offset);
+
+    offset = text_width / 2 + 10;
     adjusted_offset = alignOffset(offset, text_width);
     tm_position = tm.caretPositionFromPoint(adjusted_offset);
     doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
@@ -3177,6 +3487,8 @@ test(t => {
     'UNAVAILABLE',
     '🏁🎶🏁',
     '）（あ）（',
+    '）（ああ）（',
+    'ああ）（ああ',
     '--abcd__'
   ]
 
@@ -3197,7 +3509,15 @@ test(t => {
                   doc_position,
                   "for " + text + " offset " + offset);
 
-    offset = text_width / 2;
+    offset = text_width / 2 - 10;
+    adjusted_offset = alignOffset(offset, text_width);
+    tm_position = tm.caretPositionFromPoint(adjusted_offset);
+    doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
+    assert_equals(tm_position,
+                  doc_position,
+                  "for " + text + " offset " + offset);
+
+    offset = text_width / 2 + 10;
     adjusted_offset = alignOffset(offset, text_width);
     tm_position = tm.caretPositionFromPoint(adjusted_offset);
     doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
@@ -3284,6 +3604,8 @@ test(t => {
     'UNAVAILABLE',
     '🏁🎶🏁',
     '）（あ）（',
+    '）（ああ）（',
+    'ああ）（ああ',
     '--abcd__'
   ]
 
@@ -3304,7 +3626,15 @@ test(t => {
                   doc_position,
                   "for " + text + " offset " + offset);
 
-    offset = text_width / 2;
+    offset = text_width / 2 - 10;
+    adjusted_offset = alignOffset(offset, text_width);
+    tm_position = tm.caretPositionFromPoint(adjusted_offset);
+    doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
+    assert_equals(tm_position,
+                  doc_position,
+                  "for " + text + " offset " + offset);
+
+    offset = text_width / 2 + 10;
     adjusted_offset = alignOffset(offset, text_width);
     tm_position = tm.caretPositionFromPoint(adjusted_offset);
     doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
@@ -3391,6 +3721,8 @@ test(t => {
     'UNAVAILABLE',
     '🏁🎶🏁',
     '）（あ）（',
+    '）（ああ）（',
+    'ああ）（ああ',
     '--abcd__'
   ]
 
@@ -3411,7 +3743,15 @@ test(t => {
                   doc_position,
                   "for " + text + " offset " + offset);
 
-    offset = text_width / 2;
+    offset = text_width / 2 - 10;
+    adjusted_offset = alignOffset(offset, text_width);
+    tm_position = tm.caretPositionFromPoint(adjusted_offset);
+    doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
+    assert_equals(tm_position,
+                  doc_position,
+                  "for " + text + " offset " + offset);
+
+    offset = text_width / 2 + 10;
     adjusted_offset = alignOffset(offset, text_width);
     tm_position = tm.caretPositionFromPoint(adjusted_offset);
     doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
@@ -3498,6 +3838,8 @@ test(t => {
     'UNAVAILABLE',
     '🏁🎶🏁',
     '）（あ）（',
+    '）（ああ）（',
+    'ああ）（ああ',
     '--abcd__'
   ]
 
@@ -3518,7 +3860,15 @@ test(t => {
                   doc_position,
                   "for " + text + " offset " + offset);
 
-    offset = text_width / 2;
+    offset = text_width / 2 - 10;
+    adjusted_offset = alignOffset(offset, text_width);
+    tm_position = tm.caretPositionFromPoint(adjusted_offset);
+    doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
+    assert_equals(tm_position,
+                  doc_position,
+                  "for " + text + " offset " + offset);
+
+    offset = text_width / 2 + 10;
     adjusted_offset = alignOffset(offset, text_width);
     tm_position = tm.caretPositionFromPoint(adjusted_offset);
     doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
@@ -3605,6 +3955,8 @@ test(t => {
     'UNAVAILABLE',
     '🏁🎶🏁',
     '）（あ）（',
+    '）（ああ）（',
+    'ああ）（ああ',
     '--abcd__'
   ]
 
@@ -3625,7 +3977,15 @@ test(t => {
                   doc_position,
                   "for " + text + " offset " + offset);
 
-    offset = text_width / 2;
+    offset = text_width / 2 - 10;
+    adjusted_offset = alignOffset(offset, text_width);
+    tm_position = tm.caretPositionFromPoint(adjusted_offset);
+    doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
+    assert_equals(tm_position,
+                  doc_position,
+                  "for " + text + " offset " + offset);
+
+    offset = text_width / 2 + 10;
     adjusted_offset = alignOffset(offset, text_width);
     tm_position = tm.caretPositionFromPoint(adjusted_offset);
     doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
@@ -3712,6 +4072,8 @@ test(t => {
     'UNAVAILABLE',
     '🏁🎶🏁',
     '）（あ）（',
+    '）（ああ）（',
+    'ああ）（ああ',
     '--abcd__'
   ]
 
@@ -3732,7 +4094,15 @@ test(t => {
                   doc_position,
                   "for " + text + " offset " + offset);
 
-    offset = text_width / 2;
+    offset = text_width / 2 - 10;
+    adjusted_offset = alignOffset(offset, text_width);
+    tm_position = tm.caretPositionFromPoint(adjusted_offset);
+    doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
+    assert_equals(tm_position,
+                  doc_position,
+                  "for " + text + " offset " + offset);
+
+    offset = text_width / 2 + 10;
     adjusted_offset = alignOffset(offset, text_width);
     tm_position = tm.caretPositionFromPoint(adjusted_offset);
     doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
@@ -3819,6 +4189,8 @@ test(t => {
     'UNAVAILABLE',
     '🏁🎶🏁',
     '）（あ）（',
+    '）（ああ）（',
+    'ああ）（ああ',
     '--abcd__'
   ]
 
@@ -3839,7 +4211,15 @@ test(t => {
                   doc_position,
                   "for " + text + " offset " + offset);
 
-    offset = text_width / 2;
+    offset = text_width / 2 - 10;
+    adjusted_offset = alignOffset(offset, text_width);
+    tm_position = tm.caretPositionFromPoint(adjusted_offset);
+    doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
+    assert_equals(tm_position,
+                  doc_position,
+                  "for " + text + " offset " + offset);
+
+    offset = text_width / 2 + 10;
     adjusted_offset = alignOffset(offset, text_width);
     tm_position = tm.caretPositionFromPoint(adjusted_offset);
     doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
@@ -3926,6 +4306,8 @@ test(t => {
     'UNAVAILABLE',
     '🏁🎶🏁',
     '）（あ）（',
+    '）（ああ）（',
+    'ああ）（ああ',
     '--abcd__'
   ]
 
@@ -3946,7 +4328,15 @@ test(t => {
                   doc_position,
                   "for " + text + " offset " + offset);
 
-    offset = text_width / 2;
+    offset = text_width / 2 - 10;
+    adjusted_offset = alignOffset(offset, text_width);
+    tm_position = tm.caretPositionFromPoint(adjusted_offset);
+    doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
+    assert_equals(tm_position,
+                  doc_position,
+                  "for " + text + " offset " + offset);
+
+    offset = text_width / 2 + 10;
     adjusted_offset = alignOffset(offset, text_width);
     tm_position = tm.caretPositionFromPoint(adjusted_offset);
     doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
@@ -4033,6 +4423,8 @@ test(t => {
     'UNAVAILABLE',
     '🏁🎶🏁',
     '）（あ）（',
+    '）（ああ）（',
+    'ああ）（ああ',
     '--abcd__'
   ]
 
@@ -4053,7 +4445,15 @@ test(t => {
                   doc_position,
                   "for " + text + " offset " + offset);
 
-    offset = text_width / 2;
+    offset = text_width / 2 - 10;
+    adjusted_offset = alignOffset(offset, text_width);
+    tm_position = tm.caretPositionFromPoint(adjusted_offset);
+    doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
+    assert_equals(tm_position,
+                  doc_position,
+                  "for " + text + " offset " + offset);
+
+    offset = text_width / 2 + 10;
     adjusted_offset = alignOffset(offset, text_width);
     tm_position = tm.caretPositionFromPoint(adjusted_offset);
     doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);

@@ -12,6 +12,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::node::Node;
+use crate::script_runtime::CanGc;
 
 // https://dom.spec.whatwg.org/#documenttype
 /// The `DOCTYPE` tag.
@@ -43,12 +44,14 @@ impl DocumentType {
         public_id: Option<DOMString>,
         system_id: Option<DOMString>,
         document: &Document,
+        can_gc: CanGc,
     ) -> DomRoot<DocumentType> {
         Node::reflect_node(
             Box::new(DocumentType::new_inherited(
                 name, public_id, system_id, document,
             )),
             document,
+            can_gc,
         )
     }
 
@@ -85,18 +88,18 @@ impl DocumentTypeMethods for DocumentType {
     }
 
     // https://dom.spec.whatwg.org/#dom-childnode-before
-    fn Before(&self, nodes: Vec<NodeOrString>) -> ErrorResult {
-        self.upcast::<Node>().before(nodes)
+    fn Before(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
+        self.upcast::<Node>().before(nodes, can_gc)
     }
 
     // https://dom.spec.whatwg.org/#dom-childnode-after
-    fn After(&self, nodes: Vec<NodeOrString>) -> ErrorResult {
-        self.upcast::<Node>().after(nodes)
+    fn After(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
+        self.upcast::<Node>().after(nodes, can_gc)
     }
 
     // https://dom.spec.whatwg.org/#dom-childnode-replacewith
-    fn ReplaceWith(&self, nodes: Vec<NodeOrString>) -> ErrorResult {
-        self.upcast::<Node>().replace_with(nodes)
+    fn ReplaceWith(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
+        self.upcast::<Node>().replace_with(nodes, can_gc)
     }
 
     // https://dom.spec.whatwg.org/#dom-childnode-remove

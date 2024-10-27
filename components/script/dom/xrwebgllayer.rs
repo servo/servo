@@ -103,74 +103,6 @@ impl XRWebGLLayer {
         )
     }
 
-    /// <https://immersive-web.github.io/webxr/#dom-xrwebgllayer-xrwebgllayer>
-    #[allow(non_snake_case)]
-    pub fn Constructor(
-        global: &Window,
-        proto: Option<HandleObject>,
-        can_gc: CanGc,
-        session: &XRSession,
-        context: XRWebGLRenderingContext,
-        init: &XRWebGLLayerInit,
-    ) -> Fallible<DomRoot<Self>> {
-        let context = match context {
-            XRWebGLRenderingContext::WebGLRenderingContext(ctx) => ctx,
-            XRWebGLRenderingContext::WebGL2RenderingContext(ctx) => ctx.base_context(),
-        };
-
-        // Step 2
-        if session.is_ended() {
-            return Err(Error::InvalidState);
-        }
-        // XXXManishearth step 3: throw error if context is lost
-        // XXXManishearth step 4: check XR compat flag for immersive sessions
-
-        let (framebuffer, layer_id) = if session.is_immersive() {
-            // Step 9.2. "Initialize layer’s framebuffer to a new opaque framebuffer created with context."
-            let size = session
-                .with_session(|session| session.recommended_framebuffer_resolution())
-                .ok_or(Error::Operation)?;
-            let framebuffer = WebGLFramebuffer::maybe_new_webxr(session, &context, size)
-                .ok_or(Error::Operation)?;
-
-            // Step 9.3. "Allocate and initialize resources compatible with session’s XR device,
-            // including GPU accessible memory buffers, as required to support the compositing of layer."
-            let context_id = WebXRContextId::from(context.context_id());
-            let layer_init = LayerInit::from(init);
-            let layer_id = session
-                .with_session(|session| session.create_layer(context_id, layer_init))
-                .map_err(|_| Error::Operation)?;
-
-            // Step 9.4: "If layer’s resources were unable to be created for any reason,
-            // throw an OperationError and abort these steps."
-            (Some(framebuffer), Some(layer_id))
-        } else {
-            (None, None)
-        };
-
-        // Ensure that we finish setting up this layer before continuing.
-        context.Finish();
-
-        // Step 10. "Return layer."
-        Ok(XRWebGLLayer::new(
-            &global.global(),
-            proto,
-            session,
-            &context,
-            init,
-            framebuffer.as_deref(),
-            layer_id,
-            can_gc,
-        ))
-    }
-
-    /// <https://www.w3.org/TR/webxr/#dom-xrwebgllayer-getnativeframebufferscalefactor>
-    #[allow(non_snake_case)]
-    pub fn GetNativeFramebufferScaleFactor(_window: &Window, session: &XRSession) -> Finite<f64> {
-        let value: f64 = if session.is_ended() { 0.0 } else { 1.0 };
-        Finite::wrap(value)
-    }
-
     pub fn layer_id(&self) -> Option<LayerId> {
         self.xr_layer.layer_id()
     }
@@ -207,9 +139,9 @@ impl XRWebGLLayer {
 
     fn texture_target(&self) -> u32 {
         if cfg!(target_os = "macos") {
-            sparkle::gl::TEXTURE_RECTANGLE
+            glow::TEXTURE_RECTANGLE
         } else {
-            sparkle::gl::TEXTURE_2D
+            glow::TEXTURE_2D
         }
     }
 
@@ -306,6 +238,72 @@ impl XRWebGLLayer {
 }
 
 impl XRWebGLLayerMethods for XRWebGLLayer {
+    /// <https://immersive-web.github.io/webxr/#dom-xrwebgllayer-xrwebgllayer>
+    fn Constructor(
+        global: &Window,
+        proto: Option<HandleObject>,
+        can_gc: CanGc,
+        session: &XRSession,
+        context: XRWebGLRenderingContext,
+        init: &XRWebGLLayerInit,
+    ) -> Fallible<DomRoot<Self>> {
+        let context = match context {
+            XRWebGLRenderingContext::WebGLRenderingContext(ctx) => ctx,
+            XRWebGLRenderingContext::WebGL2RenderingContext(ctx) => ctx.base_context(),
+        };
+
+        // Step 2
+        if session.is_ended() {
+            return Err(Error::InvalidState);
+        }
+        // XXXManishearth step 3: throw error if context is lost
+        // XXXManishearth step 4: check XR compat flag for immersive sessions
+
+        let (framebuffer, layer_id) = if session.is_immersive() {
+            // Step 9.2. "Initialize layer’s framebuffer to a new opaque framebuffer created with context."
+            let size = session
+                .with_session(|session| session.recommended_framebuffer_resolution())
+                .ok_or(Error::Operation)?;
+            let framebuffer = WebGLFramebuffer::maybe_new_webxr(session, &context, size)
+                .ok_or(Error::Operation)?;
+
+            // Step 9.3. "Allocate and initialize resources compatible with session’s XR device,
+            // including GPU accessible memory buffers, as required to support the compositing of layer."
+            let context_id = WebXRContextId::from(context.context_id());
+            let layer_init = LayerInit::from(init);
+            let layer_id = session
+                .with_session(|session| session.create_layer(context_id, layer_init))
+                .map_err(|_| Error::Operation)?;
+
+            // Step 9.4: "If layer’s resources were unable to be created for any reason,
+            // throw an OperationError and abort these steps."
+            (Some(framebuffer), Some(layer_id))
+        } else {
+            (None, None)
+        };
+
+        // Ensure that we finish setting up this layer before continuing.
+        context.Finish();
+
+        // Step 10. "Return layer."
+        Ok(XRWebGLLayer::new(
+            &global.global(),
+            proto,
+            session,
+            &context,
+            init,
+            framebuffer.as_deref(),
+            layer_id,
+            can_gc,
+        ))
+    }
+
+    /// <https://www.w3.org/TR/webxr/#dom-xrwebgllayer-getnativeframebufferscalefactor>
+    fn GetNativeFramebufferScaleFactor(_window: &Window, session: &XRSession) -> Finite<f64> {
+        let value: f64 = if session.is_ended() { 0.0 } else { 1.0 };
+        Finite::wrap(value)
+    }
+
     /// <https://immersive-web.github.io/webxr/#dom-xrwebgllayer-antialias>
     fn Antialias(&self) -> bool {
         self.antialias

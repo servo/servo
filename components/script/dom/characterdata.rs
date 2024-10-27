@@ -25,6 +25,7 @@ use crate::dom::node::{ChildrenMutation, Node, NodeDamage};
 use crate::dom::processinginstruction::ProcessingInstruction;
 use crate::dom::text::Text;
 use crate::dom::virtualmethods::vtable_for;
+use crate::script_runtime::CanGc;
 
 // https://dom.spec.whatwg.org/#characterdata
 #[dom_struct]
@@ -41,20 +42,30 @@ impl CharacterData {
         }
     }
 
-    pub fn clone_with_data(&self, data: DOMString, document: &Document) -> DomRoot<Node> {
+    pub fn clone_with_data(
+        &self,
+        data: DOMString,
+        document: &Document,
+        can_gc: CanGc,
+    ) -> DomRoot<Node> {
         match self.upcast::<Node>().type_id() {
             NodeTypeId::CharacterData(CharacterDataTypeId::Comment) => {
-                DomRoot::upcast(Comment::new(data, document, None))
+                DomRoot::upcast(Comment::new(data, document, None, can_gc))
             },
             NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction) => {
                 let pi = self.downcast::<ProcessingInstruction>().unwrap();
-                DomRoot::upcast(ProcessingInstruction::new(pi.Target(), data, document))
+                DomRoot::upcast(ProcessingInstruction::new(
+                    pi.Target(),
+                    data,
+                    document,
+                    can_gc,
+                ))
             },
             NodeTypeId::CharacterData(CharacterDataTypeId::Text(TextTypeId::CDATASection)) => {
-                DomRoot::upcast(CDATASection::new(data, document))
+                DomRoot::upcast(CDATASection::new(data, document, can_gc))
             },
             NodeTypeId::CharacterData(CharacterDataTypeId::Text(TextTypeId::Text)) => {
-                DomRoot::upcast(Text::new(data, document))
+                DomRoot::upcast(Text::new(data, document, can_gc))
             },
             _ => unreachable!(),
         }
@@ -243,18 +254,18 @@ impl CharacterDataMethods for CharacterData {
     }
 
     // https://dom.spec.whatwg.org/#dom-childnode-before
-    fn Before(&self, nodes: Vec<NodeOrString>) -> ErrorResult {
-        self.upcast::<Node>().before(nodes)
+    fn Before(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
+        self.upcast::<Node>().before(nodes, can_gc)
     }
 
     // https://dom.spec.whatwg.org/#dom-childnode-after
-    fn After(&self, nodes: Vec<NodeOrString>) -> ErrorResult {
-        self.upcast::<Node>().after(nodes)
+    fn After(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
+        self.upcast::<Node>().after(nodes, can_gc)
     }
 
     // https://dom.spec.whatwg.org/#dom-childnode-replacewith
-    fn ReplaceWith(&self, nodes: Vec<NodeOrString>) -> ErrorResult {
-        self.upcast::<Node>().replace_with(nodes)
+    fn ReplaceWith(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
+        self.upcast::<Node>().replace_with(nodes, can_gc)
     }
 
     // https://dom.spec.whatwg.org/#dom-childnode-remove

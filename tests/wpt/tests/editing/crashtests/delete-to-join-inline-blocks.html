@@ -1,0 +1,25 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+span {
+  display: inline-block;
+}
+</style>
+<script>
+"use strict";
+
+document.addEventListener("DOMContentLoaded", () => {
+  document.querySelector("div[contenteditable]").focus();
+  getSelection().collapse(document.querySelector("span + span"), 0);
+  document.execCommand("delete");
+});
+</script>
+<body>
+<div contenteditable>
+<span>A</span>
+<span>B</span>
+</div>
+</body>
+</html>

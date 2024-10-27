@@ -71,7 +71,7 @@
   promise_test(async function (t) {
     t.add_cleanup(reset);
     assert_false(interestee.matches(":popover-open"));
-    interestbutton.setAttribute("interestaction", "togglepopover");
+    interestbutton.setAttribute("interestaction", "toggle-popover");
     await hoverOver(interestbutton);
     assert_true(interestee.matches(":popover-open"));
   }, "hover interest invoking (as togglepopover) closed popover opens");
@@ -80,7 +80,7 @@
     t.add_cleanup(reset);
     interestee.showPopover();
     assert_true(interestee.matches(":popover-open"));
-    interestbutton.setAttribute("interestaction", "togglepopover");
+    interestbutton.setAttribute("interestaction", "toggle-popover");
     await hoverOver(interestbutton);
     assert_false(interestee.matches(":popover-open"));
   }, "hover interest invoking (as togglepopover) open popover closes");
@@ -88,7 +88,7 @@
   promise_test(async function (t) {
     t.add_cleanup(reset);
     assert_false(interestee.matches(":popover-open"));
-    interestbutton.setAttribute("interestaction", "togglepopover");
+    interestbutton.setAttribute("interestaction", "toggle-popover");
     interestbutton.focus();
     assert_true(interestee.matches(":popover-open"));
   }, "focus interest invoking (as togglepopover) closed popover opens");
@@ -97,7 +97,7 @@
     t.add_cleanup(reset);
     interestee.showPopover();
     assert_true(interestee.matches(":popover-open"));
-    interestbutton.setAttribute("interestaction", "togglepopover");
+    interestbutton.setAttribute("interestaction", "toggle-popover");
     interestbutton.focus();
     assert_false(interestee.matches(":popover-open"));
   }, "focus interest invoking (as togglepopover) open popover closes");
@@ -105,7 +105,7 @@
   promise_test(async function (t) {
     t.add_cleanup(reset);
     assert_false(interestee.matches(":popover-open"));
-    interestbutton.setAttribute("interestaction", "tOgGlEpOpOvEr");
+    interestbutton.setAttribute("interestaction", "tOgGlE-pOpOvEr");
     interestbutton.focus();
     assert_true(interestee.matches(":popover-open"));
   }, "interest invoking (as togglepopover - case insensitive) closed popover opens");

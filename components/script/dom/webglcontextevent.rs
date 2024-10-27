@@ -26,6 +26,34 @@ pub struct WebGLContextEvent {
 }
 
 impl WebGLContextEventMethods for WebGLContextEvent {
+    // https://registry.khronos.org/webgl/specs/latest/1.0/#5.15
+    fn Constructor(
+        window: &Window,
+        proto: Option<HandleObject>,
+        can_gc: CanGc,
+        type_: DOMString,
+        init: &WebGLContextEventInit,
+    ) -> Fallible<DomRoot<WebGLContextEvent>> {
+        let status_message = match init.statusMessage.as_ref() {
+            Some(message) => message.clone(),
+            None => DOMString::new(),
+        };
+
+        let bubbles = EventBubbles::from(init.parent.bubbles);
+
+        let cancelable = EventCancelable::from(init.parent.cancelable);
+
+        Ok(WebGLContextEvent::new_with_proto(
+            window,
+            proto,
+            Atom::from(type_),
+            bubbles,
+            cancelable,
+            status_message,
+            can_gc,
+        ))
+    }
+
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.15
     fn StatusMessage(&self) -> DOMString {
         self.status_message.clone()
@@ -51,6 +79,7 @@ impl WebGLContextEvent {
         bubbles: EventBubbles,
         cancelable: EventCancelable,
         status_message: DOMString,
+        can_gc: CanGc,
     ) -> DomRoot<WebGLContextEvent> {
         Self::new_with_proto(
             window,
@@ -59,7 +88,7 @@ impl WebGLContextEvent {
             bubbles,
             cancelable,
             status_message,
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -85,33 +114,5 @@ impl WebGLContextEvent {
         }
 
         event
-    }
-
-    #[allow(non_snake_case)]
-    pub fn Constructor(
-        window: &Window,
-        proto: Option<HandleObject>,
-        can_gc: CanGc,
-        type_: DOMString,
-        init: &WebGLContextEventInit,
-    ) -> Fallible<DomRoot<WebGLContextEvent>> {
-        let status_message = match init.statusMessage.as_ref() {
-            Some(message) => message.clone(),
-            None => DOMString::new(),
-        };
-
-        let bubbles = EventBubbles::from(init.parent.bubbles);
-
-        let cancelable = EventCancelable::from(init.parent.cancelable);
-
-        Ok(WebGLContextEvent::new_with_proto(
-            window,
-            proto,
-            Atom::from(type_),
-            bubbles,
-            cancelable,
-            status_message,
-            can_gc,
-        ))
     }
 }

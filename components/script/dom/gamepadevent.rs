@@ -45,16 +45,9 @@ impl GamepadEvent {
         bubbles: bool,
         cancelable: bool,
         gamepad: &Gamepad,
+        can_gc: CanGc,
     ) -> DomRoot<GamepadEvent> {
-        Self::new_with_proto(
-            global,
-            None,
-            type_,
-            bubbles,
-            cancelable,
-            gamepad,
-            CanGc::note(),
-        )
+        Self::new_with_proto(global, None, type_, bubbles, cancelable, gamepad, can_gc)
     }
 
     fn new_with_proto(
@@ -83,18 +76,20 @@ impl GamepadEvent {
         global: &GlobalScope,
         event_type: GamepadEventType,
         gamepad: &Gamepad,
+        can_gc: CanGc,
     ) -> DomRoot<GamepadEvent> {
         let name = match event_type {
             GamepadEventType::Connected => "gamepadconnected",
             GamepadEventType::Disconnected => "gamepaddisconnected",
         };
 
-        GamepadEvent::new(global, name.into(), false, false, gamepad)
+        GamepadEvent::new(global, name.into(), false, false, gamepad, can_gc)
     }
+}
 
+impl GamepadEventMethods for GamepadEvent {
     // https://w3c.github.io/gamepad/#gamepadevent-interface
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+    fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -111,9 +106,7 @@ impl GamepadEvent {
             can_gc,
         ))
     }
-}
 
-impl GamepadEventMethods for GamepadEvent {
     // https://w3c.github.io/gamepad/#gamepadevent-interface
     fn Gamepad(&self) -> DomRoot<Gamepad> {
         DomRoot::from_ref(&*self.gamepad)

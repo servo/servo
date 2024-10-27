@@ -26,7 +26,6 @@ packages = [
     "cookie",
     "futures",
     "hermit-abi",
-    "libredox",
     "miniz_oxide",
     "redox_syscall",
     "time",
@@ -52,8 +51,10 @@ packages = [
     "foreign-types",
     "foreign-types-shared",
     "metal",
-    "glow",
     "windows-core",
+
+    # wgpu-hal depends on 0.5.0.
+    "ndk-sys",
 
     # quickcheck (required by layout_2020 for tests) is
     # stuck on 0.8.4 with no new releases.
@@ -78,6 +79,9 @@ packages = [
 
     # gilrs is on 0.10.0, but Servo is still on 0.9.4
     "core-foundation",
+
+    # some non-servo crates still use 0.14
+    "glow",
 ]
 # Files that are ignored for all tidy and lint checks.
 files = [

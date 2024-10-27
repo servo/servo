@@ -28,6 +28,7 @@ use crate::dom::canvaspattern::CanvasPattern;
 use crate::dom::canvasrenderingcontext2d::CanvasRenderingContext2D;
 use crate::dom::dommatrix::DOMMatrix;
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct PaintRenderingContext2D {
@@ -121,8 +122,8 @@ impl PaintRenderingContext2DMethods for PaintRenderingContext2D {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-gettransform
-    fn GetTransform(&self) -> DomRoot<DOMMatrix> {
-        self.context.GetTransform()
+    fn GetTransform(&self, can_gc: CanGc) -> DomRoot<DOMMatrix> {
+        self.context.GetTransform(can_gc)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-settransform
@@ -303,8 +304,8 @@ impl PaintRenderingContext2DMethods for PaintRenderingContext2D {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-strokestyle
-    fn SetStrokeStyle(&self, value: StringOrCanvasGradientOrCanvasPattern) {
-        self.context.SetStrokeStyle(value)
+    fn SetStrokeStyle(&self, value: StringOrCanvasGradientOrCanvasPattern, can_gc: CanGc) {
+        self.context.SetStrokeStyle(value, can_gc)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-strokestyle
@@ -313,8 +314,8 @@ impl PaintRenderingContext2DMethods for PaintRenderingContext2D {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-strokestyle
-    fn SetFillStyle(&self, value: StringOrCanvasGradientOrCanvasPattern) {
-        self.context.SetFillStyle(value)
+    fn SetFillStyle(&self, value: StringOrCanvasGradientOrCanvasPattern, can_gc: CanGc) {
+        self.context.SetFillStyle(value, can_gc)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-createlineargradient
@@ -426,7 +427,7 @@ impl PaintRenderingContext2DMethods for PaintRenderingContext2D {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-shadowcolor
-    fn SetShadowColor(&self, value: DOMString) {
-        self.context.SetShadowColor(value)
+    fn SetShadowColor(&self, value: DOMString, can_gc: CanGc) {
+        self.context.SetShadowColor(value, can_gc)
     }
 }

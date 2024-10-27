@@ -46,6 +46,7 @@ impl XRInputSourcesChangeEvent {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         global: &GlobalScope,
         type_: Atom,
@@ -54,17 +55,10 @@ impl XRInputSourcesChangeEvent {
         session: &XRSession,
         added: &[DomRoot<XRInputSource>],
         removed: &[DomRoot<XRInputSource>],
+        can_gc: CanGc,
     ) -> DomRoot<XRInputSourcesChangeEvent> {
         Self::new_with_proto(
-            global,
-            None,
-            type_,
-            bubbles,
-            cancelable,
-            session,
-            added,
-            removed,
-            CanGc::note(),
+            global, None, type_, bubbles, cancelable, session, added, removed, can_gc,
         )
     }
 
@@ -104,9 +98,11 @@ impl XRInputSourcesChangeEvent {
 
         changeevent
     }
+}
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+impl XRInputSourcesChangeEventMethods for XRInputSourcesChangeEvent {
+    // https://immersive-web.github.io/webxr/#dom-xrinputsourceschangeevent-xrinputsourceschangeevent
+    fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -125,9 +121,7 @@ impl XRInputSourcesChangeEvent {
             can_gc,
         )
     }
-}
 
-impl XRInputSourcesChangeEventMethods for XRInputSourcesChangeEvent {
     // https://immersive-web.github.io/webxr/#dom-xrinputsourceschangeevent-session
     fn Session(&self) -> DomRoot<XRSession> {
         DomRoot::from_ref(&*self.session)

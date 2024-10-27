@@ -3,22 +3,21 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use dom_struct::dom_struct;
 use euclid::default::Size2D;
 use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
 use ipc_channel::ipc;
-use ipc_channel::router::ROUTER;
 use js::rust::HandleObject;
 use net_traits::image_cache::{
     ImageCache, ImageCacheResult, ImageOrMetadataAvailable, ImageResponse, PendingImageId,
     UsePlaceholder,
 };
-use net_traits::request::{CredentialsMode, Destination, RequestBuilder};
+use net_traits::request::{CredentialsMode, Destination, RequestBuilder, RequestId};
 use net_traits::{
-    CoreResourceMsg, FetchChannels, FetchMetadata, FetchResponseListener, FetchResponseMsg,
-    NetworkError, ResourceFetchTiming, ResourceTimingType,
+    FetchMetadata, FetchResponseListener, FetchResponseMsg, NetworkError, ResourceFetchTiming,
+    ResourceTimingType,
 };
 use script_layout_interface::{HTMLMediaData, MediaMetadata};
 use servo_media::player::video::VideoFrame;
@@ -43,7 +42,7 @@ use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::fetch::FetchCanceller;
 use crate::image_listener::{generate_cache_listener_for_element, ImageCacheListener};
-use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
+use crate::network_listener::{self, PreInvoke, ResourceTimingListener};
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
@@ -92,6 +91,7 @@ impl HTMLVideoElement {
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> DomRoot<HTMLVideoElement> {
         Node::reflect_node_with_proto(
             Box::new(HTMLVideoElement::new_inherited(
@@ -99,6 +99,7 @@ impl HTMLVideoElement {
             )),
             document,
             proto,
+            can_gc,
         )
     }
 
@@ -192,7 +193,7 @@ impl HTMLVideoElement {
                 url,
                 ..
             }) => {
-                self.process_image_response(ImageResponse::Loaded(image, url));
+                self.process_image_response(ImageResponse::Loaded(image, url), can_gc);
             },
             ImageCacheResult::ReadyForRequest(id) => {
                 self.do_fetch_poster_frame(poster_url, id, cancel_receiver, can_gc)
@@ -231,34 +232,11 @@ impl HTMLVideoElement {
             LoadType::Image(poster_url.clone()),
         ));
 
-        let window = window_from_node(self);
-        let context = Arc::new(Mutex::new(PosterFrameFetchContext::new(
-            self, poster_url, id,
-        )));
+        let context = PosterFrameFetchContext::new(self, poster_url, id);
 
-        let (action_sender, action_receiver) = ipc::channel().unwrap();
-        let (task_source, canceller) = window
-            .task_manager()
-            .networking_task_source_with_canceller();
-        let listener = NetworkListener {
-            context,
-            task_source,
-            canceller: Some(canceller),
-        };
-        ROUTER.add_route(
-            action_receiver.to_opaque(),
-            Box::new(move |message| {
-                listener.notify_fetch(message.to().unwrap());
-            }),
-        );
-        let global = self.global();
-        global
-            .core_resource_thread()
-            .send(CoreResourceMsg::Fetch(
-                request,
-                FetchChannels::ResponseMsg(action_sender, Some(cancel_receiver)),
-            ))
-            .unwrap();
+        // TODO: If this is supposed to to be a "fetch" as defined in the specification
+        // this should probably be integrated into the Document's list of cancellable fetches.
+        document_from_node(self).fetch_background(request, context, Some(cancel_receiver));
     }
 }
 
@@ -326,18 +304,18 @@ impl ImageCacheListener for HTMLVideoElement {
         self.generation_id.get()
     }
 
-    fn process_image_response(&self, response: ImageResponse) {
+    fn process_image_response(&self, response: ImageResponse, can_gc: CanGc) {
         match response {
             ImageResponse::Loaded(image, url) => {
                 debug!("Loaded poster image for video element: {:?}", url);
                 self.htmlmediaelement.process_poster_image_loaded(image);
-                LoadBlocker::terminate(&mut self.load_blocker.borrow_mut(), CanGc::note());
+                LoadBlocker::terminate(&mut self.load_blocker.borrow_mut(), can_gc);
             },
             ImageResponse::MetadataLoaded(..) => {},
             // The image cache may have loaded a placeholder for an invalid poster url
             ImageResponse::PlaceholderLoaded(..) | ImageResponse::None => {
                 // A failed load should unblock the document load.
-                LoadBlocker::terminate(&mut self.load_blocker.borrow_mut(), CanGc::note());
+                LoadBlocker::terminate(&mut self.load_blocker.borrow_mut(), can_gc);
             },
         }
     }
@@ -359,12 +337,18 @@ struct PosterFrameFetchContext {
 }
 
 impl FetchResponseListener for PosterFrameFetchContext {
-    fn process_request_body(&mut self) {}
-    fn process_request_eof(&mut self) {}
+    fn process_request_body(&mut self, _: RequestId) {}
+    fn process_request_eof(&mut self, _: RequestId) {}
 
-    fn process_response(&mut self, metadata: Result<FetchMetadata, NetworkError>) {
-        self.image_cache
-            .notify_pending_response(self.id, FetchResponseMsg::ProcessResponse(metadata.clone()));
+    fn process_response(
+        &mut self,
+        request_id: RequestId,
+        metadata: Result<FetchMetadata, NetworkError>,
+    ) {
+        self.image_cache.notify_pending_response(
+            self.id,
+            FetchResponseMsg::ProcessResponse(request_id, metadata.clone()),
+        );
 
         let metadata = metadata.ok().map(|meta| match meta {
             FetchMetadata::Unfiltered(m) => m,
@@ -385,19 +369,27 @@ impl FetchResponseListener for PosterFrameFetchContext {
         }
     }
 
-    fn process_response_chunk(&mut self, payload: Vec<u8>) {
+    fn process_response_chunk(&mut self, request_id: RequestId, payload: Vec<u8>) {
         if self.cancelled {
             // An error was received previously, skip processing the payload.
             return;
         }
 
-        self.image_cache
-            .notify_pending_response(self.id, FetchResponseMsg::ProcessResponseChunk(payload));
+        self.image_cache.notify_pending_response(
+            self.id,
+            FetchResponseMsg::ProcessResponseChunk(request_id, payload),
+        );
     }
 
-    fn process_response_eof(&mut self, response: Result<ResourceFetchTiming, NetworkError>) {
-        self.image_cache
-            .notify_pending_response(self.id, FetchResponseMsg::ProcessResponseEOF(response));
+    fn process_response_eof(
+        &mut self,
+        request_id: RequestId,
+        response: Result<ResourceFetchTiming, NetworkError>,
+    ) {
+        self.image_cache.notify_pending_response(
+            self.id,
+            FetchResponseMsg::ProcessResponseEOF(request_id, response),
+        );
     }
 
     fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming {
@@ -409,7 +401,7 @@ impl FetchResponseListener for PosterFrameFetchContext {
     }
 
     fn submit_resource_timing(&mut self) {
-        network_listener::submit_timing(self)
+        network_listener::submit_timing(self, CanGc::note())
     }
 }
 

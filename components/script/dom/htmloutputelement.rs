@@ -21,6 +21,7 @@ use crate::dom::nodelist::NodeList;
 use crate::dom::validation::Validatable;
 use crate::dom::validitystate::ValidityState;
 use crate::dom::virtualmethods::VirtualMethods;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct HTMLOutputElement {
@@ -52,6 +53,7 @@ impl HTMLOutputElement {
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> DomRoot<HTMLOutputElement> {
         Node::reflect_node_with_proto(
             Box::new(HTMLOutputElement::new_inherited(
@@ -59,11 +61,12 @@ impl HTMLOutputElement {
             )),
             document,
             proto,
+            can_gc,
         )
     }
 
-    pub fn reset(&self) {
-        Node::string_replace_all(self.DefaultValue(), self.upcast::<Node>());
+    pub fn reset(&self, can_gc: CanGc) {
+        Node::string_replace_all(self.DefaultValue(), self.upcast::<Node>(), can_gc);
         *self.default_value_override.borrow_mut() = None;
     }
 }
@@ -88,10 +91,10 @@ impl HTMLOutputElementMethods for HTMLOutputElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-output-defaultvalue
-    fn SetDefaultValue(&self, value: DOMString) {
+    fn SetDefaultValue(&self, value: DOMString, can_gc: CanGc) {
         if self.default_value_override.borrow().is_none() {
             // Step 1 ("and return")
-            Node::string_replace_all(value.clone(), self.upcast::<Node>());
+            Node::string_replace_all(value.clone(), self.upcast::<Node>(), can_gc);
         } else {
             // Step 2, if not returned from step 1
             *self.default_value_override.borrow_mut() = Some(value);
@@ -104,9 +107,9 @@ impl HTMLOutputElementMethods for HTMLOutputElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-output-value
-    fn SetValue(&self, value: DOMString) {
+    fn SetValue(&self, value: DOMString, can_gc: CanGc) {
         *self.default_value_override.borrow_mut() = Some(self.DefaultValue());
-        Node::string_replace_all(value, self.upcast::<Node>());
+        Node::string_replace_all(value, self.upcast::<Node>(), can_gc);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-output-type
@@ -131,13 +134,13 @@ impl HTMLOutputElementMethods for HTMLOutputElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-cva-checkvalidity
-    fn CheckValidity(&self) -> bool {
-        self.check_validity()
+    fn CheckValidity(&self, can_gc: CanGc) -> bool {
+        self.check_validity(can_gc)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-cva-reportvalidity
-    fn ReportValidity(&self) -> bool {
-        self.report_validity()
+    fn ReportValidity(&self, can_gc: CanGc) -> bool {
+        self.report_validity(can_gc)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-cva-validationmessage

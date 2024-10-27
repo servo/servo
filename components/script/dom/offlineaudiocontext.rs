@@ -44,7 +44,6 @@ pub struct OfflineAudioContext {
     pending_rendering_promise: DomRefCell<Option<Rc<Promise>>>,
 }
 
-#[allow(non_snake_case)]
 impl OfflineAudioContext {
     #[allow(crown::unrooted_must_root)]
     fn new_inherited(
@@ -97,8 +96,11 @@ impl OfflineAudioContext {
             can_gc,
         ))
     }
+}
 
-    pub fn Constructor(
+impl OfflineAudioContextMethods for OfflineAudioContext {
+    // https://webaudio.github.io/web-audio-api/#dom-offlineaudiocontext-offlineaudiocontext
+    fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -114,7 +116,8 @@ impl OfflineAudioContext {
         )
     }
 
-    pub fn Constructor_(
+    // https://webaudio.github.io/web-audio-api/#dom-offlineaudiocontext-offlineaudiocontext-numberofchannels-length-samplerate
+    fn Constructor_(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -131,9 +134,7 @@ impl OfflineAudioContext {
             can_gc,
         )
     }
-}
 
-impl OfflineAudioContextMethods for OfflineAudioContext {
     // https://webaudio.github.io/web-audio-api/#dom-offlineaudiocontext-oncomplete
     event_handler!(complete, GetOncomplete, SetOncomplete);
 
@@ -143,8 +144,8 @@ impl OfflineAudioContextMethods for OfflineAudioContext {
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-offlineaudiocontext-startrendering
-    fn StartRendering(&self, comp: InRealm) -> Rc<Promise> {
-        let promise = Promise::new_in_current_realm(comp);
+    fn StartRendering(&self, comp: InRealm, can_gc: CanGc) -> Rc<Promise> {
+        let promise = Promise::new_in_current_realm(comp, can_gc);
         if self.rendering_started.get() {
             promise.reject_error(Error::InvalidState);
             return promise;
@@ -196,7 +197,8 @@ impl OfflineAudioContextMethods for OfflineAudioContext {
                             this.channel_count,
                             this.length,
                             *this.context.SampleRate(),
-                            Some(processed_audio.as_slice()));
+                            Some(processed_audio.as_slice()),
+                            CanGc::note());
                         (*this.pending_rendering_promise.borrow_mut()).take().unwrap().resolve_native(&buffer);
                         let global = &this.global();
                         let window = global.as_window();
@@ -204,8 +206,8 @@ impl OfflineAudioContextMethods for OfflineAudioContext {
                                                                      atom!("complete"),
                                                                      EventBubbles::DoesNotBubble,
                                                                      EventCancelable::NotCancelable,
-                                                                     &buffer);
-                        event.upcast::<Event>().fire(this.upcast());
+                                                                     &buffer, CanGc::note());
+                        event.upcast::<Event>().fire(this.upcast(), CanGc::note());
                     }),
                     &canceller,
                 );

@@ -88,7 +88,7 @@ test_valid_selector("::part(mypart):not(:hover)")
 test_valid_selector("::part(mypart):is(:hover)")
 test_valid_selector("::part(mypart):where(:hover)")
 test_invalid_selector("::part(mypart):not(:first-child)")
-test_valid_selector("::part(mypart):is(:first-child)")
-test_valid_selector("::part(mypart):where(:first-child)")
+test_valid_forgiving_selector("::part(mypart):is(:first-child)")
+test_valid_forgiving_selector("::part(mypart):where(:first-child)")
 
 </script>

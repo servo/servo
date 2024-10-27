@@ -4,6 +4,7 @@
 
 //! <https://drafts.csswg.org/css-sizing/>
 
+use std::cell::LazyCell;
 use std::ops::{Add, AddAssign};
 
 use app_units::Au;
@@ -11,7 +12,8 @@ use serde::Serialize;
 use style::properties::ComputedValues;
 use style::Zero;
 
-use crate::style_ext::{Clamp, ComputedValuesExt};
+use crate::geom::Size;
+use crate::style_ext::{Clamp, ComputedValuesExt, ContentBoxSizesAndPBM};
 use crate::{AuOrAuto, IndefiniteContainingBlock, LogicalVec2};
 
 #[derive(PartialEq)]
@@ -118,34 +120,107 @@ pub(crate) fn outer_inline(
     containing_block: &IndefiniteContainingBlock,
     auto_minimum: &LogicalVec2<Au>,
     auto_block_size_stretches_to_containing_block: bool,
-    get_content_size: impl FnOnce(&IndefiniteContainingBlock) -> ContentSizes,
-) -> ContentSizes {
-    let (content_box_size, content_min_size, content_max_size, pbm) =
-        style.content_box_sizes_and_padding_border_margin_deprecated(containing_block);
-    let content_min_size = LogicalVec2 {
-        inline: content_min_size.inline.auto_is(|| auto_minimum.inline),
-        block: content_min_size.block.auto_is(|| auto_minimum.block),
-    };
+    get_content_size: impl FnOnce(&IndefiniteContainingBlock) -> InlineContentSizesResult,
+) -> InlineContentSizesResult {
+    let ContentBoxSizesAndPBM {
+        content_box_size,
+        content_min_box_size,
+        content_max_box_size,
+        pbm,
+        mut depends_on_block_constraints,
+    } = style.content_box_sizes_and_padding_border_margin(containing_block);
     let margin = pbm.margin.map(|v| v.auto_is(Au::zero));
-    let pbm_inline_sum = pbm.padding_border_sums.inline + margin.inline_sum();
-    let adjust = |v: Au| {
-        v.clamp_between_extremums(content_min_size.inline, content_max_size.inline) + pbm_inline_sum
+    let pbm_sums = LogicalVec2 {
+        block: pbm.padding_border_sums.block + margin.block_sum(),
+        inline: pbm.padding_border_sums.inline + margin.inline_sum(),
     };
-    match content_box_size.inline {
-        AuOrAuto::LengthPercentage(inline_size) => adjust(inline_size).into(),
-        AuOrAuto::Auto => {
-            let block_size = if content_box_size.block.is_auto() &&
-                auto_block_size_stretches_to_containing_block
-            {
-                let outer_block_size = containing_block.size.block;
-                outer_block_size.map(|v| v - pbm.padding_border_sums.block - margin.block_sum())
-            } else {
-                content_box_size.block
-            }
-            .map(|v| v.clamp_between_extremums(content_min_size.block, content_max_size.block));
-            let containing_block_for_children =
-                IndefiniteContainingBlock::new_for_style_and_block_size(style, block_size);
-            get_content_size(&containing_block_for_children).map(adjust)
+    let content_size = LazyCell::new(|| {
+        let available_block_size = containing_block
+            .size
+            .block
+            .non_auto()
+            .map(|v| Au::zero().max(v - pbm_sums.block));
+        let block_size = if content_box_size.block.is_initial() &&
+            auto_block_size_stretches_to_containing_block
+        {
+            depends_on_block_constraints = true;
+            available_block_size
+        } else {
+            content_box_size
+                .block
+                .maybe_resolve_extrinsic(available_block_size)
+        }
+        .map(|block_size| {
+            let min_block_size = content_min_box_size
+                .block
+                .maybe_resolve_extrinsic(available_block_size)
+                .unwrap_or(auto_minimum.block);
+            let max_block_size = content_max_box_size
+                .block
+                .maybe_resolve_extrinsic(available_block_size);
+            block_size.clamp_between_extremums(min_block_size, max_block_size)
+        })
+        .map_or(AuOrAuto::Auto, AuOrAuto::LengthPercentage);
+        let containing_block_for_children =
+            IndefiniteContainingBlock::new_for_style_and_block_size(style, block_size);
+        get_content_size(&containing_block_for_children)
+    });
+    let resolve_non_initial = |inline_size| {
+        Some(match inline_size {
+            Size::Initial => return None,
+            Size::Numeric(numeric) => (numeric, numeric, false),
+            Size::MinContent => (
+                content_size.sizes.min_content,
+                content_size.sizes.min_content,
+                content_size.depends_on_block_constraints,
+            ),
+            Size::MaxContent => (
+                content_size.sizes.max_content,
+                content_size.sizes.max_content,
+                content_size.depends_on_block_constraints,
+            ),
+            Size::Stretch | Size::FitContent => (
+                content_size.sizes.min_content,
+                content_size.sizes.max_content,
+                content_size.depends_on_block_constraints,
+            ),
+        })
+    };
+    let (preferred_min_content, preferred_max_content, preferred_depends_on_block_constraints) =
+        resolve_non_initial(content_box_size.inline)
+            .unwrap_or_else(|| resolve_non_initial(Size::FitContent).unwrap());
+    let (min_min_content, min_max_content, min_depends_on_block_constraints) = resolve_non_initial(
+        content_min_box_size.inline,
+    )
+    .unwrap_or((auto_minimum.inline, auto_minimum.inline, false));
+    let (max_min_content, max_max_content, max_depends_on_block_constraints) =
+        resolve_non_initial(content_max_box_size.inline)
+            .map(|(min_content, max_content, depends_on_block_constraints)| {
+                (
+                    Some(min_content),
+                    Some(max_content),
+                    depends_on_block_constraints,
+                )
+            })
+            .unwrap_or_default();
+    InlineContentSizesResult {
+        sizes: ContentSizes {
+            min_content: preferred_min_content
+                .clamp_between_extremums(min_min_content, max_min_content) +
+                pbm_sums.inline,
+            max_content: preferred_max_content
+                .clamp_between_extremums(min_max_content, max_max_content) +
+                pbm_sums.inline,
         },
+        depends_on_block_constraints: depends_on_block_constraints &&
+            (preferred_depends_on_block_constraints ||
+                min_depends_on_block_constraints ||
+                max_depends_on_block_constraints),
     }
+}
+
+#[derive(Clone, Copy, Debug, Serialize)]
+pub(crate) struct InlineContentSizesResult {
+    pub sizes: ContentSizes,
+    pub depends_on_block_constraints: bool,
 }

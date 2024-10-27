@@ -78,12 +78,28 @@ impl URL {
                 .extend_pairs(pairs);
         }
     }
+
+    /// <https://w3c.github.io/FileAPI/#unicodeSerializationOfBlobURL>
+    fn unicode_serialization_blob_url(origin: &str, id: &Uuid) -> String {
+        // Step 1, 2
+        let mut result = "blob:".to_string();
+
+        // Step 3
+        result.push_str(origin);
+
+        // Step 4
+        result.push('/');
+
+        // Step 5
+        result.push_str(&id.to_string());
+
+        result
+    }
 }
 
-#[allow(non_snake_case)]
-impl URL {
+impl URLMethods for URL {
     /// <https://url.spec.whatwg.org/#constructors>
-    pub fn Constructor(
+    fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -125,7 +141,7 @@ impl URL {
     }
 
     /// <https://url.spec.whatwg.org/#dom-url-canparse>
-    pub fn CanParse(_global: &GlobalScope, url: USVString, base: Option<USVString>) -> bool {
+    fn CanParse(_global: &GlobalScope, url: USVString, base: Option<USVString>) -> bool {
         // Step 1.
         let parsed_base = match base {
             None => None,
@@ -142,10 +158,11 @@ impl URL {
     }
 
     /// <https://url.spec.whatwg.org/#dom-url-parse>
-    pub fn Parse(
+    fn Parse(
         global: &GlobalScope,
         url: USVString,
         base: Option<USVString>,
+        can_gc: CanGc,
     ) -> Option<DomRoot<URL>> {
         // Step 1: Let parsedURL be the result of running the API URL parser on url with base,
         // if given.
@@ -160,11 +177,11 @@ impl URL {
         // These steps are all handled while mapping the Result to an Option<ServoUrl>.
         // Regarding initialization, the same condition should apply here as stated in the comments
         // in Self::Constructor above - construct it on-demand inside `URL::SearchParams`.
-        Some(URL::new(global, None, parsed_url.ok()?, CanGc::note()))
+        Some(URL::new(global, None, parsed_url.ok()?, can_gc))
     }
 
     /// <https://w3c.github.io/FileAPI/#dfn-createObjectURL>
-    pub fn CreateObjectURL(global: &GlobalScope, blob: &Blob) -> DOMString {
+    fn CreateObjectURL(global: &GlobalScope, blob: &Blob) -> DOMString {
         // XXX: Second field is an unicode-serialized Origin, it is a temporary workaround
         //      and should not be trusted. See issue https://github.com/servo/servo/issues/11722
         let origin = get_blob_origin(&global.get_url());
@@ -175,7 +192,7 @@ impl URL {
     }
 
     /// <https://w3c.github.io/FileAPI/#dfn-revokeObjectURL>
-    pub fn RevokeObjectURL(global: &GlobalScope, url: DOMString) {
+    fn RevokeObjectURL(global: &GlobalScope, url: DOMString) {
         // If the value provided for the url argument is not a Blob URL OR
         // if the value provided for the url argument does not have an entry in the Blob URL Store,
         // this method call does nothing. User agents may display a message on the error console.
@@ -195,26 +212,6 @@ impl URL {
         }
     }
 
-    /// <https://w3c.github.io/FileAPI/#unicodeSerializationOfBlobURL>
-    fn unicode_serialization_blob_url(origin: &str, id: &Uuid) -> String {
-        // Step 1, 2
-        let mut result = "blob:".to_string();
-
-        // Step 3
-        result.push_str(origin);
-
-        // Step 4
-        result.push('/');
-
-        // Step 5
-        result.push_str(&id.to_string());
-
-        result
-    }
-}
-
-#[allow(non_snake_case)]
-impl URLMethods for URL {
     /// <https://url.spec.whatwg.org/#dom-url-hash>
     fn Hash(&self) -> USVString {
         UrlHelper::Hash(&self.url.borrow())
@@ -321,9 +318,9 @@ impl URLMethods for URL {
     }
 
     /// <https://url.spec.whatwg.org/#dom-url-searchparams>
-    fn SearchParams(&self) -> DomRoot<URLSearchParams> {
+    fn SearchParams(&self, can_gc: CanGc) -> DomRoot<URLSearchParams> {
         self.search_params
-            .or_init(|| URLSearchParams::new(&self.global(), Some(self)))
+            .or_init(|| URLSearchParams::new(&self.global(), Some(self), can_gc))
     }
 
     /// <https://url.spec.whatwg.org/#dom-url-username>

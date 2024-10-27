@@ -8,7 +8,6 @@
 <script>
   var insertFunc = Node.prototype.moveBefore;
 </script>
-<script src="../../pre-insertion-validation-notfound.js"></script>
 <script src="../../pre-insertion-validation-hierarchy.js"></script>
 <script>
 preInsertionValidateHierarchy("moveBefore");
@@ -46,248 +45,192 @@ testLeafNode("Text", function () { return document.createTextNode("Foo") })
 testLeafNode("Comment", function () { return document.createComment("Foo") })
 testLeafNode("ProcessingInstruction", function () { return document.createProcessingInstruction("foo", "bar") })
 
-test(function() {
-  // Step 2.
-  assert_throws_dom("HIERARCHY_REQUEST_ERR", function() { document.body.moveBefore(document.body, document.getElementById("log")) })
-  assert_throws_dom("HIERARCHY_REQUEST_ERR", function() { document.body.moveBefore(document.documentElement, document.getElementById("log")) })
-}, "Calling moveBefore with an inclusive ancestor of the context object must throw HIERARCHY_REQUEST_ERR.")
+// Pre-move validity, step 1:
+// "If either parent or node are not connected, then throw a
+// "HierarchyRequestError" DOMException."
+//
+// https://whatpr.org/dom/1307.html#concept-node-ensure-pre-move-validity
+test(t => {
+  const connectedTarget = document.body.appendChild(document.createElement('div'));
+  const disconnectedDestination = document.createElement('div');
+  t.add_cleanup(() => connectedTarget.remove());
 
-// Step 3.
-test(function() {
-  var a = document.createElement("div");
-  var b = document.createElement("div");
-  var c = document.createElement("div");
-  assert_throws_dom("NotFoundError", function() {
+  assert_throws_dom("HIERARCHY_REQUEST_ERR", () => {
+    disconnectedDestination.moveBefore(connectedTarget, null);
+  });
+}, "moveBefore() on disconnected parent throws a HierarchyRequestError");
+test(t => {
+  const connectedDestination = document.body.appendChild(document.createElement('div'));
+  const disconnectedTarget = document.createElement('div');
+  t.add_cleanup(() => connectedDestination.remove());
+
+  assert_throws_dom("HIERARCHY_REQUEST_ERR", () => {
+    connectedDestination.moveBefore(disconnectedTarget, null);
+  });
+}, "moveBefore() with disconnected target node throws a HierarchyRequestError");
+
+// Pre-move validity, step 2:
+// "If parent’s shadow-including root is not the same as node’s shadow-including
+// "root, then throw a "HierarchyRequestError" DOMException."
+//
+// https://whatpr.org/dom/1307.html#concept-node-ensure-pre-move-validity
+test(t => {
+  const iframe = document.createElement('iframe');
+  document.body.append(iframe);
+  const connectedCrossDocChild = iframe.contentDocument.createElement('div');
+  const connectedLocalParent = document.querySelector('div');
+  t.add_cleanup(() => iframe.remove());
+
+  assert_throws_dom("HIERARCHY_REQUEST_ERR", () => {
+    connectedLocalParent.moveBefore(connectedCrossDocChild, null);
+  });
+}, "moveBefore() on a cross-document target node throws a HierarchyRequestError");
+
+// Pre-move validity, step 3:
+// "If parent is not an Element node, then throw a "HierarchyRequestError"
+// DOMException."
+//
+// https://whatpr.org/dom/1307.html#concept-node-ensure-pre-move-validity
+test(t => {
+  const iframe = document.body.appendChild(document.createElement('iframe'));
+  const innerBody = iframe.contentDocument.querySelector('body');
+
+  assert_throws_dom("HIERARCHY_REQUEST_ERR", iframe.contentWindow.DOMException, () => {
+    // Moving the body into the same place that it already is, which is a valid
+    // action in the normal case, when moving a node into an Element.
+    iframe.contentDocument.moveBefore(innerBody, null);
+  });
+}, "moveBefore() into a Document throws a HierarchyRequestError");
+test(t => {
+  const comment = document.body.appendChild(document.createComment("comment"));
+  const child = document.body.appendChild(document.createElement('p'));
+
+  assert_throws_dom("HIERARCHY_REQUEST_ERR", () => {
+    comment.moveBefore(child, null);
+  });
+}, "moveBefore() into a CharacterData throws a HierarchyRequestError");
+
+// Pre-move validity, step 4:
+// "If node is a host-including inclusive ancestor of parent, then throw a
+// "HierarchyRequestError" DOMException."
+//
+// https://whatpr.org/dom/1307.html#concept-node-ensure-pre-move-validity
+test(t => {
+  const parentDiv = document.body.appendChild(document.createElement('div'));
+  const childDiv = parentDiv.appendChild(document.createElement('div'));
+  t.add_cleanup(() => {
+    parentDiv.remove();
+    childDiv.remove();
+  });
+
+  assert_throws_dom("HIERARCHY_REQUEST_ERR", () => {
+    parentDiv.moveBefore(parentDiv, null);
+  }, "parent moving itself");
+
+  assert_throws_dom("HIERARCHY_REQUEST_ERR", () => {
+    childDiv.moveBefore(parentDiv, null);
+  }, "Moving parent into immediate child");
+
+  assert_throws_dom("HIERARCHY_REQUEST_ERR", () => {
+    childDiv.moveBefore(document.body, null);
+  }, "Moving grandparent into grandchild");
+
+  assert_throws_dom("HIERARCHY_REQUEST_ERR", () => {
+    document.body.moveBefore(document.documentElement, childDiv);
+  }, "Moving documentElement (<html>) into a deeper child");
+}, "moveBefore() with node being an inclusive ancestor of parent throws a " +
+   "HierarchyRequestError");
+
+// Pre-move validity, step 5:
+// "If node is not an Element or a CharacterData node, then throw a
+// "HierarchyRequestError" DOMException."
+//
+// https://whatpr.org/dom/1307.html#concept-node-ensure-pre-move-validity
+test(t => {
+  assert_true(document.doctype.isConnected);
+  assert_throws_dom("HIERARCHY_REQUEST_ERR", () => {
+    document.body.moveBefore(document.doctype, null);
+  }, "DocumentType throws");
+
+  assert_throws_dom("HIERARCHY_REQUEST_ERR", () => {
+    document.body.moveBefore(new DocumentFragment(), null);
+  }, "DocumentFragment throws");
+
+  const doc = document.implementation.createHTMLDocument("title");
+  assert_true(doc.isConnected);
+  assert_throws_dom("HIERARCHY_REQUEST_ERR", () => {
+    document.body.moveBefore(doc, null);
+  });
+}, "moveBefore() with a non-{Element, CharacterData} throws a HierarchyRequestError");
+test(t => {
+  const text = new Text("child text");
+  document.body.prepend(text);
+
+  const childElement = document.createElement('p');
+  document.body.prepend(childElement);
+
+  t.add_cleanup(() => {
+    text.remove();
+    childElement.remove();
+  });
+
+  document.body.moveBefore(text, null);
+  assert_equals(document.body.lastChild, text);
+
+  document.body.moveBefore(childElement, null);
+  assert_equals(document.body.lastChild, childElement);
+
+  document.body.moveBefore(text, null);
+  assert_equals(document.body.lastChild, text);
+}, "moveBefore with an Element or CharacterData succeeds");
+test(t => {
+  const p = document.createElement('p');
+  p.textContent = "Some content";
+  document.body.prepend(p);
+
+  const text_node = p.firstChild;
+
+  // The Text node is *inside* the paragraph.
+  assert_equals(text_node.textContent, "Some content");
+  assert_not_equals(document.body.lastChild, text_node);
+
+  t.add_cleanup(() => {
+    text_node.remove();
+    p.remove();
+  });
+
+  document.body.moveBefore(p.firstChild, null);
+  assert_equals(document.body.lastChild, text_node);
+}, "moveBefore on a paragraph's Text node child");
+
+// Pre-move validity, step 6:
+// "If child is non-null and its parent is not parent, then throw a
+// "NotFoundError" DOMException."
+//
+// https://whatpr.org/dom/1307.html#concept-node-ensure-pre-move-validity
+test(t => {
+  const a = document.body.appendChild(document.createElement("div"));
+  const b = document.body.appendChild(document.createElement("div"));
+  const c = document.body.appendChild(document.createElement("div"));
+
+  t.add_cleanup(() => {
+    a.remove();
+    b.remove();
+    c.remove();
+  });
+
+  assert_throws_dom("NotFoundError", () => {
     a.moveBefore(b, c);
   });
-}, "Calling moveBefore with a reference child whose parent is not the context node must throw a NotFoundError.")
+}, "moveBefore with reference child whose parent is NOT the destination " +
+   "parent (context node) throws a NotFoundError.")
 
-// Step 4.1.
-test(function() {
-  var doc = document.implementation.createHTMLDocument("title");
-  var doc2 = document.implementation.createHTMLDocument("title2");
-  assert_throws_dom("HierarchyRequestError", function() {
-    doc.moveBefore(doc2, doc.documentElement);
-  });
-
-  assert_throws_dom("HierarchyRequestError", function() {
-    doc.moveBefore(doc.createTextNode("text"), doc.documentElement);
-  });
-}, "If the context node is a document, inserting a document or text node should throw a HierarchyRequestError.")
-
-// Step 4.2.1.
-test(function() {
-  var doc = document.implementation.createHTMLDocument("title");
-  doc.removeChild(doc.documentElement);
-
-  var df = doc.createDocumentFragment();
-  df.appendChild(doc.createElement("a"));
-  df.appendChild(doc.createElement("b"));
-  assert_throws_dom("HierarchyRequestError", function() {
-    doc.moveBefore(df, doc.firstChild);
-  });
-
-  df = doc.createDocumentFragment();
-  df.appendChild(doc.createTextNode("text"));
-  assert_throws_dom("HierarchyRequestError", function() {
-    doc.moveBefore(df, doc.firstChild);
-  });
-
-  df = doc.createDocumentFragment();
-  df.appendChild(doc.createComment("comment"));
-  df.appendChild(doc.createTextNode("text"));
-  assert_throws_dom("HierarchyRequestError", function() {
-    doc.moveBefore(df, doc.firstChild);
-  });
-}, "If the context node is a document, inserting a DocumentFragment that contains a text node or too many elements should throw a HierarchyRequestError.")
-
-// Step 4.2.2.
-test(function() {
-  // The context node has an element child.
-  var doc = document.implementation.createHTMLDocument("title");
-  var comment = doc.appendChild(doc.createComment("foo"));
-  assert_array_equals(doc.childNodes, [doc.doctype, doc.documentElement, comment]);
-
-  var df = doc.createDocumentFragment();
-  df.appendChild(doc.createElement("a"));
-  assert_throws_dom("HierarchyRequestError", function() {
-    doc.moveBefore(df, doc.doctype);
-  });
-  assert_throws_dom("HierarchyRequestError", function() {
-    doc.moveBefore(df, doc.documentElement);
-  });
-  assert_throws_dom("HierarchyRequestError", function() {
-    doc.moveBefore(df, comment);
-  });
-  assert_throws_dom("HierarchyRequestError", function() {
-    doc.moveBefore(df, null);
-  });
-}, "If the context node is a document, inserting a DocumentFragment with an element if there already is an element child should throw a HierarchyRequestError.")
-test(function() {
-  // /child/ is a doctype.
-  var doc = document.implementation.createHTMLDocument("title");
-  var comment = doc.moveBefore(doc.createComment("foo"), doc.firstChild);
-  doc.removeChild(doc.documentElement);
-  assert_array_equals(doc.childNodes, [comment, doc.doctype]);
-
-  var df = doc.createDocumentFragment();
-  df.appendChild(doc.createElement("a"));
-  assert_throws_dom("HierarchyRequestError", function() {
-    doc.moveBefore(df, doc.doctype);
-  });
-}, "If the context node is a document and a doctype is following the reference child, inserting a DocumentFragment with an element should throw a HierarchyRequestError.")
-test(function() {
-  // /child/ is not null and a doctype is following /child/.
-  var doc = document.implementation.createHTMLDocument("title");
-  var comment = doc.moveBefore(doc.createComment("foo"), doc.firstChild);
-  doc.removeChild(doc.documentElement);
-  assert_array_equals(doc.childNodes, [comment, doc.doctype]);
-
-  var df = doc.createDocumentFragment();
-  df.appendChild(doc.createElement("a"));
-  assert_throws_dom("HierarchyRequestError", function() {
-    doc.moveBefore(df, comment);
-  });
-}, "If the context node is a document, inserting a DocumentFragment with an element before the doctype should throw a HierarchyRequestError.")
-
-// Step 4.3.
-test(function() {
-  // The context node has an element child.
-  var doc = document.implementation.createHTMLDocument("title");
-  var comment = doc.appendChild(doc.createComment("foo"));
-  assert_array_equals(doc.childNodes, [doc.doctype, doc.documentElement, comment]);
-
-  var a = doc.createElement("a");
-  assert_throws_dom("HierarchyRequestError", function() {
-    doc.moveBefore(a, doc.doctype);
-  });
-  assert_throws_dom("HierarchyRequestError", function() {
-    doc.moveBefore(a, doc.documentElement);
-  });
-  assert_throws_dom("HierarchyRequestError", function() {
-    doc.moveBefore(a, comment);
-  });
-  assert_throws_dom("HierarchyRequestError", function() {
-    doc.moveBefore(a, null);
-  });
-}, "If the context node is a document, inserting an element if there already is an element child should throw a HierarchyRequestError.")
-test(function() {
-  // /child/ is a doctype.
-  var doc = document.implementation.createHTMLDocument("title");
-  var comment = doc.moveBefore(doc.createComment("foo"), doc.firstChild);
-  doc.removeChild(doc.documentElement);
-  assert_array_equals(doc.childNodes, [comment, doc.doctype]);
-
-  var a = doc.createElement("a");
-  assert_throws_dom("HierarchyRequestError", function() {
-    doc.moveBefore(a, doc.doctype);
-  });
-}, "If the context node is a document, inserting an element before the doctype should throw a HierarchyRequestError.")
-test(function() {
-  // /child/ is not null and a doctype is following /child/.
-  var doc = document.implementation.createHTMLDocument("title");
-  var comment = doc.moveBefore(doc.createComment("foo"), doc.firstChild);
-  doc.removeChild(doc.documentElement);
-  assert_array_equals(doc.childNodes, [comment, doc.doctype]);
-
-  var a = doc.createElement("a");
-  assert_throws_dom("HierarchyRequestError", function() {
-    doc.moveBefore(a, comment);
-  });
-}, "If the context node is a document and a doctype is following the reference child, inserting an element should throw a HierarchyRequestError.")
-
-// Step 4.4.
-test(function() {
-  var doc = document.implementation.createHTMLDocument("title");
-  var comment = doc.moveBefore(doc.createComment("foo"), doc.firstChild);
-  assert_array_equals(doc.childNodes, [comment, doc.doctype, doc.documentElement]);
-
-  var doctype = document.implementation.createDocumentType("html", "", "");
-  assert_throws_dom("HierarchyRequestError", function() {
-    doc.moveBefore(doctype, comment);
-  });
-  assert_throws_dom("HierarchyRequestError", function() {
-    doc.moveBefore(doctype, doc.doctype);
-  });
-  assert_throws_dom("HierarchyRequestError", function() {
-    doc.moveBefore(doctype, doc.documentElement);
-  });
-  assert_throws_dom("HierarchyRequestError", function() {
-    doc.moveBefore(doctype, null);
-  });
-}, "If the context node is a document, inserting a doctype if there already is a doctype child should throw a HierarchyRequestError.")
-test(function() {
-  var doc = document.implementation.createHTMLDocument("title");
-  var comment = doc.appendChild(doc.createComment("foo"));
-  doc.removeChild(doc.doctype);
-  assert_array_equals(doc.childNodes, [doc.documentElement, comment]);
-
-  var doctype = document.implementation.createDocumentType("html", "", "");
-  assert_throws_dom("HierarchyRequestError", function() {
-    doc.moveBefore(doctype, comment);
-  });
-}, "If the context node is a document, inserting a doctype after the document element should throw a HierarchyRequestError.")
-test(function() {
-  var doc = document.implementation.createHTMLDocument("title");
-  var comment = doc.appendChild(doc.createComment("foo"));
-  doc.removeChild(doc.doctype);
-  assert_array_equals(doc.childNodes, [doc.documentElement, comment]);
-
-  var doctype = document.implementation.createDocumentType("html", "", "");
-  assert_throws_dom("HierarchyRequestError", function() {
-    doc.moveBefore(doctype, null);
-  });
-}, "If the context node is a document with and element child, appending a doctype should throw a HierarchyRequestError.")
-
-// Step 5.
-test(function() {
-  var df = document.createDocumentFragment();
-  var a = df.appendChild(document.createElement("a"));
-
-  var doc = document.implementation.createHTMLDocument("title");
-  assert_throws_dom("HierarchyRequestError", function() {
-    df.moveBefore(doc, a);
-  });
-  assert_throws_dom("HierarchyRequestError", function() {
-    df.moveBefore(doc, null);
-  });
-
-  var doctype = document.implementation.createDocumentType("html", "", "");
-  assert_throws_dom("HierarchyRequestError", function() {
-    df.moveBefore(doctype, a);
-  });
-  assert_throws_dom("HierarchyRequestError", function() {
-    df.moveBefore(doctype, null);
-  });
-}, "If the context node is a DocumentFragment, inserting a document or a doctype should throw a HierarchyRequestError.")
-test(function() {
-  var el = document.createElement("div");
-  var a = el.appendChild(document.createElement("a"));
-
-  var doc = document.implementation.createHTMLDocument("title");
-  assert_throws_dom("HierarchyRequestError", function() {
-    el.moveBefore(doc, a);
-  });
-  assert_throws_dom("HierarchyRequestError", function() {
-    el.moveBefore(doc, null);
-  });
-
-  var doctype = document.implementation.createDocumentType("html", "", "");
-  assert_throws_dom("HierarchyRequestError", function() {
-    el.moveBefore(doctype, a);
-  });
-  assert_throws_dom("HierarchyRequestError", function() {
-    el.moveBefore(doctype, null);
-  });
-}, "If the context node is an element, inserting a document or a doctype should throw a HierarchyRequestError.")
-
-// Step 7.
-test(function() {
-  var a = document.createElement("div");
-  var b = document.createElement("div");
-  var c = document.createElement("div");
-  a.appendChild(b);
-  a.appendChild(c);
+test(() => {
+  const a = document.body.appendChild(document.createElement("div"));
+  const b = document.createElement("div");
+  const c = document.createElement("div");
+  a.append(b);
+  a.append(c);
   assert_array_equals(a.childNodes, [b, c]);
   assert_equals(a.moveBefore(b, b), b);
   assert_array_equals(a.childNodes, [b, c]);

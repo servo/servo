@@ -10,6 +10,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::document::Document;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::Node;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct HTMLOListElement {
@@ -33,6 +34,7 @@ impl HTMLOListElement {
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> DomRoot<HTMLOListElement> {
         Node::reflect_node_with_proto(
             Box::new(HTMLOListElement::new_inherited(
@@ -40,6 +42,7 @@ impl HTMLOListElement {
             )),
             document,
             proto,
+            can_gc,
         )
     }
 }

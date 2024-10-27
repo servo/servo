@@ -24,6 +24,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::{document_from_node, window_from_node, BindContext, Node};
 use crate::dom::virtualmethods::VirtualMethods;
+use crate::script_runtime::CanGc;
 
 /// How long we should wait before performing the initial reflow after `<body>` is parsed.
 const INITIAL_REFLOW_DELAY: Duration = Duration::from_millis(200);
@@ -50,11 +51,13 @@ impl HTMLBodyElement {
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> DomRoot<HTMLBodyElement> {
         Node::reflect_node_with_proto(
             Box::new(HTMLBodyElement::new_inherited(local_name, prefix, document)),
             document,
             proto,
+            can_gc,
         )
     }
 
@@ -87,13 +90,13 @@ impl HTMLBodyElementMethods for HTMLBodyElement {
     make_getter!(Background, "background");
 
     // https://html.spec.whatwg.org/multipage/#dom-body-background
-    fn SetBackground(&self, input: DOMString) {
+    fn SetBackground(&self, input: DOMString, can_gc: CanGc) {
         let value = AttrValue::from_resolved_url(
             &document_from_node(self).base_url().get_arc(),
             input.into(),
         );
         self.upcast::<Element>()
-            .set_attribute(&local_name!("background"), value);
+            .set_attribute(&local_name!("background"), value, can_gc);
     }
 
     // https://html.spec.whatwg.org/multipage/#windoweventhandlers

@@ -46,26 +46,26 @@ impl TestWorklet {
             can_gc,
         )
     }
+}
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+impl TestWorkletMethods for TestWorklet {
+    fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<TestWorklet>> {
         Ok(TestWorklet::new(window, proto, can_gc))
     }
-}
 
-impl TestWorkletMethods for TestWorklet {
     #[allow(non_snake_case)]
     fn AddModule(
         &self,
         moduleURL: USVString,
         options: &WorkletOptions,
         comp: InRealm,
+        can_gc: CanGc,
     ) -> Rc<Promise> {
-        self.worklet.AddModule(moduleURL, options, comp)
+        self.worklet.AddModule(moduleURL, options, comp, can_gc)
     }
 
     fn Lookup(&self, key: DOMString) -> Option<DOMString> {

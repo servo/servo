@@ -14,7 +14,6 @@ interface ServiceWorker : EventTarget {
   attribute EventHandler onstatechange;
 };
 
-// FIXME: use `includes` instead of `implements` after #22539 is fixed.
 ServiceWorker includes AbstractWorker;
 
 enum ServiceWorkerState {

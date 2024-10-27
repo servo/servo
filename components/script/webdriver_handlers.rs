@@ -289,6 +289,7 @@ pub fn handle_execute_script(
     window: Option<DomRoot<Window>>,
     eval: String,
     reply: IpcSender<WebDriverJSResult>,
+    can_gc: CanGc,
 ) {
     match window {
         Some(window) => {
@@ -301,6 +302,7 @@ pub fn handle_execute_script(
                     rval.handle_mut(),
                     ScriptFetchOptions::default_classic_script(global),
                     global.api_base_url(),
+                    can_gc,
                 );
                 jsval_to_webdriver(*cx, window.upcast::<GlobalScope>(), rval.handle())
             };
@@ -319,6 +321,7 @@ pub fn handle_execute_async_script(
     window: Option<DomRoot<Window>>,
     eval: String,
     reply: IpcSender<WebDriverJSResult>,
+    can_gc: CanGc,
 ) {
     match window {
         Some(window) => {
@@ -331,6 +334,7 @@ pub fn handle_execute_async_script(
                 rval.handle_mut(),
                 ScriptFetchOptions::default_classic_script(global),
                 global.api_base_url(),
+                can_gc,
             );
         },
         None => {
@@ -374,7 +378,7 @@ pub fn handle_get_browsing_context_id(
 }
 
 // https://w3c.github.io/webdriver/#dfn-center-point
-fn get_element_in_view_center_point(element: &Element) -> Option<Point2D<i64>> {
+fn get_element_in_view_center_point(element: &Element, can_gc: CanGc) -> Option<Point2D<i64>> {
     window_from_node(element.upcast::<Node>())
         .Document()
         .GetBody()
@@ -382,14 +386,14 @@ fn get_element_in_view_center_point(element: &Element) -> Option<Point2D<i64>> {
         .and_then(|body| {
             // Step 1: Let rectangle be the first element of the DOMRect sequence
             // returned by calling getClientRects() on element.
-            element.GetClientRects().first().map(|rectangle| {
+            element.GetClientRects(can_gc).first().map(|rectangle| {
                 let x = rectangle.X().round() as i64;
                 let y = rectangle.Y().round() as i64;
                 let width = rectangle.Width().round() as i64;
                 let height = rectangle.Height().round() as i64;
 
-                let client_width = body.ClientWidth() as i64;
-                let client_height = body.ClientHeight() as i64;
+                let client_width = body.ClientWidth(can_gc) as i64;
+                let client_height = body.ClientHeight(can_gc) as i64;
 
                 // Steps 2 - 5
                 let left = cmp::max(0, cmp::min(x, x + width));
@@ -412,11 +416,12 @@ pub fn handle_get_element_in_view_center_point(
     pipeline: PipelineId,
     element_id: String,
     reply: IpcSender<Result<Option<(i64, i64)>, ErrorStatus>>,
+    can_gc: CanGc,
 ) {
     reply
         .send(
             find_node_by_unique_id(documents, pipeline, element_id).map(|node| {
-                get_element_in_view_center_point(node.downcast::<Element>().unwrap())
+                get_element_in_view_center_point(node.downcast::<Element>().unwrap(), can_gc)
                     .map(|point| (point.x, point.y))
             }),
         )
@@ -676,6 +681,7 @@ pub fn handle_focus_element(
     pipeline: PipelineId,
     element_id: String,
     reply: IpcSender<Result<(), ErrorStatus>>,
+    can_gc: CanGc,
 ) {
     reply
         .send(
@@ -683,7 +689,7 @@ pub fn handle_focus_element(
                 match node.downcast::<HTMLElement>() {
                     Some(element) => {
                         // Need a way to find if this actually succeeded
-                        element.Focus();
+                        element.Focus(can_gc);
                         Ok(())
                     },
                     None => Err(ErrorStatus::UnknownError),
@@ -712,6 +718,7 @@ pub fn handle_get_page_source(
     documents: &Documents,
     pipeline: PipelineId,
     reply: IpcSender<Result<String, ErrorStatus>>,
+    can_gc: CanGc,
 ) {
     reply
         .send(
@@ -722,7 +729,7 @@ pub fn handle_get_page_source(
                     Some(element) => match element.GetOuterHTML() {
                         Ok(source) => Ok(source.to_string()),
                         Err(_) => {
-                            match XMLSerializer::new(document.window(), None, CanGc::note())
+                            match XMLSerializer::new(document.window(), None, can_gc)
                                 .SerializeToString(element.upcast::<Node>())
                             {
                                 Ok(source) => Ok(source.to_string()),
@@ -878,6 +885,7 @@ pub fn handle_get_rect(
     pipeline: PipelineId,
     element_id: String,
     reply: IpcSender<Result<Rect<f64>, ErrorStatus>>,
+    can_gc: CanGc,
 ) {
     reply
         .send(
@@ -889,15 +897,15 @@ pub fn handle_get_rect(
                         let mut x = 0;
                         let mut y = 0;
 
-                        let mut offset_parent = html_element.GetOffsetParent();
+                        let mut offset_parent = html_element.GetOffsetParent(can_gc);
 
                         // Step 2
                         while let Some(element) = offset_parent {
                             offset_parent = match element.downcast::<HTMLElement>() {
                                 Some(elem) => {
-                                    x += elem.OffsetLeft();
-                                    y += elem.OffsetTop();
-                                    elem.GetOffsetParent()
+                                    x += elem.OffsetLeft(can_gc);
+                                    y += elem.OffsetTop(can_gc);
+                                    elem.GetOffsetParent(can_gc)
                                 },
                                 None => None,
                             };
@@ -906,8 +914,8 @@ pub fn handle_get_rect(
                         Ok(Rect::new(
                             Point2D::new(x as f64, y as f64),
                             Size2D::new(
-                                html_element.OffsetWidth() as f64,
-                                html_element.OffsetHeight() as f64,
+                                html_element.OffsetWidth(can_gc) as f64,
+                                html_element.OffsetHeight(can_gc) as f64,
                             ),
                         ))
                     },
@@ -923,6 +931,7 @@ pub fn handle_get_bounding_client_rect(
     pipeline: PipelineId,
     element_id: String,
     reply: IpcSender<Result<Rect<f32>, ErrorStatus>>,
+    can_gc: CanGc,
 ) {
     reply
         .send(
@@ -930,7 +939,7 @@ pub fn handle_get_bounding_client_rect(
                 .downcast::<Element>(
             ) {
                 Some(element) => {
-                    let rect = element.GetBoundingClientRect();
+                    let rect = element.GetBoundingClientRect(can_gc);
                     Ok(Rect::new(
                         Point2D::new(rect.X() as f32, rect.Y() as f32),
                         Size2D::new(rect.Width() as f32, rect.Height() as f32),
@@ -1035,6 +1044,7 @@ pub fn handle_get_css(
     node_id: String,
     name: String,
     reply: IpcSender<Result<String, ErrorStatus>>,
+    can_gc: CanGc,
 ) {
     reply
         .send(
@@ -1044,7 +1054,7 @@ pub fn handle_get_css(
                 String::from(
                     window
                         .GetComputedStyle(element, None)
-                        .GetPropertyValue(DOMString::from(name)),
+                        .GetPropertyValue(DOMString::from(name), can_gc),
                 )
             }),
         )
@@ -1069,6 +1079,7 @@ pub fn handle_element_click(
     pipeline: PipelineId,
     element_id: String,
     reply: IpcSender<Result<Option<String>, ErrorStatus>>,
+    can_gc: CanGc,
 ) {
     reply
         .send(
@@ -1113,20 +1124,20 @@ pub fn handle_element_click(
 
                         // Steps 8.2 - 8.4
                         let event_target = parent_node.upcast::<EventTarget>();
-                        event_target.fire_event(atom!("mouseover"));
-                        event_target.fire_event(atom!("mousemove"));
-                        event_target.fire_event(atom!("mousedown"));
+                        event_target.fire_event(atom!("mouseover"), can_gc);
+                        event_target.fire_event(atom!("mousemove"), can_gc);
+                        event_target.fire_event(atom!("mousedown"), can_gc);
 
                         // Step 8.5
                         match parent_node.downcast::<HTMLElement>() {
-                            Some(html_element) => html_element.Focus(),
+                            Some(html_element) => html_element.Focus(can_gc),
                             None => return Err(ErrorStatus::UnknownError),
                         }
 
                         // Step 8.6
                         if !option_element.Disabled() {
                             // Step 8.6.1
-                            event_target.fire_event(atom!("input"));
+                            event_target.fire_event(atom!("input"), can_gc);
 
                             // Steps 8.6.2
                             let previous_selectedness = option_element.Selected();
@@ -1143,13 +1154,13 @@ pub fn handle_element_click(
 
                             // Step 8.6.4
                             if !previous_selectedness {
-                                event_target.fire_event(atom!("change"));
+                                event_target.fire_event(atom!("change"), can_gc);
                             }
                         }
 
                         // Steps 8.7 - 8.8
-                        event_target.fire_event(atom!("mouseup"));
-                        event_target.fire_event(atom!("click"));
+                        event_target.fire_event(atom!("mouseup"), can_gc);
+                        event_target.fire_event(atom!("click"), can_gc);
 
                         Ok(None)
                     },

@@ -54,16 +54,9 @@ impl PageTransitionEvent {
         bubbles: bool,
         cancelable: bool,
         persisted: bool,
+        can_gc: CanGc,
     ) -> DomRoot<PageTransitionEvent> {
-        Self::new_with_proto(
-            window,
-            None,
-            type_,
-            bubbles,
-            cancelable,
-            persisted,
-            CanGc::note(),
-        )
+        Self::new_with_proto(window, None, type_, bubbles, cancelable, persisted, can_gc)
     }
 
     fn new_with_proto(
@@ -83,9 +76,11 @@ impl PageTransitionEvent {
         }
         ev
     }
+}
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+impl PageTransitionEventMethods for PageTransitionEvent {
+    // https://html.spec.whatwg.org/multipage/#pagetransitionevent
+    fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -102,9 +97,7 @@ impl PageTransitionEvent {
             can_gc,
         ))
     }
-}
 
-impl PageTransitionEventMethods for PageTransitionEvent {
     // https://html.spec.whatwg.org/multipage/#dom-pagetransitionevent-persisted
     fn Persisted(&self) -> bool {
         self.persisted.get()

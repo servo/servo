@@ -49,8 +49,12 @@ impl StorageEvent {
         }
     }
 
-    pub fn new_uninitialized(window: &Window, url: DOMString) -> DomRoot<StorageEvent> {
-        Self::new_uninitialized_with_proto(window, None, url, CanGc::note())
+    pub fn new_uninitialized(
+        window: &Window,
+        url: DOMString,
+        can_gc: CanGc,
+    ) -> DomRoot<StorageEvent> {
+        Self::new_uninitialized_with_proto(window, None, url, can_gc)
     }
 
     fn new_uninitialized_with_proto(
@@ -78,6 +82,7 @@ impl StorageEvent {
         newValue: Option<DOMString>,
         url: DOMString,
         storageArea: Option<&Storage>,
+        can_gc: CanGc,
     ) -> DomRoot<StorageEvent> {
         Self::new_with_proto(
             global,
@@ -90,7 +95,7 @@ impl StorageEvent {
             newValue,
             url,
             storageArea,
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -126,8 +131,12 @@ impl StorageEvent {
         }
         ev
     }
+}
 
-    pub fn Constructor(
+#[allow(non_snake_case)]
+impl StorageEventMethods for StorageEvent {
+    // https://html.spec.whatwg.org/multipage/#storageevent
+    fn Constructor(
         global: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -156,10 +165,7 @@ impl StorageEvent {
         );
         Ok(event)
     }
-}
 
-#[allow(non_snake_case)]
-impl StorageEventMethods for StorageEvent {
     // https://html.spec.whatwg.org/multipage/#dom-storageevent-key
     fn GetKey(&self) -> Option<DOMString> {
         self.key.borrow().clone()

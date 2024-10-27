@@ -33,6 +33,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::fakexrinputcontroller::{init_to_mock_buttons, FakeXRInputController};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
+use crate::script_runtime::CanGc;
 use crate::task_source::TaskSource;
 
 #[dom_struct]
@@ -80,7 +81,7 @@ pub fn view<Eye>(view: &FakeXRViewInit) -> Fallible<MockViewInit<Eye>> {
     let size = Size2D::new(view.resolution.width, view.resolution.height);
     let origin = match view.eye {
         XREye::Right => Point2D::new(size.width, 0),
-        _ => Point2D::new(0, 0),
+        _ => Point2D::zero(),
     };
     let viewport = Rect::new(origin, size);
 
@@ -297,17 +298,18 @@ impl FakeXRDeviceMethods for FakeXRDevice {
     }
 
     /// <https://immersive-web.github.io/webxr-test-api/#dom-fakexrdevice-disconnect>
-    fn Disconnect(&self) -> Rc<Promise> {
+    fn Disconnect(&self, can_gc: CanGc) -> Rc<Promise> {
         let global = self.global();
-        let p = Promise::new(&global);
+        let p = Promise::new(&global, can_gc);
         let mut trusted = Some(TrustedPromise::new(p.clone()));
         let (task_source, canceller) = global
             .as_window()
             .task_manager()
             .dom_manipulation_task_source_with_canceller();
         let (sender, receiver) = ipc::channel(global.time_profiler_chan().clone()).unwrap();
-        ROUTER.add_route(
-            receiver.to_opaque(),
+
+        ROUTER.add_typed_route(
+            receiver.to_ipc_receiver(),
             Box::new(move |_| {
                 let trusted = trusted
                     .take()

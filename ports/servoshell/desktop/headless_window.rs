@@ -20,7 +20,6 @@ use servo::webrender_api::units::{DeviceIntRect, DeviceIntSize};
 use servo::webrender_traits::RenderingContext;
 use surfman::{Connection, Context, Device, SurfaceType};
 
-use super::events_loop::WakerEvent;
 use crate::desktop::window_trait::WindowPortsMethods;
 
 pub struct Window {
@@ -70,7 +69,7 @@ impl WindowPortsMethods for Window {
     }
 
     fn id(&self) -> winit::window::WindowId {
-        unsafe { winit::window::WindowId::dummy() }
+        winit::window::WindowId::dummy()
     }
 
     fn request_inner_size(&self, size: DeviceIntSize) -> Option<DeviceIntSize> {
@@ -136,7 +135,7 @@ impl WindowPortsMethods for Window {
 
     fn new_glwindow(
         &self,
-        _events_loop: &winit::event_loop::EventLoopWindowTarget<WakerEvent>,
+        _events_loop: &winit::event_loop::ActiveEventLoop,
     ) -> Box<dyn webxr::glwindow::GlWindow> {
         unimplemented!()
     }
@@ -167,9 +166,9 @@ impl WindowMethods for Window {
         EmbedderCoordinates {
             viewport,
             framebuffer: size,
-            window: (size, Point2D::zero()),
-            screen: size,
-            screen_avail: size,
+            window_rect: DeviceIntRect::from_origin_and_size(Point2D::zero(), size),
+            screen_size: size,
+            available_screen_size: size,
             hidpi_factor: dpr,
         }
     }

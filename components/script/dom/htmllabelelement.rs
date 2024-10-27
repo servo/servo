@@ -25,6 +25,7 @@ use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmlformelement::{FormControl, FormControlElementHelpers, HTMLFormElement};
 use crate::dom::node::{Node, ShadowIncluding};
 use crate::dom::virtualmethods::VirtualMethods;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct HTMLLabelElement {
@@ -48,6 +49,7 @@ impl HTMLLabelElement {
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> DomRoot<HTMLLabelElement> {
         Node::reflect_node_with_proto(
             Box::new(HTMLLabelElement::new_inherited(
@@ -55,6 +57,7 @@ impl HTMLLabelElement {
             )),
             document,
             proto,
+            can_gc,
         )
     }
 }
@@ -73,9 +76,9 @@ impl Activatable for HTMLLabelElement {
     // at all, we are free to do an implementation-dependent thing;
     // firing a click event is an example, and the precise details of that
     // click event (e.g. isTrusted) are not specified.
-    fn activation_behavior(&self, _event: &Event, _target: &EventTarget) {
+    fn activation_behavior(&self, _event: &Event, _target: &EventTarget, can_gc: CanGc) {
         if let Some(e) = self.GetControl() {
-            e.Click();
+            e.Click(can_gc);
         }
     }
 }

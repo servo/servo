@@ -75,7 +75,7 @@ use crate::dom::validation::{is_barred_by_datalist_ancestor, Validatable};
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::realms::enter_realm;
-use crate::script_runtime::JSContext as SafeJSContext;
+use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::textinput::KeyReaction::{
     DispatchInput, Nothing, RedrawSelection, TriggerDefaultAction,
 };
@@ -326,6 +326,7 @@ impl HTMLInputElement {
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> DomRoot<HTMLInputElement> {
         Node::reflect_node_with_proto(
             Box::new(HTMLInputElement::new_inherited(
@@ -333,6 +334,7 @@ impl HTMLInputElement {
             )),
             document,
             proto,
+            can_gc,
         )
     }
 
@@ -655,7 +657,7 @@ impl HTMLInputElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-input-stepdown
     // https://html.spec.whatwg.org/multipage/#dom-input-stepup
-    fn step_up_or_down(&self, n: i32, dir: StepDirection) -> ErrorResult {
+    fn step_up_or_down(&self, n: i32, dir: StepDirection, can_gc: CanGc) -> ErrorResult {
         // Step 1
         if !self.does_value_as_number_apply() {
             return Err(Error::InvalidState);
@@ -738,7 +740,7 @@ impl HTMLInputElement {
         }
 
         // Step 11
-        self.SetValueAsNumber(value)
+        self.SetValueAsNumber(value, can_gc)
     }
 
     // https://html.spec.whatwg.org/multipage/#concept-input-list
@@ -1242,7 +1244,7 @@ impl HTMLInputElementMethods for HTMLInputElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-value
-    fn SetValue(&self, mut value: DOMString) -> ErrorResult {
+    fn SetValue(&self, mut value: DOMString, can_gc: CanGc) -> ErrorResult {
         match self.value_mode() {
             ValueMode::Value => {
                 // Step 3.
@@ -1264,7 +1266,7 @@ impl HTMLInputElementMethods for HTMLInputElement {
             },
             ValueMode::Default | ValueMode::DefaultOn => {
                 self.upcast::<Element>()
-                    .set_string_attribute(&local_name!("value"), value);
+                    .set_string_attribute(&local_name!("value"), value, can_gc);
             },
             ValueMode::Filename => {
                 if value.is_empty() {
@@ -1314,13 +1316,18 @@ impl HTMLInputElementMethods for HTMLInputElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-input-valueasdate
     #[allow(unsafe_code, non_snake_case)]
-    fn SetValueAsDate(&self, cx: SafeJSContext, value: *mut JSObject) -> ErrorResult {
+    fn SetValueAsDate(
+        &self,
+        cx: SafeJSContext,
+        value: *mut JSObject,
+        can_gc: CanGc,
+    ) -> ErrorResult {
         rooted!(in(*cx) let value = value);
         if !self.does_value_as_date_apply() {
             return Err(Error::InvalidState);
         }
         if value.is_null() {
-            return self.SetValue(DOMString::from(""));
+            return self.SetValue(DOMString::from(""), can_gc);
         }
         let mut msecs: f64 = 0.0;
         // We need to go through unsafe code to interrogate jsapi about a Date.
@@ -1338,14 +1345,14 @@ impl HTMLInputElementMethods for HTMLInputElement {
                 return Err(Error::JSFailed);
             }
             if !msecs.is_finite() {
-                return self.SetValue(DOMString::from(""));
+                return self.SetValue(DOMString::from(""), can_gc);
             }
         }
 
         let Ok(date_time) = OffsetDateTime::from_unix_timestamp_nanos((msecs * 1e6) as i128) else {
-            return self.SetValue(DOMString::from(""));
+            return self.SetValue(DOMString::from(""), can_gc);
         };
-        self.SetValue(self.convert_datetime_to_dom_string(date_time))
+        self.SetValue(self.convert_datetime_to_dom_string(date_time), can_gc)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-valueasnumber
@@ -1355,21 +1362,21 @@ impl HTMLInputElementMethods for HTMLInputElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-valueasnumber
-    fn SetValueAsNumber(&self, value: f64) -> ErrorResult {
+    fn SetValueAsNumber(&self, value: f64, can_gc: CanGc) -> ErrorResult {
         if value.is_infinite() {
             Err(Error::Type("value is not finite".to_string()))
         } else if !self.does_value_as_number_apply() {
             Err(Error::InvalidState)
         } else if value.is_nan() {
-            self.SetValue(DOMString::from(""))
+            self.SetValue(DOMString::from(""), can_gc)
         } else if let Some(converted) = self.convert_number_to_string(value) {
-            self.SetValue(converted)
+            self.SetValue(converted, can_gc)
         } else {
             // The most literal spec-compliant implementation would use bignum types so
             // overflow is impossible, but just setting an overflow to the empty string
             // matches Firefox's behavior. For example, try input.valueAsNumber=1e30 on
             // a type="date" input.
-            self.SetValue(DOMString::from(""))
+            self.SetValue(DOMString::from(""), can_gc)
         }
     }
 
@@ -1559,20 +1566,20 @@ impl HTMLInputElementMethods for HTMLInputElement {
     // enabled by dom.htmlinputelement.select_files.enabled,
     // used for test purpose.
     // check-tidy: no specs after this line
-    fn SelectFiles(&self, paths: Vec<DOMString>) {
+    fn SelectFiles(&self, paths: Vec<DOMString>, can_gc: CanGc) {
         if self.input_type() == InputType::File {
-            self.select_files(Some(paths));
+            self.select_files(Some(paths), can_gc);
         }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-stepup
-    fn StepUp(&self, n: i32) -> ErrorResult {
-        self.step_up_or_down(n, StepDirection::Up)
+    fn StepUp(&self, n: i32, can_gc: CanGc) -> ErrorResult {
+        self.step_up_or_down(n, StepDirection::Up, can_gc)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-stepdown
-    fn StepDown(&self, n: i32) -> ErrorResult {
-        self.step_up_or_down(n, StepDirection::Down)
+    fn StepDown(&self, n: i32, can_gc: CanGc) -> ErrorResult {
+        self.step_up_or_down(n, StepDirection::Down, can_gc)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-cva-willvalidate
@@ -1586,13 +1593,13 @@ impl HTMLInputElementMethods for HTMLInputElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-cva-checkvalidity
-    fn CheckValidity(&self) -> bool {
-        self.check_validity()
+    fn CheckValidity(&self, can_gc: CanGc) -> bool {
+        self.check_validity(can_gc)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-cva-reportvalidity
-    fn ReportValidity(&self) -> bool {
-        self.report_validity()
+    fn ReportValidity(&self, can_gc: CanGc) -> bool {
+        self.report_validity(can_gc)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-cva-validationmessage
@@ -1826,7 +1833,7 @@ impl HTMLInputElement {
 
     // https://html.spec.whatwg.org/multipage/#file-upload-state-(type=file)
     // Select files by invoking UI or by passed in argument
-    fn select_files(&self, opt_test_paths: Option<Vec<DOMString>>) {
+    fn select_files(&self, opt_test_paths: Option<Vec<DOMString>>, can_gc: CanGc) {
         let window = window_from_node(self);
         let origin = get_blob_origin(&window.get_url());
         let resource_threads = window.upcast::<GlobalScope>().resource_threads();
@@ -1851,7 +1858,7 @@ impl HTMLInputElement {
             match recv.recv().expect("IpcSender side error") {
                 Ok(selected_files) => {
                     for selected in selected_files {
-                        files.push(File::new_from_selected(&window, selected));
+                        files.push(File::new_from_selected(&window, selected, can_gc));
                     }
                 },
                 Err(err) => error = Some(err),
@@ -1877,7 +1884,7 @@ impl HTMLInputElement {
 
             match recv.recv().expect("IpcSender side error") {
                 Ok(selected) => {
-                    files.push(File::new_from_selected(&window, selected));
+                    files.push(File::new_from_selected(&window, selected, can_gc));
                 },
                 Err(err) => error = Some(err),
             };
@@ -1889,8 +1896,8 @@ impl HTMLInputElement {
             let filelist = FileList::new(&window, files);
             self.filelist.set(Some(&filelist));
 
-            target.fire_bubbling_event(atom!("input"));
-            target.fire_bubbling_event(atom!("change"));
+            target.fire_bubbling_event(atom!("input"), can_gc);
+            target.fire_bubbling_event(atom!("change"), can_gc);
         }
     }
 
@@ -2048,7 +2055,7 @@ impl HTMLInputElement {
 
     // https://html.spec.whatwg.org/multipage/#implicit-submission
     #[allow(unsafe_code)]
-    fn implicit_submission(&self) {
+    fn implicit_submission(&self, can_gc: CanGc) {
         let doc = document_from_node(self);
         let node = doc.upcast::<Node>();
         let owner = self.form_owner();
@@ -2072,7 +2079,7 @@ impl HTMLInputElement {
                     // but we can get here from synthetic keydown events
                     button
                         .upcast::<Node>()
-                        .fire_synthetic_mouse_event_not_trusted(DOMString::from("click"));
+                        .fire_synthetic_mouse_event_not_trusted(DOMString::from("click"), can_gc);
                 }
             },
             None => {
@@ -2103,7 +2110,11 @@ impl HTMLInputElement {
                     // lazily test for > 1 submission-blocking inputs
                     return;
                 }
-                form.submit(SubmittedFrom::NotFromForm, FormSubmitterElement::Form(form));
+                form.submit(
+                    SubmittedFrom::NotFromForm,
+                    FormSubmitterElement::Form(form),
+                    can_gc,
+                );
             },
         }
     }
@@ -2263,7 +2274,7 @@ impl VirtualMethods for HTMLInputElement {
                     el.set_read_write_state(read_write);
                 }
 
-                el.update_sequentially_focusable_status();
+                el.update_sequentially_focusable_status(CanGc::note());
             },
             local_name!("checked") if !self.checked_changed.get() => {
                 let checked_state = match mutation {
@@ -2310,7 +2321,7 @@ impl VirtualMethods for HTMLInputElement {
                             // Step 1
                             (&ValueMode::Value, false, ValueMode::Default) |
                             (&ValueMode::Value, false, ValueMode::DefaultOn) => {
-                                self.SetValue(old_idl_value)
+                                self.SetValue(old_idl_value, CanGc::note())
                                     .expect("Failed to set input value on type change to a default ValueMode.");
                             },
 
@@ -2322,6 +2333,7 @@ impl VirtualMethods for HTMLInputElement {
                                         .map_or(DOMString::from(""), |a| {
                                             DOMString::from(a.summarize().value)
                                         }),
+                                    CanGc::note(),
                                 )
                                 .expect(
                                     "Failed to set input value on type change to ValueMode::Value.",
@@ -2333,7 +2345,7 @@ impl VirtualMethods for HTMLInputElement {
                             (_, _, ValueMode::Filename)
                                 if old_value_mode != ValueMode::Filename =>
                             {
-                                self.SetValue(DOMString::from(""))
+                                self.SetValue(DOMString::from(""), CanGc::note())
                                     .expect("Failed to set input value on type change to ValueMode::Filename.");
                             },
                             _ => {},
@@ -2513,7 +2525,11 @@ impl VirtualMethods for HTMLInputElement {
                     // now.
                     if let Some(point_in_target) = mouse_event.point_in_target() {
                         let window = window_from_node(self);
-                        let index = window.text_index_query(self.upcast::<Node>(), point_in_target);
+                        let index = window.text_index_query(
+                            self.upcast::<Node>(),
+                            point_in_target,
+                            CanGc::note(),
+                        );
                         if let Some(i) = index {
                             self.textinput.borrow_mut().set_edit_point_index(i);
                             // trigger redraw
@@ -2533,7 +2549,7 @@ impl VirtualMethods for HTMLInputElement {
                 let action = self.textinput.borrow_mut().handle_keydown(keyevent);
                 match action {
                     TriggerDefaultAction => {
-                        self.implicit_submission();
+                        self.implicit_submission(CanGc::note());
                     },
                     DispatchInput => {
                         self.value_dirty.set(true);
@@ -2797,7 +2813,7 @@ impl Activatable for HTMLInputElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#run-post-click-activation-steps
-    fn activation_behavior(&self, _event: &Event, _target: &EventTarget) {
+    fn activation_behavior(&self, _event: &Event, _target: &EventTarget, can_gc: CanGc) {
         let ty = self.input_type();
         match ty {
             InputType::Submit => {
@@ -2808,6 +2824,7 @@ impl Activatable for HTMLInputElement {
                     o.submit(
                         SubmittedFrom::NotFromForm,
                         FormSubmitterElement::Input(self),
+                        CanGc::note(),
                     )
                 }
             },
@@ -2816,7 +2833,7 @@ impl Activatable for HTMLInputElement {
                 // FIXME (Manishearth): support document owners (needs ability to get parent browsing context)
                 // Check if document owner is fully active
                 if let Some(o) = self.form_owner() {
-                    o.reset(ResetFrom::NotFromForm)
+                    o.reset(ResetFrom::NotFromForm, CanGc::note())
                 }
             },
             InputType::Checkbox | InputType::Radio => {
@@ -2827,10 +2844,10 @@ impl Activatable for HTMLInputElement {
                     return;
                 }
                 let target = self.upcast::<EventTarget>();
-                target.fire_bubbling_event(atom!("input"));
-                target.fire_bubbling_event(atom!("change"));
+                target.fire_bubbling_event(atom!("input"), can_gc);
+                target.fire_bubbling_event(atom!("change"), can_gc);
             },
-            InputType::File => self.select_files(None),
+            InputType::File => self.select_files(None, CanGc::note()),
             _ => (),
         }
     }

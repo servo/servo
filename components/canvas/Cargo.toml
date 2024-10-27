@@ -25,6 +25,7 @@ euclid = { workspace = true }
 fnv = { workspace = true }
 font-kit = "0.14"
 fonts = { path = "../fonts" }
+glow = { workspace = true }
 half = "2"
 ipc-channel = { workspace = true }
 log = { workspace = true }
@@ -45,5 +46,5 @@ unicode-script = { workspace = true }
 webrender = { workspace = true }
 webrender_api = { workspace = true }
 webrender_traits = { workspace = true }
-webxr = { git = "https://github.com/servo/webxr", features = ["ipc"] }
-webxr-api = { git = "https://github.com/servo/webxr", features = ["ipc"] }
+webxr = { workspace = true, features = ["ipc"] }
+webxr-api = { workspace = true, features = ["ipc"] }

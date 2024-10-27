@@ -25,6 +25,7 @@ use crate::dom::htmltableelement::HTMLTableElement;
 use crate::dom::htmltablesectionelement::HTMLTableSectionElement;
 use crate::dom::node::{window_from_node, Node};
 use crate::dom::virtualmethods::VirtualMethods;
+use crate::script_runtime::CanGc;
 
 #[derive(JSTraceable)]
 struct CellsFilter;
@@ -59,6 +60,7 @@ impl HTMLTableRowElement {
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> DomRoot<HTMLTableRowElement> {
         let n = Node::reflect_node_with_proto(
             Box::new(HTMLTableRowElement::new_inherited(
@@ -66,6 +68,7 @@ impl HTMLTableRowElement {
             )),
             document,
             proto,
+            can_gc,
         );
 
         n.upcast::<Node>().set_weird_parser_insertion_mode();
@@ -99,12 +102,12 @@ impl HTMLTableRowElementMethods for HTMLTableRowElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-tr-insertcell
-    fn InsertCell(&self, index: i32) -> Fallible<DomRoot<HTMLElement>> {
+    fn InsertCell(&self, index: i32, can_gc: CanGc) -> Fallible<DomRoot<HTMLElement>> {
         let node = self.upcast::<Node>();
         node.insert_cell_or_row(
             index,
             || self.Cells(),
-            || HTMLTableCellElement::new(local_name!("td"), None, &node.owner_doc(), None),
+            || HTMLTableCellElement::new(local_name!("td"), None, &node.owner_doc(), None, can_gc),
         )
     }
 

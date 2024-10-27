@@ -7,6 +7,7 @@ use std::rc::Rc;
 use std::sync::Mutex;
 
 use log::trace;
+use malloc_size_of_derive::MallocSizeOf;
 /// A random number generator which shares one instance of an `OsRng`.
 ///
 /// A problem with `OsRng`, which is inherited by `StdRng` and so
@@ -31,7 +32,9 @@ static OS_RNG: Mutex<OsRng> = Mutex::new(OsRng);
 const RESEED_THRESHOLD: u64 = 32_768;
 
 // An in-memory RNG that only uses the shared file descriptor for seeding and reseeding.
+#[derive(MallocSizeOf)]
 pub struct ServoRng {
+    #[ignore_malloc_size_of = "Defined in rand"]
     rng: ReseedingRng<IsaacCore, ServoReseeder>,
 }
 
@@ -86,7 +89,7 @@ impl ServoRng {
     pub fn new_manually_reseeded(seed: u64) -> ServoRng {
         trace!("Creating a new manually-reseeded ServoRng.");
         let isaac_rng = IsaacCore::seed_from_u64(seed);
-        let reseeding_rng = ReseedingRng::new(isaac_rng, u64::MAX, ServoReseeder);
+        let reseeding_rng = ReseedingRng::new(isaac_rng, 0, ServoReseeder);
         ServoRng { rng: reseeding_rng }
     }
 }

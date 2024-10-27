@@ -47,8 +47,8 @@ function test_resource_timing(options) {
   assert_equals(entryList.length, 1, description);
   const entry = entryList[0];
 
-  assert_equals(entry.matchedSourceType, options.matched_source_type, description);
-  assert_equals(entry.finalSourceType, options.final_source_type, description);
+  assert_equals(entry.workerMatchedSourceType, options.matched_source_type, description);
+  assert_equals(entry.workerFinalSourceType, options.final_source_type, description);
 
   assert_greater_than(entry.workerRouterEvaluationStart, 0, description);
   switch (entry.matchedSouceType) {
@@ -60,16 +60,17 @@ function test_resource_timing(options) {
     case 'cache':
       assert_equals(entry.workerStart, 0, description);
       assert_greater_than_equal(entry.workerCacheLookupStart, entry.workerRouterEvaluationStart, description);
-      if (entry.finalSourceType === 'cache') {
-        assert_equals(entry.fetchStart, 0, description);
+      if (entry.workerFinalSourceType === 'cache') {
+        assert_equals(entry.fetchStart, entry.responseStart, description);
         assert_less_than_equal(entry.workerCacheLookupStart, entry.responseStart, description);
+        assert_equals(entry.deliveryType, 'cache-storage', description);
       } else {
         assert_less_than_equal(entry.workerCacheLookupStart, entry.fetchStart, description);
       }
       break;
     case 'race-network-and-fetch':
       assert_equals(entry.workerCacheLookupStart, 0, description);
-      if (entry.finalSourceType === 'network') {
+      if (entry.workerFinalSourceType === 'network') {
         assert_equals(entry.workerStart, 0, description);
         assert_less_than_equal(entry.workerRouterEvaluationStart, entry.fetchStart, description);
       } else {

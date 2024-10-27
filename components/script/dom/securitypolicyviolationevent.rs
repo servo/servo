@@ -93,20 +93,16 @@ impl SecurityPolicyViolationEvent {
         bubbles: EventBubbles,
         cancelable: EventCancelable,
         init: &SecurityPolicyViolationEventInit,
+        can_gc: CanGc,
     ) -> DomRoot<Self> {
-        Self::new_with_proto(
-            global,
-            None,
-            type_,
-            bubbles,
-            cancelable,
-            init,
-            CanGc::note(),
-        )
+        Self::new_with_proto(global, None, type_, bubbles, cancelable, init, can_gc)
     }
+}
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+#[allow(non_snake_case)]
+impl SecurityPolicyViolationEventMethods for SecurityPolicyViolationEvent {
+    /// <https://w3c.github.io/webappsec-csp/#dom-securitypolicyviolationevent-securitypolicyviolationevent>
+    fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -123,10 +119,7 @@ impl SecurityPolicyViolationEvent {
             can_gc,
         )
     }
-}
 
-#[allow(non_snake_case)]
-impl SecurityPolicyViolationEventMethods for SecurityPolicyViolationEvent {
     /// <https://w3c.github.io/webappsec-csp/#dom-securitypolicyviolationevent-documenturi>
     fn DocumentURI(&self) -> USVString {
         self.document_uri.clone()

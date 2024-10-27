@@ -36,6 +36,7 @@ impl ProgressEvent {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         global: &GlobalScope,
         type_: Atom,
@@ -44,6 +45,7 @@ impl ProgressEvent {
         length_computable: bool,
         loaded: u64,
         total: u64,
+        can_gc: CanGc,
     ) -> DomRoot<ProgressEvent> {
         Self::new_with_proto(
             global,
@@ -54,7 +56,7 @@ impl ProgressEvent {
             length_computable,
             loaded,
             total,
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -86,9 +88,11 @@ impl ProgressEvent {
         }
         ev
     }
+}
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+impl ProgressEventMethods for ProgressEvent {
+    // https://xhr.spec.whatwg.org/#dom-progressevent-progressevent
+    fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -110,9 +114,7 @@ impl ProgressEvent {
         );
         Ok(ev)
     }
-}
 
-impl ProgressEventMethods for ProgressEvent {
     // https://xhr.spec.whatwg.org/#dom-progressevent-lengthcomputable
     fn LengthComputable(&self) -> bool {
         self.length_computable

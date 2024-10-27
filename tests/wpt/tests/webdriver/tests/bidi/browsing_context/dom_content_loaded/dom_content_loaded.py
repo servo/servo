@@ -155,8 +155,9 @@ async def test_new_context(bidi_session, subscribe_events, wait_for_event, wait_
     assert event["navigation"] is not None
 
 
+@pytest.mark.parametrize("sandbox", [None, "sandbox_1"])
 async def test_document_write(
-    bidi_session, subscribe_events, inline, top_context, wait_for_event, wait_for_future_safe
+    bidi_session, subscribe_events, new_tab, wait_for_event, wait_for_future_safe, sandbox
 ):
     await subscribe_events(events=[DOM_CONTENT_LOADED_EVENT])
 
@@ -164,7 +165,7 @@ async def test_document_write(
 
     await bidi_session.script.evaluate(
         expression="""document.open(); document.write("<h1>Replaced</h1>"); document.close();""",
-        target=ContextTarget(top_context["context"]),
+        target=ContextTarget(new_tab["context"], sandbox),
         await_promise=False,
     )
 
@@ -172,9 +173,41 @@ async def test_document_write(
 
     assert_navigation_info(
         event,
-        {"context": top_context["context"]},
+        {"context": new_tab["context"]},
     )
     assert event["navigation"] is not None
+
+
+async def test_early_same_document_navigation(
+    bidi_session,
+    subscribe_events,
+    inline,
+    new_tab,
+    wait_for_event,
+    wait_for_future_safe,
+):
+    await subscribe_events(events=[DOM_CONTENT_LOADED_EVENT])
+
+    on_entry = wait_for_event(DOM_CONTENT_LOADED_EVENT)
+
+    url = inline(
+        """
+        <script type="text/javascript">
+            history.replaceState(null, 'initial', window.location.href);
+        </script>
+    """
+    )
+
+    result = await bidi_session.browsing_context.navigate(
+        context=new_tab["context"], url=url
+    )
+
+    event = await wait_for_future_safe(on_entry)
+
+    assert_navigation_info(
+        event,
+        {"context": new_tab["context"], "navigation": result["navigation"], "url": url},
+    )
 
 
 async def test_page_with_base_tag(

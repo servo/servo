@@ -10,7 +10,7 @@
 <script>
 "use strict";
 
-const KNOWN_CAPABILITIES = [
+const KNOWN_CAPABILITIES_SET = new Set([
   "conditionalCreate",
   "conditionalGet",
   "hybridTransport",
@@ -20,14 +20,32 @@ const KNOWN_CAPABILITIES = [
   "signalCurrentUserDetails",
   "signalUnknownCredential",
   "userVerifyingPlatformAuthenticator",
-];
+]);
 
 promise_test(async t => {
   const capabilities = await PublicKeyCredential.getClientCapabilities();
-  assert_array_equals(Object.keys(capabilities), KNOWN_CAPABILITIES);
-  for (let capability of KNOWN_CAPABILITIES) {
-    assert_equals(typeof capabilities[capability], "boolean");
-  }
-}, "Known capabilities are reported and are sorted");
 
+  const keys = Object.keys(capabilities);
+  const sortedKeys = [...keys].sort();
+  assert_array_equals(keys, sortedKeys, "Keys should be sorted lexicographically");
+
+  for (const key of keys) {
+    assert_equals(
+      typeof capabilities[key],
+      "boolean",
+      `Value for "${key}" should be boolean`
+    );
+  }
+}, "Capabilities object has sorted keys and boolean values");
+
+promise_test(async t => {
+  const capabilities = await PublicKeyCredential.getClientCapabilities();
+
+  for (const key of Object.keys(capabilities)) {
+    assert_true(
+      KNOWN_CAPABILITIES_SET.has(key),
+      `Capability "${key}" should be a known capability`
+    );
+  }
+}, "Capabilities keys are known");
 </script>

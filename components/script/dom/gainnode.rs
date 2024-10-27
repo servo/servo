@@ -69,8 +69,9 @@ impl GainNode {
         window: &Window,
         context: &BaseAudioContext,
         options: &GainOptions,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<GainNode>> {
-        Self::new_with_proto(window, None, context, options, CanGc::note())
+        Self::new_with_proto(window, None, context, options, can_gc)
     }
 
     #[allow(crown::unrooted_must_root)]
@@ -89,9 +90,11 @@ impl GainNode {
             can_gc,
         ))
     }
+}
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+impl GainNodeMethods for GainNode {
+    // https://webaudio.github.io/web-audio-api/#dom-gainnode-gainnode
+    fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -100,9 +103,7 @@ impl GainNode {
     ) -> Fallible<DomRoot<GainNode>> {
         GainNode::new_with_proto(window, proto, context, options, can_gc)
     }
-}
 
-impl GainNodeMethods for GainNode {
     // https://webaudio.github.io/web-audio-api/#dom-gainnode-gain
     fn Gain(&self) -> DomRoot<AudioParam> {
         DomRoot::from_ref(&self.gain)

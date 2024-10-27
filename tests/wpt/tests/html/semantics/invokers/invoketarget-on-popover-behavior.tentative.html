@@ -11,16 +11,16 @@
 <script src="resources/invoker-utils.js"></script>
 
 <div id="invokee" popover>
-  <button id="containedinvoker" commandfor="invokee" command="hidepopover"></button>
+  <button id="containedinvoker" commandfor="invokee" command="hide-popover"></button>
 </div>
-<button id="invokerbutton" commandfor="invokee" command="togglepopover"></button>
+<button id="invokerbutton" commandfor="invokee" command="toggle-popover"></button>
 
 <script>
   function resetState() {
     invokerbutton.setAttribute("commandfor", "invokee");
-    invokerbutton.setAttribute("command", "togglepopover");
+    invokerbutton.setAttribute("command", "toggle-popover");
     containedinvoker.setAttribute("commandfor", "invokee");
-    containedinvoker.setAttribute("command", "closepopover");
+    containedinvoker.setAttribute("command", "hide-popover");
     try {
       invokee.hidePopover();
     } catch {}
@@ -29,7 +29,7 @@
 
   promise_test(async function (t) {
     assert_false(invokee.matches(":popover-open"));
-    invokee.addEventListener("command", (e) => { invokerbutton.setAttribute('command', 'hidepopover'); }, {
+    invokee.addEventListener("command", (e) => { invokerbutton.setAttribute('command', 'hide-popover'); }, {
       once: true,
     });
     await clickOn(invokerbutton);
@@ -39,11 +39,11 @@
 
   // Open actions
   [
-    "togglepopover",
-    "showpopover",
+    "toggle-popover",
+    "show-popover",
     /* test case sensitivity */
-    "tOgGlEpOpOvEr",
-    "sHoWpOpOvEr",
+    "tOgGlE-pOpOvEr",
+    "sHoW-pOpOvEr",
   ].forEach((command) => {
     promise_test(
       async function (t) {
@@ -73,11 +73,11 @@
 
   // Close actions
   [
-    "togglepopover",
-    "hidepopover",
+    "toggle-popover",
+    "hide-popover",
     /* test case sensitivity */
-    "tOgGlEpOpOvEr",
-    "hIdEpOpOvEr",
+    "tOgGlE-pOpOvEr",
+    "hIdE-pOpOvEr",
   ].forEach((command) => {
     promise_test(
       async function (t) {
@@ -134,22 +134,22 @@
     );
   });
 
-  // showpopover specific
+  // show-popover specific
   promise_test(async function (t) {
     t.add_cleanup(resetState);
-    invokerbutton.setAttribute("command", "showpopover");
+    invokerbutton.setAttribute("command", "show-popover");
     invokee.showPopover();
     assert_true(invokee.matches(":popover-open"));
     await clickOn(invokerbutton);
     assert_true(invokee.matches(":popover-open"));
-  }, "invoking (as showpopover) open popover is noop");
+  }, "invoking (as show-popover) open popover is noop");
 
-  // hidepopover specific
+  // hide-popover specific
   promise_test(async function (t) {
     t.add_cleanup(resetState);
-    invokerbutton.setAttribute("command", "hidepopover");
+    invokerbutton.setAttribute("command", "hide-popover");
     assert_false(invokee.matches(":popover-open"));
     await clickOn(invokerbutton);
     assert_false(invokee.matches(":popover-open"));
-  }, "invoking (as hidepopover) closed popover is noop");
+  }, "invoking (as hide-popover) closed popover is noop");
 </script>

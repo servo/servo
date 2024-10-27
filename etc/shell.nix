@@ -35,7 +35,7 @@ let
     llvmPackages = llvmPackages_14;
     stdenv = llvmPackages.stdenv;
 
-    buildToolsVersion = "33.0.2";
+    buildToolsVersion = "34.0.0";
     androidComposition = androidenv.composeAndroidPackages {
       buildToolsVersions = [ buildToolsVersion ];
       includeEmulator = true;

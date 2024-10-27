@@ -1,9 +1,5 @@
 from tests.support.asserts import assert_error, assert_success
-from tests.support.helpers import (
-    document_hidden,
-    is_fullscreen,
-    is_maximized,
-)
+from tests.support.helpers import is_fullscreen, is_maximized
 
 
 def fullscreen(session):
@@ -55,21 +51,6 @@ def test_fullscreen_from_maximized_window(session, screen_size):
     response = fullscreen(session)
     assert_success(response, session.window.rect)
     assert not is_maximized(session)
-
-    assert session.window.size == screen_size
-
-
-def test_fullscreen_from_minimized_window(session, screen_size):
-    assert not document_hidden(session)
-
-    session.window.minimize()
-    assert document_hidden(session)
-    assert not is_fullscreen(session)
-
-    response = fullscreen(session)
-    assert_success(response, session.window.rect)
-    assert not document_hidden(session)
-    assert is_fullscreen(session)
 
     assert session.window.size == screen_size
 

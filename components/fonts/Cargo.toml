@@ -13,6 +13,9 @@ path = "lib.rs"
 test = true
 doctest = false
 
+[features]
+tracing = ["dep:tracing"]
+
 [dependencies]
 app_units = { workspace = true }
 atomic_refcell = { workspace = true }
@@ -31,7 +34,9 @@ libc = { workspace = true }
 log = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
+memmap2 = { workspace = true }
 net_traits = { workspace = true }
+num-traits = { workspace = true }
 parking_lot = { workspace = true }
 range = { path = "../range" }
 serde = { workspace = true }
@@ -42,7 +47,7 @@ servo_url = { path = "../url" }
 smallvec = { workspace = true, features = ["union"] }
 surfman = { workspace = true }
 style = { workspace = true }
-tracing = { workspace = true }
+tracing = { workspace = true, optional = true }
 unicode-bidi = { workspace = true, features = ["with_serde"] }
 unicode-properties = { workspace = true }
 unicode-script = { workspace = true }
@@ -77,5 +82,5 @@ harfbuzz-sys = { version = "0.6.1", features = ["bundled"] }
 
 [target.'cfg(target_os = "windows")'.dependencies]
 harfbuzz-sys = { version = "0.6", features = ["bundled"] }
-dwrote = "0.11.1"
+dwrote = "0.11.2"
 truetype = { version = "0.47.3", features = ["ignore-invalid-language-ids"] }

@@ -65,13 +65,46 @@ enable f16;`,
   unknown: {
     code: `enable unknown;`,
     pass: false
+  },
+  subgroups: {
+    code: `enable subgroups;`,
+    pass: true
+  },
+  subgroups_f16_fail: {
+    code: `enable subgroups_f16;`,
+    pass: false
+  },
+  subgroups_f16_pass1: {
+    code: `
+    enable subgroups_f16;
+    enable subgroups;
+    enable f16;`,
+    pass: true
+  },
+  subgroups_f16_pass2: {
+    code: `
+    enable f16;
+    enable subgroups;
+    enable subgroups_f16;`,
+    pass: true
   }
 };
 
 g.test('enable').
 desc(`Tests that enables are validated correctly`).
 beforeAllSubcases((t) => {
-  t.selectDeviceOrSkipTestCase('shader-f16');
+  const features = [];
+  const name = t.params.case;
+  if (name.includes('subgroups_f16')) {
+    features.push('subgroups');
+    features.push('subgroups-f16');
+    features.push('shader-f16');
+  } else if (name.includes('subgroups')) {
+    features.push('subgroups');
+  } else {
+    features.push('shader-f16');
+  }
+  t.selectDeviceOrSkipTestCase(features);
 }).
 params((u) => u.combine('case', keysOf(kCases))).
 fn((t) => {

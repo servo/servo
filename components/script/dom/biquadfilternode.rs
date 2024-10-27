@@ -117,8 +117,9 @@ impl BiquadFilterNode {
         window: &Window,
         context: &BaseAudioContext,
         options: &BiquadFilterOptions,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<BiquadFilterNode>> {
-        Self::new_with_proto(window, None, context, options, CanGc::note())
+        Self::new_with_proto(window, None, context, options, can_gc)
     }
 
     #[allow(crown::unrooted_must_root)]
@@ -137,9 +138,11 @@ impl BiquadFilterNode {
             can_gc,
         ))
     }
+}
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+impl BiquadFilterNodeMethods for BiquadFilterNode {
+    // https://webaudio.github.io/web-audio-api/#dom-biquadfilternode-biquadfilternode-context-options
+    fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -148,9 +151,7 @@ impl BiquadFilterNode {
     ) -> Fallible<DomRoot<BiquadFilterNode>> {
         BiquadFilterNode::new_with_proto(window, proto, context, options, can_gc)
     }
-}
 
-impl BiquadFilterNodeMethods for BiquadFilterNode {
     // https://webaudio.github.io/web-audio-api/#dom-biquadfilternode-gain
     fn Gain(&self) -> DomRoot<AudioParam> {
         DomRoot::from_ref(&self.gain)

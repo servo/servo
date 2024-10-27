@@ -34,6 +34,7 @@ use crate::dom::messageevent::MessageEvent;
 use crate::dom::rtcerror::RTCError;
 use crate::dom::rtcerrorevent::RTCErrorEvent;
 use crate::dom::rtcpeerconnection::RTCPeerConnection;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct RTCDataChannel {
@@ -110,30 +111,32 @@ impl RTCDataChannel {
         rtc_data_channel
     }
 
-    pub fn on_open(&self) {
+    pub fn on_open(&self, can_gc: CanGc) {
         let event = Event::new(
             &self.global(),
             atom!("open"),
             EventBubbles::DoesNotBubble,
             EventCancelable::NotCancelable,
+            can_gc,
         );
-        event.upcast::<Event>().fire(self.upcast());
+        event.upcast::<Event>().fire(self.upcast(), can_gc);
     }
 
-    pub fn on_close(&self) {
+    pub fn on_close(&self, can_gc: CanGc) {
         let event = Event::new(
             &self.global(),
             atom!("close"),
             EventBubbles::DoesNotBubble,
             EventCancelable::NotCancelable,
+            can_gc,
         );
-        event.upcast::<Event>().fire(self.upcast());
+        event.upcast::<Event>().fire(self.upcast(), can_gc);
 
         self.peer_connection
             .unregister_data_channel(&self.servo_media_id);
     }
 
-    pub fn on_error(&self, error: WebRtcError) {
+    pub fn on_error(&self, error: WebRtcError, can_gc: CanGc) {
         let global = self.global();
         let cx = GlobalScope::get_cx();
         let _ac = JSAutoRealm::new(*cx, self.reflector().get_jsobject().get());
@@ -148,13 +151,13 @@ impl RTCDataChannel {
         let message = match error {
             WebRtcError::Backend(message) => DOMString::from(message),
         };
-        let error = RTCError::new(&global, &init, message);
-        let event = RTCErrorEvent::new(&global, atom!("error"), false, false, &error);
-        event.upcast::<Event>().fire(self.upcast());
+        let error = RTCError::new(&global, &init, message, can_gc);
+        let event = RTCErrorEvent::new(&global, atom!("error"), false, false, &error, can_gc);
+        event.upcast::<Event>().fire(self.upcast(), can_gc);
     }
 
     #[allow(unsafe_code)]
-    pub fn on_message(&self, channel_message: DataChannelMessage) {
+    pub fn on_message(&self, channel_message: DataChannelMessage, can_gc: CanGc) {
         unsafe {
             let global = self.global();
             let cx = GlobalScope::get_cx();
@@ -167,8 +170,11 @@ impl RTCDataChannel {
                 },
                 DataChannelMessage::Binary(data) => match &**self.binary_type.borrow() {
                     "blob" => {
-                        let blob =
-                            Blob::new(&global, BlobImpl::new_from_bytes(data, "".to_owned()));
+                        let blob = Blob::new(
+                            &global,
+                            BlobImpl::new_from_bytes(data, "".to_owned()),
+                            can_gc,
+                        );
                         blob.to_jsval(*cx, message.handle_mut());
                     },
                     "arraybuffer" => {
@@ -193,19 +199,21 @@ impl RTCDataChannel {
                 Some(&global.origin().immutable().ascii_serialization()),
                 None,
                 vec![],
+                can_gc,
             );
         }
     }
 
-    pub fn on_state_change(&self, state: DataChannelState) {
+    pub fn on_state_change(&self, state: DataChannelState, can_gc: CanGc) {
         if let DataChannelState::Closing = state {
             let event = Event::new(
                 &self.global(),
                 atom!("closing"),
                 EventBubbles::DoesNotBubble,
                 EventCancelable::NotCancelable,
+                can_gc,
             );
-            event.upcast::<Event>().fire(self.upcast());
+            event.upcast::<Event>().fire(self.upcast(), can_gc);
         };
         self.ready_state.set(state.into());
     }

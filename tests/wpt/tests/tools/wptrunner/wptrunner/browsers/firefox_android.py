@@ -90,9 +90,13 @@ def executor_kwargs(logger, test_type, test_environment, run_info_data,
 def env_extras(**kwargs):
     return []
 
+# Default preferences for Android to use when the preference is not specifically stated.
+# See Bug 1577912
+def default_prefs():
+    return {"fission.disableSessionHistoryInParent": "true"}
 
 def run_info_extras(logger, **kwargs):
-    rv = fx_run_info_extras(logger, **kwargs)
+    rv = fx_run_info_extras(logger, default_prefs=default_prefs(), **kwargs)
     rv.update({"headless": False})
 
     if kwargs["browser_version"] is None:
@@ -188,6 +192,8 @@ class ProfileCreator(FirefoxProfileCreator):
         profile.set_preferences({"fission.autostart": True})
         if self.disable_fission:
             profile.set_preferences({"fission.autostart": False})
+
+        profile.set_preferences(default_prefs())
 
 
 class FirefoxAndroidBrowser(Browser):

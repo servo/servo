@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>View transitions: cross-document navigation with auto name (new page)</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="match" href="auto-name-from-id-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<style>
+@view-transition { navigation: auto; }
+
+body {
+  margin: 0;
+  padding: 0;
+  background: grey;
+}
+
+html::view-transition {
+  background: rebeccapurple;
+  position: absolute;
+  inset: 0;
+}
+
+html::view-transition-group(root) {
+  display: none;
+}
+
+html::view-transition-group(green) {
+  animation-play-state: paused;
+  animation-duration: 3s;
+  animation-timing-function: steps(2, start);
+}
+
+#green {
+  background: green;
+  width: 100px;
+  height: 100px;
+  left: 200px;
+  position: absolute;
+  view-transition-name: auto;
+}
+
+</style>
+<body>
+  <div id="green"></div>
+</body>
+<script>
+  onpagereveal = event => {
+    event.viewTransition.ready.then(takeScreenshot);
+  }
+</script>
+
+</html>

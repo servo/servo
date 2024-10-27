@@ -46,8 +46,9 @@ impl RTCPeerConnectionIceEvent {
         candidate: Option<&RTCIceCandidate>,
         url: Option<DOMString>,
         trusted: bool,
+        can_gc: CanGc,
     ) -> DomRoot<RTCPeerConnectionIceEvent> {
-        Self::new_with_proto(global, None, ty, candidate, url, trusted, CanGc::note())
+        Self::new_with_proto(global, None, ty, candidate, url, trusted, can_gc)
     }
 
     fn new_with_proto(
@@ -70,9 +71,11 @@ impl RTCPeerConnectionIceEvent {
         evt.set_trusted(trusted);
         e
     }
+}
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+impl RTCPeerConnectionIceEventMethods for RTCPeerConnectionIceEvent {
+    /// <https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnectioniceevent-constructor>
+    fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -92,9 +95,7 @@ impl RTCPeerConnectionIceEvent {
             can_gc,
         ))
     }
-}
 
-impl RTCPeerConnectionIceEventMethods for RTCPeerConnectionIceEvent {
     /// <https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnectioniceevent-candidate>
     fn GetCandidate(&self) -> Option<DomRoot<RTCIceCandidate>> {
         self.candidate.as_ref().map(|x| DomRoot::from_ref(&**x))

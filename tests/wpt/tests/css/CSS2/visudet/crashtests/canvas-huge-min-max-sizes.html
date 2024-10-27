@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Don't crash with canvas with big min or max sizes</title>
+<link rel="help" href="https://drafts.csswg.org/css2/visudet.html#min-max-widths">
+<link rel="help" href="https://github.com/servo/servo/issues/33961">
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+
+<!--
+According to https://drafts.csswg.org/css2/visudet.html#min-max-widths,
+we need to check whether max-width/w ≤ max-height/h holds.
+Or equivalently we can check whether max-width*h ≤ max-height*w holds,
+but 100000 * 100001 = 10000200001 doesn't fit in a 32-bit integer.
+-->
+<canvas height="100001" width="100001" style="max-width: 100000px; max-height: 100000px;"></canvas>
+
+<!--
+Similarly, here we need to check whether min-width/w ≤ min-height/h holds.
+Or equivalently we can check whether min-width*h ≤ min-height*w holds,
+but again 100001 * 100000 = 10000200001 doesn't fit in a 32-bit integer.
+-->
+<canvas height="100000" width="100000" style="min-width: 100001px; min-height: 100001px;"></canvas>

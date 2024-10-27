@@ -12,6 +12,7 @@ function getExecutorPath(uuid, origin, coop_header) {
 const test_noopener_opening_popup = (
   opener_coop,
   openee_coop,
+  origin,
   opener_expectation
 ) => {
   promise_test(async t => {
@@ -54,7 +55,7 @@ const test_noopener_opening_popup = (
     }
 
     // Open another popup from inside the popup, and wait for it to load.
-    const popup_openee_url = getExecutorPath(popup_openee_token, SAME_ORIGIN,
+    const popup_openee_url = getExecutorPath(popup_openee_token, origin,
       coop_header(openee_coop));
     send(popup_token, `
       window.openee = open("${popup_openee_url}");
@@ -98,7 +99,7 @@ const test_noopener_opening_popup = (
   },
   'noopener-allow-popups ensures that the opener cannot script the openee,' +
   ' but further popups with no COOP can access their opener: ' +
-  opener_coop + '/' + openee_coop);
+  opener_coop + '/' + openee_coop + ':' + origin == SAME_ORIGIN);
 };
 
 // Open a same-origin popup with `popup_coop` header, then navigate away toward
@@ -121,7 +122,7 @@ const test_noopener_navigating_away = (popup_coop) => {
     t.add_cleanup(() => send(popup_token, 'window.close()'));
 
     // Assert that we can script the popup.
-    assert_not_equals(popup.window, null);
+    assert_not_equals(popup.window, null, 'can script the popup');
     assert_false(popup.closed, 'popup closed');
 
     // Ensure that the popup has no access to its opener.

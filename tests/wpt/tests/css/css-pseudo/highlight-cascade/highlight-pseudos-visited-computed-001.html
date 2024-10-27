@@ -11,6 +11,12 @@
   a::target-text {
     color: lime;
   }
+  a::search-text {
+    color: lime;
+  }
+  a::search-text:current {
+    color: red;
+  }
   a::spelling-error {
     color: lime;
   }
@@ -26,6 +32,12 @@
   a:visited::target-text {
     color: yellow;
   }
+  a:visited::search-text {
+    color: yellow;
+  }
+  a:visited::search-text:current {
+    color: red;
+  }
   a:visited::spelling-error {
     color: yellow;
   }
@@ -39,7 +51,7 @@
 <a id="target1" class="target" href=""></a>
 <a id="target2" class="target" href="unvisited"></a>
 <script>
-  for (const pseudo of ["::selection", "::target-text", "::spelling-error", "::grammar-error", "::highlight(foo)"]) {
+  for (const pseudo of ["::selection", "::target-text", "::search-text", "::spelling-error", "::grammar-error", "::highlight(foo)"]) {
     for (const target of [target1, target2]) {
       test(() => {
         let style = getComputedStyle(target, pseudo);

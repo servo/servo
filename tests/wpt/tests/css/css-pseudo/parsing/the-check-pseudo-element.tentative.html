@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS ::check Pseudo-Element Test</title>
+<link rel="help" href="https://github.com/w3c/csswg-drafts/pull/10986">
+<meta name="assert" content="This test checks the validity of the ::check pseudo element selector." />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script>
+test_valid_selector("::check");
+test_valid_selector("*::check", "::check");
+test_valid_selector("foo.bar[baz]::check");
+test_invalid_selector("::check *");
+
+// Combinations
+test_invalid_selector("::check::check");
+
+test_invalid_selector("::before::check");
+test_invalid_selector("::after::check");
+test_invalid_selector("::marker::check");
+test_invalid_selector("::placeholder::check");
+
+test_invalid_selector("::check::before");
+test_invalid_selector("::check::after");
+test_valid_selector("::check::marker");
+test_invalid_selector("::check::placeholder");
+
+test_invalid_selector("::slotted(*)::check::slotted(*)");
+test_valid_selector("::slotted(*)::check");
+
+test_valid_selector("::part(foo)::check");
+</script>

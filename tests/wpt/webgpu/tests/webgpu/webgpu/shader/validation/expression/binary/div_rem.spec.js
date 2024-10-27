@@ -142,10 +142,14 @@ filter((p) => {
   return p.nonOneIndex === 0;
 }).
 expandWithParams((p) => {
+  // When lhs is a non-const expression, division by zero is only an error for integral types.
+  const partialDivByZeroIsError = [Type.i32, Type.u32].includes(
+    scalarTypeOf(kScalarAndVectorTypes[p.rhs])
+  );
   const cases = [
   { leftValue: 42, rightValue: 0, error: true, leftRuntime: false },
-  { leftValue: 42, rightValue: 0, error: true, leftRuntime: true },
-  { leftValue: 0, rightValue: 0, error: true, leftRuntime: true },
+  { leftValue: 42, rightValue: 0, error: partialDivByZeroIsError, leftRuntime: true },
+  { leftValue: 0, rightValue: 0, error: partialDivByZeroIsError, leftRuntime: true },
   { leftValue: 0, rightValue: 42, error: false, leftRuntime: false }];
 
   if (p.lhs === 'i32') {

@@ -9,7 +9,7 @@ use std::sync::LazyLock;
 
 use embedder_traits::resources::{self, Resource};
 use gen::Prefs;
-use log::warn;
+use log::{error, warn};
 use serde_json::{self, Value};
 
 use crate::pref_util::Preferences;
@@ -17,7 +17,10 @@ pub use crate::pref_util::{PrefError, PrefValue};
 
 static PREFS: LazyLock<Preferences<'static, Prefs>> = LazyLock::new(|| {
     let def_prefs: Prefs = serde_json::from_str(&resources::read_string(Resource::Preferences))
-        .expect("Failed to initialize config preferences.");
+        .unwrap_or_else(|_| {
+            error!("Preference json file is invalid. Setting Preference to default values");
+            Prefs::default()
+        });
     let result = Preferences::new(def_prefs, &gen::PREF_ACCESSORS);
     for (key, value) in result.iter() {
         set_stylo_pref_ref(&key, &value);
@@ -171,14 +174,6 @@ mod gen {
         13
     }
 
-    fn black() -> i64 {
-        0x000000
-    }
-
-    fn white() -> i64 {
-        0xFFFFFF
-    }
-
     build_structs! {
         // type of the accessors
         accessor_type = crate::pref_util::Accessor::<Prefs, crate::pref_util::PrefValue>,
@@ -186,14 +181,6 @@ mod gen {
         gen_accessors = PREF_ACCESSORS,
         // tree of structs to generate
         gen_types = Prefs {
-            browser: {
-                display: {
-                    #[serde(default = "white")]
-                    background_color: i64,
-                    #[serde(default = "black")]
-                    foreground_color: i64,
-                }
-            },
             fonts: {
                 #[serde(default)]
                 default: String,
@@ -249,6 +236,11 @@ mod gen {
                     #[serde(rename = "dom.compositionevent.enabled")]
                     enabled: bool,
                 },
+                crypto: {
+                    subtle: {
+                        enabled: bool,
+                    }
+                },
                 custom_elements: {
                     #[serde(rename = "dom.customelements.enabled")]
                     enabled: bool,
@@ -267,6 +259,9 @@ mod gen {
                     enabled: bool,
                 },
                 imagebitmap: {
+                    enabled: bool,
+                },
+                intersection_observer: {
                     enabled: bool,
                 },
                 microdata: {
@@ -541,6 +536,12 @@ mod gen {
                 columns: {
                     enabled: bool,
                 },
+                css: {
+                    transition_behavior: {
+                        #[serde(rename = "layout.css.transition-behavior.enabled")]
+                        enabled: bool,
+                    }
+                },
                 flexbox: {
                     enabled: bool,
                 },
@@ -602,9 +603,6 @@ mod gen {
                 },
                 /// URL string of the homepage.
                 homepage: String,
-                keep_screen_on: {
-                    enabled: bool,
-                },
                 #[serde(rename = "shell.native-orientation")]
                 native_orientation: String,
                 native_titlebar: {

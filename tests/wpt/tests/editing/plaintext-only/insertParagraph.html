@@ -1,0 +1,105 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<meta name="variant" content="?white-space=normal">
+<meta name="variant" content="?white-space=pre">
+<meta name="variant" content="?white-space=pre-line">
+<meta name="variant" content="?white-space=pre-wrap">
+<title>excCommand("insertParagraph") in plaintext-only</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../include/editor-test-utils.js"></script>
+<script>
+"use strict";
+
+const searchParams = new URLSearchParams(document.location.search);
+const whiteSpace = searchParams.get("white-space");
+const useBR = whiteSpace == "normal";
+
+addEventListener("load", () => {
+  const editingHost = document.createElement("div");
+  editingHost.style.whiteSpace = whiteSpace;
+  editingHost.setAttribute("contenteditable", "plaintext-only");
+  document.body.appendChild(editingHost);
+  editingHost.focus();
+  editingHost.getBoundingClientRect();
+  const utils = new EditorTestUtils(editingHost);
+
+  /**
+   * insertParagraph command in plaintext-only is available only with document.execCommand.
+   * It should work as same as contenteditable=true, therefore, this test checks only
+   * basic behavior.  Various edge cases should be tested in run/insertparagraph.html.
+   */
+
+  for (const data of [
+    {
+      initialInnerHTML: "<p>[]AB</p>",
+      expected: useBR ? "<p><br></p><p>AB</p>" : ["<p><br></p><p>AB</p>", "<p>\n</p><p>AB</p>"],
+    },
+    {
+      initialInnerHTML: "<p>A[]B</p>",
+      expected: "<p>A</p><p>B</p>",
+    },
+    {
+      initialInnerHTML: "<p>AB[]</p>",
+      expected: useBR ? "<p>AB</p><p><br></p>" : ["<p>AB</p><p><br></p>", "<p>AB</p><p>\n</p>"],
+    },
+    {
+      initialInnerHTML: `<p style="white-space:normal">[]AB</p>`,
+      expected: `<p style="white-space:normal"><br></p><p style="white-space:normal">AB</p>`,
+    },
+    {
+      initialInnerHTML: `<p style="white-space:pre">[]AB</p>`,
+      expected: useBR
+        ? `<p style="white-space:pre"><br></p><p style="white-space:pre">AB</p>`
+        : [`<p style="white-space:pre"><br></p><p style="white-space:pre">AB</p>`,
+           `<p style="white-space:pre">\n</p><p style="white-space:pre">AB</p>`],
+    },
+    {
+      initialInnerHTML: `<p style="white-space:pre-line">[]AB</p>`,
+      expected: useBR
+        ? `<p style="white-space:pre-line"><br></p><p style="white-space:pre-line">AB</p>`
+        : [`<p style="white-space:pre-line"><br></p><p style="white-space:pre-line">AB</p>`,
+           `<p style="white-space:pre-line">\n</p><p style="white-space:pre-line">AB</p>`],
+    },
+    {
+      initialInnerHTML: `<p style="white-space:pre-wrap">[]AB</p>`,
+      expected: useBR
+        ? `<p style="white-space:pre-wrap"><br></p><p style="white-space:pre-wrap">AB</p>`
+        : [`<p style="white-space:pre-wrap"><br></p><p style="white-space:pre-wrap">AB</p>`,
+           `<p style="white-space:pre-wrap">\n</p><p style="white-space:pre-wrap">AB</p>`],
+    },
+    {
+      initialInnerHTML: "<ul><li>[]AB</li></ul>",
+      expected: useBR
+        ? "<ul><li><br></li><li>AB</li></ul>"
+        : ["<ul><li><br></li><li>AB</li></ul>", "<ul><li>\n</li><li>AB</li></ul>"],
+    },
+    {
+      initialInnerHTML: "<ul><li>A[]B</li></ul>",
+      expected: "<ul><li>A</li><li>B</li></ul>",
+    },
+    {
+      initialInnerHTML: "<ul><li>AB[]</li></ul>",
+      expected: useBR
+        ? "<ul><li>AB</li><li><br></li></ul>"
+        : ["<ul><li>AB</li><li><br></li></ul>", "<ul><li>AB</li><li>\n</li></ul>"],
+    },
+  ]) {
+    test(() => {
+      utils.setupEditingHost(data.initialInnerHTML);
+      document.execCommand("insertParagraph");
+      if (Array.isArray(data.expected)) {
+        assert_in_array(editingHost.innerHTML, data.expected);
+      } else {
+        assert_equals(editingHost.innerHTML, data.expected);
+      }
+    }, `execCommand("insertParagraph") when ${data.initialInnerHTML}`);
+  }
+}, {once: true});
+</script>
+</head>
+<body></body>
+</html>

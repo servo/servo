@@ -15,7 +15,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::xrreferencespace::XRReferenceSpace;
 use crate::dom::xrrigidtransform::XRRigidTransform;
 use crate::dom::xrsession::XRSession;
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{CanGc, JSContext};
 
 #[dom_struct]
 pub struct XRBoundedReferenceSpace {
@@ -39,8 +39,12 @@ impl XRBoundedReferenceSpace {
     }
 
     #[allow(unused)]
-    pub fn new(global: &GlobalScope, session: &XRSession) -> DomRoot<XRBoundedReferenceSpace> {
-        let offset = XRRigidTransform::identity(global);
+    pub fn new(
+        global: &GlobalScope,
+        session: &XRSession,
+        can_gc: CanGc,
+    ) -> DomRoot<XRBoundedReferenceSpace> {
+        let offset = XRRigidTransform::identity(global, can_gc);
         Self::new_offset(global, session, &offset)
     }
 
@@ -63,12 +67,19 @@ impl XRBoundedReferenceSpace {
 
 impl XRBoundedReferenceSpaceMethods for XRBoundedReferenceSpace {
     /// <https://www.w3.org/TR/webxr/#dom-xrboundedreferencespace-boundsgeometry>
-    fn BoundsGeometry(&self, cx: JSContext) -> JSVal {
+    fn BoundsGeometry(&self, cx: JSContext, can_gc: CanGc) -> JSVal {
         if let Some(bounds) = self.reference_space.get_bounds() {
             let points: Vec<DomRoot<DOMPointReadOnly>> = bounds
                 .into_iter()
                 .map(|point| {
-                    DOMPointReadOnly::new(&self.global(), point.x.into(), 0.0, point.y.into(), 1.0)
+                    DOMPointReadOnly::new(
+                        &self.global(),
+                        point.x.into(),
+                        0.0,
+                        point.y.into(),
+                        1.0,
+                        can_gc,
+                    )
                 })
                 .collect();
 

@@ -25,6 +25,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::gpuadapter::GPUAdapter;
 use crate::dom::promise::Promise;
 use crate::realms::InRealm;
+use crate::script_runtime::CanGc;
 use crate::task_source::{TaskSource, TaskSourceName};
 
 #[dom_struct]
@@ -46,7 +47,7 @@ impl GPU {
 }
 
 pub trait AsyncWGPUListener {
-    fn handle_response(&self, response: WebGPUResponse, promise: &Rc<Promise>);
+    fn handle_response(&self, response: WebGPUResponse, promise: &Rc<Promise>, can_gc: CanGc);
 }
 
 struct WGPUResponse<T: AsyncWGPUListener + DomObject> {
@@ -56,9 +57,11 @@ struct WGPUResponse<T: AsyncWGPUListener + DomObject> {
 
 impl<T: AsyncWGPUListener + DomObject> WGPUResponse<T> {
     #[allow(crown::unrooted_must_root)]
-    fn response(self, response: WebGPUResponse) {
+    fn response(self, response: WebGPUResponse, can_gc: CanGc) {
         let promise = self.trusted.root();
-        self.receiver.root().handle_response(response, &promise);
+        self.receiver
+            .root()
+            .handle_response(response, &promise, can_gc);
     }
 }
 
@@ -73,8 +76,8 @@ pub fn response_async<T: AsyncWGPUListener + DomObject + 'static>(
         .task_canceller(TaskSourceName::DOMManipulation);
     let mut trusted: Option<TrustedPromise> = Some(TrustedPromise::new(promise.clone()));
     let trusted_receiver = Trusted::new(receiver);
-    ROUTER.add_route(
-        action_receiver.to_opaque(),
+    ROUTER.add_typed_route(
+        action_receiver,
         Box::new(move |message| {
             let trusted = if let Some(trusted) = trusted.take() {
                 trusted
@@ -89,7 +92,7 @@ pub fn response_async<T: AsyncWGPUListener + DomObject + 'static>(
             };
             let result = task_source.queue_with_canceller(
                 task!(process_webgpu_task: move|| {
-                    context.response(message.to().unwrap());
+                    context.response(message.unwrap(), CanGc::note());
                 }),
                 &canceller,
             );
@@ -103,9 +106,14 @@ pub fn response_async<T: AsyncWGPUListener + DomObject + 'static>(
 
 impl GPUMethods for GPU {
     // https://gpuweb.github.io/gpuweb/#dom-gpu-requestadapter
-    fn RequestAdapter(&self, options: &GPURequestAdapterOptions, comp: InRealm) -> Rc<Promise> {
+    fn RequestAdapter(
+        &self,
+        options: &GPURequestAdapterOptions,
+        comp: InRealm,
+        can_gc: CanGc,
+    ) -> Rc<Promise> {
         let global = &self.global();
-        let promise = Promise::new_in_current_realm(comp);
+        let promise = Promise::new_in_current_realm(comp, can_gc);
         let sender = response_async(&promise, self);
         let power_preference = match options.powerPreference {
             Some(GPUPowerPreference::Low_power) => PowerPreference::LowPower,
@@ -140,7 +148,7 @@ impl GPUMethods for GPU {
 }
 
 impl AsyncWGPUListener for GPU {
-    fn handle_response(&self, response: WebGPUResponse, promise: &Rc<Promise>) {
+    fn handle_response(&self, response: WebGPUResponse, promise: &Rc<Promise>, can_gc: CanGc) {
         match response {
             WebGPUResponse::Adapter(Ok(adapter)) => {
                 let adapter = GPUAdapter::new(
@@ -155,6 +163,7 @@ impl AsyncWGPUListener for GPU {
                     adapter.limits,
                     adapter.adapter_info,
                     adapter.adapter_id,
+                    can_gc,
                 );
                 promise.resolve_native(&adapter);
             },

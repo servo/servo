@@ -79,8 +79,10 @@ impl TestBinding {
             can_gc,
         )
     }
+}
 
-    pub fn Constructor(
+impl TestBindingMethods for TestBinding {
+    fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -89,7 +91,7 @@ impl TestBinding {
     }
 
     #[allow(unused_variables)]
-    pub fn Constructor_(
+    fn Constructor_(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -99,7 +101,7 @@ impl TestBinding {
     }
 
     #[allow(unused_variables)]
-    pub fn Constructor__(
+    fn Constructor__(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -107,9 +109,7 @@ impl TestBinding {
     ) -> Fallible<DomRoot<TestBinding>> {
         Ok(TestBinding::new(global, proto, can_gc))
     }
-}
 
-impl TestBindingMethods for TestBinding {
     fn BooleanAttribute(&self) -> bool {
         false
     }
@@ -178,10 +178,11 @@ impl TestBindingMethods for TestBinding {
         TestEnum::_empty
     }
     fn SetEnumAttribute(&self, _: TestEnum) {}
-    fn InterfaceAttribute(&self) -> DomRoot<Blob> {
+    fn InterfaceAttribute(&self, can_gc: CanGc) -> DomRoot<Blob> {
         Blob::new(
             &self.global(),
             BlobImpl::new_from_bytes(vec![], "".to_owned()),
+            can_gc,
         )
     }
     fn SetInterfaceAttribute(&self, _: &Blob) {}
@@ -323,10 +324,11 @@ impl TestBindingMethods for TestBinding {
     fn GetEnumAttributeNullable(&self) -> Option<TestEnum> {
         Some(TestEnum::_empty)
     }
-    fn GetInterfaceAttributeNullable(&self) -> Option<DomRoot<Blob>> {
+    fn GetInterfaceAttributeNullable(&self, can_gc: CanGc) -> Option<DomRoot<Blob>> {
         Some(Blob::new(
             &self.global(),
             BlobImpl::new_from_bytes(vec![], "".to_owned()),
+            can_gc,
         ))
     }
     fn SetInterfaceAttributeNullable(&self, _: Option<&Blob>) {}
@@ -417,10 +419,11 @@ impl TestBindingMethods for TestBinding {
     fn ReceiveEnum(&self) -> TestEnum {
         TestEnum::_empty
     }
-    fn ReceiveInterface(&self) -> DomRoot<Blob> {
+    fn ReceiveInterface(&self, can_gc: CanGc) -> DomRoot<Blob> {
         Blob::new(
             &self.global(),
             BlobImpl::new_from_bytes(vec![], "".to_owned()),
+            can_gc,
         )
     }
     fn ReceiveAny(&self, _: SafeJSContext) -> JSVal {
@@ -465,10 +468,11 @@ impl TestBindingMethods for TestBinding {
     fn ReceiveSequence(&self) -> Vec<i32> {
         vec![1]
     }
-    fn ReceiveInterfaceSequence(&self) -> Vec<DomRoot<Blob>> {
+    fn ReceiveInterfaceSequence(&self, can_gc: CanGc) -> Vec<DomRoot<Blob>> {
         vec![Blob::new(
             &self.global(),
             BlobImpl::new_from_bytes(vec![], "".to_owned()),
+            can_gc,
         )]
     }
     fn ReceiveUnionIdentity(
@@ -530,10 +534,11 @@ impl TestBindingMethods for TestBinding {
     fn ReceiveNullableEnum(&self) -> Option<TestEnum> {
         Some(TestEnum::_empty)
     }
-    fn ReceiveNullableInterface(&self) -> Option<DomRoot<Blob>> {
+    fn ReceiveNullableInterface(&self, can_gc: CanGc) -> Option<DomRoot<Blob>> {
         Some(Blob::new(
             &self.global(),
             BlobImpl::new_from_bytes(vec![], "".to_owned()),
+            can_gc,
         ))
     }
     fn ReceiveNullableObject(&self, cx: SafeJSContext) -> Option<NonNull<JSObject>> {
@@ -1008,15 +1013,16 @@ impl TestBindingMethods for TestBinding {
         resolve: Option<Rc<SimpleCallback>>,
         reject: Option<Rc<SimpleCallback>>,
         comp: InRealm,
+        can_gc: CanGc,
     ) -> Rc<Promise> {
         let global = self.global();
         let handler = PromiseNativeHandler::new(
             &global,
-            resolve.map(SimpleHandler::new),
-            reject.map(SimpleHandler::new),
+            resolve.map(SimpleHandler::new_boxed),
+            reject.map(SimpleHandler::new_boxed),
         );
-        let p = Promise::new_in_current_realm(comp);
-        p.append_native_handler(&handler, comp);
+        let p = Promise::new_in_current_realm(comp, can_gc);
+        p.append_native_handler(&handler, comp, can_gc);
         return p;
 
         #[derive(JSTraceable, MallocSizeOf)]
@@ -1025,20 +1031,20 @@ impl TestBindingMethods for TestBinding {
             handler: Rc<SimpleCallback>,
         }
         impl SimpleHandler {
-            fn new(callback: Rc<SimpleCallback>) -> Box<dyn Callback> {
+            fn new_boxed(callback: Rc<SimpleCallback>) -> Box<dyn Callback> {
                 Box::new(SimpleHandler { handler: callback })
             }
         }
         impl Callback for SimpleHandler {
-            fn callback(&self, cx: SafeJSContext, v: HandleValue, realm: InRealm) {
+            fn callback(&self, cx: SafeJSContext, v: HandleValue, realm: InRealm, _can_gc: CanGc) {
                 let global = GlobalScope::from_safe_context(cx, realm);
                 let _ = self.handler.Call_(&*global, v, ExceptionHandling::Report);
             }
         }
     }
 
-    fn PromiseAttribute(&self, comp: InRealm) -> Rc<Promise> {
-        Promise::new_in_current_realm(comp)
+    fn PromiseAttribute(&self, comp: InRealm, can_gc: CanGc) -> Rc<Promise> {
+        Promise::new_in_current_realm(comp, can_gc)
     }
 
     fn AcceptPromise(&self, _promise: &Promise) {}
@@ -1108,42 +1114,36 @@ impl TestBindingMethods for TestBinding {
     fn MethodInternalThrowToRejectPromise(&self, _arg: u64) -> Rc<Promise> {
         unreachable!("Method should already throw")
     }
-}
 
-#[allow(non_snake_case)]
-impl TestBinding {
-    pub fn StaticThrowToRejectPromise(_: &GlobalScope) -> Fallible<Rc<Promise>> {
+    fn StaticThrowToRejectPromise(_: &GlobalScope) -> Fallible<Rc<Promise>> {
         Err(Error::Type("test".to_string()))
     }
 
-    pub fn StaticInternalThrowToRejectPromise(_: &GlobalScope, _arg: u64) -> Rc<Promise> {
+    fn StaticInternalThrowToRejectPromise(_: &GlobalScope, _arg: u64) -> Rc<Promise> {
         unreachable!("Method should already throw")
     }
-}
 
-#[allow(non_snake_case)]
-impl TestBinding {
-    pub fn BooleanAttributeStatic(_: &GlobalScope) -> bool {
+    fn BooleanAttributeStatic(_: &GlobalScope) -> bool {
         false
     }
-    pub fn SetBooleanAttributeStatic(_: &GlobalScope, _: bool) {}
-    pub fn ReceiveVoidStatic(_: &GlobalScope) {}
-    pub fn PrefControlledStaticAttributeDisabled(_: &GlobalScope) -> bool {
+    fn SetBooleanAttributeStatic(_: &GlobalScope, _: bool) {}
+    fn ReceiveVoidStatic(_: &GlobalScope) {}
+    fn PrefControlledStaticAttributeDisabled(_: &GlobalScope) -> bool {
         false
     }
-    pub fn PrefControlledStaticAttributeEnabled(_: &GlobalScope) -> bool {
+    fn PrefControlledStaticAttributeEnabled(_: &GlobalScope) -> bool {
         false
     }
-    pub fn PrefControlledStaticMethodDisabled(_: &GlobalScope) {}
-    pub fn PrefControlledStaticMethodEnabled(_: &GlobalScope) {}
-    pub fn FuncControlledStaticAttributeDisabled(_: &GlobalScope) -> bool {
+    fn PrefControlledStaticMethodDisabled(_: &GlobalScope) {}
+    fn PrefControlledStaticMethodEnabled(_: &GlobalScope) {}
+    fn FuncControlledStaticAttributeDisabled(_: &GlobalScope) -> bool {
         false
     }
-    pub fn FuncControlledStaticAttributeEnabled(_: &GlobalScope) -> bool {
+    fn FuncControlledStaticAttributeEnabled(_: &GlobalScope) -> bool {
         false
     }
-    pub fn FuncControlledStaticMethodDisabled(_: &GlobalScope) {}
-    pub fn FuncControlledStaticMethodEnabled(_: &GlobalScope) {}
+    fn FuncControlledStaticMethodDisabled(_: &GlobalScope) {}
+    fn FuncControlledStaticMethodEnabled(_: &GlobalScope) {}
 }
 
 impl TestBinding {

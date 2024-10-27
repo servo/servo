@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <title>width, height, inline-size and block-size</title>
 <link rel="help" href="https://w3c.github.io/mathml-core/#layout-algorithms">
-<meta name="assert" content="Verify that width, height, inline-size and block-size properties are ignored.">
+<meta name="assert" content="Verify that width, height, inline-size and block-size properties set the size of the content box.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/mathml/support/feature-detection.js"></script>
@@ -30,6 +30,7 @@
         document.body.insertAdjacentHTML("beforeend", `<div style="position: absolute;"><math><mrow>${MathMLFragments[tag]}</mrow></math></div>`);
         let div = document.body.lastElementChild;
         let element = FragmentHelper.element(div.firstElementChild);
+        FragmentHelper.forceNonEmptyDescendants(element);
 
         test(function() {
             assert_true(MathMLFeatureDetection[`has_${tag}`](), `${tag} is supported`);
@@ -48,6 +49,45 @@
             assert_approx_equals(box.width, 600, epsilon, "width");
             assert_approx_equals(box.height, 700, epsilon, "height");
         }, `inline-size and block-size properties on ${tag}`);
+
+        // Test that if we specify a size smaller than the content, then
+        // it is used too. Note that we skip mtable, which follows CSS
+        // tables rules and behave differently in that case.
+        if (tag != "mtable") {
+            test(function() {
+                assert_true(MathMLFeatureDetection[`has_${tag}`](), `${tag} is supported`);
+                var style = `width: 2px; height: 1px;`;
+                element.setAttribute("style", style);
+                let box = element.getBoundingClientRect();
+                assert_approx_equals(box.width, 2, epsilon, "width");
+                assert_approx_equals(box.height, 1, epsilon, "height");
+            }, `width and height properties on ${tag} (content overflowing)`);
+        }
+
+        div.style = "display: none;"; // Hide the div after measurement.
+
+        document.body.insertAdjacentHTML("beforeend", `<div style="position: absolute;"><div style="display: inline-block"><math><mrow>${MathMLFragments[tag]}</mrow></math></div></div>`);
+        let shrinkWrapDiv = document.body.lastElementChild.firstElementChild;
+        element = FragmentHelper.element(shrinkWrapDiv.firstElementChild);
+        FragmentHelper.forceNonEmptyDescendants(element);
+
+        test(function() {
+            assert_true(MathMLFeatureDetection[`has_${tag}`](), `${tag} is supported`);
+            var style = `width: 300px;`;
+            element.setAttribute("style", style);
+            let refPreferredWidth = 300;
+
+            // In the case of mo, spacing is added around the element so that it is included
+            // in the preferred width calculation, which should be the sum of lspace, rspace and width.
+            if (tag === "mo") {
+              element.setAttribute("lspace", "50px");
+              element.setAttribute("rspace", "30px");
+              refPreferredWidth = 380;
+            }
+
+            let box = shrinkWrapDiv.getBoundingClientRect();
+            assert_approx_equals(box.width, refPreferredWidth, epsilon);
+        }, `width property on ${tag} (preferred width)`);
 
         div.style = "display: none;"; // Hide the div after measurement.
     }

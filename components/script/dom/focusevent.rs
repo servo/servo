@@ -35,8 +35,8 @@ impl FocusEvent {
         }
     }
 
-    pub fn new_uninitialized(window: &Window) -> DomRoot<FocusEvent> {
-        Self::new_uninitialized_with_proto(window, None, CanGc::note())
+    pub fn new_uninitialized(window: &Window, can_gc: CanGc) -> DomRoot<FocusEvent> {
+        Self::new_uninitialized_with_proto(window, None, can_gc)
     }
 
     pub fn new_uninitialized_with_proto(
@@ -47,6 +47,7 @@ impl FocusEvent {
         reflect_dom_object_with_proto(Box::new(FocusEvent::new_inherited()), window, proto, can_gc)
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         window: &Window,
         type_: DOMString,
@@ -55,6 +56,7 @@ impl FocusEvent {
         view: Option<&Window>,
         detail: i32,
         related_target: Option<&EventTarget>,
+        can_gc: CanGc,
     ) -> DomRoot<FocusEvent> {
         Self::new_with_proto(
             window,
@@ -65,7 +67,7 @@ impl FocusEvent {
             view,
             detail,
             related_target,
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -92,9 +94,11 @@ impl FocusEvent {
         ev.related_target.set(related_target);
         ev
     }
+}
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+impl FocusEventMethods for FocusEvent {
+    // https://w3c.github.io/uievents/#dom-focusevent-focusevent
+    fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -116,9 +120,7 @@ impl FocusEvent {
         );
         Ok(event)
     }
-}
 
-impl FocusEventMethods for FocusEvent {
     // https://w3c.github.io/uievents/#widl-FocusEvent-relatedTarget
     fn GetRelatedTarget(&self) -> Option<DomRoot<EventTarget>> {
         self.related_target.get()

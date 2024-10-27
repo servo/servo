@@ -18,6 +18,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::CanGc;
 
 #[repr(u16)]
+#[allow(clippy::enum_variant_names)]
 #[derive(Clone, Copy, Debug, Eq, JSTraceable, MallocSizeOf, Ord, PartialEq, PartialOrd)]
 pub enum DOMErrorName {
     IndexSizeError = DOMExceptionConstants::INDEX_SIZE_ERR,
@@ -44,6 +45,7 @@ pub enum DOMErrorName {
     DataCloneError = DOMExceptionConstants::DATA_CLONE_ERR,
     EncodingError,
     NotReadableError,
+    DataError,
     OperationError,
 }
 
@@ -74,6 +76,7 @@ impl DOMErrorName {
             "DataCloneError" => Some(DOMErrorName::DataCloneError),
             "EncodingError" => Some(DOMErrorName::EncodingError),
             "NotReadableError" => Some(DOMErrorName::NotReadableError),
+            "DataError" => Some(DOMErrorName::DataError),
             "OperationError" => Some(DOMErrorName::OperationError),
             _ => None,
         }
@@ -122,6 +125,7 @@ impl DOMException {
                 "The encoding operation (either encoded or decoding) failed."
             },
             DOMErrorName::NotReadableError => "The I/O read operation failed.",
+            DOMErrorName::DataError => "Provided data is inadequate.",
             DOMErrorName::OperationError => {
                 "The operation failed for an operation-specific reason."
             },
@@ -147,8 +151,15 @@ impl DOMException {
         reflect_dom_object(Box::new(DOMException::new_inherited(message, name)), global)
     }
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+    // not an IDL stringifier, used internally
+    pub fn stringifier(&self) -> DOMString {
+        DOMString::from(format!("{}: {}", self.name, self.message))
+    }
+}
+
+impl DOMExceptionMethods for DOMException {
+    // https://webidl.spec.whatwg.org/#dom-domexception-domexception
+    fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -163,14 +174,7 @@ impl DOMException {
         ))
     }
 
-    // not an IDL stringifier, used internally
-    pub fn stringifier(&self) -> DOMString {
-        DOMString::from(format!("{}: {}", self.name, self.message))
-    }
-}
-
-impl DOMExceptionMethods for DOMException {
-    // https://heycam.github.io/webidl/#dom-domexception-code
+    // https://webidl.spec.whatwg.org/#dom-domexception-code
     fn Code(&self) -> u16 {
         match DOMErrorName::from(&self.name) {
             Some(code) if code <= DOMErrorName::DataCloneError => code as u16,
@@ -178,12 +182,12 @@ impl DOMExceptionMethods for DOMException {
         }
     }
 
-    // https://heycam.github.io/webidl/#idl-DOMException-error-names
+    // https://webidl.spec.whatwg.org/#dom-domexception-name
     fn Name(&self) -> DOMString {
         self.name.clone()
     }
 
-    // https://heycam.github.io/webidl/#error-names
+    // https://webidl.spec.whatwg.org/#dom-domexception-message
     fn Message(&self) -> DOMString {
         self.message.clone()
     }

@@ -2,6 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::LazyCell;
+use std::mem;
+
 use app_units::Au;
 use rayon::iter::IntoParallelRefMutIterator;
 use rayon::prelude::{IndexedParallelIterator, ParallelIterator};
@@ -23,9 +26,10 @@ use crate::fragment_tree::{
 };
 use crate::geom::{
     AuOrAuto, LengthPercentageOrAuto, LogicalRect, LogicalSides, LogicalVec2, PhysicalPoint,
-    PhysicalRect, PhysicalVec, ToLogical, ToLogicalWithContainingBlock,
+    PhysicalRect, PhysicalVec, Size, ToLogical, ToLogicalWithContainingBlock,
 };
-use crate::style_ext::{ComputedValuesExt, DisplayInside};
+use crate::sizing::ContentSizes;
+use crate::style_ext::{Clamp, ComputedValuesExt, DisplayInside};
 use crate::{ContainingBlock, DefiniteContainingBlock, IndefiniteContainingBlock};
 
 #[derive(Debug, Serialize)]
@@ -240,13 +244,11 @@ impl PositioningContext {
             style: &new_fragment.style,
         };
 
-        let take_hoisted_boxes_pending_layout = |context: &mut Self| match context
-            .for_nearest_positioned_ancestor
-            .as_mut()
-        {
-            Some(fragments) => std::mem::take(fragments),
-            None => std::mem::take(&mut context.for_nearest_containing_block_for_all_descendants),
-        };
+        let take_hoisted_boxes_pending_layout =
+            |context: &mut Self| match context.for_nearest_positioned_ancestor.as_mut() {
+                Some(fragments) => mem::take(fragments),
+                None => mem::take(&mut context.for_nearest_containing_block_for_all_descendants),
+            };
 
         // Loop because it’s possible that we discover (the static position of)
         // more absolutely-positioned boxes while doing layout for others.
@@ -337,19 +339,11 @@ impl PositioningContext {
         {
             HoistedAbsolutelyPositionedBox::layout_many(
                 layout_context,
-                &mut std::mem::take(&mut self.for_nearest_containing_block_for_all_descendants),
+                &mut mem::take(&mut self.for_nearest_containing_block_for_all_descendants),
                 fragments,
                 &mut self.for_nearest_containing_block_for_all_descendants,
                 initial_containing_block,
             )
-        }
-    }
-
-    pub(crate) fn clear(&mut self) {
-        self.for_nearest_containing_block_for_all_descendants
-            .clear();
-        if let Some(v) = self.for_nearest_positioned_ancestor.as_mut() {
-            v.clear()
         }
     }
 
@@ -454,37 +448,42 @@ impl HoistedAbsolutelyPositionedBox {
     ) -> BoxFragment {
         let cbis = containing_block.size.inline;
         let cbbs = containing_block.size.block;
-        let mut absolutely_positioned_box = self.absolutely_positioned_box.borrow_mut();
         let containing_block_writing_mode = containing_block.style.writing_mode;
-        let style = absolutely_positioned_box.context.style().clone();
-        let pbm = style.padding_border_margin(&containing_block.into());
-        let indefinite_containing_block = containing_block.into();
+        let mut absolutely_positioned_box = self.absolutely_positioned_box.borrow_mut();
+        let context = &mut absolutely_positioned_box.context;
+        let style = context.style().clone();
+        let containing_block = &containing_block.into();
+        let pbm = style.padding_border_margin(containing_block);
 
-        let computed_size = match &absolutely_positioned_box.context {
+        let (computed_size, computed_min_size, computed_max_size) = match context {
             IndependentFormattingContext::Replaced(replaced) => {
                 // https://drafts.csswg.org/css2/visudet.html#abs-replaced-width
                 // https://drafts.csswg.org/css2/visudet.html#abs-replaced-height
-                let used_size = replaced.contents.used_size_as_if_inline_element(
-                    &containing_block.into(),
-                    &replaced.style,
-                    &pbm,
-                );
-                LogicalVec2 {
-                    inline: AuOrAuto::LengthPercentage(used_size.inline),
-                    block: AuOrAuto::LengthPercentage(used_size.block),
-                }
+                let content_box_sizes_and_pbm =
+                    style.content_box_sizes_and_padding_border_margin(&containing_block.into());
+                let used_size = replaced
+                    .contents
+                    .used_size_as_if_inline_element(
+                        containing_block,
+                        &style,
+                        &content_box_sizes_and_pbm.into(),
+                    )
+                    .map(|size| Size::Numeric(*size));
+                (used_size, Default::default(), Default::default())
             },
-            IndependentFormattingContext::NonReplaced(non_replaced) => non_replaced
-                .style
-                .content_box_size_deprecated(&indefinite_containing_block, &pbm),
+            IndependentFormattingContext::NonReplaced(_) => (
+                style.content_box_size(containing_block, &pbm),
+                style.content_min_box_size(containing_block, &pbm),
+                style.content_max_box_size(containing_block, &pbm),
+            ),
         };
 
         let shared_fragment = self.fragment.borrow();
         let static_position_rect = shared_fragment
             .static_position_rect
-            .to_logical(&indefinite_containing_block);
+            .to_logical(containing_block);
 
-        let box_offset = style.box_offsets(&indefinite_containing_block);
+        let box_offset = style.box_offsets(containing_block.style.writing_mode);
 
         // When the "static-position rect" doesn't come into play, we do not do any alignment
         // in the inline axis.
@@ -497,18 +496,21 @@ impl HoistedAbsolutelyPositionedBox {
             false => shared_fragment.resolved_alignment.inline,
         };
 
-        let inline_axis_solver = AbsoluteAxisSolver {
+        let mut inline_axis_solver = AbsoluteAxisSolver {
             axis: AxisDirection::Inline,
             containing_size: cbis,
             padding_border_sum: pbm.padding_border_sums.inline,
             computed_margin_start: pbm.margin.inline_start,
             computed_margin_end: pbm.margin.inline_end,
+            computed_size: computed_size.inline,
+            computed_min_size: computed_min_size.inline,
+            computed_max_size: computed_max_size.inline,
             avoid_negative_margin_start: true,
             box_offsets: inline_box_offsets,
             static_position_rect_axis: static_position_rect.get_axis(AxisDirection::Inline),
             alignment: inline_alignment,
             flip_anchor: shared_fragment.original_parent_writing_mode.is_bidi_ltr() !=
-                indefinite_containing_block.style.writing_mode.is_bidi_ltr(),
+                containing_block_writing_mode.is_bidi_ltr(),
         };
 
         // When the "static-position rect" doesn't come into play, we re-resolve "align-self"
@@ -521,184 +523,106 @@ impl HoistedAbsolutelyPositionedBox {
             true => style.clone_align_self().0 .0,
             false => shared_fragment.resolved_alignment.block,
         };
-        let block_axis_solver = AbsoluteAxisSolver {
+        let mut block_axis_solver = AbsoluteAxisSolver {
             axis: AxisDirection::Block,
             containing_size: cbbs,
             padding_border_sum: pbm.padding_border_sums.block,
             computed_margin_start: pbm.margin.block_start,
             computed_margin_end: pbm.margin.block_end,
+            computed_size: computed_size.block,
+            computed_min_size: computed_min_size.block,
+            computed_max_size: computed_max_size.block,
             avoid_negative_margin_start: false,
             box_offsets: block_box_offsets,
             static_position_rect_axis: static_position_rect.get_axis(AxisDirection::Block),
             alignment: block_alignment,
             flip_anchor: false,
         };
-        let overconstrained = LogicalVec2 {
-            inline: inline_axis_solver.is_overconstrained_for_size(computed_size.inline),
-            block: block_axis_solver.is_overconstrained_for_size(computed_size.block),
-        };
 
-        let mut inline_axis = inline_axis_solver.solve_for_size(computed_size.inline);
-        let mut block_axis = block_axis_solver.solve_for_size(computed_size.block);
+        // The block axis can depend on layout results, so we only solve it tentatively,
+        // we may have to resolve it properly later on.
+        let mut block_axis = block_axis_solver.solve_tentatively();
+
+        // The inline axis can be fully resolved, computing intrinsic sizes using the
+        // tentative block size.
+        let mut inline_axis = inline_axis_solver.solve(Some(|| {
+            let containing_block_for_children =
+                IndefiniteContainingBlock::new_for_style_and_block_size(&style, block_axis.size);
+            context
+                .inline_content_sizes(
+                    layout_context,
+                    &containing_block_for_children,
+                    &containing_block.into(),
+                )
+                .sizes
+        }));
 
         let mut positioning_context = PositioningContext::new_for_style(&style).unwrap();
         let mut new_fragment = {
             let content_size: LogicalVec2<Au>;
             let fragments;
-            match &mut absolutely_positioned_box.context {
+            match context {
                 IndependentFormattingContext::Replaced(replaced) => {
                     // https://drafts.csswg.org/css2/visudet.html#abs-replaced-width
                     // https://drafts.csswg.org/css2/visudet.html#abs-replaced-height
-                    content_size = computed_size.auto_is(|| unreachable!());
+                    content_size = computed_size.map(|size| size.to_numeric().unwrap());
                     fragments = replaced.contents.make_fragments(
                         &style,
-                        &containing_block.into(),
+                        containing_block,
                         content_size.to_physical_size(containing_block_writing_mode),
                     );
                 },
                 IndependentFormattingContext::NonReplaced(non_replaced) => {
-                    // https://drafts.csswg.org/css2/#min-max-widths
-                    // https://drafts.csswg.org/css2/#min-max-heights
-                    let min_size = non_replaced
-                        .style
-                        .content_min_box_size_deprecated(&indefinite_containing_block, &pbm)
-                        .map(|t| t.map(Au::from).auto_is(Au::zero));
-                    let max_size = style
-                        .content_max_box_size_deprecated(&containing_block.into(), &pbm)
-                        .map(|t| t.map(Au::from));
-
                     // https://drafts.csswg.org/css2/visudet.html#abs-non-replaced-width
                     // https://drafts.csswg.org/css2/visudet.html#abs-non-replaced-height
-                    let mut inline_size = inline_axis.size.auto_is(|| {
-                        let anchor = match inline_axis.anchor {
-                            Anchor::Start(start) => start,
-                            Anchor::End(end) => end,
-                        };
-                        let margin_sum = inline_axis.margin_start + inline_axis.margin_end;
-                        let available_size =
-                            cbis - anchor - pbm.padding_border_sums.inline - margin_sum;
+                    let inline_size = inline_axis.size.non_auto().unwrap();
+                    let containing_block_for_children = ContainingBlock {
+                        inline_size,
+                        block_size: block_axis.size,
+                        style: &style,
+                    };
+                    // https://drafts.csswg.org/css-writing-modes/#orthogonal-flows
+                    assert_eq!(
+                        containing_block_writing_mode.is_horizontal(),
+                        style.writing_mode.is_horizontal(),
+                        "Mixed horizontal and vertical writing modes are not supported yet"
+                    );
 
-                        let style = non_replaced.style.clone();
-                        let containing_block_for_children =
-                            IndefiniteContainingBlock::from(containing_block)
-                                .new_for_intrinsic_inline_size_of_child(
-                                    &style,
-                                    &LogicalVec2::zero(),
-                                );
-                        non_replaced
-                            .inline_content_sizes(layout_context, &containing_block_for_children)
-                            .shrink_to_fit(available_size)
-                    });
+                    let independent_layout = non_replaced.layout(
+                        layout_context,
+                        &mut positioning_context,
+                        &containing_block_for_children,
+                        containing_block,
+                    );
 
-                    // If the tentative used inline size is greater than ‘max-inline-size’,
-                    // recalculate the inline size and margins with ‘max-inline-size’ as the
-                    // computed ‘inline-size’. We can assume the new inline size won’t be ‘auto’,
-                    // because a non-‘auto’ computed ‘inline-size’ always becomes the used value.
-                    // https://drafts.csswg.org/css2/#min-max-widths (step 2)
-                    if let Some(max) = max_size.inline {
-                        if inline_size > max {
-                            inline_axis =
-                                inline_axis_solver.solve_for_size(AuOrAuto::LengthPercentage(max));
-                            inline_size = inline_axis.size.auto_is(|| unreachable!());
-                        }
-                    }
-
-                    // If the tentative used inline size is less than ‘min-inline-size’,
-                    // recalculate the inline size and margins with ‘min-inline-size’ as the
-                    // computed ‘inline-size’. We can assume the new inline size won’t be ‘auto’,
-                    // because a non-‘auto’ computed ‘inline-size’ always becomes the used value.
-                    // https://drafts.csswg.org/css2/#min-max-widths (step 3)
-                    if inline_size < min_size.inline {
-                        inline_axis = inline_axis_solver
-                            .solve_for_size(AuOrAuto::LengthPercentage(min_size.inline));
-                        inline_size = inline_axis.size.auto_is(|| unreachable!());
-                    }
-
-                    struct Result {
-                        content_size: LogicalVec2<Au>,
-                        fragments: Vec<Fragment>,
-                    }
-
-                    // If we end up recalculating the block size and margins below, we also need
-                    // to relayout the children with a containing block of that size, otherwise
-                    // percentages may be resolved incorrectly.
-                    let mut try_layout = |size| {
-                        let containing_block_for_children = ContainingBlock {
-                            inline_size,
-                            block_size: size,
-                            style: &style,
-                        };
-                        // https://drafts.csswg.org/css-writing-modes/#orthogonal-flows
-                        assert_eq!(
-                            containing_block.style.writing_mode.is_horizontal(),
-                            containing_block_for_children
-                                .style
-                                .writing_mode
-                                .is_horizontal(),
-                            "Mixed horizontal and vertical writing modes are not supported yet"
-                        );
-
-                        // Clear the context since we will lay out the same descendants
-                        // more than once. Otherwise, absolute descendants will create
-                        // multiple fragments which could later lead to double-borrow
-                        // errors.
-                        positioning_context.clear();
-
-                        let independent_layout = non_replaced.layout(
-                            layout_context,
-                            &mut positioning_context,
-                            &containing_block_for_children,
-                            &containing_block.into(),
-                        );
-
-                        let (block_size, inline_size) =
-                            match independent_layout.content_inline_size_for_table {
-                                Some(inline_size) => {
-                                    (independent_layout.content_block_size, inline_size)
-                                },
-                                None => (
-                                    size.auto_is(|| independent_layout.content_block_size),
-                                    inline_size,
-                                ),
-                            };
-
-                        Result {
-                            content_size: LogicalVec2 {
-                                inline: inline_size,
-                                block: block_size,
-                            },
-                            fragments: independent_layout.fragments,
-                        }
+                    let (block_size, inline_size) = match independent_layout
+                        .content_inline_size_for_table
+                    {
+                        Some(table_inline_size) => {
+                            // Tables can override their sizes regardless of the sizing properties,
+                            // so we may need to solve again to update margins.
+                            if inline_size != table_inline_size {
+                                inline_axis = inline_axis_solver.solve_with_size(table_inline_size);
+                            }
+                            let table_block_size = independent_layout.content_block_size;
+                            if block_axis.size != AuOrAuto::LengthPercentage(table_block_size) {
+                                block_axis = block_axis_solver.solve_with_size(table_block_size);
+                            }
+                            (table_block_size, table_inline_size)
+                        },
+                        None => {
+                            // Now we can properly solve the block size.
+                            block_axis = block_axis_solver
+                                .solve(Some(|| independent_layout.content_block_size.into()));
+                            (block_axis.size.non_auto().unwrap(), inline_size)
+                        },
                     };
 
-                    let mut result = try_layout(block_axis.size);
-
-                    // If the tentative used block size is greater than ‘max-block-size’,
-                    // recalculate the block size and margins with ‘max-block-size’ as the
-                    // computed ‘block-size’. We can assume the new block size won’t be ‘auto’,
-                    // because a non-‘auto’ computed ‘block-size’ always becomes the used value.
-                    // https://drafts.csswg.org/css2/#min-max-heights (step 2)
-                    if let Some(max) = max_size.block {
-                        if result.content_size.block > max {
-                            block_axis =
-                                block_axis_solver.solve_for_size(AuOrAuto::LengthPercentage(max));
-                            result = try_layout(AuOrAuto::LengthPercentage(max));
-                        }
-                    }
-
-                    // If the tentative used block size is less than ‘min-block-size’,
-                    // recalculate the block size and margins with ‘min-block-size’ as the
-                    // computed ‘block-size’. We can assume the new block size won’t be ‘auto’,
-                    // because a non-‘auto’ computed ‘block-size’ always becomes the used value.
-                    // https://drafts.csswg.org/css2/#min-max-heights (step 3)
-                    if result.content_size.block < min_size.block {
-                        block_axis = block_axis_solver
-                            .solve_for_size(AuOrAuto::LengthPercentage(min_size.block));
-                        result = try_layout(AuOrAuto::LengthPercentage(min_size.block));
-                    }
-
-                    content_size = result.content_size;
-                    fragments = result.fragments;
+                    content_size = LogicalVec2 {
+                        inline: inline_size,
+                        block: block_size,
+                    };
+                    fragments = independent_layout.fragments;
                 },
             };
 
@@ -738,14 +662,11 @@ impl HoistedAbsolutelyPositionedBox {
             block_axis_solver.solve_alignment(margin_box_rect, &mut content_rect);
             inline_axis_solver.solve_alignment(margin_box_rect, &mut content_rect);
 
-            let physical_overconstrained =
-                overconstrained.to_physical_size(containing_block.style.writing_mode);
-
-            BoxFragment::new_with_overconstrained(
-                absolutely_positioned_box.context.base_fragment_info(),
+            BoxFragment::new(
+                context.base_fragment_info(),
                 style,
                 fragments,
-                content_rect.to_physical(Some(&containing_block.into())),
+                content_rect.to_physical(Some(containing_block)),
                 pbm.padding.to_physical(containing_block_writing_mode),
                 pbm.border.to_physical(containing_block_writing_mode),
                 margin.to_physical(containing_block_writing_mode),
@@ -753,7 +674,6 @@ impl HoistedAbsolutelyPositionedBox {
                 // We do not set the baseline offset, because absolutely positioned
                 // elements are not inflow.
                 CollapsedBlockMargins::zero(),
-                physical_overconstrained,
             )
         };
         positioning_context.layout_collected_children(layout_context, &mut new_fragment);
@@ -803,17 +723,23 @@ struct AbsoluteBoxOffsets<'a> {
 }
 
 impl AbsoluteBoxOffsets<'_> {
-    pub(crate) fn both_specified(&self) -> bool {
-        !self.start.is_auto() && !self.end.is_auto()
-    }
-
     pub(crate) fn either_specified(&self) -> bool {
         !self.start.is_auto() || !self.end.is_auto()
     }
 }
+
 enum Anchor {
     Start(Au),
     End(Au),
+}
+
+impl Anchor {
+    fn inset(&self) -> Au {
+        match self {
+            Self::Start(start) => *start,
+            Self::End(end) => *end,
+        }
+    }
 }
 
 struct AxisResult {
@@ -829,12 +755,16 @@ struct AbsoluteAxisSolver<'a> {
     padding_border_sum: Au,
     computed_margin_start: AuOrAuto,
     computed_margin_end: AuOrAuto,
+    computed_size: Size<Au>,
+    computed_min_size: Size<Au>,
+    computed_max_size: Size<Au>,
     avoid_negative_margin_start: bool,
     box_offsets: AbsoluteBoxOffsets<'a>,
     static_position_rect_axis: RectAxis,
     alignment: AlignFlags,
     flip_anchor: bool,
 }
+
 impl<'a> AbsoluteAxisSolver<'a> {
     /// This unifies some of the parts in common in:
     ///
@@ -847,79 +777,107 @@ impl<'a> AbsoluteAxisSolver<'a> {
     /// * <https://drafts.csswg.org/css2/visudet.html#abs-replaced-height>
     ///
     /// In the replaced case, `size` is never `Auto`.
-    fn solve_for_size(&self, computed_size: AuOrAuto) -> AxisResult {
+    fn solve(&self, get_content_size: Option<impl FnOnce() -> ContentSizes>) -> AxisResult {
+        let mut get_content_size = get_content_size.map(|get_content_size| {
+            // The provided `get_content_size` is a FnOnce but we may need its result multiple times.
+            // A LazyCell will only invoke it once if needed, and then reuse the result.
+            let content_size = LazyCell::new(get_content_size);
+            move || *content_size
+        });
+        let mut solve_size = |initial_behavior, stretch_size: Au| {
+            let initial_is_stretch = initial_behavior == Size::Stretch;
+            let stretch_size = stretch_size.max(Au::zero());
+            get_content_size
+                .as_mut()
+                .map(|mut get_content_size| {
+                    let min_size = self
+                        .computed_min_size
+                        .resolve_non_initial(stretch_size, &mut get_content_size)
+                        .unwrap_or_default();
+                    let max_size = self
+                        .computed_max_size
+                        .resolve_non_initial(stretch_size, &mut get_content_size);
+                    self.computed_size
+                        .resolve(initial_behavior, stretch_size, &mut get_content_size)
+                        .clamp_between_extremums(min_size, max_size)
+                })
+                .or_else(|| {
+                    self.computed_size
+                        .maybe_resolve_extrinsic(Some(stretch_size))
+                        .or(initial_is_stretch.then_some(stretch_size))
+                        .map(|size| {
+                            let min_size = self
+                                .computed_min_size
+                                .maybe_resolve_extrinsic(Some(stretch_size))
+                                .unwrap_or_default();
+                            let max_size = self
+                                .computed_max_size
+                                .maybe_resolve_extrinsic(Some(stretch_size));
+                            size.clamp_between_extremums(min_size, max_size)
+                        })
+                })
+        };
+        let mut solve_for_anchor = |anchor: Anchor| {
+            let margin_start = self.computed_margin_start.auto_is(Au::zero);
+            let margin_end = self.computed_margin_end.auto_is(Au::zero);
+            let stretch_size = self.containing_size -
+                anchor.inset() -
+                self.padding_border_sum -
+                margin_start -
+                margin_end;
+            let size = solve_size(Size::FitContent, stretch_size)
+                .map_or(AuOrAuto::Auto, AuOrAuto::LengthPercentage);
+            AxisResult {
+                anchor,
+                size,
+                margin_start,
+                margin_end,
+            }
+        };
         match (
             self.box_offsets.start.non_auto(),
             self.box_offsets.end.non_auto(),
         ) {
-            (None, None) => AxisResult {
-                anchor: if self.flip_anchor {
-                    Anchor::End(self.containing_size - self.static_position_rect_axis.origin)
-                } else {
-                    Anchor::Start(self.static_position_rect_axis.origin)
-                },
-                size: computed_size,
-                margin_start: self.computed_margin_start.auto_is(Au::zero),
-                margin_end: self.computed_margin_end.auto_is(Au::zero),
+            (None, None) => solve_for_anchor(if self.flip_anchor {
+                Anchor::End(self.containing_size - self.static_position_rect_axis.origin)
+            } else {
+                Anchor::Start(self.static_position_rect_axis.origin)
+            }),
+            (Some(start), None) => {
+                solve_for_anchor(Anchor::Start(start.to_used_value(self.containing_size)))
             },
-            (Some(start), None) => AxisResult {
-                anchor: Anchor::Start(start.to_used_value(self.containing_size)),
-                size: computed_size,
-                margin_start: self.computed_margin_start.auto_is(Au::zero),
-                margin_end: self.computed_margin_end.auto_is(Au::zero),
-            },
-            (None, Some(end)) => AxisResult {
-                anchor: Anchor::End(end.to_used_value(self.containing_size)),
-                size: computed_size,
-                margin_start: self.computed_margin_start.auto_is(Au::zero),
-                margin_end: self.computed_margin_end.auto_is(Au::zero),
+            (None, Some(end)) => {
+                solve_for_anchor(Anchor::End(end.to_used_value(self.containing_size)))
             },
             (Some(start), Some(end)) => {
                 let start = start.to_used_value(self.containing_size);
                 let end = end.to_used_value(self.containing_size);
-
-                let margin_start;
-                let margin_end;
-                let used_size;
-                if let AuOrAuto::LengthPercentage(s) = computed_size {
-                    used_size = s;
-                    let margins = self.containing_size - start - end - self.padding_border_sum - s;
+                let mut free_space = self.containing_size - start - end - self.padding_border_sum;
+                let stretch_size = free_space -
+                    self.computed_margin_start.auto_is(Au::zero) -
+                    self.computed_margin_end.auto_is(Au::zero);
+                let used_size = solve_size(Size::Stretch, stretch_size).unwrap();
+                free_space -= used_size;
+                let (margin_start, margin_end) =
                     match (self.computed_margin_start, self.computed_margin_end) {
                         (AuOrAuto::Auto, AuOrAuto::Auto) => {
-                            if self.avoid_negative_margin_start && margins < Au::zero() {
-                                margin_start = Au::zero();
-                                margin_end = margins;
+                            if self.avoid_negative_margin_start && free_space < Au::zero() {
+                                (Au::zero(), free_space)
                             } else {
-                                margin_start = margins / 2;
-                                margin_end = margins - margin_start;
+                                let margin_start = free_space / 2;
+                                (margin_start, free_space - margin_start)
                             }
                         },
                         (AuOrAuto::Auto, AuOrAuto::LengthPercentage(end)) => {
-                            margin_start = margins - end;
-                            margin_end = end;
+                            (free_space - end, end)
                         },
                         (AuOrAuto::LengthPercentage(start), AuOrAuto::Auto) => {
-                            margin_start = start;
-                            margin_end = margins - start;
+                            (start, free_space - start)
                         },
                         (AuOrAuto::LengthPercentage(start), AuOrAuto::LengthPercentage(end)) => {
-                            margin_start = start;
-                            margin_end = end;
+                            (start, end)
                         },
-                    }
-                } else {
-                    margin_start = self.computed_margin_start.auto_is(Au::zero);
-                    margin_end = self.computed_margin_end.auto_is(Au::zero);
-
-                    // This may be negative, but the caller will later effectively
-                    // clamp it to ‘min-inline-size’ or ‘min-block-size’.
-                    used_size = self.containing_size -
-                        start -
-                        end -
-                        self.padding_border_sum -
-                        margin_start -
-                        margin_end;
-                };
+                    };
                 AxisResult {
                     anchor: Anchor::Start(start),
                     size: AuOrAuto::LengthPercentage(used_size),
@@ -930,11 +888,24 @@ impl<'a> AbsoluteAxisSolver<'a> {
         }
     }
 
-    fn is_overconstrained_for_size(&self, computed_size: AuOrAuto) -> bool {
-        !computed_size.is_auto() &&
-            self.box_offsets.both_specified() &&
-            !self.computed_margin_start.is_auto() &&
-            !self.computed_margin_end.is_auto()
+    fn solve_tentatively(&mut self) -> AxisResult {
+        self.solve(None::<fn() -> ContentSizes>)
+    }
+
+    fn solve_with_size(&mut self, size: Au) -> AxisResult {
+        // Override sizes
+        let old_size = mem::replace(&mut self.computed_size, Size::Numeric(size));
+        let old_min_size = mem::take(&mut self.computed_min_size);
+        let old_max_size = mem::take(&mut self.computed_max_size);
+
+        let result = self.solve_tentatively();
+
+        // Restore original sizes
+        self.computed_size = old_size;
+        self.computed_min_size = old_min_size;
+        self.computed_max_size = old_max_size;
+
+        result
     }
 
     fn origin_for_alignment_or_justification(&self, margin_box_axis: RectAxis) -> Option<Au> {
@@ -1017,7 +988,7 @@ pub(crate) fn relative_adjustement(
     let cbis = containing_block.inline_size;
     let cbbs = containing_block.block_size;
     let box_offsets = style
-        .box_offsets(containing_block)
+        .box_offsets(containing_block.style.writing_mode)
         .map_inline_and_block_axes(
             |value| value.map(|value| value.to_used_value(cbis)),
             |value| match cbbs.non_auto() {

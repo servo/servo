@@ -31,9 +31,9 @@
       async function (t) {
         t.add_cleanup(resetState);
         invokerbutton.command = command;
-        assert_false(invokee.matches("[open]"));
+        assert_false(invokee.matches("[open]"), "invokee does not match [open]");
         await clickOn(invokerbutton);
-        assert_true(invokee.matches("[open]"));
+        assert_true(invokee.matches("[open]"), "invokee matches [open]");
       },
       `invoking (as ${command}) closed details opens`,
     );
@@ -42,13 +42,13 @@
       async function (t) {
         t.add_cleanup(resetState);
         invokerbutton.command = command;
-        assert_false(invokee.matches("[open]"));
+        assert_false(invokee.matches("[open]"), "invokee does not match [open]");
         invokee.addEventListener("command", (e) => e.preventDefault(), {
           once: true,
         });
         await clickOn(invokerbutton);
         t.add_cleanup(() => invokee.removeAttribute("open"));
-        assert_false(invokee.matches("[open]"));
+        assert_false(invokee.matches("[open]"), "invokee still does not match [open]");
       },
       `invoking (as ${command}) closed details with preventDefault does not open`,
     );

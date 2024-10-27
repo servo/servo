@@ -30,6 +30,7 @@ use crate::dom::node::{
 };
 use crate::dom::stylesheet::StyleSheet as DOMStyleSheet;
 use crate::dom::virtualmethods::VirtualMethods;
+use crate::script_runtime::CanGc;
 use crate::stylesheet_loader::{StylesheetLoader, StylesheetOwner};
 
 #[dom_struct]
@@ -73,6 +74,7 @@ impl HTMLStyleElement {
         document: &Document,
         proto: Option<HandleObject>,
         creator: ElementCreator,
+        can_gc: CanGc,
     ) -> DomRoot<HTMLStyleElement> {
         Node::reflect_node_with_proto(
             Box::new(HTMLStyleElement::new_inherited(
@@ -80,6 +82,7 @@ impl HTMLStyleElement {
             )),
             document,
             proto,
+            can_gc,
         )
     }
 

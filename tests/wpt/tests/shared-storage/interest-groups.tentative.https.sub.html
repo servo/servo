@@ -1,0 +1,41 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/shared-storage/resources/util.js"></script>
+<script src="/fenced-frame/resources/utils.js"></script>
+
+<body>
+<script>
+'use strict';
+
+promise_test(async t => {
+  const ig = {
+    owner: window.location.origin,
+    name: 'default name',
+    lifetimeMs: 100000
+  };
+
+  await navigator.joinAdInterestGroup(ig);
+  await sharedStorage.worklet.addModule('resources/simple-module.js');
+
+  const ancestor_key = token();
+  let url0 = generateURL("/shared-storage/resources/frame0.html",
+                         [ancestor_key]);
+  let url1 = generateURL("/shared-storage/resources/frame1.html",
+                         [ancestor_key]);
+
+  let select_url_result = await sharedStorage.selectURL(
+      "verify-interest-groups", [{url: url0}, {url: url1}],
+      {data: {'expectedOwner': ig.owner, 'expectedName': ig.name},
+       resolveToConfig: true});
+  assert_true(validateSelectURLResult(select_url_result, true));
+  attachFencedFrame(select_url_result, 'opaque-ads');
+  const result = await nextValueFromServer(ancestor_key);
+
+  // This indicates that `interestGroups()` returns expected result.
+  assert_equals(result, "frame1_loaded");
+}, 'Basic test for `interestGroups()` in the shared storage worklet');
+
+</script>
+</body>

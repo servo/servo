@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://github.com/whatwg/html/issues/9799">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<style>
+select, select::picker(select) {
+  appearance: base-select;
+}
+</style>
+
+<select>
+  <button id=invoker>invoker</button>
+  <option>one</option>
+  <option>two</option>
+  <button id=popover>popover button</button>
+</select>
+
+<script>
+promise_test(async () => {
+  const select = document.querySelector('select');
+  const invokerButton = document.getElementById('invoker');
+  const popoverButton = document.getElementById('popover');
+
+  await test_driver.click(invokerButton);
+  assert_true(select.matches(':open'),
+    'Select should open after clicking the invoker button.');
+
+  let popoverButtonClicked = false;
+  popoverButton.onclick = () => popoverButtonClicked = true;
+  await test_driver.click(popoverButton);
+  assert_true(select.matches(':open'),
+    'Clicking the button should not have closed the popover.');
+  assert_true(popoverButtonClicked,
+    'The button in the popover should have gotten a click event when clicked.');
+}, 'Buttons in the popover should be rendered and should not close the popover when clicked.');
+</script>

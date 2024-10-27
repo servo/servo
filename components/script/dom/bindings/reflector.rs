@@ -76,6 +76,10 @@ impl Reflector {
     }
 
     /// Initialize the reflector. (May be called only once.)
+    ///
+    /// # Safety
+    ///
+    /// The provided [`JSObject`] pointer must point to a valid [`JSObject`].
     pub unsafe fn set_jsobject(&self, object: *mut JSObject) {
         assert!(self.object.get().is_null());
         assert!(!object.is_null());
@@ -123,6 +127,10 @@ impl DomObject for Reflector {
 /// A trait to initialize the `Reflector` for a DOM object.
 pub trait MutDomObject: DomObject {
     /// Initializes the Reflector
+    ///
+    /// # Safety
+    ///
+    /// The provided [`JSObject`] pointer must point to a valid [`JSObject`].
     unsafe fn init_reflector(&self, obj: *mut JSObject);
 }
 
@@ -135,6 +143,7 @@ impl MutDomObject for Reflector {
 /// A trait to provide a function pointer to wrap function for DOM objects.
 pub trait DomObjectWrap: Sized + DomObject {
     /// Function pointer to the general wrap function type
+    #[allow(clippy::type_complexity)]
     const WRAP: unsafe fn(
         JSContext,
         &GlobalScope,
@@ -148,6 +157,7 @@ pub trait DomObjectWrap: Sized + DomObject {
 /// DOM iterator interfaces.
 pub trait DomObjectIteratorWrap: DomObjectWrap + JSTraceable + Iterable {
     /// Function pointer to the wrap function for `IterableIterator<T>`
+    #[allow(clippy::type_complexity)]
     const ITER_WRAP: unsafe fn(
         JSContext,
         &GlobalScope,

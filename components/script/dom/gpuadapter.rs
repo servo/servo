@@ -27,6 +27,7 @@ use crate::dom::gpudevice::GPUDevice;
 use crate::dom::gpusupportedfeatures::gpu_to_wgt_feature;
 use crate::dom::promise::Promise;
 use crate::realms::InRealm;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct GPUAdapter {
@@ -76,8 +77,9 @@ impl GPUAdapter {
         limits: wgt::Limits,
         info: wgt::AdapterInfo,
         adapter: WebGPUAdapter,
+        can_gc: CanGc,
     ) -> DomRoot<Self> {
-        let features = GPUSupportedFeatures::Constructor(global, None, features).unwrap();
+        let features = GPUSupportedFeatures::Constructor(global, None, features, can_gc).unwrap();
         let limits = GPUSupportedLimits::new(global, limits);
         let info = GPUAdapterInfo::new(global, info);
         reflect_dom_object(
@@ -106,9 +108,14 @@ impl Drop for GPUAdapter {
 
 impl GPUAdapterMethods for GPUAdapter {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuadapter-requestdevice>
-    fn RequestDevice(&self, descriptor: &GPUDeviceDescriptor, comp: InRealm) -> Rc<Promise> {
+    fn RequestDevice(
+        &self,
+        descriptor: &GPUDeviceDescriptor,
+        comp: InRealm,
+        can_gc: CanGc,
+    ) -> Rc<Promise> {
         // Step 2
-        let promise = Promise::new_in_current_realm(comp);
+        let promise = Promise::new_in_current_realm(comp, can_gc);
         let sender = response_async(&promise, self);
         let mut required_features = wgt::Features::empty();
         for &ext in descriptor.requiredFeatures.iter() {
@@ -169,10 +176,15 @@ impl GPUAdapterMethods for GPUAdapter {
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuadapter-requestadapterinfo>
-    fn RequestAdapterInfo(&self, unmask_hints: Vec<DOMString>, comp: InRealm) -> Rc<Promise> {
+    fn RequestAdapterInfo(
+        &self,
+        unmask_hints: Vec<DOMString>,
+        comp: InRealm,
+        can_gc: CanGc,
+    ) -> Rc<Promise> {
         // XXX: Adapter info should be generated here ...
         // Step 1
-        let promise = Promise::new_in_current_realm(comp);
+        let promise = Promise::new_in_current_realm(comp, can_gc);
         // Step 4
         if !unmask_hints.is_empty() {
             todo!("unmaskHints on RequestAdapterInfo");
@@ -194,7 +206,7 @@ impl GPUAdapterMethods for GPUAdapter {
 }
 
 impl AsyncWGPUListener for GPUAdapter {
-    fn handle_response(&self, response: WebGPUResponse, promise: &Rc<Promise>) {
+    fn handle_response(&self, response: WebGPUResponse, promise: &Rc<Promise>, can_gc: CanGc) {
         match response {
             WebGPUResponse::Device((device_id, queue_id, Ok(descriptor))) => {
                 let device = GPUDevice::new(
@@ -207,6 +219,7 @@ impl AsyncWGPUListener for GPUAdapter {
                     device_id,
                     queue_id,
                     descriptor.label.unwrap_or_default(),
+                    can_gc,
                 );
                 self.global().add_gpu_device(&device);
                 promise.resolve_native(&device);
@@ -230,6 +243,7 @@ impl AsyncWGPUListener for GPUAdapter {
                     device_id,
                     queue_id,
                     String::new(),
+                    can_gc,
                 );
                 device.lose(GPUDeviceLostReason::Unknown, e.to_string());
                 promise.resolve_native(&device);

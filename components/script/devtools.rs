@@ -40,10 +40,16 @@ use crate::dom::node::{stylesheets_owner_from_node, window_from_node, Node, Shad
 use crate::dom::types::HTMLElement;
 use crate::realms::enter_realm;
 use crate::script_module::ScriptFetchOptions;
+use crate::script_runtime::CanGc;
 use crate::script_thread::Documents;
 
 #[allow(unsafe_code)]
-pub fn handle_evaluate_js(global: &GlobalScope, eval: String, reply: IpcSender<EvaluateJSReply>) {
+pub fn handle_evaluate_js(
+    global: &GlobalScope,
+    eval: String,
+    reply: IpcSender<EvaluateJSReply>,
+    can_gc: CanGc,
+) {
     // global.get_cx() returns a valid `JSContext` pointer, so this is safe.
     let result = unsafe {
         let cx = GlobalScope::get_cx();
@@ -57,6 +63,7 @@ pub fn handle_evaluate_js(global: &GlobalScope, eval: String, reply: IpcSender<E
             1,
             ScriptFetchOptions::default_classic_script(global),
             global.api_base_url(),
+            can_gc,
         );
 
         if rval.is_undefined() {
@@ -183,6 +190,7 @@ pub fn handle_get_attribute_style(
     pipeline: PipelineId,
     node_id: String,
     reply: IpcSender<Option<Vec<NodeStyle>>>,
+    can_gc: CanGc,
 ) {
     let node = match find_node_by_unique_id(documents, pipeline, &node_id) {
         None => return reply.send(None).unwrap(),
@@ -199,7 +207,7 @@ pub fn handle_get_attribute_style(
             let name = style.Item(i);
             NodeStyle {
                 name: name.to_string(),
-                value: style.GetPropertyValue(name.clone()).to_string(),
+                value: style.GetPropertyValue(name.clone(), can_gc).to_string(),
                 priority: style.GetPropertyPriority(name).to_string(),
             }
         })
@@ -216,6 +224,7 @@ pub fn handle_get_stylesheet_style(
     selector: String,
     stylesheet: usize,
     reply: IpcSender<Option<Vec<NodeStyle>>>,
+    can_gc: CanGc,
 ) {
     let msg = (|| {
         let node = find_node_by_unique_id(documents, pipeline, &node_id)?;
@@ -241,7 +250,7 @@ pub fn handle_get_stylesheet_style(
                     let name = style.Item(i);
                     NodeStyle {
                         name: name.to_string(),
-                        value: style.GetPropertyValue(name.clone()).to_string(),
+                        value: style.GetPropertyValue(name.clone(), can_gc).to_string(),
                         priority: style.GetPropertyPriority(name).to_string(),
                     }
                 })
@@ -296,6 +305,7 @@ pub fn handle_get_computed_style(
     pipeline: PipelineId,
     node_id: String,
     reply: IpcSender<Option<Vec<NodeStyle>>>,
+    can_gc: CanGc,
 ) {
     let node = match find_node_by_unique_id(documents, pipeline, &node_id) {
         None => return reply.send(None).unwrap(),
@@ -313,7 +323,9 @@ pub fn handle_get_computed_style(
             let name = computed_style.Item(i);
             NodeStyle {
                 name: name.to_string(),
-                value: computed_style.GetPropertyValue(name.clone()).to_string(),
+                value: computed_style
+                    .GetPropertyValue(name.clone(), can_gc)
+                    .to_string(),
                 priority: computed_style.GetPropertyPriority(name).to_string(),
             }
         })
@@ -327,6 +339,7 @@ pub fn handle_get_layout(
     pipeline: PipelineId,
     node_id: String,
     reply: IpcSender<Option<ComputedNodeLayout>>,
+    can_gc: CanGc,
 ) {
     let node = match find_node_by_unique_id(documents, pipeline, &node_id) {
         None => return reply.send(None).unwrap(),
@@ -336,7 +349,7 @@ pub fn handle_get_layout(
     let elem = node
         .downcast::<Element>()
         .expect("should be getting layout of element");
-    let rect = elem.GetBoundingClientRect();
+    let rect = elem.GetBoundingClientRect(can_gc);
     let width = rect.Width() as f32;
     let height = rect.Height() as f32;
 
@@ -352,7 +365,7 @@ pub fn handle_get_layout(
             position: String::from(computed_style.Position()),
             z_index: String::from(computed_style.ZIndex()),
             box_sizing: String::from(computed_style.BoxSizing()),
-            auto_margins: determine_auto_margins(&node),
+            auto_margins: determine_auto_margins(&node, can_gc),
             margin_top: String::from(computed_style.MarginTop()),
             margin_right: String::from(computed_style.MarginRight()),
             margin_bottom: String::from(computed_style.MarginBottom()),
@@ -371,8 +384,8 @@ pub fn handle_get_layout(
         .unwrap();
 }
 
-fn determine_auto_margins(node: &Node) -> AutoMargins {
-    let style = node.style().unwrap();
+fn determine_auto_margins(node: &Node, can_gc: CanGc) -> AutoMargins {
+    let style = node.style(can_gc).unwrap();
     let margin = style.get_margin();
     AutoMargins {
         top: margin.margin_top.is_auto(),
@@ -387,6 +400,7 @@ pub fn handle_modify_attribute(
     pipeline: PipelineId,
     node_id: String,
     modifications: Vec<AttrModification>,
+    can_gc: CanGc,
 ) {
     let Some(document) = documents.find_document(pipeline) else {
         return warn!("document for pipeline id {} is not found", &pipeline);
@@ -413,6 +427,7 @@ pub fn handle_modify_attribute(
                 let _ = elem.SetAttribute(
                     DOMString::from(modification.attribute_name),
                     DOMString::from(string),
+                    can_gc,
                 );
             },
             None => elem.RemoveAttribute(DOMString::from(modification.attribute_name)),
@@ -425,6 +440,7 @@ pub fn handle_modify_rule(
     pipeline: PipelineId,
     node_id: String,
     modifications: Vec<RuleModification>,
+    can_gc: CanGc,
 ) {
     let Some(document) = documents.find_document(pipeline) else {
         return warn!("Document for pipeline id {} is not found", &pipeline);
@@ -448,6 +464,7 @@ pub fn handle_modify_rule(
             modification.name.into(),
             modification.value.into(),
             modification.priority.into(),
+            can_gc,
         );
     }
 }
@@ -484,9 +501,9 @@ pub fn handle_request_animation_frame(documents: &Documents, id: PipelineId, act
     }
 }
 
-pub fn handle_reload(documents: &Documents, id: PipelineId) {
+pub fn handle_reload(documents: &Documents, id: PipelineId, can_gc: CanGc) {
     if let Some(win) = documents.find_window(id) {
-        win.Location().reload_without_origin_check();
+        win.Location().reload_without_origin_check(can_gc);
     }
 }
 

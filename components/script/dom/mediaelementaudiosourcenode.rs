@@ -58,8 +58,9 @@ impl MediaElementAudioSourceNode {
         window: &Window,
         context: &AudioContext,
         media_element: &HTMLMediaElement,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<MediaElementAudioSourceNode>> {
-        Self::new_with_proto(window, None, context, media_element, CanGc::note())
+        Self::new_with_proto(window, None, context, media_element, can_gc)
     }
 
     #[allow(crown::unrooted_must_root)]
@@ -78,9 +79,11 @@ impl MediaElementAudioSourceNode {
             can_gc,
         ))
     }
+}
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+impl MediaElementAudioSourceNodeMethods for MediaElementAudioSourceNode {
+    /// <https://webaudio.github.io/web-audio-api/#dom-mediaelementaudiosourcenode-mediaelementaudiosourcenode>
+    fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -95,9 +98,7 @@ impl MediaElementAudioSourceNode {
             can_gc,
         )
     }
-}
 
-impl MediaElementAudioSourceNodeMethods for MediaElementAudioSourceNode {
     /// <https://webaudio.github.io/web-audio-api/#dom-mediaelementaudiosourcenode-mediaelement>
     fn MediaElement(&self) -> DomRoot<HTMLMediaElement> {
         DomRoot::from_ref(&*self.media_element)

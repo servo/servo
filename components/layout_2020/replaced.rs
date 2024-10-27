@@ -29,8 +29,8 @@ use crate::context::LayoutContext;
 use crate::dom::NodeExt;
 use crate::fragment_tree::{BaseFragmentInfo, Fragment, IFrameFragment, ImageFragment};
 use crate::geom::{LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSize};
-use crate::sizing::ContentSizes;
-use crate::style_ext::{AspectRatio, Clamp, ComputedValuesExt, PaddingBorderMargin};
+use crate::sizing::InlineContentSizesResult;
+use crate::style_ext::{AspectRatio, Clamp, ComputedValuesExt, ContentBoxSizesAndPBMDeprecated};
 use crate::{AuOrAuto, ContainingBlock, IndefiniteContainingBlock};
 
 #[derive(Debug, Serialize)]
@@ -282,21 +282,27 @@ impl ReplacedContent {
         _: &LayoutContext,
         containing_block_for_children: &IndefiniteContainingBlock,
         preferred_aspect_ratio: Option<AspectRatio>,
-    ) -> ContentSizes {
+    ) -> InlineContentSizesResult {
         // FIXME: min/max-content of replaced elements is not defined in
         // https://dbaron.org/css/intrinsic/
         // This seems sensible?
         let block_size = containing_block_for_children.size.block;
-        let inline_size = match (block_size, preferred_aspect_ratio) {
-            (AuOrAuto::LengthPercentage(block_size), Some(ratio)) => {
-                ratio.compute_dependent_size(Direction::Inline, block_size)
+        match (block_size, preferred_aspect_ratio) {
+            (AuOrAuto::LengthPercentage(block_size), Some(ratio)) => InlineContentSizesResult {
+                sizes: ratio
+                    .compute_dependent_size(Direction::Inline, block_size)
+                    .into(),
+                depends_on_block_constraints: true,
             },
-            _ => self
-                .flow_relative_intrinsic_size(containing_block_for_children.style)
-                .inline
-                .unwrap_or_else(Au::zero),
-        };
-        inline_size.into()
+            _ => InlineContentSizesResult {
+                sizes: self
+                    .flow_relative_intrinsic_size(containing_block_for_children.style)
+                    .inline
+                    .unwrap_or_else(Au::zero)
+                    .into(),
+                depends_on_block_constraints: false,
+            },
+        }
     }
 
     pub fn make_fragments(
@@ -443,24 +449,22 @@ impl ReplacedContent {
         &self,
         containing_block: &ContainingBlock,
         style: &ComputedValues,
-        pbm: &PaddingBorderMargin,
+        content_box_sizes_and_pbm: &ContentBoxSizesAndPBMDeprecated,
     ) -> LogicalVec2<Au> {
-        let box_size = style
-            .content_box_size_deprecated(containing_block, pbm)
-            // We need to clamp to zero here to obtain the proper aspect
-            // ratio when box-sizing is border-box and the inner box size
-            // would otherwise be negative.
+        // We need to clamp to zero here to obtain the proper aspect ratio when box-sizing
+        // is border-box and the inner box size would otherwise be negative.
+        let content_box_size = content_box_sizes_and_pbm
+            .content_box_size
             .map(|value| value.map(|value| value.max(Au::zero())));
-        let min_box_size = style
-            .content_min_box_size_deprecated(containing_block, pbm)
+        let content_min_box_size = content_box_sizes_and_pbm
+            .content_min_box_size
             .auto_is(Au::zero);
-        let max_box_size = style.content_max_box_size_deprecated(containing_block, pbm);
         self.used_size_as_if_inline_element_from_content_box_sizes(
             containing_block,
             style,
-            box_size,
-            min_box_size,
-            max_box_size,
+            content_box_size,
+            content_min_box_size,
+            content_box_sizes_and_pbm.content_max_box_size,
         )
     }
 
@@ -629,13 +633,13 @@ impl ReplacedContent {
                 },
                 // Rows 6-7.
                 (Violation::Above(max_inline_size), Violation::Above(max_block_size)) => {
-                    if max_inline_size.0 * block_size.0 <= max_block_size.0 * inline_size.0 {
+                    let transferred_block_size =
+                        ratio.compute_dependent_size(Direction::Block, max_inline_size);
+                    if transferred_block_size <= max_block_size {
                         // Row 6.
                         LogicalVec2 {
                             inline: max_inline_size,
-                            block: ratio
-                                .compute_dependent_size(Direction::Block, max_inline_size)
-                                .max(min_box_size.block),
+                            block: transferred_block_size.max(min_box_size.block),
                         }
                     } else {
                         // Row 7.
@@ -649,12 +653,12 @@ impl ReplacedContent {
                 },
                 // Rows 8-9.
                 (Violation::Below(min_inline_size), Violation::Below(min_block_size)) => {
-                    if min_inline_size.0 * block_size.0 <= min_block_size.0 * inline_size.0 {
+                    let transferred_inline_size =
+                        ratio.compute_dependent_size(Direction::Inline, min_block_size);
+                    if min_inline_size <= transferred_inline_size {
                         // Row 8.
                         LogicalVec2 {
-                            inline: ratio
-                                .compute_dependent_size(Direction::Inline, min_block_size)
-                                .clamp_below_max(max_box_size.inline),
+                            inline: transferred_inline_size.clamp_below_max(max_box_size.inline),
                             block: min_block_size,
                         }
                     } else {

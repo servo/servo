@@ -30,10 +30,11 @@
     "foo",
     "foo-bar",
     "auto",
-    "showpopover",
-    "hidepopover",
-    "togglepopover",
-    "showpicker",
+    "showmodal",
+    "show-popover",
+    "hide-popover",
+    "toggle-popover",
+    "show-picker",
   ].forEach((action) => {
     promise_test(async function (t) {
       t.add_cleanup(resetState);
@@ -87,7 +88,7 @@
   });
 
   // Open Popovers using Dialog actions
-  ["showmodal", "close"].forEach((action) => {
+  ["show-modal", "close"].forEach((action) => {
     ["manual", "auto"].forEach((popoverState) => {
       promise_test(
         async function (t) {

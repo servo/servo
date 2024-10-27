@@ -139,3 +139,25 @@ test_scope(document.currentScript, () => {
   assert_equals(getComputedStyle(item).borderColor, 'rgb(0, 128, 0)');
 }, 'Identical root with further proximity is not ignored');
 </script>
+
+<template>
+  <style>
+    @scope (.scope) {
+      :where(&) { border-color:green; }
+    }
+    @scope (#outer) {
+      :where(:scope) :where(#inner) { border-color:red; }
+    }
+  </style>
+  <div id=outer class=scope>
+    <div>
+      <div id=inner class=scope>
+      </div>
+    </div>
+  </div>
+</template>
+<script>
+test_scope(document.currentScript, () => {
+  assert_equals(getComputedStyle(inner).borderColor, 'rgb(0, 128, 0)');
+}, 'Most proximate match wins under multiple scoping roots');
+</script>

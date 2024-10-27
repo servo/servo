@@ -69,7 +69,7 @@ use crate::dom::webgluniformlocation::WebGLUniformLocation;
 use crate::dom::webglvertexarrayobject::WebGLVertexArrayObject;
 use crate::dom::window::Window;
 use crate::js::conversions::ToJSValConvertible;
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{CanGc, JSContext};
 
 #[crown::unrooted_must_root_lint::must_root]
 #[derive(JSTraceable, MallocSizeOf)]
@@ -143,8 +143,10 @@ impl WebGL2RenderingContext {
         canvas: &HTMLCanvasElementOrOffscreenCanvas,
         size: Size2D<u32>,
         attrs: GLContextAttributes,
+        can_gc: CanGc,
     ) -> Option<WebGL2RenderingContext> {
-        let base = WebGLRenderingContext::new(window, canvas, WebGLVersion::WebGL2, size, attrs)?;
+        let base =
+            WebGLRenderingContext::new(window, canvas, WebGLVersion::WebGL2, size, attrs, can_gc)?;
 
         let samplers = (0..base.limits().max_combined_texture_image_units)
             .map(|_| Default::default())
@@ -190,8 +192,9 @@ impl WebGL2RenderingContext {
         canvas: &HTMLCanvasElementOrOffscreenCanvas,
         size: Size2D<u32>,
         attrs: GLContextAttributes,
+        can_gc: CanGc,
     ) -> Option<DomRoot<WebGL2RenderingContext>> {
-        WebGL2RenderingContext::new_inherited(window, canvas, size, attrs)
+        WebGL2RenderingContext::new_inherited(window, canvas, size, attrs, can_gc)
             .map(|ctx| reflect_dom_object(Box::new(ctx), window))
     }
 
@@ -4476,9 +4479,9 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
     }
 
     /// <https://immersive-web.github.io/webxr/#dom-webglrenderingcontextbase-makexrcompatible>
-    fn MakeXRCompatible(&self) -> Rc<Promise> {
+    fn MakeXRCompatible(&self, can_gc: CanGc) -> Rc<Promise> {
         // XXXManishearth Fill in with compatibility checks when rust-webxr supports this
-        let p = Promise::new(&self.global());
+        let p = Promise::new(&self.global(), can_gc);
         p.resolve_native(&());
         p
     }

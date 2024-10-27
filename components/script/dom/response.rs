@@ -72,8 +72,8 @@ impl Response {
     }
 
     // https://fetch.spec.whatwg.org/#dom-response
-    pub fn new(global: &GlobalScope) -> DomRoot<Response> {
-        Self::new_with_proto(global, None, CanGc::note())
+    pub fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<Response> {
+        Self::new_with_proto(global, None, can_gc)
     }
 
     fn new_with_proto(
@@ -89,8 +89,60 @@ impl Response {
         )
     }
 
+    pub fn error_stream(&self, error: Error) {
+        if let Some(body) = self.body_stream.get() {
+            body.error_native(error);
+        }
+    }
+}
+
+impl BodyMixin for Response {
+    fn is_disturbed(&self) -> bool {
+        self.body_stream
+            .get()
+            .is_some_and(|stream| stream.is_disturbed())
+    }
+
+    fn is_locked(&self) -> bool {
+        self.body_stream
+            .get()
+            .is_some_and(|stream| stream.is_locked())
+    }
+
+    fn body(&self) -> Option<DomRoot<ReadableStream>> {
+        self.body_stream.get()
+    }
+
+    fn get_mime_type(&self, can_gc: CanGc) -> Vec<u8> {
+        let headers = self.Headers(can_gc);
+        headers.extract_mime_type()
+    }
+}
+
+// https://fetch.spec.whatwg.org/#redirect-status
+fn is_redirect_status(status: u16) -> bool {
+    status == 301 || status == 302 || status == 303 || status == 307 || status == 308
+}
+
+// https://tools.ietf.org/html/rfc7230#section-3.1.2
+fn is_valid_status_text(status_text: &ByteString) -> bool {
+    // reason-phrase  = *( HTAB / SP / VCHAR / obs-text )
+    for byte in status_text.iter() {
+        if !(*byte == b'\t' || *byte == b' ' || is_vchar(*byte) || is_obs_text(*byte)) {
+            return false;
+        }
+    }
+    true
+}
+
+// https://fetch.spec.whatwg.org/#null-body-status
+fn is_null_body_status(status: u16) -> bool {
+    status == 101 || status == 204 || status == 205 || status == 304
+}
+
+impl ResponseMethods for Response {
     // https://fetch.spec.whatwg.org/#initialize-a-response
-    pub fn Constructor(
+    fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -120,7 +172,7 @@ impl Response {
 
         // Step 5
         if let Some(ref headers_member) = init.headers {
-            r.Headers().fill(Some(headers_member.clone()))?;
+            r.Headers(can_gc).fill(Some(headers_member.clone()))?;
         }
 
         // Step 6
@@ -138,18 +190,18 @@ impl Response {
                 total_bytes: _,
                 content_type,
                 source: _,
-            } = body.extract(global)?;
+            } = body.extract(global, can_gc)?;
 
             r.body_stream.set(Some(&*stream));
 
             // Step 6.3
             if let Some(content_type_contents) = content_type {
                 if !r
-                    .Headers()
+                    .Headers(can_gc)
                     .Has(ByteString::new(b"Content-Type".to_vec()))
                     .unwrap()
                 {
-                    r.Headers().Append(
+                    r.Headers(can_gc).Append(
                         ByteString::new(b"Content-Type".to_vec()),
                         ByteString::new(content_type_contents.as_bytes().to_vec()),
                     )?;
@@ -158,7 +210,7 @@ impl Response {
         } else {
             // Reset FetchResponse to an in-memory stream with empty byte sequence here for
             // no-init-body case
-            let stream = ReadableStream::new_from_bytes(global, Vec::with_capacity(0));
+            let stream = ReadableStream::new_from_bytes(global, Vec::with_capacity(0), can_gc);
             r.body_stream.set(Some(&*stream));
         }
 
@@ -166,19 +218,20 @@ impl Response {
     }
 
     // https://fetch.spec.whatwg.org/#dom-response-error
-    pub fn Error(global: &GlobalScope) -> DomRoot<Response> {
-        let r = Response::new(global);
+    fn Error(global: &GlobalScope, can_gc: CanGc) -> DomRoot<Response> {
+        let r = Response::new(global, can_gc);
         *r.response_type.borrow_mut() = DOMResponseType::Error;
-        r.Headers().set_guard(Guard::Immutable);
+        r.Headers(can_gc).set_guard(Guard::Immutable);
         *r.status.borrow_mut() = HttpStatus::new_error();
         r
     }
 
     // https://fetch.spec.whatwg.org/#dom-response-redirect
-    pub fn Redirect(
+    fn Redirect(
         global: &GlobalScope,
         url: USVString,
         status: u16,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<Response>> {
         // Step 1
         let base_url = global.api_base_url();
@@ -197,7 +250,7 @@ impl Response {
 
         // Step 4
         // see Step 4 continued
-        let r = Response::new(global);
+        let r = Response::new(global, can_gc);
 
         // Step 5
         *r.status.borrow_mut() = HttpStatus::new_raw(status, vec![]);
@@ -205,69 +258,17 @@ impl Response {
         // Step 6
         let url_bytestring =
             ByteString::from_str(url.as_str()).unwrap_or(ByteString::new(b"".to_vec()));
-        r.Headers()
+        r.Headers(can_gc)
             .Set(ByteString::new(b"Location".to_vec()), url_bytestring)?;
 
         // Step 4 continued
         // Headers Guard is set to Immutable here to prevent error in Step 6
-        r.Headers().set_guard(Guard::Immutable);
+        r.Headers(can_gc).set_guard(Guard::Immutable);
 
         // Step 7
         Ok(r)
     }
 
-    pub fn error_stream(&self, error: Error) {
-        if let Some(body) = self.body_stream.get() {
-            body.error_native(error);
-        }
-    }
-}
-
-impl BodyMixin for Response {
-    fn is_disturbed(&self) -> bool {
-        self.body_stream
-            .get()
-            .is_some_and(|stream| stream.is_disturbed())
-    }
-
-    fn is_locked(&self) -> bool {
-        self.body_stream
-            .get()
-            .is_some_and(|stream| stream.is_locked())
-    }
-
-    fn body(&self) -> Option<DomRoot<ReadableStream>> {
-        self.body_stream.get()
-    }
-
-    fn get_mime_type(&self) -> Vec<u8> {
-        let headers = self.Headers();
-        headers.extract_mime_type()
-    }
-}
-
-// https://fetch.spec.whatwg.org/#redirect-status
-fn is_redirect_status(status: u16) -> bool {
-    status == 301 || status == 302 || status == 303 || status == 307 || status == 308
-}
-
-// https://tools.ietf.org/html/rfc7230#section-3.1.2
-fn is_valid_status_text(status_text: &ByteString) -> bool {
-    // reason-phrase  = *( HTAB / SP / VCHAR / obs-text )
-    for byte in status_text.iter() {
-        if !(*byte == b'\t' || *byte == b' ' || is_vchar(*byte) || is_obs_text(*byte)) {
-            return false;
-        }
-    }
-    true
-}
-
-// https://fetch.spec.whatwg.org/#null-body-status
-fn is_null_body_status(status: u16) -> bool {
-    status == 101 || status == 204 || status == 205 || status == 304
-}
-
-impl ResponseMethods for Response {
     // https://fetch.spec.whatwg.org/#dom-response-type
     fn Type(&self) -> DOMResponseType {
         *self.response_type.borrow() //into()
@@ -304,22 +305,26 @@ impl ResponseMethods for Response {
     }
 
     // https://fetch.spec.whatwg.org/#dom-response-headers
-    fn Headers(&self) -> DomRoot<Headers> {
+    fn Headers(&self, can_gc: CanGc) -> DomRoot<Headers> {
         self.headers_reflector
-            .or_init(|| Headers::for_response(&self.global()))
+            .or_init(|| Headers::for_response(&self.global(), can_gc))
     }
 
     // https://fetch.spec.whatwg.org/#dom-response-clone
-    fn Clone(&self) -> Fallible<DomRoot<Response>> {
+    fn Clone(&self, can_gc: CanGc) -> Fallible<DomRoot<Response>> {
         // Step 1
         if self.is_locked() || self.is_disturbed() {
             return Err(Error::Type("cannot clone a disturbed response".to_string()));
         }
 
         // Step 2
-        let new_response = Response::new(&self.global());
-        new_response.Headers().copy_from_headers(self.Headers())?;
-        new_response.Headers().set_guard(self.Headers().get_guard());
+        let new_response = Response::new(&self.global(), can_gc);
+        new_response
+            .Headers(can_gc)
+            .copy_from_headers(self.Headers(can_gc))?;
+        new_response
+            .Headers(can_gc)
+            .set_guard(self.Headers(can_gc).get_guard());
 
         // https://fetch.spec.whatwg.org/#concept-response-clone
         // Instead of storing a net_traits::Response internally, we
@@ -357,28 +362,28 @@ impl ResponseMethods for Response {
     }
 
     // https://fetch.spec.whatwg.org/#dom-body-text
-    fn Text(&self) -> Rc<Promise> {
-        consume_body(self, BodyType::Text)
+    fn Text(&self, can_gc: CanGc) -> Rc<Promise> {
+        consume_body(self, BodyType::Text, can_gc)
     }
 
     // https://fetch.spec.whatwg.org/#dom-body-blob
-    fn Blob(&self) -> Rc<Promise> {
-        consume_body(self, BodyType::Blob)
+    fn Blob(&self, can_gc: CanGc) -> Rc<Promise> {
+        consume_body(self, BodyType::Blob, can_gc)
     }
 
     // https://fetch.spec.whatwg.org/#dom-body-formdata
-    fn FormData(&self) -> Rc<Promise> {
-        consume_body(self, BodyType::FormData)
+    fn FormData(&self, can_gc: CanGc) -> Rc<Promise> {
+        consume_body(self, BodyType::FormData, can_gc)
     }
 
     // https://fetch.spec.whatwg.org/#dom-body-json
-    fn Json(&self) -> Rc<Promise> {
-        consume_body(self, BodyType::Json)
+    fn Json(&self, can_gc: CanGc) -> Rc<Promise> {
+        consume_body(self, BodyType::Json, can_gc)
     }
 
     // https://fetch.spec.whatwg.org/#dom-body-arraybuffer
-    fn ArrayBuffer(&self) -> Rc<Promise> {
-        consume_body(self, BodyType::ArrayBuffer)
+    fn ArrayBuffer(&self, can_gc: CanGc) -> Rc<Promise> {
+        consume_body(self, BodyType::ArrayBuffer, can_gc)
     }
 }
 
@@ -387,16 +392,17 @@ fn serialize_without_fragment(url: &ServoUrl) -> &str {
 }
 
 impl Response {
-    pub fn set_type(&self, new_response_type: DOMResponseType) {
+    pub fn set_type(&self, new_response_type: DOMResponseType, can_gc: CanGc) {
         *self.response_type.borrow_mut() = new_response_type;
-        self.set_response_members_by_type(new_response_type);
+        self.set_response_members_by_type(new_response_type, can_gc);
     }
 
-    pub fn set_headers(&self, option_hyper_headers: Option<Serde<HyperHeaders>>) {
-        self.Headers().set_headers(match option_hyper_headers {
-            Some(hyper_headers) => hyper_headers.into_inner(),
-            None => HyperHeaders::new(),
-        });
+    pub fn set_headers(&self, option_hyper_headers: Option<Serde<HyperHeaders>>, can_gc: CanGc) {
+        self.Headers(can_gc)
+            .set_headers(match option_hyper_headers {
+                Some(hyper_headers) => hyper_headers.into_inner(),
+                None => HyperHeaders::new(),
+            });
     }
 
     pub fn set_status(&self, status: &HttpStatus) {
@@ -411,21 +417,21 @@ impl Response {
         *self.redirected.borrow_mut() = is_redirected;
     }
 
-    fn set_response_members_by_type(&self, response_type: DOMResponseType) {
+    fn set_response_members_by_type(&self, response_type: DOMResponseType, can_gc: CanGc) {
         match response_type {
             DOMResponseType::Error => {
                 *self.status.borrow_mut() = HttpStatus::new_error();
-                self.set_headers(None);
+                self.set_headers(None, can_gc);
             },
             DOMResponseType::Opaque => {
                 *self.url_list.borrow_mut() = vec![];
                 *self.status.borrow_mut() = HttpStatus::new_error();
-                self.set_headers(None);
+                self.set_headers(None, can_gc);
                 self.body_stream.set(None);
             },
             DOMResponseType::Opaqueredirect => {
                 *self.status.borrow_mut() = HttpStatus::new_error();
-                self.set_headers(None);
+                self.set_headers(None, can_gc);
                 self.body_stream.set(None);
             },
             DOMResponseType::Default => {},
@@ -438,12 +444,12 @@ impl Response {
         *self.stream_consumer.borrow_mut() = sc;
     }
 
-    pub fn stream_chunk(&self, chunk: Vec<u8>) {
+    pub fn stream_chunk(&self, chunk: Vec<u8>, can_gc: CanGc) {
         // Note, are these two actually mutually exclusive?
-        if let Some(stream_consumer) = self.stream_consumer.borrow_mut().as_ref() {
+        if let Some(stream_consumer) = self.stream_consumer.borrow().as_ref() {
             stream_consumer.consume_chunk(chunk.as_slice());
         } else if let Some(body) = self.body_stream.get() {
-            body.enqueue_native(chunk);
+            body.enqueue_native(chunk, can_gc);
         }
     }
 

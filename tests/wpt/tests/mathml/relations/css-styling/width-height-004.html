@@ -20,7 +20,6 @@
   }
   [data-name] {
       width: 7em;
-      height: 3em;
       border: 1px solid blue;
   }
 </style>
@@ -64,6 +63,18 @@
         <mtext>X</mtext>
       </mfrac>
     </math>
+    <math>
+      <mfrac data-name="mfrac (horizontal overflow)">
+        <mtext>XXXXXXXXXXXX</mtext>
+        <mtext>XXXXXXXXXXXX</mtext>
+      </mfrac>
+    </math>
+    <math dir="rtl">
+      <mfrac data-name="RTL mfrac (horizontal overflow)">
+        <mtext>XXXXXXXXXXXX</mtext>
+        <mtext>XXXXXXXXXXXX</mtext>
+      </mfrac>
+    </math>
   </div>
 
   <div class="test">
@@ -77,6 +88,18 @@
       <mfrac linethickness="0" data-name="RTL mfrac without bar">
         <mtext>X</mtext>
         <mtext>X</mtext>
+      </mfrac>
+    </math>
+    <math>
+      <mfrac linethickness="0" data-name="mfrac without bar (horizontal overflow)">
+        <mtext>XXXXXXXXXXXX</mtext>
+        <mtext>XXXXXXXXXXXX</mtext>
+      </mfrac>
+    </math>
+    <math dir="rtl">
+      <mfrac linethickness="0" data-name="RTL mfrac without bar (horizontal overflow)">
+        <mtext>XXXXXXXXXXXX</mtext>
+        <mtext>XXXXXXXXXXXX</mtext>
       </mfrac>
     </math>
   </div>
@@ -94,6 +117,18 @@
         <mtext>X</mtext>
       </munder>
     </math>
+    <math>
+      <munder data-name="munder (horizontal overflow)">
+        <mtext>XXXXXXXXXXXX</mtext>
+        <mtext>XXXXXXXXXXXX</mtext>
+      </munder>
+    </math>
+    <math dir="rtl">
+      <munder data-name="RTL munder (horizontal overflow)">
+        <mtext>XXXXXXXXXXXX</mtext>
+        <mtext>XXXXXXXXXXXX</mtext>
+      </munder>
+    </math>
   </div>
 
   <div class="test">
@@ -107,6 +142,18 @@
       <mover data-name="RTL mover">
         <mtext>X</mtext>
         <mtext>X</mtext>
+      </mover>
+    </math>
+    <math>
+      <mover data-name="mover (horizontal overflow)">
+        <mtext>XXXXXXXXXXXX</mtext>
+        <mtext>XXXXXXXXXXXX</mtext>
+      </mover>
+    </math>
+    <math dir="rtl">
+      <mover data-name="RTL mover (horizontal overflow)">
+        <mtext>XXXXXXXXXXXX</mtext>
+        <mtext>XXXXXXXXXXXX</mtext>
       </mover>
     </math>
   </div>
@@ -124,6 +171,20 @@
         <mtext>X</mtext>
         <mtext>X</mtext>
         <mtext>X</mtext>
+      </munderover>
+    </math>
+    <math>
+      <munderover data-name="munderover (horizontal overflow)">
+        <mtext>XXXXXXXXXXXX</mtext>
+        <mtext>XXXXXXXXXXXX</mtext>
+        <mtext>XXXXXXXXXXXX</mtext>
+      </munderover>
+    </math>
+    <math dir="rtl">
+      <munderover data-name="RTL munderover (horizontal overflow)">
+        <mtext>XXXXXXXXXXXX</mtext>
+        <mtext>XXXXXXXXXXXX</mtext>
+        <mtext>XXXXXXXXXXXX</mtext>
       </munderover>
     </math>
   </div>

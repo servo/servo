@@ -20,7 +20,7 @@ use crate::dom::xrhand::XRHand;
 use crate::dom::xrsession::XRSession;
 use crate::dom::xrspace::XRSpace;
 use crate::realms::enter_realm;
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{CanGc, JSContext};
 
 #[dom_struct]
 pub struct XRInputSource {
@@ -42,6 +42,7 @@ impl XRInputSource {
         global: &GlobalScope,
         session: &XRSession,
         info: InputSource,
+        can_gc: CanGc,
     ) -> XRInputSource {
         // <https://www.w3.org/TR/webxr-gamepads-module-1/#gamepad-differences>
         let gamepad = Gamepad::new(
@@ -56,6 +57,7 @@ impl XRInputSource {
                 supports_trigger_rumble: false,
             },
             true,
+            can_gc,
         );
         XRInputSource {
             reflector: Reflector::new(),
@@ -74,9 +76,10 @@ impl XRInputSource {
         global: &GlobalScope,
         session: &XRSession,
         info: InputSource,
+        can_gc: CanGc,
     ) -> DomRoot<XRInputSource> {
         let source = reflect_dom_object(
-            Box::new(XRInputSource::new_inherited(global, session, info)),
+            Box::new(XRInputSource::new_inherited(global, session, info, can_gc)),
             global,
         );
 

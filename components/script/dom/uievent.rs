@@ -38,8 +38,8 @@ impl UIEvent {
         }
     }
 
-    pub fn new_uninitialized(window: &Window) -> DomRoot<UIEvent> {
-        Self::new_uninitialized_with_proto(window, None, CanGc::note())
+    pub fn new_uninitialized(window: &Window, can_gc: CanGc) -> DomRoot<UIEvent> {
+        Self::new_uninitialized_with_proto(window, None, can_gc)
     }
 
     fn new_uninitialized_with_proto(
@@ -57,16 +57,10 @@ impl UIEvent {
         cancelable: EventCancelable,
         view: Option<&Window>,
         detail: i32,
+        can_gc: CanGc,
     ) -> DomRoot<UIEvent> {
         Self::new_with_proto(
-            window,
-            None,
-            type_,
-            can_bubble,
-            cancelable,
-            view,
-            detail,
-            CanGc::note(),
+            window, None, type_, can_bubble, cancelable, view, detail, can_gc,
         )
     }
 
@@ -91,9 +85,11 @@ impl UIEvent {
         );
         ev
     }
+}
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+impl UIEventMethods for UIEvent {
+    /// <https://w3c.github.io/uievents/#dom-uievent-uievent>
+    fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -114,9 +110,7 @@ impl UIEvent {
         );
         Ok(event)
     }
-}
 
-impl UIEventMethods for UIEvent {
     // https://w3c.github.io/uievents/#widl-UIEvent-view
     fn GetView(&self) -> Option<DomRoot<Window>> {
         self.view.get()

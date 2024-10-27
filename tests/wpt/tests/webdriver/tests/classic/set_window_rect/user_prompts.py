@@ -19,7 +19,7 @@ def check_user_prompt_closed_without_exception(session, create_dialog):
         create_dialog(dialog_type, text=dialog_type)
 
         response = set_window_rect(session, {
-            "x": original_rect["x"] + 10, "y": original_rect["y"] + 10})
+            "width": original_rect["width"] + 10, "height": original_rect["height"] + 10})
         assert_success(response)
 
         assert_dialog_handled(session, expected_text=dialog_type, expected_retval=retval)
@@ -37,7 +37,7 @@ def check_user_prompt_closed_with_exception(session, create_dialog):
         create_dialog(dialog_type, text=dialog_type)
 
         response = set_window_rect(session, {
-            "x": original_rect["x"] + 10, "y": original_rect["y"] + 10})
+            "width": original_rect["width"] + 10, "height": original_rect["height"] + 10})
         assert_error(response, "unexpected alert open")
 
         assert_dialog_handled(session, expected_text=dialog_type, expected_retval=retval)
@@ -55,7 +55,7 @@ def check_user_prompt_not_closed_but_exception(session, create_dialog):
         create_dialog(dialog_type, text=dialog_type)
 
         response = set_window_rect(session, {
-            "x": original_rect["x"] + 10, "y": original_rect["y"] + 10})
+            "width": original_rect["width"] + 10, "height": original_rect["height"] + 10})
         assert_error(response, "unexpected alert open")
 
         assert session.alert.text == dialog_type

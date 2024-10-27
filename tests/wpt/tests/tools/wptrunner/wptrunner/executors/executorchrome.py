@@ -1,8 +1,11 @@
 # mypy: allow-untyped-defs
 
 import collections
+import json
 import os
+import re
 import time
+import uuid
 from typing import Mapping, MutableMapping, Type
 
 from webdriver import error
@@ -12,6 +15,7 @@ from .base import (
     TestharnessExecutor,
 )
 from .executorwebdriver import (
+    WebDriverBaseProtocolPart,
     WebDriverCrashtestExecutor,
     WebDriverFedCMProtocolPart,
     WebDriverPrintRefTestExecutor,
@@ -60,6 +64,62 @@ def make_sanitizer_mixin(crashtest_executor_cls: Type[CrashtestExecutor]):  # ty
 _SanitizerMixin = make_sanitizer_mixin(WebDriverCrashtestExecutor)
 
 
+class ChromeDriverBaseProtocolPart(WebDriverBaseProtocolPart):
+    def create_window(self, type="tab", **kwargs):
+        try:
+            return super().create_window(type=type, **kwargs)
+        except error.WebDriverException:
+            # TODO(crbug.com/375275185): This case exists solely as a workaround
+            # for Android WebView not supporting "new window". Once fixed, just
+            # use the standard `WebDriverBaseProtocolPart`.
+            window_id = str(uuid.uuid4())
+            self.webdriver.execute_script(
+                "window.open('about:blank', '%s', 'noopener')" % window_id)
+            return self._get_test_window(window_id, self.current_window)
+
+    def _get_test_window(self, window_id, parent, timeout=5):
+        """Find the test window amongst all the open windows.
+        This is assumed to be either the named window or the one after the parent in the list of
+        window handles
+        :param window_id: The DOM name of the Window
+        :param parent: The handle of the current window
+        :param timeout: The time in seconds to wait for the window to appear. This is because in
+                        some implementations there's a race between calling window.open and the
+                        window being added to the list of WebDriver accessible windows."""
+        test_window = None
+        end_time = time.time() + timeout
+        while time.time() < end_time:
+            try:
+                # Try using the JSON serialization of the WindowProxy object,
+                # it's in Level 1 but nothing supports it yet
+                win_s = self.webdriver.execute_script("return window['%s'];" % window_id)
+                win_obj = json.loads(win_s)
+                test_window = win_obj["window-fcc6-11e5-b4f8-330a88ab9d7f"]
+            except Exception:
+                pass
+
+            if test_window is None:
+                test_window = self._poll_handles_for_test_window(parent)
+
+            if test_window is not None:
+                assert test_window != parent
+                return test_window
+
+            time.sleep(0.1)
+
+        raise Exception("unable to find test window")
+
+    def _poll_handles_for_test_window(self, parent):
+        test_window = None
+        after = self.webdriver.handles
+        if len(after) == 2:
+            test_window = next(iter(set(after) - {parent}))
+        elif after[0] == parent and len(after) > 2:
+            # Hope the first one here is the test window
+            test_window = after[1]
+        return test_window
+
+
 class ChromeDriverLeakProtocolPart(LeakProtocolPart):
     def get_counters(self) -> Mapping[str, int]:
         response = self.parent.cdp.execute_cdp_command("Memory.getDOMCountersForLeakDetection")
@@ -79,66 +139,33 @@ class ChromeDriverTestharnessProtocolPart(WebDriverTestharnessProtocolPart):
     The main difference from the default WebDriver testharness implementation is
     that the test window can be reused between tests for better performance.
     """
-
-    def setup(self):
-        super().setup()
-        # Handle (an alphanumeric string) that may be set if window reuse is
-        # enabled. This state allows the protocol to distinguish the test
-        # window from other windows a test itself may create that the "Get
-        # Window Handles" command also returns.
-        #
-        # Because test window persistence is a Chrome-only feature, it's not
-        # exposed to the base WebDriver testharness executor.
-        self.test_window = None
-        self.reuse_window = self.parent.reuse_window
-
-    def close_test_window(self):
-        if self.test_window:
-            self._close_window(self.test_window)
-            self.test_window = None
-
-    def close_old_windows(self):
-        self.webdriver.actions.release()
-        for handle in self.webdriver.handles:
-            if handle not in {self.runner_handle, self.test_window}:
-                self._close_window(handle)
-        if not self.reuse_window:
-            self.close_test_window()
-        self.webdriver.window_handle = self.runner_handle
-        # TODO(web-platform-tests/wpt#48078): Find a cross-platform way to clear
-        # cookies for all domains.
-        self.parent.cdp.execute_cdp_command("Network.clearBrowserCookies")
-        return self.runner_handle
-
-    def open_test_window(self, window_id):
-        if self.test_window:
-            # Try to reuse the existing test window by emulating the `about:blank`
-            # page with no history you would get with a new window.
+    def reset_browser_state(self):
+        for command, params in [
+            # TODO(web-platform-tests/wpt#48078): Find a cross-vendor way to
+            # clear cookies for all domains.
+            ("Network.clearBrowserCookies", None),
+            # Reset default permissions that `test_driver.set_permission(...)`
+            # may have altered.
+            ("Browser.resetPermissions", None),
+            # Chromium requires the `background-sync` permission for reporting
+            # APIs to work. Not all embedders (notably, `chrome --headless=old`)
+            # grant `background-sync` by default, so this CDP call ensures the
+            # permission is granted for all origins, in line with the background
+            # sync spec's recommendation [0].
+            #
+            # WebDriver's "Set Permission" command can only act on the test's
+            # origin, which may be too limited.
+            #
+            # [0]: https://wicg.github.io/background-sync/spec/#permission
+            ("Browser.setPermission", {
+                "permission": {"name": "background-sync"},
+                "setting": "granted",
+            }),
+        ]:
             try:
-                self.webdriver.window_handle = self.test_window
-                # Reset navigation history with Chrome DevTools Protocol:
-                # https://chromedevtools.github.io/devtools-protocol/tot/Page/#method-resetNavigationHistory
-                self.parent.cdp.execute_cdp_command("Page.resetNavigationHistory")
-                self.webdriver.url = "about:blank"
-                return
-            except error.NoSuchWindowException:
-                self.test_window = None
-        super().open_test_window(window_id)
-
-    def get_test_window(self, window_id, parent, timeout=5):
-        if self.test_window:
-            return self.test_window
-        # Poll the handles endpoint for the test window like the base WebDriver
-        # protocol part, but don't bother checking for the serialized
-        # WindowProxy (not supported by Chrome currently).
-        deadline = time.time() + timeout
-        while time.time() < deadline:
-            self.test_window = self._poll_handles_for_test_window(parent)
-            if self.test_window is not None:
-                assert self.test_window != parent
-                return self.test_window
-            time.sleep(0.03)
-        raise Exception("unable to find test window")
+                self.parent.cdp.execute_cdp_command(command, params)
+            except error.WebDriverException:
+                pass
 
 
 class ChromeDriverFedCMProtocolPart(WebDriverFedCMProtocolPart):
@@ -168,6 +195,7 @@ class ChromeDriverDevToolsProtocolPart(ProtocolPart):
 
 class ChromeDriverProtocol(WebDriverProtocol):
     implements = [
+        ChromeDriverBaseProtocolPart,
         ChromeDriverDevToolsProtocolPart,
         ChromeDriverFedCMProtocolPart,
         ChromeDriverTestharnessProtocolPart,
@@ -176,7 +204,6 @@ class ChromeDriverProtocol(WebDriverProtocol):
         if base_part.name not in {part.name for part in implements}:
             implements.append(base_part)
 
-    reuse_window = False
     # Prefix to apply to vendor-specific WebDriver extension commands.
     vendor_prefix = "goog"
 
@@ -224,25 +251,36 @@ class ChromeDriverTestharnessExecutor(WebDriverTestharnessExecutor, _SanitizerMi
 
     def __init__(self, *args, reuse_window=False, **kwargs):
         super().__init__(*args, **kwargs)
-        self.protocol.reuse_window = reuse_window
+        self.reuse_window = reuse_window
 
-    def setup(self, runner, protocol=None):
-        super().setup(runner, protocol)
-        # Chromium requires the `background-sync` permission for reporting APIs
-        # to work. Not all embedders (notably, `chrome --headless=old`) grant
-        # `background-sync` by default, so this CDP call ensures the permission
-        # is granted for all origins, in line with the background sync spec's
-        # recommendation [0].
-        #
-        # WebDriver's "Set Permission" command can only act on the test's
-        # origin, which may be too limited.
-        #
-        # [0]: https://wicg.github.io/background-sync/spec/#permission
-        params = {
-            "permission": {"name": "background-sync"},
-            "setting": "granted",
-        }
-        self.protocol.cdp.execute_cdp_command("Browser.setPermission", params)
+    def get_or_create_test_window(self, protocol):
+        test_window = self.protocol.testharness.persistent_test_window
+        if test_window:
+            try:
+                # Mimic the "new window" WebDriver command by loading `about:blank`
+                # with no other browsing history.
+                protocol.base.set_window(test_window)
+                protocol.base.load("about:blank")
+                protocol.cdp.execute_cdp_command("Page.resetNavigationHistory")
+            except error.NoSuchWindowException:
+                test_window = self.protocol.testharness.persistent_test_window = None
+        if not test_window:
+            test_window = super().get_or_create_test_window(protocol)
+        if self.reuse_window:
+            self.protocol.testharness.persistent_test_window = test_window
+        return test_window
+
+    def _get_next_message_classic(self, protocol, url, test_window):
+        try:
+            return super()._get_next_message_classic(protocol, url, test_window)
+        except error.JavascriptErrorException as js_error:
+            # TODO(crbug.com/340662810): Cycle testdriver event loop to work
+            # around `testharnessreport.js` flakily not loaded.
+            if re.search(r'window\.__wptrunner_process_next_event is not a function',
+                         js_error.message):
+                time.sleep(0.05)
+                return None
+            raise
 
 
 @_evaluate_leaks

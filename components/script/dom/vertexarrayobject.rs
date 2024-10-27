@@ -124,7 +124,7 @@ impl VertexArrayObject {
             constants::FLOAT => 4,
             constants::INT | constants::UNSIGNED_INT if is_webgl2 => 4,
             constants2::HALF_FLOAT if is_webgl2 => 2,
-            sparkle::gl::FIXED if is_webgl2 => 4,
+            glow::FIXED if is_webgl2 => 4,
             constants2::INT_2_10_10_10_REV | constants2::UNSIGNED_INT_2_10_10_10_REV
                 if is_webgl2 && size == 4 =>
             {

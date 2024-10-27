@@ -14,7 +14,7 @@ env:
 jobs:
   lint:
     name: Lint
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
         if: github.event_name != 'pull_request_target'
@@ -51,9 +51,8 @@ jobs:
           sudo apt update
           python3 ./mach bootstrap
       # TODO: Do GitHub anotaions
-      # TODO: Fail on warnings
       - name: Clippy
         run: |
-          python3 ./mach cargo-clippy --use-crown --locked
+          python3 ./mach cargo-clippy --use-crown --locked -- -- --deny warnings
       - name: Tidy
         run: python3 ./mach test-tidy --no-progress --all

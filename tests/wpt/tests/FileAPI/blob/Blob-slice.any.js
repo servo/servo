@@ -12,19 +12,18 @@ test_blob(function() {
 });
 
 test(function() {
-  var blob1, blob2;
+  var blob1 = new Blob(["squiggle"]);
+  var blob2 = new Blob(["steak"], {type: "content/type"});
 
-  test_blob(function() {
-    return blob1 = new Blob(["squiggle"]);
-  }, {
+  test_blob(() => blob1,
+  {
     expected: "squiggle",
     type: "",
     desc: "blob1."
   });
 
-  test_blob(function() {
-    return blob2 = new Blob(["steak"], {type: "content/type"});
-  }, {
+  test_blob(() => blob2,
+  {
     expected: "steak",
     type: "content/type",
     desc: "blob2."

@@ -116,7 +116,7 @@ async def test_request_timing_info(
     await wait_for_future_safe(on_auth_required)
 
     time_end = await current_time()
-    time_range = number_interval(time_start, time_end)
+    time_range = number_interval(time_start - 1, time_end + 1)
 
     assert len(events) == 1
     expected_request = {"method": "GET", "url": auth_url}

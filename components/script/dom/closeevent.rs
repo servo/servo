@@ -37,6 +37,7 @@ impl CloseEvent {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         global: &GlobalScope,
         type_: Atom,
@@ -45,17 +46,10 @@ impl CloseEvent {
         wasClean: bool,
         code: u16,
         reason: DOMString,
+        can_gc: CanGc,
     ) -> DomRoot<CloseEvent> {
         Self::new_with_proto(
-            global,
-            None,
-            type_,
-            bubbles,
-            cancelable,
-            wasClean,
-            code,
-            reason,
-            CanGc::note(),
+            global, None, type_, bubbles, cancelable, wasClean, code, reason, can_gc,
         )
     }
 
@@ -79,8 +73,11 @@ impl CloseEvent {
         }
         ev
     }
+}
 
-    pub fn Constructor(
+impl CloseEventMethods for CloseEvent {
+    // https://websockets.spec.whatwg.org/#the-closeevent-interface
+    fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -101,20 +98,18 @@ impl CloseEvent {
             can_gc,
         ))
     }
-}
 
-impl CloseEventMethods for CloseEvent {
-    // https://html.spec.whatwg.org/multipage/#dom-closeevent-wasclean
+    // https://websockets.spec.whatwg.org/#dom-closeevent-wasclean
     fn WasClean(&self) -> bool {
         self.was_clean
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-closeevent-code
+    // https://websockets.spec.whatwg.org/#dom-closeevent-code
     fn Code(&self) -> u16 {
         self.code
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-closeevent-reason
+    // https://websockets.spec.whatwg.org/#dom-closeevent-reason
     fn Reason(&self) -> DOMString {
         self.reason.clone()
     }

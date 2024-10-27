@@ -12,6 +12,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::xrframe::XRFrame;
 use crate::dom::xrpose::XRPose;
 use crate::dom::xrspace::XRSpace;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct XRHitTestResult {
@@ -45,9 +46,9 @@ impl XRHitTestResult {
 
 impl XRHitTestResultMethods for XRHitTestResult {
     // https://immersive-web.github.io/hit-test/#dom-xrhittestresult-getpose
-    fn GetPose(&self, base: &XRSpace) -> Option<DomRoot<XRPose>> {
+    fn GetPose(&self, base: &XRSpace, can_gc: CanGc) -> Option<DomRoot<XRPose>> {
         let base = self.frame.get_pose(base)?;
         let pose = self.result.space.then(&base.inverse());
-        Some(XRPose::new(&self.global(), pose.cast_unit()))
+        Some(XRPose::new(&self.global(), pose.cast_unit(), can_gc))
     }
 }

@@ -10,7 +10,7 @@ use base::cross_process_instant::CrossProcessInstant;
 use embedder_traits::resources::{self, Resource};
 use headers::{HeaderMapExt, StrictTransportSecurity};
 use http::HeaderMap;
-use log::info;
+use log::{error, info};
 use net_traits::pub_domains::reg_suffix;
 use net_traits::IncludeSubdomains;
 use serde::{Deserialize, Serialize};
@@ -88,7 +88,10 @@ impl HstsList {
 
     pub fn from_servo_preload() -> HstsList {
         let list = resources::read_string(Resource::HstsPreloadList);
-        HstsList::from_preload(&list).expect("Servo HSTS preload file is invalid")
+        HstsList::from_preload(&list).unwrap_or_else(|| {
+            error!("HSTS preload file is invalid. Setting HSTS list to default values");
+            HstsList::default()
+        })
     }
 
     pub fn is_host_secure(&self, host: &str) -> bool {

@@ -25,6 +25,7 @@ use crate::dom::mediastream::MediaStream;
 use crate::dom::mediastreamtrack::MediaStreamTrack;
 use crate::dom::promise::Promise;
 use crate::realms::{AlreadyInRealm, InRealm};
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct MediaDevices {
@@ -46,10 +47,15 @@ impl MediaDevices {
 impl MediaDevicesMethods for MediaDevices {
     /// <https://w3c.github.io/mediacapture-main/#dom-mediadevices-getusermedia>
     #[allow(unsafe_code)]
-    fn GetUserMedia(&self, constraints: &MediaStreamConstraints, comp: InRealm) -> Rc<Promise> {
-        let p = Promise::new_in_current_realm(comp);
+    fn GetUserMedia(
+        &self,
+        constraints: &MediaStreamConstraints,
+        comp: InRealm,
+        can_gc: CanGc,
+    ) -> Rc<Promise> {
+        let p = Promise::new_in_current_realm(comp, can_gc);
         let media = ServoMedia::get().unwrap();
-        let stream = MediaStream::new(&self.global());
+        let stream = MediaStream::new(&self.global(), can_gc);
         if let Some(constraints) = convert_constraints(&constraints.audio) {
             if let Some(audio) = media.create_audioinput_stream(constraints) {
                 let track = MediaStreamTrack::new(&self.global(), audio, MediaStreamType::Audio);
@@ -68,10 +74,10 @@ impl MediaDevicesMethods for MediaDevices {
     }
 
     /// <https://w3c.github.io/mediacapture-main/#dom-mediadevices-enumeratedevices>
-    fn EnumerateDevices(&self) -> Rc<Promise> {
+    fn EnumerateDevices(&self, can_gc: CanGc) -> Rc<Promise> {
         // Step 1.
         let in_realm_proof = AlreadyInRealm::assert();
-        let p = Promise::new_in_current_realm(InRealm::Already(&in_realm_proof));
+        let p = Promise::new_in_current_realm(InRealm::Already(&in_realm_proof), can_gc);
 
         // Step 2.
         // XXX These steps should be run in parallel.

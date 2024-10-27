@@ -161,20 +161,12 @@ impl FileReader {
         reflect_dom_object_with_proto(Box::new(FileReader::new_inherited()), global, proto, can_gc)
     }
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
-        global: &GlobalScope,
-        proto: Option<HandleObject>,
-        can_gc: CanGc,
-    ) -> Fallible<DomRoot<FileReader>> {
-        Ok(FileReader::new(global, proto, can_gc))
-    }
-
     //https://w3c.github.io/FileAPI/#dfn-error-steps
     pub fn process_read_error(
         filereader: TrustedFileReader,
         gen_id: GenerationId,
         error: DOMErrorName,
+        can_gc: CanGc,
     ) {
         let fr = filereader.root();
 
@@ -194,17 +186,17 @@ impl FileReader {
         let exception = DOMException::new(&fr.global(), error);
         fr.error.set(Some(&exception));
 
-        fr.dispatch_progress_event(atom!("error"), 0, None);
+        fr.dispatch_progress_event(atom!("error"), 0, None, can_gc);
         return_on_abort!();
         // Step 3
-        fr.dispatch_progress_event(atom!("loadend"), 0, None);
+        fr.dispatch_progress_event(atom!("loadend"), 0, None, can_gc);
         return_on_abort!();
         // Step 4
         fr.terminate_ongoing_reading();
     }
 
     // https://w3c.github.io/FileAPI/#dfn-readAsText
-    pub fn process_read_data(filereader: TrustedFileReader, gen_id: GenerationId) {
+    pub fn process_read_data(filereader: TrustedFileReader, gen_id: GenerationId, can_gc: CanGc) {
         let fr = filereader.root();
 
         macro_rules! return_on_abort(
@@ -216,11 +208,11 @@ impl FileReader {
         );
         return_on_abort!();
         //FIXME Step 7 send current progress
-        fr.dispatch_progress_event(atom!("progress"), 0, None);
+        fr.dispatch_progress_event(atom!("progress"), 0, None, can_gc);
     }
 
     // https://w3c.github.io/FileAPI/#dfn-readAsText
-    pub fn process_read(filereader: TrustedFileReader, gen_id: GenerationId) {
+    pub fn process_read(filereader: TrustedFileReader, gen_id: GenerationId, can_gc: CanGc) {
         let fr = filereader.root();
 
         macro_rules! return_on_abort(
@@ -232,7 +224,7 @@ impl FileReader {
         );
         return_on_abort!();
         // Step 6
-        fr.dispatch_progress_event(atom!("loadstart"), 0, None);
+        fr.dispatch_progress_event(atom!("loadstart"), 0, None, can_gc);
     }
 
     // https://w3c.github.io/FileAPI/#dfn-readAsText
@@ -241,6 +233,7 @@ impl FileReader {
         gen_id: GenerationId,
         data: ReadMetaData,
         blob_contents: Vec<u8>,
+        can_gc: CanGc,
     ) {
         let fr = filereader.root();
 
@@ -276,11 +269,11 @@ impl FileReader {
         };
 
         // Step 8.3
-        fr.dispatch_progress_event(atom!("load"), 0, None);
+        fr.dispatch_progress_event(atom!("load"), 0, None, can_gc);
         return_on_abort!();
         // Step 8.4
         if fr.ready_state.get() != FileReaderReadyState::Loading {
-            fr.dispatch_progress_event(atom!("loadend"), 0, None);
+            fr.dispatch_progress_event(atom!("loadend"), 0, None, can_gc);
         }
         return_on_abort!();
     }
@@ -334,6 +327,15 @@ impl FileReader {
 }
 
 impl FileReaderMethods for FileReader {
+    // https://w3c.github.io/FileAPI/#filereaderConstrctr
+    fn Constructor(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        can_gc: CanGc,
+    ) -> Fallible<DomRoot<FileReader>> {
+        Ok(FileReader::new(global, proto, can_gc))
+    }
+
     // https://w3c.github.io/FileAPI/#dfn-onloadstart
     event_handler!(loadstart, GetOnloadstart, SetOnloadstart);
 
@@ -368,7 +370,7 @@ impl FileReaderMethods for FileReader {
     }
 
     // https://w3c.github.io/FileAPI/#dfn-abort
-    fn Abort(&self) {
+    fn Abort(&self, can_gc: CanGc) {
         // Step 2
         if self.ready_state.get() == FileReaderReadyState::Loading {
             self.change_ready_state(FileReaderReadyState::Done);
@@ -381,8 +383,8 @@ impl FileReaderMethods for FileReader {
 
         self.terminate_ongoing_reading();
         // Steps 5 & 6
-        self.dispatch_progress_event(atom!("abort"), 0, None);
-        self.dispatch_progress_event(atom!("loadend"), 0, None);
+        self.dispatch_progress_event(atom!("abort"), 0, None, can_gc);
+        self.dispatch_progress_event(atom!("loadend"), 0, None, can_gc);
     }
 
     // https://w3c.github.io/FileAPI/#dfn-error
@@ -412,7 +414,7 @@ impl FileReaderMethods for FileReader {
 }
 
 impl FileReader {
-    fn dispatch_progress_event(&self, type_: Atom, loaded: u64, total: Option<u64>) {
+    fn dispatch_progress_event(&self, type_: Atom, loaded: u64, total: Option<u64>, can_gc: CanGc) {
         let progressevent = ProgressEvent::new(
             &self.global(),
             type_,
@@ -421,8 +423,9 @@ impl FileReader {
             total.is_some(),
             loaded,
             total.unwrap_or(0),
+            can_gc,
         );
-        progressevent.upcast::<Event>().fire(self.upcast());
+        progressevent.upcast::<Event>().fire(self.upcast(), can_gc);
     }
 
     fn terminate_ongoing_reading(&self) {

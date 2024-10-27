@@ -67,8 +67,9 @@ impl ConstantSourceNode {
         window: &Window,
         context: &BaseAudioContext,
         options: &ConstantSourceOptions,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<ConstantSourceNode>> {
-        Self::new_with_proto(window, None, context, options, CanGc::note())
+        Self::new_with_proto(window, None, context, options, can_gc)
     }
 
     #[allow(crown::unrooted_must_root)]
@@ -87,9 +88,11 @@ impl ConstantSourceNode {
             can_gc,
         ))
     }
+}
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+impl ConstantSourceNodeMethods for ConstantSourceNode {
+    // https://webaudio.github.io/web-audio-api/#dom-constantsourcenode-constantsourcenode
+    fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -98,9 +101,7 @@ impl ConstantSourceNode {
     ) -> Fallible<DomRoot<ConstantSourceNode>> {
         ConstantSourceNode::new_with_proto(window, proto, context, options, can_gc)
     }
-}
 
-impl ConstantSourceNodeMethods for ConstantSourceNode {
     // https://webaudio.github.io/web-audio-api/#dom-constantsourcenode-offset
     fn Offset(&self) -> DomRoot<AudioParam> {
         DomRoot::from_ref(&self.offset)

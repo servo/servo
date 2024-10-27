@@ -17,6 +17,7 @@ doctest = false
 base = { workspace = true }
 content-security-policy = { workspace = true }
 cookie = { workspace = true }
+crossbeam-channel = { workspace = true }
 embedder_traits = { workspace = true }
 headers = { workspace = true }
 http = { workspace = true }

@@ -31,6 +31,7 @@ use crate::dom::nodelist::NodeList;
 use crate::dom::validation::{is_barred_by_datalist_ancestor, Validatable};
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
 use crate::dom::virtualmethods::VirtualMethods;
+use crate::script_runtime::CanGc;
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
 enum ButtonType {
@@ -74,6 +75,7 @@ impl HTMLButtonElement {
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> DomRoot<HTMLButtonElement> {
         Node::reflect_node_with_proto(
             Box::new(HTMLButtonElement::new_inherited(
@@ -81,6 +83,7 @@ impl HTMLButtonElement {
             )),
             document,
             proto,
+            can_gc,
         )
     }
 
@@ -169,13 +172,13 @@ impl HTMLButtonElementMethods for HTMLButtonElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-cva-checkvalidity
-    fn CheckValidity(&self) -> bool {
-        self.check_validity()
+    fn CheckValidity(&self, can_gc: CanGc) -> bool {
+        self.check_validity(can_gc)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-cva-reportvalidity
-    fn ReportValidity(&self) -> bool {
-        self.report_validity()
+    fn ReportValidity(&self, can_gc: CanGc) -> bool {
+        self.report_validity(can_gc)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-cva-validationmessage
@@ -244,7 +247,7 @@ impl VirtualMethods for HTMLButtonElement {
                         el.check_ancestors_disabled_state_for_form_control();
                     },
                 }
-                el.update_sequentially_focusable_status();
+                el.update_sequentially_focusable_status(CanGc::note());
                 self.validity_state()
                     .perform_validation_and_update(ValidationFlags::all());
             },
@@ -342,7 +345,7 @@ impl Activatable for HTMLButtonElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#run-post-click-activation-steps
-    fn activation_behavior(&self, _event: &Event, _target: &EventTarget) {
+    fn activation_behavior(&self, _event: &Event, _target: &EventTarget, _can_gc: CanGc) {
         let ty = self.button_type.get();
         match ty {
             //https://html.spec.whatwg.org/multipage/#attr-button-type-submit-state
@@ -352,13 +355,14 @@ impl Activatable for HTMLButtonElement {
                     owner.submit(
                         SubmittedFrom::NotFromForm,
                         FormSubmitterElement::Button(self),
+                        CanGc::note(),
                     );
                 }
             },
             ButtonType::Reset => {
                 // TODO: is document owner fully active?
                 if let Some(owner) = self.form_owner() {
-                    owner.reset(ResetFrom::NotFromForm);
+                    owner.reset(ResetFrom::NotFromForm, CanGc::note());
                 }
             },
             _ => (),

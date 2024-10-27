@@ -9,16 +9,36 @@
     "use strict";
 
     function reportResult(outcome, errorObj) {
-        window.top.postMessage({"type": "result", "result": outcome, "error": errorObj}, "*");
+        window.top.postMessage({ "type": "result", "result": outcome, "error": errorObj }, "*");
     }
 
     async function createCredentialAndReportResult(addUserActivation) {
         if (addUserActivation) {
             await test_driver.bless("create credential");
         }
-
         try {
             await createCredential();
+            reportResult("success");
+        } catch (e) {
+            reportResult("failure", e);
+        }
+    }
+
+    async function getCredentialAndReportResult(addUserActivation) {
+        if (addUserActivation) {
+            await test_driver.bless("create credential");
+        }
+        try {
+            await navigator.credentials.get({
+                publicKey: {
+                    challenge: new Uint8Array(),
+                    allowCredentials: [{
+                        id: (await createCredential()).rawId,
+                        type: "public-key",
+                        userVerification: "discouraged",
+                    }],
+                }
+            });
             reportResult("success");
         } catch (e) {
             reportResult("failure", e);
@@ -30,9 +50,13 @@
             createCredentialAndReportResult(e.data.addUserActivation);
             return;
         }
+        if (e.data.type == "get-credential") {
+            getCredentialAndReportResult(e.data.addUserActivation);
+            return;
+        }
         throw new Error(`Unrecognized message, e.data.type: ${e.data.type}`);
     });
 
     test_driver.set_test_context(window.top);
-    window.top.postMessage({"type": "subframe-loaded"}, "*");
+    window.top.postMessage({ "type": "subframe-loaded" }, "*");
 </script>

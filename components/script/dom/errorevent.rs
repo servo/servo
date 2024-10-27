@@ -66,19 +66,11 @@ impl ErrorEvent {
         lineno: u32,
         colno: u32,
         error: HandleValue,
+        can_gc: CanGc,
     ) -> DomRoot<ErrorEvent> {
         Self::new_with_proto(
-            global,
-            None,
-            type_,
-            bubbles,
-            cancelable,
-            message,
-            filename,
-            lineno,
-            colno,
-            error,
-            CanGc::note(),
+            global, None, type_, bubbles, cancelable, message, filename, lineno, colno, error,
+            can_gc,
         )
     }
 
@@ -108,9 +100,11 @@ impl ErrorEvent {
         ev.error.set(error.get());
         ev
     }
+}
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+impl ErrorEventMethods for ErrorEvent {
+    // https://html.spec.whatwg.org/multipage/#errorevent
+    fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -150,9 +144,7 @@ impl ErrorEvent {
         );
         Ok(event)
     }
-}
 
-impl ErrorEventMethods for ErrorEvent {
     // https://html.spec.whatwg.org/multipage/#dom-errorevent-lineno
     fn Lineno(&self) -> u32 {
         self.lineno.get()

@@ -40,11 +40,11 @@ test_composition({
   addFrom: '100px',
   addTo: 'fit-content',
 }, [
-  {at: -0.3, expect: 'calc-size(fit-content, 230px + size * -0.3)'},
-  {at: 0, expect: 'calc-size(fit-content, 200px + size * 0)'},
-  {at: 0.5, expect: 'calc-size(fit-content, 150px + size * 0.5)'},
-  {at: 1, expect: 'calc-size(fit-content, 100px + size * 1)'},
-  {at: 1.5, expect: 'calc-size(fit-content, 50px + size * 1.5)'},
+  {at: -0.3, expect: 'calc-size(fit-content, 260px + (100px + size) * -0.3)'},
+  {at: 0, expect: 'calc-size(fit-content, 200px + (100px + size) * 0)'},
+  {at: 0.5, expect: 'calc-size(fit-content, 100px + (100px + size) * 0.5)'},
+  {at: 1, expect: 'calc-size(fit-content, 0px + (100px + size) * 1)'},
+  {at: 1.5, expect: 'calc-size(fit-content, -100px + (100px + size) * 1.5)'},
 ]);
 
 test_composition({
@@ -62,15 +62,15 @@ test_composition({
 
 test_composition({
   property: 'max-width',
-  underlying: 'max-content', /* ignored, not compatible */
+  underlying: 'max-content',
   addFrom: '100px',
   addTo: 'min-content',
 }, [
-  {at: -0.3, expect: 'calc-size(min-content, 130px + size * -0.3)'},
-  {at: 0, expect: 'calc-size(min-content, 100px + size * 0)'},
-  {at: 0.5, expect: 'calc-size(min-content, 50px + size * 0.5)'},
-  {at: 1, expect: 'calc-size(min-content, 0px + size * 1)'},
-  {at: 1.5, expect: 'calc-size(min-content, -50px + size * 1.5)'},
+  {at: -0.3, expect: 'calc-size(max-content, 100px + size)'},
+  {at: 0, expect: 'calc-size(max-content, 100px + size)'},
+  {at: 0.5, expect: 'min-content'},
+  {at: 1, expect: 'min-content'},
+  {at: 1.5, expect: 'min-content'},
 ]);
 </script>
 </body>

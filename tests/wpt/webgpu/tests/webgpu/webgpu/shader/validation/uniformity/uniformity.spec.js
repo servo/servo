@@ -262,6 +262,14 @@ const kFragmentBuiltinValues = [
 {
   builtin: `sample_mask`,
   type: `u32`
+},
+{
+  builtin: `subgroup_invocation_id`,
+  type: `u32`
+},
+{
+  builtin: `subgroup_size`,
+  type: `u32`
 }];
 
 
@@ -273,6 +281,10 @@ beforeAllSubcases((t) => {
     t.isCompatibility && ['sample_index', 'sample_mask'].includes(t.params.builtin),
     'compatibility mode does not support sample_index or sample_mask'
   );
+  const builtin = t.params.builtin;
+  if (builtin.includes('subgroup')) {
+    t.selectDeviceOrSkipTestCase('subgroups');
+  }
 }).
 fn((t) => {
   let cond = ``;
@@ -297,7 +309,9 @@ fn((t) => {
         unreachable(`Unhandled type`);
       }
   }
+  const enable = t.params.builtin.includes('subgroup') ? 'enable subgroups;' : '';
   const code = `
+${enable}
 @group(0) @binding(0) var s : sampler;
 @group(0) @binding(1) var tex : texture_2d<f32>;
 
@@ -338,12 +352,27 @@ const kComputeBuiltinValues = [
   builtin: `num_workgroups`,
   type: `vec3<u32>`,
   uniform: true
+},
+{
+  builtin: `subgroup_invocation_id`,
+  type: `u32`,
+  uniform: false
+},
+{
+  builtin: `subgroup_size`,
+  type: `u32`,
+  uniform: true
 }];
 
 
 g.test('compute_builtin_values').
 desc(`Test uniformity of compute built-in values`).
 params((u) => u.combineWithParams(kComputeBuiltinValues).beginSubcases()).
+beforeAllSubcases((t) => {
+  if (t.params.builtin.includes('subgroup')) {
+    t.selectDeviceOrSkipTestCase('subgroups');
+  }
+}).
 fn((t) => {
   let cond = ``;
   switch (t.params.type) {
@@ -367,7 +396,9 @@ fn((t) => {
         unreachable(`Unhandled type`);
       }
   }
+  const enable = t.params.builtin.includes('subgroup') ? 'enable subgroups;' : '';
   const code = `
+${enable}
 @compute @workgroup_size(16,1,1)
 fn main(@builtin(${t.params.builtin}) p : ${t.params.type}) {
   if ${cond} {
@@ -776,6 +807,20 @@ const kPointerCases = {
     check: `contents`,
     uniform: `never`,
     needs_deref_sugar: true
+  },
+  contents_rhs_pointer_swizzle_uniform: {
+    code: `func_vector = vec4(uniform_value);
+    let test_val = dot((&func_vector).yw, vec2());`,
+    check: `contents`,
+    uniform: true,
+    needs_deref_sugar: true
+  },
+  contents_rhs_pointer_swizzle_non_uniform: {
+    code: `func_vector = vec4(nonuniform_value);
+    let test_val = dot((&func_vector).yw, vec2());`,
+    check: `contents`,
+    uniform: false,
+    needs_deref_sugar: true
   }
 };
 
@@ -815,6 +860,7 @@ fn needs_uniform(val : u32) -> u32{
 fn main(@builtin(local_invocation_id) lid : vec3<u32>,
         @builtin(global_invocation_id) gid : vec3<u32>) {
   var func_scalar : u32;
+  var func_vector : vec4u;
   var func_array : array<u32, 16>;
   var func_struct : Outer;
 

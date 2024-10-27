@@ -4,24 +4,40 @@
 // META: script=/bluetooth/resources/bluetooth-fake-devices.js
 'use strict';
 const test_desc =
-    'writeValueWithResponse() fails when passed a detached buffer';
+    'Detached buffers are safe to pass to writeValueWithResponse()';
+
 
 function detachBuffer(buffer) {
   window.postMessage('', '*', [buffer]);
 }
 
 bluetooth_test(async (t) => {
-  const {characteristic} = await getMeasurementIntervalCharacteristic();
+  const {characteristic, fake_characteristic} =
+      await getMeasurementIntervalCharacteristic();
+
+  let lastValue, lastWriteType;
+  ({lastValue, lastWriteType} =
+       await fake_characteristic.getLastWrittenValue());
+  assert_equals(lastValue, null);
+  assert_equals(lastWriteType, 'none');
+
+  await fake_characteristic.setNextWriteResponse(GATT_SUCCESS);
 
   const typed_array = Uint8Array.of(1, 2);
   detachBuffer(typed_array.buffer);
-  await promise_rejects_dom(
-      t, 'InvalidStateError',
-      characteristic.writeValueWithResponse(typed_array));
+  await characteristic.writeValueWithResponse(typed_array);
+  ({lastValue, lastWriteType} =
+       await fake_characteristic.getLastWrittenValue());
+  assert_array_equals(lastValue, []);
+  assert_equals(lastWriteType, 'with-response');
+
+  await fake_characteristic.setNextWriteResponse(GATT_SUCCESS);
 
   const array_buffer = Uint8Array.of(3, 4).buffer;
   detachBuffer(array_buffer);
-  await promise_rejects_dom(
-      t, 'InvalidStateError',
-      characteristic.writeValueWithResponse(array_buffer));
+  await characteristic.writeValueWithResponse(array_buffer);
+  ({lastValue, lastWriteType} =
+       await fake_characteristic.getLastWrittenValue());
+  assert_array_equals(lastValue, []);
+  assert_equals(lastWriteType, 'with-response');
 }, test_desc);

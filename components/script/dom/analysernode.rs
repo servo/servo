@@ -96,8 +96,9 @@ impl AnalyserNode {
         window: &Window,
         context: &BaseAudioContext,
         options: &AnalyserOptions,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<AnalyserNode>> {
-        Self::new_with_proto(window, None, context, options, CanGc::note())
+        Self::new_with_proto(window, None, context, options, can_gc)
     }
 
     #[allow(crown::unrooted_must_root)]
@@ -115,14 +116,14 @@ impl AnalyserNode {
             .dom_manipulation_task_source_with_canceller();
         let this = Trusted::new(&*object);
 
-        ROUTER.add_route(
-            recv.to_opaque(),
+        ROUTER.add_typed_route(
+            recv,
             Box::new(move |block| {
                 let this = this.clone();
                 let _ = source.queue_with_canceller(
                     task!(append_analysis_block: move || {
                         let this = this.root();
-                        this.push_block(block.to().unwrap())
+                        this.push_block(block.unwrap())
                     }),
                     &canceller,
                 );
@@ -131,9 +132,14 @@ impl AnalyserNode {
         Ok(object)
     }
 
+    pub fn push_block(&self, block: Block) {
+        self.engine.borrow_mut().push(block)
+    }
+}
+
+impl AnalyserNodeMethods for AnalyserNode {
     /// <https://webaudio.github.io/web-audio-api/#dom-analysernode-analysernode>
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+    fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -143,12 +149,6 @@ impl AnalyserNode {
         AnalyserNode::new_with_proto(window, proto, context, options, can_gc)
     }
 
-    pub fn push_block(&self, block: Block) {
-        self.engine.borrow_mut().push(block)
-    }
-}
-
-impl AnalyserNodeMethods for AnalyserNode {
     #[allow(unsafe_code)]
     /// <https://webaudio.github.io/web-audio-api/#dom-analysernode-getfloatfrequencydata>
     fn GetFloatFrequencyData(&self, mut array: CustomAutoRooterGuard<Float32Array>) {

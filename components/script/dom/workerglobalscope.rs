@@ -54,10 +54,7 @@ use crate::dom::workerlocation::WorkerLocation;
 use crate::dom::workernavigator::WorkerNavigator;
 use crate::fetch;
 use crate::realms::{enter_realm, InRealm};
-use crate::script_runtime::{
-    get_reports, CommonScriptMsg, ContextForRequestInterrupt, JSContext, Runtime, ScriptChan,
-    ScriptPort,
-};
+use crate::script_runtime::{CanGc, CommonScriptMsg, JSContext, Runtime, ScriptChan, ScriptPort};
 use crate::task::TaskCanceller;
 use crate::task_source::dom_manipulation::DOMManipulationTaskSource;
 use crate::task_source::file_reading::FileReadingTaskSource;
@@ -115,15 +112,14 @@ pub struct WorkerGlobalScope {
 
     #[ignore_malloc_size_of = "Defined in ipc-channel"]
     #[no_trace]
-    /// Optional `IpcSender` for sending the `DevtoolScriptControlMsg`
-    /// to the server from within the worker
-    from_devtools_sender: Option<IpcSender<DevtoolScriptControlMsg>>,
+    /// A `Sender` for sending messages to devtools. This is unused but is stored here to
+    /// keep the channel alive.
+    _devtools_sender: Option<IpcSender<DevtoolScriptControlMsg>>,
 
-    #[ignore_malloc_size_of = "Defined in std"]
+    #[ignore_malloc_size_of = "Defined in crossbeam"]
     #[no_trace]
-    /// This `Receiver` will be ignored later if the corresponding
-    /// `IpcSender` doesn't exist
-    from_devtools_receiver: Receiver<DevtoolScriptControlMsg>,
+    /// A `Receiver` for receiving messages from devtools.
+    devtools_receiver: Option<Receiver<DevtoolScriptControlMsg>>,
 
     #[no_trace]
     navigation_start: CrossProcessInstant,
@@ -138,12 +134,18 @@ impl WorkerGlobalScope {
         worker_type: WorkerType,
         worker_url: ServoUrl,
         runtime: Runtime,
-        from_devtools_receiver: Receiver<DevtoolScriptControlMsg>,
+        devtools_receiver: Receiver<DevtoolScriptControlMsg>,
         closing: Arc<AtomicBool>,
         gpu_id_hub: Arc<IdentityHub>,
     ) -> Self {
         // Install a pipeline-namespace in the current thread.
         PipelineNamespace::auto_install();
+
+        let devtools_receiver = match init.from_devtools_sender {
+            Some(..) => Some(devtools_receiver),
+            None => None,
+        };
+
         Self {
             globalscope: GlobalScope::new_inherited(
                 init.pipeline_id,
@@ -169,18 +171,15 @@ impl WorkerGlobalScope {
             runtime: DomRefCell::new(Some(runtime)),
             location: Default::default(),
             navigator: Default::default(),
-            from_devtools_sender: init.from_devtools_sender,
-            from_devtools_receiver,
+            devtools_receiver,
+            _devtools_sender: init.from_devtools_sender,
             navigation_start: CrossProcessInstant::now(),
             performance: Default::default(),
         }
     }
 
     /// Clear various items when the worker event-loop shuts-down.
-    pub fn clear_js_runtime(&self, cx_for_interrupt: ContextForRequestInterrupt) {
-        // Ensure parent thread can no longer request interrupt
-        // using our JSContext that will soon be destroyed
-        cx_for_interrupt.revoke();
+    pub fn clear_js_runtime(&self) {
         self.upcast::<GlobalScope>()
             .remove_web_messaging_and_dedicated_workers_infra();
 
@@ -197,12 +196,8 @@ impl WorkerGlobalScope {
             .prepare_for_new_child()
     }
 
-    pub fn from_devtools_sender(&self) -> Option<IpcSender<DevtoolScriptControlMsg>> {
-        self.from_devtools_sender.clone()
-    }
-
-    pub fn from_devtools_receiver(&self) -> &Receiver<DevtoolScriptControlMsg> {
-        &self.from_devtools_receiver
+    pub fn devtools_receiver(&self) -> Option<&Receiver<DevtoolScriptControlMsg>> {
+        self.devtools_receiver.as_ref()
     }
 
     #[allow(unsafe_code)]
@@ -253,7 +248,7 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
     error_event_handler!(error, GetOnerror, SetOnerror);
 
     // https://html.spec.whatwg.org/multipage/#dom-workerglobalscope-importscripts
-    fn ImportScripts(&self, url_strings: Vec<DOMString>) -> ErrorResult {
+    fn ImportScripts(&self, url_strings: Vec<DOMString>, can_gc: CanGc) -> ErrorResult {
         let mut urls = Vec::with_capacity(url_strings.len());
         for url in url_strings {
             let url = self.worker_url.borrow().join(&url);
@@ -279,6 +274,7 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
                 request,
                 &global_scope.resource_threads().sender(),
                 global_scope,
+                can_gc,
             ) {
                 Err(_) => return Err(Error::Network),
                 Ok((metadata, bytes)) => (metadata.final_url, String::from_utf8(bytes).unwrap()),
@@ -394,10 +390,11 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
         &self,
         image: ImageBitmapSource,
         options: &ImageBitmapOptions,
+        can_gc: CanGc,
     ) -> Rc<Promise> {
         let p = self
             .upcast::<GlobalScope>()
-            .create_image_bitmap(image, options);
+            .create_image_bitmap(image, options, can_gc);
         p
     }
 
@@ -408,8 +405,9 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
         input: RequestOrUSVString,
         init: RootedTraceableBox<RequestInit>,
         comp: InRealm,
+        can_gc: CanGc,
     ) -> Rc<Promise> {
-        fetch::Fetch(self.upcast(), input, init, comp)
+        fetch::Fetch(self.upcast(), input, init, comp, can_gc)
     }
 
     // https://w3c.github.io/hr-time/#the-performance-attribute
@@ -449,7 +447,7 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
 
 impl WorkerGlobalScope {
     #[allow(unsafe_code)]
-    pub fn execute_script(&self, source: DOMString) {
+    pub fn execute_script(&self, source: DOMString, can_gc: CanGc) {
         let _aes = AutoEntryScript::new(self.upcast());
         let cx = self.runtime.borrow().as_ref().unwrap().cx();
         rooted!(in(cx) let mut rval = UndefinedValue());
@@ -470,7 +468,7 @@ impl WorkerGlobalScope {
                     println!("evaluate_script failed");
                     unsafe {
                         let ar = enter_realm(self);
-                        report_pending_exception(cx, true, InRealm::Entered(&ar));
+                        report_pending_exception(cx, true, InRealm::Entered(&ar), can_gc);
                     }
                 }
             },
@@ -542,8 +540,7 @@ impl WorkerGlobalScope {
             CommonScriptMsg::Task(_, task, _, _) => task.run_box(),
             CommonScriptMsg::CollectReports(reports_chan) => {
                 let cx = self.get_cx();
-                let path_seg = format!("url({})", self.get_url());
-                let reports = unsafe { get_reports(*cx, path_seg) };
+                let reports = cx.get_reports(format!("url({})", self.get_url()));
                 reports_chan.send(reports);
             },
         }

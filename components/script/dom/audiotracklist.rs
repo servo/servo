@@ -15,6 +15,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::htmlmediaelement::HTMLMediaElement;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 use crate::task_source::TaskSource;
 
 #[dom_struct]
@@ -96,7 +97,7 @@ impl AudioTrackList {
         let _ = source.queue_with_canceller(
             task!(media_track_change: move || {
                 let this = this.root();
-                this.upcast::<EventTarget>().fire_event(atom!("change"));
+                this.upcast::<EventTarget>().fire_event(atom!("change"), CanGc::note());
             }),
             &canceller,
         );

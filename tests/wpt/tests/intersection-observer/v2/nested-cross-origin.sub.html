@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/intersection-observer-test-utils.js"></script>
+
+<style>
+pre, #log {
+  position: absolute;
+  top: 0;
+  left: 200px;
+}
+iframe {
+  width: 300px;
+  height: 150px;
+  border: none;
+}
+</style>
+
+<iframe src="http://{{domains[www1]}}:{{ports[http][0]}}/intersection-observer/resources/v2-midframe.sub.html"></iframe>
+
+<script>
+async_test(function(t) {
+  let iframe = document.querySelector("iframe");
+
+  function step0(event) {
+    assert_equals(event.data,"");
+  }
+
+  function step1(event) {
+    assert_equals(JSON.stringify(event.data),
+                  JSON.stringify([true]));
+    iframe.style.opacity = "0.9";
+  }
+
+  function step2(event) {
+    assert_equals(JSON.stringify(event.data),
+                  JSON.stringify([false]));
+    iframe.style.opacity = "";
+  }
+
+  function step3(event) {
+    assert_equals(JSON.stringify(event.data),
+                  JSON.stringify([true]));
+  }
+
+  let steps = [step0, step1, step2, step3];
+
+  window.addEventListener("message", event => {
+    if (steps.length) {
+      t.step(steps.shift(), t, event);
+      waitForFrame(t, () => {
+        iframe.contentWindow.postMessage("", "*");
+      });
+    } else {
+      t.done();
+    }
+  });
+
+}, "Intersection observer V2 test with nested cross-origin iframes.");
+</script>

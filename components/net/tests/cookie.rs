@@ -79,13 +79,17 @@ fn fn_cookie_constructor() {
     assert!(ServoCookie::new_wrapped(cookie, url, CookieSource::HTTP).is_none());
 
     let cookie = cookie::Cookie::parse(" baz = bar ; Secure; Path = /foo/bar/").unwrap();
-    assert!(ServoCookie::new_wrapped(cookie, url, CookieSource::HTTP).is_some());
+    assert!(
+        ServoCookie::new_wrapped(cookie, url, CookieSource::HTTP).is_none(),
+        "Cookie with \"Secure\" attribute from non-secure source should be rejected"
+    );
 
     let cookie = cookie::Cookie::parse(" baz = bar ; HttpOnly").unwrap();
     assert!(ServoCookie::new_wrapped(cookie, url, CookieSource::NonHTTP).is_none());
 
+    let secure_url = &ServoUrl::parse("https://example.com/foo").unwrap();
     let cookie = cookie::Cookie::parse(" baz = bar ; Secure; Path = /foo/bar/").unwrap();
-    let cookie = ServoCookie::new_wrapped(cookie, url, CookieSource::HTTP).unwrap();
+    let cookie = ServoCookie::new_wrapped(cookie, secure_url, CookieSource::HTTP).unwrap();
     assert_eq!(cookie.cookie.value(), "bar");
     assert_eq!(cookie.cookie.name(), "baz");
     assert!(cookie.cookie.secure().unwrap_or(false));

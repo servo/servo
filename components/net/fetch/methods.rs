@@ -465,7 +465,7 @@ pub async fn main_fetch(
     let mut response_loaded = false;
     let mut response = if !response.is_network_error() && !request.integrity_metadata.is_empty() {
         // Step 19.1.
-        wait_for_response(&mut response, target, done_chan).await;
+        wait_for_response(request, &mut response, target, done_chan).await;
         response_loaded = true;
 
         // Step 19.2.
@@ -487,12 +487,12 @@ pub async fn main_fetch(
     if request.synchronous {
         // process_response is not supposed to be used
         // by sync fetch, but we overload it here for simplicity
-        target.process_response(&response);
+        target.process_response(request, &response);
         if !response_loaded {
-            wait_for_response(&mut response, target, done_chan).await;
+            wait_for_response(request, &mut response, target, done_chan).await;
         }
         // overloaded similarly to process_response
-        target.process_response_eof(&response);
+        target.process_response_eof(request, &response);
         return response;
     }
 
@@ -507,15 +507,15 @@ pub async fn main_fetch(
     }
 
     // Step 22.
-    target.process_response(&response);
+    target.process_response(request, &response);
 
     // Step 23.
     if !response_loaded {
-        wait_for_response(&mut response, target, done_chan).await;
+        wait_for_response(request, &mut response, target, done_chan).await;
     }
 
     // Step 24.
-    target.process_response_eof(&response);
+    target.process_response_eof(request, &response);
 
     if let Ok(http_cache) = context.state.http_cache.write() {
         http_cache.update_awaiting_consumers(request, &response);
@@ -527,6 +527,7 @@ pub async fn main_fetch(
 }
 
 async fn wait_for_response(
+    request: &Request,
     response: &mut Response,
     target: Target<'_>,
     done_chan: &mut DoneChannel,
@@ -535,7 +536,7 @@ async fn wait_for_response(
         loop {
             match ch.1.recv().await {
                 Some(Data::Payload(vec)) => {
-                    target.process_response_chunk(vec);
+                    target.process_response_chunk(request, vec);
                 },
                 Some(Data::Done) => {
                     break;
@@ -555,7 +556,7 @@ async fn wait_for_response(
             // in case there was no channel to wait for, the body was
             // obtained synchronously via scheme_fetch for data/file/about/etc
             // We should still send the body across as a chunk
-            target.process_response_chunk(vec.clone());
+            target.process_response_chunk(request, vec.clone());
         } else {
             assert_eq!(*body, ResponseBody::Empty)
         }

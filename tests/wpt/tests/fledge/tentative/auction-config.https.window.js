@@ -1,4 +1,5 @@
 // META: script=/resources/testdriver.js
+// META: script=/resources/testdriver-vendor.js
 // META: script=/common/utils.js
 // META: script=resources/fledge-util.sub.js
 // META: script=/common/subset-tests.js
@@ -15,7 +16,9 @@
 // META: variant=?46-50
 // META: variant=?51-55
 // META: variant=?56-60
-// META: variant=?61-last
+// META: variant=?61-65
+// META: variant=?66-70
+// META: variant=?71-last
 
 "use strict;"
 
@@ -637,3 +640,65 @@ subsetTest(promise_test, async test => {
     uuid,
     [bidderReportURL2, sellerReportURL2, bidderReportURL1, sellerReportURL1]);
 }, `forDebuggingOnly lockout and cooldowns updating in one auction, read in another's.`);
+
+makeTest({
+  name: 'deprecatedRenderURLReplacements nullability',
+  expect: EXPECT_WINNER,
+  auctionConfigOverrides: {deprecatedRenderURLReplacements: null}
+});
+
+makeTest({
+  name: 'deprecatedRenderURLReplacements nullability 2',
+  expect: EXPECT_WINNER,
+  auctionConfigOverrides:
+      {deprecatedRenderURLReplacements: Promise.resolve(undefined)}
+});
+
+makeTest({
+  name: 'perBuyerSignals nullability',
+  expect: EXPECT_WINNER,
+  auctionConfigOverrides: {perBuyerSignals: null},
+});
+
+makeTest({
+  name: 'perBuyerSignals nullability 2',
+  expect: EXPECT_WINNER,
+  auctionConfigOverrides: {perBuyerSignals: Promise.resolve(undefined)},
+});
+
+makeTest({
+  name: 'perBuyerTimeouts nullability',
+  expect: EXPECT_WINNER,
+  auctionConfigOverrides: {perBuyerTimeouts: null},
+});
+
+makeTest({
+  name: 'perBuyerTimeouts nullability 2',
+  expect: EXPECT_WINNER,
+  auctionConfigOverrides: {perBuyerTimeouts: Promise.resolve(undefined)},
+});
+
+makeTest({
+  name: 'perBuyerCumulativeTimeouts nullability',
+  expect: EXPECT_WINNER,
+  auctionConfigOverrides: {perBuyerCumulativeTimeouts: null},
+});
+
+makeTest({
+  name: 'perBuyerCumulativeTimeouts nullability 2',
+  expect: EXPECT_WINNER,
+  auctionConfigOverrides:
+      {perBuyerCumulativeTimeouts: Promise.resolve(undefined)},
+});
+
+makeTest({
+  name: 'perBuyerCurrencies nullability',
+  expect: EXPECT_WINNER,
+  auctionConfigOverrides: {perBuyerCurrencies: null},
+});
+
+makeTest({
+  name: 'perBuyerCurrencies nullability 2',
+  expect: EXPECT_WINNER,
+  auctionConfigOverrides: {perBuyerCurrencies: Promise.resolve(undefined)},
+});

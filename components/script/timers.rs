@@ -29,6 +29,7 @@ use crate::dom::htmlmetaelement::RefreshRedirectDue;
 use crate::dom::testbinding::TestBindingCallback;
 use crate::dom::xmlhttprequest::XHRTimeoutCallback;
 use crate::script_module::ScriptFetchOptions;
+use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, JSTraceable, MallocSizeOf, Ord, PartialEq, PartialOrd)]
@@ -88,14 +89,14 @@ pub enum OneshotTimerCallback {
 }
 
 impl OneshotTimerCallback {
-    fn invoke<T: DomObject>(self, this: &T, js_timers: &JsTimers) {
+    fn invoke<T: DomObject>(self, this: &T, js_timers: &JsTimers, can_gc: CanGc) {
         match self {
-            OneshotTimerCallback::XhrTimeout(callback) => callback.invoke(),
+            OneshotTimerCallback::XhrTimeout(callback) => callback.invoke(can_gc),
             OneshotTimerCallback::EventSourceTimeout(callback) => callback.invoke(),
-            OneshotTimerCallback::JsTimer(task) => task.invoke(this, js_timers),
+            OneshotTimerCallback::JsTimer(task) => task.invoke(this, js_timers, can_gc),
             OneshotTimerCallback::TestBindingCallback(callback) => callback.invoke(),
-            OneshotTimerCallback::FakeRequestAnimationFrame(callback) => callback.invoke(),
-            OneshotTimerCallback::RefreshRedirectDue(callback) => callback.invoke(),
+            OneshotTimerCallback::FakeRequestAnimationFrame(callback) => callback.invoke(can_gc),
+            OneshotTimerCallback::RefreshRedirectDue(callback) => callback.invoke(can_gc),
         }
     }
 }
@@ -190,7 +191,7 @@ impl OneshotTimers {
         }
     }
 
-    pub fn fire_timer(&self, id: TimerEventId, global: &GlobalScope) {
+    pub fn fire_timer(&self, id: TimerEventId, global: &GlobalScope, can_gc: CanGc) {
         let expected_id = self.expected_event_id.get();
         if expected_id != id {
             debug!(
@@ -233,7 +234,7 @@ impl OneshotTimers {
                 return;
             }
             let callback = timer.callback;
-            callback.invoke(global, &self.js_timers);
+            callback.invoke(global, &self.js_timers, can_gc);
         }
 
         self.schedule_timer_call();
@@ -536,7 +537,7 @@ fn clamp_duration(nesting_level: u32, unclamped: Duration) -> Duration {
 
 impl JsTimerTask {
     // see https://html.spec.whatwg.org/multipage/#timer-initialisation-steps
-    pub fn invoke<T: DomObject>(self, this: &T, timers: &JsTimers) {
+    pub fn invoke<T: DomObject>(self, this: &T, timers: &JsTimers, can_gc: CanGc) {
         // step 4.1 can be ignored, because we proactively prevent execution
         // of this task when its scheduled execution is canceled.
 
@@ -557,6 +558,7 @@ impl JsTimerTask {
                     rval.handle_mut(),
                     ScriptFetchOptions::default_classic_script(&global),
                     global.api_base_url(),
+                    can_gc,
                 );
             },
             InternalTimerCallback::FunctionTimerCallback(ref function, ref arguments) => {

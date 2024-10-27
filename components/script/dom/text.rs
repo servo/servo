@@ -33,38 +33,40 @@ impl Text {
         }
     }
 
-    pub fn new(text: DOMString, document: &Document) -> DomRoot<Text> {
-        Self::new_with_proto(text, document, None)
+    pub fn new(text: DOMString, document: &Document, can_gc: CanGc) -> DomRoot<Text> {
+        Self::new_with_proto(text, document, None, can_gc)
     }
 
     fn new_with_proto(
         text: DOMString,
         document: &Document,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> DomRoot<Text> {
         Node::reflect_node_with_proto(
             Box::new(Text::new_inherited(text, document)),
             document,
             proto,
+            can_gc,
         )
-    }
-
-    #[allow(non_snake_case)]
-    pub fn Constructor(
-        window: &Window,
-        proto: Option<HandleObject>,
-        _can_gc: CanGc,
-        text: DOMString,
-    ) -> Fallible<DomRoot<Text>> {
-        let document = window.Document();
-        Ok(Text::new_with_proto(text, &document, proto))
     }
 }
 
 impl TextMethods for Text {
+    // https://dom.spec.whatwg.org/#dom-text-text
+    fn Constructor(
+        window: &Window,
+        proto: Option<HandleObject>,
+        can_gc: CanGc,
+        text: DOMString,
+    ) -> Fallible<DomRoot<Text>> {
+        let document = window.Document();
+        Ok(Text::new_with_proto(text, &document, proto, can_gc))
+    }
+
     // https://dom.spec.whatwg.org/#dom-text-splittext
     // https://dom.spec.whatwg.org/#concept-text-split
-    fn SplitText(&self, offset: u32) -> Fallible<DomRoot<Text>> {
+    fn SplitText(&self, offset: u32, can_gc: CanGc) -> Fallible<DomRoot<Text>> {
         let cdata = self.upcast::<CharacterData>();
         // Step 1.
         let length = cdata.Length();
@@ -79,7 +81,7 @@ impl TextMethods for Text {
         // Step 5.
         let node = self.upcast::<Node>();
         let owner_doc = node.owner_doc();
-        let new_node = owner_doc.CreateTextNode(new_data);
+        let new_node = owner_doc.CreateTextNode(new_data, can_gc);
         // Step 6.
         let parent = node.GetParentNode();
         if let Some(ref parent) = parent {

@@ -32,6 +32,19 @@
     ctx.filter = 'blur(  5px)';
     assert_equals(ctx.filter, 'blur(  5px)');
 
+- name: 2d.filter.drop-shadow-globalAlpha
+  desc: Tests the context drop-shadow filter with a globalAlpha
+  code: |
+    ctx.filter = 'drop-shadow(10px 5px 0px rgb(255, 165, 0))';
+    ctx.globalAlpha = 0.5
+    ctx.fillStyle = 'rgb(128, 0, 128)';
+    ctx.fillRect(10, 10, 60, 30);
+  reference: |
+    ctx.fillStyle = 'rgba(255, 165, 0, 0.5)';
+    ctx.fillRect(20, 15, 60, 30);
+    ctx.fillStyle = 'rgba(128, 0, 128, 0.5)'
+    ctx.fillRect(10, 10, 60, 30);
+
 - name: 2d.filter.canvasFilterObject.tentative
   desc: Test CanvasFilter() object
   canvas_types: ['HtmlCanvas']
@@ -88,7 +101,7 @@
     ctx.filter = 'this string is not a filter and should do nothing';
     @assert ctx.filter.toString() == '[object CanvasFilter]';
 
-- name: 2d.filter.{{ variant_name }}.blur.exceptions{{ tentative }}
+- name: 2d.filter.{{ variant_name }}.blur.exceptions.tentative
   desc: Test exceptions on gaussianBlur filter
   code: |
     @assert throws TypeError {{ filter_declaration | replace("param",
@@ -113,9 +126,8 @@
       filter_declaration: |-
         ctx.filter = new CanvasFilter(
           param)
-      tentative: .tentative
 
-- name: 2d.filter.{{ variant_name }}.colorMatrix{{ tentative }}
+- name: 2d.filter.{{ variant_name }}.colorMatrix.tentative
   desc: Test the functionality of ColorMatrix filters
   code: |
     @assert throws TypeError {{ filter_declaration | replace("param",
@@ -208,9 +220,8 @@
       filter_declaration: |-
         ctx.filter = new CanvasFilter(
           param)
-      tentative: .tentative
 
-- name: 2d.filter.{{ variant_name }}.convolveMatrix.exceptions{{ tentative }}
+- name: 2d.filter.{{ variant_name }}.convolveMatrix.exceptions.tentative
   desc: Test exceptions on CanvasFilter() convolveMatrix
   code: |
     @assert throws TypeError {{ filter_declaration | replace("param",
@@ -260,10 +271,9 @@
       filter_declaration: |-
         ctx.filter = new CanvasFilter(
           param)
-      tentative: .tentative
 
 - name: >-
-    2d.filter.{{ variant_name }}.componentTransfer.linear{{ tentative }}
+    2d.filter.{{ variant_name }}.componentTransfer.linear.tentative
   desc: Test pixels on CanvasFilter() componentTransfer with linear type
   size: [100, 100]
   fuzzy: maxDifference=0-2; totalPixels=0-500
@@ -331,10 +341,9 @@
     canvasFilterObject:
       filter_declaration: |-
         ctx.filter = new CanvasFilter(param)
-      tentative: .tentative
 
 - name: >-
-    2d.filter.{{ variant_name }}.componentTransfer.identity{{ tentative }}
+    2d.filter.{{ variant_name }}.componentTransfer.identity.tentative
   desc: Test pixels on CanvasFilter() componentTransfer with identity type
   size: [100, 100]
   code: |
@@ -382,10 +391,9 @@
     canvasFilterObject:
       filter_declaration: |-
         ctx.filter = new CanvasFilter(param)
-      tentative: .tentative
 
 - name: >-
-    2d.filter.{{ variant_name }}.componentTransfer.gamma{{ tentative }}
+    2d.filter.{{ variant_name }}.componentTransfer.gamma.tentative
   desc: Test pixels on CanvasFilter() componentTransfer with gamma type
   size: [100, 100]
   fuzzy: maxDifference=0-2; totalPixels=0-500
@@ -457,10 +465,9 @@
     canvasFilterObject:
       filter_declaration: |-
         ctx.filter = new CanvasFilter(param)
-      tentative: .tentative
 
 - name: >-
-    2d.filter.{{ variant_name }}.componentTransfer.table{{ tentative }}
+    2d.filter.{{ variant_name }}.componentTransfer.table.tentative
   desc: Test pixels on CanvasFilter() componentTransfer with table type
   size: [100, 100]
   fuzzy: maxDifference=0-2; totalPixels=0-500
@@ -536,10 +543,9 @@
     canvasFilterObject:
       filter_declaration: |-
         ctx.filter = new CanvasFilter(param)
-      tentative: .tentative
 
 - name: >-
-    2d.filter.{{ variant_name }}.componentTransfer.discrete{{ tentative }}
+    2d.filter.{{ variant_name }}.componentTransfer.discrete.tentative
   desc: Test pixels on CanvasFilter() componentTransfer with discrete type
   size: [100, 100]
   fuzzy: maxDifference=0-2; totalPixels=0-500
@@ -614,10 +620,9 @@
     canvasFilterObject:
       filter_declaration: |-
         ctx.filter = new CanvasFilter(param)
-      tentative: .tentative
 
 - name: >-
-    2d.filter.{{ variant_names[0] }}.gaussianBlur{{ tentative }}
+    2d.filter.{{ variant_names[0] }}.gaussianBlur.tentative
   desc: Test CanvasFilter() with gaussianBlur.
   size: [100, 100]
   code: |
@@ -648,7 +653,6 @@
     canvasFilterObject:
       filter_declaration: |-
         ctx.filter = new CanvasFilter(param);
-      tentative: .tentative
   - x-only:
       blur_x: 4
       blur_y: 0
@@ -665,7 +669,7 @@
       blur_x: 0
       blur_y: 4
 
-- name: 2d.filter.{{ variant_name }}.dropShadow{{ tentative }}
+- name: 2d.filter.{{ variant_name }}.dropShadow.tentative
   desc: Test CanvasFilter() dropShadow object.
   size: [520, 420]
   code: |
@@ -825,9 +829,8 @@
     canvasFilterObject:
       filter_declaration: |-
         ctx.filter = new CanvasFilter(param);
-      tentative: .tentative
 
-- name: 2d.filter.{{ variant_name }}.dropShadow.exceptions{{ tentative }}
+- name: 2d.filter.{{ variant_name }}.dropShadow.exceptions.tentative
   desc: Test exceptions on CanvasFilter() dropShadow object
   code: |
     // Should not throw an error.
@@ -872,9 +875,8 @@
       filter_declaration: |-
         ctx.filter = new CanvasFilter(
           param)
-      tentative: .tentative
 
-- name: 2d.filter.{{ variant_name }}.turbulence.inputTypes{{ tentative }}
+- name: 2d.filter.{{ variant_name }}.turbulence.inputTypes.tentative
   desc: Test exceptions on CanvasFilter() turbulence object
   code: |
     const errorTestCases = [
@@ -992,4 +994,3 @@
     canvasFilterObject:
       filter_declaration: |-
         ctx.filter = new CanvasFilter(param)
-      tentative: .tentative

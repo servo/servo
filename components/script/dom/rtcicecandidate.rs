@@ -47,6 +47,7 @@ impl RTCIceCandidate {
         sdp_m_id: Option<DOMString>,
         sdp_m_line_index: Option<u16>,
         username_fragment: Option<DOMString>,
+        can_gc: CanGc,
     ) -> DomRoot<RTCIceCandidate> {
         Self::new_with_proto(
             global,
@@ -55,7 +56,7 @@ impl RTCIceCandidate {
             sdp_m_id,
             sdp_m_line_index,
             username_fragment,
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -80,9 +81,11 @@ impl RTCIceCandidate {
             can_gc,
         )
     }
+}
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+impl RTCIceCandidateMethods for RTCIceCandidate {
+    /// <https://w3c.github.io/webrtc-pc/#dom-rtcicecandidate-constructor>
+    fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -103,9 +106,7 @@ impl RTCIceCandidate {
             can_gc,
         ))
     }
-}
 
-impl RTCIceCandidateMethods for RTCIceCandidate {
     /// <https://w3c.github.io/webrtc-pc/#dom-rtcicecandidate-candidate>
     fn Candidate(&self) -> DOMString {
         self.candidate.clone()

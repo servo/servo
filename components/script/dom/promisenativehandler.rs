@@ -12,10 +12,10 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::trace::JSTraceable;
 use crate::dom::globalscope::GlobalScope;
 use crate::realms::InRealm;
-use crate::script_runtime::JSContext as SafeJSContext;
+use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 pub trait Callback: JSTraceable + MallocSizeOf {
-    fn callback(&self, cx: SafeJSContext, v: HandleValue, realm: InRealm);
+    fn callback(&self, cx: SafeJSContext, v: HandleValue, realm: InRealm, can_gc: CanGc);
 }
 
 #[dom_struct]
@@ -47,18 +47,31 @@ impl PromiseNativeHandler {
         cx: *mut JSContext,
         v: HandleValue,
         realm: InRealm,
+        can_gc: CanGc,
     ) {
         let cx = unsafe { SafeJSContext::from_ptr(cx) };
         if let Some(ref callback) = *callback {
-            callback.callback(cx, v, realm)
+            callback.callback(cx, v, realm, can_gc)
         }
     }
 
-    pub fn resolved_callback(&self, cx: *mut JSContext, v: HandleValue, realm: InRealm) {
-        PromiseNativeHandler::callback(&self.resolve, cx, v, realm)
+    pub fn resolved_callback(
+        &self,
+        cx: *mut JSContext,
+        v: HandleValue,
+        realm: InRealm,
+        can_gc: CanGc,
+    ) {
+        PromiseNativeHandler::callback(&self.resolve, cx, v, realm, can_gc)
     }
 
-    pub fn rejected_callback(&self, cx: *mut JSContext, v: HandleValue, realm: InRealm) {
-        PromiseNativeHandler::callback(&self.reject, cx, v, realm)
+    pub fn rejected_callback(
+        &self,
+        cx: *mut JSContext,
+        v: HandleValue,
+        realm: InRealm,
+        can_gc: CanGc,
+    ) {
+        PromiseNativeHandler::callback(&self.reject, cx, v, realm, can_gc)
     }
 }

@@ -37,9 +37,8 @@ pub struct TrackEvent {
     track: Option<MediaTrack>,
 }
 
-#[allow(non_snake_case)]
 impl TrackEvent {
-    #[allow(crown::unrooted_must_root)]
+    #[allow(crown::unrooted_must_root, non_snake_case)]
     fn new_inherited(track: &Option<VideoTrackOrAudioTrackOrTextTrack>) -> TrackEvent {
         let media_track = match track {
             Some(VideoTrackOrAudioTrackOrTextTrack::VideoTrack(VideoTrack)) => {
@@ -66,16 +65,9 @@ impl TrackEvent {
         bubbles: bool,
         cancelable: bool,
         track: &Option<VideoTrackOrAudioTrackOrTextTrack>,
+        can_gc: CanGc,
     ) -> DomRoot<TrackEvent> {
-        Self::new_with_proto(
-            global,
-            None,
-            type_,
-            bubbles,
-            cancelable,
-            track,
-            CanGc::note(),
-        )
+        Self::new_with_proto(global, None, type_, bubbles, cancelable, track, can_gc)
     }
 
     fn new_with_proto(
@@ -99,8 +91,11 @@ impl TrackEvent {
         }
         te
     }
+}
 
-    pub fn Constructor(
+impl TrackEventMethods for TrackEvent {
+    // https://html.spec.whatwg.org/multipage/#trackevent
+    fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -117,11 +112,9 @@ impl TrackEvent {
             can_gc,
         ))
     }
-}
 
-#[allow(non_snake_case)]
-impl TrackEventMethods for TrackEvent {
     // https://html.spec.whatwg.org/multipage/#dom-trackevent-track
+    #[allow(non_snake_case)]
     fn GetTrack(&self) -> Option<VideoTrackOrAudioTrackOrTextTrack> {
         match &self.track {
             Some(MediaTrack::Video(VideoTrack)) => Some(

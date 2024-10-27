@@ -21,6 +21,7 @@ use crate::dom::htmlformelement::HTMLFormElement;
 use crate::dom::htmllinkelement::HTMLLinkElement;
 use crate::dom::node::document_from_node;
 use crate::dom::types::{Element, GlobalScope};
+use crate::script_runtime::CanGc;
 use crate::task_source::TaskSource;
 
 bitflags::bitflags! {
@@ -432,7 +433,7 @@ pub fn follow_hyperlink(
         let target = Trusted::new(target_window);
         let task = task!(navigate_follow_hyperlink: move || {
             debug!("following hyperlink to {}", load_data.url);
-            target.root().load_url(replace, false, load_data);
+            target.root().load_url(replace, false, load_data, CanGc::note());
         });
         target_window
             .task_manager()

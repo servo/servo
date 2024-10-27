@@ -69,7 +69,7 @@
   <table style="display: flex; flex-flow: column nowrap;" data-expectedrole="table">
     <thead>
       <tr style="display: contents;" data-expectedrole="row" data-testname="tr with display: contents, within table with display: flex, has row role" class="ex-role">
-        <th data-expectedrole="columnheader" data-expectedlabel="x" data-testname="th as child of tr with display: contents, within table with display: flex, has columnheader role" class="ex-role-and-label">x</th>
+        <th data-expectedrole="columnheader" data-testname="th as child of tr with display: contents, within table with display: flex, has columnheader role" class="ex-role=">x</th>
         <th>x</th>
       </tr>
     </thead>
@@ -84,7 +84,7 @@
   <table role="table" style="display: flex; flex-flow: column nowrap;" data-expectedrole="table">
     <thead>
       <tr style="display: contents;" data-expectedrole="row" data-testname="tr with display: contents, within table with role=table with display: flex, has row role" class="ex-role">
-        <th data-expectedrole="columnheader" data-expectedlabel="x" data-testname="th as child of tr with display: contents, within table with role=table with display: flex, has columnheader role" class="ex-role-and-label">x</th>
+        <th data-expectedrole="columnheader" data-testname="th as child of tr with display: contents, within table with role=table with display: flex, has columnheader role" class="ex-role">x</th>
         <th>x</th>
       </tr>
     </thead>
@@ -99,7 +99,7 @@
   <table role="grid" style="display: flex; flex-flow: column nowrap;" data-expectedrole="grid">
     <thead>
       <tr style="display: contents;" data-expectedrole="row" data-testname="tr with display: contents, within table with role=grid with display: flex, has row role" class="ex-role">
-        <th data-expectedrole="columnheader" data-expectedlabel="x" data-testname="th as child of tr with display: contents, within table with role=grid with display: flex, has columnheader role" class="ex-role-and-label">x</th>
+        <th data-expectedrole="columnheader" data-testname="th as child of tr with display: contents, within table with role=grid with display: flex, has columnheader role" class="ex-role">x</th>
         <th>x</th>
       </tr>
     </thead>
@@ -206,7 +206,7 @@
   <table role="table" style="display: contents;" data-expectedrole="table" data-testname="table with role table and display: contents has table role" class="ex-role">
     <thead>
       <tr style="display: contents;" data-expectedrole="row" data-testname="tr in table with role table and display: contents has row role" class="ex-role">
-        <th style="display: contents;" data-expectedrole="columnheader" data-expectedlabel="x" data-testname="td within tr both with display: contents, in table with role table and display: contents, has columnheader role" class="ex-role-and-label">x</th>
+        <th style="display: contents;" data-expectedrole="columnheader" data-testname="td within tr both with display: contents, in table with role table and display: contents, has columnheader role" class="ex-role">x</th>
         <th>x</th>
       </tr>
     </thead>
@@ -221,7 +221,7 @@
   <div role="table" style="display: contents;" data-expectedrole="table" data-testname="div with role table with display: contents has table role" class="ex-role">
     <div role="rowgroup" style="display: contents;" data-expectedrole="rowgroup" data-testname="div with role rowgroup in div with role table, both with display: contents, has rowgroup role" class="ex-role">
       <div role="row">
-        <div role="columnheader" style="display: contents;" data-expectedrole="columnheader" data-expectedlabel="x" data-testname="div with role columnheader with display: contents, in div with role rowgroup within div with table role both with display: contents, has columnheader role" class="ex-role-and-label">x</div>
+        <div role="columnheader" style="display: contents;" data-expectedrole="columnheader" data-testname="div with role columnheader with display: contents, in div with role rowgroup within div with table role both with display: contents, has columnheader role" class="ex-role">x</div>
         <div role="columnheader">x</div>
       </div>
     </div>
@@ -236,7 +236,7 @@
   <table role="grid" style="display: contents;" data-expectedrole="grid" data-testname="table with role grid and display: contents has grid role">
     <thead>
       <tr style="display: contents;" data-expectedrole="row" data-testname="tr within table with role grid, both with display: contents, has row role">
-        <th style="display: contents;" data-expectedrole="columnheader" data-expectedlabel="x" data-testname="th within table with role grid, both with display: contents, has columnheader role" class="ex-role-and-label">x</th>
+        <th style="display: contents;" data-expectedrole="columnheader" data-testname="th within table with role grid, both with display: contents, has columnheader role" class="ex-role">x</th>
         <th>x</th>
       </tr>
     </thead>
@@ -251,14 +251,14 @@
   <div role="grid" style="display: contents;" data-expectedrole="grid" data-testname="div with role grid with display: contents has grid role" class="ex-role">
     <div role="rowgroup" style="display: contents;" data-expectedrole="rowgroup" data-testname="div with role rowgroup in div with role grid, both with display: contents, has rowgroup role" class="ex-role">
       <div role="row">
-        <div role="columnheader" style="display: contents;" data-expectedrole="columnheader" data-expectedlabel="x" data-testname="div with role columnheader with display: contents, in div with role rowgroup within div with grid role both with display: contents, has rowgroup role" class="ex-role-and-label">x</div>
+        <div role="columnheader" style="display: contents;" data-expectedrole="columnheader" data-testname="div with role columnheader with display: contents, in div with role rowgroup within div with grid role both with display: contents, has rowgroup role" class="ex-role">x</div>
         <div role="columnheader">x</div>
       </div>
     </div>
     <div role="rowgroup">
       <div role="row">
         <div role="gridcell"></div>
-        <div role="gridcell" style="display: contents;" data-expectedrole="gridcell" data-expectedlabel="x" data-testname="div with gridcell role and display: contents, within div with role row contained in a div with role grid both with display: contents, has gridcell role" class="ex-role-and-label">x</div>
+        <div role="gridcell" style="display: contents;" data-expectedrole="gridcell" data-testname="div with gridcell role and display: contents, within div with role row contained in a div with role grid both with display: contents, has gridcell role" class="ex-role">x</div>
       </div>
     </div>
   </div>

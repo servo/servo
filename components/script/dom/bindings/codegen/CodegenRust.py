@@ -2176,6 +2176,7 @@ class CGImports(CGWrapper):
                 types += componentTypes(returnType)
                 for arg in arguments:
                     types += componentTypes(arg.type)
+
             return types
 
         def getIdentifier(t):
@@ -2198,6 +2199,7 @@ class CGImports(CGWrapper):
             return normalized
 
         types = []
+        descriptorProvider = config.getDescriptorProvider()
         for d in descriptors:
             if not d.interface.isCallback():
                 types += [d.interface]
@@ -2216,6 +2218,11 @@ class CGImports(CGWrapper):
             for m in members:
                 if m.isMethod():
                     types += relatedTypesForSignatures(m)
+                    if m.isStatic():
+                        types += [
+                            descriptorProvider.getDescriptor(iface).interface
+                            for iface in d.interface.exposureSet
+                        ]
                 elif m.isAttr():
                     types += componentTypes(m.type)
 
@@ -2754,7 +2761,7 @@ class CGAbstractMethod(CGThing):
             if self.returnType == "void":
                 pre = "wrap_panic(&mut || {\n"
                 post = "\n})"
-            elif "return" not in body.define():
+            elif "return" not in body.define() or self.name.startswith("_constructor"):
                 pre = (
                     "let mut result = false;\n"
                     "wrap_panic(&mut || result = {\n"
@@ -6222,51 +6229,52 @@ class CGClassConstructHook(CGAbstractExternMethod):
 let args = CallArgs::from_vp(vp, argc);
 let global = GlobalScope::from_object(JS_CALLEE(*cx, vp).to_object());
 """
-        if len(self.exposureSet) == 1:
-            preamble += f"""
-let global = DomRoot::downcast::<dom::types::{list(self.exposureSet)[0]}>(global).unwrap();
-"""
         if self.constructor.isHTMLConstructor():
             signatures = self.constructor.signatures()
             assert len(signatures) == 1
-            constructorCall = CGGeneric(
-                f"""
-                dom::bindings::htmlconstructor::call_html_constructor::<dom::types::{self.descriptor.name}>(
+            constructorCall = f"""
+                call_html_constructor::<dom::types::{self.descriptor.name}>(
                     cx,
                     &args,
                     &global,
                     PrototypeList::ID::{MakeNativeName(self.descriptor.name)},
                     CreateInterfaceObjects,
+                    CanGc::note()
                 )
                 """
-            )
         else:
             ctorName = GetConstructorNameForReporting(self.descriptor, self.constructor)
-            preamble += f"""
-if !args.is_constructing() {{
-  throw_constructor_without_new(*cx, "{ctorName}");
-  return false;
-}}
-
-rooted!(in(*cx) let mut desired_proto = ptr::null_mut::<JSObject>());
-let proto_result = get_desired_proto(
-  cx,
-  &args,
-  PrototypeList::ID::{MakeNativeName(self.descriptor.name)},
-  CreateInterfaceObjects,
-  desired_proto.handle_mut(),
-);
-assert!(proto_result.is_ok());
-if proto_result.is_err() {{
-  return false;
-}}
-"""
             name = self.constructor.identifier.name
             nativeName = MakeNativeName(self.descriptor.binaryNameFor(name))
-            args = ["&global", "Some(desired_proto.handle())", "CanGc::note()"]
-            constructorCall = CGMethodCall(args, nativeName, True,
-                                           self.descriptor, self.constructor)
-        return CGList([CGGeneric(preamble), constructorCall])
+
+            if len(self.exposureSet) == 1:
+                args = [
+                    f"global.downcast::<dom::types::{list(self.exposureSet)[0]}>().unwrap()",
+                    "Some(desired_proto.handle())",
+                    "CanGc::note()"
+                ]
+            else:
+                args = [
+                    "global",
+                    "Some(desired_proto.handle())",
+                    "CanGc::note()"
+                ]
+
+            constructor = CGMethodCall(args, nativeName, True, self.descriptor, self.constructor)
+            constructorCall = f"""
+            call_default_constructor(
+                cx,
+                &args,
+                global,
+                PrototypeList::ID::{MakeNativeName(self.descriptor.name)},
+                \"{ctorName}\",
+                CreateInterfaceObjects,
+                |cx, args, global, desired_proto| {{
+                    {constructor.define()}
+                }}
+            )
+                """
+        return CGList([CGGeneric(preamble), CGGeneric(constructorCall)])
 
 
 class CGClassFinalizeHook(CGAbstractClassHook):
@@ -6292,7 +6300,7 @@ class CGDOMJSProxyHandlerDOMClass(CGThing):
 
 
 class CGInterfaceTrait(CGThing):
-    def __init__(self, descriptor):
+    def __init__(self, descriptor, descriptorProvider):
         CGThing.__init__(self)
 
         def attribute_arguments(needCx, argument=None, inRealm=False, canGc=False):
@@ -6310,7 +6318,7 @@ class CGInterfaceTrait(CGThing):
 
         def members():
             for m in descriptor.interface.members:
-                if (m.isMethod() and not m.isStatic()
+                if (m.isMethod()
                         and not m.isMaplikeOrSetlikeOrIterableMethod()
                         and (not m.isIdentifierLess() or (m.isStringifier() and not m.underlyingAttr))
                         and not m.isDefaultToJSON()):
@@ -6321,8 +6329,8 @@ class CGInterfaceTrait(CGThing):
                                                      inRealm=name in descriptor.inRealmMethods,
                                                      canGc=name in descriptor.canGcMethods)
                         rettype = return_type(descriptor, rettype, infallible)
-                        yield f"{name}{'_' * idx}", arguments, rettype
-                elif m.isAttr() and not m.isStatic():
+                        yield f"{name}{'_' * idx}", arguments, rettype, m.isStatic()
+                elif m.isAttr():
                     name = CGSpecializedGetter.makeNativeName(descriptor, m)
                     infallible = 'infallible' in descriptor.getExtendedAttributes(m, getter=True)
                     yield (name,
@@ -6331,7 +6339,8 @@ class CGInterfaceTrait(CGThing):
                                inRealm=name in descriptor.inRealmMethods,
                                canGc=name in descriptor.canGcMethods
                            ),
-                           return_type(descriptor, m.type, infallible))
+                           return_type(descriptor, m.type, infallible),
+                           m.isStatic())
 
                     if not m.readonly:
                         name = CGSpecializedSetter.makeNativeName(descriptor, m)
@@ -6347,7 +6356,8 @@ class CGInterfaceTrait(CGThing):
                                    inRealm=name in descriptor.inRealmMethods,
                                    canGc=name in descriptor.canGcMethods
                                ),
-                               rettype)
+                               rettype,
+                               m.isStatic())
 
             if descriptor.proxy or descriptor.isGlobal():
                 for name, operation in descriptor.operations.items():
@@ -6371,18 +6381,19 @@ class CGInterfaceTrait(CGThing):
                         # WebIDL, Second Draft, section 3.2.4.5
                         # https://heycam.github.io/webidl/#idl-named-properties
                         if operation.isNamed():
-                            yield "SupportedPropertyNames", [], "Vec<DOMString>"
+                            yield "SupportedPropertyNames", [], "Vec<DOMString>", False
                     else:
                         arguments = method_arguments(descriptor, rettype, arguments,
                                                      inRealm=name in descriptor.inRealmMethods,
                                                      canGc=name in descriptor.canGcMethods)
                     rettype = return_type(descriptor, rettype, infallible)
-                    yield name, arguments, rettype
+                    yield name, arguments, rettype, False
 
-        def fmt(arguments):
+        def fmt(arguments, leadingComma=True):
             keywords = {"async"}
-            return "".join(
-                f", {name if name not in keywords else f'r#{name}'}: {type_}"
+            prefix = "" if not leadingComma else ", "
+            return prefix + ", ".join(
+                f"{name if name not in keywords else f'r#{name}'}: {type_}"
                 for name, type_ in arguments
             )
 
@@ -6392,11 +6403,54 @@ class CGInterfaceTrait(CGThing):
             return functools.reduce((lambda x, y: x or y[1] == '*mut JSContext'), arguments, False)
 
         methods = []
-        for name, arguments, rettype in members():
+        exposureSet = list(descriptor.interface.exposureSet)
+        exposedGlobal = "GlobalScope" if len(exposureSet) > 1 else exposureSet[0]
+        hasLength = False
+        for name, arguments, rettype, isStatic in members():
+            if name == "Length":
+                hasLength = True
             arguments = list(arguments)
             unsafe = 'unsafe ' if contains_unsafe_arg(arguments) else ''
             returnType = f" -> {rettype}" if rettype != '()' else ''
-            methods.append(CGGeneric(f"{unsafe}fn {name}(&self{fmt(arguments)}){returnType};\n"))
+            selfArg = "&self" if not isStatic else ""
+            extra = [("global", f"&{exposedGlobal}")] if isStatic else []
+            if arguments and arguments[0][0] == "cx":
+                arguments = [arguments[0]] + extra + arguments[1:]
+            else:
+                arguments = extra + arguments
+            methods.append(CGGeneric(
+                f"{unsafe}fn {name}({selfArg}"
+                f"{fmt(arguments, leadingComma=not isStatic)}){returnType};\n"
+            ))
+
+        def ctorMethod(ctor, baseName=None):
+            infallible = 'infallible' in descriptor.getExtendedAttributes(ctor)
+            for (i, (rettype, arguments)) in enumerate(ctor.signatures()):
+                name = (baseName or ctor.identifier.name) + ('_' * i)
+                args = list(method_arguments(descriptor, rettype, arguments))
+                extra = [
+                    ("global", f"&{exposedGlobal}"),
+                    ("proto", "Option<HandleObject>"),
+                    ("can_gc", "CanGc"),
+                ]
+                if args and args[0][0] == "cx":
+                    args = [args[0]] + extra + args[1:]
+                else:
+                    args = extra + args
+                yield CGGeneric(
+                    f"fn {name}({fmt(args, leadingComma=False)}) -> "
+                    f"{return_type(descriptorProvider, rettype, infallible)};\n"
+                )
+
+        ctor = descriptor.interface.ctor()
+        if ctor and not ctor.isHTMLConstructor():
+            methods.extend(list(ctorMethod(ctor, "Constructor")))
+
+        for ctor in descriptor.interface.legacyFactoryFunctions:
+            methods.extend(list(ctorMethod(ctor)))
+
+        if descriptor.operations['IndexedGetter'] and not hasLength:
+            methods.append(CGGeneric("fn Length(&self) -> u32;\n"))
 
         if methods:
             self.cgRoot = CGWrapper(CGIndenter(CGList(methods, "")),
@@ -6572,13 +6626,14 @@ class CGDescriptor(CGThing):
             if descriptor.concrete or descriptor.hasDescendants():
                 cgThings.append(CGIDLInterface(descriptor))
 
-            interfaceTrait = CGInterfaceTrait(descriptor)
+            if descriptor.weakReferenceable:
+                cgThings.append(CGWeakReferenceableTrait(descriptor))
+
+        if not descriptor.interface.isCallback():
+            interfaceTrait = CGInterfaceTrait(descriptor, config.getDescriptorProvider())
             cgThings.append(interfaceTrait)
             if not interfaceTrait.empty:
                 reexports.append(f'{descriptor.name}Methods')
-
-            if descriptor.weakReferenceable:
-                cgThings.append(CGWeakReferenceableTrait(descriptor))
 
         legacyWindowAliases = descriptor.interface.legacyWindowAliases
         haveLegacyWindowAliases = len(legacyWindowAliases) != 0
@@ -7881,6 +7936,7 @@ class GlobalGenRoots():
             CGGeneric(AUTOGENERATED_WARNING_COMMENT),
             CGGeneric(f"pub const PROTO_OR_IFACE_LENGTH: usize = {len(protos) + len(constructors)};\n"),
             CGGeneric(f"pub const MAX_PROTO_CHAIN_LENGTH: usize = {config.maxProtoChainLength};\n\n"),
+            CGGeneric("#[allow(clippy::enum_variant_names)]"),
             CGNonNamespacedEnum('ID', protos, 0, deriving="PartialEq, Copy, Clone", repr="u16"),
             CGNonNamespacedEnum('Constructor', constructors, len(protos),
                                 deriving="PartialEq, Copy, Clone", repr="u16"),

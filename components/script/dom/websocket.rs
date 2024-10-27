@@ -144,9 +144,56 @@ impl WebSocket {
         )
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-websocket-send
+    fn send_impl(&self, data_byte_len: u64) -> Fallible<bool> {
+        let return_after_buffer = match self.ready_state.get() {
+            WebSocketRequestState::Connecting => {
+                return Err(Error::InvalidState);
+            },
+            WebSocketRequestState::Open => false,
+            WebSocketRequestState::Closing | WebSocketRequestState::Closed => true,
+        };
+
+        let address = Trusted::new(self);
+
+        match data_byte_len.checked_add(self.buffered_amount.get()) {
+            None => panic!(),
+            Some(new_amount) => self.buffered_amount.set(new_amount),
+        };
+
+        if return_after_buffer {
+            return Ok(false);
+        }
+
+        if !self.clearing_buffer.get() && self.ready_state.get() == WebSocketRequestState::Open {
+            self.clearing_buffer.set(true);
+
+            let task = Box::new(BufferedAmountTask { address });
+
+            let pipeline_id = self.global().pipeline_id();
+            self.global()
+                .script_chan()
+                // TODO: Use a dedicated `websocket-task-source` task source instead.
+                .send(CommonScriptMsg::Task(
+                    WebSocketEvent,
+                    task,
+                    Some(pipeline_id),
+                    WebsocketTaskSource::NAME,
+                ))
+                .unwrap();
+        }
+
+        Ok(true)
+    }
+
+    pub fn origin(&self) -> ImmutableOrigin {
+        self.url.origin()
+    }
+}
+
+impl WebSocketMethods for WebSocket {
     /// <https://html.spec.whatwg.org/multipage/#dom-websocket>
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+    fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -221,9 +268,9 @@ impl WebSocket {
 
         let task_source = global.websocket_task_source();
         let canceller = global.task_canceller(WebsocketTaskSource::NAME);
-        ROUTER.add_route(
-            dom_event_receiver.to_opaque(),
-            Box::new(move |message| match message.to().unwrap() {
+        ROUTER.add_typed_route(
+            dom_event_receiver.to_ipc_receiver(),
+            Box::new(move |message| match message.unwrap() {
                 WebSocketNetworkEvent::ConnectionEstablished { protocol_in_use } => {
                     let open_thread = ConnectionEstablishedTask {
                         address: address.clone(),
@@ -257,54 +304,6 @@ impl WebSocket {
         Ok(ws)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-websocket-send
-    fn send_impl(&self, data_byte_len: u64) -> Fallible<bool> {
-        let return_after_buffer = match self.ready_state.get() {
-            WebSocketRequestState::Connecting => {
-                return Err(Error::InvalidState);
-            },
-            WebSocketRequestState::Open => false,
-            WebSocketRequestState::Closing | WebSocketRequestState::Closed => true,
-        };
-
-        let address = Trusted::new(self);
-
-        match data_byte_len.checked_add(self.buffered_amount.get()) {
-            None => panic!(),
-            Some(new_amount) => self.buffered_amount.set(new_amount),
-        };
-
-        if return_after_buffer {
-            return Ok(false);
-        }
-
-        if !self.clearing_buffer.get() && self.ready_state.get() == WebSocketRequestState::Open {
-            self.clearing_buffer.set(true);
-
-            let task = Box::new(BufferedAmountTask { address });
-
-            let pipeline_id = self.global().pipeline_id();
-            self.global()
-                .script_chan()
-                // TODO: Use a dedicated `websocket-task-source` task source instead.
-                .send(CommonScriptMsg::Task(
-                    WebSocketEvent,
-                    task,
-                    Some(pipeline_id),
-                    WebsocketTaskSource::NAME,
-                ))
-                .unwrap();
-        }
-
-        Ok(true)
-    }
-
-    pub fn origin(&self) -> ImmutableOrigin {
-        self.url.origin()
-    }
-}
-
-impl WebSocketMethods for WebSocket {
     // https://html.spec.whatwg.org/multipage/#handler-websocket-onopen
     event_handler!(open, GetOnopen, SetOnopen);
 
@@ -479,7 +478,7 @@ impl TaskOnce for ConnectionEstablishedTask {
         };
 
         // Step 4.
-        ws.upcast().fire_event(atom!("open"));
+        ws.upcast().fire_event(atom!("open"), CanGc::note());
     }
 }
 
@@ -525,7 +524,7 @@ impl TaskOnce for CloseTask {
 
         // Step 2.
         if self.failed {
-            ws.upcast().fire_event(atom!("error"));
+            ws.upcast().fire_event(atom!("error"), CanGc::note());
         }
 
         // Step 3.
@@ -540,8 +539,11 @@ impl TaskOnce for CloseTask {
             clean_close,
             code,
             reason,
+            CanGc::note(),
         );
-        close_event.upcast::<Event>().fire(ws.upcast());
+        close_event
+            .upcast::<Event>()
+            .fire(ws.upcast(), CanGc::note());
     }
 }
 
@@ -576,8 +578,11 @@ impl TaskOnce for MessageReceivedTask {
                 MessageData::Text(text) => text.to_jsval(*cx, message.handle_mut()),
                 MessageData::Binary(data) => match ws.binary_type.get() {
                     BinaryType::Blob => {
-                        let blob =
-                            Blob::new(&global, BlobImpl::new_from_bytes(data, "".to_owned()));
+                        let blob = Blob::new(
+                            &global,
+                            BlobImpl::new_from_bytes(data, "".to_owned()),
+                            CanGc::note(),
+                        );
                         blob.to_jsval(*cx, message.handle_mut());
                     },
                     BinaryType::Arraybuffer => {
@@ -600,6 +605,7 @@ impl TaskOnce for MessageReceivedTask {
                 Some(&ws.origin().ascii_serialization()),
                 None,
                 vec![],
+                CanGc::note(),
             );
         }
     }

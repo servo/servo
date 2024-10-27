@@ -1,4 +1,5 @@
 // META: script=/resources/testdriver.js
+// META: script=/resources/testdriver-vendor.js
 // META: script=/common/utils.js
 // META: script=resources/fledge-util.sub.js
 // META: script=/common/subset-tests.js
@@ -12,8 +13,8 @@
 // META: variant=?31-35
 // META: variant=?36-40
 // META: variant=?41-45
-// META: variant=?45-50
-// META: variant=?50-last
+// META: variant=?46-50
+// META: variant=?51-last
 
 "use strict";
 

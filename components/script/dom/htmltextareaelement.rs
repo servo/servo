@@ -42,6 +42,7 @@ use crate::dom::textcontrol::{TextControlElement, TextControlSelection};
 use crate::dom::validation::{is_barred_by_datalist_ancestor, Validatable};
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
 use crate::dom::virtualmethods::VirtualMethods;
+use crate::script_runtime::CanGc;
 use crate::textinput::{
     Direction, KeyReaction, Lines, SelectionDirection, TextInput, UTF16CodeUnits, UTF8Bytes,
 };
@@ -175,6 +176,7 @@ impl HTMLTextAreaElement {
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> DomRoot<HTMLTextAreaElement> {
         Node::reflect_node_with_proto(
             Box::new(HTMLTextAreaElement::new_inherited(
@@ -182,6 +184,7 @@ impl HTMLTextAreaElement {
             )),
             document,
             proto,
+            can_gc,
         )
     }
 
@@ -305,8 +308,8 @@ impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea-defaultvalue
-    fn SetDefaultValue(&self, value: DOMString) {
-        self.upcast::<Node>().SetTextContent(Some(value));
+    fn SetDefaultValue(&self, value: DOMString, can_gc: CanGc) {
+        self.upcast::<Node>().SetTextContent(Some(value), can_gc);
 
         // if the element's dirty value flag is false, then the element's
         // raw value must be set to the value of the element's textContent IDL attribute
@@ -423,13 +426,13 @@ impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-cva-checkvalidity
-    fn CheckValidity(&self) -> bool {
-        self.check_validity()
+    fn CheckValidity(&self, can_gc: CanGc) -> bool {
+        self.check_validity(can_gc)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-cva-reportvalidity
-    fn ReportValidity(&self) -> bool {
-        self.report_validity()
+    fn ReportValidity(&self, can_gc: CanGc) -> bool {
+        self.report_validity(can_gc)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-cva-validationmessage
@@ -484,7 +487,7 @@ impl VirtualMethods for HTMLTextAreaElement {
                         }
                     },
                 }
-                el.update_sequentially_focusable_status();
+                el.update_sequentially_focusable_status(CanGc::note());
             },
             local_name!("maxlength") => match *attr.value() {
                 AttrValue::Int(_, value) => {

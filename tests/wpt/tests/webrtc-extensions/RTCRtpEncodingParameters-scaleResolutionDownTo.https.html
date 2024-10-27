@@ -105,7 +105,24 @@ promise_test(async t => {
           }]
         });
   });
-}, `addTransceiver: Specifying scaling on some but not all encodings throws`);
+}, `addTransceiver: Specifying scaling on a subset of active encodings throws`);
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+
+  const track = createResizableTrack(120, 60);
+  t.add_cleanup(() => track.stop());
+  pc.addTransceiver(track, {
+        sendEncodings:[{
+            active: true,
+            scaleResolutionDownTo: { maxWidth: 120, maxHeight: 60 },
+        }, {
+            active: false,
+            scaleResolutionDownTo: undefined
+        }]
+      });
+}, `addTransceiver: Specifying scaling on inactive encodings is optional`);
 
 promise_test(async t => {
   const pc = new RTCPeerConnection();
@@ -121,7 +138,52 @@ promise_test(async t => {
   const p = sender.setParameters(params);
 
   promise_rejects_dom(t, 'InvalidModificationError', p);
-}, `setParameters: Specifying scaling on some but not all encodings throws`);
+}, `setParameters: Specifying scaling on a subset of active encodings throws`);
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+
+  const track = createResizableTrack(120, 60);
+  t.add_cleanup(() => track.stop());
+  const {sender} = pc.addTransceiver(track, {sendEncodings:[{},{}]});
+
+  const params = sender.getParameters();
+  params.encodings[0].active = true;
+  params.encodings[0].scaleResolutionDownTo = { maxWidth: 120, maxHeight: 60 };
+  params.encodings[1].active = false;
+  params.encodings[1].scaleResolutionDownTo = undefined;
+  await sender.setParameters(params);
+}, `setParameters: Specifying scaling on inactive encodings is optional`);
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+  pc1.onicecandidate = e => pc2.addIceCandidate(e.candidate);
+  pc2.onicecandidate = e => pc1.addIceCandidate(e.candidate);
+
+  const track = createResizableTrack(120, 60);
+  t.add_cleanup(() => track.stop());
+
+  let {sender} = pc1.addTransceiver(track, {
+        sendEncodings:[{
+            scaleResolutionDownTo: { maxWidth: 120, maxHeight: 60 }
+        }]
+      });
+
+  // Get the initial value set.
+  let params = sender.getParameters();
+  assert_equals(params.encodings[0].scaleResolutionDownTo?.maxWidth, 120);
+  assert_equals(params.encodings[0].scaleResolutionDownTo?.maxHeight, 60);
+  // Set parameters and get the result.
+  params.encodings[0].scaleResolutionDownTo = { maxWidth: 60, maxHeight: 30 };
+  await sender.setParameters(params);
+  params = sender.getParameters();
+  assert_equals(params.encodings[0].scaleResolutionDownTo?.maxWidth, 60);
+  assert_equals(params.encodings[0].scaleResolutionDownTo?.maxHeight, 30);
+}, `getParameters reflect the current scaleResolutionDownTo`);
 
 promise_test(async t => {
   const pc1 = new RTCPeerConnection();

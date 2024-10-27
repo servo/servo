@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Gap Decorations: column-rule-color parsing</title>
+<link rel="help" href="https://kbabbitt.github.io/css-gap-decorations/#column-row-rule-color">
+<link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+<meta name="assert" content="column-rule-color supports only the grammar '[ <line-color-list> | <auto-line-color-list> ]'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_invalid_value("column-rule-color", "auto");
+
+test_invalid_value("column-rule-color", "red, blue, green");
+test_invalid_value("column-rule-color", "repeat(auto, red, blue, green)");
+test_invalid_value("column-rule-color", "repeat(0, red, blue, green)");
+test_invalid_value("column-rule-color", "repeat(-1, red, blue, green)");
+test_invalid_value("column-rule-color", "repeat(auto, red) red repeat(auto, blue)");
+</script>
+</body>
+</html>

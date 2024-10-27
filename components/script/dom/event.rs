@@ -75,8 +75,8 @@ impl Event {
         }
     }
 
-    pub fn new_uninitialized(global: &GlobalScope) -> DomRoot<Event> {
-        Self::new_uninitialized_with_proto(global, None, CanGc::note())
+    pub fn new_uninitialized(global: &GlobalScope, can_gc: CanGc) -> DomRoot<Event> {
+        Self::new_uninitialized_with_proto(global, None, can_gc)
     }
 
     pub fn new_uninitialized_with_proto(
@@ -92,8 +92,9 @@ impl Event {
         type_: Atom,
         bubbles: EventBubbles,
         cancelable: EventCancelable,
+        can_gc: CanGc,
     ) -> DomRoot<Event> {
-        Self::new_with_proto(global, None, type_, bubbles, cancelable, CanGc::note())
+        Self::new_with_proto(global, None, type_, bubbles, cancelable, can_gc)
     }
 
     fn new_with_proto(
@@ -107,26 +108,6 @@ impl Event {
         let event = Event::new_uninitialized_with_proto(global, proto, can_gc);
         event.init_event(type_, bool::from(bubbles), bool::from(cancelable));
         event
-    }
-
-    #[allow(non_snake_case)]
-    pub fn Constructor(
-        global: &GlobalScope,
-        proto: Option<HandleObject>,
-        can_gc: CanGc,
-        type_: DOMString,
-        init: &EventBinding::EventInit,
-    ) -> Fallible<DomRoot<Event>> {
-        let bubbles = EventBubbles::from(init.bubbles);
-        let cancelable = EventCancelable::from(init.cancelable);
-        Ok(Event::new_with_proto(
-            global,
-            proto,
-            Atom::from(type_),
-            bubbles,
-            cancelable,
-            can_gc,
-        ))
     }
 
     pub fn init_event(&self, type_: Atom, bubbles: bool, cancelable: bool) {
@@ -187,6 +168,7 @@ impl Event {
         &self,
         target: &EventTarget,
         legacy_target_override: bool,
+        can_gc: CanGc,
         // TODO legacy_did_output_listeners_throw_flag for indexeddb
     ) -> EventStatus {
         // Step 1.
@@ -289,6 +271,7 @@ impl Event {
                 object,
                 self,
                 Some(ListenerPhase::Capturing),
+                can_gc,
             );
         }
 
@@ -308,6 +291,7 @@ impl Event {
                     object,
                     self,
                     Some(ListenerPhase::Bubbling),
+                    can_gc,
                 );
             }
         }
@@ -352,7 +336,7 @@ impl Event {
             if self.DefaultPrevented() {
                 activation_target.legacy_canceled_activation_behavior(pre_activation_result);
             } else {
-                activation_target.activation_behavior(self, target);
+                activation_target.activation_behavior(self, target, can_gc);
             }
         }
 
@@ -397,13 +381,33 @@ impl Event {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#fire-a-simple-event>
-    pub fn fire(&self, target: &EventTarget) -> EventStatus {
+    pub fn fire(&self, target: &EventTarget, can_gc: CanGc) -> EventStatus {
         self.set_trusted(true);
-        target.dispatch_event(self)
+        target.dispatch_event(self, can_gc)
     }
 }
 
 impl EventMethods for Event {
+    /// <https://dom.spec.whatwg.org/#dom-event-event>
+    fn Constructor(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        can_gc: CanGc,
+        type_: DOMString,
+        init: &EventBinding::EventInit,
+    ) -> Fallible<DomRoot<Event>> {
+        let bubbles = EventBubbles::from(init.bubbles);
+        let cancelable = EventCancelable::from(init.cancelable);
+        Ok(Event::new_with_proto(
+            global,
+            proto,
+            Atom::from(type_),
+            bubbles,
+            cancelable,
+            can_gc,
+        ))
+    }
+
     /// <https://dom.spec.whatwg.org/#dom-event-eventphase>
     fn EventPhase(&self) -> u16 {
         self.phase.get() as u16
@@ -614,7 +618,7 @@ impl TaskOnce for EventTask {
         let target = self.target.root();
         let bubbles = self.bubbles;
         let cancelable = self.cancelable;
-        target.fire_event_with_params(self.name, bubbles, cancelable);
+        target.fire_event_with_params(self.name, bubbles, cancelable, CanGc::note());
     }
 }
 
@@ -627,7 +631,7 @@ pub struct SimpleEventTask {
 impl TaskOnce for SimpleEventTask {
     fn run_once(self) {
         let target = self.target.root();
-        target.fire_event(self.name);
+        target.fire_event(self.name, CanGc::note());
     }
 }
 
@@ -637,6 +641,7 @@ fn invoke(
     object: &EventTarget,
     event: &Event,
     phase: Option<ListenerPhase>,
+    can_gc: CanGc,
     // TODO legacy_output_did_listeners_throw for indexeddb
 ) {
     // Step 1: Until shadow DOM puts the event path in the
@@ -655,7 +660,7 @@ fn invoke(
     event.current_target.set(Some(object));
 
     // Step 6
-    let listeners = object.get_listeners_for(&event.type_(), phase);
+    let listeners = object.get_listeners_for(&event.type_(), phase, can_gc);
 
     // Step 7.
     let found = inner_invoke(timeline_window, object, event, &listeners);

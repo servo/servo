@@ -17,6 +17,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::texttrack::TextTrack;
 use crate::dom::trackevent::TrackEvent;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 use crate::task_source::TaskSource;
 
 #[dom_struct]
@@ -83,9 +84,10 @@ impl TextTrackList {
                             &Some(VideoTrackOrAudioTrackOrTextTrack::TextTrack(
                                 DomRoot::from_ref(&track)
                             )),
+                            CanGc::note()
                         );
 
-                        event.upcast::<Event>().fire(this.upcast::<EventTarget>());
+                        event.upcast::<Event>().fire(this.upcast::<EventTarget>(), CanGc::note());
                     }
                 }),
                 canceller,
@@ -97,13 +99,13 @@ impl TextTrackList {
     // FIXME(#22314, dlrobertson) allow TextTracks to be
     // removed from the TextTrackList.
     #[allow(dead_code)]
-    pub fn remove(&self, idx: usize) {
+    pub fn remove(&self, idx: usize, can_gc: CanGc) {
         if let Some(track) = self.dom_tracks.borrow().get(idx) {
             track.remove_track_list();
         }
         self.dom_tracks.borrow_mut().remove(idx);
         self.upcast::<EventTarget>()
-            .fire_event(atom!("removetrack"));
+            .fire_event(atom!("removetrack"), can_gc);
     }
 }
 

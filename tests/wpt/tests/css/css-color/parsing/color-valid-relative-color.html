@@ -560,6 +560,7 @@
     fuzzy_test_valid_color(`oklch(from oklch(0.7 0.2 300) calc(l - 0.2) c h)`, `oklch(from oklch(0.7 0.2 300) calc(-0.2 + l) c h)`);
     fuzzy_test_valid_color(`oklch(from oklch(0.7 0.2 300) l calc(c / 2) h)`, `oklch(from oklch(0.7 0.2 300) l calc(0.5 * c) h)`);
     fuzzy_test_valid_color(`oklch(from oklch(0.7 0.2 300) l c calc(h * 2.5))`, `oklch(from oklch(0.7 0.2 300) l c calc(2.5 * h))`);
+    fuzzy_test_valid_color(`oklch(from red calc(1 / l) c h)`);
 
     // Testing with 'none'.
     fuzzy_test_valid_color(`oklch(from oklch(0.7 0.45 30) none none none)`);

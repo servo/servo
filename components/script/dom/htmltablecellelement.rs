@@ -22,6 +22,7 @@ use crate::dom::htmltablerowelement::HTMLTableRowElement;
 use crate::dom::htmltablesectionelement::HTMLTableSectionElement;
 use crate::dom::node::{LayoutNodeHelpers, Node};
 use crate::dom::virtualmethods::VirtualMethods;
+use crate::script_runtime::CanGc;
 
 const DEFAULT_COLSPAN: u32 = 1;
 const DEFAULT_ROWSPAN: u32 = 1;
@@ -48,6 +49,7 @@ impl HTMLTableCellElement {
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> DomRoot<HTMLTableCellElement> {
         let n = Node::reflect_node_with_proto(
             Box::new(HTMLTableCellElement::new_inherited(
@@ -55,6 +57,7 @@ impl HTMLTableCellElement {
             )),
             document,
             proto,
+            can_gc,
         );
 
         n.upcast::<Node>().set_weird_parser_insertion_mode();

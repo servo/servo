@@ -14,7 +14,6 @@
 <body>
 <script>
 promise_test(async(t) => {
-  const actions = new test_driver.Actions();
   const fencedframe = await attachFencedFrameContext(
       {generator_api: 'fledge', register_beacon: true,
        origin: get_host_info().HTTPS_REMOTE_ORIGIN});
@@ -30,7 +29,8 @@ promise_test(async(t) => {
 
   // The first click should trigger the automatic beacon and clear the beacon
   // data.
-  await actions.pointerMove(0, 0, {origin: fencedframe.element})
+  await new test_driver.Actions()
+               .pointerMove(0, 0, {origin: fencedframe.element})
                .pointerDown()
                .pointerUp()
                .send();
@@ -41,7 +41,8 @@ promise_test(async(t) => {
   // no beacon should be sent.
   // Set up a timeout to ensure that there's enough time to send any potential
   // automatic beacons.
-  await actions.pointerMove(0, 0, {origin: fencedframe.element})
+  await new test_driver.Actions()
+               .pointerMove(0, 0, {origin: fencedframe.element})
                .pointerDown()
                .pointerUp()
                .send();

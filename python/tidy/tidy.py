@@ -470,7 +470,7 @@ def validate_dependency_licenses():
         error_fields = error['fields']
         if error['type'] == 'summary':
             num_license_errors = error_fields['licenses']['errors']
-        elif 'graphs' in error_fields:
+        elif 'graphs' in error_fields and error_fields['graphs']:
             crate = error_fields['graphs'][0]['Krate']
             license_name = error_fields['notes'][0]
             message = f'Rejected license "{license_name}". Run `cargo deny` for more details'

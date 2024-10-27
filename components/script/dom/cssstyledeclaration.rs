@@ -30,6 +30,7 @@ use crate::dom::cssrule::CSSRule;
 use crate::dom::element::Element;
 use crate::dom::node::{document_from_node, stylesheets_owner_from_node, window_from_node, Node};
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 // http://dev.w3.org/csswg/cssom/#the-cssstyledeclaration-interface
 #[dom_struct]
@@ -56,7 +57,7 @@ pub enum CSSStyleOwner {
 impl CSSStyleOwner {
     // Mutate the declaration block associated to this style owner, and
     // optionally indicate if it has changed (assumed to be true).
-    fn mutate_associated_block<F, R>(&self, f: F) -> R
+    fn mutate_associated_block<F, R>(&self, f: F, can_gc: CanGc) -> R
     where
         F: FnOnce(&mut PropertyDeclarationBlock, &mut bool) -> R,
     {
@@ -102,6 +103,7 @@ impl CSSStyleOwner {
                         el.set_attribute(
                             &local_name!("style"),
                             AttrValue::Declaration(serialization, pdb),
+                            can_gc,
                         );
                     }
                 } else {
@@ -190,14 +192,14 @@ macro_rules! css_properties(
                     $id.enabled_for_all_content(),
                     "Someone forgot a #[Pref] annotation"
                 );
-                self.get_property_value($id)
+                self.get_property_value($id, CanGc::note())
             }
             fn $setter(&self, value: DOMString) -> ErrorResult {
                 debug_assert!(
                     $id.enabled_for_all_content(),
                     "Someone forgot a #[Pref] annotation"
                 );
-                self.set_property($id, value, DOMString::new())
+                self.set_property($id, value, DOMString::new(), CanGc::note())
             }
         )*
     );
@@ -245,7 +247,7 @@ impl CSSStyleDeclaration {
         )
     }
 
-    fn get_computed_style(&self, property: PropertyId) -> DOMString {
+    fn get_computed_style(&self, property: PropertyId, can_gc: CanGc) -> DOMString {
         match self.owner {
             CSSStyleOwner::CSSRule(..) => {
                 panic!("get_computed_style called on CSSStyleDeclaration with a CSSRule owner")
@@ -256,15 +258,15 @@ impl CSSStyleDeclaration {
                     return DOMString::new();
                 }
                 let addr = node.to_trusted_node_address();
-                window_from_node(node).resolved_style_query(addr, self.pseudo, property)
+                window_from_node(node).resolved_style_query(addr, self.pseudo, property, can_gc)
             },
         }
     }
 
-    fn get_property_value(&self, id: PropertyId) -> DOMString {
+    fn get_property_value(&self, id: PropertyId, can_gc: CanGc) -> DOMString {
         if self.readonly {
             // Readonly style declarations are used for getComputedStyle.
-            return self.get_computed_style(id);
+            return self.get_computed_style(id, can_gc);
         }
 
         let mut string = String::new();
@@ -276,7 +278,13 @@ impl CSSStyleDeclaration {
         DOMString::from(string)
     }
 
-    fn set_property(&self, id: PropertyId, value: DOMString, priority: DOMString) -> ErrorResult {
+    fn set_property(
+        &self,
+        id: PropertyId,
+        value: DOMString,
+        priority: DOMString,
+        can_gc: CanGc,
+    ) -> ErrorResult {
         // Step 1
         if self.readonly {
             return Err(Error::NoModificationAllowed);
@@ -286,61 +294,64 @@ impl CSSStyleDeclaration {
             return Ok(());
         }
 
-        self.owner.mutate_associated_block(|pdb, changed| {
-            if value.is_empty() {
-                // Step 3
-                *changed = remove_property(pdb, &id);
-                return Ok(());
-            }
-
-            // Step 4
-            let importance = match &*priority {
-                "" => Importance::Normal,
-                p if p.eq_ignore_ascii_case("important") => Importance::Important,
-                _ => {
-                    *changed = false;
+        self.owner.mutate_associated_block(
+            |pdb, changed| {
+                if value.is_empty() {
+                    // Step 3
+                    *changed = remove_property(pdb, &id);
                     return Ok(());
-                },
-            };
+                }
 
-            // Step 5
-            let window = self.owner.window();
-            let quirks_mode = window.Document().quirks_mode();
-            let mut declarations = SourcePropertyDeclaration::default();
-            let result = parse_one_declaration_into(
-                &mut declarations,
-                id,
-                &value,
-                Origin::Author,
-                &UrlExtraData(self.owner.base_url().get_arc()),
-                window.css_error_reporter(),
-                ParsingMode::DEFAULT,
-                quirks_mode,
-                CssRuleType::Style,
-            );
+                // Step 4
+                let importance = match &*priority {
+                    "" => Importance::Normal,
+                    p if p.eq_ignore_ascii_case("important") => Importance::Important,
+                    _ => {
+                        *changed = false;
+                        return Ok(());
+                    },
+                };
 
-            // Step 6
-            match result {
-                Ok(()) => {},
-                Err(_) => {
-                    *changed = false;
+                // Step 5
+                let window = self.owner.window();
+                let quirks_mode = window.Document().quirks_mode();
+                let mut declarations = SourcePropertyDeclaration::default();
+                let result = parse_one_declaration_into(
+                    &mut declarations,
+                    id,
+                    &value,
+                    Origin::Author,
+                    &UrlExtraData(self.owner.base_url().get_arc()),
+                    window.css_error_reporter(),
+                    ParsingMode::DEFAULT,
+                    quirks_mode,
+                    CssRuleType::Style,
+                );
+
+                // Step 6
+                match result {
+                    Ok(()) => {},
+                    Err(_) => {
+                        *changed = false;
+                        return Ok(());
+                    },
+                }
+
+                let mut updates = Default::default();
+                *changed = pdb.prepare_for_update(&declarations, importance, &mut updates);
+
+                if !*changed {
                     return Ok(());
-                },
-            }
+                }
 
-            let mut updates = Default::default();
-            *changed = pdb.prepare_for_update(&declarations, importance, &mut updates);
+                // Step 7
+                // Step 8
+                pdb.update(declarations.drain(), importance, &mut updates);
 
-            if !*changed {
-                return Ok(());
-            }
-
-            // Step 7
-            // Step 8
-            pdb.update(declarations.drain(), importance, &mut updates);
-
-            Ok(())
-        })
+                Ok(())
+            },
+            can_gc,
+        )
     }
 }
 
@@ -389,12 +400,12 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
     }
 
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertyvalue
-    fn GetPropertyValue(&self, property: DOMString) -> DOMString {
+    fn GetPropertyValue(&self, property: DOMString, can_gc: CanGc) -> DOMString {
         let id = match PropertyId::parse_enabled_for_all_content(&property) {
             Ok(id) => id,
             Err(..) => return DOMString::new(),
         };
-        self.get_property_value(id)
+        self.get_property_value(id, can_gc)
     }
 
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertypriority
@@ -424,17 +435,18 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
         property: DOMString,
         value: DOMString,
         priority: DOMString,
+        can_gc: CanGc,
     ) -> ErrorResult {
         // Step 3
         let id = match PropertyId::parse_enabled_for_all_content(&property) {
             Ok(id) => id,
             Err(..) => return Ok(()),
         };
-        self.set_property(id, value, priority)
+        self.set_property(id, value, priority, can_gc)
     }
 
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-removeproperty
-    fn RemoveProperty(&self, property: DOMString) -> Fallible<DOMString> {
+    fn RemoveProperty(&self, property: DOMString, can_gc: CanGc) -> Fallible<DOMString> {
         // Step 1
         if self.readonly {
             return Err(Error::NoModificationAllowed);
@@ -446,26 +458,30 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
         };
 
         let mut string = String::new();
-        self.owner.mutate_associated_block(|pdb, changed| {
-            pdb.property_value_to_css(&id, &mut string).unwrap();
-            *changed = remove_property(pdb, &id);
-        });
+        self.owner.mutate_associated_block(
+            |pdb, changed| {
+                pdb.property_value_to_css(&id, &mut string).unwrap();
+                *changed = remove_property(pdb, &id);
+            },
+            can_gc,
+        );
 
         // Step 6
         Ok(DOMString::from(string))
     }
 
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-cssfloat
-    fn CssFloat(&self) -> DOMString {
-        self.get_property_value(PropertyId::NonCustom(LonghandId::Float.into()))
+    fn CssFloat(&self, can_gc: CanGc) -> DOMString {
+        self.get_property_value(PropertyId::NonCustom(LonghandId::Float.into()), can_gc)
     }
 
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-cssfloat
-    fn SetCssFloat(&self, value: DOMString) -> ErrorResult {
+    fn SetCssFloat(&self, value: DOMString, can_gc: CanGc) -> ErrorResult {
         self.set_property(
             PropertyId::NonCustom(LonghandId::Float.into()),
             value,
             DOMString::new(),
+            can_gc,
         )
     }
 
@@ -497,7 +513,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
     }
 
     // https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-csstext
-    fn SetCssText(&self, value: DOMString) -> ErrorResult {
+    fn SetCssText(&self, value: DOMString, can_gc: CanGc) -> ErrorResult {
         let window = self.owner.window();
 
         // Step 1
@@ -506,16 +522,19 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
         }
 
         let quirks_mode = window.Document().quirks_mode();
-        self.owner.mutate_associated_block(|pdb, _changed| {
-            // Step 3
-            *pdb = parse_style_attribute(
-                &value,
-                &UrlExtraData(self.owner.base_url().get_arc()),
-                window.css_error_reporter(),
-                quirks_mode,
-                CssRuleType::Style,
-            );
-        });
+        self.owner.mutate_associated_block(
+            |pdb, _changed| {
+                // Step 3
+                *pdb = parse_style_attribute(
+                    &value,
+                    &UrlExtraData(self.owner.base_url().get_arc()),
+                    window.css_error_reporter(),
+                    quirks_mode,
+                    CssRuleType::Style,
+                );
+            },
+            can_gc,
+        );
 
         Ok(())
     }

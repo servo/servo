@@ -29,7 +29,7 @@ use crate::dom::bindings::str::USVString;
 use crate::dom::domexception::{DOMErrorName, DOMException};
 use crate::dom::globalscope::GlobalScope;
 use crate::realms::InRealm;
-use crate::script_runtime::JSContext as SafeJSContext;
+use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 #[cfg(feature = "js_backtrace")]
 thread_local! {
@@ -85,6 +85,8 @@ pub enum Error {
     InvalidModification,
     /// NotReadableError DOMException
     NotReadable,
+    /// DataError DOMException
+    Data,
     /// OperationError DOMException
     Operation,
 
@@ -139,6 +141,7 @@ pub fn throw_dom_exception(cx: SafeJSContext, global: &GlobalScope, result: Erro
         Error::TypeMismatch => DOMErrorName::TypeMismatchError,
         Error::InvalidModification => DOMErrorName::InvalidModificationError,
         Error::NotReadable => DOMErrorName::NotReadableError,
+        Error::Data => DOMErrorName::DataError,
         Error::Operation => DOMErrorName::OperationError,
         Error::Type(message) => unsafe {
             assert!(!JS_IsExceptionPending(*cx));
@@ -264,7 +267,12 @@ impl ErrorInfo {
 ///
 /// The `dispatch_event` argument is temporary and non-standard; passing false
 /// prevents dispatching the `error` event.
-pub unsafe fn report_pending_exception(cx: *mut JSContext, dispatch_event: bool, realm: InRealm) {
+pub unsafe fn report_pending_exception(
+    cx: *mut JSContext,
+    dispatch_event: bool,
+    realm: InRealm,
+    can_gc: CanGc,
+) {
     if !JS_IsExceptionPending(cx) {
         return;
     }
@@ -296,7 +304,7 @@ pub unsafe fn report_pending_exception(cx: *mut JSContext, dispatch_event: bool,
     }
 
     if dispatch_event {
-        GlobalScope::from_context(cx, realm).report_an_error(error_info, value.handle());
+        GlobalScope::from_context(cx, realm).report_an_error(error_info, value.handle(), can_gc);
     }
 }
 

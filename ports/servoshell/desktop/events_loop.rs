@@ -4,11 +4,15 @@
 
 //! An event loop implementation that works in headless mode.
 
+use std::cell::Cell;
 use std::sync::{Arc, Condvar, Mutex};
 use std::time;
 
 use log::warn;
 use servo::embedder_traits::EventLoopWaker;
+use winit::error::EventLoopError;
+use winit::event::{Event, StartCause};
+use winit::event_loop::{ActiveEventLoop, EventLoop as WinitEventLoop};
 #[cfg(target_os = "macos")]
 use winit::platform::macos::{ActivationPolicy, EventLoopBuilderExtMacOS};
 
@@ -33,36 +37,25 @@ impl EventsLoop {
     // Ideally, we could use the winit event loop in both modes,
     // but on Linux, the event loop requires a X11 server.
     #[cfg(not(any(target_os = "linux", target_os = "macos")))]
-    pub fn new(
-        _headless: bool,
-        _has_output_file: bool,
-    ) -> Result<EventsLoop, winit::error::EventLoopError> {
+    pub fn new(_headless: bool, _has_output_file: bool) -> Result<EventsLoop, EventLoopError> {
         Ok(EventsLoop(EventLoop::Winit(Some(
-            winit::event_loop::EventLoopBuilder::with_user_event().build()?,
+            WinitEventLoop::with_user_event().build()?,
         ))))
     }
     #[cfg(target_os = "linux")]
-    pub fn new(
-        headless: bool,
-        _has_output_file: bool,
-    ) -> Result<EventsLoop, winit::error::EventLoopError> {
+    pub fn new(headless: bool, _has_output_file: bool) -> Result<EventsLoop, EventLoopError> {
         Ok(EventsLoop(if headless {
             EventLoop::Headless(Arc::new((Mutex::new(false), Condvar::new())))
         } else {
-            EventLoop::Winit(Some(
-                winit::event_loop::EventLoopBuilder::with_user_event().build()?,
-            ))
+            EventLoop::Winit(Some(WinitEventLoop::with_user_event().build()?))
         }))
     }
     #[cfg(target_os = "macos")]
-    pub fn new(
-        headless: bool,
-        _has_output_file: bool,
-    ) -> Result<EventsLoop, winit::error::EventLoopError> {
+    pub fn new(headless: bool, _has_output_file: bool) -> Result<EventsLoop, EventLoopError> {
         Ok(EventsLoop(if headless {
             EventLoop::Headless(Arc::new((Mutex::new(false), Condvar::new())))
         } else {
-            let mut event_loop_builder = winit::event_loop::EventLoopBuilder::with_user_event();
+            let mut event_loop_builder = WinitEventLoop::with_user_event();
             if _has_output_file {
                 // Prevent the window from showing in Dock.app, stealing focus,
                 // when generating an output file.
@@ -85,7 +78,7 @@ impl EventsLoop {
             EventLoop::Headless(ref data) => Box::new(HeadlessEventLoopWaker(data.clone())),
         }
     }
-    pub fn as_winit(&self) -> &winit::event_loop::EventLoop<WakerEvent> {
+    pub fn as_winit(&self) -> &WinitEventLoop<WakerEvent> {
         match self.0 {
             EventLoop::Winit(Some(ref event_loop)) => event_loop,
             EventLoop::Winit(None) | EventLoop::Headless(..) => {
@@ -96,32 +89,29 @@ impl EventsLoop {
 
     pub fn run_forever<F>(self, mut callback: F)
     where
-        F: 'static
-            + FnMut(
-                winit::event::Event<WakerEvent>,
-                Option<&winit::event_loop::EventLoopWindowTarget<WakerEvent>>,
-                &mut ControlFlow,
-            ),
+        F: 'static + FnMut(Event<WakerEvent>, &mut ControlFlow),
     {
         match self.0 {
             EventLoop::Winit(events_loop) => {
                 let events_loop = events_loop.expect("Can't run an unavailable event loop.");
+                #[allow(deprecated)]
                 events_loop
                     .run(move |e, window_target| {
                         let mut control_flow = ControlFlow::default();
-                        callback(e, Some(window_target), &mut control_flow);
+                        let _guard = EventLoopGuard::new(window_target);
+                        callback(e, &mut control_flow);
                         control_flow.apply_to(window_target);
                     })
                     .expect("Failed while running events loop");
             },
             EventLoop::Headless(ref data) => {
                 let (flag, condvar) = &**data;
-                let mut event = winit::event::Event::NewEvents(winit::event::StartCause::Init);
+                let mut event = Event::NewEvents(StartCause::Init);
                 loop {
                     self.sleep(flag, condvar);
                     let mut control_flow = ControlFlow::Poll;
-                    callback(event, None, &mut control_flow);
-                    event = winit::event::Event::<WakerEvent>::UserEvent(WakerEvent);
+                    callback(event, &mut control_flow);
+                    event = Event::<WakerEvent>::UserEvent(WakerEvent);
 
                     if control_flow != ControlFlow::Poll {
                         *flag.lock().unwrap() = false;
@@ -164,7 +154,7 @@ pub enum ControlFlow {
 }
 
 impl ControlFlow {
-    fn apply_to(self, window_target: &winit::event_loop::EventLoopWindowTarget<WakerEvent>) {
+    fn apply_to(self, window_target: &ActiveEventLoop) {
         match self {
             ControlFlow::Poll => {
                 window_target.set_control_flow(winit::event_loop::ControlFlow::Poll)
@@ -245,4 +235,49 @@ impl EventLoopWaker for HeadlessEventLoopWaker {
     fn clone_box(&self) -> Box<dyn EventLoopWaker> {
         Box::new(HeadlessEventLoopWaker(self.0.clone()))
     }
+}
+
+thread_local! {
+    static CURRENT_EVENT_LOOP: Cell<Option<*const ActiveEventLoop>> = const { Cell::new(None) };
+}
+
+struct EventLoopGuard;
+
+impl EventLoopGuard {
+    fn new(event_loop: &ActiveEventLoop) -> Self {
+        CURRENT_EVENT_LOOP.with(|cell| {
+            assert!(
+                cell.get().is_none(),
+                "Attempted to set a new event loop while one is already set"
+            );
+            cell.set(Some(event_loop as *const ActiveEventLoop));
+        });
+        Self
+    }
+}
+
+impl Drop for EventLoopGuard {
+    fn drop(&mut self) {
+        CURRENT_EVENT_LOOP.with(|cell| cell.set(None));
+    }
+}
+
+// Helper function to safely use the current event loop
+#[allow(unsafe_code)]
+pub fn with_current_event_loop<F, R>(f: F) -> Option<R>
+where
+    F: FnOnce(&ActiveEventLoop) -> R,
+{
+    CURRENT_EVENT_LOOP.with(|cell| {
+        cell.get().map(|ptr| {
+            // SAFETY:
+            // 1. The pointer is guaranteed to be valid when it's Some, as the EventLoopGuard that created it
+            //    lives at least as long as the reference, and clears it when it's dropped. Only run_forever creates
+            //    a new EventLoopGuard, and does not leak it.
+            // 2. Since the pointer was created from a borrow which lives at least as long as this pointer there are
+            //    no mutable references to the ActiveEventLoop.
+            let event_loop = unsafe { &*ptr };
+            f(event_loop)
+        })
+    })
 }

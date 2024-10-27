@@ -5,7 +5,8 @@
 use std::sync::{Arc, Mutex};
 
 use net_traits::{
-    Action, FetchResponseListener, FetchResponseMsg, ResourceFetchTiming, ResourceTimingType,
+    Action, BoxedFetchCallback, FetchResponseListener, FetchResponseMsg, ResourceFetchTiming,
+    ResourceTimingType,
 };
 use servo_url::ServoUrl;
 
@@ -14,6 +15,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::performanceentry::PerformanceEntry;
 use crate::dom::performanceresourcetiming::{InitiatorType, PerformanceResourceTiming};
+use crate::script_runtime::CanGc;
 use crate::task::{TaskCanceller, TaskOnce};
 use crate::task_source::networking::NetworkingTaskSource;
 use crate::task_source::TaskSource;
@@ -31,7 +33,10 @@ pub trait ResourceTimingListener {
     fn resource_timing_global(&self) -> DomRoot<GlobalScope>;
 }
 
-pub fn submit_timing<T: ResourceTimingListener + FetchResponseListener>(listener: &T) {
+pub fn submit_timing<T: ResourceTimingListener + FetchResponseListener>(
+    listener: &T,
+    can_gc: CanGc,
+) {
     if listener.resource_timing().timing_type != ResourceTimingType::Resource {
         warn!(
             "Submitting non-resource ({:?}) timing as resource",
@@ -51,6 +56,7 @@ pub fn submit_timing<T: ResourceTimingListener + FetchResponseListener>(listener
         url,
         initiator_type,
         listener.resource_timing(),
+        can_gc,
     );
 }
 
@@ -59,12 +65,13 @@ pub fn submit_timing_data(
     url: ServoUrl,
     initiator_type: InitiatorType,
     resource_timing: &ResourceFetchTiming,
+    can_gc: CanGc,
 ) {
     let performance_entry =
         PerformanceResourceTiming::new(global, url, initiator_type, None, resource_timing);
     global
         .performance()
-        .queue_entry(performance_entry.upcast::<PerformanceEntry>());
+        .queue_entry(performance_entry.upcast::<PerformanceEntry>(), can_gc);
 }
 
 impl<Listener: PreInvoke + Send + 'static> NetworkListener<Listener> {
@@ -88,6 +95,10 @@ impl<Listener: PreInvoke + Send + 'static> NetworkListener<Listener> {
 impl<Listener: FetchResponseListener + PreInvoke + Send + 'static> NetworkListener<Listener> {
     pub fn notify_fetch(&self, action: FetchResponseMsg) {
         self.notify(action);
+    }
+
+    pub fn into_callback(self) -> BoxedFetchCallback {
+        Box::new(move |response_msg| self.notify_fetch(response_msg))
     }
 }
 

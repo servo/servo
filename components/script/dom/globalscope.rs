@@ -9,7 +9,7 @@ use std::collections::{HashMap, VecDeque};
 use std::ops::Index;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use std::{mem, ptr};
@@ -45,9 +45,12 @@ use net_traits::filemanager_thread::{
     FileManagerResult, FileManagerThreadMsg, ReadFileProgress, RelativePos,
 };
 use net_traits::image_cache::ImageCache;
-use net_traits::request::Referrer;
+use net_traits::request::{Referrer, RequestBuilder};
 use net_traits::response::HttpsState;
-use net_traits::{CoreResourceMsg, CoreResourceThread, IpcSend, ResourceThreads};
+use net_traits::{
+    fetch_async, CoreResourceMsg, CoreResourceThread, FetchResponseListener, IpcSend,
+    ResourceThreads,
+};
 use profile_traits::{ipc as profile_ipc, mem as profile_mem, time as profile_time};
 use script_traits::serializable::{BlobData, BlobImpl, FileBlob};
 use script_traits::transferable::MessagePortImpl;
@@ -117,11 +120,11 @@ use crate::dom::window::Window;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::dom::workletglobalscope::WorkletGlobalScope;
 use crate::microtask::{Microtask, MicrotaskQueue, UserMicrotask};
+use crate::network_listener::{NetworkListener, PreInvoke};
 use crate::realms::{enter_realm, AlreadyInRealm, InRealm};
 use crate::script_module::{DynamicModuleList, ModuleScript, ModuleTree, ScriptFetchOptions};
 use crate::script_runtime::{
-    CanGc, CommonScriptMsg, ContextForRequestInterrupt, JSContext as SafeJSContext, ScriptChan,
-    ScriptPort,
+    CanGc, CommonScriptMsg, JSContext as SafeJSContext, ScriptChan, ScriptPort, ThreadSafeJSContext,
 };
 use crate::script_thread::{MainThreadScriptChan, ScriptThread};
 use crate::security_manager::CSPViolationReporter;
@@ -151,7 +154,8 @@ pub struct AutoCloseWorker {
     #[no_trace]
     control_sender: Sender<DedicatedWorkerControlMsg>,
     /// The context to request an interrupt on the worker thread.
-    context: ContextForRequestInterrupt,
+    #[no_trace]
+    context: ThreadSafeJSContext,
 }
 
 impl Drop for AutoCloseWorker {
@@ -168,7 +172,7 @@ impl Drop for AutoCloseWorker {
             warn!("Couldn't send an exit message to a dedicated worker.");
         }
 
-        self.context.request_interrupt();
+        self.context.request_interrupt_callback();
 
         // TODO: step 2 and 3.
         // Step 4 is unnecessary since we don't use actual ports for dedicated workers.
@@ -374,6 +378,8 @@ struct TimerListener {
     context: Trusted<GlobalScope>,
 }
 
+type FileListenerCallback = Box<dyn Fn(Rc<Promise>, Fallible<Vec<u8>>) + Send>;
+
 /// A wrapper for the handling of file data received by the ipc router
 struct FileListener {
     /// State should progress as either of:
@@ -384,19 +390,14 @@ struct FileListener {
     task_canceller: TaskCanceller,
 }
 
-enum FileListenerCallback {
-    Promise(Box<dyn Fn(Rc<Promise>, Result<Vec<u8>, Error>) + Send>),
-    Stream,
-}
-
 enum FileListenerTarget {
-    Promise(TrustedPromise),
+    Promise(TrustedPromise, FileListenerCallback),
     Stream(Trusted<ReadableStream>),
 }
 
 enum FileListenerState {
-    Empty(FileListenerCallback, FileListenerTarget),
-    Receiving(Vec<u8>, FileListenerCallback, FileListenerTarget),
+    Empty(FileListenerTarget),
+    Receiving(Vec<u8>, FileListenerTarget),
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -532,7 +533,7 @@ impl TimerListener {
                     },
                 };
                 // Step 7, substeps run in a task.
-                global.fire_timer(id);
+                global.fire_timer(id, CanGc::note());
             }),
             &self.canceller,
         );
@@ -596,7 +597,7 @@ impl MessageListener {
                 let _ = self.task_source.queue_with_canceller(
                     task!(process_new_task: move || {
                         let global = context.root();
-                        global.route_task_to_port(port_id, task);
+                        global.route_task_to_port(port_id, task, CanGc::note());
                     }),
                     &self.canceller,
                 );
@@ -616,10 +617,10 @@ impl MessageListener {
 }
 
 /// Callback used to enqueue file chunks to streams as part of FileListener.
-fn stream_handle_incoming(stream: &ReadableStream, bytes: Result<Vec<u8>, Error>) {
+fn stream_handle_incoming(stream: &ReadableStream, bytes: Fallible<Vec<u8>>, can_gc: CanGc) {
     match bytes {
         Ok(b) => {
-            stream.enqueue_native(b);
+            stream.enqueue_native(b, can_gc);
         },
         Err(e) => {
             stream.error_native(e);
@@ -636,13 +637,13 @@ impl FileListener {
     fn handle(&mut self, msg: FileManagerResult<ReadFileProgress>) {
         match msg {
             Ok(ReadFileProgress::Meta(blob_buf)) => match self.state.take() {
-                Some(FileListenerState::Empty(callback, target)) => {
+                Some(FileListenerState::Empty(target)) => {
                     let bytes = if let FileListenerTarget::Stream(ref trusted_stream) = target {
                         let trusted = trusted_stream.clone();
 
                         let task = task!(enqueue_stream_chunk: move || {
                             let stream = trusted.root();
-                            stream_handle_incoming(&stream, Ok(blob_buf.bytes));
+                            stream_handle_incoming(&stream, Ok(blob_buf.bytes), CanGc::note());
                         });
 
                         let _ = self
@@ -653,20 +654,20 @@ impl FileListener {
                         blob_buf.bytes
                     };
 
-                    self.state = Some(FileListenerState::Receiving(bytes, callback, target));
+                    self.state = Some(FileListenerState::Receiving(bytes, target));
                 },
                 _ => panic!(
                     "Unexpected FileListenerState when receiving ReadFileProgress::Meta msg."
                 ),
             },
             Ok(ReadFileProgress::Partial(mut bytes_in)) => match self.state.take() {
-                Some(FileListenerState::Receiving(mut bytes, callback, target)) => {
+                Some(FileListenerState::Receiving(mut bytes, target)) => {
                     if let FileListenerTarget::Stream(ref trusted_stream) = target {
                         let trusted = trusted_stream.clone();
 
                         let task = task!(enqueue_stream_chunk: move || {
                             let stream = trusted.root();
-                            stream_handle_incoming(&stream, Ok(bytes_in));
+                            stream_handle_incoming(&stream, Ok(bytes_in), CanGc::note());
                         });
 
                         let _ = self
@@ -676,19 +677,15 @@ impl FileListener {
                         bytes.append(&mut bytes_in);
                     };
 
-                    self.state = Some(FileListenerState::Receiving(bytes, callback, target));
+                    self.state = Some(FileListenerState::Receiving(bytes, target));
                 },
                 _ => panic!(
                     "Unexpected FileListenerState when receiving ReadFileProgress::Partial msg."
                 ),
             },
             Ok(ReadFileProgress::EOF) => match self.state.take() {
-                Some(FileListenerState::Receiving(bytes, callback, target)) => match target {
-                    FileListenerTarget::Promise(trusted_promise) => {
-                        let callback = match callback {
-                            FileListenerCallback::Promise(callback) => callback,
-                            _ => panic!("Expected promise callback."),
-                        };
+                Some(FileListenerState::Receiving(bytes, target)) => match target {
+                    FileListenerTarget::Promise(trusted_promise, callback) => {
                         let task = task!(resolve_promise: move || {
                             let promise = trusted_promise.root();
                             let _ac = enter_realm(&*promise.global());
@@ -717,16 +714,12 @@ impl FileListener {
                 },
             },
             Err(_) => match self.state.take() {
-                Some(FileListenerState::Receiving(_, callback, target)) |
-                Some(FileListenerState::Empty(callback, target)) => {
+                Some(FileListenerState::Receiving(_, target)) |
+                Some(FileListenerState::Empty(target)) => {
                     let error = Err(Error::Network);
 
                     match target {
-                        FileListenerTarget::Promise(trusted_promise) => {
-                            let callback = match callback {
-                                FileListenerCallback::Promise(callback) => callback,
-                                _ => panic!("Expected promise callback."),
-                            };
+                        FileListenerTarget::Promise(trusted_promise, callback) => {
                             let _ = self.task_source.queue_with_canceller(
                                 task!(reject_promise: move || {
                                     let promise = trusted_promise.root();
@@ -740,7 +733,7 @@ impl FileListener {
                             let _ = self.task_source.queue_with_canceller(
                                 task!(error_stream: move || {
                                     let stream = trusted_stream.root();
-                                    stream_handle_incoming(&stream, error);
+                                    stream_handle_incoming(&stream, error, CanGc::note());
                                 }),
                                 &self.task_canceller,
                             );
@@ -854,10 +847,10 @@ impl GlobalScope {
             task_source,
             canceller,
         };
-        ROUTER.add_route(
-            timer_ipc_port.to_opaque(),
+        ROUTER.add_typed_route(
+            timer_ipc_port,
             Box::new(move |message| {
-                let event = message.to().unwrap();
+                let event = message.unwrap();
                 timer_listener.handle(event);
             }),
         );
@@ -1094,7 +1087,7 @@ impl GlobalScope {
                     let _ = self.port_message_queue().queue(
                         task!(process_pending_port_messages: move || {
                             let target_global = this.root();
-                            target_global.route_task_to_port(port_id, task);
+                            target_global.route_task_to_port(port_id, task, CanGc::note());
                         }),
                         self,
                     );
@@ -1150,7 +1143,7 @@ impl GlobalScope {
                         let global = this.root();
                         // Note: we do this in a task, as this will ensure the global and constellation
                         // are aware of any transfer that might still take place in the current task.
-                        global.route_task_to_port(entangled_id, task);
+                        global.route_task_to_port(entangled_id, task, CanGc::note());
                     }),
                     self,
                 );
@@ -1264,10 +1257,11 @@ impl GlobalScope {
                                         Some(&origin.ascii_serialization()),
                                         None,
                                         ports,
+                                        CanGc::note()
                                     );
                                 } else {
                                     // Step 10.3, fire an event named messageerror at destination.
-                                    MessageEvent::dispatch_error(destination.upcast(), &global);
+                                    MessageEvent::dispatch_error(destination.upcast(), &global, CanGc::note());
                                 }
                             }),
                             self,
@@ -1278,7 +1272,7 @@ impl GlobalScope {
     }
 
     /// Route the task to be handled by the relevant port.
-    pub fn route_task_to_port(&self, port_id: MessagePortId, task: PortMessageTask) {
+    pub fn route_task_to_port(&self, port_id: MessagePortId, task: PortMessageTask, can_gc: CanGc) {
         let should_dispatch = if let MessagePortState::Managed(_id, message_ports) =
             &mut *self.message_port_state.borrow_mut()
         {
@@ -1317,10 +1311,11 @@ impl GlobalScope {
                     Some(&origin.ascii_serialization()),
                     None,
                     ports,
+                    can_gc,
                 );
             } else {
                 // Step 4, fire messageerror event.
-                MessageEvent::dispatch_error(dom_port.upcast(), self);
+                MessageEvent::dispatch_error(dom_port.upcast(), self, can_gc);
             }
         }
     }
@@ -1442,14 +1437,11 @@ impl GlobalScope {
                 task_source,
                 context,
             };
-            ROUTER.add_route(
-                broadcast_control_receiver.to_opaque(),
-                Box::new(move |message| {
-                    let msg = message.to();
-                    match msg {
-                        Ok(msg) => listener.handle(msg),
-                        Err(err) => warn!("Error receiving a BroadcastMsg: {:?}", err),
-                    }
+            ROUTER.add_typed_route(
+                broadcast_control_receiver,
+                Box::new(move |message| match message {
+                    Ok(msg) => listener.handle(msg),
+                    Err(err) => warn!("Error receiving a BroadcastMsg: {:?}", err),
                 }),
             );
             let router_id = BroadcastChannelRouterId::new();
@@ -1498,14 +1490,11 @@ impl GlobalScope {
                 task_source,
                 context,
             };
-            ROUTER.add_route(
-                port_control_receiver.to_opaque(),
-                Box::new(move |message| {
-                    let msg = message.to();
-                    match msg {
-                        Ok(msg) => listener.notify(msg),
-                        Err(err) => warn!("Error receiving a MessagePortMsg: {:?}", err),
-                    }
+            ROUTER.add_typed_route(
+                port_control_receiver,
+                Box::new(move |message| match message {
+                    Ok(msg) => listener.notify(msg),
+                    Err(err) => warn!("Error receiving a MessagePortMsg: {:?}", err),
                 }),
             );
             let router_id = MessagePortRouterId::new();
@@ -1999,11 +1988,11 @@ impl GlobalScope {
     }
 
     /// <https://w3c.github.io/FileAPI/#blob-get-stream>
-    pub fn get_blob_stream(&self, blob_id: &BlobId) -> DomRoot<ReadableStream> {
+    pub fn get_blob_stream(&self, blob_id: &BlobId, can_gc: CanGc) -> DomRoot<ReadableStream> {
         let (file_id, size) = match self.get_blob_bytes_or_file_id(blob_id) {
             BlobResult::Bytes(bytes) => {
                 // If we have all the bytes in memory, queue them and close the stream.
-                let stream = ReadableStream::new_from_bytes(self, bytes);
+                let stream = ReadableStream::new_from_bytes(self, bytes, can_gc);
                 return stream;
             },
             BlobResult::File(id, size) => (id, size),
@@ -2021,33 +2010,24 @@ impl GlobalScope {
         let task_source = self.file_reading_task_source();
 
         let mut file_listener = FileListener {
-            state: Some(FileListenerState::Empty(
-                FileListenerCallback::Stream,
-                FileListenerTarget::Stream(trusted_stream),
-            )),
+            state: Some(FileListenerState::Empty(FileListenerTarget::Stream(
+                trusted_stream,
+            ))),
             task_source,
             task_canceller,
         };
 
-        ROUTER.add_route(
-            recv.to_opaque(),
+        ROUTER.add_typed_route(
+            recv.to_ipc_receiver(),
             Box::new(move |msg| {
-                file_listener.handle(
-                    msg.to()
-                        .expect("Deserialization of file listener msg failed."),
-                );
+                file_listener.handle(msg.expect("Deserialization of file listener msg failed."));
             }),
         );
 
         stream
     }
 
-    pub fn read_file_async(
-        &self,
-        id: Uuid,
-        promise: Rc<Promise>,
-        callback: Box<dyn Fn(Rc<Promise>, Result<Vec<u8>, Error>) + Send>,
-    ) {
+    pub fn read_file_async(&self, id: Uuid, promise: Rc<Promise>, callback: FileListenerCallback) {
         let recv = self.send_msg(id);
 
         let trusted_promise = TrustedPromise::new(promise);
@@ -2055,21 +2035,18 @@ impl GlobalScope {
         let task_source = self.file_reading_task_source();
 
         let mut file_listener = FileListener {
-            state: Some(FileListenerState::Empty(
-                FileListenerCallback::Promise(callback),
-                FileListenerTarget::Promise(trusted_promise),
-            )),
+            state: Some(FileListenerState::Empty(FileListenerTarget::Promise(
+                trusted_promise,
+                callback,
+            ))),
             task_source,
             task_canceller,
         };
 
-        ROUTER.add_route(
-            recv.to_opaque(),
+        ROUTER.add_typed_route(
+            recv.to_ipc_receiver(),
             Box::new(move |msg| {
-                file_listener.handle(
-                    msg.to()
-                        .expect("Deserialization of file listener msg failed."),
-                );
+                file_listener.handle(msg.expect("Deserialization of file listener msg failed."));
             }),
         );
     }
@@ -2115,7 +2092,7 @@ impl GlobalScope {
         closing: Arc<AtomicBool>,
         join_handle: JoinHandle<()>,
         control_sender: Sender<DedicatedWorkerControlMsg>,
-        context: ContextForRequestInterrupt,
+        context: ThreadSafeJSContext,
     ) {
         self.list_auto_close_worker
             .borrow_mut()
@@ -2476,7 +2453,7 @@ impl GlobalScope {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#report-the-error>
-    pub fn report_an_error(&self, error_info: ErrorInfo, value: HandleValue) {
+    pub fn report_an_error(&self, error_info: ErrorInfo, value: HandleValue, can_gc: CanGc) {
         // Step 1.
         if self.in_error_reporting_mode.get() {
             return;
@@ -2497,10 +2474,13 @@ impl GlobalScope {
             error_info.lineno,
             error_info.column,
             value,
+            can_gc,
         );
 
         // Step 7.
-        let event_status = event.upcast::<Event>().fire(self.upcast::<EventTarget>());
+        let event_status = event
+            .upcast::<Event>()
+            .fire(self.upcast::<EventTarget>(), can_gc);
 
         // Step 8.
         self.in_error_reporting_mode.set(false);
@@ -2636,6 +2616,7 @@ impl GlobalScope {
         rval: MutableHandleValue,
         fetch_options: ScriptFetchOptions,
         script_base_url: ServoUrl,
+        can_gc: CanGc,
     ) -> bool {
         let source_code = SourceCode::Text(Rc::new(DOMString::from_string((*code).to_string())));
         self.evaluate_script_on_global_with_result(
@@ -2645,11 +2626,13 @@ impl GlobalScope {
             1,
             fetch_options,
             script_base_url,
+            can_gc,
         )
     }
 
     /// Evaluate a JS script on this global scope.
     #[allow(unsafe_code)]
+    #[allow(clippy::too_many_arguments)]
     pub fn evaluate_script_on_global_with_result(
         &self,
         code: &SourceCode,
@@ -2658,6 +2641,7 @@ impl GlobalScope {
         line_number: u32,
         fetch_options: ScriptFetchOptions,
         script_base_url: ServoUrl,
+        can_gc: CanGc,
     ) -> bool {
         let metadata = profile_time::TimerMetadata {
             url: if filename.is_empty() {
@@ -2694,7 +2678,7 @@ impl GlobalScope {
 
                             if compiled_script.is_null() {
                                 debug!("error compiling Dom string");
-                                report_pending_exception(*cx, true, InRealm::Entered(&ar));
+                                report_pending_exception(*cx, true, InRealm::Entered(&ar), can_gc);
                                 return false;
                             }
                         },
@@ -2743,7 +2727,7 @@ impl GlobalScope {
 
                     if !result {
                         debug!("error evaluating Dom string");
-                        report_pending_exception(*cx, true, InRealm::Entered(&ar));
+                        report_pending_exception(*cx, true, InRealm::Entered(&ar), can_gc);
                     }
 
                     maybe_resume_unwind();
@@ -2833,9 +2817,10 @@ impl GlobalScope {
         &self,
         image: ImageBitmapSource,
         options: &ImageBitmapOptions,
+        can_gc: CanGc,
     ) -> Rc<Promise> {
         let in_realm_proof = AlreadyInRealm::assert();
-        let p = Promise::new_in_current_realm(InRealm::Already(&in_realm_proof));
+        let p = Promise::new_in_current_realm(InRealm::Already(&in_realm_proof), can_gc);
         if options.resizeWidth.is_some_and(|w| w == 0) {
             p.reject_error(Error::InvalidState);
             return p;
@@ -2893,8 +2878,8 @@ impl GlobalScope {
         }
     }
 
-    pub fn fire_timer(&self, handle: TimerEventId) {
-        self.timers.fire_timer(handle, self);
+    pub fn fire_timer(&self, handle: TimerEventId, can_gc: CanGc) {
+        self.timers.fire_timer(handle, self, can_gc);
     }
 
     pub fn resume(&self) {
@@ -2926,7 +2911,7 @@ impl GlobalScope {
     /// Returns a boolean indicating whether the event-loop
     /// where this global is running on can continue running JS.
     pub fn can_continue_running(&self) -> bool {
-        if self.downcast::<Window>().is_some() {
+        if self.is::<Window>() {
             return ScriptThread::can_continue_running();
         }
         if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
@@ -3190,14 +3175,19 @@ impl GlobalScope {
         }
     }
 
-    pub fn handle_uncaptured_gpu_error(&self, device: WebGPUDevice, error: webgpu::Error) {
+    pub fn handle_uncaptured_gpu_error(
+        &self,
+        device: WebGPUDevice,
+        error: webgpu::Error,
+        can_gc: CanGc,
+    ) {
         if let Some(gpu_device) = self
             .gpu_devices
             .borrow()
             .get(&device)
             .and_then(|device| device.root())
         {
-            gpu_device.fire_uncaptured_error(error);
+            gpu_device.fire_uncaptured_error(error, can_gc);
         } else {
             warn!("Recived error for lost GPUDevice!")
         }
@@ -3224,7 +3214,7 @@ impl GlobalScope {
     }
 
     /// <https://www.w3.org/TR/gamepad/#dfn-gamepadconnected>
-    pub fn handle_gamepad_connect(
+    fn handle_gamepad_connect(
         &self,
         // As the spec actually defines how to set the gamepad index, the GilRs index
         // is currently unused, though in practice it will almost always be the same.
@@ -3254,9 +3244,10 @@ impl GlobalScope {
                             axis_bounds,
                             button_bounds,
                             supported_haptic_effects,
-                            false
+                            false,
+                            CanGc::note(),
                         );
-                        navigator.set_gamepad(selected_index as usize, &gamepad);
+                        navigator.set_gamepad(selected_index as usize, &gamepad, CanGc::note());
                     }
                 }),
                 &self.task_canceller(TaskSourceName::Gamepad),
@@ -3275,7 +3266,7 @@ impl GlobalScope {
                         let navigator = window.Navigator();
                         if let Some(gamepad) = navigator.get_gamepad(index) {
                             if window.Document().is_fully_active() {
-                                gamepad.update_connected(false, gamepad.exposed());
+                                gamepad.update_connected(false, gamepad.exposed(), CanGc::note());
                                 navigator.remove_gamepad(index);
                             }
                         }
@@ -3321,7 +3312,7 @@ impl GlobalScope {
                                             window.task_manager().gamepad_task_source().queue_with_canceller(
                                                 task!(update_gamepad_connect: move || {
                                                     let gamepad = new_gamepad.root();
-                                                    gamepad.notify_event(GamepadEventType::Connected);
+                                                    gamepad.notify_event(GamepadEventType::Connected, CanGc::note());
                                                 }),
                                                 &window.upcast::<GlobalScope>()
                                                     .task_canceller(TaskSourceName::Gamepad),
@@ -3399,6 +3390,38 @@ impl GlobalScope {
             .map_err(|_| Error::DataClone)?;
 
         Ok(message_clone.get())
+    }
+
+    pub(crate) fn fetch<Listener: FetchResponseListener + PreInvoke + Send + 'static>(
+        &self,
+        request_builder: RequestBuilder,
+        context: Arc<Mutex<Listener>>,
+        task_source: NetworkingTaskSource,
+        cancellation_sender: Option<ipc::IpcReceiver<()>>,
+    ) {
+        let canceller = Some(self.task_canceller(TaskSourceName::Networking));
+        let network_listener = NetworkListener {
+            context,
+            task_source,
+            canceller,
+        };
+        self.fetch_with_network_listener(request_builder, network_listener, cancellation_sender);
+    }
+
+    pub(crate) fn fetch_with_network_listener<
+        Listener: FetchResponseListener + PreInvoke + Send + 'static,
+    >(
+        &self,
+        request_builder: RequestBuilder,
+        network_listener: NetworkListener<Listener>,
+        cancellation_receiver: Option<ipc::IpcReceiver<()>>,
+    ) {
+        fetch_async(
+            &self.core_resource_thread(),
+            request_builder,
+            cancellation_receiver,
+            network_listener.into_callback(),
+        );
     }
 }
 

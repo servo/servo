@@ -520,9 +520,11 @@ async function stringToStashKey(string) {
 // Create a fenced frame. Then navigate it using the given `target`, which can
 // be either an urn:uuid or a fenced frame config object.
 function attachFencedFrame(target) {
-  assert_implements(
-      window.HTMLFencedFrameElement,
-      'The HTMLFencedFrameElement should be exposed on the window object');
+  if (window.test_driver) {
+    assert_implements(
+        window.HTMLFencedFrameElement,
+        'The HTMLFencedFrameElement should be exposed on the window object');
+  }
 
   const fenced_frame = document.createElement('fencedframe');
 
@@ -626,15 +628,6 @@ async function writeValueToServer(key, value, origin = '') {
 
   const serverURL = `${origin}${STORE_URL}?key=${key}&value=${value}`;
   await fetch(serverURL, {"mode": "no-cors"});
-}
-
-// Simulates a user gesture.
-async function simulateGesture() {
-  // Wait until the window size is initialized.
-  while (window.innerWidth == 0) {
-    await new Promise(resolve => requestAnimationFrame(resolve));
-  }
-  await test_driver.bless('simulate gesture');
 }
 
 // Fenced frames are always put in the public IP address space which is the

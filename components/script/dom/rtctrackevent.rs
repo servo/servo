@@ -40,16 +40,9 @@ impl RTCTrackEvent {
         bubbles: bool,
         cancelable: bool,
         track: &MediaStreamTrack,
+        can_gc: CanGc,
     ) -> DomRoot<RTCTrackEvent> {
-        Self::new_with_proto(
-            global,
-            None,
-            type_,
-            bubbles,
-            cancelable,
-            track,
-            CanGc::note(),
-        )
+        Self::new_with_proto(global, None, type_, bubbles, cancelable, track, can_gc)
     }
 
     fn new_with_proto(
@@ -73,9 +66,11 @@ impl RTCTrackEvent {
         }
         trackevent
     }
+}
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+impl RTCTrackEventMethods for RTCTrackEvent {
+    // https://w3c.github.io/webrtc-pc/#dom-rtctrackevent-constructor
+    fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -92,9 +87,7 @@ impl RTCTrackEvent {
             can_gc,
         ))
     }
-}
 
-impl RTCTrackEventMethods for RTCTrackEvent {
     // https://w3c.github.io/webrtc-pc/#dom-rtctrackevent-track
     fn Track(&self) -> DomRoot<MediaStreamTrack> {
         DomRoot::from_ref(&*self.track)

@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 
 use base::id::PipelineId;
@@ -16,6 +17,17 @@ use servo_url::{ImmutableOrigin, ServoUrl};
 
 use crate::response::HttpsState;
 use crate::{ReferrerPolicy, ResourceTimingType};
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
+/// An id to differeniate one network request from another.
+pub struct RequestId(usize);
+
+impl RequestId {
+    pub fn next() -> Self {
+        static NEXT_REQUEST_ID: AtomicUsize = AtomicUsize::new(0);
+        Self(NEXT_REQUEST_ID.fetch_add(1, Ordering::Relaxed))
+    }
+}
 
 /// An [initiator](https://fetch.spec.whatwg.org/#concept-request-initiator)
 #[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
@@ -223,6 +235,7 @@ impl RequestBody {
 
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct RequestBuilder {
+    pub id: RequestId,
     #[serde(
         deserialize_with = "::hyper_serde::deserialize",
         serialize_with = "::hyper_serde::serialize"
@@ -272,6 +285,7 @@ pub struct RequestBuilder {
 impl RequestBuilder {
     pub fn new(url: ServoUrl, referrer: Referrer) -> RequestBuilder {
         RequestBuilder {
+            id: RequestId::next(),
             method: Method::GET,
             url,
             headers: HeaderMap::new(),
@@ -396,6 +410,11 @@ impl RequestBuilder {
         self
     }
 
+    pub fn csp_list(mut self, csp_list: Option<CspList>) -> RequestBuilder {
+        self.csp_list = csp_list;
+        self
+    }
+
     pub fn crash(mut self, crash: Option<String>) -> Self {
         self.crash = crash;
         self
@@ -403,6 +422,7 @@ impl RequestBuilder {
 
     pub fn build(self) -> Request {
         let mut request = Request::new(
+            self.id,
             self.url.clone(),
             Some(Origin::Origin(self.origin)),
             self.referrer,
@@ -443,6 +463,9 @@ impl RequestBuilder {
 /// the Fetch spec.
 #[derive(Clone, MallocSizeOf)]
 pub struct Request {
+    /// The id of this request so that the task that triggered it can route
+    /// messages to the correct listeners.
+    pub id: RequestId,
     /// <https://fetch.spec.whatwg.org/#concept-request-method>
     #[ignore_malloc_size_of = "Defined in hyper"]
     pub method: Method,
@@ -514,6 +537,7 @@ pub struct Request {
 
 impl Request {
     pub fn new(
+        id: RequestId,
         url: ServoUrl,
         origin: Option<Origin>,
         referrer: Referrer,
@@ -521,6 +545,7 @@ impl Request {
         https_state: HttpsState,
     ) -> Request {
         Request {
+            id,
             method: Method::GET,
             local_urls_only: false,
             sandboxed_storage_area_urls: false,

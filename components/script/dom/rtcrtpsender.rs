@@ -14,6 +14,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct RTCRtpSender {
@@ -50,8 +51,8 @@ impl RTCRtpSenderMethods for RTCRtpSender {
     }
 
     // https://w3c.github.io/webrtc-pc/#dom-rtcrtpsender-setparameters
-    fn SetParameters(&self, _parameters: &RTCRtpSendParameters) -> Rc<Promise> {
-        let promise = Promise::new(&self.global());
+    fn SetParameters(&self, _parameters: &RTCRtpSendParameters, can_gc: CanGc) -> Rc<Promise> {
+        let promise = Promise::new(&self.global(), can_gc);
         promise.resolve_native(&());
         promise
     }

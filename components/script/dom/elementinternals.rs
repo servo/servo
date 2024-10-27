@@ -25,6 +25,7 @@ use crate::dom::node::{window_from_node, Node};
 use crate::dom::nodelist::NodeList;
 use crate::dom::validation::{is_barred_by_datalist_ancestor, Validatable};
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
+use crate::script_runtime::CanGc;
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 enum SubmissionValue {
@@ -316,19 +317,19 @@ impl ElementInternalsMethods for ElementInternals {
     }
 
     /// <https://html.spec.whatwg.org/multipage#dom-elementinternals-checkvalidity>
-    fn CheckValidity(&self) -> Fallible<bool> {
+    fn CheckValidity(&self, can_gc: CanGc) -> Fallible<bool> {
         if !self.is_target_form_associated() {
             return Err(Error::NotSupported);
         }
-        Ok(self.check_validity())
+        Ok(self.check_validity(can_gc))
     }
 
     /// <https://html.spec.whatwg.org/multipage#dom-elementinternals-reportvalidity>
-    fn ReportValidity(&self) -> Fallible<bool> {
+    fn ReportValidity(&self, can_gc: CanGc) -> Fallible<bool> {
         if !self.is_target_form_associated() {
             return Err(Error::NotSupported);
         }
-        Ok(self.report_validity())
+        Ok(self.report_validity(can_gc))
     }
 }
 

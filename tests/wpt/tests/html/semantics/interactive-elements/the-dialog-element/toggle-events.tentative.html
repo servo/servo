@@ -1,6 +1,6 @@
 <!doctype html>
 <link rel="author" href="mailto:jarhar@chromium.org" />
-<link rel=author title="Keith Cirkel" href="mailto:wpt@keithcirkel.co.uk">
+<link rel="author" title="Keith Cirkel" href="mailto:wpt@keithcirkel.co.uk" />
 <link rel="help" href="https://github.com/whatwg/html/pull/10091" />
 <link rel="help" href="https://github.com/whatwg/html/issues/9733" />
 <script src="/resources/testharness.js"></script>
@@ -257,5 +257,111 @@
       mydialog.close();
       await waitForTick();
     }, `dialog.${methodName}() should coalesce asynchronous toggle events.`);
+
+    promise_test(async (t) => {
+      let attributeChanges = 0;
+      const mo = new MutationObserver((records) => {
+        attributeChanges += records.length;
+      });
+      mo.observe(mydialog, { attributeFilter: ['open'] });
+      t.add_cleanup(() => {
+        mo.disconnect();
+      });
+      mydialog.addEventListener("beforetoggle", () => {
+        mydialog[methodName]();
+      }, { once: true });
+
+      mydialog[methodName]();
+      assert_true(mydialog.open, "Dialog is open");
+      await waitForTick();
+      mo.takeRecords();
+      assert_equals(attributeChanges, 1, "Should have set open once");
+
+      attributeChanges = 0;
+      mydialog.addEventListener("beforetoggle", () => {
+        mydialog.close();
+      }, { once: true });
+
+      mydialog.close();
+      assert_false(mydialog.open, "Dialog is closed");
+      await waitForTick();
+      mo.takeRecords();
+      assert_equals(attributeChanges, 1, "Should have removed open once");
+    }, `dialog.${methodName}() should not double-set open/close if beforetoggle re-opens`);
+
+    promise_test(async (t) => {
+      const abortController = new AbortController();
+      const signal = abortController.signal;
+      const mydialog = document.getElementById("mydialog");
+      t.add_cleanup(() => {
+        abortController.abort();
+        mydialog.close();
+        document.body.prepend(mydialog);
+      });
+      mydialog.addEventListener("beforetoggle", () => {
+        mydialog.remove();
+      }, { once: true });
+      let toggleEventCounter = 0;
+      mydialog.addEventListener(
+        "toggle",
+        (event) => {
+          toggleEventCounter += 1;
+        },
+        { signal }
+      );
+
+      mydialog[methodName]();
+      assert_false(mydialog.isConnected, "Dialog is not connected");
+      if (methodName == 'show') {
+        assert_true(mydialog.open, "Dialog did open");
+      } else {
+        assert_false(mydialog.open, "Dialog did not open");
+        assert_false(mydialog.matches(':modal'), "Dialog is not modal");
+      }
+      await waitForTick();
+      if (methodName == 'show') {
+        assert_equals(toggleEventCounter, 1, "toggle event was fired");
+      } else {
+        assert_equals(toggleEventCounter, 0, "toggle event not fired");
+      }
+    }, `dialog.${methodName}() should not open if beforetoggle removes`);
+
+    promise_test(async (t) => {
+      const abortController = new AbortController();
+      const signal = abortController.signal;
+      t.add_cleanup(async () => {
+        try { mydialog.hidePopover(); } catch {}
+        try { mydialog.close(); } catch {}
+        mydialog.removeAttribute('popover');
+        abortController.abort();
+        await waitForTick();
+      });
+      mydialog.setAttribute('popover', '');
+      mydialog.addEventListener("beforetoggle", () => {
+        mydialog.showPopover();
+      }, { once: true });
+      let toggleEventCounter = 0;
+      mydialog.addEventListener(
+        "toggle",
+        (event) => {
+          toggleEventCounter += 1;
+        },
+        { signal }
+      );
+
+      mydialog[methodName]();
+      if (methodName == 'show') {
+        assert_true(mydialog.open, "Dialog did open");
+      } else {
+        assert_false(mydialog.open, "Dialog did not open");
+        assert_false(mydialog.matches(':modal'), "Dialog is not modal");
+      }
+      await waitForTick();
+      if (methodName == 'show') {
+        assert_equals(toggleEventCounter, 2, "toggle event was fired for show+showPopover");
+      } else {
+        assert_equals(toggleEventCounter, 1, "toggle event was fired for showPopover");
+      }
+    }, `dialog.${methodName}() should not open if beforetoggle calls showPopover`);
   });
 </script>

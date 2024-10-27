@@ -49,16 +49,10 @@ impl XRReferenceSpaceEvent {
         cancelable: bool,
         space: &XRReferenceSpace,
         transform: Option<&XRRigidTransform>,
+        can_gc: CanGc,
     ) -> DomRoot<XRReferenceSpaceEvent> {
         Self::new_with_proto(
-            global,
-            None,
-            type_,
-            bubbles,
-            cancelable,
-            space,
-            transform,
-            CanGc::note(),
+            global, None, type_, bubbles, cancelable, space, transform, can_gc,
         )
     }
 
@@ -85,9 +79,11 @@ impl XRReferenceSpaceEvent {
         }
         trackevent
     }
+}
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+impl XRReferenceSpaceEventMethods for XRReferenceSpaceEvent {
+    /// <https://www.w3.org/TR/webxr/#dom-xrreferencespaceevent-xrreferencespaceevent>
+    fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -105,9 +101,7 @@ impl XRReferenceSpaceEvent {
             can_gc,
         ))
     }
-}
 
-impl XRReferenceSpaceEventMethods for XRReferenceSpaceEvent {
     /// <https://www.w3.org/TR/webxr/#dom-xrreferencespaceeventinit-session>
     fn ReferenceSpace(&self) -> DomRoot<XRReferenceSpace> {
         DomRoot::from_ref(&*self.space)

@@ -109,14 +109,16 @@ impl GamepadHapticActuator {
         global: &GlobalScope,
         gamepad_index: u32,
         supported_haptic_effects: GamepadSupportedHapticEffects,
+        can_gc: CanGc,
     ) -> DomRoot<GamepadHapticActuator> {
-        Self::new_with_proto(global, gamepad_index, supported_haptic_effects)
+        Self::new_with_proto(global, gamepad_index, supported_haptic_effects, can_gc)
     }
 
     fn new_with_proto(
         global: &GlobalScope,
         gamepad_index: u32,
         supported_haptic_effects: GamepadSupportedHapticEffects,
+        can_gc: CanGc,
     ) -> DomRoot<GamepadHapticActuator> {
         reflect_dom_object_with_proto(
             Box::new(GamepadHapticActuator::new_inherited(
@@ -125,7 +127,7 @@ impl GamepadHapticActuator {
             )),
             global,
             None,
-            CanGc::note(),
+            can_gc,
         )
     }
 }
@@ -142,8 +144,9 @@ impl GamepadHapticActuatorMethods for GamepadHapticActuator {
         type_: GamepadHapticEffectType,
         params: &GamepadEffectParameters,
         comp: InRealm,
+        can_gc: CanGc,
     ) -> Rc<Promise> {
-        let playing_effect_promise = Promise::new_in_current_realm(comp);
+        let playing_effect_promise = Promise::new_in_current_realm(comp, can_gc);
 
         // <https://www.w3.org/TR/gamepad/#dfn-valid-effect>
         match type_ {
@@ -227,14 +230,11 @@ impl GamepadHapticActuatorMethods for GamepadHapticActuator {
             context,
         };
 
-        ROUTER.add_route(
-            effect_complete_receiver.to_opaque(),
-            Box::new(move |message| {
-                let msg = message.to::<bool>();
-                match msg {
-                    Ok(msg) => listener.handle_completed(msg),
-                    Err(err) => warn!("Error receiving a GamepadMsg: {:?}", err),
-                }
+        ROUTER.add_typed_route(
+            effect_complete_receiver,
+            Box::new(move |message| match message {
+                Ok(msg) => listener.handle_completed(msg),
+                Err(err) => warn!("Error receiving a GamepadMsg: {:?}", err),
             }),
         );
 
@@ -259,8 +259,8 @@ impl GamepadHapticActuatorMethods for GamepadHapticActuator {
     }
 
     /// <https://www.w3.org/TR/gamepad/#dom-gamepadhapticactuator-reset>
-    fn Reset(&self, comp: InRealm) -> Rc<Promise> {
-        let promise = Promise::new_in_current_realm(comp);
+    fn Reset(&self, comp: InRealm, can_gc: CanGc) -> Rc<Promise> {
+        let promise = Promise::new_in_current_realm(comp, can_gc);
 
         let document = self.global().as_window().Document();
         if !document.is_fully_active() {
@@ -299,14 +299,11 @@ impl GamepadHapticActuatorMethods for GamepadHapticActuator {
             context,
         };
 
-        ROUTER.add_route(
-            effect_stop_receiver.to_opaque(),
-            Box::new(move |message| {
-                let msg = message.to::<bool>();
-                match msg {
-                    Ok(msg) => listener.handle_stopped(msg),
-                    Err(err) => warn!("Error receiving a GamepadMsg: {:?}", err),
-                }
+        ROUTER.add_typed_route(
+            effect_stop_receiver,
+            Box::new(move |message| match message {
+                Ok(msg) => listener.handle_stopped(msg),
+                Err(err) => warn!("Error receiving a GamepadMsg: {:?}", err),
             }),
         );
 

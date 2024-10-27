@@ -39,6 +39,7 @@ import dataclasses
 import enum
 import importlib
 import itertools
+import math
 import os
 import pathlib
 import sys
@@ -257,6 +258,7 @@ class _CanvasType(str, enum.Enum):
 class _TemplateType(str, enum.Enum):
     REFERENCE = 'reference'
     HTML_REFERENCE = 'html_reference'
+    CAIRO_REFERENCE = 'cairo_reference'
     TESTHARNESS = 'testharness'
 
 
@@ -281,7 +283,7 @@ def _validate_test(test: _TestParams):
             r'@assert pixel .* 0,0,0,0;', test['code']):
         print(f'Probable incorrect pixel test in {test["name"]}')
 
-    if 'size' in test and (not isinstance(test['size'], list)
+    if 'size' in test and (not isinstance(test['size'], tuple)
                            or len(test['size']) != 2):
         raise InvalidTestDefinitionError(
             f'Invalid canvas size "{test["size"]}" in test {test["name"]}. '
@@ -338,12 +340,18 @@ def _write_cairo_images(pycairo_code: str, output_files: _OutputPaths,
     if _CanvasType.HTML_CANVAS in canvas_types:
         full_code = (f'{pycairo_code}\n'
                      f'surface.write_to_png("{output_files.element}")\n')
-        eval(compile(full_code, '<string>', 'exec'), {'cairo': cairo})
+        eval(compile(full_code, '<string>', 'exec'), {
+            'cairo': cairo,
+            'math': math,
+        })
 
     if {_CanvasType.OFFSCREEN_CANVAS, _CanvasType.WORKER} & canvas_types:
         full_code = (f'{pycairo_code}\n'
                      f'surface.write_to_png("{output_files.offscreen}")\n')
-        eval(compile(full_code, '<string>', 'exec'), {'cairo': cairo})
+        eval(compile(full_code, '<string>', 'exec'), {
+            'cairo': cairo,
+            'math': math,
+        })
 
 
 class _Variant():
@@ -363,16 +371,25 @@ class _Variant():
         Default values are added for certain parameters, if missing."""
         params = {
             'desc': '',
-            'size': [100, 50],
+            'size': (100, 50),
             # Test name, which ultimately is used as filename. File variant
-            # dimension names are appended to this to produce unique filenames.
+            # dimension names (i.e. the 'file_variant_names' property below) are
+            # appended to this to produce unique filenames.
             'name': '',
+            # List holding the the file variant dimension names.
+            'file_variant_names': [],
             # List of this variant grid dimension names. This uniquely
             # identifies a single variant in a variant grid file.
             'grid_variant_names': [],
             # List of this variant dimension names, including both file and grid
             # dimensions.
             'variant_names': [],
+            # Same as `file_variant_names`, but concatenated into a single
+            # string. This is a useful to easily identify a variant file.
+            'file_variant_name': '',
+            # Same as `grid_variant_names`, but concatenated into a single
+            # string. This is a useful to easily identify a variant in a grid.
+            'grid_variant_name': '',
             # Same as `variant_names`, but concatenated into a single string.
             # This is a useful shorthand for tests having a single variant
             # dimension.
@@ -398,12 +415,17 @@ class _Variant():
     def with_grid_variant_name(self, name: str) -> '_Variant':
         """Addend a variant name to include in the grid element label."""
         self._add_variant_name(name)
+        self._params['grid_variant_name'] += (
+            ('.' if self.params['grid_variant_name'] else '') + name)
         self._params['grid_variant_names'] += [name]
         return self
 
     def with_file_variant_name(self, name: str) -> '_Variant':
         """Addend a variant name to include in the generated file name."""
         self._add_variant_name(name)
+        self._params['file_variant_name'] += (
+            ('.' if self.params['file_variant_name'] else '') + name)
+        self._params['file_variant_names'] += [name]
         if self.params.get('append_variants_to_name', True):
             self._params['name'] += '.' + name
         return self
@@ -438,15 +460,21 @@ class _Variant():
         return frozenset(_CanvasType(t) for t in canvas_types)
 
     def _get_template_type(self) -> _TemplateType:
-        if 'reference' in self.params and 'html_reference' in self.params:
+        reference_types = (('reference' in self.params) +
+                           ('html_reference' in self.params) +
+                           ('cairo_reference' in self.params))
+        if reference_types > 1:
             raise InvalidTestDefinitionError(
-                f'Test {self.params["name"]} is invalid, "reference" and '
-                '"html_reference" can\'t both be specified at the same time.')
+                f'Test {self.params["name"]} is invalid, only one of '
+                '"reference", "html_reference" or "cairo_reference" can be '
+                'specified at the same time.')
 
         if 'reference' in self.params:
             return _TemplateType.REFERENCE
         if 'html_reference' in self.params:
             return _TemplateType.HTML_REFERENCE
+        if 'cairo_reference' in self.params:
+            return _TemplateType.CAIRO_REFERENCE
         return _TemplateType.TESTHARNESS
 
     def finalize_params(self, jinja_env: jinja2.Environment,
@@ -459,13 +487,13 @@ class _Variant():
         self._params['canvas_types'] = self._get_canvas_types()
         self._params['template_type'] = self._get_template_type()
 
-        if 'reference' in self._params:
-            self._params['reference'] = _preprocess_code(
-                jinja_env, self._params['reference'], self._params)
+        if isinstance(self._params['size'], list):
+            self._params['size'] = tuple(self._params['size'])
 
-        if 'html_reference' in self._params:
-            self._params['html_reference'] = _preprocess_code(
-                jinja_env, self._params['html_reference'], self._params)
+        for ref_type in {'reference', 'html_reference', 'cairo_reference'}:
+            if ref_type in self._params:
+                self._params[ref_type] = _preprocess_code(
+                    jinja_env, self._params[ref_type], self._params)
 
         code_params = dict(self.params)
         if _CanvasType.HTML_CANVAS in self.params['canvas_types']:
@@ -486,7 +514,7 @@ class _Variant():
         _validate_test(self._params)
 
     def generate_expected_image(self, output_dirs: _OutputPaths) -> None:
-        """Creates a reference image using Cairo and save filename in params."""
+        """Creates an expected image using Cairo and save filename in params."""
         expected = self.params['expected']
 
         if expected == 'green':
@@ -643,7 +671,8 @@ class _VariantGrid:
             'fonts': self._param_set('fonts'),
         }
         if self.template_type in (_TemplateType.REFERENCE,
-                                  _TemplateType.HTML_REFERENCE):
+                                  _TemplateType.HTML_REFERENCE,
+                                  _TemplateType.CAIRO_REFERENCE):
             grid_params['desc'] = self._unique_param('desc')
         return grid_params
 
@@ -675,9 +704,12 @@ class _VariantGrid:
                     f'{output_files.offscreen}.w.html')
 
         params['is_test_reference'] = True
-        is_html_ref = self.template_type == _TemplateType.HTML_REFERENCE
-        ref_template_name = (f'reftest{grid}.html'
-                             if is_html_ref else f'reftest_element{grid}.html')
+        templates = {
+            _TemplateType.REFERENCE: f'reftest_element{grid}.html',
+            _TemplateType.HTML_REFERENCE: f'reftest{grid}.html',
+            _TemplateType.CAIRO_REFERENCE: f'reftest_img{grid}.html'
+        }
+        ref_template_name = templates[self.template_type]
 
         if _CanvasType.HTML_CANVAS in self.canvas_types:
             _render(jinja_env, ref_template_name, params,
@@ -710,9 +742,72 @@ class _VariantGrid:
             _render(jinja_env, f'testharness_worker{grid}.js', self.params,
                     f'{output_files.offscreen}.worker.js')
 
+    def _generate_cairo_reference_grid(self,
+                                       output_dirs: _OutputPaths) -> None:
+        """Generate this grid's expected image from Cairo code, if needed.
+
+        In order to cut on the number of files generated, the expected image
+        of all the variants in this grid are packed into a single PNG. The
+        expected HTML then contains a grid of <img> tags, each showing a portion
+        of the PNG file."""
+        if not any(v.params.get('cairo_reference') for v in self.variants):
+            return
+
+        width, height = self._unique_param('size')
+        cairo_code = ''
+
+        # First generate a function producing a Cairo surface with the expected
+        # image for each variant in the grid. The function is needed to provide
+        # a scope isolating the variant code from each other.
+        for idx, variant in enumerate(self._variants):
+            cairo_ref = variant.params.get('cairo_reference')
+            if not cairo_ref:
+                raise InvalidTestDefinitionError(
+                    'When used, "cairo_reference" must be specified for all '
+                    'test variants.')
+            cairo_code += textwrap.dedent(f'''\
+                def draw_ref{idx}():
+                  surface = cairo.ImageSurface(
+                      cairo.FORMAT_ARGB32, {width}, {height})
+                  cr = cairo.Context(surface)
+                {{}}
+                  return surface
+                  ''').format(textwrap.indent(cairo_ref, '  '))
+
+        # Write all variant images into the final surface.
+        surface_width = width * self._grid_width
+        surface_height = (height *
+                          math.ceil(len(self._variants) / self._grid_width))
+        cairo_code += textwrap.dedent(f'''\
+            surface = cairo.ImageSurface(
+                cairo.FORMAT_ARGB32, {surface_width}, {surface_height})
+            cr = cairo.Context(surface)
+            ''')
+        for idx, variant in enumerate(self._variants):
+            x_pos = int(idx % self._grid_width) * width
+            y_pos = int(idx / self._grid_width) * height
+            cairo_code += textwrap.dedent(f'''\
+                cr.set_source_surface(draw_ref{idx}(), {x_pos}, {y_pos})
+                cr.paint()
+                ''')
+
+        img_filename = f'{self.file_name}.png'
+        _write_cairo_images(cairo_code, output_dirs.sub_path(img_filename),
+                            self.canvas_types)
+        self._params['img_reference'] = img_filename
+
     def _generate_cairo_images(self, output_dirs: _OutputPaths) -> None:
         """Generates the pycairo images found in the YAML test definition."""
-        if any(v.params.get('expected') for v in self._variants):
+        has_expected = any(v.params.get('expected') for v in self._variants)
+        has_cairo_reference = any(
+            v.params.get('cairo_reference') for v in self._variants)
+
+        if has_expected and has_cairo_reference:
+            raise InvalidTestDefinitionError(
+                'Parameters "expected" and "cairo_reference" can\'t be both '
+                'used at the same time.')
+
+        if has_expected:
             if len(self.variants) != 1:
                 raise InvalidTestDefinitionError(
                     'Parameter "expected" is not supported for variant grids.')
@@ -721,6 +816,8 @@ class _VariantGrid:
                     'Parameter "expected" is not supported in reference '
                     'tests.')
             self.variants[0].generate_expected_image(output_dirs)
+        elif has_cairo_reference:
+            self._generate_cairo_reference_grid(output_dirs)
 
     def generate_test(self, jinja_env: jinja2.Environment,
                       output_dirs: _OutputPaths) -> None:
@@ -730,7 +827,8 @@ class _VariantGrid:
         output_files = output_dirs.sub_path(self.file_name)
 
         if self.template_type in (_TemplateType.REFERENCE,
-                                  _TemplateType.HTML_REFERENCE):
+                                  _TemplateType.HTML_REFERENCE,
+                                  _TemplateType.CAIRO_REFERENCE):
             self._write_reference_test(jinja_env, output_files)
         else:
             self._write_testharness_test(jinja_env, output_files)
@@ -786,6 +884,9 @@ def _get_variant_grids(test: Mapping[str, Any],
                        jinja_env: jinja2.Environment) -> List[_VariantGrid]:
     base_variant = _Variant.create_with_defaults(test)
     grid_width = base_variant.params.get('grid_width', 1)
+    if not isinstance(grid_width, int):
+        raise InvalidTestDefinitionError('"grid_width" must be an integer.')
+
     grids = [_VariantGrid([base_variant], grid_width=grid_width)]
     for dimension in _get_variant_dimensions(test):
         variants = dimension.variants

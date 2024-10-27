@@ -6,8 +6,11 @@ from tests.support.sync import AsyncPoll
 from .. import (
     assert_response_event,
     get_cached_url,
+    IMAGE_RESPONSE_BODY,
     PAGE_EMPTY_TEXT,
     RESPONSE_COMPLETED_EVENT,
+    SCRIPT_CONSOLE_LOG,
+    SCRIPT_CONSOLE_LOG_IN_MODULE,
     STYLESHEET_GREY_BACKGROUND,
     STYLESHEET_RED_COLOR,
 )
@@ -444,4 +447,289 @@ async def test_page_with_cached_duplicated_stylesheets(
         cached_import_css_event,
         expected_request={"method": "GET", "url": cached_import_css_url},
         expected_response={"url": cached_import_css_url, "fromCache": True},
+    )
+
+
+@pytest.mark.asyncio
+async def test_page_with_cached_script_javascript(
+    bidi_session,
+    url,
+    inline,
+    setup_network_test,
+    top_context,
+):
+    network_events = await setup_network_test(
+        events=[
+            RESPONSE_COMPLETED_EVENT,
+        ]
+    )
+    events = network_events[RESPONSE_COMPLETED_EVENT]
+
+    cached_script_js_url = url(get_cached_url("text/javascript", SCRIPT_CONSOLE_LOG))
+    page_with_cached_js = inline(
+        f"""
+        <head><script src="{cached_script_js_url}"></script></head>
+        <body>test page with cached js script file</body>
+        """,
+    )
+
+    await bidi_session.browsing_context.navigate(
+        context=top_context["context"],
+        url=page_with_cached_js,
+        wait="complete",
+    )
+
+    # Expect two events, one for the document and one for the javascript file.
+    wait = AsyncPoll(bidi_session, timeout=2)
+    await wait.until(lambda _: len(events) >= 2)
+    assert len(events) == 2
+
+    assert_response_event(
+        events[0],
+        expected_request={"method": "GET", "url": page_with_cached_js},
+        expected_response={"url": page_with_cached_js, "fromCache": False},
+    )
+    assert_response_event(
+        events[1],
+        expected_request={"method": "GET", "url": cached_script_js_url},
+        expected_response={"url": cached_script_js_url, "fromCache": False},
+    )
+
+    # Reload the page.
+    await bidi_session.browsing_context.reload(context=top_context["context"])
+
+    # Expect two events, one for the document and one for the javascript file.
+    wait = AsyncPoll(bidi_session, timeout=2)
+    await wait.until(lambda _: len(events) >= 4)
+    assert len(events) == 4
+
+    assert_response_event(
+        events[2],
+        expected_request={"method": "GET", "url": page_with_cached_js},
+        expected_response={"url": page_with_cached_js, "fromCache": False},
+    )
+    assert_response_event(
+        events[3],
+        expected_request={"method": "GET", "url": cached_script_js_url},
+        expected_response={"url": cached_script_js_url, "fromCache": True},
+    )
+
+    page_with_2_cached_js = inline(
+        f"""
+        <head>
+            <script src="{cached_script_js_url}"></script>
+            <script src="{cached_script_js_url}"></script>
+        </head>
+        <body>test page with cached 2 javascript files</body>
+        """,
+    )
+
+    await bidi_session.browsing_context.navigate(
+        context=top_context["context"],
+        url=page_with_2_cached_js,
+        wait="complete",
+    )
+
+    # Expect three events, one for the document and two for script javascript files.
+    wait = AsyncPoll(bidi_session, timeout=2)
+    await wait.until(lambda _: len(events) >= 7)
+    assert len(events) == 7
+
+    # Assert only cached events after reload.
+    cached_events = events[4:]
+
+    assert_response_event(
+        cached_events[0],
+        expected_request={"method": "GET", "url": page_with_2_cached_js},
+        expected_response={"url": page_with_2_cached_js, "fromCache": False},
+    )
+    assert_response_event(
+        cached_events[1],
+        expected_request={"method": "GET", "url": cached_script_js_url},
+        expected_response={"url": cached_script_js_url, "fromCache": True},
+    )
+    assert_response_event(
+        cached_events[2],
+        expected_request={"method": "GET", "url": cached_script_js_url},
+        expected_response={"url": cached_script_js_url, "fromCache": True},
+    )
+
+
+@pytest.mark.asyncio
+async def test_page_with_cached_javascript_module(
+    bidi_session,
+    url,
+    inline,
+    setup_network_test,
+    top_context,
+):
+    network_events = await setup_network_test(
+        events=[
+            RESPONSE_COMPLETED_EVENT,
+        ]
+    )
+    events = network_events[RESPONSE_COMPLETED_EVENT]
+
+    cached_js_module_url = url(
+        get_cached_url("text/javascript", SCRIPT_CONSOLE_LOG_IN_MODULE)
+    )
+    page_with_cached_js_module = inline(
+        f"""
+        <body>
+            test page with cached js module
+            <script type="module">
+                import foo from "{cached_js_module_url}";
+                foo();
+            </script>
+        </body>
+        """,
+    )
+
+    await bidi_session.browsing_context.navigate(
+        context=top_context["context"],
+        url=page_with_cached_js_module,
+        wait="complete",
+    )
+
+    # Expect two events, one for the document and one for the javascript module.
+    wait = AsyncPoll(bidi_session, timeout=2)
+    await wait.until(lambda _: len(events) >= 2)
+    assert len(events) == 2
+
+    assert_response_event(
+        events[0],
+        expected_request={"method": "GET", "url": page_with_cached_js_module},
+        expected_response={"url": page_with_cached_js_module, "fromCache": False},
+    )
+    assert_response_event(
+        events[1],
+        expected_request={"method": "GET", "url": cached_js_module_url},
+        expected_response={"url": cached_js_module_url, "fromCache": False},
+    )
+
+    # Reload the page.
+    await bidi_session.browsing_context.reload(context=top_context["context"])
+
+    # Expect two events, one for the document and one for the javascript module.
+    wait = AsyncPoll(bidi_session, timeout=2)
+    await wait.until(lambda _: len(events) >= 4)
+    assert len(events) == 4
+
+    assert_response_event(
+        events[2],
+        expected_request={"method": "GET", "url": page_with_cached_js_module},
+        expected_response={"url": page_with_cached_js_module, "fromCache": False},
+    )
+    assert_response_event(
+        events[3],
+        expected_request={"method": "GET", "url": cached_js_module_url},
+        expected_response={"url": cached_js_module_url, "fromCache": True},
+    )
+
+    page_with_2_cached_js_modules = inline(
+        f"""
+        <body>
+            test page with 2 cached javascript modules
+            <script type="module">
+                import foo from "{cached_js_module_url}";
+                foo();
+            </script>
+            <script type="module">
+                import foo from "{cached_js_module_url}";
+                foo();
+            </script>
+        </body>
+        """,
+    )
+
+    await bidi_session.browsing_context.navigate(
+        context=top_context["context"],
+        url=page_with_2_cached_js_modules,
+        wait="complete",
+    )
+
+    # Expect two events, one for the document and one for the javascript module.
+    wait = AsyncPoll(bidi_session, timeout=2)
+    await wait.until(lambda _: len(events) >= 6)
+    assert len(events) == 6
+
+    # Assert only cached events after reload.
+    cached_events = events[4:]
+
+    assert_response_event(
+        cached_events[0],
+        expected_request={"method": "GET", "url": page_with_2_cached_js_modules},
+        expected_response={"url": page_with_2_cached_js_modules, "fromCache": False},
+    )
+    assert_response_event(
+        cached_events[1],
+        expected_request={"method": "GET", "url": cached_js_module_url},
+        expected_response={"url": cached_js_module_url, "fromCache": True},
+    )
+
+
+@pytest.mark.asyncio
+async def test_page_with_cached_image(
+    bidi_session,
+    url,
+    inline,
+    setup_network_test,
+    top_context,
+):
+    network_events = await setup_network_test(
+        events=[
+            RESPONSE_COMPLETED_EVENT,
+        ]
+    )
+    events = network_events[RESPONSE_COMPLETED_EVENT]
+
+    cached_image_url = url(get_cached_url("img/png", IMAGE_RESPONSE_BODY))
+    page_with_cached_image = inline(
+        f"""
+        <body>
+            test page with cached image
+            <img src="{cached_image_url}">
+        </body>
+        """,
+    )
+
+    await bidi_session.browsing_context.navigate(
+        context=top_context["context"],
+        url=page_with_cached_image,
+        wait="complete",
+    )
+
+    # Expect two events, one for the document and one for the image.
+    wait = AsyncPoll(bidi_session, timeout=2)
+    await wait.until(lambda _: len(events) >= 2)
+    assert len(events) == 2
+
+    assert_response_event(
+        events[0],
+        expected_request={"method": "GET", "url": page_with_cached_image},
+        expected_response={"url": page_with_cached_image, "fromCache": False},
+    )
+    assert_response_event(
+        events[1],
+        expected_request={"method": "GET", "url": cached_image_url},
+        expected_response={"url": cached_image_url, "fromCache": False},
+    )
+
+    # Reload the page.
+    await bidi_session.browsing_context.reload(context=top_context["context"])
+
+    # Expect two events, one for the document and one for the image.
+    wait = AsyncPoll(bidi_session, timeout=2)
+    await wait.until(lambda _: len(events) >= 4)
+    assert len(events) == 4
+
+    assert_response_event(
+        events[2],
+        expected_request={"method": "GET", "url": page_with_cached_image},
+        expected_response={"url": page_with_cached_image, "fromCache": False},
+    )
+    assert_response_event(
+        events[3],
+        expected_request={"method": "GET", "url": cached_image_url},
+        expected_response={"url": cached_image_url, "fromCache": True},
     )

@@ -4,10 +4,10 @@
   "id_assertion_endpoint": "token_with_account_id.py",
   "login_url": "login.html",
   "modes": {
-    "button": {
+    "active": {
       "supports_use_other_account": true
     },
-    "widget": {
+    "passive": {
       "supports_use_other_account": true
     }
   }

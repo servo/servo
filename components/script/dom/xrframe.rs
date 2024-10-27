@@ -25,6 +25,7 @@ use crate::dom::xrreferencespace::XRReferenceSpace;
 use crate::dom::xrsession::{ApiPose, XRSession};
 use crate::dom::xrspace::XRSpace;
 use crate::dom::xrviewerpose::XRViewerPose;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct XRFrame {
@@ -92,6 +93,7 @@ impl XRFrameMethods for XRFrame {
     fn GetViewerPose(
         &self,
         reference: &XRReferenceSpace,
+        can_gc: CanGc,
     ) -> Result<Option<DomRoot<XRViewerPose>>, Error> {
         if self.session != reference.upcast::<XRSpace>().session() {
             return Err(Error::InvalidState);
@@ -116,6 +118,7 @@ impl XRFrameMethods for XRFrame {
             &self.session,
             to_base,
             viewer_pose,
+            can_gc,
         )))
     }
 
@@ -124,6 +127,7 @@ impl XRFrameMethods for XRFrame {
         &self,
         space: &XRSpace,
         base_space: &XRSpace,
+        can_gc: CanGc,
     ) -> Result<Option<DomRoot<XRPose>>, Error> {
         if self.session != space.session() || self.session != base_space.session() {
             return Err(Error::InvalidState);
@@ -142,7 +146,7 @@ impl XRFrameMethods for XRFrame {
             return Ok(None);
         };
         let pose = space.then(&base_space.inverse());
-        Ok(Some(XRPose::new(&self.global(), pose)))
+        Ok(Some(XRPose::new(&self.global(), pose, can_gc)))
     }
 
     /// <https://immersive-web.github.io/webxr/#dom-xrframe-getpose>
@@ -150,6 +154,7 @@ impl XRFrameMethods for XRFrame {
         &self,
         space: &XRJointSpace,
         base_space: &XRSpace,
+        can_gc: CanGc,
     ) -> Result<Option<DomRoot<XRJointPose>>, Error> {
         if self.session != space.upcast::<XRSpace>().session() ||
             self.session != base_space.session()
@@ -174,6 +179,7 @@ impl XRFrameMethods for XRFrame {
             &self.global(),
             pose.cast_unit(),
             Some(joint_frame.radius),
+            can_gc,
         )))
     }
 

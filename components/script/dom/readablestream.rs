@@ -34,7 +34,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::js::conversions::FromJSValConvertible;
 use crate::realms::{enter_realm, InRealm};
-use crate::script_runtime::JSContext as SafeJSContext;
+use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 static UNDERLYING_SOURCE_TRAPS: ReadableStreamUnderlyingSourceTraps =
     ReadableStreamUnderlyingSourceTraps {
@@ -101,12 +101,16 @@ impl ReadableStream {
     }
 
     /// Build a stream backed by a Rust source that has already been read into memory.
-    pub fn new_from_bytes(global: &GlobalScope, bytes: Vec<u8>) -> DomRoot<ReadableStream> {
+    pub fn new_from_bytes(
+        global: &GlobalScope,
+        bytes: Vec<u8>,
+        can_gc: CanGc,
+    ) -> DomRoot<ReadableStream> {
         let stream = ReadableStream::new_with_external_underlying_source(
             global,
             ExternalUnderlyingSource::Memory(bytes.len()),
         );
-        stream.enqueue_native(bytes);
+        stream.enqueue_native(bytes, can_gc);
         stream.close_native();
         stream
     }
@@ -153,7 +157,7 @@ impl ReadableStream {
     }
 
     #[allow(unsafe_code)]
-    pub fn enqueue_native(&self, bytes: Vec<u8>) {
+    pub fn enqueue_native(&self, bytes: Vec<u8>, can_gc: CanGc) {
         let global = self.global();
         let _ar = enter_realm(&*global);
         let cx = GlobalScope::get_cx();
@@ -163,7 +167,7 @@ impl ReadableStream {
         self.external_underlying_source
             .as_ref()
             .expect("No external source to enqueue bytes.")
-            .enqueue_chunk(cx, handle, bytes);
+            .enqueue_chunk(cx, handle, bytes, can_gc);
     }
 
     #[allow(unsafe_code)]
@@ -324,7 +328,12 @@ unsafe extern "C" fn request_data(
     desired_size: usize,
 ) {
     let source = &*(source as *const ExternalUnderlyingSourceController);
-    source.pull(SafeJSContext::from_ptr(cx), stream, desired_size);
+    source.pull(
+        SafeJSContext::from_ptr(cx),
+        stream,
+        desired_size,
+        CanGc::note(),
+    );
 }
 
 #[allow(unsafe_code)]
@@ -427,12 +436,15 @@ impl ExternalUnderlyingSourceController {
     }
 
     /// Signal available bytes if the stream is currently readable.
+    /// The apparently unused CanGc argument represents that the JS API calls like
+    /// `ReadableStreamUpdateDataAvailableFromSource` can trigger a GC.
     #[allow(unsafe_code)]
     fn maybe_signal_available_bytes(
         &self,
         cx: SafeJSContext,
         stream: HandleObject,
         available: usize,
+        _can_gc: CanGc,
     ) {
         if available == 0 {
             return;
@@ -467,17 +479,23 @@ impl ExternalUnderlyingSourceController {
         self.maybe_close_js_stream(cx, stream);
     }
 
-    fn enqueue_chunk(&self, cx: SafeJSContext, stream: HandleObject, mut chunk: Vec<u8>) {
+    fn enqueue_chunk(
+        &self,
+        cx: SafeJSContext,
+        stream: HandleObject,
+        mut chunk: Vec<u8>,
+        can_gc: CanGc,
+    ) {
         let available = {
             let mut buffer = self.buffer.borrow_mut();
             buffer.append(&mut chunk);
             buffer.len()
         };
-        self.maybe_signal_available_bytes(cx, stream, available);
+        self.maybe_signal_available_bytes(cx, stream, available, can_gc);
     }
 
     #[allow(unsafe_code)]
-    fn pull(&self, cx: SafeJSContext, stream: HandleObject, _desired_size: usize) {
+    fn pull(&self, cx: SafeJSContext, stream: HandleObject, _desired_size: usize, can_gc: CanGc) {
         // Note: for pull sources,
         // this would be the time to ask for a chunk.
 
@@ -490,7 +508,7 @@ impl ExternalUnderlyingSourceController {
             buffer.len()
         };
 
-        self.maybe_signal_available_bytes(cx, stream, available);
+        self.maybe_signal_available_bytes(cx, stream, available, can_gc);
     }
 
     fn get_chunk_with_length(&self, length: usize) -> Vec<u8> {

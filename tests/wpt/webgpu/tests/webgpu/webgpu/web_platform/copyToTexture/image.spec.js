@@ -5,7 +5,7 @@ copyExternalImageToTexture from HTMLImageElement source.
 `;import { makeTestGroup } from '../../../common/framework/test_group.js';
 import { raceWithRejectOnTimeout } from '../../../common/util/util.js';
 import { kTextureFormatInfo, kValidTextureFormatsForCopyE2T } from '../../format_info.js';
-import { CopyToTextureUtils, kCopySubrectInfo } from '../../util/copy_to_texture.js';
+import { TextureUploadingUtils, kCopySubrectInfo } from '../../util/copy_to_texture.js';
 
 import { kTestColorsOpaque, makeTestColorsTexelView } from './util.js';
 
@@ -21,7 +21,7 @@ async function decodeImageFromCanvas(canvas) {
   return image;
 }
 
-export const g = makeTestGroup(CopyToTextureUtils);
+export const g = makeTestGroup(TextureUploadingUtils);
 
 g.test('from_image').
 desc(

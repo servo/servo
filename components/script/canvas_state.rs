@@ -57,6 +57,7 @@ use crate::dom::node::{window_from_node, Node, NodeDamage};
 use crate::dom::offscreencanvas::{OffscreenCanvas, OffscreenCanvasContext};
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
 use crate::dom::textmetrics::TextMetrics;
+use crate::script_runtime::CanGc;
 use crate::unpremultiplytable::UNPREMULTIPLY_TABLE;
 
 #[crown::unrooted_must_root_lint::must_root]
@@ -612,7 +613,7 @@ impl CanvasState {
         dh: f64,
     ) -> (Rect<f64>, Rect<f64>) {
         let image_rect = Rect::new(
-            Point2D::new(0f64, 0f64),
+            Point2D::zero(),
             Size2D::new(image_size.width, image_size.height),
         );
 
@@ -736,8 +737,13 @@ impl CanvasState {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-shadowcolor
-    pub fn set_shadow_color(&self, canvas: Option<&HTMLCanvasElement>, value: DOMString) {
-        if let Ok(rgba) = parse_color(canvas, &value) {
+    pub fn set_shadow_color(
+        &self,
+        canvas: Option<&HTMLCanvasElement>,
+        value: DOMString,
+        can_gc: CanGc,
+    ) {
+        if let Ok(rgba) = parse_color(canvas, &value, can_gc) {
             self.state.borrow_mut().shadow_color = rgba;
             self.send_canvas_2d_msg(Canvas2dMsg::SetShadowColor(rgba))
         }
@@ -765,10 +771,11 @@ impl CanvasState {
         &self,
         canvas: Option<&HTMLCanvasElement>,
         value: StringOrCanvasGradientOrCanvasPattern,
+        can_gc: CanGc,
     ) {
         match value {
             StringOrCanvasGradientOrCanvasPattern::String(string) => {
-                if let Ok(rgba) = parse_color(canvas, &string) {
+                if let Ok(rgba) = parse_color(canvas, &string, can_gc) {
                     self.state.borrow_mut().stroke_style = CanvasFillOrStrokeStyle::Color(rgba);
                 }
             },
@@ -808,10 +815,11 @@ impl CanvasState {
         &self,
         canvas: Option<&HTMLCanvasElement>,
         value: StringOrCanvasGradientOrCanvasPattern,
+        can_gc: CanGc,
     ) {
         match value {
             StringOrCanvasGradientOrCanvasPattern::String(string) => {
-                if let Ok(rgba) = parse_color(canvas, &string) {
+                if let Ok(rgba) = parse_color(canvas, &string, can_gc) {
                     self.state.borrow_mut().fill_style = CanvasFillOrStrokeStyle::Color(rgba);
                 }
             },
@@ -1001,6 +1009,7 @@ impl CanvasState {
         x: f64,
         y: f64,
         max_width: Option<f64>,
+        can_gc: CanGc,
     ) {
         if !x.is_finite() || !y.is_finite() {
             return;
@@ -1009,7 +1018,11 @@ impl CanvasState {
             return;
         }
         if self.state.borrow().font_style.is_none() {
-            self.set_font(canvas, CanvasContextState::DEFAULT_FONT_STYLE.into())
+            self.set_font(
+                canvas,
+                CanvasContextState::DEFAULT_FONT_STYLE.into(),
+                can_gc,
+            )
         }
 
         let is_rtl = match self.state.borrow().direction {
@@ -1035,9 +1048,14 @@ impl CanvasState {
         global: &GlobalScope,
         canvas: Option<&HTMLCanvasElement>,
         text: DOMString,
+        can_gc: CanGc,
     ) -> DomRoot<TextMetrics> {
         if self.state.borrow().font_style.is_none() {
-            self.set_font(canvas, CanvasContextState::DEFAULT_FONT_STYLE.into());
+            self.set_font(
+                canvas,
+                CanvasContextState::DEFAULT_FONT_STYLE.into(),
+                can_gc,
+            );
         }
 
         let (sender, receiver) = ipc::channel::<CanvasTextMetrics>().unwrap();
@@ -1062,17 +1080,18 @@ impl CanvasState {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-font
-    pub fn set_font(&self, canvas: Option<&HTMLCanvasElement>, value: DOMString) {
+    pub fn set_font(&self, canvas: Option<&HTMLCanvasElement>, value: DOMString, can_gc: CanGc) {
         let canvas = match canvas {
             Some(element) => element,
             None => return, // offscreen canvas doesn't have a placeholder canvas
         };
         let node = canvas.upcast::<Node>();
         let window = window_from_node(canvas);
-        let resolved_font_style = match window.resolved_font_style_query(node, value.to_string()) {
-            Some(value) => value,
-            None => return, // syntax error
-        };
+        let resolved_font_style =
+            match window.resolved_font_style_query(node, value.to_string(), can_gc) {
+                Some(value) => value,
+                None => return, // syntax error
+            };
         self.state.borrow_mut().font_style = Some((*resolved_font_style).clone());
         self.send_canvas_2d_msg(Canvas2dMsg::SetFont((*resolved_font_style).clone()));
     }
@@ -1232,11 +1251,12 @@ impl CanvasState {
         global: &GlobalScope,
         sw: i32,
         sh: i32,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<ImageData>> {
         if sw == 0 || sh == 0 {
             return Err(Error::IndexSize);
         }
-        ImageData::new(global, sw.unsigned_abs(), sh.unsigned_abs(), None)
+        ImageData::new(global, sw.unsigned_abs(), sh.unsigned_abs(), None, can_gc)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-createimagedata
@@ -1244,11 +1264,13 @@ impl CanvasState {
         &self,
         global: &GlobalScope,
         imagedata: &ImageData,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<ImageData>> {
-        ImageData::new(global, imagedata.Width(), imagedata.Height(), None)
+        ImageData::new(global, imagedata.Width(), imagedata.Height(), None, can_gc)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-getimagedata
+    #[allow(clippy::too_many_arguments)]
     pub fn get_image_data(
         &self,
         canvas_size: Size2D<u64>,
@@ -1257,6 +1279,7 @@ impl CanvasState {
         sy: i32,
         sw: i32,
         sh: i32,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<ImageData>> {
         // FIXME(nox): There are many arithmetic operations here that can
         // overflow or underflow, this should probably be audited.
@@ -1274,7 +1297,7 @@ impl CanvasState {
             Some(rect) => rect,
             None => {
                 // All the pixels are outside the canvas surface.
-                return ImageData::new(global, size.width, size.height, None);
+                return ImageData::new(global, size.width, size.height, None, can_gc);
             },
         };
 
@@ -1283,6 +1306,7 @@ impl CanvasState {
             size.width,
             size.height,
             Some(self.get_rect(canvas_size, read_rect)),
+            can_gc,
         )
     }
 
@@ -1546,12 +1570,12 @@ impl CanvasState {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-gettransform
-    pub fn get_transform(&self, global: &GlobalScope) -> DomRoot<DOMMatrix> {
+    pub fn get_transform(&self, global: &GlobalScope, can_gc: CanGc) -> DomRoot<DOMMatrix> {
         let (sender, receiver) = ipc::channel::<Transform2D<f32>>().unwrap();
         self.send_canvas_2d_msg(Canvas2dMsg::GetTransform(sender));
         let transform = receiver.recv().unwrap();
 
-        DOMMatrix::new(global, true, transform.cast::<f64>().to_3d())
+        DOMMatrix::new(global, true, transform.cast::<f64>().to_3d(), can_gc)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-settransform
@@ -1711,7 +1735,11 @@ impl CanvasState {
     }
 }
 
-pub fn parse_color(canvas: Option<&HTMLCanvasElement>, string: &str) -> Result<AbsoluteColor, ()> {
+pub fn parse_color(
+    canvas: Option<&HTMLCanvasElement>,
+    string: &str,
+    can_gc: CanGc,
+) -> Result<AbsoluteColor, ()> {
     let mut input = ParserInput::new(string);
     let mut parser = Parser::new(&mut input);
     let url = Url::parse("about:blank").unwrap().into();
@@ -1739,8 +1767,8 @@ pub fn parse_color(canvas: Option<&HTMLCanvasElement>, string: &str) -> Result<A
                 None => AbsoluteColor::BLACK,
                 Some(canvas) => {
                     let canvas_element = canvas.upcast::<Element>();
-                    match canvas_element.style() {
-                        Some(ref s) if canvas_element.has_css_layout_box() => {
+                    match canvas_element.style(can_gc) {
+                        Some(ref s) if canvas_element.has_css_layout_box(can_gc) => {
                             s.get_inherited_text().color
                         },
                         _ => AbsoluteColor::BLACK,

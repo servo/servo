@@ -9,11 +9,10 @@
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::net::TcpStream;
-use std::time::{SystemTime, UNIX_EPOCH};
 
 use base::id::{BrowsingContextId, PipelineId};
 use devtools_traits::DevtoolScriptControlMsg::{self, GetCssDatabase, WantsLiveNotifications};
-use devtools_traits::{ConsoleLog, DevtoolsPageInfo, NavigationState, PageError};
+use devtools_traits::{DevtoolsPageInfo, NavigationState};
 use ipc_channel::ipc::{self, IpcSender};
 use serde::Serialize;
 use serde_json::{Map, Value};
@@ -48,55 +47,11 @@ struct FrameUpdateMsg {
 }
 
 #[derive(Serialize)]
-struct ResourceAvailableReply {
+struct ResourceAvailableReply<T: Serialize> {
     from: String,
     #[serde(rename = "type")]
     type_: String,
-    resources: Vec<ResourceAvailableMsg>,
-}
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-struct ResourceAvailableMsg {
-    #[serde(rename = "hasNativeConsoleAPI")]
-    has_native_console_api: Option<bool>,
-    name: String,
-    #[serde(rename = "newURI")]
-    new_uri: Option<String>,
-    resource_type: String,
-    time: u64,
-    title: Option<String>,
-    url: Option<String>,
-}
-
-#[derive(Serialize)]
-struct ConsoleMsg {
-    from: String,
-    #[serde(rename = "type")]
-    type_: String,
-    resources: Vec<ConsoleMessageResource>,
-}
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-struct ConsoleMessageResource {
-    message: ConsoleLog,
-    resource_type: String,
-}
-
-#[derive(Serialize)]
-struct PageErrorMsg {
-    from: String,
-    #[serde(rename = "type")]
-    type_: String,
-    resources: Vec<PageErrorResource>,
-}
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-struct PageErrorResource {
-    page_error: PageError,
-    resource_type: String,
+    array: Vec<(String, Vec<T>)>,
 }
 
 #[derive(Serialize)]
@@ -369,52 +324,11 @@ impl BrowsingContextActor {
         });
     }
 
-    pub(crate) fn document_event(&self, stream: &mut TcpStream) {
-        // TODO: This is a hacky way of sending the 3 messages
-        //       Figure out if there needs work to be done here, ensure the page is loaded
-        for &name in ["dom-loading", "dom-interactive", "dom-complete"].iter() {
-            let _ = stream.write_json_packet(&ResourceAvailableReply {
-                from: self.name(),
-                type_: "resource-available-form".into(),
-                resources: vec![ResourceAvailableMsg {
-                    has_native_console_api: Some(true),
-                    name: name.into(),
-                    new_uri: None,
-                    resource_type: "document-event".into(),
-                    time: SystemTime::now()
-                        .duration_since(UNIX_EPOCH)
-                        .unwrap_or_default()
-                        .as_millis() as u64,
-                    title: Some(self.title.borrow().clone()),
-                    url: Some(self.url.borrow().clone()),
-                }],
-            });
-        }
-    }
-
-    pub(crate) fn console_message(&self, message: ConsoleLog) {
-        let msg = ConsoleMsg {
+    pub(crate) fn resource_available<T: Serialize>(&self, message: T, resource_type: String) {
+        let msg = ResourceAvailableReply::<T> {
             from: self.name(),
-            type_: "resource-available-form".into(),
-            resources: vec![ConsoleMessageResource {
-                message,
-                resource_type: "console-message".into(),
-            }],
-        };
-
-        for stream in self.streams.borrow_mut().values_mut() {
-            let _ = stream.write_json_packet(&msg);
-        }
-    }
-
-    pub(crate) fn page_error(&self, page_error: PageError) {
-        let msg = PageErrorMsg {
-            from: self.name(),
-            type_: "resource-available-form".into(),
-            resources: vec![PageErrorResource {
-                page_error,
-                resource_type: "error-message".into(),
-            }],
+            type_: "resources-available-array".into(),
+            array: vec![(resource_type, vec![message])],
         };
 
         for stream in self.streams.borrow_mut().values_mut() {

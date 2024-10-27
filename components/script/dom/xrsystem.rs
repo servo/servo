@@ -32,6 +32,7 @@ use crate::dom::window::Window;
 use crate::dom::xrsession::XRSession;
 use crate::dom::xrtest::XRTest;
 use crate::realms::InRealm;
+use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 use crate::task_source::TaskSource;
 
@@ -111,9 +112,9 @@ impl From<XRSessionMode> for SessionMode {
 
 impl XRSystemMethods for XRSystem {
     /// <https://immersive-web.github.io/webxr/#dom-xr-issessionsupported>
-    fn IsSessionSupported(&self, mode: XRSessionMode) -> Rc<Promise> {
+    fn IsSessionSupported(&self, mode: XRSessionMode, can_gc: CanGc) -> Rc<Promise> {
         // XXXManishearth this should select an XR device first
-        let promise = Promise::new(&self.global());
+        let promise = Promise::new(&self.global(), can_gc);
         let mut trusted = Some(TrustedPromise::new(promise.clone()));
         let global = self.global();
         let window = global.as_window();
@@ -121,8 +122,8 @@ impl XRSystemMethods for XRSystem {
             .task_manager()
             .dom_manipulation_task_source_with_canceller();
         let (sender, receiver) = ipc::channel(global.time_profiler_chan().clone()).unwrap();
-        ROUTER.add_route(
-            receiver.to_opaque(),
+        ROUTER.add_typed_route(
+            receiver.to_ipc_receiver(),
             Box::new(move |message| {
                 // router doesn't know this is only called once
                 let trusted = if let Some(trusted) = trusted.take() {
@@ -131,7 +132,7 @@ impl XRSystemMethods for XRSystem {
                     error!("supportsSession callback called twice!");
                     return;
                 };
-                let message: Result<(), webxr_api::Error> = if let Ok(message) = message.to() {
+                let message: Result<(), webxr_api::Error> = if let Ok(message) = message {
                     message
                 } else {
                     error!("supportsSession callback given incorrect payload");
@@ -160,10 +161,11 @@ impl XRSystemMethods for XRSystem {
         mode: XRSessionMode,
         init: RootedTraceableBox<XRSessionInit>,
         comp: InRealm,
+        can_gc: CanGc,
     ) -> Rc<Promise> {
         let global = self.global();
         let window = global.as_window();
-        let promise = Promise::new_in_current_realm(comp);
+        let promise = Promise::new_in_current_realm(comp, can_gc);
 
         if mode != XRSessionMode::Inline {
             if !ScriptThread::is_user_interacting() {
@@ -242,14 +244,14 @@ impl XRSystemMethods for XRSystem {
         let (sender, receiver) = ipc::channel(global.time_profiler_chan().clone()).unwrap();
         let (frame_sender, frame_receiver) = ipc_crate::channel().unwrap();
         let mut frame_receiver = Some(frame_receiver);
-        ROUTER.add_route(
-            receiver.to_opaque(),
+        ROUTER.add_typed_route(
+            receiver.to_ipc_receiver(),
             Box::new(move |message| {
                 // router doesn't know this is only called once
                 let trusted = trusted.take().unwrap();
                 let this = this.clone();
                 let frame_receiver = frame_receiver.take().unwrap();
-                let message: Result<Session, webxr_api::Error> = if let Ok(message) = message.to() {
+                let message: Result<Session, webxr_api::Error> = if let Ok(message) = message {
                     message
                 } else {
                     error!("requestSession callback given incorrect payload");
@@ -322,7 +324,7 @@ impl XRSystem {
                     let xr = xr.root();
                     let interacting = ScriptThread::is_user_interacting();
                     ScriptThread::set_user_interacting(true);
-                    xr.upcast::<EventTarget>().fire_bubbling_event(atom!("sessionavailable"));
+                    xr.upcast::<EventTarget>().fire_bubbling_event(atom!("sessionavailable"), CanGc::note());
                     ScriptThread::set_user_interacting(interacting);
                 }),
                 window.upcast(),

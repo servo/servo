@@ -40,16 +40,9 @@ impl XRSessionEvent {
         bubbles: bool,
         cancelable: bool,
         session: &XRSession,
+        can_gc: CanGc,
     ) -> DomRoot<XRSessionEvent> {
-        Self::new_with_proto(
-            global,
-            None,
-            type_,
-            bubbles,
-            cancelable,
-            session,
-            CanGc::note(),
-        )
+        Self::new_with_proto(global, None, type_, bubbles, cancelable, session, can_gc)
     }
 
     fn new_with_proto(
@@ -73,9 +66,11 @@ impl XRSessionEvent {
         }
         trackevent
     }
+}
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+impl XRSessionEventMethods for XRSessionEvent {
+    // https://immersive-web.github.io/webxr/#dom-xrsessionevent-xrsessionevent
+    fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -92,9 +87,7 @@ impl XRSessionEvent {
             can_gc,
         ))
     }
-}
 
-impl XRSessionEventMethods for XRSessionEvent {
     // https://immersive-web.github.io/webxr/#dom-xrsessioneventinit-session
     fn Session(&self) -> DomRoot<XRSession> {
         DomRoot::from_ref(&*self.session)

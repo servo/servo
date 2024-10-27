@@ -40,16 +40,9 @@ impl RTCErrorEvent {
         bubbles: bool,
         cancelable: bool,
         error: &RTCError,
+        can_gc: CanGc,
     ) -> DomRoot<RTCErrorEvent> {
-        Self::new_with_proto(
-            global,
-            None,
-            type_,
-            bubbles,
-            cancelable,
-            error,
-            CanGc::note(),
-        )
+        Self::new_with_proto(global, None, type_, bubbles, cancelable, error, can_gc)
     }
 
     fn new_with_proto(
@@ -73,9 +66,11 @@ impl RTCErrorEvent {
         }
         event
     }
+}
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+impl RTCErrorEventMethods for RTCErrorEvent {
+    // https://www.w3.org/TR/webrtc/#dom-rtcerrorevent-constructor
+    fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -92,9 +87,7 @@ impl RTCErrorEvent {
             can_gc,
         )
     }
-}
 
-impl RTCErrorEventMethods for RTCErrorEvent {
     // https://www.w3.org/TR/webrtc/#dom-rtcerrorevent-error
     fn Error(&self) -> DomRoot<RTCError> {
         DomRoot::from_ref(&*self.error)

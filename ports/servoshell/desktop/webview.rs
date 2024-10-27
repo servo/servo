@@ -38,7 +38,6 @@ use tinyfiledialogs::{self, MessageBoxIcon, OkCancel, YesNo};
 use super::keyutils::{CMD_OR_ALT, CMD_OR_CONTROL};
 use super::window_trait::{WindowPortsMethods, LINE_HEIGHT};
 use crate::desktop::tracing::{trace_embedder_event, trace_embedder_msg};
-use crate::parser::location_bar_input_to_url;
 
 pub struct WebViewManager<Window: WindowPortsMethods + ?Sized> {
     status_text: Option<String>,
@@ -430,29 +429,6 @@ where
         let embedder_event = ShortcutMatcher::from_event(key_event.clone())
             .shortcut(CMD_OR_CONTROL, 'R', || {
                 self.focused_webview_id.map(EmbedderEvent::Reload)
-            })
-            .shortcut(CMD_OR_CONTROL, 'L', || {
-                if !opts::get().minibrowser {
-                    let url = match self.focused_webview() {
-                        Some(webview) => webview
-                            .url
-                            .as_ref()
-                            .map(|url| url.to_string())
-                            .unwrap_or_else(String::default),
-                        None => String::default(),
-                    };
-
-                    let title = "URL or search query";
-                    let input = tinyfiledialogs::input_box(title, title, &tiny_dialog_escape(&url));
-                    input.and_then(|input| {
-                        location_bar_input_to_url(&input).and_then(|url| {
-                            self.focused_webview_id
-                                .map(|id| EmbedderEvent::LoadUrl(id, url))
-                        })
-                    })
-                } else {
-                    None
-                }
             })
             // Select the first 8 tabs via shortcuts
             .shortcut(CMD_OR_CONTROL, '1', || self.focus_webview_by_index(0))

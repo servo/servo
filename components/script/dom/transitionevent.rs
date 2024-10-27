@@ -43,8 +43,9 @@ impl TransitionEvent {
         window: &Window,
         type_: Atom,
         init: &TransitionEventInit,
+        can_gc: CanGc,
     ) -> DomRoot<TransitionEvent> {
-        Self::new_with_proto(window, None, type_, init, CanGc::note())
+        Self::new_with_proto(window, None, type_, init, can_gc)
     }
 
     fn new_with_proto(
@@ -66,9 +67,11 @@ impl TransitionEvent {
         }
         ev
     }
+}
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+impl TransitionEventMethods for TransitionEvent {
+    // https://drafts.csswg.org/css-transitions/#dom-transitionevent-transitionevent
+    fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -83,9 +86,7 @@ impl TransitionEvent {
             can_gc,
         ))
     }
-}
 
-impl TransitionEventMethods for TransitionEvent {
     // https://drafts.csswg.org/css-transitions/#Events-TransitionEvent-propertyName
     fn PropertyName(&self) -> DOMString {
         DOMString::from(&*self.property_name)

@@ -29,11 +29,11 @@ use crate::dom::serviceworkerglobalscope::{
     ServiceWorkerControlMsg, ServiceWorkerGlobalScope, ServiceWorkerScriptMsg,
 };
 use crate::dom::serviceworkerregistration::longest_prefix_match;
-use crate::script_runtime::{CanGc, ContextForRequestInterrupt};
+use crate::script_runtime::ThreadSafeJSContext;
 
 enum Message {
     FromResource(CustomResponseMediator),
-    FromConstellation(ServiceWorkerMsg),
+    FromConstellation(Box<ServiceWorkerMsg>),
 }
 
 /// <https://w3c.github.io/ServiceWorker/#dfn-service-worker>
@@ -103,7 +103,7 @@ impl Drop for ServiceWorkerRegistration {
         self.context
             .take()
             .expect("No context to request interrupt.")
-            .request_interrupt();
+            .request_interrupt_callback();
 
         // TODO: Step 1, 2 and 3.
         if self
@@ -134,7 +134,7 @@ struct ServiceWorkerRegistration {
     /// A handle to join on the worker thread.
     join_handle: Option<JoinHandle<()>>,
     /// A context to request an interrupt.
-    context: Option<ContextForRequestInterrupt>,
+    context: Option<ThreadSafeJSContext>,
     /// The closing flag for the worker.
     closing: Option<Arc<AtomicBool>>,
 }
@@ -157,7 +157,7 @@ impl ServiceWorkerRegistration {
         &mut self,
         join_handle: JoinHandle<()>,
         control_sender: Sender<ServiceWorkerControlMsg>,
-        context: ContextForRequestInterrupt,
+        context: ThreadSafeJSContext,
         closing: Arc<AtomicBool>,
     ) {
         assert!(self.join_handle.is_none());
@@ -250,12 +250,10 @@ impl ServiceWorkerManager {
         None
     }
 
-    fn handle_message(&mut self, can_gc: CanGc) {
+    fn handle_message(&mut self) {
         while let Ok(message) = self.receive_message() {
             let should_continue = match message {
-                Message::FromConstellation(msg) => {
-                    self.handle_message_from_constellation(msg, can_gc)
-                },
+                Message::FromConstellation(msg) => self.handle_message_from_constellation(*msg),
                 Message::FromResource(msg) => self.handle_message_from_resource(msg),
             };
             if !should_continue {
@@ -285,12 +283,12 @@ impl ServiceWorkerManager {
 
     fn receive_message(&mut self) -> Result<Message, RecvError> {
         select! {
-            recv(self.own_port) -> msg => msg.map(Message::FromConstellation),
+            recv(self.own_port) -> msg => msg.map(|m| Message::FromConstellation(Box::new(m))),
             recv(self.resource_receiver) -> msg => msg.map(Message::FromResource),
         }
     }
 
-    fn handle_message_from_constellation(&mut self, msg: ServiceWorkerMsg, can_gc: CanGc) -> bool {
+    fn handle_message_from_constellation(&mut self, msg: ServiceWorkerMsg) -> bool {
         match msg {
             ServiceWorkerMsg::Timeout(_scope) => {
                 // TODO: https://w3c.github.io/ServiceWorker/#terminate-service-worker
@@ -307,7 +305,7 @@ impl ServiceWorkerManager {
                     self.handle_register_job(job);
                 },
                 JobType::Update => {
-                    self.handle_update_job(job, can_gc);
+                    self.handle_update_job(job);
                 },
                 JobType::Unregister => {
                     // TODO: https://w3c.github.io/ServiceWorker/#unregister-algorithm
@@ -382,7 +380,7 @@ impl ServiceWorkerManager {
     }
 
     /// <https://w3c.github.io/ServiceWorker/#update>
-    fn handle_update_job(&mut self, job: Job, can_gc: CanGc) {
+    fn handle_update_job(&mut self, job: Job) {
         // Step 1: Get registation
         if let Some(registration) = self.registrations.get_mut(&job.scope_url) {
             // Step 3.
@@ -405,12 +403,8 @@ impl ServiceWorkerManager {
 
             // Very roughly steps 5 to 18.
             // TODO: implement all steps precisely.
-            let (new_worker, join_handle, control_sender, context, closing) = update_serviceworker(
-                self.own_sender.clone(),
-                job.scope_url.clone(),
-                scope_things,
-                can_gc,
-            );
+            let (new_worker, join_handle, control_sender, context, closing) =
+                update_serviceworker(self.own_sender.clone(), job.scope_url.clone(), scope_things);
 
             // Since we've just started the worker thread, ensure we can shut it down later.
             registration.note_worker_thread(join_handle, control_sender, context, closing);
@@ -449,12 +443,11 @@ fn update_serviceworker(
     own_sender: IpcSender<ServiceWorkerMsg>,
     scope_url: ServoUrl,
     scope_things: ScopeThings,
-    can_gc: CanGc,
 ) -> (
     ServiceWorker,
     JoinHandle<()>,
     Sender<ServiceWorkerControlMsg>,
-    ContextForRequestInterrupt,
+    ThreadSafeJSContext,
     Arc<AtomicBool>,
 ) {
     let (sender, receiver) = unbounded();
@@ -475,7 +468,6 @@ fn update_serviceworker(
         control_receiver,
         context_sender,
         closing.clone(),
-        can_gc,
     );
 
     let context = context_receiver
@@ -512,7 +504,7 @@ impl ServiceWorkerManagerFactory for ServiceWorkerManager {
                 resource_port,
                 constellation_sender,
             )
-            .handle_message(CanGc::note())
+            .handle_message()
         };
         if thread::Builder::new()
             .name("SvcWorkerManager".to_owned())

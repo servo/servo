@@ -237,7 +237,8 @@ async def test_same_document_navigation(bidi_session, new_tab, url, subscribe_ev
     remove_listener()
 
 
-async def test_document_write(bidi_session, subscribe_events, top_context):
+@pytest.mark.parametrize("sandbox", [None, "sandbox_1"])
+async def test_document_write(bidi_session, subscribe_events, new_tab, sandbox):
     await subscribe_events(events=[NAVIGATION_STARTED_EVENT])
 
     # Track all received browsingContext.navigationStarted events in the events array
@@ -252,7 +253,7 @@ async def test_document_write(bidi_session, subscribe_events, top_context):
 
     await bidi_session.script.evaluate(
         expression="""document.open(); document.write("<h1>Replaced</h1>"); document.close();""",
-        target=ContextTarget(top_context["context"]),
+        target=ContextTarget(new_tab["context"], sandbox),
         await_promise=False,
     )
 

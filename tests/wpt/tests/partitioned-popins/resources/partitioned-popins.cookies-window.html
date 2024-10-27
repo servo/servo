@@ -6,11 +6,11 @@
 (async function() {
   test_driver.set_test_context(window.opener);
 
-  // Step 3 (partitioned-popins/partitioned-popins.cookies.tentative.sub.https.window.js)
+  // Step 3 (partitioned-popins/partitioned-popins.cookies-*.tentative.sub.https.window.js)
   const id = (new URLSearchParams(window.location.search)).get("id");
-  document.cookie = "first-party-strict=" + id + "; SameSite=Strict; Secure";
-  document.cookie = "first-party-lax=" + id + "; SameSite=Lax; Secure";
-  document.cookie = "first-party-none=" + id + "; SameSite=None; Secure";
+  document.cookie = "FirstPartyStrict=" + id + "; SameSite=Strict; Secure";
+  document.cookie = "FirstPartyLax=" + id + "; SameSite=Lax; Secure";
+  document.cookie = "FirstPartyNone=" + id + "; SameSite=None; Secure";
   window.opener.postMessage({type: "window-set", message: "Set first-party data"}, "*");
   window.close();
 })();

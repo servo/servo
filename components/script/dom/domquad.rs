@@ -16,7 +16,7 @@ use crate::dom::domrect::DOMRect;
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::CanGc;
 
-// https://drafts.fxtf.org/geometry/#DOMQuad
+/// <https://drafts.fxtf.org/geometry/#DOMQuad>
 #[dom_struct]
 pub struct DOMQuad {
     reflector_: Reflector,
@@ -26,7 +26,6 @@ pub struct DOMQuad {
     p4: Dom<DOMPoint>,
 }
 
-#[allow(non_snake_case)]
 impl DOMQuad {
     fn new_inherited(p1: &DOMPoint, p2: &DOMPoint, p3: &DOMPoint, p4: &DOMPoint) -> DOMQuad {
         DOMQuad {
@@ -44,8 +43,9 @@ impl DOMQuad {
         p2: &DOMPoint,
         p3: &DOMPoint,
         p4: &DOMPoint,
+        can_gc: CanGc,
     ) -> DomRoot<DOMQuad> {
-        Self::new_with_proto(global, None, p1, p2, p3, p4, CanGc::note())
+        Self::new_with_proto(global, None, p1, p2, p3, p4, can_gc)
     }
 
     fn new_with_proto(
@@ -64,8 +64,11 @@ impl DOMQuad {
             can_gc,
         )
     }
+}
 
-    pub fn Constructor(
+impl DOMQuadMethods for DOMQuad {
+    // https://drafts.fxtf.org/geometry/#dom-domquad-domquad
+    fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -77,44 +80,45 @@ impl DOMQuad {
         Ok(DOMQuad::new_with_proto(
             global,
             proto,
-            &DOMPoint::new_from_init(global, p1),
-            &DOMPoint::new_from_init(global, p2),
-            &DOMPoint::new_from_init(global, p3),
-            &DOMPoint::new_from_init(global, p4),
+            &DOMPoint::new_from_init(global, p1, can_gc),
+            &DOMPoint::new_from_init(global, p2, can_gc),
+            &DOMPoint::new_from_init(global, p3, can_gc),
+            &DOMPoint::new_from_init(global, p4, can_gc),
             can_gc,
         ))
     }
 
     // https://drafts.fxtf.org/geometry/#dom-domquad-fromrect
-    pub fn FromRect(global: &GlobalScope, other: &DOMRectInit) -> DomRoot<DOMQuad> {
+    fn FromRect(global: &GlobalScope, other: &DOMRectInit, can_gc: CanGc) -> DomRoot<DOMQuad> {
         DOMQuad::new(
             global,
-            &DOMPoint::new(global, other.x, other.y, 0f64, 1f64),
-            &DOMPoint::new(global, other.x + other.width, other.y, 0f64, 1f64),
+            &DOMPoint::new(global, other.x, other.y, 0f64, 1f64, can_gc),
+            &DOMPoint::new(global, other.x + other.width, other.y, 0f64, 1f64, can_gc),
             &DOMPoint::new(
                 global,
                 other.x + other.width,
                 other.y + other.height,
                 0f64,
                 1f64,
+                can_gc,
             ),
-            &DOMPoint::new(global, other.x, other.y + other.height, 0f64, 1f64),
+            &DOMPoint::new(global, other.x, other.y + other.height, 0f64, 1f64, can_gc),
+            can_gc,
         )
     }
 
     // https://drafts.fxtf.org/geometry/#dom-domquad-fromquad
-    pub fn FromQuad(global: &GlobalScope, other: &DOMQuadInit) -> DomRoot<DOMQuad> {
+    fn FromQuad(global: &GlobalScope, other: &DOMQuadInit, can_gc: CanGc) -> DomRoot<DOMQuad> {
         DOMQuad::new(
             global,
-            &DOMPoint::new_from_init(global, &other.p1),
-            &DOMPoint::new_from_init(global, &other.p2),
-            &DOMPoint::new_from_init(global, &other.p3),
-            &DOMPoint::new_from_init(global, &other.p4),
+            &DOMPoint::new_from_init(global, &other.p1, can_gc),
+            &DOMPoint::new_from_init(global, &other.p2, can_gc),
+            &DOMPoint::new_from_init(global, &other.p3, can_gc),
+            &DOMPoint::new_from_init(global, &other.p4, can_gc),
+            can_gc,
         )
     }
-}
 
-impl DOMQuadMethods for DOMQuad {
     // https://drafts.fxtf.org/geometry/#dom-domquad-p1
     fn P1(&self) -> DomRoot<DOMPoint> {
         DomRoot::from_ref(&self.p1)
@@ -136,32 +140,66 @@ impl DOMQuadMethods for DOMQuad {
     }
 
     // https://drafts.fxtf.org/geometry/#dom-domquad-getbounds
-    fn GetBounds(&self) -> DomRoot<DOMRect> {
-        let left = self
-            .p1
-            .X()
-            .min(self.p2.X())
-            .min(self.p3.X())
-            .min(self.p4.X());
-        let top = self
-            .p1
-            .Y()
-            .min(self.p2.Y())
-            .min(self.p3.Y())
-            .min(self.p4.Y());
-        let right = self
-            .p1
-            .X()
-            .max(self.p2.X())
-            .max(self.p3.X())
-            .max(self.p4.X());
-        let bottom = self
-            .p1
-            .Y()
-            .max(self.p2.Y())
-            .max(self.p3.Y())
-            .max(self.p4.Y());
+    fn GetBounds(&self, can_gc: CanGc) -> DomRoot<DOMRect> {
+        // https://drafts.fxtf.org/geometry/#nan-safe-minimum
+        let nan_safe_minimum = |a: f64, b: f64| {
+            if a.is_nan() || b.is_nan() {
+                f64::NAN
+            } else {
+                a.min(b)
+            }
+        };
 
-        DOMRect::new(&self.global(), left, top, right - left, bottom - top)
+        // https://drafts.fxtf.org/geometry/#nan-safe-maximum
+        let nan_safe_maximum = |a: f64, b: f64| {
+            if a.is_nan() || b.is_nan() {
+                f64::NAN
+            } else {
+                a.max(b)
+            }
+        };
+
+        // Step 1. Let bounds be a DOMRect object.
+        // NOTE: We construct the object at the end
+
+        // Step 2. Let left be the NaN-safe minimum of point 1’s x coordinate,
+        // point 2’s x coordinate, point 3’s x coordinate and point 4’s x coordinate.
+        let left = nan_safe_minimum(
+            nan_safe_minimum(self.p1.X(), self.p2.X()),
+            nan_safe_minimum(self.p3.X(), self.p4.X()),
+        );
+
+        // Step 3. Let top be the NaN-safe minimum of point 1’s y coordinate,
+        // point 2’s y coordinate, point 3’s y coordinate and point 4’s y coordinate.
+        let top = nan_safe_minimum(
+            nan_safe_minimum(self.p1.Y(), self.p2.Y()),
+            nan_safe_minimum(self.p3.Y(), self.p4.Y()),
+        );
+
+        // Step 4. Let right be the NaN-safe maximum of point 1’s x coordinate,
+        // point 2’s x coordinate, point 3’s x coordinate and point 4’s x coordinate.
+        let right = nan_safe_maximum(
+            nan_safe_maximum(self.p1.X(), self.p2.X()),
+            nan_safe_maximum(self.p3.X(), self.p4.X()),
+        );
+
+        // Step 5. Let bottom be the NaN-safe maximum of point 1’s y coordinate,
+        // point 2’s y coordinate, point 3’s y coordinate and point 4’s y coordinate.
+        let bottom = nan_safe_maximum(
+            nan_safe_maximum(self.p1.Y(), self.p2.Y()),
+            nan_safe_maximum(self.p3.Y(), self.p4.Y()),
+        );
+
+        // Step 6. Set x coordinate of bounds to left, y coordinate of bounds to top,
+        // width dimension of bounds to right - left and height dimension of bounds to bottom - top.
+        // NOTE: Combined with Step 1.
+        DOMRect::new(
+            &self.global(),
+            left,
+            top,
+            right - left,
+            bottom - top,
+            can_gc,
+        )
     }
 }

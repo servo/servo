@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use app_units::Au;
 use geom::{FlexAxis, MainStartCrossStart};
 use serde::Serialize;
 use servo_arc::Arc as ServoArc;
@@ -112,9 +113,17 @@ pub(crate) enum FlexLevelBox {
     OutOfFlowAbsolutelyPositionedBox(ArcRefCell<AbsolutelyPositionedBox>),
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Serialize)]
 pub(crate) struct FlexItemBox {
     independent_formatting_context: IndependentFormattingContext,
+    #[serde(skip)]
+    block_content_size_cache: ArcRefCell<Option<CachedBlockSizeContribution>>,
+}
+
+impl std::fmt::Debug for FlexItemBox {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("FlexItemBox")
+    }
 }
 
 impl FlexItemBox {
@@ -125,4 +134,9 @@ impl FlexItemBox {
     fn base_fragment_info(&self) -> BaseFragmentInfo {
         self.independent_formatting_context.base_fragment_info()
     }
+}
+
+struct CachedBlockSizeContribution {
+    containing_block_inline_size: Au,
+    content_block_size: Au,
 }

@@ -1,4 +1,5 @@
 // META: script=/resources/testdriver.js
+// META: script=/resources/testdriver-vendor.js
 // META: script=/common/utils.js
 // META: script=resources/ba-fledge-util.sub.js
 // META: script=resources/fledge-util.sub.js
@@ -669,10 +670,16 @@ subsetTest(promise_test, async test => {
       (ig, uuid) => {
         ig.ads[0].renderURL = createRenderURL(uuid, `
           const componentAds = window.fence.getNestedConfigs();
-          for (let config of componentAds) {
+          // Limit the number of fenced frames we try to load at once, since loading too many
+          // completely breaks some Chrome test set ups, and we only really care about 3 of them
+          // anyway.
+          //
+          // See https://crbug.com/370533823 for more context.
+          const limit = 5;
+          for (var i = 0; i < Math.min(limit, componentAds.length); ++i) {
             let fencedFrame = document.createElement("fencedframe");
             fencedFrame.mode = "opaque-ads";
-            fencedFrame.config = config;
+            fencedFrame.config = componentAds[i];
             document.body.appendChild(fencedFrame);
           }`);
         ig.adComponents = [

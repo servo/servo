@@ -17,6 +17,7 @@ use crate::dom::htmlfieldsetelement::HTMLFieldSetElement;
 use crate::dom::htmlformelement::{FormControl, HTMLFormElement};
 use crate::dom::node::{BindContext, Node, UnbindContext};
 use crate::dom::virtualmethods::VirtualMethods;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct HTMLLegendElement {
@@ -42,6 +43,7 @@ impl HTMLLegendElement {
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> DomRoot<HTMLLegendElement> {
         Node::reflect_node_with_proto(
             Box::new(HTMLLegendElement::new_inherited(
@@ -49,6 +51,7 @@ impl HTMLLegendElement {
             )),
             document,
             proto,
+            can_gc,
         )
     }
 }

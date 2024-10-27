@@ -27,7 +27,7 @@ For more detailed build instructions, see the Servo book under [Setting up your 
 
 - Install `curl` and `python`:
   - Arch: `sudo pacman -S --needed curl python python-pip`
-  - Debian, Ubuntu: `sudo apt install curl python3-pip python3-venv`
+  - Debian, Ubuntu: `sudo apt install curl python3-pip python3-venv python3-setuptools`
   - Fedora: `sudo dnf install curl python3 python3-pip python3-devel`
   - Gentoo: `sudo emerge net-misc/curl dev-python/pip`
 - Install `rustup`: `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
@@ -61,7 +61,7 @@ For more detailed build instructions, see the Servo book under [Setting up your 
 - Run the following command to install the necessary components:
   ```shell
   sudo $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --install
-   "build-tools;33.0.2" \
+   "build-tools;34.0.00 \
    "emulator" \
    "ndk;26.2.11394342" \
    "platform-tools" \

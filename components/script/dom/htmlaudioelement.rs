@@ -7,6 +7,7 @@ use html5ever::{local_name, namespace_url, ns, LocalName, Prefix, QualName};
 use js::rust::HandleObject;
 
 use crate::dom::bindings::codegen::Bindings::ElementBinding::Element_Binding::ElementMethods;
+use crate::dom::bindings::codegen::Bindings::HTMLAudioElementBinding::HTMLAudioElementMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
@@ -41,6 +42,7 @@ impl HTMLAudioElement {
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> DomRoot<HTMLAudioElement> {
         Node::reflect_node_with_proto(
             Box::new(HTMLAudioElement::new_inherited(
@@ -48,12 +50,14 @@ impl HTMLAudioElement {
             )),
             document,
             proto,
+            can_gc,
         )
     }
+}
 
+impl HTMLAudioElementMethods for HTMLAudioElement {
     // https://html.spec.whatwg.org/multipage/#dom-audio
-    #[allow(non_snake_case)]
-    pub fn Audio(
+    fn Audio(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -73,12 +77,12 @@ impl HTMLAudioElement {
 
         audio
             .upcast::<Element>()
-            .SetAttribute(DOMString::from("preload"), DOMString::from("auto"))
+            .SetAttribute(DOMString::from("preload"), DOMString::from("auto"), can_gc)
             .expect("should be infallible");
         if let Some(s) = src {
             audio
                 .upcast::<Element>()
-                .SetAttribute(DOMString::from("src"), s)
+                .SetAttribute(DOMString::from("src"), s, can_gc)
                 .expect("should be infallible");
         }
 

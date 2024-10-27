@@ -76,13 +76,10 @@
 
     const childFrameEntriesPromise = new Promise(resolve => {
       window.addEventListener("message", (event) => {
-        // testdriver-complete is a webdriver internal event
-        if (event.data.type != "testdriver-complete") {
-          t.step(() => {
-            validateChildFrameEntries(event.data);
-          });
-          resolve();
-        }
+        t.step(() => {
+          validateChildFrameEntries(event.data);
+        });
+        resolve();
       }, false);
     });
 

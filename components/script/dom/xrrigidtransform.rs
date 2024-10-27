@@ -44,8 +44,12 @@ impl XRRigidTransform {
         }
     }
 
-    pub fn new(global: &GlobalScope, transform: ApiRigidTransform) -> DomRoot<XRRigidTransform> {
-        Self::new_with_proto(global, None, transform, CanGc::note())
+    pub fn new(
+        global: &GlobalScope,
+        transform: ApiRigidTransform,
+        can_gc: CanGc,
+    ) -> DomRoot<XRRigidTransform> {
+        Self::new_with_proto(global, None, transform, can_gc)
     }
 
     fn new_with_proto(
@@ -62,14 +66,15 @@ impl XRRigidTransform {
         )
     }
 
-    pub fn identity(window: &GlobalScope) -> DomRoot<XRRigidTransform> {
+    pub fn identity(window: &GlobalScope, can_gc: CanGc) -> DomRoot<XRRigidTransform> {
         let transform = RigidTransform3D::identity();
-        XRRigidTransform::new(window, transform)
+        XRRigidTransform::new(window, transform, can_gc)
     }
+}
 
+impl XRRigidTransformMethods for XRRigidTransform {
     // https://immersive-web.github.io/webxr/#dom-xrrigidtransform-xrrigidtransform
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+    fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -124,18 +129,23 @@ impl XRRigidTransform {
             can_gc,
         ))
     }
-}
 
-impl XRRigidTransformMethods for XRRigidTransform {
     // https://immersive-web.github.io/webxr/#dom-xrrigidtransform-position
-    fn Position(&self) -> DomRoot<DOMPointReadOnly> {
+    fn Position(&self, can_gc: CanGc) -> DomRoot<DOMPointReadOnly> {
         self.position.or_init(|| {
             let t = &self.transform.translation;
-            DOMPointReadOnly::new(&self.global(), t.x.into(), t.y.into(), t.z.into(), 1.0)
+            DOMPointReadOnly::new(
+                &self.global(),
+                t.x.into(),
+                t.y.into(),
+                t.z.into(),
+                1.0,
+                can_gc,
+            )
         })
     }
     // https://immersive-web.github.io/webxr/#dom-xrrigidtransform-orientation
-    fn Orientation(&self) -> DomRoot<DOMPointReadOnly> {
+    fn Orientation(&self, can_gc: CanGc) -> DomRoot<DOMPointReadOnly> {
         self.orientation.or_init(|| {
             let r = &self.transform.rotation;
             DOMPointReadOnly::new(
@@ -144,13 +154,14 @@ impl XRRigidTransformMethods for XRRigidTransform {
                 r.j.into(),
                 r.k.into(),
                 r.r.into(),
+                can_gc,
             )
         })
     }
     // https://immersive-web.github.io/webxr/#dom-xrrigidtransform-inverse
-    fn Inverse(&self) -> DomRoot<XRRigidTransform> {
+    fn Inverse(&self, can_gc: CanGc) -> DomRoot<XRRigidTransform> {
         self.inverse.or_init(|| {
-            let transform = XRRigidTransform::new(&self.global(), self.transform.inverse());
+            let transform = XRRigidTransform::new(&self.global(), self.transform.inverse(), can_gc);
             transform.inverse.set(Some(self));
             transform
         })

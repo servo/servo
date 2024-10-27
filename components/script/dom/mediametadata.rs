@@ -37,8 +37,8 @@ impl MediaMetadata {
         }
     }
 
-    pub fn new(global: &Window, init: &MediaMetadataInit) -> DomRoot<MediaMetadata> {
-        Self::new_with_proto(global, None, init, CanGc::note())
+    pub fn new(global: &Window, init: &MediaMetadataInit, can_gc: CanGc) -> DomRoot<MediaMetadata> {
+        Self::new_with_proto(global, None, init, can_gc)
     }
 
     fn new_with_proto(
@@ -55,17 +55,6 @@ impl MediaMetadata {
         )
     }
 
-    /// <https://w3c.github.io/mediasession/#dom-mediametadata-mediametadata>
-    #[allow(non_snake_case)]
-    pub fn Constructor(
-        window: &Window,
-        proto: Option<HandleObject>,
-        can_gc: CanGc,
-        init: &MediaMetadataInit,
-    ) -> Fallible<DomRoot<MediaMetadata>> {
-        Ok(MediaMetadata::new_with_proto(window, proto, init, can_gc))
-    }
-
     fn queue_update_metadata_algorithm(&self) {
         if self.session.get().is_none() {}
     }
@@ -76,6 +65,16 @@ impl MediaMetadata {
 }
 
 impl MediaMetadataMethods for MediaMetadata {
+    /// <https://w3c.github.io/mediasession/#dom-mediametadata-mediametadata>
+    fn Constructor(
+        window: &Window,
+        proto: Option<HandleObject>,
+        can_gc: CanGc,
+        init: &MediaMetadataInit,
+    ) -> Fallible<DomRoot<MediaMetadata>> {
+        Ok(MediaMetadata::new_with_proto(window, proto, init, can_gc))
+    }
+
     /// <https://w3c.github.io/mediasession/#dom-mediametadata-title>
     fn Title(&self) -> DOMString {
         self.title.borrow().clone()

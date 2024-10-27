@@ -40,16 +40,9 @@ impl SubmitEvent {
         bubbles: bool,
         cancelable: bool,
         submitter: Option<DomRoot<HTMLElement>>,
+        can_gc: CanGc,
     ) -> DomRoot<SubmitEvent> {
-        Self::new_with_proto(
-            global,
-            None,
-            type_,
-            bubbles,
-            cancelable,
-            submitter,
-            CanGc::note(),
-        )
+        Self::new_with_proto(global, None, type_, bubbles, cancelable, submitter, can_gc)
     }
 
     fn new_with_proto(
@@ -73,9 +66,11 @@ impl SubmitEvent {
         }
         ev
     }
+}
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+impl SubmitEventMethods for SubmitEvent {
+    /// <https://html.spec.whatwg.org/multipage/#submitevent>
+    fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -92,9 +87,7 @@ impl SubmitEvent {
             can_gc,
         )
     }
-}
 
-impl SubmitEventMethods for SubmitEvent {
     /// <https://dom.spec.whatwg.org/#dom-event-istrusted>
     fn IsTrusted(&self) -> bool {
         self.event.IsTrusted()

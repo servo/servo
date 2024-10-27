@@ -26,7 +26,7 @@ use headers::{
 };
 use http::header::{self, HeaderMap, HeaderValue};
 use http::uri::Authority;
-use http::{Method, StatusCode};
+use http::{HeaderName, Method, StatusCode};
 use hyper::{Body, Request as HyperRequest, Response as HyperResponse};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
@@ -98,10 +98,10 @@ fn create_request_body_with_content(content: Vec<u8>) -> RequestBody {
     let content_len = content.len();
 
     let (chunk_request_sender, chunk_request_receiver) = ipc::channel().unwrap();
-    ROUTER.add_route(
-        chunk_request_receiver.to_opaque(),
+    ROUTER.add_typed_route(
+        chunk_request_receiver,
         Box::new(move |message| {
-            let request = message.to().unwrap();
+            let request = message.unwrap();
             if let BodyChunkRequest::Connect(sender) = request {
                 let _ = sender.send(BodyChunkResponse::Chunk(content.clone()));
                 let _ = sender.send(BodyChunkResponse::Done);
@@ -149,6 +149,24 @@ fn test_check_default_headers_loaded_in_every_request() {
 
     headers.typed_insert::<UserAgent>(crate::DEFAULT_USER_AGENT.parse().unwrap());
 
+    // Append fetch metadata headers
+    headers.insert(
+        HeaderName::from_static("sec-fetch-dest"),
+        HeaderValue::from_static("document"),
+    );
+    headers.insert(
+        HeaderName::from_static("sec-fetch-mode"),
+        HeaderValue::from_static("no-cors"),
+    );
+    headers.insert(
+        HeaderName::from_static("sec-fetch-site"),
+        HeaderValue::from_static("same-origin"),
+    );
+    headers.insert(
+        HeaderName::from_static("sec-fetch-user"),
+        HeaderValue::from_static("?1"),
+    );
+
     *expected_headers.lock().unwrap() = Some(headers.clone());
 
     // Testing for method.GET
@@ -159,7 +177,7 @@ fn test_check_default_headers_loaded_in_every_request() {
         .pipeline_id(Some(TEST_PIPELINE_ID))
         .build();
 
-    let response = fetch(&mut request, None);
+    let response = dbg!(fetch(&mut request, None));
     assert!(response
         .internal_response
         .unwrap()
@@ -280,6 +298,24 @@ fn test_request_and_response_data_with_network_messages() {
     headers.insert(
         header::ACCEPT_ENCODING,
         HeaderValue::from_static("gzip, deflate, br"),
+    );
+
+    // Append fetch metadata headers
+    headers.insert(
+        HeaderName::from_static("sec-fetch-dest"),
+        HeaderValue::from_static("document"),
+    );
+    headers.insert(
+        HeaderName::from_static("sec-fetch-mode"),
+        HeaderValue::from_static("no-cors"),
+    );
+    headers.insert(
+        HeaderName::from_static("sec-fetch-site"),
+        HeaderValue::from_static("same-site"),
+    );
+    headers.insert(
+        HeaderName::from_static("sec-fetch-user"),
+        HeaderValue::from_static("?1"),
     );
 
     let httprequest = DevtoolsHttpRequest {
@@ -1390,12 +1426,12 @@ fn test_fetch_compressed_response_update_count() {
     impl FetchTaskTarget for FetchResponseCollector {
         fn process_request_body(&mut self, _: &Request) {}
         fn process_request_eof(&mut self, _: &Request) {}
-        fn process_response(&mut self, _: &Response) {}
-        fn process_response_chunk(&mut self, _: Vec<u8>) {
+        fn process_response(&mut self, _: &Request, _: &Response) {}
+        fn process_response_chunk(&mut self, _: &Request, _: Vec<u8>) {
             self.update_count += 1;
         }
         /// Fired when the response is fully fetched
-        fn process_response_eof(&mut self, _: &Response) {
+        fn process_response_eof(&mut self, _: &Request, _: &Response) {
             let _ = self.sender.send(self.update_count);
         }
     }

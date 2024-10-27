@@ -69,8 +69,21 @@ impl PopStateEvent {
         ev
     }
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+    pub fn dispatch_jsval(
+        target: &EventTarget,
+        window: &Window,
+        state: HandleValue,
+        can_gc: CanGc,
+    ) {
+        let event =
+            PopStateEvent::new(window, None, atom!("popstate"), false, false, state, can_gc);
+        event.upcast::<Event>().fire(target, can_gc);
+    }
+}
+
+impl PopStateEventMethods for PopStateEvent {
+    // https://html.spec.whatwg.org/multipage/#popstateevent
+    fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -88,21 +101,6 @@ impl PopStateEvent {
         ))
     }
 
-    pub fn dispatch_jsval(target: &EventTarget, window: &Window, state: HandleValue) {
-        let event = PopStateEvent::new(
-            window,
-            None,
-            atom!("popstate"),
-            false,
-            false,
-            state,
-            CanGc::note(),
-        );
-        event.upcast::<Event>().fire(target);
-    }
-}
-
-impl PopStateEventMethods for PopStateEvent {
     // https://html.spec.whatwg.org/multipage/#dom-popstateevent-state
     fn State(&self, _cx: JSContext) -> JSVal {
         self.state.get()

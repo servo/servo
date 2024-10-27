@@ -51,16 +51,15 @@ beforeAllSubcases((t) => {
 fn((t) => {
   const type = kValuesTypes[t.params.type];
 
-  // We expect to fail if low >= high as it results in a DBZ
-  const expectedResult = t.params.value1 >= t.params.value2;
+  // We expect to fail if low >= high.
+  const expectedResult = t.params.value1 < t.params.value2;
 
   validateConstOrOverrideBuiltinEval(
     t,
     builtin,
     expectedResult,
     [type.create(t.params.value1), type.create(t.params.value2), type.create(0)],
-    t.params.stage,
-    /* returnType */concreteTypeOf(type, [Type.f32])
+    t.params.stage
   );
 });
 
@@ -81,6 +80,8 @@ filter((t) => {
 beginSubcases().
 expand('low', (u) => [0, 10]).
 expand('high', (u) => [0, 10])
+// in_shader: Is the function call statically accessed by the entry point?
+.combine('in_shader', [false, true])
 ).
 beforeAllSubcases((t) => {
   if (scalarTypeOf(kValuesTypes[t.params.type]) === Type.f16) {
@@ -130,7 +131,10 @@ fn foo() {
   const shader_error =
   error && t.params.lowStage === 'constant' && t.params.highStage === 'constant';
   const pipeline_error =
-  error && t.params.lowStage !== 'runtime' && t.params.highStage !== 'runtime';
+  t.params.in_shader &&
+  error &&
+  t.params.lowStage !== 'runtime' &&
+  t.params.highStage !== 'runtime';
   t.expectCompileResult(!shader_error, wgsl);
   if (!shader_error) {
     const constants = {};
@@ -140,7 +144,8 @@ fn foo() {
       expectedResult: !pipeline_error,
       code: wgsl,
       constants,
-      reference: ['o_low', 'o_high']
+      reference: ['o_low', 'o_high'],
+      statements: t.params.in_shader ? ['foo();'] : []
     });
   }
 });
@@ -159,10 +164,11 @@ beforeAllSubcases((t) => {
 }).
 fn((t) => {
   const type = kArgumentTypes[t.params.type];
+  const expectedResult = isConvertibleToFloatType(elementTypeOf(type));
   validateConstOrOverrideBuiltinEval(
     t,
     builtin,
-    /* expectedResult */isConvertibleToFloatType(elementTypeOf(type)),
+    expectedResult,
     [type.create(0), type.create(1), type.create(2)],
     'constant',
     /* returnType */concreteTypeOf(type, [Type.f32])
@@ -344,7 +350,7 @@ fn((t) => {
     t,
     builtin,
     /* expectedResult */t.params.low < t.params.high,
-    [f32(0), f32(t.params.low), f32(t.params.high)],
+    [f32(t.params.low), f32(t.params.high), f32(0)],
     t.params.stage
   );
 });

@@ -40,30 +40,21 @@ impl DocumentFragment {
         }
     }
 
-    pub fn new(document: &Document) -> DomRoot<DocumentFragment> {
-        Self::new_with_proto(document, None)
+    pub fn new(document: &Document, can_gc: CanGc) -> DomRoot<DocumentFragment> {
+        Self::new_with_proto(document, None, can_gc)
     }
 
     fn new_with_proto(
         document: &Document,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> DomRoot<DocumentFragment> {
         Node::reflect_node_with_proto(
             Box::new(DocumentFragment::new_inherited(document)),
             document,
             proto,
+            can_gc,
         )
-    }
-
-    #[allow(non_snake_case)]
-    pub fn Constructor(
-        window: &Window,
-        proto: Option<HandleObject>,
-        _can_gc: CanGc,
-    ) -> Fallible<DomRoot<DocumentFragment>> {
-        let document = window.Document();
-
-        Ok(DocumentFragment::new_with_proto(&document, proto))
     }
 
     pub fn id_map(&self) -> &DomRefCell<HashMapTracedValues<Atom, Vec<Dom<Element>>>> {
@@ -72,6 +63,17 @@ impl DocumentFragment {
 }
 
 impl DocumentFragmentMethods for DocumentFragment {
+    // https://dom.spec.whatwg.org/#dom-documentfragment-documentfragment
+    fn Constructor(
+        window: &Window,
+        proto: Option<HandleObject>,
+        can_gc: CanGc,
+    ) -> Fallible<DomRoot<DocumentFragment>> {
+        let document = window.Document();
+
+        Ok(DocumentFragment::new_with_proto(&document, proto, can_gc))
+    }
+
     // https://dom.spec.whatwg.org/#dom-parentnode-children
     fn Children(&self) -> DomRoot<HTMLCollection> {
         let window = window_from_node(self);
@@ -106,18 +108,18 @@ impl DocumentFragmentMethods for DocumentFragment {
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-prepend
-    fn Prepend(&self, nodes: Vec<NodeOrString>) -> ErrorResult {
-        self.upcast::<Node>().prepend(nodes)
+    fn Prepend(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
+        self.upcast::<Node>().prepend(nodes, can_gc)
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-append
-    fn Append(&self, nodes: Vec<NodeOrString>) -> ErrorResult {
-        self.upcast::<Node>().append(nodes)
+    fn Append(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
+        self.upcast::<Node>().append(nodes, can_gc)
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-replacechildren
-    fn ReplaceChildren(&self, nodes: Vec<NodeOrString>) -> ErrorResult {
-        self.upcast::<Node>().replace_children(nodes)
+    fn ReplaceChildren(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
+        self.upcast::<Node>().replace_children(nodes, can_gc)
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-queryselector

@@ -30,7 +30,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::permissions::{get_descriptor_permission_state, PermissionAlgorithm};
 use crate::dom::promise::Promise;
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{CanGc, JSContext};
 use crate::task::TaskOnce;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::{self, IpcSender};
@@ -110,7 +110,7 @@ struct BluetoothContext<T: AsyncBluetoothListener + DomObject> {
 }
 
 pub trait AsyncBluetoothListener {
-    fn handle_response(&self, result: BluetoothResponse, promise: &Rc<Promise>);
+    fn handle_response(&self, result: BluetoothResponse, promise: &Rc<Promise>, can_gc: CanGc);
 }
 
 impl<T> BluetoothContext<T>
@@ -118,13 +118,16 @@ where
     T: AsyncBluetoothListener + DomObject,
 {
     #[allow(crown::unrooted_must_root)]
-    fn response(&mut self, response: BluetoothResponseResult) {
+    fn response(&mut self, response: BluetoothResponseResult, can_gc: CanGc) {
         let promise = self.promise.take().expect("bt promise is missing").root();
 
         // JSAutoRealm needs to be manually made.
         // Otherwise, Servo will crash.
         match response {
-            Ok(response) => self.receiver.root().handle_response(response, &promise),
+            Ok(response) => self
+                .receiver
+                .root()
+                .handle_response(response, &promise, can_gc),
             // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetooth-requestdevice
             // Step 3 - 4.
             Err(error) => promise.reject_error(Error::from(error)),
@@ -245,8 +248,8 @@ pub fn response_async<T: AsyncBluetoothListener + DomObject + 'static>(
         promise: Some(TrustedPromise::new(promise.clone())),
         receiver: Trusted::new(receiver),
     }));
-    ROUTER.add_route(
-        action_receiver.to_opaque(),
+    ROUTER.add_typed_route(
+        action_receiver,
         Box::new(move |message| {
             struct ListenerTask<T: AsyncBluetoothListener + DomObject> {
                 context: Arc<Mutex<BluetoothContext<T>>>,
@@ -259,13 +262,13 @@ pub fn response_async<T: AsyncBluetoothListener + DomObject + 'static>(
             {
                 fn run_once(self) {
                     let mut context = self.context.lock().unwrap();
-                    context.response(self.action);
+                    context.response(self.action, CanGc::note());
                 }
             }
 
             let task = ListenerTask {
                 context: context.clone(),
-                action: message.to().unwrap(),
+                action: message.unwrap(),
             };
 
             let result = task_source.queue_unconditionally(task);
@@ -278,6 +281,7 @@ pub fn response_async<T: AsyncBluetoothListener + DomObject + 'static>(
 }
 
 // https://webbluetoothcg.github.io/web-bluetooth/#getgattchildren
+#[allow(clippy::too_many_arguments)]
 pub fn get_gatt_children<T, F>(
     attribute: &T,
     single: bool,
@@ -286,13 +290,14 @@ pub fn get_gatt_children<T, F>(
     instance_id: String,
     connected: bool,
     child_type: GATTType,
+    can_gc: CanGc,
 ) -> Rc<Promise>
 where
     T: AsyncBluetoothListener + DomObject + 'static,
     F: FnOnce(StringOrUnsignedLong) -> Fallible<UUID>,
 {
     let in_realm_proof = AlreadyInRealm::assert();
-    let p = Promise::new_in_current_realm(InRealm::Already(&in_realm_proof));
+    let p = Promise::new_in_current_realm(InRealm::Already(&in_realm_proof), can_gc);
 
     let result_uuid = if let Some(u) = uuid {
         // Step 1.
@@ -531,8 +536,13 @@ impl From<BluetoothError> for Error {
 
 impl BluetoothMethods for Bluetooth {
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetooth-requestdevice
-    fn RequestDevice(&self, option: &RequestDeviceOptions, comp: InRealm) -> Rc<Promise> {
-        let p = Promise::new_in_current_realm(comp);
+    fn RequestDevice(
+        &self,
+        option: &RequestDeviceOptions,
+        comp: InRealm,
+        can_gc: CanGc,
+    ) -> Rc<Promise> {
+        let p = Promise::new_in_current_realm(comp, can_gc);
         // Step 1.
         if (option.filters.is_some() && option.acceptAllDevices) ||
             (option.filters.is_none() && !option.acceptAllDevices)
@@ -549,8 +559,8 @@ impl BluetoothMethods for Bluetooth {
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetooth-getavailability
-    fn GetAvailability(&self, comp: InRealm) -> Rc<Promise> {
-        let p = Promise::new_in_current_realm(comp);
+    fn GetAvailability(&self, comp: InRealm, can_gc: CanGc) -> Rc<Promise> {
+        let p = Promise::new_in_current_realm(comp, can_gc);
         // Step 1. We did not override the method
         // Step 2 - 3. in handle_response
         let sender = response_async(&p, self);
@@ -569,7 +579,7 @@ impl BluetoothMethods for Bluetooth {
 }
 
 impl AsyncBluetoothListener for Bluetooth {
-    fn handle_response(&self, response: BluetoothResponse, promise: &Rc<Promise>) {
+    fn handle_response(&self, response: BluetoothResponse, promise: &Rc<Promise>, _can_gc: CanGc) {
         match response {
             // https://webbluetoothcg.github.io/web-bluetooth/#request-bluetooth-devices
             // Step 11, 13 - 14.
@@ -746,6 +756,7 @@ impl PermissionAlgorithm for Bluetooth {
     fn permission_revoke(
         _descriptor: &BluetoothPermissionDescriptor,
         status: &BluetoothPermissionResult,
+        can_gc: CanGc,
     ) {
         // Step 1.
         let global = status.global();
@@ -768,7 +779,7 @@ impl PermissionAlgorithm for Bluetooth {
                 continue;
             }
             // Step 2.2 - 2.4
-            let _ = device.get_gatt().Disconnect();
+            let _ = device.get_gatt().Disconnect(can_gc);
         }
     }
 }

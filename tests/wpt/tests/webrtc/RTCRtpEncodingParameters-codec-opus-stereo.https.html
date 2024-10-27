@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>RTCRtpEncodingParameters codec opus stereo</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+'use strict';
+
+const kNumChannelsMono = 1;
+const kNumChannelsStereo = 2;
+const kAudioProcessingEnabled = true;
+const kAudioProcessingDisabled = false;
+
+// In some implementations (e.g. Chrome), whether or not audio processing is
+// used may affect the number of channels we get.
+// To isolate this factor from the test, we constrain both channels and APM.
+function getAudioConstraints(numChannels, audioProcessing) {
+  return {
+    channelCount: {exact: numChannels},
+    autoGainControl: audioProcessing,
+    echoCancellation: audioProcessing,
+    noiseSuppression: audioProcessing
+  };
+}
+
+// Polls getSettings() until `channelCount` is known.
+// Remote tracks don't populate their `channelCount` until media is received.
+async function pollChannelCount(t, track) {
+  while (true) {
+    if (track.getSettings().channelCount != undefined) {
+      break;
+    }
+    await new Promise(r => t.step_timeout(r, 50));
+  }
+  return track.getSettings().channelCount;
+}
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+  pc1.onicecandidate = e => pc2.addIceCandidate(e.candidate);
+  pc2.onicecandidate = e => pc1.addIceCandidate(e.candidate);
+
+  // Open microphone as mono.
+  const stream = await navigator.mediaDevices.getUserMedia(
+      {audio: getAudioConstraints(kNumChannelsMono, kAudioProcessingEnabled)});
+  const [track] = stream.getTracks();
+  t.add_cleanup(() => track.stop());
+  // Prerequisite of the test.
+  assert_equals(track.getSettings().channelCount, 1,
+                'Can open track in mono');
+
+  // Negotiate opus.
+  const transceiver = pc1.addTransceiver(track);
+  transceiver.setCodecPreferences(
+      RTCRtpSender.getCapabilities('audio').codecs.filter(
+          codec => codec.mimeType == 'audio/opus'));
+  await pc1.setLocalDescription();
+  await pc2.setRemoteDescription(pc1.localDescription);
+  await pc2.setLocalDescription();
+  await pc1.setRemoteDescription(pc2.localDescription);
+
+  const [receiver] = pc2.getReceivers();
+  const remoteTrack = receiver.track;
+  // Attaching the track to an audio element is needed for media to flow,
+  // otherwise the `channelCount` is never known.
+  const audio = document.createElement('audio');
+  audio.srcObject = new MediaStream();
+  audio.srcObject.addTrack(remoteTrack);
+  assert_equals(await pollChannelCount(t, remoteTrack), 1,
+                'Remote track is also mono');
+}, 'Sending and receiving a mono track with opus');
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+  pc1.onicecandidate = e => pc2.addIceCandidate(e.candidate);
+  pc2.onicecandidate = e => pc1.addIceCandidate(e.candidate);
+
+  // Open microphone as stereo.
+  const stream = await navigator.mediaDevices.getUserMedia(
+    {audio: getAudioConstraints(kNumChannelsStereo, kAudioProcessingDisabled)});
+  const [track] = stream.getTracks();
+  t.add_cleanup(() => track.stop());
+  // Prerequisite of the test.
+  assert_equals(track.getSettings().channelCount, 2,
+                'Can open track in stereo');
+
+  // Negotiate opus.
+  const transceiver = pc1.addTransceiver(track);
+  transceiver.setCodecPreferences(
+      RTCRtpSender.getCapabilities('audio').codecs.filter(
+          codec => codec.mimeType == 'audio/opus'));
+  await pc1.setLocalDescription();
+  await pc2.setRemoteDescription(pc1.localDescription);
+  await pc2.setLocalDescription();
+  await pc1.setRemoteDescription(pc2.localDescription);
+
+  const [receiver] = pc2.getReceivers();
+  const remoteTrack = receiver.track;
+  // Attaching the track to an audio element is needed for media to flow,
+  // otherwise the `channelCount` is never known.
+  const audio = document.createElement('audio');
+  audio.srcObject = new MediaStream();
+  audio.srcObject.addTrack(remoteTrack);
+  assert_equals(await pollChannelCount(t, remoteTrack), 2,
+                'Remote track is also stereo');
+}, 'Sending and receiving a stereo track with opus');
+</script>

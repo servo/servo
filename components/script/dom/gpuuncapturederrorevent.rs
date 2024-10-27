@@ -37,8 +37,9 @@ impl GPUUncapturedErrorEvent {
         global: &GlobalScope,
         type_: DOMString,
         init: &GPUUncapturedErrorEventInit,
+        can_gc: CanGc,
     ) -> DomRoot<Self> {
-        Self::new_with_proto(global, None, type_, init, CanGc::note())
+        Self::new_with_proto(global, None, type_, init, can_gc)
     }
 
     fn new_with_proto(
@@ -62,9 +63,14 @@ impl GPUUncapturedErrorEvent {
         ev
     }
 
+    pub fn event(&self) -> &Event {
+        &self.event
+    }
+}
+
+impl GPUUncapturedErrorEventMethods for GPUUncapturedErrorEvent {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuuncapturederrorevent-gpuuncapturederrorevent>
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+    fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -73,15 +79,7 @@ impl GPUUncapturedErrorEvent {
     ) -> DomRoot<Self> {
         GPUUncapturedErrorEvent::new_with_proto(global, proto, type_, init, can_gc)
     }
-}
 
-impl GPUUncapturedErrorEvent {
-    pub fn event(&self) -> &Event {
-        &self.event
-    }
-}
-
-impl GPUUncapturedErrorEventMethods for GPUUncapturedErrorEvent {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuuncapturederrorevent-error>
     fn Error(&self) -> DomRoot<GPUError> {
         DomRoot::from_ref(&self.gpu_error)

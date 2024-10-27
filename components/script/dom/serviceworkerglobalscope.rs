@@ -45,8 +45,7 @@ use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::fetch::load_whole_resource;
 use crate::realms::{enter_realm, AlreadyInRealm, InRealm};
 use crate::script_runtime::{
-    new_rt_and_cx, CanGc, CommonScriptMsg, ContextForRequestInterrupt, JSContext as SafeJSContext,
-    Runtime, ScriptChan,
+    CanGc, CommonScriptMsg, JSContext as SafeJSContext, Runtime, ScriptChan, ThreadSafeJSContext,
 };
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
 use crate::task_source::TaskSourceName;
@@ -192,8 +191,8 @@ impl WorkerEventLoopMethods for ServiceWorkerGlobalScope {
         &self.task_queue
     }
 
-    fn handle_event(&self, event: MixedMessage) -> bool {
-        self.handle_mixed_message(event)
+    fn handle_event(&self, event: MixedMessage, can_gc: CanGc) -> bool {
+        self.handle_mixed_message(event, can_gc)
     }
 
     fn handle_worker_post_event(&self, _worker: &TrustedWorkerAddress) -> Option<AutoWorkerReset> {
@@ -241,7 +240,7 @@ impl ServiceWorkerGlobalScope {
                 runtime,
                 from_devtools_receiver,
                 closing,
-                Arc::new(IdentityHub::new()),
+                Arc::new(IdentityHub::default()),
             ),
             task_queue: TaskQueue::new(receiver, own_sender.clone()),
             own_sender,
@@ -293,9 +292,8 @@ impl ServiceWorkerGlobalScope {
         swmanager_sender: IpcSender<ServiceWorkerMsg>,
         scope_url: ServoUrl,
         control_receiver: Receiver<ServiceWorkerControlMsg>,
-        context_sender: Sender<ContextForRequestInterrupt>,
+        context_sender: Sender<ThreadSafeJSContext>,
         closing: Arc<AtomicBool>,
-        can_gc: CanGc,
     ) -> JoinHandle<()> {
         let ScopeThings {
             script_url,
@@ -310,9 +308,9 @@ impl ServiceWorkerGlobalScope {
             .name(format!("SW:{}", script_url.debug_compact()))
             .spawn(move || {
                 thread_state::initialize(ThreadState::SCRIPT | ThreadState::IN_WORKER);
-                let runtime = new_rt_and_cx(None);
-                let context_for_interrupt = ContextForRequestInterrupt::new(runtime.cx());
-                let _ = context_sender.send(context_for_interrupt.clone());
+                let runtime = Runtime::new(None);
+                let context_for_interrupt = runtime.thread_safe_js_context();
+                let _ = context_sender.send(context_for_interrupt);
 
                 let roots = RootCollection::new();
                 let _stack_roots = ThreadLocalStackRoots::new(&roots);
@@ -362,17 +360,21 @@ impl ServiceWorkerGlobalScope {
                     .referrer_policy(referrer_policy)
                     .origin(origin);
 
-                let (_url, source) =
-                    match load_whole_resource(request, &resource_threads_sender, global.upcast()) {
-                        Err(_) => {
-                            println!("error loading script {}", serialized_worker_url);
-                            scope.clear_js_runtime(context_for_interrupt);
-                            return;
-                        },
-                        Ok((metadata, bytes)) => {
-                            (metadata.final_url, String::from_utf8(bytes).unwrap())
-                        },
-                    };
+                let (_url, source) = match load_whole_resource(
+                    request,
+                    &resource_threads_sender,
+                    global.upcast(),
+                    CanGc::note(),
+                ) {
+                    Err(_) => {
+                        println!("error loading script {}", serialized_worker_url);
+                        scope.clear_js_runtime();
+                        return;
+                    },
+                    Ok((metadata, bytes)) => {
+                        (metadata.final_url, String::from_utf8(bytes).unwrap())
+                    },
+                };
 
                 unsafe {
                     // Handle interrupt requests
@@ -382,10 +384,10 @@ impl ServiceWorkerGlobalScope {
                 {
                     // TODO: use AutoWorkerReset as in dedicated worker?
                     let _ac = enter_realm(scope);
-                    scope.execute_script(DOMString::from(source));
+                    scope.execute_script(DOMString::from(source), CanGc::note());
                 }
 
-                global.dispatch_activate();
+                global.dispatch_activate(CanGc::note());
                 let reporter_name = format!("service-worker-reporter-{}", random::<u64>());
                 scope
                     .upcast::<GlobalScope>()
@@ -399,7 +401,7 @@ impl ServiceWorkerGlobalScope {
                             // which happens after the closing flag is set to true,
                             // or until the worker has run beyond its allocated time.
                             while !scope.is_closing() && !global.has_timed_out() {
-                                run_worker_event_loop(&*global, None, can_gc);
+                                run_worker_event_loop(&*global, None, CanGc::note());
                             }
                         },
                         reporter_name,
@@ -407,16 +409,16 @@ impl ServiceWorkerGlobalScope {
                         CommonScriptMsg::CollectReports,
                     );
 
-                scope.clear_js_runtime(context_for_interrupt);
+                scope.clear_js_runtime();
             })
             .expect("Thread spawning failed")
     }
 
-    fn handle_mixed_message(&self, msg: MixedMessage) -> bool {
+    fn handle_mixed_message(&self, msg: MixedMessage, can_gc: CanGc) -> bool {
         match msg {
             MixedMessage::Devtools(msg) => match msg {
                 DevtoolScriptControlMsg::EvaluateJS(_pipe_id, string, sender) => {
-                    devtools::handle_evaluate_js(self.upcast(), string, sender)
+                    devtools::handle_evaluate_js(self.upcast(), string, sender, can_gc)
                 },
                 DevtoolScriptControlMsg::WantsLiveNotifications(_pipe_id, bool_val) => {
                     devtools::handle_wants_live_notifications(self.upcast(), bool_val)
@@ -424,7 +426,7 @@ impl ServiceWorkerGlobalScope {
                 _ => debug!("got an unusable devtools control message inside the worker!"),
             },
             MixedMessage::ServiceWorker(msg) => {
-                self.handle_script_event(msg);
+                self.handle_script_event(msg, can_gc);
             },
             MixedMessage::Control(ServiceWorkerControlMsg::Exit) => {
                 return false;
@@ -438,7 +440,7 @@ impl ServiceWorkerGlobalScope {
         false
     }
 
-    fn handle_script_event(&self, msg: ServiceWorkerScriptMsg) {
+    fn handle_script_event(&self, msg: ServiceWorkerScriptMsg, can_gc: CanGc) {
         use self::ServiceWorkerScriptMsg::*;
 
         match msg {
@@ -454,9 +456,10 @@ impl ServiceWorkerGlobalScope {
                         scope.upcast(),
                         message.handle(),
                         ports,
+                        can_gc,
                     );
                 } else {
-                    ExtendableMessageEvent::dispatch_error(target, scope.upcast());
+                    ExtendableMessageEvent::dispatch_error(target, scope.upcast(), can_gc);
                 }
             },
             CommonWorker(WorkerScriptMsg::Common(msg)) => {
@@ -466,7 +469,8 @@ impl ServiceWorkerGlobalScope {
                 // TODO XXXcreativcoder This will eventually use a FetchEvent interface to fire event
                 // when we have the Request and Response dom api's implemented
                 // https://w3c.github.io/ServiceWorker/#fetchevent-interface
-                self.upcast::<EventTarget>().fire_event(atom!("fetch"));
+                self.upcast::<EventTarget>()
+                    .fire_event(atom!("fetch"), can_gc);
                 let _ = mediator.response_chan.send(None);
             },
             WakeUp => {},
@@ -479,10 +483,10 @@ impl ServiceWorkerGlobalScope {
         })
     }
 
-    fn dispatch_activate(&self) {
-        let event = ExtendableEvent::new(self, atom!("activate"), false, false);
+    fn dispatch_activate(&self, can_gc: CanGc) {
+        let event = ExtendableEvent::new(self, atom!("activate"), false, false, can_gc);
         let event = (*event).upcast::<Event>();
-        self.upcast::<EventTarget>().dispatch_event(event);
+        self.upcast::<EventTarget>().dispatch_event(event, can_gc);
     }
 }
 

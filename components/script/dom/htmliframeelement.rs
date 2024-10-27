@@ -159,7 +159,7 @@ impl HTMLIFrameElement {
                 // TODO: check according to https://w3c.github.io/webappsec-csp/#should-block-navigation-request
                 if ScriptThread::check_load_origin(&load_data.load_origin, &document.url().origin())
                 {
-                    ScriptThread::eval_js_url(&window_proxy.global(), &mut load_data);
+                    ScriptThread::eval_js_url(&window_proxy.global(), &mut load_data, can_gc);
                 }
             }
         }
@@ -193,7 +193,7 @@ impl HTMLIFrameElement {
 
         let window_size = WindowSizeData {
             initial_viewport: window
-                .inner_window_dimensions_query(browsing_context_id)
+                .inner_window_dimensions_query(browsing_context_id, can_gc)
                 .unwrap_or_default(),
             device_pixel_ratio: window.device_pixel_ratio(),
         };
@@ -351,7 +351,7 @@ impl HTMLIFrameElement {
         } else {
             HistoryEntryReplacement::Disabled
         };
-        self.navigate_or_reload_child_browsing_context(load_data, replace, CanGc::note());
+        self.navigate_or_reload_child_browsing_context(load_data, replace, can_gc);
     }
 
     fn create_nested_browsing_context(&self, can_gc: CanGc) {
@@ -456,6 +456,7 @@ impl HTMLIFrameElement {
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> DomRoot<HTMLIFrameElement> {
         Node::reflect_node_with_proto(
             Box::new(HTMLIFrameElement::new_inherited(
@@ -463,6 +464,7 @@ impl HTMLIFrameElement {
             )),
             document,
             proto,
+            can_gc,
         )
     }
 
@@ -502,7 +504,8 @@ impl HTMLIFrameElement {
         // TODO Step 3 - set child document  `mut iframe load` flag
 
         // Step 4
-        self.upcast::<EventTarget>().fire_event(atom!("load"));
+        self.upcast::<EventTarget>()
+            .fire_event(atom!("load"), can_gc);
 
         let mut blocker = self.load_blocker.borrow_mut();
         LoadBlocker::terminate(&mut blocker, can_gc);

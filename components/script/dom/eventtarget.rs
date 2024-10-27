@@ -58,6 +58,7 @@ use crate::realms::{enter_realm, InRealm};
 use crate::script_runtime::CanGc;
 
 #[derive(Clone, JSTraceable, MallocSizeOf, PartialEq)]
+#[allow(clippy::enum_variant_names)]
 pub enum CommonEventHandler {
     EventHandler(#[ignore_malloc_size_of = "Rc"] Rc<EventHandlerNonNull>),
 
@@ -107,11 +108,12 @@ impl InlineEventListener {
         &mut self,
         owner: &EventTarget,
         ty: &Atom,
+        can_gc: CanGc,
     ) -> Option<CommonEventHandler> {
         match mem::replace(self, InlineEventListener::Null) {
             InlineEventListener::Null => None,
             InlineEventListener::Uncompiled(handler) => {
-                let result = owner.get_compiled_event_handler(handler, ty);
+                let result = owner.get_compiled_event_handler(handler, ty, can_gc);
                 if let Some(ref compiled) = result {
                     *self = InlineEventListener::Compiled(compiled.clone());
                 }
@@ -136,10 +138,11 @@ impl EventListenerType {
         &mut self,
         owner: &EventTarget,
         ty: &Atom,
+        can_gc: CanGc,
     ) -> Option<CompiledEventListener> {
         match *self {
             EventListenerType::Inline(ref mut inline) => inline
-                .get_compiled_handler(owner, ty)
+                .get_compiled_handler(owner, ty, can_gc)
                 .map(CompiledEventListener::Handler),
             EventListenerType::Additive(ref listener) => {
                 Some(CompiledEventListener::Listener(listener.clone()))
@@ -308,11 +311,12 @@ impl EventListeners {
         &mut self,
         owner: &EventTarget,
         ty: &Atom,
+        can_gc: CanGc,
     ) -> Option<CommonEventHandler> {
         for entry in &mut self.0 {
             if let EventListenerType::Inline(ref mut inline) = entry.listener {
                 // Step 1.1-1.8 and Step 2
-                return inline.get_compiled_handler(owner, ty);
+                return inline.get_compiled_handler(owner, ty, can_gc);
             }
         }
 
@@ -326,13 +330,14 @@ impl EventListeners {
         phase: Option<ListenerPhase>,
         owner: &EventTarget,
         ty: &Atom,
+        can_gc: CanGc,
     ) -> Vec<CompiledEventListener> {
         self.0
             .iter_mut()
             .filter_map(|entry| {
                 if phase.is_none() || Some(entry.phase) == phase {
                     // Step 1.1-1.8, 2
-                    entry.listener.get_compiled_listener(owner, ty)
+                    entry.listener.get_compiled_listener(owner, ty, can_gc)
                 } else {
                     None
                 }
@@ -374,15 +379,6 @@ impl EventTarget {
         )
     }
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
-        global: &GlobalScope,
-        proto: Option<HandleObject>,
-        can_gc: CanGc,
-    ) -> Fallible<DomRoot<EventTarget>> {
-        Ok(EventTarget::new(global, proto, can_gc))
-    }
-
     /// Determine if there are any listeners for a given event type.
     /// See <https://github.com/whatwg/dom/issues/453>.
     pub fn has_listeners_for(&self, type_: &Atom) -> bool {
@@ -396,17 +392,18 @@ impl EventTarget {
         &self,
         type_: &Atom,
         specific_phase: Option<ListenerPhase>,
+        can_gc: CanGc,
     ) -> Vec<CompiledEventListener> {
         self.handlers
             .borrow_mut()
             .get_mut(type_)
             .map_or(vec![], |listeners| {
-                listeners.get_listeners(specific_phase, self, type_)
+                listeners.get_listeners(specific_phase, self, type_, can_gc)
             })
     }
 
-    pub fn dispatch_event(&self, event: &Event) -> EventStatus {
-        event.dispatch(self, false)
+    pub fn dispatch_event(&self, event: &Event, can_gc: CanGc) -> EventStatus {
+        event.dispatch(self, false, can_gc)
     }
 
     pub fn remove_all_listeners(&self) {
@@ -457,11 +454,11 @@ impl EventTarget {
         }
     }
 
-    fn get_inline_event_listener(&self, ty: &Atom) -> Option<CommonEventHandler> {
+    fn get_inline_event_listener(&self, ty: &Atom, can_gc: CanGc) -> Option<CommonEventHandler> {
         let mut handlers = self.handlers.borrow_mut();
         handlers
             .get_mut(ty)
-            .and_then(|entry| entry.get_inline_listener(self, ty))
+            .and_then(|entry| entry.get_inline_listener(self, ty, can_gc))
     }
 
     /// Store the raw uncompiled event handler for on-demand compilation later.
@@ -482,11 +479,14 @@ impl EventTarget {
 
     // https://html.spec.whatwg.org/multipage/#getting-the-current-value-of-the-event-handler
     // step 3
+    // While the CanGc argument appears unused, it reflects the fact that the CompileFunction
+    // API call can trigger a GC operation.
     #[allow(unsafe_code)]
     fn get_compiled_event_handler(
         &self,
         handler: InternalRawUncompiledHandler,
         ty: &Atom,
+        can_gc: CanGc,
     ) -> Option<CommonEventHandler> {
         // Step 3.1
         let element = self.downcast::<Element>();
@@ -568,7 +568,7 @@ impl EventTarget {
             unsafe {
                 let ar = enter_realm(self);
                 // FIXME(#13152): dispatch error event.
-                report_pending_exception(*cx, false, InRealm::Entered(&ar));
+                report_pending_exception(*cx, false, InRealm::Entered(&ar), can_gc);
             }
             return None;
         }
@@ -641,9 +641,13 @@ impl EventTarget {
     }
 
     #[allow(unsafe_code)]
-    pub fn get_event_handler_common<T: CallbackContainer>(&self, ty: &str) -> Option<Rc<T>> {
+    pub fn get_event_handler_common<T: CallbackContainer>(
+        &self,
+        ty: &str,
+        can_gc: CanGc,
+    ) -> Option<Rc<T>> {
         let cx = GlobalScope::get_cx();
-        let listener = self.get_inline_event_listener(&Atom::from(ty));
+        let listener = self.get_inline_event_listener(&Atom::from(ty), can_gc);
         unsafe {
             listener.map(|listener| {
                 CallbackContainer::new(cx, listener.parent().callback_holder().get())
@@ -656,31 +660,43 @@ impl EventTarget {
     }
 
     // https://dom.spec.whatwg.org/#concept-event-fire
-    pub fn fire_event(&self, name: Atom) -> DomRoot<Event> {
+    pub fn fire_event(&self, name: Atom, can_gc: CanGc) -> DomRoot<Event> {
         self.fire_event_with_params(
             name,
             EventBubbles::DoesNotBubble,
             EventCancelable::NotCancelable,
+            can_gc,
         )
     }
 
     // https://dom.spec.whatwg.org/#concept-event-fire
-    pub fn fire_bubbling_event(&self, name: Atom) -> DomRoot<Event> {
-        self.fire_event_with_params(name, EventBubbles::Bubbles, EventCancelable::NotCancelable)
+    pub fn fire_bubbling_event(&self, name: Atom, can_gc: CanGc) -> DomRoot<Event> {
+        self.fire_event_with_params(
+            name,
+            EventBubbles::Bubbles,
+            EventCancelable::NotCancelable,
+            can_gc,
+        )
     }
 
     // https://dom.spec.whatwg.org/#concept-event-fire
-    pub fn fire_cancelable_event(&self, name: Atom) -> DomRoot<Event> {
+    pub fn fire_cancelable_event(&self, name: Atom, can_gc: CanGc) -> DomRoot<Event> {
         self.fire_event_with_params(
             name,
             EventBubbles::DoesNotBubble,
             EventCancelable::Cancelable,
+            can_gc,
         )
     }
 
     // https://dom.spec.whatwg.org/#concept-event-fire
-    pub fn fire_bubbling_cancelable_event(&self, name: Atom) -> DomRoot<Event> {
-        self.fire_event_with_params(name, EventBubbles::Bubbles, EventCancelable::Cancelable)
+    pub fn fire_bubbling_cancelable_event(&self, name: Atom, can_gc: CanGc) -> DomRoot<Event> {
+        self.fire_event_with_params(
+            name,
+            EventBubbles::Bubbles,
+            EventCancelable::Cancelable,
+            can_gc,
+        )
     }
 
     // https://dom.spec.whatwg.org/#concept-event-fire
@@ -689,9 +705,10 @@ impl EventTarget {
         name: Atom,
         bubbles: EventBubbles,
         cancelable: EventCancelable,
+        can_gc: CanGc,
     ) -> DomRoot<Event> {
-        let event = Event::new(&self.global(), name, bubbles, cancelable);
-        event.fire(self);
+        let event = Event::new(&self.global(), name, bubbles, cancelable, can_gc);
+        event.fire(self, can_gc);
         event
     }
     // https://dom.spec.whatwg.org/#dom-eventtarget-addeventlistener
@@ -757,6 +774,15 @@ impl EventTarget {
 }
 
 impl EventTargetMethods for EventTarget {
+    // https://dom.spec.whatwg.org/#dom-eventtarget-eventtarget
+    fn Constructor(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        can_gc: CanGc,
+    ) -> Fallible<DomRoot<EventTarget>> {
+        Ok(EventTarget::new(global, proto, can_gc))
+    }
+
     // https://dom.spec.whatwg.org/#dom-eventtarget-addeventlistener
     fn AddEventListener(
         &self,
@@ -778,12 +804,12 @@ impl EventTargetMethods for EventTarget {
     }
 
     // https://dom.spec.whatwg.org/#dom-eventtarget-dispatchevent
-    fn DispatchEvent(&self, event: &Event) -> Fallible<bool> {
+    fn DispatchEvent(&self, event: &Event, can_gc: CanGc) -> Fallible<bool> {
         if event.dispatching() || !event.initialized() {
             return Err(Error::InvalidState);
         }
         event.set_trusted(false);
-        Ok(match self.dispatch_event(event) {
+        Ok(match self.dispatch_event(event, can_gc) {
             EventStatus::Canceled => false,
             EventStatus::NotCanceled => true,
         })

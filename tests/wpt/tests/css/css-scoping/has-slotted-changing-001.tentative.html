@@ -1,0 +1,89 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>Changing content targetting :has-slotted through a single shadow root</title>
+  <link rel="help" href="https://github.com/w3c/csswg-drafts/pull/10586">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+</head>
+
+<body>
+
+  <div id="test"><template shadowrootmode="open">
+    <slot></slot>
+    <p id="target">This text will be styled.</p>
+    <style>
+      p {
+        color: rgb(0 255 0);
+      }
+      slot:not(:has-slotted) + p {
+        color: rgb(0 0 255);
+      }
+    </style>
+  </template></div>
+
+  <script>
+    const blue = 'rgb(0, 0, 255)';
+    const green = 'rgb(0, 255, 0)';
+    test(function (t) {
+      const test = document.getElementById('test');
+      const target = test.shadowRoot.getElementById('target');
+      t.add_cleanup(() => { test.innerHTML = '' });
+      let styles = getComputedStyle(target);
+      assert_equals(styles.getPropertyValue('color'), blue);
+    }, "empty node is blue");
+
+    test(function (t) {
+      const test = document.getElementById('test');
+      const target = test.shadowRoot.getElementById('target');
+      test.innerHTML = ' ';
+      t.add_cleanup(() => { test.innerHTML = '' });
+      styles = getComputedStyle(target);
+      assert_equals(styles.getPropertyValue('color'), green);
+      test.innerHTML = '';
+      styles = getComputedStyle(target);
+      assert_equals(styles.getPropertyValue('color'), blue);
+    }, "setting innerHTML to whitespace invalidates and becomes green, then empty string becomes blue");
+
+    test(function (t) {
+      const test = document.getElementById('test');
+      const target = test.shadowRoot.getElementById('target');
+      test.replaceChildren(document.createElement('div'));
+      assert_equals(styles.getPropertyValue('color'), green);
+      test.replaceChildren();
+      styles = getComputedStyle(target);
+      assert_equals(styles.getPropertyValue('color'), blue);
+    }, "calling replaceChildren invalidates and becomes green, emptying with replaceChildren becomes blue");
+
+    test(function (t) {
+      const test = document.getElementById('test');
+      const target = test.shadowRoot.getElementById('target');
+      const div = document.createElement('div');
+      test.innerHTML = '';
+      test.append(div);
+      t.add_cleanup(() => { test.innerHTML = '' });
+      styles = getComputedStyle(target);
+      assert_equals(styles.getPropertyValue('color'), green);
+    }, "calling append invalidates and becomes green");
+
+    test(function (t) {
+      const test = document.getElementById('test');
+      const target = test.shadowRoot.getElementById('target');
+      const node = document.createTextNode(' ');
+      test.replaceChildren(node);
+      t.add_cleanup(() => { test.innerHTML = '' });
+      styles = getComputedStyle(target);
+      assert_equals(styles.getPropertyValue('color'), green);
+      test.replaceChildren();
+      styles = getComputedStyle(target);
+      assert_equals(styles.getPropertyValue('color'), blue);
+    }, "calling replaceChildren(textnode) invalidates and becomes green");
+  </script>
+</body>
+
+</html>

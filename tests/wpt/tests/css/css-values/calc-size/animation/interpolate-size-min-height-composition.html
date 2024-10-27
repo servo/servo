@@ -40,24 +40,24 @@ test_composition({
   addFrom: '100px',
   addTo: '200px',
 }, [
-  {at: -0.3, expect: 'calc-size(fit-content, 70px + size * 1)'},
-  {at: 0, expect: 'calc-size(fit-content, 100px + size * 1)'},
-  {at: 0.5, expect: 'calc-size(fit-content, 150px + size * 1)'},
-  {at: 1, expect: 'calc-size(fit-content, 200px + size * 1)'},
-  {at: 1.5, expect: 'calc-size(fit-content, 250px + size * 1)'},
+  {at: -0.3, expect: 'calc-size(fit-content, (100px + size) * 1.3 + (200px + size) * -0.3)'},
+  {at: 0, expect: 'calc-size(fit-content, (100px + size) * 1 + (200px + size) * 0)'},
+  {at: 0.5, expect: 'calc-size(fit-content, (100px + size) * 0.5 + (200px + size) * 0.5)'},
+  {at: 1, expect: 'calc-size(fit-content, (100px + size) * 0 + (200px + size) * 1)'},
+  {at: 1.5, expect: 'calc-size(fit-content, (100px + size) * -0.5 + (200px + size) * 1.5)'},
 ]);
 
 test_composition({
   property: 'min-height',
-  underlying: 'fit-content', /* ignored because the keywords aren't compatible */
+  underlying: 'fit-content',
   addFrom: '200px',
   addTo: 'min-content', /* 50px */
 }, [
-  {at: -0.3, expect: 'calc-size(min-content, 260px + size * -0.3)'},
-  {at: 0, expect: 'calc-size(min-content, 200px + size * 0)'},
-  {at: 0.5, expect: 'calc-size(min-content, 100px + size * 0.5)'},
-  {at: 1, expect: 'calc-size(min-content, 0px + size * 1)'},
-  {at: 1.5, expect: 'calc-size(min-content, -100px + size * 1.5)'},
+  {at: -0.3, expect: 'calc-size(fit-content, 200px + size)'},
+  {at: 0, expect: 'calc-size(fit-content, 200px + size)'},
+  {at: 0.5, expect: 'min-content'},
+  {at: 1, expect: 'min-content'},
+  {at: 1.5, expect: 'min-content'},
 ]);
 </script>
 </body>

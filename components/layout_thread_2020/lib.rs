@@ -88,11 +88,10 @@ use style::values::computed::{CSSPixelLength, FontSize, Length, NonNegativeLengt
 use style::values::specified::font::KeywordInfo;
 use style::{driver, Zero};
 use style_traits::{CSSPixel, DevicePixel, SpeculativePainter};
-use tracing::{span, Level};
 use url::Url;
 use webrender_api::units::LayoutPixel;
 use webrender_api::{units, ExternalScrollId, HitTestFlags};
-use webrender_traits::WebRenderScriptApi;
+use webrender_traits::CrossProcessCompositorApi;
 
 /// Information needed by layout.
 pub struct LayoutThread {
@@ -151,8 +150,8 @@ pub struct LayoutThread {
     /// The executors for paint worklets.
     registered_painters: RegisteredPaintersImpl,
 
-    /// Webrender interface.
-    webrender_api: WebRenderScriptApi,
+    /// Cross-process access to the Compositor API.
+    compositor_api: CrossProcessCompositorApi,
 
     /// Paint time metrics.
     paint_time_metrics: PaintTimeMetrics,
@@ -179,7 +178,7 @@ impl LayoutFactory for LayoutFactoryImpl {
             config.resource_threads,
             config.system_font_service,
             config.time_profiler_chan,
-            config.webrender_api_sender,
+            config.compositor_api,
             config.paint_time_metrics,
             config.window_size,
         ))
@@ -228,7 +227,7 @@ impl Drop for LayoutThread {
         let (keys, instance_keys) = self
             .font_context
             .collect_unused_webrender_resources(true /* all */);
-        self.webrender_api
+        self.compositor_api
             .remove_unused_font_resources(keys, instance_keys)
     }
 }
@@ -254,7 +253,10 @@ impl Layout for LayoutThread {
         );
     }
 
-    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
+    #[cfg_attr(
+        feature = "tracing",
+        tracing::instrument(skip_all, fields(servo_profiling = true))
+    )]
     fn add_stylesheet(
         &mut self,
         stylesheet: ServoArc<Stylesheet>,
@@ -274,7 +276,10 @@ impl Layout for LayoutThread {
         }
     }
 
-    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
+    #[cfg_attr(
+        feature = "tracing",
+        tracing::instrument(skip_all, fields(servo_profiling = true))
+    )]
     fn remove_stylesheet(&mut self, stylesheet: ServoArc<Stylesheet>) {
         let guard = stylesheet.shared_lock.read();
         let stylesheet = DocumentStyleSheet(stylesheet.clone());
@@ -283,22 +288,34 @@ impl Layout for LayoutThread {
             .remove_all_web_fonts_from_stylesheet(&stylesheet);
     }
 
-    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
+    #[cfg_attr(
+        feature = "tracing",
+        tracing::instrument(skip_all, fields(servo_profiling = true))
+    )]
     fn query_content_box(&self, node: OpaqueNode) -> Option<UntypedRect<Au>> {
         process_content_box_request(node, self.fragment_tree.borrow().clone())
     }
 
-    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
+    #[cfg_attr(
+        feature = "tracing",
+        tracing::instrument(skip_all, fields(servo_profiling = true))
+    )]
     fn query_content_boxes(&self, node: OpaqueNode) -> Vec<UntypedRect<Au>> {
         process_content_boxes_request(node, self.fragment_tree.borrow().clone())
     }
 
-    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
+    #[cfg_attr(
+        feature = "tracing",
+        tracing::instrument(skip_all, fields(servo_profiling = true))
+    )]
     fn query_client_rect(&self, node: OpaqueNode) -> UntypedRect<i32> {
         process_node_geometry_request(node, self.fragment_tree.borrow().clone())
     }
 
-    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
+    #[cfg_attr(
+        feature = "tracing",
+        tracing::instrument(skip_all, fields(servo_profiling = true))
+    )]
     fn query_element_inner_outer_text(
         &self,
         node: script_layout_interface::TrustedNodeAddress,
@@ -316,7 +333,10 @@ impl Layout for LayoutThread {
         None
     }
 
-    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
+    #[cfg_attr(
+        feature = "tracing",
+        tracing::instrument(skip_all, fields(servo_profiling = true))
+    )]
     fn query_nodes_from_point(
         &self,
         point: UntypedPoint2D<f32>,
@@ -333,18 +353,24 @@ impl Layout for LayoutThread {
 
         let client_point = units::DevicePoint::from_untyped(point);
         let results = self
-            .webrender_api
+            .compositor_api
             .hit_test(Some(self.id.into()), client_point, flags);
 
         results.iter().map(|result| result.node.into()).collect()
     }
 
-    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
+    #[cfg_attr(
+        feature = "tracing",
+        tracing::instrument(skip_all, fields(servo_profiling = true))
+    )]
     fn query_offset_parent(&self, node: OpaqueNode) -> OffsetParentResponse {
         process_offset_parent_query(node, self.fragment_tree.borrow().clone())
     }
 
-    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
+    #[cfg_attr(
+        feature = "tracing",
+        tracing::instrument(skip_all, fields(servo_profiling = true))
+    )]
     fn query_resolved_style(
         &self,
         node: TrustedNodeAddress,
@@ -380,7 +406,10 @@ impl Layout for LayoutThread {
         )
     }
 
-    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
+    #[cfg_attr(
+        feature = "tracing",
+        tracing::instrument(skip_all, fields(servo_profiling = true))
+    )]
     fn query_resolved_font_style(
         &self,
         node: TrustedNodeAddress,
@@ -413,12 +442,18 @@ impl Layout for LayoutThread {
         )
     }
 
-    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
+    #[cfg_attr(
+        feature = "tracing",
+        tracing::instrument(skip_all, fields(servo_profiling = true))
+    )]
     fn query_scrolling_area(&self, node: Option<OpaqueNode>) -> UntypedRect<i32> {
         process_node_scroll_area_request(node, self.fragment_tree.borrow().clone())
     }
 
-    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
+    #[cfg_attr(
+        feature = "tracing",
+        tracing::instrument(skip_all, fields(servo_profiling = true))
+    )]
     fn query_text_indext(
         &self,
         node: OpaqueNode,
@@ -506,12 +541,12 @@ impl LayoutThread {
         resource_threads: ResourceThreads,
         system_font_service: Arc<SystemFontServiceProxy>,
         time_profiler_chan: profile_time::ProfilerChan,
-        webrender_api_sender: WebRenderScriptApi,
+        compositor_api: CrossProcessCompositorApi,
         paint_time_metrics: PaintTimeMetrics,
         window_size: WindowSizeData,
     ) -> LayoutThread {
         // Let webrender know about this pipeline by sending an empty display list.
-        webrender_api_sender.send_initial_transaction(id.into());
+        compositor_api.send_initial_transaction(id.into());
 
         let mut font = Font::initial_values();
         let default_font_size = pref!(fonts.default_size);
@@ -525,7 +560,7 @@ impl LayoutThread {
         // but it will be set correctly when the initial reflow takes place.
         let font_context = Arc::new(FontContext::new(
             system_font_service,
-            webrender_api_sender.clone(),
+            compositor_api.clone(),
             resource_threads,
         ));
         let device = Device::new(
@@ -557,7 +592,7 @@ impl LayoutThread {
                 Au::from_f32_px(window_size.initial_viewport.width),
                 Au::from_f32_px(window_size.initial_viewport.height),
             ),
-            webrender_api: webrender_api_sender,
+            compositor_api,
             scroll_offsets: Default::default(),
             stylist: Stylist::new(device, QuirksMode::NoQuirks),
             webrender_image_cache: Default::default(),
@@ -663,7 +698,10 @@ impl LayoutThread {
     }
 
     /// The high-level routine that performs layout.
-    #[tracing::instrument(skip(self), fields(servo_profiling = true))]
+    #[cfg_attr(
+        feature = "tracing",
+        tracing::instrument(skip_all, fields(servo_profiling = true))
+    )]
     fn handle_reflow(&mut self, data: &mut ScriptReflowResult) {
         let document = unsafe { ServoLayoutNode::new(&data.document) };
         let document = document.as_document().unwrap();
@@ -783,7 +821,13 @@ impl LayoutThread {
         };
 
         if token.should_traverse() {
-            let span = span!(Level::TRACE, "driver::traverse_dom", servo_profiling = true);
+            #[cfg(feature = "tracing")]
+            let span = tracing::span!(
+                tracing::Level::TRACE,
+                "driver::traverse_dom",
+                servo_profiling = true
+            );
+            #[cfg(feature = "tracing")]
             let _enter = span.enter();
             let dirty_root: ServoLayoutNode =
                 driver::traverse_dom(&traversal, token, rayon_pool).as_node();
@@ -868,7 +912,7 @@ impl LayoutThread {
             .borrow_mut()
             .insert(state.scroll_id, state.scroll_offset);
         let point = Point2D::new(-state.scroll_offset.x, -state.scroll_offset.y);
-        self.webrender_api.send_scroll_node(
+        self.compositor_api.send_scroll_node(
             self.id.into(),
             units::LayoutPoint::from_untyped(point),
             state.scroll_id,
@@ -958,13 +1002,13 @@ impl LayoutThread {
             .maybe_observe_paint_time(self, epoch, is_contentful);
 
         if reflow_goal.needs_display() {
-            self.webrender_api
+            self.compositor_api
                 .send_display_list(display_list.compositor_info, display_list.wr.end().1);
 
             let (keys, instance_keys) = self
                 .font_context
                 .collect_unused_webrender_resources(false /* all */);
-            self.webrender_api
+            self.compositor_api
                 .remove_unused_font_resources(keys, instance_keys)
         }
 

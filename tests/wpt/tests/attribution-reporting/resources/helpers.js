@@ -35,8 +35,6 @@ const verboseDebugReportsUrl =
 const aggregatableDebugReportsUrl =
     '/.well-known/attribution-reporting/debug/report-aggregate-debug';
 
-const attributionDebugCookie = 'ar_debug=1;Secure;HttpOnly;SameSite=None;Path=/';
-
 const pipeHeaderPattern = /[,)]/g;
 
 // , and ) in pipe values must be escaped with \
@@ -86,7 +84,7 @@ const redirectReportsTo = origin => {
     ]);
 };
 
-const getFetchParams = (origin, cookie) => {
+const getFetchParams = (origin) => {
   let credentials;
   const headers = [];
 
@@ -95,25 +93,10 @@ const getFetchParams = (origin, cookie) => {
   }
 
   // https://fetch.spec.whatwg.org/#http-cors-protocol
-
-  const allowOriginHeader = 'Access-Control-Allow-Origin';
-
-  if (cookie) {
-    credentials = 'include';
-    headers.push({
-      name: 'Access-Control-Allow-Credentials',
-      value: 'true',
-    });
-    headers.push({
-      name: allowOriginHeader,
-      value: `${location.origin}`,
-    });
-  } else {
-    headers.push({
-      name: allowOriginHeader,
-      value: '*',
-    });
-  }
+  headers.push({
+    name: 'Access-Control-Allow-Origin',
+    value: '*',
+  });
   return {credentials, headers};
 };
 
@@ -127,7 +110,7 @@ const createRedirectChain = (redirects) => {
   let redirectTo;
 
   for (let i = redirects.length - 1; i >= 0; i--) {
-    const {source, trigger, cookie, reportingOrigin} = redirects[i];
+    const {source, trigger, reportingOrigin} = redirects[i];
     const headers = [];
 
     if (source) {
@@ -142,10 +125,6 @@ const createRedirectChain = (redirects) => {
         name: 'Attribution-Reporting-Register-Trigger',
         value: JSON.stringify(trigger),
       });
-    }
-
-    if (cookie) {
-      headers.push({name: 'Set-Cookie', value: cookie});
     }
 
     let status;
@@ -169,7 +148,6 @@ const registerAttributionSrcByImg = (attributionSrc) => {
 const registerAttributionSrc = ({
   source,
   trigger,
-  cookie,
   method = 'img',
   extraQueryParams = {},
   reportingOrigin,
@@ -200,14 +178,9 @@ const registerAttributionSrc = ({
     });
   }
 
-  if (cookie) {
-    const name = 'Set-Cookie';
-    headers.push({name, value: cookie});
-  }
-
   let credentials;
   if (method === 'fetch') {
-    const params = getFetchParams(reportingOrigin, cookie);
+    const params = getFetchParams(reportingOrigin);
     credentials = params.credentials;
     headers = headers.concat(params.headers);
   }

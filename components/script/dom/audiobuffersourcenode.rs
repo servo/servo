@@ -100,8 +100,9 @@ impl AudioBufferSourceNode {
         window: &Window,
         context: &BaseAudioContext,
         options: &AudioBufferSourceOptions,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<AudioBufferSourceNode>> {
-        Self::new_with_proto(window, None, context, options, CanGc::note())
+        Self::new_with_proto(window, None, context, options, can_gc)
     }
 
     #[allow(crown::unrooted_must_root)]
@@ -120,9 +121,11 @@ impl AudioBufferSourceNode {
             can_gc,
         ))
     }
+}
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+impl AudioBufferSourceNodeMethods for AudioBufferSourceNode {
+    // https://webaudio.github.io/web-audio-api/#dom-audiobuffersourcenode-audiobuffersourcenode
+    fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -131,9 +134,7 @@ impl AudioBufferSourceNode {
     ) -> Fallible<DomRoot<AudioBufferSourceNode>> {
         AudioBufferSourceNode::new_with_proto(window, proto, context, options, can_gc)
     }
-}
 
-impl AudioBufferSourceNodeMethods for AudioBufferSourceNode {
     // https://webaudio.github.io/web-audio-api/#dom-audiobuffersourcenode-buffer
     fn GetBuffer(&self) -> Fallible<Option<DomRoot<AudioBuffer>>> {
         Ok(self.buffer.get())

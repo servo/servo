@@ -19,7 +19,7 @@ use crate::dom::xrrigidtransform::XRRigidTransform;
 use crate::dom::xrsession::{cast_transform, BaseSpace, BaseTransform, XRSession};
 use crate::dom::xrview::XRView;
 use crate::realms::enter_realm;
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{CanGc, JSContext};
 
 #[dom_struct]
 pub struct XRViewerPose {
@@ -42,6 +42,7 @@ impl XRViewerPose {
         session: &XRSession,
         to_base: BaseTransform,
         viewer_pose: &ViewerPose,
+        can_gc: CanGc,
     ) -> DomRoot<XRViewerPose> {
         let _ac = enter_realm(global);
         rooted_vec!(let mut views);
@@ -53,12 +54,27 @@ impl XRViewerPose {
                 XREye::None,
                 0,
                 &to_base,
+                can_gc,
             )),
-            Views::Mono(view) => {
-                views.push(XRView::new(global, session, view, XREye::None, 0, &to_base))
-            },
+            Views::Mono(view) => views.push(XRView::new(
+                global,
+                session,
+                view,
+                XREye::None,
+                0,
+                &to_base,
+                can_gc,
+            )),
             Views::Stereo(left, right) => {
-                views.push(XRView::new(global, session, left, XREye::Left, 0, &to_base));
+                views.push(XRView::new(
+                    global,
+                    session,
+                    left,
+                    XREye::Left,
+                    0,
+                    &to_base,
+                    can_gc,
+                ));
                 views.push(XRView::new(
                     global,
                     session,
@@ -66,10 +82,19 @@ impl XRViewerPose {
                     XREye::Right,
                     1,
                     &to_base,
+                    can_gc,
                 ));
             },
             Views::StereoCapture(left, right, third_eye) => {
-                views.push(XRView::new(global, session, left, XREye::Left, 0, &to_base));
+                views.push(XRView::new(
+                    global,
+                    session,
+                    left,
+                    XREye::Left,
+                    0,
+                    &to_base,
+                    can_gc,
+                ));
                 views.push(XRView::new(
                     global,
                     session,
@@ -77,6 +102,7 @@ impl XRViewerPose {
                     XREye::Right,
                     1,
                     &to_base,
+                    can_gc,
                 ));
                 views.push(XRView::new(
                     global,
@@ -85,6 +111,7 @@ impl XRViewerPose {
                     XREye::None,
                     2,
                     &to_base,
+                    can_gc,
                 ));
             },
             Views::Cubemap(front, left, right, top, bottom, back) => {
@@ -95,8 +122,17 @@ impl XRViewerPose {
                     XREye::None,
                     0,
                     &to_base,
+                    can_gc,
                 ));
-                views.push(XRView::new(global, session, left, XREye::None, 1, &to_base));
+                views.push(XRView::new(
+                    global,
+                    session,
+                    left,
+                    XREye::None,
+                    1,
+                    &to_base,
+                    can_gc,
+                ));
                 views.push(XRView::new(
                     global,
                     session,
@@ -104,8 +140,17 @@ impl XRViewerPose {
                     XREye::None,
                     2,
                     &to_base,
+                    can_gc,
                 ));
-                views.push(XRView::new(global, session, top, XREye::None, 3, &to_base));
+                views.push(XRView::new(
+                    global,
+                    session,
+                    top,
+                    XREye::None,
+                    3,
+                    &to_base,
+                    can_gc,
+                ));
                 views.push(XRView::new(
                     global,
                     session,
@@ -113,13 +158,22 @@ impl XRViewerPose {
                     XREye::None,
                     4,
                     &to_base,
+                    can_gc,
                 ));
-                views.push(XRView::new(global, session, back, XREye::None, 5, &to_base));
+                views.push(XRView::new(
+                    global,
+                    session,
+                    back,
+                    XREye::None,
+                    5,
+                    &to_base,
+                    can_gc,
+                ));
             },
         };
         let transform: RigidTransform3D<f32, Viewer, BaseSpace> =
             viewer_pose.transform.then(&to_base);
-        let transform = XRRigidTransform::new(global, cast_transform(transform));
+        let transform = XRRigidTransform::new(global, cast_transform(transform), can_gc);
         let pose = reflect_dom_object(Box::new(XRViewerPose::new_inherited(&transform)), global);
 
         let cx = GlobalScope::get_cx();

@@ -964,8 +964,8 @@ impl Fragment {
             QuantitiesIncludedInIntrinsicInlineSizes::INTRINSIC_INLINE_SIZE_INCLUDES_MARGINS,
         ) {
             let margin = style.logical_margin();
-            MaybeAuto::from_style(margin.inline_start, Au(0)).specified_or_zero() +
-                MaybeAuto::from_style(margin.inline_end, Au(0)).specified_or_zero()
+            MaybeAuto::from_margin(margin.inline_start, Au(0)).specified_or_zero() +
+                MaybeAuto::from_margin(margin.inline_end, Au(0)).specified_or_zero()
         } else {
             Au(0)
         };
@@ -1268,10 +1268,10 @@ impl Fragment {
         let logical_padding = self.style.logical_padding();
         let border_width = self.border_width();
         SpeculatedInlineContentEdgeOffsets {
-            start: MaybeAuto::from_style(logical_margin.inline_start, Au(0)).specified_or_zero() +
+            start: MaybeAuto::from_margin(logical_margin.inline_start, Au(0)).specified_or_zero() +
                 logical_padding.inline_start.to_used_value(Au(0)) +
                 border_width.inline_start,
-            end: MaybeAuto::from_style(logical_margin.inline_end, Au(0)).specified_or_zero() +
+            end: MaybeAuto::from_margin(logical_margin.inline_end, Au(0)).specified_or_zero() +
                 logical_padding.inline_end.to_used_value(Au(0)) +
                 border_width.inline_end,
         }
@@ -1343,9 +1343,9 @@ impl Fragment {
                 let (inline_start, inline_end) = {
                     let margin = self.style().logical_margin();
                     (
-                        MaybeAuto::from_style(margin.inline_start, containing_block_inline_size)
+                        MaybeAuto::from_margin(margin.inline_start, containing_block_inline_size)
                             .specified_or_zero(),
-                        MaybeAuto::from_style(margin.inline_end, containing_block_inline_size)
+                        MaybeAuto::from_margin(margin.inline_end, containing_block_inline_size)
                             .specified_or_zero(),
                     )
                 };
@@ -1363,7 +1363,7 @@ impl Fragment {
                 {
                     Au(0)
                 } else {
-                    MaybeAuto::from_style(margin.inline_start, containing_block_inline_size)
+                    MaybeAuto::from_margin(margin.inline_start, containing_block_inline_size)
                         .specified_or_zero()
                 };
                 let this_inline_end_margin = if !node
@@ -1372,7 +1372,7 @@ impl Fragment {
                 {
                     Au(0)
                 } else {
-                    MaybeAuto::from_style(margin.inline_end, containing_block_inline_size)
+                    MaybeAuto::from_margin(margin.inline_end, containing_block_inline_size)
                         .specified_or_zero()
                 };
 
@@ -1402,9 +1402,9 @@ impl Fragment {
                 let (block_start, block_end) = {
                     let margin = self.style().logical_margin();
                     (
-                        MaybeAuto::from_style(margin.block_start, containing_block_inline_size)
+                        MaybeAuto::from_margin(margin.block_start, containing_block_inline_size)
                             .specified_or_zero(),
-                        MaybeAuto::from_style(margin.block_end, containing_block_inline_size)
+                        MaybeAuto::from_margin(margin.block_end, containing_block_inline_size)
                             .specified_or_zero(),
                     )
                 };
@@ -1478,16 +1478,16 @@ impl Fragment {
         fn from_style(style: &ComputedValues, container_size: &LogicalSize<Au>) -> LogicalSize<Au> {
             let offsets = style.logical_position();
             let offset_i = if !offsets.inline_start.is_auto() {
-                MaybeAuto::from_style(offsets.inline_start, container_size.inline)
+                MaybeAuto::from_inset(offsets.inline_start, container_size.inline)
                     .specified_or_zero()
             } else {
-                -MaybeAuto::from_style(offsets.inline_end, container_size.inline)
+                -MaybeAuto::from_inset(offsets.inline_end, container_size.inline)
                     .specified_or_zero()
             };
-            let offset_b = if !offsets.block_start.is_auto() {
-                MaybeAuto::from_style(offsets.block_start, container_size.block).specified_or_zero()
+            let offset_b = if offsets.block_start.is_auto() {
+                MaybeAuto::from_inset(offsets.block_start, container_size.block).specified_or_zero()
             } else {
-                -MaybeAuto::from_style(offsets.block_end, container_size.block).specified_or_zero()
+                -MaybeAuto::from_inset(offsets.block_end, container_size.block).specified_or_zero()
             };
             LogicalSize::new(style.writing_mode, offset_i, offset_b)
         }

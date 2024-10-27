@@ -29,6 +29,7 @@ use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::{BindContext, Node};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::links::{follow_hyperlink, LinkRelations};
+use crate::script_runtime::CanGc;
 
 #[derive(Debug, PartialEq)]
 pub enum Area {
@@ -263,11 +264,13 @@ impl HTMLAreaElement {
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> DomRoot<HTMLAreaElement> {
         Node::reflect_node_with_proto(
             Box::new(HTMLAreaElement::new_inherited(local_name, prefix, document)),
             document,
             proto,
+            can_gc,
         )
     }
 
@@ -340,9 +343,9 @@ impl HTMLAreaElementMethods for HTMLAreaElement {
     make_getter!(Rel, "rel");
 
     // https://html.spec.whatwg.org/multipage/#dom-a-rel
-    fn SetRel(&self, rel: DOMString) {
+    fn SetRel(&self, rel: DOMString, can_gc: CanGc) {
         self.upcast::<Element>()
-            .set_tokenlist_attribute(&local_name!("rel"), rel);
+            .set_tokenlist_attribute(&local_name!("rel"), rel, can_gc);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-area-rellist
@@ -371,7 +374,7 @@ impl Activatable for HTMLAreaElement {
         self.as_element().has_attribute(&local_name!("href"))
     }
 
-    fn activation_behavior(&self, _event: &Event, _target: &EventTarget) {
+    fn activation_behavior(&self, _event: &Event, _target: &EventTarget, _can_gc: CanGc) {
         follow_hyperlink(self.as_element(), self.relations.get(), None);
     }
 }

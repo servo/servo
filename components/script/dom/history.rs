@@ -31,7 +31,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::hashchangeevent::HashChangeEvent;
 use crate::dom::popstateevent::PopStateEvent;
 use crate::dom::window::Window;
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{CanGc, JSContext};
 
 enum PushOrReplace {
     Push,
@@ -83,7 +83,7 @@ impl History {
     /// <https://html.spec.whatwg.org/multipage/#history-traversal>
     /// Steps 5-16
     #[allow(unsafe_code)]
-    pub fn activate_state(&self, state_id: Option<HistoryStateId>, url: ServoUrl) {
+    pub fn activate_state(&self, state_id: Option<HistoryStateId>, url: ServoUrl, can_gc: CanGc) {
         // Steps 5
         let document = self.window.Document();
         let old_url = document.url().clone();
@@ -94,7 +94,7 @@ impl History {
 
         // Step 8
         if let Some(fragment) = url.fragment() {
-            document.check_and_scroll_fragment(fragment);
+            document.check_and_scroll_fragment(fragment, can_gc);
         }
 
         // Step 11
@@ -139,6 +139,7 @@ impl History {
                 self.window.upcast::<EventTarget>(),
                 &self.window,
                 unsafe { HandleValue::from_raw(self.state.handle()) },
+                can_gc,
             );
         }
 
@@ -151,10 +152,11 @@ impl History {
                 false,
                 old_url.into_string(),
                 url.into_string(),
+                can_gc,
             );
             event
                 .upcast::<Event>()
-                .fire(self.window.upcast::<EventTarget>());
+                .fire(self.window.upcast::<EventTarget>(), can_gc);
         }
     }
 
@@ -311,11 +313,11 @@ impl HistoryMethods for History {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-history-go>
-    fn Go(&self, delta: i32) -> ErrorResult {
+    fn Go(&self, delta: i32, can_gc: CanGc) -> ErrorResult {
         let direction = match delta.cmp(&0) {
             Ordering::Greater => TraversalDirection::Forward(delta as usize),
             Ordering::Less => TraversalDirection::Back(-delta as usize),
-            Ordering::Equal => return self.window.Location().Reload(),
+            Ordering::Equal => return self.window.Location().Reload(can_gc),
         };
 
         self.traverse_history(direction)

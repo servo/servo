@@ -87,7 +87,7 @@ use crate::dom::webgluniformlocation::WebGLUniformLocation;
 use crate::dom::webglvertexarrayobject::WebGLVertexArrayObject;
 use crate::dom::webglvertexarrayobjectoes::WebGLVertexArrayObjectOES;
 use crate::dom::window::Window;
-use crate::script_runtime::JSContext as SafeJSContext;
+use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 // From the GLES 2.0.25 spec, page 85:
 //
@@ -288,6 +288,7 @@ impl WebGLRenderingContext {
         webgl_version: WebGLVersion,
         size: Size2D<u32>,
         attrs: GLContextAttributes,
+        can_gc: CanGc,
     ) -> Option<DomRoot<WebGLRenderingContext>> {
         match WebGLRenderingContext::new_inherited(window, canvas, webgl_version, size, attrs) {
             Ok(ctx) => Some(reflect_dom_object(Box::new(ctx), window)),
@@ -299,13 +300,14 @@ impl WebGLRenderingContext {
                     EventBubbles::DoesNotBubble,
                     EventCancelable::Cancelable,
                     DOMString::from(msg),
+                    can_gc,
                 );
                 match canvas {
                     HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(canvas) => {
-                        event.upcast::<Event>().fire(canvas.upcast());
+                        event.upcast::<Event>().fire(canvas.upcast(), can_gc);
                     },
                     HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(canvas) => {
-                        event.upcast::<Event>().fire(canvas.upcast());
+                        event.upcast::<Event>().fire(canvas.upcast(), can_gc);
                     },
                 }
                 None
@@ -4686,9 +4688,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     /// <https://immersive-web.github.io/webxr/#dom-webglrenderingcontextbase-makexrcompatible>
-    fn MakeXRCompatible(&self) -> Rc<Promise> {
+    fn MakeXRCompatible(&self, can_gc: CanGc) -> Rc<Promise> {
         // XXXManishearth Fill in with compatibility checks when rust-webxr supports this
-        let p = Promise::new(&self.global());
+        let p = Promise::new(&self.global(), can_gc);
         p.resolve_native(&());
         p
     }

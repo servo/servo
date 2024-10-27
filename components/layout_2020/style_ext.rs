@@ -16,7 +16,7 @@ use style::properties::ComputedValues;
 use style::servo::selector_parser::PseudoElement;
 use style::values::computed::basic_shape::ClipPath;
 use style::values::computed::image::Image as ComputedImageLayer;
-use style::values::computed::{AlignItems, BorderStyle, LengthPercentage};
+use style::values::computed::{AlignItems, BorderStyle, Inset, LengthPercentage, Margin};
 use style::values::generics::box_::Perspective;
 use style::values::generics::position::{GenericAspectRatio, PreferredRatio};
 use style::values::specified::align::AlignFlags;
@@ -179,11 +179,38 @@ impl AspectRatio {
     }
 }
 
+#[derive(Clone)]
+pub(crate) struct ContentBoxSizesAndPBM {
+    pub content_box_size: LogicalVec2<Size<Au>>,
+    pub content_min_box_size: LogicalVec2<Size<Au>>,
+    pub content_max_box_size: LogicalVec2<Size<Au>>,
+    pub pbm: PaddingBorderMargin,
+    pub depends_on_block_constraints: bool,
+}
+
+impl From<ContentBoxSizesAndPBM> for ContentBoxSizesAndPBMDeprecated {
+    fn from(sizes: ContentBoxSizesAndPBM) -> Self {
+        Self {
+            content_box_size: sizes.content_box_size.map(Size::to_auto_or),
+            content_min_box_size: sizes.content_min_box_size.map(Size::to_auto_or),
+            content_max_box_size: sizes.content_max_box_size.map(Size::to_numeric),
+            pbm: sizes.pbm.clone(),
+            depends_on_block_constraints: sizes.depends_on_block_constraints,
+        }
+    }
+}
+
+pub(crate) struct ContentBoxSizesAndPBMDeprecated {
+    pub content_box_size: LogicalVec2<AuOrAuto>,
+    pub content_min_box_size: LogicalVec2<AuOrAuto>,
+    pub content_max_box_size: LogicalVec2<Option<Au>>,
+    pub pbm: PaddingBorderMargin,
+    pub depends_on_block_constraints: bool,
+}
+
 pub(crate) trait ComputedValuesExt {
-    fn box_offsets(
-        &self,
-        containing_block: &ContainingBlock,
-    ) -> LogicalSides<LengthPercentageOrAuto<'_>>;
+    fn physical_box_offsets(&self) -> PhysicalSides<LengthPercentageOrAuto<'_>>;
+    fn box_offsets(&self, writing_mode: WritingMode) -> LogicalSides<LengthPercentageOrAuto<'_>>;
     fn box_size(
         &self,
         containing_block_writing_mode: WritingMode,
@@ -244,21 +271,7 @@ pub(crate) trait ComputedValuesExt {
     fn content_box_sizes_and_padding_border_margin(
         &self,
         containing_block: &IndefiniteContainingBlock,
-    ) -> (
-        LogicalVec2<Size<Au>>,
-        LogicalVec2<Size<Au>>,
-        LogicalVec2<Size<Au>>,
-        PaddingBorderMargin,
-    );
-    fn content_box_sizes_and_padding_border_margin_deprecated(
-        &self,
-        containing_block: &IndefiniteContainingBlock,
-    ) -> (
-        LogicalVec2<AuOrAuto>,
-        LogicalVec2<AuOrAuto>,
-        LogicalVec2<Option<Au>>,
-        PaddingBorderMargin,
-    );
+    ) -> ContentBoxSizesAndPBM;
     fn padding_border_margin(&self, containing_block: &ContainingBlock) -> PaddingBorderMargin;
     fn padding_border_margin_for_intrinsic_size(
         &self,
@@ -276,6 +289,7 @@ pub(crate) trait ComputedValuesExt {
     fn border_style(&self, containing_block_writing_mode: WritingMode)
         -> LogicalSides<BorderStyle>;
     fn border_width(&self, containing_block_writing_mode: WritingMode) -> LogicalSides<Au>;
+    fn physical_margin(&self) -> PhysicalSides<LengthPercentageOrAuto<'_>>;
     fn margin(
         &self,
         containing_block_writing_mode: WritingMode,
@@ -308,23 +322,33 @@ pub(crate) trait ComputedValuesExt {
         resolved_auto_value: AlignItems,
         resolved_normal_value: AlignItems,
     ) -> AlignItems;
+    fn depends_on_block_constraints_due_to_relative_positioning(
+        &self,
+        writing_mode: WritingMode,
+    ) -> bool;
 }
 
 impl ComputedValuesExt for ComputedValues {
-    fn box_offsets(
-        &self,
-        containing_block: &ContainingBlock,
-    ) -> LogicalSides<LengthPercentageOrAuto<'_>> {
+    fn physical_box_offsets(&self) -> PhysicalSides<LengthPercentageOrAuto<'_>> {
+        fn convert(inset: &Inset) -> LengthPercentageOrAuto<'_> {
+            match inset {
+                Inset::LengthPercentage(ref v) => LengthPercentageOrAuto::LengthPercentage(v),
+                Inset::Auto => LengthPercentageOrAuto::Auto,
+                Inset::AnchorFunction(_) => unreachable!("anchor() should be disabled"),
+                Inset::AnchorSizeFunction(_) => unreachable!("anchor-size() should be disabled"),
+            }
+        }
         let position = self.get_position();
-        LogicalSides::from_physical(
-            &PhysicalSides::new(
-                position.top.as_ref(),
-                position.right.as_ref(),
-                position.bottom.as_ref(),
-                position.left.as_ref(),
-            ),
-            containing_block.style.writing_mode,
+        PhysicalSides::new(
+            convert(&position.top),
+            convert(&position.right),
+            convert(&position.bottom),
+            convert(&position.left),
         )
+    }
+
+    fn box_offsets(&self, writing_mode: WritingMode) -> LogicalSides<LengthPercentageOrAuto<'_>> {
+        LogicalSides::from_physical(&self.physical_box_offsets(), writing_mode)
     }
 
     fn box_size(
@@ -396,16 +420,12 @@ impl ComputedValuesExt for ComputedValues {
     ) -> LogicalVec2<Size<Au>> {
         match self.get_position().box_sizing {
             BoxSizing::ContentBox => box_size,
-            BoxSizing::BorderBox => LogicalVec2 {
-                // These may be negative, but will later be clamped by `min-width`/`min-height`
-                // which is clamped to zero.
-                inline: box_size
-                    .inline
-                    .map(|value| value - pbm.padding_border_sums.inline),
-                block: box_size
-                    .block
-                    .map(|value| value - pbm.padding_border_sums.block),
-            },
+            // These may be negative, but will later be clamped by `min-width`/`min-height`
+            // which is clamped to zero.
+            BoxSizing::BorderBox => box_size.map_inline_and_block_sizes(
+                |value| value - pbm.padding_border_sums.inline,
+                |value| value - pbm.padding_border_sums.block,
+            ),
         }
     }
 
@@ -414,10 +434,13 @@ impl ComputedValuesExt for ComputedValues {
         containing_block: &ContainingBlock,
         pbm: &PaddingBorderMargin,
     ) -> LogicalVec2<Size<Au>> {
-        let box_size = self
+        let min_size = self
             .min_box_size(containing_block.style.writing_mode)
-            .percentages_relative_to(containing_block);
-        self.content_min_box_size_for_min_size(box_size, pbm)
+            .map_inline_and_block_sizes(
+                |lp| lp.to_used_value(containing_block.inline_size),
+                |lp| lp.to_used_value(containing_block.block_size.auto_is(Au::zero)),
+            );
+        self.content_min_box_size_for_min_size(min_size, pbm)
     }
 
     fn content_min_box_size_deprecated(
@@ -436,15 +459,11 @@ impl ComputedValuesExt for ComputedValues {
     ) -> LogicalVec2<Size<Au>> {
         match self.get_position().box_sizing {
             BoxSizing::ContentBox => min_box_size,
-            BoxSizing::BorderBox => LogicalVec2 {
-                // Clamp to zero to make sure the used size components are non-negative
-                inline: min_box_size
-                    .inline
-                    .map(|value| (value - pbm.padding_border_sums.inline).max(Au::zero())),
-                block: min_box_size
-                    .block
-                    .map(|value| (value - pbm.padding_border_sums.block).max(Au::zero())),
-            },
+            // Clamp to zero to make sure the used size components are non-negative
+            BoxSizing::BorderBox => min_box_size.map_inline_and_block_sizes(
+                |value| Au::zero().max(value - pbm.padding_border_sums.inline),
+                |value| Au::zero().max(value - pbm.padding_border_sums.block),
+            ),
         }
     }
 
@@ -476,30 +495,19 @@ impl ComputedValuesExt for ComputedValues {
     ) -> LogicalVec2<Size<Au>> {
         match self.get_position().box_sizing {
             BoxSizing::ContentBox => max_box_size,
-            BoxSizing::BorderBox => {
-                // This may be negative, but will later be clamped by `min-width`
-                // which itself is clamped to zero.
-                LogicalVec2 {
-                    inline: max_box_size
-                        .inline
-                        .map(|value| value - pbm.padding_border_sums.inline),
-                    block: max_box_size
-                        .block
-                        .map(|value| value - pbm.padding_border_sums.block),
-                }
-            },
+            // This may be negative, but will later be clamped by `min-width`
+            // which itself is clamped to zero.
+            BoxSizing::BorderBox => max_box_size.map_inline_and_block_sizes(
+                |value| value - pbm.padding_border_sums.inline,
+                |value| value - pbm.padding_border_sums.block,
+            ),
         }
     }
 
     fn content_box_sizes_and_padding_border_margin(
         &self,
         containing_block: &IndefiniteContainingBlock,
-    ) -> (
-        LogicalVec2<Size<Au>>,
-        LogicalVec2<Size<Au>>,
-        LogicalVec2<Size<Au>>,
-        PaddingBorderMargin,
-    ) {
+    ) -> ContentBoxSizesAndPBM {
         // <https://drafts.csswg.org/css-sizing-3/#cyclic-percentage-contribution>
         // If max size properties or preferred size properties are set to a value containing
         // indefinite percentages, we treat the entire value as the initial value of the property.
@@ -508,49 +516,53 @@ impl ComputedValuesExt for ComputedValues {
         let containing_block_size = containing_block.size.map(|value| value.non_auto());
         let containing_block_size_auto_is_zero =
             containing_block_size.map(|value| value.unwrap_or_else(Au::zero));
-        let writing_mode = self.writing_mode;
+        let writing_mode = containing_block.style.writing_mode;
         let pbm = self.padding_border_margin_with_writing_mode_and_containing_block_inline_size(
             writing_mode,
             containing_block.size.inline.auto_is(Au::zero),
         );
-        let box_size = self
-            .box_size(writing_mode)
-            .maybe_percentages_relative_to_basis(&containing_block_size);
+        let box_size = self.box_size(writing_mode);
+        let min_size = self.min_box_size(writing_mode);
+        let max_size = self.max_box_size(writing_mode);
+        let depends_on_block_constraints = |size: &Size<LengthPercentage>| {
+            match size {
+                // fit-content is like clamp(min-content, stretch, max-content), but currently
+                // min-content and max-content have the same behavior in the block axis,
+                // so there is no dependency on block constraints.
+                // TODO: for flex and grid layout, min-content and max-content should be different.
+                // TODO: We are assuming that Size::Initial doesn't stretch. However, it may actually
+                // stretch flex and grid items depending on the CSS Align properties, in that case
+                // the caller needs to take care of it.
+                Size::Stretch => true,
+                Size::Numeric(length_percentage) => length_percentage.has_percentage(),
+                _ => false,
+            }
+        };
+
+        let depends_on_block_constraints = depends_on_block_constraints(&box_size.block) ||
+            depends_on_block_constraints(&min_size.block) ||
+            depends_on_block_constraints(&max_size.block) ||
+            self.depends_on_block_constraints_due_to_relative_positioning(writing_mode);
+
+        let box_size = box_size.maybe_percentages_relative_to_basis(&containing_block_size);
         let content_box_size = self
             .content_box_size_for_box_size(box_size, &pbm)
             .map(|v| v.map(Au::from));
-        let min_size = self
-            .min_box_size(writing_mode)
-            .percentages_relative_to_basis(&containing_block_size_auto_is_zero);
-        let content_min_size = self
+        let min_size = min_size.percentages_relative_to_basis(&containing_block_size_auto_is_zero);
+        let content_min_box_size = self
             .content_min_box_size_for_min_size(min_size, &pbm)
             .map(|v| v.map(Au::from));
-        let max_size = self
-            .max_box_size(writing_mode)
-            .maybe_percentages_relative_to_basis(&containing_block_size);
-        let content_max_size = self
+        let max_size = max_size.maybe_percentages_relative_to_basis(&containing_block_size);
+        let content_max_box_size = self
             .content_max_box_size_for_max_size(max_size, &pbm)
             .map(|v| v.map(Au::from));
-        (content_box_size, content_min_size, content_max_size, pbm)
-    }
-
-    fn content_box_sizes_and_padding_border_margin_deprecated(
-        &self,
-        containing_block: &IndefiniteContainingBlock,
-    ) -> (
-        LogicalVec2<AuOrAuto>,
-        LogicalVec2<AuOrAuto>,
-        LogicalVec2<Option<Au>>,
-        PaddingBorderMargin,
-    ) {
-        let (content_box_size, content_min_size, content_max_size, pbm) =
-            self.content_box_sizes_and_padding_border_margin(containing_block);
-        (
-            content_box_size.map(Size::to_auto_or),
-            content_min_size.map(Size::to_auto_or),
-            content_max_size.map(Size::to_numeric),
+        ContentBoxSizesAndPBM {
+            content_box_size,
+            content_min_box_size,
+            content_max_box_size,
             pbm,
-        )
+            depends_on_block_constraints,
+        }
     }
 
     fn padding_border_margin(&self, containing_block: &ContainingBlock) -> PaddingBorderMargin {
@@ -650,20 +662,28 @@ impl ComputedValuesExt for ComputedValues {
         )
     }
 
+    fn physical_margin(&self) -> PhysicalSides<LengthPercentageOrAuto<'_>> {
+        fn convert(inset: &Margin) -> LengthPercentageOrAuto<'_> {
+            match inset {
+                Margin::LengthPercentage(ref v) => LengthPercentageOrAuto::LengthPercentage(v),
+                Margin::Auto => LengthPercentageOrAuto::Auto,
+                Margin::AnchorSizeFunction(_) => unreachable!("anchor-size() should be disabled"),
+            }
+        }
+        let margin = self.get_margin();
+        PhysicalSides::new(
+            convert(&margin.margin_top),
+            convert(&margin.margin_right),
+            convert(&margin.margin_bottom),
+            convert(&margin.margin_left),
+        )
+    }
+
     fn margin(
         &self,
         containing_block_writing_mode: WritingMode,
     ) -> LogicalSides<LengthPercentageOrAuto<'_>> {
-        let margin = self.get_margin();
-        LogicalSides::from_physical(
-            &PhysicalSides::new(
-                margin.margin_top.as_ref(),
-                margin.margin_right.as_ref(),
-                margin.margin_bottom.as_ref(),
-                margin.margin_left.as_ref(),
-            ),
-            containing_block_writing_mode,
-        )
+        LogicalSides::from_physical(&self.physical_margin(), containing_block_writing_mode)
     }
 
     /// Returns true if this style has a transform, or perspective property set and
@@ -988,6 +1008,25 @@ impl ComputedValuesExt for ComputedValues {
             AlignFlags::NORMAL => resolved_normal_value,
             value => AlignItems(value),
         }
+    }
+
+    fn depends_on_block_constraints_due_to_relative_positioning(
+        &self,
+        writing_mode: WritingMode,
+    ) -> bool {
+        if !matches!(
+            self.get_box().position,
+            ComputedPosition::Relative | ComputedPosition::Sticky
+        ) {
+            return false;
+        }
+        let box_offsets = self.box_offsets(writing_mode);
+        let has_percentage = |offset: LengthPercentageOrAuto<'_>| {
+            offset
+                .non_auto()
+                .is_some_and(LengthPercentage::has_percentage)
+        };
+        has_percentage(box_offsets.block_start) || has_percentage(box_offsets.block_end)
     }
 }
 

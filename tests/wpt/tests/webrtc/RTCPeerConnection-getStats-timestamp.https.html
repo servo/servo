@@ -11,6 +11,11 @@
 // performance.now()` diverge inside of WPTs, so implementers beware that these
 // tests may give FALSE positives if `timestamp` is implemented as Wall Clock.
 
+// TODO: crbug.com/372749742 - Timestamps from RTCStats differs slightly from
+// performance.timeOrigin + performance.now(). We add an epsilon to the
+// timestamp checks as a workaround to avoid making the tests flaky.
+const kTimeEpsilon = 0.2;
+
 promise_test(async t => {
   const pc = new RTCPeerConnection();
   t.add_cleanup(() => pc.close());
@@ -25,8 +30,10 @@ promise_test(async t => {
   const peerConnectionStats =
       report.values().find(stats => stats.type == 'peer-connection');
 
-  assert_less_than_equal(t0, peerConnectionStats.timestamp);
-  assert_less_than_equal(peerConnectionStats.timestamp, t1);
+  assert_less_than_equal(t0, peerConnectionStats.timestamp + kTimeEpsilon,
+      't0 < timestamp');
+  assert_less_than_equal(peerConnectionStats.timestamp, t1 + kTimeEpsilon,
+      'timestamp < t1');
 }, 'RTCStats.timestamp is expressed as Performance time');
 
 promise_test(async t => {
@@ -63,7 +70,9 @@ promise_test(async t => {
   }
   const t1 = performance.timeOrigin + performance.now();
 
-  assert_less_than_equal(t0, remoteInboundRtp.timestamp);
-  assert_less_than_equal(remoteInboundRtp.timestamp, t1);
+  assert_less_than_equal(t0, remoteInboundRtp.timestamp + kTimeEpsilon,
+      't0 < timestamp');
+  assert_less_than_equal(remoteInboundRtp.timestamp, t1 + kTimeEpsilon,
+      'timestamp < t1');
 }, 'RTCRemoteInboundRtpStats.timestamp is expressed as Performance time');
 </script>

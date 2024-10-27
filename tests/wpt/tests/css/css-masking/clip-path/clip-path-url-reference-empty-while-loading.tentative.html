@@ -1,0 +1,17 @@
+<!doctype html>
+<html class="reftest-wait">
+<title>clip-path url()s are represented as empty paths while loading</title>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/rendering-utils.js"></script>
+<link rel="help" href="">
+<link rel="match" href="reference/green-100x100.html">
+<div style="width: 100px; height: 100px; background-color: green">
+  <div id="target" style="width: 100px; height: 100px; background-color: red"></div>
+</div>
+<script>
+  onload = () => {
+    const div = document.getElementById('target');
+    div.style.clipPath = `url("support/resources.svg?pipe=trickle(d10)#circleClip")`;
+    waitForAtLeastOneFrame().then(takeScreenshot);
+  };
+</script>

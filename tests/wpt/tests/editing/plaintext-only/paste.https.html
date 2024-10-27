@@ -1,0 +1,264 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<meta name="variant" content="?white-space=normal">
+<meta name="variant" content="?white-space=pre">
+<meta name="variant" content="?white-space=pre-line">
+<meta name="variant" content="?white-space=pre-wrap">
+<title>Pasting rich text into contenteditable=plaintext-only</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../include/editor-test-utils.js"></script>
+<script>
+"use strict";
+
+const searchParams = new URLSearchParams(document.location.search);
+const whiteSpace = searchParams.get("white-space");
+const useBR = whiteSpace == "normal";
+
+addEventListener("load", () => {
+  const placeholderForCopy = document.createElement("div");
+  document.body.appendChild(placeholderForCopy);
+  const editingHost = document.createElement("div");
+  editingHost.style.whiteSpace = whiteSpace;
+  editingHost.setAttribute("contenteditable", "plaintext-only");
+  document.body.appendChild(editingHost);
+  editingHost.focus();
+  editingHost.getBoundingClientRect();
+  const utils = new EditorTestUtils(editingHost);
+  let lastBeforeInput;
+  editingHost.addEventListener("beforeinput", event => lastBeforeInput = event);
+
+  /**
+   * Pasting HTML into contenteditable=plaintext-only should work as pasting
+   * text which is serialized by the browser or OS.  Then, `beforeinput` event
+   * should have only dataTransfer and it should have "text/html" format to
+   * make it possible that web apps can serialize the data by themselves to
+   * avoid the browser/OS dependency.  Finally, if white-space style is normal,
+   * line breaks should appear as <br>.  Otherwise, either <br> or \n is fine
+   * because both breaks the lines.
+   */
+
+  promise_test(async t => {
+    placeholderForCopy.innerHTML = "<b>abc</b>";
+    document.activeElement?.blur();
+    await test_driver.click(placeholderForCopy);
+    getSelection().selectAllChildren(placeholderForCopy);
+    await utils.sendCopyShortcutKey();
+    utils.setupEditingHost("A[]B");
+    lastBeforeInput = undefined;
+    await utils.sendPasteShortcutKey();
+    test(() => {
+      assert_equals(lastBeforeInput?.inputType, "insertFromPaste", `inputType should be "insertFromPaste"`);
+      assert_equals(lastBeforeInput?.data, null, `data should be null`);
+      assert_true(
+        String(lastBeforeInput?.dataTransfer?.getData("text/html")).includes(placeholderForCopy.innerHTML),
+        `dataTransfer should have the copied HTML source`
+      );
+    }, `${t.name}: beforeinput`);
+    test(() => {
+      assert_equals(editingHost.innerHTML, "AabcB", "<b> should not be pasted");
+    }, `${t.name}: pasted result`);
+  }, "Pasting text in <b>");
+
+  promise_test(async t => {
+    placeholderForCopy.innerHTML = "<span>abc</span>";
+    document.activeElement?.blur();
+    await test_driver.click(placeholderForCopy);
+    getSelection().selectAllChildren(placeholderForCopy);
+    await utils.sendCopyShortcutKey();
+    utils.setupEditingHost("A[]B");
+    lastBeforeInput = undefined;
+    await utils.sendPasteShortcutKey();
+    test(() => {
+      assert_equals(lastBeforeInput?.inputType, "insertFromPaste", `inputType should be "insertFromPaste"`);
+      assert_equals(lastBeforeInput?.data, null, `data should be null`);
+      assert_true(
+        String(lastBeforeInput?.dataTransfer?.getData("text/html")).includes(placeholderForCopy.innerHTML),
+        `dataTransfer should have the copied HTML source`
+      );
+    }, `${t.name}: beforeinput`);
+    test(() => {
+      assert_equals(editingHost.innerHTML, "AabcB", "<span> should not be pasted");
+    }, `${t.name}: pasted result`);
+  }, "Pasting text in <span>");
+
+  promise_test(async t => {
+    placeholderForCopy.innerHTML = "abc";
+    document.activeElement?.blur();
+    await test_driver.click(placeholderForCopy);
+    getSelection().selectAllChildren(placeholderForCopy);
+    await utils.sendCopyShortcutKey();
+    utils.setupEditingHost("<b>A[]B</b>");
+    lastBeforeInput = undefined;
+    await utils.sendPasteShortcutKey();
+    test(() => {
+      assert_equals(lastBeforeInput?.inputType, "insertFromPaste", `inputType should be "insertFromPaste"`);
+      assert_equals(lastBeforeInput?.data, null, `data should be null`);
+      assert_true(
+        String(lastBeforeInput?.dataTransfer?.getData("text/html")).includes(placeholderForCopy.innerHTML),
+        `dataTransfer should have the copied HTML source`
+      );
+    }, `${t.name}: beforeinput`);
+    test(() => {
+      assert_equals(editingHost.innerHTML, "<b>AabcB</b>", "text should be inserted into the editable <b>");
+    }, `${t.name}: pasted result`);
+  }, "Pasting text into editable <b>");
+
+  promise_test(async t => {
+    placeholderForCopy.innerHTML = "<i>abc</i>";
+    document.activeElement?.blur();
+    await test_driver.click(placeholderForCopy);
+    getSelection().selectAllChildren(placeholderForCopy);
+    await utils.sendCopyShortcutKey();
+    utils.setupEditingHost("<b>A[]B</b>");
+    lastBeforeInput = undefined;
+    await utils.sendPasteShortcutKey();
+    test(() => {
+      assert_equals(lastBeforeInput?.inputType, "insertFromPaste", `inputType should be "insertFromPaste"`);
+      assert_equals(lastBeforeInput?.data, null, `data should be null`);
+      assert_true(
+        String(lastBeforeInput?.dataTransfer?.getData("text/html")).includes(placeholderForCopy.innerHTML),
+        `dataTransfer should have the copied HTML source`
+      );
+    }, `${t.name}: beforeinput`);
+    test(() => {
+      assert_equals(editingHost.innerHTML, "<b>AabcB</b>", "text should be inserted into the editable <b> without copied <i>");
+    }, `${t.name}: pasted result`);
+  }, "Pasting text in <i> into editable <b>");
+
+  promise_test(async t => {
+    placeholderForCopy.innerHTML = "<div>abc</div><div>def</div>";
+    document.activeElement?.blur();
+    await test_driver.click(placeholderForCopy);
+    getSelection().selectAllChildren(placeholderForCopy);
+    await utils.sendCopyShortcutKey();
+    utils.setupEditingHost("A[]B");
+    lastBeforeInput = undefined;
+    await utils.sendPasteShortcutKey();
+    test(() => {
+      assert_equals(lastBeforeInput?.inputType, "insertFromPaste", `inputType should be "insertFromPaste"`);
+      assert_equals(lastBeforeInput?.data, null, `data should be null`);
+      assert_true(
+        String(lastBeforeInput?.dataTransfer?.getData("text/html")).includes(placeholderForCopy.innerHTML),
+        `dataTransfer should have the copied HTML source`
+      );
+    }, `${t.name}: beforeinput`);
+    test(() => {
+      if (useBR) {
+        assert_in_array(
+          editingHost.innerHTML,
+          [
+            "Aabc<br>defB",
+            "A<br>abc<br>def<br>B",
+          ],
+          "Each paragraph should be pasted as a line"
+        );
+      } else {
+        assert_in_array(
+          editingHost.innerHTML,
+          [
+            "Aabc<br>defB",
+            "Aabc\ndefB",
+            "A<br>abc<br>def<br>B",
+            "A\nabc\ndef\nB",
+          ],
+          "Each paragraph should be pasted as a line"
+        );
+      }
+    }, `${t.name}: pasted result`);
+  }, "Pasting 2 paragraphs");
+
+  promise_test(async t => {
+    placeholderForCopy.innerHTML = "<div>abc</div><div>def</div>";
+    document.activeElement?.blur();
+    await test_driver.click(placeholderForCopy);
+    getSelection().selectAllChildren(placeholderForCopy);
+    await utils.sendCopyShortcutKey();
+    utils.setupEditingHost("<b>A[]B</b>");
+    lastBeforeInput = undefined;
+    await utils.sendPasteShortcutKey();
+    test(() => {
+      assert_equals(lastBeforeInput?.inputType, "insertFromPaste", `inputType should be "insertFromPaste"`);
+      assert_equals(lastBeforeInput?.data, null, `data should be null`);
+      assert_true(
+        String(lastBeforeInput?.dataTransfer?.getData("text/html")).includes(placeholderForCopy.innerHTML),
+        `dataTransfer should have the copied HTML source`
+      );
+    }, `${t.name}: beforeinput`);
+    test(() => {
+      if (useBR) {
+        assert_in_array(
+          editingHost.innerHTML,
+          [
+            "<b>Aabc<br>defB</b>",
+            "<b>A<br>abc<br>def<br>B</b>",
+          ],
+          "Each paragraph should be pasted as a line"
+        );
+      } else {
+        assert_in_array(
+          editingHost.innerHTML,
+          [
+            "<b>Aabc<br>defB</b>",
+            "<b>Aabc\ndefB</b>",
+            "<b>A<br>abc<br>def<br>B</b>",
+            "<b>A\nabc\ndef\nB</b>",
+          ],
+          "Each paragraph should be pasted as a line"
+        );
+      }
+    }, `${t.name}: pasted result`);
+  }, "Pasting 2 paragraphs into <b>");
+
+  promise_test(async t => {
+    placeholderForCopy.innerHTML = "<div><b>abc</b></div><div><b>def</b></div>";
+    document.activeElement?.blur();
+    await test_driver.click(placeholderForCopy);
+    getSelection().selectAllChildren(placeholderForCopy);
+    await utils.sendCopyShortcutKey();
+    utils.setupEditingHost("A[]B");
+    lastBeforeInput = undefined;
+    await utils.sendPasteShortcutKey();
+    test(() => {
+      assert_equals(lastBeforeInput?.inputType, "insertFromPaste", `inputType should be "insertFromPaste"`);
+      assert_equals(lastBeforeInput?.data, null, `data should be null`);
+      assert_true(
+        String(lastBeforeInput?.dataTransfer?.getData("text/html")).includes(placeholderForCopy.innerHTML),
+        `dataTransfer should have the copied HTML source`
+      );
+    }, `${t.name}: beforeinput`);
+    test(() => {
+      if (useBR) {
+        assert_in_array(
+          editingHost.innerHTML,
+          [
+            "Aabc<br>defB",
+            "A<br>abc<br>def<br>B",
+          ],
+          "Each paragraph should be pasted as a line"
+        );
+      } else {
+        assert_in_array(
+          editingHost.innerHTML,
+          [
+            "Aabc<br>defB",
+            "Aabc\ndefB",
+            "A<br>abc<br>def<br>B",
+            "A\nabc\ndef\nB",
+          ],
+          "Each paragraph should be pasted as a line"
+        );
+      }
+    }, `${t.name}: pasted result`);
+  }, "Pasting 2 paragraphs whose text is bold");
+}, {once: true});
+</script>
+</head>
+<body></body>
+</html>

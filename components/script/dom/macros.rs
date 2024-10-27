@@ -32,6 +32,7 @@ macro_rules! make_limited_int_setter(
         fn $attr(&self, value: i32) -> $crate::dom::bindings::error::ErrorResult {
             use $crate::dom::bindings::inheritance::Castable;
             use $crate::dom::element::Element;
+            use $crate::script_runtime::CanGc;
 
             let value = if value < 0 {
                 return Err($crate::dom::bindings::error::Error::IndexSize);
@@ -40,7 +41,7 @@ macro_rules! make_limited_int_setter(
             };
 
             let element = self.upcast::<Element>();
-            element.set_int_attribute(&html5ever::local_name!($htmlname), value);
+            element.set_int_attribute(&html5ever::local_name!($htmlname), value, CanGc::note());
             Ok(())
         }
     );
@@ -52,9 +53,10 @@ macro_rules! make_int_setter(
         fn $attr(&self, value: i32) {
             use $crate::dom::bindings::inheritance::Castable;
             use $crate::dom::element::Element;
+            use $crate::script_runtime::CanGc;
 
             let element = self.upcast::<Element>();
-            element.set_int_attribute(&html5ever::local_name!($htmlname), value)
+            element.set_int_attribute(&html5ever::local_name!($htmlname), value, CanGc::note())
         }
     );
     ($attr:ident, $htmlname:tt) => {
@@ -111,9 +113,10 @@ macro_rules! make_url_setter(
         fn $attr(&self, value: USVString) {
             use $crate::dom::bindings::inheritance::Castable;
             use $crate::dom::element::Element;
+            use $crate::script_runtime::CanGc;
             let element = self.upcast::<Element>();
             element.set_url_attribute(&html5ever::local_name!($htmlname),
-                                         value);
+                                         value, CanGc::note());
         }
     );
 );
@@ -181,8 +184,9 @@ macro_rules! make_setter(
         fn $attr(&self, value: DOMString) {
             use $crate::dom::bindings::inheritance::Castable;
             use $crate::dom::element::Element;
+            use $crate::script_runtime::CanGc;
             let element = self.upcast::<Element>();
-            element.set_string_attribute(&html5ever::local_name!($htmlname), value)
+            element.set_string_attribute(&html5ever::local_name!($htmlname), value, CanGc::note())
         }
     );
 );
@@ -193,8 +197,9 @@ macro_rules! make_bool_setter(
         fn $attr(&self, value: bool) {
             use $crate::dom::bindings::inheritance::Castable;
             use $crate::dom::element::Element;
+            use $crate::script_runtime::CanGc;
             let element = self.upcast::<Element>();
-            element.set_bool_attribute(&html5ever::local_name!($htmlname), value)
+            element.set_bool_attribute(&html5ever::local_name!($htmlname), value, CanGc::note())
         }
     );
 );
@@ -206,13 +211,14 @@ macro_rules! make_uint_setter(
             use $crate::dom::bindings::inheritance::Castable;
             use $crate::dom::element::Element;
             use $crate::dom::values::UNSIGNED_LONG_MAX;
+            use $crate::script_runtime::CanGc;
             let value = if value > UNSIGNED_LONG_MAX {
                 $default
             } else {
                 value
             };
             let element = self.upcast::<Element>();
-            element.set_uint_attribute(&html5ever::local_name!($htmlname), value)
+            element.set_uint_attribute(&html5ever::local_name!($htmlname), value, CanGc::note())
         }
     );
     ($attr:ident, $htmlname:tt) => {
@@ -227,6 +233,7 @@ macro_rules! make_limited_uint_setter(
             use $crate::dom::bindings::inheritance::Castable;
             use $crate::dom::element::Element;
             use $crate::dom::values::UNSIGNED_LONG_MAX;
+            use $crate::script_runtime::CanGc;
             let value = if value == 0 {
                 return Err($crate::dom::bindings::error::Error::IndexSize);
             } else if value > UNSIGNED_LONG_MAX {
@@ -235,7 +242,7 @@ macro_rules! make_limited_uint_setter(
                 value
             };
             let element = self.upcast::<Element>();
-            element.set_uint_attribute(&html5ever::local_name!($htmlname), value);
+            element.set_uint_attribute(&html5ever::local_name!($htmlname), value, CanGc::note());
             Ok(())
         }
     );
@@ -250,8 +257,9 @@ macro_rules! make_atomic_setter(
         fn $attr(&self, value: DOMString) {
             use $crate::dom::bindings::inheritance::Castable;
             use $crate::dom::element::Element;
+            use $crate::script_runtime::CanGc;
             let element = self.upcast::<Element>();
-            element.set_atomic_attribute(&html5ever::local_name!($htmlname), value)
+            element.set_atomic_attribute(&html5ever::local_name!($htmlname), value, CanGc::note())
         }
     );
 );
@@ -263,9 +271,10 @@ macro_rules! make_legacy_color_setter(
             use $crate::dom::bindings::inheritance::Castable;
             use $crate::dom::element::Element;
             use style::attr::AttrValue;
+            use $crate::script_runtime::CanGc;
             let element = self.upcast::<Element>();
             let value = AttrValue::from_legacy_color(value.into());
-            element.set_attribute(&html5ever::local_name!($htmlname), value)
+            element.set_attribute(&html5ever::local_name!($htmlname), value, CanGc::note())
         }
     );
 );
@@ -276,9 +285,10 @@ macro_rules! make_dimension_setter(
         fn $attr(&self, value: DOMString) {
             use $crate::dom::bindings::inheritance::Castable;
             use $crate::dom::element::Element;
+            use $crate::script_runtime::CanGc;
             let element = self.upcast::<Element>();
             let value = AttrValue::from_dimension(value.into());
-            element.set_attribute(&html5ever::local_name!($htmlname), value)
+            element.set_attribute(&html5ever::local_name!($htmlname), value, CanGc::note())
         }
     );
 );
@@ -289,9 +299,10 @@ macro_rules! make_nonzero_dimension_setter(
         fn $attr(&self, value: DOMString) {
             use $crate::dom::bindings::inheritance::Castable;
             use $crate::dom::element::Element;
+            use $crate::script_runtime::CanGc;
             let element = self.upcast::<Element>();
             let value = AttrValue::from_nonzero_dimension(value.into());
-            element.set_attribute(&html5ever::local_name!($htmlname), value)
+            element.set_attribute(&html5ever::local_name!($htmlname), value, CanGc::note())
         }
     );
 );
@@ -318,8 +329,9 @@ macro_rules! define_event_handler(
         fn $getter(&self) -> Option<::std::rc::Rc<$handler>> {
             use crate::dom::bindings::inheritance::Castable;
             use crate::dom::eventtarget::EventTarget;
+            use crate::script_runtime::CanGc;
             let eventtarget = self.upcast::<EventTarget>();
-            eventtarget.get_event_handler_common(stringify!($event_type))
+            eventtarget.get_event_handler_common(stringify!($event_type), CanGc::note())
         }
 
         fn $setter(&self, listener: Option<::std::rc::Rc<$handler>>) {

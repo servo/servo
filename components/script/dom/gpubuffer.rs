@@ -29,7 +29,7 @@ use crate::dom::gpu::{response_async, AsyncWGPUListener};
 use crate::dom::gpudevice::GPUDevice;
 use crate::dom::promise::Promise;
 use crate::realms::InRealm;
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{CanGc, JSContext};
 
 #[derive(JSTraceable, MallocSizeOf)]
 pub struct ActiveBufferMapping {
@@ -238,8 +238,9 @@ impl GPUBufferMethods for GPUBuffer {
         offset: GPUSize64,
         size: Option<GPUSize64>,
         comp: InRealm,
+        can_gc: CanGc,
     ) -> Rc<Promise> {
-        let promise = Promise::new_in_current_realm(comp);
+        let promise = Promise::new_in_current_realm(comp, can_gc);
         // Step 2
         if self.pending_map.borrow().is_some() {
             promise.reject_error(Error::Operation);
@@ -413,7 +414,7 @@ impl GPUBuffer {
 
 impl AsyncWGPUListener for GPUBuffer {
     #[allow(unsafe_code)]
-    fn handle_response(&self, response: WebGPUResponse, promise: &Rc<Promise>) {
+    fn handle_response(&self, response: WebGPUResponse, promise: &Rc<Promise>, _can_gc: CanGc) {
         match response {
             WebGPUResponse::BufferMapAsync(Ok(mapping)) => self.map_success(promise, mapping),
             WebGPUResponse::BufferMapAsync(Err(_)) => self.map_failure(promise),

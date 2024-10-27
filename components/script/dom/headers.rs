@@ -52,8 +52,8 @@ impl Headers {
         }
     }
 
-    pub fn new(global: &GlobalScope) -> DomRoot<Headers> {
-        Self::new_with_proto(global, None, CanGc::note())
+    pub fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<Headers> {
+        Self::new_with_proto(global, None, can_gc)
     }
 
     fn new_with_proto(
@@ -63,10 +63,11 @@ impl Headers {
     ) -> DomRoot<Headers> {
         reflect_dom_object_with_proto(Box::new(Headers::new_inherited()), global, proto, can_gc)
     }
+}
 
+impl HeadersMethods for Headers {
     // https://fetch.spec.whatwg.org/#dom-headers
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+    fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -76,9 +77,7 @@ impl Headers {
         dom_headers_new.fill(init)?;
         Ok(dom_headers_new)
     }
-}
 
-impl HeadersMethods for Headers {
     // https://fetch.spec.whatwg.org/#concept-headers-append
     fn Append(&self, name: ByteString, value: ByteString) -> ErrorResult {
         // Step 1
@@ -288,14 +287,14 @@ impl Headers {
         }
     }
 
-    pub fn for_request(global: &GlobalScope) -> DomRoot<Headers> {
-        let headers_for_request = Headers::new(global);
+    pub fn for_request(global: &GlobalScope, can_gc: CanGc) -> DomRoot<Headers> {
+        let headers_for_request = Headers::new(global, can_gc);
         headers_for_request.guard.set(Guard::Request);
         headers_for_request
     }
 
-    pub fn for_response(global: &GlobalScope) -> DomRoot<Headers> {
-        let headers_for_response = Headers::new(global);
+    pub fn for_response(global: &GlobalScope, can_gc: CanGc) -> DomRoot<Headers> {
+        let headers_for_response = Headers::new(global, can_gc);
         headers_for_response.guard.set(Guard::Response);
         headers_for_response
     }

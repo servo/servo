@@ -7,7 +7,9 @@ use js::rust::{HandleObject, HandleValue};
 use servo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
-use crate::dom::bindings::codegen::Bindings::ExtendableEventBinding;
+use crate::dom::bindings::codegen::Bindings::ExtendableEventBinding::{
+    ExtendableEventInit, ExtendableEventMethods,
+};
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
@@ -38,8 +40,9 @@ impl ExtendableEvent {
         type_: Atom,
         bubbles: bool,
         cancelable: bool,
+        can_gc: CanGc,
     ) -> DomRoot<ExtendableEvent> {
-        Self::new_with_proto(worker, None, type_, bubbles, cancelable, CanGc::note())
+        Self::new_with_proto(worker, None, type_, bubbles, cancelable, can_gc)
     }
 
     fn new_with_proto(
@@ -62,13 +65,16 @@ impl ExtendableEvent {
         }
         ev
     }
+}
 
-    pub fn Constructor(
+impl ExtendableEventMethods for ExtendableEvent {
+    // https://w3c.github.io/ServiceWorker/#dom-extendableevent-extendableevent
+    fn Constructor(
         worker: &ServiceWorkerGlobalScope,
         proto: Option<HandleObject>,
         can_gc: CanGc,
         type_: DOMString,
-        init: &ExtendableEventBinding::ExtendableEventInit,
+        init: &ExtendableEventInit,
     ) -> Fallible<DomRoot<ExtendableEvent>> {
         Ok(ExtendableEvent::new_with_proto(
             worker,
@@ -81,7 +87,7 @@ impl ExtendableEvent {
     }
 
     // https://w3c.github.io/ServiceWorker/#wait-until-method
-    pub fn WaitUntil(&self, _cx: JSContext, _val: HandleValue) -> ErrorResult {
+    fn WaitUntil(&self, _cx: JSContext, _val: HandleValue) -> ErrorResult {
         // Step 1
         if !self.extensions_allowed {
             return Err(Error::InvalidState);
@@ -92,12 +98,12 @@ impl ExtendableEvent {
     }
 
     // https://dom.spec.whatwg.org/#dom-event-istrusted
-    pub fn IsTrusted(&self) -> bool {
+    fn IsTrusted(&self) -> bool {
         self.event.IsTrusted()
     }
 }
 
-impl Default for ExtendableEventBinding::ExtendableEventInit {
+impl Default for ExtendableEventInit {
     fn default() -> Self {
         Self::empty()
     }

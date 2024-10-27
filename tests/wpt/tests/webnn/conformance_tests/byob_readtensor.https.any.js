@@ -32,7 +32,8 @@ promise_setup(async () => {
     mlTensor = await mlContext.createTensor({
       dataType: 'int32',
       shape: [2, 4],
-      usage: MLTensorUsage.WRITE | MLTensorUsage.READ,
+      readable: true,
+      writable: true,
     });
   } catch (e) {
     throw new AssertionError(
@@ -141,7 +142,7 @@ promise_test(async (t) => {
   const tensor = await mlContext.createTensor({
     dataType: 'int32',
     shape: [2, 2],
-    usage: MLTensorUsage.READ,
+    readable: true,
   });
   const arrayBufferView = new Int32Array(2 * 2);
   const arrayBuffer = arrayBufferView.buffer;
@@ -159,7 +160,7 @@ promise_test(async (t) => {
   const tensor = await mlContext.createTensor({
     dataType: 'int32',
     shape: [2, 2],
-    usage: MLTensorUsage.READ,
+    readable: true,
   });
   const arrayBufferView = new Int32Array(2 * 2);
   const arrayBuffer = arrayBufferView.buffer;

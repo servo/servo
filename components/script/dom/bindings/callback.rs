@@ -27,7 +27,7 @@ use crate::dom::bindings::utils::AsCCharPtrPtr;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
 use crate::realms::{enter_realm, InRealm};
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{CanGc, JSContext};
 
 /// The exception handling used for a call.
 #[derive(Clone, Copy, PartialEq)]
@@ -271,7 +271,7 @@ impl Drop for CallSetup {
             LeaveRealm(*self.cx, self.old_realm);
             if self.handling == ExceptionHandling::Report {
                 let ar = enter_realm(&*self.exception_global);
-                report_pending_exception(*self.cx, true, InRealm::Entered(&ar));
+                report_pending_exception(*self.cx, true, InRealm::Entered(&ar), CanGc::note());
             }
             drop(self.incumbent_script.take());
             drop(self.entry_script.take().unwrap());

@@ -34,10 +34,10 @@ use crate::fragment_tree::{
 };
 use crate::geom::{
     AuOrAuto, LogicalRect, LogicalSides, LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSides,
-    Size, SizeKeyword, ToLogical, ToLogicalWithContainingBlock,
+    Size, ToLogical, ToLogicalWithContainingBlock,
 };
 use crate::positioned::{relative_adjustement, PositioningContext, PositioningContextLength};
-use crate::sizing::ContentSizes;
+use crate::sizing::{ContentSizes, InlineContentSizesResult};
 use crate::style_ext::{Clamp, ComputedValuesExt, PaddingBorderMargin};
 use crate::table::TableSlotCoordinates;
 use crate::{ContainingBlock, IndefiniteContainingBlock};
@@ -73,11 +73,10 @@ impl CellLayout {
 
     /// Whether the cell is considered empty for the purpose of the 'empty-cells' property.
     fn is_empty_for_empty_cells(&self) -> bool {
-        !self
-            .layout
+        self.layout
             .fragments
             .iter()
-            .any(|fragment| !matches!(fragment, Fragment::AbsoluteOrFixedPositioned(_)))
+            .all(|fragment| matches!(fragment, Fragment::AbsoluteOrFixedPositioned(_)))
     }
 }
 
@@ -252,7 +251,7 @@ impl<'a> TableLayout<'a> {
             TableLayoutMode::Fixed &&
             !matches!(
                 self.table.style.box_size(writing_mode).inline,
-                Size::Keyword(SizeKeyword::Initial | SizeKeyword::MaxContent)
+                Size::Initial | Size::MaxContent
             );
         let row_measures = vec![LogicalVec2::zero(); self.table.size.width];
         self.cell_measures = vec![row_measures; self.table.size.height];
@@ -298,10 +297,13 @@ impl<'a> TableLayout<'a> {
                     let mut inline_content_sizes = if is_in_fixed_mode {
                         ContentSizes::zero()
                     } else {
-                        cell.contents.contents.inline_content_sizes(
-                            layout_context,
-                            &IndefiniteContainingBlock::new_for_style(&cell.style),
-                        )
+                        cell.contents
+                            .contents
+                            .inline_content_sizes(
+                                layout_context,
+                                &IndefiniteContainingBlock::new_for_style(&cell.style),
+                            )
+                            .sizes
                     };
                     inline_content_sizes.min_content += padding_border_sums.inline;
                     inline_content_sizes.max_content += padding_border_sums.inline;
@@ -784,6 +786,7 @@ impl<'a> TableLayout<'a> {
                         &LogicalVec2::zero(),
                         false, /* auto_block_size_stretches_to_containing_block */
                     )
+                    .sizes
                     .min_content
             })
             .max()
@@ -1041,10 +1044,10 @@ impl<'a> TableLayout<'a> {
             |column_index: &usize| self.column_measures[*column_index].percentage.0 > 0.;
         let has_percent_zero = |column_index: &usize| !has_percent_greater_than_zero(column_index);
         let has_max_content = |column_index: &usize| {
-            self.column_measures[*column_index]
+            !self.column_measures[*column_index]
                 .content_sizes
-                .max_content !=
-                Au(0)
+                .max_content
+                .is_zero()
         };
 
         let max_content_sum =
@@ -1630,6 +1633,10 @@ impl<'a> TableLayout<'a> {
 
     /// Lay out the table (grid and captions) of this [`TableLayout`] into fragments. This should
     /// only be be called after calling [`TableLayout.compute_measures`].
+    #[cfg_attr(
+        feature = "tracing",
+        tracing::instrument(name = "Table::layout", skip_all, fields(servo_profiling = true))
+    )]
     fn layout(
         mut self,
         layout_context: &LayoutContext,
@@ -1676,11 +1683,18 @@ impl<'a> TableLayout<'a> {
         let offset_from_wrapper = -table_pbm.padding - table_pbm.border;
         let mut current_block_offset = offset_from_wrapper.block_start;
 
+        let depends_on_block_constraints = self
+            .table
+            .style
+            .content_box_sizes_and_padding_border_margin(&containing_block_for_table.into())
+            .depends_on_block_constraints;
+
         let mut table_layout = IndependentLayout {
             fragments: Vec::new(),
             content_block_size: Zero::zero(),
             content_inline_size_for_table: None,
             baselines: Baselines::default(),
+            depends_on_block_constraints,
         };
 
         table_layout
@@ -2601,11 +2615,19 @@ impl Table {
         }
     }
 
+    #[cfg_attr(
+        feature = "tracing",
+        tracing::instrument(
+            name = "Table::inline_content_sizes",
+            skip_all,
+            fields(servo_profiling = true)
+        )
+    )]
     pub(crate) fn inline_content_sizes(
         &mut self,
         layout_context: &LayoutContext,
         containing_block_for_children: &IndefiniteContainingBlock,
-    ) -> ContentSizes {
+    ) -> InlineContentSizesResult {
         let writing_mode = containing_block_for_children.style.writing_mode;
         let mut layout = TableLayout::new(self);
         let mut table_content_sizes = layout.compute_grid_min_max(layout_context, writing_mode);
@@ -2632,7 +2654,10 @@ impl Table {
                 .max_assign(caption_minimum_inline_size);
         }
 
-        table_content_sizes
+        InlineContentSizesResult {
+            sizes: table_content_sizes,
+            depends_on_block_constraints: false,
+        }
     }
 
     fn get_column_measure_for_column_at_index(
@@ -2856,10 +2881,10 @@ fn get_outer_sizes_for_measurement(
     let min_size = style.min_box_size(writing_mode);
     let max_size = style.max_box_size(writing_mode);
     (
-        outer_size(size.map(|v| get_size_for_axis(v).unwrap_or(Au(0)))),
-        outer_size(min_size.map(|v| get_size_for_axis(v).unwrap_or(Au(0)))),
+        outer_size(size.map(|v| get_size_for_axis(v).unwrap_or_else(Au::zero))),
+        outer_size(min_size.map(|v| get_size_for_axis(v).unwrap_or_else(Au::zero))),
         outer_size(max_size.map(|v| get_size_for_axis(v).unwrap_or(MAX_AU))),
-        size.inline.is_keyword(),
+        !size.inline.is_numeric(),
         get_size_percentage_contribution(&size, &max_size),
     )
 }

@@ -13,30 +13,30 @@ pub fn unicode_plane(codepoint: char) -> u32 {
 }
 
 pub fn is_cjk(codepoint: char) -> bool {
-    if let Some(block) = codepoint.block() {
-        match block {
-            UnicodeBlock::CJKRadicalsSupplement |
-            UnicodeBlock::KangxiRadicals |
-            UnicodeBlock::IdeographicDescriptionCharacters |
-            UnicodeBlock::CJKSymbolsandPunctuation |
-            UnicodeBlock::Hiragana |
-            UnicodeBlock::Katakana |
-            UnicodeBlock::Bopomofo |
-            UnicodeBlock::HangulCompatibilityJamo |
-            UnicodeBlock::Kanbun |
-            UnicodeBlock::BopomofoExtended |
-            UnicodeBlock::CJKStrokes |
-            UnicodeBlock::KatakanaPhoneticExtensions |
-            UnicodeBlock::EnclosedCJKLettersandMonths |
-            UnicodeBlock::CJKCompatibility |
-            UnicodeBlock::CJKUnifiedIdeographsExtensionA |
-            UnicodeBlock::YijingHexagramSymbols |
-            UnicodeBlock::CJKUnifiedIdeographs |
-            UnicodeBlock::CJKCompatibilityIdeographs |
-            UnicodeBlock::CJKCompatibilityForms |
-            UnicodeBlock::HalfwidthandFullwidthForms => return true,
-            _ => {},
-        }
+    if let Some(
+        UnicodeBlock::CJKRadicalsSupplement |
+        UnicodeBlock::KangxiRadicals |
+        UnicodeBlock::IdeographicDescriptionCharacters |
+        UnicodeBlock::CJKSymbolsandPunctuation |
+        UnicodeBlock::Hiragana |
+        UnicodeBlock::Katakana |
+        UnicodeBlock::Bopomofo |
+        UnicodeBlock::HangulCompatibilityJamo |
+        UnicodeBlock::Kanbun |
+        UnicodeBlock::BopomofoExtended |
+        UnicodeBlock::CJKStrokes |
+        UnicodeBlock::KatakanaPhoneticExtensions |
+        UnicodeBlock::EnclosedCJKLettersandMonths |
+        UnicodeBlock::CJKCompatibility |
+        UnicodeBlock::CJKUnifiedIdeographsExtensionA |
+        UnicodeBlock::YijingHexagramSymbols |
+        UnicodeBlock::CJKUnifiedIdeographs |
+        UnicodeBlock::CJKCompatibilityIdeographs |
+        UnicodeBlock::CJKCompatibilityForms |
+        UnicodeBlock::HalfwidthandFullwidthForms,
+    ) = codepoint.block()
+    {
+        return true;
     }
 
     // https://en.wikipedia.org/wiki/Plane_(Unicode)#Supplementary_Ideographic_Plane

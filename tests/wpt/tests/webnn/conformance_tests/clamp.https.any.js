@@ -124,6 +124,177 @@ const clampTests = [
     }
   },
   {
+    'name': 'clamp float16 1D tensor',
+    'graph': {
+      'inputs': {
+        'clampInput': {
+          'data': [NaN, -Infinity, Infinity, -64000, 64000, -2, 1, 0],
+          'descriptor': {shape: [8], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'clamp',
+        'arguments': [{'input': 'clampInput'}, {'options': {'minValue': -2}}],
+        'outputs': 'clampOutput'
+      }],
+      'expectedOutputs': {
+        'clampOutput': {
+          'data': [NaN, -2, Infinity, -2, 64000, -2, 1, 0],
+          'descriptor': {shape: [8], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'clamp int8 1D tensor',
+    'graph': {
+      'inputs': {
+        'clampInput': {
+          'data': [-128, 127, -4, -2, 1, 0, 2, 4],
+          'descriptor': {shape: [8], dataType: 'int8'}
+        }
+      },
+      'operators': [{
+        'name': 'clamp',
+        'arguments': [
+          {'input': 'clampInput'},
+          {'options': {'minValue': -2, 'maxValue': 125}}
+        ],
+        'outputs': 'clampOutput'
+      }],
+      'expectedOutputs': {
+        'clampOutput': {
+          'data': [-2, 125, -2, -2, 1, 0, 2, 4],
+          'descriptor': {shape: [8], dataType: 'int8'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'clamp uint8 1D tensor',
+    'graph': {
+      'inputs': {
+        'clampInput': {
+          'data': [255, 127, 5, 0],
+          'descriptor': {shape: [4], dataType: 'uint8'}
+        }
+      },
+      'operators': [{
+        'name': 'clamp',
+        'arguments': [
+          {'input': 'clampInput'}, {'options': {'minValue': 5, 'maxValue': 200}}
+        ],
+        'outputs': 'clampOutput'
+      }],
+      'expectedOutputs': {
+        'clampOutput': {
+          'data': [200, 127, 5, 5],
+          'descriptor': {shape: [4], dataType: 'uint8'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'clamp int32 1D tensor',
+    'graph': {
+      'inputs': {
+        'clampInput': {
+          'data': [-2147483648, 2147483647, -4, -2, 1, 0, 2, 4],
+          'descriptor': {shape: [8], dataType: 'int32'}
+        }
+      },
+      'operators': [{
+        'name': 'clamp',
+        'arguments': [
+          {'input': 'clampInput'},
+          {'options': {'minValue': -2, 'maxValue': 2147483645}}
+        ],
+        'outputs': 'clampOutput'
+      }],
+      'expectedOutputs': {
+        'clampOutput': {
+          'data': [-2, 2147483645, -2, -2, 1, 0, 2, 4],
+          'descriptor': {shape: [8], dataType: 'int32'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'clamp uint32 1D tensor',
+    'graph': {
+      'inputs': {
+        'clampInput': {
+          'data': [4294967295, 127, 5, 0],
+          'descriptor': {shape: [4], dataType: 'uint32'}
+        }
+      },
+      'operators': [{
+        'name': 'clamp',
+        'arguments': [
+          {'input': 'clampInput'},
+          {'options': {'minValue': 5, 'maxValue': 4294967290}}
+        ],
+        'outputs': 'clampOutput'
+      }],
+      'expectedOutputs': {
+        'clampOutput': {
+          'data': [4294967290, 127, 5, 5],
+          'descriptor': {shape: [4], dataType: 'uint32'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'clamp int64 1D tensor',
+    'graph': {
+      'inputs': {
+        'clampInput': {
+          'data': [-4147483648, 4147483647, -4, -2, 1, 0, 2, 4],
+          'descriptor': {shape: [8], dataType: 'int64'}
+        }
+      },
+      'operators': [{
+        'name': 'clamp',
+        'arguments': [
+          {'input': 'clampInput'},
+          {'options': {'minValue': -2, 'maxValue': 4147483645}}
+        ],
+        'outputs': 'clampOutput'
+      }],
+      'expectedOutputs': {
+        'clampOutput': {
+          'data': [-2, 4147483645, -2, -2, 1, 0, 2, 4],
+          'descriptor': {shape: [8], dataType: 'int64'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'clamp uint64 1D tensor',
+    'graph': {
+      'inputs': {
+        'clampInput': {
+          'data': [5294967295, 127, 5, 0],
+          'descriptor': {shape: [4], dataType: 'uint64'}
+        }
+      },
+      'operators': [{
+        'name': 'clamp',
+        'arguments': [
+          {'input': 'clampInput'},
+          {'options': {'minValue': 5, 'maxValue': 5294967290}}
+        ],
+        'outputs': 'clampOutput'
+      }],
+      'expectedOutputs': {
+        'clampOutput': {
+          'data': [5294967290, 127, 5, 5],
+          'descriptor': {shape: [4], dataType: 'uint64'}
+        }
+      }
+    }
+  },
+  {
     'name': 'clamp float32 2D tensor default options',
     'graph': {
       'inputs': {

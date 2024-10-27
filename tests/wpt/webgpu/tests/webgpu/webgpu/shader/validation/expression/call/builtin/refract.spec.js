@@ -2,10 +2,21 @@
 * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
 **/const builtin = 'refract';export const description = `
 Validation tests for the ${builtin}() builtin.
-`;
-import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
+`;import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
 import { keysOf, objectsToRecord } from '../../../../../../common/util/data_tables.js';
-import { Type, kConvertableToFloatVectors, scalarTypeOf } from '../../../../../util/conversion.js';
+import {
+  Type,
+  kConvertableToFloatVectors,
+  scalarTypeOf } from
+
+'../../../../../util/conversion.js';
+import {
+
+  quantizeToF16,
+  quantizeToF32,
+  isSubnormalNumberF16,
+  isSubnormalNumberF32 } from
+'../../../../../util/math.js';
 import { ShaderValidationTest } from '../../../shader_validation_test.js';
 
 import {
@@ -19,6 +30,28 @@ import {
 export const g = makeTestGroup(ShaderValidationTest);
 
 const kValidArgumentTypes = objectsToRecord(kConvertableToFloatVectors);
+
+function quantizeFunctionForScalarType(type) {
+  switch (type) {
+    case Type.f32:
+      return quantizeToF32;
+    case Type.f16:
+      return quantizeToF16;
+    default:
+      return (v) => v;
+  }
+}
+
+function isSubnormalFunctionForScalarType(type) {
+  switch (type) {
+    case Type.f32:
+      return isSubnormalNumberF32;
+    case Type.f16:
+      return isSubnormalNumberF16;
+    default:
+      return (v) => false;
+  }
+}
 
 g.test('values').
 desc(
@@ -63,6 +96,17 @@ fn((t) => {
   const c2 = vCheck.checkedResult(c * c);
   const c2_one_minus_b_dot_a_2 = vCheck.checkedResult(c2 * one_minus_b_dot_a_2);
   const k = vCheck.checkedResult(1.0 - c2_one_minus_b_dot_a_2);
+
+  const quantizeFn = quantizeFunctionForScalarType(scalarType);
+  const isSubnormalFn = isSubnormalFunctionForScalarType(scalarType);
+  // We skip tests with values that would involve subnormal computations in
+  // order to avoid defining a specific behavior (flush to zero).
+  t.skipIf(
+    isSubnormalFn(quantizeFn(b_dot_a)) ||
+    isSubnormalFn(quantizeFn(b_dot_a_2)) ||
+    isSubnormalFn(quantizeFn(c2)) ||
+    isSubnormalFn(quantizeFn(k))
+  );
 
   if (k >= 0) {
     // If the k is near zero it may fail on some implementations which implement sqrt as

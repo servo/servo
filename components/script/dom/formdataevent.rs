@@ -33,15 +33,10 @@ impl FormDataEvent {
         can_bubble: EventBubbles,
         cancelable: EventCancelable,
         form_data: &FormData,
+        can_gc: CanGc,
     ) -> DomRoot<FormDataEvent> {
         Self::new_with_proto(
-            global,
-            None,
-            type_,
-            can_bubble,
-            cancelable,
-            form_data,
-            CanGc::note(),
+            global, None, type_, can_bubble, cancelable, form_data, can_gc,
         )
     }
 
@@ -70,9 +65,11 @@ impl FormDataEvent {
         }
         ev
     }
+}
 
-    #[allow(non_snake_case)]
-    pub fn Constructor(
+impl FormDataEventMethods for FormDataEvent {
+    // https://html.spec.whatwg.org/multipage/#formdataevent
+    fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -94,9 +91,7 @@ impl FormDataEvent {
 
         Ok(event)
     }
-}
 
-impl FormDataEventMethods for FormDataEvent {
     // https://html.spec.whatwg.org/multipage/#dom-formdataevent-formdata
     fn FormData(&self) -> DomRoot<FormData> {
         DomRoot::from_ref(&*self.form_data)

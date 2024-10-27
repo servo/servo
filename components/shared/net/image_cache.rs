@@ -10,7 +10,7 @@ use malloc_size_of_derive::MallocSizeOf;
 use pixels::{Image, ImageMetadata};
 use serde::{Deserialize, Serialize};
 use servo_url::{ImmutableOrigin, ServoUrl};
-use webrender_traits::WebRenderNetApi;
+use webrender_traits::CrossProcessCompositorApi;
 
 use crate::request::CorsSettings;
 use crate::FetchResponseMsg;
@@ -99,7 +99,7 @@ pub enum ImageCacheResult {
 }
 
 pub trait ImageCache: Sync + Send {
-    fn new(webrender_api: WebRenderNetApi) -> Self
+    fn new(compositor_api: CrossProcessCompositorApi) -> Self
     where
         Self: Sized;
 

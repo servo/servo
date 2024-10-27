@@ -22,7 +22,6 @@ use webxr::glwindow::GlWindowDiscovery;
 #[cfg(target_os = "windows")]
 use webxr::openxr::{AppInfo, OpenXrDiscovery};
 use winit::event::WindowEvent;
-use winit::event_loop::EventLoopWindowTarget;
 use winit::window::WindowId;
 
 use super::events_loop::{EventsLoop, WakerEvent};
@@ -30,6 +29,7 @@ use super::minibrowser::Minibrowser;
 use super::webview::WebViewManager;
 use super::{headed_window, headless_window};
 use crate::desktop::embedder::{EmbedderCallbacks, XrDiscovery};
+use crate::desktop::events_loop::with_current_event_loop;
 use crate::desktop::tracing::trace_winit_event;
 use crate::desktop::window_trait::WindowPortsMethods;
 use crate::parser::get_default_url;
@@ -80,7 +80,7 @@ impl App {
         } else {
             Rc::new(headed_window::Window::new(
                 opts::get().initial_window_size,
-                &events_loop,
+                events_loop.as_winit(),
                 no_native_titlebar,
                 device_pixel_ratio_override,
             ))
@@ -101,7 +101,7 @@ impl App {
             minibrowser: None,
         };
 
-        if opts::get().minibrowser && window.winit_window().is_some() {
+        if window.winit_window().is_some() {
             // Make sure the gl context is made current.
             let rendering_context = window.rendering_context();
             let webrender_gl = match rendering_context.connection().gl_api() {
@@ -116,7 +116,12 @@ impl App {
             debug_assert_eq!(webrender_gl.get_error(), gleam::gl::NO_ERROR);
 
             app.minibrowser = Some(
-                Minibrowser::new(&rendering_context, &events_loop, initial_url.clone()).into(),
+                Minibrowser::new(
+                    &rendering_context,
+                    events_loop.as_winit(),
+                    initial_url.clone(),
+                )
+                .into(),
             );
         }
 
@@ -134,7 +139,7 @@ impl App {
         let t_start = Instant::now();
         let mut t = t_start;
         let ev_waker = events_loop.create_event_loop_waker();
-        events_loop.run_forever(move |event, w, control_flow| {
+        events_loop.run_forever(move |event, control_flow| {
             let now = Instant::now();
             trace_winit_event!(event, "@{:?} (+{:?}) {event:?}", now - t_start, now - t);
             t = now;
@@ -158,18 +163,10 @@ impl App {
                 let glwindow_discovery =
                     if pref!(dom.webxr.glwindow.enabled) && !opts::get().headless {
                         let window = window.clone();
-                        // This should be safe because run_forever does, in fact,
-                        // run forever. The event loop window target doesn't get
-                        // moved, and does outlast this closure, and we won't
-                        // ever try to make use of it once shutdown begins and
-                        // it stops being valid.
-                        let w = unsafe {
-                            std::mem::transmute::<
-                                &EventLoopWindowTarget<WakerEvent>,
-                                &'static EventLoopWindowTarget<WakerEvent>,
-                            >(w.unwrap())
-                        };
-                        let factory = Box::new(move || Ok(window.new_glwindow(w)));
+                        let factory = Box::new(move || {
+                            with_current_event_loop(|w| Ok(window.new_glwindow(w)))
+                                .expect("An event loop should always be active in headed mode")
+                        });
                         Some(XrDiscovery::GlWindow(GlWindowDiscovery::new(
                             surfman.connection(),
                             surfman.adapter(),
@@ -281,7 +278,8 @@ impl App {
                                 "Sync WebView size with Window Resize event",
                             );
                         }
-                        if response.repaint {
+                        if response.repaint && *event != winit::event::WindowEvent::RedrawRequested
+                        {
                             // Request a winit redraw event, so we can recomposite, update and paint
                             // the minibrowser, and present the new frame.
                             window.winit_window().unwrap().request_redraw();

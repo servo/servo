@@ -12,6 +12,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::xrpose::XRPose;
 use crate::dom::xrrigidtransform::XRRigidTransform;
 use crate::dom::xrsession::ApiRigidTransform;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct XRJointPose {
@@ -32,8 +33,9 @@ impl XRJointPose {
         global: &GlobalScope,
         pose: ApiRigidTransform,
         radius: Option<f32>,
+        can_gc: CanGc,
     ) -> DomRoot<XRJointPose> {
-        let transform = XRRigidTransform::new(global, pose);
+        let transform = XRRigidTransform::new(global, pose, can_gc);
         reflect_dom_object(
             Box::new(XRJointPose::new_inherited(&transform, radius)),
             global,

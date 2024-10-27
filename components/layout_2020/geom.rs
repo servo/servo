@@ -16,6 +16,7 @@ use style::values::generics::length::GenericLengthPercentageOrAuto as AutoOr;
 use style::Zero;
 use style_traits::CSSPixel;
 
+use crate::sizing::ContentSizes;
 use crate::ContainingBlock;
 
 pub type PhysicalPoint<U> = euclid::Point2D<U, CSSPixel>;
@@ -63,6 +64,29 @@ impl<T: Default> Default for LogicalVec2<T> {
             inline: T::default(),
             block: T::default(),
         }
+    }
+}
+
+impl<T> LogicalVec2<T> {
+    pub fn map_inline_and_block_axes<U>(
+        &self,
+        inline_f: impl FnOnce(&T) -> U,
+        block_f: impl FnOnce(&T) -> U,
+    ) -> LogicalVec2<U> {
+        LogicalVec2 {
+            inline: inline_f(&self.inline),
+            block: block_f(&self.block),
+        }
+    }
+}
+
+impl<T: Clone> LogicalVec2<Size<T>> {
+    pub fn map_inline_and_block_sizes<U>(
+        &self,
+        inline_f: impl FnOnce(T) -> U,
+        block_f: impl FnOnce(T) -> U,
+    ) -> LogicalVec2<Size<U>> {
+        self.map_inline_and_block_axes(|size| size.map(inline_f), |size| size.map(block_f))
     }
 }
 
@@ -621,10 +645,10 @@ impl ToLogicalWithContainingBlock<LogicalRect<Au>> for PhysicalRect<Au> {
     }
 }
 
-/// The possible keywords accepted by the sizing properties.
+/// The possible values accepted by the sizing properties.
 /// <https://drafts.csswg.org/css-sizing/#sizing-properties>
-#[derive(Clone)]
-pub(crate) enum SizeKeyword {
+#[derive(Clone, PartialEq)]
+pub(crate) enum Size<T> {
     /// Represents an `auto` value for the preferred and minimum size properties,
     /// or `none` for the maximum size properties.
     /// <https://drafts.csswg.org/css-sizing/#valdef-width-auto>
@@ -638,35 +662,38 @@ pub(crate) enum SizeKeyword {
     FitContent,
     /// <https://drafts.csswg.org/css-sizing-4/#valdef-width-stretch>
     Stretch,
-}
-
-/// The possible values accepted by the sizing properties,
-/// with numeric `<length-percentage>` resolved as a `T`.
-/// <https://drafts.csswg.org/css-sizing/#sizing-properties>
-#[derive(Clone)]
-pub(crate) enum Size<T> {
-    Keyword(SizeKeyword),
+    /// Represents a numeric `<length-percentage>`, but resolved as a `T`.
+    /// <https://drafts.csswg.org/css-sizing/#valdef-width-length-percentage-0>
     Numeric(T),
 }
+
+impl<T: Copy> Copy for Size<T> {}
 
 impl<T> Default for Size<T> {
     #[inline]
     fn default() -> Self {
-        Self::Keyword(SizeKeyword::Initial)
+        Self::Initial
+    }
+}
+
+impl<T> Size<T> {
+    #[inline]
+    pub(crate) fn is_numeric(&self) -> bool {
+        matches!(self, Self::Numeric(_))
+    }
+
+    #[inline]
+    pub(crate) fn is_initial(&self) -> bool {
+        matches!(self, Self::Initial)
     }
 }
 
 impl<T: Clone> Size<T> {
     #[inline]
-    pub(crate) fn is_keyword(&self) -> bool {
-        matches!(self, Self::Keyword(_))
-    }
-
-    #[inline]
     pub(crate) fn to_numeric(&self) -> Option<T> {
         match self {
-            Self::Keyword(_) => None,
             Self::Numeric(numeric) => Some(numeric).cloned(),
+            _ => None,
         }
     }
 
@@ -679,7 +706,11 @@ impl<T: Clone> Size<T> {
     #[inline]
     pub fn map<U>(&self, f: impl FnOnce(T) -> U) -> Size<U> {
         match self {
-            Size::Keyword(keyword) => Size::Keyword(keyword.clone()),
+            Size::Initial => Size::Initial,
+            Size::MinContent => Size::MinContent,
+            Size::MaxContent => Size::MaxContent,
+            Size::FitContent => Size::FitContent,
+            Size::Stretch => Size::Stretch,
             Size::Numeric(numeric) => Size::Numeric(f(numeric.clone())),
         }
     }
@@ -687,8 +718,8 @@ impl<T: Clone> Size<T> {
     #[inline]
     pub fn maybe_map<U>(&self, f: impl FnOnce(T) -> Option<U>) -> Option<Size<U>> {
         Some(match self {
-            Size::Keyword(keyword) => Size::Keyword(keyword.clone()),
             Size::Numeric(numeric) => Size::Numeric(f(numeric.clone())?),
+            _ => self.map(|_| unreachable!("This shouldn't be called for keywords")),
         })
     }
 }
@@ -697,11 +728,12 @@ impl From<StyleSize> for Size<LengthPercentage> {
     fn from(size: StyleSize) -> Self {
         match size {
             StyleSize::LengthPercentage(length) => Size::Numeric(length.0),
-            StyleSize::Auto => Size::Keyword(SizeKeyword::Initial),
-            StyleSize::MinContent => Size::Keyword(SizeKeyword::MinContent),
-            StyleSize::MaxContent => Size::Keyword(SizeKeyword::MaxContent),
-            StyleSize::FitContent => Size::Keyword(SizeKeyword::FitContent),
-            StyleSize::Stretch => Size::Keyword(SizeKeyword::Stretch),
+            StyleSize::Auto => Size::Initial,
+            StyleSize::MinContent => Size::MinContent,
+            StyleSize::MaxContent => Size::MaxContent,
+            StyleSize::FitContent => Size::FitContent,
+            StyleSize::Stretch => Size::Stretch,
+            StyleSize::AnchorSizeFunction(_) => unreachable!("anchor-size() should be disabled"),
         }
     }
 }
@@ -710,11 +742,12 @@ impl From<StyleMaxSize> for Size<LengthPercentage> {
     fn from(max_size: StyleMaxSize) -> Self {
         match max_size {
             StyleMaxSize::LengthPercentage(length) => Size::Numeric(length.0),
-            StyleMaxSize::None => Size::Keyword(SizeKeyword::Initial),
-            StyleMaxSize::MinContent => Size::Keyword(SizeKeyword::MinContent),
-            StyleMaxSize::MaxContent => Size::Keyword(SizeKeyword::MaxContent),
-            StyleMaxSize::FitContent => Size::Keyword(SizeKeyword::FitContent),
-            StyleMaxSize::Stretch => Size::Keyword(SizeKeyword::Stretch),
+            StyleMaxSize::None => Size::Initial,
+            StyleMaxSize::MinContent => Size::MinContent,
+            StyleMaxSize::MaxContent => Size::MaxContent,
+            StyleMaxSize::FitContent => Size::FitContent,
+            StyleMaxSize::Stretch => Size::Stretch,
+            StyleMaxSize::AnchorSizeFunction(_) => unreachable!("anchor-size() should be disabled"),
         }
     }
 }
@@ -724,15 +757,14 @@ impl LogicalVec2<Size<LengthPercentage>> {
         &self,
         containing_block: &ContainingBlock,
     ) -> LogicalVec2<Size<Au>> {
-        LogicalVec2 {
-            inline: self
-                .inline
-                .map(|lp| lp.to_used_value(containing_block.inline_size)),
-            block: self
-                .block
-                .maybe_map(|lp| lp.maybe_to_used_value(containing_block.block_size.non_auto()))
-                .unwrap_or_default(),
-        }
+        self.map_inline_and_block_axes(
+            |inline_size| inline_size.map(|lp| lp.to_used_value(containing_block.inline_size)),
+            |block_size| {
+                block_size
+                    .maybe_map(|lp| lp.maybe_to_used_value(containing_block.block_size.non_auto()))
+                    .unwrap_or_default()
+            },
+        )
     }
 
     pub(crate) fn maybe_percentages_relative_to_basis(
@@ -758,6 +790,61 @@ impl LogicalVec2<Size<LengthPercentage>> {
         LogicalVec2 {
             inline: self.inline.map(|value| value.to_used_value(basis.inline)),
             block: self.block.map(|value| value.to_used_value(basis.block)),
+        }
+    }
+}
+
+impl Size<Au> {
+    /// Resolves any size into a numerical value.
+    #[inline]
+    pub(crate) fn resolve(
+        &self,
+        initial_behavior: Self,
+        stretch_size: Au,
+        get_content_size: &mut impl FnMut() -> ContentSizes,
+    ) -> Au {
+        if self.is_initial() {
+            assert!(!initial_behavior.is_initial());
+            initial_behavior.resolve_non_initial(stretch_size, get_content_size)
+        } else {
+            self.resolve_non_initial(stretch_size, get_content_size)
+        }
+        .unwrap()
+    }
+
+    /// Resolves a non-initial size into a numerical value.
+    /// Returns `None` if the size is the initial one.
+    #[inline]
+    pub(crate) fn resolve_non_initial(
+        &self,
+        stretch_size: Au,
+        get_content_size: &mut impl FnMut() -> ContentSizes,
+    ) -> Option<Au> {
+        match self {
+            Self::Initial => None,
+            Self::MinContent => Some(get_content_size().min_content),
+            Self::MaxContent => Some(get_content_size().max_content),
+            Self::FitContent => Some(get_content_size().shrink_to_fit(stretch_size)),
+            Self::Stretch => Some(stretch_size),
+            Self::Numeric(numeric) => Some(*numeric),
+        }
+    }
+
+    /// Tries to resolve an extrinsic size into a numerical value.
+    /// Extrinsic sizes are those based on the context of an element, without regard for its contents.
+    /// <https://drafts.csswg.org/css-sizing-3/#extrinsic>
+    ///
+    /// Returns `None` if either:
+    /// - The size is intrinsic.
+    /// - The size is the initial one.
+    ///   TODO: should we allow it to behave as `stretch` instead of assuming it's intrinsic?
+    /// - The provided `stretch_size` is `None` but we need its value.
+    #[inline]
+    pub(crate) fn maybe_resolve_extrinsic(&self, stretch_size: Option<Au>) -> Option<Au> {
+        match self {
+            Self::Initial | Self::MinContent | Self::MaxContent | Self::FitContent => None,
+            Self::Stretch => stretch_size,
+            Self::Numeric(numeric) => Some(*numeric),
         }
     }
 }

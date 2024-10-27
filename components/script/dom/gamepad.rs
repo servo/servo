@@ -98,6 +98,7 @@ impl Gamepad {
         button_bounds: (f64, f64),
         supported_haptic_effects: GamepadSupportedHapticEffects,
         xr: bool,
+        can_gc: CanGc,
     ) -> DomRoot<Gamepad> {
         Self::new_with_proto(
             global,
@@ -108,6 +109,7 @@ impl Gamepad {
             button_bounds,
             supported_haptic_effects,
             xr,
+            can_gc,
         )
     }
 
@@ -126,10 +128,11 @@ impl Gamepad {
         button_bounds: (f64, f64),
         supported_haptic_effects: GamepadSupportedHapticEffects,
         xr: bool,
+        can_gc: CanGc,
     ) -> DomRoot<Gamepad> {
         let button_list = GamepadButtonList::init_buttons(global);
         let vibration_actuator =
-            GamepadHapticActuator::new(global, gamepad_id, supported_haptic_effects);
+            GamepadHapticActuator::new(global, gamepad_id, supported_haptic_effects, can_gc);
         let index = if xr { -1 } else { 0 };
         let gamepad = reflect_dom_object_with_proto(
             Box::new(Gamepad::new_inherited(
@@ -148,7 +151,7 @@ impl Gamepad {
             )),
             global,
             None,
-            CanGc::note(),
+            can_gc,
         );
         gamepad.init_axes();
         gamepad
@@ -213,7 +216,7 @@ impl Gamepad {
         self.gamepad_id
     }
 
-    pub fn update_connected(&self, connected: bool, has_gesture: bool) {
+    pub fn update_connected(&self, connected: bool, has_gesture: bool, can_gc: CanGc) {
         if self.connected.get() == connected {
             return;
         }
@@ -226,7 +229,7 @@ impl Gamepad {
         };
 
         if has_gesture {
-            self.notify_event(event_type);
+            self.notify_event(event_type, can_gc);
         }
     }
 
@@ -242,11 +245,11 @@ impl Gamepad {
         self.timestamp.set(timestamp);
     }
 
-    pub fn notify_event(&self, event_type: GamepadEventType) {
-        let event = GamepadEvent::new_with_type(&self.global(), event_type, self);
+    pub fn notify_event(&self, event_type: GamepadEventType, can_gc: CanGc) {
+        let event = GamepadEvent::new_with_type(&self.global(), event_type, self, can_gc);
         event
             .upcast::<Event>()
-            .fire(self.global().as_window().upcast::<EventTarget>());
+            .fire(self.global().as_window().upcast::<EventTarget>(), can_gc);
     }
 
     /// Initialize the number of axes in the "standard" gamepad mapping.

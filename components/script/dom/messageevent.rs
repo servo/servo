@@ -91,8 +91,8 @@ impl MessageEvent {
         }
     }
 
-    pub fn new_uninitialized(global: &GlobalScope) -> DomRoot<MessageEvent> {
-        Self::new_uninitialized_with_proto(global, None, CanGc::note())
+    pub fn new_uninitialized(global: &GlobalScope, can_gc: CanGc) -> DomRoot<MessageEvent> {
+        Self::new_uninitialized_with_proto(global, None, can_gc)
     }
 
     fn new_uninitialized_with_proto(
@@ -146,6 +146,7 @@ impl MessageEvent {
         source: Option<&WindowProxyOrMessagePortOrServiceWorker>,
         lastEventId: DOMString,
         ports: Vec<DomRoot<MessagePort>>,
+        can_gc: CanGc,
     ) -> DomRoot<MessageEvent> {
         Self::new_with_proto(
             global,
@@ -158,7 +159,7 @@ impl MessageEvent {
             source,
             lastEventId,
             ports,
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -193,7 +194,55 @@ impl MessageEvent {
         ev
     }
 
-    pub fn Constructor(
+    pub fn dispatch_jsval(
+        target: &EventTarget,
+        scope: &GlobalScope,
+        message: HandleValue,
+        origin: Option<&str>,
+        source: Option<&WindowProxy>,
+        ports: Vec<DomRoot<MessagePort>>,
+        can_gc: CanGc,
+    ) {
+        let messageevent = MessageEvent::new(
+            scope,
+            atom!("message"),
+            false,
+            false,
+            message,
+            DOMString::from(origin.unwrap_or("")),
+            source
+                .map(|source| {
+                    WindowProxyOrMessagePortOrServiceWorker::WindowProxy(DomRoot::from_ref(source))
+                })
+                .as_ref(),
+            DOMString::new(),
+            ports,
+            can_gc,
+        );
+        messageevent.upcast::<Event>().fire(target, can_gc);
+    }
+
+    pub fn dispatch_error(target: &EventTarget, scope: &GlobalScope, can_gc: CanGc) {
+        let init = MessageEventBinding::MessageEventInit::empty();
+        let messageevent = MessageEvent::new(
+            scope,
+            atom!("messageerror"),
+            init.parent.bubbles,
+            init.parent.cancelable,
+            init.data.handle(),
+            init.origin.clone(),
+            init.source.as_ref(),
+            init.lastEventId.clone(),
+            init.ports.clone(),
+            can_gc,
+        );
+        messageevent.upcast::<Event>().fire(target, can_gc);
+    }
+}
+
+impl MessageEventMethods for MessageEvent {
+    /// <https://html.spec.whatwg.org/multipage/#messageevent>
+    fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         can_gc: CanGc,
@@ -215,53 +264,7 @@ impl MessageEvent {
         );
         Ok(ev)
     }
-}
 
-impl MessageEvent {
-    pub fn dispatch_jsval(
-        target: &EventTarget,
-        scope: &GlobalScope,
-        message: HandleValue,
-        origin: Option<&str>,
-        source: Option<&WindowProxy>,
-        ports: Vec<DomRoot<MessagePort>>,
-    ) {
-        let messageevent = MessageEvent::new(
-            scope,
-            atom!("message"),
-            false,
-            false,
-            message,
-            DOMString::from(origin.unwrap_or("")),
-            source
-                .map(|source| {
-                    WindowProxyOrMessagePortOrServiceWorker::WindowProxy(DomRoot::from_ref(source))
-                })
-                .as_ref(),
-            DOMString::new(),
-            ports,
-        );
-        messageevent.upcast::<Event>().fire(target);
-    }
-
-    pub fn dispatch_error(target: &EventTarget, scope: &GlobalScope) {
-        let init = MessageEventBinding::MessageEventInit::empty();
-        let messageevent = MessageEvent::new(
-            scope,
-            atom!("messageerror"),
-            init.parent.bubbles,
-            init.parent.cancelable,
-            init.data.handle(),
-            init.origin.clone(),
-            init.source.as_ref(),
-            init.lastEventId.clone(),
-            init.ports.clone(),
-        );
-        messageevent.upcast::<Event>().fire(target);
-    }
-}
-
-impl MessageEventMethods for MessageEvent {
     /// <https://html.spec.whatwg.org/multipage/#dom-messageevent-data>
     fn Data(&self, _cx: JSContext) -> JSVal {
         self.data.get()

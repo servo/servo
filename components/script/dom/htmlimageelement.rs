@@ -6,7 +6,7 @@ use std::cell::Cell;
 use std::collections::HashSet;
 use std::default::Default;
 use std::rc::Rc;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::{char, mem};
 
 use app_units::{Au, AU_PER_PX};
@@ -26,7 +26,9 @@ use net_traits::image_cache::{
     ImageCache, ImageCacheResult, ImageOrMetadataAvailable, ImageResponse, PendingImageId,
     PendingImageResponse, UsePlaceholder,
 };
-use net_traits::request::{CorsSettings, Destination, Initiator, Referrer, RequestBuilder};
+use net_traits::request::{
+    CorsSettings, Destination, Initiator, Referrer, RequestBuilder, RequestId,
+};
 use net_traits::{
     FetchMetadata, FetchResponseListener, FetchResponseMsg, NetworkError, ReferrerPolicy,
     ResourceFetchTiming, ResourceTimingType,
@@ -92,7 +94,7 @@ use crate::dom::window::Window;
 use crate::fetch::create_a_potential_cors_request;
 use crate::image_listener::{generate_cache_listener_for_element, ImageCacheListener};
 use crate::microtask::{Microtask, MicrotaskRunnable};
-use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
+use crate::network_listener::{self, PreInvoke, ResourceTimingListener};
 use crate::realms::enter_realm;
 use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
@@ -218,13 +220,19 @@ struct ImageContext {
 }
 
 impl FetchResponseListener for ImageContext {
-    fn process_request_body(&mut self) {}
-    fn process_request_eof(&mut self) {}
+    fn process_request_body(&mut self, _: RequestId) {}
+    fn process_request_eof(&mut self, _: RequestId) {}
 
-    fn process_response(&mut self, metadata: Result<FetchMetadata, NetworkError>) {
+    fn process_response(
+        &mut self,
+        request_id: RequestId,
+        metadata: Result<FetchMetadata, NetworkError>,
+    ) {
         debug!("got {:?} for {:?}", metadata.as_ref().map(|_| ()), self.url);
-        self.image_cache
-            .notify_pending_response(self.id, FetchResponseMsg::ProcessResponse(metadata.clone()));
+        self.image_cache.notify_pending_response(
+            self.id,
+            FetchResponseMsg::ProcessResponse(request_id, metadata.clone()),
+        );
 
         let metadata = metadata.ok().map(|meta| match meta {
             FetchMetadata::Unfiltered(m) => m,
@@ -262,16 +270,24 @@ impl FetchResponseListener for ImageContext {
         };
     }
 
-    fn process_response_chunk(&mut self, payload: Vec<u8>) {
+    fn process_response_chunk(&mut self, request_id: RequestId, payload: Vec<u8>) {
         if self.status.is_ok() {
-            self.image_cache
-                .notify_pending_response(self.id, FetchResponseMsg::ProcessResponseChunk(payload));
+            self.image_cache.notify_pending_response(
+                self.id,
+                FetchResponseMsg::ProcessResponseChunk(request_id, payload),
+            );
         }
     }
 
-    fn process_response_eof(&mut self, response: Result<ResourceFetchTiming, NetworkError>) {
-        self.image_cache
-            .notify_pending_response(self.id, FetchResponseMsg::ProcessResponseEOF(response));
+    fn process_response_eof(
+        &mut self,
+        request_id: RequestId,
+        response: Result<ResourceFetchTiming, NetworkError>,
+    ) {
+        self.image_cache.notify_pending_response(
+            self.id,
+            FetchResponseMsg::ProcessResponseEOF(request_id, response),
+        );
     }
 
     fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming {
@@ -283,7 +299,7 @@ impl FetchResponseListener for ImageContext {
     }
 
     fn submit_resource_timing(&mut self) {
-        network_listener::submit_timing(self)
+        network_listener::submit_timing(self, CanGc::note())
     }
 }
 
@@ -377,7 +393,7 @@ impl HTMLImageElement {
         let document = document_from_node(self);
         let window = window_from_node(self);
 
-        let context = Arc::new(Mutex::new(ImageContext {
+        let context = ImageContext {
             image_cache: window.image_cache(),
             status: Ok(()),
             id,
@@ -385,24 +401,7 @@ impl HTMLImageElement {
             doc: Trusted::new(&document),
             resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
             url: img_url.clone(),
-        }));
-
-        let (action_sender, action_receiver) = ipc::channel().unwrap();
-        let (task_source, canceller) = document
-            .window()
-            .task_manager()
-            .networking_task_source_with_canceller();
-        let listener = NetworkListener {
-            context,
-            task_source,
-            canceller: Some(canceller),
         };
-        ROUTER.add_route(
-            action_receiver.to_opaque(),
-            Box::new(move |message| {
-                listener.notify_fetch(message.to().unwrap());
-            }),
-        );
 
         let request = image_fetch_request(
             img_url.clone(),
@@ -420,9 +419,7 @@ impl HTMLImageElement {
 
         // This is a background load because the load blocker already fulfills the
         // purpose of delaying the document's load event.
-        document
-            .loader_mut()
-            .fetch_async_background(request, action_sender);
+        document.fetch_background(request, context, None);
     }
 
     // Steps common to when an image has been loaded.
@@ -488,14 +485,18 @@ impl HTMLImageElement {
         // Fire image.onload and loadend
         if trigger_image_load {
             // TODO: https://html.spec.whatwg.org/multipage/#fire-a-progress-event-or-event
-            self.upcast::<EventTarget>().fire_event(atom!("load"));
-            self.upcast::<EventTarget>().fire_event(atom!("loadend"));
+            self.upcast::<EventTarget>()
+                .fire_event(atom!("load"), can_gc);
+            self.upcast::<EventTarget>()
+                .fire_event(atom!("loadend"), can_gc);
         }
 
         // Fire image.onerror
         if trigger_image_error {
-            self.upcast::<EventTarget>().fire_event(atom!("error"));
-            self.upcast::<EventTarget>().fire_event(atom!("loadend"));
+            self.upcast::<EventTarget>()
+                .fire_event(atom!("error"), can_gc);
+            self.upcast::<EventTarget>()
+                .fire_event(atom!("loadend"), can_gc);
         }
 
         // Trigger reflow
@@ -519,12 +520,7 @@ impl HTMLImageElement {
                 });
                 self.pending_request.borrow_mut().final_url = Some(url);
                 self.pending_request.borrow_mut().image = Some(image);
-                self.finish_reacting_to_environment_change(
-                    src,
-                    generation,
-                    selected_pixel_density,
-                    can_gc,
-                );
+                self.finish_reacting_to_environment_change(src, generation, selected_pixel_density);
             },
             ImageResponse::MetadataLoaded(meta) => {
                 self.pending_request.borrow_mut().metadata = Some(meta);
@@ -909,7 +905,7 @@ impl HTMLImageElement {
                         let src_present = elem.has_attribute(&local_name!("src"));
 
                         if src_present || Self::uses_srcset_or_picture(elem) {
-                            this.upcast::<EventTarget>().fire_event(atom!("error"));
+                            this.upcast::<EventTarget>().fire_event(atom!("error"), CanGc::note());
                         }
                     }),
                     window.upcast(),
@@ -940,7 +936,7 @@ impl HTMLImageElement {
                                 this.current_request.borrow_mut();
                             current_request.source_url = Some(USVString(src))
                         }
-                        this.upcast::<EventTarget>().fire_event(atom!("error"));
+                        this.upcast::<EventTarget>().fire_event(atom!("error"), CanGc::note());
 
                     }),
                     window.upcast(),
@@ -1035,7 +1031,7 @@ impl HTMLImageElement {
                                 current_request.source_url = Some(USVString(src));
                             }
                             // TODO: restart animation, if set.
-                            this.upcast::<EventTarget>().fire_event(atom!("load"));
+                            this.upcast::<EventTarget>().fire_event(atom!("load"), CanGc::note());
                         }),
                         window.upcast(),
                     );
@@ -1045,7 +1041,7 @@ impl HTMLImageElement {
         }
         // step 7, await a stable state.
         self.generation.set(self.generation.get() + 1);
-        let task = ImageElementMicrotask::StableStateUpdateImageDataTask {
+        let task = ImageElementMicrotask::StableStateUpdateImageData {
             elem: DomRoot::from_ref(self),
             generation: self.generation.get(),
         };
@@ -1055,7 +1051,7 @@ impl HTMLImageElement {
     /// <https://html.spec.whatwg.org/multipage/#img-environment-changes>
     pub fn react_to_environment_changes(&self) {
         // Step 1
-        let task = ImageElementMicrotask::EnvironmentChangesTask {
+        let task = ImageElementMicrotask::EnvironmentChanges {
             elem: DomRoot::from_ref(self),
             generation: self.generation.get(),
         };
@@ -1070,7 +1066,6 @@ impl HTMLImageElement {
             elem: &HTMLImageElement,
             selected_source: String,
             selected_pixel_density: f64,
-            can_gc: CanGc,
         ) -> IpcSender<PendingImageResponse> {
             let trusted_node = Trusted::new(elem);
             let (responder_sender, responder_receiver) = ipc::channel().unwrap();
@@ -1080,23 +1075,24 @@ impl HTMLImageElement {
                 .task_manager()
                 .networking_task_source_with_canceller();
             let generation = elem.generation.get();
-            ROUTER.add_route(
-                responder_receiver.to_opaque(),
+
+            ROUTER.add_typed_route(
+                responder_receiver,
                 Box::new(move |message| {
                     debug!("Got image {:?}", message);
                     // Return the image via a message to the script thread, which marks
                     // the element as dirty and triggers a reflow.
                     let element = trusted_node.clone();
-                    let image = message.to().unwrap();
+                    let image: PendingImageResponse = message.unwrap();
                     let selected_source_clone = selected_source.clone();
                     let _ = task_source.queue_with_canceller(
                         task!(process_image_response_for_environment_change: move || {
                             let element = element.root();
                             // Ignore any image response for a previous request that has been discarded.
                             if generation == element.generation.get() {
-                                element.process_image_response_for_environment_change(image,
+                                element.process_image_response_for_environment_change(image.response,
                                     USVString::from(selected_source_clone), generation,
-                                    selected_pixel_density, can_gc);
+                                    selected_pixel_density, CanGc::note());
                             }
                         }),
                         &canceller,
@@ -1162,7 +1158,6 @@ impl HTMLImageElement {
             self,
             selected_source.0.clone(),
             selected_pixel_density,
-            can_gc,
         );
         let cache_result = image_cache.track_image(
             img_url.clone(),
@@ -1179,7 +1174,6 @@ impl HTMLImageElement {
                     selected_source,
                     generation,
                     selected_pixel_density,
-                    can_gc,
                 )
             },
             ImageCacheResult::Available(ImageOrMetadataAvailable::MetadataAvailable(m)) => {
@@ -1253,7 +1247,6 @@ impl HTMLImageElement {
         src: USVString,
         generation: u32,
         selected_pixel_density: f64,
-        can_gc: CanGc,
     ) {
         let this = Trusted::new(self);
         let window = window_from_node(self);
@@ -1264,7 +1257,7 @@ impl HTMLImageElement {
                 let relevant_mutation = this.generation.get() != generation;
                 // Step 15.1
                 if relevant_mutation {
-                    this.abort_request(State::Unavailable, ImageRequestPhase::Pending, can_gc);
+                    this.abort_request(State::Unavailable, ImageRequestPhase::Pending, CanGc::note());
                     return;
                 }
                 // Step 15.2
@@ -1282,14 +1275,14 @@ impl HTMLImageElement {
 
                     // Step 15.5
                     mem::swap(&mut this.current_request.borrow_mut(), &mut pending_request);
-                    this.abort_request(State::Unavailable, ImageRequestPhase::Pending, can_gc);
                 }
+                this.abort_request(State::Unavailable, ImageRequestPhase::Pending, CanGc::note());
 
                 // Step 15.6
                 this.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
 
                 // Step 15.7
-                this.upcast::<EventTarget>().fire_event(atom!("load"));
+                this.upcast::<EventTarget>().fire_event(atom!("load"), CanGc::note());
             }),
             window.upcast(),
         );
@@ -1346,6 +1339,7 @@ impl HTMLImageElement {
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
+        can_gc: CanGc,
     ) -> DomRoot<HTMLImageElement> {
         Node::reflect_node_with_proto(
             Box::new(HTMLImageElement::new_inherited(
@@ -1353,40 +1347,10 @@ impl HTMLImageElement {
             )),
             document,
             proto,
+            can_gc,
         )
     }
 
-    pub fn Image(
-        window: &Window,
-        proto: Option<HandleObject>,
-        can_gc: CanGc,
-        width: Option<u32>,
-        height: Option<u32>,
-    ) -> Fallible<DomRoot<HTMLImageElement>> {
-        let element = Element::create(
-            QualName::new(None, ns!(html), local_name!("img")),
-            None,
-            &window.Document(),
-            ElementCreator::ScriptCreated,
-            CustomElementCreationMode::Synchronous,
-            proto,
-            can_gc,
-        );
-
-        let image = DomRoot::downcast::<HTMLImageElement>(element).unwrap();
-        if let Some(w) = width {
-            image.SetWidth(w);
-        }
-        if let Some(h) = height {
-            image.SetHeight(h);
-        }
-
-        // run update_the_image_data when the element is created.
-        // https://html.spec.whatwg.org/multipage/#when-to-obtain-images
-        image.update_the_image_data(can_gc);
-
-        Ok(image)
-    }
     pub fn areas(&self) -> Option<Vec<DomRoot<HTMLAreaElement>>> {
         let elem = self.upcast::<Element>();
         let usemap_attr = elem.get_attribute(&ns!(), &local_name!("usemap"))?;
@@ -1431,15 +1395,15 @@ impl HTMLImageElement {
 
 #[derive(JSTraceable, MallocSizeOf)]
 pub enum ImageElementMicrotask {
-    StableStateUpdateImageDataTask {
+    StableStateUpdateImageData {
         elem: DomRoot<HTMLImageElement>,
         generation: u32,
     },
-    EnvironmentChangesTask {
+    EnvironmentChanges {
         elem: DomRoot<HTMLImageElement>,
         generation: u32,
     },
-    DecodeTask {
+    Decode {
         elem: DomRoot<HTMLImageElement>,
         #[ignore_malloc_size_of = "promises are hard"]
         promise: Rc<Promise>,
@@ -1449,7 +1413,7 @@ pub enum ImageElementMicrotask {
 impl MicrotaskRunnable for ImageElementMicrotask {
     fn handler(&self, can_gc: CanGc) {
         match *self {
-            ImageElementMicrotask::StableStateUpdateImageDataTask {
+            ImageElementMicrotask::StableStateUpdateImageData {
                 ref elem,
                 ref generation,
             } => {
@@ -1459,13 +1423,13 @@ impl MicrotaskRunnable for ImageElementMicrotask {
                     elem.update_the_image_data_sync_steps(can_gc);
                 }
             },
-            ImageElementMicrotask::EnvironmentChangesTask {
+            ImageElementMicrotask::EnvironmentChanges {
                 ref elem,
                 ref generation,
             } => {
                 elem.react_to_environment_changes_sync_steps(*generation, can_gc);
             },
-            ImageElementMicrotask::DecodeTask {
+            ImageElementMicrotask::Decode {
                 ref elem,
                 ref promise,
             } => {
@@ -1476,9 +1440,9 @@ impl MicrotaskRunnable for ImageElementMicrotask {
 
     fn enter_realm(&self) -> JSAutoRealm {
         match self {
-            &ImageElementMicrotask::StableStateUpdateImageDataTask { ref elem, .. } |
-            &ImageElementMicrotask::EnvironmentChangesTask { ref elem, .. } |
-            &ImageElementMicrotask::DecodeTask { ref elem, .. } => enter_realm(&**elem),
+            &ImageElementMicrotask::StableStateUpdateImageData { ref elem, .. } |
+            &ImageElementMicrotask::EnvironmentChanges { ref elem, .. } |
+            &ImageElementMicrotask::Decode { ref elem, .. } => enter_realm(&**elem),
         }
     }
 }
@@ -1568,6 +1532,39 @@ fn get_correct_referrerpolicy_from_raw_token(token: &DOMString) -> DOMString {
 }
 
 impl HTMLImageElementMethods for HTMLImageElement {
+    // https://html.spec.whatwg.org/multipage/#dom-image
+    fn Image(
+        window: &Window,
+        proto: Option<HandleObject>,
+        can_gc: CanGc,
+        width: Option<u32>,
+        height: Option<u32>,
+    ) -> Fallible<DomRoot<HTMLImageElement>> {
+        let element = Element::create(
+            QualName::new(None, ns!(html), local_name!("img")),
+            None,
+            &window.Document(),
+            ElementCreator::ScriptCreated,
+            CustomElementCreationMode::Synchronous,
+            proto,
+            can_gc,
+        );
+
+        let image = DomRoot::downcast::<HTMLImageElement>(element).unwrap();
+        if let Some(w) = width {
+            image.SetWidth(w, can_gc);
+        }
+        if let Some(h) = height {
+            image.SetHeight(h, can_gc);
+        }
+
+        // run update_the_image_data when the element is created.
+        // https://html.spec.whatwg.org/multipage/#when-to-obtain-images
+        image.update_the_image_data(can_gc);
+
+        Ok(image)
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-img-alt
     make_getter!(Alt, "alt");
     // https://html.spec.whatwg.org/multipage/#dom-img-alt
@@ -1590,8 +1587,8 @@ impl HTMLImageElementMethods for HTMLImageElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-img-crossOrigin
-    fn SetCrossOrigin(&self, value: Option<DOMString>) {
-        set_cross_origin_attribute(self.upcast::<Element>(), value);
+    fn SetCrossOrigin(&self, value: Option<DOMString>, can_gc: CanGc) {
+        set_cross_origin_attribute(self.upcast::<Element>(), value, can_gc);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-img-usemap
@@ -1605,31 +1602,31 @@ impl HTMLImageElementMethods for HTMLImageElement {
     make_bool_setter!(SetIsMap, "ismap");
 
     // https://html.spec.whatwg.org/multipage/#dom-img-width
-    fn Width(&self) -> u32 {
+    fn Width(&self, can_gc: CanGc) -> u32 {
         let node = self.upcast::<Node>();
-        match node.bounding_content_box() {
+        match node.bounding_content_box(can_gc) {
             Some(rect) => rect.size.width.to_px() as u32,
             None => self.NaturalWidth(),
         }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-img-width
-    fn SetWidth(&self, value: u32) {
-        image_dimension_setter(self.upcast(), local_name!("width"), value);
+    fn SetWidth(&self, value: u32, can_gc: CanGc) {
+        image_dimension_setter(self.upcast(), local_name!("width"), value, can_gc);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-img-height
-    fn Height(&self) -> u32 {
+    fn Height(&self, can_gc: CanGc) -> u32 {
         let node = self.upcast::<Node>();
-        match node.bounding_content_box() {
+        match node.bounding_content_box(can_gc) {
             Some(rect) => rect.size.height.to_px() as u32,
             None => self.NaturalHeight(),
         }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-img-height
-    fn SetHeight(&self, value: u32) {
-        image_dimension_setter(self.upcast(), local_name!("height"), value);
+    fn SetHeight(&self, value: u32, can_gc: CanGc) {
+        image_dimension_setter(self.upcast(), local_name!("height"), value, can_gc);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-img-naturalwidth
@@ -1697,7 +1694,7 @@ impl HTMLImageElementMethods for HTMLImageElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-img-referrerpolicy
-    fn SetReferrerPolicy(&self, value: DOMString) {
+    fn SetReferrerPolicy(&self, value: DOMString, can_gc: CanGc) {
         let referrerpolicy_attr_name = local_name!("referrerpolicy");
         let element = self.upcast::<Element>();
         let previous_correct_attribute_value = get_correct_referrerpolicy_from_raw_token(
@@ -1707,17 +1704,21 @@ impl HTMLImageElementMethods for HTMLImageElement {
         if previous_correct_attribute_value != correct_value_or_empty_string {
             // Setting the attribute to the same value will update the image.
             // We don't want to start an update if referrerpolicy is set to the same value.
-            element.set_string_attribute(&referrerpolicy_attr_name, correct_value_or_empty_string);
+            element.set_string_attribute(
+                &referrerpolicy_attr_name,
+                correct_value_or_empty_string,
+                can_gc,
+            );
         }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-img-decode>
-    fn Decode(&self) -> Rc<Promise> {
+    fn Decode(&self, can_gc: CanGc) -> Rc<Promise> {
         // Step 1
-        let promise = Promise::new(&self.global());
+        let promise = Promise::new(&self.global(), can_gc);
 
         // Step 2
-        let task = ImageElementMicrotask::DecodeTask {
+        let task = ImageElementMicrotask::Decode {
             elem: DomRoot::from_ref(self),
             promise: promise.clone(),
         };
@@ -1821,7 +1822,9 @@ impl VirtualMethods for HTMLImageElement {
             mouse_event.ClientX().to_f32().unwrap(),
             mouse_event.ClientY().to_f32().unwrap(),
         );
-        let bcr = self.upcast::<Element>().GetBoundingClientRect();
+        let bcr = self
+            .upcast::<Element>()
+            .GetBoundingClientRect(CanGc::note());
         let bcr_p = Point2D::new(bcr.X() as f32, bcr.Y() as f32);
 
         // Walk HTMLAreaElements
@@ -1832,7 +1835,7 @@ impl VirtualMethods for HTMLImageElement {
                 None => return,
             };
             if shp.hit_test(&point) {
-                element.activation_behavior(event, self.upcast());
+                element.activation_behavior(event, self.upcast(), CanGc::note());
                 return;
             }
         }
@@ -1892,12 +1895,12 @@ impl ImageCacheListener for HTMLImageElement {
         self.generation.get()
     }
 
-    fn process_image_response(&self, response: ImageResponse) {
-        self.process_image_response(response, CanGc::note());
+    fn process_image_response(&self, response: ImageResponse, can_gc: CanGc) {
+        self.process_image_response(response, can_gc);
     }
 }
 
-fn image_dimension_setter(element: &Element, attr: LocalName, value: u32) {
+fn image_dimension_setter(element: &Element, attr: LocalName, value: u32, can_gc: CanGc) {
     // This setter is a bit weird: the IDL type is unsigned long, but it's parsed as
     // a dimension for rendering.
     let value = if value > UNSIGNED_LONG_MAX { 0 } else { value };
@@ -1915,7 +1918,7 @@ fn image_dimension_setter(element: &Element, attr: LocalName, value: u32) {
 
     let dim = LengthOrPercentageOrAuto::Length(Au::from_px(pixel_value as i32));
     let value = AttrValue::Dimension(value.to_string(), dim);
-    element.set_attribute(&attr, value);
+    element.set_attribute(&attr, value, can_gc);
 }
 
 /// Collect sequence of code points
@@ -2010,8 +2013,8 @@ pub fn parse_a_srcset_attribute(input: &str) -> Vec<ImageSource> {
         // > that position is past the end of input.
         let mut characters = descriptors_string.chars();
         let mut character = characters.next();
-        if character.is_some() {
-            current_index += 1;
+        if let Some(character) = character {
+            current_index += character.len_utf8();
         }
 
         loop {
@@ -2085,8 +2088,8 @@ pub fn parse_a_srcset_attribute(input: &str) -> Vec<ImageSource> {
             }
 
             character = characters.next();
-            if character.is_some() {
-                current_index += 1;
+            if let Some(character) = character {
+                current_index += character.len_utf8();
             }
         }
 
