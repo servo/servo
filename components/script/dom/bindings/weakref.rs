@@ -252,6 +252,13 @@ impl<T: WeakReferenceable> WeakRefVec<T> {
     }
 }
 
+// can't derive this because that would require T: Default
+impl<T: WeakReferenceable> Default for WeakRefVec<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<T: WeakReferenceable> Deref for WeakRefVec<T> {
     type Target = Vec<WeakRef<T>>;
 

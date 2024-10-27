@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::rc::Rc;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use dom_struct::dom_struct;
 use js::conversions::ToJSValConvertible;
@@ -11,6 +12,8 @@ use js::jsval::{JSVal, UndefinedValue};
 use js::rust::wrappers::JS_SetPendingException;
 use js::rust::HandleValue;
 
+use super::bindings::weakref::WeakRef;
+use super::promise::Promise;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::AbortSignalBinding::AbortSignalMethods;
 use crate::dom::bindings::codegen::Bindings::EventListenerBinding::EventListener;
@@ -19,6 +22,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::weakref::WeakReferenceable;
 use crate::dom::domexception::DOMErrorName;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
@@ -34,6 +38,13 @@ pub enum AbortAlgorithm {
         #[ignore_malloc_size_of = "Rc"] Rc<EventListener>,
         #[ignore_malloc_size_of = "generated"] EventListenerOptions,
     ),
+    FetchCancel {
+        #[ignore_malloc_size_of = "Rc"]
+        locally_aborted: Rc<AtomicBool>,
+        promise: Rc<Promise>,
+        request: DomRoot<Request>,
+        response_object: Option<Response>,
+    }
 }
 impl AbortAlgorithm {
     fn exec(self) {
@@ -41,6 +52,11 @@ impl AbortAlgorithm {
             Self::RemoveEventListener(target, ty, listener, options) => {
                 target.remove_event_listener(ty, Some(listener), options)
             },
+            // https://fetch.spec.whatwg.org/#fetch-method step 11
+            Self::FetchCancelLocal { locally_aborted } => {
+                locally_aborted.store(true, Ordering::SeqCst);
+                
+            }
         }
     }
 }
@@ -51,19 +67,78 @@ pub struct AbortSignal {
     #[ignore_malloc_size_of = "Defined in rust-mozjs"]
     reason: Heap<JSVal>,
     abort_algorithms: DomRefCell<Vec<AbortAlgorithm>>,
+
+    source_signals: DomRefCell<Vec<WeakRef<AbortSignal>>>,
+    dependent_signals: DomRefCell<Vec<WeakRef<AbortSignal>>>,
+    dependent: bool,
 }
 
 impl AbortSignal {
-    pub fn new_inherited() -> Self {
+    pub fn new_inherited(dependent: bool) -> Self {
         Self {
             event_target: EventTarget::new_inherited(),
             reason: Heap::default(),
             abort_algorithms: DomRefCell::default(),
+            source_signals: DomRefCell::default(),
+            dependent_signals: DomRefCell::default(),
+            dependent,
         }
     }
-    pub fn new(global: &GlobalScope) -> DomRoot<Self> {
-        reflect_dom_object(Box::new(Self::new_inherited()), global)
+    pub fn new(global: &GlobalScope, dependent: bool) -> DomRoot<Self> {
+        reflect_dom_object(Box::new(Self::new_inherited(dependent)), global)
     }
+    // https://dom.spec.whatwg.org/#create-a-dependent-abort-signal
+    pub fn create_dependent_signal(
+        global: &GlobalScope,
+        signals: Vec<DomRoot<Self>>,
+    ) -> DomRoot<Self> {
+        for signal in &signals {
+            // 2
+            if signal.Aborted() {
+                let result_signal = Self::new(global, false); // 1
+                result_signal.reason.set(signal.reason.get().clone());
+                return result_signal;
+            }
+        }
+        let result_signal = Self::new(global, true); // 1, 3
+        for signal in signals {
+            // 4
+            if signal.dependent {
+                // 4.2
+                for source_signal in signal.source_signals.borrow_mut().iter_mut() {
+                    // ignore dropped source signals
+                    if let Some(source_signal) = source_signal.root() {
+                        // 4.2.1
+                        assert!(!source_signal.Aborted());
+                        assert!(!source_signal.dependent);
+                        // 4.2.2
+                        result_signal
+                            .source_signals
+                            .borrow_mut()
+                            .push(WeakRef::new(&source_signal));
+                        // 4.2.3
+                        (*source_signal)
+                            .dependent_signals
+                            .borrow_mut()
+                            .push(WeakRef::new(&result_signal));
+                    }
+                }
+            } else {
+                // 4.1.1
+                result_signal
+                    .source_signals
+                    .borrow_mut()
+                    .push(signal.downgrade());
+                // 4.1.2
+                signal
+                    .dependent_signals
+                    .borrow_mut()
+                    .push(WeakRef::new(&result_signal));
+            }
+        }
+        result_signal
+    }
+
     /// <https://dom.spec.whatwg.org/#abortsignal-add>
     pub fn add_abort_algorithm(&self, alg: AbortAlgorithm) {
         if !self.Aborted() {
