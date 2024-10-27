@@ -111,26 +111,27 @@ impl HTMLVideoElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage#event-media-resize>
-    pub fn resize(&self, width: Option<u32>, height: Option<u32>) {
-        let same_size = self.video_width.get() == width && self.video_height.get() == height;
-
+    pub fn resize(&self, width: Option<u32>, height: Option<u32>) -> Option<(u32, u32)> {
         self.video_width.set(width);
         self.video_height.set(height);
 
         let width = width?;
         let height = height?;
-        if same_size && self.sent_resize.get() == Some((width, height)) {
-            return;
+        if self.sent_resize.get() == Some((width, height)) {
+            return None;
         }
 
-        if self.htmlmediaelement.get_ready_state() == ReadyState::HaveNothing {
-            self.sent_resize.set(None);
+        let sent_resize = if self.htmlmediaelement.get_ready_state() == ReadyState::HaveNothing {
+            None
         } else {
             let window = window_from_node(self);
             let task_source = window.task_manager().media_element_task_source();
             task_source.queue_simple_event(self.upcast(), atom!("resize"), &window);
-            self.sent_resize.set(Some((width, height)));
-        }
+            Some((width, height))
+        };
+
+        self.sent_resize.set(sent_resize);
+        sent_resize
     }
 
     pub fn get_current_frame_data(&self) -> Option<(Option<ipc::IpcSharedMemory>, Size2D<u32>)> {

@@ -16,7 +16,6 @@ use script_layout_interface::{
     HTMLCanvasDataSource, LayoutElementType, LayoutNodeType as ScriptLayoutNodeType,
 };
 use servo_arc::Arc as ServoArc;
-use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
 
 use crate::cell::ArcRefCell;
@@ -27,7 +26,7 @@ use crate::flow::inline::inline_box::InlineBox;
 use crate::flow::inline::InlineItem;
 use crate::flow::BlockLevelBox;
 use crate::geom::PhysicalSize;
-use crate::replaced::{CanvasInfo, CanvasSource, ReplacedContent};
+use crate::replaced::{CanvasInfo, CanvasSource};
 
 /// The data that is stored in each DOM node that is used by layout.
 #[derive(Default)]
@@ -108,7 +107,7 @@ pub(crate) trait NodeExt<'dom>: 'dom + LayoutNode<'dom> {
     ) -> Option<(
         Option<webrender_api::ImageKey>,
         Option<PhysicalSize<f64>>,
-        Option<f32>,
+        bool,
     )>;
     fn as_typeless_object_with_data_attribute(self) -> Option<String>;
     fn style(self, context: &LayoutContext) -> ServoArc<ComputedValues>;
@@ -148,25 +147,20 @@ where
     ) -> Option<(
         Option<webrender_api::ImageKey>,
         Option<PhysicalSize<f64>>,
-        Option<f32>,
+        bool,
     )> {
         let node = self.to_threadsafe();
         let data = node.media_data()?;
         let natural_size = if let Some(frame) = data.current_frame {
             Some(PhysicalSize::new(frame.width.into(), frame.height.into()))
-        } else if let Some(meta) = data.metadata {
-            Some(PhysicalSize::new(meta.width.into(), meta.height.into()))
         } else {
-            None
+            data.metadata
+                .map(|meta| PhysicalSize::new(meta.width.into(), meta.height.into()))
         };
-        let intrinsic_ratio = data.has_default_size.then(|| {
-            let size = ReplacedContent::default_object_size(WritingMode::empty());
-            size.inline.to_f32_px() / size.block.to_f32_px()
-        });
         Some((
             data.current_frame.map(|frame| frame.image_key),
             natural_size,
-            intrinsic_ratio,
+            data.has_default_size,
         ))
     }
 
