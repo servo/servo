@@ -83,6 +83,10 @@ pub struct Opts {
     /// The initial requested size of the window.
     pub initial_window_size: Size2D<u32, DeviceIndependentPixel>,
 
+    /// An override for the screen resolution. This is useful for testing behavior on different screen sizes,
+    /// such as the screen of a mobile device.
+    pub screen_size_override: Option<Size2D<u32, DeviceIndependentPixel>>,
+
     /// Whether we're running in multiprocess mode.
     pub multiprocess: bool,
 
@@ -407,6 +411,7 @@ pub fn default_opts() -> Opts {
         devtools_server_enabled: false,
         webdriver_port: None,
         initial_window_size: Size2D::new(1024, 740),
+        screen_size_override: None,
         multiprocess: false,
         background_hang_monitor: false,
         random_pipeline_closure_probability: None,
@@ -499,7 +504,18 @@ pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingR
         "Start remote WebDriver server on port",
         "7000",
     );
-    opts.optopt("", "resolution", "Set window resolution.", "1024x740");
+    opts.optopt(
+        "",
+        "window-size",
+        "Set the initial window size in logical (device independenrt) pixels",
+        "1024x740",
+    );
+    opts.optopt(
+        "",
+        "screen-size",
+        "Override the screen resolution in logical (device independent) pixels",
+        "1024x768",
+    );
     opts.optflag("M", "multiprocess", "Run in multiprocess mode");
     opts.optflag("B", "bhm", "Background Hang Monitor enabled");
     opts.optflag("S", "sandbox", "Run in a sandbox if multiprocess");
@@ -689,20 +705,32 @@ pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingR
         })
     });
 
-    let initial_window_size = match opt_match.opt_str("resolution") {
-        Some(res_string) => {
-            let res: Vec<u32> = res_string
-                .split('x')
-                .map(|r| {
-                    r.parse().unwrap_or_else(|err| {
-                        args_fail(&format!("Error parsing option: --resolution ({})", err))
-                    })
+    let parse_resolution_string = |string: String| {
+        let components: Vec<u32> = string
+            .split('x')
+            .map(|component| {
+                component.parse().unwrap_or_else(|error| {
+                    args_fail(&format!("Error parsing resolution '{string}': {error}"));
                 })
-                .collect();
-            Size2D::new(res[0], res[1])
-        },
-        None => Size2D::new(1024, 740),
+            })
+            .collect();
+        Size2D::new(components[0], components[1])
     };
+
+    let screen_size_override = opt_match
+        .opt_str("screen-size")
+        .map(parse_resolution_string);
+
+    // Make sure the default window size is not larger than any provided screen size.
+    let default_window_size = Size2D::new(1024, 740);
+    let default_window_size = screen_size_override
+        .map_or(default_window_size, |screen_size_override| {
+            default_window_size.min(screen_size_override)
+        });
+
+    let initial_window_size = opt_match
+        .opt_str("window-size")
+        .map_or(default_window_size, parse_resolution_string);
 
     if opt_match.opt_present("M") {
         MULTIPROCESS.store(true, Ordering::SeqCst)
@@ -748,6 +776,7 @@ pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingR
         devtools_server_enabled,
         webdriver_port,
         initial_window_size,
+        screen_size_override,
         multiprocess: opt_match.opt_present("M"),
         background_hang_monitor: opt_match.opt_present("B"),
         sandbox: opt_match.opt_present("S"),

@@ -5,8 +5,8 @@
 use std::f32;
 
 use app_units::{Au, MAX_AU, MIN_AU};
-use euclid::default::{Point2D, Rect, Size2D};
-use euclid::Length;
+use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect, Size2D as UntypedSize2D};
+use euclid::{Box2D, Length, Point2D, SideOffsets2D, Size2D, Vector2D};
 use malloc_size_of_derive::MallocSizeOf;
 use webrender_api::units::{FramebufferPixel, LayoutPoint, LayoutRect, LayoutSize};
 
@@ -30,6 +30,19 @@ pub type FramebufferUintLength = Length<u32, FramebufferPixel>;
 #[derive(Clone, Copy, Debug, MallocSizeOf)]
 pub enum DeviceIndependentPixel {}
 
+pub type DeviceIndependentIntRect = Box2D<i32, DeviceIndependentPixel>;
+pub type DeviceIndependentIntPoint = Point2D<i32, DeviceIndependentPixel>;
+pub type DeviceIndependentIntSize = Size2D<i32, DeviceIndependentPixel>;
+pub type DeviceIndependentIntLength = Length<i32, DeviceIndependentPixel>;
+pub type DeviceIndependentIntSideOffsets = SideOffsets2D<i32, DeviceIndependentPixel>;
+pub type DeviceIndependentIntVector2D = Vector2D<i32, DeviceIndependentPixel>;
+
+pub type DeviceIndependentRect = Box2D<f32, DeviceIndependentPixel>;
+pub type DeviceIndependentBox2D = Box2D<f32, DeviceIndependentPixel>;
+pub type DeviceIndependentPoint = Point2D<f32, DeviceIndependentPixel>;
+pub type DeviceIndependentVector2D = Vector2D<f32, DeviceIndependentPixel>;
+pub type DeviceIndependentSize = Size2D<f32, DeviceIndependentPixel>;
+
 // An Au is an "App Unit" and represents 1/60th of a CSS pixel.  It was
 // originally proposed in 2002 as a standard unit of measure in Gecko.
 // See https://bugzilla.mozilla.org/show_bug.cgi?id=177805 for more info.
@@ -38,20 +51,20 @@ pub trait MaxRect {
     fn max_rect() -> Self;
 }
 
-impl MaxRect for Rect<Au> {
+impl MaxRect for UntypedRect<Au> {
     #[inline]
-    fn max_rect() -> Rect<Au> {
-        Rect::new(
-            Point2D::new(MIN_AU / 2, MIN_AU / 2),
-            Size2D::new(MAX_AU, MAX_AU),
+    fn max_rect() -> Self {
+        Self::new(
+            UntypedPoint2D::new(MIN_AU / 2, MIN_AU / 2),
+            UntypedSize2D::new(MAX_AU, MAX_AU),
         )
     }
 }
 
 impl MaxRect for LayoutRect {
     #[inline]
-    fn max_rect() -> LayoutRect {
-        LayoutRect::from_origin_and_size(
+    fn max_rect() -> Self {
+        Self::from_origin_and_size(
             LayoutPoint::new(f32::MIN / 2.0, f32::MIN / 2.0),
             LayoutSize::new(f32::MAX, f32::MAX),
         )
@@ -59,8 +72,8 @@ impl MaxRect for LayoutRect {
 }
 
 /// A helper function to convert a rect of `f32` pixels to a rect of app units.
-pub fn f32_rect_to_au_rect(rect: Rect<f32>) -> Rect<Au> {
-    Rect::new(
+pub fn f32_rect_to_au_rect(rect: UntypedRect<f32>) -> UntypedRect<Au> {
+    UntypedRect::new(
         Point2D::new(
             Au::from_f32_px(rect.origin.x),
             Au::from_f32_px(rect.origin.y),
@@ -73,8 +86,8 @@ pub fn f32_rect_to_au_rect(rect: Rect<f32>) -> Rect<Au> {
 }
 
 /// A helper function to convert a rect of `Au` pixels to a rect of f32 units.
-pub fn au_rect_to_f32_rect(rect: Rect<Au>) -> Rect<f32> {
-    Rect::new(
+pub fn au_rect_to_f32_rect(rect: UntypedRect<Au>) -> UntypedRect<f32> {
+    UntypedRect::new(
         Point2D::new(rect.origin.x.to_f32_px(), rect.origin.y.to_f32_px()),
         Size2D::new(rect.size.width.to_f32_px(), rect.size.height.to_f32_px()),
     )

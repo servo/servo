@@ -14,12 +14,13 @@ use std::sync::{Arc, Mutex};
 use base::id::PipelineId;
 use display_list::{CompositorDisplayListInfo, ScrollTreeNodeId};
 use embedder_traits::Cursor;
-use euclid::default::Size2D;
+use euclid::default::Size2D as UntypedSize2D;
 use ipc_channel::ipc::{self, IpcSender, IpcSharedMemory};
 use libc::c_void;
 use log::warn;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use webrender_api::units::{DeviceIntRect, DeviceIntSize, DevicePoint, LayoutPoint, TexelRect};
+use servo_geometry::{DeviceIndependentIntRect, DeviceIndependentIntSize};
+use webrender_api::units::{DevicePoint, LayoutPoint, TexelRect};
 use webrender_api::{
     BuiltDisplayList, BuiltDisplayListDescriptor, ExternalImage, ExternalImageData,
     ExternalImageHandler, ExternalImageId, ExternalImageSource, ExternalScrollId,
@@ -77,12 +78,12 @@ pub enum CrossProcessCompositorMessage {
     RemoveFonts(Vec<FontKey>, Vec<FontInstanceKey>),
 
     /// Get the client window size and position.
-    GetClientWindowRect(IpcSender<DeviceIntRect>),
+    GetClientWindowRect(IpcSender<DeviceIndependentIntRect>),
     /// Get the size of the screen that the client window inhabits.
-    GetScreenSize(IpcSender<DeviceIntSize>),
+    GetScreenSize(IpcSender<DeviceIndependentIntSize>),
     /// Get the available screen size (without toolbars and docks) for the screen
     /// the client window inhabits.
-    GetAvailableScreenSize(IpcSender<DeviceIntSize>),
+    GetAvailableScreenSize(IpcSender<DeviceIndependentIntSize>),
 }
 
 impl fmt::Debug for CrossProcessCompositorMessage {
@@ -291,7 +292,7 @@ impl CrossProcessCompositorApi {
 /// This trait is used to notify lock/unlock messages and get the
 /// required info that WR needs.
 pub trait WebrenderExternalImageApi {
-    fn lock(&mut self, id: u64) -> (WebrenderImageSource, Size2D<i32>);
+    fn lock(&mut self, id: u64) -> (WebrenderImageSource, UntypedSize2D<i32>);
     fn unlock(&mut self, id: u64);
 }
 

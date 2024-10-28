@@ -5,8 +5,8 @@
 use dom_struct::dom_struct;
 use euclid::Size2D;
 use profile_traits::ipc;
+use servo_geometry::DeviceIndependentIntSize;
 use style_traits::CSSPixel;
-use webrender_api::units::DeviceIntSize;
 use webrender_traits::CrossProcessCompositorMessage;
 
 use crate::dom::bindings::codegen::Bindings::ScreenBinding::ScreenMethods;
@@ -35,28 +35,28 @@ impl Screen {
 
     fn screen_size(&self) -> Size2D<u32, CSSPixel> {
         let (send, recv) =
-            ipc::channel::<DeviceIntSize>(self.global().time_profiler_chan().clone()).unwrap();
+            ipc::channel::<DeviceIndependentIntSize>(self.global().time_profiler_chan().clone())
+                .unwrap();
         self.window
             .compositor_api()
             .sender()
             .send(CrossProcessCompositorMessage::GetScreenSize(send))
             .unwrap();
-        let dpr = self.window.device_pixel_ratio();
-        let screen = recv.recv().unwrap_or(Size2D::zero());
-        (screen.to_f32() / dpr).to_u32()
+        let size = recv.recv().unwrap_or(Size2D::zero()).to_u32();
+        Size2D::new(size.width, size.height)
     }
 
     fn screen_avail_size(&self) -> Size2D<u32, CSSPixel> {
         let (send, recv) =
-            ipc::channel::<DeviceIntSize>(self.global().time_profiler_chan().clone()).unwrap();
+            ipc::channel::<DeviceIndependentIntSize>(self.global().time_profiler_chan().clone())
+                .unwrap();
         self.window
             .compositor_api()
             .sender()
             .send(CrossProcessCompositorMessage::GetAvailableScreenSize(send))
             .unwrap();
-        let dpr = self.window.device_pixel_ratio();
-        let screen = recv.recv().unwrap_or(Size2D::zero());
-        (screen.to_f32() / dpr).to_u32()
+        let size = recv.recv().unwrap_or(Size2D::zero()).to_u32();
+        Size2D::new(size.width, size.height)
     }
 }
 
