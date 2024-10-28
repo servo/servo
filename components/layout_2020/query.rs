@@ -401,7 +401,7 @@ fn process_offset_parent_query_inner(
             Some(NodeOffsetBoxInfo {
                 border_box,
                 offset_parent_node_address: offset_parent_node.map(|node| node.0),
-                is_static_body_element: offset_parent_node.map(|node| node.1).unwrap_or(false),
+                is_static_body_element: offset_parent_node.is_some_and(|node| node.1),
             })
         } else {
             // Record the paths of the nodes being traversed.
