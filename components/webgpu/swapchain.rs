@@ -39,6 +39,17 @@ impl MallocSizeOf for WebGPUContextId {
     }
 }
 
+impl ContextConfiguration {
+    fn format(&self) -> ImageFormat {
+        match self.format {
+            wgt::TextureFormat::Rgba8Unorm => ImageFormat::RGBA8,
+            wgt::TextureFormat::Bgra8Unorm => ImageFormat::BGRA8,
+            // TODO: wgt::TextureFormat::Rgba16Float
+            _ => unreachable!("Unsupported canvas context format in configuration"),
+        }
+    }
+}
+
 pub type WGPUImageMap = Arc<Mutex<HashMap<WebGPUContextId, ContextData>>>;
 
 /// Presentation id encodes current configuration and current image
@@ -383,17 +394,11 @@ impl crate::WGPU {
         let presentation_id = context_data.next_presentation_id();
         context_data.check_and_update_presentation_id(presentation_id);
 
-        // If configuration is not provided or presentation format is not valid
-        // the context will be dummy until recreation
-        let format = config.as_ref().and_then(|config| match config.format {
-            wgt::TextureFormat::Rgba8Unorm => Some(ImageFormat::RGBA8),
-            wgt::TextureFormat::Bgra8Unorm => Some(ImageFormat::BGRA8),
-            _ => None,
-        });
-
-        let needs_image_update = if let Some(format) = format {
-            let config = config.expect("Config should exist when valid format is available");
-            let new_image_desc = WebGPUImageDescriptor::new(format, size, config.is_opaque);
+        // If configuration is not provided
+        // the context will be dummy/empty until recreation
+        let needs_image_update = if let Some(config) = config {
+            let new_image_desc =
+                WebGPUImageDescriptor::new(config.format(), size, config.is_opaque);
             let needs_swapchain_rebuild = context_data.swap_chain.is_none() ||
                 new_image_desc.buffer_size() != context_data.image_desc.buffer_size();
             if needs_swapchain_rebuild {

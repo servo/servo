@@ -19,7 +19,7 @@ use webrender_api::units::DeviceIntSize;
 use webrender_api::ImageKey;
 
 use super::bindings::codegen::Bindings::WebGPUBinding::{
-    GPUCanvasAlphaMode, GPUTextureUsageConstants,
+    GPUCanvasAlphaMode, GPUTextureFormat, GPUTextureUsageConstants,
 };
 use super::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanvas;
 use super::bindings::error::{Error, Fallible};
@@ -102,6 +102,15 @@ impl HTMLCanvasElementOrOffscreenCanvas {
             HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(canvas) => canvas.get_size(),
         }
     }
+}
+
+/// <https://gpuweb.github.io/gpuweb/#supported-context-formats>
+fn supported_context_format(format: GPUTextureFormat) -> bool {
+    // TODO: GPUTextureFormat::Rgba16float
+    matches!(
+        format,
+        GPUTextureFormat::Bgra8unorm | GPUTextureFormat::Rgba8unorm
+    )
 }
 
 #[derive(Clone, Debug, Default, JSTraceable, MallocSizeOf)]
@@ -340,14 +349,25 @@ impl GPUCanvasContextMethods for GPUCanvasContext {
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-configure>
     fn Configure(&self, configuration: &GPUCanvasConfiguration) -> Fallible<()> {
-        // Step 4
+        // Step 1: Let device be configuration.device
+        let device = &configuration.device;
+
+        // Step 5: Let descriptor be the GPUTextureDescriptor for the canvas and configuration.
         let descriptor = self.texture_descriptor_for_canvas(configuration);
 
-        // Step 2&3
-        let (mut desc, _) = convert_texture_descriptor(&descriptor, &configuration.device)?;
+        // Step 2&3: Validate texture format required features
+        let (mut desc, _) = convert_texture_descriptor(&descriptor, device)?;
         desc.label = Some(Cow::Borrowed(
             "dummy texture for texture descriptor validation",
         ));
+
+        // Step 4: If Supported context formats does not contain configuration.format, throw a TypeError
+        if !supported_context_format(configuration.format) {
+            return Err(Error::Type(format!(
+                "Unsupported context format: {:?}",
+                configuration.format
+            )));
+        }
 
         // Step 5
         self.configuration.replace(Some(configuration.clone()));
@@ -363,7 +383,7 @@ impl GPUCanvasContextMethods for GPUCanvasContext {
         self.channel
             .0
             .send(WebGPURequest::ValidateTextureDescriptor {
-                device_id: configuration.device.id().0,
+                device_id: device.id().0,
                 texture_id,
                 descriptor: desc,
             })
