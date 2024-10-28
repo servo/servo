@@ -83,7 +83,7 @@ pub mod module {
     };
     pub use js::rust::{
         get_context_realm, get_object_class, get_object_realm, CustomAutoRooterGuard, GCMethods,
-        Handle, MutableHandle, RootedGuard,
+        Handle, MutableHandle,
     };
     pub use js::typedarray::{
         ArrayBuffer, ArrayBufferView, Float32Array, Float64Array, Uint8Array, Uint8ClampedArray,
