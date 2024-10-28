@@ -129,6 +129,7 @@ impl IndependentFormattingContext {
                             ),
                         )
                     },
+                    DisplayInside::Grid => todo!("Grid support is not yet implemented."),
                     DisplayInside::Flex => {
                         NonReplacedFormattingContextContents::Flex(FlexContainer::construct(
                             context,
