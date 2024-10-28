@@ -26,6 +26,7 @@ class Layout(Flag):
     layout2013 = auto()
     layout2020 = auto()
 
+
     @staticmethod
     def all():
         return Layout.layout2013 | Layout.layout2020
