@@ -83,11 +83,9 @@ def handle_preset(s: str) -> Optional[JobConfig]:
         return JobConfig("MacOS", Workflow.MACOS, unit_tests=True)
     elif s in ["win", "windows"]:
         return JobConfig("Windows", Workflow.WINDOWS, unit_tests=True)
-    elif s in ["wpt", "linux-wpt"]:
-        return JobConfig("Linux WPT", Workflow.LINUX, unit_tests=True, wpt_layout=Layout.all())
     elif s in ["wpt-2013", "linux-wpt-2013"]:
         return JobConfig("Linux WPT", Workflow.LINUX, wpt_layout=Layout.layout2013)
-    elif s in ["wpt-2020", "linux-wpt-2020"]:
+    elif s in ["wpt-2020", "linux-wpt-2020", "wpt", "linux-wpt"]:
         return JobConfig("Linux WPT", Workflow.LINUX, wpt_layout=Layout.layout2020)
     elif s in ["mac-wpt", "wpt-mac"]:
         return JobConfig("MacOS WPT", Workflow.MACOS, wpt_layout=Layout.all())
@@ -189,9 +187,9 @@ class TestParser(unittest.TestCase):
                               {
                                   "name": "Linux WPT",
                                   "workflow": "linux",
-                                  "wpt_layout": "all",
+                                  "wpt_layout": "2020",
                                   "profile": "release",
-                                  "unit_tests": True,
+                                  "unit_tests": False,
                                   "wpt_args": ""
                               },
                               {
