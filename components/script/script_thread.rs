@@ -170,18 +170,28 @@ pub type ImageCacheMsg = (PipelineId, PendingImageResponse);
 
 thread_local!(static SCRIPT_THREAD_ROOT: Cell<Option<*const ScriptThread>> = const { Cell::new(None) });
 
+fn with_optional_script_thread<R>(f: impl FnOnce(Option<&ScriptThread>) -> R) -> R {
+    SCRIPT_THREAD_ROOT.with(|root| {
+        f(root
+            .get()
+            .and_then(|script_thread| unsafe { script_thread.as_ref() }))
+    })
+}
+
+fn with_script_thread<R: Default>(f: impl FnOnce(&ScriptThread) -> R) -> R {
+    with_optional_script_thread(|script_thread| script_thread.map(f).unwrap_or_default())
+}
+
 /// # Safety
 ///
 /// The `JSTracer` argument must point to a valid `JSTracer` in memory. In addition,
 /// implementors of this method must ensure that all active objects are properly traced
 /// or else the garbage collector may end up collecting objects that are still reachable.
 pub unsafe fn trace_thread(tr: *mut JSTracer) {
-    SCRIPT_THREAD_ROOT.with(|root| {
-        if let Some(script_thread) = root.get() {
-            debug!("tracing fields of ScriptThread");
-            (*script_thread).trace(tr);
-        }
-    });
+    with_script_thread(|script_thread| {
+        debug!("tracing fields of ScriptThread");
+        script_thread.trace(tr);
+    })
 }
 
 /// A document load that is in the process of fetching the requested resource. Contains
@@ -863,50 +873,39 @@ impl ScriptThreadFactory for ScriptThread {
 
 impl ScriptThread {
     pub fn note_rendering_opportunity(pipeline_id: PipelineId) {
-        SCRIPT_THREAD_ROOT.with(|root| {
-            let script_thread = unsafe { &*root.get().unwrap() };
+        with_script_thread(|script_thread| {
             script_thread.rendering_opportunity(pipeline_id);
         })
     }
 
     pub fn runtime_handle() -> ParentRuntime {
-        SCRIPT_THREAD_ROOT.with(|root| {
-            let script_thread = unsafe { &*root.get().unwrap() };
-            script_thread.js_runtime.prepare_for_new_child()
+        with_optional_script_thread(|script_thread| {
+            script_thread.unwrap().js_runtime.prepare_for_new_child()
         })
     }
 
     pub fn can_continue_running() -> bool {
-        SCRIPT_THREAD_ROOT.with(|root| {
-            let script_thread = unsafe { &*root.get().unwrap() };
-            script_thread.can_continue_running_inner()
-        })
+        with_script_thread(|script_thread| script_thread.can_continue_running_inner())
     }
 
     pub fn prepare_for_shutdown() {
-        SCRIPT_THREAD_ROOT.with(|root| {
-            let script_thread = unsafe { &*root.get().unwrap() };
+        with_script_thread(|script_thread| {
             script_thread.prepare_for_shutdown_inner();
         })
     }
 
     pub fn set_mutation_observer_microtask_queued(value: bool) {
-        SCRIPT_THREAD_ROOT.with(|root| {
-            let script_thread = unsafe { &*root.get().unwrap() };
+        with_script_thread(|script_thread| {
             script_thread.mutation_observer_microtask_queued.set(value);
         })
     }
 
     pub fn is_mutation_observer_microtask_queued() -> bool {
-        SCRIPT_THREAD_ROOT.with(|root| {
-            let script_thread = unsafe { &*root.get().unwrap() };
-            script_thread.mutation_observer_microtask_queued.get()
-        })
+        with_script_thread(|script_thread| script_thread.mutation_observer_microtask_queued.get())
     }
 
     pub fn add_mutation_observer(observer: &MutationObserver) {
-        SCRIPT_THREAD_ROOT.with(|root| {
-            let script_thread = unsafe { &*root.get().unwrap() };
+        with_script_thread(|script_thread| {
             script_thread
                 .mutation_observers
                 .borrow_mut()
@@ -915,8 +914,7 @@ impl ScriptThread {
     }
 
     pub fn get_mutation_observers() -> Vec<DomRoot<MutationObserver>> {
-        SCRIPT_THREAD_ROOT.with(|root| {
-            let script_thread = unsafe { &*root.get().unwrap() };
+        with_script_thread(|script_thread| {
             script_thread
                 .mutation_observers
                 .borrow()
@@ -927,14 +925,11 @@ impl ScriptThread {
     }
 
     pub fn mark_document_with_no_blocked_loads(doc: &Document) {
-        SCRIPT_THREAD_ROOT.with(|root| {
-            if let Some(script_thread) = root.get() {
-                let script_thread = unsafe { &*script_thread };
-                script_thread
-                    .docs_with_no_blocking_loads
-                    .borrow_mut()
-                    .insert(Dom::from_ref(doc));
-            }
+        with_script_thread(|script_thread| {
+            script_thread
+                .docs_with_no_blocking_loads
+                .borrow_mut()
+                .insert(Dom::from_ref(doc));
         })
     }
 
@@ -943,8 +938,7 @@ impl ScriptThread {
         metadata: Option<Metadata>,
         can_gc: CanGc,
     ) -> Option<DomRoot<ServoParser>> {
-        SCRIPT_THREAD_ROOT.with(|root| {
-            let script_thread = unsafe { &*root.get().unwrap() };
+        with_script_thread(|script_thread| {
             script_thread.handle_page_headers_available(id, metadata, can_gc)
         })
     }
@@ -953,29 +947,21 @@ impl ScriptThread {
     /// in the queue for this window event-loop.
     /// Returns a boolean indicating whether further events should be processed.
     pub fn process_event(msg: CommonScriptMsg) -> bool {
-        SCRIPT_THREAD_ROOT.with(|root| {
-            if let Some(script_thread) = root.get() {
-                let script_thread = unsafe { &*script_thread };
-                if !script_thread.can_continue_running_inner() {
-                    return false;
-                } else {
-                    script_thread.handle_msg_from_script(MainThreadScriptMsg::Common(msg));
-                    return true;
-                }
+        with_script_thread(|script_thread| {
+            if !script_thread.can_continue_running_inner() {
+                return false;
             }
-            false
+            script_thread.handle_msg_from_script(MainThreadScriptMsg::Common(msg));
+            true
         })
     }
 
     // https://html.spec.whatwg.org/multipage/#await-a-stable-state
     pub fn await_stable_state(task: Microtask) {
-        SCRIPT_THREAD_ROOT.with(|root| {
-            if let Some(script_thread) = root.get() {
-                let script_thread = unsafe { &*script_thread };
-                script_thread
-                    .microtask_queue
-                    .enqueue(task, script_thread.get_cx());
-            }
+        with_script_thread(|script_thread| {
+            script_thread
+                .microtask_queue
+                .enqueue(task, script_thread.get_cx());
         });
     }
 
@@ -1006,12 +992,7 @@ impl ScriptThread {
         mut load_data: LoadData,
         replace: HistoryEntryReplacement,
     ) {
-        SCRIPT_THREAD_ROOT.with(|root| {
-            let script_thread = match root.get() {
-                None => return,
-                Some(script) => script,
-            };
-            let script_thread = unsafe { &*script_thread };
+        with_script_thread(|script_thread| {
             let is_javascript = load_data.url.scheme() == "javascript";
             // If resource is a request whose url's scheme is "javascript"
             // https://html.spec.whatwg.org/multipage/#javascript-protocol
@@ -1042,7 +1023,8 @@ impl ScriptThread {
             } else {
                 if let Some(ref sender) = script_thread.devtools_chan {
                     let _ = sender.send(ScriptToDevtoolsControlMsg::Navigate(
-                        browsing_context, NavigationState::Start(load_data.url.clone())
+                        browsing_context,
+                        NavigationState::Start(load_data.url.clone()),
                     ));
                 }
 
@@ -1055,18 +1037,15 @@ impl ScriptThread {
     }
 
     pub fn process_attach_layout(new_layout_info: NewLayoutInfo, origin: MutableOrigin) {
-        SCRIPT_THREAD_ROOT.with(|root| {
-            if let Some(script_thread) = root.get() {
-                let script_thread = unsafe { &*script_thread };
-                let pipeline_id = Some(new_layout_info.new_pipeline_id);
-                script_thread.profile_event(
-                    ScriptThreadEventCategory::AttachLayout,
-                    pipeline_id,
-                    || {
-                        script_thread.handle_new_layout(new_layout_info, origin);
-                    },
-                )
-            }
+        with_script_thread(|script_thread| {
+            let pipeline_id = Some(new_layout_info.new_pipeline_id);
+            script_thread.profile_event(
+                ScriptThreadEventCategory::AttachLayout,
+                pipeline_id,
+                || {
+                    script_thread.handle_new_layout(new_layout_info, origin);
+                },
+            )
         });
     }
 
@@ -1074,95 +1053,69 @@ impl ScriptThread {
         sender_pipeline: PipelineId,
         browsing_context_id: BrowsingContextId,
     ) -> Option<TopLevelBrowsingContextId> {
-        SCRIPT_THREAD_ROOT.with(|root| {
-            root.get().and_then(|script_thread| {
-                let script_thread = unsafe { &*script_thread };
-                script_thread
-                    .ask_constellation_for_top_level_info(sender_pipeline, browsing_context_id)
-            })
+        with_script_thread(|script_thread| {
+            script_thread.ask_constellation_for_top_level_info(sender_pipeline, browsing_context_id)
         })
     }
 
     pub fn find_document(id: PipelineId) -> Option<DomRoot<Document>> {
-        SCRIPT_THREAD_ROOT.with(|root| {
-            root.get().and_then(|script_thread| {
-                let script_thread = unsafe { &*script_thread };
-                script_thread.documents.borrow().find_document(id)
-            })
-        })
+        with_script_thread(|script_thread| script_thread.documents.borrow().find_document(id))
     }
 
     pub fn set_user_interacting(interacting: bool) {
-        SCRIPT_THREAD_ROOT.with(|root| {
-            if let Some(script_thread) = root.get() {
-                let script_thread = unsafe { &*script_thread };
-                script_thread.is_user_interacting.set(interacting);
-            }
+        with_script_thread(|script_thread| {
+            script_thread.is_user_interacting.set(interacting);
         });
     }
 
     pub fn is_user_interacting() -> bool {
-        SCRIPT_THREAD_ROOT.with(|root| {
-            root.get().is_some_and(|script_thread| {
-                let script_thread = unsafe { &*script_thread };
-                script_thread.is_user_interacting.get()
-            })
-        })
+        with_script_thread(|script_thread| script_thread.is_user_interacting.get())
     }
 
     pub fn get_fully_active_document_ids() -> HashSet<PipelineId> {
-        SCRIPT_THREAD_ROOT.with(|root| {
-            root.get().map_or(HashSet::new(), |script_thread| {
-                let script_thread = unsafe { &*script_thread };
-                script_thread
-                    .documents
-                    .borrow()
-                    .iter()
-                    .filter_map(|(id, document)| {
-                        if document.is_fully_active() {
-                            Some(id)
-                        } else {
-                            None
-                        }
-                    })
-                    .fold(HashSet::new(), |mut set, id| {
-                        let _ = set.insert(id);
-                        set
-                    })
-            })
+        with_script_thread(|script_thread| {
+            script_thread
+                .documents
+                .borrow()
+                .iter()
+                .filter_map(|(id, document)| {
+                    if document.is_fully_active() {
+                        Some(id)
+                    } else {
+                        None
+                    }
+                })
+                .fold(HashSet::new(), |mut set, id| {
+                    let _ = set.insert(id);
+                    set
+                })
         })
     }
 
     pub fn find_window_proxy(id: BrowsingContextId) -> Option<DomRoot<WindowProxy>> {
-        SCRIPT_THREAD_ROOT.with(|root| {
-            root.get().and_then(|script_thread| {
-                let script_thread = unsafe { &*script_thread };
-                script_thread
-                    .window_proxies
-                    .borrow()
-                    .get(&id)
-                    .map(|context| DomRoot::from_ref(&**context))
-            })
+        with_script_thread(|script_thread| {
+            script_thread
+                .window_proxies
+                .borrow()
+                .get(&id)
+                .map(|context| DomRoot::from_ref(&**context))
         })
     }
 
     pub fn find_window_proxy_by_name(name: &DOMString) -> Option<DomRoot<WindowProxy>> {
-        SCRIPT_THREAD_ROOT.with(|root| {
-            root.get().and_then(|script_thread| {
-                let script_thread = unsafe { &*script_thread };
-                for (_, proxy) in script_thread.window_proxies.borrow().iter() {
-                    if proxy.get_name() == *name {
-                        return Some(DomRoot::from_ref(&**proxy));
-                    }
+        with_script_thread(|script_thread| {
+            for (_, proxy) in script_thread.window_proxies.borrow().iter() {
+                if proxy.get_name() == *name {
+                    return Some(DomRoot::from_ref(&**proxy));
                 }
-                None
-            })
+            }
+            None
         })
     }
 
     pub fn worklet_thread_pool() -> Rc<WorkletThreadPool> {
-        SCRIPT_THREAD_ROOT.with(|root| {
-            let script_thread = unsafe { &*root.get().unwrap() };
+        with_optional_script_thread(|script_thread| {
+            let script_thread = script_thread.unwrap();
             script_thread
                 .worklet_thread_pool
                 .borrow_mut()
@@ -1205,24 +1158,18 @@ impl ScriptThread {
     }
 
     pub fn push_new_element_queue() {
-        SCRIPT_THREAD_ROOT.with(|root| {
-            if let Some(script_thread) = root.get() {
-                let script_thread = unsafe { &*script_thread };
-                script_thread
-                    .custom_element_reaction_stack
-                    .push_new_element_queue();
-            }
+        with_script_thread(|script_thread| {
+            script_thread
+                .custom_element_reaction_stack
+                .push_new_element_queue();
         })
     }
 
     pub fn pop_current_element_queue(can_gc: CanGc) {
-        SCRIPT_THREAD_ROOT.with(|root| {
-            if let Some(script_thread) = root.get() {
-                let script_thread = unsafe { &*script_thread };
-                script_thread
-                    .custom_element_reaction_stack
-                    .pop_current_element_queue(can_gc);
-            }
+        with_script_thread(|script_thread| {
+            script_thread
+                .custom_element_reaction_stack
+                .pop_current_element_queue(can_gc);
         })
     }
 
@@ -1231,55 +1178,37 @@ impl ScriptThread {
         reaction: CallbackReaction,
         definition: Option<Rc<CustomElementDefinition>>,
     ) {
-        SCRIPT_THREAD_ROOT.with(|root| {
-            if let Some(script_thread) = root.get() {
-                let script_thread = unsafe { &*script_thread };
-                script_thread
-                    .custom_element_reaction_stack
-                    .enqueue_callback_reaction(element, reaction, definition);
-            }
+        with_script_thread(|script_thread| {
+            script_thread
+                .custom_element_reaction_stack
+                .enqueue_callback_reaction(element, reaction, definition);
         })
     }
 
     pub fn enqueue_upgrade_reaction(element: &Element, definition: Rc<CustomElementDefinition>) {
-        SCRIPT_THREAD_ROOT.with(|root| {
-            if let Some(script_thread) = root.get() {
-                let script_thread = unsafe { &*script_thread };
-                script_thread
-                    .custom_element_reaction_stack
-                    .enqueue_upgrade_reaction(element, definition);
-            }
+        with_script_thread(|script_thread| {
+            script_thread
+                .custom_element_reaction_stack
+                .enqueue_upgrade_reaction(element, definition);
         })
     }
 
     pub fn invoke_backup_element_queue(can_gc: CanGc) {
-        SCRIPT_THREAD_ROOT.with(|root| {
-            if let Some(script_thread) = root.get() {
-                let script_thread = unsafe { &*script_thread };
-                script_thread
-                    .custom_element_reaction_stack
-                    .invoke_backup_element_queue(can_gc);
-            }
+        with_script_thread(|script_thread| {
+            script_thread
+                .custom_element_reaction_stack
+                .invoke_backup_element_queue(can_gc);
         })
     }
 
     pub fn save_node_id(node_id: String) {
-        SCRIPT_THREAD_ROOT.with(|root| {
-            if let Some(script_thread) = root.get() {
-                let script_thread = unsafe { &*script_thread };
-                script_thread.node_ids.borrow_mut().insert(node_id);
-            }
+        with_script_thread(|script_thread| {
+            script_thread.node_ids.borrow_mut().insert(node_id);
         })
     }
 
     pub fn has_node_id(node_id: &str) -> bool {
-        SCRIPT_THREAD_ROOT.with(|root| match root.get() {
-            Some(script_thread) => {
-                let script_thread = unsafe { &*script_thread };
-                script_thread.node_ids.borrow().contains(node_id)
-            },
-            None => false,
-        })
+        with_script_thread(|script_thread| script_thread.node_ids.borrow().contains(node_id))
     }
 
     /// Creates a new script thread.
@@ -1789,11 +1718,8 @@ impl ScriptThread {
             task!(update_the_rendering: move || {
                 // Note: spec says to queue a task using the navigable's active window,
                 // but then updates the rendering for all docs in the same event-loop.
-                SCRIPT_THREAD_ROOT.with(|root| {
-                    if let Some(script_thread) = root.get() {
-                        let script_thread = unsafe {&*script_thread};
-                        script_thread.update_the_rendering(CanGc::note());
-                    }
+                with_script_thread(|script_thread| {
+                    script_thread.update_the_rendering(CanGc::note());
                 })
             }),
             &canceller,
@@ -3420,8 +3346,7 @@ impl ScriptThread {
 
     /// Handles animation tick requested during testing.
     pub fn handle_tick_all_animations_for_testing(id: PipelineId) {
-        SCRIPT_THREAD_ROOT.with(|root| {
-            let script_thread = unsafe { &*root.get().unwrap() };
+        with_script_thread(|script_thread| {
             let Some(document) = script_thread.documents.borrow().find_document(id) else {
                 warn!("Animation tick for tests for closed pipeline {id}.");
                 return;
@@ -4307,8 +4232,7 @@ impl ScriptThread {
     }
 
     pub fn enqueue_microtask(job: Microtask) {
-        SCRIPT_THREAD_ROOT.with(|root| {
-            let script_thread = unsafe { &*root.get().unwrap() };
+        with_script_thread(|script_thread| {
             script_thread
                 .microtask_queue
                 .enqueue(job, script_thread.get_cx());
