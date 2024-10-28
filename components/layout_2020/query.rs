@@ -456,9 +456,7 @@ fn process_offset_parent_query_inner(
                     unreachable!();
                 };
                 // Again, take the *first* associated CSS layout box.
-                let border_box_corner =
-                    fragment.border_rect().origin.to_vector() + containing_block.origin.to_vector();
-                border_box_corner
+                fragment.border_rect().origin.to_vector() + containing_block.origin.to_vector()
             }
 
             let containing_block = &fragment_tree.initial_containing_block;
