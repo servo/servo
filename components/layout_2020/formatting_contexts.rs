@@ -23,6 +23,7 @@ use crate::replaced::ReplacedContent;
 use crate::sizing::{self, InlineContentSizesResult};
 use crate::style_ext::{AspectRatio, DisplayInside};
 use crate::table::Table;
+use crate::taffy::TaffyContainer;
 use crate::{
     ConstraintSpace, ContainingBlock, IndefiniteContainingBlock, LogicalVec2, SizeConstraint,
 };
@@ -58,6 +59,7 @@ pub(crate) struct ReplacedFormattingContext {
 pub(crate) enum NonReplacedFormattingContextContents {
     Flow(BlockFormattingContext),
     Flex(FlexContainer),
+    Grid(TaffyContainer),
     Table(Table),
     // Other layout modes go here
 }
@@ -129,7 +131,14 @@ impl IndependentFormattingContext {
                             ),
                         )
                     },
-                    DisplayInside::Grid => todo!("Grid support is not yet implemented."),
+                    DisplayInside::Grid => {
+                        NonReplacedFormattingContextContents::Grid(TaffyContainer::construct(
+                            context,
+                            node_and_style_info,
+                            non_replaced_contents,
+                            propagated_text_decoration_line,
+                        ))
+                    },
                     DisplayInside::Flex => {
                         NonReplacedFormattingContextContents::Flex(FlexContainer::construct(
                             context,
@@ -269,6 +278,12 @@ impl NonReplacedFormattingContext {
                 containing_block_for_children,
                 containing_block,
             ),
+            NonReplacedFormattingContextContents::Grid(fc) => fc.layout(
+                layout_context,
+                positioning_context,
+                containing_block_for_children,
+                containing_block,
+            ),
             NonReplacedFormattingContextContents::Table(table) => table.layout(
                 layout_context,
                 positioning_context,
@@ -332,6 +347,7 @@ impl NonReplacedFormattingContextContents {
                 .contents
                 .inline_content_sizes(layout_context, constraint_space),
             Self::Flex(inner) => inner.inline_content_sizes(layout_context, constraint_space),
+            Self::Grid(inner) => inner.inline_content_sizes(layout_context, constraint_space),
             Self::Table(table) => table.inline_content_sizes(layout_context, constraint_space),
         }
     }

@@ -56,6 +56,10 @@ pub(crate) struct HoistedAbsolutelyPositionedBox {
 }
 
 impl AbsolutelyPositionedBox {
+    pub fn new(context: IndependentFormattingContext) -> Self {
+        Self { context }
+    }
+
     pub fn construct<'dom>(
         context: &LayoutContext,
         node_info: &NodeAndStyleInfo<impl NodeExt<'dom>>,
