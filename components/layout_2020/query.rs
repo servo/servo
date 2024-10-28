@@ -7,7 +7,7 @@ use std::sync::Arc;
 
 use app_units::Au;
 use euclid::default::{Point2D, Rect};
-use euclid::{SideOffsets2D, Size2D, UnknownUnit, Vector2D};
+use euclid::{SideOffsets2D, Size2D, Vector2D};
 use log::warn;
 use script_layout_interface::wrapper_traits::{
     LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
@@ -33,10 +33,11 @@ use style::stylist::RuleInclusion;
 use style::traversal::resolve_style;
 use style::values::computed::Float;
 use style::values::generics::font::LineHeight;
-use style_traits::{CSSPixel, ParsingMode, ToCss};
+use style_traits::{ParsingMode, ToCss};
 
 use crate::flow::inline::construct::{TextTransformation, WhitespaceCollapse};
 use crate::fragment_tree::{BoxFragment, Fragment, FragmentFlags, FragmentTree, Tag};
+use crate::geom::{PhysicalRect, PhysicalVec};
 
 pub fn process_content_box_request(
     requested_node: OpaqueNode,
@@ -449,15 +450,15 @@ fn process_offset_parent_query_inner(
         if node_offset_box.is_static_body_element {
             fn extract_box_fragment(
                 fragment: &Fragment,
-                containing_block: &euclid::Rect<Au, CSSPixel>,
-            ) -> Vector2D<Au, UnknownUnit> {
+                containing_block: &PhysicalRect<Au>,
+            ) -> PhysicalVec<Au> {
                 let (Fragment::Box(fragment) | Fragment::Float(fragment)) = fragment else {
                     unreachable!();
                 };
                 // Again, take the *first* associated CSS layout box.
                 let border_box_corner =
                     fragment.border_rect().origin.to_vector() + containing_block.origin.to_vector();
-                border_box_corner.to_untyped()
+                border_box_corner
             }
 
             let containing_block = &fragment_tree.initial_containing_block;
@@ -484,7 +485,7 @@ fn process_offset_parent_query_inner(
                                 // Again, take the *first* associated CSS layout box.
                                 let padding_box_corner = fragment.padding_rect().origin.to_vector()
                                     + containing_block.origin.to_vector();
-                                Some(padding_box_corner.to_untyped())
+                                Some(padding_box_corner)
                             } else {
                                 None
                             }
@@ -515,7 +516,7 @@ fn process_offset_parent_query_inner(
         // versa for the top border edge)
         rect: node_offset_box
             .border_box
-            .translate(-offset_parent_padding_box_corner),
+            .translate(-offset_parent_padding_box_corner.to_untyped()),
     })
 }
 
