@@ -132,9 +132,11 @@ impl ReadableStreamDefaultReader {
 
     /// <https://streams.spec.whatwg.org/#readable-stream-close>
     pub fn close(&self) {
+        // step 5
         self.closed_promise.borrow().resolve_native(&());
-        let pending_requests = self.take_read_requests();
-        for request in pending_requests {
+        // step 6
+        let mut read_requests = self.take_read_requests();
+        for request in read_requests.drain(0..) {
             request.close_steps();
         }
     }

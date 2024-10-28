@@ -476,32 +476,46 @@ impl ReadableStream {
 
     /// <https://streams.spec.whatwg.org/#readable-stream-close>
     pub fn close(&self) {
+        // step 1
+        assert!(self.is_readable());
+        // step 2
         self.state.set(ReadableStreamState::Closed);
+        // step 3
         match self.reader {
             ReaderType::Default(ref reader) => {
-                if let Some(reader) = reader.get() {
-                    reader.close();
-                }
+                let Some(reader) = reader.get() else {
+                    // step 4
+                    return;
+                };
+                // step 5 & 6
+                reader.close();
             },
             ReaderType::BYOB(ref _reader) => todo!(),
         }
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-cancel>
+    #[allow(unsafe_code)]
     pub fn cancel(&self, promise: &Promise, _reason: SafeHandleValue) {
+        // step 1
         self.disturbed.set(true);
 
+        // step 2
         if self.is_closed() {
             return promise.resolve_native(&());
         }
-
+        // step 3
         if self.is_errored() {
-            // TODO: resolve with stored_error.
-            return promise.reject_native(&());
+            unsafe {
+                let cx = GlobalScope::get_cx();
+                rooted!(in(*cx) let mut rval = UndefinedValue());
+                self.stored_error.to_jsval(*cx, rval.handle_mut());
+                return promise.reject_native(&rval.handle());
+            }
         }
-
+        // step 4
         self.close();
-
+        // step 5, 6, 7, 8
         // TODO: run the bytes reader steps.
 
         // TODO: react to sourceCancelPromise.
