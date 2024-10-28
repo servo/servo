@@ -487,12 +487,7 @@ impl ReadableStream {
                     // step 4
                     return;
                 };
-                // step 5
-                let cx = GlobalScope::get_cx();
-                rooted!(in(*cx) let mut rval = UndefinedValue());
-                reader.resolve_closed_promise(rval.handle());
-
-                // step 6
+                // step 5 & 6
                 reader.close();
             },
             ReaderType::BYOB(ref _reader) => todo!(),

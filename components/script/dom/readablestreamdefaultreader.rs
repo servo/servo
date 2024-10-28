@@ -278,10 +278,6 @@ impl ReadableStreamDefaultReader {
             }
         }
     }
-
-    pub fn resolve_closed_promise(&self, rval: SafeHandleValue) {
-        self.closed_promise.borrow().resolve_native(&rval);
-    }
 }
 
 impl ReadableStreamDefaultReaderMethods for ReadableStreamDefaultReader {
