@@ -4277,6 +4277,7 @@ impl ProfilerMetadataFactory for Document {
     }
 }
 
+#[allow(non_snake_case)]
 impl DocumentMethods for Document {
     // https://dom.spec.whatwg.org/#dom-document-document
     fn Constructor(
@@ -5623,11 +5624,11 @@ fn update_with_current_instant(marker: &Cell<Option<CrossProcessInstant>>) {
 pub fn determine_policy_for_token(token: &str) -> Option<ReferrerPolicy> {
     match_ignore_ascii_case! { token,
         "never" | "no-referrer" => Some(ReferrerPolicy::NoReferrer),
-        "default" | "no-referrer-when-downgrade" => Some(ReferrerPolicy::NoReferrerWhenDowngrade),
+        "no-referrer-when-downgrade" => Some(ReferrerPolicy::NoReferrerWhenDowngrade),
         "origin" => Some(ReferrerPolicy::Origin),
         "same-origin" => Some(ReferrerPolicy::SameOrigin),
         "strict-origin" => Some(ReferrerPolicy::StrictOrigin),
-        "strict-origin-when-cross-origin" => Some(ReferrerPolicy::StrictOriginWhenCrossOrigin),
+        "default" | "strict-origin-when-cross-origin" => Some(ReferrerPolicy::StrictOriginWhenCrossOrigin),
         "origin-when-cross-origin" => Some(ReferrerPolicy::OriginWhenCrossOrigin),
         "always" | "unsafe-url" => Some(ReferrerPolicy::UnsafeUrl),
         "" => Some(ReferrerPolicy::NoReferrer),

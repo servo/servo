@@ -20,7 +20,7 @@ use log::warn;
 use mime::{self, Mime};
 use net_traits::filemanager_thread::{FileTokenCheck, RelativePos};
 use net_traits::http_status::HttpStatus;
-use net_traits::policy_container::{self, PolicyContainer, RequestPolicyContainer};
+use net_traits::policy_container::{PolicyContainer, RequestPolicyContainer};
 use net_traits::request::{
     is_cors_safelisted_method, is_cors_safelisted_request_header, BodyChunkRequest,
     BodyChunkResponse, CredentialsMode, Destination, Origin, RedirectMode, Referrer, Request,
@@ -150,7 +150,7 @@ pub async fn fetch_with_cors_cache(
     // Step 12: If request’s policy container is "client", then:
     if let RequestPolicyContainer::Client = request.policy_container {
         // Step 12.1: If request’s client is non-null, then set request’s policy container to a clone
-        // of request’s client’s policy container. [HTML]
+        // of request’s client’s policy container.
         // TODO: Requires request's client to support PolicyContainer
 
         // Step 12.2: Otherwise, set request’s policy container to a new policy container.
@@ -158,7 +158,7 @@ pub async fn fetch_with_cors_cache(
             RequestPolicyContainer::PolicyContainer(PolicyContainer::default());
     }
 
-    // Step 13: If request’s policy container is "client", then...
+    // Step 13: If request’s header list does not contain `Accept`:
     set_default_accept(request);
 
     // Step 14: If request’s header list does not contain `Accept-Language`, then user agents should
@@ -247,10 +247,10 @@ pub async fn main_fetch(
     // TODO: Report violations.
 
     // The request should have a valid policy_container associated with it.
-    // TODO fix this
+    // TODO: This should not be `Client` here
     let policy_container = match &request.policy_container {
         RequestPolicyContainer::Client => PolicyContainer::default(),
-        RequestPolicyContainer::PolicyContainer(container) => container.to_owned()
+        RequestPolicyContainer::PolicyContainer(container) => container.to_owned(),
     };
 
     // Step 2.4.
