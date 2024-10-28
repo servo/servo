@@ -205,9 +205,9 @@
 
       // Send a mousedown event to the fenced frame. We can't send a full
       // click because it will interfere with the manual event dispatch.
-      let actions = new test_driver.Actions();
       for (let i = 0; i < 3; i++) {
-        await actions.pointerMove(10, 10, {origin: fencedframe.element})
+        await new test_driver.Actions()
+        .pointerMove(10, 10, {origin: fencedframe.element})
         .pointerDown()
         .send();
       }

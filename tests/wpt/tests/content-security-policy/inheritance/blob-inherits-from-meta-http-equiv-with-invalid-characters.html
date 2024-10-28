@@ -12,7 +12,7 @@
         var script = document.createElement("script");
         script.onerror = () => assert_unreached("FAIL should not have fired error event.");
         script.onload = () => t.done();
-        script.src = URL.createObjectURL(new Blob(["alert('PASS executed blob URL script.');"]));
+        script.src = URL.createObjectURL(new Blob(["console.log('PASS executed blob URL script.');"]));
         document.head.appendChild(script);
     }, "blob: URL inherits CSP from a meta tag whose contents have newline characters.");
 </script>

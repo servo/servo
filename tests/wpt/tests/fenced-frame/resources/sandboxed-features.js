@@ -16,6 +16,12 @@ const run_in_fenced_frame = (func_name, description, is_nested) => {
       frame.remove();
     });
     document.body.appendChild(frame);
+    // The test_pointer_lock() function expects the frame to be user activated.
+    // This is done at this point because headless mode WPTs do not support
+    // testdriver functions from within fenced frames.
+    if (func_name == "test_pointer_lock") {
+      await multiClick(10, 10, document.body);
+    }
     assert_equals(await nextValueFromServer(key), 'done');
   }, description);
 };
@@ -105,8 +111,6 @@ async function test_screen_orientation_lock() {
 }
 
 async function test_pointer_lock() {
-  await simulateGesture();
-
   const canvas = document.createElement('canvas');
   document.body.appendChild(canvas);
   const pointerlockerror_promise = new Promise(resolve => {

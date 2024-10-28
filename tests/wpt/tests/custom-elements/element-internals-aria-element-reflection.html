@@ -5,6 +5,9 @@
   <title>Element Reflection for aria-activedescendant and aria-errormessage on ElementInternals</title>
   <link rel=help href="https://whatpr.org/html/3917/common-dom-interfaces.html#reflecting-content-attributes-in-idl-attributes:element">
   <link rel="author" title="Alice Boxhall" href="alice@igalia.com">
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
 </head>
@@ -93,6 +96,16 @@
         assert_equals(custom.i[property], null);
       }
     }, "Setting ARIA element reflection properties on ElementInternals to null should delete any previous value, and not crash");
+
+    promise_test(async t => {
+      const custom = document.getElementById('custom1');
+      const label_before_labelledby_set = await test_driver.get_computed_label(custom);
+      assert_equals(label_before_labelledby_set, "", "Before ariaLabelledByElements is set, accessible label should be empty.");
+      const labelledBy = document.getElementById('labelledby');
+      custom.i.ariaLabelledByElements = [labelledBy];
+      const label_after_labelledby_set = await test_driver.get_computed_label(custom);
+      assert_equals(label_after_labelledby_set, "Labelled By", "After ariaLabelledByElements is set, accessible label should be 'Labelled by'");
+    }, "Setting ariaLabelledByElements should change the accessible name of the custom element")
   </script>
 
   <custom-element id="cachingInvariantMain"></custom-element>
@@ -165,8 +178,6 @@
       assert_equals(ariaDescribedByElementsArray2, cachingInvariantMain2.i.ariaDescribedByElements, "Caching invariant for ariaDescribedByElements in onother elemnt");
       assert_not_equals(cachingInvariantMain1.i.ariaDescribedByElements, cachingInvariantMain2.i.ariaDescribedByElements);
     }, "Caching invariant different elements.");
-  </script>
-
   </script>
 </body>
 </html>

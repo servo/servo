@@ -1,9 +1,6 @@
 <!DOCTYPE html>
 <title>Navigate ancestor helper</title>
 
-<script src="/resources/testdriver.js"></script>
-<script src="/resources/testdriver-actions.js"></script>
-<script src="/resources/testdriver-vendor.js"></script>
 <script src="utils.js"></script>
 <body>
 <script>
@@ -22,7 +19,6 @@
   const [navigate_ancestor_key, ancestor_type] = parseKeylist();
   const url = generateURL(`navigate-ancestor-destination.https.html`,
       [navigate_ancestor_key]);
-  await simulateGesture();
   try {
     window[ancestor_type].location = url;
   } catch (e) {

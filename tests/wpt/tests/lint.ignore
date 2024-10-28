@@ -113,6 +113,7 @@ CONSOLE: common/gc.js
 CONSOLE: resources/check-layout-th.js
 CONSOLE: resources/chromium/*
 CONSOLE: resources/testharness.js
+CONSOLE: content-security-policy/inheritance/blob-inherits-from-meta-http-equiv-with-invalid-characters.html
 CONSOLE: service-workers/service-worker/resources/navigation-redirect-other-origin.html
 CONSOLE: service-workers/service-worker/navigation-redirect.https.html
 CONSOLE: service-workers/service-worker/resources/clients-get-other-origin.html

@@ -60,8 +60,8 @@ class WebDriverCallbackHandler(CallbackHandler):
 
 
 class WebDriverAsyncCallbackHandler(AsyncCallbackHandler):
-    unimplemented_exc = (NotImplementedError, webdriver_bidi_error.UnknownCommandException)
-    expected_exc = (webdriver_bidi_error.BidiException,)
+    unimplemented_exc = (NotImplementedError, webdriver_error.UnknownCommandException, webdriver_bidi_error.UnknownCommandException)
+    expected_exc = (webdriver_error.WebDriverException, webdriver_bidi_error.BidiException)
 
 
 class WebDriverBaseProtocolPart(BaseProtocolPart):

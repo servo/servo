@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<head>
+<link rel="help" href="https://w3c.github.io/trusted-types/dist/spec/#dom-trustedtypepolicyfactory-getpropertytype">
+<link rel="help" href="https://w3c.github.io/trusted-types/dist/spec/#dom-trustedtypepolicyfactory-getattributetype">
+<link rel="help" href="https://w3c.github.io/trusted-types/dist/spec/#abstract-opdef-get-trusted-type-data-for-attribute">
+<link rel="help" href="https://github.com/w3c/trusted-types/issues/554">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<meta http-equiv="Content-Security-Policy" content="require-trusted-types-for 'script'">
+</head>
+<body>
+<script>
+  test(t => {
+    assert_equals(trustedTypes.getPropertyType("embed", "src"), null);
+    assert_equals(trustedTypes.getPropertyType("object", "codebase"), null);
+    assert_equals(trustedTypes.getPropertyType("object", "data"), null);
+  }, "getPropertyType() with legacy TrustedScriptURLs properties return null.");
+
+  test(t => {
+    assert_equals(trustedTypes.getAttributeType("embed", "src"), null);
+    assert_equals(trustedTypes.getAttributeType("object", "codebase"), null);
+    assert_equals(trustedTypes.getAttributeType("object", "data"), null);
+  }, "getAttributeType() with legacy TrustedScriptURLs attributes return null.");
+
+  const unsafeScriptURL = "javascript:alert('unsafe')";
+
+  test(t => {
+    let embed = document.createElement("embed");
+    embed.src = unsafeScriptURL;
+    assert_equals(embed.src, unsafeScriptURL);
+
+    let object = document.createElement("object");
+    object.codebase = unsafeScriptURL;
+    assert_equals(object.codebase, unsafeScriptURL);
+
+    object.data = unsafeScriptURL;
+    assert_equals(object.data, unsafeScriptURL);
+  }, "Legacy TrustedScriptURLs properties accept arbitrary strings.");
+
+  test(t => {
+    let embed = document.createElement("embed");
+    embed.setAttribute("src", unsafeScriptURL);
+    assert_equals(embed.getAttribute("src"), unsafeScriptURL);
+
+    let object = document.createElement("object");
+    object.setAttribute("codebase", unsafeScriptURL);
+    assert_equals(object.getAttribute("codebase"), unsafeScriptURL);
+
+    object.setAttribute("data", unsafeScriptURL);
+    assert_equals(object.getAttribute("data"), unsafeScriptURL);
+  }, "Legacy TrustedScriptURLs attributes accept arbitrary strings.");
+</script>
+</body>

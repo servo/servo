@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<title>CSS Anchor Positioning Test: Fallback for position-area with implicit anchor centering</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position/">
+<link rel="help" href="https://crbug.com/342428030">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  body { margin: 0; }
+  #a1 {
+    anchor-name: --a1;
+    width: 100px;
+    height: 100px;
+  }
+  #t1 {
+    position-anchor: --a1;
+    /* transition-behavior exercises bug in Chrome */
+    transition-behavior: allow-discrete;
+    position: absolute;
+    position-area: bottom;
+    position-try-fallbacks: --right;
+    width: 200px;
+    height: 100px;
+  }
+  @position-try --right {
+    position-area: right;
+  }
+</style>
+<div id="a1"></div>
+<div id="t1"></div>
+<script>
+  test(() => {
+    assert_equals(t1.offsetLeft, 100, "Positioned using --right fallback");
+  }, "anchor-center aligned bottom anchored element overflowing IMCB");
+</script>

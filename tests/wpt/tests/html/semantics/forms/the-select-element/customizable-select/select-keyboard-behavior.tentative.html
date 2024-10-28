@@ -197,12 +197,18 @@ for (const id of ['defaultbutton', 'custombutton']) {
     assert_equals(select.value, 'two',
       'The selects value should not change when focusing another option.');
 
+    let firedInput = false;
+    let firedChange = false;
+    select.addEventListener('input', () => firedInput = true);
+    select.addEventListener('change', () => firedChange = true);
     await test_driver.send_keys(document.activeElement, Enter);
     await new Promise(requestAnimationFrame);
     assert_false(select.matches(':open'),
       'The listbox should be closed after pressing enter.');
     assert_equals(select.value, 'one',
       'The selects value should change after pressing enter on a different option.');
+    assert_true(firedInput, 'The input event should be fired when choosing an option.');
+    assert_true(firedChange, 'The change event should be fired when choosing an option.');
   }, `${id}: When the listbox is open, the enter key should commit the selected option.`);
 
   promise_test(async t => {
