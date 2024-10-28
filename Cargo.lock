@@ -4594,9 +4594,9 @@ dependencies = [
 
 [[package]]
 name = "napi-derive-ohos"
-version = "1.0.0"
+version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3b230ea3458c3da6031b584cdb4d293b1e940a70cf1861e1f88d1fcab7fd1d43"
+checksum = "80cc82f130a44465f1c9b30344387f5b5bec2a579f78baf982b86ef92c22d26f"
 dependencies = [
  "convert_case",
  "napi-derive-backend-ohos",
