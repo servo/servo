@@ -113,10 +113,10 @@ servo-media-dummy = { git = "https://github.com/servo/media" }
 servo-media-gstreamer = { git = "https://github.com/servo/media" }
 servo_arc = { git = "https://github.com/servo/stylo", branch = "2024-10-04", features = ["servo"] }
 servo_atoms = { git = "https://github.com/servo/stylo", branch = "2024-10-04" }
-size_of_test = { git = "https://github.com/servo/stylo", branch = "2024-10-04" }
 smallbitvec = "2.5.3"
 smallvec = "1.13"
 sparkle = "0.1.26"
+static_assertions = "1.1"
 string_cache = "0.8"
 string_cache_codegen = "0.5"
 style = { git = "https://github.com/servo/stylo", branch = "2024-10-04", features = ["servo"] }
@@ -192,7 +192,6 @@ codegen-units = 1
 # selectors = { path = "../stylo/selectors" }
 # servo_arc = { path = "../stylo/servo_arc" }
 # servo_atoms = { path = "../stylo/atoms" }
-# size_of_test = { path = "../stylo/size_of_test" }
 # static_prefs = { path = "../stylo/style_static_prefs" }
 # style = { path = "../stylo/style" }
 # style_config = { path = "../stylo/style_config" }
