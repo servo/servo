@@ -50,48 +50,86 @@ PORT = 9000
 
 @dataclasses.dataclass
 class MockPullRequest():
+    """
+    A mock representation of a GitHub pull request.
+
+    Attributes:
+        head (str): The name of the branch where changes are made.
+        number (int): The pull request number.
+        state (str): The state of the pull request (default is "open")
+    """
     head: str
     number: int
     state: str = "open"
 
 
 class MockGitHubAPIServer():
+    """
+    A mock server to simulate GitHub API for testing purposes.
+    """
     def __init__(self, port: int):
         self.port = port
         self.disable_logging()
         self.app = flask.Flask(__name__)
         self.pulls: list[MockPullRequest] = []
 
-        class NoLoggingHandler(WSGIRequestHandler):
-            def log_message(self, *args):
-                pass
-        if logging.getLogger().level == logging.DEBUG:
-            handler = WSGIRequestHandler
-        else:
-            handler = NoLoggingHandler
-
-        self.server = make_server('localhost', self.port, self.app, handler_class=handler)
+        def __init__(self, port: int):
+        self.port = port
+        self.disable_logging()
+        self.app = flask.Flask(__name__)
+        self.pulls: List[MockPullRequest] = []
+        self.configure_routes()
         self.start_server_thread()
 
     def disable_logging(self):
+        """
+        Disables Flask and Werkzeug logging to keep the output clean.
+        """
         flask.cli.show_server_banner = lambda *args: None
-        logging.getLogger("werkzeug").disabled = True
-        logging.getLogger('werkzeug').setLevel(logging.CRITICAL)
+        log = logging.getLogger('werkzeug')
+        log.setLevel(logging.CRITICAL)
+        log.disabled = True
 
-    def start(self):
+    def configure_routes(self):
+        """
+        Configures all the routes for the mock GitHub API server.
+        """
+        self.app.add_url_rule("/ping", view_func=self.ping)
+        self.app.add_url_rule("/reset-mock-github", view_func=self.reset_server, methods=['GET'])
+        self.app.add_url_rule("/repos/<org>/<repo>/pulls/<int:number>/merge", view_func=self.merge_pull_request, methods=['PUT'])
+        self.app.add_url_rule("/search/issues", view_func=self.search, methods=['GET'])
+        self.app.add_url_rule("/repos/<org>/<repo>/pulls", view_func=self.create_pull_request, methods=['POST'])
+        self.app.add_url_rule("/repos/<org>/<repo>/pulls/<int:number>", view_func=self.update_pull_request, methods=['PATCH'])
+        self.app.add_url_rule("/repos/<org>/<repo>/issues/<number>/labels", view_func=self.other_requests, methods=['GET', 'POST'])
+        self.app.add_url_rule("/repos/<org>/<repo>/issues/<number>/labels/<label>", view_func=self.other_requests, methods=['DELETE'])
+        self.app.add_url_rule("/repos/<org>/<repo>/issues/<issue>/comments", view_func=self.other_requests, methods=['GET', 'POST'])
+
+    def start_server_thread(self):
+        """
+        Starts the Flask server in a separate thread.
+        """
+        handler_class = WSGIRequestHandler if logging.getLogger().level == logging.DEBUG else NoLoggingHandler
+        self.server = make_server('localhost', self.port, self.app, handler_class=handler_class)
+        self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
         self.thread.start()
 
-        # Wait for the server to be started.
+    def start(self):
+        """
+        Starts the server and waits until it's ready to handle requests.
+        """
+        self.thread.start()
         while True:
             try:
                 response = requests.get(f'http://localhost:{self.port}/ping', timeout=1)
-                assert response.status_code == 200
-                assert response.text == 'pong'
-                break
-            except Exception:
+                if response.status_code == 200 and response.text == 'pong':
+                    break
+            except requests.RequestException:
                 time.sleep(0.1)
 
-    def reset_server_state_with_pull_requests(self, pulls: list[MockPullRequest]):
+    def reset_server_state_with_pull_requests(self, pulls: List[MockPullRequest]):
+        """
+        Resets the server state with the provided pull requests.
+        """
         response = requests.get(
             f'http://localhost:{self.port}/reset-mock-github',
             json=[dataclasses.asdict(pull_request) for pull_request in pulls],
@@ -101,83 +139,61 @@ class MockGitHubAPIServer():
         assert response.text == '👍'
 
     def shutdown(self):
+        """
+        Shuts down the server.
+        """
         self.server.shutdown()
         self.thread.join()
 
-    def start_server_thread(self):
-        # pylint: disable=unused-argument
-        self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
-        self.thread.start()
+    def ping(self):
+        return 'pong', 200
 
-        @self.app.route("/ping")
-        def ping():
-            return ('pong', 200)
+    def reset_server(self):
+        self.pulls = [
+            MockPullRequest(**pull_request)
+            for pull_request in request.json
+        ]
+        return '👍', 200
 
-        @self.app.route("/reset-mock-github")
-        def reset_server():
-            self.pulls = [
-                MockPullRequest(pull_request['head'],
-                                pull_request['number'],
-                                pull_request['state'])
-                for pull_request in flask.request.json]
-            return ('👍', 200)
+    def merge_pull_request(self, org, repo, number):
+        for pull_request in self.pulls:
+            if pull_request.number == number:
+                pull_request.state = 'closed'
+                return '', 204
+        return '', 404
 
-        @self.app.route("/repos/<org>/<repo>/pulls/<int:number>/merge", methods=['PUT'])
-        def merge_pull_request(org, repo, number):
-            for pull_request in self.pulls:
-                if pull_request.number == number:
-                    pull_request.state = 'closed'
-                    return ('', 204)
-            return ('', 404)
-
-        @self.app.route("/search/issues", methods=['GET'])
-        def search():
-            params = {}
-            param_strings = flask.request.args.get("q", "").split(" ")
-            for string in param_strings:
-                parts = string.split(":")
-                params[parts[0]] = parts[1]
-
-            assert params["is"] == "pr"
-            assert params["state"] == "open"
-            assert "head" in params
+    def search(self):
+        params = dict(param.split(":") for param in request.args.get("q", "").split(" "))
+        if params.get("is") == "pr" and params.get("state") == "open" and "head" in params:
             head_ref = f":{params['head']}"
-
             for pull_request in self.pulls:
                 if pull_request.head.endswith(head_ref):
-                    return json.dumps({
-                        "total_count": 1,
-                        "items": [{
-                            "number": pull_request.number
-                        }]
-                    })
-            return json.dumps({"total_count": 0, "items": []})
+                    return jsonify({"total_count": 1, "items": [{"number": pull_request.number}]})
+        return jsonify({"total_count": 0, "items": []})
 
-        @self.app.route("/repos/<org>/<repo>/pulls", methods=['POST'])
-        def create_pull_request(org, repo):
-            new_pr_number = len(self.pulls) + 1
-            self.pulls.append(MockPullRequest(
-                flask.request.json["head"],
-                new_pr_number,
-                "open"
-            ))
-            return {"number": new_pr_number}
+    def create_pull_request(self, org, repo):
+        new_pr_number = len(self.pulls) + 1
+        self.pulls.append(MockPullRequest(
+            head=request.json["head"],
+            number=new_pr_number,
+            state="open"
+        ))
+        return jsonify({"number": new_pr_number})
 
-        @self.app.route("/repos/<org>/<repo>/pulls/<int:number>", methods=['PATCH'])
-        def update_pull_request(org, repo, number):
-            for pull_request in self.pulls:
-                if pull_request.number == number:
-                    if 'state' in flask.request.json:
-                        pull_request.state = flask.request.json['state']
-                    return ('', 204)
-            return ('', 404)
+    def update_pull_request(self, org, repo, number):
+        for pull_request in self.pulls:
+            if pull_request.number == number:
+                if 'state' in request.json:
+                    pull_request.state = request.json['state']
+                return '', 204
+        return '', 404
 
-        @self.app.route("/repos/<org>/<repo>/issues/<number>/labels", methods=['GET', 'POST'])
-        @self.app.route("/repos/<org>/<repo>/issues/<number>/labels/<label>", methods=['DELETE'])
-        @self.app.route("/repos/<org>/<repo>/issues/<issue>/comments", methods=['GET', 'POST'])
-        def other_requests(*args, **kwargs):
-            return ('', 204)
+    def other_requests(self, *args, **kwargs):
+        return '', 204
 
+class NoLoggingHandler(WSGIRequestHandler):
+    def log_message(self, *args):
+        pass
 
 class TestCleanUpBodyText(unittest.TestCase):
     """Tests that SyncRun.clean_up_body_text properly prepares the
