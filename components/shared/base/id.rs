@@ -16,8 +16,15 @@ use malloc_size_of::malloc_size_of_is_0;
 use malloc_size_of_derive::MallocSizeOf;
 use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
-use size_of_test::size_of_test;
 use webrender_api::{ExternalScrollId, PipelineId as WebRenderPipelineId};
+
+/// Asserts the size of a type at compile time.
+macro_rules! size_of_test {
+    ($t: ty, $expected_size: expr) => {
+        #[cfg(target_pointer_width = "64")]
+        ::static_assertions::const_assert_eq!(std::mem::size_of::<$t>(), $expected_size);
+    };
+}
 
 macro_rules! namespace_id_method {
     ($func_name:ident, $func_return_data_type:ident, $self:ident, $index_name:ident) => {

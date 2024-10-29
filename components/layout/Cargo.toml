@@ -44,7 +44,6 @@ servo_atoms = { workspace = true }
 servo_config = { path = "../config" }
 servo_geometry = { path = "../geometry" }
 servo_url = { path = "../url" }
-size_of_test = { workspace = true }
 smallvec = { workspace = true, features = ["union"] }
 style = { workspace = true }
 style_traits = { workspace = true }

@@ -346,7 +346,6 @@ dependencies = [
  "malloc_size_of_derive",
  "parking_lot",
  "serde",
- "size_of_test",
  "webrender_api",
 ]
 
@@ -377,7 +376,7 @@ dependencies = [
  "malloc_size_of_derive",
  "parking_lot",
  "serde",
- "size_of_test",
+ "static_assertions",
  "time 0.3.36",
  "webrender_api",
  "windows-sys 0.59.0",
@@ -3894,7 +3893,6 @@ dependencies = [
  "servo_config",
  "servo_geometry",
  "servo_url",
- "size_of_test",
  "smallvec",
  "style",
  "style_traits",
@@ -6778,14 +6776,6 @@ name = "siphasher"
 version = "0.3.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "38b58827f4464d87d377d175e90bf58eb00fd8716ff0a62f80356b5e61555d0d"
-
-[[package]]
-name = "size_of_test"
-version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2024-10-04#789ab89c30d94e25f514c19c079a00a6ab583638"
-dependencies = [
- "static_assertions",
-]
 
 [[package]]
 name = "slab"
