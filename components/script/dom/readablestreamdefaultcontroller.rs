@@ -135,7 +135,7 @@ pub struct ValueWithSize {
 #[allow(crown::unrooted_must_root)]
 pub enum EnqueuedValue {
     /// A value enqueued from Rust.
-    Native(Vec<u8>),
+    Native(Rc<Box<[u8]>>),
     /// A Js value.
     Js(ValueWithSize),
 }
@@ -194,7 +194,7 @@ impl QueueWithSizes {
                         "`get_in_memory_bytes` can only be called on a queue with native values."
                     )
                 };
-                chunk.clone()
+                chunk.iter().copied()
             })
             .collect()
     }
