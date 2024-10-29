@@ -11,6 +11,7 @@ use std::rc::Rc;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
 use ipc_channel::router::ROUTER;
+use js::jsval::JSVal;
 use profile_traits::ipc;
 use webxr_api::{self, Error as XRError, MockDeviceInit, MockDeviceMsg};
 
@@ -184,7 +185,8 @@ impl XRTestMethods for XRTest {
     /// <https://github.com/immersive-web/webxr-test-api/blob/master/explainer.md>
     fn SimulateUserActivation(&self, f: Rc<Function>) {
         ScriptThread::set_user_interacting(true);
-        let _ = f.Call__(vec![], ExceptionHandling::Rethrow);
+        rooted!(in(*GlobalScope::get_cx()) let mut value: JSVal);
+        let _ = f.Call__(vec![], value.handle_mut(), ExceptionHandling::Rethrow);
         ScriptThread::set_user_interacting(false);
     }
 

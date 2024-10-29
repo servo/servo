@@ -24,9 +24,9 @@ use js::jsapi::{
     MutableHandleObject as RawMutableHandleObject, MutableHandleValue as RawMutableHandleValue,
     ObjectOpResult, PropertyDescriptor, JSPROP_ENUMERATE, JSPROP_READONLY,
 };
-use js::jsval::{JSVal, NullValue, PrivateValue, UndefinedValue};
+use js::jsval::{NullValue, PrivateValue, UndefinedValue};
 use js::rust::wrappers::{JS_TransplantObject, NewWindowProxy, SetWindowProxy};
-use js::rust::{get_object_class, Handle, MutableHandle};
+use js::rust::{get_object_class, Handle, MutableHandle, MutableHandleValue};
 use js::JSCLASS_IS_GLOBAL;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use net_traits::request::Referrer;
@@ -416,13 +416,18 @@ impl WindowProxy {
 
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-opener
-    pub fn opener(&self, cx: *mut JSContext, in_realm_proof: InRealm) -> JSVal {
+    pub fn opener(
+        &self,
+        cx: *mut JSContext,
+        in_realm_proof: InRealm,
+        mut retval: MutableHandleValue,
+    ) {
         if self.disowned.get() {
-            return NullValue();
+            return retval.set(NullValue());
         }
         let opener_id = match self.opener {
             Some(opener_browsing_context_id) => opener_browsing_context_id,
-            None => return NullValue(),
+            None => return retval.set(NullValue()),
         };
         let parent_browsing_context = self.parent.as_deref();
         let opener_proxy = match ScriptThread::find_window_proxy(opener_id) {
@@ -447,16 +452,14 @@ impl WindowProxy {
                             creator,
                         )
                     },
-                    None => return NullValue(),
+                    None => return retval.set(NullValue()),
                 }
             },
         };
         if opener_proxy.is_browsing_context_discarded() {
-            return NullValue();
+            return retval.set(NullValue());
         }
-        rooted!(in(cx) let mut val = UndefinedValue());
-        unsafe { opener_proxy.to_jsval(cx, val.handle_mut()) };
-        val.get()
+        unsafe { opener_proxy.to_jsval(cx, retval) };
     }
 
     // https://html.spec.whatwg.org/multipage/#window-open-steps

@@ -14,7 +14,7 @@ use euclid::{RigidTransform3D, Transform3D, Vector3D};
 use ipc_channel::ipc::IpcReceiver;
 use ipc_channel::router::ROUTER;
 use js::jsapi::JSObject;
-use js::jsval::JSVal;
+use js::rust::MutableHandleValue;
 use js::typedarray::Float32Array;
 use profile_traits::ipc;
 use servo_atoms::Atom;
@@ -1011,10 +1011,10 @@ impl XRSessionMethods for XRSession {
     }
 
     /// <https://www.w3.org/TR/webxr/#dom-xrsession-enabledfeatures>
-    fn EnabledFeatures(&self, cx: JSContext) -> JSVal {
+    fn EnabledFeatures(&self, cx: JSContext, retval: MutableHandleValue) {
         let session = self.session.borrow();
         let features = session.granted_features();
-        to_frozen_array(features, cx)
+        to_frozen_array(features, cx, retval)
     }
 
     /// <https://www.w3.org/TR/webxr/#dom-xrsession-issystemkeyboardsupported>

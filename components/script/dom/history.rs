@@ -9,7 +9,7 @@ use base::id::HistoryStateId;
 use dom_struct::dom_struct;
 use js::jsapi::Heap;
 use js::jsval::{JSVal, NullValue, UndefinedValue};
-use js::rust::HandleValue;
+use js::rust::{HandleValue, MutableHandleValue};
 use net_traits::{CoreResourceMsg, IpcSend};
 use profile_traits::ipc;
 use profile_traits::ipc::channel;
@@ -289,11 +289,12 @@ impl History {
 
 impl HistoryMethods for History {
     /// <https://html.spec.whatwg.org/multipage/#dom-history-state>
-    fn GetState(&self, _cx: JSContext) -> Fallible<JSVal> {
+    fn GetState(&self, _cx: JSContext, mut retval: MutableHandleValue) -> Fallible<()> {
         if !self.window.Document().is_fully_active() {
             return Err(Error::Security);
         }
-        Ok(self.state.get())
+        retval.set(self.state.get());
+        Ok(())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-history-length>

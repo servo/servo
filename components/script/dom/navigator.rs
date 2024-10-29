@@ -7,7 +7,7 @@ use std::convert::TryInto;
 use std::sync::LazyLock;
 
 use dom_struct::dom_struct;
-use js::jsval::JSVal;
+use js::rust::MutableHandleValue;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorMethods;
@@ -199,8 +199,8 @@ impl NavigatorMethods for Navigator {
 
     // https://html.spec.whatwg.org/multipage/#dom-navigator-languages
     #[allow(unsafe_code)]
-    fn Languages(&self, cx: JSContext) -> JSVal {
-        to_frozen_array(&[self.Language()], cx)
+    fn Languages(&self, cx: JSContext, retval: MutableHandleValue) {
+        to_frozen_array(&[self.Language()], cx, retval)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-navigator-plugins

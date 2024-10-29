@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use js::jsapi::Heap;
 use js::jsval::JSVal;
-use js::rust::{HandleObject, HandleValue};
+use js::rust::{HandleObject, HandleValue, MutableHandleValue};
 use servo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
@@ -102,8 +102,8 @@ impl PopStateEventMethods for PopStateEvent {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-popstateevent-state
-    fn State(&self, _cx: JSContext) -> JSVal {
-        self.state.get()
+    fn State(&self, _cx: JSContext, mut retval: MutableHandleValue) {
+        retval.set(self.state.get())
     }
 
     // https://dom.spec.whatwg.org/#dom-event-istrusted

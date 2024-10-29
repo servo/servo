@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use js::jsval::JSVal;
+use js::rust::MutableHandleValue;
 use webgpu::ShaderCompilationInfo;
 
 use super::bindings::codegen::Bindings::WebGPUBinding::GPUCompilationInfoMethods;
@@ -58,7 +58,7 @@ impl GPUCompilationInfo {
 
 impl GPUCompilationInfoMethods for GPUCompilationInfo {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpucompilationinfo-messages>
-    fn Messages(&self, cx: JSContext) -> JSVal {
-        to_frozen_array(self.msg.as_slice(), cx)
+    fn Messages(&self, cx: JSContext, retval: MutableHandleValue) {
+        to_frozen_array(self.msg.as_slice(), cx, retval)
     }
 }

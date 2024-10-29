@@ -548,16 +548,12 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-get>
     #[allow(unsafe_code)]
-    fn Get(&self, cx: JSContext, name: DOMString) -> JSVal {
+    fn Get(&self, cx: JSContext, name: DOMString, mut retval: MutableHandleValue) {
         match self.definitions.borrow().get(&LocalName::from(&*name)) {
             Some(definition) => unsafe {
-                rooted!(in(*cx) let mut constructor = UndefinedValue());
-                definition
-                    .constructor
-                    .to_jsval(*cx, constructor.handle_mut());
-                constructor.get()
+                definition.constructor.to_jsval(*cx, retval);
             },
-            None => UndefinedValue(),
+            None => retval.set(UndefinedValue()),
         }
     }
 
@@ -994,7 +990,13 @@ impl CustomElementReaction {
                     .iter()
                     .map(|arg| unsafe { HandleValue::from_raw(arg.handle()) })
                     .collect();
-                let _ = callback.Call_(element, arguments, ExceptionHandling::Report);
+                rooted!(in(*GlobalScope::get_cx()) let mut value: JSVal);
+                let _ = callback.Call_(
+                    element,
+                    arguments,
+                    value.handle_mut(),
+                    ExceptionHandling::Report,
+                );
             },
         }
     }

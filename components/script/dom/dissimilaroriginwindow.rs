@@ -5,8 +5,8 @@
 use base::id::PipelineId;
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject};
-use js::jsval::{JSVal, UndefinedValue};
-use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
+use js::jsval::UndefinedValue;
+use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue, MutableHandleValue};
 use script_traits::{ScriptMsg, StructuredSerializedData};
 use servo_url::ServoUrl;
 
@@ -167,9 +167,9 @@ impl DissimilarOriginWindowMethods for DissimilarOriginWindow {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-opener
-    fn Opener(&self, _: JSContext) -> JSVal {
+    fn Opener(&self, _: JSContext, mut retval: MutableHandleValue) {
         // TODO: Implement x-origin opener
-        UndefinedValue()
+        retval.set(UndefinedValue());
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-opener
