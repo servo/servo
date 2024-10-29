@@ -343,7 +343,8 @@ class OpenHarmonyTarget(CrossBuildTarget):
 
         env['HOST_CFLAGS'] = ''
         env['HOST_CXXFLAGS'] = ''
-        ohos_cflags = ['-D__MUSL__', f' --target={clang_target_triple}', f' --sysroot={ohos_sysroot}']
+        ohos_cflags = ['-D__MUSL__', f' --target={clang_target_triple}', f' --sysroot={ohos_sysroot}',
+                       "-Wno-error=unused-command-line-argument"]
         if clang_target_triple.startswith('armv7-'):
             ohos_cflags.extend(['-march=armv7-a', '-mfloat-abi=softfp', '-mtune=generic-armv7-a', '-mthumb'])
         ohos_cflags_str = " ".join(ohos_cflags)
@@ -352,6 +353,7 @@ class OpenHarmonyTarget(CrossBuildTarget):
         env['TARGET_CXXFLAGS'] = ohos_cflags_str
 
         # CMake related flags
+        env['CMAKE'] = ndk_root.joinpath("build-tools", "cmake", "bin", "cmake")
         cmake_toolchain_file = ndk_root.joinpath("build", "cmake", "ohos.toolchain.cmake")
         if cmake_toolchain_file.is_file():
             env[f'CMAKE_TOOLCHAIN_FILE_{rust_target_triple}'] = str(cmake_toolchain_file)
