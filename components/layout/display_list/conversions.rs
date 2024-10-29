@@ -102,6 +102,7 @@ impl ToLayout for MixBlendMode {
             MixBlendMode::Saturation => wr::MixBlendMode::Saturation,
             MixBlendMode::Color => wr::MixBlendMode::Color,
             MixBlendMode::Luminosity => wr::MixBlendMode::Luminosity,
+            MixBlendMode::PlusLighter => wr::MixBlendMode::PlusLighter,
         }
     }
 }
