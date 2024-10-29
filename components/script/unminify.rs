@@ -33,11 +33,11 @@ pub enum BeautifyFileType {
 }
 
 pub fn execute_js_beautify(input: &Path, output: File, file_type: BeautifyFileType) -> bool {
-    let mut cmd = Command::new("npx");
+    let mut cmd = Command::new("js-beautify");
     match file_type {
         BeautifyFileType::Js => (),
         BeautifyFileType::Css => {
-            cmd.arg("js-beautify").arg("--type").arg("css");
+            cmd.arg("--type").arg("css");
         },
     }
     match cmd.arg(input).stdout(output).status() {
