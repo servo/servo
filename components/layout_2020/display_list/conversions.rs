@@ -70,6 +70,7 @@ impl ToWebRender for ComputedMixBlendMode {
             ComputedMixBlendMode::Saturation => MixBlendMode::Saturation,
             ComputedMixBlendMode::Color => MixBlendMode::Color,
             ComputedMixBlendMode::Luminosity => MixBlendMode::Luminosity,
+            ComputedMixBlendMode::PlusLighter => MixBlendMode::PlusLighter,
         }
     }
 }
