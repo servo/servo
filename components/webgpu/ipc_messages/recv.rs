@@ -32,7 +32,7 @@ pub use {wgpu_core as wgc, wgpu_types as wgt};
 use crate::identity::*;
 use crate::render_commands::RenderCommand;
 use crate::swapchain::WebGPUContextId;
-use crate::{Error, ErrorFilter, WebGPUResponse, PRESENTATION_BUFFER_COUNT};
+use crate::{Error, ErrorFilter, Mapping, WebGPUResponse, PRESENTATION_BUFFER_COUNT};
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 pub struct ContextConfiguration {
@@ -276,10 +276,8 @@ pub enum WebGPURequest {
     },
     UnmapBuffer {
         buffer_id: id::BufferId,
-        array_buffer: IpcSharedMemory,
-        write_back: bool,
-        offset: u64,
-        size: u64,
+        /// Return back mapping for writeback
+        mapping: Option<Mapping>,
     },
     WriteBuffer {
         device_id: id::DeviceId,
