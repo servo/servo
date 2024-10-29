@@ -205,10 +205,15 @@ impl GPUBufferMethods for GPUBuffer {
         // Step 5&7
         if let Err(e) = self.channel.0.send(WebGPURequest::UnmapBuffer {
             buffer_id: self.id().0,
-            array_buffer: IpcSharedMemory::from_bytes(mapping.data.data()),
-            write_back: mapping.mode >= GPUMapModeConstants::WRITE,
-            offset: mapping.range.start,
-            size: mapping.range.end - mapping.range.start,
+            mapping: if mapping.mode >= GPUMapModeConstants::WRITE {
+                Some(Mapping {
+                    data: IpcSharedMemory::from_bytes(mapping.data.data()),
+                    range: mapping.range.clone(),
+                    mode: HostMap::Write,
+                })
+            } else {
+                None
+            },
         }) {
             warn!("Failed to send Buffer unmap ({:?}) ({})", self.buffer.0, e);
         }
@@ -249,8 +254,6 @@ impl GPUBufferMethods for GPUBuffer {
         // Step 4
         *self.pending_map.borrow_mut() = Some(promise.clone());
         // Step 5
-
-        // This should be bitflags in wgpu-core
         let host_map = match mode {
             GPUMapModeConstants::READ => HostMap::Read,
             GPUMapModeConstants::WRITE => HostMap::Write,
