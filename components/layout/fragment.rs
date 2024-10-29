@@ -26,7 +26,9 @@ use range::*;
 use script_layout_interface::wrapper_traits::{
     PseudoElementType, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
 };
-use script_layout_interface::{HTMLCanvasData, HTMLCanvasDataSource, HTMLMediaData, SVGSVGData};
+use script_layout_interface::{
+    HTMLCanvasData, HTMLCanvasDataSource, HTMLMediaData, MediaFrame, SVGSVGData,
+};
 use serde::ser::{Serialize, SerializeStruct, Serializer};
 use servo_url::ServoUrl;
 use style::computed_values::border_collapse::T as BorderCollapse;
@@ -381,7 +383,7 @@ impl CanvasFragmentInfo {
 
 #[derive(Clone)]
 pub struct MediaFragmentInfo {
-    pub current_frame: Option<(webrender_api::ImageKey, i32, i32)>,
+    pub current_frame: Option<MediaFrame>,
 }
 
 impl MediaFragmentInfo {
@@ -1036,13 +1038,9 @@ impl Fragment {
                     Au(0)
                 }
             },
-            SpecificFragmentInfo::Media(ref info) => {
-                if let Some((_, width, _)) = info.current_frame {
-                    Au::from_px(width)
-                } else {
-                    Au(0)
-                }
-            },
+            SpecificFragmentInfo::Media(ref info) => info
+                .current_frame
+                .map_or(Au(0), |frame| Au::from_px(frame.width)),
             SpecificFragmentInfo::Canvas(ref info) => info.dom_width,
             SpecificFragmentInfo::Svg(ref info) => info.dom_width,
             // Note: Currently for replaced element with no intrinsic size,
@@ -1066,13 +1064,9 @@ impl Fragment {
                     Au(0)
                 }
             },
-            SpecificFragmentInfo::Media(ref info) => {
-                if let Some((_, _, height)) = info.current_frame {
-                    Au::from_px(height)
-                } else {
-                    Au(0)
-                }
-            },
+            SpecificFragmentInfo::Media(ref info) => info
+                .current_frame
+                .map_or(Au(0), |frame| Au::from_px(frame.height)),
             SpecificFragmentInfo::Canvas(ref info) => info.dom_height,
             SpecificFragmentInfo::Svg(ref info) => info.dom_height,
             SpecificFragmentInfo::Iframe(_) => Au::from_px(DEFAULT_REPLACED_HEIGHT),

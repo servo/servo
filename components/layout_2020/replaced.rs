@@ -137,7 +137,7 @@ pub(crate) enum ReplacedContentKind {
     Image(Option<Arc<Image>>),
     IFrame(IFrameInfo),
     Canvas(CanvasInfo),
-    Video(VideoInfo),
+    Video(Option<VideoInfo>),
 }
 
 impl ReplacedContent {
@@ -173,24 +173,25 @@ impl ReplacedContent {
                 )
             } else if let Some((image_key, natural_size_in_dots)) = element.as_video() {
                 (
-                    ReplacedContentKind::Video(VideoInfo { image_key }),
-                    Some(natural_size_in_dots),
+                    ReplacedContentKind::Video(image_key.map(|key| VideoInfo { image_key: key })),
+                    natural_size_in_dots,
                 )
             } else {
                 return None;
             }
         };
 
-        let natural_size =
-            natural_size_in_dots.map_or_else(NaturalSizes::empty, |naturalc_size_in_dots| {
-                // FIXME: should 'image-resolution' (when implemented) be used *instead* of
-                // `script::dom::htmlimageelement::ImageRequest::current_pixel_density`?
-                // https://drafts.csswg.org/css-images-4/#the-image-resolution
-                let dppx = 1.0;
-                let width = (naturalc_size_in_dots.width as CSSFloat) / dppx;
-                let height = (naturalc_size_in_dots.height as CSSFloat) / dppx;
-                NaturalSizes::from_width_and_height(width, height)
-            });
+        let natural_size = if let Some(naturalc_size_in_dots) = natural_size_in_dots {
+            // FIXME: should 'image-resolution' (when implemented) be used *instead* of
+            // `script::dom::htmlimageelement::ImageRequest::current_pixel_density`?
+            // https://drafts.csswg.org/css-images-4/#the-image-resolution
+            let dppx = 1.0;
+            let width = (naturalc_size_in_dots.width as CSSFloat) / dppx;
+            let height = (naturalc_size_in_dots.height as CSSFloat) / dppx;
+            NaturalSizes::from_width_and_height(width, height)
+        } else {
+            NaturalSizes::empty()
+        };
 
         let base_fragment_info = BaseFragmentInfo::new_for_node(element.opaque());
         Some(Self {
@@ -354,7 +355,7 @@ impl ReplacedContent {
                         style: style.clone(),
                         rect,
                         clip,
-                        image_key,
+                        image_key: Some(image_key),
                     })
                 })
                 .into_iter()
@@ -364,7 +365,7 @@ impl ReplacedContent {
                 style: style.clone(),
                 rect,
                 clip,
-                image_key: video.image_key,
+                image_key: video.as_ref().map(|video| video.image_key),
             })],
             ReplacedContentKind::IFrame(iframe) => {
                 vec![Fragment::IFrame(IFrameFragment {
@@ -403,7 +404,7 @@ impl ReplacedContent {
                     style: style.clone(),
                     rect,
                     clip,
-                    image_key,
+                    image_key: Some(image_key),
                 })]
             },
         }
@@ -449,6 +450,16 @@ impl ReplacedContent {
         )
     }
 
+    pub(crate) fn default_object_size() -> PhysicalSize<Au> {
+        // FIXME:
+        // https://drafts.csswg.org/css-images/#default-object-size
+        // “If 300px is too wide to fit the device, UAs should use the width of
+        //  the largest rectangle that has a 2:1 ratio and fits the device instead.”
+        // “height of the largest rectangle that has a 2:1 ratio, has a height not greater
+        //  than 150px, and has a width not greater than the device width.”
+        PhysicalSize::new(Au::from_px(300), Au::from_px(150))
+    }
+
     /// <https://drafts.csswg.org/css2/visudet.html#inline-replaced-width>
     /// <https://drafts.csswg.org/css2/visudet.html#inline-replaced-height>
     ///
@@ -464,20 +475,19 @@ impl ReplacedContent {
     ) -> LogicalVec2<Au> {
         let mode = style.writing_mode;
         let intrinsic_size = self.flow_relative_intrinsic_size(style);
-        let intrinsic_ratio = self.preferred_aspect_ratio(&containing_block.into(), style);
+        let intrinsic_ratio = self
+            .preferred_aspect_ratio(&containing_block.into(), style)
+            .or_else(|| {
+                matches!(self.kind, ReplacedContentKind::Video(_)).then(|| {
+                    let size = Self::default_object_size();
+                    AspectRatio::from_content_ratio(
+                        size.width.to_f32_px() / size.height.to_f32_px(),
+                    )
+                })
+            });
 
-        let default_object_size = || {
-            // FIXME:
-            // https://drafts.csswg.org/css-images/#default-object-size
-            // “If 300px is too wide to fit the device, UAs should use the width of
-            //  the largest rectangle that has a 2:1 ratio and fits the device instead.”
-            // “height of the largest rectangle that has a 2:1 ratio, has a height not greater
-            //  than 150px, and has a width not greater than the device width.”
-            LogicalVec2::from_physical_size(
-                &PhysicalSize::new(Au::from_px(300), Au::from_px(150)),
-                mode,
-            )
-        };
+        let default_object_size =
+            || LogicalVec2::from_physical_size(&Self::default_object_size(), mode);
 
         let get_tentative_size = |LogicalVec2 { inline, block }| -> LogicalVec2<Au> {
             match (inline, block) {

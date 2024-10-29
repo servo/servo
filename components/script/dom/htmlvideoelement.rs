@@ -7,7 +7,7 @@ use std::sync::Arc;
 
 use dom_struct::dom_struct;
 use euclid::default::Size2D;
-use html5ever::{local_name, LocalName, Prefix};
+use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
 use ipc_channel::ipc;
 use js::rust::HandleObject;
 use net_traits::image_cache::{
@@ -19,8 +19,10 @@ use net_traits::{
     FetchMetadata, FetchResponseListener, FetchResponseMsg, NetworkError, ResourceFetchTiming,
     ResourceTimingType,
 };
+use script_layout_interface::{HTMLMediaData, MediaMetadata};
 use servo_media::player::video::VideoFrame;
 use servo_url::ServoUrl;
+use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 
 use crate::document_loader::{LoadBlocker, LoadType};
 use crate::dom::attr::Attr;
@@ -29,10 +31,10 @@ use crate::dom::bindings::codegen::Bindings::HTMLVideoElementBinding::HTMLVideoE
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomObject;
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{DomRoot, LayoutDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
-use crate::dom::element::{AttributeMutation, Element};
+use crate::dom::element::{AttributeMutation, Element, LayoutElementHelpers};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlmediaelement::{HTMLMediaElement, ReadyState};
 use crate::dom::node::{document_from_node, window_from_node, Node};
@@ -43,16 +45,13 @@ use crate::image_listener::{generate_cache_listener_for_element, ImageCacheListe
 use crate::network_listener::{self, PreInvoke, ResourceTimingListener};
 use crate::script_runtime::CanGc;
 
-const DEFAULT_WIDTH: u32 = 300;
-const DEFAULT_HEIGHT: u32 = 150;
-
 #[dom_struct]
 pub struct HTMLVideoElement {
     htmlmediaelement: HTMLMediaElement,
     /// <https://html.spec.whatwg.org/multipage/#dom-video-videowidth>
-    video_width: Cell<u32>,
+    video_width: Cell<Option<u32>>,
     /// <https://html.spec.whatwg.org/multipage/#dom-video-videoheight>
-    video_height: Cell<u32>,
+    video_height: Cell<Option<u32>>,
     /// Incremented whenever tasks associated with this element are cancelled.
     generation_id: Cell<u32>,
     /// Poster frame fetch request canceller.
@@ -64,6 +63,8 @@ pub struct HTMLVideoElement {
     #[ignore_malloc_size_of = "VideoFrame"]
     #[no_trace]
     last_frame: DomRefCell<Option<VideoFrame>>,
+    /// Indicates if it has already sent a resize event for a given size
+    sent_resize: Cell<Option<(u32, u32)>>,
 }
 
 impl HTMLVideoElement {
@@ -74,12 +75,13 @@ impl HTMLVideoElement {
     ) -> HTMLVideoElement {
         HTMLVideoElement {
             htmlmediaelement: HTMLMediaElement::new_inherited(local_name, prefix, document),
-            video_width: Cell::new(DEFAULT_WIDTH),
-            video_height: Cell::new(DEFAULT_HEIGHT),
+            video_width: Cell::new(None),
+            video_height: Cell::new(None),
             generation_id: Cell::new(0),
             poster_frame_canceller: DomRefCell::new(Default::default()),
             load_blocker: Default::default(),
             last_frame: Default::default(),
+            sent_resize: Cell::new(None),
         }
     }
 
@@ -101,20 +103,36 @@ impl HTMLVideoElement {
         )
     }
 
-    pub fn get_video_width(&self) -> u32 {
+    pub fn get_video_width(&self) -> Option<u32> {
         self.video_width.get()
     }
 
-    pub fn set_video_width(&self, width: u32) {
-        self.video_width.set(width);
-    }
-
-    pub fn get_video_height(&self) -> u32 {
+    pub fn get_video_height(&self) -> Option<u32> {
         self.video_height.get()
     }
 
-    pub fn set_video_height(&self, height: u32) {
+    /// <https://html.spec.whatwg.org/multipage#event-media-resize>
+    pub fn resize(&self, width: Option<u32>, height: Option<u32>) -> Option<(u32, u32)> {
+        self.video_width.set(width);
         self.video_height.set(height);
+
+        let width = width?;
+        let height = height?;
+        if self.sent_resize.get() == Some((width, height)) {
+            return None;
+        }
+
+        let sent_resize = if self.htmlmediaelement.get_ready_state() == ReadyState::HaveNothing {
+            None
+        } else {
+            let window = window_from_node(self);
+            let task_source = window.task_manager().media_element_task_source();
+            task_source.queue_simple_event(self.upcast(), atom!("resize"), &window);
+            Some((width, height))
+        };
+
+        self.sent_resize.set(sent_resize);
+        sent_resize
     }
 
     pub fn get_current_frame_data(&self) -> Option<(Option<ipc::IpcSharedMemory>, Size2D<u32>)> {
@@ -228,7 +246,7 @@ impl HTMLVideoElementMethods for HTMLVideoElement {
         if self.htmlmediaelement.get_ready_state() == ReadyState::HaveNothing {
             return 0;
         }
-        self.video_width.get()
+        self.video_width.get().unwrap_or(0)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-video-videoheight
@@ -236,7 +254,7 @@ impl HTMLVideoElementMethods for HTMLVideoElement {
         if self.htmlmediaelement.get_ready_state() == ReadyState::HaveNothing {
             return 0;
         }
-        self.video_height.get()
+        self.video_height.get().unwrap_or(0)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-video-poster
@@ -258,10 +276,25 @@ impl VirtualMethods for HTMLVideoElement {
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
 
-        if let Some(new_value) = mutation.new_value(attr) {
-            if attr.local_name() == &local_name!("poster") {
-                self.fetch_poster_frame(&new_value, CanGc::note());
+        if attr.local_name() == &local_name!("poster") {
+            if let Some(new_value) = mutation.new_value(attr) {
+                self.fetch_poster_frame(&new_value, CanGc::note())
+            } else {
+                self.htmlmediaelement.clear_current_frame_data();
+                self.htmlmediaelement.set_show_poster(false);
             }
+        };
+    }
+
+    fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
+        match name {
+            &local_name!("width") | &local_name!("height") => {
+                AttrValue::from_dimension(value.into())
+            },
+            _ => self
+                .super_type()
+                .unwrap()
+                .parse_plain_attribute(name, value),
         }
     }
 }
@@ -406,5 +439,57 @@ impl PosterFrameFetchContext {
             resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
             url,
         }
+    }
+}
+
+pub trait LayoutHTMLVideoElementHelpers {
+    fn data(self) -> HTMLMediaData;
+    fn get_width(self) -> LengthOrPercentageOrAuto;
+    fn get_height(self) -> LengthOrPercentageOrAuto;
+}
+
+impl LayoutDom<'_, HTMLVideoElement> {
+    fn width_attr(self) -> Option<LengthOrPercentageOrAuto> {
+        self.upcast::<Element>()
+            .get_attr_for_layout(&ns!(), &local_name!("width"))
+            .map(AttrValue::as_dimension)
+            .cloned()
+    }
+
+    fn height_attr(self) -> Option<LengthOrPercentageOrAuto> {
+        self.upcast::<Element>()
+            .get_attr_for_layout(&ns!(), &local_name!("height"))
+            .map(AttrValue::as_dimension)
+            .cloned()
+    }
+}
+
+impl LayoutHTMLVideoElementHelpers for LayoutDom<'_, HTMLVideoElement> {
+    fn data(self) -> HTMLMediaData {
+        let video = self.unsafe_get();
+
+        // Get the current frame being rendered.
+        let current_frame = video.htmlmediaelement.get_current_frame_data();
+
+        // This value represents the natural width and height of the video.
+        // It may exist even if there is no current frame (for example, after the
+        // metadata of the video is loaded).
+        let metadata = video
+            .get_video_width()
+            .zip(video.get_video_height())
+            .map(|(width, height)| MediaMetadata { width, height });
+
+        HTMLMediaData {
+            current_frame,
+            metadata,
+        }
+    }
+
+    fn get_width(self) -> LengthOrPercentageOrAuto {
+        self.width_attr().unwrap_or(LengthOrPercentageOrAuto::Auto)
+    }
+
+    fn get_height(self) -> LengthOrPercentageOrAuto {
+        self.height_attr().unwrap_or(LengthOrPercentageOrAuto::Auto)
     }
 }
