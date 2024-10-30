@@ -10,6 +10,7 @@ use std::ops::Range;
 use std::ptr;
 use std::sync::Arc;
 
+use ipc_channel::ipc::IpcSharedMemory;
 use js::jsapi::{
     Heap, JSObject, JS_GetArrayBufferViewBuffer, JS_IsArrayBufferViewObject, NewExternalArrayBuffer,
 };
@@ -410,7 +411,7 @@ where
 #[derive(JSTraceable, MallocSizeOf)]
 pub struct DataBlock {
     #[ignore_malloc_size_of = "Arc"]
-    data: Arc<Box<[u8]>>,
+    data: Arc<IpcSharedMemory>,
     /// Data views (mutable subslices of data)
     data_views: Vec<DataView>,
 }
@@ -423,23 +424,24 @@ fn range_overlap<T: std::cmp::PartialOrd>(range1: &Range<T>, range2: &Range<T>) 
 
 impl DataBlock {
     pub fn new_zeroed(size: usize) -> Self {
-        let data = vec![0; size];
         Self {
-            data: Arc::new(data.into_boxed_slice()),
+            data: Arc::new(IpcSharedMemory::from_byte(0, size)),
             data_views: Vec::new(),
         }
     }
 
-    /// Panics if there is any active view or src data is not same length
-    pub fn load(&mut self, src: &[u8]) {
-        // `Arc::get_mut` ensures there are no views
-        Arc::get_mut(&mut self.data).unwrap().clone_from_slice(src)
+    /// SAFETY: This is safe if IpcSharedMemory is not accessible from sender or cloned
+    pub unsafe fn from(shared_mem: IpcSharedMemory) -> Self {
+        Self {
+            data: Arc::new(shared_mem),
+            data_views: Vec::new(),
+        }
     }
 
     /// Panics if there is any active view
-    pub fn data(&mut self) -> &mut [u8] {
-        // `Arc::get_mut` ensures there are no views
-        Arc::get_mut(&mut self.data).unwrap()
+    pub fn consume(self) -> IpcSharedMemory {
+        // Arc ensures no views are active
+        Arc::try_unwrap(self.data).unwrap()
     }
 
     pub fn clear_views(&mut self) {
@@ -465,13 +467,13 @@ impl DataBlock {
             #[allow(clippy::from_raw_with_void_ptr)]
             drop(Arc::from_raw(free_user_data as *const _));
         }
-        let raw: *mut Box<[u8]> = Arc::into_raw(Arc::clone(&self.data)) as _;
+        let raw = Arc::into_raw(Arc::clone(&self.data)) as *mut IpcSharedMemory;
         rooted!(in(*cx) let object = unsafe {
             NewExternalArrayBuffer(
                 *cx,
                 range.end - range.start,
                 // SAFETY: This is safe because we have checked there is no overlapping view
-                (*raw)[range.clone()].as_mut_ptr() as _,
+                (*raw).deref_mut().as_mut_ptr() as _,
                 Some(free_func),
                 raw as _,
             )
