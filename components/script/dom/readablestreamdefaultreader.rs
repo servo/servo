@@ -92,12 +92,13 @@ impl ReadableStreamDefaultReader {
     /// <https://streams.spec.whatwg.org/#default-reader-constructor>
     #[allow(non_snake_case)]
     pub fn Constructor(
-        _global: &GlobalScope,
+        global: &GlobalScope,
         _proto: Option<SafeHandleObject>,
         stream: DomRoot<ReadableStream>,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<Self>> {
         // step 1
-        Self::set_up(_global, &stream)
+        Self::set_up(global, &stream, can_gc)
     }
 
     fn new_inherited(
@@ -116,19 +117,21 @@ impl ReadableStreamDefaultReader {
     pub fn set_up(
         global: &GlobalScope,
         stream: &ReadableStream,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<ReadableStreamDefaultReader>> {
         // step 1
         if !stream.is_locked() {
             return Err(Error::Type("stream is not locked".to_owned()));
         }
         // step 2 & 3
-        Ok(Self::generic_initialize(global, stream))
+        Ok(Self::generic_initialize(global, stream, can_gc))
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-reader-generic-initialize>
     pub fn generic_initialize(
         global: &GlobalScope,
         stream: &ReadableStream,
+        can_gc: CanGc,
     ) -> DomRoot<ReadableStreamDefaultReader> {
         // step 1 & 2
         let stream = stream;
@@ -136,7 +139,7 @@ impl ReadableStreamDefaultReader {
         let promise;
         if stream.is_readable() {
             // step 3
-            promise = Promise::new(global);
+            promise = Promise::new(global, can_gc);
         } else if stream.is_closed() {
             // step 4
             let cx = GlobalScope::get_cx();
@@ -316,13 +319,12 @@ impl ReadableStreamDefaultReader {
 impl ReadableStreamDefaultReaderMethods for ReadableStreamDefaultReader {
     /// <https://streams.spec.whatwg.org/#default-reader-constructor>
     fn Constructor(
-        _global: &GlobalScope,
-        _proto: Option<SafeHandleObject>,
-        _can_gc: CanGc,
-        _stream: DomRoot<ReadableStream>,
+        global: &GlobalScope,
+        proto: Option<SafeHandleObject>,
+        can_gc: CanGc,
+        stream: DomRoot<ReadableStream>,
     ) -> Fallible<DomRoot<Self>> {
-        // TODO
-        Err(Error::NotFound)
+        ReadableStreamDefaultReader::Constructor(global, proto, stream, can_gc)
     }
 
     /// <https://streams.spec.whatwg.org/#default-reader-read>

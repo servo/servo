@@ -301,7 +301,7 @@ impl ReadableStream {
     /// <https://streams.spec.whatwg.org/#acquire-readable-stream-reader>
     pub fn start_reading(&self) -> Result<DomRoot<ReadableStreamDefaultReader>, ()> {
         // step 1 & 2 & 3
-        ReadableStreamDefaultReader::set_up(&*self.global(), self).map_err(|_| ())
+        ReadableStreamDefaultReader::set_up(&*self.global(), self, CanGc::note()).map_err(|_| ())
     }
 
     /// Native call to
@@ -556,6 +556,7 @@ impl ReadableStreamMethods for ReadableStream {
                 reader.set(Some(&*ReadableStreamDefaultReader::set_up(
                     &*self.global(),
                     self,
+                    CanGc::note(),
                 )?));
                 return Ok(ReadableStreamReader::ReadableStreamDefaultReader(
                     reader.get().unwrap(),
