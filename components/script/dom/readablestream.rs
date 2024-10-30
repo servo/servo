@@ -229,24 +229,26 @@ impl ReadableStream {
 
     /// <https://streams.spec.whatwg.org/#readable-stream-error>
     pub fn error(&self, e: SafeHandleValue) {
-        // Set stream.[[state]] to "errored".
+        // step 1
+        assert!(self.is_readable());
+        // step 2
         self.state.set(ReadableStreamState::Errored);
-
-        // Set stream.[[storedError]] to e.
+        // step 3
         {
             let cx = GlobalScope::get_cx();
             rooted!(in(*cx) let object = e.to_object());
             self.stored_error.set(*object);
         }
 
+        // step 4
         match self.reader {
             ReaderType::Default(ref reader) => {
                 let Some(reader) = reader.get() else {
-                    // If reader is undefined, return.
+                    // step 5
                     return;
                 };
 
-                // Perform ! ReadableStreamDefaultReaderErrorReadRequests(reader, e).
+                // steps 6, 7, 8
                 reader.error(e);
             },
             _ => todo!(),
@@ -305,9 +307,9 @@ impl ReadableStream {
         }
         let global = self.global();
         match self.reader {
-            ReaderType::Default(ref reader) => {
-                reader.set(Some(&*ReadableStreamDefaultReader::new(&*global, self)))
-            },
+            ReaderType::Default(ref reader) => reader.set(Some(
+                &*ReadableStreamDefaultReader::set_up(&*global, self).map_err(|_| ())?,
+            )),
             _ => unreachable!("Native start reading can only be done on a default reader."),
         }
         Ok(())
@@ -562,10 +564,10 @@ impl ReadableStreamMethods for ReadableStream {
         }
         match self.reader {
             ReaderType::Default(ref reader) => {
-                reader.set(Some(&*ReadableStreamDefaultReader::new(
+                reader.set(Some(&*ReadableStreamDefaultReader::set_up(
                     &*self.global(),
                     self,
-                )));
+                )?));
                 return Ok(ReadableStreamReader::ReadableStreamDefaultReader(
                     reader.get().unwrap(),
                 ));

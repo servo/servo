@@ -89,6 +89,17 @@ pub struct ReadableStreamDefaultReader {
 }
 
 impl ReadableStreamDefaultReader {
+    /// <https://streams.spec.whatwg.org/#default-reader-constructor>
+    #[allow(non_snake_case)]
+    pub fn Constructor(
+        _global: &GlobalScope,
+        _proto: Option<SafeHandleObject>,
+        stream: DomRoot<ReadableStream>,
+    ) -> Fallible<DomRoot<Self>> {
+        // step 1
+        Self::set_up(_global, &stream)
+    }
+
     fn new_inherited(
         stream: &ReadableStream,
         closed_promise: Rc<Promise>,
@@ -101,17 +112,47 @@ impl ReadableStreamDefaultReader {
         }
     }
 
+    /// <https://streams.spec.whatwg.org/#set-up-readable-stream-default-reader>
+    pub fn set_up(
+        global: &GlobalScope,
+        stream: &ReadableStream,
+    ) -> Fallible<DomRoot<ReadableStreamDefaultReader>> {
+        // step 1
+        if !stream.is_locked() {
+            return Err(Error::Type("stream is not locked".to_owned()));
+        }
+        // step 2 & 3
+        Ok(Self::generic_initialize(global, stream))
+    }
+
     /// <https://streams.spec.whatwg.org/#readable-stream-reader-generic-initialize>
-    pub fn new(
+    pub fn generic_initialize(
         global: &GlobalScope,
         stream: &ReadableStream,
     ) -> DomRoot<ReadableStreamDefaultReader> {
-        let promise = Promise::new(global, CanGc::note());
-        if stream.is_closed() {
-            promise.resolve_native(&());
-        }
-        if stream.is_errored() {
-            promise.reject_native(&());
+        // step 1 & 2
+        let stream = stream;
+
+        let promise;
+        if stream.is_readable() {
+            // step 3
+            promise = Promise::new(global);
+        } else if stream.is_closed() {
+            // step 4
+            let cx = GlobalScope::get_cx();
+            rooted!(in(*cx) let mut rval = UndefinedValue());
+            promise = Promise::new_rejected(global, cx, rval.handle()).unwrap();
+        } else {
+            // step 5.1
+            assert!(stream.is_errored());
+            // step 5.2
+            let cx = GlobalScope::get_cx();
+            rooted!(in(*cx) let mut rval = UndefinedValue());
+            stream.get_stored_error(rval.handle_mut());
+            promise = Promise::new_rejected(global, cx, rval.handle()).unwrap();
+
+            // step 5.3
+            promise.set_promise_is_handled();
         }
         reflect_dom_object(
             Box::new(ReadableStreamDefaultReader::new_inherited(stream, promise)),
@@ -140,13 +181,16 @@ impl ReadableStreamDefaultReader {
         self.read_requests.borrow().len()
     }
 
-    /// <https://streams.spec.whatwg.org/#readable-stream-error>
+    /// steps 6, 7, 8 of <https://streams.spec.whatwg.org/#readable-stream-error>
     pub fn error(&self, e: SafeHandleValue) {
+        // step 6
         self.closed_promise.borrow().reject_native(&e);
-        let pending_requests = self.take_read_requests();
-        for request in pending_requests {
-            request.error_steps(e);
-        }
+
+        // step 7
+        self.closed_promise.borrow().set_promise_is_handled();
+
+        // step 8
+        self.error_read_requests(e);
     }
 
     /// The removal steps of <https://streams.spec.whatwg.org/#readable-stream-fulfill-read-request>
