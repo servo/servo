@@ -8304,6 +8304,7 @@ dependencies = [
  "libc",
  "log",
  "serde",
+ "servo_geometry",
  "surfman",
  "webrender_api",
 ]

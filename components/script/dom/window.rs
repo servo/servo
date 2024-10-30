@@ -63,7 +63,7 @@ use selectors::attr::CaseSensitivity;
 use servo_arc::Arc as ServoArc;
 use servo_atoms::Atom;
 use servo_config::pref;
-use servo_geometry::{f32_rect_to_au_rect, MaxRect};
+use servo_geometry::{f32_rect_to_au_rect, DeviceIndependentIntRect, MaxRect};
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use style::dom::OpaqueNode;
 use style::error_reporting::{ContextualParseError, ParseErrorReporter};
@@ -76,7 +76,7 @@ use style::str::HTML_SPACE_CHARACTERS;
 use style::stylesheets::{CssRuleType, Origin, UrlExtraData};
 use style_traits::{CSSPixel, DevicePixel, ParsingMode};
 use url::Position;
-use webrender_api::units::{DeviceIntRect, LayoutPixel};
+use webrender_api::units::LayoutPixel;
 use webrender_api::{DocumentId, ExternalScrollId};
 use webrender_traits::CrossProcessCompositorApi;
 
@@ -1782,16 +1782,16 @@ impl Window {
 
     fn client_window(&self) -> (Size2D<u32, CSSPixel>, Point2D<i32, CSSPixel>) {
         let timer_profile_chan = self.global().time_profiler_chan().clone();
-        let (send, recv) = ProfiledIpc::channel::<DeviceIntRect>(timer_profile_chan).unwrap();
+        let (send, recv) =
+            ProfiledIpc::channel::<DeviceIndependentIntRect>(timer_profile_chan).unwrap();
         let _ = self
             .compositor_api
             .sender()
             .send(webrender_traits::CrossProcessCompositorMessage::GetClientWindowRect(send));
-        let rect = recv.recv().unwrap_or_default();
-        let dpr = self.device_pixel_ratio();
+        let rect = recv.recv().unwrap_or_default().to_u32();
         (
-            (rect.size().to_f32() / dpr).to_u32(),
-            (rect.min.to_f32() / dpr).to_i32(),
+            Size2D::new(rect.size().width, rect.size().height),
+            Point2D::new(rect.min.x as i32, rect.min.y as i32),
         )
     }
 

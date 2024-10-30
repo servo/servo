@@ -9,14 +9,15 @@ use std::rc::Rc;
 use std::sync::RwLock;
 
 use euclid::num::Zero;
-use euclid::{Length, Point2D, Rotation3D, Scale, Size2D, UnknownUnit, Vector3D};
+use euclid::{Box2D, Length, Point2D, Rotation3D, Scale, Size2D, UnknownUnit, Vector3D};
 use log::warn;
 use servo::compositing::windowing::{
     AnimationState, EmbedderCoordinates, EmbedderEvent, WindowMethods,
 };
+use servo::config::opts;
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::style_traits::DevicePixel;
-use servo::webrender_api::units::{DeviceIntRect, DeviceIntSize};
+use servo::webrender_api::units::DeviceIntSize;
 use servo::webrender_traits::RenderingContext;
 use surfman::{Connection, Context, Device, SurfaceType};
 
@@ -26,8 +27,10 @@ pub struct Window {
     rendering_context: RenderingContext,
     animation_state: Cell<AnimationState>,
     fullscreen: Cell<bool>,
-    device_pixel_ratio_override: Option<f32>,
-    inner_size: Cell<Size2D<i32, UnknownUnit>>,
+    device_pixel_ratio_override: Option<Scale<f32, DeviceIndependentPixel, DevicePixel>>,
+    inner_size: Cell<DeviceIntSize>,
+    screen_size: Size2D<i32, DeviceIndependentPixel>,
+    window_rect: Box2D<i32, DeviceIndependentPixel>,
     event_queue: RwLock<Vec<EmbedderEvent>>,
 }
 
@@ -42,17 +45,33 @@ impl Window {
         let adapter = connection
             .create_software_adapter()
             .expect("Failed to create adapter");
-        let size = size.to_untyped().to_i32();
-        let surface_type = SurfaceType::Generic { size };
+        let surface_type = SurfaceType::Generic {
+            size: size.to_untyped().to_i32(),
+        };
         let rendering_context = RenderingContext::create(&connection, &adapter, surface_type)
             .expect("Failed to create WR surfman");
+
+        let device_pixel_ratio_override: Option<Scale<f32, DeviceIndependentPixel, DevicePixel>> =
+            device_pixel_ratio_override.map(Scale::new);
+        let hidpi_factor = device_pixel_ratio_override.unwrap_or_else(Scale::identity);
+
+        let size = size.to_i32();
+        let inner_size = Cell::new((size.to_f32() * hidpi_factor).to_i32());
+        let window_rect = Box2D::from_origin_and_size(Point2D::zero(), size);
+
+        let screen_size = opts::get().screen_size_override.map_or_else(
+            || window_rect.size(),
+            |screen_size_override| screen_size_override.to_i32(),
+        );
 
         let window = Window {
             rendering_context,
             animation_state: Cell::new(AnimationState::Idle),
             fullscreen: Cell::new(false),
             device_pixel_ratio_override,
-            inner_size: Cell::new(size.to_i32()),
+            inner_size,
+            screen_size,
+            window_rect,
             event_queue: RwLock::new(Vec::new()),
         };
 
@@ -73,17 +92,15 @@ impl WindowPortsMethods for Window {
     }
 
     fn request_inner_size(&self, size: DeviceIntSize) -> Option<DeviceIntSize> {
-        let (width, height) = size.into();
-
         // Surfman doesn't support zero-sized surfaces.
-        let new_size = DeviceIntSize::new(width.max(1), height.max(1));
-        if self.inner_size.get() == new_size.to_untyped() {
+        let new_size = DeviceIntSize::new(size.width.max(1), size.height.max(1));
+        if self.inner_size.get() == new_size {
             return Some(new_size);
         }
 
         match self.rendering_context.resize(new_size.to_untyped()) {
             Ok(()) => {
-                self.inner_size.set(new_size.to_untyped());
+                self.inner_size.set(new_size);
                 if let Ok(ref mut queue) = self.event_queue.write() {
                     queue.push(EmbedderEvent::WindowResize);
                 }
@@ -103,7 +120,7 @@ impl WindowPortsMethods for Window {
     fn device_pixel_ratio_override(
         &self,
     ) -> Option<Scale<f32, DeviceIndependentPixel, DevicePixel>> {
-        self.device_pixel_ratio_override.map(Scale::new)
+        self.device_pixel_ratio_override
     }
 
     fn page_height(&self) -> f32 {
@@ -155,21 +172,14 @@ impl WindowPortsMethods for Window {
 
 impl WindowMethods for Window {
     fn get_coordinates(&self) -> EmbedderCoordinates {
-        let dpr = self.hidpi_factor();
-        let size = self
-            .rendering_context
-            .context_surface_info()
-            .unwrap_or(None)
-            .map(|info| Size2D::from_untyped(info.size))
-            .unwrap_or(Size2D::new(0, 0));
-        let viewport = DeviceIntRect::from_origin_and_size(Point2D::zero(), size);
+        let inner_size = self.inner_size.get();
         EmbedderCoordinates {
-            viewport,
-            framebuffer: size,
-            window_rect: DeviceIntRect::from_origin_and_size(Point2D::zero(), size),
-            screen_size: size,
-            available_screen_size: size,
-            hidpi_factor: dpr,
+            viewport: Box2D::from_origin_and_size(Point2D::zero(), inner_size),
+            framebuffer: inner_size,
+            window_rect: self.window_rect,
+            screen_size: self.screen_size,
+            available_screen_size: self.screen_size,
+            hidpi_factor: self.hidpi_factor(),
         }
     }
 
