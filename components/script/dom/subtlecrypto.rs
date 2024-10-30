@@ -16,6 +16,7 @@ use js::jsapi::JSObject;
 use js::jsval::ObjectValue;
 use js::rust::MutableHandleObject;
 use js::typedarray::ArrayBufferU8;
+use ring::digest;
 use servo_rand::{RngCore, ServoRng};
 
 use crate::dom::bindings::buffer_source::create_buffer_source;
@@ -31,6 +32,7 @@ use crate::dom::bindings::codegen::UnionTypes::{
     ArrayBufferViewOrArrayBuffer, ArrayBufferViewOrArrayBufferOrJsonWebKey,
 };
 use crate::dom::bindings::error::Error;
+use crate::dom::bindings::import::module::SafeJSContext;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
@@ -53,10 +55,10 @@ const ALG_AES_CBC: &str = "AES-CBC";
 const ALG_AES_CTR: &str = "AES-CTR";
 const ALG_AES_GCM: &str = "AES-GCM";
 const ALG_AES_KW: &str = "AES-KW";
-const ALG_SHA1: &str = "SHA1";
-const ALG_SHA256: &str = "SHA256";
-const ALG_SHA384: &str = "SHA384";
-const ALG_SHA512: &str = "SHA512";
+const ALG_SHA1: &str = "SHA-1";
+const ALG_SHA256: &str = "SHA-256";
+const ALG_SHA384: &str = "SHA-384";
+const ALG_SHA512: &str = "SHA-512";
 const ALG_HMAC: &str = "HMAC";
 const ALG_HKDF: &str = "HKDF";
 const ALG_PBKDF2: &str = "PBKDF2";
@@ -65,6 +67,7 @@ const ALG_RSA_OAEP: &str = "RSA-OAEP";
 const ALG_RSA_PSS: &str = "RSA-PSS";
 const ALG_ECDH: &str = "ECDH";
 const ALG_ECDSA: &str = "ECDSA";
+
 #[allow(dead_code)]
 static SUPPORTED_ALGORITHMS: &[&str] = &[
     ALG_AES_CBC,
@@ -274,6 +277,79 @@ impl SubtleCryptoMethods for SubtleCrypto {
         promise
     }
 
+    /// <https://w3c.github.io/webcrypto/#SubtleCrypto-method-digest>
+    fn Digest(
+        &self,
+        cx: SafeJSContext,
+        algorithm: AlgorithmIdentifier,
+        data: ArrayBufferViewOrArrayBuffer,
+        comp: InRealm,
+        can_gc: CanGc,
+    ) -> Rc<Promise> {
+        // Step 1. Let algorithm be the algorithm parameter passed to the digest() method.
+        // NOTE I think this is a no-op?
+
+        // Step 2. Let data be the result of getting a copy of the bytes held by the
+        // data parameter passed to the digest() method.
+        let data = match data {
+            ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
+            ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
+        };
+
+        // Step 3. Let normalizedAlgorithm be the result of normalizing an algorithm,
+        // with alg set to algorithm and op set to "digest".
+        let promise = Promise::new_in_current_realm(comp, can_gc);
+        let normalized_algorithm = match normalize_algorithm(cx, algorithm, "digest") {
+            Ok(normalized_algorithm) => normalized_algorithm,
+            Err(e) => {
+                // Step 4. If an error occurred, return a Promise rejected with normalizedAlgorithm.
+                promise.reject_error(e);
+                return promise;
+            },
+        };
+
+        // Step 5. Let promise be a new Promise.
+        // NOTE: We did that in preparation of Step 4.
+
+        // Step 6. Return promise and perform the remaining steps in parallel.
+        let (task_source, canceller) = self.task_source_with_canceller();
+        let trusted_promise = TrustedPromise::new(promise.clone());
+        let alg = normalized_algorithm.clone();
+
+        let _ = task_source.queue_with_canceller(
+            task!(generate_key: move || {
+                // Step 7. If the following steps or referenced procedures say to throw an error, reject promise
+                // with the returned error and then terminate the algorithm.
+                let promise = trusted_promise.root();
+
+                // Step 8. Let result be the result of performing the digest operation specified by
+                // normalizedAlgorithm using algorithm, with data as message.
+                let algorithm = match alg {
+                    NormalizedAlgorithm::Sha1 => &digest::SHA1_FOR_LEGACY_USE_ONLY,
+                    NormalizedAlgorithm::Sha256 => &digest::SHA256,
+                    NormalizedAlgorithm::Sha384 => &digest::SHA384,
+                    NormalizedAlgorithm::Sha512 => &digest::SHA512,
+                    _ => {
+                        promise.reject_error(Error::NotSupported);
+                        return;
+                    },
+                };
+                let cx = GlobalScope::get_cx();
+                rooted!(in(*cx) let mut array_buffer_ptr = ptr::null_mut::<JSObject>());
+                let digest = digest::digest(algorithm, &data);
+                create_buffer_source::<ArrayBufferU8>(cx, digest.as_ref(), array_buffer_ptr.handle_mut())
+                    .expect("failed to create buffer source for exported key.");
+
+
+                // Step 9. Resolve promise with result.
+                promise.resolve_native(&*array_buffer_ptr);
+            }),
+            &canceller,
+        );
+
+        promise
+    }
+
     /// <https://w3c.github.io/webcrypto/#SubtleCrypto-method-generateKey>
     fn GenerateKey(
         &self,
@@ -450,19 +526,31 @@ impl SubtleCryptoMethods for SubtleCrypto {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum NormalizedAlgorithm {
     #[allow(dead_code)]
     Algorithm(SubtleAlgorithm),
     AesCbcParams(SubtleAesCbcParams),
     AesCtrParams(SubtleAesCtrParams),
     AesKeyGenParams(SubtleAesKeyGenParams),
+
+    /// <https://w3c.github.io/webcrypto/#sha>
+    Sha1,
+
+    /// <https://w3c.github.io/webcrypto/#sha>
+    Sha256,
+
+    /// <https://w3c.github.io/webcrypto/#sha>
+    Sha384,
+
+    /// <https://w3c.github.io/webcrypto/#sha>
+    Sha512,
 }
 
 // These "subtle" structs are proxies for the codegen'd dicts which don't hold a DOMString
 // so they can be sent safely when running steps in parallel.
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct SubtleAlgorithm {
     #[allow(dead_code)]
     pub name: String,
@@ -476,7 +564,7 @@ impl From<DOMString> for SubtleAlgorithm {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct SubtleAesCbcParams {
     #[allow(dead_code)]
     pub name: String,
@@ -496,7 +584,7 @@ impl From<RootedTraceableBox<AesCbcParams>> for SubtleAesCbcParams {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct SubtleAesCtrParams {
     pub name: String,
     pub counter: Vec<u8>,
@@ -517,7 +605,7 @@ impl From<RootedTraceableBox<AesCtrParams>> for SubtleAesCtrParams {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct SubtleAesKeyGenParams {
     pub name: String,
     pub length: u16,
@@ -578,6 +666,10 @@ fn normalize_algorithm(
                 (ALG_AES_CTR, "importKey") => Ok(NormalizedAlgorithm::Algorithm(SubtleAlgorithm {
                     name: ALG_AES_CTR.to_string(),
                 })),
+                (ALG_SHA1, "digest") => Ok(NormalizedAlgorithm::Sha1),
+                (ALG_SHA256, "digest") => Ok(NormalizedAlgorithm::Sha256),
+                (ALG_SHA384, "digest") => Ok(NormalizedAlgorithm::Sha384),
+                (ALG_SHA512, "digest") => Ok(NormalizedAlgorithm::Sha512),
                 _ => Err(Error::NotSupported),
             }
         },

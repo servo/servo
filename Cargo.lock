@@ -6120,6 +6120,7 @@ dependencies = [
  "range",
  "ref_filter_map",
  "regex",
+ "ring",
  "script_layout_interface",
  "script_traits",
  "selectors",
