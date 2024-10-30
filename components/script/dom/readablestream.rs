@@ -41,7 +41,7 @@ use crate::dom::readablestreamdefaultcontroller::ReadableStreamDefaultController
 use crate::dom::readablestreamdefaultreader::{ReadRequest, ReadableStreamDefaultReader};
 use crate::dom::underlyingsourcecontainer::UnderlyingSourceType;
 use crate::js::conversions::FromJSValConvertible;
-use crate::realms::{enter_realm, InRealm};
+use crate::realms::InRealm;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 /// <https://streams.spec.whatwg.org/#readablestream-state>
@@ -298,21 +298,10 @@ impl ReadableStream {
         }
     }
 
-    /// Native call to
     /// <https://streams.spec.whatwg.org/#acquire-readable-stream-reader>
-    /// TODO: restructure this on related methods so the caller gets a reader?
-    pub fn start_reading(&self) -> Result<(), ()> {
-        if self.is_locked() {
-            return Err(());
-        }
-        let global = self.global();
-        match self.reader {
-            ReaderType::Default(ref reader) => reader.set(Some(
-                &*ReadableStreamDefaultReader::set_up(&*global, self).map_err(|_| ())?,
-            )),
-            _ => unreachable!("Native start reading can only be done on a default reader."),
-        }
-        Ok(())
+    pub fn start_reading(&self) -> Result<DomRoot<ReadableStreamDefaultReader>, ()> {
+        // step 1 & 2 & 3
+        ReadableStreamDefaultReader::set_up(&*self.global(), self).map_err(|_| ())
     }
 
     /// Native call to
