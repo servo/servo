@@ -23,7 +23,6 @@ use servo::keyboard_types::{Key, KeyState, KeyboardEvent};
 use servo::script_traits::{
     MediaSessionActionType, MouseButton, TouchEventType, TouchId, TraversalDirection,
 };
-use servo::servo_url::ServoUrl;
 use servo::style_traits::DevicePixel;
 use servo::webrender_api::units::DeviceIntRect;
 use servo::webrender_api::ScrollLocation;

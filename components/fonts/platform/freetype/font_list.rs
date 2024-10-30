@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::ffi::CString;
+use std::ffi::{CStr, CString};
 use std::ptr;
 
 use base::text::{UnicodeBlock, UnicodeBlockMethod};
@@ -26,7 +26,7 @@ use style::values::computed::{FontStretch, FontStyle, FontWeight};
 use style::Atom;
 use unicode_script::Script;
 
-use super::{c_str_to_string, LocalFontIdentifier};
+use super::LocalFontIdentifier;
 use crate::font::map_platform_values_to_style_values;
 use crate::font_template::{FontTemplate, FontTemplateDescriptor};
 use crate::platform::add_noto_fallback_families;
@@ -288,4 +288,12 @@ fn font_weight_from_fontconfig_pattern(pattern: *mut FcPattern) -> Option<FontWe
 
     let mapped_weight = map_platform_values_to_style_values(&mapping, weight as f64);
     Some(FontWeight::from_float(mapped_weight as f32))
+}
+
+/// Creates a String from the given null-terminated buffer.
+/// Panics if the buffer does not contain UTF-8.
+unsafe fn c_str_to_string(s: *const c_char) -> String {
+    std::str::from_utf8(CStr::from_ptr(s).to_bytes())
+        .unwrap()
+        .to_owned()
 }

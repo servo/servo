@@ -13,7 +13,7 @@ use std::sync::Arc;
 
 use android_logger::{self, Config, FilterBuilder};
 use jni::objects::{GlobalRef, JClass, JObject, JString, JValue, JValueOwned};
-use jni::sys::{jboolean, jfloat, jint, jobject, jstring, JNI_TRUE};
+use jni::sys::{jboolean, jfloat, jint, jobject, JNI_TRUE};
 use jni::{JNIEnv, JavaVM};
 use log::{debug, error, info, warn};
 use simpleservo::{
@@ -59,7 +59,7 @@ where
 
 #[no_mangle]
 pub extern "C" fn Java_org_servo_servoview_JNIServo_version<'local>(
-    mut env: JNIEnv<'local>,
+    env: JNIEnv<'local>,
     _class: JClass<'local>,
 ) -> JString<'local> {
     let v = crate::servo_version();
@@ -708,16 +708,6 @@ fn throw(env: &mut JNIEnv, err: &str) {
             "Failed to throw Java exception: `{}`. Exception was: `{}`",
             e, err
         );
-    }
-}
-
-fn new_string(env: &mut JNIEnv, s: &str) -> Result<jstring, &'static str> {
-    match env.new_string(s) {
-        Ok(s) => Ok(s.into_raw()),
-        Err(_) => {
-            throw(env, "Couldn't create Java string");
-            Err("Couldn't create Java String")
-        },
     }
 }
 

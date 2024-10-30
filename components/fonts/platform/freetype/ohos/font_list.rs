@@ -3,8 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use std::collections::HashMap;
 use std::ffi::OsStr;
-use std::fs::File;
-use std::io::Read;
 use std::os::unix::ffi::OsStrExt;
 use std::path::{Path, PathBuf};
 use std::sync::LazyLock;
@@ -13,7 +11,6 @@ use std::{fs, io};
 use base::text::{UnicodeBlock, UnicodeBlockMethod};
 use log::{debug, error, warn};
 use malloc_size_of_derive::MallocSizeOf;
-use serde::{Deserialize, Serialize};
 use style::values::computed::font::GenericFontFamily;
 use style::values::computed::{
     FontStretch as StyleFontStretch, FontStyle as StyleFontStyle, FontWeight as StyleFontWeight,

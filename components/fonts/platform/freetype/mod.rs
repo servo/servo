@@ -3,25 +3,15 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::convert::TryInto;
-use std::ffi::CStr;
 use std::fs::File;
 use std::path::{Path, PathBuf};
 use std::str;
 
-use libc::c_char;
 use malloc_size_of_derive::MallocSizeOf;
 use memmap2::Mmap;
 use serde::{Deserialize, Serialize};
 use style::Atom;
 use webrender_api::NativeFontHandle;
-
-/// Creates a String from the given null-terminated buffer.
-/// Panics if the buffer does not contain UTF-8.
-unsafe fn c_str_to_string(s: *const c_char) -> String {
-    str::from_utf8(CStr::from_ptr(s).to_bytes())
-        .unwrap()
-        .to_owned()
-}
 
 pub mod font;
 
