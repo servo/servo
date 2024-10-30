@@ -9,10 +9,8 @@ use std::os::raw::c_void;
 use std::rc::Rc;
 
 use getopts::Options;
-use log::info;
 use servo::compositing::windowing::EmbedderEvent;
 use servo::compositing::CompositeTarget;
-use servo::config::prefs::pref_map;
 pub use servo::config::prefs::{add_user_prefs, PrefValue};
 use servo::embedder_traits::resources;
 /// The EventLoopWaker::wake function will be called from any thread.
@@ -51,52 +49,6 @@ pub struct InitOptions {
 pub enum SurfmanIntegration {
     /// Render directly to a provided native widget (see surfman::NativeWidget).
     Widget(*mut c_void),
-    /// Render to an offscreen surface.
-    Surface,
-}
-
-/// Test if a url is valid.
-pub fn is_uri_valid(url: &str) -> bool {
-    info!("load_uri: {}", url);
-    ServoUrl::parse(url).is_ok()
-}
-
-/// Retrieve a snapshot of the current preferences
-pub fn get_prefs() -> HashMap<String, (PrefValue, bool)> {
-    pref_map()
-        .iter()
-        .map(|(key, value)| {
-            let is_default = pref_map().is_default(&key).unwrap();
-            (key, (value, is_default))
-        })
-        .collect()
-}
-
-/// Retrieve a preference.
-pub fn get_pref(key: &str) -> (PrefValue, bool) {
-    if let Ok(is_default) = pref_map().is_default(&key) {
-        (pref_map().get(key), is_default)
-    } else {
-        (PrefValue::Missing, false)
-    }
-}
-
-/// Restore a preference to its default value.
-pub fn reset_pref(key: &str) -> bool {
-    pref_map().reset(key).is_ok()
-}
-
-/// Restore all the preferences to their default values.
-pub fn reset_all_prefs() {
-    pref_map().reset_all();
-}
-
-/// Change the value of a preference.
-pub fn set_pref(key: &str, val: PrefValue) -> Result<(), &'static str> {
-    pref_map()
-        .set(key, val)
-        .map(|_| ())
-        .map_err(|_| "Pref set failed")
 }
 
 /// Initialize Servo. At that point, we need a valid GL context.
@@ -143,10 +95,6 @@ pub fn init(
                 )
             };
             SurfaceType::Widget { native_widget }
-        },
-        SurfmanIntegration::Surface => {
-            let size = init_opts.coordinates.framebuffer.to_untyped();
-            SurfaceType::Generic { size }
         },
     };
     let rendering_context = RenderingContext::create(&connection, &adapter, surface_type)
