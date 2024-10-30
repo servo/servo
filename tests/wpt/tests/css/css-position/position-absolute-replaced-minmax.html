@@ -336,6 +336,7 @@
 
   function testAfterImageLoads(img, test) {
     let asyncTest = async_test(getTestName(img));
+    img.addEventListener("error", asyncTest.unreached_func("Load shouldn't fail"));
     img.addEventListener("load", _ => {
       asyncTest.step(test);
       asyncTest.done();
