@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::LazyCell;
 use std::fmt;
 use std::sync::{Arc, Mutex};
 
@@ -19,7 +20,6 @@ use style::logical_geometry::{Direction, WritingMode};
 use style::properties::ComputedValues;
 use style::servo::url::ComputedUrl;
 use style::values::computed::image::Image as ComputedImage;
-use style::values::generics::length::GenericLengthPercentageOrAuto;
 use style::values::CSSFloat;
 use style::Zero;
 use url::Url;
@@ -241,9 +241,9 @@ impl ReplacedContent {
         }
     }
 
-    fn flow_relative_intrinsic_size(&self, writing_mode: WritingMode) -> LogicalVec2<Option<Au>> {
-        let intrinsic_size = PhysicalSize::new(self.natural_size.width, self.natural_size.height);
-        LogicalVec2::from_physical_size(&intrinsic_size, writing_mode)
+    fn flow_relative_natural_size(&self, writing_mode: WritingMode) -> LogicalVec2<Option<Au>> {
+        let natural_size = PhysicalSize::new(self.natural_size.width, self.natural_size.height);
+        LogicalVec2::from_physical_size(&natural_size, writing_mode)
     }
 
     fn inline_size_over_block_size_intrinsic_ratio(
@@ -280,7 +280,7 @@ impl ReplacedContent {
                 let writing_mode = containing_block_for_children.style.writing_mode;
                 InlineContentSizesResult {
                     sizes: self
-                        .flow_relative_intrinsic_size(writing_mode)
+                        .flow_relative_natural_size(writing_mode)
                         .inline
                         .unwrap_or_else(|| {
                             Self::flow_relative_default_object_size(writing_mode).inline
@@ -491,170 +491,68 @@ impl ReplacedContent {
         min_box_size: LogicalVec2<Au>,
         max_box_size: LogicalVec2<Option<Au>>,
     ) -> LogicalVec2<Au> {
+        let box_size = box_size.map(|size| size.non_auto());
+        let max_box_size = max_box_size.map(|max_size| max_size.unwrap_or(MAX_AU));
         let writing_mode = style.writing_mode;
-        let intrinsic_size = self.flow_relative_intrinsic_size(writing_mode);
-        let default_object_size = || Self::flow_relative_default_object_size(writing_mode);
-        let intrinsic_ratio = self.preferred_aspect_ratio(&containing_block.into(), style);
+        let natural_size = LazyCell::new(|| self.flow_relative_natural_size(writing_mode));
+        let default_object_size =
+            LazyCell::new(|| Self::flow_relative_default_object_size(writing_mode));
+        let ratio = self.preferred_aspect_ratio(&containing_block.into(), style);
 
-        let get_tentative_size = |LogicalVec2 { inline, block }| -> LogicalVec2<Au> {
-            match (inline, block) {
-                (AuOrAuto::LengthPercentage(inline), AuOrAuto::LengthPercentage(block)) => {
-                    LogicalVec2 { inline, block }
-                },
-                (AuOrAuto::LengthPercentage(inline), AuOrAuto::Auto) => {
-                    let block = if let Some(ratio) = intrinsic_ratio {
-                        ratio.compute_dependent_size(Direction::Block, inline)
-                    } else if let Some(block) = intrinsic_size.block {
-                        block
-                    } else {
-                        default_object_size().block
-                    };
-                    LogicalVec2 { inline, block }
-                },
-                (AuOrAuto::Auto, AuOrAuto::LengthPercentage(block)) => {
-                    let inline = if let Some(ratio) = intrinsic_ratio {
-                        ratio.compute_dependent_size(Direction::Inline, block)
-                    } else if let Some(inline) = intrinsic_size.inline {
-                        inline
-                    } else {
-                        default_object_size().inline
-                    };
-                    LogicalVec2 { inline, block }
-                },
-                (AuOrAuto::Auto, AuOrAuto::Auto) => {
-                    let inline_size =
-                        match (intrinsic_size.inline, intrinsic_size.block, intrinsic_ratio) {
-                            (Some(inline), _, _) => inline,
-                            (None, Some(block), Some(ratio)) => {
-                                // “used height” in CSS 2 is always gonna be the intrinsic one,
-                                // since it is available.
-                                ratio.compute_dependent_size(Direction::Inline, block)
-                            },
-                            // FIXME
-                            //
-                            // “If 'height' and 'width' both have computed values of 'auto'
-                            // and the element has an intrinsic ratio but no intrinsic height or width,
-                            // […]”
-                            //
-                            // In this `match` expression this would be an additional arm here:
-                            //
-                            // ```
-                            // (Vec2 { inline: None, block: None }, Some(_)) => {…}
-                            // ```
-                            //
-                            // “[…] then the used value of 'width' is undefined in CSS 2.
-                            // However, it is suggested that, if the containing block's width
-                            // does not itself depend on the replaced element's width,
-                            // then the used value of 'width' is calculated from the constraint
-                            // equation used for block-level, non-replaced elements in normal flow.”
-                            _ => default_object_size().inline,
-                        };
-                    let block_size = if let Some(block) = intrinsic_size.block {
-                        block
-                    } else if let Some(ratio) = intrinsic_ratio {
-                        // “used width” in CSS 2 is what we just computed above
-                        ratio.compute_dependent_size(Direction::Block, inline_size)
-                    } else {
-                        default_object_size().block
-                    };
-                    LogicalVec2 {
-                        inline: inline_size,
-                        block: block_size,
-                    }
-                },
-            }
-        };
-
-        // https://drafts.csswg.org/css2/visudet.html#min-max-widths
-        // “However, for replaced elements with an intrinsic ratio and both
-        //  'width' and 'height' specified as 'auto', the algorithm is as follows”
-        if let (AuOrAuto::Auto, AuOrAuto::Auto, Some(ratio)) =
-            (box_size.inline, box_size.block, intrinsic_ratio)
-        {
-            let tentative_size = get_tentative_size(box_size);
-            let max_box_size = max_box_size.map(|max_size| max_size.unwrap_or(MAX_AU));
-            // This is a simplification of the CSS2 algorithm in a way that properly handles `aspect-ratio`.
-            // We transfer min and max constraints from the other axis, and apply them in addition to
-            // non-transferred min and max constraints. In case of conflict,
-            //  - Non-transferred constraints take precedence over transferred ones.
-            //  - Min constraints take precedence over max ones from the same axis.
-            // <https://drafts.csswg.org/css-sizing-4/#aspect-ratio-size-transfers>
-            // <https://github.com/w3c/csswg-drafts/issues/6071#issuecomment-2243986313>
-            let inline = tentative_size.inline.clamp_between_extremums(
-                ratio
-                    .compute_dependent_size(Direction::Inline, min_box_size.block)
-                    .clamp_between_extremums(min_box_size.inline, Some(max_box_size.inline)),
-                Some(
-                    ratio
-                        .compute_dependent_size(Direction::Inline, max_box_size.block)
-                        .min(max_box_size.inline),
-                ),
-            );
-            let block = tentative_size.block.clamp_between_extremums(
-                ratio
-                    .compute_dependent_size(Direction::Block, min_box_size.inline)
-                    .clamp_between_extremums(min_box_size.block, Some(max_box_size.block)),
-                Some(
-                    ratio
-                        .compute_dependent_size(Direction::Block, max_box_size.inline)
-                        .min(max_box_size.block),
-                ),
-            );
-            return LogicalVec2 { inline, block };
-        }
-
-        // https://drafts.csswg.org/css2/#min-max-widths "The following algorithm describes how the two properties
-        // influence the used value of the width property:
-        //
-        // 1. The tentative used width is calculated (without min-width and max-width) following the rules under
-        //    "Calculating widths and margins" above.
-        // 2. If the tentative used width is greater than max-width, the rules above are applied again, but this time
-        //    using the computed value of max-width as the computed value for width.
-        // 3. If the resulting width is smaller than min-width, the rules above are applied again, but this time using
-        //    the value of min-width as the computed value for width."
-        let mut tentative_size = get_tentative_size(box_size);
-
-        // Create an inline/block size vector from the given clamped inline and block sizes if they are provided,
-        // falling back to the regular box size if they are not
-        let size_from_maybe_clamped =
-            |(clamped_inline, clamped_block): (Option<Au>, Option<Au>)| {
-                let clamped_inline = clamped_inline
-                    .map(GenericLengthPercentageOrAuto::LengthPercentage)
-                    .unwrap_or(box_size.inline);
-                let clamped_block = clamped_block
-                    .map(GenericLengthPercentageOrAuto::LengthPercentage)
-                    .unwrap_or(box_size.block);
-                LogicalVec2 {
-                    inline: clamped_inline,
-                    block: clamped_block,
+        // This is a simplification of the CSS2 algorithm in a way that properly handles `aspect-ratio`.
+        // Each axis can have preferred, min and max sizing constraints, plus constraints transferred
+        // from the other axis if there is an aspect ratio, plus a natural and default size.
+        // In case of conflict, the order of precedence (from highest to lowest) is:
+        // 1. Non-transferred min constraint
+        // 2. Non-transferred max constraint
+        // 3. Non-transferred preferred constraint
+        // 4. Transferred min constraint
+        // 5. Transferred max constraint
+        // 6. Transferred preferred constraint
+        // 7. Natural size
+        // 8. Default object size
+        // <https://drafts.csswg.org/css-sizing-4/#aspect-ratio-size-transfers>
+        // <https://github.com/w3c/csswg-drafts/issues/6071#issuecomment-2243986313>
+        box_size.map_inline_and_block_axes(
+            |inline_size| {
+                let mut min = min_box_size.inline;
+                let mut max = max_box_size.inline;
+                if let Some(ratio) = ratio.filter(|_| inline_size.is_none()) {
+                    min = ratio
+                        .compute_dependent_size(Direction::Inline, min_box_size.block)
+                        .clamp_between_extremums(min, Some(max));
+                    max.min_assign(
+                        ratio.compute_dependent_size(Direction::Inline, max_box_size.block),
+                    );
                 }
-            };
-
-        let clamped_max = (
-            max_box_size
-                .inline
-                .filter(|max_inline_size| tentative_size.inline > *max_inline_size),
-            max_box_size
-                .block
-                .filter(|max_block_size| tentative_size.block > *max_block_size),
-        );
-
-        if clamped_max.0.is_some() || clamped_max.1.is_some() {
-            tentative_size = get_tentative_size(size_from_maybe_clamped(clamped_max));
-        }
-
-        let clamped_min = (
-            Some(min_box_size.inline)
-                .filter(|min_inline_size| tentative_size.inline < *min_inline_size),
-            Some(min_box_size.block)
-                .filter(|min_block_size| tentative_size.block < *min_block_size),
-        );
-
-        if clamped_min.0.is_some() || clamped_min.1.is_some() {
-            tentative_size = get_tentative_size(size_from_maybe_clamped(clamped_min));
-        }
-
-        tentative_size
+                inline_size
+                    .or_else(|| {
+                        Some(ratio?.compute_dependent_size(Direction::Inline, box_size.block?))
+                    })
+                    .or_else(|| natural_size.inline)
+                    .unwrap_or_else(|| default_object_size.inline)
+                    .clamp_between_extremums(min, Some(max))
+            },
+            |block_size| {
+                let mut min = min_box_size.block;
+                let mut max = max_box_size.block;
+                if let Some(ratio) = ratio.filter(|_| block_size.is_none()) {
+                    min = ratio
+                        .compute_dependent_size(Direction::Block, min_box_size.inline)
+                        .clamp_between_extremums(min, Some(max));
+                    max.min_assign(
+                        ratio.compute_dependent_size(Direction::Block, max_box_size.inline),
+                    );
+                }
+                block_size
+                    .or_else(|| {
+                        Some(ratio?.compute_dependent_size(Direction::Block, box_size.inline?))
+                    })
+                    .or_else(|| natural_size.block)
+                    .unwrap_or_else(|| default_object_size.block)
+                    .clamp_between_extremums(min, Some(max))
+            },
+        )
     }
 }
 
