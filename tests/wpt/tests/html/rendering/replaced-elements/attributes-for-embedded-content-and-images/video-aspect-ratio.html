@@ -14,9 +14,14 @@
 <body>
 <video width="250" height="100" id="contained" style="contain: size;"></video>
 <script>
-function assert_ratio(img, expected) {
+function assert_ratio(element, expected, description) {
   let epsilon = 0.001;
-  assert_approx_equals(parseInt(getComputedStyle(img).width, 10) / parseInt(getComputedStyle(img).height, 10), expected, epsilon);
+  assert_approx_equals(
+    parseFloat(getComputedStyle(element).width) / parseFloat(getComputedStyle(element).height),
+    expected,
+    epsilon,
+    description,
+  );
 }
 
 function test_computed_style(width, height, expected) {
@@ -24,49 +29,62 @@ function test_computed_style(width, height, expected) {
 }
 
 promise_test(async function() {
-  {
-    let video = document.getElementById("contained");
-    video.src = getVideoURI('/media/2x2-green');
-    assert_ratio(video, 2.5, "contain:size aspect ratio");
-  }
+  let video = document.getElementById("contained");
+  video.src = getVideoURI('/media/2x2-green');
+  assert_ratio(video, 2.5);
+}, "Aspect ratio for video with contain:size");
 
-  // Create and append a new video and immediately check the ratio.
-  // This is not racy because the spec requires the user agent to queue a task:
-  // https://html.spec.whatwg.org/multipage/media.html#concept-media-load-algorithm
-  {
-    let video = document.createElement("video");
-    video.setAttribute("width", "250");
-    video.setAttribute("height", "100");
-    video.src = getVideoURI('/media/2x2-green');
-    document.body.appendChild(video);
-    assert_ratio(video, 2.5, "aspect ratio for regular video before load");
-    await new Promise(r => video.addEventListener("loadeddata", r, { once: true }));
-    // When loaded this video is square.
-    assert_ratio(video, 1, "aspect ratio for regular video after load");
-  }
+// Create and append a new video and immediately check the ratio.
+// This is not racy because the spec requires the user agent to queue a task:
+// https://html.spec.whatwg.org/multipage/media.html#concept-media-load-algorithm
+promise_test(async function() {
+  let video = document.createElement("video");
+  video.setAttribute("width", "250");
+  video.setAttribute("height", "100");
+  video.src = getVideoURI('/media/2x2-green');
+  document.body.appendChild(video);
+  assert_ratio(video, 2.5, "aspect ratio before load");
+  await new Promise(r => video.addEventListener("loadeddata", r, { once: true }));
+  // When loaded this video is square.
+  assert_ratio(video, 1, "aspect ratio after load");
+}, "Aspect ratio for regular video");
 
-  // Same but with auto width.
-  {
-    let video = document.createElement("video");
-    video.setAttribute("width", "250");
-    video.setAttribute("height", "100");
-    video.style.width = "auto";
-    video.src = getVideoURI('/media/2x2-green');
-    document.body.appendChild(video);
-    assert_ratio(video, 2.5, "aspect ratio for regular video with width: auto before load");
-    await new Promise(r => video.addEventListener("loadeddata", r, { once: true }));
-    assert_ratio(video, 1, "aspect ratio for regular video with width: auto after load");
-  }
+// Same but with auto width.
+promise_test(async function() {
+  let video = document.createElement("video");
+  video.setAttribute("width", "250");
+  video.setAttribute("height", "100");
+  video.style.width = "auto";
+  video.src = getVideoURI('/media/2x2-green');
+  document.body.appendChild(video);
+  assert_ratio(video, 2.5, "aspect ratio before load");
+  await new Promise(r => video.addEventListener("loadeddata", r, { once: true }));
+  assert_ratio(video, 1, "aspect ratio after load");
+}, "Aspect ratio for regular video with width:auto");
 
-  test_computed_style("10", "20", "auto 10 / 20");
-  test_computed_style("0.5", "1.5", "auto 0.5 / 1.5");
-  test_computed_style("0", "1", "auto 0 / 1");
-  test_computed_style("1", "0", "auto 1 / 0");
-  test_computed_style("0", "0", "auto 0 / 0");
-  test_computed_style(null, null, "auto");
-  test_computed_style("10", null, "auto");
-  test_computed_style(null, "20", "auto");
-  test_computed_style("xx", "20", "auto");
-  test_computed_style("10%", "20", "auto");
-});
+// Same but with auto aspect-ratio.
+promise_test(async function() {
+  let video = document.createElement("video");
+  video.setAttribute("width", "250");
+  video.setAttribute("height", "100");
+  video.style.aspectRatio = "auto";
+  video.src = getVideoURI('/media/2x2-green');
+  document.body.appendChild(video);
+  // The aspect ratio is 2 because the default size is 300x150.
+  assert_ratio(video, 2, "aspect ratio before load");
+  await new Promise(r => video.addEventListener("loadeddata", r, { once: true }));
+  // But now we can use the natural ratio from the video source.
+  assert_ratio(video, 1, "aspect ratio after load");
+}, "Aspect ratio for regular video with aspect-ratio:auto");
+
+test_computed_style("10", "20", "auto 10 / 20");
+test_computed_style("0.5", "1.5", "auto 0.5 / 1.5");
+test_computed_style("0", "1", "auto 0 / 1");
+test_computed_style("1", "0", "auto 1 / 0");
+test_computed_style("0", "0", "auto 0 / 0");
+test_computed_style(null, null, "auto");
+test_computed_style("10", null, "auto");
+test_computed_style(null, "20", "auto");
+test_computed_style("xx", "20", "auto");
+test_computed_style("10%", "20", "auto");
 </script>
