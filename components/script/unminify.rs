@@ -96,5 +96,5 @@ pub fn create_output_file(
 
     debug!("Unminified files will be stored in {:?}", path);
 
-    Ok(File::create(path)?)
+    File::create(path)
 }
