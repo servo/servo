@@ -41,7 +41,7 @@ use crate::dom::readablestreamdefaultcontroller::ReadableStreamDefaultController
 use crate::dom::readablestreamdefaultreader::{ReadRequest, ReadableStreamDefaultReader};
 use crate::dom::underlyingsourcecontainer::UnderlyingSourceType;
 use crate::js::conversions::FromJSValConvertible;
-use crate::realms::{enter_realm, InRealm};
+use crate::realms::InRealm;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 /// <https://streams.spec.whatwg.org/#readablestream-state>
@@ -229,24 +229,26 @@ impl ReadableStream {
 
     /// <https://streams.spec.whatwg.org/#readable-stream-error>
     pub fn error(&self, e: SafeHandleValue) {
-        // Set stream.[[state]] to "errored".
+        // step 1
+        assert!(self.is_readable());
+        // step 2
         self.state.set(ReadableStreamState::Errored);
-
-        // Set stream.[[storedError]] to e.
+        // step 3
         {
             let cx = GlobalScope::get_cx();
             rooted!(in(*cx) let object = e.to_object());
             self.stored_error.set(*object);
         }
 
+        // step 4
         match self.reader {
             ReaderType::Default(ref reader) => {
                 let Some(reader) = reader.get() else {
-                    // If reader is undefined, return.
+                    // step 5
                     return;
                 };
 
-                // Perform ! ReadableStreamDefaultReaderErrorReadRequests(reader, e).
+                // steps 6, 7, 8
                 reader.error(e);
             },
             _ => todo!(),
@@ -296,21 +298,10 @@ impl ReadableStream {
         }
     }
 
-    /// Native call to
     /// <https://streams.spec.whatwg.org/#acquire-readable-stream-reader>
-    /// TODO: restructure this on related methods so the caller gets a reader?
-    pub fn start_reading(&self) -> Result<(), ()> {
-        if self.is_locked() {
-            return Err(());
-        }
-        let global = self.global();
-        match self.reader {
-            ReaderType::Default(ref reader) => {
-                reader.set(Some(&*ReadableStreamDefaultReader::new(&*global, self)))
-            },
-            _ => unreachable!("Native start reading can only be done on a default reader."),
-        }
-        Ok(())
+    pub fn start_reading(&self) -> Result<DomRoot<ReadableStreamDefaultReader>, ()> {
+        // step 1 & 2 & 3
+        ReadableStreamDefaultReader::set_up(&*self.global(), self, CanGc::note()).map_err(|_| ())
     }
 
     /// Native call to
@@ -553,16 +544,18 @@ impl ReadableStreamMethods for ReadableStream {
     fn GetReader(
         &self,
         _options: &ReadableStreamGetReaderOptions,
+        can_gc: CanGc,
     ) -> Fallible<ReadableStreamReader> {
         if self.is_locked() {
             return Err(Error::Type("Stream is locked".to_string()));
         }
         match self.reader {
             ReaderType::Default(ref reader) => {
-                reader.set(Some(&*ReadableStreamDefaultReader::new(
+                reader.set(Some(&*ReadableStreamDefaultReader::set_up(
                     &*self.global(),
                     self,
-                )));
+                    can_gc,
+                )?));
                 return Ok(ReadableStreamReader::ReadableStreamDefaultReader(
                     reader.get().unwrap(),
                 ));
