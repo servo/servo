@@ -11,8 +11,8 @@ use aes::cipher::{BlockDecryptMut, BlockEncryptMut, KeyIvInit, StreamCipher};
 use aes::{Aes128, Aes192, Aes256};
 use base64::prelude::*;
 use dom_struct::dom_struct;
-use js::conversions::ConversionResult;
-use js::jsapi::JSObject;
+use js::conversions::{ConversionResult, ToJSValConvertible};
+use js::jsapi::{JSObject, Value};
 use js::jsval::ObjectValue;
 use js::rust::MutableHandleObject;
 use js::typedarray::ArrayBufferU8;
@@ -25,8 +25,8 @@ use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
     CryptoKeyMethods, KeyType, KeyUsage,
 };
 use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{
-    AesCbcParams, AesCtrParams, AesKeyGenParams, Algorithm, AlgorithmIdentifier, JsonWebKey,
-    KeyAlgorithm, KeyFormat, SubtleCryptoMethods,
+    AesCbcParams, AesCtrParams, AesKeyAlgorithm, AesKeyGenParams, Algorithm, AlgorithmIdentifier,
+    JsonWebKey, KeyAlgorithm, KeyFormat, SubtleCryptoMethods,
 };
 use crate::dom::bindings::codegen::UnionTypes::{
     ArrayBufferViewOrArrayBuffer, ArrayBufferViewOrArrayBufferOrJsonWebKey,
@@ -796,6 +796,7 @@ impl SubtleCrypto {
 
     /// <https://w3c.github.io/webcrypto/#aes-cbc-operations>
     /// <https://w3c.github.io/webcrypto/#aes-ctr-operations>
+    #[allow(unsafe_code)]
     fn generate_key_aes(
         &self,
         usages: Vec<KeyUsage>,
@@ -827,25 +828,41 @@ impl SubtleCrypto {
             _ => return Err(Error::NotSupported),
         };
 
-        Ok(CryptoKey::new(
-            &self.global(),
-            KeyType::Secret,
-            extractable,
-            KeyAlgorithm { name },
-            usages,
-            handle,
-        ))
+        let key_algorithm = AesKeyAlgorithm {
+            parent: KeyAlgorithm { name: name.clone() },
+            length: key_gen_params.length,
+        };
+        let cx = GlobalScope::get_cx();
+        let crypto_key = unsafe {
+            rooted!(in(*cx) let mut algorithm: Value);
+            rooted!(in(*cx) let mut algorithm_object = ptr::null_mut::<JSObject>());
+            key_algorithm.to_jsval(*cx, algorithm.handle_mut());
+            algorithm_object.set(algorithm.to_object());
+
+            CryptoKey::new(
+                &self.global(),
+                KeyType::Secret,
+                extractable,
+                name,
+                algorithm_object.handle(),
+                usages,
+                handle,
+            )
+        };
+
+        Ok(crypto_key)
     }
 
     /// <https://w3c.github.io/webcrypto/#aes-cbc-operations>
     /// <https://w3c.github.io/webcrypto/#aes-ctr-operations>
+    #[allow(unsafe_code)]
     fn import_key_aes(
         &self,
         format: KeyFormat,
         data: &[u8],
         extractable: bool,
         usages: Vec<KeyUsage>,
-        alg: &str,
+        alg_name: &str,
     ) -> Result<DomRoot<CryptoKey>, Error> {
         if usages.iter().any(|usage| {
             !matches!(
@@ -865,15 +882,31 @@ impl SubtleCrypto {
             256 => Handle::Aes256(data.to_vec()),
             _ => return Err(Error::Data),
         };
-        let name = DOMString::from(alg);
-        Ok(CryptoKey::new(
-            &self.global(),
-            KeyType::Secret,
-            extractable,
-            KeyAlgorithm { name },
-            usages,
-            handle,
-        ))
+
+        let name = DOMString::from(alg_name);
+        let key_algorithm = AesKeyAlgorithm {
+            parent: KeyAlgorithm { name: name.clone() },
+            length: (data.len() * 8) as u16,
+        };
+        let cx = GlobalScope::get_cx();
+        let crypto_key = unsafe {
+            rooted!(in(*cx) let mut algorithm: Value);
+            rooted!(in(*cx) let mut algorithm_object = ptr::null_mut::<JSObject>());
+            key_algorithm.to_jsval(*cx, algorithm.handle_mut());
+            algorithm_object.set(algorithm.to_object());
+
+            CryptoKey::new(
+                &self.global(),
+                KeyType::Secret,
+                extractable,
+                name,
+                algorithm_object.handle(),
+                usages,
+                handle,
+            )
+        };
+
+        Ok(crypto_key)
     }
 
     /// <https://w3c.github.io/webcrypto/#aes-cbc-operations>
