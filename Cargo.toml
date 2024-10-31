@@ -210,3 +210,6 @@ codegen-units = 1
 #
 # [patch."https://github.com/servo/<repository>"]
 # <crate> = { path = "/path/to/local/checkout" }
+
+[patch."https://github.com/servo/mozjs"]
+mozjs = { git = "https://github.com/sagudev/mozjs", branch = "streams-guard" }
