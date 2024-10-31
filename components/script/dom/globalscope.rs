@@ -646,10 +646,10 @@ impl MessageListener {
 }
 
 /// Callback used to enqueue file chunks to streams as part of FileListener.
-fn stream_handle_incoming(stream: &ReadableStream, bytes: Fallible<Vec<u8>>, _can_gc: CanGc) {
+fn stream_handle_incoming(stream: &ReadableStream, bytes: Fallible<Vec<u8>>, can_gc: CanGc) {
     match bytes {
         Ok(b) => {
-            stream.enqueue_native(b);
+            stream.enqueue_native(b, can_gc);
         },
         Err(e) => {
             stream.error_native(e);
@@ -2036,6 +2036,7 @@ impl GlobalScope {
         let stream = ReadableStream::new_with_external_underlying_source(
             self,
             UnderlyingSourceType::Blob(size),
+            can_gc,
         );
 
         let recv = self.send_msg(file_id);
