@@ -41,7 +41,7 @@ use crate::sizing::{self, ContentSizes, InlineContentSizesResult};
 use crate::style_ext::{
     Clamp, ComputedValuesExt, ContentBoxSizesAndPBMDeprecated, PaddingBorderMargin,
 };
-use crate::{ContainingBlock, IndefiniteContainingBlock};
+use crate::{ConstraintSpace, ContainingBlock, IndefiniteContainingBlock, SizeConstraint};
 
 mod construct;
 pub mod float;
@@ -235,7 +235,7 @@ impl OutsideMarker {
     ) -> Fragment {
         let content_sizes = self.block_container.inline_content_sizes(
             layout_context,
-            &IndefiniteContainingBlock::new_for_writing_mode(self.marker_style.writing_mode),
+            &ConstraintSpace::new_for_style(&self.marker_style),
         );
         let containing_block_for_children = ContainingBlock {
             inline_size: content_sizes.sizes.max_content,
@@ -393,8 +393,8 @@ fn calculate_inline_content_size_for_block_level_boxes(
                     containing_block,
                     &LogicalVec2::zero(),
                     false, /* auto_block_size_stretches_to_containing_block */
-                    |containing_block_for_children| {
-                        contents.inline_content_sizes(layout_context, containing_block_for_children)
+                    |constraint_space| {
+                        contents.inline_content_sizes(layout_context, constraint_space)
                     },
                 );
                 // A block in the same BFC can overlap floats, it's not moved next to them,
@@ -528,16 +528,16 @@ impl BlockContainer {
     pub(super) fn inline_content_sizes(
         &self,
         layout_context: &LayoutContext,
-        containing_block_for_children: &IndefiniteContainingBlock,
+        constraint_space: &ConstraintSpace,
     ) -> InlineContentSizesResult {
         match &self {
             Self::BlockLevelBoxes(boxes) => calculate_inline_content_size_for_block_level_boxes(
                 boxes,
                 layout_context,
-                containing_block_for_children,
+                &constraint_space.into(),
             ),
             Self::InlineFormattingContext(context) => {
-                context.inline_content_sizes(layout_context, containing_block_for_children)
+                context.inline_content_sizes(layout_context, constraint_space)
             },
         }
     }
@@ -2030,39 +2030,33 @@ impl IndependentFormattingContext {
                 (fragments, content_rect, None)
             },
             IndependentFormattingContext::NonReplaced(non_replaced) => {
-                let style = non_replaced.style.clone();
+                let writing_mode = non_replaced.style.writing_mode;
                 let available_inline_size =
                     (containing_block.inline_size - pbm_sums.inline_sum()).max(Au::zero());
                 let available_block_size = containing_block
                     .block_size
                     .non_auto()
                     .map(|block_size| (block_size - pbm_sums.block_sum()).max(Au::zero()));
-                let tentative_block_size = content_box_sizes_and_pbm
+                let preferred_block_size = content_box_sizes_and_pbm
                     .content_box_size
                     .block
+                    .maybe_resolve_extrinsic(available_block_size);
+                let min_block_size = content_box_sizes_and_pbm
+                    .content_min_box_size
+                    .block
                     .maybe_resolve_extrinsic(available_block_size)
-                    .map(|size| {
-                        let min_block_size = content_box_sizes_and_pbm
-                            .content_min_box_size
-                            .block
-                            .maybe_resolve_extrinsic(available_block_size)
-                            .unwrap_or_default();
-                        let max_block_size = content_box_sizes_and_pbm
-                            .content_max_box_size
-                            .block
-                            .maybe_resolve_extrinsic(available_block_size);
-                        size.clamp_between_extremums(min_block_size, max_block_size)
-                    })
-                    .map_or(AuOrAuto::Auto, AuOrAuto::LengthPercentage);
+                    .unwrap_or_default();
+                let max_block_size = content_box_sizes_and_pbm
+                    .content_max_box_size
+                    .block
+                    .maybe_resolve_extrinsic(available_block_size);
+                let tentative_block_size =
+                    SizeConstraint::new(preferred_block_size, min_block_size, max_block_size);
 
                 let mut get_content_size = || {
-                    let containing_block_for_children =
-                        IndefiniteContainingBlock::new_for_writing_mode_and_block_size(
-                            style.writing_mode,
-                            tentative_block_size,
-                        );
+                    let constraint_space = ConstraintSpace::new(tentative_block_size, writing_mode);
                     non_replaced
-                        .inline_content_sizes(layout_context, &containing_block_for_children)
+                        .inline_content_sizes(layout_context, &constraint_space)
                         .sizes
                 };
 
@@ -2092,12 +2086,12 @@ impl IndependentFormattingContext {
 
                 let containing_block_for_children = ContainingBlock {
                     inline_size,
-                    block_size: tentative_block_size,
-                    style: &style,
+                    block_size: tentative_block_size.to_auto_or(),
+                    style: &non_replaced.style,
                 };
                 assert_eq!(
                     container_writing_mode.is_horizontal(),
-                    style.writing_mode.is_horizontal(),
+                    writing_mode.is_horizontal(),
                     "Mixed horizontal and vertical writing modes are not supported yet"
                 );
 
@@ -2126,7 +2120,8 @@ impl IndependentFormattingContext {
                             .block
                             .resolve_non_initial(stretch_size, &mut get_content_size);
                         let block_size = tentative_block_size
-                            .auto_is(|| independent_layout.content_block_size)
+                            .to_definite()
+                            .unwrap_or(independent_layout.content_block_size)
                             .clamp_between_extremums(min_block_size, max_block_size);
                         (inline_size, block_size)
                     },

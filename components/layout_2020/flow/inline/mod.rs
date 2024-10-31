@@ -128,7 +128,7 @@ use crate::geom::{LogicalRect, LogicalVec2, ToLogical};
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
 use crate::sizing::{ContentSizes, InlineContentSizesResult};
 use crate::style_ext::{ComputedValuesExt, PaddingBorderMargin};
-use crate::{ContainingBlock, IndefiniteContainingBlock};
+use crate::{ConstraintSpace, ContainingBlock};
 
 // From gfxFontConstants.h in Firefox.
 static FONT_SUBSCRIPT_OFFSET_RATIO: f32 = 0.20;
@@ -1574,9 +1574,9 @@ impl InlineFormattingContext {
     pub(super) fn inline_content_sizes(
         &self,
         layout_context: &LayoutContext,
-        containing_block_for_children: &IndefiniteContainingBlock,
+        constraint_space: &ConstraintSpace,
     ) -> InlineContentSizesResult {
-        ContentSizesComputation::compute(self, layout_context, containing_block_for_children)
+        ContentSizesComputation::compute(self, layout_context, constraint_space)
     }
 
     pub(super) fn layout(
@@ -2188,7 +2188,7 @@ fn inline_container_needs_strut(
 /// A struct which takes care of computing [`ContentSizes`] for an [`InlineFormattingContext`].
 struct ContentSizesComputation<'layout_data> {
     layout_context: &'layout_data LayoutContext<'layout_data>,
-    containing_block: &'layout_data IndefiniteContainingBlock,
+    constraint_space: &'layout_data ConstraintSpace,
     paragraph: ContentSizes,
     current_line: ContentSizes,
     /// Size for whitespace pending to be added to this line.
@@ -2234,16 +2234,15 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
                 let inline_box = inline_formatting_context.inline_boxes.get(identifier);
                 let inline_box = (*inline_box).borrow();
                 let zero = Au::zero();
+                let writing_mode = self.constraint_space.writing_mode;
                 let padding = inline_box
                     .style
-                    .padding(self.containing_block.writing_mode)
+                    .padding(writing_mode)
                     .percentages_relative_to(zero);
-                let border = inline_box
-                    .style
-                    .border_width(self.containing_block.writing_mode);
+                let border = inline_box.style.border_width(writing_mode);
                 let margin = inline_box
                     .style
-                    .margin(self.containing_block.writing_mode)
+                    .margin(writing_mode)
                     .percentages_relative_to(zero)
                     .auto_is(Au::zero);
 
@@ -2329,7 +2328,7 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
                     depends_on_block_constraints,
                 } = atomic.outer_inline_content_sizes(
                     self.layout_context,
-                    self.containing_block,
+                    &self.constraint_space.into(),
                     &LogicalVec2::zero(),
                     false, /* auto_block_size_stretches_to_containing_block */
                 );
@@ -2384,11 +2383,11 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
     fn compute(
         inline_formatting_context: &InlineFormattingContext,
         layout_context: &'layout_data LayoutContext,
-        containing_block: &'layout_data IndefiniteContainingBlock,
+        constraint_space: &'layout_data ConstraintSpace,
     ) -> InlineContentSizesResult {
         Self {
             layout_context,
-            containing_block,
+            constraint_space,
             paragraph: ContentSizes::zero(),
             current_line: ContentSizes::zero(),
             pending_whitespace: ContentSizes::zero(),

@@ -16,7 +16,6 @@ use style::computed_values::empty_cells::T as EmptyCells;
 use style::computed_values::position::T as Position;
 use style::computed_values::table_layout::T as TableLayoutMode;
 use style::computed_values::visibility::T as Visibility;
-use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
 use style::values::computed::{
     BorderStyle, LengthPercentage as ComputedLengthPercentage, Percentage,
@@ -40,7 +39,7 @@ use crate::positioned::{relative_adjustement, PositioningContext, PositioningCon
 use crate::sizing::{ContentSizes, InlineContentSizesResult};
 use crate::style_ext::{Clamp, ComputedValuesExt, PaddingBorderMargin};
 use crate::table::TableSlotCoordinates;
-use crate::{ContainingBlock, IndefiniteContainingBlock};
+use crate::{ConstraintSpace, ContainingBlock, IndefiniteContainingBlock, WritingMode};
 
 /// A result of a final or speculative layout of a single cell in
 /// the table. Note that this is only done for slots that are not
@@ -301,9 +300,7 @@ impl<'a> TableLayout<'a> {
                             .contents
                             .inline_content_sizes(
                                 layout_context,
-                                &IndefiniteContainingBlock::new_for_writing_mode(
-                                    cell.style.writing_mode,
-                                ),
+                                &ConstraintSpace::new_for_style(&cell.style),
                             )
                             .sizes
                     };
@@ -776,8 +773,13 @@ impl<'a> TableLayout<'a> {
 
     /// Compute CAPMIN: <https://drafts.csswg.org/css-tables/#capmin>
     fn compute_caption_minimum_inline_size(&mut self, layout_context: &LayoutContext) -> Au {
-        let containing_block =
-            IndefiniteContainingBlock::new_for_writing_mode(self.table.style.writing_mode);
+        let containing_block = IndefiniteContainingBlock {
+            size: LogicalVec2 {
+                inline: AuOrAuto::Auto,
+                block: AuOrAuto::Auto,
+            },
+            writing_mode: self.table.style.writing_mode,
+        };
         self.table
             .captions
             .iter()
@@ -2630,9 +2632,9 @@ impl Table {
     pub(crate) fn inline_content_sizes(
         &mut self,
         layout_context: &LayoutContext,
-        containing_block_for_children: &IndefiniteContainingBlock,
+        constraint_space: &ConstraintSpace,
     ) -> InlineContentSizesResult {
-        let writing_mode = containing_block_for_children.writing_mode;
+        let writing_mode = constraint_space.writing_mode;
         let mut layout = TableLayout::new(self);
         let mut table_content_sizes = layout.compute_grid_min_max(layout_context, writing_mode);
 

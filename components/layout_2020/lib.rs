@@ -32,34 +32,44 @@ use geom::AuOrAuto;
 use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
 
-use crate::geom::LogicalVec2;
+use crate::geom::{LogicalVec2, SizeConstraint};
 
-/// A containing block useful for calculating inline content sizes, which may
-/// have inline sizes that depend on block sizes due to aspect ratio.
+/// Represents the set of constraints that we use when computing the min-content
+/// and max-content inline sizes of an element.
+pub(crate) struct ConstraintSpace {
+    pub block_size: SizeConstraint,
+    pub writing_mode: WritingMode,
+}
+
+impl ConstraintSpace {
+    fn new(block_size: SizeConstraint, writing_mode: WritingMode) -> Self {
+        Self {
+            block_size,
+            writing_mode,
+        }
+    }
+
+    fn new_for_style(style: &ComputedValues) -> Self {
+        Self::new(SizeConstraint::default(), style.writing_mode)
+    }
+}
+
+/// A variant of [`ContainingBlock`] that allows an indefinite inline size.
+/// Useful for code that is shared for both layout (where we know the inline size
+/// of the containing block) and intrinsic sizing (where we don't know it).
 pub(crate) struct IndefiniteContainingBlock {
     pub size: LogicalVec2<AuOrAuto>,
     pub writing_mode: WritingMode,
 }
 
-impl IndefiniteContainingBlock {
-    fn new_for_writing_mode(writing_mode: WritingMode) -> Self {
-        Self::new_for_writing_mode_and_block_size(writing_mode, AuOrAuto::Auto)
-    }
-
-    /// Creates an [`IndefiniteContainingBlock`] with the provided style and block size,
-    /// and the inline size is set to auto.
-    /// This is useful when finding the min-content or max-content size of an element,
-    /// since then we ignore its 'inline-size', 'min-inline-size' and 'max-inline-size'.
-    fn new_for_writing_mode_and_block_size(
-        writing_mode: WritingMode,
-        block_size: AuOrAuto,
-    ) -> Self {
+impl From<&ConstraintSpace> for IndefiniteContainingBlock {
+    fn from(constraint_space: &ConstraintSpace) -> Self {
         Self {
             size: LogicalVec2 {
                 inline: AuOrAuto::Auto,
-                block: block_size,
+                block: constraint_space.block_size.to_auto_or(),
             },
-            writing_mode,
+            writing_mode: constraint_space.writing_mode,
         }
     }
 }

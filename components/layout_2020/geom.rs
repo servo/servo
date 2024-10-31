@@ -17,6 +17,7 @@ use style::Zero;
 use style_traits::CSSPixel;
 
 use crate::sizing::ContentSizes;
+use crate::style_ext::Clamp;
 use crate::ContainingBlock;
 
 pub type PhysicalPoint<U> = euclid::Point2D<U, CSSPixel>;
@@ -846,5 +847,47 @@ impl Size<Au> {
             Self::Stretch => stretch_size,
             Self::Numeric(numeric) => Some(*numeric),
         }
+    }
+}
+
+/// Represents the sizing constraint that the preferred, min and max sizing properties
+/// impose on one axis.
+#[derive(Clone, Copy, Debug, PartialEq, Serialize)]
+pub(crate) enum SizeConstraint {
+    /// Represents a definite preferred size, clamped by minimum and maximum sizes (if any).
+    Definite(Au),
+    /// Represents an indefinite preferred size that allows a range of values between
+    /// the first argument (minimum size) and the second one (maximum size).
+    MinMax(Au, Option<Au>),
+}
+
+impl Default for SizeConstraint {
+    #[inline]
+    fn default() -> Self {
+        Self::MinMax(Au::default(), None)
+    }
+}
+
+impl SizeConstraint {
+    #[inline]
+    pub(crate) fn new(preferred_size: Option<Au>, min_size: Au, max_size: Option<Au>) -> Self {
+        preferred_size.map_or_else(
+            || Self::MinMax(min_size, max_size),
+            |size| Self::Definite(size.clamp_between_extremums(min_size, max_size)),
+        )
+    }
+
+    #[inline]
+    pub(crate) fn to_definite(self) -> Option<Au> {
+        match self {
+            Self::Definite(size) => Some(size),
+            _ => None,
+        }
+    }
+
+    #[inline]
+    pub(crate) fn to_auto_or(self) -> AutoOr<Au> {
+        self.to_definite()
+            .map_or(AutoOr::Auto, AutoOr::LengthPercentage)
     }
 }
