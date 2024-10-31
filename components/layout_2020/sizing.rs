@@ -162,7 +162,10 @@ pub(crate) fn outer_inline(
         })
         .map_or(AuOrAuto::Auto, AuOrAuto::LengthPercentage);
         let containing_block_for_children =
-            IndefiniteContainingBlock::new_for_style_and_block_size(style, block_size);
+            IndefiniteContainingBlock::new_for_writing_mode_and_block_size(
+                style.writing_mode,
+                block_size,
+            );
         get_content_size(&containing_block_for_children)
     });
     let resolve_non_initial = |inline_size| {

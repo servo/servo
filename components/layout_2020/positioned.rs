@@ -547,7 +547,10 @@ impl HoistedAbsolutelyPositionedBox {
         // tentative block size.
         let mut inline_axis = inline_axis_solver.solve(Some(|| {
             let containing_block_for_children =
-                IndefiniteContainingBlock::new_for_style_and_block_size(&style, block_axis.size);
+                IndefiniteContainingBlock::new_for_writing_mode_and_block_size(
+                    style.writing_mode,
+                    block_axis.size,
+                );
             context
                 .inline_content_sizes(
                     layout_context,
