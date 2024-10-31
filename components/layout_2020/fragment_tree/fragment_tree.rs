@@ -16,6 +16,7 @@ use super::{ContainingBlockManager, Fragment, Tag};
 use crate::cell::ArcRefCell;
 use crate::display_list::StackingContext;
 use crate::flow::CanvasBackground;
+use crate::fragment_tree::FragmentFlags;
 use crate::geom::PhysicalRect;
 
 #[derive(Serialize)]
@@ -134,13 +135,15 @@ impl FragmentTree {
             }
 
             let rect = match fragment {
-                Fragment::Box(fragment) => {
+                Fragment::Box(fragment) | Fragment::Float(fragment) => {
                     // https://drafts.csswg.org/cssom-view/#dom-element-clienttop
                     // " If the element has no associated CSS layout box or if the
                     //   CSS layout box is inline, return zero." For this check we
                     // also explicitly ignore the list item portion of the display
                     // style.
-                    if fragment.style.get_box().display.is_inline_flow() {
+                    if fragment.style.get_box().display.is_inline_flow() &&
+                        !fragment.base.flags.contains(FragmentFlags::IS_REPLACED)
+                    {
                         return Some(Rect::zero());
                     }
 
