@@ -778,6 +778,9 @@ fn normalize_algorithm(
                 (ALG_AES_CTR, "importKey") => NormalizedAlgorithm::Algorithm(SubtleAlgorithm {
                     name: ALG_AES_CTR.to_string(),
                 }),
+                (ALG_PBKDF2, "importKey") => NormalizedAlgorithm::Algorithm(SubtleAlgorithm {
+                    name: ALG_PBKDF2.to_string(),
+                }),
                 (ALG_SHA1, "digest") => NormalizedAlgorithm::Sha1,
                 (ALG_SHA256, "digest") => NormalizedAlgorithm::Sha256,
                 (ALG_SHA384, "digest") => NormalizedAlgorithm::Sha384,
