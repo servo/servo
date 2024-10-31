@@ -125,7 +125,7 @@ impl Default for HttpState {
 }
 
 /// Step 13 of <https://fetch.spec.whatwg.org/#concept-fetch>.
-pub fn set_default_accept(request: &mut Request) {
+pub(crate) fn set_default_accept(request: &mut Request) {
     if request.headers.contains_key(header::ACCEPT) {
         return;
     }
@@ -330,7 +330,7 @@ pub fn determine_requests_referrer(
     }
 }
 
-pub fn set_request_cookies(
+fn set_request_cookies(
     url: &ServoUrl,
     headers: &mut HeaderMap,
     cookie_jar: &RwLock<CookieStorage>,
@@ -476,7 +476,7 @@ enum BodySink {
 }
 
 impl BodySink {
-    pub fn transmit_bytes(&self, bytes: Vec<u8>) {
+    fn transmit_bytes(&self, bytes: Vec<u8>) {
         match self {
             BodySink::Chunked(ref sender) => {
                 let sender = sender.clone();
@@ -490,7 +490,7 @@ impl BodySink {
         }
     }
 
-    pub fn close(&self) {
+    fn close(&self) {
         match self {
             BodySink::Chunked(_) => { /* no need to close sender */ },
             BodySink::Buffered(ref sender) => {
@@ -2264,7 +2264,7 @@ fn is_no_store_cache(headers: &HeaderMap) -> bool {
 }
 
 /// <https://fetch.spec.whatwg.org/#redirect-status>
-pub fn is_redirect_status(status: StatusCode) -> bool {
+fn is_redirect_status(status: StatusCode) -> bool {
     matches!(
         status,
         StatusCode::MOVED_PERMANENTLY |
@@ -2320,18 +2320,30 @@ fn serialize_request_origin(request: &Request) -> headers::Origin {
     }
 
     // Step 3. Return request’s origin, serialized.
+    serialize_origin(origin)
+}
+
+/// Step 3 of <https://fetch.spec.whatwg.org/#serializing-a-request-origin>.
+pub fn serialize_origin(origin: &ImmutableOrigin) -> headers::Origin {
     match origin {
         ImmutableOrigin::Opaque(_) => headers::Origin::NULL,
         ImmutableOrigin::Tuple(scheme, host, port) => {
+            // Note: This must be kept in sync with `Origin::ascii_serialization()`, which does not
+            // use the port number when a default port is used.
+            let port = match (scheme.as_ref(), port) {
+                ("http" | "ws", 80) | ("https" | "wss", 443) | ("ftp", 21) => None,
+                _ => Some(*port),
+            };
+
             // TODO: Ensure that hyper/servo don't disagree about valid origin headers
-            headers::Origin::try_from_parts(scheme, &host.to_string(), *port)
+            headers::Origin::try_from_parts(scheme, &host.to_string(), port)
                 .unwrap_or(headers::Origin::NULL)
         },
     }
 }
 
 /// <https://fetch.spec.whatwg.org/#append-a-request-origin-header>
-pub fn append_a_request_origin_header(request: &mut Request) {
+fn append_a_request_origin_header(request: &mut Request) {
     // Step 1. Assert: request’s origin is not "client".
     let Origin::Origin(request_origin) = &request.origin else {
         panic!("origin cannot be \"client\" at this point in time");
