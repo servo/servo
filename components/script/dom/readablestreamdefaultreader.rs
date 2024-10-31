@@ -94,8 +94,8 @@ impl ReadableStreamDefaultReader {
     pub fn Constructor(
         global: &GlobalScope,
         _proto: Option<SafeHandleObject>,
-        stream: DomRoot<ReadableStream>,
         can_gc: CanGc,
+        stream: DomRoot<ReadableStream>,
     ) -> Fallible<DomRoot<Self>> {
         // step 1
         Self::set_up(global, &stream, can_gc)
@@ -324,7 +324,7 @@ impl ReadableStreamDefaultReaderMethods for ReadableStreamDefaultReader {
         can_gc: CanGc,
         stream: DomRoot<ReadableStream>,
     ) -> Fallible<DomRoot<Self>> {
-        ReadableStreamDefaultReader::Constructor(global, proto, stream, can_gc)
+        ReadableStreamDefaultReader::Constructor(global, proto, can_gc, stream)
     }
 
     /// <https://streams.spec.whatwg.org/#default-reader-read>

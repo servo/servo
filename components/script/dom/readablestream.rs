@@ -547,6 +547,7 @@ impl ReadableStreamMethods for ReadableStream {
     fn GetReader(
         &self,
         _options: &ReadableStreamGetReaderOptions,
+        can_gc: CanGc,
     ) -> Fallible<ReadableStreamReader> {
         if self.is_locked() {
             return Err(Error::Type("Stream is locked".to_string()));
@@ -556,7 +557,7 @@ impl ReadableStreamMethods for ReadableStream {
                 reader.set(Some(&*ReadableStreamDefaultReader::set_up(
                     &*self.global(),
                     self,
-                    CanGc::note(),
+                    can_gc,
                 )?));
                 return Ok(ReadableStreamReader::ReadableStreamDefaultReader(
                     reader.get().unwrap(),
