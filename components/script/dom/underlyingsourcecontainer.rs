@@ -72,6 +72,7 @@ impl UnderlyingSourceContainer {
     pub fn new(
         global: &GlobalScope,
         underlying_source_type: UnderlyingSourceType,
+        can_gc: CanGc,
     ) -> DomRoot<UnderlyingSourceContainer> {
         // TODO: setting the underlying source dict as the prototype of the
         // `UnderlyingSourceContainer`, as it is later used as the "this" in Call_.
@@ -82,7 +83,7 @@ impl UnderlyingSourceContainer {
             )),
             global,
             None,
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -115,7 +116,11 @@ impl UnderlyingSourceContainer {
     /// see "Let startPromise be a promise resolved with startResult."
     /// at <https://streams.spec.whatwg.org/#set-up-readable-stream-default-controller>
     #[allow(unsafe_code)]
-    pub fn call_start_algorithm(&self, controller: Controller) -> Option<Rc<Promise>> {
+    pub fn call_start_algorithm(
+        &self,
+        controller: Controller,
+        can_gc: CanGc,
+    ) -> Option<Rc<Promise>> {
         if let UnderlyingSourceType::Js(source) = &self.underlying_source_type {
             if let Some(start) = &source.start {
                 let cx = GlobalScope::get_cx();
@@ -139,7 +144,7 @@ impl UnderlyingSourceContainer {
                     promise
                 } else {
                     let global = self.global();
-                    let promise = Promise::new(&*global, CanGc::note());
+                    let promise = Promise::new(&*global, can_gc);
                     promise.resolve_native(&result);
                     promise
                 };
