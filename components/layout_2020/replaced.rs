@@ -415,11 +415,20 @@ impl ReplacedContent {
         containing_block: &IndefiniteContainingBlock,
         style: &ComputedValues,
     ) -> Option<AspectRatio> {
-        style.preferred_aspect_ratio(
-            self.inline_size_over_block_size_intrinsic_ratio(style),
-            containing_block.try_into().ok().as_ref(),
-            containing_block.style.writing_mode,
-        )
+        style
+            .preferred_aspect_ratio(
+                self.inline_size_over_block_size_intrinsic_ratio(style),
+                containing_block.try_into().ok().as_ref(),
+                containing_block.style.writing_mode,
+            )
+            .or_else(|| {
+                matches!(self.kind, ReplacedContentKind::Video(_)).then(|| {
+                    let size = Self::default_object_size();
+                    AspectRatio::from_content_ratio(
+                        size.width.to_f32_px() / size.height.to_f32_px(),
+                    )
+                })
+            })
     }
 
     /// <https://drafts.csswg.org/css2/visudet.html#inline-replaced-width>
@@ -475,16 +484,7 @@ impl ReplacedContent {
     ) -> LogicalVec2<Au> {
         let mode = style.writing_mode;
         let intrinsic_size = self.flow_relative_intrinsic_size(style);
-        let intrinsic_ratio = self
-            .preferred_aspect_ratio(&containing_block.into(), style)
-            .or_else(|| {
-                matches!(self.kind, ReplacedContentKind::Video(_)).then(|| {
-                    let size = Self::default_object_size();
-                    AspectRatio::from_content_ratio(
-                        size.width.to_f32_px() / size.height.to_f32_px(),
-                    )
-                })
-            });
+        let intrinsic_ratio = self.preferred_aspect_ratio(&containing_block.into(), style);
 
         let default_object_size =
             || LogicalVec2::from_physical_size(&Self::default_object_size(), mode);
