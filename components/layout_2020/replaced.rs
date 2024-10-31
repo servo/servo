@@ -6,7 +6,7 @@ use std::cell::LazyCell;
 use std::fmt;
 use std::sync::{Arc, Mutex};
 
-use app_units::{Au, MAX_AU};
+use app_units::Au;
 use base::id::{BrowsingContextId, PipelineId};
 use canvas_traits::canvas::{CanvasId, CanvasMsg, FromLayoutMsg};
 use data_url::DataUrl;
@@ -28,9 +28,9 @@ use webrender_api::ImageKey;
 use crate::context::LayoutContext;
 use crate::dom::NodeExt;
 use crate::fragment_tree::{BaseFragmentInfo, Fragment, IFrameFragment, ImageFragment};
-use crate::geom::{LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSize};
+use crate::geom::{LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSize, Size};
 use crate::sizing::InlineContentSizesResult;
-use crate::style_ext::{AspectRatio, Clamp, ComputedValuesExt, ContentBoxSizesAndPBMDeprecated};
+use crate::style_ext::{AspectRatio, Clamp, ComputedValuesExt, ContentBoxSizesAndPBM};
 use crate::{AuOrAuto, ContainingBlock, IndefiniteContainingBlock};
 
 #[derive(Debug, Serialize)]
@@ -445,16 +445,16 @@ impl ReplacedContent {
         &self,
         containing_block: &ContainingBlock,
         style: &ComputedValues,
-        content_box_sizes_and_pbm: &ContentBoxSizesAndPBMDeprecated,
+        content_box_sizes_and_pbm: &ContentBoxSizesAndPBM,
     ) -> LogicalVec2<Au> {
+        let pbm = &content_box_sizes_and_pbm.pbm;
         self.used_size_as_if_inline_element_from_content_box_sizes(
             containing_block,
             style,
             content_box_sizes_and_pbm.content_box_size,
-            content_box_sizes_and_pbm
-                .content_min_box_size
-                .auto_is(Au::zero),
+            content_box_sizes_and_pbm.content_min_box_size,
             content_box_sizes_and_pbm.content_max_box_size,
+            pbm.padding_border_sums + pbm.margin.auto_is(Au::zero).sum(),
         )
     }
 
@@ -477,76 +477,138 @@ impl ReplacedContent {
     ///
     /// Also used in other cases, for example
     /// <https://drafts.csswg.org/css2/visudet.html#block-replaced-width>
+    ///
+    /// The logic differs from CSS2 in order to properly handle `aspect-ratio` and keyword sizes.
+    /// Each axis can have preferred, min and max sizing constraints, plus constraints transferred
+    /// from the other axis if there is an aspect ratio, plus a natural and default size.
+    /// In case of conflict, the order of precedence (from highest to lowest) is:
+    /// 1. Non-transferred min constraint
+    /// 2. Non-transferred max constraint
+    /// 3. Non-transferred preferred constraint
+    /// 4. Transferred min constraint
+    /// 5. Transferred max constraint
+    /// 6. Transferred preferred constraint
+    /// 7. Natural size
+    /// 8. Default object size
+    ///
+    /// <https://drafts.csswg.org/css-sizing-4/#aspect-ratio-size-transfers>
+    /// <https://github.com/w3c/csswg-drafts/issues/6071#issuecomment-2243986313>
     pub(crate) fn used_size_as_if_inline_element_from_content_box_sizes(
         &self,
         containing_block: &ContainingBlock,
         style: &ComputedValues,
-        box_size: LogicalVec2<AuOrAuto>,
-        min_box_size: LogicalVec2<Au>,
-        max_box_size: LogicalVec2<Option<Au>>,
+        box_size: LogicalVec2<Size<Au>>,
+        min_box_size: LogicalVec2<Size<Au>>,
+        max_box_size: LogicalVec2<Size<Au>>,
+        pbm_sums: LogicalVec2<Au>,
     ) -> LogicalVec2<Au> {
-        let box_size = box_size.map(|size| size.non_auto());
-        let max_box_size = max_box_size.map(|max_size| max_size.unwrap_or(MAX_AU));
+        // <https://drafts.csswg.org/css-sizing-4/#preferred-aspect-ratio>
+        let ratio = self.preferred_aspect_ratio(&containing_block.into(), style);
+
+        // <https://drafts.csswg.org/css-images-3/#natural-dimensions>
+        // <https://drafts.csswg.org/css-images-3/#default-object-size>
         let writing_mode = style.writing_mode;
         let natural_size = LazyCell::new(|| self.flow_relative_natural_size(writing_mode));
         let default_object_size =
             LazyCell::new(|| Self::flow_relative_default_object_size(writing_mode));
-        let ratio = self.preferred_aspect_ratio(&containing_block.into(), style);
+        let get_inline_fallback_size = || {
+            natural_size
+                .inline
+                .unwrap_or_else(|| default_object_size.inline)
+        };
+        let get_block_fallback_size = || {
+            natural_size
+                .block
+                .unwrap_or_else(|| default_object_size.block)
+        };
 
-        // This is a simplification of the CSS2 algorithm in a way that properly handles `aspect-ratio`.
-        // Each axis can have preferred, min and max sizing constraints, plus constraints transferred
-        // from the other axis if there is an aspect ratio, plus a natural and default size.
-        // In case of conflict, the order of precedence (from highest to lowest) is:
-        // 1. Non-transferred min constraint
-        // 2. Non-transferred max constraint
-        // 3. Non-transferred preferred constraint
-        // 4. Transferred min constraint
-        // 5. Transferred max constraint
-        // 6. Transferred preferred constraint
-        // 7. Natural size
-        // 8. Default object size
-        // <https://drafts.csswg.org/css-sizing-4/#aspect-ratio-size-transfers>
-        // <https://github.com/w3c/csswg-drafts/issues/6071#issuecomment-2243986313>
-        box_size.map_inline_and_block_axes(
-            |inline_size| {
-                let mut min = min_box_size.inline;
-                let mut max = max_box_size.inline;
-                if let Some(ratio) = ratio.filter(|_| inline_size.is_none()) {
-                    min = ratio
-                        .compute_dependent_size(Direction::Inline, min_box_size.block)
-                        .clamp_between_extremums(min, Some(max));
-                    max.min_assign(
-                        ratio.compute_dependent_size(Direction::Inline, max_box_size.block),
-                    );
-                }
-                inline_size
-                    .or_else(|| {
-                        Some(ratio?.compute_dependent_size(Direction::Inline, box_size.block?))
-                    })
-                    .or_else(|| natural_size.inline)
-                    .unwrap_or_else(|| default_object_size.inline)
-                    .clamp_between_extremums(min, Some(max))
-            },
-            |block_size| {
-                let mut min = min_box_size.block;
-                let mut max = max_box_size.block;
-                if let Some(ratio) = ratio.filter(|_| block_size.is_none()) {
-                    min = ratio
-                        .compute_dependent_size(Direction::Block, min_box_size.inline)
-                        .clamp_between_extremums(min, Some(max));
-                    max.min_assign(
-                        ratio.compute_dependent_size(Direction::Block, max_box_size.inline),
-                    );
-                }
-                block_size
-                    .or_else(|| {
-                        Some(ratio?.compute_dependent_size(Direction::Block, box_size.inline?))
-                    })
-                    .or_else(|| natural_size.block)
-                    .unwrap_or_else(|| default_object_size.block)
-                    .clamp_between_extremums(min, Some(max))
-            },
-        )
+        // <https://drafts.csswg.org/css-sizing-4/#stretch-fit-sizing>
+        let inline_stretch_size = Au::zero().max(containing_block.inline_size - pbm_sums.inline);
+        let block_stretch_size = containing_block
+            .block_size
+            .non_auto()
+            .map(|block_size| Au::zero().max(block_size - pbm_sums.block));
+
+        // <https://drafts.csswg.org/css-sizing-3/#intrinsic-sizes>
+        // FIXME: Use ReplacedContent::inline_content_sizes() once it's fixed to correctly handle
+        // min and max constraints.
+        let inline_content_size = LazyCell::new(|| {
+            let Some(ratio) = ratio else {
+                return get_inline_fallback_size();
+            };
+            let block_stretch_size = block_stretch_size.unwrap_or_else(get_block_fallback_size);
+            let transfer = |size| ratio.compute_dependent_size(Direction::Inline, size);
+            let min = transfer(
+                min_box_size
+                    .block
+                    .maybe_resolve_extrinsic(Some(block_stretch_size))
+                    .unwrap_or_default(),
+            );
+            let max = max_box_size
+                .block
+                .maybe_resolve_extrinsic(Some(block_stretch_size))
+                .map(transfer);
+            box_size
+                .block
+                .maybe_resolve_extrinsic(Some(block_stretch_size))
+                .map_or_else(get_inline_fallback_size, transfer)
+                .clamp_between_extremums(min, max)
+        });
+        let block_content_size = LazyCell::new(|| {
+            let Some(ratio) = ratio else {
+                return get_block_fallback_size();
+            };
+            let mut get_inline_content_size = || (*inline_content_size).into();
+            let transfer = |size| ratio.compute_dependent_size(Direction::Block, size);
+            let min = transfer(
+                min_box_size
+                    .inline
+                    .resolve_non_initial(inline_stretch_size, &mut get_inline_content_size)
+                    .unwrap_or_default(),
+            );
+            let max = max_box_size
+                .inline
+                .resolve_non_initial(inline_stretch_size, &mut get_inline_content_size)
+                .map(transfer);
+            box_size
+                .inline
+                .maybe_resolve_extrinsic(Some(inline_stretch_size))
+                .map_or_else(get_block_fallback_size, transfer)
+                .clamp_between_extremums(min, max)
+        });
+        let mut get_inline_content_size = || (*inline_content_size).into();
+        let mut get_block_content_size = || (*block_content_size).into();
+        let block_stretch_size = block_stretch_size.unwrap_or_else(|| *block_content_size);
+
+        // <https://drafts.csswg.org/css-sizing-3/#sizing-properties>
+        let preferred_inline = box_size.inline.resolve(
+            Size::FitContent,
+            inline_stretch_size,
+            &mut get_inline_content_size,
+        );
+        let preferred_block = box_size.block.resolve(
+            Size::FitContent,
+            block_stretch_size,
+            &mut get_block_content_size,
+        );
+        let min_inline = min_box_size
+            .inline
+            .resolve_non_initial(inline_stretch_size, &mut get_inline_content_size)
+            .unwrap_or_default();
+        let min_block = min_box_size
+            .block
+            .resolve_non_initial(block_stretch_size, &mut get_block_content_size)
+            .unwrap_or_default();
+        let max_inline = max_box_size
+            .inline
+            .resolve_non_initial(inline_stretch_size, &mut get_inline_content_size);
+        let max_block = max_box_size
+            .block
+            .resolve_non_initial(block_stretch_size, &mut get_block_content_size);
+        LogicalVec2 {
+            inline: preferred_inline.clamp_between_extremums(min_inline, max_inline),
+            block: preferred_block.clamp_between_extremums(min_block, max_block),
+        }
     }
 }
 
