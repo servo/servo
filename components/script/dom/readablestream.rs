@@ -149,8 +149,9 @@ impl ReadableStream {
         let stream = ReadableStream::new_with_external_underlying_source(
             global,
             UnderlyingSourceType::Memory(bytes.len()),
+            can_gc,
         );
-        stream.enqueue_native(bytes);
+        stream.enqueue_native(bytes, can_gc);
         stream.close();
         stream
     }
@@ -161,6 +162,7 @@ impl ReadableStream {
     pub fn new_with_external_underlying_source(
         global: &GlobalScope,
         source: UnderlyingSourceType,
+        can_gc: CanGc,
     ) -> DomRoot<ReadableStream> {
         assert!(source.is_native());
         let controller = ReadableStreamDefaultController::new(
@@ -168,6 +170,7 @@ impl ReadableStream {
             source,
             1.0,
             extract_size_algorithm(&QueuingStrategy::empty()),
+            can_gc,
         );
         let stream = ReadableStream::new(
             global,
@@ -218,9 +221,9 @@ impl ReadableStream {
     }
     /// Endpoint to enqueue chunks directly from Rust.
     /// Note: in other use cases this call happens via the controller.
-    pub fn enqueue_native(&self, bytes: Vec<u8>) {
+    pub fn enqueue_native(&self, bytes: Vec<u8>, can_gc: CanGc) {
         match self.controller {
-            ControllerType::Default(ref controller) => controller.enqueue_native(bytes),
+            ControllerType::Default(ref controller) => controller.enqueue_native(bytes, can_gc),
             _ => unreachable!(
                 "Enqueueing chunk to a stream from Rust on other than default controller"
             ),
@@ -306,13 +309,13 @@ impl ReadableStream {
 
     /// Native call to
     /// <https://streams.spec.whatwg.org/#readable-stream-default-reader-read>
-    pub fn read_a_chunk(&self) -> Rc<Promise> {
+    pub fn read_a_chunk(&self, can_gc: CanGc) -> Rc<Promise> {
         match self.reader {
             ReaderType::Default(ref reader) => {
                 let Some(reader) = reader.get() else {
                     panic!("Attempt to read stream chunk without having first acquired a reader.");
                 };
-                reader.Read()
+                reader.Read(can_gc)
             },
             _ => unreachable!("Native reading of a chunk can only be done with a default reader."),
         }
@@ -472,7 +475,7 @@ impl ReadableStreamMethods for ReadableStream {
         cx: SafeJSContext,
         global: &GlobalScope,
         _proto: Option<SafeHandleObject>,
-        _can_gc: CanGc,
+        can_gc: CanGc,
         underlying_source: Option<*mut JSObject>,
         strategy: &QueuingStrategy,
     ) -> Fallible<DomRoot<Self>> {
@@ -511,6 +514,7 @@ impl ReadableStreamMethods for ReadableStream {
                 UnderlyingSourceType::Js(underlying_source_dict),
                 high_water_mark,
                 size_algorithm,
+                can_gc,
             )
         };
 
@@ -529,8 +533,8 @@ impl ReadableStreamMethods for ReadableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#rs-cancel>
-    fn Cancel(&self, _cx: SafeJSContext, reason: SafeHandleValue) -> Rc<Promise> {
-        let promise = Promise::new(&self.reflector_.global(), CanGc::note());
+    fn Cancel(&self, _cx: SafeJSContext, reason: SafeHandleValue, can_gc: CanGc) -> Rc<Promise> {
+        let promise = Promise::new(&self.reflector_.global(), can_gc);
         if !self.is_locked() {
             // TODO: reject with a TypeError exception.
             promise.reject_native(&());

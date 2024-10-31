@@ -42,7 +42,7 @@ struct PullAlgorithmFulfillmentHandler {
 impl Callback for PullAlgorithmFulfillmentHandler {
     /// Continuation of <https://streams.spec.whatwg.org/#readable-stream-default-controller-call-pull-if-needed>
     /// Upon fulfillment of pullPromise
-    fn callback(&self, _cx: JSContext, _v: HandleValue, _realm: InRealm, _can_gc: CanGc) {
+    fn callback(&self, _cx: JSContext, _v: HandleValue, _realm: InRealm, can_gc: CanGc) {
         let controller = self.controller.root();
 
         // Set controller.[[pulling]] to false.
@@ -54,7 +54,7 @@ impl Callback for PullAlgorithmFulfillmentHandler {
             controller.pull_again.set(false);
 
             // Perform ! ReadableStreamDefaultControllerCallPullIfNeeded(controller).
-            controller.call_pull_if_needed();
+            controller.call_pull_if_needed(can_gc);
         }
     }
 }
@@ -91,14 +91,14 @@ struct StartAlgorithmFulfillmentHandler {
 impl Callback for StartAlgorithmFulfillmentHandler {
     /// Continuation of <https://streams.spec.whatwg.org/#set-up-readable-stream-default-controller>
     /// Upon fulfillment of startPromise,
-    fn callback(&self, _cx: JSContext, _v: HandleValue, _realm: InRealm, _can_gc: CanGc) {
+    fn callback(&self, _cx: JSContext, _v: HandleValue, _realm: InRealm, can_gc: CanGc) {
         let controller = self.controller.root();
 
         // Set controller.[[started]] to true.
         controller.started.set(true);
 
         // Perform ! ReadableStreamDefaultControllerCallPullIfNeeded(controller).
-        controller.call_pull_if_needed();
+        controller.call_pull_if_needed(can_gc);
     }
 }
 
@@ -250,6 +250,7 @@ impl ReadableStreamDefaultController {
         underlying_source_type: UnderlyingSourceType,
         strategy_hwm: f64,
         strategy_size: Rc<QueuingStrategySize>,
+        can_gc: CanGc,
     ) -> ReadableStreamDefaultController {
         ReadableStreamDefaultController {
             reflector_: Reflector::new(),
@@ -258,6 +259,7 @@ impl ReadableStreamDefaultController {
             underlying_source: MutNullableDom::new(Some(&*UnderlyingSourceContainer::new(
                 global,
                 underlying_source_type,
+                can_gc,
             ))),
             strategy_hwm,
             strategy_size: RefCell::new(Some(strategy_size)),
@@ -272,6 +274,7 @@ impl ReadableStreamDefaultController {
         underlying_source: UnderlyingSourceType,
         strategy_hwm: f64,
         strategy_size: Rc<QueuingStrategySize>,
+        can_gc: CanGc,
     ) -> DomRoot<ReadableStreamDefaultController> {
         let rooted_default_controller = reflect_dom_object(
             Box::new(ReadableStreamDefaultController::new_inherited(
@@ -279,6 +282,7 @@ impl ReadableStreamDefaultController {
                 underlying_source,
                 strategy_hwm,
                 strategy_size,
+                can_gc,
             )),
             global,
         );
@@ -300,11 +304,12 @@ impl ReadableStreamDefaultController {
             let comp = InRealm::Entered(&realm);
             if let Some(promise) = underlying_source.call_start_algorithm(
                 Controller::ReadableStreamDefaultController(rooted_default_controller.clone()),
+                can_gc,
             ) {
-                promise.append_native_handler(&handler, comp, CanGc::note());
+                promise.append_native_handler(&handler, comp, can_gc);
             } else {
-                let promise = Promise::new(&*global, CanGc::note());
-                promise.append_native_handler(&handler, comp, CanGc::note());
+                let promise = Promise::new(&*global, can_gc);
+                promise.append_native_handler(&handler, comp, can_gc);
                 promise.resolve_native(&());
             }
         };
@@ -357,7 +362,7 @@ impl ReadableStreamDefaultController {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-call-pull-if-needed>
-    fn call_pull_if_needed(&self) {
+    fn call_pull_if_needed(&self, can_gc: CanGc) {
         if !self.should_pull() {
             return;
         }
@@ -396,10 +401,10 @@ impl ReadableStreamDefaultController {
         let realm = enter_realm(&*global);
         let comp = InRealm::Entered(&realm);
         if let Some(promise) = underlying_source.call_pull_algorithm(controller) {
-            promise.append_native_handler(&handler, comp, CanGc::note());
+            promise.append_native_handler(&handler, comp, can_gc);
         } else {
-            let promise = Promise::new(&*global, CanGc::note());
-            promise.append_native_handler(&handler, comp, CanGc::note());
+            let promise = Promise::new(&*global, can_gc);
+            promise.append_native_handler(&handler, comp, can_gc);
             promise.resolve_native(&());
         }
     }
@@ -423,7 +428,7 @@ impl ReadableStreamDefaultController {
                     .close();
             }
 
-            self.call_pull_if_needed();
+            self.call_pull_if_needed(CanGc::note());
 
             let cx = GlobalScope::get_cx();
             rooted!(in(*cx) let mut rval = UndefinedValue());
@@ -446,7 +451,7 @@ impl ReadableStreamDefaultController {
             .expect("Controller must have a stream when pull steps are called into.")
             .add_read_request(read_request);
 
-        self.call_pull_if_needed();
+        self.call_pull_if_needed(CanGc::note());
     }
 
     /// <https://streams.spec.whatwg.org/#ref-for-abstract-opdef-readablestreamcontroller-releasesteps>
@@ -457,7 +462,12 @@ impl ReadableStreamDefaultController {
 
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-enqueue>
     #[allow(unsafe_code)]
-    pub fn enqueue(&self, cx: SafeJSContext, chunk: SafeHandleValue) -> Result<(), Error> {
+    pub fn enqueue(
+        &self,
+        cx: SafeJSContext,
+        chunk: SafeHandleValue,
+        can_gc: CanGc,
+    ) -> Result<(), Error> {
         // If ! ReadableStreamDefaultControllerCanCloseOrEnqueue(controller) is false, return.
         if !self.can_close_or_enqueue() {
             return Ok(());
@@ -536,7 +546,7 @@ impl ReadableStreamDefaultController {
         }
 
         // Perform ! ReadableStreamDefaultControllerCallPullIfNeeded(controller).
-        self.call_pull_if_needed();
+        self.call_pull_if_needed(can_gc);
 
         Ok(())
     }
@@ -544,11 +554,11 @@ impl ReadableStreamDefaultController {
     /// Native call to
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-enqueue>
     #[allow(unsafe_code)]
-    pub fn enqueue_native(&self, chunk: Vec<u8>) {
+    pub fn enqueue_native(&self, chunk: Vec<u8>, can_gc: CanGc) {
         let cx = GlobalScope::get_cx();
         rooted!(in(*cx) let mut rval = UndefinedValue());
         unsafe { chunk.to_jsval(*cx, rval.handle_mut()) };
-        self.enqueue(cx, rval.handle());
+        self.enqueue(cx, rval.handle(), can_gc);
     }
 
     /// Does the stream have all data in memory?
@@ -678,14 +688,14 @@ impl ReadableStreamDefaultControllerMethods for ReadableStreamDefaultController 
     }
 
     /// <https://streams.spec.whatwg.org/#rs-default-controller-enqueue>
-    fn Enqueue(&self, cx: SafeJSContext, chunk: SafeHandleValue) -> Fallible<()> {
+    fn Enqueue(&self, cx: SafeJSContext, chunk: SafeHandleValue, can_gc: CanGc) -> Fallible<()> {
         // If ! ReadableStreamDefaultControllerCanCloseOrEnqueue(this) is false, throw a TypeError exception.
         if !self.can_close_or_enqueue() {
             return Err(Error::Type("Stream cannot be enqueued to.".to_string()));
         }
 
         // Perform ? ReadableStreamDefaultControllerEnqueue(this, chunk).
-        self.enqueue(cx, chunk)
+        self.enqueue(cx, chunk, can_gc)
     }
 
     /// <https://streams.spec.whatwg.org/#rs-default-controller-error>

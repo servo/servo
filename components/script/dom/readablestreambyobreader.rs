@@ -50,9 +50,9 @@ impl ReadableStreamBYOBReaderMethods for ReadableStreamBYOBReader {
     }
 
     /// <https://streams.spec.whatwg.org/#byob-reader-read>
-    fn Read(&self, _view: CustomAutoRooterGuard<ArrayBufferView>) -> Rc<Promise> {
+    fn Read(&self, _view: CustomAutoRooterGuard<ArrayBufferView>, can_gc: CanGc) -> Rc<Promise> {
         // TODO
-        Promise::new(&self.reflector_.global(), CanGc::note())
+        Promise::new(&self.reflector_.global(), can_gc)
     }
 
     /// <https://streams.spec.whatwg.org/#byob-reader-release-lock>
@@ -62,14 +62,14 @@ impl ReadableStreamBYOBReaderMethods for ReadableStreamBYOBReader {
     }
 
     /// <https://streams.spec.whatwg.org/#generic-reader-closed>
-    fn Closed(&self) -> Rc<Promise> {
+    fn Closed(&self, can_gc: CanGc) -> Rc<Promise> {
         // TODO
-        Promise::new(&self.reflector_.global(), CanGc::note())
+        Promise::new(&self.reflector_.global(), can_gc)
     }
 
     /// <https://streams.spec.whatwg.org/#generic-reader-cancel>
-    fn Cancel(&self, _cx: SafeJSContext, _reason: SafeHandleValue) -> Rc<Promise> {
+    fn Cancel(&self, _cx: SafeJSContext, _reason: SafeHandleValue, can_gc: CanGc) -> Rc<Promise> {
         // TODO
-        Promise::new(&self.reflector_.global(), CanGc::note())
+        Promise::new(&self.reflector_.global(), can_gc)
     }
 }
