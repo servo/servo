@@ -315,7 +315,6 @@ impl ReadableStream {
 
     /// Native call to
     /// <https://streams.spec.whatwg.org/#readable-stream-default-reader-read>
-    /// TODO: restructure this on related methods so the caller reads from a reader?
     pub fn read_a_chunk(&self) -> Rc<Promise> {
         match self.reader {
             ReaderType::Default(ref reader) => {
@@ -330,15 +329,13 @@ impl ReadableStream {
 
     /// Native call to
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaultreaderrelease>
-    /// TODO: restructure this on related methods so the caller releases a reader?
     pub fn stop_reading(&self) {
         match self.reader {
             ReaderType::Default(ref reader) => {
-                let Some(rooted_reader) = reader.get() else {
+                let Some(reader) = reader.get() else {
                     panic!("Attempt to stop reading without having first acquired a reader.");
                 };
-                rooted_reader.ReleaseLock();
-                reader.set(None);
+                reader.release();
             },
             _ => unreachable!("Native stop reading can only be done with a default reader."),
         }
