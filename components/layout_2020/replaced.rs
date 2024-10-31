@@ -15,7 +15,7 @@ use pixels::Image;
 use serde::Serialize;
 use servo_arc::Arc as ServoArc;
 use style::computed_values::object_fit::T as ObjectFit;
-use style::logical_geometry::Direction;
+use style::logical_geometry::{Direction, WritingMode};
 use style::properties::ComputedValues;
 use style::servo::url::ComputedUrl;
 use style::values::computed::image::Image as ComputedImage;
@@ -241,9 +241,9 @@ impl ReplacedContent {
         }
     }
 
-    fn flow_relative_intrinsic_size(&self, style: &ComputedValues) -> LogicalVec2<Option<Au>> {
+    fn flow_relative_intrinsic_size(&self, writing_mode: WritingMode) -> LogicalVec2<Option<Au>> {
         let intrinsic_size = PhysicalSize::new(self.natural_size.width, self.natural_size.height);
-        LogicalVec2::from_physical_size(&intrinsic_size, style.writing_mode)
+        LogicalVec2::from_physical_size(&intrinsic_size, writing_mode)
     }
 
     fn inline_size_over_block_size_intrinsic_ratio(
@@ -276,13 +276,18 @@ impl ReplacedContent {
                     .into(),
                 depends_on_block_constraints: true,
             },
-            _ => InlineContentSizesResult {
-                sizes: self
-                    .flow_relative_intrinsic_size(containing_block_for_children.style)
-                    .inline
-                    .unwrap_or_else(Au::zero)
-                    .into(),
-                depends_on_block_constraints: false,
+            _ => {
+                let writing_mode = containing_block_for_children.style.writing_mode;
+                InlineContentSizesResult {
+                    sizes: self
+                        .flow_relative_intrinsic_size(writing_mode)
+                        .inline
+                        .unwrap_or_else(|| {
+                            Self::flow_relative_default_object_size(writing_mode).inline
+                        })
+                        .into(),
+                    depends_on_block_constraints: false,
+                }
             },
         }
     }
@@ -469,6 +474,10 @@ impl ReplacedContent {
         PhysicalSize::new(Au::from_px(300), Au::from_px(150))
     }
 
+    pub(crate) fn flow_relative_default_object_size(writing_mode: WritingMode) -> LogicalVec2<Au> {
+        LogicalVec2::from_physical_size(&Self::default_object_size(), writing_mode)
+    }
+
     /// <https://drafts.csswg.org/css2/visudet.html#inline-replaced-width>
     /// <https://drafts.csswg.org/css2/visudet.html#inline-replaced-height>
     ///
@@ -482,12 +491,10 @@ impl ReplacedContent {
         min_box_size: LogicalVec2<Au>,
         max_box_size: LogicalVec2<Option<Au>>,
     ) -> LogicalVec2<Au> {
-        let mode = style.writing_mode;
-        let intrinsic_size = self.flow_relative_intrinsic_size(style);
+        let writing_mode = style.writing_mode;
+        let intrinsic_size = self.flow_relative_intrinsic_size(writing_mode);
+        let default_object_size = || Self::flow_relative_default_object_size(writing_mode);
         let intrinsic_ratio = self.preferred_aspect_ratio(&containing_block.into(), style);
-
-        let default_object_size =
-            || LogicalVec2::from_physical_size(&Self::default_object_size(), mode);
 
         let get_tentative_size = |LogicalVec2 { inline, block }| -> LogicalVec2<Au> {
             match (inline, block) {
