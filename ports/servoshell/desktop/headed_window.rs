@@ -101,7 +101,7 @@ impl Window {
         );
         let screen_scale: Scale<f64, DevicePixel, DeviceIndependentPixel> =
             Scale::new(screen_scale);
-        let screen_size = (winit_size_to_euclid_size(screen_size).to_f64() * screen_scale).to_u32();
+        let screen_size = (winit_size_to_euclid_size(screen_size).to_f64() / screen_scale).to_u32();
 
         // Initialize surfman
         let display_handle = winit_window

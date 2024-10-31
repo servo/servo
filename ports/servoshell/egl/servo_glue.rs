@@ -690,7 +690,7 @@ impl EmbedderMethods for ServoEmbedderCallbacks {
 impl WindowMethods for ServoWindowCallbacks {
     fn get_coordinates(&self) -> EmbedderCoordinates {
         let coords = self.coordinates.borrow();
-        let screen_size = (coords.viewport.size.to_f32() * Scale::new(self.density)).to_i32();
+        let screen_size = (coords.viewport.size.to_f32() / Scale::new(self.density)).to_i32();
         EmbedderCoordinates {
             viewport: coords.viewport.to_box2d(),
             framebuffer: coords.framebuffer,

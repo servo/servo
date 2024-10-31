@@ -56,7 +56,7 @@ impl Window {
         let hidpi_factor = device_pixel_ratio_override.unwrap_or_else(Scale::identity);
 
         let size = size.to_i32();
-        let inner_size = Cell::new((size.to_f32() * hidpi_factor).to_i32());
+        let inner_size = Cell::new((size.to_f32() / hidpi_factor).to_i32());
         let window_rect = Box2D::from_origin_and_size(Point2D::zero(), size);
 
         let screen_size = opts::get().screen_size_override.map_or_else(
