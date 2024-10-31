@@ -125,6 +125,7 @@ class Config(object):
         if s is not None:
             self.parse(s)
 
+
     def parse(self, input: str):
         input = input.lower().strip()
 
