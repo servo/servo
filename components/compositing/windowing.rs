@@ -17,7 +17,7 @@ use script_traits::{
     GamepadEvent, MediaSessionActionType, MouseButton, TouchEventType, TouchId, TraversalDirection,
     WheelDelta,
 };
-use servo_geometry::DeviceIndependentPixel;
+use servo_geometry::{DeviceIndependentIntRect, DeviceIndependentIntSize, DeviceIndependentPixel};
 use servo_url::ServoUrl;
 use style_traits::DevicePixel;
 use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePoint, DeviceRect};
@@ -241,11 +241,11 @@ pub struct EmbedderCoordinates {
     /// The pixel density of the display.
     pub hidpi_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
     /// Size of the screen.
-    pub screen_size: DeviceIntSize,
+    pub screen_size: DeviceIndependentIntSize,
     /// Size of the available screen space (screen without toolbars and docks).
-    pub available_screen_size: DeviceIntSize,
+    pub available_screen_size: DeviceIndependentIntSize,
     /// Position and size of the native window.
-    pub window_rect: DeviceIntRect,
+    pub window_rect: DeviceIndependentIntRect,
     /// Size of the GL buffer in the window.
     pub framebuffer: DeviceIntSize,
     /// Coordinates of the document within the framebuffer.
@@ -278,23 +278,23 @@ impl EmbedderCoordinates {
 
 #[cfg(test)]
 mod test {
-    use euclid::{Point2D, Scale, Size2D};
+    use euclid::{Box2D, Point2D, Scale, Size2D};
     use webrender_api::units::DeviceIntRect;
 
     use super::EmbedderCoordinates;
 
     #[test]
     fn test() {
-        let pos = Point2D::zero();
-        let viewport = Size2D::new(800, 600);
-        let screen = Size2D::new(1080, 720);
+        let screen_size = Size2D::new(1080, 720);
+        let viewport = Box2D::from_origin_and_size(Point2D::zero(), Size2D::new(800, 600));
+        let window_rect = Box2D::from_origin_and_size(Point2D::zero(), Size2D::new(800, 600));
         let coordinates = EmbedderCoordinates {
             hidpi_factor: Scale::new(1.),
-            screen_size: screen,
-            available_screen_size: screen,
-            window_rect: DeviceIntRect::from_origin_and_size(pos, viewport),
-            framebuffer: viewport,
-            viewport: DeviceIntRect::from_origin_and_size(pos, viewport),
+            screen_size,
+            available_screen_size: screen_size,
+            window_rect,
+            framebuffer: viewport.size(),
+            viewport,
         };
 
         // Check if viewport conversion is correct.

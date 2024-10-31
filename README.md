@@ -60,8 +60,8 @@ For more detailed build instructions, see the Servo book under [Setting up your 
   `$ANDROID_SDK_ROOT/cmdline-tools/latest`.
 - Run the following command to install the necessary components:
   ```shell
-  sudo $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --install
-   "build-tools;34.0.00 \
+  sudo $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --install \
+   "build-tools;34.0.0" \
    "emulator" \
    "ndk;26.2.11394342" \
    "platform-tools" \

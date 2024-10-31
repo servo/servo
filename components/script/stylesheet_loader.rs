@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::io::{Read, Seek, Write};
 use std::sync::atomic::AtomicBool;
 
 use base::id::PipelineId;
@@ -42,6 +43,9 @@ use crate::dom::shadowroot::ShadowRoot;
 use crate::fetch::create_a_potential_cors_request;
 use crate::network_listener::{self, PreInvoke, ResourceTimingListener};
 use crate::script_runtime::CanGc;
+use crate::unminify::{
+    create_output_file, create_temp_files, execute_js_beautify, BeautifyFileType,
+};
 
 pub trait StylesheetOwner {
     /// Returns whether this element was inserted by the parser (i.e., it should
@@ -86,6 +90,41 @@ pub struct StylesheetContext {
     /// This is ignored for `HTMLStyleElement` and imports.
     request_generation_id: Option<RequestGenerationId>,
     resource_timing: ResourceFetchTiming,
+}
+
+impl StylesheetContext {
+    fn unminify_css(&self, data: Vec<u8>, file_url: ServoUrl) -> Vec<u8> {
+        if self.document.root().window().unminified_css_dir().is_none() {
+            return data;
+        }
+
+        let mut style_content = data;
+
+        if let Some((input, mut output)) = create_temp_files() {
+            if execute_js_beautify(
+                input.path(),
+                output.try_clone().unwrap(),
+                BeautifyFileType::Css,
+            ) {
+                output.seek(std::io::SeekFrom::Start(0)).unwrap();
+                output.read_to_end(&mut style_content).unwrap();
+            }
+        }
+        match create_output_file(
+            self.document.root().window().unminified_css_dir(),
+            &file_url,
+            None,
+        ) {
+            Ok(mut file) => {
+                file.write_all(&style_content).unwrap();
+            },
+            Err(why) => {
+                log::warn!("Could not store script {:?}", why);
+            },
+        }
+
+        style_content
+    }
 }
 
 impl PreInvoke for StylesheetContext {}
@@ -134,7 +173,8 @@ impl FetchResponseListener for StylesheetContext {
             });
 
             let data = if is_css {
-                std::mem::take(&mut self.data)
+                let data = std::mem::take(&mut self.data);
+                self.unminify_css(data, metadata.final_url.clone())
             } else {
                 vec![]
             };

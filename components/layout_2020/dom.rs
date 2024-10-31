@@ -102,7 +102,7 @@ pub(crate) trait NodeExt<'dom>: 'dom + LayoutNode<'dom> {
     fn as_image(self) -> Option<(Option<Arc<Image>>, PhysicalSize<f64>)>;
     fn as_canvas(self) -> Option<(CanvasInfo, PhysicalSize<f64>)>;
     fn as_iframe(self) -> Option<(PipelineId, BrowsingContextId)>;
-    fn as_video(self) -> Option<(webrender_api::ImageKey, PhysicalSize<f64>)>;
+    fn as_video(self) -> Option<(Option<webrender_api::ImageKey>, Option<PhysicalSize<f64>>)>;
     fn as_typeless_object_with_data_attribute(self) -> Option<String>;
     fn style(self, context: &LayoutContext) -> ServoArc<ComputedValues>;
 
@@ -136,11 +136,19 @@ where
         Some((resource, PhysicalSize::new(width, height)))
     }
 
-    fn as_video(self) -> Option<(webrender_api::ImageKey, PhysicalSize<f64>)> {
+    fn as_video(self) -> Option<(Option<webrender_api::ImageKey>, Option<PhysicalSize<f64>>)> {
         let node = self.to_threadsafe();
-        let frame_data = node.media_data()?.current_frame?;
-        let (width, height) = (frame_data.1 as f64, frame_data.2 as f64);
-        Some((frame_data.0, PhysicalSize::new(width, height)))
+        let data = node.media_data()?;
+        let natural_size = if let Some(frame) = data.current_frame {
+            Some(PhysicalSize::new(frame.width.into(), frame.height.into()))
+        } else {
+            data.metadata
+                .map(|meta| PhysicalSize::new(meta.width.into(), meta.height.into()))
+        };
+        Some((
+            data.current_frame.map(|frame| frame.image_key),
+            natural_size,
+        ))
     }
 
     fn as_canvas(self) -> Option<(CanvasInfo, PhysicalSize<f64>)> {

@@ -248,7 +248,7 @@ pub struct HTMLInputElement {
     size: Cell<u32>,
     maxlength: Cell<i32>,
     minlength: Cell<i32>,
-    #[ignore_malloc_size_of = "#7193"]
+    #[ignore_malloc_size_of = "TextInput contains an IPCSender which cannot be measured"]
     #[no_trace]
     textinput: DomRefCell<TextInput<ScriptToConstellationChan>>,
     // https://html.spec.whatwg.org/multipage/#concept-input-value-dirty-flag

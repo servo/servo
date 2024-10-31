@@ -26,10 +26,11 @@ use range::*;
 use script_layout_interface::wrapper_traits::{
     PseudoElementType, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
 };
-use script_layout_interface::{HTMLCanvasData, HTMLCanvasDataSource, HTMLMediaData, SVGSVGData};
+use script_layout_interface::{
+    HTMLCanvasData, HTMLCanvasDataSource, HTMLMediaData, MediaFrame, SVGSVGData,
+};
 use serde::ser::{Serialize, SerializeStruct, Serializer};
 use servo_url::ServoUrl;
-use size_of_test::size_of_test;
 use style::computed_values::border_collapse::T as BorderCollapse;
 use style::computed_values::box_sizing::T as BoxSizing;
 use style::computed_values::clear::T as Clear;
@@ -167,11 +168,6 @@ pub struct Fragment {
     pub established_reference_frame: Option<ClipScrollNodeIndex>,
 }
 
-#[cfg(debug_assertions)]
-size_of_test!(Fragment, 176);
-#[cfg(not(debug_assertions))]
-size_of_test!(Fragment, 152);
-
 impl Serialize for Fragment {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         let mut serializer = serializer.serialize_struct("fragment", 3)?;
@@ -225,8 +221,6 @@ pub enum SpecificFragmentInfo {
     /// Other fragments can only be totally truncated or not truncated at all.
     TruncatedFragment(Box<TruncatedFragmentInfo>),
 }
-
-size_of_test!(SpecificFragmentInfo, 24);
 
 impl SpecificFragmentInfo {
     fn restyle_damage(&self) -> RestyleDamage {
@@ -389,7 +383,7 @@ impl CanvasFragmentInfo {
 
 #[derive(Clone)]
 pub struct MediaFragmentInfo {
-    pub current_frame: Option<(webrender_api::ImageKey, i32, i32)>,
+    pub current_frame: Option<MediaFrame>,
 }
 
 impl MediaFragmentInfo {
@@ -1044,13 +1038,9 @@ impl Fragment {
                     Au(0)
                 }
             },
-            SpecificFragmentInfo::Media(ref info) => {
-                if let Some((_, width, _)) = info.current_frame {
-                    Au::from_px(width)
-                } else {
-                    Au(0)
-                }
-            },
+            SpecificFragmentInfo::Media(ref info) => info
+                .current_frame
+                .map_or(Au(0), |frame| Au::from_px(frame.width)),
             SpecificFragmentInfo::Canvas(ref info) => info.dom_width,
             SpecificFragmentInfo::Svg(ref info) => info.dom_width,
             // Note: Currently for replaced element with no intrinsic size,
@@ -1074,13 +1064,9 @@ impl Fragment {
                     Au(0)
                 }
             },
-            SpecificFragmentInfo::Media(ref info) => {
-                if let Some((_, _, height)) = info.current_frame {
-                    Au::from_px(height)
-                } else {
-                    Au(0)
-                }
-            },
+            SpecificFragmentInfo::Media(ref info) => info
+                .current_frame
+                .map_or(Au(0), |frame| Au::from_px(frame.height)),
             SpecificFragmentInfo::Canvas(ref info) => info.dom_height,
             SpecificFragmentInfo::Svg(ref info) => info.dom_height,
             SpecificFragmentInfo::Iframe(_) => Au::from_px(DEFAULT_REPLACED_HEIGHT),

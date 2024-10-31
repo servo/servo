@@ -50,7 +50,7 @@ use crate::textinput::{
 #[dom_struct]
 pub struct HTMLTextAreaElement {
     htmlelement: HTMLElement,
-    #[ignore_malloc_size_of = "#7193"]
+    #[ignore_malloc_size_of = "TextInput contains an IPCSender which cannot be measured"]
     #[no_trace]
     textinput: DomRefCell<TextInput<ScriptToConstellationChan>>,
     placeholder: DomRefCell<DOMString>,

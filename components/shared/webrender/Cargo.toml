@@ -21,5 +21,6 @@ log = { workspace = true }
 libc = { workspace = true }
 webrender_api = { workspace = true }
 serde = { workspace = true }
+servo_geometry = { path = "../../geometry" }
 surfman = { workspace = true }
 

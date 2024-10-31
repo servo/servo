@@ -85,7 +85,7 @@ malloc_size_of_derive = "0.1"
 memmap2 = "0.9.5"
 mime = "0.3.13"
 mime_guess = "2.0.5"
-mozangle = "0.5.1"
+mozangle = "0.5.2"
 net_traits = { path = "components/shared/net" }
 nix = "0.29"
 num-traits = "0.2"
@@ -100,12 +100,13 @@ rand_core = "0.6"
 rand_isaac = "0.3"
 rayon = "1"
 regex = "1.11"
+ring = "0.17.8"
 rustls = { version = "0.21.12", features = ["dangerous_configuration"] }
 rustls-pemfile = "1.0.4"
 script_layout_interface = { path = "components/shared/script_layout" }
 script_traits = { path = "components/shared/script" }
 selectors = { git = "https://github.com/servo/stylo", branch = "2024-10-04" }
-serde = "1.0.213"
+serde = "1.0.214"
 serde_bytes = "0.11"
 serde_json = "1.0"
 servo-media = { git = "https://github.com/servo/media" }
@@ -113,10 +114,10 @@ servo-media-dummy = { git = "https://github.com/servo/media" }
 servo-media-gstreamer = { git = "https://github.com/servo/media" }
 servo_arc = { git = "https://github.com/servo/stylo", branch = "2024-10-04", features = ["servo"] }
 servo_atoms = { git = "https://github.com/servo/stylo", branch = "2024-10-04" }
-size_of_test = { git = "https://github.com/servo/stylo", branch = "2024-10-04" }
 smallbitvec = "2.5.3"
 smallvec = "1.13"
 sparkle = "0.1.26"
+static_assertions = "1.1"
 string_cache = "0.8"
 string_cache_codegen = "0.5"
 style = { git = "https://github.com/servo/stylo", branch = "2024-10-04", features = ["servo"] }
@@ -151,8 +152,8 @@ webrender_api = { git = "https://github.com/servo/webrender", branch = "0.65" }
 webrender_traits = { path = "components/shared/webrender" }
 webxr = { git = "https://github.com/servo/webxr" }
 webxr-api = { git = "https://github.com/servo/webxr" }
-wgpu-core = { git = "https://github.com/gfx-rs/wgpu", rev = "2b15a2b24b69e105ebdbb5e8a859e2df75e441c1" }
-wgpu-types = { git = "https://github.com/gfx-rs/wgpu", rev = "2b15a2b24b69e105ebdbb5e8a859e2df75e441c1" }
+wgpu-core = "23"
+wgpu-types = "23"
 windows-sys = "0.59"
 xi-unicode = "0.3.0"
 xml5ever = "0.20"
@@ -192,7 +193,6 @@ codegen-units = 1
 # selectors = { path = "../stylo/selectors" }
 # servo_arc = { path = "../stylo/servo_arc" }
 # servo_atoms = { path = "../stylo/atoms" }
-# size_of_test = { path = "../stylo/size_of_test" }
 # static_prefs = { path = "../stylo/style_static_prefs" }
 # style = { path = "../stylo/style" }
 # style_config = { path = "../stylo/style_config" }

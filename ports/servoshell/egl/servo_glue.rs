@@ -18,12 +18,11 @@ use servo::embedder_traits::{
     ContextMenuResult, EmbedderMsg, EmbedderProxy, EventLoopWaker, MediaSessionEvent,
     PermissionPrompt, PermissionRequest, PromptDefinition, PromptOrigin, PromptResult,
 };
-use servo::euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
+use servo::euclid::{Box2D, Point2D, Rect, Scale, Size2D, Vector2D};
 use servo::keyboard_types::{Key, KeyState, KeyboardEvent};
 use servo::script_traits::{
     MediaSessionActionType, MouseButton, TouchEventType, TouchId, TraversalDirection,
 };
-use servo::servo_url::ServoUrl;
 use servo::style_traits::DevicePixel;
 use servo::webrender_api::units::DeviceIntRect;
 use servo::webrender_api::ScrollLocation;
@@ -691,12 +690,13 @@ impl EmbedderMethods for ServoEmbedderCallbacks {
 impl WindowMethods for ServoWindowCallbacks {
     fn get_coordinates(&self) -> EmbedderCoordinates {
         let coords = self.coordinates.borrow();
+        let screen_size = (coords.viewport.size.to_f32() * Scale::new(self.density)).to_i32();
         EmbedderCoordinates {
             viewport: coords.viewport.to_box2d(),
             framebuffer: coords.framebuffer,
-            window_rect: DeviceIntRect::from_origin_and_size(Point2D::zero(), coords.viewport.size),
-            screen_size: coords.viewport.size,
-            available_screen_size: coords.viewport.size,
+            window_rect: Box2D::from_origin_and_size(Point2D::zero(), screen_size),
+            screen_size,
+            available_screen_size: screen_size,
             hidpi_factor: Scale::new(self.density),
         }
     }

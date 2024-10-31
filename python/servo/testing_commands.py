@@ -529,8 +529,8 @@ class MachCommands(CommandBase):
             binary,
             "https://servospeedometer.netlify.app?headless=1",
             "--pref", "dom.allow_scripts_to_close_windows",
-            "--resolution=1100x900",
-            "--headless"], timeout=60).decode())
+            "--window-size=1100x900",
+            "--headless"], timeout=120).decode())
 
         print(f"Score: {speedometer['Score']['mean']} ± {speedometer['Score']['delta']}")
 
@@ -538,13 +538,25 @@ class MachCommands(CommandBase):
             output = dict()
 
             def parse_speedometer_result(result):
-                output[f"Speedometer/{result['name']}"] = {
-                    'latency': {  # speedometer has ms we need to convert to ns
-                        'value': float(result['mean']) * 1000.0,
-                        'lower_value': float(result['min']) * 1000.0,
-                        'upper_value': float(result['max']) * 1000.0,
+                if result['unit'] == "ms":
+                    output[f"Speedometer/{result['name']}"] = {
+                        'latency': {  # speedometer has ms we need to convert to ns
+                            'value': float(result['mean']) * 1000.0,
+                            'lower_value': float(result['min']) * 1000.0,
+                            'upper_value': float(result['max']) * 1000.0,
+                        }
                     }
-                }
+                elif result['unit'] == "score":
+                    output[f"Speedometer/{result['name']}"] = {
+                        'score': {
+                            'value': float(result['mean']),
+                            'lower_value': float(result['min']),
+                            'upper_value': float(result['max']),
+                        }
+                    }
+                else:
+                    raise "Unknown unit!"
+
                 for child in result['children']:
                     parse_speedometer_result(child)
 

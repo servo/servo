@@ -177,6 +177,13 @@ impl AspectRatio {
             },
         }
     }
+
+    pub(crate) fn from_content_ratio(i_over_b: CSSFloat) -> Self {
+        Self {
+            box_sizing_adjustment: LogicalVec2::zero(),
+            i_over_b,
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -905,25 +912,18 @@ impl ComputedValuesExt for ComputedValues {
             // ratio; otherwise the box has no preferred aspect ratio. Size
             // calculations involving the aspect ratio work with the content box
             // dimensions always."
-            (_, PreferredRatio::None) => natural_aspect_ratio.map(|natural_ratio| AspectRatio {
-                i_over_b: natural_ratio,
-                box_sizing_adjustment: LogicalVec2::zero(),
-            }),
+            (_, PreferredRatio::None) => natural_aspect_ratio.map(AspectRatio::from_content_ratio),
             // "If both auto and a <ratio> are specified together, the preferred
             // aspect ratio is the specified ratio of width / height unless it
             // is a replaced element with a natural aspect ratio, in which case
             // that aspect ratio is used instead. In all cases, size
             // calculations involving the aspect ratio work with the content box
             // dimensions always."
-            (true, PreferredRatio::Ratio(preferred_ratio)) => match natural_aspect_ratio {
-                Some(natural_ratio) => Some(AspectRatio {
-                    i_over_b: natural_ratio,
-                    box_sizing_adjustment: LogicalVec2::zero(),
-                }),
-                None => Some(AspectRatio {
-                    i_over_b: (preferred_ratio.0).0 / (preferred_ratio.1).0,
-                    box_sizing_adjustment: LogicalVec2::zero(),
-                }),
+            (true, PreferredRatio::Ratio(preferred_ratio)) => {
+                Some(AspectRatio::from_content_ratio(
+                    natural_aspect_ratio
+                        .unwrap_or_else(|| (preferred_ratio.0).0 / (preferred_ratio.1).0),
+                ))
             },
 
             // "The box’s preferred aspect ratio is the specified ratio of width

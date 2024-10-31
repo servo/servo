@@ -163,8 +163,21 @@ pub struct PendingImage {
     pub origin: ImmutableOrigin,
 }
 
+#[derive(Clone, Copy, Debug)]
+pub struct MediaFrame {
+    pub image_key: webrender_api::ImageKey,
+    pub width: i32,
+    pub height: i32,
+}
+
+pub struct MediaMetadata {
+    pub width: u32,
+    pub height: u32,
+}
+
 pub struct HTMLMediaData {
-    pub current_frame: Option<(ImageKey, i32, i32)>,
+    pub current_frame: Option<MediaFrame>,
+    pub metadata: Option<MediaMetadata>,
 }
 
 pub struct LayoutConfig {

@@ -55,6 +55,8 @@ use style::selector_parser::{
 use style::shared_lock::{Locked, SharedRwLock};
 use style::stylesheets::layer_rule::LayerOrder;
 use style::stylesheets::{CssRuleType, UrlExtraData};
+use style::values::generics::position::PreferredRatio;
+use style::values::generics::ratio::Ratio;
 use style::values::generics::NonNegative;
 use style::values::{computed, specified, AtomIdent, AtomString, CSSFloat};
 use style::{dom_apis, thread_state, ArcSlice, CaseSensitivityExt};
@@ -133,6 +135,7 @@ use crate::dom::htmltablesectionelement::{
 };
 use crate::dom::htmltemplateelement::HTMLTemplateElement;
 use crate::dom::htmltextareaelement::{HTMLTextAreaElement, LayoutHTMLTextAreaElementHelpers};
+use crate::dom::htmlvideoelement::{HTMLVideoElement, LayoutHTMLVideoElementHelpers};
 use crate::dom::mutationobserver::{Mutation, MutationObserver};
 use crate::dom::namednodemap::NamedNodeMap;
 use crate::dom::node::{
@@ -850,6 +853,8 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
             this.get_width()
         } else if let Some(this) = self.downcast::<HTMLImageElement>() {
             this.get_width()
+        } else if let Some(this) = self.downcast::<HTMLVideoElement>() {
+            this.get_width()
         } else if let Some(this) = self.downcast::<HTMLTableElement>() {
             this.get_width()
         } else if let Some(this) = self.downcast::<HTMLTableCellElement>() {
@@ -892,6 +897,8 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
             this.get_height()
         } else if let Some(this) = self.downcast::<HTMLImageElement>() {
             this.get_height()
+        } else if let Some(this) = self.downcast::<HTMLVideoElement>() {
+            this.get_height()
         } else if let Some(this) = self.downcast::<HTMLTableElement>() {
             this.get_height()
         } else if let Some(this) = self.downcast::<HTMLTableCellElement>() {
@@ -926,6 +933,27 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
                     PropertyDeclaration::Height(height_value),
                 ));
             },
+        }
+
+        // Aspect ratio when providing both width and height.
+        // https://html.spec.whatwg.org/multipage/#attributes-for-embedded-content-and-images
+        if self.downcast::<HTMLImageElement>().is_some() ||
+            self.downcast::<HTMLVideoElement>().is_some()
+        {
+            if let LengthOrPercentageOrAuto::Length(width) = width {
+                if let LengthOrPercentageOrAuto::Length(height) = height {
+                    let width_value = NonNegative(specified::Number::new(width.to_f32_px()));
+                    let height_value = NonNegative(specified::Number::new(height.to_f32_px()));
+                    let aspect_ratio = specified::position::AspectRatio {
+                        auto: true,
+                        ratio: PreferredRatio::Ratio(Ratio(width_value, height_value)),
+                    };
+                    hints.push(from_declaration(
+                        shared_lock,
+                        PropertyDeclaration::AspectRatio(aspect_ratio),
+                    ));
+                }
+            }
         }
 
         let cols = if let Some(this) = self.downcast::<HTMLTextAreaElement>() {

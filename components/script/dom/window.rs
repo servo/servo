@@ -63,7 +63,7 @@ use selectors::attr::CaseSensitivity;
 use servo_arc::Arc as ServoArc;
 use servo_atoms::Atom;
 use servo_config::pref;
-use servo_geometry::{f32_rect_to_au_rect, MaxRect};
+use servo_geometry::{f32_rect_to_au_rect, DeviceIndependentIntRect, MaxRect};
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use style::dom::OpaqueNode;
 use style::error_reporting::{ContextualParseError, ParseErrorReporter};
@@ -76,7 +76,7 @@ use style::str::HTML_SPACE_CHARACTERS;
 use style::stylesheets::{CssRuleType, Origin, UrlExtraData};
 use style_traits::{CSSPixel, DevicePixel, ParsingMode};
 use url::Position;
-use webrender_api::units::{DeviceIntRect, LayoutPixel};
+use webrender_api::units::LayoutPixel;
 use webrender_api::{DocumentId, ExternalScrollId};
 use webrender_traits::CrossProcessCompositorApi;
 
@@ -297,6 +297,10 @@ pub struct Window {
     /// opt is enabled.
     unminified_js_dir: DomRefCell<Option<String>>,
 
+    /// Directory to store unminified css for this window if unminify-css
+    /// opt is enabled.
+    unminified_css_dir: DomRefCell<Option<String>>,
+
     /// Directory with stored unminified scripts
     local_script_source: Option<String>,
 
@@ -329,6 +333,9 @@ pub struct Window {
 
     /// Unminify Javascript.
     unminify_js: bool,
+
+    /// Unminify Css.
+    unminify_css: bool,
 
     /// Where to load userscripts from, if any. An empty string will load from
     /// the resources/user-agent-js directory, and if the option isn't passed userscripts
@@ -536,10 +543,6 @@ impl Window {
 
     pub fn replace_surrogates(&self) -> bool {
         self.replace_surrogates
-    }
-
-    pub fn unminify_js(&self) -> bool {
-        self.unminify_js
     }
 
     pub fn get_player_context(&self) -> WindowGLContext {
@@ -1779,16 +1782,16 @@ impl Window {
 
     fn client_window(&self) -> (Size2D<u32, CSSPixel>, Point2D<i32, CSSPixel>) {
         let timer_profile_chan = self.global().time_profiler_chan().clone();
-        let (send, recv) = ProfiledIpc::channel::<DeviceIntRect>(timer_profile_chan).unwrap();
+        let (send, recv) =
+            ProfiledIpc::channel::<DeviceIndependentIntRect>(timer_profile_chan).unwrap();
         let _ = self
             .compositor_api
             .sender()
             .send(webrender_traits::CrossProcessCompositorMessage::GetClientWindowRect(send));
-        let rect = recv.recv().unwrap_or_default();
-        let dpr = self.device_pixel_ratio();
+        let rect = recv.recv().unwrap_or_default().to_u32();
         (
-            (rect.size().to_f32() / dpr).to_u32(),
-            (rect.min.to_f32() / dpr).to_i32(),
+            Size2D::new(rect.size().width, rect.size().height),
+            Point2D::new(rect.min.x as i32, rect.min.y as i32),
         )
     }
 
@@ -2248,13 +2251,14 @@ impl Window {
         assert!(self.document.get().is_none());
         assert!(document.window() == self);
         self.document.set(Some(document));
-        if !self.unminify_js {
-            return;
-        }
-        // Set a path for the document host to store unminified scripts.
-        let mut path = env::current_dir().unwrap();
-        path.push("unminified-js");
-        *self.unminified_js_dir.borrow_mut() = Some(path.into_os_string().into_string().unwrap());
+
+        set_unminified_path(self.unminify_js, &self.unminified_js_dir, "unminified-js");
+
+        set_unminified_path(
+            self.unminify_css,
+            &self.unminified_css_dir,
+            "unminified-css",
+        );
     }
 
     /// Commence a new URL load which will either replace this window or scroll to a fragment.
@@ -2521,6 +2525,10 @@ impl Window {
         self.unminified_js_dir.borrow().clone()
     }
 
+    pub fn unminified_css_dir(&self) -> Option<String> {
+        self.unminified_css_dir.borrow().clone()
+    }
+
     pub fn local_script_source(&self) -> &Option<String> {
         &self.local_script_source
     }
@@ -2585,6 +2593,7 @@ impl Window {
         relayout_event: bool,
         prepare_for_screenshot: bool,
         unminify_js: bool,
+        unminify_css: bool,
         local_script_source: Option<String>,
         userscripts_path: Option<String>,
         is_headless: bool,
@@ -2661,6 +2670,7 @@ impl Window {
             webxr_registry,
             pending_layout_images: Default::default(),
             unminified_js_dir: Default::default(),
+            unminified_css_dir: Default::default(),
             local_script_source,
             test_worklet: Default::default(),
             paint_worklet: Default::default(),
@@ -2671,6 +2681,7 @@ impl Window {
             relayout_event,
             prepare_for_screenshot,
             unminify_js,
+            unminify_css,
             userscripts_path,
             replace_surrogates,
             player_context,
@@ -2901,4 +2912,13 @@ fn is_named_element_with_name_attribute(elem: &Element) -> bool {
 
 fn is_named_element_with_id_attribute(elem: &Element) -> bool {
     elem.is_html_element()
+}
+
+fn set_unminified_path(option: bool, dir_ref: &DomRefCell<Option<String>>, folder_name: &str) {
+    if option {
+        // Set a path for the document host to store unminified files.
+        let mut path = env::current_dir().unwrap();
+        path.push(folder_name);
+        *dir_ref.borrow_mut() = Some(path.into_os_string().into_string().unwrap());
+    }
 }

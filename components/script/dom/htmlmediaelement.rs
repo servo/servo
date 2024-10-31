@@ -27,7 +27,7 @@ use net_traits::{
     ResourceTimingType,
 };
 use pixels::Image;
-use script_layout_interface::HTMLMediaData;
+use script_layout_interface::MediaFrame;
 use servo_config::pref;
 use servo_media::player::audio::AudioRenderer;
 use servo_media::player::video::{VideoFrame, VideoFrameRenderer};
@@ -68,7 +68,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomObject;
-use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
+use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::blob::Blob;
 use crate::dom::document::Document;
@@ -158,7 +158,7 @@ impl FrameHolder {
 pub struct MediaFrameRenderer {
     player_id: Option<u64>,
     compositor_api: CrossProcessCompositorApi,
-    current_frame: Option<(ImageKey, i32, i32)>,
+    current_frame: Option<MediaFrame>,
     old_frame: Option<ImageKey>,
     very_old_frame: Option<ImageKey>,
     current_frame_holder: Option<FrameHolder>,
@@ -179,8 +179,12 @@ impl MediaFrameRenderer {
     }
 
     fn render_poster_frame(&mut self, image: Arc<Image>) {
-        if let Some(image_id) = image.id {
-            self.current_frame = Some((image_id, image.width as i32, image.height as i32));
+        if let Some(image_key) = image.id {
+            self.current_frame = Some(MediaFrame {
+                image_key,
+                width: image.width as i32,
+                height: image.height as i32,
+            });
             self.show_poster = true;
         }
     }
@@ -206,13 +210,14 @@ impl VideoFrameRenderer for MediaFrameRenderer {
             ImageDescriptorFlags::empty(),
         );
 
-        match self.current_frame {
-            Some((ref image_key, ref mut width, ref mut height))
-                if *width == frame.get_width() && *height == frame.get_height() =>
+        match &mut self.current_frame {
+            Some(ref mut current_frame)
+                if current_frame.width == frame.get_width() &&
+                    current_frame.height == frame.get_height() =>
             {
                 if !frame.is_gl_texture() {
                     updates.push(ImageUpdate::UpdateImage(
-                        *image_key,
+                        current_frame.image_key,
                         descriptor,
                         SerializableImageData::Raw(IpcSharedMemory::from_bytes(&frame.get_data())),
                     ));
@@ -226,17 +231,17 @@ impl VideoFrameRenderer for MediaFrameRenderer {
                     updates.push(ImageUpdate::DeleteImage(old_image_key));
                 }
             },
-            Some((ref mut image_key, ref mut width, ref mut height)) => {
-                self.old_frame = Some(*image_key);
+            Some(ref mut current_frame) => {
+                self.old_frame = Some(current_frame.image_key);
 
                 let Some(new_image_key) = self.compositor_api.generate_image_key() else {
                     return;
                 };
 
                 /* update current_frame */
-                *image_key = new_image_key;
-                *width = frame.get_width();
-                *height = frame.get_height();
+                current_frame.image_key = new_image_key;
+                current_frame.width = frame.get_width();
+                current_frame.height = frame.get_height();
 
                 let image_data = if frame.is_gl_texture() && self.player_id.is_some() {
                     let texture_target = if frame.is_external_oes() {
@@ -264,7 +269,12 @@ impl VideoFrameRenderer for MediaFrameRenderer {
                 let Some(image_key) = self.compositor_api.generate_image_key() else {
                     return;
                 };
-                self.current_frame = Some((image_key, frame.get_width(), frame.get_height()));
+
+                self.current_frame = Some(MediaFrame {
+                    image_key,
+                    width: frame.get_width(),
+                    height: frame.get_height(),
+                });
 
                 let image_data = if frame.is_gl_texture() && self.player_id.is_some() {
                     let texture_target = if frame.is_external_oes() {
@@ -1320,6 +1330,7 @@ impl HTMLMediaElement {
         }
 
         // Step 6.
+        self.handle_resize(Some(image.width), Some(image.height));
         self.video_renderer
             .lock()
             .unwrap()
@@ -1584,6 +1595,10 @@ impl HTMLMediaElement {
             },
             PlayerEvent::VideoFrameUpdated => {
                 self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+                // Check if the frame was resized
+                if let Some(frame) = self.video_renderer.lock().unwrap().current_frame {
+                    self.handle_resize(Some(frame.width as u32), Some(frame.height as u32));
+                }
             },
             PlayerEvent::MetadataUpdated(ref metadata) => {
                 // https://html.spec.whatwg.org/multipage/#media-data-processing-steps-list
@@ -1727,18 +1742,7 @@ impl HTMLMediaElement {
                 }
 
                 // Step 5.
-                if self.is::<HTMLVideoElement>() {
-                    let video_elem = self.downcast::<HTMLVideoElement>().unwrap();
-                    if video_elem.get_video_width() != metadata.width ||
-                        video_elem.get_video_height() != metadata.height
-                    {
-                        video_elem.set_video_width(metadata.width);
-                        video_elem.set_video_height(metadata.height);
-                        let window = window_from_node(self);
-                        let task_source = window.task_manager().media_element_task_source();
-                        task_source.queue_simple_event(self.upcast(), atom!("resize"), &window);
-                    }
-                }
+                self.handle_resize(Some(metadata.width), Some(metadata.height));
 
                 // Step 6.
                 self.change_ready_state(ReadyState::HaveMetadata);
@@ -1971,6 +1975,21 @@ impl HTMLMediaElement {
             .map(|holder| holder.get_frame())
     }
 
+    pub fn get_current_frame_data(&self) -> Option<MediaFrame> {
+        self.video_renderer.lock().unwrap().current_frame
+    }
+
+    pub fn clear_current_frame_data(&self) {
+        self.handle_resize(None, None);
+        self.video_renderer.lock().unwrap().current_frame = None
+    }
+
+    fn handle_resize(&self, width: Option<u32>, height: Option<u32>) {
+        if let Some(video_elem) = self.downcast::<HTMLVideoElement>() {
+            video_elem.resize(width, height);
+        }
+    }
+
     /// By default the audio is rendered through the audio sink automatically
     /// selected by the servo-media Player instance. However, in some cases, like
     /// the WebAudio MediaElementAudioSourceNode, we need to set a custom audio
@@ -1998,13 +2017,11 @@ impl HTMLMediaElement {
         self.duration.set(duration);
     }
 
-    /// Sets a new value for the show_poster propperty. If the poster is being hidden
-    /// because new frames should render, updates video_renderer to allow it.
-    fn set_show_poster(&self, show_poster: bool) {
+    /// Sets a new value for the show_poster propperty. Updates video_rederer
+    /// with the new value.
+    pub fn set_show_poster(&self, show_poster: bool) {
         self.show_poster.set(show_poster);
-        if !show_poster {
-            self.video_renderer.lock().unwrap().show_poster = false;
-        }
+        self.video_renderer.lock().unwrap().show_poster = show_poster;
     }
 
     pub fn reset(&self) {
@@ -2478,6 +2495,7 @@ impl VirtualMethods for HTMLMediaElement {
             },
             local_name!("src") => {
                 if mutation.new_value(attr).is_none() {
+                    self.clear_current_frame_data();
                     return;
                 }
                 self.media_element_load_algorithm(CanGc::note());
@@ -2504,23 +2522,6 @@ impl VirtualMethods for HTMLMediaElement {
                 elem: DomRoot::from_ref(self),
             };
             ScriptThread::await_stable_state(Microtask::MediaElement(task));
-        }
-    }
-}
-
-pub trait LayoutHTMLMediaElementHelpers {
-    fn data(self) -> HTMLMediaData;
-}
-
-impl LayoutHTMLMediaElementHelpers for LayoutDom<'_, HTMLMediaElement> {
-    fn data(self) -> HTMLMediaData {
-        HTMLMediaData {
-            current_frame: self
-                .unsafe_get()
-                .video_renderer
-                .lock()
-                .unwrap()
-                .current_frame,
         }
     }
 }

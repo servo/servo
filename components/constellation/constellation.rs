@@ -4695,9 +4695,9 @@ where
     )]
     fn notify_history_changed(&self, top_level_browsing_context_id: TopLevelBrowsingContextId) {
         // Send a flat projection of the history to embedder.
-        // The final vector is a concatenation of the LoadData of the past
+        // The final vector is a concatenation of the URLs of the past
         // entries, the current entry and the future entries.
-        // LoadData of inner frames are ignored and replaced with the LoadData
+        // URLs of inner frames are ignored and replaced with the URL
         // of the parent.
 
         let session_history = match self.webviews.get(top_level_browsing_context_id) {
@@ -4720,91 +4720,88 @@ where
             },
         };
 
-        let current_load_data = match self.pipelines.get(&browsing_context.pipeline_id) {
-            Some(pipeline) => pipeline.load_data.clone(),
+        let current_url = match self.pipelines.get(&browsing_context.pipeline_id) {
+            Some(pipeline) => pipeline.url.clone(),
             None => {
                 return warn!("{}: Refresh after closure", browsing_context.pipeline_id);
             },
         };
 
-        // If LoadData was ignored, use the LoadData of the previous SessionHistoryEntry, which
-        // is the LoadData of the parent browsing context.
-        let resolve_load_data_future =
-            |previous_load_data: &mut LoadData, diff: &SessionHistoryDiff| match *diff {
+        // If URL was ignored, use the URL of the previous SessionHistoryEntry, which
+        // is the URL of the parent browsing context.
+        let resolve_url_future =
+            |previous_url: &mut ServoUrl, diff: &SessionHistoryDiff| match *diff {
                 SessionHistoryDiff::BrowsingContext {
                     browsing_context_id,
                     ref new_reloader,
                     ..
                 } => {
                     if browsing_context_id == top_level_browsing_context_id {
-                        let load_data = match *new_reloader {
+                        let url = match *new_reloader {
                             NeedsToReload::No(pipeline_id) => {
                                 match self.pipelines.get(&pipeline_id) {
-                                    Some(pipeline) => pipeline.load_data.clone(),
-                                    None => previous_load_data.clone(),
+                                    Some(pipeline) => pipeline.url.clone(),
+                                    None => previous_url.clone(),
                                 }
                             },
-                            NeedsToReload::Yes(_, ref load_data) => load_data.clone(),
+                            NeedsToReload::Yes(_, ref load_data) => load_data.url.clone(),
                         };
-                        *previous_load_data = load_data.clone();
-                        Some(load_data)
+                        *previous_url = url.clone();
+                        Some(url)
                     } else {
-                        Some(previous_load_data.clone())
+                        Some(previous_url.clone())
                     }
                 },
-                _ => Some(previous_load_data.clone()),
+                _ => Some(previous_url.clone()),
             };
 
-        let resolve_load_data_past =
-            |previous_load_data: &mut LoadData, diff: &SessionHistoryDiff| match *diff {
-                SessionHistoryDiff::BrowsingContext {
-                    browsing_context_id,
-                    ref old_reloader,
-                    ..
-                } => {
-                    if browsing_context_id == top_level_browsing_context_id {
-                        let load_data = match *old_reloader {
-                            NeedsToReload::No(pipeline_id) => {
-                                match self.pipelines.get(&pipeline_id) {
-                                    Some(pipeline) => pipeline.load_data.clone(),
-                                    None => previous_load_data.clone(),
-                                }
-                            },
-                            NeedsToReload::Yes(_, ref load_data) => load_data.clone(),
-                        };
-                        *previous_load_data = load_data.clone();
-                        Some(load_data)
-                    } else {
-                        Some(previous_load_data.clone())
-                    }
-                },
-                _ => Some(previous_load_data.clone()),
-            };
+        let resolve_url_past = |previous_url: &mut ServoUrl, diff: &SessionHistoryDiff| match *diff
+        {
+            SessionHistoryDiff::BrowsingContext {
+                browsing_context_id,
+                ref old_reloader,
+                ..
+            } => {
+                if browsing_context_id == top_level_browsing_context_id {
+                    let url = match *old_reloader {
+                        NeedsToReload::No(pipeline_id) => match self.pipelines.get(&pipeline_id) {
+                            Some(pipeline) => pipeline.url.clone(),
+                            None => previous_url.clone(),
+                        },
+                        NeedsToReload::Yes(_, ref load_data) => load_data.url.clone(),
+                    };
+                    *previous_url = url.clone();
+                    Some(url)
+                } else {
+                    Some(previous_url.clone())
+                }
+            },
+            _ => Some(previous_url.clone()),
+        };
 
-        let mut entries: Vec<LoadData> = session_history
+        let mut entries: Vec<ServoUrl> = session_history
             .past
             .iter()
             .rev()
-            .scan(current_load_data.clone(), &resolve_load_data_past)
+            .scan(current_url.clone(), &resolve_url_past)
             .collect();
 
         entries.reverse();
 
         let current_index = entries.len();
 
-        entries.push(current_load_data.clone());
+        entries.push(current_url.clone());
 
         entries.extend(
             session_history
                 .future
                 .iter()
                 .rev()
-                .scan(current_load_data, &resolve_load_data_future),
+                .scan(current_url, &resolve_url_future),
         );
-        let urls = entries.iter().map(|entry| entry.url.clone()).collect();
         let msg = (
             Some(top_level_browsing_context_id),
-            EmbedderMsg::HistoryChanged(urls, current_index),
+            EmbedderMsg::HistoryChanged(entries, current_index),
         );
         self.embedder_proxy.send(msg);
     }

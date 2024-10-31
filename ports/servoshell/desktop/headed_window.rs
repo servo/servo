@@ -24,7 +24,7 @@ use servo::webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize};
 use servo::webrender_api::ScrollLocation;
 use servo::webrender_traits::RenderingContext;
 use surfman::{Connection, Context, Device, SurfaceType};
-use winit::dpi::{LogicalPosition, LogicalSize, PhysicalPosition, PhysicalSize};
+use winit::dpi::{LogicalSize, PhysicalPosition, PhysicalSize};
 use winit::event::{ElementState, KeyEvent, MouseButton, MouseScrollDelta, TouchPhase};
 use winit::keyboard::{Key as LogicalKey, ModifiersState, NamedKey};
 #[cfg(any(target_os = "linux", target_os = "windows"))]
@@ -38,12 +38,12 @@ use super::window_trait::{WindowPortsMethods, LINE_HEIGHT};
 pub struct Window {
     winit_window: winit::window::Window,
     rendering_context: RenderingContext,
-    screen_size: Size2D<u32, DevicePixel>,
-    inner_size: Cell<Size2D<u32, DevicePixel>>,
+    screen_size: Size2D<u32, DeviceIndependentPixel>,
+    inner_size: Cell<PhysicalSize<u32>>,
     toolbar_height: Cell<Length<f32, DeviceIndependentPixel>>,
     mouse_down_button: Cell<Option<winit::event::MouseButton>>,
     mouse_down_point: Cell<Point2D<i32, DevicePixel>>,
-    primary_monitor: winit::monitor::MonitorHandle,
+    monitor: winit::monitor::MonitorHandle,
     event_queue: RefCell<Vec<EmbedderEvent>>,
     mouse_pos: Cell<Point2D<i32, DevicePixel>>,
     last_pressed: Cell<Option<(KeyboardEvent, Option<LogicalKey>)>>,
@@ -59,7 +59,7 @@ pub struct Window {
 
 impl Window {
     pub fn new(
-        win_size: Size2D<u32, DeviceIndependentPixel>,
+        window_size: Size2D<u32, DeviceIndependentPixel>,
         event_loop: &winit::event_loop::EventLoop<WakerEvent>,
         no_native_titlebar: bool,
         device_pixel_ratio_override: Option<f32>,
@@ -76,7 +76,7 @@ impl Window {
             .with_title("Servo".to_string())
             .with_decorations(!no_native_titlebar)
             .with_transparent(no_native_titlebar)
-            .with_inner_size(LogicalSize::new(win_size.width, win_size.height))
+            .with_inner_size(LogicalSize::new(window_size.width, window_size.height))
             .with_visible(visible);
 
         #[allow(deprecated)]
@@ -90,13 +90,18 @@ impl Window {
             winit_window.set_window_icon(Some(load_icon(icon_bytes)));
         }
 
-        let primary_monitor = winit_window
-            .available_monitors()
-            .nth(0)
+        let monitor = winit_window
+            .current_monitor()
+            .or_else(|| winit_window.available_monitors().nth(0))
             .expect("No monitor detected");
 
-        let screen_size = winit_size_to_euclid_size(primary_monitor.size());
-        let inner_size = winit_size_to_euclid_size(winit_window.inner_size());
+        let (screen_size, screen_scale) = opts.screen_size_override.map_or_else(
+            || (monitor.size(), monitor.scale_factor()),
+            |size| (PhysicalSize::new(size.width, size.height), 1.0),
+        );
+        let screen_scale: Scale<f64, DevicePixel, DeviceIndependentPixel> =
+            Scale::new(screen_scale);
+        let screen_size = (winit_size_to_euclid_size(screen_size).to_f64() * screen_scale).to_u32();
 
         // Initialize surfman
         let display_handle = winit_window
@@ -110,12 +115,15 @@ impl Window {
         let window_handle = winit_window
             .window_handle()
             .expect("could not get window handle from window");
+
+        let inner_size = winit_window.inner_size();
         let native_widget = connection
             .create_native_widget_from_window_handle(
                 window_handle,
-                inner_size.to_i32().to_untyped(),
+                winit_size_to_euclid_size(inner_size).to_i32().to_untyped(),
             )
             .expect("Failed to create native widget");
+
         let surface_type = SurfaceType::Widget { native_widget };
         let rendering_context = RenderingContext::create(&connection, &adapter, surface_type)
             .expect("Failed to create WR surfman");
@@ -133,7 +141,7 @@ impl Window {
             animation_state: Cell::new(AnimationState::Idle),
             fullscreen: Cell::new(false),
             inner_size: Cell::new(inner_size),
-            primary_monitor,
+            monitor,
             screen_size,
             device_pixel_ratio_override,
             xr_window_poses: RefCell::new(vec![]),
@@ -321,7 +329,7 @@ impl WindowPortsMethods for Window {
         if self.fullscreen.get() != state {
             self.winit_window.set_fullscreen(if state {
                 Some(winit::window::Fullscreen::Borderless(Some(
-                    self.primary_monitor.clone(),
+                    self.monitor.clone(),
                 )))
             } else {
                 None
@@ -415,8 +423,8 @@ impl WindowPortsMethods for Window {
                         (dx as f64, (dy * LINE_HEIGHT) as f64, WheelMode::DeltaLine)
                     },
                     MouseScrollDelta::PixelDelta(position) => {
-                        let position: LogicalPosition<f64> =
-                            position.to_logical(self.device_hidpi_factor().get() as f64);
+                        let scale_factor = self.device_hidpi_factor().inverse().get() as f64;
+                        let position = position.to_logical(scale_factor);
                         (position.x, position.y, WheelMode::DeltaPixel)
                     },
                 };
@@ -469,13 +477,10 @@ impl WindowPortsMethods for Window {
             winit::event::WindowEvent::CloseRequested => {
                 self.event_queue.borrow_mut().push(EmbedderEvent::Quit);
             },
-            winit::event::WindowEvent::Resized(physical_size) => {
-                let (width, height) = physical_size.into();
-                let new_size = Size2D::new(width, height);
+            winit::event::WindowEvent::Resized(new_size) => {
                 if self.inner_size.get() != new_size {
-                    let physical_size = Size2D::new(physical_size.width, physical_size.height);
                     self.rendering_context
-                        .resize(physical_size.to_i32())
+                        .resize(Size2D::new(new_size.width, new_size.height).to_i32())
                         .expect("Failed to resize");
                     self.inner_size.set(new_size);
                     self.event_queue
@@ -528,6 +533,11 @@ impl WindowMethods for Window {
         let window_size = winit_size_to_euclid_size(self.winit_window.outer_size()).to_i32();
         let window_origin = self.winit_window.outer_position().unwrap_or_default();
         let window_origin = winit_position_to_euclid_point(window_origin).to_i32();
+        let window_rect = DeviceIntRect::from_origin_and_size(window_origin, window_size);
+        let window_scale: Scale<f64, DevicePixel, DeviceIndependentPixel> =
+            Scale::new(self.winit_window.scale_factor());
+        let window_rect = (window_rect.to_f64() * window_scale).to_i32();
+
         let viewport_origin = DeviceIntPoint::zero(); // bottom left
         let viewport_size = winit_size_to_euclid_size(self.winit_window.inner_size()).to_f32();
         let viewport = DeviceIntRect::from_origin_and_size(viewport_origin, viewport_size.to_i32());
@@ -536,7 +546,7 @@ impl WindowMethods for Window {
         EmbedderCoordinates {
             viewport,
             framebuffer: viewport.size(),
-            window_rect: DeviceIntRect::from_origin_and_size(window_origin, window_size),
+            window_rect,
             screen_size,
             // FIXME: Winit doesn't have API for available size. Fallback to screen size
             available_screen_size: screen_size,

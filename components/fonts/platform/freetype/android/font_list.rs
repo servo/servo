@@ -2,15 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::fs::File;
-use std::io::Read;
 use std::path::Path;
 use std::sync::LazyLock;
 
 use base::text::{is_cjk, UnicodeBlock, UnicodeBlockMethod};
 use log::warn;
-use malloc_size_of_derive::MallocSizeOf;
-use serde::{Deserialize, Serialize};
 use style::values::computed::font::GenericFontFamily;
 use style::values::computed::{
     FontStretch as StyleFontStretch, FontStyle as StyleFontStyle, FontWeight as StyleFontWeight,
