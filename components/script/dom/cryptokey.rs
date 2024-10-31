@@ -114,12 +114,12 @@ impl CryptoKey {
 }
 
 impl CryptoKeyMethods for CryptoKey {
-    /// <https://w3c.github.io/webcrypto/#cryptokey-interface-members>
+    /// <https://w3c.github.io/webcrypto/#dom-cryptokey-type>
     fn Type(&self) -> KeyType {
         self.key_type
     }
 
-    /// <https://w3c.github.io/webcrypto/#cryptokey-interface-members>
+    /// <https://w3c.github.io/webcrypto/#dom-cryptokey-extractable>
     fn Extractable(&self) -> bool {
         self.extractable.get()
     }
@@ -130,7 +130,7 @@ impl CryptoKeyMethods for CryptoKey {
     }
 
     #[allow(unsafe_code)]
-    /// <https://w3c.github.io/webcrypto/#cryptokey-interface-members>
+    /// <https://w3c.github.io/webcrypto/#dom-cryptokey-usages>
     fn Usages(&self, cx: JSContext) -> NonNull<JSObject> {
         unsafe {
             rooted!(in(*cx) let mut usages: Value);
