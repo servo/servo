@@ -35,13 +35,13 @@ impl ByteLengthQueuingStrategy {
         }
     }
 
-    pub fn new(global: &GlobalScope, proto: Option<HandleObject>, init: f64) -> DomRoot<Self> {
-        reflect_dom_object_with_proto(
-            Box::new(Self::new_inherited(init)),
-            global,
-            proto,
-            CanGc::note(),
-        )
+    pub fn new(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        init: f64,
+        can_gc: CanGc,
+    ) -> DomRoot<Self> {
+        reflect_dom_object_with_proto(Box::new(Self::new_inherited(init)), global, proto, can_gc)
     }
 }
 
@@ -50,10 +50,10 @@ impl ByteLengthQueuingStrategyMethods for ByteLengthQueuingStrategy {
     fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        _can_gc: CanGc,
+        can_gc: CanGc,
         init: &QueuingStrategyInit,
     ) -> DomRoot<Self> {
-        Self::new(global, proto, init.highWaterMark)
+        Self::new(global, proto, init.highWaterMark, can_gc)
     }
     /// <https://streams.spec.whatwg.org/#blqs-high-water-mark>
     fn HighWaterMark(&self) -> f64 {
