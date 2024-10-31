@@ -33,7 +33,7 @@ use ipc_channel::router::ROUTER;
 use net::cookie::ServoCookie;
 use net::cookie_storage::CookieStorage;
 use net::fetch::methods::{self};
-use net::http_loader::determine_requests_referrer;
+use net::http_loader::{determine_requests_referrer, serialize_origin};
 use net::resource_thread::AuthCacheEntry;
 use net::test::{replace_host_table, DECODER_BUFFER_SIZE};
 use net_traits::http_status::HttpStatus;
@@ -45,6 +45,7 @@ use net_traits::response::{Response, ResponseBody};
 use net_traits::{CookieSource, FetchTaskTarget, NetworkError, ReferrerPolicy};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use tokio_test::block_on;
+use url::Url;
 
 use crate::{fetch, fetch_with_context, make_server, new_fetch_context};
 
@@ -1456,4 +1457,25 @@ fn test_fetch_compressed_response_update_count() {
     const EXPECTED_UPDATE_COUNT: usize =
         (DATA_DECOMPRESSED_LEN + DECODER_BUFFER_SIZE - 1) / DECODER_BUFFER_SIZE;
     assert_eq!(response_update_count, EXPECTED_UPDATE_COUNT);
+}
+
+#[test]
+fn test_origin_serialization_compatability() {
+    let ensure_serialiations_match = |url_string| {
+        let url = Url::parse(url_string).unwrap();
+        let origin = ImmutableOrigin::new(url.origin());
+        let serialized = format!("{}", serialize_origin(&origin));
+        assert_eq!(serialized, origin.ascii_serialization());
+    };
+
+    ensure_serialiations_match("https://example.com");
+    ensure_serialiations_match("https://example.com:443");
+
+    ensure_serialiations_match("http://example.com");
+    ensure_serialiations_match("http://example.com:80");
+
+    ensure_serialiations_match("https://example.com:1234");
+    ensure_serialiations_match("http://example.com:1234");
+
+    ensure_serialiations_match("data:,dataurltexta");
 }
