@@ -57,6 +57,7 @@ class JobConfig(object):
     wpt_layout: Layout = Layout.none
     profile: str = "release"
     unit_tests: bool = False
+    bencher: bool = False
     wpt_args: str = ""
     # These are the fields that must match in between two JobConfigs for them to be able to be
     # merged. If you modify any of the fields above, make sure to update this line as well.
@@ -74,6 +75,7 @@ class JobConfig(object):
         # to join "Linux" and "Linux WPT" into "Linux WPT"
         if len(other.name) > len(self.name):
             self.name = other.name
+        self.bencher |= other.bencher
         return True
 
 
@@ -82,6 +84,8 @@ def handle_preset(s: str) -> Optional[JobConfig]:
 
     if s == "linux":
         return JobConfig("Linux", Workflow.LINUX, unit_tests=True)
+    elif s in ["perf", "linux-perf", "bencher"]:
+        return JobConfig("Linux perf", Workflow.LINUX, bencher=True)
     elif s in ["mac", "macos"]:
         return JobConfig("MacOS", Workflow.MACOS, unit_tests=True)
     elif s in ["win", "windows"]:
@@ -175,6 +179,7 @@ class TestParser(unittest.TestCase):
         self.assertDictEqual(json.loads(Config("linux fail-fast").to_json()),
                              {'fail_fast': True,
                               'matrix': [{
+                                  'bencher': False,
                                   'name': 'Linux',
                                   'profile': 'release',
                                   'unit_tests': True,
@@ -188,6 +193,7 @@ class TestParser(unittest.TestCase):
         self.assertDictEqual(json.loads(Config("").to_json()),
                              {"fail_fast": False, "matrix": [
                               {
+                                  'bencher': False,
                                   "name": "Linux WPT",
                                   "workflow": "linux",
                                   "wpt_layout": "2020",
@@ -196,6 +202,7 @@ class TestParser(unittest.TestCase):
                                   "wpt_args": ""
                               },
                               {
+                                  'bencher': False,
                                   "name": "MacOS",
                                   "workflow": "macos",
                                   "wpt_layout": "none",
@@ -204,6 +211,7 @@ class TestParser(unittest.TestCase):
                                   "wpt_args": ""
                               },
                               {
+                                  'bencher': False,
                                   "name": "Windows",
                                   "workflow": "windows",
                                   "wpt_layout": "none",
@@ -212,6 +220,7 @@ class TestParser(unittest.TestCase):
                                   "wpt_args": ""
                               },
                               {
+                                  'bencher': False,
                                   "name": "Android",
                                   "workflow": "android",
                                   "wpt_layout": "none",
@@ -220,6 +229,7 @@ class TestParser(unittest.TestCase):
                                   "wpt_args": ""
                               },
                               {
+                                  'bencher': False,
                                   "name": "OpenHarmony",
                                   "workflow": "ohos",
                                   "wpt_layout": "none",
@@ -228,6 +238,7 @@ class TestParser(unittest.TestCase):
                                   "wpt_args": ""
                               },
                               {
+                                  'bencher': False,
                                   "name": "Lint",
                                   "workflow": "lint",
                                   "wpt_layout": "none",
@@ -240,6 +251,7 @@ class TestParser(unittest.TestCase):
         self.assertDictEqual(json.loads(Config("wpt-2020 wpt-2013").to_json()),
                              {'fail_fast': False,
                               'matrix': [{
+                                  'bencher': False,
                                   'name': 'Linux WPT',
                                   'profile': 'release',
                                   'unit_tests': False,
