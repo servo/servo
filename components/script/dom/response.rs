@@ -54,10 +54,11 @@ pub struct Response {
 
 #[allow(non_snake_case)]
 impl Response {
-    pub fn new_inherited(global: &GlobalScope) -> Response {
+    pub fn new_inherited(global: &GlobalScope, can_gc: CanGc) -> Response {
         let stream = ReadableStream::new_with_external_underlying_source(
             global,
             UnderlyingSourceType::FetchResponse,
+            can_gc,
         );
         Response {
             reflector_: Reflector::new(),
@@ -83,7 +84,7 @@ impl Response {
         can_gc: CanGc,
     ) -> DomRoot<Response> {
         reflect_dom_object_with_proto(
-            Box::new(Response::new_inherited(global)),
+            Box::new(Response::new_inherited(global, can_gc)),
             global,
             proto,
             can_gc,
@@ -445,12 +446,12 @@ impl Response {
         *self.stream_consumer.borrow_mut() = sc;
     }
 
-    pub fn stream_chunk(&self, chunk: Vec<u8>, _can_gc: CanGc) {
+    pub fn stream_chunk(&self, chunk: Vec<u8>, can_gc: CanGc) {
         // Note, are these two actually mutually exclusive?
         if let Some(stream_consumer) = self.stream_consumer.borrow().as_ref() {
             stream_consumer.consume_chunk(chunk.as_slice());
         } else if let Some(body) = self.body_stream.get() {
-            body.enqueue_native(chunk);
+            body.enqueue_native(chunk, can_gc);
         }
     }
 

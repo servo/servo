@@ -329,7 +329,7 @@ impl ReadableStreamDefaultReaderMethods for ReadableStreamDefaultReader {
 
     /// <https://streams.spec.whatwg.org/#default-reader-read>
     #[allow(unsafe_code)]
-    fn Read(&self) -> Rc<Promise> {
+    fn Read(&self, can_gc: CanGc) -> Rc<Promise> {
         // step 1
         if self.stream.get().is_none() {
             let cx = GlobalScope::get_cx();
@@ -342,7 +342,7 @@ impl ReadableStreamDefaultReaderMethods for ReadableStreamDefaultReader {
             return Promise::new_rejected(&self.global(), cx, rval.handle()).unwrap();
         }
         // step 2
-        let promise = Promise::new(&self.reflector_.global(), CanGc::note());
+        let promise = Promise::new(&self.reflector_.global(), can_gc);
 
         // step 3
         let read_request = ReadRequest::Read(promise.clone());
@@ -372,8 +372,8 @@ impl ReadableStreamDefaultReaderMethods for ReadableStreamDefaultReader {
     }
 
     /// <https://streams.spec.whatwg.org/#generic-reader-cancel>
-    fn Cancel(&self, _cx: SafeJSContext, reason: SafeHandleValue) -> Rc<Promise> {
-        let promise = Promise::new(&self.reflector_.global(), CanGc::note());
+    fn Cancel(&self, _cx: SafeJSContext, reason: SafeHandleValue, can_gc: CanGc) -> Rc<Promise> {
+        let promise = Promise::new(&self.reflector_.global(), can_gc);
 
         if self.stream.get().is_none() {
             promise.reject_error(Error::Type("stream is undefined".to_owned()));

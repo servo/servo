@@ -242,7 +242,7 @@ impl TransmitBodyConnectHandler {
                 let global = rooted_stream.global();
 
                 // Step 4, the result of reading a chunk from body’s stream with reader.
-                let promise = rooted_stream.read_a_chunk();
+                let promise = rooted_stream.read_a_chunk(CanGc::note());
 
                 // Step 5, the parallel steps waiting for and handling the result of the read promise,
                 // are a combination of the promise native handler here,
@@ -689,7 +689,7 @@ impl Callback for ConsumeBodyPromiseHandler {
             let global = stream.global();
 
             // Run the above step again.
-            let read_promise = stream.read_a_chunk();
+            let read_promise = stream.read_a_chunk(can_gc);
 
             let promise_handler = Box::new(ConsumeBodyPromiseHandler {
                 result_promise: self.result_promise.clone(),
@@ -771,7 +771,7 @@ fn consume_body_with_promise<T: BodyMixin + DomObject>(
 
     // Step 1 of
     // https://fetch.spec.whatwg.org/#concept-read-all-bytes-from-readablestream
-    let read_promise = stream.read_a_chunk();
+    let read_promise = stream.read_a_chunk(can_gc);
 
     let promise_handler = Box::new(ConsumeBodyPromiseHandler {
         result_promise: promise.clone(),
