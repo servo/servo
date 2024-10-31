@@ -7,7 +7,6 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::jsapi::{IsPromiseObject, JSObject};
-use js::jsval::UndefinedValue;
 use js::rust::IntoHandle;
 
 use crate::dom::bindings::callback::ExceptionHandling;
@@ -17,8 +16,6 @@ use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, 
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
-use crate::dom::readablestreamdefaultcontroller::ReadableStreamDefaultController;
-use crate::js::conversions::ToJSValConvertible;
 use crate::script_runtime::CanGc;
 
 /// <https://streams.spec.whatwg.org/#underlying-source-api>
