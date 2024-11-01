@@ -528,24 +528,26 @@ impl ReadableStreamDefaultController {
         };
         value_with_size.value.set(*object);
 
-        // Let enqueueResult be EnqueueValueWithSize(controller, chunk, chunkSize).
-        let mut queue = self.queue.borrow_mut();
-        if let Err(error) = queue.enqueue_value_with_size(EnqueuedValue::Js(value_with_size)) {
-            // If enqueueResult is an abrupt completion,
+        {
+            // Let enqueueResult be EnqueueValueWithSize(controller, chunk, chunkSize).
+            let mut queue = self.queue.borrow_mut();
+            if let Err(error) = queue.enqueue_value_with_size(EnqueuedValue::Js(value_with_size)) {
+                // If enqueueResult is an abrupt completion,
 
-            rooted!(in(*cx) let mut rval = UndefinedValue());
-            // TODO: check if this is the right globalscope.
-            unsafe {
-                error
-                    .clone()
-                    .to_jsval(*cx, &self.global(), rval.handle_mut())
-            };
+                rooted!(in(*cx) let mut rval = UndefinedValue());
+                // TODO: check if this is the right globalscope.
+                unsafe {
+                    error
+                        .clone()
+                        .to_jsval(*cx, &self.global(), rval.handle_mut())
+                };
 
-            // Perform ! ReadableStreamDefaultControllerError(controller, enqueueResult.[[Value]]).
-            self.error(rval.handle());
+                // Perform ! ReadableStreamDefaultControllerError(controller, enqueueResult.[[Value]]).
+                self.error(rval.handle());
 
-            // Return enqueueResult.
-            return Err(error);
+                // Return enqueueResult.
+                return Err(error);
+            }
         }
 
         // Perform ! ReadableStreamDefaultControllerCallPullIfNeeded(controller).
