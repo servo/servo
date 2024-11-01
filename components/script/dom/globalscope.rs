@@ -3472,9 +3472,10 @@ impl GlobalScope {
     }
 
     pub(crate) fn set_byte_length_queuing_strategy_size(&self, function: Rc<Function>) {
-        if let Err(_) = self
+        if self
             .byte_length_queuing_strategy_size_function
             .set(function)
+            .is_err()
         {
             warn!("byte length queuing strategy size function is set twice.");
         };
@@ -3483,19 +3484,21 @@ impl GlobalScope {
     pub(crate) fn get_byte_length_queuing_strategy_size(&self) -> Option<Rc<Function>> {
         self.byte_length_queuing_strategy_size_function
             .get()
-            .map(|s| s.clone())
+            .cloned()
     }
 
     pub(crate) fn set_count_queuing_strategy_size(&self, function: Rc<Function>) {
-        if let Err(_) = self.count_queuing_strategy_size_function.set(function) {
+        if self
+            .count_queuing_strategy_size_function
+            .set(function)
+            .is_err()
+        {
             warn!("count queuing strategy size function is set twice.");
         };
     }
 
     pub(crate) fn get_count_queuing_strategy_size(&self) -> Option<Rc<Function>> {
-        self.count_queuing_strategy_size_function
-            .get()
-            .map(|s| s.clone())
+        self.count_queuing_strategy_size_function.get().cloned()
     }
 }
 
