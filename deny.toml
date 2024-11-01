@@ -157,6 +157,10 @@ skip = [
     # wgpu depends on thiserror 2, while rest is still on 1
     "thiserror",
     "thiserror-impl",
+
+    # required for testing
+    "image",
+    "arboard",
 ]
 
 # github.com organizations to allow git sources for
