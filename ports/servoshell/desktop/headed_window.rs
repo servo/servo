@@ -99,9 +99,9 @@ impl Window {
             || (monitor.size(), monitor.scale_factor()),
             |size| (PhysicalSize::new(size.width, size.height), 1.0),
         );
-        let screen_scale: Scale<f64, DevicePixel, DeviceIndependentPixel> =
+        let screen_scale: Scale<f64, DeviceIndependentPixel, DevicePixel> =
             Scale::new(screen_scale);
-        let screen_size = (winit_size_to_euclid_size(screen_size).to_f64() * screen_scale).to_u32();
+        let screen_size = (winit_size_to_euclid_size(screen_size).to_f64() / screen_scale).to_u32();
 
         // Initialize surfman
         let display_handle = winit_window
@@ -534,9 +534,9 @@ impl WindowMethods for Window {
         let window_origin = self.winit_window.outer_position().unwrap_or_default();
         let window_origin = winit_position_to_euclid_point(window_origin).to_i32();
         let window_rect = DeviceIntRect::from_origin_and_size(window_origin, window_size);
-        let window_scale: Scale<f64, DevicePixel, DeviceIndependentPixel> =
+        let window_scale: Scale<f64, DeviceIndependentPixel, DevicePixel> =
             Scale::new(self.winit_window.scale_factor());
-        let window_rect = (window_rect.to_f64() * window_scale).to_i32();
+        let window_rect = (window_rect.to_f64() / window_scale).to_i32();
 
         let viewport_origin = DeviceIntPoint::zero(); // bottom left
         let viewport_size = winit_size_to_euclid_size(self.winit_window.inner_size()).to_f32();

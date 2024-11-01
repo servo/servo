@@ -23,6 +23,7 @@ use servo::keyboard_types::{Key, KeyState, KeyboardEvent};
 use servo::script_traits::{
     MediaSessionActionType, MouseButton, TouchEventType, TouchId, TraversalDirection,
 };
+use servo::servo_geometry::DeviceIndependentPixel;
 use servo::style_traits::DevicePixel;
 use servo::webrender_api::units::DeviceIntRect;
 use servo::webrender_api::ScrollLocation;
@@ -56,7 +57,7 @@ impl Coordinates {
 pub(super) struct ServoWindowCallbacks {
     host_callbacks: Box<dyn HostTrait>,
     coordinates: RefCell<Coordinates>,
-    density: f32,
+    hidpi_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
     rendering_context: RenderingContext,
 }
 
@@ -64,13 +65,13 @@ impl ServoWindowCallbacks {
     pub(super) fn new(
         host_callbacks: Box<dyn HostTrait>,
         coordinates: RefCell<Coordinates>,
-        density: f32,
+        hidpi_factor: f32,
         rendering_context: RenderingContext,
     ) -> Self {
         Self {
             host_callbacks,
             coordinates,
-            density,
+            hidpi_factor: Scale::new(hidpi_factor),
             rendering_context,
         }
     }
@@ -690,14 +691,14 @@ impl EmbedderMethods for ServoEmbedderCallbacks {
 impl WindowMethods for ServoWindowCallbacks {
     fn get_coordinates(&self) -> EmbedderCoordinates {
         let coords = self.coordinates.borrow();
-        let screen_size = (coords.viewport.size.to_f32() * Scale::new(self.density)).to_i32();
+        let screen_size = (coords.viewport.size.to_f32() / self.hidpi_factor).to_i32();
         EmbedderCoordinates {
             viewport: coords.viewport.to_box2d(),
             framebuffer: coords.framebuffer,
             window_rect: Box2D::from_origin_and_size(Point2D::zero(), screen_size),
             screen_size,
             available_screen_size: screen_size,
-            hidpi_factor: Scale::new(self.density),
+            hidpi_factor: self.hidpi_factor,
         }
     }
 
