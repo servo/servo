@@ -328,11 +328,14 @@ impl ReadableStreamDefaultController {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-should-call-pull>
-    fn should_pull(&self) -> bool {
-        let stream = self
-            .stream
-            .get()
-            .expect("Controller must have a stream when the should pull algo is called into.");
+    fn should_call_pull(&self) -> bool {
+        // Let stream be controller.[[stream]].
+        // Note: the spec does not assert that stream is not undefined here,
+        // so we return false if it is.
+        let Some(stream) = self.stream.get() else {
+            debug!("`should_call_pull` called on a controller without a stream.");
+            return false;
+        };
 
         // If ! ReadableStreamDefaultControllerCanCloseOrEnqueue(controller) is false, return.
         if !self.can_close_or_enqueue() {
@@ -363,7 +366,7 @@ impl ReadableStreamDefaultController {
 
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-call-pull-if-needed>
     fn call_pull_if_needed(&self, can_gc: CanGc) {
-        if !self.should_pull() {
+        if !self.should_call_pull() {
             return;
         }
 
