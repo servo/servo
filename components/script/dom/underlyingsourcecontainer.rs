@@ -38,12 +38,12 @@ pub enum UnderlyingSourceType {
 impl UnderlyingSourceType {
     /// Is the source backed by a Rust native source?
     pub fn is_native(&self) -> bool {
-        match self {
+        matches!(
+            self,
             UnderlyingSourceType::Memory(_) |
-            UnderlyingSourceType::Blob(_) |
-            UnderlyingSourceType::FetchResponse => true,
-            _ => false,
-        }
+                UnderlyingSourceType::Blob(_) |
+                UnderlyingSourceType::FetchResponse
+        )
     }
 
     /// Does the source have all data in memory?
@@ -65,7 +65,7 @@ impl UnderlyingSourceContainer {
     fn new_inherited(underlying_source_type: UnderlyingSourceType) -> UnderlyingSourceContainer {
         UnderlyingSourceContainer {
             reflector_: Reflector::new(),
-            underlying_source_type: underlying_source_type,
+            underlying_source_type,
         }
     }
 
@@ -143,8 +143,7 @@ impl UnderlyingSourceContainer {
                     let promise = Promise::new_with_js_promise(result_object.handle(), cx);
                     promise
                 } else {
-                    let global = self.global();
-                    let promise = Promise::new(&*global, can_gc);
+                    let promise = Promise::new(&self.global(), can_gc);
                     promise.resolve_native(&result);
                     promise
                 };
