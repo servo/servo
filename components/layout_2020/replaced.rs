@@ -447,19 +447,13 @@ impl ReplacedContent {
         style: &ComputedValues,
         content_box_sizes_and_pbm: &ContentBoxSizesAndPBMDeprecated,
     ) -> LogicalVec2<Au> {
-        // We need to clamp to zero here to obtain the proper aspect ratio when box-sizing
-        // is border-box and the inner box size would otherwise be negative.
-        let content_box_size = content_box_sizes_and_pbm
-            .content_box_size
-            .map(|value| value.map(|value| value.max(Au::zero())));
-        let content_min_box_size = content_box_sizes_and_pbm
-            .content_min_box_size
-            .auto_is(Au::zero);
         self.used_size_as_if_inline_element_from_content_box_sizes(
             containing_block,
             style,
-            content_box_size,
-            content_min_box_size,
+            content_box_sizes_and_pbm.content_box_size,
+            content_box_sizes_and_pbm
+                .content_min_box_size
+                .auto_is(Au::zero),
             content_box_sizes_and_pbm.content_max_box_size,
         )
     }
