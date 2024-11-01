@@ -87,15 +87,8 @@ impl XRInputSourcesChangeEvent {
         }
         let _ac = enter_realm(global);
         let cx = GlobalScope::get_cx();
-        unsafe {
-            changeevent
-                .added
-                .set(to_frozen_array(added, JSContext::from_ptr(*cx)));
-            changeevent
-                .removed
-                .set(to_frozen_array(removed, JSContext::from_ptr(*cx)));
-        }
-
+        changeevent.added.set(to_frozen_array(added, cx));
+        changeevent.removed.set(to_frozen_array(removed, cx));
         changeevent
     }
 }
