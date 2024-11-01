@@ -217,14 +217,28 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a2041f1943049c7978768d84e6d0fd95de98b76d6c4727b09e78ec253d29fa58"
 dependencies = [
  "clipboard-win",
- "core-graphics",
- "image",
  "log",
  "objc",
  "objc-foundation",
  "objc_id",
  "parking_lot",
  "thiserror",
+ "x11rb",
+]
+
+[[package]]
+name = "arboard"
+version = "3.4.1"
+source = "git+https://github.com/Gae24/arboard?branch=get-html#52ce71413ad8ecbf15856ab60b765c3081b4e59e"
+dependencies = [
+ "clipboard-win",
+ "core-graphics",
+ "image 0.25.4",
+ "log",
+ "objc2",
+ "objc2-app-kit",
+ "objc2-foundation",
+ "parking_lot",
  "windows-sys 0.48.0",
  "x11rb",
 ]
@@ -639,6 +653,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1fd0f2584146f6f2ef48085050886acf353beff7305ebd1ae69500e27c67f64b"
 
 [[package]]
+name = "byteorder-lite"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8f1fe948ff07f4bd06c30984e69f5b4899c516a3ef74f34df92a2df2ab535495"
+
+[[package]]
 name = "bytes"
 version = "1.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -981,7 +1001,7 @@ dependencies = [
  "euclid",
  "fnv",
  "gleam",
- "image",
+ "image 0.24.9",
  "ipc-channel",
  "keyboard-types",
  "libc",
@@ -1703,7 +1723,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1e84c2919cd9f3a38a91e8f84ac6a245c19251fd95226ed9fae61d5ea564fce3"
 dependencies = [
  "ahash",
- "arboard",
+ "arboard 3.3.2",
  "egui",
  "log",
  "profiling",
@@ -3613,6 +3633,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "image"
+version = "0.25.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bc144d44a31d753b02ce64093d532f55ff8dc4ebf2ffb8a63c0dda691385acae"
+dependencies = [
+ "bytemuck",
+ "byteorder-lite",
+ "num-traits",
+ "png",
+ "tiff",
+]
+
+[[package]]
 name = "imsz"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5392,7 +5425,7 @@ version = "0.0.1"
 dependencies = [
  "criterion",
  "euclid",
- "image",
+ "image 0.24.9",
  "ipc-channel",
  "log",
  "malloc_size_of_derive",
@@ -6001,7 +6034,7 @@ dependencies = [
  "html5ever",
  "http",
  "hyper_serde",
- "image",
+ "image 0.24.9",
  "indexmap",
  "ipc-channel",
  "itertools 0.13.0",
@@ -6580,7 +6613,7 @@ name = "servoshell"
 version = "0.0.1"
 dependencies = [
  "android_logger",
- "arboard",
+ "arboard 3.4.1",
  "backtrace",
  "cc",
  "cfg-if",
@@ -6597,7 +6630,7 @@ dependencies = [
  "hilog",
  "hitrace",
  "http",
- "image",
+ "image 0.24.9",
  "ipc-channel",
  "jni",
  "keyboard-types",
@@ -8157,7 +8190,7 @@ dependencies = [
  "crossbeam-channel",
  "euclid",
  "http",
- "image",
+ "image 0.24.9",
  "ipc-channel",
  "keyboard-types",
  "log",
