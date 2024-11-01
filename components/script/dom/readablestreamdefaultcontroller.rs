@@ -135,6 +135,7 @@ pub struct ValueWithSize {
 #[allow(crown::unrooted_must_root)]
 pub enum EnqueuedValue {
     /// A value enqueued from Rust.
+    #[allow(dead_code)]
     Native(Rc<Box<[u8]>>),
     /// A Js value.
     Js(ValueWithSize),
@@ -295,12 +296,12 @@ impl ReadableStreamDefaultController {
                 controller: Trusted::new(&*rooted_default_controller),
             });
             let handler = PromiseNativeHandler::new(
-                &global,
+                global,
                 Some(fulfillment_handler),
                 Some(rejection_handler),
             );
 
-            let realm = enter_realm(&*global);
+            let realm = enter_realm(global);
             let comp = InRealm::Entered(&realm);
             if let Some(promise) = underlying_source.call_start_algorithm(
                 Controller::ReadableStreamDefaultController(rooted_default_controller.clone()),
@@ -308,7 +309,7 @@ impl ReadableStreamDefaultController {
             ) {
                 promise.append_native_handler(&handler, comp, can_gc);
             } else {
-                let promise = Promise::new(&*global, can_gc);
+                let promise = Promise::new(global, can_gc);
                 promise.append_native_handler(&handler, comp, can_gc);
                 promise.resolve_native(&());
             }
@@ -403,7 +404,7 @@ impl ReadableStreamDefaultController {
         if let Some(promise) = underlying_source.call_pull_algorithm(controller) {
             promise.append_native_handler(&handler, comp, can_gc);
         } else {
-            let promise = Promise::new(&*global, can_gc);
+            let promise = Promise::new(&global, can_gc);
             promise.append_native_handler(&handler, comp, can_gc);
             promise.resolve_native(&());
         }
@@ -456,8 +457,7 @@ impl ReadableStreamDefaultController {
 
     /// <https://streams.spec.whatwg.org/#ref-for-abstract-opdef-readablestreamcontroller-releasesteps>
     pub fn perform_release_steps(&self) {
-        // step 1
-        return;
+        // step 1 - Return.
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-enqueue>
@@ -502,7 +502,7 @@ impl ReadableStreamDefaultController {
                     unsafe {
                         error
                             .clone()
-                            .to_jsval(*cx, &*self.global(), rval.handle_mut())
+                            .to_jsval(*cx, &self.global(), rval.handle_mut())
                     };
 
                     // Perform ! ReadableStreamDefaultControllerError(controller, result.[[Value]]).
@@ -535,7 +535,7 @@ impl ReadableStreamDefaultController {
             unsafe {
                 error
                     .clone()
-                    .to_jsval(*cx, &*self.global(), rval.handle_mut())
+                    .to_jsval(*cx, &self.global(), rval.handle_mut())
             };
 
             // Perform ! ReadableStreamDefaultControllerError(controller, enqueueResult.[[Value]]).
@@ -558,7 +558,7 @@ impl ReadableStreamDefaultController {
         let cx = GlobalScope::get_cx();
         rooted!(in(*cx) let mut rval = UndefinedValue());
         unsafe { chunk.to_jsval(*cx, rval.handle_mut()) };
-        self.enqueue(cx, rval.handle(), can_gc);
+        let _ = self.enqueue(cx, rval.handle(), can_gc);
     }
 
     /// Does the stream have all data in memory?
@@ -571,9 +571,7 @@ impl ReadableStreamDefaultController {
 
     /// Return bytes synchronously if the stream has all data in memory.
     pub fn get_in_memory_bytes(&self) -> Option<Vec<u8>> {
-        let Some(underlying_source) = self.underlying_source.get() else {
-            return None;
-        };
+        let underlying_source = self.underlying_source.get()?;
         if underlying_source.in_memory() {
             return Some(self.queue.borrow().get_in_memory_bytes());
         }
@@ -615,9 +613,7 @@ impl ReadableStreamDefaultController {
 
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-get-desired-size>
     fn get_desired_size(&self) -> Option<f64> {
-        let Some(stream) = self.stream.get() else {
-            return None;
-        };
+        let stream = self.stream.get()?;
 
         // If state is "errored", return null.
         if stream.is_errored() {

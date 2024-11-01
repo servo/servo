@@ -68,6 +68,7 @@ pub enum ControllerType {
 #[crown::unrooted_must_root_lint::must_root]
 pub enum ReaderType {
     /// <https://streams.spec.whatwg.org/#readablestreambyobreader>
+    #[allow(clippy::upper_case_acronyms)]
     BYOB(MutNullableDom<ReadableStreamBYOBReader>),
     /// <https://streams.spec.whatwg.org/#readablestreamdefaultreader>
     Default(MutNullableDom<ReadableStreamDefaultReader>),
@@ -120,7 +121,7 @@ impl ReadableStream {
             },
             stored_error: Heap::default(),
             disturbed: Default::default(),
-            reader: reader,
+            reader,
             state: Cell::new(ReadableStreamState::Readable),
         }
     }
@@ -269,16 +270,16 @@ impl ReadableStream {
 
     /// <https://streams.spec.whatwg.org/#readable-stream-error>
     /// Note: in other use cases this call happens via the controller.
-    pub fn error_native(&self, _error: Error) {
-        match self.controller {
-            ControllerType::Default(ref controller) => {
-                // TODO: use Error.
-                let cx = GlobalScope::get_cx();
-                rooted!(in(*cx) let mut rval = UndefinedValue());
-                controller.error(rval.handle());
-            },
-            _ => unreachable!("Native closing a stream with a non-default controller"),
-        }
+    #[allow(unsafe_code)]
+    pub fn error_native(&self, error: Error) {
+        let cx = GlobalScope::get_cx();
+        rooted!(in(*cx) let mut rval = UndefinedValue());
+        unsafe {
+            error
+                .clone()
+                .to_jsval(*cx, &self.global(), rval.handle_mut())
+        };
+        self.error(rval.handle());
     }
 
     /// Returns a boolean reflecting whether the stream has all data in memory.
@@ -304,7 +305,7 @@ impl ReadableStream {
     /// <https://streams.spec.whatwg.org/#acquire-readable-stream-reader>
     pub fn start_reading(&self) -> Result<DomRoot<ReadableStreamDefaultReader>, ()> {
         // step 1 & 2 & 3
-        ReadableStreamDefaultReader::set_up(&*self.global(), self, CanGc::note()).map_err(|_| ())
+        ReadableStreamDefaultReader::set_up(&self.global(), self, CanGc::note()).map_err(|_| ())
     }
 
     /// Native call to
@@ -387,23 +388,29 @@ impl ReadableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-fulfill-read-request>
-    #[allow(unsafe_code)]
     pub fn fulfill_read_request(&self, chunk: SafeHandleValue, done: bool) {
+        // step 1 - Assert: ! ReadableStreamHasDefaultReader(stream) is true.
         assert!(self.has_default_reader());
         match self.reader {
             ReaderType::Default(ref reader) => {
+                // step 2 - Let reader be stream.[[reader]].
                 let reader = reader
                     .get()
                     .expect("Stream must have a reader when a read request is fulfilled.");
+                // step 3 - Assert: reader.[[readRequests]] is not empty.
+                assert_ne!(reader.get_num_read_requests(), 0);
+                // step 4 & 5
+                // Let readRequest be reader.[[readRequests]][0]. & Remove readRequest from reader.[[readRequests]].
                 let request = reader.remove_read_request();
-                if !done {
-                    let cx = GlobalScope::get_cx();
-                    rooted!(in(*cx) let mut rval = UndefinedValue());
+
+                if done {
+                    // step 6 - If done is true, perform readRequest’s close steps.
+                    request.close_steps();
+                } else {
+                    // step 7 - Otherwise, perform readRequest’s chunk steps, given chunk.
                     let result = RootedTraceableBox::new(Heap::default());
                     result.set(*chunk);
                     request.chunk_steps(result);
-                } else {
-                    request.close_steps();
                 }
             },
             _ => unreachable!(
@@ -536,8 +543,7 @@ impl ReadableStreamMethods for ReadableStream {
     fn Cancel(&self, _cx: SafeJSContext, reason: SafeHandleValue, can_gc: CanGc) -> Rc<Promise> {
         let promise = Promise::new(&self.reflector_.global(), can_gc);
         if !self.is_locked() {
-            // TODO: reject with a TypeError exception.
-            promise.reject_native(&());
+            promise.reject_error(Error::Type("stream is not locked".to_owned()));
         } else {
             self.cancel(&promise, reason);
         }
@@ -556,13 +562,13 @@ impl ReadableStreamMethods for ReadableStream {
         match self.reader {
             ReaderType::Default(ref reader) => {
                 reader.set(Some(&*ReadableStreamDefaultReader::set_up(
-                    &*self.global(),
+                    &self.global(),
                     self,
                     can_gc,
                 )?));
-                return Ok(ReadableStreamReader::ReadableStreamDefaultReader(
+                Ok(ReadableStreamReader::ReadableStreamDefaultReader(
                     reader.get().unwrap(),
-                ));
+                ))
             },
             _ => todo!(),
         }
