@@ -105,7 +105,7 @@ webxr = { workspace = true, optional = true }
 [target.'cfg(not(any(target_os = "android", target_env = "ohos")))'.dependencies]
 # For optional feature servo_allocator/use-system-allocator
 servo_allocator = { path = "../../components/allocator" }
-arboard = { version = "3" }
+arboard = { git = "https://github.com/Gae24/arboard", branch = "get-html" }
 egui = { version = "0.29.1" }
 egui_glow = { version = "0.29.1", features = ["winit"] }
 egui-winit = { version = "0.29.1", default-features = false, features = ["clipboard", "wayland"] }
