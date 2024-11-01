@@ -133,9 +133,6 @@ impl ReadableStreamDefaultReader {
         stream: &ReadableStream,
         can_gc: CanGc,
     ) -> DomRoot<ReadableStreamDefaultReader> {
-        // step 1 & 2
-        let stream = stream;
-
         let promise;
         if stream.is_readable() {
             // step 3
@@ -226,7 +223,7 @@ impl ReadableStreamDefaultReader {
                 unsafe {
                     Error::Type("Cannot release lock due to stream state.".to_owned())
                         .clone()
-                        .to_jsval(*cx, &*self.global(), rval.handle_mut())
+                        .to_jsval(*cx, &self.global(), rval.handle_mut())
                 };
 
                 *self.closed_promise.borrow_mut() =
@@ -256,7 +253,7 @@ impl ReadableStreamDefaultReader {
         unsafe {
             Error::Type("Reader is released".to_owned())
                 .clone()
-                .to_jsval(*cx, &*self.global(), rval.handle_mut())
+                .to_jsval(*cx, &self.global(), rval.handle_mut())
         };
 
         // step 3
@@ -337,7 +334,7 @@ impl ReadableStreamDefaultReaderMethods for ReadableStreamDefaultReader {
             unsafe {
                 Error::Type("stream is undefined".to_owned())
                     .clone()
-                    .to_jsval(*cx, &*self.global(), rval.handle_mut())
+                    .to_jsval(*cx, &self.global(), rval.handle_mut())
             };
             return Promise::new_rejected(&self.global(), cx, rval.handle()).unwrap();
         }
@@ -357,13 +354,11 @@ impl ReadableStreamDefaultReaderMethods for ReadableStreamDefaultReader {
     /// <https://streams.spec.whatwg.org/#default-reader-release-lock>
     #[allow(unsafe_code)]
     fn ReleaseLock(&self) {
-        if self.stream.get().is_none() {
-            // step 1
-            return;
-        } else {
-            // step 2
+        if self.stream.get().is_some() {
+            // step 2 - Perform ! ReadableStreamDefaultReaderRelease(this).
             self.release();
         }
+        // step 1 - If this.[[stream]] is undefined, return.
     }
 
     /// <https://streams.spec.whatwg.org/#generic-reader-closed>
