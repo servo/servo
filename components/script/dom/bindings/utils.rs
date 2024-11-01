@@ -116,7 +116,7 @@ impl Clone for DOMJSClass {
 }
 unsafe impl Sync for DOMJSClass {}
 
-/// Returns a JSVal representing a frozen array of ports
+/// Returns a JSVal representing the frozen JavaScript array
 pub fn to_frozen_array<T: ToJSValConvertible>(convertibles: &[T], cx: SafeJSContext) -> JSVal {
     rooted!(in(*cx) let mut ports = UndefinedValue());
     unsafe { convertibles.to_jsval(*cx, ports.handle_mut()) };

@@ -3,9 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use js::conversions::ToJSValConvertible;
 use js::jsapi::Heap;
-use js::jsval::{JSVal, UndefinedValue};
+use js::jsval::JSVal;
 use js::rust::HandleObject;
 use servo_atoms::Atom;
 
@@ -17,6 +16,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::utils::to_frozen_array;
 use crate::dom::event::Event;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
@@ -88,12 +88,12 @@ impl XRInputSourcesChangeEvent {
         let _ac = enter_realm(global);
         let cx = GlobalScope::get_cx();
         unsafe {
-            rooted!(in(*cx) let mut added_val = UndefinedValue());
-            added.to_jsval(*cx, added_val.handle_mut());
-            changeevent.added.set(added_val.get());
-            rooted!(in(*cx) let mut removed_val = UndefinedValue());
-            removed.to_jsval(*cx, removed_val.handle_mut());
-            changeevent.removed.set(removed_val.get());
+            changeevent
+                .added
+                .set(to_frozen_array(added, JSContext::from_ptr(*cx)));
+            changeevent
+                .removed
+                .set(to_frozen_array(removed, JSContext::from_ptr(*cx)));
         }
 
         changeevent
