@@ -205,9 +205,9 @@ pub fn unmultiply_inplace(pixels: &mut [u8]) {
         let mut r = rgba[0] as u32;
 
         if a > 0 {
-            r = r * 255 / a;
-            g = g * 255 / a;
-            b = b * 255 / a;
+            r = ((r << 8) - r) / a;
+            g = ((g << 8) - g) / a;
+            b = ((b << 8) - b) / a;
 
             rgba[2] = b as u8;
             rgba[1] = g as u8;
