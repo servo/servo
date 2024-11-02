@@ -11,8 +11,8 @@ use aes::cipher::{BlockDecryptMut, BlockEncryptMut, KeyIvInit, StreamCipher};
 use aes::{Aes128, Aes192, Aes256};
 use base64::prelude::*;
 use dom_struct::dom_struct;
-use js::conversions::{ConversionResult, ToJSValConvertible};
-use js::jsapi::{JSObject, Value};
+use js::conversions::ConversionResult;
+use js::jsapi::{JSObject, JS_NewObject};
 use js::jsval::ObjectValue;
 use js::rust::MutableHandleObject;
 use js::typedarray::ArrayBufferU8;
@@ -828,27 +828,26 @@ impl SubtleCrypto {
             _ => return Err(Error::NotSupported),
         };
 
-        let key_algorithm = AesKeyAlgorithm {
-            parent: KeyAlgorithm { name: name.clone() },
-            length: key_gen_params.length,
-        };
         let cx = GlobalScope::get_cx();
-        let crypto_key = unsafe {
-            rooted!(in(*cx) let mut algorithm: Value);
-            rooted!(in(*cx) let mut algorithm_object = ptr::null_mut::<JSObject>());
-            key_algorithm.to_jsval(*cx, algorithm.handle_mut());
-            algorithm_object.set(algorithm.to_object());
+        rooted!(in(*cx) let mut algorithm_object = unsafe {JS_NewObject(*cx, ptr::null()) });
+        assert!(!algorithm_object.is_null());
 
-            CryptoKey::new(
-                &self.global(),
-                KeyType::Secret,
-                extractable,
-                name,
-                algorithm_object.handle(),
-                usages,
-                handle,
-            )
-        };
+        AesKeyAlgorithm::from_name_and_size(
+            name.clone(),
+            key_gen_params.length,
+            algorithm_object.handle_mut(),
+            cx,
+        );
+
+        let crypto_key = CryptoKey::new(
+            &self.global(),
+            KeyType::Secret,
+            extractable,
+            name,
+            algorithm_object.handle(),
+            usages,
+            handle,
+        );
 
         Ok(crypto_key)
     }
@@ -883,28 +882,27 @@ impl SubtleCrypto {
             _ => return Err(Error::Data),
         };
 
-        let name = DOMString::from(alg_name);
-        let key_algorithm = AesKeyAlgorithm {
-            parent: KeyAlgorithm { name: name.clone() },
-            length: (data.len() * 8) as u16,
-        };
-        let cx = GlobalScope::get_cx();
-        let crypto_key = unsafe {
-            rooted!(in(*cx) let mut algorithm: Value);
-            rooted!(in(*cx) let mut algorithm_object = ptr::null_mut::<JSObject>());
-            key_algorithm.to_jsval(*cx, algorithm.handle_mut());
-            algorithm_object.set(algorithm.to_object());
+        let name = DOMString::from(alg_name.to_string());
 
-            CryptoKey::new(
-                &self.global(),
-                KeyType::Secret,
-                extractable,
-                name,
-                algorithm_object.handle(),
-                usages,
-                handle,
-            )
-        };
+        let cx = GlobalScope::get_cx();
+        rooted!(in(*cx) let mut algorithm_object = unsafe {JS_NewObject(*cx, ptr::null()) });
+        assert!(!algorithm_object.is_null());
+
+        AesKeyAlgorithm::from_name_and_size(
+            name.clone(),
+            (data.len() * 8) as u16,
+            algorithm_object.handle_mut(),
+            cx,
+        );
+        let crypto_key = CryptoKey::new(
+            &self.global(),
+            KeyType::Secret,
+            extractable,
+            name,
+            algorithm_object.handle(),
+            usages,
+            handle,
+        );
 
         Ok(crypto_key)
     }
@@ -971,4 +969,20 @@ fn data_to_jwk_params(alg: &str, size: &str, key: &[u8]) -> (DOMString, DOMStrin
     let mut data = BASE64_STANDARD.encode(key);
     data.retain(|c| c != '=');
     (jwk_alg, DOMString::from(data))
+}
+
+impl AesKeyAlgorithm {
+    /// Fill the object referenced by `out` with an [AesKeyAlgorithm]
+    /// of the specified name and size.
+    #[allow(unsafe_code)]
+    fn from_name_and_size(name: DOMString, size: u16, out: MutableHandleObject, cx: JSContext) {
+        let key_algorithm = Self {
+            parent: KeyAlgorithm { name: name.clone() },
+            length: size,
+        };
+
+        unsafe {
+            key_algorithm.to_jsobject(*cx, out);
+        }
+    }
 }
