@@ -16,7 +16,6 @@ use super::{ContainingBlockManager, Fragment, Tag};
 use crate::cell::ArcRefCell;
 use crate::display_list::StackingContext;
 use crate::flow::CanvasBackground;
-use crate::fragment_tree::FragmentFlags;
 use crate::geom::PhysicalRect;
 
 #[derive(Serialize)]
@@ -141,9 +140,7 @@ impl FragmentTree {
                     //   CSS layout box is inline, return zero." For this check we
                     // also explicitly ignore the list item portion of the display
                     // style.
-                    if fragment.style.get_box().display.is_inline_flow() &&
-                        !fragment.base.flags.contains(FragmentFlags::IS_REPLACED)
-                    {
+                    if fragment.is_inline_box() {
                         return Some(Rect::zero());
                     }
 

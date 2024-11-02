@@ -248,12 +248,7 @@ fn resolved_size_should_be_used_value(fragment: &Fragment) -> bool {
     // https://drafts.csswg.org/css-sizing-3/#preferred-size-properties
     // > Applies to: all elements except non-replaced inlines
     match fragment {
-        Fragment::Box(box_fragment) => {
-            !box_fragment.style.get_box().display.is_inline_flow() ||
-                fragment
-                    .base()
-                    .is_some_and(|base| base.flags.contains(FragmentFlags::IS_REPLACED))
-        },
+        Fragment::Box(box_fragment) => !box_fragment.is_inline_box(),
         Fragment::Float(_) |
         Fragment::Positioning(_) |
         Fragment::AbsoluteOrFixedPositioned(_) |
