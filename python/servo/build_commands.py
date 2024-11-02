@@ -138,11 +138,11 @@ class MachCommands(CommandBase):
                 if rv:
                     return rv
 
-            if sys.platform == "win32":
+            if "windows" in target_triple:
                 if not copy_windows_dlls_to_build_directory(built_binary, self.target):
                     status = 1
 
-            elif sys.platform == "darwin":
+            elif "darwin" in target_triple:
                 servo_bin_dir = os.path.dirname(built_binary)
                 assert os.path.exists(servo_bin_dir)
 

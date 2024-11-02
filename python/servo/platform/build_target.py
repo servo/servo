@@ -278,18 +278,15 @@ class OpenHarmonyTarget(CrossBuildTarget):
             if ohos_sdk_version < parse_version('4.0'):
                 print("Warning: mach build currently assumes at least the OpenHarmony 4.0 SDK is used.")
             print(f"Info: The OpenHarmony SDK {ohos_sdk_version} is targeting API-level {ohos_api_version}")
+            os_type = platform.system().lower()
+            if os_type == "windows" and ohos_sdk_version < parse_version('5.0'):
+                # The OpenHarmony SDK for Windows hosts currently before OH 5.0 did not contain a
+                # libclang shared library, which is required by `bindgen`.
+                raise Exception("Building servo for OpenHarmony on windows requires SDK version 5.0 or newer.")
+
         except Exception as e:
             print(f"Failed to read metadata information from {package_info}")
             print(f"Exception: {e}")
-
-        # The OpenHarmony SDK for Windows hosts currently does not contain a libclang shared library,
-        # which is required by `bindgen` (see issue
-        # https://gitee.com/openharmony/third_party_llvm-project/issues/I8H50W). Using upstream `clang` is currently
-        # also not easily possible, since `libcxx` support still needs to be upstreamed (
-        # https://github.com/llvm/llvm-project/pull/73114).
-        os_type = platform.system().lower()
-        if os_type not in ["linux", "darwin"]:
-            raise Exception("OpenHarmony builds are currently only supported on Linux and macOS Hosts.")
 
         llvm_toolchain = ndk_root.joinpath("llvm")
         llvm_bin = llvm_toolchain.joinpath("bin")
@@ -300,6 +297,10 @@ class OpenHarmonyTarget(CrossBuildTarget):
         if not ohos_sysroot.is_dir():
             print(f"Could not find OpenHarmony sysroot in {ndk_root}")
             sys.exit(1)
+        # When passing the sysroot to Rust crates such as `cc-rs` or bindgen, we should pass
+        # POSIX paths, since otherwise the backslashes in windows paths may be interpreted as
+        # escapes and lead to errors.
+        ohos_sysroot_posix = ohos_sysroot.as_posix()
 
         # Note: We don't use the `<target_triple>-clang` wrappers on purpose, since
         # a) the OH 4.0 SDK does not have them yet AND
@@ -313,7 +314,7 @@ class OpenHarmonyTarget(CrossBuildTarget):
             llvm_prog = llvm_bin.joinpath(prog)
             if not llvm_prog.is_file():
                 raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), llvm_prog)
-            return str(llvm_bin.joinpath(prog))
+            return llvm_bin.joinpath(prog).as_posix()
 
         # CC and CXX should already be set to appropriate host compilers by `build_env()`
         env['HOST_CC'] = env['CC']
@@ -326,8 +327,8 @@ class OpenHarmonyTarget(CrossBuildTarget):
 
         target_triple = self.triple()
         rust_target_triple = str(target_triple).replace('-', '_')
-        ndk_clang = to_sdk_llvm_bin(f"{target_triple}-clang")
-        ndk_clangxx = to_sdk_llvm_bin(f"{target_triple}-clang++")
+        ndk_clang = to_sdk_llvm_bin("clang")
+        ndk_clangxx = to_sdk_llvm_bin("clang++")
         env[f'CC_{rust_target_triple}'] = ndk_clang
         env[f'CXX_{rust_target_triple}'] = ndk_clangxx
         # The clang target name is different from the LLVM target name
@@ -339,11 +340,11 @@ class OpenHarmonyTarget(CrossBuildTarget):
         env[f'CARGO_TARGET_{rust_target_triple.upper()}_LINKER'] = ndk_clang
         # We could also use a cross-compile wrapper
         env["RUSTFLAGS"] += f' -Clink-arg=--target={clang_target_triple}'
-        env["RUSTFLAGS"] += f' -Clink-arg=--sysroot={ohos_sysroot}'
+        env["RUSTFLAGS"] += f' -Clink-arg=--sysroot={ohos_sysroot_posix}'
 
         env['HOST_CFLAGS'] = ''
         env['HOST_CXXFLAGS'] = ''
-        ohos_cflags = ['-D__MUSL__', f' --target={clang_target_triple}', f' --sysroot={ohos_sysroot}',
+        ohos_cflags = ['-D__MUSL__', f' --target={clang_target_triple}', f' --sysroot={ohos_sysroot_posix}',
                        "-Wno-error=unused-command-line-argument"]
         if clang_target_triple.startswith('armv7-'):
             ohos_cflags.extend(['-march=armv7-a', '-mfloat-abi=softfp', '-mtune=generic-armv7-a', '-mthumb'])
@@ -353,10 +354,10 @@ class OpenHarmonyTarget(CrossBuildTarget):
         env['TARGET_CXXFLAGS'] = ohos_cflags_str
 
         # CMake related flags
-        env['CMAKE'] = ndk_root.joinpath("build-tools", "cmake", "bin", "cmake")
+        env['CMAKE'] = ndk_root.joinpath("build-tools", "cmake", "bin", "cmake").as_posix()
         cmake_toolchain_file = ndk_root.joinpath("build", "cmake", "ohos.toolchain.cmake")
         if cmake_toolchain_file.is_file():
-            env[f'CMAKE_TOOLCHAIN_FILE_{rust_target_triple}'] = str(cmake_toolchain_file)
+            env[f'CMAKE_TOOLCHAIN_FILE_{rust_target_triple}'] = cmake_toolchain_file.as_posix()
         else:
             print(
                 f"Warning: Failed to find the OpenHarmony CMake Toolchain file - Expected it at {cmake_toolchain_file}")
@@ -364,9 +365,9 @@ class OpenHarmonyTarget(CrossBuildTarget):
         env[f'CMAKE_CXX_COMPILER_{rust_target_triple}'] = ndk_clangxx
 
         # pkg-config
-        pkg_config_path = '{}:{}'.format(str(ohos_sysroot.joinpath("usr", "lib", "pkgconfig")),
-                                         str(ohos_sysroot.joinpath("usr", "share", "pkgconfig")))
-        env[f'PKG_CONFIG_SYSROOT_DIR_{rust_target_triple}'] = str(ohos_sysroot)
+        pkg_config_path = '{}:{}'.format(ohos_sysroot.joinpath("usr", "lib", "pkgconfig").as_posix(),
+                                         ohos_sysroot.joinpath("usr", "share", "pkgconfig").as_posix())
+        env[f'PKG_CONFIG_SYSROOT_DIR_{rust_target_triple}'] = ohos_sysroot_posix
         env[f'PKG_CONFIG_PATH_{rust_target_triple}'] = pkg_config_path
 
         # bindgen / libclang-sys
