@@ -5,6 +5,7 @@
 <script src="resources/webxr_test_constants.js"></script>
 
 <script>
+"use strict"
 let testName = "Transient input sources fire events in the right order";
 
 let watcherDone = new Event("watcherdone");
@@ -24,6 +25,17 @@ let testFunction = function(session, fakeDeviceController, t) {
       inputChangeEvents++;
       assert_equals(event.session, session);
       validateSameObject(event);
+
+      assert_throws_js(
+          TypeError,
+          () => { event.added[0] = "test"; },
+          "added array must be frozen"
+      );
+      assert_throws_js(
+          TypeError,
+          () => { event.removed[0] = "test"; },
+          "removed array must be frozen"
+      );
 
       // The first change event should be adding our controller.
       if (inputChangeEvents === 1) {
