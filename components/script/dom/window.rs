@@ -708,17 +708,22 @@ impl WindowMethods for Window {
         let current = match self.window_proxy.get() {
             Some(proxy) => proxy,
             // Step 2, If current is null, then return null.
-            None => return Ok(retval.set(NullValue())),
+            None => {
+                retval.set(NullValue());
+                return Ok(());
+            },
         };
         // Still step 2, since the window's BC is the associated doc's BC,
         // see https://html.spec.whatwg.org/multipage/#window-bc
         // and a doc's BC is null if it has been discarded.
         // see https://html.spec.whatwg.org/multipage/#concept-document-bc
         if current.is_browsing_context_discarded() {
-            return Ok(retval.set(NullValue()));
+            retval.set(NullValue());
+            return Ok(());
         }
         // Step 3 to 5.
-        Ok(current.opener(*cx, in_realm_proof, retval))
+        current.opener(*cx, in_realm_proof, retval);
+        Ok(())
     }
 
     #[allow(unsafe_code)]

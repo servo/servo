@@ -951,7 +951,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             },
             // Step 1
             _ if self.ready_state.get() != XMLHttpRequestState::Done => {
-                return rval.set(NullValue());
+                rval.set(NullValue());
             },
             // Step 2
             XMLHttpRequestResponseType::Document => unsafe {
@@ -963,7 +963,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             },
             XMLHttpRequestResponseType::Arraybuffer => match self.arraybuffer_response(cx) {
                 Some(array_buffer) => unsafe { array_buffer.to_jsval(*cx, rval) },
-                None => return rval.set(NullValue()),
+                None => rval.set(NullValue()),
             },
         }
     }

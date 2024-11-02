@@ -600,7 +600,8 @@ impl WebGL2RenderingContext {
         }
 
         if pname == constants::FRAMEBUFFER_ATTACHMENT_OBJECT_NAME {
-            return Ok(retval.set(NullValue()));
+            retval.set(NullValue());
+            return Ok(());
         }
 
         let attrs = self
