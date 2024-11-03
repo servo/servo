@@ -25,7 +25,7 @@ pub struct NodeIterator {
     reference_node: MutDom<Node>,
     pointer_before_reference_node: Cell<bool>,
     what_to_show: u32,
-    #[ignore_malloc_size_of = "Can't measure due to #6870"]
+    #[ignore_malloc_size_of = "Rc<NodeFilter> has shared ownership, so its size cannot be measured accurately"]
     filter: Filter,
     active: Cell<bool>,
 }

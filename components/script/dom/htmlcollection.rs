@@ -56,7 +56,7 @@ impl OptionU32 {
 pub struct HTMLCollection {
     reflector_: Reflector,
     root: Dom<Node>,
-    #[ignore_malloc_size_of = "Contains a trait object; can't measure due to #6870"]
+    #[ignore_malloc_size_of = "Trait object (Box<dyn CollectionFilter>) cannot be sized"]
     filter: Box<dyn CollectionFilter + 'static>,
     // We cache the version of the root node and all its decendents,
     // the length of the collection, and a cursor into the collection.
