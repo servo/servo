@@ -29,16 +29,24 @@
       }
 
       function run() {
-        var test_pointer_event = setup_pointerevent_test("Event sequence at implicit release on click", [inputSource]);
+        var test_pointer_event = setup_pointerevent_test("Boundary events are emitted after lostpointercapture", [inputSource]);
+        var no_extra_event_test = async_test("No extra events are emitted");
 
         on_event(document.getElementById("done"), "click", function() {
+          var expected_events = "pointerup, lostpointercapture, pointerout, pointerleave";
           test_pointer_event.step(function () {
-            var expected_events = "pointerup, lostpointercapture, pointerout, pointerleave";
-            assert_equals(event_log.join(", "), expected_events);
+            assert_true(event_log.join(", ").startsWith(expected_events));
           });
+
           // Make sure the test finishes after all the input actions are completed.
           actions_promise.then( () => {
+            let extra_events = event_log.join(", ").replace(new RegExp(`^${expected_events}(, )?`), "");
             test_pointer_event.done();
+
+            no_extra_event_test.step(() => {
+              assert_equals(extra_events, "");
+            });
+            no_extra_event_test.done();
           });
         });
 

@@ -28,7 +28,7 @@ async_test(function(t) {
       if (bufferedEntries.length < 2) {
           t.step_timeout(function() {
               testPaintEntries();
-          }, 20);
+          }, 100);
           return;
       }
       t.step(function() {

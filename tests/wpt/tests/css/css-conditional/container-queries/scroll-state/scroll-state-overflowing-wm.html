@@ -53,7 +53,7 @@
 <div class="overflowing v vrl ltr"><span class="target"></span></div>
 <div class="overflowing v vrl rtl"><span class="target"></span></div>
 <script>
-  setup(() => assert_implements_container_queries());
+  setup(() => assert_implements_scroll_state_container_queries());
 
   function match_overflowing(container_selector, expected_matches) {
     let scroller = document.querySelector(container_selector + " .target");

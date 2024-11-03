@@ -73,8 +73,8 @@ function runElementWiseBinaryTests(operatorName, tests) {
 
       if (test.output) {
         const output = builder[operatorName](a, b);
-        assert_equals(output.dataType(), test.output.dataType);
-        assert_array_equals(output.shape(), test.output.shape);
+        assert_equals(output.dataType, test.output.dataType);
+        assert_array_equals(output.shape, test.output.shape);
       } else {
         const options = {label};
         assert_throws_with_label(

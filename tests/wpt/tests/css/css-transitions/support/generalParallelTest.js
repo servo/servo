@@ -1,6 +1,6 @@
 (function(root) {
 'use strict';
-//
+
 var index = 0;
 var suite = root.generalParallelTest = {
     // prepare individual test
@@ -71,6 +71,8 @@ var suite = root.generalParallelTest = {
     sliceStart: function(options, tests) {
         // inject styles into document
         setStyle(options.styles);
+    },
+    transitionsStarted: function(options, tests) {
         // kick off value collection loop
         generalParallelTest.startValueCollection(options);
     },
@@ -154,20 +156,40 @@ var suite = root.generalParallelTest = {
     },
     // requestAnimationFrame runLoop to collect computed values
     startValueCollection: function(options) {
-        var raf = window.requestAnimationFrame || function(callback){
-            setTimeout(callback, 20);
-        };
+        const promises = [];
+        const animations = document.getAnimations();
+        animations.forEach(a => {
+            promises.push(new Promise(resolve => {
+                const listener = (event) => {
+                    let found = false;
+                    if (event.pseudoElement != '') {
+                        if (event.pseudoElement == a.effect.pseudoElement) {
+                            found = true;
+                        }
+                    } else if (!a.effect.pseudoElement) {
+                        found = true;
+                    }
+                    if (found) {
+                        a.effect.target.removeEventListener(
+                            'transitionend', listener);
+                        resolve();
+                    }
+                };
+                a.effect.target.addEventListener('transitionend', listener);
+            }));
+        });
+        Promise.all(promises).then(() => {
+            options.allTransitionsCompleted();
+        });
 
-        // flag denoting if the runLoop should continue (true) or exit (false)
-        options._collectValues = true;
-
-        function runLoop() {
-            if (!options._collectValues) {
-                // test's are done, stop annoying the CPU
-                return;
-            }
-
-            // collect current style for test's elements
+        // Sample at these values expressed as relative progress.
+        // The last sample being the end of the transition ensure that the
+        // completion events are received in short order.
+        const sample_at = [0.2, 0.4, 0.6, 0.8, 1.0];
+        sample_at.forEach(at => {
+            const time = options.duration * at;
+            animations.forEach(a => { a.currentTime = time; });
+            // Collect current style for test's elements.
             options.tests.forEach(function(data) {
                 if (!data.property) {
                     return;
@@ -187,12 +209,7 @@ var suite = root.generalParallelTest = {
                     }
                 });
             });
-
-            // rinse and repeat
-            raf(runLoop);
-        }
-
-        runLoop();
+        });
     },
     // stop requestAnimationFrame runLoop collecting computed values
     stopValueCollection: function(options) {

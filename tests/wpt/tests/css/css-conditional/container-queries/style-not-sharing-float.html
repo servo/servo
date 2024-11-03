@@ -31,7 +31,7 @@
   </div>
 </div>
 <script>
-  setup(() => assert_implements_container_queries());
+  setup(() => assert_implements_size_container_queries());
 
   test(() => {
     assert_equals(getComputedStyle(target1).color, "rgb(0, 255, 0)", "Second item container should be 100px wide");

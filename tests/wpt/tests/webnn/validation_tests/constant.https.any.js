@@ -129,8 +129,8 @@ tests.forEach(
       const bufferView = new test.bufferView.type(buffer);
       if (test.output) {
         const constantOperand = builder.constant(test.descriptor, bufferView);
-        assert_equals(constantOperand.dataType(), test.output.dataType);
-        assert_array_equals(constantOperand.shape(), test.output.shape);
+        assert_equals(constantOperand.dataType, test.output.dataType);
+        assert_array_equals(constantOperand.shape, test.output.shape);
       } else {
         assert_throws_js(
             TypeError, () => builder.constant(test.descriptor, bufferView));

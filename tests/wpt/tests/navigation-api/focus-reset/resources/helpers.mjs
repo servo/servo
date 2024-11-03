@@ -10,6 +10,7 @@ export function testFocusWasReset(setupFunc, description) {
 
     const button = document.body.appendChild(document.createElement("button"));
     const button2 = document.body.appendChild(document.createElement("button"));
+    button.tabIndex = 0;
     button2.tabIndex = 0;
     t.add_cleanup(() => {
       button.remove();

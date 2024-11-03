@@ -58,8 +58,8 @@ tests.forEach(test => promise_test(async t => {
 
                 if (test.output) {
                   const output = builder.scatterND(input, indices, updates);
-                  assert_equals(output.dataType(), test.output.dataType);
-                  assert_array_equals(output.shape(), test.output.shape);
+                  assert_equals(output.dataType, test.output.dataType);
+                  assert_array_equals(output.shape, test.output.shape);
                 } else {
                   const label = 'a_scatter_nd'
                   const options = {label};

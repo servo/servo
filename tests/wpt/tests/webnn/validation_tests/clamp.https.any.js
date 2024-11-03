@@ -18,8 +18,8 @@ promise_test(async t => {
   const options = {minValue: 1.0, maxValue: 3.0};
   const input = builder.input('input', {dataType: 'float32', shape: [1, 2, 3]});
   const output = builder.clamp(input, options);
-  assert_equals(output.dataType(), 'float32');
-  assert_array_equals(output.shape(), [1, 2, 3]);
+  assert_equals(output.dataType, 'float32');
+  assert_array_equals(output.shape, [1, 2, 3]);
 }, '[clamp] Build with options');
 
 promise_test(async t => {
@@ -28,8 +28,8 @@ promise_test(async t => {
   const input =
       builder.input('input', {dataType: 'float32', shape: [1, 2, 3, 4]});
   const output = builder.clamp(input, options);
-  assert_equals(output.dataType(), 'float32');
-  assert_array_equals(output.shape(), [1, 2, 3, 4]);
+  assert_equals(output.dataType, 'float32');
+  assert_array_equals(output.shape, [1, 2, 3, 4]);
 }, '[clamp] Build with options.minValue == options.maxValue');
 
 promise_test(async t => {

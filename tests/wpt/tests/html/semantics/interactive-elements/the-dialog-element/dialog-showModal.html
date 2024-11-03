@@ -181,8 +181,7 @@
     doc.body.appendChild(d11);
     this.add_cleanup(() => document.body.append(d11));
     assert_false(d11.open);
-    d11.showModal();
-    assert_true(d11.open);
-    this.add_cleanup(() => d11.close());
-  }, "Although the document is not attached to any pages, showModal() should execute as normal.");
+    assert_throws_dom("INVALID_STATE_ERR", () => d11.showModal());
+    assert_false(d11.open);
+  }, "When the document is not attached to any pages, showModal() should throw.");
 </script>

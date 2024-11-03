@@ -168,7 +168,7 @@ var values = {
  */
 var properties = {
     'background-color': ['color'],
-    'background-position': ['length', 'percentage'],
+    'background-position-x': ['length', 'percentage'],
 
     'border-top-width': ['length'],
     'border-right-width': ['length'],

@@ -1,0 +1,55 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/shared-storage-selecturl-limit/resources/utils.js"></script>
+<script src="/shared-storage/resources/util.js"></script>
+<script src="/fenced-frame/resources/utils.js"></script>
+
+<body>
+<script>
+'use strict';
+
+// Note that we have set the site page bit limit to 6 and the overall page
+// bit limit to 12.
+
+promise_test(async () => {
+  const queryKey = "query";
+  const mockResultKey = "mockresult";
+  const urlCountKey = "urlcount";
+  const moduleNameKey = "module";
+  const expectSavedKey = "expectsaved";
+  const expectSuccessKey = "expectsuccess";
+
+  let url0 =  new URL(
+      "/shared-storage/" +
+      "resources/select-url-saved-query-inner.https.sub.html",
+      location.href);
+
+    // We expect success because the returned index (2) is in range.
+  url0.searchParams.append(queryKey, "query");
+  url0.searchParams.append(mockResultKey, "2");
+  url0.searchParams.append(moduleNameKey, "simple-module");
+  url0.searchParams.append(urlCountKey, "4");
+  url0.searchParams.append(expectSavedKey, "false");
+  url0.searchParams.append(expectSuccessKey, "true");
+  await attachIFrameWithEventListenerForSelectURLStatus(url0);
+
+  // Re-using the query on a URL list of smaller size may affect the
+  // returned result, since 2 is out of range for a URL list
+  // of size 1. This verifies that the default index (0) is returned in this
+  // case.
+  let url1 = url0;
+  url1.searchParams.delete(urlCountKey);
+  url1.searchParams.append(urlCountKey, "1");
+  url1.searchParams.delete(expectSavedKey);
+  url1.searchParams.append(expectSavedKey, "true");
+  url1.searchParams.delete(expectSuccessKey);
+  url1.searchParams.append(expectSuccessKey, "false");
+  await attachIFrameWithEventListenerForSelectURLStatus(url1);
+
+}, 'for selectURL(), a saved query result index is verified after retrieval,'
+   + ' and the default is returned if the index is out of range.');
+</script>
+</body>

@@ -34,8 +34,8 @@ tests_without_axis.forEach(
       let input = builder.input(`input`, test.input);
       if (test.output) {
         const output = builder.softmax(input);
-        assert_equals(output.dataType(), test.output.dataType);
-        assert_array_equals(output.shape(), test.output.shape);
+        assert_equals(output.dataType, test.output.dataType);
+        assert_array_equals(output.shape, test.output.shape);
       } else {
         const options = {
           label: 'softmax_xxx',
@@ -89,8 +89,8 @@ tests.forEach(
       let input = builder.input(`input`, test.input);
       if (test.output) {
         const output = builder.softmax(input, test.axis);
-        assert_equals(output.dataType(), test.output.dataType);
-        assert_array_equals(output.shape(), test.output.shape);
+        assert_equals(output.dataType, test.output.dataType);
+        assert_array_equals(output.shape, test.output.shape);
       } else {
         const label = 'softmax_xxx';
         const options = {label};

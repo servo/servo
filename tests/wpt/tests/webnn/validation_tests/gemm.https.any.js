@@ -164,8 +164,8 @@ tests.forEach(
       }
       if (test.output) {
         const output = builder.gemm(a, b, test.options);
-        assert_equals(output.dataType(), test.output.dataType);
-        assert_array_equals(output.shape(), test.output.shape);
+        assert_equals(output.dataType, test.output.dataType);
+        assert_array_equals(output.shape, test.output.shape);
       } else {
         const regrexp = new RegExp('\\[' + label + '\\]');
         assert_throws_with_label(

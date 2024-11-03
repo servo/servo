@@ -23,7 +23,7 @@
   function test_pseudo_element_invalidation(pseudoSelector) {
     let elem = document.getElementById("div");
     elem.setAttribute("data-foo", "150%");
-    elem.style["font-size"]= "attr(data-foo percentage)";
+    elem.style["font-size"]= "attr(data-foo <percentage>)";
     let old_font_size = window.getComputedStyle(elem, pseudoSelector).getPropertyValue("font-size");
     elem.setAttribute("data-foo", "300%");
     let new_font_size = window.getComputedStyle(elem, pseudoSelector).getPropertyValue("font-size");

@@ -7,28 +7,155 @@
 <script src="/resources/testdriver-actions.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
 </head>
-<body>
-<div id=old_parent><span id=text>Text</span></div>
-<div id="new_parent"></div>
-</body>
-<script>
-  'use strict';
 
-  promise_test(async t => {
-    const text = document.querySelector("#text");
-    const old_parent = document.querySelector("#old_parent");
-    const new_parent = document.querySelector("#new_parent");
-    const event_watcher = new EventWatcher(t, text, ["mouseup"]);
-      const actions_promise = new test_driver.Actions()
-          .pointerMove(0, 0, {origin: text})
-          .pointerDown()
-          .pointerMove(text.clientWidth, text.clientHeight, {origin: text})
-          .pointerUp()
-          .send();
-    await event_watcher.wait_for(["mouseup"]);
-    assert_equals(getSelection().anchorNode.textContent, "Text");
-    new_parent.moveBefore(text, null);
-    assert_equals(getSelection().anchorNode.textContent, "Text");
-  }, "moveBefore should not reset text selection");
+<body>
+</body>
+
+<script>
+'use strict';
+
+async function select_range(t, anchorNode, focusNode) {
+  await new test_driver.Actions()
+      .pointerMove(0, 0, {origin: anchorNode})
+      .pointerDown()
+      .pointerMove(focusNode.clientWidth, focusNode.clientHeight, {origin: focusNode})
+      .pointerUp()
+      .send();
+}
+
+promise_test(async t => {
+  document.body.innerHTML = `
+    <div id=old_parent>
+      <span>This text does not move</span>
+      <span id=text>Text</span>
+    </div>
+    <div id=new_parent></div>`;
+  getSelection().removeAllRanges();
+
+  await select_range(t, text, text);
+
+  // Don't first verify that `getSelection().anchorNode` is the expected
+  // `<span id=text>` node that was selected above. If we did that, then at
+  // least in Chromium browsers, this would generate a new Range capturing the
+  // visual selection, which would be cached to the internal `DOMSelection`
+  // object. Then the move would have two effects:
+  //
+  // 1. The internal visual selection would change as a result of
+  //    `moveBefore()`
+  // 2. But the Range representing the visual selection would remain
+  //    unchanged, since it was cached to the `DOMSelection` object and not
+  //    updated during `moveBefore()`. This means if (a) the visual selection,
+  //    and (b) the "API-returned" selection Range are out of sync after
+  //    `moveBefore()`, it would be impossible to detect the discrepancy
+  //    without a reftest.
+  //
+  // So instead, we will just dive right into `moveBefore()`, and then compute
+  // the selection range *after*, which will accurately represent the internal
+  // visual selection that the user sees, and we can run our assertions on it.
+  new_parent.moveBefore(text, null);
+  assert_equals(getSelection().anchorNode, text.firstChild);
+}, "moveBefore should not reset selection with preceding text");
+
+promise_test(async t => {
+  document.body.innerHTML = `
+    <div id=old_parent>
+      <span>This text does not move</span>
+      <span id=text>Text</span>
+      <span>This text ALSO does not move</span>
+    </div>
+    <div id=new_parent></div>`;
+  getSelection().removeAllRanges();
+
+  await select_range(t, text, text);
+
+  new_parent.moveBefore(text, null);
+  assert_equals(getSelection().anchorNode, text.firstChild);
+}, "moveBefore should not reset selection with preceding and following text");
+
+const kHTML = `
+  <div id=grandparentDiv>
+    <span id=grandparentParagraph>Grandparent paragraph</span>
+    <div id=parentDiv>
+      <span id=parentParagraph>Parent paragraph</span>
+      <div id=childDiv>
+        <span id=childParagraph1>Child paragraph one</span>
+        <span id=childParagraph2>Paragraph two</span>
+      </div>
+    </div>
+  </div>
+`;
+
+// Selection spans parent->child.
+promise_test(async t => {
+  document.body.innerHTML = kHTML;
+  getSelection().removeAllRanges();
+  await select_range(t, parentParagraph, childParagraph1);
+
+  grandparentDiv.moveBefore(parentDiv, grandparentParagraph);
+  assert_equals(getSelection().anchorNode, parentParagraph.firstChild);
+  assert_equals(getSelection().focusNode, childParagraph1.firstChild);
+}, "moveBefore should not reset selection that enters a subtree, when the " +
+   "whole selection is moved");
+
+// Selection anchor node is moved upwards in the DOM, to suddenly intersect more
+// nodes.
+promise_test(async t => {
+  document.body.innerHTML = kHTML;
+  getSelection().removeAllRanges();
+  await select_range(t, parentParagraph, childParagraph1);
+
+  grandparentDiv.moveBefore(parentParagraph, grandparentParagraph);
+  assert_equals(getSelection().anchorNode, parentParagraph.firstChild);
+  assert_equals(getSelection().focusNode, childParagraph1.firstChild);
+  assert_true(getSelection().getRangeAt(0).intersectsNode(grandparentParagraph));
+}, "moveBefore anchor node moved up to expand selection and absorb nodes");
+
+// Intersecting nodes are moved *out* of the selection.
+promise_test(async t => {
+  document.body.innerHTML = kHTML;
+  getSelection().removeAllRanges();
+  await select_range(t, grandparentParagraph, childParagraph2);
+
+  grandparentDiv.moveBefore(childParagraph1, grandparentParagraph);
+  assert_equals(getSelection().anchorNode, grandparentParagraph.firstChild);
+  assert_equals(getSelection().focusNode, childParagraph2.firstChild);
+  assert_false(getSelection().getRangeAt(0).intersectsNode(childParagraph1));
+}, "moveBefore move intersecting nodes out of a selection");
+
+// Selection focus node is moved upwards in the DOM, shrinking the selection and
+// excluding once-intersecting nodes.
+promise_test(async t => {
+  document.body.innerHTML = kHTML;
+  getSelection().removeAllRanges();
+  await select_range(t, grandparentParagraph, childParagraph2);
+
+  parentDiv.moveBefore(childDiv, parentParagraph);
+  assert_equals(getSelection().anchorNode, grandparentParagraph.firstChild);
+  assert_equals(getSelection().focusNode, childParagraph2.firstChild);
+  assert_false(getSelection().getRangeAt(0).intersectsNode(parentParagraph));
+}, "moveBefore focus node moved up to shrink selection and exclude nodes");
+
+// Selection focus node is moved upwards in the DOM, shrinking the selection and
+// excluding once-intersecting nodes.
+promise_test(async t => {
+  document.body.innerHTML = `
+    <ul id=list>
+      <li id=i1>One</li>
+      <li id=i2>Two</li>
+      <li id=i3>Three</li>
+      <li id=i4>Four</li>
+    </ul>
+  `;
+  getSelection().removeAllRanges();
+  await select_range(t, i3, i4);
+
+  // Move the last list item to the position before the first. This pulls the
+  // range upwards, suddenly intersecting both `i2` and `i3`.
+  list.moveBefore(i4, i1);
+  assert_equals(getSelection().focusNode, i4.firstChild);
+  assert_equals(getSelection().anchorNode, i3.firstChild);
+  assert_true(getSelection().getRangeAt(0).intersectsNode(i2));
+  assert_true(getSelection().getRangeAt(0).intersectsNode(i3));
+}, "moveBefore selection is preserved when directionality changes");
 </script>
 </html>

@@ -62,8 +62,8 @@ tests.forEach(
       }
       if (test.output) {
         const output = builder.cumulativeSum(input, test.axis, options);
-        assert_equals(output.dataType(), test.output.dataType);
-        assert_array_equals(output.shape(), test.output.shape);
+        assert_equals(output.dataType, test.output.dataType);
+        assert_array_equals(output.shape, test.output.shape);
       } else {
         const label = 'cumulative_sum';
         options.label = label;

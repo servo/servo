@@ -15,7 +15,6 @@ text {
 <text><tspan id="htb" x="40" y="100">abc</tspan></text>
 <text style="writing-mode:vertical-lr"><tspan id="vlr" x="40" y="120">abc</tspan></text>
 <text style="writing-mode:vertical-rl"><tspan id="vrl" x="80" y="120">abc</tspan></text>
-<text style="writing-mode:sideways-lr"><tspan id="slr" x="40" y="200">abc</tspan></text>
 <text style="writing-mode:sideways-rl"><tspan id="srl" x="80" y="200">abc</tspan></text>
 </svg>
 
@@ -59,20 +58,6 @@ test(() => {
   assert_equals(element.getCharNumAtPosition(newPoint(80, start + 50)), 2);
   assert_equals(element.getCharNumAtPosition(newPoint(80, start + 70)), -1);
 }, 'virtical-rl');
-
-test(() => {
-  const element = document.querySelector('#slr');
-  assert_equals(element.getNumberOfChars(), 3);
-  // If UAs follow the current SVG specification,
-  // - The text starts below (40,200), and grows upwards.
-  // - It ends at (40,200).
-  const start = 200;
-  assert_equals(element.getCharNumAtPosition(newPoint(40, start - 10)), -1);
-  assert_equals(element.getCharNumAtPosition(newPoint(40, start + 10)), 2);
-  assert_equals(element.getCharNumAtPosition(newPoint(40, start + 30)), 1);
-  assert_equals(element.getCharNumAtPosition(newPoint(40, start + 50)), 0);
-  assert_equals(element.getCharNumAtPosition(newPoint(40, start + 70)), -1);
-}, 'sideways-lr');
 
 test(() => {
   const element = document.querySelector('#srl');

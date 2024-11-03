@@ -59,8 +59,8 @@ tests.forEach(
       const slope = builder.input('input', test.slope);
       if (test.output) {
         const output = builder.prelu(input, slope);
-        assert_equals(output.dataType(), test.output.dataType);
-        assert_array_equals(output.shape(), test.output.shape);
+        assert_equals(output.dataType, test.output.dataType);
+        assert_array_equals(output.shape, test.output.shape);
       } else {
         const label = 'prelu_123';
         const options = {label};
@@ -80,8 +80,8 @@ promise_test(async t => {
     const input = builder.input(`input`, {dataType, shape});
     if (context.opSupportLimits().prelu.input.dataTypes.includes(dataType)) {
       const output = builder.prelu(input, input);
-      assert_equals(output.dataType(), dataType);
-      assert_array_equals(output.shape(), shape);
+      assert_equals(output.dataType, dataType);
+      assert_array_equals(output.shape, shape);
     } else {
       assert_throws_js(TypeError, () => builder.prelu(input, input));
     }

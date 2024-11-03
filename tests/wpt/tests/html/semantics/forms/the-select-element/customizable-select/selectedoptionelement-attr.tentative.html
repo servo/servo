@@ -34,11 +34,14 @@ promise_test(async () => {
     'Removing the selectedoptionelement attribute via IDL should synchronously clear the contents of the <selectedoption>.');
 
   select.selectedOptionElement = selectedoption;
+  assert_equals(selectedoption.innerHTML, optionOne.innerHTML,
+    'Re-setting the selectedoptionelement attribute via IDL should synchronously assign the contents of <selectedoption>.');
 
+  let oldInnerHTML = optionOne.innerHTML;
   optionOne.querySelector('span').remove();
   await new Promise(queueMicrotask);
-  assert_equals(selectedoption.innerHTML, optionOne.innerHTML,
-    'Mutating the selected <option> should update the <selectedoption> contents after a microtask.');
+  assert_equals(selectedoption.innerHTML, oldInnerHTML,
+    'Mutating the selected <option> should not update the <selectedoption> contents.');
 
   select.value = 'two';
   assert_equals(selectedoption.innerHTML, optionTwo.innerHTML,

@@ -120,16 +120,7 @@ test(function(t) {
 }, "aria-colindex attribute reflects.");
 </script>
 
-<div id="colindextext" aria-colindextext="x"></div>
-<script>
-test(function(t) {
-    var element = document.getElementById("colindextext");
-    assert_equals(element.ariaColIndexText, "x");
-    element.ariaColIndexText = "y";
-    assert_equals(element.getAttribute("aria-colindextext"), "y");
-    testNullable(element, "ariaColIndexText", "aria-colindextext");
-}, "aria-colindextext attribute reflects.");
-</script>
+<!-- colindextext -> aria-attribute-reflection.tentative.html -->
 
 <div id="colspan" aria-colspan="2"></div>
 <script>
@@ -153,16 +144,7 @@ test(function(t) {
 }, "aria-current attribute reflects.");
 </script>
 
-<div id="description" aria-description="cold as ice"></div>
-<script>
-test(function(t) {
-    var element = document.getElementById("description");
-    assert_equals(element.ariaDescription, "cold as ice");
-    element.ariaDescription = "hot as fire";
-    assert_equals(element.getAttribute("aria-description"), "hot as fire");
-    testNullable(element, "ariaDescription", "aria-description");
-}, "aria-description attribute reflects.");
-</script>
+<!-- description -> aria-attribute-reflection.tentative.html -->
 
 <div id="disabled" aria-disabled="true"></div>
 <script>
@@ -406,16 +388,7 @@ test(function(t) {
 }, "aria-rowindex attribute reflects.");
 </script>
 
-<div id="rowindextext" aria-rowindextext="x"></div>
-<script>
-    test(function(t) {
-        var element = document.getElementById("rowindextext");
-        assert_equals(element.ariaRowIndexText, "x");
-        element.ariaRowIndexText = "y";
-        assert_equals(element.getAttribute("aria-rowindextext"), "y");
-        testNullable(element, "ariaRowIndexText", "aria-rowindextext");
-    }, "aria-rowindextext attribute reflects.");
-</script>
+<!-- rowindextext -> aria-attribute-reflection.tentative.html -->
 
 <div id="rowspan" aria-rowspan="2"></div>
 <script>

@@ -1,0 +1,67 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/shared-storage-selecturl-limit/resources/utils.js"></script>
+<script src="/shared-storage/resources/util.js"></script>
+<script src="/fenced-frame/resources/utils.js"></script>
+
+<body>
+<script>
+'use strict';
+
+// Note that we have set the site page bit limit to 6 and the overall page
+// bit limit to 12.
+
+promise_test(async () => {
+  const queryKey = "query";
+  const mockResultKey = "mockresult";
+  const urlCountKey = "urlcount";
+  const moduleNameKey = "module";
+  const operationNameKey = "operation";
+  const expectSavedKey = "expectsaved";
+  const expectSuccessKey = "expectsuccess";
+
+  const crossOrigin = 'https://{{domains[www]}}:{{ports[https][0]}}';
+  let url0 =  new URL(crossOrigin +
+      "/shared-storage/" +
+      "resources/select-url-saved-query-inner.https.sub.html",
+      location.href);
+
+  // Initiate a query to be saved.
+  url0.searchParams.append(queryKey, "query0");
+  url0.searchParams.append(mockResultKey, "2");
+  url0.searchParams.append(moduleNameKey, "simple-module");
+  url0.searchParams.append(operationNameKey, "test-slow-url-selection-operation");
+  url0.searchParams.append(urlCountKey, "4");
+  url0.searchParams.append(expectSavedKey, "false");
+  url0.searchParams.append(expectSuccessKey, "true");
+  const promise0 = attachIFrameWithEventListenerForSelectURLStatus(url0);
+
+  // Initiate a second query to be saved without waiting for the first.
+  let url1 = url0;
+  url1.searchParams.delete(queryKey);
+  url1.searchParams.append(queryKey, "query1");
+  url1.searchParams.delete(mockResultKey);
+  url1.searchParams.append(mockResultKey, "1");
+  const promise1 = attachIFrameWithEventListenerForSelectURLStatus(url1);
+
+  // Reuse the first query while the initial two queries are still resolving.
+  let url2 = url0;
+  url2.searchParams.delete(expectSavedKey);
+  url2.searchParams.append(expectSavedKey, "true");
+  const promise2 = attachIFrameWithEventListenerForSelectURLStatus(url2);
+
+  // Reuse the second query.
+  let url3 = url1;
+  url3.searchParams.delete(expectSavedKey);
+  url3.searchParams.append(expectSavedKey, "true");
+  const promise3 = attachIFrameWithEventListenerForSelectURLStatus(url3);
+
+  // Wait for all the promises to resolve.
+  await Promise.all([promise0, promise1, promise2, promise3]);
+
+}, 'for selectURL(), multiple saved queries can be handled simultaneously.');
+</script>
+</body>

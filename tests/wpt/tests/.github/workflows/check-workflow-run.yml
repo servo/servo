@@ -15,7 +15,7 @@ on:
 jobs:
   check-workflow-run:
     name: "Check for appropriate epochs"
-    if: ${{ github.event_name == 'workflow_run' }}
+    if: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' }}
     runs-on:
       - ubuntu-22.04
     permissions:

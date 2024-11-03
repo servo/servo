@@ -17,6 +17,9 @@ node_modules/
 /MANIFEST.json
 /_certs
 /config.json
+# The default manifest location when running infrastructure tests locally with
+# `--metadata=infrastructure/metadata`.
+/infrastructure/metadata/MANIFEST.json
 
 # Files generated when regenerating pre-generated certs
 /tools/certs/0*.pem

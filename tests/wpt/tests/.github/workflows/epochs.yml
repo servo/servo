@@ -7,14 +7,13 @@ on:
 jobs:
   update:
     runs-on: ubuntu-20.04
+    if: github.repository == 'web-platform-tests/wpt'
     steps:
     - name: Checkout
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
     - name: Run epochs_update.sh
-      # Use a conditional step instead of a conditional job to work around #20700.
-      if: github.repository == 'web-platform-tests/wpt'
       run: ./tools/ci/epochs_update.sh
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

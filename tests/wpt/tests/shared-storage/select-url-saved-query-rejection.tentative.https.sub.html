@@ -1,0 +1,62 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/shared-storage-selecturl-limit/resources/utils.js"></script>
+<script src="/shared-storage/resources/util.js"></script>
+<script src="/fenced-frame/resources/utils.js"></script>
+
+<body>
+<script>
+'use strict';
+
+// Note that we have set the site page bit limit to 6 and the overall page
+// bit limit to 12.
+
+promise_test(async () => {
+  const queryKey = "query";
+  const mockResultKey = "mockresult";
+  const urlCountKey = "urlcount";
+  const moduleNameKey = "module";
+  const expectSavedKey = "expectsaved";
+  const expectSuccessKey = "expectsuccess";
+
+  let url0 =  new URL(
+      "/shared-storage/" +
+      "resources/select-url-saved-query-inner.https.sub.html",
+      location.href);
+
+  // We don't expect success because the operation definition has an
+  // intentional error and will reject. Hence the default index (0) will be
+  // returned and will also be stored for later use.
+  url0.searchParams.append(queryKey, "query");
+  url0.searchParams.append(mockResultKey, "2");
+  url0.searchParams.append(moduleNameKey, "erroneous-function-module");
+  url0.searchParams.append(urlCountKey, "4");
+  url0.searchParams.append(expectSavedKey, "false");
+  url0.searchParams.append(expectSuccessKey, "false");
+  await attachIFrameWithEventListenerForSelectURLStatus(url0);
+
+  // Re-using the query will retrieve the default index.
+  let url1 = url0;
+  url1.searchParams.delete(expectSavedKey);
+  url1.searchParams.append(expectSavedKey, "true");
+  await attachIFrameWithEventListenerForSelectURLStatus(url1);
+
+  // Verify that worklet was run exactly once.
+  const ancestorKey = token();
+  const urls = generateUrls(2, "/shared-storage/resources/frame",
+                            [ancestorKey]);
+  const worklet = await sharedStorage.createWorklet(
+      '/shared-storage/resources/erroneous-function-module.js');
+  let config = await worklet.selectURL('verify-run-attempts', urls,
+      {resolveToConfig: true});
+  assert_true(config instanceof FencedFrameConfig);
+  attachFencedFrame(config, 'opaque-ads');
+  const result = await nextValueFromServer(ancestorKey);
+  assert_equals(result, 'frame1_loaded', "expected 1 run attempt");
+
+}, 'for selectURL(), a saved query stores the default index on rejection.');
+</script>
+</body>

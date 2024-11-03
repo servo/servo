@@ -46,8 +46,8 @@ tests.forEach(test => promise_test(async t => {
                     context.opSupportLimits().gatherND.input.dataTypes.includes(
                         test.input.dataType)) {
                   const output = builder.gatherND(input, indices);
-                  assert_equals(output.dataType(), test.output.dataType);
-                  assert_array_equals(output.shape(), test.output.shape);
+                  assert_equals(output.dataType, test.output.dataType);
+                  assert_array_equals(output.shape, test.output.shape);
                 } else {
                   const label = 'gatherND_';
                   const options = {label: label};

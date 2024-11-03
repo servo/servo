@@ -8,7 +8,7 @@
   <main id="cq-main"></main>
 </div>
 <script>
-  setup(() => assert_implements_container_queries());
+  setup(() => assert_implements_style_container_queries());
 
   test_cq_condition_known('style(--my-prop: foo)');
   test_cq_condition_known('style(--my-prop: foo - bar ())');

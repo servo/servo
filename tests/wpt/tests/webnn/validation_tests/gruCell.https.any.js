@@ -298,8 +298,8 @@ tests.forEach(
             const output = builder.gruCell(
                 input, weight, recurrentWeight, hiddenState, test.hiddenSize,
                 options);
-            assert_equals(output.dataType(), test.output.dataType);
-            assert_array_equals(output.shape(), test.output.shape);
+            assert_equals(output.dataType, test.output.dataType);
+            assert_array_equals(output.shape, test.output.shape);
           } else {
             const label = 'gru_cell_xxx';
             options.label = label;

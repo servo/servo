@@ -167,51 +167,63 @@ const testWriteTensor = (testName) => {
   promise_test(async () => {
     const tensorDescriptor = {
       dataType: 'int32',
+      shape: [4],
+      readable: true,
+      writable: true,
+    };
+    const tensorByteLength = sizeOfDescriptor(tensorDescriptor);
+
+    // Required to use SharedArrayBuffer.
+    assert_true(
+        self.crossOriginIsolated,
+        'The page is served with COOP and COEP, it should be cross-origin-isolated.');
+
+    let arrayBuffer = new ArrayBuffer(tensorByteLength);
+    let arrayBufferView = new Int32Array(arrayBuffer);
+    arrayBufferView.fill(7);
+
+    let sharedArrayBuffer = new SharedArrayBuffer(tensorByteLength);
+    let sharedArrayBufferView = new Int32Array(sharedArrayBuffer);
+    sharedArrayBufferView.fill(7);
+
+    const tensors = await Promise.all([
+      mlContext.createTensor(tensorDescriptor),
+      mlContext.createTensor(tensorDescriptor),
+      mlContext.createTensor(tensorDescriptor),
+      mlContext.createTensor(tensorDescriptor)
+    ]);
+
+    mlContext.writeTensor(tensors[0], arrayBuffer);
+    mlContext.writeTensor(tensors[2], arrayBufferView);
+    mlContext.writeTensor(tensors[1], sharedArrayBuffer);
+    mlContext.writeTensor(tensors[3], sharedArrayBufferView);
+
+    await Promise.all(tensors.map(async (tensor) => {
+      assert_tensor_data_equals(mlContext, tensor, arrayBufferView);
+    }));
+  }, `${testName} / write with different kinds of buffers`);
+
+  promise_test(async () => {
+    const tensorDescriptor = {
+      dataType: 'int32',
       shape: [1],
       writable: true,
     };
     let mlTensor = await mlContext.createTensor(tensorDescriptor);
 
     const tensorByteLength = sizeOfDescriptor(tensorDescriptor);
-    let arrayBuffer = new ArrayBuffer(tensorByteLength);
 
-    // Writing with a size that goes past that source tensor length.
+    // Writing with a buffer larger than the source tensor.
     assert_throws_js(
         TypeError,
         () => mlContext.writeTensor(
-            mlTensor, new Uint8Array(arrayBuffer), /*srcOffset=*/ 0,
-            /*srcSize=*/ tensorByteLength + 1));
+            mlTensor, new ArrayBuffer(tensorByteLength + 1)));
+    // Writing with a buffer smaller than the source tensor.
     assert_throws_js(
         TypeError,
         () => mlContext.writeTensor(
-            mlTensor, new Uint8Array(arrayBuffer), /*srcOffset=*/ 3,
-            /*srcSize=*/ tensorByteLength));
-
-    // Writing with a source offset that is out of range of the source size.
-    assert_throws_js(
-        TypeError,
-        () => mlContext.writeTensor(
-            mlTensor, new Uint8Array(arrayBuffer),
-            /*srcOffset=*/ tensorByteLength + 1));
-
-    // Writing with a source offset that is out of range of implicit copy size.
-    assert_throws_js(
-        TypeError,
-        () => mlContext.writeTensor(
-            mlTensor, new Uint8Array(arrayBuffer),
-            /*srcOffset=*/ tensorByteLength + 1, /*srcSize=*/ undefined));
-
-    assert_throws_js(
-        TypeError,
-        () => mlContext.writeTensor(
-            mlTensor, new Uint8Array(arrayBuffer), /*srcOffset=*/ undefined,
-            /*srcSize=*/ tensorByteLength + 1));
-
-    assert_throws_js(
-        TypeError,
-        () => mlContext.writeTensor(
-            mlTensor, Uint8Array.from([0xEE, 0xEE, 0xEE, 0xEE, 0xEE])));
-  }, `${testName} / error`);
+            mlTensor, new ArrayBuffer(tensorByteLength - 1)));
+  }, `${testName} / write with buffer of wrong size`);
 
   promise_test(async () => {
     const tensorDescriptor = {
@@ -252,26 +264,15 @@ const testWriteTensor = (testName) => {
   promise_test(async () => {
     let mlTensor = await mlContext.createTensor({
       dataType: 'int32',
-      shape: [1],
+      shape: [],
       readable: true,
       writable: true,
     });
 
-    // Initialize the tensor.
-    const inputData = Uint8Array.from([0xAA, 0xAA, 0xAA, 0xAA]);
+    const inputData = Int32Array.from([0xAAAABBBB]);
     mlContext.writeTensor(mlTensor, inputData);
-
-    // Writing zero bytes from a zero write size.
-    mlContext.writeTensor(mlTensor, Uint8Array.from([0xBB]), 0, 0);
-
     await assert_tensor_data_equals(mlContext, mlTensor, inputData);
-
-    // Writing zero bytes at the end of the tensor.
-    mlContext.writeTensor(
-        mlTensor, Uint32Array.from([0xBBBBBBBB]), /*srcOffset=*/ 1);
-
-    await assert_tensor_data_equals(mlContext, mlTensor, inputData);
-  }, `${testName} / zero_write`);
+  }, `${testName} / scalar`);
 
   promise_test(async () => {
     const tensorDescriptor = {
@@ -285,17 +286,17 @@ const testWriteTensor = (testName) => {
     const tensorByteLength = sizeOfDescriptor(tensorDescriptor);
     let inputBuffer = new ArrayBuffer(tensorByteLength);
 
-    // Initialize the tensor.
     const int32View = new Int32Array(inputBuffer);
     int32View.fill(0xBBBBBBBB);
 
     mlContext.writeTensor(mlTensor, int32View);
 
-    // Writing to a detached buffer should be ignored.
+    // Writing to a detached buffer should fail.
     const detachedBuffer = inputBuffer.transfer();
     assert_true(inputBuffer.detached, 'array buffer should be detached.');
 
-    mlContext.writeTensor(mlTensor, inputBuffer);
+    assert_throws_js(
+        TypeError, () => mlContext.writeTensor(mlTensor, inputBuffer));
 
     await assert_tensor_data_equals(
         mlContext, mlTensor, new Int32Array(detachedBuffer));
@@ -373,89 +374,14 @@ const testReadTensor = (testName) => {
       writable: true,
     });
 
-    // Initialize the tensor.
     mlContext.writeTensor(mlTensor, Uint8Array.from([0xAA, 0xAA, 0xAA, 0xAA]));
 
+    // Write over previously-written data.
     mlContext.writeTensor(mlTensor, Uint32Array.from([0xBBBBBBBB]));
     await assert_tensor_data_equals(
         mlContext, mlTensor, Uint32Array.from([0xBBBBBBBB]));
     ;
-  }, `${testName} / full_size`);
-
-  promise_test(async () => {
-    let mlTensor = await mlContext.createTensor({
-      dataType: 'int32',
-      shape: [1],
-      readable: true,
-      writable: true,
-    });
-
-    // Initialize the tensor.
-    mlContext.writeTensor(mlTensor, Uint8Array.from([0xAA, 0xAA, 0xAA, 0xAA]));
-
-    // Writing to the remainder of the tensor from source offset.
-    mlContext.writeTensor(
-        mlTensor, Uint8Array.from([0xCC, 0xCC, 0xBB, 0xBB]),
-        /*srcOffset=*/ 2);
-    await assert_tensor_data_equals(
-        mlContext, mlTensor, Uint8Array.from([0xBB, 0xBB, 0xAA, 0xAA]));
-  }, `${testName} / src_offset_only`);
-
-  promise_test(async () => {
-    let mlTensor = await mlContext.createTensor({
-      dataType: 'int32',
-      shape: [1],
-      readable: true,
-      writable: true,
-    });
-
-    // Initialize the tensor.
-    mlContext.writeTensor(mlTensor, Uint8Array.from([0xAA, 0xAA, 0xAA, 0xAA]));
-
-    // Writing with both a source offset and size.
-    mlContext.writeTensor(
-        mlTensor, Uint8Array.from([0xDD, 0xDD, 0xCC, 0xDD]),
-        /*srcOffset=*/ 2, /*srcSize=*/ 1);
-    await assert_tensor_data_equals(
-        mlContext, mlTensor, Uint8Array.from([0xCC, 0xAA, 0xAA, 0xAA]));
-  }, `${testName} / src_offset_and_size`);
-
-  promise_test(async () => {
-    let mlTensor = await mlContext.createTensor({
-      dataType: 'int32',
-      shape: [1],
-      readable: true,
-      writable: true,
-    });
-
-    // Initialize the tensor.
-    mlContext.writeTensor(mlTensor, Uint8Array.from([0xAA, 0xAA, 0xAA, 0xAA]));
-
-    // Using an offset allows a larger source tensor to fit.
-    mlContext.writeTensor(
-        mlTensor, Uint8Array.from([0xEE, 0xEE, 0xEE, 0xEE, 0xEE]),
-        /*srcOffset=*/ 1);
-    await assert_tensor_data_equals(
-        mlContext, mlTensor, Uint8Array.from([0xEE, 0xEE, 0xEE, 0xEE]));
-  }, `${testName} / larger_src_data`);
-
-  promise_test(async () => {
-    let mlTensor = await mlContext.createTensor({
-      dataType: 'int32',
-      shape: [1],
-      readable: true,
-      writable: true,
-    });
-
-    const inputData = [0xAA, 0xAA, 0xAA, 0xAA];
-
-    // Writing with a source offset of undefined should be treated as 0.
-    mlContext.writeTensor(
-        mlTensor, Uint8Array.from(inputData), /*srcOffset=*/ undefined,
-        /*srcSize=*/ inputData.length);
-    await assert_tensor_data_equals(
-        mlContext, mlTensor, Uint8Array.from(inputData));
-  }, `${testName} / no_src_offset`);
+  }, `${testName} / overwrite`);
 
   promise_test(async t => {
     const tensorDescriptor = {

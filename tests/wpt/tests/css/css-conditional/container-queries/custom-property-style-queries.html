@@ -30,6 +30,11 @@
   </div>
 </div>
 <script>
+  setup(() => {
+    assert_implements_style_container_queries();
+    assert_implements_size_container_queries();
+  });
+
   const green = "rgb(0, 128, 0)";
 
   function test_evaluation(name, query, expected) {
@@ -55,7 +60,10 @@
     }, `${name} ${query}`);
   }
 
-  setup(() => assert_implements_container_queries());
+  setup(() => {
+    assert_implements_style_container_queries();
+    assert_implements_size_container_queries();
+  });
 
   test_evaluation('', 'style(--inner: true)', true);
   test_evaluation('', 'style(--inner:true)', true);

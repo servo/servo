@@ -4,7 +4,12 @@
 # https://bugs.chromium.org/p/chromedriver/issues/detail?id=4642#c4
 
 from tests.support.asserts import assert_error, assert_success
-from tests.support.helpers import document_hidden, is_fullscreen, is_maximized
+from tests.support.helpers import (
+    document_hidden,
+    is_fullscreen,
+    is_maximized,
+    is_not_maximized,
+)
 
 
 def minimize(session):
@@ -52,14 +57,15 @@ def test_restore_from_fullscreen(session):
 
 def test_restore_from_maximized(session):
     assert not document_hidden(session)
+    original = session.window.rect
 
     session.window.maximize()
-    assert is_maximized(session)
+    assert is_maximized(session, original)
     assert not document_hidden(session)
 
     response = minimize(session)
     assert_success(response, session.window.rect)
-    assert not is_maximized(session)
+    assert is_not_maximized(session)
     assert document_hidden(session)
 
 

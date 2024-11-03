@@ -96,7 +96,7 @@ function run_generic_sensor_iframe_tests(sensorData, readingData) {
 
     // Create cross-origin iframe and a sensor inside it.
     const iframe = document.createElement('iframe');
-    iframe.allow = featurePolicies.join(';') + ';';
+    iframe.allow = featurePolicies.join(';') + '; focus-without-user-activation;';
     iframe.src =
         'https://{{domains[www1]}}:{{ports[https][0]}}/generic-sensor/resources/iframe_sensor_handler.html';
     const iframeLoadWatcher = new EventWatcher(t, iframe, 'load');

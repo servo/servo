@@ -63,8 +63,8 @@ function runReductionTests(operatorName, tests) {
 
       if (test.output) {
         const output = builder[operatorName](input, test.options);
-        assert_equals(output.dataType(), test.output.dataType);
-        assert_array_equals(output.shape(), test.output.shape);
+        assert_equals(output.dataType, test.output.dataType);
+        assert_array_equals(output.shape, test.output.shape);
       } else {
         const regrexp = new RegExp('\\[' + label + '\\]');
         assert_throws_with_label(
@@ -90,8 +90,8 @@ kReductionOperators.forEach((operatorName) => {
       if (context.opSupportLimits()[operatorName].input.dataTypes.includes(
               dataType)) {
         const output = builder[operatorName](input);
-        assert_equals(output.dataType(), dataType);
-        assert_array_equals(output.shape(), []);
+        assert_equals(output.dataType, dataType);
+        assert_array_equals(output.shape, []);
       } else {
         assert_throws_js(TypeError, () => builder[operatorName](input));
       }

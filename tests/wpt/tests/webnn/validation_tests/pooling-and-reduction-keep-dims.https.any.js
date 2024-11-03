@@ -42,8 +42,8 @@ promise_test(async t => {
   });
   const newShape = [1, 1001];
   const reshapeOutput = builder.reshape(conv2dOutput, newShape);
-  assert_equals(reshapeOutput.dataType(), avgPool2dInput.dataType());
-  assert_array_equals(reshapeOutput.shape(), newShape);
+  assert_equals(reshapeOutput.dataType, avgPool2dInput.dataType);
+  assert_array_equals(reshapeOutput.shape, newShape);
   const graph = await builder.build({reshapeOutput});
   const result = await context.compute(
       graph, {
@@ -86,8 +86,8 @@ promise_test(async t => {
   });
   const newShape = [1, 1001];
   const reshapeOutput = builder.reshape(conv2dOutput, newShape);
-  assert_equals(reshapeOutput.dataType(), reduceMeanInput.dataType());
-  assert_array_equals(reshapeOutput.shape(), newShape);
+  assert_equals(reshapeOutput.dataType, reduceMeanInput.dataType);
+  assert_array_equals(reshapeOutput.shape, newShape);
   const graph = await builder.build({reshapeOutput});
   const result = await context.compute(
       graph, {

@@ -43,7 +43,7 @@ addEventListener("load", () => {
       insertHTML: "<pre>1st line\n2nd line</pre>",
       expected: useBR
         ? "1st line<br>2nd line"
-        : ["1st line<br>2nd line", "1st line\n2nd line"],
+        : "1st line\n2nd line",
     },
     {
       // text should be inserted into the <b>
@@ -79,20 +79,19 @@ addEventListener("load", () => {
       // inserting one paragraph should cause inserting only its contents.
       // (but it's okay other serialized text.)
       insertHTML: "<div>abc<br>def</div>",
-      expected: useBR ? "abc<br>def" : ["abc<br>def", "abc\ndef"],
+      expected: useBR ? "abc<br>def" : "abc\ndef",
     },
     {
       // inserting 2 or more paragraphs should be handled as multiple lines
       insertHTML: "<div>abc</div><div>def</div>",
-      expected: useBR ? "abc<br>def" : ["abc<br>def", "abc\ndef"],
+      expected: useBR ? "abc<br>def" : "abc\ndef",
     },
     {
       // inserting 2 or more paragraphs should be handled as multiple lines
       insertHTML: "<div>abc<br>def</div><div>ghi<br>jkl</div>",
       expected: useBR
         ? "abc<br>def<br>ghi<br>jkl"
-        : ["abc<br>def<br>ghi<br>jkl",
-           "abc\ndef\nghi\njkl"],
+        : "abc\ndef\nghi\njkl",
     },
     {
       // <noscript> content should not be inserted

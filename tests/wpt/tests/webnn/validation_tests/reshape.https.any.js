@@ -72,8 +72,8 @@ tests.forEach(
       const input = builder.input('input', test.input);
       if (test.output) {
         const output = builder.reshape(input, test.newShape);
-        assert_equals(output.dataType(), test.output.dataType);
-        assert_array_equals(output.shape(), test.output.shape);
+        assert_equals(output.dataType, test.output.dataType);
+        assert_array_equals(output.shape, test.output.shape);
       } else {
         const label = 'reshape_xxx';
         const options = {label};

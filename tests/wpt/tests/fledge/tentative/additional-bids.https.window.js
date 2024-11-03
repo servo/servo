@@ -18,8 +18,8 @@
 //      which the `adAuctionHeaders=true` attribute is not specified.
 // - test that additional bids are not fetched using a Fetch request for which
 //      `adAuctionHeaders: true` is not specified.
-// - test that an additional bid with an incorrect auction nonce is not used
-//       included in an auction. Same for seller and top-level seller.
+// - test that an additional bid with an incorrect seller and / or top-level
+//       seller is not used included in an auction.
 // - lots of tests for different types of malformed additional bids, e.g.
 //       missing fields, malformed signature, invalid currency code,
 //       missing joining origin for multiple negative interest groups, etc.
@@ -148,6 +148,258 @@ subsetTest(promise_test, async test => {
     /*highestScoringOtherBid=*/1.99,
     /*winningAdditionalBidId=*/'planes');
 }, 'two valid additional bids from two distinct Fetch requests');
+
+// Single-seller auction with a single buyer who places a single additional
+// bid with the wrong auctionNonce in the bid, causing the bid to fail.
+subsetTest(promise_test, async test => {
+  const uuid = generateUuid(test);
+  const auctionNonce = await navigator.createAuctionNonce();
+  const auctionNonceInBid = crypto.randomUUID();
+  const seller = SINGLE_SELLER_AUCTION_SELLER;
+
+  const buyer = OTHER_ORIGIN1;
+  const additionalBid = additionalBidHelper.createAdditionalBid(
+      uuid, auctionNonce, seller, buyer, 'horses', 1.99);
+  additionalBidHelper.setBidAuctionNonceOverride(
+      additionalBid, auctionNonceInBid);
+
+  await runAdditionalBidTestNoWinner(
+      test, uuid, [buyer], auctionNonce,
+      additionalBidHelper.fetchAdditionalBids(seller, [additionalBid]),
+      /*highestScoringOtherBid=*/0);
+}, 'single valid additional bid with wrong auctionNonce in bid');
+
+// Single-seller auction with a single buyer who places a single additional
+// bid with no auctionNonce in the bid, causing the bid to fail.
+subsetTest(promise_test, async test => {
+  const uuid = generateUuid(test);
+  const auctionNonce = await navigator.createAuctionNonce();
+  const seller = SINGLE_SELLER_AUCTION_SELLER;
+
+  const buyer = OTHER_ORIGIN1;
+  const additionalBid = additionalBidHelper.createAdditionalBid(
+      uuid, auctionNonce, seller, buyer, 'horses', 1.99);
+  additionalBidHelper.removeAuctionNonceFromBid(additionalBid);
+
+  await runAdditionalBidTestNoWinner(
+      test, uuid, [buyer], auctionNonce,
+      additionalBidHelper.fetchAdditionalBids(seller, [additionalBid]),
+      /*highestScoringOtherBid=*/0);
+}, 'single valid additional bid with no auctionNonce in bid');
+
+// Single-seller auction with a single buyer who places a single additional
+// bid with auctionNonce and bidNonce in the bid (but no seller nonce), causing
+// the bid to fail.
+subsetTest(promise_test, async test => {
+  const uuid = generateUuid(test);
+  const auctionNonce = await navigator.createAuctionNonce();
+  const sellerNonce = crypto.randomUUID();
+  const bidNonce =
+      await additionalBidHelper.computeBidNonce(auctionNonce, sellerNonce);
+  const seller = SINGLE_SELLER_AUCTION_SELLER;
+  const additionalBidOverrides = {
+    bidNonce: bidNonce,
+  };
+
+  const buyer = OTHER_ORIGIN1;
+  const additionalBid = additionalBidHelper.createAdditionalBid(
+      uuid, auctionNonce, seller, buyer, 'horses', 1.99,
+      /*additionalBidOverrides=*/ additionalBidOverrides);
+
+  await runAdditionalBidTestNoWinner(
+      test, uuid, [buyer], auctionNonce,
+      additionalBidHelper.fetchAdditionalBids(seller, [additionalBid]),
+      /*highestScoringOtherBid=*/0);
+}, 'single valid additional bid with auctionNonce and bidNonce in bid (but no seller nonce)');
+
+// Single-seller auction with a single buyer who places a single additional
+// bid that uses seller nonce / bidNonce. As the only bid, this wins.
+subsetTest(promise_test, async test => {
+  const uuid = generateUuid(test);
+  const auctionNonce = await navigator.createAuctionNonce();
+  const sellerNonce = crypto.randomUUID();
+  const bidNonce =
+      await additionalBidHelper.computeBidNonce(auctionNonce, sellerNonce);
+  const seller = SINGLE_SELLER_AUCTION_SELLER;
+  const additionalBidOverrides = {
+    bidNonce: bidNonce,
+  };
+
+  const buyer = OTHER_ORIGIN1;
+  const additionalBid = additionalBidHelper.createAdditionalBid(
+      uuid, auctionNonce, seller, buyer, 'horses', 1.99,
+      /*additionalBidOverrides=*/ additionalBidOverrides);
+  additionalBidHelper.setSellerNonce(additionalBid, sellerNonce);
+  additionalBidHelper.removeAuctionNonceFromBid(additionalBid);
+
+  await runAdditionalBidTest(
+      test, uuid, [buyer], auctionNonce,
+      additionalBidHelper.fetchAdditionalBids(seller, [additionalBid]),
+      /*highestScoringOtherBid=*/0,
+      /*winningAdditionalBidId=*/'horses');
+}, 'single valid additional bid with seller nonce');
+
+// Single-seller auction with a single buyer who places a single additional bid
+// that uses seller nonce, but no bidNonce. Since the bidNonce is missing, there
+// is no winner.
+subsetTest(promise_test, async test => {
+  const uuid = generateUuid(test);
+  const auctionNonce = await navigator.createAuctionNonce();
+  const sellerNonce = crypto.randomUUID();
+  const seller = SINGLE_SELLER_AUCTION_SELLER;
+
+  const buyer = OTHER_ORIGIN1;
+  const additionalBid = additionalBidHelper.createAdditionalBid(
+      uuid, auctionNonce, seller, buyer, 'horses', 1.99);
+  additionalBidHelper.setSellerNonce(additionalBid, sellerNonce);
+
+  await runAdditionalBidTestNoWinner(
+      test, uuid, [buyer], auctionNonce,
+      additionalBidHelper.fetchAdditionalBids(seller, [additionalBid]),
+      /*highestScoringOtherBid=*/0);
+}, 'single additional bid with seller nonce with no bidNonce');
+
+// Single-seller auction with a single buyer who places a single additional bid
+// that uses seller nonce, but no bidNonce or auctionNonce. Since the bidNonce
+// is missing, there is no winner.
+subsetTest(promise_test, async test => {
+  const uuid = generateUuid(test);
+  const auctionNonce = await navigator.createAuctionNonce();
+  const sellerNonce = crypto.randomUUID();
+  const seller = SINGLE_SELLER_AUCTION_SELLER;
+
+  const buyer = OTHER_ORIGIN1;
+  const additionalBid = additionalBidHelper.createAdditionalBid(
+      uuid, auctionNonce, seller, buyer, 'horses', 1.99);
+  additionalBidHelper.setSellerNonce(additionalBid, sellerNonce);
+  additionalBidHelper.removeAuctionNonceFromBid(additionalBid);
+
+  await runAdditionalBidTestNoWinner(
+      test, uuid, [buyer], auctionNonce,
+      additionalBidHelper.fetchAdditionalBids(seller, [additionalBid]),
+      /*highestScoringOtherBid=*/0);
+}, 'single additional bid with seller nonce with no bidNonce or auctionNonce');
+
+// Single-seller auction with a single buyer who places a single additional
+// bid that uses seller nonce / bidNonce. Since the bidNonce is invalid there is
+// no winner.
+subsetTest(promise_test, async test => {
+  const uuid = generateUuid(test);
+  const auctionNonce = await navigator.createAuctionNonce();
+  const sellerNonce = crypto.randomUUID();
+  // Intentionally use the wrong bidNonce, base64(sha256("incorrect")).
+  const bidNonce = 'ID01Nr1irTOscLfqPU9eELbVLr0Mt1goQaBTrrtxhqM=';
+  const seller = SINGLE_SELLER_AUCTION_SELLER;
+  const additionalBidOverrides = {
+    bidNonce: bidNonce,
+  };
+
+  const buyer = OTHER_ORIGIN1;
+  const additionalBid = additionalBidHelper.createAdditionalBid(
+      uuid, auctionNonce, seller, buyer, 'horses', 1.99,
+      /*additionalBidOverrides=*/ additionalBidOverrides);
+  additionalBidHelper.setSellerNonce(additionalBid, sellerNonce);
+  additionalBidHelper.removeAuctionNonceFromBid(additionalBid);
+
+  await runAdditionalBidTestNoWinner(
+      test, uuid, [buyer], auctionNonce,
+      additionalBidHelper.fetchAdditionalBids(seller, [additionalBid]),
+      /*highestScoringOtherBid=*/0);
+}, 'single invalid additional bid with seller nonce');
+
+// Single-seller auction with a two buyers competing with additional bids, using
+// seller nonce.
+subsetTest(promise_test, async test => {
+  const uuid = generateUuid(test);
+  const auctionNonce = await navigator.createAuctionNonce();
+  const sellerNonce1 = crypto.randomUUID();
+  const sellerNonce2 = crypto.randomUUID();
+  const bidNonce1 =
+      await additionalBidHelper.computeBidNonce(auctionNonce, sellerNonce1);
+  const bidNonce2 =
+      await additionalBidHelper.computeBidNonce(auctionNonce, sellerNonce2);
+  const seller = SINGLE_SELLER_AUCTION_SELLER;
+  const additionalBidOverrides1 = {
+    bidNonce: bidNonce1,
+  };
+  const additionalBidOverrides2 = {
+    bidNonce: bidNonce2,
+  };
+
+  const buyer1 = OTHER_ORIGIN1;
+  const additionalBid1 = additionalBidHelper.createAdditionalBid(
+      uuid, auctionNonce, seller, buyer1, 'horses', 1.99,
+      /*additionalBidOverrides=*/ additionalBidOverrides1);
+  additionalBidHelper.setSellerNonce(additionalBid1, sellerNonce1);
+  additionalBidHelper.removeAuctionNonceFromBid(additionalBid1);
+
+  const buyer2 = OTHER_ORIGIN2;
+  const additionalBid2 = additionalBidHelper.createAdditionalBid(
+      uuid, auctionNonce, seller, buyer2, 'planes', 2.99,
+      /*additionalBidOverrides=*/ additionalBidOverrides2);
+  additionalBidHelper.setSellerNonce(additionalBid2, sellerNonce2);
+  additionalBidHelper.removeAuctionNonceFromBid(additionalBid2);
+
+  await runAdditionalBidTest(
+      test, uuid, [buyer1, buyer2], auctionNonce,
+      additionalBidHelper.fetchAdditionalBids(
+          seller, [additionalBid1, additionalBid2]),
+      /*highestScoringOtherBid=*/1.99,
+      /*winningAdditionalBidId=*/'planes');
+}, 'two valid additional bids using seller nonce');
+
+// Single-seller auction with a single buyer who places a single additional
+// bid that uses seller nonce / bidNonce, but also auctionNonce in the bid. As
+// exactly one of bidNonce / auctionNonce is allowed in the bid, this fails.
+subsetTest(promise_test, async test => {
+  const uuid = generateUuid(test);
+  const auctionNonce = await navigator.createAuctionNonce();
+  const sellerNonce = crypto.randomUUID();
+  const bidNonce =
+      await additionalBidHelper.computeBidNonce(auctionNonce, sellerNonce);
+  const seller = SINGLE_SELLER_AUCTION_SELLER;
+  const additionalBidOverrides = {
+    bidNonce: bidNonce,
+  };
+
+  const buyer = OTHER_ORIGIN1;
+  const additionalBid = additionalBidHelper.createAdditionalBid(
+      uuid, auctionNonce, seller, buyer, 'horses', 1.99,
+      /*additionalBidOverrides=*/ additionalBidOverrides);
+  additionalBidHelper.setSellerNonce(additionalBid, sellerNonce);
+  // Don't remove the auctionNonce from the bid.
+
+  await runAdditionalBidTestNoWinner(
+      test, uuid, [buyer], auctionNonce,
+      additionalBidHelper.fetchAdditionalBids(seller, [additionalBid]),
+      /*highestScoringOtherBid=*/0);
+}, 'single additional bid with seller nonce, but also with auctionNonce in bid');
+
+// Single-seller auction with a single buyer who places a single additional
+// bid with auctionNonce and bidNonce in the bid (with seller nonce), causing
+// the bid to fail.
+subsetTest(promise_test, async test => {
+  const uuid = generateUuid(test);
+  const auctionNonce = await navigator.createAuctionNonce();
+  const sellerNonce = crypto.randomUUID();
+  const bidNonce =
+      await additionalBidHelper.computeBidNonce(auctionNonce, sellerNonce);
+  const seller = SINGLE_SELLER_AUCTION_SELLER;
+  const additionalBidOverrides = {
+    bidNonce: bidNonce,
+  };
+
+  const buyer = OTHER_ORIGIN1;
+  const additionalBid = additionalBidHelper.createAdditionalBid(
+      uuid, auctionNonce, seller, buyer, 'horses', 1.99,
+      /*additionalBidOverrides=*/ additionalBidOverrides);
+  additionalBidHelper.setSellerNonce(additionalBid, sellerNonce);
+
+  await runAdditionalBidTestNoWinner(
+      test, uuid, [buyer], auctionNonce,
+      additionalBidHelper.fetchAdditionalBids(seller, [additionalBid]),
+      /*highestScoringOtherBid=*/0);
+}, 'single valid additional bid with auctionNonce and bidNonce in bid (with seller nonce)');
 
 // Single-seller auction with a single additional bid. Because this additional
 // bid is filtered by negative targeting, this auction has no winner.

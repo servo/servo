@@ -15,6 +15,7 @@ on:
 jobs:
   build-and-publish:
     runs-on: ubuntu-20.04
+    if: github.repository == 'web-platform-tests/wpt'
     steps:
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -31,8 +32,6 @@ jobs:
         with:
           fetch-depth: 50
       - name: Run website_build.sh
-        # Use a conditional step instead of a conditional job to work around #20700.
-        if: github.repository == 'web-platform-tests/wpt'
         run: ./tools/ci/website_build.sh
         env:
           DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}

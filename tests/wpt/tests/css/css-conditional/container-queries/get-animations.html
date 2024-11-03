@@ -22,7 +22,7 @@
   <div id=div>Green</div>
 </div>
 <script>
-  setup(() => assert_implements_container_queries());
+  setup(() => assert_implements_size_container_queries());
 
   test(() => {
     assert_equals(getComputedStyle(div).color, 'rgb(255, 0, 0)');

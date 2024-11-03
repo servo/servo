@@ -1,0 +1,80 @@
+<!doctype html>
+<title>@supports at-rule</title>
+<link rel="help" href="https://www.w3.org/TR/css-conditional-4/#the-css-namespace">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  function test_supports(rule, expected, desc) {
+    test(() => {
+      assert_equals(CSS.supports(rule), expected, 'CSS.supports(' + rule + ')');
+    }, desc);
+  }
+
+  // Basic at-rule support.
+  test_supports("at-rule(@supports)", true);
+  test_supports("at-rule( @supports)", true);
+  test_supports("at-rule(@supports )", true);
+  test_supports("at-rule(@media)", true);
+  test_supports("at-rule(@counter-style)", true);
+  test_supports("at-rule(@doesnotexist)", false);
+
+  // With descriptors.
+  test_supports("at-rule(@counter-style; system: fixed)", true);
+  test_supports("at-rule(@counter-style;system: fixed )", true);
+  test_supports("at-rule(@counter-style;system:  fixed )", true);
+  test_supports("at-rule(@counter-style; system:)", false, "missing value 1");
+  test_supports("at-rule(@counter-style; system: )", false, "missing value 2");
+  test_supports("at-rule(@counter-style; system: doesnotexist)", false, "invalid value");
+  test_supports("at-rule(@counter-style; system: fixed junk)", false, "junk after value");
+  test_supports("at-rule(@counter-style; system)", false, "missing value 3");
+  test_supports("at-rule(@counter-style! system: fixed)", false, "invalid separator");
+  test_supports("at-rule(@counter-style; suffix: \"abc\")", true, "quoted value is OK");
+  test_supports("at-rule(@counter-style; suffix: \"abc\";)", false, "semicolon after value");
+  test_supports("at-rule(@counter-style; suffix: \"abc\"", true, "implicit end parenthesis");
+  test_supports("at-rule(@counter-style; system: fixed; system: fixed)", false, "multiple descriptors");
+  test_supports("at-rule(@supports; system: fixed)", false, "descriptor invalid in context");
+
+  // Properties are not descriptors.
+  test_supports("at-rule(@supports; color: red)", false);
+  test_supports("at-rule(@media; color: red)", false);
+  test_supports("at-rule(@counter-style; color: red)", false);
+  test_supports("at-rule(@font-fact; color: red)", false);
+  test_supports("at-rule(@property; color: red)", false);
+  test_supports("at-rule(@font-palette-values; color: red)", false);
+  test_supports("at-rule(@view-transition; color: red)", false);
+
+  // More descriptors.
+  test_supports("at-rule(@font-face; font-family: 'Ariana Grande')", true);
+  test_supports("at-rule(@font-face; font-style: italic)", true);
+  test_supports("at-rule(@font-face; font-weight: normal)", true);
+  test_supports("at-rule(@font-face; font-feature-settings: \"kern\" 1)", true);
+  test_supports("at-rule(@font-face; font-display: swap)", true);
+  test_supports("at-rule(@font-face; font-variant: small-caps)", true);
+  test_supports("at-rule(@font-face; src: url(/foo.ttf))", true);
+  test_supports("at-rule(@font-face; unicode-range: U+41-5A)", true);
+  test_supports("at-rule(@font-face; ascent-override: 80%)", true);
+  test_supports("at-rule(@font-face; descent-override: 20%)", true);
+  test_supports("at-rule(@font-face; line-gap-override: normal)", true);
+  test_supports("at-rule(@font-face; size-adjust: 150%)", true);
+  test_supports("at-rule(@property; syntax: \"*\")", true);
+  test_supports("at-rule(@property; syntax: \"<unknown>\")", false);
+  test_supports("at-rule(@property; initial-value: #fff)", true);
+  test_supports("at-rule(@property; inherits: true)", true);
+  test_supports("at-rule(@counter-style; system: extends upper-roman)", true);
+  test_supports("at-rule(@counter-style; negative: '(' ')'", true);
+  test_supports("at-rule(@counter-style; prefix: \"a\")", true);
+  test_supports("at-rule(@counter-style; suffix: \"b\")", true);
+  test_supports("at-rule(@counter-style; range: infinite infinite", true);
+  test_supports("at-rule(@counter-style; pad: 3 '0')", true);
+  test_supports("at-rule(@counter-style; fallback: foo)", true);
+  test_supports("at-rule(@counter-style; symbols: 'X')", true);
+  test_supports("at-rule(@counter-style; additive-symbols: 1 'I', calc(-1) 'X')", true);
+  test_supports("at-rule(@counter-style; speak-as: words)", true);
+  test_supports("at-rule(@font-palette-values; font-family: 'Fontfontfont')", true);
+  test_supports("at-rule(@font-palette-values; base-palette: 7)", true);
+  test_supports("at-rule(@font-palette-values; override-colors: 3 blue, 1 brown)", true);
+  test_supports("at-rule(@view-transition; navigation: auto)", true);
+  test_supports("at-rule(@view-transition; types: check)", true);
+
+  // TODO: Should we include e.g. @page; page-orientation?
+</script>

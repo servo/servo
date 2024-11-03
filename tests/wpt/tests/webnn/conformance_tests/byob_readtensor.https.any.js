@@ -95,6 +95,23 @@ promise_test(async () => {
 }, `readTensor() with an ArrayBuffer`);
 
 promise_test(async () => {
+  const sharedArrayBuffer = new SharedArrayBuffer(testContents.byteLength);
+
+  await mlContext.readTensor(mlTensor, sharedArrayBuffer);
+
+  assert_array_equals(new Uint32Array(sharedArrayBuffer), testContents);
+}, `readTensor() with a SharedArrayBuffer`);
+
+promise_test(async () => {
+  const sharedArrayBuffer = new SharedArrayBuffer(testContents.byteLength);
+  const typedArray = new Uint32Array(sharedArrayBuffer);
+
+  await mlContext.readTensor(mlTensor, typedArray);
+
+  assert_array_equals(typedArray, testContents);
+}, `readTensor() with a typeArray from a SharedArrayBuffer`);
+
+promise_test(async () => {
   // Create a slightly larger ArrayBuffer and set up the TypedArray at an
   // offset to make sure the MLTensor contents are written to the correct
   // offset.

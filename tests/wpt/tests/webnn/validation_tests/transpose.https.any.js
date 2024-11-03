@@ -58,8 +58,8 @@ tests.forEach(
       const input = builder.input('input', test.input);
       if (test.output) {
         const output = builder.transpose(input, test.options);
-        assert_equals(output.dataType(), test.output.dataType);
-        assert_array_equals(output.shape(), test.output.shape);
+        assert_equals(output.dataType, test.output.dataType);
+        assert_array_equals(output.shape, test.output.shape);
       } else {
         const options = {...test.options};
         if (options.label) {
@@ -83,8 +83,8 @@ promise_test(async t => {
     if (context.opSupportLimits().transpose.input.dataTypes.includes(
             dataType)) {
       const output = builder.transpose(input);
-      assert_equals(output.dataType(), dataType);
-      assert_array_equals(output.shape(), [4, 3, 2, 1]);
+      assert_equals(output.dataType, dataType);
+      assert_array_equals(output.shape, [4, 3, 2, 1]);
     } else {
       assert_throws_js(TypeError, () => builder.transpose(input));
     }

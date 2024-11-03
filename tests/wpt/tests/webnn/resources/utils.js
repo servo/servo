@@ -26,7 +26,7 @@ const getSoftmaxPrecisionTolerance =
       if (inputs[inputIndex]) {
         inputShape = inputs[inputIndex].descriptor.shape;
       } else {
-        inputShape = intermediateOperands[inputIndex].shape();
+        inputShape = intermediateOperands[inputIndex].shape;
       }
       const axis = args.length === 2 ? args[1][Object.keys(args[1])[0]] : 1;
       const tolerance = inputShape[axis] * 3 + 3;
@@ -132,10 +132,10 @@ const assertDescriptorsEquals = (outputOperand, expected) => {
   const dataType =
       expected.castedType ? expected.castedType : expected.dataType;
   assert_true(
-      outputOperand.dataType() === dataType,
+      outputOperand.dataType === dataType,
       'actual output dataType should be equal to expected output dataType');
   assert_array_equals(
-      outputOperand.shape(), expected.shape,
+      outputOperand.shape, expected.shape,
       'actual output shape should be equal to expected output shape');
 };
 
@@ -634,7 +634,7 @@ const getGemmPrecisionTolerance =
   if (inputs[indexA]) {
     ShapeA = inputs[indexA].descriptor.shape;
   } else {
-    ShapeA = intermediateOperands[indexA].shape();
+    ShapeA = intermediateOperands[indexA].shape;
   }
   const options =
       args.length === 3 ? {...args[2][Object.keys(args[2])[0]]} : {};
@@ -671,13 +671,13 @@ const getConv2dPrecisionTolerance =
   if (inputs[inputIndex]) {
     inputShape = inputs[inputIndex].descriptor.shape;
   } else {
-    inputShape = intermediateOperands[inputIndex].shape();
+    inputShape = intermediateOperands[inputIndex].shape;
   }
   let filterShape;
   if (inputs[filterIndex]) {
     filterShape = inputs[filterIndex].descriptor.shape;
   } else {
-    filterShape = intermediateOperands[filterIndex].shape();
+    filterShape = intermediateOperands[filterIndex].shape;
   }
   const options =
       args.length === 3 ? {...args[2][Object.keys(args[2])[0]]} : {};

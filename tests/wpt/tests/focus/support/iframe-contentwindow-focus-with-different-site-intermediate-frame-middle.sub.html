@@ -1,7 +1,7 @@
 <!doctype html>
 <meta charset="utf-8">
 <title>iframe.contentWindow.focus() with different-site intermediate frame middle</title>
-<iframe src="http://{{hosts[][www]}}:{{ports[http][0]}}/focus/support/iframe-contentwindow-focus-with-different-site-intermediate-frame-inner.html"></iframe>
+<iframe allow="focus-without-user-activation" src="http://{{hosts[][www]}}:{{ports[http][0]}}/focus/support/iframe-contentwindow-focus-with-different-site-intermediate-frame-inner.html"></iframe>
 <script>
 let iframe = document.getElementsByTagName("iframe")[0];
 let log = "";

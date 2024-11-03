@@ -32,6 +32,43 @@ const dequantizeLinearTests = [
         'dequantizeLinearInput': {
           'data': [123],
           'descriptor': {shape: [], dataType: 'int8'},
+          'constant': false
+        },
+        'dequantizeLinearScale': {
+          'data': [1.1202747821807861],
+          'descriptor': {shape: [], dataType: 'float32'},
+          'constant': true
+        },
+        'dequantizeLinearZeroPoint': {
+          'data': [3],
+          'descriptor': {shape: [], dataType: 'int8'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'dequantizeLinear',
+        'arguments': [
+          {'input': 'dequantizeLinearInput'},
+          {'scale': 'dequantizeLinearScale'},
+          {'zeroPoint': 'dequantizeLinearZeroPoint'}
+        ],
+        'outputs': 'dequantizeLinearOutput'
+      }],
+      'expectedOutputs': {
+        'dequantizeLinearOutput': {
+          'data': [134.43296813964844],
+          'descriptor': {shape: [], dataType: 'float32'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'dequantizeLinear constant input',
+    'graph': {
+      'inputs': {
+        'dequantizeLinearInput': {
+          'data': [123],
+          'descriptor': {shape: [], dataType: 'int8'},
           'constant': true
         },
         'dequantizeLinearScale': {

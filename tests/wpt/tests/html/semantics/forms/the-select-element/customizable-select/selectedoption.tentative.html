@@ -44,20 +44,21 @@ promise_test(async () => {
   assert_equals(selectedOption.innerHTML, optionTwo.innerHTML,
     'The innerHTML of <selectedoption> should change after the selected option is changed.');
 
+  let oldInnerHTML = optionTwo.innerHTML;
   spanTwo.textContent = 'new span';
   await new Promise(queueMicrotask);
-  assert_equals(selectedOption.innerHTML, optionTwo.innerHTML,
-    '<selectedoption> should respond to text content changes.');
+  assert_equals(selectedOption.innerHTML, oldInnerHTML,
+    '<selectedoption> should not respond to <option> text content changes.');
 
   spanTwo.appendChild(document.createElement('div'));
   await new Promise(queueMicrotask);
-  assert_equals(selectedOption.innerHTML, optionTwo.innerHTML,
-    '<selectedoption> should respond to new elements being added to descendants.');
+  assert_equals(selectedOption.innerHTML, oldInnerHTML,
+    '<selectedoption> should not respond to new elements being added to descendants of <option>.');
 
   spanTwo.setAttribute('data-foo', 'bar');
   await new Promise(queueMicrotask);
-  assert_equals(selectedOption.innerHTML, optionTwo.innerHTML,
-    '<selectedoption> should respond to attributes being added to descendants.');
+  assert_equals(selectedOption.innerHTML, oldInnerHTML,
+    '<selectedoption> should not respond to attributes being added to descendants of <option>.');
 
   form.reset();
   await new Promise(queueMicrotask);
@@ -90,5 +91,7 @@ promise_test(async () => {
   optionOne.remove();
   assert_equals(selectedOption.innerHTML, '',
     'The content of <selectedoption> should be cleared if there is no selected <option>.');
+
+  // TODO(crbug.com/336844298): Add tests for mutation records during parsing
 }, 'The <selectedoption> element should reflect the HTML contents of the selected <option>.');
 </script>

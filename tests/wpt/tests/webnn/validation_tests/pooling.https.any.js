@@ -305,8 +305,8 @@ tests.forEach(
       kPoolingOperators.forEach((operatorName) => {
         if (test.output) {
           const output = builder[operatorName](input, test.options);
-          assert_equals(output.dataType(), test.output.dataType);
-          assert_array_equals(output.shape(), test.output.shape);
+          assert_equals(output.dataType, test.output.dataType);
+          assert_array_equals(output.shape, test.output.shape);
         } else {
           const regrexp = new RegExp('\\[' + label + '\\]');
           assert_throws_with_label(
@@ -320,8 +320,8 @@ tests.forEach(
       const builder = new MLGraphBuilder(context);
       const input = builder.input('input', {dataType, shape: [1, 3, 4, 4]});
       const output = builder.maxPool2d(input);
-      assert_equals(output.dataType(), dataType);
-      assert_array_equals(output.shape(), [1, 3, 1, 1]);
+      assert_equals(output.dataType, dataType);
+      assert_array_equals(output.shape, [1, 3, 1, 1]);
     }, `[maxPool2d] Test maxPool2d with data type ${dataType}`));
 
 promise_test(async t => {

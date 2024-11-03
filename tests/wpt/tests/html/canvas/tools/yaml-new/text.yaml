@@ -2160,6 +2160,64 @@
     const y = 100;
     ctx.fillText(text, x, y);
 
+- name: 2d.text.measure.text-clusters-rendering-drawing-styles-change.tentative
+  desc: >-
+    Test that fillTextCluster() renders using the drawing styles as they were
+    when `ctx.measureText()` was called, regardless of any changes in the
+    context since.
+  size: [250, 80]
+  code: |
+    ctx.font = '20px serif';
+    const text = 'Test ♦️ find';
+
+    {{ original_value }}
+
+    let tm = ctx.measureText(text);
+    const clusters = tm.getTextClusters();
+
+    {{ modified_value }}
+
+    for (const cluster of clusters) {
+        ctx.fillTextCluster(cluster, 10, 25);
+    }
+
+    ctx.fillText(text, 10, 50);
+  reference: |
+    ctx.font = '20px serif';
+    const text = 'Test ♦️ find';
+
+    {{ original_value }}
+
+    ctx.fillText(text, 10, 25);
+
+    {{ modified_value }}
+
+    ctx.fillText(text, 10, 50);
+  variants_layout:
+      [single_file]
+  grid_width: 2
+  variants:
+  - letter_spacing:
+      original_value: |-
+       ctx.letterSpacing = '2px';
+      modified_value: |-
+       ctx.letterSpacing = '6px';
+    word_spacing:
+      original_value: |-
+       ctx.wordSpacing = '2px';
+      modified_value: |-
+       ctx.wordSpacing = '10px';
+    font_kerning:
+      original_value: |-
+       ctx.fontKerning = 'none';
+      modified_value: |-
+       ctx.fontKerning = 'normal';
+    font_variant_caps:
+      original_value: |-
+       ctx.fontVariantCaps = 'small-caps';
+      modified_value: |-
+       ctx.fontVariantCaps = 'all-small-caps';
+
 - name: 2d.text.measure.text-clusters-range.tentative
   desc: >-
     Test that getTextClusters() and fillTextCluster() correctly render
