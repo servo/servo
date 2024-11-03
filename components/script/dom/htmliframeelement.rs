@@ -149,7 +149,7 @@ impl HTMLIFrameElement {
             let load_blocker = &self.load_blocker;
             // Any oustanding load is finished from the point of view of the blocked
             // document; the new navigation will continue blocking it.
-            LoadBlocker::terminate(&load_blocker, can_gc);
+            LoadBlocker::terminate(load_blocker, can_gc);
         }
 
         if load_data.url.scheme() == "javascript" {
@@ -423,7 +423,7 @@ impl HTMLIFrameElement {
         // The load blocker will be terminated for a navigation in iframe_load_event_steps.
         if reason == UpdatePipelineIdReason::Traversal {
             let blocker = &self.load_blocker;
-            LoadBlocker::terminate(&blocker, can_gc);
+            LoadBlocker::terminate(blocker, can_gc);
         }
 
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
@@ -508,7 +508,7 @@ impl HTMLIFrameElement {
             .fire_event(atom!("load"), can_gc);
 
         let blocker = &self.load_blocker;
-        LoadBlocker::terminate(&blocker, can_gc);
+        LoadBlocker::terminate(blocker, can_gc);
 
         // TODO Step 5 - unset child document `mut iframe load` flag
     }
@@ -741,7 +741,7 @@ impl VirtualMethods for HTMLIFrameElement {
         self.super_type().unwrap().unbind_from_tree(context);
 
         let blocker = &self.load_blocker;
-        LoadBlocker::terminate(&blocker, CanGc::note());
+        LoadBlocker::terminate(blocker, CanGc::note());
 
         // https://html.spec.whatwg.org/multipage/#a-browsing-context-is-discarded
         let window = window_from_node(self);

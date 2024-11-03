@@ -226,7 +226,7 @@ impl HTMLVideoElement {
         // (which triggers no media load algorithm unless a explicit call to .load() is done)
         // will block the document's load event forever.
         let blocker = &self.load_blocker;
-        LoadBlocker::terminate(&blocker, can_gc);
+        LoadBlocker::terminate(blocker, can_gc);
         *blocker.borrow_mut() = Some(LoadBlocker::new(
             &document_from_node(self),
             LoadType::Image(poster_url.clone()),

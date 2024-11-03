@@ -516,7 +516,7 @@ impl HTMLMediaElement {
             *blocker.borrow_mut() =
                 Some(LoadBlocker::new(&document_from_node(self), LoadType::Media));
         } else if !delay && blocker.borrow().is_some() {
-            LoadBlocker::terminate(&blocker, can_gc);
+            LoadBlocker::terminate(blocker, can_gc);
         }
     }
 
