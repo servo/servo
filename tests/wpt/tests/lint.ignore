@@ -802,12 +802,6 @@ TESTDRIVER-IN-UNSUPPORTED-TYPE: file-system-access/local_FileSystemWritableFileS
 TESTDRIVER-IN-UNSUPPORTED-TYPE: file-system-access/showDirectoryPicker-manual.https.html
 TESTDRIVER-IN-UNSUPPORTED-TYPE: file-system-access/showOpenFilePicker-manual.https.html
 TESTDRIVER-IN-UNSUPPORTED-TYPE: file-system-access/showSaveFilePicker-manual.https.html
-TESTDRIVER-IN-UNSUPPORTED-TYPE: fullscreen/crashtests/chrome-1312699.html
-TESTDRIVER-IN-UNSUPPORTED-TYPE: fullscreen/crashtests/content-visibility-crash.html
-TESTDRIVER-IN-UNSUPPORTED-TYPE: fullscreen/rendering/backdrop-iframe.html
-TESTDRIVER-IN-UNSUPPORTED-TYPE: fullscreen/rendering/backdrop-inherit.html
-TESTDRIVER-IN-UNSUPPORTED-TYPE: fullscreen/rendering/backdrop-object.html
-TESTDRIVER-IN-UNSUPPORTED-TYPE: fullscreen/rendering/fullscreen-root-fills-page.html
 TESTDRIVER-IN-UNSUPPORTED-TYPE: html/rendering/non-replaced-elements/the-fieldset-and-legend-elements/crashtests/fieldset-middleclick.html
 TESTDRIVER-IN-UNSUPPORTED-TYPE: infrastructure/testdriver/click_child_crossorigin.html
 TESTDRIVER-IN-UNSUPPORTED-TYPE: infrastructure/testdriver/click_child_testdriver.html

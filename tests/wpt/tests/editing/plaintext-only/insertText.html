@@ -39,7 +39,7 @@ addEventListener("load", () => {
       initialInnerHTML: "{}<br>",
       insertText: " ",
       expected: collapseWhiteSpaces
-        ? (useBR ? [" <br>", "&nbsp;"] : [" <br>", " \n", "&nbsp;"])
+        ? (useBR ? [" <br>", "&nbsp;"] : [" \n", "&nbsp;"])
         : " ",
     },
     {
@@ -109,7 +109,7 @@ addEventListener("load", () => {
       // the empty paragraph should be wrapped in the <b>.
       expected: useBR
         ? "<p><b><br></b></p><p><b>aAB</b></p>"
-        : ["<p><b><br></b></p><p><b>aAB</b></p>", "<p><b>\n</b></p><p><b>aAB</b></p>"],
+        : "<p><b>\n</b></p><p><b>aAB</b></p>",
     },
     {
       initialInnerHTML: "<p><b>A[]B</b></p>",
@@ -134,7 +134,7 @@ addEventListener("load", () => {
       insertText: "a",
       expected: useBR
         ? "<p><b><br></b></p><p><b>a</b></p>"
-        : ["<p><b><br></b></p><p><b>a</b></p>", "<p><b>\n</b></p><p><b>a</b></p>"],
+        : "<p><b>\n</b></p><p><b>a</b></p>",
     },
     {
       initialInnerHTML: "<p><b>[]AB</b></p>",
@@ -143,7 +143,7 @@ addEventListener("load", () => {
       insertText: "a",
       expected: useBR
         ? "<p><b><br>aAB</b></p>"
-        : ["<p><b><br>aAB</b></p>", "<p><b>\naAB</b></p>"],
+        : "<p><b>\naAB</b></p>",
     },
     {
       initialInnerHTML: "<p><b>A[]B</b></p>",
@@ -152,7 +152,7 @@ addEventListener("load", () => {
       insertText: "a",
       expected: useBR
         ? "<p><b>A<br>aB</b></p>"
-        : ["<p><b>A<br>aB</b></p>", "<p><b>A\naB</b></p>"],
+        : "<p><b>A\naB</b></p>",
     },
     {
       initialInnerHTML: "<p><b>AB[]</b></p>",
@@ -163,7 +163,7 @@ addEventListener("load", () => {
       // the placeholder line break (if there is) should be in <b>.
       expected: useBR
         ? "<p><b>AB<br>a</b></p>"
-        : ["<p><b>AB<br>a</b></p>", "<p><b>AB\na</b></p>"],
+        : "<p><b>AB\na</b></p>",
     },
     {
       initialInnerHTML: "<p><b>[AB]</b></p>",
@@ -174,7 +174,7 @@ addEventListener("load", () => {
       // the placeholder line break (if there is) should be in <b>.
       expected: useBR
         ? "<p><b><br>a</b></p>"
-        : ["<p><b><br>a</b></p>", "<p><b>\na</b></p>"],
+        : "<p><b>\na</b></p>",
     },
     {
       initialInnerHTML: "<p><b>[AB]</b></p>",

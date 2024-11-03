@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>SVGTextContentElement.getCharNumAtPosition</title>
+<link rel="help" href="https://svgwg.org/svg2-draft/text.html#__svg__SVGTextContentElement__getCharNumAtPosition">
+<link rel="help" href="https://github.com/w3c/svgwg/issues/955">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<svg width="800" height="600">
+<style>
+text {
+  font: 20px/1 Ahem;
+}
+</style>
+<text><tspan id="htb" x="40" y="100">abc</tspan></text>
+<text style="writing-mode:sideways-lr"><tspan id="slr" x="40" y="200">abc</tspan></text>
+</svg>
+
+<script>
+function newPoint(x, y) {
+  const p = document.querySelector('svg').createSVGPoint();
+  p.x = x;
+  p.y = y;
+  return p;
+}
+
+test(() => {
+  const element = document.querySelector('#slr');
+  assert_equals(element.getNumberOfChars(), 3);
+  const start = 200;
+  assert_equals(element.getCharNumAtPosition(newPoint(40, start + 10)), -1);
+  assert_equals(element.getCharNumAtPosition(newPoint(40, start - 10)), 0);
+  assert_equals(element.getCharNumAtPosition(newPoint(40, start - 30)), 1);
+  assert_equals(element.getCharNumAtPosition(newPoint(40, start - 50)), 2);
+  assert_equals(element.getCharNumAtPosition(newPoint(40, start - 70)), -1);
+}, 'sideways-lr');
+</script>

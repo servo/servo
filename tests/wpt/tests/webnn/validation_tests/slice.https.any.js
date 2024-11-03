@@ -74,8 +74,8 @@ tests.forEach(
 
       if (test.output) {
         const output = builder.slice(input, test.starts, test.sizes);
-        assert_equals(output.dataType(), test.output.dataType);
-        assert_array_equals(output.shape(), test.output.shape);
+        assert_equals(output.dataType, test.output.dataType);
+        assert_array_equals(output.shape, test.output.shape);
       } else {
         const label = 'slice_xxx';
         const options = {label};

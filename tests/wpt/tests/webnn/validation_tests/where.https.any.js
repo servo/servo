@@ -99,8 +99,8 @@ tests.forEach(
           context.opSupportLimits().where.falseValue.dataTypes.includes(
               test.falseValue.dataType)) {
         const output = builder.where(condition, trueValue, falseValue);
-        assert_equals(output.dataType(), test.output.dataType);
-        assert_array_equals(output.shape(), test.output.shape);
+        assert_equals(output.dataType, test.output.dataType);
+        assert_array_equals(output.shape, test.output.shape);
       } else {
         const label = 'where_123';
         const options = {label};

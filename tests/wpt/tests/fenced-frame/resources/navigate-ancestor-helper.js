@@ -1,28 +1,70 @@
-
 async function runNavigateAncestorTest(test_type, ancestor_type) {
-  // See documentation in `resources/navigate-ancestor-test-runner.https.html`.
-  // For each test type here, this document opens a new auxiliary window that
-  // runs the actual test. The tests in some way or another, direct a frame
-  // *inside* a fenced frame to navigate an ancestor frame via an
-  // <a target="_parent|_top"></a>. We need to run the real test in a new window
-  // so that if that window ends up navigating unexpectedly (because the fenced
-  // frame can accidentally navigated its embedder, for example) we can detect
-  // it from ths page, which never navigates away.
-  const navigate_ancestor_key = token();
-  const navigate_ancestor_from_nested_key = token();
+  // Set up a detector to check that the top-level page doesn't navigate away.
+  window.onbeforeunload =
+      e => {
+        assert_unreached(
+            `The top-level test runner document does not navigate when a ` +
+            `${test_type} navigates ${ancestor_type}`);
+      }
 
-  const win = window.open(generateURL(
-      "resources/navigate-ancestor-test-runner.https.html",
-      [navigate_ancestor_key, navigate_ancestor_from_nested_key]));
-  await new Promise(resolve => {
-    win.onload = resolve;
-  });
+  let fenced_frame = await attachFencedFrameContext();
+  await multiClick(10, 10, fenced_frame.element);
 
-  const pagehidePromise = new Promise(resolve => {
-    win.onpagehide = resolve;
-  });
+  // This is the page that the inner frames will navigate to.
+  const [uuid, url] = generateRemoteContextURL([]);
 
-  await win.runTest(test_type, ancestor_type);
-  win.close();
-  await pagehidePromise;
+  switch (test_type) {
+    case 'top-level fenced frame':
+      // This fenced frame will attempt to navigate its parent. It should end up
+      // navigating *itself* since it is a top-level browsing context. Just in
+      // case it accidentally navigates *this* frame, we have an
+      // `onbeforeunload` handler that will automatically fail the test before.
+      await fenced_frame.execute(async (url, ancestor_type) => {
+        window.executor.suspend(() => {
+          window[ancestor_type].location = url;
+        });
+      }, [url, ancestor_type]);
+      // Ensure that a navigation took place via the `window.location` call.
+      fenced_frame.context_id = uuid;
+      await fenced_frame.execute(() => {});
+      break;
+    case 'nested fenced frame':
+      await fenced_frame.execute(async (url, uuid, ancestor_type) => {
+        const inner_fenced_frame = await attachFencedFrameContext();
+        await inner_fenced_frame.execute((url, ancestor_type) => {
+          window.executor.suspend(() => {
+            window[ancestor_type].location = url;
+          });
+        }, [url, ancestor_type]);
+        // Ensure that a navigation took place via the `window.location` call.
+        inner_fenced_frame.context_id = uuid;
+        await inner_fenced_frame.execute(() => {});
+      }, [url, uuid, ancestor_type]);
+      // Check that the root fenced frame did not unload. The test will time out
+      // if it did.
+      await fenced_frame.execute(() => {});
+      break;
+    case 'nested iframe':
+      // When the iframe tries to navigate its ancestor frame, it should not
+      // navigate *this* frame, because the sandboxed navigation browsing
+      // context flag must be set in fenced frame trees. See:
+      // https://html.spec.whatwg.org/multipage/origin.html#sandboxed-navigation-browsing-context-flag
+      await fenced_frame.execute(async (url, ancestor_type) => {
+        const inner_iframe = await attachIFrameContext();
+        await inner_iframe.execute((url, ancestor_type) => {
+          try {
+            window[ancestor_type].location = url;
+            assert_unreached(
+                'The navigation from the nested iframe should ' +
+                'not be successful.');
+          } catch (error) {
+            assert_equals(error.name, 'SecurityError');
+          }
+        }, [url, ancestor_type]);
+      }, [url, ancestor_type]);
+      // Check that the root fenced frame did not unload. The test will time out
+      // if it did.
+      await fenced_frame.execute(() => {});
+      break;
+  }
 }

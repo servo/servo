@@ -109,8 +109,8 @@ tests.forEach(test => promise_test(async t => {
                 const inputB = builder.input('b', test.inputs.b);
                 if (test.output) {
                   const output = builder.matmul(inputA, inputB);
-                  assert_equals(output.dataType(), test.output.dataType);
-                  assert_array_equals(output.shape(), test.output.shape);
+                  assert_equals(output.dataType, test.output.dataType);
+                  assert_array_equals(output.shape, test.output.shape);
                 } else {
                   const label = 'matmul_123';
                   const options = {label};

@@ -19,6 +19,7 @@
 // META: variant=?41-44
 // META: variant=?45-48
 // META: variant=?49-52
+// META: variant=?53-56
 
 // These tests focus on the serverResponse field in AuctionConfig, e.g.
 // auctions involving bidding and auction services.
@@ -1028,6 +1029,32 @@ subsetTest(promise_test, async test => {
         }
       });
 }, 'Hybrid B&A auction --- beacon reporting');
+
+/////////////////////////////////////////////////////////////////////////////
+// updateIfOlderThanMs tests
+//
+// NOTE: Due to the lack of mock time in wpt, these test just exercise the code
+// paths and ensure that no crash occurs -- they don't otherwise verify
+// behavior.
+/////////////////////////////////////////////////////////////////////////////
+
+subsetTest(promise_test, async test => {
+  await testWithMutatedServerResponse(test, /*expectSuccess=*/ true, msg => {
+    msg.updateGroups = {
+      [window.location.origin]: [
+        {index: 2048, updateIfOlderThanMs: 1000}]};
+  });
+}, 'Basic B&A auction - updateIfOlderThanMs - invalid index');
+
+
+subsetTest(promise_test, async test => {
+  await testWithMutatedServerResponse(test, /*expectSuccess=*/ true, msg => {
+    msg.updateGroups = {
+      [window.location.origin]: [
+        {index: 0, updateIfOlderThanMs: 1000},
+        {index: 1, updateIfOlderThanMs: 10000}]};
+  });
+}, 'Basic B&A auction - updateIfOlderThanMs');
 
 /* Some things that are not currently tested that probably should be; this is
    not exhaustive, merely to keep track of things that come to mind as tests are

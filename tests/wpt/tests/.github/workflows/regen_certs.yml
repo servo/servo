@@ -8,6 +8,7 @@ on:
 jobs:
   update:
     runs-on: ubuntu-20.04
+    if: github.repository == 'web-platform-tests/wpt'
     steps:
     - name: Set up Python
       uses: actions/setup-python@v5
@@ -16,14 +17,10 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
     - name: Regenerate certs
-      # Use a conditional step instead of a conditional job to work around #20700.
-      if: github.repository == 'web-platform-tests/wpt'
       run: |
         python wpt make-hosts-file | sudo tee -a /etc/hosts
         python wpt regen-certs --force
     - name: Commit and create pull request
-      # Use a conditional step instead of a conditional job to work around #20700.
-      if: github.repository == 'web-platform-tests/wpt'
       uses: peter-evans/create-pull-request@v6
       with:
         token: ${{ secrets.GITHUB_TOKEN }}

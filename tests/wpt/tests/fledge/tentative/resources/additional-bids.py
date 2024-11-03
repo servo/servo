@@ -89,15 +89,28 @@ def main(request, response):
       # Each additional bid may have associated testMetadata. Remove this from
       # the additional bid and use it to adjust the behavior of this handler.
       test_metadata = additional_bid.pop("testMetadata", {})
-      auction_nonce = additional_bid.get("auctionNonce", None)
+      seller_nonce = test_metadata.get("sellerNonce", None)
+      remove_auction_nonce_from_bid = test_metadata.get("removeAuctionNonceFromBid", False)
+      bid_auction_nonce_override = test_metadata.get("bidAuctionNonceOverride", None)
+      if remove_auction_nonce_from_bid:
+        auction_nonce = additional_bid.pop("auctionNonce", None)
+      else:
+        auction_nonce = additional_bid.get("auctionNonce", None)
+      if bid_auction_nonce_override:
+        additional_bid["auctionNonce"] = bid_auction_nonce_override
       if not auction_nonce:
         raise BadRequestError("Additional bid missing required 'auctionNonce' field")
       signed_additional_bid = _sign_additional_bid(
           json.dumps(additional_bid),
           test_metadata.get("secretKeysForValidSignatures", []),
           test_metadata.get("secretKeysForInvalidSignatures", []))
-      additional_bid_header_value = (auction_nonce.encode("utf-8") + b":" +
-                                     base64.b64encode(signed_additional_bid.encode("utf-8")))
+      if seller_nonce:
+        additional_bid_header_value = (auction_nonce.encode("utf-8") + b":" +
+                                       seller_nonce.encode("utf-8") + b":" +
+                                       base64.b64encode(signed_additional_bid.encode("utf-8")))
+      else:
+        additional_bid_header_value = (auction_nonce.encode("utf-8") + b":" +
+                                       base64.b64encode(signed_additional_bid.encode("utf-8")))
       response.headers.append(b"Ad-Auction-Additional-Bid", additional_bid_header_value)
 
     response.status = (200, b"OK")

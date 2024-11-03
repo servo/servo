@@ -74,8 +74,8 @@ tests.forEach(
 
       if (test.output) {
         const output = builder.gather(input, indices, options);
-        assert_equals(output.dataType(), test.output.dataType);
-        assert_array_equals(output.shape(), test.output.shape);
+        assert_equals(output.dataType, test.output.dataType);
+        assert_array_equals(output.shape, test.output.shape);
       } else {
         const label = 'gather_'
         options.label = label;

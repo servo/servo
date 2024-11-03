@@ -40,20 +40,12 @@ function checkImage(entry, expectedUrl, expectedID, expectedSize, timeLowerBound
   if (options.includes('skip')) {
     return;
   }
-  if (options.includes('renderTimeIs0')) {
-    assert_equals(entry.renderTime, 0, 'renderTime should be 0');
-    assert_between_exclusive(entry.loadTime, timeLowerBound, performance.now(),
-      'loadTime should be between the lower bound and the current time');
-    assert_approx_equals(entry.startTime, entry.loadTime, 0.001,
-      'startTime should be equal to renderTime to the precision of 1 millisecond.');
-  } else {
-    assert_between_exclusive(entry.loadTime, timeLowerBound, entry.renderTime,
-      'loadTime should occur between the lower bound and the renderTime');
-    assert_greater_than_equal(performance.now(), entry.renderTime,
-      'renderTime should occur before the entry is dispatched to the observer.');
-    assert_approx_equals(entry.startTime, entry.renderTime, 0.001,
-      'startTime should be equal to renderTime to the precision of 1 millisecond.');
-  }
+  assert_between_inclusive(entry.loadTime, timeLowerBound, entry.renderTime,
+    'loadTime should occur between the lower bound and the renderTime');
+  assert_greater_than_equal(performance.now(), entry.renderTime,
+    'renderTime should occur before the entry is dispatched to the observer.');
+  assert_approx_equals(entry.startTime, entry.renderTime, 0.001,
+    'startTime should be equal to renderTime to the precision of 1 millisecond.');
   if (options.includes('sizeLowerBound')) {
     assert_greater_than(entry.size, expectedSize);
   } else if (options.includes('approximateSize')) {
@@ -71,9 +63,6 @@ function checkImage(entry, expectedUrl, expectedID, expectedSize, timeLowerBound
       'firstAnimatedFrameTime should be smaller than the delay applied to the second frame');
     assert_greater_than(entry.firstAnimatedFrameTime, 0,
       'firstAnimatedFrameTime should be larger than 0');
-  }
-  if (options.includes('animated-zero')) {
-    assert_equals(entry.firstAnimatedFrameTime, 0, 'firstAnimatedFrameTime should be 0');
   }
 }
 

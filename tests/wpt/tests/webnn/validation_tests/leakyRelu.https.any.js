@@ -17,8 +17,8 @@ promise_test(async t => {
   const options = {alpha: 0.02};
   const input = builder.input('input', {dataType: 'float32', shape: [1, 2, 3]});
   const output = builder.leakyRelu(input, options);
-  assert_equals(output.dataType(), 'float32');
-  assert_array_equals(output.shape(), [1, 2, 3]);
+  assert_equals(output.dataType, 'float32');
+  assert_array_equals(output.shape, [1, 2, 3]);
 }, '[leakyRelu] Build with options');
 
 promise_test(async t => {

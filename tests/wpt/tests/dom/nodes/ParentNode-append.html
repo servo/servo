@@ -59,6 +59,16 @@ function test_append(node, nodeName) {
         assert_equals(parent.childNodes[1], x);
         assert_equals(parent.childNodes[2].textContent, 'text');
     }, nodeName + '.append() with one element and text as argument, on a parent having a child.');
+
+    test(function() {
+        const parent = node.cloneNode();
+        const x = document.createElement('x');
+        const y = document.createElement('y');
+        parent.append(x, y, x);
+        assert_equals(parent.childNodes.length, 2);
+        assert_equals(parent.childNodes[0], y);
+        assert_equals(parent.childNodes[1], x);
+    }, nodeName + '.append() with the same element twice.');
 }
 
 test_append(document.createElement('div'), 'Element');

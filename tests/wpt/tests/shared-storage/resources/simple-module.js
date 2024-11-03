@@ -25,6 +25,27 @@ class TestURLSelectionOperation {
   }
 }
 
+class TestURLSelectionOperationTwo {
+  async run(urls, data) {
+    if (data && data.hasOwnProperty('mockResult')) {
+      return data['mockResult'];
+    }
+
+    return -1;
+  }
+}
+
+class TestSlowURLSelectionOperation {
+  async run(urls, data) {
+    await busyWaitMs(100);
+    if (data && data.hasOwnProperty('mockResult')) {
+      return data['mockResult'];
+    }
+
+    return -1;
+  }
+}
+
 class IncrementGlobalVariableAndReturnOriginalValueOperation {
   async run(urls, data) {
     return globalVar++;
@@ -102,6 +123,8 @@ class GetWaitIncrementWithinLockOperation {
 }
 
 register('test-url-selection-operation', TestURLSelectionOperation);
+register('test-url-selection-operation-2', TestURLSelectionOperationTwo);
+register('test-slow-url-selection-operation', TestSlowURLSelectionOperation);
 register('increment-global-variable-and-return-original-value-operation',
          IncrementGlobalVariableAndReturnOriginalValueOperation);
 register('verify-key-value', VerifyKeyValue);

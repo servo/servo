@@ -40,11 +40,11 @@ addEventListener("load", () => {
   for (const data of [
     {
       initialInnerHTML: "A[]B",
-      expected: useBR ? "A<br>B" : ["A<br>B", "A\nB"],
+      expected: useBR ? "A<br>B" : "A\nB",
     },
     {
       initialInnerHTML: "<p>{}<br></p>",
-      expected: useBR ? "<p><br><br></p>" : ["<p><br><br></p>", "<p>\n\n</p>", "<p>\n<br></p>"],
+      expected: useBR ? "<p><br><br></p>" : "<p>\n\n</p>",
     },
     {
       initialInnerHTML: `<p style="white-space:normal">A[]B</p>`,
@@ -64,85 +64,75 @@ addEventListener("load", () => {
     },
     {
       initialInnerHTML: "<ul><li>[]AB</li></ul>",
-      expected: useBR ? "<ul><li><br>AB</li></ul>" : ["<ul><li><br>AB</li></ul>", "<ul><li>\nAB</li></ul>"],
+      expected: useBR ? "<ul><li><br>AB</li></ul>" : "<ul><li>\nAB</li></ul>",
     },
     {
       initialInnerHTML: "<ul><li>A[]B</li></ul>",
-      expected: useBR ? "<ul><li>A<br>B</li></ul>" : ["<ul><li>A<br>B</li></ul>", "<ul><li>A\nB</li></ul>"],
+      expected: useBR ? "<ul><li>A<br>B</li></ul>" : "<ul><li>A\nB</li></ul>",
     },
     {
       initialInnerHTML: "<ul><li>AB[]</li></ul>",
       expected: useBR
         ? "<ul><li>AB<br><br></li></ul>"
-        : ["<ul><li>AB<br><br></li></ul>", "<ul><li>AB\n\n</li></ul>", "<ul><li>AB\n<br></li></ul>"],
+        : "<ul><li>AB\n\n</li></ul>",
     },
     {
       initialInnerHTML: "<dl><dt>[]AB</dt></dl>",
-      expected: useBR ? "<dl><dt><br>AB</dt></dl>" : ["<dl><dt><br>AB</dt></dl>", "<dl><dt>\nAB</dt></dl>"],
+      expected: useBR ? "<dl><dt><br>AB</dt></dl>" : "<dl><dt>\nAB</dt></dl>",
     },
     {
       initialInnerHTML: "<dl><dt>A[]B</dt></dl>",
-      expected: useBR ? "<dl><dt>A<br>B</dt></dl>" : ["<dl><dt>A<br>B</dt></dl>", "<dl><dt>A\nB</dt></dl>"],
+      expected: useBR ? "<dl><dt>A<br>B</dt></dl>" : "<dl><dt>A\nB</dt></dl>",
     },
     {
       initialInnerHTML: "<dl><dt>AB[]</dt></dl>",
       expected: useBR
         ? "<dl><dt>AB<br><br></dt></dl>"
-        : ["<dl><dt>AB<br><br></dt></dl>", "<dl><dt>AB\n\n</dt></dl>", "<dl><dt>AB\n<br></dt></dl>"],
+        : "<dl><dt>AB\n\n</dt></dl>",
     },
     {
       initialInnerHTML: "<dl><dd>[]AB</dd></dl>",
-      expected: useBR ? "<dl><dd><br>AB</dd></dl>" : ["<dl><dd><br>AB</dd></dl>", "<dl><dd>\nAB</dd></dl>"],
+      expected: useBR ? "<dl><dd><br>AB</dd></dl>" : "<dl><dd>\nAB</dd></dl>",
     },
     {
       initialInnerHTML: "<dl><dd>A[]B</dd></dl>",
-      expected: useBR ? "<dl><dd>A<br>B</dd></dl>" : ["<dl><dd>A<br>B</dd></dl>", "<dl><dd>A\nB</dd></dl>"],
+      expected: useBR ? "<dl><dd>A<br>B</dd></dl>" : "<dl><dd>A\nB</dd></dl>",
     },
     {
       initialInnerHTML: "<dl><dd>AB[]</dd></dl>",
       expected: useBR
         ? "<dl><dd>AB<br><br></dd></dl>"
-        : ["<dl><dd>AB<br><br></dd></dl>", "<dl><dd>AB\n\n</dd></dl>", "<dl><dd>AB\n<br></dd></dl>"],
+        : "<dl><dd>AB\n\n</dd></dl>",
     },
     {
       initialInnerHTML: "<table><tbody><tr><td>[]AB</td></tr></tbody></table>",
       expected: useBR
         ? "<table><tbody><tr><td><br>AB</td></tr></tbody></table>"
-        : [
-          "<table><tbody><tr><td><br>AB<br></td></tr></tbody></table>",
-          "<table><tbody><tr><td>\nAB</td></tr></tbody></table>",
-        ],
+        : "<table><tbody><tr><td>\nAB</td></tr></tbody></table>",
     },
     {
       initialInnerHTML: "<table><tbody><tr><td>A[]B</td></tr></tbody></table>",
       expected: useBR
         ? "<table><tbody><tr><td>A<br>B</td></tr></tbody></table>"
-        : [
-          "<table><tbody><tr><td>A<br>B<br></td></tr></tbody></table>",
-          "<table><tbody><tr><td>A\nB</td></tr></tbody></table>",
-        ],
+        : "<table><tbody><tr><td>A\nB</td></tr></tbody></table>",
     },
     {
       initialInnerHTML: "<table><tbody><tr><td>AB[]</td></tr></tbody></table>",
       expected: useBR
         ? "<table><tbody><tr><td>AB<br><br></td></tr></tbody></table>"
-        : [
-          "<table><tbody><tr><td>AB<br><br></td></tr></tbody></table>",
-          "<table><tbody><tr><td>AB\n\n</td></tr></tbody></table>",
-          "<table><tbody><tr><td>AB\n<br></td></tr></tbody></table>",
-        ],
+        : "<table><tbody><tr><td>AB\n\n</td></tr></tbody></table>",
     },
     {
       initialInnerHTML: "<h1>[]AB</h1>",
-      expected: useBR ? "<h1><br>AB</h1>" : ["<h1><br>AB</h1>", "<h1>\nAB</h1>"],
+      expected: useBR ? "<h1><br>AB</h1>" : "<h1>\nAB</h1>",
     },
     {
       initialInnerHTML: "<h1>A[]B</h1>",
-      expected: useBR ? "<h1>A<br>B</h1>" : ["<h1>A<br>B</h1>", "<h1>A\nB</h1>"],
+      expected: useBR ? "<h1>A<br>B</h1>" : "<h1>A\nB</h1>",
     },
     {
       initialInnerHTML: "<h1>AB[]</h1>",
-      expected: useBR ? "<h1>AB<br><br></h1>" : ["<h1>AB<br><br></h1>", "<h1>AB\n\n</h1>", "<h1>AB\n<br></h1>"],
+      expected: useBR ? "<h1>AB<br><br></h1>" : "<h1>AB\n\n</h1>",
     },
   ]) {
     test(() => {

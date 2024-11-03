@@ -97,8 +97,8 @@ tests.forEach(
       }
       if (test.output) {
         const output = builder.concat(inputs, test.axis);
-        assert_equals(output.dataType(), test.output.dataType);
-        assert_array_equals(output.shape(), test.output.shape);
+        assert_equals(output.dataType, test.output.dataType);
+        assert_array_equals(output.shape, test.output.shape);
       } else {
         const options = {label};
         const regrexp = new RegExp('\\[' + label + '\\]');

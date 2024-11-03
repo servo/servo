@@ -85,8 +85,10 @@ test_scope_specificity(['@scope (#main)', 'div .b'], 'div .b');
 test_scope_specificity(['@scope (#main)', '@scope (.a)', '.b'], '.b');
 // Explicit `:scope` adds specficity.
 test_scope_specificity(['@scope (#main)', ':scope .b'], ':scope .b');
-// Using & in scoped style with implicit scope root uses `:scope`, which adds specificity
-test_scope_specificity(['@scope', '& .b'], ':scope .b', styleImplicit);
+// Using & in scoped style with implicit scope root matches the same elements
+// as `:scope`, but does not add any specificity.
+// https://github.com/w3c/csswg-drafts/issues/10196
+test_scope_specificity(['@scope', '& .b'], ':where(:scope) .b', styleImplicit);
 // Using relative selector syntax does not add specificity
 test_scope_specificity(['@scope (#main)', '> .a'], ':where(#main) > .a');
 </script>

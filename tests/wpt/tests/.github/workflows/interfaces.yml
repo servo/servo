@@ -7,14 +7,13 @@ on:
 jobs:
   update:
     runs-on: ubuntu-20.04
+    if: github.repository == 'web-platform-tests/wpt'
     steps:
     - name: Checkout
       uses: actions/checkout@v4
     - name: Run interfaces_update.sh
       run: ./tools/ci/interfaces_update.sh
     - name: Create pull request
-      # Use a conditional step instead of a conditional job to work around #20700.
-      if: github.repository == 'web-platform-tests/wpt'
       uses: peter-evans/create-pull-request@v6
       with:
         token: ${{ secrets.GITHUB_TOKEN }}

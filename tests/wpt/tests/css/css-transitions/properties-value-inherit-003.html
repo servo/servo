@@ -99,6 +99,8 @@
                 teardown: generalParallelTest.teardown,
                 // invoked prior to running a slice of tests
                 sliceStart: generalParallelTest.sliceStart,
+                // invoked after transitions have started
+                transitionsStarted: generalParallelTest.transitionsStarted,
                 // invoked after running a slice of tests
                 sliceDone: generalParallelTest.sliceDone,
                 // test cases, make them as granular as possible
@@ -128,7 +130,7 @@
                     // test TransitionEnd events
                     'events': {
                         done: function(test, data, options) {
-                            // make sure there were no events on parent
+                            // font-size explicitly transitioned on the parent.
                             test.step(generalParallelTest.assertExpectedEventsFunc(data, 'container', "font-size:" + duration));
                             // make sure we got the event for the tested property only
                             test.step(generalParallelTest.assertExpectedEventsFunc(data, 'transition', ""));

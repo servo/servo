@@ -105,8 +105,8 @@ tests.forEach(
       if (test.output) {
         const output =
             builder.scatterElements(input, indices, updates, options);
-        assert_equals(output.dataType(), test.output.dataType);
-        assert_array_equals(output.shape(), test.output.shape);
+        assert_equals(output.dataType, test.output.dataType);
+        assert_array_equals(output.shape, test.output.shape);
       } else {
         const label = 'a_scatter_elements'
         options.label = label;

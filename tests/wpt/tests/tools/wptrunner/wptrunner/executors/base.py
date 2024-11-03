@@ -782,12 +782,13 @@ class CallbackHandler:
         except self.unimplemented_exc:
             self.logger.warning("Action %s not implemented" % action)
             self._send_message(cmd_id, "complete", "error", f"Action {action} not implemented")
-        except self.expected_exc:
-            self.logger.debug(f"Action {action} failed with an expected exception")
-            self._send_message(cmd_id, "complete", "error", f"Action {action} failed")
+        except self.expected_exc as e:
+            self.logger.debug(f"Action {action} failed with an expected exception", exc_info=True)
+            self._send_message(cmd_id, "complete", "error", f"Action {action} failed: {e!s}")
         except Exception:
-            self.logger.warning(f"Action {action} failed")
-            self._send_message(cmd_id, "complete", "error")
+            self.logger.warning(f"Action {action} failed with an unexpected exception", exc_info=True)
+            exception_string = traceback.format_exc()
+            self._send_message(cmd_id, "complete", "error", f"Action {action} failed:\n{exception_string}")
             raise
         else:
             self.logger.debug(f"Action {action} completed with result {result}")

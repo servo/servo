@@ -82,8 +82,8 @@ tests.forEach(
       const zeroPoint = builder.input('zeroPoint', test.zeroPoint);
       if (test.output) {
         const output = builder.quantizeLinear(input, scale, zeroPoint);
-        assert_equals(output.dataType(), test.output.dataType);
-        assert_array_equals(output.shape(), test.output.shape);
+        assert_equals(output.dataType, test.output.dataType);
+        assert_array_equals(output.shape, test.output.shape);
       } else {
         const label = 'quantize_linear_123';
         const options = {label};

@@ -206,4 +206,35 @@ document.getElementById('container').style.fontSize = '20px';
 
 test_math_used('calc(sign(10%) * 100px)', '100px');
 
+// Basic tests (just px and em) for sign() interaction with units not
+// otherwise used by the property.
+test_math_used('calc(2.5 - sign(41px - 2em) / 2)', '2', {type:'number'});
+test_math_used('calc(2.5 - sign(40px - 2em) / 2)', '2.5', {type:'number'});
+test_math_used('calc(2.5 - sign(39px - 2em) / 2)', '3', {type:'number'});
+test_math_used('calc(3 + sign(42px - 2em))', '4', {type:'integer'});
+test_math_used('calc(3 + sign(40px - 2em))', '3', {type:'integer'});
+test_math_used('calc(3 + sign(38px - 2em))', '2', {type:'integer'});
+test_math_used('calc(50px + 100px * sign(42px - 2em))', '150px', {type:'length'});
+test_math_used('calc(50px + 100px * sign(40px - 2em))', '50px', {type:'length'});
+test_math_used('calc(50px + 100px * sign(38px - 2em))', '-50px', {type:'length'});
+test_math_used('calc(90deg + 30deg * sign(42px - 2em))', '120deg', {type:'angle'});
+test_math_used('calc(90deg + 30deg * sign(40px - 2em))', '90deg', {type:'angle'});
+test_math_used('calc(90deg + 30deg * sign(38px - 2em))', '60deg', {type:'angle'});
+test_math_used('calc(5s + 15s * sign(42px - 2em))', '20s', {type:'time'});
+test_math_used('calc(5s + 15s * sign(40px - 2em))', '5s', {type:'time'});
+test_math_used('calc(5s + 15s * sign(38px - 2em))', '-10s', {type:'time'});
+test_math_used('calc(100dpi + 20dpi * sign(42px - 2em))', '120dpi', {type:'resolution'});
+test_math_used('calc(100dpi + 20dpi * sign(40px - 2em))', '100dpi', {type:'resolution'});
+test_math_used('calc(100dpi + 20dpi * sign(38px - 2em))', '80dpi', {type:'resolution'});
+test_math_used('calc(3fr + 1fr * sign(42px - 2em))', '4fr', {type:'flex'});
+test_math_used('calc(3fr + 1fr * sign(40px - 2em))', '3fr', {type:'flex'});
+test_math_used('calc(3fr + 1fr * sign(38px - 2em))', '2fr', {type:'flex'});
+// repeat a few with px and rem
+test_math_used('calc(2.5 - sign(33px - 2rem) / 2)', '2', {type:'number'});
+test_math_used('calc(2.5 - sign(32px - 2rem) / 2)', '2.5', {type:'number'});
+test_math_used('calc(2.5 - sign(31px - 2rem) / 2)', '3', {type:'number'});
+test_math_used('calc(50px + 100px * sign(34px - 2rem))', '150px', {type:'length'});
+test_math_used('calc(50px + 100px * sign(32px - 2rem))', '50px', {type:'length'});
+test_math_used('calc(50px + 100px * sign(30px - 2rem))', '-50px', {type:'length'});
+
 </script>

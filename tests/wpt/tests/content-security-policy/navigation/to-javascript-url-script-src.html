@@ -7,17 +7,15 @@
 <body>
 
 <script nonce="abc">
-  function assert_csp_event_for_element(test, element) {
+  function assert_csp_event_for_element(test, element, resolve) {
     assert_equals(typeof SecurityPolicyViolationEvent, "function", "These tests require 'SecurityPolicyViolationEvent'.");
     document.addEventListener("securitypolicyviolation", test.step_func(e => {
-      if (e.target != element)
-        return;
       assert_equals(e.blockedURI, "inline");
       assert_equals(e.effectiveDirective, "script-src-elem");
       assert_equals(element.contentDocument.body.innerText, "", "Ensure that 'Fail' doesn't appear in the child document.");
       element.remove();
-      test.done();
-    }));
+      resolve();
+    }, { once: true }));
   }
 
   function navigate_to_javascript_onload(test, iframe) {
@@ -32,41 +30,49 @@
     }));
   }
 
-  async_test(t => {
-    var i = document.createElement("iframe");
-    i.src = "javascript:'Fail.'";
+  promise_test(t => {
+    return new Promise(resolve => {
+      var i = document.createElement("iframe");
+      i.src = "javascript:'Fail.'";
 
-    assert_csp_event_for_element(t, i);
+      assert_csp_event_for_element(t, i, resolve);
 
-    document.body.appendChild(i);
+      document.body.appendChild(i);
+    })
   }, "<iframe src='javascript:'> blocked without 'unsafe-inline'.");
 
-  async_test(t => {
-    var i = document.createElement("iframe");
+  promise_test(t => {
+    return new Promise(resolve => {
+      var i = document.createElement("iframe");
 
-    assert_csp_event_for_element(t, i);
-    navigate_to_javascript_onload(t, i);
+      assert_csp_event_for_element(t, i, resolve);
+      navigate_to_javascript_onload(t, i);
 
-    document.body.appendChild(i);
+      document.body.appendChild(i);
+    })
   }, "<iframe> navigated to 'javascript:' blocked without 'unsafe-inline'.");
 
-  async_test(t => {
-    var i = document.createElement("iframe");
-    i.src = "../support/echo-policy.py?policy=" + encodeURIComponent("script-src 'unsafe-inline'");
+  promise_test(t => {
+    return new Promise(resolve => {
+      var i = document.createElement("iframe");
+      i.src = "../support/echo-policy.py?policy=" + encodeURIComponent("script-src 'unsafe-inline'");
 
-    assert_csp_event_for_element(t, i);
-    navigate_to_javascript_onload(t, i);
+      assert_csp_event_for_element(t, i, resolve);
+      navigate_to_javascript_onload(t, i);
 
-    document.body.appendChild(i);
+      document.body.appendChild(i);
+    })
   }, "<iframe src='...'> with 'unsafe-inline' navigated to 'javascript:' blocked in this document");
 
-  async_test(t => {
-    var i = document.createElement("iframe");
-    i.src = "../support/echo-policy.py?policy=" + encodeURIComponent("script-src 'none'");
+  promise_test(t => {
+    return new Promise(resolve => {
+      var i = document.createElement("iframe");
+      i.src = "../support/echo-policy.py?policy=" + encodeURIComponent("script-src 'none'");
 
-    assert_csp_event_for_element(t, i);
-    navigate_to_javascript_onload(t, i);
+      assert_csp_event_for_element(t, i, resolve);
+      navigate_to_javascript_onload(t, i);
 
-    document.body.appendChild(i);
+      document.body.appendChild(i);
+    })
   }, "<iframe src='...'> without 'unsafe-inline' navigated to 'javascript:' blocked in this document.");
 </script>

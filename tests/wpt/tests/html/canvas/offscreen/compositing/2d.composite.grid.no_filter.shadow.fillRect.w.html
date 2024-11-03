@@ -3,7 +3,7 @@
 <meta charset="UTF-8">
 <html class="reftest-wait">
 <link rel="match" href="2d.composite.grid.no_filter.shadow.fillRect-expected.html">
-<meta name=fuzzy content="maxDifference=0-2; totalPixels=0-10210">
+<meta name=fuzzy content="maxDifference=0-3; totalPixels=0-25392">
 <title>Canvas test: 2d.composite.grid.no_filter.shadow.fillRect</title>
 <h1 style="font-size: 20px;">2d.composite.grid.no_filter.shadow.fillRect</h1>
 <p class="desc"></p>
@@ -22,7 +22,7 @@
       const canvas = new OffscreenCanvas(80, 60);
       const ctx = canvas.getContext('2d');
 
-      ctx.fillStyle = 'rgb(0, 102, 255)';
+      ctx.fillStyle = 'rgba(0, 102, 240, 0.8)';
       ctx.fillRect(15, 15, 50, 30);
 
       ctx.translate(25, 20);
@@ -35,9 +35,9 @@
       // No filter.
       ctx.shadowOffsetX = 20;
       ctx.shadowOffsetY = 20;
-      ctx.shadowColor = 'rgb(154, 0, 154)';
+      ctx.shadowColor = 'rgba(154, 0, 154, 0.8)';
 
-      ctx.globalCompositeOperation = 'source-over'
+      ctx.globalCompositeOperation = 'source-over';
 
       ctx.fillStyle = 'rgb(52, 255, 52)';
       ctx.fillRect(5, 5, 50, 30);
@@ -71,7 +71,7 @@
       const canvas = new OffscreenCanvas(80, 60);
       const ctx = canvas.getContext('2d');
 
-      ctx.fillStyle = 'rgb(0, 102, 255)';
+      ctx.fillStyle = 'rgba(0, 102, 240, 0.8)';
       ctx.fillRect(15, 15, 50, 30);
 
       ctx.translate(25, 20);
@@ -84,9 +84,9 @@
       // No filter.
       ctx.shadowOffsetX = 20;
       ctx.shadowOffsetY = 20;
-      ctx.shadowColor = 'rgb(154, 0, 154)';
+      ctx.shadowColor = 'rgba(154, 0, 154, 0.8)';
 
-      ctx.globalCompositeOperation = 'source-in'
+      ctx.globalCompositeOperation = 'source-in';
 
       ctx.fillStyle = 'rgb(52, 255, 52)';
       ctx.fillRect(5, 5, 50, 30);
@@ -120,7 +120,7 @@
       const canvas = new OffscreenCanvas(80, 60);
       const ctx = canvas.getContext('2d');
 
-      ctx.fillStyle = 'rgb(0, 102, 255)';
+      ctx.fillStyle = 'rgba(0, 102, 240, 0.8)';
       ctx.fillRect(15, 15, 50, 30);
 
       ctx.translate(25, 20);
@@ -133,9 +133,9 @@
       // No filter.
       ctx.shadowOffsetX = 20;
       ctx.shadowOffsetY = 20;
-      ctx.shadowColor = 'rgb(154, 0, 154)';
+      ctx.shadowColor = 'rgba(154, 0, 154, 0.8)';
 
-      ctx.globalCompositeOperation = 'source-out'
+      ctx.globalCompositeOperation = 'source-out';
 
       ctx.fillStyle = 'rgb(52, 255, 52)';
       ctx.fillRect(5, 5, 50, 30);
@@ -169,7 +169,7 @@
       const canvas = new OffscreenCanvas(80, 60);
       const ctx = canvas.getContext('2d');
 
-      ctx.fillStyle = 'rgb(0, 102, 255)';
+      ctx.fillStyle = 'rgba(0, 102, 240, 0.8)';
       ctx.fillRect(15, 15, 50, 30);
 
       ctx.translate(25, 20);
@@ -182,9 +182,9 @@
       // No filter.
       ctx.shadowOffsetX = 20;
       ctx.shadowOffsetY = 20;
-      ctx.shadowColor = 'rgb(154, 0, 154)';
+      ctx.shadowColor = 'rgba(154, 0, 154, 0.8)';
 
-      ctx.globalCompositeOperation = 'source-atop'
+      ctx.globalCompositeOperation = 'source-atop';
 
       ctx.fillStyle = 'rgb(52, 255, 52)';
       ctx.fillRect(5, 5, 50, 30);
@@ -218,7 +218,7 @@
       const canvas = new OffscreenCanvas(80, 60);
       const ctx = canvas.getContext('2d');
 
-      ctx.fillStyle = 'rgb(0, 102, 255)';
+      ctx.fillStyle = 'rgba(0, 102, 240, 0.8)';
       ctx.fillRect(15, 15, 50, 30);
 
       ctx.translate(25, 20);
@@ -231,9 +231,9 @@
       // No filter.
       ctx.shadowOffsetX = 20;
       ctx.shadowOffsetY = 20;
-      ctx.shadowColor = 'rgb(154, 0, 154)';
+      ctx.shadowColor = 'rgba(154, 0, 154, 0.8)';
 
-      ctx.globalCompositeOperation = 'destination-over'
+      ctx.globalCompositeOperation = 'destination-over';
 
       ctx.fillStyle = 'rgb(52, 255, 52)';
       ctx.fillRect(5, 5, 50, 30);
@@ -267,7 +267,7 @@
       const canvas = new OffscreenCanvas(80, 60);
       const ctx = canvas.getContext('2d');
 
-      ctx.fillStyle = 'rgb(0, 102, 255)';
+      ctx.fillStyle = 'rgba(0, 102, 240, 0.8)';
       ctx.fillRect(15, 15, 50, 30);
 
       ctx.translate(25, 20);
@@ -280,9 +280,9 @@
       // No filter.
       ctx.shadowOffsetX = 20;
       ctx.shadowOffsetY = 20;
-      ctx.shadowColor = 'rgb(154, 0, 154)';
+      ctx.shadowColor = 'rgba(154, 0, 154, 0.8)';
 
-      ctx.globalCompositeOperation = 'destination-in'
+      ctx.globalCompositeOperation = 'destination-in';
 
       ctx.fillStyle = 'rgb(52, 255, 52)';
       ctx.fillRect(5, 5, 50, 30);
@@ -316,7 +316,7 @@
       const canvas = new OffscreenCanvas(80, 60);
       const ctx = canvas.getContext('2d');
 
-      ctx.fillStyle = 'rgb(0, 102, 255)';
+      ctx.fillStyle = 'rgba(0, 102, 240, 0.8)';
       ctx.fillRect(15, 15, 50, 30);
 
       ctx.translate(25, 20);
@@ -329,9 +329,9 @@
       // No filter.
       ctx.shadowOffsetX = 20;
       ctx.shadowOffsetY = 20;
-      ctx.shadowColor = 'rgb(154, 0, 154)';
+      ctx.shadowColor = 'rgba(154, 0, 154, 0.8)';
 
-      ctx.globalCompositeOperation = 'destination-out'
+      ctx.globalCompositeOperation = 'destination-out';
 
       ctx.fillStyle = 'rgb(52, 255, 52)';
       ctx.fillRect(5, 5, 50, 30);
@@ -365,7 +365,7 @@
       const canvas = new OffscreenCanvas(80, 60);
       const ctx = canvas.getContext('2d');
 
-      ctx.fillStyle = 'rgb(0, 102, 255)';
+      ctx.fillStyle = 'rgba(0, 102, 240, 0.8)';
       ctx.fillRect(15, 15, 50, 30);
 
       ctx.translate(25, 20);
@@ -378,9 +378,9 @@
       // No filter.
       ctx.shadowOffsetX = 20;
       ctx.shadowOffsetY = 20;
-      ctx.shadowColor = 'rgb(154, 0, 154)';
+      ctx.shadowColor = 'rgba(154, 0, 154, 0.8)';
 
-      ctx.globalCompositeOperation = 'destination-atop'
+      ctx.globalCompositeOperation = 'destination-atop';
 
       ctx.fillStyle = 'rgb(52, 255, 52)';
       ctx.fillRect(5, 5, 50, 30);
@@ -414,7 +414,7 @@
       const canvas = new OffscreenCanvas(80, 60);
       const ctx = canvas.getContext('2d');
 
-      ctx.fillStyle = 'rgb(0, 102, 255)';
+      ctx.fillStyle = 'rgba(0, 102, 240, 0.8)';
       ctx.fillRect(15, 15, 50, 30);
 
       ctx.translate(25, 20);
@@ -427,9 +427,9 @@
       // No filter.
       ctx.shadowOffsetX = 20;
       ctx.shadowOffsetY = 20;
-      ctx.shadowColor = 'rgb(154, 0, 154)';
+      ctx.shadowColor = 'rgba(154, 0, 154, 0.8)';
 
-      ctx.globalCompositeOperation = 'lighter'
+      ctx.globalCompositeOperation = 'lighter';
 
       ctx.fillStyle = 'rgb(52, 255, 52)';
       ctx.fillRect(5, 5, 50, 30);
@@ -463,7 +463,7 @@
       const canvas = new OffscreenCanvas(80, 60);
       const ctx = canvas.getContext('2d');
 
-      ctx.fillStyle = 'rgb(0, 102, 255)';
+      ctx.fillStyle = 'rgba(0, 102, 240, 0.8)';
       ctx.fillRect(15, 15, 50, 30);
 
       ctx.translate(25, 20);
@@ -476,9 +476,9 @@
       // No filter.
       ctx.shadowOffsetX = 20;
       ctx.shadowOffsetY = 20;
-      ctx.shadowColor = 'rgb(154, 0, 154)';
+      ctx.shadowColor = 'rgba(154, 0, 154, 0.8)';
 
-      ctx.globalCompositeOperation = 'copy'
+      ctx.globalCompositeOperation = 'copy';
 
       ctx.fillStyle = 'rgb(52, 255, 52)';
       ctx.fillRect(5, 5, 50, 30);
@@ -512,7 +512,7 @@
       const canvas = new OffscreenCanvas(80, 60);
       const ctx = canvas.getContext('2d');
 
-      ctx.fillStyle = 'rgb(0, 102, 255)';
+      ctx.fillStyle = 'rgba(0, 102, 240, 0.8)';
       ctx.fillRect(15, 15, 50, 30);
 
       ctx.translate(25, 20);
@@ -525,9 +525,9 @@
       // No filter.
       ctx.shadowOffsetX = 20;
       ctx.shadowOffsetY = 20;
-      ctx.shadowColor = 'rgb(154, 0, 154)';
+      ctx.shadowColor = 'rgba(154, 0, 154, 0.8)';
 
-      ctx.globalCompositeOperation = 'xor'
+      ctx.globalCompositeOperation = 'xor';
 
       ctx.fillStyle = 'rgb(52, 255, 52)';
       ctx.fillRect(5, 5, 50, 30);
@@ -561,7 +561,7 @@
       const canvas = new OffscreenCanvas(80, 60);
       const ctx = canvas.getContext('2d');
 
-      ctx.fillStyle = 'rgb(0, 102, 255)';
+      ctx.fillStyle = 'rgba(0, 102, 240, 0.8)';
       ctx.fillRect(15, 15, 50, 30);
 
       ctx.translate(25, 20);
@@ -574,9 +574,9 @@
       // No filter.
       ctx.shadowOffsetX = 20;
       ctx.shadowOffsetY = 20;
-      ctx.shadowColor = 'rgb(154, 0, 154)';
+      ctx.shadowColor = 'rgba(154, 0, 154, 0.8)';
 
-      ctx.globalCompositeOperation = 'multiply'
+      ctx.globalCompositeOperation = 'multiply';
 
       ctx.fillStyle = 'rgb(52, 255, 52)';
       ctx.fillRect(5, 5, 50, 30);
@@ -610,7 +610,7 @@
       const canvas = new OffscreenCanvas(80, 60);
       const ctx = canvas.getContext('2d');
 
-      ctx.fillStyle = 'rgb(0, 102, 255)';
+      ctx.fillStyle = 'rgba(0, 102, 240, 0.8)';
       ctx.fillRect(15, 15, 50, 30);
 
       ctx.translate(25, 20);
@@ -623,9 +623,9 @@
       // No filter.
       ctx.shadowOffsetX = 20;
       ctx.shadowOffsetY = 20;
-      ctx.shadowColor = 'rgb(154, 0, 154)';
+      ctx.shadowColor = 'rgba(154, 0, 154, 0.8)';
 
-      ctx.globalCompositeOperation = 'screen'
+      ctx.globalCompositeOperation = 'screen';
 
       ctx.fillStyle = 'rgb(52, 255, 52)';
       ctx.fillRect(5, 5, 50, 30);
@@ -659,7 +659,7 @@
       const canvas = new OffscreenCanvas(80, 60);
       const ctx = canvas.getContext('2d');
 
-      ctx.fillStyle = 'rgb(0, 102, 255)';
+      ctx.fillStyle = 'rgba(0, 102, 240, 0.8)';
       ctx.fillRect(15, 15, 50, 30);
 
       ctx.translate(25, 20);
@@ -672,9 +672,9 @@
       // No filter.
       ctx.shadowOffsetX = 20;
       ctx.shadowOffsetY = 20;
-      ctx.shadowColor = 'rgb(154, 0, 154)';
+      ctx.shadowColor = 'rgba(154, 0, 154, 0.8)';
 
-      ctx.globalCompositeOperation = 'overlay'
+      ctx.globalCompositeOperation = 'overlay';
 
       ctx.fillStyle = 'rgb(52, 255, 52)';
       ctx.fillRect(5, 5, 50, 30);
@@ -708,7 +708,7 @@
       const canvas = new OffscreenCanvas(80, 60);
       const ctx = canvas.getContext('2d');
 
-      ctx.fillStyle = 'rgb(0, 102, 255)';
+      ctx.fillStyle = 'rgba(0, 102, 240, 0.8)';
       ctx.fillRect(15, 15, 50, 30);
 
       ctx.translate(25, 20);
@@ -721,9 +721,9 @@
       // No filter.
       ctx.shadowOffsetX = 20;
       ctx.shadowOffsetY = 20;
-      ctx.shadowColor = 'rgb(154, 0, 154)';
+      ctx.shadowColor = 'rgba(154, 0, 154, 0.8)';
 
-      ctx.globalCompositeOperation = 'darken'
+      ctx.globalCompositeOperation = 'darken';
 
       ctx.fillStyle = 'rgb(52, 255, 52)';
       ctx.fillRect(5, 5, 50, 30);
@@ -757,7 +757,7 @@
       const canvas = new OffscreenCanvas(80, 60);
       const ctx = canvas.getContext('2d');
 
-      ctx.fillStyle = 'rgb(0, 102, 255)';
+      ctx.fillStyle = 'rgba(0, 102, 240, 0.8)';
       ctx.fillRect(15, 15, 50, 30);
 
       ctx.translate(25, 20);
@@ -770,9 +770,9 @@
       // No filter.
       ctx.shadowOffsetX = 20;
       ctx.shadowOffsetY = 20;
-      ctx.shadowColor = 'rgb(154, 0, 154)';
+      ctx.shadowColor = 'rgba(154, 0, 154, 0.8)';
 
-      ctx.globalCompositeOperation = 'lighten'
+      ctx.globalCompositeOperation = 'lighten';
 
       ctx.fillStyle = 'rgb(52, 255, 52)';
       ctx.fillRect(5, 5, 50, 30);
@@ -806,7 +806,7 @@
       const canvas = new OffscreenCanvas(80, 60);
       const ctx = canvas.getContext('2d');
 
-      ctx.fillStyle = 'rgb(0, 102, 255)';
+      ctx.fillStyle = 'rgba(0, 102, 240, 0.8)';
       ctx.fillRect(15, 15, 50, 30);
 
       ctx.translate(25, 20);
@@ -819,9 +819,9 @@
       // No filter.
       ctx.shadowOffsetX = 20;
       ctx.shadowOffsetY = 20;
-      ctx.shadowColor = 'rgb(154, 0, 154)';
+      ctx.shadowColor = 'rgba(154, 0, 154, 0.8)';
 
-      ctx.globalCompositeOperation = 'color-dodge'
+      ctx.globalCompositeOperation = 'color-dodge';
 
       ctx.fillStyle = 'rgb(52, 255, 52)';
       ctx.fillRect(5, 5, 50, 30);
@@ -855,7 +855,7 @@
       const canvas = new OffscreenCanvas(80, 60);
       const ctx = canvas.getContext('2d');
 
-      ctx.fillStyle = 'rgb(0, 102, 255)';
+      ctx.fillStyle = 'rgba(0, 102, 240, 0.8)';
       ctx.fillRect(15, 15, 50, 30);
 
       ctx.translate(25, 20);
@@ -868,9 +868,9 @@
       // No filter.
       ctx.shadowOffsetX = 20;
       ctx.shadowOffsetY = 20;
-      ctx.shadowColor = 'rgb(154, 0, 154)';
+      ctx.shadowColor = 'rgba(154, 0, 154, 0.8)';
 
-      ctx.globalCompositeOperation = 'color-burn'
+      ctx.globalCompositeOperation = 'color-burn';
 
       ctx.fillStyle = 'rgb(52, 255, 52)';
       ctx.fillRect(5, 5, 50, 30);
@@ -904,7 +904,7 @@
       const canvas = new OffscreenCanvas(80, 60);
       const ctx = canvas.getContext('2d');
 
-      ctx.fillStyle = 'rgb(0, 102, 255)';
+      ctx.fillStyle = 'rgba(0, 102, 240, 0.8)';
       ctx.fillRect(15, 15, 50, 30);
 
       ctx.translate(25, 20);
@@ -917,9 +917,9 @@
       // No filter.
       ctx.shadowOffsetX = 20;
       ctx.shadowOffsetY = 20;
-      ctx.shadowColor = 'rgb(154, 0, 154)';
+      ctx.shadowColor = 'rgba(154, 0, 154, 0.8)';
 
-      ctx.globalCompositeOperation = 'hard-light'
+      ctx.globalCompositeOperation = 'hard-light';
 
       ctx.fillStyle = 'rgb(52, 255, 52)';
       ctx.fillRect(5, 5, 50, 30);
@@ -953,7 +953,7 @@
       const canvas = new OffscreenCanvas(80, 60);
       const ctx = canvas.getContext('2d');
 
-      ctx.fillStyle = 'rgb(0, 102, 255)';
+      ctx.fillStyle = 'rgba(0, 102, 240, 0.8)';
       ctx.fillRect(15, 15, 50, 30);
 
       ctx.translate(25, 20);
@@ -966,9 +966,9 @@
       // No filter.
       ctx.shadowOffsetX = 20;
       ctx.shadowOffsetY = 20;
-      ctx.shadowColor = 'rgb(154, 0, 154)';
+      ctx.shadowColor = 'rgba(154, 0, 154, 0.8)';
 
-      ctx.globalCompositeOperation = 'soft-light'
+      ctx.globalCompositeOperation = 'soft-light';
 
       ctx.fillStyle = 'rgb(52, 255, 52)';
       ctx.fillRect(5, 5, 50, 30);
@@ -1002,7 +1002,7 @@
       const canvas = new OffscreenCanvas(80, 60);
       const ctx = canvas.getContext('2d');
 
-      ctx.fillStyle = 'rgb(0, 102, 255)';
+      ctx.fillStyle = 'rgba(0, 102, 240, 0.8)';
       ctx.fillRect(15, 15, 50, 30);
 
       ctx.translate(25, 20);
@@ -1015,9 +1015,9 @@
       // No filter.
       ctx.shadowOffsetX = 20;
       ctx.shadowOffsetY = 20;
-      ctx.shadowColor = 'rgb(154, 0, 154)';
+      ctx.shadowColor = 'rgba(154, 0, 154, 0.8)';
 
-      ctx.globalCompositeOperation = 'difference'
+      ctx.globalCompositeOperation = 'difference';
 
       ctx.fillStyle = 'rgb(52, 255, 52)';
       ctx.fillRect(5, 5, 50, 30);
@@ -1051,7 +1051,7 @@
       const canvas = new OffscreenCanvas(80, 60);
       const ctx = canvas.getContext('2d');
 
-      ctx.fillStyle = 'rgb(0, 102, 255)';
+      ctx.fillStyle = 'rgba(0, 102, 240, 0.8)';
       ctx.fillRect(15, 15, 50, 30);
 
       ctx.translate(25, 20);
@@ -1064,9 +1064,9 @@
       // No filter.
       ctx.shadowOffsetX = 20;
       ctx.shadowOffsetY = 20;
-      ctx.shadowColor = 'rgb(154, 0, 154)';
+      ctx.shadowColor = 'rgba(154, 0, 154, 0.8)';
 
-      ctx.globalCompositeOperation = 'exclusion'
+      ctx.globalCompositeOperation = 'exclusion';
 
       ctx.fillStyle = 'rgb(52, 255, 52)';
       ctx.fillRect(5, 5, 50, 30);
@@ -1100,7 +1100,7 @@
       const canvas = new OffscreenCanvas(80, 60);
       const ctx = canvas.getContext('2d');
 
-      ctx.fillStyle = 'rgb(0, 102, 255)';
+      ctx.fillStyle = 'rgba(0, 102, 240, 0.8)';
       ctx.fillRect(15, 15, 50, 30);
 
       ctx.translate(25, 20);
@@ -1113,9 +1113,9 @@
       // No filter.
       ctx.shadowOffsetX = 20;
       ctx.shadowOffsetY = 20;
-      ctx.shadowColor = 'rgb(154, 0, 154)';
+      ctx.shadowColor = 'rgba(154, 0, 154, 0.8)';
 
-      ctx.globalCompositeOperation = 'hue'
+      ctx.globalCompositeOperation = 'hue';
 
       ctx.fillStyle = 'rgb(52, 255, 52)';
       ctx.fillRect(5, 5, 50, 30);
@@ -1149,7 +1149,7 @@
       const canvas = new OffscreenCanvas(80, 60);
       const ctx = canvas.getContext('2d');
 
-      ctx.fillStyle = 'rgb(0, 102, 255)';
+      ctx.fillStyle = 'rgba(0, 102, 240, 0.8)';
       ctx.fillRect(15, 15, 50, 30);
 
       ctx.translate(25, 20);
@@ -1162,9 +1162,9 @@
       // No filter.
       ctx.shadowOffsetX = 20;
       ctx.shadowOffsetY = 20;
-      ctx.shadowColor = 'rgb(154, 0, 154)';
+      ctx.shadowColor = 'rgba(154, 0, 154, 0.8)';
 
-      ctx.globalCompositeOperation = 'saturation'
+      ctx.globalCompositeOperation = 'saturation';
 
       ctx.fillStyle = 'rgb(52, 255, 52)';
       ctx.fillRect(5, 5, 50, 30);
@@ -1198,7 +1198,7 @@
       const canvas = new OffscreenCanvas(80, 60);
       const ctx = canvas.getContext('2d');
 
-      ctx.fillStyle = 'rgb(0, 102, 255)';
+      ctx.fillStyle = 'rgba(0, 102, 240, 0.8)';
       ctx.fillRect(15, 15, 50, 30);
 
       ctx.translate(25, 20);
@@ -1211,9 +1211,9 @@
       // No filter.
       ctx.shadowOffsetX = 20;
       ctx.shadowOffsetY = 20;
-      ctx.shadowColor = 'rgb(154, 0, 154)';
+      ctx.shadowColor = 'rgba(154, 0, 154, 0.8)';
 
-      ctx.globalCompositeOperation = 'color'
+      ctx.globalCompositeOperation = 'color';
 
       ctx.fillStyle = 'rgb(52, 255, 52)';
       ctx.fillRect(5, 5, 50, 30);
@@ -1247,7 +1247,7 @@
       const canvas = new OffscreenCanvas(80, 60);
       const ctx = canvas.getContext('2d');
 
-      ctx.fillStyle = 'rgb(0, 102, 255)';
+      ctx.fillStyle = 'rgba(0, 102, 240, 0.8)';
       ctx.fillRect(15, 15, 50, 30);
 
       ctx.translate(25, 20);
@@ -1260,9 +1260,9 @@
       // No filter.
       ctx.shadowOffsetX = 20;
       ctx.shadowOffsetY = 20;
-      ctx.shadowColor = 'rgb(154, 0, 154)';
+      ctx.shadowColor = 'rgba(154, 0, 154, 0.8)';
 
-      ctx.globalCompositeOperation = 'luminosity'
+      ctx.globalCompositeOperation = 'luminosity';
 
       ctx.fillStyle = 'rgb(52, 255, 52)';
       ctx.fillRect(5, 5, 50, 30);

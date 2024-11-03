@@ -20,7 +20,7 @@
   <dialog id="dialog"><span id="child"></span></dialog>
 </div>
 <script>
-  setup(() => assert_implements_container_queries());
+  setup(() => assert_implements_size_container_queries());
 
   test(() => {
     assert_equals(getComputedStyle(child).color, "rgb(255, 0, 0)");

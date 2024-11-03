@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<title>ResizeObserver - Console Logging Manual Test</title>
+<meta name="assert" content="Canceled resize loop error notifications should not appear in the console.">
+<link rel="help" href="https://www.w3.org/TR/resize-observer/#deliver-resize-loop-error-notification">
+
+<p>Open the console inside the developer tools. It should contain no entries about ResizeObserver.</p>
+
+<div id="resizer" style="width: 100px; height: 100px;"></div>
+<script>
+  // Cancel all window error events.
+  window.onerror = () => true;
+
+  const observer = new ResizeObserver(entries => {
+    resizer.style.width = '200px';
+  });
+  observer.observe(resizer);
+</script>

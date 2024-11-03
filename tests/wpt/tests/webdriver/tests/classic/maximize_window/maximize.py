@@ -8,6 +8,7 @@ from tests.support.helpers import (
     document_hidden,
     is_fullscreen,
     is_maximized,
+    is_not_maximized
 )
 
 
@@ -27,12 +28,13 @@ def test_no_browsing_context(session, closed_frame):
 
 
 def test_response_payload(session):
-    assert not is_maximized(session)
+    assert is_not_maximized(session)
+    original = session.window.rect
 
     response = maximize(session)
     value = assert_success(response, session.window.rect)
 
-    assert is_maximized(session)
+    assert is_maximized(session, original)
 
     assert isinstance(value, dict)
     assert isinstance(value.get("x"), int)
@@ -42,7 +44,8 @@ def test_response_payload(session):
 
 
 def test_fully_exit_fullscreen(session):
-    assert not is_maximized(session)
+    assert is_not_maximized(session)
+    original = session.window.rect
 
     session.window.fullscreen()
     assert is_fullscreen(session)
@@ -50,36 +53,24 @@ def test_fully_exit_fullscreen(session):
     response = maximize(session)
     assert_success(response, session.window.rect)
 
-    assert is_maximized(session)
-    assert not document_hidden(session)
-
-
-def test_restore_from_minimized(session):
-    assert not is_maximized(session)
-
-    session.window.minimize()
-    assert document_hidden(session)
-    assert not is_maximized(session)
-
-    response = maximize(session)
-    assert_success(response, session.window.rect)
-
-    assert is_maximized(session)
+    assert is_maximized(session, original)
     assert not document_hidden(session)
 
 
 def test_maximize_from_normal_window(session):
-    assert not is_maximized(session)
+    assert is_not_maximized(session)
+    original = session.window.rect
 
     response = maximize(session)
     assert_success(response, session.window.rect)
 
-    assert is_maximized(session)
+    assert is_maximized(session, original)
     assert not document_hidden(session)
 
 
 def test_maximize_with_window_already_at_maximum_size(session, available_screen_size):
-    assert not is_maximized(session)
+    assert is_not_maximized(session)
+    original = session.window.rect
 
     # Resize the window to the maximum available size.
     session.window.size = available_screen_size
@@ -93,21 +84,22 @@ def test_maximize_with_window_already_at_maximum_size(session, available_screen_
     response = maximize(session)
     assert_success(response, session.window.rect)
 
-    assert is_maximized(session)
+    assert is_maximized(session, original)
     assert not document_hidden(session)
 
 
 def test_maximize_twice_is_idempotent(session):
-    assert not is_maximized(session)
+    assert is_not_maximized(session)
+    original = session.window.rect
 
     first_response = maximize(session)
     assert_success(first_response, session.window.rect)
 
-    assert is_maximized(session)
+    assert is_maximized(session, original)
     assert not document_hidden(session)
 
     second_response = maximize(session)
     assert_success(second_response, session.window.rect)
 
-    assert is_maximized(session)
+    assert is_maximized(session, original)
     assert not document_hidden(session)

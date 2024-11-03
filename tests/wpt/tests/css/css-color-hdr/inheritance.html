@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>Inheritance of dynamic-range-limit</title>
+<link rel="help" href="https://drafts.csswg.org/css-color-hdr/#the-dynamic-range-limit-property">
+<meta name="assert" content="Inheritance of dynamic-range-limit">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/inheritance-testcommon.js"></script>
+
+<div id="container">
+  <div id="target"></div>
+</div>
+
+<script>
+  assert_inherited('dynamic-range-limit', 'high', 'standard');
+</script>

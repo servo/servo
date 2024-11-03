@@ -221,8 +221,9 @@ def run_info_extras(logger, default_prefs=None, **kwargs):
           "sessionHistoryInParent": (not kwargs.get("disable_fission") or
                                      not bool_pref("fission.disableSessionHistoryInParent")),
           "swgl": bool_pref("gfx.webrender.software"),
-          "privateBrowsing": (kwargs["tags"] is not None and ("privatebrowsing" in kwargs["tags"]))}
-
+          "privateBrowsing": (kwargs["tags"] is not None and ("privatebrowsing" in kwargs["tags"])),
+          "remoteAsyncEvents": bool_pref("remote.events.async.enabled"),
+          }
     rv.update(run_info_browser_version(**kwargs))
 
     return rv

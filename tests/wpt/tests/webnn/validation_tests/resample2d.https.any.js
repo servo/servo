@@ -204,8 +204,8 @@ tests.forEach(
       const options = test.options ?? {};
       if (test.output) {
         const output = builder.resample2d(input, options);
-        assert_equals(output.dataType(), test.output.dataType);
-        assert_array_equals(output.shape(), test.output.shape);
+        assert_equals(output.dataType, test.output.dataType);
+        assert_array_equals(output.shape, test.output.shape);
       } else {
         const options = {...test.options};
         if (options.label) {
@@ -232,8 +232,8 @@ promise_test(async t => {
     if (context.opSupportLimits().resample2d.input.dataTypes.includes(
             dataType)) {
       const output = builder.resample2d(input);
-      assert_equals(output.dataType(), dataType);
-      assert_array_equals(output.shape(), shape);
+      assert_equals(output.dataType, dataType);
+      assert_array_equals(output.shape, shape);
     } else {
       assert_throws_js(TypeError, () => builder.resample2d(input));
     }

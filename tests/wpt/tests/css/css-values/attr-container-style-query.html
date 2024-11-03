@@ -7,7 +7,7 @@
   #container {
     --foo: bar;
   }
-  @container style(--foo: attr(data-foo ident)) {
+  @container style(--foo: attr(data-foo <custom-ident>)) {
     #target { color: green; }
   }
 </style>

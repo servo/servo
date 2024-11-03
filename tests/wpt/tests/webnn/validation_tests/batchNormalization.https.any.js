@@ -267,8 +267,8 @@ tests.forEach(
       if (test.output) {
         const output =
             builder.batchNormalization(input, mean, variance, test.options);
-        assert_equals(output.dataType(), test.output.dataType);
-        assert_array_equals(output.shape(), test.output.shape);
+        assert_equals(output.dataType, test.output.dataType);
+        assert_array_equals(output.shape, test.output.shape);
       } else {
         const regrexp = /\[batchNormalization_\?_123\]/;
         assert_throws_with_label(

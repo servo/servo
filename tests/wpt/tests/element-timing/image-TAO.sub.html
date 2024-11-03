@@ -34,11 +34,8 @@
           img_count++;
           const tao = entry.identifier;
           const img = document.getElementById('id_' + tao);
-          if (valid_tao.includes(tao)) {
+          if (valid_tao.includes(tao) || invalid_tao.includes(tao)) {
             checkElement(entry, remote_img + tao, tao, 'id_' + tao, beforeRender, img);
-          } else if (invalid_tao.includes(tao)) {
-            assert_equals(entry.renderTime, 0, 'Entry with tao=' + tao + ' must have a renderTime of 0');
-            checkElement(entry, remote_img + tao, tao, 'id_' + tao, 0, img);
           }
           else {
             assert_unreached('Should be in one of valid_tao OR invalid_tao');

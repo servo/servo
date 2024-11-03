@@ -74,8 +74,8 @@ function runTests(operatorName, tests) {
         if (context.opSupportLimits()[operatorName].output.dataTypes.includes(
           test.options.outputDataType)) {
           const output = builder[operatorName](input, axis, test.options);
-          assert_equals(output.dataType(), test.options.outputDataType);
-          assert_array_equals(output.shape(), test.output.shape);
+          assert_equals(output.dataType, test.options.outputDataType);
+          assert_array_equals(output.shape, test.output.shape);
         } else {
           assert_throws_js(
             TypeError, () => builder[operatorName](input, axis, test.options));
@@ -84,8 +84,8 @@ function runTests(operatorName, tests) {
       }
       if (test.output) {
         const output = builder[operatorName](input, axis, test.options);
-        assert_equals(output.dataType(), 'int32');
-        assert_array_equals(output.shape(), test.output.shape);
+        assert_equals(output.dataType, 'int32');
+        assert_array_equals(output.shape, test.output.shape);
       } else {
         const regrexp = /\[arg_min_max_1_\!\]/;
         assert_throws_with_label(

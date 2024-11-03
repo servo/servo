@@ -438,8 +438,8 @@ function validateUnaryOperation(operationName, supportedDataTypes, label) {
         const input = builder.input(`input`, {dataType, shape});
         assert_equals(typeof builder[operationName], 'function');
         const output = builder[operationName](input);
-        assert_equals(output.dataType(), dataType);
-        assert_array_equals(output.shape(), shape);
+        assert_equals(output.dataType, dataType);
+        assert_array_equals(output.shape, shape);
       }
     }
   }, `[${operationName}] Test building an unary operator with supported type.`);
@@ -484,8 +484,8 @@ function validateSingleInputOperation(operationName, label) {
       for (let shape of allWebNNShapesArray) {
         const input = builder.input(`input`, {dataType, shape});
         const output = builder[operationName](input);
-        assert_equals(output.dataType(), dataType);
-        assert_array_equals(output.shape(), shape);
+        assert_equals(output.dataType, dataType);
+        assert_array_equals(output.shape, shape);
       }
     }
   }, `[${operationName}] Test building the operator with supported data type.`);

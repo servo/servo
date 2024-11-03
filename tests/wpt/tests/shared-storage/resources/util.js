@@ -193,3 +193,25 @@ function checkInterceptedUrls(worker, expectedRequests) {
         JSON.stringify(actualRequests), JSON.stringify(expectedRequests));
   });
 }
+
+function attachIFrameWithEventListenerForSelectURLStatus(url) {
+  const frame = document.createElement('iframe');
+  frame.src = url;
+
+  const promise = new Promise((resolve, reject) => {
+    window.addEventListener('message', async function handler(evt) {
+      if (evt.source === frame.contentWindow && evt.data.selectURLStatus) {
+        document.body.removeChild(frame);
+        window.removeEventListener('message', handler);
+        if (evt.data.selectURLStatus === 'success') {
+          resolve(evt.data);
+        } else {
+          reject(new Error(JSON.stringify(evt.data)));
+        }
+      }
+    });
+  });
+
+  document.body.appendChild(frame);
+  return promise;
+}

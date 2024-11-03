@@ -296,8 +296,8 @@ tests.forEach(
             options);
         assert_equals(outputs.length, test.outputs.length);
         for (let i = 0; i < outputs.length; ++i) {
-          assert_equals(outputs[i].dataType(), test.outputs[i].dataType);
-          assert_array_equals(outputs[i].shape(), test.outputs[i].shape);
+          assert_equals(outputs[i].dataType, test.outputs[i].dataType);
+          assert_array_equals(outputs[i].shape, test.outputs[i].shape);
         }
       } else {
         const label = 'lstm_xxx';

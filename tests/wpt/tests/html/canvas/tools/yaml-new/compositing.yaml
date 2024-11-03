@@ -234,7 +234,7 @@
 - name: 2d.composite.grid
   size: [80, 60]
   code: |
-    ctx.fillStyle = 'rgb(0, 102, 255)';
+    ctx.fillStyle = 'rgba(0, 102, 240, 0.8)';
     ctx.fillRect(15, 15, 50, 30);
 
     ctx.translate(25, 20);
@@ -247,13 +247,13 @@
     {{ js_filter_code }}
     {{ js_shadow_code }}
 
-    ctx.globalCompositeOperation = '{{ variant_names[0] }}'
+    ctx.globalCompositeOperation = '{{ variant_names[0] }}';
 
     {{ js_draw_code }}
   cairo_reference: |
     # Background.
     cr.push_group()
-    cr.set_source_rgb(0, 102/255, 1)
+    cr.set_source_rgba(0, 102/255, 240/255, 0.8)
     cr.rectangle(15, 15, 50, 30)
     cr.fill()
     background = cr.pop_group()
@@ -289,7 +289,7 @@
 
     cr.set_source(filtered_foreground)
     cr.paint()
-  fuzzy: maxDifference=0-2; totalPixels=0-10210
+  fuzzy: maxDifference=0-3; totalPixels=0-25392
   variants_layout:
   - single_file
   - multi_files
@@ -354,7 +354,8 @@
       js_filter_code: // No filter.
       cairo_filter_code: "# No filter."
     filter:
-      js_filter_code: ctx.filter = 'drop-shadow(5px -5px 0px rgb(255, 154, 0))'
+      js_filter_code: |-
+        ctx.filter = 'drop-shadow(5px -5px 0px rgb(255, 154, 100))';
       cairo_filter_code: |-
         cr.push_group()
         cr.set_operator(cairo.OPERATOR_OVER)
@@ -362,7 +363,7 @@
         cr.set_source(foreground)
         cr.paint()
         cr.set_operator(cairo.OPERATOR_IN)
-        cr.set_source_rgba(1, 154/255, 0)
+        cr.set_source_rgb(1, 154/255, 100/255)
         cr.paint()
         cr.pop_group_to_source()
         cr.paint()
@@ -374,7 +375,7 @@
       js_shadow_code: |-
         ctx.shadowOffsetX = 20;
         ctx.shadowOffsetY = 20;
-        ctx.shadowColor = 'rgb(154, 0, 154)';
+        ctx.shadowColor = 'rgba(154, 0, 154, 0.8)';
       cairo_shadow_code: |-
         cr.push_group()
         cr.set_operator(cairo.OPERATOR_OVER)
@@ -382,7 +383,7 @@
         cr.set_source(filtered_foreground)
         cr.paint()
         cr.set_operator(cairo.OPERATOR_IN)
-        cr.set_source_rgb(154/255, 0, 154/255)
+        cr.set_source_rgba(154/255, 0, 154/255, 0.8)
         cr.paint()
         cr.pop_group_to_source()
         cr.paint()

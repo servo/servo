@@ -24,26 +24,16 @@
   <body>
     <h1>Pointer Events: effective touch-action is "none" when parent has "none"
         and target has "auto"</h1>
-    <h4 id="desc">
-        Try to scroll DOWN then RIGHT from inside blue rectangle.
-        Tap Complete button under the rectangle when done.
-        Expectation: no panning
-    </h4>
-    <p>Note: this test is for touch-devices only</p>
     <div class="scroller" id="target0">
         <div id="scrollTarget">
             Try to scroll DOWN then RIGHT from here.
         </div>
     </div>
     <input type="button" id="btnComplete" value="Complete test">
-    <h1>behavior: none</h1>
-    <div id="complete-notice">
-      <p>The following pointer types were detected:
-         <span id="pointertype-log"></span>.</p>
-    </div>
     <div id="log"></div>
   </body>
   <script type='text/javascript'>
+    "use strict";
     window.onload = async () => {
       const target0 = document.getElementById("target0");
       const btnComplete = document.getElementById("btnComplete");
@@ -61,9 +51,6 @@
                                () => pointercancel_received = true);
       target0.addEventListener("scroll",
                                () => scroll_received = true);
-
-      let detected_pointertypes = {};
-      add_completion_callback(showPointerTypes);
 
       promise_test(async () => {
         const button_complete_click = getEvent("click", btnComplete);
@@ -89,8 +76,6 @@
                       "expected scrollLeft 0 in the end of the test");
         assert_equals(target0.scrollTop, 0,
                       "expected scrollTop 0 in the end of the test");
-
-        updateDescriptionComplete();
       }, "touch-action attribute test");
     };
   </script>

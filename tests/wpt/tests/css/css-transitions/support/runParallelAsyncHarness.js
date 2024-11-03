@@ -56,15 +56,23 @@
         done: function(options){}
     })
 */
-root.runParallelAsyncHarness = function(options) {
+
+function DomContentLoadedPromise() {
+    return new Promise(resolve => {
+        document.addEventListener("DOMContentLoaded", (event) => {
+            resolve();
+        });
+    });
+}
+
+root.runParallelAsyncHarness = async function(options) {
+    const ready = DomContentLoadedPromise();
+
     if (!options.cases) {
         throw new Error("Options don't contain test cases!");
     }
 
     var noop = function(){};
-
-    // add a 100ms buffer to the test timeout, just in case
-    var duration = Math.ceil(options.duration + 100);
 
     // names of individual tests
     var cases = Object.keys(options.cases);
@@ -98,7 +106,6 @@ root.runParallelAsyncHarness = function(options) {
         var tests = options.tests.slice(offset, offset + testPerSlice);
         tests.forEach(function(data) {
             (options.setup || noop)(data, options);
-
         });
 
         // kick off the current slice of tests
@@ -112,6 +119,9 @@ root.runParallelAsyncHarness = function(options) {
                 });
             });
         });
+
+        // Start sampling.
+        (options.transitionsStarted || noop)(options, tests);
 
         // conclude slice (possibly abort)
         var concludeSlice = function() {
@@ -133,16 +143,14 @@ root.runParallelAsyncHarness = function(options) {
             // finish the test for current slice of tests
             (options.sliceDone || noop)(options, tests);
 
-            // next test please, give the browser 50ms to do catch its breath
-            setTimeout(runLoop, 50);
+            requestAnimationFrame(runLoop);
         }
 
-        // wait on RAF before cleanup to make sure all queued event handlers have run
-        setTimeout(function() {requestAnimationFrame(concludeSlice)},duration);
+        options.allTransitionsCompleted = concludeSlice;
     }
 
     // allow DOMContentLoaded before actually doing something
-    setTimeout(runLoop, 100);
+    ready.then(runLoop);
 };
 
 })(window);

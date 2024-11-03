@@ -261,8 +261,12 @@ class ChromeDriverTestharnessExecutor(WebDriverTestharnessExecutor, _SanitizerMi
                 # with no other browsing history.
                 protocol.base.set_window(test_window)
                 protocol.base.load("about:blank")
+                # DevTools can very rarely fail with "History cannot be pruned".
+                # The test window will be replaced in that case.
                 protocol.cdp.execute_cdp_command("Page.resetNavigationHistory")
-            except error.NoSuchWindowException:
+            except error.WebDriverException:
+                protocol.testharness.close_windows([test_window])
+                protocol.base.set_window(protocol.testharness.runner_handle)
                 test_window = self.protocol.testharness.persistent_test_window = None
         if not test_window:
             test_window = super().get_or_create_test_window(protocol)

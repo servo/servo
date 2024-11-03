@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<title>SVGTextContentElement.getStartPositionOfChar and getEndPositionOfChar</title>
+<link rel="help" href="https://svgwg.org/svg2-draft/text.html#__svg__SVGTextContentElement__getStartPositionOfChar">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+text {
+  font: 10px/1 Ahem;
+}
+#vrl {
+  writing-mode: vertical-rl;
+}
+#vlr {
+  writing-mode: vertical-lr;
+}
+#srl {
+  writing-mode: sideways-rl;
+}
+#slr {
+  writing-mode: sideways-lr;
+}
+</style>
+
+<svg>
+  <text id="vrl" x="100" y="100">ABC</text>
+  <text id="vlr" x="100" y="100">ABC</text>
+  <text id="srl" x="100" y="100">ABC</text>
+  <text id="slr" x="100" y="100">ABC</text>
+</svg>
+
+<script>
+const FONT_SIZE = 10;
+function $(sel) { return document.querySelector(sel); }
+
+test(() => {
+  const target = $('#vrl');
+  const base = target.getStartPositionOfChar(0).y;
+  assert_equals(base + FONT_SIZE, target.getEndPositionOfChar(0).y);
+  assert_equals(base + FONT_SIZE, target.getStartPositionOfChar(1).y);
+  assert_equals(base + FONT_SIZE * 2, target.getEndPositionOfChar(1).y);
+  assert_equals(base + FONT_SIZE * 2, target.getStartPositionOfChar(2).y);
+  assert_equals(base + FONT_SIZE * 3, target.getEndPositionOfChar(2).y);
+}, 'vertical-rl');
+
+test(() => {
+  const target = $('#vlr');
+  const base = target.getStartPositionOfChar(0).y;
+  assert_equals(base + FONT_SIZE, target.getEndPositionOfChar(0).y);
+  assert_equals(base + FONT_SIZE, target.getStartPositionOfChar(1).y);
+  assert_equals(base + FONT_SIZE * 2, target.getEndPositionOfChar(1).y);
+  assert_equals(base + FONT_SIZE * 2, target.getStartPositionOfChar(2).y);
+  assert_equals(base + FONT_SIZE * 3, target.getEndPositionOfChar(2).y);
+}, 'vertical-lr');
+
+test(() => {
+  const target = $('#srl');
+  const base = target.getStartPositionOfChar(0).y;
+  assert_equals(base + FONT_SIZE, target.getEndPositionOfChar(0).y);
+  assert_equals(base + FONT_SIZE, target.getStartPositionOfChar(1).y);
+  assert_equals(base + FONT_SIZE * 2, target.getEndPositionOfChar(1).y);
+  assert_equals(base + FONT_SIZE * 2, target.getStartPositionOfChar(2).y);
+  assert_equals(base + FONT_SIZE * 3, target.getEndPositionOfChar(2).y);
+}, 'sideways-rl');
+
+test(() => {
+  const target = $('#slr');
+  const base = target.getStartPositionOfChar(0).y;
+  assert_equals(base - FONT_SIZE, target.getEndPositionOfChar(0).y);
+  assert_equals(base - FONT_SIZE, target.getStartPositionOfChar(1).y);
+  assert_equals(base - FONT_SIZE * 2, target.getEndPositionOfChar(1).y);
+  assert_equals(base - FONT_SIZE * 2, target.getStartPositionOfChar(2).y);
+  assert_equals(base - FONT_SIZE * 3, target.getEndPositionOfChar(2).y);
+}, 'sideways-lr');
+</script>

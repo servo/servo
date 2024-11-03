@@ -109,8 +109,7 @@ def build_table():
 
 cases = [
     # file, is_test, rel
-    ("../ahem.html", True, "match"),
-    ("../ahem-ref.html", False, "mismatch"),
+    ("../ahem.html", True, "mismatch"),
     ("../ahem-notref.html", False, None),
 ]
 

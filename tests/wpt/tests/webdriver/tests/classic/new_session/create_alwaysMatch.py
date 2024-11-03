@@ -13,3 +13,10 @@ def test_valid(new_session, add_browser_capabilities, key, value):
     response, _ = new_session({"capabilities": {
         "alwaysMatch": add_browser_capabilities({key: value})}})
     assert_success(response)
+    response_capabilities = response.body["value"]["capabilities"]
+    if ":" not in key and value is not None:
+        if key == "timeouts":
+            for timeout_key, timeout_value in value.items():
+                assert response_capabilities[key][timeout_key] == timeout_value
+        else:
+            assert response_capabilities[key] == value
