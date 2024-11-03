@@ -11,6 +11,7 @@ use net_traits::request::RequestBuilder;
 use net_traits::{fetch_async, BoxedFetchCallback, ResourceThreads};
 use servo_url::ServoUrl;
 
+use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::root::Dom;
 use crate::dom::document::Document;
 use crate::fetch::FetchCanceller;
@@ -49,11 +50,12 @@ impl LoadBlocker {
     }
 
     /// Remove this load from the associated document's list of blocking loads.
-    pub fn terminate(blocker: &mut Option<LoadBlocker>, can_gc: CanGc) {
-        if let Some(this) = blocker.as_mut() {
-            this.doc.finish_load(this.load.take().unwrap(), can_gc);
+    pub fn terminate(blocker: &DomRefCell<Option<LoadBlocker>>, can_gc: CanGc) {
+        if let Some(this) = blocker.borrow().as_ref() {
+            let load_data = this.load.clone().unwrap();
+            this.doc.finish_load(load_data, can_gc);
         }
-        *blocker = None;
+        *blocker.borrow_mut() = None;
     }
 }
 
