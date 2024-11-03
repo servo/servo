@@ -4,7 +4,7 @@
 
 use std::cell::Cell;
 use std::default::Default;
-use std::ops::Range;
+use std::ops::{Deref, Range};
 
 use dom_struct::dom_struct;
 use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
@@ -494,7 +494,11 @@ impl HTMLTextAreaElement {
                 },
                 "paste" => {
                     // Step 3.1 If there is a selection or cursor in an editable context where pasting is enabled, then
-                    self.textinput.borrow_mut().paste_contents();
+                    if let Some(data) = event.get_clipboard_data() {
+                        self.textinput
+                            .borrow_mut()
+                            .paste_contents(data.Items().deref());
+                    }
                     // Step 3.1.2 Queue tasks to fire any events that should fire due to the modification.
                     // Step 3.2 Else return false.
                 },

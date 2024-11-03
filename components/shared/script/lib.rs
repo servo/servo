@@ -545,7 +545,18 @@ pub enum ClipboardEventType {
     /// Cut
     Cut,
     /// Paste
-    Paste(String),
+    Paste(Vec<ClipboardItem>),
+}
+
+/// Data types supported by Servo
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum ClipboardItem {
+    /// Text/Plain
+    Text(String),
+    /// Text/Html
+    Html(String),
+    /// Image/Png
+    Png(Vec<u8>),
 }
 
 impl ClipboardEventType {

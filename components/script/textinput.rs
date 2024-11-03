@@ -15,6 +15,8 @@ use unicode_segmentation::UnicodeSegmentation;
 use crate::clipboard_provider::ClipboardProvider;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::compositionevent::CompositionEvent;
+use crate::dom::datatransferitem::Kind;
+use crate::dom::datatransferitemlist::DataTransferItemList;
 use crate::dom::keyboardevent::KeyboardEvent;
 
 #[derive(Clone, Copy, PartialEq)]
@@ -1145,8 +1147,12 @@ impl<T: ClipboardProvider> TextInput<T> {
         }
     }
 
-    pub fn paste_contents(&mut self) {
-        let contents = self.clipboard_provider.clipboard_contents();
-        self.insert_string(contents);
+    pub fn paste_contents(&mut self, item_list: &DataTransferItemList) {
+        for item in item_list.iter() {
+            match item.kind() {
+                Kind::Text(string) => self.insert_string(string),
+                Kind::File(_) => (),
+            }
+        }
     }
 }

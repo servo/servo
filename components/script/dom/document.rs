@@ -47,10 +47,11 @@ use percent_encoding::percent_decode;
 use profile_traits::ipc as profile_ipc;
 use profile_traits::time::{TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType};
 use script_layout_interface::{PendingRestyle, TrustedNodeAddress};
+use script_traits::serializable::BlobImpl;
 use script_traits::{
-    AnimationState, AnimationTickType, ClipboardEventType, CompositorEvent, DocumentActivity,
-    MouseButton, MouseEventType, ScriptMsg, TouchEventType, TouchId, UntrustedNodeAddress,
-    WheelDelta,
+    AnimationState, AnimationTickType, ClipboardEventType, ClipboardItem, CompositorEvent,
+    DocumentActivity, MouseButton, MouseEventType, ScriptMsg, TouchEventType, TouchId,
+    UntrustedNodeAddress, WheelDelta,
 };
 use servo_arc::Arc;
 use servo_atoms::Atom;
@@ -72,6 +73,7 @@ use webgpu::swapchain::WebGPUContextId;
 use webrender_api::units::DeviceIntRect;
 
 use super::bindings::codegen::Bindings::XPathEvaluatorBinding::XPathEvaluatorMethods;
+use super::file::File;
 use crate::animation_timeline::AnimationTimeline;
 use crate::animations::Animations;
 use crate::document_loader::{DocumentLoader, LoadType};
@@ -1450,7 +1452,7 @@ impl Document {
     }
 
     /// <https://www.w3.org/TR/clipboard-apis/#fire-a-clipboard-event>
-    pub fn fire_clipboard_event(&self, event_name: ClipboardEventType) {
+    pub fn fire_clipboard_event(&self, event: ClipboardEventType) {
         // Step 1
         let _clear_was_called = false;
         // Step 2 let types_to_clear an empty list
@@ -1474,25 +1476,50 @@ impl Document {
         // Step 6.2 else TODO require Selection see https://github.com/w3c/clipboard-apis/issues/70
 
         // Step 7
-        match event_name {
+        match event {
             ClipboardEventType::Copy | ClipboardEventType::Cut => {
                 // Step 7.2.1
                 clipboard_event_data.set_mode(Mode::ReadWrite);
             },
-            ClipboardEventType::Paste(ref text) => {
-                let contents: Vec<String> = vec![text.to_string()];
+            ClipboardEventType::Paste(ref contents) => {
                 // Step 7.1.1
                 clipboard_event_data.set_mode(Mode::ReadOnly);
                 // Step 7.1.2 If trusted or the implementation gives script-generated events access to the clipboard
                 if trusted {
                     // Step 7.1.2.1
                     for content in contents {
-                        // Content is plain text
-                        clipboard_event_data.Items().add_text_item(
-                            DOMString::from_string(content),
-                            DOMString::from("text/plain"),
-                        );
-                        // TODO support file and html(process an HTML paste event)
+                        match content {
+                            ClipboardItem::Text(data) => {
+                                clipboard_event_data.Items().add_item(
+                                    Kind::Text(DOMString::from_string(data.to_string())),
+                                    DOMString::from("text/plain"),
+                                );
+                            },
+                            ClipboardItem::Html(data) => {
+                                // For now do the same of above
+                                // See https://www.w3.org/TR/clipboard-apis/#process-an-html-paste-event
+                                clipboard_event_data.Items().add_item(
+                                    Kind::Text(DOMString::from_string(data.to_string())),
+                                    DOMString::from("text/html"),
+                                );
+                            },
+                            ClipboardItem::Png(data) => {
+                                // We don't have access to filename
+                                let file = File::new(
+                                    &self.global(),
+                                    BlobImpl::new_from_bytes(
+                                        data.to_vec(),
+                                        "image/png".to_string(),
+                                    ),
+                                    DOMString::from("servo-img"),
+                                    None,
+                                    CanGc::note(),
+                                );
+                                clipboard_event_data
+                                    .Items()
+                                    .add_item(Kind::File(&file), DOMString::from("image/png"));
+                            },
+                        }
                     }
                     // Step 7.1.4 Update DataTransfer's types to match the items added.
                 }
@@ -1503,7 +1530,7 @@ impl Document {
         let event = ClipboardEvent::new(
             &self.window,
             None,
-            DOMString::from(event_name.as_str()),
+            DOMString::from(event.as_str()),
             EventBubbles::Bubbles,
             EventCancelable::Cancelable,
             None,

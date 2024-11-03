@@ -5,7 +5,7 @@
 use std::borrow::Cow;
 use std::cell::Cell;
 use std::cmp::Ordering;
-use std::ops::Range;
+use std::ops::{Deref, Range};
 use std::ptr::NonNull;
 use std::{f64, ptr};
 
@@ -1051,7 +1051,11 @@ impl HTMLInputElement {
                 },
                 "paste" => {
                     // Step 3.1 If there is a selection or cursor in an editable context where pasting is enabled, then
-                    self.textinput.borrow_mut().paste_contents();
+                    if let Some(data) = event.get_clipboard_data() {
+                        self.textinput
+                            .borrow_mut()
+                            .paste_contents(data.Items().deref());
+                    }
                     // Step 3.1.2 Queue tasks to fire any events that should fire due to the modification.
                     // Step 3.2 Else return false.
                 },

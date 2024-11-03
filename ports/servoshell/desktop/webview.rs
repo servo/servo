@@ -27,7 +27,7 @@ use servo::embedder_traits::{
 };
 use servo::ipc_channel::ipc::IpcSender;
 use servo::script_traits::{
-    ClipboardEventType, GamepadEvent, GamepadIndex, GamepadInputBounds,
+    ClipboardEventType, ClipboardItem, GamepadEvent, GamepadIndex, GamepadInputBounds,
     GamepadSupportedHapticEffects, GamepadUpdateType, TouchEventType, TraversalDirection,
 };
 use servo::servo_url::ServoUrl;
@@ -490,16 +490,8 @@ where
                 Some(EmbedderEvent::ClipboardAction(ClipboardEventType::Copy))
             })
             .shortcut(CMD_OR_CONTROL, 'V', || {
-                let contents = self
-                    .clipboard
-                    .as_mut()
-                    .and_then(|clipboard| clipboard.get_text().ok())
-                    .unwrap_or_else(|| {
-                        warn!("Error getting clipboard text. Returning empty string.");
-                        String::new()
-                    });
                 Some(EmbedderEvent::ClipboardAction(ClipboardEventType::Paste(
-                    contents,
+                    self.clipboard_contents(),
                 )))
             })
             .shortcut(Modifiers::CONTROL, Key::F9, || {
@@ -1026,6 +1018,22 @@ where
             need_present,
             need_update,
         }
+    }
+
+    fn clipboard_contents(&mut self) -> Vec<ClipboardItem> {
+        let mut contents = Vec::new();
+        if let Some(clipboard) = self.clipboard.as_mut() {
+            if let Ok(text) = clipboard.get_text() {
+                contents.push(ClipboardItem::Text(text));
+            }
+            if let Ok(html) = clipboard.get().html() {
+                contents.push(ClipboardItem::Html(html));
+            }
+            if let Ok(png) = clipboard.get_image() {
+                contents.push(ClipboardItem::Png(png.bytes.to_vec()));
+            }
+        }
+        contents
     }
 }
 
