@@ -135,7 +135,7 @@ to_shmem = { git = "https://github.com/servo/stylo", branch = "2024-10-04" }
 tokio = "1"
 tokio-rustls = "0.24"
 tracing = "0.1.40"
-tracing-perfetto = "0.1.1"
+tracing-perfetto = "0.1.2"
 tracing-subscriber = "0.3.18"
 tungstenite = "0.20"
 uluru = "3.0"
