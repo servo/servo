@@ -6,13 +6,12 @@ use std::cell::Cell;
 use std::ptr::NonNull;
 
 use dom_struct::dom_struct;
-use js::jsapi::{JSObject, Value};
+use js::jsapi::{Heap, JSObject, Value};
+use js::rust::HandleObject;
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
     CryptoKeyMethods, KeyType, KeyUsage,
 };
-use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{AesKeyAlgorithm, KeyAlgorithm};
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
@@ -22,6 +21,7 @@ use crate::script_runtime::JSContext;
 
 /// The underlying cryptographic data this key represents
 #[allow(dead_code)]
+#[derive(MallocSizeOf)]
 pub enum Handle {
     Aes128(Vec<u8>),
     Aes192(Vec<u8>),
@@ -32,13 +32,26 @@ pub enum Handle {
 #[dom_struct]
 pub struct CryptoKey {
     reflector_: Reflector,
+
+    /// <https://w3c.github.io/webcrypto/#dom-cryptokey-type>
     key_type: KeyType,
+
+    /// <https://w3c.github.io/webcrypto/#dom-cryptokey-extractable>
     extractable: Cell<bool>,
-    // This would normally be KeyAlgorithm but we cannot Send DOMString, which
-    // is a member of Algorithm
-    algorithm: DomRefCell<String>,
+
+    /// The name of the algorithm used
+    ///
+    /// This is always the same as the `name` of the
+    /// [`[[algorithm]]`](https://w3c.github.io/webcrypto/#dom-cryptokey-algorithm)
+    /// internal slot, but we store it here again for convenience
+    algorithm: DOMString,
+
+    /// <https://w3c.github.io/webcrypto/#dom-cryptokey-algorithm>
+    #[ignore_malloc_size_of = "Defined in mozjs"]
+    algorithm_object: Heap<*mut JSObject>,
+
+    /// <https://w3c.github.io/webcrypto/#dom-cryptokey-usages>
     usages: Vec<KeyUsage>,
-    #[ignore_malloc_size_of = "Defined in external cryptography crates"]
     #[no_trace]
     handle: Handle,
 }
@@ -47,15 +60,16 @@ impl CryptoKey {
     fn new_inherited(
         key_type: KeyType,
         extractable: bool,
-        algorithm: KeyAlgorithm,
         usages: Vec<KeyUsage>,
+        algorithm: DOMString,
         handle: Handle,
     ) -> CryptoKey {
         CryptoKey {
             reflector_: Reflector::new(),
             key_type,
             extractable: Cell::new(extractable),
-            algorithm: DomRefCell::new(algorithm.name.to_string()),
+            algorithm,
+            algorithm_object: Heap::default(),
             usages,
             handle,
         }
@@ -65,24 +79,29 @@ impl CryptoKey {
         global: &GlobalScope,
         key_type: KeyType,
         extractable: bool,
-        algorithm: KeyAlgorithm,
+        algorithm: DOMString,
+        algorithm_object: HandleObject,
         usages: Vec<KeyUsage>,
         handle: Handle,
     ) -> DomRoot<CryptoKey> {
-        reflect_dom_object(
+        let object = reflect_dom_object(
             Box::new(CryptoKey::new_inherited(
                 key_type,
                 extractable,
-                algorithm,
                 usages,
+                algorithm,
                 handle,
             )),
             global,
-        )
+        );
+
+        object.algorithm_object.set(algorithm_object.get());
+
+        object
     }
 
     pub fn algorithm(&self) -> String {
-        self.algorithm.borrow().to_string()
+        self.algorithm.to_string()
     }
 
     pub fn usages(&self) -> &[KeyUsage] {
@@ -105,31 +124,9 @@ impl CryptoKeyMethods for CryptoKey {
         self.extractable.get()
     }
 
-    #[allow(unsafe_code)]
     /// <https://w3c.github.io/webcrypto/#cryptokey-interface-members>
-    fn Algorithm(&self, cx: JSContext) -> NonNull<JSObject> {
-        let parent = KeyAlgorithm {
-            name: DOMString::from_string(self.algorithm()),
-        };
-        let algorithm = match self.handle() {
-            Handle::Aes128(_) => AesKeyAlgorithm {
-                parent,
-                length: 128,
-            },
-            Handle::Aes192(_) => AesKeyAlgorithm {
-                parent,
-                length: 192,
-            },
-            Handle::Aes256(_) => AesKeyAlgorithm {
-                parent,
-                length: 256,
-            },
-        };
-        unsafe {
-            rooted!(in(*cx) let mut alg: Value);
-            algorithm.to_jsval(*cx, alg.handle_mut());
-            NonNull::new(alg.to_object()).unwrap()
-        }
+    fn Algorithm(&self, _cx: JSContext) -> NonNull<JSObject> {
+        NonNull::new(self.algorithm_object.get()).unwrap()
     }
 
     #[allow(unsafe_code)]
