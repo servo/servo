@@ -2188,7 +2188,7 @@ fn inline_container_needs_strut(
 /// A struct which takes care of computing [`ContentSizes`] for an [`InlineFormattingContext`].
 struct ContentSizesComputation<'layout_data> {
     layout_context: &'layout_data LayoutContext<'layout_data>,
-    containing_block: &'layout_data IndefiniteContainingBlock<'layout_data>,
+    containing_block: &'layout_data IndefiniteContainingBlock,
     paragraph: ContentSizes,
     current_line: ContentSizes,
     /// Size for whitespace pending to be added to this line.
@@ -2236,14 +2236,14 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
                 let zero = Au::zero();
                 let padding = inline_box
                     .style
-                    .padding(self.containing_block.style.writing_mode)
+                    .padding(self.containing_block.writing_mode)
                     .percentages_relative_to(zero);
                 let border = inline_box
                     .style
-                    .border_width(self.containing_block.style.writing_mode);
+                    .border_width(self.containing_block.writing_mode);
                 let margin = inline_box
                     .style
-                    .margin(self.containing_block.style.writing_mode)
+                    .margin(self.containing_block.writing_mode)
                     .percentages_relative_to(zero)
                     .auto_is(Au::zero);
 

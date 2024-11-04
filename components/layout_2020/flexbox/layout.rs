@@ -1826,10 +1826,9 @@ impl FlexItem<'_> {
         } else {
             (
                 cross_size.auto_is(|| {
-                    let style = ifc.style().clone();
                     let containing_block_for_children =
-                        IndefiniteContainingBlock::new_for_style_and_block_size(
-                            &style,
+                        IndefiniteContainingBlock::new_for_writing_mode_and_block_size(
+                            item_writing_mode,
                             AuOrAuto::LengthPercentage(used_main_size),
                         );
                     let content_contributions = ifc
@@ -2439,9 +2438,12 @@ impl FlexItemBox {
         // > preferred aspect ratio, by any definite minimum and maximum cross sizes converted through the
         // > aspect ratio.
         let main_content_size = if cross_axis_is_item_block_axis {
-            let style = self.independent_formatting_context.style().clone();
+            let writing_mode = self.independent_formatting_context.style().writing_mode;
             let containing_block_for_children =
-                IndefiniteContainingBlock::new_for_style_and_block_size(&style, cross_size);
+                IndefiniteContainingBlock::new_for_writing_mode_and_block_size(
+                    writing_mode,
+                    cross_size,
+                );
             self.independent_formatting_context
                 .inline_content_sizes(
                     layout_context,
@@ -2596,7 +2598,7 @@ impl FlexItemBox {
                 let flex_basis = if cross_axis_is_item_block_axis {
                     // The main axis is the inline axis, so we can get the content size from the normal
                     // preferred widths calculation.
-                    let style = flex_item.style().clone();
+                    let writing_mode = flex_item.style().writing_mode;
                     let block_size = content_box_size.cross.map(|v| {
                         v.clamp_between_extremums(
                             content_min_box_size.cross,
@@ -2604,7 +2606,10 @@ impl FlexItemBox {
                         )
                     });
                     let containing_block_for_children =
-                        IndefiniteContainingBlock::new_for_style_and_block_size(&style, block_size);
+                        IndefiniteContainingBlock::new_for_writing_mode_and_block_size(
+                            writing_mode,
+                            block_size,
+                        );
                     let max_content = flex_item
                         .inline_content_sizes(
                             layout_context,
@@ -2690,9 +2695,10 @@ impl FlexItemBox {
                         if item_with_auto_cross_size_stretches_to_container_size {
                             containing_block_inline_size_minus_pbm
                         } else {
-                            let style = non_replaced.style.clone();
                             let containing_block_for_children =
-                                IndefiniteContainingBlock::new_for_style(&style);
+                                IndefiniteContainingBlock::new_for_writing_mode(
+                                    non_replaced.style.writing_mode,
+                                );
                             non_replaced
                                 .inline_content_sizes(
                                     flex_context.layout_context,

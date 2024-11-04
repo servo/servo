@@ -29,56 +29,60 @@ use app_units::Au;
 pub use flow::BoxTree;
 pub use fragment_tree::FragmentTree;
 use geom::AuOrAuto;
+use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
 
 use crate::geom::LogicalVec2;
 
 /// A containing block useful for calculating inline content sizes, which may
 /// have inline sizes that depend on block sizes due to aspect ratio.
-pub(crate) struct IndefiniteContainingBlock<'a> {
+pub(crate) struct IndefiniteContainingBlock {
     pub size: LogicalVec2<AuOrAuto>,
-    pub style: &'a ComputedValues,
+    pub writing_mode: WritingMode,
 }
 
-impl<'a> IndefiniteContainingBlock<'a> {
-    fn new_for_style(style: &'a ComputedValues) -> Self {
-        Self::new_for_style_and_block_size(style, AuOrAuto::Auto)
+impl IndefiniteContainingBlock {
+    fn new_for_writing_mode(writing_mode: WritingMode) -> Self {
+        Self::new_for_writing_mode_and_block_size(writing_mode, AuOrAuto::Auto)
     }
 
     /// Creates an [`IndefiniteContainingBlock`] with the provided style and block size,
     /// and the inline size is set to auto.
     /// This is useful when finding the min-content or max-content size of an element,
     /// since then we ignore its 'inline-size', 'min-inline-size' and 'max-inline-size'.
-    fn new_for_style_and_block_size(style: &'a ComputedValues, block_size: AuOrAuto) -> Self {
+    fn new_for_writing_mode_and_block_size(
+        writing_mode: WritingMode,
+        block_size: AuOrAuto,
+    ) -> Self {
         Self {
             size: LogicalVec2 {
                 inline: AuOrAuto::Auto,
                 block: block_size,
             },
-            style,
+            writing_mode,
         }
     }
 }
 
-impl<'a> From<&'_ ContainingBlock<'a>> for IndefiniteContainingBlock<'a> {
+impl<'a> From<&'_ ContainingBlock<'a>> for IndefiniteContainingBlock {
     fn from(containing_block: &ContainingBlock<'a>) -> Self {
         Self {
             size: LogicalVec2 {
                 inline: AuOrAuto::LengthPercentage(containing_block.inline_size),
                 block: containing_block.block_size,
             },
-            style: containing_block.style,
+            writing_mode: containing_block.style.writing_mode,
         }
     }
 }
 
-impl<'a> From<&'_ DefiniteContainingBlock<'a>> for IndefiniteContainingBlock<'a> {
+impl<'a> From<&'_ DefiniteContainingBlock<'a>> for IndefiniteContainingBlock {
     fn from(containing_block: &DefiniteContainingBlock<'a>) -> Self {
         Self {
             size: containing_block
                 .size
                 .map(|v| AuOrAuto::LengthPercentage(*v)),
-            style: containing_block.style,
+            writing_mode: containing_block.style.writing_mode,
         }
     }
 }
@@ -87,23 +91,6 @@ pub struct ContainingBlock<'a> {
     inline_size: Au,
     block_size: AuOrAuto,
     style: &'a ComputedValues,
-}
-
-impl<'a> TryFrom<&'_ IndefiniteContainingBlock<'a>> for ContainingBlock<'a> {
-    type Error = &'static str;
-
-    fn try_from(
-        indefinite_containing_block: &IndefiniteContainingBlock<'a>,
-    ) -> Result<Self, Self::Error> {
-        match indefinite_containing_block.size.inline {
-            AuOrAuto::Auto => Err("ContainingBlock doesn't accept auto inline sizes"),
-            AuOrAuto::LengthPercentage(inline_size) => Ok(ContainingBlock {
-                inline_size,
-                block_size: indefinite_containing_block.size.block,
-                style: indefinite_containing_block.style,
-            }),
-        }
-    }
 }
 
 struct DefiniteContainingBlock<'a> {

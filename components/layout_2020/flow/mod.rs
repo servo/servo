@@ -235,7 +235,7 @@ impl OutsideMarker {
     ) -> Fragment {
         let content_sizes = self.block_container.inline_content_sizes(
             layout_context,
-            &IndefiniteContainingBlock::new_for_style(&self.marker_style),
+            &IndefiniteContainingBlock::new_for_writing_mode(self.marker_style.writing_mode),
         );
         let containing_block_for_children = ContainingBlock {
             inline_size: content_sizes.sizes.max_content,
@@ -2058,8 +2058,8 @@ impl IndependentFormattingContext {
 
                 let mut get_content_size = || {
                     let containing_block_for_children =
-                        IndefiniteContainingBlock::new_for_style_and_block_size(
-                            &style,
+                        IndefiniteContainingBlock::new_for_writing_mode_and_block_size(
+                            style.writing_mode,
                             tentative_block_size,
                         );
                     non_replaced

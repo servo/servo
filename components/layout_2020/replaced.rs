@@ -277,7 +277,7 @@ impl ReplacedContent {
                 depends_on_block_constraints: true,
             },
             _ => {
-                let writing_mode = containing_block_for_children.style.writing_mode;
+                let writing_mode = containing_block_for_children.writing_mode;
                 InlineContentSizesResult {
                     sizes: self
                         .flow_relative_natural_size(writing_mode)
@@ -423,8 +423,7 @@ impl ReplacedContent {
         style
             .preferred_aspect_ratio(
                 self.inline_size_over_block_size_intrinsic_ratio(style),
-                containing_block.try_into().ok().as_ref(),
-                containing_block.style.writing_mode,
+                containing_block,
             )
             .or_else(|| {
                 matches!(self.kind, ReplacedContentKind::Video(_)).then(|| {

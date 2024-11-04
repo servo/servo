@@ -301,7 +301,9 @@ impl<'a> TableLayout<'a> {
                             .contents
                             .inline_content_sizes(
                                 layout_context,
-                                &IndefiniteContainingBlock::new_for_style(&cell.style),
+                                &IndefiniteContainingBlock::new_for_writing_mode(
+                                    cell.style.writing_mode,
+                                ),
                             )
                             .sizes
                     };
@@ -774,6 +776,8 @@ impl<'a> TableLayout<'a> {
 
     /// Compute CAPMIN: <https://drafts.csswg.org/css-tables/#capmin>
     fn compute_caption_minimum_inline_size(&mut self, layout_context: &LayoutContext) -> Au {
+        let containing_block =
+            IndefiniteContainingBlock::new_for_writing_mode(self.table.style.writing_mode);
         self.table
             .captions
             .iter()
@@ -782,7 +786,7 @@ impl<'a> TableLayout<'a> {
                 context
                     .outer_inline_content_sizes(
                         layout_context,
-                        &IndefiniteContainingBlock::new_for_style(&self.table.style),
+                        &containing_block,
                         &LogicalVec2::zero(),
                         false, /* auto_block_size_stretches_to_containing_block */
                     )
@@ -2628,7 +2632,7 @@ impl Table {
         layout_context: &LayoutContext,
         containing_block_for_children: &IndefiniteContainingBlock,
     ) -> InlineContentSizesResult {
-        let writing_mode = containing_block_for_children.style.writing_mode;
+        let writing_mode = containing_block_for_children.writing_mode;
         let mut layout = TableLayout::new(self);
         let mut table_content_sizes = layout.compute_grid_min_max(layout_context, writing_mode);
 
