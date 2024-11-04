@@ -31,7 +31,7 @@ use js::jsapi::{
     InstantiateGlobalStencil, InstantiateOptions, JSContext, JSObject, JSScript, RuntimeCode,
     SetScriptPrivate,
 };
-use js::jsval::{JSVal, PrivateValue, UndefinedValue};
+use js::jsval::{PrivateValue, UndefinedValue};
 use js::panic::maybe_resume_unwind;
 use js::rust::wrappers::{JS_ExecuteScript, JS_GetScriptPrivate};
 use js::rust::{
@@ -81,6 +81,7 @@ use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::Bindings::WorkerGlobalScopeBinding::WorkerGlobalScopeMethods;
 use crate::dom::bindings::conversions::{root_from_object, root_from_object_static};
 use crate::dom::bindings::error::{report_pending_exception, Error, ErrorInfo};
+use crate::dom::bindings::frozenarray::CachedFrozenArray;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::DomObject;
@@ -88,7 +89,6 @@ use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::settings_stack::{entry_global, incumbent_global, AutoEntryScript};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::structuredclone;
-use crate::dom::bindings::utils::to_frozen_array;
 use crate::dom::bindings::weakref::{DOMTracker, WeakRef};
 use crate::dom::blob::Blob;
 use crate::dom::broadcastchannel::BroadcastChannel;
@@ -336,7 +336,7 @@ pub struct GlobalScope {
 
     // https://w3c.github.io/performance-timeline/#supportedentrytypes-attribute
     #[ignore_malloc_size_of = "mozjs"]
-    frozen_supported_performance_entry_types: DomRefCell<Option<Heap<JSVal>>>,
+    frozen_supported_performance_entry_types: CachedFrozenArray,
 
     /// currect https state (from previous request)
     #[no_trace]
@@ -798,7 +798,7 @@ impl GlobalScope {
             user_agent,
             gpu_id_hub,
             gpu_devices: DomRefCell::new(HashMapTracedValues::new()),
-            frozen_supported_performance_entry_types: DomRefCell::new(Default::default()),
+            frozen_supported_performance_entry_types: CachedFrozenArray::new(),
             https_state: Cell::new(HttpsState::None),
             console_group_stack: DomRefCell::new(Vec::new()),
             console_count_map: Default::default(),
@@ -3072,29 +3072,17 @@ impl GlobalScope {
     }
 
     /// <https://w3c.github.io/performance-timeline/#supportedentrytypes-attribute>
-    pub fn supported_performance_entry_types(
-        &self,
-        cx: SafeJSContext,
-        mut retval: MutableHandleValue,
-    ) {
-        if let Some(types) = &*self.frozen_supported_performance_entry_types.borrow() {
-            retval.set(types.get());
-            return;
-        }
-
-        let types: Vec<DOMString> = VALID_ENTRY_TYPES
-            .iter()
-            .map(|t| DOMString::from(t.to_string()))
-            .collect();
-        to_frozen_array(types.as_slice(), cx, retval);
-
-        // Safety: need to create the Heap value in its final memory location before setting it.
-        *self.frozen_supported_performance_entry_types.borrow_mut() = Some(Heap::default());
-        self.frozen_supported_performance_entry_types
-            .borrow()
-            .as_ref()
-            .unwrap()
-            .set(retval.get());
+    pub fn supported_performance_entry_types(&self, cx: SafeJSContext, retval: MutableHandleValue) {
+        self.frozen_supported_performance_entry_types.get_or_init(
+            || {
+                VALID_ENTRY_TYPES
+                    .iter()
+                    .map(|t| DOMString::from(t.to_string()))
+                    .collect()
+            },
+            cx,
+            retval,
+        );
     }
 
     pub fn is_headless(&self) -> bool {

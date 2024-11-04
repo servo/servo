@@ -8,17 +8,16 @@ use js::jsval::JSVal;
 use js::rust::{HandleObject, HandleValue, MutableHandleValue};
 use servo_atoms::Atom;
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::ExtendableEventBinding::ExtendableEvent_Binding::ExtendableEventMethods;
 use crate::dom::bindings::codegen::Bindings::ExtendableMessageEventBinding;
 use crate::dom::bindings::codegen::Bindings::ExtendableMessageEventBinding::ExtendableMessageEventMethods;
 use crate::dom::bindings::error::Fallible;
+use crate::dom::bindings::frozenarray::CachedFrozenArray;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::RootedTraceableBox;
-use crate::dom::bindings::utils::to_frozen_array;
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::extendableevent::ExtendableEvent;
@@ -42,7 +41,7 @@ pub struct ExtendableMessageEvent {
     /// <https://w3c.github.io/ServiceWorker/#dom-extendablemessageevent-ports>
     ports: Vec<Dom<MessagePort>>,
     #[ignore_malloc_size_of = "mozjs"]
-    frozen_ports: DomRefCell<Option<Heap<JSVal>>>,
+    frozen_ports: CachedFrozenArray,
 }
 
 #[allow(non_snake_case)]
@@ -61,7 +60,7 @@ impl ExtendableMessageEvent {
                 .into_iter()
                 .map(|port| Dom::from_ref(&*port))
                 .collect(),
-            frozen_ports: DomRefCell::new(None),
+            frozen_ports: CachedFrozenArray::new(),
         }
     }
 
@@ -208,25 +207,16 @@ impl ExtendableMessageEventMethods for ExtendableMessageEvent {
     }
 
     /// <https://w3c.github.io/ServiceWorker/#extendablemessage-event-ports>
-    fn Ports(&self, cx: JSContext, mut retval: MutableHandleValue) {
-        if let Some(ports) = &*self.frozen_ports.borrow() {
-            retval.set(ports.get());
-            return;
-        }
-
-        let ports: Vec<DomRoot<MessagePort>> = self
-            .ports
-            .iter()
-            .map(|port| DomRoot::from_ref(&**port))
-            .collect();
-        to_frozen_array(ports.as_slice(), cx, retval);
-
-        // Safety: need to create the Heap value in its final memory location before setting it.
-        *self.frozen_ports.borrow_mut() = Some(Heap::default());
-        self.frozen_ports
-            .borrow()
-            .as_ref()
-            .unwrap()
-            .set(retval.get());
+    fn Ports(&self, cx: JSContext, retval: MutableHandleValue) {
+        self.frozen_ports.get_or_init(
+            || {
+                self.ports
+                    .iter()
+                    .map(|port| DomRoot::from_ref(&**port))
+                    .collect()
+            },
+            cx,
+            retval,
+        );
     }
 }
