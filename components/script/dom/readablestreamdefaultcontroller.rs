@@ -186,18 +186,19 @@ impl QueueWithSizes {
     }
 
     /// Only used with native sources.
-    fn get_in_memory_bytes(&self) -> Vec<u8> {
+    fn get_in_memory_bytes(&self) -> Option<Vec<u8>> {
         self.queue
             .iter()
-            .flat_map(|value| {
-                let EnqueuedValue::Native(chunk) = value else {
-                    unreachable!(
-                        "`get_in_memory_bytes` can only be called on a queue with native values."
-                    )
-                };
-                chunk.iter().copied()
+            .try_fold(Vec::new(), |mut acc, value| match value {
+                EnqueuedValue::Native(chunk) => {
+                    acc.extend(chunk.iter().copied());
+                    Some(acc)
+                },
+                _ => {
+                    warn!("get_in_memory_bytes called on a controller with non-native source.");
+                    None
+                },
             })
-            .collect()
     }
 
     /// <https://streams.spec.whatwg.org/#reset-queue>
@@ -578,7 +579,7 @@ impl ReadableStreamDefaultController {
     pub fn get_in_memory_bytes(&self) -> Option<Vec<u8>> {
         let underlying_source = self.underlying_source.get()?;
         if underlying_source.in_memory() {
-            return Some(self.queue.borrow().get_in_memory_bytes());
+            return self.queue.borrow().get_in_memory_bytes();
         }
         None
     }
