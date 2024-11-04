@@ -28,9 +28,9 @@ from wptrunner import wptrunner
 
 
 CERTS_PATH = os.path.join(WPT_TOOLS_PATH, "certs")
-TRACKER_API = "https://build.servo.org/intermittent-tracker"
+TRACKER_API = "https://intermittent-tracker.servo.org"
 TRACKER_API_ENV_VAR = "INTERMITTENT_TRACKER_API"
-TRACKER_DASHBOARD_SECRET_ENV_VAR = "INTERMITTENT_TRACKER_DASHBOARD_SECRET"
+TRACKER_DASHBOARD_SECRET_ENV_VAR = "INTERMITTENT_TRACKER_DASHBOARD_SECRET_PROD"
 TRACKER_DASHBOARD_MAXIMUM_OUTPUT_LENGTH = 1024
 
 
@@ -285,9 +285,9 @@ def filter_intermittents(
     unexpected_results: List[UnexpectedResult],
     output_path: str
 ) -> bool:
-    print(f"Filtering {len(unexpected_results)} "
-          "unexpected results for known intermittents")
     dashboard = TrackerDashboardFilter()
+    print(f"Filtering {len(unexpected_results)} "
+          f"unexpected results for known intermittents via <{dashboard.url}>")
     dashboard.report_failures(unexpected_results)
 
     def add_result(output, text, results: List[UnexpectedResult], filter_func) -> None:
