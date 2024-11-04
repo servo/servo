@@ -22,6 +22,8 @@ env:
   SHELL: /bin/bash
   GST_PLUGIN_FEATURE_RANK: pulsesink:NONE,alsasink:NONE,jacksink:NONE,fakesink:MAX
   INTERMITTENT_TRACKER_DASHBOARD_SECRET: ${{ !inputs.wpt-sync-from-upstream && secrets.INTERMITTENT_TRACKER_DASHBOARD_SECRET || '' }}
+  INTERMITTENT_TRACKER_DASHBOARD_SECRET_PROD: ${{ !inputs.wpt-sync-from-upstream && secrets.INTERMITTENT_TRACKER_DASHBOARD_SECRET_PROD || '' }}
+  INTERMITTENT_TRACKER_DASHBOARD_SECRET_STAGING: ${{ !inputs.wpt-sync-from-upstream && secrets.INTERMITTENT_TRACKER_DASHBOARD_SECRET_STAGING || '' }}
   WPT_LAYOUT_ARG: "${{ inputs.wpt-layout == 'layout-2013' && '--legacy-layout' || '' }}"
   WPT_ALWAYS_SUCCEED_ARG: "${{ inputs.wpt-sync-from-upstream && '--always-succeed' || '' }}"
 
