@@ -38,7 +38,6 @@ shader-with-clipvertex.vert.html
 --min-version 1.0.2 shader-with-conditional-scoping-negative.html
 shader-with-default-precision.frag.html
 shader-with-default-precision.vert.html
---max-version 1.9.9 shader-with-define-line-continuation.frag.html
 shader-with-dfdx-no-ext.frag.html
 shader-with-dfdx.frag.html
 --min-version 1.0.2 shader-with-do-loop.html
@@ -69,7 +68,14 @@ shader-with-limited-indexing.frag.html
 --min-version 1.0.2 shader-with-hex-int-constant-macro.html
 shader-with-long-line.html
 shader-with-non-ascii-error.frag.html
---min-version 1.0.2 shader-with-non-reserved-words.html
+--min-version 1.0.2 shader-with-non-reserved-words-1-of-8.html
+--min-version 1.0.2 shader-with-non-reserved-words-2-of-8.html
+--min-version 1.0.2 shader-with-non-reserved-words-3-of-8.html
+--min-version 1.0.2 shader-with-non-reserved-words-4-of-8.html
+--min-version 1.0.2 shader-with-non-reserved-words-5-of-8.html
+--min-version 1.0.2 shader-with-non-reserved-words-6-of-8.html
+--min-version 1.0.2 shader-with-non-reserved-words-7-of-8.html
+--min-version 1.0.2 shader-with-non-reserved-words-8-of-8.html
 shader-with-precision.frag.html
 --min-version 1.0.3 shader-with-preprocessor-whitespace.html
 shader-with-quoted-error.frag.html

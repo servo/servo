@@ -1,0 +1,117 @@
+<!--
+Copyright (c) 2020 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Character Set</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+<script src="../../../js/glsl-conformance-test.js"></script>
+</head>
+<body>
+
+<div id="description"></div>
+<div id="console"></div>
+<canvas id="canvas" width="2" height="2"> </canvas>
+<script>
+"use strict";
+// See http://crbug.com/1108588 for original failing case.
+// Check "OpenGL Registry The OpenGL ES Shading Language"
+// Section 3.2 Character Sets For more info
+description("This test checks character set validation for glsl.");
+
+debug("");
+debug("Canvas.getContext");
+
+let wtu = WebGLTestUtils;
+let gl = wtu.create3DContext("canvas");
+let consoleDiv = document.getElementById("console");
+if (!gl) {
+  testFailed("context does not exist");
+} else {
+  testPassed("context exists");
+
+  debug("");
+  debug("Checking shader character set validation and compilation");
+
+  runTest();
+}
+
+function testShaderSource(shaderSource, msg) {
+    if (!quietMode()) {
+        wtu.addShaderSource(consoleDiv, "test fragment shader", shaderSource);
+    }
+
+    let shader = gl.createShader(gl.FRAGMENT_SHADER);
+    if (shader == null) {
+        testFailed("*** Error: unable to create shader '" + shaderSource + "'");
+        return;
+    }
+
+    gl.shaderSource(shader, shaderSource);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, msg);
+}
+
+function MUST(ifTruthy) {
+    return ifTruthy ? 'MUST' : 'MUST NOT';
+}
+
+function runTest() {
+
+    const BAD_STRINGS = [
+        '$',
+        '"',
+        '一些注释',
+        '#line 42 "foo.glsl"',
+    ];
+    const TESTS = [
+        ['in identifier', s => s, false],
+        ['in comment', s => `// ${s}`, true, true],
+        ['in ifdef-out', s => `#if 0 \n${s} \n#endif`, true],
+        ['in ifdef-out #preproc', s => `#if 0 \n#${s} \n#endif`, true],
+        ['in #preproc', s => `#${s}`, false],
+        ['in comment after #define', s => `#define TEST  // ${s}`, true], // Regression test for crbug.com/940865
+    ];
+
+    const glsl_tests = [];
+
+    for (const s of BAD_STRINGS) {
+        for (const [where, template, validCompile] of TESTS) {
+            const st = template(s);
+            const src = `
+precision mediump float;
+${st}
+void main() {
+  gl_FragColor = vec4(1, 0, 0, 1);
+}`.trim();
+
+            testShaderSource(src, `shaderSource allows Out-of-charset string '${s}' ${where} until compilation.`);
+
+            glsl_tests.push(
+                {
+                    fShaderSource: src,
+                    fShaderSuccess: validCompile,
+                    linkSuccess: validCompile,
+                    passMsg: `Out-of-charset string '${s}' ${where} ${MUST(validCompile)} compile.`
+                }
+            );
+        }
+    }
+
+    GLSLConformanceTester.runTests(glsl_tests);
+}
+
+debug("");
+var successfullyParsed = true;
+
+</script>
+</body>
+</html>

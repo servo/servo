@@ -224,6 +224,40 @@ if (!gl) {
   runFormatTest(textureFormatFixture, false);
   runFormatTest(renderbufferFormatFixture, false);
 
+  {
+    var fbo = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+
+    debug("Checking getFramebufferAttachmentParameter with a renderbuffer");
+    {
+      var rbo = gl.createRenderbuffer();
+      gl.bindRenderbuffer(gl.RENDERBUFFER, rbo);
+      gl.renderbufferStorage(gl.RENDERBUFFER, gl.RGB565, 1, 1);
+      gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, rbo);
+      wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+      shouldBeNull('gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, 0x8210 /* FRAMEBUFFER_ATTACHMENT_COLOR_ENCODING_EXT */)');
+      wtu.glErrorShouldBe(gl, gl.INVALID_ENUM);
+      gl.bindRenderbuffer(gl.RENDERBUFFER, null);
+      gl.deleteRenderbuffer(rbo);
+    }
+
+    debug("Checking getFramebufferAttachmentParameter with a texture");
+    {
+      var tex = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+      wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+      shouldBeNull('gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, 0x8210 /* FRAMEBUFFER_ATTACHMENT_COLOR_ENCODING_EXT */)');
+      wtu.glErrorShouldBe(gl, gl.INVALID_ENUM);
+      gl.bindTexture(gl.TEXTURE_2D, null);
+      gl.deleteTexture(tex);
+    }
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.deleteFramebuffer(fbo);
+  }
+
   debug("");
   debug("Checking sRGB texture support");
 

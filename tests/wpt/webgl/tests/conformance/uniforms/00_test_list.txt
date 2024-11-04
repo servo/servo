@@ -2,6 +2,7 @@ gl-uniform-arrays.html
 # This test is no longer valid with the new packing restrictions
 #--min-version 1.0.02 gl-uniform-unused-array-elements-get-truncated.html
 gl-uniform-bool.html
+--min-version 1.0.4 gl-get-uniform-non-current-program.html
 gl-uniformmatrix4fv.html
 gl-unknown-uniform.html
 no-over-optimization-on-uniform-array-00.html

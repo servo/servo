@@ -22,7 +22,13 @@ angle_and_trigonometry_01.html
 angle_and_trigonometry_02.html
 angle_and_trigonometry_03.html
 exponential.html
-common_functions.html
+common_functions_00.html
+common_functions_01.html
+common_functions_02.html
+common_functions_03.html
+common_functions_04.html
+common_functions_05.html
+common_functions_06.html
 geometric.html
 float_compare.html
 int_compare.html

@@ -962,10 +962,10 @@ goog.scope(function() {
                 this.expectError(gl.NO_ERROR);
                 gl.beginTransformFeedback(gl.POINTS);
                 this.expectError(gl.INVALID_OPERATION);
+                gl.endTransformFeedback();
 
                 bufferedLogToConsole('gl.INVALID_OPERATION is generated if any binding point used in transform feedback mode does not have a buffer object bound.');
-                /** @type{WebGLBuffer} */ var dummyBuf = gl.createBuffer()
-                gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, dummyBuf);
+                gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, null);
                 gl.beginTransformFeedback(gl.TRIANGLES);
                 this.expectError(gl.INVALID_OPERATION);
                 gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, buf);
@@ -978,12 +978,12 @@ goog.scope(function() {
 
                 bufferedLogToConsole('gl.INVALID_OPERATION is generated if no binding points would be used because the active program object has specified no varying variables to record.');
                 gl.transformFeedbackVaryings(program.getProgram(), [], gl.INTERLEAVED_ATTRIBS);
+                gl.linkProgram(program.getProgram());
+                this.expectError(gl.NO_ERROR);
                 gl.beginTransformFeedback(gl.TRIANGLES);
                 this.expectError(gl.INVALID_OPERATION);
 
-                gl.endTransformFeedback();
                 gl.deleteBuffer(buf);
-                gl.deleteBuffer(dummyBuf);
                 gl.deleteTransformFeedback(tfID[0]);
                 gl.deleteTransformFeedback(tfID[1]);
                 this.expectError(gl.NO_ERROR);

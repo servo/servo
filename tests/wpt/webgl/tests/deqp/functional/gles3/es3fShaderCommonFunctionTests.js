@@ -271,6 +271,58 @@ goog.scope(function() {
     };
 
     /**
+     * @param {boolean} value
+     * @return {string}
+     */
+    es3fShaderCommonFunctionTests.ToBoolString = function(value) {
+        return value ? "true" : "false";
+    };
+
+    /**
+     * @param {gluVarType.VarType} varType
+     * @param {Array<*>} values
+     * @return {string}
+     */
+    es3fShaderCommonFunctionTests.VarValue = function(varType, values) {
+        /** @type {gluShaderUtil.DataType} */ var basicType = varType.getBasicType();
+        /** @type {gluShaderUtil.DataType} */ var scalarType = gluShaderUtil.getDataTypeScalarTypeAsDataType(basicType);
+        /** @type {number} */ var numComponents = gluShaderUtil.getDataTypeScalarSize(basicType);
+        /** @type {string} */ var outputStr = "";
+
+        if (numComponents > 1) {
+            outputStr += gluShaderUtil.getDataTypeName(basicType) + "(";
+        }
+
+        for (var compNdx = 0; compNdx < numComponents; ++compNdx) {
+            if (compNdx != 0) {
+                outputStr += ", ";
+            }
+
+            // tcu::toHex() is all commented out in this project.
+            // e.g. Line 199 of es3fShaderPackingFunctionTests.js
+            switch (scalarType) {
+                case gluShaderUtil.DataType.FLOAT:
+                case gluShaderUtil.DataType.INT:
+                case gluShaderUtil.DataType.UINT:
+                    outputStr += values[compNdx];
+                    break;
+                case gluShaderUtil.DataType.BOOL:
+                    outputStr += es3fShaderCommonFunctionTests.ToBoolString(values[compNdx]);
+                    break;
+
+                default:
+                    throw Error('Unrecognized dataType ' + scalarType);
+            }
+        }
+
+        if (numComponents > 1) {
+            outputStr += ")";
+        }
+
+        return outputStr;
+    }
+
+    /**
      * @return {tcuTestCase.IterateResult}
      */
     es3fShaderCommonFunctionTests.CommonFunctionCase.prototype.iterate = function() {
@@ -324,6 +376,7 @@ goog.scope(function() {
                 curOutputPtr[outNdx].push(outputData[outNdx].slice(valNdx, valNdx + outScalarSizes[outNdx]));
         }
 
+        this.m_failMsg = '';
         for (var valNdx = 0; valNdx < this.m_numValues; valNdx++) {
             var curInputValues = [];
             var curOutputValues = [];
@@ -338,9 +391,16 @@ goog.scope(function() {
 
                 bufferedLogToConsole('ERROR: comparison failed for value ' + valNdx + ':\n ' + this.m_failMsg);
                 bufferedLogToConsole(' inputs:');
-                bufferedLogToConsole(' ' + this.m_spec.inputs[0].name + ' = ' + this.m_spec.inputs[0].varType.toString() + ' ' + curInputPtr[valNdx]);
+                for (var inNdx = 0; inNdx < inputData.length; ++inNdx) {
+                    var varValue = es3fShaderCommonFunctionTests.VarValue(this.m_spec.inputs[0].varType, curInputValues[inNdx]);
+                    bufferedLogToConsole(' ' + this.m_spec.inputs[inNdx].name + ' = ' + varValue);
+                }
+
                 bufferedLogToConsole(' outputs:');
-                bufferedLogToConsole(' ' + this.m_spec.outputs[0].name + ' = ' + this.m_spec.outputs[0].varType.toString() + ' ' + curOutputPtr[valNdx]);
+                for (var outNdx = 0; outNdx < outputData.length; ++outNdx) {
+                    var varValue = es3fShaderCommonFunctionTests.VarValue(this.m_spec.inputs[0].varType, curOutputValues[outNdx]);
+                    bufferedLogToConsole(' ' + this.m_spec.outputs[outNdx].name + ' = ' + varValue);
+                }
 
                 this.m_failMsg = '';
                 numFailed += 1;

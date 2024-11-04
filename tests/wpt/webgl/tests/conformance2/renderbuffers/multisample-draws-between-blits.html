@@ -1,0 +1,209 @@
+<!--
+Copyright (c) 2022 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<canvas id="canvas" width="128" height="64" style="width: 32px; height: 32px;"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+
+const wtu = WebGLTestUtils;
+description(' Test multisample with blitting between draws');
+
+const gl = wtu.create3DContext("canvas", null, 2);
+const w = 128;
+const h = 64;
+
+if (!gl) {
+    testFailed('canvas.getContext() failed');
+} else {
+    gl.viewport(0, 0, w, h);
+    runTest(gl, 4);
+}
+
+function runTest(gl, sampleCount) {
+    const vs = `#version 300 es
+
+    layout(location = 0) in vec4 position;
+    uniform mat4 mat;
+
+    void main() {
+      gl_Position = mat * position;
+    }
+    `;
+
+    const fs = `#version 300 es
+    precision mediump float;
+    uniform vec4 color;
+    out vec4 outColor;
+    void main() {
+      outColor = color;
+    }
+    `;
+
+    const texVS = `#version 300 es
+
+    layout(location = 0) in vec4 position;
+    out vec2 texcoord;
+    uniform mat4 mat;
+
+    void main() {
+      gl_Position = mat * position;
+      texcoord = position.xy;
+    }
+    `;
+
+    const texFS = `#version 300 es
+    precision mediump float;
+    in vec2 texcoord;
+    uniform sampler2D tex;
+    out vec4 outColor;
+    void main() {
+      outColor = texture(tex, texcoord);
+    }
+    `;
+
+    const msRB = gl.createRenderbuffer();
+    gl.bindRenderbuffer(gl.RENDERBUFFER, msRB);
+    gl.renderbufferStorageMultisample(gl.RENDERBUFFER, 4, gl.RGBA8, w, h);
+
+    const msFB = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, msFB);
+    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, msRB);
+
+    const dTex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, dTex);
+    gl.texStorage2D(gl.TEXTURE_2D, 1, gl.RGBA8, w, h);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+
+    const dFB = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, dFB);
+    gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, dTex, 0);
+
+    const positionLoc = 0;  // hard coded in shaders so they match
+    const buf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+      0, 0,
+      1, 0,
+      0, 1,
+      0, 1,
+      1, 0,
+      1, 1,
+    ]), gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(positionLoc);
+    gl.vertexAttribPointer(positionLoc, 2, gl.FLOAT, false, 0, 0);
+
+    const program = wtu.setupProgram(gl, [vs, fs]);
+    const texProgram = wtu.setupProgram(gl, [texVS, texFS]);
+
+    const colorLoc = gl.getUniformLocation(program, 'color');
+    const matLoc = gl.getUniformLocation(program, 'mat');
+    const texMatLoc = gl.getUniformLocation(texProgram, 'mat');
+
+    gl.useProgram(program);
+
+    const drawAndResolve = (color, mat) => {
+      gl.bindFramebuffer(gl.FRAMEBUFFER, msFB);
+      gl.uniform4fv(colorLoc, color);
+      gl.uniformMatrix4fv(matLoc, false, mat);
+      gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+      gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, dFB);
+      gl.blitFramebuffer(0, 0, w, h, 0, 0, w, h, gl.COLOR_BUFFER_BIT, gl.NEAREST);
+    };
+
+    const check = (x, y, w, h, expected, msg) => {
+      gl.bindFramebuffer(gl.FRAMEBUFFER, dFB);
+      const tolerance = 2; // For multisampling resolution differences between GPUs
+      wtu.checkCanvasRect(gl, x, y, w, h, expected, msg, tolerance);
+    };
+
+    const f32Red    = [1, 0, 0, 1];
+    const f32Green  = [0, 1, 0, 1];
+    const f32Gray   = [0.5, 0.5, 0.5, 1];
+
+    const u8Red         = [255,   0,   0, 255];
+    const u8Green       = [  0, 255,   0, 255];
+    const u8LightRed    = [255, 128, 128, 255];
+    const u8LightGreen  = [128, 255, 128, 255];
+
+    debug('fill with red');
+    drawAndResolve(f32Red, [
+      2, 0, 0, 0,
+      0, 2, 0, 0,
+      0, 0, 1, 0,
+      -1, -1, 0, 1,
+    ]);
+    check(0, 0, w, h, u8Red, 'whole thing');
+
+    debug('draw right in green');
+    drawAndResolve(f32Green, [
+      1, 0, 0, 0,
+      0, 2, 0, 0,
+      0, 0, 1, 0,
+      0, -1, 0, 1,
+    ]);
+    check(0, 0, w / 2, h, u8Red, 'left');
+    check(w / 2, 0, w / 2, h, u8Green, 'right');
+
+    debug('draw middle in gray with blending');
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.ONE, gl.ONE);
+    drawAndResolve(f32Gray, [
+      1, 0, 0, 0,
+      0, 2, 0, 0,
+      0, 0, 1, 0,
+      -0.5, -1, 0, 1,
+    ]);
+    gl.disable(gl.BLEND);
+
+    /*
+       expected
+       +-----+-------+---------+--------+
+       | red | ltRed | ltGreen | green  |
+       +-----+-------+---------+--------+
+      0,0
+    */
+
+    check(0, 0, w / 4, h , u8Red, 'left edge')
+    check(w * 3 / 4, 0, w / 4, h, u8Green, 'right edge');
+    check(w / 4, 0, w / 4, h, u8LightRed, 'left of center');
+    check(w / 2, 0, w / 4, h, u8LightGreen, 'right of center');
+
+    // show it
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.useProgram(texProgram);
+    gl.uniformMatrix4fv(texMatLoc, false, [
+      2, 0, 0, 0,
+      0, 2, 0, 0,
+      0, 0, 1, 0,
+      -1, -1, 0, 1,
+    ]);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+    gl.deleteRenderbuffer(msRB);
+    gl.deleteTexture(dTex);
+    gl.deleteFramebuffer(msFB);
+    gl.deleteFramebuffer(dFB);
+}
+
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+</body>
+</html>

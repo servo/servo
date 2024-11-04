@@ -5,6 +5,7 @@
 --min-version 1.0.3 array-of-struct-with-int-first-position.html
 --min-version 1.0.4 assign-to-swizzled-twice-in-function.html
 --min-version 1.0.4 bool-type-cast-bug-int-float.html
+--min-version 1.0.4 character-set.html
 --min-version 1.0.3 compare-loop-index-to-uniform.html
 --min-version 1.0.3 complex-glsl-does-not-crash.html
 --min-version 1.0.4 compound-assignment-type-combination.html
@@ -46,5 +47,6 @@
 --min-version 1.0.4 undefined-index-should-not-crash.html
 --min-version 1.0.3 uniforms-should-not-lose-values.html
 --min-version 1.0.4 varying-arrays-should-not-be-reversed.html
+--min-version 1.0.4 vector-matrix-constructor-scalarization.html
 --min-version 1.0.4 vector-scalar-arithmetic-inside-loop.html
 --min-version 1.0.4 vector-scalar-arithmetic-inside-loop-complex.html

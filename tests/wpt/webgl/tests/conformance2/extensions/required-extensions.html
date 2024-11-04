@@ -1,0 +1,60 @@
+<!--
+Copyright (c) 2021 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+
+<script>
+"use strict";
+const wtu = WebGLTestUtils;
+let gl;
+
+description("Ensure that required extensions are supported");
+
+shouldBeNonNull("gl = wtu.create3DContext(undefined, undefined, 2)");
+
+const supportedExts = gl.getSupportedExtensions();
+
+function hasExt(name) {
+    return supportedExts.indexOf(name) >= 0;
+}
+
+const has_s3tc = hasExt('WEBGL_compressed_texture_s3tc');
+const has_s3tc_srgb = hasExt('WEBGL_compressed_texture_s3tc_srgb');
+const has_rgtc = hasExt('EXT_texture_compression_rgtc');
+const has_etc = hasExt('WEBGL_compressed_texture_etc');
+
+debug(`has_s3tc: ${has_s3tc}`);
+debug(`has_s3tc_srgb: ${has_s3tc_srgb}`);
+debug(`has_rgtc: ${has_rgtc}`);
+debug(`has_etc: ${has_etc}`);
+
+shouldBeTrue("((has_s3tc && has_s3tc_srgb && has_rgtc) || has_etc)");
+
+// ETC1 extension must not be exposed on WebGL 2.0 contexts without ETC2.
+debug("");
+const has_etc1 = hasExt('WEBGL_compressed_texture_etc1');
+debug(`has_etc1: ${has_etc1}`);
+shouldBeTrue("has_etc1 == has_etc");
+
+debug("");
+var successfullyParsed = true;
+</script>
+
+<script src="../../js/js-test-post.js"></script>
+</body>
+</html>

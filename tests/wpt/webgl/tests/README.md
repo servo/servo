@@ -13,7 +13,7 @@ browser's WebGL implementation, either via this test suite or otherwise,
 please report them through your browser vendor's bug tracking system.
 
 FOR WEBGL IMPLEMENTORS: Please follow the instructions below to create
-a formal conformance submission.
+a formal conformance submission:
 
 1. Open webgl-conformance-tests.html in your target browser
 
@@ -23,8 +23,7 @@ a formal conformance submission.
 
 4. Verify that the User Agent and WebGL renderer strings identify your browser and target correctly.
 
-5. Copy the contents of the text summary (starting with "WebGL Conformance Test Results") and send via email to
-   webgl_conformance_submissions@khronos.org
+5. Submit a PR with the results to [https://github.com/KhronosGroup/WebGLConformanceSubmissions].
 
 Please see CONFORMANCE_RULES.txt in this directory for guidelines
 about what constitutes a conformant WebGL implementation.
@@ -32,7 +31,7 @@ about what constitutes a conformant WebGL implementation.
 Usage Notes:
 ------------
 
-There are various URL options you can pass in.
+There are various URL options you can pass in:
 
     run:         Set to 1 to start the tests automatically
 
@@ -65,6 +64,21 @@ There are various URL options you can pass in.
                  Example: webgl-conformance-tests.html?frames=8
 
                  Note the tests are not required to run with anything other than frames = 1.
+
+To individual tests you can pass:
+
+    showRenderer: 1 to show the renderer or unmasked renderer if `WEBGL_debug_renderer_info`
+                  is available
+
+    runUntilFail: 1 to re-run the test until it fails
+
+    Also, all of [the context creation attributes](https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.2
+    
+                  Example: some-test.html?powerPreference=high-performance&antialias=false&depth=false
+
+The tests at https://www.khronos.org/registry/webgl/sdk/tests/ are kept up-to-date with a GitHub webhook. If you suspect these tests are not in sync with GitHub, please verify the webhook log file here:
+
+   https://www.khronos.org/webgl/pull-github/logs/github.log
 
 History
 -------

@@ -1,24 +1,7 @@
 /*
-** Copyright (c) 2012 The Khronos Group Inc.
-**
-** Permission is hereby granted, free of charge, to any person obtaining a
-** copy of this software and/or associated documentation files (the
-** "Materials"), to deal in the Materials without restriction, including
-** without limitation the rights to use, copy, modify, merge, publish,
-** distribute, sublicense, and/or sell copies of the Materials, and to
-** permit persons to whom the Materials are furnished to do so, subject to
-** the following conditions:
-**
-** The above copyright notice and this permission notice shall be included
-** in all copies or substantial portions of the Materials.
-**
-** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
 */
 var WebGLTestUtils = (function() {
 "use strict";
@@ -50,29 +33,39 @@ var loggingOff = function() {
   error = function() {};
 };
 
+const ENUM_NAME_REGEX = RegExp('[A-Z][A-Z0-9_]*');
+const ENUM_NAME_BY_VALUE = {};
+const ENUM_NAME_PROTOTYPES = new Map();
+
 /**
  * Converts a WebGL enum to a string.
  * @param {!WebGLRenderingContext} gl The WebGLRenderingContext to use.
  * @param {number} value The enum value.
  * @return {string} The enum as a string.
  */
-var glEnumToString = function(gl, value) {
-  // Avoid returning "NO_ERROR" if the arguments are totally wrong.
-  if (gl.NO_ERROR === undefined || value === undefined) {
-    return undefined;
-  }
-  // Optimization for the most common enum:
-  if (value === gl.NO_ERROR) {
-    return "NO_ERROR";
-  }
-  for (var p in gl) {
-    if (gl[p] == value) {
-      if (p == 'drawingBufferWidth' || p == 'drawingBufferHeight') {
-        continue;
+var glEnumToString = function(glOrExt, value) {
+  if (value === undefined)
+    throw new Error('glEnumToString: `value` must not be undefined');
+
+  const proto = glOrExt.__proto__;
+  if (!ENUM_NAME_PROTOTYPES.has(proto)) {
+    ENUM_NAME_PROTOTYPES.set(proto, true);
+
+    for (const k in proto) {
+      if (!ENUM_NAME_REGEX.test(k)) continue;
+
+      const v = glOrExt[k];
+      if (ENUM_NAME_BY_VALUE[v] === undefined) {
+        ENUM_NAME_BY_VALUE[v] = k;
+      } else {
+        ENUM_NAME_BY_VALUE[v] += '/' + k;
       }
-      return p;
     }
   }
+
+  const key = ENUM_NAME_BY_VALUE[value];
+  if (key !== undefined) return key;
+
   return "0x" + Number(value).toString(16);
 };
 
@@ -120,12 +113,52 @@ var simpleTextureVertexShader = [
   '}'].join('\n');
 
 /**
+ * A vertex shader for a single texture.
+ * @type {string}
+ */
+var simpleTextureVertexShaderESSL300 = [
+  '#version 300 es',
+  'layout(location=0) in vec4 vPosition;',
+  'layout(location=1) in vec2 texCoord0;',
+  'out vec2 texCoord;',
+  'void main() {',
+  '    gl_Position = vPosition;',
+  '    texCoord = texCoord0;',
+  '}'].join('\n');
+
+/**
  * A fragment shader for a single texture.
  * @type {string}
  */
 var simpleTextureFragmentShader = [
   'precision mediump float;',
   'uniform sampler2D tex;',
+  'varying vec2 texCoord;',
+  'void main() {',
+  '    gl_FragData[0] = texture2D(tex, texCoord);',
+  '}'].join('\n');
+
+/**
+ * A fragment shader for a single texture.
+ * @type {string}
+ */
+var simpleTextureFragmentShaderESSL300 = [
+  '#version 300 es',
+  'precision highp float;',
+  'uniform highp sampler2D tex;',
+  'in vec2 texCoord;',
+  'out vec4 out_color;',
+  'void main() {',
+  '    out_color = texture(tex, texCoord);',
+  '}'].join('\n');
+
+/**
+ * A fragment shader for a single texture with high precision.
+ * @type {string}
+ */
+var simpleHighPrecisionTextureFragmentShader = [
+  'precision highp float;',
+  'uniform highp sampler2D tex;',
   'varying vec2 texCoord;',
   'void main() {',
   '    gl_FragData[0] = texture2D(tex, texCoord);',
@@ -403,14 +436,35 @@ var setupNoTexCoordTextureProgram = function(gl) {
  * @param {!WebGLRenderingContext} gl The WebGLRenderingContext to use.
  * @param {number} opt_positionLocation The attrib location for position.
  * @param {number} opt_texcoordLocation The attrib location for texture coords.
+ * @param {string} opt_fragmentShaderOverride The alternative fragment shader to use.
  * @return {WebGLProgram}
  */
 var setupSimpleTextureProgram = function(
-    gl, opt_positionLocation, opt_texcoordLocation) {
+    gl, opt_positionLocation, opt_texcoordLocation, opt_fragmentShaderOverride) {
   opt_positionLocation = opt_positionLocation || 0;
   opt_texcoordLocation = opt_texcoordLocation || 1;
+  opt_fragmentShaderOverride = opt_fragmentShaderOverride || simpleTextureFragmentShader;
   return setupProgram(gl,
-                      [simpleTextureVertexShader, simpleTextureFragmentShader],
+                      [simpleTextureVertexShader, opt_fragmentShaderOverride],
+                      ['vPosition', 'texCoord0'],
+                      [opt_positionLocation, opt_texcoordLocation]);
+};
+
+/**
+ * Creates a simple texture program using glsl version 300.
+ * @param {!WebGLRenderingContext} gl The WebGLRenderingContext to use.
+ * @param {number} opt_positionLocation The attrib location for position.
+ * @param {number} opt_texcoordLocation The attrib location for texture coords.
+ * @param {string} opt_fragmentShaderOverride The alternative fragment shader to use.
+ * @return {WebGLProgram}
+ */
+var setupSimpleTextureProgramESSL300 = function(
+    gl, opt_positionLocation, opt_texcoordLocation, opt_fragmentShaderOverride) {
+  opt_positionLocation = opt_positionLocation || 0;
+  opt_texcoordLocation = opt_texcoordLocation || 1;
+  opt_fragmentShaderOverride = opt_fragmentShaderOverride || simpleTextureFragmentShaderESSL300;
+  return setupProgram(gl,
+                      [simpleTextureVertexShaderESSL300, opt_fragmentShaderOverride],
                       ['vPosition', 'texCoord0'],
                       [opt_positionLocation, opt_texcoordLocation]);
 };
@@ -572,13 +626,14 @@ var setupQuad = function(gl, options) {
  *        position. Default = 0.
  * @param {number} opt_texcoordLocation The attrib location for
  *        texture coords. Default = 1.
- * @param {!Object} various options. See setupQuad for details.
+ * @param {!Object} various options defined by setupQuad, plus an option
+          fragmentShaderOverride to specify a custom fragment shader.
  * @return {!WebGLProgram}
  */
 var setupTexturedQuad = function(
     gl, opt_positionLocation, opt_texcoordLocation, options) {
   var program = setupSimpleTextureProgram(
-      gl, opt_positionLocation, opt_texcoordLocation);
+      gl, opt_positionLocation, opt_texcoordLocation, options && options.fragmentShaderOverride);
   setupUnitQuad(gl, opt_positionLocation, opt_texcoordLocation, options);
   return program;
 };
@@ -700,6 +755,7 @@ var setupIndexedQuadWithOptions = function (gl, options) {
 
   if (options.colorLocation !== undefined) {
     var colors = new Float32Array(numVerts * 4);
+    poffset = 0;
     for (var yy = 0; yy <= gridRes; ++yy) {
       for (var xx = 0; xx <= gridRes; ++xx) {
         if (options.color !== undefined) {
@@ -1182,12 +1238,15 @@ var checkCanvasRects = function(gl, rects) {
  * @param {!function()} logFn Function to call for logging.
  * @param {TypedArray} opt_readBackBuf optional buffer to read back into.
  *        Typically passed to either reuse buffer, or support readbacks from
- *        floating-point framebuffers.
+ *        floating-point/norm16 framebuffers.
  * @param {GLenum} opt_readBackType optional read back type, defaulting to
  *        gl.UNSIGNED_BYTE. Can be used to support readback from floating-point
+ *        /norm16 framebuffers.
+ * @param {GLenum} opt_readBackFormat optional read back format, defaulting to
+ *        gl.RGBA. Can be used to support readback from norm16
  *        framebuffers.
  */
-var checkCanvasRectColor = function(gl, x, y, width, height, color, opt_errorRange, sameFn, differentFn, logFn, opt_readBackBuf, opt_readBackType) {
+var checkCanvasRectColor = function(gl, x, y, width, height, color, opt_errorRange, sameFn, differentFn, logFn, opt_readBackBuf, opt_readBackType, opt_readBackFormat) {
   if (isWebGLContext(gl) && !gl.getParameter(gl.FRAMEBUFFER_BINDING)) {
     // We're reading the backbuffer so clip.
     var xr = clipToRange(x, width, 0, gl.canvas.width);
@@ -1210,7 +1269,8 @@ var checkCanvasRectColor = function(gl, x, y, width, height, color, opt_errorRan
   if (isWebGLContext(gl)) {
     buf = opt_readBackBuf ? opt_readBackBuf : new Uint8Array(width * height * 4);
     var readBackType = opt_readBackType ? opt_readBackType : gl.UNSIGNED_BYTE;
-    gl.readPixels(x, y, width, height, gl.RGBA, readBackType, buf);
+    var readBackFormat = opt_readBackFormat ? opt_readBackFormat : gl.RGBA;
+    gl.readPixels(x, y, width, height, readBackFormat, readBackType, buf);
   } else {
     buf = gl.getImageData(x, y, width, height).data;
   }
@@ -1223,7 +1283,7 @@ var checkCanvasRectColor = function(gl, x, y, width, height, color, opt_errorRan
           was += "," + buf[offset + j];
         }
         differentFn('at (' + (x + (i % width)) + ', ' + (y + Math.floor(i / width)) +
-                    ') expected: ' + color + ' was ' + was);
+                    ') expected: ' + color + ' was ' + was, buf);
         return;
       }
     }
@@ -1248,12 +1308,15 @@ var checkCanvasRectColor = function(gl, x, y, width, height, color, opt_errorRan
  *        color checking. 0 by default.
  * @param {TypedArray} opt_readBackBuf optional buffer to read back into.
  *        Typically passed to either reuse buffer, or support readbacks from
- *        floating-point framebuffers.
+ *        floating-point/norm16 framebuffers.
  * @param {GLenum} opt_readBackType optional read back type, defaulting to
  *        gl.UNSIGNED_BYTE. Can be used to support readback from floating-point
- *        framebuffers.
+ *        /norm16 framebuffers.
+ * @param {GLenum} opt_readBackFormat optional read back format, defaulting to
+ *        gl.RGBA. Can be used to support readback from floating-point
+ *        /norm16 framebuffers.
  */
-var checkCanvasRect = function(gl, x, y, width, height, color, opt_msg, opt_errorRange, opt_readBackBuf, opt_readBackType) {
+var checkCanvasRect = function(gl, x, y, width, height, color, opt_msg, opt_errorRange, opt_readBackBuf, opt_readBackType, opt_readBackFormat) {
   checkCanvasRectColor(
       gl, x, y, width, height, color, opt_errorRange,
       function() {
@@ -1270,7 +1333,8 @@ var checkCanvasRect = function(gl, x, y, width, height, color, opt_msg, opt_erro
       },
       debug,
       opt_readBackBuf,
-      opt_readBackType);
+      opt_readBackType,
+      opt_readBackFormat);
 };
 
 /**
@@ -1509,8 +1573,31 @@ var create3DContext = function(opt_canvas, opt_attributes, opt_version) {
   if (!hasAttributeCaseInsensitive(attributes, "antialias")) {
     attributes.antialias = false;
   }
+
+  const parseString = v => v;
+  const parseBoolean = v => v.toLowerCase().startsWith('t') || parseFloat(v) > 0;
+  const params = new URLSearchParams(window.location.search);
+  for (const [key, parseFn] of Object.entries({
+    alpha: parseBoolean,
+    antialias: parseBoolean,
+    depth: parseBoolean,
+    desynchronized: parseBoolean,
+    failIfMajorPerformanceCaveat: parseBoolean,
+    powerPreference: parseString,
+    premultipliedAlpha: parseBoolean,
+    preserveDrawingBuffer: parseBoolean,
+    stencil: parseBoolean,
+  })) {
+    const value = params.get(key);
+    if (value) {
+      const v = parseFn(value);
+      attributes[key] = v;
+      debug(`setting context attribute: ${key} = ${v}`);
+    }
+  }
+
   if (!opt_version) {
-    opt_version = parseInt(getUrlOptions().webglVersion, 10) || default3DContextVersion;
+    opt_version = getDefault3DContextVersion();
   }
   opt_canvas = opt_canvas || document.createElement("canvas");
   if (typeof opt_canvas == 'string') {
@@ -1537,8 +1624,30 @@ var create3DContext = function(opt_canvas, opt_attributes, opt_version) {
   }
   if (!context) {
     testFailed("Unable to fetch WebGL rendering context for Canvas");
+  } else {
+    if (!window._wtu_contexts) {
+      window._wtu_contexts = []
+    }
+    window._wtu_contexts.push(context);
   }
+
+  if (params.get('showRenderer')) {
+    const ext = context.getExtension('WEBGL_debug_renderer_info');
+    debug(`RENDERER: ${context.getParameter(ext ? ext.UNMASKED_RENDERER_WEBGL : context.RENDERER)}`);
+  }
+
   return context;
+};
+
+/**
+ * Indicates whether the given context is WebGL 2.0 or greater.
+ * @param {!WebGLRenderingContext} gl The WebGLRenderingContext to use.
+ * @return {boolean} True if the given context is WebGL 2.0 or greater.
+ */
+var isWebGL2 = function(gl) {
+  // Duck typing is used so that the conformance suite can be run
+  // against libraries emulating WebGL 1.0 on top of WebGL 2.0.
+  return !!gl.drawArraysInstanced;
 };
 
 /**
@@ -1653,7 +1762,46 @@ var glErrorShouldBe = function(gl, glErrors, opt_msg) {
   return glErrorShouldBeImpl(gl, glErrors, true, opt_msg);
 };
 
+const glErrorAssert = function(gl, glErrors, opt_msg) {
+  return glErrorShouldBeImpl(gl, glErrors, false, opt_msg);
+};
 
+/**
+ * Tests that the given framebuffer has a specific status
+ * @param {!WebGLRenderingContext} gl The WebGLRenderingContext to use.
+ * @param {number|Array.<number>} glStatuses The expected gl
+ *        status or an array of expected statuses.
+ * @param {string} opt_msg Optional additional message.
+ */
+var framebufferStatusShouldBe = function(gl, target, glStatuses, opt_msg) {
+  if (!glStatuses.length) {
+    glStatuses = [glStatuses];
+  }
+  opt_msg = opt_msg || "";
+  const status = gl.checkFramebufferStatus(target);
+  const ndx = glStatuses.indexOf(status);
+  const expected = glStatuses.map((status) => {
+    return glEnumToString(gl, status);
+  }).join(' or ');
+  if (ndx < 0) {
+    let msg = "checkFramebufferStatus expected" + ((glStatuses.length > 1) ? " one of: " : ": ") +
+      expected +  ". Was " + glEnumToString(gl, status);
+    if (opt_msg) {
+      msg += ": " + opt_msg;
+    }
+    testFailed(msg);
+    return false;
+  }
+  let msg = `checkFramebufferStatus was ${glEnumToString(gl, status)}`;
+  if (glStatuses.length > 1) {
+    msg += `, one of: ${expected}`;
+  }
+  if (opt_msg) {
+    msg += ": " + opt_msg;
+  }
+  testPassed(msg);
+  return [status];
+}
 
 /**
  * Tests that the first error GL returns is the specified error. Allows suppression of successes.
@@ -1667,21 +1815,66 @@ var glErrorShouldBeImpl = function(gl, glErrors, reportSuccesses, opt_msg) {
     glErrors = [glErrors];
   }
   opt_msg = opt_msg || "";
+
+  const fnErrStr = function(errVal) {
+    if (errVal == 0) return "NO_ERROR";
+    return glEnumToString(gl, errVal);
+  };
+
   var err = gl.getError();
   var ndx = glErrors.indexOf(err);
   var errStrs = [];
   for (var ii = 0; ii < glErrors.length; ++ii) {
-    errStrs.push(glEnumToString(gl, glErrors[ii]));
+    errStrs.push(fnErrStr(glErrors[ii]));
   }
   var expected = errStrs.join(" or ");
   if (ndx < 0) {
     var msg = "getError expected" + ((glErrors.length > 1) ? " one of: " : ": ");
-    testFailed(msg + expected +  ". Was " + glEnumToString(gl, err) + " : " + opt_msg);
+    testFailed(msg + expected +  ". Was " + fnErrStr(err) + " : " + opt_msg);
   } else if (reportSuccesses) {
     var msg = "getError was " + ((glErrors.length > 1) ? "one of: " : "expected value: ");
     testPassed(msg + expected + " : " + opt_msg);
   }
   return err;
+};
+
+/**
+ * Tests that a function throws or not.
+ * @param {!WebGLContext} gl The WebGLContext to use.
+ * @param throwType Type of thrown error (e.g. TypeError), or false.
+ * @param {string} info Info on what's being tested
+ * @param {function} func The func to test.
+ */
+var shouldThrow = function(gl, throwType, info, func) {
+  while (gl.getError()) {}
+
+  var shouldThrow = (throwType != false);
+
+  try {
+    func();
+
+    if (shouldThrow) {
+      testFailed("Should throw a " + throwType.name + ": " + info);
+    } else {
+      testPassed("Should not have thrown: " + info);
+    }
+  } catch (e) {
+    if (shouldThrow) {
+      if (e instanceof throwType) {
+        testPassed("Should throw a " + throwType.name + ": " + info);
+      } else {
+        testFailed("Should throw a " + throwType.name + ", threw " + e.name + ": " + info);
+      }
+    } else {
+      testFailed("Should not have thrown: " + info);
+    }
+
+    if (gl.getError()) {
+      testFailed("Should not generate an error when throwing: " + info);
+    }
+  }
+
+  while (gl.getError()) {}
 };
 
 /**
@@ -2023,7 +2216,7 @@ var loadShaderFromScript = function(
   if (!shaderScript) {
     throw("*** Error: unknown script element " + scriptId);
   }
-  shaderSource = shaderScript.text;
+  shaderSource = shaderScript.text.trim();
 
   if (!opt_shaderType) {
     if (shaderScript.type == "x-shader/x-vertex") {
@@ -2460,6 +2653,7 @@ var makeImageFromCanvas = function(canvas, onload, imageFormat) {
  */
 var makeVideo = function(src, onerror) {
   var vid = document.createElement('video');
+  vid.muted = true;
   if (onerror) {
     vid.onerror = onerror;
   } else {
@@ -2618,6 +2812,28 @@ var getSupportedExtensionWithKnownPrefixes = function(gl, name) {
     }
   }
 };
+
+/**
+ * @param {WebGLRenderingContext} gl The WebGLRenderingContext to use.
+ * @param {string} name Name of extension to look for.
+ * @param {boolean} extensionEnabled True if the extension was enabled successfully via gl.getExtension().
+ */
+var runExtensionSupportedTest = function(gl, name, extensionEnabled) {
+  var prefixedName = getSupportedExtensionWithKnownPrefixes(gl, name);
+  if (prefixedName !== undefined) {
+      if (extensionEnabled) {
+          testPassed(name + " listed as supported and getExtension succeeded");
+      } else {
+          testFailed(name + " listed as supported but getExtension failed");
+      }
+  } else {
+      if (extensionEnabled) {
+          testFailed(name + " not listed as supported but getExtension succeeded");
+      } else {
+          testPassed(name + " not listed as supported and getExtension failed -- this is legal");
+      }
+  }
+}
 
 /**
  * Given an extension name like WEBGL_compressed_texture_s3tc
@@ -2880,6 +3096,18 @@ var setZeroTimeout = function(handler) {
   window.setTimeout(handler, 0);
 }
 
+function dispatchPromise(fn) {
+  return new Promise((fn_resolve, fn_reject) => {
+    setZeroTimeout(() => {
+      let val;
+      if (fn) {
+        val = fn();
+      }
+      fn_resolve(val);
+    });
+  });
+}
+
 /**
  * Runs an array of functions, yielding to the browser between each step.
  * If you want to know when all the steps are finished add a last step.
@@ -2908,19 +3136,30 @@ var runSteps = function(steps) {
  * @param {!function(!HTMLVideoElement): void} callback Function to call when
  *        video is ready.
  */
-var startPlayingAndWaitForVideo = function(video, callback) {
-  var timeWatcher = function() {
-    if (video.currentTime > 0) {
-      callback(video);
-    } else {
-      requestAnimFrame.call(window, timeWatcher);
-    }
-  };
+async function startPlayingAndWaitForVideo(video, callback) {
+  if (video.error) {
+    testFailed('Video failed to load: ' + video.error);
+    return;
+  }
 
-  requestAnimFrame.call(window, timeWatcher);
   video.loop = true;
-  video.play();
-};
+  video.muted = true;
+  // See whether setting the preload flag de-flakes video-related tests.
+  video.preload = 'auto';
+
+  try {
+    await video.play();
+  } catch (e) {
+    testFailed('video.play failed: ' + e);
+    return;
+  }
+
+  if (video.requestVideoFrameCallback) {
+    await new Promise(go => video.requestVideoFrameCallback(go));
+  }
+
+  callback(video);
+}
 
 var getHost = function(url) {
   url = url.replace("\\", "/");
@@ -2947,13 +3186,16 @@ var getBaseDomain = function(host) {
 }
 
 var runningOnLocalhost = function() {
-  return window.location.hostname.indexOf("localhost") != -1 ||
-      window.location.hostname.indexOf("127.0.0.1") != -1;
+  let hostname = window.location.hostname;
+  return hostname == "localhost" ||
+    hostname == "127.0.0.1" ||
+    hostname == "::1";
 }
 
 var getLocalCrossOrigin = function() {
   var domain;
   if (window.location.host.indexOf("localhost") != -1) {
+    // TODO(kbr): figure out whether to use an IPv6 loopback address.
     domain = "127.0.0.1";
   } else {
     domain = "localhost";
@@ -2985,21 +3227,22 @@ var getRelativePath = function(path) {
   return relparts.join("/");
 }
 
-var setupImageForCrossOriginTest = function(img, imgUrl, localUrl, callback) {
-  window.addEventListener("load", function() {
-    if (typeof(img) == "string")
-      img = document.querySelector(img);
-    if (!img)
-      img = new Image();
+async function loadCrossOriginImage(img, webUrl, localUrl) {
+  if (runningOnLocalhost()) {
+    img.src = getLocalCrossOrigin() + getRelativePath(localUrl);
+    console.log('[loadCrossOriginImage]', '  trying', img.src);
+    await img.decode();
+    return;
+  }
 
-    img.addEventListener("load", callback, false);
-    img.addEventListener("error", callback, false);
+  try {
+    img.src = getUrlOptions().imgUrl || webUrl;
+    console.log('[loadCrossOriginImage]', 'trying', img.src);
+    await img.decode();
+    return;
+  } catch {}
 
-    if (runningOnLocalhost())
-      img.src = getLocalCrossOrigin() + getRelativePath(localUrl);
-    else
-      img.src = getUrlOptions().imgUrl || imgUrl;
-  }, false);
+  throw 'createCrossOriginImage failed';
 }
 
 /**
@@ -3057,6 +3300,98 @@ function linearChannelToSRGB(value) {
     return Math.trunc(value * 255 + 0.5);
 }
 
+/**
+ * Return the named color in the specified color space.
+ * @param {string} colorName The name of the color to convert.
+ *        Supported color names are:
+ *            'Red', which is the CSS color color('srgb' 1 0 0 1)
+ *            'Green', which is the CSS color color('srgb' 0 1 0 1)
+ * @param {string} colorSpace The color space to convert to. Supported
+          color spaces are:
+ *            null, which is treated as sRGB
+ *            'srgb'
+ *            'display-p3'.
+ *        Documentation on the formulas for color conversion between
+ *        spaces can be found at
+              https://www.w3.org/TR/css-color-4/#predefined-to-predefined
+ * @return {!Array.<number>} color The color in the specified color
+ *        space as an 8-bit RGBA array with unpremultiplied alpha.
+ */
+var namedColorInColorSpace = function(colorName, colorSpace) {
+  var result;
+  switch (colorSpace) {
+    case undefined:
+    case 'srgb':
+      switch(colorName) {
+        case 'Red':
+          return [255, 0, 0, 255];
+        case 'Green':
+          return [0, 255, 0, 255];
+          break;
+        default:
+          throw 'unexpected color name: ' + colorName;
+      };
+      break;
+    case 'display-p3':
+      switch(colorName) {
+        case 'Red':
+          return [234, 51, 35, 255];
+          break;
+        case 'Green':
+          return [117, 251, 76, 255];
+          break;
+        default:
+          throw 'unexpected color name: ' + colorName;
+      }
+      break;
+    default:
+      throw 'unexpected color space: ' + colorSpace;
+  }
+}
+
+/**
+ * Return the named color as it would be sampled with the specified
+ * internal format
+ * @param {!Array.<number>} color The color as an 8-bit RGBA array.
+ * @param {string} internalformat The internal format.
+ * @return {!Array.<number>} color The color, as it would be sampled by
+ *        the specified internal format, as an 8-bit RGBA array.
+ */
+var colorAsSampledWithInternalFormat = function(color, internalFormat) {
+  switch (internalFormat) {
+    case 'ALPHA':
+      return [0, 0, 0, color[3]];
+    case 'LUMINANCE':
+      return [color[0], color[0], color[0], 255];
+    case 'LUMINANCE_ALPHA':
+      return [color[0], color[0], color[0], color[3]];
+    case 'SRGB8':
+    case 'SRGB8_ALPHA8':
+      return [sRGBChannelToLinear(color[0]),
+              sRGBChannelToLinear(color[1]),
+              sRGBChannelToLinear(color[2]),
+              color[3]];
+    case 'R16F':
+    case 'R32F':
+    case 'R8':
+    case 'R8UI':
+    case 'RED':
+    case 'RED_INTEGER':
+      return [color[0], 0, 0, 0];
+    case 'RG':
+    case 'RG16F':
+    case 'RG32F':
+    case 'RG8':
+    case 'RG8UI':
+    case 'RG_INTEGER':
+      return [color[0], color[1], 0, 0];
+      break;
+    default:
+      break;
+  }
+  return color;
+}
+
 function comparePixels(cmp, ref, tolerance, diff) {
     if (cmp.length != ref.length) {
         testFailed("invalid pixel size.");
@@ -3090,6 +3425,24 @@ function comparePixels(cmp, ref, tolerance, diff) {
     return count;
 }
 
+function destroyContext(gl) {
+  const ext = gl.getExtension('WEBGL_lose_context');
+  if (ext) {
+    ext.loseContext();
+  }
+  gl.canvas.width = 1;
+  gl.canvas.height = 1;
+}
+
+function destroyAllContexts() {
+  if (!window._wtu_contexts)
+    return;
+  for (const x of window._wtu_contexts) {
+    destroyContext(x);
+  }
+  window._wtu_contexts = [];
+}
+
 function displayImageDiff(cmp, ref, diff, width, height) {
     var div = document.createElement("div");
 
@@ -3118,6 +3471,27 @@ function createImageFromPixel(buf, width, height) {
     return img;
 }
 
+async function awaitTimeout(ms) {
+  await new Promise(res => {
+    setTimeout(() => {
+      res();
+    }, ms);
+  });
+}
+
+async function awaitOrTimeout(promise, opt_timeout_ms) {
+  async function throwOnTimeout(ms) {
+    await awaitTimeout(ms);
+    throw 'timeout';
+  }
+
+  let timeout_ms = opt_timeout_ms;
+  if (timeout_ms === undefined)
+    timeout_ms = 5000;
+
+  await Promise.race([promise, throwOnTimeout(timeout_ms)]);
+}
+
 var API = {
   addShaderSource: addShaderSource,
   addShaderSources: addShaderSources,
@@ -3138,7 +3512,9 @@ var API = {
   clearAndDrawUnitQuad: clearAndDrawUnitQuad,
   clearAndDrawIndexedQuad: clearAndDrawIndexedQuad,
   comparePixels: comparePixels,
-  dispatchTask: setZeroTimeout,
+  destroyAllContexts: destroyAllContexts,
+  destroyContext: destroyContext,
+  dispatchPromise: dispatchPromise,
   displayImageDiff: displayImageDiff,
   drawUnitQuad: drawUnitQuad,
   drawIndexedQuad: drawIndexedQuad,
@@ -3149,6 +3525,7 @@ var API = {
   endsWith: endsWith,
   failIfGLError: failIfGLError,
   fillTexture: fillTexture,
+  framebufferStatusShouldBe: framebufferStatusShouldBe,
   getBytesPerComponent: getBytesPerComponent,
   getDefault3DContextVersion: getDefault3DContextVersion,
   getExtensionPrefixedNames: getExtensionPrefixedNames,
@@ -3164,10 +3541,14 @@ var API = {
   getAttribMap: getAttribMap,
   getUniformMap: getUniformMap,
   glEnumToString: glEnumToString,
+  glErrorAssert: glErrorAssert,
   glErrorShouldBe: glErrorShouldBe,
   glTypeToTypedArrayType: glTypeToTypedArrayType,
   hasAttributeCaseInsensitive: hasAttributeCaseInsensitive,
   insertImage: insertImage,
+  isWebGL2: isWebGL2,
+  linkProgram: linkProgram,
+  loadCrossOriginImage: loadCrossOriginImage,
   loadImageAsync: loadImageAsync,
   loadImagesAsync: loadImagesAsync,
   loadProgram: loadProgram,
@@ -3195,6 +3576,7 @@ var API = {
   makeImageFromCanvas: makeImageFromCanvas,
   makeVideo: makeVideo,
   error: error,
+  runExtensionSupportedTest: runExtensionSupportedTest,
   shallowCopyObject: shallowCopyObject,
   setDefault3DContextVersion: setDefault3DContextVersion,
   setupColorQuad: setupColorQuad,
@@ -3206,6 +3588,7 @@ var API = {
   setupIndexedQuadWithOptions: setupIndexedQuadWithOptions,
   setupSimpleColorProgram: setupSimpleColorProgram,
   setupSimpleTextureProgram: setupSimpleTextureProgram,
+  setupSimpleTextureProgramESSL300: setupSimpleTextureProgramESSL300,
   setupSimpleCubeMapTextureProgram: setupSimpleCubeMapTextureProgram,
   setupSimpleVertexColorProgram: setupSimpleVertexColorProgram,
   setupNoTexCoordTextureProgram: setupNoTexCoordTextureProgram,
@@ -3218,6 +3601,7 @@ var API = {
   startPlayingAndWaitForVideo: startPlayingAndWaitForVideo,
   startsWith: startsWith,
   shouldGenerateGLError: shouldGenerateGLError,
+  shouldThrow: shouldThrow,
   readFile: readFile,
   readFileList: readFileList,
   replaceParams: replaceParams,
@@ -3228,6 +3612,10 @@ var API = {
   // fullscreen api
   setupFullscreen: setupFullscreen,
 
+  // color converter API
+  namedColorInColorSpace: namedColorInColorSpace,
+  colorAsSampledWithInternalFormat: colorAsSampledWithInternalFormat,
+
   // sRGB converter api
   sRGBToLinear: sRGBToLinear,
   linearToSRGB: linearToSRGB,
@@ -3237,7 +3625,8 @@ var API = {
   runningOnLocalhost: runningOnLocalhost,
   getLocalCrossOrigin: getLocalCrossOrigin,
   getRelativePath: getRelativePath,
-  setupImageForCrossOriginTest: setupImageForCrossOriginTest,
+  awaitOrTimeout: awaitOrTimeout,
+  awaitTimeout: awaitTimeout,
 
   none: false
 };
@@ -3245,11 +3634,14 @@ var API = {
 Object.defineProperties(API, {
   noTexCoordTextureVertexShader: { value: noTexCoordTextureVertexShader, writable: false },
   simpleTextureVertexShader: { value: simpleTextureVertexShader, writable: false },
+  simpleTextureVertexShaderESSL300: { value: simpleTextureVertexShaderESSL300, writable: false },
   simpleColorFragmentShader: { value: simpleColorFragmentShader, writable: false },
   simpleColorFragmentShaderESSL300: { value: simpleColorFragmentShaderESSL300, writable: false },
   simpleVertexShader: { value: simpleVertexShader, writable: false },
   simpleVertexShaderESSL300: { value: simpleVertexShaderESSL300, writable: false },
   simpleTextureFragmentShader: { value: simpleTextureFragmentShader, writable: false },
+  simpleTextureFragmentShaderESSL300: { value: simpleTextureFragmentShaderESSL300, writable: false },
+  simpleHighPrecisionTextureFragmentShader: { value: simpleHighPrecisionTextureFragmentShader, writable: false },
   simpleCubeMapTextureFragmentShader: { value: simpleCubeMapTextureFragmentShader, writable: false },
   simpleVertexColorFragmentShader: { value: simpleVertexColorFragmentShader, writable: false },
   simpleVertexColorVertexShader: { value: simpleVertexColorVertexShader, writable: false }

@@ -25,7 +25,6 @@ functions/copyTexSubImage2D.html
 functions/copyTexSubImage2DBadArgs.html
 functions/deleteBufferBadArgs.html
 functions/drawArrays.html
-functions/drawArraysOutOfBounds.html
 functions/drawElements.html
 functions/isTests.html
 --min-version 1.0.2 functions/isTestsBadArgs.html
@@ -51,7 +50,5 @@ functions/vertexAttribBadArgs.html
 functions/vertexAttribPointer.html
 functions/vertexAttribPointerBadArgs.html
 glsl/arrayOutOfBounds.html
-#glsl/longLoops.html // No interactive tests.
 glsl/uniformOutOfBounds.html
-#glsl/unusedAttribsUniforms.html // No interactive tests.
 

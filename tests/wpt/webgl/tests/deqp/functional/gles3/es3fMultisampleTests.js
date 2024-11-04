@@ -1713,7 +1713,7 @@ goog.scope(function() {
      * Run test
      * @param {WebGL2RenderingContext} context
      */
-     es3fMultisampleTests.run = function(context) {
+    es3fMultisampleTests.run = function(context, range) {
         gl = context;
         //Set up Test Root parameters
         var testName = 'multisample';
@@ -1730,6 +1730,8 @@ goog.scope(function() {
         try {
             //Create test cases
             es3fMultisampleTests.init();
+            if (range)
+                state.setRange(range);
             //Run test cases
             tcuTestCase.runTestCases();
         }

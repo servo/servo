@@ -1,0 +1,206 @@
+<!--
+Copyright (c) 2020 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Comments</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+<script src="../../../js/glsl-conformance-test.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+description();
+
+// Your syntax highlighter may hate this file.
+// Because this stuff is tricky, we collect all tests here, including duplicating from other tests.
+// That way, this test file is a one-stop-shop for validation testing.
+
+const nonAscii = [
+  65533,
+  65533,
+  65533,
+  65533,
+  834,
+  96,
+  65533,
+  114,
+  65533,
+  98,
+  65533,
+  104,
+  65533,
+  104,
+  65533,
+  322,
+  834,
+  514,
+  65533,
+  65533,
+  322,
+  65533,
+  65533,
+  66,
+].map(x => String.fromCodePoint(x)).join('');
+
+GLSLConformanceTester.runTests([{
+    vShaderSource: `void main() {}`,
+    vShaderSuccess: true,
+    linkSuccess: true,
+    passMsg: 'Normal minimal testcase'
+  }, {
+    vShaderSource: `void main() {}/*`,
+    vShaderSuccess: false,
+    linkSuccess: false,
+    passMsg: 'Missing block-comment-end'
+  }, {
+    vShaderSource: `void main() {}/**`,
+    vShaderSuccess: false,
+    linkSuccess: false,
+    passMsg: 'Partial block-comment-end'
+  }, {
+    vShaderSource: `void main() {}/**/`,
+    vShaderSuccess: true,
+    linkSuccess: true,
+    passMsg: 'Complete block-comment-end'
+  }, {
+    vShaderSource: `void main() {}/* **/`,
+    vShaderSuccess: true,
+    linkSuccess: true,
+    passMsg: 'Complete block-comment-end with **/'
+  }, {
+    vShaderSource: `void main() {}/`,
+    vShaderSuccess: false,
+    linkSuccess: false,
+    passMsg: 'Partial line-comment-begin at EOF'
+  }, {
+    vShaderSource: `void main() {}//`,
+    vShaderSuccess: true,
+    linkSuccess: true,
+    passMsg: 'Complete line-comment-begin at EOF'
+  }, {
+    vShaderSource: `//
+void main() {}`,
+    vShaderSuccess: true,
+    linkSuccess: true,
+    passMsg: `Minimal line comment: "//,\\n"`
+  }, {
+    vShaderSource: `//\
+
+void main() {}`,
+    vShaderSuccess: true,
+    linkSuccess: true,
+    passMsg: `Minimal continued line comment: "//,\\,\\n,\\n"`
+  }, {
+    vShaderSource: `//\
+a
+void main() {}`,
+    vShaderSuccess: true,
+    linkSuccess: true,
+    passMsg: `Line-comment continuation with content that must be skipped: "//,\\,\\n,a,\\n"`
+  }, {
+    vShaderSource: `void main() {} // The quick brown fox jumped\\over the lazy dog`,
+    vShaderSuccess: true,
+    linkSuccess: true,
+    passMsg: 'Backslash in comment'
+  }, {
+    vShaderSource: `void main() {} // The quick brown fox jumped\\over the lazy dog
+`,
+    vShaderSuccess: true,
+    linkSuccess: true,
+    passMsg: 'Backslash in comment with newline before EOF'
+  }, {
+    vShaderSource: `void main() {} // The quick brown fox jumped\\
+over the lazy dog`,
+    vShaderSuccess: true,
+    linkSuccess: true,
+    passMsg: 'Line-comment with backslash-line-continuation'
+  }, {
+    vShaderSource: `void main() {} // The quick brown fox jumped\\
+over the lazy dog
+`,
+    vShaderSuccess: true,
+    linkSuccess: true,
+    passMsg: 'Line-comment with backslash-line-continuation with newline before EOF'
+  }, {
+    vShaderSource: `void main() {}//${String.fromCodePoint(0x8f)}`,
+    vShaderSuccess: true,
+    linkSuccess: true,
+    passMsg: 'upper-ascii in line-comment'
+  }, {
+    vShaderSource: `void main() {}/*${String.fromCodePoint(0x8f)}*/`,
+    vShaderSuccess: true,
+    linkSuccess: true,
+    passMsg: 'upper-ascii in block-comment'
+
+    // -
+    // Like comment_frag.frag from conformance/ogles/GL/build/build_049_to_056.html
+  }, {
+    vShaderSource: `
+void main()
+{
+    /******  // comment not closed
+}`,
+    vShaderSuccess: false,
+    linkSuccess: false,
+    passMsg: 'Unclosed block-comment containing line-comment'
+
+
+    // -
+    // Like conformance/glsl/misc/non-ascii-comments.vert.html
+  }, {
+    vShaderSource: `void main() {}/*${String.fromCodePoint(0x8f)}`,
+    vShaderSuccess: false,
+    linkSuccess: false,
+    passMsg: 'upper-ascii in unterminated block-comment'
+  }, {
+    vShaderSource: `void main() {}// ${nonAscii}`,
+    vShaderSuccess: true,
+    linkSuccess: true,
+    passMsg: 'More non-ascii in line-comment'
+  }, {
+    vShaderSource: `void main() {}/*
+     * ${nonAscii}
+     */`,
+    vShaderSuccess: true,
+    linkSuccess: true,
+    passMsg: 'More non-ascii in block-comment'
+  }, {
+    vShaderSource: `void main() {}/*
+     * ${nonAscii}
+     *`,
+    vShaderSuccess: false,
+    linkSuccess: false,
+    passMsg: 'More non-ascii in unterminated block-comment'
+
+
+    // -
+    // Like deqp/data/gles2/shaders/preprocessor.html | preprocessor.comments.comment_trick_2_*
+  }, {
+    vShaderSource: `void main() {
+        float out0;
+        /**/
+        out0 = 1.0;
+        /*/
+        out0 = 0.0;
+        /**/
+      }`,
+    vShaderSuccess: true,
+    linkSuccess: true,
+    passMsg: '/**/ /*/ /**/'
+}]);
+</script>
+</body>
+</html>
+

@@ -334,10 +334,15 @@ var gluTextureUtil = framework.opengl.gluTextureUtil;
             '\n' +
             'void main()\n' +
             ' {\n' +
-            ' gl_Position = a_position;\n' +
-            '}\n';
+            ' gl_Position = a_position;\n';
 
-            /** @type {string} */ var fragShaderSource =
+        if (this.m_primType == es3fPrimitiveRestartTests.PrimitiveType.PRIMITIVE_POINTS) {
+            vertShaderSource += ' gl_PointSize = 1.0;\n';
+        }
+
+        vertShaderSource += '}\n';
+
+        /** @type {string} */ var fragShaderSource =
             '#version 300 es\n' +
             'layout(location = 0) out mediump vec4 o_color;\n' +
             '\n' +

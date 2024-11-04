@@ -1,28 +1,7 @@
 <!--
-
-/*
-** Copyright (c) 2015 The Khronos Group Inc.
-**
-** Permission is hereby granted, free of charge, to any person obtaining a
-** copy of this software and/or associated documentation files (the
-** "Materials"), to deal in the Materials without restriction, including
-** without limitation the rights to use, copy, modify, merge, publish,
-** distribute, sublicense, and/or sell copies of the Materials, and to
-** permit persons to whom the Materials are furnished to do so, subject to
-** the following conditions:
-**
-** The above copyright notice and this permission notice shall be included
-** in all copies or substantial portions of the Materials.
-**
-** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
-*/
-
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
 -->
 
 <!DOCTYPE html>
@@ -85,22 +64,48 @@ function test3DTextureDimensions() {
         "texImage3D should fail for dimension out of range.");
 
     for (var i = 0; i < maxLevels; ++i) {
-        var size = 1 << i;
         var level = maxLevels - i - 1;
-        var badSize = size * 2;
+        var badSize = 1 << (i + 1);
 
-        gl.texImage3D(gl.TEXTURE_3D, level, gl.RGBA, size, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
-        wtu.glErrorShouldBe(gl, gl.NO_ERROR, "texImage3D should succeed.");
-        gl.texImage3D(gl.TEXTURE_3D, level, gl.RGBA, 1, size, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
-        wtu.glErrorShouldBe(gl, gl.NO_ERROR, "texImage3D should succeed.");
-        gl.texImage3D(gl.TEXTURE_3D, level, gl.RGBA, 1, 1, size, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
-        wtu.glErrorShouldBe(gl, gl.NO_ERROR, "texImage3D should succeed.");
         gl.texImage3D(gl.TEXTURE_3D, level, gl.RGBA, badSize, 2, 2, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
         wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "texImage3D should fail for dimension out of range.");
         gl.texImage3D(gl.TEXTURE_3D, level, gl.RGBA, 2, badSize, 2, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
         wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "texImage3D should fail for dimension out of range.");
         gl.texImage3D(gl.TEXTURE_3D, level, gl.RGBA, 2, 2, badSize, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
         wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "texImage3D should fail for dimension out of range.");
+    }
+
+    // Probe to discover the max non-OOM level.
+    var numTestLevels = maxLevels;
+    while (true) {
+        gl.texImage3D(gl.TEXTURE_3D, numTestLevels-1, gl.RGBA, 1, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+        var err = gl.getError();
+        if (err == gl.OUT_OF_MEMORY) {
+            debug("Probe failed for level=" + (numTestLevels-1) + ", reducing...");
+            numTestLevels -= 1;
+            if (!numTestLevels) {
+                testFailed("Failed to allocate any levels");
+                return;
+            }
+            continue;
+        }
+        if (err) {
+            testFailed("Should not hit non-OOM errors during max level probing.");
+            return;
+        }
+        break;
+    }
+
+    for (var i = 0; i < numTestLevels; ++i) {
+        var level = numTestLevels - i - 1;
+        var size = 1 << i;
+
+        gl.texImage3D(gl.TEXTURE_3D, level, gl.RGBA, size, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR, "texImage3D should succeed for level: " + level + " " + size + "x1x1.");
+        gl.texImage3D(gl.TEXTURE_3D, level, gl.RGBA, 1, size, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR, "texImage3D should succeed for level: " + level + " 1x" + size + "x1.");
+        gl.texImage3D(gl.TEXTURE_3D, level, gl.RGBA, 1, 1, size, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR, "texImage3D should succeed for level: " + level + " 1x1x" + size + ".");
     }
 
     // Clean up

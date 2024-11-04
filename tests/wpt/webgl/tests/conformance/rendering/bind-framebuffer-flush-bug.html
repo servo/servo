@@ -1,0 +1,148 @@
+<!--
+Copyright (c) 2020 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<script>
+"use strict";
+const wtu = WebGLTestUtils;
+
+function runTest() {
+    let canvas = document.createElement('canvas');
+    document.body.appendChild(canvas);
+    const gl = wtu.create3DContext(canvas);
+    if (!gl) {
+        testFailed('could not create context');
+        return;
+    }
+    const size = 100;
+
+    debug('Setup');
+    canvas.width = size;
+    canvas.height = size;
+
+    const texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, size, size, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+
+    const backbuffer = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, backbuffer);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
+
+    const vertexBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, 32, gl.DYNAMIC_DRAW);
+    gl.bufferSubData(gl.ARRAY_BUFFER, 0, new Float32Array([
+        1, 1,
+        1, -1,
+        -1, 1,
+        -1, -1,
+    ]));
+    gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 8, 0);
+    gl.enableVertexAttribArray(0);
+
+    const blitTextureProgram = gl.createProgram();
+    const blitTextureVertex = gl.createShader(gl.VERTEX_SHADER);
+    gl.shaderSource(blitTextureVertex, `
+        precision mediump float;
+        attribute vec2 pos;
+        varying vec2 uv;
+        void main(){
+            uv = (pos + vec2(1.0)) / 2.0;
+            gl_Position=vec4(pos*2.-1.,0.,1.);
+        }
+    `);
+    gl.compileShader(blitTextureVertex);
+    gl.attachShader(blitTextureProgram, blitTextureVertex);
+    const blitTextureFragment = gl.createShader(gl.FRAGMENT_SHADER);
+    gl.shaderSource(blitTextureFragment, `
+        precision mediump float;
+        uniform sampler2D texture;
+        varying vec2 uv;
+        void main(){
+            gl_FragColor=texture2D(texture, uv);
+        }
+    `);
+    gl.compileShader(blitTextureFragment);
+    gl.attachShader(blitTextureProgram, blitTextureFragment);
+    gl.linkProgram(blitTextureProgram);
+
+    const solidColorProgram = gl.createProgram();
+    const solidColorVertex = gl.createShader(gl.VERTEX_SHADER);
+    gl.shaderSource(solidColorVertex, `
+        precision mediump float;
+        attribute vec2 pos;
+        void main(){
+            gl_Position=vec4(pos,0.,1.);
+        }
+    `);
+    gl.compileShader(solidColorVertex);
+    gl.attachShader(solidColorProgram, solidColorVertex);
+    const solidColorFragment = gl.createShader(gl.FRAGMENT_SHADER);
+    gl.shaderSource(solidColorFragment, `
+        precision mediump float;
+        void main(){
+            gl_FragColor=vec4(0.,0.,1.,1.);
+        }
+    `);
+    gl.compileShader(solidColorFragment);
+    gl.attachShader(solidColorProgram, solidColorFragment);
+    gl.bindAttribLocation(solidColorProgram, 0, "pos");
+    gl.linkProgram(solidColorProgram);
+    gl.clearColor(1, 0, 0, 1);
+
+    debug('Drawing');
+    // Draw blue rectangle to backbuffer texture
+    gl.bindFramebuffer(gl.FRAMEBUFFER, backbuffer);
+    gl.useProgram(solidColorProgram);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+    // Blit backbuffer texture to screen
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.useProgram(blitTextureProgram);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+    // Clear backbuffer texture to red
+    gl.bindFramebuffer(gl.FRAMEBUFFER, backbuffer);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    // Blit backbuffer texture to screen
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.useProgram(blitTextureProgram);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+    debug('Expected: canvas should be red');
+    debug('Buggy: canvas is blue');
+    wtu.checkCanvasRect(gl, 0, 0, 1, 1, [255, 0, 0], 'should be red');
+}
+</script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+description('Verifies workaround for bug in Intel drivers where clear and drawArrays calls are reordered across bindFramebuffer.');
+debug('Regression test for <a href="http://crbug.com/1018028">http://crbug.com/1018028</a>');
+runTest();
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+
+</body>
+</html>

@@ -1,28 +1,7 @@
 <!--
-
-/*
-** Copyright (c) 2012 The Khronos Group Inc.
-**
-** Permission is hereby granted, free of charge, to any person obtaining a
-** copy of this software and/or associated documentation files (the
-** "Materials"), to deal in the Materials without restriction, including
-** without limitation the rights to use, copy, modify, merge, publish,
-** distribute, sublicense, and/or sell copies of the Materials, and to
-** permit persons to whom the Materials are furnished to do so, subject to
-** the following conditions:
-**
-** The above copyright notice and this permission notice shall be included
-** in all copies or substantial portions of the Materials.
-**
-** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
-*/
-
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
 -->
 
 <!DOCTYPE html>
@@ -50,6 +29,21 @@ void main()
 {
   gl_Position = world * vec4(vPosition, 1);
   texCoord = texCoord0;
+}
+</script>
+<script id="trivial-vs" type="text/plain">
+void main()
+{
+  gl_Position = vec4(0,0,0,1);
+  gl_PointSize = 1.0;
+}
+</script>
+<script id="tex-point-fs" type="text/plain">
+precision mediump float;
+uniform sampler2D uSampler;
+void main()
+{
+  gl_FragColor = texture2D(uSampler, vec2(0));
 }
 </script>
 <script>
@@ -129,6 +123,51 @@ function init()
     var x = ii % 2;
     var y = Math.floor(ii / 2);
     wtu.checkCanvasRect(gl, x, y, 1, 1, colors[ii]);
+  }
+
+  debug("");
+  debug("Swizzle applied to correct ActiveTexture index");
+
+  {
+    const prog = wtu.setupProgram(
+        gl,
+        ["trivial-vs", "tex-point-fs"]);
+    prog.uSampler = gl.getUniformLocation(prog, "uSampler");
+    gl.useProgram(prog);
+    gl.viewport(0, 0, 1, 1);
+    gl.activeTexture(gl.TEXTURE0);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+
+    const tex0_rgba8 = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex0_rgba8);
+    const tex0_rgba8_data = new Uint8Array([10, 20, 30, 40]);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, tex0_rgba8_data);
+
+    const tex2_a8 = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex2_a8);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.ALPHA, 1, 1, 0, gl.ALPHA, gl.UNSIGNED_BYTE, null);
+
+    window.control = new Uint8Array(4);
+    window.after_swizzle_applied = new Uint8Array(4);
+
+    gl.bindTexture(gl.TEXTURE_2D, tex0_rgba8);
+    gl.drawArrays(gl.POINTS, 0, 1);
+    gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, window.control);
+    shouldBeString("window.control", tex0_rgba8_data.toString());
+
+    gl.activeTexture(gl.TEXTURE2);
+    gl.bindTexture(gl.TEXTURE_2D, tex2_a8);
+    gl.uniform1i(prog.uSampler, 2);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.drawArrays(gl.POINTS, 0, 1);
+    // Firefox would apply the A8-on-R8 swizzle to whatever tex-unit was active.
+
+    gl.uniform1i(prog.uSampler, 0);
+    gl.drawArrays(gl.POINTS, 0, 1);
+    gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, window.after_swizzle_applied);
+    shouldBeString("window.after_swizzle_applied", tex0_rgba8_data.toString());
+    // Firefox would then get 0,0,0,10 here, as the [ZERO,ZERO,ZERO,RED] swizzle was applied to our
+    // 10,20,30,40 texture.
   }
 }
 

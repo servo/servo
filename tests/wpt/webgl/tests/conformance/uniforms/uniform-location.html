@@ -1,26 +1,7 @@
 <!--
-/*
-** Copyright (c) 2012 The Khronos Group Inc.
-**
-** Permission is hereby granted, free of charge, to any person obtaining a
-** copy of this software and/or associated documentation files (the
-** "Materials"), to deal in the Materials without restriction, including
-** without limitation the rights to use, copy, modify, merge, publish,
-** distribute, sublicense, and/or sell copies of the Materials, and to
-** permit persons to whom the Materials are furnished to do so, subject to
-** the following conditions:
-**
-** The above copyright notice and this permission notice shall be included
-** in all copies or substantial portions of the Materials.
-**
-** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
-*/
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
 -->
 <!DOCTYPE html>
 <html>
@@ -89,6 +70,10 @@ contextA.stencilMask(1);
 wtu.shouldGenerateGLError(contextA, contextA.NO_ERROR, "contextA.linkProgram(programS)");
 wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.uniform1i(locationSx, 3)");
 wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.getUniform(programS, locationSx)");
+// Make sure that with no current program, uniform location validation doesn't get confused.
+wtu.shouldGenerateGLError(contextA, contextA.NO_ERROR, "contextA.useProgram(null)");
+wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.uniform1i(locationSx, 3)");
+wtu.shouldGenerateGLError(contextA, contextA.NO_ERROR, "contextA.useProgram(programS)");
 
 // Retrieve the locations again, and they should be good.
 locationSx = contextA.getUniformLocation(programS, "u_struct.x");

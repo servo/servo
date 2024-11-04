@@ -1,0 +1,147 @@
+<!--
+Copyright (c) 2023 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL EXT_conservative_depth Conformance Tests</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<canvas width="32" height="32" id="c"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+description("This test verifies the functionality of the EXT_conservative_depth extension, if it is available.");
+
+debug("");
+
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext("c", null, 2);
+var ext;
+
+function runShaderTests(extensionEnabled) {
+    debug("");
+    debug("Testing various shader compiles with extension " + (extensionEnabled ? "enabled" : "disabled"));
+
+    const macro = `#version 300 es
+        precision mediump float;
+        out vec4 my_FragColor;
+        void main() {
+        #ifdef GL_EXT_conservative_depth
+            my_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+        #else
+            #error no GL_EXT_conservative_depth;
+        #endif
+        }`;
+
+    const missingExtension = `#version 300 es
+        precision mediump float;
+        out vec4 my_FragColor;
+        layout (depth_any) out float gl_FragDepth;
+        void main() {
+            my_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+            gl_FragDepth = 1.0;
+        }`;
+
+    const valid = `#version 300 es
+        #extension GL_EXT_conservative_depth : enable
+        precision mediump float;
+        out vec4 my_FragColor;
+        layout (depth_any) out float gl_FragDepth;
+        void main() {
+            my_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+            gl_FragDepth = 1.0;
+        }`;
+
+    const invalid = `#version 300 es
+        #extension GL_EXT_conservative_depth : enable
+        precision mediump float;
+        out vec4 my_FragColor;
+        layout (depth_unchanged) out float gl_FragDepth;
+        void main() {
+            my_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+            gl_FragDepth = 1.0;
+        }`;
+
+    // Always expect the shader missing the #extension pragma to fail (whether enabled or not)
+    if (wtu.setupProgram(gl, [wtu.simpleVertexShaderESSL300, missingExtension])) {
+        testFailed("Depth layout qualifier allowed without #extension pragma");
+    } else {
+        testPassed("Depth layout qualifier disallowed without #extension pragma");
+    }
+
+    // Expect the macro shader to succeed ONLY if enabled
+    if (wtu.setupProgram(gl, [wtu.simpleVertexShaderESSL300, macro])) {
+        if (extensionEnabled) {
+            testPassed("Macro defined in shaders when extension is enabled");
+        } else {
+            testFailed("Macro defined in shaders when extension is disabled");
+        }
+    } else {
+        if (extensionEnabled) {
+            testFailed("Macro not defined in shaders when extension is enabled");
+        } else {
+            testPassed("Macro not defined in shaders when extension is disabled");
+        }
+    }
+
+    // Try to compile a shader using a layout qualifier that should only succeed if enabled
+    if (wtu.setupProgram(gl, [wtu.simpleVertexShaderESSL300, valid])) {
+        if (extensionEnabled) {
+            testPassed("Depth layout qualifier compiled successfully when extension enabled");
+        } else {
+            testFailed("Depth layout qualifier compiled successfully when extension disabled");
+        }
+    } else {
+        if (extensionEnabled) {
+            testFailed("Depth layout qualifier failed to compile when extension enabled");
+        } else {
+            testPassed("Depth layout qualifier failed to compile when extension disabled");
+        }
+    }
+
+    // Try to compile a shader using a disallowed layout qualifier
+    if (wtu.setupProgram(gl, [wtu.simpleVertexShaderESSL300, invalid])) {
+        testFailed("Unsupported depth layout qualifier compiled successfully");
+    } else {
+        testPassed("Unsupported depth layout qualifier failed to compile");
+    }
+}
+
+function runTest() {
+    if (!gl) {
+        testFailed("WebGL context does not exist");
+        return;
+    }
+    testPassed("WebGL context exists");
+
+    runShaderTests(false);
+
+    ext = gl.getExtension("EXT_conservative_depth");
+    wtu.runExtensionSupportedTest(gl, "EXT_conservative_depth", ext !== null);
+
+    if (!ext) {
+        testPassed("No EXT_conservative_depth support -- this is legal");
+    } else {
+        testPassed("Successfully enabled EXT_conservative_depth extension");
+        runShaderTests(true);
+    }
+}
+
+runTest();
+
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+</body>
+</html>

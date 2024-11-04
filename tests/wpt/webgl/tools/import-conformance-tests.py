@@ -15,13 +15,9 @@ PATCHES = [
     ("unit.patch", "conformance/more/unit.js"),
     ("timeout.patch", None),
     ("set-zero-timeout.patch", "js/webgl-test-utils.js"),
-    ("compressed-images.patch", "conformance/extensions/webgl-compressed-texture-s3tc.html"),
+    ("compressed-images.patch", "conformance/extensions/s3tc-and-rgtc.html"),
     ("shader-varying-packing-restrictions.patch", "conformance/glsl/misc/shader-varying-packing-restrictions.html"),
 ]
-
-# Fix for 'UnicodeDecodeError: 'ascii' codec can't decode byte'
-reload(sys)  
-sys.setdefaultencoding('utf8')
 
 def usage():
     print("Usage: {} destination [existing_webgl_repo]".format(sys.argv[0]))
@@ -58,13 +54,13 @@ def get_tests(base_dir, file_name, tests_list):
 def process_test(test):
     (new, new_path) = tempfile.mkstemp()
     script_tag_found = False
-    with open(test, "r") as test_file:
+    with open(test, "rb") as test_file:
         for line in test_file:
-            if not script_tag_found and "<script" in line:
-                indent = ' ' * line.index('<')
+            if not script_tag_found and b"<script" in line:
+                indent = ' ' * line.index(b'<')
                 script_tag_found = True
-                os.write(new, "{}<script src=/resources/testharness.js></script>\n".format(indent))
-                os.write(new, "{}<script src=/resources/testharnessreport.js></script>\n".format(indent))
+                os.write(new, "{}<script src=/resources/testharness.js></script>\n".format(indent).encode('utf-8'))
+                os.write(new, "{}<script src=/resources/testharnessreport.js></script>\n".format(indent).encode('utf-8'))
             os.write(new, line)
 
     os.close(new)
@@ -82,6 +78,11 @@ def update_conformance(destination, existing_repo, patches_dir):
         directory = tempfile.mkdtemp()
         print("Cloning WebGL repository into temporary directory {}".format(directory))
         subprocess.check_call(["git", "clone", KHRONOS_REPO_URL, directory, "--depth", "1"])
+
+    commit = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=directory)
+    commit_path = os.path.join(os.path.dirname(__file__), "COMMIT")
+    with open(commit_path, 'wb') as f:
+        f.write(commit)
 
     suite_dir = os.path.join(directory, "sdk/tests")
     print("Test suite directory: {}".format(suite_dir))

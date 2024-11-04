@@ -1,0 +1,70 @@
+<!--
+Copyright (c) 2021 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Clear with scissor bug on WebGL canvas</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<canvas id="canvas-webgl" width="20" height="20"> </canvas>
+<canvas id="canvas-2d" width="20" height="20"> </canvas>
+
+<script>
+"use strict";
+// This test exposes an issue in older Intel D3D drivers.
+var wtu = WebGLTestUtils;
+
+function test_clear_with_scissor_on_canvas()
+{
+  var canvasWebGL = document.getElementById("canvas-webgl");
+  var gl = canvasWebGL.getContext("webgl", { antialias:false });
+  const scissorRectSize = 16;
+  gl.enable(gl.SCISSOR_TEST);
+  gl.scissor(0, 0, scissorRectSize, scissorRectSize);
+  gl.clearColor(0, 1, 0, 1);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+
+  // The issue is found in the Chromium compositor so we need another canvas element for reproduction.
+  var canvas2D = document.getElementById("canvas-2d");
+  var context2D = canvas2D.getContext('2d');
+  context2D.drawImage(canvasWebGL, 0, 0);
+  context2D.fill();
+
+  var imageData =
+    context2D.getImageData(0, canvas2D.clientHeight - scissorRectSize, scissorRectSize, scissorRectSize);
+  var data = imageData.data;
+  var expectedColor = [0, 255, 0, 255];
+  for (var pixelIndex = 0; pixelIndex < scissorRectSize * scissorRectSize; ++pixelIndex) {
+    for (var colorIndex = 0; colorIndex < 4; ++colorIndex) {
+      if (data[pixelIndex * 4 + colorIndex] !== expectedColor[colorIndex]) {
+        var y = Math.floor(pixelIndex / scissorRectSize);
+        var x = pixelIndex % scissorRectSize;
+        testFailed("The canvas color at (" + x + ", " + y + ") is not expected");
+        return;
+      }
+    }
+  }
+}
+
+test_clear_with_scissor_on_canvas();
+
+description("Exposes clearing WebGL canvas with scissor bug on Intel D3D drivers - see https://crbug.com/1206763");
+var successfullyParsed = true;
+
+</script>
+<script src="../../js/js-test-post.js"></script>
+
+</body>
+</html>

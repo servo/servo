@@ -1,28 +1,7 @@
 ﻿<!--
-
-/*
-** Copyright (c) 2013 The Khronos Group Inc.
-**
-** Permission is hereby granted, free of charge, to any person obtaining a
-** copy of this software and/or associated documentation files (the
-** "Materials"), to deal in the Materials without restriction, including
-** without limitation the rights to use, copy, modify, merge, publish,
-** distribute, sublicense, and/or sell copies of the Materials, and to
-** permit persons to whom the Materials are furnished to do so, subject to
-** the following conditions:
-**
-** The above copyright notice and this permission notice shall be included
-** in all copies or substantial portions of the Materials.
-**
-** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
-*/
-
+Copyright (c) 2019 The Khronos Group Inc.
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE.txt file.
 -->
 
 <!DOCTYPE html>
@@ -110,6 +89,7 @@ var wtu = WebGLTestUtils;
 var canvas = document.getElementById("canvas");
 var gl = wtu.create3DContext(canvas, null, 2);
 var drawBuffersUtils;
+let fb;
 
 if (!gl) {
   testFailed("WebGL context does not exist");
@@ -161,7 +141,7 @@ function runAttachmentTest() {
   var maxColorAttachments = gl.getParameter(gl.MAX_COLOR_ATTACHMENTS);
 
   var tex = gl.createTexture();
-  var fb = gl.createFramebuffer();
+  fb = gl.createFramebuffer();
   gl.bindTexture(gl.TEXTURE_2D, tex);
   gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
   gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0 + maxColorAttachments, gl.TEXTURE_2D, tex, 0);
@@ -188,6 +168,28 @@ function runAttachmentTest() {
   gl.deleteFramebuffer(fb);
   gl.deleteTexture(tex);
   wtu.glErrorShouldBe(gl, gl.NO_ERROR, "there should be no errors");
+
+  debug("Testing drawBuffers and getParameter with bindFramebuffer, without drawing.");
+  fb = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+  shouldBe("gl.getParameter(gl.DRAW_BUFFER0)", "gl.COLOR_ATTACHMENT0");
+  shouldBe("gl.getParameter(gl.DRAW_BUFFER0+1)", "gl.NONE");
+  wtu.shouldGenerateGLError(gl, gl.NO_ERROR, "gl.drawBuffers([gl.NONE])");
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  shouldBe("gl.getParameter(gl.DRAW_BUFFER0)", "gl.BACK");
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+  shouldBe("gl.getParameter(gl.DRAW_BUFFER0)", "gl.NONE");
+
+  wtu.shouldGenerateGLError(gl, gl.NO_ERROR, "gl.drawBuffers([gl.NONE,gl.COLOR_ATTACHMENT0+1])");
+  shouldBe("gl.getParameter(gl.DRAW_BUFFER0)", "gl.NONE");
+  shouldBe("gl.getParameter(gl.DRAW_BUFFER0+1)", "gl.COLOR_ATTACHMENT0+1");
+
+  wtu.shouldGenerateGLError(gl, gl.NO_ERROR, "gl.drawBuffers([gl.COLOR_ATTACHMENT0,gl.COLOR_ATTACHMENT0+1])");
+  shouldBe("gl.getParameter(gl.DRAW_BUFFER0)", "gl.COLOR_ATTACHMENT0");
+  shouldBe("gl.getParameter(gl.DRAW_BUFFER0+1)", "gl.COLOR_ATTACHMENT0+1");
+
+  wtu.shouldGenerateGLError(gl, gl.NO_ERROR, "gl.deleteFramebuffer(fb)");
+  shouldBe("gl.getParameter(gl.DRAW_BUFFER0)", "gl.BACK");
 }
 
 function makeColorByIndex(index) {
@@ -362,6 +364,23 @@ function runDrawTests() {
   gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
   gl.drawBuffers(bufs);
   gl.useProgram(blueProgramESSL1);
+
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "there should be no errors");
+  wtu.drawUnitQuad(gl);
+  wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "Active draw buffers with missing frag outputs.");
+  gl.enable(gl.RASTERIZER_DISCARD);
+  wtu.drawUnitQuad(gl);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "there should be no errors when RASTERIZER_DISCARD is enabled.");
+  gl.disable(gl.RASTERIZER_DISCARD);
+  gl.colorMask(false, false, false, false);
+  wtu.drawUnitQuad(gl);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "there should be no errors when all 4 channels of color mask are disabled.");
+  gl.colorMask(false, true, false, false);
+  wtu.drawUnitQuad(gl);
+  wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "partially diabled color mask shall have no impact.");
+  gl.colorMask(true, true, true, true);
+
+  gl.drawBuffers([gl.COLOR_ATTACHMENT0]);
   wtu.drawUnitQuad(gl);
 
   drawBuffersUtils.checkAttachmentsForColorFn(attachments, function(attachment, index) {
@@ -374,6 +393,12 @@ function runDrawTests() {
   gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
   gl.drawBuffers(bufs);
   gl.useProgram(redProgram);
+
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "there should be no errors");
+  wtu.drawUnitQuad(gl);
+  wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "Active draw buffers with missing frag outputs.");
+
+  gl.drawBuffers([gl.COLOR_ATTACHMENT0]);
   wtu.drawUnitQuad(gl);
 
   drawBuffersUtils.checkAttachmentsForColorFn(attachments, function(attachment, index) {
