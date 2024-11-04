@@ -14,7 +14,7 @@
 interface ImageBitmap {
   readonly attribute unsigned long width;
   readonly attribute unsigned long height;
-  //void close();
+  undefined close();
 };
 
 typedef (CanvasImageSource or
