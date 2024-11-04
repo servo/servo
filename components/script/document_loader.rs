@@ -51,10 +51,10 @@ impl LoadBlocker {
 
     /// Remove this load from the associated document's list of blocking loads.
     pub fn terminate(blocker: &DomRefCell<Option<LoadBlocker>>, can_gc: CanGc) {
-        if let Some(this) = blocker.borrow().as_ref() {
-            let load_data = this.load.clone().unwrap();
-            this.doc.finish_load(load_data, can_gc);
-        }
+        let Some(mut this) = blocker.borrow_mut().take() else {
+            return;
+        };
+        this.doc.finish_load(this.load.take().unwrap(), can_gc);
         *blocker.borrow_mut() = None;
     }
 }

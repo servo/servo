@@ -822,10 +822,8 @@ impl HTMLImageElement {
         request.metadata = None;
         let document = document_from_node(self);
         LoadBlocker::terminate(&request.blocker, can_gc);
-        request.blocker = DomRefCell::new(Some(LoadBlocker::new(
-            &document,
-            LoadType::Image(url.clone()),
-        )));
+        *request.blocker.borrow_mut() =
+            Some(LoadBlocker::new(&document, LoadType::Image(url.clone())));
     }
 
     /// Step 13-17 of html.spec.whatwg.org/multipage/#update-the-image-data
