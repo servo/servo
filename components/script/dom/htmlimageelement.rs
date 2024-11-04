@@ -154,7 +154,7 @@ struct ImageRequest {
     #[no_trace]
     parsed_url: Option<ServoUrl>,
     source_url: Option<USVString>,
-    blocker: Option<LoadBlocker>,
+    blocker: DomRefCell<Option<LoadBlocker>>,
     #[ignore_malloc_size_of = "Arc"]
     #[no_trace]
     image: Option<Arc<Image>>,
@@ -431,7 +431,7 @@ impl HTMLImageElement {
         self.current_request.borrow_mut().final_url = Some(url);
         self.current_request.borrow_mut().image = Some(image);
         self.current_request.borrow_mut().state = State::CompletelyAvailable;
-        LoadBlocker::terminate(&mut self.current_request.borrow_mut().blocker, can_gc);
+        LoadBlocker::terminate(&self.current_request.borrow().blocker, can_gc);
         // Mark the node dirty
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
         self.resolve_image_decode_promises();
@@ -537,7 +537,7 @@ impl HTMLImageElement {
             ImageRequestPhase::Current => self.current_request.borrow_mut(),
             ImageRequestPhase::Pending => self.pending_request.borrow_mut(),
         };
-        LoadBlocker::terminate(&mut request.blocker, can_gc);
+        LoadBlocker::terminate(&request.blocker, can_gc);
         request.state = state;
         request.image = None;
         request.metadata = None;
@@ -821,8 +821,9 @@ impl HTMLImageElement {
         request.image = None;
         request.metadata = None;
         let document = document_from_node(self);
-        LoadBlocker::terminate(&mut request.blocker, can_gc);
-        request.blocker = Some(LoadBlocker::new(&document, LoadType::Image(url.clone())));
+        LoadBlocker::terminate(&request.blocker, can_gc);
+        *request.blocker.borrow_mut() =
+            Some(LoadBlocker::new(&document, LoadType::Image(url.clone())));
     }
 
     /// Step 13-17 of html.spec.whatwg.org/multipage/#update-the-image-data
@@ -853,7 +854,7 @@ impl HTMLImageElement {
                             // Step 15 abort pending request
                             pending_request.image = None;
                             pending_request.parsed_url = None;
-                            LoadBlocker::terminate(&mut pending_request.blocker, can_gc);
+                            LoadBlocker::terminate(&pending_request.blocker, can_gc);
                             // TODO: queue a task to restart animation, if restart-animation is set
                             return;
                         }
@@ -1311,7 +1312,7 @@ impl HTMLImageElement {
                 source_url: None,
                 image: None,
                 metadata: None,
-                blocker: None,
+                blocker: DomRefCell::new(None),
                 final_url: None,
                 current_pixel_density: None,
             }),
@@ -1321,7 +1322,7 @@ impl HTMLImageElement {
                 source_url: None,
                 image: None,
                 metadata: None,
-                blocker: None,
+                blocker: DomRefCell::new(None),
                 final_url: None,
                 current_pixel_density: None,
             }),

@@ -146,10 +146,10 @@ impl HTMLIFrameElement {
         let document = document_from_node(self);
 
         {
-            let mut load_blocker = self.load_blocker.borrow_mut();
+            let load_blocker = &self.load_blocker;
             // Any oustanding load is finished from the point of view of the blocked
             // document; the new navigation will continue blocking it.
-            LoadBlocker::terminate(&mut load_blocker, can_gc);
+            LoadBlocker::terminate(load_blocker, can_gc);
         }
 
         if load_data.url.scheme() == "javascript" {
@@ -422,8 +422,8 @@ impl HTMLIFrameElement {
         // Only terminate the load blocker if the pipeline id was updated due to a traversal.
         // The load blocker will be terminated for a navigation in iframe_load_event_steps.
         if reason == UpdatePipelineIdReason::Traversal {
-            let mut blocker = self.load_blocker.borrow_mut();
-            LoadBlocker::terminate(&mut blocker, can_gc);
+            let blocker = &self.load_blocker;
+            LoadBlocker::terminate(blocker, can_gc);
         }
 
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
@@ -507,8 +507,8 @@ impl HTMLIFrameElement {
         self.upcast::<EventTarget>()
             .fire_event(atom!("load"), can_gc);
 
-        let mut blocker = self.load_blocker.borrow_mut();
-        LoadBlocker::terminate(&mut blocker, can_gc);
+        let blocker = &self.load_blocker;
+        LoadBlocker::terminate(blocker, can_gc);
 
         // TODO Step 5 - unset child document `mut iframe load` flag
     }
@@ -740,8 +740,8 @@ impl VirtualMethods for HTMLIFrameElement {
     fn unbind_from_tree(&self, context: &UnbindContext) {
         self.super_type().unwrap().unbind_from_tree(context);
 
-        let mut blocker = self.load_blocker.borrow_mut();
-        LoadBlocker::terminate(&mut blocker, CanGc::note());
+        let blocker = &self.load_blocker;
+        LoadBlocker::terminate(blocker, CanGc::note());
 
         // https://html.spec.whatwg.org/multipage/#a-browsing-context-is-discarded
         let window = window_from_node(self);

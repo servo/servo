@@ -511,11 +511,12 @@ impl HTMLMediaElement {
     ///
     /// <https://html.spec.whatwg.org/multipage/#delaying-the-load-event-flag>
     pub fn delay_load_event(&self, delay: bool, can_gc: CanGc) {
-        let mut blocker = self.delaying_the_load_event_flag.borrow_mut();
-        if delay && blocker.is_none() {
-            *blocker = Some(LoadBlocker::new(&document_from_node(self), LoadType::Media));
-        } else if !delay && blocker.is_some() {
-            LoadBlocker::terminate(&mut blocker, can_gc);
+        let blocker = &self.delaying_the_load_event_flag;
+        if delay && blocker.borrow().is_none() {
+            *blocker.borrow_mut() =
+                Some(LoadBlocker::new(&document_from_node(self), LoadType::Media));
+        } else if !delay && blocker.borrow().is_some() {
+            LoadBlocker::terminate(blocker, can_gc);
         }
     }
 

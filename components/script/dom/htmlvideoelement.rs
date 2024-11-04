@@ -225,9 +225,9 @@ impl HTMLVideoElement {
         // <video poster="poster.png"></video>
         // (which triggers no media load algorithm unless a explicit call to .load() is done)
         // will block the document's load event forever.
-        let mut blocker = self.load_blocker.borrow_mut();
-        LoadBlocker::terminate(&mut blocker, can_gc);
-        *blocker = Some(LoadBlocker::new(
+        let blocker = &self.load_blocker;
+        LoadBlocker::terminate(blocker, can_gc);
+        *blocker.borrow_mut() = Some(LoadBlocker::new(
             &document_from_node(self),
             LoadType::Image(poster_url.clone()),
         ));
@@ -309,13 +309,13 @@ impl ImageCacheListener for HTMLVideoElement {
             ImageResponse::Loaded(image, url) => {
                 debug!("Loaded poster image for video element: {:?}", url);
                 self.htmlmediaelement.process_poster_image_loaded(image);
-                LoadBlocker::terminate(&mut self.load_blocker.borrow_mut(), can_gc);
+                LoadBlocker::terminate(&self.load_blocker, can_gc);
             },
             ImageResponse::MetadataLoaded(..) => {},
             // The image cache may have loaded a placeholder for an invalid poster url
             ImageResponse::PlaceholderLoaded(..) | ImageResponse::None => {
                 // A failed load should unblock the document load.
-                LoadBlocker::terminate(&mut self.load_blocker.borrow_mut(), can_gc);
+                LoadBlocker::terminate(&self.load_blocker, can_gc);
             },
         }
     }
