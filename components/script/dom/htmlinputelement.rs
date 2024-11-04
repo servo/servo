@@ -2525,11 +2525,7 @@ impl VirtualMethods for HTMLInputElement {
                     // now.
                     if let Some(point_in_target) = mouse_event.point_in_target() {
                         let window = window_from_node(self);
-                        let index = window.text_index_query(
-                            self.upcast::<Node>(),
-                            point_in_target,
-                            CanGc::note(),
-                        );
+                        let index = window.text_index_query(self.upcast::<Node>(), point_in_target);
                         if let Some(i) = index {
                             self.textinput.borrow_mut().set_edit_point_index(i);
                             // trigger redraw

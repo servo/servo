@@ -1661,12 +1661,12 @@ impl ScriptThread {
             // https://html.spec.whatwg.org/multipage/#context-lost-steps.
 
             // Run the animation frame callbacks.
-            document.tick_all_animations(should_run_rafs, can_gc);
+            document.tick_all_animations(should_run_rafs);
 
             // Run the resize observer steps.
             let _realm = enter_realm(&*document);
             let mut depth = Default::default();
-            while document.gather_active_resize_observations_at_depth(&depth, can_gc) {
+            while document.gather_active_resize_observations_at_depth(&depth) {
                 // Note: this will reflow the doc.
                 depth = document.broadcast_active_resize_observations(can_gc);
             }
@@ -1820,7 +1820,7 @@ impl ScriptThread {
                 },
                 FromConstellation(ConstellationControlMsg::Viewport(id, rect)) => self
                     .profile_event(ScriptThreadEventCategory::SetViewport, Some(id), || {
-                        self.handle_viewport(id, rect, can_gc);
+                        self.handle_viewport(id, rect);
                     }),
                 FromConstellation(ConstellationControlMsg::TickAllAnimations(
                     pipeline_id,
@@ -1998,17 +1998,13 @@ impl ScriptThread {
 
             let pending_reflows = window.get_pending_reflow_count();
             if pending_reflows > 0 {
-                window.reflow(ReflowGoal::Full, ReflowReason::PendingReflow, can_gc);
+                window.reflow(ReflowGoal::Full, ReflowReason::PendingReflow);
             } else {
                 // Reflow currently happens when explicitly invoked by code that
                 // knows the document could have been modified. This should really
                 // be driven by the compositor on an as-needed basis instead, to
                 // minimize unnecessary work.
-                window.reflow(
-                    ReflowGoal::Full,
-                    ReflowReason::MissingExplicitReflow,
-                    can_gc,
-                );
+                window.reflow(ReflowGoal::Full, ReflowReason::MissingExplicitReflow);
             }
         }
 
@@ -2489,7 +2485,7 @@ impl ScriptThread {
                 self.collect_reports(chan)
             },
             MainThreadScriptMsg::WorkletLoaded(pipeline_id) => {
-                self.handle_worklet_loaded(pipeline_id, CanGc::note())
+                self.handle_worklet_loaded(pipeline_id)
             },
             MainThreadScriptMsg::RegisterPaintWorklet {
                 pipeline_id,
@@ -2523,7 +2519,7 @@ impl ScriptThread {
                 devtools::handle_get_children(&documents, id, node_id, reply)
             },
             DevtoolScriptControlMsg::GetAttributeStyle(id, node_id, reply) => {
-                devtools::handle_get_attribute_style(&documents, id, node_id, reply, can_gc)
+                devtools::handle_get_attribute_style(&documents, id, node_id, reply)
             },
             DevtoolScriptControlMsg::GetStylesheetStyle(
                 id,
@@ -2532,13 +2528,13 @@ impl ScriptThread {
                 stylesheet,
                 reply,
             ) => devtools::handle_get_stylesheet_style(
-                &documents, id, node_id, selector, stylesheet, reply, can_gc,
+                &documents, id, node_id, selector, stylesheet, reply,
             ),
             DevtoolScriptControlMsg::GetSelectors(id, node_id, reply) => {
                 devtools::handle_get_selectors(&documents, id, node_id, reply)
             },
             DevtoolScriptControlMsg::GetComputedStyle(id, node_id, reply) => {
-                devtools::handle_get_computed_style(&documents, id, node_id, reply, can_gc)
+                devtools::handle_get_computed_style(&documents, id, node_id, reply)
             },
             DevtoolScriptControlMsg::GetLayout(id, node_id, reply) => {
                 devtools::handle_get_layout(&documents, id, node_id, reply, can_gc)
@@ -2774,17 +2770,10 @@ impl ScriptThread {
                 )
             },
             WebDriverScriptCommand::GetElementCSS(node_id, name, reply) => {
-                webdriver_handlers::handle_get_css(
-                    &documents,
-                    pipeline_id,
-                    node_id,
-                    name,
-                    reply,
-                    can_gc,
-                )
+                webdriver_handlers::handle_get_css(&documents, pipeline_id, node_id, name, reply)
             },
             WebDriverScriptCommand::GetElementRect(node_id, reply) => {
-                webdriver_handlers::handle_get_rect(&documents, pipeline_id, node_id, reply, can_gc)
+                webdriver_handlers::handle_get_rect(&documents, pipeline_id, node_id, reply)
             },
             WebDriverScriptCommand::GetBoundingClientRect(node_id, reply) => {
                 webdriver_handlers::handle_get_bounding_client_rect(
@@ -2862,11 +2851,11 @@ impl ScriptThread {
         }
     }
 
-    fn handle_viewport(&self, id: PipelineId, rect: Rect<f32>, can_gc: CanGc) {
+    fn handle_viewport(&self, id: PipelineId, rect: Rect<f32>) {
         let document = self.documents.borrow().find_document(id);
         if let Some(document) = document {
             if document.window().set_page_clip_rect_with_new_viewport(rect) {
-                self.rebuild_and_force_reflow(&document, ReflowReason::Viewport, can_gc);
+                self.rebuild_and_force_reflow(&document, ReflowReason::Viewport);
             }
             return;
         }
@@ -2972,7 +2961,7 @@ impl ScriptThread {
         );
         let document = self.documents.borrow().find_document(id);
         if let Some(document) = document {
-            document.set_activity(activity, CanGc::note());
+            document.set_activity(activity);
             return;
         }
         let mut loads = self.incomplete_loads.borrow_mut();
@@ -3386,10 +3375,10 @@ impl ScriptThread {
     }
 
     /// Handles a worklet being loaded. Does nothing if the page no longer exists.
-    fn handle_worklet_loaded(&self, pipeline_id: PipelineId, can_gc: CanGc) {
+    fn handle_worklet_loaded(&self, pipeline_id: PipelineId) {
         let document = self.documents.borrow().find_document(pipeline_id);
         if let Some(document) = document {
-            self.rebuild_and_force_reflow(&document, ReflowReason::WorkletLoaded, can_gc);
+            self.rebuild_and_force_reflow(&document, ReflowReason::WorkletLoaded);
         }
     }
 
@@ -3850,10 +3839,10 @@ impl ScriptThread {
     }
 
     /// Reflows non-incrementally, rebuilding the entire layout tree in the process.
-    fn rebuild_and_force_reflow(&self, document: &Document, reason: ReflowReason, can_gc: CanGc) {
+    fn rebuild_and_force_reflow(&self, document: &Document, reason: ReflowReason) {
         let window = window_from_node(document);
         document.dirty_all_nodes();
-        window.reflow(ReflowGoal::Full, reason, can_gc);
+        window.reflow(ReflowGoal::Full, reason);
     }
 
     /// Queue compositor events for later dispatching as part of a
