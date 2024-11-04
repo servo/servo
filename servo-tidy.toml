@@ -26,7 +26,6 @@ packages = [
     "cookie",
     "futures",
     "hermit-abi",
-    "miniz_oxide",
     "redox_syscall",
     "time",
     "wasi",
