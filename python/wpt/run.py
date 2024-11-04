@@ -285,9 +285,9 @@ def filter_intermittents(
     unexpected_results: List[UnexpectedResult],
     output_path: str
 ) -> bool:
-    print(f"Filtering {len(unexpected_results)} "
-          "unexpected results for known intermittents")
     dashboard = TrackerDashboardFilter()
+    print(f"Filtering {len(unexpected_results)} "
+          f"unexpected results for known intermittents via <{dashboard.url}>")
     dashboard.report_failures(unexpected_results)
 
     def add_result(output, text, results: List[UnexpectedResult], filter_func) -> None:
