@@ -79,6 +79,11 @@ def update_conformance(destination, existing_repo, patches_dir):
         print("Cloning WebGL repository into temporary directory {}".format(directory))
         subprocess.check_call(["git", "clone", KHRONOS_REPO_URL, directory, "--depth", "1"])
 
+    commit = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=directory)
+    commit_path = os.path.join(os.path.dirname(__file__), "COMMIT")
+    with open(commit_path, 'wb') as f:
+        f.write(commit)
+
     suite_dir = os.path.join(directory, "sdk/tests")
     print("Test suite directory: {}".format(suite_dir))
 
