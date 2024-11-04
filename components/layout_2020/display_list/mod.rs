@@ -96,6 +96,10 @@ pub struct DisplayList {
 impl DisplayList {
     /// Create a new [DisplayList] given the dimensions of the layout and the WebRender
     /// pipeline id.
+    #[cfg_attr(
+        feature = "tracing",
+        tracing::instrument(name = "display_list::new", fields(servo_profiling = true))
+    )]
     pub fn new(
         viewport_size: units::LayoutSize,
         content_size: units::LayoutSize,
@@ -175,6 +179,14 @@ pub(crate) struct DisplayListBuilder<'a> {
 }
 
 impl DisplayList {
+    #[cfg_attr(
+        feature = "tracing",
+        tracing::instrument(
+            name = "display_list::build",
+            skip_all,
+            fields(servo_profiling = true)
+        )
+    )]
     pub fn build(
         &mut self,
         context: &LayoutContext,
@@ -509,6 +521,14 @@ struct BuilderForBoxFragment<'a> {
 }
 
 impl<'a> BuilderForBoxFragment<'a> {
+    #[cfg_attr(
+        feature = "tracing",
+        tracing::instrument(
+            name = "display_list::BuilderForBoxFragment::new",
+            skip_all,
+            fields(servo_profiling = true)
+        )
+    )]
     fn new(fragment: &'a BoxFragment, containing_block: &'a PhysicalRect<Au>) -> Self {
         let border_rect = fragment
             .border_rect()
@@ -675,6 +695,14 @@ impl<'a> BuilderForBoxFragment<'a> {
         );
     }
 
+    #[cfg_attr(
+        feature = "tracing",
+        tracing::instrument(
+            name = "display_list::build_background_for_painter",
+            skip_all,
+            fields(servo_profiling = true)
+        )
+    )]
     fn build_background_for_painter(
         &mut self,
         builder: &mut DisplayListBuilder,
@@ -739,6 +767,14 @@ impl<'a> BuilderForBoxFragment<'a> {
         self.build_background_for_painter(builder, &painter);
     }
 
+    #[cfg_attr(
+        feature = "tracing",
+        tracing::instrument(
+            name = "display_list::build_background_image",
+            skip_all,
+            fields(servo_profiling = true)
+        )
+    )]
     fn build_background_image(
         &mut self,
         builder: &mut DisplayListBuilder,
@@ -1082,6 +1118,14 @@ fn rgba(color: AbsoluteColor) -> wr::ColorF {
     )
 }
 
+#[cfg_attr(
+    feature = "tracing",
+    tracing::instrument(
+        name = "display_list::glyphs",
+        skip_all,
+        fields(servo_profiling = true)
+    )
+)]
 fn glyphs(
     glyph_runs: &[Arc<GlyphStore>],
     mut baseline_origin: PhysicalPoint<Au>,

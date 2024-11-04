@@ -101,6 +101,14 @@ impl DisplayList {
         SpatialTreeItemKey::new(pipeline_tag, self.spatial_tree_count)
     }
 
+    #[cfg_attr(
+        feature = "tracing",
+        tracing::instrument(
+            name = "display_list::build_stacking_context_tree",
+            skip_all,
+            fields(servo_profiling = true)
+        )
+    )]
     pub fn build_stacking_context_tree(
         &mut self,
         fragment_tree: &FragmentTree,
@@ -268,6 +276,14 @@ impl StackingContextContent {
         }
     }
 
+    #[cfg_attr(
+        feature = "tracing",
+        tracing::instrument(
+            name = "display_list::build_display_list",
+            skip_all,
+            fields(servo_profiling = true)
+        )
+    )]
     fn build_display_list(
         &self,
         builder: &mut DisplayListBuilder,
@@ -666,6 +682,14 @@ impl StackingContext {
         fragment_builder.build_background_image(builder, &painter);
     }
 
+    #[cfg_attr(
+        feature = "tracing",
+        tracing::instrument(
+            name = "display_list::build_display_list",
+            skip_all,
+            fields(servo_profiling = true)
+        )
+    )]
     pub(crate) fn build_display_list(&self, builder: &mut DisplayListBuilder) {
         let pushed_context = self.push_webrender_stacking_context_if_necessary(builder);
 
@@ -833,6 +857,14 @@ pub(crate) enum StackingContextBuildMode {
 }
 
 impl Fragment {
+    #[cfg_attr(
+        feature = "tracing",
+        tracing::instrument(
+            name = "display_list::build_stacking_context_tree",
+            skip_all,
+            fields(servo_profiling = true)
+        )
+    )]
     pub(crate) fn build_stacking_context_tree(
         &mut self,
         fragment_ref: &ArcRefCell<Fragment>,
