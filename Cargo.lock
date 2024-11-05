@@ -5152,12 +5152,21 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "491c77f0fe6b4336266f9da68b8dffb15d3bbe19c32ac0145b861851af3c8e41"
 
 [[package]]
+name = "ohos-sys"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8a786868a20866e5682c6666ebd84435563d7ff2d6088576d958c1bb7475e460"
+dependencies = [
+ "xcomponent-sys",
+]
+
+[[package]]
 name = "ohos-vsync"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5871e38034a33e8d43c711a40d39e24fd3500f43b61b9269b8586f608a70aec3"
 dependencies = [
- "ohos-sys",
+ "ohos-sys 0.3.1",
 ]
 
 [[package]]
@@ -6656,7 +6665,7 @@ dependencies = [
  "net",
  "net_traits",
  "nix",
- "ohos-sys",
+ "ohos-sys 0.4.0",
  "ohos-vsync",
  "raw-window-handle",
  "serde_json",
@@ -8917,6 +8926,12 @@ dependencies = [
  "linux-raw-sys",
  "rustix",
 ]
+
+[[package]]
+name = "xcomponent-sys"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "663e26cce4f574daf506a01f4e5cfedd5355c60afebc30daeeeea95f38f6b600"
 
 [[package]]
 name = "xcursor"
