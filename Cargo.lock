@@ -4084,7 +4084,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4979f22fdb869068da03c9f7528f8297c6fd2606bc3a4affe42e6a823fdb8da4"
 dependencies = [
  "cfg-if",
- "windows-targets 0.48.5",
+ "windows-targets 0.52.6",
 ]
 
 [[package]]
@@ -5152,12 +5152,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "491c77f0fe6b4336266f9da68b8dffb15d3bbe19c32ac0145b861851af3c8e41"
 
 [[package]]
-name = "ohos-vsync"
-version = "0.1.1"
+name = "ohos-sys"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5871e38034a33e8d43c711a40d39e24fd3500f43b61b9269b8586f608a70aec3"
+checksum = "8a786868a20866e5682c6666ebd84435563d7ff2d6088576d958c1bb7475e460"
+
+[[package]]
+name = "ohos-vsync"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f861dc51ec885943dc9fcb757c26b1e934cc307daf79e025a0bf68a4875fc4a8"
 dependencies = [
- "ohos-sys",
+ "ohos-sys 0.4.0",
 ]
 
 [[package]]
@@ -6656,7 +6662,7 @@ dependencies = [
  "net",
  "net_traits",
  "nix",
- "ohos-sys",
+ "ohos-sys 0.3.1",
  "ohos-vsync",
  "raw-window-handle",
  "serde_json",
@@ -8441,7 +8447,7 @@ version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf221c93e13a30d793f7645a0e7762c55d169dbb0a49671918a2319d289b10bb"
 dependencies = [
- "windows-sys 0.48.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
