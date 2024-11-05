@@ -117,13 +117,15 @@ impl Clone for DOMJSClass {
 unsafe impl Sync for DOMJSClass {}
 
 /// Returns a JSVal representing the frozen JavaScript array
-pub fn to_frozen_array<T: ToJSValConvertible>(convertibles: &[T], cx: SafeJSContext) -> JSVal {
-    rooted!(in(*cx) let mut ports = UndefinedValue());
-    unsafe { convertibles.to_jsval(*cx, ports.handle_mut()) };
+pub fn to_frozen_array<T: ToJSValConvertible>(
+    convertibles: &[T],
+    cx: SafeJSContext,
+    rval: MutableHandleValue,
+) {
+    unsafe { convertibles.to_jsval(*cx, rval) };
 
-    rooted!(in(*cx) let obj = ports.to_object());
+    rooted!(in(*cx) let obj = rval.to_object());
     unsafe { JS_FreezeObject(*cx, RawHandleObject::from(obj.handle())) };
-    *ports
 }
 
 /// Returns the ProtoOrIfaceArray for the given global object.

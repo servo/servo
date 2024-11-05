@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use js::jsval::JSVal;
+use js::rust::MutableHandleValue;
 use servo_arc::Arc;
 use style::shared_lock::ToCssWithGuard;
 use style::stylesheets::{CssRuleType, LayerStatementRule};
@@ -67,13 +67,13 @@ impl SpecificCSSRule for CSSLayerStatementRule {
 
 impl CSSLayerStatementRuleMethods for CSSLayerStatementRule {
     /// <https://drafts.csswg.org/css-cascade-5/#dom-csslayerstatementrule-namelist>
-    fn NameList(&self, cx: SafeJSContext) -> JSVal {
+    fn NameList(&self, cx: SafeJSContext, retval: MutableHandleValue) {
         let names: Vec<DOMString> = self
             .layerstatementrule
             .names
             .iter()
             .map(|name| DOMString::from_string(name.to_css_string()))
             .collect();
-        to_frozen_array(names.as_slice(), cx)
+        to_frozen_array(names.as_slice(), cx, retval)
     }
 }

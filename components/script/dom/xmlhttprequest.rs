@@ -20,9 +20,9 @@ use http::Method;
 use hyper_serde::Serde;
 use ipc_channel::ipc;
 use js::jsapi::{Heap, JS_ClearPendingException};
-use js::jsval::{JSVal, NullValue, UndefinedValue};
+use js::jsval::{JSVal, NullValue};
 use js::rust::wrappers::JS_ParseJSON;
-use js::rust::HandleObject;
+use js::rust::{HandleObject, MutableHandleValue};
 use js::typedarray::{ArrayBuffer, ArrayBufferU8};
 use mime::{self, Mime, Name};
 use net_traits::http_status::HttpStatus;
@@ -935,8 +935,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
 
     #[allow(unsafe_code)]
     /// <https://xhr.spec.whatwg.org/#the-response-attribute>
-    fn Response(&self, cx: JSContext, can_gc: CanGc) -> JSVal {
-        rooted!(in(*cx) let mut rval = UndefinedValue());
+    fn Response(&self, cx: JSContext, can_gc: CanGc, mut rval: MutableHandleValue) {
         match self.response_type.get() {
             XMLHttpRequestResponseType::_empty | XMLHttpRequestResponseType::Text => unsafe {
                 let ready_state = self.ready_state.get();
@@ -944,33 +943,29 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                 if ready_state == XMLHttpRequestState::Done ||
                     ready_state == XMLHttpRequestState::Loading
                 {
-                    self.text_response().to_jsval(*cx, rval.handle_mut());
+                    self.text_response().to_jsval(*cx, rval);
                 } else {
                     // Step 1
-                    "".to_jsval(*cx, rval.handle_mut());
+                    "".to_jsval(*cx, rval);
                 }
             },
             // Step 1
             _ if self.ready_state.get() != XMLHttpRequestState::Done => {
-                return NullValue();
+                rval.set(NullValue());
             },
             // Step 2
             XMLHttpRequestResponseType::Document => unsafe {
-                self.document_response(can_gc)
-                    .to_jsval(*cx, rval.handle_mut());
+                self.document_response(can_gc).to_jsval(*cx, rval);
             },
-            XMLHttpRequestResponseType::Json => unsafe {
-                self.json_response(cx).to_jsval(*cx, rval.handle_mut());
-            },
+            XMLHttpRequestResponseType::Json => self.json_response(cx, rval),
             XMLHttpRequestResponseType::Blob => unsafe {
-                self.blob_response(can_gc).to_jsval(*cx, rval.handle_mut());
+                self.blob_response(can_gc).to_jsval(*cx, rval);
             },
             XMLHttpRequestResponseType::Arraybuffer => match self.arraybuffer_response(cx) {
-                Some(array_buffer) => unsafe { array_buffer.to_jsval(*cx, rval.handle_mut()) },
-                None => return NullValue(),
+                Some(array_buffer) => unsafe { array_buffer.to_jsval(*cx, rval) },
+                None => rval.set(NullValue()),
             },
         }
-        rval.get()
     }
 
     /// <https://xhr.spec.whatwg.org/#the-responsetext-attribute>
@@ -1447,17 +1442,17 @@ impl XMLHttpRequest {
 
     #[allow(unsafe_code)]
     /// <https://xhr.spec.whatwg.org/#json-response>
-    fn json_response(&self, cx: JSContext) -> JSVal {
+    fn json_response(&self, cx: JSContext, mut rval: MutableHandleValue) {
         // Step 1
         let response_json = self.response_json.get();
         if !response_json.is_null_or_undefined() {
-            return response_json;
+            return rval.set(response_json);
         }
         // Step 2
         let bytes = self.response.borrow();
         // Step 3
         if bytes.len() == 0 {
-            return NullValue();
+            return rval.set(NullValue());
         }
         // Step 4
         fn decode_to_utf16_with_bom_removal(bytes: &[u8], encoding: &'static Encoding) -> Vec<u16> {
@@ -1480,21 +1475,14 @@ impl XMLHttpRequest {
         // if present, but UTF-16BE/LE BOM must not be honored.
         let json_text = decode_to_utf16_with_bom_removal(&bytes, UTF_8);
         // Step 5
-        rooted!(in(*cx) let mut rval = UndefinedValue());
         unsafe {
-            if !JS_ParseJSON(
-                *cx,
-                json_text.as_ptr(),
-                json_text.len() as u32,
-                rval.handle_mut(),
-            ) {
+            if !JS_ParseJSON(*cx, json_text.as_ptr(), json_text.len() as u32, rval) {
                 JS_ClearPendingException(*cx);
-                return NullValue();
+                return rval.set(NullValue());
             }
         }
         // Step 6
         self.response_json.set(rval.get());
-        self.response_json.get()
     }
 
     fn document_text_html(&self, can_gc: CanGc) -> DomRoot<Document> {

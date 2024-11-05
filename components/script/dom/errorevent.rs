@@ -7,7 +7,7 @@ use std::cell::Cell;
 use dom_struct::dom_struct;
 use js::jsapi::Heap;
 use js::jsval::JSVal;
-use js::rust::{HandleObject, HandleValue};
+use js::rust::{HandleObject, HandleValue, MutableHandleValue};
 use servo_atoms::Atom;
 
 use crate::dom::bindings::cell::DomRefCell;
@@ -166,8 +166,8 @@ impl ErrorEventMethods for ErrorEvent {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-errorevent-error
-    fn Error(&self, _cx: JSContext) -> JSVal {
-        self.error.get()
+    fn Error(&self, _cx: JSContext, mut retval: MutableHandleValue) {
+        retval.set(self.error.get());
     }
 
     // https://dom.spec.whatwg.org/#dom-event-istrusted

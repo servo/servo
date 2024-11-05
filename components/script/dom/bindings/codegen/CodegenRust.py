@@ -1415,6 +1415,18 @@ def typeNeedsCx(type, retVal=False):
     return type.isAny() or type.isObject()
 
 
+def returnTypeNeedsOutparam(type):
+    if type.nullable():
+        type = type.inner
+    return type.isAny()
+
+
+def outparamTypeFromReturnType(type):
+    if type.isAny():
+        return "MutableHandleValue"
+    raise f"Don't know how to handle {type} as an outparam"
+
+
 # Returns a conversion behavior suitable for a type
 def getConversionConfigForType(type, isEnforceRange, isClamp, treatNullAs):
     if type.isSequence() or type.isRecord():
@@ -1502,8 +1514,6 @@ def getRetvalDeclarationForType(returnType, descriptorProvider):
         if returnType.nullable():
             result = CGWrapper(result, pre="Option<", post=">")
         return result
-    # TODO: Return the value through a MutableHandleValue outparam
-    # https://github.com/servo/servo/issues/6307
     if returnType.isAny():
         return CGGeneric("JSVal")
     if returnType.isObject() or returnType.isSpiderMonkeyInterface():
@@ -3705,6 +3715,12 @@ class CGCallGenerator(CGThing):
         isFallible = errorResult is not None
 
         result = getRetvalDeclarationForType(returnType, descriptor)
+        if returnType and returnTypeNeedsOutparam(returnType):
+            rootType = result
+            result = CGGeneric("()")
+        else:
+            rootType = None
+
         if isFallible:
             result = CGWrapper(result, pre="Result<", post=", Error>")
 
@@ -3723,9 +3739,18 @@ class CGCallGenerator(CGThing):
             args.append(CGGeneric("InRealm::already(&AlreadyInRealm::assert_for_cx(cx))"))
         if nativeMethodName in descriptor.canGcMethods:
             args.append(CGGeneric("CanGc::note()"))
+        if rootType:
+            args.append(CGGeneric("retval.handle_mut()"))
 
         # Build up our actual call
         self.cgRoot = CGList([], "\n")
+
+        if rootType:
+            self.cgRoot.append(CGList([
+                CGGeneric("rooted!(in(*cx) let mut retval: "),
+                rootType,
+                CGGeneric(");"),
+            ]))
 
         call = CGGeneric(nativeMethodName)
         if static:
@@ -3846,7 +3871,18 @@ class CGPerSignatureCall(CGThing):
         return 'infallible' not in self.extendedAttributes
 
     def wrap_return_value(self):
-        return wrapForType('MutableHandleValue::from_raw(args.rval())', successCode='return true;')
+        resultName = "result"
+        # Maplike methods have `any` return values in WebIDL, but our internal bindings
+        # use stronger types so we need to exclude them from being handled like other
+        # generated code.
+        if returnTypeNeedsOutparam(self.returnType) and (
+           not (self.idlNode.isMethod() and self.idlNode.isMaplikeOrSetlikeOrIterableMethod())):
+            resultName = "retval"
+        return wrapForType(
+            'MutableHandleValue::from_raw(args.rval())',
+            result=resultName,
+            successCode='return true;',
+        )
 
     def define(self):
         return f"{self.cgRoot.define()}\n{self.wrap_return_value()}"
@@ -6303,8 +6339,8 @@ class CGInterfaceTrait(CGThing):
     def __init__(self, descriptor, descriptorProvider):
         CGThing.__init__(self)
 
-        def attribute_arguments(needCx, argument=None, inRealm=False, canGc=False):
-            if needCx:
+        def attribute_arguments(attribute_type, argument=None, inRealm=False, canGc=False, retval=False):
+            if typeNeedsCx(attribute_type, retval):
                 yield "cx", "SafeJSContext"
 
             if argument:
@@ -6315,6 +6351,9 @@ class CGInterfaceTrait(CGThing):
 
             if canGc:
                 yield "_can_gc", "CanGc"
+
+            if retval and returnTypeNeedsOutparam(attribute_type):
+                yield "retval", outparamTypeFromReturnType(attribute_type)
 
         def members():
             for m in descriptor.interface.members:
@@ -6335,9 +6374,10 @@ class CGInterfaceTrait(CGThing):
                     infallible = 'infallible' in descriptor.getExtendedAttributes(m, getter=True)
                     yield (name,
                            attribute_arguments(
-                               typeNeedsCx(m.type, True),
+                               m.type,
                                inRealm=name in descriptor.inRealmMethods,
-                               canGc=name in descriptor.canGcMethods
+                               canGc=name in descriptor.canGcMethods,
+                               retval=True
                            ),
                            return_type(descriptor, m.type, infallible),
                            m.isStatic())
@@ -6351,10 +6391,11 @@ class CGInterfaceTrait(CGThing):
                             rettype = "ErrorResult"
                         yield (name,
                                attribute_arguments(
-                                   typeNeedsCx(m.type, False),
+                                   m.type,
                                    m.type,
                                    inRealm=name in descriptor.inRealmMethods,
-                                   canGc=name in descriptor.canGcMethods
+                                   canGc=name in descriptor.canGcMethods,
+                                   retval=False,
                                ),
                                rettype,
                                m.isStatic())
@@ -7240,9 +7281,14 @@ def method_arguments(descriptorProvider, returnType, arguments, passJSBits=True,
     if canGc:
         yield "_can_gc", "CanGc"
 
+    if returnTypeNeedsOutparam(returnType):
+        yield "rval", outparamTypeFromReturnType(returnType),
+
 
 def return_type(descriptorProvider, rettype, infallible):
     result = getRetvalDeclarationForType(rettype, descriptorProvider)
+    if rettype and returnTypeNeedsOutparam(rettype):
+        result = CGGeneric("()")
     if not infallible:
         result = CGWrapper(result, pre="Fallible<", post=">")
     return result.define()
@@ -7466,6 +7512,7 @@ class CallbackMember(CGNativeMember):
                     f"{self.argCount - 1} + {lastArg.identifier.name}.len()").removeprefix("0 + ")
             else:
                 self.argCountStr = f"{self.argCount}"
+        self.usingOutparam = returnTypeNeedsOutparam(self.retvalType)
         self.needThisHandling = needThisHandling
         # If needThisHandling, we generate ourselves as private and the caller
         # will handle generating public versions that handle the "this" stuff.
@@ -7518,15 +7565,16 @@ class CallbackMember(CGNativeMember):
         template = info.template
         declType = info.declType
 
-        convertType = instantiateJSToNativeConversionTemplate(
-            template, replacements, declType, "rvalDecl")
-
-        if self.retvalType is None or self.retvalType.isUndefined():
-            retval = "()"
-        elif self.retvalType.isAny():
-            retval = "rvalDecl.get()"
+        if self.usingOutparam:
+            convertType = CGGeneric("")
         else:
-            retval = "rvalDecl"
+            convertType = instantiateJSToNativeConversionTemplate(
+                template, replacements, declType, "retval")
+
+        if self.retvalType is None or self.retvalType.isUndefined() or self.usingOutparam:
+            retval = "()"
+        else:
+            retval = "retval"
 
         return f"{convertType.define()}\nOk({retval})\n"
 
@@ -7633,7 +7681,10 @@ class CallbackMethod(CallbackMember):
                                 needThisHandling)
 
     def getRvalDecl(self):
-        return "rooted!(in(*cx) let mut rval = UndefinedValue());\n"
+        if self.usingOutparam:
+            return ""
+        else:
+            return "rooted!(in(*cx) let mut rval = UndefinedValue());\n"
 
     def getCall(self):
         if self.argCount > 0:
@@ -7642,6 +7693,7 @@ class CallbackMethod(CallbackMember):
         else:
             argv = "ptr::null_mut()"
             argc = "0"
+        suffix = "" if self.usingOutparam else ".handle_mut()"
         return (f"{self.getCallableDecl()}"
                 f"rooted!(in(*cx) let rootedThis = {self.getThisObj()});\n"
                 f"let ok = {self.getCallGuard()}JS_CallFunctionValue(\n"
@@ -7649,7 +7701,7 @@ class CallbackMethod(CallbackMember):
                 "    &HandleValueArray {\n"
                 f"        length_: {argc} as ::libc::size_t,\n"
                 f"        elements_: {argv}\n"
-                "    }, rval.handle_mut());\n"
+                f"    }}, rval{suffix});\n"
                 "maybe_resume_unwind();\n"
                 "if !ok {\n"
                 "    return Err(JSFailed);\n"

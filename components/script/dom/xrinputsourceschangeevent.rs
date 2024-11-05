@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use js::jsapi::Heap;
 use js::jsval::JSVal;
-use js::rust::HandleObject;
+use js::rust::{HandleObject, MutableHandleValue};
 use servo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
@@ -87,8 +87,11 @@ impl XRInputSourcesChangeEvent {
         }
         let _ac = enter_realm(global);
         let cx = GlobalScope::get_cx();
-        changeevent.added.set(to_frozen_array(added, cx));
-        changeevent.removed.set(to_frozen_array(removed, cx));
+        rooted!(in(*cx) let mut frozen_val: JSVal);
+        to_frozen_array(added, cx, frozen_val.handle_mut());
+        changeevent.added.set(*frozen_val);
+        to_frozen_array(removed, cx, frozen_val.handle_mut());
+        changeevent.removed.set(*frozen_val);
         changeevent
     }
 }
@@ -121,13 +124,13 @@ impl XRInputSourcesChangeEventMethods for XRInputSourcesChangeEvent {
     }
 
     // https://immersive-web.github.io/webxr/#dom-xrinputsourceschangeevent-added
-    fn Added(&self, _cx: JSContext) -> JSVal {
-        self.added.get()
+    fn Added(&self, _cx: JSContext, mut retval: MutableHandleValue) {
+        retval.set(self.added.get())
     }
 
     // https://immersive-web.github.io/webxr/#dom-xrinputsourceschangeevent-removed
-    fn Removed(&self, _cx: JSContext) -> JSVal {
-        self.removed.get()
+    fn Removed(&self, _cx: JSContext, mut retval: MutableHandleValue) {
+        retval.set(self.removed.get())
     }
 
     // https://dom.spec.whatwg.org/#dom-event-istrusted

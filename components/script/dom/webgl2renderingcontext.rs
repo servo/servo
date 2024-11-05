@@ -16,11 +16,8 @@ use dom_struct::dom_struct;
 use euclid::default::{Point2D, Rect, Size2D};
 use ipc_channel::ipc::{self, IpcSharedMemory};
 use js::jsapi::{JSObject, Type};
-use js::jsval::{
-    BooleanValue, DoubleValue, Int32Value, JSVal, NullValue, ObjectValue, UInt32Value,
-    UndefinedValue,
-};
-use js::rust::{CustomAutoRooterGuard, HandleObject};
+use js::jsval::{BooleanValue, DoubleValue, Int32Value, NullValue, ObjectValue, UInt32Value};
+use js::rust::{CustomAutoRooterGuard, HandleObject, MutableHandleValue};
 use js::typedarray::{ArrayBufferView, CreateWith, Float32, Int32Array, Uint32, Uint32Array};
 use script_layout_interface::HTMLCanvasDataSource;
 use servo_config::pref;
@@ -591,14 +588,20 @@ impl WebGL2RenderingContext {
     }
 
     #[allow(unsafe_code)]
-    fn get_default_fb_attachment_param(&self, attachment: u32, pname: u32) -> WebGLResult<JSVal> {
+    fn get_default_fb_attachment_param(
+        &self,
+        attachment: u32,
+        pname: u32,
+        mut retval: MutableHandleValue,
+    ) -> WebGLResult<()> {
         match attachment {
             constants::BACK | constants::DEPTH | constants::STENCIL => {},
             _ => return Err(InvalidEnum),
         }
 
         if pname == constants::FRAMEBUFFER_ATTACHMENT_OBJECT_NAME {
-            return Ok(NullValue());
+            retval.set(NullValue());
+            return Ok(());
         }
 
         let attrs = self
@@ -646,7 +649,8 @@ impl WebGL2RenderingContext {
             },
             _ => return Err(InvalidEnum),
         };
-        Ok(Int32Value(intval))
+        retval.set(Int32Value(intval));
+        Ok(())
     }
 
     #[allow(unsafe_code)]
@@ -657,7 +661,8 @@ impl WebGL2RenderingContext {
         target: u32,
         attachment: u32,
         pname: u32,
-    ) -> WebGLResult<JSVal> {
+        mut rval: MutableHandleValue,
+    ) -> WebGLResult<()> {
         use crate::dom::webglframebuffer::WebGLFramebufferAttachmentRoot::{Renderbuffer, Texture};
 
         match attachment {
@@ -692,17 +697,16 @@ impl WebGL2RenderingContext {
         };
 
         if pname == constants::FRAMEBUFFER_ATTACHMENT_OBJECT_NAME {
-            rooted!(in(*cx) let mut rval = NullValue());
             match fb.attachment(attachment) {
                 Some(Renderbuffer(rb)) => unsafe {
-                    rb.to_jsval(*cx, rval.handle_mut());
+                    rb.to_jsval(*cx, rval);
                 },
                 Some(Texture(texture)) => unsafe {
-                    texture.to_jsval(*cx, rval.handle_mut());
+                    texture.to_jsval(*cx, rval);
                 },
-                _ => {},
+                _ => rval.set(NullValue()),
             }
-            return Ok(rval.get());
+            return Ok(());
         }
 
         match pname {
@@ -738,7 +742,8 @@ impl WebGL2RenderingContext {
             ));
 
         let retval = receiver.recv().unwrap();
-        Ok(Int32Value(retval))
+        rval.set(Int32Value(retval));
+        Ok(())
     }
 
     fn clearbuffer_array_size(&self, buffer: u32, draw_buffer: i32) -> WebGLResult<usize> {
@@ -931,101 +936,108 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5>
-    fn GetBufferParameter(&self, _cx: JSContext, target: u32, parameter: u32) -> JSVal {
-        let buffer =
-            handle_potential_webgl_error!(self.base, self.bound_buffer(target), return NullValue());
-        self.base.get_buffer_param(buffer, parameter)
+    fn GetBufferParameter(
+        &self,
+        _cx: JSContext,
+        target: u32,
+        parameter: u32,
+        mut retval: MutableHandleValue,
+    ) {
+        let buffer = handle_potential_webgl_error!(
+            self.base,
+            self.bound_buffer(target),
+            return retval.set(NullValue())
+        );
+        self.base.get_buffer_param(buffer, parameter, retval)
     }
 
     #[allow(unsafe_code)]
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
-    fn GetParameter(&self, cx: JSContext, parameter: u32) -> JSVal {
+    fn GetParameter(&self, cx: JSContext, parameter: u32, mut rval: MutableHandleValue) {
         match parameter {
             constants::VERSION => unsafe {
-                rooted!(in(*cx) let mut rval = UndefinedValue());
-                "WebGL 2.0".to_jsval(*cx, rval.handle_mut());
-                return rval.get();
+                "WebGL 2.0".to_jsval(*cx, rval);
+                return;
             },
             constants::SHADING_LANGUAGE_VERSION => unsafe {
-                rooted!(in(*cx) let mut rval = UndefinedValue());
-                "WebGL GLSL ES 3.00".to_jsval(*cx, rval.handle_mut());
-                return rval.get();
+                "WebGL GLSL ES 3.00".to_jsval(*cx, rval);
+                return;
             },
             constants::MAX_CLIENT_WAIT_TIMEOUT_WEBGL => {
-                return DoubleValue(
-                    self.base.limits().max_client_wait_timeout_webgl.as_nanos() as f64
-                );
+                rval.set(DoubleValue(
+                    self.base.limits().max_client_wait_timeout_webgl.as_nanos() as f64,
+                ));
+                return;
             },
             constants::MAX_SERVER_WAIT_TIMEOUT => {
-                return DoubleValue(self.base.limits().max_server_wait_timeout.as_nanos() as f64);
+                rval.set(DoubleValue(
+                    self.base.limits().max_server_wait_timeout.as_nanos() as f64,
+                ));
+                return;
             },
             constants::SAMPLER_BINDING => unsafe {
                 let idx = (self.base.textures().active_unit_enum() - constants::TEXTURE0) as usize;
                 assert!(idx < self.samplers.len());
                 let sampler = self.samplers[idx].get();
-                return optional_root_object_to_js_or_null!(*cx, sampler);
+                sampler.to_jsval(*cx, rval);
+                return;
             },
             constants::COPY_READ_BUFFER_BINDING => unsafe {
-                return optional_root_object_to_js_or_null!(
-                    *cx,
-                    &self.bound_copy_read_buffer.get()
-                );
+                self.bound_copy_read_buffer.get().to_jsval(*cx, rval);
+                return;
             },
             constants::COPY_WRITE_BUFFER_BINDING => unsafe {
-                return optional_root_object_to_js_or_null!(
-                    *cx,
-                    &self.bound_copy_write_buffer.get()
-                );
+                self.bound_copy_write_buffer.get().to_jsval(*cx, rval);
+                return;
             },
             constants::PIXEL_PACK_BUFFER_BINDING => unsafe {
-                return optional_root_object_to_js_or_null!(
-                    *cx,
-                    &self.bound_pixel_pack_buffer.get()
-                );
+                self.bound_pixel_pack_buffer.get().to_jsval(*cx, rval);
+                return;
             },
             constants::PIXEL_UNPACK_BUFFER_BINDING => unsafe {
-                return optional_root_object_to_js_or_null!(
-                    *cx,
-                    &self.bound_pixel_unpack_buffer.get()
-                );
+                self.bound_pixel_unpack_buffer.get().to_jsval(*cx, rval);
+                return;
             },
             constants::TRANSFORM_FEEDBACK_BUFFER_BINDING => unsafe {
-                return optional_root_object_to_js_or_null!(
-                    *cx,
-                    &self.bound_transform_feedback_buffer.get()
-                );
+                self.bound_transform_feedback_buffer
+                    .get()
+                    .to_jsval(*cx, rval);
+                return;
             },
             constants::UNIFORM_BUFFER_BINDING => unsafe {
-                return optional_root_object_to_js_or_null!(*cx, &self.bound_uniform_buffer.get());
+                self.bound_uniform_buffer.get().to_jsval(*cx, rval);
+                return;
             },
             constants::TRANSFORM_FEEDBACK_BINDING => unsafe {
-                return optional_root_object_to_js_or_null!(
-                    *cx,
-                    self.current_transform_feedback.get()
-                );
+                self.current_transform_feedback.get().to_jsval(*cx, rval);
+                return;
             },
             constants::ELEMENT_ARRAY_BUFFER_BINDING => unsafe {
                 let buffer = self.current_vao().element_array_buffer().get();
-                return optional_root_object_to_js_or_null!(*cx, buffer);
+                buffer.to_jsval(*cx, rval);
+                return;
             },
             constants::VERTEX_ARRAY_BINDING => unsafe {
                 let vao = self.current_vao();
                 let vao = vao.id().map(|_| &*vao);
-                return optional_root_object_to_js_or_null!(*cx, vao);
+                vao.to_jsval(*cx, rval);
+                return;
             },
             // NOTE: DRAW_FRAMEBUFFER_BINDING is the same as FRAMEBUFFER_BINDING, handled on the WebGL1 side
             constants::READ_FRAMEBUFFER_BINDING => unsafe {
-                return optional_root_object_to_js_or_null!(
-                    *cx,
-                    &self.base.get_read_framebuffer_slot().get()
-                );
+                self.base
+                    .get_read_framebuffer_slot()
+                    .get()
+                    .to_jsval(*cx, rval);
+                return;
             },
             constants::READ_BUFFER => {
                 let buffer = match self.base.get_read_framebuffer_slot().get() {
                     Some(fb) => fb.read_buffer(),
                     None => self.default_fb_readbuffer.get(),
                 };
-                return UInt32Value(buffer);
+                rval.set(UInt32Value(buffer));
+                return;
             },
             constants::DRAW_BUFFER0..=constants::DRAW_BUFFER15 => {
                 let buffer = match self.base.get_read_framebuffer_slot().get() {
@@ -1038,29 +1050,38 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
                     },
                     None => constants::NONE,
                 };
-                return UInt32Value(buffer);
+                rval.set(UInt32Value(buffer));
+                return;
             },
             constants::MAX_TEXTURE_LOD_BIAS => {
-                return DoubleValue(self.base.limits().max_texture_lod_bias as f64)
+                rval.set(DoubleValue(self.base.limits().max_texture_lod_bias as f64));
+                return;
             },
             constants::MAX_COMBINED_FRAGMENT_UNIFORM_COMPONENTS => {
-                return DoubleValue(
+                rval.set(DoubleValue(
                     self.base.limits().max_combined_fragment_uniform_components as f64,
-                )
+                ));
+                return;
             },
             constants::MAX_COMBINED_VERTEX_UNIFORM_COMPONENTS => {
-                return DoubleValue(
+                rval.set(DoubleValue(
                     self.base.limits().max_combined_vertex_uniform_components as f64,
-                )
+                ));
+                return;
             },
             constants::MAX_ELEMENT_INDEX => {
-                return DoubleValue(self.base.limits().max_element_index as f64)
+                rval.set(DoubleValue(self.base.limits().max_element_index as f64));
+                return;
             },
             constants::MAX_UNIFORM_BLOCK_SIZE => {
-                return DoubleValue(self.base.limits().max_uniform_block_size as f64)
+                rval.set(DoubleValue(
+                    self.base.limits().max_uniform_block_size as f64,
+                ));
+                return;
             },
             constants::MIN_PROGRAM_TEXEL_OFFSET => {
-                return Int32Value(self.base.limits().min_program_texel_offset)
+                rval.set(Int32Value(self.base.limits().min_program_texel_offset));
+                return;
             },
             _ => {},
         }
@@ -1109,15 +1130,16 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
             _ => None,
         };
         if let Some(limit) = limit {
-            return UInt32Value(limit);
+            rval.set(UInt32Value(limit));
+            return;
         }
 
-        self.base.GetParameter(cx, parameter)
+        self.base.GetParameter(cx, parameter, rval)
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8>
-    fn GetTexParameter(&self, cx: JSContext, target: u32, pname: u32) -> JSVal {
-        self.base.GetTexParameter(cx, target, pname)
+    fn GetTexParameter(&self, cx: JSContext, target: u32, pname: u32, retval: MutableHandleValue) {
+        self.base.GetTexParameter(cx, target, pname, retval)
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
@@ -1152,7 +1174,8 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         target: u32,
         attachment: u32,
         pname: u32,
-    ) -> JSVal {
+        mut rval: MutableHandleValue,
+    ) {
         let fb_slot = match target {
             constants::FRAMEBUFFER | constants::DRAW_FRAMEBUFFER => {
                 self.base.get_draw_framebuffer_slot()
@@ -1160,31 +1183,43 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
             constants::READ_FRAMEBUFFER => self.base.get_read_framebuffer_slot(),
             _ => {
                 self.base.webgl_error(InvalidEnum);
-                return NullValue();
+                rval.set(NullValue());
+                return;
             },
         };
 
         if let Some(fb) = fb_slot.get() {
             // A selected framebuffer is bound to the target
-            handle_potential_webgl_error!(self.base, fb.validate_transparent(), return NullValue());
             handle_potential_webgl_error!(
                 self.base,
-                self.get_specific_fb_attachment_param(cx, &fb, target, attachment, pname),
-                NullValue()
+                fb.validate_transparent(),
+                return rval.set(NullValue())
+            );
+            handle_potential_webgl_error!(
+                self.base,
+                self.get_specific_fb_attachment_param(cx, &fb, target, attachment, pname, rval),
+                rval.set(NullValue())
             )
         } else {
             // The default framebuffer is bound to the target
             handle_potential_webgl_error!(
                 self.base,
-                self.get_default_fb_attachment_param(attachment, pname),
-                NullValue()
+                self.get_default_fb_attachment_param(attachment, pname, rval),
+                rval.set(NullValue())
             )
         }
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.7>
-    fn GetRenderbufferParameter(&self, cx: JSContext, target: u32, pname: u32) -> JSVal {
-        self.base.GetRenderbufferParameter(cx, target, pname)
+    fn GetRenderbufferParameter(
+        &self,
+        cx: JSContext,
+        target: u32,
+        pname: u32,
+        retval: MutableHandleValue,
+    ) {
+        self.base
+            .GetRenderbufferParameter(cx, target, pname, retval)
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
@@ -1856,24 +1891,30 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9>
-    fn GetProgramParameter(&self, cx: JSContext, program: &WebGLProgram, param_id: u32) -> JSVal {
+    fn GetProgramParameter(
+        &self,
+        cx: JSContext,
+        program: &WebGLProgram,
+        param_id: u32,
+        mut retval: MutableHandleValue,
+    ) {
         handle_potential_webgl_error!(
             self.base,
             self.base.validate_ownership(program),
-            return NullValue()
+            return retval.set(NullValue())
         );
         if program.is_deleted() {
             self.base.webgl_error(InvalidOperation);
-            return NullValue();
+            return retval.set(NullValue());
         }
         match param_id {
             constants::TRANSFORM_FEEDBACK_VARYINGS => {
-                Int32Value(program.transform_feedback_varyings_length())
+                retval.set(Int32Value(program.transform_feedback_varyings_length()))
             },
             constants::TRANSFORM_FEEDBACK_BUFFER_MODE => {
-                Int32Value(program.transform_feedback_buffer_mode())
+                retval.set(Int32Value(program.transform_feedback_buffer_mode()))
             },
-            _ => self.base.GetProgramParameter(cx, program, param_id),
+            _ => self.base.GetProgramParameter(cx, program, param_id, retval),
         }
     }
 
@@ -1883,8 +1924,14 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9>
-    fn GetShaderParameter(&self, cx: JSContext, shader: &WebGLShader, param_id: u32) -> JSVal {
-        self.base.GetShaderParameter(cx, shader, param_id)
+    fn GetShaderParameter(
+        &self,
+        cx: JSContext,
+        shader: &WebGLShader,
+        param_id: u32,
+        retval: MutableHandleValue,
+    ) {
+        self.base.GetShaderParameter(cx, shader, param_id, retval)
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9>
@@ -1899,7 +1946,13 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.2>
     #[allow(unsafe_code)]
-    fn GetIndexedParameter(&self, cx: JSContext, target: u32, index: u32) -> JSVal {
+    fn GetIndexedParameter(
+        &self,
+        cx: JSContext,
+        target: u32,
+        index: u32,
+        mut retval: MutableHandleValue,
+    ) {
         let bindings = match target {
             constants::TRANSFORM_FEEDBACK_BUFFER_BINDING |
             constants::TRANSFORM_FEEDBACK_BUFFER_SIZE |
@@ -1911,7 +1964,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
             constants::UNIFORM_BUFFER_START => &self.indexed_uniform_buffer_bindings,
             _ => {
                 self.base.webgl_error(InvalidEnum);
-                return NullValue();
+                return retval.set(NullValue());
             },
         };
 
@@ -1919,19 +1972,19 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
             Some(binding) => binding,
             None => {
                 self.base.webgl_error(InvalidValue);
-                return NullValue();
+                return retval.set(NullValue());
             },
         };
 
         match target {
             constants::TRANSFORM_FEEDBACK_BUFFER_BINDING | constants::UNIFORM_BUFFER_BINDING => unsafe {
-                optional_root_object_to_js_or_null!(*cx, binding.buffer.get())
+                binding.buffer.get().to_jsval(*cx, retval)
             },
             constants::TRANSFORM_FEEDBACK_BUFFER_START | constants::UNIFORM_BUFFER_START => {
-                Int32Value(binding.start.get() as _)
+                retval.set(Int32Value(binding.start.get() as _))
             },
             constants::TRANSFORM_FEEDBACK_BUFFER_SIZE | constants::UNIFORM_BUFFER_SIZE => {
-                Int32Value(binding.size.get() as _)
+                retval.set(Int32Value(binding.size.get() as _))
             },
             _ => unreachable!(),
         }
@@ -1947,8 +2000,8 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9>
-    fn GetVertexAttrib(&self, cx: JSContext, index: u32, pname: u32) -> JSVal {
-        self.base.GetVertexAttrib(cx, index, pname)
+    fn GetVertexAttrib(&self, cx: JSContext, index: u32, pname: u32, retval: MutableHandleValue) {
+        self.base.GetVertexAttrib(cx, index, pname, retval)
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
@@ -2709,68 +2762,88 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         cx: JSContext,
         program: &WebGLProgram,
         location: &WebGLUniformLocation,
-    ) -> JSVal {
+        mut retval: MutableHandleValue,
+    ) {
         handle_potential_webgl_error!(
             self.base,
             self.base.uniform_check_program(program, location),
-            return NullValue()
+            return retval.set(NullValue())
         );
 
         let triple = (&*self.base, program.id(), location.id());
 
         match location.type_() {
-            constants::UNSIGNED_INT => {
-                UInt32Value(uniform_get(triple, WebGLCommand::GetUniformUint))
-            },
+            constants::UNSIGNED_INT => retval.set(UInt32Value(uniform_get(
+                triple,
+                WebGLCommand::GetUniformUint,
+            ))),
             constants::UNSIGNED_INT_VEC2 => unsafe {
-                uniform_typed::<Uint32>(*cx, &uniform_get(triple, WebGLCommand::GetUniformUint2))
+                uniform_typed::<Uint32>(
+                    *cx,
+                    &uniform_get(triple, WebGLCommand::GetUniformUint2),
+                    retval,
+                )
             },
             constants::UNSIGNED_INT_VEC3 => unsafe {
-                uniform_typed::<Uint32>(*cx, &uniform_get(triple, WebGLCommand::GetUniformUint3))
+                uniform_typed::<Uint32>(
+                    *cx,
+                    &uniform_get(triple, WebGLCommand::GetUniformUint3),
+                    retval,
+                )
             },
             constants::UNSIGNED_INT_VEC4 => unsafe {
-                uniform_typed::<Uint32>(*cx, &uniform_get(triple, WebGLCommand::GetUniformUint4))
+                uniform_typed::<Uint32>(
+                    *cx,
+                    &uniform_get(triple, WebGLCommand::GetUniformUint4),
+                    retval,
+                )
             },
             constants::FLOAT_MAT2x3 => unsafe {
                 uniform_typed::<Float32>(
                     *cx,
                     &uniform_get(triple, WebGLCommand::GetUniformFloat2x3),
+                    retval,
                 )
             },
             constants::FLOAT_MAT2x4 => unsafe {
                 uniform_typed::<Float32>(
                     *cx,
                     &uniform_get(triple, WebGLCommand::GetUniformFloat2x4),
+                    retval,
                 )
             },
             constants::FLOAT_MAT3x2 => unsafe {
                 uniform_typed::<Float32>(
                     *cx,
                     &uniform_get(triple, WebGLCommand::GetUniformFloat3x2),
+                    retval,
                 )
             },
             constants::FLOAT_MAT3x4 => unsafe {
                 uniform_typed::<Float32>(
                     *cx,
                     &uniform_get(triple, WebGLCommand::GetUniformFloat3x4),
+                    retval,
                 )
             },
             constants::FLOAT_MAT4x2 => unsafe {
                 uniform_typed::<Float32>(
                     *cx,
                     &uniform_get(triple, WebGLCommand::GetUniformFloat4x2),
+                    retval,
                 )
             },
             constants::FLOAT_MAT4x3 => unsafe {
                 uniform_typed::<Float32>(
                     *cx,
                     &uniform_get(triple, WebGLCommand::GetUniformFloat4x3),
+                    retval,
                 )
             },
             constants::SAMPLER_3D | constants::SAMPLER_2D_ARRAY => {
-                Int32Value(uniform_get(triple, WebGLCommand::GetUniformInt))
+                retval.set(Int32Value(uniform_get(triple, WebGLCommand::GetUniformInt)))
             },
-            _ => self.base.GetUniform(cx, program, location),
+            _ => self.base.GetUniform(cx, program, location, retval),
         }
     }
 
@@ -3530,21 +3603,21 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.12>
     #[rustfmt::skip]
-    fn GetQueryParameter(&self, _cx: JSContext, query: &WebGLQuery, pname: u32) -> JSVal {
+    fn GetQueryParameter(&self, _cx: JSContext, query: &WebGLQuery, pname: u32, mut retval: MutableHandleValue) {
         handle_potential_webgl_error!(
             self.base,
             self.base.validate_ownership(query),
-            return NullValue()
+            return retval.set(NullValue())
         );
         match query.get_parameter(&self.base, pname) {
             Ok(value) => match pname {
-                constants::QUERY_RESULT => UInt32Value(value),
-                constants::QUERY_RESULT_AVAILABLE => BooleanValue(value != 0),
+                constants::QUERY_RESULT => retval.set(UInt32Value(value)),
+                constants::QUERY_RESULT_AVAILABLE => retval.set(BooleanValue(value != 0)),
                 _ => unreachable!(),
             },
             Err(error) => {
                 self.base.webgl_error(error);
-                NullValue()
+                retval.set(NullValue())
             },
         }
     }
@@ -3631,30 +3704,36 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.14>
-    fn GetSyncParameter(&self, _cx: JSContext, sync: &WebGLSync, pname: u32) -> JSVal {
+    fn GetSyncParameter(
+        &self,
+        _cx: JSContext,
+        sync: &WebGLSync,
+        pname: u32,
+        mut retval: MutableHandleValue,
+    ) {
         if !sync.is_valid() {
             self.base.webgl_error(InvalidOperation);
-            return NullValue();
+            return retval.set(NullValue());
         }
         handle_potential_webgl_error!(
             self.base,
             self.base.validate_ownership(sync),
-            return NullValue()
+            return retval.set(NullValue())
         );
         match pname {
             constants::OBJECT_TYPE | constants::SYNC_CONDITION | constants::SYNC_FLAGS => {
                 let (sender, receiver) = webgl_channel().unwrap();
                 self.base
                     .send_command(WebGLCommand::GetSyncParameter(sync.id(), pname, sender));
-                UInt32Value(receiver.recv().unwrap())
+                retval.set(UInt32Value(receiver.recv().unwrap()))
             },
             constants::SYNC_STATUS => match sync.get_sync_status(pname, &self.base) {
-                Some(status) => UInt32Value(status),
-                None => UInt32Value(constants::UNSIGNALED),
+                Some(status) => retval.set(UInt32Value(status)),
+                None => retval.set(UInt32Value(constants::UNSIGNALED)),
             },
             _ => {
                 self.base.webgl_error(InvalidEnum);
-                NullValue()
+                retval.set(NullValue())
             },
         }
     }
@@ -3711,20 +3790,26 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.13>
-    fn GetSamplerParameter(&self, _cx: JSContext, sampler: &WebGLSampler, pname: u32) -> JSVal {
+    fn GetSamplerParameter(
+        &self,
+        _cx: JSContext,
+        sampler: &WebGLSampler,
+        pname: u32,
+        mut retval: MutableHandleValue,
+    ) {
         handle_potential_webgl_error!(
             self.base,
             self.base.validate_ownership(sampler),
-            return NullValue()
+            return retval.set(NullValue())
         );
         match sampler.get_parameter(&self.base, pname) {
             Ok(value) => match value {
-                WebGLSamplerValue::GLenum(value) => UInt32Value(value),
-                WebGLSamplerValue::Float(value) => DoubleValue(value as f64),
+                WebGLSamplerValue::GLenum(value) => retval.set(UInt32Value(value)),
+                WebGLSamplerValue::Float(value) => retval.set(DoubleValue(value as f64)),
             },
             Err(error) => {
                 self.base.webgl_error(error);
-                NullValue()
+                retval.set(NullValue())
             },
         }
     }
@@ -4085,19 +4170,19 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         program: &WebGLProgram,
         indices: Vec<u32>,
         pname: u32,
-    ) -> JSVal {
+        mut rval: MutableHandleValue,
+    ) {
         handle_potential_webgl_error!(
             self.base,
             self.base.validate_ownership(program),
-            return NullValue()
+            return rval.set(NullValue())
         );
         let values = handle_potential_webgl_error!(
             self.base,
             program.get_active_uniforms(indices, pname),
-            return NullValue()
+            return rval.set(NullValue())
         );
 
-        rooted!(in(*cx) let mut rval = UndefinedValue());
         match pname {
             constants::UNIFORM_SIZE |
             constants::UNIFORM_TYPE |
@@ -4105,15 +4190,14 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
             constants::UNIFORM_OFFSET |
             constants::UNIFORM_ARRAY_STRIDE |
             constants::UNIFORM_MATRIX_STRIDE => unsafe {
-                values.to_jsval(*cx, rval.handle_mut());
+                values.to_jsval(*cx, rval);
             },
             constants::UNIFORM_IS_ROW_MAJOR => unsafe {
                 let values = values.iter().map(|&v| v != 0).collect::<Vec<_>>();
-                values.to_jsval(*cx, rval.handle_mut());
+                values.to_jsval(*cx, rval);
             },
             _ => unreachable!(),
         }
-        rval.get()
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.16>
@@ -4138,34 +4222,35 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         program: &WebGLProgram,
         block_index: u32,
         pname: u32,
-    ) -> JSVal {
+        mut retval: MutableHandleValue,
+    ) {
         handle_potential_webgl_error!(
             self.base,
             self.base.validate_ownership(program),
-            return NullValue()
+            return retval.set(NullValue())
         );
         let values = handle_potential_webgl_error!(
             self.base,
             program.get_active_uniform_block_parameter(block_index, pname),
-            return NullValue()
+            return retval.set(NullValue())
         );
         match pname {
             constants::UNIFORM_BLOCK_BINDING |
             constants::UNIFORM_BLOCK_DATA_SIZE |
             constants::UNIFORM_BLOCK_ACTIVE_UNIFORMS => {
                 assert!(values.len() == 1);
-                UInt32Value(values[0] as u32)
+                retval.set(UInt32Value(values[0] as u32))
             },
             constants::UNIFORM_BLOCK_ACTIVE_UNIFORM_INDICES => unsafe {
                 let values = values.iter().map(|&v| v as u32).collect::<Vec<_>>();
                 rooted!(in(*cx) let mut result = ptr::null_mut::<JSObject>());
                 Uint32Array::create(*cx, CreateWith::Slice(&values), result.handle_mut()).unwrap();
-                ObjectValue(result.get())
+                retval.set(ObjectValue(result.get()))
             },
             constants::UNIFORM_BLOCK_REFERENCED_BY_VERTEX_SHADER |
             constants::UNIFORM_BLOCK_REFERENCED_BY_FRAGMENT_SHADER => {
                 assert!(values.len() == 1);
-                BooleanValue(values[0] != 0)
+                retval.set(BooleanValue(values[0] != 0))
             },
             _ => unreachable!(),
         }
@@ -4367,16 +4452,17 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         target: u32,
         internal_format: u32,
         pname: u32,
-    ) -> JSVal {
+        mut retval: MutableHandleValue,
+    ) {
         if target != constants::RENDERBUFFER {
             self.base.webgl_error(InvalidEnum);
-            return NullValue();
+            return retval.set(NullValue());
         }
 
         match handle_potential_webgl_error!(
             self.base,
             InternalFormatParameter::from_u32(pname),
-            return NullValue()
+            return retval.set(NullValue())
         ) {
             InternalFormatParameter::IntVec(param) => unsafe {
                 let (sender, receiver) = webgl_channel().unwrap();
@@ -4395,7 +4481,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
                     rval.handle_mut(),
                 )
                 .unwrap();
-                ObjectValue(rval.get())
+                retval.set(ObjectValue(rval.get()))
             },
         }
     }

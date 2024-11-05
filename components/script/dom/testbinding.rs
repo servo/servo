@@ -11,8 +11,8 @@ use std::time::Duration;
 
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject, JS_NewPlainObject};
-use js::jsval::{JSVal, NullValue};
-use js::rust::{CustomAutoRooterGuard, HandleObject, HandleValue};
+use js::jsval::JSVal;
+use js::rust::{CustomAutoRooterGuard, HandleObject, HandleValue, MutableHandleValue};
 use js::typedarray::{self, Uint8ClampedArray};
 use script_traits::serializable::BlobImpl;
 use servo_config::prefs;
@@ -229,9 +229,7 @@ impl TestBindingMethods for TestBinding {
         create_buffer_source(cx, &data, array.handle_mut())
             .expect("Creating ClampedU8 array should never fail")
     }
-    fn AnyAttribute(&self, _: SafeJSContext) -> JSVal {
-        NullValue()
-    }
+    fn AnyAttribute(&self, _: SafeJSContext, _: MutableHandleValue) {}
     fn SetAnyAttribute(&self, _: SafeJSContext, _: HandleValue) {}
     #[allow(unsafe_code)]
     fn ObjectAttribute(&self, cx: SafeJSContext) -> NonNull<JSObject> {
@@ -426,9 +424,7 @@ impl TestBindingMethods for TestBinding {
             can_gc,
         )
     }
-    fn ReceiveAny(&self, _: SafeJSContext) -> JSVal {
-        NullValue()
-    }
+    fn ReceiveAny(&self, _: SafeJSContext, _: MutableHandleValue) {}
     fn ReceiveObject(&self, cx: SafeJSContext) -> NonNull<JSObject> {
         self.ObjectAttribute(cx)
     }

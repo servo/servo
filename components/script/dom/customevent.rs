@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use js::jsapi::Heap;
 use js::jsval::JSVal;
-use js::rust::{HandleObject, HandleValue};
+use js::rust::{HandleObject, HandleValue, MutableHandleValue};
 use servo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::CustomEventBinding;
@@ -105,8 +105,8 @@ impl CustomEventMethods for CustomEvent {
     }
 
     // https://dom.spec.whatwg.org/#dom-customevent-detail
-    fn Detail(&self, _cx: JSContext) -> JSVal {
-        self.detail.get()
+    fn Detail(&self, _cx: JSContext, mut retval: MutableHandleValue) {
+        retval.set(self.detail.get())
     }
 
     // https://dom.spec.whatwg.org/#dom-customevent-initcustomevent

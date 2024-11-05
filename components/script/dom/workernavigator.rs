@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use js::jsval::JSVal;
+use js::rust::MutableHandleValue;
 
 use crate::dom::bindings::codegen::Bindings::WorkerNavigatorBinding::WorkerNavigatorMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
@@ -97,8 +97,8 @@ impl WorkerNavigatorMethods for WorkerNavigator {
 
     // https://html.spec.whatwg.org/multipage/#dom-navigator-languages
     #[allow(unsafe_code)]
-    fn Languages(&self, cx: JSContext) -> JSVal {
-        to_frozen_array(&[self.Language()], cx)
+    fn Languages(&self, cx: JSContext, retval: MutableHandleValue) {
+        to_frozen_array(&[self.Language()], cx, retval)
     }
 
     // https://w3c.github.io/permissions/#navigator-and-workernavigator-extension

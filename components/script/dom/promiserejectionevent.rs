@@ -8,7 +8,7 @@ use std::rc::Rc;
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject};
 use js::jsval::JSVal;
-use js::rust::{HandleObject, HandleValue};
+use js::rust::{HandleObject, HandleValue, MutableHandleValue};
 use servo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
@@ -127,8 +127,8 @@ impl PromiseRejectionEventMethods for PromiseRejectionEvent {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-promiserejectionevent-reason
-    fn Reason(&self, _cx: JSContext) -> JSVal {
-        self.reason.get()
+    fn Reason(&self, _cx: JSContext, mut retval: MutableHandleValue) {
+        retval.set(self.reason.get())
     }
 
     // https://dom.spec.whatwg.org/#dom-event-istrusted

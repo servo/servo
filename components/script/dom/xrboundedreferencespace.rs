@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use js::jsval::JSVal;
+use js::rust::MutableHandleValue;
 
 use crate::dom::bindings::codegen::Bindings::XRBoundedReferenceSpaceBinding::XRBoundedReferenceSpaceMethods;
 use crate::dom::bindings::codegen::Bindings::XRReferenceSpaceBinding::XRReferenceSpaceType;
@@ -67,7 +67,7 @@ impl XRBoundedReferenceSpace {
 
 impl XRBoundedReferenceSpaceMethods for XRBoundedReferenceSpace {
     /// <https://www.w3.org/TR/webxr/#dom-xrboundedreferencespace-boundsgeometry>
-    fn BoundsGeometry(&self, cx: JSContext, can_gc: CanGc) -> JSVal {
+    fn BoundsGeometry(&self, cx: JSContext, can_gc: CanGc, retval: MutableHandleValue) {
         if let Some(bounds) = self.reference_space.get_bounds() {
             let points: Vec<DomRoot<DOMPointReadOnly>> = bounds
                 .into_iter()
@@ -83,9 +83,9 @@ impl XRBoundedReferenceSpaceMethods for XRBoundedReferenceSpace {
                 })
                 .collect();
 
-            to_frozen_array(&points, cx)
+            to_frozen_array(&points, cx, retval)
         } else {
-            to_frozen_array::<DomRoot<DOMPointReadOnly>>(&[], cx)
+            to_frozen_array::<DomRoot<DOMPointReadOnly>>(&[], cx, retval)
         }
     }
 }

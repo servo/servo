@@ -6,6 +6,7 @@ use dom_struct::dom_struct;
 use js::conversions::ToJSValConvertible;
 use js::jsapi::Heap;
 use js::jsval::{JSVal, UndefinedValue};
+use js::rust::MutableHandleValue;
 use script_traits::GamepadSupportedHapticEffects;
 use webxr_api::{Handedness, InputFrame, InputId, InputSource, TargetRayMode};
 
@@ -159,8 +160,8 @@ impl XRInputSourceMethods for XRInputSource {
         }
     }
     // https://immersive-web.github.io/webxr/#dom-xrinputsource-profiles
-    fn Profiles(&self, _cx: JSContext) -> JSVal {
-        self.profiles.get()
+    fn Profiles(&self, _cx: JSContext, mut retval: MutableHandleValue) {
+        retval.set(self.profiles.get())
     }
 
     /// <https://www.w3.org/TR/webxr/#dom-xrinputsource-skiprendering>

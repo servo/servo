@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use js::jsapi::Heap;
 use js::jsval::JSVal;
-use js::rust::{HandleObject, HandleValue};
+use js::rust::{HandleObject, HandleValue, MutableHandleValue};
 use servo_atoms::Atom;
 
 use crate::dom::bindings::cell::DomRefCell;
@@ -188,8 +188,8 @@ impl ExtendableMessageEventMethods for ExtendableMessageEvent {
     }
 
     /// <https://w3c.github.io/ServiceWorker/#dom-extendablemessageevent-data>
-    fn Data(&self, _cx: JSContext) -> JSVal {
-        self.data.get()
+    fn Data(&self, _cx: JSContext, mut retval: MutableHandleValue) {
+        retval.set(self.data.get())
     }
 
     /// <https://w3c.github.io/ServiceWorker/#dom-extendablemessageevent-origin>
@@ -208,9 +208,10 @@ impl ExtendableMessageEventMethods for ExtendableMessageEvent {
     }
 
     /// <https://w3c.github.io/ServiceWorker/#extendablemessage-event-ports>
-    fn Ports(&self, cx: JSContext) -> JSVal {
+    fn Ports(&self, cx: JSContext, mut retval: MutableHandleValue) {
         if let Some(ports) = &*self.frozen_ports.borrow() {
-            return ports.get();
+            retval.set(ports.get());
+            return;
         }
 
         let ports: Vec<DomRoot<MessagePort>> = self
@@ -218,7 +219,7 @@ impl ExtendableMessageEventMethods for ExtendableMessageEvent {
             .iter()
             .map(|port| DomRoot::from_ref(&**port))
             .collect();
-        let frozen_ports = to_frozen_array(ports.as_slice(), cx);
+        to_frozen_array(ports.as_slice(), cx, retval);
 
         // Safety: need to create the Heap value in its final memory location before setting it.
         *self.frozen_ports.borrow_mut() = Some(Heap::default());
@@ -226,8 +227,6 @@ impl ExtendableMessageEventMethods for ExtendableMessageEvent {
             .borrow()
             .as_ref()
             .unwrap()
-            .set(frozen_ports);
-
-        frozen_ports
+            .set(retval.get());
     }
 }

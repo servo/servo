@@ -7,6 +7,7 @@ use euclid::RigidTransform3D;
 use js::conversions::ToJSValConvertible;
 use js::jsapi::Heap;
 use js::jsval::{JSVal, UndefinedValue};
+use js::rust::MutableHandleValue;
 use webxr_api::{Viewer, ViewerPose, Views};
 
 use crate::dom::bindings::codegen::Bindings::XRViewBinding::XREye;
@@ -189,7 +190,7 @@ impl XRViewerPose {
 
 impl XRViewerPoseMethods for XRViewerPose {
     /// <https://immersive-web.github.io/webxr/#dom-xrviewerpose-views>
-    fn Views(&self, _cx: JSContext) -> JSVal {
-        self.views.get()
+    fn Views(&self, _cx: JSContext, mut retval: MutableHandleValue) {
+        retval.set(self.views.get())
     }
 }

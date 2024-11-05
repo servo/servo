@@ -5,8 +5,7 @@
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
-use js::jsval::{JSVal, NullValue};
-use js::rust::HandleObject;
+use js::rust::{HandleObject, MutableHandleValue};
 
 use super::bindings::codegen::Bindings::IntersectionObserverBinding::{
     IntersectionObserverCallback, IntersectionObserverMethods,
@@ -93,9 +92,7 @@ impl IntersectionObserverMethods for IntersectionObserver {
     /// > constructor, or the sequence is empty, the value of this attribute will be [0].
     ///
     /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-thresholds>
-    fn Thresholds(&self, _context: JSContext) -> JSVal {
-        NullValue()
-    }
+    fn Thresholds(&self, _context: JSContext, _retval: MutableHandleValue) {}
 
     /// > A number indicating the minimum delay in milliseconds between notifications from
     /// > this observer for a given target.

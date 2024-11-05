@@ -5,7 +5,7 @@
 use std::cell::Cell;
 
 use dom_struct::dom_struct;
-use js::jsval::JSVal;
+use js::rust::MutableHandleValue;
 use webxr_api::SubImages;
 
 use crate::dom::bindings::cell::DomRefCell;
@@ -146,10 +146,10 @@ impl XRRenderStateMethods for XRRenderState {
     }
 
     /// <https://immersive-web.github.io/layers/#dom-xrrenderstate-layers>
-    fn Layers(&self, cx: JSContext) -> JSVal {
+    fn Layers(&self, cx: JSContext, retval: MutableHandleValue) {
         // TODO: cache this array?
         let layers = self.layers.borrow();
         let layers: Vec<&XRLayer> = layers.iter().map(|x| &**x).collect();
-        to_frozen_array(&layers[..], cx)
+        to_frozen_array(&layers[..], cx, retval)
     }
 }

@@ -9,7 +9,7 @@ use dom_struct::dom_struct;
 use embedder_traits::{DualRumbleEffectParams, EmbedderMsg};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
-use js::jsval::JSVal;
+use js::rust::MutableHandleValue;
 use script_traits::GamepadSupportedHapticEffects;
 
 use crate::dom::bindings::cell::DomRefCell;
@@ -134,8 +134,8 @@ impl GamepadHapticActuator {
 
 impl GamepadHapticActuatorMethods for GamepadHapticActuator {
     /// <https://www.w3.org/TR/gamepad/#dom-gamepadhapticactuator-effects>
-    fn Effects(&self, cx: JSContext) -> JSVal {
-        to_frozen_array(self.effects.as_slice(), cx)
+    fn Effects(&self, cx: JSContext, retval: MutableHandleValue) {
+        to_frozen_array(self.effects.as_slice(), cx, retval)
     }
 
     /// <https://www.w3.org/TR/gamepad/#dom-gamepadhapticactuator-playeffect>

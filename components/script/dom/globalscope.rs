@@ -3072,16 +3072,21 @@ impl GlobalScope {
     }
 
     /// <https://w3c.github.io/performance-timeline/#supportedentrytypes-attribute>
-    pub fn supported_performance_entry_types(&self, cx: SafeJSContext) -> JSVal {
+    pub fn supported_performance_entry_types(
+        &self,
+        cx: SafeJSContext,
+        mut retval: MutableHandleValue,
+    ) {
         if let Some(types) = &*self.frozen_supported_performance_entry_types.borrow() {
-            return types.get();
+            retval.set(types.get());
+            return;
         }
 
         let types: Vec<DOMString> = VALID_ENTRY_TYPES
             .iter()
             .map(|t| DOMString::from(t.to_string()))
             .collect();
-        let frozen_types = to_frozen_array(types.as_slice(), cx);
+        to_frozen_array(types.as_slice(), cx, retval);
 
         // Safety: need to create the Heap value in its final memory location before setting it.
         *self.frozen_supported_performance_entry_types.borrow_mut() = Some(Heap::default());
@@ -3089,9 +3094,7 @@ impl GlobalScope {
             .borrow()
             .as_ref()
             .unwrap()
-            .set(frozen_types);
-
-        frozen_types
+            .set(retval.get());
     }
 
     pub fn is_headless(&self) -> bool {
@@ -3372,7 +3375,8 @@ impl GlobalScope {
         cx: SafeJSContext,
         value: HandleValue,
         options: RootedTraceableBox<StructuredSerializeOptions>,
-    ) -> Fallible<js::jsval::JSVal> {
+        retval: MutableHandleValue,
+    ) -> Fallible<()> {
         let mut rooted = CustomAutoRooter::new(
             options
                 .transfer
@@ -3384,12 +3388,9 @@ impl GlobalScope {
 
         let data = structuredclone::write(cx, value, Some(guard))?;
 
-        rooted!(in(*cx) let mut message_clone = UndefinedValue());
+        structuredclone::read(self, data, retval).map_err(|_| Error::DataClone)?;
 
-        structuredclone::read(self, data, message_clone.handle_mut())
-            .map_err(|_| Error::DataClone)?;
-
-        Ok(message_clone.get())
+        Ok(())
     }
 
     pub(crate) fn fetch<Listener: FetchResponseListener + PreInvoke + Send + 'static>(

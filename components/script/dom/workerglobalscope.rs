@@ -16,7 +16,7 @@ use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
 use js::jsval::UndefinedValue;
 use js::panic::maybe_resume_unwind;
-use js::rust::{HandleValue, ParentRuntime};
+use js::rust::{HandleValue, MutableHandleValue, ParentRuntime};
 use net_traits::request::{
     CredentialsMode, Destination, ParserMetadata, RequestBuilder as NetRequestInit,
 };
@@ -439,9 +439,10 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
         cx: JSContext,
         value: HandleValue,
         options: RootedTraceableBox<StructuredSerializeOptions>,
-    ) -> Fallible<js::jsval::JSVal> {
+        retval: MutableHandleValue,
+    ) -> Fallible<()> {
         self.upcast::<GlobalScope>()
-            .structured_clone(cx, value, options)
+            .structured_clone(cx, value, options, retval)
     }
 }
 

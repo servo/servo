@@ -15,6 +15,7 @@ use deny_public_fields::DenyPublicFields;
 use dom_struct::dom_struct;
 use fnv::FnvHasher;
 use js::jsapi::JS_GetFunctionObject;
+use js::jsval::JSVal;
 use js::rust::wrappers::CompileFunction;
 use js::rust::{
     transform_u16_to_source_text, CompileOptionsWrapper, HandleObject, RootedObjectVectorWrapper,
@@ -194,7 +195,9 @@ impl CompiledEventListener {
                         if let Some(event) = event.downcast::<ErrorEvent>() {
                             if object.is::<Window>() || object.is::<WorkerGlobalScope>() {
                                 let cx = GlobalScope::get_cx();
-                                rooted!(in(*cx) let error = event.Error(cx));
+                                rooted!(in(*cx) let mut error: JSVal);
+                                event.Error(cx, error.handle_mut());
+                                rooted!(in(*cx) let mut rooted_return_value: JSVal);
                                 let return_value = handler.Call_(
                                     object,
                                     EventOrString::String(event.Message()),
@@ -202,13 +205,13 @@ impl CompiledEventListener {
                                     Some(event.Lineno()),
                                     Some(event.Colno()),
                                     Some(error.handle()),
+                                    rooted_return_value.handle_mut(),
                                     exception_handle,
                                 );
                                 // Step 4
-                                if let Ok(return_value) = return_value {
-                                    rooted!(in(*cx) let return_value = return_value);
-                                    if return_value.handle().is_boolean() &&
-                                        return_value.handle().to_boolean()
+                                if let Ok(()) = return_value {
+                                    if rooted_return_value.handle().is_boolean() &&
+                                        rooted_return_value.handle().to_boolean()
                                     {
                                         event.upcast::<Event>().PreventDefault();
                                     }
@@ -217,6 +220,7 @@ impl CompiledEventListener {
                             }
                         }
 
+                        rooted!(in(*GlobalScope::get_cx()) let mut rooted_return_value: JSVal);
                         let _ = handler.Call_(
                             object,
                             EventOrString::Event(DomRoot::from_ref(event)),
@@ -224,6 +228,7 @@ impl CompiledEventListener {
                             None,
                             None,
                             None,
+                            rooted_return_value.handle_mut(),
                             exception_handle,
                         );
                     },
@@ -250,10 +255,15 @@ impl CompiledEventListener {
                     },
 
                     CommonEventHandler::EventHandler(ref handler) => {
-                        if let Ok(value) = handler.Call_(object, event, exception_handle) {
-                            let cx = GlobalScope::get_cx();
-                            rooted!(in(*cx) let value = value);
-                            let value = value.handle();
+                        let cx = GlobalScope::get_cx();
+                        rooted!(in(*cx) let mut rooted_return_value: JSVal);
+                        if let Ok(()) = handler.Call_(
+                            object,
+                            event,
+                            rooted_return_value.handle_mut(),
+                            exception_handle,
+                        ) {
+                            let value = rooted_return_value.handle();
 
                             //Step 5
                             let should_cancel = value.is_boolean() && !value.to_boolean();
