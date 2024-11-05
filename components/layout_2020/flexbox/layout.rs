@@ -1393,12 +1393,12 @@ impl InitialFlexLineLayout<'_> {
         }
 
         let check_for_flexible_items = || frozen_count.get() < items.len();
-        let free_space = || {
+        let free_space = |all_items_frozen: bool| {
             container_main_size -
                 items_and_main_sizes()
                     .map(|((item, target_main_size), frozen)| {
                         item.pbm_auto_is_zero.main +
-                            if frozen.get() {
+                            if all_items_frozen || frozen.get() {
                                 target_main_size.get()
                             } else {
                                 item.flex_base_size
@@ -1407,7 +1407,7 @@ impl InitialFlexLineLayout<'_> {
                     .sum()
         };
         // https://drafts.csswg.org/css-flexbox/#initial-free-space
-        let initial_free_space = free_space();
+        let initial_free_space = free_space(false);
         let unfrozen_items = || {
             items_and_main_sizes().filter_map(|(item_and_target_main_size, frozen)| {
                 if !frozen.get() {
@@ -1419,7 +1419,7 @@ impl InitialFlexLineLayout<'_> {
         };
         loop {
             // https://drafts.csswg.org/css-flexbox/#remaining-free-space
-            let mut remaining_free_space = free_space();
+            let mut remaining_free_space = free_space(false);
             if !check_for_flexible_items() {
                 return (target_main_sizes_vec, remaining_free_space);
             }
@@ -1481,8 +1481,7 @@ impl InitialFlexLineLayout<'_> {
                 Ordering::Equal => {
                     // “Freeze all items.”
                     // Return instead, as that’s what the next loop iteration would do.
-                    let remaining_free_space =
-                        container_main_size - target_main_sizes_vec.iter().cloned().sum();
+                    let remaining_free_space = free_space(true);
                     return (target_main_sizes_vec, remaining_free_space);
                 },
                 Ordering::Greater => {
