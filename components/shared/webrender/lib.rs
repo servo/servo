@@ -22,7 +22,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use servo_geometry::{DeviceIndependentIntRect, DeviceIndependentIntSize};
 use webrender_api::units::{DevicePoint, LayoutPoint, TexelRect};
 use webrender_api::{
-    BuiltDisplayList, BuiltDisplayListDescriptor, ExternalImage, ExternalImageData,
+    BlobImageKey, BuiltDisplayList, BuiltDisplayListDescriptor, ExternalImage, ExternalImageData,
     ExternalImageHandler, ExternalImageId, ExternalImageSource, ExternalScrollId,
     FontInstanceFlags, FontInstanceKey, FontKey, HitTestFlags, ImageData, ImageDescriptor,
     ImageKey, NativeFontHandle, PipelineId as WebRenderPipelineId,
@@ -444,6 +444,8 @@ impl ExternalImageHandler for WebrenderExternalImageHandlers {
 pub enum ImageUpdate {
     /// Register a new image.
     AddImage(ImageKey, ImageDescriptor, SerializableImageData),
+    /// Register a new blob image.
+    AddBlobImage(BlobImageKey, ImageDescriptor, DeviceIntRect, Arc<Vec<u8>>),
     /// Delete a previously registered image registration.
     DeleteImage(ImageKey),
     /// Update an existing image registration.

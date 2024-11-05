@@ -1138,16 +1138,6 @@ impl BoxFragment {
             new_clip_chain_id = clip_chain_id;
         }
 
-        if let Some(clip_chain_id) = build_clip_path_clip_chain_if_necessary(
-            self.style.clone_clip_path(),
-            display_list,
-            &new_scroll_node_id,
-            &new_clip_chain_id,
-            BuilderForBoxFragment::new(self, &containing_block.rect),
-        ) {
-            new_clip_chain_id = clip_chain_id;
-        }
-
         let establishes_containing_block_for_all_descendants = self
             .style
             .establishes_containing_block_for_all_descendants(self.base.flags);
