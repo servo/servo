@@ -8,6 +8,9 @@ use std::cmp::Ordering;
 use app_units::Au;
 use atomic_refcell::AtomicRefMut;
 use itertools::izip;
+use rayon::iter::{
+    IndexedParallelIterator, IntoParallelRefMutIterator, ParallelDrainRange, ParallelIterator,
+};
 use style::computed_values::position::T as Position;
 use style::logical_geometry::Direction;
 use style::properties::longhands::align_items::computed_value::T as AlignItems;
@@ -117,16 +120,52 @@ struct FlexItemLayoutResult {
 }
 
 impl FlexItemLayoutResult {
-    fn get_or_synthesize_baseline_with_cross_size(&self, cross_size: Au, item: &FlexItem) -> Au {
-        self.baseline_relative_to_margin_box
-            .unwrap_or_else(|| item.synthesized_baseline_relative_to_margin_box(cross_size))
+    fn compatible_with_containing_block_size(&self, containing_block: &ContainingBlock) -> bool {
+        if containing_block.inline_size != self.containing_block_inline_size {
+            return false;
+        }
+        containing_block.block_size == self.containing_block_block_size ||
+            (!self.depends_on_block_constraints &&
+                !self.has_child_which_depends_on_block_constraints)
+    }
+
+    fn compatible_with_containing_block_size_and_content_size(
+        &self,
+        containing_block: &ContainingBlock,
+        size: LogicalVec2<Au>,
+    ) -> bool {
+        size == self.content_size && self.compatible_with_containing_block_size(containing_block)
+    }
+}
+
+/// A data structure to hold all of the information about a flex item that has been placed
+/// into a flex line. This happens once the item is laid out and its line has been determined.
+struct FlexLineItem<'a> {
+    /// The items that are placed in this line.
+    item: FlexItem<'a>,
+
+    /// The layout results of the initial layout pass for a flex line. These may be replaced
+    /// if necessary due to the use of `align-content: stretch` or `align-self: stretch`.
+    layout_result: FlexItemLayoutResult,
+
+    /// The used main size of this item in its line.
+    used_main_size: Au,
+}
+
+impl<'a> FlexLineItem<'a> {
+    fn get_or_synthesize_baseline_with_cross_size(&self, cross_size: Au) -> Au {
+        self.layout_result
+            .baseline_relative_to_margin_box
+            .unwrap_or_else(|| {
+                self.item
+                    .synthesized_baseline_relative_to_margin_box(cross_size)
+            })
     }
 
     #[allow(clippy::too_many_arguments)]
     fn collect_fragment(
         mut self,
         initial_flex_layout: &InitialFlexLineLayout,
-        item: &FlexItem,
         item_used_size: FlexRelativeVec2<Au>,
         item_margin: FlexRelativeSides<Au>,
         item_main_interval: Au,
@@ -139,21 +178,23 @@ impl FlexItemLayoutResult {
         // https://drafts.csswg.org/css-flexbox/#algo-main-align
         // “Align the items along the main-axis”
         *main_position_cursor +=
-            item_margin.main_start + item.border.main_start + item.padding.main_start;
+            item_margin.main_start + self.item.border.main_start + self.item.padding.main_start;
         let item_content_main_start_position = *main_position_cursor;
 
         *main_position_cursor += item_used_size.main +
-            item.padding.main_end +
-            item.border.main_end +
+            self.item.padding.main_end +
+            self.item.border.main_end +
             item_margin.main_end +
             item_main_interval;
 
         // https://drafts.csswg.org/css-flexbox/#algo-cross-align
-        let item_content_cross_start_position = item.align_along_cross_axis(
+        let item_content_cross_start_position = self.item.align_along_cross_axis(
             &item_margin,
             &item_used_size.cross,
             final_line_cross_size,
-            self.baseline_relative_to_margin_box.unwrap_or_default(),
+            self.layout_result
+                .baseline_relative_to_margin_box
+                .unwrap_or_default(),
             shared_alignment_baseline.unwrap_or_default(),
             flex_context.config.flex_wrap_is_reversed,
         );
@@ -178,18 +219,18 @@ impl FlexItemLayoutResult {
         let margin = flex_context.sides_to_flow_relative(item_margin);
         let collapsed_margin = CollapsedBlockMargins::from_margin(&margin);
 
-        if let Some(item_baseline) = self.baseline_relative_to_margin_box.as_ref() {
+        if let Some(item_baseline) = self.layout_result.baseline_relative_to_margin_box.as_ref() {
             let item_baseline = *item_baseline + item_content_cross_start_position -
-                item.border.cross_start -
-                item.padding.cross_start -
+                self.item.border.cross_start -
+                self.item.padding.cross_start -
                 item_margin.cross_start;
             all_baselines.first.get_or_insert(item_baseline);
             all_baselines.last = Some(item_baseline);
         }
 
-        let mut fragment_info = item.box_.base_fragment_info();
+        let mut fragment_info = self.item.box_.base_fragment_info();
         fragment_info.flags.insert(FragmentFlags::IS_FLEX_ITEM);
-        if item.depends_on_block_constraints {
+        if self.item.depends_on_block_constraints {
             fragment_info.flags.insert(
                 FragmentFlags::SIZE_DEPENDS_ON_BLOCK_CONSTRAINTS_AND_CAN_BE_CHILD_OF_FLEX_ITEM,
             );
@@ -198,18 +239,18 @@ impl FlexItemLayoutResult {
 
         let containing_block = flex_context.containing_block;
         let container_writing_mode = containing_block.style.writing_mode;
-        let style = item.box_.style();
+        let style = self.item.box_.style();
 
         let mut fragment = BoxFragment::new(
             fragment_info,
             style.clone(),
-            self.fragments,
+            self.layout_result.fragments,
             content_rect.to_physical(Some(flex_context.containing_block)),
             flex_context
-                .sides_to_flow_relative(item.padding)
+                .sides_to_flow_relative(self.item.padding)
                 .to_physical(container_writing_mode),
             flex_context
-                .sides_to_flow_relative(item.border)
+                .sides_to_flow_relative(self.item.border)
                 .to_physical(container_writing_mode),
             margin.to_physical(container_writing_mode),
             None, /* clearance */
@@ -220,7 +261,8 @@ impl FlexItemLayoutResult {
         // descendants, then lay out any relevant absolutely-positioned children. This
         // will remove those children from `self.positioning_context`.
         if style.establishes_containing_block_for_absolute_descendants(flags) {
-            self.positioning_context
+            self.layout_result
+                .positioning_context
                 .layout_collected_children(flex_context.layout_context, &mut fragment);
         }
 
@@ -229,46 +271,12 @@ impl FlexItemLayoutResult {
                 .to_physical_size(containing_block.style.writing_mode)
         }
 
-        (fragment, self.positioning_context)
-    }
-
-    fn compatible_with_containing_block_size(&self, containing_block: &ContainingBlock) -> bool {
-        if containing_block.inline_size != self.containing_block_inline_size {
-            return false;
-        }
-        containing_block.block_size == self.containing_block_block_size ||
-            (!self.depends_on_block_constraints &&
-                !self.has_child_which_depends_on_block_constraints)
-    }
-
-    fn compatible_with_containing_block_size_and_content_size(
-        &self,
-        containing_block: &ContainingBlock,
-        size: LogicalVec2<Au>,
-    ) -> bool {
-        size == self.content_size && self.compatible_with_containing_block_size(containing_block)
+        (fragment, self.layout_result.positioning_context)
     }
 }
 
-struct InitialFlexLineLayout<'a> {
-    /// The items that are placed in this line.
-    items: &'a mut [FlexItem<'a>],
-
-    /// The initial size of this flex line, not taking into account `align-content: stretch`.
-    line_size: FlexRelativeVec2<Au>,
-
-    /// The layout results of the initial layout pass of this flex line. These may be replaced
-    /// if necessary due to the use of `align-content: stretch` or `align-self: stretch`.
-    item_layout_results: Vec<FlexItemLayoutResult>,
-
-    /// The used main size of each item in this line.
-    item_used_main_sizes: Vec<Au>,
-
-    /// The free space available to this line after the initial layout.
-    free_space_in_main_axis: Au,
-}
-
-/// Return type of `FlexLine::layout`
+/// Once the final cross size of a line is known, the line can go through their final
+/// layout and this the return value. See [`InitialFlexLineLayout::finish_with_final_cross_size`].
 struct FinalFlexLineLayout {
     /// The final cross size of this flex line.
     cross_size: Au,
@@ -676,7 +684,7 @@ impl FlexContainer {
             .collect::<Vec<_>>();
 
         let flex_item_boxes = flex_items.iter_mut().map(|child| &mut **child);
-        let mut flex_items = flex_item_boxes
+        let flex_items = flex_item_boxes
             .map(|flex_item_box| FlexItem::new(&flex_context, flex_item_box))
             .collect::<Vec<_>>();
 
@@ -704,7 +712,7 @@ impl FlexContainer {
         let initial_line_layouts = do_initial_flex_line_layout(
             &mut flex_context,
             container_main_size,
-            &mut flex_items,
+            flex_items,
             main_gap,
         );
 
@@ -1237,98 +1245,120 @@ fn item_with_auto_cross_size_stretches_to_line_size(
         !margin.cross_end.is_auto()
 }
 
-// “Collect flex items into flex lines”
-// https://drafts.csswg.org/css-flexbox/#algo-line-break
+/// “Collect flex items into flex lines”
+/// <https://drafts.csswg.org/css-flexbox/#algo-line-break>
 fn do_initial_flex_line_layout<'items>(
     flex_context: &mut FlexContext,
     container_main_size: Au,
-    mut items: &'items mut [FlexItem<'items>],
+    mut items: Vec<FlexItem<'items>>,
     main_gap: Au,
 ) -> Vec<InitialFlexLineLayout<'items>> {
+    let construct_line = |(items, outer_hypothetical_main_size)| {
+        InitialFlexLineLayout::new(
+            flex_context,
+            items,
+            outer_hypothetical_main_size,
+            container_main_size,
+            main_gap,
+        )
+    };
+
     if flex_context.config.container_is_single_line {
         let outer_hypothetical_main_sizes_sum = items
             .iter()
             .map(|item| item.hypothetical_main_size + item.pbm_auto_is_zero.main)
             .sum();
-        vec![InitialFlexLineLayout::new(
-            flex_context,
-            items,
-            outer_hypothetical_main_sizes_sum,
-            container_main_size,
-            main_gap,
-        )]
-    } else {
-        let mut lines = Vec::new();
-        let mut line_size_so_far = Au::zero();
-        let mut line_so_far_is_empty = true;
-        let mut index = 0;
-        while let Some(item) = items.get(index) {
-            let item_size = item.hypothetical_main_size + item.pbm_auto_is_zero.main;
-            let mut line_size_would_be = line_size_so_far + item_size;
-            if !line_so_far_is_empty {
-                line_size_would_be += main_gap;
-            }
-            let item_fits = line_size_would_be <= container_main_size;
-            if item_fits || line_so_far_is_empty {
-                line_size_so_far = line_size_would_be;
-                line_so_far_is_empty = false;
-                index += 1;
-            } else {
-                // We found something that doesn’t fit. This line ends *before* this item.
-                let (line_items, rest) = items.split_at_mut(index);
-                items = rest;
-                lines.push(InitialFlexLineLayout::new(
-                    flex_context,
-                    line_items,
-                    line_size_so_far,
-                    container_main_size,
-                    main_gap,
-                ));
-
-                // The next line has this item.
-                line_size_so_far = item_size;
-                index = 1;
-            }
-        }
-        // The last line is added even without finding an item that doesn’t fit
-        lines.push(InitialFlexLineLayout::new(
-            flex_context,
-            items,
-            line_size_so_far,
-            container_main_size,
-            main_gap,
-        ));
-        lines
+        return vec![construct_line((items, outer_hypothetical_main_sizes_sum))];
     }
+
+    let mut lines = Vec::new();
+    let mut line_size_so_far = Au::zero();
+    let mut line_so_far_is_empty = true;
+    let mut index = 0;
+
+    while let Some(item) = items.get(index) {
+        let item_size = item.hypothetical_main_size + item.pbm_auto_is_zero.main;
+        let mut line_size_would_be = line_size_so_far + item_size;
+        if !line_so_far_is_empty {
+            line_size_would_be += main_gap;
+        }
+        let item_fits = line_size_would_be <= container_main_size;
+        if item_fits || line_so_far_is_empty {
+            line_size_so_far = line_size_would_be;
+            line_so_far_is_empty = false;
+            index += 1;
+            continue;
+        }
+
+        // We found something that doesn’t fit. This line ends *before* this item.
+        let remaining = items.split_off(index);
+        lines.push((items, line_size_so_far));
+        items = remaining;
+
+        // The next line has this item.
+        line_size_so_far = item_size;
+        index = 1;
+    }
+
+    // We didn't reach the end of the last line, so add all remaining items there.
+    lines.push((items, line_size_so_far));
+
+    lines.par_drain(..).map(construct_line).collect()
+}
+
+/// The result of splitting the flex items into lines using their intrinsic sizes and doing an
+/// initial layout of each item. A final layout still needs to happen after this is produced to
+/// handle stretching.
+struct InitialFlexLineLayout<'a> {
+    /// The items that are placed in this line.
+    items: Vec<FlexLineItem<'a>>,
+
+    /// The initial size of this flex line, not taking into account `align-content: stretch`.
+    line_size: FlexRelativeVec2<Au>,
+
+    /// The free space available to this line after the initial layout.
+    free_space_in_main_axis: Au,
 }
 
 impl InitialFlexLineLayout<'_> {
     fn new<'items>(
-        flex_context: &mut FlexContext,
-        items: &'items mut [FlexItem<'items>],
+        flex_context: &FlexContext,
+        mut items: Vec<FlexItem<'items>>,
         outer_hypothetical_main_sizes_sum: Au,
         container_main_size: Au,
         main_gap: Au,
     ) -> InitialFlexLineLayout<'items> {
         let item_count = items.len();
-        let (item_used_main_sizes, free_space) = Self::resolve_flexible_lengths(
-            items,
+        let (item_used_main_sizes, free_space_in_main_axis) = Self::resolve_flexible_lengths(
+            &items,
             outer_hypothetical_main_sizes_sum,
             container_main_size - main_gap * (item_count as i32 - 1),
         );
 
         // https://drafts.csswg.org/css-flexbox/#algo-cross-item
-        let item_layout_results = items
-            .iter_mut()
+        let layout_results = items
+            .par_iter_mut()
             .zip(&item_used_main_sizes)
-            .map(|(item, &used_main_size)| {
-                item.layout(used_main_size, flex_context, None, None)
+            .map(|(item, used_main_size)| {
+                item.layout(*used_main_size, flex_context, None, None)
                     .unwrap()
             })
             .collect::<Vec<_>>();
 
+        let items: Vec<_> = izip!(
+            items.into_iter(),
+            layout_results.into_iter(),
+            item_used_main_sizes.into_iter()
+        )
+        .map(|(item, layout_result, used_main_size)| FlexLineItem {
+            item,
+            layout_result,
+            used_main_size,
+        })
+        .collect();
+
         // https://drafts.csswg.org/css-flexbox/#algo-cross-line
-        let line_cross_size = Self::cross_size(items, &item_layout_results, flex_context);
+        let line_cross_size = Self::cross_size(&items, flex_context);
         let line_size = FlexRelativeVec2 {
             main: container_main_size,
             cross: line_cross_size,
@@ -1337,9 +1367,7 @@ impl InitialFlexLineLayout<'_> {
         InitialFlexLineLayout {
             items,
             line_size,
-            item_layout_results,
-            item_used_main_sizes,
-            free_space_in_main_axis: free_space,
+            free_space_in_main_axis,
         }
     }
 
@@ -1515,11 +1543,7 @@ impl InitialFlexLineLayout<'_> {
     }
 
     /// <https://drafts.csswg.org/css-flexbox/#algo-cross-line>
-    fn cross_size<'items>(
-        items: &'items [FlexItem<'items>],
-        item_layout_results: &[FlexItemLayoutResult],
-        flex_context: &FlexContext,
-    ) -> Au {
+    fn cross_size<'items>(items: &'items [FlexLineItem<'items>], flex_context: &FlexContext) -> Au {
         if flex_context.config.container_is_single_line {
             if let Some(size) = flex_context.container_definite_inner_size.cross {
                 return size;
@@ -1529,23 +1553,23 @@ impl InitialFlexLineLayout<'_> {
         let mut max_ascent = Au::zero();
         let mut max_descent = Au::zero();
         let mut max_outer_hypothetical_cross_size = Au::zero();
-        for (item_result, item) in item_layout_results.iter().zip(items) {
+        for item in items.iter() {
             // TODO: check inline-axis is parallel to main axis, check no auto cross margins
             if matches!(
-                item.align_self.0.value(),
+                item.item.align_self.0.value(),
                 AlignFlags::BASELINE | AlignFlags::LAST_BASELINE
             ) {
-                let baseline = item_result.get_or_synthesize_baseline_with_cross_size(
-                    item_result.hypothetical_cross_size,
-                    item,
+                let baseline = item.get_or_synthesize_baseline_with_cross_size(
+                    item.layout_result.hypothetical_cross_size,
                 );
                 let hypothetical_margin_box_cross_size =
-                    item_result.hypothetical_cross_size + item.pbm_auto_is_zero.cross;
+                    item.layout_result.hypothetical_cross_size + item.item.pbm_auto_is_zero.cross;
                 max_ascent = max_ascent.max(baseline);
                 max_descent = max_descent.max(hypothetical_margin_box_cross_size - baseline);
             } else {
-                max_outer_hypothetical_cross_size = max_outer_hypothetical_cross_size
-                    .max(item_result.hypothetical_cross_size + item.pbm_auto_is_zero.cross);
+                max_outer_hypothetical_cross_size = max_outer_hypothetical_cross_size.max(
+                    item.layout_result.hypothetical_cross_size + item.item.pbm_auto_is_zero.cross,
+                );
             }
         }
 
@@ -1578,7 +1602,8 @@ impl InitialFlexLineLayout<'_> {
             .items
             .iter()
             .map(|item| {
-                item.margin.main_start.is_auto() as u32 + item.margin.main_end.is_auto() as u32
+                item.item.margin.main_start.is_auto() as u32 +
+                    item.item.margin.main_end.is_auto() as u32
             })
             .sum::<u32>();
         let (space_distributed_to_auto_main_margins, free_space_in_main_axis) =
@@ -1597,19 +1622,15 @@ impl InitialFlexLineLayout<'_> {
         let mut shared_alignment_baseline = None;
         let mut item_used_cross_sizes = Vec::with_capacity(item_count);
         let mut item_margins = Vec::with_capacity(item_count);
-        for (item, item_layout_result, used_main_size) in izip!(
-            self.items.iter_mut(),
-            self.item_layout_results.iter_mut(),
-            self.item_used_main_sizes.iter(),
-        ) {
-            let stretches = item.stretches();
+        for item in self.items.iter_mut() {
+            let stretches = item.item.stretches();
             let used_cross_size = if stretches {
-                (final_line_cross_size - item.pbm_auto_is_zero.cross).clamp_between_extremums(
-                    item.content_min_size.cross,
-                    item.content_max_size.cross,
+                (final_line_cross_size - item.item.pbm_auto_is_zero.cross).clamp_between_extremums(
+                    item.item.content_min_size.cross,
+                    item.item.content_max_size.cross,
                 )
             } else {
-                item_layout_result.hypothetical_cross_size
+                item.layout_result.hypothetical_cross_size
             };
             item_used_cross_sizes.push(used_cross_size);
 
@@ -1617,31 +1638,30 @@ impl InitialFlexLineLayout<'_> {
             // treating this used size as its definite cross size so that percentage-sized
             // children can be resolved.”
             if stretches {
-                let new_layout = item.layout(
-                    *used_main_size,
+                let new_layout = item.item.layout(
+                    item.used_main_size,
                     flex_context,
                     Some(used_cross_size),
-                    Some(item_layout_result),
+                    Some(&mut item.layout_result),
                 );
                 if let Some(layout) = new_layout {
-                    *item_layout_result = layout;
+                    item.layout_result = layout;
                 }
             }
 
-            let _ = item.box_.block_content_size_cache.borrow_mut().take();
+            let _ = item.item.box_.block_content_size_cache.borrow_mut().take();
 
-            let baseline = item_layout_result
-                .get_or_synthesize_baseline_with_cross_size(used_cross_size, item);
+            let baseline = item.get_or_synthesize_baseline_with_cross_size(used_cross_size);
             if matches!(
-                item.align_self.0.value(),
+                item.item.align_self.0.value(),
                 AlignFlags::BASELINE | AlignFlags::LAST_BASELINE
             ) {
                 shared_alignment_baseline =
                     Some(shared_alignment_baseline.unwrap_or(baseline).max(baseline));
             }
-            item_layout_result.baseline_relative_to_margin_box = Some(baseline);
+            item.layout_result.baseline_relative_to_margin_box = Some(baseline);
 
-            item_margins.push(item.resolve_auto_margins(
+            item_margins.push(item.item.resolve_auto_margins(
                 flex_context,
                 final_line_cross_size,
                 used_cross_size,
@@ -1731,23 +1751,14 @@ impl InitialFlexLineLayout<'_> {
         let mut main_position_cursor = main_start_position;
 
         let items = std::mem::take(&mut self.items);
-        let item_layout_results = std::mem::take(&mut self.item_layout_results);
-        let item_fragments = izip!(
-            items,
-            item_margins,
-            self.item_used_main_sizes.iter(),
-            item_used_cross_sizes.iter(),
-            item_layout_results.into_iter(),
-        )
-        .map(
-            |(item, item_margin, item_used_main_size, item_used_cross_size, item_layout_result)| {
+        let item_fragments = izip!(items, item_margins, item_used_cross_sizes.iter())
+            .map(|(item, item_margin, item_used_cross_size)| {
                 let item_used_size = FlexRelativeVec2 {
-                    main: *item_used_main_size,
+                    main: item.used_main_size,
                     cross: *item_used_cross_size,
                 };
-                item_layout_result.collect_fragment(
+                item.collect_fragment(
                     &self,
-                    item,
                     item_used_size,
                     item_margin,
                     item_main_interval,
@@ -1757,9 +1768,8 @@ impl InitialFlexLineLayout<'_> {
                     &mut all_baselines,
                     &mut main_position_cursor,
                 )
-            },
-        )
-        .collect();
+            })
+            .collect();
 
         FinalFlexLineLayout {
             cross_size: final_line_cross_size,
