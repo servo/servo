@@ -1378,77 +1378,106 @@ impl InitialFlexLineLayout<'_> {
         outer_hypothetical_main_sizes_sum: Au,
         container_main_size: Au,
     ) -> (Vec<Au>, Au) {
-        let mut frozen = vec![false; items.len()];
-        let mut target_main_sizes_vec = items
-            .iter()
-            .map(|item| item.flex_base_size)
-            .collect::<Vec<_>>();
-
-        // Using `Cell`s reconciles mutability with multiple borrows in closures
-        let target_main_sizes = Cell::from_mut(&mut *target_main_sizes_vec).as_slice_of_cells();
-        let frozen = Cell::from_mut(&mut *frozen).as_slice_of_cells();
-        let frozen_count = Cell::new(0);
-
-        let grow = outer_hypothetical_main_sizes_sum < container_main_size;
-        let flex_factor = |item: &FlexItem| {
-            let position_style = item.box_.style().get_position();
-            if grow {
-                position_style.flex_grow.0
-            } else {
-                position_style.flex_shrink.0
-            }
-        };
-        let items_and_main_sizes = || items.iter().zip(target_main_sizes).zip(frozen);
-
-        // “Size inflexible items”
-        for ((item, target_main_size), frozen) in items_and_main_sizes() {
-            let is_inflexible = flex_factor(item) == 0. ||
-                if grow {
-                    item.flex_base_size > item.hypothetical_main_size
-                } else {
-                    item.flex_base_size < item.hypothetical_main_size
-                };
-            if is_inflexible {
-                frozen_count.set(frozen_count.get() + 1);
-                frozen.set(true);
-                target_main_size.set(item.hypothetical_main_size);
-            }
+        struct FlexibleLengthResolutionItem<'items> {
+            item: &'items FlexItem<'items>,
+            frozen: Cell<bool>,
+            target_main_size: Cell<Au>,
+            flex_factor: f32,
         }
 
-        let check_for_flexible_items = || frozen_count.get() < items.len();
-        let free_space = |all_items_frozen: bool| {
-            container_main_size -
-                items_and_main_sizes()
-                    .map(|((item, target_main_size), frozen)| {
-                        item.pbm_auto_is_zero.main +
-                            if all_items_frozen || frozen.get() {
-                                target_main_size.get()
-                            } else {
-                                item.flex_base_size
-                            }
-                    })
-                    .sum()
-        };
-        // https://drafts.csswg.org/css-flexbox/#initial-free-space
-        let initial_free_space = free_space(false);
-        let unfrozen_items = || {
-            items_and_main_sizes().filter_map(|(item_and_target_main_size, frozen)| {
-                if !frozen.get() {
-                    Some(item_and_target_main_size)
+        // > 1. Determine the used flex factor. Sum the outer hypothetical main sizes of all
+        // > items on the line. If the sum is less than the flex container’s inner main
+        // > size, use the flex grow factor for the rest of this algorithm; otherwise, use
+        // > the flex shrink factor.
+        let grow = outer_hypothetical_main_sizes_sum < container_main_size;
+
+        let mut frozen_count = 0;
+        let items: Vec<_> = items
+            .iter()
+            .map(|item| {
+                // > 2. Each item in the flex line has a target main size, initially set to its
+                // > flex base size. Each item is initially unfrozen and may become frozen.
+                let target_main_size = Cell::new(item.flex_base_size);
+
+                // > 3. Size inflexible items. Freeze, setting its target main size to its hypothetical main size…
+                // > - any item that has a flex factor of zero
+                // > - if using the flex grow factor: any item that has a flex base size
+                // >   greater than its hypothetical main size
+                // > - if using the flex shrink factor: any item that has a flex base size
+                // >   smaller than its hypothetical main size
+                let flex_factor = if grow {
+                    item.box_.style().get_position().flex_grow.0
                 } else {
-                    None
+                    item.box_.style().get_position().flex_shrink.0
+                };
+
+                let is_inflexible = flex_factor == 0. ||
+                    if grow {
+                        item.flex_base_size > item.hypothetical_main_size
+                    } else {
+                        item.flex_base_size < item.hypothetical_main_size
+                    };
+
+                let frozen = Cell::new(false);
+                if is_inflexible {
+                    frozen_count += 1;
+                    frozen.set(true);
+                    target_main_size.set(item.hypothetical_main_size);
+                }
+
+                FlexibleLengthResolutionItem {
+                    item,
+                    frozen,
+                    target_main_size,
+                    flex_factor,
                 }
             })
+            .collect();
+
+        let unfrozen_items = || items.iter().filter(|item| !item.frozen.get());
+        let main_sizes = |items: Vec<FlexibleLengthResolutionItem>| {
+            items
+                .into_iter()
+                .map(|item| item.target_main_size.get())
+                .collect()
         };
+
+        // https://drafts.csswg.org/css-flexbox/#initial-free-space
+        // > 4. Calculate initial free space. Sum the outer sizes of all items on the line, and
+        // > subtract this from the flex container’s inner main size. For frozen items, use
+        // > their outer target main size; for other items, use their outer flex base size.
+        let free_space = |all_items_frozen| {
+            let items_size = items
+                .iter()
+                .map(|item| {
+                    item.item.pbm_auto_is_zero.main +
+                        if all_items_frozen || item.frozen.get() {
+                            item.target_main_size.get()
+                        } else {
+                            item.item.flex_base_size
+                        }
+                })
+                .sum();
+            container_main_size - items_size
+        };
+
+        let initial_free_space = free_space(false);
         loop {
             // https://drafts.csswg.org/css-flexbox/#remaining-free-space
             let mut remaining_free_space = free_space(false);
-            if !check_for_flexible_items() {
-                return (target_main_sizes_vec, remaining_free_space);
+            // > 5. a. Check for flexible items. If all the flex items on the line are
+            // >       frozen, free space has been distributed; exit this loop.
+            if frozen_count >= items.len() {
+                return (main_sizes(items), remaining_free_space);
             }
-            let unfrozen_items_flex_factor_sum: f32 =
-                unfrozen_items().map(|(item, _)| flex_factor(item)).sum();
-            // FIXME: I (Simon) transcribed the spec but I don’t yet understand why this algorithm
+
+            // > 5. b. Calculate the remaining free space as for initial free space, above. If the
+            // > sum of the unfrozen flex items’ flex factors is less than one, multiply the
+            // > initial free space by this sum. If the magnitude of this value is less than
+            // > the magnitude of the remaining free space, use this as the remaining free
+            // > space.
+            let unfrozen_items_flex_factor_sum =
+                unfrozen_items().map(|item| item.flex_factor).sum();
             if unfrozen_items_flex_factor_sum < 1. {
                 let multiplied = initial_free_space.scale_by(unfrozen_items_flex_factor_sum);
                 if multiplied.abs() < remaining_free_space.abs() {
@@ -1456,67 +1485,88 @@ impl InitialFlexLineLayout<'_> {
                 }
             }
 
-            // “Distribute free space proportional to the flex factors.”
+            // > 5. c. If the remaining free space is non-zero, distribute it proportional
+            // to the flex factors:
+            //
             // FIXME: is it a problem if floating point precision errors accumulate
             // and we get not-quite-zero remaining free space when we should get zero here?
             if remaining_free_space != Au::zero() {
+                // > If using the flex grow factor:
+                // > For every unfrozen item on the line, find the ratio of the item’s flex grow factor to
+                // > the sum of the flex grow factors of all unfrozen items on the line. Set the item’s
+                // > target main size to its flex base size plus a fraction of the remaining free space
+                // > proportional to the ratio.
                 if grow {
-                    for (item, target_main_size) in unfrozen_items() {
-                        let grow_factor = item.box_.style().get_position().flex_grow.0;
-                        let ratio = grow_factor / unfrozen_items_flex_factor_sum;
-                        target_main_size
-                            .set(item.flex_base_size + remaining_free_space.scale_by(ratio));
+                    for item in unfrozen_items() {
+                        let ratio = item.flex_factor / unfrozen_items_flex_factor_sum;
+                        item.target_main_size
+                            .set(item.item.flex_base_size + remaining_free_space.scale_by(ratio));
                     }
+                // > If using the flex shrink factor
+                // > For every unfrozen item on the line, multiply its flex shrink factor by its inner flex
+                // > base size, and note this as its scaled flex shrink factor. Find the ratio of the
+                // > item’s scaled flex shrink factor to the sum of the scaled flex shrink factors of all
+                // > unfrozen items on the line. Set the item’s target main size to its flex base size
+                // > minus a fraction of the absolute value of the remaining free space proportional to the
+                // > ratio. Note this may result in a negative inner main size; it will be corrected in the
+                // > next step.
                 } else {
                     // https://drafts.csswg.org/css-flexbox/#scaled-flex-shrink-factor
-                    let scaled_shrink_factor = |item: &FlexItem| {
-                        let shrink_factor = item.box_.style().get_position().flex_shrink.0;
-                        item.flex_base_size.scale_by(shrink_factor)
+                    let scaled_shrink_factor = |item: &FlexibleLengthResolutionItem| {
+                        item.item.flex_base_size.scale_by(item.flex_factor)
                     };
-                    let scaled_shrink_factors_sum: Au = unfrozen_items()
-                        .map(|(item, _)| scaled_shrink_factor(item))
-                        .sum();
+                    let scaled_shrink_factors_sum: Au =
+                        unfrozen_items().map(scaled_shrink_factor).sum();
                     if scaled_shrink_factors_sum > Au::zero() {
-                        for (item, target_main_size) in unfrozen_items() {
+                        for item in unfrozen_items() {
                             let ratio = scaled_shrink_factor(item).0 as f32 /
                                 scaled_shrink_factors_sum.0 as f32;
-                            target_main_size.set(
-                                item.flex_base_size - remaining_free_space.abs().scale_by(ratio),
+                            item.target_main_size.set(
+                                item.item.flex_base_size -
+                                    remaining_free_space.abs().scale_by(ratio),
                             );
                         }
                     }
                 }
             }
 
-            // “Fix min/max violations.”
-            let violation = |(item, target_main_size): (&FlexItem, &Cell<Au>)| {
-                let size = target_main_size.get();
+            // > 5. d. Fix min/max violations. Clamp each non-frozen item’s target main size
+            // > by its used min and max main sizes and floor its content-box size at zero.
+            // > If the item’s target main size was made smaller by this, it’s a max
+            // > violation. If the item’s target main size was made larger by this, it’s a
+            // > min violation.
+            let violation = |item: &FlexibleLengthResolutionItem| {
+                let size = item.target_main_size.get();
                 let clamped = size.clamp_between_extremums(
-                    item.content_min_size.main,
-                    item.content_max_size.main,
+                    item.item.content_min_size.main,
+                    item.item.content_max_size.main,
                 );
                 clamped - size
             };
 
-            // “Freeze over-flexed items.”
+            // > 5. e. Freeze over-flexed items. The total violation is the sum of the
+            // > adjustments from the previous step ∑(clamped size - unclamped size). If the
+            // > total violation is:
+            // > - Zero:  Freeze all items.
+            // > - Positive: Freeze all the items with min violations.
+            // > - Negative:  Freeze all the items with max violations.
             let total_violation: Au = unfrozen_items().map(violation).sum();
             match total_violation.cmp(&Au::zero()) {
                 Ordering::Equal => {
                     // “Freeze all items.”
                     // Return instead, as that’s what the next loop iteration would do.
                     let remaining_free_space = free_space(true);
-                    return (target_main_sizes_vec, remaining_free_space);
+                    return (main_sizes(items), remaining_free_space);
                 },
                 Ordering::Greater => {
                     // “Freeze all the items with min violations.”
                     // “If the item’s target main size was made larger by [clamping],
                     //  it’s a min violation.”
-                    for (item_and_target_main_size, frozen) in items_and_main_sizes() {
-                        if violation(item_and_target_main_size) > Au::zero() {
-                            let (item, target_main_size) = item_and_target_main_size;
-                            target_main_size.set(item.content_min_size.main);
-                            frozen_count.set(frozen_count.get() + 1);
-                            frozen.set(true);
+                    for item in items.iter() {
+                        if violation(item) > Au::zero() {
+                            item.target_main_size.set(item.item.content_min_size.main);
+                            item.frozen.set(true);
+                            frozen_count += 1;
                         }
                     }
                 },
@@ -1525,15 +1575,14 @@ impl InitialFlexLineLayout<'_> {
                     // “Freeze all the items with max violations.”
                     // “If the item’s target main size was made smaller by [clamping],
                     //  it’s a max violation.”
-                    for (item_and_target_main_size, frozen) in items_and_main_sizes() {
-                        if violation(item_and_target_main_size) < Au::zero() {
-                            let (item, target_main_size) = item_and_target_main_size;
-                            let Some(max_size) = item.content_max_size.main else {
+                    for item in items.iter() {
+                        if violation(item) < Au::zero() {
+                            let Some(max_size) = item.item.content_max_size.main else {
                                 unreachable!()
                             };
-                            target_main_size.set(max_size);
-                            frozen_count.set(frozen_count.get() + 1);
-                            frozen.set(true);
+                            item.target_main_size.set(max_size);
+                            item.frozen.set(true);
+                            frozen_count += 1;
                         }
                     }
                 },
