@@ -466,7 +466,7 @@ impl HoistedAbsolutelyPositionedBox {
                     .used_size_as_if_inline_element(
                         containing_block,
                         &style,
-                        &content_box_sizes_and_pbm.into(),
+                        &content_box_sizes_and_pbm,
                     )
                     .map(|size| Size::Numeric(*size));
                 (used_size, Default::default(), Default::default())

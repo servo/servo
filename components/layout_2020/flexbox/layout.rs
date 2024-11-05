@@ -18,7 +18,7 @@ use style::properties::longhands::box_sizing::computed_value::T as BoxSizing;
 use style::properties::longhands::flex_direction::computed_value::T as FlexDirection;
 use style::properties::longhands::flex_wrap::computed_value::T as FlexWrap;
 use style::properties::ComputedValues;
-use style::values::computed::length::Size;
+use style::values::computed::length::Size as StyleSize;
 use style::values::generics::flex::GenericFlexBasis as FlexBasis;
 use style::values::generics::length::{GenericLengthPercentageOrAuto, LengthPercentageOrNormal};
 use style::values::specified::align::AlignFlags;
@@ -32,7 +32,7 @@ use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::formatting_contexts::{Baselines, IndependentFormattingContext, IndependentLayout};
 use crate::fragment_tree::{BoxFragment, CollapsedBlockMargins, Fragment, FragmentFlags};
-use crate::geom::{AuOrAuto, LogicalRect, LogicalSides, LogicalVec2};
+use crate::geom::{AuOrAuto, LogicalRect, LogicalSides, LogicalVec2, Size};
 use crate::positioned::{
     relative_adjustement, AbsolutelyPositionedBox, PositioningContext, PositioningContextLength,
 };
@@ -1873,11 +1873,16 @@ impl FlexItem<'_> {
                         containing_block,
                         &replaced.style,
                         LogicalVec2 {
-                            inline: AuOrAuto::LengthPercentage(inline_size),
-                            block: block_size,
+                            inline: Size::Numeric(inline_size),
+                            block: block_size.non_auto().map_or(Size::Initial, Size::Numeric),
                         },
-                        flex_axis.vec2_to_flow_relative(self.content_min_size),
-                        flex_axis.vec2_to_flow_relative(self.content_max_size),
+                        flex_axis
+                            .vec2_to_flow_relative(self.content_min_size)
+                            .map(|size| Size::Numeric(*size)),
+                        flex_axis
+                            .vec2_to_flow_relative(self.content_max_size)
+                            .map(|size| size.map_or(Size::Initial, Size::Numeric)),
+                        flex_axis.vec2_to_flow_relative(self.pbm_auto_is_zero),
                     );
                 let hypothetical_cross_size = flex_axis.vec2_to_flex_relative(size).cross;
 
@@ -2505,7 +2510,7 @@ impl FlexItemBox {
 
         let used_flex_basis = match &style.get_position().flex_basis {
             FlexBasis::Content => FlexBasis::Content,
-            FlexBasis::Size(Size::LengthPercentage(length_percentage)) => {
+            FlexBasis::Size(StyleSize::LengthPercentage(length_percentage)) => {
                 let apply_box_sizing = |length: Au| {
                     match style.get_position().box_sizing {
                         BoxSizing::ContentBox => length,
@@ -2678,9 +2683,12 @@ impl FlexItemBox {
                     .used_size_as_if_inline_element_from_content_box_sizes(
                         flex_context.containing_block,
                         &replaced.style,
-                        content_box_size,
-                        min_size,
-                        max_size,
+                        content_box_size
+                            .map(|size| size.non_auto().map_or(Size::Initial, Size::Numeric)),
+                        min_size.map(|size| Size::Numeric(*size)),
+                        max_size.map(|size| size.map_or(Size::Initial, Size::Numeric)),
+                        padding_border_margin.padding_border_sums +
+                            padding_border_margin.margin.auto_is(Au::zero).sum(),
                     )
                     .block
             },
