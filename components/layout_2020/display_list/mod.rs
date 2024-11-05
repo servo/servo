@@ -179,20 +179,16 @@ pub(crate) struct DisplayListBuilder<'a> {
 }
 
 impl DisplayList {
-    #[cfg_attr(
-        feature = "tracing",
-        tracing::instrument(
-            name = "display_list::build",
-            skip_all,
-            fields(servo_profiling = true)
-        )
-    )]
     pub fn build(
         &mut self,
         context: &LayoutContext,
         fragment_tree: &FragmentTree,
         root_stacking_context: &StackingContext,
     ) -> (FnvHashMap<BrowsingContextId, Size2D<f32, CSSPixel>>, bool) {
+        #[cfg(feature = "tracing")]
+        let span = tracing::span!(tracing::Level::TRACE, "display_list::build");
+        #[cfg(feature = "tracing")]
+        let _enter = span.enter();
         let mut builder = DisplayListBuilder {
             current_scroll_node_id: self.compositor_info.root_reference_frame_id,
             current_reference_frame_scroll_node_id: self.compositor_info.root_reference_frame_id,
