@@ -39,11 +39,6 @@ use crate::style_ext::{
 };
 use crate::{ContainingBlock, IndefiniteContainingBlock};
 
-// FIMXE: “Flex items […] `z-index` values other than `auto` create a stacking context
-// even if `position` is `static` (behaving exactly as if `position` were `relative`).”
-// https://drafts.csswg.org/css-flexbox/#painting
-// (likely in `display_list/stacking_context.rs`)
-
 /// Layout parameters and intermediate results about a flex container,
 /// grouped to avoid passing around many parameters
 struct FlexContext<'a> {
