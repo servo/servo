@@ -82,10 +82,9 @@ fn is_unrooted_ty<'tcx>(
                 continue;
             },
         };
+        let has_attr = |did, name| has_lint_attr(sym, cx.tcx.get_attrs_unchecked(did), name);
         let recur_into_subtree = match t.kind() {
             ty::Adt(did, substs) => {
-                let has_attr =
-                    |did, name| has_lint_attr(sym, cx.tcx.get_attrs_unchecked(did), name);
                 if has_attr(did.did(), sym.must_root) {
                     ret = true;
                     false
@@ -159,7 +158,14 @@ fn is_unrooted_ty<'tcx>(
             ty::Ref(..) => false,    // don't recurse down &ptrs
             ty::RawPtr(..) => false, // don't recurse down *ptrs
             ty::FnDef(..) | ty::FnPtr(_) => false,
-
+            ty::Alias(_, ty) => {
+                if has_attr(ty.def_id, sym.must_root) {
+                    ret = true;
+                    false
+                } else {
+                    true
+                }
+            },
             _ => true,
         };
         if !recur_into_subtree {
@@ -226,6 +232,50 @@ impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
             }
         }
     }
+
+    /// for trait_type_impl_must_root test
+    fn check_trait_item(
+        &mut self,
+        cx: &LateContext<'tcx>,
+        trait_item: &'tcx rustc_hir::TraitItem<'tcx>,
+    ) {
+        let hir::TraitItemKind::Type(_, trait_asoc_ty) = trait_item.kind else {
+            return;
+        };
+
+        let attrs = cx.tcx.hir().attrs(trait_item.hir_id());
+        if has_lint_attr(&self.symbols, attrs, self.symbols.must_root) {
+            return;
+        }
+
+        let trait_id = cx
+            .tcx
+            .trait_of_item(trait_item.hir_id().expect_owner().to_def_id())
+            .unwrap();
+        // we need to make sure that all impl do not have any must_root type binded
+        let impls = cx.tcx.trait_impls_of(trait_id);
+        for (_ty, impl_def_ids) in impls.non_blanket_impls() {
+            for impl_def_id in impl_def_ids {
+                let type_impl = cx
+                    .tcx
+                    .associated_items(impl_def_id)
+                    .find_by_name_and_kind(cx.tcx, trait_item.ident, ty::AssocKind::Type, trait_id)
+                    .unwrap();
+                let mir_ty = cx.tcx.type_of(type_impl.def_id).skip_binder();
+                if is_unrooted_ty(&self.symbols, cx, mir_ty, false) {
+                    cx.lint(UNROOTED_MUST_ROOT, |lint| {
+                        lint.primary_message(
+                            "Type trait declaration must be marked with \
+                        #[crown::unrooted_must_root_lint::must_root] \
+                        to allow binding must_root types in associate types",
+                        );
+                        lint.span(trait_item.span);
+                    })
+                }
+            }
+        }
+    }
+
     /// Function arguments that are #[crown::unrooted_must_root_lint::must_root] types are not allowed
     fn check_fn(
         &mut self,
