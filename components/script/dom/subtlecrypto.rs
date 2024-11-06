@@ -32,7 +32,7 @@ use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{
 use crate::dom::bindings::codegen::UnionTypes::{
     ArrayBufferViewOrArrayBuffer, ArrayBufferViewOrArrayBufferOrJsonWebKey,
 };
-use crate::dom::bindings::error::Error;
+use crate::dom::bindings::error::{Fallible, Error};
 use crate::dom::bindings::import::module::SafeJSContext;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
@@ -692,21 +692,23 @@ pub struct SubtlePbkdf2Params {
     iterations: u32,
 
     /// <https://w3c.github.io/webcrypto/#dfn-Pbkdf2Params-hash>
-    hash: String,
+    hash: Box<NormalizedAlgorithm>,
 }
 
-impl From<RootedTraceableBox<Pbkdf2Params>> for SubtlePbkdf2Params {
-    fn from(params: RootedTraceableBox<Pbkdf2Params>) -> Self {
+impl SubtlePbkdf2Params {
+    fn new(cx: JSContext, params: RootedTraceableBox<Pbkdf2Params>) -> Fallible<Self> {
         let salt = match &params.salt {
             ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
             ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
         };
 
-        Self {
+        let params = Self {
             salt,
             iterations: params.iterations,
-            hash: params.parent.name.to_string().to_uppercase(),
-        }
+            hash: Box::new(normalize_algorithm(cx, &params.hash, "digest")?),
+        };
+
+        Ok(params)
     }
 }
 
@@ -767,7 +769,8 @@ fn normalize_algorithm(
                     let ConversionResult::Success(params) = params_result else {
                         return Err(Error::Syntax);
                     };
-                    NormalizedAlgorithm::Pbkdf2Params(params.into())
+                    let subtle_params = SubtlePbkdf2Params::new(cx, params)?;
+                    NormalizedAlgorithm::Pbkdf2Params(subtle_params)
                 },
                 (ALG_AES_CBC, "importKey") => NormalizedAlgorithm::Algorithm(SubtleAlgorithm {
                     name: ALG_AES_CBC.to_string(),
@@ -817,6 +820,7 @@ impl SubtleCrypto {
                 let key_data = GenericArray::from_slice(data);
                 Aes256CbcEnc::new(key_data, iv).encrypt_padded_vec_mut::<Pkcs7>(&plaintext)
             },
+            _ => return Err(Error::Data)
         };
 
         create_buffer_source::<ArrayBufferU8>(cx, &ct, handle)
@@ -860,6 +864,7 @@ impl SubtleCrypto {
                     .decrypt_padded_mut::<Pkcs7>(ciphertext.as_mut_slice())
                     .map_err(|_| Error::Operation)?
             },
+            _ => return Err(Error::Data)
         };
 
         create_buffer_source::<ArrayBufferU8>(cx, plaintext, handle)
@@ -897,6 +902,7 @@ impl SubtleCrypto {
                 let key_data = GenericArray::from_slice(data);
                 Aes256Ctr::new(key_data, counter).apply_keystream(&mut ciphertext)
             },
+            _ => return Err(Error::Data)
         };
 
         create_buffer_source::<ArrayBufferU8>(cx, &ciphertext, handle)
@@ -1026,6 +1032,7 @@ impl SubtleCrypto {
                 Handle::Aes128(key_data) => Ok(AesExportedKey::Raw(key_data.as_slice().to_vec())),
                 Handle::Aes192(key_data) => Ok(AesExportedKey::Raw(key_data.as_slice().to_vec())),
                 Handle::Aes256(key_data) => Ok(AesExportedKey::Raw(key_data.as_slice().to_vec())),
+                _ => return Err(Error::Data),
             },
             KeyFormat::Jwk => {
                 let (alg, k) = match key.handle() {
@@ -1038,6 +1045,7 @@ impl SubtleCrypto {
                     Handle::Aes256(key_data) => {
                         data_to_jwk_params(key.algorithm().as_str(), "256", key_data.as_slice())
                     },
+                    _ => return Err(Error::Data),
                 };
                 let jwk = JsonWebKey {
                     alg: Some(alg),
@@ -1064,6 +1072,53 @@ impl SubtleCrypto {
             _ => Err(Error::NotSupported),
         }
     }
+
+    /// <https://w3c.github.io/webcrypto/#pbkdf2-operations>
+    #[allow(unsafe_code)]
+    fn import_key_pbkdf2(&self,
+        format: KeyFormat,
+        data: &[u8],
+        extractable: bool,
+        usages: Vec<KeyUsage>) -> Result<DomRoot<CryptoKey>, Error> {
+            // Step 1. If format is not "raw", throw a NotSupportedError
+            if format != KeyFormat::Raw {
+                return Err(Error::NotSupported);
+            }
+
+            // Step 2. If usages contains a value that is not "deriveKey" or "deriveBits", then throw a SyntaxError.
+            if usages.iter().any(|usage| !matches!(usage, KeyUsage::DeriveKey | KeyUsage::DeriveBits)) {
+                return Err(Error::Syntax);
+            }
+
+            // Step 3. If extractable is not false, then throw a SyntaxError.
+            if extractable {
+                return Err(Error::Syntax);
+            }
+
+            // Step 4. Let key be a new CryptoKey representing keyData.
+            // Step 5. Set the [[type]] internal slot of key to "secret".
+            // Step 6. Let algorithm be a new KeyAlgorithm object.
+            // Step 7. Set the name attribute of algorithm to "PBKDF2".
+            // Step 8. Set the [[algorithm]] internal slot of key to algorithm.
+            let name = DOMString::from(ALG_PBKDF2);
+            let cx = GlobalScope::get_cx();
+            rooted!(in(*cx) let mut algorithm_object = unsafe {JS_NewObject(*cx, ptr::null()) });
+            assert!(!algorithm_object.is_null());
+            KeyAlgorithm::from_name(name.clone(), algorithm_object.handle_mut(), cx);
+
+            let key = CryptoKey::new(
+                &self.global(),
+                KeyType::Secret,
+                extractable,
+                name,
+                algorithm_object.handle(),
+                usages,
+                Handle::Pbkdf2(data.to_vec()),
+            );
+
+            // Step 9. Return key.
+            Ok(key)
+        }
 }
 
 pub enum AesExportedKey {
@@ -1082,13 +1137,28 @@ fn data_to_jwk_params(alg: &str, size: &str, key: &[u8]) -> (DOMString, DOMStrin
     (jwk_alg, DOMString::from(data))
 }
 
+impl KeyAlgorithm {
+    /// Fill the object referenced by `out` with an [KeyAlgorithm]
+    /// of the specified name and size.
+    #[allow(unsafe_code)]
+    fn from_name(name: DOMString, out: MutableHandleObject, cx: JSContext) {
+        let key_algorithm = Self {
+            name,
+        };
+
+        unsafe {
+            key_algorithm.to_jsobject(*cx, out);
+        }
+    }
+}
+
 impl AesKeyAlgorithm {
     /// Fill the object referenced by `out` with an [AesKeyAlgorithm]
     /// of the specified name and size.
     #[allow(unsafe_code)]
     fn from_name_and_size(name: DOMString, size: u16, out: MutableHandleObject, cx: JSContext) {
         let key_algorithm = Self {
-            parent: KeyAlgorithm { name: name.clone() },
+            parent: KeyAlgorithm { name },
             length: size,
         };
 
@@ -1116,12 +1186,16 @@ impl SubtlePbkdf2Params {
 
         // Step 3. Let prf be the MAC Generation function described in Section 4 of [FIPS-198-1]
         // using the hash function described by the hash member of normalizedAlgorithm.
-        let prf = match self.hash.as_str() {
+        let NormalizedAlgorithm::Algorithm(alg) = &*self.hash else {
+            return Err(Error::NotSupported);
+        };
+
+        let prf = match alg.name.as_str() {
             ALG_SHA1 => pbkdf2::PBKDF2_HMAC_SHA1,
             ALG_SHA256 => pbkdf2::PBKDF2_HMAC_SHA256,
             ALG_SHA384 => pbkdf2::PBKDF2_HMAC_SHA384,
             ALG_SHA512 => pbkdf2::PBKDF2_HMAC_SHA512,
-            _ => return Err(Error::Syntax),
+            _ => return Err(Error::NotSupported),
         };
 
         // Step 4. Let result be the result of performing the PBKDF2 operation defined in Section 5.2 of [RFC8018] using
@@ -1176,6 +1250,9 @@ impl NormalizedAlgorithm {
             ALG_AES_CTR => {
                 subtle.import_key_aes(format, &secret, extractable, key_usages, ALG_AES_CTR)
             },
+            ALG_PBKDF2 => {
+                subtle.import_key_pbkdf2(format, &secret, extractable, key_usages)
+            }
             _ => Err(Error::NotSupported),
         }
     }

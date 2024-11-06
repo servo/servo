@@ -26,6 +26,7 @@ pub enum Handle {
     Aes128(Vec<u8>),
     Aes192(Vec<u8>),
     Aes256(Vec<u8>),
+    Pbkdf2(Vec<u8>)
 }
 
 /// <https://w3c.github.io/webcrypto/#cryptokey-interface>
@@ -124,7 +125,7 @@ impl CryptoKeyMethods for CryptoKey {
         self.extractable.get()
     }
 
-    /// <https://w3c.github.io/webcrypto/#cryptokey-interface-members>
+    /// <https://w3c.github.io/webcrypto/#dom-cryptokey-algorithm>
     fn Algorithm(&self, _cx: JSContext) -> NonNull<JSObject> {
         NonNull::new(self.algorithm_object.get()).unwrap()
     }
@@ -146,6 +147,7 @@ impl Handle {
             Self::Aes128(bytes) => bytes,
             Self::Aes192(bytes) => bytes,
             Self::Aes256(bytes) => bytes,
+            Self::Pbkdf2(bytes) => bytes,
         }
     }
 }
