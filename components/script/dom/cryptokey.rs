@@ -26,6 +26,7 @@ pub enum Handle {
     Aes128(Vec<u8>),
     Aes192(Vec<u8>),
     Aes256(Vec<u8>),
+    Pbkdf2(Vec<u8>),
 }
 
 /// <https://w3c.github.io/webcrypto/#cryptokey-interface>
@@ -114,28 +115,39 @@ impl CryptoKey {
 }
 
 impl CryptoKeyMethods for CryptoKey {
-    /// <https://w3c.github.io/webcrypto/#cryptokey-interface-members>
+    /// <https://w3c.github.io/webcrypto/#dom-cryptokey-type>
     fn Type(&self) -> KeyType {
         self.key_type
     }
 
-    /// <https://w3c.github.io/webcrypto/#cryptokey-interface-members>
+    /// <https://w3c.github.io/webcrypto/#dom-cryptokey-extractable>
     fn Extractable(&self) -> bool {
         self.extractable.get()
     }
 
-    /// <https://w3c.github.io/webcrypto/#cryptokey-interface-members>
+    /// <https://w3c.github.io/webcrypto/#dom-cryptokey-algorithm>
     fn Algorithm(&self, _cx: JSContext) -> NonNull<JSObject> {
         NonNull::new(self.algorithm_object.get()).unwrap()
     }
 
     #[allow(unsafe_code)]
-    /// <https://w3c.github.io/webcrypto/#cryptokey-interface-members>
+    /// <https://w3c.github.io/webcrypto/#dom-cryptokey-usages>
     fn Usages(&self, cx: JSContext) -> NonNull<JSObject> {
         unsafe {
             rooted!(in(*cx) let mut usages: Value);
             self.usages.to_jsval(*cx, usages.handle_mut());
             NonNull::new(usages.to_object()).unwrap()
+        }
+    }
+}
+
+impl Handle {
+    pub fn as_bytes(&self) -> &[u8] {
+        match self {
+            Self::Aes128(bytes) => bytes,
+            Self::Aes192(bytes) => bytes,
+            Self::Aes256(bytes) => bytes,
+            Self::Pbkdf2(bytes) => bytes,
         }
     }
 }

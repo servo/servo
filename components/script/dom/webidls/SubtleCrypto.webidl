@@ -44,9 +44,9 @@ interface SubtleCrypto {
   //                        AlgorithmIdentifier derivedKeyType,
   //                        boolean extractable,
   //                        sequence<KeyUsage> keyUsages );
-  // Promise<ArrayBuffer> deriveBits(AlgorithmIdentifier algorithm,
-  //                         CryptoKey baseKey,
-  //                         optional unsigned long? length = null);
+  Promise<ArrayBuffer> deriveBits(AlgorithmIdentifier algorithm,
+                          CryptoKey baseKey,
+                          optional unsigned long? length = null);
 
   Promise<CryptoKey> importKey(KeyFormat format,
                          (BufferSource or JsonWebKey) keyData,
@@ -90,6 +90,13 @@ dictionary AesCbcParams : Algorithm {
 dictionary AesCtrParams : Algorithm {
   required BufferSource counter;
   required [EnforceRange] octet length;
+};
+
+// https://w3c.github.io/webcrypto/#pbkdf2-params
+dictionary Pbkdf2Params : Algorithm {
+  required BufferSource salt;
+  required [EnforceRange] unsigned long iterations;
+  required HashAlgorithmIdentifier hash;
 };
 
 // JWK
