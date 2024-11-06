@@ -32,7 +32,7 @@ use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{
 use crate::dom::bindings::codegen::UnionTypes::{
     ArrayBufferViewOrArrayBuffer, ArrayBufferViewOrArrayBufferOrJsonWebKey,
 };
-use crate::dom::bindings::error::{Fallible, Error};
+use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::import::module::SafeJSContext;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
@@ -823,7 +823,7 @@ impl SubtleCrypto {
                 let key_data = GenericArray::from_slice(data);
                 Aes256CbcEnc::new(key_data, iv).encrypt_padded_vec_mut::<Pkcs7>(&plaintext)
             },
-            _ => return Err(Error::Data)
+            _ => return Err(Error::Data),
         };
 
         create_buffer_source::<ArrayBufferU8>(cx, &ct, handle)
@@ -867,7 +867,7 @@ impl SubtleCrypto {
                     .decrypt_padded_mut::<Pkcs7>(ciphertext.as_mut_slice())
                     .map_err(|_| Error::Operation)?
             },
-            _ => return Err(Error::Data)
+            _ => return Err(Error::Data),
         };
 
         create_buffer_source::<ArrayBufferU8>(cx, plaintext, handle)
@@ -905,7 +905,7 @@ impl SubtleCrypto {
                 let key_data = GenericArray::from_slice(data);
                 Aes256Ctr::new(key_data, counter).apply_keystream(&mut ciphertext)
             },
-            _ => return Err(Error::Data)
+            _ => return Err(Error::Data),
         };
 
         create_buffer_source::<ArrayBufferU8>(cx, &ciphertext, handle)
@@ -1078,50 +1078,55 @@ impl SubtleCrypto {
 
     /// <https://w3c.github.io/webcrypto/#pbkdf2-operations>
     #[allow(unsafe_code)]
-    fn import_key_pbkdf2(&self,
+    fn import_key_pbkdf2(
+        &self,
         format: KeyFormat,
         data: &[u8],
         extractable: bool,
-        usages: Vec<KeyUsage>) -> Result<DomRoot<CryptoKey>, Error> {
-            // Step 1. If format is not "raw", throw a NotSupportedError
-            if format != KeyFormat::Raw {
-                return Err(Error::NotSupported);
-            }
-
-            // Step 2. If usages contains a value that is not "deriveKey" or "deriveBits", then throw a SyntaxError.
-            if usages.iter().any(|usage| !matches!(usage, KeyUsage::DeriveKey | KeyUsage::DeriveBits)) {
-                return Err(Error::Syntax);
-            }
-
-            // Step 3. If extractable is not false, then throw a SyntaxError.
-            if extractable {
-                return Err(Error::Syntax);
-            }
-
-            // Step 4. Let key be a new CryptoKey representing keyData.
-            // Step 5. Set the [[type]] internal slot of key to "secret".
-            // Step 6. Let algorithm be a new KeyAlgorithm object.
-            // Step 7. Set the name attribute of algorithm to "PBKDF2".
-            // Step 8. Set the [[algorithm]] internal slot of key to algorithm.
-            let name = DOMString::from(ALG_PBKDF2);
-            let cx = GlobalScope::get_cx();
-            rooted!(in(*cx) let mut algorithm_object = unsafe {JS_NewObject(*cx, ptr::null()) });
-            assert!(!algorithm_object.is_null());
-            KeyAlgorithm::from_name(name.clone(), algorithm_object.handle_mut(), cx);
-
-            let key = CryptoKey::new(
-                &self.global(),
-                KeyType::Secret,
-                extractable,
-                name,
-                algorithm_object.handle(),
-                usages,
-                Handle::Pbkdf2(data.to_vec()),
-            );
-
-            // Step 9. Return key.
-            Ok(key)
+        usages: Vec<KeyUsage>,
+    ) -> Result<DomRoot<CryptoKey>, Error> {
+        // Step 1. If format is not "raw", throw a NotSupportedError
+        if format != KeyFormat::Raw {
+            return Err(Error::NotSupported);
         }
+
+        // Step 2. If usages contains a value that is not "deriveKey" or "deriveBits", then throw a SyntaxError.
+        if usages
+            .iter()
+            .any(|usage| !matches!(usage, KeyUsage::DeriveKey | KeyUsage::DeriveBits))
+        {
+            return Err(Error::Syntax);
+        }
+
+        // Step 3. If extractable is not false, then throw a SyntaxError.
+        if extractable {
+            return Err(Error::Syntax);
+        }
+
+        // Step 4. Let key be a new CryptoKey representing keyData.
+        // Step 5. Set the [[type]] internal slot of key to "secret".
+        // Step 6. Let algorithm be a new KeyAlgorithm object.
+        // Step 7. Set the name attribute of algorithm to "PBKDF2".
+        // Step 8. Set the [[algorithm]] internal slot of key to algorithm.
+        let name = DOMString::from(ALG_PBKDF2);
+        let cx = GlobalScope::get_cx();
+        rooted!(in(*cx) let mut algorithm_object = unsafe {JS_NewObject(*cx, ptr::null()) });
+        assert!(!algorithm_object.is_null());
+        KeyAlgorithm::from_name(name.clone(), algorithm_object.handle_mut(), cx);
+
+        let key = CryptoKey::new(
+            &self.global(),
+            KeyType::Secret,
+            extractable,
+            name,
+            algorithm_object.handle(),
+            usages,
+            Handle::Pbkdf2(data.to_vec()),
+        );
+
+        // Step 9. Return key.
+        Ok(key)
+    }
 }
 
 pub enum AesExportedKey {
@@ -1145,9 +1150,7 @@ impl KeyAlgorithm {
     /// of the specified name and size.
     #[allow(unsafe_code)]
     fn from_name(name: DOMString, out: MutableHandleObject, cx: JSContext) {
-        let key_algorithm = Self {
-            name,
-        };
+        let key_algorithm = Self { name };
 
         unsafe {
             key_algorithm.to_jsobject(*cx, out);
@@ -1202,9 +1205,10 @@ impl SubtlePbkdf2Params {
         };
 
         // Step 4. Let result be the result of performing the PBKDF2 operation defined in Section 5.2 of [RFC8018] using
-        // prf as the pseudo-random function, PRF, the password represented by [[handle]] internal slot of key as the password,
-        // P, the contents of the salt attribute of normalizedAlgorithm as the salt, S, the value of the iterations attribute
-        // of normalizedAlgorithm as the iteration count, c, and length divided by 8 as the intended key length, dkLen.
+        // prf as the pseudo-random function, PRF, the password represented by [[handle]] internal slot of key as
+        // the password, P, the contents of the salt attribute of normalizedAlgorithm as the salt, S, the value of
+        // the iterations attribute of normalizedAlgorithm as the iteration count, c, and length divided by 8 as the
+        // intended key length, dkLen.
         let mut result = vec![0; length as usize / 8];
         pbkdf2::derive(
             prf,
@@ -1253,9 +1257,7 @@ impl NormalizedAlgorithm {
             ALG_AES_CTR => {
                 subtle.import_key_aes(format, &secret, extractable, key_usages, ALG_AES_CTR)
             },
-            ALG_PBKDF2 => {
-                subtle.import_key_pbkdf2(format, &secret, extractable, key_usages)
-            }
+            ALG_PBKDF2 => subtle.import_key_pbkdf2(format, &secret, extractable, key_usages),
             _ => Err(Error::NotSupported),
         }
     }

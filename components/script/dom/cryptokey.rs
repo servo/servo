@@ -26,7 +26,7 @@ pub enum Handle {
     Aes128(Vec<u8>),
     Aes192(Vec<u8>),
     Aes256(Vec<u8>),
-    Pbkdf2(Vec<u8>)
+    Pbkdf2(Vec<u8>),
 }
 
 /// <https://w3c.github.io/webcrypto/#cryptokey-interface>
