@@ -16,8 +16,8 @@ dictionary ImageEncodeOptions {
 [Exposed=(Window,Worker)/*, Transferable*/, Pref="dom.offscreen_canvas.enabled"]
 interface OffscreenCanvas : EventTarget {
   [Throws] constructor([EnforceRange] unsigned long long width, [EnforceRange] unsigned long long height);
-  attribute /*[EnforceRange]*/ unsigned long long width;
-  attribute /*[EnforceRange]*/ unsigned long long height;
+  attribute [EnforceRange] unsigned long long width;
+  attribute [EnforceRange] unsigned long long height;
 
   OffscreenRenderingContext? getContext(DOMString contextId, optional any options = null);
   //ImageBitmap transferToImageBitmap();
