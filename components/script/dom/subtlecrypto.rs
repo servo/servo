@@ -288,7 +288,6 @@ impl SubtleCryptoMethods for SubtleCrypto {
         can_gc: CanGc,
     ) -> Rc<Promise> {
         // Step 1. Let algorithm be the algorithm parameter passed to the digest() method.
-        // NOTE I think this is a no-op?
 
         // Step 2. Let data be the result of getting a copy of the bytes held by the
         // data parameter passed to the digest() method.
