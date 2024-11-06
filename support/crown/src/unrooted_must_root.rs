@@ -52,19 +52,6 @@ impl UnrootedPass {
     }
 }
 
-fn has_lint_attr(sym: &Symbols, attrs: &[Attribute], name: Symbol) -> bool {
-    attrs.iter().any(|attr| {
-        matches!(
-            &attr.kind,
-            AttrKind::Normal(normal)
-            if normal.item.path.segments.len() == 3 &&
-            normal.item.path.segments[0].ident.name == sym.crown &&
-            normal.item.path.segments[1].ident.name == sym.unrooted_must_root_lint &&
-            normal.item.path.segments[2].ident.name == name
-        )
-    })
-}
-
 /// Checks if a type is unrooted or contains any owned unrooted types
 fn is_unrooted_ty<'tcx>(
     sym: &'_ Symbols,
@@ -82,7 +69,8 @@ fn is_unrooted_ty<'tcx>(
                 continue;
             },
         };
-        let has_attr = |did, name| has_lint_attr(sym, cx.tcx.get_attrs_unchecked(did), name);
+        let has_attr =
+                    |did, name| cx.tcx.has_attrs_with_path(did, &[sym.crown, sym.unrooted_must_root_lint, name]);
         let recur_into_subtree = match t.kind() {
             ty::Adt(did, substs) => {
                 if has_attr(did.did(), sym.must_root) {
