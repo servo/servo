@@ -139,3 +139,13 @@ impl CryptoKeyMethods for CryptoKey {
         }
     }
 }
+
+impl Handle {
+    pub fn as_bytes(&self) -> &[u8] {
+        match self {
+            Self::Aes128(bytes) => bytes,
+            Self::Aes192(bytes) => bytes,
+            Self::Aes256(bytes) => bytes,
+        }
+    }
+}

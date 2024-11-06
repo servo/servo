@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::num::NonZero;
 use std::ptr;
 use std::rc::Rc;
 
@@ -16,7 +17,7 @@ use js::jsapi::{JSObject, JS_NewObject};
 use js::jsval::ObjectValue;
 use js::rust::MutableHandleObject;
 use js::typedarray::ArrayBufferU8;
-use ring::digest;
+use ring::{digest, pbkdf2};
 use servo_rand::{RngCore, ServoRng};
 
 use crate::dom::bindings::buffer_source::create_buffer_source;
@@ -26,7 +27,7 @@ use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
 };
 use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{
     AesCbcParams, AesCtrParams, AesKeyAlgorithm, AesKeyGenParams, Algorithm, AlgorithmIdentifier,
-    JsonWebKey, KeyAlgorithm, KeyFormat, SubtleCryptoMethods,
+    JsonWebKey, KeyAlgorithm, KeyFormat, Pbkdf2Params, SubtleCryptoMethods,
 };
 use crate::dom::bindings::codegen::UnionTypes::{
     ArrayBufferViewOrArrayBuffer, ArrayBufferViewOrArrayBufferOrJsonWebKey,
@@ -392,6 +393,82 @@ impl SubtleCryptoMethods for SubtleCrypto {
         promise
     }
 
+    /// <https://w3c.github.io/webcrypto/#dfn-SubtleCrypto-method-deriveBits>
+    fn DeriveBits(
+        &self,
+        cx: SafeJSContext,
+        algorithm: AlgorithmIdentifier,
+        base_key: &CryptoKey,
+        length: Option<u32>,
+        comp: InRealm,
+        can_gc: CanGc,
+    ) -> Rc<Promise> {
+        // Step 1.  Let algorithm, baseKey and length, be the algorithm, baseKey and
+        // length parameters passed to the deriveBits() method, respectively.
+
+        // Step 2. Let normalizedAlgorithm be the result of normalizing an algorithm,
+        // with alg set to algorithm and op set to "deriveBits".
+        let promise = Promise::new_in_current_realm(comp, can_gc);
+        let normalized_algorithm = match normalize_algorithm(cx, algorithm, "deriveBits") {
+            Ok(algorithm) => algorithm,
+            Err(e) => {
+                // Step 3. If an error occurred, return a Promise rejected with normalizedAlgorithm.
+                promise.reject_error(e);
+                return promise;
+            },
+        };
+
+        // Step 4. Let promise be a new Promise object.
+        // NOTE: We did that in preparation of Step 3.
+
+        // Step 5. Return promise and perform the remaining steps in parallel.
+        let (task_source, canceller) = self.task_source_with_canceller();
+        let trusted_promise = TrustedPromise::new(promise.clone());
+        let trusted_base_key = Trusted::new(base_key);
+
+        let _ = task_source.queue_with_canceller(
+            task!(import_key: move || {
+                // Step 6. If the following steps or referenced procedures say to throw an error,
+                // reject promise with the returned error and then terminate the algorithm.
+
+                // TODO Step 7. If the name member of normalizedAlgorithm is not equal to the name attribute
+                // of the [[algorithm]] internal slot of baseKey then throw an InvalidAccessError.
+                let promise = trusted_promise.root();
+                let base_key = trusted_base_key.root();
+
+                // Step 8. If the [[usages]] internal slot of baseKey does not contain an entry that
+                // is "deriveBits", then throw an InvalidAccessError.
+                if !base_key.usages().contains(&KeyUsage::DeriveBits) {
+                    promise.reject_error(Error::InvalidAccess);
+                    return;
+                }
+
+
+                // Step 9. Let result be the result of creating an ArrayBuffer containing the result of performing the
+                // derive bits operation specified by normalizedAlgorithm using baseKey, algorithm and length.
+                let cx = GlobalScope::get_cx();
+                rooted!(in(*cx) let mut array_buffer_ptr = ptr::null_mut::<JSObject>());
+                let result = match normalized_algorithm {
+                    NormalizedAlgorithm::Pbkdf2Params(params) => params.derive_bits(&base_key, length, array_buffer_ptr.handle_mut(), cx),
+                    _ => {
+                        promise.reject_error(Error::NotSupported);
+                        return;
+                    }
+                };
+                if let Err(e) = result {
+                    promise.reject_error(e);
+                    return;
+                }
+
+                // Step 10. Resolve promise with result.
+                promise.resolve_native(&*array_buffer_ptr);
+            }),
+            &canceller,
+        );
+
+        promise
+    }
+
     /// <https://w3c.github.io/webcrypto/#SubtleCrypto-method-importKey>
     fn ImportKey(
         &self,
@@ -533,6 +610,7 @@ pub enum NormalizedAlgorithm {
     AesCbcParams(SubtleAesCbcParams),
     AesCtrParams(SubtleAesCtrParams),
     AesKeyGenParams(SubtleAesKeyGenParams),
+    Pbkdf2Params(SubtlePbkdf2Params),
 
     /// <https://w3c.github.io/webcrypto/#sha>
     Sha1,
@@ -620,6 +698,34 @@ impl From<AesKeyGenParams> for SubtleAesKeyGenParams {
     }
 }
 
+/// <https://w3c.github.io/webcrypto/#dfn-Pbkdf2Params>
+#[derive(Clone, Debug)]
+pub struct SubtlePbkdf2Params {
+    /// <https://w3c.github.io/webcrypto/#dfn-Pbkdf2Params-salt>
+    salt: Vec<u8>,
+
+    /// <https://w3c.github.io/webcrypto/#dfn-Pbkdf2Params-iterations>
+    iterations: u32,
+
+    /// <https://w3c.github.io/webcrypto/#dfn-Pbkdf2Params-hash>
+    hash: String,
+}
+
+impl From<RootedTraceableBox<Pbkdf2Params>> for SubtlePbkdf2Params {
+    fn from(params: RootedTraceableBox<Pbkdf2Params>) -> Self {
+        let salt = match &params.salt {
+            ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
+            ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
+        };
+
+        Self {
+            salt,
+            iterations: params.iterations,
+            hash: params.parent.name.to_string().to_uppercase(),
+        }
+    }
+}
+
 /// <https://w3c.github.io/webcrypto/#algorithm-normalization-normalize-an-algorithm>
 #[allow(unsafe_code)]
 fn normalize_algorithm(
@@ -635,14 +741,17 @@ fn normalize_algorithm(
             else {
                 return Err(Error::Syntax);
             };
-            match (algorithm.name.str().to_uppercase().as_str(), operation) {
+            let normalized_name = algorithm.name.str().to_uppercase();
+
+            // This implements the table from https://w3c.github.io/webcrypto/#algorithm-overview
+            let normalized_algorithm = match (normalized_name.as_str(), operation) {
                 (ALG_AES_CBC, "encrypt") | (ALG_AES_CBC, "decrypt") => {
                     let params_result =
                         AesCbcParams::new(cx, value.handle()).map_err(|_| Error::Operation)?;
                     let ConversionResult::Success(params) = params_result else {
                         return Err(Error::Syntax);
                     };
-                    Ok(NormalizedAlgorithm::AesCbcParams(params.into()))
+                    NormalizedAlgorithm::AesCbcParams(params.into())
                 },
                 (ALG_AES_CTR, "encrypt") | (ALG_AES_CTR, "decrypt") => {
                     let params_result =
@@ -650,7 +759,7 @@ fn normalize_algorithm(
                     let ConversionResult::Success(params) = params_result else {
                         return Err(Error::Syntax);
                     };
-                    Ok(NormalizedAlgorithm::AesCtrParams(params.into()))
+                    NormalizedAlgorithm::AesCtrParams(params.into())
                 },
                 (ALG_AES_CBC, "generateKey") | (ALG_AES_CTR, "generateKey") => {
                     let params_result =
@@ -658,20 +767,36 @@ fn normalize_algorithm(
                     let ConversionResult::Success(params) = params_result else {
                         return Err(Error::Syntax);
                     };
-                    Ok(NormalizedAlgorithm::AesKeyGenParams(params.into()))
+                    NormalizedAlgorithm::AesKeyGenParams(params.into())
                 },
-                (ALG_AES_CBC, "importKey") => Ok(NormalizedAlgorithm::Algorithm(SubtleAlgorithm {
+                (ALG_ECDSA, "deriveBits") => NormalizedAlgorithm::Algorithm(SubtleAlgorithm {
+                    name: ALG_ECDSA.to_string(),
+                }),
+                (ALG_HKDF, "deriveBits") => NormalizedAlgorithm::Algorithm(SubtleAlgorithm {
+                    name: ALG_HKDF.to_string(),
+                }),
+                (ALG_PBKDF2, "deriveBits") => {
+                    let params_result =
+                        Pbkdf2Params::new(cx, value.handle()).map_err(|_| Error::Operation)?;
+                    let ConversionResult::Success(params) = params_result else {
+                        return Err(Error::Syntax);
+                    };
+                    NormalizedAlgorithm::Pbkdf2Params(params.into())
+                },
+                (ALG_AES_CBC, "importKey") => NormalizedAlgorithm::Algorithm(SubtleAlgorithm {
                     name: ALG_AES_CBC.to_string(),
-                })),
-                (ALG_AES_CTR, "importKey") => Ok(NormalizedAlgorithm::Algorithm(SubtleAlgorithm {
+                }),
+                (ALG_AES_CTR, "importKey") => NormalizedAlgorithm::Algorithm(SubtleAlgorithm {
                     name: ALG_AES_CTR.to_string(),
-                })),
-                (ALG_SHA1, "digest") => Ok(NormalizedAlgorithm::Sha1),
-                (ALG_SHA256, "digest") => Ok(NormalizedAlgorithm::Sha256),
-                (ALG_SHA384, "digest") => Ok(NormalizedAlgorithm::Sha384),
-                (ALG_SHA512, "digest") => Ok(NormalizedAlgorithm::Sha512),
-                _ => Err(Error::NotSupported),
-            }
+                }),
+                (ALG_SHA1, "digest") => NormalizedAlgorithm::Sha1,
+                (ALG_SHA256, "digest") => NormalizedAlgorithm::Sha256,
+                (ALG_SHA384, "digest") => NormalizedAlgorithm::Sha384,
+                (ALG_SHA512, "digest") => NormalizedAlgorithm::Sha512,
+                _ => return Err(Error::NotSupported),
+            };
+
+            Ok(normalized_algorithm)
         },
     }
 }
@@ -984,5 +1109,61 @@ impl AesKeyAlgorithm {
         unsafe {
             key_algorithm.to_jsobject(*cx, out);
         }
+    }
+}
+
+impl SubtlePbkdf2Params {
+    /// <https://w3c.github.io/webcrypto/#pbkdf2-operations>
+    fn derive_bits(
+        &self,
+        key: &CryptoKey,
+        length: Option<u32>,
+        result_handle: MutableHandleObject,
+        cx: SafeJSContext,
+    ) -> Result<(), Error> {
+        // Step 1. If length is null or zero, or is not a multiple of 8, then throw an OperationError.
+        let Some(length) = length else {
+            return Err(Error::Operation);
+        };
+        if length == 0 || length % 8 != 0 {
+            return Err(Error::Operation);
+        };
+
+        // Step 2. If the iterations member of normalizedAlgorithm is zero, then throw an OperationError.
+        let Ok(iterations) = NonZero::<u32>::try_from(self.iterations) else {
+            return Err(Error::Operation);
+        };
+
+        // Step 3. Let prf be the MAC Generation function described in Section 4 of [FIPS-198-1]
+        // using the hash function described by the hash member of normalizedAlgorithm.
+        let prf = match self.hash.as_str() {
+            ALG_SHA1 => pbkdf2::PBKDF2_HMAC_SHA1,
+            ALG_SHA256 => pbkdf2::PBKDF2_HMAC_SHA256,
+            ALG_SHA384 => pbkdf2::PBKDF2_HMAC_SHA384,
+            ALG_SHA512 => pbkdf2::PBKDF2_HMAC_SHA512,
+            _ => return Err(Error::Syntax),
+        };
+
+        // Step 4. Let result be the result of performing the PBKDF2 operation defined in Section 5.2 of [RFC8018] using
+        // prf as the pseudo-random function, PRF, the password represented by [[handle]] internal slot of key as the password,
+        // P, the contents of the salt attribute of normalizedAlgorithm as the salt, S, the value of the iterations attribute
+        // of normalizedAlgorithm as the iteration count, c, and length divided by 8 as the intended key length, dkLen.
+        let mut result = vec![0; length as usize];
+        pbkdf2::derive(
+            prf,
+            iterations,
+            &self.salt,
+            key.handle().as_bytes(),
+            &mut result,
+        );
+
+        // Step 5. If the key derivation operation fails, then throw an OperationError.
+        // TODO: Investigate when key derivation can fail and how ring handles that case
+        // (pbkdf2::derive does not return a Result type)
+
+        // Step 6. Return result
+        create_buffer_source::<ArrayBufferU8>(cx, &result, result_handle)
+            .expect("failed to create buffer source for exported key.");
+        Ok(())
     }
 }
