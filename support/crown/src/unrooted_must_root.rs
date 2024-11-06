@@ -268,7 +268,7 @@ impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
                         lint.primary_message(
                             "Type trait declaration must be marked with \
                         #[crown::unrooted_must_root_lint::must_root] \
-                        to allow binding must_root types in associate types",
+                        to allow binding must_root types in associated types",
                         );
                         lint.span(trait_item.span);
                     })

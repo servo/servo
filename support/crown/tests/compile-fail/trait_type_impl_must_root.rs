@@ -3,7 +3,7 @@ struct Foo;
 
 trait Trait {
     type F;
-    //~^ ERROR: Type trait declaration must be marked with #[crown::unrooted_must_root_lint::must_root] to allow binding must_root types in associate types
+    //~^ ERROR: Type trait declaration must be marked with #[crown::unrooted_must_root_lint::must_root] to allow binding must_root types in associated types
 }
 
 struct TypeHolder;
