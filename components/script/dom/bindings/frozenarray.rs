@@ -31,7 +31,9 @@ impl CachedFrozenArray {
     ) {
         if let Some(inner) = &*self.frozen_value.borrow() {
             retval.set(inner.get());
+            return;
         }
+
         let array = f();
         to_frozen_array(array.as_slice(), cx, retval);
 
