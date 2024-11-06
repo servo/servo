@@ -150,7 +150,7 @@ impl SubtleCryptoMethods for SubtleCrypto {
         comp: InRealm,
         can_gc: CanGc,
     ) -> Rc<Promise> {
-        let normalized_algorithm = normalize_algorithm(cx, algorithm, "encrypt");
+        let normalized_algorithm = normalize_algorithm(cx, &algorithm, "encrypt");
         let promise = Promise::new_in_current_realm(comp, can_gc);
         let data = match data {
             ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
@@ -219,7 +219,7 @@ impl SubtleCryptoMethods for SubtleCrypto {
         comp: InRealm,
         can_gc: CanGc,
     ) -> Rc<Promise> {
-        let normalized_algorithm = normalize_algorithm(cx, algorithm, "decrypt");
+        let normalized_algorithm = normalize_algorithm(cx, &algorithm, "decrypt");
         let promise = Promise::new_in_current_realm(comp, can_gc);
         let data = match data {
             ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
@@ -300,7 +300,7 @@ impl SubtleCryptoMethods for SubtleCrypto {
         // Step 3. Let normalizedAlgorithm be the result of normalizing an algorithm,
         // with alg set to algorithm and op set to "digest".
         let promise = Promise::new_in_current_realm(comp, can_gc);
-        let normalized_algorithm = match normalize_algorithm(cx, algorithm, "digest") {
+        let normalized_algorithm = match normalize_algorithm(cx, &algorithm, "digest") {
             Ok(normalized_algorithm) => normalized_algorithm,
             Err(e) => {
                 // Step 4. If an error occurred, return a Promise rejected with normalizedAlgorithm.
@@ -361,7 +361,7 @@ impl SubtleCryptoMethods for SubtleCrypto {
         comp: InRealm,
         can_gc: CanGc,
     ) -> Rc<Promise> {
-        let normalized_algorithm = normalize_algorithm(cx, algorithm, "generateKey");
+        let normalized_algorithm = normalize_algorithm(cx, &algorithm, "generateKey");
         let promise = Promise::new_in_current_realm(comp, can_gc);
         if let Err(e) = normalized_algorithm {
             promise.reject_error(e);
@@ -409,7 +409,7 @@ impl SubtleCryptoMethods for SubtleCrypto {
         // Step 2. Let normalizedAlgorithm be the result of normalizing an algorithm,
         // with alg set to algorithm and op set to "deriveBits".
         let promise = Promise::new_in_current_realm(comp, can_gc);
-        let normalized_algorithm = match normalize_algorithm(cx, algorithm, "deriveBits") {
+        let normalized_algorithm = match normalize_algorithm(cx, &algorithm, "deriveBits") {
             Ok(algorithm) => algorithm,
             Err(e) => {
                 // Step 3. If an error occurred, return a Promise rejected with normalizedAlgorithm.
@@ -443,22 +443,20 @@ impl SubtleCryptoMethods for SubtleCrypto {
                     return;
                 }
 
-
                 // Step 9. Let result be the result of creating an ArrayBuffer containing the result of performing the
                 // derive bits operation specified by normalizedAlgorithm using baseKey, algorithm and length.
                 let cx = GlobalScope::get_cx();
                 rooted!(in(*cx) let mut array_buffer_ptr = ptr::null_mut::<JSObject>());
-                let result = match normalized_algorithm {
-                    NormalizedAlgorithm::Pbkdf2Params(params) => params.derive_bits(&base_key, length, array_buffer_ptr.handle_mut(), cx),
-                    _ => {
-                        promise.reject_error(Error::NotSupported);
+                let result = match normalized_algorithm.derive_bits(&base_key, length) {
+                    Ok(derived_bits) => derived_bits,
+                    Err(e) => {
+                        promise.reject_error(e);
                         return;
                     }
                 };
-                if let Err(e) = result {
-                    promise.reject_error(e);
-                    return;
-                }
+
+                create_buffer_source::<ArrayBufferU8>(cx, &result, array_buffer_ptr.handle_mut())
+                    .expect("failed to create buffer source for derived bits.");
 
                 // Step 10. Resolve promise with result.
                 promise.resolve_native(&*array_buffer_ptr);
@@ -481,12 +479,14 @@ impl SubtleCryptoMethods for SubtleCrypto {
         comp: InRealm,
         can_gc: CanGc,
     ) -> Rc<Promise> {
-        let normalized_algorithm = normalize_algorithm(cx, algorithm, "importKey");
         let promise = Promise::new_in_current_realm(comp, can_gc);
-        if let Err(e) = normalized_algorithm {
-            promise.reject_error(e);
-            return promise;
-        }
+        let normalized_algorithm = match normalize_algorithm(cx, &algorithm, "importKey") {
+            Ok(algorithm) => algorithm,
+            Err(e) => {
+                promise.reject_error(e);
+                return promise;
+            },
+        };
 
         // TODO: Figure out a way to Send this data so per-algorithm JWK checks can happen
         let data = match key_data {
@@ -520,19 +520,7 @@ impl SubtleCryptoMethods for SubtleCrypto {
             task!(import_key: move || {
                 let subtle = this.root();
                 let promise = trusted_promise.root();
-                let alg = match normalized_algorithm {
-                    Ok(NormalizedAlgorithm::Algorithm(name)) => name,
-                    _ => {
-                        promise.reject_error(Error::NotSupported);
-                        return;
-                    },
-                };
-
-                let imported_key = match alg.name.as_str() {
-                    ALG_AES_CBC => subtle.import_key_aes(format, &data, extractable, key_usages, ALG_AES_CBC),
-                    ALG_AES_CTR => subtle.import_key_aes(format, &data, extractable, key_usages, ALG_AES_CTR),
-                    _ => Err(Error::NotSupported),
-                };
+                let imported_key = normalized_algorithm.import_key(&subtle, format, &data, extractable, key_usages);
                 match imported_key {
                     Ok(k) => promise.resolve_native(&k),
                     Err(e) => promise.reject_error(e),
@@ -730,11 +718,13 @@ impl From<RootedTraceableBox<Pbkdf2Params>> for SubtlePbkdf2Params {
 #[allow(unsafe_code)]
 fn normalize_algorithm(
     cx: JSContext,
-    algorithm: AlgorithmIdentifier,
+    algorithm: &AlgorithmIdentifier,
     operation: &str,
 ) -> Result<NormalizedAlgorithm, Error> {
     match algorithm {
-        AlgorithmIdentifier::String(name) => Ok(NormalizedAlgorithm::Algorithm(name.into())),
+        AlgorithmIdentifier::String(name) => {
+            Ok(NormalizedAlgorithm::Algorithm(name.clone().into()))
+        },
         AlgorithmIdentifier::Object(obj) => {
             rooted!(in(*cx) let value = ObjectValue(unsafe { *obj.get_unsafe() }));
             let Ok(ConversionResult::Success(algorithm)) = Algorithm::new(cx, value.handle())
@@ -1114,13 +1104,7 @@ impl AesKeyAlgorithm {
 
 impl SubtlePbkdf2Params {
     /// <https://w3c.github.io/webcrypto/#pbkdf2-operations>
-    fn derive_bits(
-        &self,
-        key: &CryptoKey,
-        length: Option<u32>,
-        result_handle: MutableHandleObject,
-        cx: SafeJSContext,
-    ) -> Result<(), Error> {
+    fn derive_bits(&self, key: &CryptoKey, length: Option<u32>) -> Result<Vec<u8>, Error> {
         // Step 1. If length is null or zero, or is not a multiple of 8, then throw an OperationError.
         let Some(length) = length else {
             return Err(Error::Operation);
@@ -1162,8 +1146,41 @@ impl SubtlePbkdf2Params {
         // (pbkdf2::derive does not return a Result type)
 
         // Step 6. Return result
-        create_buffer_source::<ArrayBufferU8>(cx, &result, result_handle)
-            .expect("failed to create buffer source for exported key.");
-        Ok(())
+        Ok(result)
+    }
+}
+
+impl NormalizedAlgorithm {
+    fn derive_bits(&self, key: &CryptoKey, length: Option<u32>) -> Result<Vec<u8>, Error> {
+        match self {
+            Self::Pbkdf2Params(pbkdf2_params) => pbkdf2_params.derive_bits(key, length),
+            _ => Err(Error::NotSupported),
+        }
+    }
+
+    fn import_key(
+        &self,
+        subtle: &SubtleCrypto,
+        format: KeyFormat,
+        secret: &[u8],
+        extractable: bool,
+        key_usages: Vec<KeyUsage>,
+    ) -> Result<DomRoot<CryptoKey>, Error> {
+        let alg = match self {
+            Self::Algorithm(name) => name,
+            _ => {
+                return Err(Error::NotSupported);
+            },
+        };
+
+        match alg.name.as_str() {
+            ALG_AES_CBC => {
+                subtle.import_key_aes(format, &secret, extractable, key_usages, ALG_AES_CBC)
+            },
+            ALG_AES_CTR => {
+                subtle.import_key_aes(format, &secret, extractable, key_usages, ALG_AES_CTR)
+            },
+            _ => Err(Error::NotSupported),
+        }
     }
 }
