@@ -324,19 +324,16 @@ impl SubtleCryptoMethods for SubtleCrypto {
 
                 // Step 8. Let result be the result of performing the digest operation specified by
                 // normalizedAlgorithm using algorithm, with data as message.
-                let algorithm = match alg {
-                    NormalizedAlgorithm::Sha1 => &digest::SHA1_FOR_LEGACY_USE_ONLY,
-                    NormalizedAlgorithm::Sha256 => &digest::SHA256,
-                    NormalizedAlgorithm::Sha384 => &digest::SHA384,
-                    NormalizedAlgorithm::Sha512 => &digest::SHA512,
-                    _ => {
-                        promise.reject_error(Error::NotSupported);
+                let digest = match alg.digest(&data) {
+                    Ok(digest) => digest,
+                    Err(e) => {
+                        promise.reject_error(e);
                         return;
-                    },
+                    }
                 };
+
                 let cx = GlobalScope::get_cx();
                 rooted!(in(*cx) let mut array_buffer_ptr = ptr::null_mut::<JSObject>());
-                let digest = digest::digest(algorithm, &data);
                 create_buffer_source::<ArrayBufferU8>(cx, digest.as_ref(), array_buffer_ptr.handle_mut())
                     .expect("failed to create buffer source for exported key.");
 
@@ -1181,5 +1178,18 @@ impl NormalizedAlgorithm {
             },
             _ => Err(Error::NotSupported),
         }
+    }
+
+    fn digest(&self, data: &[u8]) -> Result<impl AsRef<[u8]>, Error> {
+        let algorithm = match self {
+            Self::Sha1 => &digest::SHA1_FOR_LEGACY_USE_ONLY,
+            Self::Sha256 => &digest::SHA256,
+            Self::Sha384 => &digest::SHA384,
+            Self::Sha512 => &digest::SHA512,
+            _ => {
+                return Err(Error::NotSupported);
+            },
+        };
+        Ok(digest::digest(algorithm, &data))
     }
 }
