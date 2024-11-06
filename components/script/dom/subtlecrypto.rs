@@ -1202,7 +1202,7 @@ impl SubtlePbkdf2Params {
         // prf as the pseudo-random function, PRF, the password represented by [[handle]] internal slot of key as the password,
         // P, the contents of the salt attribute of normalizedAlgorithm as the salt, S, the value of the iterations attribute
         // of normalizedAlgorithm as the iteration count, c, and length divided by 8 as the intended key length, dkLen.
-        let mut result = vec![0; length as usize];
+        let mut result = vec![0; length as usize / 8];
         pbkdf2::derive(
             prf,
             iterations,
