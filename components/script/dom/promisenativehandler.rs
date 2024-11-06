@@ -14,6 +14,10 @@ use crate::dom::globalscope::GlobalScope;
 use crate::realms::InRealm;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
+/// Types that implement the `Callback` trait follow the same rooting requirements
+/// as types that use the `#[dom_struct]` attribute.
+/// Prefer storing `Dom<T>` members inside them instead of `DomRoot<T>`
+/// to minimize redundant work by the garbage collector.
 pub trait Callback: JSTraceable + MallocSizeOf {
     fn callback(&self, cx: SafeJSContext, v: HandleValue, realm: InRealm, can_gc: CanGc);
 }
