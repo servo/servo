@@ -111,6 +111,8 @@ impl TouchHandler {
         } = &mut self.state
         {
             if velocity.length().abs() >= FLING_MINIMUM {
+                // Todo: Probably we should multiply with the current refresh rate (and divide on each frame)
+                // or save a timestamp to account for a potentially changing display refresh rate.
                 *velocity *= FLING_SCALING_FACTOR;
                 debug_assert!(velocity.length() <= FLING_MAX && velocity.length() >= -FLING_MAX);
                 Some(FlingAction {
@@ -214,9 +216,9 @@ impl TouchHandler {
                     debug_assert!((point.x as i64) < (i32::MAX as i64));
                     debug_assert!((point.y as i64) < (i32::MAX as i64));
                     let cursor = DeviceIntPoint::new(point.x as i32, point.y as i32);
-                    // Todo: Probably we should multiply with the current refresh rate (and divide on each frame)
-                    // or save a timestamp to account for a potentially changing display refresh rate.
-                    let velocity = velocity.with_max_length(FLING_MAX);
+                    // Multiplying the initial velocity gives the fling a much more snappy feel
+                    // and serves well as a poor-mans acceleration algorithm.
+                    let velocity = (velocity * 2.0).with_max_length(FLING_MAX);
                     self.state = Flinging { velocity, cursor };
                 } else {
                     self.state = Nothing;
