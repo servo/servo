@@ -68,8 +68,10 @@ fn is_unrooted_ty<'tcx>(
                 continue;
             },
         };
-        let has_attr =
-                    |did, name| cx.tcx.has_attrs_with_path(did, &[sym.crown, sym.unrooted_must_root_lint, name]);
+        let has_attr = |did, name| {
+            cx.tcx
+                .has_attrs_with_path(did, &[sym.crown, sym.unrooted_must_root_lint, name])
+        };
         let recur_into_subtree = match t.kind() {
             ty::Adt(did, substs) => {
                 if has_attr(did.did(), sym.must_root) {
@@ -145,7 +147,10 @@ fn is_unrooted_ty<'tcx>(
             ty::Ref(..) => false,    // don't recurse down &ptrs
             ty::RawPtr(..) => false, // don't recurse down *ptrs
             ty::FnDef(..) | ty::FnPtr(_) => false,
-            ty::Alias(_, ty) => {
+            ty::Alias(
+                ty::AliasTyKind::Projection | ty::AliasTyKind::Inherent | ty::AliasTyKind::Weak,
+                ty,
+            ) => {
                 if has_attr(ty.def_id, sym.must_root) {
                     ret = true;
                     false
@@ -173,7 +178,10 @@ impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
     /// must be #[crown::unrooted_must_root_lint::must_root] themselves
     fn check_item(&mut self, cx: &LateContext<'tcx>, item: &'tcx hir::Item) {
         let sym = &self.symbols;
-        if cx.tcx.has_attrs_with_path(item.hir_id().expect_owner(), &[sym.crown, sym.unrooted_must_root_lint, sym.must_root]) {
+        if cx.tcx.has_attrs_with_path(
+            item.hir_id().expect_owner(),
+            &[sym.crown, sym.unrooted_must_root_lint, sym.must_root],
+        ) {
             return;
         }
         if let hir::ItemKind::Struct(def, ..) = &item.kind {
@@ -198,7 +206,10 @@ impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
         let map = &cx.tcx.hir();
         let parent_item = map.expect_item(map.get_parent_item(var.hir_id).def_id);
         let sym = &self.symbols;
-        if !cx.tcx.has_attrs_with_path(parent_item.hir_id().expect_owner(), &[sym.crown, sym.unrooted_must_root_lint, sym.must_root]) {
+        if !cx.tcx.has_attrs_with_path(
+            parent_item.hir_id().expect_owner(),
+            &[sym.crown, sym.unrooted_must_root_lint, sym.must_root],
+        ) {
             match var.data {
                 hir::VariantData::Tuple(fields, ..) => {
                     for field in fields {
@@ -231,7 +242,10 @@ impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
         };
 
         let sym = &self.symbols;
-        if cx.tcx.has_attrs_with_path(trait_item.hir_id().expect_owner(), &[sym.crown, sym.unrooted_must_root_lint, sym.must_root]) {
+        if cx.tcx.has_attrs_with_path(
+            trait_item.hir_id().expect_owner(),
+            &[sym.crown, sym.unrooted_must_root_lint, sym.must_root],
+        ) {
             return;
         }
 
