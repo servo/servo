@@ -1035,7 +1035,7 @@ impl SubtleCrypto {
                 Handle::Aes128(key_data) => Ok(AesExportedKey::Raw(key_data.as_slice().to_vec())),
                 Handle::Aes192(key_data) => Ok(AesExportedKey::Raw(key_data.as_slice().to_vec())),
                 Handle::Aes256(key_data) => Ok(AesExportedKey::Raw(key_data.as_slice().to_vec())),
-                _ => return Err(Error::Data),
+                _ => Err(Error::Data),
             },
             KeyFormat::Jwk => {
                 let (alg, k) = match key.handle() {
@@ -1252,12 +1252,12 @@ impl NormalizedAlgorithm {
 
         match alg.name.as_str() {
             ALG_AES_CBC => {
-                subtle.import_key_aes(format, &secret, extractable, key_usages, ALG_AES_CBC)
+                subtle.import_key_aes(format, secret, extractable, key_usages, ALG_AES_CBC)
             },
             ALG_AES_CTR => {
-                subtle.import_key_aes(format, &secret, extractable, key_usages, ALG_AES_CTR)
+                subtle.import_key_aes(format, secret, extractable, key_usages, ALG_AES_CTR)
             },
-            ALG_PBKDF2 => subtle.import_key_pbkdf2(format, &secret, extractable, key_usages),
+            ALG_PBKDF2 => subtle.import_key_pbkdf2(format, secret, extractable, key_usages),
             _ => Err(Error::NotSupported),
         }
     }
@@ -1272,6 +1272,6 @@ impl NormalizedAlgorithm {
                 return Err(Error::NotSupported);
             },
         };
-        Ok(digest::digest(algorithm, &data))
+        Ok(digest::digest(algorithm, data))
     }
 }
