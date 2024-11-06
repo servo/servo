@@ -29,20 +29,19 @@ impl CachedFrozenArray {
         cx: JSContext,
         mut retval: MutableHandleValue,
     ) {
-        match &*self.frozen_value.borrow() {
-            Some(inner) => retval.set(inner.get()),
-            None => {
-                let array = f();
-                to_frozen_array(array.as_slice(), cx, retval);
+        if let Some(inner) = &*self.frozen_value.borrow() {
+            retval.set(inner.get());
+        } else {
+            let array = f();
+            to_frozen_array(array.as_slice(), cx, retval);
 
-                // Safety: need to create the Heap value in its final memory location before setting it.
-                *self.frozen_value.borrow_mut() = Some(Heap::default());
-                self.frozen_value
-                    .borrow()
-                    .as_ref()
-                    .unwrap()
-                    .set(retval.get());
-            },
+            // Safety: need to create the Heap value in its final memory location before setting it.
+            *self.frozen_value.borrow_mut() = Some(Heap::default());
+            self.frozen_value
+                .borrow()
+                .as_ref()
+                .unwrap()
+                .set(retval.get());
         }
     }
 
