@@ -25,5 +25,5 @@ servo_url = { path = "../url" }
 style_config = { workspace = true }
 url = { workspace = true }
 
-[target.'cfg(not(target_os = "android"))'.dependencies]
+[target.'cfg(not(any(target_os = "android", target_env = "ohos")))'.dependencies]
 dirs = "5.0"
