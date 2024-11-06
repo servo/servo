@@ -29,6 +29,7 @@ use crate::script_runtime::{CanGc, JSContext};
 
 pub trait PermissionAlgorithm {
     type Descriptor;
+    #[crown::unrooted_must_root_lint::must_root]
     type Status;
     fn create_descriptor(
         cx: JSContext,

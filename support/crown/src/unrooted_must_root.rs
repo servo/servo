@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use rustc_ast::ast::{AttrKind, Attribute};
 use rustc_hir::{self as hir, intravisit as visit, ExprKind};
 use rustc_lint::{LateContext, LateLintPass, LintContext, LintPass, LintStore};
 use rustc_middle::ty;
@@ -52,19 +51,6 @@ impl UnrootedPass {
     }
 }
 
-fn has_lint_attr(sym: &Symbols, attrs: &[Attribute], name: Symbol) -> bool {
-    attrs.iter().any(|attr| {
-        matches!(
-            &attr.kind,
-            AttrKind::Normal(normal)
-            if normal.item.path.segments.len() == 3 &&
-            normal.item.path.segments[0].ident.name == sym.crown &&
-            normal.item.path.segments[1].ident.name == sym.unrooted_must_root_lint &&
-            normal.item.path.segments[2].ident.name == name
-        )
-    })
-}
-
 /// Checks if a type is unrooted or contains any owned unrooted types
 fn is_unrooted_ty<'tcx>(
     sym: &'_ Symbols,
@@ -82,10 +68,12 @@ fn is_unrooted_ty<'tcx>(
                 continue;
             },
         };
+        let has_attr = |did, name| {
+            cx.tcx
+                .has_attrs_with_path(did, &[sym.crown, sym.unrooted_must_root_lint, name])
+        };
         let recur_into_subtree = match t.kind() {
             ty::Adt(did, substs) => {
-                let has_attr =
-                    |did, name| has_lint_attr(sym, cx.tcx.get_attrs_unchecked(did), name);
                 if has_attr(did.did(), sym.must_root) {
                     ret = true;
                     false
@@ -159,7 +147,17 @@ fn is_unrooted_ty<'tcx>(
             ty::Ref(..) => false,    // don't recurse down &ptrs
             ty::RawPtr(..) => false, // don't recurse down *ptrs
             ty::FnDef(..) | ty::FnPtr(_) => false,
-
+            ty::Alias(
+                ty::AliasTyKind::Projection | ty::AliasTyKind::Inherent | ty::AliasTyKind::Weak,
+                ty,
+            ) => {
+                if has_attr(ty.def_id, sym.must_root) {
+                    ret = true;
+                    false
+                } else {
+                    true
+                }
+            },
             _ => true,
         };
         if !recur_into_subtree {
@@ -179,8 +177,11 @@ impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
     /// All structs containing #[crown::unrooted_must_root_lint::must_root] types
     /// must be #[crown::unrooted_must_root_lint::must_root] themselves
     fn check_item(&mut self, cx: &LateContext<'tcx>, item: &'tcx hir::Item) {
-        let attrs = cx.tcx.hir().attrs(item.hir_id());
-        if has_lint_attr(&self.symbols, attrs, self.symbols.must_root) {
+        let sym = &self.symbols;
+        if cx.tcx.has_attrs_with_path(
+            item.hir_id().expect_owner(),
+            &[sym.crown, sym.unrooted_must_root_lint, sym.must_root],
+        ) {
             return;
         }
         if let hir::ItemKind::Struct(def, ..) = &item.kind {
@@ -204,8 +205,11 @@ impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
     fn check_variant(&mut self, cx: &LateContext, var: &hir::Variant) {
         let map = &cx.tcx.hir();
         let parent_item = map.expect_item(map.get_parent_item(var.hir_id).def_id);
-        let attrs = cx.tcx.hir().attrs(parent_item.hir_id());
-        if !has_lint_attr(&self.symbols, attrs, self.symbols.must_root) {
+        let sym = &self.symbols;
+        if !cx.tcx.has_attrs_with_path(
+            parent_item.hir_id().expect_owner(),
+            &[sym.crown, sym.unrooted_must_root_lint, sym.must_root],
+        ) {
             match var.data {
                 hir::VariantData::Tuple(fields, ..) => {
                     for field in fields {
@@ -226,6 +230,53 @@ impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
             }
         }
     }
+
+    /// for trait_type_impl_must_root test
+    fn check_trait_item(
+        &mut self,
+        cx: &LateContext<'tcx>,
+        trait_item: &'tcx rustc_hir::TraitItem<'tcx>,
+    ) {
+        let hir::TraitItemKind::Type(_, _) = trait_item.kind else {
+            return;
+        };
+
+        let sym = &self.symbols;
+        if cx.tcx.has_attrs_with_path(
+            trait_item.hir_id().expect_owner(),
+            &[sym.crown, sym.unrooted_must_root_lint, sym.must_root],
+        ) {
+            return;
+        }
+
+        let trait_id = cx
+            .tcx
+            .trait_of_item(trait_item.hir_id().expect_owner().to_def_id())
+            .unwrap();
+        // we need to make sure that all impl do not have any must_root type binded
+        let impls = cx.tcx.trait_impls_of(trait_id);
+        for (_ty, impl_def_ids) in impls.non_blanket_impls() {
+            for impl_def_id in impl_def_ids {
+                let type_impl = cx
+                    .tcx
+                    .associated_items(impl_def_id)
+                    .find_by_name_and_kind(cx.tcx, trait_item.ident, ty::AssocKind::Type, trait_id)
+                    .unwrap();
+                let mir_ty = cx.tcx.type_of(type_impl.def_id).skip_binder();
+                if is_unrooted_ty(&self.symbols, cx, mir_ty, false) {
+                    cx.lint(UNROOTED_MUST_ROOT, |lint| {
+                        lint.primary_message(
+                            "Type trait declaration must be marked with \
+                        #[crown::unrooted_must_root_lint::must_root] \
+                        to allow binding must_root types in associated types",
+                        );
+                        lint.span(trait_item.span);
+                    })
+                }
+            }
+        }
+    }
+
     /// Function arguments that are #[crown::unrooted_must_root_lint::must_root] types are not allowed
     fn check_fn(
         &mut self,
