@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use rustc_ast::ast::{AttrKind, Attribute};
 use rustc_hir::{self as hir, intravisit as visit, ExprKind};
 use rustc_lint::{LateContext, LateLintPass, LintContext, LintPass, LintStore};
 use rustc_middle::ty;
@@ -173,8 +172,8 @@ impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
     /// All structs containing #[crown::unrooted_must_root_lint::must_root] types
     /// must be #[crown::unrooted_must_root_lint::must_root] themselves
     fn check_item(&mut self, cx: &LateContext<'tcx>, item: &'tcx hir::Item) {
-        let attrs = cx.tcx.hir().attrs(item.hir_id());
-        if has_lint_attr(&self.symbols, attrs, self.symbols.must_root) {
+        let sym = &self.symbols;
+        if cx.tcx.has_attrs_with_path(item.hir_id().expect_owner(), &[sym.crown, sym.unrooted_must_root_lint, sym.must_root]) {
             return;
         }
         if let hir::ItemKind::Struct(def, ..) = &item.kind {
@@ -198,8 +197,8 @@ impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
     fn check_variant(&mut self, cx: &LateContext, var: &hir::Variant) {
         let map = &cx.tcx.hir();
         let parent_item = map.expect_item(map.get_parent_item(var.hir_id).def_id);
-        let attrs = cx.tcx.hir().attrs(parent_item.hir_id());
-        if !has_lint_attr(&self.symbols, attrs, self.symbols.must_root) {
+        let sym = &self.symbols;
+        if !cx.tcx.has_attrs_with_path(parent_item.hir_id().expect_owner(), &[sym.crown, sym.unrooted_must_root_lint, sym.must_root]) {
             match var.data {
                 hir::VariantData::Tuple(fields, ..) => {
                     for field in fields {
@@ -227,12 +226,12 @@ impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
         cx: &LateContext<'tcx>,
         trait_item: &'tcx rustc_hir::TraitItem<'tcx>,
     ) {
-        let hir::TraitItemKind::Type(_, trait_asoc_ty) = trait_item.kind else {
+        let hir::TraitItemKind::Type(_, _) = trait_item.kind else {
             return;
         };
 
-        let attrs = cx.tcx.hir().attrs(trait_item.hir_id());
-        if has_lint_attr(&self.symbols, attrs, self.symbols.must_root) {
+        let sym = &self.symbols;
+        if cx.tcx.has_attrs_with_path(trait_item.hir_id().expect_owner(), &[sym.crown, sym.unrooted_must_root_lint, sym.must_root]) {
             return;
         }
 
