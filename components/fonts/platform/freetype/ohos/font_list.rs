@@ -10,7 +10,6 @@ use std::{fs, io};
 
 use base::text::{UnicodeBlock, UnicodeBlockMethod};
 use log::{debug, error, warn};
-use malloc_size_of_derive::MallocSizeOf;
 use style::values::computed::font::GenericFontFamily;
 use style::values::computed::{
     FontStretch as StyleFontStretch, FontStyle as StyleFontStyle, FontWeight as StyleFontWeight,
