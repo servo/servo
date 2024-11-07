@@ -27,7 +27,7 @@ use crate::dom::bindings::codegen::Bindings::XMLHttpRequestBinding::BodyInit;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomObject;
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::blob::{normalize_type_string, Blob};
@@ -249,7 +249,7 @@ impl TransmitBodyConnectHandler {
                 // and the corresponding IPC route in `component::net::http_loader`.
                 let promise_handler = Box::new(TransmitBodyPromiseHandler {
                     bytes_sender: bytes_sender.clone(),
-                    stream: rooted_stream.clone(),
+                    stream: Dom::from_ref(&rooted_stream.clone()),
                     control_sender: control_sender.clone(),
                 });
 
@@ -274,11 +274,12 @@ impl TransmitBodyConnectHandler {
 /// The handler of read promises of body streams used in
 /// <https://fetch.spec.whatwg.org/#concept-request-transmit-body>.
 #[derive(Clone, JSTraceable, MallocSizeOf)]
+#[crown::unrooted_must_root_lint::must_root]
 struct TransmitBodyPromiseHandler {
     #[ignore_malloc_size_of = "Channels are hard"]
     #[no_trace]
     bytes_sender: IpcSender<BodyChunkResponse>,
-    stream: DomRoot<ReadableStream>,
+    stream: Dom<ReadableStream>,
     #[ignore_malloc_size_of = "Channels are hard"]
     #[no_trace]
     control_sender: IpcSender<BodyChunkRequest>,
@@ -610,12 +611,13 @@ impl Callback for ConsumeBodyPromiseRejectionHandler {
 }
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
+#[crown::unrooted_must_root_lint::must_root]
 /// The promise handler used to consume the body,
 /// <https://fetch.spec.whatwg.org/#concept-body-consume-body>
 struct ConsumeBodyPromiseHandler {
     #[ignore_malloc_size_of = "Rc are hard"]
     result_promise: Rc<Promise>,
-    stream: Option<DomRoot<ReadableStream>>,
+    stream: Option<Dom<ReadableStream>>,
     body_type: DomRefCell<Option<BodyType>>,
     mime_type: DomRefCell<Option<Vec<u8>>>,
     bytes: DomRefCell<Option<Vec<u8>>>,
@@ -649,6 +651,7 @@ impl ConsumeBodyPromiseHandler {
 impl Callback for ConsumeBodyPromiseHandler {
     /// Continuing Step 4 of <https://fetch.spec.whatwg.org/#concept-body-consume-body>
     /// Step 3 of <https://fetch.spec.whatwg.org/#concept-read-all-bytes-from-readablestream>.
+    #[allow(crown::unrooted_must_root)]
     fn callback(&self, cx: JSContext, v: HandleValue, _realm: InRealm, can_gc: CanGc) {
         let stream = self
             .stream
@@ -775,7 +778,7 @@ fn consume_body_with_promise<T: BodyMixin + DomObject>(
 
     let promise_handler = Box::new(ConsumeBodyPromiseHandler {
         result_promise: promise.clone(),
-        stream: Some(stream),
+        stream: Some(Dom::from_ref(&stream)),
         body_type: DomRefCell::new(Some(body_type)),
         mime_type: DomRefCell::new(Some(object.get_mime_type(can_gc))),
         // Step 2.
