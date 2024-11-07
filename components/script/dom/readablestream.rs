@@ -302,12 +302,25 @@ impl ReadableStream {
         }
     }
 
+    /// Acquires a reader and locks the stream,
+    /// must be done before `read_a_chunk`.
+    /// Native call to
     /// <https://streams.spec.whatwg.org/#acquire-readable-stream-reader>
-    pub fn start_reading(&self) -> Result<DomRoot<ReadableStreamDefaultReader>, ()> {
-        // step 1 & 2 & 3
-        ReadableStreamDefaultReader::set_up(&self.global(), self, CanGc::note()).map_err(|_| ())
+    pub fn start_reading(&self) -> Result<(), ()> {
+        // Let reader be a new ReadableStreamDefaultReader.
+        // Perform ? SetUpReadableStreamDefaultReader(reader, stream).
+        // Return reader.
+        let reader = ReadableStreamDefaultReader::set_up(&self.global(), self, CanGc::note())
+            .map_err(|_| ())?;
+
+        self.set_reader(Some(&reader));
+
+        Ok(())
     }
 
+    /// Read a chunk from the stream,
+    /// must be called after `start_reading`,
+    /// and before `stop_reading`.
     /// Native call to
     /// <https://streams.spec.whatwg.org/#readable-stream-default-reader-read>
     pub fn read_a_chunk(&self, can_gc: CanGc) -> Rc<Promise> {
@@ -322,6 +335,8 @@ impl ReadableStream {
         }
     }
 
+    /// Releases the lock on the reader,
+    /// must be done after `start_reading`.
     /// Native call to
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaultreaderrelease>
     pub fn stop_reading(&self) {
