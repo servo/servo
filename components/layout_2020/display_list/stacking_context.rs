@@ -276,14 +276,6 @@ impl StackingContextContent {
         }
     }
 
-    #[cfg_attr(
-        feature = "tracing",
-        tracing::instrument(
-            name = "display_list::build_display_list",
-            skip_all,
-            fields(servo_profiling = true)
-        )
-    )]
     fn build_display_list(
         &self,
         builder: &mut DisplayListBuilder,
@@ -682,14 +674,6 @@ impl StackingContext {
         fragment_builder.build_background_image(builder, &painter);
     }
 
-    #[cfg_attr(
-        feature = "tracing",
-        tracing::instrument(
-            name = "display_list::build_display_list",
-            skip_all,
-            fields(servo_profiling = true)
-        )
-    )]
     pub(crate) fn build_display_list(&self, builder: &mut DisplayListBuilder) {
         let pushed_context = self.push_webrender_stacking_context_if_necessary(builder);
 
@@ -899,14 +883,6 @@ impl Fragment {
                     None => unreachable!("Found hoisted box with missing fragment."),
                 };
 
-                #[cfg(feature = "tracing")]
-                let span = tracing::span!(
-                    tracing::Level::TRACE,
-                    "display_list::Fragment::build_stacking_context_tree",
-                    servo_profiling = true
-                );
-                #[cfg(feature = "tracing")]
-                let _enter = span.enter();
                 fragment_ref.borrow_mut().build_stacking_context_tree(
                     fragment_ref,
                     display_list,
