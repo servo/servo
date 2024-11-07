@@ -118,7 +118,7 @@ impl ServiceWorkerRegistration {
                 Referrer::ReferrerUrl(url) => Some(url),
                 _ => None,
             },
-            referrer_policy: Some(global.policy_container().referrer_policy),
+            referrer_policy: global.get_referrer_policy(),
             pipeline_id: global.pipeline_id(),
         };
 

@@ -50,7 +50,7 @@ use net_traits::request::{Referrer, RequestBuilder};
 use net_traits::response::HttpsState;
 use net_traits::{
     fetch_async, CoreResourceMsg, CoreResourceThread, FetchResponseListener, IpcSend,
-    ResourceThreads,
+    ReferrerPolicy, ResourceThreads,
 };
 use profile_traits::{ipc as profile_ipc, mem as profile_mem, time as profile_time};
 use script_traits::serializable::{BlobData, BlobImpl, FileBlob};
@@ -2414,6 +2414,21 @@ impl GlobalScope {
         if let Some(worklet) = self.downcast::<WorkletGlobalScope>() {
             // TODO: is this the right URL to return?
             return worklet.base_url();
+        }
+        unreachable!();
+    }
+
+    /// Get the Referrer Policy for this global scope.
+    pub fn get_referrer_policy(&self) -> Option<ReferrerPolicy> {
+        if let Some(window) = self.downcast::<Window>() {
+            let document = window.Document();
+
+            return document.get_referrer_policy();
+        }
+        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+            let policy_container = worker.policy_container().to_owned();
+
+            return Some(policy_container.referrer_policy);
         }
         unreachable!();
     }
