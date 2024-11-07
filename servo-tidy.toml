@@ -122,6 +122,7 @@ directories = [
     "./python/mach",
     # Generated and upstream code combined with our own. Could use cleanup
     "./target",
+    "./support/crown/target",
     "./third_party",
 ]
 

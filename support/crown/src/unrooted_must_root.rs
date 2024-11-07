@@ -20,7 +20,7 @@ declare_tool_lint! {
 
 pub fn register(lint_store: &mut LintStore) {
     let symbols = Symbols::new();
-    lint_store.register_lints(&[&UNROOTED_MUST_ROOT]);
+    lint_store.register_lints(&[UNROOTED_MUST_ROOT]);
     lint_store.register_late_pass(move |_| Box::new(UnrootedPass::new(symbols.clone())));
 }
 
@@ -210,6 +210,7 @@ impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
             parent_item.hir_id().expect_owner(),
             &[sym.crown, sym.unrooted_must_root_lint, sym.must_root],
         ) {
+            #[allow(clippy::single_match)]
             match var.data {
                 hir::VariantData::Tuple(fields, ..) => {
                     for field in fields {

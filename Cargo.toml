@@ -2,11 +2,10 @@
 resolver = "2"
 members = [
     "ports/servoshell",
-    "support/crown",
     "tests/unit/*",
 ]
 default-members = ["ports/servoshell"]
-exclude = [".cargo"]
+exclude = [".cargo", "support/crown"]
 
 [workspace.package]
 version = "0.0.1"

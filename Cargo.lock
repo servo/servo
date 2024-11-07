@@ -964,29 +964,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "compiletest_rs"
-version = "0.11.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "71fcc3c0c91b59c137b3cf8073cbc2f72a49b3d5505660ec88f94da3ed4bb1de"
-dependencies = [
- "diff",
- "filetime",
- "getopts",
- "lazy_static",
- "libc",
- "log",
- "miow",
- "regex",
- "rustfix",
- "serde",
- "serde_derive",
- "serde_json",
- "tempfile",
- "tester",
- "windows-sys 0.59.0",
-]
-
-[[package]]
 name = "compositing"
 version = "0.0.1"
 dependencies = [
@@ -1299,13 +1276,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "22ec99545bb0ed0ea7bb9b8e1e9122ea386ff8a48c0922e43f36d45ab09e0e80"
 
 [[package]]
-name = "crown"
-version = "0.0.1"
-dependencies = [
- "compiletest_rs",
-]
-
-[[package]]
 name = "crunchy"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1501,12 +1471,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "diff"
-version = "0.1.13"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "56254986775e3233ffa9c4d7d3faaf6d36a2c09d30b20687e9f88bc8bafc16c8"
-
-[[package]]
 name = "digest"
 version = "0.10.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1562,16 +1526,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "dirs-next"
-version = "2.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b98cf8ebf19c3d1b223e151f99a4f9f0690dca41414773390fc824184ac833e1"
-dependencies = [
- "cfg-if",
- "dirs-sys-next",
-]
-
-[[package]]
 name = "dirs-sys"
 version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1581,17 +1535,6 @@ dependencies = [
  "option-ext",
  "redox_users",
  "windows-sys 0.48.0",
-]
-
-[[package]]
-name = "dirs-sys-next"
-version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4ebda144c4fe02d1f7ea1a7d9641b6fc6b580adcfa024ae48797ecdeb6825b4d"
-dependencies = [
- "libc",
- "redox_users",
- "winapi",
 ]
 
 [[package]]
@@ -4475,15 +4418,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "miow"
-version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "359f76430b20a79f9e20e115b3428614e654f04fab314482fc0fda0ebd3c6044"
-dependencies = [
- "windows-sys 0.48.0",
-]
-
-[[package]]
 name = "mozangle"
 version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5948,18 +5882,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rustfix"
-version = "0.8.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8fb2b066405a6d48a1b39c0022270503e352ae84da0c24e1d5f8ffc38e97a325"
-dependencies = [
- "serde",
- "serde_json",
- "thiserror",
- "tracing",
-]
-
-[[package]]
 name = "rustix"
 version = "0.38.39"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7200,36 +7122,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "term"
-version = "0.7.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c59df8ac95d96ff9bede18eb7300b0fda5e5d8d90960e76f8e14ae765eedbf1f"
-dependencies = [
- "dirs-next",
- "rustversion",
- "winapi",
-]
-
-[[package]]
 name = "termcolor"
 version = "1.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "06794f8f6c5c898b3275aebefa6b8a1cb24cd2c6c79397ab15774837a0bc5755"
 dependencies = [
  "winapi-util",
-]
-
-[[package]]
-name = "tester"
-version = "0.9.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "89e8bf7e0eb2dd7b4228cc1b6821fc5114cd6841ae59f652a85488c016091e5f"
-dependencies = [
- "cfg-if",
- "getopts",
- "libc",
- "num_cpus",
- "term",
 ]
 
 [[package]]

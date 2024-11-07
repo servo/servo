@@ -12,5 +12,5 @@ declare_lint! {
 }
 
 pub fn register(lint_store: &mut LintStore) {
-    lint_store.register_lints(&[&CROWN_IS_NOT_USED]);
+    lint_store.register_lints(&[CROWN_IS_NOT_USED]);
 }

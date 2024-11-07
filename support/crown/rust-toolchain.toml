@@ -1,5 +1,4 @@
 [toolchain]
-# Be sure to update etc/shell.nix and support/crown/rust-toolchain.toml when bumping this!
 channel = "1.80.1"
 
 components = [
@@ -8,8 +7,6 @@ components = [
     "llvm-tools",
     # For support/crown
     "rustc-dev",
-    # For docs building
-    "rust-docs",
     # For formatting
     "rustfmt",
 ]

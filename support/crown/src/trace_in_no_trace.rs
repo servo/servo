@@ -34,7 +34,7 @@ empty Traceable (like primitive types). Consider removing the wrapper.";
 
 pub fn register(lint_store: &mut LintStore) {
     let symbols = Symbols::new();
-    lint_store.register_lints(&[&TRACE_IN_NO_TRACE, &EMPTY_TRACE_IN_NO_TRACE]);
+    lint_store.register_lints(&[TRACE_IN_NO_TRACE, EMPTY_TRACE_IN_NO_TRACE]);
     lint_store.register_late_pass(move |_| Box::new(NotracePass::new(symbols.clone())));
 }
 
@@ -175,6 +175,7 @@ impl<'tcx> LateLintPass<'tcx> for NotracePass {
     }
 
     fn check_variant(&mut self, cx: &LateContext, var: &hir::Variant) {
+        #[allow(clippy::single_match)]
         match var.data {
             hir::VariantData::Tuple(fields, ..) => {
                 for field in fields {
