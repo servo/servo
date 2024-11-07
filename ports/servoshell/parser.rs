@@ -10,6 +10,7 @@ use servo::servo_config::pref;
 use servo::servo_url::ServoUrl;
 use url::{self, Url};
 
+#[cfg(not(any(target_os = "android", target_env = "ohos")))]
 pub fn parse_url_or_filename(cwd: &Path, input: &str) -> Result<ServoUrl, ()> {
     match ServoUrl::parse(input) {
         Ok(url) => Ok(url),
@@ -20,6 +21,7 @@ pub fn parse_url_or_filename(cwd: &Path, input: &str) -> Result<ServoUrl, ()> {
     }
 }
 
+#[cfg(not(any(target_os = "android", target_env = "ohos")))]
 pub fn get_default_url(
     url_opt: Option<&str>,
     cwd: impl AsRef<Path>,

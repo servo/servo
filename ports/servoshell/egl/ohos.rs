@@ -34,12 +34,8 @@ use super::servo_glue::ServoGlue;
 mod resources;
 mod simpleservo;
 
-// Todo: in the future these libraries should be added by Rust sys-crates
+// Can be removed once <https://github.com/ohos-rs/ohos-rs/pull/105> is merged / released.
 #[link(name = "ace_napi.z")]
-#[link(name = "ace_ndk.z")]
-#[link(name = "hilog_ndk.z")]
-#[link(name = "native_window")]
-#[link(name = "clang_rt.builtins", kind = "static")]
 extern "C" {}
 
 #[napi(object)]
