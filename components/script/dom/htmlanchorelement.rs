@@ -609,7 +609,7 @@ impl Activatable for HTMLAnchorElement {
         if let Some(element) = target.downcast::<Element>() {
             if target.is::<HTMLImageElement>() && element.has_attribute(&local_name!("ismap")) {
                 let target_node = element.upcast::<Node>();
-                let rect = target_node.bounding_content_box_or_zero(CanGc::note());
+                let rect = target_node.bounding_content_box_or_zero();
                 ismap_suffix = Some(format!(
                     "?{},{}",
                     mouse_event.ClientX().to_f32().unwrap() - rect.origin.x.to_f32_px(),

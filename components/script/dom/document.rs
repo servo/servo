@@ -249,6 +249,12 @@ pub enum DeclarativeRefresh {
     CreatedAfterLoad,
 }
 
+#[derive(JSTraceable, MallocSizeOf)]
+pub enum FontsState {
+    Unfulfilled(bool),
+    Fulfilled(Dom<FontFaceSet>),
+}
+
 /// <https://dom.spec.whatwg.org/#document>
 #[dom_struct]
 pub struct Document {
@@ -480,6 +486,7 @@ pub struct Document {
     /// - <https://bugzilla.mozilla.org/show_bug.cgi?id=1596992>
     /// - <https://github.com/w3c/csswg-drafts/issues/4518>
     resize_observers: DomRefCell<Vec<Dom<ResizeObserver>>>,
+    fonts_state: DomRefCell<FontsState>,
     /// The set of all fonts loaded by this document.
     /// <https://drafts.csswg.org/css-font-loading/#font-face-source>
     fonts: MutNullableDom<FontFaceSet>,
@@ -694,7 +701,7 @@ impl Document {
         self.activity.get() != DocumentActivity::Inactive
     }
 
-    pub fn set_activity(&self, activity: DocumentActivity, can_gc: CanGc) {
+    pub fn set_activity(&self, activity: DocumentActivity) {
         // This function should only be called on documents with a browsing context
         assert!(self.has_browsing_context);
         if activity == self.activity.get() {
@@ -716,11 +723,8 @@ impl Document {
 
         self.title_changed();
         self.dirty_all_nodes();
-        self.window().reflow(
-            ReflowGoal::Full,
-            ReflowReason::CachedPageNeededReflow,
-            can_gc,
-        );
+        self.window()
+            .reflow(ReflowGoal::Full, ReflowReason::CachedPageNeededReflow);
         self.window().resume();
         media.resume(&client_context_id);
 
@@ -909,7 +913,7 @@ impl Document {
     }
 
     /// Reflows and disarms the timer if the reflow timer has expired.
-    pub fn reflow_if_reflow_timer_expired(&self, can_gc: CanGc) {
+    pub fn reflow_if_reflow_timer_expired(&self) {
         let Some(reflow_timeout) = self.reflow_timeout.get() else {
             return;
         };
@@ -920,7 +924,7 @@ impl Document {
 
         self.reflow_timeout.set(None);
         self.window
-            .reflow(ReflowGoal::Full, ReflowReason::RefreshTick, can_gc);
+            .reflow(ReflowGoal::Full, ReflowReason::RefreshTick);
     }
 
     /// Schedules a reflow to be kicked off at the given [`Duration`] in the future. This reflow
@@ -1022,11 +1026,11 @@ impl Document {
     /// Scroll to the target element, and when we do not find a target
     /// and the fragment is empty or "top", scroll to the top.
     /// <https://html.spec.whatwg.org/multipage/#scroll-to-the-fragment-identifier>
-    pub fn check_and_scroll_fragment(&self, fragment: &str, can_gc: CanGc) {
+    pub fn check_and_scroll_fragment(&self, fragment: &str) {
         let target = self.find_fragment_node(fragment);
 
         // Step 1
-        self.set_target_element(target.as_deref(), can_gc);
+        self.set_target_element(target.as_deref());
 
         let point = target
             .as_ref()
@@ -1035,9 +1039,7 @@ impl Document {
                 // inside other scrollable containers. Ideally this should use an implementation of
                 // `scrollIntoView` when that is available:
                 // See https://github.com/servo/servo/issues/24059.
-                let rect = element
-                    .upcast::<Node>()
-                    .bounding_content_box_or_zero(can_gc);
+                let rect = element.upcast::<Node>().bounding_content_box_or_zero();
 
                 // In order to align with element edges, we snap to unscaled pixel boundaries, since
                 // the paint thread currently does the same for drawing elements. This is important
@@ -1061,7 +1063,7 @@ impl Document {
 
         if let Some((x, y)) = point {
             self.window
-                .scroll(x as f64, y as f64, ScrollBehavior::Instant, can_gc)
+                .scroll(x as f64, y as f64, ScrollBehavior::Instant)
         }
     }
 
@@ -1193,7 +1195,7 @@ impl Document {
 
             // Notify the embedder to display an input method.
             if let Some(kind) = elem.input_method_type() {
-                let rect = elem.upcast::<Node>().bounding_content_box_or_zero(can_gc);
+                let rect = elem.upcast::<Node>().bounding_content_box_or_zero();
                 let rect = Rect::new(
                     Point2D::new(rect.origin.x.to_px(), rect.origin.y.to_px()),
                     Size2D::new(rect.size.width.to_px(), rect.size.height.to_px()),
@@ -2097,7 +2099,7 @@ impl Document {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#run-the-animation-frame-callbacks>
-    pub fn run_the_animation_frame_callbacks(&self, can_gc: CanGc) {
+    pub fn run_the_animation_frame_callbacks(&self) {
         rooted_vec!(let mut animation_frame_list);
         mem::swap(
             &mut *animation_frame_list,
@@ -2116,11 +2118,9 @@ impl Document {
 
         self.running_animation_callbacks.set(false);
 
-        let spurious = !self.window.reflow(
-            ReflowGoal::Full,
-            ReflowReason::RequestAnimationFrame,
-            can_gc,
-        );
+        let spurious = !self
+            .window
+            .reflow(ReflowGoal::Full, ReflowReason::RequestAnimationFrame);
 
         if spurious && !was_faking_animation_frames {
             // If the rAF callbacks did not mutate the DOM, then the
@@ -2250,7 +2250,7 @@ impl Document {
                     self.reflow_timeout.set(None);
                     self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
                     self.window
-                        .reflow(ReflowGoal::Full, ReflowReason::FirstLoad, can_gc);
+                        .reflow(ReflowGoal::Full, ReflowReason::FirstLoad);
                 }
 
                 // Deferred scripts have to wait for page to finish loading,
@@ -2482,7 +2482,7 @@ impl Document {
                     update_with_current_instant(&document.load_event_end);
 
                     if let Some(fragment) = document.url().fragment() {
-                        document.check_and_scroll_fragment(fragment, CanGc::note());
+                        document.check_and_scroll_fragment(fragment);
                     }
                 }),
                 self.window.upcast(),
@@ -3059,14 +3059,12 @@ impl Document {
     pub(crate) fn gather_active_resize_observations_at_depth(
         &self,
         depth: &ResizeObservationDepth,
-        can_gc: CanGc,
     ) -> bool {
         let mut has_active_resize_observations = false;
         for observer in self.resize_observers.borrow_mut().iter_mut() {
             observer.gather_active_resize_observations_at_depth(
                 depth,
                 &mut has_active_resize_observations,
-                can_gc,
             );
         }
         has_active_resize_observations
@@ -3438,9 +3436,21 @@ impl Document {
             pending_compositor_events: Default::default(),
             mouse_move_event_index: Default::default(),
             resize_observers: Default::default(),
+            fonts_state: DomRefCell::new(FontsState::Unfulfilled(false)),
             fonts: Default::default(),
             visibility_state: Cell::new(DocumentVisibilityState::Hidden),
             status_code,
+        }
+    }
+
+    pub(crate) fn update_fonts_state(&self) {
+        match *self.fonts_state.borrow() {
+            FontsState::Unfulfilled(_) => {
+                *self.fonts_state.borrow_mut() = FontsState::Unfulfilled(true);
+            },
+            FontsState::Fulfilled(ref fonts) => {
+                fonts.fulfill_ready_promise_if_needed();
+            },
         }
     }
 
@@ -3457,10 +3467,10 @@ impl Document {
     }
 
     /// As part of a `update_the_rendering` task, tick all pending animations.
-    pub fn tick_all_animations(&self, should_run_rafs: bool, can_gc: CanGc) {
+    pub fn tick_all_animations(&self, should_run_rafs: bool) {
         let tick_type = mem::take(&mut *self.pending_animation_ticks.borrow_mut());
         if should_run_rafs {
-            self.run_the_animation_frame_callbacks(can_gc);
+            self.run_the_animation_frame_callbacks();
         }
         if tick_type.contains(AnimationTickType::CSS_ANIMATIONS_AND_TRANSITIONS) {
             self.maybe_mark_animating_nodes_as_dirty();
@@ -3852,7 +3862,7 @@ impl Document {
         self.referrer_policy.get()
     }
 
-    pub fn set_target_element(&self, node: Option<&Element>, can_gc: CanGc) {
+    pub fn set_target_element(&self, node: Option<&Element>) {
         if let Some(ref element) = self.target_element.get() {
             element.set_target_state(false);
         }
@@ -3864,7 +3874,7 @@ impl Document {
         }
 
         self.window
-            .reflow(ReflowGoal::Full, ReflowReason::ElementStateChanged, can_gc);
+            .reflow(ReflowGoal::Full, ReflowReason::ElementStateChanged);
     }
 
     pub fn incr_ignore_destructive_writes_counter(&self) {
@@ -5301,34 +5311,22 @@ impl DocumentMethods for Document {
     );
 
     // https://drafts.csswg.org/cssom-view/#dom-document-elementfrompoint
-    fn ElementFromPoint(
-        &self,
-        x: Finite<f64>,
-        y: Finite<f64>,
-        can_gc: CanGc,
-    ) -> Option<DomRoot<Element>> {
+    fn ElementFromPoint(&self, x: Finite<f64>, y: Finite<f64>) -> Option<DomRoot<Element>> {
         self.document_or_shadow_root.element_from_point(
             x,
             y,
             self.GetDocumentElement(),
             self.has_browsing_context,
-            can_gc,
         )
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-document-elementsfrompoint
-    fn ElementsFromPoint(
-        &self,
-        x: Finite<f64>,
-        y: Finite<f64>,
-        can_gc: CanGc,
-    ) -> Vec<DomRoot<Element>> {
+    fn ElementsFromPoint(&self, x: Finite<f64>, y: Finite<f64>) -> Vec<DomRoot<Element>> {
         self.document_or_shadow_root.elements_from_point(
             x,
             y,
             self.GetDocumentElement(),
             self.has_browsing_context,
-            can_gc,
         )
     }
 
@@ -5593,9 +5591,15 @@ impl DocumentMethods for Document {
     }
 
     // https://drafts.csswg.org/css-font-loading/#font-face-source
-    fn Fonts(&self, can_gc: CanGc) -> DomRoot<FontFaceSet> {
-        self.fonts
-            .or_init(|| FontFaceSet::new(&self.global(), None, can_gc))
+    fn Fonts(&self) -> DomRoot<FontFaceSet> {
+        match *self.fonts_state.borrow() {
+            FontsState::Unfulfilled(is_ready) => {
+                let fonts = FontFaceSet::new(&self.global(), None, is_ready);
+                *self.fonts_state.borrow_mut() = FontsState::Fulfilled(Dom::from_ref(&fonts));
+                fonts
+            },
+            FontsState::Fulfilled(ref fonts) => DomRoot::from_ref(fonts),
+        }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-document-hidden>
@@ -5658,9 +5662,9 @@ pub struct FakeRequestAnimationFrameCallback {
 }
 
 impl FakeRequestAnimationFrameCallback {
-    pub fn invoke(self, can_gc: CanGc) {
+    pub fn invoke(self) {
         let document = self.document.root();
-        document.run_the_animation_frame_callbacks(can_gc);
+        document.run_the_animation_frame_callbacks();
     }
 }
 

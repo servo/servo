@@ -285,16 +285,16 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-filltext
-    fn FillText(&self, text: DOMString, x: f64, y: f64, max_width: Option<f64>, can_gc: CanGc) {
+    fn FillText(&self, text: DOMString, x: f64, y: f64, max_width: Option<f64>) {
         self.canvas_state
-            .fill_text(self.canvas.as_deref(), text, x, y, max_width, can_gc);
+            .fill_text(self.canvas.as_deref(), text, x, y, max_width);
         self.mark_as_dirty();
     }
 
     // https://html.spec.whatwg.org/multipage/#textmetrics
-    fn MeasureText(&self, text: DOMString, can_gc: CanGc) -> DomRoot<TextMetrics> {
+    fn MeasureText(&self, text: DOMString) -> DomRoot<TextMetrics> {
         self.canvas_state
-            .measure_text(&self.global(), self.canvas.as_deref(), text, can_gc)
+            .measure_text(&self.global(), self.canvas.as_deref(), text)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-font
@@ -303,9 +303,8 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-font
-    fn SetFont(&self, value: DOMString, can_gc: CanGc) {
-        self.canvas_state
-            .set_font(self.canvas.as_deref(), value, can_gc)
+    fn SetFont(&self, value: DOMString) {
+        self.canvas_state.set_font(self.canvas.as_deref(), value)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-textalign
@@ -452,9 +451,9 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-strokestyle
-    fn SetStrokeStyle(&self, value: StringOrCanvasGradientOrCanvasPattern, can_gc: CanGc) {
+    fn SetStrokeStyle(&self, value: StringOrCanvasGradientOrCanvasPattern) {
         self.canvas_state
-            .set_stroke_style(self.canvas.as_deref(), value, can_gc)
+            .set_stroke_style(self.canvas.as_deref(), value)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-strokestyle
@@ -463,9 +462,9 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-strokestyle
-    fn SetFillStyle(&self, value: StringOrCanvasGradientOrCanvasPattern, can_gc: CanGc) {
+    fn SetFillStyle(&self, value: StringOrCanvasGradientOrCanvasPattern) {
         self.canvas_state
-            .set_fill_style(self.canvas.as_deref(), value, can_gc)
+            .set_fill_style(self.canvas.as_deref(), value)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-createimagedata
@@ -657,9 +656,9 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-shadowcolor
-    fn SetShadowColor(&self, value: DOMString, can_gc: CanGc) {
+    fn SetShadowColor(&self, value: DOMString) {
         self.canvas_state
-            .set_shadow_color(self.canvas.as_deref(), value, can_gc)
+            .set_shadow_color(self.canvas.as_deref(), value)
     }
 }
 
