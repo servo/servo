@@ -141,6 +141,7 @@ impl Build {
                 let type_name = self.path_to_name(path_stack.iter().chain(iter::once(name)));
                 quote! {
                     #[serde(flatten)]
+                    #[serde(default)]
                     pub #name: #type_name
                 }
             },
