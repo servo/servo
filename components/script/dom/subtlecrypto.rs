@@ -343,27 +343,24 @@ impl SubtleCryptoMethods for SubtleCrypto {
         comp: InRealm,
         can_gc: CanGc,
     ) -> Rc<Promise> {
-        let normalized_algorithm = normalize_algorithm(cx, &algorithm, "generateKey");
         let promise = Promise::new_in_current_realm(comp, can_gc);
-        if let Err(e) = normalized_algorithm {
-            promise.reject_error(e);
-            return promise;
-        }
+        let normalized_algorithm = match normalize_algorithm_for_generate_key(cx, &algorithm) {
+            Ok(algorithm) => algorithm,
+            Err(e) => {
+                promise.reject_error(e);
+                return promise;
+            },
+        };
 
         let (task_source, canceller) = self.task_source_with_canceller();
         let this = Trusted::new(self);
         let trusted_promise = TrustedPromise::new(promise.clone());
-        let alg = normalized_algorithm.clone();
         let _ = task_source.queue_with_canceller(
             task!(generate_key: move || {
                 let subtle = this.root();
                 let promise = trusted_promise.root();
-                let key = match alg {
-                    Ok(NormalizedAlgorithm::AesKeyGenParams(key_gen_params)) => {
-                        subtle.generate_key_aes(key_usages, key_gen_params, extractable)
-                    },
-                    _ => Err(Error::NotSupported),
-                };
+                let key = normalized_algorithm.generate_key(&subtle, key_usages, extractable);
+
                 match key {
                     Ok(key) => promise.resolve_native(&key),
                     Err(e) => promise.reject_error(e),
@@ -860,6 +857,13 @@ enum EncryptionAlgorithm {
     AesCtr(SubtleAesCtrParams),
 }
 
+/// A normalized algorithm returned by [`normalize_algorithm`] with operation `"generateKey"`
+///
+/// [`normalize_algorithm`]: https://w3c.github.io/webcrypto/#algorithm-normalization-normalize-an-algorithm
+enum KeyGenerationAlgorithm {
+    Aes(SubtleAesKeyGenParams),
+}
+
 macro_rules! value_from_js_object {
     ($t: ty, $cx: ident, $value: ident) => {{
         let params_result = <$t>::new($cx, $value.handle()).map_err(|_| Error::Operation)?;
@@ -1019,6 +1023,34 @@ fn normalize_algorithm_for_encrypt_or_decrypt(
     Ok(normalized_algorithm)
 }
 
+/// <https://w3c.github.io/webcrypto/#algorithm-normalization-normalize-an-algorithm> with operation `"generateKey"`
+#[allow(unsafe_code)]
+fn normalize_algorithm_for_generate_key(
+    cx: JSContext,
+    algorithm: &AlgorithmIdentifier,
+) -> Result<KeyGenerationAlgorithm, Error> {
+    let AlgorithmIdentifier::Object(obj) = algorithm else {
+        // All algorithms that support "generateKey" require additional parameters
+        return Err(Error::NotSupported);
+    };
+
+    rooted!(in(*cx) let value = ObjectValue(unsafe { *obj.get_unsafe() }));
+    let Ok(ConversionResult::Success(algorithm)) = Algorithm::new(cx, value.handle()) else {
+        return Err(Error::Syntax);
+    };
+
+    let name = algorithm.name.str();
+    let normalized_algorithm =
+        if name.eq_ignore_ascii_case(ALG_AES_CBC) | name.eq_ignore_ascii_case(ALG_AES_CTR) {
+            let params = value_from_js_object!(AesKeyGenParams, cx, value);
+            KeyGenerationAlgorithm::Aes(params.into())
+        } else {
+            return Err(Error::NotSupported);
+        };
+
+    Ok(normalized_algorithm)
+}
+
 /// <https://w3c.github.io/webcrypto/#algorithm-normalization-normalize-an-algorithm>
 #[allow(unsafe_code)]
 fn normalize_algorithm(
@@ -1055,14 +1087,6 @@ fn normalize_algorithm(
                         return Err(Error::Syntax);
                     };
                     NormalizedAlgorithm::AesCtrParams(params.into())
-                },
-                (ALG_AES_CBC, "generateKey") | (ALG_AES_CTR, "generateKey") => {
-                    let params_result =
-                        AesKeyGenParams::new(cx, value.handle()).map_err(|_| Error::Operation)?;
-                    let ConversionResult::Success(params) = params_result else {
-                        return Err(Error::Syntax);
-                    };
-                    NormalizedAlgorithm::AesKeyGenParams(params.into())
                 },
                 _ => return Err(Error::NotSupported),
             };
@@ -1199,7 +1223,7 @@ impl SubtleCrypto {
     fn generate_key_aes(
         &self,
         usages: Vec<KeyUsage>,
-        key_gen_params: SubtleAesKeyGenParams,
+        key_gen_params: &SubtleAesKeyGenParams,
         extractable: bool,
     ) -> Result<DomRoot<CryptoKey>, Error> {
         let mut rand = vec![0; key_gen_params.length as usize];
@@ -1587,6 +1611,20 @@ impl EncryptionAlgorithm {
             Self::AesCtr(key_gen_params) => {
                 subtle.encrypt_decrypt_aes_ctr(key_gen_params, key, data, cx, result)
             },
+        }
+    }
+}
+
+impl KeyGenerationAlgorithm {
+    // FIXME: This doesn't really need the "SubtleCrypto" argument
+    fn generate_key(
+        &self,
+        subtle: &SubtleCrypto,
+        usages: Vec<KeyUsage>,
+        extractable: bool,
+    ) -> Result<DomRoot<CryptoKey>, Error> {
+        match self {
+            Self::Aes(params) => subtle.generate_key_aes(usages, params, extractable),
         }
     }
 }
