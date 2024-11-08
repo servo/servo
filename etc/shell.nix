@@ -92,52 +92,17 @@ stdenv.mkDerivation (androidEnvironment // {
     # See https://github.com/servo/mozjs/issues/375
     pkgs_gnumake_4_3.gnumake
 
-    # crown needs to be in our Cargo workspace so we can test it with `mach test`. This means its
-    # dependency tree is listed in the main Cargo.lock, making it awkward to build with Nix because
-    # all of Servo’s dependencies get pulled into the Nix store too, wasting over 1GB of disk space.
-    # Filtering the lockfile to only the parts needed by crown saves space and builds faster.
-    (let
-
-      # Build and run filterlock over the main Cargo.lock.
-      filteredLockFile = (clangStdenv.mkDerivation {
-        name = "lock";
-        buildInputs = [ rustToolchain ];
-        nativeBuildInputs = [ rustPlatform.cargoSetupHook ];
-        src = ../support/filterlock;
-        cargoDeps = rustPlatform.importCargoLock {
-          lockFile = ../support/filterlock/Cargo.lock;
-        };
-        buildPhase = ''
-          > $out cargo run --offline -- ${../Cargo.lock} crown
-        '';
-        dontInstall = true;
-      });
-    in (rustPlatform.buildRustPackage {
+    (rustPlatform.buildRustPackage {
       name = "crown";
       src = ../support/crown;
       doCheck = false;
       cargoLock = {
-        lockFileContents = builtins.readFile filteredLockFile;
-
-        # Needed when not filtering (filteredLockFile = ../Cargo.lock), else we’ll get errors like
-        # “error: No hash was found while vendoring the git dependency blurmac-0.1.0.”
-        # allowBuiltinFetchGit = true;
+        # crown is not in our Cargo workspace, so this only pulls crown and crown’s dependencies
+        # into the Nix store, not Servo and Servo’s dependencies.
+        lockFile = ../support/crown/Cargo.lock;
       };
-
-      # Copy the filtered lockfile, making it writable by cargo --offline.
-      postPatch = ''
-        install -m 644 ${filteredLockFile} Cargo.lock
-      '';
-
-      # Reformat the filtered lockfile, so that cargo --frozen won’t complain
-      # about the lockfile being dirty.
-      # TODO maybe this can be avoided by using toml_edit in filterlock?
-      preConfigure = ''
-        cargo update --offline
-      '';
-
       RUSTC_BOOTSTRAP = "crown";
-    }))
+    })
   ] ++ (lib.optionals stdenv.isDarwin [
     darwin.apple_sdk.frameworks.AppKit
   ]) ++ (lib.optionals buildAndroid [

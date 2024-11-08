@@ -75,6 +75,16 @@ def format_toml_files_with_taplo(check_only: bool = True) -> int:
         return call([taplo, "fmt", *TOML_GLOBS], env={'RUST_LOG': 'error'})
 
 
+def format_with_rustfmt(check_only: bool = True) -> int:
+    maybe_check_only = ["--check"] if check_only else []
+    result = call(["cargo", "fmt", "--", *UNSTABLE_RUSTFMT_ARGUMENTS, *maybe_check_only])
+    if result != 0:
+        return result
+
+    return call(["cargo", "fmt", "--manifest-path", "support/crown/Cargo.toml",
+                 "--", *UNSTABLE_RUSTFMT_ARGUMENTS, *maybe_check_only])
+
+
 @CommandProvider
 class MachCommands(CommandBase):
     DEFAULT_RENDER_MODE = "cpu"
@@ -153,7 +163,6 @@ class MachCommands(CommandBase):
             "base",
             "compositing",
             "constellation",
-            "crown",
             "fonts",
             "hyper_serde",
             "layout_2013",
@@ -205,6 +214,9 @@ class MachCommands(CommandBase):
             args += ["--", "--nocapture"]
 
         env = self.build_env()
+        result = call(["cargo", "bench" if bench else "test"], cwd="support/crown")
+        if result != 0:
+            return result
         return self.run_cargo_build_like_command(
             "bench" if bench else "test",
             args,
@@ -231,7 +243,7 @@ class MachCommands(CommandBase):
         tidy_failed = tidy.scan(not all_files, not no_progress)
 
         print("\r ➤  Checking formatting of Rust files...")
-        rustfmt_failed = call(["cargo", "fmt", "--", *UNSTABLE_RUSTFMT_ARGUMENTS, "--check"])
+        rustfmt_failed = format_with_rustfmt(check_only=True)
         if rustfmt_failed:
             print("Run `./mach fmt` to fix the formatting")
 
@@ -344,7 +356,7 @@ class MachCommands(CommandBase):
         if result != 0:
             return result
 
-        return call(["cargo", "fmt", "--", *UNSTABLE_RUSTFMT_ARGUMENTS])
+        return format_with_rustfmt(check_only=False)
 
     @Command('update-wpt',
              description='Update the web platform tests',
