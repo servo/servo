@@ -11,7 +11,7 @@ use style::computed_values::position::T as ComputedPosition;
 use style::logical_geometry::WritingMode;
 use style::properties::style_structs::Border;
 use style::properties::ComputedValues;
-use style::values::computed::{BorderStyle, Color, LengthPercentage, LengthPercentageOrAuto};
+use style::values::computed::{BorderStyle, Color};
 use style::Zero;
 
 use super::{BaseFragment, BaseFragmentInfo, CollapsedBlockMargins, Fragment};
