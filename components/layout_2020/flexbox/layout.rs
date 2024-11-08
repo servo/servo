@@ -1864,8 +1864,11 @@ impl FlexItem<'_> {
             }),
         };
 
-        let ifc = &mut self.box_.independent_formatting_context;
-        let item_writing_mode = ifc.style().writing_mode;
+        let item_writing_mode = self
+            .box_
+            .independent_formatting_context
+            .style()
+            .writing_mode;
         let item_is_horizontal = item_writing_mode.is_horizontal();
         let flex_axis = flex_context.config.flex_axis;
         let cross_axis_is_item_block_axis = cross_axis_is_item_block_axis(
@@ -1884,7 +1887,9 @@ impl FlexItem<'_> {
                             item_writing_mode,
                             AuOrAuto::LengthPercentage(used_main_size),
                         );
-                    let content_contributions = ifc
+                    let content_contributions = self
+                        .box_
+                        .independent_formatting_context
                         .inline_content_sizes(
                             flex_context.layout_context,
                             &containing_block_for_children,
@@ -1914,7 +1919,7 @@ impl FlexItem<'_> {
         };
 
         let container_writing_mode = containing_block.style.writing_mode;
-        match ifc {
+        match &self.box_.independent_formatting_context {
             IndependentFormattingContext::Replaced(replaced) => {
                 let size = replaced
                     .contents
@@ -2016,6 +2021,8 @@ impl FlexItem<'_> {
                     &item_as_containing_block,
                     containing_block,
                 );
+                let depends_on_block_constraints = depends_on_block_constraints ||
+                    (flex_axis == FlexAxis::Row && self.stretches());
 
                 let has_child_which_depends_on_block_constraints = fragments.iter().any(|fragment| {
                         fragment.base().map_or(false,|base|
@@ -2026,7 +2033,7 @@ impl FlexItem<'_> {
                 let item_writing_mode_is_orthogonal_to_container_writing_mode =
                     flex_context.config.writing_mode.is_horizontal() !=
                         non_replaced.style.writing_mode.is_horizontal();
-                let has_compatible_baseline = match flex_context.config.flex_axis {
+                let has_compatible_baseline = match flex_axis {
                     FlexAxis::Row => !item_writing_mode_is_orthogonal_to_container_writing_mode,
                     FlexAxis::Column => item_writing_mode_is_orthogonal_to_container_writing_mode,
                 };
