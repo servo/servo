@@ -10,7 +10,7 @@ use cfg_if::cfg_if;
 static RES: LazyLock<RwLock<Option<Box<dyn ResourceReaderMethods + Sync + Send>>>> =
     LazyLock::new(|| {
         cfg_if! {
-            if #[cfg(servo_production)] {
+            if #[cfg(any(servo_production, target_env = "ohos"))] {
                 RwLock::new(None)
             } else {
                 // Static assert that this is really a non-production build, rather
@@ -150,9 +150,9 @@ pub trait ResourceReaderMethods {
 ///
 /// Local non-production embedder builds (e.g. servoshell) can still override these with [`set`],
 /// if runtime loading of prefs.json and other resources is needed.
-///
-/// In theory this can be `#[cfg(servo_production)]`, but omitting the attribute ensures that the
-/// code is always checked by the compiler, even if it later gets optimised out as dead code.
+/// On OpenHarmony we never want to include files, since we ship all the files in the application
+/// bundle anyway.
+#[cfg(not(any(servo_production, target_env = "ohos")))]
 fn resources_for_tests() -> Box<dyn ResourceReaderMethods + Sync + Send> {
     struct ResourceReader;
     impl ResourceReaderMethods for ResourceReader {
